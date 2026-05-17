@@ -456,14 +456,24 @@ type RunnerHeartbeat struct {
 	// Current operational phase as reported by the runner.
 	// Typically READY (accepting work) or BUSY (at capacity).
 	Phase RunnerPhase `protobuf:"varint,2,opt,name=phase,proto3,enum=ai.stigmer.agentic.runner.v1.RunnerPhase" json:"phase,omitempty"`
-	// Number of executions currently in progress on this runner.
+	// Number of executions currently in progress on this runner process.
 	CurrentExecutions int32 `protobuf:"varint,3,opt,name=current_executions,json=currentExecutions,proto3" json:"current_executions,omitempty"`
 	// Self-reported machine information. Sent on every heartbeat so that
 	// version upgrades and hostname changes are reflected without requiring
 	// a full resource update.
 	ConnectionInfo *RunnerConnectionInfo `protobuf:"bytes,4,opt,name=connection_info,json=connectionInfo,proto3" json:"connection_info,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Identifies which runner process is sending this heartbeat.
+	//
+	// In a multi-process sandbox, all three runner processes share the same
+	// runner_id but report independently. The server aggregates activity
+	// across all process types to determine when the sandbox is idle.
+	//
+	// Values: "agent" (Python), "cursor" (TypeScript), "workflow" (Go).
+	// Empty string is treated as "agent" for backward compatibility with
+	// existing single-process sandboxes.
+	ProcessType   string `protobuf:"bytes,5,opt,name=process_type,json=processType,proto3" json:"process_type,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RunnerHeartbeat) Reset() {
@@ -522,6 +532,13 @@ func (x *RunnerHeartbeat) GetConnectionInfo() *RunnerConnectionInfo {
 		return x.ConnectionInfo
 	}
 	return nil
+}
+
+func (x *RunnerHeartbeat) GetProcessType() string {
+	if x != nil {
+		return x.ProcessType
+	}
+	return ""
 }
 
 // RunnerCommandRequest is a server-initiated command pushed to the runner
@@ -1392,12 +1409,13 @@ const file_ai_stigmer_agentic_runner_v1_io_proto_rawDesc = "" +
 	"\amessage\"\x85\x01\n" +
 	"\x19RunnerStreamServerMessage\x12]\n" +
 	"\x0fcommand_request\x18\x01 \x01(\v22.ai.stigmer.agentic.runner.v1.RunnerCommandRequestH\x00R\x0ecommandRequestB\t\n" +
-	"\amessage\"\xfb\x01\n" +
+	"\amessage\"\x9e\x02\n" +
 	"\x0fRunnerHeartbeat\x12\x1b\n" +
 	"\trunner_id\x18\x01 \x01(\tR\brunnerId\x12?\n" +
 	"\x05phase\x18\x02 \x01(\x0e2).ai.stigmer.agentic.runner.v1.RunnerPhaseR\x05phase\x12-\n" +
 	"\x12current_executions\x18\x03 \x01(\x05R\x11currentExecutions\x12[\n" +
-	"\x0fconnection_info\x18\x04 \x01(\v22.ai.stigmer.agentic.runner.v1.RunnerConnectionInfoR\x0econnectionInfo\"\xe4\x01\n" +
+	"\x0fconnection_info\x18\x04 \x01(\v22.ai.stigmer.agentic.runner.v1.RunnerConnectionInfoR\x0econnectionInfo\x12!\n" +
+	"\fprocess_type\x18\x05 \x01(\tR\vprocessType\"\xe4\x01\n" +
 	"\x14RunnerCommandRequest\x12\x1d\n" +
 	"\n" +
 	"request_id\x18\x01 \x01(\tR\trequestId\x12[\n" +

@@ -3,8 +3,11 @@ syntax = "proto3";
 package ai.stigmer.agentic.workflow.v1.tasks;
 
 import "ai/stigmer/agentic/agentexecution/v1/spec.proto";
+import "ai/stigmer/agentic/session/v1/enum.proto";
+import "ai/stigmer/agentic/workflow/v1/tasks/common.proto";
 import "ai/stigmer/commons/apiresource/field_options.proto";
 import "buf/validate/validate.proto";
+import "google/protobuf/struct.proto";
 
 // AgentCallTaskConfig defines the configuration for agent_call tasks that invoke AI agents.
 //
@@ -18,18 +21,43 @@ import "buf/validate/validate.proto";
 // The workflow's execution context (environment variables, secrets) is
 // passed to the agent invocation, allowing agents to access workflow state.
 //
-// YAML Example:
+// YAML Example (without structured output):
 //   - analyze:
 //       call: agent
 //       with:
-//         agent: "code-reviewer"           # Uses workflow's org
-//         # OR agent: "stigmer/code-reviewer"  # Explicit org reference
+//         agent: "code-reviewer"
 //         message: "Review this code: ${ $context.fetchCode.body }"
 //         env:
 //           GITHUB_TOKEN: "${ .secrets.GH_TOKEN }"
 //         config:
 //           model: "claude-3-5-sonnet"
 //           timeout: 300
+//
+// YAML Example (with structured output):
+//   - triage_ticket:
+//       call: agent
+//       with:
+//         agent: "support-triage"
+//         message: "${ .ticket.description }"
+//         output:
+//           schema:
+//             type: object
+//             required: [severity, category, customer_impact]
+//             properties:
+//               severity:
+//                 type: string
+//                 enum: [low, medium, high, critical]
+//               category:
+//                 type: string
+//               customer_impact:
+//                 type: boolean
+//               rationale:
+//                 type: string
+//           on_invalid: ON_INVALID_RETRY
+//           max_retries: 2
+//           fallback_task: human_review
+//       export:
+//         as: "${ .structured }"
 //
 // Reference: design doc at stigmer/_cursor/add-agent-config-to-workflow.md
 message AgentCallTaskConfig {
@@ -71,6 +99,124 @@ message AgentCallTaskConfig {
   // Execution configuration for the agent invocation.
   // Optional - defaults are applied if not specified.
   AgentExecutionConfig config = 5;
+
+  // Structured output contract for this agent call.
+  //
+  // When set, the workflow runner extracts structured JSON from the agent's
+  // final response and validates it against the declared schema. The validated
+  // JSON is placed in the task output under the "structured" key, enabling
+  // reliable downstream routing via switch_case expressions.
+  //
+  // When not set, the task output contains the agent's raw text response
+  // (backward compatible with existing workflows).
+  //
+  // @since T02 (Structured Agent Output Model)
+  AgentCallOutputContract output = 6;
+
+  // Execution harness for the agent invocation.
+  //
+  // Determines which execution engine processes the agent call:
+  // - HARNESS_UNSPECIFIED / HARNESS_NATIVE: Stigmer native engine (Python/LangGraph)
+  // - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor)
+  //
+  // The workflow-runner creates a Session with this harness before creating
+  // the AgentExecution. The harness is a session-level concern — it determines
+  // tool availability, state management, model access, and billing tier.
+  //
+  // When unspecified, defaults to HARNESS_NATIVE for backward compatibility.
+  //
+  // YAML Example:
+  //   - code_review:
+  //       call: agent
+  //       with:
+  //         agent: "code-reviewer"
+  //         harness: cursor
+  //         message: "Review this PR"
+  ai.stigmer.agentic.session.v1.Harness harness = 7;
+}
+
+// AgentCallOutputContract defines the structured output contract for an agent_call task.
+//
+// When configured, the workflow runner extracts structured JSON from the agent's
+// final response and validates it against the provided JSON Schema. The validated
+// JSON becomes the task's primary output under the "structured" key, accessible
+// via export expressions (e.g., export.as: "${ .structured }").
+//
+// This enables reliable downstream routing: switch_case can evaluate expressions
+// against typed fields (e.g., "${ $context.triage.severity == 'critical' }")
+// rather than parsing unstructured prose.
+//
+// The dual-channel output model populates WorkflowTask.output as:
+//   {
+//     "structured": { <validated JSON matching the schema> },
+//     "final_text": "<the agent's human-readable response>",
+//     "agent_execution_id": "<execution ID for drill-down>",
+//     "usage_summary": {
+//       "total_tokens": 4523,
+//       "estimated_cost_usd": 0.045,
+//       "tool_call_count": 3,
+//       "artifact_count": 1
+//     }
+//   }
+//
+// YAML Example:
+//   output:
+//     schema:
+//       type: object
+//       required: [severity, category, customer_impact]
+//       properties:
+//         severity:
+//           type: string
+//           enum: [low, medium, high, critical]
+//         category:
+//           type: string
+//         customer_impact:
+//           type: boolean
+//         rationale:
+//           type: string
+//     on_invalid: ON_INVALID_RETRY
+//     max_retries: 2
+//     fallback_task: human_review
+//
+// @since T02 (Structured Agent Output Model)
+message AgentCallOutputContract {
+  // JSON Schema that the agent's structured output must conform to.
+  //
+  // Standard JSON Schema (draft 2020-12 or compatible). The workflow runner
+  // extracts JSON from the agent's final response and validates it against
+  // this schema. If validation fails, the on_invalid policy determines
+  // what happens next.
+  //
+  // The schema is carried as a google.protobuf.Struct to preserve the
+  // existing kind+Struct envelope pattern and allow YAML authors to write
+  // standard JSON Schema inline without a Stigmer-specific schema language.
+  google.protobuf.Struct schema = 1 [(buf.validate.field).required = true];
+
+  // Policy when agent output fails schema validation.
+  // Default: ON_INVALID_FAIL (task fails immediately).
+  OnInvalidOutputPolicy on_invalid = 2;
+
+  // Maximum retry attempts when on_invalid is ON_INVALID_RETRY.
+  //
+  // Each retry re-prompts the agent with the specific validation errors and
+  // the expected schema, giving the agent an opportunity to self-correct.
+  //
+  // Only meaningful when on_invalid is ON_INVALID_RETRY; ignored otherwise.
+  // Default: 1. Valid range: 1-5.
+  int32 max_retries = 3 [
+    (buf.validate.field).int32.gte = 1,
+    (buf.validate.field).int32.lte = 5
+  ];
+
+  // Target task to branch to when schema validation cannot be resolved.
+  //
+  // Used in two scenarios:
+  // 1. on_invalid is ON_INVALID_RETRY and all retries are exhausted
+  // 2. on_invalid is ON_INVALID_FALLBACK (immediate branch, no retry)
+  //
+  // Must reference a valid task name in the same workflow.
+  // When empty and retries are exhausted, the task fails.
+  string fallback_task = 4;
 }
 
 // AgentExecutionConfig defines optional execution parameters for agent calls.
@@ -117,4 +263,14 @@ message AgentExecutionConfig {
   //       custom_trigger_threshold: 150000
   //       custom_target_tokens: 120000
   ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig context_management = 4;
+
+  // Per-agent-call cost cap in micro-USD (1 USD = 1,000,000 micros).
+  // When set, the runtime terminates this agent call if its accumulated cost
+  // exceeds this limit. This uses the workflow domain's micro-USD convention
+  // and provides per-task cost control at the workflow level.
+  // The runtime checks both: per-task limit first, then workflow remaining budget.
+  // Optional — when 0, no per-task cost limit is enforced.
+  //
+  // @since T05 (Workflow-Level Budget Primitives)
+  int64 max_cost_micros = 5;
 }

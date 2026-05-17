@@ -1,0 +1,28 @@
+kind: run_workflow
+display_name: "Run Workflow"
+description: "Execute a sub-workflow as a child of the current workflow."
+category: invocation
+icon: "workflow"
+is_ai_native: false
+requires_external_service: false
+documentation_url: "/docs/guides/workflow-tasks/run-workflow"
+
+output_schema:
+  type: object
+  description: "Output from the child workflow execution."
+
+field_groups:
+  - id: core
+    display_name: "Sub-Workflow"
+    fields: [workflow, input]
+
+yaml_examples:
+  - |
+    - run_enrichment:
+        run:
+          workflow: "data-enrichment"
+          input:
+            user_id: "${ $context.user.id }"
+            source: "parent_workflow"
+        export:
+          as: "${ . }"

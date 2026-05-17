@@ -58,9 +58,8 @@ later Environments override earlier ones for the same variable name:
 <Mermaid
   chart={`
 graph LR
-  E1["shared-config<br/>ORDER_API_URL=..."] --> Merged["Merged"]
+  E1["shared-config<br/>ORDER_API_URL=..."] --> Merged["Merged"] --> AI["Agent Instance"]
   E2["production-secrets<br/>ORDER_API_KEY=sk-prod-..."] --> Merged
-  Merged --> AI["Agent Instance"]
 `}
 />
 

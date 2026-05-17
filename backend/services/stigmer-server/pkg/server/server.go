@@ -63,10 +63,13 @@ import (
 
 	// Platform service imports
 	githubv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/platform/github/v1"
+	platformv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/platform/v1"
 	githubcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/github/controller"
+	platformcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/platform/controller"
 
 	// Search service imports
 	searchv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/search/v1"
+	taskkindregistry "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/registry"
 	agentinstanceclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agentinstance"
 	sessionclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/session"
 	workflowclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflow"
@@ -297,6 +300,7 @@ func Run() error {
 
 	// Create and register Workflow controller (with validator if Temporal available)
 	workflowController := workflowcontroller.NewWorkflowController(store, nil, workflowValidator)
+
 	workflowv1.RegisterWorkflowCommandControllerServer(grpcServer, workflowController)
 	workflowv1.RegisterWorkflowQueryControllerServer(grpcServer, workflowController)
 
@@ -372,6 +376,12 @@ func Run() error {
 	githubv1.RegisterGitHubServiceServer(grpcServer, ghController)
 
 	log.Info().Msg("Registered GitHubService controller")
+
+	// Create and register Platform controller (server info / edition detection)
+	platController := platformcontroller.NewPlatformController()
+	platformv1.RegisterPlatformQueryControllerServer(grpcServer, platController)
+
+	log.Info().Msg("Registered PlatformQueryController")
 
 	// ============================================================================
 	// CRITICAL: All services MUST be registered BEFORE starting the server
@@ -542,8 +552,16 @@ func Run() error {
 		grpcweb.WithWebsocketOriginFunc(func(r *http.Request) bool { return true }),
 	)
 
-	// Unified HTTP handler that routes between gRPC-Web, native gRPC, and 404.
+	// Task kind registry HTTP handler (static JSON, cacheable).
+	registryHandler := taskkindregistry.NewHandler()
+
+	// Unified HTTP handler that routes between REST proxy endpoints,
+	// gRPC-Web, native gRPC, and 404.
 	httpHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/v1/proxy/task-kind-registry" {
+			registryHandler.ServeHTTP(w, r)
+			return
+		}
 		if grpcWebWrapper.IsGrpcWebRequest(r) || grpcWebWrapper.IsAcceptableGrpcCorsRequest(r) || grpcWebWrapper.IsGrpcWebSocketRequest(r) {
 			grpcWebWrapper.ServeHTTP(w, r)
 			return

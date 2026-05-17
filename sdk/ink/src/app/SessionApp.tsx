@@ -17,6 +17,16 @@ export interface SessionAppProps {
   readonly apiKey?: string;
   /** Dynamic token provider for authentication. */
   readonly getAccessToken?: TokenProvider;
+  /**
+   * Default interaction mode for follow-up executions.
+   *
+   * - `"agent"` (default): full tool access.
+   * - `"plan"`: read-only analysis, no file mutations.
+   *
+   * When set, all follow-up executions in this session use this mode
+   * unless overridden by the user.
+   */
+  readonly mode?: "agent" | "plan";
 }
 
 /**
@@ -51,6 +61,7 @@ export function SessionApp({
   baseUrl,
   apiKey,
   getAccessToken,
+  mode,
 }: SessionAppProps) {
   const clientConfig: NodeClientConfig = { baseUrl, apiKey, getAccessToken };
 
@@ -67,7 +78,7 @@ export function SessionApp({
             Session {sessionId} · {org}
           </Text>
         </Box>
-        <SessionView sessionId={sessionId} org={org} />
+        <SessionView sessionId={sessionId} org={org} mode={mode} />
       </Box>
     </InkStigmerProvider>
   );

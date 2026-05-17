@@ -5,19 +5,19 @@
  * the content via the first user message (Cursor SDK has no systemPrompt
  * parameter). On reinvocation, only the approval decisions are sent.
  *
- * Sections (in order):
+ * Sections (in order, conditionally included):
  * 1. Agent instructions (persona/character)
  * 2. Available skills metadata
  * 3. Sub-agent delegation guidance
- * 4. Workspace context
+ * 4. Workspace context (multi-root only; single-dir is redundant with SDK cwd)
  * 5. Input files / referenced files
- * 6. Response rules
+ * 6. Response rules (only when agent has no custom instructions)
  * 7. User's actual message
  */
 
 import { resolve } from "node:path";
 import type { SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalAction, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 /**
  * Marker path segments that identify runner-internal directories. A workspace
@@ -45,6 +45,7 @@ export interface EnhancedPromptOptions {
   workspaceDirs: string[];
   workspaceFileRefs: string[];
   attachmentPaths: string[];
+  interactionMode?: InteractionMode;
 }
 
 /**
@@ -55,6 +56,11 @@ export interface EnhancedPromptOptions {
  */
 export function buildEnhancedPrompt(options: EnhancedPromptOptions): string {
   const sections: string[] = [];
+
+  const modePrefix = formatInteractionModePrefix(options.interactionMode);
+  if (modePrefix) {
+    sections.push(modePrefix);
+  }
 
   if (options.instructions) {
     sections.push(formatInstructions(options.instructions));
@@ -69,7 +75,7 @@ export function buildEnhancedPrompt(options: EnhancedPromptOptions): string {
   }
 
   const safeDirs = sanitizeWorkspaceDirs(options.workspaceDirs);
-  if (safeDirs.length > 0) {
+  if (safeDirs.length > 1) {
     sections.push(formatWorkspaceContext(safeDirs));
   }
 
@@ -81,7 +87,9 @@ export function buildEnhancedPrompt(options: EnhancedPromptOptions): string {
     sections.push(formatReferencedFiles(options.workspaceFileRefs));
   }
 
-  sections.push(formatResponseRules());
+  if (!options.instructions) {
+    sections.push(formatResponseRules());
+  }
 
   sections.push(`<user_request>\n${options.userMessage}\n</user_request>`);
 
@@ -225,6 +233,35 @@ export function formatReferencedFiles(refs: string[]): string {
     ...entries,
     "</referenced_files>",
   ].join("\n");
+}
+
+/**
+ * Returns a system-level directive when the execution is in Plan mode.
+ * Returns `undefined` for Agent mode (default) since no prefix is needed.
+ */
+export function formatInteractionModePrefix(
+  mode: InteractionMode | undefined,
+): string | undefined {
+  if (
+    mode == null ||
+    mode === InteractionMode.UNSPECIFIED ||
+    mode === InteractionMode.AGENT
+  ) {
+    return undefined;
+  }
+
+  if (mode === InteractionMode.PLAN) {
+    return [
+      "<interaction_mode>",
+      "IMPORTANT: You are in Plan mode. Analyze the codebase and produce a detailed plan.",
+      "Do NOT create, edit, or delete any files. Do NOT run commands that modify the filesystem.",
+      "Only read, search, and analyze. Your output should be analysis, recommendations, and",
+      "implementation plans — not code changes.",
+      "</interaction_mode>",
+    ].join("\n");
+  }
+
+  return undefined;
 }
 
 export function formatResponseRules(): string {

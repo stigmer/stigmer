@@ -1,4 +1,5 @@
 from ai.stigmer.agentic.workflowexecution.v1 import api_pb2 as _api_pb2
+from ai.stigmer.agentic.workflowexecution.v1 import event_pb2 as _event_pb2
 from ai.stigmer.agentic.workflowexecution.v1 import io_pb2 as _io_pb2
 from ai.stigmer.commons.apiresource import rpc_service_options_pb2 as _rpc_service_options_pb2
 from ai.stigmer.commons.rpc import method_options_pb2 as _method_options_pb2

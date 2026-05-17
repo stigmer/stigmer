@@ -102,6 +102,7 @@ func executeDraft(cfg draftConfig, opts draftOptions) error {
 		WorkspaceEntries: prep.WorkspaceEntries,
 		Model:            prep.Model,
 		AutoApproveAll:   prep.AutoApproveAll,
+		Mode:             prep.Mode,
 		Detach:           prep.Detach,
 		DownloadDir:      downloadDir,
 		OrgID:            prep.OrgID,

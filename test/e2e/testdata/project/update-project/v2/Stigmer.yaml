@@ -1,5 +1,0 @@
-name: update-project
-runtime: go
-main: main.go
-version: 0.2.0
-description: Project for testing updates - v2 (updated version)

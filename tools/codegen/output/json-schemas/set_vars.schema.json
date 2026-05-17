@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "variables": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Variables to set in workflow state. Keys are variable names, values can be literals or expressions. Expressions use ${...} syntax, e.g., \"${.a + .b}\" or \"${now}\"",
+      "type": "object"
+    }
+  },
+  "required": [
+    "variables"
+  ],
+  "title": "SetTaskConfig",
+  "type": "object"
+}

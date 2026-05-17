@@ -2,11 +2,18 @@
 
 package ai.stigmer.sdk.gen;
 
+import ai.stigmer.agentic.workflow.v1.GetTaskKindRegistryRequest;
+import ai.stigmer.agentic.workflow.v1.GetTaskKindRegistryResponse;
+import ai.stigmer.agentic.workflow.v1.TaskKindRegistryQueryControllerGrpc;
 import ai.stigmer.agentic.workflow.v1.Workflow;
 import ai.stigmer.agentic.workflow.v1.WorkflowCommandControllerGrpc;
 import ai.stigmer.agentic.workflow.v1.WorkflowId;
 import ai.stigmer.agentic.workflow.v1.WorkflowQueryControllerGrpc;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
+import ai.stigmer.commons.rpc.PageInfo;
+import ai.stigmer.search.v1.SearchRequest;
+import ai.stigmer.search.v1.SearchResponse;
+import ai.stigmer.search.v1.SearchServiceGrpc;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
 
@@ -14,10 +21,14 @@ import io.grpc.StatusRuntimeException;
 public final class WorkflowClient {
     private final WorkflowCommandControllerGrpc.WorkflowCommandControllerBlockingStub command;
     private final WorkflowQueryControllerGrpc.WorkflowQueryControllerBlockingStub query;
+    private final TaskKindRegistryQueryControllerGrpc.TaskKindRegistryQueryControllerBlockingStub taskKindRegistryQuery;
+    private final SearchServiceGrpc.SearchServiceBlockingStub search;
 
     WorkflowClient(Channel channel) {
         this.command = WorkflowCommandControllerGrpc.newBlockingStub(channel);
         this.query = WorkflowQueryControllerGrpc.newBlockingStub(channel);
+        this.taskKindRegistryQuery = TaskKindRegistryQueryControllerGrpc.newBlockingStub(channel);
+        this.search = SearchServiceGrpc.newBlockingStub(channel);
     }
 
     public Workflow apply(WorkflowInput input) {
@@ -53,6 +64,35 @@ public final class WorkflowClient {
     public Workflow getByReference(ResourceRef ref) {
         try {
             return query.getByReference(ref.toProto().toBuilder().setKind(ApiResourceKind.workflow).build());
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public GetTaskKindRegistryResponse getTaskKindRegistry(GetTaskKindRegistryRequest input) {
+        try {
+            return taskKindRegistryQuery.getTaskKindRegistry(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public ListResult list(ListParams params) {
+        try {
+            SearchRequest.Builder req = SearchRequest.newBuilder()
+                .addKinds(ApiResourceKind.workflow);
+            if (params.getOrg() != null) {
+                req.setOrg(params.getOrg());
+            }
+            if (params.getQuery() != null) {
+                req.setQuery(params.getQuery());
+            }
+            req.setExcludePublic(params.isExcludePublic());
+            req.setCrossOrgPublic(params.isCrossOrgPublic());
+            if (params.getPage() != null) {
+                req.setPage(PageInfo.newBuilder()
+                    .setNum(params.getPage().getNum())
+                    .setSize(params.getPage().getSize())
+                    .build());
+            }
+            SearchResponse resp = search.search(req.build());
+            return new ListResult(resp.getEntriesList(), resp.getTotalCount(), resp.getTotalPages());
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 }

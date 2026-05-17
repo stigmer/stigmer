@@ -8,52 +8,74 @@
  * State file format (JSON):
  * {
  *   "autoApproveAll": false,
- *   "approvedTools": [
- *     { "name": "Shell", "argsPreview": "rm -rf /tmp/data" }
- *   ]
+ *   "builtInAllowList": ["Read", "Grep", ...],
+ *   "mcpToolPolicies": {
+ *     "apply_cloud_resource": { "requiresApproval": true, "message": "..." },
+ *     "search_services": { "requiresApproval": false }
+ *   },
+ *   "approvedToolCallIds": ["toolu_abc123"]
  * }
  *
- * On first invocation: approvedTools is empty (tools needing approval are denied).
- * On reinvocation after approval: approvedTools contains the approved tools
- * (matched by name + args so the hook allows them through).
+ * On first invocation: approvedToolCallIds is empty (tools needing approval
+ * are denied). On reinvocation after approval: contains the IDs of approved
+ * tool calls so the hook allows them through on retry.
  */
 
 import { writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { MergedToolPolicy } from "./approval-policy.js";
+import { getBuiltInAllowList } from "./approval-policy.js";
 
-export interface ApprovedTool {
-  name: string;
-  argsPreview: string;
+export interface McpToolPolicyEntry {
+  requiresApproval: boolean;
+  message?: string;
 }
 
 export interface ApprovalStateFile {
   autoApproveAll: boolean;
-  approvedTools: ApprovedTool[];
+  builtInAllowList: string[];
+  mcpToolPolicies: Record<string, McpToolPolicyEntry>;
+  approvedToolCallIds: string[];
 }
 
 /**
- * Build the approval state from DB-stored approval decisions.
- * Called during the activity's setup phase before writing hooks.
+ * Build the approval state file content from merged policies and
+ * any approval decisions from a previous HITL cycle.
+ *
+ * The state file drives the hook script's allow/deny decisions:
+ * - builtInAllowList: Cursor built-in tools that are always allowed
+ * - mcpToolPolicies: per-tool policy for MCP tools (keyed by tool name)
+ * - approvedToolCallIds: tool call IDs approved in the current HITL cycle
  */
 export function buildApprovalState(
+  mergedPolicies: Map<string, MergedToolPolicy>,
+  autoApproveAll: boolean,
   decisions?: Map<string, ApprovalAction>,
 ): ApprovalStateFile {
-  const approvedTools: ApprovedTool[] = [];
+  const approvedToolCallIds: string[] = [];
 
   if (decisions) {
-    for (const [_toolCallId, action] of decisions) {
+    for (const [toolCallId, action] of decisions) {
       if (action === ApprovalAction.APPROVE) {
-        // TODO: resolve tool name and args from the tool_call_id via execution status
-        // For now, mark as approved (the hook will match by tool call ID)
-        approvedTools.push({ name: "*", argsPreview: "*" });
+        approvedToolCallIds.push(toolCallId);
       }
     }
   }
 
+  const mcpToolPolicies: Record<string, McpToolPolicyEntry> = {};
+  for (const policy of mergedPolicies.values()) {
+    mcpToolPolicies[policy.toolName] = {
+      requiresApproval: policy.requiresApproval,
+      message: policy.approvalMessage,
+    };
+  }
+
   return {
-    autoApproveAll: false,
-    approvedTools,
+    autoApproveAll,
+    builtInAllowList: getBuiltInAllowList(),
+    mcpToolPolicies,
+    approvedToolCallIds,
   };
 }
 

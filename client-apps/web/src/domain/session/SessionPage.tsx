@@ -7,13 +7,16 @@ import {
   RotateCcw,
   WifiOff,
 } from "lucide-react";
+import { useCallback, useRef, useState } from "react";
 import {
   useSessionPageFlow,
   useGitHubConnection,
+  useContextWindow,
   MessageThread,
   ThreadSkeleton,
   SessionComposer,
   ExecutionProgress,
+  ContextGauge,
   UsageWidget,
   ArtifactsWidget,
   WriteBacksWidget,
@@ -21,6 +24,7 @@ import {
   isSecretFlowError,
   useActiveOrgSlug,
 } from "@stigmer/react";
+import type { InteractionModeOption, SessionComposerHandle } from "@stigmer/react";
 import { getUserMessage } from "@stigmer/sdk";
 import { useDeploymentMode } from "@/domain/_shared/hooks/useDeploymentMode";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
@@ -40,6 +44,15 @@ export function SessionPageInner({ id }: { id: string }) {
   const flow = useSessionPageFlow({ sessionId: id, org });
   const { conv } = flow;
   const [modelId, setModelId] = flow.model;
+  const [interactionMode, setInteractionMode] = useState<InteractionModeOption>("agent");
+  const ctxWindow = useContextWindow(flow.displayExecution ?? null);
+  const composerRef = useRef<SessionComposerHandle>(null);
+
+  const handleBuildFromPlan = useCallback(() => {
+    setInteractionMode("agent");
+    composerRef.current?.setMessage("Implement the plan above");
+    composerRef.current?.focus();
+  }, []);
 
   if (conv.isLoading) return <SessionSkeleton />;
   if (conv.loadError) return <SessionError error={conv.loadError} />;
@@ -57,6 +70,8 @@ export function SessionPageInner({ id }: { id: string }) {
             submittingApprovalIds={conv.submittingApprovalIds}
             workspaceEntries={conv.workspaceEntries}
             sandboxWorkspaceRoot={flow.sandboxWorkspaceRoot}
+            summarizationEvents={ctxWindow.summarizationEvents}
+            onBuildFromPlan={handleBuildFromPlan}
             className="flex-1 lg:pr-[208px]"
           />
           <div className="lg:mr-[208px]">
@@ -70,6 +85,7 @@ export function SessionPageInner({ id }: { id: string }) {
               <SendErrorBanner error={(conv.sendError ?? conv.approvalError)!} />
             )}
             <SessionComposer
+              ref={composerRef}
               onSubmit={flow.handleSubmit}
               isSubmitting={conv.isSending}
               disabled={!conv.canSendFollowUp}
@@ -77,6 +93,9 @@ export function SessionPageInner({ id }: { id: string }) {
               harness={flow.harness}
               defaultModelId={modelId}
               onModelChange={setModelId}
+              interactionMode={interactionMode}
+              onInteractionModeChange={setInteractionMode}
+              showInteractionModePicker
               workspace={flow.workspace}
               gitHubConnection={gitHubConnection}
               enableGitHub
@@ -103,6 +122,10 @@ export function SessionPageInner({ id }: { id: string }) {
               <div className="rounded-lg border border-border bg-card p-3">
                 <ExecutionProgress execution={flow.displayExecution} />
               </div>
+              <ContextGauge
+                execution={flow.displayExecution}
+                className="rounded-lg border border-border bg-card p-3"
+              />
               <div className="rounded-lg border border-border bg-card p-3">
                 <UsageWidget executions={flow.allExecutions} />
               </div>

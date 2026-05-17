@@ -10,7 +10,14 @@ package ai.stigmer.agentic.workflow.v1.tasks;
  * ForTaskConfig defines the configuration for for_each tasks that iterate over collections.
  *
  * &#64;internal
- * YAML Example:
+ * Supports both sequential (default) and parallel execution modes. When
+ * max_parallelism is set, iterations run concurrently using Temporal
+ * workflow goroutines with bounded concurrency.
+ *
+ * Backward compatibility: all new fields default to values that preserve
+ * the pre-T17 sequential behavior. Existing workflows require no changes.
+ *
+ * YAML Example (sequential, unchanged from pre-T17):
  * - taskName:
  * for:
  * each: item
@@ -24,7 +31,26 @@ package ai.stigmer.agentic.workflow.v1.tasks;
  * item: ${ $data.item }
  * index: ${ $data.index }
  *
+ * YAML Example (parallel with bounded concurrency):
+ * - batchProcess:
+ * for:
+ * each: item
+ * in: ${ $data.items }
+ * max_parallelism: 5
+ * on_error: FOR_EACH_CONTINUE
+ * do:
+ * - callApi:
+ * call: http
+ * with:
+ * method: POST
+ * endpoint:
+ * uri: "https://api.example.com/process"
+ * body:
+ * item: ${ $data.item }
+ *
  * Reference: zigflow-dsl-pattern-catalog.md - Task Type 4
+ *
+ * &#64;since max_parallelism, batch_size, on_error: T17 (Advanced Agentic Orchestration)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.ForTaskConfig}
@@ -52,6 +78,7 @@ private static final long serialVersionUID = 0L;
     each_ = "";
     in_ = "";
     do_ = java.util.Collections.emptyList();
+    onError_ = 0;
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -236,6 +263,98 @@ private static final long serialVersionUID = 0L;
     return do_.get(index);
   }
 
+  public static final int MAX_PARALLELISM_FIELD_NUMBER = 4;
+  private int maxParallelism_ = 0;
+  /**
+   * <pre>
+   * Maximum number of iterations to execute concurrently.
+   *
+   * 0 (default): sequential execution — iterations run one at a time
+   * in input order. This preserves pre-T17 behavior.
+   *
+   * 1: effectively sequential (one at a time, but uses the parallel
+   * execution path — useful for testing).
+   *
+   * N &gt; 1: up to N iterations run concurrently using Temporal workflow
+   * goroutines with a semaphore-based concurrency limiter. Results are
+   * always reassembled in original input order regardless of completion
+   * order.
+   *
+   * &#64;since T17 (Advanced Agentic Orchestration)
+   * </pre>
+   *
+   * <code>int32 max_parallelism = 4 [json_name = "maxParallelism", (.buf.validate.field) = { ... }</code>
+   * @return The maxParallelism.
+   */
+  @java.lang.Override
+  public int getMaxParallelism() {
+    return maxParallelism_;
+  }
+
+  public static final int BATCH_SIZE_FIELD_NUMBER = 5;
+  private int batchSize_ = 0;
+  /**
+   * <pre>
+   * Number of items to process in each batch before moving to the next.
+   *
+   * 0 (default): no batching — all items are available for parallel
+   * execution (up to max_parallelism concurrent).
+   *
+   * N &gt; 0: items are chunked into groups of N. Each chunk is fully
+   * processed before the next chunk begins. Within each chunk, up to
+   * max_parallelism iterations run concurrently.
+   *
+   * Only meaningful when max_parallelism &gt; 0; ignored in sequential mode.
+   *
+   * &#64;since T17 (Advanced Agentic Orchestration)
+   * </pre>
+   *
+   * <code>int32 batch_size = 5 [json_name = "batchSize", (.buf.validate.field) = { ... }</code>
+   * @return The batchSize.
+   */
+  @java.lang.Override
+  public int getBatchSize() {
+    return batchSize_;
+  }
+
+  public static final int ON_ERROR_FIELD_NUMBER = 6;
+  private int onError_ = 0;
+  /**
+   * <pre>
+   * Policy for handling individual iteration failures.
+   *
+   * Default: FOR_EACH_FAIL_FAST (stop on first error).
+   * Only meaningful when max_parallelism &gt; 0; in sequential mode, any
+   * failure stops the loop regardless of this setting (pre-T17 behavior).
+   *
+   * &#64;since T17 (Advanced Agentic Orchestration)
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.workflow.v1.tasks.ForEachErrorPolicy on_error = 6 [json_name = "onError"];</code>
+   * @return The enum numeric value on the wire for onError.
+   */
+  @java.lang.Override public int getOnErrorValue() {
+    return onError_;
+  }
+  /**
+   * <pre>
+   * Policy for handling individual iteration failures.
+   *
+   * Default: FOR_EACH_FAIL_FAST (stop on first error).
+   * Only meaningful when max_parallelism &gt; 0; in sequential mode, any
+   * failure stops the loop regardless of this setting (pre-T17 behavior).
+   *
+   * &#64;since T17 (Advanced Agentic Orchestration)
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.workflow.v1.tasks.ForEachErrorPolicy on_error = 6 [json_name = "onError"];</code>
+   * @return The onError.
+   */
+  @java.lang.Override public ai.stigmer.agentic.workflow.v1.tasks.ForEachErrorPolicy getOnError() {
+    ai.stigmer.agentic.workflow.v1.tasks.ForEachErrorPolicy result = ai.stigmer.agentic.workflow.v1.tasks.ForEachErrorPolicy.forNumber(onError_);
+    return result == null ? ai.stigmer.agentic.workflow.v1.tasks.ForEachErrorPolicy.UNRECOGNIZED : result;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -258,6 +377,15 @@ private static final long serialVersionUID = 0L;
     }
     for (int i = 0; i < do_.size(); i++) {
       output.writeMessage(3, do_.get(i));
+    }
+    if (maxParallelism_ != 0) {
+      output.writeInt32(4, maxParallelism_);
+    }
+    if (batchSize_ != 0) {
+      output.writeInt32(5, batchSize_);
+    }
+    if (onError_ != ai.stigmer.agentic.workflow.v1.tasks.ForEachErrorPolicy.FOR_EACH_ERROR_POLICY_UNSPECIFIED.getNumber()) {
+      output.writeEnum(6, onError_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -283,6 +411,18 @@ private static final long serialVersionUID = 0L;
           }
           size += 1 * count;
         }
+    if (maxParallelism_ != 0) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeInt32Size(4, maxParallelism_);
+    }
+    if (batchSize_ != 0) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeInt32Size(5, batchSize_);
+    }
+    if (onError_ != ai.stigmer.agentic.workflow.v1.tasks.ForEachErrorPolicy.FOR_EACH_ERROR_POLICY_UNSPECIFIED.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(6, onError_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -304,6 +444,11 @@ private static final long serialVersionUID = 0L;
         .equals(other.getIn())) return false;
     if (!getDoList()
         .equals(other.getDoList())) return false;
+    if (getMaxParallelism()
+        != other.getMaxParallelism()) return false;
+    if (getBatchSize()
+        != other.getBatchSize()) return false;
+    if (onError_ != other.onError_) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -323,6 +468,12 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + DO_FIELD_NUMBER;
       hash = (53 * hash) + getDoList().hashCode();
     }
+    hash = (37 * hash) + MAX_PARALLELISM_FIELD_NUMBER;
+    hash = (53 * hash) + getMaxParallelism();
+    hash = (37 * hash) + BATCH_SIZE_FIELD_NUMBER;
+    hash = (53 * hash) + getBatchSize();
+    hash = (37 * hash) + ON_ERROR_FIELD_NUMBER;
+    hash = (53 * hash) + onError_;
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -425,7 +576,14 @@ private static final long serialVersionUID = 0L;
    * ForTaskConfig defines the configuration for for_each tasks that iterate over collections.
    *
    * &#64;internal
-   * YAML Example:
+   * Supports both sequential (default) and parallel execution modes. When
+   * max_parallelism is set, iterations run concurrently using Temporal
+   * workflow goroutines with bounded concurrency.
+   *
+   * Backward compatibility: all new fields default to values that preserve
+   * the pre-T17 sequential behavior. Existing workflows require no changes.
+   *
+   * YAML Example (sequential, unchanged from pre-T17):
    * - taskName:
    * for:
    * each: item
@@ -439,7 +597,26 @@ private static final long serialVersionUID = 0L;
    * item: ${ $data.item }
    * index: ${ $data.index }
    *
+   * YAML Example (parallel with bounded concurrency):
+   * - batchProcess:
+   * for:
+   * each: item
+   * in: ${ $data.items }
+   * max_parallelism: 5
+   * on_error: FOR_EACH_CONTINUE
+   * do:
+   * - callApi:
+   * call: http
+   * with:
+   * method: POST
+   * endpoint:
+   * uri: "https://api.example.com/process"
+   * body:
+   * item: ${ $data.item }
+   *
    * Reference: zigflow-dsl-pattern-catalog.md - Task Type 4
+   *
+   * &#64;since max_parallelism, batch_size, on_error: T17 (Advanced Agentic Orchestration)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.ForTaskConfig}
@@ -484,6 +661,9 @@ private static final long serialVersionUID = 0L;
         doBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000004);
+      maxParallelism_ = 0;
+      batchSize_ = 0;
+      onError_ = 0;
       return this;
     }
 
@@ -536,6 +716,15 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000002) != 0)) {
         result.in_ = in_;
       }
+      if (((from_bitField0_ & 0x00000008) != 0)) {
+        result.maxParallelism_ = maxParallelism_;
+      }
+      if (((from_bitField0_ & 0x00000010) != 0)) {
+        result.batchSize_ = batchSize_;
+      }
+      if (((from_bitField0_ & 0x00000020) != 0)) {
+        result.onError_ = onError_;
+      }
     }
 
     @java.lang.Override
@@ -586,6 +775,15 @@ private static final long serialVersionUID = 0L;
           }
         }
       }
+      if (other.getMaxParallelism() != 0) {
+        setMaxParallelism(other.getMaxParallelism());
+      }
+      if (other.getBatchSize() != 0) {
+        setBatchSize(other.getBatchSize());
+      }
+      if (other.onError_ != 0) {
+        setOnErrorValue(other.getOnErrorValue());
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -635,6 +833,21 @@ private static final long serialVersionUID = 0L;
               }
               break;
             } // case 26
+            case 32: {
+              maxParallelism_ = input.readInt32();
+              bitField0_ |= 0x00000008;
+              break;
+            } // case 32
+            case 40: {
+              batchSize_ = input.readInt32();
+              bitField0_ |= 0x00000010;
+              break;
+            } // case 40
+            case 48: {
+              onError_ = input.readEnum();
+              bitField0_ |= 0x00000020;
+              break;
+            } // case 48
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1174,6 +1387,268 @@ private static final long serialVersionUID = 0L;
         do_ = null;
       }
       return doBuilder_;
+    }
+
+    private int maxParallelism_ ;
+    /**
+     * <pre>
+     * Maximum number of iterations to execute concurrently.
+     *
+     * 0 (default): sequential execution — iterations run one at a time
+     * in input order. This preserves pre-T17 behavior.
+     *
+     * 1: effectively sequential (one at a time, but uses the parallel
+     * execution path — useful for testing).
+     *
+     * N &gt; 1: up to N iterations run concurrently using Temporal workflow
+     * goroutines with a semaphore-based concurrency limiter. Results are
+     * always reassembled in original input order regardless of completion
+     * order.
+     *
+     * &#64;since T17 (Advanced Agentic Orchestration)
+     * </pre>
+     *
+     * <code>int32 max_parallelism = 4 [json_name = "maxParallelism", (.buf.validate.field) = { ... }</code>
+     * @return The maxParallelism.
+     */
+    @java.lang.Override
+    public int getMaxParallelism() {
+      return maxParallelism_;
+    }
+    /**
+     * <pre>
+     * Maximum number of iterations to execute concurrently.
+     *
+     * 0 (default): sequential execution — iterations run one at a time
+     * in input order. This preserves pre-T17 behavior.
+     *
+     * 1: effectively sequential (one at a time, but uses the parallel
+     * execution path — useful for testing).
+     *
+     * N &gt; 1: up to N iterations run concurrently using Temporal workflow
+     * goroutines with a semaphore-based concurrency limiter. Results are
+     * always reassembled in original input order regardless of completion
+     * order.
+     *
+     * &#64;since T17 (Advanced Agentic Orchestration)
+     * </pre>
+     *
+     * <code>int32 max_parallelism = 4 [json_name = "maxParallelism", (.buf.validate.field) = { ... }</code>
+     * @param value The maxParallelism to set.
+     * @return This builder for chaining.
+     */
+    public Builder setMaxParallelism(int value) {
+
+      maxParallelism_ = value;
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Maximum number of iterations to execute concurrently.
+     *
+     * 0 (default): sequential execution — iterations run one at a time
+     * in input order. This preserves pre-T17 behavior.
+     *
+     * 1: effectively sequential (one at a time, but uses the parallel
+     * execution path — useful for testing).
+     *
+     * N &gt; 1: up to N iterations run concurrently using Temporal workflow
+     * goroutines with a semaphore-based concurrency limiter. Results are
+     * always reassembled in original input order regardless of completion
+     * order.
+     *
+     * &#64;since T17 (Advanced Agentic Orchestration)
+     * </pre>
+     *
+     * <code>int32 max_parallelism = 4 [json_name = "maxParallelism", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearMaxParallelism() {
+      bitField0_ = (bitField0_ & ~0x00000008);
+      maxParallelism_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private int batchSize_ ;
+    /**
+     * <pre>
+     * Number of items to process in each batch before moving to the next.
+     *
+     * 0 (default): no batching — all items are available for parallel
+     * execution (up to max_parallelism concurrent).
+     *
+     * N &gt; 0: items are chunked into groups of N. Each chunk is fully
+     * processed before the next chunk begins. Within each chunk, up to
+     * max_parallelism iterations run concurrently.
+     *
+     * Only meaningful when max_parallelism &gt; 0; ignored in sequential mode.
+     *
+     * &#64;since T17 (Advanced Agentic Orchestration)
+     * </pre>
+     *
+     * <code>int32 batch_size = 5 [json_name = "batchSize", (.buf.validate.field) = { ... }</code>
+     * @return The batchSize.
+     */
+    @java.lang.Override
+    public int getBatchSize() {
+      return batchSize_;
+    }
+    /**
+     * <pre>
+     * Number of items to process in each batch before moving to the next.
+     *
+     * 0 (default): no batching — all items are available for parallel
+     * execution (up to max_parallelism concurrent).
+     *
+     * N &gt; 0: items are chunked into groups of N. Each chunk is fully
+     * processed before the next chunk begins. Within each chunk, up to
+     * max_parallelism iterations run concurrently.
+     *
+     * Only meaningful when max_parallelism &gt; 0; ignored in sequential mode.
+     *
+     * &#64;since T17 (Advanced Agentic Orchestration)
+     * </pre>
+     *
+     * <code>int32 batch_size = 5 [json_name = "batchSize", (.buf.validate.field) = { ... }</code>
+     * @param value The batchSize to set.
+     * @return This builder for chaining.
+     */
+    public Builder setBatchSize(int value) {
+
+      batchSize_ = value;
+      bitField0_ |= 0x00000010;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Number of items to process in each batch before moving to the next.
+     *
+     * 0 (default): no batching — all items are available for parallel
+     * execution (up to max_parallelism concurrent).
+     *
+     * N &gt; 0: items are chunked into groups of N. Each chunk is fully
+     * processed before the next chunk begins. Within each chunk, up to
+     * max_parallelism iterations run concurrently.
+     *
+     * Only meaningful when max_parallelism &gt; 0; ignored in sequential mode.
+     *
+     * &#64;since T17 (Advanced Agentic Orchestration)
+     * </pre>
+     *
+     * <code>int32 batch_size = 5 [json_name = "batchSize", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearBatchSize() {
+      bitField0_ = (bitField0_ & ~0x00000010);
+      batchSize_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private int onError_ = 0;
+    /**
+     * <pre>
+     * Policy for handling individual iteration failures.
+     *
+     * Default: FOR_EACH_FAIL_FAST (stop on first error).
+     * Only meaningful when max_parallelism &gt; 0; in sequential mode, any
+     * failure stops the loop regardless of this setting (pre-T17 behavior).
+     *
+     * &#64;since T17 (Advanced Agentic Orchestration)
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflow.v1.tasks.ForEachErrorPolicy on_error = 6 [json_name = "onError"];</code>
+     * @return The enum numeric value on the wire for onError.
+     */
+    @java.lang.Override public int getOnErrorValue() {
+      return onError_;
+    }
+    /**
+     * <pre>
+     * Policy for handling individual iteration failures.
+     *
+     * Default: FOR_EACH_FAIL_FAST (stop on first error).
+     * Only meaningful when max_parallelism &gt; 0; in sequential mode, any
+     * failure stops the loop regardless of this setting (pre-T17 behavior).
+     *
+     * &#64;since T17 (Advanced Agentic Orchestration)
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflow.v1.tasks.ForEachErrorPolicy on_error = 6 [json_name = "onError"];</code>
+     * @param value The enum numeric value on the wire for onError to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setOnErrorValue(int value) {
+      onError_ = value;
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Policy for handling individual iteration failures.
+     *
+     * Default: FOR_EACH_FAIL_FAST (stop on first error).
+     * Only meaningful when max_parallelism &gt; 0; in sequential mode, any
+     * failure stops the loop regardless of this setting (pre-T17 behavior).
+     *
+     * &#64;since T17 (Advanced Agentic Orchestration)
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflow.v1.tasks.ForEachErrorPolicy on_error = 6 [json_name = "onError"];</code>
+     * @return The onError.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.workflow.v1.tasks.ForEachErrorPolicy getOnError() {
+      ai.stigmer.agentic.workflow.v1.tasks.ForEachErrorPolicy result = ai.stigmer.agentic.workflow.v1.tasks.ForEachErrorPolicy.forNumber(onError_);
+      return result == null ? ai.stigmer.agentic.workflow.v1.tasks.ForEachErrorPolicy.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * Policy for handling individual iteration failures.
+     *
+     * Default: FOR_EACH_FAIL_FAST (stop on first error).
+     * Only meaningful when max_parallelism &gt; 0; in sequential mode, any
+     * failure stops the loop regardless of this setting (pre-T17 behavior).
+     *
+     * &#64;since T17 (Advanced Agentic Orchestration)
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflow.v1.tasks.ForEachErrorPolicy on_error = 6 [json_name = "onError"];</code>
+     * @param value The onError to set.
+     * @return This builder for chaining.
+     */
+    public Builder setOnError(ai.stigmer.agentic.workflow.v1.tasks.ForEachErrorPolicy value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x00000020;
+      onError_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Policy for handling individual iteration failures.
+     *
+     * Default: FOR_EACH_FAIL_FAST (stop on first error).
+     * Only meaningful when max_parallelism &gt; 0; in sequential mode, any
+     * failure stops the loop regardless of this setting (pre-T17 behavior).
+     *
+     * &#64;since T17 (Advanced Agentic Orchestration)
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflow.v1.tasks.ForEachErrorPolicy on_error = 6 [json_name = "onError"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearOnError() {
+      bitField0_ = (bitField0_ & ~0x00000020);
+      onError_ = 0;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.workflow.v1.tasks.ForTaskConfig)

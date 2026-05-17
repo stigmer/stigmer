@@ -48,6 +48,13 @@ const (
 // raise_error: {"error": "ErrorType", "message": "${...}"}
 // run_workflow: {"workflow": "workflow-name", "input": {...}}
 // agent_call: {"agent": "agent-slug", "message": "...", "env": {...}}
+// llm_call: {"model": "...", "prompt": "...", "response_schema": {...}, "on_invalid": "..."}
+// transform: {"engine": "jq", "expression": "...", "input": "${...}"}
+// human_input: {"prompt": "...", "form_schema": {...}, "outcomes": [...], "approvers": [...], "timeout": 86400}
+// validate: {"input": "${...}", "schema": {...}, "rules": [...], "on_fail": "..."}
+// emit_event: {"event": {"type": "...", "source": "...", "subject": "...", "data": {...}}}
+// notification: {"channel": "slack", "recipients": ["..."], "subject": "...", "body": "...", "template": "...", "metadata": {...}}
+// eval: {"model": "...", "subject": "${...}", "rubric": "...", "scoring_mode": "EVAL_PASS_FAIL", "threshold": 0.7, "on_fail": "EVAL_FAIL_RAISE", "criteria": [...]}
 type WorkflowTaskKind int32
 
 const (
@@ -123,6 +130,62 @@ const (
 	// Allows workflows to delegate complex operations to specialized agents.
 	// Config: {"agent": "agent-slug", "message": "...", "env": {...}, "config": {...}}
 	WorkflowTaskKind_agent_call WorkflowTaskKind = 13
+	// Direct LLM call for classification, extraction, scoring, or routing.
+	//
+	// @internal
+	// Lightweight alternative to agent_call for focused LLM tasks without
+	// agent overhead (no system prompt resolution, tool setup, or MCP wiring).
+	// Config: {"model": "...", "prompt": "...", "response_schema": {...}}
+	WorkflowTaskKind_llm_call WorkflowTaskKind = 14
+	// Deterministic data transformation using JQ, JSONata, or template engines.
+	//
+	// @internal
+	// Reshapes data between tasks without LLM calls. Produces explicit output
+	// via export, unlike set_vars which mutates workflow state as a side effect.
+	// Config: {"engine": "jq", "expression": "...", "input": "${...}"}
+	WorkflowTaskKind_transform WorkflowTaskKind = 15
+	// Workflow-level approval gate for human input, review, or sign-off.
+	//
+	// @internal
+	// Pauses workflow execution to collect typed input or approval from a
+	// human reviewer. Supports custom outcomes, form schemas, approver
+	// lists, timeouts, and notification channels.
+	// Config: {"prompt": "...", "form_schema": {...}, "outcomes": [...], "approvers": [...]}
+	WorkflowTaskKind_human_input WorkflowTaskKind = 16
+	// Schema and business-rule validation checkpoint.
+	//
+	// @internal
+	// Validates workflow data against JSON Schema and/or business rules
+	// before downstream tasks consume it. Supports fail, branch, and warn
+	// policies for flexible error handling.
+	// Config: {"input": "${...}", "schema": {...}, "rules": [...], "on_fail": "..."}
+	WorkflowTaskKind_validate WorkflowTaskKind = 17
+	// Emit a CloudEvents-formatted event for external consumers or other workflows.
+	//
+	// @internal
+	// Completes the listen/emit duality: listen waits for Temporal signals,
+	// emit_event publishes business events using the CloudEvents envelope.
+	// The runtime bridges the two when events target other workflows.
+	// Config: {"event": {"type": "...", "source": "...", "subject": "...", "data": {...}}}
+	WorkflowTaskKind_emit_event WorkflowTaskKind = 18
+	// Send a notification to humans through a channel (Slack, email, Discord, etc.).
+	//
+	// @internal
+	// Fire-and-forget convenience abstraction for operational notifications.
+	// For notifications requiring acknowledgment, use human_input instead.
+	// Config: {"channel": "slack", "recipients": ["..."], "subject": "...", "body": "..."}
+	WorkflowTaskKind_notification WorkflowTaskKind = 19
+	// LLM-as-a-judge evaluation for semantic quality assessment.
+	//
+	// @internal
+	// Assesses quality, correctness, safety, or completeness of LLM-generated
+	// or agent-produced content using an LLM judge. Fills the gap between
+	// structural validation (validate task) and human review (human_input).
+	// Supports pass/fail, numeric scoring, and multi-criteria evaluation modes.
+	// Config: {"model": "...", "subject": "${...}", "rubric": "...", "scoring_mode": "...", "threshold": 0.7, "on_fail": "..."}
+	//
+	// @since T17 (Advanced Agentic Orchestration)
+	WorkflowTaskKind_eval WorkflowTaskKind = 20
 )
 
 // Enum value maps for WorkflowTaskKind.
@@ -142,6 +205,13 @@ var (
 		11: "raise_error",
 		12: "run_workflow",
 		13: "agent_call",
+		14: "llm_call",
+		15: "transform",
+		16: "human_input",
+		17: "validate",
+		18: "emit_event",
+		19: "notification",
+		20: "eval",
 	}
 	WorkflowTaskKind_value = map[string]int32{
 		"workflow_task_kind_unspecified": 0,
@@ -158,6 +228,13 @@ var (
 		"raise_error":                    11,
 		"run_workflow":                   12,
 		"agent_call":                     13,
+		"llm_call":                       14,
+		"transform":                      15,
+		"human_input":                    16,
+		"validate":                       17,
+		"emit_event":                     18,
+		"notification":                   19,
+		"eval":                           20,
 	}
 )
 
@@ -188,11 +265,82 @@ func (WorkflowTaskKind) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_workflow_v1_enum_proto_rawDescGZIP(), []int{0}
 }
 
+// BudgetExceededPolicy defines the runtime behavior when a workflow or per-task
+// budget limit is exceeded.
+//
+// The runtime (T13) evaluates this policy at task boundaries: after each task
+// completes, accumulated costs and tokens are compared against the declared
+// budget. If a limit is breached, the policy determines what happens next.
+//
+// @since T05 (Workflow-Level Budget Primitives)
+type BudgetExceededPolicy int32
+
+const (
+	// Default: no specific policy set. The runtime treats this as
+	// budget_exceeded_terminate (fail-safe behavior).
+	BudgetExceededPolicy_budget_exceeded_policy_unspecified BudgetExceededPolicy = 0
+	// Terminate the workflow immediately with EXECUTION_FAILED status.
+	// The execution record includes the budget breach details for diagnostics.
+	BudgetExceededPolicy_budget_exceeded_terminate BudgetExceededPolicy = 1
+	// Pause the workflow and request human review via a system-generated
+	// approval gate. The reviewer can approve continued execution (with
+	// an increased budget) or confirm termination.
+	// Depends on the human_input runtime (T13). If human_input runtime
+	// is not available, falls back to terminate with a descriptive error.
+	BudgetExceededPolicy_budget_exceeded_human_review BudgetExceededPolicy = 2
+	// Log a warning but allow the workflow to continue executing.
+	// Useful for monitoring/alerting without interrupting production workflows.
+	BudgetExceededPolicy_budget_exceeded_warn BudgetExceededPolicy = 3
+)
+
+// Enum value maps for BudgetExceededPolicy.
+var (
+	BudgetExceededPolicy_name = map[int32]string{
+		0: "budget_exceeded_policy_unspecified",
+		1: "budget_exceeded_terminate",
+		2: "budget_exceeded_human_review",
+		3: "budget_exceeded_warn",
+	}
+	BudgetExceededPolicy_value = map[string]int32{
+		"budget_exceeded_policy_unspecified": 0,
+		"budget_exceeded_terminate":          1,
+		"budget_exceeded_human_review":       2,
+		"budget_exceeded_warn":               3,
+	}
+)
+
+func (x BudgetExceededPolicy) Enum() *BudgetExceededPolicy {
+	p := new(BudgetExceededPolicy)
+	*p = x
+	return p
+}
+
+func (x BudgetExceededPolicy) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (BudgetExceededPolicy) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_workflow_v1_enum_proto_enumTypes[1].Descriptor()
+}
+
+func (BudgetExceededPolicy) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_workflow_v1_enum_proto_enumTypes[1]
+}
+
+func (x BudgetExceededPolicy) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use BudgetExceededPolicy.Descriptor instead.
+func (BudgetExceededPolicy) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_workflow_v1_enum_proto_rawDescGZIP(), []int{1}
+}
+
 var File_ai_stigmer_agentic_workflow_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_workflow_v1_enum_proto_rawDesc = "" +
 	"\n" +
-	")ai/stigmer/agentic/workflow/v1/enum.proto\x12\x1eai.stigmer.agentic.workflow.v1*\xf6\x01\n" +
+	")ai/stigmer/agentic/workflow/v1/enum.proto\x12\x1eai.stigmer.agentic.workflow.v1*\xde\x02\n" +
 	"\x10WorkflowTaskKind\x12\"\n" +
 	"\x1eworkflow_task_kind_unspecified\x10\x00\x12\f\n" +
 	"\bset_vars\x10\x01\x12\r\n" +
@@ -210,7 +358,20 @@ const file_ai_stigmer_agentic_workflow_v1_enum_proto_rawDesc = "" +
 	"\vraise_error\x10\v\x12\x10\n" +
 	"\frun_workflow\x10\f\x12\x0e\n" +
 	"\n" +
-	"agent_call\x10\rB\x9f\x02\n" +
+	"agent_call\x10\r\x12\f\n" +
+	"\bllm_call\x10\x0e\x12\r\n" +
+	"\ttransform\x10\x0f\x12\x0f\n" +
+	"\vhuman_input\x10\x10\x12\f\n" +
+	"\bvalidate\x10\x11\x12\x0e\n" +
+	"\n" +
+	"emit_event\x10\x12\x12\x10\n" +
+	"\fnotification\x10\x13\x12\b\n" +
+	"\x04eval\x10\x14*\x99\x01\n" +
+	"\x14BudgetExceededPolicy\x12&\n" +
+	"\"budget_exceeded_policy_unspecified\x10\x00\x12\x1d\n" +
+	"\x19budget_exceeded_terminate\x10\x01\x12 \n" +
+	"\x1cbudget_exceeded_human_review\x10\x02\x12\x18\n" +
+	"\x14budget_exceeded_warn\x10\x03B\x9f\x02\n" +
 	"\"com.ai.stigmer.agentic.workflow.v1B\tEnumProtoP\x01ZQgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflow/v1;workflowv1\xa2\x02\x04ASAW\xaa\x02\x1eAi.Stigmer.Agentic.Workflow.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Workflow\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Workflow::V1b\x06proto3"
 
 var (
@@ -225,9 +386,10 @@ func file_ai_stigmer_agentic_workflow_v1_enum_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_workflow_v1_enum_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_workflow_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_ai_stigmer_agentic_workflow_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
 var file_ai_stigmer_agentic_workflow_v1_enum_proto_goTypes = []any{
-	(WorkflowTaskKind)(0), // 0: ai.stigmer.agentic.workflow.v1.WorkflowTaskKind
+	(WorkflowTaskKind)(0),     // 0: ai.stigmer.agentic.workflow.v1.WorkflowTaskKind
+	(BudgetExceededPolicy)(0), // 1: ai.stigmer.agentic.workflow.v1.BudgetExceededPolicy
 }
 var file_ai_stigmer_agentic_workflow_v1_enum_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -247,7 +409,7 @@ func file_ai_stigmer_agentic_workflow_v1_enum_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_workflow_v1_enum_proto_rawDesc), len(file_ai_stigmer_agentic_workflow_v1_enum_proto_rawDesc)),
-			NumEnums:      1,
+			NumEnums:      2,
 			NumMessages:   0,
 			NumExtensions: 0,
 			NumServices:   0,

@@ -1,0 +1,35 @@
+kind: try_catch
+display_name: "Try/Catch"
+description: "Handle errors from a block of tasks with recovery logic."
+category: control_flow
+icon: "shield"
+is_ai_native: false
+requires_external_service: false
+documentation_url: "/docs/guides/workflow-tasks/try-catch"
+
+output_schema:
+  type: object
+  description: "Output from the try block (success) or catch block (recovery)."
+
+field_groups:
+  - id: core
+    display_name: "Error Handling"
+    fields: [try, catch]
+
+yaml_examples:
+  - |
+    - safe_api_call:
+        try:
+          - risky_call:
+              call: http
+              with:
+                method: "POST"
+                endpoint:
+                  uri: "https://api.unreliable.com/submit"
+        catch:
+          as: error
+          do:
+            - log_failure:
+                set:
+                  variables:
+                    error_message: "${ $error.message }"

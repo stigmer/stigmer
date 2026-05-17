@@ -1,0 +1,118 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.artifact.v1;
+
+import "ai/stigmer/agentic/artifact/v1/api.proto";
+import "ai/stigmer/agentic/artifact/v1/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
+
+// ArtifactQueryController handles read operations for Artifact resources.
+//
+// @internal
+// Follows the Command-Query Separation (CQS) pattern.
+//
+// These RPCs are exposed to the SDK and consumed by:
+// - Execution viewer (T09): lists artifacts per execution, provides download links
+// - CLI: `stigmer workflow artifacts <execution-id>`
+// - React SDK: useArtifact() hook for artifact metadata and download
+//
+// Authorization follows the parent execution's access model:
+// if a user can view an execution, they can view its artifacts.
+//
+// @since T07 (Artifact Store)
+service ArtifactQueryController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = artifact;
+
+  // Get a single artifact by ID.
+  //
+  // Returns the complete Artifact resource including metadata, spec,
+  // and status (content hash, size, storage state, expiration).
+  //
+  // Does NOT return the artifact content — use getDownloadUrl to
+  // retrieve a URL for downloading the content via HTTP GET.
+  //
+  // Use Cases:
+  //
+  // 1. Artifact Detail View:
+  //    - User clicks an artifact in the execution viewer
+  //    - UI calls get() to fetch full metadata
+  //    - UI displays content type, size, source task, expiration
+  //
+  // 2. Artifact Reference Resolution:
+  //    - Task output contains _artifact_ref field
+  //    - UI calls get() to resolve the reference to metadata
+  //    - UI renders a download/preview widget instead of raw JSON
+  //
+  // Error Cases:
+  //
+  // - NOT_FOUND: No Artifact exists with the given ID
+  // - PERMISSION_DENIED: User doesn't have view access to the parent execution
+  rpc get(ArtifactId) returns (Artifact) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = artifact;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get artifact";
+  }
+
+  // List all artifacts produced by a specific execution.
+  //
+  // Returns a paginated list of artifacts filtered by either
+  // workflow_execution_id or agent_execution_id.
+  //
+  // Use Cases:
+  //
+  // 1. Execution Viewer Artifact Panel:
+  //    - User views a workflow execution in the execution viewer
+  //    - UI calls listByExecution() to populate the artifact sidebar
+  //    - Each artifact shows display name, content type, size, source task
+  //
+  // 2. CLI Artifact Listing:
+  //    - `stigmer workflow artifacts wex_abc123`
+  //    - CLI calls listByExecution() and formats as a table
+  //
+  // Error Cases:
+  //
+  // - INVALID_ARGUMENT: Neither workflow_execution_id nor agent_execution_id provided
+  // - PERMISSION_DENIED: User doesn't have view access to the parent execution
+  rpc listByExecution(ListArtifactsByExecutionRequest) returns (ArtifactList) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
+  // Get a download URL for artifact content.
+  //
+  // Returns a URL that the client can use to download the artifact's
+  // content via HTTP GET. This avoids streaming large blobs through
+  // the gRPC control plane.
+  //
+  // Cloud: returns a pre-signed S3 URL with a short TTL (15 minutes).
+  // OSS: returns a direct URL to the local artifact server endpoint.
+  //
+  // Use Cases:
+  //
+  // 1. Download Artifact:
+  //    - User clicks "Download" in the execution viewer
+  //    - UI calls getDownloadUrl() to get a URL
+  //    - Browser opens the URL in a new tab or triggers a download
+  //
+  // 2. Preview Artifact:
+  //    - UI calls getDownloadUrl() for JSON/text artifacts
+  //    - UI fetches content from the URL and renders inline
+  //    - Large artifacts show a truncated preview with download option
+  //
+  // 3. CLI Download:
+  //    - `stigmer workflow artifact download art_abc123 -o output.json`
+  //    - CLI calls getDownloadUrl() then fetches via HTTP GET
+  //
+  // Error Cases:
+  //
+  // - NOT_FOUND: No Artifact exists with the given ID
+  // - PERMISSION_DENIED: User doesn't have view access to the parent execution
+  // - FAILED_PRECONDITION: Artifact blob has been deleted (storage_state_deleted)
+  rpc getDownloadUrl(ArtifactId) returns (ArtifactDownloadUrl) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = artifact;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to download artifact";
+  }
+}

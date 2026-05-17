@@ -12,45 +12,38 @@ spec:
     app:
       env:
         variables:
-          ENV:
+          - name: ENV
             value: prod
           # Temporal Configuration (using internal Kubernetes endpoint for prod)
-          TEMPORAL_SERVICE_ADDRESS:
+          - name: TEMPORAL_SERVICE_ADDRESS
             value: $variables-group/stigmer-temporal-config/prod.kube-endpoint
-          TEMPORAL_NAMESPACE:
+          - name: TEMPORAL_NAMESPACE
             value: default
-          TEMPORAL_WORKFLOW_EXECUTION_RUNNER_TASK_QUEUE:
+          - name: TEMPORAL_WORKFLOW_EXECUTION_RUNNER_TASK_QUEUE
             value: workflow_execution_runner
           # Stigmer Backend Configuration (internal Kubernetes endpoint, plain gRPC)
           # Used by workflow runner to report progress back to Stigmer backend service
-          STIGMER_BACKEND_ENDPOINT:
+          - name: STIGMER_BACKEND_ENDPOINT
             value: $variables-group/stigmer-api/prod.kube-endpoint
-          STIGMER_SERVICE_USE_TLS:
+          - name: STIGMER_SERVICE_USE_TLS
             value: "false"
           # Claim Check Configuration (for large payload handling)
-          CLAIMCHECK_ENABLED:
+          # In cloud mode (STIGMER_PROXY_ENDPOINT set), claim check uses presigned
+          # URLs from the Side-Channel Proxy instead of direct R2 credentials.
+          - name: CLAIMCHECK_ENABLED
             value: "true"
-          CLAIMCHECK_THRESHOLD_BYTES:
+          - name: CLAIMCHECK_THRESHOLD_BYTES
             value: "51200"  # 50KB
-          CLAIMCHECK_TTL_DAYS:
-            value: "30"
-          CLAIMCHECK_COMPRESSION_ENABLED:
+          - name: CLAIMCHECK_COMPRESSION_ENABLED
             value: "true"
-          # Cloudflare R2 Configuration (S3-compatible storage)
-          R2_BUCKET:
-            value: $variables-group/stigmer-claimcheck-r2-config/prod.bucket-name
-          R2_ENDPOINT:
-            value: $variables-group/stigmer-claimcheck-r2-config/prod.endpoint
-          R2_REGION:
-            value: $variables-group/stigmer-claimcheck-r2-config/region
+          # Side-Channel Proxy origin (enables proxy mode for LLM calls and claim check).
+          # When set, R2 credentials are not needed — the proxy generates presigned URLs.
+          - name: STIGMER_PROXY_ENDPOINT
+            value: https://api.stigmer.ai
         secrets:
-          # Cloudflare R2 Credentials
-          R2_ACCESS_KEY_ID:
-            value: $secrets-group/stigmer-r2-credentials/prod.access-key-id
-          R2_SECRET_ACCESS_KEY:
-            value: $secrets-group/stigmer-r2-credentials/prod.secret-access-key
           # Stigmer API Key (unified with agent-runner)
-          STIGMER_API_KEY:
+          # Used for Side-Channel Proxy authentication (LLM proxy + claim check proxy)
+          - name: STIGMER_API_KEY
             value: $secrets-group/stigmer-api/prod.api-key
       resources:
         limits:
@@ -69,4 +62,3 @@ spec:
     podDisruptionBudget:
       enabled: true
       minAvailable: "1"
-

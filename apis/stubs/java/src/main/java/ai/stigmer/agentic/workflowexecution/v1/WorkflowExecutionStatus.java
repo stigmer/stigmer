@@ -828,6 +828,73 @@ private static final long serialVersionUID = 0L;
     return pendingApprovals_.get(index);
   }
 
+  public static final int TOTAL_COST_MICROS_FIELD_NUMBER = 10;
+  private long totalCostMicros_ = 0L;
+  /**
+   * <pre>
+   * Cumulative cost across all tasks in micro-USD (1 USD = 1,000,000 micros).
+   *
+   * &#64;internal
+   * Updated by the workflow-runner alongside each status update. Reflects the
+   * budget tracker's accumulated cost at the time of the last status write.
+   * Used by getExecutionSummary for fast aggregation without scanning events.
+   *
+   * Consistent with WorkflowBudget.max_cost_micros and the billing domain's
+   * micro-USD convention (CostStamp.provider_cost_micros, etc.).
+   *
+   * &#64;since Cost Data Pipeline
+   * </pre>
+   *
+   * <code>int64 total_cost_micros = 10 [json_name = "totalCostMicros"];</code>
+   * @return The totalCostMicros.
+   */
+  @java.lang.Override
+  public long getTotalCostMicros() {
+    return totalCostMicros_;
+  }
+
+  public static final int TOTAL_INPUT_TOKENS_FIELD_NUMBER = 11;
+  private long totalInputTokens_ = 0L;
+  /**
+   * <pre>
+   * Cumulative input tokens consumed across all LLM and agent tasks.
+   *
+   * &#64;internal
+   * Input tokens represent prompt/context tokens sent to the model.
+   * Updated alongside total_cost_micros from the budget tracker.
+   *
+   * &#64;since Cost Data Pipeline
+   * </pre>
+   *
+   * <code>int64 total_input_tokens = 11 [json_name = "totalInputTokens"];</code>
+   * @return The totalInputTokens.
+   */
+  @java.lang.Override
+  public long getTotalInputTokens() {
+    return totalInputTokens_;
+  }
+
+  public static final int TOTAL_OUTPUT_TOKENS_FIELD_NUMBER = 12;
+  private long totalOutputTokens_ = 0L;
+  /**
+   * <pre>
+   * Cumulative output tokens consumed across all LLM and agent tasks.
+   *
+   * &#64;internal
+   * Output tokens represent completion/generation tokens returned by the model.
+   * Updated alongside total_cost_micros from the budget tracker.
+   *
+   * &#64;since Cost Data Pipeline
+   * </pre>
+   *
+   * <code>int64 total_output_tokens = 12 [json_name = "totalOutputTokens"];</code>
+   * @return The totalOutputTokens.
+   */
+  @java.lang.Override
+  public long getTotalOutputTokens() {
+    return totalOutputTokens_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -865,6 +932,15 @@ private static final long serialVersionUID = 0L;
     }
     for (int i = 0; i < pendingApprovals_.size(); i++) {
       output.writeMessage(9, pendingApprovals_.get(i));
+    }
+    if (totalCostMicros_ != 0L) {
+      output.writeInt64(10, totalCostMicros_);
+    }
+    if (totalInputTokens_ != 0L) {
+      output.writeInt64(11, totalInputTokens_);
+    }
+    if (totalOutputTokens_ != 0L) {
+      output.writeInt64(12, totalOutputTokens_);
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(99, getAudit());
@@ -916,6 +992,18 @@ private static final long serialVersionUID = 0L;
           }
           size += 1 * count;
         }
+    if (totalCostMicros_ != 0L) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeInt64Size(10, totalCostMicros_);
+    }
+    if (totalInputTokens_ != 0L) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeInt64Size(11, totalInputTokens_);
+    }
+    if (totalOutputTokens_ != 0L) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeInt64Size(12, totalOutputTokens_);
+    }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(99, getAudit());
@@ -958,6 +1046,12 @@ private static final long serialVersionUID = 0L;
         .equals(other.getTemporalWorkflowId())) return false;
     if (!getPendingApprovalsList()
         .equals(other.getPendingApprovalsList())) return false;
+    if (getTotalCostMicros()
+        != other.getTotalCostMicros()) return false;
+    if (getTotalInputTokens()
+        != other.getTotalInputTokens()) return false;
+    if (getTotalOutputTokens()
+        != other.getTotalOutputTokens()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -995,6 +1089,15 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + PENDING_APPROVALS_FIELD_NUMBER;
       hash = (53 * hash) + getPendingApprovalsList().hashCode();
     }
+    hash = (37 * hash) + TOTAL_COST_MICROS_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+        getTotalCostMicros());
+    hash = (37 * hash) + TOTAL_INPUT_TOKENS_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+        getTotalInputTokens());
+    hash = (37 * hash) + TOTAL_OUTPUT_TOKENS_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+        getTotalOutputTokens());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1188,6 +1291,9 @@ private static final long serialVersionUID = 0L;
         pendingApprovalsBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000100);
+      totalCostMicros_ = 0L;
+      totalInputTokens_ = 0L;
+      totalOutputTokens_ = 0L;
       return this;
     }
 
@@ -1270,6 +1376,15 @@ private static final long serialVersionUID = 0L;
       }
       if (((from_bitField0_ & 0x00000080) != 0)) {
         result.temporalWorkflowId_ = temporalWorkflowId_;
+      }
+      if (((from_bitField0_ & 0x00000200) != 0)) {
+        result.totalCostMicros_ = totalCostMicros_;
+      }
+      if (((from_bitField0_ & 0x00000400) != 0)) {
+        result.totalInputTokens_ = totalInputTokens_;
+      }
+      if (((from_bitField0_ & 0x00000800) != 0)) {
+        result.totalOutputTokens_ = totalOutputTokens_;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -1367,6 +1482,15 @@ private static final long serialVersionUID = 0L;
           }
         }
       }
+      if (other.getTotalCostMicros() != 0L) {
+        setTotalCostMicros(other.getTotalCostMicros());
+      }
+      if (other.getTotalInputTokens() != 0L) {
+        setTotalInputTokens(other.getTotalInputTokens());
+      }
+      if (other.getTotalOutputTokens() != 0L) {
+        setTotalOutputTokens(other.getTotalOutputTokens());
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -1451,6 +1575,21 @@ private static final long serialVersionUID = 0L;
               }
               break;
             } // case 74
+            case 80: {
+              totalCostMicros_ = input.readInt64();
+              bitField0_ |= 0x00000200;
+              break;
+            } // case 80
+            case 88: {
+              totalInputTokens_ = input.readInt64();
+              bitField0_ |= 0x00000400;
+              break;
+            } // case 88
+            case 96: {
+              totalOutputTokens_ = input.readInt64();
+              bitField0_ |= 0x00000800;
+              break;
+            } // case 96
             case 794: {
               input.readMessage(
                   internalGetAuditFieldBuilder().getBuilder(),
@@ -3924,6 +4063,204 @@ private static final long serialVersionUID = 0L;
         pendingApprovals_ = null;
       }
       return pendingApprovalsBuilder_;
+    }
+
+    private long totalCostMicros_ ;
+    /**
+     * <pre>
+     * Cumulative cost across all tasks in micro-USD (1 USD = 1,000,000 micros).
+     *
+     * &#64;internal
+     * Updated by the workflow-runner alongside each status update. Reflects the
+     * budget tracker's accumulated cost at the time of the last status write.
+     * Used by getExecutionSummary for fast aggregation without scanning events.
+     *
+     * Consistent with WorkflowBudget.max_cost_micros and the billing domain's
+     * micro-USD convention (CostStamp.provider_cost_micros, etc.).
+     *
+     * &#64;since Cost Data Pipeline
+     * </pre>
+     *
+     * <code>int64 total_cost_micros = 10 [json_name = "totalCostMicros"];</code>
+     * @return The totalCostMicros.
+     */
+    @java.lang.Override
+    public long getTotalCostMicros() {
+      return totalCostMicros_;
+    }
+    /**
+     * <pre>
+     * Cumulative cost across all tasks in micro-USD (1 USD = 1,000,000 micros).
+     *
+     * &#64;internal
+     * Updated by the workflow-runner alongside each status update. Reflects the
+     * budget tracker's accumulated cost at the time of the last status write.
+     * Used by getExecutionSummary for fast aggregation without scanning events.
+     *
+     * Consistent with WorkflowBudget.max_cost_micros and the billing domain's
+     * micro-USD convention (CostStamp.provider_cost_micros, etc.).
+     *
+     * &#64;since Cost Data Pipeline
+     * </pre>
+     *
+     * <code>int64 total_cost_micros = 10 [json_name = "totalCostMicros"];</code>
+     * @param value The totalCostMicros to set.
+     * @return This builder for chaining.
+     */
+    public Builder setTotalCostMicros(long value) {
+
+      totalCostMicros_ = value;
+      bitField0_ |= 0x00000200;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Cumulative cost across all tasks in micro-USD (1 USD = 1,000,000 micros).
+     *
+     * &#64;internal
+     * Updated by the workflow-runner alongside each status update. Reflects the
+     * budget tracker's accumulated cost at the time of the last status write.
+     * Used by getExecutionSummary for fast aggregation without scanning events.
+     *
+     * Consistent with WorkflowBudget.max_cost_micros and the billing domain's
+     * micro-USD convention (CostStamp.provider_cost_micros, etc.).
+     *
+     * &#64;since Cost Data Pipeline
+     * </pre>
+     *
+     * <code>int64 total_cost_micros = 10 [json_name = "totalCostMicros"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearTotalCostMicros() {
+      bitField0_ = (bitField0_ & ~0x00000200);
+      totalCostMicros_ = 0L;
+      onChanged();
+      return this;
+    }
+
+    private long totalInputTokens_ ;
+    /**
+     * <pre>
+     * Cumulative input tokens consumed across all LLM and agent tasks.
+     *
+     * &#64;internal
+     * Input tokens represent prompt/context tokens sent to the model.
+     * Updated alongside total_cost_micros from the budget tracker.
+     *
+     * &#64;since Cost Data Pipeline
+     * </pre>
+     *
+     * <code>int64 total_input_tokens = 11 [json_name = "totalInputTokens"];</code>
+     * @return The totalInputTokens.
+     */
+    @java.lang.Override
+    public long getTotalInputTokens() {
+      return totalInputTokens_;
+    }
+    /**
+     * <pre>
+     * Cumulative input tokens consumed across all LLM and agent tasks.
+     *
+     * &#64;internal
+     * Input tokens represent prompt/context tokens sent to the model.
+     * Updated alongside total_cost_micros from the budget tracker.
+     *
+     * &#64;since Cost Data Pipeline
+     * </pre>
+     *
+     * <code>int64 total_input_tokens = 11 [json_name = "totalInputTokens"];</code>
+     * @param value The totalInputTokens to set.
+     * @return This builder for chaining.
+     */
+    public Builder setTotalInputTokens(long value) {
+
+      totalInputTokens_ = value;
+      bitField0_ |= 0x00000400;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Cumulative input tokens consumed across all LLM and agent tasks.
+     *
+     * &#64;internal
+     * Input tokens represent prompt/context tokens sent to the model.
+     * Updated alongside total_cost_micros from the budget tracker.
+     *
+     * &#64;since Cost Data Pipeline
+     * </pre>
+     *
+     * <code>int64 total_input_tokens = 11 [json_name = "totalInputTokens"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearTotalInputTokens() {
+      bitField0_ = (bitField0_ & ~0x00000400);
+      totalInputTokens_ = 0L;
+      onChanged();
+      return this;
+    }
+
+    private long totalOutputTokens_ ;
+    /**
+     * <pre>
+     * Cumulative output tokens consumed across all LLM and agent tasks.
+     *
+     * &#64;internal
+     * Output tokens represent completion/generation tokens returned by the model.
+     * Updated alongside total_cost_micros from the budget tracker.
+     *
+     * &#64;since Cost Data Pipeline
+     * </pre>
+     *
+     * <code>int64 total_output_tokens = 12 [json_name = "totalOutputTokens"];</code>
+     * @return The totalOutputTokens.
+     */
+    @java.lang.Override
+    public long getTotalOutputTokens() {
+      return totalOutputTokens_;
+    }
+    /**
+     * <pre>
+     * Cumulative output tokens consumed across all LLM and agent tasks.
+     *
+     * &#64;internal
+     * Output tokens represent completion/generation tokens returned by the model.
+     * Updated alongside total_cost_micros from the budget tracker.
+     *
+     * &#64;since Cost Data Pipeline
+     * </pre>
+     *
+     * <code>int64 total_output_tokens = 12 [json_name = "totalOutputTokens"];</code>
+     * @param value The totalOutputTokens to set.
+     * @return This builder for chaining.
+     */
+    public Builder setTotalOutputTokens(long value) {
+
+      totalOutputTokens_ = value;
+      bitField0_ |= 0x00000800;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Cumulative output tokens consumed across all LLM and agent tasks.
+     *
+     * &#64;internal
+     * Output tokens represent completion/generation tokens returned by the model.
+     * Updated alongside total_cost_micros from the budget tracker.
+     *
+     * &#64;since Cost Data Pipeline
+     * </pre>
+     *
+     * <code>int64 total_output_tokens = 12 [json_name = "totalOutputTokens"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearTotalOutputTokens() {
+      bitField0_ = (bitField0_ & ~0x00000800);
+      totalOutputTokens_ = 0L;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus)

@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { AgentExecutionId, AgentExecutionList, GetAgentUsageReportInput, GetAgentUsageReportOutput, GetArtifactContentRequest, GetArtifactContentResponse, GetArtifactDownloadUrlRequest, GetArtifactDownloadUrlResponse, GetExecutionUsageReportInput, GetExecutionUsageReportOutput, GetOrgUsageReportInput, GetOrgUsageReportOutput, GetSessionUsageReportInput, GetSessionUsageReportOutput, ListAgentExecutionsBySessionRequest, ListAgentExecutionsRequest } from "./io_pbjs";
+import { AgentExecutionId, AgentExecutionList, AgentExecutionSummary, GetAgentExecutionSummaryRequest, GetAgentUsageReportInput, GetAgentUsageReportOutput, GetArtifactContentRequest, GetArtifactContentResponse, GetArtifactDownloadUrlRequest, GetArtifactDownloadUrlResponse, GetExecutionUsageReportInput, GetExecutionUsageReportOutput, GetOrgUsageReportInput, GetOrgUsageReportOutput, GetSessionUsageReportInput, GetSessionUsageReportOutput, ListAgentExecutionsBySessionRequest, ListAgentExecutionsRequest } from "./io_pbjs";
 import { AgentExecution } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 
@@ -215,6 +215,37 @@ export const AgentExecutionQueryController = {
       name: "getOrgUsageReport",
       I: GetOrgUsageReportInput,
       O: GetOrgUsageReportOutput,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Get aggregated execution statistics for an organization's agent executions.
+     *
+     * Returns counts by phase, active count, average duration, and top failing
+     * agents — scoped to a configurable time window (24h, 7d, 30d, all-time).
+     *
+     * @internal
+     * Authorization:
+     * Custom authorization — user must have organization-level access.
+     * Results are scoped to the user's organization.
+     *
+     * Use Cases:
+     *
+     * 1. Unified Dashboard Overview:
+     *    - Display combined agent + workflow KPI cards
+     *    - Agent phase counts are merged client-side with workflow phase counts
+     *
+     * 2. Reliability Monitoring:
+     *    - Surface top failing agents for investigation
+     *    - Track failure rates across the organization
+     *
+     * @since Unified Platform Dashboard
+     *
+     * @generated from rpc ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController.getExecutionSummary
+     */
+    getExecutionSummary: {
+      name: "getExecutionSummary",
+      I: GetAgentExecutionSummaryRequest,
+      O: AgentExecutionSummary,
       kind: MethodKind.Unary,
     },
   }

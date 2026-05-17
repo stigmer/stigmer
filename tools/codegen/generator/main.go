@@ -2107,7 +2107,8 @@ func main() {
 	outputDir := flag.String("output-dir", "sdk/go/workflow/gen", "Output directory for generated Go code")
 	packageName := flag.String("package", "gen", "Go package name for generated code")
 	fileSuffix := flag.String("file-suffix", "", "Suffix for generated files (e.g., '_task', '_spec', or empty)")
-	target := flag.String("target", "sdk", "Generation target: sdk, mcp, or sdk-client")
+	target := flag.String("target", "sdk", "Generation target: sdk, mcp, sdk-client, or task-registry")
+	metaDir := flag.String("meta-dir", "", "Directory containing sidecar YAML metadata (used by task-registry target)")
 	expandStruct := flag.String("expand-struct", "", "Expand a Struct field into typed config fields: struct_field:discriminator_field:config_schema_dir")
 	comprehensive := flag.Bool("comprehensive", false, "Auto-discover all domain/resource schemas and generate for each")
 	apisDir := flag.String("apis-dir", "", "Root directory of proto API definitions (used by sdk-docs for overview.md loading)")
@@ -2149,8 +2150,26 @@ func main() {
 				fmt.Printf("Error in SDK docs generation: %v\n", err)
 				os.Exit(1)
 			}
+		case "task-registry":
+			if *metaDir == "" {
+				fmt.Println("--meta-dir is required for --target=task-registry")
+				os.Exit(1)
+			}
+			if err := runTaskRegistryGeneration(*schemaDir, *outputDir, *metaDir); err != nil {
+				fmt.Printf("Error in task registry generation: %v\n", err)
+				os.Exit(1)
+			}
+		case "task-docs":
+			if *metaDir == "" {
+				fmt.Println("--meta-dir is required for --target=task-docs")
+				os.Exit(1)
+			}
+			if err := runTaskDocsGeneration(*schemaDir, *outputDir, *metaDir); err != nil {
+				fmt.Printf("Error in task docs generation: %v\n", err)
+				os.Exit(1)
+			}
 		default:
-			fmt.Printf("Comprehensive mode is supported for --target=mcp, --target=sdk-client, --target=sdk-client-ts, --target=sdk-client-python, --target=sdk-client-java, or --target=sdk-docs (got %s)\n", *target)
+			fmt.Printf("Comprehensive mode is supported for --target=mcp, --target=sdk-client, --target=sdk-client-ts, --target=sdk-client-python, --target=sdk-client-java, --target=sdk-docs, --target=task-registry, or --target=task-docs (got %s)\n", *target)
 			os.Exit(1)
 		}
 		fmt.Println("\n✅ Comprehensive code generation complete!")

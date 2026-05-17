@@ -1,0 +1,584 @@
+---
+title: Workflow Patterns
+description:
+  Production-ready workflow patterns with worked examples — research pipelines,
+  content review loops, ticket triage, agent guards, and budget gates.
+---
+
+This page documents common Workflow patterns adapted from real production
+workflows. Each pattern is self-contained — copy the YAML, adjust the specifics,
+and deploy. For the full YAML syntax reference, see the
+[Authoring Guide](/docs/guides/workflows).
+
+## Research and summarize
+
+**Use when**: you need to analyze source material, generate multiple outputs in
+parallel (summary + structured findings), merge the results, and get human
+approval before publishing.
+
+**Tasks used**: `llm_call`, `fork`, `transform`, `human_input`
+
+{/* prettier-ignore */}
+<Mermaid
+  chart={`
+graph LR
+  A["initial_analysis<br/>llm_call"] --> F["parallel_processing<br/>fork"]
+  F --> M["merge_results<br/>transform"]
+  M --> R["review_report<br/>human_input"]
+  R -->|"approve"| FIN["finalize_report<br/>transform"]
+  R -->|"reject"| E["end"]
+`}
+/>
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: Workflow
+metadata:
+  name: research-and-summarize
+spec:
+  description: Multi-step analysis with parallel processing and human approval.
+  document:
+    dsl: "1.0.0"
+    namespace: acme
+    name: research-and-summarize
+    version: "1.0.0"
+  env:
+    TOPIC:
+      description: "The topic to analyze"
+      required: true
+    SOURCE_MATERIAL:
+      description: "Text or data to analyze"
+      required: true
+  budget:
+    max_cost_micros: 3000000
+    max_total_tokens: 300000
+    max_duration_seconds: 600
+  tasks:
+    - name: initial_analysis
+      kind: llm_call
+      task_config:
+        model: "claude-sonnet-4-5"
+        system_prompt: >
+          You are a research analyst. Analyze the provided source material
+          thoroughly. Identify key themes, claims, evidence, and gaps.
+        prompt: >
+          Analyze the following material on "${ $context.env.TOPIC }": ${
+          $context.env.SOURCE_MATERIAL }
+        temperature: 0.3
+        max_tokens: 3000
+      export:
+        as: "${ . }"
+      flow:
+        then: parallel_processing
+
+    - name: parallel_processing
+      kind: fork
+      task_config:
+        branches:
+          - name: executive_summary
+            do:
+              - name: summarize
+                kind: llm_call
+                task_config:
+                  model: "claude-sonnet-4-5"
+                  system_prompt: >
+                    Distill analysis into a concise, actionable summary for
+                    decision-makers.
+                  prompt: >
+                    Write a 3-paragraph executive summary: ${
+                    $context.initial_analysis.text }
+                  temperature: 0.3
+                  max_tokens: 500
+                export:
+                  as: "${ . }"
+          - name: key_findings
+            do:
+              - name: extract_findings
+                kind: llm_call
+                task_config:
+                  model: "gpt-4o-mini"
+                  system_prompt: "Extract structured key findings."
+                  prompt: >
+                    Extract findings from: ${ $context.initial_analysis.text }
+                  response_schema:
+                    type: object
+                    required: [findings, confidence]
+                    properties:
+                      findings:
+                        type: array
+                        items:
+                          type: object
+                          required: [title, detail]
+                          properties:
+                            title: { type: string }
+                            detail: { type: string }
+                      confidence:
+                        type: string
+                        enum: [low, medium, high]
+                  on_invalid: ON_INVALID_RETRY
+                  max_retries: 2
+                export:
+                  as: "${ . }"
+        compete: false
+      export:
+        as: "${ . }"
+      flow:
+        then: merge_results
+
+    - name: merge_results
+      kind: transform
+      task_config:
+        engine: jq
+        expression: |
+          {
+            topic: $topic,
+            executive_summary: $summary,
+            key_findings: $findings,
+            finding_count: ($findings.findings | length)
+          }
+        input:
+          topic: "${ $context.env.TOPIC }"
+          summary:
+            "${ $context.parallel_processing.executive_summary.summarize.text }"
+          findings:
+            "${
+            $context.parallel_processing.key_findings.extract_findings.structured
+            }"
+      export:
+        as: "${ . }"
+      flow:
+        then: review_report
+
+    - name: review_report
+      kind: human_input
+      task_config:
+        prompt: >
+          Review the analysis report for "${ $context.merge_results.topic }".
+          Approve this report?
+        outcomes:
+          - name: approve
+            label: "Approve Report"
+          - name: reject
+            label: "Discard"
+            then: end
+        timeout: 172800
+        on_timeout: HUMAN_INPUT_TIMEOUT_FAIL
+      export:
+        as: "${ . }"
+      flow:
+        then: finalize_report
+
+    - name: finalize_report
+      kind: transform
+      task_config:
+        engine: jq
+        expression: |
+          {
+            status: "approved",
+            topic: $report.topic,
+            executive_summary: $report.executive_summary,
+            key_findings: $report.key_findings,
+            approved_by: $review.reviewer
+          }
+        input:
+          report: "${ $context.merge_results }"
+          review: "${ $context.review_report }"
+      export:
+        as: "${ . }"
+```
+
+**Key takeaways**:
+
+- `fork` with `compete: false` runs both branches to completion
+- Branch outputs are nested:
+  `$context.parallel_processing.<branch>.<task>.<field>`
+- `transform` with JQ merges parallel results into a single object
+- `human_input` gates the final output — reject sends to `end`
+
+## Content review pipeline
+
+**Use when**: you need to generate content with AI, then loop through human
+review with the ability to request revisions until the reviewer is satisfied.
+
+**Tasks used**: `llm_call`, `human_input`, `transform`
+
+{/* prettier-ignore */}
+<Mermaid
+  chart={`
+graph LR
+  D["draft_content<br/>llm_call"] --> R["review_content<br/>human_input"]
+  R -->|"approve"| F["finalize<br/>transform"]
+  R -->|"revise"| V["revise_content<br/>llm_call"]
+  V --> R
+  R -->|"reject"| E["end"]
+`}
+/>
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: Workflow
+metadata:
+  name: content-review-pipeline
+spec:
+  description:
+    AI content drafting with human-in-the-loop review and revision loops.
+  document:
+    dsl: "1.0.0"
+    namespace: acme
+    name: content-review-pipeline
+    version: "1.0.0"
+  env:
+    TOPIC:
+      description: "The topic to write about"
+      required: true
+    GUIDELINES:
+      description: "Style guidelines (optional)"
+      required: false
+  budget:
+    max_cost_micros: 2000000
+    max_duration_seconds: 600
+  tasks:
+    - name: draft_content
+      kind: llm_call
+      task_config:
+        model: "claude-sonnet-4-5"
+        system_prompt: >
+          You are a professional content writer. Write clear, engaging content
+          that follows the provided guidelines.
+        prompt: >
+          Write content about: ${ $context.env.TOPIC } Guidelines: ${
+          $context.env.GUIDELINES }
+        temperature: 0.7
+        max_tokens: 2000
+      export:
+        as: "${ . }"
+      flow:
+        then: review_content
+
+    - name: review_content
+      kind: human_input
+      task_config:
+        prompt: >
+          Review the AI-drafted content and decide: --- Draft --- ${
+          $context.draft_content.text }
+        form_schema:
+          type: object
+          properties:
+            feedback:
+              type: string
+              description: "Revision notes (required for revisions)"
+        outcomes:
+          - name: approve
+            label: "Approve"
+          - name: revise
+            label: "Request Revisions"
+            then: revise_content
+          - name: reject
+            label: "Reject"
+            then: end
+        timeout: 86400
+        on_timeout: HUMAN_INPUT_TIMEOUT_FAIL
+      export:
+        as: "${ . }"
+      flow:
+        then: finalize
+
+    - name: revise_content
+      kind: llm_call
+      task_config:
+        model: "claude-sonnet-4-5"
+        system_prompt: >
+          Revise the draft based on the reviewer's feedback. Preserve what
+          works, fix what doesn't.
+        prompt: >
+          Original topic: ${ $context.env.TOPIC } Previous draft: ${
+          $context.draft_content.text } Feedback: ${
+          $context.review_content.form_data.feedback }
+        temperature: 0.5
+        max_tokens: 2000
+      export:
+        as: "${ . }"
+      flow:
+        then: review_content
+
+    - name: finalize
+      kind: transform
+      task_config:
+        engine: jq
+        expression: |
+          {
+            status: "approved",
+            topic: $topic,
+            content: $content,
+            approved_by: $reviewer
+          }
+        input:
+          topic: "${ $context.env.TOPIC }"
+          content: "${ $context.draft_content.text }"
+          reviewer: "${ $context.review_content.reviewer }"
+      export:
+        as: "${ . }"
+```
+
+**Key takeaways**:
+
+- The **revision loop** is created by having `revise_content` flow back to
+  `review_content` — the reviewer sees the updated draft each time
+- Outcome-level `then` overrides (`revise` -> `revise_content`, `reject` ->
+  `end`) while the default `flow.then` sends approved reviews to `finalize`
+- `form_schema` collects structured feedback from the reviewer
+
+## Triage and route
+
+**Use when**: you need to classify input with structured LLM output, then route
+to different handling paths based on the classification — with a human gate on
+the critical path.
+
+**Tasks used**: `llm_call` (with `response_schema`), `switch_case`,
+`human_input`, `transform`
+
+{/* prettier-ignore */}
+<Mermaid
+  chart={`
+graph LR
+  C["classify_ticket<br/>llm_call"] --> R["route_by_severity<br/>switch_case"]
+  R -->|"critical"| A["escalation_approval<br/>human_input"]
+  R -->|"high"| H["build_high_summary<br/>transform"]
+  R -->|"default"| S["build_standard_summary<br/>transform"]
+  A -->|"approve"| ES["build_escalation_summary<br/>transform"]
+  A -->|"downgrade"| H
+  A -->|"reject"| S
+`}
+/>
+
+```yaml
+tasks:
+  - name: classify_ticket
+    kind: llm_call
+    task_config:
+      model: "gpt-4o-mini"
+      system_prompt: >
+        You are a support ticket classifier. Analyze the ticket and classify it
+        by severity and category.
+      prompt: "Classify this ticket: ${ $context.env.TICKET_DESCRIPTION }"
+      response_schema:
+        type: object
+        required: [severity, category, summary]
+        properties:
+          severity:
+            type: string
+            enum: [low, medium, high, critical]
+          category:
+            type: string
+            enum: [bug, feature_request, account, billing, general]
+          summary: { type: string }
+      on_invalid: ON_INVALID_RETRY
+      max_retries: 2
+    export:
+      as: "${ .structured }"
+    flow:
+      then: route_by_severity
+
+  - name: route_by_severity
+    kind: switch_case
+    task_config:
+      cases:
+        - name: critical
+          when: "${ $context.classify_ticket.severity == 'critical' }"
+          then: escalation_approval
+        - name: high
+          when: "${ $context.classify_ticket.severity == 'high' }"
+          then: build_high_summary
+        - name: default
+          then: build_standard_summary
+
+  - name: escalation_approval
+    kind: human_input
+    task_config:
+      prompt: >
+        CRITICAL ticket needs escalation approval. Summary: ${
+        $context.classify_ticket.summary } Category: ${
+        $context.classify_ticket.category }
+      outcomes:
+        - name: approve
+          label: "Approve Escalation"
+        - name: downgrade
+          label: "Downgrade to High"
+          then: build_high_summary
+        - name: reject
+          label: "Not an Incident"
+          then: build_standard_summary
+      timeout: 3600
+      on_timeout: HUMAN_INPUT_TIMEOUT_FAIL
+    export:
+      as: "${ . }"
+    flow:
+      then: build_escalation_summary
+```
+
+**Key takeaways**:
+
+- `response_schema` + `ON_INVALID_RETRY` guarantees structured classification
+  output — the LLM retries if its response doesn't match the schema
+- `export.as: "${ .structured }"` saves only the parsed JSON, not the raw text
+- `switch_case` routes on the structured `severity` field
+- Human approval only appears on the critical path — lower severities skip it
+- Each `human_input` outcome can route to a different downstream task
+
+## Agent with guard
+
+**Use when**: you need an Agent to do autonomous work, but want to enforce a
+structured output contract with a fallback path if the Agent doesn't comply.
+
+**Tasks used**: `agent_call`
+
+```yaml
+- name: analyze_data
+  kind: agent_call
+  task_config:
+    agent: acme/data-analyst
+    message: "Analyze the Q4 sales data and identify top trends."
+    output:
+      response_schema:
+        type: object
+        required: [trends, confidence]
+        properties:
+          trends:
+            type: array
+            items:
+              type: object
+              properties:
+                name: { type: string }
+                impact: { type: string, enum: [high, medium, low] }
+          confidence:
+            type: number
+            minimum: 0
+            maximum: 1
+      fallback_task: manual_analysis
+    config:
+      max_cost_micros: 500000
+  export:
+    as: "${ . }"
+
+- name: manual_analysis
+  kind: human_input
+  task_config:
+    prompt: >
+      The automated analysis did not produce valid structured output. Please
+      review the raw agent response and provide the analysis manually.
+    outcomes:
+      - name: done
+        label: "Submit Analysis"
+  export:
+    as: "${ . }"
+```
+
+**Key takeaways**:
+
+- `output.response_schema` tells the Agent what structure to produce
+- `output.fallback_task` redirects to a different task if the schema isn't met
+- `config.max_cost_micros` caps the cost of the Agent's autonomous work
+- The fallback is a `human_input` gate, but could be any task type
+
+## Budget-gated processing
+
+**Use when**: you want to enforce cost limits on expensive workflows and have a
+human decide whether to continue when the budget is exceeded.
+
+```yaml
+spec:
+  budget:
+    max_cost_micros: 5000000
+    max_total_tokens: 500000
+    max_duration_seconds: 1800
+    on_exceeded: budget_exceeded_human_review
+  tasks:
+    - name: expensive_analysis
+      kind: llm_call
+      task_config:
+        model: "claude-sonnet-4-5"
+        prompt: "Deep analysis of: ${ $context.env.DATA }"
+        max_tokens: 4000
+      export:
+        as: "${ . }"
+    # ... more tasks that may push past the budget
+```
+
+**Key takeaways**:
+
+- `budget_exceeded_human_review` pauses the workflow and creates an approval
+  gate — the reviewer can authorize continued spending or terminate
+- `budget_exceeded_terminate` stops immediately (use for hard limits)
+- `budget_exceeded_warn` logs a warning but continues (use for monitoring)
+- Budgets are checked between tasks, not mid-task
+
+## Anti-patterns
+
+### Missing export
+
+```yaml
+# Wrong — task output is lost
+- name: fetch
+  kind: http_call
+  task_config:
+    method: GET
+    endpoint: { uri: "https://api.example.com/data" }
+  # No export — later tasks can't access the result
+```
+
+Always add `export.as` when downstream tasks need the output.
+
+### Unreachable tasks
+
+```yaml
+# Wrong — process_data is unreachable
+- name: fetch
+  kind: http_call
+  task_config: { ... }
+  flow:
+    then: end
+
+- name: process_data # never reached
+  kind: transform
+  task_config: { ... }
+```
+
+Validation catches this — `stigmer validate` reports unreachable tasks.
+
+### Infinite loops without exit
+
+```yaml
+# Risky — no way out if the reviewer always clicks "revise"
+- name: review
+  kind: human_input
+  task_config:
+    outcomes:
+      - name: revise
+        label: "Revise"
+        then: draft
+  flow:
+    then: draft # loops forever
+```
+
+Always include an exit path (`then: end` or a terminal outcome) and set a
+`timeout` on `human_input` tasks.
+
+## What's next
+
+<Cards>
+  <Card
+    title="Authoring Guide"
+    description="Full YAML syntax reference for writing workflows."
+    href="/docs/guides/workflows"
+  />
+  <Card
+    title="Task Types"
+    description="All 20 task types with configuration details."
+    href="/docs/guides/workflow-tasks"
+  />
+  <Card
+    title="Execution Lifecycle"
+    description="Run, monitor, and interact with workflow executions."
+    href="/docs/guides/workflow-execution"
+  />
+</Cards>

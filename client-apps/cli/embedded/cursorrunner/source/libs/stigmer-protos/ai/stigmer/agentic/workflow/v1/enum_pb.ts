@@ -9,7 +9,7 @@ import { enumDesc, fileDesc } from "@bufbuild/protobuf/codegenv1";
  * Describes the file ai/stigmer/agentic/workflow/v1/enum.proto.
  */
 export const file_ai_stigmer_agentic_workflow_v1_enum: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvZW51bS5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxKvYBChBXb3JrZmxvd1Rhc2tLaW5kEiIKHndvcmtmbG93X3Rhc2tfa2luZF91bnNwZWNpZmllZBAAEgwKCHNldF92YXJzEAESDQoJaHR0cF9jYWxsEAISDQoJZ3JwY19jYWxsEAMSEQoNYWN0aXZpdHlfY2FsbBAEEg8KC3N3aXRjaF9jYXNlEAUSDAoIZm9yX2VhY2gQBhIICgRmb3JrEAcSDQoJdHJ5X2NhdGNoEAgSCgoGbGlzdGVuEAkSCAoEd2FpdBAKEg8KC3JhaXNlX2Vycm9yEAsSEAoMcnVuX3dvcmtmbG93EAwSDgoKYWdlbnRfY2FsbBANYgZwcm90bzM");
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvZW51bS5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxKt4CChBXb3JrZmxvd1Rhc2tLaW5kEiIKHndvcmtmbG93X3Rhc2tfa2luZF91bnNwZWNpZmllZBAAEgwKCHNldF92YXJzEAESDQoJaHR0cF9jYWxsEAISDQoJZ3JwY19jYWxsEAMSEQoNYWN0aXZpdHlfY2FsbBAEEg8KC3N3aXRjaF9jYXNlEAUSDAoIZm9yX2VhY2gQBhIICgRmb3JrEAcSDQoJdHJ5X2NhdGNoEAgSCgoGbGlzdGVuEAkSCAoEd2FpdBAKEg8KC3JhaXNlX2Vycm9yEAsSEAoMcnVuX3dvcmtmbG93EAwSDgoKYWdlbnRfY2FsbBANEgwKCGxsbV9jYWxsEA4SDQoJdHJhbnNmb3JtEA8SDwoLaHVtYW5faW5wdXQQEBIMCgh2YWxpZGF0ZRAREg4KCmVtaXRfZXZlbnQQEhIQCgxub3RpZmljYXRpb24QExIICgRldmFsEBQqmQEKFEJ1ZGdldEV4Y2VlZGVkUG9saWN5EiYKImJ1ZGdldF9leGNlZWRlZF9wb2xpY3lfdW5zcGVjaWZpZWQQABIdChlidWRnZXRfZXhjZWVkZWRfdGVybWluYXRlEAESIAocYnVkZ2V0X2V4Y2VlZGVkX2h1bWFuX3JldmlldxACEhgKFGJ1ZGdldF9leGNlZWRlZF93YXJuEANiBnByb3RvMw");
 
 /**
  * WorkflowTaskKind defines the supported task types in a workflow.
@@ -39,6 +39,13 @@ export const file_ai_stigmer_agentic_workflow_v1_enum: GenFile = /*@__PURE__*/
  * raise_error: {"error": "ErrorType", "message": "${...}"}
  * run_workflow: {"workflow": "workflow-name", "input": {...}}
  * agent_call: {"agent": "agent-slug", "message": "...", "env": {...}}
+ * llm_call: {"model": "...", "prompt": "...", "response_schema": {...}, "on_invalid": "..."}
+ * transform: {"engine": "jq", "expression": "...", "input": "${...}"}
+ * human_input: {"prompt": "...", "form_schema": {...}, "outcomes": [...], "approvers": [...], "timeout": 86400}
+ * validate: {"input": "${...}", "schema": {...}, "rules": [...], "on_fail": "..."}
+ * emit_event: {"event": {"type": "...", "source": "...", "subject": "...", "data": {...}}}
+ * notification: {"channel": "slack", "recipients": ["..."], "subject": "...", "body": "...", "template": "...", "metadata": {...}}
+ * eval: {"model": "...", "subject": "${...}", "rubric": "...", "scoring_mode": "EVAL_PASS_FAIL", "threshold": 0.7, "on_fail": "EVAL_FAIL_RAISE", "criteria": [...]}
  *
  * @generated from enum ai.stigmer.agentic.workflow.v1.WorkflowTaskKind
  */
@@ -184,6 +191,97 @@ export enum WorkflowTaskKind {
    * @generated from enum value: agent_call = 13;
    */
   agent_call = 13,
+
+  /**
+   * Direct LLM call for classification, extraction, scoring, or routing.
+   *
+   * @internal
+   * Lightweight alternative to agent_call for focused LLM tasks without
+   * agent overhead (no system prompt resolution, tool setup, or MCP wiring).
+   * Config: {"model": "...", "prompt": "...", "response_schema": {...}}
+   *
+   * @generated from enum value: llm_call = 14;
+   */
+  llm_call = 14,
+
+  /**
+   * Deterministic data transformation using JQ, JSONata, or template engines.
+   *
+   * @internal
+   * Reshapes data between tasks without LLM calls. Produces explicit output
+   * via export, unlike set_vars which mutates workflow state as a side effect.
+   * Config: {"engine": "jq", "expression": "...", "input": "${...}"}
+   *
+   * @generated from enum value: transform = 15;
+   */
+  transform = 15,
+
+  /**
+   * Workflow-level approval gate for human input, review, or sign-off.
+   *
+   * @internal
+   * Pauses workflow execution to collect typed input or approval from a
+   * human reviewer. Supports custom outcomes, form schemas, approver
+   * lists, timeouts, and notification channels.
+   * Config: {"prompt": "...", "form_schema": {...}, "outcomes": [...], "approvers": [...]}
+   *
+   * @generated from enum value: human_input = 16;
+   */
+  human_input = 16,
+
+  /**
+   * Schema and business-rule validation checkpoint.
+   *
+   * @internal
+   * Validates workflow data against JSON Schema and/or business rules
+   * before downstream tasks consume it. Supports fail, branch, and warn
+   * policies for flexible error handling.
+   * Config: {"input": "${...}", "schema": {...}, "rules": [...], "on_fail": "..."}
+   *
+   * @generated from enum value: validate = 17;
+   */
+  validate = 17,
+
+  /**
+   * Emit a CloudEvents-formatted event for external consumers or other workflows.
+   *
+   * @internal
+   * Completes the listen/emit duality: listen waits for Temporal signals,
+   * emit_event publishes business events using the CloudEvents envelope.
+   * The runtime bridges the two when events target other workflows.
+   * Config: {"event": {"type": "...", "source": "...", "subject": "...", "data": {...}}}
+   *
+   * @generated from enum value: emit_event = 18;
+   */
+  emit_event = 18,
+
+  /**
+   * Send a notification to humans through a channel (Slack, email, Discord, etc.).
+   *
+   * @internal
+   * Fire-and-forget convenience abstraction for operational notifications.
+   * For notifications requiring acknowledgment, use human_input instead.
+   * Config: {"channel": "slack", "recipients": ["..."], "subject": "...", "body": "..."}
+   *
+   * @generated from enum value: notification = 19;
+   */
+  notification = 19,
+
+  /**
+   * LLM-as-a-judge evaluation for semantic quality assessment.
+   *
+   * @internal
+   * Assesses quality, correctness, safety, or completeness of LLM-generated
+   * or agent-produced content using an LLM judge. Fills the gap between
+   * structural validation (validate task) and human review (human_input).
+   * Supports pass/fail, numeric scoring, and multi-criteria evaluation modes.
+   * Config: {"model": "...", "subject": "${...}", "rubric": "...", "scoring_mode": "...", "threshold": 0.7, "on_fail": "..."}
+   *
+   * @since T17 (Advanced Agentic Orchestration)
+   *
+   * @generated from enum value: eval = 20;
+   */
+  eval = 20,
 }
 
 /**
@@ -191,4 +289,59 @@ export enum WorkflowTaskKind {
  */
 export const WorkflowTaskKindSchema: GenEnum<WorkflowTaskKind> = /*@__PURE__*/
   enumDesc(file_ai_stigmer_agentic_workflow_v1_enum, 0);
+
+/**
+ * BudgetExceededPolicy defines the runtime behavior when a workflow or per-task
+ * budget limit is exceeded.
+ *
+ * The runtime (T13) evaluates this policy at task boundaries: after each task
+ * completes, accumulated costs and tokens are compared against the declared
+ * budget. If a limit is breached, the policy determines what happens next.
+ *
+ * @since T05 (Workflow-Level Budget Primitives)
+ *
+ * @generated from enum ai.stigmer.agentic.workflow.v1.BudgetExceededPolicy
+ */
+export enum BudgetExceededPolicy {
+  /**
+   * Default: no specific policy set. The runtime treats this as
+   * budget_exceeded_terminate (fail-safe behavior).
+   *
+   * @generated from enum value: budget_exceeded_policy_unspecified = 0;
+   */
+  budget_exceeded_policy_unspecified = 0,
+
+  /**
+   * Terminate the workflow immediately with EXECUTION_FAILED status.
+   * The execution record includes the budget breach details for diagnostics.
+   *
+   * @generated from enum value: budget_exceeded_terminate = 1;
+   */
+  budget_exceeded_terminate = 1,
+
+  /**
+   * Pause the workflow and request human review via a system-generated
+   * approval gate. The reviewer can approve continued execution (with
+   * an increased budget) or confirm termination.
+   * Depends on the human_input runtime (T13). If human_input runtime
+   * is not available, falls back to terminate with a descriptive error.
+   *
+   * @generated from enum value: budget_exceeded_human_review = 2;
+   */
+  budget_exceeded_human_review = 2,
+
+  /**
+   * Log a warning but allow the workflow to continue executing.
+   * Useful for monitoring/alerting without interrupting production workflows.
+   *
+   * @generated from enum value: budget_exceeded_warn = 3;
+   */
+  budget_exceeded_warn = 3,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.workflow.v1.BudgetExceededPolicy.
+ */
+export const BudgetExceededPolicySchema: GenEnum<BudgetExceededPolicy> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_workflow_v1_enum, 1);
 

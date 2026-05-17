@@ -150,4 +150,41 @@ public interface ExecutionConfigOrBuilder extends
    * @return The maxCostUsd.
    */
   double getMaxCostUsd();
+
+  /**
+   * <pre>
+   * Interaction mode for this execution.
+   *
+   * AGENT (default): full tool access — read, write, create, delete, shell.
+   * PLAN: read-only analysis — read, search, list only. No file mutations.
+   *
+   * When UNSPECIFIED, defaults to AGENT for backward compatibility.
+   *
+   * The mode is set per-execution and does not carry over between executions
+   * in the same session. Users toggle mode in the session composer before
+   * sending each message.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.InteractionMode interaction_mode = 6 [json_name = "interactionMode", (.buf.validate.field) = { ... }</code>
+   * @return The enum numeric value on the wire for interactionMode.
+   */
+  int getInteractionModeValue();
+  /**
+   * <pre>
+   * Interaction mode for this execution.
+   *
+   * AGENT (default): full tool access — read, write, create, delete, shell.
+   * PLAN: read-only analysis — read, search, list only. No file mutations.
+   *
+   * When UNSPECIFIED, defaults to AGENT for backward compatibility.
+   *
+   * The mode is set per-execution and does not carry over between executions
+   * in the same session. Users toggle mode in the session composer before
+   * sending each message.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.InteractionMode interaction_mode = 6 [json_name = "interactionMode", (.buf.validate.field) = { ... }</code>
+   * @return The interactionMode.
+   */
+  ai.stigmer.agentic.agentexecution.v1.InteractionMode getInteractionMode();
 }

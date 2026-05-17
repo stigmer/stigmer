@@ -149,6 +149,130 @@ public final class WorkflowExecutionQueryControllerGrpc {
     return getSubscribeMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.workflowexecution.v1.GetEventLogRequest,
+      ai.stigmer.agentic.workflowexecution.v1.GetEventLogResponse> getGetEventLogMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "getEventLog",
+      requestType = ai.stigmer.agentic.workflowexecution.v1.GetEventLogRequest.class,
+      responseType = ai.stigmer.agentic.workflowexecution.v1.GetEventLogResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.workflowexecution.v1.GetEventLogRequest,
+      ai.stigmer.agentic.workflowexecution.v1.GetEventLogResponse> getGetEventLogMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.workflowexecution.v1.GetEventLogRequest, ai.stigmer.agentic.workflowexecution.v1.GetEventLogResponse> getGetEventLogMethod;
+    if ((getGetEventLogMethod = WorkflowExecutionQueryControllerGrpc.getGetEventLogMethod) == null) {
+      synchronized (WorkflowExecutionQueryControllerGrpc.class) {
+        if ((getGetEventLogMethod = WorkflowExecutionQueryControllerGrpc.getGetEventLogMethod) == null) {
+          WorkflowExecutionQueryControllerGrpc.getGetEventLogMethod = getGetEventLogMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.workflowexecution.v1.GetEventLogRequest, ai.stigmer.agentic.workflowexecution.v1.GetEventLogResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getEventLog"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.workflowexecution.v1.GetEventLogRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.workflowexecution.v1.GetEventLogResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new WorkflowExecutionQueryControllerMethodDescriptorSupplier("getEventLog"))
+              .build();
+        }
+      }
+    }
+    return getGetEventLogMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.workflowexecution.v1.SubscribeEventsRequest,
+      ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent> getSubscribeEventsMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "subscribeEvents",
+      requestType = ai.stigmer.agentic.workflowexecution.v1.SubscribeEventsRequest.class,
+      responseType = ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.SERVER_STREAMING)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.workflowexecution.v1.SubscribeEventsRequest,
+      ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent> getSubscribeEventsMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.workflowexecution.v1.SubscribeEventsRequest, ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent> getSubscribeEventsMethod;
+    if ((getSubscribeEventsMethod = WorkflowExecutionQueryControllerGrpc.getSubscribeEventsMethod) == null) {
+      synchronized (WorkflowExecutionQueryControllerGrpc.class) {
+        if ((getSubscribeEventsMethod = WorkflowExecutionQueryControllerGrpc.getSubscribeEventsMethod) == null) {
+          WorkflowExecutionQueryControllerGrpc.getSubscribeEventsMethod = getSubscribeEventsMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.workflowexecution.v1.SubscribeEventsRequest, ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.SERVER_STREAMING)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "subscribeEvents"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.workflowexecution.v1.SubscribeEventsRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent.getDefaultInstance()))
+              .setSchemaDescriptor(new WorkflowExecutionQueryControllerMethodDescriptorSupplier("subscribeEvents"))
+              .build();
+        }
+      }
+    }
+    return getSubscribeEventsMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.workflowexecution.v1.GetExecutionSummaryRequest,
+      ai.stigmer.agentic.workflowexecution.v1.ExecutionSummary> getGetExecutionSummaryMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "getExecutionSummary",
+      requestType = ai.stigmer.agentic.workflowexecution.v1.GetExecutionSummaryRequest.class,
+      responseType = ai.stigmer.agentic.workflowexecution.v1.ExecutionSummary.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.workflowexecution.v1.GetExecutionSummaryRequest,
+      ai.stigmer.agentic.workflowexecution.v1.ExecutionSummary> getGetExecutionSummaryMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.workflowexecution.v1.GetExecutionSummaryRequest, ai.stigmer.agentic.workflowexecution.v1.ExecutionSummary> getGetExecutionSummaryMethod;
+    if ((getGetExecutionSummaryMethod = WorkflowExecutionQueryControllerGrpc.getGetExecutionSummaryMethod) == null) {
+      synchronized (WorkflowExecutionQueryControllerGrpc.class) {
+        if ((getGetExecutionSummaryMethod = WorkflowExecutionQueryControllerGrpc.getGetExecutionSummaryMethod) == null) {
+          WorkflowExecutionQueryControllerGrpc.getGetExecutionSummaryMethod = getGetExecutionSummaryMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.workflowexecution.v1.GetExecutionSummaryRequest, ai.stigmer.agentic.workflowexecution.v1.ExecutionSummary>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getExecutionSummary"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.workflowexecution.v1.GetExecutionSummaryRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.workflowexecution.v1.ExecutionSummary.getDefaultInstance()))
+              .setSchemaDescriptor(new WorkflowExecutionQueryControllerMethodDescriptorSupplier("getExecutionSummary"))
+              .build();
+        }
+      }
+    }
+    return getGetExecutionSummaryMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.workflowexecution.v1.ListPendingApprovalsRequest,
+      ai.stigmer.agentic.workflowexecution.v1.PendingApprovalsList> getListPendingApprovalsMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "listPendingApprovals",
+      requestType = ai.stigmer.agentic.workflowexecution.v1.ListPendingApprovalsRequest.class,
+      responseType = ai.stigmer.agentic.workflowexecution.v1.PendingApprovalsList.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.workflowexecution.v1.ListPendingApprovalsRequest,
+      ai.stigmer.agentic.workflowexecution.v1.PendingApprovalsList> getListPendingApprovalsMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.workflowexecution.v1.ListPendingApprovalsRequest, ai.stigmer.agentic.workflowexecution.v1.PendingApprovalsList> getListPendingApprovalsMethod;
+    if ((getListPendingApprovalsMethod = WorkflowExecutionQueryControllerGrpc.getListPendingApprovalsMethod) == null) {
+      synchronized (WorkflowExecutionQueryControllerGrpc.class) {
+        if ((getListPendingApprovalsMethod = WorkflowExecutionQueryControllerGrpc.getListPendingApprovalsMethod) == null) {
+          WorkflowExecutionQueryControllerGrpc.getListPendingApprovalsMethod = getListPendingApprovalsMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.workflowexecution.v1.ListPendingApprovalsRequest, ai.stigmer.agentic.workflowexecution.v1.PendingApprovalsList>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "listPendingApprovals"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.workflowexecution.v1.ListPendingApprovalsRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.workflowexecution.v1.PendingApprovalsList.getDefaultInstance()))
+              .setSchemaDescriptor(new WorkflowExecutionQueryControllerMethodDescriptorSupplier("listPendingApprovals"))
+              .build();
+        }
+      }
+    }
+    return getListPendingApprovalsMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -530,6 +654,148 @@ public final class WorkflowExecutionQueryControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getSubscribeMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * Fetch the paginated event log for a workflow execution.
+     * Returns execution events ordered by sequence_number ascending, with
+     * cursor-based pagination and optional filtering by event type or task name.
+     * &#64;internal
+     * Authorization:
+     * Standard authorization checks that user has "get" permission on the
+     * WorkflowExecution. Same permission as get() and subscribe().
+     * The event log complements the status snapshot: the snapshot tells you
+     * current state, the event log tells you what happened and when.
+     * Use Cases:
+     * 1. Execution Viewer Timeline:
+     *    - Load full event history for a completed execution
+     *    - Render timeline with task transitions, retries, approvals, cost
+     * 2. Task Drill-Down:
+     *    - Filter by task_name to see all events for a specific task
+     *    - Inspect retry history, duration, cost per attempt
+     * 3. Cost Audit:
+     *    - Filter by budget_checkpoint events to chart cost over time
+     *    - Correlate cost spikes with specific agent_call tasks
+     * 4. Approval Audit Trail:
+     *    - Filter by approval_requested and approval_resolved
+     *    - See who approved what, when, and with what comment
+     * Error Cases:
+     * - NOT_FOUND: No WorkflowExecution exists with the given ID
+     * - PERMISSION_DENIED: User doesn't have "get" permission
+     * - INVALID_ARGUMENT: page_size exceeds maximum (500)
+     * &#64;since T06 (Execution Event Stream Model)
+     * </pre>
+     */
+    default void getEventLog(ai.stigmer.agentic.workflowexecution.v1.GetEventLogRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflowexecution.v1.GetEventLogResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetEventLogMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Subscribe to real-time execution events (incremental event stream).
+     * Opens a server-side streaming RPC that pushes individual
+     * WorkflowExecutionEvent messages as they occur during execution.
+     * Unlike subscribe() which streams full WorkflowExecution snapshots,
+     * this streams lightweight incremental events for the timeline view.
+     * &#64;internal
+     * Authorization:
+     * Standard authorization checks that user has "get" permission on the
+     * WorkflowExecution. Same permission as get() and subscribe().
+     * Stream Lifecycle:
+     * 1. Client sends SubscribeEventsRequest with execution_id
+     * 2. Server validates authorization
+     * 3. If after_sequence &gt; 0: Server replays missed events from persistence
+     * 4. Server streams new events in real-time as the runner emits them
+     * 5. Server closes stream when execution reaches a terminal phase
+     *    (COMPLETED, FAILED, CANCELLED, TERMINATED)
+     * 6. Client can close stream early
+     * Reconnection:
+     * On disconnect, the client reconnects with after_sequence set to the
+     * sequence_number of the last received event. The server replays any
+     * events missed during the disconnect, then resumes live streaming.
+     * No events are lost.
+     * Complementary Streams:
+     * - subscribe(): Full snapshots for current-state views (progress bars, dashboards)
+     * - subscribeEvents(): Incremental events for timeline views (execution viewer)
+     * Both streams can be used simultaneously for different UI concerns.
+     * Use Cases:
+     * 1. Live Execution Timeline:
+     *    - User watches a running execution in the execution viewer
+     *    - Events stream in real-time, building the timeline as tasks progress
+     *    - Each event adds a row: "task X started", "task X completed (2.3s, $0.05)"
+     * 2. Cost Monitoring:
+     *    - Dashboard subscribes with event_types filter for budget_checkpoint
+     *    - Budget gauge updates in real-time as costs accumulate
+     * 3. Approval Notifications:
+     *    - Subscribe with event_types filter for approval_requested
+     *    - Surface approval gates immediately when they activate
+     * Error Cases:
+     * - NOT_FOUND: No WorkflowExecution exists with the given ID
+     * - PERMISSION_DENIED: User doesn't have "get" permission
+     * - DEADLINE_EXCEEDED: Client timeout (reconnect with after_sequence)
+     * - UNAVAILABLE: Server unavailable (retry with backoff)
+     * &#64;since T06 (Execution Event Stream Model)
+     * </pre>
+     */
+    default void subscribeEvents(ai.stigmer.agentic.workflowexecution.v1.SubscribeEventsRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getSubscribeEventsMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Get aggregated execution statistics for an organization's workflows.
+     * Returns counts by phase, total cost, average duration, top failing
+     * workflows, and per-workflow cost breakdown — scoped to a configurable
+     * time window (24h, 7d, 30d, all-time).
+     * &#64;internal
+     * Authorization:
+     * Custom authorization — user must have organization-level access.
+     * Results are scoped to the user's organization.
+     * Use Cases:
+     * 1. Dashboard Overview:
+     *    - Display KPI cards: active runs, completed, failed, total cost
+     *    - Time window selector toggles between 24h / 7d / 30d views
+     * 2. Cost Monitoring:
+     *    - Show per-workflow cost breakdown to identify expensive workflows
+     *    - Track cost trends across time windows
+     * 3. Reliability Monitoring:
+     *    - Surface top failing workflows for investigation
+     *    - Track failure rates across the organization
+     * &#64;since T14 (Dashboard Integration)
+     * </pre>
+     */
+    default void getExecutionSummary(ai.stigmer.agentic.workflowexecution.v1.GetExecutionSummaryRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflowexecution.v1.ExecutionSummary> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetExecutionSummaryMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * List workflow executions with pending human_input tasks awaiting reviewer decisions.
+     * Returns a paginated list of executions where at least one human_input
+     * task is actively waiting for a response. Each entry includes the
+     * execution context, task details, requester, and timeout information.
+     * &#64;internal
+     * Authorization:
+     * Custom authorization — user must have organization-level access.
+     * Results are scoped to the user's organization.
+     * Use Cases:
+     * 1. Pending Approvals Dashboard Widget:
+     *    - Display a list of items requiring human attention
+     *    - Show time waiting and timeout countdown
+     *    - Link to execution viewer for review action
+     * 2. Approval Queue:
+     *    - Reviewers see all pending approvals in one view
+     *    - Sorted by urgency (closest to timeout first)
+     * &#64;since T14 (Dashboard Integration)
+     * </pre>
+     */
+    default void listPendingApprovals(ai.stigmer.agentic.workflowexecution.v1.ListPendingApprovalsRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflowexecution.v1.PendingApprovalsList> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListPendingApprovalsMethod(), responseObserver);
+    }
   }
 
   /**
@@ -894,6 +1160,152 @@ public final class WorkflowExecutionQueryControllerGrpc {
       io.grpc.stub.ClientCalls.asyncServerStreamingCall(
           getChannel().newCall(getSubscribeMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * Fetch the paginated event log for a workflow execution.
+     * Returns execution events ordered by sequence_number ascending, with
+     * cursor-based pagination and optional filtering by event type or task name.
+     * &#64;internal
+     * Authorization:
+     * Standard authorization checks that user has "get" permission on the
+     * WorkflowExecution. Same permission as get() and subscribe().
+     * The event log complements the status snapshot: the snapshot tells you
+     * current state, the event log tells you what happened and when.
+     * Use Cases:
+     * 1. Execution Viewer Timeline:
+     *    - Load full event history for a completed execution
+     *    - Render timeline with task transitions, retries, approvals, cost
+     * 2. Task Drill-Down:
+     *    - Filter by task_name to see all events for a specific task
+     *    - Inspect retry history, duration, cost per attempt
+     * 3. Cost Audit:
+     *    - Filter by budget_checkpoint events to chart cost over time
+     *    - Correlate cost spikes with specific agent_call tasks
+     * 4. Approval Audit Trail:
+     *    - Filter by approval_requested and approval_resolved
+     *    - See who approved what, when, and with what comment
+     * Error Cases:
+     * - NOT_FOUND: No WorkflowExecution exists with the given ID
+     * - PERMISSION_DENIED: User doesn't have "get" permission
+     * - INVALID_ARGUMENT: page_size exceeds maximum (500)
+     * &#64;since T06 (Execution Event Stream Model)
+     * </pre>
+     */
+    public void getEventLog(ai.stigmer.agentic.workflowexecution.v1.GetEventLogRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflowexecution.v1.GetEventLogResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getGetEventLogMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Subscribe to real-time execution events (incremental event stream).
+     * Opens a server-side streaming RPC that pushes individual
+     * WorkflowExecutionEvent messages as they occur during execution.
+     * Unlike subscribe() which streams full WorkflowExecution snapshots,
+     * this streams lightweight incremental events for the timeline view.
+     * &#64;internal
+     * Authorization:
+     * Standard authorization checks that user has "get" permission on the
+     * WorkflowExecution. Same permission as get() and subscribe().
+     * Stream Lifecycle:
+     * 1. Client sends SubscribeEventsRequest with execution_id
+     * 2. Server validates authorization
+     * 3. If after_sequence &gt; 0: Server replays missed events from persistence
+     * 4. Server streams new events in real-time as the runner emits them
+     * 5. Server closes stream when execution reaches a terminal phase
+     *    (COMPLETED, FAILED, CANCELLED, TERMINATED)
+     * 6. Client can close stream early
+     * Reconnection:
+     * On disconnect, the client reconnects with after_sequence set to the
+     * sequence_number of the last received event. The server replays any
+     * events missed during the disconnect, then resumes live streaming.
+     * No events are lost.
+     * Complementary Streams:
+     * - subscribe(): Full snapshots for current-state views (progress bars, dashboards)
+     * - subscribeEvents(): Incremental events for timeline views (execution viewer)
+     * Both streams can be used simultaneously for different UI concerns.
+     * Use Cases:
+     * 1. Live Execution Timeline:
+     *    - User watches a running execution in the execution viewer
+     *    - Events stream in real-time, building the timeline as tasks progress
+     *    - Each event adds a row: "task X started", "task X completed (2.3s, $0.05)"
+     * 2. Cost Monitoring:
+     *    - Dashboard subscribes with event_types filter for budget_checkpoint
+     *    - Budget gauge updates in real-time as costs accumulate
+     * 3. Approval Notifications:
+     *    - Subscribe with event_types filter for approval_requested
+     *    - Surface approval gates immediately when they activate
+     * Error Cases:
+     * - NOT_FOUND: No WorkflowExecution exists with the given ID
+     * - PERMISSION_DENIED: User doesn't have "get" permission
+     * - DEADLINE_EXCEEDED: Client timeout (reconnect with after_sequence)
+     * - UNAVAILABLE: Server unavailable (retry with backoff)
+     * &#64;since T06 (Execution Event Stream Model)
+     * </pre>
+     */
+    public void subscribeEvents(ai.stigmer.agentic.workflowexecution.v1.SubscribeEventsRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncServerStreamingCall(
+          getChannel().newCall(getSubscribeEventsMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Get aggregated execution statistics for an organization's workflows.
+     * Returns counts by phase, total cost, average duration, top failing
+     * workflows, and per-workflow cost breakdown — scoped to a configurable
+     * time window (24h, 7d, 30d, all-time).
+     * &#64;internal
+     * Authorization:
+     * Custom authorization — user must have organization-level access.
+     * Results are scoped to the user's organization.
+     * Use Cases:
+     * 1. Dashboard Overview:
+     *    - Display KPI cards: active runs, completed, failed, total cost
+     *    - Time window selector toggles between 24h / 7d / 30d views
+     * 2. Cost Monitoring:
+     *    - Show per-workflow cost breakdown to identify expensive workflows
+     *    - Track cost trends across time windows
+     * 3. Reliability Monitoring:
+     *    - Surface top failing workflows for investigation
+     *    - Track failure rates across the organization
+     * &#64;since T14 (Dashboard Integration)
+     * </pre>
+     */
+    public void getExecutionSummary(ai.stigmer.agentic.workflowexecution.v1.GetExecutionSummaryRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflowexecution.v1.ExecutionSummary> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getGetExecutionSummaryMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * List workflow executions with pending human_input tasks awaiting reviewer decisions.
+     * Returns a paginated list of executions where at least one human_input
+     * task is actively waiting for a response. Each entry includes the
+     * execution context, task details, requester, and timeout information.
+     * &#64;internal
+     * Authorization:
+     * Custom authorization — user must have organization-level access.
+     * Results are scoped to the user's organization.
+     * Use Cases:
+     * 1. Pending Approvals Dashboard Widget:
+     *    - Display a list of items requiring human attention
+     *    - Show time waiting and timeout countdown
+     *    - Link to execution viewer for review action
+     * 2. Approval Queue:
+     *    - Reviewers see all pending approvals in one view
+     *    - Sorted by urgency (closest to timeout first)
+     * &#64;since T14 (Dashboard Integration)
+     * </pre>
+     */
+    public void listPendingApprovals(ai.stigmer.agentic.workflowexecution.v1.ListPendingApprovalsRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflowexecution.v1.PendingApprovalsList> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getListPendingApprovalsMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -1232,6 +1644,150 @@ public final class WorkflowExecutionQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2ServerStreamingCall(
           getChannel(), getSubscribeMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Fetch the paginated event log for a workflow execution.
+     * Returns execution events ordered by sequence_number ascending, with
+     * cursor-based pagination and optional filtering by event type or task name.
+     * &#64;internal
+     * Authorization:
+     * Standard authorization checks that user has "get" permission on the
+     * WorkflowExecution. Same permission as get() and subscribe().
+     * The event log complements the status snapshot: the snapshot tells you
+     * current state, the event log tells you what happened and when.
+     * Use Cases:
+     * 1. Execution Viewer Timeline:
+     *    - Load full event history for a completed execution
+     *    - Render timeline with task transitions, retries, approvals, cost
+     * 2. Task Drill-Down:
+     *    - Filter by task_name to see all events for a specific task
+     *    - Inspect retry history, duration, cost per attempt
+     * 3. Cost Audit:
+     *    - Filter by budget_checkpoint events to chart cost over time
+     *    - Correlate cost spikes with specific agent_call tasks
+     * 4. Approval Audit Trail:
+     *    - Filter by approval_requested and approval_resolved
+     *    - See who approved what, when, and with what comment
+     * Error Cases:
+     * - NOT_FOUND: No WorkflowExecution exists with the given ID
+     * - PERMISSION_DENIED: User doesn't have "get" permission
+     * - INVALID_ARGUMENT: page_size exceeds maximum (500)
+     * &#64;since T06 (Execution Event Stream Model)
+     * </pre>
+     */
+    public ai.stigmer.agentic.workflowexecution.v1.GetEventLogResponse getEventLog(ai.stigmer.agentic.workflowexecution.v1.GetEventLogRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getGetEventLogMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Subscribe to real-time execution events (incremental event stream).
+     * Opens a server-side streaming RPC that pushes individual
+     * WorkflowExecutionEvent messages as they occur during execution.
+     * Unlike subscribe() which streams full WorkflowExecution snapshots,
+     * this streams lightweight incremental events for the timeline view.
+     * &#64;internal
+     * Authorization:
+     * Standard authorization checks that user has "get" permission on the
+     * WorkflowExecution. Same permission as get() and subscribe().
+     * Stream Lifecycle:
+     * 1. Client sends SubscribeEventsRequest with execution_id
+     * 2. Server validates authorization
+     * 3. If after_sequence &gt; 0: Server replays missed events from persistence
+     * 4. Server streams new events in real-time as the runner emits them
+     * 5. Server closes stream when execution reaches a terminal phase
+     *    (COMPLETED, FAILED, CANCELLED, TERMINATED)
+     * 6. Client can close stream early
+     * Reconnection:
+     * On disconnect, the client reconnects with after_sequence set to the
+     * sequence_number of the last received event. The server replays any
+     * events missed during the disconnect, then resumes live streaming.
+     * No events are lost.
+     * Complementary Streams:
+     * - subscribe(): Full snapshots for current-state views (progress bars, dashboards)
+     * - subscribeEvents(): Incremental events for timeline views (execution viewer)
+     * Both streams can be used simultaneously for different UI concerns.
+     * Use Cases:
+     * 1. Live Execution Timeline:
+     *    - User watches a running execution in the execution viewer
+     *    - Events stream in real-time, building the timeline as tasks progress
+     *    - Each event adds a row: "task X started", "task X completed (2.3s, $0.05)"
+     * 2. Cost Monitoring:
+     *    - Dashboard subscribes with event_types filter for budget_checkpoint
+     *    - Budget gauge updates in real-time as costs accumulate
+     * 3. Approval Notifications:
+     *    - Subscribe with event_types filter for approval_requested
+     *    - Surface approval gates immediately when they activate
+     * Error Cases:
+     * - NOT_FOUND: No WorkflowExecution exists with the given ID
+     * - PERMISSION_DENIED: User doesn't have "get" permission
+     * - DEADLINE_EXCEEDED: Client timeout (reconnect with after_sequence)
+     * - UNAVAILABLE: Server unavailable (retry with backoff)
+     * &#64;since T06 (Execution Event Stream Model)
+     * </pre>
+     */
+    @io.grpc.ExperimentalApi("https://github.com/grpc/grpc-java/issues/10918")
+    public io.grpc.stub.BlockingClientCall<?, ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent>
+        subscribeEvents(ai.stigmer.agentic.workflowexecution.v1.SubscribeEventsRequest request) {
+      return io.grpc.stub.ClientCalls.blockingV2ServerStreamingCall(
+          getChannel(), getSubscribeEventsMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Get aggregated execution statistics for an organization's workflows.
+     * Returns counts by phase, total cost, average duration, top failing
+     * workflows, and per-workflow cost breakdown — scoped to a configurable
+     * time window (24h, 7d, 30d, all-time).
+     * &#64;internal
+     * Authorization:
+     * Custom authorization — user must have organization-level access.
+     * Results are scoped to the user's organization.
+     * Use Cases:
+     * 1. Dashboard Overview:
+     *    - Display KPI cards: active runs, completed, failed, total cost
+     *    - Time window selector toggles between 24h / 7d / 30d views
+     * 2. Cost Monitoring:
+     *    - Show per-workflow cost breakdown to identify expensive workflows
+     *    - Track cost trends across time windows
+     * 3. Reliability Monitoring:
+     *    - Surface top failing workflows for investigation
+     *    - Track failure rates across the organization
+     * &#64;since T14 (Dashboard Integration)
+     * </pre>
+     */
+    public ai.stigmer.agentic.workflowexecution.v1.ExecutionSummary getExecutionSummary(ai.stigmer.agentic.workflowexecution.v1.GetExecutionSummaryRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getGetExecutionSummaryMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * List workflow executions with pending human_input tasks awaiting reviewer decisions.
+     * Returns a paginated list of executions where at least one human_input
+     * task is actively waiting for a response. Each entry includes the
+     * execution context, task details, requester, and timeout information.
+     * &#64;internal
+     * Authorization:
+     * Custom authorization — user must have organization-level access.
+     * Results are scoped to the user's organization.
+     * Use Cases:
+     * 1. Pending Approvals Dashboard Widget:
+     *    - Display a list of items requiring human attention
+     *    - Show time waiting and timeout countdown
+     *    - Link to execution viewer for review action
+     * 2. Approval Queue:
+     *    - Reviewers see all pending approvals in one view
+     *    - Sorted by urgency (closest to timeout first)
+     * &#64;since T14 (Dashboard Integration)
+     * </pre>
+     */
+    public ai.stigmer.agentic.workflowexecution.v1.PendingApprovalsList listPendingApprovals(ai.stigmer.agentic.workflowexecution.v1.ListPendingApprovalsRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getListPendingApprovalsMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -1569,6 +2125,149 @@ public final class WorkflowExecutionQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingServerStreamingCall(
           getChannel(), getSubscribeMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Fetch the paginated event log for a workflow execution.
+     * Returns execution events ordered by sequence_number ascending, with
+     * cursor-based pagination and optional filtering by event type or task name.
+     * &#64;internal
+     * Authorization:
+     * Standard authorization checks that user has "get" permission on the
+     * WorkflowExecution. Same permission as get() and subscribe().
+     * The event log complements the status snapshot: the snapshot tells you
+     * current state, the event log tells you what happened and when.
+     * Use Cases:
+     * 1. Execution Viewer Timeline:
+     *    - Load full event history for a completed execution
+     *    - Render timeline with task transitions, retries, approvals, cost
+     * 2. Task Drill-Down:
+     *    - Filter by task_name to see all events for a specific task
+     *    - Inspect retry history, duration, cost per attempt
+     * 3. Cost Audit:
+     *    - Filter by budget_checkpoint events to chart cost over time
+     *    - Correlate cost spikes with specific agent_call tasks
+     * 4. Approval Audit Trail:
+     *    - Filter by approval_requested and approval_resolved
+     *    - See who approved what, when, and with what comment
+     * Error Cases:
+     * - NOT_FOUND: No WorkflowExecution exists with the given ID
+     * - PERMISSION_DENIED: User doesn't have "get" permission
+     * - INVALID_ARGUMENT: page_size exceeds maximum (500)
+     * &#64;since T06 (Execution Event Stream Model)
+     * </pre>
+     */
+    public ai.stigmer.agentic.workflowexecution.v1.GetEventLogResponse getEventLog(ai.stigmer.agentic.workflowexecution.v1.GetEventLogRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getGetEventLogMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Subscribe to real-time execution events (incremental event stream).
+     * Opens a server-side streaming RPC that pushes individual
+     * WorkflowExecutionEvent messages as they occur during execution.
+     * Unlike subscribe() which streams full WorkflowExecution snapshots,
+     * this streams lightweight incremental events for the timeline view.
+     * &#64;internal
+     * Authorization:
+     * Standard authorization checks that user has "get" permission on the
+     * WorkflowExecution. Same permission as get() and subscribe().
+     * Stream Lifecycle:
+     * 1. Client sends SubscribeEventsRequest with execution_id
+     * 2. Server validates authorization
+     * 3. If after_sequence &gt; 0: Server replays missed events from persistence
+     * 4. Server streams new events in real-time as the runner emits them
+     * 5. Server closes stream when execution reaches a terminal phase
+     *    (COMPLETED, FAILED, CANCELLED, TERMINATED)
+     * 6. Client can close stream early
+     * Reconnection:
+     * On disconnect, the client reconnects with after_sequence set to the
+     * sequence_number of the last received event. The server replays any
+     * events missed during the disconnect, then resumes live streaming.
+     * No events are lost.
+     * Complementary Streams:
+     * - subscribe(): Full snapshots for current-state views (progress bars, dashboards)
+     * - subscribeEvents(): Incremental events for timeline views (execution viewer)
+     * Both streams can be used simultaneously for different UI concerns.
+     * Use Cases:
+     * 1. Live Execution Timeline:
+     *    - User watches a running execution in the execution viewer
+     *    - Events stream in real-time, building the timeline as tasks progress
+     *    - Each event adds a row: "task X started", "task X completed (2.3s, $0.05)"
+     * 2. Cost Monitoring:
+     *    - Dashboard subscribes with event_types filter for budget_checkpoint
+     *    - Budget gauge updates in real-time as costs accumulate
+     * 3. Approval Notifications:
+     *    - Subscribe with event_types filter for approval_requested
+     *    - Surface approval gates immediately when they activate
+     * Error Cases:
+     * - NOT_FOUND: No WorkflowExecution exists with the given ID
+     * - PERMISSION_DENIED: User doesn't have "get" permission
+     * - DEADLINE_EXCEEDED: Client timeout (reconnect with after_sequence)
+     * - UNAVAILABLE: Server unavailable (retry with backoff)
+     * &#64;since T06 (Execution Event Stream Model)
+     * </pre>
+     */
+    public java.util.Iterator<ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent> subscribeEvents(
+        ai.stigmer.agentic.workflowexecution.v1.SubscribeEventsRequest request) {
+      return io.grpc.stub.ClientCalls.blockingServerStreamingCall(
+          getChannel(), getSubscribeEventsMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Get aggregated execution statistics for an organization's workflows.
+     * Returns counts by phase, total cost, average duration, top failing
+     * workflows, and per-workflow cost breakdown — scoped to a configurable
+     * time window (24h, 7d, 30d, all-time).
+     * &#64;internal
+     * Authorization:
+     * Custom authorization — user must have organization-level access.
+     * Results are scoped to the user's organization.
+     * Use Cases:
+     * 1. Dashboard Overview:
+     *    - Display KPI cards: active runs, completed, failed, total cost
+     *    - Time window selector toggles between 24h / 7d / 30d views
+     * 2. Cost Monitoring:
+     *    - Show per-workflow cost breakdown to identify expensive workflows
+     *    - Track cost trends across time windows
+     * 3. Reliability Monitoring:
+     *    - Surface top failing workflows for investigation
+     *    - Track failure rates across the organization
+     * &#64;since T14 (Dashboard Integration)
+     * </pre>
+     */
+    public ai.stigmer.agentic.workflowexecution.v1.ExecutionSummary getExecutionSummary(ai.stigmer.agentic.workflowexecution.v1.GetExecutionSummaryRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getGetExecutionSummaryMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * List workflow executions with pending human_input tasks awaiting reviewer decisions.
+     * Returns a paginated list of executions where at least one human_input
+     * task is actively waiting for a response. Each entry includes the
+     * execution context, task details, requester, and timeout information.
+     * &#64;internal
+     * Authorization:
+     * Custom authorization — user must have organization-level access.
+     * Results are scoped to the user's organization.
+     * Use Cases:
+     * 1. Pending Approvals Dashboard Widget:
+     *    - Display a list of items requiring human attention
+     *    - Show time waiting and timeout countdown
+     *    - Link to execution viewer for review action
+     * 2. Approval Queue:
+     *    - Reviewers see all pending approvals in one view
+     *    - Sorted by urgency (closest to timeout first)
+     * &#64;since T14 (Dashboard Integration)
+     * </pre>
+     */
+    public ai.stigmer.agentic.workflowexecution.v1.PendingApprovalsList listPendingApprovals(ai.stigmer.agentic.workflowexecution.v1.ListPendingApprovalsRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getListPendingApprovalsMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -1804,12 +2503,109 @@ public final class WorkflowExecutionQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getListByWorkflowMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * Fetch the paginated event log for a workflow execution.
+     * Returns execution events ordered by sequence_number ascending, with
+     * cursor-based pagination and optional filtering by event type or task name.
+     * &#64;internal
+     * Authorization:
+     * Standard authorization checks that user has "get" permission on the
+     * WorkflowExecution. Same permission as get() and subscribe().
+     * The event log complements the status snapshot: the snapshot tells you
+     * current state, the event log tells you what happened and when.
+     * Use Cases:
+     * 1. Execution Viewer Timeline:
+     *    - Load full event history for a completed execution
+     *    - Render timeline with task transitions, retries, approvals, cost
+     * 2. Task Drill-Down:
+     *    - Filter by task_name to see all events for a specific task
+     *    - Inspect retry history, duration, cost per attempt
+     * 3. Cost Audit:
+     *    - Filter by budget_checkpoint events to chart cost over time
+     *    - Correlate cost spikes with specific agent_call tasks
+     * 4. Approval Audit Trail:
+     *    - Filter by approval_requested and approval_resolved
+     *    - See who approved what, when, and with what comment
+     * Error Cases:
+     * - NOT_FOUND: No WorkflowExecution exists with the given ID
+     * - PERMISSION_DENIED: User doesn't have "get" permission
+     * - INVALID_ARGUMENT: page_size exceeds maximum (500)
+     * &#64;since T06 (Execution Event Stream Model)
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflowexecution.v1.GetEventLogResponse> getEventLog(
+        ai.stigmer.agentic.workflowexecution.v1.GetEventLogRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getGetEventLogMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * Get aggregated execution statistics for an organization's workflows.
+     * Returns counts by phase, total cost, average duration, top failing
+     * workflows, and per-workflow cost breakdown — scoped to a configurable
+     * time window (24h, 7d, 30d, all-time).
+     * &#64;internal
+     * Authorization:
+     * Custom authorization — user must have organization-level access.
+     * Results are scoped to the user's organization.
+     * Use Cases:
+     * 1. Dashboard Overview:
+     *    - Display KPI cards: active runs, completed, failed, total cost
+     *    - Time window selector toggles between 24h / 7d / 30d views
+     * 2. Cost Monitoring:
+     *    - Show per-workflow cost breakdown to identify expensive workflows
+     *    - Track cost trends across time windows
+     * 3. Reliability Monitoring:
+     *    - Surface top failing workflows for investigation
+     *    - Track failure rates across the organization
+     * &#64;since T14 (Dashboard Integration)
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflowexecution.v1.ExecutionSummary> getExecutionSummary(
+        ai.stigmer.agentic.workflowexecution.v1.GetExecutionSummaryRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getGetExecutionSummaryMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * List workflow executions with pending human_input tasks awaiting reviewer decisions.
+     * Returns a paginated list of executions where at least one human_input
+     * task is actively waiting for a response. Each entry includes the
+     * execution context, task details, requester, and timeout information.
+     * &#64;internal
+     * Authorization:
+     * Custom authorization — user must have organization-level access.
+     * Results are scoped to the user's organization.
+     * Use Cases:
+     * 1. Pending Approvals Dashboard Widget:
+     *    - Display a list of items requiring human attention
+     *    - Show time waiting and timeout countdown
+     *    - Link to execution viewer for review action
+     * 2. Approval Queue:
+     *    - Reviewers see all pending approvals in one view
+     *    - Sorted by urgency (closest to timeout first)
+     * &#64;since T14 (Dashboard Integration)
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflowexecution.v1.PendingApprovalsList> listPendingApprovals(
+        ai.stigmer.agentic.workflowexecution.v1.ListPendingApprovalsRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getListPendingApprovalsMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_GET = 0;
   private static final int METHODID_LIST = 1;
   private static final int METHODID_LIST_BY_WORKFLOW = 2;
   private static final int METHODID_SUBSCRIBE = 3;
+  private static final int METHODID_GET_EVENT_LOG = 4;
+  private static final int METHODID_SUBSCRIBE_EVENTS = 5;
+  private static final int METHODID_GET_EXECUTION_SUMMARY = 6;
+  private static final int METHODID_LIST_PENDING_APPROVALS = 7;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -1843,6 +2639,22 @@ public final class WorkflowExecutionQueryControllerGrpc {
         case METHODID_SUBSCRIBE:
           serviceImpl.subscribe((ai.stigmer.agentic.workflowexecution.v1.SubscribeWorkflowExecutionRequest) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution>) responseObserver);
+          break;
+        case METHODID_GET_EVENT_LOG:
+          serviceImpl.getEventLog((ai.stigmer.agentic.workflowexecution.v1.GetEventLogRequest) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflowexecution.v1.GetEventLogResponse>) responseObserver);
+          break;
+        case METHODID_SUBSCRIBE_EVENTS:
+          serviceImpl.subscribeEvents((ai.stigmer.agentic.workflowexecution.v1.SubscribeEventsRequest) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent>) responseObserver);
+          break;
+        case METHODID_GET_EXECUTION_SUMMARY:
+          serviceImpl.getExecutionSummary((ai.stigmer.agentic.workflowexecution.v1.GetExecutionSummaryRequest) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflowexecution.v1.ExecutionSummary>) responseObserver);
+          break;
+        case METHODID_LIST_PENDING_APPROVALS:
+          serviceImpl.listPendingApprovals((ai.stigmer.agentic.workflowexecution.v1.ListPendingApprovalsRequest) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflowexecution.v1.PendingApprovalsList>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -1890,6 +2702,34 @@ public final class WorkflowExecutionQueryControllerGrpc {
               ai.stigmer.agentic.workflowexecution.v1.SubscribeWorkflowExecutionRequest,
               ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution>(
                 service, METHODID_SUBSCRIBE)))
+        .addMethod(
+          getGetEventLogMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.workflowexecution.v1.GetEventLogRequest,
+              ai.stigmer.agentic.workflowexecution.v1.GetEventLogResponse>(
+                service, METHODID_GET_EVENT_LOG)))
+        .addMethod(
+          getSubscribeEventsMethod(),
+          io.grpc.stub.ServerCalls.asyncServerStreamingCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.workflowexecution.v1.SubscribeEventsRequest,
+              ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent>(
+                service, METHODID_SUBSCRIBE_EVENTS)))
+        .addMethod(
+          getGetExecutionSummaryMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.workflowexecution.v1.GetExecutionSummaryRequest,
+              ai.stigmer.agentic.workflowexecution.v1.ExecutionSummary>(
+                service, METHODID_GET_EXECUTION_SUMMARY)))
+        .addMethod(
+          getListPendingApprovalsMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.workflowexecution.v1.ListPendingApprovalsRequest,
+              ai.stigmer.agentic.workflowexecution.v1.PendingApprovalsList>(
+                service, METHODID_LIST_PENDING_APPROVALS)))
         .build();
   }
 
@@ -1942,6 +2782,10 @@ public final class WorkflowExecutionQueryControllerGrpc {
               .addMethod(getListMethod())
               .addMethod(getListByWorkflowMethod())
               .addMethod(getSubscribeMethod())
+              .addMethod(getGetEventLogMethod())
+              .addMethod(getSubscribeEventsMethod())
+              .addMethod(getGetExecutionSummaryMethod())
+              .addMethod(getListPendingApprovalsMethod())
               .build();
         }
       }

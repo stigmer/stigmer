@@ -3,15 +3,16 @@
 import { type MouseEvent, useCallback, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bot, Plus, Sparkles, Server } from "lucide-react";
+import { Bot, Plus, Sparkles, Server, Workflow } from "lucide-react";
 import { Popover } from "@base-ui/react/popover";
 import { cn } from "@stigmer/theme";
 import { getDraftSessionUrl } from "@/domain/session/draft-session";
-import type { DraftResourceType } from "@/domain/session/draft-session";
+import { readPersistedScope } from "@/domain/library/scope-persistence";
 import {
   useAgentCount,
   useSkillCount,
   useMcpServerCount,
+  useWorkflowCount,
   ResourceCountCard,
   useActiveOrgSlug,
 } from "@stigmer/react";
@@ -28,6 +29,12 @@ const RESOURCE_CARDS = [
     icon: <Bot className="size-5" aria-hidden="true" />,
   },
   {
+    key: "workflows",
+    label: "Workflows",
+    href: "/library/workflows",
+    icon: <Workflow className="size-5" aria-hidden="true" />,
+  },
+  {
     key: "skills",
     label: "Skills",
     href: "/library/skills",
@@ -41,34 +48,47 @@ const RESOURCE_CARDS = [
   },
 ] as const;
 
-const ADD_MENU_ITEMS: readonly {
-  readonly type: DraftResourceType;
+interface AddMenuItem {
   readonly label: string;
   readonly icon: React.ReactNode;
-}[] = [
+  readonly href: string;
+}
+
+const ADD_MENU_ITEMS: readonly AddMenuItem[] = [
   {
-    type: "agent",
     label: "Agent",
     icon: <Bot className="size-4" aria-hidden="true" />,
+    href: getDraftSessionUrl("agent"),
   },
   {
-    type: "skill",
+    label: "Workflow",
+    icon: <Workflow className="size-4" aria-hidden="true" />,
+    href: "/library/workflows/new",
+  },
+  {
     label: "Skill",
     icon: <Sparkles className="size-4" aria-hidden="true" />,
+    href: getDraftSessionUrl("skill"),
   },
   {
-    type: "mcp-server",
     label: "MCP Server",
     icon: <Server className="size-4" aria-hidden="true" />,
+    href: getDraftSessionUrl("mcp-server"),
   },
 ];
 
 function useResourceCounts(org: string | null) {
-  const agents = useAgentCount(org);
-  const skills = useSkillCount(org);
-  const mcpServers = useMcpServerCount(org);
+  const agentScope = readPersistedScope("agents");
+  const workflowScope = readPersistedScope("workflows");
+  const skillScope = readPersistedScope("skills");
+  const mcpScope = readPersistedScope("mcp-servers");
 
-  return { agents, skills, "mcp-servers": mcpServers } as const;
+  const agents = useAgentCount(org, { scope: agentScope });
+  const workflows = useWorkflowCount(org, { scope: workflowScope });
+  const skills = useSkillCount(org, { scope: skillScope });
+  const mcpServers = useMcpServerCount(org, { scope: mcpScope });
+
+  return { agents, workflows, skills, "mcp-servers": mcpServers } as const;
 }
 
 export function LibraryLanding() {
@@ -90,10 +110,10 @@ export function LibraryLanding() {
     <>
       <h1 className="text-foreground mb-1 text-xl font-semibold">Library</h1>
       <p className="text-muted-foreground mb-8 text-sm">
-        Browse and manage your agents, skills, and MCP servers.
+        Browse and manage your agents, workflows, skills, and MCP servers.
       </p>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {RESOURCE_CARDS.map((card) => {
           const { count, isLoading } = counts[card.key];
 
@@ -151,8 +171,8 @@ function AddResourceMenu() {
             <div className="py-1" role="menu">
               {ADD_MENU_ITEMS.map((item) => (
                 <Link
-                  key={item.type}
-                  href={getDraftSessionUrl(item.type)}
+                  key={item.label}
+                  href={item.href}
                   role="menuitem"
                   onClick={() => setOpen(false)}
                   className={cn(

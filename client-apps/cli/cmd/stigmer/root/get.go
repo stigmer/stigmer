@@ -19,7 +19,6 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/skill"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/types"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/workflow"
-	"github.com/stigmer/stigmer/client-apps/cli/pkg/reference"
 	stigmer "github.com/stigmer/stigmer/sdk/go"
 	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 )
@@ -234,14 +233,14 @@ func getSkill(ref, orgID, format string, client *stigmer.Client) error {
 }
 
 // executeGetExecution handles the special case of getting an execution.
-// Executions use their own dedicated RPC and are always referenced by ID.
+// Executions use their own dedicated RPCs and are always referenced by ID.
+// Supports both agent executions (aex_) and workflow executions (wex_).
 func executeGetExecution(opts getOptions) error {
-	// Validate reference is an execution ID
-	if !reference.IsAgentExecutionID(opts.Reference) {
-		return fmt.Errorf("invalid execution ID: %s\n\nExecutions must be referenced by ID (e.g., aex_01abc123)", opts.Reference)
+	execType, err := execution.ResolveType(opts.Reference)
+	if err != nil {
+		return err
 	}
 
-	// Setup backend connection
 	cfg, err := config.Load()
 	if err != nil {
 		return errors.Wrap(err, "failed to load configuration")
@@ -263,14 +262,22 @@ func executeGetExecution(opts getOptions) error {
 	}
 	defer client.Close()
 
-	// Get execution using dedicated package
-	result, err := execution.GetFromBackend(client, opts.Reference)
-	if err != nil {
-		return errors.Wrap(err, "failed to get execution")
+	switch execType {
+	case execution.ExecutionTypeAgent:
+		result, err := execution.GetFromBackend(client, opts.Reference)
+		if err != nil {
+			return errors.Wrap(err, "failed to get agent execution")
+		}
+		execution.DisplayGetResult(result, opts.OutputFormat)
+
+	case execution.ExecutionTypeWorkflow:
+		result, err := execution.GetWorkflowExecution(client, opts.Reference)
+		if err != nil {
+			return errors.Wrap(err, "failed to get workflow execution")
+		}
+		execution.DisplayWorkflowExecutionGetResult(result, opts.OutputFormat)
 	}
 
-	// Display result
-	execution.DisplayGetResult(result, opts.OutputFormat)
 	return nil
 }
 

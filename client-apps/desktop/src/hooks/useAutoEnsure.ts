@@ -3,8 +3,17 @@ import {
   invokeGetRunnerPreference,
   invokeSetRunnerPreference,
   invokeStopRunnerViaSocket,
+  onRunnerStopped,
   type LocalRunnerStatus,
 } from "./tauri";
+
+/**
+ * Maximum time (ms) to wait for `localStatus.running` after `onEnsure()`
+ * resolves before giving up and transitioning to "error". Covers the
+ * window where the CLI is still bootstrapping runtimes (Python, Node.js)
+ * before writing its state file and opening the control socket.
+ */
+const ENSURE_TIMEOUT_MS = 120_000;
 
 export type AutoEnsureState =
   | "loading"
@@ -45,6 +54,7 @@ export function useAutoEnsure(
   const enabledRef = useRef(false);
   const ensureInFlightRef = useRef(false);
   const mountedRef = useRef(true);
+  const ensureTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -85,6 +95,15 @@ export function useAutoEnsure(
     }
   }, [localStatus.running]);
 
+  // Clear the ensure timeout whenever state leaves "ensuring" (success,
+  // error, disable, etc.) to prevent stale timer from firing.
+  useEffect(() => {
+    if (state !== "ensuring" && ensureTimeoutRef.current !== null) {
+      clearTimeout(ensureTimeoutRef.current);
+      ensureTimeoutRef.current = null;
+    }
+  }, [state]);
+
   // Auto-ensure when state transitions to "ensuring"
   useEffect(() => {
     if (state !== "ensuring") return;
@@ -105,9 +124,23 @@ export function useAutoEnsure(
     onEnsure()
       .then(() => {
         if (cancelled) return;
-        // Don't immediately set "active" — wait for localStatus.running
-        // to confirm via the next poll cycle. But clear any error.
         setError(null);
+
+        // Start a timeout: if localStatus.running hasn't become true
+        // within ENSURE_TIMEOUT_MS the CLI likely crashed silently or
+        // the bootstrap is stuck. Transition to error so the user can
+        // retry instead of staring at a spinner forever.
+        ensureTimeoutRef.current = setTimeout(() => {
+          if (!mountedRef.current) return;
+          setState((prev) => {
+            if (prev !== "ensuring") return prev;
+            setError(
+              "Runner startup timed out. The runtime bootstrap may have failed " +
+              "or is taking longer than expected. Check the runner logs and retry.",
+            );
+            return "error";
+          });
+        }, ENSURE_TIMEOUT_MS);
       })
       .catch((err) => {
         if (cancelled) return;
@@ -118,8 +151,46 @@ export function useAutoEnsure(
         ensureInFlightRef.current = false;
       });
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      if (ensureTimeoutRef.current !== null) {
+        clearTimeout(ensureTimeoutRef.current);
+        ensureTimeoutRef.current = null;
+      }
+    };
   }, [state, onEnsure, localStatus.running]);
+
+  // Detect CLI exit while still in "ensuring" state. The Tauri sidecar
+  // emits runner:stopped when the spawned CLI process terminates. If the
+  // process dies after the 8s grace window, localStatus.running never
+  // becomes true and the state machine would be stuck without this.
+  useEffect(() => {
+    if (state !== "ensuring") return;
+
+    const unlistenPromise = onRunnerStopped((payload) => {
+      if (!mountedRef.current) return;
+      setState((prev) => {
+        if (prev !== "ensuring") return prev;
+        const code = payload.exit_code;
+        if (code !== null && code !== 0) {
+          setError(
+            `Runner process exited unexpectedly (code ${code}). ` +
+            "Check the runner logs for details.",
+          );
+        } else {
+          setError(
+            "Runner process exited before becoming ready. " +
+            "Check the runner logs for details.",
+          );
+        }
+        return "error";
+      });
+    });
+
+    return () => {
+      unlistenPromise.then((unlisten) => unlisten());
+    };
+  }, [state]);
 
   const enable = useCallback(async () => {
     if (ensureInFlightRef.current) return;

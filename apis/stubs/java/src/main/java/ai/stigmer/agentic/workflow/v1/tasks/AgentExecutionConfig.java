@@ -230,6 +230,28 @@ private static final long serialVersionUID = 0L;
     return contextManagement_ == null ? ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig.getDefaultInstance() : contextManagement_;
   }
 
+  public static final int MAX_COST_MICROS_FIELD_NUMBER = 5;
+  private long maxCostMicros_ = 0L;
+  /**
+   * <pre>
+   * Per-agent-call cost cap in micro-USD (1 USD = 1,000,000 micros).
+   * When set, the runtime terminates this agent call if its accumulated cost
+   * exceeds this limit. This uses the workflow domain's micro-USD convention
+   * and provides per-task cost control at the workflow level.
+   * The runtime checks both: per-task limit first, then workflow remaining budget.
+   * Optional — when 0, no per-task cost limit is enforced.
+   *
+   * &#64;since T05 (Workflow-Level Budget Primitives)
+   * </pre>
+   *
+   * <code>int64 max_cost_micros = 5 [json_name = "maxCostMicros"];</code>
+   * @return The maxCostMicros.
+   */
+  @java.lang.Override
+  public long getMaxCostMicros() {
+    return maxCostMicros_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -256,6 +278,9 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(4, getContextManagement());
     }
+    if (maxCostMicros_ != 0L) {
+      output.writeInt64(5, maxCostMicros_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -279,6 +304,10 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(4, getContextManagement());
+    }
+    if (maxCostMicros_ != 0L) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeInt64Size(5, maxCostMicros_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -307,6 +336,8 @@ private static final long serialVersionUID = 0L;
       if (!getContextManagement()
           .equals(other.getContextManagement())) return false;
     }
+    if (getMaxCostMicros()
+        != other.getMaxCostMicros()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -329,6 +360,9 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + CONTEXT_MANAGEMENT_FIELD_NUMBER;
       hash = (53 * hash) + getContextManagement().hashCode();
     }
+    hash = (37 * hash) + MAX_COST_MICROS_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+        getMaxCostMicros());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -479,6 +513,7 @@ private static final long serialVersionUID = 0L;
         contextManagementBuilder_.dispose();
         contextManagementBuilder_ = null;
       }
+      maxCostMicros_ = 0L;
       return this;
     }
 
@@ -528,6 +563,9 @@ private static final long serialVersionUID = 0L;
             : contextManagementBuilder_.build();
         to_bitField0_ |= 0x00000001;
       }
+      if (((from_bitField0_ & 0x00000010) != 0)) {
+        result.maxCostMicros_ = maxCostMicros_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -556,6 +594,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasContextManagement()) {
         mergeContextManagement(other.getContextManagement());
+      }
+      if (other.getMaxCostMicros() != 0L) {
+        setMaxCostMicros(other.getMaxCostMicros());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -605,6 +646,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000008;
               break;
             } // case 34
+            case 40: {
+              maxCostMicros_ = input.readInt64();
+              bitField0_ |= 0x00000010;
+              break;
+            } // case 40
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1135,6 +1181,71 @@ private static final long serialVersionUID = 0L;
         contextManagement_ = null;
       }
       return contextManagementBuilder_;
+    }
+
+    private long maxCostMicros_ ;
+    /**
+     * <pre>
+     * Per-agent-call cost cap in micro-USD (1 USD = 1,000,000 micros).
+     * When set, the runtime terminates this agent call if its accumulated cost
+     * exceeds this limit. This uses the workflow domain's micro-USD convention
+     * and provides per-task cost control at the workflow level.
+     * The runtime checks both: per-task limit first, then workflow remaining budget.
+     * Optional — when 0, no per-task cost limit is enforced.
+     *
+     * &#64;since T05 (Workflow-Level Budget Primitives)
+     * </pre>
+     *
+     * <code>int64 max_cost_micros = 5 [json_name = "maxCostMicros"];</code>
+     * @return The maxCostMicros.
+     */
+    @java.lang.Override
+    public long getMaxCostMicros() {
+      return maxCostMicros_;
+    }
+    /**
+     * <pre>
+     * Per-agent-call cost cap in micro-USD (1 USD = 1,000,000 micros).
+     * When set, the runtime terminates this agent call if its accumulated cost
+     * exceeds this limit. This uses the workflow domain's micro-USD convention
+     * and provides per-task cost control at the workflow level.
+     * The runtime checks both: per-task limit first, then workflow remaining budget.
+     * Optional — when 0, no per-task cost limit is enforced.
+     *
+     * &#64;since T05 (Workflow-Level Budget Primitives)
+     * </pre>
+     *
+     * <code>int64 max_cost_micros = 5 [json_name = "maxCostMicros"];</code>
+     * @param value The maxCostMicros to set.
+     * @return This builder for chaining.
+     */
+    public Builder setMaxCostMicros(long value) {
+
+      maxCostMicros_ = value;
+      bitField0_ |= 0x00000010;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Per-agent-call cost cap in micro-USD (1 USD = 1,000,000 micros).
+     * When set, the runtime terminates this agent call if its accumulated cost
+     * exceeds this limit. This uses the workflow domain's micro-USD convention
+     * and provides per-task cost control at the workflow level.
+     * The runtime checks both: per-task limit first, then workflow remaining budget.
+     * Optional — when 0, no per-task cost limit is enforced.
+     *
+     * &#64;since T05 (Workflow-Level Budget Primitives)
+     * </pre>
+     *
+     * <code>int64 max_cost_micros = 5 [json_name = "maxCostMicros"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearMaxCostMicros() {
+      bitField0_ = (bitField0_ & ~0x00000010);
+      maxCostMicros_ = 0L;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfig)

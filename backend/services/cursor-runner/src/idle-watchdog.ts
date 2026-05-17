@@ -1,17 +1,15 @@
 /**
- * Idle self-termination watchdog for ephemeral runners.
+ * Activity execution tracking for the cursor-runner.
  *
- * Monitors activity execution frequency and initiates graceful shutdown
- * via worker.shutdown() when no Temporal activities have run for a
- * configurable period. Mirrors the Python agent-runner's IdleWatchdog
- * pattern.
+ * Tracks the number of concurrently executing Temporal activities and the
+ * timestamp of the last activity event. The heartbeat client reads these
+ * to report current_executions and determine the runner's phase.
  *
- * The watchdog is opt-in: disabled when STIGMER_IDLE_TIMEOUT_SECONDS is
- * absent or zero. The launcher passes this env var for ephemeral
- * (cloud-provisioned) runners; persistent and local runners never set it.
+ * Previously this module also contained an idle self-termination watchdog
+ * that would shut down the process after sustained inactivity. That
+ * responsibility has moved to server-side idle aggregation across all
+ * runner processes in the sandbox (see RunnerHeartbeatService).
  */
-
-import type { Worker } from "@temporalio/worker";
 
 let lastActivityAt = Date.now();
 let activeCount = 0;
@@ -33,39 +31,15 @@ export function activityFinished(): void {
 }
 
 /**
- * Start the idle watchdog. Checks every `checkIntervalMs` whether the
- * runner has been idle for longer than `timeoutSeconds`. If so, initiates
- * graceful shutdown.
- *
- * Returns a cleanup function that stops the watchdog.
+ * Returns the number of currently in-flight activities.
  */
-export function startIdleWatchdog(
-  worker: Worker,
-  timeoutSeconds: number,
-  checkIntervalMs = 30_000,
-): () => void {
-  console.log(
-    `Idle watchdog started (timeout=${timeoutSeconds}s, check_interval=${checkIntervalMs / 1000}s)`,
-  );
+export function getActiveCount(): number {
+  return activeCount;
+}
 
-  const handle = setInterval(() => {
-    if (activeCount > 0) {
-      return;
-    }
-
-    const idleMs = Date.now() - lastActivityAt;
-    if (idleMs < timeoutSeconds * 1000) {
-      return;
-    }
-
-    const idleSec = Math.round(idleMs / 1000);
-    console.log(
-      `Runner idle for ${idleSec}s (threshold ${timeoutSeconds}s) — initiating graceful shutdown`,
-    );
-
-    clearInterval(handle);
-    worker.shutdown();
-  }, checkIntervalMs);
-
-  return () => clearInterval(handle);
+/**
+ * Returns the timestamp (ms since epoch) of the last activity event.
+ */
+export function getLastActivityAt(): number {
+  return lastActivityAt;
 }

@@ -45,6 +45,7 @@ export interface StartRunnerOptions {
   endpoint?: string;
   token?: string;
   org?: string;
+  insecure?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -59,6 +60,7 @@ export function invokeStartRunner(
     endpoint: opts.endpoint ?? null,
     token: opts.token ?? null,
     org: opts.org ?? null,
+    insecure: opts.insecure ?? null,
   });
 }
 

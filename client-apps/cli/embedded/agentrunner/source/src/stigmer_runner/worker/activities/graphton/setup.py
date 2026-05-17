@@ -338,6 +338,15 @@ async def _perform_setup_core(
         )
 
     # ─────────────────────────────────────────────────────────────────────
+    # Interaction mode from ExecutionConfig
+    interaction_mode = 0  # UNSPECIFIED = 0 (defaults to AGENT)
+    if (
+        execution.spec.HasField("execution_config")
+        and execution.spec.execution_config.interaction_mode > 0
+    ):
+        interaction_mode = execution.spec.execution_config.interaction_mode
+        logger.info("Interaction mode: %d", interaction_mode)
+
     # Recursion limit from ExecutionConfig.max_tool_rounds
     # ─────────────────────────────────────────────────────────────────────
     min_tool_rounds = 10
@@ -1225,6 +1234,7 @@ async def _perform_setup_core(
         tool_truncation_callback=None,
         max_cost_usd=max_cost_usd,
         cost_pricing=cost_pricing,
+        interaction_mode=interaction_mode,
         **llm_kwargs,
     )
     if recursion_limit is not None:

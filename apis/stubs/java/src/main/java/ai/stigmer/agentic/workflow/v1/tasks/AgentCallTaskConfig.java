@@ -19,18 +19,43 @@ package ai.stigmer.agentic.workflow.v1.tasks;
  * The workflow's execution context (environment variables, secrets) is
  * passed to the agent invocation, allowing agents to access workflow state.
  *
- * YAML Example:
+ * YAML Example (without structured output):
  * - analyze:
  * call: agent
  * with:
- * agent: "code-reviewer"           # Uses workflow's org
- * # OR agent: "stigmer/code-reviewer"  # Explicit org reference
+ * agent: "code-reviewer"
  * message: "Review this code: ${ $context.fetchCode.body }"
  * env:
  * GITHUB_TOKEN: "${ .secrets.GH_TOKEN }"
  * config:
  * model: "claude-3-5-sonnet"
  * timeout: 300
+ *
+ * YAML Example (with structured output):
+ * - triage_ticket:
+ * call: agent
+ * with:
+ * agent: "support-triage"
+ * message: "${ .ticket.description }"
+ * output:
+ * schema:
+ * type: object
+ * required: [severity, category, customer_impact]
+ * properties:
+ * severity:
+ * type: string
+ * enum: [low, medium, high, critical]
+ * category:
+ * type: string
+ * customer_impact:
+ * type: boolean
+ * rationale:
+ * type: string
+ * on_invalid: ON_INVALID_RETRY
+ * max_retries: 2
+ * fallback_task: human_review
+ * export:
+ * as: "${ .structured }"
  *
  * Reference: design doc at stigmer/_cursor/add-agent-config-to-workflow.md
  * </pre>
@@ -60,6 +85,7 @@ private static final long serialVersionUID = 0L;
     agent_ = "";
     org_ = "";
     message_ = "";
+    harness_ = 0;
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -404,6 +430,136 @@ java.lang.String defaultValue) {
     return config_ == null ? ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfig.getDefaultInstance() : config_;
   }
 
+  public static final int OUTPUT_FIELD_NUMBER = 6;
+  private ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output_;
+  /**
+   * <pre>
+   * Structured output contract for this agent call.
+   *
+   * When set, the workflow runner extracts structured JSON from the agent's
+   * final response and validates it against the declared schema. The validated
+   * JSON is placed in the task output under the "structured" key, enabling
+   * reliable downstream routing via switch_case expressions.
+   *
+   * When not set, the task output contains the agent's raw text response
+   * (backward compatible with existing workflows).
+   *
+   * &#64;since T02 (Structured Agent Output Model)
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 6 [json_name = "output"];</code>
+   * @return Whether the output field is set.
+   */
+  @java.lang.Override
+  public boolean hasOutput() {
+    return ((bitField0_ & 0x00000002) != 0);
+  }
+  /**
+   * <pre>
+   * Structured output contract for this agent call.
+   *
+   * When set, the workflow runner extracts structured JSON from the agent's
+   * final response and validates it against the declared schema. The validated
+   * JSON is placed in the task output under the "structured" key, enabling
+   * reliable downstream routing via switch_case expressions.
+   *
+   * When not set, the task output contains the agent's raw text response
+   * (backward compatible with existing workflows).
+   *
+   * &#64;since T02 (Structured Agent Output Model)
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 6 [json_name = "output"];</code>
+   * @return The output.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract getOutput() {
+    return output_ == null ? ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract.getDefaultInstance() : output_;
+  }
+  /**
+   * <pre>
+   * Structured output contract for this agent call.
+   *
+   * When set, the workflow runner extracts structured JSON from the agent's
+   * final response and validates it against the declared schema. The validated
+   * JSON is placed in the task output under the "structured" key, enabling
+   * reliable downstream routing via switch_case expressions.
+   *
+   * When not set, the task output contains the agent's raw text response
+   * (backward compatible with existing workflows).
+   *
+   * &#64;since T02 (Structured Agent Output Model)
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 6 [json_name = "output"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContractOrBuilder getOutputOrBuilder() {
+    return output_ == null ? ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract.getDefaultInstance() : output_;
+  }
+
+  public static final int HARNESS_FIELD_NUMBER = 7;
+  private int harness_ = 0;
+  /**
+   * <pre>
+   * Execution harness for the agent invocation.
+   *
+   * Determines which execution engine processes the agent call:
+   * - HARNESS_UNSPECIFIED / HARNESS_NATIVE: Stigmer native engine (Python/LangGraph)
+   * - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor)
+   *
+   * The workflow-runner creates a Session with this harness before creating
+   * the AgentExecution. The harness is a session-level concern — it determines
+   * tool availability, state management, model access, and billing tier.
+   *
+   * When unspecified, defaults to HARNESS_NATIVE for backward compatibility.
+   *
+   * YAML Example:
+   * - code_review:
+   * call: agent
+   * with:
+   * agent: "code-reviewer"
+   * harness: cursor
+   * message: "Review this PR"
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.Harness harness = 7 [json_name = "harness"];</code>
+   * @return The enum numeric value on the wire for harness.
+   */
+  @java.lang.Override public int getHarnessValue() {
+    return harness_;
+  }
+  /**
+   * <pre>
+   * Execution harness for the agent invocation.
+   *
+   * Determines which execution engine processes the agent call:
+   * - HARNESS_UNSPECIFIED / HARNESS_NATIVE: Stigmer native engine (Python/LangGraph)
+   * - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor)
+   *
+   * The workflow-runner creates a Session with this harness before creating
+   * the AgentExecution. The harness is a session-level concern — it determines
+   * tool availability, state management, model access, and billing tier.
+   *
+   * When unspecified, defaults to HARNESS_NATIVE for backward compatibility.
+   *
+   * YAML Example:
+   * - code_review:
+   * call: agent
+   * with:
+   * agent: "code-reviewer"
+   * harness: cursor
+   * message: "Review this PR"
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.Harness harness = 7 [json_name = "harness"];</code>
+   * @return The harness.
+   */
+  @java.lang.Override public ai.stigmer.agentic.session.v1.Harness getHarness() {
+    ai.stigmer.agentic.session.v1.Harness result = ai.stigmer.agentic.session.v1.Harness.forNumber(harness_);
+    return result == null ? ai.stigmer.agentic.session.v1.Harness.UNRECOGNIZED : result;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -435,6 +591,12 @@ java.lang.String defaultValue) {
         4);
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(5, getConfig());
+    }
+    if (((bitField0_ & 0x00000002) != 0)) {
+      output.writeMessage(6, getOutput());
+    }
+    if (harness_ != ai.stigmer.agentic.session.v1.Harness.HARNESS_UNSPECIFIED.getNumber()) {
+      output.writeEnum(7, harness_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -468,6 +630,14 @@ java.lang.String defaultValue) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(5, getConfig());
     }
+    if (((bitField0_ & 0x00000002) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(6, getOutput());
+    }
+    if (harness_ != ai.stigmer.agentic.session.v1.Harness.HARNESS_UNSPECIFIED.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(7, harness_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -496,6 +666,12 @@ java.lang.String defaultValue) {
       if (!getConfig()
           .equals(other.getConfig())) return false;
     }
+    if (hasOutput() != other.hasOutput()) return false;
+    if (hasOutput()) {
+      if (!getOutput()
+          .equals(other.getOutput())) return false;
+    }
+    if (harness_ != other.harness_) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -521,6 +697,12 @@ java.lang.String defaultValue) {
       hash = (37 * hash) + CONFIG_FIELD_NUMBER;
       hash = (53 * hash) + getConfig().hashCode();
     }
+    if (hasOutput()) {
+      hash = (37 * hash) + OUTPUT_FIELD_NUMBER;
+      hash = (53 * hash) + getOutput().hashCode();
+    }
+    hash = (37 * hash) + HARNESS_FIELD_NUMBER;
+    hash = (53 * hash) + harness_;
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -632,18 +814,43 @@ java.lang.String defaultValue) {
    * The workflow's execution context (environment variables, secrets) is
    * passed to the agent invocation, allowing agents to access workflow state.
    *
-   * YAML Example:
+   * YAML Example (without structured output):
    * - analyze:
    * call: agent
    * with:
-   * agent: "code-reviewer"           # Uses workflow's org
-   * # OR agent: "stigmer/code-reviewer"  # Explicit org reference
+   * agent: "code-reviewer"
    * message: "Review this code: ${ $context.fetchCode.body }"
    * env:
    * GITHUB_TOKEN: "${ .secrets.GH_TOKEN }"
    * config:
    * model: "claude-3-5-sonnet"
    * timeout: 300
+   *
+   * YAML Example (with structured output):
+   * - triage_ticket:
+   * call: agent
+   * with:
+   * agent: "support-triage"
+   * message: "${ .ticket.description }"
+   * output:
+   * schema:
+   * type: object
+   * required: [severity, category, customer_impact]
+   * properties:
+   * severity:
+   * type: string
+   * enum: [low, medium, high, critical]
+   * category:
+   * type: string
+   * customer_impact:
+   * type: boolean
+   * rationale:
+   * type: string
+   * on_invalid: ON_INVALID_RETRY
+   * max_retries: 2
+   * fallback_task: human_review
+   * export:
+   * as: "${ .structured }"
    *
    * Reference: design doc at stigmer/_cursor/add-agent-config-to-workflow.md
    * </pre>
@@ -703,6 +910,7 @@ java.lang.String defaultValue) {
       if (com.google.protobuf.GeneratedMessage
               .alwaysUseFieldBuilders) {
         internalGetConfigFieldBuilder();
+        internalGetOutputFieldBuilder();
       }
     }
     @java.lang.Override
@@ -718,6 +926,12 @@ java.lang.String defaultValue) {
         configBuilder_.dispose();
         configBuilder_ = null;
       }
+      output_ = null;
+      if (outputBuilder_ != null) {
+        outputBuilder_.dispose();
+        outputBuilder_ = null;
+      }
+      harness_ = 0;
       return this;
     }
 
@@ -771,6 +985,15 @@ java.lang.String defaultValue) {
             : configBuilder_.build();
         to_bitField0_ |= 0x00000001;
       }
+      if (((from_bitField0_ & 0x00000020) != 0)) {
+        result.output_ = outputBuilder_ == null
+            ? output_
+            : outputBuilder_.build();
+        to_bitField0_ |= 0x00000002;
+      }
+      if (((from_bitField0_ & 0x00000040) != 0)) {
+        result.harness_ = harness_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -806,6 +1029,12 @@ java.lang.String defaultValue) {
       bitField0_ |= 0x00000008;
       if (other.hasConfig()) {
         mergeConfig(other.getConfig());
+      }
+      if (other.hasOutput()) {
+        mergeOutput(other.getOutput());
+      }
+      if (other.harness_ != 0) {
+        setHarnessValue(other.getHarnessValue());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -864,6 +1093,18 @@ java.lang.String defaultValue) {
               bitField0_ |= 0x00000010;
               break;
             } // case 42
+            case 50: {
+              input.readMessage(
+                  internalGetOutputFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00000020;
+              break;
+            } // case 50
+            case 56: {
+              harness_ = input.readEnum();
+              bitField0_ |= 0x00000040;
+              break;
+            } // case 56
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1549,6 +1790,415 @@ java.lang.String defaultValue) {
         config_ = null;
       }
       return configBuilder_;
+    }
+
+    private ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract, ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract.Builder, ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContractOrBuilder> outputBuilder_;
+    /**
+     * <pre>
+     * Structured output contract for this agent call.
+     *
+     * When set, the workflow runner extracts structured JSON from the agent's
+     * final response and validates it against the declared schema. The validated
+     * JSON is placed in the task output under the "structured" key, enabling
+     * reliable downstream routing via switch_case expressions.
+     *
+     * When not set, the task output contains the agent's raw text response
+     * (backward compatible with existing workflows).
+     *
+     * &#64;since T02 (Structured Agent Output Model)
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 6 [json_name = "output"];</code>
+     * @return Whether the output field is set.
+     */
+    public boolean hasOutput() {
+      return ((bitField0_ & 0x00000020) != 0);
+    }
+    /**
+     * <pre>
+     * Structured output contract for this agent call.
+     *
+     * When set, the workflow runner extracts structured JSON from the agent's
+     * final response and validates it against the declared schema. The validated
+     * JSON is placed in the task output under the "structured" key, enabling
+     * reliable downstream routing via switch_case expressions.
+     *
+     * When not set, the task output contains the agent's raw text response
+     * (backward compatible with existing workflows).
+     *
+     * &#64;since T02 (Structured Agent Output Model)
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 6 [json_name = "output"];</code>
+     * @return The output.
+     */
+    public ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract getOutput() {
+      if (outputBuilder_ == null) {
+        return output_ == null ? ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract.getDefaultInstance() : output_;
+      } else {
+        return outputBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * Structured output contract for this agent call.
+     *
+     * When set, the workflow runner extracts structured JSON from the agent's
+     * final response and validates it against the declared schema. The validated
+     * JSON is placed in the task output under the "structured" key, enabling
+     * reliable downstream routing via switch_case expressions.
+     *
+     * When not set, the task output contains the agent's raw text response
+     * (backward compatible with existing workflows).
+     *
+     * &#64;since T02 (Structured Agent Output Model)
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 6 [json_name = "output"];</code>
+     */
+    public Builder setOutput(ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract value) {
+      if (outputBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        output_ = value;
+      } else {
+        outputBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Structured output contract for this agent call.
+     *
+     * When set, the workflow runner extracts structured JSON from the agent's
+     * final response and validates it against the declared schema. The validated
+     * JSON is placed in the task output under the "structured" key, enabling
+     * reliable downstream routing via switch_case expressions.
+     *
+     * When not set, the task output contains the agent's raw text response
+     * (backward compatible with existing workflows).
+     *
+     * &#64;since T02 (Structured Agent Output Model)
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 6 [json_name = "output"];</code>
+     */
+    public Builder setOutput(
+        ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract.Builder builderForValue) {
+      if (outputBuilder_ == null) {
+        output_ = builderForValue.build();
+      } else {
+        outputBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Structured output contract for this agent call.
+     *
+     * When set, the workflow runner extracts structured JSON from the agent's
+     * final response and validates it against the declared schema. The validated
+     * JSON is placed in the task output under the "structured" key, enabling
+     * reliable downstream routing via switch_case expressions.
+     *
+     * When not set, the task output contains the agent's raw text response
+     * (backward compatible with existing workflows).
+     *
+     * &#64;since T02 (Structured Agent Output Model)
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 6 [json_name = "output"];</code>
+     */
+    public Builder mergeOutput(ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract value) {
+      if (outputBuilder_ == null) {
+        if (((bitField0_ & 0x00000020) != 0) &&
+          output_ != null &&
+          output_ != ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract.getDefaultInstance()) {
+          getOutputBuilder().mergeFrom(value);
+        } else {
+          output_ = value;
+        }
+      } else {
+        outputBuilder_.mergeFrom(value);
+      }
+      if (output_ != null) {
+        bitField0_ |= 0x00000020;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Structured output contract for this agent call.
+     *
+     * When set, the workflow runner extracts structured JSON from the agent's
+     * final response and validates it against the declared schema. The validated
+     * JSON is placed in the task output under the "structured" key, enabling
+     * reliable downstream routing via switch_case expressions.
+     *
+     * When not set, the task output contains the agent's raw text response
+     * (backward compatible with existing workflows).
+     *
+     * &#64;since T02 (Structured Agent Output Model)
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 6 [json_name = "output"];</code>
+     */
+    public Builder clearOutput() {
+      bitField0_ = (bitField0_ & ~0x00000020);
+      output_ = null;
+      if (outputBuilder_ != null) {
+        outputBuilder_.dispose();
+        outputBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Structured output contract for this agent call.
+     *
+     * When set, the workflow runner extracts structured JSON from the agent's
+     * final response and validates it against the declared schema. The validated
+     * JSON is placed in the task output under the "structured" key, enabling
+     * reliable downstream routing via switch_case expressions.
+     *
+     * When not set, the task output contains the agent's raw text response
+     * (backward compatible with existing workflows).
+     *
+     * &#64;since T02 (Structured Agent Output Model)
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 6 [json_name = "output"];</code>
+     */
+    public ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract.Builder getOutputBuilder() {
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return internalGetOutputFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * Structured output contract for this agent call.
+     *
+     * When set, the workflow runner extracts structured JSON from the agent's
+     * final response and validates it against the declared schema. The validated
+     * JSON is placed in the task output under the "structured" key, enabling
+     * reliable downstream routing via switch_case expressions.
+     *
+     * When not set, the task output contains the agent's raw text response
+     * (backward compatible with existing workflows).
+     *
+     * &#64;since T02 (Structured Agent Output Model)
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 6 [json_name = "output"];</code>
+     */
+    public ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContractOrBuilder getOutputOrBuilder() {
+      if (outputBuilder_ != null) {
+        return outputBuilder_.getMessageOrBuilder();
+      } else {
+        return output_ == null ?
+            ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract.getDefaultInstance() : output_;
+      }
+    }
+    /**
+     * <pre>
+     * Structured output contract for this agent call.
+     *
+     * When set, the workflow runner extracts structured JSON from the agent's
+     * final response and validates it against the declared schema. The validated
+     * JSON is placed in the task output under the "structured" key, enabling
+     * reliable downstream routing via switch_case expressions.
+     *
+     * When not set, the task output contains the agent's raw text response
+     * (backward compatible with existing workflows).
+     *
+     * &#64;since T02 (Structured Agent Output Model)
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 6 [json_name = "output"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract, ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract.Builder, ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContractOrBuilder> 
+        internalGetOutputFieldBuilder() {
+      if (outputBuilder_ == null) {
+        outputBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract, ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract.Builder, ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContractOrBuilder>(
+                getOutput(),
+                getParentForChildren(),
+                isClean());
+        output_ = null;
+      }
+      return outputBuilder_;
+    }
+
+    private int harness_ = 0;
+    /**
+     * <pre>
+     * Execution harness for the agent invocation.
+     *
+     * Determines which execution engine processes the agent call:
+     * - HARNESS_UNSPECIFIED / HARNESS_NATIVE: Stigmer native engine (Python/LangGraph)
+     * - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor)
+     *
+     * The workflow-runner creates a Session with this harness before creating
+     * the AgentExecution. The harness is a session-level concern — it determines
+     * tool availability, state management, model access, and billing tier.
+     *
+     * When unspecified, defaults to HARNESS_NATIVE for backward compatibility.
+     *
+     * YAML Example:
+     * - code_review:
+     * call: agent
+     * with:
+     * agent: "code-reviewer"
+     * harness: cursor
+     * message: "Review this PR"
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 7 [json_name = "harness"];</code>
+     * @return The enum numeric value on the wire for harness.
+     */
+    @java.lang.Override public int getHarnessValue() {
+      return harness_;
+    }
+    /**
+     * <pre>
+     * Execution harness for the agent invocation.
+     *
+     * Determines which execution engine processes the agent call:
+     * - HARNESS_UNSPECIFIED / HARNESS_NATIVE: Stigmer native engine (Python/LangGraph)
+     * - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor)
+     *
+     * The workflow-runner creates a Session with this harness before creating
+     * the AgentExecution. The harness is a session-level concern — it determines
+     * tool availability, state management, model access, and billing tier.
+     *
+     * When unspecified, defaults to HARNESS_NATIVE for backward compatibility.
+     *
+     * YAML Example:
+     * - code_review:
+     * call: agent
+     * with:
+     * agent: "code-reviewer"
+     * harness: cursor
+     * message: "Review this PR"
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 7 [json_name = "harness"];</code>
+     * @param value The enum numeric value on the wire for harness to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setHarnessValue(int value) {
+      harness_ = value;
+      bitField0_ |= 0x00000040;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Execution harness for the agent invocation.
+     *
+     * Determines which execution engine processes the agent call:
+     * - HARNESS_UNSPECIFIED / HARNESS_NATIVE: Stigmer native engine (Python/LangGraph)
+     * - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor)
+     *
+     * The workflow-runner creates a Session with this harness before creating
+     * the AgentExecution. The harness is a session-level concern — it determines
+     * tool availability, state management, model access, and billing tier.
+     *
+     * When unspecified, defaults to HARNESS_NATIVE for backward compatibility.
+     *
+     * YAML Example:
+     * - code_review:
+     * call: agent
+     * with:
+     * agent: "code-reviewer"
+     * harness: cursor
+     * message: "Review this PR"
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 7 [json_name = "harness"];</code>
+     * @return The harness.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.Harness getHarness() {
+      ai.stigmer.agentic.session.v1.Harness result = ai.stigmer.agentic.session.v1.Harness.forNumber(harness_);
+      return result == null ? ai.stigmer.agentic.session.v1.Harness.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * Execution harness for the agent invocation.
+     *
+     * Determines which execution engine processes the agent call:
+     * - HARNESS_UNSPECIFIED / HARNESS_NATIVE: Stigmer native engine (Python/LangGraph)
+     * - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor)
+     *
+     * The workflow-runner creates a Session with this harness before creating
+     * the AgentExecution. The harness is a session-level concern — it determines
+     * tool availability, state management, model access, and billing tier.
+     *
+     * When unspecified, defaults to HARNESS_NATIVE for backward compatibility.
+     *
+     * YAML Example:
+     * - code_review:
+     * call: agent
+     * with:
+     * agent: "code-reviewer"
+     * harness: cursor
+     * message: "Review this PR"
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 7 [json_name = "harness"];</code>
+     * @param value The harness to set.
+     * @return This builder for chaining.
+     */
+    public Builder setHarness(ai.stigmer.agentic.session.v1.Harness value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x00000040;
+      harness_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Execution harness for the agent invocation.
+     *
+     * Determines which execution engine processes the agent call:
+     * - HARNESS_UNSPECIFIED / HARNESS_NATIVE: Stigmer native engine (Python/LangGraph)
+     * - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor)
+     *
+     * The workflow-runner creates a Session with this harness before creating
+     * the AgentExecution. The harness is a session-level concern — it determines
+     * tool availability, state management, model access, and billing tier.
+     *
+     * When unspecified, defaults to HARNESS_NATIVE for backward compatibility.
+     *
+     * YAML Example:
+     * - code_review:
+     * call: agent
+     * with:
+     * agent: "code-reviewer"
+     * harness: cursor
+     * message: "Review this PR"
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 7 [json_name = "harness"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearHarness() {
+      bitField0_ = (bitField0_ & ~0x00000040);
+      harness_ = 0;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig)

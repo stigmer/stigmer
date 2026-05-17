@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Box, Text, useInput } from "ink";
 import Spinner from "ink-spinner";
 import { useSessionConversation, resolvedSubject, PENDING_SUBJECT } from "@stigmer/react";
@@ -6,7 +6,11 @@ import { MessageThread } from "../components/MessageThread.js";
 import { TodoList } from "../components/TodoList.js";
 import { FollowUpInput } from "../components/FollowUpInput.js";
 import { UsageWidget } from "../components/UsageWidget.js";
+import { ContextGauge } from "../components/ContextGauge.js";
 import { ExecutionProgress } from "../components/ExecutionProgress.js";
+
+/** Interaction mode type used for follow-up executions. */
+export type InteractionMode = "agent" | "plan";
 
 /** Props for {@link SessionView}. */
 export interface SessionViewProps {
@@ -14,6 +18,17 @@ export interface SessionViewProps {
   readonly sessionId: string;
   /** Organization slug for creating follow-up executions. */
   readonly org: string;
+  /**
+   * Initial interaction mode for follow-up executions.
+   *
+   * - `"agent"` (default): full tool access.
+   * - `"plan"`: read-only analysis, no file mutations.
+   *
+   * The user can toggle between modes with Ctrl+T during the session.
+   * This prop sets the initial value; subsequent toggles are managed
+   * as local state.
+   */
+  readonly mode?: InteractionMode;
 }
 
 /**
@@ -39,13 +54,21 @@ export interface SessionViewProps {
  * );
  * ```
  */
-export function SessionView({ sessionId, org }: SessionViewProps) {
+export function SessionView({ sessionId, org, mode }: SessionViewProps) {
   const conv = useSessionConversation(sessionId, org);
   const [expandTools, setExpandTools] = useState(false);
+  const [activeMode, setActiveMode] = useState<InteractionMode>(mode ?? "agent");
+
+  useEffect(() => {
+    if (mode) setActiveMode(mode);
+  }, [mode]);
 
   useInput((input, key) => {
     if (key.ctrl && input === "o") {
       setExpandTools((e) => !e);
+    }
+    if (key.ctrl && input === "t") {
+      setActiveMode((m) => (m === "plan" ? "agent" : "plan"));
     }
   });
 
@@ -77,8 +100,6 @@ export function SessionView({ sessionId, org }: SessionViewProps) {
   ];
 
   const activeTodos = conv.activeStreamExecution?.status?.todos;
-  const contextInfo = conv.activeStreamExecution?.status?.contextInfo;
-  const summarizationCount = contextInfo?.summarizationEvents?.length ?? 0;
 
   const subject = resolvedSubject(conv.session?.spec?.subject);
 
@@ -122,14 +143,6 @@ export function SessionView({ sessionId, org }: SessionViewProps) {
         expandToolCalls={expandTools}
       />
 
-      {summarizationCount > 0 && (
-        <Box paddingLeft={1} marginTop={1}>
-          <Text dimColor>
-            Context compacted ({summarizationCount} {summarizationCount === 1 ? "event" : "events"}, {Math.round(contextInfo!.utilizationPercent)}% utilization)
-          </Text>
-        </Box>
-      )}
-
       {activeTodos && Object.keys(activeTodos).length > 0 && (
         <Box marginTop={1} paddingLeft={1}>
           <TodoList todos={activeTodos} />
@@ -154,10 +167,25 @@ export function SessionView({ sessionId, org }: SessionViewProps) {
 
       <UsageWidget executions={allExecutions} />
 
+      <ContextGauge execution={conv.activeStreamExecution ?? null} />
+
+      {conv.canSendFollowUp && (
+        <Box paddingLeft={1}>
+          <Text color={activeMode === "plan" ? "yellow" : "cyan"} dimColor>
+            {activeMode === "plan"
+              ? "Plan mode — read-only analysis, no file mutations"
+              : "Agent mode — full tool access"}
+          </Text>
+        </Box>
+      )}
+
       <FollowUpInput
-        onSubmit={(message) => conv.sendFollowUp(message)}
+        onSubmit={(message) =>
+          conv.sendFollowUp(message, { interactionMode: activeMode })
+        }
         isSubmitting={conv.isSending}
         disabled={!conv.canSendFollowUp}
+        mode={activeMode}
       />
     </Box>
   );

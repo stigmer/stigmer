@@ -6,6 +6,7 @@
     {
       "name": "IdentityProviderCommandController",
       "role": "command",
+      "protoFile": "ai/stigmer/iam/identityprovider/v1/command.proto",
       "methods": [
         {
           "name": "Apply",
@@ -44,6 +45,7 @@
     {
       "name": "IdentityProviderQueryController",
       "role": "query",
+      "protoFile": "ai/stigmer/iam/identityprovider/v1/query.proto",
       "methods": [
         {
           "name": "Get",
@@ -130,6 +132,7 @@
               "workflow_instance",
               "workflow_execution",
               "environment",
+              "artifact",
               "execution_context",
               "project"
             ]
@@ -391,6 +394,11 @@
           "name": "environment",
           "number": 53,
           "description": "Named set of variables and secrets for agent and workflow execution."
+        },
+        {
+          "name": "artifact",
+          "number": 55,
+          "description": "Persisted blob produced during workflow or agent execution."
         },
         {
           "name": "execution_context",

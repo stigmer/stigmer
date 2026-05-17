@@ -164,6 +164,34 @@ private static final long serialVersionUID = 0L;
     return do_.get(index);
   }
 
+  public static final int COMPENSATE_FIELD_NUMBER = 3;
+  private boolean compensate_ = false;
+  /**
+   * <pre>
+   * Whether to run compensation tasks for already-completed try tasks
+   * before executing the catch do block.
+   *
+   * When true, the runtime walks the compensation stack (completed tasks
+   * that declared a `compensate` block) in reverse order and executes
+   * each task's compensation actions. After all compensations complete
+   * (or fail), the catch `do` block runs as normal.
+   *
+   * Compensation failures do not prevent the catch block from running.
+   * They are logged and included in the task output for diagnostics.
+   *
+   * Default: false (no compensation — preserves pre-T17 behavior).
+   *
+   * &#64;since T17 (Advanced Agentic Orchestration)
+   * </pre>
+   *
+   * <code>bool compensate = 3 [json_name = "compensate"];</code>
+   * @return The compensate.
+   */
+  @java.lang.Override
+  public boolean getCompensate() {
+    return compensate_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -183,6 +211,9 @@ private static final long serialVersionUID = 0L;
     }
     for (int i = 0; i < do_.size(); i++) {
       output.writeMessage(2, do_.get(i));
+    }
+    if (compensate_ != false) {
+      output.writeBool(3, compensate_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -205,6 +236,10 @@ private static final long serialVersionUID = 0L;
           }
           size += 1 * count;
         }
+    if (compensate_ != false) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBoolSize(3, compensate_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -224,6 +259,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getAs())) return false;
     if (!getDoList()
         .equals(other.getDoList())) return false;
+    if (getCompensate()
+        != other.getCompensate()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -241,6 +278,9 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + DO_FIELD_NUMBER;
       hash = (53 * hash) + getDoList().hashCode();
     }
+    hash = (37 * hash) + COMPENSATE_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+        getCompensate());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -384,6 +424,7 @@ private static final long serialVersionUID = 0L;
         doBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000002);
+      compensate_ = false;
       return this;
     }
 
@@ -433,6 +474,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000001) != 0)) {
         result.as_ = as_;
       }
+      if (((from_bitField0_ & 0x00000004) != 0)) {
+        result.compensate_ = compensate_;
+      }
     }
 
     @java.lang.Override
@@ -478,6 +522,9 @@ private static final long serialVersionUID = 0L;
           }
         }
       }
+      if (other.getCompensate() != false) {
+        setCompensate(other.getCompensate());
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -522,6 +569,11 @@ private static final long serialVersionUID = 0L;
               }
               break;
             } // case 18
+            case 24: {
+              compensate_ = input.readBool();
+              bitField0_ |= 0x00000004;
+              break;
+            } // case 24
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -946,6 +998,89 @@ private static final long serialVersionUID = 0L;
         do_ = null;
       }
       return doBuilder_;
+    }
+
+    private boolean compensate_ ;
+    /**
+     * <pre>
+     * Whether to run compensation tasks for already-completed try tasks
+     * before executing the catch do block.
+     *
+     * When true, the runtime walks the compensation stack (completed tasks
+     * that declared a `compensate` block) in reverse order and executes
+     * each task's compensation actions. After all compensations complete
+     * (or fail), the catch `do` block runs as normal.
+     *
+     * Compensation failures do not prevent the catch block from running.
+     * They are logged and included in the task output for diagnostics.
+     *
+     * Default: false (no compensation — preserves pre-T17 behavior).
+     *
+     * &#64;since T17 (Advanced Agentic Orchestration)
+     * </pre>
+     *
+     * <code>bool compensate = 3 [json_name = "compensate"];</code>
+     * @return The compensate.
+     */
+    @java.lang.Override
+    public boolean getCompensate() {
+      return compensate_;
+    }
+    /**
+     * <pre>
+     * Whether to run compensation tasks for already-completed try tasks
+     * before executing the catch do block.
+     *
+     * When true, the runtime walks the compensation stack (completed tasks
+     * that declared a `compensate` block) in reverse order and executes
+     * each task's compensation actions. After all compensations complete
+     * (or fail), the catch `do` block runs as normal.
+     *
+     * Compensation failures do not prevent the catch block from running.
+     * They are logged and included in the task output for diagnostics.
+     *
+     * Default: false (no compensation — preserves pre-T17 behavior).
+     *
+     * &#64;since T17 (Advanced Agentic Orchestration)
+     * </pre>
+     *
+     * <code>bool compensate = 3 [json_name = "compensate"];</code>
+     * @param value The compensate to set.
+     * @return This builder for chaining.
+     */
+    public Builder setCompensate(boolean value) {
+
+      compensate_ = value;
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Whether to run compensation tasks for already-completed try tasks
+     * before executing the catch do block.
+     *
+     * When true, the runtime walks the compensation stack (completed tasks
+     * that declared a `compensate` block) in reverse order and executes
+     * each task's compensation actions. After all compensations complete
+     * (or fail), the catch `do` block runs as normal.
+     *
+     * Compensation failures do not prevent the catch block from running.
+     * They are logged and included in the task output for diagnostics.
+     *
+     * Default: false (no compensation — preserves pre-T17 behavior).
+     *
+     * &#64;since T17 (Advanced Agentic Orchestration)
+     * </pre>
+     *
+     * <code>bool compensate = 3 [json_name = "compensate"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearCompensate() {
+      bitField0_ = (bitField0_ & ~0x00000004);
+      compensate_ = false;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.workflow.v1.tasks.CatchBlock)

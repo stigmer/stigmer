@@ -9,6 +9,7 @@ type AgentClient = gen.AgentClient
 type AgentExecutionClient = gen.AgentExecutionClient
 type AgentInstanceClient = gen.AgentInstanceClient
 type ApiKeyClient = gen.ApiKeyClient
+type ArtifactClient = gen.ArtifactClient
 type EnvironmentClient = gen.EnvironmentClient
 type ExecutionContextClient = gen.ExecutionContextClient
 type IamPolicyClient = gen.IamPolicyClient
@@ -40,6 +41,9 @@ type ContextManagementConfigInput = gen.ContextManagementConfigInput
 type AttachmentInput = gen.AttachmentInput
 type AgentInstanceInput = gen.AgentInstanceInput
 type ApiKeyInput = gen.ApiKeyInput
+type ArtifactInput = gen.ArtifactInput
+type ArtifactSourceInput = gen.ArtifactSourceInput
+type RetentionPolicyInput = gen.RetentionPolicyInput
 type EnvironmentInput = gen.EnvironmentInput
 type ExecutionContextInput = gen.ExecutionContextInput
 type IamPolicyInput = gen.IamPolicyInput
@@ -68,6 +72,7 @@ type WorkflowDocumentInput = gen.WorkflowDocumentInput
 type WorkflowTaskInput = gen.WorkflowTaskInput
 type ExportInput = gen.ExportInput
 type FlowControlInput = gen.FlowControlInput
+type WorkflowBudgetInput = gen.WorkflowBudgetInput
 type WorkflowExecutionInput = gen.WorkflowExecutionInput
 type WorkflowInstanceInput = gen.WorkflowInstanceInput
 
@@ -75,6 +80,7 @@ type WorkflowInstanceInput = gen.WorkflowInstanceInput
 type AgentExecutionSubscribeStream = gen.AgentExecutionSubscribeStream
 type RunnerConnectStream = gen.RunnerConnectStream
 type WorkflowExecutionSubscribeStream = gen.WorkflowExecutionSubscribeStream
+type WorkflowExecutionSubscribeEventsStream = gen.WorkflowExecutionSubscribeEventsStream
 
 // Shared SDK types.
 type DeleteResourceInput = gen.DeleteResourceInput

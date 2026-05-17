@@ -34,10 +34,11 @@ stigmer resume "deploy staging"
 
 ## Options
 
-| Flag              | Type   | Default | Description                                                          |
-| ----------------- | ------ | ------- | -------------------------------------------------------------------- |
-| `--json`          | `bool` |         | stream execution events as newline-delimited JSON (for scripting/CI) |
-| `--verbose`, `-v` | `bool` |         | show all execution events                                            |
+| Flag              | Type     | Default | Description                                                                                    |
+| ----------------- | -------- | ------- | ---------------------------------------------------------------------------------------------- |
+| `--json`          | `bool`   |         | stream execution events as newline-delimited JSON (for scripting/CI)                           |
+| `--mode`          | `string` |         | interaction mode for follow-ups: "agent" (default, full access) or "plan" (read-only analysis) |
+| `--verbose`, `-v` | `bool`   |         | show all execution events                                                                      |
 
 ### How resuming works
 

@@ -139,6 +139,37 @@ public final class WorkflowCommandControllerGrpc {
     return getDeleteMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.Workflow,
+      ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation> getValidateSpecMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "validateSpec",
+      requestType = ai.stigmer.agentic.workflow.v1.Workflow.class,
+      responseType = ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.Workflow,
+      ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation> getValidateSpecMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.Workflow, ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation> getValidateSpecMethod;
+    if ((getValidateSpecMethod = WorkflowCommandControllerGrpc.getValidateSpecMethod) == null) {
+      synchronized (WorkflowCommandControllerGrpc.class) {
+        if ((getValidateSpecMethod = WorkflowCommandControllerGrpc.getValidateSpecMethod) == null) {
+          WorkflowCommandControllerGrpc.getValidateSpecMethod = getValidateSpecMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.workflow.v1.Workflow, ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "validateSpec"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.workflow.v1.Workflow.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation.getDefaultInstance()))
+              .setSchemaDescriptor(new WorkflowCommandControllerMethodDescriptorSupplier("validateSpec"))
+              .build();
+        }
+      }
+    }
+    return getValidateSpecMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -251,6 +282,31 @@ public final class WorkflowCommandControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.Workflow> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getDeleteMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * Validate a workflow spec without persisting it.
+     * Runs the same two-layer validation pipeline used by create/update:
+     *   Layer 1: Proto field constraints (buf validate / protovalidate)
+     *   Layer 2: Temporal-based structural validation (Go activity: proto → YAML → Zigflow)
+     * Returns ServerlessWorkflowValidation with:
+     *   - VALID: Workflow structure passed all checks
+     *   - INVALID: User error (bad structure, missing fields, unknown task kinds)
+     *   - FAILED: System error (Temporal unavailable, converter crash)
+     * This RPC does NOT persist, authorize, or create instances. It is a
+     * pure validation endpoint suitable for iterative authoring workflows
+     * where the caller needs fast feedback before committing.
+     * &#64;internal
+     * Authorization: Uses the same permission as create — caller must have
+     * can_create_workflow in the org. This prevents unauthenticated abuse
+     * of the validation pipeline while allowing any user who could create
+     * a workflow to also validate one.
+     * </pre>
+     */
+    default void validateSpec(ai.stigmer.agentic.workflow.v1.Workflow request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getValidateSpecMethod(), responseObserver);
+    }
   }
 
   /**
@@ -336,6 +392,32 @@ public final class WorkflowCommandControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getDeleteMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * Validate a workflow spec without persisting it.
+     * Runs the same two-layer validation pipeline used by create/update:
+     *   Layer 1: Proto field constraints (buf validate / protovalidate)
+     *   Layer 2: Temporal-based structural validation (Go activity: proto → YAML → Zigflow)
+     * Returns ServerlessWorkflowValidation with:
+     *   - VALID: Workflow structure passed all checks
+     *   - INVALID: User error (bad structure, missing fields, unknown task kinds)
+     *   - FAILED: System error (Temporal unavailable, converter crash)
+     * This RPC does NOT persist, authorize, or create instances. It is a
+     * pure validation endpoint suitable for iterative authoring workflows
+     * where the caller needs fast feedback before committing.
+     * &#64;internal
+     * Authorization: Uses the same permission as create — caller must have
+     * can_create_workflow in the org. This prevents unauthenticated abuse
+     * of the validation pipeline while allowing any user who could create
+     * a workflow to also validate one.
+     * </pre>
+     */
+    public void validateSpec(ai.stigmer.agentic.workflow.v1.Workflow request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getValidateSpecMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -403,6 +485,31 @@ public final class WorkflowCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getDeleteMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Validate a workflow spec without persisting it.
+     * Runs the same two-layer validation pipeline used by create/update:
+     *   Layer 1: Proto field constraints (buf validate / protovalidate)
+     *   Layer 2: Temporal-based structural validation (Go activity: proto → YAML → Zigflow)
+     * Returns ServerlessWorkflowValidation with:
+     *   - VALID: Workflow structure passed all checks
+     *   - INVALID: User error (bad structure, missing fields, unknown task kinds)
+     *   - FAILED: System error (Temporal unavailable, converter crash)
+     * This RPC does NOT persist, authorize, or create instances. It is a
+     * pure validation endpoint suitable for iterative authoring workflows
+     * where the caller needs fast feedback before committing.
+     * &#64;internal
+     * Authorization: Uses the same permission as create — caller must have
+     * can_create_workflow in the org. This prevents unauthenticated abuse
+     * of the validation pipeline while allowing any user who could create
+     * a workflow to also validate one.
+     * </pre>
+     */
+    public ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation validateSpec(ai.stigmer.agentic.workflow.v1.Workflow request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getValidateSpecMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -469,6 +576,31 @@ public final class WorkflowCommandControllerGrpc {
     public ai.stigmer.agentic.workflow.v1.Workflow delete(ai.stigmer.agentic.workflow.v1.WorkflowId request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getDeleteMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Validate a workflow spec without persisting it.
+     * Runs the same two-layer validation pipeline used by create/update:
+     *   Layer 1: Proto field constraints (buf validate / protovalidate)
+     *   Layer 2: Temporal-based structural validation (Go activity: proto → YAML → Zigflow)
+     * Returns ServerlessWorkflowValidation with:
+     *   - VALID: Workflow structure passed all checks
+     *   - INVALID: User error (bad structure, missing fields, unknown task kinds)
+     *   - FAILED: System error (Temporal unavailable, converter crash)
+     * This RPC does NOT persist, authorize, or create instances. It is a
+     * pure validation endpoint suitable for iterative authoring workflows
+     * where the caller needs fast feedback before committing.
+     * &#64;internal
+     * Authorization: Uses the same permission as create — caller must have
+     * can_create_workflow in the org. This prevents unauthenticated abuse
+     * of the validation pipeline while allowing any user who could create
+     * a workflow to also validate one.
+     * </pre>
+     */
+    public ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation validateSpec(ai.stigmer.agentic.workflow.v1.Workflow request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getValidateSpecMethod(), getCallOptions(), request);
     }
   }
 
@@ -541,12 +673,39 @@ public final class WorkflowCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getDeleteMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * Validate a workflow spec without persisting it.
+     * Runs the same two-layer validation pipeline used by create/update:
+     *   Layer 1: Proto field constraints (buf validate / protovalidate)
+     *   Layer 2: Temporal-based structural validation (Go activity: proto → YAML → Zigflow)
+     * Returns ServerlessWorkflowValidation with:
+     *   - VALID: Workflow structure passed all checks
+     *   - INVALID: User error (bad structure, missing fields, unknown task kinds)
+     *   - FAILED: System error (Temporal unavailable, converter crash)
+     * This RPC does NOT persist, authorize, or create instances. It is a
+     * pure validation endpoint suitable for iterative authoring workflows
+     * where the caller needs fast feedback before committing.
+     * &#64;internal
+     * Authorization: Uses the same permission as create — caller must have
+     * can_create_workflow in the org. This prevents unauthenticated abuse
+     * of the validation pipeline while allowing any user who could create
+     * a workflow to also validate one.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation> validateSpec(
+        ai.stigmer.agentic.workflow.v1.Workflow request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getValidateSpecMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_APPLY = 0;
   private static final int METHODID_CREATE = 1;
   private static final int METHODID_UPDATE = 2;
   private static final int METHODID_DELETE = 3;
+  private static final int METHODID_VALIDATE_SPEC = 4;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -580,6 +739,10 @@ public final class WorkflowCommandControllerGrpc {
         case METHODID_DELETE:
           serviceImpl.delete((ai.stigmer.agentic.workflow.v1.WorkflowId) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.Workflow>) responseObserver);
+          break;
+        case METHODID_VALIDATE_SPEC:
+          serviceImpl.validateSpec((ai.stigmer.agentic.workflow.v1.Workflow) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -627,6 +790,13 @@ public final class WorkflowCommandControllerGrpc {
               ai.stigmer.agentic.workflow.v1.WorkflowId,
               ai.stigmer.agentic.workflow.v1.Workflow>(
                 service, METHODID_DELETE)))
+        .addMethod(
+          getValidateSpecMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.workflow.v1.Workflow,
+              ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation>(
+                service, METHODID_VALIDATE_SPEC)))
         .build();
   }
 
@@ -679,6 +849,7 @@ public final class WorkflowCommandControllerGrpc {
               .addMethod(getCreateMethod())
               .addMethod(getUpdateMethod())
               .addMethod(getDeleteMethod())
+              .addMethod(getValidateSpecMethod())
               .build();
         }
       }

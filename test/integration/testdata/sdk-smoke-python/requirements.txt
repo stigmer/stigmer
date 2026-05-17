@@ -1,0 +1,5 @@
+# Install stigmer-protos and stigmer SDK from local source.
+# Paths are relative to the repo root and resolved by the Go test harness
+# which passes absolute paths via STIGMER_REPO_ROOT.
+grpcio>=1.60.0
+protobuf>=6.32.0

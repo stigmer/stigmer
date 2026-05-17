@@ -114,12 +114,20 @@ describe("buildContinuationPrompt", () => {
     expect(result).toContain("</agent_instructions>");
   });
 
-  it("includes workspace context", () => {
+  it("includes workspace context for multi-root setups", () => {
+    const result = buildContinuationPrompt(makeBaseOptions({
+      workspaceDirs: ["/workspace/frontend", "/workspace/backend"],
+    }));
+    expect(result).toContain("<workspace>");
+    expect(result).toContain("/workspace/frontend");
+    expect(result).toContain("/workspace/backend");
+  });
+
+  it("omits workspace context for single-dir setups", () => {
     const result = buildContinuationPrompt(makeBaseOptions({
       workspaceDirs: ["/workspace/my-project"],
     }));
-    expect(result).toContain("<workspace>");
-    expect(result).toContain("/workspace/my-project");
+    expect(result).not.toContain("<workspace>");
   });
 
   it("includes durable summary from memory", () => {
@@ -220,8 +228,17 @@ describe("buildContinuationPrompt", () => {
     expect(result).toContain("Deploy to production");
   });
 
-  it("includes response rules", () => {
-    const result = buildContinuationPrompt(makeBaseOptions());
+  it("omits response rules when instructions are present", () => {
+    const result = buildContinuationPrompt(makeBaseOptions({
+      instructions: "You are a helpful coding assistant.",
+    }));
+    expect(result).not.toContain("<response_rules>");
+  });
+
+  it("includes response rules when instructions are empty", () => {
+    const result = buildContinuationPrompt(makeBaseOptions({
+      instructions: "",
+    }));
     expect(result).toContain("<response_rules>");
   });
 

@@ -1,0 +1,161 @@
+{
+  "name": "LlmCallTaskConfig",
+  "kind": "LLM_CALL",
+  "description": "LlmCallTaskConfig defines the configuration for llm_call tasks that make\n direct LLM API calls without the overhead of a full agent invocation.\n\n @internal\n Use llm_call when the task is focused and deterministic: classification,\n extraction, scoring, summarization, moderation, or routing. An agent_call\n carries setup overhead (system prompt, tool resolution, MCP server setup,\n session management) that is unnecessary when all you need is a single\n prompt-response cycle with optional structured output.\n\n When response_schema is set, the runner requests structured output from the\n provider and validates the response against the schema. The on_invalid /\n max_retries / fallback_task fields control what happens when validation fails,\n using the same OnInvalidOutputPolicy enum as agent_call's output contract.\n\n YAML Example (classification with structured output):\n   - classify_severity:\n       call: llm\n       with:\n         model: \"gpt-4o-mini\"\n         system_prompt: \"You are a support ticket classifier.\"\n         prompt: \"Classify this ticket: ${ $context.ticket.description }\"\n         response_schema:\n           type: object\n           required: [severity, category]\n           properties:\n             severity:\n               type: string\n               enum: [low, medium, high, critical]\n             category:\n               type: string\n         on_invalid: ON_INVALID_RETRY\n         max_retries: 2\n       export:\n         as: \"${ . }\"\n\n YAML Example (simple summarization, no schema):\n   - summarize:\n       call: llm\n       with:\n         model: \"claude-sonnet-4-5\"\n         prompt: \"Summarize in 2 sentences: ${ $context.document.text }\"\n         temperature: 0.3\n         max_tokens: 200\n       export:\n         as: \"${ . }\"",
+  "protoType": "ai.stigmer.agentic.workflow.v1.tasks.LlmCallTaskConfig",
+  "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/llm_call.proto",
+  "discriminatorValue": "llm_call",
+  "fields": [
+    {
+      "name": "Model",
+      "jsonName": "model",
+      "protoField": "model",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Model reference resolved via the Stigmer model registry.\n Examples: \"gpt-4o\", \"gpt-4o-mini\", \"claude-sonnet-4-5\", \"claude-haiku-3-5\"\n Required field.",
+      "required": true,
+      "validation": {
+        "required": true,
+        "minLength": 1,
+        "maxLength": 127
+      }
+    },
+    {
+      "name": "SystemPrompt",
+      "jsonName": "systemPrompt",
+      "protoField": "system_prompt",
+      "type": {
+        "kind": "string"
+      },
+      "description": "System prompt that sets the LLM's role and constraints.\n Supports ${ } expression interpolation for dynamic system prompts.\n Optional — omit for tasks where the user prompt is self-contained.",
+      "required": false,
+      "isExpression": true
+    },
+    {
+      "name": "Prompt",
+      "jsonName": "prompt",
+      "protoField": "prompt",
+      "type": {
+        "kind": "string"
+      },
+      "description": "User prompt / instruction sent to the LLM.\n Supports ${ } expression interpolation for injecting workflow context.\n Example: \"Classify this ticket: ${ $context.ticket.description }\"\n Required field.",
+      "required": true,
+      "isExpression": true,
+      "validation": {
+        "required": true,
+        "minLength": 1
+      }
+    },
+    {
+      "name": "ResponseSchema",
+      "jsonName": "responseSchema",
+      "protoField": "response_schema",
+      "type": {
+        "kind": "struct"
+      },
+      "description": "JSON Schema for structured output.\n\n When set, the runner requests structured output from the provider\n (e.g., OpenAI's response_format, Anthropic's tool_use extraction)\n and validates the response against this schema.\n\n Uses the same google.protobuf.Struct + JSON Schema pattern as\n AgentCallOutputContract.schema for consistency across the workflow domain.\n\n When not set, the task output is the LLM's raw text response.",
+      "required": false
+    },
+    {
+      "name": "Temperature",
+      "jsonName": "temperature",
+      "protoField": "temperature",
+      "type": {
+        "kind": "float"
+      },
+      "description": "Sampling temperature (0.0 to 2.0).\n Lower = more deterministic, higher = more creative.\n Range is 0.0-2.0 to accommodate all major providers (OpenAI supports\n up to 2.0; others clamp to their supported range at runtime).\n Optional — uses the provider's default when not set.",
+      "required": false,
+      "validation": {
+        "max": 2
+      }
+    },
+    {
+      "name": "MaxTokens",
+      "jsonName": "maxTokens",
+      "protoField": "max_tokens",
+      "type": {
+        "kind": "int32"
+      },
+      "description": "Maximum tokens in the LLM response.\n Optional — uses the provider's default when not set.",
+      "required": false,
+      "validation": {
+        "min": 1
+      }
+    },
+    {
+      "name": "Timeout",
+      "jsonName": "timeout",
+      "protoField": "timeout",
+      "type": {
+        "kind": "int32"
+      },
+      "description": "Timeout for the LLM call in seconds.\n Default: 60. Max: 600 (10 minutes).\n Optional.",
+      "required": false,
+      "validation": {
+        "min": 1,
+        "max": 600
+      }
+    },
+    {
+      "name": "OnInvalid",
+      "jsonName": "onInvalid",
+      "protoField": "on_invalid",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.workflow.v1.tasks.OnInvalidOutputPolicy",
+        "enumValues": [
+          "ON_INVALID_FAIL",
+          "ON_INVALID_RETRY",
+          "ON_INVALID_FALLBACK"
+        ]
+      },
+      "description": "Policy when the LLM response fails schema validation.\n Only meaningful when response_schema is set; ignored otherwise.\n Default: ON_INVALID_FAIL (task fails immediately).",
+      "required": false
+    },
+    {
+      "name": "MaxRetries",
+      "jsonName": "maxRetries",
+      "protoField": "max_retries",
+      "type": {
+        "kind": "int32"
+      },
+      "description": "Maximum schema-validation retry attempts when on_invalid is ON_INVALID_RETRY.\n\n Each retry re-prompts the LLM with the validation errors and expected\n schema, giving it an opportunity to self-correct.\n\n Only meaningful when on_invalid is ON_INVALID_RETRY; ignored otherwise.\n Default: 1. Valid range: 1-5.",
+      "required": false,
+      "validation": {
+        "min": 1,
+        "max": 5
+      }
+    },
+    {
+      "name": "FallbackTask",
+      "jsonName": "fallbackTask",
+      "protoField": "fallback_task",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Target task to branch to when schema validation cannot be resolved.\n\n Used in two scenarios:\n 1. on_invalid is ON_INVALID_RETRY and all retries are exhausted\n 2. on_invalid is ON_INVALID_FALLBACK (immediate branch, no retry)\n\n Must reference a valid task name in the same workflow.\n When empty and retries are exhausted, the task fails.",
+      "required": false
+    },
+    {
+      "name": "MaxCostMicros",
+      "jsonName": "maxCostMicros",
+      "protoField": "max_cost_micros",
+      "type": {
+        "kind": "int64"
+      },
+      "description": "Per-task cost cap in micro-USD (1 USD = 1,000,000 micros).\n When set, the runtime terminates this specific LLM call if its cost\n exceeds this limit, independent of the workflow-level budget.\n The runtime checks both: per-task limit first, then workflow remaining budget.\n Optional — when 0, no per-task cost limit is enforced.\n\n @since T05 (Workflow-Level Budget Primitives)",
+      "required": false
+    },
+    {
+      "name": "MaxTotalTokens",
+      "jsonName": "maxTotalTokens",
+      "protoField": "max_total_tokens",
+      "type": {
+        "kind": "int64"
+      },
+      "description": "Per-task token cap (input + output tokens combined).\n When set, the runtime terminates this specific LLM call if total tokens\n exceed this limit. Complements max_tokens (field 6), which limits only\n the output token count as a generation parameter.\n Optional — when 0, no per-task total token limit is enforced.\n\n @since T05 (Workflow-Level Budget Primitives)",
+      "required": false
+    }
+  ]
+}

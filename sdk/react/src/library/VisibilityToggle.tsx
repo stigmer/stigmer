@@ -109,8 +109,6 @@ export function VisibilityToggle({
     [handleSelect],
   );
 
-  const currentIndex = OPTIONS.findIndex((o) => o.value === visibility);
-
   return (
     <div className={cn("inline-flex flex-col gap-1.5", className)}>
       <div
@@ -124,6 +122,8 @@ export function VisibilityToggle({
       >
         {OPTIONS.map((option, index) => {
           const isSelected = visibility === option.value;
+          const isPublicOption =
+            option.value === ApiResourceVisibility.visibility_public;
 
           return (
             <button
@@ -139,26 +139,26 @@ export function VisibilityToggle({
               onClick={() => handleSelect(option.value)}
               onKeyDown={(e) => handleKeyDown(e, index)}
               className={cn(
-                "cursor-pointer rounded-sm px-3 py-1 text-xs font-medium transition-colors",
+                "inline-flex cursor-pointer items-center gap-1 rounded-sm px-2.5 py-1 text-xs font-medium transition-colors",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                isSelected && option.value === ApiResourceVisibility.visibility_public
+                isSelected && isPublicOption
                   ? "bg-emerald-100 text-emerald-800 shadow-sm dark:bg-emerald-900/40 dark:text-emerald-300"
                   : isSelected
-                    ? "bg-background text-foreground shadow-sm"
+                    ? "bg-amber-50 text-amber-800 shadow-sm dark:bg-amber-900/30 dark:text-amber-300"
                     : "text-muted-foreground hover:text-foreground",
               )}
             >
               {isPending && isSelected ? (
-                <span className="inline-flex items-center gap-1">
-                  <span
-                    className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent"
-                    aria-hidden="true"
-                  />
-                  {option.label}
-                </span>
+                <span
+                  className="inline-block size-3 animate-spin rounded-full border-2 border-current border-t-transparent"
+                  aria-hidden="true"
+                />
+              ) : isPublicOption ? (
+                <GlobeIcon className="size-3" />
               ) : (
-                option.label
+                <LockIcon className="size-3" />
               )}
+              {option.label}
             </button>
           );
         })}
@@ -202,5 +202,46 @@ export function VisibilityToggle({
         </div>
       )}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Icons — inline SVGs following the SDK pattern (no icon library dependency)
+// ---------------------------------------------------------------------------
+
+function LockIcon({ className }: { readonly className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="3.5" y="7" width="9" height="7" rx="1.5" />
+      <path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" />
+    </svg>
+  );
+}
+
+function GlobeIcon({ className }: { readonly className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="8" cy="8" r="6" />
+      <path d="M2 8h12" />
+      <path d="M8 2c1.66 1.46 2.6 3.63 2.6 6s-.94 4.54-2.6 6c-1.66-1.46-2.6-3.63-2.6-6s.94-4.54 2.6-6Z" />
+    </svg>
   );
 }

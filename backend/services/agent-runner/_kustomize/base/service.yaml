@@ -18,38 +18,38 @@ spec:
         variables:
           # Temporal Configuration
           # Polyglot setup: Python activities on agent_execution_runner, Java workflows on agent_execution_stigmer
-          TEMPORAL_NAMESPACE:
+          - name: TEMPORAL_NAMESPACE
             value: $variables-group/stigmer-temporal-config/namespace
-          TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE:
+          - name: TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE
             value: agent_execution_runner
-          TEMPORAL_MAX_CONCURRENCY:
+          - name: TEMPORAL_MAX_CONCURRENCY
             value: "10"
           # Stigmer Backend Configuration
-          STIGMER_BACKEND_ENDPOINT:
+          - name: STIGMER_BACKEND_ENDPOINT
             value: localhost:8080
           # Redis Configuration
-          REDIS_PORT:
+          - name: REDIS_PORT
             value: $variables-group/stigmer-redis-config/port
           # Auth0 Configuration
-          AUTH0_DOMAIN:
+          - name: AUTH0_DOMAIN
             value: $variables-group/stigmer-auth0-config/prod.domain
-          AUTH0_AUDIENCE:
+          - name: AUTH0_AUDIENCE
             value: $variables-group/stigmer-auth0-config/prod.api-audience
           # Daytona Configuration
-          DAYTONA_DEV_TOOLS_SNAPSHOT_ID:
+          - name: DAYTONA_DEV_TOOLS_SNAPSHOT_ID
             value: $variables-group/daytona/dev-tools-snapshot-id
           # LLM Configuration
           # Provider, model, and API key are set in environment-specific overlays
           # This allows flexibility: prod uses Anthropic, local can use Ollama/OpenAI/Anthropic
-          STIGMER_LLM_MAX_TOKENS:
+          - name: STIGMER_LLM_MAX_TOKENS
             value: $variables-group/stigmer-llm-config/max-tokens
-          STIGMER_LLM_BASE_URL:
+          - name: STIGMER_LLM_BASE_URL
             value: $variables-group/stigmer-llm-config/prod.ollama-base-url
           # MongoDB Checkpointer Configuration (cloud mode uses mongodb by default)
-          STIGMER_CHECKPOINTER_MONGODB_DB:
+          - name: STIGMER_CHECKPOINTER_MONGODB_DB
             value: $variables-group/stigmer-mongodb-config/prod.checkpointer-db-name
           # Logging
-          LOG_LEVEL:
+          - name: LOG_LEVEL
             value: INFO
       resources:
         limits:

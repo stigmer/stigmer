@@ -5,17 +5,27 @@ import {
   type ResolvedMcpServer,
 } from "../mcp-resolver.js";
 
+/** Create a ResolvedMcpServer with sensible defaults for policy fields. */
+function server(overrides: Omit<ResolvedMcpServer, "toolApprovals" | "pinnedToolApprovals" | "discoveredCapabilitiesEmpty"> & Partial<Pick<ResolvedMcpServer, "toolApprovals" | "pinnedToolApprovals" | "discoveredCapabilitiesEmpty">>): ResolvedMcpServer {
+  return {
+    toolApprovals: [],
+    pinnedToolApprovals: [],
+    discoveredCapabilitiesEmpty: false,
+    ...overrides,
+  };
+}
+
 describe("toCursorMcpConfig", () => {
   it("transforms a stdio server", () => {
     const servers: ResolvedMcpServer[] = [
-      {
+      server({
         slug: "my-stdio",
         connectionType: "stdio",
         command: "node",
         args: ["server.js"],
         env: { API_KEY: "secret" },
         cwd: "/workspace",
-      },
+      }),
     ];
     const result = toCursorMcpConfig(servers);
     expect(result["my-stdio"]).toEqual({
@@ -29,12 +39,12 @@ describe("toCursorMcpConfig", () => {
 
   it("transforms an HTTP server", () => {
     const servers: ResolvedMcpServer[] = [
-      {
+      server({
         slug: "my-http",
         connectionType: "http",
         url: "http://localhost:3000",
         headers: { Authorization: "Bearer tok" },
-      },
+      }),
     ];
     const result = toCursorMcpConfig(servers);
     expect(result["my-http"]).toEqual({
@@ -46,11 +56,11 @@ describe("toCursorMcpConfig", () => {
 
   it("transforms an SSE server", () => {
     const servers: ResolvedMcpServer[] = [
-      {
+      server({
         slug: "my-sse",
         connectionType: "sse",
         url: "http://localhost:4000/events",
-      },
+      }),
     ];
     const result = toCursorMcpConfig(servers);
     expect(result["my-sse"]).toEqual({
@@ -61,7 +71,7 @@ describe("toCursorMcpConfig", () => {
 
   it("skips stdio servers without a command", () => {
     const servers: ResolvedMcpServer[] = [
-      { slug: "broken-stdio", connectionType: "stdio" },
+      server({ slug: "broken-stdio", connectionType: "stdio" }),
     ];
     const result = toCursorMcpConfig(servers);
     expect(result["broken-stdio"]).toBeUndefined();
@@ -70,7 +80,7 @@ describe("toCursorMcpConfig", () => {
 
   it("skips HTTP servers without a URL", () => {
     const servers: ResolvedMcpServer[] = [
-      { slug: "broken-http", connectionType: "http" },
+      server({ slug: "broken-http", connectionType: "http" }),
     ];
     const result = toCursorMcpConfig(servers);
     expect(result["broken-http"]).toBeUndefined();
@@ -79,9 +89,9 @@ describe("toCursorMcpConfig", () => {
 
   it("handles multiple servers of different types", () => {
     const servers: ResolvedMcpServer[] = [
-      { slug: "s1", connectionType: "stdio", command: "python" },
-      { slug: "s2", connectionType: "http", url: "http://api.test" },
-      { slug: "s3", connectionType: "sse", url: "http://sse.test" },
+      server({ slug: "s1", connectionType: "stdio", command: "python" }),
+      server({ slug: "s2", connectionType: "http", url: "http://api.test" }),
+      server({ slug: "s3", connectionType: "sse", url: "http://sse.test" }),
     ];
     const result = toCursorMcpConfig(servers);
     expect(Object.keys(result)).toHaveLength(3);
@@ -130,12 +140,12 @@ describe("resolveMcpServers with env resolution", () => {
 
   it("transforms HTTP server with resolved headers", () => {
     const servers: ResolvedMcpServer[] = [
-      {
+      server({
         slug: "planton",
         connectionType: "http",
         url: "https://mcp.planton.ai",
         headers: { Authorization: "Bearer actual-api-key" },
-      },
+      }),
     ];
     const result = toCursorMcpConfig(servers);
     expect(result["planton"]).toEqual({
@@ -147,13 +157,13 @@ describe("resolveMcpServers with env resolution", () => {
 
   it("transforms stdio server with env vars", () => {
     const servers: ResolvedMcpServer[] = [
-      {
+      server({
         slug: "github",
         connectionType: "stdio",
         command: "npx",
         args: ["-y", "@modelcontextprotocol/server-github"],
         env: { GITHUB_TOKEN: "ghp_secret" },
-      },
+      }),
     ];
     const result = toCursorMcpConfig(servers);
     expect(result["github"]).toEqual({
@@ -167,12 +177,12 @@ describe("resolveMcpServers with env resolution", () => {
 
   it("transforms stdio server without env when empty", () => {
     const servers: ResolvedMcpServer[] = [
-      {
+      server({
         slug: "simple",
         connectionType: "stdio",
         command: "node",
         args: ["server.js"],
-      },
+      }),
     ];
     const result = toCursorMcpConfig(servers);
     const config = result["simple"] as { type?: string; env?: Record<string, string> };

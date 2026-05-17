@@ -42,6 +42,7 @@ type StartOptions struct {
 	OrgOverride      string
 	Runtime          string // "native" (default) or "docker"
 	Image            string // Docker image override (only used when Runtime="docker")
+	Insecure         bool   // Use plaintext gRPC (no TLS). Auto-detected for localhost.
 }
 
 // registeredRunner holds the result of the common registration phase that
@@ -142,6 +143,7 @@ func Ensure(ctx context.Context, opts StartOptions, onReady func(*EnsureResult))
 		EndpointOverride: opts.EndpointOverride,
 		TokenOverride:    opts.TokenOverride,
 		OrgOverride:      opts.OrgOverride,
+		Insecure:         opts.Insecure,
 		Config:           cfg,
 	})
 	if err != nil {
@@ -951,7 +953,7 @@ func createClient(info *BackendInfo) (*stigmer.Client, error) {
 		}),
 	}
 
-	if info.IsLocal {
+	if info.IsLocal || info.Insecure {
 		opts = append(opts, stigmer.WithInsecure())
 	}
 	if info.Token != "" {

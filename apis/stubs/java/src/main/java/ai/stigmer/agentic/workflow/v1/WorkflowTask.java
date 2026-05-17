@@ -53,6 +53,7 @@ private static final long serialVersionUID = 0L;
   private WorkflowTask() {
     name_ = "";
     kind_ = 0;
+    compensate_ = java.util.Collections.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -168,6 +169,12 @@ private static final long serialVersionUID = 0L;
    * - raise_error: ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig
    * - run_workflow: ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig
    * - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
+   * - llm_call: ai.stigmer.agentic.workflow.v1.tasks.LlmCallTaskConfig
+   * - transform: ai.stigmer.agentic.workflow.v1.tasks.TransformTaskConfig
+   * - human_input: ai.stigmer.agentic.workflow.v1.tasks.HumanInputTaskConfig
+   * - validate: ai.stigmer.agentic.workflow.v1.tasks.ValidateTaskConfig
+   * - emit_event: ai.stigmer.agentic.workflow.v1.tasks.EmitEventTaskConfig
+   * - notification: ai.stigmer.agentic.workflow.v1.tasks.NotificationTaskConfig
    *
    * See: apis/ai/stigmer/agentic/workflow/v1/tasks/&#42;.proto for detailed schemas.
    * </pre>
@@ -198,6 +205,12 @@ private static final long serialVersionUID = 0L;
    * - raise_error: ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig
    * - run_workflow: ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig
    * - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
+   * - llm_call: ai.stigmer.agentic.workflow.v1.tasks.LlmCallTaskConfig
+   * - transform: ai.stigmer.agentic.workflow.v1.tasks.TransformTaskConfig
+   * - human_input: ai.stigmer.agentic.workflow.v1.tasks.HumanInputTaskConfig
+   * - validate: ai.stigmer.agentic.workflow.v1.tasks.ValidateTaskConfig
+   * - emit_event: ai.stigmer.agentic.workflow.v1.tasks.EmitEventTaskConfig
+   * - notification: ai.stigmer.agentic.workflow.v1.tasks.NotificationTaskConfig
    *
    * See: apis/ai/stigmer/agentic/workflow/v1/tasks/&#42;.proto for detailed schemas.
    * </pre>
@@ -228,6 +241,12 @@ private static final long serialVersionUID = 0L;
    * - raise_error: ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig
    * - run_workflow: ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig
    * - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
+   * - llm_call: ai.stigmer.agentic.workflow.v1.tasks.LlmCallTaskConfig
+   * - transform: ai.stigmer.agentic.workflow.v1.tasks.TransformTaskConfig
+   * - human_input: ai.stigmer.agentic.workflow.v1.tasks.HumanInputTaskConfig
+   * - validate: ai.stigmer.agentic.workflow.v1.tasks.ValidateTaskConfig
+   * - emit_event: ai.stigmer.agentic.workflow.v1.tasks.EmitEventTaskConfig
+   * - notification: ai.stigmer.agentic.workflow.v1.tasks.NotificationTaskConfig
    *
    * See: apis/ai/stigmer/agentic/workflow/v1/tasks/&#42;.proto for detailed schemas.
    * </pre>
@@ -321,6 +340,307 @@ private static final long serialVersionUID = 0L;
     return flow_ == null ? ai.stigmer.agentic.workflow.v1.FlowControl.getDefaultInstance() : flow_;
   }
 
+  public static final int COMPENSATE_FIELD_NUMBER = 6;
+  @SuppressWarnings("serial")
+  private java.util.List<ai.stigmer.agentic.workflow.v1.WorkflowTask> compensate_;
+  /**
+   * <pre>
+   * Compensation tasks to execute if this task needs to be "undone."
+   *
+   * &#64;internal
+   * Saga-style compensation for workflows with side effects. When a
+   * try_catch block catches an error, it can optionally run the
+   * compensation tasks for all already-completed tasks in reverse order.
+   *
+   * The compensation tasks receive the original task's output in their
+   * input context, allowing them to construct the appropriate undo
+   * operation (e.g., cancel an API call, delete a created resource,
+   * send a reversal notification).
+   *
+   * Only executed when:
+   * 1. The task completed successfully (failed tasks are not compensated)
+   * 2. A subsequent task within the same try_catch scope fails
+   * 3. The catch block is configured to run compensations
+   *
+   * YAML Example:
+   * try:
+   * - create_order:
+   * call: http
+   * with:
+   * method: POST
+   * endpoint: { uri: "https://api.example.com/orders" }
+   * body: { ... }
+   * compensate:
+   * - cancel_order:
+   * call: http
+   * with:
+   * method: DELETE
+   * endpoint: { uri: "https://api.example.com/orders/${ $context.create_order.id }" }
+   * export:
+   * as: "${ . }"
+   * - charge_payment:
+   * call: http
+   * with:
+   * method: POST
+   * endpoint: { uri: "https://api.example.com/payments" }
+   * catch:
+   * as: error
+   * compensate: true
+   * do:
+   * - log_failure:
+   * call: notification
+   * with: ...
+   *
+   * Optional - when empty, this task has no compensation action.
+   *
+   * &#64;since T17 (Advanced Agentic Orchestration)
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.workflow.v1.WorkflowTask compensate = 6 [json_name = "compensate"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<ai.stigmer.agentic.workflow.v1.WorkflowTask> getCompensateList() {
+    return compensate_;
+  }
+  /**
+   * <pre>
+   * Compensation tasks to execute if this task needs to be "undone."
+   *
+   * &#64;internal
+   * Saga-style compensation for workflows with side effects. When a
+   * try_catch block catches an error, it can optionally run the
+   * compensation tasks for all already-completed tasks in reverse order.
+   *
+   * The compensation tasks receive the original task's output in their
+   * input context, allowing them to construct the appropriate undo
+   * operation (e.g., cancel an API call, delete a created resource,
+   * send a reversal notification).
+   *
+   * Only executed when:
+   * 1. The task completed successfully (failed tasks are not compensated)
+   * 2. A subsequent task within the same try_catch scope fails
+   * 3. The catch block is configured to run compensations
+   *
+   * YAML Example:
+   * try:
+   * - create_order:
+   * call: http
+   * with:
+   * method: POST
+   * endpoint: { uri: "https://api.example.com/orders" }
+   * body: { ... }
+   * compensate:
+   * - cancel_order:
+   * call: http
+   * with:
+   * method: DELETE
+   * endpoint: { uri: "https://api.example.com/orders/${ $context.create_order.id }" }
+   * export:
+   * as: "${ . }"
+   * - charge_payment:
+   * call: http
+   * with:
+   * method: POST
+   * endpoint: { uri: "https://api.example.com/payments" }
+   * catch:
+   * as: error
+   * compensate: true
+   * do:
+   * - log_failure:
+   * call: notification
+   * with: ...
+   *
+   * Optional - when empty, this task has no compensation action.
+   *
+   * &#64;since T17 (Advanced Agentic Orchestration)
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.workflow.v1.WorkflowTask compensate = 6 [json_name = "compensate"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<? extends ai.stigmer.agentic.workflow.v1.WorkflowTaskOrBuilder> 
+      getCompensateOrBuilderList() {
+    return compensate_;
+  }
+  /**
+   * <pre>
+   * Compensation tasks to execute if this task needs to be "undone."
+   *
+   * &#64;internal
+   * Saga-style compensation for workflows with side effects. When a
+   * try_catch block catches an error, it can optionally run the
+   * compensation tasks for all already-completed tasks in reverse order.
+   *
+   * The compensation tasks receive the original task's output in their
+   * input context, allowing them to construct the appropriate undo
+   * operation (e.g., cancel an API call, delete a created resource,
+   * send a reversal notification).
+   *
+   * Only executed when:
+   * 1. The task completed successfully (failed tasks are not compensated)
+   * 2. A subsequent task within the same try_catch scope fails
+   * 3. The catch block is configured to run compensations
+   *
+   * YAML Example:
+   * try:
+   * - create_order:
+   * call: http
+   * with:
+   * method: POST
+   * endpoint: { uri: "https://api.example.com/orders" }
+   * body: { ... }
+   * compensate:
+   * - cancel_order:
+   * call: http
+   * with:
+   * method: DELETE
+   * endpoint: { uri: "https://api.example.com/orders/${ $context.create_order.id }" }
+   * export:
+   * as: "${ . }"
+   * - charge_payment:
+   * call: http
+   * with:
+   * method: POST
+   * endpoint: { uri: "https://api.example.com/payments" }
+   * catch:
+   * as: error
+   * compensate: true
+   * do:
+   * - log_failure:
+   * call: notification
+   * with: ...
+   *
+   * Optional - when empty, this task has no compensation action.
+   *
+   * &#64;since T17 (Advanced Agentic Orchestration)
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.workflow.v1.WorkflowTask compensate = 6 [json_name = "compensate"];</code>
+   */
+  @java.lang.Override
+  public int getCompensateCount() {
+    return compensate_.size();
+  }
+  /**
+   * <pre>
+   * Compensation tasks to execute if this task needs to be "undone."
+   *
+   * &#64;internal
+   * Saga-style compensation for workflows with side effects. When a
+   * try_catch block catches an error, it can optionally run the
+   * compensation tasks for all already-completed tasks in reverse order.
+   *
+   * The compensation tasks receive the original task's output in their
+   * input context, allowing them to construct the appropriate undo
+   * operation (e.g., cancel an API call, delete a created resource,
+   * send a reversal notification).
+   *
+   * Only executed when:
+   * 1. The task completed successfully (failed tasks are not compensated)
+   * 2. A subsequent task within the same try_catch scope fails
+   * 3. The catch block is configured to run compensations
+   *
+   * YAML Example:
+   * try:
+   * - create_order:
+   * call: http
+   * with:
+   * method: POST
+   * endpoint: { uri: "https://api.example.com/orders" }
+   * body: { ... }
+   * compensate:
+   * - cancel_order:
+   * call: http
+   * with:
+   * method: DELETE
+   * endpoint: { uri: "https://api.example.com/orders/${ $context.create_order.id }" }
+   * export:
+   * as: "${ . }"
+   * - charge_payment:
+   * call: http
+   * with:
+   * method: POST
+   * endpoint: { uri: "https://api.example.com/payments" }
+   * catch:
+   * as: error
+   * compensate: true
+   * do:
+   * - log_failure:
+   * call: notification
+   * with: ...
+   *
+   * Optional - when empty, this task has no compensation action.
+   *
+   * &#64;since T17 (Advanced Agentic Orchestration)
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.workflow.v1.WorkflowTask compensate = 6 [json_name = "compensate"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.workflow.v1.WorkflowTask getCompensate(int index) {
+    return compensate_.get(index);
+  }
+  /**
+   * <pre>
+   * Compensation tasks to execute if this task needs to be "undone."
+   *
+   * &#64;internal
+   * Saga-style compensation for workflows with side effects. When a
+   * try_catch block catches an error, it can optionally run the
+   * compensation tasks for all already-completed tasks in reverse order.
+   *
+   * The compensation tasks receive the original task's output in their
+   * input context, allowing them to construct the appropriate undo
+   * operation (e.g., cancel an API call, delete a created resource,
+   * send a reversal notification).
+   *
+   * Only executed when:
+   * 1. The task completed successfully (failed tasks are not compensated)
+   * 2. A subsequent task within the same try_catch scope fails
+   * 3. The catch block is configured to run compensations
+   *
+   * YAML Example:
+   * try:
+   * - create_order:
+   * call: http
+   * with:
+   * method: POST
+   * endpoint: { uri: "https://api.example.com/orders" }
+   * body: { ... }
+   * compensate:
+   * - cancel_order:
+   * call: http
+   * with:
+   * method: DELETE
+   * endpoint: { uri: "https://api.example.com/orders/${ $context.create_order.id }" }
+   * export:
+   * as: "${ . }"
+   * - charge_payment:
+   * call: http
+   * with:
+   * method: POST
+   * endpoint: { uri: "https://api.example.com/payments" }
+   * catch:
+   * as: error
+   * compensate: true
+   * do:
+   * - log_failure:
+   * call: notification
+   * with: ...
+   *
+   * Optional - when empty, this task has no compensation action.
+   *
+   * &#64;since T17 (Advanced Agentic Orchestration)
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.workflow.v1.WorkflowTask compensate = 6 [json_name = "compensate"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.workflow.v1.WorkflowTaskOrBuilder getCompensateOrBuilder(
+      int index) {
+    return compensate_.get(index);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -350,6 +670,9 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000004) != 0)) {
       output.writeMessage(5, getFlow());
     }
+    for (int i = 0; i < compensate_.size(); i++) {
+      output.writeMessage(6, compensate_.get(i));
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -378,6 +701,15 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(5, getFlow());
     }
+
+        {
+          final int count = compensate_.size();
+          for (int i = 0; i < count; i++) {
+            size += com.google.protobuf.CodedOutputStream
+              .computeMessageSizeNoTag(compensate_.get(i));
+          }
+          size += 1 * count;
+        }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -411,6 +743,8 @@ private static final long serialVersionUID = 0L;
       if (!getFlow()
           .equals(other.getFlow())) return false;
     }
+    if (!getCompensateList()
+        .equals(other.getCompensateList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -437,6 +771,10 @@ private static final long serialVersionUID = 0L;
     if (hasFlow()) {
       hash = (37 * hash) + FLOW_FIELD_NUMBER;
       hash = (53 * hash) + getFlow().hashCode();
+    }
+    if (getCompensateCount() > 0) {
+      hash = (37 * hash) + COMPENSATE_FIELD_NUMBER;
+      hash = (53 * hash) + getCompensateList().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -594,6 +932,7 @@ private static final long serialVersionUID = 0L;
         internalGetTaskConfigFieldBuilder();
         internalGetExportFieldBuilder();
         internalGetFlowFieldBuilder();
+        internalGetCompensateFieldBuilder();
       }
     }
     @java.lang.Override
@@ -617,6 +956,13 @@ private static final long serialVersionUID = 0L;
         flowBuilder_.dispose();
         flowBuilder_ = null;
       }
+      if (compensateBuilder_ == null) {
+        compensate_ = java.util.Collections.emptyList();
+      } else {
+        compensate_ = null;
+        compensateBuilder_.clear();
+      }
+      bitField0_ = (bitField0_ & ~0x00000020);
       return this;
     }
 
@@ -643,9 +989,22 @@ private static final long serialVersionUID = 0L;
     @java.lang.Override
     public ai.stigmer.agentic.workflow.v1.WorkflowTask buildPartial() {
       ai.stigmer.agentic.workflow.v1.WorkflowTask result = new ai.stigmer.agentic.workflow.v1.WorkflowTask(this);
+      buildPartialRepeatedFields(result);
       if (bitField0_ != 0) { buildPartial0(result); }
       onBuilt();
       return result;
+    }
+
+    private void buildPartialRepeatedFields(ai.stigmer.agentic.workflow.v1.WorkflowTask result) {
+      if (compensateBuilder_ == null) {
+        if (((bitField0_ & 0x00000020) != 0)) {
+          compensate_ = java.util.Collections.unmodifiableList(compensate_);
+          bitField0_ = (bitField0_ & ~0x00000020);
+        }
+        result.compensate_ = compensate_;
+      } else {
+        result.compensate_ = compensateBuilder_.build();
+      }
     }
 
     private void buildPartial0(ai.stigmer.agentic.workflow.v1.WorkflowTask result) {
@@ -707,6 +1066,32 @@ private static final long serialVersionUID = 0L;
       if (other.hasFlow()) {
         mergeFlow(other.getFlow());
       }
+      if (compensateBuilder_ == null) {
+        if (!other.compensate_.isEmpty()) {
+          if (compensate_.isEmpty()) {
+            compensate_ = other.compensate_;
+            bitField0_ = (bitField0_ & ~0x00000020);
+          } else {
+            ensureCompensateIsMutable();
+            compensate_.addAll(other.compensate_);
+          }
+          onChanged();
+        }
+      } else {
+        if (!other.compensate_.isEmpty()) {
+          if (compensateBuilder_.isEmpty()) {
+            compensateBuilder_.dispose();
+            compensateBuilder_ = null;
+            compensate_ = other.compensate_;
+            bitField0_ = (bitField0_ & ~0x00000020);
+            compensateBuilder_ = 
+              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                 internalGetCompensateFieldBuilder() : null;
+          } else {
+            compensateBuilder_.addAllMessages(other.compensate_);
+          }
+        }
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -764,6 +1149,19 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000010;
               break;
             } // case 42
+            case 50: {
+              ai.stigmer.agentic.workflow.v1.WorkflowTask m =
+                  input.readMessage(
+                      ai.stigmer.agentic.workflow.v1.WorkflowTask.parser(),
+                      extensionRegistry);
+              if (compensateBuilder_ == null) {
+                ensureCompensateIsMutable();
+                compensate_.add(m);
+              } else {
+                compensateBuilder_.addMessage(m);
+              }
+              break;
+            } // case 50
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -967,6 +1365,12 @@ private static final long serialVersionUID = 0L;
      * - raise_error: ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig
      * - run_workflow: ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig
      * - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
+     * - llm_call: ai.stigmer.agentic.workflow.v1.tasks.LlmCallTaskConfig
+     * - transform: ai.stigmer.agentic.workflow.v1.tasks.TransformTaskConfig
+     * - human_input: ai.stigmer.agentic.workflow.v1.tasks.HumanInputTaskConfig
+     * - validate: ai.stigmer.agentic.workflow.v1.tasks.ValidateTaskConfig
+     * - emit_event: ai.stigmer.agentic.workflow.v1.tasks.EmitEventTaskConfig
+     * - notification: ai.stigmer.agentic.workflow.v1.tasks.NotificationTaskConfig
      *
      * See: apis/ai/stigmer/agentic/workflow/v1/tasks/&#42;.proto for detailed schemas.
      * </pre>
@@ -996,6 +1400,12 @@ private static final long serialVersionUID = 0L;
      * - raise_error: ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig
      * - run_workflow: ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig
      * - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
+     * - llm_call: ai.stigmer.agentic.workflow.v1.tasks.LlmCallTaskConfig
+     * - transform: ai.stigmer.agentic.workflow.v1.tasks.TransformTaskConfig
+     * - human_input: ai.stigmer.agentic.workflow.v1.tasks.HumanInputTaskConfig
+     * - validate: ai.stigmer.agentic.workflow.v1.tasks.ValidateTaskConfig
+     * - emit_event: ai.stigmer.agentic.workflow.v1.tasks.EmitEventTaskConfig
+     * - notification: ai.stigmer.agentic.workflow.v1.tasks.NotificationTaskConfig
      *
      * See: apis/ai/stigmer/agentic/workflow/v1/tasks/&#42;.proto for detailed schemas.
      * </pre>
@@ -1029,6 +1439,12 @@ private static final long serialVersionUID = 0L;
      * - raise_error: ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig
      * - run_workflow: ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig
      * - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
+     * - llm_call: ai.stigmer.agentic.workflow.v1.tasks.LlmCallTaskConfig
+     * - transform: ai.stigmer.agentic.workflow.v1.tasks.TransformTaskConfig
+     * - human_input: ai.stigmer.agentic.workflow.v1.tasks.HumanInputTaskConfig
+     * - validate: ai.stigmer.agentic.workflow.v1.tasks.ValidateTaskConfig
+     * - emit_event: ai.stigmer.agentic.workflow.v1.tasks.EmitEventTaskConfig
+     * - notification: ai.stigmer.agentic.workflow.v1.tasks.NotificationTaskConfig
      *
      * See: apis/ai/stigmer/agentic/workflow/v1/tasks/&#42;.proto for detailed schemas.
      * </pre>
@@ -1067,6 +1483,12 @@ private static final long serialVersionUID = 0L;
      * - raise_error: ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig
      * - run_workflow: ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig
      * - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
+     * - llm_call: ai.stigmer.agentic.workflow.v1.tasks.LlmCallTaskConfig
+     * - transform: ai.stigmer.agentic.workflow.v1.tasks.TransformTaskConfig
+     * - human_input: ai.stigmer.agentic.workflow.v1.tasks.HumanInputTaskConfig
+     * - validate: ai.stigmer.agentic.workflow.v1.tasks.ValidateTaskConfig
+     * - emit_event: ai.stigmer.agentic.workflow.v1.tasks.EmitEventTaskConfig
+     * - notification: ai.stigmer.agentic.workflow.v1.tasks.NotificationTaskConfig
      *
      * See: apis/ai/stigmer/agentic/workflow/v1/tasks/&#42;.proto for detailed schemas.
      * </pre>
@@ -1103,6 +1525,12 @@ private static final long serialVersionUID = 0L;
      * - raise_error: ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig
      * - run_workflow: ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig
      * - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
+     * - llm_call: ai.stigmer.agentic.workflow.v1.tasks.LlmCallTaskConfig
+     * - transform: ai.stigmer.agentic.workflow.v1.tasks.TransformTaskConfig
+     * - human_input: ai.stigmer.agentic.workflow.v1.tasks.HumanInputTaskConfig
+     * - validate: ai.stigmer.agentic.workflow.v1.tasks.ValidateTaskConfig
+     * - emit_event: ai.stigmer.agentic.workflow.v1.tasks.EmitEventTaskConfig
+     * - notification: ai.stigmer.agentic.workflow.v1.tasks.NotificationTaskConfig
      *
      * See: apis/ai/stigmer/agentic/workflow/v1/tasks/&#42;.proto for detailed schemas.
      * </pre>
@@ -1146,6 +1574,12 @@ private static final long serialVersionUID = 0L;
      * - raise_error: ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig
      * - run_workflow: ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig
      * - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
+     * - llm_call: ai.stigmer.agentic.workflow.v1.tasks.LlmCallTaskConfig
+     * - transform: ai.stigmer.agentic.workflow.v1.tasks.TransformTaskConfig
+     * - human_input: ai.stigmer.agentic.workflow.v1.tasks.HumanInputTaskConfig
+     * - validate: ai.stigmer.agentic.workflow.v1.tasks.ValidateTaskConfig
+     * - emit_event: ai.stigmer.agentic.workflow.v1.tasks.EmitEventTaskConfig
+     * - notification: ai.stigmer.agentic.workflow.v1.tasks.NotificationTaskConfig
      *
      * See: apis/ai/stigmer/agentic/workflow/v1/tasks/&#42;.proto for detailed schemas.
      * </pre>
@@ -1181,6 +1615,12 @@ private static final long serialVersionUID = 0L;
      * - raise_error: ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig
      * - run_workflow: ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig
      * - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
+     * - llm_call: ai.stigmer.agentic.workflow.v1.tasks.LlmCallTaskConfig
+     * - transform: ai.stigmer.agentic.workflow.v1.tasks.TransformTaskConfig
+     * - human_input: ai.stigmer.agentic.workflow.v1.tasks.HumanInputTaskConfig
+     * - validate: ai.stigmer.agentic.workflow.v1.tasks.ValidateTaskConfig
+     * - emit_event: ai.stigmer.agentic.workflow.v1.tasks.EmitEventTaskConfig
+     * - notification: ai.stigmer.agentic.workflow.v1.tasks.NotificationTaskConfig
      *
      * See: apis/ai/stigmer/agentic/workflow/v1/tasks/&#42;.proto for detailed schemas.
      * </pre>
@@ -1211,6 +1651,12 @@ private static final long serialVersionUID = 0L;
      * - raise_error: ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig
      * - run_workflow: ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig
      * - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
+     * - llm_call: ai.stigmer.agentic.workflow.v1.tasks.LlmCallTaskConfig
+     * - transform: ai.stigmer.agentic.workflow.v1.tasks.TransformTaskConfig
+     * - human_input: ai.stigmer.agentic.workflow.v1.tasks.HumanInputTaskConfig
+     * - validate: ai.stigmer.agentic.workflow.v1.tasks.ValidateTaskConfig
+     * - emit_event: ai.stigmer.agentic.workflow.v1.tasks.EmitEventTaskConfig
+     * - notification: ai.stigmer.agentic.workflow.v1.tasks.NotificationTaskConfig
      *
      * See: apis/ai/stigmer/agentic/workflow/v1/tasks/&#42;.proto for detailed schemas.
      * </pre>
@@ -1244,6 +1690,12 @@ private static final long serialVersionUID = 0L;
      * - raise_error: ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig
      * - run_workflow: ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig
      * - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
+     * - llm_call: ai.stigmer.agentic.workflow.v1.tasks.LlmCallTaskConfig
+     * - transform: ai.stigmer.agentic.workflow.v1.tasks.TransformTaskConfig
+     * - human_input: ai.stigmer.agentic.workflow.v1.tasks.HumanInputTaskConfig
+     * - validate: ai.stigmer.agentic.workflow.v1.tasks.ValidateTaskConfig
+     * - emit_event: ai.stigmer.agentic.workflow.v1.tasks.EmitEventTaskConfig
+     * - notification: ai.stigmer.agentic.workflow.v1.tasks.NotificationTaskConfig
      *
      * See: apis/ai/stigmer/agentic/workflow/v1/tasks/&#42;.proto for detailed schemas.
      * </pre>
@@ -1594,6 +2046,1182 @@ private static final long serialVersionUID = 0L;
         flow_ = null;
       }
       return flowBuilder_;
+    }
+
+    private java.util.List<ai.stigmer.agentic.workflow.v1.WorkflowTask> compensate_ =
+      java.util.Collections.emptyList();
+    private void ensureCompensateIsMutable() {
+      if (!((bitField0_ & 0x00000020) != 0)) {
+        compensate_ = new java.util.ArrayList<ai.stigmer.agentic.workflow.v1.WorkflowTask>(compensate_);
+        bitField0_ |= 0x00000020;
+       }
+    }
+
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.workflow.v1.WorkflowTask, ai.stigmer.agentic.workflow.v1.WorkflowTask.Builder, ai.stigmer.agentic.workflow.v1.WorkflowTaskOrBuilder> compensateBuilder_;
+
+    /**
+     * <pre>
+     * Compensation tasks to execute if this task needs to be "undone."
+     *
+     * &#64;internal
+     * Saga-style compensation for workflows with side effects. When a
+     * try_catch block catches an error, it can optionally run the
+     * compensation tasks for all already-completed tasks in reverse order.
+     *
+     * The compensation tasks receive the original task's output in their
+     * input context, allowing them to construct the appropriate undo
+     * operation (e.g., cancel an API call, delete a created resource,
+     * send a reversal notification).
+     *
+     * Only executed when:
+     * 1. The task completed successfully (failed tasks are not compensated)
+     * 2. A subsequent task within the same try_catch scope fails
+     * 3. The catch block is configured to run compensations
+     *
+     * YAML Example:
+     * try:
+     * - create_order:
+     * call: http
+     * with:
+     * method: POST
+     * endpoint: { uri: "https://api.example.com/orders" }
+     * body: { ... }
+     * compensate:
+     * - cancel_order:
+     * call: http
+     * with:
+     * method: DELETE
+     * endpoint: { uri: "https://api.example.com/orders/${ $context.create_order.id }" }
+     * export:
+     * as: "${ . }"
+     * - charge_payment:
+     * call: http
+     * with:
+     * method: POST
+     * endpoint: { uri: "https://api.example.com/payments" }
+     * catch:
+     * as: error
+     * compensate: true
+     * do:
+     * - log_failure:
+     * call: notification
+     * with: ...
+     *
+     * Optional - when empty, this task has no compensation action.
+     *
+     * &#64;since T17 (Advanced Agentic Orchestration)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflow.v1.WorkflowTask compensate = 6 [json_name = "compensate"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.workflow.v1.WorkflowTask> getCompensateList() {
+      if (compensateBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(compensate_);
+      } else {
+        return compensateBuilder_.getMessageList();
+      }
+    }
+    /**
+     * <pre>
+     * Compensation tasks to execute if this task needs to be "undone."
+     *
+     * &#64;internal
+     * Saga-style compensation for workflows with side effects. When a
+     * try_catch block catches an error, it can optionally run the
+     * compensation tasks for all already-completed tasks in reverse order.
+     *
+     * The compensation tasks receive the original task's output in their
+     * input context, allowing them to construct the appropriate undo
+     * operation (e.g., cancel an API call, delete a created resource,
+     * send a reversal notification).
+     *
+     * Only executed when:
+     * 1. The task completed successfully (failed tasks are not compensated)
+     * 2. A subsequent task within the same try_catch scope fails
+     * 3. The catch block is configured to run compensations
+     *
+     * YAML Example:
+     * try:
+     * - create_order:
+     * call: http
+     * with:
+     * method: POST
+     * endpoint: { uri: "https://api.example.com/orders" }
+     * body: { ... }
+     * compensate:
+     * - cancel_order:
+     * call: http
+     * with:
+     * method: DELETE
+     * endpoint: { uri: "https://api.example.com/orders/${ $context.create_order.id }" }
+     * export:
+     * as: "${ . }"
+     * - charge_payment:
+     * call: http
+     * with:
+     * method: POST
+     * endpoint: { uri: "https://api.example.com/payments" }
+     * catch:
+     * as: error
+     * compensate: true
+     * do:
+     * - log_failure:
+     * call: notification
+     * with: ...
+     *
+     * Optional - when empty, this task has no compensation action.
+     *
+     * &#64;since T17 (Advanced Agentic Orchestration)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflow.v1.WorkflowTask compensate = 6 [json_name = "compensate"];</code>
+     */
+    public int getCompensateCount() {
+      if (compensateBuilder_ == null) {
+        return compensate_.size();
+      } else {
+        return compensateBuilder_.getCount();
+      }
+    }
+    /**
+     * <pre>
+     * Compensation tasks to execute if this task needs to be "undone."
+     *
+     * &#64;internal
+     * Saga-style compensation for workflows with side effects. When a
+     * try_catch block catches an error, it can optionally run the
+     * compensation tasks for all already-completed tasks in reverse order.
+     *
+     * The compensation tasks receive the original task's output in their
+     * input context, allowing them to construct the appropriate undo
+     * operation (e.g., cancel an API call, delete a created resource,
+     * send a reversal notification).
+     *
+     * Only executed when:
+     * 1. The task completed successfully (failed tasks are not compensated)
+     * 2. A subsequent task within the same try_catch scope fails
+     * 3. The catch block is configured to run compensations
+     *
+     * YAML Example:
+     * try:
+     * - create_order:
+     * call: http
+     * with:
+     * method: POST
+     * endpoint: { uri: "https://api.example.com/orders" }
+     * body: { ... }
+     * compensate:
+     * - cancel_order:
+     * call: http
+     * with:
+     * method: DELETE
+     * endpoint: { uri: "https://api.example.com/orders/${ $context.create_order.id }" }
+     * export:
+     * as: "${ . }"
+     * - charge_payment:
+     * call: http
+     * with:
+     * method: POST
+     * endpoint: { uri: "https://api.example.com/payments" }
+     * catch:
+     * as: error
+     * compensate: true
+     * do:
+     * - log_failure:
+     * call: notification
+     * with: ...
+     *
+     * Optional - when empty, this task has no compensation action.
+     *
+     * &#64;since T17 (Advanced Agentic Orchestration)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflow.v1.WorkflowTask compensate = 6 [json_name = "compensate"];</code>
+     */
+    public ai.stigmer.agentic.workflow.v1.WorkflowTask getCompensate(int index) {
+      if (compensateBuilder_ == null) {
+        return compensate_.get(index);
+      } else {
+        return compensateBuilder_.getMessage(index);
+      }
+    }
+    /**
+     * <pre>
+     * Compensation tasks to execute if this task needs to be "undone."
+     *
+     * &#64;internal
+     * Saga-style compensation for workflows with side effects. When a
+     * try_catch block catches an error, it can optionally run the
+     * compensation tasks for all already-completed tasks in reverse order.
+     *
+     * The compensation tasks receive the original task's output in their
+     * input context, allowing them to construct the appropriate undo
+     * operation (e.g., cancel an API call, delete a created resource,
+     * send a reversal notification).
+     *
+     * Only executed when:
+     * 1. The task completed successfully (failed tasks are not compensated)
+     * 2. A subsequent task within the same try_catch scope fails
+     * 3. The catch block is configured to run compensations
+     *
+     * YAML Example:
+     * try:
+     * - create_order:
+     * call: http
+     * with:
+     * method: POST
+     * endpoint: { uri: "https://api.example.com/orders" }
+     * body: { ... }
+     * compensate:
+     * - cancel_order:
+     * call: http
+     * with:
+     * method: DELETE
+     * endpoint: { uri: "https://api.example.com/orders/${ $context.create_order.id }" }
+     * export:
+     * as: "${ . }"
+     * - charge_payment:
+     * call: http
+     * with:
+     * method: POST
+     * endpoint: { uri: "https://api.example.com/payments" }
+     * catch:
+     * as: error
+     * compensate: true
+     * do:
+     * - log_failure:
+     * call: notification
+     * with: ...
+     *
+     * Optional - when empty, this task has no compensation action.
+     *
+     * &#64;since T17 (Advanced Agentic Orchestration)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflow.v1.WorkflowTask compensate = 6 [json_name = "compensate"];</code>
+     */
+    public Builder setCompensate(
+        int index, ai.stigmer.agentic.workflow.v1.WorkflowTask value) {
+      if (compensateBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureCompensateIsMutable();
+        compensate_.set(index, value);
+        onChanged();
+      } else {
+        compensateBuilder_.setMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Compensation tasks to execute if this task needs to be "undone."
+     *
+     * &#64;internal
+     * Saga-style compensation for workflows with side effects. When a
+     * try_catch block catches an error, it can optionally run the
+     * compensation tasks for all already-completed tasks in reverse order.
+     *
+     * The compensation tasks receive the original task's output in their
+     * input context, allowing them to construct the appropriate undo
+     * operation (e.g., cancel an API call, delete a created resource,
+     * send a reversal notification).
+     *
+     * Only executed when:
+     * 1. The task completed successfully (failed tasks are not compensated)
+     * 2. A subsequent task within the same try_catch scope fails
+     * 3. The catch block is configured to run compensations
+     *
+     * YAML Example:
+     * try:
+     * - create_order:
+     * call: http
+     * with:
+     * method: POST
+     * endpoint: { uri: "https://api.example.com/orders" }
+     * body: { ... }
+     * compensate:
+     * - cancel_order:
+     * call: http
+     * with:
+     * method: DELETE
+     * endpoint: { uri: "https://api.example.com/orders/${ $context.create_order.id }" }
+     * export:
+     * as: "${ . }"
+     * - charge_payment:
+     * call: http
+     * with:
+     * method: POST
+     * endpoint: { uri: "https://api.example.com/payments" }
+     * catch:
+     * as: error
+     * compensate: true
+     * do:
+     * - log_failure:
+     * call: notification
+     * with: ...
+     *
+     * Optional - when empty, this task has no compensation action.
+     *
+     * &#64;since T17 (Advanced Agentic Orchestration)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflow.v1.WorkflowTask compensate = 6 [json_name = "compensate"];</code>
+     */
+    public Builder setCompensate(
+        int index, ai.stigmer.agentic.workflow.v1.WorkflowTask.Builder builderForValue) {
+      if (compensateBuilder_ == null) {
+        ensureCompensateIsMutable();
+        compensate_.set(index, builderForValue.build());
+        onChanged();
+      } else {
+        compensateBuilder_.setMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Compensation tasks to execute if this task needs to be "undone."
+     *
+     * &#64;internal
+     * Saga-style compensation for workflows with side effects. When a
+     * try_catch block catches an error, it can optionally run the
+     * compensation tasks for all already-completed tasks in reverse order.
+     *
+     * The compensation tasks receive the original task's output in their
+     * input context, allowing them to construct the appropriate undo
+     * operation (e.g., cancel an API call, delete a created resource,
+     * send a reversal notification).
+     *
+     * Only executed when:
+     * 1. The task completed successfully (failed tasks are not compensated)
+     * 2. A subsequent task within the same try_catch scope fails
+     * 3. The catch block is configured to run compensations
+     *
+     * YAML Example:
+     * try:
+     * - create_order:
+     * call: http
+     * with:
+     * method: POST
+     * endpoint: { uri: "https://api.example.com/orders" }
+     * body: { ... }
+     * compensate:
+     * - cancel_order:
+     * call: http
+     * with:
+     * method: DELETE
+     * endpoint: { uri: "https://api.example.com/orders/${ $context.create_order.id }" }
+     * export:
+     * as: "${ . }"
+     * - charge_payment:
+     * call: http
+     * with:
+     * method: POST
+     * endpoint: { uri: "https://api.example.com/payments" }
+     * catch:
+     * as: error
+     * compensate: true
+     * do:
+     * - log_failure:
+     * call: notification
+     * with: ...
+     *
+     * Optional - when empty, this task has no compensation action.
+     *
+     * &#64;since T17 (Advanced Agentic Orchestration)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflow.v1.WorkflowTask compensate = 6 [json_name = "compensate"];</code>
+     */
+    public Builder addCompensate(ai.stigmer.agentic.workflow.v1.WorkflowTask value) {
+      if (compensateBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureCompensateIsMutable();
+        compensate_.add(value);
+        onChanged();
+      } else {
+        compensateBuilder_.addMessage(value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Compensation tasks to execute if this task needs to be "undone."
+     *
+     * &#64;internal
+     * Saga-style compensation for workflows with side effects. When a
+     * try_catch block catches an error, it can optionally run the
+     * compensation tasks for all already-completed tasks in reverse order.
+     *
+     * The compensation tasks receive the original task's output in their
+     * input context, allowing them to construct the appropriate undo
+     * operation (e.g., cancel an API call, delete a created resource,
+     * send a reversal notification).
+     *
+     * Only executed when:
+     * 1. The task completed successfully (failed tasks are not compensated)
+     * 2. A subsequent task within the same try_catch scope fails
+     * 3. The catch block is configured to run compensations
+     *
+     * YAML Example:
+     * try:
+     * - create_order:
+     * call: http
+     * with:
+     * method: POST
+     * endpoint: { uri: "https://api.example.com/orders" }
+     * body: { ... }
+     * compensate:
+     * - cancel_order:
+     * call: http
+     * with:
+     * method: DELETE
+     * endpoint: { uri: "https://api.example.com/orders/${ $context.create_order.id }" }
+     * export:
+     * as: "${ . }"
+     * - charge_payment:
+     * call: http
+     * with:
+     * method: POST
+     * endpoint: { uri: "https://api.example.com/payments" }
+     * catch:
+     * as: error
+     * compensate: true
+     * do:
+     * - log_failure:
+     * call: notification
+     * with: ...
+     *
+     * Optional - when empty, this task has no compensation action.
+     *
+     * &#64;since T17 (Advanced Agentic Orchestration)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflow.v1.WorkflowTask compensate = 6 [json_name = "compensate"];</code>
+     */
+    public Builder addCompensate(
+        int index, ai.stigmer.agentic.workflow.v1.WorkflowTask value) {
+      if (compensateBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureCompensateIsMutable();
+        compensate_.add(index, value);
+        onChanged();
+      } else {
+        compensateBuilder_.addMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Compensation tasks to execute if this task needs to be "undone."
+     *
+     * &#64;internal
+     * Saga-style compensation for workflows with side effects. When a
+     * try_catch block catches an error, it can optionally run the
+     * compensation tasks for all already-completed tasks in reverse order.
+     *
+     * The compensation tasks receive the original task's output in their
+     * input context, allowing them to construct the appropriate undo
+     * operation (e.g., cancel an API call, delete a created resource,
+     * send a reversal notification).
+     *
+     * Only executed when:
+     * 1. The task completed successfully (failed tasks are not compensated)
+     * 2. A subsequent task within the same try_catch scope fails
+     * 3. The catch block is configured to run compensations
+     *
+     * YAML Example:
+     * try:
+     * - create_order:
+     * call: http
+     * with:
+     * method: POST
+     * endpoint: { uri: "https://api.example.com/orders" }
+     * body: { ... }
+     * compensate:
+     * - cancel_order:
+     * call: http
+     * with:
+     * method: DELETE
+     * endpoint: { uri: "https://api.example.com/orders/${ $context.create_order.id }" }
+     * export:
+     * as: "${ . }"
+     * - charge_payment:
+     * call: http
+     * with:
+     * method: POST
+     * endpoint: { uri: "https://api.example.com/payments" }
+     * catch:
+     * as: error
+     * compensate: true
+     * do:
+     * - log_failure:
+     * call: notification
+     * with: ...
+     *
+     * Optional - when empty, this task has no compensation action.
+     *
+     * &#64;since T17 (Advanced Agentic Orchestration)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflow.v1.WorkflowTask compensate = 6 [json_name = "compensate"];</code>
+     */
+    public Builder addCompensate(
+        ai.stigmer.agentic.workflow.v1.WorkflowTask.Builder builderForValue) {
+      if (compensateBuilder_ == null) {
+        ensureCompensateIsMutable();
+        compensate_.add(builderForValue.build());
+        onChanged();
+      } else {
+        compensateBuilder_.addMessage(builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Compensation tasks to execute if this task needs to be "undone."
+     *
+     * &#64;internal
+     * Saga-style compensation for workflows with side effects. When a
+     * try_catch block catches an error, it can optionally run the
+     * compensation tasks for all already-completed tasks in reverse order.
+     *
+     * The compensation tasks receive the original task's output in their
+     * input context, allowing them to construct the appropriate undo
+     * operation (e.g., cancel an API call, delete a created resource,
+     * send a reversal notification).
+     *
+     * Only executed when:
+     * 1. The task completed successfully (failed tasks are not compensated)
+     * 2. A subsequent task within the same try_catch scope fails
+     * 3. The catch block is configured to run compensations
+     *
+     * YAML Example:
+     * try:
+     * - create_order:
+     * call: http
+     * with:
+     * method: POST
+     * endpoint: { uri: "https://api.example.com/orders" }
+     * body: { ... }
+     * compensate:
+     * - cancel_order:
+     * call: http
+     * with:
+     * method: DELETE
+     * endpoint: { uri: "https://api.example.com/orders/${ $context.create_order.id }" }
+     * export:
+     * as: "${ . }"
+     * - charge_payment:
+     * call: http
+     * with:
+     * method: POST
+     * endpoint: { uri: "https://api.example.com/payments" }
+     * catch:
+     * as: error
+     * compensate: true
+     * do:
+     * - log_failure:
+     * call: notification
+     * with: ...
+     *
+     * Optional - when empty, this task has no compensation action.
+     *
+     * &#64;since T17 (Advanced Agentic Orchestration)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflow.v1.WorkflowTask compensate = 6 [json_name = "compensate"];</code>
+     */
+    public Builder addCompensate(
+        int index, ai.stigmer.agentic.workflow.v1.WorkflowTask.Builder builderForValue) {
+      if (compensateBuilder_ == null) {
+        ensureCompensateIsMutable();
+        compensate_.add(index, builderForValue.build());
+        onChanged();
+      } else {
+        compensateBuilder_.addMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Compensation tasks to execute if this task needs to be "undone."
+     *
+     * &#64;internal
+     * Saga-style compensation for workflows with side effects. When a
+     * try_catch block catches an error, it can optionally run the
+     * compensation tasks for all already-completed tasks in reverse order.
+     *
+     * The compensation tasks receive the original task's output in their
+     * input context, allowing them to construct the appropriate undo
+     * operation (e.g., cancel an API call, delete a created resource,
+     * send a reversal notification).
+     *
+     * Only executed when:
+     * 1. The task completed successfully (failed tasks are not compensated)
+     * 2. A subsequent task within the same try_catch scope fails
+     * 3. The catch block is configured to run compensations
+     *
+     * YAML Example:
+     * try:
+     * - create_order:
+     * call: http
+     * with:
+     * method: POST
+     * endpoint: { uri: "https://api.example.com/orders" }
+     * body: { ... }
+     * compensate:
+     * - cancel_order:
+     * call: http
+     * with:
+     * method: DELETE
+     * endpoint: { uri: "https://api.example.com/orders/${ $context.create_order.id }" }
+     * export:
+     * as: "${ . }"
+     * - charge_payment:
+     * call: http
+     * with:
+     * method: POST
+     * endpoint: { uri: "https://api.example.com/payments" }
+     * catch:
+     * as: error
+     * compensate: true
+     * do:
+     * - log_failure:
+     * call: notification
+     * with: ...
+     *
+     * Optional - when empty, this task has no compensation action.
+     *
+     * &#64;since T17 (Advanced Agentic Orchestration)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflow.v1.WorkflowTask compensate = 6 [json_name = "compensate"];</code>
+     */
+    public Builder addAllCompensate(
+        java.lang.Iterable<? extends ai.stigmer.agentic.workflow.v1.WorkflowTask> values) {
+      if (compensateBuilder_ == null) {
+        ensureCompensateIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, compensate_);
+        onChanged();
+      } else {
+        compensateBuilder_.addAllMessages(values);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Compensation tasks to execute if this task needs to be "undone."
+     *
+     * &#64;internal
+     * Saga-style compensation for workflows with side effects. When a
+     * try_catch block catches an error, it can optionally run the
+     * compensation tasks for all already-completed tasks in reverse order.
+     *
+     * The compensation tasks receive the original task's output in their
+     * input context, allowing them to construct the appropriate undo
+     * operation (e.g., cancel an API call, delete a created resource,
+     * send a reversal notification).
+     *
+     * Only executed when:
+     * 1. The task completed successfully (failed tasks are not compensated)
+     * 2. A subsequent task within the same try_catch scope fails
+     * 3. The catch block is configured to run compensations
+     *
+     * YAML Example:
+     * try:
+     * - create_order:
+     * call: http
+     * with:
+     * method: POST
+     * endpoint: { uri: "https://api.example.com/orders" }
+     * body: { ... }
+     * compensate:
+     * - cancel_order:
+     * call: http
+     * with:
+     * method: DELETE
+     * endpoint: { uri: "https://api.example.com/orders/${ $context.create_order.id }" }
+     * export:
+     * as: "${ . }"
+     * - charge_payment:
+     * call: http
+     * with:
+     * method: POST
+     * endpoint: { uri: "https://api.example.com/payments" }
+     * catch:
+     * as: error
+     * compensate: true
+     * do:
+     * - log_failure:
+     * call: notification
+     * with: ...
+     *
+     * Optional - when empty, this task has no compensation action.
+     *
+     * &#64;since T17 (Advanced Agentic Orchestration)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflow.v1.WorkflowTask compensate = 6 [json_name = "compensate"];</code>
+     */
+    public Builder clearCompensate() {
+      if (compensateBuilder_ == null) {
+        compensate_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000020);
+        onChanged();
+      } else {
+        compensateBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Compensation tasks to execute if this task needs to be "undone."
+     *
+     * &#64;internal
+     * Saga-style compensation for workflows with side effects. When a
+     * try_catch block catches an error, it can optionally run the
+     * compensation tasks for all already-completed tasks in reverse order.
+     *
+     * The compensation tasks receive the original task's output in their
+     * input context, allowing them to construct the appropriate undo
+     * operation (e.g., cancel an API call, delete a created resource,
+     * send a reversal notification).
+     *
+     * Only executed when:
+     * 1. The task completed successfully (failed tasks are not compensated)
+     * 2. A subsequent task within the same try_catch scope fails
+     * 3. The catch block is configured to run compensations
+     *
+     * YAML Example:
+     * try:
+     * - create_order:
+     * call: http
+     * with:
+     * method: POST
+     * endpoint: { uri: "https://api.example.com/orders" }
+     * body: { ... }
+     * compensate:
+     * - cancel_order:
+     * call: http
+     * with:
+     * method: DELETE
+     * endpoint: { uri: "https://api.example.com/orders/${ $context.create_order.id }" }
+     * export:
+     * as: "${ . }"
+     * - charge_payment:
+     * call: http
+     * with:
+     * method: POST
+     * endpoint: { uri: "https://api.example.com/payments" }
+     * catch:
+     * as: error
+     * compensate: true
+     * do:
+     * - log_failure:
+     * call: notification
+     * with: ...
+     *
+     * Optional - when empty, this task has no compensation action.
+     *
+     * &#64;since T17 (Advanced Agentic Orchestration)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflow.v1.WorkflowTask compensate = 6 [json_name = "compensate"];</code>
+     */
+    public Builder removeCompensate(int index) {
+      if (compensateBuilder_ == null) {
+        ensureCompensateIsMutable();
+        compensate_.remove(index);
+        onChanged();
+      } else {
+        compensateBuilder_.remove(index);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Compensation tasks to execute if this task needs to be "undone."
+     *
+     * &#64;internal
+     * Saga-style compensation for workflows with side effects. When a
+     * try_catch block catches an error, it can optionally run the
+     * compensation tasks for all already-completed tasks in reverse order.
+     *
+     * The compensation tasks receive the original task's output in their
+     * input context, allowing them to construct the appropriate undo
+     * operation (e.g., cancel an API call, delete a created resource,
+     * send a reversal notification).
+     *
+     * Only executed when:
+     * 1. The task completed successfully (failed tasks are not compensated)
+     * 2. A subsequent task within the same try_catch scope fails
+     * 3. The catch block is configured to run compensations
+     *
+     * YAML Example:
+     * try:
+     * - create_order:
+     * call: http
+     * with:
+     * method: POST
+     * endpoint: { uri: "https://api.example.com/orders" }
+     * body: { ... }
+     * compensate:
+     * - cancel_order:
+     * call: http
+     * with:
+     * method: DELETE
+     * endpoint: { uri: "https://api.example.com/orders/${ $context.create_order.id }" }
+     * export:
+     * as: "${ . }"
+     * - charge_payment:
+     * call: http
+     * with:
+     * method: POST
+     * endpoint: { uri: "https://api.example.com/payments" }
+     * catch:
+     * as: error
+     * compensate: true
+     * do:
+     * - log_failure:
+     * call: notification
+     * with: ...
+     *
+     * Optional - when empty, this task has no compensation action.
+     *
+     * &#64;since T17 (Advanced Agentic Orchestration)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflow.v1.WorkflowTask compensate = 6 [json_name = "compensate"];</code>
+     */
+    public ai.stigmer.agentic.workflow.v1.WorkflowTask.Builder getCompensateBuilder(
+        int index) {
+      return internalGetCompensateFieldBuilder().getBuilder(index);
+    }
+    /**
+     * <pre>
+     * Compensation tasks to execute if this task needs to be "undone."
+     *
+     * &#64;internal
+     * Saga-style compensation for workflows with side effects. When a
+     * try_catch block catches an error, it can optionally run the
+     * compensation tasks for all already-completed tasks in reverse order.
+     *
+     * The compensation tasks receive the original task's output in their
+     * input context, allowing them to construct the appropriate undo
+     * operation (e.g., cancel an API call, delete a created resource,
+     * send a reversal notification).
+     *
+     * Only executed when:
+     * 1. The task completed successfully (failed tasks are not compensated)
+     * 2. A subsequent task within the same try_catch scope fails
+     * 3. The catch block is configured to run compensations
+     *
+     * YAML Example:
+     * try:
+     * - create_order:
+     * call: http
+     * with:
+     * method: POST
+     * endpoint: { uri: "https://api.example.com/orders" }
+     * body: { ... }
+     * compensate:
+     * - cancel_order:
+     * call: http
+     * with:
+     * method: DELETE
+     * endpoint: { uri: "https://api.example.com/orders/${ $context.create_order.id }" }
+     * export:
+     * as: "${ . }"
+     * - charge_payment:
+     * call: http
+     * with:
+     * method: POST
+     * endpoint: { uri: "https://api.example.com/payments" }
+     * catch:
+     * as: error
+     * compensate: true
+     * do:
+     * - log_failure:
+     * call: notification
+     * with: ...
+     *
+     * Optional - when empty, this task has no compensation action.
+     *
+     * &#64;since T17 (Advanced Agentic Orchestration)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflow.v1.WorkflowTask compensate = 6 [json_name = "compensate"];</code>
+     */
+    public ai.stigmer.agentic.workflow.v1.WorkflowTaskOrBuilder getCompensateOrBuilder(
+        int index) {
+      if (compensateBuilder_ == null) {
+        return compensate_.get(index);  } else {
+        return compensateBuilder_.getMessageOrBuilder(index);
+      }
+    }
+    /**
+     * <pre>
+     * Compensation tasks to execute if this task needs to be "undone."
+     *
+     * &#64;internal
+     * Saga-style compensation for workflows with side effects. When a
+     * try_catch block catches an error, it can optionally run the
+     * compensation tasks for all already-completed tasks in reverse order.
+     *
+     * The compensation tasks receive the original task's output in their
+     * input context, allowing them to construct the appropriate undo
+     * operation (e.g., cancel an API call, delete a created resource,
+     * send a reversal notification).
+     *
+     * Only executed when:
+     * 1. The task completed successfully (failed tasks are not compensated)
+     * 2. A subsequent task within the same try_catch scope fails
+     * 3. The catch block is configured to run compensations
+     *
+     * YAML Example:
+     * try:
+     * - create_order:
+     * call: http
+     * with:
+     * method: POST
+     * endpoint: { uri: "https://api.example.com/orders" }
+     * body: { ... }
+     * compensate:
+     * - cancel_order:
+     * call: http
+     * with:
+     * method: DELETE
+     * endpoint: { uri: "https://api.example.com/orders/${ $context.create_order.id }" }
+     * export:
+     * as: "${ . }"
+     * - charge_payment:
+     * call: http
+     * with:
+     * method: POST
+     * endpoint: { uri: "https://api.example.com/payments" }
+     * catch:
+     * as: error
+     * compensate: true
+     * do:
+     * - log_failure:
+     * call: notification
+     * with: ...
+     *
+     * Optional - when empty, this task has no compensation action.
+     *
+     * &#64;since T17 (Advanced Agentic Orchestration)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflow.v1.WorkflowTask compensate = 6 [json_name = "compensate"];</code>
+     */
+    public java.util.List<? extends ai.stigmer.agentic.workflow.v1.WorkflowTaskOrBuilder> 
+         getCompensateOrBuilderList() {
+      if (compensateBuilder_ != null) {
+        return compensateBuilder_.getMessageOrBuilderList();
+      } else {
+        return java.util.Collections.unmodifiableList(compensate_);
+      }
+    }
+    /**
+     * <pre>
+     * Compensation tasks to execute if this task needs to be "undone."
+     *
+     * &#64;internal
+     * Saga-style compensation for workflows with side effects. When a
+     * try_catch block catches an error, it can optionally run the
+     * compensation tasks for all already-completed tasks in reverse order.
+     *
+     * The compensation tasks receive the original task's output in their
+     * input context, allowing them to construct the appropriate undo
+     * operation (e.g., cancel an API call, delete a created resource,
+     * send a reversal notification).
+     *
+     * Only executed when:
+     * 1. The task completed successfully (failed tasks are not compensated)
+     * 2. A subsequent task within the same try_catch scope fails
+     * 3. The catch block is configured to run compensations
+     *
+     * YAML Example:
+     * try:
+     * - create_order:
+     * call: http
+     * with:
+     * method: POST
+     * endpoint: { uri: "https://api.example.com/orders" }
+     * body: { ... }
+     * compensate:
+     * - cancel_order:
+     * call: http
+     * with:
+     * method: DELETE
+     * endpoint: { uri: "https://api.example.com/orders/${ $context.create_order.id }" }
+     * export:
+     * as: "${ . }"
+     * - charge_payment:
+     * call: http
+     * with:
+     * method: POST
+     * endpoint: { uri: "https://api.example.com/payments" }
+     * catch:
+     * as: error
+     * compensate: true
+     * do:
+     * - log_failure:
+     * call: notification
+     * with: ...
+     *
+     * Optional - when empty, this task has no compensation action.
+     *
+     * &#64;since T17 (Advanced Agentic Orchestration)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflow.v1.WorkflowTask compensate = 6 [json_name = "compensate"];</code>
+     */
+    public ai.stigmer.agentic.workflow.v1.WorkflowTask.Builder addCompensateBuilder() {
+      return internalGetCompensateFieldBuilder().addBuilder(
+          ai.stigmer.agentic.workflow.v1.WorkflowTask.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Compensation tasks to execute if this task needs to be "undone."
+     *
+     * &#64;internal
+     * Saga-style compensation for workflows with side effects. When a
+     * try_catch block catches an error, it can optionally run the
+     * compensation tasks for all already-completed tasks in reverse order.
+     *
+     * The compensation tasks receive the original task's output in their
+     * input context, allowing them to construct the appropriate undo
+     * operation (e.g., cancel an API call, delete a created resource,
+     * send a reversal notification).
+     *
+     * Only executed when:
+     * 1. The task completed successfully (failed tasks are not compensated)
+     * 2. A subsequent task within the same try_catch scope fails
+     * 3. The catch block is configured to run compensations
+     *
+     * YAML Example:
+     * try:
+     * - create_order:
+     * call: http
+     * with:
+     * method: POST
+     * endpoint: { uri: "https://api.example.com/orders" }
+     * body: { ... }
+     * compensate:
+     * - cancel_order:
+     * call: http
+     * with:
+     * method: DELETE
+     * endpoint: { uri: "https://api.example.com/orders/${ $context.create_order.id }" }
+     * export:
+     * as: "${ . }"
+     * - charge_payment:
+     * call: http
+     * with:
+     * method: POST
+     * endpoint: { uri: "https://api.example.com/payments" }
+     * catch:
+     * as: error
+     * compensate: true
+     * do:
+     * - log_failure:
+     * call: notification
+     * with: ...
+     *
+     * Optional - when empty, this task has no compensation action.
+     *
+     * &#64;since T17 (Advanced Agentic Orchestration)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflow.v1.WorkflowTask compensate = 6 [json_name = "compensate"];</code>
+     */
+    public ai.stigmer.agentic.workflow.v1.WorkflowTask.Builder addCompensateBuilder(
+        int index) {
+      return internalGetCompensateFieldBuilder().addBuilder(
+          index, ai.stigmer.agentic.workflow.v1.WorkflowTask.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Compensation tasks to execute if this task needs to be "undone."
+     *
+     * &#64;internal
+     * Saga-style compensation for workflows with side effects. When a
+     * try_catch block catches an error, it can optionally run the
+     * compensation tasks for all already-completed tasks in reverse order.
+     *
+     * The compensation tasks receive the original task's output in their
+     * input context, allowing them to construct the appropriate undo
+     * operation (e.g., cancel an API call, delete a created resource,
+     * send a reversal notification).
+     *
+     * Only executed when:
+     * 1. The task completed successfully (failed tasks are not compensated)
+     * 2. A subsequent task within the same try_catch scope fails
+     * 3. The catch block is configured to run compensations
+     *
+     * YAML Example:
+     * try:
+     * - create_order:
+     * call: http
+     * with:
+     * method: POST
+     * endpoint: { uri: "https://api.example.com/orders" }
+     * body: { ... }
+     * compensate:
+     * - cancel_order:
+     * call: http
+     * with:
+     * method: DELETE
+     * endpoint: { uri: "https://api.example.com/orders/${ $context.create_order.id }" }
+     * export:
+     * as: "${ . }"
+     * - charge_payment:
+     * call: http
+     * with:
+     * method: POST
+     * endpoint: { uri: "https://api.example.com/payments" }
+     * catch:
+     * as: error
+     * compensate: true
+     * do:
+     * - log_failure:
+     * call: notification
+     * with: ...
+     *
+     * Optional - when empty, this task has no compensation action.
+     *
+     * &#64;since T17 (Advanced Agentic Orchestration)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflow.v1.WorkflowTask compensate = 6 [json_name = "compensate"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.workflow.v1.WorkflowTask.Builder> 
+         getCompensateBuilderList() {
+      return internalGetCompensateFieldBuilder().getBuilderList();
+    }
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.workflow.v1.WorkflowTask, ai.stigmer.agentic.workflow.v1.WorkflowTask.Builder, ai.stigmer.agentic.workflow.v1.WorkflowTaskOrBuilder> 
+        internalGetCompensateFieldBuilder() {
+      if (compensateBuilder_ == null) {
+        compensateBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+            ai.stigmer.agentic.workflow.v1.WorkflowTask, ai.stigmer.agentic.workflow.v1.WorkflowTask.Builder, ai.stigmer.agentic.workflow.v1.WorkflowTaskOrBuilder>(
+                compensate_,
+                ((bitField0_ & 0x00000020) != 0),
+                getParentForChildren(),
+                isClean());
+        compensate_ = null;
+      }
+      return compensateBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.workflow.v1.WorkflowTask)

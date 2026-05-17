@@ -17,7 +17,9 @@
 package validation
 
 import (
+	"encoding/json"
 	"fmt"
+	"strings"
 
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	tasksv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
@@ -43,6 +45,12 @@ import (
 // - raise_error → RaiseTaskConfig
 // - run_workflow → RunTaskConfig
 // - agent_call → AgentCallTaskConfig
+// - llm_call → LlmCallTaskConfig
+// - transform → TransformTaskConfig
+// - human_input → HumanInputTaskConfig
+// - validate → ValidateTaskConfig
+// - emit_event → EmitEventTaskConfig
+// - notification → NotificationTaskConfig
 func UnmarshalTaskConfig(
 	kind workflowv1.WorkflowTaskKind,
 	config *structpb.Struct,
@@ -100,9 +108,35 @@ func UnmarshalTaskConfig(
 	case workflowv1.WorkflowTaskKind_agent_call:
 		protoMsg = &tasksv1.AgentCallTaskConfig{}
 
+	case workflowv1.WorkflowTaskKind_llm_call:
+		protoMsg = &tasksv1.LlmCallTaskConfig{}
+
+	case workflowv1.WorkflowTaskKind_transform:
+		protoMsg = &tasksv1.TransformTaskConfig{}
+
+	case workflowv1.WorkflowTaskKind_human_input:
+		protoMsg = &tasksv1.HumanInputTaskConfig{}
+
+	case workflowv1.WorkflowTaskKind_validate:
+		protoMsg = &tasksv1.ValidateTaskConfig{}
+
+	case workflowv1.WorkflowTaskKind_emit_event:
+		protoMsg = &tasksv1.EmitEventTaskConfig{}
+
+	case workflowv1.WorkflowTaskKind_notification:
+		protoMsg = &tasksv1.NotificationTaskConfig{}
+
+	case workflowv1.WorkflowTaskKind_eval:
+		protoMsg = &tasksv1.EvalTaskConfig{}
+
 	default:
 		return nil, fmt.Errorf("unsupported task kind: %v", kind)
 	}
+
+	// Normalize friendly enum shorthands before protojson deserialization.
+	// protojson requires full enum names (e.g. "HARNESS_CURSOR") but users
+	// write shorthand ("cursor", "native") in workflow YAML/JSON.
+	jsonBytes = normalizeEnumShorthands(kind, jsonBytes)
 
 	// Unmarshal JSON to proto message
 	err = protojson.Unmarshal(jsonBytes, protoMsg)
@@ -116,4 +150,43 @@ func UnmarshalTaskConfig(
 	}
 
 	return protoMsg, nil
+}
+
+// normalizeEnumShorthands rewrites user-friendly enum values to the full proto
+// enum names that protojson expects. Only applies to task kinds that contain
+// enum fields with known shorthands.
+func normalizeEnumShorthands(kind workflowv1.WorkflowTaskKind, jsonBytes []byte) []byte {
+	if kind != workflowv1.WorkflowTaskKind_agent_call {
+		return jsonBytes
+	}
+
+	var m map[string]interface{}
+	if err := json.Unmarshal(jsonBytes, &m); err != nil {
+		return jsonBytes
+	}
+
+	changed := false
+
+	if h, ok := m["harness"]; ok {
+		if hs, isStr := h.(string); isStr {
+			switch strings.ToLower(hs) {
+			case "native":
+				m["harness"] = "HARNESS_NATIVE"
+				changed = true
+			case "cursor":
+				m["harness"] = "HARNESS_CURSOR"
+				changed = true
+			}
+		}
+	}
+
+	if !changed {
+		return jsonBytes
+	}
+
+	out, err := json.Marshal(m)
+	if err != nil {
+		return jsonBytes
+	}
+	return out
 }

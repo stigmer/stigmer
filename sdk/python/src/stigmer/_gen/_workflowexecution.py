@@ -11,6 +11,7 @@ from ai.stigmer.agentic.workflowexecution.v1 import api_pb2
 from ai.stigmer.agentic.workflowexecution.v1 import command_pb2_grpc
 from ai.stigmer.agentic.workflowexecution.v1 import query_pb2_grpc
 from ai.stigmer.agentic.workflowexecution.v1 import io_pb2
+from ai.stigmer.agentic.workflowexecution.v1 import event_pb2
 from ai.stigmer.agentic.workflowexecution.v1 import spec_pb2
 from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
@@ -48,6 +49,12 @@ class WorkflowExecutionClient:
     def submit_approval(self, input: io_pb2.SubmitWorkflowApprovalInput) -> api_pb2.WorkflowExecution:
         try:
             return self._command.submitApproval(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def submit_workflow_task_approval(self, input: io_pb2.SubmitWorkflowTaskApprovalInput) -> api_pb2.WorkflowExecution:
+        try:
+            return self._command.submitWorkflowTaskApproval(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
@@ -115,6 +122,31 @@ class WorkflowExecutionClient:
         try:
             for msg in self._query.subscribe(input):
                 yield msg
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def get_event_log(self, input: io_pb2.GetEventLogRequest) -> io_pb2.GetEventLogResponse:
+        try:
+            return self._query.getEventLog(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def subscribe_events(self, input: io_pb2.SubscribeEventsRequest) -> Iterator[event_pb2.WorkflowExecutionEvent]:
+        try:
+            for msg in self._query.subscribeEvents(input):
+                yield msg
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def get_execution_summary(self, input: io_pb2.GetExecutionSummaryRequest) -> io_pb2.ExecutionSummary:
+        try:
+            return self._query.getExecutionSummary(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def list_pending_approvals(self, input: io_pb2.ListPendingApprovalsRequest) -> io_pb2.PendingApprovalsList:
+        try:
+            return self._query.listPendingApprovals(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 

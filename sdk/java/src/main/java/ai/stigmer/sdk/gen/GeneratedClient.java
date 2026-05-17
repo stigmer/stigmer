@@ -10,6 +10,7 @@ public class GeneratedClient {
     public final AgentExecutionClient agentExecution;
     public final AgentInstanceClient agentInstance;
     public final ApiKeyClient apiKey;
+    public final ArtifactClient artifact;
     public final EnvironmentClient environment;
     public final ExecutionContextClient executionContext;
     public final IamPolicyClient iamPolicy;
@@ -33,6 +34,7 @@ public class GeneratedClient {
         this.agentExecution = new AgentExecutionClient(channel);
         this.agentInstance = new AgentInstanceClient(channel);
         this.apiKey = new ApiKeyClient(channel);
+        this.artifact = new ArtifactClient(channel);
         this.environment = new EnvironmentClient(channel);
         this.executionContext = new ExecutionContextClient(channel);
         this.iamPolicy = new IamPolicyClient(channel);

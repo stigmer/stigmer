@@ -30,6 +30,51 @@ message WorkflowSpec {
   // Environment variable declarations for this workflow.
   // Keys are variable names; values describe their metadata and optionality.
   map<string, ai.stigmer.agentic.environment.v1.EnvVarDeclaration> env = 4;
+
+  // Budget limits for this workflow execution.
+  // When set, the runtime (T13) enforces cost, token, and duration limits
+  // across all tasks. The existing org-level billing reservation system
+  // (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
+  // for overall credit exhaustion; workflow budgets prevent individual
+  // workflows from consuming more than intended.
+  // Optional — when not set, no workflow-level budget is enforced.
+  WorkflowBudget budget = 5;
+}
+
+// WorkflowBudget declares cost, token, and duration limits for a workflow execution.
+//
+// All cost fields use micro-USD (int64): 1 USD = 1,000,000 micros.
+// This matches the billing domain convention (CostStamp.provider_cost_micros,
+// CreditLedgerEntry.amount_micros, ExecutionReservation.reserved_micros).
+//
+// The runtime checks accumulated costs between task boundaries. Per-task
+// limits (on LlmCallTaskConfig and AgentExecutionConfig) are checked first;
+// then the remaining workflow budget is verified before the next task starts.
+//
+// Example YAML:
+//   budget:
+//     max_cost_micros: 5000000    # $5.00 per run
+//     max_total_tokens: 500000
+//     max_duration_seconds: 3600   # 1 hour
+//     on_exceeded: budget_exceeded_terminate
+message WorkflowBudget {
+  // Maximum total cost for this workflow execution in micro-USD.
+  // 1 USD = 1,000,000 micros. Example: 2000000 = $2.00.
+  // When exceeded, the on_exceeded policy is applied.
+  // Optional — when 0, no cost limit is enforced.
+  int64 max_cost_micros = 1;
+
+  // Maximum total tokens (input + output) across all LLM/agent tasks.
+  // Optional — when 0, no token limit is enforced.
+  int64 max_total_tokens = 2;
+
+  // Maximum wall-clock duration for the entire workflow execution in seconds.
+  // Optional — when 0, no duration limit is enforced (Temporal's own
+  // workflow execution timeout still applies).
+  int32 max_duration_seconds = 3;
+
+  // Policy when any budget limit is exceeded.
+  BudgetExceededPolicy on_exceeded = 4;
 }
 
 // WorkflowDocument contains workflow-level metadata for versioning and identification.
@@ -75,7 +120,12 @@ message WorkflowDocument {
 // }
 message WorkflowTask {
   // Task name/identifier (must be unique within workflow).
-  string name = 1 [(buf.validate.field).required = true];
+  // Must be a valid C-style identifier: starts with a letter or underscore,
+  // followed by letters, digits, or underscores.
+  string name = 1 [(buf.validate.field).string = {
+    min_len: 1,
+    pattern: "^[a-zA-Z_][a-zA-Z0-9_]*$"
+  }];
 
   // Task type (determines how to interpret task_config).
   WorkflowTaskKind kind = 2 [(buf.validate.field).required = true];
@@ -97,6 +147,12 @@ message WorkflowTask {
   // - raise_error: ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig
   // - run_workflow: ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig
   // - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
+  // - llm_call: ai.stigmer.agentic.workflow.v1.tasks.LlmCallTaskConfig
+  // - transform: ai.stigmer.agentic.workflow.v1.tasks.TransformTaskConfig
+  // - human_input: ai.stigmer.agentic.workflow.v1.tasks.HumanInputTaskConfig
+  // - validate: ai.stigmer.agentic.workflow.v1.tasks.ValidateTaskConfig
+  // - emit_event: ai.stigmer.agentic.workflow.v1.tasks.EmitEventTaskConfig
+  // - notification: ai.stigmer.agentic.workflow.v1.tasks.NotificationTaskConfig
   //
   // See: apis/ai/stigmer/agentic/workflow/v1/tasks/*.proto for detailed schemas.
   google.protobuf.Struct task_config = 3 [
@@ -111,6 +167,57 @@ message WorkflowTask {
   // Flow control (which task executes next).
   // Optional - if not set, continues to next task in sequence.
   FlowControl flow = 5;
+
+  // Compensation tasks to execute if this task needs to be "undone."
+  //
+  // @internal
+  // Saga-style compensation for workflows with side effects. When a
+  // try_catch block catches an error, it can optionally run the
+  // compensation tasks for all already-completed tasks in reverse order.
+  //
+  // The compensation tasks receive the original task's output in their
+  // input context, allowing them to construct the appropriate undo
+  // operation (e.g., cancel an API call, delete a created resource,
+  // send a reversal notification).
+  //
+  // Only executed when:
+  // 1. The task completed successfully (failed tasks are not compensated)
+  // 2. A subsequent task within the same try_catch scope fails
+  // 3. The catch block is configured to run compensations
+  //
+  // YAML Example:
+  //   try:
+  //     - create_order:
+  //         call: http
+  //         with:
+  //           method: POST
+  //           endpoint: { uri: "https://api.example.com/orders" }
+  //           body: { ... }
+  //         compensate:
+  //           - cancel_order:
+  //               call: http
+  //               with:
+  //                 method: DELETE
+  //                 endpoint: { uri: "https://api.example.com/orders/${ $context.create_order.id }" }
+  //         export:
+  //           as: "${ . }"
+  //     - charge_payment:
+  //         call: http
+  //         with:
+  //           method: POST
+  //           endpoint: { uri: "https://api.example.com/payments" }
+  //   catch:
+  //     as: error
+  //     compensate: true
+  //     do:
+  //       - log_failure:
+  //           call: notification
+  //           with: ...
+  //
+  // Optional - when empty, this task has no compensation action.
+  //
+  // @since T17 (Advanced Agentic Orchestration)
+  repeated WorkflowTask compensate = 6;
 }
 
 // Export defines how task output is saved to the workflow context.

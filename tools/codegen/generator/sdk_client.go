@@ -57,9 +57,10 @@ type ServiceSchemaFile struct {
 }
 
 type ServiceDefinition struct {
-	Name    string         `json:"name"`
-	Role    string         `json:"role"`
-	Methods []MethodSchema `json:"methods"`
+	Name      string         `json:"name"`
+	Role      string         `json:"role"`
+	ProtoFile string         `json:"protoFile,omitempty"`
+	Methods   []MethodSchema `json:"methods"`
 }
 
 type MethodSchema struct {
@@ -423,6 +424,8 @@ func generateResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 		enumImports = collectSDKEnumImports(specSchema, specTypes, typeMap)
 	}
 
+	subPkgImports := collectSubPackageImports(schema)
+
 	buf.WriteString("import (\n")
 	buf.WriteString("\t\"context\"\n")
 	if needsIO {
@@ -433,6 +436,16 @@ func generateResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 	}
 	buf.WriteString("\n")
 	fmt.Fprintf(&buf, "\t%s %q\n", alias, importPath)
+	if len(subPkgImports) > 0 {
+		var subAliases []string
+		for a := range subPkgImports {
+			subAliases = append(subAliases, a)
+		}
+		sort.Strings(subAliases)
+		for _, a := range subAliases {
+			fmt.Fprintf(&buf, "\t%s %q\n", a, subPkgImports[a])
+		}
+	}
 	if len(enumImports) > 0 {
 		var enumAliases []string
 		for a := range enumImports {
@@ -1835,6 +1848,11 @@ func resolveType(fullType, shortType, schemaPkg, alias string) (string, string) 
 		return "emptypb", "Empty"
 	}
 	if strings.HasPrefix(fullType, schemaPkg+".") {
+		suffix := fullType[len(schemaPkg)+1:]
+		if dotIdx := strings.LastIndex(suffix, "."); dotIdx > 0 {
+			subPkgAlias := protoTypeToPackageAlias(fullType)
+			return subPkgAlias, shortType
+		}
 		return alias, shortType
 	}
 	if strings.Contains(fullType, "commons.apiresource") {
@@ -1845,6 +1863,32 @@ func resolveType(fullType, shortType, schemaPkg, alias string) (string, string) 
 
 func isEmptyType(fullType string) bool {
 	return fullType == "google.protobuf.Empty"
+}
+
+// collectSubPackageImports scans method input/output types for types in
+// sub-packages of the schema package (e.g. workflow.v1.serverless) and
+// returns a map of alias -> Go import path for those sub-packages.
+func collectSubPackageImports(schema *ServiceSchemaFile) map[string]string {
+	imports := make(map[string]string)
+	pkg := schema.Package
+	for _, svc := range schema.Services {
+		for _, m := range svc.Methods {
+			for _, ft := range []string{m.InputFullType, m.OutputFullType} {
+				if !strings.HasPrefix(ft, pkg+".") {
+					continue
+				}
+				suffix := ft[len(pkg)+1:]
+				if dotIdx := strings.LastIndex(suffix, "."); dotIdx > 0 {
+					subAlias := protoTypeToPackageAlias(ft)
+					subPath := protoTypeToGoImportPath(ft, sdkProtoImportPrefix)
+					if subAlias != "" && subPath != "" {
+						imports[subAlias] = subPath
+					}
+				}
+			}
+		}
+	}
+	return imports
 }
 
 func isIDType(typeName string) bool {

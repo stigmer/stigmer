@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { PanelLeft } from "lucide-react";
 import { cn } from "@stigmer/theme";
@@ -7,12 +8,28 @@ import { Sidebar } from "./Sidebar";
 import { useAppShortcuts } from "../hooks/useAppShortcuts";
 import { useSidebarOpen } from "./use-layout-state";
 
+function isSessionZonePath(p: string): boolean {
+  return p === "/" || p.startsWith("/sessions/");
+}
+
 export function AppShell() {
   useAppShortcuts();
   const sidebar = useSidebarOpen();
   const { pathname } = useLocation();
 
   const isManagementZone = pathname.startsWith("/settings");
+
+  const lastSessionZonePathRef = useRef<string | null>(null);
+  const prevPathnameRef = useRef(pathname);
+
+  useEffect(() => {
+    const prev = prevPathnameRef.current;
+    prevPathnameRef.current = pathname;
+
+    if (isSessionZonePath(prev) && !isSessionZonePath(pathname)) {
+      lastSessionZonePathRef.current = prev;
+    }
+  }, [pathname]);
 
   return (
     <OrgGate>
@@ -43,7 +60,11 @@ export function AppShell() {
               key={isManagementZone ? "management" : "session"}
               className="h-full animate-in fade-in duration-150"
             >
-              {isManagementZone ? <ManagementSidebar /> : <Sidebar />}
+              {isManagementZone ? (
+                <ManagementSidebar lastSessionZonePath={lastSessionZonePathRef.current} />
+              ) : (
+                <Sidebar />
+              )}
             </div>
           </div>
         </div>

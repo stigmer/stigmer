@@ -113,13 +113,24 @@ message RunnerHeartbeat {
   // Typically READY (accepting work) or BUSY (at capacity).
   RunnerPhase phase = 2;
 
-  // Number of executions currently in progress on this runner.
+  // Number of executions currently in progress on this runner process.
   int32 current_executions = 3;
 
   // Self-reported machine information. Sent on every heartbeat so that
   // version upgrades and hostname changes are reflected without requiring
   // a full resource update.
   RunnerConnectionInfo connection_info = 4;
+
+  // Identifies which runner process is sending this heartbeat.
+  //
+  // In a multi-process sandbox, all three runner processes share the same
+  // runner_id but report independently. The server aggregates activity
+  // across all process types to determine when the sandbox is idle.
+  //
+  // Values: "agent" (Python), "cursor" (TypeScript), "workflow" (Go).
+  // Empty string is treated as "agent" for backward compatibility with
+  // existing single-process sandboxes.
+  string process_type = 5;
 }
 
 // ---------------------------------------------------------------------------

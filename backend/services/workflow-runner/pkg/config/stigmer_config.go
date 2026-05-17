@@ -21,20 +21,26 @@ import (
 	"os"
 )
 
-// StigmerConfig holds configuration for connecting to Stigmer backend service
-// for progress callback reporting.
+// StigmerConfig holds configuration for connecting to Stigmer backend service.
 //
-// This configuration follows the same pattern as agent-runner for consistency:
-// - STIGMER_BACKEND_ENDPOINT: gRPC endpoint (unified variable name)
-// - STIGMER_API_KEY: API key for authentication (unified with agent-runner)
-// - STIGMER_SERVICE_USE_TLS: TLS flag (workflow-runner specific)
+// Authentication:
+//   - STIGMER_TOKEN: Primary credential (user JWT injected by the sandbox launcher)
+//   - STIGMER_API_KEY: Fallback credential (API key for OSS/local mode)
+//   - STIGMER_BACKEND_ENDPOINT: gRPC endpoint
+//   - STIGMER_SERVICE_USE_TLS: TLS flag (defaults to true)
+//
+// In cloud/sandbox mode the DaytonaSandboxRunnerLauncher injects the invoking
+// user's JWT as STIGMER_TOKEN. The runner authenticates as that user directly
+// on every gRPC call — no on-behalf-of impersonation is needed.
 type StigmerConfig struct {
 	// Endpoint is the gRPC endpoint for Stigmer backend service
 	// Example: api.stigmer.ai:443
 	Endpoint string
 
-	// APIKey is the authentication token for Stigmer backend service
-	// Sent as Bearer token in Authorization header
+	// APIKey is the authentication token for Stigmer backend service.
+	// In sandbox mode this is the user's JWT (from STIGMER_TOKEN).
+	// In OSS/local mode this is a platform API key (from STIGMER_API_KEY).
+	// Sent as Bearer token in the Authorization header.
 	APIKey string
 
 	// UseTLS enables TLS connection to Stigmer backend service
@@ -44,18 +50,21 @@ type StigmerConfig struct {
 // LoadStigmerConfig loads Stigmer backend service configuration from environment variables.
 //
 // Required environment variables:
-// - STIGMER_BACKEND_ENDPOINT: gRPC endpoint (unified with agent-runner)
-// - STIGMER_API_KEY: API key (unified with agent-runner)
-// - STIGMER_SERVICE_USE_TLS: TLS flag (defaults to true)
+//   - STIGMER_BACKEND_ENDPOINT: gRPC endpoint
+//   - STIGMER_TOKEN or STIGMER_API_KEY: Auth credential (STIGMER_TOKEN takes precedence)
+//   - STIGMER_SERVICE_USE_TLS: TLS flag (defaults to true)
 func LoadStigmerConfig() (*StigmerConfig, error) {
 	endpoint := os.Getenv("STIGMER_BACKEND_ENDPOINT")
 	if endpoint == "" {
 		return nil, fmt.Errorf("STIGMER_BACKEND_ENDPOINT environment variable is required")
 	}
 
-	apiKey := os.Getenv("STIGMER_API_KEY")
+	apiKey := os.Getenv("STIGMER_TOKEN")
 	if apiKey == "" {
-		return nil, fmt.Errorf("STIGMER_API_KEY environment variable is required")
+		apiKey = os.Getenv("STIGMER_API_KEY")
+	}
+	if apiKey == "" {
+		return nil, fmt.Errorf("STIGMER_TOKEN or STIGMER_API_KEY environment variable is required")
 	}
 
 	useTLS := os.Getenv("STIGMER_SERVICE_USE_TLS") != "false" // Default to true
@@ -73,7 +82,7 @@ func (c *StigmerConfig) Validate() error {
 		return fmt.Errorf("Stigmer backend endpoint is required")
 	}
 	if c.APIKey == "" {
-		return fmt.Errorf("Stigmer API key is required")
+		return fmt.Errorf("Stigmer auth token is required (STIGMER_TOKEN or STIGMER_API_KEY)")
 	}
 	return nil
 }

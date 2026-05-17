@@ -36,11 +36,12 @@ stigmer list workflows --output json
 
 ## Options
 
-| Flag             | Type     | Default | Description                                                  |
-| ---------------- | -------- | ------- | ------------------------------------------------------------ |
-| `--limit`        | `int32`  | `50`    | maximum number of results                                    |
-| `--output`, `-o` | `string` | `table` | output format: table, yaml, json                             |
-| `--verb`         | `string` |         | filter to types supporting this verb (only for 'list types') |
+| Flag             | Type     | Default | Description                                                             |
+| ---------------- | -------- | ------- | ----------------------------------------------------------------------- |
+| `--limit`        | `int32`  | `50`    | maximum number of results                                               |
+| `--output`, `-o` | `string` | `table` | output format: table, yaml, json                                        |
+| `--type`         | `string` |         | filter executions by type: agent, workflow (only for 'list executions') |
+| `--verb`         | `string` |         | filter to types supporting this verb (only for 'list types')            |
 
 ### Supported resource types
 

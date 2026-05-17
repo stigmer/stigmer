@@ -1,0 +1,97 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.workflow.v1.tasks;
+
+import "ai/stigmer/commons/apiresource/field_options.proto";
+import "buf/validate/validate.proto";
+
+// TransformEngine enumerates the supported transformation engines.
+//
+// Each engine has different syntax and capabilities:
+// - JQ: full JQ expression language for JSON-to-JSON transformation
+// - JSONata: JSONata expression language (JSON query and transformation)
+// - TEMPLATE: Go text/template with ${ } expression interpolation for
+//   string-building use cases (email bodies, API payloads, log messages)
+enum TransformEngine {
+  // Default value, not a valid engine. Must be explicitly set.
+  TRANSFORM_ENGINE_UNSPECIFIED = 0;
+
+  // JQ expression engine.
+  // Full JQ syntax for filtering, projecting, and reshaping JSON data.
+  // Example: '{name: .customer.full_name, severity: .triage.severity}'
+  TRANSFORM_ENGINE_JQ = 1;
+
+  // JSONata expression engine.
+  // JSONata syntax for JSON query and transformation.
+  // Example: '{"name": customer.full_name, "severity": triage.severity}'
+  TRANSFORM_ENGINE_JSONATA = 2;
+
+  // Template engine using Go's text/template syntax.
+  // Supports ${ } expression interpolation for input variable references.
+  // Best for building strings (email bodies, messages, API payloads).
+  // Example: 'Ticket {{ .ticket_id }} classified as {{ .severity }}'
+  TRANSFORM_ENGINE_TEMPLATE = 3;
+}
+
+// TransformTaskConfig defines the configuration for transform tasks that
+// perform deterministic data transformation without LLM calls.
+//
+// @internal
+// Use transform when you need to reshape data between tasks: projecting
+// fields, joining objects, converting formats, or building API payloads.
+// Unlike set_vars (which mutates workflow state variables as a side effect),
+// transform produces an explicit output that flows through export like any
+// other task — visible and inspectable in the execution viewer.
+//
+// The distinction from set_vars:
+//   set_vars = imperative assignment ("set X to Y"), mutates workflow context
+//   transform = functional transformation ("reshape this data"), produces output
+//
+// YAML Example (JQ — reshape data for an API call):
+//   - build_api_payload:
+//       transform:
+//         engine: jq
+//         expression: '{name: .customer.full_name, severity: .triage.severity, summary: .agent_analysis.structured.summary}'
+//         input: "${ $context }"
+//       export:
+//         as: "${ . }"
+//
+// YAML Example (template — render a notification message):
+//   - render_notification:
+//       transform:
+//         engine: template
+//         expression: "Ticket {{ .ticket_id }} classified as {{ .severity }} — {{ .summary }}"
+//         input: "${ $context.build_api_payload }"
+//       export:
+//         as: "${ . }"
+message TransformTaskConfig {
+  option (ai.stigmer.commons.apiresource.discriminator_value) = "transform";
+
+  // Transformation engine to use.
+  // Required — must be explicitly set (not UNSPECIFIED).
+  TransformEngine engine = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).enum = {
+      defined_only: true
+      not_in: [0]
+    }
+  ];
+
+  // Transformation expression in the chosen engine's syntax.
+  //
+  // For JQ: a JQ filter expression (e.g., '{name: .full_name}')
+  // For JSONata: a JSONata expression (e.g., '{"name": full_name}')
+  // For TEMPLATE: a Go text/template string with {{ }} placeholders
+  //
+  // Required field.
+  string expression = 2 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1
+  ];
+
+  // Expression selecting the input data for the transformation.
+  // Supports ${ } expression interpolation.
+  // When omitted, the entire workflow context is used as input.
+  // Example: "${ $context.triage }" to transform just the triage output.
+  string input = 3 [(ai.stigmer.commons.apiresource.is_expression) = true];
+}

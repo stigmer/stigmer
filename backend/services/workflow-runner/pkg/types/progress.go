@@ -16,6 +16,10 @@
 
 package types
 
+import (
+	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
+)
+
 // TemporalWorkflowInput is the input to the generic Temporal workflow
 type TemporalWorkflowInput struct {
 	// WorkflowExecutionID is the unique ID for this execution
@@ -39,9 +43,23 @@ type TemporalWorkflowInput struct {
 	OrgId string
 
 	// InvokerIdentityAccountID is the identity account ID of the user who
-	// triggered the workflow execution. Propagated to activities for
-	// on-behalf-of gRPC impersonation (x-on-behalf-of header).
+	// triggered the workflow execution. Kept for Temporal serialization
+	// compatibility (the Java orchestrator still sends this field).
 	InvokerIdentityAccountID string
+
+	// Budget carries the workflow-level budget from WorkflowSpec.budget.
+	// Passed as a separate field because the budget is a Stigmer extension
+	// that does not survive the proto -> YAML -> CNCF model round-trip.
+	// nil means no budget is configured.
+	Budget *workflowv1.WorkflowBudget
+
+	// WorkflowID is the resolved workflow resource ID (format: "wf_{slug}").
+	// Used for event emission metadata.
+	WorkflowID string
+
+	// WorkflowInstanceID is the resolved instance ID (format: "wfi_{slug}").
+	// Used for event emission metadata.
+	WorkflowInstanceID string
 }
 
 // WorkflowMetadata contains workflow identification information

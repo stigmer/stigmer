@@ -328,8 +328,12 @@ type RecordLlmCallUsageInput struct {
 	ProxyTiming *v1.ProxyTiming `protobuf:"bytes,12,opt,name=proxy_timing,json=proxyTiming,proto3" json:"proxy_timing,omitempty"`
 	// Raw provider usage JSON for audit/debug.
 	ProviderUsageJson string `protobuf:"bytes,13,opt,name=provider_usage_json,json=providerUsageJson,proto3" json:"provider_usage_json,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// Harness that originated this call ("native" or "cursor").
+	// Set by the proxy controller based on which proxy path handled the request.
+	// When empty, the billing handler falls back to the model pricing registry.
+	Harness       string `protobuf:"bytes,14,opt,name=harness,proto3" json:"harness,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RecordLlmCallUsageInput) Reset() {
@@ -449,6 +453,13 @@ func (x *RecordLlmCallUsageInput) GetProxyTiming() *v1.ProxyTiming {
 func (x *RecordLlmCallUsageInput) GetProviderUsageJson() string {
 	if x != nil {
 		return x.ProviderUsageJson
+	}
+	return ""
+}
+
+func (x *RecordLlmCallUsageInput) GetHarness() string {
+	if x != nil {
+		return x.Harness
 	}
 	return ""
 }
@@ -1700,7 +1711,7 @@ const file_ai_stigmer_billing_v1_io_proto_rawDesc = "" +
 	"\x0ereservation_id\x18\x02 \x01(\tR\rreservationId\x12'\n" +
 	"\x0freserved_micros\x18\x03 \x01(\x03R\x0ereservedMicros\x128\n" +
 	"\x18available_balance_micros\x18\x04 \x01(\x03R\x16availableBalanceMicros\x12#\n" +
-	"\rdenial_reason\x18\x05 \x01(\tR\fdenialReason\"\xb2\x05\n" +
+	"\rdenial_reason\x18\x05 \x01(\tR\fdenialReason\"\xcc\x05\n" +
 	"\x17RecordLlmCallUsageInput\x12)\n" +
 	"\fexecution_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\vexecutionId\x12#\n" +
 	"\bsequence\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02 \x00R\bsequence\x12\"\n" +
@@ -1715,7 +1726,8 @@ const file_ai_stigmer_billing_v1_io_proto_rawDesc = "" +
 	" \x01(\bR\tstreaming\x12#\n" +
 	"\rfinish_reason\x18\v \x01(\tR\ffinishReason\x12T\n" +
 	"\fproxy_timing\x18\f \x01(\v21.ai.stigmer.agentic.agentexecution.v1.ProxyTimingR\vproxyTiming\x12.\n" +
-	"\x13provider_usage_json\x18\r \x01(\tR\x11providerUsageJson\"\x81\x02\n" +
+	"\x13provider_usage_json\x18\r \x01(\tR\x11providerUsageJson\x12\x18\n" +
+	"\aharness\x18\x0e \x01(\tR\aharness\"\x81\x02\n" +
 	"\x1aRecordLlmCallUsageResponse\x12&\n" +
 	"\x0fusage_record_id\x18\x01 \x01(\tR\rusageRecordId\x120\n" +
 	"\x14provider_cost_micros\x18\x02 \x01(\x03R\x12providerCostMicros\x12E\n" +

@@ -6,6 +6,7 @@
     {
       "name": "InvitationCommandController",
       "role": "command",
+      "protoFile": "ai/stigmer/iam/invitation/v1/command.proto",
       "methods": [
         {
           "name": "Create",
@@ -36,6 +37,7 @@
     {
       "name": "InvitationQueryController",
       "role": "query",
+      "protoFile": "ai/stigmer/iam/invitation/v1/query.proto",
       "methods": [
         {
           "name": "Get",

@@ -74,7 +74,7 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
       "stigmer.agentic.workflowexecution.v1.Wor" +
       "kflowExecutionSpecR\004spec\022X\n\006status\030\005 \001(\013" +
       "2@.ai.stigmer.agentic.workflowexecution." +
-      "v1.WorkflowExecutionStatusR\006status\"\261\004\n\027W" +
+      "v1.WorkflowExecutionStatusR\006status\"\273\005\n\027W" +
       "orkflowExecutionStatus\022F\n\005audit\030c \001(\01320." +
       "ai.stigmer.commons.apiresource.ApiResour" +
       "ceAuditR\005audit\022W\n\005phase\030\001 \001(\01627.ai.stigm" +
@@ -88,30 +88,36 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
       "\024temporal_workflow_id\030\007 \001(\tR\022temporalWor" +
       "kflowId\022m\n\021pending_approvals\030\t \003(\0132@.ai." +
       "stigmer.agentic.workflowexecution.v1.Wor" +
-      "kflowPendingApprovalR\020pendingApprovals\"\245" +
-      "\001\n\027WorkflowPendingApproval\022Q\n\010approval\030\001" +
-      " \001(\01325.ai.stigmer.agentic.agentexecution" +
-      ".v1.PendingApprovalR\010approval\0227\n\030child_a" +
-      "gent_execution_id\030\002 \001(\tR\025childAgentExecu" +
-      "tionId\"\362\003\n\014WorkflowTask\022\027\n\007task_id\030\001 \001(\t" +
-      "R\006taskId\022\033\n\ttask_name\030\002 \001(\tR\010taskName\022`\n" +
-      "\ttask_type\030\003 \001(\01629.ai.stigmer.agentic.wo" +
-      "rkflowexecution.v1.WorkflowTaskTypeB\010\272H\005" +
-      "\202\001\002\020\001R\010taskType\022-\n\005input\030\004 \001(\0132\027.google." +
-      "protobuf.StructR\005input\022/\n\006output\030\005 \001(\0132\027" +
-      ".google.protobuf.StructR\006output\022]\n\006statu" +
-      "s\030\006 \001(\0162;.ai.stigmer.agentic.workflowexe" +
-      "cution.v1.WorkflowTaskStatusB\010\272H\005\202\001\002\020\001R\006" +
-      "status\022\035\n\nstarted_at\030\007 \001(\tR\tstartedAt\022!\n" +
-      "\014completed_at\030\010 \001(\tR\013completedAt\022\024\n\005erro" +
-      "r\030\t \001(\tR\005error\0223\n\010metadata\030\n \001(\0132\027.googl" +
-      "e.protobuf.StructR\010metadataB\313\001B\010ApiProto" +
-      "P\001\242\002\004ASAW\252\002\'Ai.Stigmer.Agentic.Workflowe" +
-      "xecution.V1\312\002\'Ai\\Stigmer\\Agentic\\Workflo" +
-      "wexecution\\V1\342\0023Ai\\Stigmer\\Agentic\\Workf" +
-      "lowexecution\\V1\\GPBMetadata\352\002+Ai::Stigme" +
-      "r::Agentic::Workflowexecution::V1b\006proto" +
-      "3"
+      "kflowPendingApprovalR\020pendingApprovals\022*" +
+      "\n\021total_cost_micros\030\n \001(\003R\017totalCostMicr" +
+      "os\022,\n\022total_input_tokens\030\013 \001(\003R\020totalInp" +
+      "utTokens\022.\n\023total_output_tokens\030\014 \001(\003R\021t" +
+      "otalOutputTokens\"\245\001\n\027WorkflowPendingAppr" +
+      "oval\022Q\n\010approval\030\001 \001(\01325.ai.stigmer.agen" +
+      "tic.agentexecution.v1.PendingApprovalR\010a" +
+      "pproval\0227\n\030child_agent_execution_id\030\002 \001(" +
+      "\tR\025childAgentExecutionId\"\376\004\n\014WorkflowTas" +
+      "k\022\027\n\007task_id\030\001 \001(\tR\006taskId\022\033\n\ttask_name\030" +
+      "\002 \001(\tR\010taskName\022`\n\ttask_type\030\003 \001(\01629.ai." +
+      "stigmer.agentic.workflowexecution.v1.Wor" +
+      "kflowTaskTypeB\010\272H\005\202\001\002\020\001R\010taskType\022-\n\005inp" +
+      "ut\030\004 \001(\0132\027.google.protobuf.StructR\005input" +
+      "\022/\n\006output\030\005 \001(\0132\027.google.protobuf.Struc" +
+      "tR\006output\022]\n\006status\030\006 \001(\0162;.ai.stigmer.a" +
+      "gentic.workflowexecution.v1.WorkflowTask" +
+      "StatusB\010\272H\005\202\001\002\020\001R\006status\022\035\n\nstarted_at\030\007" +
+      " \001(\tR\tstartedAt\022!\n\014completed_at\030\010 \001(\tR\013c" +
+      "ompletedAt\022\024\n\005error\030\t \001(\tR\005error\0223\n\010meta" +
+      "data\030\n \001(\0132\027.google.protobuf.StructR\010met" +
+      "adata\022!\n\014artifact_ids\030\013 \003(\tR\013artifactIds" +
+      "\022\037\n\013cost_micros\030\014 \001(\003R\ncostMicros\022!\n\014inp" +
+      "ut_tokens\030\r \001(\003R\013inputTokens\022#\n\routput_t" +
+      "okens\030\016 \001(\003R\014outputTokensB\313\001B\010ApiProtoP\001" +
+      "\242\002\004ASAW\252\002\'Ai.Stigmer.Agentic.Workflowexe" +
+      "cution.V1\312\002\'Ai\\Stigmer\\Agentic\\Workflowe" +
+      "xecution\\V1\342\0023Ai\\Stigmer\\Agentic\\Workflo" +
+      "wexecution\\V1\\GPBMetadata\352\002+Ai::Stigmer:" +
+      ":Agentic::Workflowexecution::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -135,7 +141,7 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowExecutionStatus_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowExecutionStatus_descriptor,
-        new java.lang.String[] { "Audit", "Phase", "Tasks", "Output", "Error", "StartedAt", "CompletedAt", "TemporalWorkflowId", "PendingApprovals", });
+        new java.lang.String[] { "Audit", "Phase", "Tasks", "Output", "Error", "StartedAt", "CompletedAt", "TemporalWorkflowId", "PendingApprovals", "TotalCostMicros", "TotalInputTokens", "TotalOutputTokens", });
     internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowPendingApproval_descriptor =
       getDescriptor().getMessageType(2);
     internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowPendingApproval_fieldAccessorTable = new
@@ -147,7 +153,7 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowTask_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowTask_descriptor,
-        new java.lang.String[] { "TaskId", "TaskName", "TaskType", "Input", "Output", "Status", "StartedAt", "CompletedAt", "Error", "Metadata", });
+        new java.lang.String[] { "TaskId", "TaskName", "TaskType", "Input", "Output", "Status", "StartedAt", "CompletedAt", "Error", "Metadata", "ArtifactIds", "CostMicros", "InputTokens", "OutputTokens", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.agentexecution.v1.ApprovalProto.getDescriptor();
     ai.stigmer.agentic.workflowexecution.v1.EnumProto.getDescriptor();

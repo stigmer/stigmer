@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "to": {
+      "description": "Signal listening configuration.",
+      "type": "object"
+    }
+  },
+  "required": [
+    "to"
+  ],
+  "title": "ListenTaskConfig",
+  "type": "object"
+}

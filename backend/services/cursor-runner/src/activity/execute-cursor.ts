@@ -34,7 +34,7 @@ import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agente
 import { SetupProgressSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { ExecutionControlSignal, ExecutionPhase, MessageType, ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ExecutionControlSignal, ExecutionPhase, InteractionMode, MessageType, ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { SDKMessage } from "@cursor/sdk";
 
 import type { Config } from "../config.js";
@@ -47,6 +47,8 @@ import { MessageAccumulator, extractDeniedToolCalls, utcTimestamp } from "../ada
 import { DeltaEnricher } from "../adapter/delta-enricher.js";
 import { TodoTracker } from "../adapter/todo-tracker.js";
 import { resolveMcpServers } from "../adapter/mcp-resolver.js";
+import { mergeApprovalPolicies } from "../hitl/approval-policy.js";
+import { backfillMcpServersIfNeeded } from "../adapter/connect-backfill.js";
 import { resolveExecutionEnv } from "../adapter/env-resolver.js";
 import { resolveBlueprint } from "../adapter/blueprint-resolver.js";
 import { resolveSkills } from "../adapter/skill-resolver.js";
@@ -57,8 +59,15 @@ import { extractAgentRationale, getGitBranch, getGitHeadSha } from "../adapter/c
 import { writeHooksToWorkspace } from "../hitl/workspace-setup.js";
 import { buildApprovalState } from "../hitl/approval-state.js";
 import { setInterceptorExecutionId } from "../proxy/fetch-interceptor.js";
-import { resolveModelId } from "../adapter/model-pricing.js";
-import { buildSessionMemory, persistSessionMemory } from "../adapter/session-memory.js";
+import { resolveModelId, ensureLoaded as ensurePricingLoaded } from "../adapter/model-pricing.js";
+import { UsageAccumulator } from "../adapter/usage-accumulator.js";
+import type { TurnRecord } from "../adapter/usage-accumulator.js";
+import { ContextTracker } from "../adapter/context-tracker.js";
+import { RecordLlmCallUsageInputSchema } from "@stigmer/protos/ai/stigmer/billing/v1/io_pb";
+import { TokenUsageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
+import { UsageCompletionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
+import { RunnerUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
+import { buildSessionMemory, persistSessionMemory, estimateTokens } from "../adapter/session-memory.js";
 import { activityStarted, activityFinished } from "../idle-watchdog.js";
 
 /**
@@ -120,6 +129,18 @@ async function executeCursor(
     const { envVars } = await resolveExecutionEnv(client, executionId);
     heartbeat();
 
+    // Set OTel baggage so downstream calls carry execution context.
+    try {
+      const { setBaggage, BAGGAGE_EXECUTION_ID, BAGGAGE_SESSION_ID, BAGGAGE_ORG_ID } = await import("../otel.js");
+      await setBaggage({
+        [BAGGAGE_EXECUTION_ID]: executionId,
+        [BAGGAGE_SESSION_ID]: sessionId ?? "",
+        [BAGGAGE_ORG_ID]: session?.metadata?.org ?? "",
+      });
+    } catch {
+      // Tracing not initialized — silently skip.
+    }
+
     // Determine cursor mode: use persisted value on subsequent executions,
     // compute from workspace entries on first execution.
     const cursorMode = blueprint.sessionSpec.cursorMode !== CursorMode.UNSPECIFIED
@@ -165,9 +186,28 @@ async function executeCursor(
       }
     }
 
-    // Phase 4: Resolve MCP servers (merged from agent + session)
+    // Phase 4: Resolve MCP servers with approval policies
     await reportSetupProgress(client, executionId, "Resolving MCP servers");
-    const mcpConfig = await resolveMcpServers(client, blueprint.mergedMcpServerUsages, envVars);
+    let mcpResolution = await resolveMcpServers(
+      client, blueprint.mergedMcpServerUsages, envVars,
+    );
+
+    // Phase 4a: Connect backfill for undiscovered MCP servers
+    const sessionOrg = session.metadata?.org ?? "";
+    mcpResolution = await backfillMcpServersIfNeeded(
+      client, mcpResolution, blueprint.mergedMcpServerUsages, envVars, sessionOrg,
+      heartbeat,
+    );
+    const mcpConfig = mcpResolution.cursorConfig;
+
+    // Phase 4b: Merge approval policies from all layers
+    const agentOverrides = blueprint.mergedMcpServerUsages
+      .flatMap((u) => u.toolApprovalOverrides ?? []);
+    const mergedPolicies = mergeApprovalPolicies(
+      mcpResolution.resolvedServers,
+      agentOverrides,
+      execution.spec?.autoApproveAll ?? false,
+    );
     heartbeat();
 
     // Phase 5: Resolve skills (merged from agent + session)
@@ -230,8 +270,12 @@ async function executeCursor(
       (resolution.resumeFailureDetail ? `, failureDetail=${resolution.resumeFailureDetail}` : ""),
     );
 
-    // Phase 8: Write hooks for HITL
-    const approvalState = buildApprovalState(approvalDecisions);
+    // Phase 8: Write hooks for HITL with policy-aware state
+    const approvalState = buildApprovalState(
+      mergedPolicies,
+      execution.spec?.autoApproveAll ?? false,
+      approvalDecisions,
+    );
     await writeHooksToWorkspace(primaryWorkspaceDir, approvalState);
 
     // Phase 9: Store new agentId as thread_id and persist cursor_mode
@@ -253,6 +297,9 @@ async function executeCursor(
 
     // Phase 10: Build the prompt
     const sessionMemory = session?.status?.sessionMemory;
+    const interactionMode = spec.executionConfig?.interactionMode
+      ?? InteractionMode.UNSPECIFIED;
+
     const prompt = buildPrompt({
       resolution,
       approvalDecisions,
@@ -267,6 +314,29 @@ async function executeCursor(
       pendingApprovals: status.pendingApprovals.length > 0
         ? status.pendingApprovals
         : (execution.status?.pendingApprovals ?? []),
+      interactionMode,
+    });
+
+    // Phase 10a: Log Stigmer preamble size for context trimming diagnostics
+    const promptChars = prompt.length;
+    const promptEstimatedTokens = estimateTokens(prompt);
+    console.log(
+      `ExecuteCursor prompt built: execution=${executionId}, ` +
+      `chars=${promptChars}, estimatedTokens=${promptEstimatedTokens}, ` +
+      `resolution=${resolution.reason}, mode=${resolution.mode}`,
+    );
+
+    // Phase 10b: Initialize usage accumulator for runner-side token tracking
+    await ensurePricingLoaded();
+    const usageAccumulator = new UsageAccumulator(validatedModel);
+
+    const contextTracker = new ContextTracker(validatedModel);
+    // Phase 10c: Start OTel turn span (coarse-grained — wraps entire agent.send + stream)
+    const { startCursorTurnSpan } = await import("../otel.js");
+    const turnSpan = await startCursorTurnSpan({
+      model: validatedModel,
+      mode: agentMode,
+      sessionId: sessionId ?? "",
     });
 
     // Phase 11: Send message and stream events
@@ -277,17 +347,31 @@ async function executeCursor(
     const todoTracker = new TodoTracker(status.todos);
 
     let platformStopSignaled = false;
+    let firstTurnAttributionLogged = false;
 
     const run = await resolution.agent.send(prompt, {
       onDelta: ({ update }) => {
         if (update.type === "turn-ended" && update.usage) {
+          usageAccumulator.addTurn(update.usage);
+          contextTracker.recordTurn(update.usage.inputTokens ?? 0);
+
+          if (!firstTurnAttributionLogged) {
+            firstTurnAttributionLogged = true;
+            const sdkInputTokens = update.usage.inputTokens ?? 0;
+            const cursorOverhead = Math.max(0, sdkInputTokens - promptEstimatedTokens);
+            console.log(
+              `ExecuteCursor context attribution (first turn): execution=${executionId}, ` +
+              `sdkInputTokens=${sdkInputTokens}, stigmerPreamble=${promptEstimatedTokens}, ` +
+              `cursorOverhead=${cursorOverhead} (estimated)`,
+            );
+          }
         }
         deltaEnricher.processDelta(update);
         heartbeat();
       },
     });
 
-    const accumulator = new MessageAccumulator(status.messages);
+    const accumulator = new MessageAccumulator(status.messages, { mergedPolicies });
     let eventCount = 0;
 
     for await (const event of run.stream()) {
@@ -304,6 +388,12 @@ async function executeCursor(
       }
 
       const shouldPersist = eventCount % 20 === 0 || deltaEnricher.isDirty || todoTracker.isDirty;
+      if (usageAccumulator.hasTurns) {
+        status.runnerUsage = create(RunnerUsageSummarySchema, usageAccumulator.snapshot());
+      }
+      if (contextTracker.hasData) {
+        status.contextInfo = contextTracker.snapshot();
+      }
       if (shouldPersist) {
         const signal = await persistStatus(client, executionId, status);
         deltaEnricher.markPersisted();
@@ -326,9 +416,35 @@ async function executeCursor(
     accumulator.finalize();
     deltaEnricher.finalize(status.messages);
     status.subAgentExecutions = accumulator.subAgentExecutions;
+    if (usageAccumulator.hasTurns) {
+      status.runnerUsage = create(RunnerUsageSummarySchema, usageAccumulator.snapshot());
+    }
+    if (contextTracker.hasData) {
+      status.contextInfo = contextTracker.snapshot();
+    }
     console.log(
       `ExecuteCursor stream ended: execution=${executionId}, events=${eventCount}, messages=${status.messages.length}, subAgents=${status.subAgentExecutions.length}`,
     );
+
+    // End OTel turn span with accumulated token usage
+    const usageSnapshot = usageAccumulator.snapshot();
+    turnSpan.setTokens(Number(usageSnapshot.inputTokens), Number(usageSnapshot.outputTokens));
+    turnSpan.end();
+
+    // Record cursor turn metrics (duration, tokens)
+    try {
+      const { recordTurnMetrics } = await import("../otel.js");
+      const turnDurationMs = Date.now() - (status.startedAt ? new Date(status.startedAt).getTime() : Date.now());
+      await recordTurnMetrics({
+        durationMs: turnDurationMs,
+        inputTokens: Number(usageSnapshot.inputTokens),
+        outputTokens: Number(usageSnapshot.outputTokens),
+        model: validatedModel,
+        mode: agentMode,
+      });
+    } catch {
+      // Metrics not initialized — silently skip.
+    }
 
 
     // Phase 11b: Handle platform stop signal early exit
@@ -341,13 +457,14 @@ async function executeCursor(
         timestamp: utcTimestamp(),
       }));
       await persistStatus(client, executionId, status);
+      await emitBillingRecords(client, executionId, usageAccumulator);
       await maybePeristSessionMemory(client, sessionId, session, status, userMessage);
       console.log(`ExecuteCursor completed (platform stop): execution=${executionId}`);
       return slimStatus(status);
     }
 
     // Phase 12: Check for denied tool calls (HITL)
-    const deniedCalls = extractDeniedToolCalls(collectedEvents);
+    const deniedCalls = extractDeniedToolCalls(collectedEvents, mergedPolicies);
     if (deniedCalls.length > 0) {
       status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL;
 
@@ -362,6 +479,7 @@ async function executeCursor(
           toolCallId: dc.callId,
           toolName: dc.name,
           argsPreview: dc.argsPreview,
+          message: dc.approvalMessage,
           agentRationale: extractAgentRationale(status.messages, dc.callId),
           branchAtDeny: gitBranch,
           headShaAtDeny: gitHead,
@@ -369,7 +487,7 @@ async function executeCursor(
       );
       status.messages.push(create(AgentMessageSchema, {
         type: MessageType.MESSAGE_SYSTEM,
-        content: `Tool approval required for: ${deniedCalls.map((d) => d.name).join(", ")}`,
+        content: `Tool approval required for: ${deniedCalls.map((d) => d.mcpServerSlug ? d.mcpServerSlug + "/" + d.name : d.name).join(", ")}`,
         timestamp: utcTimestamp(),
       }));
       await persistStatus(client, executionId, status);
@@ -379,9 +497,15 @@ async function executeCursor(
 
     // Phase 13: Map final result
     const result = await run.wait();
+    const sdkResolvedModel = result.model?.id || undefined;
     console.log(
       `ExecuteCursor run.wait() result: execution=${executionId}, result=${JSON.stringify(result)}`,
     );
+    if (sdkResolvedModel && sdkResolvedModel !== validatedModel) {
+      console.log(
+        `ExecuteCursor model divergence: execution=${executionId}, requested=${validatedModel}, sdkResolved=${sdkResolvedModel}`,
+      );
+    }
     status.completedAt = utcTimestamp();
 
     switch (result.status) {
@@ -403,6 +527,9 @@ async function executeCursor(
     }
 
     await persistStatus(client, executionId, status);
+
+    // Phase 13b: Emit billing records for cursor usage
+    await emitBillingRecords(client, executionId, usageAccumulator, sdkResolvedModel);
 
     // Phase 14: Build and persist session memory
     await maybePeristSessionMemory(client, sessionId, session, status, userMessage);
@@ -463,6 +590,7 @@ export interface BuildPromptInput {
   workspaceFileRefs: string[];
   attachmentPaths: string[];
   pendingApprovals: import("@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb").PendingApproval[];
+  interactionMode?: InteractionMode;
 }
 
 /**
@@ -498,6 +626,7 @@ export function buildPrompt(input: BuildPromptInput): string {
     workspaceFileRefs,
     attachmentPaths,
     pendingApprovals,
+    interactionMode,
   } = input;
 
   const isHitlReinvocation = approvalDecisions !== undefined && approvalDecisions.size > 0;
@@ -532,6 +661,7 @@ export function buildPrompt(input: BuildPromptInput): string {
         attachmentPaths,
         sessionMemory,
         userMessage,
+        interactionMode,
       });
     }
     return userMessage;
@@ -549,6 +679,7 @@ export function buildPrompt(input: BuildPromptInput): string {
       attachmentPaths,
       sessionMemory,
       userMessage,
+      interactionMode,
     });
   }
 
@@ -560,6 +691,7 @@ export function buildPrompt(input: BuildPromptInput): string {
     workspaceDirs,
     workspaceFileRefs,
     attachmentPaths,
+    interactionMode,
   });
 }
 
@@ -646,6 +778,83 @@ async function reportSetupProgress(
     setupProgress: create(SetupProgressSchema, { currentPhase: phase }),
   });
   await persistStatus(client, executionId, status);
+}
+
+/**
+ * Emit per-turn billing records via the recordLlmCallUsage RPC.
+ *
+ * Each turn produces one billing record with sequence = turn number.
+ * The billing handler computes cost server-side from the model registry.
+ * Best-effort: failures are logged and swallowed — billing gaps are
+ * preferable to failing the execution.
+ */
+export interface BillingRecordParams {
+  executionId: string;
+  turn: TurnRecord;
+  requestedModel: string;
+  sdkResolvedModel?: string;
+}
+
+export function buildTurnBillingInput(params: BillingRecordParams) {
+  const { executionId, turn, requestedModel, sdkResolvedModel } = params;
+  const resolvedModel = sdkResolvedModel || requestedModel;
+  return create(RecordLlmCallUsageInputSchema, {
+    executionId,
+    sequence: turn.sequence,
+    provider: "cursor",
+    resolvedModel,
+    requestedModel,
+    tokens: create(TokenUsageSchema, {
+      inputTokens: BigInt(turn.inputTokens),
+      outputTokens: BigInt(turn.outputTokens),
+      cacheCreationInputTokens: BigInt(turn.cacheWriteTokens),
+      cacheReadInputTokens: BigInt(turn.cacheReadTokens),
+    }),
+    usageStatus: UsageCompletionStatus.COMPLETE,
+    streaming: true,
+    harness: "cursor",
+  });
+}
+
+async function emitBillingRecords(
+  client: StigmerClient,
+  executionId: string,
+  usage: UsageAccumulator,
+  sdkResolvedModel?: string,
+): Promise<void> {
+  const turns = usage.turns();
+  if (turns.length === 0) return;
+
+  const requestedModel = usage.modelName;
+  const resolvedModel = sdkResolvedModel || requestedModel;
+  let emitted = 0;
+
+  for (const turn of turns) {
+    try {
+      const input = buildTurnBillingInput({
+        executionId,
+        turn,
+        requestedModel,
+        sdkResolvedModel,
+      });
+      await client.recordLlmCallUsage(input);
+      emitted++;
+    } catch (err) {
+      console.warn(
+        `Failed to emit billing record (non-fatal): execution=${executionId}, seq=${turn.sequence}`,
+        err instanceof Error ? err.message : err,
+      );
+    }
+  }
+
+  if (emitted > 0) {
+    const modelInfo = resolvedModel !== requestedModel
+      ? `requested=${requestedModel}, resolved=${resolvedModel}`
+      : `model=${requestedModel}`;
+    console.log(
+      `Emitted ${emitted}/${turns.length} billing records: execution=${executionId}, ${modelInfo}`,
+    );
+  }
 }
 
 /**

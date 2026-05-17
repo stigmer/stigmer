@@ -1,0 +1,161 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.workflow.v1.tasks;
+
+import "ai/stigmer/agentic/workflow/v1/tasks/common.proto";
+import "ai/stigmer/commons/apiresource/field_options.proto";
+import "buf/validate/validate.proto";
+import "google/protobuf/struct.proto";
+
+// LlmCallTaskConfig defines the configuration for llm_call tasks that make
+// direct LLM API calls without the overhead of a full agent invocation.
+//
+// @internal
+// Use llm_call when the task is focused and deterministic: classification,
+// extraction, scoring, summarization, moderation, or routing. An agent_call
+// carries setup overhead (system prompt, tool resolution, MCP server setup,
+// session management) that is unnecessary when all you need is a single
+// prompt-response cycle with optional structured output.
+//
+// When response_schema is set, the runner requests structured output from the
+// provider and validates the response against the schema. The on_invalid /
+// max_retries / fallback_task fields control what happens when validation fails,
+// using the same OnInvalidOutputPolicy enum as agent_call's output contract.
+//
+// YAML Example (classification with structured output):
+//   - classify_severity:
+//       call: llm
+//       with:
+//         model: "gpt-4o-mini"
+//         system_prompt: "You are a support ticket classifier."
+//         prompt: "Classify this ticket: ${ $context.ticket.description }"
+//         response_schema:
+//           type: object
+//           required: [severity, category]
+//           properties:
+//             severity:
+//               type: string
+//               enum: [low, medium, high, critical]
+//             category:
+//               type: string
+//         on_invalid: ON_INVALID_RETRY
+//         max_retries: 2
+//       export:
+//         as: "${ . }"
+//
+// YAML Example (simple summarization, no schema):
+//   - summarize:
+//       call: llm
+//       with:
+//         model: "claude-sonnet-4-5"
+//         prompt: "Summarize in 2 sentences: ${ $context.document.text }"
+//         temperature: 0.3
+//         max_tokens: 200
+//       export:
+//         as: "${ . }"
+message LlmCallTaskConfig {
+  option (ai.stigmer.commons.apiresource.discriminator_value) = "llm_call";
+
+  // Model reference resolved via the Stigmer model registry.
+  // Examples: "gpt-4o", "gpt-4o-mini", "claude-sonnet-4-5", "claude-haiku-3-5"
+  // Required field.
+  string model = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 127
+  ];
+
+  // System prompt that sets the LLM's role and constraints.
+  // Supports ${ } expression interpolation for dynamic system prompts.
+  // Optional — omit for tasks where the user prompt is self-contained.
+  string system_prompt = 2 [(ai.stigmer.commons.apiresource.is_expression) = true];
+
+  // User prompt / instruction sent to the LLM.
+  // Supports ${ } expression interpolation for injecting workflow context.
+  // Example: "Classify this ticket: ${ $context.ticket.description }"
+  // Required field.
+  string prompt = 3 [
+    (ai.stigmer.commons.apiresource.is_expression) = true,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1
+  ];
+
+  // JSON Schema for structured output.
+  //
+  // When set, the runner requests structured output from the provider
+  // (e.g., OpenAI's response_format, Anthropic's tool_use extraction)
+  // and validates the response against this schema.
+  //
+  // Uses the same google.protobuf.Struct + JSON Schema pattern as
+  // AgentCallOutputContract.schema for consistency across the workflow domain.
+  //
+  // When not set, the task output is the LLM's raw text response.
+  google.protobuf.Struct response_schema = 4;
+
+  // Sampling temperature (0.0 to 2.0).
+  // Lower = more deterministic, higher = more creative.
+  // Range is 0.0-2.0 to accommodate all major providers (OpenAI supports
+  // up to 2.0; others clamp to their supported range at runtime).
+  // Optional — uses the provider's default when not set.
+  float temperature = 5 [
+    (buf.validate.field).float.gte = 0.0,
+    (buf.validate.field).float.lte = 2.0
+  ];
+
+  // Maximum tokens in the LLM response.
+  // Optional — uses the provider's default when not set.
+  int32 max_tokens = 6 [(buf.validate.field).int32.gte = 1];
+
+  // Timeout for the LLM call in seconds.
+  // Default: 60. Max: 600 (10 minutes).
+  // Optional.
+  int32 timeout = 7 [
+    (buf.validate.field).int32.gte = 1,
+    (buf.validate.field).int32.lte = 600
+  ];
+
+  // Policy when the LLM response fails schema validation.
+  // Only meaningful when response_schema is set; ignored otherwise.
+  // Default: ON_INVALID_FAIL (task fails immediately).
+  OnInvalidOutputPolicy on_invalid = 8;
+
+  // Maximum schema-validation retry attempts when on_invalid is ON_INVALID_RETRY.
+  //
+  // Each retry re-prompts the LLM with the validation errors and expected
+  // schema, giving it an opportunity to self-correct.
+  //
+  // Only meaningful when on_invalid is ON_INVALID_RETRY; ignored otherwise.
+  // Default: 1. Valid range: 1-5.
+  int32 max_retries = 9 [
+    (buf.validate.field).int32.gte = 1,
+    (buf.validate.field).int32.lte = 5
+  ];
+
+  // Target task to branch to when schema validation cannot be resolved.
+  //
+  // Used in two scenarios:
+  // 1. on_invalid is ON_INVALID_RETRY and all retries are exhausted
+  // 2. on_invalid is ON_INVALID_FALLBACK (immediate branch, no retry)
+  //
+  // Must reference a valid task name in the same workflow.
+  // When empty and retries are exhausted, the task fails.
+  string fallback_task = 10;
+
+  // Per-task cost cap in micro-USD (1 USD = 1,000,000 micros).
+  // When set, the runtime terminates this specific LLM call if its cost
+  // exceeds this limit, independent of the workflow-level budget.
+  // The runtime checks both: per-task limit first, then workflow remaining budget.
+  // Optional — when 0, no per-task cost limit is enforced.
+  //
+  // @since T05 (Workflow-Level Budget Primitives)
+  int64 max_cost_micros = 11;
+
+  // Per-task token cap (input + output tokens combined).
+  // When set, the runtime terminates this specific LLM call if total tokens
+  // exceed this limit. Complements max_tokens (field 6), which limits only
+  // the output token count as a generation parameter.
+  // Optional — when 0, no per-task total token limit is enforced.
+  //
+  // @since T05 (Workflow-Level Budget Primitives)
+  int64 max_total_tokens = 12;
+}

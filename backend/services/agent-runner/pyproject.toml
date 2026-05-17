@@ -55,6 +55,10 @@ dependencies = [
     "boto3>=1.35.0",
     # Environment variable loading
     "python-dotenv>=1.0.0",
+    # OpenTelemetry (opt-in distributed tracing)
+    "opentelemetry-api>=1.20.0",
+    "opentelemetry-sdk>=1.20.0",
+    "opentelemetry-exporter-otlp-proto-grpc>=1.20.0",
 ]
 
 [project.scripts]

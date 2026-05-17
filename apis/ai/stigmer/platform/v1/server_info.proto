@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package ai.stigmer.platform.v1;
+
+import "ai/stigmer/commons/rpc/method_options.proto";
+
+option java_outer_classname = "ServerInfoProto";
+
+// Edition of the Stigmer server binary.
+//
+// Indicates whether the server is the open-source Go edition
+// (stigmer-server) or the cloud Java edition (stigmer-service).
+// Clients use this to determine feature availability instead of
+// guessing from the API base URL.
+enum ServerEdition {
+  server_edition_unspecified = 0;
+
+  // Open-source Go server (stigmer-server).
+  // Only open_source-tier resources are available.
+  oss = 1;
+
+  // Stigmer Cloud Java server (stigmer-service).
+  // All resources (including cloud_only) are available.
+  cloud = 2;
+}
+
+// Unauthenticated query service for server identity and capabilities.
+//
+// Clients call getServerInfo on startup to learn the server edition
+// and version, replacing URL-based guessing. The RPC is public
+// (no authentication required) so it can be called before login.
+service PlatformQueryController {
+  // Returns the server edition and version.
+  //
+  // This is the authoritative source for deployment mode detection.
+  // Clients should call this once on startup and pass the result
+  // to StigmerProvider as the deploymentMode prop.
+  rpc getServerInfo(GetServerInfoInput) returns (GetServerInfoOutput) {
+    option (ai.stigmer.commons.rpc.is_public) = true;
+  }
+}
+
+// Empty request — no parameters needed.
+message GetServerInfoInput {}
+
+// Server identity and version information.
+message GetServerInfoOutput {
+  // Server edition (oss or cloud).
+  ServerEdition edition = 1;
+
+  // Semantic version of the server binary (e.g., "0.5.1").
+  string version = 2;
+}

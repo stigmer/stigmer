@@ -21,7 +21,7 @@ import (
 
 // executeRunSession handles the `stigmer resume ses-xxx` path.
 // It connects to the backend and delegates to openSession.
-func executeRunSession(sessionID, orgOverride string, verbose bool, outputMode OutputMode) error {
+func executeRunSession(sessionID, orgOverride string, verbose bool, mode string, outputMode OutputMode) error {
 	sp := spinner.New(os.Stderr)
 	sp.Start("Connecting...")
 
@@ -32,7 +32,22 @@ func executeRunSession(sessionID, orgOverride string, verbose bool, outputMode O
 	}
 	defer client.Close()
 
-	return openSession(sessionID, orgID, verbose, outputMode, client, sp)
+	return openSession(sessionID, orgID, verbose, mode, outputMode, client, sp)
+}
+
+// resolveResumeMode determines the effective interaction mode for a resumed
+// session. If the user passed an explicit --mode flag, that takes precedence.
+// Otherwise the mode is inferred from the last execution's ExecutionConfig,
+// preserving the user's original intent (e.g., a Plan session stays in Plan).
+func resolveResumeMode(explicitMode string, latestExec *agentexecutionv1.AgentExecution) string {
+	if explicitMode != "" {
+		return explicitMode
+	}
+	cfg := latestExec.GetSpec().GetExecutionConfig()
+	if cfg != nil && cfg.GetInteractionMode() == agentexecutionv1.InteractionMode_INTERACTION_MODE_PLAN {
+		return "plan"
+	}
+	return ""
 }
 
 // openSession re-opens an existing session by its ID.
@@ -42,8 +57,11 @@ func executeRunSession(sessionID, orgOverride string, verbose bool, outputMode O
 //   - Resumes with the full conversation history if all executions have
 //     completed, allowing the user to continue
 //
+// The mode parameter is the user's explicit --mode override (may be empty).
+// When empty, the mode is auto-inferred from the last execution's config.
+//
 // The spinner is active on entry and stopped after session data is loaded.
-func openSession(sessionID, orgID string, verbose bool, outputMode OutputMode, client *stigmer.Client, sp *spinner.Spinner) error {
+func openSession(sessionID, orgID string, verbose bool, mode string, outputMode OutputMode, client *stigmer.Client, sp *spinner.Spinner) error {
 	sp.Update("Loading session...")
 	ses, err := session.GetFromBackend(client, sessionID)
 	if err != nil {
@@ -77,6 +95,8 @@ func openSession(sessionID, orgID string, verbose bool, outputMode OutputMode, c
 	subject := session.ResolvedSubject(ses.GetSpec().GetSubject())
 	wsRoots := localWorkspaceRoots(ses.GetSpec().GetWorkspaceEntries())
 
+	effectiveMode := resolveResumeMode(mode, latestExec)
+
 	var model string
 	if u := fetchExecutionUsage(context.Background(), client, latestExec.GetMetadata().GetId()); u != nil {
 		model = u.PrimaryModel
@@ -85,6 +105,7 @@ func openSession(sessionID, orgID string, verbose bool, outputMode OutputMode, c
 		SessionID:  sessionID,
 		Subject:    subject,
 		Model:      model,
+		Mode:       effectiveMode,
 		Version:    embedded.GetBuildVersion(),
 		Workspaces: wsRoots,
 		IsResumed:  true,

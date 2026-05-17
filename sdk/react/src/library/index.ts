@@ -37,6 +37,8 @@ export {
   serializeMcpServerInputYaml,
 } from "./serialize-resource-yaml";
 
+export { serializeWorkflowYaml, parseWorkflowYaml } from "../workflow/serialize-workflow-yaml";
+
 export { useApplyResource } from "./useApplyResource";
 export type {
   UseApplyResourceReturn,

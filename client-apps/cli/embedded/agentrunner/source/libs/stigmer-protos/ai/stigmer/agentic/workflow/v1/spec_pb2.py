@@ -29,7 +29,7 @@ from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 from google.protobuf import struct_pb2 as google_dot_protobuf_dot_struct__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n)ai/stigmer/agentic/workflow/v1/spec.proto\x12\x1e\x61i.stigmer.agentic.workflow.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a)ai/stigmer/agentic/workflow/v1/enum.proto\x1a\x32\x61i/stigmer/commons/apiresource/field_options.proto\x1a\x1b\x62uf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\x8b\x03\n\x0cWorkflowSpec\x12 \n\x0b\x64\x65scription\x18\x01 \x01(\tR\x0b\x64\x65scription\x12T\n\x08\x64ocument\x18\x02 \x01(\x0b\x32\x30.ai.stigmer.agentic.workflow.v1.WorkflowDocumentB\x06\xbaH\x03\xc8\x01\x01R\x08\x64ocument\x12L\n\x05tasks\x18\x03 \x03(\x0b\x32,.ai.stigmer.agentic.workflow.v1.WorkflowTaskB\x08\xbaH\x05\x92\x01\x02\x08\x01R\x05tasks\x12G\n\x03\x65nv\x18\x04 \x03(\x0b\x32\x35.ai.stigmer.agentic.workflow.v1.WorkflowSpec.EnvEntryR\x03\x65nv\x1al\n\x08\x45nvEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12J\n\x05value\x18\x02 \x01(\x0b\x32\x34.ai.stigmer.agentic.environment.v1.EnvVarDeclarationR\x05value:\x02\x38\x01\"\xbc\x01\n\x10WorkflowDocument\x12\"\n\x03\x64sl\x18\x01 \x01(\tB\x10\xbaH\rr\x0b\x32\t^1\\.0\\.0$R\x03\x64sl\x12$\n\tnamespace\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tnamespace\x12\x1a\n\x04name\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04name\x12 \n\x07version\x18\x04 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x07version\x12 \n\x0b\x64\x65scription\x18\x05 \x01(\tR\x0b\x64\x65scription\"\xc3\x02\n\x0cWorkflowTask\x12\x1a\n\x04name\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04name\x12L\n\x04kind\x18\x02 \x01(\x0e\x32\x30.ai.stigmer.agentic.workflow.v1.WorkflowTaskKindB\x06\xbaH\x03\xc8\x01\x01R\x04kind\x12H\n\x0btask_config\x18\x03 \x01(\x0b\x32\x17.google.protobuf.StructB\x0e\xbaH\x03\xc8\x01\x01\xea\x85,\x04kindR\ntaskConfig\x12>\n\x06\x65xport\x18\x04 \x01(\x0b\x32&.ai.stigmer.agentic.workflow.v1.ExportR\x06\x65xport\x12?\n\x04\x66low\x18\x05 \x01(\x0b\x32+.ai.stigmer.agentic.workflow.v1.FlowControlR\x04\x66low\"!\n\x06\x45xport\x12\x17\n\x02\x61s\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x02\x61s\"!\n\x0b\x46lowControl\x12\x12\n\x04then\x18\x01 \x01(\tR\x04thenB\xcc\x01\n\"com.ai.stigmer.agentic.workflow.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAW\xaa\x02\x1e\x41i.Stigmer.Agentic.Workflow.V1\xca\x02\x1e\x41i\\Stigmer\\Agentic\\Workflow\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Workflow::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n)ai/stigmer/agentic/workflow/v1/spec.proto\x12\x1e\x61i.stigmer.agentic.workflow.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a)ai/stigmer/agentic/workflow/v1/enum.proto\x1a\x32\x61i/stigmer/commons/apiresource/field_options.proto\x1a\x1b\x62uf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xd3\x03\n\x0cWorkflowSpec\x12 \n\x0b\x64\x65scription\x18\x01 \x01(\tR\x0b\x64\x65scription\x12T\n\x08\x64ocument\x18\x02 \x01(\x0b\x32\x30.ai.stigmer.agentic.workflow.v1.WorkflowDocumentB\x06\xbaH\x03\xc8\x01\x01R\x08\x64ocument\x12L\n\x05tasks\x18\x03 \x03(\x0b\x32,.ai.stigmer.agentic.workflow.v1.WorkflowTaskB\x08\xbaH\x05\x92\x01\x02\x08\x01R\x05tasks\x12G\n\x03\x65nv\x18\x04 \x03(\x0b\x32\x35.ai.stigmer.agentic.workflow.v1.WorkflowSpec.EnvEntryR\x03\x65nv\x12\x46\n\x06\x62udget\x18\x05 \x01(\x0b\x32..ai.stigmer.agentic.workflow.v1.WorkflowBudgetR\x06\x62udget\x1al\n\x08\x45nvEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12J\n\x05value\x18\x02 \x01(\x0b\x32\x34.ai.stigmer.agentic.environment.v1.EnvVarDeclarationR\x05value:\x02\x38\x01\"\xeb\x01\n\x0eWorkflowBudget\x12&\n\x0fmax_cost_micros\x18\x01 \x01(\x03R\rmaxCostMicros\x12(\n\x10max_total_tokens\x18\x02 \x01(\x03R\x0emaxTotalTokens\x12\x30\n\x14max_duration_seconds\x18\x03 \x01(\x05R\x12maxDurationSeconds\x12U\n\x0bon_exceeded\x18\x04 \x01(\x0e\x32\x34.ai.stigmer.agentic.workflow.v1.BudgetExceededPolicyR\nonExceeded\"\xbc\x01\n\x10WorkflowDocument\x12\"\n\x03\x64sl\x18\x01 \x01(\tB\x10\xbaH\rr\x0b\x32\t^1\\.0\\.0$R\x03\x64sl\x12$\n\tnamespace\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tnamespace\x12\x1a\n\x04name\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04name\x12 \n\x07version\x18\x04 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x07version\x12 \n\x0b\x64\x65scription\x18\x05 \x01(\tR\x0b\x64\x65scription\"\x91\x03\n\x0cWorkflowTask\x12\x1a\n\x04name\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04name\x12L\n\x04kind\x18\x02 \x01(\x0e\x32\x30.ai.stigmer.agentic.workflow.v1.WorkflowTaskKindB\x06\xbaH\x03\xc8\x01\x01R\x04kind\x12H\n\x0btask_config\x18\x03 \x01(\x0b\x32\x17.google.protobuf.StructB\x0e\xbaH\x03\xc8\x01\x01\xea\x85,\x04kindR\ntaskConfig\x12>\n\x06\x65xport\x18\x04 \x01(\x0b\x32&.ai.stigmer.agentic.workflow.v1.ExportR\x06\x65xport\x12?\n\x04\x66low\x18\x05 \x01(\x0b\x32+.ai.stigmer.agentic.workflow.v1.FlowControlR\x04\x66low\x12L\n\ncompensate\x18\x06 \x03(\x0b\x32,.ai.stigmer.agentic.workflow.v1.WorkflowTaskR\ncompensate\"!\n\x06\x45xport\x12\x17\n\x02\x61s\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x02\x61s\"!\n\x0b\x46lowControl\x12\x12\n\x04then\x18\x01 \x01(\tR\x04thenB\xcc\x01\n\"com.ai.stigmer.agentic.workflow.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAW\xaa\x02\x1e\x41i.Stigmer.Agentic.Workflow.V1\xca\x02\x1e\x41i\\Stigmer\\Agentic\\Workflow\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Workflow::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -60,15 +60,17 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_EXPORT'].fields_by_name['as']._loaded_options = None
   _globals['_EXPORT'].fields_by_name['as']._serialized_options = b'\272H\004r\002\020\001'
   _globals['_WORKFLOWSPEC']._serialized_start=278
-  _globals['_WORKFLOWSPEC']._serialized_end=673
-  _globals['_WORKFLOWSPEC_ENVENTRY']._serialized_start=565
-  _globals['_WORKFLOWSPEC_ENVENTRY']._serialized_end=673
-  _globals['_WORKFLOWDOCUMENT']._serialized_start=676
-  _globals['_WORKFLOWDOCUMENT']._serialized_end=864
-  _globals['_WORKFLOWTASK']._serialized_start=867
-  _globals['_WORKFLOWTASK']._serialized_end=1190
-  _globals['_EXPORT']._serialized_start=1192
-  _globals['_EXPORT']._serialized_end=1225
-  _globals['_FLOWCONTROL']._serialized_start=1227
-  _globals['_FLOWCONTROL']._serialized_end=1260
+  _globals['_WORKFLOWSPEC']._serialized_end=745
+  _globals['_WORKFLOWSPEC_ENVENTRY']._serialized_start=637
+  _globals['_WORKFLOWSPEC_ENVENTRY']._serialized_end=745
+  _globals['_WORKFLOWBUDGET']._serialized_start=748
+  _globals['_WORKFLOWBUDGET']._serialized_end=983
+  _globals['_WORKFLOWDOCUMENT']._serialized_start=986
+  _globals['_WORKFLOWDOCUMENT']._serialized_end=1174
+  _globals['_WORKFLOWTASK']._serialized_start=1177
+  _globals['_WORKFLOWTASK']._serialized_end=1578
+  _globals['_EXPORT']._serialized_start=1580
+  _globals['_EXPORT']._serialized_end=1613
+  _globals['_FLOWCONTROL']._serialized_start=1615
+  _globals['_FLOWCONTROL']._serialized_end=1648
 # @@protoc_insertion_point(module_scope)

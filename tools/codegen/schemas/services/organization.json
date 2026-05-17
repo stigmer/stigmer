@@ -6,6 +6,7 @@
     {
       "name": "OrganizationCommandController",
       "role": "command",
+      "protoFile": "ai/stigmer/tenancy/organization/v1/command.proto",
       "methods": [
         {
           "name": "Apply",
@@ -44,6 +45,7 @@
     {
       "name": "OrganizationQueryController",
       "role": "query",
+      "protoFile": "ai/stigmer/tenancy/organization/v1/query.proto",
       "methods": [
         {
           "name": "Get",
@@ -377,6 +379,11 @@
           "name": "environment",
           "number": 53,
           "description": "Named set of variables and secrets for agent and workflow execution."
+        },
+        {
+          "name": "artifact",
+          "number": 55,
+          "description": "Persisted blob produced during workflow or agent execution."
         },
         {
           "name": "execution_context",

@@ -26,7 +26,7 @@ var File_ai_stigmer_agentic_agentexecution_v1_query_proto protoreflect.FileDescr
 
 const file_ai_stigmer_agentic_agentexecution_v1_query_proto_rawDesc = "" +
 	"\n" +
-	"0ai/stigmer/agentic/agentexecution/v1/query.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a.ai/stigmer/agentic/agentexecution/v1/api.proto\x1a-ai/stigmer/agentic/agentexecution/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xd8\x0f\n" +
+	"0ai/stigmer/agentic/agentexecution/v1/query.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a.ai/stigmer/agentic/agentexecution/v1/api.proto\x1a-ai/stigmer/agentic/agentexecution/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xfa\x10\n" +
 	"\x1dAgentExecutionQueryController\x12\xa9\x01\n" +
 	"\x03get\x126.ai.stigmer.agentic.agentexecution.v1.AgentExecutionId\x1a4.ai.stigmer.agentic.agentexecution.v1.AgentExecution\"4¸\x180\b\x01\x10)\"\x05value*#unauthorized to get agent execution\x12\x88\x01\n" +
 	"\x04list\x12@.ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsRequest\x1a8.ai.stigmer.agentic.agentexecution.v1.AgentExecutionList\"\x04и\x18\x01\x12\x9a\x01\n" +
@@ -38,7 +38,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_query_proto_rawDesc = "" +
 	"\x15getSessionUsageReport\x12@.ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportInput\x1aA.ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput\"?¸\x18;\b\x01\x10*\"\n" +
 	"session_id*)unauthorized to view session usage report\x12\x9c\x01\n" +
 	"\x13getAgentUsageReport\x12>.ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportInput\x1a?.ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput\"\x04и\x18\x01\x12\xd2\x01\n" +
-	"\x11getOrgUsageReport\x12<.ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportInput\x1a=.ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput\"@¸\x18<\b\x01\x10\x1e\"\x06org_id*.unauthorized to view organization usage report\x1a\x04\xa0\xff+)B\xca\x02\n" +
+	"\x11getOrgUsageReport\x12<.ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportInput\x1a=.ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput\"@¸\x18<\b\x01\x10\x1e\"\x06org_id*.unauthorized to view organization usage report\x12\x9f\x01\n" +
+	"\x13getExecutionSummary\x12E.ai.stigmer.agentic.agentexecution.v1.GetAgentExecutionSummaryRequest\x1a;.ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummary\"\x04и\x18\x01\x1a\x04\xa0\xff+)B\xca\x02\n" +
 	"(com.ai.stigmer.agentic.agentexecution.v1B\n" +
 	"QueryProtoP\x01Z]github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
@@ -52,14 +53,16 @@ var file_ai_stigmer_agentic_agentexecution_v1_query_proto_goTypes = []any{
 	(*GetSessionUsageReportInput)(nil),          // 6: ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportInput
 	(*GetAgentUsageReportInput)(nil),            // 7: ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportInput
 	(*GetOrgUsageReportInput)(nil),              // 8: ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportInput
-	(*AgentExecution)(nil),                      // 9: ai.stigmer.agentic.agentexecution.v1.AgentExecution
-	(*AgentExecutionList)(nil),                  // 10: ai.stigmer.agentic.agentexecution.v1.AgentExecutionList
-	(*GetArtifactDownloadUrlResponse)(nil),      // 11: ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlResponse
-	(*GetArtifactContentResponse)(nil),          // 12: ai.stigmer.agentic.agentexecution.v1.GetArtifactContentResponse
-	(*GetExecutionUsageReportOutput)(nil),       // 13: ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportOutput
-	(*GetSessionUsageReportOutput)(nil),         // 14: ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput
-	(*GetAgentUsageReportOutput)(nil),           // 15: ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput
-	(*GetOrgUsageReportOutput)(nil),             // 16: ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput
+	(*GetAgentExecutionSummaryRequest)(nil),     // 9: ai.stigmer.agentic.agentexecution.v1.GetAgentExecutionSummaryRequest
+	(*AgentExecution)(nil),                      // 10: ai.stigmer.agentic.agentexecution.v1.AgentExecution
+	(*AgentExecutionList)(nil),                  // 11: ai.stigmer.agentic.agentexecution.v1.AgentExecutionList
+	(*GetArtifactDownloadUrlResponse)(nil),      // 12: ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlResponse
+	(*GetArtifactContentResponse)(nil),          // 13: ai.stigmer.agentic.agentexecution.v1.GetArtifactContentResponse
+	(*GetExecutionUsageReportOutput)(nil),       // 14: ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportOutput
+	(*GetSessionUsageReportOutput)(nil),         // 15: ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput
+	(*GetAgentUsageReportOutput)(nil),           // 16: ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput
+	(*GetOrgUsageReportOutput)(nil),             // 17: ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput
+	(*AgentExecutionSummary)(nil),               // 18: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummary
 }
 var file_ai_stigmer_agentic_agentexecution_v1_query_proto_depIdxs = []int32{
 	0,  // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController.get:input_type -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionId
@@ -72,18 +75,20 @@ var file_ai_stigmer_agentic_agentexecution_v1_query_proto_depIdxs = []int32{
 	6,  // 7: ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController.getSessionUsageReport:input_type -> ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportInput
 	7,  // 8: ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController.getAgentUsageReport:input_type -> ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportInput
 	8,  // 9: ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController.getOrgUsageReport:input_type -> ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportInput
-	9,  // 10: ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController.get:output_type -> ai.stigmer.agentic.agentexecution.v1.AgentExecution
-	10, // 11: ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController.list:output_type -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionList
-	10, // 12: ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController.listBySession:output_type -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionList
-	9,  // 13: ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController.subscribe:output_type -> ai.stigmer.agentic.agentexecution.v1.AgentExecution
-	11, // 14: ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController.getArtifactDownloadUrl:output_type -> ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlResponse
-	12, // 15: ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController.getArtifactContent:output_type -> ai.stigmer.agentic.agentexecution.v1.GetArtifactContentResponse
-	13, // 16: ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController.getExecutionUsageReport:output_type -> ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportOutput
-	14, // 17: ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController.getSessionUsageReport:output_type -> ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput
-	15, // 18: ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController.getAgentUsageReport:output_type -> ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput
-	16, // 19: ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController.getOrgUsageReport:output_type -> ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput
-	10, // [10:20] is the sub-list for method output_type
-	0,  // [0:10] is the sub-list for method input_type
+	9,  // 10: ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController.getExecutionSummary:input_type -> ai.stigmer.agentic.agentexecution.v1.GetAgentExecutionSummaryRequest
+	10, // 11: ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController.get:output_type -> ai.stigmer.agentic.agentexecution.v1.AgentExecution
+	11, // 12: ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController.list:output_type -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionList
+	11, // 13: ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController.listBySession:output_type -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionList
+	10, // 14: ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController.subscribe:output_type -> ai.stigmer.agentic.agentexecution.v1.AgentExecution
+	12, // 15: ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController.getArtifactDownloadUrl:output_type -> ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlResponse
+	13, // 16: ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController.getArtifactContent:output_type -> ai.stigmer.agentic.agentexecution.v1.GetArtifactContentResponse
+	14, // 17: ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController.getExecutionUsageReport:output_type -> ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportOutput
+	15, // 18: ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController.getSessionUsageReport:output_type -> ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput
+	16, // 19: ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController.getAgentUsageReport:output_type -> ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput
+	17, // 20: ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController.getOrgUsageReport:output_type -> ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput
+	18, // 21: ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController.getExecutionSummary:output_type -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummary
+	11, // [11:22] is the sub-list for method output_type
+	0,  // [0:11] is the sub-list for method input_type
 	0,  // [0:0] is the sub-list for extension type_name
 	0,  // [0:0] is the sub-list for extension extendee
 	0,  // [0:0] is the sub-list for field type_name

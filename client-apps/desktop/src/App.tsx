@@ -1,6 +1,7 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { RouterProvider } from "react-router-dom";
 import { Stigmer } from "@stigmer/sdk";
+import type { DeploymentMode } from "@stigmer/sdk";
 import { StigmerProvider, OrgProvider, FetchCacheProvider } from "@stigmer/react";
 import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 import { Toaster } from "sonner";
@@ -14,13 +15,30 @@ import { useRunnerNotifications } from "./hooks/useRunnerNotifications";
 
 const BASE_URL = import.meta.env.VITE_STIGMER_API_URL ?? "http://localhost:7234";
 
-function isLocalMode(): boolean {
+function fallbackDeploymentMode(): DeploymentMode {
   try {
     const url = new URL(BASE_URL);
-    return url.hostname === "localhost" || url.hostname === "127.0.0.1";
+    return url.hostname === "localhost" || url.hostname === "127.0.0.1"
+      ? "local"
+      : "cloud";
   } catch {
-    return true;
+    return "local";
   }
+}
+
+function useServerDeploymentMode(client: Stigmer): DeploymentMode {
+  const [mode, setMode] = useState<DeploymentMode>(fallbackDeploymentMode);
+
+  useEffect(() => {
+    let cancelled = false;
+    client.platform.getServerInfo().then(
+      (info) => { if (!cancelled) setMode(info.deploymentMode); },
+      () => { /* keep URL-based fallback for older servers */ },
+    );
+    return () => { cancelled = true; };
+  }, [client]);
+
+  return mode;
 }
 
 export function App() {
@@ -36,8 +54,6 @@ function AuthenticatedApp() {
   useRunnerNotifications();
   const { colorMode } = useColorModePreference();
 
-  const deploymentMode = isLocalMode() ? "local" : "cloud";
-
   const client = useMemo(
     () =>
       new Stigmer({
@@ -47,6 +63,8 @@ function AuthenticatedApp() {
       }),
     [getAccessToken],
   );
+
+  const deploymentMode = useServerDeploymentMode(client);
 
   useDeepLinkHandler(client, BASE_URL, isAuthenticated);
 

@@ -47,6 +47,7 @@
           "workflow_instance",
           "workflow_execution",
           "environment",
+          "artifact",
           "execution_context",
           "project"
         ]

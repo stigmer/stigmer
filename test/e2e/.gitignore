@@ -1,5 +1,0 @@
-# Flakiness test results
-test-results-*/
-
-# Test data generated at runtime
-testdata/examples/

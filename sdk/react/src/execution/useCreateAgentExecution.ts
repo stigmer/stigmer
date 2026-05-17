@@ -2,8 +2,14 @@
 
 import { useCallback, useState } from "react";
 import type { AttachmentInput, EnvVarInput } from "@stigmer/sdk";
+import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
+
+const INTERACTION_MODE_MAP: Record<string, InteractionMode> = {
+  agent: InteractionMode.AGENT,
+  plan: InteractionMode.PLAN,
+};
 
 /** Input for {@link UseCreateAgentExecutionReturn.create}. */
 export interface CreateAgentExecutionInput {
@@ -43,6 +49,15 @@ export interface CreateAgentExecutionInput {
    * files from their mount paths (default `/inputs/{filename}`).
    */
   readonly attachments?: AttachmentInput[];
+  /**
+   * Interaction mode for this execution.
+   *
+   * - `"agent"` (default): full tool access.
+   * - `"plan"`: read-only analysis, no file mutations.
+   *
+   * Maps to `ExecutionConfig.interaction_mode` in the proto.
+   */
+  readonly interactionMode?: "agent" | "plan";
 }
 
 /** Resolved output of {@link UseCreateAgentExecutionReturn.create}. */
@@ -120,15 +135,23 @@ export function useCreateAgentExecution(): UseCreateAgentExecutionReturn {
       setError(null);
 
       try {
+        const hasConfig = input.modelName || input.interactionMode;
+        const executionConfig = hasConfig
+          ? {
+              ...(input.modelName ? { modelName: input.modelName } : {}),
+              ...(input.interactionMode
+                ? { interactionMode: INTERACTION_MODE_MAP[input.interactionMode] ?? InteractionMode.UNSPECIFIED }
+                : {}),
+            }
+          : undefined;
+
         const execution = await stigmer.agentExecution.create({
           name: `execution-${Date.now()}`,
           org: input.org,
           sessionId: input.sessionId,
           agentId: input.agentId,
           message: input.message,
-          executionConfig: input.modelName
-            ? { modelName: input.modelName }
-            : undefined,
+          executionConfig,
           runtimeEnv: input.runtimeEnv,
           attachments: input.attachments,
         });

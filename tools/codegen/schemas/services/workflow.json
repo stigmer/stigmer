@@ -6,6 +6,7 @@
     {
       "name": "WorkflowCommandController",
       "role": "command",
+      "protoFile": "ai/stigmer/agentic/workflow/v1/command.proto",
       "methods": [
         {
           "name": "Apply",
@@ -38,12 +39,21 @@
           "outputType": "Workflow",
           "outputFullType": "ai.stigmer.agentic.workflow.v1.Workflow",
           "description": "Delete a workflow."
+        },
+        {
+          "name": "ValidateSpec",
+          "inputType": "Workflow",
+          "inputFullType": "ai.stigmer.agentic.workflow.v1.Workflow",
+          "outputType": "ServerlessWorkflowValidation",
+          "outputFullType": "ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation",
+          "description": "Validate a workflow spec without persisting it.\n\n Runs the same two-layer validation pipeline used by create/update:\n   Layer 1: Proto field constraints (buf validate / protovalidate)\n   Layer 2: Temporal-based structural validation (Go activity: proto → YAML → Zigflow)\n\n Returns ServerlessWorkflowValidation with:\n   - VALID: Workflow structure passed all checks\n   - INVALID: User error (bad structure, missing fields, unknown task kinds)\n   - FAILED: System error (Temporal unavailable, converter crash)\n\n This RPC does NOT persist, authorize, or create instances. It is a\n pure validation endpoint suitable for iterative authoring workflows\n where the caller needs fast feedback before committing.\n\n @internal\n Authorization: Uses the same permission as create — caller must have\n can_create_workflow in the org. This prevents unauthenticated abuse\n of the validation pipeline while allowing any user who could create\n a workflow to also validate one."
         }
       ]
     },
     {
       "name": "WorkflowQueryController",
       "role": "query",
+      "protoFile": "ai/stigmer/agentic/workflow/v1/query.proto",
       "methods": [
         {
           "name": "Get",
@@ -62,9 +72,106 @@
           "description": "Get a workflow by its organization-scoped reference (org/slug).\n Resolves a human-readable reference like \"stigmer/deploy\" to the full Workflow resource.\n\n @internal\n Custom authorization in handler — checks both direct resource access\n and organization-level visibility permissions."
         }
       ]
+    },
+    {
+      "name": "TaskKindRegistryQueryController",
+      "role": "taskKindRegistryQuery",
+      "protoFile": "ai/stigmer/agentic/workflow/v1/task_kind_registry_query.proto",
+      "methods": [
+        {
+          "name": "GetTaskKindRegistry",
+          "inputType": "GetTaskKindRegistryRequest",
+          "inputFullType": "ai.stigmer.agentic.workflow.v1.GetTaskKindRegistryRequest",
+          "outputType": "GetTaskKindRegistryResponse",
+          "outputFullType": "ai.stigmer.agentic.workflow.v1.GetTaskKindRegistryResponse",
+          "description": "Retrieve the complete task kind registry.\n\n Returns descriptors for all 19 workflow task kinds with full metadata:\n field schemas, JSON Schemas, categories, icons, examples, and output shapes.\n\n Caching: responses are immutable within a platform version. Clients should\n cache aggressively (recommended: 1 hour TTL with stale-while-revalidate)."
+        }
+      ]
     }
   ],
+  "listVia": "SearchService",
   "methodTypes": [
+    {
+      "name": "ServerlessWorkflowValidation",
+      "description": "ServerlessWorkflowValidation contains the generated Serverless Workflow YAML and its validation state.\n\n @internal\n Populated asynchronously after workflow creation via a Temporal workflow\n that validates the workflow structure.",
+      "protoType": "ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation",
+      "protoFile": "apis/ai/stigmer/agentic/workflow/v1/serverless/validation.proto",
+      "fields": [
+        {
+          "name": "State",
+          "jsonName": "state",
+          "protoField": "state",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.workflow.v1.serverless.ValidationState",
+            "enumValues": [
+              "PENDING",
+              "VALID",
+              "INVALID",
+              "FAILED"
+            ]
+          },
+          "description": "Current validation state.",
+          "required": false
+        },
+        {
+          "name": "Yaml",
+          "jsonName": "yaml",
+          "protoField": "yaml",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Generated CNCF Serverless Workflow DSL 1.0.0 YAML.\n Present even if validation failed (helps debugging).\n Empty if validation has not started yet.\n\n @internal\n May contain runtime expressions for environment variables (e.g., ${ .env.API_BASE_URL }).",
+          "required": false
+        },
+        {
+          "name": "Errors",
+          "jsonName": "errors",
+          "protoField": "errors",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "Validation errors, empty when valid.",
+          "required": false
+        },
+        {
+          "name": "Warnings",
+          "jsonName": "warnings",
+          "protoField": "warnings",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "Non-fatal validation warnings.",
+          "required": false
+        },
+        {
+          "name": "ValidatedAt",
+          "jsonName": "validatedAt",
+          "protoField": "validated_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "When the validation was performed.",
+          "required": false
+        },
+        {
+          "name": "ValidationWorkflowId",
+          "jsonName": "validationWorkflowId",
+          "protoField": "validation_workflow_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Validation process ID for tracking validation progress.\n\n @internal\n Temporal workflow ID. Format: \"validate-workflow-{workflow_id}\".",
+          "required": false
+        }
+      ]
+    },
     {
       "name": "ApiResourceReference",
       "description": "Generic reference to any API resource by org and slug.\n Used across resources to reference other resources (e.g., Environment, Agent, Skill).\n Canonical format: \"org/slug\" (e.g., \"stigmer/web-search\", \"acme/my-agent\").",
@@ -114,6 +221,7 @@
               "workflow_instance",
               "workflow_execution",
               "environment",
+              "artifact",
               "execution_context",
               "project"
             ]
@@ -151,9 +259,65 @@
           }
         }
       ]
+    },
+    {
+      "name": "GetTaskKindRegistryRequest",
+      "description": "GetTaskKindRegistryRequest is the request message for retrieving the\n complete task kind registry.",
+      "protoType": "ai.stigmer.agentic.workflow.v1.GetTaskKindRegistryRequest",
+      "protoFile": "apis/ai/stigmer/agentic/workflow/v1/task_kind_descriptor.proto",
+      "fields": []
+    },
+    {
+      "name": "GetTaskKindRegistryResponse",
+      "description": "GetTaskKindRegistryResponse returns the full set of task kind descriptors.",
+      "protoType": "ai.stigmer.agentic.workflow.v1.GetTaskKindRegistryResponse",
+      "protoFile": "apis/ai/stigmer/agentic/workflow/v1/task_kind_descriptor.proto",
+      "fields": [
+        {
+          "name": "Descriptors",
+          "jsonName": "descriptors",
+          "protoField": "descriptors",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "TaskKindDescriptor"
+            }
+          },
+          "description": "All registered task kind descriptors, one per WorkflowTaskKind value.\n Excludes workflow_task_kind_unspecified.",
+          "required": false
+        }
+      ]
     }
   ],
   "enumTypes": [
+    {
+      "name": "ValidationState",
+      "description": "ValidationState represents the current state of serverless workflow validation",
+      "protoType": "ai.stigmer.agentic.workflow.v1.serverless.ValidationState",
+      "values": [
+        {
+          "name": "PENDING",
+          "number": 1,
+          "description": "Validation is pending and has not yet completed."
+        },
+        {
+          "name": "VALID",
+          "number": 2,
+          "description": "Validation completed successfully and the workflow structure is valid."
+        },
+        {
+          "name": "INVALID",
+          "number": 3,
+          "description": "Validation completed but found errors in the workflow structure.\n Check the `errors` field for details."
+        },
+        {
+          "name": "FAILED",
+          "number": 4,
+          "description": "Validation process failed due to a system error (not a user error).\n Retry validation or contact support.\n\n @internal\n Examples: Temporal workflow crashed, activity timeout, etc."
+        }
+      ]
+    },
     {
       "name": "ApiResourceKind",
       "description": "API resource kinds for Stigmer.",
@@ -265,6 +429,11 @@
           "description": "Named set of variables and secrets for agent and workflow execution."
         },
         {
+          "name": "artifact",
+          "number": 55,
+          "description": "Persisted blob produced during workflow or agent execution."
+        },
+        {
           "name": "execution_context",
           "number": 54,
           "description": "User-owned runtime context for managing execution state."
@@ -273,33 +442,6 @@
           "name": "project",
           "number": 60,
           "description": "Aggregate root grouping related resources for lifecycle management."
-        }
-      ]
-    },
-    {
-      "name": "ValidationState",
-      "description": "ValidationState represents the current state of serverless workflow validation",
-      "protoType": "ai.stigmer.agentic.workflow.v1.serverless.ValidationState",
-      "values": [
-        {
-          "name": "PENDING",
-          "number": 1,
-          "description": "Validation is pending and has not yet completed."
-        },
-        {
-          "name": "VALID",
-          "number": 2,
-          "description": "Validation completed successfully and the workflow structure is valid."
-        },
-        {
-          "name": "INVALID",
-          "number": 3,
-          "description": "Validation completed but found errors in the workflow structure.\n Check the `errors` field for details."
-        },
-        {
-          "name": "FAILED",
-          "number": 4,
-          "description": "Validation process failed due to a system error (not a user error).\n Retry validation or contact support.\n\n @internal\n Examples: Temporal workflow crashed, activity timeout, etc."
         }
       ]
     },
@@ -322,7 +464,7 @@
     },
     {
       "name": "WorkflowTaskKind",
-      "description": "WorkflowTaskKind defines the supported task types in a workflow.\n\n @internal\n These map directly to Zigflow DSL task types.\n\n Naming conventions:\n - Zero value: Prefixed for clarity (workflow_task_kind_unspecified)\n - Invocations: Consistent _call suffix (http_call, grpc_call, agent_call, activity_call)\n - Control flow keywords: Semantic suffixes to avoid reserved words (switch_case, for_each, try_catch)\n - Self-descriptive verbs: No suffix needed (fork, listen, wait)\n - Verb + object: For clarity when verb alone is ambiguous (set_vars, run_workflow, raise_error)\n\n Task config schemas (for each kind):\n\n set_vars: {\"variables\": {\"key\": \"value\", ...}}\n http_call: {\"method\": \"POST\", \"endpoint\": {\"uri\": \"...\"}, \"headers\": {...}, \"body\": {...}}\n grpc_call: {\"service\": \"...\", \"method\": \"...\", \"request\": {...}}\n activity_call: {\"activity\": \"ActivityName\", \"input\": {...}}\n switch_case: {\"cases\": [{\"name\": \"...\", \"when\": \"${expr}\", \"then\": \"taskName\"}, ...]}\n for_each: {\"each\": \"item\", \"in\": \"${$data.items}\", \"do\": [{task}, ...]}\n fork: {\"branches\": [{\"name\": \"...\", \"do\": [{task}, ...]}, ...], \"compete\": false}\n try_catch: {\"try\": [{task}, ...], \"catch\": {\"as\": \"error\", \"do\": [{task}, ...]}}\n listen: {\"to\": {\"mode\": \"one\", \"signals\": [{\"id\": \"...\", \"type\": \"signal\"}]}}\n wait: {\"seconds\": 5}\n raise_error: {\"error\": \"ErrorType\", \"message\": \"${...}\"}\n run_workflow: {\"workflow\": \"workflow-name\", \"input\": {...}}\n agent_call: {\"agent\": \"agent-slug\", \"message\": \"...\", \"env\": {...}}",
+      "description": "WorkflowTaskKind defines the supported task types in a workflow.\n\n @internal\n These map directly to Zigflow DSL task types.\n\n Naming conventions:\n - Zero value: Prefixed for clarity (workflow_task_kind_unspecified)\n - Invocations: Consistent _call suffix (http_call, grpc_call, agent_call, activity_call)\n - Control flow keywords: Semantic suffixes to avoid reserved words (switch_case, for_each, try_catch)\n - Self-descriptive verbs: No suffix needed (fork, listen, wait)\n - Verb + object: For clarity when verb alone is ambiguous (set_vars, run_workflow, raise_error)\n\n Task config schemas (for each kind):\n\n set_vars: {\"variables\": {\"key\": \"value\", ...}}\n http_call: {\"method\": \"POST\", \"endpoint\": {\"uri\": \"...\"}, \"headers\": {...}, \"body\": {...}}\n grpc_call: {\"service\": \"...\", \"method\": \"...\", \"request\": {...}}\n activity_call: {\"activity\": \"ActivityName\", \"input\": {...}}\n switch_case: {\"cases\": [{\"name\": \"...\", \"when\": \"${expr}\", \"then\": \"taskName\"}, ...]}\n for_each: {\"each\": \"item\", \"in\": \"${$data.items}\", \"do\": [{task}, ...]}\n fork: {\"branches\": [{\"name\": \"...\", \"do\": [{task}, ...]}, ...], \"compete\": false}\n try_catch: {\"try\": [{task}, ...], \"catch\": {\"as\": \"error\", \"do\": [{task}, ...]}}\n listen: {\"to\": {\"mode\": \"one\", \"signals\": [{\"id\": \"...\", \"type\": \"signal\"}]}}\n wait: {\"seconds\": 5}\n raise_error: {\"error\": \"ErrorType\", \"message\": \"${...}\"}\n run_workflow: {\"workflow\": \"workflow-name\", \"input\": {...}}\n agent_call: {\"agent\": \"agent-slug\", \"message\": \"...\", \"env\": {...}}\n llm_call: {\"model\": \"...\", \"prompt\": \"...\", \"response_schema\": {...}, \"on_invalid\": \"...\"}\n transform: {\"engine\": \"jq\", \"expression\": \"...\", \"input\": \"${...}\"}\n human_input: {\"prompt\": \"...\", \"form_schema\": {...}, \"outcomes\": [...], \"approvers\": [...], \"timeout\": 86400}\n validate: {\"input\": \"${...}\", \"schema\": {...}, \"rules\": [...], \"on_fail\": \"...\"}\n emit_event: {\"event\": {\"type\": \"...\", \"source\": \"...\", \"subject\": \"...\", \"data\": {...}}}\n notification: {\"channel\": \"slack\", \"recipients\": [\"...\"], \"subject\": \"...\", \"body\": \"...\", \"template\": \"...\", \"metadata\": {...}}\n eval: {\"model\": \"...\", \"subject\": \"${...}\", \"rubric\": \"...\", \"scoring_mode\": \"EVAL_PASS_FAIL\", \"threshold\": 0.7, \"on_fail\": \"EVAL_FAIL_RAISE\", \"criteria\": [...]}",
       "protoType": "ai.stigmer.agentic.workflow.v1.WorkflowTaskKind",
       "values": [
         {
@@ -389,6 +531,152 @@
           "name": "agent_call",
           "number": 13,
           "description": "Invoke an AI agent as a workflow task.\n\n @internal\n Allows workflows to delegate complex operations to specialized agents.\n Config: {\"agent\": \"agent-slug\", \"message\": \"...\", \"env\": {...}, \"config\": {...}}"
+        },
+        {
+          "name": "llm_call",
+          "number": 14,
+          "description": "Direct LLM call for classification, extraction, scoring, or routing.\n\n @internal\n Lightweight alternative to agent_call for focused LLM tasks without\n agent overhead (no system prompt resolution, tool setup, or MCP wiring).\n Config: {\"model\": \"...\", \"prompt\": \"...\", \"response_schema\": {...}}"
+        },
+        {
+          "name": "transform",
+          "number": 15,
+          "description": "Deterministic data transformation using JQ, JSONata, or template engines.\n\n @internal\n Reshapes data between tasks without LLM calls. Produces explicit output\n via export, unlike set_vars which mutates workflow state as a side effect.\n Config: {\"engine\": \"jq\", \"expression\": \"...\", \"input\": \"${...}\"}"
+        },
+        {
+          "name": "human_input",
+          "number": 16,
+          "description": "Workflow-level approval gate for human input, review, or sign-off.\n\n @internal\n Pauses workflow execution to collect typed input or approval from a\n human reviewer. Supports custom outcomes, form schemas, approver\n lists, timeouts, and notification channels.\n Config: {\"prompt\": \"...\", \"form_schema\": {...}, \"outcomes\": [...], \"approvers\": [...]}"
+        },
+        {
+          "name": "validate",
+          "number": 17,
+          "description": "Schema and business-rule validation checkpoint.\n\n @internal\n Validates workflow data against JSON Schema and/or business rules\n before downstream tasks consume it. Supports fail, branch, and warn\n policies for flexible error handling.\n Config: {\"input\": \"${...}\", \"schema\": {...}, \"rules\": [...], \"on_fail\": \"...\"}"
+        },
+        {
+          "name": "emit_event",
+          "number": 18,
+          "description": "Emit a CloudEvents-formatted event for external consumers or other workflows.\n\n @internal\n Completes the listen/emit duality: listen waits for Temporal signals,\n emit_event publishes business events using the CloudEvents envelope.\n The runtime bridges the two when events target other workflows.\n Config: {\"event\": {\"type\": \"...\", \"source\": \"...\", \"subject\": \"...\", \"data\": {...}}}"
+        },
+        {
+          "name": "notification",
+          "number": 19,
+          "description": "Send a notification to humans through a channel (Slack, email, Discord, etc.).\n\n @internal\n Fire-and-forget convenience abstraction for operational notifications.\n For notifications requiring acknowledgment, use human_input instead.\n Config: {\"channel\": \"slack\", \"recipients\": [\"...\"], \"subject\": \"...\", \"body\": \"...\"}"
+        },
+        {
+          "name": "eval",
+          "number": 20,
+          "description": "LLM-as-a-judge evaluation for semantic quality assessment.\n\n @internal\n Assesses quality, correctness, safety, or completeness of LLM-generated\n or agent-produced content using an LLM judge. Fills the gap between\n structural validation (validate task) and human review (human_input).\n Supports pass/fail, numeric scoring, and multi-criteria evaluation modes.\n Config: {\"model\": \"...\", \"subject\": \"${...}\", \"rubric\": \"...\", \"scoring_mode\": \"...\", \"threshold\": 0.7, \"on_fail\": \"...\"}\n\n @since T17 (Advanced Agentic Orchestration)"
+        }
+      ]
+    },
+    {
+      "name": "BudgetExceededPolicy",
+      "description": "BudgetExceededPolicy defines the runtime behavior when a workflow or per-task\n budget limit is exceeded.\n\n The runtime (T13) evaluates this policy at task boundaries: after each task\n completes, accumulated costs and tokens are compared against the declared\n budget. If a limit is breached, the policy determines what happens next.\n\n @since T05 (Workflow-Level Budget Primitives)",
+      "protoType": "ai.stigmer.agentic.workflow.v1.BudgetExceededPolicy",
+      "values": [
+        {
+          "name": "budget_exceeded_terminate",
+          "number": 1,
+          "description": "Terminate the workflow immediately with EXECUTION_FAILED status.\n The execution record includes the budget breach details for diagnostics."
+        },
+        {
+          "name": "budget_exceeded_human_review",
+          "number": 2,
+          "description": "Pause the workflow and request human review via a system-generated\n approval gate. The reviewer can approve continued execution (with\n an increased budget) or confirm termination.\n Depends on the human_input runtime (T13). If human_input runtime\n is not available, falls back to terminate with a descriptive error."
+        },
+        {
+          "name": "budget_exceeded_warn",
+          "number": 3,
+          "description": "Log a warning but allow the workflow to continue executing.\n Useful for monitoring/alerting without interrupting production workflows."
+        }
+      ]
+    },
+    {
+      "name": "TaskKindCategory",
+      "description": "TaskKindCategory classifies task kinds by their functional role in a workflow.\n\n Used by the UI to render task palettes with grouped categories, and by\n documentation generators to organize task reference pages.\n\n @since T04 (Task Schema Registry)",
+      "protoType": "ai.stigmer.agentic.workflow.v1.TaskKindCategory",
+      "values": [
+        {
+          "name": "TASK_KIND_CATEGORY_CONTROL_FLOW",
+          "number": 1,
+          "description": "Control flow tasks that direct execution order.\n Members: switch_case, for_each, fork, try_catch, wait"
+        },
+        {
+          "name": "TASK_KIND_CATEGORY_INVOCATION",
+          "number": 2,
+          "description": "Tasks that invoke external services or sub-workflows.\n Members: http_call, grpc_call, activity_call, run_workflow"
+        },
+        {
+          "name": "TASK_KIND_CATEGORY_AI",
+          "number": 3,
+          "description": "AI-native tasks that invoke language models or agents.\n Members: agent_call, llm_call"
+        },
+        {
+          "name": "TASK_KIND_CATEGORY_DATA",
+          "number": 4,
+          "description": "Tasks that manipulate, validate, or transform data.\n Members: set_vars, transform, validate"
+        },
+        {
+          "name": "TASK_KIND_CATEGORY_GOVERNANCE",
+          "number": 5,
+          "description": "Tasks that require human interaction to proceed.\n Members: human_input"
+        },
+        {
+          "name": "TASK_KIND_CATEGORY_EVENT",
+          "number": 6,
+          "description": "Tasks that emit, listen for, or route events and notifications.\n Members: listen, emit_event, notification, raise_error"
+        }
+      ]
+    },
+    {
+      "name": "TaskFieldType",
+      "description": "TaskFieldType represents the data type of a task configuration field\n as understood by UI form renderers and schema validators.\n\n @since T04 (Task Schema Registry)",
+      "protoType": "ai.stigmer.agentic.workflow.v1.TaskFieldType",
+      "values": [
+        {
+          "name": "TASK_FIELD_TYPE_STRING",
+          "number": 1,
+          "description": "Plain string value."
+        },
+        {
+          "name": "TASK_FIELD_TYPE_INT32",
+          "number": 2,
+          "description": "32-bit integer."
+        },
+        {
+          "name": "TASK_FIELD_TYPE_FLOAT",
+          "number": 3,
+          "description": "32-bit floating point."
+        },
+        {
+          "name": "TASK_FIELD_TYPE_BOOL",
+          "number": 4,
+          "description": "Boolean true/false."
+        },
+        {
+          "name": "TASK_FIELD_TYPE_ENUM",
+          "number": 5,
+          "description": "Enumeration — valid values listed in TaskFieldDescriptor.enum_values."
+        },
+        {
+          "name": "TASK_FIELD_TYPE_STRUCT",
+          "number": 6,
+          "description": "Structured JSON object (google.protobuf.Struct in proto).\n Used for JSON Schema fields, form schemas, event data payloads."
+        },
+        {
+          "name": "TASK_FIELD_TYPE_REPEATED",
+          "number": 7,
+          "description": "Repeated (array) of a scalar or message type."
+        },
+        {
+          "name": "TASK_FIELD_TYPE_MAP",
+          "number": 8,
+          "description": "Map from string keys to string values."
+        },
+        {
+          "name": "TASK_FIELD_TYPE_MESSAGE",
+          "number": 9,
+          "description": "Nested message type — field contains a sub-object with its own fields."
         }
       ]
     }

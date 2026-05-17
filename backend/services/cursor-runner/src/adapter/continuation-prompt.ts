@@ -31,6 +31,7 @@ import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentex
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { ApprovalAction, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 import {
   formatInstructions,
@@ -41,6 +42,7 @@ import {
   formatReferencedFiles,
   formatResponseRules,
   sanitizeWorkspaceDirs,
+  formatInteractionModePrefix,
 } from "./prompt-builder.js";
 import type { SkillMetadata } from "./prompt-builder.js";
 import { estimateTokens, truncateToTokenBudget } from "./session-memory.js";
@@ -49,7 +51,7 @@ import { estimateTokens, truncateToTokenBudget } from "./session-memory.js";
 // Constants
 // ---------------------------------------------------------------------------
 
-const CONTINUATION_TOKEN_CEILING = 8_000;
+const CONTINUATION_TOKEN_CEILING = 6_000;
 const MAX_RATIONALE_CHARS = 500;
 
 // ---------------------------------------------------------------------------
@@ -65,6 +67,7 @@ export interface ContinuationPromptOptions {
   attachmentPaths: string[];
   sessionMemory: SessionMemory;
   userMessage: string;
+  interactionMode?: InteractionMode;
 }
 
 export interface HitlContinuationPromptOptions {
@@ -75,6 +78,7 @@ export interface HitlContinuationPromptOptions {
   sessionMemory: SessionMemory;
   pendingApprovals: PendingApproval[];
   approvalDecisions: Map<string, ApprovalAction>;
+  interactionMode?: InteractionMode;
 }
 
 // ---------------------------------------------------------------------------
@@ -102,7 +106,10 @@ export function buildContinuationPrompt(options: ContinuationPromptOptions): str
 
   const userSection = `<current_user_message>\n${options.userMessage}\n</current_user_message>`;
 
+  const modePrefix = formatInteractionModePrefix(options.interactionMode);
+
   const allSections = [
+    ...(modePrefix ? [modePrefix] : []),
     formatContinuationContract(),
     ...agentSections,
     ...memorySections,
@@ -179,7 +186,7 @@ function buildAgentContextSections(options: AgentContextOptions): string[] {
   }
 
   const safeDirs = sanitizeWorkspaceDirs(options.workspaceDirs);
-  if (safeDirs.length > 0) {
+  if (safeDirs.length > 1) {
     sections.push(formatWorkspaceContext(safeDirs));
   }
 
@@ -191,7 +198,9 @@ function buildAgentContextSections(options: AgentContextOptions): string[] {
     sections.push(formatReferencedFiles(options.workspaceFileRefs));
   }
 
-  sections.push(formatResponseRules());
+  if (!options.instructions) {
+    sections.push(formatResponseRules());
+  }
 
   return sections;
 }

@@ -1,0 +1,444 @@
+---
+title: Workflow Execution
+description:
+  How to create, monitor, approve, signal, cancel, and recover workflow
+  executions using the SDK and CLI.
+---
+
+A Workflow Execution is a single run of a Workflow Instance. This guide covers
+the full lifecycle — from triggering an execution through monitoring,
+interacting with human gates and signals, to cancellation and recovery.
+
+For the subscribe streaming pattern, see the
+[Streaming guide](/docs/sdk/streaming#subscribe-to-a-workflow-execution). For
+the complete API reference, see
+[Workflow Execution](/docs/sdk/resources/workflow-execution).
+
+## Creating an execution
+
+### CLI
+
+```bash
+stigmer run workflow my-workflow --env TOPIC="AI safety" --env DEPTH="thorough"
+```
+
+The CLI creates a Workflow Execution, streams task progress, and prints the
+final output.
+
+### SDK
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const execution = await stigmer.workflowExecution.create({
+  name: `run-${Date.now()}`,
+  org: "my-org",
+  workflowRef: { slug: "my-workflow" },
+  runtimeEnv: {
+    TOPIC: { value: "AI safety" },
+    DEPTH: { value: "thorough" },
+  },
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+exec, err := client.WorkflowExecution.Create(ctx,
+    &stigmer.WorkflowExecutionInput{
+        Name:        "run-" + ts,
+        Org:         "my-org",
+        WorkflowRef: &stigmer.ApiResourceReference{Slug: "my-workflow"},
+        RuntimeEnv: map[string]*stigmer.RuntimeEnvValue{
+            "TOPIC": {Value: "AI safety"},
+            "DEPTH": {Value: "thorough"},
+        },
+    })
+```
+</Tab>
+<Tab value="Python">
+```python
+execution = client.workflow_executions.create(WorkflowExecutionInput(
+    name=f"run-{int(time.time() * 1000)}",
+    org="my-org",
+    workflow_ref=ApiResourceReference(slug="my-workflow"),
+    runtime_env={
+        "TOPIC": {"value": "AI safety"},
+        "DEPTH": {"value": "thorough"},
+    },
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+var execution = client.workflowExecutions().create(
+    WorkflowExecutionInput.builder()
+        .name("run-" + ts)
+        .org("my-org")
+        .workflowRef(ApiResourceReference.builder()
+            .slug("my-workflow")
+            .build())
+        .runtimeEnv(Map.of(
+            "TOPIC", RuntimeEnvValue.builder().value("AI safety").build(),
+            "DEPTH", RuntimeEnvValue.builder().value("thorough").build()
+        ))
+        .build());
+```
+</Tab>
+</SDKTabs>
+
+The `runtimeEnv` map supplies values for environment variables declared in the
+Workflow's `spec.env`. Variables marked `is_secret` can also be resolved from
+[Environments](/docs/concepts/environments) bound to the Workflow Instance.
+
+## Execution phases
+
+Every execution moves through phases:
+
+**Non-terminal** — the execution is active or paused:
+
+| Phase                            | Meaning                               |
+| -------------------------------- | ------------------------------------- |
+| `EXECUTION_PENDING`              | Queued, waiting for a workflow runner |
+| `EXECUTION_IN_PROGRESS`          | Tasks are executing                   |
+| `EXECUTION_WAITING_FOR_APPROVAL` | Blocked on a `human_input` task       |
+| `EXECUTION_PAUSED`               | Paused by a user, can be resumed      |
+
+**Terminal** — the execution is finished:
+
+| Phase                  | Meaning                                                      |
+| ---------------------- | ------------------------------------------------------------ |
+| `EXECUTION_COMPLETED`  | All tasks finished successfully                              |
+| `EXECUTION_FAILED`     | A task failed and no error handler caught it                 |
+| `EXECUTION_CANCELLED`  | User cancelled gracefully                                    |
+| `EXECUTION_TERMINATED` | Platform stopped the execution (timeout, budget, force-kill) |
+
+## Monitoring with subscribe
+
+Subscribe to real-time updates as each task completes:
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+for await (const snapshot of stigmer.workflowExecution.subscribe({
+  executionId: execution.metadata!.id,
+})) {
+  for (const task of snapshot.status?.tasks ?? []) {
+    console.log(`${task.taskName}: ${task.status}`);
+  }
+
+const phase = snapshot.status?.phase; if (phase === "EXECUTION_COMPLETED") {
+console.log("Output:", snapshot.status?.output); break; } if (phase ===
+"EXECUTION_FAILED") { console.error("Error:", snapshot.status?.error); break; }
+}
+
+````
+</Tab>
+<Tab value="Go">
+```go
+stream, err := client.WorkflowExecution.Subscribe(ctx,
+    &stigmer.SubscribeWorkflowExecutionRequest{
+        ExecutionId: exec.GetMetadata().GetId(),
+    })
+
+for {
+    snapshot, err := stream.Recv()
+    if err == io.EOF {
+        break
+    }
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    status := snapshot.GetStatus()
+    for _, task := range status.GetTasks() {
+        fmt.Printf("%s: %s\n", task.GetTaskName(), task.GetStatus())
+    }
+
+    if isTerminal(status.GetPhase()) {
+        break
+    }
+}
+````
+
+</Tab>
+<Tab value="Python">
+```python
+for snapshot in client.workflow_executions.subscribe(
+    SubscribeWorkflowExecutionRequest(
+        execution_id=execution.metadata.id,
+    ),
+):
+    for task in snapshot.status.tasks:
+        print(f"{task.task_name}: {task.status}")
+
+    if snapshot.status.phase in (
+        "EXECUTION_COMPLETED", "EXECUTION_FAILED",
+    ):
+        print("Output:", snapshot.status.output)
+        break
+
+````
+</Tab>
+</SDKTabs>
+
+For error handling, cancellation, and retry patterns, see the
+[Streaming guide](/docs/sdk/streaming).
+
+## Responding to human_input tasks
+
+When a `human_input` task is reached, the execution enters
+`EXECUTION_WAITING_FOR_APPROVAL`. Submit a reviewer decision to unblock it:
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+await stigmer.workflowExecution.submitWorkflowTaskApproval({
+  executionId: execution.metadata!.id,
+  taskName: "review_content",
+  outcome: "approve",
+  formData: {
+    notes: "Looks good, publish it.",
+  },
+});
+````
+
+</Tab>
+<Tab value="Go">
+```go
+_, err := client.WorkflowExecution.SubmitWorkflowTaskApproval(ctx,
+    &stigmer.SubmitWorkflowTaskApprovalRequest{
+        ExecutionId: execId,
+        TaskName:    "review_content",
+        Outcome:     "approve",
+        FormData: map[string]any{
+            "notes": "Looks good, publish it.",
+        },
+    })
+```
+</Tab>
+<Tab value="Python">
+```python
+client.workflow_executions.submit_workflow_task_approval(
+    SubmitWorkflowTaskApprovalRequest(
+        execution_id=exec_id,
+        task_name="review_content",
+        outcome="approve",
+        form_data={"notes": "Looks good, publish it."},
+    )
+)
+```
+</Tab>
+</SDKTabs>
+
+The `outcome` must match one of the `outcomes[].name` values defined in the
+`human_input` task. The `formData` is validated against the task's `form_schema`
+if one is set.
+
+<Callout type="info">
+  This is different from **agent tool approvals**
+  ([`submitApproval`](/docs/sdk/resources/workflow-execution#submitapproval)),
+  which approve or deny individual tool calls made by an Agent inside an
+  `agent_call` task. Use `submitWorkflowTaskApproval` for workflow-level
+  `human_input` gates.
+</Callout>
+
+### Listing pending approvals
+
+To find all executions waiting for human input:
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const pending = await stigmer.workflowExecution.listPendingApprovals({
+  org: "my-org",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+pending, err := client.WorkflowExecution.ListPendingApprovals(ctx,
+    &stigmer.ListPendingApprovalsRequest{Org: "my-org"})
+```
+</Tab>
+</SDKTabs>
+
+## Sending signals to listen tasks
+
+When a `listen` task is waiting for an external signal, send it with
+`sendSignal`:
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+await stigmer.workflowExecution.sendSignal({
+  executionId: execution.metadata!.id,
+  signalId: "payment_confirmed",
+  payload: { transactionId: "txn-123", amount: 99.99 },
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+_, err := client.WorkflowExecution.SendSignal(ctx,
+    &stigmer.SendSignalRequest{
+        ExecutionId: execId,
+        SignalId:    "payment_confirmed",
+        Payload: map[string]any{
+            "transactionId": "txn-123",
+            "amount":        99.99,
+        },
+    })
+```
+</Tab>
+<Tab value="Python">
+```python
+client.workflow_executions.send_signal(
+    SendSignalRequest(
+        execution_id=exec_id,
+        signal_id="payment_confirmed",
+        payload={"transactionId": "txn-123", "amount": 99.99},
+    )
+)
+```
+</Tab>
+</SDKTabs>
+
+The `signalId` must match the `signal.id` defined in the `listen` task's
+`listen_to` configuration.
+
+## Cancel, terminate, and recover
+
+### Cancel
+
+Gracefully stop a running execution. In-progress tasks are allowed to complete:
+
+<SDKTabs>
+  <Tab value="TypeScript">
+    ```typescript await stigmer.workflowExecution.cancel(executionId); ```
+  </Tab>
+  <Tab value="Go">
+    ```go _, err := client.WorkflowExecution.Cancel(ctx, execId) ```
+  </Tab>
+</SDKTabs>
+
+### Terminate
+
+Force-stop immediately without waiting for in-progress tasks:
+
+<SDKTabs>
+  <Tab value="TypeScript">
+    ```typescript await stigmer.workflowExecution.terminate(executionId); ```
+  </Tab>
+  <Tab value="Go">
+    ```go _, err := client.WorkflowExecution.Terminate(ctx, execId) ```
+  </Tab>
+</SDKTabs>
+
+### Pause and resume
+
+Pause a running execution and resume it later:
+
+<SDKTabs>
+  <Tab value="TypeScript">
+    ```typescript await stigmer.workflowExecution.pause(executionId); //
+    Later... await stigmer.workflowExecution.resume(executionId); ```
+  </Tab>
+  <Tab value="Go">
+    ```go _, err := client.WorkflowExecution.Pause(ctx, execId) // Later... _,
+    err = client.WorkflowExecution.Resume(ctx, execId) ```
+  </Tab>
+</SDKTabs>
+
+### Recover
+
+Recover a failed execution from its last checkpoint. The workflow resumes from
+the task that failed:
+
+<SDKTabs>
+  <Tab value="TypeScript">
+    ```typescript await stigmer.workflowExecution.recover(executionId); ```
+  </Tab>
+  <Tab value="Go">
+    ```go _, err := client.WorkflowExecution.Recover(ctx, execId) ```
+  </Tab>
+</SDKTabs>
+
+## Execution summary and event log
+
+### Execution summary
+
+Get aggregated statistics for an organization's workflow executions:
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const summary = await stigmer.workflowExecution.getExecutionSummary({
+  org: "my-org",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+summary, err := client.WorkflowExecution.GetExecutionSummary(ctx,
+    &stigmer.GetExecutionSummaryRequest{Org: "my-org"})
+```
+</Tab>
+</SDKTabs>
+
+### Event log
+
+Fetch the paginated event log for a specific execution — useful for debugging
+and auditing:
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const log = await stigmer.workflowExecution.getEventLog({
+  executionId: executionId,
+  pageSize: 50,
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+log, err := client.WorkflowExecution.GetEventLog(ctx,
+    &stigmer.GetEventLogRequest{
+        ExecutionId: execId,
+        PageSize:    50,
+    })
+```
+</Tab>
+</SDKTabs>
+
+## Cost and token tracking
+
+Workflow budgets are enforced between tasks. Cost and token usage are tracked
+per-task and aggregated at the execution level. Access them through the
+execution status:
+
+- `status.tasks[].cost` — per-task cost information
+- `status.tasks[].tokenUsage` — per-task token counts
+- Budget violations surface as execution events in the event log
+
+For details on defining budgets, see the
+[Authoring Guide](/docs/guides/workflows#budgets).
+
+## What's next
+
+<Cards>
+  <Card
+    title="Streaming"
+    description="Deep dive into subscribe patterns, error handling, and cancellation."
+    href="/docs/sdk/streaming"
+  />
+  <Card
+    title="API Reference"
+    description="Complete method and type reference for Workflow Executions."
+    href="/docs/sdk/resources/workflow-execution"
+  />
+  <Card
+    title="Workflow Patterns"
+    description="Production-ready patterns for common scenarios."
+    href="/docs/guides/workflow-patterns"
+  />
+</Cards>

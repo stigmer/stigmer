@@ -4,8 +4,10 @@ import { useCallback, useMemo } from "react";
 import { parse as parseYaml } from "yaml";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { toast } from "../feedback/toast";
 import { serializeAgentYaml, serializeMcpServerYaml } from "./serialize-resource-yaml";
+import { serializeWorkflowYaml } from "../workflow/serialize-workflow-yaml";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -14,9 +16,9 @@ import { serializeAgentYaml, serializeMcpServerYaml } from "./serialize-resource
 /** Options for {@link useExportResource}. */
 export interface UseExportResourceOptions {
   /** The resource kind — determines which serializer is used. */
-  readonly kind: "Agent" | "McpServer";
+  readonly kind: "Agent" | "McpServer" | "Workflow";
   /** The proto resource to export, or `null` when not yet loaded. */
-  readonly resource: Agent | McpServer | null;
+  readonly resource: Agent | McpServer | Workflow | null;
 }
 
 /** Return value of {@link useExportResource}. */
@@ -76,13 +78,13 @@ export function useExportResource({
   const yaml = useMemo<string | null>(() => {
     if (!resource) return null;
     if (kind === "Agent") return serializeAgentYaml(resource as Agent);
+    if (kind === "Workflow") return serializeWorkflowYaml(resource as Workflow);
     return serializeMcpServerYaml(resource as McpServer);
   }, [kind, resource]);
 
   const json = useMemo<string | null>(() => {
     if (!resource) return null;
-    if (kind === "Agent") return serializeResourceJson(resource as Agent, "Agent");
-    return serializeResourceJson(resource as McpServer, "McpServer");
+    return serializeResourceJson(resource, kind);
   }, [kind, resource]);
 
   const slug = useMemo<string>(() => {
@@ -131,12 +133,13 @@ export function useExportResource({
  * to the YAML structure (snake_case fields, no status).
  */
 function serializeResourceJson(
-  resource: Agent | McpServer,
-  kind: "Agent" | "McpServer",
+  resource: Agent | McpServer | Workflow,
+  kind: "Agent" | "McpServer" | "Workflow",
 ): string {
-  const yamlStr = kind === "Agent"
-    ? serializeAgentYaml(resource as Agent)
-    : serializeMcpServerYaml(resource as McpServer);
+  let yamlStr: string;
+  if (kind === "Agent") yamlStr = serializeAgentYaml(resource as Agent);
+  else if (kind === "Workflow") yamlStr = serializeWorkflowYaml(resource as Workflow);
+  else yamlStr = serializeMcpServerYaml(resource as McpServer);
 
   const doc = parseYaml(yamlStr);
   return JSON.stringify(doc, null, 2);

@@ -6,7 +6,7 @@ import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { EnvVarDeclaration } from "../../environment/v1/spec_pb.js";
 import { file_ai_stigmer_agentic_environment_v1_spec } from "../../environment/v1/spec_pb.js";
-import type { WorkflowTaskKind } from "./enum_pb.js";
+import type { BudgetExceededPolicy, WorkflowTaskKind } from "./enum_pb.js";
 import { file_ai_stigmer_agentic_workflow_v1_enum } from "./enum_pb.js";
 import { file_ai_stigmer_commons_apiresource_field_options } from "../../../commons/apiresource/field_options_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
@@ -17,7 +17,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/workflow/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_workflow_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvc3BlYy5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxItwCCgxXb3JrZmxvd1NwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSSgoIZG9jdW1lbnQYAiABKAsyMC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3dEb2N1bWVudEIGukgDyAEBEkUKBXRhc2tzGAMgAygLMiwuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93VGFza0IIukgFkgECCAESQgoDZW52GAQgAygLMjUuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93U3BlYy5FbnZFbnRyeRpgCghFbnZFbnRyeRILCgNrZXkYASABKAkSQwoFdmFsdWUYAiABKAsyNC5haS5zdGlnbWVyLmFnZW50aWMuZW52aXJvbm1lbnQudjEuRW52VmFyRGVjbGFyYXRpb246AjgBIpABChBXb3JrZmxvd0RvY3VtZW50Eh0KA2RzbBgBIAEoCUIQukgNcgsyCV4xXC4wXC4wJBIZCgluYW1lc3BhY2UYAiABKAlCBrpIA8gBARIUCgRuYW1lGAMgASgJQga6SAPIAQESFwoHdmVyc2lvbhgEIAEoCUIGukgDyAEBEhMKC2Rlc2NyaXB0aW9uGAUgASgJIp0CCgxXb3JrZmxvd1Rhc2sSFAoEbmFtZRgBIAEoCUIGukgDyAEBEkYKBGtpbmQYAiABKA4yMC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3dUYXNrS2luZEIGukgDyAEBEjwKC3Rhc2tfY29uZmlnGAMgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdEIOukgDyAEB6oUsBGtpbmQSNgoGZXhwb3J0GAQgASgLMiYuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLkV4cG9ydBI5CgRmbG93GAUgASgLMisuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLkZsb3dDb250cm9sIh0KBkV4cG9ydBITCgJhcxgBIAEoCUIHukgEcgIQASIbCgtGbG93Q29udHJvbBIMCgR0aGVuGAEgASgJYgZwcm90bzM", [file_ai_stigmer_agentic_environment_v1_spec, file_ai_stigmer_agentic_workflow_v1_enum, file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate, file_google_protobuf_struct]);
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvc3BlYy5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxIpwDCgxXb3JrZmxvd1NwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSSgoIZG9jdW1lbnQYAiABKAsyMC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3dEb2N1bWVudEIGukgDyAEBEkUKBXRhc2tzGAMgAygLMiwuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93VGFza0IIukgFkgECCAESQgoDZW52GAQgAygLMjUuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93U3BlYy5FbnZFbnRyeRI+CgZidWRnZXQYBSABKAsyLi5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3dCdWRnZXQaYAoIRW52RW50cnkSCwoDa2V5GAEgASgJEkMKBXZhbHVlGAIgASgLMjQuYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudlZhckRlY2xhcmF0aW9uOgI4ASKsAQoOV29ya2Zsb3dCdWRnZXQSFwoPbWF4X2Nvc3RfbWljcm9zGAEgASgDEhgKEG1heF90b3RhbF90b2tlbnMYAiABKAMSHAoUbWF4X2R1cmF0aW9uX3NlY29uZHMYAyABKAUSSQoLb25fZXhjZWVkZWQYBCABKA4yNC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuQnVkZ2V0RXhjZWVkZWRQb2xpY3kikAEKEFdvcmtmbG93RG9jdW1lbnQSHQoDZHNsGAEgASgJQhC6SA1yCzIJXjFcLjBcLjAkEhkKCW5hbWVzcGFjZRgCIAEoCUIGukgDyAEBEhQKBG5hbWUYAyABKAlCBrpIA8gBARIXCgd2ZXJzaW9uGAQgASgJQga6SAPIAQESEwoLZGVzY3JpcHRpb24YBSABKAki3wIKDFdvcmtmbG93VGFzaxIUCgRuYW1lGAEgASgJQga6SAPIAQESRgoEa2luZBgCIAEoDjIwLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvd1Rhc2tLaW5kQga6SAPIAQESPAoLdGFza19jb25maWcYAyABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0Qg66SAPIAQHqhSwEa2luZBI2CgZleHBvcnQYBCABKAsyJi5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuRXhwb3J0EjkKBGZsb3cYBSABKAsyKy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuRmxvd0NvbnRyb2wSQAoKY29tcGVuc2F0ZRgGIAMoCzIsLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvd1Rhc2siHQoGRXhwb3J0EhMKAmFzGAEgASgJQge6SARyAhABIhsKC0Zsb3dDb250cm9sEgwKBHRoZW4YASABKAliBnByb3RvMw", [file_ai_stigmer_agentic_environment_v1_spec, file_ai_stigmer_agentic_workflow_v1_enum, file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate, file_google_protobuf_struct]);
 
 /**
  * WorkflowSpec defines the configurable properties of a workflow.
@@ -61,6 +61,19 @@ export type WorkflowSpec = Message<"ai.stigmer.agentic.workflow.v1.WorkflowSpec"
    * @generated from field: map<string, ai.stigmer.agentic.environment.v1.EnvVarDeclaration> env = 4;
    */
   env: { [key: string]: EnvVarDeclaration };
+
+  /**
+   * Budget limits for this workflow execution.
+   * When set, the runtime (T13) enforces cost, token, and duration limits
+   * across all tasks. The existing org-level billing reservation system
+   * (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
+   * for overall credit exhaustion; workflow budgets prevent individual
+   * workflows from consuming more than intended.
+   * Optional — when not set, no workflow-level budget is enforced.
+   *
+   * @generated from field: ai.stigmer.agentic.workflow.v1.WorkflowBudget budget = 5;
+   */
+  budget?: WorkflowBudget;
 };
 
 /**
@@ -69,6 +82,69 @@ export type WorkflowSpec = Message<"ai.stigmer.agentic.workflow.v1.WorkflowSpec"
  */
 export const WorkflowSpecSchema: GenMessage<WorkflowSpec> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_workflow_v1_spec, 0);
+
+/**
+ * WorkflowBudget declares cost, token, and duration limits for a workflow execution.
+ *
+ * All cost fields use micro-USD (int64): 1 USD = 1,000,000 micros.
+ * This matches the billing domain convention (CostStamp.provider_cost_micros,
+ * CreditLedgerEntry.amount_micros, ExecutionReservation.reserved_micros).
+ *
+ * The runtime checks accumulated costs between task boundaries. Per-task
+ * limits (on LlmCallTaskConfig and AgentExecutionConfig) are checked first;
+ * then the remaining workflow budget is verified before the next task starts.
+ *
+ * Example YAML:
+ *   budget:
+ *     max_cost_micros: 5000000    # $5.00 per run
+ *     max_total_tokens: 500000
+ *     max_duration_seconds: 3600   # 1 hour
+ *     on_exceeded: budget_exceeded_terminate
+ *
+ * @generated from message ai.stigmer.agentic.workflow.v1.WorkflowBudget
+ */
+export type WorkflowBudget = Message<"ai.stigmer.agentic.workflow.v1.WorkflowBudget"> & {
+  /**
+   * Maximum total cost for this workflow execution in micro-USD.
+   * 1 USD = 1,000,000 micros. Example: 2000000 = $2.00.
+   * When exceeded, the on_exceeded policy is applied.
+   * Optional — when 0, no cost limit is enforced.
+   *
+   * @generated from field: int64 max_cost_micros = 1;
+   */
+  maxCostMicros: bigint;
+
+  /**
+   * Maximum total tokens (input + output) across all LLM/agent tasks.
+   * Optional — when 0, no token limit is enforced.
+   *
+   * @generated from field: int64 max_total_tokens = 2;
+   */
+  maxTotalTokens: bigint;
+
+  /**
+   * Maximum wall-clock duration for the entire workflow execution in seconds.
+   * Optional — when 0, no duration limit is enforced (Temporal's own
+   * workflow execution timeout still applies).
+   *
+   * @generated from field: int32 max_duration_seconds = 3;
+   */
+  maxDurationSeconds: number;
+
+  /**
+   * Policy when any budget limit is exceeded.
+   *
+   * @generated from field: ai.stigmer.agentic.workflow.v1.BudgetExceededPolicy on_exceeded = 4;
+   */
+  onExceeded: BudgetExceededPolicy;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.workflow.v1.WorkflowBudget.
+ * Use `create(WorkflowBudgetSchema)` to create a new message.
+ */
+export const WorkflowBudgetSchema: GenMessage<WorkflowBudget> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_workflow_v1_spec, 1);
 
 /**
  * WorkflowDocument contains workflow-level metadata for versioning and identification.
@@ -120,7 +196,7 @@ export type WorkflowDocument = Message<"ai.stigmer.agentic.workflow.v1.WorkflowD
  * Use `create(WorkflowDocumentSchema)` to create a new message.
  */
 export const WorkflowDocumentSchema: GenMessage<WorkflowDocument> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflow_v1_spec, 1);
+  messageDesc(file_ai_stigmer_agentic_workflow_v1_spec, 2);
 
 /**
  * WorkflowTask represents a single executable step in a workflow.
@@ -179,6 +255,12 @@ export type WorkflowTask = Message<"ai.stigmer.agentic.workflow.v1.WorkflowTask"
    * - raise_error: ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig
    * - run_workflow: ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig
    * - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
+   * - llm_call: ai.stigmer.agentic.workflow.v1.tasks.LlmCallTaskConfig
+   * - transform: ai.stigmer.agentic.workflow.v1.tasks.TransformTaskConfig
+   * - human_input: ai.stigmer.agentic.workflow.v1.tasks.HumanInputTaskConfig
+   * - validate: ai.stigmer.agentic.workflow.v1.tasks.ValidateTaskConfig
+   * - emit_event: ai.stigmer.agentic.workflow.v1.tasks.EmitEventTaskConfig
+   * - notification: ai.stigmer.agentic.workflow.v1.tasks.NotificationTaskConfig
    *
    * See: apis/ai/stigmer/agentic/workflow/v1/tasks/*.proto for detailed schemas.
    *
@@ -201,6 +283,61 @@ export type WorkflowTask = Message<"ai.stigmer.agentic.workflow.v1.WorkflowTask"
    * @generated from field: ai.stigmer.agentic.workflow.v1.FlowControl flow = 5;
    */
   flow?: FlowControl;
+
+  /**
+   * Compensation tasks to execute if this task needs to be "undone."
+   *
+   * @internal
+   * Saga-style compensation for workflows with side effects. When a
+   * try_catch block catches an error, it can optionally run the
+   * compensation tasks for all already-completed tasks in reverse order.
+   *
+   * The compensation tasks receive the original task's output in their
+   * input context, allowing them to construct the appropriate undo
+   * operation (e.g., cancel an API call, delete a created resource,
+   * send a reversal notification).
+   *
+   * Only executed when:
+   * 1. The task completed successfully (failed tasks are not compensated)
+   * 2. A subsequent task within the same try_catch scope fails
+   * 3. The catch block is configured to run compensations
+   *
+   * YAML Example:
+   *   try:
+   *     - create_order:
+   *         call: http
+   *         with:
+   *           method: POST
+   *           endpoint: { uri: "https://api.example.com/orders" }
+   *           body: { ... }
+   *         compensate:
+   *           - cancel_order:
+   *               call: http
+   *               with:
+   *                 method: DELETE
+   *                 endpoint: { uri: "https://api.example.com/orders/${ $context.create_order.id }" }
+   *         export:
+   *           as: "${ . }"
+   *     - charge_payment:
+   *         call: http
+   *         with:
+   *           method: POST
+   *           endpoint: { uri: "https://api.example.com/payments" }
+   *   catch:
+   *     as: error
+   *     compensate: true
+   *     do:
+   *       - log_failure:
+   *           call: notification
+   *           with: ...
+   *
+   * Optional - when empty, this task has no compensation action.
+   *
+   * @since T17 (Advanced Agentic Orchestration)
+   *
+   * @generated from field: repeated ai.stigmer.agentic.workflow.v1.WorkflowTask compensate = 6;
+   */
+  compensate: WorkflowTask[];
 };
 
 /**
@@ -208,7 +345,7 @@ export type WorkflowTask = Message<"ai.stigmer.agentic.workflow.v1.WorkflowTask"
  * Use `create(WorkflowTaskSchema)` to create a new message.
  */
 export const WorkflowTaskSchema: GenMessage<WorkflowTask> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflow_v1_spec, 2);
+  messageDesc(file_ai_stigmer_agentic_workflow_v1_spec, 3);
 
 /**
  * Export defines how task output is saved to the workflow context.
@@ -237,7 +374,7 @@ export type Export = Message<"ai.stigmer.agentic.workflow.v1.Export"> & {
  * Use `create(ExportSchema)` to create a new message.
  */
 export const ExportSchema: GenMessage<Export> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflow_v1_spec, 3);
+  messageDesc(file_ai_stigmer_agentic_workflow_v1_spec, 4);
 
 /**
  * FlowControl defines which task executes next after the current task completes.
@@ -266,5 +403,5 @@ export type FlowControl = Message<"ai.stigmer.agentic.workflow.v1.FlowControl"> 
  * Use `create(FlowControlSchema)` to create a new message.
  */
 export const FlowControlSchema: GenMessage<FlowControl> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflow_v1_spec, 4);
+  messageDesc(file_ai_stigmer_agentic_workflow_v1_spec, 5);
 

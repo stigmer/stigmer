@@ -5,6 +5,6 @@ metadata:
   org: stigmer
 spec:
   description: >
-    System skills, agents, and MCP servers bootstrapped with every Stigmer server.
-    This project serves as both the server's bootstrap content and a reference
-    example for creating your own Stigmer projects.
+    System skills, agents, workflows, and MCP servers bootstrapped with every
+    Stigmer server. This project serves as both the server's bootstrap content
+    and a reference example for creating your own Stigmer projects.

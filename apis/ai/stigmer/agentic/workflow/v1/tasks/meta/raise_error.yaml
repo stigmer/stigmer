@@ -1,0 +1,24 @@
+kind: raise_error
+display_name: "Raise Error"
+description: "Raise an error to terminate execution or trigger error handling."
+category: event
+icon: "alert-triangle"
+is_ai_native: false
+requires_external_service: false
+documentation_url: "/docs/guides/workflow-tasks/raise-error"
+
+output_schema:
+  type: "null"
+  description: "raise_error terminates the current execution path."
+
+field_groups:
+  - id: core
+    display_name: "Error"
+    fields: [error, message]
+
+yaml_examples:
+  - |
+    - fail_invalid:
+        raise:
+          error: "ValidationError"
+          message: "Required field missing: ${ $context.missing_field }"

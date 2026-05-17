@@ -52,6 +52,7 @@ Use 'stigmer up server' to start the full local development stack
 	cmd.Flags().String("org", "", "Organization slug (overrides config context)")
 	cmd.Flags().String("runtime", "native", "Runner runtime: native (default) or docker")
 	cmd.Flags().String("image", "", "Docker image for the agent runner (only used with --runtime docker)")
+	cmd.Flags().Bool("insecure", false, "Use plaintext gRPC (no TLS); auto-detected for localhost endpoints")
 	addResultFormatFlags(cmd, &jsonOutput, &quietOutput)
 
 	cmd.AddCommand(newUpServerCommand())
@@ -67,6 +68,7 @@ func handleUpRunner(cmd *cobra.Command, format clioutput.OutputFormat) {
 	org, _ := cmd.Flags().GetString("org")
 	runtime, _ := cmd.Flags().GetString("runtime")
 	image, _ := cmd.Flags().GetString("image")
+	insecure, _ := cmd.Flags().GetBool("insecure")
 
 	opts := runner.StartOptions{
 		Name:             name,
@@ -75,6 +77,7 @@ func handleUpRunner(cmd *cobra.Command, format clioutput.OutputFormat) {
 		OrgOverride:      org,
 		Runtime:          runtime,
 		Image:            image,
+		Insecure:         insecure,
 	}
 
 	if format == clioutput.FormatJSON {
@@ -165,6 +168,7 @@ Identical to 'stigmer up' — provided for clarity when used alongside
 	cmd.Flags().String("org", "", "Organization slug (overrides config context)")
 	cmd.Flags().String("runtime", "native", "Runner runtime: native (default) or docker")
 	cmd.Flags().String("image", "", "Docker image for the agent runner (only used with --runtime docker)")
+	cmd.Flags().Bool("insecure", false, "Use plaintext gRPC (no TLS); auto-detected for localhost endpoints")
 	addResultFormatFlags(cmd, &jsonOutput, &quietOutput)
 
 	return cmd

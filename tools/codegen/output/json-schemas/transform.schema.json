@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "engine": {
+      "description": "Transformation engine to use. Required — must be explicitly set (not UNSPECIFIED).",
+      "enum": [
+        "TRANSFORM_ENGINE_JQ",
+        "TRANSFORM_ENGINE_JSONATA",
+        "TRANSFORM_ENGINE_TEMPLATE"
+      ],
+      "type": "string"
+    },
+    "expression": {
+      "description": "Transformation expression in the chosen engine's syntax. For JQ: a JQ filter expression (e.g., '{name: .full_name}') For JSONata: a JSONata expression (e.g., '{\"name\": full_name}') For TEMPLATE: a Go text/template string with {{ }} placeholders Required field.",
+      "minLength": 1,
+      "type": "string"
+    },
+    "input": {
+      "description": "Expression selecting the input data for the transformation. Supports ${ } expression interpolation. When omitted, the entire workflow context is used as input. Example: \"${ $context.triage }\" to transform just the triage output.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "engine",
+    "expression"
+  ],
+  "title": "TransformTaskConfig",
+  "type": "object"
+}

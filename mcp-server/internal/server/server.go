@@ -17,6 +17,7 @@ import (
 	"github.com/stigmer/stigmer/mcp-server/internal/domains/mcpservers"
 	"github.com/stigmer/stigmer/mcp-server/internal/domains/search"
 	"github.com/stigmer/stigmer/mcp-server/internal/domains/skills"
+	"github.com/stigmer/stigmer/mcp-server/internal/domains/workflowexecutions"
 	"github.com/stigmer/stigmer/mcp-server/internal/domains/workflows"
 )
 
@@ -70,11 +71,20 @@ func registerTools(srv *mcp.Server, serverAddress string) {
 	mcp.AddTool(srv, skills.DeleteTool(), skills.DeleteHandler(serverAddress))
 	mcp.AddTool(srv, workflows.DeleteTool(), workflows.DeleteHandler(serverAddress))
 
-	slog.Info("tools registered", "count", 11, "tools", []string{
+	// Workflow-specific tools — task registry, validation, execution introspection
+	mcp.AddTool(srv, workflows.GetTaskKindRegistryTool(), workflows.GetTaskKindRegistryHandler(serverAddress))
+	mcp.AddTool(srv, workflows.GetTaskKindTool(), workflows.GetTaskKindHandler(serverAddress))
+	mcp.AddTool(srv, workflows.ValidateWorkflowYamlTool(), workflows.ValidateWorkflowYamlHandler(serverAddress))
+	mcp.AddTool(srv, workflowexecutions.GetWorkflowExecutionTool(), workflowexecutions.GetWorkflowExecutionHandler(serverAddress))
+	mcp.AddTool(srv, workflowexecutions.GetWorkflowExecutionEventsTool(), workflowexecutions.GetWorkflowExecutionEventsHandler(serverAddress))
+
+	slog.Info("tools registered", "count", 16, "tools", []string{
 		"search",
 		"get_agent", "get_mcp_server", "get_skill", "get_workflow",
 		"apply_agent", "apply_mcp_server",
 		"delete_agent", "delete_mcp_server", "delete_skill", "delete_workflow",
+		"get_task_kind_registry", "get_task_kind", "validate_workflow_yaml",
+		"get_workflow_execution", "get_workflow_execution_events",
 	})
 }
 

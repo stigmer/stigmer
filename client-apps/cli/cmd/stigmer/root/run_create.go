@@ -28,6 +28,7 @@ type CreateAgentExecutionInput struct {
 	Attachments       []*agentexecutionv1.Attachment
 	WorkspaceFileRefs []string
 	Model             string
+	Mode              string // "agent", "plan", or "" (default)
 	AutoApproveAll    bool
 	Client            *stigmer.Client
 }
@@ -61,11 +62,7 @@ func createAgentExecution(input CreateAgentExecutionInput) (*agentexecutionv1.Ag
 		spec.AgentId = input.AgentID
 	}
 
-	if input.Model != "" {
-		spec.ExecutionConfig = &agentexecutionv1.ExecutionConfig{
-			ModelName: input.Model,
-		}
-	}
+	spec.ExecutionConfig = buildExecutionConfig(input.Model, input.Mode)
 
 	execution := &agentexecutionv1.AgentExecution{
 		ApiVersion: "agentic.stigmer.ai/v1",
@@ -86,6 +83,23 @@ func createAgentExecution(input CreateAgentExecutionInput) (*agentexecutionv1.Ag
 	}
 
 	return result, nil
+}
+
+// buildExecutionConfig creates an ExecutionConfig proto from the CLI flags.
+// Returns nil when neither model nor mode is set, which omits the field
+// from the request and lets the backend apply defaults.
+func buildExecutionConfig(model, mode string) *agentexecutionv1.ExecutionConfig {
+	if model == "" && mode == "" {
+		return nil
+	}
+	cfg := &agentexecutionv1.ExecutionConfig{}
+	if model != "" {
+		cfg.ModelName = model
+	}
+	if mode == "plan" {
+		cfg.InteractionMode = agentexecutionv1.InteractionMode_INTERACTION_MODE_PLAN
+	}
+	return cfg
 }
 
 // createSessionForAgent creates a new session with workspace entries.

@@ -27,6 +27,7 @@ stigmer up [flags]
 | --------------- | -------- | -------- | ------------------------------------------------------------------- |
 | `--endpoint`    | `string` |          | Backend gRPC endpoint (overrides config)                            |
 | `--image`       | `string` |          | Docker image for the agent runner (only used with --runtime docker) |
+| `--insecure`    | `bool`   |          | Use plaintext gRPC (no TLS); auto-detected for localhost endpoints  |
 | `--json`        | `bool`   |          | output result as JSON                                               |
 | `--name`        | `string` |          | Runner name (default: hostname)                                     |
 | `--org`         | `string` |          | Organization slug (overrides config context)                        |
@@ -79,6 +80,7 @@ stigmer up runner [flags]
 | --------------- | -------- | -------- | ------------------------------------------------------------------- |
 | `--endpoint`    | `string` |          | Backend gRPC endpoint (overrides config)                            |
 | `--image`       | `string` |          | Docker image for the agent runner (only used with --runtime docker) |
+| `--insecure`    | `bool`   |          | Use plaintext gRPC (no TLS); auto-detected for localhost endpoints  |
 | `--json`        | `bool`   |          | output result as JSON                                               |
 | `--name`        | `string` |          | Runner name (default: hostname)                                     |
 | `--org`         | `string` |          | Organization slug (overrides config context)                        |

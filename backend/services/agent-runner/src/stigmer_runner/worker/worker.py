@@ -1,6 +1,7 @@
 """Temporal worker for agent-runner service."""
 
 import logging
+import os
 from datetime import timedelta
 
 from temporalio.client import Client
@@ -8,7 +9,6 @@ from temporalio.worker import Worker
 
 from .auth import configure as configure_auth
 from .config import Config
-from .idle_watchdog import IdleWatchdog
 from .temporal_converter import create_data_converter
 
 
@@ -19,16 +19,10 @@ class Runner:
         self.config = config
         self.client: Client | None = None
         self.worker: Worker | None = None
-        self._idle_watchdog: IdleWatchdog | None = None
         self.logger = logging.getLogger(__name__)
         
         configure_auth(config.stigmer_token)
         self.logger.info("Configured Stigmer auth token")
-
-        if config.idle_timeout_seconds:
-            self._idle_watchdog = IdleWatchdog(
-                timeout_seconds=config.idle_timeout_seconds,
-            )
         
         if not config.is_local_mode():
             self._validate_mongodb_connectivity()
@@ -108,11 +102,18 @@ class Runner:
         # The custom data converter tolerates unknown protobuf fields in JSON
         # payloads, preventing hard failures when Go services add new proto
         # fields before the Python worker is redeployed with updated stubs.
+        interceptors = []
+        if os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT"):
+            from temporalio.contrib.opentelemetry import TracingInterceptor
+            interceptors.append(TracingInterceptor())
+            self.logger.info("Temporal TracingInterceptor enabled")
+
         try:
             self.client = await Client.connect(
                 self.config.temporal_service_address,
                 namespace=self.config.temporal_namespace,
                 data_converter=create_data_converter(),
+                interceptors=interceptors,
             )
             self.logger.info(
                 f"✅ [POLYGLOT] Connected to Temporal server at {self.config.temporal_service_address}, "
@@ -161,29 +162,14 @@ class Runner:
         )
     
     async def start(self):
-        """Start the idle watchdog and Temporal worker (blocking)."""
-        if self._idle_watchdog is not None:
-            await self._idle_watchdog.start()
-
+        """Start the Temporal worker (blocking)."""
         self.logger.info(f"Starting Temporal worker on task queue: {self.config.task_queue}")
         if self.worker:
             await self.worker.run()
     
     async def shutdown(self):
-        """Shutdown the worker and close connections.
-
-        Order matters:
-        1. Idle watchdog stops first (prevent re-trigger during drain)
-        2. Temporal worker drains in-flight activities and exits
-        """
+        """Shutdown the worker and close connections."""
         self.logger.info("Shutting down worker...")
-
-        if self._idle_watchdog is not None:
-            try:
-                await self._idle_watchdog.stop()
-                self.logger.info("✓ Idle watchdog stopped")
-            except Exception as e:
-                self.logger.error(f"Error stopping idle watchdog: {e}")
         
         if self.worker:
             try:

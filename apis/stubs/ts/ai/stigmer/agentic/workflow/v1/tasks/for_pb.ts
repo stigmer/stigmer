@@ -2,8 +2,8 @@
 // @generated from file ai/stigmer/agentic/workflow/v1/tasks/for.proto (package ai.stigmer.agentic.workflow.v1.tasks, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
-import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
+import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
+import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { WorkflowTask } from "../spec_pb.js";
 import { file_ai_stigmer_agentic_workflow_v1_spec } from "../spec_pb.js";
 import { file_ai_stigmer_commons_apiresource_field_options } from "../../../../commons/apiresource/field_options_pb.js";
@@ -14,13 +14,20 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/workflow/v1/tasks/for.proto.
  */
 export const file_ai_stigmer_agentic_workflow_v1_tasks_for: GenFile = /*@__PURE__*/
-  fileDesc("Ci5haS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvdGFza3MvZm9yLnByb3RvEiRhaS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEudGFza3MilwEKDUZvclRhc2tDb25maWcSGAoEZWFjaBgBIAEoCUIKukgHyAEBcgIQARIaCgJpbhgCIAEoCUIOukgHyAEBcgIQAdiFLAESQgoCZG8YAyADKAsyLC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3dUYXNrQgi6SAWSAQIIAToM6ossCGZvcl9lYWNoYgZwcm90bzM", [file_ai_stigmer_agentic_workflow_v1_spec, file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate]);
+  fileDesc("Ci5haS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvdGFza3MvZm9yLnByb3RvEiRhaS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEudGFza3MiogIKDUZvclRhc2tDb25maWcSGAoEZWFjaBgBIAEoCUIKukgHyAEBcgIQARIaCgJpbhgCIAEoCUIOukgHyAEBcgIQAdiFLAESQgoCZG8YAyADKAsyLC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3dUYXNrQgi6SAWSAQIIARIgCg9tYXhfcGFyYWxsZWxpc20YBCABKAVCB7pIBBoCKAASGwoKYmF0Y2hfc2l6ZRgFIAEoBUIHukgEGgIoABJKCghvbl9lcnJvchgGIAEoDjI4LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS50YXNrcy5Gb3JFYWNoRXJyb3JQb2xpY3k6DOqLLAhmb3JfZWFjaCp9ChJGb3JFYWNoRXJyb3JQb2xpY3kSJQohRk9SX0VBQ0hfRVJST1JfUE9MSUNZX1VOU1BFQ0lGSUVEEAASFgoSRk9SX0VBQ0hfRkFJTF9GQVNUEAESFQoRRk9SX0VBQ0hfQ09OVElOVUUQAhIRCg1GT1JfRUFDSF9TS0lQEANiBnByb3RvMw", [file_ai_stigmer_agentic_workflow_v1_spec, file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate]);
 
 /**
  * ForTaskConfig defines the configuration for for_each tasks that iterate over collections.
  *
  * @internal
- * YAML Example:
+ * Supports both sequential (default) and parallel execution modes. When
+ * max_parallelism is set, iterations run concurrently using Temporal
+ * workflow goroutines with bounded concurrency.
+ *
+ * Backward compatibility: all new fields default to values that preserve
+ * the pre-T17 sequential behavior. Existing workflows require no changes.
+ *
+ * YAML Example (sequential, unchanged from pre-T17):
  *   - taskName:
  *       for:
  *         each: item
@@ -34,7 +41,26 @@ export const file_ai_stigmer_agentic_workflow_v1_tasks_for: GenFile = /*@__PURE_
  *                 item: ${ $data.item }
  *                 index: ${ $data.index }
  *
+ * YAML Example (parallel with bounded concurrency):
+ *   - batchProcess:
+ *       for:
+ *         each: item
+ *         in: ${ $data.items }
+ *         max_parallelism: 5
+ *         on_error: FOR_EACH_CONTINUE
+ *       do:
+ *         - callApi:
+ *             call: http
+ *             with:
+ *               method: POST
+ *               endpoint:
+ *                 uri: "https://api.example.com/process"
+ *               body:
+ *                 item: ${ $data.item }
+ *
  * Reference: zigflow-dsl-pattern-catalog.md - Task Type 4
+ *
+ * @since max_parallelism, batch_size, on_error: T17 (Advanced Agentic Orchestration)
  *
  * @generated from message ai.stigmer.agentic.workflow.v1.tasks.ForTaskConfig
  */
@@ -62,6 +88,57 @@ export type ForTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.ForTas
    * @generated from field: repeated ai.stigmer.agentic.workflow.v1.WorkflowTask do = 3;
    */
   do: WorkflowTask[];
+
+  /**
+   * Maximum number of iterations to execute concurrently.
+   *
+   * 0 (default): sequential execution — iterations run one at a time
+   * in input order. This preserves pre-T17 behavior.
+   *
+   * 1: effectively sequential (one at a time, but uses the parallel
+   * execution path — useful for testing).
+   *
+   * N > 1: up to N iterations run concurrently using Temporal workflow
+   * goroutines with a semaphore-based concurrency limiter. Results are
+   * always reassembled in original input order regardless of completion
+   * order.
+   *
+   * @since T17 (Advanced Agentic Orchestration)
+   *
+   * @generated from field: int32 max_parallelism = 4;
+   */
+  maxParallelism: number;
+
+  /**
+   * Number of items to process in each batch before moving to the next.
+   *
+   * 0 (default): no batching — all items are available for parallel
+   * execution (up to max_parallelism concurrent).
+   *
+   * N > 0: items are chunked into groups of N. Each chunk is fully
+   * processed before the next chunk begins. Within each chunk, up to
+   * max_parallelism iterations run concurrently.
+   *
+   * Only meaningful when max_parallelism > 0; ignored in sequential mode.
+   *
+   * @since T17 (Advanced Agentic Orchestration)
+   *
+   * @generated from field: int32 batch_size = 5;
+   */
+  batchSize: number;
+
+  /**
+   * Policy for handling individual iteration failures.
+   *
+   * Default: FOR_EACH_FAIL_FAST (stop on first error).
+   * Only meaningful when max_parallelism > 0; in sequential mode, any
+   * failure stops the loop regardless of this setting (pre-T17 behavior).
+   *
+   * @since T17 (Advanced Agentic Orchestration)
+   *
+   * @generated from field: ai.stigmer.agentic.workflow.v1.tasks.ForEachErrorPolicy on_error = 6;
+   */
+  onError: ForEachErrorPolicy;
 };
 
 /**
@@ -70,4 +147,63 @@ export type ForTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.ForTas
  */
 export const ForTaskConfigSchema: GenMessage<ForTaskConfig> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_workflow_v1_tasks_for, 0);
+
+/**
+ * ForEachErrorPolicy defines what happens when an individual iteration fails
+ * during parallel or sequential for_each execution.
+ *
+ * @internal
+ * When max_parallelism > 0 (parallel mode), error handling becomes critical
+ * because multiple iterations are in-flight simultaneously. This policy
+ * governs whether the entire loop fails fast or continues processing.
+ *
+ * @since T17 (Advanced Agentic Orchestration)
+ *
+ * @generated from enum ai.stigmer.agentic.workflow.v1.tasks.ForEachErrorPolicy
+ */
+export enum ForEachErrorPolicy {
+  /**
+   * Unspecified: defaults to FOR_EACH_FAIL_FAST behavior (current behavior).
+   *
+   * @generated from enum value: FOR_EACH_ERROR_POLICY_UNSPECIFIED = 0;
+   */
+  FOR_EACH_ERROR_POLICY_UNSPECIFIED = 0,
+
+  /**
+   * Stop on first error, cancel in-flight iterations.
+   * This is the default and preserves backward compatibility with the
+   * pre-T17 sequential behavior.
+   *
+   * @generated from enum value: FOR_EACH_FAIL_FAST = 1;
+   */
+  FOR_EACH_FAIL_FAST = 1,
+
+  /**
+   * Continue remaining iterations after a failure.
+   * Failed items are recorded in the output with their errors.
+   * The task output includes a summary of successes and failures.
+   * Use when partial results are valuable (e.g., batch API calls where
+   * some may fail but others should proceed).
+   *
+   * @generated from enum value: FOR_EACH_CONTINUE = 2;
+   */
+  FOR_EACH_CONTINUE = 2,
+
+  /**
+   * Skip failed items silently and continue.
+   * Failed items are excluded from the output array.
+   * No error details are preserved.
+   * Use when failures are expected and ignorable (e.g., best-effort
+   * enrichment of optional data).
+   *
+   * @generated from enum value: FOR_EACH_SKIP = 3;
+   */
+  FOR_EACH_SKIP = 3,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.workflow.v1.tasks.ForEachErrorPolicy.
+ */
+export const ForEachErrorPolicySchema: GenEnum<ForEachErrorPolicy> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_workflow_v1_tasks_for, 0);
 

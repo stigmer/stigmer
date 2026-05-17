@@ -2,28 +2,38 @@
 
 import { wrapError } from "./errors";
 import { stripUndefined } from "./proto-utils";
-import { type ResourceRef } from "./types";
+import { type ListParams, type ListResult, type ResourceRef } from "./types";
 import { create, type JsonObject } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { WorkflowSchema, type Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/command_pb";
-import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import { WorkflowTaskKind, BudgetExceededPolicy } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { WorkflowIdSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/io_pb";
 import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
-import { WorkflowSpecSchema, WorkflowDocumentSchema, ExportSchema, FlowControlSchema, WorkflowTaskSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/spec_pb";
+import { type ServerlessWorkflowValidation } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/serverless/validation_pb";
+import { WorkflowSpecSchema, WorkflowDocumentSchema, ExportSchema, FlowControlSchema, WorkflowTaskSchema, WorkflowBudgetSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/spec_pb";
+import { GetTaskKindRegistryRequestSchema, GetTaskKindRegistryResponseSchema, type GetTaskKindRegistryRequest, type GetTaskKindRegistryResponse } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/task_kind_descriptor_pb";
+import { TaskKindRegistryQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/task_kind_registry_query_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import { PageInfoSchema } from "@stigmer/protos/ai/stigmer/commons/rpc/pagination_pb";
+import { SearchRequestSchema } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
+import { SearchService } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
 
 /** Provides operations on workflow resources. */
 export class WorkflowClient {
   private readonly command: Client<typeof WorkflowCommandController>;
   private readonly query: Client<typeof WorkflowQueryController>;
+  private readonly taskKindRegistryQuery: Client<typeof TaskKindRegistryQueryController>;
+  private readonly search: Client<typeof SearchService>;
 
   constructor(transport: Transport) {
     this.command = createClient(WorkflowCommandController, transport);
     this.query = createClient(WorkflowQueryController, transport);
+    this.taskKindRegistryQuery = createClient(TaskKindRegistryQueryController, transport);
+    this.search = createClient(SearchService, transport);
   }
 
   async apply(input: WorkflowInput): Promise<Workflow> {
@@ -50,6 +60,12 @@ export class WorkflowClient {
     } catch (e) { throw wrapError(e); }
   }
 
+  async validateSpec(input: WorkflowInput): Promise<ServerlessWorkflowValidation> {
+    try {
+      return await this.command.validateSpec(buildWorkflowProto(input));
+    } catch (e) { throw wrapError(e); }
+  }
+
   async get(id: string): Promise<Workflow> {
     try {
       return await this.query.get(create(WorkflowIdSchema, { value: id }));
@@ -59,6 +75,30 @@ export class WorkflowClient {
   async getByReference(ref: ResourceRef): Promise<Workflow> {
     try {
       return await this.query.getByReference(create(ApiResourceReferenceSchema, { ...ref, kind: ApiResourceKind.workflow }));
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async getTaskKindRegistry(input: GetTaskKindRegistryRequest): Promise<GetTaskKindRegistryResponse> {
+    try {
+      return await this.taskKindRegistryQuery.getTaskKindRegistry(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async list(params: ListParams): Promise<ListResult> {
+    try {
+      const resp = await this.search.search(create(SearchRequestSchema, {
+        kinds: [ApiResourceKind.workflow],
+        query: params.query,
+        org: params.org,
+        excludePublic: params.excludePublic ?? false,
+        crossOrgPublic: params.crossOrgPublic ?? false,
+        page: params.page ? create(PageInfoSchema, params.page) : undefined,
+      }));
+      return {
+        entries: resp.entries,
+        totalCount: resp.totalCount,
+        totalPages: resp.totalPages,
+      };
     } catch (e) { throw wrapError(e); }
   }
 }
@@ -73,6 +113,7 @@ export interface WorkflowInput {
   document: WorkflowDocumentInput;
   tasks?: WorkflowTaskInput[];
   env?: Record<string, EnvVarDeclarationInput>;
+  budget?: WorkflowBudgetInput;
 }
 
 /** SDK input type for WorkflowDocument. */
@@ -108,6 +149,14 @@ export interface EnvVarDeclarationInput {
   isSecret?: boolean;
   description?: string;
   optional?: boolean;
+}
+
+/** SDK input type for WorkflowBudget. */
+export interface WorkflowBudgetInput {
+  maxCostMicros?: bigint;
+  maxTotalTokens?: bigint;
+  maxDurationSeconds?: number;
+  onExceeded?: BudgetExceededPolicy;
 }
 
 function buildWorkflowDocumentProto(input: WorkflowDocumentInput) {
@@ -150,6 +199,15 @@ function buildEnvVarDeclarationProto(input: EnvVarDeclarationInput) {
   }));
 }
 
+function buildWorkflowBudgetProto(input: WorkflowBudgetInput) {
+  return Object.assign(create(WorkflowBudgetSchema), stripUndefined({
+    maxCostMicros: input.maxCostMicros,
+    maxTotalTokens: input.maxTotalTokens,
+    maxDurationSeconds: input.maxDurationSeconds,
+    onExceeded: input.onExceeded,
+  }));
+}
+
 function buildWorkflowProto(input: WorkflowInput): Workflow {
   const document = input.document ? buildWorkflowDocumentProto(input.document) : undefined;
   const tasks = input.tasks?.map(buildWorkflowTaskProto);
@@ -157,6 +215,7 @@ function buildWorkflowProto(input: WorkflowInput): Workflow {
   if (input.env) {
     env = Object.fromEntries(Object.entries(input.env).map(([k, v]) => [k, buildEnvVarDeclarationProto(v)]));
   }
+  const budget = input.budget ? buildWorkflowBudgetProto(input.budget) : undefined;
   return Object.assign(create(WorkflowSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Workflow",
@@ -171,6 +230,7 @@ function buildWorkflowProto(input: WorkflowInput): Workflow {
       document,
       tasks,
       env,
+      budget,
     })),
   }) as Workflow;
 }
