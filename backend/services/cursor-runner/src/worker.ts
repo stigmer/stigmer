@@ -18,7 +18,7 @@
  * the wrong worker can receive and permanently fail the activity.
  */
 
-import { NativeConnection, Worker, type ActivityInboundCallsInterceptorFactory } from "@temporalio/worker";
+import { NativeConnection, Worker, type ActivityInterceptorsFactory } from "@temporalio/worker";
 import { CURSOR_QUEUE_SUFFIX, type Config } from "./config.js";
 import { createActivities } from "./activity/execute-cursor.js";
 
@@ -30,13 +30,13 @@ export async function startWorker(config: Config): Promise<Worker> {
   const activities = createActivities(config);
   const cursorTaskQueue = config.taskQueue + CURSOR_QUEUE_SUFFIX;
 
-  const activityInterceptors: ActivityInboundCallsInterceptorFactory[] = [];
+  const activityInterceptors: ActivityInterceptorsFactory[] = [];
   if (process.env.OTEL_EXPORTER_OTLP_ENDPOINT) {
     const { OpenTelemetryActivityInboundInterceptor } = await import(
       "@temporalio/interceptors-opentelemetry"
     );
     activityInterceptors.push(
-      (ctx) => new OpenTelemetryActivityInboundInterceptor(ctx),
+      (ctx) => ({ inbound: new OpenTelemetryActivityInboundInterceptor(ctx) }),
     );
     console.log("Temporal OpenTelemetry activity interceptor enabled");
   }

@@ -16,15 +16,14 @@ export async function initTracing(serviceName: string): Promise<(() => Promise<v
   const { NodeTracerProvider } = await import("@opentelemetry/sdk-trace-node");
   const { BatchSpanProcessor } = await import("@opentelemetry/sdk-trace-base");
   const { OTLPTraceExporter } = await import("@opentelemetry/exporter-trace-otlp-grpc");
-  const { Resource } = await import("@opentelemetry/resources");
+  const { resourceFromAttributes } = await import("@opentelemetry/resources");
   const { W3CTraceContextPropagator, CompositePropagator } = await import("@opentelemetry/core");
   const { W3CBaggagePropagator } = await import("@opentelemetry/core");
   const otelApi = await import("@opentelemetry/api");
 
-  const resource = new Resource({ "service.name": serviceName });
+  const resource = resourceFromAttributes({ "service.name": serviceName });
   const exporter = new OTLPTraceExporter({ url: endpoint });
-  const provider = new NodeTracerProvider({ resource });
-  provider.addSpanProcessor(new BatchSpanProcessor(exporter));
+  const provider = new NodeTracerProvider({ resource, spanProcessors: [new BatchSpanProcessor(exporter)] });
   provider.register();
 
   otelApi.propagation.setGlobalPropagator(
@@ -63,7 +62,7 @@ export async function setBaggage(items: Record<string, string>): Promise<void> {
   try {
     const otelApi = await import("@opentelemetry/api");
     const ctx = otelApi.context.active();
-    let bag = otelApi.propagation.getBaggage(ctx) ?? otelApi.createBaggage();
+    let bag = otelApi.propagation.getBaggage(ctx) ?? otelApi.propagation.createBaggage();
     for (const [k, v] of Object.entries(items)) {
       if (v) {
         bag = bag.setEntry(k, { value: v });
@@ -88,10 +87,10 @@ export async function initMetrics(serviceName: string): Promise<(() => Promise<v
 
   const { MeterProvider, PeriodicExportingMetricReader } = await import("@opentelemetry/sdk-metrics");
   const { OTLPMetricExporter } = await import("@opentelemetry/exporter-metrics-otlp-grpc");
-  const { Resource } = await import("@opentelemetry/resources");
+  const { resourceFromAttributes } = await import("@opentelemetry/resources");
   const otelApi = await import("@opentelemetry/api");
 
-  const resource = new Resource({ "service.name": serviceName });
+  const resource = resourceFromAttributes({ "service.name": serviceName });
   const exporter = new OTLPMetricExporter({ url: endpoint });
   const reader = new PeriodicExportingMetricReader({
     exporter,
