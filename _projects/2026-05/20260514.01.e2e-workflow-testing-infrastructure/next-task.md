@@ -68,8 +68,43 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-14 10:02
-**Current Task**: ALL TASKS COMPLETE (T02–T19 + OTel follow-ups). Application spans + baggage done.
-**Status**: Session 30 complete — Application-level OTel spans (LLM call, eval) + W3C baggage propagation across all runners.
+**Current Task**: PROJECT COMPLETE. All 18 tasks (T02-T19) + OTel A1/A2/B follow-ups done.
+**Status**: Session 31 complete — OTel A2 (Python + TS application spans) + B (metrics across all runners). Project finished.
+
+## Session Progress (2026-05-17, Session 31 — OTel A2 Application Spans + B Metrics — PROJECT COMPLETE)
+
+### Accomplished
+
+- Completed **OTel A2**: Application-level spans for Python agent-runner (`stigmer.llm.call` + `stigmer.mcp.tool_call` via LangChain `BaseCallbackHandler`) and TypeScript cursor-runner (`stigmer.cursor.turn` wrapping `agent.send()` + `run.stream()`)
+- Completed **OTel B**: Metrics across all 3 runners — `InitMetrics()` / `init_metrics()` / `initMetrics()` with OTLP/gRPC export, 9 metric instruments (histograms for duration, counters for call counts + tokens, UpDownCounter for active executions)
+- Added integration test span assertions (`AssertSpanExists`) and metric assertion infra (`AssertCounterPositive`, `AssertHistogramRecorded`)
+- 10 unit tests for the Python OTel callback handler
+
+### Files Changed (13 files)
+
+**New (4):** `otel_callback.py`, `test_otel_callback.py`, `metrics.go`, `metric_assertions.go`
+**Modified (9):** `pyproject.toml`, `agent.py`, `worker/otel.py`, `src/otel.ts`, `execute-cursor.ts`, `pkg/otel/otel.go`, `task_builder_call_llm_activities.go`, `workflow_agent_call_test.go`, `workflow_cursor_call_test.go`
+
+### Key Decisions
+
+1. **`stigmer.cursor.turn`** span name (not `stigmer.llm.call`) — honest about Cursor SDK opacity
+2. **LangChain callback on model instance** — fires for all LLM calls without interfering with graphton middleware
+3. **Low-cardinality metric attributes** — only provider/model/service.name, not execution_id
+4. **ManualReader for test metric assertions** — avoids Prometheus container
+
+### Quick Resume
+
+```
+@_projects/2026-05/20260514.01.e2e-workflow-testing-infrastructure/next-task.md
+```
+
+Checkpoint: `checkpoints/2026-05-17-session-31.md`
+
+## Remaining Operational Follow-Ups (Not Development)
+
+1. **Deploy proxy changes to cloud** — merge stigmer-cloud feature branch, rebuild JAR, test proxy mode end-to-end
+2. **Add OpenAI key** to Planton secret groups + auto-fetch in Makefile (enables the 1 skipped test)
+3. **Publish JAR from stigmer-cloud CI** — replace Build Service JAR job with artifact download
 
 ## Session Progress (2026-05-17, Session 30 — Application OTel Spans + Baggage Propagation)
 

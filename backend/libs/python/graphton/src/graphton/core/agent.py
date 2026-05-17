@@ -1055,6 +1055,35 @@ def create_deep_agent(
                 "using native function calling."
             )
 
+    # ── OTel callback for LLM + MCP tool spans ───────────────────────────
+    # Registers a LangChain callback handler that creates stigmer.llm.call
+    # and stigmer.mcp.tool_call spans.  The tool_server_map enables the
+    # handler to distinguish MCP tools from platform tools and annotate
+    # spans with the originating server name.
+    #
+    # Uses the OTel API (not SDK) — when no TracerProvider is configured
+    # the handler is a no-op.  The callback is set on the model instance
+    # so it fires for every LLM call through this model, including
+    # sub-agent calls that inherit the model.
+    try:
+        from graphton.core.otel_callback import OTelCallbackHandler
+
+        tool_server_map: dict[str, str] = {}
+        if mcp_tools:
+            for srv_name, tool_names_list_inner in mcp_tools.items():
+                for tn in tool_names_list_inner:
+                    tool_server_map[tn] = srv_name
+
+        otel_handler = OTelCallbackHandler(tool_server_map=tool_server_map)
+        existing_callbacks = model_instance.callbacks or []
+        model_instance.callbacks = list(existing_callbacks) + [otel_handler]
+        logger.info(
+            "OTel callback handler registered on model (mcp_tool_map=%d entries)",
+            len(tool_server_map),
+        )
+    except Exception:
+        logger.debug("OTel callback not registered (opentelemetry-api may not be installed)")
+
     # ── Tool count observability ────────────────────────────────────────
     # Shared with compile_subagent via audit_tool_set: warns when tool
     # count is high (>25) and truncates overly verbose descriptions.

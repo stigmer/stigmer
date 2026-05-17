@@ -331,6 +331,14 @@ async function executeCursor(
     const usageAccumulator = new UsageAccumulator(validatedModel);
 
     const contextTracker = new ContextTracker(validatedModel);
+    // Phase 10c: Start OTel turn span (coarse-grained — wraps entire agent.send + stream)
+    const { startCursorTurnSpan } = await import("../otel.js");
+    const turnSpan = await startCursorTurnSpan({
+      model: validatedModel,
+      mode: agentMode,
+      sessionId: sessionId ?? "",
+    });
+
     // Phase 11: Send message and stream events
     status.phase = ExecutionPhase.EXECUTION_IN_PROGRESS;
     const collectedEvents: SDKMessage[] = [];
@@ -418,6 +426,26 @@ async function executeCursor(
       `ExecuteCursor stream ended: execution=${executionId}, events=${eventCount}, messages=${status.messages.length}, subAgents=${status.subAgentExecutions.length}`,
     );
 
+    // End OTel turn span with accumulated token usage
+    const usageSnapshot = usageAccumulator.snapshot();
+    turnSpan.setTokens(Number(usageSnapshot.inputTokens), Number(usageSnapshot.outputTokens));
+    turnSpan.end();
+
+    // Record cursor turn metrics (duration, tokens)
+    try {
+      const { recordTurnMetrics } = await import("../otel.js");
+      const turnDurationMs = Date.now() - (status.startedAt ? new Date(status.startedAt).getTime() : Date.now());
+      await recordTurnMetrics({
+        durationMs: turnDurationMs,
+        inputTokens: Number(usageSnapshot.inputTokens),
+        outputTokens: Number(usageSnapshot.outputTokens),
+        model: validatedModel,
+        mode: agentMode,
+      });
+    } catch {
+      // Metrics not initialized — silently skip.
+    }
+
 
     // Phase 11b: Handle platform stop signal early exit
     if (platformStopSignaled) {
@@ -469,9 +497,15 @@ async function executeCursor(
 
     // Phase 13: Map final result
     const result = await run.wait();
+    const sdkResolvedModel = result.model?.id || undefined;
     console.log(
       `ExecuteCursor run.wait() result: execution=${executionId}, result=${JSON.stringify(result)}`,
     );
+    if (sdkResolvedModel && sdkResolvedModel !== validatedModel) {
+      console.log(
+        `ExecuteCursor model divergence: execution=${executionId}, requested=${validatedModel}, sdkResolved=${sdkResolvedModel}`,
+      );
+    }
     status.completedAt = utcTimestamp();
 
     switch (result.status) {
@@ -495,7 +529,7 @@ async function executeCursor(
     await persistStatus(client, executionId, status);
 
     // Phase 13b: Emit billing records for cursor usage
-    await emitBillingRecords(client, executionId, usageAccumulator);
+    await emitBillingRecords(client, executionId, usageAccumulator, sdkResolvedModel);
 
     // Phase 14: Build and persist session memory
     await maybePeristSessionMemory(client, sessionId, session, status, userMessage);
@@ -758,11 +792,13 @@ async function emitBillingRecords(
   client: StigmerClient,
   executionId: string,
   usage: UsageAccumulator,
+  sdkResolvedModel?: string,
 ): Promise<void> {
   const turns = usage.turns();
   if (turns.length === 0) return;
 
-  const model = usage.modelName;
+  const requestedModel = usage.modelName;
+  const resolvedModel = sdkResolvedModel || requestedModel;
   let emitted = 0;
 
   for (const turn of turns) {
@@ -771,8 +807,8 @@ async function emitBillingRecords(
         executionId,
         sequence: turn.sequence,
         provider: "cursor",
-        resolvedModel: model,
-        requestedModel: model,
+        resolvedModel,
+        requestedModel,
         tokens: create(TokenUsageSchema, {
           inputTokens: BigInt(turn.inputTokens),
           outputTokens: BigInt(turn.outputTokens),
@@ -794,8 +830,11 @@ async function emitBillingRecords(
   }
 
   if (emitted > 0) {
+    const modelInfo = resolvedModel !== requestedModel
+      ? `requested=${requestedModel}, resolved=${resolvedModel}`
+      : `model=${requestedModel}`;
     console.log(
-      `Emitted ${emitted}/${turns.length} billing records: execution=${executionId}, model=${model}`,
+      `Emitted ${emitted}/${turns.length} billing records: execution=${executionId}, ${modelInfo}`,
     );
   }
 }

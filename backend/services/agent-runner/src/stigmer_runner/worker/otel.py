@@ -56,6 +56,37 @@ BAGGAGE_SESSION_ID = "stigmer.session_id"
 BAGGAGE_ORG_ID = "stigmer.org_id"
 
 
+def init_metrics(service_name: str) -> Callable[[], None] | None:
+    """Initialize OTel metrics if ``OTEL_EXPORTER_OTLP_ENDPOINT`` is set.
+
+    Returns a synchronous shutdown callable that flushes buffered metrics,
+    or ``None`` when metrics are disabled.
+    """
+    endpoint = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT")
+    if not endpoint:
+        return None
+
+    from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
+    from opentelemetry.sdk.metrics import MeterProvider
+    from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
+    from opentelemetry.sdk.resources import Resource
+
+    resource = Resource.create({"service.name": service_name})
+    exporter = OTLPMetricExporter(endpoint=endpoint, insecure=True)
+    reader = PeriodicExportingMetricReader(exporter, export_interval_millis=30_000)
+    provider = MeterProvider(resource=resource, metric_readers=[reader])
+
+    from opentelemetry import metrics as otel_metrics
+    otel_metrics.set_meter_provider(provider)
+
+    logger.info("OTel metrics enabled (endpoint=%s, service=%s)", endpoint, service_name)
+
+    def shutdown() -> None:
+        provider.shutdown()
+
+    return shutdown
+
+
 def set_baggage(items: dict[str, str]) -> None:
     """Attach key-value pairs to the current context as W3C baggage.
 
