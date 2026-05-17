@@ -46,7 +46,7 @@ func TestWorkflowContinueAsNew_LargeTaskCount(t *testing.T) {
 		varName := fmt.Sprintf("var_%d", i)
 		cfg, err := structpb.NewStruct(map[string]any{
 			"variables": map[string]any{
-				varName: float64(i),
+				varName: fmt.Sprintf("%d", i),
 			},
 		})
 		require.NoError(t, err)

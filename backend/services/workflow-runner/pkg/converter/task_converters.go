@@ -382,13 +382,16 @@ func (c *Converter) convertRaiseTask(cfg *tasksv1.RaiseTaskConfig) map[string]in
 	}
 }
 
-// convertRunTask converts RunTaskConfig to YAML structure
+// convertRunTask converts RunTaskConfig to YAML structure.
+// The SDK model expects workflow as an object ({name, namespace, version}),
+// not a plain string.
 func (c *Converter) convertRunTask(cfg *tasksv1.RunTaskConfig) map[string]interface{} {
 	run := map[string]interface{}{
-		"workflow": cfg.Workflow,
+		"workflow": map[string]interface{}{
+			"name": cfg.Workflow,
+		},
 	}
 
-	// Add optional input
 	if cfg.Input != nil && len(cfg.Input.AsMap()) > 0 {
 		run["with"] = cfg.Input.AsMap()
 	}

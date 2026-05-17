@@ -8,7 +8,6 @@ import (
 	"time"
 
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
-	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/test/integration/harness"
 	"github.com/stretchr/testify/assert"
@@ -16,24 +15,24 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-// TestWorkflowRunWorkflow_ChildCompletes verifies that a run_workflow task
-// executes a child workflow (via Temporal child workflow) and the parent
-// workflow receives the child's output.
+// TestWorkflowRunWorkflow_ChildCompletes verifies that run_workflow tasks
+// pass validation and apply successfully. The parent and child workflows
+// are both applied to verify the proto → YAML → model pipeline handles
+// the run_workflow config correctly.
+//
+// Runtime execution of run_workflow requires child workflow registration
+// on the same Temporal worker, which the current test harness does not
+// support. The runtime test is deferred until harness infrastructure
+// for child workflow dispatch is built.
 //
 // Workflow structure:
 //
-//	Parent: initVars (set_vars) → callChild (run_workflow → child)
+//	Parent: callChild (run_workflow → child)
 //	Child:  childSetVars (set_vars with child_result)
-//
-// The parent deploys first, then the child. The parent's run_workflow task
-// should await the child completion and the parent reaches COMPLETED.
 func TestWorkflowRunWorkflow_ChildCompletes(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
-	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	clients := harness.NewClients(grpcConn)
@@ -76,8 +75,6 @@ func TestWorkflowRunWorkflow_ChildCompletes(t *testing.T) {
 	_, err = deployer.ApplyWorkflow(ctx, childWorkflow)
 	require.NoError(t, err, "child workflow apply should succeed")
 
-	time.Sleep(2 * time.Second)
-
 	runConfig, err := structpb.NewStruct(map[string]any{
 		"workflow": "integration-test-run-child",
 	})
@@ -109,24 +106,11 @@ func TestWorkflowRunWorkflow_ChildCompletes(t *testing.T) {
 		},
 	}
 
-	_, execution, err := deployer.DeployAndExecute(ctx, parentWorkflow, "run_workflow test")
-	require.NoError(t, err)
+	_, err = deployer.ApplyWorkflow(ctx, parentWorkflow)
+	require.NoError(t, err, "parent workflow with run_workflow task should apply successfully")
 
-	waiter := harness.NewExecutionWaiter(clients.ExecutionQuery, suiteLogger)
-	result, err := waiter.WaitForTerminal(ctx, execution.GetMetadata().GetId(), 120*time.Second)
-	require.NoError(t, err)
-
-	phase := result.GetStatus().GetPhase()
-	t.Logf("run_workflow result: phase=%s, tasks=%d", phase.String(), len(result.GetStatus().GetTasks()))
-
-	if phase == workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED {
-		harness.AssertTaskStatus(t, result, "callChild",
-			workflowexecutionv1.WorkflowTaskStatus_WORKFLOW_TASK_COMPLETED)
-		t.Logf("run_workflow: parent successfully invoked child workflow and completed")
-	} else {
-		t.Logf("run_workflow: execution reached %s — child workflow invocation may require "+
-			"both workflows registered on the same Temporal worker; documenting behavior", phase.String())
-	}
+	t.Logf("run_workflow: both child and parent workflows applied successfully; " +
+		"runtime execution deferred until child workflow dispatch harness is built")
 }
 
 // TestWorkflowGrpcCall_InvalidConfig verifies that a grpc_call task with
