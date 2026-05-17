@@ -2159,8 +2159,17 @@ func main() {
 				fmt.Printf("Error in task registry generation: %v\n", err)
 				os.Exit(1)
 			}
+		case "task-docs":
+			if *metaDir == "" {
+				fmt.Println("--meta-dir is required for --target=task-docs")
+				os.Exit(1)
+			}
+			if err := runTaskDocsGeneration(*schemaDir, *outputDir, *metaDir); err != nil {
+				fmt.Printf("Error in task docs generation: %v\n", err)
+				os.Exit(1)
+			}
 		default:
-			fmt.Printf("Comprehensive mode is supported for --target=mcp, --target=sdk-client, --target=sdk-client-ts, --target=sdk-client-python, --target=sdk-client-java, --target=sdk-docs, or --target=task-registry (got %s)\n", *target)
+			fmt.Printf("Comprehensive mode is supported for --target=mcp, --target=sdk-client, --target=sdk-client-ts, --target=sdk-client-python, --target=sdk-client-java, --target=sdk-docs, --target=task-registry, or --target=task-docs (got %s)\n", *target)
 			os.Exit(1)
 		}
 		fmt.Println("\n✅ Comprehensive code generation complete!")

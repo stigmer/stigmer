@@ -5,7 +5,7 @@ category: invocation
 icon: "workflow"
 is_ai_native: false
 requires_external_service: false
-documentation_url: "/docs/workflow/tasks/run-workflow"
+documentation_url: "/docs/guides/workflow-tasks/run-workflow"
 
 output_schema:
   type: object

@@ -5,7 +5,7 @@ category: event
 icon: "radio"
 is_ai_native: false
 requires_external_service: false
-documentation_url: "/docs/workflow/tasks/listen"
+documentation_url: "/docs/guides/workflow-tasks/listen"
 
 output_schema:
   type: object

@@ -5,7 +5,7 @@ category: control_flow
 icon: "shield"
 is_ai_native: false
 requires_external_service: false
-documentation_url: "/docs/workflow/tasks/try-catch"
+documentation_url: "/docs/guides/workflow-tasks/try-catch"
 
 output_schema:
   type: object

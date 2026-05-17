@@ -5,7 +5,7 @@ category: ai
 icon: "scale"
 is_ai_native: true
 requires_external_service: false
-documentation_url: "/docs/workflow/tasks/eval"
+documentation_url: "/docs/guides/workflow-tasks/eval"
 
 output_schema:
   type: object

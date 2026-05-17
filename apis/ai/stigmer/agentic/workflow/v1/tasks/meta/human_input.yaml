@@ -5,7 +5,7 @@ category: governance
 icon: "user-check"
 is_ai_native: false
 requires_external_service: false
-documentation_url: "/docs/workflow/tasks/human-input"
+documentation_url: "/docs/guides/workflow-tasks/human-input"
 
 output_schema:
   type: object

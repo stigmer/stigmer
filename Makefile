@@ -82,7 +82,7 @@ install-vale: ## Install Vale prose linter (auto-detects OS)
 
 # ─── Build ────────────────────────────────────
 
-.PHONY: build build-mcp-server build-java-sdk build-cursor-runner protos codegen gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check
+.PHONY: build build-mcp-server build-java-sdk build-cursor-runner protos codegen gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-task-docs gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-task-docs-check
 build: libs-build build-web verify-desktop docs-build build-mcp-server build-java-sdk build-cursor-runner ## Build all project artifacts
 	@mkdir -p bin
 	cd client-apps/cli && go build -o ../../bin/stigmer .
@@ -109,11 +109,16 @@ protos: ## Generate protocol buffer stubs and SDK client code
 	$(MAKE) -C sdk/python codegen
 	$(MAKE) -C sdk/java codegen
 
-gen-sdk-docs: gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-cli-docs ## Generate all SDK reference docs
+gen-sdk-docs: gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-cli-docs gen-task-docs ## Generate all SDK reference docs
 
 gen-proto-sdk-docs: ## Generate SDK resource docs from proto schemas
 	go run ./tools/codegen/generator --comprehensive --target=sdk-docs \
 		--schema-dir tools/codegen/schemas --output-dir docs/sdk/resources --apis-dir apis
+
+gen-task-docs: ## Generate per-task reference docs from schemas
+	go run ./tools/codegen/generator --comprehensive --target=task-docs \
+		--schema-dir tools/codegen/schemas --output-dir docs/guides/workflow-tasks \
+		--meta-dir apis/ai/stigmer/agentic/workflow/v1/tasks/meta
 
 gen-react-sdk-docs: ## Generate React SDK reference docs from TypeDoc
 	cd sdk/react && npm run typedoc:json
@@ -123,7 +128,7 @@ gen-ink-sdk-docs: ## Generate Ink SDK reference docs from TypeDoc
 	cd sdk/ink && npm run typedoc:json
 	cd site && yarn generate-ink-sdk-docs
 
-gen-sdk-docs-check: gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-cli-docs-check ## Verify all SDK docs are up to date (CI)
+gen-sdk-docs-check: gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-cli-docs-check gen-task-docs-check ## Verify all SDK docs are up to date (CI)
 
 gen-proto-sdk-docs-check: ## Verify proto SDK docs are up to date (CI)
 	@tmpdir=$$(mktemp -d) && \
@@ -140,6 +145,23 @@ gen-proto-sdk-docs-check: ## Verify proto SDK docs are up to date (CI)
 		echo "error: proto SDK docs are stale — run 'make gen-proto-sdk-docs'"; exit 1; \
 	fi; \
 	echo "✓ Proto SDK docs are up to date"
+
+gen-task-docs-check: ## Verify task docs are up to date (CI)
+	@tmpdir=$$(mktemp -d) && \
+	go run ./tools/codegen/generator --comprehensive --target=task-docs \
+		--schema-dir tools/codegen/schemas --output-dir "$$tmpdir" \
+		--meta-dir apis/ai/stigmer/agentic/workflow/v1/tasks/meta && \
+	rc=0; \
+	for f in "$$tmpdir"/*; do \
+		if ! diff -q "$$f" "docs/guides/workflow-tasks/$$(basename $$f)" > /dev/null 2>&1; then \
+			rc=1; break; \
+		fi; \
+	done; \
+	rm -rf "$$tmpdir"; \
+	if [ $$rc -ne 0 ]; then \
+		echo "error: task docs are stale — run 'make gen-task-docs'"; exit 1; \
+	fi; \
+	echo "✓ Task docs are up to date"
 
 gen-react-sdk-docs-check: ## Verify React SDK docs are up to date (CI)
 	@tmpdir=$$(mktemp -d) && \
