@@ -1,0 +1,266 @@
+---
+title: First Workflow
+description: Write, deploy, and run a multi-step Workflow in 5 minutes.
+---
+
+## What you'll build
+
+A working Workflow that uses an LLM to generate content and transforms the
+result — deployed and executed from the CLI. You will write a YAML definition,
+apply it to Stigmer, run it, and stream the result.
+
+**Time**: ~5 minutes **Prerequisites**: Stigmer CLI installed, an API key set in
+`STIGMER_API_KEY`
+
+<Callout type="info">
+  If you haven't set up the CLI yet, see the [Local
+  Quickstart](/docs/getting-started/local).
+</Callout>
+
+<Steps>
+<Step>
+
+## Write the Workflow YAML
+
+Create a file called `summarize.yaml`:
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: Workflow
+metadata:
+  name: summarize
+spec:
+  description: Summarize a topic using an LLM and format the output.
+  document:
+    dsl: "1.0.0"
+    namespace: quickstart
+    name: summarize
+    version: "1.0.0"
+  env:
+    TOPIC:
+      description: "The topic to summarize"
+      required: true
+  tasks:
+    - name: generate_summary
+      kind: llm_call
+      task_config:
+        model: "claude-sonnet-4-5"
+        system_prompt: "You are a concise research assistant."
+        prompt: "Write a 3-paragraph summary about: ${ $context.env.TOPIC }"
+        temperature: 0.3
+        max_tokens: 500
+      export:
+        as: "${ . }"
+      flow:
+        then: format_output
+
+    - name: format_output
+      kind: transform
+      task_config:
+        engine: jq
+        expression: |
+          {
+            topic: $topic,
+            summary: $text,
+            word_count: ($text | split(" ") | length)
+          }
+        input:
+          topic: "${ $context.env.TOPIC }"
+          text: "${ $context.generate_summary.text }"
+      export:
+        as: "${ . }"
+```
+
+This Workflow has two tasks:
+
+1. **`generate_summary`** — calls an LLM to write a summary based on the `TOPIC`
+   environment variable
+2. **`format_output`** — uses a JQ transform to structure the result with a word
+   count
+
+</Step>
+<Step>
+
+## Apply it
+
+Deploy the Workflow to Stigmer:
+
+```bash
+stigmer apply -f summarize.yaml
+```
+
+This registers the Workflow definition. Stigmer validates the YAML structure and
+task references, then creates a default Workflow Instance.
+
+</Step>
+<Step>
+
+## Run it
+
+Execute the Workflow, passing the `TOPIC` environment variable:
+
+```bash
+stigmer run workflow summarize --env TOPIC="the history of the internet"
+```
+
+The CLI creates a Workflow Execution, streams progress as each task completes,
+and prints the final output.
+
+You should see output like:
+
+```
+Workflow execution created: wex_01j5q3k7m8...
+  [1/2] generate_summary ... completed (2.3s)
+  [2/2] format_output    ... completed (0.1s)
+
+Output:
+{
+  "topic": "the history of the internet",
+  "summary": "The internet's origins trace back to ARPANET...",
+  "word_count": 187
+}
+```
+
+</Step>
+<Step>
+
+## Stream from code (optional)
+
+You can also run and monitor Workflows programmatically using the SDK. Create an
+execution and subscribe to real-time updates:
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+import { Stigmer } from "@stigmer/sdk";
+
+const stigmer = new Stigmer({ baseUrl: "https://api.stigmer.ai", apiKey:
+process.env.STIGMER_API_KEY!, });
+
+const execution = await stigmer.workflowExecution.create({ name:
+`run-${Date.now()}`, org: "my-org", workflowRef: { slug: "summarize" },
+runtimeEnv: { TOPIC: { value: "the history of the internet" }, }, });
+
+for await (const snapshot of stigmer.workflowExecution.subscribe({ executionId:
+execution.metadata!.id, })) { const tasks = snapshot.status?.tasks ?? []; for
+(const task of tasks) { console.log(`${task.taskName}: ${task.status}`); }
+
+const phase = snapshot.status?.phase; if ( phase === "EXECUTION_COMPLETED" ||
+phase === "EXECUTION_FAILED" ) { console.log("Output:",
+snapshot.status?.output); break; } }
+
+````
+</Tab>
+<Tab value="Go">
+```go
+exec, err := client.WorkflowExecution.Create(ctx,
+    &stigmer.WorkflowExecutionInput{
+        Name:        "run-" + ts,
+        Org:         "my-org",
+        WorkflowRef: &stigmer.ApiResourceReference{Slug: "summarize"},
+        RuntimeEnv: map[string]*stigmer.RuntimeEnvValue{
+            "TOPIC": {Value: "the history of the internet"},
+        },
+    })
+if err != nil {
+    log.Fatal(err)
+}
+
+stream, err := client.WorkflowExecution.Subscribe(ctx,
+    &stigmer.SubscribeWorkflowExecutionRequest{
+        ExecutionId: exec.GetMetadata().GetId(),
+    })
+if err != nil {
+    log.Fatal(err)
+}
+
+for {
+    snapshot, err := stream.Recv()
+    if err == io.EOF {
+        break
+    }
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    status := snapshot.GetStatus()
+    for _, task := range status.GetTasks() {
+        fmt.Printf("%s: %s\n", task.GetTaskName(), task.GetStatus())
+    }
+
+    if isTerminal(status.GetPhase()) {
+        fmt.Println("Output:", status.GetOutput())
+        break
+    }
+}
+````
+
+</Tab>
+<Tab value="Python">
+```python
+from stigmer import (
+    StigmerClient, WorkflowExecutionInput,
+    SubscribeWorkflowExecutionRequest, ApiResourceReference,
+)
+
+client = StigmerClient(os.environ["STIGMER_API_KEY"])
+
+execution = client.workflow_executions.create(WorkflowExecutionInput(
+name=f"run-{int(time.time() \* 1000)}", org="my-org",
+workflow_ref=ApiResourceReference(slug="summarize"), runtime_env={"TOPIC":
+{"value": "the history of the internet"}}, ))
+
+for snapshot in client.workflow_executions.subscribe(
+SubscribeWorkflowExecutionRequest( execution_id=execution.metadata.id, ), ): for
+task in snapshot.status.tasks: print(f"{task.task_name}: {task.status}")
+
+    if snapshot.status.phase in (
+        "EXECUTION_COMPLETED", "EXECUTION_FAILED"
+    ):
+        print("Output:", snapshot.status.output)
+        break
+
+```
+</Tab>
+</SDKTabs>
+
+For the complete streaming reference, see the
+[Streaming guide](/docs/sdk/streaming#subscribe-to-a-workflow-execution).
+
+</Step>
+</Steps>
+
+## What just happened
+
+You defined a multi-step process in YAML — an LLM call followed by a data
+transform — and ran it as a durable execution. Behind the scenes:
+
+1. `stigmer apply` registered the Workflow blueprint and created a default
+   Workflow Instance
+2. `stigmer run` created a Workflow Execution, passing your `TOPIC` as a
+   runtime environment variable
+3. The workflow runner picked up the execution and ran each task in sequence
+4. Task outputs flowed through the context — `generate_summary` produced text
+   that `format_output` consumed via `${ $context.generate_summary.text }`
+5. The final output was the result of the last task's `export`
+
+## What's next
+
+<Cards>
+  <Card
+    title="Workflow Concepts"
+    description="Understand how Workflows, Instances, and Executions fit together."
+    href="/docs/concepts/workflows"
+  />
+  <Card
+    title="Authoring Guide"
+    description="Learn the full YAML syntax — branching, loops, error handling, and human approvals."
+    href="/docs/guides/workflows"
+  />
+  <Card
+    title="Patterns"
+    description="Production-ready Workflow patterns with worked examples."
+    href="/docs/guides/workflow-patterns"
+  />
+</Cards>
+```

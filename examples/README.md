@@ -135,7 +135,7 @@ Description and usage...
 stigmer skill push
 ```
 
-See [Uploading Skills Guide](../docs/guides/uploading-skills.md) for details.
+See [Uploading Skills Guide](https://stigmer.ai/docs/guides/integrations) for details.
 
 ### Agent Template
 
