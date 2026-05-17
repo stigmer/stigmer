@@ -5,13 +5,13 @@
  * the content via the first user message (Cursor SDK has no systemPrompt
  * parameter). On reinvocation, only the approval decisions are sent.
  *
- * Sections (in order):
+ * Sections (in order, conditionally included):
  * 1. Agent instructions (persona/character)
  * 2. Available skills metadata
  * 3. Sub-agent delegation guidance
- * 4. Workspace context
+ * 4. Workspace context (multi-root only; single-dir is redundant with SDK cwd)
  * 5. Input files / referenced files
- * 6. Response rules
+ * 6. Response rules (only when agent has no custom instructions)
  * 7. User's actual message
  */
 
@@ -75,7 +75,7 @@ export function buildEnhancedPrompt(options: EnhancedPromptOptions): string {
   }
 
   const safeDirs = sanitizeWorkspaceDirs(options.workspaceDirs);
-  if (safeDirs.length > 0) {
+  if (safeDirs.length > 1) {
     sections.push(formatWorkspaceContext(safeDirs));
   }
 
@@ -87,7 +87,9 @@ export function buildEnhancedPrompt(options: EnhancedPromptOptions): string {
     sections.push(formatReferencedFiles(options.workspaceFileRefs));
   }
 
-  sections.push(formatResponseRules());
+  if (!options.instructions) {
+    sections.push(formatResponseRules());
+  }
 
   sections.push(`<user_request>\n${options.userMessage}\n</user_request>`);
 
