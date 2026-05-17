@@ -4,7 +4,6 @@ go_library(
     name = "grpc_client",
     srcs = [
         "execution_context_client.go",
-        "on_behalf_of.go",
         "workflow_client.go",
         "workflow_execution_client.go",
         "workflow_instance_client.go",

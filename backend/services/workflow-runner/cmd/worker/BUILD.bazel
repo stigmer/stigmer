@@ -10,6 +10,7 @@ go_library(
     importpath = "github.com/stigmer/stigmer/backend/services/workflow-runner/cmd/worker",
     visibility = ["//backend/services/workflow-runner:__subpackages__"],
     deps = [
+        "//backend/services/workflow-runner/pkg/otel",
         "//backend/services/workflow-runner/pkg/telemetry",
         "//backend/services/workflow-runner/pkg/utils",
         "//backend/services/workflow-runner/pkg/zigflow",

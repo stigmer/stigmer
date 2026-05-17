@@ -15,6 +15,7 @@ go_library(
         "//mcp-server/internal/domains/mcpservers",
         "//mcp-server/internal/domains/search",
         "//mcp-server/internal/domains/skills",
+        "//mcp-server/internal/domains/workflowexecutions",
         "//mcp-server/internal/domains/workflows",
         "@com_github_modelcontextprotocol_go_sdk//mcp",
     ],

@@ -1,0 +1,14 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "organization",
+    srcs = ["organization_gen.go"],
+    importpath = "github.com/stigmer/stigmer/mcp-server/gen/tenancy/organization",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//mcp-server/internal/convert",
+        "//mcp-server/proto/ai/stigmer/commons/apiresource",
+        "//mcp-server/proto/ai/stigmer/commons/apiresource/apiresourcekind",
+        "//mcp-server/proto/ai/stigmer/tenancy/organization/v1:organization",
+    ],
+)

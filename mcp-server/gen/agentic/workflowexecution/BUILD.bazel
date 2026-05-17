@@ -1,0 +1,14 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "workflowexecution",
+    srcs = ["workflow_execution_gen.go"],
+    importpath = "github.com/stigmer/stigmer/mcp-server/gen/agentic/workflowexecution",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//mcp-server/internal/convert",
+        "//mcp-server/proto/ai/stigmer/agentic/executioncontext/v1:executioncontext",
+        "//mcp-server/proto/ai/stigmer/agentic/workflowexecution/v1:workflowexecution",
+        "//mcp-server/proto/ai/stigmer/commons/apiresource",
+    ],
+)

@@ -8,6 +8,7 @@ go_library(
     deps = [
         "//backend/services/workflow-runner/pkg/claimcheck",
         "//backend/services/workflow-runner/pkg/executor",
+        "//backend/services/workflow-runner/pkg/heartbeat",
         "//backend/services/workflow-runner/pkg/interceptors",
         "//backend/services/workflow-runner/pkg/temporal/searchattributes",
         "//backend/services/workflow-runner/pkg/zigflow/tasks",
@@ -19,5 +20,6 @@ go_library(
         "@io_temporal_go_sdk//interceptor",
         "@io_temporal_go_sdk//worker",
         "@io_temporal_go_sdk//workflow",
+        "@io_temporal_go_sdk_contrib_opentelemetry//:opentelemetry",
     ],
 )
