@@ -93,7 +93,8 @@ def set_baggage(items: dict[str, str]) -> None:
     Must be called inside an async task where ``contextvars`` are active
     (e.g. inside a Temporal activity). Keys with empty values are skipped.
     """
-    from opentelemetry import baggage, context as otel_context
+    from opentelemetry import baggage
+    from opentelemetry import context as otel_context
 
     ctx = otel_context.get_current()
     for k, v in items.items():

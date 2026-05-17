@@ -683,12 +683,13 @@ func generatePythonResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConf
 }
 
 func scanPySpecFields(fields []*FieldSchema, typeMap map[string]*TypeSchema, imports *pyImports) {
+	visited := make(map[string]bool)
 	for _, f := range fields {
-		scanPyFieldImports(f, typeMap, imports)
+		scanPyFieldImports(f, typeMap, imports, visited)
 	}
 }
 
-func scanPyFieldImports(f *FieldSchema, typeMap map[string]*TypeSchema, imports *pyImports) {
+func scanPyFieldImports(f *FieldSchema, typeMap map[string]*TypeSchema, imports *pyImports, visited map[string]bool) {
 	switch {
 	case f.Type.Kind == "message" && f.Type.MessageType == "EnvironmentSpec":
 		imports.addTypesImport("EnvSpecInput")
@@ -705,17 +706,21 @@ func scanPyFieldImports(f *FieldSchema, typeMap map[string]*TypeSchema, imports 
 	case f.Type.Kind == "struct":
 		imports.needsAny = true
 	case f.Type.Kind == "message":
-		if ts, ok := typeMap[f.Type.MessageType]; ok {
-			for _, sf := range ts.Fields {
-				scanPyFieldImports(sf, typeMap, imports)
+		if !visited[f.Type.MessageType] {
+			visited[f.Type.MessageType] = true
+			if ts, ok := typeMap[f.Type.MessageType]; ok {
+				for _, sf := range ts.Fields {
+					scanPyFieldImports(sf, typeMap, imports, visited)
+				}
 			}
 		}
 	case f.Type.Kind == "array" && f.Type.ElementType != nil && f.Type.ElementType.Kind == "message":
 		elemMsg := f.Type.ElementType.MessageType
-		if !isSpecialType(elemMsg) {
+		if !isSpecialType(elemMsg) && !visited[elemMsg] {
+			visited[elemMsg] = true
 			if ts, ok := typeMap[elemMsg]; ok {
 				for _, sf := range ts.Fields {
-					scanPyFieldImports(sf, typeMap, imports)
+					scanPyFieldImports(sf, typeMap, imports, visited)
 				}
 			}
 		}
