@@ -12,6 +12,7 @@ import {
   toast,
 } from "@stigmer/react";
 import { useLibraryNavigation } from "@/domain/library/library-navigation";
+import { useRequestFullViewport } from "@/domain/library/full-viewport-layout";
 
 type PagePhase = "picking" | "editor" | "generating";
 
@@ -22,6 +23,8 @@ export function WorkflowNewPage() {
   const { setLabel } = useBreadcrumbOverride();
 
   const [phase, setPhase] = useState<PagePhase>("picking");
+
+  useRequestFullViewport(phase === "editor");
 
   useEffect(() => {
     setLabel("New workflow");
@@ -47,8 +50,8 @@ export function WorkflowNewPage() {
 
   if (phase === "editor") {
     return (
-      <div className="flex flex-col gap-4">
-        <div>
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex items-center gap-2 border-b border-border px-3 py-2">
           <button
             type="button"
             onClick={() => setPhase("picking")}
@@ -62,14 +65,18 @@ export function WorkflowNewPage() {
             <BackArrowIcon />
             Back
           </button>
+          <span className="text-sm font-medium text-foreground">
+            New workflow
+          </span>
         </div>
-        <div className="h-[calc(100vh-14rem)]">
+        <div className="min-h-0 flex-1">
           <WorkflowEditorView
             initialYaml={STARTER_WORKFLOW_YAML}
             org={org}
             defaultMode="visual"
             onSaveSuccess={handleSaveSuccess}
             onSaveError={handleSaveError}
+            className="h-full"
           />
         </div>
       </div>
