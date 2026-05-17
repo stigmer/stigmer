@@ -50,17 +50,36 @@ Rates are per million tokens with the platform markup already included. You can
 see current rates on the [pricing page](https://stigmer.ai/pricing) or via the
 `getCustomerModelPricing` API.
 
-### Billing policies
+### Platform commission
 
-Rates are set by **billing policies** — versioned configurations that define the
-markup multiplier for each combination of execution harness and model cost tier.
-For example:
+Stigmer applies a flat percentage commission on top of provider rates. The
+commission depends on which execution harness you use:
 
-- **Native harness, standard tier**: 1.25× provider cost
-- **Cursor harness, standard tier**: 1.05× (Cursor already includes margin)
+| Harness | Commission | What you pay         |
+| ------- | ---------- | -------------------- |
+| Native  | 20%        | Provider rate × 1.20 |
+| Cursor  | 10%        | Provider rate × 1.10 |
 
-Policies are applied at billing time. Changing a policy only affects future
-usage — historical charges are immutable.
+**Native** carries a higher commission because Stigmer provides the full
+operational stack: LLM proxy, cache-aware metering, cost caps, and execution
+lifecycle management. **Cursor** carries a lower commission because Cursor
+handles the LLM call — Stigmer provides orchestration and billing on top.
+
+For example, if a model's provider input rate is $3.00 per million tokens:
+
+- Native harness: you pay $3.60 / million input tokens
+- Cursor harness: you pay $3.30 / million input tokens
+
+Rates on the [pricing page](https://stigmer.ai/pricing) and the
+`getCustomerModelPricing` API include the commission — you always see the final
+price you pay. The commission is versioned and only affects future usage —
+historical charges are immutable.
+
+<Callout type="info">
+  Want to reduce costs? See the [cost optimization
+  guide](/docs/guides/cost-optimization) for recommendations on harness
+  selection, prompt caching, and session management.
+</Callout>
 
 ## Execution billing lifecycle
 

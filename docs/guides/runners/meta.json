@@ -7,6 +7,7 @@
     "sandbox-mode",
     "cloud-mode",
     "cursor-harness",
+    "cost-optimization",
     "stop-and-cleanup"
   ]
 }
