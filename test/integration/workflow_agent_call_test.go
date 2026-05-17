@@ -25,6 +25,13 @@ func TestWorkflowAgentCall_SimpleExecution(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
+	var tc *harness.TraceContext
+	if testHarness.OTelEnabled() {
+		tc = harness.StartTestTrace(ctx, t, testHarness.Jaeger)
+		tc.RegisterCleanup(t, testHarness.OutputDir())
+		ctx = tc.Context()
+	}
+
 	clients := harness.NewClients(grpcConn)
 	harness.RequireServiceHealthy(t, ctx, clients)
 	deployer := harness.NewFixtureDeployer(clients, "agent-simple", suiteLogger)
@@ -84,6 +91,10 @@ func TestWorkflowAgentCall_SimpleExecution(t *testing.T) {
 	t.Logf("execution completed: id=%s, tasks=%d",
 		result.GetMetadata().GetId(),
 		len(result.GetStatus().GetTasks()))
+
+	if tc != nil {
+		harness.AssertSpanExists(t, testHarness.Jaeger, tc.TraceID, "stigmer.llm.call")
+	}
 }
 
 // TestWorkflowAgentCall_StructuredOutput exercises agent_call with a message

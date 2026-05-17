@@ -31,6 +31,7 @@ import (
 	stgmotel "github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/otel"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
+	otelmetric "go.opentelemetry.io/otel/metric"
 	"go.temporal.io/sdk/activity"
 )
 
@@ -80,6 +81,8 @@ func (a *CallLlmActivities) CallLlmActivity(
 		stgmotel.BaggageExecutionID: workflowExecutionId,
 	})
 
+	callStart := time.Now()
+
 	ctx, span := otel.Tracer("workflow-runner").Start(ctx, stgmotel.SpanLlmCall)
 	span.SetAttributes(
 		stgmotel.AttrLlmProvider.String(provider),
@@ -91,6 +94,11 @@ func (a *CallLlmActivities) CallLlmActivity(
 		stgmotel.AttrWorkflowExecutionID.String(workflowExecutionId),
 	)
 	defer span.End()
+
+	metricAttrs := otelmetric.WithAttributes(
+		stgmotel.AttrLlmProvider.String(provider),
+		stgmotel.AttrLlmModel.String(cfg.Model),
+	)
 
 	logger.Info("Starting LLM call activity",
 		"model", cfg.Model,
@@ -135,6 +143,17 @@ func (a *CallLlmActivities) CallLlmActivity(
 	}
 	if v, exists := result["output_tokens"]; exists {
 		span.SetAttributes(stgmotel.AttrLlmOutputTokens.Int64(toInt64(v)))
+	}
+
+	// Record metrics: duration, call count, token counters
+	mi := stgmotel.GetInstruments()
+	mi.LlmCallDuration.Record(ctx, float64(time.Since(callStart).Milliseconds()), metricAttrs)
+	mi.LlmCallCount.Add(ctx, 1, metricAttrs)
+	if v, exists := result["input_tokens"]; exists {
+		mi.LlmTokensInput.Add(ctx, toInt64(v), metricAttrs)
+	}
+	if v, exists := result["output_tokens"]; exists {
+		mi.LlmTokensOutput.Add(ctx, toInt64(v), metricAttrs)
 	}
 
 	result["model"] = cfg.Model

@@ -4,11 +4,15 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/baggage"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	otelmetric "go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
@@ -58,6 +62,53 @@ func InitTracing(ctx context.Context, serviceName string) (shutdown func(context
 	))
 
 	return tp.Shutdown, nil
+}
+
+// InitMetrics configures the global OTel MeterProvider from the same
+// OTEL_EXPORTER_OTLP_ENDPOINT env var used by InitTracing. The metrics
+// are exported via OTLP/gRPC with a 30-second periodic reader interval.
+// Returns a nil shutdown when the env var is unset (no-op).
+func InitMetrics(ctx context.Context, serviceName string) (shutdown func(context.Context) error, err error) {
+	endpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+	if endpoint == "" {
+		return nil, nil
+	}
+
+	conn, err := grpc.NewClient(endpoint,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("dial otlp metric endpoint %s: %w", endpoint, err)
+	}
+
+	exporter, err := otlpmetricgrpc.New(ctx, otlpmetricgrpc.WithGRPCConn(conn))
+	if err != nil {
+		return nil, fmt.Errorf("create otlp metric exporter: %w", err)
+	}
+
+	res, err := resource.New(ctx,
+		resource.WithAttributes(
+			semconv.ServiceNameKey.String(serviceName),
+		),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("create otel metric resource: %w", err)
+	}
+
+	mp := metric.NewMeterProvider(
+		metric.WithReader(metric.NewPeriodicReader(exporter, metric.WithInterval(30*time.Second))),
+		metric.WithResource(res),
+	)
+
+	otel.SetMeterProvider(mp)
+
+	return mp.Shutdown, nil
+}
+
+// Meter returns the global meter for the workflow-runner. Instruments
+// created from this meter are no-ops when no MeterProvider is configured.
+func Meter() otelmetric.Meter {
+	return otel.Meter("workflow-runner")
 }
 
 // SetBaggage attaches the given key-value pairs to the context as W3C baggage.
