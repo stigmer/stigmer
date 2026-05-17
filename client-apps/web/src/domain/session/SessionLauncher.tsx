@@ -12,7 +12,7 @@ import {
   parseDraftParams,
   useActiveOrgSlug,
 } from "@stigmer/react";
-import type { DraftResourceType } from "@stigmer/react";
+import type { DraftResourceType, InteractionModeOption } from "@stigmer/react";
 import type { ResourceRef } from "@stigmer/sdk";
 import { useDeploymentMode } from "@/domain/_shared/hooks/useDeploymentMode";
 import { useSessionNavigation } from "@/domain/session/session-navigation";
@@ -95,6 +95,8 @@ export function SessionLauncher() {
   // SDK hooks
   // -------------------------------------------------------------------------
 
+  const [interactionMode, setInteractionMode] = useState<InteractionModeOption>("agent");
+
   const flow = useNewSessionFlow({
     org,
     onSessionCreated: navigateToSession,
@@ -155,6 +157,9 @@ export function SessionLauncher() {
           showHarnessSelector
           harness={flow.harness}
           onHarnessChange={flow.setHarness}
+          interactionMode={interactionMode}
+          onInteractionModeChange={setInteractionMode}
+          showInteractionModePicker
           defaultModelId={flow.modelId}
           onModelChange={flow.setModelId}
           placeholder={placeholder}

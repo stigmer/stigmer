@@ -68,8 +68,122 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-14 10:02
-**Current Task**: T18 complete. Resume T01 Phase 4 (T15-T17) or validate pending T19 tests.
-**Status**: T18 SDK Acceptance Smoke Tests implemented and committed (`bcf9eecf1`). Three SDK tests (Go, TypeScript, Python) exercise Agent CRUD + workflow execution lifecycle against the live Java service. All compile and pass go vet.
+**Current Task**: T16 complete. T17 (OpenTelemetry) remains as the final Phase 4 task. Session 27 fixed InteractionModePicker in SessionLauncher + refactored to dropdown.
+**Status**: Session 27 complete — Plan/Agent mode picker now visible in new session launcher (web + desktop).
+
+## Session Progress (2026-05-17, Session 27 — Fix InteractionModePicker in SessionLauncher + Dropdown Refactor)
+
+### Accomplished
+
+- **Diagnosed missing Plan/Agent mode picker** in the SessionLauncher (new session screen) — the `InteractionModePicker` was wired into `SessionPage` (follow-up composer) but not `SessionLauncher`
+- **Added `showInteractionModePicker` props** to both web and desktop `SessionLauncher.tsx` — mirrors the existing pattern from `SessionPage`
+- **Fixed `interactionMode` propagation** in `useNewSessionFlow.ts` — the hook was not forwarding `context?.interactionMode` to `createExecution`, silently dropping the user's mode selection during new session creation
+- **Refactored `InteractionModePicker` from segmented control to dropdown** — replaced the `radiogroup` pill toggle with a `@base-ui/react` Popover dropdown matching the toolbar's `ModelSelector` pattern. Each option now shows a label + description. Scales to future modes (e.g. Ask) without layout changes
+
+### Files Changed (4 files)
+
+**Modified:**
+- `client-apps/web/src/domain/session/SessionLauncher.tsx` — Added `InteractionModeOption` import, `interactionMode` state, 3 picker props
+- `client-apps/desktop/src/pages/SessionLauncher.tsx` — Same additions (DD-016 parity)
+- `sdk/react/src/composer/InteractionModePicker.tsx` — Rewritten from segmented control to Popover dropdown with `MODE_META` descriptions
+- `sdk/react/src/session/useNewSessionFlow.ts` — Added `interactionMode: context?.interactionMode` to execution fields
+
+### Key Decisions
+
+1. **Dropdown over segmented control** — future modes (Ask, etc.) would bloat a segmented control; dropdown stays compact and consistent with ModelSelector
+2. **Description text in dropdown** — "Full tool access — read, write, and execute" vs "Read-only analysis — search and reason only" reduces ambiguity for new users
+
+### Quick Resume
+
+```
+@_projects/2026-05/20260514.01.e2e-workflow-testing-infrastructure/next-task.md
+```
+
+Checkpoint: `checkpoints/2026-05-17-session-27.md`
+
+## Session Progress (2026-05-16, Session 26 — T16 Flake Management Infrastructure)
+
+### Accomplished
+
+- Implemented **T16: Flake Management Infrastructure** — flake detection, quarantine, stress testing, CI health reporting
+- Added `--rerun-fails=2 --rerun-fails-max-failures=5 --rerun-fails-run-root-test` to 6 gotestsum targets
+- Created quarantine registry (`test/integration/quarantine.json`) with `-skip` enforcement
+- Built `flaketrack` Go CLI (`test/integration/tools/flaketrack/`) — 4 source files, 15 unit tests, zero external deps
+- Created `ci.integration-stress.yaml` weekly stress schedule (`-count=3`, no quarantine skip)
+- Updated offline + provider CI workflows with pinned gotestsum (v1.12.1) and flaketrack report step
+- Added `test-integration-stress`, `test-stress`, `flaketrack-report` Makefile targets
+
+### Files Changed (stigmer OSS — uncommitted)
+
+**New (8 files):**
+- `test/integration/quarantine.json` — Quarantine registry
+- `test/integration/tools/flaketrack/main.go` — CLI entry point
+- `test/integration/tools/flaketrack/parser.go` — JSON + rerun report parsing
+- `test/integration/tools/flaketrack/quarantine.go` — quarantine.json reader
+- `test/integration/tools/flaketrack/report.go` — Markdown report generation
+- `test/integration/tools/flaketrack/flaketrack_test.go` — 15 unit tests
+- `test/integration/tools/flaketrack/go.mod` — Standalone Go module
+- `.github/workflows/ci.integration-stress.yaml` — Stress CI workflow
+
+**Modified (4 files):**
+- `test/integration/Makefile` — Rerun flags, quarantine skip, new targets
+- `.github/workflows/ci.integration-offline.yaml` — Pinned gotestsum, flaketrack report
+- `.github/workflows/ci.integration-providers.yaml` — Pinned gotestsum, flaketrack report
+- `Makefile` — Added `test-integration-stress` delegate
+
+### Quick Resume
+
+```
+@_projects/2026-05/20260514.01.e2e-workflow-testing-infrastructure/next-task.md
+```
+
+Checkpoint: `checkpoints/2026-05-16-session-26.md`
+
+## Session Progress (2026-05-16, Session 25 — T15 Temporal Workflow Replay CI Gate)
+
+### Accomplished
+
+- Implemented **T15: Temporal Workflow Replay CI Gate** — complete replay determinism testing for `ExecuteServerlessWorkflow`
+- Built `HistoryExporter` utility using Temporal SDK client API
+- Created replay test (`worker.NewWorkflowReplayer()`) — runs in 0.8s with zero infrastructure
+- Created capture test covering 8 task families: set_vars, set_vars_chain, transform, switch_case, try_catch, raise_error, http_call, for_each
+- Captured and committed 8 gold master JSON histories (~236KB total)
+- Created `ci.replay.yaml` CI workflow — triggers on `backend/services/workflow-runner/**` changes
+- Added Makefile targets: `test-replay` (fast local), `capture-replay-histories` (full harness)
+- Wrote design decision document with regeneration protocol
+
+### Files Changed (stigmer OSS — committed 9d47fa7a0)
+
+- `test/integration/harness/history_exporter.go` — NEW: Temporal history export utility
+- `test/integration/replay_capture_test.go` — NEW: 8 capture workflows
+- `backend/services/workflow-runner/test/replay/replay_test.go` — NEW: Replay determinism test
+- `backend/services/workflow-runner/test/replay/testdata/replay-histories/*.json` — NEW: 8 gold masters
+- `.github/workflows/ci.replay.yaml` — NEW: CI gate
+- `_projects/.../design-decisions/DD-replay-gate.md` — NEW: Design decision
+- `test/integration/Makefile` — added `capture-replay-histories` target
+- `backend/services/workflow-runner/Makefile` — added `test-replay` target
+- `Makefile` (root) — added `test-replay` and `capture-replay-histories` delegates
+- `test/integration/go.mod` — added `go.temporal.io/sdk` v1.39.0
+
+### Key Discoveries
+
+1. `WorkflowReplayer` only registers workflows, not activities — replay verifies command sequences without executing activity code
+2. Proto registration conflict between `apis/stubs/go` and `sdk/go/proto` requires `GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn` in the capture Makefile target
+3. Transform requires `engine` field, http_call requires `timeout_seconds`, for_each requires `each` — discovered via server-side validation
+
+### Next Steps
+
+1. Consider adding `human_input` and `listen` signal-based history captures
+2. T16 (Flake Management) or T17 (OpenTelemetry) from Phase 4
+3. Validate CI replay workflow on PR
+
+### Quick Resume
+
+```
+@_projects/2026-05/20260514.01.e2e-workflow-testing-infrastructure/next-task.md
+```
+
+Checkpoint: `checkpoints/2026-05-16-session-25.md`
 
 ## Session Progress (2026-05-16, Session 24 — T18 SDK Acceptance Smoke Tests)
 

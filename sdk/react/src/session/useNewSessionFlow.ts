@@ -275,6 +275,7 @@ export function useNewSessionFlow(
           modelName: selectedModel ?? validModelId,
           runtimeEnv: context?.runtimeEnv,
           attachments: context?.attachments,
+          interactionMode: context?.interactionMode,
         };
 
         let sessionId: string;
