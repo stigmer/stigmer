@@ -338,6 +338,15 @@ async def _perform_setup_core(
         )
 
     # ─────────────────────────────────────────────────────────────────────
+    # Interaction mode from ExecutionConfig
+    interaction_mode = 0  # UNSPECIFIED = 0 (defaults to AGENT)
+    if (
+        execution.spec.HasField("execution_config")
+        and execution.spec.execution_config.interaction_mode > 0
+    ):
+        interaction_mode = execution.spec.execution_config.interaction_mode
+        logger.info("Interaction mode: %d", interaction_mode)
+
     # Recursion limit from ExecutionConfig.max_tool_rounds
     # ─────────────────────────────────────────────────────────────────────
     min_tool_rounds = 10
@@ -1003,15 +1012,20 @@ async def _perform_setup_core(
             "output_price_per_million": (
                 model_metadata.output_price_per_million or 0.0
             ),
+            "cache_creation_price_per_million": (
+                model_metadata.cache_creation_price_per_million or 0.0
+            ),
             "cache_read_price_per_million": (
                 model_metadata.cache_read_price_per_million or 0.0
             ),
         }
         logger.info(
             "Cost pricing for cap middleware: input=$%.2f/MTok, "
-            "output=$%.2f/MTok, cache_read=$%.2f/MTok",
+            "output=$%.2f/MTok, cache_creation=$%.2f/MTok, "
+            "cache_read=$%.2f/MTok",
             cost_pricing["input_price_per_million"],
             cost_pricing["output_price_per_million"],
+            cost_pricing["cache_creation_price_per_million"],
             cost_pricing["cache_read_price_per_million"],
         )
 
@@ -1225,6 +1239,7 @@ async def _perform_setup_core(
         tool_truncation_callback=None,
         max_cost_usd=max_cost_usd,
         cost_pricing=cost_pricing,
+        interaction_mode=interaction_mode,
         **llm_kwargs,
     )
     if recursion_limit is not None:
