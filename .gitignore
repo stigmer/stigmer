@@ -139,3 +139,4 @@ uv.lock
 # Cursor
 _cursor/
 _aacursor/
+*.bak
