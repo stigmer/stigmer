@@ -100,6 +100,7 @@ export interface UseWorkflowCanvasReturn {
   ) => void;
   readonly removeBranchEdges: (nodeId: string, handleId: string) => void;
   readonly insertTaskOnEdge: (edgeId: string, kindString: string) => void;
+  readonly addSuccessorTask: (sourceNodeId: string, kindString: string) => void;
 }
 
 /**
@@ -620,6 +621,56 @@ export function useWorkflowCanvas(
   );
 
   // ---------------------------------------------------------------------------
+  // Add successor task (AD-T01: "+" button on node)
+  // ---------------------------------------------------------------------------
+
+  const addSuccessorTask = useCallback(
+    (sourceNodeId: string, kindString: string) => {
+      const model = history.currentModel;
+      if (!model) return;
+
+      const sourceNode = model.nodes.find((n) => n.id === sourceNodeId);
+      if (!sourceNode) return;
+
+      const kind = stringToTaskKind(kindString);
+      const category = categorizeKind(kindString);
+      const existingNames = new Set(model.nodes.map((n) => n.taskName));
+      const taskName = generateTaskName(kindString, existingNames);
+
+      const position = {
+        x: sourceNode.position.x,
+        y: sourceNode.position.y + CANVAS_NODE_HEIGHT + DAGRE_CONFIG.ranksep,
+      };
+
+      const node = createTaskNode(taskName, kind, kindString, category, position);
+      const edge = {
+        id: generateEdgeId(),
+        source: sourceNodeId,
+        target: taskName,
+      };
+
+      dispatch(
+        new CompoundCommand(`Add ${kindString} after "${sourceNode.taskName}"`, [
+          new AddNodeCommand(node, null),
+          new AddEdgeCommand(edge),
+        ]),
+      );
+
+      setSelection({ type: "node", id: taskName });
+
+      requestAnimationFrame(() => {
+        const currentModel = history.currentModel;
+        if (currentModel.nodes.length > 0) {
+          const laidOut = applyDagreLayout(currentModel);
+          history.reset(laidOut);
+          syncFromModel(laidOut);
+        }
+      });
+    },
+    [history, dispatch, syncFromModel],
+  );
+
+  // ---------------------------------------------------------------------------
   // Selection
   // ---------------------------------------------------------------------------
 
@@ -711,6 +762,7 @@ export function useWorkflowCanvas(
       migrateBranchHandle,
       removeBranchEdges,
       insertTaskOnEdge,
+      addSuccessorTask,
     }),
     [
       nodes, edges, onNodesChange, onEdgesChange, onConnect,
@@ -720,7 +772,7 @@ export function useWorkflowCanvas(
       updateNodeField, renameNode, updateNodeExport, updateNodeFlow,
       getNodeDescriptor, serializeToYaml,
       updateBranchRouting, migrateBranchHandle, removeBranchEdges,
-      insertTaskOnEdge,
+      insertTaskOnEdge, addSuccessorTask,
     ],
   );
 }

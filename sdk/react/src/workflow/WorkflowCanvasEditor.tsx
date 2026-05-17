@@ -119,8 +119,9 @@ export const WorkflowCanvasEditor = memo(function WorkflowCanvasEditor({
     () => ({
       insertTaskOnEdge: canvas.insertTaskOnEdge,
       deleteNode: handleDeleteNode,
+      addSuccessorTask: canvas.addSuccessorTask,
     }),
-    [canvas.insertTaskOnEdge, handleDeleteNode],
+    [canvas.insertTaskOnEdge, handleDeleteNode, canvas.addSuccessorTask],
   );
 
   const descriptor = canvas.selection?.type === "node"
