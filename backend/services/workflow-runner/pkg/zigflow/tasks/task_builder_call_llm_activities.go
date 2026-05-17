@@ -28,6 +28,9 @@ import (
 	openai "github.com/sashabaranov/go-openai"
 	workflowtasks "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/config"
+	stgmotel "github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/otel"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/codes"
 	"go.temporal.io/sdk/activity"
 )
 
@@ -66,6 +69,29 @@ func (a *CallLlmActivities) CallLlmActivity(
 		return nil, err
 	}
 
+	maxTokens := int64(1024)
+	if cfg.MaxTokens > 0 {
+		maxTokens = int64(cfg.MaxTokens)
+	}
+
+	hasSchema := cfg.ResponseSchema != nil && len(cfg.ResponseSchema.AsMap()) > 0
+
+	ctx = stgmotel.SetBaggage(ctx, map[string]string{
+		stgmotel.BaggageExecutionID: workflowExecutionId,
+	})
+
+	ctx, span := otel.Tracer("workflow-runner").Start(ctx, stgmotel.SpanLlmCall)
+	span.SetAttributes(
+		stgmotel.AttrLlmProvider.String(provider),
+		stgmotel.AttrLlmModel.String(cfg.Model),
+		stgmotel.AttrLlmProxyActive.Bool(llmCfg.ProxyActive),
+		stgmotel.AttrLlmMaxTokens.Int64(maxTokens),
+		stgmotel.AttrLlmTemperature.Float64(float64(cfg.Temperature)),
+		stgmotel.AttrLlmHasResponseSchema.Bool(hasSchema),
+		stgmotel.AttrWorkflowExecutionID.String(workflowExecutionId),
+	)
+	defer span.End()
+
 	logger.Info("Starting LLM call activity",
 		"model", cfg.Model,
 		"provider", provider,
@@ -88,14 +114,27 @@ func (a *CallLlmActivities) CallLlmActivity(
 	case "openai":
 		result, err = callOpenAI(callCtx, cfg, llmCfg, workflowExecutionId)
 	default:
-		return nil, fmt.Errorf(
+		err = fmt.Errorf(
 			"unsupported LLM provider for model %q: could not determine provider (expected claude-* or gpt-*)",
 			cfg.Model)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return nil, err
 	}
 
 	if err != nil {
 		logger.Error("LLM call failed", "model", cfg.Model, "provider", provider, "error", err)
-		return nil, fmt.Errorf("llm call failed (%s/%s): %w", provider, cfg.Model, err)
+		wrappedErr := fmt.Errorf("llm call failed (%s/%s): %w", provider, cfg.Model, err)
+		span.RecordError(wrappedErr)
+		span.SetStatus(codes.Error, wrappedErr.Error())
+		return nil, wrappedErr
+	}
+
+	if v, exists := result["input_tokens"]; exists {
+		span.SetAttributes(stgmotel.AttrLlmInputTokens.Int64(toInt64(v)))
+	}
+	if v, exists := result["output_tokens"]; exists {
+		span.SetAttributes(stgmotel.AttrLlmOutputTokens.Int64(toInt64(v)))
 	}
 
 	result["model"] = cfg.Model

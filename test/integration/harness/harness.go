@@ -71,6 +71,11 @@ func IsOTelRequested() bool {
 	return v == "true" || v == "1"
 }
 
+// OutputDir returns the root test output directory.
+func (h *TestHarness) OutputDir() string {
+	return h.outputDir
+}
+
 // LogDir returns the directory where service logs are written.
 func (h *TestHarness) LogDir() string {
 	return filepath.Join(h.outputDir, "logs")

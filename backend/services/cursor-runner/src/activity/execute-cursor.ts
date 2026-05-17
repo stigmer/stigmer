@@ -67,7 +67,7 @@ import { RecordLlmCallUsageInputSchema } from "@stigmer/protos/ai/stigmer/billin
 import { TokenUsageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
 import { UsageCompletionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
 import { RunnerUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
-import { buildSessionMemory, persistSessionMemory } from "../adapter/session-memory.js";
+import { buildSessionMemory, persistSessionMemory, estimateTokens } from "../adapter/session-memory.js";
 import { activityStarted, activityFinished } from "../idle-watchdog.js";
 
 /**
@@ -128,6 +128,18 @@ async function executeCursor(
     await reportSetupProgress(client, executionId, "Resolving environment");
     const { envVars } = await resolveExecutionEnv(client, executionId);
     heartbeat();
+
+    // Set OTel baggage so downstream calls carry execution context.
+    try {
+      const { setBaggage, BAGGAGE_EXECUTION_ID, BAGGAGE_SESSION_ID, BAGGAGE_ORG_ID } = await import("../otel.js");
+      await setBaggage({
+        [BAGGAGE_EXECUTION_ID]: executionId,
+        [BAGGAGE_SESSION_ID]: sessionId ?? "",
+        [BAGGAGE_ORG_ID]: session?.metadata?.org ?? "",
+      });
+    } catch {
+      // Tracing not initialized — silently skip.
+    }
 
     // Determine cursor mode: use persisted value on subsequent executions,
     // compute from workspace entries on first execution.
@@ -305,6 +317,15 @@ async function executeCursor(
       interactionMode,
     });
 
+    // Phase 10a: Log Stigmer preamble size for context trimming diagnostics
+    const promptChars = prompt.length;
+    const promptEstimatedTokens = estimateTokens(prompt);
+    console.log(
+      `ExecuteCursor prompt built: execution=${executionId}, ` +
+      `chars=${promptChars}, estimatedTokens=${promptEstimatedTokens}, ` +
+      `resolution=${resolution.reason}, mode=${resolution.mode}`,
+    );
+
     // Phase 10b: Initialize usage accumulator for runner-side token tracking
     await ensurePricingLoaded();
     const usageAccumulator = new UsageAccumulator(validatedModel);
@@ -318,12 +339,24 @@ async function executeCursor(
     const todoTracker = new TodoTracker(status.todos);
 
     let platformStopSignaled = false;
+    let firstTurnAttributionLogged = false;
 
     const run = await resolution.agent.send(prompt, {
       onDelta: ({ update }) => {
         if (update.type === "turn-ended" && update.usage) {
           usageAccumulator.addTurn(update.usage);
           contextTracker.recordTurn(update.usage.inputTokens ?? 0);
+
+          if (!firstTurnAttributionLogged) {
+            firstTurnAttributionLogged = true;
+            const sdkInputTokens = update.usage.inputTokens ?? 0;
+            const cursorOverhead = Math.max(0, sdkInputTokens - promptEstimatedTokens);
+            console.log(
+              `ExecuteCursor context attribution (first turn): execution=${executionId}, ` +
+              `sdkInputTokens=${sdkInputTokens}, stigmerPreamble=${promptEstimatedTokens}, ` +
+              `cursorOverhead=${cursorOverhead} (estimated)`,
+            );
+          }
         }
         deltaEnricher.processDelta(update);
         heartbeat();
