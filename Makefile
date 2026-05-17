@@ -249,6 +249,10 @@ capture-replay-histories: ## Capture Temporal event histories for replay tests (
 benchmark-cost: ## Run cost benchmarks comparing Native vs Cursor harness execution costs
 	$(MAKE) -C test/integration benchmark-cost
 
+.PHONY: benchmark-cursor-modes
+benchmark-cursor-modes: ## Compare Cursor local vs cloud runtime latency and token usage
+	$(MAKE) -C test/integration benchmark-cursor-modes
+
 # ─── Tidy ────────────────────────────────────
 
 .PHONY: tidy
