@@ -141,7 +141,7 @@ jobs:
         uses: temporalio/setup-temporal@v0
 
       - name: Install gotestsum
-        run: go install gotest.tools/gotestsum@v1.12.1
+        run: go install gotest.tools/gotestsum@v1.13.0
 
       - name: Install OpenFGA CLI
         run: |
