@@ -130,6 +130,7 @@ export function useWorkflowCanvas(
 
   const [nodes, setNodes, onNodesChangeRaw] = useNodesState([] as Node[]);
   const [edges, setEdges, onEdgesChangeRaw] = useEdgesState([] as Edge[]);
+  const { screenToFlowPosition } = useReactFlow();
 
   // Parse YAML into the initial graph model
   const parsedModel = useMemo<WorkflowGraphModel | null>(() => {
@@ -305,16 +306,10 @@ export function useWorkflowCanvas(
       const existingNames = new Set(model.nodes.map((n) => n.taskName));
       const taskName = generateTaskName(kindString, existingNames);
 
-      // Convert screen coordinates to flow coordinates
-      const reactFlowBounds = (event.target as HTMLElement)
-        .closest(".react-flow")
-        ?.getBoundingClientRect();
-      const position = reactFlowBounds
-        ? {
-            x: event.clientX - reactFlowBounds.left,
-            y: event.clientY - reactFlowBounds.top,
-          }
-        : { x: event.clientX, y: event.clientY };
+      const position = screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY,
+      });
 
       const node = createTaskNode(taskName, kind, kindString, category, position);
 
@@ -369,7 +364,7 @@ export function useWorkflowCanvas(
         dispatch(new AddNodeCommand(node, null));
       }
     },
-    [history, dispatch, syncFromModel],
+    [history, dispatch, syncFromModel, screenToFlowPosition],
   );
 
   const onDragOver = useCallback((event: React.DragEvent) => {
@@ -602,7 +597,7 @@ export function useWorkflowCanvas(
         target: edge.target,
       };
 
-      dispatch(
+      const next = dispatch(
         new CompoundCommand(`Insert ${kindString} on edge`, [
           new DeleteEdgeCommand(edgeId),
           new AddNodeCommand(node, edgeToNew),
@@ -613,9 +608,8 @@ export function useWorkflowCanvas(
       setSelection({ type: "node", id: taskName });
 
       requestAnimationFrame(() => {
-        const currentModel = history.currentModel;
-        if (currentModel.nodes.length > 0) {
-          const laidOut = applyDagreLayout(currentModel);
+        if (next.nodes.length > 0) {
+          const laidOut = applyDagreLayout(next);
           history.reset(laidOut);
           syncFromModel(laidOut);
         }
@@ -653,7 +647,7 @@ export function useWorkflowCanvas(
         target: taskName,
       };
 
-      dispatch(
+      const next = dispatch(
         new CompoundCommand(`Add ${kindString} after "${sourceNode.taskName}"`, [
           new AddNodeCommand(node, null),
           new AddEdgeCommand(edge),
@@ -663,9 +657,8 @@ export function useWorkflowCanvas(
       setSelection({ type: "node", id: taskName });
 
       requestAnimationFrame(() => {
-        const currentModel = history.currentModel;
-        if (currentModel.nodes.length > 0) {
-          const laidOut = applyDagreLayout(currentModel);
+        if (next.nodes.length > 0) {
+          const laidOut = applyDagreLayout(next);
           history.reset(laidOut);
           syncFromModel(laidOut);
         }

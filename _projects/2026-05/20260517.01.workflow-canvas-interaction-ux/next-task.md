@@ -14,40 +14,33 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 - **Status**: In Progress
-- **Last Session**: 2026-05-17 — Implemented T06 (NodeToolbar on selection + shared icon extraction)
-- **Active Task**: T06 completed, T07 next
+- **Last Session**: 2026-05-17 (Session 05) — Fixed stale-closure bug in task picker + Tauri drag-drop
+- **Active Task**: Bug fixes completed, T07 next
 
-## Session Progress (2026-05-17, Session 04)
+## Session Progress (2026-05-17, Session 05)
 
-### T06: NodeToolbar on Selection — COMPLETED
+### Bug Fix: Task picker selection does nothing — FIXED
 
-**What was accomplished:**
-- Added `<NodeToolbar>` from `@xyflow/react` to `CanvasTaskNode` — floating toolbar appears above selected nodes with Duplicate, Add Task After, and Delete actions
-- Toolbar coexists with existing hover-revealed quick-action buttons (matching n8n/Retool conventions)
-- Wired `duplicateNode` through `CanvasActionsContext` (was defined in context but never called from node)
-- Implemented switchable picker anchor ref strategy — both hover "+" and toolbar "Add Task After" open the same `TaskPickerPopover`, anchored to whichever button triggered it
-- Extracted shared SVG icons (`TrashIcon`, `DuplicateIcon`, `PlusIcon`) into `canvas-icons.tsx` to eliminate duplication across `CanvasContextMenu` and `CanvasTaskNode`
-- Created `ToolbarButton` as a `forwardRef` component with proper `--stgm-*` token styling, 28x28 touch targets, destructive variant
+**Root cause**: `addSuccessorTask` and `insertTaskOnEdge` in `useWorkflowCanvas.ts` used a stale `history.currentModel` inside their `requestAnimationFrame` callbacks. The dispatch correctly added the new node, but the rAF immediately reverted it by applying dagre layout to the pre-dispatch model captured in the closure.
 
-**Key decisions:**
-- Toolbar coexists with hover buttons (not replaces) — hover for quick surgical actions, toolbar for comprehensive selected-node actions
-- `NodeToolbar` uses `Position.Top`, `offset={8}`, `align="center"` — positions cleanly above the node without overlapping the hover delete button
-- Shared `pickerAnchorRef` (mutable ref swapped before opening) avoids two `TaskPickerPopover` instances
-- `canvas-icons.tsx` is internal (not exported from SDK barrel) — implementation detail shared between canvas components
-- `ToolbarButton` uses `forwardRef` to support ref forwarding for the picker anchor
-- `role="toolbar"` + `aria-orientation="horizontal"` for proper WAI-ARIA keyboard navigation
+**Fix**: Capture the `dispatch()` return value into `const next` and use it inside the rAF instead of the stale closure. This matches the correct pattern already used in the `onDrop` handler.
 
-**Files modified (2 modified + 1 new, +101/-35 lines):**
-- `sdk/react/src/workflow/canvas-icons.tsx` — NEW: shared 14×14 inline SVG icons (TrashIcon, DuplicateIcon, PlusIcon)
-- `sdk/react/src/workflow/CanvasTaskNode.tsx` — NodeToolbar, ToolbarButton, shared picker anchor, duplicate wiring (+90 lines)
-- `sdk/react/src/workflow/CanvasContextMenu.tsx` — replaced 3 inline icon defs with imports from canvas-icons.tsx (-28 lines)
+**Files modified:**
+- `sdk/react/src/workflow/useWorkflowCanvas.ts` — fixed `addSuccessorTask` and `insertTaskOnEdge` (+4/-6 lines)
+
+### Bug Fix: Palette drag-and-drop not working in Tauri desktop app — FIXED
+
+**Root cause**: Tauri v2's default `dragDropEnabled: true` intercepts drag events at the native webview level, suppressing all DOM `dragover` and `drop` events. HTML5 drag-and-drop within the webview is completely blocked.
+
+**Fix**: Added `"dragDropEnabled": false` to the window config in `tauri.conf.json`. Also replaced the naive `getBoundingClientRect` subtraction in `onDrop` with React Flow's `screenToFlowPosition` for correct zoom/pan-aware drop positioning.
+
+**Files modified:**
+- `client-apps/desktop/src-tauri/tauri.conf.json` — added `dragDropEnabled: false` (+1 line)
+- `sdk/react/src/workflow/useWorkflowCanvas.ts` — replaced manual position math with `screenToFlowPosition` (-8/+4 lines)
 
 ### Previous Sessions (same day)
-- T01: On-Node Hover Actions (Delete + Quick-Add) — COMPLETED
-- T02: TaskPicker Popover Component — COMPLETED
-- T03: On-node "+" wired to TaskPicker — COMPLETED
-- T04: Edge "+" opens TaskPicker — COMPLETED
-- T05: Right-click Context Menu + DuplicateNodeCommand — COMPLETED
+- Session 04: T06 — NodeToolbar on Selection + shared icon extraction — COMPLETED
+- Session 01-03: T01–T05 — Hover actions, TaskPicker, edge "+", context menu, duplicate — COMPLETED
 
 ## Next Steps
 
@@ -56,14 +49,13 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Context for Resume
 
-- `CanvasTaskNode` now has two interaction layers: hover buttons (CSS `group-hover`) and a `<NodeToolbar>` (React Flow managed, visible on selection). They coexist.
-- `canvas-icons.tsx` is the shared icon module for `TrashIcon`, `DuplicateIcon`, `PlusIcon` — used by both `CanvasContextMenu` and `CanvasTaskNode`. Internal module, not in the SDK barrel.
-- `ToolbarButton` is a `forwardRef` component inside `CanvasTaskNode.tsx` — styled with `--stgm-*` tokens, 28x28 touch targets, has a `destructive` variant for the delete button.
-- The picker anchor strategy uses a mutable `pickerAnchorRef` that gets swapped to point at whichever button (hover "+" or toolbar "Add Task After") triggered the picker. One `TaskPickerPopover` instance serves both entry points.
-- `CanvasActionsContext` has 4 actions: `insertTaskOnEdge`, `deleteNode`, `addSuccessorTask`, `duplicateNode`. All are now wired in `CanvasTaskNode`.
-- `CanvasContextMenu` imports shared icons from `canvas-icons.tsx`; `SelectAllIcon` and `LayoutIcon` remain local to the context menu.
-- `CATEGORY_DISPLAY_NAMES` and `CATEGORY_ORDER` live in `canvas-constants.ts`.
-- React Flow's `NodeToolbar` auto-hides when multiple nodes are selected (correct default; multi-select toolbar is a future task).
+- `addSuccessorTask` and `insertTaskOnEdge` now capture the `dispatch()` return value and pass it into the `requestAnimationFrame` callback — matching the pattern in `onDrop`. Do NOT re-read `history.currentModel` in rAF closures.
+- Tauri's `dragDropEnabled` must be `false` for HTML5 DnD to work in the webview. The config change requires a full Tauri rebuild (Rust recompile), not just Vite HMR.
+- `onDrop` now uses `screenToFlowPosition` from `useReactFlow()` for viewport-aware drop position calculation.
+- `CanvasTaskNode` has two interaction layers: hover buttons (CSS `group-hover`) and `<NodeToolbar>` (visible on selection). They coexist.
+- `canvas-icons.tsx` is the shared icon module for `TrashIcon`, `DuplicateIcon`, `PlusIcon`. Internal module, not in the SDK barrel.
+- The picker anchor strategy uses a mutable `pickerAnchorRef` swapped before opening. One `TaskPickerPopover` instance serves both hover "+" and toolbar "Add Task After".
+- `CanvasActionsContext` has 4 actions: `insertTaskOnEdge`, `deleteNode`, `addSuccessorTask`, `duplicateNode`.
 
 ## Essential Files to Review
 
