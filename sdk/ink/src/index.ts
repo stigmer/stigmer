@@ -24,5 +24,5 @@ export { FollowUpInput, type FollowUpInputProps } from "./components/FollowUpInp
 export { UsageWidget, type UsageWidgetProps } from "./components/UsageWidget.js";
 
 // Composed views
-export { SessionView, type SessionViewProps } from "./app/SessionView.js";
+export { SessionView, type SessionViewProps, type InteractionMode } from "./app/SessionView.js";
 export { SessionApp, type SessionAppProps } from "./app/SessionApp.js";

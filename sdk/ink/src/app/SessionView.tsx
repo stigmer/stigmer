@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Box, Text, useInput } from "ink";
 import Spinner from "ink-spinner";
 import { useSessionConversation, resolvedSubject, PENDING_SUBJECT } from "@stigmer/react";
@@ -8,6 +8,9 @@ import { FollowUpInput } from "../components/FollowUpInput.js";
 import { UsageWidget } from "../components/UsageWidget.js";
 import { ExecutionProgress } from "../components/ExecutionProgress.js";
 
+/** Interaction mode type used for follow-up executions. */
+export type InteractionMode = "agent" | "plan";
+
 /** Props for {@link SessionView}. */
 export interface SessionViewProps {
   /** Session ID to display and converse in. */
@@ -15,15 +18,16 @@ export interface SessionViewProps {
   /** Organization slug for creating follow-up executions. */
   readonly org: string;
   /**
-   * Default interaction mode for follow-up executions.
+   * Initial interaction mode for follow-up executions.
    *
    * - `"agent"` (default): full tool access.
    * - `"plan"`: read-only analysis, no file mutations.
    *
-   * When set, all follow-up executions use this mode unless the user
-   * overrides it (e.g., via a future mode picker widget).
+   * The user can toggle between modes with Ctrl+T during the session.
+   * This prop sets the initial value; subsequent toggles are managed
+   * as local state.
    */
-  readonly mode?: "agent" | "plan";
+  readonly mode?: InteractionMode;
 }
 
 /**
@@ -52,10 +56,18 @@ export interface SessionViewProps {
 export function SessionView({ sessionId, org, mode }: SessionViewProps) {
   const conv = useSessionConversation(sessionId, org);
   const [expandTools, setExpandTools] = useState(false);
+  const [activeMode, setActiveMode] = useState<InteractionMode>(mode ?? "agent");
+
+  useEffect(() => {
+    if (mode) setActiveMode(mode);
+  }, [mode]);
 
   useInput((input, key) => {
     if (key.ctrl && input === "o") {
       setExpandTools((e) => !e);
+    }
+    if (key.ctrl && input === "t") {
+      setActiveMode((m) => (m === "plan" ? "agent" : "plan"));
     }
   });
 
@@ -164,18 +176,23 @@ export function SessionView({ sessionId, org, mode }: SessionViewProps) {
 
       <UsageWidget executions={allExecutions} />
 
-      {mode === "plan" && conv.canSendFollowUp && (
+      {conv.canSendFollowUp && (
         <Box paddingLeft={1}>
-          <Text color="yellow" dimColor>Plan mode — read-only analysis, no file mutations</Text>
+          <Text color={activeMode === "plan" ? "yellow" : "cyan"} dimColor>
+            {activeMode === "plan"
+              ? "Plan mode — read-only analysis, no file mutations"
+              : "Agent mode — full tool access"}
+          </Text>
         </Box>
       )}
 
       <FollowUpInput
         onSubmit={(message) =>
-          conv.sendFollowUp(message, mode ? { interactionMode: mode } : undefined)
+          conv.sendFollowUp(message, { interactionMode: activeMode })
         }
         isSubmitting={conv.isSending}
         disabled={!conv.canSendFollowUp}
+        mode={activeMode}
       />
     </Box>
   );

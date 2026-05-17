@@ -68,9 +68,28 @@ When starting a new session:
 ## Current State
 
 - **Status**: In Progress
-- **Last Session**: May 17, 2026 — Session 8: CLI `--mode=plan` Flag
-- **Active Task**: CLI `--mode=plan` implemented and tested. Ready to commit.
+- **Last Session**: May 17, 2026 — Session 9: Resume Mode Flag + Ink Mode Toggle
+- **Active Task**: Both features implemented, tested, verified, and committed.
 - **Branch**: `feat/bring-workflows-to-foreground`
+
+## Session Progress (May 17, 2026 — Session 9: Resume Mode Flag + Ink Mode Toggle)
+
+### Deliverables (implemented)
+
+1. **`stigmer resume --mode` flag** — Added `--mode` to `NewResumeCommand` with validation via existing `validateMode()`. Threaded `mode string` through all 4 resume call paths. Added `resolveResumeMode(explicitMode, latestExec)` for auto-inference from last execution's `ExecutionConfig.InteractionMode`. Set `headerInfo.Mode = effectiveMode` which flows to header display and Ink subprocess.
+
+2. **Ink Ctrl+T mode toggle** — Converted static `mode` prop to `useState<InteractionMode>` in `SessionView`. Added Ctrl+T handler alongside existing Ctrl+O. Mode indicator always visible (yellow for Plan, cyan for Agent). `FollowUpInput` hint line shows what Ctrl+T will switch to.
+
+3. **5 unit tests** — Table-driven `TestResolveResumeMode` covering explicit overrides, auto-inference from Plan execution, Agent/unspecified passthrough, and nil config.
+
+4. **Barrel export** — `InteractionMode` type exported from `@stigmer/ink` index.
+
+### Key Design Decisions
+
+- Auto-infer mode from last execution (not always default to agent) — preserves user intent on resume
+- Ctrl+T chosen for toggle (T for Toggle) — pairs with existing Ctrl+O, no terminal conflicts
+- Mode is always passed explicitly to `sendFollowUp` now (agent maps to UNSPECIFIED on backend — identical behavior)
+- `useEffect` syncs state when prop changes externally — supports programmatic control via `SessionApp`
 
 ## Session Progress (May 17, 2026 — Session 8: CLI `--mode=plan` Flag)
 
@@ -192,8 +211,8 @@ When starting a new session:
 2. Consider Phase 3b (manual trigger, transcript access) if user feedback warrants it
 3. ~~Consider adding CLI `--mode=plan` flag (independent, not blocking)~~ — **DONE** (Session 8)
 4. ~~Consider "Build from plan" UX flow (Plan → Agent transition button)~~ — **DONE** (Session 7)
-5. Consider `stigmer resume --mode` flag (natural extension — currently mode only applies to `run`/`draft`)
-6. Consider Ink `InteractionModePicker` (keyboard shortcut to toggle mode mid-session)
+5. ~~Consider `stigmer resume --mode` flag (natural extension — currently mode only applies to `run`/`draft`)~~ — **DONE** (Session 9)
+6. ~~Consider Ink `InteractionModePicker` (keyboard shortcut to toggle mode mid-session)~~ — **DONE** (Session 9)
 
 ## Context for Resume
 
@@ -202,7 +221,9 @@ When starting a new session:
 - Mode propagates to Ink via `inkConfig.Mode` → `--mode` CLI arg → `SessionApp.mode` → `SessionView.mode` → `sendFollowUp(..., { interactionMode })`
 - `validateMode` accepts `""`, `"agent"`, `"plan"` — anything else returns a user-facing error
 - Go SDK proto stubs were regenerated via `make -C sdk/go codegen` — `InteractionMode` enum and `ExecutionConfig.interaction_mode` now available in `sdk/go/proto/`
-- `stigmer resume` does NOT yet support `--mode` — Ink inherits no mode for resumed sessions (deferred)
+- `stigmer resume --mode` now supported — auto-infers from last execution's `ExecutionConfig.InteractionMode`, explicit `--mode` overrides
+- `resolveResumeMode(explicitMode, latestExec)` is the single point for resume mode resolution
+- Ink `SessionView` Ctrl+T toggles mode mid-session — state initialized from `--mode` arg, each follow-up passes `{ interactionMode: activeMode }`
 - `SessionComposerHandle` uses `forwardRef` + `useImperativeHandle` — the `memo` wrapper is preserved via `memo(forwardRef(...))`
 - Ink SDK (CLI terminal) does NOT have a context gauge or summarization card equivalent yet
 
