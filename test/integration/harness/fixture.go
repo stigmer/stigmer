@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	"github.com/google/uuid"
+	executionctxv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
@@ -165,6 +166,37 @@ func (f *FixtureDeployer) DeployAndExecute(ctx context.Context, wf *workflowv1.W
 		Spec: &workflowexecutionv1.WorkflowExecutionSpec{
 			WorkflowId:     applied.GetMetadata().GetId(),
 			TriggerMessage: triggerMessage,
+		},
+	}
+
+	execution, err := f.CreateExecution(ctx, exec)
+	if err != nil {
+		return applied, nil, err
+	}
+
+	return applied, execution, nil
+}
+
+// DeployAndExecuteWithEnv is like DeployAndExecute but also sets runtime
+// environment variables on the execution spec.
+func (f *FixtureDeployer) DeployAndExecuteWithEnv(ctx context.Context, wf *workflowv1.Workflow, triggerMessage string, env map[string]*executionctxv1.ExecutionValue) (*workflowv1.Workflow, *workflowexecutionv1.WorkflowExecution, error) {
+	applied, err := f.ApplyWorkflow(ctx, wf)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	execName := f.uniqueName("exec")
+	exec := &workflowexecutionv1.WorkflowExecution{
+		ApiVersion: testAPIVersion,
+		Kind:       "WorkflowExecution",
+		Metadata: &apiresource.ApiResourceMetadata{
+			Name: execName,
+			Org:  f.org,
+		},
+		Spec: &workflowexecutionv1.WorkflowExecutionSpec{
+			WorkflowId:     applied.GetMetadata().GetId(),
+			TriggerMessage: triggerMessage,
+			RuntimeEnv:     env,
 		},
 	}
 
