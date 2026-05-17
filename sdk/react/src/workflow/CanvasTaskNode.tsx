@@ -1,11 +1,12 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useCallback, useContext } from "react";
 import { Handle, Position } from "@xyflow/react";
 import type { NodeProps } from "@xyflow/react";
 import { cn } from "@stigmer/theme";
 import { CATEGORY_COLORS } from "./canvas-constants";
 import type { CanvasTaskNodeData } from "./workflow-graph-conversions";
+import { CanvasActionsContext } from "./CanvasActionsContext";
 
 const NESTED_TASK_KINDS = new Set(["fork", "for_each", "try_catch"]);
 
@@ -22,6 +23,7 @@ const NESTED_TASK_KINDS = new Set(["fork", "for_each", "try_catch"]);
  * @since T15 (Visual Canvas Editor)
  */
 export const CanvasTaskNode = memo(function CanvasTaskNode({
+  id,
   data,
   selected,
 }: NodeProps & { data: CanvasTaskNodeData }) {
@@ -36,10 +38,20 @@ export const CanvasTaskNode = memo(function CanvasTaskNode({
   const multiOutputHandles = getMultiOutputHandles(data);
   const hasMultipleOutputs = multiOutputHandles.length > 0;
 
+  const actions = useContext(CanvasActionsContext);
+
+  const handleDelete = useCallback(() => {
+    actions?.deleteNode(id);
+  }, [actions, id]);
+
+  const handleAddSuccessor = useCallback(() => {
+    actions?.addSuccessorTask(id, "agent_call");
+  }, [actions, id]);
+
   return (
     <div
       className={cn(
-        "stgm relative flex min-w-[200px] items-center gap-2 rounded-md border border-[var(--stgm-border-prominent,#d4d4d8)] bg-[var(--stgm-card,var(--stgm-background,#fff))] px-3 py-2 shadow-sm transition-shadow",
+        "stgm group relative flex min-w-[200px] items-center gap-2 rounded-md border border-[var(--stgm-border-prominent,#d4d4d8)] bg-[var(--stgm-card,var(--stgm-background,#fff))] px-3 py-2 shadow-sm transition-shadow",
         selected && "ring-2 ring-[var(--stgm-ring,#3b82f6)]",
         errorCount > 0 && "!border-[var(--stgm-destructive,#ef4444)]",
       )}
@@ -54,6 +66,24 @@ export const CanvasTaskNode = memo(function CanvasTaskNode({
           {errorCount}
         </span>
       )}
+
+      {/* Delete button — revealed on hover via CSS group */}
+      <button
+        type="button"
+        onClick={handleDelete}
+        className={cn(
+          "absolute -right-2 -top-2 z-10 flex h-5 w-5 items-center justify-center rounded-full border border-[var(--stgm-border-prominent,#d4d4d8)] bg-[var(--stgm-card,var(--stgm-background,#fff))] text-[var(--stgm-muted-foreground,#737373)] shadow-sm transition-all",
+          "hover:border-[var(--stgm-destructive,#ef4444)] hover:bg-[var(--stgm-destructive,#ef4444)] hover:text-[var(--stgm-primary-foreground,#fff)]",
+          "scale-75 opacity-0 group-hover:scale-100 group-hover:opacity-100",
+        )}
+        aria-label={`Delete task ${data.taskName}`}
+        title="Delete task"
+      >
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+          <path d="M2 3h6M3.5 3V2.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 .5.5V3M4 4.5v2.5M6 4.5v2.5M3 3l.5 5h3l.5-5" />
+        </svg>
+      </button>
+
       <Handle
         type="target"
         position={Position.Top}
@@ -117,6 +147,23 @@ export const CanvasTaskNode = memo(function CanvasTaskNode({
           className="!h-2 !w-2 !rounded-full !border-[var(--stgm-border-prominent,#d4d4d8)] !bg-[var(--stgm-card,var(--stgm-background,#fff))]"
         />
       )}
+
+      {/* Add successor button — revealed on hover via CSS group */}
+      <button
+        type="button"
+        onClick={handleAddSuccessor}
+        className={cn(
+          "absolute -bottom-3 left-1/2 z-10 flex h-5 w-5 -translate-x-1/2 items-center justify-center rounded-full border border-[var(--stgm-border-prominent,#d4d4d8)] bg-[var(--stgm-card,var(--stgm-background,#fff))] text-[var(--stgm-muted-foreground,#737373)] shadow-sm transition-all",
+          "hover:border-[var(--stgm-primary,#6366f1)] hover:bg-[var(--stgm-primary,#6366f1)] hover:text-[var(--stgm-primary-foreground,#fff)]",
+          "scale-75 opacity-0 group-hover:scale-100 group-hover:opacity-100",
+        )}
+        aria-label={`Add task after ${data.taskName}`}
+        title="Add task"
+      >
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+          <path d="M5 2v6M2 5h6" />
+        </svg>
+      </button>
     </div>
   );
 });
