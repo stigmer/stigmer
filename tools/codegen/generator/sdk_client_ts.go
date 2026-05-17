@@ -425,8 +425,9 @@ func generateTSResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, 
 	if specSchema != nil {
 		needsEnvSpec := false
 		needsResourceRef := false
+		visited := make(map[string]bool)
 		for _, f := range specSchema.Fields {
-			scanFieldForSpecialImports(f, typeMap, &needsEnvSpec, &needsResourceRef)
+			scanFieldForSpecialImports(f, typeMap, &needsEnvSpec, &needsResourceRef, visited)
 		}
 		if needsEnvSpec {
 			imports.addType("./types", "EnvSpecInput")
@@ -550,7 +551,7 @@ func tsImportMethodType(imports *tsImportSet, typeName, fullType string, schema 
 	imports.addType(importBase+"/io_pb", typeName)
 }
 
-func scanFieldForSpecialImports(f *FieldSchema, typeMap map[string]*TypeSchema, needsEnvSpec, needsResourceRef *bool) {
+func scanFieldForSpecialImports(f *FieldSchema, typeMap map[string]*TypeSchema, needsEnvSpec, needsResourceRef *bool, visited map[string]bool) {
 	switch {
 	case f.Type.Kind == "message" && f.Type.MessageType == "EnvironmentSpec":
 		*needsEnvSpec = true
@@ -559,15 +560,22 @@ func scanFieldForSpecialImports(f *FieldSchema, typeMap map[string]*TypeSchema, 
 	case f.Type.Kind == "array" && f.Type.ElementType != nil && f.Type.ElementType.Kind == "message" && f.Type.ElementType.MessageType == "ApiResourceReference":
 		*needsResourceRef = true
 	case f.Type.Kind == "message":
-		if ts, ok := typeMap[f.Type.MessageType]; ok {
-			for _, sf := range ts.Fields {
-				scanFieldForSpecialImports(sf, typeMap, needsEnvSpec, needsResourceRef)
+		if !visited[f.Type.MessageType] {
+			visited[f.Type.MessageType] = true
+			if ts, ok := typeMap[f.Type.MessageType]; ok {
+				for _, sf := range ts.Fields {
+					scanFieldForSpecialImports(sf, typeMap, needsEnvSpec, needsResourceRef, visited)
+				}
 			}
 		}
 	case f.Type.Kind == "array" && f.Type.ElementType != nil && f.Type.ElementType.Kind == "message":
-		if ts, ok := typeMap[f.Type.ElementType.MessageType]; ok {
-			for _, sf := range ts.Fields {
-				scanFieldForSpecialImports(sf, typeMap, needsEnvSpec, needsResourceRef)
+		elemMsg := f.Type.ElementType.MessageType
+		if !visited[elemMsg] {
+			visited[elemMsg] = true
+			if ts, ok := typeMap[elemMsg]; ok {
+				for _, sf := range ts.Fields {
+					scanFieldForSpecialImports(sf, typeMap, needsEnvSpec, needsResourceRef, visited)
+				}
 			}
 		}
 	}
