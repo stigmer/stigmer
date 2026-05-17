@@ -25,7 +25,7 @@ type JaegerContainer struct {
 func StartJaeger(ctx context.Context) (*JaegerContainer, error) {
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: testcontainers.ContainerRequest{
-			Image:        "jaegertracing/all-in-one:1.68",
+			Image:        "jaegertracing/all-in-one:1.76.0",
 			ExposedPorts: []string{"4317/tcp", "16686/tcp"},
 			Env: map[string]string{
 				"COLLECTOR_OTLP_ENABLED": "true",

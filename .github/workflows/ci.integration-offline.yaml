@@ -181,10 +181,10 @@ jobs:
         run: |
           REPORT_DIR=test/integration/.test-output
           if [ -f "$REPORT_DIR/test-output.json" ]; then
-            cd test/integration && GOWORK=off go run ./tools/flaketrack report \
-              --json "$(pwd)/.test-output/test-output.json" \
-              --rerun-report "$(pwd)/.test-output/rerun-report.txt" \
-              --quarantine "$(pwd)/quarantine.json" \
+            cd test/integration/tools/flaketrack && go run . report \
+              --json "$(pwd)/../../.test-output/test-output.json" \
+              --rerun-report "$(pwd)/../../.test-output/rerun-report.txt" \
+              --quarantine "$(pwd)/../../quarantine.json" \
               >> "$GITHUB_STEP_SUMMARY"
           fi
 
