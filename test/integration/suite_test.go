@@ -190,6 +190,9 @@ func TestMain(m *testing.M) {
 			agentRunnerCfg.R2SecretKey = testHarness.MinIO.SecretKey
 			agentRunnerCfg.R2Bucket = "test-bucket"
 		}
+		if testHarness.OTelEnabled() {
+			agentRunnerCfg.OTLPEndpoint = testHarness.Jaeger.OTLPAddress
+		}
 		agentRunner, agentErr := harness.StartAgentRunner(ctx, agentRunnerCfg, suiteLogger)
 		if agentErr != nil {
 			suiteLogger.Warn("agent-runner failed to start — agent_call tests will be skipped", "error", agentErr)
@@ -200,13 +203,17 @@ func TestMain(m *testing.M) {
 
 	// Start cursor-runner only when a Cursor API key is available.
 	if cursorKey != "" && runner != nil {
-		cursorRunner, cursorErr := harness.StartCursorRunner(ctx, harness.CursorRunnerConfig{
+		cursorRunnerCfg := harness.CursorRunnerConfig{
 			StigmerServiceAddress: svc.GRPCAddress(),
 			TemporalAddress:       testHarness.Temporal.Address(),
 			LogDir:                logDir,
 			CursorAPIKey:          cursorKey,
 			ProxyEndpoint:         svc.HTTPAddress(),
-		}, suiteLogger)
+		}
+		if testHarness.OTelEnabled() {
+			cursorRunnerCfg.OTLPEndpoint = testHarness.Jaeger.OTLPAddress
+		}
+		cursorRunner, cursorErr := harness.StartCursorRunner(ctx, cursorRunnerCfg, suiteLogger)
 		if cursorErr != nil {
 			suiteLogger.Warn("cursor-runner failed to start — cursor_call tests will be skipped", "error", cursorErr)
 		} else {
