@@ -23,6 +23,9 @@ import (
 	"strings"
 
 	workflowtasks "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
+	stgmotel "github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/otel"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/codes"
 	"go.temporal.io/sdk/activity"
 )
 
@@ -43,9 +46,21 @@ func (a *EvalActivities) EvalActivity(
 ) (any, error) {
 	logger := activity.GetLogger(ctx)
 
+	ctx, span := otel.Tracer("workflow-runner").Start(ctx, stgmotel.SpanLlmEval)
+	span.SetAttributes(
+		stgmotel.AttrEvalMode.String(evalScoringModeName(config.ScoringMode)),
+		stgmotel.AttrEvalModel.String(config.Model),
+		stgmotel.AttrEvalThreshold.Float64(config.Threshold),
+		stgmotel.AttrWorkflowExecutionID.String(workflowExecutionId),
+	)
+	defer span.End()
+
 	judgePrompt, err := buildJudgePrompt(config, subject)
 	if err != nil {
-		return nil, fmt.Errorf("failed to build judge prompt: %w", err)
+		err = fmt.Errorf("failed to build judge prompt: %w", err)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return nil, err
 	}
 
 	llmConfig := &workflowtasks.LlmCallTaskConfig{
@@ -57,12 +72,18 @@ func (a *EvalActivities) EvalActivity(
 	llmActivities := &CallLlmActivities{}
 	llmResult, err := llmActivities.CallLlmActivity(ctx, llmConfig, workflowExecutionId)
 	if err != nil {
-		return nil, fmt.Errorf("eval LLM call failed: %w", err)
+		err = fmt.Errorf("eval LLM call failed: %w", err)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return nil, err
 	}
 
 	resultMap, ok := llmResult.(map[string]any)
 	if !ok {
-		return nil, fmt.Errorf("unexpected LLM result type: %T", llmResult)
+		err = fmt.Errorf("unexpected LLM result type: %T", llmResult)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return nil, err
 	}
 
 	evalResult, err := parseJudgeResponse(config, resultMap, subject)
@@ -78,7 +99,11 @@ func (a *EvalActivities) EvalActivity(
 		}
 	}
 
-	// Apply cost metadata for budget tracking
+	span.SetAttributes(
+		stgmotel.AttrEvalPassed.Bool(evalResult.Pass),
+		stgmotel.AttrEvalScore.Float64(evalResult.Score),
+	)
+
 	output := evalResult.toMap()
 	if inputTokens, ok := resultMap["input_tokens"]; ok {
 		output["__stigmer_input_tokens"] = inputTokens
@@ -111,6 +136,19 @@ func (a *EvalActivities) EvalActivity(
 	}
 
 	return output, nil
+}
+
+func evalScoringModeName(mode workflowtasks.EvalScoringMode) string {
+	switch mode {
+	case workflowtasks.EvalScoringMode_EVAL_PASS_FAIL:
+		return "pass_fail"
+	case workflowtasks.EvalScoringMode_EVAL_NUMERIC_SCORE:
+		return "numeric_score"
+	case workflowtasks.EvalScoringMode_EVAL_MULTI_CRITERIA:
+		return "multi_criteria"
+	default:
+		return "pass_fail"
+	}
 }
 
 type judgePrompt struct {
@@ -235,12 +273,12 @@ func marshalSubject(subject any) (string, error) {
 }
 
 type evalOutput struct {
-	Pass      bool               `json:"pass"`
-	Score     float64            `json:"score,omitempty"`
-	Reasoning string             `json:"reasoning"`
-	Criteria  []criterionResult  `json:"criteria,omitempty"`
-	ModelUsed string             `json:"model_used"`
-	Subject   any                `json:"subject"`
+	Pass      bool              `json:"pass"`
+	Score     float64           `json:"score,omitempty"`
+	Reasoning string            `json:"reasoning"`
+	Criteria  []criterionResult `json:"criteria,omitempty"`
+	ModelUsed string            `json:"model_used"`
+	Subject   any               `json:"subject"`
 }
 
 type criterionResult struct {

@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/baggage"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
@@ -57,4 +58,32 @@ func InitTracing(ctx context.Context, serviceName string) (shutdown func(context
 	))
 
 	return tp.Shutdown, nil
+}
+
+// SetBaggage attaches the given key-value pairs to the context as W3C baggage.
+// The composite propagator (TraceContext + Baggage) configured by InitTracing
+// ensures these values propagate through outbound gRPC and HTTP calls
+// automatically via the W3C baggage header.
+//
+// Keys with empty values are silently skipped.
+func SetBaggage(ctx context.Context, items map[string]string) context.Context {
+	var members []baggage.Member
+	for k, v := range items {
+		if v == "" {
+			continue
+		}
+		m, err := baggage.NewMember(k, v)
+		if err != nil {
+			continue
+		}
+		members = append(members, m)
+	}
+	if len(members) == 0 {
+		return ctx
+	}
+	bag, err := baggage.New(members...)
+	if err != nil {
+		return ctx
+	}
+	return baggage.ContextWithBaggage(ctx, bag)
 }

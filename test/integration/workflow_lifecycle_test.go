@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
+	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/test/integration/harness"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -23,6 +23,12 @@ func TestWorkflowLifecycle_SetTask_Completes(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
+
+	if testHarness.OTelEnabled() {
+		tc := harness.StartTestTrace(ctx, t, testHarness.Jaeger)
+		tc.RegisterCleanup(t, testHarness.OutputDir())
+		ctx = tc.Context()
+	}
 
 	clients := harness.NewClients(grpcConn)
 	deployer := harness.NewFixtureDeployer(clients, "set-task", suiteLogger)

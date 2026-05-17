@@ -68,8 +68,128 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-14 10:02
-**Current Task**: T16 complete. T17 (OpenTelemetry) remains as the final Phase 4 task. Session 27 fixed InteractionModePicker in SessionLauncher + refactored to dropdown.
-**Status**: Session 27 complete — Plan/Agent mode picker now visible in new session launcher (web + desktop).
+**Current Task**: ALL TASKS COMPLETE (T02–T19 + OTel follow-ups). Application spans + baggage done.
+**Status**: Session 30 complete — Application-level OTel spans (LLM call, eval) + W3C baggage propagation across all runners.
+
+## Session Progress (2026-05-17, Session 30 — Application OTel Spans + Baggage Propagation)
+
+### Accomplished
+
+- Designed **span schema** with centralized constants (`pkg/otel/spans.go`): span names, attribute keys, baggage keys
+- Added **`stigmer.llm.call` spans** to `CallLlmActivity` with 10 attributes (provider, model, proxy_active, max_tokens, temperature, has_response_schema, execution_id, input_tokens, output_tokens)
+- Added **`stigmer.llm.eval` spans** to `EvalActivity` with eval-specific attributes (mode, model, threshold, passed, score)
+- Added **`SetBaggage()` helpers** in all three runners (Go, Python, TypeScript)
+- **Fixed Python propagator gap** — `otel.py` was missing `CompositePropagator` with `W3CBaggagePropagator`
+- **Fixed TypeScript propagator gap** — `otel.ts` used only `W3CTraceContextPropagator`, now uses composite
+- **Wired W3C baggage** (`execution_id`, `session_id`, `org_id`) at activity entry points in all three runners
+- **Wired `StartTestTrace` + `RegisterCleanup`** in representative integration tests
+- Built **trace assertion helpers** (`AssertSpanExists`, `AssertSpanWithAttribute`) for Jaeger query
+
+### Files Changed (12 files)
+
+**New (2):** `pkg/otel/spans.go`, `test/integration/harness/trace_assertions.go`
+**Modified (10):** `pkg/otel/otel.go`, `task_builder_call_llm_activities.go`, `task_builder_eval_activities.go`, `otel.py`, `execute_graphton.py`, `otel.ts`, `execute-cursor.ts`, `harness.go`, `workflow_lifecycle_test.go`, `workflow_llm_call_test.go`
+**Changelog:** `_changelog/2026-05/2026-05-17-122937-otel-application-spans-baggage-propagation.md`
+
+### Key Decisions
+
+1. **Baggage set in activities, not workflows** — Temporal's `workflow.Context` is deterministic, cannot call OTel APIs
+2. **Deferred Python/TS application spans** — MCP tools inside graphton need callback-based instrumentation; Cursor SDK is opaque
+3. **Guard baggage with try/catch** — Avoid breaking activity when OTel is not initialized
+
+### Quick Resume
+
+```
+@_projects/2026-05/20260514.01.e2e-workflow-testing-infrastructure/next-task.md
+```
+
+Checkpoint: `checkpoints/2026-05-17-session-30.md`
+
+## Remaining Follow-Ups (Operational / Future)
+
+1. **Deploy proxy changes to cloud** — merge stigmer-cloud feature branch, rebuild JAR, test proxy mode end-to-end
+2. **Add OpenAI key** to Planton secret groups + auto-fetch in Makefile (enables the 1 skipped test)
+3. **Publish JAR from stigmer-cloud CI** — replace Build Service JAR job with artifact download
+4. **Python/TS application-level OTel spans** — MCP tool spans in graphton (LangChain callbacks), LLM call spans via `astream_events` hooks
+5. **OTel baggage propagation** — ~~execution_id, session_id, org_id~~ DONE (session 30)
+6. **OTel metrics** — histograms for activity duration, counters for LLM calls (separate observability initiative)
+
+## Session Progress (2026-05-17, Session 29 — Runner OTel Instrumentation — T17 Follow-Up)
+
+### Accomplished
+
+- Implemented **OpenTelemetry distributed tracing** for the Python agent-runner and TypeScript cursor-runner
+- Created env-var-driven `init_tracing()` / `initTracing()` modules mirroring the Go workflow-runner pattern
+- Wired Temporal SDK tracing interceptors: `TracingInterceptor` (Python), `OpenTelemetryActivityInboundInterceptor` (TypeScript)
+- Added OTel dependencies to both runners
+- Wired `OTLPEndpoint` through test harness to both runner configs
+- Completes the full span tree: test → Java service → Temporal → workflow-runner → agent-runner/cursor-runner
+
+### Files Changed (13 files, committed 3da5a0d21)
+
+**New (2):** `worker/otel.py` (Python), `src/otel.ts` (TypeScript)
+**Modified (10):** `pyproject.toml`, `requirements.txt`, `__main__.py`, `worker.py`, `package.json`, `main.ts`, `worker.ts`, `agent_runner.go`, `cursor_runner.go`, `suite_test.go`
+**Changelog:** `_changelog/2026-05/2026-05-17-113417-runner-otel-instrumentation.md`
+
+### Key Decisions
+
+1. **Temporal SDK interceptors** — first-party OTel interceptors handle W3C traceparent propagation automatically
+2. **Lazy/dynamic imports** — Python lazy-imports inside `init_tracing()`; TypeScript uses `await import()` for ESM compatibility
+3. **Activity-level spans only** — Application-level spans (LLM calls, MCP tools) deferred to future initiative
+
+### Quick Resume
+
+```
+@_projects/2026-05/20260514.01.e2e-workflow-testing-infrastructure/next-task.md
+```
+
+Checkpoint: `checkpoints/2026-05-17-session-29.md`
+
+## Remaining Follow-Ups (Operational / Future)
+
+1. **Deploy proxy changes to cloud** — merge stigmer-cloud feature branch, rebuild JAR, test proxy mode end-to-end
+2. **Add OpenAI key** to Planton secret groups + auto-fetch in Makefile (enables the 1 skipped test)
+3. **Publish JAR from stigmer-cloud CI** — replace Build Service JAR job with artifact download
+4. **Application-level OTel spans** — fine-grained spans for LLM calls, MCP tool invocations inside `ExecuteGraphton` and `ExecuteCursor` (requires span schema design)
+5. **OTel baggage propagation** — `execution_id`, `session_id`, `org_id` as OTel baggage for downstream correlation
+6. **OTel metrics** — histograms for activity duration, counters for LLM calls (separate observability initiative)
+
+## Session Progress (2026-05-17, Session 28 — T17 OpenTelemetry Instrumentation — PROJECT COMPLETE)
+
+### Accomplished
+
+- Implemented **T17: OpenTelemetry Instrumentation** — the final Phase 4 task
+- **ALL 18 planned tasks + T19 now complete** — project finished
+- Added Jaeger all-in-one Testcontainer (OTLP receiver + queryable API)
+- Created OTel SDK bootstrap in test harness (TracerProvider, BatchSpanProcessor, OTLP/gRPC exporter)
+- Added root spans: `stigmer.apply`, `stigmer.run`, `stigmer.wait` with domain attributes
+- Wired OTel gRPC stats handler for W3C traceparent propagation to Java service
+- Added Temporal SDK tracing interceptor to workflow-runner (auto-spans for workflows, activities, signals)
+- Created env-var-driven OTel init in workflow-runner (no-op when `OTEL_EXPORTER_OTLP_ENDPOINT` unset)
+- Enabled Java service OTel conditionally (flip `OBSERVABILITY_ENABLED`, pass OTLP endpoint)
+- Built trace bundle export on test failure (Jaeger Query API → JSON trace files)
+- Updated CI: `INTEGRATION_TEST_OTEL=true`, trace artifact upload on failure
+- Added `test-traced` Makefile target
+
+### Files Changed (20 files, committed 1459fa3b3)
+
+**New (5):** `harness/jaeger.go`, `harness/otel.go`, `harness/trace_bundle.go`, `pkg/otel/otel.go`, changelog
+**Modified (15):** `harness.go`, `fixture.go`, `assertions.go`, `service.go`, `workflow_runner.go`, `suite_test.go`, `Makefile`, `worker.go`, `root.go`, `ci.integration-offline.yaml`, go.mod/sum files
+
+### Key Decisions
+
+1. **Opt-in tracing** — `INTEGRATION_TEST_OTEL=true`; zero overhead when disabled
+2. **Jaeger over OTel Collector** — queryable API enables programmatic trace export
+3. **Standard OTEL_EXPORTER_OTLP_ENDPOINT** — same env var across test/dev/prod
+4. **No stigmer-cloud changes** — Java OTel already configured via `application-observability.yaml`
+
+### Quick Resume
+
+```
+@_projects/2026-05/20260514.01.e2e-workflow-testing-infrastructure/next-task.md
+```
+
+Checkpoint: `checkpoints/2026-05-17-session-28.md`
 
 ## Session Progress (2026-05-17, Session 27 — Fix InteractionModePicker in SessionLauncher + Dropdown Refactor)
 

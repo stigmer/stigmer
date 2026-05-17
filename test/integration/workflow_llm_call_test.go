@@ -25,6 +25,12 @@ func TestWorkflowLlmCall_StructuredOutput(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
 
+	if testHarness.OTelEnabled() {
+		tc := harness.StartTestTrace(ctx, t, testHarness.Jaeger)
+		tc.RegisterCleanup(t, testHarness.OutputDir())
+		ctx = tc.Context()
+	}
+
 	clients := harness.NewClients(grpcConn)
 	harness.RequireServiceHealthy(t, ctx, clients)
 	deployer := harness.NewFixtureDeployer(clients, "llm-struct", suiteLogger)
