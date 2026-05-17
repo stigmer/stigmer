@@ -19,15 +19,15 @@ spec:
           memory: 32Mi
       env:
         variables:
-          NEXT_PUBLIC_API_URL:
+          - name: NEXT_PUBLIC_API_URL
             value: $variables-group/stigmer-web-config/prod.api-url
-          NEXT_PUBLIC_AUTH_MODE:
+          - name: NEXT_PUBLIC_AUTH_MODE
             value: $variables-group/stigmer-web-config/prod.auth-mode
-          NEXT_PUBLIC_OIDC_ISSUER:
+          - name: NEXT_PUBLIC_OIDC_ISSUER
             value: $variables-group/stigmer-web-config/prod.oidc-issuer
-          NEXT_PUBLIC_OIDC_CLIENT_ID:
+          - name: NEXT_PUBLIC_OIDC_CLIENT_ID
             value: $variables-group/stigmer-web-config/prod.oidc-client-id
-          NEXT_PUBLIC_OIDC_AUDIENCE:
+          - name: NEXT_PUBLIC_OIDC_AUDIENCE
             value: $variables-group/stigmer-web-config/prod.oidc-audience
   ingress:
     enabled: true
