@@ -39,10 +39,11 @@ detailed per-model accounting in ``UsageTracker``.  This is intentional:
 The middleware uses the formula::
 
     cost += (regular_input × input_price
+             + cache_creation × cache_creation_price
              + cache_read × cache_read_price
              + output × output_price) / 1 000 000
 
-where regular_input = total_input − cache_read.
+where regular_input = total_input − cache_creation − cache_read.
 """
 
 import logging
@@ -85,6 +86,7 @@ class CostCapMiddleware(AgentMiddleware):
         ...     max_cost_usd=5.00,
         ...     input_price_per_million=3.00,
         ...     output_price_per_million=15.00,
+        ...     cache_creation_price_per_million=3.75,
         ...     cache_read_price_per_million=0.30,
         ... )
         >>> # Auto-injected in create_deep_agent() when max_cost_usd > 0
@@ -95,6 +97,10 @@ class CostCapMiddleware(AgentMiddleware):
         input_price_per_million: Price per million regular input tokens
             (USD).  Used for non-cached input token cost.
         output_price_per_million: Price per million output tokens (USD).
+        cache_creation_price_per_million: Price per million cache-write
+            input tokens (USD).  Anthropic charges 1.25x the input rate
+            for cache writes.  Defaults to 0, which falls back to the
+            regular input rate (underestimate for Anthropic).
         cache_read_price_per_million: Price per million cache-read input
             tokens (USD).  Defaults to 0, which means cache reads are
             charged at the full input rate (conservative overestimate).
@@ -108,6 +114,7 @@ class CostCapMiddleware(AgentMiddleware):
         max_cost_usd: float,
         input_price_per_million: float,
         output_price_per_million: float,
+        cache_creation_price_per_million: float = 0.0,
         cache_read_price_per_million: float = 0.0,
         warning_pct: int = _DEFAULT_WARNING_PCT,
     ) -> None:
@@ -124,6 +131,7 @@ class CostCapMiddleware(AgentMiddleware):
         self._max_cost_usd = max_cost_usd
         self._input_price = input_price_per_million
         self._output_price = output_price_per_million
+        self._cache_creation_price = cache_creation_price_per_million
         self._cache_read_price = cache_read_price_per_million
         self._warning_pct = warning_pct
 
@@ -135,11 +143,13 @@ class CostCapMiddleware(AgentMiddleware):
         logger.info(
             "Cost cap middleware initialized: max_cost=$%.2f, "
             "warning_pct=%d%%, input_price=$%.2f/MTok, "
-            "output_price=$%.2f/MTok, cache_read_price=$%.2f/MTok",
+            "output_price=$%.2f/MTok, cache_creation_price=$%.2f/MTok, "
+            "cache_read_price=$%.2f/MTok",
             max_cost_usd,
             warning_pct,
             input_price_per_million,
             output_price_per_million,
+            cache_creation_price_per_million,
             cache_read_price_per_million,
         )
 
@@ -161,23 +171,25 @@ class CostCapMiddleware(AgentMiddleware):
     # Internal helpers
     # ------------------------------------------------------------------
 
-    def _extract_usage(self, ai_message: AIMessage) -> tuple[int, int, int]:
+    def _extract_usage(self, ai_message: AIMessage) -> tuple[int, int, int, int]:
         """Extract token counts from an AIMessage's usage_metadata.
 
         Returns:
-            (total_input_tokens, output_tokens, cache_read_tokens)
+            (total_input_tokens, output_tokens, cache_creation_tokens, cache_read_tokens)
         """
         usage = getattr(ai_message, "usage_metadata", None)
         if not usage:
-            return 0, 0, 0
+            return 0, 0, 0, 0
 
         if isinstance(usage, dict):
             total_input = usage.get("input_tokens", 0) or 0
             output = usage.get("output_tokens", 0) or 0
             details = usage.get("input_token_details") or {}
             if isinstance(details, dict):
+                cache_creation = details.get("cache_creation", 0) or 0
                 cache_read = details.get("cache_read", 0) or 0
             else:
+                cache_creation = getattr(details, "cache_creation", 0) or 0
                 cache_read = getattr(details, "cache_read", 0) or 0
         else:
             total_input = getattr(usage, "input_tokens", 0) or 0
@@ -185,36 +197,50 @@ class CostCapMiddleware(AgentMiddleware):
             details = getattr(usage, "input_token_details", None)
             if details is not None:
                 if isinstance(details, dict):
+                    cache_creation = details.get("cache_creation", 0) or 0
                     cache_read = details.get("cache_read", 0) or 0
                 else:
+                    cache_creation = getattr(details, "cache_creation", 0) or 0
                     cache_read = getattr(details, "cache_read", 0) or 0
             else:
+                cache_creation = 0
                 cache_read = 0
 
-        return total_input, output, cache_read
+        return total_input, output, cache_creation, cache_read
 
     def _compute_call_cost(
         self,
         total_input_tokens: int,
         output_tokens: int,
+        cache_creation_tokens: int,
         cache_read_tokens: int,
     ) -> float:
         """Compute estimated cost for a single LLM call.
 
-        Splits total input into regular and cache-read buckets and applies
-        the respective rates.  When ``cache_read_price`` is 0, all input
-        tokens are charged at the full input rate (conservative).
+        Splits total input into regular, cache-creation, and cache-read
+        buckets and applies the respective rates.
+
+        When ``cache_creation_price`` is 0, cache-creation tokens are
+        charged at the full input rate.  When ``cache_read_price`` is 0,
+        cache-read tokens are charged at the full input rate.
         """
-        if self._cache_read_price > 0 and cache_read_tokens > 0:
-            regular_input = max(total_input_tokens - cache_read_tokens, 0)
-            input_cost = regular_input * self._input_price
-            cache_cost = cache_read_tokens * self._cache_read_price
+        regular_input = max(
+            total_input_tokens - cache_creation_tokens - cache_read_tokens, 0,
+        )
+        input_cost = regular_input * self._input_price
+
+        if self._cache_creation_price > 0 and cache_creation_tokens > 0:
+            creation_cost = cache_creation_tokens * self._cache_creation_price
         else:
-            input_cost = total_input_tokens * self._input_price
-            cache_cost = 0.0
+            creation_cost = cache_creation_tokens * self._input_price
+
+        if self._cache_read_price > 0 and cache_read_tokens > 0:
+            read_cost = cache_read_tokens * self._cache_read_price
+        else:
+            read_cost = cache_read_tokens * self._input_price
 
         output_cost = output_tokens * self._output_price
-        return (input_cost + cache_cost + output_cost) / 1_000_000
+        return (input_cost + creation_cost + read_cost + output_cost) / 1_000_000
 
     def _create_warning_message(self) -> SystemMessage:
         """Build the SystemMessage injected at the warning threshold."""
@@ -289,23 +315,24 @@ class CostCapMiddleware(AgentMiddleware):
         if last_ai is None:
             return None
 
-        total_input, output, cache_read = self._extract_usage(last_ai)
+        total_input, output, cache_creation, cache_read = self._extract_usage(last_ai)
         if total_input == 0 and output == 0:
             return None
 
-        call_cost = self._compute_call_cost(total_input, output, cache_read)
+        call_cost = self._compute_call_cost(total_input, output, cache_creation, cache_read)
         self._running_cost += call_cost
         self._model_call_count += 1
 
         logger.debug(
             "Cost cap: call #%d cost=$%.6f, running_total=$%.4f, "
-            "cap=$%.2f (input=%d, output=%d, cache_read=%d)",
+            "cap=$%.2f (input=%d, output=%d, cache_creation=%d, cache_read=%d)",
             self._model_call_count,
             call_cost,
             self._running_cost,
             self._max_cost_usd,
             total_input,
             output,
+            cache_creation,
             cache_read,
         )
 
