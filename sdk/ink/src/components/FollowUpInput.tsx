@@ -12,6 +12,8 @@ export interface FollowUpInputProps {
   readonly disabled?: boolean;
   /** Placeholder text. Default: "Reply..." */
   readonly placeholder?: string;
+  /** Current interaction mode. Shown in the shortcut hint line. */
+  readonly mode?: "agent" | "plan";
 }
 
 /**
@@ -25,6 +27,7 @@ export function FollowUpInput({
   isSubmitting = false,
   disabled = false,
   placeholder = "Reply...",
+  mode,
 }: FollowUpInputProps) {
   const [value, setValue] = useState("");
   const { isRawModeSupported } = useStdin();
@@ -62,7 +65,7 @@ export function FollowUpInput({
       </Box>
       <Box paddingLeft={2}>
         <Text dimColor>
-          Enter to send · Ctrl+C to exit
+          Enter to send · Ctrl+T {mode === "plan" ? "agent" : "plan"} mode · Ctrl+C exit
         </Text>
       </Box>
     </Box>
