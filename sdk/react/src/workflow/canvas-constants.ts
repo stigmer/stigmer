@@ -1,4 +1,5 @@
 import type { TopologyNodeCategory } from "./useWorkflowTopology";
+import type { TaskKindCategory } from "./types";
 
 /**
  * Category-to-color mapping using `--stgm-*` CSS custom properties.
@@ -45,3 +46,30 @@ export const HANDLE_POSITIONS = {
   input: { x: 0.5, y: 0 },
   output: { x: 0.5, y: 1 },
 } as const;
+
+/** Human-readable display names for task kind categories. */
+export const CATEGORY_DISPLAY_NAMES: Readonly<Record<TaskKindCategory, string>> = {
+  ai: "AI",
+  control_flow: "Control Flow",
+  invocation: "Invocation",
+  data: "Data",
+  governance: "Governance",
+  event: "Event",
+  unspecified: "Other",
+};
+
+/**
+ * Rendering order for task kind categories in palettes and pickers.
+ *
+ * AI tasks first (most common), then control flow, invocation, data,
+ * governance, events. Unspecified is a catch-all at the end.
+ */
+export const CATEGORY_ORDER: readonly TaskKindCategory[] = [
+  "ai",
+  "control_flow",
+  "invocation",
+  "data",
+  "governance",
+  "event",
+  "unspecified",
+];

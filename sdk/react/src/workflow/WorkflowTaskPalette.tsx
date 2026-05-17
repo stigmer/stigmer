@@ -5,30 +5,10 @@ import type { DragEvent } from "react";
 import { cn } from "@stigmer/theme";
 import { useTaskKindRegistry } from "./useTaskKindRegistry";
 import type { TaskKindDescriptor, TaskKindCategory } from "./types";
-import { CATEGORY_COLORS } from "./canvas-constants";
+import { CATEGORY_COLORS, CATEGORY_DISPLAY_NAMES, CATEGORY_ORDER } from "./canvas-constants";
 
 /** MIME type for the drag transfer carrying the task kind identifier. */
 export const TASK_KIND_DRAG_MIME = "application/stigmer-task-kind";
-
-const CATEGORY_DISPLAY_NAMES: Readonly<Record<TaskKindCategory, string>> = {
-  ai: "AI",
-  control_flow: "Control Flow",
-  invocation: "Invocation",
-  data: "Data",
-  governance: "Governance",
-  event: "Event",
-  unspecified: "Other",
-};
-
-const CATEGORY_ORDER: readonly TaskKindCategory[] = [
-  "ai",
-  "control_flow",
-  "invocation",
-  "data",
-  "governance",
-  "event",
-  "unspecified",
-];
 
 /** Props for {@link WorkflowTaskPalette}. */
 export interface WorkflowTaskPaletteProps {

@@ -269,6 +269,11 @@ export {
 } from "./WorkflowTaskPalette";
 
 export {
+  TaskPickerPopover,
+  type TaskPickerPopoverProps,
+} from "./TaskPickerPopover";
+
+export {
   WorkflowInspectorPanel,
   type WorkflowInspectorPanelProps,
 } from "./WorkflowInspectorPanel";

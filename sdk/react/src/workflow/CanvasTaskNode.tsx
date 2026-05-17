@@ -1,12 +1,13 @@
 "use client";
 
-import { memo, useCallback, useContext } from "react";
+import { memo, useCallback, useContext, useRef, useState } from "react";
 import { Handle, Position } from "@xyflow/react";
 import type { NodeProps } from "@xyflow/react";
 import { cn } from "@stigmer/theme";
 import { CATEGORY_COLORS } from "./canvas-constants";
 import type { CanvasTaskNodeData } from "./workflow-graph-conversions";
 import { CanvasActionsContext } from "./CanvasActionsContext";
+import { TaskPickerPopover } from "./TaskPickerPopover";
 
 const NESTED_TASK_KINDS = new Set(["fork", "for_each", "try_catch"]);
 
@@ -44,9 +45,23 @@ export const CanvasTaskNode = memo(function CanvasTaskNode({
     actions?.deleteNode(id);
   }, [actions, id]);
 
-  const handleAddSuccessor = useCallback(() => {
-    actions?.addSuccessorTask(id, "agent_call");
-  }, [actions, id]);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const addBtnRef = useRef<HTMLButtonElement>(null);
+
+  const handleOpenPicker = useCallback(() => {
+    setPickerOpen(true);
+  }, []);
+
+  const handlePickerOpenChange = useCallback((nextOpen: boolean) => {
+    setPickerOpen(nextOpen);
+  }, []);
+
+  const handleKindSelected = useCallback(
+    (kindString: string) => {
+      actions?.addSuccessorTask(id, kindString);
+    },
+    [actions, id],
+  );
 
   return (
     <div
@@ -150,8 +165,9 @@ export const CanvasTaskNode = memo(function CanvasTaskNode({
 
       {/* Add successor button — revealed on hover via CSS group */}
       <button
+        ref={addBtnRef}
         type="button"
-        onClick={handleAddSuccessor}
+        onClick={handleOpenPicker}
         className={cn(
           "absolute -bottom-3 left-1/2 z-10 flex h-5 w-5 -translate-x-1/2 items-center justify-center rounded-full border border-[var(--stgm-border-prominent,#d4d4d8)] bg-[var(--stgm-card,var(--stgm-background,#fff))] text-[var(--stgm-muted-foreground,#737373)] shadow-sm transition-all",
           "hover:border-[var(--stgm-primary,#6366f1)] hover:bg-[var(--stgm-primary,#6366f1)] hover:text-[var(--stgm-primary-foreground,#fff)]",
@@ -164,6 +180,14 @@ export const CanvasTaskNode = memo(function CanvasTaskNode({
           <path d="M5 2v6M2 5h6" />
         </svg>
       </button>
+
+      <TaskPickerPopover
+        open={pickerOpen}
+        onOpenChange={handlePickerOpenChange}
+        onSelectKind={handleKindSelected}
+        anchorRef={addBtnRef}
+        side="bottom"
+      />
     </div>
   );
 });
