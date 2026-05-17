@@ -52,6 +52,10 @@ type AgentRunnerConfig struct {
 	R2AccessKey string
 	R2SecretKey string
 	R2Bucket    string
+
+	// OTLPEndpoint sets OTEL_EXPORTER_OTLP_ENDPOINT for distributed tracing.
+	// When set, the agent-runner exports spans to this OTLP/gRPC receiver.
+	OTLPEndpoint string
 }
 
 // StartAgentRunner locates the agent-runner Python service, verifies a virtualenv
@@ -240,6 +244,10 @@ func buildAgentRunnerEnv(cfg AgentRunnerConfig, runnerDir string) []string {
 			fmt.Sprintf("AGENT_EXECUTION_ARTIFACT_R2_SECRET_ACCESS_KEY=%s", cfg.R2SecretKey),
 			fmt.Sprintf("AGENT_EXECUTION_ARTIFACT_R2_BUCKET=%s", cfg.R2Bucket),
 		)
+	}
+
+	if cfg.OTLPEndpoint != "" {
+		env = append(env, fmt.Sprintf("OTEL_EXPORTER_OTLP_ENDPOINT=%s", cfg.OTLPEndpoint))
 	}
 
 	return env

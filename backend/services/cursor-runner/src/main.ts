@@ -14,6 +14,7 @@
 import { loadConfig, CURSOR_QUEUE_SUFFIX } from "./config.js";
 import { installFetchInterceptor } from "./proxy/fetch-interceptor.js";
 import { startHeartbeat } from "./heartbeat.js";
+import { initTracing } from "./otel.js";
 
 // The Cursor SDK fires background promises (API key exchange, telemetry,
 // heartbeats) that can reject outside any async context our activity code
@@ -50,6 +51,8 @@ let shutdownRequested = false;
 
 async function main(): Promise<void> {
   const config = loadConfig();
+
+  const otelShutdown = await initTracing("cursor-runner");
 
   // Install the fetch interceptor BEFORE importing the worker module,
   // which transitively imports @cursor/sdk. In proxy mode, all outbound
@@ -98,6 +101,10 @@ async function main(): Promise<void> {
 
   console.log("Worker ready, polling for tasks...");
   await worker.run();
+
+  if (otelShutdown) {
+    await otelShutdown();
+  }
   console.log("Worker stopped");
 }
 

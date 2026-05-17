@@ -55,6 +55,10 @@ type CursorRunnerConfig struct {
 	// WorkspaceDir is the directory the Cursor agent will use as its workspace.
 	// If empty, a temporary directory is created.
 	WorkspaceDir string
+
+	// OTLPEndpoint sets OTEL_EXPORTER_OTLP_ENDPOINT for distributed tracing.
+	// When set, the cursor-runner exports spans to this OTLP/gRPC receiver.
+	OTLPEndpoint string
 }
 
 // StartCursorRunner locates the cursor-runner TypeScript service, ensures it is
@@ -217,6 +221,10 @@ func buildCursorRunnerEnv(cfg CursorRunnerConfig, workspaceDir string) []string 
 	} else if cfg.CursorAPIKey != "" {
 		// Fallback: call Cursor directly (no billing records)
 		env = append(env, fmt.Sprintf("CURSOR_API_KEY=%s", cfg.CursorAPIKey))
+	}
+
+	if cfg.OTLPEndpoint != "" {
+		env = append(env, fmt.Sprintf("OTEL_EXPORTER_OTLP_ENDPOINT=%s", cfg.OTLPEndpoint))
 	}
 
 	return env
