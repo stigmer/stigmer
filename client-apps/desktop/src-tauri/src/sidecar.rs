@@ -511,6 +511,7 @@ pub async fn start_runner(
     endpoint: Option<String>,
     token: Option<String>,
     org: Option<String>,
+    insecure: Option<bool>,
 ) -> Result<String, String> {
     let runner_name = name.clone().unwrap_or_else(|| {
         hostname::get()
@@ -542,6 +543,9 @@ pub async fn start_runner(
     if let Some(ref o) = org {
         args.push("--org".into());
         args.push(o.clone());
+    }
+    if insecure.unwrap_or(false) {
+        args.push("--insecure".into());
     }
 
     let sidecar = app

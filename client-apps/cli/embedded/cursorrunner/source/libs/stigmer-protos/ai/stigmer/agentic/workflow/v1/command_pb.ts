@@ -8,6 +8,8 @@ import type { WorkflowSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_workflow_v1_api } from "./api_pb.js";
 import type { WorkflowIdSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_workflow_v1_io } from "./io_pb.js";
+import type { ServerlessWorkflowValidationSchema } from "./serverless/validation_pb.js";
+import { file_ai_stigmer_agentic_workflow_v1_serverless_validation } from "./serverless/validation_pb.js";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb.js";
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
 
@@ -15,7 +17,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/workflow/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_workflow_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CixhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvY29tbWFuZC5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxMtUEChlXb3JrZmxvd0NvbW1hbmRDb250cm9sbGVyElsKBWFwcGx5EiguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93GiguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93EqoBCgZjcmVhdGUSKC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3caKC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3ciTMK4GEgIBxAeIgxtZXRhZGF0YS5vcmcqNHVuYXV0aG9yaXplZCB0byBjcmVhdGUgd29ya2Zsb3cgaW4gdGhpcyBvcmdhbml6YXRpb24SlAEKBnVwZGF0ZRIoLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdxooLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdyI2wrgYMggCEDIiC21ldGFkYXRhLmlkKh91bmF1dGhvcml6ZWQgdG8gdXBkYXRlIHdvcmtmbG93EpABCgZkZWxldGUSKi5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3dJZBooLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdyIwwrgYLAgDEDIiBXZhbHVlKh91bmF1dGhvcml6ZWQgdG8gZGVsZXRlIHdvcmtmbG93GgSg/ysyYgZwcm90bzM", [file_ai_stigmer_agentic_workflow_v1_api, file_ai_stigmer_agentic_workflow_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CixhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvY29tbWFuZC5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxMqkGChlXb3JrZmxvd0NvbW1hbmRDb250cm9sbGVyElsKBWFwcGx5EiguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93GiguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93EqoBCgZjcmVhdGUSKC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3caKC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3ciTMK4GEgIBxAeIgxtZXRhZGF0YS5vcmcqNHVuYXV0aG9yaXplZCB0byBjcmVhdGUgd29ya2Zsb3cgaW4gdGhpcyBvcmdhbml6YXRpb24SlAEKBnVwZGF0ZRIoLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdxooLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdyI2wrgYMggCEDIiC21ldGFkYXRhLmlkKh91bmF1dGhvcml6ZWQgdG8gdXBkYXRlIHdvcmtmbG93EpABCgZkZWxldGUSKi5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3dJZBooLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdyIwwrgYLAgDEDIiBXZhbHVlKh91bmF1dGhvcml6ZWQgdG8gZGVsZXRlIHdvcmtmbG93EtEBCgx2YWxpZGF0ZVNwZWMSKC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3caRy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuc2VydmVybGVzcy5TZXJ2ZXJsZXNzV29ya2Zsb3dWYWxpZGF0aW9uIk7CuBhKCAcQHiIMbWV0YWRhdGEub3JnKjZ1bmF1dGhvcml6ZWQgdG8gdmFsaWRhdGUgd29ya2Zsb3cgaW4gdGhpcyBvcmdhbml6YXRpb24aBKD/KzJiBnByb3RvMw", [file_ai_stigmer_agentic_workflow_v1_api, file_ai_stigmer_agentic_workflow_v1_io, file_ai_stigmer_agentic_workflow_v1_serverless_validation, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * WorkflowCommandController handles write operations for workflows.
@@ -71,6 +73,35 @@ export const WorkflowCommandController: GenService<{
     methodKind: "unary";
     input: typeof WorkflowIdSchema;
     output: typeof WorkflowSchema;
+  },
+  /**
+   * Validate a workflow spec without persisting it.
+   *
+   * Runs the same two-layer validation pipeline used by create/update:
+   *   Layer 1: Proto field constraints (buf validate / protovalidate)
+   *   Layer 2: Temporal-based structural validation (Go activity: proto → YAML → Zigflow)
+   *
+   * Returns ServerlessWorkflowValidation with:
+   *   - VALID: Workflow structure passed all checks
+   *   - INVALID: User error (bad structure, missing fields, unknown task kinds)
+   *   - FAILED: System error (Temporal unavailable, converter crash)
+   *
+   * This RPC does NOT persist, authorize, or create instances. It is a
+   * pure validation endpoint suitable for iterative authoring workflows
+   * where the caller needs fast feedback before committing.
+   *
+   * @internal
+   * Authorization: Uses the same permission as create — caller must have
+   * can_create_workflow in the org. This prevents unauthenticated abuse
+   * of the validation pipeline while allowing any user who could create
+   * a workflow to also validate one.
+   *
+   * @generated from rpc ai.stigmer.agentic.workflow.v1.WorkflowCommandController.validateSpec
+   */
+  validateSpec: {
+    methodKind: "unary";
+    input: typeof WorkflowSchema;
+    output: typeof ServerlessWorkflowValidationSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ai_stigmer_agentic_workflow_v1_command, 0);

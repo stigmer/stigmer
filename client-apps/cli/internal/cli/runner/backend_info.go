@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -18,6 +19,7 @@ type BackendInfo struct {
 	Token             string
 	Org               string
 	IsLocal           bool
+	Insecure          bool // Use plaintext gRPC (no TLS). True for localhost or --insecure.
 	TemporalAddress   string
 	TemporalNamespace string
 }
@@ -28,6 +30,7 @@ type ResolveOptions struct {
 	EndpointOverride string
 	TokenOverride    string
 	OrgOverride      string
+	Insecure         bool
 	Config           *config.Config
 }
 
@@ -44,6 +47,7 @@ func ResolveBackendInfo(opts ResolveOptions) (*BackendInfo, error) {
 	token := resolveToken(opts)
 	endpoint := resolveEndpoint(opts)
 	org := resolveOrg(opts)
+	insecure := opts.Insecure || isLocalhostEndpoint(endpoint)
 
 	if token != "" {
 		return &BackendInfo{
@@ -51,7 +55,8 @@ func ResolveBackendInfo(opts ResolveOptions) (*BackendInfo, error) {
 			Token:             token,
 			Org:               org,
 			IsLocal:           false,
-			TemporalAddress:   "", // cloud Temporal routed via proxy
+			Insecure:          insecure,
+			TemporalAddress:   "",
 			TemporalNamespace: "default",
 		}, nil
 	}
@@ -145,4 +150,16 @@ func isServerReachable(endpoint string) bool {
 	}
 	conn.Close()
 	return true
+}
+
+// isLocalhostEndpoint returns true if the host portion of a "host:port"
+// endpoint refers to the loopback interface. Used to auto-detect plaintext
+// gRPC targets regardless of whether a token is present.
+func isLocalhostEndpoint(endpoint string) bool {
+	host := endpoint
+	if h, _, err := net.SplitHostPort(endpoint); err == nil {
+		host = h
+	}
+	host = strings.ToLower(host)
+	return host == "localhost" || host == "127.0.0.1" || host == "::1"
 }

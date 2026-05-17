@@ -177,13 +177,25 @@ func (c *Converter) convertTask(task *workflowv1.WorkflowTask) (map[string]inter
 		yamlTask[task.Name] = c.convertSwitchTask(typedProto.(*tasksv1.SwitchTaskConfig))
 
 	case workflowv1.WorkflowTaskKind_for_each:
-		yamlTask[task.Name] = c.convertForTask(typedProto.(*tasksv1.ForTaskConfig))
+		result, err := c.convertForTask(typedProto.(*tasksv1.ForTaskConfig))
+		if err != nil {
+			return nil, fmt.Errorf("task '%s': %w", task.Name, err)
+		}
+		yamlTask[task.Name] = result
 
 	case workflowv1.WorkflowTaskKind_fork:
-		yamlTask[task.Name] = c.convertForkTask(typedProto.(*tasksv1.ForkTaskConfig))
+		result, err := c.convertForkTask(typedProto.(*tasksv1.ForkTaskConfig))
+		if err != nil {
+			return nil, fmt.Errorf("task '%s': %w", task.Name, err)
+		}
+		yamlTask[task.Name] = result
 
 	case workflowv1.WorkflowTaskKind_try_catch:
-		yamlTask[task.Name] = c.convertTryTask(typedProto.(*tasksv1.TryTaskConfig))
+		result, err := c.convertTryTask(typedProto.(*tasksv1.TryTaskConfig))
+		if err != nil {
+			return nil, fmt.Errorf("task '%s': %w", task.Name, err)
+		}
+		yamlTask[task.Name] = result
 
 	case workflowv1.WorkflowTaskKind_listen:
 		yamlTask[task.Name] = c.convertListenTask(typedProto.(*tasksv1.ListenTaskConfig))
@@ -200,8 +212,28 @@ func (c *Converter) convertTask(task *workflowv1.WorkflowTask) (map[string]inter
 	case workflowv1.WorkflowTaskKind_agent_call:
 		yamlTask[task.Name] = c.convertAgentCallTask(typedProto.(*tasksv1.AgentCallTaskConfig))
 
+	case workflowv1.WorkflowTaskKind_llm_call:
+		yamlTask[task.Name] = c.convertLlmCallTask(typedProto.(*tasksv1.LlmCallTaskConfig))
+
+	case workflowv1.WorkflowTaskKind_transform:
+		yamlTask[task.Name] = c.convertTransformTask(typedProto.(*tasksv1.TransformTaskConfig))
+
+	case workflowv1.WorkflowTaskKind_human_input:
+		yamlTask[task.Name] = c.convertHumanInputTask(typedProto.(*tasksv1.HumanInputTaskConfig))
+
+	case workflowv1.WorkflowTaskKind_validate:
+		yamlTask[task.Name] = c.convertValidateTask(typedProto.(*tasksv1.ValidateTaskConfig))
+
+	case workflowv1.WorkflowTaskKind_emit_event:
+		yamlTask[task.Name] = c.convertEmitEventTask(typedProto.(*tasksv1.EmitEventTaskConfig))
+
+	case workflowv1.WorkflowTaskKind_notification:
+		yamlTask[task.Name] = c.convertNotificationTask(typedProto.(*tasksv1.NotificationTaskConfig))
+
+	case workflowv1.WorkflowTaskKind_eval:
+		yamlTask[task.Name] = c.convertEvalTask(typedProto.(*tasksv1.EvalTaskConfig))
+
 	case workflowv1.WorkflowTaskKind_activity_call:
-		// activity_call: Future implementation for Temporal activities
 		return nil, fmt.Errorf("activity_call not yet implemented")
 
 	default:
@@ -220,6 +252,23 @@ func (c *Converter) convertTask(task *workflowv1.WorkflowTask) (map[string]inter
 	if task.Flow != nil && task.Flow.Then != "" {
 		taskMap := yamlTask[task.Name].(map[string]interface{})
 		taskMap["then"] = task.Flow.Then
+	}
+
+	// Carry compensation tasks through metadata for the CNCF SDK pipeline.
+	// The SDK model.Task does not have a compensate field, so we embed
+	// the compensation task definitions in metadata.__stigmer_compensate.
+	if len(task.Compensate) > 0 {
+		taskMap := yamlTask[task.Name].(map[string]interface{})
+		compTasks, err := c.convertTaskList(task.Compensate)
+		if err != nil {
+			return nil, fmt.Errorf("task '%s' compensate: %w", task.Name, err)
+		}
+		metadata, _ := taskMap["metadata"].(map[string]interface{})
+		if metadata == nil {
+			metadata = map[string]interface{}{}
+		}
+		metadata["__stigmer_compensate"] = compTasks
+		taskMap["metadata"] = metadata
 	}
 
 	return yamlTask, nil

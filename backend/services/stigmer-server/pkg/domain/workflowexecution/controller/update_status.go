@@ -38,6 +38,7 @@ func (c *WorkflowExecutionController) UpdateStatus(ctx context.Context, input *w
 		AddStep(newLoadExistingExecutionStep(c.store)).
 		AddStep(newBuildNewStateWithStatusStep()).
 		AddStep(newPersistExecutionStep(c.store)).
+		AddStep(newPersistEventsStep(c.store)).
 		AddStep(newBroadcastToStreamsStep(c.streamBroker)).
 		Build()
 
@@ -244,6 +245,69 @@ func (s *PersistExecutionStep) Execute(ctx *pipeline.RequestContext[*workflowexe
 		Str("execution_id", executionID).
 		Str("phase", execution.Status.Phase.String()).
 		Msg("Successfully updated execution status")
+
+	return nil
+}
+
+// PersistEventsStep appends workflow execution events to the event log.
+// Events are supplementary — a failure here logs a warning but does NOT
+// fail the pipeline because status persistence already succeeded.
+type PersistEventsStep struct {
+	store store.Store
+}
+
+func newPersistEventsStep(store store.Store) *PersistEventsStep {
+	return &PersistEventsStep{store: store}
+}
+
+func (s *PersistEventsStep) Name() string {
+	return "PersistEvents"
+}
+
+func (s *PersistEventsStep) Execute(ctx *pipeline.RequestContext[*workflowexecutionv1.WorkflowExecutionUpdateStatusInput]) error {
+	input := ctx.Input()
+	events := input.GetEvents()
+	if len(events) == 0 {
+		return nil
+	}
+
+	executionID := input.ExecutionId
+
+	records := make([]*store.WorkflowExecutionEventRecord, 0, len(events))
+	for _, evt := range events {
+		data, err := proto.Marshal(evt)
+		if err != nil {
+			log.Warn().
+				Err(err).
+				Str("execution_id", executionID).
+				Uint64("sequence_number", evt.GetSequenceNumber()).
+				Msg("Failed to marshal event, skipping batch")
+			return nil
+		}
+
+		records = append(records, &store.WorkflowExecutionEventRecord{
+			ExecutionID:    executionID,
+			SequenceNumber: int64(evt.GetSequenceNumber()),
+			EventType:      evt.GetEventType().String(),
+			TaskName:       evt.GetTaskName(),
+			Data:           data,
+		})
+	}
+
+	appended, err := s.store.AppendWorkflowExecutionEvents(ctx.Context(), executionID, records)
+	if err != nil {
+		log.Warn().
+			Err(err).
+			Str("execution_id", executionID).
+			Int("event_count", len(records)).
+			Msg("Failed to persist execution events (non-fatal)")
+		return nil
+	}
+
+	log.Debug().
+		Str("execution_id", executionID).
+		Int("appended", appended).
+		Msg("Persisted execution events")
 
 	return nil
 }

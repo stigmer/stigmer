@@ -19,10 +19,14 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	WorkflowExecutionQueryController_Get_FullMethodName            = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/get"
-	WorkflowExecutionQueryController_List_FullMethodName           = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/list"
-	WorkflowExecutionQueryController_ListByWorkflow_FullMethodName = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/listByWorkflow"
-	WorkflowExecutionQueryController_Subscribe_FullMethodName      = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/subscribe"
+	WorkflowExecutionQueryController_Get_FullMethodName                  = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/get"
+	WorkflowExecutionQueryController_List_FullMethodName                 = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/list"
+	WorkflowExecutionQueryController_ListByWorkflow_FullMethodName       = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/listByWorkflow"
+	WorkflowExecutionQueryController_Subscribe_FullMethodName            = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/subscribe"
+	WorkflowExecutionQueryController_GetEventLog_FullMethodName          = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/getEventLog"
+	WorkflowExecutionQueryController_SubscribeEvents_FullMethodName      = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/subscribeEvents"
+	WorkflowExecutionQueryController_GetExecutionSummary_FullMethodName  = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/getExecutionSummary"
+	WorkflowExecutionQueryController_ListPendingApprovals_FullMethodName = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/listPendingApprovals"
 )
 
 // WorkflowExecutionQueryControllerClient is the client API for WorkflowExecutionQueryController service.
@@ -392,6 +396,152 @@ type WorkflowExecutionQueryControllerClient interface {
 	//
 	// [Stream closes]
 	Subscribe(ctx context.Context, in *SubscribeWorkflowExecutionRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[WorkflowExecution], error)
+	// Fetch the paginated event log for a workflow execution.
+	//
+	// Returns execution events ordered by sequence_number ascending, with
+	// cursor-based pagination and optional filtering by event type or task name.
+	//
+	// @internal
+	// Authorization:
+	// Standard authorization checks that user has "get" permission on the
+	// WorkflowExecution. Same permission as get() and subscribe().
+	//
+	// The event log complements the status snapshot: the snapshot tells you
+	// current state, the event log tells you what happened and when.
+	//
+	// Use Cases:
+	//
+	// 1. Execution Viewer Timeline:
+	//   - Load full event history for a completed execution
+	//   - Render timeline with task transitions, retries, approvals, cost
+	//
+	// 2. Task Drill-Down:
+	//   - Filter by task_name to see all events for a specific task
+	//   - Inspect retry history, duration, cost per attempt
+	//
+	// 3. Cost Audit:
+	//   - Filter by budget_checkpoint events to chart cost over time
+	//   - Correlate cost spikes with specific agent_call tasks
+	//
+	// 4. Approval Audit Trail:
+	//   - Filter by approval_requested and approval_resolved
+	//   - See who approved what, when, and with what comment
+	//
+	// Error Cases:
+	//
+	// - NOT_FOUND: No WorkflowExecution exists with the given ID
+	// - PERMISSION_DENIED: User doesn't have "get" permission
+	// - INVALID_ARGUMENT: page_size exceeds maximum (500)
+	//
+	// @since T06 (Execution Event Stream Model)
+	GetEventLog(ctx context.Context, in *GetEventLogRequest, opts ...grpc.CallOption) (*GetEventLogResponse, error)
+	// Subscribe to real-time execution events (incremental event stream).
+	//
+	// Opens a server-side streaming RPC that pushes individual
+	// WorkflowExecutionEvent messages as they occur during execution.
+	// Unlike subscribe() which streams full WorkflowExecution snapshots,
+	// this streams lightweight incremental events for the timeline view.
+	//
+	// @internal
+	// Authorization:
+	// Standard authorization checks that user has "get" permission on the
+	// WorkflowExecution. Same permission as get() and subscribe().
+	//
+	// Stream Lifecycle:
+	//  1. Client sends SubscribeEventsRequest with execution_id
+	//  2. Server validates authorization
+	//  3. If after_sequence > 0: Server replays missed events from persistence
+	//  4. Server streams new events in real-time as the runner emits them
+	//  5. Server closes stream when execution reaches a terminal phase
+	//     (COMPLETED, FAILED, CANCELLED, TERMINATED)
+	//  6. Client can close stream early
+	//
+	// Reconnection:
+	// On disconnect, the client reconnects with after_sequence set to the
+	// sequence_number of the last received event. The server replays any
+	// events missed during the disconnect, then resumes live streaming.
+	// No events are lost.
+	//
+	// Complementary Streams:
+	// - subscribe(): Full snapshots for current-state views (progress bars, dashboards)
+	// - subscribeEvents(): Incremental events for timeline views (execution viewer)
+	// Both streams can be used simultaneously for different UI concerns.
+	//
+	// Use Cases:
+	//
+	// 1. Live Execution Timeline:
+	//   - User watches a running execution in the execution viewer
+	//   - Events stream in real-time, building the timeline as tasks progress
+	//   - Each event adds a row: "task X started", "task X completed (2.3s, $0.05)"
+	//
+	// 2. Cost Monitoring:
+	//   - Dashboard subscribes with event_types filter for budget_checkpoint
+	//   - Budget gauge updates in real-time as costs accumulate
+	//
+	// 3. Approval Notifications:
+	//   - Subscribe with event_types filter for approval_requested
+	//   - Surface approval gates immediately when they activate
+	//
+	// Error Cases:
+	//
+	// - NOT_FOUND: No WorkflowExecution exists with the given ID
+	// - PERMISSION_DENIED: User doesn't have "get" permission
+	// - DEADLINE_EXCEEDED: Client timeout (reconnect with after_sequence)
+	// - UNAVAILABLE: Server unavailable (retry with backoff)
+	//
+	// @since T06 (Execution Event Stream Model)
+	SubscribeEvents(ctx context.Context, in *SubscribeEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[WorkflowExecutionEvent], error)
+	// Get aggregated execution statistics for an organization's workflows.
+	//
+	// Returns counts by phase, total cost, average duration, top failing
+	// workflows, and per-workflow cost breakdown — scoped to a configurable
+	// time window (24h, 7d, 30d, all-time).
+	//
+	// @internal
+	// Authorization:
+	// Custom authorization — user must have organization-level access.
+	// Results are scoped to the user's organization.
+	//
+	// Use Cases:
+	//
+	// 1. Dashboard Overview:
+	//   - Display KPI cards: active runs, completed, failed, total cost
+	//   - Time window selector toggles between 24h / 7d / 30d views
+	//
+	// 2. Cost Monitoring:
+	//   - Show per-workflow cost breakdown to identify expensive workflows
+	//   - Track cost trends across time windows
+	//
+	// 3. Reliability Monitoring:
+	//   - Surface top failing workflows for investigation
+	//   - Track failure rates across the organization
+	//
+	// @since T14 (Dashboard Integration)
+	GetExecutionSummary(ctx context.Context, in *GetExecutionSummaryRequest, opts ...grpc.CallOption) (*ExecutionSummary, error)
+	// List workflow executions with pending human_input tasks awaiting reviewer decisions.
+	//
+	// Returns a paginated list of executions where at least one human_input
+	// task is actively waiting for a response. Each entry includes the
+	// execution context, task details, requester, and timeout information.
+	//
+	// @internal
+	// Authorization:
+	// Custom authorization — user must have organization-level access.
+	// Results are scoped to the user's organization.
+	//
+	// Use Cases:
+	//
+	// 1. Pending Approvals Dashboard Widget:
+	//   - Display a list of items requiring human attention
+	//   - Show time waiting and timeout countdown
+	//   - Link to execution viewer for review action
+	//
+	// 2. Approval Queue:
+	//   - Reviewers see all pending approvals in one view
+	//   - Sorted by urgency (closest to timeout first)
+	//
+	// @since T14 (Dashboard Integration)
+	ListPendingApprovals(ctx context.Context, in *ListPendingApprovalsRequest, opts ...grpc.CallOption) (*PendingApprovalsList, error)
 }
 
 type workflowExecutionQueryControllerClient struct {
@@ -450,6 +600,55 @@ func (c *workflowExecutionQueryControllerClient) Subscribe(ctx context.Context, 
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type WorkflowExecutionQueryController_SubscribeClient = grpc.ServerStreamingClient[WorkflowExecution]
+
+func (c *workflowExecutionQueryControllerClient) GetEventLog(ctx context.Context, in *GetEventLogRequest, opts ...grpc.CallOption) (*GetEventLogResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetEventLogResponse)
+	err := c.cc.Invoke(ctx, WorkflowExecutionQueryController_GetEventLog_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *workflowExecutionQueryControllerClient) SubscribeEvents(ctx context.Context, in *SubscribeEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[WorkflowExecutionEvent], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &WorkflowExecutionQueryController_ServiceDesc.Streams[1], WorkflowExecutionQueryController_SubscribeEvents_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[SubscribeEventsRequest, WorkflowExecutionEvent]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type WorkflowExecutionQueryController_SubscribeEventsClient = grpc.ServerStreamingClient[WorkflowExecutionEvent]
+
+func (c *workflowExecutionQueryControllerClient) GetExecutionSummary(ctx context.Context, in *GetExecutionSummaryRequest, opts ...grpc.CallOption) (*ExecutionSummary, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ExecutionSummary)
+	err := c.cc.Invoke(ctx, WorkflowExecutionQueryController_GetExecutionSummary_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *workflowExecutionQueryControllerClient) ListPendingApprovals(ctx context.Context, in *ListPendingApprovalsRequest, opts ...grpc.CallOption) (*PendingApprovalsList, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PendingApprovalsList)
+	err := c.cc.Invoke(ctx, WorkflowExecutionQueryController_ListPendingApprovals_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
 
 // WorkflowExecutionQueryControllerServer is the server API for WorkflowExecutionQueryController service.
 // All implementations should embed UnimplementedWorkflowExecutionQueryControllerServer
@@ -818,6 +1017,152 @@ type WorkflowExecutionQueryControllerServer interface {
 	//
 	// [Stream closes]
 	Subscribe(*SubscribeWorkflowExecutionRequest, grpc.ServerStreamingServer[WorkflowExecution]) error
+	// Fetch the paginated event log for a workflow execution.
+	//
+	// Returns execution events ordered by sequence_number ascending, with
+	// cursor-based pagination and optional filtering by event type or task name.
+	//
+	// @internal
+	// Authorization:
+	// Standard authorization checks that user has "get" permission on the
+	// WorkflowExecution. Same permission as get() and subscribe().
+	//
+	// The event log complements the status snapshot: the snapshot tells you
+	// current state, the event log tells you what happened and when.
+	//
+	// Use Cases:
+	//
+	// 1. Execution Viewer Timeline:
+	//   - Load full event history for a completed execution
+	//   - Render timeline with task transitions, retries, approvals, cost
+	//
+	// 2. Task Drill-Down:
+	//   - Filter by task_name to see all events for a specific task
+	//   - Inspect retry history, duration, cost per attempt
+	//
+	// 3. Cost Audit:
+	//   - Filter by budget_checkpoint events to chart cost over time
+	//   - Correlate cost spikes with specific agent_call tasks
+	//
+	// 4. Approval Audit Trail:
+	//   - Filter by approval_requested and approval_resolved
+	//   - See who approved what, when, and with what comment
+	//
+	// Error Cases:
+	//
+	// - NOT_FOUND: No WorkflowExecution exists with the given ID
+	// - PERMISSION_DENIED: User doesn't have "get" permission
+	// - INVALID_ARGUMENT: page_size exceeds maximum (500)
+	//
+	// @since T06 (Execution Event Stream Model)
+	GetEventLog(context.Context, *GetEventLogRequest) (*GetEventLogResponse, error)
+	// Subscribe to real-time execution events (incremental event stream).
+	//
+	// Opens a server-side streaming RPC that pushes individual
+	// WorkflowExecutionEvent messages as they occur during execution.
+	// Unlike subscribe() which streams full WorkflowExecution snapshots,
+	// this streams lightweight incremental events for the timeline view.
+	//
+	// @internal
+	// Authorization:
+	// Standard authorization checks that user has "get" permission on the
+	// WorkflowExecution. Same permission as get() and subscribe().
+	//
+	// Stream Lifecycle:
+	//  1. Client sends SubscribeEventsRequest with execution_id
+	//  2. Server validates authorization
+	//  3. If after_sequence > 0: Server replays missed events from persistence
+	//  4. Server streams new events in real-time as the runner emits them
+	//  5. Server closes stream when execution reaches a terminal phase
+	//     (COMPLETED, FAILED, CANCELLED, TERMINATED)
+	//  6. Client can close stream early
+	//
+	// Reconnection:
+	// On disconnect, the client reconnects with after_sequence set to the
+	// sequence_number of the last received event. The server replays any
+	// events missed during the disconnect, then resumes live streaming.
+	// No events are lost.
+	//
+	// Complementary Streams:
+	// - subscribe(): Full snapshots for current-state views (progress bars, dashboards)
+	// - subscribeEvents(): Incremental events for timeline views (execution viewer)
+	// Both streams can be used simultaneously for different UI concerns.
+	//
+	// Use Cases:
+	//
+	// 1. Live Execution Timeline:
+	//   - User watches a running execution in the execution viewer
+	//   - Events stream in real-time, building the timeline as tasks progress
+	//   - Each event adds a row: "task X started", "task X completed (2.3s, $0.05)"
+	//
+	// 2. Cost Monitoring:
+	//   - Dashboard subscribes with event_types filter for budget_checkpoint
+	//   - Budget gauge updates in real-time as costs accumulate
+	//
+	// 3. Approval Notifications:
+	//   - Subscribe with event_types filter for approval_requested
+	//   - Surface approval gates immediately when they activate
+	//
+	// Error Cases:
+	//
+	// - NOT_FOUND: No WorkflowExecution exists with the given ID
+	// - PERMISSION_DENIED: User doesn't have "get" permission
+	// - DEADLINE_EXCEEDED: Client timeout (reconnect with after_sequence)
+	// - UNAVAILABLE: Server unavailable (retry with backoff)
+	//
+	// @since T06 (Execution Event Stream Model)
+	SubscribeEvents(*SubscribeEventsRequest, grpc.ServerStreamingServer[WorkflowExecutionEvent]) error
+	// Get aggregated execution statistics for an organization's workflows.
+	//
+	// Returns counts by phase, total cost, average duration, top failing
+	// workflows, and per-workflow cost breakdown — scoped to a configurable
+	// time window (24h, 7d, 30d, all-time).
+	//
+	// @internal
+	// Authorization:
+	// Custom authorization — user must have organization-level access.
+	// Results are scoped to the user's organization.
+	//
+	// Use Cases:
+	//
+	// 1. Dashboard Overview:
+	//   - Display KPI cards: active runs, completed, failed, total cost
+	//   - Time window selector toggles between 24h / 7d / 30d views
+	//
+	// 2. Cost Monitoring:
+	//   - Show per-workflow cost breakdown to identify expensive workflows
+	//   - Track cost trends across time windows
+	//
+	// 3. Reliability Monitoring:
+	//   - Surface top failing workflows for investigation
+	//   - Track failure rates across the organization
+	//
+	// @since T14 (Dashboard Integration)
+	GetExecutionSummary(context.Context, *GetExecutionSummaryRequest) (*ExecutionSummary, error)
+	// List workflow executions with pending human_input tasks awaiting reviewer decisions.
+	//
+	// Returns a paginated list of executions where at least one human_input
+	// task is actively waiting for a response. Each entry includes the
+	// execution context, task details, requester, and timeout information.
+	//
+	// @internal
+	// Authorization:
+	// Custom authorization — user must have organization-level access.
+	// Results are scoped to the user's organization.
+	//
+	// Use Cases:
+	//
+	// 1. Pending Approvals Dashboard Widget:
+	//   - Display a list of items requiring human attention
+	//   - Show time waiting and timeout countdown
+	//   - Link to execution viewer for review action
+	//
+	// 2. Approval Queue:
+	//   - Reviewers see all pending approvals in one view
+	//   - Sorted by urgency (closest to timeout first)
+	//
+	// @since T14 (Dashboard Integration)
+	ListPendingApprovals(context.Context, *ListPendingApprovalsRequest) (*PendingApprovalsList, error)
 }
 
 // UnimplementedWorkflowExecutionQueryControllerServer should be embedded to have
@@ -838,6 +1183,18 @@ func (UnimplementedWorkflowExecutionQueryControllerServer) ListByWorkflow(contex
 }
 func (UnimplementedWorkflowExecutionQueryControllerServer) Subscribe(*SubscribeWorkflowExecutionRequest, grpc.ServerStreamingServer[WorkflowExecution]) error {
 	return status.Errorf(codes.Unimplemented, "method Subscribe not implemented")
+}
+func (UnimplementedWorkflowExecutionQueryControllerServer) GetEventLog(context.Context, *GetEventLogRequest) (*GetEventLogResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetEventLog not implemented")
+}
+func (UnimplementedWorkflowExecutionQueryControllerServer) SubscribeEvents(*SubscribeEventsRequest, grpc.ServerStreamingServer[WorkflowExecutionEvent]) error {
+	return status.Errorf(codes.Unimplemented, "method SubscribeEvents not implemented")
+}
+func (UnimplementedWorkflowExecutionQueryControllerServer) GetExecutionSummary(context.Context, *GetExecutionSummaryRequest) (*ExecutionSummary, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetExecutionSummary not implemented")
+}
+func (UnimplementedWorkflowExecutionQueryControllerServer) ListPendingApprovals(context.Context, *ListPendingApprovalsRequest) (*PendingApprovalsList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListPendingApprovals not implemented")
 }
 func (UnimplementedWorkflowExecutionQueryControllerServer) testEmbeddedByValue() {}
 
@@ -924,6 +1281,71 @@ func _WorkflowExecutionQueryController_Subscribe_Handler(srv interface{}, stream
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type WorkflowExecutionQueryController_SubscribeServer = grpc.ServerStreamingServer[WorkflowExecution]
 
+func _WorkflowExecutionQueryController_GetEventLog_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetEventLogRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WorkflowExecutionQueryControllerServer).GetEventLog(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WorkflowExecutionQueryController_GetEventLog_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WorkflowExecutionQueryControllerServer).GetEventLog(ctx, req.(*GetEventLogRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WorkflowExecutionQueryController_SubscribeEvents_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(SubscribeEventsRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(WorkflowExecutionQueryControllerServer).SubscribeEvents(m, &grpc.GenericServerStream[SubscribeEventsRequest, WorkflowExecutionEvent]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type WorkflowExecutionQueryController_SubscribeEventsServer = grpc.ServerStreamingServer[WorkflowExecutionEvent]
+
+func _WorkflowExecutionQueryController_GetExecutionSummary_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetExecutionSummaryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WorkflowExecutionQueryControllerServer).GetExecutionSummary(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WorkflowExecutionQueryController_GetExecutionSummary_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WorkflowExecutionQueryControllerServer).GetExecutionSummary(ctx, req.(*GetExecutionSummaryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WorkflowExecutionQueryController_ListPendingApprovals_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListPendingApprovalsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WorkflowExecutionQueryControllerServer).ListPendingApprovals(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WorkflowExecutionQueryController_ListPendingApprovals_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WorkflowExecutionQueryControllerServer).ListPendingApprovals(ctx, req.(*ListPendingApprovalsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // WorkflowExecutionQueryController_ServiceDesc is the grpc.ServiceDesc for WorkflowExecutionQueryController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -943,11 +1365,28 @@ var WorkflowExecutionQueryController_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "listByWorkflow",
 			Handler:    _WorkflowExecutionQueryController_ListByWorkflow_Handler,
 		},
+		{
+			MethodName: "getEventLog",
+			Handler:    _WorkflowExecutionQueryController_GetEventLog_Handler,
+		},
+		{
+			MethodName: "getExecutionSummary",
+			Handler:    _WorkflowExecutionQueryController_GetExecutionSummary_Handler,
+		},
+		{
+			MethodName: "listPendingApprovals",
+			Handler:    _WorkflowExecutionQueryController_ListPendingApprovals_Handler,
+		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "subscribe",
 			Handler:       _WorkflowExecutionQueryController_Subscribe_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "subscribeEvents",
+			Handler:       _WorkflowExecutionQueryController_SubscribeEvents_Handler,
 			ServerStreams: true,
 		},
 	},

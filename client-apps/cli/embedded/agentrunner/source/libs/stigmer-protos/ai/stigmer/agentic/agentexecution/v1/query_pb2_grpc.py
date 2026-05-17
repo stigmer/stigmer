@@ -66,6 +66,11 @@ class AgentExecutionQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.GetOrgUsageReportInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.GetOrgUsageReportOutput.FromString,
                 _registered_method=True)
+        self.getExecutionSummary = channel.unary_unary(
+                '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/getExecutionSummary',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.GetAgentExecutionSummaryRequest.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.AgentExecutionSummary.FromString,
+                _registered_method=True)
 
 
 class AgentExecutionQueryControllerServicer(object):
@@ -248,6 +253,41 @@ class AgentExecutionQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def getExecutionSummary(self, request, context):
+        """─────────────────────────────────────────────────────────────────────────────
+        Execution Summary (Dashboard Aggregation)
+
+        Operational summary for the unified platform dashboard. Returns phase
+        counts and active execution count — cost is sourced separately from
+        getOrgUsageReport to prevent double-counting (AD-DASH-005).
+        ─────────────────────────────────────────────────────────────────────────────
+
+        Get aggregated execution statistics for an organization's agent executions.
+
+        Returns counts by phase, active count, average duration, and top failing
+        agents — scoped to a configurable time window (24h, 7d, 30d, all-time).
+
+        @internal
+        Authorization:
+        Custom authorization — user must have organization-level access.
+        Results are scoped to the user's organization.
+
+        Use Cases:
+
+        1. Unified Dashboard Overview:
+        - Display combined agent + workflow KPI cards
+        - Agent phase counts are merged client-side with workflow phase counts
+
+        2. Reliability Monitoring:
+        - Surface top failing agents for investigation
+        - Track failure rates across the organization
+
+        @since Unified Platform Dashboard
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_AgentExecutionQueryControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -300,6 +340,11 @@ def add_AgentExecutionQueryControllerServicer_to_server(servicer, server):
                     servicer.getOrgUsageReport,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.GetOrgUsageReportInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.GetOrgUsageReportOutput.SerializeToString,
+            ),
+            'getExecutionSummary': grpc.unary_unary_rpc_method_handler(
+                    servicer.getExecutionSummary,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.GetAgentExecutionSummaryRequest.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.AgentExecutionSummary.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -573,6 +618,33 @@ class AgentExecutionQueryController(object):
             '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/getOrgUsageReport',
             ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.GetOrgUsageReportInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.GetOrgUsageReportOutput.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def getExecutionSummary(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/getExecutionSummary',
+            ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.GetAgentExecutionSummaryRequest.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.AgentExecutionSummary.FromString,
             options,
             channel_credentials,
             insecure,

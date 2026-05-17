@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "fallback_task": {
+      "description": "Target task to branch to when schema validation cannot be resolved. Used in two scenarios: 1. on_invalid is ON_INVALID_RETRY and all retries are exhausted 2. on_invalid is ON_INVALID_FALLBACK (immediate branch, no retry) Must reference a valid task name in the same workflow. When empty and retries are exhausted, the task fails.",
+      "type": "string"
+    },
+    "max_cost_micros": {
+      "description": "Per-task cost cap in micro-USD (1 USD = 1,000,000 micros). When set, the runtime terminates this specific LLM call if its cost exceeds this limit, independent of the workflow-level budget. The runtime checks both: per-task limit first, then workflow remaining budget. Optional — when 0, no per-task cost limit is enforced.",
+      "type": "integer"
+    },
+    "max_retries": {
+      "description": "Maximum schema-validation retry attempts when on_invalid is ON_INVALID_RETRY. Each retry re-prompts the LLM with the validation errors and expected schema, giving it an opportunity to self-correct. Only meaningful when on_invalid is ON_INVALID_RETRY; ignored otherwise. Default: 1. Valid range: 1-5.",
+      "maximum": 5,
+      "minimum": 1,
+      "type": "integer"
+    },
+    "max_tokens": {
+      "description": "Maximum tokens in the LLM response. Optional — uses the provider's default when not set.",
+      "minimum": 1,
+      "type": "integer"
+    },
+    "max_total_tokens": {
+      "description": "Per-task token cap (input + output tokens combined). When set, the runtime terminates this specific LLM call if total tokens exceed this limit. Complements max_tokens (field 6), which limits only the output token count as a generation parameter. Optional — when 0, no per-task total token limit is enforced.",
+      "type": "integer"
+    },
+    "model": {
+      "description": "Model reference resolved via the Stigmer model registry. Examples: \"gpt-4o\", \"gpt-4o-mini\", \"claude-sonnet-4-5\", \"claude-haiku-3-5\" Required field.",
+      "maxLength": 127,
+      "minLength": 1,
+      "type": "string"
+    },
+    "on_invalid": {
+      "description": "Policy when the LLM response fails schema validation. Only meaningful when response_schema is set; ignored otherwise. Default: ON_INVALID_FAIL (task fails immediately).",
+      "enum": [
+        "ON_INVALID_FAIL",
+        "ON_INVALID_RETRY",
+        "ON_INVALID_FALLBACK"
+      ],
+      "type": "string"
+    },
+    "prompt": {
+      "description": "User prompt / instruction sent to the LLM. Supports ${ } expression interpolation for injecting workflow context. Example: \"Classify this ticket: ${ $context.ticket.description }\" Required field.",
+      "minLength": 1,
+      "type": "string"
+    },
+    "response_schema": {
+      "description": "JSON Schema for structured output. When set, the runner requests structured output from the provider (e.g., OpenAI's response_format, Anthropic's tool_use extraction) and validates the response against this schema. Uses the same google.protobuf.Struct + JSON Schema pattern as AgentCallOutputContract.schema for consistency across the workflow domain. When not set, the task output is the LLM's raw text response.",
+      "type": "object"
+    },
+    "system_prompt": {
+      "description": "System prompt that sets the LLM's role and constraints. Supports ${ } expression interpolation for dynamic system prompts. Optional — omit for tasks where the user prompt is self-contained.",
+      "type": "string"
+    },
+    "temperature": {
+      "description": "Sampling temperature (0.0 to 2.0). Lower = more deterministic, higher = more creative. Range is 0.0-2.0 to accommodate all major providers (OpenAI supports up to 2.0; others clamp to their supported range at runtime). Optional — uses the provider's default when not set.",
+      "maximum": 2,
+      "type": "number"
+    },
+    "timeout": {
+      "description": "Timeout for the LLM call in seconds. Default: 60. Max: 600 (10 minutes). Optional.",
+      "maximum": 600,
+      "minimum": 1,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "model",
+    "prompt"
+  ],
+  "title": "LlmCallTaskConfig",
+  "type": "object"
+}

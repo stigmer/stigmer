@@ -64,6 +64,7 @@ export function useAppUpdater(): AppUpdaterState {
       toast.info(`Update available: v${update.version}`, {
         duration: Infinity,
         id: "app-update",
+        closeButton: true,
         action: {
           label: "Restart to Update",
           onClick: () => downloadAndRelaunch(update, setStatus),

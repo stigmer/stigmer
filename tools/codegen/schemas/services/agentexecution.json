@@ -6,6 +6,7 @@
     {
       "name": "AgentExecutionCommandController",
       "role": "command",
+      "protoFile": "ai/stigmer/agentic/agentexecution/v1/command.proto",
       "methods": [
         {
           "name": "Create",
@@ -100,6 +101,7 @@
     {
       "name": "AgentExecutionQueryController",
       "role": "query",
+      "protoFile": "ai/stigmer/agentic/agentexecution/v1/query.proto",
       "methods": [
         {
           "name": "Get",
@@ -181,6 +183,14 @@
           "outputType": "GetOrgUsageReportOutput",
           "outputFullType": "ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput",
           "description": "Get a usage report for an organization.\n\n Returns org-wide totals, top agents by cost, model breakdown, and daily trend."
+        },
+        {
+          "name": "GetExecutionSummary",
+          "inputType": "GetAgentExecutionSummaryRequest",
+          "inputFullType": "ai.stigmer.agentic.agentexecution.v1.GetAgentExecutionSummaryRequest",
+          "outputType": "AgentExecutionSummary",
+          "outputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummary",
+          "description": "Get aggregated execution statistics for an organization's agent executions.\n\n Returns counts by phase, active count, average duration, and top failing\n agents — scoped to a configurable time window (24h, 7d, 30d, all-time).\n\n @internal\n Authorization:\n Custom authorization — user must have organization-level access.\n Results are scoped to the user's organization.\n\n Use Cases:\n\n 1. Unified Dashboard Overview:\n    - Display combined agent + workflow KPI cards\n    - Agent phase counts are merged client-side with workflow phase counts\n\n 2. Reliability Monitoring:\n    - Surface top failing agents for investigation\n    - Track failure rates across the organization\n\n @since Unified Platform Dashboard"
         }
       ]
     }
@@ -1300,6 +1310,103 @@
           "required": false
         }
       ]
+    },
+    {
+      "name": "GetAgentExecutionSummaryRequest",
+      "description": "GetAgentExecutionSummaryRequest fetches aggregated execution statistics\n for an organization's agent executions.\n\n @since Unified Platform Dashboard",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.GetAgentExecutionSummaryRequest",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization slug to scope the summary.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "TimeWindow",
+          "jsonName": "timeWindow",
+          "protoField": "time_window",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummaryTimeWindow",
+            "enumValues": [
+              "AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_24H",
+              "AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_7D",
+              "AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_30D",
+              "AGENT_EXECUTION_SUMMARY_TIME_WINDOW_ALL_TIME"
+            ]
+          },
+          "description": "Time window for aggregation.\n\n Defaults to LAST_7D when unspecified.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "AgentExecutionSummary",
+      "description": "AgentExecutionSummary contains aggregated operational statistics for agent\n executions. Designed for the platform dashboard's unified health view.\n\n Cost is intentionally omitted. The dashboard sources cost from\n getOrgUsageReport (billing source of truth) to prevent double-counting\n when workflows delegate to agents. See AD-DASH-005.\n\n @since Unified Platform Dashboard",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummary",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "ActiveCount",
+          "jsonName": "activeCount",
+          "protoField": "active_count",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Number of executions currently in a non-terminal phase\n (PENDING, IN_PROGRESS, WAITING_FOR_APPROVAL, PAUSED).",
+          "required": false
+        },
+        {
+          "name": "PhaseCounts",
+          "jsonName": "phaseCounts",
+          "protoField": "phase_counts",
+          "type": {
+            "kind": "map",
+            "keyType": {
+              "kind": "int32"
+            },
+            "valueType": {
+              "kind": "int32"
+            }
+          },
+          "description": "Execution counts broken down by ExecutionPhase enum value.\n\n Keys are ExecutionPhase enum values (as int32).\n Only phases with at least one execution are included.",
+          "required": false
+        },
+        {
+          "name": "AvgDuration",
+          "jsonName": "avgDuration",
+          "protoField": "avg_duration",
+          "type": {
+            "kind": "message",
+            "messageType": "Duration"
+          },
+          "description": "Mean execution duration (from started_at to completed_at) for completed\n executions in the time window.\n\n Zero when no completed executions exist.",
+          "required": false
+        },
+        {
+          "name": "TopFailingAgents",
+          "jsonName": "topFailingAgents",
+          "protoField": "top_failing_agents",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "AgentFailureRank"
+            }
+          },
+          "description": "Agents with the highest failure count in the time window, ranked descending.\n\n Capped at 10 entries.",
+          "required": false
+        }
+      ]
     }
   ],
   "enumTypes": [
@@ -1386,6 +1493,33 @@
           "name": "EXECUTION_PAUSED",
           "number": 7,
           "description": "Execution was paused by user and can be resumed.\n\n The execution was temporarily stopped at a checkpoint and can continue\n from where it left off. Unlike CANCELLED, the execution is not terminal.\n\n Pause flow:\n EXECUTION_IN_PROGRESS → EXECUTION_PAUSED\n\n Resume flow:\n EXECUTION_PAUSED → EXECUTION_IN_PROGRESS\n\n NOT a terminal state - execution can be resumed.\n\n When this phase is reached:\n - Running activities are gracefully cancelled\n - LangGraph checkpoints are saved (thread_id preserved)\n - No completed_at timestamp (execution is not finished)\n\n Resume behavior:\n - Activity is re-invoked with same thread_id\n - LangGraph loads from checkpoint automatically\n - Execution continues from where it was paused\n\n @since Gap A3 (Pause/Resume Propagation)"
+        }
+      ]
+    },
+    {
+      "name": "AgentExecutionSummaryTimeWindow",
+      "description": "Controls the time range for agent execution summary queries.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummaryTimeWindow",
+      "values": [
+        {
+          "name": "AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_24H",
+          "number": 1,
+          "description": ""
+        },
+        {
+          "name": "AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_7D",
+          "number": 2,
+          "description": ""
+        },
+        {
+          "name": "AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_30D",
+          "number": 3,
+          "description": ""
+        },
+        {
+          "name": "AGENT_EXECUTION_SUMMARY_TIME_WINDOW_ALL_TIME",
+          "number": 4,
+          "description": ""
         }
       ]
     },
@@ -1611,6 +1745,23 @@
           "description": "Anyone can access (read) this resource.\n Used for marketplace-published resources (e.g., \"stigmer/web-search\").\n Write access still requires org membership.\n Named visibility_public to avoid Java reserved keyword conflict."
         }
       ]
+    },
+    {
+      "name": "InteractionMode",
+      "description": "InteractionMode controls the agent's behavioral posture for an execution.\n\n Determines what the agent is allowed to do — analysis only, or full\n read-write access. Mode is set per-execution via ExecutionConfig and\n does not carry over between executions.\n\n Enforcement:\n - Native harness (LangGraph): tool-level enforcement — write tools are\n   removed from the tool set in PLAN mode.\n - Cursor harness: best-effort via system prompt injection. The Cursor SDK\n   does not expose a mode parameter, so the agent is instructed not to\n   make changes. When the SDK adds native mode support, the prompt-based\n   approach will be replaced.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.InteractionMode",
+      "values": [
+        {
+          "name": "INTERACTION_MODE_AGENT",
+          "number": 1,
+          "description": "Full agent mode with unrestricted tool access.\n\n The agent can read, write, create, edit, and delete files; run shell\n commands; and invoke any configured tool. This is the standard\n execution mode for interactive sessions."
+        },
+        {
+          "name": "INTERACTION_MODE_PLAN",
+          "number": 2,
+          "description": "Read-only planning mode — analysis and recommendations only.\n\n The agent can read files, search code, list directories, and reason\n about the codebase, but cannot create, edit, or delete files or run\n mutating shell commands. Designed for exploring approaches, producing\n implementation plans, and answering architectural questions without\n side effects.\n\n Native harness: enforced by removing write tools from the tool set.\n Cursor harness: best-effort via system prompt directive."
+        }
+      ]
     }
   ],
   "resourceDescription": "AgentExecution represents a single agent execution instance (conversational).\n Follows the standard pattern: spec contains user inputs, status contains execution results.",
@@ -1820,6 +1971,17 @@
           "kind": "string"
         },
         "description": "ID of the Runner that executed this execution.\n\n Set once when the execution is dispatched to a runner; immutable after.\n For cloud executions, this references the system-managed ephemeral runner\n that was auto-created for this execution. For local executions, this\n references the user-created persistent runner selected via the session.\n\n Used for observability: \"which runner handled this work?\"",
+        "required": false
+      },
+      {
+        "name": "RunnerUsage",
+        "jsonName": "runnerUsage",
+        "protoField": "runner_usage",
+        "type": {
+          "kind": "message",
+          "messageType": "RunnerUsageSummary"
+        },
+        "description": "Runner-reported usage summary, updated progressively during streaming.",
         "required": false
       }
     ]
@@ -2447,6 +2609,104 @@
             }
           },
           "description": "Skills that were available but excluded from the system prompt because\n they were not relevant to the current execution context.\n Enables visibility into the filtering decision for debugging and tuning.\n Sorted alphabetically for consistent ordering and deterministic comparison.\n\n When smart context filtering is active, this captures skills that were\n configured on the agent but scored below the relevance threshold for the\n current user message. Empty when all skills are included (no filtering).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "RunnerUsageSummary",
+      "description": "Accumulated token usage from runner-observed turn-ended events.\n Carried on AgentExecutionStatus.runner_usage for real-time streaming UX.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/usage.proto",
+      "fields": [
+        {
+          "name": "InputTokens",
+          "jsonName": "inputTokens",
+          "protoField": "input_tokens",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "Accumulated input tokens across all turns.",
+          "required": false
+        },
+        {
+          "name": "OutputTokens",
+          "jsonName": "outputTokens",
+          "protoField": "output_tokens",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "Accumulated output tokens across all turns.",
+          "required": false
+        },
+        {
+          "name": "CacheReadTokens",
+          "jsonName": "cacheReadTokens",
+          "protoField": "cache_read_tokens",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "Accumulated cache-read tokens across all turns.",
+          "required": false
+        },
+        {
+          "name": "CacheWriteTokens",
+          "jsonName": "cacheWriteTokens",
+          "protoField": "cache_write_tokens",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "Accumulated cache-write tokens across all turns.",
+          "required": false
+        },
+        {
+          "name": "TotalTokens",
+          "jsonName": "totalTokens",
+          "protoField": "total_tokens",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "Sum of all token buckets.",
+          "required": false
+        },
+        {
+          "name": "TurnCount",
+          "jsonName": "turnCount",
+          "protoField": "turn_count",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Number of completed turns observed.",
+          "required": false
+        },
+        {
+          "name": "EstimatedCostUsd",
+          "jsonName": "estimatedCostUsd",
+          "protoField": "estimated_cost_usd",
+          "type": {
+            "kind": "double"
+          },
+          "description": "Estimated cost in USD computed from runner-side rate card.\n Labeled \"Estimated\" in the UI — not provider-verified.",
+          "required": false
+        },
+        {
+          "name": "Model",
+          "jsonName": "model",
+          "protoField": "model",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Model identifier observed during streaming (from RunResult or assistant events).",
+          "required": false
+        },
+        {
+          "name": "ObservedAt",
+          "jsonName": "observedAt",
+          "protoField": "observed_at",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ISO 8601 timestamp of the last turn-ended event observed.",
           "required": false
         }
       ]

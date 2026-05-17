@@ -29,9 +29,9 @@ import { EnvVarForm } from "../environment/EnvVarForm";
 import type { EnvVarFormVariable } from "../environment/EnvVarForm";
 import { VisibilityToggle } from "../library/VisibilityToggle";
 import { Tabs, type TabItem } from "../tabs/Tabs";
-import { ResourceActionBar } from "../resource-detail/ResourceActionBar";
+import { ResourceDetailShell } from "../resource-detail/ResourceDetailShell";
 import { Section } from "../resource-detail/Section";
-import type { DetailAction } from "../resource-detail/types";
+import type { DetailAction, ResourceHeaderMeta } from "../resource-detail/types";
 import { InlineEditText } from "../inline-edit/InlineEditText";
 import { InlineEditTextarea } from "../inline-edit/InlineEditTextarea";
 import { InlineEditImage } from "../inline-edit/InlineEditImage";
@@ -355,40 +355,85 @@ export function McpServerDetailView({
     return <ErrorMessage error={error} retry={refetch} className={className} />;
   if (!mcpServer) return <NotFoundState className={className} />;
 
+  const meta = mcpServer.metadata;
+  const lastDiscoveredAt = capabilities?.lastDiscoveredAt
+    ? timestampDate(capabilities.lastDiscoveredAt)
+    : null;
+
+  const headerMeta: ResourceHeaderMeta = {
+    name: meta?.name || meta?.slug || "Untitled",
+    nameElement: editable && saveMcpField ? (
+      <InlineEditText
+        value={meta?.name || ""}
+        onSave={(v) => saveMcpField("name", v)}
+        isSaving={isUpdating}
+        variant="heading"
+        placeholder="Server name"
+        validate={(v) => (v.trim() ? null : "Name is required")}
+      />
+    ) : undefined,
+    id: meta?.id || "",
+    org: meta?.org,
+    slug: meta?.slug,
+    qualifiedSlug: meta?.slug
+      ? (meta.org ? `${meta.org}/${meta.slug}` : meta.slug)
+      : undefined,
+    icon: editable && saveMcpField ? (
+      <InlineEditImage
+        value={spec?.iconUrl ?? ""}
+        onSave={(v) => saveMcpField("iconUrl", v || undefined)}
+        isSaving={isUpdating}
+        fallback={<McpServerIcon className="size-6 text-muted-foreground" />}
+        size="md"
+      />
+    ) : spec?.iconUrl ? undefined : <McpServerIcon className="size-6 text-muted-foreground" />,
+    iconUrl: editable ? undefined : spec?.iconUrl || undefined,
+    createdAt: specAudit?.createdAt ? timestampDate(specAudit.createdAt) : null,
+    updatedAt: specAudit?.updatedAt ? timestampDate(specAudit.updatedAt) : null,
+  };
+
+  const isPublic = meta?.visibility === ApiResourceVisibility.visibility_public;
+  const visibilityControl =
+    onVisibilityChange && meta ? (
+      <VisibilityToggle
+        visibility={meta.visibility}
+        onVisibilityChange={onVisibilityChange}
+        isPending={isVisibilityPending}
+      />
+    ) : isPublic ? (
+      <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+        Public
+      </span>
+    ) : undefined;
+
+  const headerMetaExtra = (
+    <>
+      {status && <ValidationStateBadge state={status.validationState} />}
+      {lastDiscoveredAt && (
+        <>
+          <Dot />
+          <span>Discovered {formatDate(lastDiscoveredAt)}</span>
+        </>
+      )}
+    </>
+  );
+
+  const headerBanner =
+    status?.validationState === ValidationState.invalid &&
+    status.validationMessage ? (
+      <ValidationBanner message={status.validationMessage} />
+    ) : undefined;
+
   return (
-    <div className={cn("flex flex-col gap-6", className)}>
-      {status?.validationState === ValidationState.invalid &&
-        status.validationMessage && (
-          <ValidationBanner message={status.validationMessage} />
-        )}
-
-      <div className="flex items-start justify-between gap-4">
-        <Header
-          server={mcpServer}
-          createdAt={
-            specAudit?.createdAt ? timestampDate(specAudit.createdAt) : null
-          }
-          updatedAt={
-            specAudit?.updatedAt ? timestampDate(specAudit.updatedAt) : null
-          }
-          lastDiscoveredAt={
-            capabilities?.lastDiscoveredAt
-              ? timestampDate(capabilities.lastDiscoveredAt)
-              : null
-          }
-          onVisibilityChange={onVisibilityChange}
-          isVisibilityPending={isVisibilityPending}
-          editable={editable}
-          isSaving={isUpdating}
-          saveMcpField={saveMcpField}
-        />
-        <ResourceActionBar
-          primaryAction={primaryAction}
-          actions={actions}
-          className="shrink-0"
-        />
-      </div>
-
+    <ResourceDetailShell
+      header={headerMeta}
+      visibilityControl={visibilityControl}
+      headerMetaExtra={headerMetaExtra}
+      headerBanner={headerBanner}
+      primaryAction={primaryAction}
+      actions={actions}
+      className={className}
+    >
       {(editable || spec?.description) && (
         <Section title="Description">
           {editable && saveMcpField ? (
@@ -546,7 +591,7 @@ export function McpServerDetailView({
       {(editable || (spec && spec.tags.length > 0)) && (
         <TagsSection tags={spec?.tags ?? []} editable={editable} isSaving={isUpdating} saveMcpField={saveMcpField} />
       )}
-    </div>
+    </ResourceDetailShell>
   );
 }
 
@@ -1111,119 +1156,6 @@ function ValidationBanner({ message }: { readonly message: string }) {
   );
 }
 
-function Header({
-  server,
-  createdAt,
-  updatedAt,
-  lastDiscoveredAt,
-  onVisibilityChange,
-  isVisibilityPending,
-  editable,
-  isSaving,
-  saveMcpField,
-}: {
-  readonly server: McpServer;
-  readonly createdAt: Date | null;
-  readonly updatedAt: Date | null;
-  readonly lastDiscoveredAt: Date | null;
-  readonly onVisibilityChange?: (v: ApiResourceVisibility) => void;
-  readonly isVisibilityPending?: boolean;
-  readonly editable?: boolean;
-  readonly isSaving?: boolean;
-  readonly saveMcpField?: <K extends keyof import("@stigmer/sdk").McpServerInput>(
-    field: K,
-    value: import("@stigmer/sdk").McpServerInput[K],
-  ) => Promise<boolean>;
-}) {
-  const meta = server.metadata;
-  const spec = server.spec;
-  const status = server.status;
-  const displayName = meta?.name || meta?.slug || "Untitled";
-  const isPublic =
-    meta?.visibility === ApiResourceVisibility.visibility_public;
-
-  return (
-    <div className="flex items-start gap-3">
-      {editable && saveMcpField ? (
-        <InlineEditImage
-          value={spec?.iconUrl ?? ""}
-          onSave={(v) => saveMcpField("iconUrl", v || undefined)}
-          isSaving={isSaving}
-          fallback={<McpServerIcon className="size-6 text-muted-foreground" />}
-          size="md"
-        />
-      ) : spec?.iconUrl ? (
-        <img
-          src={spec.iconUrl}
-          alt=""
-          className="mt-0.5 size-8 shrink-0 rounded object-cover"
-        />
-      ) : (
-        <McpServerIcon className="mt-1 size-6 shrink-0 text-muted-foreground" />
-      )}
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          {editable && saveMcpField ? (
-            <InlineEditText
-              value={meta?.name || ""}
-              onSave={(v) => saveMcpField("name", v)}
-              isSaving={isSaving}
-              variant="heading"
-              placeholder="Server name"
-              validate={(v) => (v.trim() ? null : "Name is required")}
-            />
-          ) : (
-            <h2 className="truncate text-lg font-semibold text-foreground">
-              {displayName}
-            </h2>
-          )}
-          {onVisibilityChange && meta ? (
-            <VisibilityToggle
-              visibility={meta.visibility}
-              onVisibilityChange={onVisibilityChange}
-              isPending={isVisibilityPending}
-            />
-          ) : (
-            isPublic && (
-              <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                Public
-              </span>
-            )
-          )}
-        </div>
-        {meta?.slug && (
-          <span className="mt-0.5 block truncate font-mono text-xs text-muted-foreground">
-            {meta.org ? `${meta.org}/${meta.slug}` : meta.slug}
-          </span>
-        )}
-        <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
-          {meta?.org && <span>{meta.org}</span>}
-          {status && (
-            <ValidationStateBadge state={status.validationState} />
-          )}
-          {lastDiscoveredAt && (
-            <>
-              <Dot />
-              <span>Discovered {formatDate(lastDiscoveredAt)}</span>
-            </>
-          )}
-          {createdAt && (
-            <>
-              <Dot />
-              <span>Created {formatDate(createdAt)}</span>
-            </>
-          )}
-          {updatedAt && (
-            <>
-              <Dot />
-              <span>Updated {formatDate(updatedAt)}</span>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function ValidationStateBadge({
   state,

@@ -62,6 +62,17 @@
       },
       "description": "Environment variable declarations for this workflow.\n Keys are variable names; values describe their metadata and optionality.",
       "required": false
+    },
+    {
+      "name": "Budget",
+      "jsonName": "budget",
+      "protoField": "budget",
+      "type": {
+        "kind": "message",
+        "messageType": "WorkflowBudget"
+      },
+      "description": "Budget limits for this workflow execution.\n When set, the runtime (T13) enforces cost, token, and duration limits\n across all tasks. The existing org-level billing reservation system\n (AuthorizeExecution / ExecutionBillingSignal) remains the safety net\n for overall credit exhaustion; workflow budgets prevent individual\n workflows from consuming more than intended.\n Optional — when not set, no workflow-level budget is enforced.",
+      "required": false
     }
   ]
 }

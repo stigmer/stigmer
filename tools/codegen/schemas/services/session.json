@@ -6,6 +6,7 @@
     {
       "name": "SessionCommandController",
       "role": "command",
+      "protoFile": "ai/stigmer/agentic/session/v1/command.proto",
       "methods": [
         {
           "name": "Apply",
@@ -60,6 +61,7 @@
     {
       "name": "SessionQueryController",
       "role": "query",
+      "protoFile": "ai/stigmer/agentic/session/v1/query.proto",
       "methods": [
         {
           "name": "Get",
@@ -440,6 +442,11 @@
           "name": "environment",
           "number": 53,
           "description": "Named set of variables and secrets for agent and workflow execution."
+        },
+        {
+          "name": "artifact",
+          "number": 55,
+          "description": "Persisted blob produced during workflow or agent execution."
         },
         {
           "name": "execution_context",

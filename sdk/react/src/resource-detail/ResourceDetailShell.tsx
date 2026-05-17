@@ -42,6 +42,8 @@ import type { ResourceDetailShellProps } from "./types";
 export function ResourceDetailShell({
   header,
   visibilityControl,
+  headerMetaExtra,
+  headerBanner,
   primaryAction,
   actions,
   tabs,
@@ -55,11 +57,14 @@ export function ResourceDetailShell({
 
   return (
     <div className={cn("flex flex-col gap-6", className)}>
+      {headerBanner}
+
       {/* Header + Action bar row */}
       <div className="flex items-start justify-between gap-4">
         <Header
           header={header}
           visibilityControl={visibilityControl}
+          metaExtra={headerMetaExtra}
         />
         <ResourceActionBar
           primaryAction={primaryAction}
@@ -92,14 +97,18 @@ export function ResourceDetailShell({
 function Header({
   header,
   visibilityControl,
+  metaExtra,
 }: {
   readonly header: ResourceDetailShellProps["header"];
   readonly visibilityControl?: ResourceDetailShellProps["visibilityControl"];
+  readonly metaExtra?: ResourceDetailShellProps["headerMetaExtra"];
 }) {
   const {
     name,
+    nameElement,
     org,
     slug,
+    qualifiedSlug,
     description,
     iconUrl,
     icon,
@@ -109,7 +118,7 @@ function Header({
     statusLabel,
   } = header;
 
-  const showSlug = slug && slug !== name;
+  const showSlug = slug && slug !== name && !qualifiedSlug;
 
   return (
     <div className="flex min-w-0 items-start gap-3">
@@ -124,9 +133,11 @@ function Header({
       ) : null}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <h2 className="truncate text-lg font-semibold text-foreground">
-            {name}
-          </h2>
+          {nameElement ?? (
+            <h2 className="truncate text-lg font-semibold text-foreground">
+              {name}
+            </h2>
+          )}
           {showSlug && (
             <code className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
               {slug}
@@ -140,8 +151,14 @@ function Header({
           )}
           {visibilityControl}
         </div>
+        {qualifiedSlug && (
+          <span className="mt-0.5 block truncate font-mono text-xs text-muted-foreground">
+            {qualifiedSlug}
+          </span>
+        )}
         <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
           {org && <span>{org}</span>}
+          {metaExtra}
           {createdAt && (
             <>
               <Dot />

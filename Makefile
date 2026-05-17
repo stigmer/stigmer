@@ -82,7 +82,7 @@ install-vale: ## Install Vale prose linter (auto-detects OS)
 
 # ─── Build ────────────────────────────────────
 
-.PHONY: build build-mcp-server build-java-sdk build-cursor-runner protos codegen gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check
+.PHONY: build build-mcp-server build-java-sdk build-cursor-runner protos codegen gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-task-docs gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-task-docs-check
 build: libs-build build-web verify-desktop docs-build build-mcp-server build-java-sdk build-cursor-runner ## Build all project artifacts
 	@mkdir -p bin
 	cd client-apps/cli && go build -o ../../bin/stigmer .
@@ -109,11 +109,17 @@ protos: ## Generate protocol buffer stubs and SDK client code
 	$(MAKE) -C sdk/python codegen
 	$(MAKE) -C sdk/java codegen
 
-gen-sdk-docs: gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-cli-docs ## Generate all SDK reference docs
+gen-sdk-docs: gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-cli-docs gen-task-docs ## Generate all SDK reference docs
 
 gen-proto-sdk-docs: ## Generate SDK resource docs from proto schemas
 	go run ./tools/codegen/generator --comprehensive --target=sdk-docs \
 		--schema-dir tools/codegen/schemas --output-dir docs/sdk/resources --apis-dir apis
+
+gen-task-docs: ## Generate per-task reference docs from schemas
+	go run ./tools/codegen/generator --comprehensive --target=task-docs \
+		--schema-dir tools/codegen/schemas --output-dir docs/guides/workflow-tasks \
+		--meta-dir apis/ai/stigmer/agentic/workflow/v1/tasks/meta
+	npx prettier --write --prose-wrap always docs/guides/workflow-tasks/*.mdx
 
 gen-react-sdk-docs: ## Generate React SDK reference docs from TypeDoc
 	cd sdk/react && npm run typedoc:json
@@ -123,7 +129,7 @@ gen-ink-sdk-docs: ## Generate Ink SDK reference docs from TypeDoc
 	cd sdk/ink && npm run typedoc:json
 	cd site && yarn generate-ink-sdk-docs
 
-gen-sdk-docs-check: gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-cli-docs-check ## Verify all SDK docs are up to date (CI)
+gen-sdk-docs-check: gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-cli-docs-check gen-task-docs-check ## Verify all SDK docs are up to date (CI)
 
 gen-proto-sdk-docs-check: ## Verify proto SDK docs are up to date (CI)
 	@tmpdir=$$(mktemp -d) && \
@@ -140,6 +146,17 @@ gen-proto-sdk-docs-check: ## Verify proto SDK docs are up to date (CI)
 		echo "error: proto SDK docs are stale — run 'make gen-proto-sdk-docs'"; exit 1; \
 	fi; \
 	echo "✓ Proto SDK docs are up to date"
+
+gen-task-docs-check: ## Verify task docs are up to date (CI)
+	@go run ./tools/codegen/generator --comprehensive --target=task-docs \
+		--schema-dir tools/codegen/schemas --output-dir docs/guides/workflow-tasks \
+		--meta-dir apis/ai/stigmer/agentic/workflow/v1/tasks/meta && \
+	npx prettier --write --prose-wrap always docs/guides/workflow-tasks/*.mdx > /dev/null 2>&1; \
+	if ! git diff --quiet docs/guides/workflow-tasks/; then \
+		git checkout -- docs/guides/workflow-tasks/; \
+		echo "error: task docs are stale — run 'make gen-task-docs'"; exit 1; \
+	fi; \
+	echo "✓ Task docs are up to date"
 
 gen-react-sdk-docs-check: ## Verify React SDK docs are up to date (CI)
 	@tmpdir=$$(mktemp -d) && \
@@ -216,6 +233,42 @@ test: ## Run all unit tests
 	@cd $(AGENT_RUNNER_DIR) && poetry run pip install -e . --no-deps -q && poetry run pip install -e ../../libs/python/graphton --no-deps -q && poetry run pip install ../../../apis/stubs/python/stigmer --no-deps -q && poetry run pytest
 	@echo "testing  $(CURSOR_RUNNER_DIR)"
 	@cd $(CURSOR_RUNNER_DIR) && npm test
+
+# ─── Integration Test ─────────────────────────
+# All integration test logic lives in test/integration/Makefile.
+# These are thin delegates that pass through env vars.
+
+.PHONY: test-integration
+test-integration: ## Run integration tests (offline, no API keys needed)
+	$(MAKE) -C test/integration test
+
+.PHONY: test-integration-providers
+test-integration-providers: ## Run provider-backed integration tests (auto-fetches API keys from Planton)
+	$(MAKE) -C test/integration test-providers
+
+.PHONY: test-integration-agent
+test-integration-agent: ## Run agent execution integration tests (auto-fetches API keys from Planton)
+	$(MAKE) -C test/integration test-agent
+
+.PHONY: test-integration-stress
+test-integration-stress: ## Run integration tests 3x to detect flakes (no quarantine skip)
+	$(MAKE) -C test/integration test-stress
+
+.PHONY: test-replay
+test-replay: ## Run Temporal workflow replay determinism tests (fast, no infra needed)
+	$(MAKE) -C backend/services/workflow-runner test-replay
+
+.PHONY: capture-replay-histories
+capture-replay-histories: ## Capture Temporal event histories for replay tests (needs full harness)
+	$(MAKE) -C test/integration capture-replay-histories
+
+.PHONY: benchmark-cost
+benchmark-cost: ## Run cost benchmarks comparing Native vs Cursor harness execution costs
+	$(MAKE) -C test/integration benchmark-cost
+
+.PHONY: benchmark-cursor-modes
+benchmark-cursor-modes: ## Compare Cursor local vs cloud runtime latency and token usage
+	$(MAKE) -C test/integration benchmark-cursor-modes
 
 # ─── Tidy ────────────────────────────────────
 

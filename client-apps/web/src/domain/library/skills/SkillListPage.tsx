@@ -5,6 +5,10 @@ import Link from "next/link";
 import { Plus, Sparkles, MoreHorizontal, Copy, ExternalLink, Trash2 } from "lucide-react";
 import { useLibraryNavigation } from "@/domain/library/library-navigation";
 import {
+  readPersistedScope,
+  writePersistedScope,
+} from "@/domain/library/scope-persistence";
+import {
   ResourceWorkbench,
   ActionMenu,
   useStigmer,
@@ -16,14 +20,7 @@ import {
 } from "@stigmer/react";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 
-const SCOPE_STORAGE_KEY = "stigmer:library:skills:scope";
 const VIEW_MODE_STORAGE_KEY = "stigmer:workbench:skills:viewMode";
-
-function readPersistedScope(): "org" | "all" {
-  if (typeof window === "undefined") return "org";
-  const stored = localStorage.getItem(SCOPE_STORAGE_KEY);
-  return stored === "all" ? "all" : "org";
-}
 
 const SKILL_COLUMNS: WorkbenchColumnDef<SearchResult>[] = [
   {
@@ -63,7 +60,7 @@ export function SkillListPage() {
   const { navigateToDetail } = useLibraryNavigation();
   const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
 
-  const [scope, setScope] = useState<"org" | "all">(readPersistedScope);
+  const [scope, setScope] = useState<"org" | "all">(() => readPersistedScope("skills"));
   const [listVersion, setListVersion] = useState(0);
 
   const handleDeleteItem = useCallback(
@@ -89,7 +86,7 @@ export function SkillListPage() {
 
   const handleScopeChange = useCallback((newScope: "org" | "all") => {
     setScope(newScope);
-    localStorage.setItem(SCOPE_STORAGE_KEY, newScope);
+    writePersistedScope("skills", newScope);
   }, []);
 
   const listFn = useMemo(

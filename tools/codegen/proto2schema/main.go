@@ -131,9 +131,10 @@ type ServiceSchemaFile struct {
 
 // ServiceDefinition describes a single gRPC service (e.g., AgentQueryController).
 type ServiceDefinition struct {
-	Name    string         `json:"name"`
-	Role    string         `json:"role"` // "query" or "command"
-	Methods []MethodSchema `json:"methods"`
+	Name      string         `json:"name"`
+	Role      string         `json:"role"` // "query", "command", etc.
+	ProtoFile string         `json:"protoFile,omitempty"`
+	Methods   []MethodSchema `json:"methods"`
 }
 
 // MethodSchema describes a single RPC method.
@@ -1252,6 +1253,7 @@ var searchListResources = map[string]bool{
 	"agent":     true,
 	"skill":     true,
 	"mcpserver": true,
+	"workflow":  true,
 }
 
 // extractServiceSchemas parses proto files for a resource and extracts service definitions.
@@ -1304,15 +1306,22 @@ func extractServiceSchemas(protoDir, includeDir string, useBufCache bool) (*Serv
 
 	var schema ServiceSchemaFile
 	var resourceType string
+	usedRoles := make(map[string]bool)
 	for _, fd := range fileDescriptors {
 		if schema.Package == "" {
 			schema.Package = fd.GetPackage()
 			schema.GoImportPath = deriveGoImportAlias(fd.GetPackage())
 		}
 		for _, svc := range fd.GetServices() {
+			role := inferServiceRole(svc.GetName())
+			if usedRoles[role] {
+				role = inferUniqueServiceRole(svc.GetName())
+			}
+			usedRoles[role] = true
 			svcDef := ServiceDefinition{
-				Name: svc.GetName(),
-				Role: inferServiceRole(svc.GetName()),
+				Name:      svc.GetName(),
+				Role:      role,
+				ProtoFile: fd.GetName(),
 			}
 			for _, method := range svc.GetMethods() {
 				ms := MethodSchema{
@@ -1816,6 +1825,19 @@ func inferServiceRole(name string) string {
 		return "token"
 	}
 	return "query"
+}
+
+// inferUniqueServiceRole derives a unique role when the default role
+// collides with an existing service. It converts a service name like
+// "TaskKindRegistryQueryController" into a camelCase role like
+// "taskKindRegistryQuery" by stripping the "Controller" suffix and
+// lowercasing the first letter.
+func inferUniqueServiceRole(name string) string {
+	role := strings.TrimSuffix(name, "Controller")
+	if len(role) == 0 {
+		return strings.ToLower(name)
+	}
+	return strings.ToLower(role[:1]) + role[1:]
 }
 
 func capitalize(s string) string {

@@ -67,16 +67,18 @@ class RunnerStreamServerMessage(_message.Message):
     def __init__(self, command_request: _Optional[_Union[RunnerCommandRequest, _Mapping]] = ...) -> None: ...
 
 class RunnerHeartbeat(_message.Message):
-    __slots__ = ("runner_id", "phase", "current_executions", "connection_info")
+    __slots__ = ("runner_id", "phase", "current_executions", "connection_info", "process_type")
     RUNNER_ID_FIELD_NUMBER: _ClassVar[int]
     PHASE_FIELD_NUMBER: _ClassVar[int]
     CURRENT_EXECUTIONS_FIELD_NUMBER: _ClassVar[int]
     CONNECTION_INFO_FIELD_NUMBER: _ClassVar[int]
+    PROCESS_TYPE_FIELD_NUMBER: _ClassVar[int]
     runner_id: str
     phase: _enum_pb2.RunnerPhase
     current_executions: int
     connection_info: _api_pb2.RunnerConnectionInfo
-    def __init__(self, runner_id: _Optional[str] = ..., phase: _Optional[_Union[_enum_pb2.RunnerPhase, str]] = ..., current_executions: _Optional[int] = ..., connection_info: _Optional[_Union[_api_pb2.RunnerConnectionInfo, _Mapping]] = ...) -> None: ...
+    process_type: str
+    def __init__(self, runner_id: _Optional[str] = ..., phase: _Optional[_Union[_enum_pb2.RunnerPhase, str]] = ..., current_executions: _Optional[int] = ..., connection_info: _Optional[_Union[_api_pb2.RunnerConnectionInfo, _Mapping]] = ..., process_type: _Optional[str] = ...) -> None: ...
 
 class RunnerCommandRequest(_message.Message):
     __slots__ = ("request_id", "list_directory", "stop")

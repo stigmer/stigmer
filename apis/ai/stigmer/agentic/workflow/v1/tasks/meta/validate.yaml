@@ -1,0 +1,71 @@
+kind: validate
+display_name: "Validate"
+description: "Schema and business-rule validation checkpoint for workflow data."
+category: data
+icon: "check-circle"
+is_ai_native: false
+requires_external_service: false
+documentation_url: "/docs/guides/workflow-tasks/validate"
+
+output_schema:
+  type: object
+  description: "Validation result with pass/fail status and error details."
+  properties:
+    valid:
+      type: boolean
+      description: "Whether all schema and rule validations passed."
+    errors:
+      type: array
+      description: "List of validation errors (empty when valid is true)."
+      items:
+        type: object
+        properties:
+          rule:
+            type: string
+          path:
+            type: string
+          message:
+            type: string
+    data:
+      type: object
+      description: "The original input data that was validated."
+
+field_groups:
+  - id: core
+    display_name: "Validation Target"
+    fields: [input]
+  - id: schema
+    display_name: "Schema Validation"
+    fields: [schema]
+  - id: rules
+    display_name: "Business Rules"
+    fields: [rules]
+  - id: policy
+    display_name: "Failure Policy"
+    fields: [on_fail, fallback_task]
+
+yaml_examples:
+  - |
+    - check_triage_quality:
+        validate:
+          input: "${ $context.triage }"
+          schema:
+            type: object
+            required: [severity, category, customer_impact]
+            properties:
+              severity:
+                type: string
+                enum: [low, medium, high, critical]
+              category:
+                type: string
+                minLength: 1
+              customer_impact:
+                type: boolean
+          rules:
+            - name: critical_needs_rationale
+              expression: "${ .severity != 'critical' || (.rationale != null && .rationale != '') }"
+              message: "Critical severity requires a rationale"
+          on_fail: VALIDATION_FAIL_BRANCH
+          fallback_task: human_review
+        export:
+          as: "${ . }"

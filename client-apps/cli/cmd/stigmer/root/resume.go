@@ -18,6 +18,7 @@ func NewResumeCommand() *cobra.Command {
 	var (
 		orgOverride string
 		verbose     bool
+		mode        string
 	)
 	var outputFlags outputModeFlags
 
@@ -40,7 +41,15 @@ subject and the matching results are shown in an interactive picker.
 
 If the latest execution in the session is still running, you re-attach to
 the live stream. If all executions have completed, you see the full
-conversation history and can send follow-up messages.`,
+conversation history and can send follow-up messages.
+
+INTERACTION MODE:
+
+  By default, the resumed session inherits the interaction mode from the
+  last execution. Use --mode to override:
+
+  --mode plan      Resume in read-only analysis mode
+  --mode agent     Resume in full agent mode (default when no prior mode)`,
 		Example: `  # Browse recent sessions interactively
   stigmer resume
 
@@ -50,6 +59,12 @@ conversation history and can send follow-up messages.`,
   # Search sessions by subject
   stigmer resume "deploy staging"
 
+  # Resume a plan-mode session (auto-detected from history)
+  stigmer resume ses-01abc123xyz456
+
+  # Override mode explicitly
+  stigmer resume ses-01abc123xyz456 --mode plan
+
   # Resume with organization override
   stigmer resume ses-01abc123xyz456 --org acme-corp`,
 		Args: cobra.MaximumNArgs(1),
@@ -57,21 +72,27 @@ conversation history and can send follow-up messages.`,
 			orgOverride = GetOrgFlag(cmd)
 			outputMode := resolveOutputMode(outputFlags)
 			if len(args) == 0 {
-				clierr.Handle(executeResumeInteractive(orgOverride, verbose, outputMode))
+				clierr.Handle(executeResumeInteractive(orgOverride, verbose, mode, outputMode))
 				return
 			}
-			clierr.Handle(executeResumeSmart(args[0], orgOverride, verbose, outputMode))
+			clierr.Handle(executeResumeSmart(args[0], orgOverride, verbose, mode, outputMode))
 		},
 	}
 
 	registerOutputModeFlags(cmd, &outputFlags)
 	cmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "show all execution events")
+	cmd.Flags().StringVar(&mode, "mode", "",
+		`interaction mode for follow-ups: "agent" (default, full access) or "plan" (read-only analysis)`)
 
 	return cmd
 }
 
 // executeResumeSmart implements the resolution chain for `stigmer resume <value>`.
-func executeResumeSmart(value, orgOverride string, verbose bool, outputMode OutputMode) error {
+func executeResumeSmart(value, orgOverride string, verbose bool, mode string, outputMode OutputMode) error {
+	if err := validateMode(mode); err != nil {
+		return err
+	}
+
 	// Redirect agent/workflow IDs to stigmer run.
 	if reference.IsAgentID(value) || reference.IsWorkflowID(value) {
 		climsg.Error("Resource IDs like %q are not sessions", value)
@@ -91,7 +112,7 @@ func executeResumeSmart(value, orgOverride string, verbose bool, outputMode Outp
 			fmt.Println()
 			return err
 		}
-		return executeRunSession(value, orgOverride, verbose, outputMode)
+		return executeRunSession(value, orgOverride, verbose, mode, outputMode)
 	}
 
 	// If it looks like any other resource ID prefix, reject.
@@ -106,17 +127,20 @@ func executeResumeSmart(value, orgOverride string, verbose bool, outputMode Outp
 	}
 
 	// Text input -> launch session picker with initial query.
-	return launchSessionPicker(value, orgOverride, verbose, outputMode)
+	return launchSessionPicker(value, orgOverride, verbose, mode, outputMode)
 }
 
 // executeResumeInteractive launches the session picker with no initial query.
-func executeResumeInteractive(orgOverride string, verbose bool, outputMode OutputMode) error {
-	return launchSessionPicker("", orgOverride, verbose, outputMode)
+func executeResumeInteractive(orgOverride string, verbose bool, mode string, outputMode OutputMode) error {
+	if err := validateMode(mode); err != nil {
+		return err
+	}
+	return launchSessionPicker("", orgOverride, verbose, mode, outputMode)
 }
 
 // launchSessionPicker connects to the backend, shows the interactive session
 // picker, and resumes the selected session.
-func launchSessionPicker(initQuery, orgOverride string, verbose bool, outputMode OutputMode) error {
+func launchSessionPicker(initQuery, orgOverride string, verbose bool, mode string, outputMode OutputMode) error {
 	sp := spinner.New(os.Stderr)
 	sp.Start("Connecting...")
 
@@ -150,5 +174,5 @@ func launchSessionPicker(initQuery, orgOverride string, verbose bool, outputMode
 		return err
 	}
 
-	return executeRunSession(selected.ID, orgOverride, verbose, outputMode)
+	return executeRunSession(selected.ID, orgOverride, verbose, mode, outputMode)
 }

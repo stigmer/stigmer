@@ -6,6 +6,7 @@
     {
       "name": "WorkflowInstanceCommandController",
       "role": "command",
+      "protoFile": "ai/stigmer/agentic/workflowinstance/v1/command.proto",
       "methods": [
         {
           "name": "Apply",
@@ -44,6 +45,7 @@
     {
       "name": "WorkflowInstanceQueryController",
       "role": "query",
+      "protoFile": "ai/stigmer/agentic/workflowinstance/v1/query.proto",
       "methods": [
         {
           "name": "Get",
@@ -186,6 +188,7 @@
               "workflow_instance",
               "workflow_execution",
               "environment",
+              "artifact",
               "execution_context",
               "project"
             ]
@@ -335,6 +338,11 @@
           "name": "environment",
           "number": 53,
           "description": "Named set of variables and secrets for agent and workflow execution."
+        },
+        {
+          "name": "artifact",
+          "number": 55,
+          "description": "Persisted blob produced during workflow or agent execution."
         },
         {
           "name": "execution_context",

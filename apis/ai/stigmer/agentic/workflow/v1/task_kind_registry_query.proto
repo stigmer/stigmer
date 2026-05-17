@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.workflow.v1;
+
+import "ai/stigmer/agentic/workflow/v1/task_kind_descriptor.proto";
+
+// TaskKindRegistryQueryController provides read access to the task kind registry.
+//
+// This service exposes workflow task metadata for SDK/CLI consumers:
+// - UI form generation from field descriptors
+// - YAML editor autocomplete from JSON Schemas
+// - Task palette rendering from categories and icons
+// - Client-side pre-validation from config schemas
+//
+// The registry is a static catalog derived from proto definitions at build time.
+// It does not require authentication — task metadata is public knowledge about
+// the platform's capabilities, not user-specific data.
+//
+// @since T04 (Task Schema Registry)
+service TaskKindRegistryQueryController {
+  // Retrieve the complete task kind registry.
+  //
+  // Returns descriptors for all 20 workflow task kinds with full metadata:
+  // field schemas, JSON Schemas, categories, icons, examples, and output shapes.
+  //
+  // Caching: responses are immutable within a platform version. Clients should
+  // cache aggressively (recommended: 1 hour TTL with stale-while-revalidate).
+  rpc getTaskKindRegistry(GetTaskKindRegistryRequest) returns (GetTaskKindRegistryResponse);
+}

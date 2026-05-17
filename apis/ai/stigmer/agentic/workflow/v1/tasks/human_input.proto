@@ -1,0 +1,227 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.workflow.v1.tasks;
+
+import "ai/stigmer/commons/apiresource/field_options.proto";
+import "buf/validate/validate.proto";
+import "google/protobuf/struct.proto";
+
+// HumanInputTimeoutPolicy defines what happens when a human_input task's
+// timeout expires without a response from any approver.
+//
+// @internal
+// Timeout behavior is a workflow design decision: should the workflow fail
+// (safest), auto-approve (for non-critical gates), auto-deny (for opt-in
+// flows), or escalate to a different handler?
+//
+// @since T03 (P0 New Task Types)
+enum HumanInputTimeoutPolicy {
+  // Unspecified: defaults to HUMAN_INPUT_TIMEOUT_FAIL behavior.
+  HUMAN_INPUT_TIMEOUT_POLICY_UNSPECIFIED = 0;
+
+  // Task fails with a timeout error.
+  // The workflow transitions to error handling (try_catch or EXECUTION_FAILED).
+  HUMAN_INPUT_TIMEOUT_FAIL = 1;
+
+  // Auto-approve: the task completes as if the reviewer selected the first
+  // outcome (or "approve" if no outcomes are defined).
+  // Task output: {"outcome": "approve", "auto_resolved": true, "reason": "timeout"}
+  HUMAN_INPUT_TIMEOUT_APPROVE = 2;
+
+  // Auto-deny: the task completes as if the reviewer selected "deny"
+  // (or the last outcome if custom outcomes are defined).
+  // Task output: {"outcome": "deny", "auto_resolved": true, "reason": "timeout"}
+  HUMAN_INPUT_TIMEOUT_DENY = 3;
+
+  // Escalate: branch to a named escalation task.
+  // Requires a corresponding outcome with then set, or a try_catch handler.
+  // Use when timeout should trigger a different workflow path rather than
+  // a simple approve/deny decision.
+  HUMAN_INPUT_TIMEOUT_ESCALATE = 4;
+}
+
+// HumanInputOutcome defines a named outcome that a reviewer can select
+// when responding to a human_input task.
+//
+// @internal
+// Outcomes enable rich branching beyond binary approve/deny. Each outcome
+// can route to a different downstream task via the `then` field, enabling
+// patterns like "approve → continue", "deny → re_classify", "needs_revision
+// → gather_more_context".
+//
+// When no outcomes are defined, the task defaults to binary approve/deny
+// behavior: approve continues to the next task, deny fails the task.
+//
+// @since T03 (P0 New Task Types)
+message HumanInputOutcome {
+  // Outcome identifier used in task output and routing.
+  // Examples: "approve", "deny", "needs_revision", "escalate", "defer"
+  // Must be unique within the outcomes list.
+  string name = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 63
+  ];
+
+  // Human-readable label for the button/action in the approval UI.
+  // When empty, the UI displays the capitalized name.
+  // Examples: "Approve Escalation", "Reject — Not Customer-Impacting"
+  string label = 2;
+
+  // Task to branch to when this outcome is selected.
+  // Must reference a valid task name in the same workflow.
+  // When empty, the workflow continues to the next task in sequence.
+  string then = 3;
+}
+
+// HumanInputTaskConfig defines the configuration for human_input tasks that
+// pause workflow execution to collect typed input or approval from a human
+// reviewer, then resume based on the reviewer's response.
+//
+// @internal
+// Use human_input when a workflow needs human judgment before proceeding:
+// approvals before API calls, sign-off before publishing, confirmation
+// before customer-impacting actions, or structured data collection from
+// a human operator.
+//
+// This is a workflow-level approval gate — distinct from agent-level HITL
+// (tool approval inside an agent session). Workflow-level gates are visible
+// in the execution viewer as explicit tasks with input/output/timing, and
+// they can route to different branches based on the reviewer's decision.
+//
+// Runtime implementation (T13) will use Temporal signals for workflow
+// resumption. The proto definition is intentionally runtime-agnostic.
+//
+// The reviewer's response (selected outcome + form data) becomes the task
+// output, accessible via export:
+//   {
+//     "outcome": "approve",
+//     "form_data": { <validated form response if form_schema is set> },
+//     "reviewer": "<user who responded>",
+//     "responded_at": "<ISO 8601 timestamp>"
+//   }
+//
+// YAML Example (approval gate with custom outcomes):
+//   - manager_approval:
+//       human_input:
+//         prompt: "Customer-impacting incident classified as ${ $context.triage.severity }. Approve escalation?"
+//         form_schema:
+//           type: object
+//           properties:
+//             notes:
+//               type: string
+//               description: "Optional notes for the engineering team"
+//             priority_override:
+//               type: string
+//               enum: [P1, P2, P3]
+//         outcomes:
+//           - name: approve
+//             label: "Approve Escalation"
+//           - name: deny
+//             label: "Reject — Not Customer-Impacting"
+//             then: re_classify
+//           - name: needs_revision
+//             label: "Needs More Info"
+//             then: gather_more_context
+//         approvers:
+//           - "team:engineering-leads"
+//         timeout: 86400
+//         on_timeout: HUMAN_INPUT_TIMEOUT_ESCALATE
+//         notification_channels:
+//           - "slack:#incident-approvals"
+//       export:
+//         as: "${ . }"
+//
+// YAML Example (simple binary approval, no form):
+//   - confirm_publish:
+//       human_input:
+//         prompt: "Ready to publish ${ $context.document.title } to production?"
+//         approvers:
+//           - "role:content-admin"
+//         timeout: 3600
+//         on_timeout: HUMAN_INPUT_TIMEOUT_FAIL
+//       export:
+//         as: "${ . }"
+message HumanInputTaskConfig {
+  option (ai.stigmer.commons.apiresource.discriminator_value) = "human_input";
+
+  // Message shown to the reviewer explaining what needs approval or input.
+  // Supports ${ } expression interpolation for injecting workflow context.
+  // Example: "Approve escalation for ticket ${ $context.ticket.id }?"
+  string prompt = 1 [
+    (ai.stigmer.commons.apiresource.is_expression) = true,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1
+  ];
+
+  // JSON Schema defining the input form rendered to the reviewer.
+  //
+  // When set, the approval UI renders a typed form based on this schema.
+  // The reviewer's form response is validated against the schema before
+  // the task completes, and the validated data appears in the task output
+  // under the "form_data" key.
+  //
+  // When not set, the reviewer sees only the outcome buttons (approve/deny
+  // or custom outcomes) without a data entry form.
+  //
+  // Uses the same google.protobuf.Struct + JSON Schema pattern as
+  // AgentCallOutputContract.schema and LlmCallTaskConfig.response_schema.
+  google.protobuf.Struct form_schema = 2;
+
+  // Named outcomes that the reviewer can select.
+  //
+  // Each outcome represents a decision the reviewer can make, with optional
+  // routing to a different downstream task. This enables rich branching
+  // beyond binary approve/deny.
+  //
+  // When empty, the task defaults to binary behavior:
+  //   - "approve": task completes, workflow continues to next task
+  //   - "deny": task fails (enters try_catch or EXECUTION_FAILED)
+  //
+  // When custom outcomes are defined, the first outcome is used as the
+  // default for HUMAN_INPUT_TIMEOUT_APPROVE, and the last outcome is used
+  // as the default for HUMAN_INPUT_TIMEOUT_DENY.
+  repeated HumanInputOutcome outcomes = 3;
+
+  // Approver identifiers — who is allowed to respond to this task.
+  //
+  // Supports user IDs, team slugs, and role names. Format examples:
+  //   - "user:jane@acme.com" — specific user
+  //   - "team:engineering-leads" — any member of the team
+  //   - "role:content-admin" — any user with the role
+  //
+  // When empty, any authenticated user can respond.
+  // Resolution of these identifiers is a runtime concern (T13).
+  repeated string approvers = 4;
+
+  // Timeout in seconds before the on_timeout policy applies.
+  // Default: 0 (no timeout — the task waits indefinitely).
+  // Max: 2592000 (30 days).
+  //
+  // A timeout of 0 means the workflow will wait until a human responds.
+  // For production workflows, setting a timeout with an appropriate
+  // on_timeout policy is strongly recommended.
+  int32 timeout = 5 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 2592000
+  }];
+
+  // Policy applied when the timeout expires without a response.
+  // Only meaningful when timeout > 0; ignored when timeout is 0.
+  // Default: HUMAN_INPUT_TIMEOUT_FAIL (task fails with timeout error).
+  HumanInputTimeoutPolicy on_timeout = 6;
+
+  // Channel identifiers for sending approval request notifications.
+  //
+  // When the task starts, the runtime sends notifications through these
+  // channels to alert potential approvers. Format examples:
+  //   - "slack:#approvals" — Slack channel
+  //   - "email:ops@acme.com" — email address
+  //   - "teams:#incident-response" — Microsoft Teams channel
+  //
+  // The format and routing of notifications is a runtime concern (T13).
+  // The proto carries the identifiers; the runtime resolves them to
+  // actual notification providers configured in the workflow instance's
+  // environment.
+  repeated string notification_channels = 7;
+}

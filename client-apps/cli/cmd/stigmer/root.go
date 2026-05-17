@@ -63,6 +63,7 @@ func init() {
 	// Core Commands
 	rootCmd.AddCommand(withGroup(root.NewRunCommand(), "core"))
 	rootCmd.AddCommand(withGroup(root.NewResumeCommand(), "core"))
+	rootCmd.AddCommand(withGroup(root.NewExecutionCommand(), "core"))
 	rootCmd.AddCommand(withGroup(root.NewUsageCommand(), "core"))
 
 	// Lifecycle
@@ -79,6 +80,7 @@ func init() {
 	rootCmd.AddCommand(withGroup(root.NewListCommand(), "resource"))
 	rootCmd.AddCommand(withGroup(root.NewDeleteCommand(), "resource"))
 	rootCmd.AddCommand(withGroup(root.NewValidateCommand(), "resource"))
+	rootCmd.AddCommand(withGroup(root.NewDiffCommand(), "resource"))
 	rootCmd.AddCommand(withGroup(root.NewSearchCommand(), "resource"))
 	rootCmd.AddCommand(withGroup(root.NewDraftCommand(), "resource"))
 	rootCmd.AddCommand(withGroup(root.NewConnectCommand(), "resource"))

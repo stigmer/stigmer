@@ -9,6 +9,7 @@ use (
 	./mcp-server
 	./sdk/go
 	./seedpack
-	./test/e2e
+	./test/integration
+	./test/integration/sdk
 	./tools
 )

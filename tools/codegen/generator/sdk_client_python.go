@@ -51,6 +51,16 @@ func pyProtoFileToModule(protoFile string) string {
 	return name + "_pb2"
 }
 
+// pyServiceModule returns the Python _pb2_grpc module base for a service.
+// Uses ProtoFile when available, otherwise falls back to the role.
+func pyServiceModule(svc *ServiceDefinition) string {
+	if svc.ProtoFile != "" {
+		base := filepath.Base(svc.ProtoFile)
+		return strings.TrimSuffix(base, ".proto")
+	}
+	return svc.Role
+}
+
 // pyMethodTypePb2Prefix returns the _pb2 module prefix for a method type.
 // Types whose proto file is known via methodTypePb2Map get their correct module;
 // everything else falls back to "io_pb2".
@@ -77,6 +87,14 @@ func pyTrackMethodTypeImport(typeName, fullType string, cfg sdkResourceConfig, s
 		imports.needsIoPb2 = true
 	} else {
 		imports.extraPb2Modules[mod] = true
+	}
+	// Detect sub-package types: if there's more than just the type name
+	// after the schema package prefix, the type lives in a sub-package.
+	suffix := fullType[len(schema.Package)+1:]
+	if dotIdx := strings.LastIndex(suffix, "."); dotIdx > 0 {
+		subPkg := fullType[:len(schema.Package)+1+dotIdx]
+		subPkgDotted := strings.ReplaceAll(subPkg, "/", ".")
+		imports.subPkgPb2Imports[mod] = subPkgDotted
 	}
 }
 
@@ -270,7 +288,7 @@ type pyImports struct {
 	needsBidiStream bool
 	needsAny        bool
 
-	services   map[string]bool
+	services   map[string]string // role → pb2_grpc module name (e.g., "query" → "query")
 	needsIoPb2 bool
 	needsSpec  bool
 
@@ -286,21 +304,23 @@ type pyImports struct {
 	crossResourceTypes map[string][]string // "._agent" -> ["McpServerUsageInput", ...]
 	crossProtoPackages map[string]bool     // "ai.stigmer.agentic.agent.v1" -> true
 	extraPb2Modules    map[string]bool     // additional _pb2 modules beyond io_pb2 (e.g., "token_pb2")
+	subPkgPb2Imports   map[string]string   // module → sub-package path (e.g., "validation_pb2" → "ai.stigmer.agentic.workflow.v1.serverless")
 }
 
 func newPyImports(pkg string) *pyImports {
 	return &pyImports{
 		resourcePkg:        pkg,
-		services:           make(map[string]bool),
+		services:           make(map[string]string),
 		typesNames:         make(map[string]bool),
 		crossResourceTypes: make(map[string][]string),
 		crossProtoPackages: make(map[string]bool),
 		extraPb2Modules:    make(map[string]bool),
+		subPkgPb2Imports:   make(map[string]string),
 	}
 }
 
-func (p *pyImports) addService(role string) {
-	p.services[role] = true
+func (p *pyImports) addService(role, pb2Module string) {
+	p.services[role] = pb2Module
 }
 
 func (p *pyImports) addTypesImport(name string) {
@@ -346,13 +366,18 @@ func (p *pyImports) emit(buf *bytes.Buffer) {
 	buf.WriteString("import grpc\n\n")
 
 	fmt.Fprintf(buf, "from %s import api_pb2\n", p.resourcePkg)
+	emittedModules := make(map[string]bool)
 	var roles []string
 	for r := range p.services {
 		roles = append(roles, r)
 	}
 	sort.Strings(roles)
 	for _, r := range roles {
-		fmt.Fprintf(buf, "from %s import %s_pb2_grpc\n", p.resourcePkg, r)
+		mod := p.services[r]
+		if !emittedModules[mod] {
+			emittedModules[mod] = true
+			fmt.Fprintf(buf, "from %s import %s_pb2_grpc\n", p.resourcePkg, mod)
+		}
 	}
 	if p.needsIoPb2 {
 		fmt.Fprintf(buf, "from %s import io_pb2\n", p.resourcePkg)
@@ -370,7 +395,11 @@ func (p *pyImports) emit(buf *bytes.Buffer) {
 		}
 		sort.Strings(modules)
 		for _, m := range modules {
-			fmt.Fprintf(buf, "from %s import %s\n", p.resourcePkg, m)
+			if subPkg, ok := p.subPkgPb2Imports[m]; ok {
+				fmt.Fprintf(buf, "from %s import %s\n", subPkg, m)
+			} else {
+				fmt.Fprintf(buf, "from %s import %s\n", p.resourcePkg, m)
+			}
 		}
 	}
 	if p.needsSpec {
@@ -558,7 +587,7 @@ func generatePythonResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConf
 	}
 
 	for _, svc := range schema.Services {
-		imports.addService(svc.Role)
+		imports.addService(svc.Role, pyServiceModule(&svc))
 		for _, m := range svc.Methods {
 			if isIDType(m.InputType) {
 				imports.needsIoPb2 = true
@@ -619,7 +648,8 @@ func generatePythonResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConf
 
 	body.WriteString("    def __init__(self, channel: grpc.Channel) -> None:\n")
 	for _, svc := range schema.Services {
-		fmt.Fprintf(&body, "        self._%s = %s_pb2_grpc.%sStub(channel)\n", svc.Role, svc.Role, svc.Name)
+		mod := pyServiceModule(&svc)
+		fmt.Fprintf(&body, "        self._%s = %s_pb2_grpc.%sStub(channel)\n", svc.Role, mod, svc.Name)
 	}
 	if needsSearch {
 		body.WriteString("        self._search = search_query_pb2_grpc.SearchServiceStub(channel)\n")

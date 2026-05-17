@@ -337,7 +337,8 @@ func TestProtoToYAML_SwitchTask(t *testing.T) {
 
 	assert.Contains(t, yaml, "route:")
 	assert.Contains(t, yaml, "switch:")
-	assert.Contains(t, yaml, "cases:")
+	assert.Contains(t, yaml, "success:")
+	assert.Contains(t, yaml, "notFound:")
 }
 
 func TestProtoToYAML_ComplexWorkflow(t *testing.T) {

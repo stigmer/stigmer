@@ -1,29 +1,43 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type { Stigmer, DeploymentMode } from "@stigmer/sdk";
 import { getApiBaseUrl } from "@/config/env";
 
-export type DeploymentMode = "local" | "cloud";
+export type { DeploymentMode };
 
-/**
- * Detects whether the web console is running against a local Go CLI backend
- * or a remote Java cloud backend based on the API base URL.
- *
- * Local mode: the API URL points to localhost (default: http://localhost:7234).
- * Cloud mode: any non-localhost URL.
- */
-export function useDeploymentMode(): DeploymentMode {
-  return useMemo(() => {
-    try {
-      const url = new URL(getApiBaseUrl());
-      const host = url.hostname;
-      if (host === "localhost" || host === "127.0.0.1" || host === "::1") {
-        return "local";
-      }
-    } catch {
-      // Invalid URL — assume local for safety
+function fallbackDeploymentMode(): DeploymentMode {
+  try {
+    const url = new URL(getApiBaseUrl());
+    const host = url.hostname;
+    if (host === "localhost" || host === "127.0.0.1" || host === "::1") {
       return "local";
     }
-    return "cloud";
-  }, []);
+  } catch {
+    return "local";
+  }
+  return "cloud";
+}
+
+/**
+ * Detects the deployment mode by querying the server's
+ * `getServerInfo` RPC. Falls back to URL-based hostname guessing
+ * when the server does not implement the RPC (older servers).
+ */
+export function useDeploymentMode(client?: Stigmer): DeploymentMode {
+  const [mode, setMode] = useState<DeploymentMode>(fallbackDeploymentMode);
+
+  const stableClient = useMemo(() => client, [client]);
+
+  useEffect(() => {
+    if (!stableClient) return;
+    let cancelled = false;
+    stableClient.platform.getServerInfo().then(
+      (info) => { if (!cancelled) setMode(info.deploymentMode); },
+      () => { /* keep URL-based fallback for older servers */ },
+    );
+    return () => { cancelled = true; };
+  }, [stableClient]);
+
+  return mode;
 }

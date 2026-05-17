@@ -1,0 +1,121 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.workflow.v1.tasks;
+
+import "ai/stigmer/commons/apiresource/field_options.proto";
+import "buf/validate/validate.proto";
+import "google/protobuf/struct.proto";
+
+// EmitEventSpec defines the CloudEvents envelope for an event to be emitted.
+//
+// @internal
+// Follows CloudEvents semantics (type, source, subject, data) because:
+// 1. CloudEvents is a graduated CNCF project with broad ecosystem support
+// 2. The CNCF Serverless Workflow spec already uses CloudEvents
+// 3. It provides a standard envelope that external consumers can parse
+//
+// Runtime-generated fields not authored here:
+// - id: unique event identifier (UUID, generated at emit time)
+// - specversion: always "1.0"
+// - time: ISO 8601 timestamp of emission
+// - datacontenttype: always "application/json" (since data is a Struct)
+//
+// The runtime (T13) decides how events are delivered: Temporal signals to
+// other workflows, message queues, webhooks, or event buses. The proto
+// carries the event specification; delivery is a runtime concern.
+//
+// @since T03 (P0 New Task Types)
+message EmitEventSpec {
+  // CloudEvents type identifier.
+  // A reverse-DNS string that categorizes the event for routing and filtering.
+  // Examples: "stigmer.workflow.ticket.classified", "acme.order.completed"
+  string type = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 255
+  ];
+
+  // CloudEvents source identifier.
+  // URI or URI-reference that identifies the context in which the event
+  // happened. Supports ${ } expression interpolation.
+  // When empty, the runtime defaults to the workflow execution URI
+  // (e.g., "/workflows/{workflow_id}/executions/{execution_id}").
+  string source = 2 [(ai.stigmer.commons.apiresource.is_expression) = true];
+
+  // Event payload data.
+  // Arbitrary JSON object carried as the CloudEvents data attribute.
+  // Values within the Struct can contain ${ } expressions that the
+  // runtime evaluates before emission.
+  //
+  // Unlike other Struct fields in the workflow domain (response_schema,
+  // form_schema, schema) which carry JSON Schema definitions, this field
+  // carries the actual event payload — not a schema.
+  google.protobuf.Struct data = 3;
+
+  // CloudEvents subject identifier.
+  // Describes the subject of the event in the context of the event producer.
+  // Supports ${ } expression interpolation.
+  // Examples: "${ $context.ticket.id }", "${ $context.order.number }"
+  string subject = 4 [(ai.stigmer.commons.apiresource.is_expression) = true];
+}
+
+// EmitEventTaskConfig defines the configuration for emit_event tasks that
+// publish CloudEvents to external consumers, other workflows, audit trails,
+// and metrics systems.
+//
+// @internal
+// emit_event is the complement to listen. While listen waits for Temporal
+// signals (internal workflow primitives), emit_event publishes business
+// events using the CloudEvents envelope (a standard external contract).
+// The runtime (T13) bridges the two: an emitted CloudEvent can be
+// delivered as a Temporal signal to another workflow's listen task, or
+// routed to external consumers via message queues, webhooks, or event buses.
+//
+// The task output is the fully-resolved CloudEvents envelope with
+// runtime-generated fields populated:
+//   {
+//     "id": "<generated UUID>",
+//     "specversion": "1.0",
+//     "type": "stigmer.workflow.ticket.classified",
+//     "source": "/workflows/triage/executions/abc-123",
+//     "time": "2026-05-12T14:30:00Z",
+//     "subject": "TICKET-456",
+//     "datacontenttype": "application/json",
+//     "data": { <resolved payload> }
+//   }
+//
+// YAML Example (emit a classification event):
+//   - notify_classified:
+//       emit_event:
+//         event:
+//           type: "stigmer.workflow.ticket.classified"
+//           subject: "${ $context.ticket.id }"
+//           data:
+//             ticket_id: "${ $context.ticket.id }"
+//             severity: "${ $context.triage.severity }"
+//             category: "${ $context.triage.category }"
+//             classified_by: "${ $context.workflow_instance_id }"
+//       export:
+//         as: "${ . }"
+//
+// YAML Example (emit with explicit source):
+//   - publish_completion:
+//       emit_event:
+//         event:
+//           type: "acme.order.fulfilled"
+//           source: "urn:acme:fulfillment-service"
+//           subject: "${ $context.order.number }"
+//           data:
+//             order_id: "${ $context.order.id }"
+//             status: "fulfilled"
+//             fulfilled_at: "${ $context.timestamp }"
+//       export:
+//         as: "${ . }"
+message EmitEventTaskConfig {
+  option (ai.stigmer.commons.apiresource.discriminator_value) = "emit_event";
+
+  // The event specification to emit.
+  // Contains the CloudEvents envelope fields (type, source, data, subject).
+  // Required field.
+  EmitEventSpec event = 1 [(buf.validate.field).required = true];
+}

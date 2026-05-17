@@ -37,6 +37,11 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_runner_v1_RunnerStatus_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_runner_v1_RunnerStatus_ProcessExecutionsEntry_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_runner_v1_RunnerStatus_ProcessExecutionsEntry_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_runner_v1_RunnerConnectionInfo_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -65,7 +70,7 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
       "tadataB\006\272H\003\310\001\001R\010metadata\022<\n\004spec\030\004 \001(\0132(" +
       ".ai.stigmer.agentic.runner.v1.RunnerSpec" +
       "R\004spec\022B\n\006status\030\005 \001(\0132*.ai.stigmer.agen" +
-      "tic.runner.v1.RunnerStatusR\006status\"\206\004\n\014R" +
+      "tic.runner.v1.RunnerStatusR\006status\"\371\005\n\014R" +
       "unnerStatus\022F\n\005audit\030c \001(\01320.ai.stigmer." +
       "commons.apiresource.ApiResourceAuditR\005au" +
       "dit\022?\n\005phase\030\001 \001(\0162).ai.stigmer.agentic." +
@@ -78,16 +83,22 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
       "stoppedAt\022-\n\022current_executions\030\006 \001(\005R\021c" +
       "urrentExecutions\022[\n\017connection_info\030\010 \001(" +
       "\01322.ai.stigmer.agentic.runner.v1.RunnerC" +
-      "onnectionInfoR\016connectionInfoJ\004\010\007\020\010\"\234\001\n\024" +
-      "RunnerConnectionInfo\022\032\n\010hostname\030\001 \001(\tR\010" +
-      "hostname\022\016\n\002os\030\002 \001(\tR\002os\022\022\n\004arch\030\003 \001(\tR\004" +
-      "arch\022%\n\016runner_version\030\004 \001(\tR\rrunnerVers" +
-      "ion\022\035\n\nmachine_id\030\005 \001(\tR\tmachineIdB\237\001B\010A" +
-      "piProtoP\001\242\002\004ASAR\252\002\034Ai.Stigmer.Agentic.Ru" +
-      "nner.V1\312\002\034Ai\\Stigmer\\Agentic\\Runner\\V1\342\002" +
-      "(Ai\\Stigmer\\Agentic\\Runner\\V1\\GPBMetadat" +
-      "a\352\002 Ai::Stigmer::Agentic::Runner::V1b\006pr" +
-      "oto3"
+      "onnectionInfoR\016connectionInfo\022p\n\022process" +
+      "_executions\030\t \003(\0132A.ai.stigmer.agentic.r" +
+      "unner.v1.RunnerStatus.ProcessExecutionsE" +
+      "ntryR\021processExecutions\0229\n\nidle_since\030\n " +
+      "\001(\0132\032.google.protobuf.TimestampR\tidleSin" +
+      "ce\032D\n\026ProcessExecutionsEntry\022\020\n\003key\030\001 \001(" +
+      "\tR\003key\022\024\n\005value\030\002 \001(\005R\005value:\0028\001J\004\010\007\020\010\"\234" +
+      "\001\n\024RunnerConnectionInfo\022\032\n\010hostname\030\001 \001(" +
+      "\tR\010hostname\022\016\n\002os\030\002 \001(\tR\002os\022\022\n\004arch\030\003 \001(" +
+      "\tR\004arch\022%\n\016runner_version\030\004 \001(\tR\rrunnerV" +
+      "ersion\022\035\n\nmachine_id\030\005 \001(\tR\tmachineIdB\237\001" +
+      "B\010ApiProtoP\001\242\002\004ASAR\252\002\034Ai.Stigmer.Agentic" +
+      ".Runner.V1\312\002\034Ai\\Stigmer\\Agentic\\Runner\\V" +
+      "1\342\002(Ai\\Stigmer\\Agentic\\Runner\\V1\\GPBMeta" +
+      "data\352\002 Ai::Stigmer::Agentic::Runner::V1b" +
+      "\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -110,7 +121,13 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_runner_v1_RunnerStatus_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_runner_v1_RunnerStatus_descriptor,
-        new java.lang.String[] { "Audit", "Phase", "TaskQueue", "LastHeartbeatAt", "StartedAt", "StoppedAt", "CurrentExecutions", "ConnectionInfo", });
+        new java.lang.String[] { "Audit", "Phase", "TaskQueue", "LastHeartbeatAt", "StartedAt", "StoppedAt", "CurrentExecutions", "ConnectionInfo", "ProcessExecutions", "IdleSince", });
+    internal_static_ai_stigmer_agentic_runner_v1_RunnerStatus_ProcessExecutionsEntry_descriptor =
+      internal_static_ai_stigmer_agentic_runner_v1_RunnerStatus_descriptor.getNestedType(0);
+    internal_static_ai_stigmer_agentic_runner_v1_RunnerStatus_ProcessExecutionsEntry_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_runner_v1_RunnerStatus_ProcessExecutionsEntry_descriptor,
+        new java.lang.String[] { "Key", "Value", });
     internal_static_ai_stigmer_agentic_runner_v1_RunnerConnectionInfo_descriptor =
       getDescriptor().getMessageType(2);
     internal_static_ai_stigmer_agentic_runner_v1_RunnerConnectionInfo_fieldAccessorTable = new

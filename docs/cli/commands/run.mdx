@@ -57,6 +57,7 @@ stigmer run my-agent -m "Summarize the Q4 earnings report"
 | `--env-file`        | `stringArray` |         | load environment from file (can be repeated, later files override earlier)               |
 | `--json`            | `bool`        |         | stream execution events as newline-delimited JSON (for scripting/CI)                     |
 | `--message`, `-m`   | `string`      |         | initial message/prompt for execution                                                     |
+| `--mode`            | `string`      |         | interaction mode: "agent" (default, full access) or "plan" (read-only analysis)          |
 | `--model`           | `string`      |         | LLM model to use (e.g., claude-sonnet-4-20250514)                                        |
 | `--secret`          | `stringArray` |         | secret environment variable (KEY=VALUE, can be repeated, encrypted)                      |
 | `--secret-file`     | `stringArray` |         | load secrets from file (can be repeated, all values encrypted)                           |

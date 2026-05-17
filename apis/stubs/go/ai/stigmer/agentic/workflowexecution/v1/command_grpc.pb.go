@@ -20,17 +20,18 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	WorkflowExecutionCommandController_Create_FullMethodName         = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/create"
-	WorkflowExecutionCommandController_Update_FullMethodName         = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/update"
-	WorkflowExecutionCommandController_UpdateStatus_FullMethodName   = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/updateStatus"
-	WorkflowExecutionCommandController_SubmitApproval_FullMethodName = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/submitApproval"
-	WorkflowExecutionCommandController_Delete_FullMethodName         = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/delete"
-	WorkflowExecutionCommandController_SendSignal_FullMethodName     = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/sendSignal"
-	WorkflowExecutionCommandController_Cancel_FullMethodName         = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/cancel"
-	WorkflowExecutionCommandController_Terminate_FullMethodName      = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/terminate"
-	WorkflowExecutionCommandController_Recover_FullMethodName        = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/recover"
-	WorkflowExecutionCommandController_Pause_FullMethodName          = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/pause"
-	WorkflowExecutionCommandController_Resume_FullMethodName         = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/resume"
+	WorkflowExecutionCommandController_Create_FullMethodName                     = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/create"
+	WorkflowExecutionCommandController_Update_FullMethodName                     = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/update"
+	WorkflowExecutionCommandController_UpdateStatus_FullMethodName               = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/updateStatus"
+	WorkflowExecutionCommandController_SubmitApproval_FullMethodName             = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/submitApproval"
+	WorkflowExecutionCommandController_SubmitWorkflowTaskApproval_FullMethodName = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/submitWorkflowTaskApproval"
+	WorkflowExecutionCommandController_Delete_FullMethodName                     = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/delete"
+	WorkflowExecutionCommandController_SendSignal_FullMethodName                 = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/sendSignal"
+	WorkflowExecutionCommandController_Cancel_FullMethodName                     = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/cancel"
+	WorkflowExecutionCommandController_Terminate_FullMethodName                  = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/terminate"
+	WorkflowExecutionCommandController_Recover_FullMethodName                    = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/recover"
+	WorkflowExecutionCommandController_Pause_FullMethodName                      = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/pause"
+	WorkflowExecutionCommandController_Resume_FullMethodName                     = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/resume"
 )
 
 // WorkflowExecutionCommandControllerClient is the client API for WorkflowExecutionCommandController service.
@@ -338,6 +339,44 @@ type WorkflowExecutionCommandControllerClient interface {
 	//
 	// @since Phase 5.3 (Approval Forwarding)
 	SubmitApproval(ctx context.Context, in *SubmitWorkflowApprovalInput, opts ...grpc.CallOption) (*WorkflowExecution, error)
+	// Submit a human reviewer's decision for a workflow-level human_input task.
+	//
+	// Resolves a human_input approval gate by sending the reviewer's outcome
+	// (and optional form data) to the waiting workflow task via Temporal signal.
+	//
+	// @internal
+	// This RPC is specifically for workflow-level human_input tasks — the approval
+	// gates defined in workflow YAML that pause execution until a human responds.
+	// It is distinct from submitApproval, which forwards agent-level tool call
+	// approvals to child AgentExecutions.
+	//
+	// # Behavior
+	//
+	// 1. Validates execution exists and is in progress
+	// 2. Validates that task_name references a human_input task in the workflow
+	// 3. Validates outcome against configured outcomes (if any)
+	// 4. Constructs signal name: "human_input_{task_name}"
+	// 5. Builds signal payload: {outcome, form_data, reviewer, responded_at}
+	// 6. Sends signal via Temporal SignalWithStart
+	// 7. Returns current WorkflowExecution (status updates asynchronously)
+	//
+	// # Preconditions
+	//
+	// - Execution must be in EXECUTION_IN_PROGRESS phase
+	// - task_name must reference a human_input task in the workflow
+	// - outcome must be valid for the task's configured outcomes
+	// - User must have can_edit permission on the workflow execution
+	//
+	// # Error Cases
+	//
+	//   - NOT_FOUND: Workflow execution doesn't exist
+	//   - PERMISSION_DENIED: User doesn't have can_edit permission
+	//   - INVALID_ARGUMENT: task_name is not a human_input task, or outcome
+	//     doesn't match configured outcomes
+	//   - FAILED_PRECONDITION: Execution is not in a signalable phase
+	//
+	// @since T13b (Java/Cloud Backend Parity)
+	SubmitWorkflowTaskApproval(ctx context.Context, in *SubmitWorkflowTaskApprovalInput, opts ...grpc.CallOption) (*WorkflowExecution, error)
 	// Delete a workflow execution.
 	Delete(ctx context.Context, in *apiresource.ApiResourceId, opts ...grpc.CallOption) (*WorkflowExecution, error)
 	// Send a signal to a running workflow execution.
@@ -832,6 +871,16 @@ func (c *workflowExecutionCommandControllerClient) SubmitApproval(ctx context.Co
 	return out, nil
 }
 
+func (c *workflowExecutionCommandControllerClient) SubmitWorkflowTaskApproval(ctx context.Context, in *SubmitWorkflowTaskApprovalInput, opts ...grpc.CallOption) (*WorkflowExecution, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WorkflowExecution)
+	err := c.cc.Invoke(ctx, WorkflowExecutionCommandController_SubmitWorkflowTaskApproval_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *workflowExecutionCommandControllerClient) Delete(ctx context.Context, in *apiresource.ApiResourceId, opts ...grpc.CallOption) (*WorkflowExecution, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(WorkflowExecution)
@@ -1207,6 +1256,44 @@ type WorkflowExecutionCommandControllerServer interface {
 	//
 	// @since Phase 5.3 (Approval Forwarding)
 	SubmitApproval(context.Context, *SubmitWorkflowApprovalInput) (*WorkflowExecution, error)
+	// Submit a human reviewer's decision for a workflow-level human_input task.
+	//
+	// Resolves a human_input approval gate by sending the reviewer's outcome
+	// (and optional form data) to the waiting workflow task via Temporal signal.
+	//
+	// @internal
+	// This RPC is specifically for workflow-level human_input tasks — the approval
+	// gates defined in workflow YAML that pause execution until a human responds.
+	// It is distinct from submitApproval, which forwards agent-level tool call
+	// approvals to child AgentExecutions.
+	//
+	// # Behavior
+	//
+	// 1. Validates execution exists and is in progress
+	// 2. Validates that task_name references a human_input task in the workflow
+	// 3. Validates outcome against configured outcomes (if any)
+	// 4. Constructs signal name: "human_input_{task_name}"
+	// 5. Builds signal payload: {outcome, form_data, reviewer, responded_at}
+	// 6. Sends signal via Temporal SignalWithStart
+	// 7. Returns current WorkflowExecution (status updates asynchronously)
+	//
+	// # Preconditions
+	//
+	// - Execution must be in EXECUTION_IN_PROGRESS phase
+	// - task_name must reference a human_input task in the workflow
+	// - outcome must be valid for the task's configured outcomes
+	// - User must have can_edit permission on the workflow execution
+	//
+	// # Error Cases
+	//
+	//   - NOT_FOUND: Workflow execution doesn't exist
+	//   - PERMISSION_DENIED: User doesn't have can_edit permission
+	//   - INVALID_ARGUMENT: task_name is not a human_input task, or outcome
+	//     doesn't match configured outcomes
+	//   - FAILED_PRECONDITION: Execution is not in a signalable phase
+	//
+	// @since T13b (Java/Cloud Backend Parity)
+	SubmitWorkflowTaskApproval(context.Context, *SubmitWorkflowTaskApprovalInput) (*WorkflowExecution, error)
 	// Delete a workflow execution.
 	Delete(context.Context, *apiresource.ApiResourceId) (*WorkflowExecution, error)
 	// Send a signal to a running workflow execution.
@@ -1672,6 +1759,9 @@ func (UnimplementedWorkflowExecutionCommandControllerServer) UpdateStatus(contex
 func (UnimplementedWorkflowExecutionCommandControllerServer) SubmitApproval(context.Context, *SubmitWorkflowApprovalInput) (*WorkflowExecution, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SubmitApproval not implemented")
 }
+func (UnimplementedWorkflowExecutionCommandControllerServer) SubmitWorkflowTaskApproval(context.Context, *SubmitWorkflowTaskApprovalInput) (*WorkflowExecution, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SubmitWorkflowTaskApproval not implemented")
+}
 func (UnimplementedWorkflowExecutionCommandControllerServer) Delete(context.Context, *apiresource.ApiResourceId) (*WorkflowExecution, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
 }
@@ -1781,6 +1871,24 @@ func _WorkflowExecutionCommandController_SubmitApproval_Handler(srv interface{},
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(WorkflowExecutionCommandControllerServer).SubmitApproval(ctx, req.(*SubmitWorkflowApprovalInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WorkflowExecutionCommandController_SubmitWorkflowTaskApproval_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SubmitWorkflowTaskApprovalInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WorkflowExecutionCommandControllerServer).SubmitWorkflowTaskApproval(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WorkflowExecutionCommandController_SubmitWorkflowTaskApproval_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WorkflowExecutionCommandControllerServer).SubmitWorkflowTaskApproval(ctx, req.(*SubmitWorkflowTaskApprovalInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1933,6 +2041,10 @@ var WorkflowExecutionCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "submitApproval",
 			Handler:    _WorkflowExecutionCommandController_SubmitApproval_Handler,
+		},
+		{
+			MethodName: "submitWorkflowTaskApproval",
+			Handler:    _WorkflowExecutionCommandController_SubmitWorkflowTaskApproval_Handler,
 		},
 		{
 			MethodName: "delete",

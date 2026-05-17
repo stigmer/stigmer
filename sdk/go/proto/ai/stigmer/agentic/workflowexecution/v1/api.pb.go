@@ -369,8 +369,36 @@ type WorkflowExecutionStatus struct {
 	// accumulate in this list. Each entry's child_agent_execution_id distinguishes
 	// the source.
 	PendingApprovals []*WorkflowPendingApproval `protobuf:"bytes,9,rep,name=pending_approvals,json=pendingApprovals,proto3" json:"pending_approvals,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// Cumulative cost across all tasks in micro-USD (1 USD = 1,000,000 micros).
+	//
+	// @internal
+	// Updated by the workflow-runner alongside each status update. Reflects the
+	// budget tracker's accumulated cost at the time of the last status write.
+	// Used by getExecutionSummary for fast aggregation without scanning events.
+	//
+	// Consistent with WorkflowBudget.max_cost_micros and the billing domain's
+	// micro-USD convention (CostStamp.provider_cost_micros, etc.).
+	//
+	// @since Cost Data Pipeline
+	TotalCostMicros int64 `protobuf:"varint,10,opt,name=total_cost_micros,json=totalCostMicros,proto3" json:"total_cost_micros,omitempty"`
+	// Cumulative input tokens consumed across all LLM and agent tasks.
+	//
+	// @internal
+	// Input tokens represent prompt/context tokens sent to the model.
+	// Updated alongside total_cost_micros from the budget tracker.
+	//
+	// @since Cost Data Pipeline
+	TotalInputTokens int64 `protobuf:"varint,11,opt,name=total_input_tokens,json=totalInputTokens,proto3" json:"total_input_tokens,omitempty"`
+	// Cumulative output tokens consumed across all LLM and agent tasks.
+	//
+	// @internal
+	// Output tokens represent completion/generation tokens returned by the model.
+	// Updated alongside total_cost_micros from the budget tracker.
+	//
+	// @since Cost Data Pipeline
+	TotalOutputTokens int64 `protobuf:"varint,12,opt,name=total_output_tokens,json=totalOutputTokens,proto3" json:"total_output_tokens,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *WorkflowExecutionStatus) Reset() {
@@ -464,6 +492,27 @@ func (x *WorkflowExecutionStatus) GetPendingApprovals() []*WorkflowPendingApprov
 		return x.PendingApprovals
 	}
 	return nil
+}
+
+func (x *WorkflowExecutionStatus) GetTotalCostMicros() int64 {
+	if x != nil {
+		return x.TotalCostMicros
+	}
+	return 0
+}
+
+func (x *WorkflowExecutionStatus) GetTotalInputTokens() int64 {
+	if x != nil {
+		return x.TotalInputTokens
+	}
+	return 0
+}
+
+func (x *WorkflowExecutionStatus) GetTotalOutputTokens() int64 {
+	if x != nil {
+		return x.TotalOutputTokens
+	}
+	return 0
 }
 
 // WorkflowPendingApproval pairs approval details with routing information for workflow-level forwarding.
@@ -643,7 +692,47 @@ type WorkflowTask struct {
 	// - API response headers (for WORKFLOW_TASK_API_CALL)
 	// - Approval history (who approved, when, comments)
 	// - Performance metrics (execution time, memory usage)
-	Metadata      *structpb.Struct `protobuf:"bytes,10,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	Metadata *structpb.Struct `protobuf:"bytes,10,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	// Artifact IDs produced by this task.
+	//
+	// @internal
+	// Populated when the task's output (or portions of it) is auto-promoted
+	// to the artifact store because it exceeds the size threshold (256KB),
+	// or when the workflow author explicitly declares artifact persistence.
+	//
+	// Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
+	// be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
+	//
+	// When artifact_ids is non-empty, the task's output field contains
+	// artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
+	// the original inline data. Consumers (execution viewer, SDK hooks)
+	// detect these references and resolve them via the Artifact APIs.
+	//
+	// @since T07 (Artifact Store)
+	ArtifactIds []string `protobuf:"bytes,11,rep,name=artifact_ids,json=artifactIds,proto3" json:"artifact_ids,omitempty"`
+	// Cost incurred by this task in micro-USD (1 USD = 1,000,000 micros).
+	//
+	// @internal
+	// Non-zero for cost-incurring task kinds (llm_call, agent_call).
+	// Zero for non-LLM tasks (transform, validate, emit_event, etc.).
+	// Set by the workflow-runner when the task completes.
+	//
+	// @since Cost Data Pipeline
+	CostMicros int64 `protobuf:"varint,12,opt,name=cost_micros,json=costMicros,proto3" json:"cost_micros,omitempty"`
+	// Input (prompt/context) tokens consumed by this task.
+	//
+	// @internal
+	// Non-zero for LLM-backed tasks. Zero for non-LLM tasks.
+	//
+	// @since Cost Data Pipeline
+	InputTokens int64 `protobuf:"varint,13,opt,name=input_tokens,json=inputTokens,proto3" json:"input_tokens,omitempty"`
+	// Output (completion/generation) tokens produced by this task.
+	//
+	// @internal
+	// Non-zero for LLM-backed tasks. Zero for non-LLM tasks.
+	//
+	// @since Cost Data Pipeline
+	OutputTokens  int64 `protobuf:"varint,14,opt,name=output_tokens,json=outputTokens,proto3" json:"output_tokens,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -748,6 +837,34 @@ func (x *WorkflowTask) GetMetadata() *structpb.Struct {
 	return nil
 }
 
+func (x *WorkflowTask) GetArtifactIds() []string {
+	if x != nil {
+		return x.ArtifactIds
+	}
+	return nil
+}
+
+func (x *WorkflowTask) GetCostMicros() int64 {
+	if x != nil {
+		return x.CostMicros
+	}
+	return 0
+}
+
+func (x *WorkflowTask) GetInputTokens() int64 {
+	if x != nil {
+		return x.InputTokens
+	}
+	return 0
+}
+
+func (x *WorkflowTask) GetOutputTokens() int64 {
+	if x != nil {
+		return x.OutputTokens
+	}
+	return 0
+}
+
 var File_ai_stigmer_agentic_workflowexecution_v1_api_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_workflowexecution_v1_api_proto_rawDesc = "" +
@@ -761,7 +878,7 @@ const file_ai_stigmer_agentic_workflowexecution_v1_api_proto_rawDesc = "" +
 	"\x11WorkflowExecutionR\x04kind\x12W\n" +
 	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\bmetadata\x12R\n" +
 	"\x04spec\x18\x04 \x01(\v2>.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpecR\x04spec\x12X\n" +
-	"\x06status\x18\x05 \x01(\v2@.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatusR\x06status\"\xb1\x04\n" +
+	"\x06status\x18\x05 \x01(\v2@.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatusR\x06status\"\xbb\x05\n" +
 	"\x17WorkflowExecutionStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12W\n" +
 	"\x05phase\x18\x01 \x01(\x0e27.ai.stigmer.agentic.workflowexecution.v1.ExecutionPhaseB\b\xbaH\x05\x82\x01\x02\x10\x01R\x05phase\x12K\n" +
@@ -772,10 +889,14 @@ const file_ai_stigmer_agentic_workflowexecution_v1_api_proto_rawDesc = "" +
 	"started_at\x18\x05 \x01(\tR\tstartedAt\x12!\n" +
 	"\fcompleted_at\x18\x06 \x01(\tR\vcompletedAt\x120\n" +
 	"\x14temporal_workflow_id\x18\a \x01(\tR\x12temporalWorkflowId\x12m\n" +
-	"\x11pending_approvals\x18\t \x03(\v2@.ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApprovalR\x10pendingApprovals\"\xa5\x01\n" +
+	"\x11pending_approvals\x18\t \x03(\v2@.ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApprovalR\x10pendingApprovals\x12*\n" +
+	"\x11total_cost_micros\x18\n" +
+	" \x01(\x03R\x0ftotalCostMicros\x12,\n" +
+	"\x12total_input_tokens\x18\v \x01(\x03R\x10totalInputTokens\x12.\n" +
+	"\x13total_output_tokens\x18\f \x01(\x03R\x11totalOutputTokens\"\xa5\x01\n" +
 	"\x17WorkflowPendingApproval\x12Q\n" +
 	"\bapproval\x18\x01 \x01(\v25.ai.stigmer.agentic.agentexecution.v1.PendingApprovalR\bapproval\x127\n" +
-	"\x18child_agent_execution_id\x18\x02 \x01(\tR\x15childAgentExecutionId\"\xf2\x03\n" +
+	"\x18child_agent_execution_id\x18\x02 \x01(\tR\x15childAgentExecutionId\"\xfe\x04\n" +
 	"\fWorkflowTask\x12\x17\n" +
 	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x1b\n" +
 	"\ttask_name\x18\x02 \x01(\tR\btaskName\x12`\n" +
@@ -788,7 +909,12 @@ const file_ai_stigmer_agentic_workflowexecution_v1_api_proto_rawDesc = "" +
 	"\fcompleted_at\x18\b \x01(\tR\vcompletedAt\x12\x14\n" +
 	"\x05error\x18\t \x01(\tR\x05error\x123\n" +
 	"\bmetadata\x18\n" +
-	" \x01(\v2\x17.google.protobuf.StructR\bmetadataB\xdd\x02\n" +
+	" \x01(\v2\x17.google.protobuf.StructR\bmetadata\x12!\n" +
+	"\fartifact_ids\x18\v \x03(\tR\vartifactIds\x12\x1f\n" +
+	"\vcost_micros\x18\f \x01(\x03R\n" +
+	"costMicros\x12!\n" +
+	"\finput_tokens\x18\r \x01(\x03R\vinputTokens\x12#\n" +
+	"\routput_tokens\x18\x0e \x01(\x03R\foutputTokensB\xdd\x02\n" +
 	"+com.ai.stigmer.agentic.workflowexecution.v1B\bApiProtoP\x01Zcgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflowexecution/v1;workflowexecutionv1\xa2\x02\x04ASAW\xaa\x02'Ai.Stigmer.Agentic.Workflowexecution.V1\xca\x02'Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\xe2\x023Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\\GPBMetadata\xea\x02+Ai::Stigmer::Agentic::Workflowexecution::V1b\x06proto3"
 
 var (

@@ -44,16 +44,16 @@ import { utcTimestamp } from "./message-translator.js";
 // ---------------------------------------------------------------------------
 
 const CHARS_PER_TOKEN = 4;
-const MAX_SUMMARY_TOKENS = 2_000;
-const MAX_TURNS_TOKENS = 4_000;
-const MAX_OBSERVATIONS_TOKENS = 1_000;
-const MAX_TURN_TOKENS = 1_000;
-const MAX_RECENT_TURNS = 6;
-const MAX_OBSERVATIONS = 10;
-const MAX_DECISIONS = 20;
-const MAX_FAILED_ATTEMPTS = 20;
-const MAX_OBSERVATION_SUMMARY_CHARS = 200;
-const MAX_FAILED_ATTEMPT_CHARS = 200;
+const MAX_SUMMARY_TOKENS = 1_000;
+const MAX_TURNS_TOKENS = 3_000;
+const MAX_OBSERVATIONS_TOKENS = 500;
+const MAX_TURN_TOKENS = 800;
+const MAX_RECENT_TURNS = 4;
+const MAX_OBSERVATIONS = 5;
+const MAX_DECISIONS = 15;
+const MAX_FAILED_ATTEMPTS = 10;
+const MAX_OBSERVATION_SUMMARY_CHARS = 150;
+const MAX_FAILED_ATTEMPT_CHARS = 150;
 
 /**
  * Tool names that represent file mutations. When a completed tool call

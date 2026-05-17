@@ -8,6 +8,7 @@ package workflowv1
 
 import (
 	context "context"
+	serverless "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/workflow/v1/serverless"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -19,10 +20,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	WorkflowCommandController_Apply_FullMethodName  = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/apply"
-	WorkflowCommandController_Create_FullMethodName = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/create"
-	WorkflowCommandController_Update_FullMethodName = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/update"
-	WorkflowCommandController_Delete_FullMethodName = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/delete"
+	WorkflowCommandController_Apply_FullMethodName        = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/apply"
+	WorkflowCommandController_Create_FullMethodName       = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/create"
+	WorkflowCommandController_Update_FullMethodName       = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/update"
+	WorkflowCommandController_Delete_FullMethodName       = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/delete"
+	WorkflowCommandController_ValidateSpec_FullMethodName = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/validateSpec"
 )
 
 // WorkflowCommandControllerClient is the client API for WorkflowCommandController service.
@@ -48,6 +50,28 @@ type WorkflowCommandControllerClient interface {
 	Update(ctx context.Context, in *Workflow, opts ...grpc.CallOption) (*Workflow, error)
 	// Delete a workflow.
 	Delete(ctx context.Context, in *WorkflowId, opts ...grpc.CallOption) (*Workflow, error)
+	// Validate a workflow spec without persisting it.
+	//
+	// Runs the same two-layer validation pipeline used by create/update:
+	//
+	//	Layer 1: Proto field constraints (buf validate / protovalidate)
+	//	Layer 2: Temporal-based structural validation (Go activity: proto → YAML → Zigflow)
+	//
+	// Returns ServerlessWorkflowValidation with:
+	//   - VALID: Workflow structure passed all checks
+	//   - INVALID: User error (bad structure, missing fields, unknown task kinds)
+	//   - FAILED: System error (Temporal unavailable, converter crash)
+	//
+	// This RPC does NOT persist, authorize, or create instances. It is a
+	// pure validation endpoint suitable for iterative authoring workflows
+	// where the caller needs fast feedback before committing.
+	//
+	// @internal
+	// Authorization: Uses the same permission as create — caller must have
+	// can_create_workflow in the org. This prevents unauthenticated abuse
+	// of the validation pipeline while allowing any user who could create
+	// a workflow to also validate one.
+	ValidateSpec(ctx context.Context, in *Workflow, opts ...grpc.CallOption) (*serverless.ServerlessWorkflowValidation, error)
 }
 
 type workflowCommandControllerClient struct {
@@ -98,6 +122,16 @@ func (c *workflowCommandControllerClient) Delete(ctx context.Context, in *Workfl
 	return out, nil
 }
 
+func (c *workflowCommandControllerClient) ValidateSpec(ctx context.Context, in *Workflow, opts ...grpc.CallOption) (*serverless.ServerlessWorkflowValidation, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(serverless.ServerlessWorkflowValidation)
+	err := c.cc.Invoke(ctx, WorkflowCommandController_ValidateSpec_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // WorkflowCommandControllerServer is the server API for WorkflowCommandController service.
 // All implementations should embed UnimplementedWorkflowCommandControllerServer
 // for forward compatibility.
@@ -121,6 +155,28 @@ type WorkflowCommandControllerServer interface {
 	Update(context.Context, *Workflow) (*Workflow, error)
 	// Delete a workflow.
 	Delete(context.Context, *WorkflowId) (*Workflow, error)
+	// Validate a workflow spec without persisting it.
+	//
+	// Runs the same two-layer validation pipeline used by create/update:
+	//
+	//	Layer 1: Proto field constraints (buf validate / protovalidate)
+	//	Layer 2: Temporal-based structural validation (Go activity: proto → YAML → Zigflow)
+	//
+	// Returns ServerlessWorkflowValidation with:
+	//   - VALID: Workflow structure passed all checks
+	//   - INVALID: User error (bad structure, missing fields, unknown task kinds)
+	//   - FAILED: System error (Temporal unavailable, converter crash)
+	//
+	// This RPC does NOT persist, authorize, or create instances. It is a
+	// pure validation endpoint suitable for iterative authoring workflows
+	// where the caller needs fast feedback before committing.
+	//
+	// @internal
+	// Authorization: Uses the same permission as create — caller must have
+	// can_create_workflow in the org. This prevents unauthenticated abuse
+	// of the validation pipeline while allowing any user who could create
+	// a workflow to also validate one.
+	ValidateSpec(context.Context, *Workflow) (*serverless.ServerlessWorkflowValidation, error)
 }
 
 // UnimplementedWorkflowCommandControllerServer should be embedded to have
@@ -141,6 +197,9 @@ func (UnimplementedWorkflowCommandControllerServer) Update(context.Context, *Wor
 }
 func (UnimplementedWorkflowCommandControllerServer) Delete(context.Context, *WorkflowId) (*Workflow, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
+}
+func (UnimplementedWorkflowCommandControllerServer) ValidateSpec(context.Context, *Workflow) (*serverless.ServerlessWorkflowValidation, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ValidateSpec not implemented")
 }
 func (UnimplementedWorkflowCommandControllerServer) testEmbeddedByValue() {}
 
@@ -234,6 +293,24 @@ func _WorkflowCommandController_Delete_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WorkflowCommandController_ValidateSpec_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Workflow)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WorkflowCommandControllerServer).ValidateSpec(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WorkflowCommandController_ValidateSpec_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WorkflowCommandControllerServer).ValidateSpec(ctx, req.(*Workflow))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // WorkflowCommandController_ServiceDesc is the grpc.ServiceDesc for WorkflowCommandController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -256,6 +333,10 @@ var WorkflowCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "delete",
 			Handler:    _WorkflowCommandController_Delete_Handler,
+		},
+		{
+			MethodName: "validateSpec",
+			Handler:    _WorkflowCommandController_ValidateSpec_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

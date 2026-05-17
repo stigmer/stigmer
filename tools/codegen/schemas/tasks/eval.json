@@ -1,0 +1,144 @@
+{
+  "name": "EvalTaskConfig",
+  "kind": "EVAL",
+  "description": "EvalTaskConfig defines the configuration for eval tasks that use an LLM\n judge to assess the semantic quality of workflow data.\n\n @internal\n Use eval when you need to assess quality, correctness, safety, or\n completeness of LLM-generated or agent-produced content. This fills the\n gap between structural validation (validate task — JSON Schema, business\n rules) and human review (human_input task — manual inspection).\n\n The eval task constructs a judge prompt from the rubric and subject,\n calls the specified LLM with structured output enforcement, parses the\n judge's response, and applies the threshold to determine pass/fail.\n\n Key differences from validate:\n - validate checks deterministic structural properties (schema, rules)\n - eval checks semantic quality via an LLM judge (hallucination, relevance, safety)\n\n Key differences from llm_call:\n - llm_call is a general-purpose LLM invocation\n - eval has built-in judge prompt construction, scoring semantics,\n   threshold application, and on_fail branching\n\n Task output structure:\n   {\n     \"pass\": true/false,\n     \"score\": 0.85,              // present for numeric_score and multi_criteria\n     \"reasoning\": \"The response...\",\n     \"criteria\": [               // present only for multi_criteria\n       {\"name\": \"accuracy\", \"score\": 0.9, \"reasoning\": \"...\"},\n       {\"name\": \"safety\", \"score\": 0.8, \"reasoning\": \"...\"}\n     ],\n     \"model_used\": \"gpt-4o\",\n     \"subject\": \u003coriginal subject data\u003e\n   }\n\n YAML Example (binary pass/fail evaluation):\n   - check_summary_quality:\n       call: eval\n       with:\n         model: \"gpt-4o\"\n         subject: \"${ $context.summarize.text }\"\n         rubric: |\n           Evaluate whether this summary accurately captures the key points\n           of the source document without hallucinations or omissions.\n           The summary should be concise (under 3 sentences) and factually\n           correct.\n         scoring_mode: EVAL_PASS_FAIL\n         on_fail: EVAL_FAIL_BRANCH\n         fallback_task: regenerate_summary\n       export:\n         as: \"${ . }\"\n\n YAML Example (numeric score with threshold):\n   - score_translation:\n       call: eval\n       with:\n         model: \"gpt-4o\"\n         subject: \"${ $context.translate.text }\"\n         rubric: |\n           Rate the quality of this translation on accuracy, fluency,\n           and preservation of meaning. Score 0.0 (unusable) to 1.0 (perfect).\n         scoring_mode: EVAL_NUMERIC_SCORE\n         threshold: 0.7\n         on_fail: EVAL_FAIL_WARN\n       export:\n         as: \"${ . }\"\n\n YAML Example (multi-criteria evaluation):\n   - evaluate_response:\n       call: eval\n       with:\n         model: \"gpt-4o\"\n         subject: \"${ $context.agent_response }\"\n         rubric: \"Evaluate this customer support response.\"\n         scoring_mode: EVAL_MULTI_CRITERIA\n         threshold: 0.75\n         criteria:\n           - name: accuracy\n             description: \"Is the information factually correct?\"\n             weight: 3.0\n           - name: helpfulness\n             description: \"Does it address the customer's actual question?\"\n             weight: 2.0\n           - name: tone\n             description: \"Is the tone professional and empathetic?\"\n             weight: 1.0\n         on_fail: EVAL_FAIL_RAISE\n       export:\n         as: \"${ . }\"",
+  "protoType": "ai.stigmer.agentic.workflow.v1.tasks.EvalTaskConfig",
+  "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/eval.proto",
+  "discriminatorValue": "eval",
+  "fields": [
+    {
+      "name": "Model",
+      "jsonName": "model",
+      "protoField": "model",
+      "type": {
+        "kind": "string"
+      },
+      "description": "LLM model used as the judge.\n Resolved via the Stigmer model registry.\n Examples: \"gpt-4o\", \"claude-sonnet-4-5\"",
+      "required": true,
+      "validation": {
+        "required": true,
+        "minLength": 1,
+        "maxLength": 127
+      }
+    },
+    {
+      "name": "Subject",
+      "jsonName": "subject",
+      "protoField": "subject",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Expression selecting the data to evaluate.\n Supports ${ } expression interpolation.\n Example: \"${ $context.summarize.text }\" to evaluate a summary task's output.",
+      "required": true,
+      "isExpression": true,
+      "validation": {
+        "required": true,
+        "minLength": 1
+      }
+    },
+    {
+      "name": "Rubric",
+      "jsonName": "rubric",
+      "protoField": "rubric",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Evaluation criteria in natural language.\n Tells the judge LLM what to assess and what \"good\" looks like.\n For pass_fail: describe what constitutes a pass.\n For numeric_score: describe the scoring scale.\n For multi_criteria: provide overall context (per-criterion detail goes in criteria field).",
+      "required": true,
+      "validation": {
+        "required": true,
+        "minLength": 1
+      }
+    },
+    {
+      "name": "ScoringMode",
+      "jsonName": "scoringMode",
+      "protoField": "scoring_mode",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.workflow.v1.tasks.EvalScoringMode",
+        "enumValues": [
+          "EVAL_PASS_FAIL",
+          "EVAL_NUMERIC_SCORE",
+          "EVAL_MULTI_CRITERIA"
+        ]
+      },
+      "description": "How the judge scores the subject.\n Default: EVAL_PASS_FAIL.",
+      "required": false
+    },
+    {
+      "name": "Threshold",
+      "jsonName": "threshold",
+      "protoField": "threshold",
+      "type": {
+        "kind": "double"
+      },
+      "description": "Pass threshold for numeric_score and multi_criteria modes.\n The subject passes if score \u003e= threshold.\n Ignored for pass_fail mode (the judge's binary decision is used directly).\n Valid range: 0.0 to 1.0. Default: 0.5.",
+      "required": false,
+      "validation": {
+        "max": 1
+      }
+    },
+    {
+      "name": "OnFail",
+      "jsonName": "onFail",
+      "protoField": "on_fail",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.workflow.v1.tasks.EvalFailPolicy",
+        "enumValues": [
+          "EVAL_FAIL_RAISE",
+          "EVAL_FAIL_BRANCH",
+          "EVAL_FAIL_WARN"
+        ]
+      },
+      "description": "Policy applied when the subject fails evaluation.\n Default: EVAL_FAIL_RAISE (task fails with evaluation error).",
+      "required": false
+    },
+    {
+      "name": "FallbackTask",
+      "jsonName": "fallbackTask",
+      "protoField": "fallback_task",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Target task to branch to when on_fail is EVAL_FAIL_BRANCH.\n Must reference a valid task name in the same workflow.\n Only meaningful when on_fail is EVAL_FAIL_BRANCH; ignored otherwise.",
+      "required": false
+    },
+    {
+      "name": "SystemPrompt",
+      "jsonName": "systemPrompt",
+      "protoField": "system_prompt",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Optional custom system prompt override for the judge LLM.\n When set, replaces the auto-generated judge system prompt entirely.\n Use only when the default judge prompt template does not fit your needs.\n When empty, the runtime constructs a judge-appropriate system prompt\n from the rubric, scoring_mode, and criteria.",
+      "required": false,
+      "isExpression": true
+    },
+    {
+      "name": "Criteria",
+      "jsonName": "criteria",
+      "protoField": "criteria",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "EvalCriterion"
+        }
+      },
+      "description": "Evaluation criteria for multi_criteria mode.\n Required when scoring_mode is EVAL_MULTI_CRITERIA; ignored otherwise.\n Each criterion is scored independently, and the overall score is the\n weighted average (uniform if all weights are equal or zero).",
+      "required": false
+    },
+    {
+      "name": "MaxCostMicros",
+      "jsonName": "maxCostMicros",
+      "protoField": "max_cost_micros",
+      "type": {
+        "kind": "int64"
+      },
+      "description": "Per-task cost cap in micro-USD (1 USD = 1,000,000 micros).\n When set, the runtime terminates this eval call if its cost exceeds\n this limit, independent of the workflow-level budget.\n Optional — when 0, no per-task cost limit is enforced.\n\n @since T05 (Workflow-Level Budget Primitives)",
+      "required": false
+    }
+  ]
+}

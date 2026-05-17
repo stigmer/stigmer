@@ -43,6 +43,7 @@ private static final long serialVersionUID = 0L;
   private RunnerHeartbeat() {
     runnerId_ = "";
     phase_ = 0;
+    processType_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -143,7 +144,7 @@ private static final long serialVersionUID = 0L;
   private int currentExecutions_ = 0;
   /**
    * <pre>
-   * Number of executions currently in progress on this runner.
+   * Number of executions currently in progress on this runner process.
    * </pre>
    *
    * <code>int32 current_executions = 3 [json_name = "currentExecutions"];</code>
@@ -198,6 +199,69 @@ private static final long serialVersionUID = 0L;
     return connectionInfo_ == null ? ai.stigmer.agentic.runner.v1.RunnerConnectionInfo.getDefaultInstance() : connectionInfo_;
   }
 
+  public static final int PROCESS_TYPE_FIELD_NUMBER = 5;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object processType_ = "";
+  /**
+   * <pre>
+   * Identifies which runner process is sending this heartbeat.
+   *
+   * In a multi-process sandbox, all three runner processes share the same
+   * runner_id but report independently. The server aggregates activity
+   * across all process types to determine when the sandbox is idle.
+   *
+   * Values: "agent" (Python), "cursor" (TypeScript), "workflow" (Go).
+   * Empty string is treated as "agent" for backward compatibility with
+   * existing single-process sandboxes.
+   * </pre>
+   *
+   * <code>string process_type = 5 [json_name = "processType"];</code>
+   * @return The processType.
+   */
+  @java.lang.Override
+  public java.lang.String getProcessType() {
+    java.lang.Object ref = processType_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      processType_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Identifies which runner process is sending this heartbeat.
+   *
+   * In a multi-process sandbox, all three runner processes share the same
+   * runner_id but report independently. The server aggregates activity
+   * across all process types to determine when the sandbox is idle.
+   *
+   * Values: "agent" (Python), "cursor" (TypeScript), "workflow" (Go).
+   * Empty string is treated as "agent" for backward compatibility with
+   * existing single-process sandboxes.
+   * </pre>
+   *
+   * <code>string process_type = 5 [json_name = "processType"];</code>
+   * @return The bytes for processType.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getProcessTypeBytes() {
+    java.lang.Object ref = processType_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      processType_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -224,6 +288,9 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(4, getConnectionInfo());
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(processType_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 5, processType_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -247,6 +314,9 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(4, getConnectionInfo());
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(processType_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(5, processType_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -273,6 +343,8 @@ private static final long serialVersionUID = 0L;
       if (!getConnectionInfo()
           .equals(other.getConnectionInfo())) return false;
     }
+    if (!getProcessType()
+        .equals(other.getProcessType())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -294,6 +366,8 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + CONNECTION_INFO_FIELD_NUMBER;
       hash = (53 * hash) + getConnectionInfo().hashCode();
     }
+    hash = (37 * hash) + PROCESS_TYPE_FIELD_NUMBER;
+    hash = (53 * hash) + getProcessType().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -452,6 +526,7 @@ private static final long serialVersionUID = 0L;
         connectionInfoBuilder_.dispose();
         connectionInfoBuilder_ = null;
       }
+      processType_ = "";
       return this;
     }
 
@@ -501,6 +576,9 @@ private static final long serialVersionUID = 0L;
             : connectionInfoBuilder_.build();
         to_bitField0_ |= 0x00000001;
       }
+      if (((from_bitField0_ & 0x00000010) != 0)) {
+        result.processType_ = processType_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -529,6 +607,11 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasConnectionInfo()) {
         mergeConnectionInfo(other.getConnectionInfo());
+      }
+      if (!other.getProcessType().isEmpty()) {
+        processType_ = other.processType_;
+        bitField0_ |= 0x00000010;
+        onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -578,6 +661,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000008;
               break;
             } // case 34
+            case 42: {
+              processType_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000010;
+              break;
+            } // case 42
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -767,7 +855,7 @@ private static final long serialVersionUID = 0L;
     private int currentExecutions_ ;
     /**
      * <pre>
-     * Number of executions currently in progress on this runner.
+     * Number of executions currently in progress on this runner process.
      * </pre>
      *
      * <code>int32 current_executions = 3 [json_name = "currentExecutions"];</code>
@@ -779,7 +867,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Number of executions currently in progress on this runner.
+     * Number of executions currently in progress on this runner process.
      * </pre>
      *
      * <code>int32 current_executions = 3 [json_name = "currentExecutions"];</code>
@@ -795,7 +883,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Number of executions currently in progress on this runner.
+     * Number of executions currently in progress on this runner process.
      * </pre>
      *
      * <code>int32 current_executions = 3 [json_name = "currentExecutions"];</code>
@@ -981,6 +1069,138 @@ private static final long serialVersionUID = 0L;
         connectionInfo_ = null;
       }
       return connectionInfoBuilder_;
+    }
+
+    private java.lang.Object processType_ = "";
+    /**
+     * <pre>
+     * Identifies which runner process is sending this heartbeat.
+     *
+     * In a multi-process sandbox, all three runner processes share the same
+     * runner_id but report independently. The server aggregates activity
+     * across all process types to determine when the sandbox is idle.
+     *
+     * Values: "agent" (Python), "cursor" (TypeScript), "workflow" (Go).
+     * Empty string is treated as "agent" for backward compatibility with
+     * existing single-process sandboxes.
+     * </pre>
+     *
+     * <code>string process_type = 5 [json_name = "processType"];</code>
+     * @return The processType.
+     */
+    public java.lang.String getProcessType() {
+      java.lang.Object ref = processType_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        processType_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Identifies which runner process is sending this heartbeat.
+     *
+     * In a multi-process sandbox, all three runner processes share the same
+     * runner_id but report independently. The server aggregates activity
+     * across all process types to determine when the sandbox is idle.
+     *
+     * Values: "agent" (Python), "cursor" (TypeScript), "workflow" (Go).
+     * Empty string is treated as "agent" for backward compatibility with
+     * existing single-process sandboxes.
+     * </pre>
+     *
+     * <code>string process_type = 5 [json_name = "processType"];</code>
+     * @return The bytes for processType.
+     */
+    public com.google.protobuf.ByteString
+        getProcessTypeBytes() {
+      java.lang.Object ref = processType_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        processType_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Identifies which runner process is sending this heartbeat.
+     *
+     * In a multi-process sandbox, all three runner processes share the same
+     * runner_id but report independently. The server aggregates activity
+     * across all process types to determine when the sandbox is idle.
+     *
+     * Values: "agent" (Python), "cursor" (TypeScript), "workflow" (Go).
+     * Empty string is treated as "agent" for backward compatibility with
+     * existing single-process sandboxes.
+     * </pre>
+     *
+     * <code>string process_type = 5 [json_name = "processType"];</code>
+     * @param value The processType to set.
+     * @return This builder for chaining.
+     */
+    public Builder setProcessType(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      processType_ = value;
+      bitField0_ |= 0x00000010;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Identifies which runner process is sending this heartbeat.
+     *
+     * In a multi-process sandbox, all three runner processes share the same
+     * runner_id but report independently. The server aggregates activity
+     * across all process types to determine when the sandbox is idle.
+     *
+     * Values: "agent" (Python), "cursor" (TypeScript), "workflow" (Go).
+     * Empty string is treated as "agent" for backward compatibility with
+     * existing single-process sandboxes.
+     * </pre>
+     *
+     * <code>string process_type = 5 [json_name = "processType"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearProcessType() {
+      processType_ = getDefaultInstance().getProcessType();
+      bitField0_ = (bitField0_ & ~0x00000010);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Identifies which runner process is sending this heartbeat.
+     *
+     * In a multi-process sandbox, all three runner processes share the same
+     * runner_id but report independently. The server aggregates activity
+     * across all process types to determine when the sandbox is idle.
+     *
+     * Values: "agent" (Python), "cursor" (TypeScript), "workflow" (Go).
+     * Empty string is treated as "agent" for backward compatibility with
+     * existing single-process sandboxes.
+     * </pre>
+     *
+     * <code>string process_type = 5 [json_name = "processType"];</code>
+     * @param value The bytes for processType to set.
+     * @return This builder for chaining.
+     */
+    public Builder setProcessTypeBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      processType_ = value;
+      bitField0_ |= 0x00000010;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.runner.v1.RunnerHeartbeat)

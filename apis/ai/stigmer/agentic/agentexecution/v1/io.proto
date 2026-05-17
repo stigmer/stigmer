@@ -6,6 +6,7 @@ import "ai/stigmer/agentic/agentexecution/v1/api.proto";
 import "ai/stigmer/agentic/agentexecution/v1/enum.proto";
 import "ai/stigmer/agentic/agentexecution/v1/usage.proto";
 import "buf/validate/validate.proto";
+import "google/protobuf/duration.proto";
 
 // AgentExecutionId wraps an agent execution identifier.
 message AgentExecutionId {
@@ -1030,4 +1031,85 @@ message HarnessCostSummary {
 
   // Number of distinct executions that used this harness.
   int32 execution_count = 4;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// EXECUTION SUMMARY (Dashboard Aggregation)
+//
+// Operational summary of agent executions scoped to an organization and time
+// window. Used by the platform dashboard to show execution health alongside
+// workflow execution metrics. Cost is intentionally excluded — the dashboard
+// sources cost from getOrgUsageReport to avoid double-counting when workflows
+// delegate to agents (see AD-DASH-005).
+//
+// @since Unified Platform Dashboard
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Controls the time range for agent execution summary queries.
+enum AgentExecutionSummaryTimeWindow {
+  AGENT_EXECUTION_SUMMARY_TIME_WINDOW_UNSPECIFIED = 0;
+  AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_24H = 1;
+  AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_7D = 2;
+  AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_30D = 3;
+  AGENT_EXECUTION_SUMMARY_TIME_WINDOW_ALL_TIME = 4;
+}
+
+// GetAgentExecutionSummaryRequest fetches aggregated execution statistics
+// for an organization's agent executions.
+//
+// @since Unified Platform Dashboard
+message GetAgentExecutionSummaryRequest {
+  // Organization slug to scope the summary.
+  string org = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Time window for aggregation.
+  //
+  // Defaults to LAST_7D when unspecified.
+  AgentExecutionSummaryTimeWindow time_window = 2;
+}
+
+// AgentExecutionSummary contains aggregated operational statistics for agent
+// executions. Designed for the platform dashboard's unified health view.
+//
+// Cost is intentionally omitted. The dashboard sources cost from
+// getOrgUsageReport (billing source of truth) to prevent double-counting
+// when workflows delegate to agents. See AD-DASH-005.
+//
+// @since Unified Platform Dashboard
+message AgentExecutionSummary {
+  // Number of executions currently in a non-terminal phase
+  // (PENDING, IN_PROGRESS, WAITING_FOR_APPROVAL, PAUSED).
+  int32 active_count = 1;
+
+  // Execution counts broken down by ExecutionPhase enum value.
+  //
+  // Keys are ExecutionPhase enum values (as int32).
+  // Only phases with at least one execution are included.
+  map<int32, int32> phase_counts = 2;
+
+  // Mean execution duration (from started_at to completed_at) for completed
+  // executions in the time window.
+  //
+  // Zero when no completed executions exist.
+  google.protobuf.Duration avg_duration = 3;
+
+  // Agents with the highest failure count in the time window, ranked descending.
+  //
+  // Capped at 10 entries.
+  repeated AgentFailureRank top_failing_agents = 4;
+}
+
+// AgentFailureRank represents an agent and its failure count within
+// a time window.
+//
+// @since Unified Platform Dashboard
+message AgentFailureRank {
+  // Agent slug (org/name format).
+  string agent_slug = 1;
+
+  // Human-readable agent name for display.
+  string agent_name = 2;
+
+  // Number of failed executions in the time window.
+  int32 failure_count = 3;
 }

@@ -1,0 +1,141 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.workflow.v1.tasks;
+
+import "ai/stigmer/commons/apiresource/field_options.proto";
+import "buf/validate/validate.proto";
+
+// NotificationTaskConfig defines the configuration for notification tasks
+// that send messages to humans through channels like Slack, email, Discord,
+// Microsoft Teams, or webhooks.
+//
+// @internal
+// notification is a convenience abstraction for "send a message to humans"
+// — simpler and more intuitive than emit_event for common operational
+// notification patterns. While emit_event publishes system-level CloudEvents
+// for machine consumption, notification is purpose-built for human-readable
+// messages with channel routing and recipient targeting.
+//
+// Key distinction from related task types:
+//   emit_event = system-to-system (CloudEvents, consumed by workflows/services)
+//   notification = system-to-human (Slack, email, Discord — read by people)
+//   human_input = system-to-human-to-system (waits for a response; notification
+//                 is fire-and-forget)
+//
+// Notifications are fire-and-forget by default. The task output confirms
+// delivery was attempted but does not wait for acknowledgment:
+//   {
+//     "channel": "slack",
+//     "recipients": ["#incident-response"],
+//     "delivered": true,
+//     "delivered_at": "<ISO 8601 timestamp>"
+//   }
+//
+// For notifications that require acknowledgment or a response, use
+// human_input instead — it pauses the workflow until a human responds.
+//
+// The channel field is a string (not an enum) to allow extensibility:
+// new notification channels can be added without proto changes. The
+// runtime (T13) resolves channel identifiers to actual notification
+// providers configured in the workflow instance's environment.
+//
+// YAML Example (Slack notification):
+//   - alert_slack:
+//       notification:
+//         channel: "slack"
+//         recipients:
+//           - "#incident-response"
+//           - "@oncall-lead"
+//         subject: "P${ $context.triage.severity } Incident: ${ $context.ticket.title }"
+//         body: |
+//           *Severity*: ${ $context.triage.severity }
+//           *Category*: ${ $context.triage.category }
+//           *Customer Impact*: ${ $context.triage.customer_impact }
+//           *Summary*: ${ $context.agent_analysis.structured.summary }
+//         metadata:
+//           thread_ts: "${ $context.slack_thread_id }"
+//       export:
+//         as: "${ . }"
+//
+// YAML Example (email with template):
+//   - send_confirmation:
+//       notification:
+//         channel: "email"
+//         recipients:
+//           - "${ $context.customer.email }"
+//         subject: "Order ${ $context.order.number } Confirmed"
+//         body: "Your order has been confirmed. You will receive tracking information shortly."
+//         template: "order-confirmation"
+//         metadata:
+//           priority: "high"
+//           reply_to: "support@acme.com"
+//       export:
+//         as: "${ . }"
+message NotificationTaskConfig {
+  option (ai.stigmer.commons.apiresource.discriminator_value) = "notification";
+
+  // Notification channel identifier.
+  // Determines which notification provider processes this message.
+  // Common values: "slack", "email", "discord", "teams", "webhook"
+  //
+  // This is a string (not an enum) for extensibility — new channels can
+  // be added without proto changes. The runtime resolves the channel to
+  // its configured provider in the workflow instance's environment.
+  string channel = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 63
+  ];
+
+  // Recipient identifiers for the notification.
+  // Format depends on the channel:
+  //   - slack: "#channel-name", "@username", or Slack user IDs
+  //   - email: "user@example.com"
+  //   - discord: "#channel-name", "@role"
+  //   - teams: "#channel-name"
+  //   - webhook: URL or webhook identifier
+  //
+  // At least one recipient is required.
+  // Individual values may contain ${ } expressions that the runtime
+  // evaluates before delivery (e.g., "${ $context.customer.email }").
+  repeated string recipients = 2 [(buf.validate.field).repeated.min_items = 1];
+
+  // Notification subject or title.
+  // Supports ${ } expression interpolation.
+  // Used as: email subject line, Slack message title, webhook payload title.
+  // Optional — some channels (e.g., simple Slack messages) may not use it.
+  string subject = 3 [(ai.stigmer.commons.apiresource.is_expression) = true];
+
+  // Notification body / message content.
+  // Supports ${ } expression interpolation.
+  // The primary content of the notification. Formatting depends on channel
+  // (e.g., Slack Markdown, HTML for email, plain text for SMS).
+  //
+  // When template is also set, body serves as the fallback content if the
+  // template cannot be resolved.
+  string body = 4 [
+    (ai.stigmer.commons.apiresource.is_expression) = true,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1
+  ];
+
+  // Named template reference for rendering the notification.
+  // When set, the runtime looks up this template in the workflow instance's
+  // environment and uses it for rendering, with the workflow context as
+  // template data. The body field is used as fallback if the template
+  // cannot be resolved.
+  //
+  // Examples: "incident-alert", "order-confirmation", "approval-request"
+  // Template resolution and rendering is a runtime concern (T13).
+  string template = 5;
+
+  // Channel-specific metadata as key-value pairs.
+  // Provides additional configuration that varies by notification channel:
+  //   - slack: {"thread_ts": "...", "unfurl_links": "false"}
+  //   - email: {"priority": "high", "reply_to": "...", "cc": "..."}
+  //   - webhook: {"method": "POST", "content_type": "application/json"}
+  //
+  // Values may contain ${ } expressions that the runtime evaluates
+  // before delivery.
+  map<string, string> metadata = 6;
+}

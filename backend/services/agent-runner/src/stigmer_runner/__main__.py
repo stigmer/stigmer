@@ -15,6 +15,7 @@ from dotenv import load_dotenv
 
 from stigmer_runner.worker.config import Config
 from stigmer_runner.worker.logging_config import setup_logging
+from stigmer_runner.worker.otel import init_tracing
 from stigmer_runner.worker.worker import Runner
 
 
@@ -115,6 +116,8 @@ async def _run() -> None:
 
     logger.info("=" * 60)
 
+    otel_shutdown = init_tracing("agent-runner")
+
     try:
         worker = Runner(config)
     except Exception as e:
@@ -145,6 +148,8 @@ async def _run() -> None:
         logger.error(f"Fatal error in worker: {e}", exc_info=True)
         sys.exit(1)
     finally:
+        if otel_shutdown is not None:
+            otel_shutdown()
         logger.info("Worker process exiting")
 
 

@@ -51,6 +51,18 @@ private static final long serialVersionUID = 0L;
     return ai.stigmer.agentic.runner.v1.ApiProto.internal_static_ai_stigmer_agentic_runner_v1_RunnerStatus_descriptor;
   }
 
+  @SuppressWarnings({"rawtypes"})
+  @java.lang.Override
+  protected com.google.protobuf.MapFieldReflectionAccessor internalGetMapFieldReflection(
+      int number) {
+    switch (number) {
+      case 9:
+        return internalGetProcessExecutions();
+      default:
+        throw new RuntimeException(
+            "Invalid map field number: " + number);
+    }
+  }
   @java.lang.Override
   protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internalGetFieldAccessorTable() {
@@ -361,6 +373,206 @@ private static final long serialVersionUID = 0L;
     return connectionInfo_ == null ? ai.stigmer.agentic.runner.v1.RunnerConnectionInfo.getDefaultInstance() : connectionInfo_;
   }
 
+  public static final int PROCESS_EXECUTIONS_FIELD_NUMBER = 9;
+  private static final class ProcessExecutionsDefaultEntryHolder {
+    static final com.google.protobuf.MapEntry<
+        java.lang.String, java.lang.Integer> defaultEntry =
+            com.google.protobuf.MapEntry
+            .<java.lang.String, java.lang.Integer>newDefaultInstance(
+                ai.stigmer.agentic.runner.v1.ApiProto.internal_static_ai_stigmer_agentic_runner_v1_RunnerStatus_ProcessExecutionsEntry_descriptor, 
+                com.google.protobuf.WireFormat.FieldType.STRING,
+                "",
+                com.google.protobuf.WireFormat.FieldType.INT32,
+                0);
+  }
+  @SuppressWarnings("serial")
+  private com.google.protobuf.MapField<
+      java.lang.String, java.lang.Integer> processExecutions_;
+  private com.google.protobuf.MapField<java.lang.String, java.lang.Integer>
+  internalGetProcessExecutions() {
+    if (processExecutions_ == null) {
+      return com.google.protobuf.MapField.emptyMapField(
+          ProcessExecutionsDefaultEntryHolder.defaultEntry);
+    }
+    return processExecutions_;
+  }
+  public int getProcessExecutionsCount() {
+    return internalGetProcessExecutions().getMap().size();
+  }
+  /**
+   * <pre>
+   * Per-process execution counts in a multi-process sandbox.
+   *
+   * In cloud mode, a single Runner resource hosts three co-located processes
+   * (agent, cursor, workflow), each reporting its own execution count via
+   * heartbeats with distinct process_type values. This map tracks the last
+   * reported count for each process type.
+   *
+   * The aggregate current_executions field (above) is derived from the sum
+   * of all values in this map. The runner is considered idle when every
+   * value is zero.
+   *
+   * Keys: "agent", "cursor", "workflow".
+   * Empty for single-process local runners (backward compatible).
+   * </pre>
+   *
+   * <code>map&lt;string, int32&gt; process_executions = 9 [json_name = "processExecutions"];</code>
+   */
+  @java.lang.Override
+  public boolean containsProcessExecutions(
+      java.lang.String key) {
+    if (key == null) { throw new NullPointerException("map key"); }
+    return internalGetProcessExecutions().getMap().containsKey(key);
+  }
+  /**
+   * Use {@link #getProcessExecutionsMap()} instead.
+   */
+  @java.lang.Override
+  @java.lang.Deprecated
+  public java.util.Map<java.lang.String, java.lang.Integer> getProcessExecutions() {
+    return getProcessExecutionsMap();
+  }
+  /**
+   * <pre>
+   * Per-process execution counts in a multi-process sandbox.
+   *
+   * In cloud mode, a single Runner resource hosts three co-located processes
+   * (agent, cursor, workflow), each reporting its own execution count via
+   * heartbeats with distinct process_type values. This map tracks the last
+   * reported count for each process type.
+   *
+   * The aggregate current_executions field (above) is derived from the sum
+   * of all values in this map. The runner is considered idle when every
+   * value is zero.
+   *
+   * Keys: "agent", "cursor", "workflow".
+   * Empty for single-process local runners (backward compatible).
+   * </pre>
+   *
+   * <code>map&lt;string, int32&gt; process_executions = 9 [json_name = "processExecutions"];</code>
+   */
+  @java.lang.Override
+  public java.util.Map<java.lang.String, java.lang.Integer> getProcessExecutionsMap() {
+    return internalGetProcessExecutions().getMap();
+  }
+  /**
+   * <pre>
+   * Per-process execution counts in a multi-process sandbox.
+   *
+   * In cloud mode, a single Runner resource hosts three co-located processes
+   * (agent, cursor, workflow), each reporting its own execution count via
+   * heartbeats with distinct process_type values. This map tracks the last
+   * reported count for each process type.
+   *
+   * The aggregate current_executions field (above) is derived from the sum
+   * of all values in this map. The runner is considered idle when every
+   * value is zero.
+   *
+   * Keys: "agent", "cursor", "workflow".
+   * Empty for single-process local runners (backward compatible).
+   * </pre>
+   *
+   * <code>map&lt;string, int32&gt; process_executions = 9 [json_name = "processExecutions"];</code>
+   */
+  @java.lang.Override
+  public int getProcessExecutionsOrDefault(
+      java.lang.String key,
+      int defaultValue) {
+    if (key == null) { throw new NullPointerException("map key"); }
+    java.util.Map<java.lang.String, java.lang.Integer> map =
+        internalGetProcessExecutions().getMap();
+    return map.containsKey(key) ? map.get(key) : defaultValue;
+  }
+  /**
+   * <pre>
+   * Per-process execution counts in a multi-process sandbox.
+   *
+   * In cloud mode, a single Runner resource hosts three co-located processes
+   * (agent, cursor, workflow), each reporting its own execution count via
+   * heartbeats with distinct process_type values. This map tracks the last
+   * reported count for each process type.
+   *
+   * The aggregate current_executions field (above) is derived from the sum
+   * of all values in this map. The runner is considered idle when every
+   * value is zero.
+   *
+   * Keys: "agent", "cursor", "workflow".
+   * Empty for single-process local runners (backward compatible).
+   * </pre>
+   *
+   * <code>map&lt;string, int32&gt; process_executions = 9 [json_name = "processExecutions"];</code>
+   */
+  @java.lang.Override
+  public int getProcessExecutionsOrThrow(
+      java.lang.String key) {
+    if (key == null) { throw new NullPointerException("map key"); }
+    java.util.Map<java.lang.String, java.lang.Integer> map =
+        internalGetProcessExecutions().getMap();
+    if (!map.containsKey(key)) {
+      throw new java.lang.IllegalArgumentException();
+    }
+    return map.get(key);
+  }
+
+  public static final int IDLE_SINCE_FIELD_NUMBER = 10;
+  private com.google.protobuf.Timestamp idleSince_;
+  /**
+   * <pre>
+   * Timestamp when all processes in this runner last became idle
+   * (every value in process_executions is zero and no streams are active).
+   *
+   * Set by the server when the aggregate transitions from busy to idle.
+   * Cleared when any process reports activity. Used by server-side idle
+   * detection to trigger deprovisioning after a configurable timeout.
+   *
+   * Empty while any process has active executions.
+   * </pre>
+   *
+   * <code>.google.protobuf.Timestamp idle_since = 10 [json_name = "idleSince"];</code>
+   * @return Whether the idleSince field is set.
+   */
+  @java.lang.Override
+  public boolean hasIdleSince() {
+    return ((bitField0_ & 0x00000020) != 0);
+  }
+  /**
+   * <pre>
+   * Timestamp when all processes in this runner last became idle
+   * (every value in process_executions is zero and no streams are active).
+   *
+   * Set by the server when the aggregate transitions from busy to idle.
+   * Cleared when any process reports activity. Used by server-side idle
+   * detection to trigger deprovisioning after a configurable timeout.
+   *
+   * Empty while any process has active executions.
+   * </pre>
+   *
+   * <code>.google.protobuf.Timestamp idle_since = 10 [json_name = "idleSince"];</code>
+   * @return The idleSince.
+   */
+  @java.lang.Override
+  public com.google.protobuf.Timestamp getIdleSince() {
+    return idleSince_ == null ? com.google.protobuf.Timestamp.getDefaultInstance() : idleSince_;
+  }
+  /**
+   * <pre>
+   * Timestamp when all processes in this runner last became idle
+   * (every value in process_executions is zero and no streams are active).
+   *
+   * Set by the server when the aggregate transitions from busy to idle.
+   * Cleared when any process reports activity. Used by server-side idle
+   * detection to trigger deprovisioning after a configurable timeout.
+   *
+   * Empty while any process has active executions.
+   * </pre>
+   *
+   * <code>.google.protobuf.Timestamp idle_since = 10 [json_name = "idleSince"];</code>
+   */
+  @java.lang.Override
+  public com.google.protobuf.TimestampOrBuilder getIdleSinceOrBuilder() {
+    return idleSince_ == null ? com.google.protobuf.Timestamp.getDefaultInstance() : idleSince_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -395,6 +607,15 @@ private static final long serialVersionUID = 0L;
     }
     if (((bitField0_ & 0x00000010) != 0)) {
       output.writeMessage(8, getConnectionInfo());
+    }
+    com.google.protobuf.GeneratedMessage
+      .serializeStringMapTo(
+        output,
+        internalGetProcessExecutions(),
+        ProcessExecutionsDefaultEntryHolder.defaultEntry,
+        9);
+    if (((bitField0_ & 0x00000020) != 0)) {
+      output.writeMessage(10, getIdleSince());
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(99, getAudit());
@@ -434,6 +655,20 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000010) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(8, getConnectionInfo());
+    }
+    for (java.util.Map.Entry<java.lang.String, java.lang.Integer> entry
+         : internalGetProcessExecutions().getMap().entrySet()) {
+      com.google.protobuf.MapEntry<java.lang.String, java.lang.Integer>
+      processExecutions__ = ProcessExecutionsDefaultEntryHolder.defaultEntry.newBuilderForType()
+          .setKey(entry.getKey())
+          .setValue(entry.getValue())
+          .buildPartial();
+      size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(9, processExecutions__);
+    }
+    if (((bitField0_ & 0x00000020) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(10, getIdleSince());
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
@@ -484,6 +719,13 @@ private static final long serialVersionUID = 0L;
       if (!getConnectionInfo()
           .equals(other.getConnectionInfo())) return false;
     }
+    if (!internalGetProcessExecutions().equals(
+        other.internalGetProcessExecutions())) return false;
+    if (hasIdleSince() != other.hasIdleSince()) return false;
+    if (hasIdleSince()) {
+      if (!getIdleSince()
+          .equals(other.getIdleSince())) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -520,6 +762,14 @@ private static final long serialVersionUID = 0L;
     if (hasConnectionInfo()) {
       hash = (37 * hash) + CONNECTION_INFO_FIELD_NUMBER;
       hash = (53 * hash) + getConnectionInfo().hashCode();
+    }
+    if (!internalGetProcessExecutions().getMap().isEmpty()) {
+      hash = (37 * hash) + PROCESS_EXECUTIONS_FIELD_NUMBER;
+      hash = (53 * hash) + internalGetProcessExecutions().hashCode();
+    }
+    if (hasIdleSince()) {
+      hash = (37 * hash) + IDLE_SINCE_FIELD_NUMBER;
+      hash = (53 * hash) + getIdleSince().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -639,6 +889,28 @@ private static final long serialVersionUID = 0L;
       return ai.stigmer.agentic.runner.v1.ApiProto.internal_static_ai_stigmer_agentic_runner_v1_RunnerStatus_descriptor;
     }
 
+    @SuppressWarnings({"rawtypes"})
+    protected com.google.protobuf.MapFieldReflectionAccessor internalGetMapFieldReflection(
+        int number) {
+      switch (number) {
+        case 9:
+          return internalGetProcessExecutions();
+        default:
+          throw new RuntimeException(
+              "Invalid map field number: " + number);
+      }
+    }
+    @SuppressWarnings({"rawtypes"})
+    protected com.google.protobuf.MapFieldReflectionAccessor internalGetMutableMapFieldReflection(
+        int number) {
+      switch (number) {
+        case 9:
+          return internalGetMutableProcessExecutions();
+        default:
+          throw new RuntimeException(
+              "Invalid map field number: " + number);
+      }
+    }
     @java.lang.Override
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
@@ -665,6 +937,7 @@ private static final long serialVersionUID = 0L;
         internalGetStartedAtFieldBuilder();
         internalGetStoppedAtFieldBuilder();
         internalGetConnectionInfoFieldBuilder();
+        internalGetIdleSinceFieldBuilder();
       }
     }
     @java.lang.Override
@@ -698,6 +971,12 @@ private static final long serialVersionUID = 0L;
       if (connectionInfoBuilder_ != null) {
         connectionInfoBuilder_.dispose();
         connectionInfoBuilder_ = null;
+      }
+      internalGetMutableProcessExecutions().clear();
+      idleSince_ = null;
+      if (idleSinceBuilder_ != null) {
+        idleSinceBuilder_.dispose();
+        idleSinceBuilder_ = null;
       }
       return this;
     }
@@ -772,6 +1051,16 @@ private static final long serialVersionUID = 0L;
             : connectionInfoBuilder_.build();
         to_bitField0_ |= 0x00000010;
       }
+      if (((from_bitField0_ & 0x00000100) != 0)) {
+        result.processExecutions_ = internalGetProcessExecutions();
+        result.processExecutions_.makeImmutable();
+      }
+      if (((from_bitField0_ & 0x00000200) != 0)) {
+        result.idleSince_ = idleSinceBuilder_ == null
+            ? idleSince_
+            : idleSinceBuilder_.build();
+        to_bitField0_ |= 0x00000020;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -812,6 +1101,12 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasConnectionInfo()) {
         mergeConnectionInfo(other.getConnectionInfo());
+      }
+      internalGetMutableProcessExecutions().mergeFrom(
+          other.internalGetProcessExecutions());
+      bitField0_ |= 0x00000100;
+      if (other.hasIdleSince()) {
+        mergeIdleSince(other.getIdleSince());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -882,6 +1177,22 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000080;
               break;
             } // case 66
+            case 74: {
+              com.google.protobuf.MapEntry<java.lang.String, java.lang.Integer>
+              processExecutions__ = input.readMessage(
+                  ProcessExecutionsDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
+              internalGetMutableProcessExecutions().getMutableMap().put(
+                  processExecutions__.getKey(), processExecutions__.getValue());
+              bitField0_ |= 0x00000100;
+              break;
+            } // case 74
+            case 82: {
+              input.readMessage(
+                  internalGetIdleSinceFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00000200;
+              break;
+            } // case 82
             case 794: {
               input.readMessage(
                   internalGetAuditFieldBuilder().getBuilder(),
@@ -1963,6 +2274,463 @@ private static final long serialVersionUID = 0L;
         connectionInfo_ = null;
       }
       return connectionInfoBuilder_;
+    }
+
+    private com.google.protobuf.MapField<
+        java.lang.String, java.lang.Integer> processExecutions_;
+    private com.google.protobuf.MapField<java.lang.String, java.lang.Integer>
+        internalGetProcessExecutions() {
+      if (processExecutions_ == null) {
+        return com.google.protobuf.MapField.emptyMapField(
+            ProcessExecutionsDefaultEntryHolder.defaultEntry);
+      }
+      return processExecutions_;
+    }
+    private com.google.protobuf.MapField<java.lang.String, java.lang.Integer>
+        internalGetMutableProcessExecutions() {
+      if (processExecutions_ == null) {
+        processExecutions_ = com.google.protobuf.MapField.newMapField(
+            ProcessExecutionsDefaultEntryHolder.defaultEntry);
+      }
+      if (!processExecutions_.isMutable()) {
+        processExecutions_ = processExecutions_.copy();
+      }
+      bitField0_ |= 0x00000100;
+      onChanged();
+      return processExecutions_;
+    }
+    public int getProcessExecutionsCount() {
+      return internalGetProcessExecutions().getMap().size();
+    }
+    /**
+     * <pre>
+     * Per-process execution counts in a multi-process sandbox.
+     *
+     * In cloud mode, a single Runner resource hosts three co-located processes
+     * (agent, cursor, workflow), each reporting its own execution count via
+     * heartbeats with distinct process_type values. This map tracks the last
+     * reported count for each process type.
+     *
+     * The aggregate current_executions field (above) is derived from the sum
+     * of all values in this map. The runner is considered idle when every
+     * value is zero.
+     *
+     * Keys: "agent", "cursor", "workflow".
+     * Empty for single-process local runners (backward compatible).
+     * </pre>
+     *
+     * <code>map&lt;string, int32&gt; process_executions = 9 [json_name = "processExecutions"];</code>
+     */
+    @java.lang.Override
+    public boolean containsProcessExecutions(
+        java.lang.String key) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      return internalGetProcessExecutions().getMap().containsKey(key);
+    }
+    /**
+     * Use {@link #getProcessExecutionsMap()} instead.
+     */
+    @java.lang.Override
+    @java.lang.Deprecated
+    public java.util.Map<java.lang.String, java.lang.Integer> getProcessExecutions() {
+      return getProcessExecutionsMap();
+    }
+    /**
+     * <pre>
+     * Per-process execution counts in a multi-process sandbox.
+     *
+     * In cloud mode, a single Runner resource hosts three co-located processes
+     * (agent, cursor, workflow), each reporting its own execution count via
+     * heartbeats with distinct process_type values. This map tracks the last
+     * reported count for each process type.
+     *
+     * The aggregate current_executions field (above) is derived from the sum
+     * of all values in this map. The runner is considered idle when every
+     * value is zero.
+     *
+     * Keys: "agent", "cursor", "workflow".
+     * Empty for single-process local runners (backward compatible).
+     * </pre>
+     *
+     * <code>map&lt;string, int32&gt; process_executions = 9 [json_name = "processExecutions"];</code>
+     */
+    @java.lang.Override
+    public java.util.Map<java.lang.String, java.lang.Integer> getProcessExecutionsMap() {
+      return internalGetProcessExecutions().getMap();
+    }
+    /**
+     * <pre>
+     * Per-process execution counts in a multi-process sandbox.
+     *
+     * In cloud mode, a single Runner resource hosts three co-located processes
+     * (agent, cursor, workflow), each reporting its own execution count via
+     * heartbeats with distinct process_type values. This map tracks the last
+     * reported count for each process type.
+     *
+     * The aggregate current_executions field (above) is derived from the sum
+     * of all values in this map. The runner is considered idle when every
+     * value is zero.
+     *
+     * Keys: "agent", "cursor", "workflow".
+     * Empty for single-process local runners (backward compatible).
+     * </pre>
+     *
+     * <code>map&lt;string, int32&gt; process_executions = 9 [json_name = "processExecutions"];</code>
+     */
+    @java.lang.Override
+    public int getProcessExecutionsOrDefault(
+        java.lang.String key,
+        int defaultValue) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      java.util.Map<java.lang.String, java.lang.Integer> map =
+          internalGetProcessExecutions().getMap();
+      return map.containsKey(key) ? map.get(key) : defaultValue;
+    }
+    /**
+     * <pre>
+     * Per-process execution counts in a multi-process sandbox.
+     *
+     * In cloud mode, a single Runner resource hosts three co-located processes
+     * (agent, cursor, workflow), each reporting its own execution count via
+     * heartbeats with distinct process_type values. This map tracks the last
+     * reported count for each process type.
+     *
+     * The aggregate current_executions field (above) is derived from the sum
+     * of all values in this map. The runner is considered idle when every
+     * value is zero.
+     *
+     * Keys: "agent", "cursor", "workflow".
+     * Empty for single-process local runners (backward compatible).
+     * </pre>
+     *
+     * <code>map&lt;string, int32&gt; process_executions = 9 [json_name = "processExecutions"];</code>
+     */
+    @java.lang.Override
+    public int getProcessExecutionsOrThrow(
+        java.lang.String key) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      java.util.Map<java.lang.String, java.lang.Integer> map =
+          internalGetProcessExecutions().getMap();
+      if (!map.containsKey(key)) {
+        throw new java.lang.IllegalArgumentException();
+      }
+      return map.get(key);
+    }
+    public Builder clearProcessExecutions() {
+      bitField0_ = (bitField0_ & ~0x00000100);
+      internalGetMutableProcessExecutions().getMutableMap()
+          .clear();
+      return this;
+    }
+    /**
+     * <pre>
+     * Per-process execution counts in a multi-process sandbox.
+     *
+     * In cloud mode, a single Runner resource hosts three co-located processes
+     * (agent, cursor, workflow), each reporting its own execution count via
+     * heartbeats with distinct process_type values. This map tracks the last
+     * reported count for each process type.
+     *
+     * The aggregate current_executions field (above) is derived from the sum
+     * of all values in this map. The runner is considered idle when every
+     * value is zero.
+     *
+     * Keys: "agent", "cursor", "workflow".
+     * Empty for single-process local runners (backward compatible).
+     * </pre>
+     *
+     * <code>map&lt;string, int32&gt; process_executions = 9 [json_name = "processExecutions"];</code>
+     */
+    public Builder removeProcessExecutions(
+        java.lang.String key) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      internalGetMutableProcessExecutions().getMutableMap()
+          .remove(key);
+      return this;
+    }
+    /**
+     * Use alternate mutation accessors instead.
+     */
+    @java.lang.Deprecated
+    public java.util.Map<java.lang.String, java.lang.Integer>
+        getMutableProcessExecutions() {
+      bitField0_ |= 0x00000100;
+      return internalGetMutableProcessExecutions().getMutableMap();
+    }
+    /**
+     * <pre>
+     * Per-process execution counts in a multi-process sandbox.
+     *
+     * In cloud mode, a single Runner resource hosts three co-located processes
+     * (agent, cursor, workflow), each reporting its own execution count via
+     * heartbeats with distinct process_type values. This map tracks the last
+     * reported count for each process type.
+     *
+     * The aggregate current_executions field (above) is derived from the sum
+     * of all values in this map. The runner is considered idle when every
+     * value is zero.
+     *
+     * Keys: "agent", "cursor", "workflow".
+     * Empty for single-process local runners (backward compatible).
+     * </pre>
+     *
+     * <code>map&lt;string, int32&gt; process_executions = 9 [json_name = "processExecutions"];</code>
+     */
+    public Builder putProcessExecutions(
+        java.lang.String key,
+        int value) {
+      if (key == null) { throw new NullPointerException("map key"); }
+
+      internalGetMutableProcessExecutions().getMutableMap()
+          .put(key, value);
+      bitField0_ |= 0x00000100;
+      return this;
+    }
+    /**
+     * <pre>
+     * Per-process execution counts in a multi-process sandbox.
+     *
+     * In cloud mode, a single Runner resource hosts three co-located processes
+     * (agent, cursor, workflow), each reporting its own execution count via
+     * heartbeats with distinct process_type values. This map tracks the last
+     * reported count for each process type.
+     *
+     * The aggregate current_executions field (above) is derived from the sum
+     * of all values in this map. The runner is considered idle when every
+     * value is zero.
+     *
+     * Keys: "agent", "cursor", "workflow".
+     * Empty for single-process local runners (backward compatible).
+     * </pre>
+     *
+     * <code>map&lt;string, int32&gt; process_executions = 9 [json_name = "processExecutions"];</code>
+     */
+    public Builder putAllProcessExecutions(
+        java.util.Map<java.lang.String, java.lang.Integer> values) {
+      internalGetMutableProcessExecutions().getMutableMap()
+          .putAll(values);
+      bitField0_ |= 0x00000100;
+      return this;
+    }
+
+    private com.google.protobuf.Timestamp idleSince_;
+    private com.google.protobuf.SingleFieldBuilder<
+        com.google.protobuf.Timestamp, com.google.protobuf.Timestamp.Builder, com.google.protobuf.TimestampOrBuilder> idleSinceBuilder_;
+    /**
+     * <pre>
+     * Timestamp when all processes in this runner last became idle
+     * (every value in process_executions is zero and no streams are active).
+     *
+     * Set by the server when the aggregate transitions from busy to idle.
+     * Cleared when any process reports activity. Used by server-side idle
+     * detection to trigger deprovisioning after a configurable timeout.
+     *
+     * Empty while any process has active executions.
+     * </pre>
+     *
+     * <code>.google.protobuf.Timestamp idle_since = 10 [json_name = "idleSince"];</code>
+     * @return Whether the idleSince field is set.
+     */
+    public boolean hasIdleSince() {
+      return ((bitField0_ & 0x00000200) != 0);
+    }
+    /**
+     * <pre>
+     * Timestamp when all processes in this runner last became idle
+     * (every value in process_executions is zero and no streams are active).
+     *
+     * Set by the server when the aggregate transitions from busy to idle.
+     * Cleared when any process reports activity. Used by server-side idle
+     * detection to trigger deprovisioning after a configurable timeout.
+     *
+     * Empty while any process has active executions.
+     * </pre>
+     *
+     * <code>.google.protobuf.Timestamp idle_since = 10 [json_name = "idleSince"];</code>
+     * @return The idleSince.
+     */
+    public com.google.protobuf.Timestamp getIdleSince() {
+      if (idleSinceBuilder_ == null) {
+        return idleSince_ == null ? com.google.protobuf.Timestamp.getDefaultInstance() : idleSince_;
+      } else {
+        return idleSinceBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * Timestamp when all processes in this runner last became idle
+     * (every value in process_executions is zero and no streams are active).
+     *
+     * Set by the server when the aggregate transitions from busy to idle.
+     * Cleared when any process reports activity. Used by server-side idle
+     * detection to trigger deprovisioning after a configurable timeout.
+     *
+     * Empty while any process has active executions.
+     * </pre>
+     *
+     * <code>.google.protobuf.Timestamp idle_since = 10 [json_name = "idleSince"];</code>
+     */
+    public Builder setIdleSince(com.google.protobuf.Timestamp value) {
+      if (idleSinceBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        idleSince_ = value;
+      } else {
+        idleSinceBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00000200;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Timestamp when all processes in this runner last became idle
+     * (every value in process_executions is zero and no streams are active).
+     *
+     * Set by the server when the aggregate transitions from busy to idle.
+     * Cleared when any process reports activity. Used by server-side idle
+     * detection to trigger deprovisioning after a configurable timeout.
+     *
+     * Empty while any process has active executions.
+     * </pre>
+     *
+     * <code>.google.protobuf.Timestamp idle_since = 10 [json_name = "idleSince"];</code>
+     */
+    public Builder setIdleSince(
+        com.google.protobuf.Timestamp.Builder builderForValue) {
+      if (idleSinceBuilder_ == null) {
+        idleSince_ = builderForValue.build();
+      } else {
+        idleSinceBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00000200;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Timestamp when all processes in this runner last became idle
+     * (every value in process_executions is zero and no streams are active).
+     *
+     * Set by the server when the aggregate transitions from busy to idle.
+     * Cleared when any process reports activity. Used by server-side idle
+     * detection to trigger deprovisioning after a configurable timeout.
+     *
+     * Empty while any process has active executions.
+     * </pre>
+     *
+     * <code>.google.protobuf.Timestamp idle_since = 10 [json_name = "idleSince"];</code>
+     */
+    public Builder mergeIdleSince(com.google.protobuf.Timestamp value) {
+      if (idleSinceBuilder_ == null) {
+        if (((bitField0_ & 0x00000200) != 0) &&
+          idleSince_ != null &&
+          idleSince_ != com.google.protobuf.Timestamp.getDefaultInstance()) {
+          getIdleSinceBuilder().mergeFrom(value);
+        } else {
+          idleSince_ = value;
+        }
+      } else {
+        idleSinceBuilder_.mergeFrom(value);
+      }
+      if (idleSince_ != null) {
+        bitField0_ |= 0x00000200;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Timestamp when all processes in this runner last became idle
+     * (every value in process_executions is zero and no streams are active).
+     *
+     * Set by the server when the aggregate transitions from busy to idle.
+     * Cleared when any process reports activity. Used by server-side idle
+     * detection to trigger deprovisioning after a configurable timeout.
+     *
+     * Empty while any process has active executions.
+     * </pre>
+     *
+     * <code>.google.protobuf.Timestamp idle_since = 10 [json_name = "idleSince"];</code>
+     */
+    public Builder clearIdleSince() {
+      bitField0_ = (bitField0_ & ~0x00000200);
+      idleSince_ = null;
+      if (idleSinceBuilder_ != null) {
+        idleSinceBuilder_.dispose();
+        idleSinceBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Timestamp when all processes in this runner last became idle
+     * (every value in process_executions is zero and no streams are active).
+     *
+     * Set by the server when the aggregate transitions from busy to idle.
+     * Cleared when any process reports activity. Used by server-side idle
+     * detection to trigger deprovisioning after a configurable timeout.
+     *
+     * Empty while any process has active executions.
+     * </pre>
+     *
+     * <code>.google.protobuf.Timestamp idle_since = 10 [json_name = "idleSince"];</code>
+     */
+    public com.google.protobuf.Timestamp.Builder getIdleSinceBuilder() {
+      bitField0_ |= 0x00000200;
+      onChanged();
+      return internalGetIdleSinceFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * Timestamp when all processes in this runner last became idle
+     * (every value in process_executions is zero and no streams are active).
+     *
+     * Set by the server when the aggregate transitions from busy to idle.
+     * Cleared when any process reports activity. Used by server-side idle
+     * detection to trigger deprovisioning after a configurable timeout.
+     *
+     * Empty while any process has active executions.
+     * </pre>
+     *
+     * <code>.google.protobuf.Timestamp idle_since = 10 [json_name = "idleSince"];</code>
+     */
+    public com.google.protobuf.TimestampOrBuilder getIdleSinceOrBuilder() {
+      if (idleSinceBuilder_ != null) {
+        return idleSinceBuilder_.getMessageOrBuilder();
+      } else {
+        return idleSince_ == null ?
+            com.google.protobuf.Timestamp.getDefaultInstance() : idleSince_;
+      }
+    }
+    /**
+     * <pre>
+     * Timestamp when all processes in this runner last became idle
+     * (every value in process_executions is zero and no streams are active).
+     *
+     * Set by the server when the aggregate transitions from busy to idle.
+     * Cleared when any process reports activity. Used by server-side idle
+     * detection to trigger deprovisioning after a configurable timeout.
+     *
+     * Empty while any process has active executions.
+     * </pre>
+     *
+     * <code>.google.protobuf.Timestamp idle_since = 10 [json_name = "idleSince"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        com.google.protobuf.Timestamp, com.google.protobuf.Timestamp.Builder, com.google.protobuf.TimestampOrBuilder> 
+        internalGetIdleSinceFieldBuilder() {
+      if (idleSinceBuilder_ == null) {
+        idleSinceBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            com.google.protobuf.Timestamp, com.google.protobuf.Timestamp.Builder, com.google.protobuf.TimestampOrBuilder>(
+                getIdleSince(),
+                getParentForChildren(),
+                isClean());
+        idleSince_ = null;
+      }
+      return idleSinceBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.runner.v1.RunnerStatus)

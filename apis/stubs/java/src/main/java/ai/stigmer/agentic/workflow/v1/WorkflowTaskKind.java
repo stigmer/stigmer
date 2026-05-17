@@ -34,6 +34,13 @@ package ai.stigmer.agentic.workflow.v1;
  * raise_error: {"error": "ErrorType", "message": "${...}"}
  * run_workflow: {"workflow": "workflow-name", "input": {...}}
  * agent_call: {"agent": "agent-slug", "message": "...", "env": {...}}
+ * llm_call: {"model": "...", "prompt": "...", "response_schema": {...}, "on_invalid": "..."}
+ * transform: {"engine": "jq", "expression": "...", "input": "${...}"}
+ * human_input: {"prompt": "...", "form_schema": {...}, "outcomes": [...], "approvers": [...], "timeout": 86400}
+ * validate: {"input": "${...}", "schema": {...}, "rules": [...], "on_fail": "..."}
+ * emit_event: {"event": {"type": "...", "source": "...", "subject": "...", "data": {...}}}
+ * notification: {"channel": "slack", "recipients": ["..."], "subject": "...", "body": "...", "template": "...", "metadata": {...}}
+ * eval: {"model": "...", "subject": "${...}", "rubric": "...", "scoring_mode": "EVAL_PASS_FAIL", "threshold": 0.7, "on_fail": "EVAL_FAIL_RAISE", "criteria": [...]}
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.workflow.v1.WorkflowTaskKind}
@@ -197,6 +204,104 @@ public enum WorkflowTaskKind
    * <code>agent_call = 13;</code>
    */
   agent_call(13),
+  /**
+   * <pre>
+   * Direct LLM call for classification, extraction, scoring, or routing.
+   *
+   * &#64;internal
+   * Lightweight alternative to agent_call for focused LLM tasks without
+   * agent overhead (no system prompt resolution, tool setup, or MCP wiring).
+   * Config: {"model": "...", "prompt": "...", "response_schema": {...}}
+   * </pre>
+   *
+   * <code>llm_call = 14;</code>
+   */
+  llm_call(14),
+  /**
+   * <pre>
+   * Deterministic data transformation using JQ, JSONata, or template engines.
+   *
+   * &#64;internal
+   * Reshapes data between tasks without LLM calls. Produces explicit output
+   * via export, unlike set_vars which mutates workflow state as a side effect.
+   * Config: {"engine": "jq", "expression": "...", "input": "${...}"}
+   * </pre>
+   *
+   * <code>transform = 15;</code>
+   */
+  transform(15),
+  /**
+   * <pre>
+   * Workflow-level approval gate for human input, review, or sign-off.
+   *
+   * &#64;internal
+   * Pauses workflow execution to collect typed input or approval from a
+   * human reviewer. Supports custom outcomes, form schemas, approver
+   * lists, timeouts, and notification channels.
+   * Config: {"prompt": "...", "form_schema": {...}, "outcomes": [...], "approvers": [...]}
+   * </pre>
+   *
+   * <code>human_input = 16;</code>
+   */
+  human_input(16),
+  /**
+   * <pre>
+   * Schema and business-rule validation checkpoint.
+   *
+   * &#64;internal
+   * Validates workflow data against JSON Schema and/or business rules
+   * before downstream tasks consume it. Supports fail, branch, and warn
+   * policies for flexible error handling.
+   * Config: {"input": "${...}", "schema": {...}, "rules": [...], "on_fail": "..."}
+   * </pre>
+   *
+   * <code>validate = 17;</code>
+   */
+  validate(17),
+  /**
+   * <pre>
+   * Emit a CloudEvents-formatted event for external consumers or other workflows.
+   *
+   * &#64;internal
+   * Completes the listen/emit duality: listen waits for Temporal signals,
+   * emit_event publishes business events using the CloudEvents envelope.
+   * The runtime bridges the two when events target other workflows.
+   * Config: {"event": {"type": "...", "source": "...", "subject": "...", "data": {...}}}
+   * </pre>
+   *
+   * <code>emit_event = 18;</code>
+   */
+  emit_event(18),
+  /**
+   * <pre>
+   * Send a notification to humans through a channel (Slack, email, Discord, etc.).
+   *
+   * &#64;internal
+   * Fire-and-forget convenience abstraction for operational notifications.
+   * For notifications requiring acknowledgment, use human_input instead.
+   * Config: {"channel": "slack", "recipients": ["..."], "subject": "...", "body": "..."}
+   * </pre>
+   *
+   * <code>notification = 19;</code>
+   */
+  notification(19),
+  /**
+   * <pre>
+   * LLM-as-a-judge evaluation for semantic quality assessment.
+   *
+   * &#64;internal
+   * Assesses quality, correctness, safety, or completeness of LLM-generated
+   * or agent-produced content using an LLM judge. Fills the gap between
+   * structural validation (validate task) and human review (human_input).
+   * Supports pass/fail, numeric scoring, and multi-criteria evaluation modes.
+   * Config: {"model": "...", "subject": "${...}", "rubric": "...", "scoring_mode": "...", "threshold": 0.7, "on_fail": "..."}
+   *
+   * &#64;since T17 (Advanced Agentic Orchestration)
+   * </pre>
+   *
+   * <code>eval = 20;</code>
+   */
+  eval(20),
   UNRECOGNIZED(-1),
   ;
 
@@ -365,6 +470,104 @@ public enum WorkflowTaskKind
    * <code>agent_call = 13;</code>
    */
   public static final int agent_call_VALUE = 13;
+  /**
+   * <pre>
+   * Direct LLM call for classification, extraction, scoring, or routing.
+   *
+   * &#64;internal
+   * Lightweight alternative to agent_call for focused LLM tasks without
+   * agent overhead (no system prompt resolution, tool setup, or MCP wiring).
+   * Config: {"model": "...", "prompt": "...", "response_schema": {...}}
+   * </pre>
+   *
+   * <code>llm_call = 14;</code>
+   */
+  public static final int llm_call_VALUE = 14;
+  /**
+   * <pre>
+   * Deterministic data transformation using JQ, JSONata, or template engines.
+   *
+   * &#64;internal
+   * Reshapes data between tasks without LLM calls. Produces explicit output
+   * via export, unlike set_vars which mutates workflow state as a side effect.
+   * Config: {"engine": "jq", "expression": "...", "input": "${...}"}
+   * </pre>
+   *
+   * <code>transform = 15;</code>
+   */
+  public static final int transform_VALUE = 15;
+  /**
+   * <pre>
+   * Workflow-level approval gate for human input, review, or sign-off.
+   *
+   * &#64;internal
+   * Pauses workflow execution to collect typed input or approval from a
+   * human reviewer. Supports custom outcomes, form schemas, approver
+   * lists, timeouts, and notification channels.
+   * Config: {"prompt": "...", "form_schema": {...}, "outcomes": [...], "approvers": [...]}
+   * </pre>
+   *
+   * <code>human_input = 16;</code>
+   */
+  public static final int human_input_VALUE = 16;
+  /**
+   * <pre>
+   * Schema and business-rule validation checkpoint.
+   *
+   * &#64;internal
+   * Validates workflow data against JSON Schema and/or business rules
+   * before downstream tasks consume it. Supports fail, branch, and warn
+   * policies for flexible error handling.
+   * Config: {"input": "${...}", "schema": {...}, "rules": [...], "on_fail": "..."}
+   * </pre>
+   *
+   * <code>validate = 17;</code>
+   */
+  public static final int validate_VALUE = 17;
+  /**
+   * <pre>
+   * Emit a CloudEvents-formatted event for external consumers or other workflows.
+   *
+   * &#64;internal
+   * Completes the listen/emit duality: listen waits for Temporal signals,
+   * emit_event publishes business events using the CloudEvents envelope.
+   * The runtime bridges the two when events target other workflows.
+   * Config: {"event": {"type": "...", "source": "...", "subject": "...", "data": {...}}}
+   * </pre>
+   *
+   * <code>emit_event = 18;</code>
+   */
+  public static final int emit_event_VALUE = 18;
+  /**
+   * <pre>
+   * Send a notification to humans through a channel (Slack, email, Discord, etc.).
+   *
+   * &#64;internal
+   * Fire-and-forget convenience abstraction for operational notifications.
+   * For notifications requiring acknowledgment, use human_input instead.
+   * Config: {"channel": "slack", "recipients": ["..."], "subject": "...", "body": "..."}
+   * </pre>
+   *
+   * <code>notification = 19;</code>
+   */
+  public static final int notification_VALUE = 19;
+  /**
+   * <pre>
+   * LLM-as-a-judge evaluation for semantic quality assessment.
+   *
+   * &#64;internal
+   * Assesses quality, correctness, safety, or completeness of LLM-generated
+   * or agent-produced content using an LLM judge. Fills the gap between
+   * structural validation (validate task) and human review (human_input).
+   * Supports pass/fail, numeric scoring, and multi-criteria evaluation modes.
+   * Config: {"model": "...", "subject": "${...}", "rubric": "...", "scoring_mode": "...", "threshold": 0.7, "on_fail": "..."}
+   *
+   * &#64;since T17 (Advanced Agentic Orchestration)
+   * </pre>
+   *
+   * <code>eval = 20;</code>
+   */
+  public static final int eval_VALUE = 20;
 
 
   public final int getNumber() {
@@ -405,6 +608,13 @@ public enum WorkflowTaskKind
       case 11: return raise_error;
       case 12: return run_workflow;
       case 13: return agent_call;
+      case 14: return llm_call;
+      case 15: return transform;
+      case 16: return human_input;
+      case 17: return validate;
+      case 18: return emit_event;
+      case 19: return notification;
+      case 20: return eval;
       default: return null;
     }
   }

@@ -26,6 +26,7 @@ import { BulkActionBar } from "./BulkActionBar";
 import { ResourceInspector } from "./ResourceInspector";
 import { EmptyState } from "../../empty-state";
 import { ResourceAvatar } from "./ResourceAvatar";
+import { ScopeToggle } from "../../library/ScopeToggle";
 
 // ---------------------------------------------------------------------------
 // Props
@@ -306,6 +307,9 @@ export function ResourceWorkbench<TData = SearchResult>({
             )}
           />
         </div>
+        {onScopeChange && (
+          <ScopeToggle value={controlledScope} onChange={onScopeChange} />
+        )}
         {viewModes.length > 1 && (
           <ViewSwitcher
             value={viewMode}

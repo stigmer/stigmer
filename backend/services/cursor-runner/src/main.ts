@@ -13,7 +13,8 @@
 
 import { loadConfig, CURSOR_QUEUE_SUFFIX } from "./config.js";
 import { installFetchInterceptor } from "./proxy/fetch-interceptor.js";
-import { startIdleWatchdog } from "./idle-watchdog.js";
+import { startHeartbeat } from "./heartbeat.js";
+import { initTracing } from "./otel.js";
 
 // The Cursor SDK fires background promises (API key exchange, telemetry,
 // heartbeats) that can reject outside any async context our activity code
@@ -51,6 +52,8 @@ let shutdownRequested = false;
 async function main(): Promise<void> {
   const config = loadConfig();
 
+  const otelShutdown = await initTracing("cursor-runner");
+
   // Install the fetch interceptor BEFORE importing the worker module,
   // which transitively imports @cursor/sdk. In proxy mode, all outbound
   // Cursor SDK requests are rewritten to route through Stigmer's proxy.
@@ -80,14 +83,7 @@ async function main(): Promise<void> {
 
   const worker = await startWorker(config);
 
-  // Idle watchdog: self-terminate after sustained inactivity. Serves as
-  // a safety net for ephemeral cloud runners and orphaned processes.
-  // Disabled for local runners (idleTimeoutSeconds is null when the env
-  // var is not set).
-  let stopIdleWatchdog: (() => void) | undefined;
-  if (config.idleTimeoutSeconds != null && config.idleTimeoutSeconds > 0) {
-    stopIdleWatchdog = startIdleWatchdog(worker, config.idleTimeoutSeconds);
-  }
+  const stopHeartbeat = startHeartbeat(config);
 
   const shutdown = async (signal: string) => {
     if (shutdownRequested) {
@@ -96,7 +92,7 @@ async function main(): Promise<void> {
     }
     shutdownRequested = true;
     console.log(`Received ${signal}, stopping worker gracefully...`);
-    stopIdleWatchdog?.();
+    stopHeartbeat();
     worker.shutdown();
   };
 
@@ -105,6 +101,10 @@ async function main(): Promise<void> {
 
   console.log("Worker ready, polling for tasks...");
   await worker.run();
+
+  if (otelShutdown) {
+    await otelShutdown();
+  }
   console.log("Worker stopped");
 }
 

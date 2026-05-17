@@ -17,6 +17,7 @@ go_library(
         "//backend/services/workflow-runner/pkg/converter",
         "//backend/services/workflow-runner/pkg/grpc_client",
         "//backend/services/workflow-runner/pkg/types",
+        "//backend/services/workflow-runner/pkg/validation",
         "//backend/services/workflow-runner/pkg/zigflow",
         "//backend/services/workflow-runner/pkg/zigflow/tasks",
         "@com_github_serverlessworkflow_sdk_go_v3//model",

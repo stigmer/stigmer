@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.workflow.v1.tasks;
+
+// OnInvalidOutputPolicy defines what happens when an LLM or agent output
+// fails schema validation against a declared output contract or response schema.
+//
+// @internal
+// Shared by AgentCallOutputContract.on_invalid (agent_call) and
+// LlmCallTaskConfig.on_invalid (llm_call). Any task type that produces
+// schema-validated output can reference this enum.
+//
+// Failure handling follows a deliberate hierarchy:
+// - FAIL: strictest — bad output is unacceptable, fail the task immediately
+// - RETRY: re-prompt with validation errors, up to max_retries attempts
+// - FALLBACK: branch to a named task (e.g., human_review) without retrying
+//
+// When ON_INVALID_RETRY is used and all retries are exhausted:
+// - If fallback_task is set: branch to that task
+// - If fallback_task is empty: task fails
+//
+// @since T02 (Structured Agent Output Model)
+enum OnInvalidOutputPolicy {
+  // Unspecified: defaults to ON_INVALID_FAIL behavior.
+  ON_INVALID_POLICY_UNSPECIFIED = 0;
+
+  // Task fails immediately with a schema validation error.
+  // The workflow transitions to error handling (try_catch or EXECUTION_FAILED).
+  ON_INVALID_FAIL = 1;
+
+  // Re-prompt the agent with the validation error message, up to max_retries
+  // attempts. The retry message includes the schema and specific validation
+  // errors so the agent can self-correct.
+  //
+  // After exhausting retries:
+  //   - If fallback_task is set: branch to that task
+  //   - Otherwise: task fails with a schema validation error
+  ON_INVALID_RETRY = 2;
+
+  // Branch immediately to fallback_task without retrying.
+  // Requires fallback_task to be set on the owning contract/config.
+  // Use when human review or an alternative extraction path is preferred
+  // over automated retry.
+  ON_INVALID_FALLBACK = 3;
+}

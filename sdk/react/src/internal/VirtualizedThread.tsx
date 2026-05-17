@@ -37,6 +37,7 @@ export interface VirtualizedThreadProps {
   readonly submittingApprovalIds?: ReadonlySet<string>;
   readonly filePathCtx: FilePathContextValue;
   readonly sandboxCtx: SandboxContextValue;
+  readonly onBuildFromPlan?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -93,6 +94,7 @@ export function VirtualizedThread({
   submittingApprovalIds,
   filePathCtx,
   sandboxCtx,
+  onBuildFromPlan,
 }: VirtualizedThreadProps) {
   const virtuosoRef = useRef<VirtuosoHandle>(null);
   const scrollerRef = useRef<HTMLDivElement | null>(null);
@@ -121,8 +123,9 @@ export function VirtualizedThread({
       formatToolCallSummary,
       onApprovalSubmit,
       submittingApprovalIds,
+      onBuildFromPlan,
     }),
-    [formatToolCallSummary, onApprovalSubmit, submittingApprovalIds],
+    [formatToolCallSummary, onApprovalSubmit, submittingApprovalIds, onBuildFromPlan],
   );
 
   return (

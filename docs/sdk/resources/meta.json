@@ -5,6 +5,7 @@
     "agent-execution",
     "agent-instance",
     "api-key",
+    "artifact",
     "commons",
     "environment",
     "execution-context",

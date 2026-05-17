@@ -324,6 +324,62 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     return map.get(key);
   }
 
+  public static final int BUDGET_FIELD_NUMBER = 5;
+  private ai.stigmer.agentic.workflow.v1.WorkflowBudget budget_;
+  /**
+   * <pre>
+   * Budget limits for this workflow execution.
+   * When set, the runtime (T13) enforces cost, token, and duration limits
+   * across all tasks. The existing org-level billing reservation system
+   * (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
+   * for overall credit exhaustion; workflow budgets prevent individual
+   * workflows from consuming more than intended.
+   * Optional — when not set, no workflow-level budget is enforced.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.workflow.v1.WorkflowBudget budget = 5 [json_name = "budget"];</code>
+   * @return Whether the budget field is set.
+   */
+  @java.lang.Override
+  public boolean hasBudget() {
+    return ((bitField0_ & 0x00000002) != 0);
+  }
+  /**
+   * <pre>
+   * Budget limits for this workflow execution.
+   * When set, the runtime (T13) enforces cost, token, and duration limits
+   * across all tasks. The existing org-level billing reservation system
+   * (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
+   * for overall credit exhaustion; workflow budgets prevent individual
+   * workflows from consuming more than intended.
+   * Optional — when not set, no workflow-level budget is enforced.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.workflow.v1.WorkflowBudget budget = 5 [json_name = "budget"];</code>
+   * @return The budget.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.workflow.v1.WorkflowBudget getBudget() {
+    return budget_ == null ? ai.stigmer.agentic.workflow.v1.WorkflowBudget.getDefaultInstance() : budget_;
+  }
+  /**
+   * <pre>
+   * Budget limits for this workflow execution.
+   * When set, the runtime (T13) enforces cost, token, and duration limits
+   * across all tasks. The existing org-level billing reservation system
+   * (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
+   * for overall credit exhaustion; workflow budgets prevent individual
+   * workflows from consuming more than intended.
+   * Optional — when not set, no workflow-level budget is enforced.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.workflow.v1.WorkflowBudget budget = 5 [json_name = "budget"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.workflow.v1.WorkflowBudgetOrBuilder getBudgetOrBuilder() {
+    return budget_ == null ? ai.stigmer.agentic.workflow.v1.WorkflowBudget.getDefaultInstance() : budget_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -353,6 +409,9 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
         internalGetEnv(),
         EnvDefaultEntryHolder.defaultEntry,
         4);
+    if (((bitField0_ & 0x00000002) != 0)) {
+      output.writeMessage(5, getBudget());
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -388,6 +447,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(4, env__);
     }
+    if (((bitField0_ & 0x00000002) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(5, getBudget());
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -414,6 +477,11 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
         .equals(other.getTasksList())) return false;
     if (!internalGetEnv().equals(
         other.internalGetEnv())) return false;
+    if (hasBudget() != other.hasBudget()) return false;
+    if (hasBudget()) {
+      if (!getBudget()
+          .equals(other.getBudget())) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -438,6 +506,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     if (!internalGetEnv().getMap().isEmpty()) {
       hash = (37 * hash) + ENV_FIELD_NUMBER;
       hash = (53 * hash) + internalGetEnv().hashCode();
+    }
+    if (hasBudget()) {
+      hash = (37 * hash) + BUDGET_FIELD_NUMBER;
+      hash = (53 * hash) + getBudget().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -604,6 +676,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
               .alwaysUseFieldBuilders) {
         internalGetDocumentFieldBuilder();
         internalGetTasksFieldBuilder();
+        internalGetBudgetFieldBuilder();
       }
     }
     @java.lang.Override
@@ -624,6 +697,11 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       }
       bitField0_ = (bitField0_ & ~0x00000004);
       internalGetMutableEnv().clear();
+      budget_ = null;
+      if (budgetBuilder_ != null) {
+        budgetBuilder_.dispose();
+        budgetBuilder_ = null;
+      }
       return this;
     }
 
@@ -683,6 +761,12 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       if (((from_bitField0_ & 0x00000008) != 0)) {
         result.env_ = internalGetEnv().build(EnvDefaultEntryHolder.defaultEntry);
       }
+      if (((from_bitField0_ & 0x00000010) != 0)) {
+        result.budget_ = budgetBuilder_ == null
+            ? budget_
+            : budgetBuilder_.build();
+        to_bitField0_ |= 0x00000002;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -735,6 +819,9 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       internalGetMutableEnv().mergeFrom(
           other.internalGetEnv());
       bitField0_ |= 0x00000008;
+      if (other.hasBudget()) {
+        mergeBudget(other.getBudget());
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -795,6 +882,13 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
               bitField0_ |= 0x00000008;
               break;
             } // case 34
+            case 42: {
+              input.readMessage(
+                  internalGetBudgetFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00000010;
+              break;
+            } // case 42
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1584,6 +1678,217 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
         builderMap.put(key, entry);
       }
       return (ai.stigmer.agentic.environment.v1.EnvVarDeclaration.Builder) entry;
+    }
+
+    private ai.stigmer.agentic.workflow.v1.WorkflowBudget budget_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.workflow.v1.WorkflowBudget, ai.stigmer.agentic.workflow.v1.WorkflowBudget.Builder, ai.stigmer.agentic.workflow.v1.WorkflowBudgetOrBuilder> budgetBuilder_;
+    /**
+     * <pre>
+     * Budget limits for this workflow execution.
+     * When set, the runtime (T13) enforces cost, token, and duration limits
+     * across all tasks. The existing org-level billing reservation system
+     * (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
+     * for overall credit exhaustion; workflow budgets prevent individual
+     * workflows from consuming more than intended.
+     * Optional — when not set, no workflow-level budget is enforced.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflow.v1.WorkflowBudget budget = 5 [json_name = "budget"];</code>
+     * @return Whether the budget field is set.
+     */
+    public boolean hasBudget() {
+      return ((bitField0_ & 0x00000010) != 0);
+    }
+    /**
+     * <pre>
+     * Budget limits for this workflow execution.
+     * When set, the runtime (T13) enforces cost, token, and duration limits
+     * across all tasks. The existing org-level billing reservation system
+     * (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
+     * for overall credit exhaustion; workflow budgets prevent individual
+     * workflows from consuming more than intended.
+     * Optional — when not set, no workflow-level budget is enforced.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflow.v1.WorkflowBudget budget = 5 [json_name = "budget"];</code>
+     * @return The budget.
+     */
+    public ai.stigmer.agentic.workflow.v1.WorkflowBudget getBudget() {
+      if (budgetBuilder_ == null) {
+        return budget_ == null ? ai.stigmer.agentic.workflow.v1.WorkflowBudget.getDefaultInstance() : budget_;
+      } else {
+        return budgetBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * Budget limits for this workflow execution.
+     * When set, the runtime (T13) enforces cost, token, and duration limits
+     * across all tasks. The existing org-level billing reservation system
+     * (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
+     * for overall credit exhaustion; workflow budgets prevent individual
+     * workflows from consuming more than intended.
+     * Optional — when not set, no workflow-level budget is enforced.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflow.v1.WorkflowBudget budget = 5 [json_name = "budget"];</code>
+     */
+    public Builder setBudget(ai.stigmer.agentic.workflow.v1.WorkflowBudget value) {
+      if (budgetBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        budget_ = value;
+      } else {
+        budgetBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00000010;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Budget limits for this workflow execution.
+     * When set, the runtime (T13) enforces cost, token, and duration limits
+     * across all tasks. The existing org-level billing reservation system
+     * (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
+     * for overall credit exhaustion; workflow budgets prevent individual
+     * workflows from consuming more than intended.
+     * Optional — when not set, no workflow-level budget is enforced.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflow.v1.WorkflowBudget budget = 5 [json_name = "budget"];</code>
+     */
+    public Builder setBudget(
+        ai.stigmer.agentic.workflow.v1.WorkflowBudget.Builder builderForValue) {
+      if (budgetBuilder_ == null) {
+        budget_ = builderForValue.build();
+      } else {
+        budgetBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00000010;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Budget limits for this workflow execution.
+     * When set, the runtime (T13) enforces cost, token, and duration limits
+     * across all tasks. The existing org-level billing reservation system
+     * (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
+     * for overall credit exhaustion; workflow budgets prevent individual
+     * workflows from consuming more than intended.
+     * Optional — when not set, no workflow-level budget is enforced.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflow.v1.WorkflowBudget budget = 5 [json_name = "budget"];</code>
+     */
+    public Builder mergeBudget(ai.stigmer.agentic.workflow.v1.WorkflowBudget value) {
+      if (budgetBuilder_ == null) {
+        if (((bitField0_ & 0x00000010) != 0) &&
+          budget_ != null &&
+          budget_ != ai.stigmer.agentic.workflow.v1.WorkflowBudget.getDefaultInstance()) {
+          getBudgetBuilder().mergeFrom(value);
+        } else {
+          budget_ = value;
+        }
+      } else {
+        budgetBuilder_.mergeFrom(value);
+      }
+      if (budget_ != null) {
+        bitField0_ |= 0x00000010;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Budget limits for this workflow execution.
+     * When set, the runtime (T13) enforces cost, token, and duration limits
+     * across all tasks. The existing org-level billing reservation system
+     * (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
+     * for overall credit exhaustion; workflow budgets prevent individual
+     * workflows from consuming more than intended.
+     * Optional — when not set, no workflow-level budget is enforced.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflow.v1.WorkflowBudget budget = 5 [json_name = "budget"];</code>
+     */
+    public Builder clearBudget() {
+      bitField0_ = (bitField0_ & ~0x00000010);
+      budget_ = null;
+      if (budgetBuilder_ != null) {
+        budgetBuilder_.dispose();
+        budgetBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Budget limits for this workflow execution.
+     * When set, the runtime (T13) enforces cost, token, and duration limits
+     * across all tasks. The existing org-level billing reservation system
+     * (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
+     * for overall credit exhaustion; workflow budgets prevent individual
+     * workflows from consuming more than intended.
+     * Optional — when not set, no workflow-level budget is enforced.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflow.v1.WorkflowBudget budget = 5 [json_name = "budget"];</code>
+     */
+    public ai.stigmer.agentic.workflow.v1.WorkflowBudget.Builder getBudgetBuilder() {
+      bitField0_ |= 0x00000010;
+      onChanged();
+      return internalGetBudgetFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * Budget limits for this workflow execution.
+     * When set, the runtime (T13) enforces cost, token, and duration limits
+     * across all tasks. The existing org-level billing reservation system
+     * (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
+     * for overall credit exhaustion; workflow budgets prevent individual
+     * workflows from consuming more than intended.
+     * Optional — when not set, no workflow-level budget is enforced.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflow.v1.WorkflowBudget budget = 5 [json_name = "budget"];</code>
+     */
+    public ai.stigmer.agentic.workflow.v1.WorkflowBudgetOrBuilder getBudgetOrBuilder() {
+      if (budgetBuilder_ != null) {
+        return budgetBuilder_.getMessageOrBuilder();
+      } else {
+        return budget_ == null ?
+            ai.stigmer.agentic.workflow.v1.WorkflowBudget.getDefaultInstance() : budget_;
+      }
+    }
+    /**
+     * <pre>
+     * Budget limits for this workflow execution.
+     * When set, the runtime (T13) enforces cost, token, and duration limits
+     * across all tasks. The existing org-level billing reservation system
+     * (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
+     * for overall credit exhaustion; workflow budgets prevent individual
+     * workflows from consuming more than intended.
+     * Optional — when not set, no workflow-level budget is enforced.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflow.v1.WorkflowBudget budget = 5 [json_name = "budget"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.workflow.v1.WorkflowBudget, ai.stigmer.agentic.workflow.v1.WorkflowBudget.Builder, ai.stigmer.agentic.workflow.v1.WorkflowBudgetOrBuilder> 
+        internalGetBudgetFieldBuilder() {
+      if (budgetBuilder_ == null) {
+        budgetBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.workflow.v1.WorkflowBudget, ai.stigmer.agentic.workflow.v1.WorkflowBudget.Builder, ai.stigmer.agentic.workflow.v1.WorkflowBudgetOrBuilder>(
+                getBudget(),
+                getParentForChildren(),
+                isClean());
+        budget_ = null;
+      }
+      return budgetBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.workflow.v1.WorkflowSpec)

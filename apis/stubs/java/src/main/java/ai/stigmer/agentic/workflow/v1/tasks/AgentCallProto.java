@@ -37,6 +37,11 @@ public final class AgentCallProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_workflow_v1_tasks_AgentCallTaskConfig_EnvEntry_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_workflow_v1_tasks_AgentCallOutputContract_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_workflow_v1_tasks_AgentCallOutputContract_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_workflow_v1_tasks_AgentExecutionConfig_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -53,60 +58,86 @@ public final class AgentCallProto extends com.google.protobuf.GeneratedFile {
       "\n5ai/stigmer/agentic/workflow/v1/tasks/a" +
       "gent_call.proto\022$ai.stigmer.agentic.work" +
       "flow.v1.tasks\032/ai/stigmer/agentic/agente" +
-      "xecution/v1/spec.proto\0322ai/stigmer/commo" +
-      "ns/apiresource/field_options.proto\032\033buf/" +
-      "validate/validate.proto\"\347\002\n\023AgentCallTas" +
-      "kConfig\022\"\n\005agent\030\001 \001(\tB\014\272H\tr\004\020\001\030\177\310\001\001R\005ag" +
-      "ent\022\020\n\003org\030\002 \001(\tR\003org\022(\n\007message\030\003 \001(\tB\016" +
-      "\272H\007r\002\020\001\310\001\001\330\205,\001R\007message\022T\n\003env\030\004 \003(\0132B.a" +
-      "i.stigmer.agentic.workflow.v1.tasks.Agen" +
-      "tCallTaskConfig.EnvEntryR\003env\022R\n\006config\030" +
-      "\005 \001(\0132:.ai.stigmer.agentic.workflow.v1.t" +
-      "asks.AgentExecutionConfigR\006config\0326\n\010Env" +
-      "Entry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005" +
-      "value:\0028\001:\016\352\213,\nagent_call\"\363\001\n\024AgentExecu" +
-      "tionConfig\022\024\n\005model\030\001 \001(\tR\005model\022$\n\007time" +
-      "out\030\002 \001(\005B\n\272H\007\032\005\030\220\034(\001R\007timeout\0221\n\013temper" +
-      "ature\030\003 \001(\002B\017\272H\014\n\n\035\000\000\200?-\000\000\000\000R\013temperatur" +
-      "e\022l\n\022context_management\030\004 \001(\0132=.ai.stigm" +
-      "er.agentic.agentexecution.v1.ContextMana" +
-      "gementConfigR\021contextManagementB\310\001B\016Agen" +
-      "tCallProtoP\001\242\002\006ASAWVT\252\002$Ai.Stigmer.Agent" +
-      "ic.Workflow.V1.Tasks\312\002$Ai\\Stigmer\\Agenti" +
-      "c\\Workflow\\V1\\Tasks\342\0020Ai\\Stigmer\\Agentic" +
-      "\\Workflow\\V1\\Tasks\\GPBMetadata\352\002)Ai::Sti" +
-      "gmer::Agentic::Workflow::V1::Tasksb\006prot" +
-      "o3"
+      "xecution/v1/spec.proto\032(ai/stigmer/agent" +
+      "ic/session/v1/enum.proto\0321ai/stigmer/age" +
+      "ntic/workflow/v1/tasks/common.proto\0322ai/" +
+      "stigmer/commons/apiresource/field_option" +
+      "s.proto\032\033buf/validate/validate.proto\032\034go" +
+      "ogle/protobuf/struct.proto\"\200\004\n\023AgentCall" +
+      "TaskConfig\022\"\n\005agent\030\001 \001(\tB\014\272H\tr\004\020\001\030\177\310\001\001R" +
+      "\005agent\022\020\n\003org\030\002 \001(\tR\003org\022(\n\007message\030\003 \001(" +
+      "\tB\016\272H\007r\002\020\001\310\001\001\330\205,\001R\007message\022T\n\003env\030\004 \003(\0132" +
+      "B.ai.stigmer.agentic.workflow.v1.tasks.A" +
+      "gentCallTaskConfig.EnvEntryR\003env\022R\n\006conf" +
+      "ig\030\005 \001(\0132:.ai.stigmer.agentic.workflow.v" +
+      "1.tasks.AgentExecutionConfigR\006config\022U\n\006" +
+      "output\030\006 \001(\0132=.ai.stigmer.agentic.workfl" +
+      "ow.v1.tasks.AgentCallOutputContractR\006out" +
+      "put\022@\n\007harness\030\007 \001(\0162&.ai.stigmer.agenti" +
+      "c.session.v1.HarnessR\007harness\0326\n\010EnvEntr" +
+      "y\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005valu" +
+      "e:\0028\001:\016\352\213,\nagent_call\"\377\001\n\027AgentCallOutpu" +
+      "tContract\0227\n\006schema\030\001 \001(\0132\027.google.proto" +
+      "buf.StructB\006\272H\003\310\001\001R\006schema\022Z\n\non_invalid" +
+      "\030\002 \001(\0162;.ai.stigmer.agentic.workflow.v1." +
+      "tasks.OnInvalidOutputPolicyR\tonInvalid\022*" +
+      "\n\013max_retries\030\003 \001(\005B\t\272H\006\032\004\030\005(\001R\nmaxRetri" +
+      "es\022#\n\rfallback_task\030\004 \001(\tR\014fallbackTask\"" +
+      "\233\002\n\024AgentExecutionConfig\022\024\n\005model\030\001 \001(\tR" +
+      "\005model\022$\n\007timeout\030\002 \001(\005B\n\272H\007\032\005\030\220\034(\001R\007tim" +
+      "eout\0221\n\013temperature\030\003 \001(\002B\017\272H\014\n\n\035\000\000\200?-\000\000" +
+      "\000\000R\013temperature\022l\n\022context_management\030\004 " +
+      "\001(\0132=.ai.stigmer.agentic.agentexecution." +
+      "v1.ContextManagementConfigR\021contextManag" +
+      "ement\022&\n\017max_cost_micros\030\005 \001(\003R\rmaxCostM" +
+      "icrosB\310\001B\016AgentCallProtoP\001\242\002\006ASAWVT\252\002$Ai" +
+      ".Stigmer.Agentic.Workflow.V1.Tasks\312\002$Ai\\" +
+      "Stigmer\\Agentic\\Workflow\\V1\\Tasks\342\0020Ai\\S" +
+      "tigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMeta" +
+      "data\352\002)Ai::Stigmer::Agentic::Workflow::V" +
+      "1::Tasksb\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           ai.stigmer.agentic.agentexecution.v1.SpecProto.getDescriptor(),
+          ai.stigmer.agentic.session.v1.EnumProto.getDescriptor(),
+          ai.stigmer.agentic.workflow.v1.tasks.CommonProto.getDescriptor(),
           ai.stigmer.commons.apiresource.FieldOptionsProto.getDescriptor(),
           build.buf.validate.ValidateProto.getDescriptor(),
+          com.google.protobuf.StructProto.getDescriptor(),
         });
     internal_static_ai_stigmer_agentic_workflow_v1_tasks_AgentCallTaskConfig_descriptor =
       getDescriptor().getMessageType(0);
     internal_static_ai_stigmer_agentic_workflow_v1_tasks_AgentCallTaskConfig_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_workflow_v1_tasks_AgentCallTaskConfig_descriptor,
-        new java.lang.String[] { "Agent", "Org", "Message", "Env", "Config", });
+        new java.lang.String[] { "Agent", "Org", "Message", "Env", "Config", "Output", "Harness", });
     internal_static_ai_stigmer_agentic_workflow_v1_tasks_AgentCallTaskConfig_EnvEntry_descriptor =
       internal_static_ai_stigmer_agentic_workflow_v1_tasks_AgentCallTaskConfig_descriptor.getNestedType(0);
     internal_static_ai_stigmer_agentic_workflow_v1_tasks_AgentCallTaskConfig_EnvEntry_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_workflow_v1_tasks_AgentCallTaskConfig_EnvEntry_descriptor,
         new java.lang.String[] { "Key", "Value", });
-    internal_static_ai_stigmer_agentic_workflow_v1_tasks_AgentExecutionConfig_descriptor =
+    internal_static_ai_stigmer_agentic_workflow_v1_tasks_AgentCallOutputContract_descriptor =
       getDescriptor().getMessageType(1);
+    internal_static_ai_stigmer_agentic_workflow_v1_tasks_AgentCallOutputContract_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_workflow_v1_tasks_AgentCallOutputContract_descriptor,
+        new java.lang.String[] { "Schema", "OnInvalid", "MaxRetries", "FallbackTask", });
+    internal_static_ai_stigmer_agentic_workflow_v1_tasks_AgentExecutionConfig_descriptor =
+      getDescriptor().getMessageType(2);
     internal_static_ai_stigmer_agentic_workflow_v1_tasks_AgentExecutionConfig_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_workflow_v1_tasks_AgentExecutionConfig_descriptor,
-        new java.lang.String[] { "Model", "Timeout", "Temperature", "ContextManagement", });
+        new java.lang.String[] { "Model", "Timeout", "Temperature", "ContextManagement", "MaxCostMicros", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.agentexecution.v1.SpecProto.getDescriptor();
+    ai.stigmer.agentic.session.v1.EnumProto.getDescriptor();
+    ai.stigmer.agentic.workflow.v1.tasks.CommonProto.getDescriptor();
     ai.stigmer.commons.apiresource.FieldOptionsProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();
+    com.google.protobuf.StructProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(ai.stigmer.commons.apiresource.FieldOptionsProto.discriminatorValue);

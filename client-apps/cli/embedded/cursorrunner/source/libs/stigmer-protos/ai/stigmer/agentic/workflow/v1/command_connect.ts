@@ -6,6 +6,7 @@
 import { Workflow } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { WorkflowId } from "./io_pbjs";
+import { ServerlessWorkflowValidation } from "./serverless/validation_pbjs";
 
 /**
  * WorkflowCommandController handles write operations for workflows.
@@ -66,6 +67,36 @@ export const WorkflowCommandController = {
       name: "delete",
       I: WorkflowId,
       O: Workflow,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Validate a workflow spec without persisting it.
+     *
+     * Runs the same two-layer validation pipeline used by create/update:
+     *   Layer 1: Proto field constraints (buf validate / protovalidate)
+     *   Layer 2: Temporal-based structural validation (Go activity: proto → YAML → Zigflow)
+     *
+     * Returns ServerlessWorkflowValidation with:
+     *   - VALID: Workflow structure passed all checks
+     *   - INVALID: User error (bad structure, missing fields, unknown task kinds)
+     *   - FAILED: System error (Temporal unavailable, converter crash)
+     *
+     * This RPC does NOT persist, authorize, or create instances. It is a
+     * pure validation endpoint suitable for iterative authoring workflows
+     * where the caller needs fast feedback before committing.
+     *
+     * @internal
+     * Authorization: Uses the same permission as create — caller must have
+     * can_create_workflow in the org. This prevents unauthenticated abuse
+     * of the validation pipeline while allowing any user who could create
+     * a workflow to also validate one.
+     *
+     * @generated from rpc ai.stigmer.agentic.workflow.v1.WorkflowCommandController.validateSpec
+     */
+    validateSpec: {
+      name: "validateSpec",
+      I: Workflow,
+      O: ServerlessWorkflowValidation,
       kind: MethodKind.Unary,
     },
   }

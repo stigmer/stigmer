@@ -55,6 +55,16 @@ func tsProtoFileToSuffix(protoFile string) string {
 	return name + "_pb"
 }
 
+// tsServiceImportSuffix returns the TS import module suffix for a service.
+// When ProtoFile is set, it derives the suffix from the actual proto file name
+// (e.g., "task_kind_registry_query_pb"). Otherwise falls back to role + "_pb".
+func tsServiceImportSuffix(svc *ServiceDefinition) string {
+	if svc.ProtoFile != "" {
+		return tsProtoFileToSuffix(svc.ProtoFile)
+	}
+	return svc.Role + "_pb"
+}
+
 // tsApisDir is the root directory containing proto API definitions.
 // Used by tsResolveEnumImport to determine whether a package has a
 // dedicated enum.proto file. Defaults to "apis" (repo root CWD).
@@ -293,7 +303,7 @@ func generateTSResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, 
 	imports.addValue("./errors", "wrapError")
 
 	for _, svc := range schema.Services {
-		file := svc.Role + "_pb"
+		file := tsServiceImportSuffix(&svc)
 		imports.addValue(importBase+"/"+file, svc.Name)
 	}
 
@@ -500,7 +510,11 @@ func tsImportMethodType(imports *tsImportSet, typeName, fullType string, schema 
 			imports.addType(from, typeName)
 		} else if typePkg != "" {
 			crossBase := deriveTSImportBase(typePkg)
-			imports.addType(crossBase+"/io_pb", typeName)
+			if file, ok := methodTypeFileMap[typeName]; ok {
+				imports.addType(crossBase+"/"+file, typeName)
+			} else {
+				imports.addType(crossBase+"/io_pb", typeName)
+			}
 		}
 		return
 	}
@@ -662,7 +676,15 @@ func generateTSStreamingMethod(buf *bytes.Buffer, m *MethodSchema, svc *ServiceD
 	outputType := m.OutputType
 	if outputType != cfg.protoResType && !m.ClientStreaming {
 		importBase := deriveTSImportBase(schema.Package)
-		imports.addType(importBase+"/api_pb", outputType)
+		suffix := "api_pb"
+		for _, mt := range schema.MethodTypes {
+			if mt.Name == outputType && mt.ProtoFile != "" {
+				suffix = tsProtoFileToSuffix(mt.ProtoFile)
+				break
+			}
+		}
+		imports.addType(importBase+"/"+suffix, outputType)
+		imports.addValue(importBase+"/"+suffix, outputType+"Schema")
 	}
 
 	if m.ClientStreaming {

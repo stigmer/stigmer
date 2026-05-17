@@ -101,6 +101,31 @@ message RunnerStatus {
   // Self-reported information about the machine running this runner.
   // Populated by the runner process on each heartbeat.
   RunnerConnectionInfo connection_info = 8;
+
+  // Per-process execution counts in a multi-process sandbox.
+  //
+  // In cloud mode, a single Runner resource hosts three co-located processes
+  // (agent, cursor, workflow), each reporting its own execution count via
+  // heartbeats with distinct process_type values. This map tracks the last
+  // reported count for each process type.
+  //
+  // The aggregate current_executions field (above) is derived from the sum
+  // of all values in this map. The runner is considered idle when every
+  // value is zero.
+  //
+  // Keys: "agent", "cursor", "workflow".
+  // Empty for single-process local runners (backward compatible).
+  map<string, int32> process_executions = 9;
+
+  // Timestamp when all processes in this runner last became idle
+  // (every value in process_executions is zero and no streams are active).
+  //
+  // Set by the server when the aggregate transitions from busy to idle.
+  // Cleared when any process reports activity. Used by server-side idle
+  // detection to trigger deprovisioning after a configurable timeout.
+  //
+  // Empty while any process has active executions.
+  google.protobuf.Timestamp idle_since = 10;
 }
 
 // RunnerConnectionInfo contains self-reported details about the runner's

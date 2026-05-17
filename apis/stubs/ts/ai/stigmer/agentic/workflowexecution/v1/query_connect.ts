@@ -3,9 +3,10 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ListWorkflowExecutionsByWorkflowRequest, ListWorkflowExecutionsRequest, SubscribeWorkflowExecutionRequest, WorkflowExecutionId, WorkflowExecutionList } from "./io_pbjs";
+import { ExecutionSummary, GetEventLogRequest, GetEventLogResponse, GetExecutionSummaryRequest, ListPendingApprovalsRequest, ListWorkflowExecutionsByWorkflowRequest, ListWorkflowExecutionsRequest, PendingApprovalsList, SubscribeEventsRequest, SubscribeWorkflowExecutionRequest, WorkflowExecutionId, WorkflowExecutionList } from "./io_pbjs";
 import { WorkflowExecution } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
+import { WorkflowExecutionEvent } from "./event_pbjs";
 
 /**
  * WorkflowExecutionQueryController handles read operations (Get, List, Subscribe) for WorkflowExecution resources.
@@ -399,6 +400,188 @@ export const WorkflowExecutionQueryController = {
       I: SubscribeWorkflowExecutionRequest,
       O: WorkflowExecution,
       kind: MethodKind.ServerStreaming,
+    },
+    /**
+     * Fetch the paginated event log for a workflow execution.
+     *
+     * Returns execution events ordered by sequence_number ascending, with
+     * cursor-based pagination and optional filtering by event type or task name.
+     *
+     * @internal
+     * Authorization:
+     * Standard authorization checks that user has "get" permission on the
+     * WorkflowExecution. Same permission as get() and subscribe().
+     *
+     * The event log complements the status snapshot: the snapshot tells you
+     * current state, the event log tells you what happened and when.
+     *
+     * Use Cases:
+     *
+     * 1. Execution Viewer Timeline:
+     *    - Load full event history for a completed execution
+     *    - Render timeline with task transitions, retries, approvals, cost
+     *
+     * 2. Task Drill-Down:
+     *    - Filter by task_name to see all events for a specific task
+     *    - Inspect retry history, duration, cost per attempt
+     *
+     * 3. Cost Audit:
+     *    - Filter by budget_checkpoint events to chart cost over time
+     *    - Correlate cost spikes with specific agent_call tasks
+     *
+     * 4. Approval Audit Trail:
+     *    - Filter by approval_requested and approval_resolved
+     *    - See who approved what, when, and with what comment
+     *
+     * Error Cases:
+     *
+     * - NOT_FOUND: No WorkflowExecution exists with the given ID
+     * - PERMISSION_DENIED: User doesn't have "get" permission
+     * - INVALID_ARGUMENT: page_size exceeds maximum (500)
+     *
+     * @since T06 (Execution Event Stream Model)
+     *
+     * @generated from rpc ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController.getEventLog
+     */
+    getEventLog: {
+      name: "getEventLog",
+      I: GetEventLogRequest,
+      O: GetEventLogResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Subscribe to real-time execution events (incremental event stream).
+     *
+     * Opens a server-side streaming RPC that pushes individual
+     * WorkflowExecutionEvent messages as they occur during execution.
+     * Unlike subscribe() which streams full WorkflowExecution snapshots,
+     * this streams lightweight incremental events for the timeline view.
+     *
+     * @internal
+     * Authorization:
+     * Standard authorization checks that user has "get" permission on the
+     * WorkflowExecution. Same permission as get() and subscribe().
+     *
+     * Stream Lifecycle:
+     * 1. Client sends SubscribeEventsRequest with execution_id
+     * 2. Server validates authorization
+     * 3. If after_sequence > 0: Server replays missed events from persistence
+     * 4. Server streams new events in real-time as the runner emits them
+     * 5. Server closes stream when execution reaches a terminal phase
+     *    (COMPLETED, FAILED, CANCELLED, TERMINATED)
+     * 6. Client can close stream early
+     *
+     * Reconnection:
+     * On disconnect, the client reconnects with after_sequence set to the
+     * sequence_number of the last received event. The server replays any
+     * events missed during the disconnect, then resumes live streaming.
+     * No events are lost.
+     *
+     * Complementary Streams:
+     * - subscribe(): Full snapshots for current-state views (progress bars, dashboards)
+     * - subscribeEvents(): Incremental events for timeline views (execution viewer)
+     * Both streams can be used simultaneously for different UI concerns.
+     *
+     * Use Cases:
+     *
+     * 1. Live Execution Timeline:
+     *    - User watches a running execution in the execution viewer
+     *    - Events stream in real-time, building the timeline as tasks progress
+     *    - Each event adds a row: "task X started", "task X completed (2.3s, $0.05)"
+     *
+     * 2. Cost Monitoring:
+     *    - Dashboard subscribes with event_types filter for budget_checkpoint
+     *    - Budget gauge updates in real-time as costs accumulate
+     *
+     * 3. Approval Notifications:
+     *    - Subscribe with event_types filter for approval_requested
+     *    - Surface approval gates immediately when they activate
+     *
+     * Error Cases:
+     *
+     * - NOT_FOUND: No WorkflowExecution exists with the given ID
+     * - PERMISSION_DENIED: User doesn't have "get" permission
+     * - DEADLINE_EXCEEDED: Client timeout (reconnect with after_sequence)
+     * - UNAVAILABLE: Server unavailable (retry with backoff)
+     *
+     * @since T06 (Execution Event Stream Model)
+     *
+     * @generated from rpc ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController.subscribeEvents
+     */
+    subscribeEvents: {
+      name: "subscribeEvents",
+      I: SubscribeEventsRequest,
+      O: WorkflowExecutionEvent,
+      kind: MethodKind.ServerStreaming,
+    },
+    /**
+     * Get aggregated execution statistics for an organization's workflows.
+     *
+     * Returns counts by phase, total cost, average duration, top failing
+     * workflows, and per-workflow cost breakdown — scoped to a configurable
+     * time window (24h, 7d, 30d, all-time).
+     *
+     * @internal
+     * Authorization:
+     * Custom authorization — user must have organization-level access.
+     * Results are scoped to the user's organization.
+     *
+     * Use Cases:
+     *
+     * 1. Dashboard Overview:
+     *    - Display KPI cards: active runs, completed, failed, total cost
+     *    - Time window selector toggles between 24h / 7d / 30d views
+     *
+     * 2. Cost Monitoring:
+     *    - Show per-workflow cost breakdown to identify expensive workflows
+     *    - Track cost trends across time windows
+     *
+     * 3. Reliability Monitoring:
+     *    - Surface top failing workflows for investigation
+     *    - Track failure rates across the organization
+     *
+     * @since T14 (Dashboard Integration)
+     *
+     * @generated from rpc ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController.getExecutionSummary
+     */
+    getExecutionSummary: {
+      name: "getExecutionSummary",
+      I: GetExecutionSummaryRequest,
+      O: ExecutionSummary,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * List workflow executions with pending human_input tasks awaiting reviewer decisions.
+     *
+     * Returns a paginated list of executions where at least one human_input
+     * task is actively waiting for a response. Each entry includes the
+     * execution context, task details, requester, and timeout information.
+     *
+     * @internal
+     * Authorization:
+     * Custom authorization — user must have organization-level access.
+     * Results are scoped to the user's organization.
+     *
+     * Use Cases:
+     *
+     * 1. Pending Approvals Dashboard Widget:
+     *    - Display a list of items requiring human attention
+     *    - Show time waiting and timeout countdown
+     *    - Link to execution viewer for review action
+     *
+     * 2. Approval Queue:
+     *    - Reviewers see all pending approvals in one view
+     *    - Sorted by urgency (closest to timeout first)
+     *
+     * @since T14 (Dashboard Integration)
+     *
+     * @generated from rpc ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController.listPendingApprovals
+     */
+    listPendingApprovals: {
+      name: "listPendingApprovals",
+      I: ListPendingApprovalsRequest,
+      O: PendingApprovalsList,
+      kind: MethodKind.Unary,
     },
   }
 } as const;

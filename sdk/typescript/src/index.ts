@@ -72,6 +72,12 @@ export {
   type OAuthTokenResponse,
 } from "./github";
 
+// Platform client (server info / edition detection)
+export {
+  PlatformClient,
+  type ServerInfo,
+} from "./platform";
+
 // Shared types (from generated code)
 export {
   type DeleteResourceInput,

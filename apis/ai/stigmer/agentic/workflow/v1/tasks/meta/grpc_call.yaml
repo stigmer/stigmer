@@ -1,0 +1,29 @@
+kind: grpc_call
+display_name: "gRPC Call"
+description: "Invoke a gRPC method on an external service."
+category: invocation
+icon: "server"
+is_ai_native: false
+requires_external_service: true
+documentation_url: "/docs/guides/workflow-tasks/grpc-call"
+
+output_schema:
+  type: object
+  description: "gRPC response message as JSON."
+
+field_groups:
+  - id: core
+    display_name: "Service Configuration"
+    fields: [service, method, request]
+
+yaml_examples:
+  - |
+    - call_service:
+        call: grpc
+        with:
+          service: "user.UserService"
+          method: "GetUser"
+          request:
+            user_id: "${ $context.user_id }"
+        export:
+          as: "${ . }"

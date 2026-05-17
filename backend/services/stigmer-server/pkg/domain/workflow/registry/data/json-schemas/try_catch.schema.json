@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "catch": {
+      "description": "Catch block for error handling (optional). If not provided, errors propagate to parent.",
+      "type": "object"
+    },
+    "try": {
+      "description": "Tasks to attempt (at least one required). If any task fails, execution jumps to catch block.",
+      "items": {
+        "type": "object"
+      },
+      "minItems": 1,
+      "type": "array"
+    }
+  },
+  "title": "TryTaskConfig",
+  "type": "object"
+}

@@ -6,7 +6,11 @@ import { OrgSwitcher, SETTINGS_NAV_GROUPS } from "@stigmer/react";
 import { UserMenu } from "./UserMenu";
 import { useSidebarOpen } from "./use-layout-state";
 
-export function ManagementSidebar() {
+export function ManagementSidebar({
+  lastSessionZonePath,
+}: {
+  readonly lastSessionZonePath?: string | null;
+}) {
   const sidebar = useSidebarOpen();
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -40,7 +44,7 @@ export function ManagementSidebar() {
       {/* Back to Sessions */}
       <div className="flex-none px-3 py-1">
         <NavLink
-          to="/"
+          to={lastSessionZonePath ?? "/"}
           className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium text-sidebar-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
         >
           <ArrowLeft className="size-4 shrink-0" />

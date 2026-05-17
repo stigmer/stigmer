@@ -17,8 +17,10 @@ class TryTaskConfig(_message.Message):
     def __init__(self, catch: _Optional[_Union[CatchBlock, _Mapping]] = ..., **kwargs) -> None: ...
 
 class CatchBlock(_message.Message):
-    __slots__ = ("do",)
+    __slots__ = ("do", "compensate")
     AS_FIELD_NUMBER: _ClassVar[int]
     DO_FIELD_NUMBER: _ClassVar[int]
+    COMPENSATE_FIELD_NUMBER: _ClassVar[int]
     do: _containers.RepeatedCompositeFieldContainer[_spec_pb2.WorkflowTask]
-    def __init__(self, do: _Optional[_Iterable[_Union[_spec_pb2.WorkflowTask, _Mapping]]] = ..., **kwargs) -> None: ...
+    compensate: bool
+    def __init__(self, do: _Optional[_Iterable[_Union[_spec_pb2.WorkflowTask, _Mapping]]] = ..., compensate: bool = ..., **kwargs) -> None: ...

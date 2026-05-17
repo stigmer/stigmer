@@ -1,0 +1,124 @@
+syntax = "proto3";
+
+// Package ai.stigmer.agentic.artifact.v1 contains the API definition for Artifact.
+//
+// An Artifact is a persisted blob produced during workflow or agent execution.
+// It externalizes large task outputs that would otherwise bloat the execution
+// status snapshot and Temporal workflow history.
+//
+// Artifacts are a shared, first-class resource reusable by both workflow
+// executions and agent executions. They have their own identity, lifecycle,
+// and access control — independent of the execution that produced them.
+//
+// This package belongs to the "agentic" bounded context, which encompasses
+// all AI agent systems and workflow orchestration capabilities.
+//
+// Key concepts:
+// - Content-addressable: blobs are stored by SHA-256 hash (deduplication)
+// - Immutable: artifact content cannot be modified after creation
+// - Lifecycle-independent: artifact retention is separate from execution retention
+// - Auto-promoted: the runtime transparently externalizes outputs exceeding
+//   the size threshold (default: 256KB), replacing inline data with artifact refs
+//
+// @since T07 (Artifact Store)
+package ai.stigmer.agentic.artifact.v1;
+
+import "ai/stigmer/agentic/artifact/v1/enum.proto";
+import "ai/stigmer/agentic/artifact/v1/spec.proto";
+import "ai/stigmer/commons/apiresource/metadata.proto";
+import "ai/stigmer/commons/apiresource/status.proto";
+import "buf/validate/validate.proto";
+
+// Artifact represents a persisted blob produced during execution.
+//
+// @internal
+// Follows the standard Stigmer resource pattern:
+// api_version + kind + metadata + spec + status.
+//
+// Artifacts are created by the workflow-runner or agent-runner when task
+// outputs exceed the auto-promotion threshold or when the workflow author
+// explicitly declares an artifact (Phase 1).
+//
+// The content blob is stored externally (local filesystem in OSS, S3 in Cloud).
+// The Artifact resource holds metadata and a content hash that references
+// the blob in the content-addressable store.
+//
+// Artifact lifecycle:
+// 1. Runner calls create() with spec + content bytes
+// 2. Backend hashes content, stores blob, creates metadata record
+// 3. Runner replaces inline task output with artifact reference
+// 4. Clients retrieve artifact via get() or download via getDownloadUrl()
+// 5. Background GC deletes expired artifacts based on retention policy
+//
+// @since T07 (Artifact Store)
+message Artifact {
+  // API version for this resource type.
+  string api_version = 1 [(buf.validate.field).string.const = 'agentic.stigmer.ai/v1'];
+
+  // Resource kind identifier.
+  string kind = 2 [(buf.validate.field).string.const = 'Artifact'];
+
+  // Resource metadata including name, organization, visibility, and labels.
+  //
+  // @internal
+  // Naming Pattern:
+  // - ID Format: "art_{unique-suffix}" (auto-generated)
+  // - Name Format: display_name from spec (e.g., "analyze_code — output.json")
+  // - Org: inherited from the producing execution's organization
+  //
+  // Labels:
+  // - source_type: "workflow_execution" or "agent_execution"
+  // - source_id: the execution ID that produced this artifact
+  // - task_name: the task that produced this artifact (if applicable)
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
+
+  // Artifact properties provided at creation time.
+  ArtifactSpec spec = 4;
+
+  // System-managed artifact state.
+  ArtifactStatus status = 5;
+}
+
+// ArtifactStatus contains system-managed state for an artifact.
+//
+// @internal
+// Populated by the backend at creation time and updated by the GC job.
+// Users cannot modify status fields directly.
+//
+// @since T07 (Artifact Store)
+message ArtifactStatus {
+  // Standard audit information.
+  ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
+
+  // SHA-256 hash of the artifact content, hex-encoded (64 characters).
+  //
+  // @internal
+  // Used as the blob storage key in the content-addressable store.
+  // Two artifacts with identical content share the same blob.
+  // The hash is computed by the backend at creation time and verified
+  // on download to ensure integrity.
+  string content_hash = 1;
+
+  // Size of the artifact content in bytes.
+  //
+  // @internal
+  // Set at creation time. Used by the UI to display file sizes and
+  // by the GC job to track storage consumption per organization.
+  int64 size_bytes = 2;
+
+  // Current storage state of the artifact's blob.
+  ArtifactStorageState storage_state = 3;
+
+  // ISO 8601 timestamp when this artifact expires and becomes eligible
+  // for garbage collection.
+  //
+  // @internal
+  // Computed at creation time from spec.retention.ttl_days:
+  // - ttl_days > 0: created_at + ttl_days
+  // - ttl_days == 0: created_at + org_default_retention_days
+  // - ttl_days == -1: empty (permanent, never expires)
+  //
+  // The GC job scans for artifacts where expires_at < now() and
+  // transitions them to storage_state_deleted.
+  string expires_at = 4;
+}

@@ -1,4 +1,3 @@
-// Package execution provides CLI utilities for managing Agent Execution resources.
 package execution
 
 import (
@@ -6,70 +5,93 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-	"github.com/stigmer/stigmer/client-apps/cli/pkg/reference"
 	stigmer "github.com/stigmer/stigmer/sdk/go"
 	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
+	workflowexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflowexecution/v1"
 )
 
-// Cancel gracefully stops a running agent execution.
-func Cancel(client *stigmer.Client, executionID string) (*agentexecutionv1.AgentExecution, error) {
-	if !reference.IsAgentExecutionID(executionID) {
-		return nil, fmt.Errorf("invalid execution ID format: %s (expected aex_xxx)", executionID)
+// CancelOptions contains options for cancelling an execution.
+type CancelOptions struct {
+	ExecutionID string
+	Reason      string
+	Client      *stigmer.Client
+}
+
+// Cancel gracefully cancels an execution (agent or workflow).
+func Cancel(opts *CancelOptions) (string, error) {
+	execType, err := ResolveType(opts.ExecutionID)
+	if err != nil {
+		return "", err
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
 	defer cancel()
 
-	result, err := client.AgentExecution.Cancel(ctx, &agentexecutionv1.CancelAgentExecutionInput{
-		Id: executionID,
-	})
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to cancel execution '%s'", executionID)
-	}
+	switch execType {
+	case ExecutionTypeAgent:
+		result, err := opts.Client.AgentExecution.Cancel(ctx, &agentexecutionv1.CancelAgentExecutionInput{
+			Id:     opts.ExecutionID,
+			Reason: opts.Reason,
+		})
+		if err != nil {
+			return "", errors.Wrapf(err, "failed to cancel agent execution '%s'", opts.ExecutionID)
+		}
+		return FormatPhase(result.GetStatus().GetPhase()), nil
 
-	return result, nil
-}
+	case ExecutionTypeWorkflow:
+		result, err := opts.Client.WorkflowExecution.Cancel(ctx, &workflowexecutionv1.CancelWorkflowExecutionInput{
+			Id:     opts.ExecutionID,
+			Reason: opts.Reason,
+		})
+		if err != nil {
+			return "", errors.Wrapf(err, "failed to cancel workflow execution '%s'", opts.ExecutionID)
+		}
+		return FormatWorkflowPhase(result.GetStatus().GetPhase()), nil
 
-// CancelResult contains the result of a cancel operation.
-type CancelResult struct {
-	Execution           *agentexecutionv1.AgentExecution
-	WasAlreadyCancelled bool
-}
-
-// CancelWithResult cancels an execution and returns additional context.
-func CancelWithResult(client *stigmer.Client, executionID string) (*CancelResult, error) {
-	exec, err := GetFromBackend(client, executionID)
-	if err != nil {
-		return nil, err
-	}
-
-	phase := exec.GetStatus().GetPhase()
-	if isTerminalPhase(phase) {
-		return &CancelResult{
-			Execution:           exec,
-			WasAlreadyCancelled: true,
-		}, nil
-	}
-
-	result, err := Cancel(client, executionID)
-	if err != nil {
-		return nil, err
-	}
-
-	return &CancelResult{
-		Execution:           result,
-		WasAlreadyCancelled: false,
-	}, nil
-}
-
-func isTerminalPhase(phase agentexecutionv1.ExecutionPhase) bool {
-	switch phase {
-	case agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
-		agentexecutionv1.ExecutionPhase_EXECUTION_FAILED,
-		agentexecutionv1.ExecutionPhase_EXECUTION_CANCELLED,
-		agentexecutionv1.ExecutionPhase_EXECUTION_TERMINATED:
-		return true
 	default:
-		return false
+		return "", fmt.Errorf("unsupported execution type for cancel")
+	}
+}
+
+// TerminateOptions contains options for terminating an execution.
+type TerminateOptions struct {
+	ExecutionID string
+	Reason      string
+	Client      *stigmer.Client
+}
+
+// Terminate forcefully terminates an execution (agent or workflow).
+func Terminate(opts *TerminateOptions) (string, error) {
+	execType, err := ResolveType(opts.ExecutionID)
+	if err != nil {
+		return "", err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
+	defer cancel()
+
+	switch execType {
+	case ExecutionTypeAgent:
+		result, err := opts.Client.AgentExecution.Terminate(ctx, &agentexecutionv1.TerminateAgentExecutionInput{
+			Id:     opts.ExecutionID,
+			Reason: opts.Reason,
+		})
+		if err != nil {
+			return "", errors.Wrapf(err, "failed to terminate agent execution '%s'", opts.ExecutionID)
+		}
+		return FormatPhase(result.GetStatus().GetPhase()), nil
+
+	case ExecutionTypeWorkflow:
+		result, err := opts.Client.WorkflowExecution.Terminate(ctx, &workflowexecutionv1.TerminateWorkflowExecutionInput{
+			Id:     opts.ExecutionID,
+			Reason: opts.Reason,
+		})
+		if err != nil {
+			return "", errors.Wrapf(err, "failed to terminate workflow execution '%s'", opts.ExecutionID)
+		}
+		return FormatWorkflowPhase(result.GetStatus().GetPhase()), nil
+
+	default:
+		return "", fmt.Errorf("unsupported execution type for terminate")
 	}
 }

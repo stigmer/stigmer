@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "agent": {
+      "description": "Agent reference in \"org/slug\" or \"slug\" format. - \"slug\" only: uses the workflow's organization - \"org/slug\": explicit organization reference Examples: \"code-reviewer\", \"stigmer/code-reviewer\", \"acme/data-analyst\" Required field.",
+      "maxLength": 127,
+      "minLength": 1,
+      "type": "string"
+    },
+    "config": {
+      "description": "Execution configuration for the agent invocation. Optional - defaults are applied if not specified.",
+      "type": "object"
+    },
+    "env": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Runtime environment variables to pass to the agent. Values can be literal strings or JQ expressions that reference workflow context or secrets. Example: {\"GITHUB_TOKEN\": \"${ .secrets.GH_TOKEN }\"} Optional.",
+      "type": "object"
+    },
+    "message": {
+      "description": "Instructions/prompt to send to the agent. Supports interpolation of workflow variables using JQ expressions. Example: \"Analyze this code: ${ $context.fetchCode.body }\" Required field.",
+      "minLength": 1,
+      "type": "string"
+    },
+    "org": {
+      "description": "Explicit organization for agent resolution. Optional. If empty, the org is parsed from the agent field or defaults to workflow's org. Use this when you need to override the parsed org.",
+      "type": "string"
+    },
+    "output": {
+      "description": "Structured output contract for this agent call. When set, the workflow runner extracts structured JSON from the agent's final response and validates it against the declared schema. The validated JSON is placed in the task output under the \"structured\" key, enabling reliable downstream routing via switch_case expressions. When not set, the task output contains the agent's raw text response (backward compatible with existing workflows).",
+      "type": "object"
+    }
+  },
+  "required": [
+    "agent",
+    "message"
+  ],
+  "title": "AgentCallTaskConfig",
+  "type": "object"
+}

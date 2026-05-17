@@ -89,7 +89,7 @@ func TestE2E_TypedProtoToYAML_AllTaskTypes(t *testing.T) {
 					},
 				},
 			},
-			expectYAML: []string{"switch:", "cases:"},
+			expectYAML: []string{"switch:", "case1:"},
 		},
 		// Note: FOR, FORK, TRY, LISTEN have complex nested WorkflowTask arrays
 		// They require recursive conversion which is beyond the scope of this refactoring
@@ -112,7 +112,7 @@ func TestE2E_TypedProtoToYAML_AllTaskTypes(t *testing.T) {
 				Error:   "ValidationError",
 				Message: "Invalid data",
 			},
-			expectYAML: []string{"raise:", "error: ValidationError"},
+			expectYAML: []string{"raise:", "title: ValidationError"},
 		},
 		{
 			name:     "RUN task",
@@ -120,7 +120,7 @@ func TestE2E_TypedProtoToYAML_AllTaskTypes(t *testing.T) {
 			typedProto: &tasksv1.RunTaskConfig{
 				Workflow: "child-workflow",
 			},
-			expectYAML: []string{"run:", "workflow: child-workflow"},
+			expectYAML: []string{"run:", "name: child-workflow"},
 		},
 	}
 
@@ -425,7 +425,7 @@ func TestE2E_ComplexNestedStructures(t *testing.T) {
 
 	// Verify all cases are present
 	assert.Contains(t, yaml, "switch:")
-	assert.Contains(t, yaml, "cases:")
+	assert.Contains(t, yaml, "success:")
 	assert.Contains(t, yaml, "status == 200")
 	assert.Contains(t, yaml, "status == 404")
 	assert.Contains(t, yaml, "status >= 500")

@@ -29,6 +29,7 @@ const (
 	AgentExecutionQueryController_GetSessionUsageReport_FullMethodName   = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/getSessionUsageReport"
 	AgentExecutionQueryController_GetAgentUsageReport_FullMethodName     = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/getAgentUsageReport"
 	AgentExecutionQueryController_GetOrgUsageReport_FullMethodName       = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/getOrgUsageReport"
+	AgentExecutionQueryController_GetExecutionSummary_FullMethodName     = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/getExecutionSummary"
 )
 
 // AgentExecutionQueryControllerClient is the client API for AgentExecutionQueryController service.
@@ -149,6 +150,28 @@ type AgentExecutionQueryControllerClient interface {
 	//
 	// Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
 	GetOrgUsageReport(ctx context.Context, in *GetOrgUsageReportInput, opts ...grpc.CallOption) (*GetOrgUsageReportOutput, error)
+	// Get aggregated execution statistics for an organization's agent executions.
+	//
+	// Returns counts by phase, active count, average duration, and top failing
+	// agents — scoped to a configurable time window (24h, 7d, 30d, all-time).
+	//
+	// @internal
+	// Authorization:
+	// Custom authorization — user must have organization-level access.
+	// Results are scoped to the user's organization.
+	//
+	// Use Cases:
+	//
+	// 1. Unified Dashboard Overview:
+	//   - Display combined agent + workflow KPI cards
+	//   - Agent phase counts are merged client-side with workflow phase counts
+	//
+	// 2. Reliability Monitoring:
+	//   - Surface top failing agents for investigation
+	//   - Track failure rates across the organization
+	//
+	// @since Unified Platform Dashboard
+	GetExecutionSummary(ctx context.Context, in *GetAgentExecutionSummaryRequest, opts ...grpc.CallOption) (*AgentExecutionSummary, error)
 }
 
 type agentExecutionQueryControllerClient struct {
@@ -262,6 +285,16 @@ func (c *agentExecutionQueryControllerClient) GetOrgUsageReport(ctx context.Cont
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetOrgUsageReportOutput)
 	err := c.cc.Invoke(ctx, AgentExecutionQueryController_GetOrgUsageReport_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentExecutionQueryControllerClient) GetExecutionSummary(ctx context.Context, in *GetAgentExecutionSummaryRequest, opts ...grpc.CallOption) (*AgentExecutionSummary, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AgentExecutionSummary)
+	err := c.cc.Invoke(ctx, AgentExecutionQueryController_GetExecutionSummary_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -386,6 +419,28 @@ type AgentExecutionQueryControllerServer interface {
 	//
 	// Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
 	GetOrgUsageReport(context.Context, *GetOrgUsageReportInput) (*GetOrgUsageReportOutput, error)
+	// Get aggregated execution statistics for an organization's agent executions.
+	//
+	// Returns counts by phase, active count, average duration, and top failing
+	// agents — scoped to a configurable time window (24h, 7d, 30d, all-time).
+	//
+	// @internal
+	// Authorization:
+	// Custom authorization — user must have organization-level access.
+	// Results are scoped to the user's organization.
+	//
+	// Use Cases:
+	//
+	// 1. Unified Dashboard Overview:
+	//   - Display combined agent + workflow KPI cards
+	//   - Agent phase counts are merged client-side with workflow phase counts
+	//
+	// 2. Reliability Monitoring:
+	//   - Surface top failing agents for investigation
+	//   - Track failure rates across the organization
+	//
+	// @since Unified Platform Dashboard
+	GetExecutionSummary(context.Context, *GetAgentExecutionSummaryRequest) (*AgentExecutionSummary, error)
 }
 
 // UnimplementedAgentExecutionQueryControllerServer should be embedded to have
@@ -424,6 +479,9 @@ func (UnimplementedAgentExecutionQueryControllerServer) GetAgentUsageReport(cont
 }
 func (UnimplementedAgentExecutionQueryControllerServer) GetOrgUsageReport(context.Context, *GetOrgUsageReportInput) (*GetOrgUsageReportOutput, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetOrgUsageReport not implemented")
+}
+func (UnimplementedAgentExecutionQueryControllerServer) GetExecutionSummary(context.Context, *GetAgentExecutionSummaryRequest) (*AgentExecutionSummary, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetExecutionSummary not implemented")
 }
 func (UnimplementedAgentExecutionQueryControllerServer) testEmbeddedByValue() {}
 
@@ -618,6 +676,24 @@ func _AgentExecutionQueryController_GetOrgUsageReport_Handler(srv interface{}, c
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AgentExecutionQueryController_GetExecutionSummary_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAgentExecutionSummaryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentExecutionQueryControllerServer).GetExecutionSummary(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentExecutionQueryController_GetExecutionSummary_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentExecutionQueryControllerServer).GetExecutionSummary(ctx, req.(*GetAgentExecutionSummaryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AgentExecutionQueryController_ServiceDesc is the grpc.ServiceDesc for AgentExecutionQueryController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -660,6 +736,10 @@ var AgentExecutionQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "getOrgUsageReport",
 			Handler:    _AgentExecutionQueryController_GetOrgUsageReport_Handler,
+		},
+		{
+			MethodName: "getExecutionSummary",
+			Handler:    _AgentExecutionQueryController_GetExecutionSummary_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

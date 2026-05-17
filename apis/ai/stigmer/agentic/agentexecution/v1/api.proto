@@ -10,6 +10,7 @@ import "ai/stigmer/agentic/agentexecution/v1/message.proto";
 import "ai/stigmer/agentic/agentexecution/v1/spec.proto";
 import "ai/stigmer/agentic/agentexecution/v1/subagent.proto";
 import "ai/stigmer/agentic/agentexecution/v1/todo.proto";
+import "ai/stigmer/agentic/agentexecution/v1/usage.proto";
 import "ai/stigmer/agentic/agentexecution/v1/writeback.proto";
 import "ai/stigmer/commons/apiresource/metadata.proto";
 import "ai/stigmer/commons/apiresource/status.proto";
@@ -240,6 +241,21 @@ message AgentExecutionStatus {
   //
   // Used for observability: "which runner handled this work?"
   string runner_id = 19;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Runner-Reported Usage (DISPLAY_ONLY Trust Level)
+  //
+  // Provisional usage captured from the runner's onDelta callbacks.
+  // For Cursor harness: accumulated from SDK turn-ended events.
+  // For native harness: not populated (authoritative usage comes from proxy).
+  //
+  // Trust: DISPLAY_ONLY. Not billing-authoritative. Use for real-time UX only.
+  // Billing settlement comes from LlmCallUsageRecord (proxy-reported) or
+  // future Cursor Admin API reconciliation.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Runner-reported usage summary, updated progressively during streaming.
+  RunnerUsageSummary runner_usage = 20;
 }
 
 // Setup progress reported during the EXECUTION_PENDING phase.

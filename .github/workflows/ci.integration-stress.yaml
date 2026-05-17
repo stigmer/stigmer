@@ -1,0 +1,154 @@
+# =============================================================================
+# Integration Tests (Stress / Flake Detection)
+# =============================================================================
+# Runs the offline integration suite multiple times (-count=3) to surface
+# timing-dependent flakes. Quarantine skip is disabled so quarantined tests
+# are also exercised — this validates whether they are still flaky or can
+# be unquarantined.
+#
+# This workflow is advisory only — it never blocks merges.
+#
+# Triggers: weekly schedule (Sunday 3 AM UTC) + manual dispatch.
+# =============================================================================
+
+name: ci.integration-stress
+
+on:
+  schedule:
+    - cron: "0 3 * * 0"
+  workflow_dispatch:
+    inputs:
+      cloud_ref:
+        description: "stigmer-cloud git ref to build the service JAR from"
+        required: false
+        type: string
+        default: "main"
+
+concurrency:
+  group: integration-stress-${{ github.run_id }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  build-service-jar:
+    name: Build Service JAR
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout stigmer-cloud
+        uses: actions/checkout@v4
+        with:
+          repository: stigmer/stigmer-cloud
+          ref: ${{ inputs.cloud_ref || 'main' }}
+          path: stigmer-cloud
+          token: ${{ secrets.STIGMER_CLOUD_TOKEN }}
+
+      - name: Setup Bazel
+        uses: bazel-contrib/setup-bazel@0.19.0
+        with:
+          bazelisk-cache: true
+          disk-cache: integration-jar
+          repository-cache: true
+
+      - name: Build fat JAR
+        working-directory: stigmer-cloud
+        run: ./bazelw build //backend/services/stigmer-service:stigmer_service_fatjar
+
+      - name: Upload JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: stigmer-service-jar
+          path: stigmer-cloud/bazel-bin/backend/services/stigmer-service/stigmer_service_fatjar.jar
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Upload FGA model
+        uses: actions/upload-artifact@v4
+        with:
+          name: fga-model
+          path: stigmer-cloud/backend/services/stigmer-service/src/main/resources/fga/model/
+          retention-days: 1
+          if-no-files-found: error
+
+  stress-tests:
+    name: Stress Tests (3x)
+    runs-on: ubuntu-latest
+    needs: build-service-jar
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download service JAR
+        uses: actions/download-artifact@v4
+        with:
+          name: stigmer-service-jar
+          path: .artifacts
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.work
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Install Temporal CLI
+        uses: temporalio/setup-temporal@v0
+
+      - name: Install gotestsum
+        run: go install gotest.tools/gotestsum@v1.12.1
+
+      - name: Install OpenFGA CLI
+        run: |
+          curl -fsSL https://openfga.dev/api/installcli | bash
+          fga version
+
+      - name: Download FGA model
+        uses: actions/download-artifact@v4
+        with:
+          name: fga-model
+          path: .artifacts/fga-model
+
+      - name: Run stress tests (3 repetitions, no quarantine skip)
+        env:
+          STIGMER_SERVICE_JAR: ${{ github.workspace }}/.artifacts/stigmer_service_fatjar.jar
+          STIGMER_FGA_MODEL_DIR: ${{ github.workspace }}/.artifacts/fga-model
+          SKIP_QUARANTINE: "false"
+        run: make test-integration-stress
+
+      - name: Generate flake report
+        if: always()
+        run: |
+          REPORT_DIR=test/integration/.test-output-stress
+          if [ -f "$REPORT_DIR/test-output.json" ]; then
+            cd test/integration && GOWORK=off go run ./tools/flaketrack report \
+              --json "$(pwd)/.test-output-stress/test-output.json" \
+              --quarantine "$(pwd)/quarantine.json" \
+              >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "### Stress Test Report" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "No test output found — stress tests may have failed to start." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stress-test-results
+          path: test/integration/.test-output-stress/
+          retention-days: 30
+
+      - name: Publish test report
+        if: always() && hashFiles('test/integration/.test-output-stress/junit.xml') != ''
+        uses: dorny/test-reporter@v3
+        with:
+          name: Stress Test Report
+          path: test/integration/.test-output-stress/junit.xml
+          reporter: java-junit

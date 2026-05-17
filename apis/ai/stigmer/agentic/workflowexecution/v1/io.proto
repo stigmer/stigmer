@@ -5,8 +5,11 @@ package ai.stigmer.agentic.workflowexecution.v1;
 import "ai/stigmer/agentic/agentexecution/v1/enum.proto";
 import "ai/stigmer/agentic/workflowexecution/v1/api.proto";
 import "ai/stigmer/agentic/workflowexecution/v1/enum.proto";
+import "ai/stigmer/agentic/workflowexecution/v1/event.proto";
 import "buf/validate/validate.proto";
+import "google/protobuf/duration.proto";
 import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
 
 // WorkflowExecutionId wraps a workflow execution identifier.
 //
@@ -120,6 +123,24 @@ message WorkflowExecutionUpdateStatusInput {
   // @internal
   // Only the fields present in this status object will be updated.
   WorkflowExecutionStatus status = 2 [(buf.validate.field).required = true];
+
+  // Execution events to append to the event log alongside this status update.
+  //
+  // @internal
+  // Append-only: events are added to the persistent event log, never replaced.
+  // This contrasts with status.tasks which uses full-replace protocol.
+  //
+  // The workflow-runner appends events atomically with each status update,
+  // ensuring the event log stays consistent with the status snapshot.
+  // Events must have monotonically increasing sequence_numbers — the handler
+  // rejects batches where any event's sequence_number is <= the current
+  // highest persisted sequence for this execution.
+  //
+  // Empty list means no new events (backward compatible — existing runners
+  // that do not yet emit events continue to work without changes).
+  //
+  // @since T06 (Execution Event Stream Model)
+  repeated WorkflowExecutionEvent events = 10;
 }
 
 // Input for the submitApproval RPC.
@@ -160,6 +181,65 @@ message SubmitWorkflowApprovalInput {
   string comment = 4;
 }
 
+// SubmitWorkflowTaskApprovalInput submits a human reviewer's decision for a
+// workflow-level human_input task.
+//
+// @internal
+// Unlike submitApproval (which forwards agent-level tool approvals to a child
+// AgentExecution), this RPC resolves workflow-level human_input tasks. The handler:
+//
+// 1. Validates that the named task exists in the execution and is a human_input task
+// 2. Validates the outcome against the task's configured outcomes (if any)
+// 3. Constructs the Temporal signal name ("human_input_{task_name}")
+// 4. Builds the signal payload matching HumanInputSignalPayload
+// 5. Sends the signal via SignalWithStart for race-proof delivery
+//
+// The reviewer's decision (outcome + form_data) becomes the task output after
+// the workflow-runner receives and processes the signal.
+//
+// @since T13b (Java/Cloud Backend Parity)
+message SubmitWorkflowTaskApprovalInput {
+  // ID of the workflow execution containing the human_input task.
+  //
+  // @internal
+  // Format: "wfx_{unique-suffix}"
+  string execution_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Name of the human_input task to respond to.
+  //
+  // @internal
+  // Must match a task in the workflow whose kind is human_input and whose
+  // current status is WORKFLOW_TASK_IN_PROGRESS (waiting for signal).
+  // The handler constructs the signal name as "human_input_{task_name}".
+  string task_name = 2 [(buf.validate.field).string.min_len = 1];
+
+  // Outcome selected by the reviewer.
+  //
+  // @internal
+  // If the human_input task defines custom outcomes, this must match one of
+  // the configured outcome names (e.g., "approve", "deny", "needs_revision").
+  // If no custom outcomes are defined, must be "approve" or "deny".
+  string outcome = 3 [(buf.validate.field).string.min_len = 1];
+
+  // Form data collected from the reviewer's response form.
+  //
+  // @internal
+  // Populated when the human_input task defines a form_schema. The form data
+  // is delivered to the Go runner as-is and becomes part of the task output.
+  // Validation against the form_schema is a runtime concern (Go runner side).
+  google.protobuf.Struct form_data = 4;
+
+  // Identity of the reviewer submitting the decision.
+  //
+  // @internal
+  // Typically the authenticated user's identity. Stored in the task output
+  // for audit trail purposes.
+  string reviewer = 5;
+
+  // Optional comment from the reviewer, stored in the audit trail.
+  string comment = 6;
+}
+
 // SubscribeWorkflowExecutionRequest subscribes to real-time execution updates.
 //
 // @internal
@@ -171,79 +251,6 @@ message SubscribeWorkflowExecutionRequest {
   // @internal
   // Format: "wfx_{unique-suffix}"
   string execution_id = 1 [(buf.validate.field).required = true];
-}
-
-// WorkflowExecutionUpdate represents a real-time execution update event.
-//
-// @internal
-// Reserved for future WebSocket/SSE streaming implementations.
-// Currently not used by subscribe() RPC (which sends full WorkflowExecution).
-message WorkflowExecutionUpdate {
-  // Type of update that occurred.
-  //
-  // @internal
-  // Determines which fields in this message are populated.
-  WorkflowUpdateType update_type = 1 [(buf.validate.field).enum.defined_only = true];
-
-  // Updated execution state (full or partial).
-  //
-  // @internal
-  // May contain only changed fields. Clients should merge with cached state.
-  WorkflowExecution execution = 2;
-
-  // Updated task, populated only for task-related update types.
-  //
-  // @internal
-  // Provides direct access to the changed task without searching execution.status.tasks[].
-  WorkflowTask task = 3;
-}
-
-// WorkflowUpdateType defines the type of workflow execution update event.
-//
-// @internal
-// Used by WorkflowExecutionUpdate to indicate what changed in the execution.
-enum WorkflowUpdateType {
-  // Unspecified update type (invalid).
-  //
-  // @internal
-  // Exists only for proto3 zero-value semantics.
-  workflow_update_type_unspecified = 0;
-
-  // Workflow execution phase changed.
-  //
-  // @internal
-  // Triggered when status.phase transitions to a new value.
-  wf_update_status_changed = 1;
-
-  // A workflow task started executing.
-  //
-  // @internal
-  // Triggered when task status changes from PENDING to IN_PROGRESS.
-  wf_update_task_started = 2;
-
-  // A workflow task completed successfully.
-  //
-  // @internal
-  // Triggered when task status changes from IN_PROGRESS to COMPLETED.
-  wf_update_task_completed = 3;
-
-  // A workflow task failed.
-  //
-  // @internal
-  // Triggered when task status changes from IN_PROGRESS to FAILED.
-  wf_update_task_failed = 4;
-
-  // Workflow execution completed successfully.
-  //
-  // @internal
-  // Terminal event - no more updates will follow.
-  wf_update_execution_completed = 5;
-
-  // Workflow execution was cancelled.
-  //
-  // @internal
-  // Terminal event - no more updates will follow.
-  wf_update_execution_cancelled = 6;
 }
 
 // CancelWorkflowExecutionInput requests graceful cancellation of a workflow execution.
@@ -383,4 +390,280 @@ message SendSignalInput {
   //
   // @since Gap B2 (Event Dedupe)
   string idempotency_key = 4;
+}
+
+// GetEventLogRequest fetches the paginated event log for a workflow execution.
+//
+// @internal
+// Returns events ordered by sequence_number ascending. Supports cursor-based
+// pagination via after_sequence and optional filtering by event type or task.
+//
+// Use Cases:
+//
+// 1. Execution Viewer Timeline (T09):
+//    - UI loads execution state via get(), then fetches event log for timeline
+//    - Initial load: after_sequence = 0, page_size = 100
+//    - Subsequent pages: after_sequence = latest_sequence from previous response
+//
+// 2. Task Drill-Down:
+//    - User clicks a task in the viewer to see its full history
+//    - Filter by task_name to get only events for that task
+//
+// 3. Cost Analysis:
+//    - Filter by budget_checkpoint events to chart cost over time
+//
+// @since T06 (Execution Event Stream Model)
+message GetEventLogRequest {
+  // Execution ID to fetch events for.
+  //
+  // @internal
+  // Format: "wfx_{unique-suffix}"
+  string execution_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Return events with sequence_number strictly greater than this value.
+  //
+  // @internal
+  // Cursor-based pagination: set to 0 for the first page, then to
+  // latest_sequence from the previous response for subsequent pages.
+  // Also used by subscribeEvents for replay + live tail positioning.
+  uint64 after_sequence = 2;
+
+  // Optional filter: return only events of these types.
+  //
+  // @internal
+  // When empty, all event types are returned. When populated, only events
+  // whose event_type matches one of the specified values are included.
+  // Useful for filtering to only task lifecycle events, or only budget events.
+  repeated WorkflowEventType event_types = 3;
+
+  // Optional filter: return only events for this task.
+  //
+  // @internal
+  // When empty, events for all tasks (and execution-level events) are returned.
+  // When populated, only events where task_name matches are included.
+  // Execution-level events (empty task_name) are excluded when this filter is set.
+  string task_name = 4;
+
+  // Maximum number of events to return per page.
+  //
+  // @internal
+  // Default: 100. Maximum: 500 (backend enforces this limit).
+  // Events are always returned in sequence_number ascending order.
+  int32 page_size = 5;
+}
+
+// GetEventLogResponse contains a page of execution events.
+//
+// @internal
+// @since T06 (Execution Event Stream Model)
+message GetEventLogResponse {
+  // Events in this page, ordered by sequence_number ascending.
+  repeated WorkflowExecutionEvent events = 1;
+
+  // Whether more events exist after the last event in this response.
+  // When false, the client has reached the end of the current event log.
+  // For in-progress executions, more events may appear later.
+  bool has_more = 2;
+
+  // Highest sequence_number returned in this response.
+  // Use as after_sequence in the next request for cursor-based pagination.
+  // 0 when events is empty.
+  uint64 latest_sequence = 3;
+}
+
+// SubscribeEventsRequest opens a real-time event stream for a workflow execution.
+//
+// @internal
+// Unlike subscribe() which streams full WorkflowExecution snapshots, this
+// streams individual WorkflowExecutionEvent messages as they occur.
+// Lightweight and incremental — suitable for the execution viewer timeline.
+//
+// Replay + Live Tail:
+// When after_sequence is set, the server first replays persisted events
+// with sequence_number > after_sequence, then switches to live streaming.
+// This enables seamless reconnection without missing events.
+//
+// Stream Lifecycle:
+// 1. Client sends SubscribeEventsRequest with execution_id
+// 2. Server validates authorization
+// 3. If after_sequence > 0: Server replays missed events
+// 4. Server streams new events in real-time as they occur
+// 5. Server closes stream when execution reaches a terminal phase
+// 6. Client can close stream early (e.g., user navigates away)
+//
+// @since T06 (Execution Event Stream Model)
+message SubscribeEventsRequest {
+  // Execution ID to subscribe to.
+  //
+  // @internal
+  // Format: "wfx_{unique-suffix}"
+  string execution_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Resume from this sequence number (replay + live tail).
+  //
+  // @internal
+  // 0 = start from the beginning (replay all events then live tail).
+  // N = replay events with sequence_number > N, then live tail.
+  //
+  // Use the latest_sequence from a previous getEventLog response or
+  // the last received event's sequence_number for reconnection.
+  uint64 after_sequence = 2;
+
+  // Optional filter: stream only events of these types.
+  //
+  // @internal
+  // When empty, all event types are streamed.
+  // Applied to both replayed and live events.
+  repeated WorkflowEventType event_types = 3;
+}
+
+// ---------------------------------------------------------------------------
+// Dashboard aggregation messages
+// ---------------------------------------------------------------------------
+
+// SummaryTimeWindow controls the time range for aggregated dashboard queries.
+//
+// @since T14 (Dashboard Integration)
+enum SummaryTimeWindow {
+  SUMMARY_TIME_WINDOW_UNSPECIFIED = 0;
+  SUMMARY_TIME_WINDOW_LAST_24H = 1;
+  SUMMARY_TIME_WINDOW_LAST_7D = 2;
+  SUMMARY_TIME_WINDOW_LAST_30D = 3;
+  SUMMARY_TIME_WINDOW_ALL_TIME = 4;
+}
+
+// GetExecutionSummaryRequest fetches aggregated execution statistics for an organization.
+//
+// @since T14 (Dashboard Integration)
+message GetExecutionSummaryRequest {
+  // Organization slug to scope the summary.
+  string org = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Time window for aggregation.
+  //
+  // Defaults to LAST_7D when unspecified.
+  SummaryTimeWindow time_window = 2;
+}
+
+// ExecutionSummary contains aggregated statistics for workflow executions.
+//
+// All counts, costs, and durations are scoped to the requested time window.
+//
+// @since T14 (Dashboard Integration)
+message ExecutionSummary {
+  // Number of executions currently in a non-terminal phase (PENDING, IN_PROGRESS, PAUSED).
+  int32 active_count = 1;
+
+  // Execution counts broken down by phase.
+  //
+  // Keys are ExecutionPhase enum values (as int32).
+  // Only phases with at least one execution are included.
+  map<int32, int32> phase_counts = 2;
+
+  // Aggregate cost across all executions in the time window.
+  WorkflowCostSummary total_cost = 3;
+
+  // Mean execution duration (from started_at to completed_at) for completed executions.
+  //
+  // Zero when no completed executions exist in the window.
+  google.protobuf.Duration avg_duration = 4;
+
+  // Workflows with the highest failure count in the time window, ranked descending.
+  //
+  // Capped at 10 entries.
+  repeated WorkflowFailureRank top_failing_workflows = 5;
+
+  // Per-workflow cost breakdown, ranked by total_cost descending.
+  //
+  // Capped at 10 entries.
+  repeated WorkflowCostBreakdown cost_by_workflow = 6;
+}
+
+// WorkflowCostSummary aggregates token and dollar costs.
+//
+// @since T14 (Dashboard Integration)
+message WorkflowCostSummary {
+  double total_cost_usd = 1;
+  int64 total_input_tokens = 2;
+  int64 total_output_tokens = 3;
+}
+
+// WorkflowFailureRank represents a workflow and its failure count within a time window.
+//
+// @since T14 (Dashboard Integration)
+message WorkflowFailureRank {
+  string workflow_slug = 1;
+  string workflow_name = 2;
+  int32 failure_count = 3;
+}
+
+// WorkflowCostBreakdown represents per-workflow cost aggregation.
+//
+// @since T14 (Dashboard Integration)
+message WorkflowCostBreakdown {
+  string workflow_slug = 1;
+  string workflow_name = 2;
+  double total_cost_usd = 3;
+  int32 execution_count = 4;
+}
+
+// ListPendingApprovalsRequest fetches workflow executions that have active
+// human_input tasks awaiting reviewer decisions.
+//
+// @since T14 (Dashboard Integration)
+message ListPendingApprovalsRequest {
+  // Organization slug to scope the query.
+  string org = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Maximum number of pending approvals to return per page.
+  //
+  // Default: 20. Maximum: 100.
+  int32 page_size = 2;
+
+  // Opaque pagination token from a previous response.
+  string page_token = 3;
+}
+
+// PendingApproval represents a single human_input task awaiting a reviewer decision.
+//
+// @since T14 (Dashboard Integration)
+message PendingApproval {
+  // Workflow execution containing the pending task.
+  string execution_id = 1;
+
+  // Human-readable workflow name for display.
+  string workflow_name = 2;
+
+  // Name of the human_input task awaiting response.
+  string task_name = 3;
+
+  // Identity of the user or system that triggered the execution.
+  string requester = 4;
+
+  // When the approval was requested (task entered waiting state).
+  google.protobuf.Timestamp requested_at = 5;
+
+  // When the approval times out (if a timeout policy is configured).
+  //
+  // Zero value when no timeout is configured.
+  google.protobuf.Timestamp timeout_at = 6;
+
+  // Optional JSON Schema for the approval form.
+  //
+  // When present, the reviewer is expected to fill in form data
+  // that conforms to this schema before submitting the decision.
+  google.protobuf.Struct form_schema = 7;
+}
+
+// PendingApprovalsList contains a paginated list of pending approvals.
+//
+// @since T14 (Dashboard Integration)
+message PendingApprovalsList {
+  repeated PendingApproval entries = 1;
+
+  // Total number of pending approvals matching the query (across all pages).
+  int32 total_count = 2;
+
+  // Pagination token for the next page. Empty when no more pages exist.
+  string next_page_token = 3;
 }

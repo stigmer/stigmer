@@ -322,6 +322,22 @@ async def _execute_graphton_impl(
             logger=activity_logger,
         )
 
+        # Set OTel baggage so downstream calls carry execution context.
+        try:
+            from stigmer_runner.worker.otel import (
+                BAGGAGE_EXECUTION_ID,
+                BAGGAGE_ORG_ID,
+                BAGGAGE_SESSION_ID,
+                set_baggage,
+            )
+            set_baggage({
+                BAGGAGE_EXECUTION_ID: execution_id,
+                BAGGAGE_SESSION_ID: getattr(setup.execution.spec, "session_id", ""),
+                BAGGAGE_ORG_ID: getattr(setup.execution.metadata, "org", ""),
+            })
+        except Exception:
+            activity_logger.debug("OTel baggage not set (tracing may be disabled)", exc_info=True)
+
         # ─────────────────────────────────────────────────────────────────
         # Phase 3: HITL resume resolution
         # ─────────────────────────────────────────────────────────────────

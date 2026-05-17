@@ -54,15 +54,16 @@ public final class TryProto extends com.google.protobuf.GeneratedFile {
       "\0132,.ai.stigmer.agentic.workflow.v1.Workf" +
       "lowTaskB\010\272H\005\222\001\002\010\001R\003try\022F\n\005catch\030\002 \001(\01320." +
       "ai.stigmer.agentic.workflow.v1.tasks.Cat" +
-      "chBlockR\005catch:\r\352\213,\ttry_catch\"d\n\nCatchBl" +
-      "ock\022\016\n\002as\030\001 \001(\tR\002as\022F\n\002do\030\002 \003(\0132,.ai.sti" +
-      "gmer.agentic.workflow.v1.WorkflowTaskB\010\272" +
-      "H\005\222\001\002\010\001R\002doB\302\001B\010TryProtoP\001\242\002\006ASAWVT\252\002$Ai" +
-      ".Stigmer.Agentic.Workflow.V1.Tasks\312\002$Ai\\" +
-      "Stigmer\\Agentic\\Workflow\\V1\\Tasks\342\0020Ai\\S" +
-      "tigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMeta" +
-      "data\352\002)Ai::Stigmer::Agentic::Workflow::V" +
-      "1::Tasksb\006proto3"
+      "chBlockR\005catch:\r\352\213,\ttry_catch\"\204\001\n\nCatchB" +
+      "lock\022\016\n\002as\030\001 \001(\tR\002as\022F\n\002do\030\002 \003(\0132,.ai.st" +
+      "igmer.agentic.workflow.v1.WorkflowTaskB\010" +
+      "\272H\005\222\001\002\010\001R\002do\022\036\n\ncompensate\030\003 \001(\010R\ncompen" +
+      "sateB\302\001B\010TryProtoP\001\242\002\006ASAWVT\252\002$Ai.Stigme" +
+      "r.Agentic.Workflow.V1.Tasks\312\002$Ai\\Stigmer" +
+      "\\Agentic\\Workflow\\V1\\Tasks\342\0020Ai\\Stigmer\\" +
+      "Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\352\002)" +
+      "Ai::Stigmer::Agentic::Workflow::V1::Task" +
+      "sb\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -82,7 +83,7 @@ public final class TryProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_workflow_v1_tasks_CatchBlock_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_workflow_v1_tasks_CatchBlock_descriptor,
-        new java.lang.String[] { "As", "Do", });
+        new java.lang.String[] { "As", "Do", "Compensate", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.workflow.v1.SpecProto.getDescriptor();
     ai.stigmer.commons.apiresource.FieldOptionsProto.getDescriptor();

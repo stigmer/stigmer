@@ -250,6 +250,7 @@ func routeRun(info *types.TypeInfo, ref, downloadDir string, prep *preparedAgent
 			WorkspaceEntries: prep.WorkspaceEntries,
 			Model:            prep.Model,
 			AutoApproveAll:   prep.AutoApproveAll,
+			Mode:             prep.Mode,
 			Detach:           prep.Detach,
 			DownloadDir:      downloadDir,
 			OrgID:            prep.OrgID,

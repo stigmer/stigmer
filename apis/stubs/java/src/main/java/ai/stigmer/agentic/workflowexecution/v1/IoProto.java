@@ -62,15 +62,15 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_workflowexecution_v1_SubmitWorkflowApprovalInput_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_SubmitWorkflowTaskApprovalInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_workflowexecution_v1_SubmitWorkflowTaskApprovalInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_workflowexecution_v1_SubscribeWorkflowExecutionRequest_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_workflowexecution_v1_SubscribeWorkflowExecutionRequest_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowExecutionUpdate_descriptor;
-  static final 
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowExecutionUpdate_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_workflowexecution_v1_CancelWorkflowExecutionInput_descriptor;
   static final 
@@ -101,6 +101,66 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_workflowexecution_v1_SendSignalInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_GetEventLogRequest_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_workflowexecution_v1_GetEventLogRequest_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_GetEventLogResponse_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_workflowexecution_v1_GetEventLogResponse_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_SubscribeEventsRequest_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_workflowexecution_v1_SubscribeEventsRequest_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_GetExecutionSummaryRequest_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_workflowexecution_v1_GetExecutionSummaryRequest_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_ExecutionSummary_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_workflowexecution_v1_ExecutionSummary_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_ExecutionSummary_PhaseCountsEntry_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_workflowexecution_v1_ExecutionSummary_PhaseCountsEntry_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowCostSummary_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowCostSummary_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowFailureRank_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowFailureRank_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowCostBreakdown_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowCostBreakdown_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_ListPendingApprovalsRequest_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_workflowexecution_v1_ListPendingApprovalsRequest_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_PendingApproval_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_workflowexecution_v1_PendingApproval_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_PendingApprovalsList_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_workflowexecution_v1_PendingApprovalsList_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -116,68 +176,134 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "cution/v1/enum.proto\0321ai/stigmer/agentic" +
       "/workflowexecution/v1/api.proto\0322ai/stig" +
       "mer/agentic/workflowexecution/v1/enum.pr" +
-      "oto\032\033buf/validate/validate.proto\032\034google" +
-      "/protobuf/struct.proto\"3\n\023WorkflowExecut" +
-      "ionId\022\034\n\005value\030\001 \001(\tB\006\272H\003\310\001\001R\005value\"*\n\nW" +
-      "orkflowId\022\034\n\005value\030\001 \001(\tB\006\272H\003\310\001\001R\005value\"" +
-      "\216\001\n\025WorkflowExecutionList\022\037\n\013total_pages" +
-      "\030\001 \001(\005R\ntotalPages\022T\n\007entries\030\002 \003(\0132:.ai" +
-      ".stigmer.agentic.workflowexecution.v1.Wo" +
-      "rkflowExecutionR\007entries\"\276\001\n\035ListWorkflo" +
-      "wExecutionsRequest\022\033\n\tpage_size\030\001 \001(\005R\010p" +
-      "ageSize\022\035\n\npage_token\030\002 \001(\tR\tpageToken\022M" +
-      "\n\005phase\030\003 \001(\01627.ai.stigmer.agentic.workf" +
-      "lowexecution.v1.ExecutionPhaseR\005phase\022\022\n" +
-      "\004tags\030\004 \003(\tR\004tags\"\216\001\n\'ListWorkflowExecut" +
-      "ionsByWorkflowRequest\022\'\n\013workflow_id\030\001 \001" +
-      "(\tB\006\272H\003\310\001\001R\nworkflowId\022\033\n\tpage_size\030\002 \001(" +
-      "\005R\010pageSize\022\035\n\npage_token\030\003 \001(\tR\tpageTok" +
-      "en\"\262\001\n\"WorkflowExecutionUpdateStatusInpu" +
-      "t\022*\n\014execution_id\030\001 \001(\tB\007\272H\004r\002\020\001R\013execut" +
-      "ionId\022`\n\006status\030\002 \001(\0132@.ai.stigmer.agent" +
-      "ic.workflowexecution.v1.WorkflowExecutio" +
-      "nStatusB\006\272H\003\310\001\001R\006status\"\350\001\n\033SubmitWorkfl" +
-      "owApprovalInput\022*\n\014execution_id\030\001 \001(\tB\007\272" +
-      "H\004r\002\020\001R\013executionId\022)\n\014tool_call_id\030\002 \001(" +
-      "\tB\007\272H\004r\002\020\001R\ntoolCallId\022X\n\006action\030\003 \001(\01624" +
-      ".ai.stigmer.agentic.agentexecution.v1.Ap" +
-      "provalActionB\n\272H\007\202\001\004\020\001 \000R\006action\022\030\n\007comm" +
-      "ent\030\004 \001(\tR\007comment\"N\n!SubscribeWorkflowE" +
-      "xecutionRequest\022)\n\014execution_id\030\001 \001(\tB\006\272" +
-      "H\003\310\001\001R\013executionId\"\246\002\n\027WorkflowExecution" +
-      "Update\022f\n\013update_type\030\001 \001(\0162;.ai.stigmer" +
-      ".agentic.workflowexecution.v1.WorkflowUp" +
-      "dateTypeB\010\272H\005\202\001\002\020\001R\nupdateType\022X\n\texecut" +
-      "ion\030\002 \001(\0132:.ai.stigmer.agentic.workflowe" +
-      "xecution.v1.WorkflowExecutionR\texecution" +
-      "\022I\n\004task\030\003 \001(\01325.ai.stigmer.agentic.work" +
-      "flowexecution.v1.WorkflowTaskR\004task\"O\n\034C" +
-      "ancelWorkflowExecutionInput\022\027\n\002id\030\001 \001(\tB" +
-      "\007\272H\004r\002\020\001R\002id\022\026\n\006reason\030\002 \001(\tR\006reason\"R\n\037" +
-      "TerminateWorkflowExecutionInput\022\027\n\002id\030\001 " +
-      "\001(\tB\007\272H\004r\002\020\001R\002id\022\026\n\006reason\030\002 \001(\tR\006reason" +
-      "\"P\n\035RecoverWorkflowExecutionInput\022\027\n\002id\030" +
-      "\001 \001(\tB\007\272H\004r\002\020\001R\002id\022\026\n\006reason\030\002 \001(\tR\006reas" +
-      "on\"N\n\033PauseWorkflowExecutionInput\022\027\n\002id\030" +
-      "\001 \001(\tB\007\272H\004r\002\020\001R\002id\022\026\n\006reason\030\002 \001(\tR\006reas" +
-      "on\"7\n\034ResumeWorkflowExecutionInput\022\027\n\002id" +
-      "\030\001 \001(\tB\007\272H\004r\002\020\001R\002id\"\303\001\n\017SendSignalInput\022" +
+      "oto\0323ai/stigmer/agentic/workflowexecutio" +
+      "n/v1/event.proto\032\033buf/validate/validate." +
+      "proto\032\036google/protobuf/duration.proto\032\034g" +
+      "oogle/protobuf/struct.proto\032\037google/prot" +
+      "obuf/timestamp.proto\"3\n\023WorkflowExecutio" +
+      "nId\022\034\n\005value\030\001 \001(\tB\006\272H\003\310\001\001R\005value\"*\n\nWor" +
+      "kflowId\022\034\n\005value\030\001 \001(\tB\006\272H\003\310\001\001R\005value\"\216\001" +
+      "\n\025WorkflowExecutionList\022\037\n\013total_pages\030\001" +
+      " \001(\005R\ntotalPages\022T\n\007entries\030\002 \003(\0132:.ai.s" +
+      "tigmer.agentic.workflowexecution.v1.Work" +
+      "flowExecutionR\007entries\"\276\001\n\035ListWorkflowE" +
+      "xecutionsRequest\022\033\n\tpage_size\030\001 \001(\005R\010pag" +
+      "eSize\022\035\n\npage_token\030\002 \001(\tR\tpageToken\022M\n\005" +
+      "phase\030\003 \001(\01627.ai.stigmer.agentic.workflo" +
+      "wexecution.v1.ExecutionPhaseR\005phase\022\022\n\004t" +
+      "ags\030\004 \003(\tR\004tags\"\216\001\n\'ListWorkflowExecutio" +
+      "nsByWorkflowRequest\022\'\n\013workflow_id\030\001 \001(\t" +
+      "B\006\272H\003\310\001\001R\nworkflowId\022\033\n\tpage_size\030\002 \001(\005R" +
+      "\010pageSize\022\035\n\npage_token\030\003 \001(\tR\tpageToken" +
+      "\"\213\002\n\"WorkflowExecutionUpdateStatusInput\022" +
       "*\n\014execution_id\030\001 \001(\tB\007\272H\004r\002\020\001R\013executio" +
-      "nId\022(\n\013signal_name\030\002 \001(\tB\007\272H\004r\002\020\001R\nsigna" +
-      "lName\0221\n\007payload\030\003 \001(\0132\027.google.protobuf" +
-      ".StructR\007payload\022\'\n\017idempotency_key\030\004 \001(" +
-      "\tR\016idempotencyKey*\363\001\n\022WorkflowUpdateType" +
-      "\022$\n workflow_update_type_unspecified\020\000\022\034" +
-      "\n\030wf_update_status_changed\020\001\022\032\n\026wf_updat" +
-      "e_task_started\020\002\022\034\n\030wf_update_task_compl" +
-      "eted\020\003\022\031\n\025wf_update_task_failed\020\004\022!\n\035wf_" +
-      "update_execution_completed\020\005\022!\n\035wf_updat" +
-      "e_execution_cancelled\020\006B\312\001B\007IoProtoP\001\242\002\004" +
-      "ASAW\252\002\'Ai.Stigmer.Agentic.Workflowexecut" +
-      "ion.V1\312\002\'Ai\\Stigmer\\Agentic\\Workflowexec" +
-      "ution\\V1\342\0023Ai\\Stigmer\\Agentic\\Workflowex" +
-      "ecution\\V1\\GPBMetadata\352\002+Ai::Stigmer::Ag" +
-      "entic::Workflowexecution::V1b\006proto3"
+      "nId\022`\n\006status\030\002 \001(\0132@.ai.stigmer.agentic" +
+      ".workflowexecution.v1.WorkflowExecutionS" +
+      "tatusB\006\272H\003\310\001\001R\006status\022W\n\006events\030\n \003(\0132?." +
+      "ai.stigmer.agentic.workflowexecution.v1." +
+      "WorkflowExecutionEventR\006events\"\350\001\n\033Submi" +
+      "tWorkflowApprovalInput\022*\n\014execution_id\030\001" +
+      " \001(\tB\007\272H\004r\002\020\001R\013executionId\022)\n\014tool_call_" +
+      "id\030\002 \001(\tB\007\272H\004r\002\020\001R\ntoolCallId\022X\n\006action\030" +
+      "\003 \001(\01624.ai.stigmer.agentic.agentexecutio" +
+      "n.v1.ApprovalActionB\n\272H\007\202\001\004\020\001 \000R\006action\022" +
+      "\030\n\007comment\030\004 \001(\tR\007comment\"\202\002\n\037SubmitWork" +
+      "flowTaskApprovalInput\022*\n\014execution_id\030\001 " +
+      "\001(\tB\007\272H\004r\002\020\001R\013executionId\022$\n\ttask_name\030\002" +
+      " \001(\tB\007\272H\004r\002\020\001R\010taskName\022!\n\007outcome\030\003 \001(\t" +
+      "B\007\272H\004r\002\020\001R\007outcome\0224\n\tform_data\030\004 \001(\0132\027." +
+      "google.protobuf.StructR\010formData\022\032\n\010revi" +
+      "ewer\030\005 \001(\tR\010reviewer\022\030\n\007comment\030\006 \001(\tR\007c" +
+      "omment\"N\n!SubscribeWorkflowExecutionRequ" +
+      "est\022)\n\014execution_id\030\001 \001(\tB\006\272H\003\310\001\001R\013execu" +
+      "tionId\"O\n\034CancelWorkflowExecutionInput\022\027" +
+      "\n\002id\030\001 \001(\tB\007\272H\004r\002\020\001R\002id\022\026\n\006reason\030\002 \001(\tR" +
+      "\006reason\"R\n\037TerminateWorkflowExecutionInp" +
+      "ut\022\027\n\002id\030\001 \001(\tB\007\272H\004r\002\020\001R\002id\022\026\n\006reason\030\002 " +
+      "\001(\tR\006reason\"P\n\035RecoverWorkflowExecutionI" +
+      "nput\022\027\n\002id\030\001 \001(\tB\007\272H\004r\002\020\001R\002id\022\026\n\006reason\030" +
+      "\002 \001(\tR\006reason\"N\n\033PauseWorkflowExecutionI" +
+      "nput\022\027\n\002id\030\001 \001(\tB\007\272H\004r\002\020\001R\002id\022\026\n\006reason\030" +
+      "\002 \001(\tR\006reason\"7\n\034ResumeWorkflowExecution" +
+      "Input\022\027\n\002id\030\001 \001(\tB\007\272H\004r\002\020\001R\002id\"\303\001\n\017SendS" +
+      "ignalInput\022*\n\014execution_id\030\001 \001(\tB\007\272H\004r\002\020" +
+      "\001R\013executionId\022(\n\013signal_name\030\002 \001(\tB\007\272H\004" +
+      "r\002\020\001R\nsignalName\0221\n\007payload\030\003 \001(\0132\027.goog" +
+      "le.protobuf.StructR\007payload\022\'\n\017idempoten" +
+      "cy_key\030\004 \001(\tR\016idempotencyKey\"\376\001\n\022GetEven" +
+      "tLogRequest\022*\n\014execution_id\030\001 \001(\tB\007\272H\004r\002" +
+      "\020\001R\013executionId\022%\n\016after_sequence\030\002 \001(\004R" +
+      "\rafterSequence\022[\n\013event_types\030\003 \003(\0162:.ai" +
+      ".stigmer.agentic.workflowexecution.v1.Wo" +
+      "rkflowEventTypeR\neventTypes\022\033\n\ttask_name" +
+      "\030\004 \001(\tR\010taskName\022\033\n\tpage_size\030\005 \001(\005R\010pag" +
+      "eSize\"\262\001\n\023GetEventLogResponse\022W\n\006events\030" +
+      "\001 \003(\0132?.ai.stigmer.agentic.workflowexecu" +
+      "tion.v1.WorkflowExecutionEventR\006events\022\031" +
+      "\n\010has_more\030\002 \001(\010R\007hasMore\022\'\n\017latest_sequ" +
+      "ence\030\003 \001(\004R\016latestSequence\"\310\001\n\026Subscribe" +
+      "EventsRequest\022*\n\014execution_id\030\001 \001(\tB\007\272H\004" +
+      "r\002\020\001R\013executionId\022%\n\016after_sequence\030\002 \001(" +
+      "\004R\rafterSequence\022[\n\013event_types\030\003 \003(\0162:." +
+      "ai.stigmer.agentic.workflowexecution.v1." +
+      "WorkflowEventTypeR\neventTypes\"\224\001\n\032GetExe" +
+      "cutionSummaryRequest\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002" +
+      "\020\001R\003org\022[\n\013time_window\030\002 \001(\0162:.ai.stigme" +
+      "r.agentic.workflowexecution.v1.SummaryTi" +
+      "meWindowR\ntimeWindow\"\333\004\n\020ExecutionSummar" +
+      "y\022!\n\014active_count\030\001 \001(\005R\013activeCount\022m\n\014" +
+      "phase_counts\030\002 \003(\0132J.ai.stigmer.agentic." +
+      "workflowexecution.v1.ExecutionSummary.Ph" +
+      "aseCountsEntryR\013phaseCounts\022[\n\ntotal_cos" +
+      "t\030\003 \001(\0132<.ai.stigmer.agentic.workflowexe" +
+      "cution.v1.WorkflowCostSummaryR\ttotalCost" +
+      "\022<\n\014avg_duration\030\004 \001(\0132\031.google.protobuf" +
+      ".DurationR\013avgDuration\022p\n\025top_failing_wo" +
+      "rkflows\030\005 \003(\0132<.ai.stigmer.agentic.workf" +
+      "lowexecution.v1.WorkflowFailureRankR\023top" +
+      "FailingWorkflows\022h\n\020cost_by_workflow\030\006 \003" +
+      "(\0132>.ai.stigmer.agentic.workflowexecutio" +
+      "n.v1.WorkflowCostBreakdownR\016costByWorkfl" +
+      "ow\032>\n\020PhaseCountsEntry\022\020\n\003key\030\001 \001(\005R\003key" +
+      "\022\024\n\005value\030\002 \001(\005R\005value:\0028\001\"\231\001\n\023WorkflowC" +
+      "ostSummary\022$\n\016total_cost_usd\030\001 \001(\001R\014tota" +
+      "lCostUsd\022,\n\022total_input_tokens\030\002 \001(\003R\020to" +
+      "talInputTokens\022.\n\023total_output_tokens\030\003 " +
+      "\001(\003R\021totalOutputTokens\"\204\001\n\023WorkflowFailu" +
+      "reRank\022#\n\rworkflow_slug\030\001 \001(\tR\014workflowS" +
+      "lug\022#\n\rworkflow_name\030\002 \001(\tR\014workflowName" +
+      "\022#\n\rfailure_count\030\003 \001(\005R\014failureCount\"\260\001" +
+      "\n\025WorkflowCostBreakdown\022#\n\rworkflow_slug" +
+      "\030\001 \001(\tR\014workflowSlug\022#\n\rworkflow_name\030\002 " +
+      "\001(\tR\014workflowName\022$\n\016total_cost_usd\030\003 \001(" +
+      "\001R\014totalCostUsd\022\'\n\017execution_count\030\004 \001(\005" +
+      "R\016executionCount\"t\n\033ListPendingApprovals" +
+      "Request\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\022\033\n\tpa" +
+      "ge_size\030\002 \001(\005R\010pageSize\022\035\n\npage_token\030\003 " +
+      "\001(\tR\tpageToken\"\310\002\n\017PendingApproval\022!\n\014ex" +
+      "ecution_id\030\001 \001(\tR\013executionId\022#\n\rworkflo" +
+      "w_name\030\002 \001(\tR\014workflowName\022\033\n\ttask_name\030" +
+      "\003 \001(\tR\010taskName\022\034\n\trequester\030\004 \001(\tR\trequ" +
+      "ester\022=\n\014requested_at\030\005 \001(\0132\032.google.pro" +
+      "tobuf.TimestampR\013requestedAt\0229\n\ntimeout_" +
+      "at\030\006 \001(\0132\032.google.protobuf.TimestampR\tti" +
+      "meoutAt\0228\n\013form_schema\030\007 \001(\0132\027.google.pr" +
+      "otobuf.StructR\nformSchema\"\263\001\n\024PendingApp" +
+      "rovalsList\022R\n\007entries\030\001 \003(\01328.ai.stigmer" +
+      ".agentic.workflowexecution.v1.PendingApp" +
+      "rovalR\007entries\022\037\n\013total_count\030\002 \001(\005R\ntot" +
+      "alCount\022&\n\017next_page_token\030\003 \001(\tR\rnextPa" +
+      "geToken*\277\001\n\021SummaryTimeWindow\022#\n\037SUMMARY" +
+      "_TIME_WINDOW_UNSPECIFIED\020\000\022 \n\034SUMMARY_TI" +
+      "ME_WINDOW_LAST_24H\020\001\022\037\n\033SUMMARY_TIME_WIN" +
+      "DOW_LAST_7D\020\002\022 \n\034SUMMARY_TIME_WINDOW_LAS" +
+      "T_30D\020\003\022 \n\034SUMMARY_TIME_WINDOW_ALL_TIME\020" +
+      "\004B\312\001B\007IoProtoP\001\242\002\004ASAW\252\002\'Ai.Stigmer.Agen" +
+      "tic.Workflowexecution.V1\312\002\'Ai\\Stigmer\\Ag" +
+      "entic\\Workflowexecution\\V1\342\0023Ai\\Stigmer\\" +
+      "Agentic\\Workflowexecution\\V1\\GPBMetadata" +
+      "\352\002+Ai::Stigmer::Agentic::Workflowexecuti" +
+      "on::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -185,8 +311,11 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
           ai.stigmer.agentic.agentexecution.v1.EnumProto.getDescriptor(),
           ai.stigmer.agentic.workflowexecution.v1.ApiProto.getDescriptor(),
           ai.stigmer.agentic.workflowexecution.v1.EnumProto.getDescriptor(),
+          ai.stigmer.agentic.workflowexecution.v1.EventProto.getDescriptor(),
           build.buf.validate.ValidateProto.getDescriptor(),
+          com.google.protobuf.DurationProto.getDescriptor(),
           com.google.protobuf.StructProto.getDescriptor(),
+          com.google.protobuf.TimestampProto.getDescriptor(),
         });
     internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowExecutionId_descriptor =
       getDescriptor().getMessageType(0);
@@ -223,25 +352,25 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowExecutionUpdateStatusInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowExecutionUpdateStatusInput_descriptor,
-        new java.lang.String[] { "ExecutionId", "Status", });
+        new java.lang.String[] { "ExecutionId", "Status", "Events", });
     internal_static_ai_stigmer_agentic_workflowexecution_v1_SubmitWorkflowApprovalInput_descriptor =
       getDescriptor().getMessageType(6);
     internal_static_ai_stigmer_agentic_workflowexecution_v1_SubmitWorkflowApprovalInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_workflowexecution_v1_SubmitWorkflowApprovalInput_descriptor,
         new java.lang.String[] { "ExecutionId", "ToolCallId", "Action", "Comment", });
-    internal_static_ai_stigmer_agentic_workflowexecution_v1_SubscribeWorkflowExecutionRequest_descriptor =
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_SubmitWorkflowTaskApprovalInput_descriptor =
       getDescriptor().getMessageType(7);
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_SubmitWorkflowTaskApprovalInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_workflowexecution_v1_SubmitWorkflowTaskApprovalInput_descriptor,
+        new java.lang.String[] { "ExecutionId", "TaskName", "Outcome", "FormData", "Reviewer", "Comment", });
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_SubscribeWorkflowExecutionRequest_descriptor =
+      getDescriptor().getMessageType(8);
     internal_static_ai_stigmer_agentic_workflowexecution_v1_SubscribeWorkflowExecutionRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_workflowexecution_v1_SubscribeWorkflowExecutionRequest_descriptor,
         new java.lang.String[] { "ExecutionId", });
-    internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowExecutionUpdate_descriptor =
-      getDescriptor().getMessageType(8);
-    internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowExecutionUpdate_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-        internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowExecutionUpdate_descriptor,
-        new java.lang.String[] { "UpdateType", "Execution", "Task", });
     internal_static_ai_stigmer_agentic_workflowexecution_v1_CancelWorkflowExecutionInput_descriptor =
       getDescriptor().getMessageType(9);
     internal_static_ai_stigmer_agentic_workflowexecution_v1_CancelWorkflowExecutionInput_fieldAccessorTable = new
@@ -278,12 +407,87 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_workflowexecution_v1_SendSignalInput_descriptor,
         new java.lang.String[] { "ExecutionId", "SignalName", "Payload", "IdempotencyKey", });
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_GetEventLogRequest_descriptor =
+      getDescriptor().getMessageType(15);
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_GetEventLogRequest_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_workflowexecution_v1_GetEventLogRequest_descriptor,
+        new java.lang.String[] { "ExecutionId", "AfterSequence", "EventTypes", "TaskName", "PageSize", });
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_GetEventLogResponse_descriptor =
+      getDescriptor().getMessageType(16);
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_GetEventLogResponse_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_workflowexecution_v1_GetEventLogResponse_descriptor,
+        new java.lang.String[] { "Events", "HasMore", "LatestSequence", });
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_SubscribeEventsRequest_descriptor =
+      getDescriptor().getMessageType(17);
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_SubscribeEventsRequest_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_workflowexecution_v1_SubscribeEventsRequest_descriptor,
+        new java.lang.String[] { "ExecutionId", "AfterSequence", "EventTypes", });
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_GetExecutionSummaryRequest_descriptor =
+      getDescriptor().getMessageType(18);
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_GetExecutionSummaryRequest_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_workflowexecution_v1_GetExecutionSummaryRequest_descriptor,
+        new java.lang.String[] { "Org", "TimeWindow", });
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_ExecutionSummary_descriptor =
+      getDescriptor().getMessageType(19);
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_ExecutionSummary_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_workflowexecution_v1_ExecutionSummary_descriptor,
+        new java.lang.String[] { "ActiveCount", "PhaseCounts", "TotalCost", "AvgDuration", "TopFailingWorkflows", "CostByWorkflow", });
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_ExecutionSummary_PhaseCountsEntry_descriptor =
+      internal_static_ai_stigmer_agentic_workflowexecution_v1_ExecutionSummary_descriptor.getNestedType(0);
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_ExecutionSummary_PhaseCountsEntry_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_workflowexecution_v1_ExecutionSummary_PhaseCountsEntry_descriptor,
+        new java.lang.String[] { "Key", "Value", });
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowCostSummary_descriptor =
+      getDescriptor().getMessageType(20);
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowCostSummary_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowCostSummary_descriptor,
+        new java.lang.String[] { "TotalCostUsd", "TotalInputTokens", "TotalOutputTokens", });
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowFailureRank_descriptor =
+      getDescriptor().getMessageType(21);
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowFailureRank_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowFailureRank_descriptor,
+        new java.lang.String[] { "WorkflowSlug", "WorkflowName", "FailureCount", });
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowCostBreakdown_descriptor =
+      getDescriptor().getMessageType(22);
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowCostBreakdown_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowCostBreakdown_descriptor,
+        new java.lang.String[] { "WorkflowSlug", "WorkflowName", "TotalCostUsd", "ExecutionCount", });
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_ListPendingApprovalsRequest_descriptor =
+      getDescriptor().getMessageType(23);
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_ListPendingApprovalsRequest_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_workflowexecution_v1_ListPendingApprovalsRequest_descriptor,
+        new java.lang.String[] { "Org", "PageSize", "PageToken", });
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_PendingApproval_descriptor =
+      getDescriptor().getMessageType(24);
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_PendingApproval_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_workflowexecution_v1_PendingApproval_descriptor,
+        new java.lang.String[] { "ExecutionId", "WorkflowName", "TaskName", "Requester", "RequestedAt", "TimeoutAt", "FormSchema", });
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_PendingApprovalsList_descriptor =
+      getDescriptor().getMessageType(25);
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_PendingApprovalsList_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_workflowexecution_v1_PendingApprovalsList_descriptor,
+        new java.lang.String[] { "Entries", "TotalCount", "NextPageToken", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.agentexecution.v1.EnumProto.getDescriptor();
     ai.stigmer.agentic.workflowexecution.v1.ApiProto.getDescriptor();
     ai.stigmer.agentic.workflowexecution.v1.EnumProto.getDescriptor();
+    ai.stigmer.agentic.workflowexecution.v1.EventProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();
+    com.google.protobuf.DurationProto.getDescriptor();
     com.google.protobuf.StructProto.getDescriptor();
+    com.google.protobuf.TimestampProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(build.buf.validate.ValidateProto.field);

@@ -29,6 +29,13 @@ package ai.stigmer.agentic.workflow.v1;
 // raise_error: {"error": "ErrorType", "message": "${...}"}
 // run_workflow: {"workflow": "workflow-name", "input": {...}}
 // agent_call: {"agent": "agent-slug", "message": "...", "env": {...}}
+// llm_call: {"model": "...", "prompt": "...", "response_schema": {...}, "on_invalid": "..."}
+// transform: {"engine": "jq", "expression": "...", "input": "${...}"}
+// human_input: {"prompt": "...", "form_schema": {...}, "outcomes": [...], "approvers": [...], "timeout": 86400}
+// validate: {"input": "${...}", "schema": {...}, "rules": [...], "on_fail": "..."}
+// emit_event: {"event": {"type": "...", "source": "...", "subject": "...", "data": {...}}}
+// notification: {"channel": "slack", "recipients": ["..."], "subject": "...", "body": "...", "template": "...", "metadata": {...}}
+// eval: {"model": "...", "subject": "${...}", "rubric": "...", "scoring_mode": "EVAL_PASS_FAIL", "threshold": 0.7, "on_fail": "EVAL_FAIL_RAISE", "criteria": [...]}
 enum WorkflowTaskKind {
   // Default value, not a valid task kind.
   workflow_task_kind_unspecified = 0;
@@ -115,4 +122,96 @@ enum WorkflowTaskKind {
   // Allows workflows to delegate complex operations to specialized agents.
   // Config: {"agent": "agent-slug", "message": "...", "env": {...}, "config": {...}}
   agent_call = 13;
+
+  // Direct LLM call for classification, extraction, scoring, or routing.
+  //
+  // @internal
+  // Lightweight alternative to agent_call for focused LLM tasks without
+  // agent overhead (no system prompt resolution, tool setup, or MCP wiring).
+  // Config: {"model": "...", "prompt": "...", "response_schema": {...}}
+  llm_call = 14;
+
+  // Deterministic data transformation using JQ, JSONata, or template engines.
+  //
+  // @internal
+  // Reshapes data between tasks without LLM calls. Produces explicit output
+  // via export, unlike set_vars which mutates workflow state as a side effect.
+  // Config: {"engine": "jq", "expression": "...", "input": "${...}"}
+  transform = 15;
+
+  // Workflow-level approval gate for human input, review, or sign-off.
+  //
+  // @internal
+  // Pauses workflow execution to collect typed input or approval from a
+  // human reviewer. Supports custom outcomes, form schemas, approver
+  // lists, timeouts, and notification channels.
+  // Config: {"prompt": "...", "form_schema": {...}, "outcomes": [...], "approvers": [...]}
+  human_input = 16;
+
+  // Schema and business-rule validation checkpoint.
+  //
+  // @internal
+  // Validates workflow data against JSON Schema and/or business rules
+  // before downstream tasks consume it. Supports fail, branch, and warn
+  // policies for flexible error handling.
+  // Config: {"input": "${...}", "schema": {...}, "rules": [...], "on_fail": "..."}
+  validate = 17;
+
+  // Emit a CloudEvents-formatted event for external consumers or other workflows.
+  //
+  // @internal
+  // Completes the listen/emit duality: listen waits for Temporal signals,
+  // emit_event publishes business events using the CloudEvents envelope.
+  // The runtime bridges the two when events target other workflows.
+  // Config: {"event": {"type": "...", "source": "...", "subject": "...", "data": {...}}}
+  emit_event = 18;
+
+  // Send a notification to humans through a channel (Slack, email, Discord, etc.).
+  //
+  // @internal
+  // Fire-and-forget convenience abstraction for operational notifications.
+  // For notifications requiring acknowledgment, use human_input instead.
+  // Config: {"channel": "slack", "recipients": ["..."], "subject": "...", "body": "..."}
+  notification = 19;
+
+  // LLM-as-a-judge evaluation for semantic quality assessment.
+  //
+  // @internal
+  // Assesses quality, correctness, safety, or completeness of LLM-generated
+  // or agent-produced content using an LLM judge. Fills the gap between
+  // structural validation (validate task) and human review (human_input).
+  // Supports pass/fail, numeric scoring, and multi-criteria evaluation modes.
+  // Config: {"model": "...", "subject": "${...}", "rubric": "...", "scoring_mode": "...", "threshold": 0.7, "on_fail": "..."}
+  //
+  // @since T17 (Advanced Agentic Orchestration)
+  eval = 20;
+}
+
+// BudgetExceededPolicy defines the runtime behavior when a workflow or per-task
+// budget limit is exceeded.
+//
+// The runtime (T13) evaluates this policy at task boundaries: after each task
+// completes, accumulated costs and tokens are compared against the declared
+// budget. If a limit is breached, the policy determines what happens next.
+//
+// @since T05 (Workflow-Level Budget Primitives)
+enum BudgetExceededPolicy {
+  // Default: no specific policy set. The runtime treats this as
+  // budget_exceeded_terminate (fail-safe behavior).
+  budget_exceeded_policy_unspecified = 0;
+
+  // Terminate the workflow immediately with EXECUTION_FAILED status.
+  // The execution record includes the budget breach details for diagnostics.
+  budget_exceeded_terminate = 1;
+
+  // Pause the workflow and request human review via a system-generated
+  // approval gate. The reviewer can approve continued execution (with
+  // an increased budget) or confirm termination.
+  // Depends on the human_input runtime (T13). If human_input runtime
+  // is not available, falls back to terminate with a descriptive error.
+  budget_exceeded_human_review = 2;
+
+  // Log a warning but allow the workflow to continue executing.
+  // Useful for monitoring/alerting without interrupting production workflows.
+  budget_exceeded_warn = 3;
 }

@@ -6,6 +6,7 @@
     {
       "name": "RunnerCommandController",
       "role": "command",
+      "protoFile": "ai/stigmer/agentic/runner/v1/command.proto",
       "methods": [
         {
           "name": "Apply",
@@ -86,6 +87,7 @@
     {
       "name": "RunnerQueryController",
       "role": "query",
+      "protoFile": "ai/stigmer/agentic/runner/v1/query.proto",
       "methods": [
         {
           "name": "Get",
@@ -452,6 +454,7 @@
               "workflow_instance",
               "workflow_execution",
               "environment",
+              "artifact",
               "execution_context",
               "project"
             ]
@@ -683,6 +686,11 @@
           "description": "Named set of variables and secrets for agent and workflow execution."
         },
         {
+          "name": "artifact",
+          "number": 55,
+          "description": "Persisted blob produced during workflow or agent execution."
+        },
+        {
           "name": "execution_context",
           "number": 54,
           "description": "User-owned runtime context for managing execution state."
@@ -845,6 +853,32 @@
           "messageType": "RunnerConnectionInfo"
         },
         "description": "Self-reported information about the machine running this runner.\n Populated by the runner process on each heartbeat.",
+        "required": false
+      },
+      {
+        "name": "ProcessExecutions",
+        "jsonName": "processExecutions",
+        "protoField": "process_executions",
+        "type": {
+          "kind": "map",
+          "keyType": {
+            "kind": "string"
+          },
+          "valueType": {
+            "kind": "int32"
+          }
+        },
+        "description": "Per-process execution counts in a multi-process sandbox.\n\n In cloud mode, a single Runner resource hosts three co-located processes\n (agent, cursor, workflow), each reporting its own execution count via\n heartbeats with distinct process_type values. This map tracks the last\n reported count for each process type.\n\n The aggregate current_executions field (above) is derived from the sum\n of all values in this map. The runner is considered idle when every\n value is zero.\n\n Keys: \"agent\", \"cursor\", \"workflow\".\n Empty for single-process local runners (backward compatible).",
+        "required": false
+      },
+      {
+        "name": "IdleSince",
+        "jsonName": "idleSince",
+        "protoField": "idle_since",
+        "type": {
+          "kind": "timestamp"
+        },
+        "description": "Timestamp when all processes in this runner last became idle\n (every value in process_executions is zero and no streams are active).\n\n Set by the server when the aggregate transitions from busy to idle.\n Cleared when any process reports activity. Used by server-side idle\n detection to trigger deprovisioning after a configurable timeout.\n\n Empty while any process has active executions.",
         "required": false
       }
     ]

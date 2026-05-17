@@ -17,6 +17,13 @@
 package tasks
 
 const (
-	customCallFunctionActivity = "activity"
-	customCallFunctionAgent    = "agent"
+	customCallFunctionActivity     = "activity"
+	customCallFunctionAgent        = "agent"
+	customCallFunctionLlm          = "llm"
+	customCallFunctionTransform    = "transform"
+	customCallFunctionHumanInput   = "human_input"
+	customCallFunctionValidate     = "validate"
+	customCallFunctionEmitEvent    = "emit_event"
+	customCallFunctionNotification = "notification"
+	customCallFunctionEval         = "eval"
 )

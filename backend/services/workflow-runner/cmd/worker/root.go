@@ -28,6 +28,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	stgmotel "github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/otel"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/telemetry"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/utils"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/zigflow"
@@ -267,6 +268,19 @@ func Execute() {
 // Exported for use by the runner package (BusyBox pattern)
 func RunTemporalWorkerMode() error {
 	log.Info().Msg("Starting in Temporal-only mode")
+
+	ctx := context.Background()
+	otelShutdown, otelErr := stgmotel.InitTracing(ctx, "workflow-runner")
+	if otelErr != nil {
+		log.Warn().Err(otelErr).Msg("OTel tracing initialization failed — continuing without tracing")
+	} else if otelShutdown != nil {
+		log.Info().Msg("OTel tracing enabled")
+		defer func() {
+			if err := otelShutdown(ctx); err != nil {
+				log.Warn().Err(err).Msg("OTel shutdown error")
+			}
+		}()
+	}
 
 	// Load configuration from environment variables
 	cfg, err := config.LoadFromEnv()

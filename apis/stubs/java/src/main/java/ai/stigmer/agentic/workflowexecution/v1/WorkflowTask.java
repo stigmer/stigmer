@@ -53,6 +53,8 @@ private static final long serialVersionUID = 0L;
     startedAt_ = "";
     completedAt_ = "";
     error_ = "";
+    artifactIds_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -643,6 +645,181 @@ private static final long serialVersionUID = 0L;
     return metadata_ == null ? com.google.protobuf.Struct.getDefaultInstance() : metadata_;
   }
 
+  public static final int ARTIFACT_IDS_FIELD_NUMBER = 11;
+  @SuppressWarnings("serial")
+  private com.google.protobuf.LazyStringArrayList artifactIds_ =
+      com.google.protobuf.LazyStringArrayList.emptyList();
+  /**
+   * <pre>
+   * Artifact IDs produced by this task.
+   *
+   * &#64;internal
+   * Populated when the task's output (or portions of it) is auto-promoted
+   * to the artifact store because it exceeds the size threshold (256KB),
+   * or when the workflow author explicitly declares artifact persistence.
+   *
+   * Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
+   * be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
+   *
+   * When artifact_ids is non-empty, the task's output field contains
+   * artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
+   * the original inline data. Consumers (execution viewer, SDK hooks)
+   * detect these references and resolve them via the Artifact APIs.
+   *
+   * &#64;since T07 (Artifact Store)
+   * </pre>
+   *
+   * <code>repeated string artifact_ids = 11 [json_name = "artifactIds"];</code>
+   * @return A list containing the artifactIds.
+   */
+  public com.google.protobuf.ProtocolStringList
+      getArtifactIdsList() {
+    return artifactIds_;
+  }
+  /**
+   * <pre>
+   * Artifact IDs produced by this task.
+   *
+   * &#64;internal
+   * Populated when the task's output (or portions of it) is auto-promoted
+   * to the artifact store because it exceeds the size threshold (256KB),
+   * or when the workflow author explicitly declares artifact persistence.
+   *
+   * Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
+   * be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
+   *
+   * When artifact_ids is non-empty, the task's output field contains
+   * artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
+   * the original inline data. Consumers (execution viewer, SDK hooks)
+   * detect these references and resolve them via the Artifact APIs.
+   *
+   * &#64;since T07 (Artifact Store)
+   * </pre>
+   *
+   * <code>repeated string artifact_ids = 11 [json_name = "artifactIds"];</code>
+   * @return The count of artifactIds.
+   */
+  public int getArtifactIdsCount() {
+    return artifactIds_.size();
+  }
+  /**
+   * <pre>
+   * Artifact IDs produced by this task.
+   *
+   * &#64;internal
+   * Populated when the task's output (or portions of it) is auto-promoted
+   * to the artifact store because it exceeds the size threshold (256KB),
+   * or when the workflow author explicitly declares artifact persistence.
+   *
+   * Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
+   * be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
+   *
+   * When artifact_ids is non-empty, the task's output field contains
+   * artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
+   * the original inline data. Consumers (execution viewer, SDK hooks)
+   * detect these references and resolve them via the Artifact APIs.
+   *
+   * &#64;since T07 (Artifact Store)
+   * </pre>
+   *
+   * <code>repeated string artifact_ids = 11 [json_name = "artifactIds"];</code>
+   * @param index The index of the element to return.
+   * @return The artifactIds at the given index.
+   */
+  public java.lang.String getArtifactIds(int index) {
+    return artifactIds_.get(index);
+  }
+  /**
+   * <pre>
+   * Artifact IDs produced by this task.
+   *
+   * &#64;internal
+   * Populated when the task's output (or portions of it) is auto-promoted
+   * to the artifact store because it exceeds the size threshold (256KB),
+   * or when the workflow author explicitly declares artifact persistence.
+   *
+   * Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
+   * be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
+   *
+   * When artifact_ids is non-empty, the task's output field contains
+   * artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
+   * the original inline data. Consumers (execution viewer, SDK hooks)
+   * detect these references and resolve them via the Artifact APIs.
+   *
+   * &#64;since T07 (Artifact Store)
+   * </pre>
+   *
+   * <code>repeated string artifact_ids = 11 [json_name = "artifactIds"];</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the artifactIds at the given index.
+   */
+  public com.google.protobuf.ByteString
+      getArtifactIdsBytes(int index) {
+    return artifactIds_.getByteString(index);
+  }
+
+  public static final int COST_MICROS_FIELD_NUMBER = 12;
+  private long costMicros_ = 0L;
+  /**
+   * <pre>
+   * Cost incurred by this task in micro-USD (1 USD = 1,000,000 micros).
+   *
+   * &#64;internal
+   * Non-zero for cost-incurring task kinds (llm_call, agent_call).
+   * Zero for non-LLM tasks (transform, validate, emit_event, etc.).
+   * Set by the workflow-runner when the task completes.
+   *
+   * &#64;since Cost Data Pipeline
+   * </pre>
+   *
+   * <code>int64 cost_micros = 12 [json_name = "costMicros"];</code>
+   * @return The costMicros.
+   */
+  @java.lang.Override
+  public long getCostMicros() {
+    return costMicros_;
+  }
+
+  public static final int INPUT_TOKENS_FIELD_NUMBER = 13;
+  private long inputTokens_ = 0L;
+  /**
+   * <pre>
+   * Input (prompt/context) tokens consumed by this task.
+   *
+   * &#64;internal
+   * Non-zero for LLM-backed tasks. Zero for non-LLM tasks.
+   *
+   * &#64;since Cost Data Pipeline
+   * </pre>
+   *
+   * <code>int64 input_tokens = 13 [json_name = "inputTokens"];</code>
+   * @return The inputTokens.
+   */
+  @java.lang.Override
+  public long getInputTokens() {
+    return inputTokens_;
+  }
+
+  public static final int OUTPUT_TOKENS_FIELD_NUMBER = 14;
+  private long outputTokens_ = 0L;
+  /**
+   * <pre>
+   * Output (completion/generation) tokens produced by this task.
+   *
+   * &#64;internal
+   * Non-zero for LLM-backed tasks. Zero for non-LLM tasks.
+   *
+   * &#64;since Cost Data Pipeline
+   * </pre>
+   *
+   * <code>int64 output_tokens = 14 [json_name = "outputTokens"];</code>
+   * @return The outputTokens.
+   */
+  @java.lang.Override
+  public long getOutputTokens() {
+    return outputTokens_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -686,6 +863,18 @@ private static final long serialVersionUID = 0L;
     }
     if (((bitField0_ & 0x00000004) != 0)) {
       output.writeMessage(10, getMetadata());
+    }
+    for (int i = 0; i < artifactIds_.size(); i++) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 11, artifactIds_.getRaw(i));
+    }
+    if (costMicros_ != 0L) {
+      output.writeInt64(12, costMicros_);
+    }
+    if (inputTokens_ != 0L) {
+      output.writeInt64(13, inputTokens_);
+    }
+    if (outputTokens_ != 0L) {
+      output.writeInt64(14, outputTokens_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -731,6 +920,26 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(10, getMetadata());
     }
+    {
+      int dataSize = 0;
+      for (int i = 0; i < artifactIds_.size(); i++) {
+        dataSize += computeStringSizeNoTag(artifactIds_.getRaw(i));
+      }
+      size += dataSize;
+      size += 1 * getArtifactIdsList().size();
+    }
+    if (costMicros_ != 0L) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeInt64Size(12, costMicros_);
+    }
+    if (inputTokens_ != 0L) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeInt64Size(13, inputTokens_);
+    }
+    if (outputTokens_ != 0L) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeInt64Size(14, outputTokens_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -773,6 +982,14 @@ private static final long serialVersionUID = 0L;
       if (!getMetadata()
           .equals(other.getMetadata())) return false;
     }
+    if (!getArtifactIdsList()
+        .equals(other.getArtifactIdsList())) return false;
+    if (getCostMicros()
+        != other.getCostMicros()) return false;
+    if (getInputTokens()
+        != other.getInputTokens()) return false;
+    if (getOutputTokens()
+        != other.getOutputTokens()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -810,6 +1027,19 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + METADATA_FIELD_NUMBER;
       hash = (53 * hash) + getMetadata().hashCode();
     }
+    if (getArtifactIdsCount() > 0) {
+      hash = (37 * hash) + ARTIFACT_IDS_FIELD_NUMBER;
+      hash = (53 * hash) + getArtifactIdsList().hashCode();
+    }
+    hash = (37 * hash) + COST_MICROS_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+        getCostMicros());
+    hash = (37 * hash) + INPUT_TOKENS_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+        getInputTokens());
+    hash = (37 * hash) + OUTPUT_TOKENS_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+        getOutputTokens());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -989,6 +1219,11 @@ private static final long serialVersionUID = 0L;
         metadataBuilder_.dispose();
         metadataBuilder_ = null;
       }
+      artifactIds_ =
+          com.google.protobuf.LazyStringArrayList.emptyList();
+      costMicros_ = 0L;
+      inputTokens_ = 0L;
+      outputTokens_ = 0L;
       return this;
     }
 
@@ -1062,6 +1297,19 @@ private static final long serialVersionUID = 0L;
             : metadataBuilder_.build();
         to_bitField0_ |= 0x00000004;
       }
+      if (((from_bitField0_ & 0x00000400) != 0)) {
+        artifactIds_.makeImmutable();
+        result.artifactIds_ = artifactIds_;
+      }
+      if (((from_bitField0_ & 0x00000800) != 0)) {
+        result.costMicros_ = costMicros_;
+      }
+      if (((from_bitField0_ & 0x00001000) != 0)) {
+        result.inputTokens_ = inputTokens_;
+      }
+      if (((from_bitField0_ & 0x00002000) != 0)) {
+        result.outputTokens_ = outputTokens_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -1116,6 +1364,25 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasMetadata()) {
         mergeMetadata(other.getMetadata());
+      }
+      if (!other.artifactIds_.isEmpty()) {
+        if (artifactIds_.isEmpty()) {
+          artifactIds_ = other.artifactIds_;
+          bitField0_ |= 0x00000400;
+        } else {
+          ensureArtifactIdsIsMutable();
+          artifactIds_.addAll(other.artifactIds_);
+        }
+        onChanged();
+      }
+      if (other.getCostMicros() != 0L) {
+        setCostMicros(other.getCostMicros());
+      }
+      if (other.getInputTokens() != 0L) {
+        setInputTokens(other.getInputTokens());
+      }
+      if (other.getOutputTokens() != 0L) {
+        setOutputTokens(other.getOutputTokens());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1199,6 +1466,26 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000200;
               break;
             } // case 82
+            case 90: {
+              ensureArtifactIdsIsMutable();
+              artifactIds_.add(input.readStringRequireUtf8());
+              break;
+            } // case 90
+            case 96: {
+              costMicros_ = input.readInt64();
+              bitField0_ |= 0x00000800;
+              break;
+            } // case 96
+            case 104: {
+              inputTokens_ = input.readInt64();
+              bitField0_ |= 0x00001000;
+              break;
+            } // case 104
+            case 112: {
+              outputTokens_ = input.readInt64();
+              bitField0_ |= 0x00002000;
+              break;
+            } // case 112
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2742,6 +3029,471 @@ private static final long serialVersionUID = 0L;
         metadata_ = null;
       }
       return metadataBuilder_;
+    }
+
+    private com.google.protobuf.LazyStringArrayList artifactIds_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+    private void ensureArtifactIdsIsMutable() {
+      if (!artifactIds_.isModifiable()) {
+        artifactIds_ = new com.google.protobuf.LazyStringArrayList(artifactIds_);
+      }
+      bitField0_ |= 0x00000400;
+    }
+    /**
+     * <pre>
+     * Artifact IDs produced by this task.
+     *
+     * &#64;internal
+     * Populated when the task's output (or portions of it) is auto-promoted
+     * to the artifact store because it exceeds the size threshold (256KB),
+     * or when the workflow author explicitly declares artifact persistence.
+     *
+     * Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
+     * be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
+     *
+     * When artifact_ids is non-empty, the task's output field contains
+     * artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
+     * the original inline data. Consumers (execution viewer, SDK hooks)
+     * detect these references and resolve them via the Artifact APIs.
+     *
+     * &#64;since T07 (Artifact Store)
+     * </pre>
+     *
+     * <code>repeated string artifact_ids = 11 [json_name = "artifactIds"];</code>
+     * @return A list containing the artifactIds.
+     */
+    public com.google.protobuf.ProtocolStringList
+        getArtifactIdsList() {
+      artifactIds_.makeImmutable();
+      return artifactIds_;
+    }
+    /**
+     * <pre>
+     * Artifact IDs produced by this task.
+     *
+     * &#64;internal
+     * Populated when the task's output (or portions of it) is auto-promoted
+     * to the artifact store because it exceeds the size threshold (256KB),
+     * or when the workflow author explicitly declares artifact persistence.
+     *
+     * Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
+     * be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
+     *
+     * When artifact_ids is non-empty, the task's output field contains
+     * artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
+     * the original inline data. Consumers (execution viewer, SDK hooks)
+     * detect these references and resolve them via the Artifact APIs.
+     *
+     * &#64;since T07 (Artifact Store)
+     * </pre>
+     *
+     * <code>repeated string artifact_ids = 11 [json_name = "artifactIds"];</code>
+     * @return The count of artifactIds.
+     */
+    public int getArtifactIdsCount() {
+      return artifactIds_.size();
+    }
+    /**
+     * <pre>
+     * Artifact IDs produced by this task.
+     *
+     * &#64;internal
+     * Populated when the task's output (or portions of it) is auto-promoted
+     * to the artifact store because it exceeds the size threshold (256KB),
+     * or when the workflow author explicitly declares artifact persistence.
+     *
+     * Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
+     * be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
+     *
+     * When artifact_ids is non-empty, the task's output field contains
+     * artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
+     * the original inline data. Consumers (execution viewer, SDK hooks)
+     * detect these references and resolve them via the Artifact APIs.
+     *
+     * &#64;since T07 (Artifact Store)
+     * </pre>
+     *
+     * <code>repeated string artifact_ids = 11 [json_name = "artifactIds"];</code>
+     * @param index The index of the element to return.
+     * @return The artifactIds at the given index.
+     */
+    public java.lang.String getArtifactIds(int index) {
+      return artifactIds_.get(index);
+    }
+    /**
+     * <pre>
+     * Artifact IDs produced by this task.
+     *
+     * &#64;internal
+     * Populated when the task's output (or portions of it) is auto-promoted
+     * to the artifact store because it exceeds the size threshold (256KB),
+     * or when the workflow author explicitly declares artifact persistence.
+     *
+     * Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
+     * be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
+     *
+     * When artifact_ids is non-empty, the task's output field contains
+     * artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
+     * the original inline data. Consumers (execution viewer, SDK hooks)
+     * detect these references and resolve them via the Artifact APIs.
+     *
+     * &#64;since T07 (Artifact Store)
+     * </pre>
+     *
+     * <code>repeated string artifact_ids = 11 [json_name = "artifactIds"];</code>
+     * @param index The index of the value to return.
+     * @return The bytes of the artifactIds at the given index.
+     */
+    public com.google.protobuf.ByteString
+        getArtifactIdsBytes(int index) {
+      return artifactIds_.getByteString(index);
+    }
+    /**
+     * <pre>
+     * Artifact IDs produced by this task.
+     *
+     * &#64;internal
+     * Populated when the task's output (or portions of it) is auto-promoted
+     * to the artifact store because it exceeds the size threshold (256KB),
+     * or when the workflow author explicitly declares artifact persistence.
+     *
+     * Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
+     * be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
+     *
+     * When artifact_ids is non-empty, the task's output field contains
+     * artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
+     * the original inline data. Consumers (execution viewer, SDK hooks)
+     * detect these references and resolve them via the Artifact APIs.
+     *
+     * &#64;since T07 (Artifact Store)
+     * </pre>
+     *
+     * <code>repeated string artifact_ids = 11 [json_name = "artifactIds"];</code>
+     * @param index The index to set the value at.
+     * @param value The artifactIds to set.
+     * @return This builder for chaining.
+     */
+    public Builder setArtifactIds(
+        int index, java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureArtifactIdsIsMutable();
+      artifactIds_.set(index, value);
+      bitField0_ |= 0x00000400;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Artifact IDs produced by this task.
+     *
+     * &#64;internal
+     * Populated when the task's output (or portions of it) is auto-promoted
+     * to the artifact store because it exceeds the size threshold (256KB),
+     * or when the workflow author explicitly declares artifact persistence.
+     *
+     * Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
+     * be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
+     *
+     * When artifact_ids is non-empty, the task's output field contains
+     * artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
+     * the original inline data. Consumers (execution viewer, SDK hooks)
+     * detect these references and resolve them via the Artifact APIs.
+     *
+     * &#64;since T07 (Artifact Store)
+     * </pre>
+     *
+     * <code>repeated string artifact_ids = 11 [json_name = "artifactIds"];</code>
+     * @param value The artifactIds to add.
+     * @return This builder for chaining.
+     */
+    public Builder addArtifactIds(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureArtifactIdsIsMutable();
+      artifactIds_.add(value);
+      bitField0_ |= 0x00000400;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Artifact IDs produced by this task.
+     *
+     * &#64;internal
+     * Populated when the task's output (or portions of it) is auto-promoted
+     * to the artifact store because it exceeds the size threshold (256KB),
+     * or when the workflow author explicitly declares artifact persistence.
+     *
+     * Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
+     * be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
+     *
+     * When artifact_ids is non-empty, the task's output field contains
+     * artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
+     * the original inline data. Consumers (execution viewer, SDK hooks)
+     * detect these references and resolve them via the Artifact APIs.
+     *
+     * &#64;since T07 (Artifact Store)
+     * </pre>
+     *
+     * <code>repeated string artifact_ids = 11 [json_name = "artifactIds"];</code>
+     * @param values The artifactIds to add.
+     * @return This builder for chaining.
+     */
+    public Builder addAllArtifactIds(
+        java.lang.Iterable<java.lang.String> values) {
+      ensureArtifactIdsIsMutable();
+      com.google.protobuf.AbstractMessageLite.Builder.addAll(
+          values, artifactIds_);
+      bitField0_ |= 0x00000400;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Artifact IDs produced by this task.
+     *
+     * &#64;internal
+     * Populated when the task's output (or portions of it) is auto-promoted
+     * to the artifact store because it exceeds the size threshold (256KB),
+     * or when the workflow author explicitly declares artifact persistence.
+     *
+     * Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
+     * be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
+     *
+     * When artifact_ids is non-empty, the task's output field contains
+     * artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
+     * the original inline data. Consumers (execution viewer, SDK hooks)
+     * detect these references and resolve them via the Artifact APIs.
+     *
+     * &#64;since T07 (Artifact Store)
+     * </pre>
+     *
+     * <code>repeated string artifact_ids = 11 [json_name = "artifactIds"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearArtifactIds() {
+      artifactIds_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+      bitField0_ = (bitField0_ & ~0x00000400);;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Artifact IDs produced by this task.
+     *
+     * &#64;internal
+     * Populated when the task's output (or portions of it) is auto-promoted
+     * to the artifact store because it exceeds the size threshold (256KB),
+     * or when the workflow author explicitly declares artifact persistence.
+     *
+     * Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
+     * be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
+     *
+     * When artifact_ids is non-empty, the task's output field contains
+     * artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
+     * the original inline data. Consumers (execution viewer, SDK hooks)
+     * detect these references and resolve them via the Artifact APIs.
+     *
+     * &#64;since T07 (Artifact Store)
+     * </pre>
+     *
+     * <code>repeated string artifact_ids = 11 [json_name = "artifactIds"];</code>
+     * @param value The bytes of the artifactIds to add.
+     * @return This builder for chaining.
+     */
+    public Builder addArtifactIdsBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      ensureArtifactIdsIsMutable();
+      artifactIds_.add(value);
+      bitField0_ |= 0x00000400;
+      onChanged();
+      return this;
+    }
+
+    private long costMicros_ ;
+    /**
+     * <pre>
+     * Cost incurred by this task in micro-USD (1 USD = 1,000,000 micros).
+     *
+     * &#64;internal
+     * Non-zero for cost-incurring task kinds (llm_call, agent_call).
+     * Zero for non-LLM tasks (transform, validate, emit_event, etc.).
+     * Set by the workflow-runner when the task completes.
+     *
+     * &#64;since Cost Data Pipeline
+     * </pre>
+     *
+     * <code>int64 cost_micros = 12 [json_name = "costMicros"];</code>
+     * @return The costMicros.
+     */
+    @java.lang.Override
+    public long getCostMicros() {
+      return costMicros_;
+    }
+    /**
+     * <pre>
+     * Cost incurred by this task in micro-USD (1 USD = 1,000,000 micros).
+     *
+     * &#64;internal
+     * Non-zero for cost-incurring task kinds (llm_call, agent_call).
+     * Zero for non-LLM tasks (transform, validate, emit_event, etc.).
+     * Set by the workflow-runner when the task completes.
+     *
+     * &#64;since Cost Data Pipeline
+     * </pre>
+     *
+     * <code>int64 cost_micros = 12 [json_name = "costMicros"];</code>
+     * @param value The costMicros to set.
+     * @return This builder for chaining.
+     */
+    public Builder setCostMicros(long value) {
+
+      costMicros_ = value;
+      bitField0_ |= 0x00000800;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Cost incurred by this task in micro-USD (1 USD = 1,000,000 micros).
+     *
+     * &#64;internal
+     * Non-zero for cost-incurring task kinds (llm_call, agent_call).
+     * Zero for non-LLM tasks (transform, validate, emit_event, etc.).
+     * Set by the workflow-runner when the task completes.
+     *
+     * &#64;since Cost Data Pipeline
+     * </pre>
+     *
+     * <code>int64 cost_micros = 12 [json_name = "costMicros"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearCostMicros() {
+      bitField0_ = (bitField0_ & ~0x00000800);
+      costMicros_ = 0L;
+      onChanged();
+      return this;
+    }
+
+    private long inputTokens_ ;
+    /**
+     * <pre>
+     * Input (prompt/context) tokens consumed by this task.
+     *
+     * &#64;internal
+     * Non-zero for LLM-backed tasks. Zero for non-LLM tasks.
+     *
+     * &#64;since Cost Data Pipeline
+     * </pre>
+     *
+     * <code>int64 input_tokens = 13 [json_name = "inputTokens"];</code>
+     * @return The inputTokens.
+     */
+    @java.lang.Override
+    public long getInputTokens() {
+      return inputTokens_;
+    }
+    /**
+     * <pre>
+     * Input (prompt/context) tokens consumed by this task.
+     *
+     * &#64;internal
+     * Non-zero for LLM-backed tasks. Zero for non-LLM tasks.
+     *
+     * &#64;since Cost Data Pipeline
+     * </pre>
+     *
+     * <code>int64 input_tokens = 13 [json_name = "inputTokens"];</code>
+     * @param value The inputTokens to set.
+     * @return This builder for chaining.
+     */
+    public Builder setInputTokens(long value) {
+
+      inputTokens_ = value;
+      bitField0_ |= 0x00001000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Input (prompt/context) tokens consumed by this task.
+     *
+     * &#64;internal
+     * Non-zero for LLM-backed tasks. Zero for non-LLM tasks.
+     *
+     * &#64;since Cost Data Pipeline
+     * </pre>
+     *
+     * <code>int64 input_tokens = 13 [json_name = "inputTokens"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearInputTokens() {
+      bitField0_ = (bitField0_ & ~0x00001000);
+      inputTokens_ = 0L;
+      onChanged();
+      return this;
+    }
+
+    private long outputTokens_ ;
+    /**
+     * <pre>
+     * Output (completion/generation) tokens produced by this task.
+     *
+     * &#64;internal
+     * Non-zero for LLM-backed tasks. Zero for non-LLM tasks.
+     *
+     * &#64;since Cost Data Pipeline
+     * </pre>
+     *
+     * <code>int64 output_tokens = 14 [json_name = "outputTokens"];</code>
+     * @return The outputTokens.
+     */
+    @java.lang.Override
+    public long getOutputTokens() {
+      return outputTokens_;
+    }
+    /**
+     * <pre>
+     * Output (completion/generation) tokens produced by this task.
+     *
+     * &#64;internal
+     * Non-zero for LLM-backed tasks. Zero for non-LLM tasks.
+     *
+     * &#64;since Cost Data Pipeline
+     * </pre>
+     *
+     * <code>int64 output_tokens = 14 [json_name = "outputTokens"];</code>
+     * @param value The outputTokens to set.
+     * @return This builder for chaining.
+     */
+    public Builder setOutputTokens(long value) {
+
+      outputTokens_ = value;
+      bitField0_ |= 0x00002000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Output (completion/generation) tokens produced by this task.
+     *
+     * &#64;internal
+     * Non-zero for LLM-backed tasks. Zero for non-LLM tasks.
+     *
+     * &#64;since Cost Data Pipeline
+     * </pre>
+     *
+     * <code>int64 output_tokens = 14 [json_name = "outputTokens"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearOutputTokens() {
+      bitField0_ = (bitField0_ & ~0x00002000);
+      outputTokens_ = 0L;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.workflowexecution.v1.WorkflowTask)

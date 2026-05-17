@@ -7,35 +7,34 @@ spec:
     app:
       env:
         variables:
-          ENV:
+          - name: ENV
             value: local
           # Execution Mode - dual (gRPC + Temporal worker in same process)
-          EXECUTION_MODE:
+          - name: EXECUTION_MODE
             value: dual
           # gRPC Server Configuration
-          GRPC_PORT:
+          - name: GRPC_PORT
             value: "9090"
-          PORT:
+          - name: PORT
             value: "9090"
           # For local development, use a test workflow file
-          WORKFLOW_FILE:
+          - name: WORKFLOW_FILE
             value: /app/test/golden/01-operation-basic.yaml
           # Temporal Configuration (using external endpoint for local development)
-          TEMPORAL_SERVICE_ADDRESS:
+          - name: TEMPORAL_SERVICE_ADDRESS
             value: $variables-group/stigmer-temporal-config/prod.external-endpoint
-          TEMPORAL_NAMESPACE:
+          - name: TEMPORAL_NAMESPACE
             value: $variables-group/stigmer-temporal-config/namespace
-          TEMPORAL_WORKFLOW_EXECUTION_RUNNER_TASK_QUEUE:
+          - name: TEMPORAL_WORKFLOW_EXECUTION_RUNNER_TASK_QUEUE
             value: workflow_execution_runner
           # More verbose logging for local dev
-          LOG_LEVEL:
+          - name: LOG_LEVEL
             value: info
           # OpenTelemetry
-          OTEL_EXPORTER_OTLP_TRANSPORT:
+          - name: OTEL_EXPORTER_OTLP_TRANSPORT
             value: http
           # Stigmer Backend Configuration
-          STIGMER_BACKEND_ENDPOINT:
+          - name: STIGMER_BACKEND_ENDPOINT
             value: $variables-group/stigmer-api/prod.endpoint
-          STIGMER_SERVICE_USE_TLS:
+          - name: STIGMER_SERVICE_USE_TLS
             value: "true"
-

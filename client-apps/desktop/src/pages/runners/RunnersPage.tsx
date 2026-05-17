@@ -13,6 +13,7 @@ import {
   onRunnerStarted,
   onRunnerStopped,
   onRunnerError,
+  onRunnerLog,
   type LocalRunnerInfo,
 } from "../../hooks/tauri";
 import { useLocalRunners } from "../../hooks/useLocalRunners";
@@ -24,6 +25,23 @@ import { ThisMachineCard } from "./ThisMachineCard";
 import { OrgFleetSection } from "./OrgFleetSection";
 import { RunnerLogViewer } from "./RunnerLogViewer";
 import { toGrpcTarget } from "../../lib/grpc-target";
+
+const BASE_URL = import.meta.env.VITE_STIGMER_API_URL ?? "http://localhost:7234";
+
+const SIDECAR_ENDPOINT: string =
+  import.meta.env.VITE_STIGMER_SIDECAR_ENDPOINT ??
+  toGrpcTarget(BASE_URL);
+
+function isLocalEndpoint(url: string): boolean {
+  try {
+    const host = new URL(url).hostname;
+    return host === "localhost" || host === "127.0.0.1" || host === "::1";
+  } catch {
+    return false;
+  }
+}
+
+const SIDECAR_INSECURE = isLocalEndpoint(BASE_URL);
 
 const SESSION_EXPIRED_MESSAGE =
   "Your session has expired. Please sign out and sign back in to start a runner.";
@@ -91,8 +109,9 @@ export default function RunnersPage() {
     if (!cred.token) throw new Error(SESSION_EXPIRED_MESSAGE);
     return startRunner({
       token: cred.token,
-      endpoint: toGrpcTarget(cred.endpoint),
+      endpoint: SIDECAR_ENDPOINT,
       org,
+      insecure: SIDECAR_INSECURE,
     });
   }, [org, getCredential, startRunner]);
 
@@ -103,6 +122,32 @@ export default function RunnersPage() {
   useEffect(() => {
     setUrgent(autoEnsureState === "ensuring");
   }, [autoEnsureState, setUrgent]);
+
+  // ---- Bootstrap progress from CLI stderr during ensure ----
+  const [bootstrapStatus, setBootstrapStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (autoEnsureState !== "ensuring") {
+      setBootstrapStatus(null);
+      return;
+    }
+
+    const unlistenPromise = onRunnerLog((payload) => {
+      if (payload.stream !== "stderr") return;
+      const line = payload.line.trim();
+      if (!line || line.startsWith("{")) return;
+      const cleaned = line
+        .replace(/^[\s•→]+/, "")
+        .replace(/\.\.\.\s*$/, "");
+      if (cleaned.length > 0 && cleaned.length < 120) {
+        setBootstrapStatus(cleaned);
+      }
+    });
+
+    return () => {
+      unlistenPromise.then((unlisten) => unlisten());
+    };
+  }, [autoEnsureState]);
 
   // ---- UI state ----
   const [logRunnerName, setLogRunnerName] = useState<string | null>(null);
@@ -269,7 +314,7 @@ export default function RunnersPage() {
         const cred = await getCredential(org || undefined);
         await stopRunner(name, {
           token: cred.token || undefined,
-          endpoint: toGrpcTarget(cred.endpoint),
+          endpoint: SIDECAR_ENDPOINT,
           org: org || undefined,
         });
       } catch {
@@ -300,8 +345,9 @@ export default function RunnersPage() {
         const runnerName = await startRunner({
           name,
           token: cred.token,
-          endpoint: toGrpcTarget(cred.endpoint),
+          endpoint: SIDECAR_ENDPOINT,
           org,
+          insecure: SIDECAR_INSECURE,
         });
         lastStartedRef.current = runnerName;
         restartGraceRef.current = Date.now();
@@ -334,8 +380,9 @@ export default function RunnersPage() {
       const runnerName = await startRunner({
         name,
         token: cred.token,
-        endpoint: toGrpcTarget(cred.endpoint),
+        endpoint: SIDECAR_ENDPOINT,
         org,
+        insecure: SIDECAR_INSECURE,
       });
       lastStartedRef.current = runnerName;
       restartGraceRef.current = Date.now();
@@ -431,6 +478,7 @@ export default function RunnersPage() {
               localStatus={localStatus}
               serverRunner={thisMachineRunner}
               error={autoEnsureError ?? launchError}
+              bootstrapStatus={bootstrapStatus}
               onEnable={handleEnable}
               onDisable={disable}
               onRetry={retry}

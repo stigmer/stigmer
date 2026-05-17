@@ -1,0 +1,26 @@
+kind: set_vars
+display_name: "Set Variables"
+description: "Assign values to workflow state variables using expressions."
+category: data
+icon: "variable"
+is_ai_native: false
+requires_external_service: false
+documentation_url: "/docs/guides/workflow-tasks/set-vars"
+
+output_schema:
+  type: "null"
+  description: "set_vars mutates workflow context directly; it does not produce task output."
+
+field_groups:
+  - id: core
+    display_name: "Variables"
+    fields: [variables]
+
+yaml_examples:
+  - |
+    - initialize:
+        set:
+          variables:
+            status: "pending"
+            timestamp: "${ now() }"
+            request_id: "${ $context.input.id }"

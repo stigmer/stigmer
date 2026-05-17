@@ -7,22 +7,22 @@ spec:
     app:
       env:
         variables:
-          ENV:
+          - name: ENV
             value: local
-          LOG_LEVEL:
+          - name: LOG_LEVEL
             value: INFO
           # Temporal Configuration (using external endpoints for local development)
-          TEMPORAL_SERVICE_ADDRESS:
+          - name: TEMPORAL_SERVICE_ADDRESS
             value: $variables-group/stigmer-temporal-config/prod.external-endpoint
-          TEMPORAL_NAMESPACE:
+          - name: TEMPORAL_NAMESPACE
             value: $variables-group/stigmer-temporal-config/namespace
-          TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE:
+          - name: TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE
             value: agent_execution_runner
           # Redis Configuration (using external endpoint for local development)
-          REDIS_HOST:
+          - name: REDIS_HOST
             value: $variables-group/stigmer-redis-config/prod.host
           # Stigmer Backend
-          STIGMER_BACKEND_ENDPOINT:
+          - name: STIGMER_BACKEND_ENDPOINT
             value: $variables-group/stigmer-api/prod.endpoint
           # LLM Configuration (local development)
           # Default: Ollama (zero-cost, runs locally)
@@ -36,17 +36,17 @@ spec:
           #   STIGMER_LLM_PROVIDER: anthropic
           #   STIGMER_LLM_MODEL: claude-sonnet-4.5
           #   STIGMER_LLM_API_KEY: <your-anthropic-key> (in secrets section below)
-          STIGMER_LLM_PROVIDER:
+          - name: STIGMER_LLM_PROVIDER
             value: ollama
-          STIGMER_LLM_MODEL:
+          - name: STIGMER_LLM_MODEL
             value: qwen2.5-coder:7b
-          STIGMER_LLM_BASE_URL:
+          - name: STIGMER_LLM_BASE_URL
             value: $variables-group/stigmer-llm-config/local.ollama-base-url
-          STIGMER_LLM_MAX_TOKENS:
+          - name: STIGMER_LLM_MAX_TOKENS
             value: "8192"
-          STIGMER_LLM_TEMPERATURE:
+          - name: STIGMER_LLM_TEMPERATURE
             value: "0.0"
         # Secrets (uncomment and add API key if using OpenAI/Anthropic locally)
         # secrets:
-        #   STIGMER_LLM_API_KEY:
+        #   - name: STIGMER_LLM_API_KEY
         #     value: <your-api-key-here>

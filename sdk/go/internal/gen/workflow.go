@@ -7,22 +7,29 @@ import (
 
 	environmentv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/environment/v1"
 	workflowv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflow/v1"
+	serverless "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflow/v1/serverless"
 	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
+	rpc "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	searchv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/search/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // WorkflowClient provides operations on workflow resources.
 type WorkflowClient struct {
-	command workflowv1.WorkflowCommandControllerClient
-	query   workflowv1.WorkflowQueryControllerClient
+	command               workflowv1.WorkflowCommandControllerClient
+	query                 workflowv1.WorkflowQueryControllerClient
+	taskKindRegistryQuery workflowv1.TaskKindRegistryQueryControllerClient
+	search                searchv1.SearchServiceClient
 }
 
 func NewWorkflowClient(conn grpc.ClientConnInterface) *WorkflowClient {
 	return &WorkflowClient{
-		command: workflowv1.NewWorkflowCommandControllerClient(conn),
-		query:   workflowv1.NewWorkflowQueryControllerClient(conn),
+		command:               workflowv1.NewWorkflowCommandControllerClient(conn),
+		query:                 workflowv1.NewWorkflowQueryControllerClient(conn),
+		taskKindRegistryQuery: workflowv1.NewTaskKindRegistryQueryControllerClient(conn),
+		search:                searchv1.NewSearchServiceClient(conn),
 	}
 }
 
@@ -46,6 +53,11 @@ func (w *WorkflowClient) Delete(ctx context.Context, id string) (*workflowv1.Wor
 	return resp, wrapErr(err)
 }
 
+func (w *WorkflowClient) ValidateSpec(ctx context.Context, input *WorkflowInput) (*serverless.ServerlessWorkflowValidation, error) {
+	resp, err := w.command.ValidateSpec(ctx, input.toProto())
+	return resp, wrapErr(err)
+}
+
 func (w *WorkflowClient) Get(ctx context.Context, id string) (*workflowv1.Workflow, error) {
 	resp, err := w.query.Get(ctx, &workflowv1.WorkflowId{Value: id})
 	return resp, wrapErr(err)
@@ -55,6 +67,33 @@ func (w *WorkflowClient) GetByReference(ctx context.Context, ref ResourceRef) (*
 	ref.Kind = apiresourcekind.ApiResourceKind_workflow
 	resp, err := w.query.GetByReference(ctx, ref.toProto())
 	return resp, wrapErr(err)
+}
+
+func (w *WorkflowClient) GetTaskKindRegistry(ctx context.Context, input *workflowv1.GetTaskKindRegistryRequest) (*workflowv1.GetTaskKindRegistryResponse, error) {
+	resp, err := w.taskKindRegistryQuery.GetTaskKindRegistry(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (w *WorkflowClient) List(ctx context.Context, params *ListParams) (*ListResult, error) {
+	req := &searchv1.SearchRequest{
+		Kinds:          []apiresourcekind.ApiResourceKind{apiresourcekind.ApiResourceKind_workflow},
+		Query:          params.Query,
+		Org:            params.Org,
+		ExcludePublic:  params.ExcludePublic,
+		CrossOrgPublic: params.CrossOrgPublic,
+	}
+	if params.Page != nil {
+		req.Page = &rpc.PageInfo{Num: params.Page.Num, Size: params.Page.Size}
+	}
+	resp, err := w.search.Search(ctx, req)
+	if err != nil {
+		return nil, wrapErr(err)
+	}
+	return &ListResult{
+		Entries:    resp.GetEntries(),
+		TotalCount: resp.GetTotalCount(),
+		TotalPages: resp.GetTotalPages(),
+	}, nil
 }
 
 // WorkflowInput holds the fields for creating/updating a Workflow.
@@ -67,6 +106,7 @@ type WorkflowInput struct {
 	Document    *WorkflowDocumentInput
 	Tasks       []*WorkflowTaskInput
 	Env         map[string]*EnvVarDeclarationInput
+	Budget      *WorkflowBudgetInput
 }
 
 // WorkflowDocumentInput is the SDK input type for WorkflowDocument.
@@ -85,6 +125,7 @@ type WorkflowTaskInput struct {
 	TaskConfig map[string]any
 	Export     *ExportInput
 	Flow       *FlowControlInput
+	Compensate []*WorkflowTaskInput
 }
 
 // ExportInput is the SDK input type for Export.
@@ -95,6 +136,14 @@ type ExportInput struct {
 // FlowControlInput is the SDK input type for FlowControl.
 type FlowControlInput struct {
 	Then string
+}
+
+// WorkflowBudgetInput is the SDK input type for WorkflowBudget.
+type WorkflowBudgetInput struct {
+	MaxCostMicros      int64
+	MaxTotalTokens     int64
+	MaxDurationSeconds int32
+	OnExceeded         workflowv1.BudgetExceededPolicy
 }
 
 func (i *WorkflowInput) toProto() *workflowv1.Workflow {
@@ -121,6 +170,9 @@ func (i *WorkflowInput) toProto() *workflowv1.Workflow {
 		for k, v := range i.Env {
 			resource.Spec.Env[k] = v.toProto()
 		}
+	}
+	if i.Budget != nil {
+		resource.Spec.Budget = i.Budget.toProto()
 	}
 	return resource
 }
@@ -157,6 +209,15 @@ func (i *FlowControlInput) toProto() *workflowv1.FlowControl {
 	}
 }
 
+func (i *WorkflowBudgetInput) toProto() *workflowv1.WorkflowBudget {
+	return &workflowv1.WorkflowBudget{
+		MaxCostMicros:      i.MaxCostMicros,
+		MaxTotalTokens:     i.MaxTotalTokens,
+		MaxDurationSeconds: i.MaxDurationSeconds,
+		OnExceeded:         i.OnExceeded,
+	}
+}
+
 // WorkflowInputFromProto creates a WorkflowInput from a proto Workflow resource.
 func WorkflowInputFromProto(p *workflowv1.Workflow) *WorkflowInput {
 	if p == nil {
@@ -181,6 +242,7 @@ func WorkflowInputFromProto(p *workflowv1.Workflow) *WorkflowInput {
 				input.Env[k] = envVarDeclarationInputFromProto(v)
 			}
 		}
+		input.Budget = workflowBudgetInputFromProto(s.GetBudget())
 	}
 	return input
 }
@@ -210,6 +272,9 @@ func workflowTaskInputFromProto(p *workflowv1.WorkflowTask) *WorkflowTaskInput {
 	}
 	input.Export = exportInputFromProto(p.GetExport())
 	input.Flow = flowControlInputFromProto(p.GetFlow())
+	for _, item := range p.GetCompensate() {
+		input.Compensate = append(input.Compensate, workflowTaskInputFromProto(item))
+	}
 	return input
 }
 
@@ -228,5 +293,17 @@ func flowControlInputFromProto(p *workflowv1.FlowControl) *FlowControlInput {
 	}
 	input := &FlowControlInput{}
 	input.Then = p.GetThen()
+	return input
+}
+
+func workflowBudgetInputFromProto(p *workflowv1.WorkflowBudget) *WorkflowBudgetInput {
+	if p == nil {
+		return nil
+	}
+	input := &WorkflowBudgetInput{}
+	input.MaxCostMicros = p.GetMaxCostMicros()
+	input.MaxTotalTokens = p.GetMaxTotalTokens()
+	input.MaxDurationSeconds = p.GetMaxDurationSeconds()
+	input.OnExceeded = p.GetOnExceeded()
 	return input
 }

@@ -10,14 +10,19 @@ import grpc
 from ai.stigmer.agentic.workflow.v1 import api_pb2
 from ai.stigmer.agentic.workflow.v1 import command_pb2_grpc
 from ai.stigmer.agentic.workflow.v1 import query_pb2_grpc
+from ai.stigmer.agentic.workflow.v1 import task_kind_registry_query_pb2_grpc
 from ai.stigmer.agentic.workflow.v1 import io_pb2
+from ai.stigmer.agentic.workflow.v1 import task_kind_descriptor_pb2
 from ai.stigmer.agentic.workflow.v1 import spec_pb2
 from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
 from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2
+from ai.stigmer.search.v1 import query_pb2_grpc as search_query_pb2_grpc
+from ai.stigmer.search.v1 import io_pb2 as search_io_pb2
+from ai.stigmer.commons.rpc import pagination_pb2
 
 from ._errors import wrap_error
-from ._types import ResourceRef
+from ._types import ListParams, ListResult, ResourceRef
 from ._agent import EnvVarDeclarationInput
 
 
@@ -27,6 +32,8 @@ class WorkflowClient:
     def __init__(self, channel: grpc.Channel) -> None:
         self._command = command_pb2_grpc.WorkflowCommandControllerStub(channel)
         self._query = query_pb2_grpc.WorkflowQueryControllerStub(channel)
+        self._taskKindRegistryQuery = task_kind_registry_query_pb2_grpc.TaskKindRegistryQueryControllerStub(channel)
+        self._search = search_query_pb2_grpc.SearchServiceStub(channel)
 
     def apply(self, input: WorkflowInput) -> api_pb2.Workflow:
         try:
@@ -66,6 +73,35 @@ class WorkflowClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def get_task_kind_registry(self, input: task_kind_descriptor_pb2.GetTaskKindRegistryRequest) -> task_kind_descriptor_pb2.GetTaskKindRegistryResponse:
+        try:
+            return self._taskKindRegistryQuery.getTaskKindRegistry(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def list(self, params: ListParams) -> ListResult:
+        try:
+            req = search_io_pb2.SearchRequest(
+                kinds=[api_resource_kind_pb2.ApiResourceKind.workflow],
+                query=params.query,
+                org=params.org,
+                exclude_public=params.exclude_public,
+                cross_org_public=params.cross_org_public,
+            )
+            if params.page is not None:
+                req.page.CopyFrom(pagination_pb2.PageInfo(
+                    num=params.page.num,
+                    size=params.page.size,
+                ))
+            resp = self._search.search(req)
+            return ListResult(
+                entries=list(resp.entries),
+                total_count=resp.total_count,
+                total_pages=resp.total_pages,
+            )
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
 
 @dataclass
 class WorkflowInput:
@@ -79,6 +115,7 @@ class WorkflowInput:
     description: str = ""
     tasks: list[WorkflowTaskInput] = field(default_factory=list)
     env: dict[str, EnvVarDeclarationInput] = field(default_factory=dict)
+    budget: WorkflowBudgetInput | None = None
 
     def _to_proto(self) -> api_pb2.Workflow:
         spec = spec_pb2.WorkflowSpec(
@@ -90,6 +127,8 @@ class WorkflowInput:
             spec.tasks.append(item._to_proto())
         for k, v in self.env.items():
             spec.env[k].CopyFrom(v._to_proto())
+        if self.budget is not None:
+            spec.budget.CopyFrom(self.budget._to_proto())
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,
@@ -172,6 +211,25 @@ class FlowControlInput:
     def _to_proto(self) -> spec_pb2.FlowControl:
         msg = spec_pb2.FlowControl(
             then=self.then,
+        )
+        return msg
+
+
+@dataclass
+class WorkflowBudgetInput:
+    """SDK input type for WorkflowBudget."""
+
+    max_cost_micros: int = 0
+    max_total_tokens: int = 0
+    max_duration_seconds: int = 0
+    on_exceeded: int = 0
+
+    def _to_proto(self) -> spec_pb2.WorkflowBudget:
+        msg = spec_pb2.WorkflowBudget(
+            max_cost_micros=self.max_cost_micros,
+            max_total_tokens=self.max_total_tokens,
+            max_duration_seconds=self.max_duration_seconds,
+            on_exceeded=self.on_exceeded,
         )
         return msg
 

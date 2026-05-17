@@ -219,6 +219,8 @@ const (
 	ApiResourceKind_workflow_execution ApiResourceKind = 52
 	// Named set of variables and secrets for agent and workflow execution.
 	ApiResourceKind_environment ApiResourceKind = 53
+	// Persisted blob produced during workflow or agent execution.
+	ApiResourceKind_artifact ApiResourceKind = 55
 	// User-owned runtime context for managing execution state.
 	ApiResourceKind_execution_context ApiResourceKind = 54
 	// Aggregate root grouping related resources for lifecycle management.
@@ -250,6 +252,7 @@ var (
 		51: "workflow_instance",
 		52: "workflow_execution",
 		53: "environment",
+		55: "artifact",
 		54: "execution_context",
 		60: "project",
 	}
@@ -276,6 +279,7 @@ var (
 		"workflow_instance":         51,
 		"workflow_execution":        52,
 		"environment":               53,
+		"artifact":                  55,
 		"execution_context":         54,
 		"project":                   60,
 	}
@@ -468,7 +472,7 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"cloud_only\x10\x02*A\n" +
 	"\x0fPlatformIdValue\x12!\n" +
 	"\x1dplatform_id_value_unspecified\x10\x00\x12\v\n" +
-	"\astigmer\x10\x01*\xf9\r\n" +
+	"\astigmer\x10\x01*\xb6\x0e\n" +
 	"\x0fApiResourceKind\x12\x1d\n" +
 	"\x19api_resource_kind_unknown\x10\x00\x12[\n" +
 	"\x14api_resource_version\x10\x01\x1aA\xaa\xff+=\b\x01\x10\x01\x1a\x12ApiResourceVersion\"\x14API Resource Version*\x03ver8\x01@\x02J\x04\b\x05\x10\x04\x12?\n" +
@@ -505,7 +509,8 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"\bworkflow\x12\bworkflow\x1a\vworkflow_id:\x02\x01\x04\x12X\n" +
 	"\x12workflow_execution\x104\x1a@\xaa\xff+<\b\x01\x10\x01\x1a\x11WorkflowExecution\"\x12Workflow Execution*\x03wex@\x01J\b\b\x02\x10\x01:\x02\x01\x04\x12F\n" +
 	"\venvironment\x105\x1a5\xaa\xff+1\b\x01\x10\x01\x1a\vEnvironment\"\vEnvironment*\x03env@\x01J\n" +
-	"\b\x02\x10\x010\x01:\x02\x01\x04\x12R\n" +
+	"\b\x02\x10\x010\x01:\x02\x01\x04\x12;\n" +
+	"\bartifact\x107\x1a-\xaa\xff+)\b\x01\x10\x01\x1a\bArtifact\"\bArtifact*\x03art@\x01J\b\b\x02\x10\x01:\x02\x01\x04\x12R\n" +
 	"\x11execution_context\x106\x1a;\xaa\xff+7\b\x01\x10\x01\x1a\x10ExecutionContext\"\x11Execution Context*\x04ectx@\x01J\x04\b\x04\x10\x01\x128\n" +
 	"\aproject\x10<\x1a+\xaa\xff+'\b\x03\x10\x01\x1a\aProject\"\aProject*\x03prj@\x01J\b\b\x02\x10\x01:\x02\x01\x04:\x85\x01\n" +
 	"\tkind_meta\x12!.google.protobuf.EnumValueOptions\x18\xf5\xbf\x05 \x01(\v2C.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindMetaR\bkindMetaB\x80\x03\n" +

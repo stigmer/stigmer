@@ -1,14 +1,31 @@
+import datetime
+
 from ai.stigmer.agentic.agentexecution.v1 import api_pb2 as _api_pb2
 from ai.stigmer.agentic.agentexecution.v1 import enum_pb2 as _enum_pb2
 from ai.stigmer.agentic.agentexecution.v1 import usage_pb2 as _usage_pb2
 from buf.validate import validate_pb2 as _validate_pb2
+from google.protobuf import duration_pb2 as _duration_pb2
 from google.protobuf.internal import containers as _containers
+from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
 from collections.abc import Iterable as _Iterable, Mapping as _Mapping
 from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
+
+class AgentExecutionSummaryTimeWindow(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    AGENT_EXECUTION_SUMMARY_TIME_WINDOW_UNSPECIFIED: _ClassVar[AgentExecutionSummaryTimeWindow]
+    AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_24H: _ClassVar[AgentExecutionSummaryTimeWindow]
+    AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_7D: _ClassVar[AgentExecutionSummaryTimeWindow]
+    AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_30D: _ClassVar[AgentExecutionSummaryTimeWindow]
+    AGENT_EXECUTION_SUMMARY_TIME_WINDOW_ALL_TIME: _ClassVar[AgentExecutionSummaryTimeWindow]
+AGENT_EXECUTION_SUMMARY_TIME_WINDOW_UNSPECIFIED: AgentExecutionSummaryTimeWindow
+AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_24H: AgentExecutionSummaryTimeWindow
+AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_7D: AgentExecutionSummaryTimeWindow
+AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_30D: AgentExecutionSummaryTimeWindow
+AGENT_EXECUTION_SUMMARY_TIME_WINDOW_ALL_TIME: AgentExecutionSummaryTimeWindow
 
 class AgentExecutionId(_message.Message):
     __slots__ = ("value",)
@@ -361,3 +378,40 @@ class HarnessCostSummary(_message.Message):
     call_count: int
     execution_count: int
     def __init__(self, harness: _Optional[str] = ..., billable_cost_micros: _Optional[int] = ..., call_count: _Optional[int] = ..., execution_count: _Optional[int] = ...) -> None: ...
+
+class GetAgentExecutionSummaryRequest(_message.Message):
+    __slots__ = ("org", "time_window")
+    ORG_FIELD_NUMBER: _ClassVar[int]
+    TIME_WINDOW_FIELD_NUMBER: _ClassVar[int]
+    org: str
+    time_window: AgentExecutionSummaryTimeWindow
+    def __init__(self, org: _Optional[str] = ..., time_window: _Optional[_Union[AgentExecutionSummaryTimeWindow, str]] = ...) -> None: ...
+
+class AgentExecutionSummary(_message.Message):
+    __slots__ = ("active_count", "phase_counts", "avg_duration", "top_failing_agents")
+    class PhaseCountsEntry(_message.Message):
+        __slots__ = ("key", "value")
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: int
+        value: int
+        def __init__(self, key: _Optional[int] = ..., value: _Optional[int] = ...) -> None: ...
+    ACTIVE_COUNT_FIELD_NUMBER: _ClassVar[int]
+    PHASE_COUNTS_FIELD_NUMBER: _ClassVar[int]
+    AVG_DURATION_FIELD_NUMBER: _ClassVar[int]
+    TOP_FAILING_AGENTS_FIELD_NUMBER: _ClassVar[int]
+    active_count: int
+    phase_counts: _containers.ScalarMap[int, int]
+    avg_duration: _duration_pb2.Duration
+    top_failing_agents: _containers.RepeatedCompositeFieldContainer[AgentFailureRank]
+    def __init__(self, active_count: _Optional[int] = ..., phase_counts: _Optional[_Mapping[int, int]] = ..., avg_duration: _Optional[_Union[datetime.timedelta, _duration_pb2.Duration, _Mapping]] = ..., top_failing_agents: _Optional[_Iterable[_Union[AgentFailureRank, _Mapping]]] = ...) -> None: ...
+
+class AgentFailureRank(_message.Message):
+    __slots__ = ("agent_slug", "agent_name", "failure_count")
+    AGENT_SLUG_FIELD_NUMBER: _ClassVar[int]
+    AGENT_NAME_FIELD_NUMBER: _ClassVar[int]
+    FAILURE_COUNT_FIELD_NUMBER: _ClassVar[int]
+    agent_slug: str
+    agent_name: str
+    failure_count: int
+    def __init__(self, agent_slug: _Optional[str] = ..., agent_name: _Optional[str] = ..., failure_count: _Optional[int] = ...) -> None: ...

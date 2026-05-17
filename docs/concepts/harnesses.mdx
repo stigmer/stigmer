@@ -66,14 +66,17 @@ handles them.
 
 The Harness you choose depends on what your Agent needs to do.
 
-|                        | Native                                                               | Cursor                                                     |
-| ---------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------- |
-| **Default**            | Yes                                                                  | No — must be explicitly selected                           |
-| **Model availability** | All supported providers                                              | Cursor-served models only                                  |
-| **Tool capabilities**  | MCP servers you configure                                            | MCP servers + Cursor's built-in coding tools               |
-| **Checkpoints**        | Full Stigmer pause/resume                                            | Cursor-managed state                                       |
-| **Pricing**            | Per-provider token pricing                                           | Cursor platform pricing                                    |
-| **Best for**           | General-purpose agents, custom model selection, production workloads | Developer-facing agents, coding tasks, Cursor model access |
+|                         | Native                                                               | Cursor                                                     |
+| ----------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------- |
+| **Default**             | Yes                                                                  | No — must be explicitly selected                           |
+| **Model availability**  | All supported providers                                              | Cursor-served models only                                  |
+| **Tool capabilities**   | MCP servers you configure                                            | MCP servers + Cursor's built-in coding tools               |
+| **Checkpoints**         | Full Stigmer pause/resume                                            | Cursor-managed state                                       |
+| **Platform commission** | 20% over provider rates                                              | 10% over provider rates                                    |
+| **Per-call overhead**   | Minimal (your prompt only)                                           | ~10k tokens of system context per call                     |
+| **Prompt caching**      | Full control (explicit breakpoints)                                  | Automatic and opaque                                       |
+| **Latency**             | Lower (direct API)                                                   | Higher (agent startup + tooling)                           |
+| **Best for**            | General-purpose agents, custom model selection, production workloads | Developer-facing agents, coding tasks, Cursor model access |
 
 <Callout type="info">
   A Session's Harness is immutable after the first execution runs. Choose the
@@ -137,6 +140,21 @@ session, err := client.Session.Create(ctx, &sessionv1.CreateInput{
 
 In the web console, the model picker shows models from both harnesses. Selecting
 a Cursor-served model implicitly sets the Harness to Cursor for that Session.
+
+## Cost considerations
+
+The harnesses have different cost profiles beyond the commission percentage.
+Native benefits from Anthropic prompt caching (up to 78% savings on repeated
+prefixes), while cursor carries a fixed ~10k token overhead per call from its
+agent tooling.
+
+For multi-turn sessions, native's cost advantage compounds with each turn as the
+cached prefix is reused. For coding tasks that require cursor's built-in tools,
+the overhead is justified by the capability it provides.
+
+See the [cost optimization guide](/docs/guides/runners/cost-optimization) for a
+detailed decision matrix, caching economics, and practical tips for reducing
+spend.
 
 ## What's next
 

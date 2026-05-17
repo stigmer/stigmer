@@ -55,8 +55,11 @@ WorkflowExecution workflowExecution = client.workflowExecutions().get("wex_01j5q
 | Method | Description | Streaming |
 |--------|-------------|-----------|
 | [`get`](#get) | Get a single workflow execution by ID. | |
+| [`getEventLog`](#geteventlog) | Fetch the paginated event log for a workflow execution. | |
+| [`getExecutionSummary`](#getexecutionsummary) | Get aggregated execution statistics for an organization's workflows. | |
 | [`list`](#list) | List workflow executions with pagination and optional filtering. | |
 | [`listByWorkflow`](#listbyworkflow) | List all executions for a specific Workflow or WorkflowInstance. | |
+| [`listPendingApprovals`](#listpendingapprovals) | List workflow executions with pending human_input tasks awaiting reviewer decisions. | |
 | [`subscribe`](#subscribe) | Subscribe to real-time updates for a specific workflow execution (server streaming). | Server |
 | [`create`](#create) | Create and trigger a new workflow execution. | |
 | [`update`](#update) | Update an existing workflow execution with full state. | |
@@ -68,7 +71,9 @@ WorkflowExecution workflowExecution = client.workflowExecutions().get("wex_01j5q
 | [`terminate`](#terminate) | Terminate a workflow execution immediately. | |
 | [`recover`](#recover) | Recover a failed workflow execution from the last checkpoint. | |
 | [`submitApproval`](#submitapproval) | Submit an approval decision for a child agent's tool execution. | |
+| [`submitWorkflowTaskApproval`](#submitworkflowtaskapproval) | Submit a human reviewer's decision for a workflow-level human_input task. | |
 | [`sendSignal`](#sendsignal) | Send a signal to a running workflow execution. | |
+| [`subscribeEvents`](#subscribeevents) | Subscribe to real-time execution events (incremental event stream). | Server |
 
 ### get
 
@@ -106,6 +111,108 @@ WorkflowExecution workflowExecution = client.workflowExecutions().get(id);
 | `id` | `string` | Workflow Execution identifier. |
 
 **Returns**: [`WorkflowExecution`](#workflowexecution)
+
+### getEventLog
+
+Fetch the paginated event log for a workflow execution.
+
+Returns execution events ordered by sequence_number ascending, with cursor-based pagination and optional filtering by event type or task name.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const getEventLogResponse = await stigmer.workflowExecution.getEventLog({
+  executionId: "...",
+  afterSequence: "...",
+  eventTypes: [],
+  taskName: "...",
+  pageSize: 0,
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+getEventLogResponse, err := client.WorkflowExecution.GetEventLog(ctx, &stigmer.GetEventLogRequest{
+  ExecutionId:   "...",
+  AfterSequence: "...",
+  EventTypes:    []string{},
+  TaskName:      "...",
+  PageSize:      0,
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+get_event_log_response = client.workflow_executions.get_event_log(GetEventLogRequest(
+    execution_id="...",
+    after_sequence="...",
+    event_types=[],
+    task_name="...",
+    page_size=0,
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+GetEventLogResponse getEventLogResponse = client.workflowExecutions().getEventLog(GetEventLogRequest.builder()
+    .executionId("...")
+    .afterSequence("...")
+    .eventTypes(List.of())
+    .taskName("...")
+    .pageSize(0)
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`GetEventLogRequest`](#geteventlogrequest)
+
+**Returns**: [`GetEventLogResponse`](#geteventlogresponse)
+
+### getExecutionSummary
+
+Get aggregated execution statistics for an organization's workflows.
+
+Returns counts by phase, total cost, average duration, top failing workflows, and per-workflow cost breakdown — scoped to a configurable time window (24h, 7d, 30d, all-time).
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const executionSummary = await stigmer.workflowExecution.getExecutionSummary({
+  org: "...",
+  timeWindow: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+executionSummary, err := client.WorkflowExecution.GetExecutionSummary(ctx, &stigmer.GetExecutionSummaryRequest{
+  Org:        "...",
+  TimeWindow: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+execution_summary = client.workflow_executions.get_execution_summary(GetExecutionSummaryRequest(
+    org="...",
+    time_window="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+ExecutionSummary executionSummary = client.workflowExecutions().getExecutionSummary(GetExecutionSummaryRequest.builder()
+    .org("...")
+    .timeWindow("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`GetExecutionSummaryRequest`](#getexecutionsummaryrequest)
+
+**Returns**: [`ExecutionSummary`](#executionsummary)
 
 ### list
 
@@ -208,6 +315,55 @@ WorkflowExecutionList result = client.workflowExecutions().listByWorkflow(ListWo
 **Parameters**: [`ListWorkflowExecutionsByWorkflowRequest`](#listworkflowexecutionsbyworkflowrequest)
 
 **Returns**: [`WorkflowExecutionList`](#workflowexecutionlist)
+
+### listPendingApprovals
+
+List workflow executions with pending human_input tasks awaiting reviewer decisions.
+
+Returns a paginated list of executions where at least one human_input task is actively waiting for a response. Each entry includes the execution context, task details, requester, and timeout information.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const result = await stigmer.workflowExecution.listPendingApprovals({
+  org: "...",
+  pageSize: 0,
+  pageToken: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+result, err := client.WorkflowExecution.ListPendingApprovals(ctx, &stigmer.ListPendingApprovalsRequest{
+  Org:       "...",
+  PageSize:  0,
+  PageToken: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+result = client.workflow_executions.list_pending_approvals(ListPendingApprovalsRequest(
+    org="...",
+    page_size=0,
+    page_token="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+PendingApprovalsList result = client.workflowExecutions().listPendingApprovals(ListPendingApprovalsRequest.builder()
+    .org("...")
+    .pageSize(0)
+    .pageToken("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`ListPendingApprovalsRequest`](#listpendingapprovalsrequest)
+
+**Returns**: [`PendingApprovalsList`](#pendingapprovalslist)
 
 ### subscribe
 
@@ -419,6 +575,7 @@ Update execution status during workflow execution.
 const workflowExecution = await stigmer.workflowExecution.updateStatus({
   executionId: "...",
   status: {},
+  events: [],
 });
 ```
 </Tab>
@@ -427,6 +584,7 @@ const workflowExecution = await stigmer.workflowExecution.updateStatus({
 workflowExecution, err := client.WorkflowExecution.UpdateStatus(ctx, &stigmer.WorkflowExecutionUpdateStatusInput{
   ExecutionId: "...",
   Status:      &stigmer.WorkflowExecutionStatusInput{},
+  Events:      []stigmer.WorkflowExecutionEventInput{},
 })
 ```
 </Tab>
@@ -435,6 +593,7 @@ workflowExecution, err := client.WorkflowExecution.UpdateStatus(ctx, &stigmer.Wo
 workflow_execution = client.workflow_executions.update_status(WorkflowExecutionUpdateStatusInput(
     execution_id="...",
     status=None,
+    events=[],
 ))
 ```
 </Tab>
@@ -443,6 +602,7 @@ workflow_execution = client.workflow_executions.update_status(WorkflowExecutionU
 WorkflowExecution workflowExecution = client.workflowExecutions().updateStatus(WorkflowExecutionUpdateStatusInput.builder()
     .executionId("...")
     .status(null)
+    .events(List.of())
     .build());
 ```
 </Tab>
@@ -763,6 +923,67 @@ WorkflowExecution workflowExecution = client.workflowExecutions().submitApproval
 
 **Returns**: [`WorkflowExecution`](#workflowexecution)
 
+### submitWorkflowTaskApproval
+
+Submit a human reviewer's decision for a workflow-level human_input task.
+
+Resolves a human_input approval gate by sending the reviewer's outcome (and optional form data) to the waiting workflow task via Temporal signal.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const workflowExecution = await stigmer.workflowExecution.submitWorkflowTaskApproval({
+  executionId: "...",
+  taskName: "...",
+  outcome: "...",
+  formData: {},
+  reviewer: "...",
+  comment: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+workflowExecution, err := client.WorkflowExecution.SubmitWorkflowTaskApproval(ctx, &stigmer.SubmitWorkflowTaskApprovalInput{
+  ExecutionId: "...",
+  TaskName:    "...",
+  Outcome:     "...",
+  FormData:    nil,
+  Reviewer:    "...",
+  Comment:     "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+workflow_execution = client.workflow_executions.submit_workflow_task_approval(SubmitWorkflowTaskApprovalInput(
+    execution_id="...",
+    task_name="...",
+    outcome="...",
+    form_data=None,
+    reviewer="...",
+    comment="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+WorkflowExecution workflowExecution = client.workflowExecutions().submitWorkflowTaskApproval(SubmitWorkflowTaskApprovalInput.builder()
+    .executionId("...")
+    .taskName("...")
+    .outcome("...")
+    .formData(null)
+    .reviewer("...")
+    .comment("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`SubmitWorkflowTaskApprovalInput`](#submitworkflowtaskapprovalinput)
+
+**Returns**: [`WorkflowExecution`](#workflowexecution)
+
 ### sendSignal
 
 Send a signal to a running workflow execution.
@@ -816,6 +1037,54 @@ WorkflowExecution workflowExecution = client.workflowExecutions().sendSignal(Sen
 
 **Returns**: [`WorkflowExecution`](#workflowexecution)
 
+### subscribeEvents
+
+> **Server Streaming** — This method returns a stream of updates, not a single response.
+
+Subscribe to real-time execution events (incremental event stream).
+
+Opens a server-side streaming RPC that pushes individual WorkflowExecutionEvent messages as they occur during execution. Unlike subscribe() which streams full WorkflowExecution snapshots, this streams lightweight incremental events for the timeline view.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const stream = stigmer.workflowExecution.subscribeEvents(input);
+for await (const workflowExecutionEvent of stream) {
+  // process workflowExecutionEvent
+}
+```
+</Tab>
+<Tab value="Go">
+```go
+stream, err := client.WorkflowExecution.SubscribeEvents(ctx, input)
+for {
+    workflowExecutionEvent, err := stream.Recv()
+    if err != nil {
+        break
+    }
+    // process workflowExecutionEvent
+}
+```
+</Tab>
+<Tab value="Python">
+```python
+for workflow_execution_event in client.workflow_executions.subscribe_events(input):
+    # process workflow_execution_event
+```
+</Tab>
+<Tab value="Java">
+```java
+client.workflowExecutions().subscribeEvents(input, workflowExecutionEvent -> {
+    // process workflowExecutionEvent
+});
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`SubscribeEventsRequest`](#subscribeeventsrequest)
+
+**Returns**: Stream&lt;[`WorkflowExecutionEvent`](#workflowexecutionevent)&gt;
+
 ## Types
 
 ### WorkflowExecutionInput
@@ -856,6 +1125,7 @@ Input for the updateStatus RPC.
   type={{
     executionId: { type: "string", description: "ID of the workflow execution to update." },
     status: { type: "WorkflowExecutionStatusInput", description: "Status fields to merge into the existing execution status.", required: true },
+    events: { type: "WorkflowExecutionEventInput[]", description: "Execution events to append to the event log alongside this status update." },
   }}
 />
 
@@ -869,6 +1139,21 @@ Input for the submitApproval RPC.
     toolCallId: { type: "string", description: "ID of the tool call to approve, skip, or reject." },
     action: { type: "ApprovalAction", description: "Approval decision: APPROVE, SKIP, or REJECT.", typeDescriptionLink: "#approvalaction" },
     comment: { type: "string", description: "Optional reason or comment for the decision, stored in the audit trail." },
+  }}
+/>
+
+### SubmitWorkflowTaskApprovalInput
+
+SubmitWorkflowTaskApprovalInput submits a human reviewer's decision for a workflow-level human_input task.
+
+<TypeTable
+  type={{
+    executionId: { type: "string", description: "ID of the workflow execution containing the human_input task." },
+    taskName: { type: "string", description: "Name of the human_input task to respond to." },
+    outcome: { type: "string", description: "Outcome selected by the reviewer." },
+    formData: { type: "object", description: "Form data collected from the reviewer's response form." },
+    reviewer: { type: "string", description: "Identity of the reviewer submitting the decision." },
+    comment: { type: "string", description: "Optional comment from the reviewer, stored in the audit trail." },
   }}
 />
 
@@ -985,6 +1270,129 @@ SubscribeWorkflowExecutionRequest subscribes to real-time execution updates.
   }}
 />
 
+### GetEventLogRequest
+
+GetEventLogRequest fetches the paginated event log for a workflow execution.
+
+<TypeTable
+  type={{
+    executionId: { type: "string", description: "Execution ID to fetch events for." },
+    afterSequence: { type: "string", description: "Return events with sequence_number strictly greater than this value." },
+    eventTypes: { type: "WorkflowEventType[]", description: "Optional filter: return only events of these types.", typeDescriptionLink: "#workfloweventtype" },
+    taskName: { type: "string", description: "Optional filter: return only events for this task." },
+    pageSize: { type: "number", description: "Maximum number of events to return per page." },
+  }}
+/>
+
+### GetEventLogResponse
+
+GetEventLogResponse contains a page of execution events.
+
+<TypeTable
+  type={{
+    events: { type: "WorkflowExecutionEventInput[]", description: "Events in this page, ordered by sequence_number ascending." },
+    hasMore: { type: "boolean", description: "Whether more events exist after the last event in this response." },
+    latestSequence: { type: "string", description: "Highest sequence_number returned in this response." },
+  }}
+/>
+
+### SubscribeEventsRequest
+
+SubscribeEventsRequest opens a real-time event stream for a workflow execution.
+
+<TypeTable
+  type={{
+    executionId: { type: "string", description: "Execution ID to subscribe to." },
+    afterSequence: { type: "string", description: "Resume from this sequence number (replay + live tail)." },
+    eventTypes: { type: "WorkflowEventType[]", description: "Optional filter: stream only events of these types.", typeDescriptionLink: "#workfloweventtype" },
+  }}
+/>
+
+### WorkflowExecutionEvent
+
+WorkflowExecutionEvent represents a single timestamped event in the execution timeline of a workflow run.
+
+<TypeTable
+  type={{
+    eventId: { type: "string", description: "Unique event identifier." },
+    eventType: { type: "WorkflowEventType", description: "Type of event that occurred.", typeDescriptionLink: "#workfloweventtype" },
+    sequenceNumber: { type: "string", description: "Monotonically increasing sequence number within this execution." },
+    occurredAt: { type: "string", description: "ISO 8601 timestamp when the event occurred." },
+    taskName: { type: "string", description: "Name of the task this event relates to, if applicable." },
+    executionStarted: { type: "ExecutionStartedPayloadInput", description: "" },
+    executionCompleted: { type: "ExecutionCompletedPayloadInput", description: "" },
+    executionFailed: { type: "ExecutionFailedPayloadInput", description: "" },
+    executionPaused: { type: "ExecutionPausedPayloadInput", description: "" },
+    executionResumed: { type: "ExecutionResumedPayloadInput", description: "" },
+    executionCancelled: { type: "ExecutionCancelledPayloadInput", description: "" },
+    executionTerminated: { type: "ExecutionTerminatedPayloadInput", description: "" },
+    taskStarted: { type: "TaskStartedPayloadInput", description: "" },
+    taskCompleted: { type: "TaskCompletedPayloadInput", description: "" },
+    taskFailed: { type: "TaskFailedPayloadInput", description: "" },
+    taskSkipped: { type: "TaskSkippedPayloadInput", description: "" },
+    taskRetrying: { type: "TaskRetryingPayloadInput", description: "" },
+    agentCallStarted: { type: "AgentCallStartedPayloadInput", description: "" },
+    agentCallProgress: { type: "AgentCallProgressPayloadInput", description: "" },
+    agentCallCompleted: { type: "AgentCallCompletedPayloadInput", description: "" },
+    approvalRequested: { type: "ApprovalRequestedPayloadInput", description: "" },
+    approvalResolved: { type: "ApprovalResolvedPayloadInput", description: "" },
+    budgetCheckpoint: { type: "BudgetCheckpointPayloadInput", description: "" },
+    signalReceived: { type: "SignalReceivedPayloadInput", description: "" },
+    eventEmitted: { type: "EventEmittedPayloadInput", description: "" },
+    artifactCreated: { type: "ArtifactCreatedPayloadInput", description: "" },
+  }}
+/>
+
+### GetExecutionSummaryRequest
+
+GetExecutionSummaryRequest fetches aggregated execution statistics for an organization.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization slug to scope the summary." },
+    timeWindow: { type: "SummaryTimeWindow", description: "Time window for aggregation.", typeDescriptionLink: "#summarytimewindow" },
+  }}
+/>
+
+### ExecutionSummary
+
+ExecutionSummary contains aggregated statistics for workflow executions.
+
+<TypeTable
+  type={{
+    activeCount: { type: "number", description: "Number of executions currently in a non-terminal phase (PENDING, IN_PROGRESS, PAUSED)." },
+    phaseCounts: { type: "Record<number, number>", description: "Execution counts broken down by phase." },
+    totalCost: { type: "WorkflowCostSummaryInput", description: "Aggregate cost across all executions in the time window." },
+    avgDuration: { type: "DurationInput", description: "Mean execution duration (from started_at to completed_at) for completed executions." },
+    topFailingWorkflows: { type: "WorkflowFailureRankInput[]", description: "Workflows with the highest failure count in the time window, ranked descending." },
+    costByWorkflow: { type: "WorkflowCostBreakdownInput[]", description: "Per-workflow cost breakdown, ranked by total_cost descending." },
+  }}
+/>
+
+### ListPendingApprovalsRequest
+
+ListPendingApprovalsRequest fetches workflow executions that have active human_input tasks awaiting reviewer decisions.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization slug to scope the query." },
+    pageSize: { type: "number", description: "Maximum number of pending approvals to return per page." },
+    pageToken: { type: "string", description: "Opaque pagination token from a previous response." },
+  }}
+/>
+
+### PendingApprovalsList
+
+PendingApprovalsList contains a paginated list of pending approvals.
+
+<TypeTable
+  type={{
+    entries: { type: "PendingApprovalInput[]", description: "" },
+    totalCount: { type: "number", description: "Total number of pending approvals matching the query (across all pages)." },
+    nextPageToken: { type: "string", description: "Pagination token for the next page." },
+  }}
+/>
+
 ### WorkflowExecution
 
 WorkflowExecution represents a single runtime invocation of a WorkflowInstance.
@@ -1014,6 +1422,9 @@ WorkflowExecutionStatus contains all system-managed execution state and results.
     completedAt: { type: "string", description: "ISO 8601 timestamp when execution reached a terminal state." },
     temporalWorkflowId: { type: "string", description: "Correlation ID for the underlying workflow engine." },
     pendingApprovals: { type: "WorkflowPendingApproval[]", description: "Pending approvals from child agent tool executions.", typeDescriptionLink: "#workflowpendingapproval" },
+    totalCostMicros: { type: "number", description: "Cumulative cost across all tasks in micro-USD (1 USD = 1,000,000 micros)." },
+    totalInputTokens: { type: "number", description: "Cumulative input tokens consumed across all LLM and agent tasks." },
+    totalOutputTokens: { type: "number", description: "Cumulative output tokens consumed across all LLM and agent tasks." },
   }}
 />
 
@@ -1065,6 +1476,10 @@ WorkflowTask represents a single task within a workflow execution.
     completedAt: { type: "string", description: "ISO 8601 timestamp when the task reached a terminal state." },
     error: { type: "string", description: "Error message, populated only when status is WORKFLOW_TASK_FAILED." },
     metadata: { type: "object", description: "Task-specific metadata as arbitrary JSON." },
+    artifactIds: { type: "string[]", description: "Artifact IDs produced by this task." },
+    costMicros: { type: "number", description: "Cost incurred by this task in micro-USD (1 USD = 1,000,000 micros)." },
+    inputTokens: { type: "number", description: "Input (prompt/context) tokens consumed by this task." },
+    outputTokens: { type: "number", description: "Output (completion/generation) tokens produced by this task." },
   }}
 />
 
@@ -1092,6 +1507,45 @@ ExecutionPhase defines the lifecycle phase of a workflow execution.
 | `EXECUTION_TERMINATED` | Execution was force-stopped immediately without cleanup. |
 | `EXECUTION_PAUSED` | Execution was paused by user and can be resumed. |
 
+### WorkflowEventType
+
+WorkflowEventType categorizes execution events for filtering and dispatch.
+
+| Value | Description |
+|-------|-------------|
+| `execution_started` | Workflow execution began processing. |
+| `execution_completed` | Workflow execution completed successfully. |
+| `execution_failed` | Workflow execution failed. |
+| `execution_paused` | Workflow execution was paused by user or system. |
+| `execution_resumed` | Workflow execution was resumed after a pause. |
+| `execution_cancelled` | Workflow execution was cancelled by user. |
+| `execution_terminated` | Workflow execution was force-terminated. |
+| `task_started` | A workflow task began execution. |
+| `task_completed` | A workflow task completed successfully. |
+| `task_failed` | A workflow task failed. |
+| `task_skipped` | A workflow task was skipped due to conditional logic. |
+| `task_retrying` | A workflow task is being retried after a failure. |
+| `agent_call_started` | A child AgentExecution was created for an agent_call task. |
+| `agent_call_progress` | Periodic progress summary for a running agent_call task. |
+| `agent_call_completed` | The child AgentExecution for an agent_call task finished. |
+| `approval_requested` | An approval gate was activated (human_input task or agent tool approval). |
+| `approval_resolved` | An approval decision was made. |
+| `budget_checkpoint` | Periodic snapshot of budget consumption vs. remaining capacity. |
+| `signal_received` | An external signal was received by a listen task. |
+| `event_emitted` | The workflow published a CloudEvent via an emit_event task. |
+| `artifact_created` | A task output was persisted as an artifact (auto-promoted or explicit). |
+
+### SummaryTimeWindow
+
+SummaryTimeWindow controls the time range for aggregated dashboard queries.
+
+| Value | Description |
+|-------|-------------|
+| `SUMMARY_TIME_WINDOW_LAST_24H` |  |
+| `SUMMARY_TIME_WINDOW_LAST_7D` |  |
+| `SUMMARY_TIME_WINDOW_LAST_30D` |  |
+| `SUMMARY_TIME_WINDOW_ALL_TIME` |  |
+
 ### WorkflowTaskType
 
 WorkflowTaskType defines the type of workflow task.
@@ -1118,4 +1572,56 @@ WorkflowTaskStatus defines the execution status of a workflow task.
 | `WORKFLOW_TASK_FAILED` | Task failed during execution. |
 | `WORKFLOW_TASK_SKIPPED` | Task was skipped due to conditional logic. |
 | `WORKFLOW_TASK_WAITING_APPROVAL` | Task is waiting for human approval from a child agent execution. |
+
+### WorkflowTaskKind
+
+WorkflowTaskKind defines the supported task types in a workflow.
+
+| Value | Description |
+|-------|-------------|
+| `set_vars` | Set variables in workflow state. |
+| `http_call` | Make an HTTP request (GET, POST, PUT, DELETE, PATCH). |
+| `grpc_call` | Make a gRPC request to an external service. |
+| `activity_call` | Execute an activity. |
+| `switch_case` | Branch conditionally based on expressions. |
+| `for_each` | Iterate over a collection, executing tasks for each item. |
+| `fork` | Execute multiple branches in parallel. |
+| `try_catch` | Handle errors with try/catch logic. |
+| `listen` | Wait for external signals or events. |
+| `wait` | Pause execution for a duration or until a timestamp. |
+| `raise_error` | Raise an error to terminate or trigger error handling. |
+| `run_workflow` | Execute a sub-workflow. |
+| `agent_call` | Invoke an AI agent as a workflow task. |
+| `llm_call` | Direct LLM call for classification, extraction, scoring, or routing. |
+| `transform` | Deterministic data transformation using JQ, JSONata, or template engines. |
+| `human_input` | Workflow-level approval gate for human input, review, or sign-off. |
+| `validate` | Schema and business-rule validation checkpoint. |
+| `emit_event` | Emit a CloudEvents-formatted event for external consumers or other workflows. |
+| `notification` | Send a notification to humans through a channel (Slack, email, Discord, etc.). |
+| `eval` | LLM-as-a-judge evaluation for semantic quality assessment. |
+
+### ExecutionPhase
+
+ExecutionPhase defines the lifecycle phase of an agent execution.
+
+| Value | Description |
+|-------|-------------|
+| `EXECUTION_PENDING` | Execution is queued and waiting for a worker to start processing. |
+| `EXECUTION_IN_PROGRESS` | Execution is actively running — the agent is processing and producing output. |
+| `EXECUTION_COMPLETED` | Execution finished successfully and the agent produced a final response. |
+| `EXECUTION_FAILED` | Execution encountered an unexpected error and could not finish. |
+| `EXECUTION_CANCELLED` | Execution was gracefully stopped by the user before it finished. |
+| `EXECUTION_TERMINATED` | Execution was stopped by the platform. |
+| `EXECUTION_WAITING_FOR_APPROVAL` | Blocked on tool approval (HITL Phase 1). |
+| `EXECUTION_PAUSED` | Execution was paused by user and can be resumed. |
+
+### BudgetExceededPolicy
+
+BudgetExceededPolicy defines the runtime behavior when a workflow or per-task budget limit is exceeded.
+
+| Value | Description |
+|-------|-------------|
+| `budget_exceeded_terminate` | Terminate the workflow immediately with EXECUTION_FAILED status. |
+| `budget_exceeded_human_review` | Pause the workflow and request human review via a system-generated approval gate. |
+| `budget_exceeded_warn` | Log a warning but allow the workflow to continue executing. |
 

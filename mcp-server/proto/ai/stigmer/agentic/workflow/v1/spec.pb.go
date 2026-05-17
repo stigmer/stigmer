@@ -44,7 +44,15 @@ type WorkflowSpec struct {
 	Tasks []*WorkflowTask `protobuf:"bytes,3,rep,name=tasks,proto3" json:"tasks,omitempty"`
 	// Environment variable declarations for this workflow.
 	// Keys are variable names; values describe their metadata and optionality.
-	Env           map[string]*v1.EnvVarDeclaration `protobuf:"bytes,4,rep,name=env,proto3" json:"env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Env map[string]*v1.EnvVarDeclaration `protobuf:"bytes,4,rep,name=env,proto3" json:"env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// Budget limits for this workflow execution.
+	// When set, the runtime (T13) enforces cost, token, and duration limits
+	// across all tasks. The existing org-level billing reservation system
+	// (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
+	// for overall credit exhaustion; workflow budgets prevent individual
+	// workflows from consuming more than intended.
+	// Optional — when not set, no workflow-level budget is enforced.
+	Budget        *WorkflowBudget `protobuf:"bytes,5,opt,name=budget,proto3" json:"budget,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -107,6 +115,108 @@ func (x *WorkflowSpec) GetEnv() map[string]*v1.EnvVarDeclaration {
 	return nil
 }
 
+func (x *WorkflowSpec) GetBudget() *WorkflowBudget {
+	if x != nil {
+		return x.Budget
+	}
+	return nil
+}
+
+// WorkflowBudget declares cost, token, and duration limits for a workflow execution.
+//
+// All cost fields use micro-USD (int64): 1 USD = 1,000,000 micros.
+// This matches the billing domain convention (CostStamp.provider_cost_micros,
+// CreditLedgerEntry.amount_micros, ExecutionReservation.reserved_micros).
+//
+// The runtime checks accumulated costs between task boundaries. Per-task
+// limits (on LlmCallTaskConfig and AgentExecutionConfig) are checked first;
+// then the remaining workflow budget is verified before the next task starts.
+//
+// Example YAML:
+//
+//	budget:
+//	  max_cost_micros: 5000000    # $5.00 per run
+//	  max_total_tokens: 500000
+//	  max_duration_seconds: 3600   # 1 hour
+//	  on_exceeded: budget_exceeded_terminate
+type WorkflowBudget struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Maximum total cost for this workflow execution in micro-USD.
+	// 1 USD = 1,000,000 micros. Example: 2000000 = $2.00.
+	// When exceeded, the on_exceeded policy is applied.
+	// Optional — when 0, no cost limit is enforced.
+	MaxCostMicros int64 `protobuf:"varint,1,opt,name=max_cost_micros,json=maxCostMicros,proto3" json:"max_cost_micros,omitempty"`
+	// Maximum total tokens (input + output) across all LLM/agent tasks.
+	// Optional — when 0, no token limit is enforced.
+	MaxTotalTokens int64 `protobuf:"varint,2,opt,name=max_total_tokens,json=maxTotalTokens,proto3" json:"max_total_tokens,omitempty"`
+	// Maximum wall-clock duration for the entire workflow execution in seconds.
+	// Optional — when 0, no duration limit is enforced (Temporal's own
+	// workflow execution timeout still applies).
+	MaxDurationSeconds int32 `protobuf:"varint,3,opt,name=max_duration_seconds,json=maxDurationSeconds,proto3" json:"max_duration_seconds,omitempty"`
+	// Policy when any budget limit is exceeded.
+	OnExceeded    BudgetExceededPolicy `protobuf:"varint,4,opt,name=on_exceeded,json=onExceeded,proto3,enum=ai.stigmer.agentic.workflow.v1.BudgetExceededPolicy" json:"on_exceeded,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WorkflowBudget) Reset() {
+	*x = WorkflowBudget{}
+	mi := &file_ai_stigmer_agentic_workflow_v1_spec_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WorkflowBudget) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WorkflowBudget) ProtoMessage() {}
+
+func (x *WorkflowBudget) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_workflow_v1_spec_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WorkflowBudget.ProtoReflect.Descriptor instead.
+func (*WorkflowBudget) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_workflow_v1_spec_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *WorkflowBudget) GetMaxCostMicros() int64 {
+	if x != nil {
+		return x.MaxCostMicros
+	}
+	return 0
+}
+
+func (x *WorkflowBudget) GetMaxTotalTokens() int64 {
+	if x != nil {
+		return x.MaxTotalTokens
+	}
+	return 0
+}
+
+func (x *WorkflowBudget) GetMaxDurationSeconds() int32 {
+	if x != nil {
+		return x.MaxDurationSeconds
+	}
+	return 0
+}
+
+func (x *WorkflowBudget) GetOnExceeded() BudgetExceededPolicy {
+	if x != nil {
+		return x.OnExceeded
+	}
+	return BudgetExceededPolicy_budget_exceeded_policy_unspecified
+}
+
 // WorkflowDocument contains workflow-level metadata for versioning and identification.
 //
 // @internal
@@ -129,7 +239,7 @@ type WorkflowDocument struct {
 
 func (x *WorkflowDocument) Reset() {
 	*x = WorkflowDocument{}
-	mi := &file_ai_stigmer_agentic_workflow_v1_spec_proto_msgTypes[1]
+	mi := &file_ai_stigmer_agentic_workflow_v1_spec_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -141,7 +251,7 @@ func (x *WorkflowDocument) String() string {
 func (*WorkflowDocument) ProtoMessage() {}
 
 func (x *WorkflowDocument) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_workflow_v1_spec_proto_msgTypes[1]
+	mi := &file_ai_stigmer_agentic_workflow_v1_spec_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -154,7 +264,7 @@ func (x *WorkflowDocument) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WorkflowDocument.ProtoReflect.Descriptor instead.
 func (*WorkflowDocument) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_workflow_v1_spec_proto_rawDescGZIP(), []int{1}
+	return file_ai_stigmer_agentic_workflow_v1_spec_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *WorkflowDocument) GetDsl() string {
@@ -236,6 +346,12 @@ type WorkflowTask struct {
 	// - raise_error: ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig
 	// - run_workflow: ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig
 	// - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
+	// - llm_call: ai.stigmer.agentic.workflow.v1.tasks.LlmCallTaskConfig
+	// - transform: ai.stigmer.agentic.workflow.v1.tasks.TransformTaskConfig
+	// - human_input: ai.stigmer.agentic.workflow.v1.tasks.HumanInputTaskConfig
+	// - validate: ai.stigmer.agentic.workflow.v1.tasks.ValidateTaskConfig
+	// - emit_event: ai.stigmer.agentic.workflow.v1.tasks.EmitEventTaskConfig
+	// - notification: ai.stigmer.agentic.workflow.v1.tasks.NotificationTaskConfig
 	//
 	// See: apis/ai/stigmer/agentic/workflow/v1/tasks/*.proto for detailed schemas.
 	TaskConfig *structpb.Struct `protobuf:"bytes,3,opt,name=task_config,json=taskConfig,proto3" json:"task_config,omitempty"`
@@ -251,7 +367,7 @@ type WorkflowTask struct {
 
 func (x *WorkflowTask) Reset() {
 	*x = WorkflowTask{}
-	mi := &file_ai_stigmer_agentic_workflow_v1_spec_proto_msgTypes[2]
+	mi := &file_ai_stigmer_agentic_workflow_v1_spec_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -263,7 +379,7 @@ func (x *WorkflowTask) String() string {
 func (*WorkflowTask) ProtoMessage() {}
 
 func (x *WorkflowTask) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_workflow_v1_spec_proto_msgTypes[2]
+	mi := &file_ai_stigmer_agentic_workflow_v1_spec_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -276,7 +392,7 @@ func (x *WorkflowTask) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WorkflowTask.ProtoReflect.Descriptor instead.
 func (*WorkflowTask) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_workflow_v1_spec_proto_rawDescGZIP(), []int{2}
+	return file_ai_stigmer_agentic_workflow_v1_spec_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *WorkflowTask) GetName() string {
@@ -333,7 +449,7 @@ type Export struct {
 
 func (x *Export) Reset() {
 	*x = Export{}
-	mi := &file_ai_stigmer_agentic_workflow_v1_spec_proto_msgTypes[3]
+	mi := &file_ai_stigmer_agentic_workflow_v1_spec_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -345,7 +461,7 @@ func (x *Export) String() string {
 func (*Export) ProtoMessage() {}
 
 func (x *Export) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_workflow_v1_spec_proto_msgTypes[3]
+	mi := &file_ai_stigmer_agentic_workflow_v1_spec_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -358,7 +474,7 @@ func (x *Export) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Export.ProtoReflect.Descriptor instead.
 func (*Export) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_workflow_v1_spec_proto_rawDescGZIP(), []int{3}
+	return file_ai_stigmer_agentic_workflow_v1_spec_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *Export) GetAs() string {
@@ -387,7 +503,7 @@ type FlowControl struct {
 
 func (x *FlowControl) Reset() {
 	*x = FlowControl{}
-	mi := &file_ai_stigmer_agentic_workflow_v1_spec_proto_msgTypes[4]
+	mi := &file_ai_stigmer_agentic_workflow_v1_spec_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -399,7 +515,7 @@ func (x *FlowControl) String() string {
 func (*FlowControl) ProtoMessage() {}
 
 func (x *FlowControl) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_workflow_v1_spec_proto_msgTypes[4]
+	mi := &file_ai_stigmer_agentic_workflow_v1_spec_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -412,7 +528,7 @@ func (x *FlowControl) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FlowControl.ProtoReflect.Descriptor instead.
 func (*FlowControl) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_workflow_v1_spec_proto_rawDescGZIP(), []int{4}
+	return file_ai_stigmer_agentic_workflow_v1_spec_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *FlowControl) GetThen() string {
@@ -426,15 +542,22 @@ var File_ai_stigmer_agentic_workflow_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_workflow_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	")ai/stigmer/agentic/workflow/v1/spec.proto\x12\x1eai.stigmer.agentic.workflow.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a)ai/stigmer/agentic/workflow/v1/enum.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\x8b\x03\n" +
+	")ai/stigmer/agentic/workflow/v1/spec.proto\x12\x1eai.stigmer.agentic.workflow.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a)ai/stigmer/agentic/workflow/v1/enum.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xd3\x03\n" +
 	"\fWorkflowSpec\x12 \n" +
 	"\vdescription\x18\x01 \x01(\tR\vdescription\x12T\n" +
 	"\bdocument\x18\x02 \x01(\v20.ai.stigmer.agentic.workflow.v1.WorkflowDocumentB\x06\xbaH\x03\xc8\x01\x01R\bdocument\x12L\n" +
 	"\x05tasks\x18\x03 \x03(\v2,.ai.stigmer.agentic.workflow.v1.WorkflowTaskB\b\xbaH\x05\x92\x01\x02\b\x01R\x05tasks\x12G\n" +
-	"\x03env\x18\x04 \x03(\v25.ai.stigmer.agentic.workflow.v1.WorkflowSpec.EnvEntryR\x03env\x1al\n" +
+	"\x03env\x18\x04 \x03(\v25.ai.stigmer.agentic.workflow.v1.WorkflowSpec.EnvEntryR\x03env\x12F\n" +
+	"\x06budget\x18\x05 \x01(\v2..ai.stigmer.agentic.workflow.v1.WorkflowBudgetR\x06budget\x1al\n" +
 	"\bEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12J\n" +
-	"\x05value\x18\x02 \x01(\v24.ai.stigmer.agentic.environment.v1.EnvVarDeclarationR\x05value:\x028\x01\"\xbc\x01\n" +
+	"\x05value\x18\x02 \x01(\v24.ai.stigmer.agentic.environment.v1.EnvVarDeclarationR\x05value:\x028\x01\"\xeb\x01\n" +
+	"\x0eWorkflowBudget\x12&\n" +
+	"\x0fmax_cost_micros\x18\x01 \x01(\x03R\rmaxCostMicros\x12(\n" +
+	"\x10max_total_tokens\x18\x02 \x01(\x03R\x0emaxTotalTokens\x120\n" +
+	"\x14max_duration_seconds\x18\x03 \x01(\x05R\x12maxDurationSeconds\x12U\n" +
+	"\von_exceeded\x18\x04 \x01(\x0e24.ai.stigmer.agentic.workflow.v1.BudgetExceededPolicyR\n" +
+	"onExceeded\"\xbc\x01\n" +
 	"\x10WorkflowDocument\x12\"\n" +
 	"\x03dsl\x18\x01 \x01(\tB\x10\xbaH\rr\v2\t^1\\.0\\.0$R\x03dsl\x12$\n" +
 	"\tnamespace\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tnamespace\x12\x1a\n" +
@@ -466,32 +589,36 @@ func file_ai_stigmer_agentic_workflow_v1_spec_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_workflow_v1_spec_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_workflow_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_ai_stigmer_agentic_workflow_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_ai_stigmer_agentic_workflow_v1_spec_proto_goTypes = []any{
 	(*WorkflowSpec)(nil),         // 0: ai.stigmer.agentic.workflow.v1.WorkflowSpec
-	(*WorkflowDocument)(nil),     // 1: ai.stigmer.agentic.workflow.v1.WorkflowDocument
-	(*WorkflowTask)(nil),         // 2: ai.stigmer.agentic.workflow.v1.WorkflowTask
-	(*Export)(nil),               // 3: ai.stigmer.agentic.workflow.v1.Export
-	(*FlowControl)(nil),          // 4: ai.stigmer.agentic.workflow.v1.FlowControl
-	nil,                          // 5: ai.stigmer.agentic.workflow.v1.WorkflowSpec.EnvEntry
-	(WorkflowTaskKind)(0),        // 6: ai.stigmer.agentic.workflow.v1.WorkflowTaskKind
-	(*structpb.Struct)(nil),      // 7: google.protobuf.Struct
-	(*v1.EnvVarDeclaration)(nil), // 8: ai.stigmer.agentic.environment.v1.EnvVarDeclaration
+	(*WorkflowBudget)(nil),       // 1: ai.stigmer.agentic.workflow.v1.WorkflowBudget
+	(*WorkflowDocument)(nil),     // 2: ai.stigmer.agentic.workflow.v1.WorkflowDocument
+	(*WorkflowTask)(nil),         // 3: ai.stigmer.agentic.workflow.v1.WorkflowTask
+	(*Export)(nil),               // 4: ai.stigmer.agentic.workflow.v1.Export
+	(*FlowControl)(nil),          // 5: ai.stigmer.agentic.workflow.v1.FlowControl
+	nil,                          // 6: ai.stigmer.agentic.workflow.v1.WorkflowSpec.EnvEntry
+	(BudgetExceededPolicy)(0),    // 7: ai.stigmer.agentic.workflow.v1.BudgetExceededPolicy
+	(WorkflowTaskKind)(0),        // 8: ai.stigmer.agentic.workflow.v1.WorkflowTaskKind
+	(*structpb.Struct)(nil),      // 9: google.protobuf.Struct
+	(*v1.EnvVarDeclaration)(nil), // 10: ai.stigmer.agentic.environment.v1.EnvVarDeclaration
 }
 var file_ai_stigmer_agentic_workflow_v1_spec_proto_depIdxs = []int32{
-	1, // 0: ai.stigmer.agentic.workflow.v1.WorkflowSpec.document:type_name -> ai.stigmer.agentic.workflow.v1.WorkflowDocument
-	2, // 1: ai.stigmer.agentic.workflow.v1.WorkflowSpec.tasks:type_name -> ai.stigmer.agentic.workflow.v1.WorkflowTask
-	5, // 2: ai.stigmer.agentic.workflow.v1.WorkflowSpec.env:type_name -> ai.stigmer.agentic.workflow.v1.WorkflowSpec.EnvEntry
-	6, // 3: ai.stigmer.agentic.workflow.v1.WorkflowTask.kind:type_name -> ai.stigmer.agentic.workflow.v1.WorkflowTaskKind
-	7, // 4: ai.stigmer.agentic.workflow.v1.WorkflowTask.task_config:type_name -> google.protobuf.Struct
-	3, // 5: ai.stigmer.agentic.workflow.v1.WorkflowTask.export:type_name -> ai.stigmer.agentic.workflow.v1.Export
-	4, // 6: ai.stigmer.agentic.workflow.v1.WorkflowTask.flow:type_name -> ai.stigmer.agentic.workflow.v1.FlowControl
-	8, // 7: ai.stigmer.agentic.workflow.v1.WorkflowSpec.EnvEntry.value:type_name -> ai.stigmer.agentic.environment.v1.EnvVarDeclaration
-	8, // [8:8] is the sub-list for method output_type
-	8, // [8:8] is the sub-list for method input_type
-	8, // [8:8] is the sub-list for extension type_name
-	8, // [8:8] is the sub-list for extension extendee
-	0, // [0:8] is the sub-list for field type_name
+	2,  // 0: ai.stigmer.agentic.workflow.v1.WorkflowSpec.document:type_name -> ai.stigmer.agentic.workflow.v1.WorkflowDocument
+	3,  // 1: ai.stigmer.agentic.workflow.v1.WorkflowSpec.tasks:type_name -> ai.stigmer.agentic.workflow.v1.WorkflowTask
+	6,  // 2: ai.stigmer.agentic.workflow.v1.WorkflowSpec.env:type_name -> ai.stigmer.agentic.workflow.v1.WorkflowSpec.EnvEntry
+	1,  // 3: ai.stigmer.agentic.workflow.v1.WorkflowSpec.budget:type_name -> ai.stigmer.agentic.workflow.v1.WorkflowBudget
+	7,  // 4: ai.stigmer.agentic.workflow.v1.WorkflowBudget.on_exceeded:type_name -> ai.stigmer.agentic.workflow.v1.BudgetExceededPolicy
+	8,  // 5: ai.stigmer.agentic.workflow.v1.WorkflowTask.kind:type_name -> ai.stigmer.agentic.workflow.v1.WorkflowTaskKind
+	9,  // 6: ai.stigmer.agentic.workflow.v1.WorkflowTask.task_config:type_name -> google.protobuf.Struct
+	4,  // 7: ai.stigmer.agentic.workflow.v1.WorkflowTask.export:type_name -> ai.stigmer.agentic.workflow.v1.Export
+	5,  // 8: ai.stigmer.agentic.workflow.v1.WorkflowTask.flow:type_name -> ai.stigmer.agentic.workflow.v1.FlowControl
+	10, // 9: ai.stigmer.agentic.workflow.v1.WorkflowSpec.EnvEntry.value:type_name -> ai.stigmer.agentic.environment.v1.EnvVarDeclaration
+	10, // [10:10] is the sub-list for method output_type
+	10, // [10:10] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_workflow_v1_spec_proto_init() }
@@ -506,7 +633,7 @@ func file_ai_stigmer_agentic_workflow_v1_spec_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_workflow_v1_spec_proto_rawDesc), len(file_ai_stigmer_agentic_workflow_v1_spec_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

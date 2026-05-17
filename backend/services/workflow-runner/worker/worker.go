@@ -23,6 +23,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/claimcheck"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/executor"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/heartbeat"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/interceptors"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/temporal/searchattributes"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/zigflow/tasks"
@@ -30,36 +31,49 @@ import (
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/worker/config"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/client"
+	temporalotel "go.temporal.io/sdk/contrib/opentelemetry"
 	"go.temporal.io/sdk/interceptor"
 	"go.temporal.io/sdk/worker"
 	"go.temporal.io/sdk/workflow"
 )
 
-// ZigflowWorker represents a Temporal worker system with three-queue architecture:
-// 1. Orchestration Queue: Handles ExecuteWorkflowActivity (workflow execution orchestration)
-// 2. Execution Queue: Handles ExecuteServerlessWorkflow + Zigflow activities (user workflows)
-// 3. Validation Queue: Handles validation activities (workflow validation)
+// ZigflowWorker represents a Temporal worker system.
+//
+// In sandbox mode (STIGMER_TASK_QUEUE set): two workers — orchestration + execution.
+// In OSS/local mode: three workers — orchestration + execution + validation.
+// The validation worker is only created when not in sandbox mode (a global K8s
+// pod handles validation).
 type ZigflowWorker struct {
 	temporalClient client.Client
 	config         *config.Config
 
-	// Three separate workers for clean separation
-	orchestrationWorker worker.Worker // Queue: workflow_execution_runner
-	executionWorker     worker.Worker // Queue: zigflow_execution
-	validationWorker    worker.Worker // Queue: workflow_validation_runner
+	orchestrationWorker worker.Worker // {base}:wf-orch or workflow_execution_runner
+	executionWorker     worker.Worker // {base}:wf-exec or zigflow_execution
+	validationWorker    worker.Worker // workflow_validation_runner (nil in sandbox mode)
 
-	// Shared resources
 	claimCheckManager          *claimcheck.Manager
 	executeWorkflowActivity    *activities.ExecuteWorkflowActivityImpl
 	validateWorkflowActivities *activities.ValidateWorkflowActivities
+
+	activityCounter *heartbeat.ActivityCounter
+	heartbeatClient *heartbeat.Client
 }
 
 // NewZigflowWorker creates a new Temporal worker system with two-queue architecture.
 func NewZigflowWorker(cfg *config.Config) (*ZigflowWorker, error) {
+	// Create Temporal OTel tracing interceptor (active when a TracerProvider is set).
+	// The interceptor auto-creates spans for workflows, activities, signals, and queries,
+	// and propagates trace context across the Temporal boundary.
+	tracingInterceptor, err := temporalotel.NewTracingInterceptor(temporalotel.TracerOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("create temporal tracing interceptor: %w", err)
+	}
+
 	// Create Temporal client
 	temporalClient, err := client.Dial(client.Options{
-		HostPort:  cfg.TemporalServiceAddress,
-		Namespace: cfg.TemporalNamespace,
+		HostPort:     cfg.TemporalServiceAddress,
+		Namespace:    cfg.TemporalNamespace,
+		Interceptors: []interceptor.ClientInterceptor{tracingInterceptor},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Temporal client: %w", err)
@@ -86,18 +100,32 @@ func NewZigflowWorker(cfg *config.Config) (*ZigflowWorker, error) {
 		log.Info().
 			Int64("threshold_bytes", cfg.ClaimCheckThresholdBytes).
 			Bool("compression_enabled", cfg.ClaimCheckCompressionEnabled).
-			Str("r2_bucket", cfg.R2Bucket).
+			Str("storage_type", cfg.ClaimCheckStorageType).
 			Msg("Initializing Claim Check Manager")
 
 		claimCheckCfg := claimcheck.Config{
 			ThresholdBytes:     cfg.ClaimCheckThresholdBytes,
 			TTLDays:            cfg.ClaimCheckTTLDays,
 			CompressionEnabled: cfg.ClaimCheckCompressionEnabled,
-			R2Bucket:           cfg.R2Bucket,
-			R2Endpoint:         cfg.R2Endpoint,
-			R2AccessKeyID:      cfg.R2AccessKeyID,
-			R2SecretAccessKey:  cfg.R2SecretAccessKey,
-			R2Region:           cfg.R2Region,
+			StorageType:        cfg.ClaimCheckStorageType,
+		}
+
+		switch cfg.ClaimCheckStorageType {
+		case "proxy":
+			claimCheckCfg.ProxyEndpoint = cfg.ClaimCheckProxyEndpoint
+			claimCheckCfg.ProxyAuthToken = cfg.ClaimCheckProxyAuthToken
+			log.Info().
+				Str("proxy_endpoint", cfg.ClaimCheckProxyEndpoint).
+				Msg("Claim check using proxy mode (presigned URLs)")
+		default:
+			claimCheckCfg.R2Bucket = cfg.R2Bucket
+			claimCheckCfg.R2Endpoint = cfg.R2Endpoint
+			claimCheckCfg.R2AccessKeyID = cfg.R2AccessKeyID
+			claimCheckCfg.R2SecretAccessKey = cfg.R2SecretAccessKey
+			claimCheckCfg.R2Region = cfg.R2Region
+			log.Info().
+				Str("r2_bucket", cfg.R2Bucket).
+				Msg("Claim check using direct R2 mode")
 		}
 
 		claimCheckMgr, err = claimcheck.NewManager(claimCheckCfg)
@@ -105,12 +133,14 @@ func NewZigflowWorker(cfg *config.Config) (*ZigflowWorker, error) {
 			return nil, fmt.Errorf("failed to initialize Claim Check Manager: %w", err)
 		}
 
-		// Test R2 connectivity
+		// Test storage connectivity
 		ctx := context.Background()
 		if err := claimCheckMgr.Health(ctx); err != nil {
-			log.Warn().Err(err).Msg("Claim Check health check failed - R2 may not be accessible")
+			log.Warn().Err(err).Str("storage_type", cfg.ClaimCheckStorageType).
+				Msg("Claim Check health check failed - storage may not be accessible")
 		} else {
-			log.Info().Msg("Claim Check Manager initialized successfully - R2 connectivity verified")
+			log.Info().Str("storage_type", cfg.ClaimCheckStorageType).
+				Msg("Claim Check Manager initialized successfully - storage connectivity verified")
 		}
 
 		claimcheck.SetGlobalManager(claimCheckMgr)
@@ -126,45 +156,52 @@ func NewZigflowWorker(cfg *config.Config) (*ZigflowWorker, error) {
 	}
 	log.Info().Msg("ExecuteWorkflowActivity initialized")
 
-	// Initialize ValidateWorkflowActivities (for workflow creation)
-	validateWorkflowActivities := activities.NewValidateWorkflowActivities()
-	log.Info().Msg("ValidateWorkflowActivities initialized")
+	// Initialize ValidateWorkflowActivities (only used in non-sandbox mode)
+	var validateWorkflowActivities *activities.ValidateWorkflowActivities
+	if !cfg.SandboxMode {
+		validateWorkflowActivities = activities.NewValidateWorkflowActivities()
+		log.Info().Msg("ValidateWorkflowActivities initialized (non-sandbox mode)")
+	}
 
-	// Create progress reporting interceptor
+	activityCounter := heartbeat.NewActivityCounter()
 	progressInterceptor := interceptors.NewProgressReportingInterceptor(cfg.StigmerConfig)
+	counterInterceptor := heartbeat.NewActivityCounterInterceptor(activityCounter)
 
-	// Create Worker 1: Orchestration Queue (workflow_execution)
-	// Handles: ExecuteWorkflowActivity (Java → Go polyglot activity)
 	orchestrationWorker := worker.New(temporalClient, cfg.OrchestrationTaskQueue, worker.Options{
 		MaxConcurrentActivityExecutionSize: cfg.MaxConcurrency,
+		Interceptors: []interceptor.WorkerInterceptor{
+			counterInterceptor,
+		},
 	})
-
 	log.Info().
 		Str("task_queue", cfg.OrchestrationTaskQueue).
-		Msg("Created orchestration worker (for ExecuteWorkflowActivity)")
+		Bool("sandbox_mode", cfg.SandboxMode).
+		Msg("Created orchestration worker")
 
-	// Create Worker 2: Execution Queue (zigflow_execution)
-	// Handles: ExecuteServerlessWorkflow + all Zigflow activities
 	executionWorker := worker.New(temporalClient, cfg.ExecutionTaskQueue, worker.Options{
 		MaxConcurrentActivityExecutionSize: cfg.MaxConcurrency,
 		Interceptors: []interceptor.WorkerInterceptor{
-			progressInterceptor, // Automatic progress reporting for Zigflow activities
+			progressInterceptor,
+			counterInterceptor,
 		},
 	})
-
 	log.Info().
 		Str("task_queue", cfg.ExecutionTaskQueue).
-		Msg("Created execution worker (for user workflows)")
+		Msg("Created execution worker")
 
-	// Create Worker 3: Validation Queue (workflow_validation_runner)
-	// Handles: GenerateYAMLActivity, ValidateStructureActivity (called by Java validation workflows)
-	validationWorker := worker.New(temporalClient, cfg.ValidationTaskQueue, worker.Options{
-		MaxConcurrentActivityExecutionSize: cfg.MaxConcurrency,
-	})
+	var validationWorker worker.Worker
+	if !cfg.SandboxMode && cfg.ValidationTaskQueue != "" {
+		validationWorker = worker.New(temporalClient, cfg.ValidationTaskQueue, worker.Options{
+			MaxConcurrentActivityExecutionSize: cfg.MaxConcurrency,
+		})
+		log.Info().
+			Str("task_queue", cfg.ValidationTaskQueue).
+			Msg("Created validation worker (non-sandbox mode)")
+	} else {
+		log.Info().Msg("Validation worker skipped (sandbox mode — global K8s pod handles validation)")
+	}
 
-	log.Info().
-		Str("task_queue", cfg.ValidationTaskQueue).
-		Msg("Created validation worker (for validation activities)")
+	hbClient := heartbeat.NewClient(cfg.RunnerID, cfg.StigmerConfig, activityCounter)
 
 	return &ZigflowWorker{
 		temporalClient:             temporalClient,
@@ -175,144 +212,122 @@ func NewZigflowWorker(cfg *config.Config) (*ZigflowWorker, error) {
 		claimCheckManager:          claimCheckMgr,
 		executeWorkflowActivity:    executeWorkflowActivity,
 		validateWorkflowActivities: validateWorkflowActivities,
+		activityCounter:            activityCounter,
+		heartbeatClient:            hbClient,
 	}, nil
 }
 
-// RegisterWorkflowsAndActivities registers workflows and activities on all three workers.
+// RegisterWorkflowsAndActivities registers workflows and activities on workers.
 func (w *ZigflowWorker) RegisterWorkflowsAndActivities() {
-	log.Info().Msg("Registering workflows and activities on three-queue architecture")
-
-	// ========================================
-	// ORCHESTRATION WORKER (workflow_execution_runner queue)
-	// ========================================
-	log.Info().Str("queue", w.config.OrchestrationTaskQueue).Msg("Configuring orchestration worker")
-
-	// Register ExecuteWorkflowActivity (polyglot activity called from Java)
-	// IMPORTANT: Activity name must match Java @ActivityMethod annotation: "ExecuteWorkflow" (PascalCase)
-	// Java: @ActivityMethod(name = "ExecuteWorkflow") WorkflowExecutionStatus executeWorkflow(InvokeWorkflowExecutionWorkflowInput input);
-	// Go method is ExecuteWorkflow (uppercase), and we register it as "ExecuteWorkflow" (PascalCase)
-	// This matches the agent execution activity naming convention (ExecuteGraphton, EnsureThread)
+	// Activity name must match Java @ActivityMethod annotation: "ExecuteWorkflow" (PascalCase)
 	w.orchestrationWorker.RegisterActivityWithOptions(w.executeWorkflowActivity.ExecuteWorkflow, activity.RegisterOptions{
-		Name: "ExecuteWorkflow", // Match Java @ActivityMethod name (PascalCase)
+		Name: "ExecuteWorkflow",
 	})
-	log.Info().Msg("✅ Registered ExecuteWorkflowActivity as 'ExecuteWorkflow' on orchestration queue")
+	log.Info().Str("queue", w.config.OrchestrationTaskQueue).Msg("Registered ExecuteWorkflow on orchestration queue")
 
-	// ========================================
-	// VALIDATION WORKER (workflow_validation_runner queue)
-	// ========================================
-	log.Info().Str("queue", w.config.ValidationTaskQueue).Msg("Configuring validation worker")
-
-	// Register validation activity (called by Java ValidateWorkflowWorkflow)
-	// Note: Workflow is in Java, activity is in Go (polyglot pattern)
-	// Activity name must match Java interface method name: "validateWorkflow" (lowercase 'v')
-	// Java: ServerlessWorkflowValidation validateWorkflow(WorkflowSpec spec);
-	// Go method is ValidateWorkflow (uppercase), but we register it as "validateWorkflow" (lowercase)
-	w.validationWorker.RegisterActivityWithOptions(w.validateWorkflowActivities.ValidateWorkflow, activity.RegisterOptions{
-		Name: "validateWorkflow", // Match Java interface method name (lowercase 'v')
-	})
-	log.Info().Msg("✅ Registered ValidateWorkflow activity as 'validateWorkflow' on validation queue")
-
-	// ========================================
-	// EXECUTION WORKER (zigflow_execution queue)
-	// ========================================
-	log.Info().Str("queue", w.config.ExecutionTaskQueue).Msg("Configuring execution worker")
-
-	// Register ExecuteServerlessWorkflow (the generic workflow that runs user workflows)
-	w.executionWorker.RegisterWorkflowWithOptions(executor.ExecuteServerlessWorkflow, workflow.RegisterOptions{
-		Name: "ExecuteServerlessWorkflow", // User-facing workflow
-	})
-	log.Info().Msg("✅ Registered ExecuteServerlessWorkflow on execution queue")
-
-	// Register all Zigflow activities (CallHTTP, CallGRPC, etc.)
-	activityList := tasks.ActivitiesList()
-	log.Info().Int("activity_count", len(activityList)).Msg("Registering Zigflow activities")
-	for _, activity := range activityList {
-		w.executionWorker.RegisterActivity(activity)
+	if w.validationWorker != nil && w.validateWorkflowActivities != nil {
+		// Activity name must match Java interface method name: "validateWorkflow" (lowercase 'v')
+		w.validationWorker.RegisterActivityWithOptions(w.validateWorkflowActivities.ValidateWorkflow, activity.RegisterOptions{
+			Name: "validateWorkflow",
+		})
+		log.Info().Str("queue", w.config.ValidationTaskQueue).Msg("Registered validateWorkflow on validation queue")
 	}
-	log.Info().Msg("✅ Registered Zigflow activities on execution queue")
 
-	// Register Claim Check activities if enabled
+	w.executionWorker.RegisterWorkflowWithOptions(executor.ExecuteServerlessWorkflow, workflow.RegisterOptions{
+		Name: "ExecuteServerlessWorkflow",
+	})
+
+	activityList := tasks.ActivitiesList()
+	for _, act := range activityList {
+		w.executionWorker.RegisterActivity(act)
+	}
+	log.Info().
+		Str("queue", w.config.ExecutionTaskQueue).
+		Int("activity_count", len(activityList)).
+		Msg("Registered ExecuteServerlessWorkflow + Zigflow activities on execution queue")
+
 	if w.claimCheckManager != nil {
 		w.executionWorker.RegisterActivity(w.claimCheckManager.OffloadActivity)
 		w.executionWorker.RegisterActivity(w.claimCheckManager.RetrieveActivity)
-		log.Info().Msg("✅ Registered Claim Check activities on execution queue")
+		log.Info().Msg("Registered Claim Check activities on execution queue")
 	}
 
-	log.Info().Msg("🎉 All workflows and activities registered successfully")
-	log.Info().Msg("Architecture: Three-queue separation")
-	log.Info().Msgf("  - %s: Orchestration (ExecuteWorkflowActivity)", w.config.OrchestrationTaskQueue)
-	log.Info().Msgf("  - %s: Execution (User workflows + Zigflow tasks)", w.config.ExecutionTaskQueue)
-	log.Info().Msgf("  - %s: Validation (GenerateYAML, ValidateStructure)", w.config.ValidationTaskQueue)
+	log.Info().
+		Bool("sandbox_mode", w.config.SandboxMode).
+		Str("orchestration_queue", w.config.OrchestrationTaskQueue).
+		Str("execution_queue", w.config.ExecutionTaskQueue).
+		Str("validation_queue", w.config.ValidationTaskQueue).
+		Msg("All workflows and activities registered")
 }
 
-// Start starts all three Temporal workers (blocking call).
+// Start starts all Temporal workers and the heartbeat client (blocking call).
 func (w *ZigflowWorker) Start() error {
-	log.Info().Msg("Starting Temporal worker system")
+	log.Info().Bool("sandbox_mode", w.config.SandboxMode).Msg("Starting Temporal worker system")
 
-	// Start orchestration worker in background
+	w.heartbeatClient.Start()
+
 	orchestrationErrCh := make(chan error, 1)
 	go func() {
-		log.Info().Str("queue", w.config.OrchestrationTaskQueue).Msg("Starting orchestration worker")
 		if err := w.orchestrationWorker.Run(worker.InterruptCh()); err != nil {
 			orchestrationErrCh <- fmt.Errorf("orchestration worker failed: %w", err)
 		}
 	}()
 
-	// Start execution worker in background
 	executionErrCh := make(chan error, 1)
 	go func() {
-		log.Info().Str("queue", w.config.ExecutionTaskQueue).Msg("Starting execution worker")
 		if err := w.executionWorker.Run(worker.InterruptCh()); err != nil {
 			executionErrCh <- fmt.Errorf("execution worker failed: %w", err)
 		}
 	}()
 
-	// Start validation worker in background
-	validationErrCh := make(chan error, 1)
-	go func() {
-		log.Info().Str("queue", w.config.ValidationTaskQueue).Msg("Starting validation worker")
-		if err := w.validationWorker.Run(worker.InterruptCh()); err != nil {
-			validationErrCh <- fmt.Errorf("validation worker failed: %w", err)
+	if w.validationWorker != nil {
+		validationErrCh := make(chan error, 1)
+		go func() {
+			if err := w.validationWorker.Run(worker.InterruptCh()); err != nil {
+				validationErrCh <- fmt.Errorf("validation worker failed: %w", err)
+			}
+		}()
+
+		log.Info().Msg("All workers started (orchestration + execution + validation)")
+		select {
+		case err := <-orchestrationErrCh:
+			return err
+		case err := <-executionErrCh:
+			return err
+		case err := <-validationErrCh:
+			return err
 		}
-	}()
+	}
 
-	log.Info().Msg("✅ All three workers started successfully")
-
-	// Wait for any worker to fail or interrupt
+	log.Info().Msg("All workers started (orchestration + execution, sandbox mode)")
 	select {
 	case err := <-orchestrationErrCh:
 		return err
 	case err := <-executionErrCh:
 		return err
-	case err := <-validationErrCh:
-		return err
 	}
 }
 
-// Stop gracefully stops all three workers.
+// Stop gracefully stops the heartbeat client and all workers.
 func (w *ZigflowWorker) Stop() {
 	log.Info().Msg("Stopping Temporal worker system...")
 
-	// Stop all three workers
+	w.heartbeatClient.Stop()
+
 	w.orchestrationWorker.Stop()
-	log.Info().Str("queue", w.config.OrchestrationTaskQueue).Msg("Orchestration worker stopped")
-
 	w.executionWorker.Stop()
-	log.Info().Str("queue", w.config.ExecutionTaskQueue).Msg("Execution worker stopped")
+	if w.validationWorker != nil {
+		w.validationWorker.Stop()
+	}
 
-	w.validationWorker.Stop()
-	log.Info().Str("queue", w.config.ValidationTaskQueue).Msg("Validation worker stopped")
-
-	// Close ExecuteWorkflowActivity
 	if w.executeWorkflowActivity != nil {
 		if err := w.executeWorkflowActivity.Close(); err != nil {
 			log.Warn().Err(err).Msg("Failed to close ExecuteWorkflowActivity")
 		}
 	}
 
-	// Close Temporal client
 	w.temporalClient.Close()
-	log.Info().Msg("✅ Temporal worker system stopped")
+	log.Info().Msg("Temporal worker system stopped")
 }
 
 // GetTemporalClient returns the Temporal client for workflow execution.

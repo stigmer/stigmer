@@ -6,6 +6,7 @@ import { ConfigureMenu, type ConfigureMenuItem } from "./ConfigureMenu";
 import { ModelSelector } from "../models/ModelSelector";
 import { HarnessSelector } from "../models/HarnessSelector";
 import type { HarnessOption } from "../models/harness";
+import { InteractionModePicker, type InteractionModeOption } from "./InteractionModePicker";
 import {
   PaperclipIcon,
   WorkspaceIcon,
@@ -48,6 +49,12 @@ export interface ComposerToolbarProps {
   readonly harness?: HarnessOption;
   readonly onHarnessChange: (harness: HarnessOption) => void;
 
+  // -- Interaction mode picker ------------------------------------------------
+
+  readonly showInteractionModePicker: boolean;
+  readonly interactionMode?: InteractionModeOption;
+  readonly onInteractionModeChange: (mode: InteractionModeOption) => void;
+
   // -- Model selector -------------------------------------------------------
 
   readonly showModelSelector: boolean;
@@ -89,6 +96,9 @@ export function ComposerToolbar({
   showHarnessSelector,
   harness,
   onHarnessChange,
+  showInteractionModePicker,
+  interactionMode,
+  onInteractionModeChange,
   showModelSelector,
   modelId,
   onModelChange,
@@ -96,7 +106,7 @@ export function ComposerToolbar({
   const hasTier1 = showAttach || showWorkspace;
   const hasTier2 = configureItems.length > 0;
   const showHarnessSeparate = showHarnessSelector && !showModelSelector;
-  const hasExecParams = showHarnessSeparate || showModelSelector;
+  const hasExecParams = showHarnessSeparate || showInteractionModePicker || showModelSelector;
 
   return (
     <div className="flex items-center justify-between gap-2 border-t border-border-muted px-3 py-2">
@@ -165,6 +175,14 @@ export function ComposerToolbar({
           <HarnessSelector
             value={harness ?? "native"}
             onValueChange={onHarnessChange}
+            disabled={disabled}
+          />
+        )}
+
+        {showInteractionModePicker && (
+          <InteractionModePicker
+            value={interactionMode ?? "agent"}
+            onValueChange={onInteractionModeChange}
             disabled={disabled}
           />
         )}

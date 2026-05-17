@@ -1,0 +1,554 @@
+---
+title: Task Types
+description:
+  Overview of all 20 workflow task types — when to use each, key configuration
+  fields, and YAML examples.
+---
+
+Every step in a Workflow is a **task** defined by its `kind`. The `kind`
+determines the shape of `task_config` and what the task does at runtime. This
+page introduces all 20 task types grouped by category. For general task
+structure (`name`, `export`, `flow`), see the
+[Authoring Guide](/docs/guides/workflows#defining-tasks).
+
+## AI tasks
+
+AI tasks invoke language models or agents. Use these when the step requires
+natural language understanding, generation, or evaluation.
+
+### llm_call
+
+[Full reference ->](/docs/guides/workflow-tasks/llm-call)
+
+Direct LLM call for generation, classification, extraction, or scoring. Use
+`llm_call` when you need a single LLM response with no tool access — it is
+faster and cheaper than `agent_call`.
+
+```yaml
+- name: classify
+  kind: llm_call
+  task_config:
+    model: "gpt-4o-mini"
+    system_prompt: "You are a classifier."
+    prompt: "Classify this ticket: ${ $context.env.INPUT }"
+    response_schema:
+      type: object
+      required: [severity, category]
+      properties:
+        severity: { type: string, enum: [low, medium, high, critical] }
+        category: { type: string }
+    on_invalid: ON_INVALID_RETRY
+    max_retries: 2
+    temperature: 0.1
+    max_tokens: 200
+  export:
+    as: "${ .structured }"
+```
+
+**Key fields**: `model`, `system_prompt`, `prompt`, `response_schema` (for
+structured JSON output), `on_invalid` (retry or fallback on schema violation),
+`temperature`, `max_tokens`.
+
+**Output**: `{ text, structured, model, usage }` — use `.text` for prose
+responses, `.structured` when `response_schema` is set.
+
+### agent_call
+
+[Full reference ->](/docs/guides/workflow-tasks/agent-call)
+
+Invoke a deployed Agent as a workflow step. Use `agent_call` when the step needs
+tool access, multi-turn reasoning, or the Agent's Skills and MCP servers.
+
+```yaml
+- name: analyze
+  kind: agent_call
+  task_config:
+    agent: acme/data-analyst
+    message: "Analyze this dataset: ${ $context.fetch_data.body }"
+    output:
+      response_schema:
+        type: object
+        properties:
+          insights: { type: array, items: { type: string } }
+      fallback_task: manual_analysis
+  export:
+    as: "${ . }"
+```
+
+**Key fields**: `agent` (org/slug reference), `message`,
+`output.response_schema` (optional structured output contract),
+`output.fallback_task` (task to jump to if the schema is not met), `env`
+(override env vars), `config` (harness, cost cap, max turns).
+
+**When to choose**: `llm_call` for stateless, tool-free LLM work. `agent_call`
+when you need tool access, Skills, or multi-turn autonomy.
+
+### eval
+
+[Full reference ->](/docs/guides/workflow-tasks/eval)
+
+LLM-as-judge evaluation. Scores task output against criteria using an LLM
+evaluator. Use `eval` for quality gates, grading pipelines, and automated
+review.
+
+```yaml
+- name: quality_check
+  kind: eval
+  task_config:
+    input: "${ $context.draft.text }"
+    criteria:
+      - name: clarity
+        description: "Is the content clear and easy to understand?"
+        weight: 2
+      - name: accuracy
+        description: "Are the claims factually correct?"
+        weight: 3
+    scoring_mode: EVAL_SCORING_NUMERIC
+    threshold: 7.0
+    on_fail: EVAL_FAIL_WARN
+  export:
+    as: "${ . }"
+```
+
+**Key fields**: `input`, `criteria` (each with `name`, `description`, optional
+`weight`), `scoring_mode` (`EVAL_SCORING_BINARY`, `EVAL_SCORING_NUMERIC`,
+`EVAL_SCORING_RUBRIC`), `threshold`, `on_fail`.
+
+**When to choose**: `eval` for systematic quality assessment. `validate` for
+schema/structural checks. `llm_call` for freeform analysis.
+
+## Control flow tasks
+
+Control flow tasks direct execution order — branching, looping, parallelism, and
+error handling.
+
+### switch_case
+
+[Full reference ->](/docs/guides/workflow-tasks/switch-case)
+
+Branch conditionally based on expressions:
+
+```yaml
+- name: route
+  kind: switch_case
+  task_config:
+    cases:
+      - name: critical
+        when: "${ $context.classify.severity == 'critical' }"
+        then: escalate
+      - name: high
+        when: "${ $context.classify.severity == 'high' }"
+        then: senior_queue
+      - name: default
+        then: standard_queue
+```
+
+Cases are evaluated in order. The first matching `when` wins. A case without
+`when` is the default.
+
+### for_each
+
+[Full reference ->](/docs/guides/workflow-tasks/for-each)
+
+Iterate over a collection:
+
+```yaml
+- name: process_items
+  kind: for_each
+  task_config:
+    each: item
+    in: "${ $context.data.items }"
+    do:
+      - name: transform_item
+        kind: transform
+        task_config:
+          engine: jq
+          expression: "{ processed: $item }"
+          input:
+            item: "${ item }"
+    max_parallelism: 5
+    on_error: continue
+```
+
+**Key fields**: `each` (loop var), `in` (array expression), `do` (sub-tasks),
+`max_parallelism`, `batch_size`, `on_error` (`fail_fast`, `continue`, `skip`).
+
+### fork
+
+[Full reference ->](/docs/guides/workflow-tasks/fork)
+
+Execute branches in parallel:
+
+```yaml
+- name: parallel
+  kind: fork
+  task_config:
+    branches:
+      - name: branch_a
+        do:
+          - name: task_a
+            kind: llm_call
+            task_config:
+              prompt: "Task A"
+      - name: branch_b
+        do:
+          - name: task_b
+            kind: llm_call
+            task_config:
+              prompt: "Task B"
+    compete: false
+  export:
+    as: "${ . }"
+```
+
+**Key fields**: `branches` (each with `name` and `do`), `compete` (`false` =
+wait for all, `true` = first-to-finish wins).
+
+### try_catch
+
+[Full reference ->](/docs/guides/workflow-tasks/try-catch)
+
+Handle errors with try/catch and optional compensation:
+
+```yaml
+- name: safe_operation
+  kind: try_catch
+  task_config:
+    try:
+      - name: risky_step
+        kind: http_call
+        task_config:
+          method: POST
+          endpoint: { uri: "https://api.example.com/action" }
+        compensate:
+          - name: undo_step
+            kind: http_call
+            task_config:
+              method: POST
+              endpoint: { uri: "https://api.example.com/undo" }
+    catch:
+      as: error
+      compensate: true
+      do:
+        - name: handle_error
+          kind: set_vars
+          task_config:
+            variables:
+              error_msg: "${ error }"
+```
+
+**Key fields**: `try` (task list), `catch.as` (error variable name), `catch.do`
+(handler tasks), `catch.compensate` (run compensation in reverse).
+
+### wait
+
+[Full reference ->](/docs/guides/workflow-tasks/wait)
+
+Pause execution for a duration or until a timestamp:
+
+```yaml
+- name: cooldown
+  kind: wait
+  task_config:
+    duration: "30s"
+```
+
+**Key fields**: `duration` (e.g. `"5s"`, `"2m"`, `"1h"`) or `until` (ISO 8601
+timestamp).
+
+### raise_error
+
+[Full reference ->](/docs/guides/workflow-tasks/raise-error)
+
+Explicitly fail the workflow or trigger an enclosing `try_catch`:
+
+```yaml
+- name: abort
+  kind: raise_error
+  task_config:
+    error: "Invalid input: ${ $context.validate.errors }"
+```
+
+### run_workflow
+
+[Full reference ->](/docs/guides/workflow-tasks/run-workflow)
+
+Execute a child workflow as a sub-step:
+
+```yaml
+- name: run_child
+  kind: run_workflow
+  task_config:
+    workflow: acme/data-pipeline
+    input:
+      data: "${ $context.prepared_data }"
+```
+
+## Data tasks
+
+Data tasks manipulate, validate, and transform data without calling external
+services or LLMs.
+
+### set_vars
+
+[Full reference ->](/docs/guides/workflow-tasks/set-vars)
+
+Set variables in the workflow context:
+
+```yaml
+- name: init
+  kind: set_vars
+  task_config:
+    variables:
+      started_at: "${ now() }"
+      environment: "production"
+      greeting: "Hello, World!"
+  export:
+    as: "${ . }"
+```
+
+Values can be literals or expressions. Use `set_vars` for initialization and
+intermediate state.
+
+### transform
+
+[Full reference ->](/docs/guides/workflow-tasks/transform)
+
+Deterministic data transformation using JQ, JSONata, or template engines:
+
+```yaml
+- name: merge_results
+  kind: transform
+  task_config:
+    engine: jq
+    expression: |
+      {
+        topic: $topic,
+        summary: $text,
+        word_count: ($text | split(" ") | length)
+      }
+    input:
+      topic: "${ $context.env.TOPIC }"
+      text: "${ $context.summary.text }"
+  export:
+    as: "${ . }"
+```
+
+**Key fields**: `engine` (`jq`, `jsonata`, `template`), `expression`, `input`
+(named variables available in the expression).
+
+**When to choose**: `transform` for structured data reshaping. `set_vars` for
+simple variable assignment.
+
+### validate
+
+[Full reference ->](/docs/guides/workflow-tasks/validate)
+
+Schema and business-rule validation checkpoint:
+
+```yaml
+- name: check_output
+  kind: validate
+  task_config:
+    input: "${ $context.extract.structured }"
+    schema:
+      type: object
+      required: [name, email]
+      properties:
+        name: { type: string, minLength: 1 }
+        email: { type: string, format: email }
+    on_fail: VALIDATION_FAIL_RAISE
+```
+
+**Key fields**: `input`, `schema` (JSON Schema), `rules` (custom validation
+expressions), `on_fail` (`VALIDATION_FAIL_RAISE`, `VALIDATION_FAIL_WARN`,
+`VALIDATION_FAIL_SKIP`).
+
+## Governance tasks
+
+### human_input
+
+[Full reference ->](/docs/guides/workflow-tasks/human-input)
+
+Workflow-level approval gate that pauses execution for human review:
+
+```yaml
+- name: approval
+  kind: human_input
+  task_config:
+    prompt: "Approve this action?"
+    form_schema:
+      type: object
+      properties:
+        notes: { type: string }
+    outcomes:
+      - name: approve
+        label: "Approve"
+      - name: reject
+        label: "Reject"
+        then: end
+    timeout: 86400
+    on_timeout: HUMAN_INPUT_TIMEOUT_FAIL
+  export:
+    as: "${ . }"
+```
+
+**Key fields**: `prompt`, `form_schema` (optional JSON Schema for reviewer
+input), `outcomes` (each with `name`, `label`, optional `then`), `timeout`
+(seconds), `on_timeout`, `approvers`, `notification_channels`.
+
+**Output**: `{ outcome, reviewer, form_data, decided_at }`.
+
+For full coverage of human-in-the-loop patterns, see the
+[Authoring Guide](/docs/guides/workflows#human-in-the-loop).
+
+## External invocation tasks
+
+These tasks call external services.
+
+### http_call
+
+[Full reference ->](/docs/guides/workflow-tasks/http-call)
+
+Make an HTTP request:
+
+```yaml
+- name: fetch_data
+  kind: http_call
+  task_config:
+    method: GET
+    endpoint:
+      uri: "https://api.example.com/data"
+    headers:
+      Authorization: "Bearer ${ $context.env.API_TOKEN }"
+    timeout: 30
+  export:
+    as: "${ . }"
+```
+
+**Key fields**: `method` (`GET`, `POST`, `PUT`, `DELETE`, `PATCH`),
+`endpoint.uri`, `headers`, `body`, `timeout`.
+
+### grpc_call
+
+[Full reference ->](/docs/guides/workflow-tasks/grpc-call)
+
+Make a gRPC request:
+
+```yaml
+- name: call_service
+  kind: grpc_call
+  task_config:
+    service: "com.example.UserService"
+    method: "GetUser"
+    request:
+      user_id: "${ $context.env.USER_ID }"
+```
+
+**Key fields**: `service` (fully qualified service name), `method`, `request`.
+
+### activity_call
+
+[Full reference ->](/docs/guides/workflow-tasks/activity-call)
+
+Execute a Temporal activity:
+
+```yaml
+- name: run_activity
+  kind: activity_call
+  task_config:
+    activity: "ProcessPayment"
+    input:
+      amount: "${ $context.order.total }"
+```
+
+**Key fields**: `activity` (activity type name), `input`.
+
+## Event tasks
+
+Event tasks handle asynchronous communication — waiting for signals, emitting
+events, and notifying humans.
+
+### listen
+
+[Full reference ->](/docs/guides/workflow-tasks/listen)
+
+Wait for external signals:
+
+```yaml
+- name: wait_for_signal
+  kind: listen
+  task_config:
+    listen_to:
+      - signal:
+          id: "payment_confirmed"
+    mode: first
+  export:
+    as: "${ . }"
+```
+
+**Key fields**: `listen_to` (list of signal specs), `mode` (`first` or `all`).
+
+Send signals to a running execution with the `sendSignal` API or CLI.
+
+### emit_event
+
+[Full reference ->](/docs/guides/workflow-tasks/emit-event)
+
+Emit a CloudEvents-formatted event:
+
+```yaml
+- name: notify_downstream
+  kind: emit_event
+  task_config:
+    event:
+      type: "com.acme.ticket.classified"
+      source: "workflow/triage"
+      data:
+        severity: "${ $context.classify.severity }"
+        category: "${ $context.classify.category }"
+```
+
+**Key fields**: `event.type`, `event.source`, `event.data`, `event.subject`.
+
+### notification
+
+[Full reference ->](/docs/guides/workflow-tasks/notification)
+
+Send a notification to humans through a channel (Slack, email, etc.):
+
+```yaml
+- name: alert_team
+  kind: notification
+  task_config:
+    channel: "slack"
+    recipients:
+      - "#incidents"
+    message: "Critical ticket escalated: ${ $context.classify.summary }"
+```
+
+**Key fields**: `channel`, `recipients`, `message`, `template`, `metadata`.
+
+**When to choose**: `notification` for fire-and-forget messages. `human_input`
+when you need the recipient to respond. `emit_event` for machine-to-machine
+event routing.
+
+## What's next
+
+<Cards>
+  <Card
+    title="Authoring Guide"
+    description="Learn the full YAML syntax for writing workflows."
+    href="/docs/guides/workflows"
+  />
+  <Card
+    title="Workflow Patterns"
+    description="Production-ready patterns using these task types."
+    href="/docs/guides/workflow-patterns"
+  />
+  <Card
+    title="API Reference"
+    description="Auto-generated SDK reference for Workflow resources."
+    href="/docs/sdk/resources/workflow"
+  />
+</Cards>

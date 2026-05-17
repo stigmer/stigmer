@@ -1,0 +1,68 @@
+kind: human_input
+display_name: "Human Input"
+description: "Workflow-level approval gate that pauses execution for human review or input."
+category: governance
+icon: "user-check"
+is_ai_native: false
+requires_external_service: false
+documentation_url: "/docs/guides/workflow-tasks/human-input"
+
+output_schema:
+  type: object
+  description: "Reviewer response including selected outcome and form data."
+  properties:
+    outcome:
+      type: string
+      description: "Selected outcome name (e.g., 'approve', 'deny', 'needs_revision')."
+    form_data:
+      type: object
+      description: "Validated form response (when form_schema is configured)."
+    reviewer:
+      type: string
+      description: "Identity of the user who responded."
+    responded_at:
+      type: string
+      description: "ISO 8601 timestamp of the response."
+
+field_groups:
+  - id: core
+    display_name: "Prompt & Outcomes"
+    fields: [prompt, outcomes]
+  - id: form
+    display_name: "Input Form"
+    fields: [form_schema]
+  - id: access
+    display_name: "Access & Routing"
+    fields: [approvers, notification_channels]
+  - id: timeout
+    display_name: "Timeout Policy"
+    fields: [timeout, on_timeout]
+
+yaml_examples:
+  - |
+    - manager_approval:
+        human_input:
+          prompt: "Approve escalation for ${ $context.triage.severity } incident?"
+          form_schema:
+            type: object
+            properties:
+              notes:
+                type: string
+                description: "Optional notes for the engineering team"
+              priority_override:
+                type: string
+                enum: [P1, P2, P3]
+          outcomes:
+            - name: approve
+              label: "Approve Escalation"
+            - name: deny
+              label: "Reject"
+              then: re_classify
+          approvers:
+            - "team:engineering-leads"
+          timeout: 86400
+          on_timeout: HUMAN_INPUT_TIMEOUT_ESCALATE
+          notification_channels:
+            - "slack:#incident-approvals"
+        export:
+          as: "${ . }"

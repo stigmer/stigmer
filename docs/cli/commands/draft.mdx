@@ -115,6 +115,7 @@ stigmer draft agent [flags]
 | `--env-file`        | `stringArray` |         | load environment from file (can be repeated, later files override earlier)                   |
 | `--json`            | `bool`        |         | stream execution events as newline-delimited JSON (for scripting/CI)                         |
 | `--message`, `-m`   | `string`      |         | initial message/prompt for execution                                                         |
+| `--mode`            | `string`      |         | interaction mode: "agent" (default, full access) or "plan" (read-only analysis)              |
 | `--model`           | `string`      |         | LLM model to use (e.g., claude-sonnet-4-20250514)                                            |
 | `--output`, `-o`    | `string`      |         | directory to save generated artifacts (default: current directory when no workspace is used) |
 | `--secret`          | `stringArray` |         | secret environment variable (KEY=VALUE, can be repeated, encrypted)                          |
@@ -181,6 +182,7 @@ stigmer draft mcp-server [flags]
 | `--env-file`        | `stringArray` |         | load environment from file (can be repeated, later files override earlier)                   |
 | `--json`            | `bool`        |         | stream execution events as newline-delimited JSON (for scripting/CI)                         |
 | `--message`, `-m`   | `string`      |         | initial message/prompt for execution                                                         |
+| `--mode`            | `string`      |         | interaction mode: "agent" (default, full access) or "plan" (read-only analysis)              |
 | `--model`           | `string`      |         | LLM model to use (e.g., claude-sonnet-4-20250514)                                            |
 | `--output`, `-o`    | `string`      |         | directory to save generated artifacts (default: current directory when no workspace is used) |
 | `--secret`          | `stringArray` |         | secret environment variable (KEY=VALUE, can be repeated, encrypted)                          |
@@ -244,6 +246,7 @@ stigmer draft skill [flags]
 | `--env-file`        | `stringArray` |         | load environment from file (can be repeated, later files override earlier)                   |
 | `--json`            | `bool`        |         | stream execution events as newline-delimited JSON (for scripting/CI)                         |
 | `--message`, `-m`   | `string`      |         | initial message/prompt for execution                                                         |
+| `--mode`            | `string`      |         | interaction mode: "agent" (default, full access) or "plan" (read-only analysis)              |
 | `--model`           | `string`      |         | LLM model to use (e.g., claude-sonnet-4-20250514)                                            |
 | `--output`, `-o`    | `string`      |         | directory to save generated artifacts (default: current directory when no workspace is used) |
 | `--secret`          | `stringArray` |         | secret environment variable (KEY=VALUE, can be repeated, encrypted)                          |

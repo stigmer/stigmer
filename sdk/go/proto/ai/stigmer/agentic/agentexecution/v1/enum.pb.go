@@ -865,6 +865,84 @@ func (ApprovalAction) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{9}
 }
 
+// InteractionMode controls the agent's behavioral posture for an execution.
+//
+// Determines what the agent is allowed to do — analysis only, or full
+// read-write access. Mode is set per-execution via ExecutionConfig and
+// does not carry over between executions.
+//
+// Enforcement:
+//   - Native harness (LangGraph): tool-level enforcement — write tools are
+//     removed from the tool set in PLAN mode.
+//   - Cursor harness: best-effort via system prompt injection. The Cursor SDK
+//     does not expose a mode parameter, so the agent is instructed not to
+//     make changes. When the SDK adds native mode support, the prompt-based
+//     approach will be replaced.
+type InteractionMode int32
+
+const (
+	// Default — resolves to INTERACTION_MODE_AGENT.
+	InteractionMode_INTERACTION_MODE_UNSPECIFIED InteractionMode = 0
+	// Full agent mode with unrestricted tool access.
+	//
+	// The agent can read, write, create, edit, and delete files; run shell
+	// commands; and invoke any configured tool. This is the standard
+	// execution mode for interactive sessions.
+	InteractionMode_INTERACTION_MODE_AGENT InteractionMode = 1
+	// Read-only planning mode — analysis and recommendations only.
+	//
+	// The agent can read files, search code, list directories, and reason
+	// about the codebase, but cannot create, edit, or delete files or run
+	// mutating shell commands. Designed for exploring approaches, producing
+	// implementation plans, and answering architectural questions without
+	// side effects.
+	//
+	// Native harness: enforced by removing write tools from the tool set.
+	// Cursor harness: best-effort via system prompt directive.
+	InteractionMode_INTERACTION_MODE_PLAN InteractionMode = 2
+)
+
+// Enum value maps for InteractionMode.
+var (
+	InteractionMode_name = map[int32]string{
+		0: "INTERACTION_MODE_UNSPECIFIED",
+		1: "INTERACTION_MODE_AGENT",
+		2: "INTERACTION_MODE_PLAN",
+	}
+	InteractionMode_value = map[string]int32{
+		"INTERACTION_MODE_UNSPECIFIED": 0,
+		"INTERACTION_MODE_AGENT":       1,
+		"INTERACTION_MODE_PLAN":        2,
+	}
+)
+
+func (x InteractionMode) Enum() *InteractionMode {
+	p := new(InteractionMode)
+	*p = x
+	return p
+}
+
+func (x InteractionMode) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (InteractionMode) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[10].Descriptor()
+}
+
+func (InteractionMode) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[10]
+}
+
+func (x InteractionMode) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use InteractionMode.Descriptor instead.
+func (InteractionMode) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{10}
+}
+
 var File_ai_stigmer_agentic_agentexecution_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc = "" +
@@ -930,7 +1008,11 @@ const file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc = "" +
 	"\x1bAPPROVAL_ACTION_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17APPROVAL_ACTION_APPROVE\x10\x01\x12\x18\n" +
 	"\x14APPROVAL_ACTION_SKIP\x10\x02\x12\x1a\n" +
-	"\x16APPROVAL_ACTION_REJECT\x10\x03B\xc9\x02\n" +
+	"\x16APPROVAL_ACTION_REJECT\x10\x03*j\n" +
+	"\x0fInteractionMode\x12 \n" +
+	"\x1cINTERACTION_MODE_UNSPECIFIED\x10\x00\x12\x1a\n" +
+	"\x16INTERACTION_MODE_AGENT\x10\x01\x12\x19\n" +
+	"\x15INTERACTION_MODE_PLAN\x10\x02B\xc9\x02\n" +
 	"(com.ai.stigmer.agentic.agentexecution.v1B\tEnumProtoP\x01Z]github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
 var (
@@ -945,7 +1027,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 10)
+var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 11)
 var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_goTypes = []any{
 	(ExecutionPhase)(0),          // 0: ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
 	(MessageType)(0),             // 1: ai.stigmer.agentic.agentexecution.v1.MessageType
@@ -957,6 +1039,7 @@ var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_goTypes = []any{
 	(ToolCallStreamingSource)(0), // 7: ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource
 	(ExecutionControlSignal)(0),  // 8: ai.stigmer.agentic.agentexecution.v1.ExecutionControlSignal
 	(ApprovalAction)(0),          // 9: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
+	(InteractionMode)(0),         // 10: ai.stigmer.agentic.agentexecution.v1.InteractionMode
 }
 var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -976,7 +1059,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_enum_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc), len(file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc)),
-			NumEnums:      10,
+			NumEnums:      11,
 			NumMessages:   0,
 			NumExtensions: 0,
 			NumServices:   0,

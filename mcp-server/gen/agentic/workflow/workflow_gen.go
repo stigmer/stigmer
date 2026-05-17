@@ -48,6 +48,8 @@ type WorkflowInput struct {
 	Tasks []WorkflowTaskInput `json:"tasks,omitempty" jsonschema:"Ordered list of tasks that make up this workflow. Tasks execute sequentially unless fork/parallel is used."`
 	// Environment variable declarations for this workflow. Keys are variable names; values describe their metadata and optionality.
 	Env map[string]*EnvVarDeclarationInput `json:"env,omitempty" jsonschema:"Environment variable declarations for this workflow. Keys are variable names; values describe their metadata and optionality."`
+	// Budget limits for this workflow execution. When set, the runtime (T13) enforces cost, token, and duration limits across all tasks. The existing org-level billing reservation system (AuthorizeExecution / ExecutionBillingSignal) remains the safety net for overall credit exhaustion; workflow budgets prevent individual workflows from consuming more than intended. Optional — when not set, no workflow-level budget is enforced.
+	Budget *WorkflowBudgetInput `json:"budget,omitempty" jsonschema:"Budget limits for this workflow execution. When set, the runtime (T13) enforces cost, token, and duration limits across all tasks. The existing org-level billing reservation system (AuthorizeExecution / ExecutionBillingSignal) remains the safety net for overall credit exhaustion; workflow budgets prevent individual workflows from consuming more than intended. Optional — when not set, no workflow-level budget is enforced."`
 }
 
 // WorkflowDocument contains workflow-level metadata for versioning and identification. @internal Maps to the `document:` block in Zigflow DSL YAML.
@@ -84,9 +86,23 @@ type AgentExecutionConfigInput struct {
 	Temperature float32 `json:"temperature,omitempty" jsonschema:"Temperature for LLM sampling (0.0 to 1.0). Lower = more deterministic, Higher = more creative Default: 0.7 Optional."`
 	// Context management configuration for this agent invocation. Controls automatic summarization behavior for long-running conversations. When specified, overrides model defaults from the Model Registry. @internal @since Phase 3 (Context Summarization Architecture) Use cases: - Disable summarization for short-lived agents - Custom thresholds for agents with specific context requirements - Fine-tune summarization behavior per workflow task Example YAML: config: model: "claude-sonnet-4.5" context_management: custom_trigger_threshold: 150000 custom_target_tokens: 120000
 	ContextManagement *ContextManagementConfigInput `json:"context_management,omitempty" jsonschema:"Context management configuration for this agent invocation. Controls automatic summarization behavior for long-running conversations. When specified, overrides model defaults from the Model Registry. @internal @since Phase 3 (Context Summarization Architecture) Use cases: - Disable summarization for short-lived agents - Custom thresholds for agents with specific context requirements - Fine-tune summarization behavior per workflow task Example YAML: config: model: 'claude-sonnet-4.5' context_management: custom_trigger_threshold: 150000 custom_target_tokens: 120000"`
+	// Per-agent-call cost cap in micro-USD (1 USD = 1,000,000 micros). When set, the runtime terminates this agent call if its accumulated cost exceeds this limit. This uses the workflow domain's micro-USD convention and provides per-task cost control at the workflow level. The runtime checks both: per-task limit first, then workflow remaining budget. Optional — when 0, no per-task cost limit is enforced. @since T05 (Workflow-Level Budget Primitives)
+	MaxCostMicros int64 `json:"max_cost_micros,omitempty" jsonschema:"Per-agent-call cost cap in micro-USD (1 USD = 1,000,000 micros). When set, the runtime terminates this agent call if its accumulated cost exceeds this limit. This uses the workflow domain's micro-USD convention and provides per-task cost control at the workflow level. The runtime checks both: per-task limit first, then workflow remaining budget. Optional — when 0, no per-task cost limit is enforced. @since T05 (Workflow-Level Budget Primitives)"`
 }
 
-// AgentCallTaskConfig defines the configuration for agent_call tasks that invoke AI agents. @internal The agent is referenced by org/slug format (e.g., "stigmer/code-reviewer"). Resolution order: 1. If org is specified: look in that org's agents 2. If org is empty: use the workflow's org 3. Before external lookup, check manifest (current deployment) The workflow's execution context (environment variables, secrets) is passed to the agent invocation, allowing agents to access workflow state. YAML Example: - analyze: call: agent with: agent: "code-reviewer" # Uses workflow's org # OR agent: "stigmer/code-reviewer" # Explicit org reference message: "Review this code: ${ $context.fetchCode.body }" env: GITHUB_TOKEN: "${ .secrets.GH_TOKEN }" config: model: "claude-3-5-sonnet" timeout: 300 Reference: design doc at stigmer/_cursor/add-agent-config-to-workflow.md
+// AgentCallOutputContract defines the structured output contract for an agent_call task. When configured, the workflow runner extracts structured JSON from the agent's final response and validates it against the provided JSON Schema. The validated JSON becomes the task's primary output under the "structured" key, accessible via export expressions (e.g., export.as: "${ .structured }"). This enables reliable downstream routing: switch_case can evaluate expressions against typed fields (e.g., "${ $context.triage.severity == 'critical' }") rather than parsing unstructured prose. The dual-channel output model populates WorkflowTask.output as: { "structured": { <validated JSON matching the schema> }, "final_text": "<the agent's human-readable response>", "agent_execution_id": "<execution ID for drill-down>", "usage_summary": { "total_tokens": 4523, "estimated_cost_usd": 0.045, "tool_call_count": 3, "artifact_count": 1 } } YAML Example: output: schema: type: object required: [severity, category, customer_impact] properties: severity: type: string enum: [low, medium, high, critical] category: type: string customer_impact: type: boolean rationale: type: string on_invalid: ON_INVALID_RETRY max_retries: 2 fallback_task: human_review @since T02 (Structured Agent Output Model)
+type AgentCallOutputContractInput struct {
+	// JSON Schema that the agent's structured output must conform to. Standard JSON Schema (draft 2020-12 or compatible). The workflow runner extracts JSON from the agent's final response and validates it against this schema. If validation fails, the on_invalid policy determines what happens next. The schema is carried as a google.protobuf.Struct to preserve the existing kind+Struct envelope pattern and allow YAML authors to write standard JSON Schema inline without a Stigmer-specific schema language.
+	Schema map[string]any `json:"schema" jsonschema:"JSON Schema that the agent's structured output must conform to. Standard JSON Schema (draft 2020-12 or compatible). The workflow runner extracts JSON from the agent's final response and validates it against this schema. If validation fails, the on_invalid policy determines what happens next. The schema is carried as a google.protobuf.Struct to preserve the existing kind+Struct envelope pattern and allow YAML authors to write standard JSON Schema inline without a Stigmer-specific schema language."`
+	// Policy when agent output fails schema validation. Default: ON_INVALID_FAIL (task fails immediately).
+	OnInvalid string `json:"on_invalid,omitempty" jsonschema:"Policy when agent output fails schema validation. Default: ON_INVALID_FAIL (task fails immediately). Allowed values: ON_INVALID_FAIL, ON_INVALID_RETRY, ON_INVALID_FALLBACK."`
+	// Maximum retry attempts when on_invalid is ON_INVALID_RETRY. Each retry re-prompts the agent with the specific validation errors and the expected schema, giving the agent an opportunity to self-correct. Only meaningful when on_invalid is ON_INVALID_RETRY; ignored otherwise. Default: 1. Valid range: 1-5.
+	MaxRetries int32 `json:"max_retries,omitempty" jsonschema:"Maximum retry attempts when on_invalid is ON_INVALID_RETRY. Each retry re-prompts the agent with the specific validation errors and the expected schema, giving the agent an opportunity to self-correct. Only meaningful when on_invalid is ON_INVALID_RETRY; ignored otherwise. Default: 1. Valid range: 1-5."`
+	// Target task to branch to when schema validation cannot be resolved. Used in two scenarios: 1. on_invalid is ON_INVALID_RETRY and all retries are exhausted 2. on_invalid is ON_INVALID_FALLBACK (immediate branch, no retry) Must reference a valid task name in the same workflow. When empty and retries are exhausted, the task fails.
+	FallbackTask string `json:"fallback_task,omitempty" jsonschema:"Target task to branch to when schema validation cannot be resolved. Used in two scenarios: 1. on_invalid is ON_INVALID_RETRY and all retries are exhausted 2. on_invalid is ON_INVALID_FALLBACK (immediate branch, no retry) Must reference a valid task name in the same workflow. When empty and retries are exhausted, the task fails."`
+}
+
+// AgentCallTaskConfig defines the configuration for agent_call tasks that invoke AI agents. @internal The agent is referenced by org/slug format (e.g., "stigmer/code-reviewer"). Resolution order: 1. If org is specified: look in that org's agents 2. If org is empty: use the workflow's org 3. Before external lookup, check manifest (current deployment) The workflow's execution context (environment variables, secrets) is passed to the agent invocation, allowing agents to access workflow state. YAML Example (without structured output): - analyze: call: agent with: agent: "code-reviewer" message: "Review this code: ${ $context.fetchCode.body }" env: GITHUB_TOKEN: "${ .secrets.GH_TOKEN }" config: model: "claude-3-5-sonnet" timeout: 300 YAML Example (with structured output): - triage_ticket: call: agent with: agent: "support-triage" message: "${ .ticket.description }" output: schema: type: object required: [severity, category, customer_impact] properties: severity: type: string enum: [low, medium, high, critical] category: type: string customer_impact: type: boolean rationale: type: string on_invalid: ON_INVALID_RETRY max_retries: 2 fallback_task: human_review export: as: "${ .structured }" Reference: design doc at stigmer/_cursor/add-agent-config-to-workflow.md
 type AgentCallTaskConfigInput struct {
 	// Agent reference in "org/slug" or "slug" format. - "slug" only: uses the workflow's organization - "org/slug": explicit organization reference Examples: "code-reviewer", "stigmer/code-reviewer", "acme/data-analyst" Required field.
 	Agent string `json:"agent" jsonschema:"Agent reference in 'org/slug' or 'slug' format. - 'slug' only: uses the workflow's organization - 'org/slug': explicit organization reference Examples: 'code-reviewer', 'stigmer/code-reviewer', 'acme/data-analyst' Required field."`
@@ -98,6 +114,8 @@ type AgentCallTaskConfigInput struct {
 	Env map[string]string `json:"env,omitempty" jsonschema:"Runtime environment variables to pass to the agent. Values can be literal strings or JQ expressions that reference workflow context or secrets. Example: {'GITHUB_TOKEN': '${ .secrets.GH_TOKEN }'} Optional."`
 	// Execution configuration for the agent invocation. Optional - defaults are applied if not specified.
 	Config *AgentExecutionConfigInput `json:"config,omitempty" jsonschema:"Execution configuration for the agent invocation. Optional - defaults are applied if not specified."`
+	// Structured output contract for this agent call. When set, the workflow runner extracts structured JSON from the agent's final response and validates it against the declared schema. The validated JSON is placed in the task output under the "structured" key, enabling reliable downstream routing via switch_case expressions. When not set, the task output contains the agent's raw text response (backward compatible with existing workflows). @since T02 (Structured Agent Output Model)
+	Output *AgentCallOutputContractInput `json:"output,omitempty" jsonschema:"Structured output contract for this agent call. When set, the workflow runner extracts structured JSON from the agent's final response and validates it against the declared schema. The validated JSON is placed in the task output under the 'structured' key, enabling reliable downstream routing via switch_case expressions. When not set, the task output contains the agent's raw text response (backward compatible with existing workflows). @since T02 (Structured Agent Output Model)"`
 }
 
 // CallActivityTaskConfig defines the configuration for activity_call tasks that execute activities. @internal Executes Temporal activities. YAML Example: - taskName: call: activity with: activity: "ProcessDataActivity" input: data: ${ .data } Reference: zigflow-dsl-pattern-catalog.md - Task Type 10
@@ -106,6 +124,24 @@ type CallActivityTaskConfigInput struct {
 	Activity string `json:"activity" jsonschema:"Activity name to execute. @internal Must match a registered Temporal activity."`
 	// Activity input (optional). Can be any JSON structure. Supports expressions in string values.
 	Input map[string]any `json:"input,omitempty" jsonschema:"Activity input (optional). Can be any JSON structure. Supports expressions in string values."`
+}
+
+// EmitEventSpec defines the CloudEvents envelope for an event to be emitted. @internal Follows CloudEvents semantics (type, source, subject, data) because: 1. CloudEvents is a graduated CNCF project with broad ecosystem support 2. The CNCF Serverless Workflow spec already uses CloudEvents 3. It provides a standard envelope that external consumers can parse Runtime-generated fields not authored here: - id: unique event identifier (UUID, generated at emit time) - specversion: always "1.0" - time: ISO 8601 timestamp of emission - datacontenttype: always "application/json" (since data is a Struct) The runtime (T13) decides how events are delivered: Temporal signals to other workflows, message queues, webhooks, or event buses. The proto carries the event specification; delivery is a runtime concern. @since T03 (P0 New Task Types)
+type EmitEventInput struct {
+	// CloudEvents type identifier. A reverse-DNS string that categorizes the event for routing and filtering. Examples: "stigmer.workflow.ticket.classified", "acme.order.completed"
+	Type string `json:"type" jsonschema:"CloudEvents type identifier. A reverse-DNS string that categorizes the event for routing and filtering. Examples: 'stigmer.workflow.ticket.classified', 'acme.order.completed'"`
+	// CloudEvents source identifier. URI or URI-reference that identifies the context in which the event happened. Supports ${ } expression interpolation. When empty, the runtime defaults to the workflow execution URI (e.g., "/workflows/{workflow_id}/executions/{execution_id}").
+	Source string `json:"source,omitempty" jsonschema:"CloudEvents source identifier. URI or URI-reference that identifies the context in which the event happened. Supports ${ } expression interpolation. When empty, the runtime defaults to the workflow execution URI (e.g., '/workflows/{workflow_id}/executions/{execution_id}')."`
+	// Event payload data. Arbitrary JSON object carried as the CloudEvents data attribute. Values within the Struct can contain ${ } expressions that the runtime evaluates before emission. Unlike other Struct fields in the workflow domain (response_schema, form_schema, schema) which carry JSON Schema definitions, this field carries the actual event payload — not a schema.
+	Data map[string]any `json:"data,omitempty" jsonschema:"Event payload data. Arbitrary JSON object carried as the CloudEvents data attribute. Values within the Struct can contain ${ } expressions that the runtime evaluates before emission. Unlike other Struct fields in the workflow domain (response_schema, form_schema, schema) which carry JSON Schema definitions, this field carries the actual event payload — not a schema."`
+	// CloudEvents subject identifier. Describes the subject of the event in the context of the event producer. Supports ${ } expression interpolation. Examples: "${ $context.ticket.id }", "${ $context.order.number }"
+	Subject string `json:"subject,omitempty" jsonschema:"CloudEvents subject identifier. Describes the subject of the event in the context of the event producer. Supports ${ } expression interpolation. Examples: '${ $context.ticket.id }', '${ $context.order.number }'"`
+}
+
+// EmitEventTaskConfig defines the configuration for emit_event tasks that publish CloudEvents to external consumers, other workflows, audit trails, and metrics systems. @internal emit_event is the complement to listen. While listen waits for Temporal signals (internal workflow primitives), emit_event publishes business events using the CloudEvents envelope (a standard external contract). The runtime (T13) bridges the two: an emitted CloudEvent can be delivered as a Temporal signal to another workflow's listen task, or routed to external consumers via message queues, webhooks, or event buses. The task output is the fully-resolved CloudEvents envelope with runtime-generated fields populated: { "id": "<generated UUID>", "specversion": "1.0", "type": "stigmer.workflow.ticket.classified", "source": "/workflows/triage/executions/abc-123", "time": "2026-05-12T14:30:00Z", "subject": "TICKET-456", "datacontenttype": "application/json", "data": { <resolved payload> } } YAML Example (emit a classification event): - notify_classified: emit_event: event: type: "stigmer.workflow.ticket.classified" subject: "${ $context.ticket.id }" data: ticket_id: "${ $context.ticket.id }" severity: "${ $context.triage.severity }" category: "${ $context.triage.category }" classified_by: "${ $context.workflow_instance_id }" export: as: "${ . }" YAML Example (emit with explicit source): - publish_completion: emit_event: event: type: "acme.order.fulfilled" source: "urn:acme:fulfillment-service" subject: "${ $context.order.number }" data: order_id: "${ $context.order.id }" status: "fulfilled" fulfilled_at: "${ $context.timestamp }" export: as: "${ . }"
+type EmitEventTaskConfigInput struct {
+	// The event specification to emit. Contains the CloudEvents envelope fields (type, source, data, subject). Required field.
+	Event *EmitEventInput `json:"event" jsonschema:"The event specification to emit. Contains the CloudEvents envelope fields (type, source, data, subject). Required field."`
 }
 
 // ForTaskConfig defines the configuration for for_each tasks that iterate over collections. @internal YAML Example: - taskName: for: each: item in: ${ $data.items } do: - processItem: call: http with: method: POST body: item: ${ $data.item } index: ${ $data.index } Reference: zigflow-dsl-pattern-catalog.md - Task Type 4
@@ -164,6 +200,34 @@ type HttpCallTaskConfigInput struct {
 	TimeoutSeconds int32 `json:"timeout_seconds,omitempty" jsonschema:"Request timeout in seconds (optional, default: 30)."`
 }
 
+// HumanInputOutcome defines a named outcome that a reviewer can select when responding to a human_input task. @internal Outcomes enable rich branching beyond binary approve/deny. Each outcome can route to a different downstream task via the `then` field, enabling patterns like "approve → continue", "deny → re_classify", "needs_revision → gather_more_context". When no outcomes are defined, the task defaults to binary approve/deny behavior: approve continues to the next task, deny fails the task. @since T03 (P0 New Task Types)
+type HumanInputOutcomeInput struct {
+	// Outcome identifier used in task output and routing. Examples: "approve", "deny", "needs_revision", "escalate", "defer" Must be unique within the outcomes list.
+	Name string `json:"name" jsonschema:"Outcome identifier used in task output and routing. Examples: 'approve', 'deny', 'needs_revision', 'escalate', 'defer' Must be unique within the outcomes list."`
+	// Human-readable label for the button/action in the approval UI. When empty, the UI displays the capitalized name. Examples: "Approve Escalation", "Reject — Not Customer-Impacting"
+	Label string `json:"label,omitempty" jsonschema:"Human-readable label for the button/action in the approval UI. When empty, the UI displays the capitalized name. Examples: 'Approve Escalation', 'Reject — Not Customer-Impacting'"`
+	// Task to branch to when this outcome is selected. Must reference a valid task name in the same workflow. When empty, the workflow continues to the next task in sequence.
+	Then string `json:"then,omitempty" jsonschema:"Task to branch to when this outcome is selected. Must reference a valid task name in the same workflow. When empty, the workflow continues to the next task in sequence."`
+}
+
+// HumanInputTaskConfig defines the configuration for human_input tasks that pause workflow execution to collect typed input or approval from a human reviewer, then resume based on the reviewer's response. @internal Use human_input when a workflow needs human judgment before proceeding: approvals before API calls, sign-off before publishing, confirmation before customer-impacting actions, or structured data collection from a human operator. This is a workflow-level approval gate — distinct from agent-level HITL (tool approval inside an agent session). Workflow-level gates are visible in the execution viewer as explicit tasks with input/output/timing, and they can route to different branches based on the reviewer's decision. Runtime implementation (T13) will use Temporal signals for workflow resumption. The proto definition is intentionally runtime-agnostic. The reviewer's response (selected outcome + form data) becomes the task output, accessible via export: { "outcome": "approve", "form_data": { <validated form response if form_schema is set> }, "reviewer": "<user who responded>", "responded_at": "<ISO 8601 timestamp>" } YAML Example (approval gate with custom outcomes): - manager_approval: human_input: prompt: "Customer-impacting incident classified as ${ $context.triage.severity }. Approve escalation?" form_schema: type: object properties: notes: type: string description: "Optional notes for the engineering team" priority_override: type: string enum: [P1, P2, P3] outcomes: - name: approve label: "Approve Escalation" - name: deny label: "Reject — Not Customer-Impacting" then: re_classify - name: needs_revision label: "Needs More Info" then: gather_more_context approvers: - "team:engineering-leads" timeout: 86400 on_timeout: HUMAN_INPUT_TIMEOUT_ESCALATE notification_channels: - "slack:#incident-approvals" export: as: "${ . }" YAML Example (simple binary approval, no form): - confirm_publish: human_input: prompt: "Ready to publish ${ $context.document.title } to production?" approvers: - "role:content-admin" timeout: 3600 on_timeout: HUMAN_INPUT_TIMEOUT_FAIL export: as: "${ . }"
+type HumanInputTaskConfigInput struct {
+	// Message shown to the reviewer explaining what needs approval or input. Supports ${ } expression interpolation for injecting workflow context. Example: "Approve escalation for ticket ${ $context.ticket.id }?"
+	Prompt string `json:"prompt" jsonschema:"Message shown to the reviewer explaining what needs approval or input. Supports ${ } expression interpolation for injecting workflow context. Example: 'Approve escalation for ticket ${ $context.ticket.id }?'"`
+	// JSON Schema defining the input form rendered to the reviewer. When set, the approval UI renders a typed form based on this schema. The reviewer's form response is validated against the schema before the task completes, and the validated data appears in the task output under the "form_data" key. When not set, the reviewer sees only the outcome buttons (approve/deny or custom outcomes) without a data entry form. Uses the same google.protobuf.Struct + JSON Schema pattern as AgentCallOutputContract.schema and LlmCallTaskConfig.response_schema.
+	FormSchema map[string]any `json:"form_schema,omitempty" jsonschema:"JSON Schema defining the input form rendered to the reviewer. When set, the approval UI renders a typed form based on this schema. The reviewer's form response is validated against the schema before the task completes, and the validated data appears in the task output under the 'form_data' key. When not set, the reviewer sees only the outcome buttons (approve/deny or custom outcomes) without a data entry form. Uses the same google.protobuf.Struct + JSON Schema pattern as AgentCallOutputContract.schema and LlmCallTaskConfig.response_schema."`
+	// Named outcomes that the reviewer can select. Each outcome represents a decision the reviewer can make, with optional routing to a different downstream task. This enables rich branching beyond binary approve/deny. When empty, the task defaults to binary behavior: - "approve": task completes, workflow continues to next task - "deny": task fails (enters try_catch or EXECUTION_FAILED) When custom outcomes are defined, the first outcome is used as the default for HUMAN_INPUT_TIMEOUT_APPROVE, and the last outcome is used as the default for HUMAN_INPUT_TIMEOUT_DENY.
+	Outcomes []HumanInputOutcomeInput `json:"outcomes,omitempty" jsonschema:"Named outcomes that the reviewer can select. Each outcome represents a decision the reviewer can make, with optional routing to a different downstream task. This enables rich branching beyond binary approve/deny. When empty, the task defaults to binary behavior: - 'approve': task completes, workflow continues to next task - 'deny': task fails (enters try_catch or EXECUTION_FAILED) When custom outcomes are defined, the first outcome is used as the default for HUMAN_INPUT_TIMEOUT_APPROVE, and the last outcome is used as the default for HUMAN_INPUT_TIMEOUT_DENY."`
+	// Approver identifiers — who is allowed to respond to this task. Supports user IDs, team slugs, and role names. Format examples: - "user:jane@acme.com" — specific user - "team:engineering-leads" — any member of the team - "role:content-admin" — any user with the role When empty, any authenticated user can respond. Resolution of these identifiers is a runtime concern (T13).
+	Approvers []string `json:"approvers,omitempty" jsonschema:"Approver identifiers — who is allowed to respond to this task. Supports user IDs, team slugs, and role names. Format examples: - 'user:jane@acme.com' — specific user - 'team:engineering-leads' — any member of the team - 'role:content-admin' — any user with the role When empty, any authenticated user can respond. Resolution of these identifiers is a runtime concern (T13)."`
+	// Timeout in seconds before the on_timeout policy applies. Default: 0 (no timeout — the task waits indefinitely). Max: 2592000 (30 days). A timeout of 0 means the workflow will wait until a human responds. For production workflows, setting a timeout with an appropriate on_timeout policy is strongly recommended.
+	Timeout int32 `json:"timeout,omitempty" jsonschema:"Timeout in seconds before the on_timeout policy applies. Default: 0 (no timeout — the task waits indefinitely). Max: 2592000 (30 days). A timeout of 0 means the workflow will wait until a human responds. For production workflows, setting a timeout with an appropriate on_timeout policy is strongly recommended."`
+	// Policy applied when the timeout expires without a response. Only meaningful when timeout > 0; ignored when timeout is 0. Default: HUMAN_INPUT_TIMEOUT_FAIL (task fails with timeout error).
+	OnTimeout string `json:"on_timeout,omitempty" jsonschema:"Policy applied when the timeout expires without a response. Only meaningful when timeout > 0; ignored when timeout is 0. Default: HUMAN_INPUT_TIMEOUT_FAIL (task fails with timeout error). Allowed values: HUMAN_INPUT_TIMEOUT_FAIL, HUMAN_INPUT_TIMEOUT_APPROVE, HUMAN_INPUT_TIMEOUT_DENY, HUMAN_INPUT_TIMEOUT_ESCALATE."`
+	// Channel identifiers for sending approval request notifications. When the task starts, the runtime sends notifications through these channels to alert potential approvers. Format examples: - "slack:#approvals" — Slack channel - "email:ops@acme.com" — email address - "teams:#incident-response" — Microsoft Teams channel The format and routing of notifications is a runtime concern (T13). The proto carries the identifiers; the runtime resolves them to actual notification providers configured in the workflow instance's environment.
+	NotificationChannels []string `json:"notification_channels,omitempty" jsonschema:"Channel identifiers for sending approval request notifications. When the task starts, the runtime sends notifications through these channels to alert potential approvers. Format examples: - 'slack:#approvals' — Slack channel - 'email:ops@acme.com' — email address - 'teams:#incident-response' — Microsoft Teams channel The format and routing of notifications is a runtime concern (T13). The proto carries the identifiers; the runtime resolves them to actual notification providers configured in the workflow instance's environment."`
+}
+
 // SignalSpec defines a signal/event to listen for.
 type SignalInput struct {
 	// Signal identifier.
@@ -184,6 +248,50 @@ type ListenToInput struct {
 type ListenTaskConfigInput struct {
 	// Signal listening configuration.
 	To *ListenToInput `json:"to" jsonschema:"Signal listening configuration."`
+}
+
+// LlmCallTaskConfig defines the configuration for llm_call tasks that make direct LLM API calls without the overhead of a full agent invocation. @internal Use llm_call when the task is focused and deterministic: classification, extraction, scoring, summarization, moderation, or routing. An agent_call carries setup overhead (system prompt, tool resolution, MCP server setup, session management) that is unnecessary when all you need is a single prompt-response cycle with optional structured output. When response_schema is set, the runner requests structured output from the provider and validates the response against the schema. The on_invalid / max_retries / fallback_task fields control what happens when validation fails, using the same OnInvalidOutputPolicy enum as agent_call's output contract. YAML Example (classification with structured output): - classify_severity: call: llm with: model: "gpt-4o-mini" system_prompt: "You are a support ticket classifier." prompt: "Classify this ticket: ${ $context.ticket.description }" response_schema: type: object required: [severity, category] properties: severity: type: string enum: [low, medium, high, critical] category: type: string on_invalid: ON_INVALID_RETRY max_retries: 2 export: as: "${ . }" YAML Example (simple summarization, no schema): - summarize: call: llm with: model: "claude-sonnet-4-5" prompt: "Summarize in 2 sentences: ${ $context.document.text }" temperature: 0.3 max_tokens: 200 export: as: "${ . }"
+type LlmCallTaskConfigInput struct {
+	// Model reference resolved via the Stigmer model registry. Examples: "gpt-4o", "gpt-4o-mini", "claude-sonnet-4-5", "claude-haiku-3-5" Required field.
+	Model string `json:"model" jsonschema:"Model reference resolved via the Stigmer model registry. Examples: 'gpt-4o', 'gpt-4o-mini', 'claude-sonnet-4-5', 'claude-haiku-3-5' Required field."`
+	// System prompt that sets the LLM's role and constraints. Supports ${ } expression interpolation for dynamic system prompts. Optional — omit for tasks where the user prompt is self-contained.
+	SystemPrompt string `json:"system_prompt,omitempty" jsonschema:"System prompt that sets the LLM's role and constraints. Supports ${ } expression interpolation for dynamic system prompts. Optional — omit for tasks where the user prompt is self-contained."`
+	// User prompt / instruction sent to the LLM. Supports ${ } expression interpolation for injecting workflow context. Example: "Classify this ticket: ${ $context.ticket.description }" Required field.
+	Prompt string `json:"prompt" jsonschema:"User prompt / instruction sent to the LLM. Supports ${ } expression interpolation for injecting workflow context. Example: 'Classify this ticket: ${ $context.ticket.description }' Required field."`
+	// JSON Schema for structured output. When set, the runner requests structured output from the provider (e.g., OpenAI's response_format, Anthropic's tool_use extraction) and validates the response against this schema. Uses the same google.protobuf.Struct + JSON Schema pattern as AgentCallOutputContract.schema for consistency across the workflow domain. When not set, the task output is the LLM's raw text response.
+	ResponseSchema map[string]any `json:"response_schema,omitempty" jsonschema:"JSON Schema for structured output. When set, the runner requests structured output from the provider (e.g., OpenAI's response_format, Anthropic's tool_use extraction) and validates the response against this schema. Uses the same google.protobuf.Struct + JSON Schema pattern as AgentCallOutputContract.schema for consistency across the workflow domain. When not set, the task output is the LLM's raw text response."`
+	// Sampling temperature (0.0 to 2.0). Lower = more deterministic, higher = more creative. Range is 0.0-2.0 to accommodate all major providers (OpenAI supports up to 2.0; others clamp to their supported range at runtime). Optional — uses the provider's default when not set.
+	Temperature float32 `json:"temperature,omitempty" jsonschema:"Sampling temperature (0.0 to 2.0). Lower = more deterministic, higher = more creative. Range is 0.0-2.0 to accommodate all major providers (OpenAI supports up to 2.0; others clamp to their supported range at runtime). Optional — uses the provider's default when not set."`
+	// Maximum tokens in the LLM response. Optional — uses the provider's default when not set.
+	MaxTokens int32 `json:"max_tokens,omitempty" jsonschema:"Maximum tokens in the LLM response. Optional — uses the provider's default when not set."`
+	// Timeout for the LLM call in seconds. Default: 60. Max: 600 (10 minutes). Optional.
+	Timeout int32 `json:"timeout,omitempty" jsonschema:"Timeout for the LLM call in seconds. Default: 60. Max: 600 (10 minutes). Optional."`
+	// Policy when the LLM response fails schema validation. Only meaningful when response_schema is set; ignored otherwise. Default: ON_INVALID_FAIL (task fails immediately).
+	OnInvalid string `json:"on_invalid,omitempty" jsonschema:"Policy when the LLM response fails schema validation. Only meaningful when response_schema is set; ignored otherwise. Default: ON_INVALID_FAIL (task fails immediately). Allowed values: ON_INVALID_FAIL, ON_INVALID_RETRY, ON_INVALID_FALLBACK."`
+	// Maximum schema-validation retry attempts when on_invalid is ON_INVALID_RETRY. Each retry re-prompts the LLM with the validation errors and expected schema, giving it an opportunity to self-correct. Only meaningful when on_invalid is ON_INVALID_RETRY; ignored otherwise. Default: 1. Valid range: 1-5.
+	MaxRetries int32 `json:"max_retries,omitempty" jsonschema:"Maximum schema-validation retry attempts when on_invalid is ON_INVALID_RETRY. Each retry re-prompts the LLM with the validation errors and expected schema, giving it an opportunity to self-correct. Only meaningful when on_invalid is ON_INVALID_RETRY; ignored otherwise. Default: 1. Valid range: 1-5."`
+	// Target task to branch to when schema validation cannot be resolved. Used in two scenarios: 1. on_invalid is ON_INVALID_RETRY and all retries are exhausted 2. on_invalid is ON_INVALID_FALLBACK (immediate branch, no retry) Must reference a valid task name in the same workflow. When empty and retries are exhausted, the task fails.
+	FallbackTask string `json:"fallback_task,omitempty" jsonschema:"Target task to branch to when schema validation cannot be resolved. Used in two scenarios: 1. on_invalid is ON_INVALID_RETRY and all retries are exhausted 2. on_invalid is ON_INVALID_FALLBACK (immediate branch, no retry) Must reference a valid task name in the same workflow. When empty and retries are exhausted, the task fails."`
+	// Per-task cost cap in micro-USD (1 USD = 1,000,000 micros). When set, the runtime terminates this specific LLM call if its cost exceeds this limit, independent of the workflow-level budget. The runtime checks both: per-task limit first, then workflow remaining budget. Optional — when 0, no per-task cost limit is enforced. @since T05 (Workflow-Level Budget Primitives)
+	MaxCostMicros int64 `json:"max_cost_micros,omitempty" jsonschema:"Per-task cost cap in micro-USD (1 USD = 1,000,000 micros). When set, the runtime terminates this specific LLM call if its cost exceeds this limit, independent of the workflow-level budget. The runtime checks both: per-task limit first, then workflow remaining budget. Optional — when 0, no per-task cost limit is enforced. @since T05 (Workflow-Level Budget Primitives)"`
+	// Per-task token cap (input + output tokens combined). When set, the runtime terminates this specific LLM call if total tokens exceed this limit. Complements max_tokens (field 6), which limits only the output token count as a generation parameter. Optional — when 0, no per-task total token limit is enforced. @since T05 (Workflow-Level Budget Primitives)
+	MaxTotalTokens int64 `json:"max_total_tokens,omitempty" jsonschema:"Per-task token cap (input + output tokens combined). When set, the runtime terminates this specific LLM call if total tokens exceed this limit. Complements max_tokens (field 6), which limits only the output token count as a generation parameter. Optional — when 0, no per-task total token limit is enforced. @since T05 (Workflow-Level Budget Primitives)"`
+}
+
+// NotificationTaskConfig defines the configuration for notification tasks that send messages to humans through channels like Slack, email, Discord, Microsoft Teams, or webhooks. @internal notification is a convenience abstraction for "send a message to humans" — simpler and more intuitive than emit_event for common operational notification patterns. While emit_event publishes system-level CloudEvents for machine consumption, notification is purpose-built for human-readable messages with channel routing and recipient targeting. Key distinction from related task types: emit_event = system-to-system (CloudEvents, consumed by workflows/services) notification = system-to-human (Slack, email, Discord — read by people) human_input = system-to-human-to-system (waits for a response; notification is fire-and-forget) Notifications are fire-and-forget by default. The task output confirms delivery was attempted but does not wait for acknowledgment: { "channel": "slack", "recipients": ["#incident-response"], "delivered": true, "delivered_at": "<ISO 8601 timestamp>" } For notifications that require acknowledgment or a response, use human_input instead — it pauses the workflow until a human responds. The channel field is a string (not an enum) to allow extensibility: new notification channels can be added without proto changes. The runtime (T13) resolves channel identifiers to actual notification providers configured in the workflow instance's environment. YAML Example (Slack notification): - alert_slack: notification: channel: "slack" recipients: - "#incident-response" - "@oncall-lead" subject: "P${ $context.triage.severity } Incident: ${ $context.ticket.title }" body: | *Severity*: ${ $context.triage.severity } *Category*: ${ $context.triage.category } *Customer Impact*: ${ $context.triage.customer_impact } *Summary*: ${ $context.agent_analysis.structured.summary } metadata: thread_ts: "${ $context.slack_thread_id }" export: as: "${ . }" YAML Example (email with template): - send_confirmation: notification: channel: "email" recipients: - "${ $context.customer.email }" subject: "Order ${ $context.order.number } Confirmed" body: "Your order has been confirmed. You will receive tracking information shortly." template: "order-confirmation" metadata: priority: "high" reply_to: "support@acme.com" export: as: "${ . }"
+type NotificationTaskConfigInput struct {
+	// Notification channel identifier. Determines which notification provider processes this message. Common values: "slack", "email", "discord", "teams", "webhook" This is a string (not an enum) for extensibility — new channels can be added without proto changes. The runtime resolves the channel to its configured provider in the workflow instance's environment.
+	Channel string `json:"channel" jsonschema:"Notification channel identifier. Determines which notification provider processes this message. Common values: 'slack', 'email', 'discord', 'teams', 'webhook' This is a string (not an enum) for extensibility — new channels can be added without proto changes. The runtime resolves the channel to its configured provider in the workflow instance's environment."`
+	// Recipient identifiers for the notification. Format depends on the channel: - slack: "#channel-name", "@username", or Slack user IDs - email: "user@example.com" - discord: "#channel-name", "@role" - teams: "#channel-name" - webhook: URL or webhook identifier At least one recipient is required. Individual values may contain ${ } expressions that the runtime evaluates before delivery (e.g., "${ $context.customer.email }").
+	Recipients []string `json:"recipients,omitempty" jsonschema:"Recipient identifiers for the notification. Format depends on the channel: - slack: '#channel-name', '@username', or Slack user IDs - email: 'user@example.com' - discord: '#channel-name', '@role' - teams: '#channel-name' - webhook: URL or webhook identifier At least one recipient is required. Individual values may contain ${ } expressions that the runtime evaluates before delivery (e.g., '${ $context.customer.email }')."`
+	// Notification subject or title. Supports ${ } expression interpolation. Used as: email subject line, Slack message title, webhook payload title. Optional — some channels (e.g., simple Slack messages) may not use it.
+	Subject string `json:"subject,omitempty" jsonschema:"Notification subject or title. Supports ${ } expression interpolation. Used as: email subject line, Slack message title, webhook payload title. Optional — some channels (e.g., simple Slack messages) may not use it."`
+	// Notification body / message content. Supports ${ } expression interpolation. The primary content of the notification. Formatting depends on channel (e.g., Slack Markdown, HTML for email, plain text for SMS). When template is also set, body serves as the fallback content if the template cannot be resolved.
+	Body string `json:"body" jsonschema:"Notification body / message content. Supports ${ } expression interpolation. The primary content of the notification. Formatting depends on channel (e.g., Slack Markdown, HTML for email, plain text for SMS). When template is also set, body serves as the fallback content if the template cannot be resolved."`
+	// Named template reference for rendering the notification. When set, the runtime looks up this template in the workflow instance's environment and uses it for rendering, with the workflow context as template data. The body field is used as fallback if the template cannot be resolved. Examples: "incident-alert", "order-confirmation", "approval-request" Template resolution and rendering is a runtime concern (T13).
+	Template string `json:"template,omitempty" jsonschema:"Named template reference for rendering the notification. When set, the runtime looks up this template in the workflow instance's environment and uses it for rendering, with the workflow context as template data. The body field is used as fallback if the template cannot be resolved. Examples: 'incident-alert', 'order-confirmation', 'approval-request' Template resolution and rendering is a runtime concern (T13)."`
+	// Channel-specific metadata as key-value pairs. Provides additional configuration that varies by notification channel: - slack: {"thread_ts": "...", "unfurl_links": "false"} - email: {"priority": "high", "reply_to": "...", "cc": "..."} - webhook: {"method": "POST", "content_type": "application/json"} Values may contain ${ } expressions that the runtime evaluates before delivery.
+	Metadata map[string]string `json:"metadata,omitempty" jsonschema:"Channel-specific metadata as key-value pairs. Provides additional configuration that varies by notification channel: - slack: {'thread_ts': '...', 'unfurl_links': 'false'} - email: {'priority': 'high', 'reply_to': '...', 'cc': '...'} - webhook: {'method': 'POST', 'content_type': 'application/json'} Values may contain ${ } expressions that the runtime evaluates before delivery."`
 }
 
 // RaiseTaskConfig defines the configuration for raise_error tasks that raise errors. @internal YAML Example: - taskName: raise: error: ValidationError message: ${ .errorMessage } Reference: zigflow-dsl-pattern-catalog.md - Task Type 11
@@ -224,6 +332,16 @@ type SwitchTaskConfigInput struct {
 	Cases []SwitchCaseInput `json:"cases,omitempty" jsonschema:"List of switch cases (at least one required). Cases are evaluated in order. First matching case executes. If no 'when' is specified, the case acts as default."`
 }
 
+// TransformTaskConfig defines the configuration for transform tasks that perform deterministic data transformation without LLM calls. @internal Use transform when you need to reshape data between tasks: projecting fields, joining objects, converting formats, or building API payloads. Unlike set_vars (which mutates workflow state variables as a side effect), transform produces an explicit output that flows through export like any other task — visible and inspectable in the execution viewer. The distinction from set_vars: set_vars = imperative assignment ("set X to Y"), mutates workflow context transform = functional transformation ("reshape this data"), produces output YAML Example (JQ — reshape data for an API call): - build_api_payload: transform: engine: jq expression: '{name: .customer.full_name, severity: .triage.severity, summary: .agent_analysis.structured.summary}' input: "${ $context }" export: as: "${ . }" YAML Example (template — render a notification message): - render_notification: transform: engine: template expression: "Ticket {{ .ticket_id }} classified as {{ .severity }} — {{ .summary }}" input: "${ $context.build_api_payload }" export: as: "${ . }"
+type TransformTaskConfigInput struct {
+	// Transformation engine to use. Required — must be explicitly set (not UNSPECIFIED).
+	Engine string `json:"engine" jsonschema:"Transformation engine to use. Required — must be explicitly set (not UNSPECIFIED). Allowed values: TRANSFORM_ENGINE_JQ, TRANSFORM_ENGINE_JSONATA, TRANSFORM_ENGINE_TEMPLATE."`
+	// Transformation expression in the chosen engine's syntax. For JQ: a JQ filter expression (e.g., '{name: .full_name}') For JSONata: a JSONata expression (e.g., '{"name": full_name}') For TEMPLATE: a Go text/template string with {{ }} placeholders Required field.
+	Expression string `json:"expression" jsonschema:"Transformation expression in the chosen engine's syntax. For JQ: a JQ filter expression (e.g., '{name: .full_name}') For JSONata: a JSONata expression (e.g., '{'name': full_name}') For TEMPLATE: a Go text/template string with {{ }} placeholders Required field."`
+	// Expression selecting the input data for the transformation. Supports ${ } expression interpolation. When omitted, the entire workflow context is used as input. Example: "${ $context.triage }" to transform just the triage output.
+	Input string `json:"input,omitempty" jsonschema:"Expression selecting the input data for the transformation. Supports ${ } expression interpolation. When omitted, the entire workflow context is used as input. Example: '${ $context.triage }' to transform just the triage output."`
+}
+
 // CatchBlock defines error handling logic.
 type CatchBlockInput struct {
 	// Variable name to store the error (optional). Accessible via ${ .error } in catch tasks.
@@ -238,6 +356,30 @@ type TryTaskConfigInput struct {
 	Try []WorkflowTaskInput `json:"try,omitempty" jsonschema:"Tasks to attempt (at least one required). If any task fails, execution jumps to catch block."`
 	// Catch block for error handling (optional). If not provided, errors propagate to parent.
 	Catch *CatchBlockInput `json:"catch,omitempty" jsonschema:"Catch block for error handling (optional). If not provided, errors propagate to parent."`
+}
+
+// ValidationRule defines a business rule evaluated as a boolean expression. @internal Rules complement JSON Schema validation by expressing constraints that schema alone cannot: cross-field dependencies, conditional requirements, and domain-specific invariants. The expression must evaluate to a boolean. When it evaluates to false, the rule is considered violated and the message (if provided) is included in the validation error output. Expressions use the same expression engine as switch_case.when for consistency across the workflow domain. @since T03 (P0 New Task Types)
+type ValidationRuleInput struct {
+	// Rule identifier for error reporting and debugging. Appears in validation error output so operators can identify which specific rule failed. Examples: "critical_needs_rationale", "customer_impact_requires_high_severity"
+	Name string `json:"name" jsonschema:"Rule identifier for error reporting and debugging. Appears in validation error output so operators can identify which specific rule failed. Examples: 'critical_needs_rationale', 'customer_impact_requires_high_severity'"`
+	// Boolean expression that must evaluate to true for the rule to pass. Supports ${ } expression interpolation. The expression receives the validate task's input data as its context. Example: "${ .severity != 'critical' || (.rationale != null && .rationale != '') }"
+	Expression string `json:"expression" jsonschema:"Boolean expression that must evaluate to true for the rule to pass. Supports ${ } expression interpolation. The expression receives the validate task's input data as its context. Example: '${ .severity != 'critical' || (.rationale != null && .rationale != '') }'"`
+	// Error message included in validation output when the rule fails. Supports ${ } expression interpolation for dynamic error messages. When empty, a generic message is generated from the rule name. Example: "Critical severity requires a rationale"
+	Message string `json:"message,omitempty" jsonschema:"Error message included in validation output when the rule fails. Supports ${ } expression interpolation for dynamic error messages. When empty, a generic message is generated from the rule name. Example: 'Critical severity requires a rationale'"`
+}
+
+// ValidateTaskConfig defines the configuration for validate tasks that perform explicit schema and business-rule validation on workflow data. @internal Use validate when you need an explicit validation checkpoint before downstream actions. This is how you distinguish "the API call succeeded" from "the data is safe and complete enough to continue." While switch_case + raise_error can approximate validation, a dedicated validate task makes the intent explicit, the error messages richer, and the execution trace clearer. In the execution viewer (T09), a validate task shows exactly what was checked, what passed, and what failed — visible as a distinct verification step. The task supports two complementary validation modes: - schema: JSON Schema validation for structural correctness - rules: business-rule expressions for domain-specific constraints At least one of schema or rules must be set. Both can be used together for comprehensive validation (schema checks structure, rules check business logic). This cross-field constraint is enforced at runtime validation since buf.validate cannot express it on individual fields. Task output includes the full validation result: { "valid": true/false, "errors": [ {"rule": "critical_needs_rationale", "message": "Critical severity requires a rationale"}, {"path": "$.category", "message": "must have at least 1 character"} ], "data": <original input data> } YAML Example (schema + business rules): - check_triage_quality: validate: input: "${ $context.triage }" schema: type: object required: [severity, category, customer_impact] properties: severity: type: string enum: [low, medium, high, critical] category: type: string minLength: 1 customer_impact: type: boolean rules: - name: critical_needs_rationale expression: "${ .severity != 'critical' || (.rationale != null && .rationale != ”) }" message: "Critical severity requires a rationale" - name: customer_impact_needs_severity expression: "${ .customer_impact != true || .severity in ['high', 'critical'] }" message: "Customer-impacting issues must be high or critical severity" on_fail: VALIDATION_FAIL_BRANCH fallback_task: human_review export: as: "${ . }" YAML Example (schema-only validation with warn policy): - check_payload_shape: validate: input: "${ $context.api_payload }" schema: type: object required: [name, email] properties: name: type: string email: type: string format: email on_fail: VALIDATION_FAIL_WARN export: as: "${ . }"
+type ValidateTaskConfigInput struct {
+	// Expression selecting the data to validate. Supports ${ } expression interpolation. Example: "${ $context.triage }" to validate the triage task's output.
+	Input string `json:"input" jsonschema:"Expression selecting the data to validate. Supports ${ } expression interpolation. Example: '${ $context.triage }' to validate the triage task's output."`
+	// JSON Schema to validate the input data against. Standard JSON Schema (draft 2020-12 or compatible). The runtime validates the input data against this schema and reports detailed errors for any constraint violations. Uses the same google.protobuf.Struct + JSON Schema pattern as AgentCallOutputContract.schema, LlmCallTaskConfig.response_schema, and HumanInputTaskConfig.form_schema. At least one of schema or rules must be set.
+	Schema map[string]any `json:"schema,omitempty" jsonschema:"JSON Schema to validate the input data against. Standard JSON Schema (draft 2020-12 or compatible). The runtime validates the input data against this schema and reports detailed errors for any constraint violations. Uses the same google.protobuf.Struct + JSON Schema pattern as AgentCallOutputContract.schema, LlmCallTaskConfig.response_schema, and HumanInputTaskConfig.form_schema. At least one of schema or rules must be set."`
+	// Business rules to evaluate against the input data. Each rule is a boolean expression that must evaluate to true. Rules complement schema validation by expressing constraints that JSON Schema cannot: cross-field dependencies, conditional requirements, and domain-specific invariants. At least one of schema or rules must be set.
+	Rules []ValidationRuleInput `json:"rules,omitempty" jsonschema:"Business rules to evaluate against the input data. Each rule is a boolean expression that must evaluate to true. Rules complement schema validation by expressing constraints that JSON Schema cannot: cross-field dependencies, conditional requirements, and domain-specific invariants. At least one of schema or rules must be set."`
+	// Policy applied when validation fails. Default: VALIDATION_FAIL_RAISE (task fails with validation error).
+	OnFail string `json:"on_fail,omitempty" jsonschema:"Policy applied when validation fails. Default: VALIDATION_FAIL_RAISE (task fails with validation error). Allowed values: VALIDATION_FAIL_RAISE, VALIDATION_FAIL_BRANCH, VALIDATION_FAIL_WARN."`
+	// Target task to branch to when on_fail is VALIDATION_FAIL_BRANCH. Must reference a valid task name in the same workflow. Only meaningful when on_fail is VALIDATION_FAIL_BRANCH; ignored otherwise. When on_fail is BRANCH and fallback_task is empty, the task fails.
+	FallbackTask string `json:"fallback_task,omitempty" jsonschema:"Target task to branch to when on_fail is VALIDATION_FAIL_BRANCH. Must reference a valid task name in the same workflow. Only meaningful when on_fail is VALIDATION_FAIL_BRANCH; ignored otherwise. When on_fail is BRANCH and fallback_task is empty, the task fails."`
 }
 
 // Duration represents a relative time period. Fields are additive: { days: 1, hours: 12 } equals 36 hours total. At least one field must be non-zero. Examples: - 1 week: { days: 7 } - 2.5 hours: { hours: 2, minutes: 30 } - 90 seconds: { minutes: 1, seconds: 30 }
@@ -279,11 +421,13 @@ type WorkflowTaskInput struct {
 	// Task name/identifier (must be unique within workflow).
 	Name string `json:"name" jsonschema:"Task name/identifier (must be unique within workflow)."`
 	// Task type. Set the matching config field (e.g. kind='http_call' -> populate http_call).
-	Kind string `json:"kind" jsonschema:"Task type. Set the matching config field (e.g. kind='http_call' -> populate http_call). Allowed values: set_vars, http_call, grpc_call, activity_call, switch_case, for_each, fork, try_catch, listen, wait, raise_error, run_workflow, agent_call."`
-	// Required when kind='agent_call'. AgentCallTaskConfig defines the configuration for agent_call tasks that invoke AI agents. @internal The agent is referenced by org/slug format (e.g., "stigmer/code-reviewer"). Resolution order: 1. If org is specified: look in that org's agents 2. If org is empty: use the workflow's org 3. Before external lookup, check manifest (current deployment) The workflow's execution context (environment variables, secrets) is passed to the agent invocation, allowing agents to access workflow state. YAML Example: - analyze: call: agent with: agent: "code-reviewer" # Uses workflow's org # OR agent: "stigmer/code-reviewer" # Explicit org reference message: "Review this code: ${ $context.fetchCode.body }" env: GITHUB_TOKEN: "${ .secrets.GH_TOKEN }" config: model: "claude-3-5-sonnet" timeout: 300 Reference: design doc at stigmer/_cursor/add-agent-config-to-workflow.md
-	AgentCall *AgentCallTaskConfigInput `json:"agent_call,omitempty" jsonschema:"Required when kind='agent_call'. AgentCallTaskConfig defines the configuration for agent_call tasks that invoke AI agents. @internal The agent is referenced by org/slug format (e.g., 'stigmer/code-reviewer'). Resolution order: 1. If org is specified: look in that org's agents 2. If org is empty: use the workflow's org 3. Before external lookup, check manifest (current deployment) The workflow's execution context (environment variables, secrets) is passed to the agent invocation, allowing agents to access workflow state. YAML Example: - analyze: call: agent with: agent: 'code-reviewer' # Uses workflow's org # OR agent: 'stigmer/code-reviewer' # Explicit org reference message: 'Review this code: ${ $context.fetchCode.body }' env: GITHUB_TOKEN: '${ .secrets.GH_TOKEN }' config: model: 'claude-3-5-sonnet' timeout: 300 Reference: design doc at stigmer/_cursor/add-agent-config-to-workflow.md"`
+	Kind string `json:"kind" jsonschema:"Task type. Set the matching config field (e.g. kind='http_call' -> populate http_call). Allowed values: set_vars, http_call, grpc_call, activity_call, switch_case, for_each, fork, try_catch, listen, wait, raise_error, run_workflow, agent_call, llm_call, transform, human_input, validate, emit_event, notification."`
+	// Required when kind='agent_call'. AgentCallTaskConfig defines the configuration for agent_call tasks that invoke AI agents. @internal The agent is referenced by org/slug format (e.g., "stigmer/code-reviewer"). Resolution order: 1. If org is specified: look in that org's agents 2. If org is empty: use the workflow's org 3. Before external lookup, check manifest (current deployment) The workflow's execution context (environment variables, secrets) is passed to the agent invocation, allowing agents to access workflow state. YAML Example (without structured output): - analyze: call: agent with: agent: "code-reviewer" message: "Review this code: ${ $context.fetchCode.body }" env: GITHUB_TOKEN: "${ .secrets.GH_TOKEN }" config: model: "claude-3-5-sonnet" timeout: 300 YAML Example (with structured output): - triage_ticket: call: agent with: agent: "support-triage" message: "${ .ticket.description }" output: schema: type: object required: [severity, category, customer_impact] properties: severity: type: string enum: [low, medium, high, critical] category: type: string customer_impact: type: boolean rationale: type: string on_invalid: ON_INVALID_RETRY max_retries: 2 fallback_task: human_review export: as: "${ .structured }" Reference: design doc at stigmer/_cursor/add-agent-config-to-workflow.md
+	AgentCall *AgentCallTaskConfigInput `json:"agent_call,omitempty" jsonschema:"Required when kind='agent_call'. AgentCallTaskConfig defines the configuration for agent_call tasks that invoke AI agents. @internal The agent is referenced by org/slug format (e.g., 'stigmer/code-reviewer'). Resolution order: 1. If org is specified: look in that org's agents 2. If org is empty: use the workflow's org 3. Before external lookup, check manifest (current deployment) The workflow's execution context (environment variables, secrets) is passed to the agent invocation, allowing agents to access workflow state. YAML Example (without structured output): - analyze: call: agent with: agent: 'code-reviewer' message: 'Review this code: ${ $context.fetchCode.body }' env: GITHUB_TOKEN: '${ .secrets.GH_TOKEN }' config: model: 'claude-3-5-sonnet' timeout: 300 YAML Example (with structured output): - triage_ticket: call: agent with: agent: 'support-triage' message: '${ .ticket.description }' output: schema: type: object required: [severity, category, customer_impact] properties: severity: type: string enum: [low, medium, high, critical] category: type: string customer_impact: type: boolean rationale: type: string on_invalid: ON_INVALID_RETRY max_retries: 2 fallback_task: human_review export: as: '${ .structured }' Reference: design doc at stigmer/_cursor/add-agent-config-to-workflow.md"`
 	// Required when kind='activity_call'. CallActivityTaskConfig defines the configuration for activity_call tasks that execute activities. @internal Executes Temporal activities. YAML Example: - taskName: call: activity with: activity: "ProcessDataActivity" input: data: ${ .data } Reference: zigflow-dsl-pattern-catalog.md - Task Type 10
 	ActivityCall *CallActivityTaskConfigInput `json:"activity_call,omitempty" jsonschema:"Required when kind='activity_call'. CallActivityTaskConfig defines the configuration for activity_call tasks that execute activities. @internal Executes Temporal activities. YAML Example: - taskName: call: activity with: activity: 'ProcessDataActivity' input: data: ${ .data } Reference: zigflow-dsl-pattern-catalog.md - Task Type 10"`
+	// Required when kind='emit_event'. EmitEventTaskConfig defines the configuration for emit_event tasks that publish CloudEvents to external consumers, other workflows, audit trails, and metrics systems. @internal emit_event is the complement to listen. While listen waits for Temporal signals (internal workflow primitives), emit_event publishes business events using the CloudEvents envelope (a standard external contract). The runtime (T13) bridges the two: an emitted CloudEvent can be delivered as a Temporal signal to another workflow's listen task, or routed to external consumers via message queues, webhooks, or event buses. The task output is the fully-resolved CloudEvents envelope with runtime-generated fields populated: { "id": "<generated UUID>", "specversion": "1.0", "type": "stigmer.workflow.ticket.classified", "source": "/workflows/triage/executions/abc-123", "time": "2026-05-12T14:30:00Z", "subject": "TICKET-456", "datacontenttype": "application/json", "data": { <resolved payload> } } YAML Example (emit a classification event): - notify_classified: emit_event: event: type: "stigmer.workflow.ticket.classified" subject: "${ $context.ticket.id }" data: ticket_id: "${ $context.ticket.id }" severity: "${ $context.triage.severity }" category: "${ $context.triage.category }" classified_by: "${ $context.workflow_instance_id }" export: as: "${ . }" YAML Example (emit with explicit source): - publish_completion: emit_event: event: type: "acme.order.fulfilled" source: "urn:acme:fulfillment-service" subject: "${ $context.order.number }" data: order_id: "${ $context.order.id }" status: "fulfilled" fulfilled_at: "${ $context.timestamp }" export: as: "${ . }"
+	EmitEvent *EmitEventTaskConfigInput `json:"emit_event,omitempty" jsonschema:"Required when kind='emit_event'. EmitEventTaskConfig defines the configuration for emit_event tasks that publish CloudEvents to external consumers, other workflows, audit trails, and metrics systems. @internal emit_event is the complement to listen. While listen waits for Temporal signals (internal workflow primitives), emit_event publishes business events using the CloudEvents envelope (a standard external contract). The runtime (T13) bridges the two: an emitted CloudEvent can be delivered as a Temporal signal to another workflow's listen task, or routed to external consumers via message queues, webhooks, or event buses. The task output is the fully-resolved CloudEvents envelope with runtime-generated fields populated: { 'id': '<generated UUID>', 'specversion': '1.0', 'type': 'stigmer.workflow.ticket.classified', 'source': '/workflows/triage/executions/abc-123', 'time': '2026-05-12T14:30:00Z', 'subject': 'TICKET-456', 'datacontenttype': 'application/json', 'data': { <resolved payload> } } YAML Example (emit a classification event): - notify_classified: emit_event: event: type: 'stigmer.workflow.ticket.classified' subject: '${ $context.ticket.id }' data: ticket_id: '${ $context.ticket.id }' severity: '${ $context.triage.severity }' category: '${ $context.triage.category }' classified_by: '${ $context.workflow_instance_id }' export: as: '${ . }' YAML Example (emit with explicit source): - publish_completion: emit_event: event: type: 'acme.order.fulfilled' source: 'urn:acme:fulfillment-service' subject: '${ $context.order.number }' data: order_id: '${ $context.order.id }' status: 'fulfilled' fulfilled_at: '${ $context.timestamp }' export: as: '${ . }'"`
 	// Required when kind='for_each'. ForTaskConfig defines the configuration for for_each tasks that iterate over collections. @internal YAML Example: - taskName: for: each: item in: ${ $data.items } do: - processItem: call: http with: method: POST body: item: ${ $data.item } index: ${ $data.index } Reference: zigflow-dsl-pattern-catalog.md - Task Type 4
 	ForEach *ForTaskConfigInput `json:"for_each,omitempty" jsonschema:"Required when kind='for_each'. ForTaskConfig defines the configuration for for_each tasks that iterate over collections. @internal YAML Example: - taskName: for: each: item in: ${ $data.items } do: - processItem: call: http with: method: POST body: item: ${ $data.item } index: ${ $data.index } Reference: zigflow-dsl-pattern-catalog.md - Task Type 4"`
 	// Required when kind='fork'. ForkTaskConfig defines the configuration for fork tasks that execute branches in parallel. @internal YAML Example: - taskName: fork: branches: - branch1: do: - task1: call: http with: method: POST endpoint: uri: https://api.example.com/branch1 - branch2: do: - task2: call: http Reference: zigflow-dsl-pattern-catalog.md - Task Type 5
@@ -292,8 +436,14 @@ type WorkflowTaskInput struct {
 	GrpcCall *GrpcCallTaskConfigInput `json:"grpc_call,omitempty" jsonschema:"Required when kind='grpc_call'. GrpcCallTaskConfig defines the configuration for grpc_call tasks that make gRPC requests. @internal YAML Example: - taskName: call: grpc with: service: 'com.example.UserService' method: 'GetUser' request: userId: ${ .userId } Reference: zigflow-dsl-pattern-catalog.md - Task Type 9"`
 	// Required when kind='http_call'. HttpCallTaskConfig defines the configuration for http_call tasks that make HTTP requests. @internal YAML Example: - taskName: call: http with: method: POST endpoint: uri: https://api.example.com/data headers: Authorization: "Bearer ${TOKEN}" body: field1: value Reference: zigflow-dsl-pattern-catalog.md - Task Type 2
 	HttpCall *HttpCallTaskConfigInput `json:"http_call,omitempty" jsonschema:"Required when kind='http_call'. HttpCallTaskConfig defines the configuration for http_call tasks that make HTTP requests. @internal YAML Example: - taskName: call: http with: method: POST endpoint: uri: https://api.example.com/data headers: Authorization: 'Bearer ${TOKEN}' body: field1: value Reference: zigflow-dsl-pattern-catalog.md - Task Type 2"`
+	// Required when kind='human_input'. HumanInputTaskConfig defines the configuration for human_input tasks that pause workflow execution to collect typed input or approval from a human reviewer, then resume based on the reviewer's response. @internal Use human_input when a workflow needs human judgment before proceeding: approvals before API calls, sign-off before publishing, confirmation before customer-impacting actions, or structured data collection from a human operator. This is a workflow-level approval gate — distinct from agent-level HITL (tool approval inside an agent session). Workflow-level gates are visible in the execution viewer as explicit tasks with input/output/timing, and they can route to different branches based on the reviewer's decision. Runtime implementation (T13) will use Temporal signals for workflow resumption. The proto definition is intentionally runtime-agnostic. The reviewer's response (selected outcome + form data) becomes the task output, accessible via export: { "outcome": "approve", "form_data": { <validated form response if form_schema is set> }, "reviewer": "<user who responded>", "responded_at": "<ISO 8601 timestamp>" } YAML Example (approval gate with custom outcomes): - manager_approval: human_input: prompt: "Customer-impacting incident classified as ${ $context.triage.severity }. Approve escalation?" form_schema: type: object properties: notes: type: string description: "Optional notes for the engineering team" priority_override: type: string enum: [P1, P2, P3] outcomes: - name: approve label: "Approve Escalation" - name: deny label: "Reject — Not Customer-Impacting" then: re_classify - name: needs_revision label: "Needs More Info" then: gather_more_context approvers: - "team:engineering-leads" timeout: 86400 on_timeout: HUMAN_INPUT_TIMEOUT_ESCALATE notification_channels: - "slack:#incident-approvals" export: as: "${ . }" YAML Example (simple binary approval, no form): - confirm_publish: human_input: prompt: "Ready to publish ${ $context.document.title } to production?" approvers: - "role:content-admin" timeout: 3600 on_timeout: HUMAN_INPUT_TIMEOUT_FAIL export: as: "${ . }"
+	HumanInput *HumanInputTaskConfigInput `json:"human_input,omitempty" jsonschema:"Required when kind='human_input'. HumanInputTaskConfig defines the configuration for human_input tasks that pause workflow execution to collect typed input or approval from a human reviewer, then resume based on the reviewer's response. @internal Use human_input when a workflow needs human judgment before proceeding: approvals before API calls, sign-off before publishing, confirmation before customer-impacting actions, or structured data collection from a human operator. This is a workflow-level approval gate — distinct from agent-level HITL (tool approval inside an agent session). Workflow-level gates are visible in the execution viewer as explicit tasks with input/output/timing, and they can route to different branches based on the reviewer's decision. Runtime implementation (T13) will use Temporal signals for workflow resumption. The proto definition is intentionally runtime-agnostic. The reviewer's response (selected outcome + form data) becomes the task output, accessible via export: { 'outcome': 'approve', 'form_data': { <validated form response if form_schema is set> }, 'reviewer': '<user who responded>', 'responded_at': '<ISO 8601 timestamp>' } YAML Example (approval gate with custom outcomes): - manager_approval: human_input: prompt: 'Customer-impacting incident classified as ${ $context.triage.severity }. Approve escalation?' form_schema: type: object properties: notes: type: string description: 'Optional notes for the engineering team' priority_override: type: string enum: [P1, P2, P3] outcomes: - name: approve label: 'Approve Escalation' - name: deny label: 'Reject — Not Customer-Impacting' then: re_classify - name: needs_revision label: 'Needs More Info' then: gather_more_context approvers: - 'team:engineering-leads' timeout: 86400 on_timeout: HUMAN_INPUT_TIMEOUT_ESCALATE notification_channels: - 'slack:#incident-approvals' export: as: '${ . }' YAML Example (simple binary approval, no form): - confirm_publish: human_input: prompt: 'Ready to publish ${ $context.document.title } to production?' approvers: - 'role:content-admin' timeout: 3600 on_timeout: HUMAN_INPUT_TIMEOUT_FAIL export: as: '${ . }'"`
 	// Required when kind='listen'. ListenTaskConfig defines the configuration for listen tasks that wait for external signals. @internal Implemented via Temporal signals. YAML Example: - taskName: listen: to: one: with: id: approval_signal type: signal Reference: zigflow-dsl-pattern-catalog.md - Task Type 7
 	Listen *ListenTaskConfigInput `json:"listen,omitempty" jsonschema:"Required when kind='listen'. ListenTaskConfig defines the configuration for listen tasks that wait for external signals. @internal Implemented via Temporal signals. YAML Example: - taskName: listen: to: one: with: id: approval_signal type: signal Reference: zigflow-dsl-pattern-catalog.md - Task Type 7"`
+	// Required when kind='llm_call'. LlmCallTaskConfig defines the configuration for llm_call tasks that make direct LLM API calls without the overhead of a full agent invocation. @internal Use llm_call when the task is focused and deterministic: classification, extraction, scoring, summarization, moderation, or routing. An agent_call carries setup overhead (system prompt, tool resolution, MCP server setup, session management) that is unnecessary when all you need is a single prompt-response cycle with optional structured output. When response_schema is set, the runner requests structured output from the provider and validates the response against the schema. The on_invalid / max_retries / fallback_task fields control what happens when validation fails, using the same OnInvalidOutputPolicy enum as agent_call's output contract. YAML Example (classification with structured output): - classify_severity: call: llm with: model: "gpt-4o-mini" system_prompt: "You are a support ticket classifier." prompt: "Classify this ticket: ${ $context.ticket.description }" response_schema: type: object required: [severity, category] properties: severity: type: string enum: [low, medium, high, critical] category: type: string on_invalid: ON_INVALID_RETRY max_retries: 2 export: as: "${ . }" YAML Example (simple summarization, no schema): - summarize: call: llm with: model: "claude-sonnet-4-5" prompt: "Summarize in 2 sentences: ${ $context.document.text }" temperature: 0.3 max_tokens: 200 export: as: "${ . }"
+	LlmCall *LlmCallTaskConfigInput `json:"llm_call,omitempty" jsonschema:"Required when kind='llm_call'. LlmCallTaskConfig defines the configuration for llm_call tasks that make direct LLM API calls without the overhead of a full agent invocation. @internal Use llm_call when the task is focused and deterministic: classification, extraction, scoring, summarization, moderation, or routing. An agent_call carries setup overhead (system prompt, tool resolution, MCP server setup, session management) that is unnecessary when all you need is a single prompt-response cycle with optional structured output. When response_schema is set, the runner requests structured output from the provider and validates the response against the schema. The on_invalid / max_retries / fallback_task fields control what happens when validation fails, using the same OnInvalidOutputPolicy enum as agent_call's output contract. YAML Example (classification with structured output): - classify_severity: call: llm with: model: 'gpt-4o-mini' system_prompt: 'You are a support ticket classifier.' prompt: 'Classify this ticket: ${ $context.ticket.description }' response_schema: type: object required: [severity, category] properties: severity: type: string enum: [low, medium, high, critical] category: type: string on_invalid: ON_INVALID_RETRY max_retries: 2 export: as: '${ . }' YAML Example (simple summarization, no schema): - summarize: call: llm with: model: 'claude-sonnet-4-5' prompt: 'Summarize in 2 sentences: ${ $context.document.text }' temperature: 0.3 max_tokens: 200 export: as: '${ . }'"`
+	// Required when kind='notification'. NotificationTaskConfig defines the configuration for notification tasks that send messages to humans through channels like Slack, email, Discord, Microsoft Teams, or webhooks. @internal notification is a convenience abstraction for "send a message to humans" — simpler and more intuitive than emit_event for common operational notification patterns. While emit_event publishes system-level CloudEvents for machine consumption, notification is purpose-built for human-readable messages with channel routing and recipient targeting. Key distinction from related task types: emit_event = system-to-system (CloudEvents, consumed by workflows/services) notification = system-to-human (Slack, email, Discord — read by people) human_input = system-to-human-to-system (waits for a response; notification is fire-and-forget) Notifications are fire-and-forget by default. The task output confirms delivery was attempted but does not wait for acknowledgment: { "channel": "slack", "recipients": ["#incident-response"], "delivered": true, "delivered_at": "<ISO 8601 timestamp>" } For notifications that require acknowledgment or a response, use human_input instead — it pauses the workflow until a human responds. The channel field is a string (not an enum) to allow extensibility: new notification channels can be added without proto changes. The runtime (T13) resolves channel identifiers to actual notification providers configured in the workflow instance's environment. YAML Example (Slack notification): - alert_slack: notification: channel: "slack" recipients: - "#incident-response" - "@oncall-lead" subject: "P${ $context.triage.severity } Incident: ${ $context.ticket.title }" body: | *Severity*: ${ $context.triage.severity } *Category*: ${ $context.triage.category } *Customer Impact*: ${ $context.triage.customer_impact } *Summary*: ${ $context.agent_analysis.structured.summary } metadata: thread_ts: "${ $context.slack_thread_id }" export: as: "${ . }" YAML Example (email with template): - send_confirmation: notification: channel: "email" recipients: - "${ $context.customer.email }" subject: "Order ${ $context.order.number } Confirmed" body: "Your order has been confirmed. You will receive tracking information shortly." template: "order-confirmation" metadata: priority: "high" reply_to: "support@acme.com" export: as: "${ . }"
+	Notification *NotificationTaskConfigInput `json:"notification,omitempty" jsonschema:"Required when kind='notification'. NotificationTaskConfig defines the configuration for notification tasks that send messages to humans through channels like Slack, email, Discord, Microsoft Teams, or webhooks. @internal notification is a convenience abstraction for 'send a message to humans' — simpler and more intuitive than emit_event for common operational notification patterns. While emit_event publishes system-level CloudEvents for machine consumption, notification is purpose-built for human-readable messages with channel routing and recipient targeting. Key distinction from related task types: emit_event = system-to-system (CloudEvents, consumed by workflows/services) notification = system-to-human (Slack, email, Discord — read by people) human_input = system-to-human-to-system (waits for a response; notification is fire-and-forget) Notifications are fire-and-forget by default. The task output confirms delivery was attempted but does not wait for acknowledgment: { 'channel': 'slack', 'recipients': ['#incident-response'], 'delivered': true, 'delivered_at': '<ISO 8601 timestamp>' } For notifications that require acknowledgment or a response, use human_input instead — it pauses the workflow until a human responds. The channel field is a string (not an enum) to allow extensibility: new notification channels can be added without proto changes. The runtime (T13) resolves channel identifiers to actual notification providers configured in the workflow instance's environment. YAML Example (Slack notification): - alert_slack: notification: channel: 'slack' recipients: - '#incident-response' - '@oncall-lead' subject: 'P${ $context.triage.severity } Incident: ${ $context.ticket.title }' body: | *Severity*: ${ $context.triage.severity } *Category*: ${ $context.triage.category } *Customer Impact*: ${ $context.triage.customer_impact } *Summary*: ${ $context.agent_analysis.structured.summary } metadata: thread_ts: '${ $context.slack_thread_id }' export: as: '${ . }' YAML Example (email with template): - send_confirmation: notification: channel: 'email' recipients: - '${ $context.customer.email }' subject: 'Order ${ $context.order.number } Confirmed' body: 'Your order has been confirmed. You will receive tracking information shortly.' template: 'order-confirmation' metadata: priority: 'high' reply_to: 'support@acme.com' export: as: '${ . }'"`
 	// Required when kind='raise_error'. RaiseTaskConfig defines the configuration for raise_error tasks that raise errors. @internal YAML Example: - taskName: raise: error: ValidationError message: ${ .errorMessage } Reference: zigflow-dsl-pattern-catalog.md - Task Type 11
 	RaiseError *RaiseTaskConfigInput `json:"raise_error,omitempty" jsonschema:"Required when kind='raise_error'. RaiseTaskConfig defines the configuration for raise_error tasks that raise errors. @internal YAML Example: - taskName: raise: error: ValidationError message: ${ .errorMessage } Reference: zigflow-dsl-pattern-catalog.md - Task Type 11"`
 	// Required when kind='run_workflow'. RunTaskConfig defines the configuration for run_workflow tasks that execute sub-workflows. @internal Implemented via Temporal child workflows. YAML Example: - taskName: run: workflow: "sub-workflow-name" input: data: ${ .data } Reference: zigflow-dsl-pattern-catalog.md - Task Type 12
@@ -302,8 +452,12 @@ type WorkflowTaskInput struct {
 	SetVars *SetTaskConfigInput `json:"set_vars,omitempty" jsonschema:"Required when kind='set_vars'. SetTaskConfig defines the configuration for set_vars tasks that assign variables in workflow state. @internal YAML Example: - taskName: set: variable1: value variable2: ${ expression } computed: ${ .a + .b } Reference: zigflow-dsl-pattern-catalog.md - Task Type 1"`
 	// Required when kind='switch_case'. SwitchTaskConfig defines the configuration for switch_case tasks that branch conditionally. @internal YAML Example: - taskName: switch: - case1: when: ${ $context.value > 5 } then: highValueTask - defaultCase: then: unknownTask Reference: zigflow-dsl-pattern-catalog.md - Task Type 3
 	SwitchCase *SwitchTaskConfigInput `json:"switch_case,omitempty" jsonschema:"Required when kind='switch_case'. SwitchTaskConfig defines the configuration for switch_case tasks that branch conditionally. @internal YAML Example: - taskName: switch: - case1: when: ${ $context.value > 5 } then: highValueTask - defaultCase: then: unknownTask Reference: zigflow-dsl-pattern-catalog.md - Task Type 3"`
+	// Required when kind='transform'. TransformTaskConfig defines the configuration for transform tasks that perform deterministic data transformation without LLM calls. @internal Use transform when you need to reshape data between tasks: projecting fields, joining objects, converting formats, or building API payloads. Unlike set_vars (which mutates workflow state variables as a side effect), transform produces an explicit output that flows through export like any other task — visible and inspectable in the execution viewer. The distinction from set_vars: set_vars = imperative assignment ("set X to Y"), mutates workflow context transform = functional transformation ("reshape this data"), produces output YAML Example (JQ — reshape data for an API call): - build_api_payload: transform: engine: jq expression: '{name: .customer.full_name, severity: .triage.severity, summary: .agent_analysis.structured.summary}' input: "${ $context }" export: as: "${ . }" YAML Example (template — render a notification message): - render_notification: transform: engine: template expression: "Ticket {{ .ticket_id }} classified as {{ .severity }} — {{ .summary }}" input: "${ $context.build_api_payload }" export: as: "${ . }"
+	Transform *TransformTaskConfigInput `json:"transform,omitempty" jsonschema:"Required when kind='transform'. TransformTaskConfig defines the configuration for transform tasks that perform deterministic data transformation without LLM calls. @internal Use transform when you need to reshape data between tasks: projecting fields, joining objects, converting formats, or building API payloads. Unlike set_vars (which mutates workflow state variables as a side effect), transform produces an explicit output that flows through export like any other task — visible and inspectable in the execution viewer. The distinction from set_vars: set_vars = imperative assignment ('set X to Y'), mutates workflow context transform = functional transformation ('reshape this data'), produces output YAML Example (JQ — reshape data for an API call): - build_api_payload: transform: engine: jq expression: '{name: .customer.full_name, severity: .triage.severity, summary: .agent_analysis.structured.summary}' input: '${ $context }' export: as: '${ . }' YAML Example (template — render a notification message): - render_notification: transform: engine: template expression: 'Ticket {{ .ticket_id }} classified as {{ .severity }} — {{ .summary }}' input: '${ $context.build_api_payload }' export: as: '${ . }'"`
 	// Required when kind='try_catch'. TryTaskConfig defines the configuration for try_catch tasks that handle errors. @internal YAML Example: - taskName: try: - attemptTask: call: http with: method: POST endpoint: uri: https://api.example.com/flaky catch: as: error do: - errorHandler: call: http with: body: error: ${ .error } Reference: zigflow-dsl-pattern-catalog.md - Task Type 6
 	TryCatch *TryTaskConfigInput `json:"try_catch,omitempty" jsonschema:"Required when kind='try_catch'. TryTaskConfig defines the configuration for try_catch tasks that handle errors. @internal YAML Example: - taskName: try: - attemptTask: call: http with: method: POST endpoint: uri: https://api.example.com/flaky catch: as: error do: - errorHandler: call: http with: body: error: ${ .error } Reference: zigflow-dsl-pattern-catalog.md - Task Type 6"`
+	// Required when kind='validate'. ValidateTaskConfig defines the configuration for validate tasks that perform explicit schema and business-rule validation on workflow data. @internal Use validate when you need an explicit validation checkpoint before downstream actions. This is how you distinguish "the API call succeeded" from "the data is safe and complete enough to continue." While switch_case + raise_error can approximate validation, a dedicated validate task makes the intent explicit, the error messages richer, and the execution trace clearer. In the execution viewer (T09), a validate task shows exactly what was checked, what passed, and what failed — visible as a distinct verification step. The task supports two complementary validation modes: - schema: JSON Schema validation for structural correctness - rules: business-rule expressions for domain-specific constraints At least one of schema or rules must be set. Both can be used together for comprehensive validation (schema checks structure, rules check business logic). This cross-field constraint is enforced at runtime validation since buf.validate cannot express it on individual fields. Task output includes the full validation result: { "valid": true/false, "errors": [ {"rule": "critical_needs_rationale", "message": "Critical severity requires a rationale"}, {"path": "$.category", "message": "must have at least 1 character"} ], "data": <original input data> } YAML Example (schema + business rules): - check_triage_quality: validate: input: "${ $context.triage }" schema: type: object required: [severity, category, customer_impact] properties: severity: type: string enum: [low, medium, high, critical] category: type: string minLength: 1 customer_impact: type: boolean rules: - name: critical_needs_rationale expression: "${ .severity != 'critical' || (.rationale != null && .rationale != '') }" message: "Critical severity requires a rationale" - name: customer_impact_needs_severity expression: "${ .customer_impact != true || .severity in ['high', 'critical'] }" message: "Customer-impacting issues must be high or critical severity" on_fail: VALIDATION_FAIL_BRANCH fallback_task: human_review export: as: "${ . }" YAML Example (schema-only validation with warn policy): - check_payload_shape: validate: input: "${ $context.api_payload }" schema: type: object required: [name, email] properties: name: type: string email: type: string format: email on_fail: VALIDATION_FAIL_WARN export: as: "${ . }"
+	Validate *ValidateTaskConfigInput `json:"validate,omitempty" jsonschema:"Required when kind='validate'. ValidateTaskConfig defines the configuration for validate tasks that perform explicit schema and business-rule validation on workflow data. @internal Use validate when you need an explicit validation checkpoint before downstream actions. This is how you distinguish 'the API call succeeded' from 'the data is safe and complete enough to continue.' While switch_case + raise_error can approximate validation, a dedicated validate task makes the intent explicit, the error messages richer, and the execution trace clearer. In the execution viewer (T09), a validate task shows exactly what was checked, what passed, and what failed — visible as a distinct verification step. The task supports two complementary validation modes: - schema: JSON Schema validation for structural correctness - rules: business-rule expressions for domain-specific constraints At least one of schema or rules must be set. Both can be used together for comprehensive validation (schema checks structure, rules check business logic). This cross-field constraint is enforced at runtime validation since buf.validate cannot express it on individual fields. Task output includes the full validation result: { 'valid': true/false, 'errors': [ {'rule': 'critical_needs_rationale', 'message': 'Critical severity requires a rationale'}, {'path': '$.category', 'message': 'must have at least 1 character'} ], 'data': <original input data> } YAML Example (schema + business rules): - check_triage_quality: validate: input: '${ $context.triage }' schema: type: object required: [severity, category, customer_impact] properties: severity: type: string enum: [low, medium, high, critical] category: type: string minLength: 1 customer_impact: type: boolean rules: - name: critical_needs_rationale expression: '${ .severity != 'critical' || (.rationale != null && .rationale != '') }' message: 'Critical severity requires a rationale' - name: customer_impact_needs_severity expression: '${ .customer_impact != true || .severity in ['high', 'critical'] }' message: 'Customer-impacting issues must be high or critical severity' on_fail: VALIDATION_FAIL_BRANCH fallback_task: human_review export: as: '${ . }' YAML Example (schema-only validation with warn policy): - check_payload_shape: validate: input: '${ $context.api_payload }' schema: type: object required: [name, email] properties: name: type: string email: type: string format: email on_fail: VALIDATION_FAIL_WARN export: as: '${ . }'"`
 	// Required when kind='wait'. WaitTaskConfig defines the configuration for wait tasks that pause workflow execution. Supports both relative durations and absolute timestamps. @internal Implemented via Temporal timers. YAML Examples: Relative duration: - waitForApproval: wait: duration: days: 7 Absolute timestamp: - waitUntilMarketOpen: wait: until: "2026-03-02T09:30:00Z" Reference: zigflow-dsl-pattern-catalog.md - Task Type 8
 	Wait *WaitTaskConfigInput `json:"wait,omitempty" jsonschema:"Required when kind='wait'. WaitTaskConfig defines the configuration for wait tasks that pause workflow execution. Supports both relative durations and absolute timestamps. @internal Implemented via Temporal timers. YAML Examples: Relative duration: - waitForApproval: wait: duration: days: 7 Absolute timestamp: - waitUntilMarketOpen: wait: until: '2026-03-02T09:30:00Z' Reference: zigflow-dsl-pattern-catalog.md - Task Type 8"`
 	// Export configuration (how to save task output to context). Optional - if not set, output is not saved.
@@ -320,6 +474,18 @@ type EnvVarDeclarationInput struct {
 	Description string `json:"description,omitempty" jsonschema:"Human-readable description shown in the UI credential form. Should explain what the variable is used for and where to obtain it."`
 	// Whether this variable is optional. @internal When false (default): the execution pipeline rejects a run if this variable is missing from the user's environment. When true: a missing value is acceptable (the MCP server or agent degrades gracefully without it).
 	Optional bool `json:"optional,omitempty" jsonschema:"Whether this variable is optional. @internal When false (default): the execution pipeline rejects a run if this variable is missing from the user's environment. When true: a missing value is acceptable (the MCP server or agent degrades gracefully without it)."`
+}
+
+// WorkflowBudget declares cost, token, and duration limits for a workflow execution. All cost fields use micro-USD (int64): 1 USD = 1,000,000 micros. This matches the billing domain convention (CostStamp.provider_cost_micros, CreditLedgerEntry.amount_micros, ExecutionReservation.reserved_micros). The runtime checks accumulated costs between task boundaries. Per-task limits (on LlmCallTaskConfig and AgentExecutionConfig) are checked first; then the remaining workflow budget is verified before the next task starts. Example YAML: budget: max_cost_micros: 5000000 # $5.00 per run max_total_tokens: 500000 max_duration_seconds: 3600 # 1 hour on_exceeded: budget_exceeded_terminate
+type WorkflowBudgetInput struct {
+	// Maximum total cost for this workflow execution in micro-USD. 1 USD = 1,000,000 micros. Example: 2000000 = $2.00. When exceeded, the on_exceeded policy is applied. Optional — when 0, no cost limit is enforced.
+	MaxCostMicros int64 `json:"max_cost_micros,omitempty" jsonschema:"Maximum total cost for this workflow execution in micro-USD. 1 USD = 1,000,000 micros. Example: 2000000 = $2.00. When exceeded, the on_exceeded policy is applied. Optional — when 0, no cost limit is enforced."`
+	// Maximum total tokens (input + output) across all LLM/agent tasks. Optional — when 0, no token limit is enforced.
+	MaxTotalTokens int64 `json:"max_total_tokens,omitempty" jsonschema:"Maximum total tokens (input + output) across all LLM/agent tasks. Optional — when 0, no token limit is enforced."`
+	// Maximum wall-clock duration for the entire workflow execution in seconds. Optional — when 0, no duration limit is enforced (Temporal's own workflow execution timeout still applies).
+	MaxDurationSeconds int32 `json:"max_duration_seconds,omitempty" jsonschema:"Maximum wall-clock duration for the entire workflow execution in seconds. Optional — when 0, no duration limit is enforced (Temporal's own workflow execution timeout still applies)."`
+	// Policy when any budget limit is exceeded.
+	OnExceeded string `json:"on_exceeded,omitempty" jsonschema:"Policy when any budget limit is exceeded. Allowed values: budget_exceeded_terminate, budget_exceeded_human_review, budget_exceeded_warn."`
 }
 
 func protoToStruct(msg proto.Message) (*structpb.Struct, error) {
@@ -389,6 +555,13 @@ func (input *WorkflowInput) specToProto() (*workflowv1.WorkflowSpec, error) {
 			spec.Env[k] = pv
 		}
 	}
+	if input.Budget != nil {
+		v, err := input.Budget.toProto()
+		if err != nil {
+			return nil, err
+		}
+		spec.Budget = v
+	}
 	return spec, nil
 }
 
@@ -425,6 +598,23 @@ func (input *AgentExecutionConfigInput) toProto() (*tasks.AgentExecutionConfig, 
 		}
 		result.ContextManagement = v
 	}
+	result.MaxCostMicros = input.MaxCostMicros
+	return result, nil
+}
+
+func (input *AgentCallOutputContractInput) toProto() (*tasks.AgentCallOutputContract, error) {
+	result := &tasks.AgentCallOutputContract{}
+
+	if len(input.Schema) > 0 {
+		v, err := structpb.NewStruct(input.Schema)
+		if err != nil {
+			return nil, fmt.Errorf("marshal schema: %w", err)
+		}
+		result.Schema = v
+	}
+	result.OnInvalid = tasks.OnInvalidOutputPolicy(tasks.OnInvalidOutputPolicy_value[input.OnInvalid])
+	result.MaxRetries = input.MaxRetries
+	result.FallbackTask = input.FallbackTask
 	return result, nil
 }
 
@@ -442,6 +632,13 @@ func (input *AgentCallTaskConfigInput) toProto() (*tasks.AgentCallTaskConfig, er
 		}
 		result.Config = v
 	}
+	if input.Output != nil {
+		v, err := input.Output.toProto()
+		if err != nil {
+			return nil, err
+		}
+		result.Output = v
+	}
 	return result, nil
 }
 
@@ -455,6 +652,35 @@ func (input *CallActivityTaskConfigInput) toProto() (*tasks.CallActivityTaskConf
 			return nil, fmt.Errorf("marshal input: %w", err)
 		}
 		result.Input = v
+	}
+	return result, nil
+}
+
+func (input *EmitEventInput) toProto() (*tasks.EmitEventSpec, error) {
+	result := &tasks.EmitEventSpec{}
+
+	result.Type = input.Type
+	result.Source = input.Source
+	if len(input.Data) > 0 {
+		v, err := structpb.NewStruct(input.Data)
+		if err != nil {
+			return nil, fmt.Errorf("marshal data: %w", err)
+		}
+		result.Data = v
+	}
+	result.Subject = input.Subject
+	return result, nil
+}
+
+func (input *EmitEventTaskConfigInput) toProto() (*tasks.EmitEventTaskConfig, error) {
+	result := &tasks.EmitEventTaskConfig{}
+
+	if input.Event != nil {
+		v, err := input.Event.toProto()
+		if err != nil {
+			return nil, err
+		}
+		result.Event = v
 	}
 	return result, nil
 }
@@ -547,6 +773,40 @@ func (input *HttpCallTaskConfigInput) toProto() (*tasks.HttpCallTaskConfig, erro
 	return result, nil
 }
 
+func (input *HumanInputOutcomeInput) toProto() (*tasks.HumanInputOutcome, error) {
+	result := &tasks.HumanInputOutcome{}
+
+	result.Name = input.Name
+	result.Label = input.Label
+	result.Then = input.Then
+	return result, nil
+}
+
+func (input *HumanInputTaskConfigInput) toProto() (*tasks.HumanInputTaskConfig, error) {
+	result := &tasks.HumanInputTaskConfig{}
+
+	result.Prompt = input.Prompt
+	if len(input.FormSchema) > 0 {
+		v, err := structpb.NewStruct(input.FormSchema)
+		if err != nil {
+			return nil, fmt.Errorf("marshal form_schema: %w", err)
+		}
+		result.FormSchema = v
+	}
+	for _, item := range input.Outcomes {
+		v, err := item.toProto()
+		if err != nil {
+			return nil, err
+		}
+		result.Outcomes = append(result.Outcomes, v)
+	}
+	result.Approvers = input.Approvers
+	result.Timeout = input.Timeout
+	result.OnTimeout = tasks.HumanInputTimeoutPolicy(tasks.HumanInputTimeoutPolicy_value[input.OnTimeout])
+	result.NotificationChannels = input.NotificationChannels
+	return result, nil
+}
+
 func (input *SignalInput) toProto() (*tasks.SignalSpec, error) {
 	result := &tasks.SignalSpec{}
 
@@ -579,6 +839,42 @@ func (input *ListenTaskConfigInput) toProto() (*tasks.ListenTaskConfig, error) {
 		}
 		result.To = v
 	}
+	return result, nil
+}
+
+func (input *LlmCallTaskConfigInput) toProto() (*tasks.LlmCallTaskConfig, error) {
+	result := &tasks.LlmCallTaskConfig{}
+
+	result.Model = input.Model
+	result.SystemPrompt = input.SystemPrompt
+	result.Prompt = input.Prompt
+	if len(input.ResponseSchema) > 0 {
+		v, err := structpb.NewStruct(input.ResponseSchema)
+		if err != nil {
+			return nil, fmt.Errorf("marshal response_schema: %w", err)
+		}
+		result.ResponseSchema = v
+	}
+	result.Temperature = input.Temperature
+	result.MaxTokens = input.MaxTokens
+	result.Timeout = input.Timeout
+	result.OnInvalid = tasks.OnInvalidOutputPolicy(tasks.OnInvalidOutputPolicy_value[input.OnInvalid])
+	result.MaxRetries = input.MaxRetries
+	result.FallbackTask = input.FallbackTask
+	result.MaxCostMicros = input.MaxCostMicros
+	result.MaxTotalTokens = input.MaxTotalTokens
+	return result, nil
+}
+
+func (input *NotificationTaskConfigInput) toProto() (*tasks.NotificationTaskConfig, error) {
+	result := &tasks.NotificationTaskConfig{}
+
+	result.Channel = input.Channel
+	result.Recipients = input.Recipients
+	result.Subject = input.Subject
+	result.Body = input.Body
+	result.Template = input.Template
+	result.Metadata = input.Metadata
 	return result, nil
 }
 
@@ -633,6 +929,15 @@ func (input *SwitchTaskConfigInput) toProto() (*tasks.SwitchTaskConfig, error) {
 	return result, nil
 }
 
+func (input *TransformTaskConfigInput) toProto() (*tasks.TransformTaskConfig, error) {
+	result := &tasks.TransformTaskConfig{}
+
+	result.Engine = tasks.TransformEngine(tasks.TransformEngine_value[input.Engine])
+	result.Expression = input.Expression
+	result.Input = input.Input
+	return result, nil
+}
+
 func (input *CatchBlockInput) toProto() (*tasks.CatchBlock, error) {
 	result := &tasks.CatchBlock{}
 
@@ -664,6 +969,38 @@ func (input *TryTaskConfigInput) toProto() (*tasks.TryTaskConfig, error) {
 		}
 		result.Catch = v
 	}
+	return result, nil
+}
+
+func (input *ValidationRuleInput) toProto() (*tasks.ValidationRule, error) {
+	result := &tasks.ValidationRule{}
+
+	result.Name = input.Name
+	result.Expression = input.Expression
+	result.Message = input.Message
+	return result, nil
+}
+
+func (input *ValidateTaskConfigInput) toProto() (*tasks.ValidateTaskConfig, error) {
+	result := &tasks.ValidateTaskConfig{}
+
+	result.Input = input.Input
+	if len(input.Schema) > 0 {
+		v, err := structpb.NewStruct(input.Schema)
+		if err != nil {
+			return nil, fmt.Errorf("marshal schema: %w", err)
+		}
+		result.Schema = v
+	}
+	for _, item := range input.Rules {
+		v, err := item.toProto()
+		if err != nil {
+			return nil, err
+		}
+		result.Rules = append(result.Rules, v)
+	}
+	result.OnFail = tasks.ValidationFailPolicy(tasks.ValidationFailPolicy_value[input.OnFail])
+	result.FallbackTask = input.FallbackTask
 	return result, nil
 }
 
@@ -758,6 +1095,19 @@ func (input *WorkflowTaskInput) toProto() (*workflowv1.WorkflowTask, error) {
 			return nil, fmt.Errorf("marshal activity_call config: %w", err)
 		}
 		result.TaskConfig = v
+	case "emit_event":
+		if input.EmitEvent == nil {
+			return nil, fmt.Errorf("emit_event config required when kind=%q", input.Kind)
+		}
+		p, err := input.EmitEvent.toProto()
+		if err != nil {
+			return nil, fmt.Errorf("convert emit_event config: %w", err)
+		}
+		v, err := protoToStruct(p)
+		if err != nil {
+			return nil, fmt.Errorf("marshal emit_event config: %w", err)
+		}
+		result.TaskConfig = v
 	case "for_each":
 		if input.ForEach == nil {
 			return nil, fmt.Errorf("for_each config required when kind=%q", input.Kind)
@@ -810,6 +1160,19 @@ func (input *WorkflowTaskInput) toProto() (*workflowv1.WorkflowTask, error) {
 			return nil, fmt.Errorf("marshal http_call config: %w", err)
 		}
 		result.TaskConfig = v
+	case "human_input":
+		if input.HumanInput == nil {
+			return nil, fmt.Errorf("human_input config required when kind=%q", input.Kind)
+		}
+		p, err := input.HumanInput.toProto()
+		if err != nil {
+			return nil, fmt.Errorf("convert human_input config: %w", err)
+		}
+		v, err := protoToStruct(p)
+		if err != nil {
+			return nil, fmt.Errorf("marshal human_input config: %w", err)
+		}
+		result.TaskConfig = v
 	case "listen":
 		if input.Listen == nil {
 			return nil, fmt.Errorf("listen config required when kind=%q", input.Kind)
@@ -821,6 +1184,32 @@ func (input *WorkflowTaskInput) toProto() (*workflowv1.WorkflowTask, error) {
 		v, err := protoToStruct(p)
 		if err != nil {
 			return nil, fmt.Errorf("marshal listen config: %w", err)
+		}
+		result.TaskConfig = v
+	case "llm_call":
+		if input.LlmCall == nil {
+			return nil, fmt.Errorf("llm_call config required when kind=%q", input.Kind)
+		}
+		p, err := input.LlmCall.toProto()
+		if err != nil {
+			return nil, fmt.Errorf("convert llm_call config: %w", err)
+		}
+		v, err := protoToStruct(p)
+		if err != nil {
+			return nil, fmt.Errorf("marshal llm_call config: %w", err)
+		}
+		result.TaskConfig = v
+	case "notification":
+		if input.Notification == nil {
+			return nil, fmt.Errorf("notification config required when kind=%q", input.Kind)
+		}
+		p, err := input.Notification.toProto()
+		if err != nil {
+			return nil, fmt.Errorf("convert notification config: %w", err)
+		}
+		v, err := protoToStruct(p)
+		if err != nil {
+			return nil, fmt.Errorf("marshal notification config: %w", err)
 		}
 		result.TaskConfig = v
 	case "raise_error":
@@ -875,6 +1264,19 @@ func (input *WorkflowTaskInput) toProto() (*workflowv1.WorkflowTask, error) {
 			return nil, fmt.Errorf("marshal switch_case config: %w", err)
 		}
 		result.TaskConfig = v
+	case "transform":
+		if input.Transform == nil {
+			return nil, fmt.Errorf("transform config required when kind=%q", input.Kind)
+		}
+		p, err := input.Transform.toProto()
+		if err != nil {
+			return nil, fmt.Errorf("convert transform config: %w", err)
+		}
+		v, err := protoToStruct(p)
+		if err != nil {
+			return nil, fmt.Errorf("marshal transform config: %w", err)
+		}
+		result.TaskConfig = v
 	case "try_catch":
 		if input.TryCatch == nil {
 			return nil, fmt.Errorf("try_catch config required when kind=%q", input.Kind)
@@ -886,6 +1288,19 @@ func (input *WorkflowTaskInput) toProto() (*workflowv1.WorkflowTask, error) {
 		v, err := protoToStruct(p)
 		if err != nil {
 			return nil, fmt.Errorf("marshal try_catch config: %w", err)
+		}
+		result.TaskConfig = v
+	case "validate":
+		if input.Validate == nil {
+			return nil, fmt.Errorf("validate config required when kind=%q", input.Kind)
+		}
+		p, err := input.Validate.toProto()
+		if err != nil {
+			return nil, fmt.Errorf("convert validate config: %w", err)
+		}
+		v, err := protoToStruct(p)
+		if err != nil {
+			return nil, fmt.Errorf("marshal validate config: %w", err)
 		}
 		result.TaskConfig = v
 	case "wait":
@@ -915,5 +1330,15 @@ func (input *EnvVarDeclarationInput) toProto() (*environmentv1.EnvVarDeclaration
 	result.IsSecret = input.IsSecret
 	result.Description = input.Description
 	result.Optional = input.Optional
+	return result, nil
+}
+
+func (input *WorkflowBudgetInput) toProto() (*workflowv1.WorkflowBudget, error) {
+	result := &workflowv1.WorkflowBudget{}
+
+	result.MaxCostMicros = input.MaxCostMicros
+	result.MaxTotalTokens = input.MaxTotalTokens
+	result.MaxDurationSeconds = input.MaxDurationSeconds
+	result.OnExceeded = workflowv1.BudgetExceededPolicy(workflowv1.BudgetExceededPolicy_value[input.OnExceeded])
 	return result, nil
 }

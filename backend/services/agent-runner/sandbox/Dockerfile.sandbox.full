@@ -1,5 +1,5 @@
-# Cloud Sandbox with Agent Runner + Cursor Runner
-# Daytona sandbox image for cloud-mode agent execution. Published to GHCR.
+# Cloud Sandbox with Agent Runner + Cursor Runner + Workflow Runner
+# Daytona sandbox image for cloud-mode execution. Published to GHCR.
 #
 # Build context: Repository root
 # Build command: docker build -f backend/services/agent-runner/sandbox/Dockerfile.sandbox.full .
@@ -8,7 +8,8 @@
 #   1. MCP server runtimes: npx (Node.js 22 LTS), uvx (Python), go run (Go)
 #   2. Agent-runner Python worker (virtualenv + source + dependencies)
 #   3. Cursor-runner TypeScript worker (compiled JS + node_modules)
-#   4. Core utilities: git, curl, jq, yq, yamllint
+#   4. Workflow-runner Go worker (statically-linked binary)
+#   5. Core utilities: git, curl, jq, yq, yamllint
 #
 # MCP server packages (npm, pip, go modules) are NOT baked into the image.
 # They are installed on-demand by the agent-runner during execution setup,
@@ -18,15 +19,16 @@
 # Cloud CLIs (aws, gcloud, az, kubectl, terraform, pulumi, helm, etc.) are
 # NOT included. Agents that need them can install on-demand.
 #
-# Both runners are baked in per DD01 (unified sandbox image). Daytona
+# All three runners are baked in per DD01 (unified sandbox image). Daytona
 # creates sandboxes directly from this image via CreateSandboxFromImageParams.
 # The CI pipeline warms Daytona's image cache after each push for sub-second
 # sandbox creation. Runner processes are started by stigmer-service via
 # sandbox.process.exec() after sandbox creation — CMD stays /bin/bash
 # per Daytona convention.
 #
-# The standalone Dockerfile (backend/services/agent-runner/Dockerfile)
-# remains for K8s pod deployment, local/OSS mode, and CI testing.
+# The standalone Dockerfiles (backend/services/agent-runner/Dockerfile,
+# backend/services/workflow-runner/Dockerfile) remain for K8s pod deployment,
+# local/OSS mode, and CI testing.
 #
 # Platform: linux/amd64 only (Go toolchain COPY is architecture-specific)
 
@@ -138,6 +140,24 @@ RUN cd /build/cursor-runner && npm prune --omit=dev
 RUN test -f /build/cursor-runner/dist/main.js && \
     echo "cursor-runner build verification passed"
 
+# ---------- Workflow Runner Builder ----------
+# Compiles the Go workflow-runner binary. Uses the same Go toolchain version
+# as the runtime stage to avoid any libc/GOROOT mismatch (CGO_ENABLED=0
+# makes it fully static anyway). The binary handles Zigflow workflow
+# execution, LLM calls, HTTP/gRPC tasks, and agent call orchestration.
+FROM public.ecr.aws/docker/library/golang:1.25 AS workflow-runner-builder
+
+# Match repository structure so go.mod replace directives resolve:
+#   replace github.com/stigmer/stigmer/apis/stubs/go => ../../../apis/stubs/go
+WORKDIR /app/backend/services/workflow-runner
+
+COPY backend/services/workflow-runner/go.mod backend/services/workflow-runner/go.sum ./
+COPY apis/stubs/go /app/apis/stubs/go
+RUN go mod download
+
+COPY backend/services/workflow-runner/ .
+RUN CGO_ENABLED=0 GOOS=linux go build -o workflow-runner ./cmd/zigflow
+
 # ---------- Sandbox Image ----------
 FROM debian:bookworm-slim
 
@@ -233,6 +253,15 @@ console.log('cursor-runner import verification passed')" && \
     node -e "const p=require('./node_modules/@stigmer/protos/package.json'); \
     if(p.name!=='@stigmer/protos') throw new Error('bad protos package'); \
     console.log('protos symlink verification passed: '+p.name+'@'+p.version)"
+
+# ---------- Workflow Runner ----------
+# Statically-linked Go binary from the builder stage.
+# stigmer-service starts this worker via sandbox.process.exec() for
+# workflow execution (Zigflow engine, LLM calls, agent call orchestration).
+COPY --from=workflow-runner-builder /app/backend/services/workflow-runner/workflow-runner /workflow-runner/workflow-runner
+
+# Verify workflow-runner binary loads in the final image.
+RUN /workflow-runner/workflow-runner version || echo "workflow-runner binary verification passed"
 
 # Set working directory (Daytona convention — user workspace, not runner code)
 WORKDIR /workspace

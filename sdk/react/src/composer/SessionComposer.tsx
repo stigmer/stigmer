@@ -1,12 +1,13 @@
 "use client";
 
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent } from "react";
+import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type DragEvent, type KeyboardEvent } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage, type AttachmentInput, type EnvVarInput, type McpServerUsageInput, type ResourceRef } from "@stigmer/sdk";
 import { useComposer } from "./useComposer";
 import { ComposerToolbar } from "./ComposerToolbar";
 import { type ConfigureMenuItem } from "./ConfigureMenu";
 import type { HarnessOption } from "../models/harness";
+import type { InteractionModeOption } from "./InteractionModePicker";
 import { parseModelKey } from "../models/registry";
 import { ContextChip, type ChipItem } from "./ContextChip";
 import { WorkspaceEditor } from "../workspace/WorkspaceEditor";
@@ -52,6 +53,33 @@ import {
 } from "./icons";
 
 /**
+ * Imperative handle exposed by {@link SessionComposer} via `ref`.
+ *
+ * Allows parent components to programmatically set the composer's
+ * message text and focus the textarea. Used for features like
+ * "Build from Plan" where a CTA outside the composer needs to
+ * pre-fill and focus the input.
+ *
+ * @example
+ * ```tsx
+ * const composerRef = useRef<SessionComposerHandle>(null);
+ *
+ * function handleBuildFromPlan() {
+ *   composerRef.current?.setMessage("Implement the plan above");
+ *   composerRef.current?.focus();
+ * }
+ *
+ * <SessionComposer ref={composerRef} onSubmit={handleSubmit} />
+ * ```
+ */
+export interface SessionComposerHandle {
+  /** Replace the composer's message text. */
+  setMessage(message: string): void;
+  /** Focus the composer's textarea. */
+  focus(): void;
+}
+
+/**
  * Context provided to `onSubmit` at the moment of submission.
  *
  * Contains aggregated one-time environment variables from all setup
@@ -83,6 +111,16 @@ export interface SessionComposerSubmitContext {
    * `undefined` when no files were attached.
    */
   readonly attachments?: AttachmentInput[];
+  /**
+   * Interaction mode selected by the user for this execution.
+   *
+   * - `"agent"` (default): full tool access — read, write, create, delete.
+   * - `"plan"`: read-only analysis — read, search, list only.
+   *
+   * `undefined` when no mode picker is shown (defaults to `"agent"`).
+   * Pass to execution creation as `execution_config.interaction_mode`.
+   */
+  readonly interactionMode?: InteractionModeOption;
 }
 
 /** Props for {@link SessionComposer}. */
@@ -119,6 +157,22 @@ export interface SessionComposerProps {
   readonly onHarnessChange?: (harness: HarnessOption) => void;
   /** Show the harness selector in the toolbar. @default false */
   readonly showHarnessSelector?: boolean;
+
+  /**
+   * Currently selected interaction mode.
+   *
+   * When `onInteractionModeChange` is provided, renders a mode picker
+   * in the toolbar. Defaults to `"agent"` when omitted.
+   */
+  readonly interactionMode?: InteractionModeOption;
+  /**
+   * Called when the user switches the interaction mode.
+   *
+   * Providing this callback enables the mode picker in the toolbar.
+   */
+  readonly onInteractionModeChange?: (mode: InteractionModeOption) => void;
+  /** Show the interaction mode picker in the toolbar. @default false */
+  readonly showInteractionModePicker?: boolean;
 
   /** Initial model ID for the model selector. */
   readonly defaultModelId?: string;
@@ -384,13 +438,16 @@ export interface SessionComposerProps {
  * />
  * ```
  */
-export const SessionComposer = memo(function SessionComposer({
+const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerProps>(function SessionComposer({
   onSubmit,
   isSubmitting = false,
   disabled = false,
   harness,
   onHarnessChange,
   showHarnessSelector = false,
+  interactionMode,
+  onInteractionModeChange,
+  showInteractionModePicker = false,
   defaultModelId,
   onModelChange,
   showModelSelector = true,
@@ -420,7 +477,7 @@ export const SessionComposer = memo(function SessionComposer({
   autoFocus = false,
   ariaLabel = "Send message",
   className,
-}: SessionComposerProps) {
+}, ref) {
   useRenderTracer("SessionComposer", { disabled, isSubmitting });
 
   const [modelId, setModelIdRaw] = useState<string | undefined>(defaultModelId);
@@ -655,12 +712,17 @@ export const SessionComposer = memo(function SessionComposer({
       const hasEnv = Object.keys(env).length > 0;
       const hasAttachments =
         attachmentInputs !== undefined && attachmentInputs.length > 0;
+      const effectiveMode =
+        showInteractionModePicker && interactionMode
+          ? interactionMode
+          : undefined;
 
       const context: SessionComposerSubmitContext | undefined =
-        hasEnv || hasAttachments
+        hasEnv || hasAttachments || effectiveMode
           ? {
               runtimeEnv: hasEnv ? env : undefined,
               attachments: hasAttachments ? attachmentInputs : undefined,
+              interactionMode: effectiveMode,
             }
           : undefined;
 
@@ -673,13 +735,18 @@ export const SessionComposer = memo(function SessionComposer({
         attachments.clear();
       }
     },
-    [onSubmit, modelId, stigmer, agentSetup.state, mcpSetup.pendingRuntimeEnv, sessionVariables, enableAttachments, attachments, personalEnv],
+    [onSubmit, modelId, stigmer, agentSetup.state, mcpSetup.pendingRuntimeEnv, sessionVariables, enableAttachments, attachments, personalEnv, showInteractionModePicker, interactionMode],
   );
 
   const composer = useComposer({
     onSubmit: handleSubmit,
     disabled: isDisabled,
   });
+
+  useImperativeHandle(ref, () => ({
+    setMessage: composer.setMessage,
+    focus: () => composer.textareaRef.current?.focus(),
+  }), [composer.setMessage, composer.textareaRef]);
 
   const handleModelChange = useCallback(
     (id: string) => {
@@ -694,6 +761,13 @@ export const SessionComposer = memo(function SessionComposer({
       onHarnessChange?.(h);
     },
     [onHarnessChange],
+  );
+
+  const handleInteractionModeChange = useCallback(
+    (mode: InteractionModeOption) => {
+      onInteractionModeChange?.(mode);
+    },
+    [onInteractionModeChange],
   );
 
   const handleDisplayNameResolved = useCallback(
@@ -1197,7 +1271,6 @@ export const SessionComposer = memo(function SessionComposer({
             <div className="relative">
               <AgentPicker
                 org={org!}
-                scope="all"
                 value={agentRef ?? null}
                 onChange={handleAgentSelect}
                 onDisplayNameResolved={handleDisplayNameResolved}
@@ -1218,7 +1291,6 @@ export const SessionComposer = memo(function SessionComposer({
           return (
             <McpServerPicker
               org={org!}
-              scope="all"
               setup={{
                 entries: mcpSetup.entries,
                 onServerAdded: (ref) => mcpSetup.addServer(ref),
@@ -1241,7 +1313,6 @@ export const SessionComposer = memo(function SessionComposer({
           return (
             <SkillPicker
               org={org!}
-              scope="all"
               value={skillRefs ?? []}
               onChange={onSkillRefsChange!}
               onDisplayNameResolved={handleDisplayNameResolved}
@@ -1478,6 +1549,9 @@ export const SessionComposer = memo(function SessionComposer({
           showHarnessSelector={showHarnessSelector}
           harness={harness}
           onHarnessChange={handleHarnessChange}
+          showInteractionModePicker={showInteractionModePicker}
+          interactionMode={interactionMode}
+          onInteractionModeChange={handleInteractionModeChange}
           showModelSelector={showModelSelector}
           modelId={modelId}
           onModelChange={handleModelChange}
@@ -1486,6 +1560,9 @@ export const SessionComposer = memo(function SessionComposer({
     </div>
   );
 });
+
+export const SessionComposer = memo(SessionComposerInner);
+
 
 // ---------------------------------------------------------------------------
 // Agent setup error — secret-flow guidance or generic fallback

@@ -180,6 +180,54 @@ func (c *WorkflowExecutionClient) UpdateStatus(
 	return updated, nil
 }
 
+// UpdateStatusWithEvents sends a status update along with a batch of execution
+// events. Events are appended to the persistent event log atomically with the
+// status update. Pass nil status to send events without changing status.
+func (c *WorkflowExecutionClient) UpdateStatusWithEvents(
+	ctx context.Context,
+	executionID string,
+	status *workflowexecutionv1.WorkflowExecutionStatus,
+	events []*workflowexecutionv1.WorkflowExecutionEvent,
+) (*workflowexecutionv1.WorkflowExecution, error) {
+	if executionID == "" {
+		return nil, fmt.Errorf("execution_id cannot be empty")
+	}
+
+	if c.apiKey != "" {
+		ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+c.apiKey)
+	}
+
+	if status == nil {
+		status = &workflowexecutionv1.WorkflowExecutionStatus{
+			Phase: workflowexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS,
+		}
+	}
+
+	input := &workflowexecutionv1.WorkflowExecutionUpdateStatusInput{
+		ExecutionId: executionID,
+		Status:      status,
+		Events:      events,
+	}
+
+	updated, err := c.commandClient.UpdateStatus(ctx, input)
+	if err != nil {
+		log.Error().
+			Err(err).
+			Str("execution_id", executionID).
+			Int("event_count", len(events)).
+			Msg("Failed to update workflow execution status with events")
+		return nil, fmt.Errorf("updateStatus RPC failed: %w", err)
+	}
+
+	log.Debug().
+		Str("execution_id", executionID).
+		Str("phase", status.Phase.String()).
+		Int("event_count", len(events)).
+		Msg("Successfully sent status update with events")
+
+	return updated, nil
+}
+
 // Close closes the gRPC connection.
 func (c *WorkflowExecutionClient) Close() error {
 	if c.conn != nil {
