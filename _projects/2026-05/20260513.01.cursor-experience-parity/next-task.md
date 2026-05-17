@@ -68,9 +68,29 @@ When starting a new session:
 ## Current State
 
 - **Status**: In Progress
-- **Last Session**: May 16, 2026 — Phase 4: Plan/Agent Interaction Mode
-- **Active Task**: Phase 4 implemented (InteractionMode enum, per-execution mode on ExecutionConfig, both harness enforcement, SDK mode picker, client app wiring, integration test). Ready to commit.
+- **Last Session**: May 17, 2026 — Phase 4b: Build from Plan UX Flow
+- **Active Task**: Build from Plan UX implemented (PlanCompletionCard, SessionComposerHandle imperative API, plan-completion ThreadItem variant, client app wiring, 14 unit tests). Ready to commit.
 - **Branch**: `feat/bring-workflows-to-foreground`
+
+## Session Progress (May 17, 2026 — Session 7: Phase 4b Build from Plan UX)
+
+### Phase 4b Deliverables (implemented)
+
+1. **`SessionComposerHandle`** — imperative API on `SessionComposer` via `forwardRef` + `useImperativeHandle`. Exposes `setMessage(msg)` and `focus()` for programmatic composer interaction. Exported from `@stigmer/react`.
+
+2. **`PlanCompletionCard`** — new SDK component. Inline CTA card: "Plan complete — ready to implement?" with "Implement" button. Opt-in via `onImplement` prop (renders nothing when omitted). `role="status"`, accessible.
+
+3. **`plan-completion` ThreadItem variant** — new `buildThreadItems` logic: emits `plan-completion` when last execution is `EXECUTION_COMPLETED` with `InteractionMode.PLAN`. Wired through `NonVirtualizedThread`, `VirtualizedThread`, and `ThreadItemRenderer`.
+
+4. **Client app wiring** (DD-016 parity) — both web and desktop `SessionPage` wire `composerRef`, `handleBuildFromPlan` callback (switches mode to Agent, pre-fills "Implement the plan above", focuses composer), and `onBuildFromPlan` on `MessageThread`.
+
+5. **14 unit tests** — 8 for `buildThreadItems` plan-completion logic (COMPLETED+PLAN emits, COMPLETED+AGENT/FAILED+PLAN/streaming don't), 6 for `PlanCompletionCard` (render, click, disabled, null-when-no-callback, a11y).
+
+### Key Design Decisions
+
+- `SessionComposerHandle` is a general-purpose capability (future: template actions, deep links, "try this example")
+- Pre-fill text is hardcoded to "Implement the plan above" — configurable `suggestedMessage` deferred
+- `onBuildFromPlan` is fully opt-in on `MessageThread` — backward compatible (DD-011)
 
 ## Session Progress (May 16, 2026 — Session 6: Phase 4 Plan/Agent Mode)
 
@@ -145,10 +165,14 @@ When starting a new session:
 1. Plan Phase 5: Admin API reconciliation (MEDIUM priority, depends on Cursor Analytics API maturity)
 2. Consider Phase 3b (manual trigger, transcript access) if user feedback warrants it
 3. Consider adding CLI `--mode=plan` flag (independent, not blocking)
-4. Consider "Build from plan" UX flow (Plan → Agent transition button)
+4. ~~Consider "Build from plan" UX flow (Plan → Agent transition button)~~ — **DONE** (Session 7)
 
 ## Context for Resume
 
+- `SessionComposerHandle` uses `forwardRef` + `useImperativeHandle` — the `memo` wrapper is preserved via `memo(forwardRef(...))`
+- `PlanCompletionCard` follows the `SummarizationCard` visual pattern (same token classes: `border-border/50`, `bg-muted/30`)
+- `buildThreadItems` checks `lastExec.spec?.executionConfig?.interactionMode === InteractionMode.PLAN` — imports `InteractionMode` from the same proto package as `ExecutionPhase`
+- `onBuildFromPlan` is threaded through `NonVirtualizedThread` and `VirtualizedThread` (lazy) to `ThreadItemRenderer`
 - `ContextTracker` uses `inputTokens` as proxy for context size — this is an approximation, not exact
 - Drop threshold is 30% — tunable in `context-tracker.ts` via `DROP_RATIO_THRESHOLD`
 - `SummarizationCard` distinguishes native vs Cursor by checking `event.model` (empty = inferred)
