@@ -68,8 +68,46 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-14 10:02
-**Current Task**: PROJECT COMPLETE. All 18 tasks (T02-T19) + OTel A1/A2/B + gap analysis coverage done.
-**Status**: Session 32 complete — comprehensive gap analysis and 30 new integration tests covering untested task kinds, edge cases, and runtime behaviors.
+**Current Task**: PROJECT COMPLETE. All 18 tasks (T02-T19) + OTel A1/A2/B + gap analysis coverage + seedpack workflow tests done.
+**Status**: Session 33 complete — seedpack workflow integration tests: YAML-to-proto loader, RuntimeEnv support, 4 test functions for 3 seedpack workflows.
+
+## Session Progress (2026-05-17, Session 33 — Seedpack Workflow Integration Tests)
+
+### Accomplished
+
+- Added **seedpack workflow integration tests** — first tests loading real workflow YAML from `seedpack/workflows/` and executing end-to-end
+- Built **YAML-to-proto loader** (`harness/seedpack_loader.go`): `LoadSeedpackWorkflow`, `LoadWorkflowFromYAML`, `ParseWorkflowYAML` — ported from MCP server's `parseWorkflowYAML`
+- Extended **FixtureDeployer** with `DeployAndExecuteWithEnv` for `RuntimeEnv` support
+- Added **`WaitForTaskWaitingApproval`** to `ExecutionWaiter` for human_input gate detection after LLM calls
+- Wrote **4 test functions** in `workflow_seedpack_test.go`:
+  - `TestSeedpackWorkflow_LoadAll` — fast YAML parsing validation (no API keys)
+  - `TestSeedpackWorkflow_ContentReviewPipeline` — llm_call + human_input + transform (ANTHROPIC_API_KEY)
+  - `TestSeedpackWorkflow_SupportTicketTriage` — llm_call + switch_case + conditional human_input (OPENAI_API_KEY)
+  - `TestSeedpackWorkflow_ResearchAndSummarize` — 3x llm_call + fork + jq + human_input (both keys)
+
+### Files Created (2 new files)
+
+- `test/integration/harness/seedpack_loader.go` — YAML-to-proto loader with task kind enum mapping
+- `test/integration/workflow_seedpack_test.go` — 4 seedpack workflow test functions
+
+### Files Modified (2 files)
+
+- `test/integration/harness/fixture.go` — `DeployAndExecuteWithEnv` + `executionctxv1` import
+- `test/integration/harness/assertions.go` — `WaitForTaskWaitingApproval` on `ExecutionWaiter`
+
+### Key Decisions
+
+1. **YAML loader in harness** — ported from MCP server (different module, different proto paths)
+2. **Adaptive triage test** — handles non-deterministic LLM severity routing (critical vs non-critical paths)
+3. **API key skip guards** — each test skips when required provider key is absent
+
+### Quick Resume
+
+```
+@_projects/2026-05/20260514.01.e2e-workflow-testing-infrastructure/next-task.md
+```
+
+Checkpoint: `checkpoints/2026-05-17-session-33.md`
 
 ## Session Progress (2026-05-17, Session 32 — Integration Test Gap Analysis + Coverage Expansion)
 

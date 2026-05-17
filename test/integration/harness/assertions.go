@@ -180,6 +180,62 @@ func AssertAllTaskStatuses(t *testing.T, exec *workflowexecutionv1.WorkflowExecu
 	}
 }
 
+// WaitForTaskWaitingApproval polls until the named task reaches
+// WORKFLOW_TASK_WAITING_APPROVAL status. Useful for workflows with LLM
+// calls before a human_input gate, where the gate arrival time is
+// unpredictable.
+func (w *ExecutionWaiter) WaitForTaskWaitingApproval(ctx context.Context, executionID, taskName string, timeout time.Duration) (*workflowexecutionv1.WorkflowExecution, error) {
+	if timeout == 0 {
+		timeout = defaultTimeout
+	}
+
+	deadline := time.Now().Add(timeout)
+	interval := defaultPollInterval
+
+	for time.Now().Before(deadline) {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+		}
+
+		exec, err := w.client.Get(ctx, &workflowexecutionv1.WorkflowExecutionId{Value: executionID})
+		if err != nil {
+			w.logger.Debug("poll error (will retry)", "execution_id", executionID, "error", err)
+			time.Sleep(interval)
+			interval = nextInterval(interval)
+			continue
+		}
+
+		phase := exec.GetStatus().GetPhase()
+		if isTerminalPhase(phase) {
+			return exec, fmt.Errorf("execution reached terminal phase %s before task %q entered WAITING_APPROVAL",
+				phase.String(), taskName)
+		}
+
+		task := findTask(exec, taskName)
+		if task != nil && task.GetStatus() == workflowexecutionv1.WorkflowTaskStatus_WORKFLOW_TASK_WAITING_APPROVAL {
+			w.logger.Info("task is waiting for approval",
+				"execution_id", executionID,
+				"task", taskName,
+			)
+			return exec, nil
+		}
+
+		w.logger.Debug("waiting for task to reach WAITING_APPROVAL",
+			"execution_id", executionID,
+			"task", taskName,
+			"phase", phase.String(),
+		)
+
+		time.Sleep(interval)
+		interval = nextInterval(interval)
+	}
+
+	return nil, fmt.Errorf("timed out waiting for task %q to reach WAITING_APPROVAL in execution %s after %v",
+		taskName, executionID, timeout)
+}
+
 func isTerminalPhase(phase workflowexecutionv1.ExecutionPhase) bool {
 	switch phase {
 	case workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
