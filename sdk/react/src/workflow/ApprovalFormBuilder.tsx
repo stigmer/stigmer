@@ -4,6 +4,7 @@ import { memo, useState, useCallback, useMemo } from "react";
 import { cn } from "@stigmer/theme";
 import type { JsonObject } from "@bufbuild/protobuf";
 import type { WorkflowGraphEdge } from "./workflow-graph-model";
+import { TASK_NAME_PATTERN, TASK_NAME_PATTERN_ERROR } from "./canvas-constants";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -357,8 +358,8 @@ function OutcomeEntry({
   const validateAndCommit = useCallback(() => {
     const trimmed = editingName.trim();
     if (!trimmed) { setNameError("Name required"); return; }
-    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(trimmed)) {
-      setNameError("Alphanumeric and underscores only");
+    if (!TASK_NAME_PATTERN.test(trimmed)) {
+      setNameError(TASK_NAME_PATTERN_ERROR);
       return;
     }
     if (allOutcomeNames.some((n, i) => i !== index && n === trimmed)) {

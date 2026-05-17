@@ -4,6 +4,7 @@ import { useMemo, useRef, useState, useEffect } from "react";
 import { parseDocument, type Document, type YAMLMap, type Pair, isMap, isSeq, isScalar } from "yaml";
 import type { Diagnostic } from "@codemirror/lint";
 import type { UseTaskKindRegistryReturn } from "./useTaskKindRegistry";
+import { TASK_NAME_PATTERN, TASK_NAME_PATTERN_ERROR } from "./canvas-constants";
 
 /** Return value of {@link useWorkflowValidation}. */
 export interface UseWorkflowValidationReturn {
@@ -160,6 +161,11 @@ function validateTasks(
       const range = rangeOf(item, yaml);
       diags.push({ from: range[0], to: range[1], severity: "error", message: "Task is missing required field: name" });
       continue;
+    }
+
+    if (!TASK_NAME_PATTERN.test(nameVal)) {
+      const range = nameNode ? rangeOfPair(nameNode, yaml) : rangeOf(item, yaml);
+      diags.push({ from: range[0], to: range[1], severity: "error", message: `Task name "${nameVal}": ${TASK_NAME_PATTERN_ERROR}` });
     }
 
     if (taskNames.has(nameVal)) {
