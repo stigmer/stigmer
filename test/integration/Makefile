@@ -74,7 +74,8 @@ test: ensure-service-jar ## Run offline integration tests (no API keys needed)
 		--format testname \
 		$(RERUN_FLAGS) \
 		--rerun-fails-report $(OUTPUT_DIR)/rerun-report.txt \
-		-- -tags integration -timeout 300s -count=1 $(call quarantine_skip_args) ./...
+		--packages ./... \
+		-- -tags integration -timeout 300s -count=1 $(call quarantine_skip_args)
 
 .PHONY: test-providers
 test-providers: ensure-service-jar ## Run provider-backed integration tests (auto-fetches API keys)
@@ -116,7 +117,8 @@ test-providers: ensure-service-jar ## Run provider-backed integration tests (aut
 		--format testname \
 		$(RERUN_FLAGS) \
 		--rerun-fails-report $(PROVIDER_OUTPUT_DIR)/rerun-report.txt \
-		-- -tags integration -timeout 900s -count=1 $(call quarantine_skip_args) -run 'TestWorkflow(LlmCall|AgentCall|CursorCall|Architect|Eval)|TestAgentExecution' ./...
+		--packages ./... \
+		-- -tags integration -timeout 900s -count=1 $(call quarantine_skip_args) -run 'TestWorkflow(LlmCall|AgentCall|CursorCall|Architect|Eval)|TestAgentExecution'
 
 .PHONY: test-workflow-architect
 test-workflow-architect: ensure-service-jar ## Run Workflow Architect agent E2E tests (auto-fetches API keys)
@@ -156,7 +158,8 @@ test-workflow-architect: ensure-service-jar ## Run Workflow Architect agent E2E 
 		--format testname \
 		$(RERUN_FLAGS) \
 		--rerun-fails-report .test-output-architect/rerun-report.txt \
-		-- -tags integration -timeout 900s -count=1 $(call quarantine_skip_args) -run 'TestWorkflowArchitect' ./...
+		--packages ./... \
+		-- -tags integration -timeout 900s -count=1 $(call quarantine_skip_args) -run 'TestWorkflowArchitect'
 
 .PHONY: test-agent
 test-agent: ensure-service-jar ## Run agent execution integration tests (auto-fetches API keys)
@@ -196,7 +199,8 @@ test-agent: ensure-service-jar ## Run agent execution integration tests (auto-fe
 		--format testname \
 		$(RERUN_FLAGS) \
 		--rerun-fails-report $(AGENT_OUTPUT_DIR)/rerun-report.txt \
-		-- -tags integration -timeout 900s -count=1 $(call quarantine_skip_args) -run 'TestAgentExecution' ./...
+		--packages ./... \
+		-- -tags integration -timeout 900s -count=1 $(call quarantine_skip_args) -run 'TestAgentExecution'
 
 FAILING_OUTPUT_DIR ?= .test-output-failing
 TEST_RUN ?=
@@ -245,8 +249,9 @@ test-subset: ensure-service-jar ## Run a subset of integration tests: make test-
 		--format testname \
 		$(RERUN_FLAGS) \
 		--rerun-fails-report $(FAILING_OUTPUT_DIR)/rerun-report.txt \
+		--packages ./... \
 		-- -tags integration -timeout 900s -count=1 \
-		-run '$(TEST_RUN)' ./...
+		-run '$(TEST_RUN)'
 
 SDK_OUTPUT_DIR ?= .test-output-sdk
 
@@ -266,7 +271,8 @@ test-sdk: ensure-service-jar ## Run SDK acceptance smoke tests (Go, TypeScript, 
 		--format testname \
 		$(RERUN_FLAGS) \
 		--rerun-fails-report $(SDK_OUTPUT_DIR)/rerun-report.txt \
-		-- -tags integration -timeout 300s -count=1 $(call quarantine_skip_args) -run 'TestSDKAcceptance' -v ./...
+		--packages ./... \
+		-- -tags integration -timeout 300s -count=1 $(call quarantine_skip_args) -run 'TestSDKAcceptance' -v
 
 REPLAY_HISTORY_OUTPUT_DIR ?= ../../backend/services/workflow-runner/test/replay/testdata/replay-histories
 REPLAY_CAPTURE_OUTPUT_DIR ?= .test-output-replay-capture
@@ -279,7 +285,6 @@ capture-replay-histories: ensure-service-jar ## Capture Temporal event histories
 		exit 1; \
 	}
 	@mkdir -p $(REPLAY_CAPTURE_OUTPUT_DIR)
-	GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn \
 	STIGMER_SERVICE_JAR=$(STIGMER_SERVICE_JAR) \
 	INTEGRATION_TEST_OUTPUT_DIR=$(abspath $(REPLAY_CAPTURE_OUTPUT_DIR)) \
 	CAPTURE_REPLAY_HISTORIES=1 \
@@ -288,7 +293,8 @@ capture-replay-histories: ensure-service-jar ## Capture Temporal event histories
 		--junitfile-testsuite-name short \
 		--jsonfile $(REPLAY_CAPTURE_OUTPUT_DIR)/test-output.json \
 		--format testname \
-		-- -tags integration -timeout 300s -count=1 -run 'TestCaptureReplayHistories' -v ./...
+		--packages ./... \
+		-- -tags integration -timeout 300s -count=1 -run 'TestCaptureReplayHistories' -v
 	@echo ""
 	@echo "Histories written to: $(abspath $(REPLAY_HISTORY_OUTPUT_DIR))"
 	@ls -la $(abspath $(REPLAY_HISTORY_OUTPUT_DIR))/*.json 2>/dev/null || echo "  (no history files found — check test output above)"
@@ -341,7 +347,8 @@ benchmark-cost: ensure-service-jar ## Run cost benchmarks comparing Native vs Cu
 		--junitfile-testsuite-name short \
 		--jsonfile $(BENCHMARK_OUTPUT_DIR)/test-output.json \
 		--format testname \
-		-- -tags 'integration benchmark' -timeout 1800s -count=1 -run 'TestCostBenchmark' ./...
+		--packages ./... \
+		-- -tags 'integration benchmark' -timeout 1800s -count=1 -run 'TestCostBenchmark'
 
 TRACED_OUTPUT_DIR ?= .test-output-traced
 
@@ -378,7 +385,8 @@ benchmark-cursor-modes: ensure-service-jar ## Compare Cursor local vs cloud runt
 		--junitfile-testsuite-name short \
 		--jsonfile $(CURSOR_MODE_OUTPUT_DIR)/test-output.json \
 		--format testname \
-		-- -tags 'integration benchmark' -timeout 1800s -count=1 -run 'TestCostBenchmark_CursorLocalVsCloud' ./...
+		--packages ./... \
+		-- -tags 'integration benchmark' -timeout 1800s -count=1 -run 'TestCostBenchmark_CursorLocalVsCloud'
 
 .PHONY: test-traced
 test-traced: ensure-service-jar ## Run offline integration tests with OTel tracing (Jaeger)
@@ -397,7 +405,8 @@ test-traced: ensure-service-jar ## Run offline integration tests with OTel traci
 		--format testname \
 		$(RERUN_FLAGS) \
 		--rerun-fails-report $(TRACED_OUTPUT_DIR)/rerun-report.txt \
-		-- -tags integration -timeout 300s -count=1 $(call quarantine_skip_args) ./...
+		--packages ./... \
+		-- -tags integration -timeout 300s -count=1 $(call quarantine_skip_args)
 	@echo ""
 	@echo "Trace bundles (failed tests): $(TRACED_OUTPUT_DIR)/traces/"
 	@ls $(TRACED_OUTPUT_DIR)/traces/*.json 2>/dev/null || echo "  (no failed tests — no trace bundles)"
@@ -420,7 +429,8 @@ test-stress: ensure-service-jar ## Run offline integration tests 3x to detect fl
 		--junitfile-testsuite-name short \
 		--jsonfile $(STRESS_OUTPUT_DIR)/test-output.json \
 		--format testname \
-		-- -tags integration -timeout 900s -count=3 ./...
+		--packages ./... \
+		-- -tags integration -timeout 900s -count=3
 
 # ─── Flake Report ────────────────────────────
 # Generates a markdown health report from existing test output. Intended for
