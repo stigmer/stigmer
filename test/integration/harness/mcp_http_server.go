@@ -94,7 +94,10 @@ func StartHTTPMcpServer(t *testing.T) *httptest.Server {
 	}, nil)
 
 	httpServer := httptest.NewServer(handler)
-	t.Cleanup(httpServer.Close)
+	t.Cleanup(func() {
+		httpServer.CloseClientConnections()
+		httpServer.Close()
+	})
 	t.Logf("HTTP MCP test server (streamable) started at %s", httpServer.URL)
 	return httpServer
 }
