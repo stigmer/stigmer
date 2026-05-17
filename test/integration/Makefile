@@ -343,6 +343,30 @@ benchmark-cost: ensure-service-jar ## Run cost benchmarks comparing Native vs Cu
 		--format testname \
 		-- -tags 'integration benchmark' -timeout 1800s -count=1 -run 'TestCostBenchmark' ./...
 
+TRACED_OUTPUT_DIR ?= .test-output-traced
+
+.PHONY: test-traced
+test-traced: ensure-service-jar ## Run offline integration tests with OTel tracing (Jaeger)
+	@command -v gotestsum >/dev/null 2>&1 || { \
+		echo "error: gotestsum not found"; \
+		echo "  install: go install gotest.tools/gotestsum@latest"; \
+		exit 1; \
+	}
+	@mkdir -p $(TRACED_OUTPUT_DIR)
+	INTEGRATION_TEST_OTEL=true \
+	STIGMER_SERVICE_JAR=$(STIGMER_SERVICE_JAR) \
+	INTEGRATION_TEST_OUTPUT_DIR=$(abspath $(TRACED_OUTPUT_DIR)) gotestsum \
+		--junitfile $(TRACED_OUTPUT_DIR)/junit.xml \
+		--junitfile-testsuite-name short \
+		--jsonfile $(TRACED_OUTPUT_DIR)/test-output.json \
+		--format testname \
+		$(RERUN_FLAGS) \
+		--rerun-fails-report $(TRACED_OUTPUT_DIR)/rerun-report.txt \
+		-- -tags integration -timeout 300s -count=1 $(call quarantine_skip_args) ./...
+	@echo ""
+	@echo "Trace bundles (failed tests): $(TRACED_OUTPUT_DIR)/traces/"
+	@ls $(TRACED_OUTPUT_DIR)/traces/*.json 2>/dev/null || echo "  (no failed tests — no trace bundles)"
+
 # ─── Stress Testing ──────────────────────────
 # Runs the offline integration suite multiple times to surface timing-dependent
 # flakes. Quarantine skip is disabled so quarantined tests are also exercised.

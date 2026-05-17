@@ -48,6 +48,10 @@ type WorkflowRunnerConfig struct {
 	// workflow-runner operates in sandbox mode and sets this as runner_id
 	// on sessions created for agent calls (colocation).
 	RunnerID string
+
+	// OTLPEndpoint sets OTEL_EXPORTER_OTLP_ENDPOINT for distributed tracing.
+	// When set, the workflow-runner exports spans to this OTLP/gRPC receiver.
+	OTLPEndpoint string
 }
 
 // StartWorkflowRunner builds (if needed) and starts the workflow-runner binary.
@@ -204,6 +208,10 @@ func buildRunnerEnv(cfg WorkflowRunnerConfig) []string {
 	}
 	if cfg.RunnerID != "" {
 		env = append(env, fmt.Sprintf("STIGMER_RUNNER_ID=%s", cfg.RunnerID))
+	}
+
+	if cfg.OTLPEndpoint != "" {
+		env = append(env, fmt.Sprintf("OTEL_EXPORTER_OTLP_ENDPOINT=%s", cfg.OTLPEndpoint))
 	}
 
 	return env

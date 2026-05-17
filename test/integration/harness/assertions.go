@@ -9,6 +9,9 @@ import (
 
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	"github.com/stretchr/testify/assert"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -77,6 +80,14 @@ func (w *ExecutionWaiter) WaitForPhase(ctx context.Context, executionID string, 
 
 // WaitForTerminal polls until the execution reaches any terminal phase.
 func (w *ExecutionWaiter) WaitForTerminal(ctx context.Context, executionID string, timeout time.Duration) (*workflowexecutionv1.WorkflowExecution, error) {
+	ctx, span := Tracer().Start(ctx, "stigmer.wait",
+		trace.WithAttributes(
+			attribute.String("execution.id", executionID),
+			attribute.String("wait.type", "terminal"),
+		),
+	)
+	defer span.End()
+
 	if timeout == 0 {
 		timeout = defaultTimeout
 	}
@@ -87,6 +98,7 @@ func (w *ExecutionWaiter) WaitForTerminal(ctx context.Context, executionID strin
 	for time.Now().Before(deadline) {
 		select {
 		case <-ctx.Done():
+			span.SetStatus(codes.Error, "context cancelled")
 			return nil, ctx.Err()
 		default:
 		}
@@ -99,13 +111,18 @@ func (w *ExecutionWaiter) WaitForTerminal(ctx context.Context, executionID strin
 			continue
 		}
 
-		if isTerminalPhase(exec.GetStatus().GetPhase()) {
+		phase := exec.GetStatus().GetPhase()
+		if isTerminalPhase(phase) {
+			span.SetAttributes(
+				attribute.String("execution.phase", phase.String()),
+				attribute.Int("execution.task_count", len(exec.GetStatus().GetTasks())),
+			)
 			return exec, nil
 		}
 
 		w.logger.Debug("execution still running",
 			"execution_id", executionID,
-			"phase", exec.GetStatus().GetPhase().String(),
+			"phase", phase.String(),
 			"tasks", len(exec.GetStatus().GetTasks()),
 		)
 
@@ -113,6 +130,7 @@ func (w *ExecutionWaiter) WaitForTerminal(ctx context.Context, executionID strin
 		interval = nextInterval(interval)
 	}
 
+	span.SetStatus(codes.Error, "timeout")
 	return nil, fmt.Errorf("timed out waiting for execution %s to reach terminal phase after %v",
 		executionID, timeout)
 }
