@@ -68,11 +68,23 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-16 12:29
-**Current Task**: WI-1, WI-2, WI-4, WI-5 Complete; WI-3 remains
-**Status**: In Progress
-**Last Session**: 2026-05-17 (Session 04) — WI-5 (Benchmark Cursor Local vs Cloud) completed
+**Current Task**: All work items complete (WI-1 through WI-5)
+**Status**: Complete
+**Last Session**: 2026-05-17 (Session 05) — WI-3 (Billing Strategy + Documentation) completed
 
-## Session Progress (2026-05-17, Session 04)
+## Session Progress (2026-05-17, Session 05)
+
+- Completed WI-3 (Billing Strategy + User-Facing Documentation):
+  - **Strategic decision**: Moved from tiered markup (5 policies, 5-35%) to flat per-harness markup (20% native, 10% cursor)
+  - **Design decision doc**: DD-001-flat-markup-strategy.md with competitive analysis, rationale, and future evolution path
+  - **Migration**: U20260517_FlatMarkupBillingPolicies.java — deactivates v1 policies, seeds native-v2 (12000bp) and cursor-v2 (11000bp)
+  - **BillingPolicyService fallback**: resolvePolicy() now falls back to costTier="default" when tier-specific policy not found
+  - **Unit tests**: 5 new tests for fallback behavior (tier exists, tier missing, double-fallback prevention, full v2 resolution)
+  - **docs/concepts/billing.mdx**: Replaced tiered markup examples with flat "20% native, 10% cursor" language + callout to optimization guide
+  - **docs/guides/runners/cost-optimization.mdx**: New guide with harness economics, prompt caching math, decision matrix, practical tips
+  - **docs/concepts/harnesses.mdx**: Expanded comparison table with commission, overhead, caching, and latency rows + cost considerations section
+
+## Previous Session (2026-05-17, Session 04)
 
 - Completed WI-5 (Benchmark — Cursor Local vs Cloud Runtime):
   - Verified stigmer-server persists `cursor_mode` on Session Create (proto.Clone preserves all spec fields)
@@ -109,19 +121,23 @@ When starting a new session:
 
 ## Next Steps
 
-1. **Run cursor mode benchmarks**: `make benchmark-cursor-modes` with CURSOR_API_KEY to capture local vs cloud latency/token data
-2. **Pick last work item**: WI-3 (User-facing documentation) — synthesizes findings from WI-1 through WI-5
-3. All implementation work items (WI-1, WI-2, WI-4, WI-5) are complete
+All 5 work items are complete. Remaining operational tasks:
+
+1. **Run cursor mode benchmarks**: `make benchmark-cursor-modes` with CURSOR_API_KEY to capture actual local vs cloud data
+2. **Deploy migration**: Run U20260517_FlatMarkupBillingPolicies in staging/production to activate v2 policies
+3. **Verify pricing page**: After migration, confirm `/api/v1/public/model-pricing` returns flat 20%/10% rates
+4. **Create PRs**: One for stigmer (docs), one for stigmer-cloud (migration + service change)
 
 ## Context for Resume
 
-- The original plan (T01_0_plan.md) has 5 work items; WI-1, WI-2, WI-4, WI-5 are done; WI-3 remains
-- WI-5 architecture decision: session-level CursorMode override (no new processes, no proto changes)
+- All 5 work items from T01_0_plan.md are complete
+- WI-3 scope expanded: became a pricing strategy overhaul (flat markup) + documentation, not just a docs page
+- Design decision DD-001 documents the rationale for 20%/10% flat rates
+- Migration deactivates v1 tiered policies and seeds v2 flat policies with costTier="default"
+- BillingPolicyService.resolvePolicy() now has a fallback: (harness, tier) → (harness, "default")
+- The model registry retains `costTier` for analytics; it no longer drives markup differentiation
 - WI-5 cloud sessions require git repo workspace entries and STIGMER_CURSOR_CLOUD_MODE_ENABLED=true on the cursor-runner
 - WI-2 changes span two repos: `stigmer` (cursor-runner) and `stigmer-cloud` (billing handler)
-- `RunResult.model?.id` in production: unknown what "default" auto-select returns — need real execution data
-- Benchmark results from WI-1: `test/integration/.test-output-benchmark/benchmark-results/2026-05-17-062943.json`
-- Prompt-size instrumentation is live from WI-4
 - Proto namespace conflict still needs fix (separate PR): move `sdk_acceptance_test.go` to its own Go module
 
 ## Quick Commands
