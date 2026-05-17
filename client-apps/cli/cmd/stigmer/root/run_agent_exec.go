@@ -1,6 +1,7 @@
 package root
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/pkg/errors"
@@ -39,6 +40,7 @@ type agentExecFlags struct {
 	SecretFileFlags []string
 	Model           string
 	AutoApproveAll  bool
+	Mode            string
 }
 
 // registerAgentExecFlags registers the flags shared by every agent-execution
@@ -86,6 +88,20 @@ func registerAgentExecFlags(cmd *cobra.Command, f *agentExecFlags) {
 
 	cmd.Flags().BoolVar(&f.AutoApproveAll, "auto-approve", false,
 		"automatically approve all tool executions without prompting (bypasses approval policies)")
+
+	cmd.Flags().StringVar(&f.Mode, "mode", "",
+		`interaction mode: "agent" (default, full access) or "plan" (read-only analysis)`)
+}
+
+// validateMode checks that the --mode flag value is a recognized interaction
+// mode. Empty string (unset) is valid and means "use default" (agent).
+func validateMode(mode string) error {
+	switch mode {
+	case "", "agent", "plan":
+		return nil
+	default:
+		return fmt.Errorf("invalid --mode value %q: must be \"agent\" or \"plan\"", mode)
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -114,6 +130,7 @@ type preparedAgentExec struct {
 	OutputMode     OutputMode
 	Model          string
 	AutoApproveAll bool
+	Mode           string
 }
 
 // prepareAgentExec validates the common flags, resolves environment variables,
@@ -133,6 +150,10 @@ func prepareAgentExec(flags agentExecFlags, sp *spinner.Spinner) (*preparedAgent
 		if err != nil {
 			return nil, errors.Wrap(err, "invalid --approve-default value")
 		}
+	}
+
+	if err := validateMode(flags.Mode); err != nil {
+		return nil, err
 	}
 
 	workspaceEntries, err := parseWorkspaceEntries(flags.WorkspaceFlags, flags.BranchFlag, flags.CommitFlag)
@@ -187,6 +208,7 @@ func prepareAgentExec(flags agentExecFlags, sp *spinner.Spinner) (*preparedAgent
 		Verbose:          flags.Verbose,
 		Model:            flags.Model,
 		AutoApproveAll:   flags.AutoApproveAll,
+		Mode:             flags.Mode,
 	}, nil
 }
 
@@ -205,6 +227,7 @@ type resolvedAgentExecInput struct {
 	WorkspaceEntries []*sessionv1.WorkspaceEntry
 	Model            string
 	AutoApproveAll   bool
+	Mode             string
 	Detach           bool
 	DownloadDir      string // empty = skip artifact download
 	OrgID            string
@@ -233,6 +256,7 @@ func executeResolvedAgent(input resolvedAgentExecInput, sp *spinner.Spinner) err
 		Attachments:       input.AttachResult.Attachments,
 		WorkspaceFileRefs: input.AttachResult.WorkspaceFileRefs,
 		Model:             input.Model,
+		Mode:              input.Mode,
 		AutoApproveAll:    input.AutoApproveAll,
 		Client:            input.Client,
 	}
@@ -273,6 +297,7 @@ func executeResolvedAgent(input resolvedAgentExecInput, sp *spinner.Spinner) err
 		AgentName:  input.Agent.GetMetadata().GetName(),
 		SessionID:  sessionID,
 		Model:      input.Model,
+		Mode:       input.Mode,
 		Version:    embedded.GetBuildVersion(),
 		Workspaces: workspaceNames(input.WorkspaceEntries),
 	}

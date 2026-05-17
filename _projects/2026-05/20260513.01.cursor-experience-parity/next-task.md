@@ -68,9 +68,35 @@ When starting a new session:
 ## Current State
 
 - **Status**: In Progress
-- **Last Session**: May 17, 2026 — Phase 4b: Build from Plan UX Flow
-- **Active Task**: Build from Plan UX implemented (PlanCompletionCard, SessionComposerHandle imperative API, plan-completion ThreadItem variant, client app wiring, 14 unit tests). Ready to commit.
+- **Last Session**: May 17, 2026 — Session 8: CLI `--mode=plan` Flag
+- **Active Task**: CLI `--mode=plan` implemented and tested. Ready to commit.
 - **Branch**: `feat/bring-workflows-to-foreground`
+
+## Session Progress (May 17, 2026 — Session 8: CLI `--mode=plan` Flag)
+
+### Deliverables (implemented)
+
+1. **Go CLI `--mode` flag** — Added to `agentExecFlags` via `registerAgentExecFlags`, shared by `stigmer run`, `stigmer draft`, and all picker paths. Validates input (`"agent"`, `"plan"`, or empty). Threaded through `preparedAgentExec`, `resolvedAgentExecInput`, and `CreateAgentExecutionInput` at all 6 call sites.
+
+2. **`buildExecutionConfig` function** — Extracted testable helper in `run_create.go`. Constructs `ExecutionConfig` proto handling `--model` and `--mode` co-existence. Returns nil when neither is set. Maps `"plan"` → `INTERACTION_MODE_PLAN`.
+
+3. **Session header mode badge** — `sessionHeaderInfo.Mode` renders `Mode: Plan (read-only)` in the bordered header panel. Omitted for default (agent/empty).
+
+4. **Ink subprocess passthrough** — `inkConfig.Mode` appended as `--mode <value>` to Ink CLI args in `streamAgentInk`. Mode extracted from `headerInfo.Mode`.
+
+5. **Ink CLI entry** — `stigmer-ink.tsx` parses `--mode` / `-M` with validation. Passes through `SessionApp` → `SessionView` props.
+
+6. **Ink `SessionView` wiring** — `sendFollowUp(message, { interactionMode: mode })` ensures all follow-ups inherit the mode. Dimmed "Plan mode" indicator shown above input when active.
+
+7. **14 unit tests** — 6 for `validateMode` (valid/invalid values), 5 for `buildExecutionConfig` (nil/model/plan/agent/combined), 3 for `formatMetadataSection` mode row (empty/agent/plan).
+
+### Key Design Decisions
+
+- Mode is set on the initial execution AND propagated to Ink for follow-ups — consistent mode throughout the session
+- `buildExecutionConfig` extracted as testable pure function (no gRPC dependency)
+- Mode badge only shown for non-default (`"plan"`) — agent is the implicit default, no noise
+- `FollowUpInput` unchanged — mode indicator placed in `SessionView` (single responsibility)
+- `--mode agent` accepted but treated as no-op (UNSPECIFIED) — user can explicitly state default
 
 ## Session Progress (May 17, 2026 — Session 7: Phase 4b Build from Plan UX)
 
@@ -164,28 +190,28 @@ When starting a new session:
 
 1. Plan Phase 5: Admin API reconciliation (MEDIUM priority, depends on Cursor Analytics API maturity)
 2. Consider Phase 3b (manual trigger, transcript access) if user feedback warrants it
-3. Consider adding CLI `--mode=plan` flag (independent, not blocking)
+3. ~~Consider adding CLI `--mode=plan` flag (independent, not blocking)~~ — **DONE** (Session 8)
 4. ~~Consider "Build from plan" UX flow (Plan → Agent transition button)~~ — **DONE** (Session 7)
+5. Consider `stigmer resume --mode` flag (natural extension — currently mode only applies to `run`/`draft`)
+6. Consider Ink `InteractionModePicker` (keyboard shortcut to toggle mode mid-session)
 
 ## Context for Resume
 
+- `--mode` flag lives in `registerAgentExecFlags` — shared by `run`, `draft`, and all picker paths
+- `buildExecutionConfig(model, mode)` is the single point for `ExecutionConfig` construction in the CLI
+- Mode propagates to Ink via `inkConfig.Mode` → `--mode` CLI arg → `SessionApp.mode` → `SessionView.mode` → `sendFollowUp(..., { interactionMode })`
+- `validateMode` accepts `""`, `"agent"`, `"plan"` — anything else returns a user-facing error
+- Go SDK proto stubs were regenerated via `make -C sdk/go codegen` — `InteractionMode` enum and `ExecutionConfig.interaction_mode` now available in `sdk/go/proto/`
+- `stigmer resume` does NOT yet support `--mode` — Ink inherits no mode for resumed sessions (deferred)
 - `SessionComposerHandle` uses `forwardRef` + `useImperativeHandle` — the `memo` wrapper is preserved via `memo(forwardRef(...))`
-- `PlanCompletionCard` follows the `SummarizationCard` visual pattern (same token classes: `border-border/50`, `bg-muted/30`)
-- `buildThreadItems` checks `lastExec.spec?.executionConfig?.interactionMode === InteractionMode.PLAN` — imports `InteractionMode` from the same proto package as `ExecutionPhase`
-- `onBuildFromPlan` is threaded through `NonVirtualizedThread` and `VirtualizedThread` (lazy) to `ThreadItemRenderer`
-- `ContextTracker` uses `inputTokens` as proxy for context size — this is an approximation, not exact
-- Drop threshold is 30% — tunable in `context-tracker.ts` via `DROP_RATIO_THRESHOLD`
-- `SummarizationCard` distinguishes native vs Cursor by checking `event.model` (empty = inferred)
-- `MessageThread.summarizationEvents` is optional — backward compatible, no changes needed for consumers not passing it
-- Phase 2 commit `0a5f08c0c` already committed `ContextGauge`, `SummarizationBadge`, `useContextWindow`
 - Ink SDK (CLI terminal) does NOT have a context gauge or summarization card equivalent yet
 
 ## Quick Commands
 
 After loading context:
 - "Plan Phase 5" — Admin API reconciliation
-- "Add CLI --mode flag" — CLI support for plan/agent mode
-- "Add Build from Plan UX" — Plan-to-Agent transition button
+- "Add resume --mode flag" — Mode support for resumed sessions
+- "Add Ink mode picker" — Terminal keyboard shortcut for mode toggle
 
 ---
 

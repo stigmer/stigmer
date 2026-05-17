@@ -21,6 +21,7 @@ type sessionHeaderInfo struct {
 	SessionID  string
 	Subject    string
 	Model      string
+	Mode       string // "plan" when non-default; "" or "agent" = omitted from header
 	Version    string
 	Workspaces []string
 
@@ -171,6 +172,9 @@ func formatMetadataSection(info sessionHeaderInfo) string {
 	}
 	if info.Model != "" {
 		lines = append(lines, formatHeaderRow("Model", info.Model))
+	}
+	if info.Mode == "plan" {
+		lines = append(lines, formatHeaderRow("Mode", "Plan (read-only)"))
 	}
 	if len(info.Workspaces) > 0 {
 		lines = append(lines, formatHeaderRow("Workspaces", info.Workspaces[0]))
