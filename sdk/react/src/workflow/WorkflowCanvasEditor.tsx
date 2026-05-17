@@ -8,6 +8,9 @@ import { WorkflowTaskPalette } from "./WorkflowTaskPalette";
 import { WorkflowInspectorPanel } from "./WorkflowInspectorPanel";
 import { CanvasActionsContext } from "./CanvasActionsContext";
 import type { CanvasActions } from "./CanvasActionsContext";
+import { CanvasContextMenu } from "./CanvasContextMenu";
+import type { CanvasContextMenuTarget } from "./CanvasContextMenu";
+import { TaskPickerPopover } from "./TaskPickerPopover";
 
 /** Props for {@link WorkflowCanvasEditor}. */
 export interface WorkflowCanvasEditorProps {
@@ -70,6 +73,21 @@ export const WorkflowCanvasEditor = memo(function WorkflowCanvasEditor({
   const [paletteCollapsed, setPaletteCollapsed] = useState(false);
   const togglePalette = useCallback(() => setPaletteCollapsed((p) => !p), []);
 
+  // ---------------------------------------------------------------------------
+  // Context menu state (AD-T05)
+  // ---------------------------------------------------------------------------
+
+  const [contextMenu, setContextMenu] = useState<{
+    target: CanvasContextMenuTarget;
+    position: { x: number; y: number };
+  } | null>(null);
+
+  const [pendingPicker, setPendingPicker] = useState<{
+    purpose: "add-after-node" | "insert-on-edge" | "add-at-position";
+    sourceId?: string;
+    position: { x: number; y: number };
+  } | null>(null);
+
   useEffect(() => {
     onDirtyChange?.(canvas.isDirty);
   }, [canvas.isDirty, onDirtyChange]);
@@ -93,7 +111,165 @@ export const WorkflowCanvasEditor = memo(function WorkflowCanvasEditor({
   const handlePaneClick = useCallback(() => {
     canvas.clearSelection();
     onSelectionClear?.();
+    setContextMenu(null);
   }, [canvas.clearSelection, onSelectionClear]);
+
+  // ---------------------------------------------------------------------------
+  // Context menu event handlers (AD-T05)
+  // ---------------------------------------------------------------------------
+
+  const handleNodeContextMenu = useCallback(
+    (event: React.MouseEvent, node: { id: string; data?: Record<string, unknown> }) => {
+      event.preventDefault();
+      const taskName = (node.data?.taskName as string) ?? node.id;
+      setContextMenu({
+        target: { type: "node", id: node.id, taskName },
+        position: { x: event.clientX, y: event.clientY },
+      });
+    },
+    [],
+  );
+
+  const handleEdgeContextMenu = useCallback(
+    (event: React.MouseEvent, edge: { id: string }) => {
+      event.preventDefault();
+      setContextMenu({
+        target: { type: "edge", id: edge.id },
+        position: { x: event.clientX, y: event.clientY },
+      });
+    },
+    [],
+  );
+
+  const handlePaneContextMenu = useCallback(
+    (event: React.MouseEvent | MouseEvent) => {
+      event.preventDefault();
+      setContextMenu({
+        target: { type: "pane" },
+        position: { x: event.clientX, y: event.clientY },
+      });
+    },
+    [],
+  );
+
+  const handleContextMenuOpenChange = useCallback((nextOpen: boolean) => {
+    if (!nextOpen) {
+      setContextMenu(null);
+    }
+  }, []);
+
+  // ---------------------------------------------------------------------------
+  // Context menu action handlers (AD-T05)
+  // ---------------------------------------------------------------------------
+
+  const handleContextMenuDeleteNode = useCallback(
+    (nodeId: string) => {
+      canvas.onNodesDelete([{ id: nodeId } as import("@xyflow/react").Node]);
+      setContextMenu(null);
+    },
+    [canvas.onNodesDelete],
+  );
+
+  const handleContextMenuDuplicateNode = useCallback(
+    (nodeId: string) => {
+      canvas.duplicateNode(nodeId);
+      setContextMenu(null);
+    },
+    [canvas.duplicateNode],
+  );
+
+  const handleContextMenuAddTaskAfter = useCallback(
+    (nodeId: string) => {
+      const pos = contextMenu?.position;
+      setContextMenu(null);
+      if (pos) {
+        setPendingPicker({ purpose: "add-after-node", sourceId: nodeId, position: pos });
+      }
+    },
+    [contextMenu?.position],
+  );
+
+  const handleContextMenuDeleteEdge = useCallback(
+    (edgeId: string) => {
+      canvas.onEdgesDelete([{ id: edgeId } as import("@xyflow/react").Edge]);
+      setContextMenu(null);
+    },
+    [canvas.onEdgesDelete],
+  );
+
+  const handleContextMenuInsertTaskOnEdge = useCallback(
+    (edgeId: string) => {
+      const pos = contextMenu?.position;
+      setContextMenu(null);
+      if (pos) {
+        setPendingPicker({ purpose: "insert-on-edge", sourceId: edgeId, position: pos });
+      }
+    },
+    [contextMenu?.position],
+  );
+
+  const handleContextMenuAddTaskAtPosition = useCallback(() => {
+    const pos = contextMenu?.position;
+    setContextMenu(null);
+    if (pos) {
+      setPendingPicker({ purpose: "add-at-position", position: pos });
+    }
+  }, [contextMenu?.position]);
+
+  const handleContextMenuSelectAll = useCallback(() => {
+    canvas.selectAll();
+    setContextMenu(null);
+  }, [canvas.selectAll]);
+
+  const handleContextMenuAutoLayout = useCallback(() => {
+    canvas.autoLayout();
+    setContextMenu(null);
+  }, [canvas.autoLayout]);
+
+  // ---------------------------------------------------------------------------
+  // Pending picker handlers (two-step menu-to-picker flow, AD-T05)
+  // ---------------------------------------------------------------------------
+
+  const pendingPickerVirtualAnchor = useMemo(() => {
+    if (!pendingPicker) return { current: null };
+    const { x, y } = pendingPicker.position;
+    const virtualEl = document.createElement("button");
+    virtualEl.getBoundingClientRect = () => ({
+      x,
+      y,
+      width: 0,
+      height: 0,
+      top: y,
+      right: x,
+      bottom: y,
+      left: x,
+      toJSON: () => ({}),
+    });
+    return { current: virtualEl };
+  }, [pendingPicker]);
+
+  const handlePendingPickerOpenChange = useCallback((nextOpen: boolean) => {
+    if (!nextOpen) {
+      setPendingPicker(null);
+    }
+  }, []);
+
+  const handlePendingPickerSelectKind = useCallback(
+    (kindString: string) => {
+      if (!pendingPicker) return;
+
+      if (pendingPicker.purpose === "add-after-node" && pendingPicker.sourceId) {
+        canvas.addSuccessorTask(pendingPicker.sourceId, kindString);
+      } else if (pendingPicker.purpose === "insert-on-edge" && pendingPicker.sourceId) {
+        canvas.insertTaskOnEdge(pendingPicker.sourceId, kindString);
+      } else if (pendingPicker.purpose === "add-at-position") {
+        canvas.addNodeAtPosition(kindString, pendingPicker.position);
+      }
+
+      setPendingPicker(null);
+    },
+    [pendingPicker, canvas.addSuccessorTask, canvas.insertTaskOnEdge, canvas.addNodeAtPosition],
+  );
 
   const handleSave = useCallback(() => {
     if (!onSave) return;
@@ -115,13 +291,21 @@ export const WorkflowCanvasEditor = memo(function WorkflowCanvasEditor({
     [canvas.onNodesDelete],
   );
 
+  const handleDuplicateNode = useCallback(
+    (nodeId: string) => {
+      canvas.duplicateNode(nodeId);
+    },
+    [canvas.duplicateNode],
+  );
+
   const canvasActions = useMemo<CanvasActions>(
     () => ({
       insertTaskOnEdge: canvas.insertTaskOnEdge,
       deleteNode: handleDeleteNode,
       addSuccessorTask: canvas.addSuccessorTask,
+      duplicateNode: handleDuplicateNode,
     }),
-    [canvas.insertTaskOnEdge, handleDeleteNode, canvas.addSuccessorTask],
+    [canvas.insertTaskOnEdge, handleDeleteNode, canvas.addSuccessorTask, handleDuplicateNode],
   );
 
   const descriptor = canvas.selection?.type === "node"
@@ -211,6 +395,9 @@ export const WorkflowCanvasEditor = memo(function WorkflowCanvasEditor({
               onDragOver={canvas.onDragOver}
               onNodesDelete={canvas.onNodesDelete}
               onEdgesDelete={canvas.onEdgesDelete}
+              onNodeContextMenu={handleNodeContextMenu}
+              onEdgeContextMenu={handleEdgeContextMenu}
+              onPaneContextMenu={handlePaneContextMenu}
               nodeErrors={nodeErrors}
             />
           </Suspense>
@@ -227,6 +414,29 @@ export const WorkflowCanvasEditor = memo(function WorkflowCanvasEditor({
             </div>
           )}
         </CanvasActionsContext.Provider>
+
+        <CanvasContextMenu
+          open={contextMenu !== null}
+          onOpenChange={handleContextMenuOpenChange}
+          target={contextMenu?.target ?? null}
+          position={contextMenu?.position ?? null}
+          onDeleteNode={handleContextMenuDeleteNode}
+          onDuplicateNode={handleContextMenuDuplicateNode}
+          onAddTaskAfter={handleContextMenuAddTaskAfter}
+          onDeleteEdge={handleContextMenuDeleteEdge}
+          onInsertTaskOnEdge={handleContextMenuInsertTaskOnEdge}
+          onAddTaskAtPosition={handleContextMenuAddTaskAtPosition}
+          onSelectAll={handleContextMenuSelectAll}
+          onAutoLayout={handleContextMenuAutoLayout}
+        />
+
+        <TaskPickerPopover
+          open={pendingPicker !== null}
+          onOpenChange={handlePendingPickerOpenChange}
+          onSelectKind={handlePendingPickerSelectKind}
+          anchorRef={pendingPickerVirtualAnchor}
+          side="bottom"
+        />
       </div>
 
       {showInspector && hasGraph && (

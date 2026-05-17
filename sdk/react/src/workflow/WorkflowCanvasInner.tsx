@@ -40,6 +40,9 @@ interface WorkflowCanvasInnerProps {
   onDragOver: (event: React.DragEvent) => void;
   onNodesDelete: (nodes: Node[]) => void;
   onEdgesDelete: (edges: Edge[]) => void;
+  onNodeContextMenu?: (event: React.MouseEvent, node: Node) => void;
+  onEdgeContextMenu?: (event: React.MouseEvent, edge: Edge) => void;
+  onPaneContextMenu?: (event: React.MouseEvent | MouseEvent) => void;
   nodeErrors?: ReadonlyMap<string, readonly string[]>;
 }
 
@@ -79,6 +82,9 @@ export function WorkflowCanvasInner({
   onDragOver,
   onNodesDelete,
   onEdgesDelete,
+  onNodeContextMenu,
+  onEdgeContextMenu,
+  onPaneContextMenu,
   nodeErrors,
 }: WorkflowCanvasInnerProps) {
   const enrichedNodes = useMemo(() => {
@@ -116,6 +122,9 @@ export function WorkflowCanvasInner({
       onDragOver={onDragOver}
       onNodesDelete={onNodesDelete}
       onEdgesDelete={onEdgesDelete}
+      onNodeContextMenu={onNodeContextMenu}
+      onEdgeContextMenu={onEdgeContextMenu}
+      onPaneContextMenu={onPaneContextMenu}
       nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}
       defaultEdgeOptions={defaultEdgeOptions}

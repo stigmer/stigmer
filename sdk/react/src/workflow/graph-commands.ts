@@ -462,6 +462,59 @@ export class MigrateBranchHandleCommand implements GraphCommand {
 }
 
 // ---------------------------------------------------------------------------
+// DuplicateNodeCommand
+// ---------------------------------------------------------------------------
+
+const DUPLICATE_OFFSET = { x: 30, y: 30 };
+
+/**
+ * Duplicates a task node with a new unique name and offset position.
+ *
+ * Deep-clones the source node's config. Does not duplicate edges — the user
+ * connects the duplicate manually. This matches the behavior of n8n and
+ * Retool canvas editors where duplicating edges would create ambiguous topology.
+ */
+export class DuplicateNodeCommand implements GraphCommand {
+  readonly type = "duplicate_node";
+  readonly description: string;
+  private readonly sourceNodeId: string;
+  readonly newTaskName: string;
+
+  constructor(sourceNodeId: string, newTaskName: string) {
+    this.sourceNodeId = sourceNodeId;
+    this.newTaskName = newTaskName;
+    this.description = `Duplicate task "${sourceNodeId}" as "${newTaskName}"`;
+  }
+
+  apply(model: WorkflowGraphModel): WorkflowGraphModel {
+    const source = model.nodes.find((n) => n.id === this.sourceNodeId);
+    if (!source) return model;
+
+    const clone: WorkflowGraphNode = {
+      ...source,
+      id: this.newTaskName,
+      taskName: this.newTaskName,
+      config: structuredClone(source.config),
+      position: {
+        x: source.position.x + DUPLICATE_OFFSET.x,
+        y: source.position.y + DUPLICATE_OFFSET.y,
+      },
+      export: undefined,
+      flow: undefined,
+    };
+
+    return { ...model, nodes: [...model.nodes, clone] };
+  }
+
+  undo(model: WorkflowGraphModel): WorkflowGraphModel {
+    return {
+      ...model,
+      nodes: model.nodes.filter((n) => n.id !== this.newTaskName),
+    };
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Nested value utilities for UpdateNodeFieldCommand
 // ---------------------------------------------------------------------------
 
