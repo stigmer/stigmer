@@ -274,6 +274,12 @@ export {
 } from "./TaskPickerPopover";
 
 export {
+  CanvasContextMenu,
+  type CanvasContextMenuProps,
+  type CanvasContextMenuTarget,
+} from "./CanvasContextMenu";
+
+export {
   WorkflowInspectorPanel,
   type WorkflowInspectorPanelProps,
 } from "./WorkflowInspectorPanel";

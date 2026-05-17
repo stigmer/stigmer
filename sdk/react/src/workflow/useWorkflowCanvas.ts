@@ -42,6 +42,7 @@ import {
   RenameNodeCommand,
   UpdateNodeMetaCommand,
   MigrateBranchHandleCommand,
+  DuplicateNodeCommand,
   generateEdgeId,
   generateTaskName,
   createTaskNode,
@@ -101,6 +102,9 @@ export interface UseWorkflowCanvasReturn {
   readonly removeBranchEdges: (nodeId: string, handleId: string) => void;
   readonly insertTaskOnEdge: (edgeId: string, kindString: string) => void;
   readonly addSuccessorTask: (sourceNodeId: string, kindString: string) => void;
+  readonly duplicateNode: (nodeId: string) => void;
+  readonly addNodeAtPosition: (kindString: string, position: { x: number; y: number }) => void;
+  readonly selectAll: () => void;
 }
 
 /**
@@ -671,6 +675,66 @@ export function useWorkflowCanvas(
   );
 
   // ---------------------------------------------------------------------------
+  // Duplicate node (AD-T05: context menu duplicate)
+  // ---------------------------------------------------------------------------
+
+  const duplicateNode = useCallback(
+    (nodeId: string) => {
+      const model = history.currentModel;
+      if (!model) return;
+
+      const sourceNode = model.nodes.find((n) => n.id === nodeId);
+      if (!sourceNode || isSentinelNode(nodeId)) return;
+
+      const kindStr = taskKindToString(sourceNode.kind);
+      const existingNames = new Set(model.nodes.map((n) => n.taskName));
+      const newName = generateTaskName(kindStr, existingNames);
+
+      dispatch(new DuplicateNodeCommand(nodeId, newName));
+      setSelection({ type: "node", id: newName });
+    },
+    [history.currentModel, dispatch],
+  );
+
+  // ---------------------------------------------------------------------------
+  // Add node at position (AD-T05: pane context menu "Add Task")
+  // ---------------------------------------------------------------------------
+
+  const addNodeAtPosition = useCallback(
+    (kindString: string, position: { x: number; y: number }) => {
+      const model = history.currentModel;
+      if (!model) return;
+
+      const kind = stringToTaskKind(kindString);
+      const category = categorizeKind(kindString);
+      const existingNames = new Set(model.nodes.map((n) => n.taskName));
+      const taskName = generateTaskName(kindString, existingNames);
+
+      const node = createTaskNode(taskName, kind, kindString, category, position);
+      dispatch(new AddNodeCommand(node, null));
+      setSelection({ type: "node", id: taskName });
+    },
+    [history.currentModel, dispatch],
+  );
+
+  // ---------------------------------------------------------------------------
+  // Select all (AD-T05: pane context menu "Select All")
+  // ---------------------------------------------------------------------------
+
+  const selectAll = useCallback(() => {
+    const model = history.currentModel;
+    if (!model) return;
+
+    const selectableNodes = model.nodes
+      .filter((n) => !isSentinelNode(n.id))
+      .map((n) => ({ id: n.id, type: "select" as const, selected: true }));
+
+    if (selectableNodes.length > 0) {
+      onNodesChangeRaw(selectableNodes);
+    }
+  }, [history.currentModel, onNodesChangeRaw]);
+
+  // ---------------------------------------------------------------------------
   // Selection
   // ---------------------------------------------------------------------------
 
@@ -763,6 +827,9 @@ export function useWorkflowCanvas(
       removeBranchEdges,
       insertTaskOnEdge,
       addSuccessorTask,
+      duplicateNode,
+      addNodeAtPosition,
+      selectAll,
     }),
     [
       nodes, edges, onNodesChange, onEdgesChange, onConnect,
@@ -773,6 +840,7 @@ export function useWorkflowCanvas(
       getNodeDescriptor, serializeToYaml,
       updateBranchRouting, migrateBranchHandle, removeBranchEdges,
       insertTaskOnEdge, addSuccessorTask,
+      duplicateNode, addNodeAtPosition, selectAll,
     ],
   );
 }
