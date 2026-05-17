@@ -187,6 +187,85 @@ func LogTrend(t *testing.T, trend *BenchmarkTrend) {
 	t.Logf("")
 }
 
+// CursorModeReport is the top-level structure persisted to disk after each
+// cursor local-vs-cloud benchmark run.
+type CursorModeReport struct {
+	Timestamp   string                  `json:"timestamp"`
+	GitSHA      string                  `json:"git_sha,omitempty"`
+	Comparisons []*CursorModeComparison `json:"comparisons"`
+	Summary     CursorModeSummary       `json:"summary"`
+}
+
+// CursorModeSummary aggregates cursor mode comparison results.
+type CursorModeSummary struct {
+	ScenarioCount   int     `json:"scenario_count"`
+	AvgLatencyRatio float64 `json:"avg_latency_ratio"`
+	AvgTokenDelta   int64   `json:"avg_token_delta"`
+	ModelMatchCount int     `json:"model_match_count"`
+}
+
+const cursorModeReportDir = "cursor-mode-results"
+
+// NewCursorModeReport creates a report from a set of cursor mode comparisons.
+func NewCursorModeReport(comparisons []*CursorModeComparison, gitSHA string) *CursorModeReport {
+	report := &CursorModeReport{
+		Timestamp:   time.Now().UTC().Format(time.RFC3339),
+		GitSHA:      gitSHA,
+		Comparisons: comparisons,
+	}
+
+	var totalLatencyRatio float64
+	var totalTokenDelta int64
+	var modelMatches int
+	validCount := 0
+
+	for _, c := range comparisons {
+		if c == nil {
+			continue
+		}
+		validCount++
+		totalLatencyRatio += c.LatencyRatio
+		totalTokenDelta += c.TokenDelta
+		if c.ModelMatch {
+			modelMatches++
+		}
+	}
+
+	report.Summary = CursorModeSummary{
+		ScenarioCount:   len(comparisons),
+		ModelMatchCount: modelMatches,
+	}
+	if validCount > 0 {
+		report.Summary.AvgLatencyRatio = totalLatencyRatio / float64(validCount)
+		report.Summary.AvgTokenDelta = totalTokenDelta / int64(validCount)
+	}
+
+	return report
+}
+
+// WriteCursorModeReport persists the cursor mode report as timestamped JSON.
+func WriteCursorModeReport(outputDir string, report *CursorModeReport) (string, error) {
+	dir := filepath.Join(outputDir, cursorModeReportDir)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return "", fmt.Errorf("create cursor mode report directory: %w", err)
+	}
+
+	ts := time.Now().UTC().Format("2006-01-02-150405")
+	filename := fmt.Sprintf("%s.json", ts)
+	path := filepath.Join(dir, filename)
+
+	data, err := json.MarshalIndent(report, "", "  ")
+	if err != nil {
+		return "", fmt.Errorf("marshal cursor mode report: %w", err)
+	}
+
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		return "", fmt.Errorf("write cursor mode report: %w", err)
+	}
+
+	return path, nil
+}
+
 // GetGitSHA attempts to read the current git HEAD SHA. Returns empty string
 // on failure (non-critical for benchmarking).
 func GetGitSHA() string {

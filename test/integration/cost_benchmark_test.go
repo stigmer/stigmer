@@ -306,18 +306,18 @@ func runMultiTurnBenchmark(
 	}
 
 	return &harness.BenchmarkResult{
-		Harness:            h.Name,
-		Model:              model,
-		InputTokens:        agg.GetInputTokens(),
-		OutputTokens:       agg.GetOutputTokens(),
+		Harness:             h.Name,
+		Model:               model,
+		InputTokens:         agg.GetInputTokens(),
+		OutputTokens:        agg.GetOutputTokens(),
 		CacheCreationTokens: agg.GetCacheCreationInputTokens(),
-		CacheReadTokens:    agg.GetCacheReadInputTokens(),
-		TotalTokens:        agg.GetInputTokens() + agg.GetOutputTokens() + agg.GetCacheCreationInputTokens() + agg.GetCacheReadInputTokens(),
-		BillableCostMicros: agg.GetBillableCostMicros(),
-		ProviderCostMicros: agg.GetProviderCostMicros(),
-		LLMCallCount:       agg.GetLlmCallCount(),
-		LatencyMs:          totalLatency,
-		ExecutionID:        lastExecID,
+		CacheReadTokens:     agg.GetCacheReadInputTokens(),
+		TotalTokens:         agg.GetInputTokens() + agg.GetOutputTokens() + agg.GetCacheCreationInputTokens() + agg.GetCacheReadInputTokens(),
+		BillableCostMicros:  agg.GetBillableCostMicros(),
+		ProviderCostMicros:  agg.GetProviderCostMicros(),
+		LLMCallCount:        agg.GetLlmCallCount(),
+		LatencyMs:           totalLatency,
+		ExecutionID:         lastExecID,
 	}
 }
 
@@ -328,5 +328,177 @@ func requireBothHarnesses(t *testing.T) {
 	}
 	if testHarness.CursorRunner == nil {
 		t.Skip("cursor-runner not available — cannot run aggregate benchmark")
+	}
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Cursor Local vs Cloud Runtime Benchmarks (WI-5)
+//
+// These tests compare the Cursor SDK's local and cloud runtimes for
+// the same prompt, isolating how much of the latency gap is cloud VM
+// overhead vs SDK overhead.
+//
+// Local runtime: Agent.create({ local: { cwd } }) — runs inline in Node
+// Cloud runtime: Agent.create({ cloud: { repos } }) — runs in Cursor-hosted VM
+//
+// Requirements:
+//   - CURSOR_API_KEY (Anthropic key not required)
+//   - cursor-runner started with STIGMER_CURSOR_CLOUD_MODE_ENABLED=true
+//   - Cloud sessions need a git repo workspace entry for Cursor to clone
+// ═══════════════════════════════════════════════════════════════════
+
+const cursorModeGitRepoURL = "https://github.com/stigmer/stigmer"
+
+func cursorModeCloudSessionOpts() []harness.SessionOption {
+	return []harness.SessionOption{
+		harness.WithWorkspaceEntries([]*sessionv1.WorkspaceEntry{
+			{
+				Name: "stigmer",
+				Source: &sessionv1.WorkspaceSource{
+					Source: &sessionv1.WorkspaceSource_GitRepo{
+						GitRepo: &sessionv1.GitRepoSource{
+							Url:    cursorModeGitRepoURL,
+							Branch: "main",
+						},
+					},
+				},
+			},
+		}),
+	}
+}
+
+func TestCostBenchmark_CursorLocalVsCloud_Simple(t *testing.T) {
+	local, cloud := runCursorModeComparison(t,
+		"cursor-mode-simple",
+		"Reply with exactly: hello",
+		"",
+	)
+	harness.CompareCursorModes(t, "cursor-mode-simple", local, cloud)
+}
+
+func TestCostBenchmark_CursorLocalVsCloud_MediumContext(t *testing.T) {
+	prompt := `Summarize in one sentence: A distributed system uses event sourcing with CQRS to separate read and write models. Commands are validated, persisted as events, and projected into read-optimized views. The event store uses append-only logs for durability while projections are rebuilt from the event stream on demand.`
+
+	local, cloud := runCursorModeComparison(t,
+		"cursor-mode-medium",
+		prompt,
+		"",
+	)
+	harness.CompareCursorModes(t, "cursor-mode-medium", local, cloud)
+}
+
+func TestCostBenchmark_CursorLocalVsCloud_Report(t *testing.T) {
+	require.NotNil(t, grpcConn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Minute)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	harness.RequireServiceHealthy(t, ctx, clients)
+	waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
+
+	requireCursorRunner(t)
+
+	type scenario struct {
+		name      string
+		prompt    string
+		modelName string
+	}
+
+	scenarios := []scenario{
+		{
+			name:   "cm-report-simple",
+			prompt: "Reply with exactly: hello",
+		},
+		{
+			name:   "cm-report-medium",
+			prompt: "Explain in one sentence what a hash table is.",
+		},
+	}
+
+	cloudOpts := cursorModeCloudSessionOpts()
+
+	var comparisons []*harness.CursorModeComparison
+	for _, s := range scenarios {
+		local := harness.RunCursorModeBenchmark(t, ctx, clients, waiter,
+			sessionv1.CursorMode_CURSOR_MODE_LOCAL, "local",
+			s.prompt, s.name, s.modelName)
+
+		cloud := harness.RunCursorModeBenchmark(t, ctx, clients, waiter,
+			sessionv1.CursorMode_CURSOR_MODE_CLOUD, "cloud",
+			s.prompt, s.name, s.modelName,
+			cloudOpts...)
+
+		comp := harness.CompareCursorModes(t, s.name, local, cloud)
+		if comp != nil {
+			comparisons = append(comparisons, comp)
+		}
+	}
+
+	if len(comparisons) == 0 {
+		t.Log("WARNING: no cursor mode comparisons completed — skipping report generation")
+		return
+	}
+
+	gitSHA := harness.GetGitSHA()
+	report := harness.NewCursorModeReport(comparisons, gitSHA)
+
+	outputDir := testHarness.LogDir()
+	if outputDir == "" {
+		outputDir = ".test-output"
+	}
+	reportOutputDir := outputDir + "/.."
+
+	reportPath, err := harness.WriteCursorModeReport(reportOutputDir, report)
+	if err != nil {
+		t.Logf("WARNING: failed to write cursor mode report: %v", err)
+	} else {
+		t.Logf("Cursor mode report written: %s", reportPath)
+	}
+
+	t.Logf("")
+	t.Logf("═══ CURSOR MODE BENCHMARK SUMMARY ═══")
+	t.Logf("  Scenarios:            %d", report.Summary.ScenarioCount)
+	t.Logf("  Avg Latency Ratio:    %.2fx (cloud/local)", report.Summary.AvgLatencyRatio)
+	t.Logf("  Avg Token Delta:      %+d (cloud - local)", report.Summary.AvgTokenDelta)
+	t.Logf("  Model Parity:         %d/%d matched", report.Summary.ModelMatchCount, report.Summary.ScenarioCount)
+	t.Logf("")
+}
+
+func runCursorModeComparison(t *testing.T, scenario, prompt, modelName string) (local, cloud *harness.BenchmarkResult) {
+	t.Helper()
+	require.NotNil(t, grpcConn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 12*time.Minute)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	harness.RequireServiceHealthy(t, ctx, clients)
+	waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
+
+	requireCursorRunner(t)
+
+	cloudOpts := cursorModeCloudSessionOpts()
+
+	t.Run("local", func(t *testing.T) {
+		local = harness.RunCursorModeBenchmark(t, ctx, clients, waiter,
+			sessionv1.CursorMode_CURSOR_MODE_LOCAL, "local",
+			prompt, scenario, modelName)
+	})
+
+	t.Run("cloud", func(t *testing.T) {
+		cloud = harness.RunCursorModeBenchmark(t, ctx, clients, waiter,
+			sessionv1.CursorMode_CURSOR_MODE_CLOUD, "cloud",
+			prompt, scenario, modelName,
+			cloudOpts...)
+	})
+
+	return local, cloud
+}
+
+func requireCursorRunner(t *testing.T) {
+	t.Helper()
+	if testHarness.CursorRunner == nil {
+		t.Skip("cursor-runner not available — cannot run cursor mode benchmark")
 	}
 }

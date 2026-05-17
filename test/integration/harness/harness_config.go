@@ -68,9 +68,28 @@ func SkipCursorForHITLGate(t *testing.T, h HarnessConfig) {
 	}
 }
 
+// SessionOption configures a SessionSpec before creation.
+type SessionOption func(*sessionv1.SessionSpec)
+
+// WithCursorMode sets an explicit CursorMode on the session, overriding
+// the cursor-runner's auto-detection from workspace entries.
+func WithCursorMode(mode sessionv1.CursorMode) SessionOption {
+	return func(s *sessionv1.SessionSpec) {
+		s.CursorMode = mode
+	}
+}
+
+// WithWorkspaceEntries sets workspace entries on the session spec.
+// Cloud cursor mode requires at least one git repo entry.
+func WithWorkspaceEntries(entries []*sessionv1.WorkspaceEntry) SessionOption {
+	return func(s *sessionv1.SessionSpec) {
+		s.WorkspaceEntries = entries
+	}
+}
+
 // CreateTestSession creates a session for agent execution tests with the
 // specified harness. The session is deleted on test cleanup.
-func CreateTestSession(t *testing.T, ctx context.Context, clients *Clients, agentInstanceID string, harness sessionv1.Harness) *sessionv1.Session {
+func CreateTestSession(t *testing.T, ctx context.Context, clients *Clients, agentInstanceID string, harness sessionv1.Harness, opts ...SessionOption) *sessionv1.Session {
 	t.Helper()
 
 	session := &sessionv1.Session{
@@ -86,12 +105,16 @@ func CreateTestSession(t *testing.T, ctx context.Context, clients *Clients, agen
 			Harness:         harness,
 		},
 	}
+	for _, opt := range opts {
+		opt(session.Spec)
+	}
 
 	created, err := clients.SessionCommand.Create(ctx, session)
 	require.NoError(t, err, "create session should succeed")
 	require.NotEmpty(t, created.GetMetadata().GetId(), "session should have an ID")
 
-	t.Logf("created session: id=%s, harness=%s", created.GetMetadata().GetId(), harness.String())
+	t.Logf("created session: id=%s, harness=%s, cursor_mode=%s",
+		created.GetMetadata().GetId(), harness.String(), created.GetSpec().GetCursorMode().String())
 
 	t.Cleanup(func() {
 		cleanCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

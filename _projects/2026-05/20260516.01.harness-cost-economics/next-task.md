@@ -68,24 +68,33 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-16 12:29
-**Current Task**: WI-1, WI-2, WI-4 Complete; WI-3, WI-5 remain
+**Current Task**: WI-1, WI-2, WI-4, WI-5 Complete; WI-3 remains
 **Status**: In Progress
-**Last Session**: 2026-05-17 (Session 03) — WI-2 (Resolved Model Capture) completed
+**Last Session**: 2026-05-17 (Session 04) — WI-5 (Benchmark Cursor Local vs Cloud) completed
 
-## Session Progress (2026-05-17, Session 03)
+## Session Progress (2026-05-17, Session 04)
 
-- Completed WI-2 (Billing Architecture — resolved model capture):
-  - Cursor runner captures `RunResult.model?.id` from SDK and sends as `resolvedModel`
-  - Config model now goes to `requestedModel` (proper semantic split)
-  - Server-side pricing fallback: retries with `requestedModel` when `resolvedModel` not in registry
-  - Fallback records marked `COST_CALCULATION_STATUS_ESTIMATED` (no proto changes)
-  - Extracted `buildTurnBillingInput` as exported pure function for testability
-  - Model divergence logging when SDK reports a different model than configured
-  - 8 new cursor-runner tests, 7 new stigmer-cloud handler tests
-  - All 430 cursor-runner tests pass, all stigmer-cloud billing tests pass
-  - Scoped down from original plan: skipped `vendor_billed_cost_micros` (no Cursor SDK billing data source yet)
+- Completed WI-5 (Benchmark — Cursor Local vs Cloud Runtime):
+  - Verified stigmer-server persists `cursor_mode` on Session Create (proto.Clone preserves all spec fields)
+  - Extended `CreateTestSession` with `SessionOption` functional options pattern (`WithCursorMode`, `WithWorkspaceEntries`)
+  - Added `CursorMode` field to `BenchmarkResult` for cursor-mode-aware reporting
+  - New `RunCursorModeBenchmark` helper: creates session with explicit CursorMode, runs prompt, collects usage
+  - New `CompareCursorModes` comparison function: latency ratio, token delta, model match, cost ratio
+  - New `CursorModeReport`/`CursorModeSummary` types with `WriteCursorModeReport` for persistence
+  - Three new benchmark tests: Simple, MediumContext, Report (aggregate with JSON output)
+  - New `make benchmark-cursor-modes` target (requires only CURSOR_API_KEY, sets STIGMER_CURSOR_CLOUD_MODE_ENABLED=true)
+  - Cloud sessions use git repo workspace entries (stigmer repo main branch) to trigger CLOUD mode
+  - No cursor-runner code changes — entirely test/benchmark infrastructure
+  - All integration tests compile and vet clean
 
 ## Previous Sessions
+
+### Session 03 (2026-05-17)
+- Completed WI-2 (Billing Architecture — resolved model capture)
+- Cursor runner captures `RunResult.model?.id` from SDK and sends as `resolvedModel`
+- Config model now goes to `requestedModel` (proper semantic split)
+- Server-side pricing fallback: retries with `requestedModel` when `resolvedModel` not in registry
+- All 430 cursor-runner tests pass, all stigmer-cloud billing tests pass
 
 ### Session 02 (2026-05-17)
 - Completed WI-4 (Cursor Context Trimming)
@@ -100,16 +109,16 @@ When starting a new session:
 
 ## Next Steps
 
-1. **Run benchmarks**: `make benchmark-cost` with API keys to capture before/after token measurements (instrumentation from WI-4 is in place)
-2. **Pick next work item**: WI-5 (Benchmark local vs cloud) or WI-3 (User-facing documentation)
-3. WI-3 (Documentation) should come last per sequencing — it synthesizes findings from all other work items
-4. WI-5 is an experiment comparing Cursor local vs cloud runtimes
+1. **Run cursor mode benchmarks**: `make benchmark-cursor-modes` with CURSOR_API_KEY to capture local vs cloud latency/token data
+2. **Pick last work item**: WI-3 (User-facing documentation) — synthesizes findings from WI-1 through WI-5
+3. All implementation work items (WI-1, WI-2, WI-4, WI-5) are complete
 
 ## Context for Resume
 
-- The original plan (T01_0_plan.md) has 5 work items; WI-1, WI-2, WI-4 are done
+- The original plan (T01_0_plan.md) has 5 work items; WI-1, WI-2, WI-4, WI-5 are done; WI-3 remains
+- WI-5 architecture decision: session-level CursorMode override (no new processes, no proto changes)
+- WI-5 cloud sessions require git repo workspace entries and STIGMER_CURSOR_CLOUD_MODE_ENABLED=true on the cursor-runner
 - WI-2 changes span two repos: `stigmer` (cursor-runner) and `stigmer-cloud` (billing handler)
-- WI-2 scoping decisions: skipped `vendor_billed_cost_micros` (Cursor SDK has no per-call billing data), skipped reconciliation design
 - `RunResult.model?.id` in production: unknown what "default" auto-select returns — need real execution data
 - Benchmark results from WI-1: `test/integration/.test-output-benchmark/benchmark-results/2026-05-17-062943.json`
 - Prompt-size instrumentation is live from WI-4
@@ -118,10 +127,11 @@ When starting a new session:
 ## Quick Commands
 
 After loading context:
-- "Pick the next work item" - Choose between WI-3, WI-5
+- "Pick the next work item" - WI-3 (documentation) is the only remaining item
+- "Run cursor mode benchmarks" - `make benchmark-cursor-modes`
+- "Run cost benchmarks" - `make benchmark-cost`
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
-- "Review guidelines" - Check established patterns
 
 ---
 

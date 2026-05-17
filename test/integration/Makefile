@@ -345,6 +345,41 @@ benchmark-cost: ensure-service-jar ## Run cost benchmarks comparing Native vs Cu
 
 TRACED_OUTPUT_DIR ?= .test-output-traced
 
+CURSOR_MODE_OUTPUT_DIR ?= .test-output-cursor-modes
+
+.PHONY: benchmark-cursor-modes
+benchmark-cursor-modes: ensure-service-jar ## Compare Cursor local vs cloud runtime (requires CURSOR_API_KEY only)
+	@command -v gotestsum >/dev/null 2>&1 || { \
+		echo "error: gotestsum not found"; \
+		echo "  install: go install gotest.tools/gotestsum@latest"; \
+		exit 1; \
+	}
+	@mkdir -p $(CURSOR_MODE_OUTPUT_DIR)
+	@CURSOR_KEY=$${CURSOR_API_KEY:-}; \
+	if [ -z "$$CURSOR_KEY" ]; then \
+		if command -v planton >/dev/null 2>&1; then \
+			echo "Fetching CURSOR_API_KEY from Planton..."; \
+			CURSOR_KEY=$$(planton service secrets get-value --org stigmer --group cursor --name prod.api-key 2>&1); \
+			if [ -z "$$CURSOR_KEY" ]; then \
+				echo "error: CURSOR_API_KEY required for cursor mode benchmarks"; \
+				exit 1; \
+			fi; \
+		else \
+			echo "error: CURSOR_API_KEY not set and planton CLI not found"; \
+			exit 1; \
+		fi; \
+	fi; \
+	echo "Running cursor mode benchmarks (local vs cloud)..."; \
+	CURSOR_API_KEY=$$CURSOR_KEY \
+	STIGMER_CURSOR_CLOUD_MODE_ENABLED=true \
+	STIGMER_SERVICE_JAR=$(STIGMER_SERVICE_JAR) \
+	INTEGRATION_TEST_OUTPUT_DIR=$(abspath $(CURSOR_MODE_OUTPUT_DIR)) gotestsum \
+		--junitfile $(CURSOR_MODE_OUTPUT_DIR)/junit.xml \
+		--junitfile-testsuite-name short \
+		--jsonfile $(CURSOR_MODE_OUTPUT_DIR)/test-output.json \
+		--format testname \
+		-- -tags 'integration benchmark' -timeout 1800s -count=1 -run 'TestCostBenchmark_CursorLocalVsCloud' ./...
+
 .PHONY: test-traced
 test-traced: ensure-service-jar ## Run offline integration tests with OTel tracing (Jaeger)
 	@command -v gotestsum >/dev/null 2>&1 || { \

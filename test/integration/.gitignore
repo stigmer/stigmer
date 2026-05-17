@@ -4,6 +4,7 @@
 .test-output-agent/
 .test-output-failing/
 .test-output-benchmark/
+.test-output-cursor-modes/
 .test-output-sdk/
 
 # Agent runner checkpoint databases (created during pause/resume tests)
