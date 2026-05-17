@@ -50,7 +50,7 @@ type ServiceConfig struct {
 	// OpenFGA configuration. When all three are set, the Java service
 	// uses a real OpenFGA instance for authorization instead of the
 	// permit-all TestIamPolicyGrpcRepo stub.
-	OpenFGAAPIURL string
+	OpenFGAAPIURL  string
 	OpenFGAStoreID string
 	OpenFGAModelID string
 
@@ -63,6 +63,11 @@ type ServiceConfig struct {
 	// LogDir is the directory for the service log file.
 	// If empty, a temporary directory is used.
 	LogDir string
+
+	// OTLPEndpoint sets OTEL_EXPORTER_OTLP_ENDPOINT for distributed tracing.
+	// When set, observability is enabled and the Java service exports spans
+	// to this OTLP/gRPC receiver.
+	OTLPEndpoint string
 }
 
 // StartJavaService launches the stigmer-service fat JAR as a child process
@@ -256,7 +261,7 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 
 		// Disable optional features
 		"STIGMER_VAULT_ENABLED=false",
-		"OBSERVABILITY_ENABLED=false",
+		fmt.Sprintf("OBSERVABILITY_ENABLED=%t", cfg.OTLPEndpoint != ""),
 		"STIGMER_BILLING_RECONCILIATION_ENABLED=false",
 		"STIGMER_BILLING_RESERVATION_EXPIRY_ENABLED=false",
 		"STIGMER_RUNNER_LAUNCHER_TYPE=noop",
@@ -286,6 +291,13 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 	if cfg.CursorAPIKey != "" {
 		env = append(env,
 			fmt.Sprintf("STIGMER_PROXY_CURSOR_API_KEY=%s", cfg.CursorAPIKey),
+		)
+	}
+
+	if cfg.OTLPEndpoint != "" {
+		env = append(env,
+			fmt.Sprintf("OTEL_EXPORTER_OTLP_ENDPOINT=%s", cfg.OTLPEndpoint),
+			"OTEL_SERVICE_NAME=stigmer-service-test",
 		)
 	}
 

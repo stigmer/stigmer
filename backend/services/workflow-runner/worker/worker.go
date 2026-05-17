@@ -31,6 +31,7 @@ import (
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/worker/config"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/client"
+	temporalotel "go.temporal.io/sdk/contrib/opentelemetry"
 	"go.temporal.io/sdk/interceptor"
 	"go.temporal.io/sdk/worker"
 	"go.temporal.io/sdk/workflow"
@@ -60,10 +61,19 @@ type ZigflowWorker struct {
 
 // NewZigflowWorker creates a new Temporal worker system with two-queue architecture.
 func NewZigflowWorker(cfg *config.Config) (*ZigflowWorker, error) {
+	// Create Temporal OTel tracing interceptor (active when a TracerProvider is set).
+	// The interceptor auto-creates spans for workflows, activities, signals, and queries,
+	// and propagates trace context across the Temporal boundary.
+	tracingInterceptor, err := temporalotel.NewTracingInterceptor(temporalotel.TracerOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("create temporal tracing interceptor: %w", err)
+	}
+
 	// Create Temporal client
 	temporalClient, err := client.Dial(client.Options{
-		HostPort:  cfg.TemporalServiceAddress,
-		Namespace: cfg.TemporalNamespace,
+		HostPort:     cfg.TemporalServiceAddress,
+		Namespace:    cfg.TemporalNamespace,
+		Interceptors: []interceptor.ClientInterceptor{tracingInterceptor},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Temporal client: %w", err)

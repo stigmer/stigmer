@@ -158,6 +158,7 @@ jobs:
         env:
           STIGMER_SERVICE_JAR: ${{ github.workspace }}/.artifacts/stigmer_service_fatjar.jar
           STIGMER_FGA_MODEL_DIR: ${{ github.workspace }}/.artifacts/fga-model
+          INTEGRATION_TEST_OTEL: "true"
         run: make test-integration
 
       - name: Guard against silent test skip
@@ -193,6 +194,14 @@ jobs:
         with:
           name: integration-test-results
           path: test/integration/.test-output/
+          retention-days: 30
+
+      - name: Upload trace bundles
+        if: failure() && hashFiles('test/integration/.test-output/traces/*.json') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-trace-bundles
+          path: test/integration/.test-output/traces/
           retention-days: 30
 
       - name: Publish test report

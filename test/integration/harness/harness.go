@@ -17,6 +17,7 @@ type TestHarness struct {
 	Temporal       *TemporalDevServer
 	OpenFGA        *OpenFGAContainer
 	MinIO          *MinIOContainer
+	Jaeger         *JaegerContainer
 	Service        *JavaService
 	WorkflowRunner *WorkflowRunner
 	AgentRunner    *AgentRunner
@@ -55,6 +56,19 @@ func DefaultConfig() Config {
 // test cases when running with the permit-all bypass.
 func (h *TestHarness) FGAEnabled() bool {
 	return h.OpenFGA != nil
+}
+
+// OTelEnabled returns true if OpenTelemetry tracing is active (Jaeger
+// container running). Controlled by INTEGRATION_TEST_OTEL=true.
+func (h *TestHarness) OTelEnabled() bool {
+	return h.Jaeger != nil
+}
+
+// IsOTelRequested returns true when the INTEGRATION_TEST_OTEL env var is
+// set to "true" or "1".
+func IsOTelRequested() bool {
+	v := os.Getenv("INTEGRATION_TEST_OTEL")
+	return v == "true" || v == "1"
 }
 
 // LogDir returns the directory where service logs are written.
@@ -98,10 +112,17 @@ func Start(ctx context.Context, cfg Config) (*TestHarness, error) {
 
 	logger.Info("starting test infrastructure", "output_dir", outputDir)
 
-	var mongoErr, redisErr, temporalErr, minioErr error
+	otelEnabled := IsOTelRequested()
+
+	var mongoErr, redisErr, temporalErr, minioErr, jaegerErr error
 	var wg sync.WaitGroup
 
-	wg.Add(4)
+	startCount := 4
+	if otelEnabled {
+		startCount = 5
+	}
+	wg.Add(startCount)
+
 	go func() {
 		defer wg.Done()
 		logger.Info("starting mongodb")
@@ -138,6 +159,20 @@ func Start(ctx context.Context, cfg Config) (*TestHarness, error) {
 		}
 	}()
 
+	if otelEnabled {
+		go func() {
+			defer wg.Done()
+			logger.Info("starting jaeger (INTEGRATION_TEST_OTEL=true)")
+			h.Jaeger, jaegerErr = StartJaeger(ctx)
+			if jaegerErr == nil {
+				logger.Info("jaeger ready",
+					"otlp", h.Jaeger.OTLPAddress,
+					"query", h.Jaeger.QueryURL,
+				)
+			}
+		}()
+	}
+
 	wg.Wait()
 
 	if mongoErr != nil {
@@ -155,6 +190,10 @@ func Start(ctx context.Context, cfg Config) (*TestHarness, error) {
 	if minioErr != nil {
 		h.Stop(ctx)
 		return nil, fmt.Errorf("minio: %w", minioErr)
+	}
+	if jaegerErr != nil {
+		h.Stop(ctx)
+		return nil, fmt.Errorf("jaeger: %w", jaegerErr)
 	}
 
 	// Start OpenFGA if the model directory and CLI are available.
@@ -216,6 +255,12 @@ func (h *TestHarness) Stop(ctx context.Context) {
 	if h.OpenFGA != nil {
 		if err := StopContainer(ctx, h.OpenFGA.Container); err != nil {
 			h.logger.Error("failed to stop openfga", "error", err)
+		}
+	}
+
+	if h.Jaeger != nil {
+		if err := StopContainer(ctx, h.Jaeger.Container); err != nil {
+			h.logger.Error("failed to stop jaeger", "error", err)
 		}
 	}
 

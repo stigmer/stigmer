@@ -23,6 +23,7 @@ var (
 	suiteLogger            *slog.Logger
 	mcpTestServerBinary    string
 	mcpServerStigmerBinary string
+	otelShutdown           func(context.Context) error
 )
 
 func TestMain(m *testing.M) {
@@ -47,6 +48,17 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
+	if testHarness.OTelEnabled() {
+		shutdown, otelErr := harness.InitTracing(ctx, testHarness.Jaeger.OTLPAddress)
+		if otelErr != nil {
+			suiteLogger.Error("failed to initialize OTel tracing", "error", otelErr)
+			testHarness.Stop(ctx)
+			os.Exit(1)
+		}
+		otelShutdown = shutdown
+		suiteLogger.Info("otel tracing initialized", "jaeger_otlp", testHarness.Jaeger.OTLPAddress)
+	}
+
 	logDir := testHarness.LogDir()
 
 	anthropicKey := os.Getenv("ANTHROPIC_API_KEY")
@@ -63,6 +75,9 @@ func TestMain(m *testing.M) {
 		AnthropicAPIKey: anthropicKey,
 		CursorAPIKey:    cursorKey,
 		LogDir:          logDir,
+	}
+	if testHarness.OTelEnabled() {
+		svcCfg.OTLPEndpoint = testHarness.Jaeger.OTLPEndpoint
 	}
 
 	if testHarness.OpenFGA != nil {
@@ -91,9 +106,16 @@ func TestMain(m *testing.M) {
 	}
 	testHarness.Service = svc
 
+	grpcDialOpts := []grpc.DialOption{
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	}
+	if testHarness.OTelEnabled() {
+		grpcDialOpts = append(grpcDialOpts, harness.OTelGRPCDialOptions()...)
+	}
+
 	grpcConn, err = grpc.NewClient(
 		svc.GRPCAddress(),
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpcDialOpts...,
 	)
 	if err != nil {
 		suiteLogger.Error("failed to create gRPC connection", "error", err)
@@ -101,11 +123,16 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
-	runner, err := harness.StartWorkflowRunner(ctx, harness.WorkflowRunnerConfig{
+	runnerCfg := harness.WorkflowRunnerConfig{
 		StigmerServiceAddress: svc.GRPCAddress(),
 		TemporalAddress:       testHarness.Temporal.Address(),
 		LogDir:                logDir,
-	}, suiteLogger)
+	}
+	if testHarness.OTelEnabled() {
+		runnerCfg.OTLPEndpoint = testHarness.Jaeger.OTLPAddress
+	}
+
+	runner, err := harness.StartWorkflowRunner(ctx, runnerCfg, suiteLogger)
 	if err != nil {
 		suiteLogger.Warn("workflow-runner failed to start — execution tests will be skipped", "error", err)
 	} else {
@@ -198,6 +225,12 @@ func TestMain(m *testing.M) {
 	)
 
 	code := m.Run()
+
+	if otelShutdown != nil {
+		if err := otelShutdown(context.Background()); err != nil {
+			suiteLogger.Warn("otel shutdown error", "error", err)
+		}
+	}
 
 	grpcConn.Close()
 	testHarness.Stop(context.Background())

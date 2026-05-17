@@ -6,10 +6,13 @@ import (
 	"log/slog"
 
 	"github.com/google/uuid"
-	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
+	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
 const (
@@ -62,10 +65,22 @@ func (f *FixtureDeployer) uniqueName(suffix string) string {
 // ApplyWorkflow creates or updates a workflow via the apply RPC.
 // The returned workflow includes server-assigned fields (ID, status).
 func (f *FixtureDeployer) ApplyWorkflow(ctx context.Context, wf *workflowv1.Workflow) (*workflowv1.Workflow, error) {
+	ctx, span := Tracer().Start(ctx, "stigmer.apply",
+		trace.WithAttributes(
+			attribute.String("workflow.name", wf.GetMetadata().GetName()),
+			attribute.String("workflow.org", wf.GetMetadata().GetOrg()),
+		),
+	)
+	defer span.End()
+
 	result, err := f.clients.WorkflowCommand.Apply(ctx, wf)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return nil, fmt.Errorf("apply workflow %q: %w", wf.GetMetadata().GetName(), err)
 	}
+
+	span.SetAttributes(attribute.String("workflow.id", result.GetMetadata().GetId()))
 
 	f.created = append(f.created, cleanupEntry{
 		kind: kindWorkflow,
@@ -98,10 +113,25 @@ func (f *FixtureDeployer) ApplyWorkflowInstance(ctx context.Context, inst *workf
 
 // CreateExecution creates and triggers a new workflow execution.
 func (f *FixtureDeployer) CreateExecution(ctx context.Context, exec *workflowexecutionv1.WorkflowExecution) (*workflowexecutionv1.WorkflowExecution, error) {
+	ctx, span := Tracer().Start(ctx, "stigmer.run",
+		trace.WithAttributes(
+			attribute.String("execution.name", exec.GetMetadata().GetName()),
+			attribute.String("workflow.id", exec.GetSpec().GetWorkflowId()),
+		),
+	)
+	defer span.End()
+
 	result, err := f.clients.ExecutionCommand.Create(ctx, exec)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return nil, fmt.Errorf("create workflow execution: %w", err)
 	}
+
+	span.SetAttributes(
+		attribute.String("execution.id", result.GetMetadata().GetId()),
+		attribute.String("execution.phase", result.GetStatus().GetPhase().String()),
+	)
 
 	f.created = append(f.created, cleanupEntry{
 		kind: kindWorkflowExecution,
