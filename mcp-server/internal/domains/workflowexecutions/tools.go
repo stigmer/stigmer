@@ -8,8 +8,8 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/stigmer/stigmer/mcp-server/internal/domains"
 	"github.com/stigmer/stigmer/mcp-server/internal/auth"
+	"github.com/stigmer/stigmer/mcp-server/internal/domains"
 	stigmergrpc "github.com/stigmer/stigmer/mcp-server/internal/grpc"
 	wfxv1 "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/workflowexecution/v1"
 )

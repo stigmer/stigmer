@@ -33,7 +33,8 @@
       "useSessionUsage": "/docs/sdk/react/usage",
       "isTerminalPhase": "/docs/sdk/react/execution",
       "formatCost": "/docs/sdk/react/usage",
-      "formatTokenCount": "/docs/sdk/react/usage"
+      "formatTokenCount": "/docs/sdk/react/usage",
+      "useContextWindow": "/docs/sdk/react/execution"
     },
     "@stigmer/protos": {
       "AgentExecution": "/docs/sdk/resources/agent-execution",

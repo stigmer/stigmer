@@ -207,4 +207,3 @@ func TestCheckBudgetWarnings_EmptyTasks(t *testing.T) {
 	warnings := CheckBudgetWarnings(nil, []*workflowv1.WorkflowTask{})
 	assert.Nil(t, warnings)
 }
-

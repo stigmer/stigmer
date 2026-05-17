@@ -30,9 +30,9 @@ func (c *WorkflowExecutionController) GetExecutionSummary(
 	phaseCounts := make(map[int32]int32)
 	var activeCount int32
 	var completedDurations []time.Duration
-	failureCounts := make(map[string]int32)  // workflow slug → failure count
-	workflowNames := make(map[string]string) // workflow slug → name
-	execByWorkflow := make(map[string]int32) // workflow slug → execution count
+	failureCounts := make(map[string]int32)    // workflow slug → failure count
+	workflowNames := make(map[string]string)   // workflow slug → name
+	execByWorkflow := make(map[string]int32)   // workflow slug → execution count
 	costByWorkflow := make(map[string]float64) // workflow slug → total cost USD
 
 	var totalCostMicros int64

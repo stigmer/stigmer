@@ -30,6 +30,16 @@
       "validation": {
         "minItems": 1
       }
+    },
+    {
+      "name": "Compensate",
+      "jsonName": "compensate",
+      "protoField": "compensate",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "Whether to run compensation tasks for already-completed try tasks\n before executing the catch do block.\n\n When true, the runtime walks the compensation stack (completed tasks\n that declared a `compensate` block) in reverse order and executes\n each task's compensation actions. After all compensations complete\n (or fail), the catch `do` block runs as normal.\n\n Compensation failures do not prevent the catch block from running.\n They are logged and included in the task output for diagnostics.\n\n Default: false (no compensation — preserves pre-T17 behavior).\n\n @since T17 (Advanced Agentic Orchestration)",
+      "required": false
     }
   ]
 }

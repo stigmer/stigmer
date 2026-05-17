@@ -1745,6 +1745,23 @@
           "description": "Anyone can access (read) this resource.\n Used for marketplace-published resources (e.g., \"stigmer/web-search\").\n Write access still requires org membership.\n Named visibility_public to avoid Java reserved keyword conflict."
         }
       ]
+    },
+    {
+      "name": "InteractionMode",
+      "description": "InteractionMode controls the agent's behavioral posture for an execution.\n\n Determines what the agent is allowed to do — analysis only, or full\n read-write access. Mode is set per-execution via ExecutionConfig and\n does not carry over between executions.\n\n Enforcement:\n - Native harness (LangGraph): tool-level enforcement — write tools are\n   removed from the tool set in PLAN mode.\n - Cursor harness: best-effort via system prompt injection. The Cursor SDK\n   does not expose a mode parameter, so the agent is instructed not to\n   make changes. When the SDK adds native mode support, the prompt-based\n   approach will be replaced.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.InteractionMode",
+      "values": [
+        {
+          "name": "INTERACTION_MODE_AGENT",
+          "number": 1,
+          "description": "Full agent mode with unrestricted tool access.\n\n The agent can read, write, create, edit, and delete files; run shell\n commands; and invoke any configured tool. This is the standard\n execution mode for interactive sessions."
+        },
+        {
+          "name": "INTERACTION_MODE_PLAN",
+          "number": 2,
+          "description": "Read-only planning mode — analysis and recommendations only.\n\n The agent can read files, search code, list directories, and reason\n about the codebase, but cannot create, edit, or delete files or run\n mutating shell commands. Designed for exploring approaches, producing\n implementation plans, and answering architectural questions without\n side effects.\n\n Native harness: enforced by removing write tools from the tool set.\n Cursor harness: best-effort via system prompt directive."
+        }
+      ]
     }
   ],
   "resourceDescription": "AgentExecution represents a single agent execution instance (conversational).\n Follows the standard pattern: spec contains user inputs, status contains execution results.",

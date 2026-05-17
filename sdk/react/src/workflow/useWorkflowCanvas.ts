@@ -172,7 +172,6 @@ export function useWorkflowCanvas(
       setEdges([]);
       initialModelRef.current = null;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only on yaml change
   }, [yaml]);
 
   // Sync React Flow elements whenever the model changes via history

@@ -43,7 +43,8 @@
           "human_input",
           "validate",
           "emit_event",
-          "notification"
+          "notification",
+          "eval"
         ]
       },
       "description": "Task type (determines how to interpret task_config).",
@@ -86,6 +87,20 @@
         "messageType": "FlowControl"
       },
       "description": "Flow control (which task executes next).\n Optional - if not set, continues to next task in sequence.",
+      "required": false
+    },
+    {
+      "name": "Compensate",
+      "jsonName": "compensate",
+      "protoField": "compensate",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "WorkflowTask"
+        }
+      },
+      "description": "Compensation tasks to execute if this task needs to be \"undone.\"\n\n @internal\n Saga-style compensation for workflows with side effects. When a\n try_catch block catches an error, it can optionally run the\n compensation tasks for all already-completed tasks in reverse order.\n\n The compensation tasks receive the original task's output in their\n input context, allowing them to construct the appropriate undo\n operation (e.g., cancel an API call, delete a created resource,\n send a reversal notification).\n\n Only executed when:\n 1. The task completed successfully (failed tasks are not compensated)\n 2. A subsequent task within the same try_catch scope fails\n 3. The catch block is configured to run compensations\n\n YAML Example:\n   try:\n     - create_order:\n         call: http\n         with:\n           method: POST\n           endpoint: { uri: \"https://api.example.com/orders\" }\n           body: { ... }\n         compensate:\n           - cancel_order:\n               call: http\n               with:\n                 method: DELETE\n                 endpoint: { uri: \"https://api.example.com/orders/${ $context.create_order.id }\" }\n         export:\n           as: \"${ . }\"\n     - charge_payment:\n         call: http\n         with:\n           method: POST\n           endpoint: { uri: \"https://api.example.com/payments\" }\n   catch:\n     as: error\n     compensate: true\n     do:\n       - log_failure:\n           call: notification\n           with: ...\n\n Optional - when empty, this task has no compensation action.\n\n @since T17 (Advanced Agentic Orchestration)",
       "required": false
     }
   ]

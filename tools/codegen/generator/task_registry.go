@@ -15,36 +15,36 @@ import (
 // TaskKindDescriptor, combining proto-derived structural data with
 // sidecar-provided presentation metadata.
 type TaskKindRegistryEntry struct {
-	Kind                   string                     `json:"kind"`
-	DisplayName            string                     `json:"displayName"`
-	Description            string                     `json:"description"`
-	Category               string                     `json:"category"`
-	Icon                   string                     `json:"icon"`
-	ConfigProtoType        string                     `json:"configProtoType"`
-	Fields                 []TaskFieldRegistryEntry   `json:"fields"`
-	FieldGroups            []TaskFieldGroupEntry      `json:"fieldGroups"`
-	ConfigJsonSchema       map[string]interface{}     `json:"configJsonSchema"`
-	OutputJsonSchema       map[string]interface{}     `json:"outputJsonSchema,omitempty"`
-	YamlExamples           []string                   `json:"yamlExamples,omitempty"`
-	DocumentationUrl       string                     `json:"documentationUrl"`
-	IsAiNative             bool                       `json:"isAiNative"`
-	RequiresExternalService bool                      `json:"requiresExternalService"`
+	Kind                    string                   `json:"kind"`
+	DisplayName             string                   `json:"displayName"`
+	Description             string                   `json:"description"`
+	Category                string                   `json:"category"`
+	Icon                    string                   `json:"icon"`
+	ConfigProtoType         string                   `json:"configProtoType"`
+	Fields                  []TaskFieldRegistryEntry `json:"fields"`
+	FieldGroups             []TaskFieldGroupEntry    `json:"fieldGroups"`
+	ConfigJsonSchema        map[string]interface{}   `json:"configJsonSchema"`
+	OutputJsonSchema        map[string]interface{}   `json:"outputJsonSchema,omitempty"`
+	YamlExamples            []string                 `json:"yamlExamples,omitempty"`
+	DocumentationUrl        string                   `json:"documentationUrl"`
+	IsAiNative              bool                     `json:"isAiNative"`
+	RequiresExternalService bool                     `json:"requiresExternalService"`
 }
 
 // TaskFieldRegistryEntry describes a single field in the registry output.
 type TaskFieldRegistryEntry struct {
-	Name             string   `json:"name"`
-	DisplayName      string   `json:"displayName"`
-	Description      string   `json:"description"`
-	Type             string   `json:"type"`
-	Required         bool     `json:"required"`
-	IsExpression     bool     `json:"isExpression,omitempty"`
-	DefaultValue     string   `json:"defaultValue,omitempty"`
-	EnumValues       []string `json:"enumValues,omitempty"`
-	GroupId          string   `json:"groupId,omitempty"`
-	FieldNumber      int      `json:"fieldNumber"`
-	ElementType      string   `json:"elementType,omitempty"`
-	ValidationHints  []string `json:"validationHints,omitempty"`
+	Name            string   `json:"name"`
+	DisplayName     string   `json:"displayName"`
+	Description     string   `json:"description"`
+	Type            string   `json:"type"`
+	Required        bool     `json:"required"`
+	IsExpression    bool     `json:"isExpression,omitempty"`
+	DefaultValue    string   `json:"defaultValue,omitempty"`
+	EnumValues      []string `json:"enumValues,omitempty"`
+	GroupId         string   `json:"groupId,omitempty"`
+	FieldNumber     int      `json:"fieldNumber"`
+	ElementType     string   `json:"elementType,omitempty"`
+	ValidationHints []string `json:"validationHints,omitempty"`
 }
 
 // TaskFieldGroupEntry describes a field group in the registry output.
@@ -286,14 +286,14 @@ func buildRegistryEntry(schema *TaskConfigSchema, sidecars map[string]*SidecarMe
 	// Build field descriptors
 	for i, field := range schema.Fields {
 		fe := TaskFieldRegistryEntry{
-			Name:        field.ProtoField,
-			DisplayName: toDisplayName(field.ProtoField),
-			Description: cleanDescription(field.Description),
-			Type:        mapFieldType(field.Type),
-			Required:    field.Required,
+			Name:         field.ProtoField,
+			DisplayName:  toDisplayName(field.ProtoField),
+			Description:  cleanDescription(field.Description),
+			Type:         mapFieldType(field.Type),
+			Required:     field.Required,
 			IsExpression: field.IsExpression,
-			FieldNumber: i + 1,
-			GroupId:     fieldToGroup[field.ProtoField],
+			FieldNumber:  i + 1,
+			GroupId:      fieldToGroup[field.ProtoField],
 		}
 
 		if field.Type.EnumValues != nil {
@@ -326,8 +326,8 @@ func buildRegistryEntry(schema *TaskConfigSchema, sidecars map[string]*SidecarMe
 func generateJsonSchema(schema *TaskConfigSchema) map[string]interface{} {
 	jsonSchema := map[string]interface{}{
 		"$schema":              "https://json-schema.org/draft/2020-12/schema",
-		"title":               schema.Name,
-		"type":                "object",
+		"title":                schema.Name,
+		"type":                 "object",
 		"additionalProperties": false,
 	}
 
@@ -550,7 +550,7 @@ func kindOrder(kind string) int {
 		"listen":        9,
 		"wait":          10,
 		"raise_error":   11,
-		"run_workflow":   12,
+		"run_workflow":  12,
 		"agent_call":    13,
 		"llm_call":      14,
 		"transform":     15,

@@ -116,6 +116,30 @@ selection.
 />
 
 
+### ContextGauge
+
+Terminal-native context window utilization gauge.
+
+Renders an ASCII progress bar with health-based coloring, token counts,
+and summarization event details. Uses the headless
+`useContextWindow` hook from `@stigmer/react`.
+
+Returns `null` when `ContextInfo` is absent (e.g., Cursor harness
+where context is managed externally).
+
+**Props** — `ContextGaugeProps`
+
+<TypeTable
+  type={{
+    execution: { type: "AgentExecution | null", description: "The execution snapshot from the active stream, or `null`. The gauge extracts `context_info` from the execution status.", required: true },
+  }}
+/>
+
+```tsx
+<ContextGauge execution={activeStreamExecution} />
+```
+
+
 ### ExecutionProgress
 
 Displays the current execution phase as a compact terminal badge.
@@ -147,6 +171,7 @@ to submit, Ctrl+C to exit the application.
   type={{
     disabled: { type: "boolean", description: "Disables the input entirely." },
     isSubmitting: { type: "boolean", description: "Shows a \"sending\" indicator and disables input." },
+    mode: { type: "\"agent\" | \"plan\"", description: "Current interaction mode. Shown in the shortcut hint line." },
     onSubmit: { type: "(message: string) => void", description: "Called when the user submits a message (Enter key).", required: true },
     placeholder: { type: "string", description: "Placeholder text. Default: \"Reply...\"" },
   }}
@@ -310,6 +335,7 @@ need more control should compose `InkStigmerProvider`,
     apiKey: { type: "string", description: "Static API key for authentication." },
     baseUrl: { type: "string", description: "Stigmer API server URL.", required: true },
     getAccessToken: { type: "TokenProvider", description: "Dynamic token provider for authentication." },
+    mode: { type: "\"agent\" | \"plan\"", description: "Default interaction mode for follow-up executions.  - `\"agent\"` (default): full tool access. - `\"plan\"`: read-only analysis, no file mutations.  When set, all follow-up executions in this session use this mode unless overridden by the user." },
     org: { type: "string", description: "Organization slug for creating follow-up executions.", required: true },
     sessionId: { type: "string", description: "Session ID to display and converse in.", required: true },
   }}
@@ -345,6 +371,7 @@ drop into their Ink apps for a complete agent conversation UI.
 
 <TypeTable
   type={{
+    mode: { type: "InteractionMode", description: "Initial interaction mode for follow-up executions.  - `\"agent\"` (default): full tool access. - `\"plan\"`: read-only analysis, no file mutations.  The user can toggle between modes with Ctrl+T during the session. This prop sets the initial value; subsequent toggles are managed as local state." },
     org: { type: "string", description: "Organization slug for creating follow-up executions.", required: true },
     sessionId: { type: "string", description: "Session ID to display and converse in.", required: true },
   }}

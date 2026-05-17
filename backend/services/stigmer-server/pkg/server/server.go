@@ -62,13 +62,14 @@ import (
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/encryption"
 
 	// Platform service imports
-	platformv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/platform/v1"
 	githubv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/platform/github/v1"
+	platformv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/platform/v1"
 	githubcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/github/controller"
 	platformcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/platform/controller"
 
 	// Search service imports
 	searchv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/search/v1"
+	taskkindregistry "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/registry"
 	agentinstanceclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agentinstance"
 	sessionclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/session"
 	workflowclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflow"
@@ -77,7 +78,6 @@ import (
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/extractor"
 	searchhandler "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/handler"
 	searchstore "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/store"
-	taskkindregistry "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/registry"
 )
 
 // Run starts the Stigmer server (extracted from main for BusyBox pattern)

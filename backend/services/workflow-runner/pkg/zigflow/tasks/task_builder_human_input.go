@@ -36,10 +36,10 @@ const SignalHumanInputPrefix = "human_input_"
 
 // HumanInputSignalPayload is the structure received when a reviewer responds.
 type HumanInputSignalPayload struct {
-	Outcome    string         `json:"outcome"`
-	FormData   map[string]any `json:"form_data,omitempty"`
-	Reviewer   string         `json:"reviewer"`
-	RespondedAt string        `json:"responded_at"`
+	Outcome     string         `json:"outcome"`
+	FormData    map[string]any `json:"form_data,omitempty"`
+	Reviewer    string         `json:"reviewer"`
+	RespondedAt string         `json:"responded_at"`
 }
 
 // HumanInputTaskBuilder handles human_input tasks that pause workflow

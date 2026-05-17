@@ -11,12 +11,12 @@ import (
 
 func TestBuildExecutionConfig(t *testing.T) {
 	tests := []struct {
-		name           string
-		model          string
-		mode           string
-		wantNil        bool
-		wantModel      string
-		wantMode       agentexecutionv1.InteractionMode
+		name      string
+		model     string
+		mode      string
+		wantNil   bool
+		wantModel string
+		wantMode  agentexecutionv1.InteractionMode
 	}{
 		{
 			name:    "no model no mode produces nil config",

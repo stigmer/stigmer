@@ -30,7 +30,7 @@ def init_tracing(service_name: str) -> Callable[[], None] | None:
     from opentelemetry.sdk.resources import Resource
     from opentelemetry.sdk.trace import TracerProvider
     from opentelemetry.sdk.trace.export import BatchSpanProcessor
-    from opentelemetry.trace.propagation import TraceContextTextMapPropagator
+    from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
 
     resource = Resource.create({"service.name": service_name})
     exporter = OTLPSpanExporter(endpoint=endpoint, insecure=True)
@@ -93,7 +93,8 @@ def set_baggage(items: dict[str, str]) -> None:
     Must be called inside an async task where ``contextvars`` are active
     (e.g. inside a Temporal activity). Keys with empty values are skipped.
     """
-    from opentelemetry import baggage, context as otel_context
+    from opentelemetry import baggage
+    from opentelemetry import context as otel_context
 
     ctx = otel_context.get_current()
     for k, v in items.items():

@@ -73,6 +73,7 @@ Workflow workflow = client.workflows().get("wfl_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`create`](#create) | Create a workflow. |
 | [`update`](#update) | Update an existing workflow. |
 | [`delete`](#delete) | Delete a workflow. |
+| [`validateSpec`](#validatespec) | Validate a workflow spec without persisting it. |
 
 ### get
 
@@ -443,6 +444,83 @@ Workflow workflow = client.workflows().delete(id);
 
 **Returns**: [`Workflow`](#workflow)
 
+### validateSpec
+
+Validate a workflow spec without persisting it.
+
+Runs the same two-layer validation pipeline used by create/update: Layer 1: Proto field constraints (buf validate / protovalidate) Layer 2: Temporal-based structural validation (Go activity: proto → YAML → Zigflow)
+
+Returns ServerlessWorkflowValidation with: - VALID: Workflow structure passed all checks - INVALID: User error (bad structure, missing fields, unknown task kinds) - FAILED: System error (Temporal unavailable, converter crash)
+
+This RPC does NOT persist, authorize, or create instances. It is a pure validation endpoint suitable for iterative authoring workflows where the caller needs fast feedback before committing.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const serverlessWorkflowValidation = await stigmer.workflow.validateSpec({
+  name: "my-workflow",
+  org: "acme",
+  slug: "...",
+  labels: {},
+  description: "...",
+  document: {},
+  tasks: [],
+  env: {},
+  budget: {},
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+serverlessWorkflowValidation, err := client.Workflow.ValidateSpec(ctx, &stigmer.WorkflowInput{
+  Name:        "my-workflow",
+  Org:         "acme",
+  Slug:        "...",
+  Labels:      map[string]string{},
+  Description: "...",
+  Document:    &stigmer.WorkflowDocumentInput{},
+  Tasks:       []stigmer.WorkflowTaskInput{},
+  Env:         map[string]string{},
+  Budget:      &stigmer.WorkflowBudgetInput{},
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+serverless_workflow_validation = client.workflows.validate_spec(WorkflowInput(
+    name="my-workflow",
+    org="acme",
+    slug="...",
+    labels={},
+    description="...",
+    document=None,
+    tasks=[],
+    env={},
+    budget=None,
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+Workflow serverlessWorkflowValidation = client.workflows().validateSpec(WorkflowInput.builder()
+    .name("my-workflow")
+    .org("acme")
+    .slug("...")
+    .labels(Map.of())
+    .description("...")
+    .document(null)
+    .tasks(List.of())
+    .env(Map.of())
+    .budget(null)
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`WorkflowInput`](#workflowinput)
+
+**Returns**: [`ServerlessWorkflowValidation`](#serverlessworkflowvalidation)
+
 ## Types
 
 ### WorkflowInput
@@ -488,6 +566,7 @@ WorkflowTask represents a single executable step in a workflow.
     taskConfig: { type: "object", description: "Task-specific configuration whose structure depends on the `kind` field.", required: true },
     export: { type: "ExportInput", description: "Export configuration (how to save task output to context).", typeDescriptionLink: "#exportinput" },
     flow: { type: "FlowControlInput", description: "Flow control (which task executes next).", typeDescriptionLink: "#flowcontrolinput" },
+    compensate: { type: "WorkflowTaskInput[]", description: "Compensation tasks to execute if this task needs to be \"undone.\".", typeDescriptionLink: "#workflowtaskinput" },
   }}
 />
 
@@ -533,6 +612,21 @@ WorkflowBudget declares cost, token, and duration limits for a workflow executio
     maxTotalTokens: { type: "number", description: "Maximum total tokens (input + output) across all LLM/agent tasks." },
     maxDurationSeconds: { type: "number", description: "Maximum wall-clock duration for the entire workflow execution in seconds." },
     onExceeded: { type: "BudgetExceededPolicy", description: "Policy when any budget limit is exceeded.", typeDescriptionLink: "#budgetexceededpolicy" },
+  }}
+/>
+
+### ServerlessWorkflowValidation
+
+ServerlessWorkflowValidation contains the generated Serverless Workflow YAML and its validation state.
+
+<TypeTable
+  type={{
+    state: { type: "ValidationState", description: "Current validation state.", typeDescriptionLink: "#validationstate" },
+    yaml: { type: "string", description: "Generated CNCF Serverless Workflow DSL 1.0.0 YAML." },
+    errors: { type: "string[]", description: "Validation errors, empty when valid." },
+    warnings: { type: "string[]", description: "Non-fatal validation warnings." },
+    validatedAt: { type: "string", description: "When the validation was performed." },
+    validationWorkflowId: { type: "string", description: "Validation process ID for tracking validation progress." },
   }}
 />
 
@@ -640,6 +734,7 @@ WorkflowTaskKind defines the supported task types in a workflow.
 | `validate` | Schema and business-rule validation checkpoint. |
 | `emit_event` | Emit a CloudEvents-formatted event for external consumers or other workflows. |
 | `notification` | Send a notification to humans through a channel (Slack, email, Discord, etc.). |
+| `eval` | LLM-as-a-judge evaluation for semantic quality assessment. |
 
 ### BudgetExceededPolicy
 

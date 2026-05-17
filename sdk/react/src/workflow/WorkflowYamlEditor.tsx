@@ -115,7 +115,6 @@ export const WorkflowYamlEditor = memo(function WorkflowYamlEditor({
       view.destroy();
       viewRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Sync external value changes into the editor
