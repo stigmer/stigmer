@@ -8,18 +8,18 @@ Drop this file into your conversation to quickly resume work on this project.
 
 **Description**: Add production-grade node interaction UX to the visual workflow canvas editor — on-node delete buttons, quick-add '+' buttons with task pickers, right-click context menus, and floating toolbars on selection.
 **Goal**: Fix the fundamental UX gaps in the canvas editor so users can add, delete, duplicate, and manipulate nodes directly on the canvas, matching the interaction standards of editors like n8n, Retool, and ComfyUI.
-**Tech Stack**: TypeScript/React, @xyflow/react v12, @stigmer/react SDK, Tailwind CSS, dagre
-**Components**: sdk/react/src/workflow/ (CanvasTaskNode, CanvasTransitionEdge, WorkflowCanvasInner, WorkflowCanvasEditor, WorkflowInspectorPanel, useWorkflowCanvas, CanvasActionsContext)
+**Tech Stack**: TypeScript/React, @xyflow/react v12, @stigmer/react SDK, @base-ui/react, Tailwind CSS, dagre
+**Components**: sdk/react/src/workflow/ (CanvasTaskNode, CanvasTransitionEdge, TaskPickerPopover, WorkflowCanvasInner, WorkflowCanvasEditor, WorkflowInspectorPanel, useWorkflowCanvas, CanvasActionsContext)
 
 ## Current State
 
 - **Status**: In Progress
-- **Last Session**: 2026-05-17 — Implemented T01 (on-node hover actions)
-- **Active Task**: T01 completed, T02 next
+- **Last Session**: 2026-05-17 — Implemented T01 (on-node hover actions) + T02 (TaskPicker popover) + T03/T04 (wired node/edge "+" to picker)
+- **Active Task**: T02–T04 completed, T05 next
 
 ## Session Progress (2026-05-17)
 
-### T01: On-Node Hover Actions (Delete + Quick-Add) — COMPLETED
+### T01: On-Node Hover Actions (Delete + Quick-Add) — COMPLETED (prior session)
 
 **What was accomplished:**
 - Added CSS-only hover-reveal delete (trash) icon button on `CanvasTaskNode`
@@ -27,37 +27,68 @@ Drop this file into your conversation to quickly resume work on this project.
 - Implemented `addSuccessorTask` method in `useWorkflowCanvas` (creates node + edge via CompoundCommand)
 - Extended `CanvasActionsContext` with `addSuccessorTask` method
 - Wired everything through `WorkflowCanvasEditor`
-- TypeScript compiles cleanly, zero linter errors
+
+### T02: TaskPicker Popover Component — COMPLETED
+
+**What was accomplished:**
+- Created `TaskPickerPopover.tsx` — searchable, categorized task kind picker
+- Uses `@base-ui/react/popover` (first use of this peer dependency in the SDK)
+- Uses `useStigmerPortalContainer()` for portal container (matches `ContextPopover` and `ModelSelector` patterns)
+- Searchable via `<input type="search">` with same filter logic as `WorkflowTaskPalette`
+- Category grouping with `CATEGORY_COLORS` color dots, `CATEGORY_DISPLAY_NAMES` section headers
+- Full keyboard navigation: arrow keys to traverse items, Enter to select, Escape to close
+- Auto-focus search input on open via `requestAnimationFrame`
+- Styled via `--stgm-*` tokens (`bg-popover`, `text-popover-foreground`, `z-popover`, `border-border`)
+- Exported from SDK barrel (`@stigmer/react`) for platform builders
+
+### T03: On-node "+" wired to TaskPicker — COMPLETED
+
+**What was accomplished:**
+- Replaced hardcoded `actions?.addSuccessorTask(id, "agent_call")` with `TaskPickerPopover` trigger
+- Added per-node `useState<boolean>` for popover open state + `useRef<HTMLButtonElement>` for anchor
+- On kind selection, calls `actions.addSuccessorTask(id, selectedKind)` then closes popover
+
+### T04: Edge "+" opens TaskPicker — COMPLETED
+
+**What was accomplished:**
+- Replaced hardcoded `actions?.insertTaskOnEdge(id, "agent_call")` with `TaskPickerPopover` trigger
+- Added `pickerOpen` to edge "+" button visibility condition so the button stays visible while picker is open
+- On kind selection, calls `actions.insertTaskOnEdge(id, selectedKind)` then closes popover
+
+### Shared: Extract constants to canvas-constants.ts — COMPLETED
+
+- Moved `CATEGORY_DISPLAY_NAMES` and `CATEGORY_ORDER` from `WorkflowTaskPalette.tsx` to `canvas-constants.ts`
+- Both `WorkflowTaskPalette` and `TaskPickerPopover` import from the shared location
 
 **Key decisions:**
-- CSS-only hover visibility (`group`/`group-hover:` in Tailwind) — no React state per node for performance with 50+ nodes
-- "+" button hardcodes `agent_call` kind for now — T02 will add the task picker popover
-- Delete button positioned at top-right (-right-2 -top-2), "+" at bottom-center (-bottom-3)
-- Both buttons use `scale-75 opacity-0 → scale-100 opacity-100` transition matching existing edge "+" pattern
-- Sentinel nodes (Start/End) are unaffected — they render via separate `SentinelNode` component
-- `addSuccessorTask` appends a new edge (simple append, not splice) — Option C from the plan
+- `@base-ui/react/popover` as the popover primitive — MIT license (DD-012), headless-first (DD-003), no framework deps (DD-004), already a peer dependency
+- Per-node popover state (not a shared singleton) — Base UI Popup doesn't mount DOM when `open=false`, so 50 idle nodes have zero DOM overhead. Simpler architecture, same performance.
+- `useState` inside `React.memo` is architecturally sound — memo protects against parent-driven re-renders, local state enables self-driven re-renders. The "+" click handler becomes MORE stable (empty deps via `setPickerOpen`).
+- `Popover.Positioner` `anchor` prop with ref — positions correctly inside `EdgeLabelRenderer` because Floating UI reads `getBoundingClientRect()` from the button regardless of CSS transform context.
+- Keyboard isolation correct by default — portaled popover DOM is outside React Flow tree, so key events in search input don't trigger canvas Delete/Backspace handlers.
 
-**Files modified (4 files, +105/-4 lines):**
-- `sdk/react/src/workflow/CanvasActionsContext.ts` — added `addSuccessorTask` to interface
-- `sdk/react/src/workflow/CanvasTaskNode.tsx` — hover buttons, context consumption, callbacks
-- `sdk/react/src/workflow/useWorkflowCanvas.ts` — `addSuccessorTask` implementation + return type
-- `sdk/react/src/workflow/WorkflowCanvasEditor.tsx` — wired into canvasActions provider
+**Files modified (6 modified + 1 new, +94/-32 lines):**
+- `sdk/react/src/workflow/TaskPickerPopover.tsx` — NEW: searchable popover component (327 lines)
+- `sdk/react/src/workflow/canvas-constants.ts` — added `CATEGORY_DISPLAY_NAMES`, `CATEGORY_ORDER`
+- `sdk/react/src/workflow/WorkflowTaskPalette.tsx` — imports from canvas-constants instead of local definitions
+- `sdk/react/src/workflow/CanvasTaskNode.tsx` — `TaskPickerPopover` trigger on "+" button
+- `sdk/react/src/workflow/CanvasTransitionEdge.tsx` — `TaskPickerPopover` trigger on "+" button
+- `sdk/react/src/workflow/index.ts` — export `TaskPickerPopover`, `TaskPickerPopoverProps`
+- `sdk/react/src/index.ts` — export `TaskPickerPopover`, `TaskPickerPopoverProps`
 
 ## Next Steps
 
-1. **T02: TaskPicker popover component** — Shared dependency for T03 and T04. Searchable list of task types from `useTaskKindRegistry`. Used by edge "+", node "+", and context menu.
-2. **T03: On-node "+" wired to TaskPicker** — Replace hardcoded `agent_call` with TaskPicker popover
-3. **T04: Edge "+" opens TaskPicker** — Replace hardcoded `agent_call` in `CanvasTransitionEdge`
-4. **T05: Right-click context menu + DuplicateNodeCommand** — `onNodeContextMenu`, `onEdgeContextMenu`, `onPaneContextMenu`
-5. **T06: NodeToolbar on selection** — Composes all previous actions into a floating toolbar
-6. **T07: Keyboard shortcuts** — Ctrl+D, N-key palette
+1. **T05: Right-click context menu + DuplicateNodeCommand** — `onNodeContextMenu`, `onEdgeContextMenu`, `onPaneContextMenu`. Node menu: Delete, Duplicate, Copy. Edge menu: Delete Connection, Insert Node (opens TaskPicker). Canvas menu: Add Node (opens TaskPicker), Select All, Auto-layout.
+2. **T06: NodeToolbar on selection** — Composes all previous actions into a floating toolbar using `@xyflow/react`'s `<NodeToolbar>`.
+3. **T07: Keyboard shortcuts** — Ctrl+D for duplicate, N-key to open command palette.
 
 ## Context for Resume
 
-- The hover action pattern is established: `group` class on outer div, `group-hover:` for visibility. All future on-node UI (context menu triggers, selection indicators) should follow this pattern.
-- `CanvasActionsContext` is the dispatch mechanism for node-level actions. New actions go here.
-- The "+" button's `addSuccessorTask` uses the same pattern as `insertTaskOnEdge` (CompoundCommand + requestAnimationFrame dagre re-layout).
-- Edge-case note: "+" currently does a simple append (adds edge from source to new node). The existing outgoing edge is NOT replaced. This matches palette drag behavior. May need refinement in T02 when task picker lands.
+- `TaskPickerPopover` is the shared picker component. It's used by both `CanvasTaskNode` (add successor) and `CanvasTransitionEdge` (insert on edge). The context menu (T05) should reuse the same component.
+- The popover uses `@base-ui/react/popover` with `anchor` prop on `Popover.Positioner` (not `Popover.Anchor` which doesn't exist in v1.3.0). The `align` prop is used (not `alignment`).
+- `CATEGORY_DISPLAY_NAMES` and `CATEGORY_ORDER` now live in `canvas-constants.ts` as shared constants.
+- The hover action pattern is established: `group` class on outer div, `group-hover:` for visibility. The popover open state keeps the "+" button visible while the picker is open (edge: `hovered || selected || pickerOpen`).
+- `CanvasActionsContext` is the dispatch mechanism for node-level actions. New actions for T05 (duplicate) go here.
 
 ## Essential Files to Review
 
@@ -105,12 +136,12 @@ When starting a new session:
 3. [ ] Review any new design decisions in `design-decisions/`
 4. [ ] Check coding guidelines in `coding-guidelines/`
 5. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-6. [ ] Continue with the next task (T02: TaskPicker popover)
+6. [ ] Continue with the next task (T05: Right-click context menu)
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T02" - Start the task picker popover
+- "Continue with T05" - Start the right-click context menu
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns

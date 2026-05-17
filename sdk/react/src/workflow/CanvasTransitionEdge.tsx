@@ -1,11 +1,12 @@
 "use client";
 
-import { memo, useCallback, useContext, useState } from "react";
+import { memo, useCallback, useContext, useRef, useState } from "react";
 import { BaseEdge, EdgeLabelRenderer, getSmoothStepPath } from "@xyflow/react";
 import type { EdgeProps } from "@xyflow/react";
 import { cn } from "@stigmer/theme";
 import type { CanvasTransitionEdgeData } from "./workflow-graph-conversions";
 import { CanvasActionsContext } from "./CanvasActionsContext";
+import { TaskPickerPopover } from "./TaskPickerPopover";
 
 /**
  * Custom React Flow edge rendering a directed transition between tasks.
@@ -44,10 +45,23 @@ export const CanvasTransitionEdge = memo(function CanvasTransitionEdge({
   const label = data?.label;
   const actions = useContext(CanvasActionsContext);
   const [hovered, setHovered] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const insertBtnRef = useRef<HTMLButtonElement>(null);
 
-  const handleInsert = useCallback(() => {
-    actions?.insertTaskOnEdge(id, "agent_call");
-  }, [actions, id]);
+  const handleOpenPicker = useCallback(() => {
+    setPickerOpen(true);
+  }, []);
+
+  const handlePickerOpenChange = useCallback((nextOpen: boolean) => {
+    setPickerOpen(nextOpen);
+  }, []);
+
+  const handleKindSelected = useCallback(
+    (kindString: string) => {
+      actions?.insertTaskOnEdge(id, kindString);
+    },
+    [actions, id],
+  );
 
   return (
     <>
@@ -78,12 +92,13 @@ export const CanvasTransitionEdge = memo(function CanvasTransitionEdge({
             </div>
           )}
           <button
+            ref={insertBtnRef}
             type="button"
-            onClick={handleInsert}
+            onClick={handleOpenPicker}
             className={cn(
               "flex h-5 w-5 items-center justify-center rounded-full border border-[var(--stgm-border-prominent,#d4d4d8)] bg-[var(--stgm-card,var(--stgm-background,#fff))] text-[var(--stgm-muted-foreground,#737373)] shadow-sm transition-all",
               "hover:border-[var(--stgm-primary,#6366f1)] hover:bg-[var(--stgm-primary,#6366f1)] hover:text-[var(--stgm-primary-foreground,#fff)]",
-              hovered || selected ? "scale-100 opacity-100" : "scale-75 opacity-0",
+              hovered || selected || pickerOpen ? "scale-100 opacity-100" : "scale-75 opacity-0",
             )}
             aria-label="Insert task here"
             title="Insert task"
@@ -92,6 +107,14 @@ export const CanvasTransitionEdge = memo(function CanvasTransitionEdge({
               <path d="M5 2v6M2 5h6" />
             </svg>
           </button>
+
+          <TaskPickerPopover
+            open={pickerOpen}
+            onOpenChange={handlePickerOpenChange}
+            onSelectKind={handleKindSelected}
+            anchorRef={insertBtnRef}
+            side="bottom"
+          />
         </div>
       </EdgeLabelRenderer>
     </>
