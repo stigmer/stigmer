@@ -189,9 +189,12 @@ func (s *JavaService) Stop() error {
 func buildServiceEnv(cfg ServiceConfig) []string {
 	fgaEnabled := cfg.OpenFGAAPIURL != "" && cfg.OpenFGAStoreID != "" && cfg.OpenFGAModelID != ""
 
-	profiles := "mongo,temporal,iam,logging,auth0,skill-r2,agent-execution-r2"
+	profiles := "mongo,temporal,iam,logging,auth0,skill-r2,agent-execution-r2,claimcheck-r2"
 	if fgaEnabled {
 		profiles += ",openfga"
+	}
+	if cfg.OTLPEndpoint != "" {
+		profiles += ",observability"
 	}
 
 	env := os.Environ()
