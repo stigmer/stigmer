@@ -145,7 +145,7 @@ jobs:
 
       - name: Install OpenFGA CLI
         run: |
-          curl -fsSL https://openfga.dev/api/installcli | bash
+          go install github.com/openfga/cli/cmd/fga@latest
           fga version
 
       - name: Download FGA model
