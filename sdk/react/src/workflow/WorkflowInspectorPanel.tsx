@@ -10,7 +10,7 @@ import type { TaskKindDescriptor } from "./types";
 import { TaskConfigForm } from "./TaskConfigForm";
 import { BranchConditionBuilder } from "./BranchConditionBuilder";
 import { ApprovalFormBuilder } from "./ApprovalFormBuilder";
-import { CATEGORY_COLORS } from "./canvas-constants";
+import { CATEGORY_COLORS, TASK_NAME_PATTERN, TASK_NAME_PATTERN_ERROR } from "./canvas-constants";
 import { taskKindToString } from "./workflow-graph-conversions";
 
 /** Props for {@link WorkflowInspectorPanel}. */
@@ -299,8 +299,8 @@ function IdentitySection({
       setNameError("Name cannot be empty");
       return;
     }
-    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(trimmed)) {
-      setNameError("Must start with a letter or underscore, alphanumeric/underscore only");
+    if (!TASK_NAME_PATTERN.test(trimmed)) {
+      setNameError(TASK_NAME_PATTERN_ERROR);
       return;
     }
     if (existingNames.has(trimmed)) {

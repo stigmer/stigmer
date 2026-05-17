@@ -59,6 +59,18 @@ export const CATEGORY_DISPLAY_NAMES: Readonly<Record<TaskKindCategory, string>> 
 };
 
 /**
+ * Identifier pattern for workflow task names.
+ *
+ * Mirrors the `buf.validate` constraint on `WorkflowTask.name` in
+ * `ai/stigmer/agentic/workflow/v1/spec.proto`.
+ */
+export const TASK_NAME_PATTERN = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+
+/** User-facing error message when a task name fails {@link TASK_NAME_PATTERN}. */
+export const TASK_NAME_PATTERN_ERROR =
+  "Must start with a letter or underscore, alphanumeric/underscore only";
+
+/**
  * Rendering order for task kind categories in palettes and pickers.
  *
  * AI tasks first (most common), then control flow, invocation, data,

@@ -4,6 +4,7 @@ import { memo, useState, useCallback, useRef } from "react";
 import { cn } from "@stigmer/theme";
 import type { JsonObject } from "@bufbuild/protobuf";
 import type { WorkflowGraphEdge } from "./workflow-graph-model";
+import { TASK_NAME_PATTERN, TASK_NAME_PATTERN_ERROR } from "./canvas-constants";
 
 interface SwitchCaseEntry {
   name: string;
@@ -251,8 +252,8 @@ function CaseEntry({
       setNameError("Name required");
       return;
     }
-    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(trimmed)) {
-      setNameError("Alphanumeric and underscores only");
+    if (!TASK_NAME_PATTERN.test(trimmed)) {
+      setNameError(TASK_NAME_PATTERN_ERROR);
       return;
     }
     const isDuplicate = allCaseNames.some(
