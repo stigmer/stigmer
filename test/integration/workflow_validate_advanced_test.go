@@ -275,14 +275,16 @@ func TestValidateSpec_EvalTaskAccepted(t *testing.T) {
 	clients := harness.NewClients(grpcConn)
 
 	evalConfig, err := structpb.NewStruct(map[string]any{
+		"model":        "gpt-4o",
+		"subject":      "${ $data.content }",
+		"rubric":       "Verify overall output quality and correctness",
+		"scoring_mode": "EVAL_PASS_FAIL",
 		"criteria": []any{
 			map[string]any{
 				"name":        "quality_check",
 				"description": "Verify output quality",
-				"scoring":     "binary",
 			},
 		},
-		"input": "${ $data }",
 	})
 	require.NoError(t, err)
 

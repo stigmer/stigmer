@@ -42,7 +42,7 @@ var taskKindNameToEnum = map[string]string{
 // resolved relative to this source file's location.
 func seedpackRoot() string {
 	_, thisFile, _, _ := runtime.Caller(0)
-	return filepath.Join(filepath.Dir(thisFile), "..", "..", "..", "..", "seedpack")
+	return filepath.Join(filepath.Dir(thisFile), "..", "..", "..", "seedpack")
 }
 
 // LoadSeedpackWorkflow reads a workflow YAML from the seedpack/workflows/
