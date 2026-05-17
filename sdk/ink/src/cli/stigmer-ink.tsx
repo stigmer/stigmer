@@ -10,6 +10,7 @@ interface CliConfig {
   org: string;
   baseUrl: string;
   apiKey?: string;
+  mode?: "agent" | "plan";
 }
 
 function parseArgs(argv: string[]): CliConfig | null {
@@ -34,6 +35,16 @@ function parseArgs(argv: string[]): CliConfig | null {
       case "-k":
         config.apiKey = args[++i];
         break;
+      case "--mode":
+      case "-M": {
+        const value = args[++i];
+        if (value !== "agent" && value !== "plan") {
+          console.error(`Invalid --mode value "${value}": must be "agent" or "plan"`);
+          process.exit(1);
+        }
+        config.mode = value;
+        break;
+      }
       case "--help":
       case "-h":
         printUsage();
@@ -93,6 +104,7 @@ Options:
   -o, --org <slug>      Organization slug (required)
   -u, --base-url <url>  Stigmer API URL (or STIGMER_BASE_URL env)
   -k, --api-key <key>   API key (or STIGMER_API_KEY env)
+  -M, --mode <mode>     Interaction mode for follow-ups: "agent" or "plan"
   -h, --help            Show this help message
 
 Environment:
@@ -127,6 +139,7 @@ async function main() {
       org={config.org}
       baseUrl={config.baseUrl}
       apiKey={config.apiKey}
+      mode={config.mode}
     />,
     { stdin, exitOnCtrlC: isTTY, debug: !isTTY },
   );

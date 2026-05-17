@@ -14,6 +14,16 @@ export interface SessionViewProps {
   readonly sessionId: string;
   /** Organization slug for creating follow-up executions. */
   readonly org: string;
+  /**
+   * Default interaction mode for follow-up executions.
+   *
+   * - `"agent"` (default): full tool access.
+   * - `"plan"`: read-only analysis, no file mutations.
+   *
+   * When set, all follow-up executions use this mode unless the user
+   * overrides it (e.g., via a future mode picker widget).
+   */
+  readonly mode?: "agent" | "plan";
 }
 
 /**
@@ -39,7 +49,7 @@ export interface SessionViewProps {
  * );
  * ```
  */
-export function SessionView({ sessionId, org }: SessionViewProps) {
+export function SessionView({ sessionId, org, mode }: SessionViewProps) {
   const conv = useSessionConversation(sessionId, org);
   const [expandTools, setExpandTools] = useState(false);
 
@@ -154,8 +164,16 @@ export function SessionView({ sessionId, org }: SessionViewProps) {
 
       <UsageWidget executions={allExecutions} />
 
+      {mode === "plan" && conv.canSendFollowUp && (
+        <Box paddingLeft={1}>
+          <Text color="yellow" dimColor>Plan mode — read-only analysis, no file mutations</Text>
+        </Box>
+      )}
+
       <FollowUpInput
-        onSubmit={(message) => conv.sendFollowUp(message)}
+        onSubmit={(message) =>
+          conv.sendFollowUp(message, mode ? { interactionMode: mode } : undefined)
+        }
         isSubmitting={conv.isSending}
         disabled={!conv.canSendFollowUp}
       />

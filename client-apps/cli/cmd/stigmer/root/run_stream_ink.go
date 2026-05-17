@@ -24,6 +24,7 @@ type inkConfig struct {
 	OrgID     string
 	BaseURL   string
 	Token     string
+	Mode      string // "agent", "plan", or "" (default)
 }
 
 // resolveInkConfig extracts the API connection details needed by the Ink
@@ -163,6 +164,7 @@ func streamAgentInk(sessionID string, headerInfo sessionHeaderInfo, executionID,
 	if err != nil {
 		return nil, err
 	}
+	ic.Mode = headerInfo.Mode
 
 	inkArgs := []string{
 		"--session", ic.SessionID,
@@ -171,6 +173,9 @@ func streamAgentInk(sessionID string, headerInfo sessionHeaderInfo, executionID,
 	}
 	if ic.Token != "" {
 		inkArgs = append(inkArgs, "--api-key", ic.Token)
+	}
+	if ic.Mode != "" {
+		inkArgs = append(inkArgs, "--mode", ic.Mode)
 	}
 
 	cmd, err := resolveInkCommand(inkArgs)
