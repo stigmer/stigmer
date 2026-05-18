@@ -1,25 +1,7 @@
-load("@rules_go//go:def.bzl", "go_binary", "go_library")
-
 # Workflow Runner Service
-# This is a marker BUILD file to make the workflow-runner directory a Bazel package.
-# The actual service code is defined in subdirectories.
-
-go_library(
-    name = "workflow-runner_lib",
-    srcs = ["main.go"],
-    importpath = "github.com/stigmer/stigmer/backend/services/workflow-runner",
-    visibility = ["//visibility:private"],
-    deps = [
-        "//backend/services/workflow-runner/pkg/dotenv",
-        "//backend/services/workflow-runner/worker",
-        "//backend/services/workflow-runner/worker/config",
-        "@com_github_rs_zerolog//:zerolog",
-        "@com_github_rs_zerolog//log",
-    ],
-)
-
-go_binary(
-    name = "workflow-runner",
-    embed = [":workflow-runner_lib"],
-    visibility = ["//visibility:public"],
-)
+#
+# This is a marker BUILD file that makes the workflow-runner directory a Bazel
+# package. The actual binary is built from cmd/zigflow (the single entry point
+# for both production and integration tests).
+#
+# Production binary target: //backend/services/workflow-runner/cmd/zigflow:zigflow

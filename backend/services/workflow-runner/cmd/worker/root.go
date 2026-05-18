@@ -125,132 +125,23 @@ platform.`,
 			}
 		}()
 
-		// Check if running in Temporal worker mode (for stigmer integration)
-		if executionMode := os.Getenv("EXECUTION_MODE"); executionMode == "temporal" {
-			log.Info().Str("mode", "temporal").Msg("Starting workflow-runner")
-			return RunTemporalWorkerMode()
+		// Zigflow file mode requires an explicit --file / WORKFLOW_FILE.
+		// Without a file, default to the Stigmer Temporal worker — this
+		// prevents a crash if EXECUTION_MODE is ever omitted from a
+		// Kustomize overlay.
+		if rootOpts.FilePath != "" {
+			log.Info().Str("file", rootOpts.FilePath).Msg("Starting in zigflow file mode")
+			return runZigflowFileMode()
 		}
 
-		// Original zigflow mode: load and execute a single workflow file
-		log.Info().Msg("Starting in Temporal-only mode")
-		workflowDefinition, err := zigflow.LoadFromFile(rootOpts.FilePath)
-		if err != nil {
-			log.Fatal().Err(err).Msg("Unable to load workflow file")
+		executionMode := os.Getenv("EXECUTION_MODE")
+		if executionMode != "" && executionMode != "temporal" {
+			log.Warn().Str("EXECUTION_MODE", executionMode).
+				Msg("Unrecognized EXECUTION_MODE without --file; defaulting to temporal worker")
 		}
 
-		if rootOpts.Validate {
-			log.Debug().Msg("Running validation")
-
-			validator, err := utils.NewValidator()
-			if err != nil {
-				log.Fatal().Err(err).Msg("Error creating validator")
-			}
-
-			if res, err := validator.ValidateStruct(workflowDefinition); err != nil {
-				return gh.FatalError{
-					Cause: err,
-					Msg:   "Error creating validation stack",
-				}
-			} else if res != nil {
-				return gh.FatalError{
-					Cause: err,
-					Msg:   "Validation failed",
-					WithParams: func(l *zerolog.Event) *zerolog.Event {
-						return l.Interface("validationErrors", res)
-					},
-				}
-			}
-			log.Debug().Msg("Validation passed")
-		}
-
-		var converter converter.DataConverter
-		if rootOpts.ConvertData {
-			keys, err := aes.ReadKeyFile(rootOpts.ConvertKeyPath)
-			if err != nil {
-				return gh.FatalError{
-					Cause: err,
-					Msg:   "Unable to get keys from file",
-					WithParams: func(l *zerolog.Event) *zerolog.Event {
-						return l.Str("keypath", rootOpts.ConvertKeyPath)
-					},
-				}
-			}
-			converter = aes.DataConverter(keys)
-		}
-
-		// The client and worker are heavyweight objects that should be created once per process.
-		log.Trace().Msg("Connecting to Temporal")
-		client, err := temporal.NewConnection(
-			temporal.WithHostPort(rootOpts.TemporalAddress),
-			temporal.WithNamespace(rootOpts.TemporalNamespace),
-			temporal.WithTLS(rootOpts.TemporalTLSEnabled),
-			temporal.WithAuthDetection(
-				rootOpts.TemporalAPIKey,
-				rootOpts.TemporalMTLSCertPath,
-				rootOpts.TemporalMTLSKeyPath,
-			),
-			temporal.WithDataConverter(converter),
-			temporal.WithZerolog(&log.Logger),
-			temporal.WithPrometheusMetrics(rootOpts.MetricsListenAddress, rootOpts.MetricsPrefix),
-		)
-		if err != nil {
-			return gh.FatalError{
-				Cause: err,
-				Msg:   "Unable to create client",
-			}
-		}
-		defer func() {
-			log.Trace().Msg("Closing Temporal connection")
-			client.Close()
-			log.Trace().Msg("Temporal connection closed")
-		}()
-
-		taskQueue := workflowDefinition.Document.Namespace
-
-		// Add underscore to the prefix
-		prefix := rootOpts.EnvPrefix
-		prefix += "_"
-
-		log.Debug().Str("prefix", prefix).Msg("Loading envvars to state")
-		envvars := utils.LoadEnvvars(prefix)
-
-		ctx := context.Background()
-
-		log.Debug().Msg("Starting health check service")
-		temporal.NewHealthCheck(ctx, taskQueue, rootOpts.HealthListenAddress, client)
-
-		log.Info().Msg("Updating schedules")
-		if err := zigflow.UpdateSchedules(ctx, client, workflowDefinition, envvars); err != nil {
-			return gh.FatalError{
-				Cause: err,
-				Msg:   "Error updating Temporal schedules",
-			}
-		}
-
-		log.Info().Str("task-queue", taskQueue).Msg("Starting workflow")
-
-		pollerAutoscaler := sdkworker.NewPollerBehaviorAutoscaling(sdkworker.PollerBehaviorAutoscalingOptions{})
-		temporalWorker := sdkworker.New(client, taskQueue, sdkworker.Options{
-			WorkflowTaskPollerBehavior: pollerAutoscaler,
-			ActivityTaskPollerBehavior: pollerAutoscaler,
-			NexusTaskPollerBehavior:    pollerAutoscaler,
-		})
-
-		if err := zigflow.NewWorkflow(temporalWorker, workflowDefinition, envvars); err != nil {
-			return gh.FatalError{
-				Cause: err,
-				Msg:   "Unable to build workflow from DSL",
-			}
-		}
-
-		if err := temporalWorker.Run(sdkworker.InterruptCh()); err != nil {
-			return gh.FatalError{
-				Cause: err,
-				Msg:   "Unable to start worker",
-			}
-		}
-
-		return nil
+		log.Info().Str("mode", "temporal").Msg("Starting workflow-runner")
+		return RunTemporalWorkerMode()
 	},
 }
 
@@ -262,10 +153,129 @@ func Execute() {
 	}
 }
 
-// runTemporalWorkerMode starts the workflow-runner in Temporal worker mode
-// This mode is used by stigmer to run validation and execution activities
-// RunTemporalWorkerMode starts the workflow-runner in Temporal worker mode
-// Exported for use by the runner package (BusyBox pattern)
+// runZigflowFileMode loads a single workflow YAML and runs it as a
+// standalone Temporal worker. This is the original zigflow CLI behavior,
+// triggered only when an explicit --file / WORKFLOW_FILE is provided.
+func runZigflowFileMode() error {
+	workflowDefinition, err := zigflow.LoadFromFile(rootOpts.FilePath)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Unable to load workflow file")
+	}
+
+	if rootOpts.Validate {
+		log.Debug().Msg("Running validation")
+
+		validator, err := utils.NewValidator()
+		if err != nil {
+			log.Fatal().Err(err).Msg("Error creating validator")
+		}
+
+		if res, err := validator.ValidateStruct(workflowDefinition); err != nil {
+			return gh.FatalError{
+				Cause: err,
+				Msg:   "Error creating validation stack",
+			}
+		} else if res != nil {
+			return gh.FatalError{
+				Cause: err,
+				Msg:   "Validation failed",
+				WithParams: func(l *zerolog.Event) *zerolog.Event {
+					return l.Interface("validationErrors", res)
+				},
+			}
+		}
+		log.Debug().Msg("Validation passed")
+	}
+
+	var conv converter.DataConverter
+	if rootOpts.ConvertData {
+		keys, err := aes.ReadKeyFile(rootOpts.ConvertKeyPath)
+		if err != nil {
+			return gh.FatalError{
+				Cause: err,
+				Msg:   "Unable to get keys from file",
+				WithParams: func(l *zerolog.Event) *zerolog.Event {
+					return l.Str("keypath", rootOpts.ConvertKeyPath)
+				},
+			}
+		}
+		conv = aes.DataConverter(keys)
+	}
+
+	log.Trace().Msg("Connecting to Temporal")
+	client, err := temporal.NewConnection(
+		temporal.WithHostPort(rootOpts.TemporalAddress),
+		temporal.WithNamespace(rootOpts.TemporalNamespace),
+		temporal.WithTLS(rootOpts.TemporalTLSEnabled),
+		temporal.WithAuthDetection(
+			rootOpts.TemporalAPIKey,
+			rootOpts.TemporalMTLSCertPath,
+			rootOpts.TemporalMTLSKeyPath,
+		),
+		temporal.WithDataConverter(conv),
+		temporal.WithZerolog(&log.Logger),
+		temporal.WithPrometheusMetrics(rootOpts.MetricsListenAddress, rootOpts.MetricsPrefix),
+	)
+	if err != nil {
+		return gh.FatalError{
+			Cause: err,
+			Msg:   "Unable to create client",
+		}
+	}
+	defer func() {
+		log.Trace().Msg("Closing Temporal connection")
+		client.Close()
+		log.Trace().Msg("Temporal connection closed")
+	}()
+
+	taskQueue := workflowDefinition.Document.Namespace
+
+	prefix := rootOpts.EnvPrefix + "_"
+
+	log.Debug().Str("prefix", prefix).Msg("Loading envvars to state")
+	envvars := utils.LoadEnvvars(prefix)
+
+	ctx := context.Background()
+
+	log.Debug().Msg("Starting health check service")
+	temporal.NewHealthCheck(ctx, taskQueue, rootOpts.HealthListenAddress, client)
+
+	log.Info().Msg("Updating schedules")
+	if err := zigflow.UpdateSchedules(ctx, client, workflowDefinition, envvars); err != nil {
+		return gh.FatalError{
+			Cause: err,
+			Msg:   "Error updating Temporal schedules",
+		}
+	}
+
+	log.Info().Str("task-queue", taskQueue).Msg("Starting workflow")
+
+	pollerAutoscaler := sdkworker.NewPollerBehaviorAutoscaling(sdkworker.PollerBehaviorAutoscalingOptions{})
+	temporalWorker := sdkworker.New(client, taskQueue, sdkworker.Options{
+		WorkflowTaskPollerBehavior: pollerAutoscaler,
+		ActivityTaskPollerBehavior: pollerAutoscaler,
+		NexusTaskPollerBehavior:    pollerAutoscaler,
+	})
+
+	if err := zigflow.NewWorkflow(temporalWorker, workflowDefinition, envvars); err != nil {
+		return gh.FatalError{
+			Cause: err,
+			Msg:   "Unable to build workflow from DSL",
+		}
+	}
+
+	if err := temporalWorker.Run(sdkworker.InterruptCh()); err != nil {
+		return gh.FatalError{
+			Cause: err,
+			Msg:   "Unable to start worker",
+		}
+	}
+
+	return nil
+}
+
+// RunTemporalWorkerMode starts the workflow-runner in Temporal worker mode.
+// Exported for use by the runner package (BusyBox pattern).
 func RunTemporalWorkerMode() error {
 	log.Info().Msg("Starting in Temporal-only mode")
 
