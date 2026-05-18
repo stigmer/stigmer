@@ -100,6 +100,43 @@ const { launch } = useLaunchLocalRunner({
 ```
 
 
+### useRunner
+
+Data hook that fetches a single runner by ID.
+
+Calls `stigmer.runner.get(id)` and returns the result with
+loading/error state. Returns `null` runner when `id` is `null`
+(no runner selected).
+
+**Signature**
+
+```tsx
+function useRunner(id: string | null, options?: UseRunnerOptions): UseRunnerReturn
+```
+
+<TypeTable
+  type={{
+    id: { type: "string | null", description: "", required: true },
+    options: { type: "UseRunnerOptions", description: "" },
+  }}
+/>
+
+**Returns** — `UseRunnerReturn`
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "Error from the last failed fetch, or `null` when healthy." },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight." },
+    refetch: { type: "() => void", description: "Discard cached data and re-fetch the runner from the server." },
+    runner: { type: "Runner | null", description: "The fetched runner, or `null` while loading or on error." },
+  }}
+/>
+
+```tsx
+const { runner, isLoading, error } = useRunner(runnerId);
+```
+
+
 ### useRunnerCredential
 
 Behavior hook that resolves the current auth credential for passing
@@ -301,6 +338,50 @@ refetch(); // refresh the runner list
 
 ## Components
 
+### PhaseBadge
+
+Compact badge showing a colored dot indicator and label for a runner
+phase. Renders a spinning indicator for the STARTING phase.
+
+**Props** — `PhaseBadgeProps`
+
+<TypeTable
+  type={{
+    phase: { type: "RunnerPhase", description: "", required: true },
+  }}
+/>
+
+
+### RunnerDetailView
+
+Operational detail view for a Runner.
+
+Fetches the runner via [`useRunner`](#userunner) internally and renders its
+status, connection information, and machine details inside a
+[`ResourceDetailShell`](/docs/sdk/react/resource-detail#resourcedetailshell). Polls automatically when the runner is
+in a transitional phase (Starting, Pending).
+
+Handles loading, error, and not-found states automatically.
+Zero Console dependencies — safe for platform builder embedding.
+All visual properties flow through `--stgm-*` design tokens.
+
+**Props** — `RunnerDetailViewProps`
+
+<TypeTable
+  type={{
+    actions: { type: "readonly DetailAction[]", description: "Secondary actions rendered in the kebab overflow menu." },
+    className: { type: "string", description: "Additional CSS classes for the root container." },
+    id: { type: "string", description: "Runner ID.", required: true },
+    onResourceLoad: { type: "(meta: { id: string; name: string }) => void", description: "Called once when the runner resource has been fetched successfully. Provides the resource display name for use cases like breadcrumbs or document titles." },
+    primaryAction: { type: "DetailAction", description: "Primary action rendered as a visible button in the header area.", typeDescriptionLink: "/docs/sdk/react/resource-detail#detailaction" },
+  }}
+/>
+
+```tsx
+<RunnerDetailView id={runnerId} />
+```
+
+
 ### RunnerFileBrowser
 
 Styled component for browsing a runner's filesystem and selecting
@@ -335,6 +416,21 @@ All visual properties flow through `--stgm-*` tokens.
 ```
 
 
+### RunnerIcon
+
+CPU-chip icon representing a runner. Used across the runner list,
+fleet section, and empty states.
+
+**Props** — `RunnerIconProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "" },
+    size: { type: "number", description: "" },
+  }}
+/>
+
+
 ### RunnerListPanel
 
 Panel that displays runners in an organization with lifecycle
@@ -365,11 +461,15 @@ All visual properties flow through `--stgm-*` design tokens.
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
+    filterPhases: { type: "readonly RunnerPhase[]", description: "Restrict the list to runners in the specified phases.  When provided, only runners whose phase is in this array are shown. When omitted or empty, all phases are included." },
     includeSystemManaged: { type: "boolean", description: "Include system-managed (ephemeral cloud) runners in the list.  System-managed runners are auto-provisioned for cloud executions and labeled `stigmer.ai/system-managed: \"true\"`. They are excluded by default so user-facing views only show user-created runners. Pass `true` in admin views that need full fleet visibility." },
     onDeleted: { type: "(runner: Runner) => void", description: "Notification callback fired after a runner is successfully deleted. Receives the deleted runner resource for confirmation display." },
     onRefetchRef: { type: "(refetch: () => void) => void", description: "Expose refetch so parent components can trigger a list refresh." },
     onStopped: { type: "(runner: Runner) => void", description: "Notification callback fired after a runner is successfully stopped. Receives the updated runner resource with its new phase." },
     org: { type: "string", description: "Organization slug to scope the runner list.", required: true },
+    searchQuery: { type: "string", description: "Client-side text filter. When provided, only runners whose name or hostname contains this substring (case-insensitive) are shown." },
+    sortBy: { type: "RunnerSortKey", description: "Sort key for ordering the runner list.", typeDescriptionLink: "#runnersortkey" },
+    sortDirection: { type: "\"desc\" | \"asc\"", description: "Sort direction." },
   }}
 />
 
@@ -430,6 +530,21 @@ const [runnerId, setRunnerId] = useState<string | null>(null);
 
 
 ## Types
+
+### formatRelativeTime
+
+Formats a Date as a compact relative time string.
+
+- < 60s → "just now"
+- < 60m → "5m ago"
+- < 24h → "3h ago"
+- < 30d → "12d ago"
+- otherwise → locale short date
+
+```tsx
+function formatRelativeTime(date: Date): string
+```
+
 
 ### isActivePhase
 
@@ -536,6 +651,11 @@ or API key), the API endpoint, and the organization scope.
 />
 
 
+### RunnerSortKey
+
+Sort key for the runner list.
+
+
 ### StopRunnerInput
 
 Input for `UseStopRunnerReturn.stop`.
@@ -567,6 +687,17 @@ Options for [`useRunnerList`](#userunnerlist).
   type={{
     includeSystemManaged: { type: "boolean", description: "Include system-managed (ephemeral cloud) runners in the result.  System-managed runners are labeled `stigmer.ai/system-managed: \"true\"` and are created by the platform for cloud executions. They are hidden from the session composer by default but useful in admin views." },
     refetchInterval: { type: "number | false", description: "Poll interval in milliseconds for automatic re-fetching.  When set to a positive number, the hook re-fetches the runner list on a timer. Useful for monitoring status transitions (e.g. Pending to Ready) without requiring the user to navigate away and back.  Set to `false` or `0` to disable polling (the default)." },
+  }}
+/>
+
+
+### UseRunnerOptions
+
+Options for [`useRunner`](#userunner).
+
+<TypeTable
+  type={{
+    refetchInterval: { type: "number | false", description: "Poll interval in milliseconds for automatic re-fetching.  Useful for monitoring runner status transitions (e.g. Starting to Ready) without requiring manual refresh." },
   }}
 />
 

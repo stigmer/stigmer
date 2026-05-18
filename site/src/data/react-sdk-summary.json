@@ -1,11 +1,249 @@
 {
   "domains": [
     {
-      "slug": "test",
-      "title": "test",
-      "description": "",
-      "hooks": 0,
+      "slug": "activity",
+      "title": "Activity",
+      "description": "Hooks for recent activity feeds and session history.",
+      "hooks": 1,
       "components": 0
+    },
+    {
+      "slug": "agent",
+      "title": "Agent",
+      "description": "Hooks and components for agent definitions, search, setup orchestration, and detail views.",
+      "hooks": 8,
+      "components": 4
+    },
+    {
+      "slug": "agent-instance",
+      "title": "Agent Instance",
+      "description": "Hooks for deployed agent instances bound to an environment.",
+      "hooks": 4,
+      "components": 0
+    },
+    {
+      "slug": "api-key",
+      "title": "API Key",
+      "description": "Hooks and components for API key creation, listing, and deletion.",
+      "hooks": 3,
+      "components": 3
+    },
+    {
+      "slug": "attachment",
+      "title": "Attachment",
+      "description": "Hooks and components for file upload handling and chip display.",
+      "hooks": 1,
+      "components": 1
+    },
+    {
+      "slug": "billing",
+      "title": "Billing",
+      "description": "Hooks and components for subscription plans, payment methods, and invoices.",
+      "hooks": 7,
+      "components": 7
+    },
+    {
+      "slug": "composer",
+      "title": "Composer",
+      "description": "The unified message input with model selection, workspace, and attachments.",
+      "hooks": 1,
+      "components": 1
+    },
+    {
+      "slug": "dashboard",
+      "title": "Dashboard",
+      "description": "Hooks for dashboard metrics, activity feeds, and analytics data.",
+      "hooks": 3,
+      "components": 0
+    },
+    {
+      "slug": "dependency-graph",
+      "title": "Dependency Graph",
+      "description": "Hooks and components for visualizing agent specification dependencies.",
+      "hooks": 1,
+      "components": 1
+    },
+    {
+      "slug": "environment",
+      "title": "Environment",
+      "description": "Hooks and components for configuration, variables, secrets, and session environment pools.",
+      "hooks": 9,
+      "components": 4
+    },
+    {
+      "slug": "error",
+      "title": "Error",
+      "description": "Components for structured error display and troubleshooting guidance.",
+      "hooks": 0,
+      "components": 2
+    },
+    {
+      "slug": "execution",
+      "title": "Execution",
+      "description": "Hooks and components for real-time streaming, tool calls, approvals, messages, and artifacts.",
+      "hooks": 8,
+      "components": 22
+    },
+    {
+      "slug": "github",
+      "title": "GitHub",
+      "description": "Hooks and components for OAuth connection, repository search, and picker.",
+      "hooks": 3,
+      "components": 1
+    },
+    {
+      "slug": "iam-policy",
+      "title": "IAM Policy",
+      "description": "Hooks and components for access control bindings, role assignment, and org membership.",
+      "hooks": 8,
+      "components": 3
+    },
+    {
+      "slug": "identity-account",
+      "title": "Identity Account",
+      "description": "Hooks for identity account lookup and profile resolution.",
+      "hooks": 1,
+      "components": 0
+    },
+    {
+      "slug": "identity-provider",
+      "title": "Identity Provider",
+      "description": "Hooks and components for federated identity provider setup and management.",
+      "hooks": 6,
+      "components": 6
+    },
+    {
+      "slug": "invitation",
+      "title": "Invitation",
+      "description": "Hooks and components for invite link creation, listing, and redemption.",
+      "hooks": 5,
+      "components": 3
+    },
+    {
+      "slug": "library",
+      "title": "Library",
+      "description": "Hooks and components for resource browsing, YAML detection, apply flow, and visibility.",
+      "hooks": 8,
+      "components": 5
+    },
+    {
+      "slug": "mcp-server",
+      "title": "MCP Server",
+      "description": "Hooks and components for MCP server connections, setup, credentials, and tool management.",
+      "hooks": 12,
+      "components": 7
+    },
+    {
+      "slug": "models",
+      "title": "Models",
+      "description": "Hooks and components for model registry data and selector.",
+      "hooks": 1,
+      "components": 2
+    },
+    {
+      "slug": "oauth-app",
+      "title": "OAuth App",
+      "description": "Hooks and components for OAuth app creation, listing, editing, and deletion.",
+      "hooks": 4,
+      "components": 3
+    },
+    {
+      "slug": "organization",
+      "title": "Organization",
+      "description": "Hooks and components for organization creation and management.",
+      "hooks": 6,
+      "components": 4
+    },
+    {
+      "slug": "platform-client",
+      "title": "Platform Client",
+      "description": "Hooks and components for low-level platform API client access and request management.",
+      "hooks": 6,
+      "components": 4
+    },
+    {
+      "slug": "resource-creation",
+      "title": "Resource Creation",
+      "description": "Hooks and components for template-driven resource creation flows.",
+      "hooks": 2,
+      "components": 6
+    },
+    {
+      "slug": "resource-detail",
+      "title": "Resource Detail",
+      "description": "Hooks and components for resource detail views, header chrome, and tab navigation.",
+      "hooks": 3,
+      "components": 4
+    },
+    {
+      "slug": "resource-workbench",
+      "title": "Resource Workbench",
+      "description": "Layout shell and collection hooks for building resource management consoles.",
+      "hooks": 4,
+      "components": 12
+    },
+    {
+      "slug": "runner",
+      "title": "Runner",
+      "description": "Hooks and components for runner lifecycle, fleet management, local launch, and picker.",
+      "hooks": 7,
+      "components": 6
+    },
+    {
+      "slug": "session",
+      "title": "Session",
+      "description": "Hooks for session lifecycle, message history, conversation state, and usage tracking.",
+      "hooks": 15,
+      "components": 0
+    },
+    {
+      "slug": "settings",
+      "title": "Settings",
+      "description": "Pre-composed settings sections for organization console embedding.",
+      "hooks": 0,
+      "components": 9
+    },
+    {
+      "slug": "skill",
+      "title": "Skill",
+      "description": "Hooks and components for knowledge attachments, search, picker, and detail views.",
+      "hooks": 10,
+      "components": 5
+    },
+    {
+      "slug": "usage",
+      "title": "Usage",
+      "description": "Hooks and components for organization-level usage reporting and cost breakdown.",
+      "hooks": 2,
+      "components": 5
+    },
+    {
+      "slug": "user",
+      "title": "User",
+      "description": "Components for user profile display and account menu embedding.",
+      "hooks": 0,
+      "components": 1
+    },
+    {
+      "slug": "version-history",
+      "title": "Version History",
+      "description": "Components for resource version diffs, timeline, and rollback controls.",
+      "hooks": 0,
+      "components": 6
+    },
+    {
+      "slug": "workflow",
+      "title": "Workflow",
+      "description": "Hooks and components for workflow definitions, instances, executions, and the visual builder.",
+      "hooks": 24,
+      "components": 6
+    },
+    {
+      "slug": "workspace",
+      "title": "Workspace",
+      "description": "Hooks and components for file entries, folder browsing, and code editing.",
+      "hooks": 1,
+      "components": 2
     }
   ]
 }

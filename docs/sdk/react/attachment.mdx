@@ -39,7 +39,7 @@ function useAttachments(options?: UseAttachmentsOptions): UseAttachmentsReturn
 
 <TypeTable
   type={{
-    addFiles: { type: "(files: File[] | FileList) => void", description: "Add one or more files. Each file is validated and uploaded immediately. Invalid files (e.g., too large) are rejected via `onValidationError` and not added." },
+    addFiles: { type: "(files: FileList | File[]) => void", description: "Add one or more files. Each file is validated and uploaded immediately. Invalid files (e.g., too large) are rejected via `onValidationError` and not added." },
     allReady: { type: "boolean", description: "True when there are entries and all are ready (none uploading or errored)." },
     clear: { type: "() => void", description: "Clear all entries and abort any in-flight uploads." },
     entries: { type: "readonly AttachmentEntry[]", description: "Current attachment entries (uploading, ready, or errored)." },

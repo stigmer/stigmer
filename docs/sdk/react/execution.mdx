@@ -105,6 +105,58 @@ const { content } = useArtifactContent(executionId, storageKey, "SKILL.md");
 ```
 
 
+### useContextWindow
+
+Extracts context window information from an execution's status.
+
+Provides real-time visibility into context utilization, summarization
+thresholds, and summarization history for the native harness. Returns
+a stable empty state when `ContextInfo` is absent (e.g., Cursor harness
+where context is managed externally).
+
+The derived `health` and `isNearThreshold` fields are intended for
+driving visual indicators (gauge color, alert badges) without coupling
+rendering components to threshold arithmetic.
+
+**Signature**
+
+```tsx
+function useContextWindow(execution: AgentExecution | null): UseContextWindowReturn
+```
+
+<TypeTable
+  type={{
+    execution: { type: "AgentExecution | null", description: "The execution snapshot from `useExecutionStream`, or `null`.", required: true },
+  }}
+/>
+
+**Returns** — `UseContextWindowReturn`
+
+<TypeTable
+  type={{
+    contextWindowLimit: { type: "number", description: "Model's maximum context window size in tokens. 0 when unavailable." },
+    currentTokenCount: { type: "number", description: "Current token count in the context window. 0 when unavailable." },
+    hasContextInfo: { type: "boolean", description: "`true` when real `ContextInfo` data is available (native harness)." },
+    health: { type: "ContextHealth", description: "Derived health state based on utilization thresholds.", typeDescriptionLink: "#contexthealth" },
+    isNearThreshold: { type: "boolean", description: "`true` when utilization is within 5% of the trigger threshold." },
+    summarizationEnabled: { type: "boolean", description: "Whether automatic summarization is enabled for this execution." },
+    summarizationEvents: { type: "readonly SummarizationEventView[]", description: "Summarization events ordered chronologically (oldest first)." },
+    targetTokens: { type: "number", description: "Target token count after summarization. 0 when unavailable." },
+    triggerThreshold: { type: "number", description: "Token threshold that triggers summarization. 0 when unavailable." },
+    utilizationPercent: { type: "number", description: "Context utilization as a percentage (0-100). 0 when unavailable." },
+  }}
+/>
+
+```tsx
+const { execution } = useExecutionStream(executionId);
+const ctx = useContextWindow(execution);
+
+if (ctx.hasContextInfo) {
+  return <ContextGauge {...ctx} />;
+}
+```
+
+
 ### useCreateAgentExecution
 
 Behavior hook that wraps `agentExecution.create()` with loading/error
@@ -870,10 +922,12 @@ All visual properties flow through `--stgm-*` tokens.
     executions: { type: "readonly AgentExecution[]", description: "Completed executions in chronological order.", required: true },
     formatToolCallSummary: { type: "(toolCalls: readonly ToolCall[]) => string", description: "Custom formatter for tool call summary labels. Passed through to each ToolCallGroup." },
     onApprovalSubmit: { type: "(toolCallId: string, action: ApprovalAction, comment?: string) => void", description: "Callback for approval actions. When provided and the active execution has pending approvals, ApprovalCards are rendered as thread items. When omitted, no approval UI is shown (backward compatible)." },
+    onBuildFromPlan: { type: "() => void", description: "Called when the user clicks \"Implement\" on a completed Plan-mode execution's PlanCompletionCard.  When provided, a CTA card is rendered at the end of the thread after a Plan-mode execution completes successfully. The consumer typically wires this to switch the interaction mode to Agent, pre-fill the composer, and focus it.  When omitted, no plan completion card is rendered. Backward compatible — existing consumers see no change." },
     onFilePathClick: { type: "(path: string, resolved: ResolvedPathAction) => void", description: "Optional override for file path click behavior. Platform builders use this to integrate their own file viewer or navigation instead of the default open-URL / copy-to-clipboard." },
     pendingUserMessage: { type: "string | null", description: "Optimistic user message shown at the end of the thread before the stream delivers the real message. Rendered as a human message with a sending indicator. Clear this prop once the stream delivers its first snapshot." },
     sandboxWorkspaceRoot: { type: "string", description: "Absolute sandbox workspace root (e.g. `/home/daytona/workspace`). When provided, shell commands and tool output normalize absolute sandbox paths to workspace-relative display paths.  Pass an empty string or omit for local sessions where paths are the user's own filesystem (no normalization needed)." },
     submittingApprovalIds: { type: "ReadonlySet<string>", description: "Set of tool call IDs currently being submitted for approval. Drives per-card loading state. Only meaningful when `onApprovalSubmit` is provided." },
+    summarizationEvents: { type: "readonly SummarizationEventView[]", description: "Summarization events from context window tracking. When provided, \"Context compacted\" cards are interleaved into the thread at the correct chronological position based on event timestamps.  Obtain from useContextWindow.summarizationEvents." },
     virtualized: { type: "boolean", description: "Enable virtualized rendering for long conversations. Requires `react-virtuoso` to be installed as a peer dependency. When enabled, only visible items are rendered in the DOM, improving performance for threads with 100+ items." },
     workspaceEntries: { type: "readonly WorkspaceEntry[]", description: "Workspace entries from the session spec. When provided, file paths in tool call rendering become interactive — git-sourced paths open on GitHub, local paths offer copy-to-clipboard.  Passed to FilePathContext for consumption by FilePathLink components deep in the tree." },
   }}
@@ -1264,6 +1318,53 @@ function classifyPath(path: string): PathClassification
 ```
 
 
+### ContextGauge
+
+Visual gauge showing context window utilization during agent execution.
+
+Renders a progress bar with threshold markers, token count labels, and
+a health indicator derived from utilization percentage. The gauge updates
+in real-time as the execution streams status updates.
+
+Returns `null` when `context_info` is absent (e.g., Cursor harness
+where context is managed externally).
+
+All visual properties flow through `--stgm-*` tokens. Zero Console
+dependencies. Accessible via `role="meter"` with ARIA value attributes.
+
+```tsx
+const { execution } = useExecutionStream(executionId);
+<ContextGauge execution={execution} />
+```
+
+```tsx
+<ContextGauge execution={execution} compact />
+```
+
+
+### ContextGaugeProps
+
+Props for [`ContextGauge`](#contextgauge).
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS classes for the root element." },
+    compact: { type: "boolean", description: "When `true`, renders a minimal bar without labels. Use in tight layouts (e.g., inline status indicators)." },
+    execution: { type: "AgentExecution | null", description: "The execution snapshot from `useExecutionStream`, or `null`. The gauge extracts `context_info` from the execution status.", required: true },
+  }}
+/>
+
+
+### ContextHealth
+
+Context window health state derived from utilization percentage.
+
+Matches the thresholds documented in context.proto (ContextInfo.utilization_percent):
+- 0-70%:  healthy (green)
+- 70-90%: warning (yellow, approaching summarization threshold)
+- 90%+:   critical (red, at or above trigger threshold)
+
+
 ### CreateAgentExecutionInput
 
 Input for `UseCreateAgentExecutionReturn.create`.
@@ -1272,6 +1373,7 @@ Input for `UseCreateAgentExecutionReturn.create`.
   type={{
     agentId: { type: "string", description: "Explicit agent ID. When omitted, uses the session's agent instance." },
     attachments: { type: "AttachmentInput[]", description: "Pre-uploaded file attachments injected into the agent sandbox.  Each entry must include a `storageKey` obtained from `agentExecution.uploadAttachment()`. The agent can read attached files from their mount paths (default `/inputs/{filename}`)." },
+    interactionMode: { type: "\"agent\" | \"plan\"", description: "Interaction mode for this execution.  - `\"agent\"` (default): full tool access. - `\"plan\"`: read-only analysis, no file mutations.  Maps to `ExecutionConfig.interaction_mode` in the proto." },
     message: { type: "string", description: "User message that initiates the execution.", required: true },
     modelName: { type: "string", description: "Override the default model for this execution." },
     org: { type: "string", description: "Organization slug that owns the session.", required: true },
@@ -1479,6 +1581,33 @@ humanizeToolName("deleteAgent")      // "Delete Agent"
 ```
 
 
+### InteractionModeBadge
+
+Displays the interaction mode of an execution as a compact inline badge.
+
+Only renders for non-default modes (PLAN). Returns `null` for AGENT
+and UNSPECIFIED since agent mode is the default and does not need
+visual distinction.
+
+All visual properties flow through `--stgm-*` tokens.
+
+```tsx
+<InteractionModeBadge mode={InteractionMode.PLAN} />
+```
+
+
+### InteractionModeBadgeProps
+
+Props for [`InteractionModeBadge`](#interactionmodebadge).
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    mode: { type: "InteractionMode", description: "The interaction mode to display.", required: true },
+  }}
+/>
+
+
 ### isArtifactExpired
 
 Checks whether an artifact's pre-signed download URL has expired.
@@ -1587,6 +1716,33 @@ Result of classifying a tool-call file path against the virtual
 platform mount (`.stigmer/`) namespace.
 
 
+### PlanCompletionCard
+
+Inline CTA card shown in the [`MessageThread`](#messagethread) after a completed
+Plan-mode execution.
+
+Offers a single "Implement" action that the consumer wires to switch
+the interaction mode to Agent, pre-fill the composer, and focus it.
+
+Renders nothing when `onImplement` is not provided, so the card is
+fully opt-in from the consumer's perspective.
+
+All visual properties flow through `--stgm-*` tokens.
+
+
+### PlanCompletionCardProps
+
+Props for [`PlanCompletionCard`](#plancompletioncard).
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS classes for the root element." },
+    disabled: { type: "boolean", description: "Disables the CTA button (e.g., while an execution is active)." },
+    onImplement: { type: "() => void", description: "Called when the user clicks the \"Implement\" button." },
+  }}
+/>
+
+
 ### ResolvedPathAction
 
 Resolved action for a file path. Consumed by [`FilePathLink`](#filepathlink)
@@ -1649,23 +1805,30 @@ to the user's personal environment for reuse across sessions.
 ### SetupProgress
 
 Animated inline indicator shown in the message thread while an
-execution is in the `PENDING` phase and no AI messages have arrived.
+execution has not yet produced AI messages.
 
-**Server-driven mode** — when the backend reports
-`setup_progress.current_phase` through the execution stream, the
-component renders the server-reported label directly.
+Operates in three modes (highest-priority first):
 
-**Timer-based fallback** — when `serverPhase` is absent (older
-backends), the component cycles through contextual status messages
-derived from the session configuration on a fixed interval.
+1. **Awaiting response** — `isAwaitingResponse` is `true`. The
+   execution has moved past `PENDING` into `IN_PROGRESS` but no AI
+   messages have arrived yet. Shows a static "Thinking\u2026" label.
+
+2. **Server-driven** — `serverPhase` is non-empty. Renders the
+   server-reported `setup_progress.current_phase` label directly.
+
+3. **Timer-based fallback** — neither of the above. Cycles through
+   contextual status messages derived from `workspaceEntries`.
 
 All visual properties flow through `--stgm-*` tokens.
 
 ```tsx
-// Server-driven (preferred)
+// Awaiting response (IN_PROGRESS, no messages yet)
+<SetupProgress isAwaitingResponse />
+
+// Server-driven (preferred during PENDING)
 <SetupProgress serverPhase={execution.status?.setupProgress?.currentPhase} />
 
-// Fallback (no server phase available)
+// Timer fallback (PENDING, no server phase available)
 <SetupProgress workspaceEntries={session.spec?.workspaceEntries} />
 ```
 
@@ -1677,6 +1840,7 @@ Props for [`SetupProgress`](#setupprogress).
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
+    isAwaitingResponse: { type: "boolean", description: "When `true`, the execution has moved past `PENDING` into `IN_PROGRESS` but the agent has not yet produced any AI messages. Renders a static \"Thinking\\u2026\" label instead of the setup phase sequence or server-reported phase." },
     serverPhase: { type: "string", description: "Server-reported setup phase label from `AgentExecutionStatus.setup_progress.current_phase`.  When non-empty, rendered directly — the timer-based fallback is bypassed.  When absent or empty (older backends that don't emit setup progress), the component falls back to the time-based step sequence derived from `workspaceEntries`." },
     workspaceEntries: { type: "readonly WorkspaceEntry[]", description: "Workspace entries from the session spec. When git-sourced entries are present, the fallback indicator shows workspace-specific messaging (e.g. \"Setting up workspace...\")." },
   }}
@@ -1726,6 +1890,84 @@ Props for [`SubAgentSection`](#subagentsection).
     className: { type: "string", description: "Additional CSS class names for the root container." },
     collapsible: { type: "boolean", description: "Whether to render as a collapsible card with expand/collapse toggle. Defaults to `true`.  Set to `false` when rendered inside a parent that already provides its own expand/collapse (e.g. ToolCallItem)." },
     subAgentExecution: { type: "SubAgentExecution", description: "The sub-agent execution to render.", required: true },
+  }}
+/>
+
+
+### SummarizationBadge
+
+Collapsible badge showing summarization event history for an execution.
+
+Collapsed state shows a count badge ("2 summarizations").
+Expanded state lists each event with before/after token counts,
+compression ratio, duration, and cost.
+
+Returns `null` when there are no events.
+
+All visual properties flow through `--stgm-*` tokens.
+Accessible via `role="group"` and keyboard-expandable.
+
+```tsx
+const ctx = useContextWindow(execution);
+<SummarizationBadge events={ctx.summarizationEvents} />
+```
+
+
+### SummarizationBadgeProps
+
+Props for [`SummarizationBadge`](#summarizationbadge).
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS classes for the root element." },
+    events: { type: "readonly SummarizationEventView[]", description: "Summarization events ordered chronologically (oldest first).", required: true },
+  }}
+/>
+
+
+### SummarizationCard
+
+Inline timeline card shown when context summarization occurs mid-conversation.
+
+Renders as a compact system-event divider in the [`MessageThread`](#messagethread),
+positioned chronologically between messages based on the event timestamp.
+
+Shows:
+- "Context compacted" header with compression icon
+- Token reduction (before -> after) and compression percentage
+- Duration, model, and cost when available (native harness)
+- For Cursor harness (model/duration unavailable): "Detected context compaction"
+
+All visual properties flow through `--stgm-*` tokens.
+
+
+### SummarizationCardProps
+
+Props for [`SummarizationCard`](#summarizationcard).
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS classes for the root element." },
+    event: { type: "SummarizationEventView", description: "The summarization event to display.", required: true, typeDescriptionLink: "#summarizationeventview" },
+  }}
+/>
+
+
+### SummarizationEventView
+
+Normalized view of a single summarization event for rendering.
+
+<TypeTable
+  type={{
+    compressionRatio: { type: "number", description: "", required: true },
+    costUsd: { type: "number", description: "", required: true },
+    durationMs: { type: "number", description: "", required: true },
+    messagesAfter: { type: "number", description: "", required: true },
+    messagesBefore: { type: "number", description: "", required: true },
+    model: { type: "string", description: "", required: true },
+    timestamp: { type: "string", description: "", required: true },
+    tokensAfter: { type: "number", description: "", required: true },
+    tokensBefore: { type: "number", description: "", required: true },
   }}
 />
 

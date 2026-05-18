@@ -12,6 +12,57 @@ import {
   renderCommentParts,
 } from "./mdx-utils";
 
+// Hand-maintained page order grouped by adoption journey. Domains not listed
+// here are appended alphabetically at the end so new domains are never lost.
+const DOMAIN_ORDER: readonly string[] = [
+  // Foundation
+  "core",
+  // Sessions & Execution
+  "session",
+  "execution",
+  "composer",
+  // Agents & Workflows
+  "agent",
+  "agent-instance",
+  "workflow",
+  "runner",
+  // Tools & Knowledge
+  "mcp-server",
+  "skill",
+  "library",
+  // Environment & Config
+  "environment",
+  "workspace",
+  "models",
+  // Identity & Access
+  "organization",
+  "iam-policy",
+  "identity-provider",
+  "identity-account",
+  "invitation",
+  "oauth-app",
+  "api-key",
+  // Platform Building Blocks
+  "resource-workbench",
+  "resource-creation",
+  "resource-detail",
+  "settings",
+  "version-history",
+  "dependency-graph",
+  "dashboard",
+  // Integrations
+  "github",
+  "attachment",
+  // Monetization & Usage
+  "billing",
+  "usage",
+  // UI Components
+  "error",
+  "platform-client",
+  "user",
+  "activity",
+];
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -48,9 +99,15 @@ export function renderDomainPage(domain: Domain): string {
 }
 
 export function renderMetaJson(domains: Domain[]): string {
+  const slugs = new Set(domains.map((d) => d.slug));
+  const ordered = DOMAIN_ORDER.filter((s) => slugs.has(s));
+  const unlisted = domains
+    .map((d) => d.slug)
+    .filter((s) => !DOMAIN_ORDER.includes(s))
+    .sort();
   const meta = {
     title: "React SDK",
-    pages: domains.map((d) => d.slug).sort(),
+    pages: [...ordered, ...unlisted],
   };
   return JSON.stringify(meta, null, 2) + "\n";
 }

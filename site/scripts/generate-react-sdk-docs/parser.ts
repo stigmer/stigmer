@@ -39,6 +39,11 @@ import {
 // ---------------------------------------------------------------------------
 
 const DOMAIN_META: Record<string, { title: string; description: string }> = {
+  core: {
+    title: "Core",
+    description:
+      "Provider setup, SDK client access, and deployment mode utilities.",
+  },
   session: {
     title: "Session",
     description:
@@ -48,6 +53,11 @@ const DOMAIN_META: Record<string, { title: string; description: string }> = {
     title: "Execution",
     description:
       "Hooks and components for real-time streaming, tool calls, approvals, messages, and artifacts.",
+  },
+  composer: {
+    title: "Composer",
+    description:
+      "The unified message input with model selection, workspace, and attachments.",
   },
   agent: {
     title: "Agent",
@@ -59,6 +69,16 @@ const DOMAIN_META: Record<string, { title: string; description: string }> = {
     description:
       "Hooks for deployed agent instances bound to an environment.",
   },
+  workflow: {
+    title: "Workflow",
+    description:
+      "Hooks and components for workflow definitions, instances, executions, and the visual builder.",
+  },
+  runner: {
+    title: "Runner",
+    description:
+      "Hooks and components for runner lifecycle, fleet management, local launch, and picker.",
+  },
   "mcp-server": {
     title: "MCP Server",
     description:
@@ -69,63 +89,29 @@ const DOMAIN_META: Record<string, { title: string; description: string }> = {
     description:
       "Hooks and components for knowledge attachments, search, picker, and detail views.",
   },
+  library: {
+    title: "Library",
+    description:
+      "Hooks and components for resource browsing, YAML detection, apply flow, and visibility.",
+  },
   environment: {
     title: "Environment",
     description:
       "Hooks and components for configuration, variables, secrets, and session environment pools.",
-  },
-  composer: {
-    title: "Composer",
-    description:
-      "The unified message input with model selection, workspace, and attachments.",
   },
   workspace: {
     title: "Workspace",
     description:
       "Hooks and components for file entries, folder browsing, and code editing.",
   },
-  "api-key": {
-    title: "API Key",
-    description:
-      "Hooks and components for API key creation, listing, and deletion.",
-  },
-  attachment: {
-    title: "Attachment",
-    description:
-      "Hooks and components for file upload handling and chip display.",
-  },
-  organization: {
-    title: "Organization",
-    description: "Hooks and components for organization creation.",
-  },
-  github: {
-    title: "GitHub",
-    description:
-      "Hooks and components for OAuth connection, repository search, and picker.",
-  },
-  library: {
-    title: "Library",
-    description:
-      "Hooks and components for resource browsing, YAML detection, apply flow, and visibility.",
-  },
   models: {
     title: "Models",
     description: "Hooks and components for model registry data and selector.",
   },
-  core: {
-    title: "Core",
+  organization: {
+    title: "Organization",
     description:
-      "Provider setup, SDK client access, and deployment mode utilities.",
-  },
-  error: {
-    title: "Error",
-    description:
-      "Components for structured error display and troubleshooting guidance.",
-  },
-  "oauth-app": {
-    title: "OAuth App",
-    description:
-      "Hooks and components for OAuth app creation, listing, editing, and deletion.",
+      "Hooks and components for organization creation and management.",
   },
   "iam-policy": {
     title: "IAM Policy",
@@ -137,20 +123,131 @@ const DOMAIN_META: Record<string, { title: string; description: string }> = {
     description:
       "Hooks and components for federated identity provider setup and management.",
   },
+  "identity-account": {
+    title: "Identity Account",
+    description:
+      "Hooks for identity account lookup and profile resolution.",
+  },
   invitation: {
     title: "Invitation",
     description:
       "Hooks and components for invite link creation, listing, and redemption.",
+  },
+  "oauth-app": {
+    title: "OAuth App",
+    description:
+      "Hooks and components for OAuth app creation, listing, editing, and deletion.",
+  },
+  "api-key": {
+    title: "API Key",
+    description:
+      "Hooks and components for API key creation, listing, and deletion.",
+  },
+  "resource-workbench": {
+    title: "Resource Workbench",
+    description:
+      "Layout shell and collection hooks for building resource management consoles.",
+  },
+  "resource-creation": {
+    title: "Resource Creation",
+    description:
+      "Hooks and components for template-driven resource creation flows.",
+  },
+  "resource-detail": {
+    title: "Resource Detail",
+    description:
+      "Hooks and components for resource detail views, header chrome, and tab navigation.",
+  },
+  settings: {
+    title: "Settings",
+    description:
+      "Pre-composed settings sections for organization console embedding.",
+  },
+  "version-history": {
+    title: "Version History",
+    description:
+      "Components for resource version diffs, timeline, and rollback controls.",
+  },
+  "dependency-graph": {
+    title: "Dependency Graph",
+    description:
+      "Hooks and components for visualizing agent specification dependencies.",
+  },
+  dashboard: {
+    title: "Dashboard",
+    description:
+      "Hooks for dashboard metrics, activity feeds, and analytics data.",
+  },
+  github: {
+    title: "GitHub",
+    description:
+      "Hooks and components for OAuth connection, repository search, and picker.",
+  },
+  attachment: {
+    title: "Attachment",
+    description:
+      "Hooks and components for file upload handling and chip display.",
+  },
+  billing: {
+    title: "Billing",
+    description:
+      "Hooks and components for subscription plans, payment methods, and invoices.",
   },
   usage: {
     title: "Usage",
     description:
       "Hooks and components for organization-level usage reporting and cost breakdown.",
   },
-  runner: {
-    title: "Runner",
+  error: {
+    title: "Error",
     description:
-      "Hooks and components for runner lifecycle, fleet management, local launch, and picker.",
+      "Components for structured error display and troubleshooting guidance.",
+  },
+  "platform-client": {
+    title: "Platform Client",
+    description:
+      "Hooks and components for low-level platform API client access and request management.",
+  },
+  user: {
+    title: "User",
+    description:
+      "Components for user profile display and account menu embedding.",
+  },
+  activity: {
+    title: "Activity",
+    description:
+      "Hooks for recent activity feeds and session history.",
+  },
+  // Excluded domains — metadata kept for completeness
+  test: {
+    title: "Test",
+    description:
+      "Sample data factories for unit tests, Storybook, and preview scenarios.",
+  },
+  "action-menu": {
+    title: "Action Menu",
+    description:
+      "Compound dropdown menu component with keyboard navigation.",
+  },
+  tabs: {
+    title: "Tabs",
+    description:
+      "Generic tabbed layout primitive.",
+  },
+  feedback: {
+    title: "Feedback",
+    description:
+      "Toast notification mounting and theming helper.",
+  },
+  "empty-state": {
+    title: "Empty State",
+    description:
+      "Empty state pattern components with action prompts.",
+  },
+  "inline-edit": {
+    title: "Inline Edit",
+    description:
+      "Inline editing primitive for text fields and labels.",
   },
 };
 
@@ -181,6 +278,17 @@ const SOURCE_PATH_OVERRIDES: Record<string, string> = {
   internal: "core",
   search: "library",
 };
+
+// Domains excluded from generated documentation. These are internal UI
+// primitives or test utilities that are not part of the public SDK surface.
+const EXCLUDED_DOMAINS = new Set([
+  "test",
+  "action-menu",
+  "tabs",
+  "feedback",
+  "empty-state",
+  "inline-edit",
+]);
 
 // Built-in type names that should never get a typeDescriptionLink
 const BUILTIN_TYPES = new Set([
@@ -227,7 +335,16 @@ export async function parseTypeDocJson(
   const reflectionById = new Map<number, Reflection>();
   indexReflections(project.children, reflectionById);
 
-  const classified = classifyExports(project.children, warnings);
+  // Unwrap Module containers (kind 2) — TypeDoc may wrap all exports in
+  // one or more Module reflections instead of placing them at the top level.
+  const topLevelExports = flattenModules(project.children);
+
+  const classified = classifyExports(topLevelExports, warnings);
+
+  // Drop excluded domains before parsing
+  for (const slug of EXCLUDED_DOMAINS) {
+    classified.delete(slug);
+  }
 
   // Build export-name → domain-slug map for link resolution
   const exportDomainMap = new Map<string, string>();
@@ -266,6 +383,18 @@ interface ClassifiedExports {
   interfaces: Reflection[];
   typeAliases: Reflection[];
   variables: Reflection[];
+}
+
+function flattenModules(children: Reflection[]): Reflection[] {
+  const result: Reflection[] = [];
+  for (const child of children) {
+    if (child.kind === ReflectionKind.Module && child.children) {
+      result.push(...child.children);
+    } else {
+      result.push(child);
+    }
+  }
+  return result;
 }
 
 function indexReflections(

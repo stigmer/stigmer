@@ -64,69 +64,71 @@ function CustomInput({ onSend }: { onSend: (msg: string) => void }) {
 ```
 
 
+## Components
+
+### InteractionModePicker
+
+Compact dropdown for choosing the execution interaction mode.
+
+Renders a trigger button showing the current mode label with a
+chevron, and a popover with the available options. Each option
+shows a label and a short description.
+
+Designed to scale to additional modes (e.g. Ask) without layout
+changes. Uses `@base-ui/react` Popover for positioning and portal
+rendering, matching the pattern used by [`ModelSelector`](/docs/sdk/react/models#modelselector).
+
+**Props** — `InteractionModePickerProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names for the trigger button." },
+    disabled: { type: "boolean", description: "When true, disables the picker." },
+    onValueChange: { type: "(mode: InteractionModeOption) => void", description: "Called when the user picks a different mode.", required: true },
+    value: { type: "InteractionModeOption", description: "Currently selected interaction mode.", required: true, typeDescriptionLink: "#interactionmodeoption" },
+  }}
+/>
+
+```tsx
+function ComposerToolbar() {
+  const [mode, setMode] = useState<InteractionModeOption>("agent");
+  return <InteractionModePicker value={mode} onValueChange={setMode} />;
+}
+```
+
+
 ## Types
+
+### InteractionModeOption
+
+Interaction mode options for agent executions.
+
+Maps to `InteractionMode` proto enum values (excluding UNSPECIFIED):
+- `"agent"` → `INTERACTION_MODE_AGENT` (full tool access)
+- `"plan"` → `INTERACTION_MODE_PLAN` (read-only analysis)
+
 
 ### SessionComposer
 
-Unified message composer for Stigmer sessions.
 
-Combines a self-resizing textarea, model selector, and context pickers
-(agent, workspace, MCP servers, skills) into a single input card.
+### SessionComposerHandle
 
-The toolbar uses a two-tier layout:
-- **Tier 1** (always visible): Workspace, Attach, Model Selector
-- **Tier 2** (behind Configure menu): Agent, MCP, Skills, Secrets
+Imperative handle exposed by [`SessionComposer`](#sessioncomposer) via `ref`.
 
-Selected items render as removable chips between the textarea and toolbar.
-
-Used for both new session creation (launcher) and follow-up messages
-within an existing session. Layout positioning is the consumer's
-responsibility.
-
-Uses `<div role="form">` instead of `<form>` so it can be embedded
-inside host application forms without nesting violations.
-
-All visual properties flow through `--stgm-*` tokens.
+Allows parent components to programmatically set the composer's
+message text and focus the textarea. Used for features like
+"Build from Plan" where a CTA outside the composer needs to
+pre-fill and focus the input.
 
 ```tsx
-// Launcher with all context types
-<SessionComposer
-  onSubmit={handleCreate}
-  org={org}
-  agentRef={agentRef}
-  onAgentRefChange={setAgentRef}
-  onAgentResolutionChange={setResolution}
-  workspace={workspace}
-  enableGitHub
-  mcpServerUsages={mcpUsages}
-  onMcpServerUsagesChange={setMcpUsages}
-  skillRefs={skillRefs}
-  onSkillRefsChange={setSkillRefs}
-  initialRows={3}
-  placeholder="Describe what you need help with..."
-  autoFocus
-/>
+const composerRef = useRef<SessionComposerHandle>(null);
 
-// Pre-filled launcher (auto-selects agent on mount)
-<SessionComposer
-  onSubmit={handleCreate}
-  org={org}
-  agentRef={agentRef}
-  onAgentRefChange={setAgentRef}
-  onAgentResolutionChange={setResolution}
-  initialAgentRef={{ org: "stigmer", slug: "agent-creator" }}
-  placeholder="Describe the agent you want to create..."
-  initialRows={3}
-  autoFocus
-/>
+function handleBuildFromPlan() {
+  composerRef.current?.setMessage("Implement the plan above");
+  composerRef.current?.focus();
+}
 
-// Follow-up (compact, workspace only)
-<SessionComposer
-  onSubmit={(msg, model) => conv.sendFollowUp(msg, { modelName: model })}
-  disabled={!conv.canSendFollowUp}
-  isSubmitting={conv.isSending}
-  workspace={workspace}
-/>
+<SessionComposer ref={composerRef} onSubmit={handleSubmit} />
 ```
 
 
@@ -150,6 +152,8 @@ Props for [`SessionComposer`](#sessioncomposer).
     initialAgentRef: { type: "ResourceRef", description: "Agent to auto-select when the composer mounts.  When provided, the composer runs the full agent resolution flow on mount — exactly as if the user had picked this agent in the AgentPicker. If the agent requires credentials, the environment form appears automatically.  One-time: consumed on mount; subsequent changes are ignored. To change the agent after mount, use the picker or `onAgentRefChange` externally.  Requires `org` and `onAgentRefChange` to be set (same prerequisites as the agent picker)." },
     initialAttachments: { type: "File[]", description: "Files to attach programmatically when the composer mounts.  When provided, the composer uploads these files via the same attachment pipeline as user-selected files. Attachment chips appear in the UI so the user sees what is attached.  One-time: consumed when the value first becomes truthy. Subsequent changes are ignored. This allows async resource fetching — the effect waits for the files to be ready.  Requires `enableAttachments` to be `true` (default)." },
     initialRows: { type: "number", description: "Initial number of visible rows." },
+    interactionMode: { type: "InteractionModeOption", description: "Currently selected interaction mode.  When `onInteractionModeChange` is provided, renders a mode picker in the toolbar. Defaults to `\"agent\"` when omitted.", typeDescriptionLink: "#interactionmodeoption" },
+    isDefaultAgent: { type: "boolean", description: "When `true`, the agent chip renders without an X (remove) button.  Used on the session page to indicate the session's default agent, where removing it would just re-select the same agent (a confusing no-op). The user can still switch agents via the Configure menu." },
     isSubmitting: { type: "boolean", description: "Shows loading indicator on the send button." },
     mcpServerUsages: { type: "McpServerUsageInput[]", description: "Currently selected MCP server usages. When `onMcpServerUsagesChange` is provided, a MCP server trigger appears in the toolbar." },
     onAgentRefChange: { type: "(ref: ResourceRef | null) => void", description: "Called when the agent selection changes. Providing this enables the agent trigger." },
@@ -157,6 +161,7 @@ Props for [`SessionComposer`](#sessioncomposer).
     onAttachmentValidationError: { type: "(message: string) => void", description: "Called when a file is rejected (e.g., exceeds the 10 MB limit). Consumers can use this for toast notifications." },
     onBrowseLocalFolder: { type: "() => Promise<string | null>", description: "Native folder picker callback passed through to WorkspaceEditor. When provided, clicking \"Local Folder\" opens a native dialog instead of the inline text input. See WorkspaceEditorProps.onBrowseLocalFolder." },
     onHarnessChange: { type: "(harness: HarnessOption) => void", description: "Called when the user switches the harness.  Providing this callback enables the harness selector in the toolbar." },
+    onInteractionModeChange: { type: "(mode: InteractionModeOption) => void", description: "Called when the user switches the interaction mode.  Providing this callback enables the mode picker in the toolbar." },
     onMcpServerUsagesChange: { type: "(usages: McpServerUsageInput[]) => void", description: "Called when the MCP server selection changes. Providing this enables the MCP trigger." },
     onModelChange: { type: "(modelId: string) => void", description: "Called when the user changes the selected model." },
     onRunnerIdChange: { type: "(runnerId: string | null) => void", description: "Called when the user selects a different runner. `null` = \"Auto\".  Providing this callback enables the runner picker in the toolbar. Requires `org` to be set (same prerequisite as agent/MCP pickers)." },
@@ -167,6 +172,7 @@ Props for [`SessionComposer`](#sessioncomposer).
     runnerId: { type: "string | null", description: "Currently selected runner ID, or `null` for \"Auto\" (backend decides).  When `onRunnerIdChange` is provided and `org` is set, renders a runner picker in the toolbar's Tier 1 (alongside Model Selector).  The selected runner ID flows through to `session.create({ runnerId })` so the session is bound to that runner's task queue." },
     sessionVariables: { type: "UseSessionVariablesReturn", description: "Session variables state managed by useSessionVariables. When provided, renders a \"Session Variables\" trigger in the toolbar that opens a key-value editor for environment variables.  Variables are ephemeral by default (single execution). Individual entries can be marked `saveForFuture: true` to persist them to the user's personal environment. The consumer should call `sessionVariables.clear()` after submission.", typeDescriptionLink: "/docs/sdk/react/execution#usesessionvariablesreturn" },
     showHarnessSelector: { type: "boolean", description: "Show the harness selector in the toolbar." },
+    showInteractionModePicker: { type: "boolean", description: "Show the interaction mode picker in the toolbar." },
     showModelSelector: { type: "boolean", description: "Show the model selector." },
     skillRefs: { type: "ResourceRef[]", description: "Currently selected skill references. When `onSkillRefsChange` is provided, a skill trigger appears in the toolbar." },
     workspace: { type: "UseWorkspaceEntriesReturn", description: "Workspace state managed by useWorkspaceEntries. When provided, renders a workspace trigger in the toolbar that opens a popover with the workspace editor.", typeDescriptionLink: "/docs/sdk/react/workspace#useworkspaceentriesreturn" },
@@ -186,6 +192,7 @@ creation without needing to understand the individual sources.
 <TypeTable
   type={{
     attachments: { type: "AttachmentInput[]", description: "Pre-uploaded file attachments for the execution.  Each entry contains a `storageKey` obtained from `agentExecution.uploadAttachment()`. Only successfully uploaded attachments are included. Pass directly to execution creation as `attachments`.  `undefined` when no files were attached." },
+    interactionMode: { type: "InteractionModeOption", description: "Interaction mode selected by the user for this execution.  - `\"agent\"` (default): full tool access — read, write, create, delete. - `\"plan\"`: read-only analysis — read, search, list only.  `undefined` when no mode picker is shown (defaults to `\"agent\"`). Pass to execution creation as `execution_config.interaction_mode`.", typeDescriptionLink: "#interactionmodeoption" },
     runtimeEnv: { type: "Record<string, EnvVarInput>", description: "Aggregated one-time environment variables from all setup flows.  Merged from (in precedence order, last-write-wins): 1. Agent one-time env vars (when agent resolution mode is `\"oneTime\"`) 2. MCP server one-time env vars (collected with `saveForFuture: false`) 3. Manual session variables (from SessionVariablesInput)  `undefined` when no runtime env vars were collected from any source. Pass directly to execution creation as `runtimeEnv`." },
   }}
 />

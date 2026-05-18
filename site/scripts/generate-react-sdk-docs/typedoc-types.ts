@@ -7,6 +7,7 @@
 
 export const ReflectionKind = {
   Project: 1,
+  Module: 2,
   Variable: 32,
   Function: 64,
   Interface: 256,
