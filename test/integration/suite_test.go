@@ -11,7 +11,9 @@ import (
 	"testing"
 	"time"
 
+	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	billingv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/billing/v1"
+	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/test/integration/harness"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -156,6 +158,14 @@ func TestMain(m *testing.M) {
 		suiteLogger.Warn("failed to provision test billing account — agent_call tests may fail", "error", err)
 	}
 
+	// Seed the default agent from the seedpack so tests that depend on
+	// "get default agent" (e.g. session creation, authz tests) work.
+	if err := seedDefaultAgent(ctx, grpcConn); err != nil {
+		suiteLogger.Warn("failed to seed default agent — tests requiring a default agent may fail", "error", err)
+	} else {
+		suiteLogger.Info("default agent seeded")
+	}
+
 	// Build the test MCP server binary for HITL and MCP integration tests.
 	mcpBinary, mcpErr := harness.BuildTestMcpServer(cfg.OutputDir)
 	if mcpErr != nil {
@@ -242,6 +252,28 @@ func TestMain(m *testing.M) {
 	grpcConn.Close()
 	testHarness.Stop(context.Background())
 	os.Exit(code)
+}
+
+func seedDefaultAgent(ctx context.Context, conn *grpc.ClientConn) error {
+	clients := harness.NewClients(conn)
+	_, err := clients.AgentCommand.Apply(ctx, &agentv1.Agent{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       "Agent",
+		Metadata: &apiresource.ApiResourceMetadata{
+			Name:       "assistant",
+			Org:        "test-org",
+			Visibility: apiresource.ApiResourceVisibility_visibility_public,
+			Labels: map[string]string{
+				"stigmer.ai/system":        "true",
+				"stigmer.ai/default-agent": "true",
+			},
+		},
+		Spec: &agentv1.AgentSpec{
+			Description:  "General-purpose AI assistant.",
+			Instructions: "You are a general-purpose AI assistant.",
+		},
+	})
+	return err
 }
 
 func provisionTestBillingAccount(ctx context.Context, conn *grpc.ClientConn) error {

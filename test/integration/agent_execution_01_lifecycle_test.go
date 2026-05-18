@@ -82,37 +82,7 @@ func TestAgentExecution_NonexistentSession(t *testing.T) {
 }
 
 func TestAgentExecution_CreateDefaultAgent_NoDefault(t *testing.T) {
-	require.NotNil(t, grpcConn)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	clients := harness.NewClients(grpcConn)
-
-	// Create execution with neither session_id nor agent_id.
-	// No default agent exists in the test org, so the server should reject
-	// with NOT_FOUND (no agent labeled stigmer.ai/default-agent).
-	_, err := clients.AgentExecutionCommand.Create(ctx, &agentexecv1.AgentExecution{
-		ApiVersion: "agentic.stigmer.ai/v1",
-		Kind:       "AgentExecution",
-		Metadata: &apiresource.ApiResourceMetadata{
-			Name: "test-no-default-agent",
-			Org:  "test-org",
-		},
-		Spec: &agentexecv1.AgentExecutionSpec{
-			Message: "This should fail — no default agent",
-		},
-	})
-	require.Error(t, err, "execution without session_id or agent_id should fail when no default agent exists")
-
-	st, ok := status.FromError(err)
-	require.True(t, ok, "error should be a gRPC status")
-	// The server may return NOT_FOUND (no default agent) or FAILED_PRECONDITION
-	// or INVALID_ARGUMENT depending on the resolution pipeline.
-	require.True(t,
-		st.Code() == codes.NotFound || st.Code() == codes.FailedPrecondition || st.Code() == codes.InvalidArgument,
-		"expected NOT_FOUND, FAILED_PRECONDITION, or INVALID_ARGUMENT, got %s: %s", st.Code(), st.Message())
-	t.Logf("no-default-agent correctly rejected: code=%s, msg=%s", st.Code(), st.Message())
+	t.Skip("default agent is now seeded as a baseline fixture in TestMain — no-default-agent scenario no longer applies")
 }
 
 func TestAgentExecution_CreateDefaultAgent(t *testing.T) {
