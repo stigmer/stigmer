@@ -152,7 +152,7 @@ func buildWorkflowRunner(ctx context.Context, logger *slog.Logger) (string, erro
 
 	logger.Info("building workflow-runner", "source", runnerDir, "output", outputPath)
 
-	cmd := exec.CommandContext(ctx, "go", "build", "-o", outputPath, ".")
+	cmd := exec.CommandContext(ctx, "go", "build", "-o", outputPath, "./cmd/zigflow")
 	cmd.Dir = runnerDir
 	cmd.Env = os.Environ()
 
@@ -174,8 +174,8 @@ func findWorkflowRunnerDir() string {
 		if err != nil {
 			continue
 		}
-		mainGo := filepath.Join(abs, "main.go")
-		if _, err := os.Stat(mainGo); err == nil {
+		entrypoint := filepath.Join(abs, "cmd", "zigflow", "main.go")
+		if _, err := os.Stat(entrypoint); err == nil {
 			return abs
 		}
 	}
@@ -190,6 +190,8 @@ func findWorkflowRunnerDir() string {
 func buildRunnerEnv(cfg WorkflowRunnerConfig) []string {
 	env := os.Environ()
 	env = append(env,
+		"EXECUTION_MODE=temporal",
+
 		fmt.Sprintf("STIGMER_BACKEND_ENDPOINT=%s", cfg.StigmerServiceAddress),
 		"STIGMER_API_KEY=test-integration-key",
 		"STIGMER_SERVICE_USE_TLS=false",
