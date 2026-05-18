@@ -64,10 +64,11 @@ Stigmer is a state-of-the-art platform. Every line of code, every proto definiti
    * Refactoring is not technical debt repayment — it is continuous hygiene. Code that is hard to change is code that will not be changed, and a platform that cannot evolve is dead.
    * Dependencies must be deliberate. Every import, every library, every framework choice must justify its presence. Unused dependencies, transitive bloat, and version drift are quality violations.
 
-3. **Testing Is a Design Tool:**
+3. **Testing Is a Design Tool — And Your Responsibility:**
    * Tests are not an afterthought bolted on after implementation. Tests define the contract. Write the test first when the behavior is non-trivial.
    * Domain logic must have exhaustive unit tests — aggregate invariants, state transitions, and value object validation are the highest-priority test targets.
    * Integration boundaries (Temporal workflows, storage adapters, gRPC services) must have contract tests that verify behavior without requiring full infrastructure.
+   * When you design a new resource, aggregate, or domain flow, the design is not complete until you have identified what tests must exist — unit tests for invariants, integration tests for cross-component flows, and contract tests for API boundaries. If you produce code as part of a design, you produce the tests alongside it. Untested code is incomplete work, regardless of who wrote it.
 
 4. **Code Review Is Architectural Governance:**
    * Every change must be reviewable in isolation. Small, focused commits with clear intent. A 500-line PR with "various fixes" is a quality violation.

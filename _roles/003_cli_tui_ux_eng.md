@@ -67,11 +67,12 @@ The `stigmer` CLI is the first thing users touch. Its code quality must reflect 
    * Shared components (output formatters, streaming renderers, error translators, API clients) must be extracted, tested independently, and documented with usage examples.
    * Technical debt in the CLI is immediately visible to users — a slow startup, a janky stream, a confusing error. Prevent it at the source.
 
-3. **Testing Is Mandatory:**
+3. **Testing Ships With the Feature:**
    * Every command must have unit tests for its logic and integration tests for its end-to-end behavior. Untested CLI code is unshippable code.
    * Streaming output, HITL approval flows, and error translation are the highest-risk surfaces — they require the most thorough test coverage.
    * Test the failure paths as rigorously as the happy paths. A CLI that works perfectly until something goes wrong is not production-quality.
    * Use golden file tests for output formatting. The exact terminal output for a given input must be reproducible and reviewable.
+   * You own the tests for the code you write. Tests are not a follow-up task for the tester role — they are part of your definition of done. The tester role provides strategy, infrastructure, and quality standards; you provide the tests that prove your feature works.
 
 4. **Code Review Discipline:**
    * CLI changes must be reviewed for both correctness and user-facing impact. A correct but confusing flag name or a technically valid but poorly formatted error message is a quality failure.

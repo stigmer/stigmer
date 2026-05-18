@@ -165,13 +165,14 @@ AI code has a reputation for being prototype-quality — Jupyter notebooks promo
 - Provider adapters, prompt templates, and tool integration patterns must be modular and independently replaceable. Adding a new LLM provider or changing a prompt strategy must not require modifying the core graph execution logic.
 - Prompt templates are code. They must be version-controlled, reviewed, tested, and maintained with the same discipline as any other module. A prompt change is a behavior change.
 
-### Testing AI Code Rigorously
+### Testing Ships With the Feature
 
 - Unit tests must cover all non-LLM logic: state transitions, checkpoint serialization, context window calculations, token budget management, tool approval policy enforcement, and MCP server lifecycle management.
 - LLM-dependent behavior must be tested with deterministic mocks and recorded responses. Tests that make live LLM calls are not unit tests — they are experiments.
 - Integration tests must verify the end-to-end execution flow: graph construction → tool invocation → checkpoint → streaming output. These tests run against local/mocked infrastructure.
 - Edge cases in AI systems are where production incidents hide — context window overflow, MCP server crash mid-tool-call, provider rate limiting, malformed tool responses. Test them explicitly.
 - Concurrent scenarios (two approvals at once, approval during streaming, status update racing with approval write) must have dedicated tests. These are the bugs that ship to production.
+- You own the tests for the code you write. Tests are not a follow-up task for the tester role — they are part of your definition of done. The tester role provides strategy, infrastructure, and quality standards; you provide the tests that prove your runtime logic works.
 
 ### Code Review for AI Code
 

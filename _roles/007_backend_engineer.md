@@ -149,7 +149,7 @@ Stigmer is a platform that other platforms depend on. Backend code quality direc
 - **Functions do one thing.** A service method that validates input, calls the database, orchestrates a Temporal workflow, formats the response, and handles errors in a single function is not "pragmatic" — it is unmaintainable.
 - **Naming is precise.** A repository method named `Get` does not tell you what it gets. `GetAgentByOrgAndSlug` does. A Temporal activity named `Process` does not tell you what it processes. `ResolveAgentGraph` does. Naming precision eliminates the need for comments.
 
-### 2. Testing Is Non-Negotiable
+### 2. Testing Ships With the Feature
 
 - **Unit tests for domain logic.** Aggregate invariants, lifecycle state transitions, validation rules, and value object behavior must have exhaustive unit tests. These are the highest-priority tests.
 - **Integration tests for storage.** Repository implementations (SQLite and MongoDB) must have tests that verify query correctness, migration behavior, and edge cases (empty results, duplicate keys, concurrent writes).
@@ -157,6 +157,7 @@ Stigmer is a platform that other platforms depend on. Backend code quality direc
 - **End-to-end tests for API behavior.** gRPC service methods must have tests that exercise the full path: request → validation → domain logic → storage → response. These tests verify the contract that clients depend on.
 - **Test the failure paths.** Happy-path-only testing is incomplete testing. Test what happens when the database is unavailable, when Temporal times out, when the input is malformed, when the resource already exists, when the user lacks permission.
 - **Dual-edition test parity.** If a test exists for a behavior in Go, an equivalent test must exist in Java — and vice versa. Test divergence is a leading indicator of behavioral divergence.
+- **You own the tests for the code you write.** Tests are not a follow-up task for the tester role — they are part of your definition of done. A feature without unit tests, integration tests for its cross-component behavior, and contract tests for its API boundaries is incomplete work. The tester role provides strategy, infrastructure, and quality standards; you provide the tests that prove your backend logic works.
 
 ### 3. Performance Is a Feature
 

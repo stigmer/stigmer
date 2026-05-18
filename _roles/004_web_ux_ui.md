@@ -171,11 +171,12 @@ Stigmer's Web Console must be built to state-of-the-art standards — not just i
    * Embeddable components must use `--stgm-*` CSS custom properties, the `.stgm` container scope, and `@layer stgm`. They must never leak global CSS into the host application or depend on global state that conflicts with the host.
    * SDK package exports must be stable. Treat every exported hook, component, type, and utility as a public API. Removing or renaming an export is a breaking change that affects platform builders.
 
-3. **Testing Is a Design Deliverable:**
+3. **Testing Ships With the Feature:**
    * Every component must have unit tests for its logic and visual regression tests for its appearance. Untested components are not part of the SDK — they are prototypes.
    * Data hooks and behavior hooks must have unit tests that verify data fetching, error handling, loading states, and subscription lifecycle — independent of any component rendering.
    * Interactive flows (HITL approvals, YAML editing, resource creation wizards) must have end-to-end tests that verify the complete user journey, not just individual steps.
    * Accessibility compliance must be tested automatically (axe-core, Lighthouse) and manually (keyboard navigation, screen reader verification). An inaccessible component is a broken component.
+   * You own the tests for the code you write. Tests are not a follow-up task for the tester role — they are part of your definition of done. A feature without tests is incomplete work, regardless of how polished the UI looks.
 
 4. **Code Review as Quality Gate:**
    * Frontend PRs must be reviewed for component architecture, accessibility, performance impact, SDK placement correctness, and design system consistency — not just visual correctness.
