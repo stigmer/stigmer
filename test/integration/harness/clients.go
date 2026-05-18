@@ -33,6 +33,7 @@ type Clients struct {
 
 	// Agent services
 	AgentCommand          agentv1.AgentCommandControllerClient
+	AgentQuery            agentv1.AgentQueryControllerClient
 	AgentExecutionCommand agentexecv1.AgentExecutionCommandControllerClient
 	AgentExecutionQuery   agentexecv1.AgentExecutionQueryControllerClient
 
@@ -93,6 +94,7 @@ func NewClients(conn grpc.ClientConnInterface) *Clients {
 		ExecutionQuery:   workflowexecutionv1.NewWorkflowExecutionQueryControllerClient(conn),
 
 		AgentCommand:          agentv1.NewAgentCommandControllerClient(conn),
+		AgentQuery:            agentv1.NewAgentQueryControllerClient(conn),
 		AgentExecutionCommand: agentexecv1.NewAgentExecutionCommandControllerClient(conn),
 		AgentExecutionQuery:   agentexecv1.NewAgentExecutionQueryControllerClient(conn),
 

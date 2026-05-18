@@ -21,10 +21,9 @@ spec:
   env:
     TOPIC:
       description: "The topic or subject to write about"
-      required: true
     GUIDELINES:
       description: "Style guidelines or constraints for the content (optional)"
-      required: false
+      optional: true
   budget:
     max_cost_micros: 2000000
     max_duration_seconds: 600
@@ -43,6 +42,8 @@ spec:
           Guidelines: ${ $context.env.GUIDELINES }
         temperature: 0.7
         max_tokens: 2000
+        timeout: 120
+        max_retries: 2
       export:
         as: "${ . }"
       flow:
@@ -98,6 +99,8 @@ spec:
           Please revise the draft to address the feedback.
         temperature: 0.5
         max_tokens: 2000
+        timeout: 120
+        max_retries: 2
       export:
         as: "${ . }"
       flow:
@@ -106,17 +109,14 @@ spec:
     - name: finalize
       kind: transform
       task_config:
-        engine: jq
+        engine: TRANSFORM_ENGINE_JQ
         expression: >
           {
             status: "approved",
-            topic: $topic,
-            content: $content,
-            approved_by: $reviewer
+            topic: .topic,
+            content: .content,
+            approved_by: .reviewer
           }
-        input:
-          topic: "${ $context.env.TOPIC }"
-          content: "${ $context.draft_content.text }"
-          reviewer: "${ $context.review_content.reviewer }"
+        input: "${ {topic: $context.env.TOPIC, content: $context.draft_content.text, reviewer: $context.review_content.reviewer} }"
       export:
         as: "${ . }"
