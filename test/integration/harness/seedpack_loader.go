@@ -98,6 +98,53 @@ func ParseWorkflowYAML(yamlContent string) (*workflowv1.Workflow, error) {
 	return workflow, nil
 }
 
+// ParseWorkflowYAMLStrict is identical to ParseWorkflowYAML but uses
+// DiscardUnknown: false, matching the CLI's strict parsing behavior.
+// Use this to verify that seedpack YAMLs contain no fields unknown to
+// the proto schema (which would pass lenient parsing but fail CLI apply).
+func ParseWorkflowYAMLStrict(yamlContent string) (*workflowv1.Workflow, error) {
+	var raw map[string]interface{}
+	if err := yaml.Unmarshal([]byte(yamlContent), &raw); err != nil {
+		return nil, fmt.Errorf("invalid YAML syntax: %w", err)
+	}
+
+	spec, ok := raw["spec"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("missing or invalid 'spec' field")
+	}
+
+	tasks, ok := spec["tasks"].([]interface{})
+	if ok {
+		if err := mapTaskKinds(tasks); err != nil {
+			return nil, err
+		}
+	}
+
+	jsonBytes, err := json.Marshal(raw)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert to JSON: %w", err)
+	}
+
+	workflow := &workflowv1.Workflow{}
+	unmarshaler := protojson.UnmarshalOptions{DiscardUnknown: false}
+	if err := unmarshaler.Unmarshal(jsonBytes, workflow); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal into Workflow proto (strict): %w", err)
+	}
+
+	return workflow, nil
+}
+
+// LoadSeedpackWorkflowStrict is like LoadSeedpackWorkflow but uses strict
+// parsing that rejects unknown proto fields (same as CLI behavior).
+func LoadSeedpackWorkflowStrict(filename string) (*workflowv1.Workflow, error) {
+	path := filepath.Join(seedpackRoot(), "workflows", filename)
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("read workflow YAML %s: %w", path, err)
+	}
+	return ParseWorkflowYAMLStrict(string(data))
+}
+
 // mapTaskKinds recursively converts string task kind names to proto enum
 // values in a task list. Only top-level tasks need mapping since nested
 // tasks within task_config (e.g., fork branches) are part of

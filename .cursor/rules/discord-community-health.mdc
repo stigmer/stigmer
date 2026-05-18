@@ -1,5 +1,5 @@
 ---
-description: Action rule to scan the Stigmer Discord Community for unanswered messages, check community health, and draft responses. Fetches credentials from Planton at runtime.
+description: Action rule to scan the Stigmer Discord Community for unanswered messages, check community health, and draft responses. Fetches credentials from Planton secrets via CLI at runtime.
 alwaysApply: false
 ---
 
@@ -7,7 +7,7 @@ alwaysApply: false
 
 Purpose: When triggered, scan the Stigmer Community Discord server for unanswered messages, generate a health report, and draft responses for review. Optionally send approved responses.
 
-This is an action rule. It uses the Discord REST API via `curl` and the Planton MCP for credential retrieval.
+This is an action rule. It uses the Discord REST API via `curl` and the Planton CLI for credential retrieval.
 
 Usage: Invoke explicitly as `@discord-community-health`.
 
@@ -22,18 +22,25 @@ Current channel structure:
 
 ## Preconditions
 
-- The Planton MCP server (`user-planton`) is connected and authenticated.
-- The `discord-bot` secrets group exists in the `stigmer` Planton org with entries `prod.bot-token` and `prod.server-id`.
+- The Planton CLI (`planton`) is installed and authenticated.
+- Discord bot secrets exist in the `stigmer` Planton org (slugs: `discord-bot-token`, `discord-server-id`, and the channel/role ID secrets such as `discord-general-channel-id`, `discord-maintainer-role-id`, etc.).
 - The Discord bot has been invited to the Stigmer Community server with permissions: Manage Roles, Manage Channels, Send Messages, Manage Messages, Read Message History, View Channels.
 
 ## Step 1: Retrieve Credentials from Planton
 
-Before any Discord API call, fetch the bot token and server ID using the Planton MCP:
+Before any Discord API call, fetch the bot token and server ID using the Planton CLI:
 
-1. Call `get_secret_value` with `org: "stigmer"`, `group_name: "discord-bot"`, `entry_name: "prod.bot-token"` to retrieve the Discord bot token.
-2. Call `get_secret_value` with `org: "stigmer"`, `group_name: "discord-bot"`, `entry_name: "prod.server-id"` to retrieve the Discord server (guild) ID.
+```bash
+BOT_TOKEN=$(planton secret get discord-bot-token --org stigmer --scope organization)
+GUILD_ID=$(planton secret get discord-server-id --org stigmer --scope organization)
+```
 
-Store these as shell variables `BOT_TOKEN` and `GUILD_ID` for subsequent `curl` calls. Never print or log the bot token.
+Store these as shell variables for subsequent `curl` calls. Never print or log the bot token.
+
+Additional secrets are available if needed (retrieve the same way):
+- `discord-general-channel-id`, `discord-announcements-channel-id`, `discord-show-and-tell-channel-id`
+- `discord-maintainer-role-id`, `discord-contributor-role-id`, `discord-early-adopter-role-id`
+- `discord-announcements-category-id`, `discord-community-category-id`
 
 ## Step 2: Scan Channels
 
@@ -192,6 +199,6 @@ After scanning, report on these structural health indicators:
 - **Never auto-send messages.** Always present drafts for review first.
 - **Cache member lookups.** Avoid redundant API calls for the same user's roles.
 - **Rate limits.** Discord API has rate limits. If a 429 response is received, wait the duration specified in the `Retry-After` header before retrying.
-- **When token rotation is needed**, update via Planton MCP: `upsert_secret` with `org: "stigmer"`, `group_slug: "discord-bot"`, `entry: {"name": "prod.bot-token", "value": "new-token-here"}`.
+- **When token rotation is needed**, write the new token to a temporary file and run: `planton secret set discord-bot-token --from-file value=<file>`.
 
 @docs/vocabulary.md

@@ -1,0 +1,255 @@
+---
+description: Action rule to add a new workflow to the seedpack. Guides YAML creation, env declaration, integration test authoring, and validation.
+alwaysApply: false
+---
+
+# Rule: Add Workflow to Seedpack
+
+Purpose: When triggered, guide the complete process of adding a new workflow to `seedpack/workflows/`. This includes creating a structurally valid YAML definition, writing integration tests (parse + execution), and validating with the CLI.
+
+Usage: Invoke explicitly as `@add-workflow-to-seedpack`.
+
+## Prerequisites
+
+Before starting, gather from the user:
+1. **Workflow name** (lowercase, hyphenated identifier — becomes filename and `metadata.name`)
+2. **What it does** (high-level pipeline description)
+3. **Task kinds used** (llm_call, human_input, transform, switch_case, fork, etc.)
+4. **Environment variables** needed at runtime (and which are optional)
+5. **Human approval gates** (which tasks pause for human input)
+6. **LLM providers** required (Anthropic, OpenAI, or both — determines test skip logic)
+
+## Step 1: Create the Workflow YAML
+
+Create `seedpack/workflows/{name}.yaml`.
+
+### Template
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: Workflow
+metadata:
+  name: {name}
+  visibility: visibility_public
+  labels:
+    stigmer.ai/system: "true"
+spec:
+  description: >
+    {Multi-line description of what the workflow does and which task kinds
+    it demonstrates.}
+  document:
+    dsl: "1.0.0"
+    namespace: stigmer
+    name: {name}
+    version: "1.0.0"
+  env:
+    {ENV_VAR_NAME}:
+      description: "{What this variable provides}"
+    {OPTIONAL_VAR}:
+      description: "{Description (mention it's optional)}"
+      optional: true
+  budget:
+    max_cost_micros: {cost_limit}
+    max_duration_seconds: {timeout}
+  tasks:
+    - name: {task_name}
+      kind: {task_kind}
+      task_config:
+        {kind-specific config}
+      export:
+        as: "${ . }"
+      flow:
+        then: {next_task_name}
+```
+
+### CRITICAL: EnvVarDeclaration Schema
+
+The `env` map values ONLY support these fields:
+- `description` (string) — what the variable is for
+- `optional` (bool) — true means not required; default false means required
+- `is_secret` (bool) — true means encrypted at rest
+
+**DO NOT USE**: `required`, `default`, `type`, or any other field. The CLI uses strict proto parsing (`DiscardUnknown: false`) and will reject unknown fields.
+
+### Valid Task Kinds (19 total)
+
+| Kind | Purpose |
+|------|---------|
+| `set_vars` | Set workflow variables |
+| `http_call` | Make HTTP requests |
+| `grpc_call` | Make gRPC calls |
+| `activity_call` | Call Temporal activities |
+| `switch_case` | Conditional branching |
+| `for_each` | Iterate over collections |
+| `fork` | Parallel execution branches |
+| `try_catch` | Error handling |
+| `listen` | Wait for external events |
+| `wait` | Time-based delays |
+| `raise_error` | Throw workflow errors |
+| `run_workflow` | Invoke sub-workflows |
+| `agent_call` | Delegate to agents |
+| `llm_call` | Call LLM models |
+| `transform` | JQ/expression transforms |
+| `human_input` | Human approval gates |
+| `validate` | Validate data shapes |
+| `emit_event` | Publish events |
+| `notification` | Send notifications |
+
+### Validation Rules
+
+- Every task needs `name`, `kind`, and `task_config`
+- Task names must be unique within the workflow (C-style identifiers: `[a-z][a-z0-9_]*`)
+- `flow.then` must reference a valid task name or be absent (implicit end)
+- The task graph must be acyclic (no circular `flow.then` chains)
+- `${ ... }` expressions reference exported values from upstream tasks
+
+## Step 2: Add Parse Test
+
+Add a test function to `test/integration/seedpack_workflow_test.go`:
+
+```go
+func TestSeedpackWorkflow_Parse_{PascalName}(t *testing.T) {
+	workflow, err := harness.LoadSeedpackWorkflow("{name}.yaml")
+	require.NoError(t, err)
+
+	assert.Equal(t, "{name}", workflow.GetMetadata().GetName())
+	require.NotNil(t, workflow.GetSpec())
+	assert.NotNil(t, workflow.GetSpec().GetDocument())
+
+	tasks := workflow.GetSpec().GetTasks()
+	require.NotEmpty(t, tasks)
+	assert.Len(t, tasks, {expected_task_count})
+	assert.Equal(t, "{first_task_name}", tasks[0].GetName())
+	assert.Equal(t, workflowv1.WorkflowTaskKind_{first_task_kind}, tasks[0].GetKind())
+
+	taskKinds := collectTaskKinds(tasks)
+	// Assert all expected task kinds are present
+	assert.Contains(t, taskKinds, workflowv1.WorkflowTaskKind_{kind1})
+	assert.Contains(t, taskKinds, workflowv1.WorkflowTaskKind_{kind2})
+}
+```
+
+Also add the filename to `TestSeedpackWorkflow_StrictParse` and `TestSeedpackWorkflow_LoadAll` lists.
+
+## Step 3: Add Execution Test
+
+Add a test function to `test/integration/workflow_seedpack_test.go`:
+
+```go
+func TestSeedpackWorkflow_{PascalName}(t *testing.T) {
+	requireSeedpackPrereqs(t)
+	// Skip if required LLM API key is missing
+	if os.Getenv("{REQUIRED_API_KEY}") == "" {
+		t.Skip("{REQUIRED_API_KEY} not set — {name} uses {model}")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+
+	wf, err := harness.LoadSeedpackWorkflow("{name}.yaml")
+	require.NoError(t, err, "loading seedpack workflow YAML should succeed")
+
+	wf.Metadata.Name = "integration-test-seedpack-{short-name}"
+	wf.Metadata.Org = "test-org"
+	wf.Spec.Document.Namespace = "test-org"
+	wf.Spec.Document.Name = "integration-test-seedpack-{short-name}"
+
+	clients := harness.NewClients(grpcConn)
+	deployer := harness.NewFixtureDeployer(clients, "seedpack-{short-name}", suiteLogger)
+	defer deployer.Cleanup(ctx)
+
+	env := plainEnv(
+		"{ENV_KEY_1}", "{test_value_1}",
+		"{ENV_KEY_2}", "{test_value_2}",
+	)
+
+	_, execution, err := deployer.DeployAndExecuteWithEnv(ctx, wf, "seedpack {short-name} test", env)
+	require.NoError(t, err)
+
+	executionID := execution.GetMetadata().GetId()
+	waiter := harness.NewExecutionWaiter(clients.ExecutionQuery, suiteLogger)
+
+	// If workflow has human_input gates:
+	_, err = waiter.WaitForTaskWaitingApproval(ctx, executionID, "{gate_task_name}", 3*time.Minute)
+	require.NoError(t, err)
+
+	_, err = clients.ExecutionCommand.SubmitWorkflowTaskApproval(ctx,
+		&workflowexecutionv1.SubmitWorkflowTaskApprovalInput{
+			ExecutionId: executionID,
+			TaskName:    "{gate_task_name}",
+			Outcome:     "approve",
+			Reviewer:    "integration-test",
+		})
+	require.NoError(t, err)
+
+	result, err := waiter.WaitForPhase(ctx, executionID,
+		workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED, 90*time.Second)
+	require.NoError(t, err)
+
+	harness.AssertPhase(t, result, workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED)
+	// Assert key tasks completed
+	harness.AssertTaskStatus(t, result, "{task_name}",
+		workflowexecutionv1.WorkflowTaskStatus_WORKFLOW_TASK_COMPLETED)
+
+	// Assert output structure
+	output := result.GetStatus().GetOutput()
+	if assert.NotNil(t, output) {
+		fields := output.GetFields()
+		assert.Contains(t, fields, "{expected_output_key}")
+	}
+}
+```
+
+### Skip Logic for Missing Secrets
+
+- If the workflow requires `ANTHROPIC_API_KEY`: skip with message about claude model
+- If the workflow requires `OPENAI_API_KEY`: skip with message about gpt model
+- If both are needed: check both and skip with combined message
+- For custom API keys (e.g., external service tokens): skip with descriptive message
+
+## Step 4: Update BUILD.bazel
+
+Add the new YAML file to `seedpack/BUILD.bazel` in the `embedsrcs` list (alphabetical within the `workflows/` section).
+
+## Step 5: Validate
+
+Run these commands to verify:
+
+```bash
+# 1. Dry-run apply (confirms CLI parsing passes)
+stigmer apply -f seedpack/workflows/{name}.yaml --org stigmer --dry-run
+
+# 2. Run strict parse test
+go test -tags integration -run TestSeedpackWorkflow_StrictParse/{name}.yaml ./test/integration/
+
+# 3. Run parse test
+go test -tags integration -run TestSeedpackWorkflow_Parse_{PascalName} ./test/integration/
+```
+
+## Quality Checklist
+
+Before considering the addition complete:
+
+- [ ] `env` declarations use ONLY `description`, `optional`, `is_secret` (no `required`, no `default`)
+- [ ] All task kinds are from the valid 19-kind set
+- [ ] Task names are unique C-style identifiers
+- [ ] `flow.then` targets reference valid task names
+- [ ] No cycles in the task flow graph
+- [ ] `${ ... }` expressions reference exported upstream values
+- [ ] Parse test added to `seedpack_workflow_test.go`
+- [ ] Filename added to `TestSeedpackWorkflow_StrictParse` list
+- [ ] Filename added to `TestSeedpackWorkflow_LoadAll` list
+- [ ] Execution test added to `workflow_seedpack_test.go` with proper skip logic
+- [ ] `BUILD.bazel` embedsrcs updated
+- [ ] `stigmer apply -f --dry-run` passes
+
+## Reference Files
+
+- Workflow proto: `apis/ai/stigmer/agentic/workflow/v1/spec.proto`
+- EnvVarDeclaration proto: `apis/ai/stigmer/agentic/environment/v1/spec.proto`
+- Existing workflows: `seedpack/workflows/*.yaml`
+- Parse tests: `test/integration/seedpack_workflow_test.go`
+- Execution tests: `test/integration/workflow_seedpack_test.go`
+- Test harness: `test/integration/harness/seedpack_loader.go`
+- CLI workflow loader: `client-apps/cli/internal/cli/workflow/loader.go`
+- CLI workflow validator: `client-apps/cli/internal/cli/workflow/validator.go`

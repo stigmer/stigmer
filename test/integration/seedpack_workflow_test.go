@@ -70,6 +70,30 @@ func TestSeedpackWorkflow_Parse_SupportTicketTriage(t *testing.T) {
 	assert.Contains(t, taskKinds, workflowv1.WorkflowTaskKind_transform)
 }
 
+// TestSeedpackWorkflow_StrictParse verifies all seedpack workflow YAMLs can
+// be parsed with DiscardUnknown: false — matching the CLI's strict behavior.
+// This catches schema mismatches (e.g., using "required" instead of "optional"
+// in env declarations) that lenient parsing silently ignores.
+func TestSeedpackWorkflow_StrictParse(t *testing.T) {
+	seedpackWorkflows := []string{
+		"content-review-pipeline.yaml",
+		"support-ticket-triage.yaml",
+		"research-and-summarize.yaml",
+	}
+
+	for _, filename := range seedpackWorkflows {
+		t.Run(filename, func(t *testing.T) {
+			wf, err := harness.LoadSeedpackWorkflowStrict(filename)
+			require.NoError(t, err, "strict parsing of %s should succeed (no unknown proto fields)", filename)
+			require.NotNil(t, wf.Spec, "workflow spec should not be nil")
+			require.NotEmpty(t, wf.Spec.Tasks, "workflow should have at least one task")
+
+			t.Logf("strict-parsed %s: name=%s, tasks=%d",
+				filename, wf.Metadata.Name, len(wf.Spec.Tasks))
+		})
+	}
+}
+
 func collectTaskKinds(tasks []*workflowv1.WorkflowTask) []workflowv1.WorkflowTaskKind {
 	kinds := make([]workflowv1.WorkflowTaskKind, 0, len(tasks))
 	for _, task := range tasks {
