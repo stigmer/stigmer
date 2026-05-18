@@ -82,7 +82,7 @@ install-vale: ## Install Vale prose linter (auto-detects OS)
 
 # ─── Build ────────────────────────────────────
 
-.PHONY: build build-mcp-server build-java-sdk build-cursor-runner protos codegen gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-task-docs gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-task-docs-check
+.PHONY: build build-mcp-server build-java-protos build-java-sdk build-cursor-runner protos codegen gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-task-docs gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-task-docs-check
 build: libs-build build-web verify-desktop docs-build build-mcp-server build-java-sdk build-cursor-runner ## Build all project artifacts
 	@mkdir -p bin
 	cd client-apps/cli && go build -o ../../bin/stigmer .
@@ -94,7 +94,11 @@ build: libs-build build-web verify-desktop docs-build build-mcp-server build-jav
 build-mcp-server: ## Build MCP server binary
 	$(MAKE) -C mcp-server build
 
-build-java-sdk: ## Compile Java SDK
+build-java-protos: ## Install Java proto stubs to local Maven repo
+	@echo "mvn install  apis/stubs/java"
+	@cd apis/stubs/java && mvn install -q
+
+build-java-sdk: build-java-protos ## Compile Java SDK
 	$(MAKE) -C sdk/java build
 
 build-cursor-runner: ## Compile Cursor runner (TypeScript)
