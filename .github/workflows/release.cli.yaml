@@ -260,7 +260,7 @@ jobs:
         run: |
           cd backend/services/workflow-runner
           go build -ldflags="-s -w" \
-            -o ../../../bin/stigmer-workflow-runner .
+            -o ../../../bin/stigmer-workflow-runner ./cmd/zigflow
 
       - name: Verify binaries
         env:
@@ -357,7 +357,7 @@ jobs:
         run: |
           cd backend/services/workflow-runner
           go build -ldflags="-s -w" \
-            -o ../../../bin/stigmer-workflow-runner .
+            -o ../../../bin/stigmer-workflow-runner ./cmd/zigflow
 
       - name: Verify binaries
         env:
@@ -447,7 +447,7 @@ jobs:
         run: |
           cd backend/services/workflow-runner
           go build -ldflags="-s -w" \
-            -o ../../../bin/stigmer-workflow-runner .
+            -o ../../../bin/stigmer-workflow-runner ./cmd/zigflow
 
       - name: Verify binaries
         env:

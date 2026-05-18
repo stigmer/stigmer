@@ -545,7 +545,7 @@ local: ## Build + install CLI, server, and workflow-runner for local development
 	@mkdir -p bin $(HOME)/bin
 	@cd client-apps/cli && go build -tags 'embed_webconsole' -ldflags '$(DEV_LDFLAGS)' -o ../../bin/stigmer .
 	@cd backend/services/stigmer-server && go build -o ../../../bin/stigmer-server ./cmd/server
-	@cd backend/services/workflow-runner && go build -o ../../../bin/stigmer-workflow-runner .
+	@cd backend/services/workflow-runner && go build -o ../../../bin/stigmer-workflow-runner ./cmd/zigflow
 	@cp bin/stigmer bin/stigmer-server bin/stigmer-workflow-runner $(HOME)/bin/
 	@chmod +x $(HOME)/bin/stigmer $(HOME)/bin/stigmer-server $(HOME)/bin/stigmer-workflow-runner
 	@echo "installed: $(HOME)/bin/stigmer, stigmer-server, stigmer-workflow-runner"
