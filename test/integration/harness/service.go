@@ -96,6 +96,11 @@ type ServiceConfig struct {
 	// Auth0Audience overrides the expected JWT audience (security.authentication.api-audience).
 	// Required when Security is SecurityModeProduction.
 	Auth0Audience string
+
+	// Auth0TokenURL overrides the OAuth2 token endpoint that MachineAccountJwtProvider
+	// uses for client_credentials grants. When set, the Java service calls this URL
+	// instead of constructing https://<auth0Domain>/oauth/token.
+	Auth0TokenURL string
 }
 
 // StartJavaService launches the stigmer-service fat JAR as a child process
@@ -284,6 +289,11 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 		"STIGMER_RUNNER_LAUNCHER_TYPE=noop",
 
 		"STIGMER_PROXY_REQUIRE_SCOPE_HEADER=false",
+
+		// Skip JWKS URI reachability check for IdentityProvider create/update.
+		// Test JWKS servers run on plain HTTP localhost which fails the HTTPS
+		// requirement in ValidateJwksReachability.
+		"STIGMER_IDP_JWKS_VALIDATION_DISABLED=true",
 	)
 
 	if productionSecurity {
@@ -306,8 +316,13 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 			fmt.Sprintf("AUTH0_DOMAIN=%s", auth0Domain),
 			"AUTH0_CLIENT_ID=test-client-id",
 			"AUTH0_CLIENT_SECRET=test-client-secret",
+			"AUTH0_MACHINE_ACCOUNT_CLIENT_ID=test-machine-client-id",
+			"AUTH0_MACHINE_ACCOUNT_CLIENT_SECRET=test-machine-client-secret",
 			fmt.Sprintf("AUTH0_API_AUDIENCE=%s", auth0Audience),
 		)
+		if cfg.Auth0TokenURL != "" {
+			env = append(env, fmt.Sprintf("AUTH0_TOKEN_URL=%s", cfg.Auth0TokenURL))
+		}
 	} else {
 		// Test security mode: bypass Auth0 JWT validation with a synthetic
 		// caller. GrpcSecurityConfigBase and MachineAccountJwtProvider are

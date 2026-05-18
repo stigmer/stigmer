@@ -68,7 +68,7 @@ func TestCanary_NoAuth_Fetch_Connects(t *testing.T) {
 	skipIfCanaryDisabled(t)
 
 	ctx := context.Background()
-	clients := testHarness.Clients()
+	clients := harness.NewClients(grpcConn)
 
 	server := &mcpserverv1.McpServer{
 		ApiVersion: "agentic.stigmer.ai/v1",
@@ -101,7 +101,7 @@ func TestCanary_ApiKey_Tavily(t *testing.T) {
 	apiKey := requireEnvVar(t, "TAVILY_API_KEY")
 
 	ctx := context.Background()
-	clients := testHarness.Clients()
+	clients := harness.NewClients(grpcConn)
 
 	server := &mcpserverv1.McpServer{
 		ApiVersion: "agentic.stigmer.ai/v1",
@@ -144,7 +144,7 @@ func TestCanary_ApiKey_Stripe(t *testing.T) {
 	token := requireEnvVar(t, "STRIPE_ACCESS_TOKEN")
 
 	ctx := context.Background()
-	clients := testHarness.Clients()
+	clients := harness.NewClients(grpcConn)
 
 	server := &mcpserverv1.McpServer{
 		ApiVersion: "agentic.stigmer.ai/v1",
@@ -185,7 +185,7 @@ func TestCanary_ApiKey_Linear(t *testing.T) {
 	token := requireEnvVar(t, "LINEAR_ACCESS_TOKEN")
 
 	ctx := context.Background()
-	clients := testHarness.Clients()
+	clients := harness.NewClients(grpcConn)
 
 	server := &mcpserverv1.McpServer{
 		ApiVersion: "agentic.stigmer.ai/v1",
@@ -226,7 +226,7 @@ func TestCanary_Token_GitHub(t *testing.T) {
 	token := requireEnvVar(t, "GITHUB_MCP_TOKEN")
 
 	ctx := context.Background()
-	clients := testHarness.Clients()
+	clients := harness.NewClients(grpcConn)
 
 	server := &mcpserverv1.McpServer{
 		ApiVersion: "agentic.stigmer.ai/v1",
@@ -267,7 +267,7 @@ func TestCanary_ApiKey_GoogleMaps(t *testing.T) {
 	apiKey := requireEnvVar(t, "GOOGLE_MAPS_API_KEY")
 
 	ctx := context.Background()
-	clients := testHarness.Clients()
+	clients := harness.NewClients(grpcConn)
 
 	server := &mcpserverv1.McpServer{
 		ApiVersion: "agentic.stigmer.ai/v1",

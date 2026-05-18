@@ -116,6 +116,7 @@ func StartMockOIDCServer(t testing.TB, issuer, audience string) *MockJWKSServer 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/jwks", m.handleJWKS)
 	mux.HandleFunc("/.well-known/openid-configuration", m.handleOIDCDiscovery)
+	mux.HandleFunc("/oauth/token", m.handleOAuthToken)
 
 	m.server = &http.Server{Handler: mux}
 
@@ -163,6 +164,38 @@ func (m *MockJWKSServer) handleOIDCDiscovery(w http.ResponseWriter, _ *http.Requ
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(discovery)
+}
+
+// handleOAuthToken implements the OAuth 2.0 client_credentials grant for the
+// mock OIDC server. The Java service's MachineAccountJwtProvider calls this
+// endpoint to obtain a machine-account JWT for internal service-to-service calls.
+func (m *MockJWKSServer) handleOAuthToken(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	audience := m.Audience
+	if audience == "" {
+		audience = "https://api.stigmer.test"
+	}
+
+	token, err := m.SignJWT("machine-account@stigmer.ai", audience, map[string]any{
+		"gty":   "client-credentials",
+		"scope": "machine-account",
+	})
+	if err != nil {
+		http.Error(w, "failed to sign token: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	resp := map[string]any{
+		"access_token": token,
+		"token_type":   "Bearer",
+		"expires_in":   3600,
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
 }
 
 // NewMockJWKSServer creates a MockJWKSServer without a testing.TB dependency.
@@ -230,6 +263,7 @@ func NewMockOIDCServer(issuer, audience string) (*MockJWKSServer, error) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/jwks", m.handleJWKS)
 	mux.HandleFunc("/.well-known/openid-configuration", m.handleOIDCDiscovery)
+	mux.HandleFunc("/oauth/token", m.handleOAuthToken)
 
 	m.server = &http.Server{Handler: mux}
 	go m.server.Serve(listener)
