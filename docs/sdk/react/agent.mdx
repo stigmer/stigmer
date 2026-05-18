@@ -359,6 +359,7 @@ function useDefaultAgent(org: string | null): UseDefaultAgentReturn
     isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
     isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight and stale data is shown." },
     refetch: { type: "() => void", description: "Discard cached data and re-fetch the default agent from the server." },
+    waitForResolution: { type: "() => Promise<Agent>", description: "Returns a promise that resolves with the Agent once the in-flight fetch settles. If the agent is already loaded, resolves immediately. If the fetch has already failed, rejects immediately.  Use this to await the default agent in async flows (e.g. submit) instead of failing when `isLoading` is still true." },
   }}
 />
 
