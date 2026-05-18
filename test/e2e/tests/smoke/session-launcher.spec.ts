@@ -20,4 +20,24 @@ test.describe("Session launcher", () => {
     const errorText = page.locator('text="Failed to load default agent"');
     await expect(errorText).toHaveCount(0);
   });
+
+  test("no error when submitting immediately after page load", async ({ page }) => {
+    await page.goto("/");
+
+    const textarea = page.locator('textarea, [role="textbox"], [contenteditable="true"]');
+    await expect(textarea.first()).toBeVisible({ timeout: 10_000 });
+
+    await textarea.first().fill("Hello, world!");
+    await textarea.first().press("Enter");
+
+    await page.waitForTimeout(3000);
+
+    const loadingError = page.locator('text="Loading default agent"');
+    const failedError = page.locator('text="Failed to load default agent"');
+    const timeoutError = page.locator('text="did not load in time"');
+
+    await expect(loadingError).toHaveCount(0);
+    await expect(failedError).toHaveCount(0);
+    await expect(timeoutError).toHaveCount(0);
+  });
 });

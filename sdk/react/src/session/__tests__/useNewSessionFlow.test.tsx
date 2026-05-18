@@ -29,8 +29,9 @@ vi.mock("../../execution/useCreateAgentExecution", () => ({
 const mockDefaultAgent = {
   agent: null as { status?: { defaultInstanceId?: string } } | null,
   isLoading: false,
-  error: null,
+  error: null as Error | null,
   refetch: vi.fn(),
+  waitForResolution: vi.fn<() => Promise<unknown>>(),
 };
 vi.mock("../../agent", () => ({
   useDefaultAgent: () => mockDefaultAgent,
@@ -377,6 +378,100 @@ describe("useNewSessionFlow", () => {
       });
 
       expect(result.current.isSubmitting).toBe(false);
+    });
+  });
+
+  describe("submit while default agent is loading", () => {
+    it("awaits default agent and creates session when fetch resolves", async () => {
+      const resolvedAgent = { status: { defaultInstanceId: "awaited-inst" } };
+      mockDefaultAgent.agent = null;
+      mockDefaultAgent.isLoading = true;
+      mockDefaultAgent.error = null;
+      mockDefaultAgent.waitForResolution.mockResolvedValue(resolvedAgent);
+
+      const opts = defaultOptions();
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+
+      expect(mockDefaultAgent.waitForResolution).toHaveBeenCalledOnce();
+      expect(mockCreateSession).toHaveBeenCalledOnce();
+      expect(mockCreateSession.mock.calls[0][0].agentInstanceId).toBe("awaited-inst");
+      expect(opts.onSessionCreated).toHaveBeenCalledWith("sess-new");
+      expect(result.current.submitError).toBeNull();
+    });
+
+    it("surfaces error when fetch fails during await", async () => {
+      mockDefaultAgent.agent = null;
+      mockDefaultAgent.isLoading = true;
+      mockDefaultAgent.error = null;
+      mockDefaultAgent.waitForResolution.mockRejectedValue(
+        new Error("Network failure"),
+      );
+
+      const opts = defaultOptions();
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+
+      expect(result.current.submitError).toBeTruthy();
+      expect(opts.onError).toHaveBeenCalled();
+      expect(mockCreateSession).not.toHaveBeenCalled();
+    });
+
+    it("surfaces timeout error when fetch never resolves", async () => {
+      vi.useFakeTimers();
+
+      mockDefaultAgent.agent = null;
+      mockDefaultAgent.isLoading = true;
+      mockDefaultAgent.error = null;
+      mockDefaultAgent.waitForResolution.mockReturnValue(
+        new Promise(() => {}),
+      );
+
+      const opts = defaultOptions();
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+
+      let submitPromise: Promise<void>;
+      act(() => {
+        submitPromise = result.current.submit("Hello") as unknown as Promise<void>;
+      });
+
+      await act(async () => {
+        vi.advanceTimersByTime(10_000);
+      });
+
+      await act(async () => {
+        await submitPromise;
+      });
+
+      expect(result.current.submitError).toContain("did not load in time");
+      expect(opts.onError).toHaveBeenCalled();
+      expect(mockCreateSession).not.toHaveBeenCalled();
+
+      vi.useRealTimers();
+    });
+
+    it("errors immediately when default agent has already failed", async () => {
+      mockDefaultAgent.agent = null;
+      mockDefaultAgent.isLoading = false;
+      mockDefaultAgent.error = new Error("Already failed");
+
+      const opts = defaultOptions();
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+
+      expect(result.current.submitError).toContain("Failed to load default agent");
+      expect(opts.onError).toHaveBeenCalled();
+      expect(mockCreateSession).not.toHaveBeenCalled();
+      expect(mockDefaultAgent.waitForResolution).not.toHaveBeenCalled();
     });
   });
 });

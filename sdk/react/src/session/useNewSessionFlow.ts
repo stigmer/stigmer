@@ -11,8 +11,11 @@ import { useWorkspaceEntries, type UseWorkspaceEntriesReturn } from "../workspac
 import { useSessionVariables, type UseSessionVariablesReturn } from "../execution/useSessionVariables";
 import type { SessionComposerSubmitContext } from "../composer";
 import { useRunnerList } from "../runner/useRunnerList";
+import { withTimeout } from "../internal/withTimeout";
 import { useCreateSession } from "./useCreateSession";
 import { useCreateAgentExecution } from "../execution/useCreateAgentExecution";
+
+const DEFAULT_AGENT_TIMEOUT_MS = 10_000;
 
 const STORAGE_KEY_HARNESS = "stigmer:session:harness";
 const STORAGE_KEY_RUNNER = "stigmer:session:runner";
@@ -164,6 +167,7 @@ export function useNewSessionFlow(
     agent: defaultAgent,
     isLoading: isDefaultAgentLoading,
     error: defaultAgentError,
+    waitForResolution: waitForDefaultAgent,
   } = useDefaultAgent(org);
   const workspace = useWorkspaceEntries();
   const sessionVariables = useSessionVariables();
@@ -293,25 +297,29 @@ export function useNewSessionFlow(
             }));
           }
         } else {
-          const defaultInstanceId = defaultAgent?.status?.defaultInstanceId;
-          if (!defaultInstanceId) {
+          let resolvedInstanceId = defaultAgent?.status?.defaultInstanceId;
+          if (!resolvedInstanceId) {
             if (isDefaultAgentLoading) {
-              throw new Error(
-                "Loading default agent. Please try again in a moment.",
+              const resolved = await withTimeout(
+                waitForDefaultAgent(),
+                DEFAULT_AGENT_TIMEOUT_MS,
+                "Default agent did not load in time. Please try again.",
               );
-            }
-            if (defaultAgentError) {
+              resolvedInstanceId = resolved?.status?.defaultInstanceId;
+            } else if (defaultAgentError) {
               throw new Error(
                 "Failed to load default agent. Please try again.",
               );
             }
-            throw new Error(
-              "No default agent available. Select an agent to start a session.",
-            );
+            if (!resolvedInstanceId) {
+              throw new Error(
+                "No default agent available. Select an agent to start a session.",
+              );
+            }
           }
           ({ sessionId } = await createSession({
             ...sessionFields,
-            agentInstanceId: defaultInstanceId,
+            agentInstanceId: resolvedInstanceId,
           }));
         }
 
@@ -340,6 +348,7 @@ export function useNewSessionFlow(
       defaultAgent,
       isDefaultAgentLoading,
       defaultAgentError,
+      waitForDefaultAgent,
       createSession,
       createExecution,
       sessionVariables,
