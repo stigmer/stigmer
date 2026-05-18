@@ -185,6 +185,20 @@ When asked to write tests for a feature or fix:
 - Mock external services at the HTTP boundary using `msw` or similar.
 - Type assertions to catch API contract drift.
 
+### MCP Server Canary Credential Management
+
+The credential manifest (`seedpack/mcp-servers/credential-manifest.yaml`) is the single source of truth for which MCP servers have canary test credentials provisioned. Every MCP server in the seedpack must have a corresponding entry tracking its credential status (`provisioned`, `pending`, or `not_required`).
+
+**Adding new MCP servers:** When a new MCP server is added to the seedpack, ensure canary coverage by following the `@add-mcp-server-to-seedpack` Cursor rule. This handles YAML creation, auth classification, credential-manifest update, Planton secret setup, and BUILD.bazel registration.
+
+**OAuth-only servers:** For servers classified as `oauth_only`, browser-based OAuth token acquisition is a manual step that cannot be automated in CI. After obtaining the token through the provider's OAuth flow, store it in Planton secrets and update the manifest entry to `status: provisioned`.
+
+**Expired token recovery:** When canary tests fail due to expired or revoked tokens, update the corresponding manifest entry to `status: pending` and re-provision credentials through the appropriate flow (API key regeneration or OAuth re-authorization).
+
+**Credential storage pattern:** All canary credentials are stored as Planton secrets at:
+- YAML definitions: `stigmer-cloud/_ops/planton/connect/secrets/mcp-canary-{name}-{key-suffix}.yaml`
+- Secret values: `stigmer-cloud/_ops/planton/connect/.secret-values/mcp-canary-{name}-{key-suffix}`
+
 ## RESPONSE STYLE
 
 * Be proactive — when you see a change without tests, flag it and propose what tests should exist.

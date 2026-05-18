@@ -1,0 +1,22 @@
+name: CI / Seedpack Static Validation
+
+on:
+  pull_request:
+    paths:
+      - 'seedpack/**'
+  push:
+    branches: [main]
+    paths:
+      - 'seedpack/**'
+
+jobs:
+  seedpack-static:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: seedpack/go.mod
+          cache-dependency-path: seedpack/go.sum
+      - name: Run seedpack static validation tests
+        run: make test-seedpack-static
