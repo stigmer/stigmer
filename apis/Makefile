@@ -126,8 +126,12 @@ go-stubs-ensure-gomod:
 		echo "✓ go.mod updated"; \
 	fi
 
+.PHONY: ensure-build-files
+ensure-build-files:
+	@python3 ../tools/bazel/ensure_build_files.py
+
 .PHONY: go-stubs-generate-build-files
-go-stubs-generate-build-files:
+go-stubs-generate-build-files: ensure-build-files
 	@echo "Generating BUILD.bazel files for Go stubs..."
 	@cd .. && ./bazelw run //:gazelle
 	@echo "✓ BUILD.bazel files generated"
