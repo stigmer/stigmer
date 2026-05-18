@@ -3,6 +3,7 @@
 package ai.stigmer.sdk.gen;
 
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
+import ai.stigmer.commons.apiresource.ApiResourceVisibility;
 import ai.stigmer.iam.invitation.v1.Invitation;
 import ai.stigmer.iam.invitation.v1.InvitationSpec;
 import ai.stigmer.iam.v1.IamRole;
@@ -14,6 +15,7 @@ public final class InvitationInput {
     private final String org;
     private final String slug;
     private final java.util.Map<String, String> labels;
+    private final ApiResourceVisibility visibility;
     private final IamRole role;
     private final int maxRedemptions;
     private final String expiresAt;
@@ -24,6 +26,7 @@ public final class InvitationInput {
         this.org = builder.org;
         this.slug = builder.slug;
         this.labels = builder.labels;
+        this.visibility = builder.visibility;
         this.role = builder.role;
         this.maxRedemptions = builder.maxRedemptions;
         this.expiresAt = builder.expiresAt;
@@ -55,6 +58,9 @@ public final class InvitationInput {
         if (this.labels != null) {
             metaBuilder.putAllLabels(this.labels);
         }
+        if (this.visibility != null) {
+            metaBuilder.setVisibility(this.visibility);
+        }
         return Invitation.newBuilder()
             .setApiVersion("iam.stigmer.ai/v1")
             .setKind("Invitation")
@@ -70,6 +76,7 @@ public final class InvitationInput {
         private String org;
         private String slug;
         private java.util.Map<String, String> labels;
+        private ApiResourceVisibility visibility;
         private IamRole role;
         private int maxRedemptions;
         private String expiresAt;
@@ -81,6 +88,7 @@ public final class InvitationInput {
         public Builder org(String org) { this.org = org; return this; }
         public Builder slug(String slug) { this.slug = slug; return this; }
         public Builder labels(java.util.Map<String, String> labels) { this.labels = labels; return this; }
+        public Builder visibility(ApiResourceVisibility visibility) { this.visibility = visibility; return this; }
         public Builder role(IamRole role) { this.role = role; return this; }
         public Builder maxRedemptions(int maxRedemptions) { this.maxRedemptions = maxRedemptions; return this; }
         public Builder expiresAt(String expiresAt) { this.expiresAt = expiresAt; return this; }

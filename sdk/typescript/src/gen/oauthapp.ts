@@ -6,6 +6,7 @@ import { type DeleteResourceInput, type ResourceRef } from "./types";
 import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { OAuthAppSchema, type OAuthApp } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
@@ -77,6 +78,7 @@ export interface OAuthAppInput {
   slug?: string;
   org: string;
   labels?: Record<string, string>;
+  visibility?: ApiResourceVisibility;
   provider?: string;
   clientId?: string;
   clientSecret?: string;
@@ -98,6 +100,7 @@ function buildOAuthAppProto(input: OAuthAppInput): OAuthApp {
       org: input.org,
       ...(input.slug && { slug: input.slug }),
       ...(input.labels && { labels: input.labels }),
+      ...(input.visibility && { visibility: input.visibility }),
     }),
     spec: Object.assign(create(OAuthAppSpecSchema), stripUndefined({
       provider: input.provider,

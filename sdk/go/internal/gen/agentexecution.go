@@ -160,6 +160,7 @@ type AgentExecutionInput struct {
 	Slug              string
 	Org               string
 	Labels            map[string]string
+	Visibility        apiresource.ApiResourceVisibility
 	SessionId         string
 	AgentId           string
 	Message           string
@@ -204,10 +205,11 @@ func (i *AgentExecutionInput) toProto() *agentexecutionv1.AgentExecution {
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "AgentExecution",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name:   i.Name,
-			Slug:   i.Slug,
-			Org:    i.Org,
-			Labels: i.Labels,
+			Name:       i.Name,
+			Slug:       i.Slug,
+			Org:        i.Org,
+			Labels:     i.Labels,
+			Visibility: i.Visibility,
 		},
 		Spec: &agentexecutionv1.AgentExecutionSpec{},
 	}
@@ -273,6 +275,7 @@ func AgentExecutionInputFromProto(p *agentexecutionv1.AgentExecution) *AgentExec
 		input.Slug = m.GetSlug()
 		input.Org = m.GetOrg()
 		input.Labels = m.GetLabels()
+		input.Visibility = m.GetVisibility()
 	}
 	if s := p.GetSpec(); s != nil {
 		input.SessionId = s.GetSessionId()

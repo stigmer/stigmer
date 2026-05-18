@@ -13,6 +13,7 @@ from ai.stigmer.agentic.workflow.v1 import query_pb2_grpc
 from ai.stigmer.agentic.workflow.v1 import task_kind_registry_query_pb2_grpc
 from ai.stigmer.agentic.workflow.v1 import io_pb2
 from ai.stigmer.agentic.workflow.v1 import task_kind_descriptor_pb2
+from ai.stigmer.agentic.workflow.v1.serverless import validation_pb2
 from ai.stigmer.agentic.workflow.v1 import spec_pb2
 from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
@@ -56,6 +57,12 @@ class WorkflowClient:
     def delete(self, id: str) -> api_pb2.Workflow:
         try:
             return self._command.delete(io_pb2.WorkflowId(value=id))
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def validate_spec(self, input: WorkflowInput) -> validation_pb2.ServerlessWorkflowValidation:
+        try:
+            return self._command.validateSpec(input._to_proto())
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
@@ -112,6 +119,7 @@ class WorkflowInput:
     document: WorkflowDocumentInput | None
     slug: str | None = None
     labels: dict[str, str] | None = None
+    visibility: int = 0
     description: str = ""
     tasks: list[WorkflowTaskInput] = field(default_factory=list)
     env: dict[str, EnvVarDeclarationInput] = field(default_factory=dict)
@@ -137,6 +145,8 @@ class WorkflowInput:
             metadata.slug = self.slug
         if self.labels:
             metadata.labels.update(self.labels)
+        if self.visibility:
+            metadata.visibility = self.visibility
         return api_pb2.Workflow(
             api_version="agentic.stigmer.ai/v1",
             kind="Workflow",
@@ -170,11 +180,12 @@ class WorkflowDocumentInput:
 class WorkflowTaskInput:
     """SDK input type for WorkflowTask."""
 
-    name: str
     kind: int
     task_config: dict[str, Any]
+    name: str = ""
     export: ExportInput | None = None
     flow: FlowControlInput | None = None
+    compensate: list[WorkflowTaskInput] = field(default_factory=list)
 
     def _to_proto(self) -> spec_pb2.WorkflowTask:
         msg = spec_pb2.WorkflowTask(
@@ -187,6 +198,8 @@ class WorkflowTaskInput:
             msg.export.CopyFrom(self.export._to_proto())
         if self.flow is not None:
             msg.flow.CopyFrom(self.flow._to_proto())
+        for item in self.compensate:
+            msg.compensate.append(item._to_proto())
         return msg
 
 

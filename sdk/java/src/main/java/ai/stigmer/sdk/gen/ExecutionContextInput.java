@@ -6,6 +6,7 @@ import ai.stigmer.agentic.executioncontext.v1.ExecutionContext;
 import ai.stigmer.agentic.executioncontext.v1.ExecutionContextSpec;
 import ai.stigmer.agentic.executioncontext.v1.ExecutionValue;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
+import ai.stigmer.commons.apiresource.ApiResourceVisibility;
 
 /** Input for creating/updating a ExecutionContext. */
 public final class ExecutionContextInput {
@@ -13,6 +14,7 @@ public final class ExecutionContextInput {
     private final String org;
     private final String slug;
     private final java.util.Map<String, String> labels;
+    private final ApiResourceVisibility visibility;
     private final String executionId;
     private final java.util.Map<String, EnvVarInput> data;
 
@@ -21,6 +23,7 @@ public final class ExecutionContextInput {
         this.org = builder.org;
         this.slug = builder.slug;
         this.labels = builder.labels;
+        this.visibility = builder.visibility;
         this.executionId = builder.executionId;
         this.data = builder.data;
     }
@@ -47,6 +50,9 @@ public final class ExecutionContextInput {
         if (this.labels != null) {
             metaBuilder.putAllLabels(this.labels);
         }
+        if (this.visibility != null) {
+            metaBuilder.setVisibility(this.visibility);
+        }
         return ExecutionContext.newBuilder()
             .setApiVersion("agentic.stigmer.ai/v1")
             .setKind("ExecutionContext")
@@ -62,6 +68,7 @@ public final class ExecutionContextInput {
         private String org;
         private String slug;
         private java.util.Map<String, String> labels;
+        private ApiResourceVisibility visibility;
         private String executionId;
         private java.util.Map<String, EnvVarInput> data;
 
@@ -71,6 +78,7 @@ public final class ExecutionContextInput {
         public Builder org(String org) { this.org = org; return this; }
         public Builder slug(String slug) { this.slug = slug; return this; }
         public Builder labels(java.util.Map<String, String> labels) { this.labels = labels; return this; }
+        public Builder visibility(ApiResourceVisibility visibility) { this.visibility = visibility; return this; }
         public Builder executionId(String executionId) { this.executionId = executionId; return this; }
         public Builder data(java.util.Map<String, EnvVarInput> data) { this.data = data; return this; }
 

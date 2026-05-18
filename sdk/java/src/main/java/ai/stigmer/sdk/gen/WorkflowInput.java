@@ -13,6 +13,7 @@ import ai.stigmer.agentic.workflow.v1.WorkflowSpec;
 import ai.stigmer.agentic.workflow.v1.WorkflowTask;
 import ai.stigmer.agentic.workflow.v1.WorkflowTaskKind;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
+import ai.stigmer.commons.apiresource.ApiResourceVisibility;
 import com.google.protobuf.Struct;
 
 /** Input for creating/updating a Workflow. */
@@ -21,6 +22,7 @@ public final class WorkflowInput {
     private final String org;
     private final String slug;
     private final java.util.Map<String, String> labels;
+    private final ApiResourceVisibility visibility;
     private final String description;
     private final WorkflowDocumentInput document;
     private final java.util.List<WorkflowTaskInput> tasks;
@@ -32,6 +34,7 @@ public final class WorkflowInput {
         this.org = builder.org;
         this.slug = builder.slug;
         this.labels = builder.labels;
+        this.visibility = builder.visibility;
         this.description = builder.description;
         this.document = builder.document;
         this.tasks = builder.tasks;
@@ -69,6 +72,9 @@ public final class WorkflowInput {
         if (this.labels != null) {
             metaBuilder.putAllLabels(this.labels);
         }
+        if (this.visibility != null) {
+            metaBuilder.setVisibility(this.visibility);
+        }
         return Workflow.newBuilder()
             .setApiVersion("agentic.stigmer.ai/v1")
             .setKind("Workflow")
@@ -84,6 +90,7 @@ public final class WorkflowInput {
         private String org;
         private String slug;
         private java.util.Map<String, String> labels;
+        private ApiResourceVisibility visibility;
         private String description;
         private WorkflowDocumentInput document;
         private java.util.List<WorkflowTaskInput> tasks;
@@ -96,6 +103,7 @@ public final class WorkflowInput {
         public Builder org(String org) { this.org = org; return this; }
         public Builder slug(String slug) { this.slug = slug; return this; }
         public Builder labels(java.util.Map<String, String> labels) { this.labels = labels; return this; }
+        public Builder visibility(ApiResourceVisibility visibility) { this.visibility = visibility; return this; }
         public Builder description(String description) { this.description = description; return this; }
         public Builder document(WorkflowDocumentInput document) { this.document = document; return this; }
         public Builder tasks(java.util.List<WorkflowTaskInput> tasks) { this.tasks = tasks; return this; }
@@ -169,6 +177,7 @@ public final class WorkflowInput {
         private final java.util.Map<String, Object> taskConfig;
         private final ExportInput export;
         private final FlowControlInput flow;
+        private final java.util.List<WorkflowTaskInput> compensate;
 
         private WorkflowTaskInput(Builder builder) {
             this.name = builder.name;
@@ -176,6 +185,7 @@ public final class WorkflowInput {
             this.taskConfig = builder.taskConfig;
             this.export = builder.export;
             this.flow = builder.flow;
+            this.compensate = builder.compensate;
         }
 
         WorkflowTask toProto() {
@@ -195,6 +205,11 @@ public final class WorkflowInput {
             if (this.flow != null) {
                 builder.setFlow(this.flow.toProto());
             }
+            if (this.compensate != null) {
+                for (WorkflowTaskInput item : this.compensate) {
+                    builder.addCompensate(item.toProto());
+                }
+            }
             return builder.build();
         }
 
@@ -206,6 +221,7 @@ public final class WorkflowInput {
             private java.util.Map<String, Object> taskConfig;
             private ExportInput export;
             private FlowControlInput flow;
+            private java.util.List<WorkflowTaskInput> compensate;
 
             private Builder() {}
 
@@ -214,6 +230,7 @@ public final class WorkflowInput {
             public Builder taskConfig(java.util.Map<String, Object> taskConfig) { this.taskConfig = taskConfig; return this; }
             public Builder export(ExportInput export) { this.export = export; return this; }
             public Builder flow(FlowControlInput flow) { this.flow = flow; return this; }
+            public Builder compensate(java.util.List<WorkflowTaskInput> compensate) { this.compensate = compensate; return this; }
 
             public WorkflowTaskInput build() { return new WorkflowTaskInput(this); }
         }

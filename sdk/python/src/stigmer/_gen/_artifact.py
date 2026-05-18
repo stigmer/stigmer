@@ -66,6 +66,7 @@ class ArtifactInput:
     source: ArtifactSourceInput | None
     slug: str | None = None
     labels: dict[str, str] | None = None
+    visibility: int = 0
     retention: RetentionPolicyInput | None = None
 
     def _to_proto(self) -> api_pb2.Artifact:
@@ -85,6 +86,8 @@ class ArtifactInput:
             metadata.slug = self.slug
         if self.labels:
             metadata.labels.update(self.labels)
+        if self.visibility:
+            metadata.visibility = self.visibility
         return api_pb2.Artifact(
             api_version="agentic.stigmer.ai/v1",
             kind="Artifact",

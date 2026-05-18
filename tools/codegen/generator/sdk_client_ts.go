@@ -401,6 +401,7 @@ func generateTSResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, 
 		needsCreate = true
 		imports.addValue(importBase+"/spec_pb", specSchema.Name+"Schema")
 		imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb", "ApiResourceMetadataSchema")
+		imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb", "ApiResourceVisibility")
 		imports.addValue("./proto-utils", "stripUndefined")
 	}
 
@@ -767,6 +768,7 @@ func generateTSInputTypes(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkR
 	buf.WriteString("  slug?: string;\n")
 	buf.WriteString("  org: string;\n")
 	buf.WriteString("  labels?: Record<string, string>;\n")
+	buf.WriteString("  visibility?: ApiResourceVisibility;\n")
 	for _, f := range specFields {
 		tsType := tsTypeForField(f, typeMap, imports, schema.Package)
 		optional := "?"
@@ -1060,6 +1062,7 @@ func generateTSBuildProto(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkR
 		fmt.Fprintf(buf, "      org: input.org,\n")
 		buf.WriteString("      ...(input.slug && { slug: input.slug }),\n")
 		buf.WriteString("      ...(input.labels && { labels: input.labels }),\n")
+		buf.WriteString("      ...(input.visibility && { visibility: input.visibility }),\n")
 		fmt.Fprintf(buf, "    }),\n")
 		fmt.Fprintf(buf, "    spec,\n")
 		fmt.Fprintf(buf, "  }) as %s;\n", cfg.protoResType)
@@ -1072,6 +1075,7 @@ func generateTSBuildProto(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkR
 		fmt.Fprintf(buf, "      org: input.org,\n")
 		buf.WriteString("      ...(input.slug && { slug: input.slug }),\n")
 		buf.WriteString("      ...(input.labels && { labels: input.labels }),\n")
+		buf.WriteString("      ...(input.visibility && { visibility: input.visibility }),\n")
 		fmt.Fprintf(buf, "    }),\n")
 		fmt.Fprintf(buf, "    spec: Object.assign(create(%sSchema), stripUndefined({\n", spec.Name)
 

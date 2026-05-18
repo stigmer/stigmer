@@ -76,6 +76,7 @@ type IdentityProviderInput struct {
 	Slug                  string
 	Org                   string
 	Labels                map[string]string
+	Visibility            apiresource.ApiResourceVisibility
 	DisplayName           string
 	JwksUri               string
 	AllowedIssuers        []string
@@ -95,10 +96,11 @@ func (i *IdentityProviderInput) toProto() *identityproviderv1.IdentityProvider {
 		ApiVersion: "iam.stigmer.ai/v1",
 		Kind:       "IdentityProvider",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name:   i.Name,
-			Slug:   i.Slug,
-			Org:    i.Org,
-			Labels: i.Labels,
+			Name:       i.Name,
+			Slug:       i.Slug,
+			Org:        i.Org,
+			Labels:     i.Labels,
+			Visibility: i.Visibility,
 		},
 		Spec: &identityproviderv1.IdentityProviderSpec{},
 	}
@@ -128,6 +130,7 @@ func IdentityProviderInputFromProto(p *identityproviderv1.IdentityProvider) *Ide
 		input.Slug = m.GetSlug()
 		input.Org = m.GetOrg()
 		input.Labels = m.GetLabels()
+		input.Visibility = m.GetVisibility()
 	}
 	if s := p.GetSpec(); s != nil {
 		input.DisplayName = s.GetDisplayName()

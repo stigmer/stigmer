@@ -97,6 +97,7 @@ type SkillInput struct {
 	Slug        string
 	Org         string
 	Labels      map[string]string
+	Visibility  apiresource.ApiResourceVisibility
 	SkillMd     string
 	Tag         string
 	Description string
@@ -107,10 +108,11 @@ func (i *SkillInput) toProto() *skillv1.Skill {
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Skill",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name:   i.Name,
-			Slug:   i.Slug,
-			Org:    i.Org,
-			Labels: i.Labels,
+			Name:       i.Name,
+			Slug:       i.Slug,
+			Org:        i.Org,
+			Labels:     i.Labels,
+			Visibility: i.Visibility,
 		},
 		Spec: &skillv1.SkillSpec{},
 	}
@@ -131,6 +133,7 @@ func SkillInputFromProto(p *skillv1.Skill) *SkillInput {
 		input.Slug = m.GetSlug()
 		input.Org = m.GetOrg()
 		input.Labels = m.GetLabels()
+		input.Visibility = m.GetVisibility()
 	}
 	if s := p.GetSpec(); s != nil {
 		input.SkillMd = s.GetSkillMd()

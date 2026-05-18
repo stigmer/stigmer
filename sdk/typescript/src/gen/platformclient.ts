@@ -6,6 +6,7 @@ import { type DeleteResourceInput, type ResourceRef } from "./types";
 import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { PlatformClientSchema, type PlatformClient } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
@@ -87,6 +88,7 @@ export interface PlatformClientInput {
   slug?: string;
   org: string;
   labels?: Record<string, string>;
+  visibility?: ApiResourceVisibility;
   clientId?: string;
   clientSecretHash?: string;
   secretFingerprint?: string;
@@ -107,6 +109,7 @@ function buildPlatformClientProto(input: PlatformClientInput): PlatformClient {
       org: input.org,
       ...(input.slug && { slug: input.slug }),
       ...(input.labels && { labels: input.labels }),
+      ...(input.visibility && { visibility: input.visibility }),
     }),
     spec: Object.assign(create(PlatformClientSpecSchema), stripUndefined({
       clientId: input.clientId,

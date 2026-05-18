@@ -85,6 +85,7 @@ class AgentInstanceInput:
     org: str
     slug: str | None = None
     labels: dict[str, str] | None = None
+    visibility: int = 0
     agent_id: str = ""
     description: str = ""
     environment_refs: list[ResourceRef] = field(default_factory=list)
@@ -106,6 +107,8 @@ class AgentInstanceInput:
             metadata.slug = self.slug
         if self.labels:
             metadata.labels.update(self.labels)
+        if self.visibility:
+            metadata.visibility = self.visibility
         return api_pb2.AgentInstance(
             api_version="agentic.stigmer.ai/v1",
             kind="AgentInstance",

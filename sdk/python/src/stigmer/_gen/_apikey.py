@@ -69,6 +69,7 @@ class ApiKeyInput:
     org: str
     slug: str | None = None
     labels: dict[str, str] | None = None
+    visibility: int = 0
     key_hash: str = ""
     fingerprint: str = ""
     expires_at: str = ""
@@ -90,6 +91,8 @@ class ApiKeyInput:
             metadata.slug = self.slug
         if self.labels:
             metadata.labels.update(self.labels)
+        if self.visibility:
+            metadata.visibility = self.visibility
         return api_pb2.ApiKey(
             api_version="iam.stigmer.ai/v1",
             kind="ApiKey",

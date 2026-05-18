@@ -71,6 +71,7 @@ type AgentInstanceInput struct {
 	Slug            string
 	Org             string
 	Labels          map[string]string
+	Visibility      apiresource.ApiResourceVisibility
 	AgentId         string
 	Description     string
 	EnvironmentRefs []ResourceRef
@@ -81,10 +82,11 @@ func (i *AgentInstanceInput) toProto() *agentinstancev1.AgentInstance {
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "AgentInstance",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name:   i.Name,
-			Slug:   i.Slug,
-			Org:    i.Org,
-			Labels: i.Labels,
+			Name:       i.Name,
+			Slug:       i.Slug,
+			Org:        i.Org,
+			Labels:     i.Labels,
+			Visibility: i.Visibility,
 		},
 		Spec: &agentinstancev1.AgentInstanceSpec{},
 	}
@@ -109,6 +111,7 @@ func AgentInstanceInputFromProto(p *agentinstancev1.AgentInstance) *AgentInstanc
 		input.Slug = m.GetSlug()
 		input.Org = m.GetOrg()
 		input.Labels = m.GetLabels()
+		input.Visibility = m.GetVisibility()
 	}
 	if s := p.GetSpec(); s != nil {
 		input.AgentId = s.GetAgentId()

@@ -3,6 +3,7 @@
 package ai.stigmer.sdk.gen;
 
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
+import ai.stigmer.commons.apiresource.ApiResourceVisibility;
 import ai.stigmer.iam.iampolicy.v1.ApiResourceRef;
 import ai.stigmer.iam.iampolicy.v1.IamPolicy;
 import ai.stigmer.iam.iampolicy.v1.IamPolicySpec;
@@ -13,6 +14,7 @@ public final class IamPolicyInput {
     private final String org;
     private final String slug;
     private final java.util.Map<String, String> labels;
+    private final ApiResourceVisibility visibility;
     private final ApiResourceRefInput principal;
     private final ApiResourceRefInput resource;
     private final String relation;
@@ -22,6 +24,7 @@ public final class IamPolicyInput {
         this.org = builder.org;
         this.slug = builder.slug;
         this.labels = builder.labels;
+        this.visibility = builder.visibility;
         this.principal = builder.principal;
         this.resource = builder.resource;
         this.relation = builder.relation;
@@ -47,6 +50,9 @@ public final class IamPolicyInput {
         if (this.labels != null) {
             metaBuilder.putAllLabels(this.labels);
         }
+        if (this.visibility != null) {
+            metaBuilder.setVisibility(this.visibility);
+        }
         return IamPolicy.newBuilder()
             .setApiVersion("iam.stigmer.ai/v1")
             .setKind("IamPolicy")
@@ -62,6 +68,7 @@ public final class IamPolicyInput {
         private String org;
         private String slug;
         private java.util.Map<String, String> labels;
+        private ApiResourceVisibility visibility;
         private ApiResourceRefInput principal;
         private ApiResourceRefInput resource;
         private String relation;
@@ -72,6 +79,7 @@ public final class IamPolicyInput {
         public Builder org(String org) { this.org = org; return this; }
         public Builder slug(String slug) { this.slug = slug; return this; }
         public Builder labels(java.util.Map<String, String> labels) { this.labels = labels; return this; }
+        public Builder visibility(ApiResourceVisibility visibility) { this.visibility = visibility; return this; }
         public Builder principal(ApiResourceRefInput principal) { this.principal = principal; return this; }
         public Builder resource(ApiResourceRefInput resource) { this.resource = resource; return this; }
         public Builder relation(String relation) { this.relation = relation; return this; }

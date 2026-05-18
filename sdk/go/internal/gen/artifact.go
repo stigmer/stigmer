@@ -54,6 +54,7 @@ type ArtifactInput struct {
 	Slug        string
 	Org         string
 	Labels      map[string]string
+	Visibility  apiresource.ApiResourceVisibility
 	ContentType string
 	DisplayName string
 	Source      *ArtifactSourceInput
@@ -77,10 +78,11 @@ func (i *ArtifactInput) toProto() *artifactv1.Artifact {
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Artifact",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name:   i.Name,
-			Slug:   i.Slug,
-			Org:    i.Org,
-			Labels: i.Labels,
+			Name:       i.Name,
+			Slug:       i.Slug,
+			Org:        i.Org,
+			Labels:     i.Labels,
+			Visibility: i.Visibility,
 		},
 		Spec: &artifactv1.ArtifactSpec{},
 	}
@@ -120,6 +122,7 @@ func ArtifactInputFromProto(p *artifactv1.Artifact) *ArtifactInput {
 		input.Slug = m.GetSlug()
 		input.Org = m.GetOrg()
 		input.Labels = m.GetLabels()
+		input.Visibility = m.GetVisibility()
 	}
 	if s := p.GetSpec(); s != nil {
 		input.ContentType = s.GetContentType()

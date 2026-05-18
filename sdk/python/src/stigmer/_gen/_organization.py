@@ -82,6 +82,7 @@ class OrganizationInput:
     org: str
     slug: str | None = None
     labels: dict[str, str] | None = None
+    visibility: int = 0
     description: str = ""
     logo_url: str = ""
     management_mode: int = 0
@@ -107,6 +108,8 @@ class OrganizationInput:
             metadata.slug = self.slug
         if self.labels:
             metadata.labels.update(self.labels)
+        if self.visibility:
+            metadata.visibility = self.visibility
         return api_pb2.Organization(
             api_version="tenancy.stigmer.ai/v1",
             kind="Organization",

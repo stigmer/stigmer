@@ -11,6 +11,7 @@ import { AgentInstanceIdSchema, GetAgentInstancesByAgentRequestSchema, AgentInst
 import { AgentInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/query_pb";
 import { AgentInstanceSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
@@ -79,6 +80,7 @@ export interface AgentInstanceInput {
   slug?: string;
   org: string;
   labels?: Record<string, string>;
+  visibility?: ApiResourceVisibility;
   agentId?: string;
   description?: string;
   environmentRefs?: ResourceRef[];
@@ -94,6 +96,7 @@ function buildAgentInstanceProto(input: AgentInstanceInput): AgentInstance {
       org: input.org,
       ...(input.slug && { slug: input.slug }),
       ...(input.labels && { labels: input.labels }),
+      ...(input.visibility && { visibility: input.visibility }),
     }),
     spec: Object.assign(create(AgentInstanceSpecSchema), stripUndefined({
       agentId: input.agentId,

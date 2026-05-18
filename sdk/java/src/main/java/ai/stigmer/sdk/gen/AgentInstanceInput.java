@@ -5,6 +5,7 @@ package ai.stigmer.sdk.gen;
 import ai.stigmer.agentic.agentinstance.v1.AgentInstance;
 import ai.stigmer.agentic.agentinstance.v1.AgentInstanceSpec;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
+import ai.stigmer.commons.apiresource.ApiResourceVisibility;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 
 /** Input for creating/updating a AgentInstance. */
@@ -13,6 +14,7 @@ public final class AgentInstanceInput {
     private final String org;
     private final String slug;
     private final java.util.Map<String, String> labels;
+    private final ApiResourceVisibility visibility;
     private final String agentId;
     private final String description;
     private final java.util.List<ResourceRef> environmentRefs;
@@ -22,6 +24,7 @@ public final class AgentInstanceInput {
         this.org = builder.org;
         this.slug = builder.slug;
         this.labels = builder.labels;
+        this.visibility = builder.visibility;
         this.agentId = builder.agentId;
         this.description = builder.description;
         this.environmentRefs = builder.environmentRefs;
@@ -50,6 +53,9 @@ public final class AgentInstanceInput {
         if (this.labels != null) {
             metaBuilder.putAllLabels(this.labels);
         }
+        if (this.visibility != null) {
+            metaBuilder.setVisibility(this.visibility);
+        }
         return AgentInstance.newBuilder()
             .setApiVersion("agentic.stigmer.ai/v1")
             .setKind("AgentInstance")
@@ -65,6 +71,7 @@ public final class AgentInstanceInput {
         private String org;
         private String slug;
         private java.util.Map<String, String> labels;
+        private ApiResourceVisibility visibility;
         private String agentId;
         private String description;
         private java.util.List<ResourceRef> environmentRefs;
@@ -75,6 +82,7 @@ public final class AgentInstanceInput {
         public Builder org(String org) { this.org = org; return this; }
         public Builder slug(String slug) { this.slug = slug; return this; }
         public Builder labels(java.util.Map<String, String> labels) { this.labels = labels; return this; }
+        public Builder visibility(ApiResourceVisibility visibility) { this.visibility = visibility; return this; }
         public Builder agentId(String agentId) { this.agentId = agentId; return this; }
         public Builder description(String description) { this.description = description; return this; }
         public Builder environmentRefs(java.util.List<ResourceRef> environmentRefs) { this.environmentRefs = environmentRefs; return this; }

@@ -11,6 +11,7 @@ import { WorkflowInstanceIdSchema, GetWorkflowInstancesByWorkflowRequestSchema, 
 import { WorkflowInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/query_pb";
 import { WorkflowInstanceSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
@@ -73,6 +74,7 @@ export interface WorkflowInstanceInput {
   slug?: string;
   org: string;
   labels?: Record<string, string>;
+  visibility?: ApiResourceVisibility;
   workflowId?: string;
   description?: string;
   environmentRefs?: ResourceRef[];
@@ -88,6 +90,7 @@ function buildWorkflowInstanceProto(input: WorkflowInstanceInput): WorkflowInsta
       org: input.org,
       ...(input.slug && { slug: input.slug }),
       ...(input.labels && { labels: input.labels }),
+      ...(input.visibility && { visibility: input.visibility }),
     }),
     spec: Object.assign(create(WorkflowInstanceSpecSchema), stripUndefined({
       workflowId: input.workflowId,

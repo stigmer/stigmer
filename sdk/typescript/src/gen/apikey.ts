@@ -5,6 +5,7 @@ import { stripUndefined } from "./proto-utils";
 import { create } from "@bufbuild/protobuf";
 import { EmptySchema } from "@bufbuild/protobuf/wkt";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { ApiKeySchema, type ApiKey } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import { ApiKeyCommandController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/command_pb";
@@ -65,6 +66,7 @@ export interface ApiKeyInput {
   slug?: string;
   org: string;
   labels?: Record<string, string>;
+  visibility?: ApiResourceVisibility;
   keyHash?: string;
   fingerprint?: string;
   expiresAt?: Date | string;
@@ -80,6 +82,7 @@ function buildApiKeyProto(input: ApiKeyInput): ApiKey {
       org: input.org,
       ...(input.slug && { slug: input.slug }),
       ...(input.labels && { labels: input.labels }),
+      ...(input.visibility && { visibility: input.visibility }),
     }),
     spec: Object.assign(create(ApiKeySpecSchema), stripUndefined({
       keyHash: input.keyHash,

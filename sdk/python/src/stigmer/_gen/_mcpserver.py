@@ -155,6 +155,7 @@ class McpServerInput:
     org: str
     slug: str | None = None
     labels: dict[str, str] | None = None
+    visibility: int = 0
     description: str = ""
     icon_url: str = ""
     stdio: StdioServerConfigInput | None = None
@@ -193,6 +194,8 @@ class McpServerInput:
             metadata.slug = self.slug
         if self.labels:
             metadata.labels.update(self.labels)
+        if self.visibility:
+            metadata.visibility = self.visibility
         return api_pb2.McpServer(
             api_version="agentic.stigmer.ai/v1",
             kind="McpServer",

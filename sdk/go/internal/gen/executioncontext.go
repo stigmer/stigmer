@@ -65,6 +65,7 @@ type ExecutionContextInput struct {
 	Slug        string
 	Org         string
 	Labels      map[string]string
+	Visibility  apiresource.ApiResourceVisibility
 	ExecutionId string
 	Data        map[string]EnvVarInput
 }
@@ -74,10 +75,11 @@ func (i *ExecutionContextInput) toProto() *executioncontextv1.ExecutionContext {
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "ExecutionContext",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name:   i.Name,
-			Slug:   i.Slug,
-			Org:    i.Org,
-			Labels: i.Labels,
+			Name:       i.Name,
+			Slug:       i.Slug,
+			Org:        i.Org,
+			Labels:     i.Labels,
+			Visibility: i.Visibility,
 		},
 		Spec: &executioncontextv1.ExecutionContextSpec{},
 	}
@@ -102,6 +104,7 @@ func ExecutionContextInputFromProto(p *executioncontextv1.ExecutionContext) *Exe
 		input.Slug = m.GetSlug()
 		input.Org = m.GetOrg()
 		input.Labels = m.GetLabels()
+		input.Visibility = m.GetVisibility()
 	}
 	if s := p.GetSpec(); s != nil {
 		input.ExecutionId = s.GetExecutionId()

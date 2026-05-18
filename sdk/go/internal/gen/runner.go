@@ -120,6 +120,7 @@ type RunnerInput struct {
 	Slug        string
 	Org         string
 	Labels      map[string]string
+	Visibility  apiresource.ApiResourceVisibility
 	Description string
 }
 
@@ -128,10 +129,11 @@ func (i *RunnerInput) toProto() *runnerv1.Runner {
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Runner",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name:   i.Name,
-			Slug:   i.Slug,
-			Org:    i.Org,
-			Labels: i.Labels,
+			Name:       i.Name,
+			Slug:       i.Slug,
+			Org:        i.Org,
+			Labels:     i.Labels,
+			Visibility: i.Visibility,
 		},
 		Spec: &runnerv1.RunnerSpec{},
 	}
@@ -150,6 +152,7 @@ func RunnerInputFromProto(p *runnerv1.Runner) *RunnerInput {
 		input.Slug = m.GetSlug()
 		input.Org = m.GetOrg()
 		input.Labels = m.GetLabels()
+		input.Visibility = m.GetVisibility()
 	}
 	if s := p.GetSpec(); s != nil {
 		input.Description = s.GetDescription()

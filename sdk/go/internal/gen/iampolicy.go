@@ -85,13 +85,14 @@ func (i *IamPolicyClient) GetPrincipalsCount(ctx context.Context, input *iampoli
 
 // IamPolicyInput holds the fields for creating/updating a IamPolicy.
 type IamPolicyInput struct {
-	Name      string
-	Slug      string
-	Org       string
-	Labels    map[string]string
-	Principal *ApiResourceRefInput
-	Resource  *ApiResourceRefInput
-	Relation  string
+	Name       string
+	Slug       string
+	Org        string
+	Labels     map[string]string
+	Visibility apiresource.ApiResourceVisibility
+	Principal  *ApiResourceRefInput
+	Resource   *ApiResourceRefInput
+	Relation   string
 }
 
 // ApiResourceRefInput is the SDK input type for ApiResourceRef.
@@ -106,10 +107,11 @@ func (i *IamPolicyInput) toProto() *iampolicyv1.IamPolicy {
 		ApiVersion: "iam.stigmer.ai/v1",
 		Kind:       "IamPolicy",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name:   i.Name,
-			Slug:   i.Slug,
-			Org:    i.Org,
-			Labels: i.Labels,
+			Name:       i.Name,
+			Slug:       i.Slug,
+			Org:        i.Org,
+			Labels:     i.Labels,
+			Visibility: i.Visibility,
 		},
 		Spec: &iampolicyv1.IamPolicySpec{},
 	}
@@ -142,6 +144,7 @@ func IamPolicyInputFromProto(p *iampolicyv1.IamPolicy) *IamPolicyInput {
 		input.Slug = m.GetSlug()
 		input.Org = m.GetOrg()
 		input.Labels = m.GetLabels()
+		input.Visibility = m.GetVisibility()
 	}
 	if s := p.GetSpec(); s != nil {
 		input.Principal = apiResourceRefInputFromProto(s.GetPrincipal())

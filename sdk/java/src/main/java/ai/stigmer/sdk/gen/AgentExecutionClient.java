@@ -7,8 +7,10 @@ import ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandControllerGrpc;
 import ai.stigmer.agentic.agentexecution.v1.AgentExecutionId;
 import ai.stigmer.agentic.agentexecution.v1.AgentExecutionList;
 import ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryControllerGrpc;
+import ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummary;
 import ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput;
 import ai.stigmer.agentic.agentexecution.v1.CancelAgentExecutionInput;
+import ai.stigmer.agentic.agentexecution.v1.GetAgentExecutionSummaryRequest;
 import ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportInput;
 import ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput;
 import ai.stigmer.agentic.agentexecution.v1.GetArtifactContentRequest;
@@ -170,6 +172,12 @@ public final class AgentExecutionClient {
     public GetOrgUsageReportOutput getOrgUsageReport(GetOrgUsageReportInput input) {
         try {
             return query.getOrgUsageReport(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public AgentExecutionSummary getExecutionSummary(GetAgentExecutionSummaryRequest input) {
+        try {
+            return query.getExecutionSummary(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 }

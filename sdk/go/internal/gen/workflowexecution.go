@@ -169,6 +169,7 @@ type WorkflowExecutionInput struct {
 	Slug               string
 	Org                string
 	Labels             map[string]string
+	Visibility         apiresource.ApiResourceVisibility
 	WorkflowInstanceId string
 	WorkflowId         string
 	TriggerMessage     string
@@ -182,10 +183,11 @@ func (i *WorkflowExecutionInput) toProto() *workflowexecutionv1.WorkflowExecutio
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "WorkflowExecution",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name:   i.Name,
-			Slug:   i.Slug,
-			Org:    i.Org,
-			Labels: i.Labels,
+			Name:       i.Name,
+			Slug:       i.Slug,
+			Org:        i.Org,
+			Labels:     i.Labels,
+			Visibility: i.Visibility,
 		},
 		Spec: &workflowexecutionv1.WorkflowExecutionSpec{},
 	}
@@ -214,6 +216,7 @@ func WorkflowExecutionInputFromProto(p *workflowexecutionv1.WorkflowExecution) *
 		input.Slug = m.GetSlug()
 		input.Org = m.GetOrg()
 		input.Labels = m.GetLabels()
+		input.Visibility = m.GetVisibility()
 	}
 	if s := p.GetSpec(); s != nil {
 		input.WorkflowInstanceId = s.GetWorkflowInstanceId()

@@ -112,6 +112,7 @@ class SkillInput:
     org: str
     slug: str | None = None
     labels: dict[str, str] | None = None
+    visibility: int = 0
     skill_md: str = ""
     tag: str = ""
     description: str = ""
@@ -130,6 +131,8 @@ class SkillInput:
             metadata.slug = self.slug
         if self.labels:
             metadata.labels.update(self.labels)
+        if self.visibility:
+            metadata.visibility = self.visibility
         return api_pb2.Skill(
             api_version="agentic.stigmer.ai/v1",
             kind="Skill",

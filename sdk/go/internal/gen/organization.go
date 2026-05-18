@@ -70,6 +70,7 @@ type OrganizationInput struct {
 	Slug                string
 	Org                 string
 	Labels              map[string]string
+	Visibility          apiresource.ApiResourceVisibility
 	Description         string
 	LogoUrl             string
 	ManagementMode      organizationv1.ManagementMode
@@ -83,10 +84,11 @@ func (i *OrganizationInput) toProto() *organizationv1.Organization {
 		ApiVersion: "tenancy.stigmer.ai/v1",
 		Kind:       "Organization",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name:   i.Name,
-			Slug:   i.Slug,
-			Org:    i.Org,
-			Labels: i.Labels,
+			Name:       i.Name,
+			Slug:       i.Slug,
+			Org:        i.Org,
+			Labels:     i.Labels,
+			Visibility: i.Visibility,
 		},
 		Spec: &organizationv1.OrganizationSpec{},
 	}
@@ -112,6 +114,7 @@ func OrganizationInputFromProto(p *organizationv1.Organization) *OrganizationInp
 		input.Slug = m.GetSlug()
 		input.Org = m.GetOrg()
 		input.Labels = m.GetLabels()
+		input.Visibility = m.GetVisibility()
 	}
 	if s := p.GetSpec(); s != nil {
 		input.Description = s.GetDescription()

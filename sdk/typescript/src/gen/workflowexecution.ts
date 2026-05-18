@@ -12,6 +12,7 @@ import { WorkflowExecutionEventSchema, type WorkflowExecutionEvent } from "@stig
 import { WorkflowExecutionIdSchema, WorkflowExecutionUpdateStatusInputSchema, SubmitWorkflowApprovalInputSchema, SubmitWorkflowTaskApprovalInputSchema, SendSignalInputSchema, CancelWorkflowExecutionInputSchema, TerminateWorkflowExecutionInputSchema, RecoverWorkflowExecutionInputSchema, PauseWorkflowExecutionInputSchema, ResumeWorkflowExecutionInputSchema, ListWorkflowExecutionsRequestSchema, WorkflowExecutionListSchema, ListWorkflowExecutionsByWorkflowRequestSchema, SubscribeWorkflowExecutionRequestSchema, GetEventLogRequestSchema, GetEventLogResponseSchema, SubscribeEventsRequestSchema, GetExecutionSummaryRequestSchema, ExecutionSummarySchema, ListPendingApprovalsRequestSchema, PendingApprovalsListSchema, type WorkflowExecutionUpdateStatusInput, type SubmitWorkflowApprovalInput, type SubmitWorkflowTaskApprovalInput, type SendSignalInput, type CancelWorkflowExecutionInput, type TerminateWorkflowExecutionInput, type RecoverWorkflowExecutionInput, type PauseWorkflowExecutionInput, type ResumeWorkflowExecutionInput, type ListWorkflowExecutionsRequest, type WorkflowExecutionList, type ListWorkflowExecutionsByWorkflowRequest, type SubscribeWorkflowExecutionRequest, type GetEventLogRequest, type GetEventLogResponse, type SubscribeEventsRequest, type GetExecutionSummaryRequest, type ExecutionSummary, type ListPendingApprovalsRequest, type PendingApprovalsList } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
 import { WorkflowExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/query_pb";
 import { WorkflowExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/spec_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceIdSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
@@ -156,6 +157,7 @@ export interface WorkflowExecutionInput {
   slug?: string;
   org: string;
   labels?: Record<string, string>;
+  visibility?: ApiResourceVisibility;
   workflowInstanceId?: string;
   workflowId?: string;
   triggerMessage?: string;
@@ -178,6 +180,7 @@ function buildWorkflowExecutionProto(input: WorkflowExecutionInput): WorkflowExe
       org: input.org,
       ...(input.slug && { slug: input.slug }),
       ...(input.labels && { labels: input.labels }),
+      ...(input.visibility && { visibility: input.visibility }),
     }),
     spec: Object.assign(create(WorkflowExecutionSpecSchema), stripUndefined({
       workflowInstanceId: input.workflowInstanceId,

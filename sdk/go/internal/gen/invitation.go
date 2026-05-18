@@ -62,6 +62,7 @@ type InvitationInput struct {
 	Slug           string
 	Org            string
 	Labels         map[string]string
+	Visibility     apiresource.ApiResourceVisibility
 	Role           iamv1.IamRole
 	MaxRedemptions int32
 	ExpiresAt      string
@@ -73,10 +74,11 @@ func (i *InvitationInput) toProto() *invitationv1.Invitation {
 		ApiVersion: "iam.stigmer.ai/v1",
 		Kind:       "Invitation",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name:   i.Name,
-			Slug:   i.Slug,
-			Org:    i.Org,
-			Labels: i.Labels,
+			Name:       i.Name,
+			Slug:       i.Slug,
+			Org:        i.Org,
+			Labels:     i.Labels,
+			Visibility: i.Visibility,
 		},
 		Spec: &invitationv1.InvitationSpec{},
 	}
@@ -102,6 +104,7 @@ func InvitationInputFromProto(p *invitationv1.Invitation) *InvitationInput {
 		input.Slug = m.GetSlug()
 		input.Org = m.GetOrg()
 		input.Labels = m.GetLabels()
+		input.Visibility = m.GetVisibility()
 	}
 	if s := p.GetSpec(); s != nil {
 		input.Role = s.GetRole()

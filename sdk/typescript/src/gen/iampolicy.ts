@@ -4,6 +4,7 @@ import { wrapError } from "./errors";
 import { stripUndefined } from "./proto-utils";
 import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { IamPolicySchema, type IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
@@ -100,6 +101,7 @@ export interface IamPolicyInput {
   slug?: string;
   org: string;
   labels?: Record<string, string>;
+  visibility?: ApiResourceVisibility;
   principal: ApiResourceRefInput;
   resource: ApiResourceRefInput;
   relation: string;
@@ -131,6 +133,7 @@ function buildIamPolicyProto(input: IamPolicyInput): IamPolicy {
       org: input.org,
       ...(input.slug && { slug: input.slug }),
       ...(input.labels && { labels: input.labels }),
+      ...(input.visibility && { visibility: input.visibility }),
     }),
     spec: Object.assign(create(IamPolicySpecSchema), stripUndefined({
       principal,

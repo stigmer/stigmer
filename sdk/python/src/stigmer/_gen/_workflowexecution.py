@@ -159,6 +159,7 @@ class WorkflowExecutionInput:
     org: str
     slug: str | None = None
     labels: dict[str, str] | None = None
+    visibility: int = 0
     workflow_instance_id: str = ""
     workflow_id: str = ""
     trigger_message: str = ""
@@ -187,6 +188,8 @@ class WorkflowExecutionInput:
             metadata.slug = self.slug
         if self.labels:
             metadata.labels.update(self.labels)
+        if self.visibility:
+            metadata.visibility = self.visibility
         return api_pb2.WorkflowExecution(
             api_version="agentic.stigmer.ai/v1",
             kind="WorkflowExecution",

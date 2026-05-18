@@ -62,6 +62,7 @@ type ApiKeyInput struct {
 	Slug         string
 	Org          string
 	Labels       map[string]string
+	Visibility   apiresource.ApiResourceVisibility
 	KeyHash      string
 	Fingerprint  string
 	ExpiresAt    string
@@ -73,10 +74,11 @@ func (i *ApiKeyInput) toProto() *apikeyv1.ApiKey {
 		ApiVersion: "iam.stigmer.ai/v1",
 		Kind:       "ApiKey",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name:   i.Name,
-			Slug:   i.Slug,
-			Org:    i.Org,
-			Labels: i.Labels,
+			Name:       i.Name,
+			Slug:       i.Slug,
+			Org:        i.Org,
+			Labels:     i.Labels,
+			Visibility: i.Visibility,
 		},
 		Spec: &apikeyv1.ApiKeySpec{},
 	}
@@ -102,6 +104,7 @@ func ApiKeyInputFromProto(p *apikeyv1.ApiKey) *ApiKeyInput {
 		input.Slug = m.GetSlug()
 		input.Org = m.GetOrg()
 		input.Labels = m.GetLabels()
+		input.Visibility = m.GetVisibility()
 	}
 	if s := p.GetSpec(); s != nil {
 		input.KeyHash = s.GetKeyHash()

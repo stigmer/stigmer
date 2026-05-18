@@ -14,6 +14,7 @@ import ai.stigmer.agentic.session.v1.SessionSpec;
 import ai.stigmer.agentic.session.v1.WorkspaceEntry;
 import ai.stigmer.agentic.session.v1.WorkspaceSource;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
+import ai.stigmer.commons.apiresource.ApiResourceVisibility;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 
 /** Input for creating/updating a Session. */
@@ -22,6 +23,7 @@ public final class SessionInput {
     private final String org;
     private final String slug;
     private final java.util.Map<String, String> labels;
+    private final ApiResourceVisibility visibility;
     private final String agentInstanceId;
     private final String subject;
     private final String threadId;
@@ -39,6 +41,7 @@ public final class SessionInput {
         this.org = builder.org;
         this.slug = builder.slug;
         this.labels = builder.labels;
+        this.visibility = builder.visibility;
         this.agentInstanceId = builder.agentInstanceId;
         this.subject = builder.subject;
         this.threadId = builder.threadId;
@@ -103,6 +106,9 @@ public final class SessionInput {
         if (this.labels != null) {
             metaBuilder.putAllLabels(this.labels);
         }
+        if (this.visibility != null) {
+            metaBuilder.setVisibility(this.visibility);
+        }
         return Session.newBuilder()
             .setApiVersion("agentic.stigmer.ai/v1")
             .setKind("Session")
@@ -118,6 +124,7 @@ public final class SessionInput {
         private String org;
         private String slug;
         private java.util.Map<String, String> labels;
+        private ApiResourceVisibility visibility;
         private String agentInstanceId;
         private String subject;
         private String threadId;
@@ -136,6 +143,7 @@ public final class SessionInput {
         public Builder org(String org) { this.org = org; return this; }
         public Builder slug(String slug) { this.slug = slug; return this; }
         public Builder labels(java.util.Map<String, String> labels) { this.labels = labels; return this; }
+        public Builder visibility(ApiResourceVisibility visibility) { this.visibility = visibility; return this; }
         public Builder agentInstanceId(String agentInstanceId) { this.agentInstanceId = agentInstanceId; return this; }
         public Builder subject(String subject) { this.subject = subject; return this; }
         public Builder threadId(String threadId) { this.threadId = threadId; return this; }

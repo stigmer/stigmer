@@ -3,6 +3,7 @@
 package ai.stigmer.sdk.gen;
 
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
+import ai.stigmer.commons.apiresource.ApiResourceVisibility;
 import ai.stigmer.tenancy.organization.v1.ManagementMode;
 import ai.stigmer.tenancy.organization.v1.Organization;
 import ai.stigmer.tenancy.organization.v1.OrganizationSpec;
@@ -13,6 +14,7 @@ public final class OrganizationInput {
     private final String org;
     private final String slug;
     private final java.util.Map<String, String> labels;
+    private final ApiResourceVisibility visibility;
     private final String description;
     private final String logoUrl;
     private final ManagementMode managementMode;
@@ -25,6 +27,7 @@ public final class OrganizationInput {
         this.org = builder.org;
         this.slug = builder.slug;
         this.labels = builder.labels;
+        this.visibility = builder.visibility;
         this.description = builder.description;
         this.logoUrl = builder.logoUrl;
         this.managementMode = builder.managementMode;
@@ -60,6 +63,9 @@ public final class OrganizationInput {
         if (this.labels != null) {
             metaBuilder.putAllLabels(this.labels);
         }
+        if (this.visibility != null) {
+            metaBuilder.setVisibility(this.visibility);
+        }
         return Organization.newBuilder()
             .setApiVersion("tenancy.stigmer.ai/v1")
             .setKind("Organization")
@@ -75,6 +81,7 @@ public final class OrganizationInput {
         private String org;
         private String slug;
         private java.util.Map<String, String> labels;
+        private ApiResourceVisibility visibility;
         private String description;
         private String logoUrl;
         private ManagementMode managementMode;
@@ -88,6 +95,7 @@ public final class OrganizationInput {
         public Builder org(String org) { this.org = org; return this; }
         public Builder slug(String slug) { this.slug = slug; return this; }
         public Builder labels(java.util.Map<String, String> labels) { this.labels = labels; return this; }
+        public Builder visibility(ApiResourceVisibility visibility) { this.visibility = visibility; return this; }
         public Builder description(String description) { this.description = description; return this; }
         public Builder logoUrl(String logoUrl) { this.logoUrl = logoUrl; return this; }
         public Builder managementMode(ManagementMode managementMode) { this.managementMode = managementMode; return this; }

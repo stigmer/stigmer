@@ -79,6 +79,7 @@ class OAuthAppInput:
     org: str
     slug: str | None = None
     labels: dict[str, str] | None = None
+    visibility: int = 0
     provider: str = ""
     client_id: str = ""
     client_secret: str = ""
@@ -112,6 +113,8 @@ class OAuthAppInput:
             metadata.slug = self.slug
         if self.labels:
             metadata.labels.update(self.labels)
+        if self.visibility:
+            metadata.visibility = self.visibility
         return api_pb2.OAuthApp(
             api_version="iam.stigmer.ai/v1",
             kind="OAuthApp",

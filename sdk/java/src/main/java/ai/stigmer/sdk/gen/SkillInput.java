@@ -5,6 +5,7 @@ package ai.stigmer.sdk.gen;
 import ai.stigmer.agentic.skill.v1.Skill;
 import ai.stigmer.agentic.skill.v1.SkillSpec;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
+import ai.stigmer.commons.apiresource.ApiResourceVisibility;
 
 /** Input for creating/updating a Skill. */
 public final class SkillInput {
@@ -12,6 +13,7 @@ public final class SkillInput {
     private final String org;
     private final String slug;
     private final java.util.Map<String, String> labels;
+    private final ApiResourceVisibility visibility;
     private final String skillMd;
     private final String tag;
     private final String description;
@@ -21,6 +23,7 @@ public final class SkillInput {
         this.org = builder.org;
         this.slug = builder.slug;
         this.labels = builder.labels;
+        this.visibility = builder.visibility;
         this.skillMd = builder.skillMd;
         this.tag = builder.tag;
         this.description = builder.description;
@@ -46,6 +49,9 @@ public final class SkillInput {
         if (this.labels != null) {
             metaBuilder.putAllLabels(this.labels);
         }
+        if (this.visibility != null) {
+            metaBuilder.setVisibility(this.visibility);
+        }
         return Skill.newBuilder()
             .setApiVersion("agentic.stigmer.ai/v1")
             .setKind("Skill")
@@ -61,6 +67,7 @@ public final class SkillInput {
         private String org;
         private String slug;
         private java.util.Map<String, String> labels;
+        private ApiResourceVisibility visibility;
         private String skillMd;
         private String tag;
         private String description;
@@ -71,6 +78,7 @@ public final class SkillInput {
         public Builder org(String org) { this.org = org; return this; }
         public Builder slug(String slug) { this.slug = slug; return this; }
         public Builder labels(java.util.Map<String, String> labels) { this.labels = labels; return this; }
+        public Builder visibility(ApiResourceVisibility visibility) { this.visibility = visibility; return this; }
         public Builder skillMd(String skillMd) { this.skillMd = skillMd; return this; }
         public Builder tag(String tag) { this.tag = tag; return this; }
         public Builder description(String description) { this.description = description; return this; }
