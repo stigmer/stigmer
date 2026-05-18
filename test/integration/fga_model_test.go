@@ -378,3 +378,151 @@ func TestFGAModel_PublicVisibilityCondition(t *testing.T) {
 			map[string]any{"allow": true}))
 	})
 }
+
+// fgaListObjects calls the OpenFGA ListObjects API without evaluation context.
+// Returns the list of object IDs, or an error string if the call fails.
+func fgaListObjects(t *testing.T, fga *harness.OpenFGAContainer, user, relation, objectType string) ([]string, error) {
+	t.Helper()
+	return fgaListObjectsWithContext(t, fga, user, relation, objectType, nil)
+}
+
+// fgaListObjectsWithContext calls the OpenFGA ListObjects API with evaluation
+// context (e.g. {"allow": false} to suppress conditional wildcards).
+func fgaListObjectsWithContext(t *testing.T, fga *harness.OpenFGAContainer, user, relation, objectType string, fgaContext map[string]any) ([]string, error) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	body := map[string]any{
+		"user":                   user,
+		"relation":              relation,
+		"type":                  objectType,
+		"authorization_model_id": fga.ModelID,
+	}
+	if fgaContext != nil {
+		body["context"] = fgaContext
+	}
+
+	reqBody, err := json.Marshal(body)
+	require.NoError(t, err)
+
+	url := fmt.Sprintf("%s/stores/%s/list-objects", fga.HTTPEndpoint, fga.StoreID)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(reqBody))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("ListObjects failed (status %d): %s", resp.StatusCode, string(respBody))
+	}
+
+	var result struct {
+		Objects []string `json:"objects"`
+	}
+	require.NoError(t, json.Unmarshal(respBody, &result))
+	return result.Objects, nil
+}
+
+// TestFGAModel_ListObjectsWithConditionalTuples verifies that ListObjects
+// behaves correctly when conditional wildcard tuples (allow_public) exist:
+//   - Without context: fails with validation_error (missing context params)
+//   - With {"allow": false}: succeeds, wildcard does not expand
+//   - With {"allow": true}: succeeds, wildcard expands and public resources appear
+func TestFGAModel_ListObjectsWithConditionalTuples(t *testing.T) {
+	fga := requireFGA(t)
+	ctx := context.Background()
+
+	owner := "identity_account:test-identity-account-id"
+	stranger := "identity_account:list-objects-stranger"
+	publicAgent := "agent:list-objects-public-agent"
+	privateAgent := "agent:list-objects-private-agent"
+
+	// Set up two agents in the same org: one public, one private
+	err := fga.WriteTuples(ctx, []harness.RelationshipTuple{
+		{User: "organization:test-org", Relation: "organization", Object: publicAgent},
+		{User: owner, Relation: "owner", Object: publicAgent},
+		{User: "organization:test-org", Relation: "organization", Object: privateAgent},
+		{User: owner, Relation: "owner", Object: privateAgent},
+	})
+	require.NoError(t, err)
+
+	// Write conditional public wildcard for the public agent only
+	writeBody := map[string]any{
+		"writes": map[string]any{
+			"tuple_keys": []map[string]any{
+				{
+					"user":     "identity_account:*",
+					"relation": "viewer",
+					"object":   publicAgent,
+					"condition": map[string]any{
+						"name":    "allow_public",
+						"context": map[string]any{},
+					},
+				},
+			},
+		},
+		"authorization_model_id": fga.ModelID,
+	}
+	reqBody, _ := json.Marshal(writeBody)
+	writeURL := fmt.Sprintf("%s/stores/%s/write", fga.HTTPEndpoint, fga.StoreID)
+	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, writeURL, bytes.NewReader(reqBody))
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	require.Equal(t, http.StatusOK, resp.StatusCode, "write conditional tuple: %s", string(body))
+
+	// ListObjects WITHOUT context: should fail because FGA cannot evaluate
+	// the allow_public condition without the required "allow" parameter.
+	t.Run("no_context_returns_error", func(t *testing.T) {
+		_, err := fgaListObjects(t, fga, stranger, "can_view", "agent")
+		assert.Error(t, err, "ListObjects without context should fail when conditional tuples exist")
+		if err != nil {
+			assert.Contains(t, err.Error(), "missing context parameters",
+				"error should mention missing context parameters")
+		}
+	})
+
+	// ListObjects WITH {"allow": false}: should succeed but NOT include
+	// the public agent (condition evaluates to false, wildcard inactive).
+	t.Run("allow_false_excludes_public", func(t *testing.T) {
+		objects, err := fgaListObjectsWithContext(t, fga, stranger, "can_view", "agent",
+			map[string]any{"allow": false})
+		require.NoError(t, err, "ListObjects with allow=false should succeed")
+		assert.NotContains(t, objects, publicAgent,
+			"public agent should NOT appear when allow=false")
+		assert.NotContains(t, objects, privateAgent,
+			"private agent should NOT appear for stranger")
+	})
+
+	// ListObjects WITH {"allow": true}: should succeed and INCLUDE the
+	// public agent (condition evaluates to true, wildcard expands).
+	t.Run("allow_true_includes_public", func(t *testing.T) {
+		objects, err := fgaListObjectsWithContext(t, fga, stranger, "can_view", "agent",
+			map[string]any{"allow": true})
+		require.NoError(t, err, "ListObjects with allow=true should succeed")
+		assert.Contains(t, objects, publicAgent,
+			"public agent SHOULD appear when allow=true")
+		assert.NotContains(t, objects, privateAgent,
+			"private agent should NOT appear for stranger even with allow=true")
+	})
+
+	// ListObjects for the org owner should always see both agents
+	// (org membership grants access regardless of allow_public).
+	t.Run("owner_sees_org_agents_with_allow_false", func(t *testing.T) {
+		objects, err := fgaListObjectsWithContext(t, fga, owner, "can_view", "agent",
+			map[string]any{"allow": false})
+		require.NoError(t, err)
+		assert.Contains(t, objects, publicAgent,
+			"owner should see public agent via org membership")
+		assert.Contains(t, objects, privateAgent,
+			"owner should see private agent via org membership")
+	})
+}
