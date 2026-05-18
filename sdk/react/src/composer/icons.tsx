@@ -93,8 +93,8 @@ export function XIcon() {
 export function PaperclipIcon() {
   return (
     <svg
-      width="14"
-      height="14"
+      width="16"
+      height="16"
       viewBox="0 0 16 16"
       fill="none"
       stroke="currentColor"
@@ -133,8 +133,8 @@ export function AgentIcon() {
 export function WorkspaceIcon() {
   return (
     <svg
-      width="14"
-      height="14"
+      width="16"
+      height="16"
       viewBox="0 0 14 14"
       fill="none"
       stroke="currentColor"
@@ -238,8 +238,8 @@ export function RunnerIcon() {
 export function ConfigureIcon() {
   return (
     <svg
-      width="14"
-      height="14"
+      width="16"
+      height="16"
       viewBox="0 0 16 16"
       fill="none"
       stroke="currentColor"

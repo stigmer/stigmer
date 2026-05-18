@@ -381,9 +381,9 @@ export interface SessionComposerProps {
  * Combines a self-resizing textarea, model selector, and context pickers
  * (agent, workspace, MCP servers, skills) into a single input card.
  *
- * The toolbar uses a two-tier layout:
- * - **Tier 1** (always visible): Workspace, Attach, Model Selector
- * - **Tier 2** (behind Configure menu): Agent, MCP, Skills, Secrets
+ * The toolbar uses a two-group layout:
+ * - **Left (primary state):** Interaction Mode, Model Selector
+ * - **Right (secondary actions, icon-only):** Workspace, Attach, Configure (Agent, MCP, Skills, Secrets), Send
  *
  * Selected items render as removable chips between the textarea and toolbar.
  *
@@ -1510,9 +1510,6 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
           isSubmitting={isSubmitting}
           canSend={canSend}
           onSend={composer.submit}
-          showAttach={showAttach}
-          attachmentCount={attachments.entries.length}
-          onAttachClick={() => fileInputRef.current?.click()}
           showWorkspace={showWorkspace}
           workspaceCount={workspaceCount}
           workspaceContent={
@@ -1540,6 +1537,9 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
                 </div>
               : null
           }
+          showAttach={showAttach}
+          attachmentCount={attachments.entries.length}
+          onAttachClick={() => fileInputRef.current?.click()}
           configureItems={configureItems}
           configOpen={configOpen}
           onConfigOpenChange={handleConfigOpenChange}
