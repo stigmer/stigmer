@@ -1,0 +1,143 @@
+# =============================================================================
+# Frontend CI (SDK + Client App Tests)
+# =============================================================================
+# Runs Vitest unit and component tests for the TypeScript/React SDK packages
+# and client applications (web console, desktop app).
+#
+# Triggers on PRs and pushes to main when SDK or client-app code changes.
+# This catches frontend-backend contract breakages, hook regressions, and
+# component rendering errors before deployment.
+# =============================================================================
+
+name: ci.frontend
+
+on:
+  pull_request:
+    paths:
+      - "sdk/typescript/**"
+      - "sdk/react/**"
+      - "sdk/theme/**"
+      - "sdk/ink/**"
+      - "client-apps/web/**"
+      - "client-apps/desktop/**"
+      - "apis/stubs/ts/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/ci.frontend.yaml"
+  push:
+    branches: [main]
+    paths:
+      - "sdk/typescript/**"
+      - "sdk/react/**"
+      - "sdk/theme/**"
+      - "sdk/ink/**"
+      - "client-apps/web/**"
+      - "client-apps/desktop/**"
+      - "apis/stubs/ts/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/ci.frontend.yaml"
+
+concurrency:
+  group: frontend-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  sdk-tests:
+    name: SDK Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build SDK libraries
+        run: npm run build:libs
+
+      - name: Run SDK tests
+        run: npm test
+
+  web-tests:
+    name: Web Console Tests
+    runs-on: ubuntu-latest
+    needs: sdk-tests
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run web console tests
+        run: npm run test -w client-apps/web
+
+  desktop-tests:
+    name: Desktop App Tests
+    runs-on: ubuntu-latest
+    needs: sdk-tests
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run desktop app tests
+        run: npm run test -w desktop
+
+  verify:
+    name: Lint + Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build SDK libraries
+        run: npm run build:libs
+
+      - name: Verify web console
+        run: make verify-web
+
+      - name: Verify desktop app
+        run: make verify-desktop
+        continue-on-error: true

@@ -1,0 +1,94 @@
+# =============================================================================
+# E2E Smoke Tests (Playwright)
+# =============================================================================
+# Runs Playwright browser tests against the deployed web console to catch
+# deployment regressions: broken API contracts, missing environment variables,
+# build issues that only manifest in production.
+#
+# Runs:
+# - After deployment workflows complete (workflow_run)
+# - On manual dispatch (workflow_dispatch) for ad-hoc validation
+# - Weekly schedule as a health check
+#
+# Configure STIGMER_E2E_BASE_URL to point at staging or production.
+# =============================================================================
+
+name: ci.e2e
+
+on:
+  workflow_run:
+    workflows:
+      - "release.sandbox-cloud"
+    types: [completed]
+    branches: [main]
+
+  schedule:
+    - cron: "0 6 * * 1-5"
+
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Base URL to test against"
+        required: false
+        type: string
+        default: "https://app.stigmer.ai"
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  e2e-smoke:
+    name: E2E Smoke Tests
+    runs-on: ubuntu-latest
+    # Skip if the triggering workflow failed (workflow_run)
+    if: >
+      github.event_name != 'workflow_run' ||
+      github.event.workflow_run.conclusion == 'success'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install E2E dependencies
+        working-directory: test/e2e
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: test/e2e
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E smoke tests
+        working-directory: test/e2e
+        env:
+          STIGMER_E2E_BASE_URL: ${{ inputs.base_url || 'https://app.stigmer.ai' }}
+        run: npx playwright test
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-results
+          path: test/e2e/test-results/
+          retention-days: 30
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-playwright-report
+          path: test/e2e/playwright-report/
+          retention-days: 30
+
+      - name: Notify on failure
+        if: failure() && github.event_name != 'workflow_dispatch'
+        run: |
+          echo "::error::E2E smoke tests failed against ${{ inputs.base_url || 'https://app.stigmer.ai' }}"
+          echo "This indicates a deployment regression. Check the Playwright report for details."
