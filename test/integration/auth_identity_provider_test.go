@@ -22,7 +22,7 @@ func TestIdentityProvider_Create_ReturnsResource(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	jwksServer := harness.StartMockJWKSServer(t, "https://test-create-idp.example.com/")
+	jwksServer := harness.StartMockJWKSServer(t, "https://test-create-idp.example.com")
 
 	idp := harness.CreateIdentityProvider(t, ctx, clients,
 		"Create Test IdP",
