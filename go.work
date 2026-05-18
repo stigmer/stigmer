@@ -10,6 +10,7 @@ use (
 	./sdk/go
 	./seedpack
 	./test/integration
+	./test/integration-security
 	./test/integration/sdk
 	./tools
 )
