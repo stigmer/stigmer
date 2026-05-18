@@ -25,6 +25,21 @@ func (s *JavaService) LogPath() string {
 	return s.logPath
 }
 
+// SecurityMode controls how the Java service handles authentication.
+type SecurityMode string
+
+const (
+	// SecurityModeTest bypasses JWT validation with a synthetic caller.
+	// This is the default for backward compatibility with existing tests.
+	SecurityModeTest SecurityMode = "test"
+
+	// SecurityModeProduction loads the full production security chain:
+	// GrpcSecurityConfigBase, FederatedJwtAuthenticationProvider, Auth0
+	// JwtDecoder, PlatformClientTokenAuthenticationProvider, and
+	// OpaqueTokenAuthenticationProvider for API keys.
+	SecurityModeProduction SecurityMode = "production"
+)
+
 // ServiceConfig holds the addresses of infrastructure that the Java
 // service needs to connect to.
 type ServiceConfig struct {
@@ -68,6 +83,19 @@ type ServiceConfig struct {
 	// When set, observability is enabled and the Java service exports spans
 	// to this OTLP/gRPC receiver.
 	OTLPEndpoint string
+
+	// Security controls how the Java service handles authentication.
+	// Defaults to SecurityModeTest when empty (backward compatible).
+	Security SecurityMode
+
+	// Auth0IssuerURL overrides the OIDC issuer URL (security.authentication.idp-url)
+	// that the Java service uses for Auth0 JWT validation. Required when
+	// Security is SecurityModeProduction to point at a mock OIDC server.
+	Auth0IssuerURL string
+
+	// Auth0Audience overrides the expected JWT audience (security.authentication.api-audience).
+	// Required when Security is SecurityModeProduction.
+	Auth0Audience string
 }
 
 // StartJavaService launches the stigmer-service fat JAR as a child process
@@ -188,6 +216,7 @@ func (s *JavaService) Stop() error {
 
 func buildServiceEnv(cfg ServiceConfig) []string {
 	fgaEnabled := cfg.OpenFGAAPIURL != "" && cfg.OpenFGAStoreID != "" && cfg.OpenFGAModelID != ""
+	productionSecurity := cfg.Security == SecurityModeProduction
 
 	profiles := "mongo,temporal,iam,logging,auth0,skill-r2,agent-execution-r2,claimcheck-r2"
 	if fgaEnabled {
@@ -199,16 +228,7 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 
 	env := os.Environ()
 	env = append(env,
-		// Spring profiles: auth0 profile provides security.authentication.* property bindings;
-		// GrpcSecurityConfigBase and MachineAccountJwtProvider are skipped via
-		// stigmer.security.mode=test, so no OIDC discovery call is made.
-		// The openfga profile is added when real FGA is enabled.
 		fmt.Sprintf("SPRING_PROFILES_ACTIVE=%s", profiles),
-
-		// Test security mode: bypass Auth0 JWT validation but keep gRPC/HTTP
-		// pipeline intact. When fga.enabled=true, the production FGA path
-		// (IamPolicyGrpcRepoImpl → OpenFGA) is used instead of the permit-all stub.
-		"STIGMER_SECURITY_MODE=test",
 
 		// Server ports
 		fmt.Sprintf("SERVER_PORT=%s", cfg.HTTPPort),
@@ -252,12 +272,6 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 		fmt.Sprintf("CLAIMCHECK_R2_ACCESS_KEY_ID=%s", r2AccessKey(cfg)),
 		fmt.Sprintf("CLAIMCHECK_R2_SECRET_ACCESS_KEY=%s", r2SecretKey(cfg)),
 
-		// Auth0 dummy values (required by property resolution even in test mode)
-		"AUTH0_DOMAIN=test.auth0.com",
-		"AUTH0_CLIENT_ID=test-client-id",
-		"AUTH0_CLIENT_SECRET=test-client-secret",
-		"AUTH0_API_AUDIENCE=test-audience",
-
 		// Stripe (dummy key to satisfy ConditionalOnProperty — never called)
 		"STIGMER_STRIPE_SECRET_KEY=sk_test_integration_dummy",
 		"STIGMER_STRIPE_WEBHOOK_SECRET=whsec_test_dummy",
@@ -269,12 +283,44 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 		"STIGMER_BILLING_RESERVATION_EXPIRY_ENABLED=false",
 		"STIGMER_RUNNER_LAUNCHER_TYPE=noop",
 
-		// Allow proxy requests without FGA scope headers. Runners may
-		// issue metadata requests (e.g. /v1/models) before execution
-		// scope is set. This remains false even with real FGA — the
-		// proxy scope headers are tested separately.
 		"STIGMER_PROXY_REQUIRE_SCOPE_HEADER=false",
 	)
+
+	if productionSecurity {
+		// Production security mode: load the real GrpcSecurityConfigBase,
+		// FederatedJwtAuthenticationProvider, and Auth0 JwtDecoder.
+		// Auth0 config points at the mock OIDC server.
+		env = append(env, "STIGMER_SECURITY_MODE=production")
+
+		auth0Domain := "test.auth0.com"
+		auth0Audience := "test-audience"
+		if cfg.Auth0IssuerURL != "" {
+			// Override the OIDC issuer URL directly so Spring doesn't construct
+			// https://${AUTH0_DOMAIN}/ — our mock runs on plain HTTP.
+			env = append(env, fmt.Sprintf("SECURITY_AUTHENTICATION_IDP_URL=%s", cfg.Auth0IssuerURL))
+		}
+		if cfg.Auth0Audience != "" {
+			auth0Audience = cfg.Auth0Audience
+		}
+		env = append(env,
+			fmt.Sprintf("AUTH0_DOMAIN=%s", auth0Domain),
+			"AUTH0_CLIENT_ID=test-client-id",
+			"AUTH0_CLIENT_SECRET=test-client-secret",
+			fmt.Sprintf("AUTH0_API_AUDIENCE=%s", auth0Audience),
+		)
+	} else {
+		// Test security mode: bypass Auth0 JWT validation with a synthetic
+		// caller. GrpcSecurityConfigBase and MachineAccountJwtProvider are
+		// not loaded. The permit-all TestIamPolicyGrpcRepo is used unless
+		// real FGA is enabled.
+		env = append(env, "STIGMER_SECURITY_MODE=test")
+		env = append(env,
+			"AUTH0_DOMAIN=test.auth0.com",
+			"AUTH0_CLIENT_ID=test-client-id",
+			"AUTH0_CLIENT_SECRET=test-client-secret",
+			"AUTH0_API_AUDIENCE=test-audience",
+		)
+	}
 
 	if fgaEnabled {
 		env = append(env,

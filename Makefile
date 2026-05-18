@@ -254,6 +254,10 @@ test-integration-agent: ## Run agent execution integration tests (auto-fetches A
 test-integration-stress: ## Run integration tests 3x to detect flakes (no quarantine skip)
 	$(MAKE) -C test/integration test-stress
 
+.PHONY: test-integration-security
+test-integration-security: ## Run security integration tests (JWT validation, production auth chain)
+	$(MAKE) -C test/integration-security test
+
 .PHONY: test-replay
 test-replay: ## Run Temporal workflow replay determinism tests (fast, no infra needed)
 	$(MAKE) -C backend/services/workflow-runner test-replay
