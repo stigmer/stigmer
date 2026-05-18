@@ -81,6 +81,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Task name/identifier (must be unique within workflow).
+   * Must be a valid C-style identifier: starts with a letter or underscore,
+   * followed by letters, digits, or underscores.
    * </pre>
    *
    * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -102,6 +104,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Task name/identifier (must be unique within workflow).
+   * Must be a valid C-style identifier: starts with a letter or underscore,
+   * followed by letters, digits, or underscores.
    * </pre>
    *
    * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -1183,6 +1187,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Task name/identifier (must be unique within workflow).
+     * Must be a valid C-style identifier: starts with a letter or underscore,
+     * followed by letters, digits, or underscores.
      * </pre>
      *
      * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -1203,6 +1209,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Task name/identifier (must be unique within workflow).
+     * Must be a valid C-style identifier: starts with a letter or underscore,
+     * followed by letters, digits, or underscores.
      * </pre>
      *
      * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -1224,6 +1232,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Task name/identifier (must be unique within workflow).
+     * Must be a valid C-style identifier: starts with a letter or underscore,
+     * followed by letters, digits, or underscores.
      * </pre>
      *
      * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -1241,6 +1251,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Task name/identifier (must be unique within workflow).
+     * Must be a valid C-style identifier: starts with a letter or underscore,
+     * followed by letters, digits, or underscores.
      * </pre>
      *
      * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -1255,6 +1267,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Task name/identifier (must be unique within workflow).
+     * Must be a valid C-style identifier: starts with a letter or underscore,
+     * followed by letters, digits, or underscores.
      * </pre>
      *
      * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>

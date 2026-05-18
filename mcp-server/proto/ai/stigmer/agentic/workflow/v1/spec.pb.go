@@ -326,6 +326,8 @@ func (x *WorkflowDocument) GetDescription() string {
 type WorkflowTask struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Task name/identifier (must be unique within workflow).
+	// Must be a valid C-style identifier: starts with a letter or underscore,
+	// followed by letters, digits, or underscores.
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Task type (determines how to interpret task_config).
 	Kind WorkflowTaskKind `protobuf:"varint,2,opt,name=kind,proto3,enum=ai.stigmer.agentic.workflow.v1.WorkflowTaskKind" json:"kind,omitempty"`
@@ -360,7 +362,58 @@ type WorkflowTask struct {
 	Export *Export `protobuf:"bytes,4,opt,name=export,proto3" json:"export,omitempty"`
 	// Flow control (which task executes next).
 	// Optional - if not set, continues to next task in sequence.
-	Flow          *FlowControl `protobuf:"bytes,5,opt,name=flow,proto3" json:"flow,omitempty"`
+	Flow *FlowControl `protobuf:"bytes,5,opt,name=flow,proto3" json:"flow,omitempty"`
+	// Compensation tasks to execute if this task needs to be "undone."
+	//
+	// @internal
+	// Saga-style compensation for workflows with side effects. When a
+	// try_catch block catches an error, it can optionally run the
+	// compensation tasks for all already-completed tasks in reverse order.
+	//
+	// The compensation tasks receive the original task's output in their
+	// input context, allowing them to construct the appropriate undo
+	// operation (e.g., cancel an API call, delete a created resource,
+	// send a reversal notification).
+	//
+	// Only executed when:
+	// 1. The task completed successfully (failed tasks are not compensated)
+	// 2. A subsequent task within the same try_catch scope fails
+	// 3. The catch block is configured to run compensations
+	//
+	// YAML Example:
+	//
+	//	try:
+	//	  - create_order:
+	//	      call: http
+	//	      with:
+	//	        method: POST
+	//	        endpoint: { uri: "https://api.example.com/orders" }
+	//	        body: { ... }
+	//	      compensate:
+	//	        - cancel_order:
+	//	            call: http
+	//	            with:
+	//	              method: DELETE
+	//	              endpoint: { uri: "https://api.example.com/orders/${ $context.create_order.id }" }
+	//	      export:
+	//	        as: "${ . }"
+	//	  - charge_payment:
+	//	      call: http
+	//	      with:
+	//	        method: POST
+	//	        endpoint: { uri: "https://api.example.com/payments" }
+	//	catch:
+	//	  as: error
+	//	  compensate: true
+	//	  do:
+	//	    - log_failure:
+	//	        call: notification
+	//	        with: ...
+	//
+	// Optional - when empty, this task has no compensation action.
+	//
+	// @since T17 (Advanced Agentic Orchestration)
+	Compensate    []*WorkflowTask `protobuf:"bytes,6,rep,name=compensate,proto3" json:"compensate,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -426,6 +479,13 @@ func (x *WorkflowTask) GetExport() *Export {
 func (x *WorkflowTask) GetFlow() *FlowControl {
 	if x != nil {
 		return x.Flow
+	}
+	return nil
+}
+
+func (x *WorkflowTask) GetCompensate() []*WorkflowTask {
+	if x != nil {
+		return x.Compensate
 	}
 	return nil
 }
@@ -563,14 +623,17 @@ const file_ai_stigmer_agentic_workflow_v1_spec_proto_rawDesc = "" +
 	"\tnamespace\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tnamespace\x12\x1a\n" +
 	"\x04name\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04name\x12 \n" +
 	"\aversion\x18\x04 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\aversion\x12 \n" +
-	"\vdescription\x18\x05 \x01(\tR\vdescription\"\xc3\x02\n" +
-	"\fWorkflowTask\x12\x1a\n" +
-	"\x04name\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04name\x12L\n" +
+	"\vdescription\x18\x05 \x01(\tR\vdescription\"\xac\x03\n" +
+	"\fWorkflowTask\x125\n" +
+	"\x04name\x18\x01 \x01(\tB!\xbaH\x1er\x1c\x10\x012\x18^[a-zA-Z_][a-zA-Z0-9_]*$R\x04name\x12L\n" +
 	"\x04kind\x18\x02 \x01(\x0e20.ai.stigmer.agentic.workflow.v1.WorkflowTaskKindB\x06\xbaH\x03\xc8\x01\x01R\x04kind\x12H\n" +
 	"\vtask_config\x18\x03 \x01(\v2\x17.google.protobuf.StructB\x0e\xbaH\x03\xc8\x01\x01\xea\x85,\x04kindR\n" +
 	"taskConfig\x12>\n" +
 	"\x06export\x18\x04 \x01(\v2&.ai.stigmer.agentic.workflow.v1.ExportR\x06export\x12?\n" +
-	"\x04flow\x18\x05 \x01(\v2+.ai.stigmer.agentic.workflow.v1.FlowControlR\x04flow\"!\n" +
+	"\x04flow\x18\x05 \x01(\v2+.ai.stigmer.agentic.workflow.v1.FlowControlR\x04flow\x12L\n" +
+	"\n" +
+	"compensate\x18\x06 \x03(\v2,.ai.stigmer.agentic.workflow.v1.WorkflowTaskR\n" +
+	"compensate\"!\n" +
 	"\x06Export\x12\x17\n" +
 	"\x02as\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02as\"!\n" +
 	"\vFlowControl\x12\x12\n" +
@@ -613,12 +676,13 @@ var file_ai_stigmer_agentic_workflow_v1_spec_proto_depIdxs = []int32{
 	9,  // 6: ai.stigmer.agentic.workflow.v1.WorkflowTask.task_config:type_name -> google.protobuf.Struct
 	4,  // 7: ai.stigmer.agentic.workflow.v1.WorkflowTask.export:type_name -> ai.stigmer.agentic.workflow.v1.Export
 	5,  // 8: ai.stigmer.agentic.workflow.v1.WorkflowTask.flow:type_name -> ai.stigmer.agentic.workflow.v1.FlowControl
-	10, // 9: ai.stigmer.agentic.workflow.v1.WorkflowSpec.EnvEntry.value:type_name -> ai.stigmer.agentic.environment.v1.EnvVarDeclaration
-	10, // [10:10] is the sub-list for method output_type
-	10, // [10:10] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	3,  // 9: ai.stigmer.agentic.workflow.v1.WorkflowTask.compensate:type_name -> ai.stigmer.agentic.workflow.v1.WorkflowTask
+	10, // 10: ai.stigmer.agentic.workflow.v1.WorkflowSpec.EnvEntry.value:type_name -> ai.stigmer.agentic.environment.v1.EnvVarDeclaration
+	11, // [11:11] is the sub-list for method output_type
+	11, // [11:11] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_workflow_v1_spec_proto_init() }

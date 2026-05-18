@@ -380,9 +380,20 @@ type ExecutionConfig struct {
 	// Cost is checked after each LLM call using the running total from
 	// UsageMetrics.estimated_cost_usd. When approaching the cap (>80%),
 	// a budget warning is injected into the conversation.
-	MaxCostUsd    float64 `protobuf:"fixed64,5,opt,name=max_cost_usd,json=maxCostUsd,proto3" json:"max_cost_usd,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	MaxCostUsd float64 `protobuf:"fixed64,5,opt,name=max_cost_usd,json=maxCostUsd,proto3" json:"max_cost_usd,omitempty"`
+	// Interaction mode for this execution.
+	//
+	// AGENT (default): full tool access — read, write, create, delete, shell.
+	// PLAN: read-only analysis — read, search, list only. No file mutations.
+	//
+	// When UNSPECIFIED, defaults to AGENT for backward compatibility.
+	//
+	// The mode is set per-execution and does not carry over between executions
+	// in the same session. Users toggle mode in the session composer before
+	// sending each message.
+	InteractionMode InteractionMode `protobuf:"varint,6,opt,name=interaction_mode,json=interactionMode,proto3,enum=ai.stigmer.agentic.agentexecution.v1.InteractionMode" json:"interaction_mode,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *ExecutionConfig) Reset() {
@@ -448,6 +459,13 @@ func (x *ExecutionConfig) GetMaxCostUsd() float64 {
 		return x.MaxCostUsd
 	}
 	return 0
+}
+
+func (x *ExecutionConfig) GetInteractionMode() InteractionMode {
+	if x != nil {
+		return x.InteractionMode
+	}
+	return InteractionMode_INTERACTION_MODE_UNSPECIFIED
 }
 
 // ContextManagementConfig controls automatic context summarization behavior.
@@ -725,7 +743,7 @@ var File_ai_stigmer_agentic_agentexecution_v1_spec_proto protoreflect.FileDescri
 
 const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"/ai/stigmer/agentic/agentexecution/v1/spec.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a1ai/stigmer/agentic/executioncontext/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\"\xb8\x05\n" +
+	"/ai/stigmer/agentic/agentexecution/v1/spec.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a1ai/stigmer/agentic/executioncontext/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\"\xb8\x05\n" +
 	"\x12AgentExecutionSpec\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x19\n" +
@@ -742,7 +760,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	" \x03(\tR\x11workspaceFileRefs\x1au\n" +
 	"\x0fRuntimeEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12L\n" +
-	"\x05value\x18\x02 \x01(\v26.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x028\x01\"\x9b\x02\n" +
+	"\x05value\x18\x02 \x01(\v26.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x028\x01\"\x87\x03\n" +
 	"\x0fExecutionConfig\x12\x1d\n" +
 	"\n" +
 	"model_name\x18\x01 \x01(\tR\tmodelName\x12l\n" +
@@ -750,7 +768,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	"\x0fmax_tool_rounds\x18\x03 \x01(\x05R\rmaxToolRounds\x121\n" +
 	"\x15max_tool_result_chars\x18\x04 \x01(\x05R\x12maxToolResultChars\x12 \n" +
 	"\fmax_cost_usd\x18\x05 \x01(\x01R\n" +
-	"maxCostUsd\"\xcc\x01\n" +
+	"maxCostUsd\x12j\n" +
+	"\x10interaction_mode\x18\x06 \x01(\x0e25.ai.stigmer.agentic.agentexecution.v1.InteractionModeB\b\xbaH\x05\x82\x01\x02\x10\x01R\x0finteractionMode\"\xcc\x01\n" +
 	"\x17ContextManagementConfig\x123\n" +
 	"\x15disable_summarization\x18\x01 \x01(\bR\x14disableSummarization\x12A\n" +
 	"\x18custom_trigger_threshold\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\x16customTriggerThreshold\x129\n" +
@@ -787,19 +806,21 @@ var file_ai_stigmer_agentic_agentexecution_v1_spec_proto_goTypes = []any{
 	(*ContextManagementConfig)(nil), // 2: ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig
 	(*Attachment)(nil),              // 3: ai.stigmer.agentic.agentexecution.v1.Attachment
 	nil,                             // 4: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry
-	(*v1.ExecutionValue)(nil),       // 5: ai.stigmer.agentic.executioncontext.v1.ExecutionValue
+	(InteractionMode)(0),            // 5: ai.stigmer.agentic.agentexecution.v1.InteractionMode
+	(*v1.ExecutionValue)(nil),       // 6: ai.stigmer.agentic.executioncontext.v1.ExecutionValue
 }
 var file_ai_stigmer_agentic_agentexecution_v1_spec_proto_depIdxs = []int32{
 	1, // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.execution_config:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionConfig
 	4, // 1: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.runtime_env:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry
 	3, // 2: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.attachments:type_name -> ai.stigmer.agentic.agentexecution.v1.Attachment
 	2, // 3: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.context_management:type_name -> ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig
-	5, // 4: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry.value:type_name -> ai.stigmer.agentic.executioncontext.v1.ExecutionValue
-	5, // [5:5] is the sub-list for method output_type
-	5, // [5:5] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	5, // 4: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.interaction_mode:type_name -> ai.stigmer.agentic.agentexecution.v1.InteractionMode
+	6, // 5: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry.value:type_name -> ai.stigmer.agentic.executioncontext.v1.ExecutionValue
+	6, // [6:6] is the sub-list for method output_type
+	6, // [6:6] is the sub-list for method input_type
+	6, // [6:6] is the sub-list for extension type_name
+	6, // [6:6] is the sub-list for extension extendee
+	0, // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_spec_proto_init() }
@@ -807,6 +828,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_spec_proto_init() {
 	if File_ai_stigmer_agentic_agentexecution_v1_spec_proto != nil {
 		return
 	}
+	file_ai_stigmer_agentic_agentexecution_v1_enum_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

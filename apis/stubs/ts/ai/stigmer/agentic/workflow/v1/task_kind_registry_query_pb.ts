@@ -34,7 +34,7 @@ export const TaskKindRegistryQueryController: GenService<{
   /**
    * Retrieve the complete task kind registry.
    *
-   * Returns descriptors for all 19 workflow task kinds with full metadata:
+   * Returns descriptors for all 20 workflow task kinds with full metadata:
    * field schemas, JSON Schemas, categories, icons, examples, and output shapes.
    *
    * Caching: responses are immutable within a platform version. Clients should

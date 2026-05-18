@@ -231,7 +231,6 @@ go_library(
         "workflows/support-ticket-triage.yaml",
         "mcp-servers/atlassian.yaml",
         "mcp-servers/attio.yaml",
-        "mcp-servers/aws-cdk.yaml",
         "mcp-servers/aws-documentation.yaml",
         "mcp-servers/aws-lambda.yaml",
         "mcp-servers/brave-search.yaml",
@@ -283,6 +282,8 @@ go_library(
         "mcp-servers/twilio.yaml",
         "mcp-servers/webflow.yaml",
         "mcp-servers/wix.yaml",
+        "mcp-servers/aws-iac.yaml",
+        "mcp-servers/credential-manifest.yaml",
     ],
     importpath = "github.com/stigmer/stigmer/seedpack",
     visibility = ["//visibility:public"],
@@ -293,6 +294,10 @@ go_library(
 
 go_test(
     name = "seedpack_test",
-    srcs = ["seedpack_test.go"],
+    srcs = [
+        "mcp_servers_test.go",
+        "seedpack_test.go",
+    ],
     embed = [":seedpack"],
+    deps = ["@in_gopkg_yaml_v3//:yaml_v3"],
 )

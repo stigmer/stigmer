@@ -326,6 +326,8 @@ func (x *WorkflowDocument) GetDescription() string {
 type WorkflowTask struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Task name/identifier (must be unique within workflow).
+	// Must be a valid C-style identifier: starts with a letter or underscore,
+	// followed by letters, digits, or underscores.
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Task type (determines how to interpret task_config).
 	Kind WorkflowTaskKind `protobuf:"varint,2,opt,name=kind,proto3,enum=ai.stigmer.agentic.workflow.v1.WorkflowTaskKind" json:"kind,omitempty"`
@@ -621,9 +623,9 @@ const file_ai_stigmer_agentic_workflow_v1_spec_proto_rawDesc = "" +
 	"\tnamespace\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tnamespace\x12\x1a\n" +
 	"\x04name\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04name\x12 \n" +
 	"\aversion\x18\x04 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\aversion\x12 \n" +
-	"\vdescription\x18\x05 \x01(\tR\vdescription\"\x91\x03\n" +
-	"\fWorkflowTask\x12\x1a\n" +
-	"\x04name\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04name\x12L\n" +
+	"\vdescription\x18\x05 \x01(\tR\vdescription\"\xac\x03\n" +
+	"\fWorkflowTask\x125\n" +
+	"\x04name\x18\x01 \x01(\tB!\xbaH\x1er\x1c\x10\x012\x18^[a-zA-Z_][a-zA-Z0-9_]*$R\x04name\x12L\n" +
 	"\x04kind\x18\x02 \x01(\x0e20.ai.stigmer.agentic.workflow.v1.WorkflowTaskKindB\x06\xbaH\x03\xc8\x01\x01R\x04kind\x12H\n" +
 	"\vtask_config\x18\x03 \x01(\v2\x17.google.protobuf.StructB\x0e\xbaH\x03\xc8\x01\x01\xea\x85,\x04kindR\n" +
 	"taskConfig\x12>\n" +

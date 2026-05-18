@@ -165,7 +165,7 @@ Workflow workflow = client.workflows().getByReference(ApiResourceReference.build
 
 Retrieve the complete task kind registry.
 
-Returns descriptors for all 19 workflow task kinds with full metadata: field schemas, JSON Schemas, categories, icons, examples, and output shapes.
+Returns descriptors for all 20 workflow task kinds with full metadata: field schemas, JSON Schemas, categories, icons, examples, and output shapes.
 
 Caching: responses are immutable within a platform version. Clients should cache aggressively (recommended: 1 hour TTL with stale-while-revalidate).
 
@@ -561,7 +561,7 @@ WorkflowTask represents a single executable step in a workflow.
 
 <TypeTable
   type={{
-    name: { type: "string", description: "Task name/identifier (must be unique within workflow).", required: true },
+    name: { type: "string", description: "Task name/identifier (must be unique within workflow)." },
     kind: { type: "WorkflowTaskKind", description: "Task type (determines how to interpret task_config).", typeDescriptionLink: "#workflowtaskkind", required: true },
     taskConfig: { type: "object", description: "Task-specific configuration whose structure depends on the `kind` field.", required: true },
     export: { type: "ExportInput", description: "Export configuration (how to save task output to context).", typeDescriptionLink: "#exportinput" },

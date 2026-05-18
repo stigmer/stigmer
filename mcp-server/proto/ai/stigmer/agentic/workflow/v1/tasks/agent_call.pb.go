@@ -8,7 +8,8 @@ package tasks
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	v1 "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/agentexecution/v1"
+	v11 "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/agentexecution/v1"
+	v1 "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/session/v1"
 	_ "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -113,7 +114,27 @@ type AgentCallTaskConfig struct {
 	// (backward compatible with existing workflows).
 	//
 	// @since T02 (Structured Agent Output Model)
-	Output        *AgentCallOutputContract `protobuf:"bytes,6,opt,name=output,proto3" json:"output,omitempty"`
+	Output *AgentCallOutputContract `protobuf:"bytes,6,opt,name=output,proto3" json:"output,omitempty"`
+	// Execution harness for the agent invocation.
+	//
+	// Determines which execution engine processes the agent call:
+	// - HARNESS_UNSPECIFIED / HARNESS_NATIVE: Stigmer native engine (Python/LangGraph)
+	// - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor)
+	//
+	// The workflow-runner creates a Session with this harness before creating
+	// the AgentExecution. The harness is a session-level concern — it determines
+	// tool availability, state management, model access, and billing tier.
+	//
+	// When unspecified, defaults to HARNESS_NATIVE for backward compatibility.
+	//
+	// YAML Example:
+	//   - code_review:
+	//     call: agent
+	//     with:
+	//     agent: "code-reviewer"
+	//     harness: cursor
+	//     message: "Review this PR"
+	Harness       v1.Harness `protobuf:"varint,7,opt,name=harness,proto3,enum=ai.stigmer.agentic.session.v1.Harness" json:"harness,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -188,6 +209,13 @@ func (x *AgentCallTaskConfig) GetOutput() *AgentCallOutputContract {
 		return x.Output
 	}
 	return nil
+}
+
+func (x *AgentCallTaskConfig) GetHarness() v1.Harness {
+	if x != nil {
+		return x.Harness
+	}
+	return v1.Harness(0)
 }
 
 // AgentCallOutputContract defines the structured output contract for an agent_call task.
@@ -367,7 +395,7 @@ type AgentExecutionConfig struct {
 	//	  context_management:
 	//	    custom_trigger_threshold: 150000
 	//	    custom_target_tokens: 120000
-	ContextManagement *v1.ContextManagementConfig `protobuf:"bytes,4,opt,name=context_management,json=contextManagement,proto3" json:"context_management,omitempty"`
+	ContextManagement *v11.ContextManagementConfig `protobuf:"bytes,4,opt,name=context_management,json=contextManagement,proto3" json:"context_management,omitempty"`
 	// Per-agent-call cost cap in micro-USD (1 USD = 1,000,000 micros).
 	// When set, the runtime terminates this agent call if its accumulated cost
 	// exceeds this limit. This uses the workflow domain's micro-USD convention
@@ -432,7 +460,7 @@ func (x *AgentExecutionConfig) GetTemperature() float32 {
 	return 0
 }
 
-func (x *AgentExecutionConfig) GetContextManagement() *v1.ContextManagementConfig {
+func (x *AgentExecutionConfig) GetContextManagement() *v11.ContextManagementConfig {
 	if x != nil {
 		return x.ContextManagement
 	}
@@ -450,14 +478,15 @@ var File_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto protoreflect.File
 
 const file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_rawDesc = "" +
 	"\n" +
-	"5ai/stigmer/agentic/workflow/v1/tasks/agent_call.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a/ai/stigmer/agentic/agentexecution/v1/spec.proto\x1a1ai/stigmer/agentic/workflow/v1/tasks/common.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xbe\x03\n" +
+	"5ai/stigmer/agentic/workflow/v1/tasks/agent_call.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a/ai/stigmer/agentic/agentexecution/v1/spec.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a1ai/stigmer/agentic/workflow/v1/tasks/common.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\x80\x04\n" +
 	"\x13AgentCallTaskConfig\x12\"\n" +
 	"\x05agent\x18\x01 \x01(\tB\f\xbaH\t\xc8\x01\x01r\x04\x10\x01\x18\x7fR\x05agent\x12\x10\n" +
 	"\x03org\x18\x02 \x01(\tR\x03org\x12(\n" +
 	"\amessage\x18\x03 \x01(\tB\x0e\xbaH\a\xc8\x01\x01r\x02\x10\x01\u0605,\x01R\amessage\x12T\n" +
 	"\x03env\x18\x04 \x03(\v2B.ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.EnvEntryR\x03env\x12R\n" +
 	"\x06config\x18\x05 \x01(\v2:.ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfigR\x06config\x12U\n" +
-	"\x06output\x18\x06 \x01(\v2=.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContractR\x06output\x1a6\n" +
+	"\x06output\x18\x06 \x01(\v2=.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContractR\x06output\x12@\n" +
+	"\aharness\x18\a \x01(\x0e2&.ai.stigmer.agentic.session.v1.HarnessR\aharness\x1a6\n" +
 	"\bEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01:\x0e\xea\x8b,\n" +
@@ -494,26 +523,28 @@ func file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_rawDescGZIP() []
 
 var file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_goTypes = []any{
-	(*AgentCallTaskConfig)(nil),        // 0: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
-	(*AgentCallOutputContract)(nil),    // 1: ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract
-	(*AgentExecutionConfig)(nil),       // 2: ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfig
-	nil,                                // 3: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.EnvEntry
-	(*structpb.Struct)(nil),            // 4: google.protobuf.Struct
-	(OnInvalidOutputPolicy)(0),         // 5: ai.stigmer.agentic.workflow.v1.tasks.OnInvalidOutputPolicy
-	(*v1.ContextManagementConfig)(nil), // 6: ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig
+	(*AgentCallTaskConfig)(nil),         // 0: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
+	(*AgentCallOutputContract)(nil),     // 1: ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract
+	(*AgentExecutionConfig)(nil),        // 2: ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfig
+	nil,                                 // 3: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.EnvEntry
+	(v1.Harness)(0),                     // 4: ai.stigmer.agentic.session.v1.Harness
+	(*structpb.Struct)(nil),             // 5: google.protobuf.Struct
+	(OnInvalidOutputPolicy)(0),          // 6: ai.stigmer.agentic.workflow.v1.tasks.OnInvalidOutputPolicy
+	(*v11.ContextManagementConfig)(nil), // 7: ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig
 }
 var file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_depIdxs = []int32{
 	3, // 0: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.env:type_name -> ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.EnvEntry
 	2, // 1: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.config:type_name -> ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfig
 	1, // 2: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.output:type_name -> ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract
-	4, // 3: ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract.schema:type_name -> google.protobuf.Struct
-	5, // 4: ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract.on_invalid:type_name -> ai.stigmer.agentic.workflow.v1.tasks.OnInvalidOutputPolicy
-	6, // 5: ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfig.context_management:type_name -> ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig
-	6, // [6:6] is the sub-list for method output_type
-	6, // [6:6] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	4, // 3: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.harness:type_name -> ai.stigmer.agentic.session.v1.Harness
+	5, // 4: ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract.schema:type_name -> google.protobuf.Struct
+	6, // 5: ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract.on_invalid:type_name -> ai.stigmer.agentic.workflow.v1.tasks.OnInvalidOutputPolicy
+	7, // 6: ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfig.context_management:type_name -> ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig
+	7, // [7:7] is the sub-list for method output_type
+	7, // [7:7] is the sub-list for method input_type
+	7, // [7:7] is the sub-list for extension type_name
+	7, // [7:7] is the sub-list for extension extendee
+	0, // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_init() }

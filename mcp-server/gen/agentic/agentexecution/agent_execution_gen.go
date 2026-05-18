@@ -70,6 +70,8 @@ type ExecutionConfigInput struct {
 	MaxToolResultChars int32 `json:"max_tool_result_chars,omitempty" jsonschema:"Maximum number of characters for a single tool result before truncation. When a tool result exceeds this limit, it is truncated and a marker is appended: '[truncated — result exceeded {limit} chars, ask for specific sections]' 0 = use platform default (recommended: 30,000 chars ~ 7,500 tokens). Set higher for agents that work with large files/outputs. Applies to all tool results (shell, read, write, MCP tools). Does not apply to built-in tools that already manage their output size."`
 	// Maximum estimated cost in USD for this execution. When the running cost exceeds this limit, the agent receives a "budget exhausted" message and the execution transitions to TERMINATED. 0.0 = no cost cap (default, unlimited). Recommended: 1.00-5.00 for interactive sessions, 10.00+ for batch workflows. Cost is checked after each LLM call using the running total from UsageMetrics.estimated_cost_usd. When approaching the cap (>80%), a budget warning is injected into the conversation.
 	MaxCostUsd float64 `json:"max_cost_usd,omitempty" jsonschema:"Maximum estimated cost in USD for this execution. When the running cost exceeds this limit, the agent receives a 'budget exhausted' message and the execution transitions to TERMINATED. 0.0 = no cost cap (default, unlimited). Recommended: 1.00-5.00 for interactive sessions, 10.00+ for batch workflows. Cost is checked after each LLM call using the running total from UsageMetrics.estimated_cost_usd. When approaching the cap (>80%), a budget warning is injected into the conversation."`
+	// Interaction mode for this execution. AGENT (default): full tool access — read, write, create, delete, shell. PLAN: read-only analysis — read, search, list only. No file mutations. When UNSPECIFIED, defaults to AGENT for backward compatibility. The mode is set per-execution and does not carry over between executions in the same session. Users toggle mode in the session composer before sending each message.
+	InteractionMode string `json:"interaction_mode,omitempty" jsonschema:"Interaction mode for this execution. AGENT (default): full tool access — read, write, create, delete, shell. PLAN: read-only analysis — read, search, list only. No file mutations. When UNSPECIFIED, defaults to AGENT for backward compatibility. The mode is set per-execution and does not carry over between executions in the same session. Users toggle mode in the session composer before sending each message. Allowed values: INTERACTION_MODE_AGENT, INTERACTION_MODE_PLAN."`
 }
 
 // A single runtime configuration or secret value.
@@ -183,6 +185,7 @@ func (input *ExecutionConfigInput) toProto() (*agentexecutionv1.ExecutionConfig,
 	result.MaxToolRounds = input.MaxToolRounds
 	result.MaxToolResultChars = input.MaxToolResultChars
 	result.MaxCostUsd = input.MaxCostUsd
+	result.InteractionMode = agentexecutionv1.InteractionMode(agentexecutionv1.InteractionMode_value[input.InteractionMode])
 	return result, nil
 }
 
