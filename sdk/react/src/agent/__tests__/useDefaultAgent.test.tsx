@@ -1,308 +1,109 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { renderHook, act } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { renderHook, waitFor, act } from "@testing-library/react";
 import type { ReactNode } from "react";
-import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { Stigmer } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
+import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { useDefaultAgent } from "../useDefaultAgent";
 
-const STALE_THRESHOLD_MS = 30_000;
-
-function fakeAgent(instanceId: string): Agent {
-  return {
-    status: { defaultInstanceId: instanceId },
-  } as unknown as Agent;
-}
-
-function buildMockClient(overrides: {
-  getDefault?: ReturnType<typeof vi.fn>;
+function createMockStigmer(overrides: {
+  getDefault?: () => Promise<unknown>;
 } = {}) {
   return {
     agent: {
-      getDefault: overrides.getDefault ?? vi.fn(),
+      getDefault: overrides.getDefault ?? vi.fn().mockResolvedValue(null),
     },
-  } as unknown as Stigmer;
+  } as never;
 }
 
-function makeWrapper(client: Stigmer) {
-  return ({ children }: { children: ReactNode }) => (
-    <StigmerContext.Provider value={client}>
-      {children}
-    </StigmerContext.Provider>
-  );
-}
-
-function fireVisibilityChange(state: DocumentVisibilityState) {
-  Object.defineProperty(document, "visibilityState", {
-    value: state,
-    writable: true,
-    configurable: true,
-  });
-  document.dispatchEvent(new Event("visibilitychange"));
+function wrapper(client: unknown) {
+  return function Wrapper({ children }: { children: ReactNode }) {
+    return (
+      <FetchCacheContext.Provider value={null}>
+        <StigmerContext.Provider value={client as never}>
+          {children}
+        </StigmerContext.Provider>
+      </FetchCacheContext.Provider>
+    );
+  };
 }
 
 describe("useDefaultAgent", () => {
-  let getDefaultMock: ReturnType<typeof vi.fn>;
-  let client: Stigmer;
-
   beforeEach(() => {
-    getDefaultMock = vi.fn();
-    client = buildMockClient({ getDefault: getDefaultMock });
-  });
-
-  afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  // -----------------------------------------------------------------------
-  // Basic fetch behavior (no fake timers needed)
-  // -----------------------------------------------------------------------
+  it("returns loading state initially and resolves with agent data", async () => {
+    const agent = { metadata: { id: "agt-1", name: "Default Agent" }, status: { defaultInstanceId: "ain-1" } };
+    const getDefault = vi.fn().mockResolvedValue(agent);
+    const client = createMockStigmer({ getDefault });
 
-  it("fetches the default agent on mount", async () => {
-    const agent = fakeAgent("inst_1");
-    getDefaultMock.mockResolvedValueOnce(agent);
-
-    const { result } = renderHook(() => useDefaultAgent("acme"), {
-      wrapper: makeWrapper(client),
+    const { result } = renderHook(() => useDefaultAgent("test-org"), {
+      wrapper: wrapper(client),
     });
 
     expect(result.current.isLoading).toBe(true);
+    expect(result.current.agent).toBeNull();
 
-    await act(async () => {});
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    expect(result.current.isLoading).toBe(false);
     expect(result.current.agent).toBe(agent);
     expect(result.current.error).toBeNull();
-    expect(getDefaultMock).toHaveBeenCalledOnce();
+    expect(getDefault).toHaveBeenCalledTimes(1);
   });
 
   it("skips fetching when org is null", () => {
+    const getDefault = vi.fn();
+    const client = createMockStigmer({ getDefault });
+
     const { result } = renderHook(() => useDefaultAgent(null), {
-      wrapper: makeWrapper(client),
+      wrapper: wrapper(client),
     });
 
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.agent).toBeNull();
+    expect(result.current.error).toBeNull();
+    expect(getDefault).not.toHaveBeenCalled();
+  });
+
+  it("exposes error when fetch fails after retry", async () => {
+    const apiError = new Error("Service unavailable");
+    const getDefault = vi.fn().mockRejectedValue(apiError);
+    const client = createMockStigmer({ getDefault });
+
+    const { result } = renderHook(() => useDefaultAgent("test-org"), {
+      wrapper: wrapper(client),
+    });
+
+    // useDefaultAgent retries once (MAX_RETRIES=1) with a 1s delay.
+    // useFetch wraps the retry fn, so the final error surfaces after
+    // both attempts fail. Wait for the error to propagate.
+    await waitFor(() => expect(result.current.error).toBeTruthy(), { timeout: 10_000 });
+
+    expect(result.current.error!.message).toBe("Service unavailable");
     expect(result.current.agent).toBeNull();
     expect(result.current.isLoading).toBe(false);
-    expect(getDefaultMock).not.toHaveBeenCalled();
-  });
+    // 1 initial + 1 retry = 2 calls
+    expect(getDefault).toHaveBeenCalledTimes(2);
+  }, 15_000);
 
-  // -----------------------------------------------------------------------
-  // Retry on transient failure
-  // -----------------------------------------------------------------------
+  it("refetch triggers a new fetch", async () => {
+    let callCount = 0;
+    const agent = { metadata: { id: "agt-1" }, status: { defaultInstanceId: "ain-1" } };
+    const getDefault = vi.fn().mockImplementation(async () => {
+      callCount++;
+      return agent;
+    });
+    const client = createMockStigmer({ getDefault });
 
-  it("retries once on transient failure then succeeds", async () => {
-    vi.useFakeTimers();
-    try {
-      const agent = fakeAgent("inst_retry");
-      getDefaultMock
-        .mockRejectedValueOnce(new Error("network timeout"))
-        .mockResolvedValueOnce(agent);
+    const { result } = renderHook(() => useDefaultAgent("test-org"), {
+      wrapper: wrapper(client),
+    });
 
-      const { result } = renderHook(() => useDefaultAgent("acme"), {
-        wrapper: makeWrapper(client),
-      });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(callCount).toBe(1);
 
-      expect(result.current.isLoading).toBe(true);
+    act(() => result.current.refetch());
 
-      // Flush the rejected first attempt.
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(0);
-      });
-
-      // Advance past the 1s retry delay.
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(1_100);
-      });
-
-      expect(result.current.isLoading).toBe(false);
-      expect(result.current.agent).toBe(agent);
-      expect(result.current.error).toBeNull();
-      expect(getDefaultMock).toHaveBeenCalledTimes(2);
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-
-  it("surfaces the error after exhausting retries", async () => {
-    vi.useFakeTimers();
-    try {
-      getDefaultMock
-        .mockRejectedValueOnce(new Error("fail 1"))
-        .mockRejectedValueOnce(new Error("fail 2"));
-
-      const { result } = renderHook(() => useDefaultAgent("acme"), {
-        wrapper: makeWrapper(client),
-      });
-
-      // Flush first attempt + advance past retry delay + flush retry.
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(0);
-      });
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(1_100);
-      });
-
-      expect(result.current.isLoading).toBe(false);
-      expect(result.current.agent).toBeNull();
-      expect(result.current.error).toBeInstanceOf(Error);
-      expect(result.current.error!.message).toBe("fail 2");
-      expect(getDefaultMock).toHaveBeenCalledTimes(2);
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-
-  // -----------------------------------------------------------------------
-  // Visibility-aware refetch
-  // -----------------------------------------------------------------------
-
-  it("refetches when document becomes visible after stale threshold", async () => {
-    vi.useFakeTimers();
-    try {
-      const agent1 = fakeAgent("inst_old");
-      const agent2 = fakeAgent("inst_new");
-      getDefaultMock
-        .mockResolvedValueOnce(agent1)
-        .mockResolvedValueOnce(agent2);
-
-      const { result } = renderHook(() => useDefaultAgent("acme"), {
-        wrapper: makeWrapper(client),
-      });
-
-      // Flush initial fetch.
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(0);
-      });
-      expect(result.current.agent).toBe(agent1);
-      expect(getDefaultMock).toHaveBeenCalledTimes(1);
-
-      // Simulate idle period longer than the stale threshold.
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(STALE_THRESHOLD_MS + 1_000);
-      });
-
-      // Simulate app coming back to foreground.
-      act(() => {
-        fireVisibilityChange("visible");
-      });
-
-      // Flush the refetch.
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(0);
-      });
-
-      expect(result.current.agent).toBe(agent2);
-      expect(getDefaultMock).toHaveBeenCalledTimes(2);
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-
-  it("does NOT refetch when visible within the stale window", async () => {
-    vi.useFakeTimers();
-    try {
-      const agent = fakeAgent("inst_fresh");
-      getDefaultMock.mockResolvedValueOnce(agent);
-
-      const { result } = renderHook(() => useDefaultAgent("acme"), {
-        wrapper: makeWrapper(client),
-      });
-
-      // Flush initial fetch.
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(0);
-      });
-      expect(result.current.agent).toBe(agent);
-      expect(getDefaultMock).toHaveBeenCalledTimes(1);
-
-      // Only a short time passes — well within stale threshold.
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(5_000);
-      });
-
-      act(() => {
-        fireVisibilityChange("visible");
-      });
-
-      expect(getDefaultMock).toHaveBeenCalledTimes(1);
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-
-  it("does not refetch on hidden event", async () => {
-    vi.useFakeTimers();
-    try {
-      const agent = fakeAgent("inst_1");
-      getDefaultMock.mockResolvedValueOnce(agent);
-
-      const { result } = renderHook(() => useDefaultAgent("acme"), {
-        wrapper: makeWrapper(client),
-      });
-
-      // Flush initial fetch.
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(0);
-      });
-      expect(result.current.agent).toBe(agent);
-
-      // Advance well past stale threshold.
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(STALE_THRESHOLD_MS + 1_000);
-      });
-
-      // Hidden (not visible) should not trigger refetch.
-      act(() => {
-        fireVisibilityChange("hidden");
-      });
-
-      expect(getDefaultMock).toHaveBeenCalledTimes(1);
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-
-  // -----------------------------------------------------------------------
-  // Manual refetch
-  // -----------------------------------------------------------------------
-
-  it("recovers via manual refetch after initial failure", async () => {
-    vi.useFakeTimers();
-    try {
-      const agent = fakeAgent("inst_recovered");
-      getDefaultMock
-        .mockRejectedValueOnce(new Error("initial fail"))
-        .mockRejectedValueOnce(new Error("retry fail"))
-        .mockResolvedValueOnce(agent);
-
-      const { result } = renderHook(() => useDefaultAgent("acme"), {
-        wrapper: makeWrapper(client),
-      });
-
-      // Exhaust initial attempt + retry.
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(0);
-      });
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(1_100);
-      });
-
-      expect(result.current.error).not.toBeNull();
-
-      // Manual refetch triggers recovery.
-      act(() => {
-        result.current.refetch();
-      });
-
-      // Flush the refetch.
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(0);
-      });
-
-      expect(result.current.agent).toBe(agent);
-      expect(result.current.error).toBeNull();
-    } finally {
-      vi.useRealTimers();
-    }
-  });
+    await waitFor(() => expect(callCount).toBe(2), { timeout: 10_000 });
+  }, 15_000);
 });

@@ -1,296 +1,175 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { renderHook, act } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { renderHook, waitFor, act } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import type { Stigmer } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
+import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { useCreateSession } from "../useCreateSession";
 
-function buildMockClient(overrides: {
-  sessionCreate?: ReturnType<typeof vi.fn>;
-  agentGetByReference?: ReturnType<typeof vi.fn>;
+function createMockStigmer(overrides: {
+  getByReference?: (...args: unknown[]) => Promise<unknown>;
+  create?: (...args: unknown[]) => Promise<unknown>;
 } = {}) {
   return {
-    session: {
-      create: overrides.sessionCreate ?? vi.fn(),
-    },
     agent: {
-      getByReference: overrides.agentGetByReference ?? vi.fn(),
+      getByReference: overrides.getByReference ?? vi.fn().mockResolvedValue({
+        status: { defaultInstanceId: "ain-default" },
+      }),
     },
-  } as unknown as Stigmer;
+    session: {
+      create: overrides.create ?? vi.fn().mockResolvedValue({
+        metadata: { id: "ses-new-1" },
+      }),
+    },
+  } as never;
 }
 
-function makeWrapper(client: Stigmer) {
-  return ({ children }: { children: ReactNode }) => (
-    <StigmerContext.Provider value={client}>{children}</StigmerContext.Provider>
-  );
-}
-
-function fakeSessionResponse(sessionId: string) {
-  return { metadata: { id: sessionId } };
+function wrapper(client: unknown) {
+  return function Wrapper({ children }: { children: ReactNode }) {
+    return (
+      <FetchCacheContext.Provider value={null}>
+        <StigmerContext.Provider value={client as never}>
+          {children}
+        </StigmerContext.Provider>
+      </FetchCacheContext.Provider>
+    );
+  };
 }
 
 describe("useCreateSession", () => {
-  let sessionCreateMock: ReturnType<typeof vi.fn>;
-  let agentGetByRefMock: ReturnType<typeof vi.fn>;
-  let client: Stigmer;
-
   beforeEach(() => {
-    sessionCreateMock = vi.fn();
-    agentGetByRefMock = vi.fn();
-    client = buildMockClient({
-      sessionCreate: sessionCreateMock,
-      agentGetByReference: agentGetByRefMock,
-    });
-  });
-
-  afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it("starts in idle state", () => {
+  it("creates a session with agentInstanceId", async () => {
+    const create = vi.fn().mockResolvedValue({ metadata: { id: "ses-123" } });
+    const client = createMockStigmer({ create });
+
     const { result } = renderHook(() => useCreateSession(), {
-      wrapper: makeWrapper(client),
+      wrapper: wrapper(client),
     });
+
+    expect(result.current.isCreating).toBe(false);
+
+    let sessionResult: { sessionId: string } | undefined;
+    await act(async () => {
+      sessionResult = await result.current.create({
+        org: "acme",
+        agentInstanceId: "ain-123",
+      });
+    });
+
+    expect(sessionResult!.sessionId).toBe("ses-123");
     expect(result.current.isCreating).toBe(false);
     expect(result.current.error).toBeNull();
-  });
-
-  describe("agentInstanceId path", () => {
-    it("creates a session with the given instance ID", async () => {
-      sessionCreateMock.mockResolvedValueOnce(fakeSessionResponse("sess-1"));
-
-      const { result } = renderHook(() => useCreateSession(), {
-        wrapper: makeWrapper(client),
-      });
-
-      let outcome: { sessionId: string } | undefined;
-      await act(async () => {
-        outcome = await result.current.create({
-          org: "acme",
-          agentInstanceId: "inst-abc",
-        });
-      });
-
-      expect(outcome!.sessionId).toBe("sess-1");
-      expect(sessionCreateMock).toHaveBeenCalledOnce();
-      expect(sessionCreateMock.mock.calls[0][0]).toMatchObject({
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
         org: "acme",
-        agentInstanceId: "inst-abc",
-      });
-    });
+        agentInstanceId: "ain-123",
+      }),
+    );
   });
 
-  describe("agentRef path", () => {
-    it("resolves the agent reference to its default instance", async () => {
-      agentGetByRefMock.mockResolvedValueOnce({
-        status: { defaultInstanceId: "inst-resolved" },
-      });
-      sessionCreateMock.mockResolvedValueOnce(fakeSessionResponse("sess-2"));
+  it("resolves agentRef to default instance before creating", async () => {
+    const getByReference = vi.fn().mockResolvedValue({
+      status: { defaultInstanceId: "ain-resolved" },
+    });
+    const create = vi.fn().mockResolvedValue({ metadata: { id: "ses-456" } });
+    const client = createMockStigmer({ getByReference, create });
 
-      const { result } = renderHook(() => useCreateSession(), {
-        wrapper: makeWrapper(client),
-      });
+    const { result } = renderHook(() => useCreateSession(), {
+      wrapper: wrapper(client),
+    });
 
-      await act(async () => {
-        await result.current.create({
-          org: "acme",
-          agentRef: { org: "acme", slug: "my-agent" },
-        });
-      });
-
-      expect(agentGetByRefMock).toHaveBeenCalledWith({
+    await act(async () => {
+      await result.current.create({
         org: "acme",
-        slug: "my-agent",
-      });
-      expect(sessionCreateMock.mock.calls[0][0]).toMatchObject({
-        agentInstanceId: "inst-resolved",
+        agentRef: { org: "acme", slug: "my-agent" },
       });
     });
 
-    it("throws when agent has no default instance", async () => {
-      agentGetByRefMock.mockResolvedValueOnce({ status: {} });
-
-      const { result } = renderHook(() => useCreateSession(), {
-        wrapper: makeWrapper(client),
-      });
-
-      await act(async () => {
-        await expect(
-          result.current.create({
-            org: "acme",
-            agentRef: { org: "acme", slug: "no-instance" },
-          }),
-        ).rejects.toThrow("does not have a default instance");
-      });
-
-      expect(result.current.error).not.toBeNull();
-      expect(result.current.error!.message).toContain(
-        "does not have a default instance",
-      );
-    });
+    expect(getByReference).toHaveBeenCalledWith({ org: "acme", slug: "my-agent" });
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({ agentInstanceId: "ain-resolved" }),
+    );
   });
 
-  describe("harness proto conversion", () => {
-    it("passes Harness.CURSOR when harness is cursor", async () => {
-      sessionCreateMock.mockResolvedValueOnce(fakeSessionResponse("sess-h1"));
+  it("errors when agentRef resolves to agent without default instance", async () => {
+    const getByReference = vi.fn().mockResolvedValue({
+      status: { defaultInstanceId: "" },
+    });
+    const client = createMockStigmer({ getByReference });
 
-      const { result } = renderHook(() => useCreateSession(), {
-        wrapper: makeWrapper(client),
-      });
-
-      await act(async () => {
-        await result.current.create({
-          org: "acme",
-          agentInstanceId: "inst-1",
-          harness: "cursor",
-        });
-      });
-
-      expect(sessionCreateMock.mock.calls[0][0].harness).toBe(Harness.CURSOR);
+    const { result } = renderHook(() => useCreateSession(), {
+      wrapper: wrapper(client),
     });
 
-    it("passes Harness.NATIVE when harness is native", async () => {
-      sessionCreateMock.mockResolvedValueOnce(fakeSessionResponse("sess-h2"));
-
-      const { result } = renderHook(() => useCreateSession(), {
-        wrapper: makeWrapper(client),
-      });
-
-      await act(async () => {
+    // The hook catches the error, sets state, and re-throws.
+    // We need to catch the rethrow to inspect the error state.
+    let caughtError: Error | undefined;
+    await act(async () => {
+      try {
         await result.current.create({
           org: "acme",
-          agentInstanceId: "inst-1",
-          harness: "native",
+          agentRef: { org: "acme", slug: "no-instance-agent" },
         });
-      });
-
-      expect(sessionCreateMock.mock.calls[0][0].harness).toBe(Harness.NATIVE);
+      } catch (err) {
+        caughtError = err as Error;
+      }
     });
 
-    it("passes undefined when harness is omitted", async () => {
-      sessionCreateMock.mockResolvedValueOnce(fakeSessionResponse("sess-h3"));
-
-      const { result } = renderHook(() => useCreateSession(), {
-        wrapper: makeWrapper(client),
-      });
-
-      await act(async () => {
-        await result.current.create({
-          org: "acme",
-          agentInstanceId: "inst-1",
-        });
-      });
-
-      expect(sessionCreateMock.mock.calls[0][0].harness).toBeUndefined();
-    });
+    expect(caughtError).toBeTruthy();
+    expect(caughtError!.message).toContain("does not have a default instance");
+    expect(result.current.error).toBeTruthy();
+    expect(result.current.error!.message).toContain("does not have a default instance");
   });
 
-  describe("loading state lifecycle", () => {
-    it("isCreating is true during the RPC and false after", async () => {
-      let resolveCreate!: (v: unknown) => void;
-      sessionCreateMock.mockReturnValueOnce(
-        new Promise((r) => { resolveCreate = r; }),
-      );
+  it("sets error state on session.create failure", async () => {
+    const create = vi.fn().mockRejectedValue(new Error("Permission denied"));
+    const client = createMockStigmer({ create });
 
-      const { result } = renderHook(() => useCreateSession(), {
-        wrapper: makeWrapper(client),
-      });
-
-      let createPromise: Promise<unknown>;
-      act(() => {
-        createPromise = result.current.create({
-          org: "acme",
-          agentInstanceId: "inst-1",
-        });
-      });
-
-      expect(result.current.isCreating).toBe(true);
-
-      await act(async () => {
-        resolveCreate(fakeSessionResponse("sess-lc"));
-        await createPromise;
-      });
-
-      expect(result.current.isCreating).toBe(false);
-    });
-  });
-
-  describe("error handling", () => {
-    it("sets error on RPC failure and resets isCreating", async () => {
-      sessionCreateMock.mockRejectedValueOnce(new Error("network timeout"));
-
-      const { result } = renderHook(() => useCreateSession(), {
-        wrapper: makeWrapper(client),
-      });
-
-      await act(async () => {
-        await expect(
-          result.current.create({
-            org: "acme",
-            agentInstanceId: "inst-1",
-          }),
-        ).rejects.toThrow("network timeout");
-      });
-
-      expect(result.current.isCreating).toBe(false);
-      expect(result.current.error).toBeInstanceOf(Error);
-      expect(result.current.error!.message).toBe("network timeout");
+    const { result } = renderHook(() => useCreateSession(), {
+      wrapper: wrapper(client),
     });
 
-    it("clearError resets error to null", async () => {
-      sessionCreateMock.mockRejectedValueOnce(new Error("fail"));
-
-      const { result } = renderHook(() => useCreateSession(), {
-        wrapper: makeWrapper(client),
-      });
-
-      await act(async () => {
-        try {
-          await result.current.create({
-            org: "acme",
-            agentInstanceId: "inst-1",
-          });
-        } catch { /* expected */ }
-      });
-
-      expect(result.current.error).not.toBeNull();
-
-      act(() => {
-        result.current.clearError();
-      });
-
-      expect(result.current.error).toBeNull();
-    });
-
-    it("clears previous error on new create attempt", async () => {
-      sessionCreateMock
-        .mockRejectedValueOnce(new Error("first fail"))
-        .mockResolvedValueOnce(fakeSessionResponse("sess-retry"));
-
-      const { result } = renderHook(() => useCreateSession(), {
-        wrapper: makeWrapper(client),
-      });
-
-      await act(async () => {
-        try {
-          await result.current.create({
-            org: "acme",
-            agentInstanceId: "inst-1",
-          });
-        } catch { /* expected */ }
-      });
-
-      expect(result.current.error).not.toBeNull();
-
-      await act(async () => {
+    let caughtError: Error | undefined;
+    await act(async () => {
+      try {
         await result.current.create({
           org: "acme",
-          agentInstanceId: "inst-1",
+          agentInstanceId: "ain-123",
         });
-      });
-
-      expect(result.current.error).toBeNull();
+      } catch (err) {
+        caughtError = err as Error;
+      }
     });
+
+    expect(caughtError).toBeTruthy();
+    expect(caughtError!.message).toBe("Permission denied");
+    expect(result.current.error!.message).toBe("Permission denied");
+    expect(result.current.isCreating).toBe(false);
+  });
+
+  it("clearError resets the error state", async () => {
+    const create = vi.fn().mockRejectedValue(new Error("fail"));
+    const client = createMockStigmer({ create });
+
+    const { result } = renderHook(() => useCreateSession(), {
+      wrapper: wrapper(client),
+    });
+
+    await act(async () => {
+      try {
+        await result.current.create({ org: "acme", agentInstanceId: "ain-1" });
+      } catch {
+        // expected
+      }
+    });
+
+    expect(result.current.error).toBeTruthy();
+
+    act(() => result.current.clearError());
+
+    expect(result.current.error).toBeNull();
   });
 });

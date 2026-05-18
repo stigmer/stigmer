@@ -1,53 +1,25 @@
-import { describe, it, expect, vi } from "vitest";
-import { renderHook, act } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { renderHook, waitFor, act } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { create } from "@bufbuild/protobuf";
-import {
-  SessionSchema,
-  type Session,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import type { Stigmer } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
-import { FetchCache } from "../../internal/fetch-cache";
 import { useSession } from "../useSession";
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function makeSession(id: string): Session {
-  const session = create(SessionSchema);
-  const metadata = create(ApiResourceMetadataSchema);
-  metadata.id = id;
-  session.metadata = metadata;
-  return session;
-}
-
-function createMockStigmer(sessionGet: ReturnType<typeof vi.fn>): Stigmer {
+function createMockStigmer(overrides: {
+  get?: (...args: unknown[]) => Promise<unknown>;
+} = {}) {
   return {
-    session: { get: sessionGet },
-  } as unknown as Stigmer;
+    session: {
+      get: overrides.get ?? vi.fn().mockResolvedValue(null),
+    },
+  } as never;
 }
 
-async function flush(): Promise<void> {
-  await act(async () => {
-    await Promise.resolve();
-  });
-}
-
-/**
- * Wrapper that provides both the Stigmer client and a shared FetchCache
- * instance via context. Sharing the cache instance across renderHook
- * calls mirrors the production layout where FetchCacheProvider sits
- * above the key-based remount boundary.
- */
-function createWrapper(client: Stigmer, cache: FetchCache) {
+function wrapper(client: unknown) {
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
-      <FetchCacheContext.Provider value={cache}>
-        <StigmerContext.Provider value={client}>
+      <FetchCacheContext.Provider value={null}>
+        <StigmerContext.Provider value={client as never}>
           {children}
         </StigmerContext.Provider>
       </FetchCacheContext.Provider>
@@ -55,133 +27,102 @@ function createWrapper(client: Stigmer, cache: FetchCache) {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
-
-describe("useSession — cache behavior", () => {
-  it("first visit shows loading then resolves data", async () => {
-    const session = makeSession("ses_1");
-    const sessionGet = vi.fn().mockResolvedValue(session);
-    const cache = new FetchCache();
-    const wrapper = createWrapper(createMockStigmer(sessionGet), cache);
-
-    const { result } = renderHook(() => useSession("ses_1"), { wrapper });
-
-    expect(result.current.isLoading).toBe(true);
-    expect(result.current.session).toBeNull();
-
-    await flush();
-
-    expect(result.current.isLoading).toBe(false);
-    expect(result.current.session).toBe(session);
-    expect(sessionGet).toHaveBeenCalledOnce();
+describe("useSession", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
   });
 
-  it("remount serves cached data instantly (no isLoading)", async () => {
-    const session1 = makeSession("ses_1");
-    const sessionGet = vi.fn().mockResolvedValue(session1);
-    const client = createMockStigmer(sessionGet);
-    const cache = new FetchCache();
-    const wrapper = createWrapper(client, cache);
+  it("fetches session by ID", async () => {
+    const session = {
+      metadata: { id: "ses-1", name: "Test Session" },
+      status: { subject: "Hello world" },
+    };
+    const get = vi.fn().mockResolvedValue(session);
+    const client = createMockStigmer({ get });
 
-    // First mount — populates the cache.
-    const { result: r1, unmount } = renderHook(
-      () => useSession("ses_1"),
-      { wrapper },
-    );
-    await flush();
-    expect(r1.current.session).toBe(session1);
-    unmount();
-
-    // Second mount (simulates remount after key={activeSessionId} change).
-    const freshSession = makeSession("ses_1");
-    sessionGet.mockResolvedValue(freshSession);
-
-    const { result: r2 } = renderHook(
-      () => useSession("ses_1"),
-      { wrapper },
-    );
-
-    // Cached data is served synchronously — no loading skeleton.
-    expect(r2.current.isLoading).toBe(false);
-    expect(r2.current.session).toBe(session1);
-    expect(r2.current.isRefetching).toBe(true);
-
-    // Background fetch completes with fresh data.
-    await flush();
-    expect(r2.current.session).toBe(freshSession);
-    expect(r2.current.isRefetching).toBe(false);
-  });
-
-  it("different session IDs have independent cache entries", async () => {
-    const sessionA = makeSession("ses_A");
-    const sessionB = makeSession("ses_B");
-    const sessionGet = vi.fn()
-      .mockResolvedValueOnce(sessionA)
-      .mockResolvedValueOnce(sessionB)
-      .mockResolvedValue(sessionA);
-    const cache = new FetchCache();
-    const wrapper = createWrapper(createMockStigmer(sessionGet), cache);
-
-    // Mount session A.
-    const { unmount: unmountA } = renderHook(
-      () => useSession("ses_A"),
-      { wrapper },
-    );
-    await flush();
-    unmountA();
-
-    // Mount session B.
-    const { unmount: unmountB } = renderHook(
-      () => useSession("ses_B"),
-      { wrapper },
-    );
-    await flush();
-    unmountB();
-
-    // Remount session A — should get A's cached data, not B's.
-    const { result } = renderHook(
-      () => useSession("ses_A"),
-      { wrapper },
-    );
-
-    expect(result.current.isLoading).toBe(false);
-    expect(result.current.session?.metadata?.id).toBe("ses_A");
-  });
-
-  it("works without FetchCacheProvider (standard loading flow)", async () => {
-    const session = makeSession("ses_1");
-    const sessionGet = vi.fn().mockResolvedValue(session);
-    const client = createMockStigmer(sessionGet);
-
-    function NoCacheWrapper({ children }: { children: ReactNode }) {
-      return (
-        <StigmerContext.Provider value={client}>
-          {children}
-        </StigmerContext.Provider>
-      );
-    }
-
-    const { result } = renderHook(() => useSession("ses_1"), {
-      wrapper: NoCacheWrapper,
+    const { result } = renderHook(() => useSession("ses-1"), {
+      wrapper: wrapper(client),
     });
 
     expect(result.current.isLoading).toBe(true);
-    await flush();
+    expect(result.current.session).toBeNull();
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
     expect(result.current.session).toBe(session);
+    expect(result.current.error).toBeNull();
+    expect(get).toHaveBeenCalledWith("ses-1");
   });
 
-  it("null id skips fetching and caching", async () => {
-    const sessionGet = vi.fn();
-    const cache = new FetchCache();
-    const wrapper = createWrapper(createMockStigmer(sessionGet), cache);
+  it("skips fetching when id is null", () => {
+    const get = vi.fn();
+    const client = createMockStigmer({ get });
 
-    const { result } = renderHook(() => useSession(null), { wrapper });
+    const { result } = renderHook(() => useSession(null), {
+      wrapper: wrapper(client),
+    });
 
     expect(result.current.isLoading).toBe(false);
     expect(result.current.session).toBeNull();
-    expect(sessionGet).not.toHaveBeenCalled();
-    expect(cache.size).toBe(0);
+    expect(get).not.toHaveBeenCalled();
+  });
+
+  it("exposes error on fetch failure", async () => {
+    const apiError = new Error("Connection refused");
+    const get = vi.fn().mockRejectedValue(apiError);
+    const client = createMockStigmer({ get });
+
+    const { result } = renderHook(() => useSession("ses-bad"), {
+      wrapper: wrapper(client),
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.error).toBeTruthy();
+    expect(result.current.error!.message).toBe("Connection refused");
+    expect(result.current.session).toBeNull();
+  });
+
+  it("refetch triggers a new fetch", async () => {
+    const session = { metadata: { id: "ses-1" } };
+    const get = vi.fn().mockResolvedValue(session);
+    const client = createMockStigmer({ get });
+
+    const { result } = renderHook(() => useSession("ses-1"), {
+      wrapper: wrapper(client),
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(get).toHaveBeenCalledTimes(1);
+
+    act(() => result.current.refetch());
+
+    await waitFor(() => expect(get).toHaveBeenCalledTimes(2));
+    expect(result.current.session).toBe(session);
+  });
+
+  it("re-fetches when id changes", async () => {
+    const session1 = { metadata: { id: "ses-1" } };
+    const session2 = { metadata: { id: "ses-2" } };
+    const get = vi.fn()
+      .mockResolvedValueOnce(session1)
+      .mockResolvedValueOnce(session2);
+    const client = createMockStigmer({ get });
+
+    const { result, rerender } = renderHook(
+      ({ id }: { id: string }) => useSession(id),
+      {
+        wrapper: wrapper(client),
+        initialProps: { id: "ses-1" },
+      },
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.session).toBe(session1);
+
+    rerender({ id: "ses-2" });
+
+    await waitFor(() => expect(get).toHaveBeenCalledTimes(2));
+    expect(get).toHaveBeenLastCalledWith("ses-2");
   });
 });

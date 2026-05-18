@@ -284,7 +284,8 @@ tidy: ## Run go mod tidy on all Go modules
 .PHONY: fix lint lint-web typecheck-web verify-web run-web build-web clean-web clean-build-web \
        lint-desktop typecheck-desktop verify-desktop launch-desktop build-desktop clean-build-desktop release-desktop-local \
        build-cli install-cli release-cli-local \
-       lint-docs lint-docs-audit format-docs format-docs-check check-links libs-build web-build validate-demos tsdoc-check test-demos check check-all
+       lint-docs lint-docs-audit format-docs format-docs-check check-links libs-build web-build validate-demos tsdoc-check test-demos \
+       test-web test-desktop test-e2e check check-all
 fix: ## Auto-fix linting and formatting issues
 	@gofmt -s -w .
 	@cd backend/libs/python/graphton && poetry run ruff check --fix .
@@ -337,6 +338,9 @@ typecheck-web: ## Typecheck web console, SDK, and React SDK
 
 verify-web: lint-web typecheck-web ## Lint + typecheck web (~30s)
 
+test-web: ## Run web console component tests (Vitest)
+	npm run test -w client-apps/web
+
 # ─── Client Apps: Desktop (Tauri v2 + Vite + React) ──
 
 launch-desktop: ## Start desktop app in dev mode (Tauri + Vite hot-reload)
@@ -374,6 +378,9 @@ typecheck-desktop: ## Typecheck desktop app (TypeScript)
 
 verify-desktop: lint-desktop typecheck-desktop ## Lint + typecheck desktop (TS + Rust)
 	cd client-apps/desktop/src-tauri && cargo check --quiet
+
+test-desktop: ## Run desktop app component tests (Vitest)
+	npm run test -w desktop
 
 release-desktop-local: ## Debug build + install to /Applications
 	client-apps/desktop/scripts/setup-sidecar-dev.sh
@@ -427,7 +434,10 @@ tsdoc-check: ## Validate TSDoc quality for all TypeScript SDKs
 test-demos: docs-build ## Run Playwright demo e2e tests — slow (~20 min), run explicitly or in CI
 	$(MAKE) -C site test-demos
 
-check: tidy fix lint lint-docs format-docs-check tsdoc-check gen-sdk-docs gen-sdk-docs-check check-links build test validate-demos ## Run full CI gate locally
+test-e2e: ## Run Playwright E2E smoke tests against a deployed instance
+	cd test/e2e && npm ci && npx playwright install --with-deps chromium && npx playwright test
+
+check: tidy fix lint lint-docs format-docs-check tsdoc-check gen-sdk-docs gen-sdk-docs-check check-links build test test-web test-desktop validate-demos ## Run full CI gate locally
 
 check-all: check test-demos ## Full CI gate including Playwright demo e2e (slow)
 
