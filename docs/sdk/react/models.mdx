@@ -16,6 +16,10 @@ Pure data layer — no rendering, no side effects. Platform builders
 who want full control over rendering import this hook and build
 their own UI.
 
+The model data is fetched from the public model registry API by
+[`StigmerProvider`](/docs/sdk/react/core#stigmerprovider) and cached in context. During loading,
+`isLoading` is `true` and `models` is empty.
+
 **Modes:**
 - `options.harness === "cursor"` — Cursor-harness models only
 - `options.harness === "native"` — native models, excluding disabled providers
@@ -38,18 +42,21 @@ function useModelRegistry(options?: UseModelRegistryOptions): UseModelRegistryRe
 <TypeTable
   type={{
     byProvider: { type: "ReadonlyMap<Provider, readonly ModelInfo[]>", description: "Models grouped by provider for sectioned rendering." },
-    defaultModel: { type: "ModelInfo", description: "The platform default model for the current mode.", typeDescriptionLink: "#modelinfo" },
+    defaultModel: { type: "ModelInfo | undefined", description: "The platform default model for the current mode. `undefined` while the registry is loading." },
+    error: { type: "Error | null", description: "Non-null if the API fetch failed. Models will be empty in this case." },
     featured: { type: "readonly ModelInfo[]", description: "Curated subset of models marked as `featured` in the registry." },
     getByKey: { type: "(key: string) => ModelInfo | undefined", description: "Look up a model by its compound key (`\"native/claude-sonnet-4.6\"`). Always unambiguous, even in unified mode." },
     getModel: { type: "(modelId: string) => ModelInfo | undefined", description: "Look up a single model by its `modelId`.  In unified mode the same modelId can exist under both harnesses (e.g. `claude-sonnet-4.5` on native and `claude-4.5-sonnet` on cursor). This returns the first match. Use getByKey with a compound key for an unambiguous lookup." },
+    isLoading: { type: "boolean", description: "`true` while the model registry is being fetched from the API." },
     models: { type: "readonly ModelInfo[]", description: "All enabled models for the selected mode." },
     providers: { type: "readonly Provider[]", description: "Ordered list of enabled provider identifiers." },
+    refetch: { type: "() => void", description: "Retry fetching the model registry. No-op while a fetch is in flight." },
   }}
 />
 
 ```tsx
 // Unified mode — flat picker with all models
-const { featured, models, getByKey } = useModelRegistry();
+const { featured, models, getByKey, isLoading } = useModelRegistry();
 
 // Legacy single-harness mode
 const { models, defaultModel } = useModelRegistry({ harness: "native" });
@@ -94,35 +101,43 @@ function LauncherToolbar() {
 
 ### ModelSelector
 
-Cursor-style model picker: a flat searchable list inside a popover.
+Combined harness + model picker with a compact trigger button.
 
-Shows a curated list of featured models by default. The user can
-expand via "Show All Models" or type to search the full catalog.
+Shows a harness dropdown at the top of the popover (when not locked
+to a single harness), followed by a curated model list scoped to
+the selected harness. Supports search and progressive disclosure
+via "Show All Models."
 
-Each model row shows the display name, an engine tag
-("Stigmer" / "Cursor"), and a cost-tier indicator.
-
-In unified mode (no `harness` prop), selecting a model implicitly
-resolves the harness via `ModelSelectorProps.onHarnessResolved`.
+The trigger button displays the current selection in compact format:
+`Harness · Model Name ▾` (or just `Model Name ▾` when harness is locked).
 
 **Props** — `ModelSelectorProps`
 
 <TypeTable
   type={{
+    availableHarnesses: { type: "readonly HarnessOption[]", description: "Restrict which harnesses appear in the dropdown. When omitted, shows all registered harnesses that have models in the registry." },
     className: { type: "string", description: "Additional CSS class names for the trigger button." },
+    compact: { type: "boolean", description: "Compact mode: smaller trigger, no descriptions. Default: false." },
+    curatedModels: { type: "readonly string[]", description: "Override the curated (featured) list for the current harness." },
     disabled: { type: "boolean", description: "When true, disables the selector." },
-    harness: { type: "HarnessOption", description: "When provided, restricts the catalog to a single harness (backward compat). When omitted, shows the unified picker with models from both engines.", typeDescriptionLink: "#harnessoption" },
-    onHarnessResolved: { type: "(harness: HarnessOption) => void", description: "Fires when the selected model belongs to a different harness than the previous selection. Only relevant in unified mode (no `harness` prop)." },
+    groupBy: { type: "\"provider\" | \"none\" | \"tier\"", description: "Grouping in the \"Show All\" expanded view. Default: \"provider\"." },
+    harness: { type: "HarnessOption", description: "Current harness. When provided as a single value, locks the selector to that harness (dropdown hidden). When omitted, shows the harness dropdown.", typeDescriptionLink: "#harnessoption" },
+    initialHarness: { type: "HarnessOption", description: "Initial harness value for the internal state when `harness` prop is undefined (unlocked mode). Prevents desync when the parent knows the active harness but delegates the dropdown to this component.  When `harness` is provided (locked mode), this prop is ignored.", typeDescriptionLink: "#harnessoption" },
+    onHarnessChange: { type: "(harness: HarnessOption) => void", description: "Called when user changes harness in the dropdown." },
+    onHarnessResolved: { type: "(harness: HarnessOption) => void", description: "" },
     onValueChange: { type: "(modelId: string) => void", description: "Called when the user picks a different model. Receives the `modelId`.", required: true },
-    value: { type: "string", description: "Currently selected compound key (`\"native/claude-sonnet-4.6\"`) or plain `modelId`." },
+    showDescriptions: { type: "boolean", description: "Show short descriptions in curated view. Default: true." },
+    showSpeedBadge: { type: "boolean", description: "Show speed tier badge. Default: true." },
+    value: { type: "string", description: "Currently selected model ID." },
   }}
 />
 
 ```tsx
 <ModelSelector
-  value={selectedModelId}
-  onValueChange={setSelectedModelId}
-  onHarnessResolved={setHarness}
+  value={modelId}
+  onValueChange={setModelId}
+  harness={harness}
+  onHarnessChange={setHarness}
 />
 ```
 
@@ -157,11 +172,20 @@ Model ID used when no user preference is set (native harness).
 
 Providers whose models should be hidden from the UI.
 
-The model entries themselves stay in MODEL_REGISTRY so backend
+The model entries themselves stay in the registry so backend
 compatibility is preserved. The useModelRegistry hook filters
 them out before anything reaches a component.
 
 To re-enable a provider, simply remove it from this set.
+
+
+### fetchModelRegistry
+
+Fetch the model registry from the authenticated API endpoint.
+
+```tsx
+function fetchModelRegistry(apiUrl: string, token: string | null, customFetch?: (input: URL | RequestInfo, init?: RequestInit) => Promise<Response>): Promise<ModelInfo[]>
+```
 
 
 ### fromProtoHarness
@@ -187,14 +211,8 @@ String literal alias for the proto `Harness` enum.
 Used on component props and hook options so platform builders
 do not need to import proto enums to use the SDK.
 
-
-### MODEL_REGISTRY
-
-Static catalog of all platform-supported LLM models, loaded from the
-unified JSON registry.
-
-[`useModelRegistry`](#usemodelregistry) filters out disabled providers and provides
-lookup helpers on top of this list.
+This union grows as new execution engines are integrated.
+Each value must have a corresponding entry in `HARNESS_META`.
 
 
 ### ModelInfo
@@ -209,6 +227,8 @@ UI-relevant metadata for a single platform-supported LLM model.
     harness: { type: "HarnessOption", description: "Which execution engine serves this model.", required: true, typeDescriptionLink: "#harnessoption" },
     modelId: { type: "string", description: "Unique model identifier sent to the backend (e.g. `\"claude-sonnet-4.5\"`).", required: true },
     provider: { type: "Provider", description: "LLM provider that serves this model.", required: true, typeDescriptionLink: "#provider" },
+    shortDescription: { type: "string", description: "3-6 word pitch explaining why to pick this model. Shown in the curated view.", required: true },
+    speedTier: { type: "SpeedTier", description: "Latency characteristic shown as a badge (Fastest / Fast / Balanced / Slow).", required: true },
   }}
 />
 
@@ -230,6 +250,29 @@ both native and cursor harnesses. The compound key disambiguates.
 ```tsx
 function modelKey(harness: HarnessOption, modelId: string): string
 ```
+
+
+### ModelRegistryContext
+
+React context that holds the model registry fetched from the public API.
+
+Populated by [`StigmerProvider`](/docs/sdk/react/core#stigmerprovider) on mount. Consumer hooks read from
+this context instead of a static JSON import, enabling always-fresh
+model data without npm package updates.
+
+
+### ModelRegistryState
+
+Internal state held by the model registry context provider.
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "", required: true },
+    isLoading: { type: "boolean", description: "", required: true },
+    models: { type: "readonly ModelInfo[]", description: "", required: true },
+    refetch: { type: "() => void", description: "Retry fetching the model registry. No-op while a fetch is in flight.", required: true },
+  }}
+/>
 
 
 ### ParsedModelKey
@@ -254,11 +297,23 @@ function parseModelKey(key: string): ParsedModelKey | undefined
 ```
 
 
+### parseRegistryJson
+
+Parse raw registry JSON (from the API or a static file) into `ModelInfo[]`.
+
+Expects the shape `{ models: RegistryJsonEntry[] }`. Filters out comment
+entries and invalid rows, then maps to the `ModelInfo` interface.
+
+```tsx
+function parseRegistryJson(data: unknown): ModelInfo[]
+```
+
+
 ### Provider
 
 LLM provider identifier. Each provider maps to a distinct inference
 backend (or intermediary, in the case of Cursor-served third-party
-models). The [`MODEL_REGISTRY`](#model_registry) uses this for grouping in the
+models). The model registry uses this for grouping in the
 "Show All" expanded view.
 
 

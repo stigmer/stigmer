@@ -7,6 +7,45 @@ description: Hooks and components for knowledge attachments, search, picker, and
 
 ## Hooks
 
+### usePushSkill
+
+Mutation hook that pushes a skill artifact ZIP to the server.
+
+Accepts raw ZIP bytes and calls `stigmer.skill.push()` directly.
+The ZIP must contain a valid SKILL.md with YAML frontmatter — use
+[`useSkillUpload`](#useskillupload) to validate before pushing.
+
+Follows the established SDK mutation hook pattern: `isPushing` flag,
+`error` state, `clearError` reset, result returned from the promise.
+
+**Signature**
+
+```tsx
+function usePushSkill(): UsePushSkillReturn
+```
+
+**Returns** — `UsePushSkillReturn`
+
+<TypeTable
+  type={{
+    clearError: { type: "() => void", description: "Reset `error` to `null`." },
+    error: { type: "Error | null", description: "Error from the last failed push, or `null` when healthy." },
+    isPushing: { type: "boolean", description: "`true` while the push request is in flight." },
+    push: { type: "(input: PushSkillInput) => Promise<Skill>", description: "Push a skill artifact ZIP to the server.  The caller is responsible for providing a valid ZIP containing a SKILL.md with proper YAML frontmatter. Use useSkillUpload to validate the ZIP before pushing.  Resolves with the server-persisted `Skill` resource including populated metadata (id, slug, version hash)." },
+  }}
+/>
+
+```tsx
+const { push, isPushing, error } = usePushSkill();
+const upload = useSkillUpload();
+
+// After upload.processFile(file) succeeds:
+if (upload.artifact) {
+  const skill = await push({ org: "acme", artifact: upload.artifact });
+}
+```
+
+
 ### useSkill
 
 Data hook that fetches a single Skill by organization, slug, and
@@ -71,6 +110,52 @@ const { skill } = useSkill("acme", "code-style-guide", "stable");
 ```
 
 
+### useSkillArtifact
+
+Data hook that fetches and unpacks a skill's ZIP artifact for browsing.
+
+Uses `stigmer.skill.getArtifact()` with the skill's storage key,
+then decompresses the ZIP using `fflate` to expose a file listing
+and content retrieval.
+
+Pass `null` for `artifactStorageKey` to skip fetching (stable no-op).
+
+**Signature**
+
+```tsx
+function useSkillArtifact(artifactStorageKey: string | null): UseSkillArtifactReturn
+```
+
+<TypeTable
+  type={{
+    artifactStorageKey: { type: "string | null", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UseSkillArtifactReturn`
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "Error from the fetch/unpack, or `null` when healthy." },
+    files: { type: "SkillFileEntry[] | null", description: "File entries in the skill package, or `null` while loading/on error." },
+    getFileContent: { type: "(path: string) => string | null", description: "Get the text content of a file by path, or `null` if not available." },
+    isLoading: { type: "boolean", description: "`true` while the artifact is being fetched and unpacked." },
+    refetch: { type: "() => void", description: "Re-fetch the artifact from the server." },
+  }}
+/>
+
+```tsx
+const { skill } = useSkill(org, slug);
+const { files, getFileContent, isLoading } = useSkillArtifact(
+  skill?.status?.artifactStorageKey ?? null
+);
+
+if (files) {
+  const readme = getFileContent("SKILL.md");
+}
+```
+
+
 ### useSkillCount
 
 Data hook that fetches the total count of skills.
@@ -115,6 +200,77 @@ const { count, isLoading } = useSkillCount("acme");
 // Count all accessible skills including public/platform ones
 const { count } = useSkillCount("acme", { scope: "all" });
 ```
+
+
+### useSkillDiff
+
+Data hook that fetches two skill version artifacts and computes a
+multi-file diff between them.
+
+Takes two artifact storage keys (obtained from `useSkillVersions.getArtifactKey()`).
+Fetches both ZIPs in parallel, unpacks them, and runs `computeMultiFileDiff`
+on the extracted text file maps.
+
+Pass `null` for either key to disable fetching (stable no-op).
+
+**Signature**
+
+```tsx
+function useSkillDiff(fromArtifactKey: string | null, toArtifactKey: string | null): UseSkillDiffReturn
+```
+
+<TypeTable
+  type={{
+    fromArtifactKey: { type: "string | null", description: "", required: true },
+    toArtifactKey: { type: "string | null", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UseSkillDiffReturn`
+
+<TypeTable
+  type={{
+    diff: { type: "MultiFileDiffResult | null", description: "Multi-file diff result, or `null` while loading / on error / when disabled." },
+    error: { type: "Error | null", description: "Error from the fetch/unpack/diff, or `null` when healthy." },
+    isLoading: { type: "boolean", description: "`true` while both artifacts are being fetched, unpacked, and diffed." },
+  }}
+/>
+
+```tsx
+const { getArtifactKey } = useSkillVersions(org, slug);
+const { diff, isLoading } = useSkillDiff(
+  getArtifactKey(fromHash),
+  getArtifactKey(toHash),
+);
+```
+
+
+### useSkillDuplicateCheck
+
+Behavior hook that checks whether a skill package's content is
+identical to the currently deployed version.
+
+Uses Web Crypto SHA-256 on the client side and compares against
+`SkillStatus.versionHash` from a `getByReference` RPC call.
+If the skill doesn't exist yet (NOT_FOUND), the check passes
+(not a duplicate).
+
+**Signature**
+
+```tsx
+function useSkillDuplicateCheck(): UseSkillDuplicateCheckReturn
+```
+
+**Returns** — `UseSkillDuplicateCheckReturn`
+
+<TypeTable
+  type={{
+    check: { type: "(params: { artifactBytes: Uint8Array; org: string; slug: string }) => Promise<boolean>", description: "Run the duplicate check for the given artifact.  Computes a client-side SHA-256 hash of `artifactBytes`, fetches the existing skill by `(org, slug)`, and compares against `status.versionHash`. If they match, sets `isDuplicate` to `true`.  Returns `true` if the content is a duplicate." },
+    isChecking: { type: "boolean", description: "`true` while the check is in progress." },
+    isDuplicate: { type: "boolean", description: "Whether the uploaded artifact is identical to the current version." },
+    reset: { type: "() => void", description: "Reset the check state." },
+  }}
+/>
 
 
 ### useSkillList
@@ -198,20 +354,121 @@ const { results, isLoading, query, setQuery } = useSkillSearch("acme");
 ```
 
 
+### useSkillUpload
+
+Behavior hook for the skill upload workflow.
+
+Handles file reading, ZIP unpacking, structure validation, and
+metadata extraction. Produces a [`SkillUploadPreview`](#skilluploadpreview) that
+the UI can render, and exposes the raw artifact bytes for pushing.
+
+Validation rules (Anthropic Agent Skills spec):
+- File must be a valid ZIP archive (checked via magic bytes)
+- ZIP must contain `SKILL.md` at the root level
+- SKILL.md must have YAML frontmatter with a valid `name` field
+- Name must be lowercase letters/numbers/hyphens, max 64 chars
+
+**Signature**
+
+```tsx
+function useSkillUpload(): UseSkillUploadReturn
+```
+
+**Returns** — `UseSkillUploadReturn`
+
+<TypeTable
+  type={{
+    artifact: { type: "Uint8Array<ArrayBufferLike> | null", description: "Raw ZIP bytes ready for push, or `null` before successful validation." },
+    isProcessing: { type: "boolean", description: "`true` while the file is being read and validated." },
+    preview: { type: "SkillUploadPreview | null", description: "Validated preview of the uploaded package, or `null` before upload." },
+    processFile: { type: "(file: File) => Promise<void>", description: "Process a file selected by the user (triggers validation)." },
+    reset: { type: "() => void", description: "Reset to initial state (clear preview and errors)." },
+    validationError: { type: "string | null", description: "Validation error message, or `null` if valid/not yet uploaded." },
+  }}
+/>
+
+```tsx
+const upload = useSkillUpload();
+
+const handleDrop = (file: File) => upload.processFile(file);
+
+if (upload.preview) {
+  // Show preview UI
+  console.log(upload.preview.name, upload.preview.files);
+}
+
+if (upload.artifact) {
+  // Ready to push
+  await push({ org: "acme", artifact: upload.artifact });
+}
+```
+
+
+### useSkillVersions
+
+Data hook that fetches version history for a skill.
+
+Calls the `listVersions` RPC via the SDK client and maps the response
+to generic [`VersionEntry`](/docs/sdk/react/version-history#versionentry) objects for the `VersionTimeline`
+component.
+
+**Graceful degradation**: If the backend returns UNIMPLEMENTED (the
+RPC handler hasn't been deployed yet), the hook treats it as an empty
+response — `versions` is `[]` and `isEmpty` is `true`. No error is
+surfaced to the consumer. This enables the frontend to ship ahead of
+the backend without visual breakage.
+
+Pass `null` for `org` or `slug` to skip fetching (stable no-op).
+
+**Signature**
+
+```tsx
+function useSkillVersions(org: string | null, slug: string | null): UseSkillVersionsReturn
+```
+
+<TypeTable
+  type={{
+    org: { type: "string | null", description: "", required: true },
+    slug: { type: "string | null", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UseSkillVersionsReturn`
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "Error from the last failed request (excludes UNIMPLEMENTED), or `null`." },
+    getArtifactKey: { type: "(versionHash: string) => string | null", description: "Look up the artifact storage key for a version by its hash. Used by diff flows to fetch historical artifacts via `getArtifact()`. Returns `null` if the version hash is not found or has no artifact key." },
+    isEmpty: { type: "boolean", description: "`true` when no versions are available (RPC unimplemented or empty response)." },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight." },
+    refetch: { type: "() => void", description: "Discard cached data and re-fetch from the server." },
+    versions: { type: "readonly VersionEntry[]", description: "Version entries mapped to the generic timeline format (newest first)." },
+  }}
+/>
+
+```tsx
+const { versions, isEmpty, isLoading } = useSkillVersions("acme", "code-style-guide");
+
+if (!isEmpty) {
+  return <VersionTimeline entries={versions} />;
+}
+```
+
+
 ## Components
 
 ### SkillDetailView
 
-Read-only detail view for a Skill knowledge package.
+Operational detail hub for a Skill knowledge package.
 
 Fetches the skill via [`useSkill`](#useskill) internally and renders its
-full content in structured sections: header, SKILL.md content
-(rendered as formatted markdown), and version/provenance info.
-Sections with no data are omitted entirely.
+content inside a [`ResourceDetailShell`](/docs/sdk/react/resource-detail#resourcedetailshell): a standardized header
+with action bar, the SKILL.md content with a source/rendered toggle,
+and version/provenance information.
 
 The SKILL.md content is the primary value of this view — it IS the
-skill. The markdown is rendered using the same styled component
-overrides used across all SDK markdown surfaces.
+skill. Users can toggle between rendered markdown and raw source
+(like GitHub's Preview/Code toggle).
 
 Handles loading, error, and not-found states automatically.
 Zero Console dependencies — safe for platform builder embedding.
@@ -221,11 +478,20 @@ All visual properties flow through `--stgm-*` design tokens.
 
 <TypeTable
   type={{
+    actions: { type: "readonly DetailAction[]", description: "Secondary actions rendered in the kebab overflow menu." },
+    activeTab: { type: "string", description: "Controlled active tab ID. When provided together with `onTabChange`, the component operates in controlled mode — the consumer owns tab state. When omitted, the component manages its own internal tab state." },
+    additionalTabs: { type: "readonly AdditionalTab[]", description: "Additional tabs to render alongside the built-in \"Content\" tab. When provided (with at least one entry), a tab bar appears. When omitted or empty, no tab bar is shown (single-tab suppression).  Each entry provides both the tab metadata and the content to render. The SDK manages the tab switching logic internally." },
     className: { type: "string", description: "Additional CSS classes for the root container." },
+    defaultTab: { type: "string", description: "Default active tab ID when in uncontrolled mode." },
+    editable: { type: "boolean", description: "When `true`, metadata fields (description, tag) become click-to-edit. Skill content (SKILL.md / artifact) is NOT editable inline — use the upload flow." },
     isVisibilityPending: { type: "boolean", description: "`true` while a visibility update RPC is in flight." },
     onResourceLoad: { type: "(meta: { id: string; name: string }) => void", description: "Called once when the skill resource has been fetched successfully. Provides the resource display name for use cases like breadcrumbs, document titles, or analytics — without requiring the consumer to also call useSkill.  Not called on error or not-found states." },
+    onResourceUpdated: { type: "(skill: Skill) => void", description: "Called after a successful inline field save with the updated skill. Consumers can use this to refresh breadcrumbs, sync URL state, etc." },
+    onTabChange: { type: "(tabId: string) => void", description: "Controlled tab change handler. When provided together with `activeTab`, the component operates in controlled mode." },
+    onVersionSelect: { type: "(versionHash: string) => void", description: "Called when the user selects a version in the Versions tab timeline. Provides the version hash for use cases like navigation to a version-specific detail view or triggering a diff comparison." },
     onVisibilityChange: { type: "(v: ApiResourceVisibility) => void", description: "Called when the user toggles visibility via the inline control. When provided, the header renders an interactive VisibilityToggle instead of a read-only badge. When omitted, visibility is displayed as a static \"Public\" pill." },
     org: { type: "string", description: "Organization slug that owns the skill.", required: true },
+    primaryAction: { type: "DetailAction", description: "Primary action rendered as a visible button in the header area.", typeDescriptionLink: "/docs/sdk/react/resource-detail#detailaction" },
     slug: { type: "string", description: "Skill slug (URL-friendly identifier unique within the org).", required: true },
     version: { type: "string", description: "Optional version tag or content hash to pin to a specific version." },
   }}
@@ -239,6 +505,67 @@ All visual properties flow through `--stgm-*` design tokens.
 ```tsx
 // Pinned to a specific version tag
 <SkillDetailView org="acme" slug="code-style-guide" version="stable" />
+```
+
+
+### SkillDiffDialog
+
+Dialog that renders a multi-file diff between two skill versions.
+
+Uses native `<dialog>` with `showModal()` for built-in focus trapping,
+Escape handling, and backdrop — consistent with `ConfirmDialog`.
+
+Internally composes `useSkillDiff` (data fetching) and
+`MultiFileDiffView` (rendering). Handles loading, error, and
+empty states.
+
+Zero Console dependencies — safe for platform builder embedding.
+
+**Props** — `SkillDiffDialogProps`
+
+<TypeTable
+  type={{
+    onClose: { type: "() => void", description: "Called when the dialog is dismissed (Escape, backdrop click, close button).", required: true },
+    state: { type: "SkillDiffDialogState | null", description: "Dialog state. When non-null, the dialog opens and fetches the diff. When `null`, the dialog is closed.", required: true },
+  }}
+/>
+
+```tsx
+const [diffState, setDiffState] = useState<SkillDiffDialogState | null>(null);
+
+<SkillDiffDialog state={diffState} onClose={() => setDiffState(null)} />
+```
+
+
+### SkillFileBrowser
+
+File tree browser with content viewer for skill packages.
+
+Fetches the skill's ZIP artifact, unpacks it, and renders:
+- Left panel: file tree with folder grouping
+- Right panel: content viewer (rendered Markdown for .md, raw code otherwise)
+
+SKILL.md is selected by default on load.
+Responsive: stacked layout on mobile viewports.
+
+Zero Console dependencies — safe for platform builder embedding.
+All visual properties flow through `--stgm-*` design tokens.
+
+**Props** — `SkillFileBrowserProps`
+
+<TypeTable
+  type={{
+    artifactStorageKey: { type: "string | null", description: "Artifact storage key from `skill.status.artifactStorageKey`.", required: true },
+    className: { type: "string", description: "Additional CSS classes for the root container." },
+  }}
+/>
+
+```tsx
+const { skill } = useSkill(org, slug);
+
+<SkillFileBrowser
+  artifactStorageKey={skill?.status?.artifactStorageKey ?? null}
+/>
 ```
 
 
@@ -283,7 +610,98 @@ function SkillSelector({ org }: { org: string }) {
 ```
 
 
+### SkillUploader
+
+Skill package upload component with validation and preview.
+
+Two-phase flow:
+1. **Drop zone** — User drags/drops or clicks to select a .zip file
+2. **Preview + confirm** — Validated package summary, file listing,
+   rendered SKILL.md preview, and push button
+
+Validates the uploaded ZIP against the Anthropic Agent Skills spec:
+must contain SKILL.md with valid YAML frontmatter (name, description).
+
+Zero Console dependencies — safe for platform builder embedding.
+All visual properties flow through `--stgm-*` design tokens.
+
+**Props** — `SkillUploaderProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS classes for the root container." },
+    onCancel: { type: "() => void", description: "Called when the user cancels the upload flow." },
+    onComplete: { type: "(skill: Skill) => void", description: "Called after a successful push with the persisted skill resource." },
+    org: { type: "string", description: "Organization that will own the uploaded skill.", required: true },
+    tag: { type: "string", description: "Optional version tag for the push (e.g. \"stable\")." },
+  }}
+/>
+
+```tsx
+<SkillUploader
+  org="acme"
+  onComplete={(skill) => router.push(`/library/skills/${skill.metadata?.org}/${skill.metadata?.slug}`)}
+  onCancel={() => router.back()}
+/>
+```
+
+
 ## Types
+
+### PushSkillInput
+
+Input for pushing a skill artifact (ZIP package).
+
+<TypeTable
+  type={{
+    artifact: { type: "Uint8Array", description: "Raw ZIP bytes of the skill package (must contain SKILL.md at root).", required: true },
+    org: { type: "string", description: "Organization that will own the skill.", required: true },
+    tag: { type: "string", description: "Optional version tag (e.g. \"stable\", \"v1.0\")." },
+  }}
+/>
+
+
+### SkillDiffDialogState
+
+State passed to [`SkillDiffDialog`](#skilldiffdialog) to control its visibility.
+
+<TypeTable
+  type={{
+    fromArtifactKey: { type: "string", description: "Artifact storage key for the \"before\" version.", required: true },
+    fromLabel: { type: "string", description: "Truncated hash label for the \"before\" version (display only).", required: true },
+    toArtifactKey: { type: "string", description: "Artifact storage key for the \"after\" version.", required: true },
+    toLabel: { type: "string", description: "Truncated hash label for the \"after\" version (display only).", required: true },
+  }}
+/>
+
+
+### SkillFileEntry
+
+A single file entry within a skill ZIP package.
+
+<TypeTable
+  type={{
+    isDirectory: { type: "boolean", description: "Whether this entry represents a directory.", required: true },
+    path: { type: "string", description: "Relative path within the ZIP (e.g. \"SKILL.md\", \"scripts/validate.py\").", required: true },
+    size: { type: "number", description: "Uncompressed file size in bytes.", required: true },
+  }}
+/>
+
+
+### SkillUploadPreview
+
+Preview metadata extracted from a validated skill package.
+
+<TypeTable
+  type={{
+    description: { type: "string", description: "Skill description extracted from SKILL.md YAML frontmatter.", required: true },
+    files: { type: "SkillFileEntry[]", description: "All files contained in the ZIP package.", required: true },
+    name: { type: "string", description: "Skill name extracted from SKILL.md YAML frontmatter.", required: true },
+    skillMdContent: { type: "string", description: "Raw SKILL.md content (frontmatter + body).", required: true },
+    totalSize: { type: "number", description: "Total uncompressed size of all files in bytes.", required: true },
+  }}
+/>
+
 
 ### UseSkillCountOptions
 
@@ -292,7 +710,7 @@ Options for [`useSkillCount`](#useskillcount).
 <TypeTable
   type={{
     query: { type: "string", description: "Text query to filter skills before counting." },
-    scope: { type: "ResourceListScope", description: "Controls which skills are counted.  - `\"org\"` — only skills owned by the given organization. - `\"all\"` — includes public/platform skills.", typeDescriptionLink: "/docs/sdk/react/library#resourcelistscope" },
+    scope: { type: "ResourceListScope", description: "Controls which skills are counted.  - `\"org\"` — only skills owned by the given organization. - `\"all\"` — includes public/platform skills." },
   }}
 />
 
@@ -306,7 +724,7 @@ Options for [`useSkillList`](#useskilllist).
     page: { type: "number", description: "Page number (1-indexed)." },
     pageSize: { type: "number", description: "Maximum skills per page." },
     query: { type: "string", description: "Text query to filter skills by name, description, or tags." },
-    scope: { type: "ResourceListScope", description: "Controls which skills are visible.  - `\"org\"` — only skills owned by the given organization. - `\"all\"` — includes public/platform skills.", typeDescriptionLink: "/docs/sdk/react/library#resourcelistscope" },
+    scope: { type: "ResourceListScope", description: "Controls which skills are visible.  - `\"org\"` — only skills owned by the given organization. - `\"all\"` — includes public/platform skills." },
   }}
 />
 

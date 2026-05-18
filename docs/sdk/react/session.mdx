@@ -595,6 +595,7 @@ function useSessionPageFlow(options: UseSessionPageFlowOptions): UseSessionPageF
     displayExecution: { type: "AgentExecution | null", description: "The most relevant execution for sidebar display — the active streaming execution, or the last completed one." },
     handleSubmit: { type: "(message: string, model?: string, context?: SessionComposerSubmitContext) => Promise<void>", description: "Submit a follow-up message. Handles agent override resolution (if the user changed the agent mid-session) and delegates to `conv.sendFollowUp` with all managed state." },
     harness: { type: "HarnessOption", description: "Session's execution harness (read-only, derived from session spec).  Use this to: - Filter the model selector for follow-up messages - Render a harness badge in the session header  Defaults to `\"native\"` while the session is loading.", typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
+    isDefaultAgent: { type: "boolean", description: "`true` when the session's agent is the org's default agent. Used to render the agent chip as non-removable in the composer." },
     mcpServerUsages: { type: "McpServerUsageInput[]", description: "Active MCP server configurations for follow-ups." },
     model: { type: "UsePersistedModelReturn", description: "Persisted model selection: `[modelId, setModelId]`.", typeDescriptionLink: "#usepersistedmodelreturn" },
     resolution: { type: "AgentResolution | null", description: "Current agent resolution state." },
@@ -638,6 +639,62 @@ return (
 ```
 
 
+### useSessionSearch
+
+Data hook that fetches sessions via the SearchService for lightweight,
+org-scoped, paginated session listing.
+
+Unlike [`useSessionList`](#usesessionlist) which calls the dedicated SessionQueryController.list
+RPC (loading full session documents with per-session FGA authorization),
+this hook uses the SearchService which returns lightweight `SearchResult`
+projections and benefits from the search index's optimized access patterns.
+
+Supports incremental "load more" pagination — each call to `loadMore()`
+fetches the next page and appends results.
+
+**Signature**
+
+```tsx
+function useSessionSearch(options?: UseSessionSearchOptions): UseSessionSearchReturn
+```
+
+<TypeTable
+  type={{
+    options: { type: "UseSessionSearchOptions", description: "" },
+  }}
+/>
+
+**Returns** — `UseSessionSearchReturn`
+
+<TypeTable
+  type={{
+    currentPage: { type: "number", description: "The current page number (1-indexed)." },
+    error: { type: "Error | null", description: "Error from the last failed request, or `null`." },
+    hasMore: { type: "boolean", description: "Whether more pages are available." },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight." },
+    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight." },
+    loadMore: { type: "() => void", description: "Load the next page (appends to existing sessions)." },
+    refetch: { type: "() => void", description: "Re-fetch the current page." },
+    sessions: { type: "readonly SearchResult[]", description: "Current page of session entries (lightweight SearchResult projections)." },
+    totalCount: { type: "number", description: "Total number of sessions matching the query." },
+    totalPages: { type: "number", description: "Total pages available." },
+  }}
+/>
+
+```tsx
+function SessionSidebar() {
+  const { sessions, isLoading, hasMore, loadMore } = useSessionSearch();
+
+  return (
+    <ul>
+      {sessions.map((s) => <li key={s.id}>{s.description}</li>)}
+      {hasMore && <button onClick={loadMore}>Load more</button>}
+    </ul>
+  );
+}
+```
+
+
 ### useSessionUsage
 
 Usage hook for session-level cost and token aggregation.
@@ -662,17 +719,17 @@ function useSessionUsage(executions: readonly AgentExecution[]): UseSessionUsage
 
 <TypeTable
   type={{
-    cacheCreationTokens: { type: "number", description: "" },
-    cacheReadTokens: { type: "number", description: "" },
-    hasUsage: { type: "boolean", description: "" },
-    inputTokens: { type: "number", description: "" },
-    llmCallCount: { type: "number", description: "" },
-    modelBreakdown: { type: "readonly ModelCostEntry[]", description: "" },
-    outputTokens: { type: "number", description: "" },
-    primaryModel: { type: "string", description: "" },
-    primaryProvider: { type: "string", description: "" },
-    totalCostUsd: { type: "number", description: "" },
-    totalTokens: { type: "number", description: "" },
+    cacheCreationTokens: { type: "number", description: "Total tokens used to create cache entries across all models." },
+    cacheReadTokens: { type: "number", description: "Total tokens served from cache across all models." },
+    hasUsage: { type: "boolean", description: "`true` when usage data is available." },
+    inputTokens: { type: "number", description: "Total input tokens across all models." },
+    llmCallCount: { type: "number", description: "Total number of LLM calls in this session." },
+    modelBreakdown: { type: "readonly ModelCostEntry[]", description: "Per-model cost and token breakdown." },
+    outputTokens: { type: "number", description: "Total output tokens across all models." },
+    primaryModel: { type: "string", description: "Model with the highest usage in this session." },
+    primaryProvider: { type: "string", description: "Provider of the primary model." },
+    totalCostUsd: { type: "number", description: "Aggregate estimated cost in USD across all models." },
+    totalTokens: { type: "number", description: "Total tokens (input + output) across all models." },
   }}
 />
 
@@ -836,6 +893,17 @@ Each type maps to a Stigmer system agent that guides the user
 through the creation/editing flow in a conversational session.
 
 
+### groupSearchResultsByTime
+
+Groups SearchResult entries by their `createdAt` timestamp into time-based
+buckets, identical to [`groupSessionsByTime`](#groupsessionsbytime) but for lightweight
+search results.
+
+```tsx
+function groupSearchResultsByTime(entries: readonly SearchResult[], now?: Date): readonly SearchResultGroup[]
+```
+
+
 ### groupSessionsByTime
 
 Groups sessions by their creation timestamp into time-based buckets:
@@ -877,14 +945,14 @@ Per-model cost breakdown.
 
 <TypeTable
   type={{
-    cacheCreationTokens: { type: "number", description: "", required: true },
-    cacheReadTokens: { type: "number", description: "", required: true },
-    callCount: { type: "number", description: "", required: true },
-    estimatedCostUsd: { type: "number", description: "", required: true },
-    inputTokens: { type: "number", description: "", required: true },
-    model: { type: "string", description: "", required: true },
-    outputTokens: { type: "number", description: "", required: true },
-    provider: { type: "string", description: "", required: true },
+    cacheCreationTokens: { type: "number", description: "Tokens used to create cache entries.", required: true },
+    cacheReadTokens: { type: "number", description: "Tokens served from cache.", required: true },
+    callCount: { type: "number", description: "Number of LLM calls made to this model.", required: true },
+    estimatedCostUsd: { type: "number", description: "Estimated cost in USD for this model's usage.", required: true },
+    inputTokens: { type: "number", description: "Total input tokens consumed by this model.", required: true },
+    model: { type: "string", description: "Model identifier (e.g. \"claude-sonnet-4-20250514\").", required: true },
+    outputTokens: { type: "number", description: "Total output tokens generated by this model.", required: true },
+    provider: { type: "string", description: "Provider name (e.g. \"anthropic\", \"openai\").", required: true },
   }}
 />
 
@@ -916,6 +984,18 @@ function parseDraftType(value: string | null): DraftResourceType | null
 ```
 
 
+### SearchResultGroup
+
+A time-based group of search results produced by [`groupSearchResultsByTime`](#groupsearchresultsbytime).
+
+<TypeTable
+  type={{
+    entries: { type: "readonly SearchResult[]", description: "Search results belonging to this group, in their original input order.", required: true },
+    label: { type: "string", description: "Display label for this group (e.g. \"Today\", \"Yesterday\").", required: true },
+  }}
+/>
+
+
 ### SendFollowUpOptions
 
 Options for `UseSessionConversationReturn.sendFollowUp`.
@@ -932,6 +1012,7 @@ values are scoped to the single execution and deleted on completion.
   type={{
     agentInstanceId: { type: "string", description: "Override the session's agent instance for this and all future executions. When provided, the session is updated before the execution is created." },
     attachments: { type: "AttachmentInput[]", description: "Pre-uploaded file attachments for this execution.  Each entry must include a `storageKey` from `agentExecution.uploadAttachment()`. Forwarded directly to execution creation." },
+    interactionMode: { type: "\"agent\" | \"plan\"", description: "Interaction mode for this execution.  - `\"agent\"` (default): full tool access. - `\"plan\"`: read-only analysis, no file mutations." },
     mcpServerUsages: { type: "McpServerUsageInput[]", description: "MCP server configurations to include for tool access." },
     modelName: { type: "string", description: "LLM model name to use for this execution. Overrides the session default." },
     runtimeEnv: { type: "Record<string, EnvVarInput>", description: "Execution-scoped secrets and configuration (Execution Flow).  Values are injected into the agent sandbox for this execution only and deleted when the execution completes. They override both Environment values and agent defaults." },
@@ -1055,6 +1136,17 @@ Options for [`useSessionPageFlow`](#usesessionpageflow).
   type={{
     org: { type: "string", description: "Organization slug.", required: true },
     sessionId: { type: "string", description: "Session ID to load and manage.", required: true },
+  }}
+/>
+
+
+### UseSessionSearchOptions
+
+Options for [`useSessionSearch`](#usesessionsearch).
+
+<TypeTable
+  type={{
+    pageSize: { type: "number", description: "Maximum sessions per page." },
   }}
 />
 

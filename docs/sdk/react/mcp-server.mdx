@@ -7,6 +7,48 @@ description: Hooks and components for MCP server connections, setup, credentials
 
 ## Hooks
 
+### useCreateMcpServer
+
+Behavior hook that wraps `mcpServer.apply()` with loading and error state.
+
+Creates an MCP server blueprint from a `McpServerInput`. Uses
+`apply()` (upsert) rather than `create()` so re-submissions are
+idempotent — matching the CLI's `stigmer apply` semantics.
+
+Follows the established SDK mutation hook pattern: `isCreating` flag,
+`error` state, `clearError` reset, result returned from the promise
+(not stored in hook state).
+
+**Signature**
+
+```tsx
+function useCreateMcpServer(): UseCreateMcpServerReturn
+```
+
+**Returns** — `UseCreateMcpServerReturn`
+
+<TypeTable
+  type={{
+    clearError: { type: "() => void", description: "Reset `error` to `null`." },
+    create: { type: "(input: McpServerInput) => Promise<McpServer>", description: "Submit a McpServerInput to create (or upsert) an MCP server blueprint.  Uses `stigmer.mcpServer.apply()` — the idempotent upsert operation. Resolves with the server-created/updated `McpServer` proto including populated metadata (id, slug, audit timestamps)." },
+    error: { type: "Error | null", description: "Error from the last failed create, or `null` when healthy." },
+    isCreating: { type: "boolean", description: "`true` while the apply request is in flight." },
+  }}
+/>
+
+```tsx
+const { create, isCreating, error, clearError } = useCreateMcpServer();
+
+const server = await create({
+  name: "github",
+  org: "acme",
+  http: { url: "https://mcp.github.com/sse" },
+  env: { GITHUB_TOKEN: { isSecret: true, description: "GitHub PAT" } },
+});
+// server.metadata?.slug → "github"
+```
+
+
 ### useDisconnectOAuth
 
 Behavior hook that wraps `mcpServer.disconnectOAuth()` with loading
@@ -583,6 +625,34 @@ return <button onClick={startOAuth}>Sign in</button>;
 ```
 
 
+### useUpdateMcpServer
+
+Mutation hook that updates an existing MCP Server resource.
+
+Wraps `stigmer.mcpServer.update(input)` with loading and error state.
+The caller must provide a **complete** `McpServerInput` — the backend
+performs full spec replacement. Use `mcpServerToInput()` to reconstruct
+the input from a fetched server, modify the desired field, and pass
+the result here.
+
+**Signature**
+
+```tsx
+function useUpdateMcpServer(): UseUpdateMcpServerReturn
+```
+
+**Returns** — `UseUpdateMcpServerReturn`
+
+<TypeTable
+  type={{
+    clearError: { type: "() => void", description: "Clear the error state." },
+    error: { type: "Error | null", description: "Error from the last failed update, or `null` when healthy." },
+    isUpdating: { type: "boolean", description: "`true` while the update RPC is in flight." },
+    update: { type: "(input: McpServerInput) => Promise<McpServer>", description: "Update an existing MCP server with a full input. Returns the updated resource." },
+  }}
+/>
+
+
 ## Components
 
 ### McpServerConfigPanel
@@ -697,6 +767,43 @@ const [connectTarget, setConnectTarget] = useState<{ org: string; slug: string }
 ```
 
 
+### McpServerCreationWizard
+
+Multi-step wizard for creating a new MCP server blueprint.
+
+Three steps:
+1. **Identity & Transport** — name, slug, description, visibility, transport config
+2. **Environment & Auth** — env var declarations, OAuth auth configuration (all optional)
+3. **Review & Create** — YAML preview + submission
+
+Uses the shared `WizardShell` layout and `useWizardState` hook for
+navigation. Form data accumulates in the wizard state; on the final
+step the user reviews and confirms creation.
+
+This component is an SDK-first, embeddable wizard with zero Console
+dependencies. Platform builders can mount it anywhere.
+
+**Props** — `McpServerCreationWizardProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS classes for the root container." },
+    initialData: { type: "Partial<McpServerWizardData>", description: "Optional partial data to pre-fill the wizard with.  Merged with defaults via `{ ...createInitialMcpServerWizardData(), ...initialData }`. Use this for template-based creation, resource duplication, or any flow that starts the wizard with pre-populated fields." },
+    onCancel: { type: "() => void", description: "Called when the user cancels the wizard." },
+    onComplete: { type: "(result: McpServerCreationResult) => void", description: "Called after the MCP server is successfully created.", required: true },
+    org: { type: "string", description: "Organization to create the MCP server in.", required: true },
+  }}
+/>
+
+```tsx
+<McpServerCreationWizard
+  org="acme"
+  onComplete={({ org, slug }) => navigate(`/mcp-servers/${org}/${slug}`)}
+  onCancel={() => navigate("/mcp-servers")}
+/>
+```
+
+
 ### McpServerDetailView
 
 Detail view for an MCP Server integration.
@@ -720,15 +827,19 @@ All visual properties flow through `--stgm-*` design tokens.
 
 <TypeTable
   type={{
+    actions: { type: "readonly DetailAction[]", description: "Secondary actions rendered in the kebab overflow menu." },
     activeOrg: { type: "string", description: "The authenticated user's active organization slug. Used for OAuth token storage — tokens are stored in the user's personal environment within this org, not the MCP server's org. When omitted, falls back to the `org` prop (MCP server's org)." },
     className: { type: "string", description: "Additional CSS classes for the root container." },
     credentialPoolValues: { type: "(key: string) => EnvVarInput | undefined", description: "Pre-fill function for credential form inputs. When provided, the EnvVarForm receives these as `poolValues`, populating fields on mount. Useful for demo scenarios that simulate a user having already entered credentials." },
     defaultCapabilityTab: { type: "CapabilityTab", description: "Initial active capability tab. Defaults to `\"tools\"`. Useful for deep-linking or demo scenarios that need to start on a specific tab.", typeDescriptionLink: "#capabilitytab" },
     defaultShowCredentialForm: { type: "boolean", description: "When `true`, the credential form opens immediately on mount (instead of waiting for a Connect click). Useful for guided tours and demo scenarios that need to show the credential entry step without user interaction." },
+    editable: { type: "boolean", description: "When `true`, fields on the detail view become click-to-edit. Each field saves independently via `stigmer.mcpServer.update()`." },
     isVisibilityPending: { type: "boolean", description: "`true` while a visibility update RPC is in flight." },
     onResourceLoad: { type: "(meta: { id: string; name: string }) => void", description: "Called once when the MCP server resource has been fetched successfully. Provides the resource display name for use cases like breadcrumbs, document titles, or analytics — without requiring the consumer to also call useMcpServer.  Not called on error or not-found states." },
+    onResourceUpdated: { type: "(server: McpServer) => void", description: "Called after a successful inline field save with the updated server." },
     onVisibilityChange: { type: "(v: ApiResourceVisibility) => void", description: "Called when the user toggles visibility via the inline control. When provided, the header renders an interactive VisibilityToggle instead of a read-only badge. When omitted, visibility is displayed as a static \"Public\" pill." },
     org: { type: "string", description: "Organization slug that owns the MCP server.", required: true },
+    primaryAction: { type: "DetailAction", description: "Primary action rendered as a visible button in the header area.", typeDescriptionLink: "/docs/sdk/react/resource-detail#detailaction" },
     slug: { type: "string", description: "MCP server slug (URL-friendly identifier unique within the org).", required: true },
   }}
 />
@@ -898,6 +1009,19 @@ Credential acquisition mode for an MCP server.
   via OAuth. Additional manual vars may still be required (mixed mode).
 
 
+### McpServerCreationResult
+
+Result passed to `onComplete` after successful MCP server creation.
+
+<TypeTable
+  type={{
+    name: { type: "string", description: "MCP server display name.", required: true },
+    org: { type: "string", description: "Organization slug of the created MCP server.", required: true },
+    slug: { type: "string", description: "MCP server slug (for URL construction).", required: true },
+  }}
+/>
+
+
 ### McpServerCredentialsProps
 
 Props for the inline credentials form shown when a server requires
@@ -1026,6 +1150,55 @@ setup lifecycle. Entries are added when the user toggles a server on
 in the picker and removed when toggled off.
 
 
+### mcpServerToInput
+
+Converts a fetched McpServer proto to the McpServerInput shape expected
+by `stigmer.mcpServer.update()`. Enables inline field editing: read
+the current resource, modify one field, and re-submit the full input.
+
+Must be kept exhaustive — any spec field not mapped here will be
+cleared on the next update (the backend does full spec replacement).
+
+```tsx
+function mcpServerToInput(server: McpServer): McpServerInput
+```
+
+
+### McpServerWizardData
+
+Accumulated form state for the MCP server creation wizard.
+
+Each field corresponds to a property on `McpServerInput`. The wizard
+builds this incrementally across steps, then transforms it into
+a `McpServerInput` for submission on the final step.
+
+<TypeTable
+  type={{
+    authDiscoveryUrl: { type: "string", description: "OAuth discovery URL.", required: true },
+    authEnabled: { type: "boolean", description: "Whether OAuth auth configuration is enabled.", required: true },
+    authOAuthAppOrg: { type: "string", description: "OAuth app reference — organization slug.", required: true },
+    authOAuthAppSlug: { type: "string", description: "OAuth app reference — app slug.", required: true },
+    authScopeHints: { type: "string", description: "OAuth scope hints (comma-separated, split on submit).", required: true },
+    authTargetEnvVar: { type: "string", description: "Env var that receives the OAuth token.", required: true },
+    authTokenLifetimeHint: { type: "string", description: "Token lifetime hint (e.g. \"1h\", \"never\").", required: true },
+    description: { type: "string", description: "Short description (optional).", required: true },
+    env: { type: "EnvVarEntry[]", description: "Environment variable declarations.", required: true },
+    httpHeaders: { type: "KeyValueEntry[]", description: "HTTP custom headers.", required: true },
+    httpTimeoutSeconds: { type: "number", description: "HTTP request timeout in seconds (0 = default).", required: true },
+    httpUrl: { type: "string", description: "HTTP server URL.", required: true },
+    iconUrl: { type: "string", description: "Icon URL (optional).", required: true },
+    name: { type: "string", description: "MCP server display name (required).", required: true },
+    slug: { type: "string", description: "URL-friendly slug (auto-derived from name, editable).", required: true },
+    slugTouched: { type: "boolean", description: "Whether the slug has been manually edited by the user.", required: true },
+    stdioArgs: { type: "string", description: "Stdio command arguments (space-separated string, split on submit).", required: true },
+    stdioCommand: { type: "string", description: "Stdio command to execute.", required: true },
+    stdioWorkingDir: { type: "string", description: "Stdio working directory.", required: true },
+    transportType: { type: "\"stdio\" | \"http\"", description: "Selected transport type.", required: true },
+    visibility: { type: "\"private\" | \"public\"", description: "Resource visibility.", required: true },
+  }}
+/>
+
+
 ### OAuthCallbackParams
 
 Parameters extracted from the OAuth callback URL.
@@ -1074,7 +1247,7 @@ Options for [`useMcpServerCount`](#usemcpservercount).
 <TypeTable
   type={{
     query: { type: "string", description: "Text query to filter MCP servers before counting." },
-    scope: { type: "ResourceListScope", description: "Controls which MCP servers are counted.  - `\"org\"` — only MCP servers owned by the given organization. - `\"all\"` — includes public/platform MCP servers.", typeDescriptionLink: "/docs/sdk/react/library#resourcelistscope" },
+    scope: { type: "ResourceListScope", description: "Controls which MCP servers are counted.  - `\"org\"` — only MCP servers owned by the given organization. - `\"all\"` — includes public/platform MCP servers." },
   }}
 />
 
@@ -1088,7 +1261,7 @@ Options for [`useMcpServerList`](#usemcpserverlist).
     page: { type: "number", description: "Page number (1-indexed)." },
     pageSize: { type: "number", description: "Maximum MCP servers per page." },
     query: { type: "string", description: "Text query to filter MCP servers by name, description, or tags." },
-    scope: { type: "ResourceListScope", description: "Controls which MCP servers are visible.  - `\"org\"` — only MCP servers owned by the given organization. - `\"all\"` — includes public/platform MCP servers.", typeDescriptionLink: "/docs/sdk/react/library#resourcelistscope" },
+    scope: { type: "ResourceListScope", description: "Controls which MCP servers are visible.  - `\"org\"` — only MCP servers owned by the given organization. - `\"all\"` — includes public/platform MCP servers." },
   }}
 />
 

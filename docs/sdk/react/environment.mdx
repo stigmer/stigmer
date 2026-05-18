@@ -754,7 +754,7 @@ them causes `runtime_env` to be non-empty on the wire, which
 changes the backend's missing-credential tolerance semantics.
 
 ```tsx
-function resolveDeclaredSystemEnvVars(stigmer: Stigmer, declaredEnvKeys: ReadonlySet<string> | readonly string[]): Promise<Record<string, EnvVarInput>>
+function resolveDeclaredSystemEnvVars(stigmer: Stigmer, declaredEnvKeys: readonly string[] | ReadonlySet<string>): Promise<Record<string, EnvVarInput>>
 ```
 
 

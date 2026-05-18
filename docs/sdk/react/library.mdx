@@ -189,6 +189,112 @@ if (detection.detected) {
 ```
 
 
+### useExportResource
+
+Headless export hook for Stigmer resources (Agent, McpServer).
+
+Serializes the resource into YAML and JSON formats and provides
+stable callbacks for copying to clipboard or triggering a file
+download. All operations are client-side — no additional API calls.
+
+The serialized output uses the canonical Stigmer resource format
+(`apiVersion`, `kind`, `metadata`, `spec`) with snake_case field
+names, identical to what the CLI produces and what `parseResourceYaml`
+accepts — ensuring full round-trip compatibility.
+
+**Signature**
+
+```tsx
+function useExportResource(options: UseExportResourceOptions): UseExportResourceReturn
+```
+
+<TypeTable
+  type={{
+    options: { type: "UseExportResourceOptions", description: "Resource kind and the proto resource object.", required: true },
+  }}
+/>
+
+**Returns** — `UseExportResourceReturn`
+
+<TypeTable
+  type={{
+    copyJson: { type: "() => Promise<void>", description: "Copy the resource as JSON to the clipboard (with toast feedback)." },
+    copyYaml: { type: "() => Promise<void>", description: "Copy the resource as YAML to the clipboard (with toast feedback)." },
+    downloadJson: { type: "() => void", description: "Download the resource as a `.json` file." },
+    downloadYaml: { type: "() => void", description: "Download the resource as a `.yaml` file." },
+    json: { type: "string | null", description: "The serialized JSON string, or `null` when the resource is not loaded." },
+    yaml: { type: "string | null", description: "The serialized YAML string, or `null` when the resource is not loaded." },
+  }}
+/>
+
+```tsx
+const { agent } = useAgent(org, slug);
+const { copyYaml, downloadYaml } = useExportResource({
+  kind: "Agent",
+  resource: agent,
+});
+
+<ActionMenu.Item onSelect={copyYaml}>Export YAML</ActionMenu.Item>
+<ActionMenu.Item onSelect={downloadYaml}>Download YAML</ActionMenu.Item>
+```
+
+
+### useImportResource
+
+Headless import hook for Stigmer resources.
+
+Orchestrates the file import workflow:
+1. User selects a `.yaml`, `.yml`, or `.json` file
+2. `readFile` reads the content, detects the format, and validates
+   the structure via `parseResourceYaml`
+3. On success, `preview` is populated with kind, name, slug, format
+4. On validation error, `error` is populated with a user-facing message
+5. User confirms → `apply(org)` calls the appropriate SDK `apply()` method
+
+Follows the established mutation-hook pattern: `isApplying` + `error` +
+`reset`. The `preview` state enables a confirmation step before committing
+(Nielsen heuristic #3: user control, #5: error prevention).
+
+**Signature**
+
+```tsx
+function useImportResource(): UseImportResourceReturn
+```
+
+**Returns** — `UseImportResourceReturn`
+
+<TypeTable
+  type={{
+    apply: { type: "(org: string) => Promise<ApplyResourceResult>", description: "Apply the previewed resource to the given organization. Only callable when `preview` is non-null." },
+    error: { type: "string | null", description: "Validation or apply error message, or `null` when healthy." },
+    isApplying: { type: "boolean", description: "`true` while the apply RPC is in-flight." },
+    preview: { type: "ImportPreview | null", description: "The validation preview, or `null` when no file has been validated." },
+    readFile: { type: "(file: File) => Promise<void>", description: "Read and validate a file selected by the user. On success, populates `preview`. On failure, populates `error`. In both cases, clears the previous state first." },
+    reset: { type: "() => void", description: "Clear all state (preview, error, internal content)." },
+  }}
+/>
+
+```tsx
+const { readFile, preview, error, reset, apply, isApplying } = useImportResource();
+
+const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (file) readFile(file);
+};
+
+if (preview) {
+  return (
+    <div>
+      <p>Import {preview.kind}: {preview.name}</p>
+      <button onClick={() => apply(org)} disabled={isApplying}>
+        Confirm
+      </button>
+    </div>
+  );
+}
+```
+
+
 ### useUpdateVisibility
 
 Behavior hook that updates the visibility of a Skill, Agent, or
@@ -238,6 +344,47 @@ const { updateVisibility, isPending } = useUpdateVisibility("skill", skill.metad
 
 
 ## Components
+
+### ImportResourceDialog
+
+Modal dialog for importing a Stigmer resource from a YAML or JSON file.
+
+Workflow:
+1. User selects a `.yaml`, `.yml`, or `.json` file via the file picker
+2. The file is validated and a preview card shows the detected resource
+3. User confirms the import, which calls `apply()` on the target org
+4. On success: toast notification and `onSuccess` callback
+5. On error: inline error message with guidance
+
+Uses the native `<dialog>` element for built-in focus trapping, Escape
+key handling, and backdrop — consistent with [`ConfirmDialog`](/docs/sdk/react/resource-detail#confirmdialog).
+
+Zero Console dependencies — safe for platform builder embedding.
+
+**Props** — `ImportResourceDialogProps`
+
+<TypeTable
+  type={{
+    onOpenChange: { type: "(open: boolean) => void", description: "Called when the dialog should open or close.", required: true },
+    onSuccess: { type: "(result: ApplyResourceResult) => void", description: "Called after a successful import. Use for navigation or list refresh." },
+    open: { type: "boolean", description: "Whether the dialog is open.", required: true },
+    org: { type: "string", description: "Target organization slug to apply the imported resource to.", required: true },
+  }}
+/>
+
+```tsx
+const [open, setOpen] = useState(false);
+
+<ImportResourceDialog
+  open={open}
+  onOpenChange={setOpen}
+  org={activeOrg}
+  onSuccess={(result) => {
+    router.push(`/library/${result.kind === "Agent" ? "agents" : "mcp-servers"}`);
+  }}
+/>
+```
+
 
 ### LibraryBreadcrumbProvider
 
@@ -308,123 +455,17 @@ const { count, isLoading } = useAgentCount("acme");
 ```
 
 
-### ResourceListView
-
-Paginated, searchable view for browsing Stigmer resources.
-
-Supports two layout modes:
-
-- **`"list"`** (default) — vertical single-column rows, same as
-  before. Each row shows a kind icon, name, org, description, and tags.
-- **`"grid"`** — responsive multi-column card grid
-  (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`). Each card shows a
-  large icon container, name, org, description, and an optional
-  action slot in the top-right corner.
-
-Both modes share the same toolbar (search, scope toggle), pagination,
-loading/error/empty states, and keyboard navigation (grid mode adds
-ArrowLeft/Right and column-aware Up/Down).
-
-The component is controlled — the parent owns data and filter state.
-Search debouncing (300ms) is managed internally so the parent only
-receives debounced query values via `ResourceListViewProps.onSearchChange`.
-
-Only `items` and `isLoading` are required. Search, scope toggle,
-pagination, layout mode, and custom row rendering activate
-progressively when their corresponding props are provided.
-
-When the debounced search query or scope changes, the component
-automatically resets the page to 1 via `onPageChange` to prevent
-stale pagination after filter changes.
-
-**Props** — `ResourceListViewProps`
-
-<TypeTable
-  type={{
-    "aria-label": { type: "string", description: "Accessible label for the list region." },
-    className: { type: "string", description: "Additional CSS classes for the root container." },
-    currentPage: { type: "number", description: "Current page number (1-indexed)." },
-    emptyDescription: { type: "string", description: "Description for the empty state." },
-    emptyIcon: { type: "ReactNode", description: "Icon element rendered in the empty state." },
-    emptyTitle: { type: "string", description: "Title for the empty state." },
-    error: { type: "Error | null", description: "Error from the data hook. Shown as an alert when present and not loading." },
-    initialSearch: { type: "string", description: "Initial value for the search input, read only on mount (e.g. from URL params)." },
-    isLoading: { type: "boolean", description: "Whether data is currently being fetched.", required: true },
-    items: { type: "readonly SearchResult[]", description: "Resource entries to display.", required: true },
-    layout: { type: "ResourceListLayout", description: "Visual layout for items.  - `\"list\"` (default) — vertical single-column rows - `\"grid\"` — responsive multi-column card grid   (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`)  When `layout` is `\"grid\"` and no `renderItem` is provided, the built-in DefaultResourceCard is used instead of DefaultResourceRow.", typeDescriptionLink: "#resourcelistlayout" },
-    onItemClick: { type: "(item: SearchResult) => void", description: "Called when a list item is clicked or activated via keyboard (Enter/Space). Providing this makes items interactive with hover/focus styles and keyboard navigation (Arrow Up/Down)." },
-    onPageChange: { type: "(page: number) => void", description: "Called when the user navigates to a different page. Pagination controls appear when this is provided and `totalPages > 1`. Also called with `1` automatically when the search query or scope changes." },
-    onRetry: { type: "() => void", description: "Called when the user clicks \"Retry\" after an error." },
-    onScopeChange: { type: "(scope: ResourceListScope) => void", description: "Called when the user toggles the scope. Also resets the page to 1 via `onPageChange`." },
-    onSearchChange: { type: "(query: string) => void", description: "Called with the debounced search query (300ms delay) when the user types. Providing this prop enables the search input in the toolbar.  The component manages the raw input value internally and only calls this handler with the debounced value, so the parent does not need to implement debouncing." },
-    renderItem: { type: "(item: SearchResult, index: number) => ReactNode", description: "Custom renderer for list items. Receives the `SearchResult` and its index. Falls back to a built-in row showing name, org, description, visibility badge, and tags." },
-    renderItemAction: { type: "(item: SearchResult) => ReactNode", description: "Renders an action element (e.g. a button) for each item.  In grid mode the action is placed in the card's top-right corner. In list mode it is appended after the row content.  The consumer is responsible for calling `e.stopPropagation()` if the action should not also trigger `onItemClick`." },
-    scope: { type: "ResourceListScope", description: "The currently active resource scope. Providing both `scope` and `onScopeChange` enables the ScopeToggle in the toolbar.", typeDescriptionLink: "#resourcelistscope" },
-    searchPlaceholder: { type: "string", description: "Placeholder text for the search input." },
-    totalCount: { type: "number", description: "Total number of results across all pages. Shown in the pagination bar when provided." },
-    totalPages: { type: "number", description: "Total number of pages available. Enables pagination controls when greater than 1." },
-  }}
-/>
-
-```tsx
-// Minimal — plain list with loading indicator
-<ResourceListView items={agents} isLoading={isLoading} />
-```
-
-```tsx
-// Grid layout with action button
-<ResourceListView
-  layout="grid"
-  items={mcpServers}
-  isLoading={isLoading}
-  onItemClick={(item) => navigate(item.slug)}
-  renderItemAction={(item) => (
-    <button onClick={(e) => { e.stopPropagation(); connect(item); }}>
-      <PlusIcon />
-    </button>
-  )}
-/>
-```
-
-```tsx
-// Full — search, scope toggle, pagination, and click handling
-const [scope, setScope] = useState<ResourceListScope>("org");
-const [query, setQuery] = useState("");
-const [page, setPage] = useState(1);
-const { agents, totalCount, totalPages, isLoading, error, refetch } =
-  useAgentList(org, { query, scope, page });
-
-<ResourceListView
-  items={agents}
-  isLoading={isLoading}
-  error={error}
-  totalCount={totalCount}
-  totalPages={totalPages}
-  currentPage={page}
-  onSearchChange={setQuery}
-  searchPlaceholder="Search agents\u2026"
-  scope={scope}
-  onScopeChange={setScope}
-  onPageChange={setPage}
-  onItemClick={(item) => console.log(item.slug)}
-  onRetry={refetch}
-/>
-```
-
-
 ### ScopeToggle
 
-Segmented control for toggling resource scope between "Org"
-(only the current organization's resources) and "All"
-(including public and platform resources).
+Segmented control for switching resource list scope between
+organization-only and all (including public community resources).
 
-Designed for use in Library list headers alongside a search input.
+Renders as a WAI-ARIA Radio Group with roving tabindex and
+arrow-key navigation. Follows the same visual pattern as
+[`VisibilityToggle`](#visibilitytoggle).
+
 The component is controlled — the consumer owns the `value` state
 and handles persistence (e.g., localStorage).
-
-Implements the WAI-ARIA Radio Group pattern with roving tabindex
-for keyboard navigation: Arrow Left/Right moves focus and selects,
-Tab enters/exits the group.
 
 All visual properties flow through `--stgm-*` tokens.
 
@@ -433,9 +474,10 @@ All visual properties flow through `--stgm-*` tokens.
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS classes applied to the root element." },
+    compact: { type: "boolean", description: "When true, renders icon-only buttons without text labels. Useful inside space-constrained contexts like picker popovers. Each button retains an accessible `aria-label`." },
     disabled: { type: "boolean", description: "Disables all interaction." },
     onChange: { type: "(scope: ResourceListScope) => void", description: "Called when the user selects a different scope.", required: true },
-    value: { type: "ResourceListScope", description: "The currently selected scope.", required: true, typeDescriptionLink: "#resourcelistscope" },
+    value: { type: "ResourceListScope", description: "The currently selected scope.", required: true },
   }}
 />
 
@@ -551,6 +593,27 @@ if (result.detected) {
 ```
 
 
+### ImportFormat
+
+Detected format of the imported file content.
+
+
+### ImportPreview
+
+Validated preview of an imported resource, shown to the user before
+they confirm the apply operation.
+
+<TypeTable
+  type={{
+    format: { type: "ImportFormat", description: "The detected file format.", required: true, typeDescriptionLink: "#importformat" },
+    kind: { type: "\"Agent\" | \"McpServer\"", description: "The detected resource kind.", required: true },
+    name: { type: "string", description: "The resource name from `metadata.name`.", required: true },
+    rawContent: { type: "string", description: "The raw file content (for potential display or debugging).", required: true },
+    slug: { type: "string", description: "The resource slug from `metadata.slug`, if present." },
+  }}
+/>
+
+
 ### isSkillPackage
 
 Checks whether an execution artifact is a skill package (directory
@@ -640,18 +703,31 @@ and pushes it as a skill — no ZIP download reaches the browser.
 />
 
 
-### ResourceListLayout
+### serializeAgentInputYaml
 
-Layout mode for [`ResourceListView`](#resourcelistview).
+Serializes an `AgentInput` (SDK input type) into the canonical
+Stigmer YAML format.
 
+Unlike [`serializeAgentYaml`](#serializeagentyaml) which takes a proto `Agent`, this
+function works from the SDK input type — the same shape used by
+`stigmer.agent.apply()`. This is used by the creation wizard to
+preview the YAML before submission.
 
-### ResourceListScope
+The output is round-trip compatible with [`parseResourceYaml`](#parseresourceyaml).
 
-Scope controls resource listing boundaries.
+```tsx
+function serializeAgentInputYaml(input: AgentInput): string
+```
 
-- `"org"` — resources owned by the active organization (public and private).
-- `"all"` — resources owned by the active organization plus public resources
-  from other organizations.
+```tsx
+import { serializeAgentInputYaml } from "@stigmer/react";
+
+const yaml = serializeAgentInputYaml({
+  name: "my-agent",
+  org: "acme",
+  instructions: "You are a helpful assistant.",
+});
+```
 
 
 ### serializeAgentYaml
@@ -677,6 +753,33 @@ import { serializeAgentYaml } from "@stigmer/react";
 
 const yaml = serializeAgentYaml(agent);
 const file = new File([yaml], "my-agent.yaml", { type: "text/yaml" });
+```
+
+
+### serializeMcpServerInputYaml
+
+Serializes a `McpServerInput` (SDK input type) into the canonical
+Stigmer YAML format.
+
+Unlike [`serializeMcpServerYaml`](#serializemcpserveryaml) which takes a proto `McpServer`,
+this function works from the SDK input type — the same shape used by
+`stigmer.mcpServer.apply()`. This is used by the creation wizard to
+preview the YAML before submission.
+
+The output is round-trip compatible with [`parseResourceYaml`](#parseresourceyaml).
+
+```tsx
+function serializeMcpServerInputYaml(input: McpServerInput): string
+```
+
+```tsx
+import { serializeMcpServerInputYaml } from "@stigmer/react";
+
+const yaml = serializeMcpServerInputYaml({
+  name: "github",
+  org: "acme",
+  http: { url: "https://mcp.github.com/sse" },
+});
 ```
 
 
@@ -734,6 +837,18 @@ YAML file artifacts and be applied to an organization via `apply()`:
 Skills are **not** included here — they are package-based (directory
 artifacts with SKILL.md) and use a separate detection path via
 [`isSkillPackage`](#isskillpackage) / [`detectSkillPackage`](#detectskillpackage).
+
+
+### UseExportResourceOptions
+
+Options for [`useExportResource`](#useexportresource).
+
+<TypeTable
+  type={{
+    kind: { type: "\"Agent\" | \"McpServer\" | \"Workflow\"", description: "The resource kind — determines which serializer is used.", required: true },
+    resource: { type: "Agent | McpServer | Workflow | null", description: "The proto resource to export, or `null` when not yet loaded.", required: true },
+  }}
+/>
 
 
 ### UseResourceSearchOptions

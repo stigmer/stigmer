@@ -282,6 +282,48 @@ if (result.status === "needsEnvVars") {
 ```
 
 
+### useCreateAgent
+
+Behavior hook that wraps `agent.apply()` with loading and error state.
+
+Creates an agent blueprint from an `AgentInput`. Uses `apply()`
+(upsert) rather than `create()` so re-submissions are idempotent —
+matching the CLI's `stigmer apply` semantics.
+
+Follows the established SDK mutation hook pattern: `isCreating` flag,
+`error` state, `clearError` reset, result returned from the promise
+(not stored in hook state).
+
+**Signature**
+
+```tsx
+function useCreateAgent(): UseCreateAgentReturn
+```
+
+**Returns** — `UseCreateAgentReturn`
+
+<TypeTable
+  type={{
+    clearError: { type: "() => void", description: "Reset `error` to `null`." },
+    create: { type: "(input: AgentInput) => Promise<Agent>", description: "Submit an AgentInput to create (or upsert) an agent blueprint.  Uses `stigmer.agent.apply()` — the idempotent upsert operation. Resolves with the server-created/updated `Agent` proto including populated metadata (id, slug, audit timestamps)." },
+    error: { type: "Error | null", description: "Error from the last failed create, or `null` when healthy." },
+    isCreating: { type: "boolean", description: "`true` while the apply request is in flight." },
+  }}
+/>
+
+```tsx
+const { create, isCreating, error, clearError } = useCreateAgent();
+
+const agent = await create({
+  name: "pr-review-bot",
+  org: "acme",
+  instructions: "Review pull requests for code quality...",
+  mcpServerUsages: [{ mcpServerRef: { org: "acme", slug: "github" } }],
+});
+// agent.metadata?.slug → "pr-review-bot"
+```
+
+
 ### useDefaultAgent
 
 Data hook that fetches the platform's default agent.
@@ -328,17 +370,87 @@ const { agent: defaultAgent, isLoading } = useDefaultAgent("acme");
 ```
 
 
+### useUpdateAgent
+
+Mutation hook that updates an existing Agent resource.
+
+Wraps `stigmer.agent.update(input)` with loading and error state.
+The caller must provide a **complete** `AgentInput` — the backend
+performs full spec replacement. Use `agentToInput()` to reconstruct
+the input from a fetched agent, modify the desired field, and pass
+the result here.
+
+**Signature**
+
+```tsx
+function useUpdateAgent(): UseUpdateAgentReturn
+```
+
+**Returns** — `UseUpdateAgentReturn`
+
+<TypeTable
+  type={{
+    clearError: { type: "() => void", description: "Clear the error state." },
+    error: { type: "Error | null", description: "Error from the last failed update, or `null` when healthy." },
+    isUpdating: { type: "boolean", description: "`true` while the update RPC is in flight." },
+    update: { type: "(input: AgentInput) => Promise<Agent>", description: "Update an existing agent with a full input. Returns the updated resource." },
+  }}
+/>
+
+
 ## Components
+
+### AgentCreationWizard
+
+Multi-step wizard for creating a new agent blueprint.
+
+Three condensed steps:
+1. **Identity & Instructions** — name, slug, description, visibility, system prompt
+2. **Capabilities** — MCP servers + tools, skills, env var declarations (all optional)
+3. **Review & Create** — YAML preview + submission
+
+Uses the shared `WizardShell` layout and `useWizardState` hook for
+navigation. Form data accumulates in the wizard state; on the final
+step the user reviews and confirms creation.
+
+This component is an SDK-first, embeddable wizard with zero Console
+dependencies. Platform builders can mount it anywhere.
+
+**Props** — `AgentCreationWizardProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS classes for the root container." },
+    initialData: { type: "Partial<AgentWizardData>", description: "Optional partial data to pre-fill the wizard with.  Merged with defaults via `{ ...createInitialWizardData(), ...initialData }`. Use this for template-based creation, resource duplication, or any flow that starts the wizard with pre-populated fields." },
+    onCancel: { type: "() => void", description: "Called when the user cancels the wizard." },
+    onComplete: { type: "(result: AgentCreationResult) => void", description: "Called after the agent is successfully created.", required: true },
+    org: { type: "string", description: "Organization to create the agent in.", required: true },
+  }}
+/>
+
+```tsx
+<AgentCreationWizard
+  org="acme"
+  onComplete={({ org, slug }) => navigate(`/agents/${org}/${slug}`)}
+  onCancel={() => navigate("/agents")}
+/>
+```
+
 
 ### AgentDetailView
 
-Read-only detail view for an Agent blueprint.
+Operational detail hub for an Agent blueprint.
 
 Fetches the agent via [`useAgent`](#useagent) internally and renders its
-full configuration in structured sections: header, instructions,
-MCP server usages, skills, sub-agents, and environment variables.
-Sections with no data are omitted entirely — reducing visual noise
-per the aesthetic-minimalist design heuristic (Nielsen #8).
+full configuration inside a [`ResourceDetailShell`](/docs/sdk/react/resource-detail#resourcedetailshell): a
+standardized header with action bar, followed by structured content
+sections (instructions, MCP server usages, skills, sub-agents, and
+environment variables). Sections with no data are omitted entirely
+— reducing visual noise per Nielsen heuristic #8.
+
+The action bar transforms this from a read-only view into an
+operational hub. Actions are provided by the consumer via
+`primaryAction` and `actions` props.
 
 Handles loading, error, and not-found states automatically.
 Zero Console dependencies — safe for platform builder embedding.
@@ -348,13 +460,21 @@ All visual properties flow through `--stgm-*` design tokens.
 
 <TypeTable
   type={{
+    actions: { type: "readonly DetailAction[]", description: "Secondary actions rendered in the kebab overflow menu. Typically: Copy ID, Copy slug, Export JSON, Duplicate, Delete." },
+    activeTab: { type: "string", description: "Controlled active tab ID. When provided together with `onTabChange`, the component operates in controlled mode — the consumer owns tab state. When omitted, the component manages its own internal tab state." },
+    additionalTabs: { type: "readonly AdditionalTab[]", description: "Additional tabs to render alongside the built-in \"Overview\" tab. When provided (with at least one entry), a tab bar appears. When omitted or empty, no tab bar is shown (single-tab suppression).  Each entry provides both the tab metadata and the content to render. The SDK manages the tab switching logic internally." },
     className: { type: "string", description: "Additional CSS classes for the root container." },
+    defaultTab: { type: "string", description: "Default active tab ID when in uncontrolled mode." },
+    editable: { type: "boolean", description: "When `true`, fields on the detail view become click-to-edit. Each field saves independently via `stigmer.agent.update()`." },
     isVisibilityPending: { type: "boolean", description: "`true` while a visibility update RPC is in flight." },
     onMcpServerClick: { type: "(ref: { org: string; slug: string }) => void", description: "Called when an MCP server reference is clicked. Provides `org` and `slug` of the referenced MCP server so the consumer can wire navigation. When the reference has no explicit org, the agent's own org is used as fallback." },
     onResourceLoad: { type: "(meta: { id: string; name: string }) => void", description: "Called once when the agent resource has been fetched successfully. Provides the resource display name for use cases like breadcrumbs, document titles, or analytics — without requiring the consumer to also call useAgent.  Not called on error or not-found states." },
+    onResourceUpdated: { type: "(agent: Agent) => void", description: "Called after a successful inline field save with the updated agent. Consumers can use this to refresh breadcrumbs, sync URL state, etc." },
     onSkillClick: { type: "(ref: { org: string; slug: string }) => void", description: "Called when a skill reference is clicked. Provides `org` and `slug` of the referenced skill." },
+    onTabChange: { type: "(tabId: string) => void", description: "Controlled tab change handler. When provided together with `activeTab`, the component operates in controlled mode." },
     onVisibilityChange: { type: "(v: ApiResourceVisibility) => void", description: "Called when the user toggles visibility via the inline control. When provided, the header renders an interactive VisibilityToggle instead of a read-only badge. When omitted, visibility is displayed as a static \"Public\" pill." },
     org: { type: "string", description: "Organization slug that owns the agent.", required: true },
+    primaryAction: { type: "DetailAction", description: "Primary action rendered as a visible button in the header area. Typically \"Edit\" for agent detail pages.", typeDescriptionLink: "/docs/sdk/react/resource-detail#detailaction" },
     slug: { type: "string", description: "Agent slug (URL-friendly identifier unique within the org).", required: true },
   }}
 />
@@ -365,12 +485,17 @@ All visual properties flow through `--stgm-*` design tokens.
 ```
 
 ```tsx
-// With cross-resource linking in a Console page
+// Operational hub with actions in a Console page
 <AgentDetailView
   org={org}
   slug={slug}
-  onMcpServerClick={({ org, slug }) => router.push(`/library/mcp-servers/${org}/${slug}`)}
-  onSkillClick={({ org, slug }) => router.push(`/library/skills/${org}/${slug}`)}
+  primaryAction={{ id: "edit", label: "Edit", onAction: handleEdit }}
+  actions={[
+    { id: "copy-id", label: "Copy ID", onAction: () => copyId(id) },
+    { id: "delete", label: "Delete", variant: "destructive", onAction: handleDelete },
+  ]}
+  onMcpServerClick={({ org, slug }) => navigateToDetail("mcp-servers", org, slug)}
+  onSkillClick={({ org, slug }) => navigateToDetail("skills", org, slug)}
 />
 ```
 
@@ -463,6 +588,19 @@ if (agent) console.log(`Selected: ${agent.org}/${agent.slug}`);
 
 ## Types
 
+### AgentCreationResult
+
+Result passed to `onComplete` after successful agent creation.
+
+<TypeTable
+  type={{
+    name: { type: "string", description: "Agent display name.", required: true },
+    org: { type: "string", description: "Organization slug of the created agent.", required: true },
+    slug: { type: "string", description: "Agent slug (for URL construction).", required: true },
+  }}
+/>
+
+
 ### AgentEnvFormSubmitOptions
 
 Options reported by the form alongside the collected values.
@@ -533,6 +671,44 @@ and are surfaced alongside the phase so the UI can show inline
 error messages without losing the current phase context.
 
 
+### agentToInput
+
+Converts a fetched Agent proto to the AgentInput shape expected by
+`stigmer.agent.update()`. This enables inline field editing: read the
+current resource, modify one field, and re-submit the full input.
+
+Must be kept exhaustive — any spec field not mapped here will be
+cleared on the next update (the backend does full spec replacement).
+
+```tsx
+function agentToInput(agent: Agent): AgentInput
+```
+
+
+### AgentWizardData
+
+Accumulated form state for the agent creation wizard.
+
+Each field corresponds to a property on `AgentInput`. The wizard
+builds this incrementally across steps, then transforms it into
+an `AgentInput` for submission on the final step.
+
+<TypeTable
+  type={{
+    description: { type: "string", description: "Short description (optional).", required: true },
+    env: { type: "EnvVarEntry[]", description: "Environment variable declarations.", required: true },
+    iconUrl: { type: "string", description: "Icon URL (optional).", required: true },
+    instructions: { type: "string", description: "System prompt / instructions (the agent's core content).", required: true },
+    mcpServerUsages: { type: "McpServerUsageInput[]", description: "MCP server usages with tool configuration.", required: true },
+    name: { type: "string", description: "Agent display name (required).", required: true },
+    skillRefs: { type: "ResourceRef[]", description: "Skill references.", required: true },
+    slug: { type: "string", description: "URL-friendly slug (auto-derived from name, editable).", required: true },
+    slugTouched: { type: "boolean", description: "Whether the slug has been manually edited by the user.", required: true },
+    visibility: { type: "\"private\" | \"public\"", description: "Resource visibility.", required: true },
+  }}
+/>
+
+
 ### SubmitEnvVarsOptions
 
 Options for `UseAgentSetupReturn.submitEnvVars`.
@@ -551,7 +727,7 @@ Options for [`useAgentCount`](#useagentcount).
 <TypeTable
   type={{
     query: { type: "string", description: "Text query to filter agents before counting." },
-    scope: { type: "ResourceListScope", description: "Controls which agents are counted.  - `\"org\"` — only agents owned by the given organization. - `\"all\"` — includes public/platform agents (e.g. `stigmer/agent-creator`).", typeDescriptionLink: "/docs/sdk/react/library#resourcelistscope" },
+    scope: { type: "ResourceListScope", description: "Controls which agents are counted.  - `\"org\"` — only agents owned by the given organization. - `\"all\"` — includes public/platform agents (e.g. `stigmer/agent-creator`)." },
   }}
 />
 
@@ -565,7 +741,7 @@ Options for [`useAgentList`](#useagentlist).
     page: { type: "number", description: "Page number (1-indexed)." },
     pageSize: { type: "number", description: "Maximum agents per page." },
     query: { type: "string", description: "Text query to filter agents by name, description, or tags." },
-    scope: { type: "ResourceListScope", description: "Controls which agents are visible.  - `\"org\"` — only agents owned by the given organization. - `\"all\"` — includes public/platform agents (e.g. `stigmer/agent-creator`).", typeDescriptionLink: "/docs/sdk/react/library#resourcelistscope" },
+    scope: { type: "ResourceListScope", description: "Controls which agents are visible.  - `\"org\"` — only agents owned by the given organization. - `\"all\"` — includes public/platform agents (e.g. `stigmer/agent-creator`)." },
   }}
 />
 
