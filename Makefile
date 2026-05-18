@@ -87,7 +87,7 @@ build: libs-build build-web verify-desktop docs-build build-mcp-server build-jav
 	@mkdir -p bin
 	cd client-apps/cli && go build -o ../../bin/stigmer .
 	cd backend/services/stigmer-server && go build -o ../../../bin/stigmer-server ./cmd/server
-	cd backend/services/workflow-runner && go build -o ../../../bin/stigmer-workflow-runner .
+	cd backend/services/workflow-runner && go build -o ../../../bin/stigmer-workflow-runner ./cmd/zigflow
 	@echo ""
 	@echo "built: bin/stigmer, bin/stigmer-server, bin/stigmer-workflow-runner, mcp-server/bin/mcp-server-stigmer"
 
