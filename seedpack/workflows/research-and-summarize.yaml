@@ -21,14 +21,11 @@ spec:
   env:
     TOPIC:
       description: "The topic or question to analyze"
-      required: true
     SOURCE_MATERIAL:
       description: "Text, article, or data to analyze (paste content directly)"
-      required: true
     DEPTH:
-      description: "Analysis depth: brief, standard, or thorough"
-      required: false
-      default: "standard"
+      description: "Analysis depth: brief, standard, or thorough (default: standard)"
+      optional: true
   budget:
     max_cost_micros: 3000000
     max_total_tokens: 300000
@@ -49,6 +46,8 @@ spec:
           ${ $context.env.SOURCE_MATERIAL }
         temperature: 0.3
         max_tokens: 3000
+        timeout: 120
+        max_retries: 2
       export:
         as: "${ . }"
       flow:
@@ -74,6 +73,8 @@ spec:
                     ${ $context.initial_analysis.text }
                   temperature: 0.3
                   max_tokens: 500
+                  timeout: 60
+                  max_retries: 2
                 export:
                   as: "${ . }"
           - name: key_findings
@@ -117,6 +118,8 @@ spec:
                           type: string
                   on_invalid: ON_INVALID_RETRY
                   max_retries: 2
+                  max_tokens: 500
+                  timeout: 60
                 export:
                   as: "${ . }"
         compete: false
@@ -128,18 +131,15 @@ spec:
     - name: merge_results
       kind: transform
       task_config:
-        engine: jq
+        engine: TRANSFORM_ENGINE_JQ
         expression: >
           {
-            topic: $topic,
-            executive_summary: $summary,
-            key_findings: $findings,
-            finding_count: ($findings.findings | length)
+            topic: .topic,
+            executive_summary: .summary,
+            key_findings: .findings,
+            finding_count: (.findings.findings | length)
           }
-        input:
-          topic: "${ $context.env.TOPIC }"
-          summary: "${ $context.parallel_processing.executive_summary.summarize.text }"
-          findings: "${ $context.parallel_processing.key_findings.extract_findings.structured }"
+        input: "${ {topic: $context.env.TOPIC, summary: $context.parallel_processing.executive_summary.summarize.text, findings: $context.parallel_processing.key_findings.extract_findings.structured} }"
       export:
         as: "${ . }"
       flow:
@@ -180,19 +180,17 @@ spec:
     - name: finalize_report
       kind: transform
       task_config:
-        engine: jq
+        engine: TRANSFORM_ENGINE_JQ
         expression: >
           {
             status: "approved",
-            topic: $report.topic,
-            executive_summary: $report.executive_summary,
-            key_findings: $report.key_findings,
-            finding_count: $report.finding_count,
-            approved_by: $review.reviewer,
-            reviewer_notes: $review.form_data.notes
+            topic: .report.topic,
+            executive_summary: .report.executive_summary,
+            key_findings: .report.key_findings,
+            finding_count: .report.finding_count,
+            approved_by: .review.reviewer,
+            reviewer_notes: .review.form_data.notes
           }
-        input:
-          report: "${ $context.merge_results }"
-          review: "${ $context.review_report }"
+        input: "${ {report: $context.merge_results, review: $context.review_report} }"
       export:
         as: "${ . }"

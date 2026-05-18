@@ -9,6 +9,7 @@ import (
 	"time"
 
 	executionctxv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
+	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	"github.com/stigmer/stigmer/test/integration/harness"
 	"github.com/stretchr/testify/assert"
@@ -360,6 +361,48 @@ func TestSeedpackWorkflow_LoadAll(t *testing.T) {
 
 			t.Logf("loaded %s: name=%s, tasks=%d",
 				filename, wf.Metadata.Name, len(wf.Spec.Tasks))
+		})
+	}
+}
+
+// TestSeedpackWorkflow_ApplyAll verifies that every seedpack workflow YAML
+// can be applied to the server via the WorkflowCommand.Apply gRPC API.
+// Unlike the full E2E tests above, this does NOT require LLM API keys or
+// the workflow runner — it only needs the Java service to be running.
+// This catches server-side validation failures (schema checks, persistence
+// errors, business rules) that pass local proto parsing but fail on apply.
+func TestSeedpackWorkflow_ApplyAll(t *testing.T) {
+	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
+	clients := harness.NewClients(grpcConn)
+
+	seedpackWorkflows := []string{
+		"content-review-pipeline.yaml",
+		"support-ticket-triage.yaml",
+		"research-and-summarize.yaml",
+	}
+
+	for _, filename := range seedpackWorkflows {
+		t.Run(filename, func(t *testing.T) {
+			wf, err := harness.LoadSeedpackWorkflow(filename)
+			require.NoError(t, err, "loading %s should succeed", filename)
+
+			wf.Metadata.Name = "apply-test-" + wf.Metadata.Name
+			wf.Metadata.Org = "test-org"
+			wf.Spec.Document.Namespace = "test-org"
+			wf.Spec.Document.Name = wf.Metadata.Name
+
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+
+			applied, err := clients.WorkflowCommand.Apply(ctx, wf)
+			require.NoError(t, err, "server-side apply of %s should succeed", filename)
+			require.NotEmpty(t, applied.GetMetadata().GetId(),
+				"applied workflow should have a server-assigned ID")
+
+			t.Logf("applied %s: id=%s", filename, applied.GetMetadata().GetId())
+
+			_, _ = clients.WorkflowCommand.Delete(ctx,
+				&workflowv1.WorkflowId{Value: applied.GetMetadata().GetId()})
 		})
 	}
 }

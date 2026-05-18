@@ -21,10 +21,9 @@ spec:
   env:
     TICKET_DESCRIPTION:
       description: "The support ticket text to triage"
-      required: true
     CUSTOMER_EMAIL:
       description: "Customer email for follow-up (optional)"
-      required: false
+      optional: true
   budget:
     max_cost_micros: 500000
     max_duration_seconds: 300
@@ -72,6 +71,8 @@ spec:
               type: boolean
         on_invalid: ON_INVALID_RETRY
         max_retries: 2
+        max_tokens: 500
+        timeout: 60
       export:
         as: "${ .structured }"
       flow:
@@ -124,54 +125,50 @@ spec:
     - name: build_escalation_summary
       kind: transform
       task_config:
-        engine: jq
+        engine: TRANSFORM_ENGINE_JQ
         expression: >
           {
             status: "escalated",
             severity: "critical",
-            category: $classification.category,
-            summary: $classification.summary,
-            customer_impact: $classification.customer_impact,
-            approved_by: $approval.reviewer,
+            category: .classification.category,
+            summary: .classification.summary,
+            customer_impact: .classification.customer_impact,
+            approved_by: .approval.reviewer,
             action: "Route to incident response team"
           }
-        input:
-          classification: "${ $context.classify_ticket }"
-          approval: "${ $context.escalation_approval }"
+        input: "${ {classification: $context.classify_ticket, approval: $context.escalation_approval} }"
       export:
         as: "${ . }"
 
     - name: build_high_summary
       kind: transform
       task_config:
-        engine: jq
+        engine: TRANSFORM_ENGINE_JQ
         expression: >
           {
             status: "triaged",
-            severity: $classification.severity,
-            category: $classification.category,
-            summary: $classification.summary,
-            customer_impact: $classification.customer_impact,
+            severity: .severity,
+            category: .category,
+            summary: .summary,
+            customer_impact: .customer_impact,
             action: "Route to senior support queue"
           }
-        input:
-          classification: "${ $context.classify_ticket }"
+        input: "${ $context.classify_ticket }"
       export:
         as: "${ . }"
 
     - name: build_standard_summary
       kind: transform
       task_config:
-        engine: jq
+        engine: TRANSFORM_ENGINE_JQ
         expression: >
           {
             status: "triaged",
-            severity: $classification.severity,
-            category: $classification.category,
-            summary: $classification.summary,
+            severity: .severity,
+            category: .category,
+            summary: .summary,
             action: "Route to standard support queue"
           }
-        input:
-          classification: "${ $context.classify_ticket }"
+        input: "${ $context.classify_ticket }"
       export:
         as: "${ . }"
