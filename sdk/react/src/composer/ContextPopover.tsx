@@ -10,7 +10,6 @@ export function ContextPopover({
   disabled,
   open,
   onOpenChange,
-  hideLabel,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -19,8 +18,6 @@ export function ContextPopover({
   disabled?: boolean;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
-  /** When true, hides the text label on small viewports (icon-only). */
-  hideLabel?: boolean;
 }) {
   const portalContainer = useStigmerPortalContainer();
 
@@ -28,19 +25,22 @@ export function ContextPopover({
     <Popover.Root open={open} onOpenChange={onOpenChange}>
       <Popover.Trigger
         disabled={disabled}
+        title={label}
+        aria-label={label}
         className={cn(
-          "inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs transition-colors",
+          "inline-flex h-8 w-8 items-center justify-center rounded-md text-xs transition-colors",
           "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
           "disabled:pointer-events-none disabled:opacity-50",
         )}
       >
-        {icon}
-        <span className={cn(hideLabel && "max-sm:hidden")}>{label}</span>
-        {count > 0 && (
-          <span className="rounded-full bg-primary-subtle px-1.5 text-[0.6rem] font-medium text-primary">
-            {count}
-          </span>
-        )}
+        <span className="relative">
+          {icon}
+          {count > 0 && (
+            <span className="absolute -right-1.5 -top-1.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-primary px-0.5 text-[0.5rem] font-medium leading-none text-primary-foreground">
+              {count}
+            </span>
+          )}
+        </span>
       </Popover.Trigger>
       <Popover.Portal container={portalContainer}>
         <Popover.Positioner sideOffset={8} align="start">

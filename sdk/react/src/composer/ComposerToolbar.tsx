@@ -20,20 +20,30 @@ export interface ComposerToolbarProps {
   readonly canSend: boolean;
   readonly onSend: () => void;
 
-  // -- Tier 1: Workspace ----------------------------------------------------
+  // -- Left group: Primary state --------------------------------------------
+
+  readonly showHarnessSelector: boolean;
+  readonly harness?: HarnessOption;
+  readonly onHarnessChange: (harness: HarnessOption) => void;
+
+  readonly showInteractionModePicker: boolean;
+  readonly interactionMode?: InteractionModeOption;
+  readonly onInteractionModeChange: (mode: InteractionModeOption) => void;
+
+  readonly showModelSelector: boolean;
+  readonly modelId?: string;
+  readonly onModelChange: (id: string) => void;
+
+  // -- Right group: Secondary actions (icon-only) ---------------------------
 
   readonly showWorkspace: boolean;
   readonly workspaceCount: number;
   /** Pre-built workspace editor content for the popover. */
   readonly workspaceContent: React.ReactNode;
 
-  // -- Tier 1: Attach -------------------------------------------------------
-
   readonly showAttach: boolean;
   readonly attachmentCount: number;
   readonly onAttachClick: () => void;
-
-  // -- Tier 2: Configure menu -----------------------------------------------
 
   readonly configureItems: readonly ConfigureMenuItem[];
   readonly configOpen: boolean;
@@ -42,39 +52,23 @@ export interface ComposerToolbarProps {
   readonly onConfigActivePanelChange: (panel: string | null) => void;
   /** Render the picker content for a given configure panel id. */
   readonly renderConfigPanel: (itemId: string) => React.ReactNode;
-
-  // -- Harness selector -----------------------------------------------------
-
-  readonly showHarnessSelector: boolean;
-  readonly harness?: HarnessOption;
-  readonly onHarnessChange: (harness: HarnessOption) => void;
-
-  // -- Interaction mode picker ------------------------------------------------
-
-  readonly showInteractionModePicker: boolean;
-  readonly interactionMode?: InteractionModeOption;
-  readonly onInteractionModeChange: (mode: InteractionModeOption) => void;
-
-  // -- Model selector -------------------------------------------------------
-
-  readonly showModelSelector: boolean;
-  readonly modelId?: string;
-  readonly onModelChange: (id: string) => void;
 }
 
 /**
  * Composer toolbar — Zone 3 of the SessionComposer.
  *
- * Renders a two-tier toolbar following the frequency-of-interaction principle:
+ * Layout follows a two-group pattern inspired by Cursor's compact approach:
  *
- * **Tier 1 (always visible):** Workspace, Attach
- * **Tier 2 (behind Configure menu):** Agent, MCP, Skills, Secrets
- * **Right edge:** Runner Picker, Model Selector, Send
+ * **Left group (primary state):** Interaction Mode, Model Selector
+ * **Right group (secondary actions, icon-only):** Workspace, Attach, Configure, Send
  *
- * Workspace precedes Attach because it is the higher-signal context setter
- * (defines the codebase scope for the session). Attach is supplementary.
+ * Primary state indicators retain text labels (users glance at mode and model
+ * frequently). Secondary actions use icon-only buttons with tooltips and
+ * aria-labels — they are actions triggered occasionally, not state to monitor.
  *
- * Separators are placed between conceptual groups using Gestalt proximity.
+ * This separation follows Fitts's Law (related actions clustered near Send),
+ * Gestalt proximity (left = "what," right = "do"), and Nielsen H8 (minimal
+ * visual weight for secondary controls).
  */
 export function ComposerToolbar({
   disabled,
@@ -103,86 +97,25 @@ export function ComposerToolbar({
   modelId,
   onModelChange,
 }: ComposerToolbarProps) {
-  const hasTier1 = showAttach || showWorkspace;
-  const hasTier2 = configureItems.length > 0;
   const showHarnessSeparate = showHarnessSelector && !showModelSelector;
-  const hasExecParams = showHarnessSeparate || showInteractionModePicker || showModelSelector;
 
   return (
     <div className="flex items-center justify-between gap-2 border-t border-border-muted px-3 py-2">
-      <div className="flex items-center gap-1.5">
-        {/* ---- Tier 1: Input context (Workspace first, then Attach) ---- */}
+      {/* ---- Left group: Primary state (Mode + Model) ---- */}
 
-        {showWorkspace && (
-          <ContextPopover
-            icon={<WorkspaceIcon />}
-            label="Workspace"
-            count={workspaceCount}
+      <div className="flex min-w-0 items-center gap-1.5">
+        {showInteractionModePicker && (
+          <InteractionModePicker
+            value={interactionMode ?? "agent"}
+            onValueChange={onInteractionModeChange}
             disabled={disabled}
-            hideLabel
-          >
-            {workspaceContent}
-          </ContextPopover>
-        )}
-
-        {showAttach && (
-          <button
-            type="button"
-            disabled={disabled}
-            onClick={onAttachClick}
-            className={cn(
-              "inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs transition-colors",
-              "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
-              "disabled:pointer-events-none disabled:opacity-50",
-            )}
-            aria-label="Attach files"
-          >
-            <PaperclipIcon />
-            <span className="max-sm:hidden">Attach</span>
-            {attachmentCount > 0 && (
-              <span className="rounded-full bg-primary-subtle px-1.5 text-[0.6rem] font-medium text-primary">
-                {attachmentCount}
-              </span>
-            )}
-          </button>
-        )}
-
-        {/* ---- Separator between Tier 1 and Tier 2 ---- */}
-
-        {hasTier1 && hasTier2 && (
-          <div className="mx-0.5 h-4 w-px bg-border/50" aria-hidden="true" />
-        )}
-
-        {/* ---- Tier 2: Agent configuration (behind Configure menu) ---- */}
-
-        <ConfigureMenu
-          open={configOpen}
-          onOpenChange={onConfigOpenChange}
-          activePanel={configActivePanel}
-          onActivePanelChange={onConfigActivePanelChange}
-          items={configureItems}
-          renderPanel={renderConfigPanel}
-          disabled={disabled}
-        />
-
-        {/* ---- Separator before execution parameters ---- */}
-
-        {(hasTier1 || hasTier2) && hasExecParams && (
-          <div className="mx-0.5 h-4 w-px bg-border/50" aria-hidden="true" />
+          />
         )}
 
         {showHarnessSeparate && (
           <HarnessSelector
             value={harness ?? "native"}
             onValueChange={onHarnessChange}
-            disabled={disabled}
-          />
-        )}
-
-        {showInteractionModePicker && (
-          <InteractionModePicker
-            value={interactionMode ?? "agent"}
-            onValueChange={onInteractionModeChange}
             disabled={disabled}
           />
         )}
@@ -199,17 +132,64 @@ export function ComposerToolbar({
         )}
       </div>
 
-      {/* ---- Send button ---- */}
+      {/* ---- Right group: Secondary actions (icon-only) + Send ---- */}
 
-      <button
-        type="button"
-        disabled={!canSend}
-        onClick={onSend}
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-colors hover:bg-primary-hover disabled:pointer-events-none disabled:opacity-40"
-        aria-label="Send message"
-      >
-        {isSubmitting ? <SpinnerIcon /> : <ArrowUpIcon />}
-      </button>
+      <div className="flex shrink-0 items-center gap-1">
+        {showWorkspace && (
+          <ContextPopover
+            icon={<WorkspaceIcon />}
+            label="Workspace"
+            count={workspaceCount}
+            disabled={disabled}
+          >
+            {workspaceContent}
+          </ContextPopover>
+        )}
+
+        {showAttach && (
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={onAttachClick}
+            title="Attach files"
+            className={cn(
+              "inline-flex h-8 w-8 items-center justify-center rounded-md text-xs transition-colors",
+              "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
+              "disabled:pointer-events-none disabled:opacity-50",
+            )}
+            aria-label="Attach files"
+          >
+            <span className="relative">
+              <PaperclipIcon />
+              {attachmentCount > 0 && (
+                <span className="absolute -right-1.5 -top-1.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-primary px-0.5 text-[0.5rem] font-medium leading-none text-primary-foreground">
+                  {attachmentCount}
+                </span>
+              )}
+            </span>
+          </button>
+        )}
+
+        <ConfigureMenu
+          open={configOpen}
+          onOpenChange={onConfigOpenChange}
+          activePanel={configActivePanel}
+          onActivePanelChange={onConfigActivePanelChange}
+          items={configureItems}
+          renderPanel={renderConfigPanel}
+          disabled={disabled}
+        />
+
+        <button
+          type="button"
+          disabled={!canSend}
+          onClick={onSend}
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-colors hover:bg-primary-hover disabled:pointer-events-none disabled:opacity-40"
+          aria-label="Send message"
+        >
+          {isSubmitting ? <SpinnerIcon /> : <ArrowUpIcon />}
+        </button>
+      </div>
     </div>
   );
 }

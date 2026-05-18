@@ -73,26 +73,28 @@ export function ConfigureMenu({
     <Popover.Root open={open} onOpenChange={handleOpenChange}>
       <Popover.Trigger
         disabled={disabled}
+        title="Configure"
         className={cn(
-          "inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs transition-colors",
+          "inline-flex h-8 w-8 items-center justify-center rounded-md text-xs transition-colors",
           "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
           "disabled:pointer-events-none disabled:opacity-50",
         )}
         aria-label="Configure agent, tools, and skills"
       >
-        <ConfigureIcon />
-        <span className="max-sm:hidden">Configure</span>
-        {totalCount > 0 && (
-          <span className="rounded-full bg-primary-subtle px-1.5 text-[0.6rem] font-medium text-primary">
-            {totalCount}
-          </span>
-        )}
-        {hasWarning && totalCount === 0 && (
-          <span
-            className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-warning"
-            aria-label="Configuration needed"
-          />
-        )}
+        <span className="relative">
+          <ConfigureIcon />
+          {totalCount > 0 && (
+            <span className="absolute -right-1.5 -top-1.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-primary px-0.5 text-[0.5rem] font-medium leading-none text-primary-foreground">
+              {totalCount}
+            </span>
+          )}
+          {hasWarning && totalCount === 0 && (
+            <span
+              className="absolute -right-0.5 -top-0.5 inline-block h-2 w-2 rounded-full bg-warning"
+              aria-label="Configuration needed"
+            />
+          )}
+        </span>
       </Popover.Trigger>
       <Popover.Portal container={portalContainer}>
         <Popover.Positioner sideOffset={8} align="start">
