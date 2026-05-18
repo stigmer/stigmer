@@ -4,14 +4,3 @@ load("@gazelle//:def.bzl", "gazelle")
 # gazelle:exclude apis/ai
 # gazelle:exclude sdk
 gazelle(name = "gazelle")
-
-# Update existing BUILD files
-gazelle(
-    name = "gazelle-update-repos",
-    args = [
-        "-from_file=go.mod",
-        "-to_macro=deps.bzl%go_dependencies",
-        "-prune",
-    ],
-    command = "update-repos",
-)
