@@ -142,6 +142,7 @@ func TestMain(m *testing.M) {
 		Security:        harness.SecurityModeProduction,
 		Auth0IssuerURL:  mockAuth0.Issuer,
 		Auth0Audience:   testAudience,
+		Auth0TokenURL:   mockAuth0.URL + "/oauth/token",
 	}
 
 	if testHarness.MinIO != nil {

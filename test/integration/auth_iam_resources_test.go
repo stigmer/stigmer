@@ -70,10 +70,12 @@ func TestIdentityProvider_CRUD_Lifecycle(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
+	jwksServer := harness.StartMockJWKSServer(t, "https://test-idp.example.com/")
+
 	idp := harness.CreateIdentityProvider(t, ctx, clients,
 		"Test IdP CRUD",
-		"https://test-idp.example.com/.well-known/jwks.json",
-		[]string{"https://test-idp.example.com/"},
+		jwksServer.JWKSURL,
+		[]string{jwksServer.Issuer},
 		"stigmer-test-audience",
 	)
 
@@ -100,10 +102,12 @@ func TestIdentityProvider_ListByOrg(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
+	jwksServer := harness.StartMockJWKSServer(t, "https://list-idp.example.com/")
+
 	harness.CreateIdentityProvider(t, ctx, clients,
 		"Test IdP List",
-		"https://list-idp.example.com/.well-known/jwks.json",
-		[]string{"https://list-idp.example.com/"},
+		jwksServer.JWKSURL,
+		[]string{jwksServer.Issuer},
 		"stigmer-list-audience",
 	)
 
@@ -121,10 +125,12 @@ func TestIdentityAccount_CreateFederated_Lifecycle(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
+	jwksServer := harness.StartMockJWKSServer(t, "https://federated-lifecycle.example.com/")
+
 	idp := harness.CreateIdentityProvider(t, ctx, clients,
 		"Federated Lifecycle IdP",
-		"https://federated-lifecycle.example.com/.well-known/jwks.json",
-		[]string{"https://federated-lifecycle.example.com/"},
+		jwksServer.JWKSURL,
+		[]string{jwksServer.Issuer},
 		"stigmer-federated-audience",
 	)
 

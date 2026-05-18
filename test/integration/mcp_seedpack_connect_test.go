@@ -48,6 +48,9 @@ func applyMcpServer(t *testing.T, ctx context.Context, clients *harness.Clients,
 // "org must be at least 1 character" from protovalidate.
 func TestMcpConnect_OrgPassedCorrectly(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
+	if testHarness.AgentRunner == nil {
+		t.Skip("agent-runner not running (ANTHROPIC_API_KEY required) — skipping MCP connect test")
+	}
 	if mcpTestServerBinary == "" {
 		t.Skip("test MCP server binary not available")
 	}
@@ -85,6 +88,9 @@ func TestMcpConnect_OrgPassedCorrectly(t *testing.T) {
 // Regression: GitHub issue #150 — placeholders were passed through literally.
 func TestMcpConnect_PlaceholderResolution_HttpHeaders(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
+	if testHarness.AgentRunner == nil {
+		t.Skip("agent-runner not running (ANTHROPIC_API_KEY required) — skipping MCP connect test")
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
@@ -133,6 +139,9 @@ func TestMcpConnect_PlaceholderResolution_HttpHeaders(t *testing.T) {
 // Regression: GitHub issue #141 — args placeholders were not expanded.
 func TestMcpConnect_PlaceholderResolution_StdioArgs(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
+	if testHarness.AgentRunner == nil {
+		t.Skip("agent-runner not running (ANTHROPIC_API_KEY required) — skipping MCP connect test")
+	}
 	if mcpTestServerBinary == "" {
 		t.Skip("test MCP server binary not available")
 	}
@@ -224,6 +233,9 @@ func TestMcpConnect_MissingEnvVar_ClearError(t *testing.T) {
 // server, connects it, and verifies that tools appear in status.
 func TestMcpConnect_StdioServer_ToolsDiscovered(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
+	if testHarness.AgentRunner == nil {
+		t.Skip("agent-runner not running (ANTHROPIC_API_KEY required) — skipping MCP connect test")
+	}
 	if mcpTestServerBinary == "" {
 		t.Skip("test MCP server binary not available")
 	}
@@ -252,6 +264,9 @@ func TestMcpConnect_StdioServer_ToolsDiscovered(t *testing.T) {
 // server, applies it, connects, and verifies that tools appear in status.
 func TestMcpConnect_HttpServer_ToolsDiscovered(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
+	if testHarness.AgentRunner == nil {
+		t.Skip("agent-runner not running (ANTHROPIC_API_KEY required) — skipping MCP connect test")
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 	defer cancel()

@@ -451,7 +451,13 @@ tsdoc-check: ## Validate TSDoc quality for all TypeScript SDKs
 test-demos: docs-build ## Run Playwright demo e2e tests — slow (~20 min), run explicitly or in CI
 	$(MAKE) -C site test-demos
 
-test-e2e: ## Run Playwright E2E smoke tests against a deployed instance
+test-e2e: ## Run Playwright functional E2E tests against local dev server
+	cd test/e2e && npm ci && npx playwright install --with-deps chromium && npx playwright test --project=functional
+
+test-e2e-smoke: ## Run Playwright smoke tests against a deployed instance (set STIGMER_E2E_BASE_URL)
+	cd test/e2e && npm ci && npx playwright install --with-deps chromium && npx playwright test --project=smoke
+
+test-e2e-all: ## Run all Playwright E2E tests (smoke + functional)
 	cd test/e2e && npm ci && npx playwright install --with-deps chromium && npx playwright test
 
 check: tidy fix lint lint-docs format-docs-check tsdoc-check gen-sdk-docs gen-sdk-docs-check check-links build test test-web test-desktop validate-demos ## Run full CI gate locally

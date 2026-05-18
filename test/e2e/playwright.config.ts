@@ -1,17 +1,24 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /**
- * E2E smoke tests for the Stigmer web console.
+ * E2E tests for the Stigmer web console, split into two tiers:
  *
- * Default target is the production deployment at app.stigmer.ai.
- * Override with the STIGMER_E2E_BASE_URL env var for staging or local.
+ * - **smoke**: lightweight checks that work against any deployment (including
+ *   production behind auth). Validates page loads, absence of error banners,
+ *   and HTTP status codes. Run post-deploy via `make test-e2e-smoke`.
  *
- * Auth is disabled by default (OSS mode). For cloud deployments
- * requiring OIDC, set STIGMER_E2E_AUTH_ENABLED=true and provide
- * credentials via STIGMER_E2E_USERNAME / STIGMER_E2E_PASSWORD.
+ * - **functional**: content assertions that require the full app rendering
+ *   (dashboard heading, session composer input, 404 page). These run against
+ *   a local dev server via `make test-e2e`.
+ *
+ * Override the target with STIGMER_E2E_BASE_URL for staging or local.
+ * When no STIGMER_E2E_BASE_URL is set, Playwright auto-starts the local
+ * dev server and defaults to http://localhost:3000.
  */
+const isExternalTarget = !!process.env.STIGMER_E2E_BASE_URL;
+const baseURL = process.env.STIGMER_E2E_BASE_URL ?? "http://localhost:3000";
+
 export default defineConfig({
-  testDir: "./tests",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -21,17 +28,33 @@ export default defineConfig({
     : "html",
 
   use: {
-    baseURL: process.env.STIGMER_E2E_BASE_URL ?? "https://app.stigmer.ai",
+    baseURL,
     trace: "on-first-retry",
     screenshot: "only-on-failure",
   },
 
   projects: [
     {
-      name: "chromium",
+      name: "smoke",
+      testDir: "./tests/smoke",
+      use: { ...devices["Desktop Chrome"] },
+    },
+    {
+      name: "functional",
+      testDir: "./tests/functional",
       use: { ...devices["Desktop Chrome"] },
     },
   ],
+
+  webServer: !isExternalTarget
+    ? {
+        command: "npm run dev -w client-apps/web",
+        cwd: "../..",
+        url: "http://localhost:3000",
+        reuseExistingServer: true,
+        timeout: 60_000,
+      }
+    : undefined,
 
   outputDir: "test-results",
 });
