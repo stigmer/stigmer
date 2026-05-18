@@ -15,7 +15,6 @@ spec:
     - version-control
     - repository
   stdio:
-    command: "npx"
+    command: "uvx"
     args:
-      - "-y"
-      - "@modelcontextprotocol/server-git"
+      - "mcp-server-git"
