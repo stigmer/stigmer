@@ -70,6 +70,7 @@ type OAuthAppInput struct {
 	Slug                  string
 	Org                   string
 	Labels                map[string]string
+	Visibility            apiresource.ApiResourceVisibility
 	Provider              string
 	ClientId              string
 	ClientSecret          string
@@ -87,10 +88,11 @@ func (i *OAuthAppInput) toProto() *oauthappv1.OAuthApp {
 		ApiVersion: "iam.stigmer.ai/v1",
 		Kind:       "OAuthApp",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name:   i.Name,
-			Slug:   i.Slug,
-			Org:    i.Org,
-			Labels: i.Labels,
+			Name:       i.Name,
+			Slug:       i.Slug,
+			Org:        i.Org,
+			Labels:     i.Labels,
+			Visibility: i.Visibility,
 		},
 		Spec: &oauthappv1.OAuthAppSpec{},
 	}
@@ -118,6 +120,7 @@ func OAuthAppInputFromProto(p *oauthappv1.OAuthApp) *OAuthAppInput {
 		input.Slug = m.GetSlug()
 		input.Org = m.GetOrg()
 		input.Labels = m.GetLabels()
+		input.Visibility = m.GetVisibility()
 	}
 	if s := p.GetSpec(); s != nil {
 		input.Provider = s.GetProvider()

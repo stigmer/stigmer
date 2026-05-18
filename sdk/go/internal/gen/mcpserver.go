@@ -137,6 +137,7 @@ type McpServerInput struct {
 	Slug                string
 	Org                 string
 	Labels              map[string]string
+	Visibility          apiresource.ApiResourceVisibility
 	Description         string
 	IconUrl             string
 	Stdio               *StdioServerConfigInput
@@ -184,10 +185,11 @@ func (i *McpServerInput) toProto() *mcpserverv1.McpServer {
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "McpServer",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name:   i.Name,
-			Slug:   i.Slug,
-			Org:    i.Org,
-			Labels: i.Labels,
+			Name:       i.Name,
+			Slug:       i.Slug,
+			Org:        i.Org,
+			Labels:     i.Labels,
+			Visibility: i.Visibility,
 		},
 		Spec: &mcpserverv1.McpServerSpec{},
 	}
@@ -262,6 +264,7 @@ func McpServerInputFromProto(p *mcpserverv1.McpServer) *McpServerInput {
 		input.Slug = m.GetSlug()
 		input.Org = m.GetOrg()
 		input.Labels = m.GetLabels()
+		input.Visibility = m.GetVisibility()
 	}
 	if s := p.GetSpec(); s != nil {
 		input.Description = s.GetDescription()

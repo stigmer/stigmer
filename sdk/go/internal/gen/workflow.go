@@ -102,6 +102,7 @@ type WorkflowInput struct {
 	Slug        string
 	Org         string
 	Labels      map[string]string
+	Visibility  apiresource.ApiResourceVisibility
 	Description string
 	Document    *WorkflowDocumentInput
 	Tasks       []*WorkflowTaskInput
@@ -151,10 +152,11 @@ func (i *WorkflowInput) toProto() *workflowv1.Workflow {
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Workflow",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name:   i.Name,
-			Slug:   i.Slug,
-			Org:    i.Org,
-			Labels: i.Labels,
+			Name:       i.Name,
+			Slug:       i.Slug,
+			Org:        i.Org,
+			Labels:     i.Labels,
+			Visibility: i.Visibility,
 		},
 		Spec: &workflowv1.WorkflowSpec{},
 	}
@@ -229,6 +231,7 @@ func WorkflowInputFromProto(p *workflowv1.Workflow) *WorkflowInput {
 		input.Slug = m.GetSlug()
 		input.Org = m.GetOrg()
 		input.Labels = m.GetLabels()
+		input.Visibility = m.GetVisibility()
 	}
 	if s := p.GetSpec(); s != nil {
 		input.Description = s.GetDescription()

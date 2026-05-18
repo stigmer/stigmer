@@ -85,6 +85,7 @@ class IdentityProviderInput:
     org: str
     slug: str | None = None
     labels: dict[str, str] | None = None
+    visibility: int = 0
     display_name: str = ""
     jwks_uri: str = ""
     allowed_issuers: list[str] = field(default_factory=list)
@@ -122,6 +123,8 @@ class IdentityProviderInput:
             metadata.slug = self.slug
         if self.labels:
             metadata.labels.update(self.labels)
+        if self.visibility:
+            metadata.visibility = self.visibility
         return api_pb2.IdentityProvider(
             api_version="iam.stigmer.ai/v1",
             kind="IdentityProvider",

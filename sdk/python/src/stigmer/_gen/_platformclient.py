@@ -88,6 +88,7 @@ class PlatformClientInput:
     org: str
     slug: str | None = None
     labels: dict[str, str] | None = None
+    visibility: int = 0
     client_id: str = ""
     client_secret_hash: str = ""
     secret_fingerprint: str = ""
@@ -120,6 +121,8 @@ class PlatformClientInput:
             metadata.slug = self.slug
         if self.labels:
             metadata.labels.update(self.labels)
+        if self.visibility:
+            metadata.visibility = self.visibility
         return api_pb2.PlatformClient(
             api_version="iam.stigmer.ai/v1",
             kind="PlatformClient",

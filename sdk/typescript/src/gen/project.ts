@@ -6,6 +6,7 @@ import { type ResourceRef } from "./types";
 import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { ProjectSchema, type Project } from "@stigmer/protos/ai/stigmer/tenancy/project/v1/api_pb";
@@ -67,6 +68,7 @@ export interface ProjectInput {
   slug?: string;
   org: string;
   labels?: Record<string, string>;
+  visibility?: ApiResourceVisibility;
   entryPoint?: string;
   description?: string;
   members?: ResourceRef[];
@@ -82,6 +84,7 @@ function buildProjectProto(input: ProjectInput): Project {
       org: input.org,
       ...(input.slug && { slug: input.slug }),
       ...(input.labels && { labels: input.labels }),
+      ...(input.visibility && { visibility: input.visibility }),
     }),
     spec: Object.assign(create(ProjectSpecSchema), stripUndefined({
       entryPoint: input.entryPoint,

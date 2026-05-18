@@ -1224,6 +1224,7 @@ func generateJavaInputClass(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 	imports.add(protoPackage + "." + cfg.protoResType)
 	imports.add(protoPackage + "." + spec.Name)
 	imports.add("ai.stigmer.commons.apiresource.ApiResourceMetadata")
+	imports.add("ai.stigmer.commons.apiresource.ApiResourceVisibility")
 
 	var specFields []*FieldSchema
 	for _, f := range spec.Fields {
@@ -1302,6 +1303,7 @@ func generateJavaInputClass(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 	body.WriteString("    private final String org;\n")
 	body.WriteString("    private final String slug;\n")
 	body.WriteString("    private final java.util.Map<String, String> labels;\n")
+	body.WriteString("    private final ApiResourceVisibility visibility;\n")
 	for _, f := range specFields {
 		jType := javaTypeForField(f, typeMap)
 		fmt.Fprintf(&body, "    private final %s %s;\n", jType, javaCamel(f.ProtoField))
@@ -1313,6 +1315,7 @@ func generateJavaInputClass(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 	body.WriteString("        this.org = builder.org;\n")
 	body.WriteString("        this.slug = builder.slug;\n")
 	body.WriteString("        this.labels = builder.labels;\n")
+	body.WriteString("        this.visibility = builder.visibility;\n")
 	for _, f := range specFields {
 		fieldName := javaCamel(f.ProtoField)
 		fmt.Fprintf(&body, "        this.%s = builder.%s;\n", fieldName, fieldName)
@@ -1328,6 +1331,7 @@ func generateJavaInputClass(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 	body.WriteString("        private String org;\n")
 	body.WriteString("        private String slug;\n")
 	body.WriteString("        private java.util.Map<String, String> labels;\n")
+	body.WriteString("        private ApiResourceVisibility visibility;\n")
 	for _, f := range specFields {
 		jType := javaTypeForField(f, typeMap)
 		fmt.Fprintf(&body, "        private %s %s;\n", jType, javaCamel(f.ProtoField))
@@ -1337,6 +1341,7 @@ func generateJavaInputClass(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 	body.WriteString("        public Builder org(String org) { this.org = org; return this; }\n")
 	body.WriteString("        public Builder slug(String slug) { this.slug = slug; return this; }\n")
 	body.WriteString("        public Builder labels(java.util.Map<String, String> labels) { this.labels = labels; return this; }\n")
+	body.WriteString("        public Builder visibility(ApiResourceVisibility visibility) { this.visibility = visibility; return this; }\n")
 	for _, f := range specFields {
 		jType := javaTypeForField(f, typeMap)
 		fieldName := javaCamel(f.ProtoField)
@@ -1469,6 +1474,9 @@ func emitJavaToProto(buf *bytes.Buffer, cfg sdkResourceConfig, spec *TaskConfigS
 	buf.WriteString("        }\n")
 	buf.WriteString("        if (this.labels != null) {\n")
 	buf.WriteString("            metaBuilder.putAllLabels(this.labels);\n")
+	buf.WriteString("        }\n")
+	buf.WriteString("        if (this.visibility != null) {\n")
+	buf.WriteString("            metaBuilder.setVisibility(this.visibility);\n")
 	buf.WriteString("        }\n")
 	fmt.Fprintf(buf, "        return %s.newBuilder()\n", resType)
 	fmt.Fprintf(buf, "            .setApiVersion(%q)\n", cfg.apiVersion)

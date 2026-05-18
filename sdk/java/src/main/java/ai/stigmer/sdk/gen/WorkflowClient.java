@@ -9,6 +9,7 @@ import ai.stigmer.agentic.workflow.v1.Workflow;
 import ai.stigmer.agentic.workflow.v1.WorkflowCommandControllerGrpc;
 import ai.stigmer.agentic.workflow.v1.WorkflowId;
 import ai.stigmer.agentic.workflow.v1.WorkflowQueryControllerGrpc;
+import ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 import ai.stigmer.commons.rpc.PageInfo;
 import ai.stigmer.search.v1.SearchRequest;
@@ -52,6 +53,12 @@ public final class WorkflowClient {
     public Workflow delete(String id) {
         try {
             return command.delete(WorkflowId.newBuilder().setValue(id).build());
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public ServerlessWorkflowValidation validateSpec(WorkflowInput input) {
+        try {
+            return command.validateSpec(input.toProto());
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

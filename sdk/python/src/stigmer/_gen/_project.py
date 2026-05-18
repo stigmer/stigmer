@@ -73,6 +73,7 @@ class ProjectInput:
     org: str
     slug: str | None = None
     labels: dict[str, str] | None = None
+    visibility: int = 0
     entry_point: str = ""
     description: str = ""
     members: list[ResourceRef] = field(default_factory=list)
@@ -92,6 +93,8 @@ class ProjectInput:
             metadata.slug = self.slug
         if self.labels:
             metadata.labels.update(self.labels)
+        if self.visibility:
+            metadata.visibility = self.visibility
         return api_pb2.Project(
             api_version="tenancy.stigmer.ai/v1",
             kind="Project",

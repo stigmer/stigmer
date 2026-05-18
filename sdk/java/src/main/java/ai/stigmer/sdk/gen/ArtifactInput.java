@@ -7,6 +7,7 @@ import ai.stigmer.agentic.artifact.v1.ArtifactSource;
 import ai.stigmer.agentic.artifact.v1.ArtifactSpec;
 import ai.stigmer.agentic.artifact.v1.RetentionPolicy;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
+import ai.stigmer.commons.apiresource.ApiResourceVisibility;
 
 /** Input for creating/updating a Artifact. */
 public final class ArtifactInput {
@@ -14,6 +15,7 @@ public final class ArtifactInput {
     private final String org;
     private final String slug;
     private final java.util.Map<String, String> labels;
+    private final ApiResourceVisibility visibility;
     private final String contentType;
     private final String displayName;
     private final ArtifactSourceInput source;
@@ -24,6 +26,7 @@ public final class ArtifactInput {
         this.org = builder.org;
         this.slug = builder.slug;
         this.labels = builder.labels;
+        this.visibility = builder.visibility;
         this.contentType = builder.contentType;
         this.displayName = builder.displayName;
         this.source = builder.source;
@@ -53,6 +56,9 @@ public final class ArtifactInput {
         if (this.labels != null) {
             metaBuilder.putAllLabels(this.labels);
         }
+        if (this.visibility != null) {
+            metaBuilder.setVisibility(this.visibility);
+        }
         return Artifact.newBuilder()
             .setApiVersion("agentic.stigmer.ai/v1")
             .setKind("Artifact")
@@ -68,6 +74,7 @@ public final class ArtifactInput {
         private String org;
         private String slug;
         private java.util.Map<String, String> labels;
+        private ApiResourceVisibility visibility;
         private String contentType;
         private String displayName;
         private ArtifactSourceInput source;
@@ -79,6 +86,7 @@ public final class ArtifactInput {
         public Builder org(String org) { this.org = org; return this; }
         public Builder slug(String slug) { this.slug = slug; return this; }
         public Builder labels(java.util.Map<String, String> labels) { this.labels = labels; return this; }
+        public Builder visibility(ApiResourceVisibility visibility) { this.visibility = visibility; return this; }
         public Builder contentType(String contentType) { this.contentType = contentType; return this; }
         public Builder displayName(String displayName) { this.displayName = displayName; return this; }
         public Builder source(ArtifactSourceInput source) { this.source = source; return this; }

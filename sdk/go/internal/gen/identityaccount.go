@@ -95,6 +95,7 @@ type IdentityAccountInput struct {
 	Slug                string
 	Org                 string
 	Labels              map[string]string
+	Visibility          apiresource.ApiResourceVisibility
 	IdpId               string
 	Email               string
 	FirstName           string
@@ -110,10 +111,11 @@ func (i *IdentityAccountInput) toProto() *identityaccountv1.IdentityAccount {
 		ApiVersion: "iam.stigmer.ai/v1",
 		Kind:       "IdentityAccount",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name:   i.Name,
-			Slug:   i.Slug,
-			Org:    i.Org,
-			Labels: i.Labels,
+			Name:       i.Name,
+			Slug:       i.Slug,
+			Org:        i.Org,
+			Labels:     i.Labels,
+			Visibility: i.Visibility,
 		},
 		Spec: &identityaccountv1.IdentityAccountSpec{},
 	}
@@ -141,6 +143,7 @@ func IdentityAccountInputFromProto(p *identityaccountv1.IdentityAccount) *Identi
 		input.Slug = m.GetSlug()
 		input.Org = m.GetOrg()
 		input.Labels = m.GetLabels()
+		input.Visibility = m.GetVisibility()
 	}
 	if s := p.GetSpec(); s != nil {
 		input.IdpId = s.GetIdpId()

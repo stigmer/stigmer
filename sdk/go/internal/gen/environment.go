@@ -85,6 +85,7 @@ type EnvironmentInput struct {
 	Slug        string
 	Org         string
 	Labels      map[string]string
+	Visibility  apiresource.ApiResourceVisibility
 	Description string
 	Data        map[string]EnvVarInput
 }
@@ -94,10 +95,11 @@ func (i *EnvironmentInput) toProto() *environmentv1.Environment {
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Environment",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name:   i.Name,
-			Slug:   i.Slug,
-			Org:    i.Org,
-			Labels: i.Labels,
+			Name:       i.Name,
+			Slug:       i.Slug,
+			Org:        i.Org,
+			Labels:     i.Labels,
+			Visibility: i.Visibility,
 		},
 		Spec: &environmentv1.EnvironmentSpec{},
 	}
@@ -122,6 +124,7 @@ func EnvironmentInputFromProto(p *environmentv1.Environment) *EnvironmentInput {
 		input.Slug = m.GetSlug()
 		input.Org = m.GetOrg()
 		input.Labels = m.GetLabels()
+		input.Visibility = m.GetVisibility()
 	}
 	if s := p.GetSpec(); s != nil {
 		input.Description = s.GetDescription()

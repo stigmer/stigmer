@@ -3,6 +3,7 @@
 package ai.stigmer.sdk.gen;
 
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
+import ai.stigmer.commons.apiresource.ApiResourceVisibility;
 import ai.stigmer.iam.oauthapp.v1.OAuthApp;
 import ai.stigmer.iam.oauthapp.v1.OAuthAppSpec;
 import ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus;
@@ -13,6 +14,7 @@ public final class OAuthAppInput {
     private final String org;
     private final String slug;
     private final java.util.Map<String, String> labels;
+    private final ApiResourceVisibility visibility;
     private final String provider;
     private final String clientId;
     private final String clientSecret;
@@ -29,6 +31,7 @@ public final class OAuthAppInput {
         this.org = builder.org;
         this.slug = builder.slug;
         this.labels = builder.labels;
+        this.visibility = builder.visibility;
         this.provider = builder.provider;
         this.clientId = builder.clientId;
         this.clientSecret = builder.clientSecret;
@@ -82,6 +85,9 @@ public final class OAuthAppInput {
         if (this.labels != null) {
             metaBuilder.putAllLabels(this.labels);
         }
+        if (this.visibility != null) {
+            metaBuilder.setVisibility(this.visibility);
+        }
         return OAuthApp.newBuilder()
             .setApiVersion("iam.stigmer.ai/v1")
             .setKind("OAuthApp")
@@ -97,6 +103,7 @@ public final class OAuthAppInput {
         private String org;
         private String slug;
         private java.util.Map<String, String> labels;
+        private ApiResourceVisibility visibility;
         private String provider;
         private String clientId;
         private String clientSecret;
@@ -114,6 +121,7 @@ public final class OAuthAppInput {
         public Builder org(String org) { this.org = org; return this; }
         public Builder slug(String slug) { this.slug = slug; return this; }
         public Builder labels(java.util.Map<String, String> labels) { this.labels = labels; return this; }
+        public Builder visibility(ApiResourceVisibility visibility) { this.visibility = visibility; return this; }
         public Builder provider(String provider) { this.provider = provider; return this; }
         public Builder clientId(String clientId) { this.clientId = clientId; return this; }
         public Builder clientSecret(String clientSecret) { this.clientSecret = clientSecret; return this; }

@@ -88,6 +88,7 @@ class SessionInput:
     org: str
     slug: str | None = None
     labels: dict[str, str] | None = None
+    visibility: int = 0
     agent_instance_id: str = ""
     subject: str = ""
     thread_id: str = ""
@@ -128,6 +129,8 @@ class SessionInput:
             metadata.slug = self.slug
         if self.labels:
             metadata.labels.update(self.labels)
+        if self.visibility:
+            metadata.visibility = self.visibility
         return api_pb2.Session(
             api_version="agentic.stigmer.ai/v1",
             kind="Session",

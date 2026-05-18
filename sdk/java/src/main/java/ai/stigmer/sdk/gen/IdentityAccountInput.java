@@ -3,6 +3,7 @@
 package ai.stigmer.sdk.gen;
 
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
+import ai.stigmer.commons.apiresource.ApiResourceVisibility;
 import ai.stigmer.iam.identityaccount.v1.IdentityAccount;
 import ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningMode;
 import ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec;
@@ -13,6 +14,7 @@ public final class IdentityAccountInput {
     private final String org;
     private final String slug;
     private final java.util.Map<String, String> labels;
+    private final ApiResourceVisibility visibility;
     private final String idpId;
     private final String email;
     private final String firstName;
@@ -27,6 +29,7 @@ public final class IdentityAccountInput {
         this.org = builder.org;
         this.slug = builder.slug;
         this.labels = builder.labels;
+        this.visibility = builder.visibility;
         this.idpId = builder.idpId;
         this.email = builder.email;
         this.firstName = builder.firstName;
@@ -70,6 +73,9 @@ public final class IdentityAccountInput {
         if (this.labels != null) {
             metaBuilder.putAllLabels(this.labels);
         }
+        if (this.visibility != null) {
+            metaBuilder.setVisibility(this.visibility);
+        }
         return IdentityAccount.newBuilder()
             .setApiVersion("iam.stigmer.ai/v1")
             .setKind("IdentityAccount")
@@ -85,6 +91,7 @@ public final class IdentityAccountInput {
         private String org;
         private String slug;
         private java.util.Map<String, String> labels;
+        private ApiResourceVisibility visibility;
         private String idpId;
         private String email;
         private String firstName;
@@ -100,6 +107,7 @@ public final class IdentityAccountInput {
         public Builder org(String org) { this.org = org; return this; }
         public Builder slug(String slug) { this.slug = slug; return this; }
         public Builder labels(java.util.Map<String, String> labels) { this.labels = labels; return this; }
+        public Builder visibility(ApiResourceVisibility visibility) { this.visibility = visibility; return this; }
         public Builder idpId(String idpId) { this.idpId = idpId; return this; }
         public Builder email(String email) { this.email = email; return this; }
         public Builder firstName(String firstName) { this.firstName = firstName; return this; }

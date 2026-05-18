@@ -3,6 +3,7 @@
 package ai.stigmer.sdk.gen;
 
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
+import ai.stigmer.commons.apiresource.ApiResourceVisibility;
 import ai.stigmer.iam.platformclient.v1.PlatformClient;
 import ai.stigmer.iam.platformclient.v1.PlatformClientSpec;
 import ai.stigmer.iam.v1.IamRole;
@@ -14,6 +15,7 @@ public final class PlatformClientInput {
     private final String org;
     private final String slug;
     private final java.util.Map<String, String> labels;
+    private final ApiResourceVisibility visibility;
     private final String clientId;
     private final String clientSecretHash;
     private final String secretFingerprint;
@@ -29,6 +31,7 @@ public final class PlatformClientInput {
         this.org = builder.org;
         this.slug = builder.slug;
         this.labels = builder.labels;
+        this.visibility = builder.visibility;
         this.clientId = builder.clientId;
         this.clientSecretHash = builder.clientSecretHash;
         this.secretFingerprint = builder.secretFingerprint;
@@ -76,6 +79,9 @@ public final class PlatformClientInput {
         if (this.labels != null) {
             metaBuilder.putAllLabels(this.labels);
         }
+        if (this.visibility != null) {
+            metaBuilder.setVisibility(this.visibility);
+        }
         return PlatformClient.newBuilder()
             .setApiVersion("iam.stigmer.ai/v1")
             .setKind("PlatformClient")
@@ -91,6 +97,7 @@ public final class PlatformClientInput {
         private String org;
         private String slug;
         private java.util.Map<String, String> labels;
+        private ApiResourceVisibility visibility;
         private String clientId;
         private String clientSecretHash;
         private String secretFingerprint;
@@ -107,6 +114,7 @@ public final class PlatformClientInput {
         public Builder org(String org) { this.org = org; return this; }
         public Builder slug(String slug) { this.slug = slug; return this; }
         public Builder labels(java.util.Map<String, String> labels) { this.labels = labels; return this; }
+        public Builder visibility(ApiResourceVisibility visibility) { this.visibility = visibility; return this; }
         public Builder clientId(String clientId) { this.clientId = clientId; return this; }
         public Builder clientSecretHash(String clientSecretHash) { this.clientSecretHash = clientSecretHash; return this; }
         public Builder secretFingerprint(String secretFingerprint) { this.secretFingerprint = secretFingerprint; return this; }

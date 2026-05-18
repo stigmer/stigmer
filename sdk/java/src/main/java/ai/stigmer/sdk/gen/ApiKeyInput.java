@@ -3,6 +3,7 @@
 package ai.stigmer.sdk.gen;
 
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
+import ai.stigmer.commons.apiresource.ApiResourceVisibility;
 import ai.stigmer.iam.apikey.v1.ApiKey;
 import ai.stigmer.iam.apikey.v1.ApiKeySpec;
 import com.google.protobuf.Timestamp;
@@ -13,6 +14,7 @@ public final class ApiKeyInput {
     private final String org;
     private final String slug;
     private final java.util.Map<String, String> labels;
+    private final ApiResourceVisibility visibility;
     private final String keyHash;
     private final String fingerprint;
     private final String expiresAt;
@@ -23,6 +25,7 @@ public final class ApiKeyInput {
         this.org = builder.org;
         this.slug = builder.slug;
         this.labels = builder.labels;
+        this.visibility = builder.visibility;
         this.keyHash = builder.keyHash;
         this.fingerprint = builder.fingerprint;
         this.expiresAt = builder.expiresAt;
@@ -54,6 +57,9 @@ public final class ApiKeyInput {
         if (this.labels != null) {
             metaBuilder.putAllLabels(this.labels);
         }
+        if (this.visibility != null) {
+            metaBuilder.setVisibility(this.visibility);
+        }
         return ApiKey.newBuilder()
             .setApiVersion("iam.stigmer.ai/v1")
             .setKind("ApiKey")
@@ -69,6 +75,7 @@ public final class ApiKeyInput {
         private String org;
         private String slug;
         private java.util.Map<String, String> labels;
+        private ApiResourceVisibility visibility;
         private String keyHash;
         private String fingerprint;
         private String expiresAt;
@@ -80,6 +87,7 @@ public final class ApiKeyInput {
         public Builder org(String org) { this.org = org; return this; }
         public Builder slug(String slug) { this.slug = slug; return this; }
         public Builder labels(java.util.Map<String, String> labels) { this.labels = labels; return this; }
+        public Builder visibility(ApiResourceVisibility visibility) { this.visibility = visibility; return this; }
         public Builder keyHash(String keyHash) { this.keyHash = keyHash; return this; }
         public Builder fingerprint(String fingerprint) { this.fingerprint = fingerprint; return this; }
         public Builder expiresAt(String expiresAt) { this.expiresAt = expiresAt; return this; }

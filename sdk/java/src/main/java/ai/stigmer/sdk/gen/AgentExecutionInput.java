@@ -7,8 +7,10 @@ import ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec;
 import ai.stigmer.agentic.agentexecution.v1.Attachment;
 import ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig;
 import ai.stigmer.agentic.agentexecution.v1.ExecutionConfig;
+import ai.stigmer.agentic.agentexecution.v1.InteractionMode;
 import ai.stigmer.agentic.executioncontext.v1.ExecutionValue;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
+import ai.stigmer.commons.apiresource.ApiResourceVisibility;
 
 /** Input for creating/updating a AgentExecution. */
 public final class AgentExecutionInput {
@@ -16,6 +18,7 @@ public final class AgentExecutionInput {
     private final String org;
     private final String slug;
     private final java.util.Map<String, String> labels;
+    private final ApiResourceVisibility visibility;
     private final String sessionId;
     private final String agentId;
     private final String message;
@@ -32,6 +35,7 @@ public final class AgentExecutionInput {
         this.org = builder.org;
         this.slug = builder.slug;
         this.labels = builder.labels;
+        this.visibility = builder.visibility;
         this.sessionId = builder.sessionId;
         this.agentId = builder.agentId;
         this.message = builder.message;
@@ -90,6 +94,9 @@ public final class AgentExecutionInput {
         if (this.labels != null) {
             metaBuilder.putAllLabels(this.labels);
         }
+        if (this.visibility != null) {
+            metaBuilder.setVisibility(this.visibility);
+        }
         return AgentExecution.newBuilder()
             .setApiVersion("agentic.stigmer.ai/v1")
             .setKind("AgentExecution")
@@ -105,6 +112,7 @@ public final class AgentExecutionInput {
         private String org;
         private String slug;
         private java.util.Map<String, String> labels;
+        private ApiResourceVisibility visibility;
         private String sessionId;
         private String agentId;
         private String message;
@@ -122,6 +130,7 @@ public final class AgentExecutionInput {
         public Builder org(String org) { this.org = org; return this; }
         public Builder slug(String slug) { this.slug = slug; return this; }
         public Builder labels(java.util.Map<String, String> labels) { this.labels = labels; return this; }
+        public Builder visibility(ApiResourceVisibility visibility) { this.visibility = visibility; return this; }
         public Builder sessionId(String sessionId) { this.sessionId = sessionId; return this; }
         public Builder agentId(String agentId) { this.agentId = agentId; return this; }
         public Builder message(String message) { this.message = message; return this; }
@@ -143,6 +152,7 @@ public final class AgentExecutionInput {
         private final int maxToolRounds;
         private final int maxToolResultChars;
         private final double maxCostUsd;
+        private final InteractionMode interactionMode;
 
         private ExecutionConfigInput(Builder builder) {
             this.modelName = builder.modelName;
@@ -150,6 +160,7 @@ public final class AgentExecutionInput {
             this.maxToolRounds = builder.maxToolRounds;
             this.maxToolResultChars = builder.maxToolResultChars;
             this.maxCostUsd = builder.maxCostUsd;
+            this.interactionMode = builder.interactionMode;
         }
 
         ExecutionConfig toProto() {
@@ -163,6 +174,9 @@ public final class AgentExecutionInput {
             builder.setMaxToolRounds(this.maxToolRounds);
             builder.setMaxToolResultChars(this.maxToolResultChars);
             builder.setMaxCostUsd(this.maxCostUsd);
+            if (this.interactionMode != null) {
+                builder.setInteractionMode(this.interactionMode);
+            }
             return builder.build();
         }
 
@@ -174,6 +188,7 @@ public final class AgentExecutionInput {
             private int maxToolRounds;
             private int maxToolResultChars;
             private double maxCostUsd;
+            private InteractionMode interactionMode;
 
             private Builder() {}
 
@@ -182,6 +197,7 @@ public final class AgentExecutionInput {
             public Builder maxToolRounds(int maxToolRounds) { this.maxToolRounds = maxToolRounds; return this; }
             public Builder maxToolResultChars(int maxToolResultChars) { this.maxToolResultChars = maxToolResultChars; return this; }
             public Builder maxCostUsd(double maxCostUsd) { this.maxCostUsd = maxCostUsd; return this; }
+            public Builder interactionMode(InteractionMode interactionMode) { this.interactionMode = interactionMode; return this; }
 
             public ExecutionConfigInput build() { return new ExecutionConfigInput(this); }
         }

@@ -75,6 +75,7 @@ type SessionInput struct {
 	Slug             string
 	Org              string
 	Labels           map[string]string
+	Visibility       apiresource.ApiResourceVisibility
 	AgentInstanceId  string
 	Subject          string
 	ThreadId         string
@@ -119,10 +120,11 @@ func (i *SessionInput) toProto() *sessionv1.Session {
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Session",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name:   i.Name,
-			Slug:   i.Slug,
-			Org:    i.Org,
-			Labels: i.Labels,
+			Name:       i.Name,
+			Slug:       i.Slug,
+			Org:        i.Org,
+			Labels:     i.Labels,
+			Visibility: i.Visibility,
 		},
 		Spec: &sessionv1.SessionSpec{},
 	}
@@ -169,6 +171,7 @@ func SessionInputFromProto(p *sessionv1.Session) *SessionInput {
 		input.Slug = m.GetSlug()
 		input.Org = m.GetOrg()
 		input.Labels = m.GetLabels()
+		input.Visibility = m.GetVisibility()
 	}
 	if s := p.GetSpec(); s != nil {
 		input.AgentInstanceId = s.GetAgentInstanceId()

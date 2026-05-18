@@ -3,6 +3,7 @@
 package ai.stigmer.sdk.gen;
 
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
+import ai.stigmer.commons.apiresource.ApiResourceVisibility;
 import ai.stigmer.tenancy.project.v1.Project;
 import ai.stigmer.tenancy.project.v1.ProjectSpec;
 
@@ -12,6 +13,7 @@ public final class ProjectInput {
     private final String org;
     private final String slug;
     private final java.util.Map<String, String> labels;
+    private final ApiResourceVisibility visibility;
     private final String entryPoint;
     private final String description;
     private final java.util.List<ResourceRef> members;
@@ -21,6 +23,7 @@ public final class ProjectInput {
         this.org = builder.org;
         this.slug = builder.slug;
         this.labels = builder.labels;
+        this.visibility = builder.visibility;
         this.entryPoint = builder.entryPoint;
         this.description = builder.description;
         this.members = builder.members;
@@ -48,6 +51,9 @@ public final class ProjectInput {
         if (this.labels != null) {
             metaBuilder.putAllLabels(this.labels);
         }
+        if (this.visibility != null) {
+            metaBuilder.setVisibility(this.visibility);
+        }
         return Project.newBuilder()
             .setApiVersion("tenancy.stigmer.ai/v1")
             .setKind("Project")
@@ -63,6 +69,7 @@ public final class ProjectInput {
         private String org;
         private String slug;
         private java.util.Map<String, String> labels;
+        private ApiResourceVisibility visibility;
         private String entryPoint;
         private String description;
         private java.util.List<ResourceRef> members;
@@ -73,6 +80,7 @@ public final class ProjectInput {
         public Builder org(String org) { this.org = org; return this; }
         public Builder slug(String slug) { this.slug = slug; return this; }
         public Builder labels(java.util.Map<String, String> labels) { this.labels = labels; return this; }
+        public Builder visibility(ApiResourceVisibility visibility) { this.visibility = visibility; return this; }
         public Builder entryPoint(String entryPoint) { this.entryPoint = entryPoint; return this; }
         public Builder description(String description) { this.description = description; return this; }
         public Builder members(java.util.List<ResourceRef> members) { this.members = members; return this; }

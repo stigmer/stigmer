@@ -107,6 +107,7 @@ class IamPolicyInput:
     relation: str
     slug: str | None = None
     labels: dict[str, str] | None = None
+    visibility: int = 0
 
     def _to_proto(self) -> api_pb2.IamPolicy:
         spec = spec_pb2.IamPolicySpec(
@@ -124,6 +125,8 @@ class IamPolicyInput:
             metadata.slug = self.slug
         if self.labels:
             metadata.labels.update(self.labels)
+        if self.visibility:
+            metadata.visibility = self.visibility
         return api_pb2.IamPolicy(
             api_version="iam.stigmer.ai/v1",
             kind="IamPolicy",

@@ -66,6 +66,7 @@ type WorkflowInstanceInput struct {
 	Slug            string
 	Org             string
 	Labels          map[string]string
+	Visibility      apiresource.ApiResourceVisibility
 	WorkflowId      string
 	Description     string
 	EnvironmentRefs []ResourceRef
@@ -76,10 +77,11 @@ func (i *WorkflowInstanceInput) toProto() *workflowinstancev1.WorkflowInstance {
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "WorkflowInstance",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name:   i.Name,
-			Slug:   i.Slug,
-			Org:    i.Org,
-			Labels: i.Labels,
+			Name:       i.Name,
+			Slug:       i.Slug,
+			Org:        i.Org,
+			Labels:     i.Labels,
+			Visibility: i.Visibility,
 		},
 		Spec: &workflowinstancev1.WorkflowInstanceSpec{},
 	}
@@ -104,6 +106,7 @@ func WorkflowInstanceInputFromProto(p *workflowinstancev1.WorkflowInstance) *Wor
 		input.Slug = m.GetSlug()
 		input.Org = m.GetOrg()
 		input.Labels = m.GetLabels()
+		input.Visibility = m.GetVisibility()
 	}
 	if s := p.GetSpec(); s != nil {
 		input.WorkflowId = s.GetWorkflowId()

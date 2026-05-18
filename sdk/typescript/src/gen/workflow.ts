@@ -16,6 +16,7 @@ import { WorkflowSpecSchema, WorkflowDocumentSchema, ExportSchema, FlowControlSc
 import { GetTaskKindRegistryRequestSchema, GetTaskKindRegistryResponseSchema, type GetTaskKindRegistryRequest, type GetTaskKindRegistryResponse } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/task_kind_descriptor_pb";
 import { TaskKindRegistryQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/task_kind_registry_query_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { PageInfoSchema } from "@stigmer/protos/ai/stigmer/commons/rpc/pagination_pb";
@@ -109,6 +110,7 @@ export interface WorkflowInput {
   slug?: string;
   org: string;
   labels?: Record<string, string>;
+  visibility?: ApiResourceVisibility;
   description?: string;
   document: WorkflowDocumentInput;
   tasks?: WorkflowTaskInput[];
@@ -127,11 +129,12 @@ export interface WorkflowDocumentInput {
 
 /** SDK input type for WorkflowTask. */
 export interface WorkflowTaskInput {
-  name: string;
+  name?: string;
   kind: WorkflowTaskKind;
   taskConfig: JsonObject;
   export?: ExportInput;
   flow?: FlowControlInput;
+  compensate?: WorkflowTaskInput[];
 }
 
 /** SDK input type for Export. */
@@ -188,6 +191,7 @@ function buildWorkflowTaskProto(input: WorkflowTaskInput) {
   if (input.taskConfig !== undefined) msg.taskConfig = input.taskConfig;
   if (input.export) msg.export = buildExportProto(input.export);
   if (input.flow) msg.flow = buildFlowControlProto(input.flow);
+  if (input.compensate) msg.compensate = input.compensate.map(buildWorkflowTaskProto);
   return msg;
 }
 
@@ -224,6 +228,7 @@ function buildWorkflowProto(input: WorkflowInput): Workflow {
       org: input.org,
       ...(input.slug && { slug: input.slug }),
       ...(input.labels && { labels: input.labels }),
+      ...(input.visibility && { visibility: input.visibility }),
     }),
     spec: Object.assign(create(WorkflowSpecSchema), stripUndefined({
       description: input.description,

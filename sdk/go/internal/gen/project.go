@@ -61,6 +61,7 @@ type ProjectInput struct {
 	Slug        string
 	Org         string
 	Labels      map[string]string
+	Visibility  apiresource.ApiResourceVisibility
 	EntryPoint  string
 	Description string
 	Members     []ResourceRef
@@ -71,10 +72,11 @@ func (i *ProjectInput) toProto() *projectv1.Project {
 		ApiVersion: "tenancy.stigmer.ai/v1",
 		Kind:       "Project",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name:   i.Name,
-			Slug:   i.Slug,
-			Org:    i.Org,
-			Labels: i.Labels,
+			Name:       i.Name,
+			Slug:       i.Slug,
+			Org:        i.Org,
+			Labels:     i.Labels,
+			Visibility: i.Visibility,
 		},
 		Spec: &projectv1.ProjectSpec{},
 	}
@@ -97,6 +99,7 @@ func ProjectInputFromProto(p *projectv1.Project) *ProjectInput {
 		input.Slug = m.GetSlug()
 		input.Org = m.GetOrg()
 		input.Labels = m.GetLabels()
+		input.Visibility = m.GetVisibility()
 	}
 	if s := p.GetSpec(); s != nil {
 		input.EntryPoint = s.GetEntryPoint()

@@ -9,6 +9,7 @@ import { ArtifactCommandController } from "@stigmer/protos/ai/stigmer/agentic/ar
 import { ArtifactIdSchema, CreateArtifactInputSchema, ListArtifactsByExecutionRequestSchema, ArtifactListSchema, ArtifactDownloadUrlSchema, type CreateArtifactInput, type ListArtifactsByExecutionRequest, type ArtifactList, type ArtifactDownloadUrl } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/io_pb";
 import { ArtifactQueryController } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/query_pb";
 import { ArtifactSpecSchema, ArtifactSourceSchema, RetentionPolicySchema } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/spec_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceIdSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
@@ -59,6 +60,7 @@ export interface ArtifactInput {
   slug?: string;
   org: string;
   labels?: Record<string, string>;
+  visibility?: ApiResourceVisibility;
   contentType: string;
   displayName: string;
   source: ArtifactSourceInput;
@@ -102,6 +104,7 @@ function buildArtifactProto(input: ArtifactInput): Artifact {
       org: input.org,
       ...(input.slug && { slug: input.slug }),
       ...(input.labels && { labels: input.labels }),
+      ...(input.visibility && { visibility: input.visibility }),
     }),
     spec: Object.assign(create(ArtifactSpecSchema), stripUndefined({
       contentType: input.contentType,

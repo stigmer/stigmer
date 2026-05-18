@@ -934,6 +934,7 @@ func generatePythonInputAndProto(buf *bytes.Buffer, schema *ServiceSchemaFile, c
 	emitPyFields(buf, requiredFields, imports)
 	buf.WriteString("    slug: str | None = None\n")
 	buf.WriteString("    labels: dict[str, str] | None = None\n")
+	buf.WriteString("    visibility: int = 0\n")
 	emitPyFields(buf, optionalFields, imports)
 
 	// _to_proto method inside the class
@@ -1012,6 +1013,8 @@ func emitPyMainToProto(buf *bytes.Buffer, cfg sdkResourceConfig, spec *TaskConfi
 	buf.WriteString("            metadata.slug = self.slug\n")
 	buf.WriteString("        if self.labels:\n")
 	buf.WriteString("            metadata.labels.update(self.labels)\n")
+	buf.WriteString("        if self.visibility:\n")
+	buf.WriteString("            metadata.visibility = self.visibility\n")
 	fmt.Fprintf(buf, "        return api_pb2.%s(\n", cfg.protoResType)
 	fmt.Fprintf(buf, "            api_version=%q,\n", cfg.apiVersion)
 	fmt.Fprintf(buf, "            kind=%q,\n", cfg.protoResType)

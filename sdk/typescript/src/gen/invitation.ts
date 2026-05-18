@@ -4,6 +4,7 @@ import { wrapError } from "./errors";
 import { stripUndefined } from "./proto-utils";
 import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { InvitationSchema, type Invitation } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
 import { InvitationCommandController } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/command_pb";
@@ -65,6 +66,7 @@ export interface InvitationInput {
   slug?: string;
   org: string;
   labels?: Record<string, string>;
+  visibility?: ApiResourceVisibility;
   role: IamRole;
   maxRedemptions?: number;
   expiresAt: Date | string;
@@ -80,6 +82,7 @@ function buildInvitationProto(input: InvitationInput): Invitation {
       org: input.org,
       ...(input.slug && { slug: input.slug }),
       ...(input.labels && { labels: input.labels }),
+      ...(input.visibility && { visibility: input.visibility }),
     }),
     spec: Object.assign(create(InvitationSpecSchema), stripUndefined({
       role: input.role,

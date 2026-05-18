@@ -154,6 +154,12 @@ class AgentExecutionClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def get_execution_summary(self, input: io_pb2.GetAgentExecutionSummaryRequest) -> io_pb2.AgentExecutionSummary:
+        try:
+            return self._query.getExecutionSummary(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
 
 @dataclass
 class AgentExecutionInput:
@@ -163,6 +169,7 @@ class AgentExecutionInput:
     org: str
     slug: str | None = None
     labels: dict[str, str] | None = None
+    visibility: int = 0
     session_id: str = ""
     agent_id: str = ""
     message: str = ""
@@ -201,6 +208,8 @@ class AgentExecutionInput:
             metadata.slug = self.slug
         if self.labels:
             metadata.labels.update(self.labels)
+        if self.visibility:
+            metadata.visibility = self.visibility
         return api_pb2.AgentExecution(
             api_version="agentic.stigmer.ai/v1",
             kind="AgentExecution",
@@ -218,6 +227,7 @@ class ExecutionConfigInput:
     max_tool_rounds: int = 0
     max_tool_result_chars: int = 0
     max_cost_usd: float = 0.0
+    interaction_mode: int = 0
 
     def _to_proto(self) -> spec_pb2.ExecutionConfig:
         msg = spec_pb2.ExecutionConfig(
@@ -225,6 +235,7 @@ class ExecutionConfigInput:
             max_tool_rounds=self.max_tool_rounds,
             max_tool_result_chars=self.max_tool_result_chars,
             max_cost_usd=self.max_cost_usd,
+            interaction_mode=self.interaction_mode,
         )
         if self.context_management is not None:
             msg.context_management.CopyFrom(self.context_management._to_proto())

@@ -6,6 +6,7 @@ import ai.stigmer.agentic.executioncontext.v1.ExecutionValue;
 import ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution;
 import ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
+import ai.stigmer.commons.apiresource.ApiResourceVisibility;
 
 /** Input for creating/updating a WorkflowExecution. */
 public final class WorkflowExecutionInput {
@@ -13,6 +14,7 @@ public final class WorkflowExecutionInput {
     private final String org;
     private final String slug;
     private final java.util.Map<String, String> labels;
+    private final ApiResourceVisibility visibility;
     private final String workflowInstanceId;
     private final String workflowId;
     private final String triggerMessage;
@@ -25,6 +27,7 @@ public final class WorkflowExecutionInput {
         this.org = builder.org;
         this.slug = builder.slug;
         this.labels = builder.labels;
+        this.visibility = builder.visibility;
         this.workflowInstanceId = builder.workflowInstanceId;
         this.workflowId = builder.workflowId;
         this.triggerMessage = builder.triggerMessage;
@@ -67,6 +70,9 @@ public final class WorkflowExecutionInput {
         if (this.labels != null) {
             metaBuilder.putAllLabels(this.labels);
         }
+        if (this.visibility != null) {
+            metaBuilder.setVisibility(this.visibility);
+        }
         return WorkflowExecution.newBuilder()
             .setApiVersion("agentic.stigmer.ai/v1")
             .setKind("WorkflowExecution")
@@ -82,6 +88,7 @@ public final class WorkflowExecutionInput {
         private String org;
         private String slug;
         private java.util.Map<String, String> labels;
+        private ApiResourceVisibility visibility;
         private String workflowInstanceId;
         private String workflowId;
         private String triggerMessage;
@@ -95,6 +102,7 @@ public final class WorkflowExecutionInput {
         public Builder org(String org) { this.org = org; return this; }
         public Builder slug(String slug) { this.slug = slug; return this; }
         public Builder labels(java.util.Map<String, String> labels) { this.labels = labels; return this; }
+        public Builder visibility(ApiResourceVisibility visibility) { this.visibility = visibility; return this; }
         public Builder workflowInstanceId(String workflowInstanceId) { this.workflowInstanceId = workflowInstanceId; return this; }
         public Builder workflowId(String workflowId) { this.workflowId = workflowId; return this; }
         public Builder triggerMessage(String triggerMessage) { this.triggerMessage = triggerMessage; return this; }

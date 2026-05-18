@@ -10,6 +10,7 @@ import ai.stigmer.agentic.mcpserver.v1.McpServerSpec;
 import ai.stigmer.agentic.mcpserver.v1.StdioServerConfig;
 import ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
+import ai.stigmer.commons.apiresource.ApiResourceVisibility;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 
 /** Input for creating/updating a McpServer. */
@@ -18,6 +19,7 @@ public final class McpServerInput {
     private final String org;
     private final String slug;
     private final java.util.Map<String, String> labels;
+    private final ApiResourceVisibility visibility;
     private final String description;
     private final String iconUrl;
     private final StdioServerConfigInput stdio;
@@ -34,6 +36,7 @@ public final class McpServerInput {
         this.org = builder.org;
         this.slug = builder.slug;
         this.labels = builder.labels;
+        this.visibility = builder.visibility;
         this.description = builder.description;
         this.iconUrl = builder.iconUrl;
         this.stdio = builder.stdio;
@@ -89,6 +92,9 @@ public final class McpServerInput {
         if (this.labels != null) {
             metaBuilder.putAllLabels(this.labels);
         }
+        if (this.visibility != null) {
+            metaBuilder.setVisibility(this.visibility);
+        }
         return McpServer.newBuilder()
             .setApiVersion("agentic.stigmer.ai/v1")
             .setKind("McpServer")
@@ -104,6 +110,7 @@ public final class McpServerInput {
         private String org;
         private String slug;
         private java.util.Map<String, String> labels;
+        private ApiResourceVisibility visibility;
         private String description;
         private String iconUrl;
         private StdioServerConfigInput stdio;
@@ -121,6 +128,7 @@ public final class McpServerInput {
         public Builder org(String org) { this.org = org; return this; }
         public Builder slug(String slug) { this.slug = slug; return this; }
         public Builder labels(java.util.Map<String, String> labels) { this.labels = labels; return this; }
+        public Builder visibility(ApiResourceVisibility visibility) { this.visibility = visibility; return this; }
         public Builder description(String description) { this.description = description; return this; }
         public Builder iconUrl(String iconUrl) { this.iconUrl = iconUrl; return this; }
         public Builder stdio(StdioServerConfigInput stdio) { this.stdio = stdio; return this; }
