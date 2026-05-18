@@ -94,4 +94,3 @@ This package consumes `@stigmer/protos` from `apis/stubs/ts/` via npm workspaces
 ```bash
 make -C apis ts-stubs
 ```
-
