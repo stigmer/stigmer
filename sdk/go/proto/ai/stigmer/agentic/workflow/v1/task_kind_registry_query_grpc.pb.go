@@ -42,7 +42,7 @@ const (
 type TaskKindRegistryQueryControllerClient interface {
 	// Retrieve the complete task kind registry.
 	//
-	// Returns descriptors for all 19 workflow task kinds with full metadata:
+	// Returns descriptors for all 20 workflow task kinds with full metadata:
 	// field schemas, JSON Schemas, categories, icons, examples, and output shapes.
 	//
 	// Caching: responses are immutable within a platform version. Clients should
@@ -88,7 +88,7 @@ func (c *taskKindRegistryQueryControllerClient) GetTaskKindRegistry(ctx context.
 type TaskKindRegistryQueryControllerServer interface {
 	// Retrieve the complete task kind registry.
 	//
-	// Returns descriptors for all 19 workflow task kinds with full metadata:
+	// Returns descriptors for all 20 workflow task kinds with full metadata:
 	// field schemas, JSON Schemas, categories, icons, examples, and output shapes.
 	//
 	// Caching: responses are immutable within a platform version. Clients should

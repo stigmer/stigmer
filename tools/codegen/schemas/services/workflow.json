@@ -84,7 +84,7 @@
           "inputFullType": "ai.stigmer.agentic.workflow.v1.GetTaskKindRegistryRequest",
           "outputType": "GetTaskKindRegistryResponse",
           "outputFullType": "ai.stigmer.agentic.workflow.v1.GetTaskKindRegistryResponse",
-          "description": "Retrieve the complete task kind registry.\n\n Returns descriptors for all 19 workflow task kinds with full metadata:\n field schemas, JSON Schemas, categories, icons, examples, and output shapes.\n\n Caching: responses are immutable within a platform version. Clients should\n cache aggressively (recommended: 1 hour TTL with stale-while-revalidate)."
+          "description": "Retrieve the complete task kind registry.\n\n Returns descriptors for all 20 workflow task kinds with full metadata:\n field schemas, JSON Schemas, categories, icons, examples, and output shapes.\n\n Caching: responses are immutable within a platform version. Clients should\n cache aggressively (recommended: 1 hour TTL with stale-while-revalidate)."
         }
       ]
     }

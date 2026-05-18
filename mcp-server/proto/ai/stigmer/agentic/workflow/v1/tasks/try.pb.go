@@ -109,7 +109,22 @@ type CatchBlock struct {
 	// Accessible via ${ .error } in catch tasks.
 	As string `protobuf:"bytes,1,opt,name=as,proto3" json:"as,omitempty"`
 	// Tasks to execute when error is caught.
-	Do            []*v1.WorkflowTask `protobuf:"bytes,2,rep,name=do,proto3" json:"do,omitempty"`
+	Do []*v1.WorkflowTask `protobuf:"bytes,2,rep,name=do,proto3" json:"do,omitempty"`
+	// Whether to run compensation tasks for already-completed try tasks
+	// before executing the catch do block.
+	//
+	// When true, the runtime walks the compensation stack (completed tasks
+	// that declared a `compensate` block) in reverse order and executes
+	// each task's compensation actions. After all compensations complete
+	// (or fail), the catch `do` block runs as normal.
+	//
+	// Compensation failures do not prevent the catch block from running.
+	// They are logged and included in the task output for diagnostics.
+	//
+	// Default: false (no compensation — preserves pre-T17 behavior).
+	//
+	// @since T17 (Advanced Agentic Orchestration)
+	Compensate    bool `protobuf:"varint,3,opt,name=compensate,proto3" json:"compensate,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -158,6 +173,13 @@ func (x *CatchBlock) GetDo() []*v1.WorkflowTask {
 	return nil
 }
 
+func (x *CatchBlock) GetCompensate() bool {
+	if x != nil {
+		return x.Compensate
+	}
+	return false
+}
+
 var File_ai_stigmer_agentic_workflow_v1_tasks_try_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_workflow_v1_tasks_try_proto_rawDesc = "" +
@@ -165,11 +187,14 @@ const file_ai_stigmer_agentic_workflow_v1_tasks_try_proto_rawDesc = "" +
 	".ai/stigmer/agentic/workflow/v1/tasks/try.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a)ai/stigmer/agentic/workflow/v1/spec.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a\x1bbuf/validate/validate.proto\"\xb0\x01\n" +
 	"\rTryTaskConfig\x12H\n" +
 	"\x03try\x18\x01 \x03(\v2,.ai.stigmer.agentic.workflow.v1.WorkflowTaskB\b\xbaH\x05\x92\x01\x02\b\x01R\x03try\x12F\n" +
-	"\x05catch\x18\x02 \x01(\v20.ai.stigmer.agentic.workflow.v1.tasks.CatchBlockR\x05catch:\r\xea\x8b,\ttry_catch\"d\n" +
+	"\x05catch\x18\x02 \x01(\v20.ai.stigmer.agentic.workflow.v1.tasks.CatchBlockR\x05catch:\r\xea\x8b,\ttry_catch\"\x84\x01\n" +
 	"\n" +
 	"CatchBlock\x12\x0e\n" +
 	"\x02as\x18\x01 \x01(\tR\x02as\x12F\n" +
-	"\x02do\x18\x02 \x03(\v2,.ai.stigmer.agentic.workflow.v1.WorkflowTaskB\b\xbaH\x05\x92\x01\x02\b\x01R\x02doB\xbe\x02\n" +
+	"\x02do\x18\x02 \x03(\v2,.ai.stigmer.agentic.workflow.v1.WorkflowTaskB\b\xbaH\x05\x92\x01\x02\b\x01R\x02do\x12\x1e\n" +
+	"\n" +
+	"compensate\x18\x03 \x01(\bR\n" +
+	"compensateB\xbe\x02\n" +
 	"(com.ai.stigmer.agentic.workflow.v1.tasksB\bTryProtoP\x01ZPgithub.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/workflow/v1/tasks\xa2\x02\x06ASAWVT\xaa\x02$Ai.Stigmer.Agentic.Workflow.V1.Tasks\xca\x02$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\xe2\x020Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\xea\x02)Ai::Stigmer::Agentic::Workflow::V1::Tasksb\x06proto3"
 
 var (

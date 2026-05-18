@@ -99,23 +99,24 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "\022$\n\tnamespace\030\002 \001(\tB\006\272H\003\310\001\001R\tnamespace\022\032" +
       "\n\004name\030\003 \001(\tB\006\272H\003\310\001\001R\004name\022 \n\007version\030\004 " +
       "\001(\tB\006\272H\003\310\001\001R\007version\022 \n\013description\030\005 \001(" +
-      "\tR\013description\"\221\003\n\014WorkflowTask\022\032\n\004name\030" +
-      "\001 \001(\tB\006\272H\003\310\001\001R\004name\022L\n\004kind\030\002 \001(\01620.ai.s" +
-      "tigmer.agentic.workflow.v1.WorkflowTaskK" +
-      "indB\006\272H\003\310\001\001R\004kind\022H\n\013task_config\030\003 \001(\0132\027" +
-      ".google.protobuf.StructB\016\272H\003\310\001\001\352\205,\004kindR" +
-      "\ntaskConfig\022>\n\006export\030\004 \001(\0132&.ai.stigmer" +
-      ".agentic.workflow.v1.ExportR\006export\022?\n\004f" +
-      "low\030\005 \001(\0132+.ai.stigmer.agentic.workflow." +
-      "v1.FlowControlR\004flow\022L\n\ncompensate\030\006 \003(\013" +
-      "2,.ai.stigmer.agentic.workflow.v1.Workfl" +
-      "owTaskR\ncompensate\"!\n\006Export\022\027\n\002as\030\001 \001(\t" +
-      "B\007\272H\004r\002\020\001R\002as\"!\n\013FlowControl\022\022\n\004then\030\001 \001" +
-      "(\tR\004thenB\250\001B\tSpecProtoP\001\242\002\004ASAW\252\002\036Ai.Sti" +
-      "gmer.Agentic.Workflow.V1\312\002\036Ai\\Stigmer\\Ag" +
-      "entic\\Workflow\\V1\342\002*Ai\\Stigmer\\Agentic\\W" +
-      "orkflow\\V1\\GPBMetadata\352\002\"Ai::Stigmer::Ag" +
-      "entic::Workflow::V1b\006proto3"
+      "\tR\013description\"\254\003\n\014WorkflowTask\0225\n\004name\030" +
+      "\001 \001(\tB!\272H\036r\034\020\0012\030^[a-zA-Z_][a-zA-Z0-9_]*$" +
+      "R\004name\022L\n\004kind\030\002 \001(\01620.ai.stigmer.agenti" +
+      "c.workflow.v1.WorkflowTaskKindB\006\272H\003\310\001\001R\004" +
+      "kind\022H\n\013task_config\030\003 \001(\0132\027.google.proto" +
+      "buf.StructB\016\272H\003\310\001\001\352\205,\004kindR\ntaskConfig\022>" +
+      "\n\006export\030\004 \001(\0132&.ai.stigmer.agentic.work" +
+      "flow.v1.ExportR\006export\022?\n\004flow\030\005 \001(\0132+.a" +
+      "i.stigmer.agentic.workflow.v1.FlowContro" +
+      "lR\004flow\022L\n\ncompensate\030\006 \003(\0132,.ai.stigmer" +
+      ".agentic.workflow.v1.WorkflowTaskR\ncompe" +
+      "nsate\"!\n\006Export\022\027\n\002as\030\001 \001(\tB\007\272H\004r\002\020\001R\002as" +
+      "\"!\n\013FlowControl\022\022\n\004then\030\001 \001(\tR\004thenB\250\001B\t" +
+      "SpecProtoP\001\242\002\004ASAW\252\002\036Ai.Stigmer.Agentic." +
+      "Workflow.V1\312\002\036Ai\\Stigmer\\Agentic\\Workflo" +
+      "w\\V1\342\002*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GP" +
+      "BMetadata\352\002\"Ai::Stigmer::Agentic::Workfl" +
+      "ow::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
