@@ -1,0 +1,38 @@
+name: CI / Seedpack Canary Tests
+
+on:
+  schedule:
+    - cron: '0 2 * * 1-5'  # Weekdays at 2am UTC
+  workflow_dispatch:
+
+jobs:
+  seedpack-canary:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: test/integration/go.mod
+          cache-dependency-path: test/integration/go.sum
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install Planton CLI
+        run: |
+          curl -fsSL https://cli.planton.cloud/install.sh | bash
+      - name: Fetch canary credentials
+        run: |
+          planton secret get mcp-canary-tavily-api-key --org stigmer --plain > /dev/null
+          echo "TAVILY_API_KEY=$(planton secret get mcp-canary-tavily-api-key --org stigmer --plain)" >> $GITHUB_ENV
+          echo "GITHUB_MCP_TOKEN=$(planton secret get mcp-canary-github-token --org stigmer --plain)" >> $GITHUB_ENV
+          echo "STRIPE_ACCESS_TOKEN=$(planton secret get mcp-canary-stripe-token --org stigmer --plain)" >> $GITHUB_ENV
+          echo "LINEAR_ACCESS_TOKEN=$(planton secret get mcp-canary-linear-api-key --org stigmer --plain)" >> $GITHUB_ENV
+          echo "GOOGLE_MAPS_API_KEY=$(planton secret get mcp-canary-google-maps-api-key --org stigmer --plain)" >> $GITHUB_ENV
+        env:
+          PLANTON_API_KEY: ${{ secrets.PLANTON_API_KEY }}
+      - name: Run transport reachability tests
+        run: make test-seedpack-transport
+      - name: Run canary tests
+        run: make test-seedpack-canary
+        env:
+          STIGMER_MCP_CANARY: "true"

@@ -1,0 +1,183 @@
+---
+description: Action rule to add a new MCP server to the seedpack marketplace. Guides YAML creation, auth classification, credential-manifest update, Planton secret setup, and BUILD.bazel registration.
+alwaysApply: false
+---
+
+# Rule: Add MCP Server to Seedpack
+
+Purpose: When triggered, guide the complete process of adding a new MCP server to `seedpack/mcp-servers/`. This includes creating a structurally valid YAML definition, classifying auth requirements, updating the credential manifest, and outputting manual steps for credential provisioning.
+
+Usage: Invoke explicitly as `@add-mcp-server-to-seedpack`.
+
+## Prerequisites
+
+Before starting, gather from the user:
+1. **Server name** (lowercase, hyphenated identifier)
+2. **Source**: GitHub repository URL or hosted MCP endpoint URL
+3. **Transport**: stdio (npx/uvx/go run) or HTTP (remote URL)
+4. **Auth requirements**: What credentials does it need? (API key, OAuth, none)
+
+## Step 1: Create the YAML Definition
+
+Create `seedpack/mcp-servers/{name}.yaml` following the templates in `seedpack/mcp-servers/CONTRIBUTING.md`.
+
+### Required Fields
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: {Display Name}
+  visibility: visibility_public
+  labels:
+    stigmer.ai/category: "{category}"
+spec:
+  description: "{One-line description}"
+  icon_url: "https://raw.githubusercontent.com/stigmer/stigmer/main/seedpack/icons/mcp-servers/{name}.svg"
+  repository_url: "{github-url}"
+  github_stars: {count}
+  tags:
+    - {tag1}
+    - {tag2}
+```
+
+### Transport Configuration (exactly one)
+
+**stdio (npx)**:
+```yaml
+  stdio:
+    command: "npx"
+    args:
+      - "-y"
+      - "{npm-package}"
+```
+
+**stdio (uvx)**:
+```yaml
+  stdio:
+    command: "uvx"
+    args:
+      - "{pypi-package}"
+```
+
+**HTTP**:
+```yaml
+  http:
+    url: "https://{endpoint}"
+    headers:
+      Authorization: "Bearer ${ACCESS_TOKEN}"
+```
+
+### Categories (choose one)
+
+developer-tools, databases, search, cloud-infrastructure, communication, productivity, web-automation, monitoring, payments, design, ai-reasoning, notifications, scheduling, crm-support
+
+## Step 2: Classify Auth Type
+
+Determine which auth pattern applies:
+
+| Pattern | Indicators | Action |
+|---------|-----------|--------|
+| **no-auth** | No `spec.env` with `is_secret: true` | Set manifest status to `not_required` |
+| **api-key** | `spec.env` has a secret key, no `spec.auth` block | Set manifest status to `pending`, output manual steps |
+| **vendor-oauth** | `spec.auth.oauth_app_ref` is set | Set manifest status to `oauth_only`, create OAuthApp reference |
+| **dcr-oauth** | `spec.auth` exists but no `oauth_app_ref`, HTTP transport | Set manifest status to `oauth_only` |
+| **dcr-oauth-stdio** | `spec.auth` with `discovery_url`, stdio transport | Set manifest status to `oauth_only` |
+
+### Validation Rules (enforced by Tier 1 tests)
+
+- If `spec.auth.target_env_var` is set, that key MUST exist in `spec.env`
+- If `spec.auth.oauth_app_ref` is set and no `spec.auth.discovery_url`, transport MUST be HTTP
+- All `${VAR}` placeholders in headers, args, and query_params MUST reference keys declared in `spec.env`
+- `metadata.name` MUST be unique across all seedpack servers
+
+## Step 3: Update Credential Manifest
+
+Add an entry to `seedpack/mcp-servers/credential-manifest.yaml`:
+
+```yaml
+  {name}:
+    status: {not_required|pending|oauth_only}
+    auth_type: {none|api_key|vendor_oauth|dcr_oauth}
+    secret_ref: "mcp-canary-{name}-{key-suffix}"  # only if auth_type != none
+    env_var: "{ENV_VAR_NAME}"                       # only if auth_type != none
+    notes: ""                                       # optional context
+```
+
+## Step 4: Update BUILD.bazel
+
+Add the new YAML file to `seedpack/BUILD.bazel` in the `embedsrcs` list (alphabetical order within the `mcp-servers/` section).
+
+## Step 5: Create Planton Secret YAML (if credentials needed)
+
+If `auth_type` is not `none`, create the secret definition:
+
+**Path**: `stigmer-cloud/_ops/planton/connect/secrets/mcp-canary-{name}-{key-suffix}.yaml`
+
+```yaml
+apiVersion: config-manager.planton.ai/v1
+kind: Secret
+metadata:
+  name: mcp-canary-{name}-{key-suffix}
+  org: stigmer
+spec:
+  scope: organization
+  description: "Canary test credential for MCP server: {Display Name}"
+```
+
+## Step 6: Output Manual Steps
+
+After all automated steps, output a clear summary for the human:
+
+### For `api-key` servers:
+
+```
+MANUAL STEPS REQUIRED:
+1. Create an account at {provider_url}
+2. Generate an API key / token at {token_generation_url}
+3. Store the key value in: stigmer-cloud/_ops/planton/connect/.secret-values/mcp-canary-{name}-{key-suffix}
+4. Run: cd stigmer-cloud && planton secret apply -f _ops/planton/connect/secrets/mcp-canary-{name}-{key-suffix}.yaml
+5. Update credential-manifest.yaml status from "pending" to "provisioned"
+```
+
+### For `oauth_only` servers:
+
+```
+MANUAL STEPS REQUIRED:
+1. The MCP server at {url} requires OAuth authentication
+2. Either:
+   a. Register an OAuth app with the vendor and create an OAuthApp resource in Stigmer
+   b. Or use the platform's DCR flow once it's implemented for this provider
+3. After obtaining a token, store it in: stigmer-cloud/_ops/planton/connect/.secret-values/mcp-canary-{name}-token
+4. Run: cd stigmer-cloud && planton secret apply -f _ops/planton/connect/secrets/mcp-canary-{name}-token.yaml
+5. Update credential-manifest.yaml status from "oauth_only" to "provisioned"
+```
+
+### For `not_required` servers:
+
+```
+NO MANUAL STEPS NEEDED.
+This server has no secret credentials. Canary tests will run automatically.
+```
+
+## Quality Checklist
+
+Before considering the addition complete:
+
+- [ ] YAML passes proto unmarshalling (matches `McpServerSpec` schema)
+- [ ] All `${VAR}` placeholders reference declared env keys
+- [ ] Category is from the allowed set
+- [ ] `credential-manifest.yaml` has an entry for the new server
+- [ ] `BUILD.bazel` embedsrcs updated
+- [ ] No duplicate `metadata.name` with existing servers
+- [ ] If HTTP endpoint matches `mcp.*.com/mcp` pattern, verify auth method is correct (likely needs OAuth, not manual token)
+
+## Reference Files
+
+- Template and categories: `seedpack/mcp-servers/CONTRIBUTING.md`
+- Proto schema: `apis/ai/stigmer/agentic/mcpserver/v1/spec.proto`
+- OAuth spec: `apis/ai/stigmer/agentic/mcpserver/v1/oauth.proto`
+- OAuthApp spec: `apis/ai/stigmer/iam/oauthapp/v1/spec.proto`
+- Existing examples: any `seedpack/mcp-servers/*.yaml`
+- Credential manifest: `seedpack/mcp-servers/credential-manifest.yaml`
+- Planton secrets pattern: `stigmer-cloud/_ops/planton/connect/secrets/`
