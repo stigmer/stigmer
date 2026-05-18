@@ -7,7 +7,7 @@ alwaysApply: false
 
 Purpose: When triggered, manage GitHub issues across the Stigmer OSS repo — triage unlabeled issues, resolve fixed issues (closing on GitHub + notifying Discord), and report on issue health.
 
-This is an action rule. It uses the `gh` CLI for GitHub operations and the Discord REST API (via Planton MCP credentials) for cross-posting resolution messages.
+This is an action rule. It uses the `gh` CLI for GitHub operations and the Discord REST API (via Planton CLI credentials) for cross-posting resolution messages.
 
 Usage: Invoke explicitly as `@github-issue-triage`.
 
@@ -122,9 +122,13 @@ Ask the user (or infer from conversation context):
 
 ### Step 3: Find linked Discord message
 
-Fetch Discord credentials from Planton MCP:
-1. Call `get_secret_value` with `org: "stigmer"`, `group_name: "discord-bot"`, `entry_name: "prod.bot-token"`
-2. Call `get_secret_value` with `org: "stigmer"`, `group_name: "discord-bot"`, `entry_name: "prod.server-id"`
+Fetch Discord credentials from Planton secrets via CLI:
+
+```bash
+BOT_TOKEN=$(planton secret get discord-bot-token --org stigmer --scope organization)
+GUILD_ID=$(planton secret get discord-server-id --org stigmer --scope organization)
+GENERAL_CHANNEL_ID=$(planton secret get discord-general-channel-id --org stigmer --scope organization)
+```
 
 Then scan recent Discord `#general` messages for the issue URL:
 ```
@@ -251,6 +255,6 @@ When applying labels, follow these rules:
 - **Credit the reporter.** Resolution messages on both GitHub and Discord should mention the original author.
 - **Never ignore the reporter's suggestions.** If the reporter proposed approaches, solutions, or workarounds, the resolution comment must explicitly address them — name what they suggested, explain the direction taken and why, and note anything deferred for later. A thoughtful report deserves a thoughtful response, not a generic "Fixed, thanks."
 - **Link PRs to issues.** When closing with a PR reference, use the format "Fixed in #PR" so GitHub auto-links them.
-- **Discord credentials** are fetched from Planton MCP at runtime, same as the Discord community health rule. Never hardcode tokens.
+- **Discord credentials** are fetched from Planton secrets via CLI at runtime, same as the Discord community health rule. Never hardcode tokens.
 
 @docs/vocabulary.md
