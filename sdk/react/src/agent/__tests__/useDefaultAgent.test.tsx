@@ -106,4 +106,78 @@ describe("useDefaultAgent", () => {
 
     await waitFor(() => expect(callCount).toBe(2), { timeout: 10_000 });
   }, 15_000);
+
+  describe("waitForResolution", () => {
+    it("resolves immediately when agent is already loaded", async () => {
+      const agent = { metadata: { id: "agt-1" }, status: { defaultInstanceId: "ain-1" } };
+      const getDefault = vi.fn().mockResolvedValue(agent);
+      const client = createMockStigmer({ getDefault });
+
+      const { result } = renderHook(() => useDefaultAgent("test-org"), {
+        wrapper: wrapper(client),
+      });
+
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+      const resolved = await result.current.waitForResolution();
+      expect(resolved).toBe(agent);
+    });
+
+    it("awaits and resolves when fetch completes", async () => {
+      let resolveExternal!: (value: unknown) => void;
+      const fetchPromise = new Promise((res) => { resolveExternal = res; });
+      const getDefault = vi.fn().mockReturnValue(fetchPromise);
+      const client = createMockStigmer({ getDefault });
+
+      const { result } = renderHook(() => useDefaultAgent("test-org"), {
+        wrapper: wrapper(client),
+      });
+
+      expect(result.current.isLoading).toBe(true);
+
+      const waitPromise = result.current.waitForResolution();
+
+      const agent = { metadata: { id: "agt-1" }, status: { defaultInstanceId: "ain-1" } };
+      resolveExternal(agent);
+
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+      const resolved = await waitPromise;
+      expect(resolved).toBe(agent);
+    });
+
+    it("rejects when fetch fails", async () => {
+      const apiError = new Error("Service unavailable");
+      const getDefault = vi.fn().mockRejectedValue(apiError);
+      const client = createMockStigmer({ getDefault });
+
+      const { result } = renderHook(() => useDefaultAgent("test-org"), {
+        wrapper: wrapper(client),
+      });
+
+      expect(result.current.isLoading).toBe(true);
+
+      const waitPromise = result.current.waitForResolution();
+      // Prevent unhandled rejection warning — assertion below verifies the value
+      waitPromise.catch(() => {});
+
+      await waitFor(() => expect(result.current.error).toBeTruthy(), { timeout: 10_000 });
+
+      await expect(waitPromise).rejects.toThrow("Service unavailable");
+    }, 15_000);
+
+    it("rejects immediately when error is already set", async () => {
+      const apiError = new Error("Already failed");
+      const getDefault = vi.fn().mockRejectedValue(apiError);
+      const client = createMockStigmer({ getDefault });
+
+      const { result } = renderHook(() => useDefaultAgent("test-org"), {
+        wrapper: wrapper(client),
+      });
+
+      await waitFor(() => expect(result.current.error).toBeTruthy(), { timeout: 10_000 });
+
+      await expect(result.current.waitForResolution()).rejects.toThrow("Already failed");
+    }, 15_000);
+  });
 });

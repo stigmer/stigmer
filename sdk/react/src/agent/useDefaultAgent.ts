@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { GetDefaultAgentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
@@ -29,6 +29,15 @@ export interface UseDefaultAgentReturn {
   readonly error: Error | null;
   /** Discard cached data and re-fetch the default agent from the server. */
   readonly refetch: () => void;
+  /**
+   * Returns a promise that resolves with the Agent once the in-flight
+   * fetch settles. If the agent is already loaded, resolves immediately.
+   * If the fetch has already failed, rejects immediately.
+   *
+   * Use this to await the default agent in async flows (e.g. submit)
+   * instead of failing when `isLoading` is still true.
+   */
+  readonly waitForResolution: () => Promise<Agent>;
 }
 
 /**
@@ -74,6 +83,32 @@ export function useDefaultAgent(org: string | null): UseDefaultAgentReturn {
     null,
   );
 
+  // Deferred pattern: allows callers to await the in-flight fetch.
+  const deferredRef = useRef<Deferred<Agent> | null>(null);
+
+  useEffect(() => {
+    if (agent && deferredRef.current) {
+      deferredRef.current.resolve(agent);
+      deferredRef.current = null;
+    }
+  }, [agent]);
+
+  useEffect(() => {
+    if (error && deferredRef.current) {
+      deferredRef.current.reject(error);
+      deferredRef.current = null;
+    }
+  }, [error]);
+
+  const waitForResolution = useCallback((): Promise<Agent> => {
+    if (agent) return Promise.resolve(agent);
+    if (error) return Promise.reject(error);
+    if (!deferredRef.current) {
+      deferredRef.current = createDeferred<Agent>();
+    }
+    return deferredRef.current.promise;
+  }, [agent, error]);
+
   useEffect(() => {
     if (typeof document === "undefined") return;
 
@@ -88,12 +123,28 @@ export function useDefaultAgent(org: string | null): UseDefaultAgentReturn {
     return () => document.removeEventListener("visibilitychange", onVisible);
   }, [refetch]);
 
-  return { agent, isLoading, isRefetching, error, refetch };
+  return { agent, isLoading, isRefetching, error, refetch, waitForResolution };
 }
 
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
+
+interface Deferred<T> {
+  promise: Promise<T>;
+  resolve: (value: T) => void;
+  reject: (reason: unknown) => void;
+}
+
+function createDeferred<T>(): Deferred<T> {
+  let resolve!: (value: T) => void;
+  let reject!: (reason: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
 
 /**
  * Retries `fn` up to `retries` times with a fixed delay between attempts.
