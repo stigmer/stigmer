@@ -31,6 +31,7 @@ describe("ExecuteDeepAgent activity", () => {
     runnerId: null,
     checkpointerType: "memory",
     checkpointerProxyEndpoint: null,
+    primaryModel: "gpt-4.1",
   };
 
   let activities: ReturnType<typeof createDeepAgentActivities>;
