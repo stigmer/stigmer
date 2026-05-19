@@ -2,13 +2,19 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createDeepAgentActivities } from "../index.js";
 import type { Config } from "../../../config.js";
 
+vi.mock("../../../idle-watchdog.js", () => ({
+  activityStarted: vi.fn(),
+  activityFinished: vi.fn(),
+}));
+
 vi.mock("../../../client/stigmer-client.js", () => ({
   StigmerClient: vi.fn().mockImplementation(() => ({
-    updateStatus: vi.fn().mockResolvedValue({}),
+    updateStatus: vi.fn().mockResolvedValue({ signal: 0 }),
+    getExecution: vi.fn().mockRejectedValue(new Error("not mocked")),
   })),
 }));
 
-describe("ExecuteDeepAgent stub", () => {
+describe("ExecuteDeepAgent activity", () => {
   const mockConfig: Config = {
     taskQueue: "test-queue",
     temporalAddress: "localhost:7233",
@@ -38,12 +44,19 @@ describe("ExecuteDeepAgent stub", () => {
     expect(typeof activities.ExecuteDeepAgent).toBe("function");
   });
 
-  it("returns a result with EXECUTION_FAILED phase", async () => {
+  it("returns EXECUTION_FAILED status when setup fails", async () => {
     const result = await activities.ExecuteDeepAgent("exec-123", "thread-456");
 
     expect(result).toBeDefined();
     const status = result as Record<string, unknown>;
     expect(status).toHaveProperty("phase");
+    expect(status.phase).toBe("EXECUTION_FAILED");
+  });
+
+  it("includes error message in failed status", async () => {
+    const result = await activities.ExecuteDeepAgent("exec-123", "thread-456");
+    const status = result as Record<string, unknown>;
+    expect(status.error).toContain("not mocked");
   });
 
   it("accepts the correct signature (executionId, threadId)", async () => {
@@ -52,9 +65,14 @@ describe("ExecuteDeepAgent stub", () => {
     ).resolves.toBeDefined();
   });
 
-  it("handles empty threadId (first execution)", async () => {
+  it("handles empty threadId gracefully", async () => {
     await expect(
       activities.ExecuteDeepAgent("execution-id", ""),
     ).resolves.toBeDefined();
+  });
+
+  it("always returns a serializable result", async () => {
+    const result = await activities.ExecuteDeepAgent("exec-err", "thread-1");
+    expect(() => JSON.stringify(result)).not.toThrow();
   });
 });
