@@ -309,10 +309,29 @@
   resolved "https://registry.npmjs.org/@braintree/sanitize-url/-/sanitize-url-7.1.2.tgz"
   integrity sha512-jigsZK+sMF/cuiB7sERuo9V7N9jx+dhmHHnQyDSVdpZwVutaBu7WvNYqMDLSgFgfB30n452TP3vjDAvFC973mA==
 
-"@bufbuild/protobuf@^2.0.0", "@bufbuild/protobuf@^2.7.0", "@bufbuild/protobuf@2.12.0":
+"@bufbuild/cel-spec@0.4.0":
+  version "0.4.0"
+  resolved "https://registry.npmjs.org/@bufbuild/cel-spec/-/cel-spec-0.4.0.tgz"
+  integrity sha512-dUS6f2fNt6KEumsYGE7YFxERZE5ZuyME1hQmGjtO8tkZhR6ow6/ne3v4Gik9cfdb9lSLK3AJ+vDxCdGWmDbWvA==
+
+"@bufbuild/cel@0.4.0":
+  version "0.4.0"
+  resolved "https://registry.npmjs.org/@bufbuild/cel/-/cel-0.4.0.tgz"
+  integrity sha512-CdW/JgiTJCYXqnwuaJRo7NcoYhR37AaF58MMiog0/t8nudn86ZyLXYaA1f2yGhm2U17h8pKGZNksTHVSTcpmAw==
+  dependencies:
+    "@bufbuild/cel-spec" "0.4.0"
+
+"@bufbuild/protobuf@^2.0.0", "@bufbuild/protobuf@^2.6.2", "@bufbuild/protobuf@^2.7.0", "@bufbuild/protobuf@^2.8.0", "@bufbuild/protobuf@2.12.0":
   version "2.12.0"
   resolved "https://registry.npmjs.org/@bufbuild/protobuf/-/protobuf-2.12.0.tgz"
   integrity sha512-B/XlCaFIP8LOwzo+bz5uFzATYokcwCKQcghqnlfwSmM5eX/qTkvDBnDPs+gXtX/RyjxJ4DRikECcPJbyALA8FA==
+
+"@bufbuild/protovalidate@^1.1.1":
+  version "1.2.0"
+  resolved "https://registry.npmjs.org/@bufbuild/protovalidate/-/protovalidate-1.2.0.tgz"
+  integrity sha512-tD08DwGrHIV88khLz1Kdz9DYUwEo1TsoepaIg7/B/zd//AymaTx67kvCS1jlkcG/+vgQaSOl6f0HCE3sL8vI7w==
+  dependencies:
+    "@bufbuild/cel" "0.4.0"
 
 "@chevrotain/cst-dts-gen@12.0.0":
   version "12.0.0"
