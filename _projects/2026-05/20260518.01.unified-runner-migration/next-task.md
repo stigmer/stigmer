@@ -16,7 +16,7 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260518.01.unified-runner-migration/checkpoints/2026-05-19-session-15-phase4-connect-backfill.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260518.01.unified-runner-migration/checkpoints/2026-05-19-session-16-phase4-skill-relevance.md
 ```
 
 ### 2. Current Task
@@ -44,31 +44,38 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 **Created**: 2026-05-18 15:11  
-**Last Session**: 2026-05-19 — Phase 4 Connect Backfill for Deep Agent  
-**Current Task**: Phase 4 — Supporting Activities (in progress)  
-**Status**: Connect backfill unified into shared module + wired into deep-agent; MCP pre-installer removed (unnecessary); all 5 activities + 2 workflows ported; 488 tests passing
+**Last Session**: 2026-05-19 — Phase 4 Skill Relevance Filtering  
+**Current Task**: Phase 5 — Testing (next)  
+**Status**: Phase 4 COMPLETE — all supporting activities ported, skill relevance filtering done, Daytona removed from scope; 542 tests passing
 
 ## Session Progress (2026-05-19, latest)
 
-### What Was Accomplished (Phase 4 — Connect Backfill for Deep Agent)
+### What Was Accomplished (Phase 4 — Skill Relevance Filtering)
 
-**2 new files**:
-- **`src/shared/connect-backfill.ts`** — Shared connect backfill logic: `needsBackfill`, `backfillMcpServersIfNeeded`, `extractRuntimeEnvForServer`. Simplified `ResolvedMcpServer[]` in/out signature (harness-agnostic).
-- **`src/shared/__tests__/connect-backfill.test.ts`** — 17 unit tests covering: no-backfill early return, connect RPC trigger, failure/timeout resilience, partial success re-resolution, heartbeat callbacks, env var extraction, orphan server handling.
+**4 new files**:
+- **`src/shared/skill-relevance.ts`** — BM25-based skill scoring: tokenization with stop-word removal, IDF computation, term-frequency saturation, document-length normalization. Threshold of 8 skills activates filtering; safety floor keeps at least half included.
+- **`src/shared/skill-writer.ts`** — Complete skill pipeline: `mergeSkillRefs`, `fetchSkillsByRefs`, `writeSkills` (ZIP extraction), `generatePromptSection` (progressive disclosure), `generateAlsoAvailableSection`, `fetchSkillArtifacts`, `checkSkillIntegrity` (resume fast-path).
+- **`src/shared/__tests__/skill-relevance.test.ts`** — 27 unit tests covering tokenization, BM25 scoring, threshold filtering, safety floor, alphabetical ordering.
+- **`src/shared/__tests__/skill-writer.test.ts`** — 27 unit tests covering merge logic, gRPC fetch with error resilience, workspace writing, prompt generation, artifact downloads.
 
-**2 files modified**:
-- **`src/activities/execute-deep-agent/setup.ts`** — Inserted `backfillMcpServersIfNeeded()` between `resolveMcpServers()` and `connectMcpServers()` in the MCP server setup step.
-- **`src/activities/execute-cursor/connect-backfill.ts`** — Refactored from full implementation to thin wrapper that delegates to shared module and rebuilds cursor-specific `McpResolutionResult` (with `cursorConfig`).
+**1 file modified**:
+- **`src/activities/execute-deep-agent/setup.ts`** — Added Step 7b: merge skill_refs from agent + session, fetch skills via gRPC, download artifacts, write to workspace, apply BM25 relevance filter, generate prompt section.
 
-**Key decisions**: (1) MCP package pre-installer removed from roadmap — all 56 seedpack servers use self-installing commands (npx, uvx, go run); no failure mode exists. (2) Shared backfill uses `ResolvedMcpServer[]` in/out (not wrapper types) for maximum composability. (3) Cursor wrapper preserves existing call site interface (Option A from plan).
+**Key decisions**: (1) Zero external dependencies for BM25 (standard library only). (2) Daytona sandbox removed from roadmap — runners execute inside Daytona sandboxes created by stigmer-service; no runner-level SDK needed. (3) ZIP parser is minimal and built-in (node:zlib). (4) Shared modules in `src/shared/` (not activity-specific) for eventual cursor-runner consolidation.
 
-**Results**: 488 tests passing (17 new). `tsc --noEmit` clean. No new dependencies.
+**Results**: 542 tests passing (54 new). `tsc --noEmit` clean. No new dependencies.
+
+### Prior Sessions (Phase 4 — Connect Backfill for Deep Agent)
+
+**Key accomplishments**: Shared connect backfill module unified into `src/shared/connect-backfill.ts`; wired into deep-agent setup between `resolveMcpServers()` and `connectMcpServers()`; MCP pre-installer removed (unnecessary — npx/uvx self-install); 488 tests passing (17 new).
 
 ### Prior Sessions (Phase 4 — Multi-Provider Model Support)
 
 **Key findings**: (1) Proxy routing was broken — TS runner passed bare `proxyEndpoint` to LangChain without `/v1/proxy/llm/{provider}` suffix expected by `LlmProxyController`. (2) Gemini deferred — cloud proxy only supports openai + anthropic; no `google` provider in `LlmProxyConfig`. (3) `createDeepAgent` is provider-agnostic (`BaseLanguageModel | string` param); `cache_control` annotations are no-op for non-Anthropic. (4) 471 tests passing (39 new).
 
 ### Prior Sessions
+- **Phase 4 Skill Relevance Filtering (2026-05-19)**: BM25 scoring + skill pipeline for deep-agent — see `checkpoints/2026-05-19-session-16-phase4-skill-relevance.md`
+- **Phase 4 Connect Backfill (2026-05-19)**: Shared connect-backfill module + wired into deep-agent — see `checkpoints/2026-05-19-session-15-phase4-connect-backfill.md`
 - **Phase 4 Multi-Provider Model Support (2026-05-19)**: OpenAI + Anthropic via proxy; proxy routing bug fix — see `checkpoints/2026-05-19-session-14-phase4-multi-provider.md`
 - **Phase 4 Summarization Verification (2026-05-19)**: DeepAgents built-in confirmed correct — see `checkpoints/2026-05-19-session-13-phase4-summarization-verification.md`
 - **Phase 4 ConnectMcpServerWorkflow (2026-05-19)**: First Temporal workflow in TS runner — see `checkpoints/2026-05-19-session-12-phase4-connect-workflow.md`
@@ -85,8 +92,8 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-1. **Phase 4: Supporting Activities (in progress)** — ~~EnsureThread~~ DONE; ~~ClassifyToolApprovals~~ DONE; ~~DiscoverMcpServer~~ DONE; ~~ConnectMcpServerWorkflow~~ DONE; ~~Summarization middleware~~ VERIFIED (DD-004); ~~Multi-provider model support~~ DONE (Anthropic + OpenAI, proxy routing fixed); ~~Connect backfill~~ DONE (shared module, wired into deep-agent + cursor); ~~MCP package pre-installer~~ REMOVED (unnecessary — npx/uvx/go-run self-install); next: skill relevance filtering
-2. **Phase 5: Testing** — port Python tests, integration, HITL e2e
+1. ~~**Phase 4: Supporting Activities**~~ — **COMPLETE**. All items done or removed from scope.
+2. **Phase 5: Testing** — port Python tests, integration tests, HITL e2e validation. This is the next phase to work on.
 
 ## Context for Resume
 
@@ -98,7 +105,7 @@ Drop this file into your conversation to quickly resume work on this project.
 - Writeback coordinator: `src/activities/execute-deep-agent/writeback-coordinator.ts` (incremental git, per-entry mutex)
 - Post-stream: `src/activities/execute-deep-agent/post-stream.ts` + `auto-publish.ts`
 - Middleware: `src/middleware/` (types, think-tool, tool-truncation, error-hints, loop-detection, graceful-stop, execution-budget, cost-cap, otel-spans, approval-gate, index)
-- Shared modules: `src/shared/` (status, checkpointer, workspace, mcp-manager, mcp-resolver, connect-backfill, grpc-retry, model-pricing, artifact-storage, approval-policy, subagent-gate, model-registry, llm-proxy, placeholder-resolver)
+- Shared modules: `src/shared/` (status, checkpointer, workspace, mcp-manager, mcp-resolver, connect-backfill, grpc-retry, model-pricing, artifact-storage, approval-policy, subagent-gate, model-registry, llm-proxy, placeholder-resolver, skill-relevance, skill-writer)
 - Deep agent modules: `src/activities/execute-deep-agent/` (index, setup, environment, prompt-builder, status-builder, streaming, streaming-scheduler, execution-state, inline-publisher, writeback-coordinator, auto-publish, post-stream, hitl, subagent-wiring)
 - Python `agent-runner` still handles `ExecuteGraphton` on the base queue until cutover
 - `cursor-runner` remains in production until Phase 7 cleanup
@@ -118,13 +125,13 @@ Drop this file into your conversation to quickly resume work on this project.
 - ~~Sub-agent budget policies~~ Done (periodic mode: interval=30, max=4 advisories)
 - ~~Summarization middleware~~ VERIFIED in Phase 4 — DeepAgents JS built-in confirmed correct (DD-004); 15 verification tests added; 432 total tests passing
 
-### Phase 4+ (Supporting)
+### Phase 4+ (Supporting) — COMPLETE
 - ~~ConnectMcpServerWorkflow~~ Done (discover → classify with fingerprint short-circuit, ES2022 string-named exports for Temporal type names, snake_case boundary adapter)
 - ~~Multi-provider model support~~ Done (Anthropic + OpenAI via proxy; `llm-proxy.ts` shared module; proxy routing bug fixed; 39 new tests)
 - ~~Connect backfill~~ Done (shared `connect-backfill.ts` module, wired into deep-agent `setup.ts` + cursor delegates to shared; 17 new tests)
 - ~~MCP package pre-installer~~ Removed (npx/uvx/go-run self-install; no MCP server in seedpack needs explicit pre-installation; 270s discovery timeout is sufficient for cold starts)
-- Skill relevance filtering (exclude low-relevance skills when count >= 8)
-- Remote workspace backend (Daytona sandbox)
+- ~~Skill relevance filtering~~ Done (BM25 scoring, threshold=8, safety floor=n/2, progressive disclosure prompt; 54 new tests)
+- ~~Remote workspace backend (Daytona sandbox)~~ Removed (runner runs inside Daytona sandbox managed by stigmer-service; no runner-level SDK needed)
 
 ## Open Questions / Design Notes
 
@@ -155,8 +162,8 @@ None.
 | 3b-ii | Middleware Stack | 3-4 | COMPLETE |
 | 3b-iii | Artifacts + Writeback | 2-3 | COMPLETE |
 | 3c | HITL + Approval | 2-3 | COMPLETE |
-| 4 | Supporting Activities | 2-3 | **IN PROGRESS** (3/3 activities + 2 workflows + summarization verified + multi-provider done + connect backfill done; remaining: skill filtering, Daytona) |
-| 5 | Testing | 3-4 | Blocked on Phase 4 |
+| 4 | Supporting Activities | 2-3 | **COMPLETE** (all items done or removed from scope; 542 tests passing) |
+| 5 | Testing | 3-4 | **NEXT** |
 | 6 | Deployment | 2-3 | Blocked on Phase 5 |
 | 7 | Cleanup | 1-2 | Blocked on Phase 6 |
 
@@ -176,7 +183,7 @@ None.
 
 ## Quick Commands
 
-- "Continue with Phase 4" — Skill relevance filtering or remaining Phase 4 items
+- "Start Phase 5" — Testing: port Python tests, integration, HITL e2e
 - "Show project status" — Roadmap and file overview
 - `@_projects/2026-05/20260518.01.unified-runner-migration/next-task.md` — Resume context
 
