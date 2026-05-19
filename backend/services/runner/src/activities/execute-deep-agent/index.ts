@@ -5,8 +5,8 @@
  * The slim-payload pattern is preserved: input is just IDs, output is a slim
  * AgentExecutionStatus proto.
  *
- * Phase 3b-ii: full middleware stack (loop detection, execution budget,
- * tool truncation, graceful stop, cost cap, error hints, OTel spans).
+ * Phase 3b-iii: full middleware stack + artifact storage, inline publishing,
+ * incremental git writeback, and post-stream safety net.
  */
 
 import { create } from "@bufbuild/protobuf";
@@ -20,6 +20,10 @@ import { StigmerClient } from "../../client/stigmer-client.js";
 import { performSetup, type SetupResult } from "./setup.js";
 import { streamExecution, type StreamResult } from "./streaming.js";
 import { loadStreamingConfig } from "./streaming-scheduler.js";
+import { StatusBuilder } from "./status-builder.js";
+import { InlinePublisher } from "./inline-publisher.js";
+import { WriteBackCoordinator } from "./writeback-coordinator.js";
+import { processPostStream } from "./post-stream.js";
 
 export function createDeepAgentActivities(config: Config) {
   const client = new StigmerClient({
@@ -40,6 +44,25 @@ export function createDeepAgentActivities(config: Config) {
         setup = await performSetup({ config, client, executionId, threadId });
 
         const initialStatus = create(AgentExecutionStatusSchema, {});
+        const statusBuilder = new StatusBuilder(executionId, initialStatus);
+
+        const inlinePublisher = new InlinePublisher({
+          workspaceBackend: setup.workspaceBackend,
+          artifactStorage: setup.artifactStorage,
+          statusBuilder,
+          executionId,
+        });
+
+        const workspaceEntries = setup.session.spec?.workspaceEntries ?? [];
+        const writebackCoordinator = setup.provisionResults.length > 0
+          ? new WriteBackCoordinator({
+              statusBuilder,
+              executionId,
+              provisionResults: setup.provisionResults,
+              workspaceEntries: workspaceEntries as any,
+              workspaceBackend: setup.workspaceBackend,
+            })
+          : null;
 
         const result: StreamResult = await streamExecution({
           agentGraph: setup.agentGraph,
@@ -50,6 +73,17 @@ export function createDeepAgentActivities(config: Config) {
           initialStatus,
           streamingConfig,
           gracefulStop: setup.gracefulStop,
+          inlinePublisher,
+          writebackCoordinator: writebackCoordinator ?? undefined,
+        });
+
+        await processPostStream({
+          status: initialStatus,
+          inlinePublisher,
+          writebackCoordinator,
+          pendingPublishPromises: result.pendingPublishPromises,
+          pendingWritebackPromises: result.pendingWritebackPromises,
+          executionId,
         });
 
         if (result.terminalStatus) {
@@ -63,7 +97,9 @@ export function createDeepAgentActivities(config: Config) {
         console.log(
           `[ExecuteDeepAgent] Completed for execution ${executionId}: ` +
           `events=${result.eventsProcessed}, ` +
-          `messages=${initialStatus.messages.length}`,
+          `messages=${initialStatus.messages.length}, ` +
+          `artifacts=${initialStatus.artifacts.length}, ` +
+          `writebacks=${initialStatus.workspaceWriteBacks.length}`,
         );
 
         return slimStatus(initialStatus);

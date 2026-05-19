@@ -361,4 +361,167 @@ describe("StatusBuilder", () => {
       expect(sb.forceNextUpdate).toBe(false);
     });
   });
+
+  describe("addArtifact", () => {
+    it("appends a new artifact and sets forceNextUpdate", () => {
+      const sb = makeBuilder();
+      sb.clearForceFlag();
+
+      sb.addArtifact({
+        name: "report.txt",
+        sandboxPath: "workspace/report.txt",
+        kind: 0,
+        sizeBytes: 100n,
+        storageKey: "artifacts/exec-1/report.txt",
+        downloadUrl: "http://localhost/dl",
+        createdAt: "2026-05-19T12:00:00Z",
+        expiresAt: "",
+        entries: [],
+        contentHash: "abc123",
+        $typeName: "ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact",
+      } as any);
+
+      expect(sb.currentStatus.artifacts).toHaveLength(1);
+      expect(sb.currentStatus.artifacts[0].name).toBe("report.txt");
+      expect(sb.forceNextUpdate).toBe(true);
+    });
+
+    it("deduplicates by sandboxPath — skips same contentHash", () => {
+      const sb = makeBuilder();
+      const artifact = {
+        name: "f.txt",
+        sandboxPath: "ws/f.txt",
+        kind: 0,
+        sizeBytes: 10n,
+        storageKey: "k",
+        downloadUrl: "u",
+        createdAt: "",
+        expiresAt: "",
+        entries: [],
+        contentHash: "hash1",
+        $typeName: "ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact",
+      } as any;
+
+      sb.addArtifact(artifact);
+      sb.clearForceFlag();
+      sb.addArtifact({ ...artifact });
+
+      expect(sb.currentStatus.artifacts).toHaveLength(1);
+      expect(sb.forceNextUpdate).toBe(false);
+    });
+
+    it("replaces artifact when contentHash changes", () => {
+      const sb = makeBuilder();
+      const artifact = {
+        name: "f.txt",
+        sandboxPath: "ws/f.txt",
+        kind: 0,
+        sizeBytes: 10n,
+        storageKey: "k",
+        downloadUrl: "u",
+        createdAt: "",
+        expiresAt: "",
+        entries: [],
+        contentHash: "hash1",
+        $typeName: "ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact",
+      } as any;
+
+      sb.addArtifact(artifact);
+      sb.clearForceFlag();
+      sb.addArtifact({ ...artifact, contentHash: "hash2", sizeBytes: 20n });
+
+      expect(sb.currentStatus.artifacts).toHaveLength(1);
+      expect(sb.currentStatus.artifacts[0].contentHash).toBe("hash2");
+      expect(sb.forceNextUpdate).toBe(true);
+    });
+  });
+
+  describe("addWriteBack", () => {
+    it("appends a new writeback entry and sets forceNextUpdate", () => {
+      const sb = makeBuilder();
+      sb.clearForceFlag();
+
+      sb.addWriteBack({
+        workspaceEntryName: "my-app",
+        branchName: "stigmer/a1b2c3d4",
+        baseBranch: "main",
+        commitSha: "abc",
+        pullRequestUrl: "",
+        pullRequestNumber: 0,
+        diffSummary: "1 file changed",
+        phase: 1,
+        error: "",
+        $typeName: "ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack",
+      } as any);
+
+      expect(sb.currentStatus.workspaceWriteBacks).toHaveLength(1);
+      expect(sb.forceNextUpdate).toBe(true);
+    });
+
+    it("upserts by workspaceEntryName", () => {
+      const sb = makeBuilder();
+
+      sb.addWriteBack({
+        workspaceEntryName: "my-app",
+        branchName: "stigmer/a1b2",
+        baseBranch: "main",
+        commitSha: "sha1",
+        pullRequestUrl: "",
+        pullRequestNumber: 0,
+        diffSummary: "",
+        phase: 1,
+        error: "",
+        $typeName: "ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack",
+      } as any);
+
+      sb.addWriteBack({
+        workspaceEntryName: "my-app",
+        branchName: "stigmer/a1b2",
+        baseBranch: "main",
+        commitSha: "sha2",
+        pullRequestUrl: "https://github.com/pr/1",
+        pullRequestNumber: 1,
+        diffSummary: "2 files changed",
+        phase: 3,
+        error: "",
+        $typeName: "ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack",
+      } as any);
+
+      expect(sb.currentStatus.workspaceWriteBacks).toHaveLength(1);
+      expect(sb.currentStatus.workspaceWriteBacks[0].commitSha).toBe("sha2");
+      expect(sb.currentStatus.workspaceWriteBacks[0].phase).toBe(3);
+    });
+
+    it("tracks multiple workspace entries independently", () => {
+      const sb = makeBuilder();
+
+      sb.addWriteBack({
+        workspaceEntryName: "frontend",
+        branchName: "stigmer/x",
+        baseBranch: "main",
+        commitSha: "a",
+        pullRequestUrl: "",
+        pullRequestNumber: 0,
+        diffSummary: "",
+        phase: 1,
+        error: "",
+        $typeName: "ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack",
+      } as any);
+
+      sb.addWriteBack({
+        workspaceEntryName: "backend",
+        branchName: "stigmer/x",
+        baseBranch: "develop",
+        commitSha: "b",
+        pullRequestUrl: "",
+        pullRequestNumber: 0,
+        diffSummary: "",
+        phase: 2,
+        error: "",
+        $typeName: "ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack",
+      } as any);
+
+      expect(sb.currentStatus.workspaceWriteBacks).toHaveLength(2);
+    });
+  });
 });

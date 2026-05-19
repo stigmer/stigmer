@@ -17,6 +17,8 @@ import {
   ToolCallSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
+import type { WorkspaceWriteBack } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/writeback_pb";
 import {
   ExecutionPhase,
   MessageType,
@@ -97,6 +99,46 @@ export class StatusBuilder {
         `event=${event.event} run_id=${event.run_id}: ${err}`,
       );
     }
+  }
+
+  // ── Artifact & WriteBack ───────────────────────────────────────────
+
+  /**
+   * Add or update an execution artifact. Deduplicates by `sandboxPath`:
+   * if an artifact with the same path already exists, it is replaced only
+   * when the `contentHash` has changed (re-upload of modified file).
+   */
+  addArtifact(artifact: ExecutionArtifact): void {
+    const artifacts = this.state.proto.artifacts;
+    const idx = artifacts.findIndex(a => a.sandboxPath === artifact.sandboxPath);
+
+    if (idx >= 0) {
+      if (artifacts[idx].contentHash !== artifact.contentHash) {
+        artifacts[idx] = artifact;
+        this._forceNextUpdate = true;
+      }
+      return;
+    }
+
+    artifacts.push(artifact);
+    this._forceNextUpdate = true;
+  }
+
+  /**
+   * Add or update a workspace write-back entry. Upserts by
+   * `workspaceEntryName` — each git-backed workspace entry produces
+   * at most one write-back record that progresses through phases.
+   */
+  addWriteBack(wb: WorkspaceWriteBack): void {
+    const backs = this.state.proto.workspaceWriteBacks;
+    const idx = backs.findIndex(b => b.workspaceEntryName === wb.workspaceEntryName);
+
+    if (idx >= 0) {
+      backs[idx] = wb;
+    } else {
+      backs.push(wb);
+    }
+    this._forceNextUpdate = true;
   }
 
   // ── Event Handlers ─────────────────────────────────────────────────

@@ -35,6 +35,11 @@ import { buildEnhancedSystemPrompt } from "./prompt-builder.js";
 import { buildMiddlewareStack, createThinkTool } from "../../middleware/index.js";
 import type { GracefulStopMiddleware } from "../../middleware/index.js";
 import { getModelPricing, ensureLoaded as ensurePricingLoaded } from "../../shared/model-pricing.js";
+import {
+  loadArtifactStorageConfig,
+  createArtifactStorage,
+  type ArtifactStorage,
+} from "../../shared/artifact-storage.js";
 
 export interface SetupResult {
   readonly agentGraph: AgentGraph;
@@ -49,6 +54,8 @@ export interface SetupResult {
   readonly secretKeys: ReadonlySet<string>;
   readonly modelName: string;
   readonly gracefulStop: GracefulStopMiddleware;
+  readonly artifactStorage: ArtifactStorage;
+  readonly provisionResults: readonly ProvisionResult[];
 }
 
 export interface SetupDependencies {
@@ -109,7 +116,11 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
     await reportSetupProgress(client, executionId, "Resolving environment…");
     const envResult: EnvironmentResult = await resolveEnvironment(client, executionId);
 
-    // Step 6: Provision workspace
+    // Step 6: Create artifact storage
+    const artifactStorageConfig = loadArtifactStorageConfig(config);
+    const artifactStorage = createArtifactStorage(artifactStorageConfig);
+
+    // Step 7: Provision workspace
     await reportSetupProgress(client, executionId, "Initializing workspace…");
     const { workspaceBackend, provisionResults } = await provisionWorkspace(
       config,
@@ -234,6 +245,8 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       secretKeys: envResult.secretKeys,
       modelName,
       gracefulStop,
+      artifactStorage,
+      provisionResults,
     };
   } catch (err) {
     if (mcpConnection) {
