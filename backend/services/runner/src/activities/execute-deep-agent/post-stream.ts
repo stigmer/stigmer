@@ -11,6 +11,7 @@
  */
 
 import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { InlinePublisher } from "./inline-publisher.js";
 import type { WriteBackCoordinator } from "./writeback-coordinator.js";
 import { autoPublishWrittenFiles } from "./auto-publish.js";
@@ -33,6 +34,14 @@ export async function processPostStream(opts: PostStreamOptions): Promise<void> 
     pendingWritebackPromises,
     executionId,
   } = opts;
+
+  if (status.phase === ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL) {
+    console.log(
+      `[postStream] execution=${executionId} — skipping post-stream ` +
+      `(phase is WAITING_FOR_APPROVAL)`,
+    );
+    return;
+  }
 
   // Step 1: Drain pending inline publish promises
   if (pendingPublishPromises.length > 0) {

@@ -40,6 +40,10 @@ import {
   createArtifactStorage,
   type ArtifactStorage,
 } from "../../shared/artifact-storage.js";
+import {
+  mergeApprovalPolicies,
+  type MergedToolPolicy,
+} from "../../shared/approval-policy.js";
 
 export interface SetupResult {
   readonly agentGraph: AgentGraph;
@@ -56,6 +60,9 @@ export interface SetupResult {
   readonly gracefulStop: GracefulStopMiddleware;
   readonly artifactStorage: ArtifactStorage;
   readonly provisionResults: readonly ProvisionResult[];
+  readonly approvalPolicies: ReadonlyMap<string, MergedToolPolicy>;
+  readonly toolServerMap: ReadonlyMap<string, string>;
+  readonly autoApproveAll: boolean;
 }
 
 export interface SetupDependencies {
@@ -134,13 +141,14 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       ...(session.spec!.mcpServerUsages || []),
     ];
 
+    let resolvedMcpServers: Awaited<ReturnType<typeof resolveMcpServers>> | null = null;
     if (mcpServerUsages.length > 0) {
       await reportSetupProgress(client, executionId, "Connecting tools…");
-      const resolved = await resolveMcpServers(
+      resolvedMcpServers = await resolveMcpServers(
         client, mcpServerUsages, envResult.mergedEnvVars,
       );
       mcpConnection = await connectMcpServers(
-        resolved.resolvedServers,
+        resolvedMcpServers.resolvedServers,
         { isCloudMode: config.cloudModeEnabled },
       );
     }
@@ -173,6 +181,17 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       }
     }
 
+    // Step 10b: Resolve approval policies
+    const autoApproveAll = execution.spec!.autoApproveAll ?? false;
+    const agentOverrides = agent.spec!.mcpServerUsages?.flatMap(
+      u => u.toolApprovalOverrides ?? [],
+    ) ?? [];
+    const approvalPolicies = mergeApprovalPolicies(
+      resolvedMcpServers?.resolvedServers ?? [],
+      agentOverrides,
+      autoApproveAll,
+    );
+
     const maxCostUsd = execConfig?.maxCostUsd ?? 0;
     const { middleware, gracefulStop } = buildMiddlewareStack({
       loopDetection: {
@@ -197,6 +216,11 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
         warningPct: 80,
       } : null,
       otelSpans: { toolServerMap },
+      approvalGate: !autoApproveAll ? {
+        policies: approvalPolicies,
+        autoApproveAll,
+        toolServerMap,
+      } : null,
     });
 
     // Step 11: Build tools list (MCP tools + think tool)
@@ -247,6 +271,9 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       gracefulStop,
       artifactStorage,
       provisionResults,
+      approvalPolicies,
+      toolServerMap,
+      autoApproveAll,
     };
   } catch (err) {
     if (mcpConnection) {

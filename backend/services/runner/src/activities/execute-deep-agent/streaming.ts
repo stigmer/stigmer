@@ -184,6 +184,19 @@ export async function streamExecution(
     );
   }
 
+  if (initialStatus.phase === ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL) {
+    console.log(
+      `[streaming] execution=${executionId} stream ended with WAITING_FOR_APPROVAL. ` +
+      `Not setting COMPLETED. pending_approvals computed server-side.`,
+    );
+    return {
+      eventsProcessed,
+      terminalStatus: slimStatus(initialStatus),
+      pendingPublishPromises,
+      pendingWritebackPromises,
+    };
+  }
+
   console.log(
     `[streaming] execution=${executionId} stream finished — ` +
     `processed ${eventsProcessed} events`,

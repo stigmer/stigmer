@@ -94,6 +94,12 @@ export interface OtelSpansConfig {
   readonly toolServerMap: ReadonlyMap<string, string>;
 }
 
+export interface ApprovalGateConfig {
+  readonly policies: ReadonlyMap<string, import("../shared/approval-policy.js").MergedToolPolicy>;
+  readonly autoApproveAll: boolean;
+  readonly toolServerMap: ReadonlyMap<string, string>;
+}
+
 /**
  * Top-level configuration for buildMiddlewareStack().
  * All sections are optional — the factory applies sensible defaults.
@@ -104,4 +110,5 @@ export interface MiddlewareStackConfig {
   readonly toolTruncation?: Partial<ToolTruncationConfig>;
   readonly costCap?: CostCapConfig | null;
   readonly otelSpans?: Partial<OtelSpansConfig>;
+  readonly approvalGate?: ApprovalGateConfig | null;
 }
