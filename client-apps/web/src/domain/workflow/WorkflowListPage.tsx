@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
-import { GitBranch, MoreHorizontal, Copy, ExternalLink, Trash2, Plus } from "lucide-react";
+import { GitBranch, MoreHorizontal, Copy, ExternalLink, Trash2, Plus, Upload } from "lucide-react";
 import { useLibraryNavigation } from "@/domain/library/library-navigation";
 import {
   readPersistedScope,
@@ -11,6 +11,7 @@ import {
 import {
   ResourceWorkbench,
   ActionMenu,
+  ImportResourceDialog,
   useStigmer,
   useActiveOrgSlug,
   useConfirmAction,
@@ -64,7 +65,10 @@ export function WorkflowListPage() {
   const [scope, setScope] = useState<"org" | "all">(() =>
     readPersistedScope("workflows"),
   );
+  const [importOpen, setImportOpen] = useState(false);
   const [listVersion, setListVersion] = useState(0);
+
+  const createUrl = "/library/workflows/new";
 
   const handleDeleteItem = useCallback(
     async (item: SearchResult) => {
@@ -100,20 +104,11 @@ export function WorkflowListPage() {
 
   return (
     <>
-      <div className="mb-6 flex items-start justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-foreground">Workflows</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Browse and manage multi-step orchestration workflows.
-          </p>
-        </div>
-        <Link
-          href="/library/workflows/new"
-          className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <Plus className="size-4" aria-hidden="true" />
-          Create
-        </Link>
+      <div className="mb-6">
+        <h1 className="text-xl font-semibold text-foreground">Workflows</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Browse and manage multi-step orchestration workflows.
+        </p>
       </div>
 
       <ResourceWorkbench
@@ -123,13 +118,41 @@ export function WorkflowListPage() {
         columns={WORKFLOW_COLUMNS}
         scope={scope}
         onScopeChange={handleScopeChange}
-        defaultViewMode="table"
+        defaultViewMode="cards"
         viewModes={["table", "cards"]}
         viewModeStorageKey={VIEW_MODE_STORAGE_KEY}
         searchPlaceholder="Search workflows…"
         emptyIcon={<GitBranch className="size-10" aria-hidden="true" />}
         emptyTitle="No workflows yet"
-        emptyDescription="Workflows define multi-step orchestration for agents. Use the Create button above to get started."
+        emptyDescription="Workflows define multi-step orchestration for agents. Create one to get started."
+        headerAction={
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setImportOpen(true)}
+              aria-label="Import from file"
+              className="inline-flex items-center justify-center rounded-md border border-input bg-background p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <Upload className="size-3.5" aria-hidden="true" />
+            </button>
+            <Link
+              href={createUrl}
+              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <Plus className="size-3.5" aria-hidden="true" />
+              Create workflow
+            </Link>
+          </div>
+        }
+        emptyAction={
+          <Link
+            href={createUrl}
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Plus className="size-3.5" aria-hidden="true" />
+            Create workflow
+          </Link>
+        }
         onItemClick={(item) => navigateToDetail("workflows", item.org, item.slug)}
         renderItemAction={(item) => (
           <div onClick={(e) => e.stopPropagation()}>
@@ -168,6 +191,12 @@ export function WorkflowListPage() {
           </div>
         )}
         aria-label="Workflow workbench"
+      />
+
+      <ImportResourceDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        org={org ?? ""}
       />
 
       <ConfirmDialog
