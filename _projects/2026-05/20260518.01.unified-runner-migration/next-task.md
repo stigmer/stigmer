@@ -44,45 +44,78 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 **Created**: 2026-05-18 15:11  
-**Last Session**: 2026-05-19 — Phase 2 core shared infrastructure  
-**Current Task**: Phase 3 — ExecuteDeepAgent Activity  
-**Status**: Phase 2 COMPLETE — shared infrastructure in place; deep agent implementation is next
+**Last Session**: 2026-05-19 — Phase 3a walking skeleton  
+**Current Task**: Phase 3b — Middleware + StatusBuilder  
+**Status**: Phase 3a COMPLETE — ExecuteDeepAgent wired end-to-end; middleware and streaming status are next
 
 ## Session Progress (2026-05-19, latest)
 
-### What Was Accomplished (Phase 2)
-- **2d** `shared/status.ts` — extracted `persistStatus`, `reportSetupProgress`, `slimStatus`, `utcTimestamp`; ExecuteCursor updated
-- **2b** `shared/checkpointer/` — MemorySaver + HttpCheckpointSaver (HTTP proxy to Java); config fields added
-- **2c** `shared/workspace/` — provisioner (git, local path, empty), local backend, file tree
-- **2a** `shared/mcp-manager.ts` — `MultiServerMCPClient`, cloud compatibility warnings
-- **52 new tests** (70 total), typecheck clean, build clean
+### What Was Accomplished (Phase 3a)
+- **ExecuteDeepAgent activity** — replaced stub with full working implementation
+- **Setup pipeline** (`setup.ts`) — orchestrates: hydrate execution, chain resolution, checkpointer, workspace provisioning, MCP connection, model construction, `createDeepAgent`
+- **Environment resolver** (`environment.ts`) — fetches ExecutionContext, extracts vars + secret tracking
+- **Prompt builder** (`prompt-builder.ts`) — workspace sections (single/multi-entry), skills, file refs, injected files, response rules, sub-agent delegation rules
+- **Model construction** — pre-constructed `ChatAnthropic` with explicit proxy `baseURL` routing
+- **Agent execution** — `invoke()` with final message extraction; result persisted as `AgentExecutionStatus`
+- **Proper cleanup** — MCP connection closed in finally block
+- **24 new tests** (90 total), typecheck clean, build clean
 
-### Key Decisions (Phase 2)
-- Checkpointer: **memory (OSS)** + **HTTP proxy (cloud)** — SQLite and direct MongoDB dropped
-- **StatusBuilder deferred to Phase 3** — LangGraph vs Cursor event models are too different for a speculative shared abstraction now
-- MCP cloud guard: **warn only** for non-installable stdio commands (no proto change)
+### Key Decisions (Phase 3a)
+- **SetupResult trimmed** — excludes artifact_storage, inline_publisher, writeback_coordinator (deferred to 3b)
+- **Model construction: explicit** — pre-constructed `BaseChatModel` with proxy `baseURL`, not global fetch interceptor
+- **Streaming: minimal** — `invoke()` + final message capture; full `streamEvents()` with progressive updates deferred to 3b
+- **Error contract: simple** — single-attempt gRPC with try/catch + log; GrpcRetryExecutor deferred to 3b
+- **OpenAI support: deferred** — explicit error thrown if non-Anthropic model requested; multi-provider is Phase 4
 
 ### Prior Sessions
-- **Phase 1 (2026-05-19 earlier)**: Service scaffold, single queue, ExecuteCursor ported, ExecuteDeepAgent stub — see `checkpoints/2026-05-19-session-2.md`
+- **Phase 2 (2026-05-19)**: Core shared infrastructure — see `checkpoints/2026-05-19-session-3-phase2.md`
+- **Phase 1 (2026-05-19 earlier)**: Service scaffold, single queue, ExecuteCursor ported — see `checkpoints/2026-05-19-session-2.md`
 
 ## Next Steps
 
-1. **Phase 3: ExecuteDeepAgent** — wire shared checkpointer, MCP manager, workspace provisioner; port graphton-ts middleware; build LangGraph StatusBuilder
-2. Implement HITL interrupt/resume with LangGraph `interrupt()` + `Command({ resume })`
-3. **Phase 4**: EnsureThread, MCP discovery, classify tool approvals (after Phase 3)
+1. **Phase 3b: Middleware + StatusBuilder** — port graphton-ts middleware (loop detection, cost cap, execution budget, tool truncation, graceful stop, error hints, think tool, OTel spans); build LangGraph StatusBuilder (event-to-proto mapping with progressive streaming updates); add artifact storage + inline publisher + writeback coordinator; add GrpcRetryExecutor
+2. **Phase 3c: HITL + Approval** — implement interrupt/resume (`interruptOn` + `Command({ resume })`); wire approval policy; sub-agent concurrency limiter; verify summarization middleware config parity
+3. **Phase 4**: EnsureThread, MCP discovery, classify tool approvals; `@langchain/openai` multi-provider support; MCP package pre-installer; connect backfill for undiscovered servers; skill relevance filtering; cost pricing integration
 
 ## Context for Resume
 
-- Unified runner: `backend/services/runner/` — ExecuteCursor production-ready; ExecuteDeepAgent still stub
+- Unified runner: `backend/services/runner/` — ExecuteCursor production-ready; ExecuteDeepAgent functional (walking skeleton)
 - Shared modules: `src/shared/` (status, checkpointer, workspace, mcp-manager)
+- Deep agent modules: `src/activities/execute-deep-agent/` (index, setup, environment, prompt-builder)
 - Python `agent-runner` still handles `ExecuteGraphton` on the base queue until cutover
 - `cursor-runner` remains in production until Phase 7 cleanup
-- Remote workspace backend (Daytona) and MCP package installer deferred to Phase 3+
+
+## Deferred Items (from Phase 3a)
+
+These items were explicitly unscoped from Phase 3a and MUST be implemented in the indicated follow-up phase:
+
+### Phase 3b (Middleware + StatusBuilder)
+- StatusBuilder: LangGraph event-to-proto mapping with progressive streaming updates via `streamEvents()`
+- Middleware stack: loop detection, cost cap, execution budget, tool truncation, graceful stop, error hints, think tool, OTel spans
+- Artifact storage + inline publisher (for publishing files the agent writes)
+- Writeback coordinator (git write-back for workspace changes)
+- GrpcRetryExecutor (exponential-backoff retry for status persistence)
+- Switch from `invoke()` to `streamEvents()` for progressive UI updates
+
+### Phase 3c (HITL + Approval)
+- HITL interrupt/resume (`interruptOn` config + `Command({ resume })`)
+- Approval policy integration (tool-level approval checks before execution)
+- Sub-agent concurrency limiter (Promise-based semaphore, max 3)
+- Summarization middleware config parity verification (DeepAgents JS built-in vs custom)
+
+### Phase 4+ (Supporting)
+- `@langchain/openai` multi-provider model support
+- MCP package pre-installer (npm/pip install before tool connections)
+- Connect backfill for undiscovered/stale MCP servers
+- Skill relevance filtering (exclude low-relevance skills when count >= 8)
+- Cost pricing integration (model pricing for cost cap middleware)
+- Remote workspace backend (Daytona sandbox)
 
 ## Open Questions / Design Notes
 
-- **Cursor Cloud + native stdio MCP**: npx/node-based stdio generally works when passed to Cursor SDK; arbitrary local binaries do not. Deep-agent stdio is runner-managed. See changelog and Phase 2 plan for validation-guard approach.
+- **Cursor Cloud + native stdio MCP**: npx/node-based stdio generally works when passed to Cursor SDK; arbitrary local binaries do not. Deep-agent stdio is runner-managed.
 - **HttpCheckpointSaver**: Must stay wire-compatible with Java proxy (`$binary` serde format)
+- **streamEvents vs invoke**: Phase 3a uses `invoke()` for simplicity. Phase 3b will switch to `streamEvents()` with v2 event version for progressive status updates. The StatusBuilder will consume these events.
 
 ## Blockers
 
@@ -95,8 +128,10 @@ None.
 | 0 | Research Spike (T01) | 1 | COMPLETE |
 | 1 | Service Scaffold | 2 | COMPLETE |
 | 2 | Core Shared Infrastructure | 3-4 | COMPLETE |
-| 3 | ExecuteDeepAgent Activity | 4-5 | **NEXT** |
-| 4 | Supporting Activities | 2-3 | Blocked on Phase 3 |
+| 3a | ExecuteDeepAgent Walking Skeleton | 1 | COMPLETE |
+| 3b | Middleware + StatusBuilder | 3-4 | **NEXT** |
+| 3c | HITL + Approval | 2-3 | Blocked on 3b |
+| 4 | Supporting Activities | 2-3 | Blocked on 3c |
 | 5 | Testing | 3-4 | Blocked on Phase 4 |
 | 6 | Deployment | 2-3 | Blocked on Phase 5 |
 | 7 | Cleanup | 1-2 | Blocked on Phase 6 |
@@ -104,12 +139,14 @@ None.
 ## Key References
 
 - **Unified runner**: `backend/services/runner/`
+- **Phase 3a files**: `src/activities/execute-deep-agent/{index,setup,environment,prompt-builder}.ts`
 - **Phase 2 changelog**: `_changelog/2026-05/2026-05-19-150821-unified-runner-phase2-shared-infrastructure.md`
 - **Gate decision**: `design-decisions/003-t01-gate-decision.md`
+- **Graphton module audit**: `design-decisions/001-t01a-graphton-module-audit.md`
 
 ## Quick Commands
 
-- "Continue with Phase 3" — Start ExecuteDeepAgent implementation
+- "Continue with Phase 3b" — Start middleware + StatusBuilder implementation
 - "Show project status" — Roadmap and file overview
 - `@_projects/2026-05/20260518.01.unified-runner-migration/next-task.md` — Resume context
 
