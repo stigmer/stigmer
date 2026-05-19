@@ -44,28 +44,24 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 **Created**: 2026-05-18 15:11  
-**Last Session**: 2026-05-19 — Phase 4 ConnectMcpServerWorkflow  
+**Last Session**: 2026-05-19 — Phase 4 Summarization Middleware Verification  
 **Current Task**: Phase 4 — Supporting Activities (in progress)  
-**Status**: ConnectMcpServerWorkflow COMPLETE — first Temporal workflow in TS runner; all 5 activities + 2 workflows ported; 417 tests passing
+**Status**: Summarization middleware VERIFIED — DeepAgents JS built-in confirmed correct (DD-004); all 5 activities + 2 workflows ported; 432 tests passing
 
 ## Session Progress (2026-05-19, latest)
 
-### What Was Accomplished (Phase 4 — ConnectMcpServerWorkflow)
+### What Was Accomplished (Phase 4 — Summarization Middleware Verification)
 
-**4 new files**:
-- **workflows/types.ts** — Snake_case boundary types matching Java wire format (`ConnectMcpServerWorkflowInput`, `ConnectMcpServerWorkflowOutput`, wire-format nested types)
-- **workflows/connect-mcp-server.ts** — `connectMcpServer()` (discover → fingerprint check → classify or reuse) + `discoverMcpServerLegacy()` (backward compat); sandbox-safe
-- **workflows/index.ts** — Barrel file re-exporting with Temporal workflow type names via ES2022 string-named exports (`export { fn as "stigmer/mcp-server/connect" }`)
-- **workflows/__tests__/connect-mcp-server.test.ts** — 12 tests: happy path, fingerprint short-circuit (4 variants), error propagation, wire format correctness, legacy workflow
+**1 new file**:
+- **`__tests__/summarization-verification.test.ts`** — 15 tests: `computeSummarizationDefaults` threshold verification (6), checkpoint serialization roundtrip (4), middleware stack ordering (5)
 
-**Modified files:**
-- `activities/discover-mcp-server.ts` — added `newToolsFingerprint` to output (computed in activity for sandbox safety)
-- `worker.ts` — added `workflowsPath` for workflow bundle registration
-- `package.json` — added `@temporalio/workflow` + `@temporalio/testing`
+**1 new design decision**:
+- **`design-decisions/004-summarization-middleware.md`** — Decision: use DeepAgents JS built-in, no custom implementation. Documents thresholds, token capture via proxy, storage path, middleware ordering.
 
-**Key decisions**: (1) Fingerprint computed in activity, not workflow (sandbox can't use `node:crypto`). (2) Snake_case boundary types at workflow wire boundary, camelCase internally; workflow maps between them. (3) ES2022 string-named exports for slash-delimited Temporal workflow type names. (4) Barrel file as bundler entry point.
+**Key findings**: (1) Python agent-runner had zero summarization code — no parity gap. (2) `createDeepAgent` already includes `SummarizationMiddleware` in default stack. (3) Summarization uses `request.model` from `wrapModelCall` — same proxy-routed `ChatAnthropic` instance, so all tokens captured by proxy. (4) `computeSummarizationDefaults` auto-adapts: fraction-based for profiled models (85% trigger, 10% keep), fixed fallbacks otherwise. (5) Checkpoint serialization roundtrip confirmed for `_summarizationEvent` with `HumanMessage` through `JsonPlusSerializer`.
 
 ### Prior Sessions
+- **Phase 4 ConnectMcpServerWorkflow (2026-05-19)**: First Temporal workflow in TS runner — see `checkpoints/2026-05-19-session-12-phase4-connect-workflow.md`
 - **Phase 4 DiscoverMcpServer (2026-05-19)**: MCP server discovery activity — see `checkpoints/2026-05-19-session-11-phase4-discover-mcp-server.md`
 - **Phase 4 ClassifyToolApprovals (2026-05-19)**: LLM tool safety classifier — see `checkpoints/2026-05-19-session-10-phase4-classify-tool-approvals.md`
 - **Phase 4 EnsureThread (2026-05-19)**: Thread ID resolution — see `checkpoints/2026-05-19-session-9-phase4-ensurethread.md`
@@ -79,7 +75,7 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-1. **Phase 4: Supporting Activities (in progress)** — ~~EnsureThread~~ DONE; ~~ClassifyToolApprovals~~ DONE; ~~DiscoverMcpServer~~ DONE; ~~ConnectMcpServerWorkflow~~ DONE; next: summarization middleware verification (DeepAgents JS built-in vs custom port); `@langchain/openai` multi-provider support; MCP package pre-installer; connect backfill for undiscovered servers; skill relevance filtering
+1. **Phase 4: Supporting Activities (in progress)** — ~~EnsureThread~~ DONE; ~~ClassifyToolApprovals~~ DONE; ~~DiscoverMcpServer~~ DONE; ~~ConnectMcpServerWorkflow~~ DONE; ~~Summarization middleware~~ VERIFIED (DD-004: DeepAgents built-in, no custom needed); next: `@langchain/openai` multi-provider support; MCP package pre-installer; connect backfill for undiscovered servers; skill relevance filtering
 2. **Phase 5: Testing** — port Python tests, integration, HITL e2e
 
 ## Context for Resume
@@ -110,7 +106,7 @@ Drop this file into your conversation to quickly resume work on this project.
 - ~~Sub-agent concurrency limiter~~ Done (`SubAgentGate`, max 3, non-blocking rejection)
 - ~~Sub-agent middleware wiring~~ Done (`buildSubAgentMiddleware()` with `forSubAgent()` cost cap)
 - ~~Sub-agent budget policies~~ Done (periodic mode: interval=30, max=4 advisories)
-- Summarization middleware → deferred to Phase 4 (DD-10)
+- ~~Summarization middleware~~ VERIFIED in Phase 4 — DeepAgents JS built-in confirmed correct (DD-004); 15 verification tests added; 432 total tests passing
 
 ### Phase 4+ (Supporting)
 - ~~ConnectMcpServerWorkflow~~ Done (discover → classify with fingerprint short-circuit, ES2022 string-named exports for Temporal type names, snake_case boundary adapter)
@@ -148,7 +144,7 @@ None.
 | 3b-ii | Middleware Stack | 3-4 | COMPLETE |
 | 3b-iii | Artifacts + Writeback | 2-3 | COMPLETE |
 | 3c | HITL + Approval | 2-3 | COMPLETE |
-| 4 | Supporting Activities | 2-3 | **IN PROGRESS** (3/3 activities + 2 workflows done, remaining items next) |
+| 4 | Supporting Activities | 2-3 | **IN PROGRESS** (3/3 activities + 2 workflows + summarization verified, remaining items next) |
 | 5 | Testing | 3-4 | Blocked on Phase 4 |
 | 6 | Deployment | 2-3 | Blocked on Phase 5 |
 | 7 | Cleanup | 1-2 | Blocked on Phase 6 |
@@ -162,12 +158,14 @@ None.
 - **Phase 3b-ii files**: `src/middleware/{types,think-tool,tool-truncation,error-hints,loop-detection,graceful-stop,execution-budget,cost-cap,otel-spans,index}.ts`
 - **Phase 3b-i files**: `src/activities/execute-deep-agent/{status-builder,streaming,streaming-scheduler,execution-state}.ts` + `src/shared/grpc-retry.ts`
 - **Phase 3a files**: `src/activities/execute-deep-agent/{index,setup,environment,prompt-builder}.ts`
+- **Phase 4 summarization verification**: `src/activities/execute-deep-agent/__tests__/summarization-verification.test.ts`
 - **Gate decision**: `design-decisions/003-t01-gate-decision.md`
+- **Summarization decision**: `design-decisions/004-summarization-middleware.md`
 - **Graphton module audit**: `design-decisions/001-t01a-graphton-module-audit.md`
 
 ## Quick Commands
 
-- "Continue with Phase 4" — Start summarization middleware verification or remaining Phase 4 items
+- "Continue with Phase 4" — Start `@langchain/openai` multi-provider support or remaining Phase 4 items
 - "Show project status" — Roadmap and file overview
 - `@_projects/2026-05/20260518.01.unified-runner-migration/next-task.md` — Resume context
 
