@@ -16,7 +16,7 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260518.01.unified-runner-migration/checkpoints/2026-05-19-session-12-phase4-connect-workflow.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260518.01.unified-runner-migration/checkpoints/2026-05-19-session-14-phase4-multi-provider.md
 ```
 
 ### 2. Current Task
@@ -44,23 +44,28 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 **Created**: 2026-05-18 15:11  
-**Last Session**: 2026-05-19 — Phase 4 Summarization Middleware Verification  
+**Last Session**: 2026-05-19 — Phase 4 Multi-Provider Model Support  
 **Current Task**: Phase 4 — Supporting Activities (in progress)  
-**Status**: Summarization middleware VERIFIED — DeepAgents JS built-in confirmed correct (DD-004); all 5 activities + 2 workflows ported; 432 tests passing
+**Status**: Multi-provider (Anthropic + OpenAI) COMPLETE; proxy routing bug FIXED; all 5 activities + 2 workflows ported; 471 tests passing
 
 ## Session Progress (2026-05-19, latest)
 
-### What Was Accomplished (Phase 4 — Summarization Middleware Verification)
+### What Was Accomplished (Phase 4 — Multi-Provider Model Support)
 
-**1 new file**:
-- **`__tests__/summarization-verification.test.ts`** — 15 tests: `computeSummarizationDefaults` threshold verification (6), checkpoint serialization roundtrip (4), middleware stack ordering (5)
+**2 new files**:
+- **`src/shared/llm-proxy.ts`** — Shared LLM proxy routing: `inferProvider`, `stripProviderPrefix`, `resolveProxyBaseUrl`, `buildProxyHeaders`
+- **`src/shared/__tests__/llm-proxy.test.ts`** — 39 unit tests for provider inference, URL resolution, header construction
 
-**1 new design decision**:
-- **`design-decisions/004-summarization-middleware.md`** — Decision: use DeepAgents JS built-in, no custom implementation. Documents thresholds, token capture via proxy, storage path, middleware ordering.
+**3 files modified**:
+- **`src/activities/execute-deep-agent/setup.ts`** — Refactored `constructModel` to multi-provider dispatch (Anthropic + OpenAI); removed Phase 4 throw; added scope headers
+- **`src/activities/classify-tool-approvals.ts`** — Fixed proxy URL routing with `resolveProxyBaseUrl`
+- **`src/activities/__tests__/classify-tool-approvals.test.ts`** — Updated assertion for corrected proxy URL
 
-**Key findings**: (1) Python agent-runner had zero summarization code — no parity gap. (2) `createDeepAgent` already includes `SummarizationMiddleware` in default stack. (3) Summarization uses `request.model` from `wrapModelCall` — same proxy-routed `ChatAnthropic` instance, so all tokens captured by proxy. (4) `computeSummarizationDefaults` auto-adapts: fraction-based for profiled models (85% trigger, 10% keep), fixed fallbacks otherwise. (5) Checkpoint serialization roundtrip confirmed for `_summarizationEvent` with `HumanMessage` through `JsonPlusSerializer`.
+**Key findings**: (1) Proxy routing was broken — TS runner passed bare `proxyEndpoint` to LangChain without `/v1/proxy/llm/{provider}` suffix expected by `LlmProxyController`. (2) Gemini deferred — cloud proxy only supports openai + anthropic; no `google` provider in `LlmProxyConfig`. (3) `createDeepAgent` is provider-agnostic (`BaseLanguageModel | string` param); `cache_control` annotations are no-op for non-Anthropic. (4) 471 tests passing (39 new).
 
 ### Prior Sessions
+- **Phase 4 Multi-Provider Model Support (2026-05-19)**: OpenAI + Anthropic via proxy; proxy routing bug fix — see `checkpoints/2026-05-19-session-14-phase4-multi-provider.md`
+- **Phase 4 Summarization Verification (2026-05-19)**: DeepAgents built-in confirmed correct — see `checkpoints/2026-05-19-session-13-phase4-summarization-verification.md`
 - **Phase 4 ConnectMcpServerWorkflow (2026-05-19)**: First Temporal workflow in TS runner — see `checkpoints/2026-05-19-session-12-phase4-connect-workflow.md`
 - **Phase 4 DiscoverMcpServer (2026-05-19)**: MCP server discovery activity — see `checkpoints/2026-05-19-session-11-phase4-discover-mcp-server.md`
 - **Phase 4 ClassifyToolApprovals (2026-05-19)**: LLM tool safety classifier — see `checkpoints/2026-05-19-session-10-phase4-classify-tool-approvals.md`
@@ -75,12 +80,12 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-1. **Phase 4: Supporting Activities (in progress)** — ~~EnsureThread~~ DONE; ~~ClassifyToolApprovals~~ DONE; ~~DiscoverMcpServer~~ DONE; ~~ConnectMcpServerWorkflow~~ DONE; ~~Summarization middleware~~ VERIFIED (DD-004: DeepAgents built-in, no custom needed); next: `@langchain/openai` multi-provider support; MCP package pre-installer; connect backfill for undiscovered servers; skill relevance filtering
+1. **Phase 4: Supporting Activities (in progress)** — ~~EnsureThread~~ DONE; ~~ClassifyToolApprovals~~ DONE; ~~DiscoverMcpServer~~ DONE; ~~ConnectMcpServerWorkflow~~ DONE; ~~Summarization middleware~~ VERIFIED (DD-004); ~~Multi-provider model support~~ DONE (Anthropic + OpenAI, proxy routing fixed); next: MCP package pre-installer; connect backfill for undiscovered servers; skill relevance filtering
 2. **Phase 5: Testing** — port Python tests, integration, HITL e2e
 
 ## Context for Resume
 
-- Unified runner: `backend/services/runner/` — ExecuteCursor production-ready; ExecuteDeepAgent has full streaming pipeline + middleware stack + artifact/writeback; EnsureThread ported from Python; ClassifyToolApprovals ported with @langchain/openai structured output; DiscoverMcpServerCapabilities ported with MultiServerMCPClient + raw MCP Client access; ConnectMcpServerWorkflow ported as first TS Temporal workflow
+- Unified runner: `backend/services/runner/` — ExecuteCursor production-ready; ExecuteDeepAgent has full streaming pipeline + middleware stack + artifact/writeback + multi-provider model support (Anthropic + OpenAI); EnsureThread ported from Python; ClassifyToolApprovals ported with @langchain/openai structured output; DiscoverMcpServerCapabilities ported with MultiServerMCPClient + raw MCP Client access; ConnectMcpServerWorkflow ported as first TS Temporal workflow
 - Workflows: `src/workflows/` — `connect-mcp-server.ts` (discover → classify with fingerprint short-circuit), `types.ts` (snake_case boundary types), `index.ts` (ES2022 string-named exports for Temporal workflow type names)
 - Discovery: `src/activities/discover-mcp-server.ts` — connects via stdio or HTTP, enumerates tools + resource templates, computes tools fingerprint + newToolsFingerprint, extracts previous state for connect workflow short-circuit
 - Artifact storage: `src/shared/artifact-storage.ts` (interface, local, proxy, factory)
@@ -88,7 +93,7 @@ Drop this file into your conversation to quickly resume work on this project.
 - Writeback coordinator: `src/activities/execute-deep-agent/writeback-coordinator.ts` (incremental git, per-entry mutex)
 - Post-stream: `src/activities/execute-deep-agent/post-stream.ts` + `auto-publish.ts`
 - Middleware: `src/middleware/` (types, think-tool, tool-truncation, error-hints, loop-detection, graceful-stop, execution-budget, cost-cap, otel-spans, approval-gate, index)
-- Shared modules: `src/shared/` (status, checkpointer, workspace, mcp-manager, mcp-resolver, grpc-retry, model-pricing, artifact-storage, approval-policy, subagent-gate, model-registry, placeholder-resolver)
+- Shared modules: `src/shared/` (status, checkpointer, workspace, mcp-manager, mcp-resolver, grpc-retry, model-pricing, artifact-storage, approval-policy, subagent-gate, model-registry, llm-proxy, placeholder-resolver)
 - Deep agent modules: `src/activities/execute-deep-agent/` (index, setup, environment, prompt-builder, status-builder, streaming, streaming-scheduler, execution-state, inline-publisher, writeback-coordinator, auto-publish, post-stream, hitl, subagent-wiring)
 - Python `agent-runner` still handles `ExecuteGraphton` on the base queue until cutover
 - `cursor-runner` remains in production until Phase 7 cleanup
@@ -110,7 +115,7 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ### Phase 4+ (Supporting)
 - ~~ConnectMcpServerWorkflow~~ Done (discover → classify with fingerprint short-circuit, ES2022 string-named exports for Temporal type names, snake_case boundary adapter)
-- `@langchain/openai` multi-provider model support
+- ~~Multi-provider model support~~ Done (Anthropic + OpenAI via proxy; `llm-proxy.ts` shared module; proxy routing bug fixed; 39 new tests)
 - MCP package pre-installer (npm/pip install before tool connections)
 - Connect backfill for undiscovered/stale MCP servers
 - Skill relevance filtering (exclude low-relevance skills when count >= 8)
@@ -118,6 +123,7 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Open Questions / Design Notes
 
+- **Gemini/Google provider**: Cloud proxy (`LlmProxyConfig`) only supports `openai` + `anthropic`. Adding Gemini requires: (1) `google` provider in `LlmProxyConfig.java`, (2) auth injection in `LlmProxyController`, (3) `harness: "native"` registry entries, (4) `@langchain/google-genai` in runner. Cross-repo work (stigmer + stigmer-cloud).
 - **Cursor Cloud + native stdio MCP**: npx/node-based stdio generally works when passed to Cursor SDK; arbitrary local binaries do not. Deep-agent stdio is runner-managed.
 - **HttpCheckpointSaver**: Must stay wire-compatible with Java proxy (`$binary` serde format)
 - **streamEvents**: Phase 3b-i switched from `invoke()` to `streamEvents()` v2. StatusBuilder consumes events and builds status proto progressively. Persistence cadence uses hybrid time+event scheduler.
@@ -144,7 +150,7 @@ None.
 | 3b-ii | Middleware Stack | 3-4 | COMPLETE |
 | 3b-iii | Artifacts + Writeback | 2-3 | COMPLETE |
 | 3c | HITL + Approval | 2-3 | COMPLETE |
-| 4 | Supporting Activities | 2-3 | **IN PROGRESS** (3/3 activities + 2 workflows + summarization verified, remaining items next) |
+| 4 | Supporting Activities | 2-3 | **IN PROGRESS** (3/3 activities + 2 workflows + summarization verified + multi-provider done, remaining items next) |
 | 5 | Testing | 3-4 | Blocked on Phase 4 |
 | 6 | Deployment | 2-3 | Blocked on Phase 5 |
 | 7 | Cleanup | 1-2 | Blocked on Phase 6 |
@@ -165,7 +171,7 @@ None.
 
 ## Quick Commands
 
-- "Continue with Phase 4" — Start `@langchain/openai` multi-provider support or remaining Phase 4 items
+- "Continue with Phase 4" — Start MCP package pre-installer or remaining Phase 4 items
 - "Show project status" — Roadmap and file overview
 - `@_projects/2026-05/20260518.01.unified-runner-migration/next-task.md` — Resume context
 
