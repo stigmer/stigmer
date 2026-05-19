@@ -47,14 +47,17 @@ async function main(): Promise<void> {
   // Dynamic imports after interceptor is in place
   const { createCursorActivities } = await import("./activities/execute-cursor/index.js");
   const { createDeepAgentActivities } = await import("./activities/execute-deep-agent/index.js");
+  const { createEnsureThreadActivities } = await import("./activities/ensure-thread.js");
   const { startWorker } = await import("./worker.js");
 
   const cursorActivities = createCursorActivities(config);
   const deepAgentActivities = createDeepAgentActivities(config);
+  const ensureThreadActivities = createEnsureThreadActivities();
 
   const allActivities = {
     ...cursorActivities,
     ...deepAgentActivities,
+    ...ensureThreadActivities,
   };
 
   console.log(
