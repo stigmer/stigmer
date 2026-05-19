@@ -16,7 +16,7 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260518.01.unified-runner-migration/checkpoints/2026-05-19-session-6-phase3b-ii.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260518.01.unified-runner-migration/checkpoints/2026-05-19-session-7-phase3b-iii.md
 ```
 
 ### 2. Current Task
@@ -44,42 +44,37 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 **Created**: 2026-05-18 15:11  
-**Last Session**: 2026-05-19 — Phase 3b-ii Middleware Stack  
-**Current Task**: Phase 3b-iii — Artifacts + Writeback  
-**Status**: Phase 3b-ii COMPLETE — full middleware stack (7 middleware + think tool + OTel spans/metrics) wired into createDeepAgent; GracefulStop with activate() pattern; 235 tests passing
+**Last Session**: 2026-05-19 — Phase 3b-iii Artifacts + Writeback  
+**Current Task**: Phase 3c — HITL + Approval  
+**Status**: Phase 3b-iii COMPLETE — artifact storage (local+proxy), inline publisher (fire-and-forget, SHA-256 dedup), incremental git writeback (branch/commit/push/PR), auto-publish safety net, post-stream orchestrator; 303 tests passing
 
 ## Session Progress (2026-05-19, latest)
 
-### What Was Accomplished (Phase 3b-ii)
+### What Was Accomplished (Phase 3b-iii)
 
-**10 new files** in `src/middleware/`:
-- **types.ts** — `StigmerMiddleware` interface (structural match for langchain `AgentMiddleware`), `ToolCallRequest`, `ModelCallRequest`, `MiddlewareStackConfig`, per-middleware config types
-- **think-tool.ts** — no-op `think(thought: string)` LangChain tool for structured reasoning
-- **tool-truncation.ts** — `wrapToolCall` middleware; prefix-truncates tool results > 30K chars with marker
-- **error-hints.ts** — `enrichErrorMessage()` utility + `createErrorHintsMiddleware()` wrapToolCall that catches tool errors and adds recovery hints
-- **loop-detection.ts** — `afterModel` + `wrapToolCall`; SHA-256 signature tracking in sliding window; consecutive + total thresholds; SystemMessage interventions + hard tool block
-- **graceful-stop.ts** — `activate(reason)` pattern (DD-1); `afterModel` injects stop message once; `wrapToolCall` blocks tools; `forSubAgent()` delegation view
-- **execution-budget.ts** — `wrapModelCall` (safe advisory injection avoiding AIMessage/ToolMessage ordering violation); threshold mode + periodic mode with escalating urgency
-- **cost-cap.ts** — `afterModel` extracts usage_metadata, computes cost via model pricing; warning at 80%, hard block at 100%; `forSubAgent()` shared-budget delegation view
-- **otel-spans.ts** — `wrapModelCall` + `wrapToolCall`; `stigmer.llm.call` + `stigmer.mcp.tool_call` spans + 6 metric instruments (2 histograms, 4 counters)
-- **index.ts** — `buildMiddlewareStack(config)` factory; ordered composition matching Python create_deep_agent
+**5 new files**:
+- **shared/artifact-storage.ts** — `ArtifactStorage` interface, `LocalArtifactStorage` (filesystem for OSS), `ProxyArtifactStorage` (presigned URL via side-channel proxy for cloud), `createArtifactStorage()` factory
+- **execute-deep-agent/inline-publisher.ts** — `InlinePublisher` class; fire-and-forget callback on file-modifying tool completion; reads file, computes SHA-256, uploads to storage, builds `ExecutionArtifact` proto, registers on StatusBuilder; dedup by path+contentHash
+- **execute-deep-agent/writeback-coordinator.ts** — `WriteBackCoordinator` class; incremental git cycle: detects changes → create branch → commit → push → create PR via GitHub REST API; per-entry mutex (Promise-chain lock); eligibility filtering (GIT_REPO + credentials + writeBackMode); finalize() safety net
+- **execute-deep-agent/auto-publish.ts** — `autoPublishWrittenFiles()` post-stream safety net; scans completed tool calls for file-modifying ops, publishes files not already published inline
+- **execute-deep-agent/post-stream.ts** — `processPostStream()` orchestrator: drain pending publish promises → drain pending writeback promises → auto-publish safety net → writeback finalize; each step independently try/caught
 
-**8 test files**, 66 new tests (235 total), typecheck clean, build clean
+**5 new test files**, 68 new tests (303 total), typecheck clean, build clean
 
 **Modified files:**
-- `setup.ts` — middleware stack wired into `createDeepAgent({ middleware })`, think tool added to tools array, `gracefulStop` on `SetupResult`, model pricing loaded for cost cap, OTel tool-server map built from MCP connections
-- `streaming.ts` — STOP signal now calls `gracefulStop.activate()` instead of breaking the loop (graceful summary instead of hard stop)
-- `index.ts` — passes `gracefulStop` through to streaming
-- `main.ts` — `initMetrics("stigmer-runner")` wired alongside `initTracing()`
+- `status-builder.ts` — `addArtifact()` (dedup by sandboxPath, replace on contentHash change) and `addWriteBack()` (upsert by workspaceEntryName)
+- `streaming.ts` — file-modification detection on `on_tool_end`, fires inlinePublisher.publish() + writebackCoordinator.onFileModified() as background promises, returns pendingPublish/WritebackPromises in StreamResult
+- `setup.ts` — creates ArtifactStorage via factory, adds `artifactStorage` + `provisionResults` to SetupResult
+- `index.ts` — creates InlinePublisher + WriteBackCoordinator (conditional on provisionResults), passes to streamExecution, calls processPostStream after streaming, logs artifact/writeback counts
 
-### Design Decisions (Phase 3b-ii)
+### Design Decisions (Phase 3b-iii)
 
-- **DD-1: Graceful Stop — activate() method, not AbortController.** AbortController semantics ("cancel immediately") conflict with graceful stop ("let model summarize"). activate() is semantically precise, battle-tested (matches Python), and keeps Temporal cancellation (isCancelledFn) cleanly separate.
-- **DD-2: Error Hints — wired as middleware now.** Every tool error gets actionable recovery hints from day one. The utility function is independently importable for future contexts.
-- **DD-3: OTel — spans AND metrics from day one.** initMetrics() was already implemented; 6 metric instruments added matching Python/Go schemas. Production observability requires both traces and aggregates.
-- **DD-4: Sub-agent views — forSubAgent() implemented now.** CostCap and GracefulStop both have working delegation views. Phase 3c assembles them into sub-agent middleware arrays.
+- **DD-5: Incremental writeback, not batch.** Commit+push on each file-modifying tool call. PR created on first push. finalize() as post-stream safety net only. Matches Python for real-time UX — users see PR link the moment the first file is written.
+- **DD-6: Local + Proxy artifact storage only.** No direct R2 upload. Local filesystem for OSS; proxy-based presigned URL upload for cloud. Runner stays credential-light.
+- **DD-7: Defer skill-aware publishing.** Publish individual files only. No SKILL.md directory detection or ZIP packaging. Foundation exists in proto (`kind: DIRECTORY`, `entries[]`) for future enhancement.
 
 ### Prior Sessions
+- **Phase 3b-ii (2026-05-19)**: Full middleware stack (8 modules) — see `checkpoints/2026-05-19-session-6-phase3b-ii.md`
 - **Phase 3b-i (2026-05-19)**: StatusBuilder, streaming, scheduler, retry — see `checkpoints/2026-05-19-session-5-phase3b-i.md`
 - **Phase 3a (2026-05-19)**: Walking skeleton — invoke() + final message extract
 - **Phase 2 (2026-05-19)**: Core shared infrastructure — see `checkpoints/2026-05-19-session-3-phase2.md`
@@ -87,31 +82,30 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-1. **Phase 3b-iii: Artifacts + Writeback** — artifact storage (scan/upload/proto), writeback coordinator (branch/commit/push/PR), inline publisher (file contents during execution)
-2. **Phase 3c: HITL + Approval** — implement interrupt/resume (`interruptOn` + `Command({ resume })`); wire approval policy; sub-agent concurrency limiter; wire forSubAgent() views; verify summarization middleware config parity
-3. **Phase 4**: EnsureThread, MCP discovery, classify tool approvals; `@langchain/openai` multi-provider support; MCP package pre-installer; connect backfill for undiscovered servers; skill relevance filtering; cost pricing integration
+1. **Phase 3c: HITL + Approval** — implement interrupt/resume (`interruptOn` + `Command({ resume })`); wire approval policy; sub-agent concurrency limiter; wire forSubAgent() views; verify summarization middleware config parity
+2. **Phase 4**: EnsureThread, MCP discovery, classify tool approvals; `@langchain/openai` multi-provider support; MCP package pre-installer; connect backfill for undiscovered servers; skill relevance filtering; cost pricing integration
 
 ## Context for Resume
 
-- Unified runner: `backend/services/runner/` — ExecuteCursor production-ready; ExecuteDeepAgent has full streaming pipeline + middleware stack
+- Unified runner: `backend/services/runner/` — ExecuteCursor production-ready; ExecuteDeepAgent has full streaming pipeline + middleware stack + artifact/writeback
+- Artifact storage: `src/shared/artifact-storage.ts` (interface, local, proxy, factory)
+- Inline publisher: `src/activities/execute-deep-agent/inline-publisher.ts` (fire-and-forget, SHA-256 dedup)
+- Writeback coordinator: `src/activities/execute-deep-agent/writeback-coordinator.ts` (incremental git, per-entry mutex)
+- Post-stream: `src/activities/execute-deep-agent/post-stream.ts` + `auto-publish.ts`
 - Middleware: `src/middleware/` (types, think-tool, tool-truncation, error-hints, loop-detection, graceful-stop, execution-budget, cost-cap, otel-spans, index)
-- Shared modules: `src/shared/` (status, checkpointer, workspace, mcp-manager, grpc-retry, model-pricing)
-- Deep agent modules: `src/activities/execute-deep-agent/` (index, setup, environment, prompt-builder, status-builder, streaming, streaming-scheduler, execution-state)
+- Shared modules: `src/shared/` (status, checkpointer, workspace, mcp-manager, grpc-retry, model-pricing, artifact-storage)
+- Deep agent modules: `src/activities/execute-deep-agent/` (index, setup, environment, prompt-builder, status-builder, streaming, streaming-scheduler, execution-state, inline-publisher, writeback-coordinator, auto-publish, post-stream)
 - Python `agent-runner` still handles `ExecuteGraphton` on the base queue until cutover
 - `cursor-runner` remains in production until Phase 7 cleanup
 
 ## Deferred Items
 
-### ~~Phase 3b-ii (Middleware Stack)~~ — COMPLETE
-- ~~Middleware stack: loop detection, cost cap, execution budget, tool truncation, graceful stop, error hints, think tool, OTel spans~~ Done
-- ~~GracefulStopMiddleware wiring~~ Done (activate() pattern, DD-1)
-- ~~OTel metrics~~ Done (initMetrics wired in main.ts, DD-3)
+### ~~Phase 3b-iii (Artifacts + Writeback)~~ — COMPLETE
+- ~~Artifact storage + inline publisher~~ Done (local + proxy backends, fire-and-forget publish, SHA-256 dedup)
+- ~~Writeback coordinator~~ Done (incremental git, per-entry mutex, GitHub PR creation)
+- ~~Post-stream safety net~~ Done (auto-publish + writeback finalize)
 
-### Phase 3b-iii (Artifacts + Writeback) — NEXT
-- Artifact storage + inline publisher (for publishing files the agent writes)
-- Writeback coordinator (git write-back for workspace changes)
-
-### Phase 3c (HITL + Approval)
+### Phase 3c (HITL + Approval) — NEXT
 - HITL interrupt/resume (`interruptOn` config + `Command({ resume })`)
 - Approval policy integration (tool-level approval checks before execution)
 - Sub-agent concurrency limiter (Promise-based semaphore, max 3)
@@ -132,6 +126,8 @@ Drop this file into your conversation to quickly resume work on this project.
 - **HttpCheckpointSaver**: Must stay wire-compatible with Java proxy (`$binary` serde format)
 - **streamEvents**: Phase 3b-i switched from `invoke()` to `streamEvents()` v2. StatusBuilder consumes events and builds status proto progressively. Persistence cadence uses hybrid time+event scheduler.
 - **StigmerMiddleware type**: Defined locally in `src/middleware/types.ts` because `AgentMiddleware` is not directly importable from `deepagents` (it's a transitive type from nested `langchain`). Structurally compatible — langchain uses structural typing.
+- **Artifact storage proxy flow**: Runner calls `POST /v1/proxy/artifacts/presigned-upload-url` to get presigned URL, then PUTs content directly to R2. No R2 credentials in the runner.
+- **Incremental writeback**: Branch `stigmer/{first8chars}` created on first file write. PR auto-updates on subsequent pushes. finalize() catches files modified by shell commands or other non-tool paths.
 
 ## Blockers
 
@@ -147,8 +143,8 @@ None.
 | 3a | ExecuteDeepAgent Walking Skeleton | 1 | COMPLETE |
 | 3b-i | StatusBuilder + GrpcRetryExecutor | 1 | COMPLETE |
 | 3b-ii | Middleware Stack | 3-4 | COMPLETE |
-| 3b-iii | Artifacts + Writeback | 2-3 | **NEXT** |
-| 3c | HITL + Approval | 2-3 | Blocked on 3b |
+| 3b-iii | Artifacts + Writeback | 2-3 | COMPLETE |
+| 3c | HITL + Approval | 2-3 | **NEXT** |
 | 4 | Supporting Activities | 2-3 | Blocked on 3c |
 | 5 | Testing | 3-4 | Blocked on Phase 4 |
 | 6 | Deployment | 2-3 | Blocked on Phase 5 |
@@ -157,6 +153,7 @@ None.
 ## Key References
 
 - **Unified runner**: `backend/services/runner/`
+- **Phase 3b-iii files**: `src/shared/artifact-storage.ts`, `src/activities/execute-deep-agent/{inline-publisher,writeback-coordinator,auto-publish,post-stream}.ts`
 - **Phase 3b-ii files**: `src/middleware/{types,think-tool,tool-truncation,error-hints,loop-detection,graceful-stop,execution-budget,cost-cap,otel-spans,index}.ts`
 - **Phase 3b-i files**: `src/activities/execute-deep-agent/{status-builder,streaming,streaming-scheduler,execution-state}.ts` + `src/shared/grpc-retry.ts`
 - **Phase 3a files**: `src/activities/execute-deep-agent/{index,setup,environment,prompt-builder}.ts`
@@ -165,7 +162,7 @@ None.
 
 ## Quick Commands
 
-- "Continue with Phase 3b-iii" — Start artifacts + writeback implementation
+- "Continue with Phase 3c" — Start HITL + Approval implementation
 - "Show project status" — Roadmap and file overview
 - `@_projects/2026-05/20260518.01.unified-runner-migration/next-task.md` — Resume context
 

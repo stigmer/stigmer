@@ -6,8 +6,8 @@
  * via the scheduler + retry executor, handles terminal conditions
  * (STOP signal, stall, recursion limit, cancellation).
  *
- * Phase 3b-i scope: no middleware, no inline publish, no git writeback.
- * Those plug in during Phases 3b-ii and 3b-iii.
+ * Phase 3b-iii: inline artifact publish and incremental git writeback
+ * on file-modifying tool completions (write, edit, create).
  */
 
 import { create, toJson } from "@bufbuild/protobuf";
@@ -31,6 +31,8 @@ import { persistWithRetry, type RetryOptions } from "../../shared/grpc-retry.js"
 import { slimStatus, utcTimestamp } from "../../shared/status.js";
 import type { StigmerClient } from "../../client/stigmer-client.js";
 import type { GracefulStopMiddleware } from "../../middleware/index.js";
+import type { InlinePublisher } from "./inline-publisher.js";
+import type { WriteBackCoordinator } from "./writeback-coordinator.js";
 
 const DEFAULT_STALL_TIMEOUT_MS = 120_000;
 
@@ -56,11 +58,17 @@ export interface StreamDependencies {
   readonly isCancelledFn?: () => boolean;
   /** GracefulStopMiddleware instance for platform STOP signal handling. */
   readonly gracefulStop?: GracefulStopMiddleware;
+  /** Inline artifact publisher for file-modifying tool completions. */
+  readonly inlinePublisher?: InlinePublisher;
+  /** Incremental git write-back coordinator. */
+  readonly writebackCoordinator?: WriteBackCoordinator;
 }
 
 export interface StreamResult {
   readonly eventsProcessed: number;
   readonly terminalStatus?: unknown;
+  readonly pendingPublishPromises: readonly Promise<void>[];
+  readonly pendingWritebackPromises: readonly Promise<void>[];
 }
 
 /**
@@ -83,6 +91,8 @@ export async function streamExecution(
     heartbeatFn,
     isCancelledFn,
     gracefulStop,
+    inlinePublisher,
+    writebackCoordinator,
   } = deps;
 
   const statusBuilder = new StatusBuilder(executionId, initialStatus);
@@ -93,6 +103,9 @@ export async function streamExecution(
   let lastHeartbeatTime = performance.now();
   const heartbeatIntervalMs = 2000;
 
+  const pendingPublishPromises: Promise<void>[] = [];
+  const pendingWritebackPromises: Promise<void>[] = [];
+
   try {
     const stream = agentGraph.streamEvents(
       langgraphInput,
@@ -102,12 +115,24 @@ export async function streamExecution(
 
     for await (const event of stream) {
       if (isCancelledFn?.()) {
-        return handlePause(statusBuilder, eventsProcessed);
+        return handlePause(statusBuilder, eventsProcessed, pendingPublishPromises, pendingWritebackPromises);
       }
 
       lastEventTime = performance.now();
       statusBuilder.processEvent(event);
       eventsProcessed++;
+
+      if (event.event === "on_tool_end" && (inlinePublisher || writebackCoordinator)) {
+        const filePath = extractFilePathFromToolEnd(event);
+        if (filePath) {
+          if (inlinePublisher) {
+            pendingPublishPromises.push(inlinePublisher.publish(filePath));
+          }
+          if (writebackCoordinator) {
+            pendingWritebackPromises.push(writebackCoordinator.onFileModified(filePath));
+          }
+        }
+      }
 
       const now = performance.now();
       if (heartbeatFn && (now - lastHeartbeatTime) >= heartbeatIntervalMs) {
@@ -138,7 +163,7 @@ export async function streamExecution(
           if (gracefulStop) {
             gracefulStop.activate("Platform STOP signal");
           } else {
-            return handleStop(statusBuilder, eventsProcessed);
+            return handleStop(statusBuilder, eventsProcessed, pendingPublishPromises, pendingWritebackPromises);
           }
         }
       }
@@ -147,7 +172,7 @@ export async function streamExecution(
     }
   } catch (err: unknown) {
     if (isGraphRecursionError(err)) {
-      return handleRecursionLimit(statusBuilder, eventsProcessed);
+      return handleRecursionLimit(statusBuilder, eventsProcessed, pendingPublishPromises, pendingWritebackPromises);
     }
     throw err;
   }
@@ -164,7 +189,7 @@ export async function streamExecution(
     `processed ${eventsProcessed} events`,
   );
 
-  return { eventsProcessed };
+  return { eventsProcessed, pendingPublishPromises, pendingWritebackPromises };
 }
 
 // ── Terminal State Handlers ──────────────────────────────────────────
@@ -172,6 +197,8 @@ export async function streamExecution(
 function handlePause(
   sb: StatusBuilder,
   eventsProcessed: number,
+  pendingPublishPromises: Promise<void>[],
+  pendingWritebackPromises: Promise<void>[],
 ): StreamResult {
   const status = sb.currentStatus;
   status.phase = ExecutionPhase.EXECUTION_PAUSED;
@@ -184,12 +211,16 @@ function handlePause(
   return {
     eventsProcessed,
     terminalStatus: slimStatus(status),
+    pendingPublishPromises,
+    pendingWritebackPromises,
   };
 }
 
 function handleStop(
   sb: StatusBuilder,
   eventsProcessed: number,
+  pendingPublishPromises: Promise<void>[],
+  pendingWritebackPromises: Promise<void>[],
 ): StreamResult {
   const status = sb.currentStatus;
   status.phase = ExecutionPhase.EXECUTION_COMPLETED;
@@ -203,12 +234,16 @@ function handleStop(
   return {
     eventsProcessed,
     terminalStatus: slimStatus(status),
+    pendingPublishPromises,
+    pendingWritebackPromises,
   };
 }
 
 function handleRecursionLimit(
   sb: StatusBuilder,
   eventsProcessed: number,
+  pendingPublishPromises: Promise<void>[],
+  pendingWritebackPromises: Promise<void>[],
 ): StreamResult {
   const status = sb.currentStatus;
   status.phase = ExecutionPhase.EXECUTION_TERMINATED;
@@ -228,6 +263,8 @@ function handleRecursionLimit(
   return {
     eventsProcessed,
     terminalStatus: slimStatus(status),
+    pendingPublishPromises,
+    pendingWritebackPromises,
   };
 }
 
@@ -263,6 +300,27 @@ function checkStallTimeout(
       `for execution ${executionId}`,
     );
   }
+}
+
+const FILE_MODIFYING_TOOLS = new Set([
+  "write_file", "edit_file", "create_file",
+  "write", "edit", "create",
+  "str_replace_editor",
+]);
+
+function extractFilePathFromToolEnd(event: StreamEvent): string | null {
+  const toolName = event.name ?? "";
+  if (!FILE_MODIFYING_TOOLS.has(toolName)) return null;
+
+  const input = event.data?.input as Record<string, unknown> | undefined;
+  if (!input) return null;
+
+  if (typeof input.path === "string") return input.path;
+  if (typeof input.file_path === "string") return input.file_path;
+  if (typeof input.filename === "string") return input.filename;
+  if (typeof input.file === "string") return input.file;
+
+  return null;
 }
 
 function isGraphRecursionError(err: unknown): boolean {
