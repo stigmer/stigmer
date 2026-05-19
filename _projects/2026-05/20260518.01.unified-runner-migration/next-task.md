@@ -16,7 +16,7 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260518.01.unified-runner-migration/checkpoints/2026-05-19-session-7-phase3b-iii.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260518.01.unified-runner-migration/checkpoints/2026-05-19-session-8-phase3c.md
 ```
 
 ### 2. Current Task
@@ -44,36 +44,39 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 **Created**: 2026-05-18 15:11  
-**Last Session**: 2026-05-19 — Phase 3b-iii Artifacts + Writeback  
-**Current Task**: Phase 3c — HITL + Approval  
-**Status**: Phase 3b-iii COMPLETE — artifact storage (local+proxy), inline publisher (fire-and-forget, SHA-256 dedup), incremental git writeback (branch/commit/push/PR), auto-publish safety net, post-stream orchestrator; 303 tests passing
+**Last Session**: 2026-05-19 — Phase 3c HITL + Approval  
+**Current Task**: Phase 4 — Supporting Activities  
+**Status**: Phase 3c COMPLETE — approval gate middleware (interrupt/resume), HITL resume infrastructure (DB-driven, Command builder), sub-agent concurrency limiter (max 3), sub-agent middleware wiring (periodic budget, shared cost cap); 341 tests passing
 
 ## Session Progress (2026-05-19, latest)
 
-### What Was Accomplished (Phase 3b-iii)
+### What Was Accomplished (Phase 3c)
 
-**5 new files**:
-- **shared/artifact-storage.ts** — `ArtifactStorage` interface, `LocalArtifactStorage` (filesystem for OSS), `ProxyArtifactStorage` (presigned URL via side-channel proxy for cloud), `createArtifactStorage()` factory
-- **execute-deep-agent/inline-publisher.ts** — `InlinePublisher` class; fire-and-forget callback on file-modifying tool completion; reads file, computes SHA-256, uploads to storage, builds `ExecutionArtifact` proto, registers on StatusBuilder; dedup by path+contentHash
-- **execute-deep-agent/writeback-coordinator.ts** — `WriteBackCoordinator` class; incremental git cycle: detects changes → create branch → commit → push → create PR via GitHub REST API; per-entry mutex (Promise-chain lock); eligibility filtering (GIT_REPO + credentials + writeBackMode); finalize() safety net
-- **execute-deep-agent/auto-publish.ts** — `autoPublishWrittenFiles()` post-stream safety net; scans completed tool calls for file-modifying ops, publishes files not already published inline
-- **execute-deep-agent/post-stream.ts** — `processPostStream()` orchestrator: drain pending publish promises → drain pending writeback promises → auto-publish safety net → writeback finalize; each step independently try/caught
+**4 new files**:
+- **middleware/approval-gate.ts** — `ApprovalGateMiddleware`; checks merged policies via `wrapToolCall`, calls LangGraph `interrupt()` for approval-required tools; platform tool defaults (safe: read/ls/glob/grep/think; dangerous: write/edit/delete/execute/shell)
+- **activities/execute-deep-agent/hitl.ts** — `resolveResumeInput()` DB-driven resume; reads approval decisions from persisted execution, matches to LangGraph checkpoint interrupts, builds `Command(resume={...})`; `reconcileToolCallStatuses()` for status reconciliation
+- **shared/subagent-gate.ts** — `SubAgentGate` Promise-based semaphore (max 3 concurrent); non-blocking rejection (error-shaped response); slot tracking
+- **activities/execute-deep-agent/subagent-wiring.ts** — `buildSubAgentMiddleware()` per-sub-agent stack: loop detection (fresh) + execution budget (periodic: interval=30, max=4) + tool truncation + cost cap view (shared via `forSubAgent()`)
 
-**5 new test files**, 68 new tests (303 total), typecheck clean, build clean
+**5 new test files**, 38 new tests (341 total), typecheck clean, build clean
 
 **Modified files:**
-- `status-builder.ts` — `addArtifact()` (dedup by sandboxPath, replace on contentHash change) and `addWriteBack()` (upsert by workspaceEntryName)
-- `streaming.ts` — file-modification detection on `on_tool_end`, fires inlinePublisher.publish() + writebackCoordinator.onFileModified() as background promises, returns pendingPublish/WritebackPromises in StreamResult
-- `setup.ts` — creates ArtifactStorage via factory, adds `artifactStorage` + `provisionResults` to SetupResult
-- `index.ts` — creates InlinePublisher + WriteBackCoordinator (conditional on provisionResults), passes to streamExecution, calls processPostStream after streaming, logs artifact/writeback counts
+- `middleware/types.ts` — added `ApprovalGateConfig` to `MiddlewareStackConfig`
+- `middleware/index.ts` — integrated `ApprovalGateMiddleware` (after graceful-stop, before cost-cap)
+- `status-builder.ts` — added `ApprovalPolicyProvider`, `setApprovalProvider()`, WAITING_FOR_APPROVAL on tool start, argsPreview sanitization
+- `streaming.ts` — detect WAITING_FOR_APPROVAL after stream ends, return terminal status without COMPLETED
+- `post-stream.ts` — skip all post-stream processing when WAITING_FOR_APPROVAL
+- `setup.ts` — resolve approval policies via `mergeApprovalPolicies()`, added `approvalPolicies`/`toolServerMap`/`autoApproveAll` to SetupResult
+- `index.ts` — wire HITL resume: `resolveResumeInput()`, rejection fast-path, approval provider on StatusBuilder
 
-### Design Decisions (Phase 3b-iii)
+### Design Decisions (Phase 3c)
 
-- **DD-5: Incremental writeback, not batch.** Commit+push on each file-modifying tool call. PR created on first push. finalize() as post-stream safety net only. Matches Python for real-time UX — users see PR link the moment the first file is written.
-- **DD-6: Local + Proxy artifact storage only.** No direct R2 upload. Local filesystem for OSS; proxy-based presigned URL upload for cloud. Runner stays credential-light.
-- **DD-7: Defer skill-aware publishing.** Publish individual files only. No SKILL.md directory detection or ZIP packaging. Foundation exists in proto (`kind: DIRECTORY`, `entries[]`) for future enhancement.
+- **DD-8: Middleware-based approval gating.** Approval checks in `wrapToolCall` middleware, not per-tool wrapping. All execution controls stay in the middleware stack.
+- **DD-9: Platform tool defaults included.** Safe tools auto-approved; dangerous tools require approval when no explicit policy. Unknown tools default to auto-approved.
+- **DD-10: Summarization deferred to Phase 4.** Custom summarization (880 Python lines) is independent from HITL. Phase 4 will verify DeepAgents JS built-in vs custom.
 
 ### Prior Sessions
+- **Phase 3b-iii (2026-05-19)**: Artifact storage, inline publishing, writeback — see `checkpoints/2026-05-19-session-7-phase3b-iii.md`
 - **Phase 3b-ii (2026-05-19)**: Full middleware stack (8 modules) — see `checkpoints/2026-05-19-session-6-phase3b-ii.md`
 - **Phase 3b-i (2026-05-19)**: StatusBuilder, streaming, scheduler, retry — see `checkpoints/2026-05-19-session-5-phase3b-i.md`
 - **Phase 3a (2026-05-19)**: Walking skeleton — invoke() + final message extract
@@ -82,8 +85,8 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-1. **Phase 3c: HITL + Approval** — implement interrupt/resume (`interruptOn` + `Command({ resume })`); wire approval policy; sub-agent concurrency limiter; wire forSubAgent() views; verify summarization middleware config parity
-2. **Phase 4**: EnsureThread, MCP discovery, classify tool approvals; `@langchain/openai` multi-provider support; MCP package pre-installer; connect backfill for undiscovered servers; skill relevance filtering; cost pricing integration
+1. **Phase 4: Supporting Activities** — EnsureThread, MCP discovery, classify tool approvals; `@langchain/openai` multi-provider support; MCP package pre-installer; connect backfill for undiscovered servers; skill relevance filtering; summarization middleware verification (DeepAgents JS built-in vs custom port)
+2. **Phase 5: Testing** — port Python tests, integration, HITL e2e
 
 ## Context for Resume
 
@@ -92,9 +95,9 @@ Drop this file into your conversation to quickly resume work on this project.
 - Inline publisher: `src/activities/execute-deep-agent/inline-publisher.ts` (fire-and-forget, SHA-256 dedup)
 - Writeback coordinator: `src/activities/execute-deep-agent/writeback-coordinator.ts` (incremental git, per-entry mutex)
 - Post-stream: `src/activities/execute-deep-agent/post-stream.ts` + `auto-publish.ts`
-- Middleware: `src/middleware/` (types, think-tool, tool-truncation, error-hints, loop-detection, graceful-stop, execution-budget, cost-cap, otel-spans, index)
-- Shared modules: `src/shared/` (status, checkpointer, workspace, mcp-manager, grpc-retry, model-pricing, artifact-storage)
-- Deep agent modules: `src/activities/execute-deep-agent/` (index, setup, environment, prompt-builder, status-builder, streaming, streaming-scheduler, execution-state, inline-publisher, writeback-coordinator, auto-publish, post-stream)
+- Middleware: `src/middleware/` (types, think-tool, tool-truncation, error-hints, loop-detection, graceful-stop, execution-budget, cost-cap, otel-spans, approval-gate, index)
+- Shared modules: `src/shared/` (status, checkpointer, workspace, mcp-manager, mcp-resolver, grpc-retry, model-pricing, artifact-storage, approval-policy, subagent-gate)
+- Deep agent modules: `src/activities/execute-deep-agent/` (index, setup, environment, prompt-builder, status-builder, streaming, streaming-scheduler, execution-state, inline-publisher, writeback-coordinator, auto-publish, post-stream, hitl, subagent-wiring)
 - Python `agent-runner` still handles `ExecuteGraphton` on the base queue until cutover
 - `cursor-runner` remains in production until Phase 7 cleanup
 
@@ -105,13 +108,13 @@ Drop this file into your conversation to quickly resume work on this project.
 - ~~Writeback coordinator~~ Done (incremental git, per-entry mutex, GitHub PR creation)
 - ~~Post-stream safety net~~ Done (auto-publish + writeback finalize)
 
-### Phase 3c (HITL + Approval) — NEXT
-- HITL interrupt/resume (`interruptOn` config + `Command({ resume })`)
-- Approval policy integration (tool-level approval checks before execution)
-- Sub-agent concurrency limiter (Promise-based semaphore, max 3)
-- Sub-agent middleware wiring (pass forSubAgent() views into sub-agent middleware arrays)
-- Sub-agent budget policies (periodic mode: every 30 rounds, max 4 advisories)
-- Summarization middleware config parity verification (DeepAgents JS built-in vs custom)
+### ~~Phase 3c (HITL + Approval)~~ — COMPLETE
+- ~~HITL interrupt/resume~~ Done (approval gate middleware + `Command(resume=...)` builder)
+- ~~Approval policy integration~~ Done (middleware-based, platform tool defaults)
+- ~~Sub-agent concurrency limiter~~ Done (`SubAgentGate`, max 3, non-blocking rejection)
+- ~~Sub-agent middleware wiring~~ Done (`buildSubAgentMiddleware()` with `forSubAgent()` cost cap)
+- ~~Sub-agent budget policies~~ Done (periodic mode: interval=30, max=4 advisories)
+- Summarization middleware → deferred to Phase 4 (DD-10)
 
 ### Phase 4+ (Supporting)
 - `@langchain/openai` multi-provider model support
@@ -144,8 +147,8 @@ None.
 | 3b-i | StatusBuilder + GrpcRetryExecutor | 1 | COMPLETE |
 | 3b-ii | Middleware Stack | 3-4 | COMPLETE |
 | 3b-iii | Artifacts + Writeback | 2-3 | COMPLETE |
-| 3c | HITL + Approval | 2-3 | **NEXT** |
-| 4 | Supporting Activities | 2-3 | Blocked on 3c |
+| 3c | HITL + Approval | 2-3 | COMPLETE |
+| 4 | Supporting Activities | 2-3 | **NEXT** |
 | 5 | Testing | 3-4 | Blocked on Phase 4 |
 | 6 | Deployment | 2-3 | Blocked on Phase 5 |
 | 7 | Cleanup | 1-2 | Blocked on Phase 6 |
@@ -162,7 +165,7 @@ None.
 
 ## Quick Commands
 
-- "Continue with Phase 3c" — Start HITL + Approval implementation
+- "Continue with Phase 4" — Start Supporting Activities implementation
 - "Show project status" — Roadmap and file overview
 - `@_projects/2026-05/20260518.01.unified-runner-migration/next-task.md` — Resume context
 

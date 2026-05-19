@@ -24,6 +24,7 @@ import { StatusBuilder } from "./status-builder.js";
 import { InlinePublisher } from "./inline-publisher.js";
 import { WriteBackCoordinator } from "./writeback-coordinator.js";
 import { processPostStream } from "./post-stream.js";
+import { resolveResumeInput } from "./hitl.js";
 
 export function createDeepAgentActivities(config: Config) {
   const client = new StigmerClient({
@@ -46,6 +47,40 @@ export function createDeepAgentActivities(config: Config) {
         const initialStatus = create(AgentExecutionStatusSchema, {});
         const statusBuilder = new StatusBuilder(executionId, initialStatus);
 
+        statusBuilder.setApprovalProvider({
+          policies: setup.approvalPolicies,
+          toolServerMap: setup.toolServerMap,
+          autoApproveAll: setup.autoApproveAll,
+        });
+
+        const resume = await resolveResumeInput(
+          setup.execution,
+          setup.agentGraph,
+          setup.langgraphConfig,
+          setup.execution.spec!.message,
+        );
+
+        if (resume.hasRejection) {
+          const failedStatus = create(AgentExecutionStatusSchema, {
+            phase: ExecutionPhase.EXECUTION_FAILED,
+            error: `Execution rejected: ${resume.rejectionReason}`,
+            completedAt: utcTimestamp(),
+            messages: [
+              create(AgentMessageSchema, {
+                type: MessageType.MESSAGE_SYSTEM,
+                content: `Execution rejected by user: ${resume.rejectionReason}`,
+                timestamp: utcTimestamp(),
+              }),
+            ],
+          });
+          await persistStatus(client, executionId, failedStatus);
+          return slimStatus(failedStatus);
+        }
+
+        const effectiveInput = resume.isResumeFromApproval
+          ? resume.graphInput
+          : setup.langgraphInput;
+
         const inlinePublisher = new InlinePublisher({
           workspaceBackend: setup.workspaceBackend,
           artifactStorage: setup.artifactStorage,
@@ -66,7 +101,7 @@ export function createDeepAgentActivities(config: Config) {
 
         const result: StreamResult = await streamExecution({
           agentGraph: setup.agentGraph,
-          langgraphInput: setup.langgraphInput,
+          langgraphInput: effectiveInput as Record<string, unknown>,
           langgraphConfig: setup.langgraphConfig,
           executionId,
           client,

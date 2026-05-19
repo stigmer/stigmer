@@ -20,10 +20,12 @@ import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/
 import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
 import type { WorkspaceWriteBack } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/writeback_pb";
 import {
+  ApprovalAction,
   ExecutionPhase,
   MessageType,
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { type MergedToolPolicy, resolveApprovalMessage as resolveApprovalMsg } from "../../shared/approval-policy.js";
 import { RunnerUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
 import type { RunnerUsageSummary } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
 import { ExecutionState } from "./execution-state.js";
@@ -43,10 +45,17 @@ type EventHandler = (event: StreamEvent, namespace: string) => void;
 
 const MAX_TOOL_RESULT_CHARS = 50_000;
 
+export interface ApprovalPolicyProvider {
+  readonly policies: ReadonlyMap<string, MergedToolPolicy>;
+  readonly toolServerMap: ReadonlyMap<string, string>;
+  readonly autoApproveAll: boolean;
+}
+
 export class StatusBuilder {
   readonly executionId: string;
   private readonly state: ExecutionState;
   private _forceNextUpdate = false;
+  private approvalProvider: ApprovalPolicyProvider | null = null;
 
   private readonly usageAccumulator: UsageAccumulator;
   private readonly handlers: ReadonlyMap<string, EventHandler>;
@@ -68,6 +77,10 @@ export class StatusBuilder {
       ["on_tool_start", this.handleToolStart.bind(this)],
       ["on_tool_end", this.handleToolEnd.bind(this)],
     ]);
+  }
+
+  setApprovalProvider(provider: ApprovalPolicyProvider): void {
+    this.approvalProvider = provider;
   }
 
   get currentStatus(): AgentExecutionStatus {
@@ -187,11 +200,16 @@ export class StatusBuilder {
 
     const toolName = event.name ?? "unknown_tool";
     const rawArgs = event.data?.input as Record<string, unknown> | undefined;
+    const args = rawArgs ?? {};
+
+    const approvalReq = this.checkApprovalRequirement(toolName, args);
 
     const tc = create(ToolCallSchema, {
       id: event.run_id,
       name: toolName,
-      status: ToolCallStatus.TOOL_CALL_RUNNING,
+      status: approvalReq.requiresApproval
+        ? ToolCallStatus.TOOL_CALL_WAITING_APPROVAL
+        : ToolCallStatus.TOOL_CALL_RUNNING,
       startedAt: utcTimestamp(),
     });
 
@@ -199,11 +217,53 @@ export class StatusBuilder {
       tc.args = rawArgs as JsonObject;
     }
 
+    if (approvalReq.requiresApproval) {
+      tc.requiresApproval = true;
+      tc.approvalMessage = approvalReq.message;
+      tc.approvalRequestedAt = utcTimestamp();
+
+      if (approvalReq.serverSlug) {
+        tc.mcpServerSlug = approvalReq.serverSlug;
+      }
+
+      const argsPreview = sanitizeArgsPreview(args);
+      if (argsPreview) {
+        tc.argsPreview = argsPreview;
+      }
+
+      this.state.proto.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL;
+    }
+
     parentMsg.toolCalls.push(tc);
     this.state.toolCalls.set(event.run_id, tc);
     this.state.toolStartTimes.set(event.run_id, performance.now());
 
     this._forceNextUpdate = true;
+  }
+
+  private checkApprovalRequirement(
+    toolName: string,
+    args: Record<string, unknown>,
+  ): { requiresApproval: boolean; message: string; serverSlug: string } {
+    if (!this.approvalProvider || this.approvalProvider.autoApproveAll) {
+      return { requiresApproval: false, message: "", serverSlug: "" };
+    }
+
+    const serverSlug = this.approvalProvider.toolServerMap.get(toolName) ?? "";
+    if (serverSlug) {
+      const key = `${serverSlug}/${toolName}`;
+      const policy = this.approvalProvider.policies.get(key);
+      if (policy?.requiresApproval) {
+        return {
+          requiresApproval: true,
+          message: resolveApprovalMsg(policy.approvalMessage, toolName, args),
+          serverSlug,
+        };
+      }
+      return { requiresApproval: false, message: "", serverSlug };
+    }
+
+    return { requiresApproval: false, message: "", serverSlug: "" };
   }
 
   private handleToolEnd(event: StreamEvent, _namespace: string): void {
@@ -354,6 +414,32 @@ function toBigInt(value: unknown): bigint {
   if (typeof value === "bigint") return value;
   if (typeof value === "number" && Number.isFinite(value)) return BigInt(Math.floor(value));
   return 0n;
+}
+
+const SENSITIVE_ARG_KEYS = new Set([
+  "password", "token", "secret", "api_key", "apikey",
+  "credentials", "auth", "authorization",
+]);
+
+const MAX_ARGS_PREVIEW_LENGTH = 500;
+
+function sanitizeArgsPreview(args: Record<string, unknown>): string {
+  const sanitized: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(args)) {
+    if (SENSITIVE_ARG_KEYS.has(key.toLowerCase())) {
+      sanitized[key] = "[REDACTED]";
+    } else {
+      sanitized[key] = value;
+    }
+  }
+  try {
+    const json = JSON.stringify(sanitized);
+    return json.length > MAX_ARGS_PREVIEW_LENGTH
+      ? json.slice(0, MAX_ARGS_PREVIEW_LENGTH) + "…"
+      : json;
+  } catch {
+    return "";
+  }
 }
 
 function extractToolResult(data: Record<string, unknown>): string {

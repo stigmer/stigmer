@@ -19,6 +19,7 @@ import { createLoopDetectionMiddleware } from "./loop-detection.js";
 import { createExecutionBudgetMiddleware } from "./execution-budget.js";
 import { createToolTruncationMiddleware } from "./tool-truncation.js";
 import { createGracefulStopMiddleware } from "./graceful-stop.js";
+import { createApprovalGateMiddleware } from "./approval-gate.js";
 import { createCostCapMiddleware } from "./cost-cap.js";
 import { createErrorHintsMiddleware } from "./error-hints.js";
 import { createOtelSpansMiddleware } from "./otel-spans.js";
@@ -46,6 +47,10 @@ export function buildMiddlewareStack(
 
   const gracefulStop = createGracefulStopMiddleware();
   stack.push(gracefulStop);
+
+  if (config.approvalGate) {
+    stack.push(createApprovalGateMiddleware(config.approvalGate));
+  }
 
   if (config.costCap && config.costCap.maxCostUsd > 0) {
     stack.push(createCostCapMiddleware(config.costCap));
