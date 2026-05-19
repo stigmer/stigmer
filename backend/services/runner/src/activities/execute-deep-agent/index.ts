@@ -5,8 +5,8 @@
  * The slim-payload pattern is preserved: input is just IDs, output is a slim
  * AgentExecutionStatus proto.
  *
- * Phase 3b-i: streamEvents() with StatusBuilder, throttled persistence,
- * retry executor, STOP signal handling, stall detection.
+ * Phase 3b-ii: full middleware stack (loop detection, execution budget,
+ * tool truncation, graceful stop, cost cap, error hints, OTel spans).
  */
 
 import { create } from "@bufbuild/protobuf";
@@ -49,6 +49,7 @@ export function createDeepAgentActivities(config: Config) {
           client,
           initialStatus,
           streamingConfig,
+          gracefulStop: setup.gracefulStop,
         });
 
         if (result.terminalStatus) {

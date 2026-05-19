@@ -3,11 +3,9 @@
  *
  * Hydrates the execution from the database, resolves the full resource
  * chain (session -> agentInstance -> agent), provisions workspace, loads
- * MCP servers / environment, creates the LangGraph agent graph, and
- * returns a SetupResult containing everything the streaming phase needs.
- *
- * Phase 3a scope: walking skeleton without middleware, StatusBuilder,
- * artifact storage, or writeback. Those are added in Phase 3b/3c.
+ * MCP servers / environment, creates the LangGraph agent graph with the
+ * full middleware stack, and returns a SetupResult containing everything
+ * the streaming phase needs.
  */
 
 import { createDeepAgent, StateBackend } from "deepagents";
@@ -34,13 +32,10 @@ import { buildWorkspaceFileTree } from "../../shared/workspace/file-tree.js";
 import { reportSetupProgress } from "../../shared/status.js";
 import { resolveEnvironment, type EnvironmentResult } from "./environment.js";
 import { buildEnhancedSystemPrompt } from "./prompt-builder.js";
+import { buildMiddlewareStack, createThinkTool } from "../../middleware/index.js";
+import type { GracefulStopMiddleware } from "../../middleware/index.js";
+import { getModelPricing, ensureLoaded as ensurePricingLoaded } from "../../shared/model-pricing.js";
 
-/**
- * Everything the execution phase needs from setup.
- *
- * Intentionally trimmed for Phase 3a — artifact_storage, inline_publisher,
- * writeback_coordinator, and status_builder are added in Phase 3b.
- */
 export interface SetupResult {
   readonly agentGraph: AgentGraph;
   readonly langgraphConfig: Record<string, unknown>;
@@ -53,6 +48,7 @@ export interface SetupResult {
   readonly mergedEnvVars: Record<string, string>;
   readonly secretKeys: ReadonlySet<string>;
   readonly modelName: string;
+  readonly gracefulStop: GracefulStopMiddleware;
 }
 
 export interface SetupDependencies {
@@ -152,14 +148,61 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
     // Step 9: Construct the LLM model
     const model = constructModel(modelName, config);
 
-    // Step 10: Create the agent graph
+    // Step 10: Build middleware stack
+    await ensurePricingLoaded();
+    const pricing = getModelPricing(modelName);
+    const execConfig = execution.spec!.executionConfig;
+
+    const toolServerMap = new Map<string, string>();
+    if (mcpConnection) {
+      for (const [serverName, serverTools] of Object.entries(mcpConnection.serverToolMap)) {
+        for (const t of serverTools) {
+          toolServerMap.set(t.name, serverName);
+        }
+      }
+    }
+
+    const maxCostUsd = execConfig?.maxCostUsd ?? 0;
+    const { middleware, gracefulStop } = buildMiddlewareStack({
+      loopDetection: {
+        historySize: 20,
+        consecutiveThreshold: 7,
+        totalThreshold: 20,
+      },
+      executionBudget: {
+        recursionLimit: execConfig?.maxToolRounds
+          ? execConfig.maxToolRounds * 6
+          : 6000,
+        warningPct: 80,
+      },
+      toolTruncation: {
+        maxChars: execConfig?.maxToolResultChars || 30_000,
+      },
+      costCap: maxCostUsd > 0 ? {
+        maxCostUsd,
+        inputPricePerMillion: pricing.inputPricePerMillion,
+        outputPricePerMillion: pricing.outputPricePerMillion,
+        cacheReadPricePerMillion: pricing.cacheReadPricePerMillion,
+        warningPct: 80,
+      } : null,
+      otelSpans: { toolServerMap },
+    });
+
+    // Step 11: Build tools list (MCP tools + think tool)
+    const tools = [
+      ...(mcpConnection?.tools as DynamicStructuredTool[] ?? []),
+      createThinkTool(),
+    ];
+
+    // Step 12: Create the agent graph with middleware
     await reportSetupProgress(client, executionId, "Creating agent…");
     const agentGraph = await createDeepAgent({
       model,
       checkpointer: checkpointer as any,
       backend: new StateBackend(),
       systemPrompt,
-      tools: mcpConnection?.tools as DynamicStructuredTool[] | undefined,
+      tools,
+      middleware: middleware as any,
     });
 
     // Step 11: Prepare invocation input and config
@@ -174,7 +217,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
 
     console.log(
       `[setup] Complete: model=${modelName}, ` +
-      `tools=${mcpConnection?.tools.length ?? 0}, ` +
+      `tools=${tools.length}, middleware=${middleware.length}, ` +
       `thread_id=${threadId}`,
     );
 
@@ -190,6 +233,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       mergedEnvVars: envResult.mergedEnvVars,
       secretKeys: envResult.secretKeys,
       modelName,
+      gracefulStop,
     };
   } catch (err) {
     if (mcpConnection) {
