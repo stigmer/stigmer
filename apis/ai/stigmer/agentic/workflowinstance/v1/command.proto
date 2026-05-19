@@ -5,6 +5,7 @@ package ai.stigmer.agentic.workflowinstance.v1;
 
 import "ai/stigmer/agentic/workflowinstance/v1/api.proto";
 import "ai/stigmer/agentic/workflowinstance/v1/io.proto";
+import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
 import "ai/stigmer/commons/rpc/method_options.proto";
 
@@ -71,6 +72,31 @@ service WorkflowInstanceCommandController {
     option (ai.stigmer.commons.rpc.config).permission = can_edit;
     option (ai.stigmer.commons.rpc.config).field_path = "metadata.id";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update workflow instance";
+  }
+
+  // Update the visibility of an existing workflow instance.
+  //
+  // Changes who can view this instance and its executions. Supports the full
+  // visibility spectrum: PRIVATE (owner only), ORG (all org members), or
+  // PUBLIC (all authenticated users).
+  //
+  // For workflow instances, visibility has cascading effects on execution
+  // observability: workflow executions inherit visibility from their parent
+  // instance via FGA. An ORG-visible instance means all org members can see
+  // all executions — zero per-execution tuples needed.
+  //
+  // @internal
+  // Authorization: Requires can_edit permission on the workflow instance.
+  // Visibility transitions trigger FGA tuple management in Cloud mode:
+  // - PRIVATE → ORG: creates workflow_instance#viewer@organization:<org>#member
+  // - PRIVATE → PUBLIC: creates workflow_instance#viewer@identity_account:*
+  // - ORG → PRIVATE: deletes the org member viewer tuple
+  // - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
+  rpc updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput) returns (WorkflowInstance) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = workflow_instance;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update workflow instance visibility";
   }
 
   // Delete a workflow instance.

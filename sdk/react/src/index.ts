@@ -524,9 +524,13 @@ export {
   useCreateIamPolicy,
   useDeleteIamPolicy,
   useRevokeOrgAccess,
+  useShareFlow,
+  useCheckPermission,
   RoleSelector,
   GrantAccessForm,
   OrgMembersPanel,
+  SharePanel,
+  PermissionGate,
 } from "./iam-policy";
 export type {
   UseGrantableRolesReturn,
@@ -540,9 +544,15 @@ export type {
   UseCreateIamPolicyReturn,
   UseDeleteIamPolicyReturn,
   UseRevokeOrgAccessReturn,
+  UseShareFlowReturn,
+  ShareFlowResource,
+  UseCheckPermissionReturn,
+  PermissionCheckResource,
   RoleSelectorProps,
   GrantAccessFormProps,
   OrgMembersPanelProps,
+  SharePanelProps,
+  PermissionGateProps,
 } from "./iam-policy";
 
 // Organization — context provider, hooks, data hooks, behavior hooks, styled form, profile panel, and org switcher
