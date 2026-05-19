@@ -12,7 +12,7 @@ import { AgentInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic
 import { AgentInstanceSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceReferenceSchema, type UpdateVisibilityInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
 /** Provides operations on agentinstance resources. */
@@ -46,6 +46,12 @@ export class AgentInstanceClient {
   async delete(id: string): Promise<AgentInstance> {
     try {
       return await this.command.delete(create(AgentInstanceIdSchema, { value: id }));
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async updateVisibility(input: UpdateVisibilityInput): Promise<AgentInstance> {
+    try {
+      return await this.command.updateVisibility(input);
     } catch (e) { throw wrapError(e); }
   }
 

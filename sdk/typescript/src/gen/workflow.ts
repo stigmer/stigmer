@@ -17,7 +17,7 @@ import { GetTaskKindRegistryRequestSchema, GetTaskKindRegistryResponseSchema, ty
 import { TaskKindRegistryQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/task_kind_registry_query_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceReferenceSchema, type UpdateVisibilityInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { PageInfoSchema } from "@stigmer/protos/ai/stigmer/commons/rpc/pagination_pb";
 import { SearchRequestSchema } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
@@ -64,6 +64,12 @@ export class WorkflowClient {
   async validateSpec(input: WorkflowInput): Promise<ServerlessWorkflowValidation> {
     try {
       return await this.command.validateSpec(buildWorkflowProto(input));
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async updateVisibility(input: UpdateVisibilityInput): Promise<Workflow> {
+    try {
+      return await this.command.updateVisibility(input);
     } catch (e) { throw wrapError(e); }
   }
 

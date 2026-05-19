@@ -39,6 +39,14 @@
           "outputType": "AgentInstance",
           "outputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstance",
           "description": "Delete an agent instance.\n\n @internal\n Authorization: Only owner can delete (can_delete permission)."
+        },
+        {
+          "name": "UpdateVisibility",
+          "inputType": "UpdateVisibilityInput",
+          "inputFullType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
+          "outputType": "AgentInstance",
+          "outputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstance",
+          "description": "Update the visibility of an existing agent instance.\n\n Supports the full visibility spectrum: private, org, and public.\n Org visibility writes an FGA userset tuple for shared observability.\n\n @internal\n Authorization: Requires can_edit permission on the agent instance."
         }
       ]
     },
@@ -280,6 +288,35 @@
           },
           "description": "Pagination options.",
           "required": false
+        }
+      ]
+    },
+    {
+      "name": "UpdateVisibilityInput",
+      "description": "Input for updating the visibility of any API resource.\n\n Used by resource-specific command controllers to toggle between\n PRIVATE and PUBLIC visibility. Each controller's updateVisibility RPC\n accepts this shared input and returns the full updated resource.\n\n Visibility transitions trigger FGA tuple management in Cloud mode:\n - PRIVATE → PUBLIC: creates resource#viewer@identity_account:* tuple\n - PUBLIC → PRIVATE: deletes the wildcard viewer tuple",
+      "protoType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
+      "fields": [
+        {
+          "name": "ResourceId",
+          "jsonName": "resourceId",
+          "protoField": "resource_id",
+          "type": {
+            "kind": "string"
+          },
+          "required": true,
+          "description": "ID of the resource whose visibility is being updated."
+        },
+        {
+          "name": "Visibility",
+          "jsonName": "visibility",
+          "protoField": "visibility",
+          "type": {
+            "kind": "enum",
+            "enumType": "ApiResourceVisibility"
+          },
+          "required": true,
+          "description": "The target visibility level."
         }
       ]
     }

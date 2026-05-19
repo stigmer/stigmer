@@ -15,6 +15,7 @@ import { useUpdateAgent } from "./useUpdateAgent";
 import { agentToInput } from "./internal/agentToInput";
 import { ErrorMessage } from "../error/ErrorMessage";
 import { VisibilityToggle } from "../library/VisibilityToggle";
+import { PermissionGate } from "../iam-policy/PermissionGate";
 import { ResourceDetailShell } from "../resource-detail/ResourceDetailShell";
 import { Section } from "../resource-detail/Section";
 import { useDetailTabs } from "../resource-detail/useDetailTabs";
@@ -289,19 +290,27 @@ export function AgentDetailView({
     updatedAt: specAudit?.updatedAt ? timestampDate(specAudit.updatedAt) : null,
   };
 
-  const isPublic = meta?.visibility === ApiResourceVisibility.visibility_public;
-  const visibilityControl =
-    onVisibilityChange && meta ? (
-      <VisibilityToggle
-        visibility={meta.visibility}
-        onVisibilityChange={onVisibilityChange}
-        isPending={isVisibilityPending}
-      />
-    ) : isPublic ? (
+  const visibilityBadge =
+    meta?.visibility === ApiResourceVisibility.visibility_public ? (
       <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
         Public
       </span>
     ) : undefined;
+
+  const visibilityControl =
+    onVisibilityChange && meta ? (
+      <PermissionGate
+        resource={{ kind: "agent", id: meta.id }}
+        relation="can_edit"
+        fallback={visibilityBadge}
+      >
+        <VisibilityToggle
+          visibility={meta.visibility}
+          onVisibilityChange={onVisibilityChange}
+          isPending={isVisibilityPending}
+        />
+      </PermissionGate>
+    ) : visibilityBadge;
 
   let tabContent: React.ReactNode;
   if (activeAdditionalTab) {
