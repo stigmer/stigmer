@@ -52,6 +52,17 @@ import {
   resolveProxyBaseUrl,
   buildProxyHeaders,
 } from "../../shared/llm-proxy.js";
+import {
+  mergeSkillRefs,
+  fetchSkillsByRefs,
+  writeSkills,
+  computeSkillPaths,
+  checkSkillIntegrity,
+  generatePromptSection,
+  generateAlsoAvailableSection,
+  fetchSkillArtifacts,
+} from "../../shared/skill-writer.js";
+import { filterSkills, SKILL_COUNT_THRESHOLD } from "../../shared/skill-relevance.js";
 
 export interface SetupResult {
   readonly agentGraph: AgentGraph;
@@ -172,12 +183,55 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       );
     }
 
+    // Step 7b: Resolve and write skills
+    const skillRefs = mergeSkillRefs(
+      agent.spec!.skillRefs || [],
+      session.spec!.skillRefs || [],
+    );
+
+    let skillsPromptSection = "";
+    if (skillRefs.length > 0) {
+      await reportSetupProgress(client, executionId, "Loading skills…");
+      const skills = await fetchSkillsByRefs(client, skillRefs);
+
+      if (skills.length > 0) {
+        const artifacts = await fetchSkillArtifacts(client, skills);
+        const { paths: skillPaths } = await writeSkills(skills, workspaceBackend, artifacts);
+
+        const userMessage = execution.spec!.message || "";
+        const skillNames = skills.map(s => s.spec?.name || s.metadata?.slug || "unknown");
+        const skillDescriptions = skills.map(s => s.spec?.description || "");
+
+        if (skills.length >= SKILL_COUNT_THRESHOLD) {
+          const filterResult = filterSkills(userMessage, skillNames, skillDescriptions);
+          if (filterResult.excludedNames.length > 0) {
+            const includedSkills = filterResult.includedIndices.map(i => skills[i]);
+            console.log(
+              `[setup] Skill relevance filter: ${includedSkills.length} included, ` +
+              `${filterResult.excludedNames.length} excluded: ${filterResult.excludedNames.join(", ")}`,
+            );
+            skillsPromptSection =
+              generatePromptSection(includedSkills, skillPaths) +
+              generateAlsoAvailableSection(filterResult.excludedNames);
+          } else {
+            skillsPromptSection = generatePromptSection(skills, skillPaths);
+          }
+        } else {
+          skillsPromptSection = generatePromptSection(skills, skillPaths);
+        }
+
+        console.log(
+          `[setup] Skills loaded: ${skills.length} total, prompt section ${skillsPromptSection.length} chars`,
+        );
+      }
+    }
+
     // Step 8: Build enhanced system prompt
     const systemPrompt = buildEnhancedSystemPrompt({
       instructions,
       provisionResults,
       containerRoot: workspaceBackend.rootDir,
-      skillsPromptSection: "",
+      skillsPromptSection,
       workspaceFileRefs: execution.spec!.workspaceFileRefs || [],
       workspaceRoot: workspaceBackend.rootDir,
       injectedFiles: [],
