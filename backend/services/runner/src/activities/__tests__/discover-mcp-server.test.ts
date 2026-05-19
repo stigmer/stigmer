@@ -265,6 +265,7 @@ describe("DiscoverMcpServer activity", () => {
       expect(result.resourceTemplates).toEqual([]);
       expect(result.previousToolsFingerprint).toBe("");
       expect(result.previousToolApprovals).toEqual([]);
+      expect(result.newToolsFingerprint).toHaveLength(64);
     });
 
     it("discovers tools and resource templates from an HTTP server", async () => {
@@ -444,6 +445,57 @@ describe("DiscoverMcpServer activity", () => {
         { toolName: "old_tool", requiresApproval: true, message: "Approve old_tool" },
       ]);
       expect(result.tools[0].name).toBe("new_tool");
+      expect(result.newToolsFingerprint).toHaveLength(64);
+      expect(result.newToolsFingerprint).not.toBe(result.previousToolsFingerprint);
+    });
+
+    it("returns newToolsFingerprint matching toolsFingerprint of discovered tools", async () => {
+      const { discoverMcpServer, toolsFingerprint } = await import("../discover-mcp-server.js");
+
+      const mockClient = makeMockStigmerClient({
+        mcpServer: makeMcpServer({
+          metadata: { slug: "fp-test" },
+          spec: makeStdioSpec("npx", ["server"]),
+        }),
+      });
+
+      const discoveredTools = [
+        { name: "alpha", description: "Alpha tool", inputSchema: { type: "object" } },
+        { name: "beta", description: "Beta tool", inputSchema: null },
+      ];
+      const mockMcpClient = makeMockMcpClient({ tools: discoveredTools });
+      mockInitializeConnections.mockResolvedValue({});
+      mockGetClient.mockResolvedValue(mockMcpClient);
+
+      const result = await discoverMcpServer(
+        { mcpServerId: "mcp-fp" },
+        { stigmerClient: mockClient as any },
+      );
+
+      const expected = toolsFingerprint(result.tools);
+      expect(result.newToolsFingerprint).toBe(expected);
+    });
+
+    it("returns empty newToolsFingerprint when no tools discovered", async () => {
+      const { discoverMcpServer } = await import("../discover-mcp-server.js");
+
+      const mockClient = makeMockStigmerClient({
+        mcpServer: makeMcpServer({
+          metadata: { slug: "empty" },
+          spec: makeStdioSpec("npx", ["server"]),
+        }),
+      });
+
+      const mockMcpClient = makeMockMcpClient({ tools: [] });
+      mockInitializeConnections.mockResolvedValue({});
+      mockGetClient.mockResolvedValue(mockMcpClient);
+
+      const result = await discoverMcpServer(
+        { mcpServerId: "mcp-empty" },
+        { stigmerClient: mockClient as any },
+      );
+
+      expect(result.newToolsFingerprint).toBe("");
     });
 
     it("closes MCP client even when discovery fails", async () => {

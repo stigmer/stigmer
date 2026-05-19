@@ -61,6 +61,7 @@ export interface DiscoverMcpServerOutput {
   resourceTemplates: DiscoveredResourceTemplateResult[];
   previousToolsFingerprint: string;
   previousToolApprovals: ToolApprovalDict[];
+  newToolsFingerprint: string;
 }
 
 export interface ToolApprovalDict {
@@ -230,6 +231,8 @@ export async function discoverMcpServer(
     connectionConfig,
   );
 
+  const newFp = toolsFingerprint(tools);
+
   console.log(
     `[DiscoverMcpServer] Discovery complete for '${slug}': ` +
     `${tools.length} tool(s), ${resourceTemplates.length} resource template(s)`,
@@ -240,6 +243,7 @@ export async function discoverMcpServer(
     resourceTemplates,
     previousToolsFingerprint: previousState.fingerprint,
     previousToolApprovals: previousState.toolApprovals,
+    newToolsFingerprint: newFp,
   };
 }
 
