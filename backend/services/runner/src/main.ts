@@ -17,7 +17,7 @@
  */
 
 import { loadConfig } from "./config.js";
-import { initTracing } from "./otel.js";
+import { initTracing, initMetrics } from "./otel.js";
 import { startHeartbeat } from "./heartbeat.js";
 
 process.on("unhandledRejection", (reason) => {
@@ -34,6 +34,7 @@ async function main(): Promise<void> {
   const config = loadConfig();
 
   const otelShutdown = await initTracing("stigmer-runner");
+  const metricsShutdown = await initMetrics("stigmer-runner");
 
   // Install fetch interceptor BEFORE importing cursor-related modules.
   // This patches global.fetch for proxy mode (cloud runners).
@@ -86,6 +87,9 @@ async function main(): Promise<void> {
   console.log("Worker ready, polling for tasks...");
   await worker.run();
 
+  if (metricsShutdown) {
+    await metricsShutdown();
+  }
   if (otelShutdown) {
     await otelShutdown();
   }

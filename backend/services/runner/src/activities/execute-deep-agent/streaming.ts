@@ -30,6 +30,7 @@ import {
 import { persistWithRetry, type RetryOptions } from "../../shared/grpc-retry.js";
 import { slimStatus, utcTimestamp } from "../../shared/status.js";
 import type { StigmerClient } from "../../client/stigmer-client.js";
+import type { GracefulStopMiddleware } from "../../middleware/index.js";
 
 const DEFAULT_STALL_TIMEOUT_MS = 120_000;
 
@@ -53,6 +54,8 @@ export interface StreamDependencies {
   readonly heartbeatFn?: (details: Record<string, unknown>) => void;
   /** Temporal cancellation check. */
   readonly isCancelledFn?: () => boolean;
+  /** GracefulStopMiddleware instance for platform STOP signal handling. */
+  readonly gracefulStop?: GracefulStopMiddleware;
 }
 
 export interface StreamResult {
@@ -79,6 +82,7 @@ export async function streamExecution(
     stallTimeoutMs = DEFAULT_STALL_TIMEOUT_MS,
     heartbeatFn,
     isCancelledFn,
+    gracefulStop,
   } = deps;
 
   const statusBuilder = new StatusBuilder(executionId, initialStatus);
@@ -131,7 +135,11 @@ export async function streamExecution(
           console.warn(
             `[streaming] STOP signal received for execution ${executionId}`,
           );
-          return handleStop(statusBuilder, eventsProcessed);
+          if (gracefulStop) {
+            gracefulStop.activate("Platform STOP signal");
+          } else {
+            return handleStop(statusBuilder, eventsProcessed);
+          }
         }
       }
 
