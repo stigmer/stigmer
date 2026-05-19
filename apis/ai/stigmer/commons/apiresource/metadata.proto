@@ -9,11 +9,24 @@ import "buf/validate/validate.proto";
 // Every resource belongs to an organization and has a visibility setting.
 message ApiResourceMetadata {
   // Human-readable name of the resource.
-  string name = 1;
+  // Max 63 characters. Validation is skipped when the field is empty (e.g.,
+  // server-generated responses or partial messages).
+  string name = 1 [
+    (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE,
+    (buf.validate.field).string.max_len = 63
+  ];
 
   // URL-friendly identifier, unique within the organization.
   // Combined with org, forms the canonical reference: "org/slug".
-  string slug = 2;
+  // Format: 2-63 lowercase alphanumeric characters and hyphens; must start
+  // with a letter and end with a letter or digit. When empty, the server
+  // derives the slug from the name.
+  string slug = 2 [
+    (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE,
+    (buf.validate.field).string.min_len = 2,
+    (buf.validate.field).string.max_len = 63,
+    (buf.validate.field).string.pattern = "^[a-z][a-z0-9-]*[a-z0-9]$"
+  ];
 
   // System-generated unique identifier.
   string id = 3;

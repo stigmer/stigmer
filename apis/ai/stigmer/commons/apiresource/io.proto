@@ -83,19 +83,20 @@ message ApiResourceReference {
   // Use explicit org for cross-org references (e.g., marketplace resources).
   string org = 1 [
     (buf.validate.field).string.max_len = 63,
-    (buf.validate.field).string.pattern = "^$|^[a-z][a-z0-9-]*$"
+    (buf.validate.field).string.pattern = "^$|^[a-z][a-z0-9-]*[a-z0-9]$"
   ];
 
   // Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).
   ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kind = 2;
 
   // Resource slug (user-friendly identifier, unique within org).
-  // Format: lowercase alphanumeric with hyphens, must start with a letter (e.g., "web-search", "code-reviewer").
-  // Length: 1-63 characters.
+  // Format: lowercase alphanumeric with hyphens, must start with a letter
+  // and end with a letter or digit (e.g., "web-search", "code-reviewer").
+  // Length: 2-63 characters.
   string slug = 3 [
     (buf.validate.field).required = true,
-    (buf.validate.field).string.pattern = "^[a-z][a-z0-9-]*$",
-    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.pattern = "^[a-z][a-z0-9-]*[a-z0-9]$",
+    (buf.validate.field).string.min_len = 2,
     (buf.validate.field).string.max_len = 63
   ];
 

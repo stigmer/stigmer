@@ -1,29 +1,14 @@
 "use client";
 
 import { useCallback, useRef, useState, type FormEvent } from "react";
+import { create as createMessage } from "@bufbuild/protobuf";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { useCreateOrganization } from "./useCreateOrganization";
 import { generateSlug } from "../internal/slug";
-
-// ---------------------------------------------------------------------------
-// Slug validation (mirrors Organization proto CEL rules)
-// ---------------------------------------------------------------------------
-
-const SLUG_PATTERN = /^[a-z][a-z0-9-]*$/;
-const SLUG_MIN = 2;
-const SLUG_MAX = 15;
-
-function validateSlug(slug: string): string | null {
-  if (slug.length === 0) return "Slug is required.";
-  if (slug.length < SLUG_MIN || slug.length > SLUG_MAX)
-    return `Must be between ${SLUG_MIN} and ${SLUG_MAX} characters.`;
-  if (!/^[a-z]/.test(slug)) return "Must start with a lowercase letter.";
-  if (!SLUG_PATTERN.test(slug))
-    return "Only lowercase letters, numbers, and hyphens are allowed.";
-  return null;
-}
+import { validateMessage, getFieldError } from "../internal/validate";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -72,9 +57,26 @@ export function CreateOrganizationForm({
   const slugTouchedRef = useRef(false);
 
   const trimmedName = name.trim();
-  const slugError = slug.length > 0 ? validateSlug(slug) : null;
+
+  const violations =
+    slug.length > 0 || trimmedName.length > 0
+      ? validateMessage(
+          ApiResourceMetadataSchema,
+          createMessage(ApiResourceMetadataSchema, {
+            ...(slug.length > 0 && { slug }),
+            ...(trimmedName.length > 0 && { name: trimmedName }),
+          }),
+        )
+      : [];
+  const slugError = slug.length > 0 ? getFieldError(violations, "slug") : null;
+  const nameError =
+    trimmedName.length > 0 ? getFieldError(violations, "name") : null;
   const canSubmit =
-    trimmedName !== "" && slug.length > 0 && slugError === null && !isCreating;
+    trimmedName !== "" &&
+    slug.length > 0 &&
+    slugError === null &&
+    nameError === null &&
+    !isCreating;
 
   const handleNameChange = useCallback(
     (value: string) => {
@@ -132,16 +134,24 @@ export function CreateOrganizationForm({
             disabled={isCreating}
             autoFocus
             required
+            maxLength={63}
             className={cn(
-              "w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground",
+              "w-full rounded-md border bg-background px-2.5 py-1.5 text-xs text-foreground",
               "placeholder:text-muted-foreground",
               "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
               "disabled:pointer-events-none disabled:opacity-50",
+              nameError ? "border-destructive" : "border-input",
             )}
           />
-          <p className="text-[0.65rem] text-muted-foreground">
-            A human-readable display name for the organization.
-          </p>
+          {nameError ? (
+            <p className="text-[0.65rem] text-destructive" role="alert">
+              {nameError}
+            </p>
+          ) : (
+            <p className="text-[0.65rem] text-muted-foreground">
+              A human-readable display name for the organization.
+            </p>
+          )}
         </div>
 
         {/* ---- Slug ---- */}
@@ -176,9 +186,8 @@ export function CreateOrganizationForm({
             </p>
           ) : (
             <p className="text-[0.65rem] text-muted-foreground">
-              URL-friendly identifier used in resource references.{" "}
-              {SLUG_MIN}&ndash;{SLUG_MAX} characters: lowercase letters, numbers, and
-              hyphens.
+              URL-friendly identifier used in resource references. 2&ndash;63
+              characters: lowercase letters, numbers, and hyphens.
             </p>
           )}
         </div>
