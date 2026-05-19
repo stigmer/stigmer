@@ -26,6 +26,7 @@ import type { StigmerClient } from "../../client/stigmer-client.js";
 import { createCheckpointer } from "../../shared/checkpointer/factory.js";
 import { connectMcpServers, type McpConnectionResult } from "../../shared/mcp-manager.js";
 import { resolveMcpServers } from "../../shared/mcp-resolver.js";
+import { backfillMcpServersIfNeeded } from "../../shared/connect-backfill.js";
 import { WorkspaceProvisioner } from "../../shared/workspace/provisioner.js";
 import { LocalWorkspaceBackend } from "../../shared/workspace/local-backend.js";
 import type { WorkspaceBackend, ProvisionResult } from "../../shared/workspace/types.js";
@@ -154,6 +155,17 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       resolvedMcpServers = await resolveMcpServers(
         client, mcpServerUsages, envResult.mergedEnvVars,
       );
+
+      const sessionOrg = session.metadata?.org ?? "";
+      const backfilledServers = await backfillMcpServersIfNeeded(
+        client,
+        resolvedMcpServers.resolvedServers,
+        mcpServerUsages,
+        envResult.mergedEnvVars,
+        sessionOrg,
+      );
+      resolvedMcpServers = { resolvedServers: backfilledServers };
+
       mcpConnection = await connectMcpServers(
         resolvedMcpServers.resolvedServers,
         { isCloudMode: config.cloudModeEnabled },
