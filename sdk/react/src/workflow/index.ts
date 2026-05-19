@@ -365,6 +365,14 @@ export {
   type WorkflowRepairCardProps,
 } from "./WorkflowRepairCard";
 
+// Workflow update — mutation hook + input converter
+export {
+  useUpdateWorkflow,
+  type UseUpdateWorkflowReturn,
+} from "./useUpdateWorkflow";
+
+export { workflowToInput } from "./internal/workflowToInput";
+
 // Starter YAML template for new workflow creation
 export { STARTER_WORKFLOW_YAML } from "./starter-workflow-yaml";
 

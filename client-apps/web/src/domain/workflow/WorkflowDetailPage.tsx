@@ -13,6 +13,8 @@ import {
   useCopyResource,
   useConfirmAction,
   useDeleteResource,
+  useExportResource,
+  useUpdateVisibility,
   ConfirmDialog,
   useBreadcrumbOverride,
   type DetailAction,
@@ -45,6 +47,14 @@ export function WorkflowDetailPageInner({
   const { workflow } = useWorkflow(org, slug);
   const { instances } = useWorkflowInstances(workflow?.metadata?.id);
   const [showRunDialog, setShowRunDialog] = useState(false);
+  const { copyYaml, copyJson, downloadYaml } = useExportResource({
+    kind: "Workflow",
+    resource: workflow,
+  });
+  const { updateVisibility, isPending: isVisibilityPending } = useUpdateVisibility(
+    "workflow",
+    resourceId,
+  );
 
   useEffect(() => () => setLabel(null), [setLabel]);
 
@@ -125,6 +135,27 @@ export function WorkflowDetailPageInner({
         onAction: () => copyQualifiedSlug(org, slug),
       },
       {
+        id: "export-yaml",
+        label: "Export YAML",
+        group: "export",
+        onAction: copyYaml,
+        disabled: !workflow,
+      },
+      {
+        id: "export-json",
+        label: "Export JSON",
+        group: "export",
+        onAction: copyJson,
+        disabled: !workflow,
+      },
+      {
+        id: "download-yaml",
+        label: "Download YAML",
+        group: "export",
+        onAction: downloadYaml,
+        disabled: !workflow,
+      },
+      {
         id: "delete",
         label: "Delete",
         variant: "destructive" as const,
@@ -133,7 +164,7 @@ export function WorkflowDetailPageInner({
         disabled: isDeleting,
       },
     ],
-    [resourceId, copyId, copyQualifiedSlug, org, slug, handleDelete, isDeleting],
+    [resourceId, copyId, copyQualifiedSlug, org, slug, copyYaml, copyJson, downloadYaml, workflow, handleDelete, isDeleting],
   );
 
   const additionalTabs: AdditionalTab[] = useMemo(
@@ -165,6 +196,9 @@ export function WorkflowDetailPageInner({
         org={org}
         slug={slug}
         onResourceLoad={handleResourceLoad}
+        onVisibilityChange={updateVisibility}
+        isVisibilityPending={isVisibilityPending}
+        editable
         primaryAction={primaryAction}
         actions={actions}
         additionalTabs={additionalTabs}
