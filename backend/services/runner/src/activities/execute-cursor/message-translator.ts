@@ -39,10 +39,9 @@ import { MessageType, ToolCallStatus, SubAgentStatus } from "@stigmer/protos/ai/
 import type { SDKMessage } from "@cursor/sdk";
 import type { MergedToolPolicy } from "./approval-policy.js";
 import { lookupMcpToolPolicy, resolveApprovalMessage, builtInRequiresApproval } from "./approval-policy.js";
+import { utcTimestamp } from "../../shared/status.js";
 
-export function utcTimestamp(): string {
-  return new Date().toISOString().replace("+00:00", "Z");
-}
+export { utcTimestamp };
 
 /**
  * Details extracted from an MCP tool call event's args.

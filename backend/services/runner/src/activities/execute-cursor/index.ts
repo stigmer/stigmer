@@ -27,11 +27,10 @@
  */
 
 import { heartbeat } from "@temporalio/activity";
-import { create, toJson } from "@bufbuild/protobuf";
+import { create } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
-import { SetupProgressSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { ExecutionControlSignal, ExecutionPhase, InteractionMode, MessageType, ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
@@ -43,7 +42,8 @@ import { resolveAgent } from "./session-lifecycle.js";
 import type { AgentResolution, CreateAgentOptions, CreateCloudAgentOptions } from "./session-lifecycle.js";
 import { CursorMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { determineCursorMode, isCloudMode } from "./cursor-mode.js";
-import { MessageAccumulator, extractDeniedToolCalls, utcTimestamp } from "./message-translator.js";
+import { MessageAccumulator, extractDeniedToolCalls } from "./message-translator.js";
+import { utcTimestamp, persistStatus, reportSetupProgress, slimStatus } from "../../shared/status.js";
 import { DeltaEnricher } from "./delta-enricher.js";
 import { TodoTracker } from "./todo-tracker.js";
 import { resolveMcpServers } from "./mcp-resolver.js";
@@ -731,53 +731,6 @@ async function maybePeristSessionMemory(
       err instanceof Error ? err.message : err,
     );
   }
-}
-
-/**
- * Return a slim status containing only workflow-critical fields.
- * Heavy fields (messages, tool_calls) are already persisted via gRPC.
- *
- * Uses toJson() to produce canonical protobuf JSON (base64 bytes, string
- * enums, omitted defaults) instead of returning a raw @bufbuild/protobuf
- * message. Temporal's default JsonPayloadConverter calls JSON.stringify,
- * which serializes Uint8Array bytes fields as {} — invalid protobuf JSON
- * that the Java workflow's JsonFormat.Parser rejects.
- */
-function slimStatus(full: AgentExecutionStatus): unknown {
-  const slim = create(AgentExecutionStatusSchema, {
-    phase: full.phase,
-    error: full.error,
-    startedAt: full.startedAt,
-    completedAt: full.completedAt,
-    pendingApprovals: full.pendingApprovals,
-  });
-  return toJson(AgentExecutionStatusSchema, slim);
-}
-
-async function persistStatus(
-  client: StigmerClient,
-  executionId: string,
-  status: AgentExecutionStatus,
-): Promise<ExecutionControlSignal> {
-  try {
-    const response = await client.updateStatus(executionId, status);
-    return response.signal;
-  } catch (err) {
-    console.error(`Failed to persist status for ${executionId}:`, err);
-    return ExecutionControlSignal.UNSPECIFIED;
-  }
-}
-
-async function reportSetupProgress(
-  client: StigmerClient,
-  executionId: string,
-  phase: string,
-): Promise<void> {
-  const status = create(AgentExecutionStatusSchema, {
-    phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
-    setupProgress: create(SetupProgressSchema, { currentPhase: phase }),
-  });
-  await persistStatus(client, executionId, status);
 }
 
 /**

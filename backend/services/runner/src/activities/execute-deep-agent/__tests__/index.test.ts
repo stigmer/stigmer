@@ -23,6 +23,8 @@ describe("ExecuteDeepAgent stub", () => {
     idleTimeoutSeconds: null,
     cloudModeEnabled: false,
     runnerId: null,
+    checkpointerType: "memory",
+    checkpointerProxyEndpoint: null,
   };
 
   let activities: ReturnType<typeof createDeepAgentActivities>;
