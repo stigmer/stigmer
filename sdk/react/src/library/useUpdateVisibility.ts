@@ -8,7 +8,13 @@ import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
 
 /** Resource kinds that support the `updateVisibility` RPC. */
-export type VisibilityResourceKind = "skill" | "agent" | "mcpServer";
+export type VisibilityResourceKind =
+  | "skill"
+  | "agent"
+  | "mcpServer"
+  | "workflow"
+  | "agentInstance"
+  | "workflowInstance";
 
 /** Return value of {@link useUpdateVisibility}. */
 export interface UseUpdateVisibilityReturn {
@@ -26,8 +32,11 @@ export interface UseUpdateVisibilityReturn {
 }
 
 /**
- * Behavior hook that updates the visibility of a Skill, Agent, or
- * MCP Server.
+ * Behavior hook that updates the visibility of a resource.
+ *
+ * Supports blueprints (Agent, Workflow, Skill, MCP Server) with
+ * private/public visibility, and instances (AgentInstance,
+ * WorkflowInstance) with the full private/org/public spectrum.
  *
  * Wraps the generated `stigmer.{kind}.updateVisibility()` SDK method
  * with loading and error state management. The hook is stateless with
@@ -40,10 +49,10 @@ export interface UseUpdateVisibilityReturn {
  *
  * @example
  * ```tsx
- * const { updateVisibility, isPending } = useUpdateVisibility("skill", skill.metadata.id);
+ * const { updateVisibility, isPending } = useUpdateVisibility("workflow", workflow.metadata.id);
  *
  * <VisibilityToggle
- *   visibility={skill.metadata.visibility}
+ *   visibility={workflow.metadata.visibility}
  *   onVisibilityChange={updateVisibility}
  *   isPending={isPending}
  * />
@@ -79,6 +88,15 @@ export function useUpdateVisibility(
             break;
           case "mcpServer":
             await stigmer.mcpServer.updateVisibility(input);
+            break;
+          case "workflow":
+            await stigmer.workflow.updateVisibility(input);
+            break;
+          case "agentInstance":
+            await stigmer.agentInstance.updateVisibility(input);
+            break;
+          case "workflowInstance":
+            await stigmer.workflowInstance.updateVisibility(input);
             break;
         }
       } catch (err) {

@@ -10,6 +10,7 @@ import {
   useCopyResource,
   useConfirmAction,
   useDeleteResource,
+  useUpdateVisibility,
   ConfirmDialog,
   useBreadcrumbOverride,
   toast,
@@ -35,6 +36,8 @@ export default function WorkflowDetailPage() {
   const { workflow } = useWorkflow(org ?? "", slug ?? "");
   const { instances } = useWorkflowInstances(workflow?.metadata?.id);
   const [showRunDialog, setShowRunDialog] = useState(false);
+  const { updateVisibility, isPending: isVisibilityPending } =
+    useUpdateVisibility("workflow", resourceId);
 
   useEffect(() => () => setLabel(null), [setLabel]);
 
@@ -157,6 +160,9 @@ export default function WorkflowDetailPage() {
         org={org}
         slug={slug}
         onResourceLoad={handleResourceLoad}
+        onVisibilityChange={updateVisibility}
+        isVisibilityPending={isVisibilityPending}
+        editable
         primaryAction={primaryAction}
         actions={actions}
         additionalTabs={additionalTabs}
