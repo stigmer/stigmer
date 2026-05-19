@@ -16,7 +16,7 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260518.01.unified-runner-migration/checkpoints/2026-05-19-session-8-phase3c.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260518.01.unified-runner-migration/checkpoints/2026-05-19-session-9-phase4-ensurethread.md
 ```
 
 ### 2. Current Task
@@ -44,38 +44,26 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 **Created**: 2026-05-18 15:11  
-**Last Session**: 2026-05-19 — Phase 3c HITL + Approval  
-**Current Task**: Phase 4 — Supporting Activities  
-**Status**: Phase 3c COMPLETE — approval gate middleware (interrupt/resume), HITL resume infrastructure (DB-driven, Command builder), sub-agent concurrency limiter (max 3), sub-agent middleware wiring (periodic budget, shared cost cap); 341 tests passing
+**Last Session**: 2026-05-19 — Phase 4 EnsureThread port  
+**Current Task**: Phase 4 — Supporting Activities (in progress)  
+**Status**: EnsureThread COMPLETE — ported from Python to TypeScript, registered on unified runner; 352 tests passing
 
 ## Session Progress (2026-05-19, latest)
 
-### What Was Accomplished (Phase 3c)
+### What Was Accomplished (Phase 4 — EnsureThread)
 
-**4 new files**:
-- **middleware/approval-gate.ts** — `ApprovalGateMiddleware`; checks merged policies via `wrapToolCall`, calls LangGraph `interrupt()` for approval-required tools; platform tool defaults (safe: read/ls/glob/grep/think; dangerous: write/edit/delete/execute/shell)
-- **activities/execute-deep-agent/hitl.ts** — `resolveResumeInput()` DB-driven resume; reads approval decisions from persisted execution, matches to LangGraph checkpoint interrupts, builds `Command(resume={...})`; `reconcileToolCallStatuses()` for status reconciliation
-- **shared/subagent-gate.ts** — `SubAgentGate` Promise-based semaphore (max 3 concurrent); non-blocking rejection (error-shaped response); slot tracking
-- **activities/execute-deep-agent/subagent-wiring.ts** — `buildSubAgentMiddleware()` per-sub-agent stack: loop detection (fresh) + execution budget (periodic: interval=30, max=4) + tool truncation + cost cap view (shared via `forSubAgent()`)
+**1 new file**:
+- **activities/ensure-thread.ts** — `createEnsureThreadActivities()` factory; derives LangGraph thread ID from session ID (deterministic `thread-{sessionId}`) or creates ephemeral ID (`ephemeral-{agentId}-{8hex}`); pure function, no DB/gRPC dependencies
 
-**5 new test files**, 38 new tests (341 total), typecheck clean, build clean
+**1 new test file**, 11 new tests (352 total), typecheck clean, build clean
 
 **Modified files:**
-- `middleware/types.ts` — added `ApprovalGateConfig` to `MiddlewareStackConfig`
-- `middleware/index.ts` — integrated `ApprovalGateMiddleware` (after graceful-stop, before cost-cap)
-- `status-builder.ts` — added `ApprovalPolicyProvider`, `setApprovalProvider()`, WAITING_FOR_APPROVAL on tool start, argsPreview sanitization
-- `streaming.ts` — detect WAITING_FOR_APPROVAL after stream ends, return terminal status without COMPLETED
-- `post-stream.ts` — skip all post-stream processing when WAITING_FOR_APPROVAL
-- `setup.ts` — resolve approval policies via `mergeApprovalPolicies()`, added `approvalPolicies`/`toolServerMap`/`autoApproveAll` to SetupResult
-- `index.ts` — wire HITL resume: `resolveResumeInput()`, rejection fast-path, approval provider on StatusBuilder
+- `main.ts` — registers EnsureThread alongside ExecuteCursor and ExecuteDeepAgent
 
-### Design Decisions (Phase 3c)
-
-- **DD-8: Middleware-based approval gating.** Approval checks in `wrapToolCall` middleware, not per-tool wrapping. All execution controls stay in the middleware stack.
-- **DD-9: Platform tool defaults included.** Safe tools auto-approved; dangerous tools require approval when no explicit policy. Unknown tools default to auto-approved.
-- **DD-10: Summarization deferred to Phase 4.** Custom summarization (880 Python lines) is independent from HITL. Phase 4 will verify DeepAgents JS built-in vs custom.
+**Key finding**: Python EnsureThread never persists thread_id to session (despite Java docstring claiming it does). The deterministic derivation from session_id makes persistence redundant. Ported as-is to match behavior exactly.
 
 ### Prior Sessions
+- **Phase 3c (2026-05-19)**: HITL approval gate, sub-agent infrastructure — see `checkpoints/2026-05-19-session-8-phase3c.md`
 - **Phase 3b-iii (2026-05-19)**: Artifact storage, inline publishing, writeback — see `checkpoints/2026-05-19-session-7-phase3b-iii.md`
 - **Phase 3b-ii (2026-05-19)**: Full middleware stack (8 modules) — see `checkpoints/2026-05-19-session-6-phase3b-ii.md`
 - **Phase 3b-i (2026-05-19)**: StatusBuilder, streaming, scheduler, retry — see `checkpoints/2026-05-19-session-5-phase3b-i.md`
@@ -85,12 +73,12 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-1. **Phase 4: Supporting Activities** — EnsureThread, MCP discovery, classify tool approvals; `@langchain/openai` multi-provider support; MCP package pre-installer; connect backfill for undiscovered servers; skill relevance filtering; summarization middleware verification (DeepAgents JS built-in vs custom port)
+1. **Phase 4: Supporting Activities (in progress)** — ~~EnsureThread~~ DONE; next: ClassifyToolApprovals, DiscoverMcpServer; then: summarization middleware verification (DeepAgents JS built-in vs custom port); `@langchain/openai` multi-provider support; MCP package pre-installer; connect backfill for undiscovered servers; skill relevance filtering
 2. **Phase 5: Testing** — port Python tests, integration, HITL e2e
 
 ## Context for Resume
 
-- Unified runner: `backend/services/runner/` — ExecuteCursor production-ready; ExecuteDeepAgent has full streaming pipeline + middleware stack + artifact/writeback
+- Unified runner: `backend/services/runner/` — ExecuteCursor production-ready; ExecuteDeepAgent has full streaming pipeline + middleware stack + artifact/writeback; EnsureThread ported from Python
 - Artifact storage: `src/shared/artifact-storage.ts` (interface, local, proxy, factory)
 - Inline publisher: `src/activities/execute-deep-agent/inline-publisher.ts` (fire-and-forget, SHA-256 dedup)
 - Writeback coordinator: `src/activities/execute-deep-agent/writeback-coordinator.ts` (incremental git, per-entry mutex)
@@ -148,7 +136,7 @@ None.
 | 3b-ii | Middleware Stack | 3-4 | COMPLETE |
 | 3b-iii | Artifacts + Writeback | 2-3 | COMPLETE |
 | 3c | HITL + Approval | 2-3 | COMPLETE |
-| 4 | Supporting Activities | 2-3 | **NEXT** |
+| 4 | Supporting Activities | 2-3 | **IN PROGRESS** (EnsureThread done) |
 | 5 | Testing | 3-4 | Blocked on Phase 4 |
 | 6 | Deployment | 2-3 | Blocked on Phase 5 |
 | 7 | Cleanup | 1-2 | Blocked on Phase 6 |
