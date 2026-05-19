@@ -9,7 +9,7 @@ import { enumDesc, fileDesc } from "@bufbuild/protobuf/codegenv1";
  * Describes the file ai/stigmer/commons/apiresource/enum.proto.
  */
 export const file_ai_stigmer_commons_apiresource_enum: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2NvbW1vbnMvYXBpcmVzb3VyY2UvZW51bS5wcm90bxIeYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlKnYKFEFwaVJlc291cmNlRXZlbnRUeXBlEg8KC3Vuc3BlY2lmaWVkEAASCwoHY3JlYXRlZBABEgsKB3VwZGF0ZWQQAhILCgdkZWxldGVkEAMSCwoHcmVuYW1lZBAEEhkKFXN0YWNrX291dHB1dHNfdXBkYXRlZBAFKowBCh1BcGlSZXNvdXJjZVN0YXRlT3BlcmF0aW9uVHlwZRIxCi1hcGlfcmVzb3VyY2Vfc3RhdGVfb3BlcmF0aW9uX3R5cGVfdW5zcGVjaWZpZWQQABIKCgZjcmVhdGUQARIKCgZ1cGRhdGUQAhIKCgZkZWxldGUQAxIICgRyZWFkEAQSCgoGc3RyZWFtEAUqbwoVQXBpUmVzb3VyY2VWaXNpYmlsaXR5EicKI2FwaV9yZXNvdXJjZV92aXNpYmlsaXR5X3Vuc3BlY2lmaWVkEAASFgoSdmlzaWJpbGl0eV9wcml2YXRlEAESFQoRdmlzaWJpbGl0eV9wdWJsaWMQAmIGcHJvdG8z");
+  fileDesc("CilhaS9zdGlnbWVyL2NvbW1vbnMvYXBpcmVzb3VyY2UvZW51bS5wcm90bxIeYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlKnYKFEFwaVJlc291cmNlRXZlbnRUeXBlEg8KC3Vuc3BlY2lmaWVkEAASCwoHY3JlYXRlZBABEgsKB3VwZGF0ZWQQAhILCgdkZWxldGVkEAMSCwoHcmVuYW1lZBAEEhkKFXN0YWNrX291dHB1dHNfdXBkYXRlZBAFKowBCh1BcGlSZXNvdXJjZVN0YXRlT3BlcmF0aW9uVHlwZRIxCi1hcGlfcmVzb3VyY2Vfc3RhdGVfb3BlcmF0aW9uX3R5cGVfdW5zcGVjaWZpZWQQABIKCgZjcmVhdGUQARIKCgZ1cGRhdGUQAhIKCgZkZWxldGUQAxIICgRyZWFkEAQSCgoGc3RyZWFtEAUqgwEKFUFwaVJlc291cmNlVmlzaWJpbGl0eRInCiNhcGlfcmVzb3VyY2VfdmlzaWJpbGl0eV91bnNwZWNpZmllZBAAEhYKEnZpc2liaWxpdHlfcHJpdmF0ZRABEhUKEXZpc2liaWxpdHlfcHVibGljEAISEgoOdmlzaWJpbGl0eV9vcmcQA2IGcHJvdG8z");
 
 /**
  * Event types produced by command controller RPCs across all API resources.
@@ -141,6 +141,11 @@ export const ApiResourceStateOperationTypeSchema: GenEnum<ApiResourceStateOperat
  * All resources belong to an organization. Visibility determines whether
  * users outside that organization can access the resource.
  *
+ * The three visibility levels map to FGA tuples:
+ * - PRIVATE: no additional viewer tuples (owner-only access)
+ * - ORG: resource#viewer@organization:<org>#member tuple (all org members)
+ * - PUBLIC: resource#viewer@identity_account:* with allow_public (all users)
+ *
  * @generated from enum ai.stigmer.commons.apiresource.ApiResourceVisibility
  */
 export enum ApiResourceVisibility {
@@ -153,8 +158,8 @@ export enum ApiResourceVisibility {
   api_resource_visibility_unspecified = 0,
 
   /**
-   * Only members of the owning organization can access.
-   * This is the default for most resources.
+   * Only the owner (and explicitly granted principals) can access.
+   * This is the default for instances and personal resources.
    * Named visibility_private to avoid Java reserved keyword conflict.
    *
    * @generated from enum value: visibility_private = 1;
@@ -170,6 +175,20 @@ export enum ApiResourceVisibility {
    * @generated from enum value: visibility_public = 2;
    */
   visibility_public = 2,
+
+  /**
+   * All members of the owning organization can access (read) this resource.
+   * Used for instances where a team wants shared observability of executions
+   * without granting access to all authenticated users.
+   *
+   * FGA tuple: resource#viewer@organization:<org>#member
+   *
+   * For workflow instances, this enables zero-tuple-per-execution shared
+   * observability: all org members see all executions via inheritance.
+   *
+   * @generated from enum value: visibility_org = 3;
+   */
+  visibility_org = 3,
 }
 
 /**

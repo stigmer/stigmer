@@ -7,6 +7,7 @@
 
 import { WorkflowInstance } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
+import { UpdateVisibilityInput } from "../../../commons/apiresource/io_pbjs";
 import { WorkflowInstanceId } from "./io_pbjs";
 
 /**
@@ -90,6 +91,34 @@ export const WorkflowInstanceCommandController = {
     update: {
       name: "update",
       I: WorkflowInstance,
+      O: WorkflowInstance,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Update the visibility of an existing workflow instance.
+     *
+     * Changes who can view this instance and its executions. Supports the full
+     * visibility spectrum: PRIVATE (owner only), ORG (all org members), or
+     * PUBLIC (all authenticated users).
+     *
+     * For workflow instances, visibility has cascading effects on execution
+     * observability: workflow executions inherit visibility from their parent
+     * instance via FGA. An ORG-visible instance means all org members can see
+     * all executions — zero per-execution tuples needed.
+     *
+     * @internal
+     * Authorization: Requires can_edit permission on the workflow instance.
+     * Visibility transitions trigger FGA tuple management in Cloud mode:
+     * - PRIVATE → ORG: creates workflow_instance#viewer@organization:<org>#member
+     * - PRIVATE → PUBLIC: creates workflow_instance#viewer@identity_account:*
+     * - ORG → PRIVATE: deletes the org member viewer tuple
+     * - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
+     *
+     * @generated from rpc ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceCommandController.updateVisibility
+     */
+    updateVisibility: {
+      name: "updateVisibility",
+      I: UpdateVisibilityInput,
       O: WorkflowInstance,
       kind: MethodKind.Unary,
     },

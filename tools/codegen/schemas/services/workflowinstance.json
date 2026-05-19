@@ -39,6 +39,14 @@
           "outputType": "WorkflowInstance",
           "outputFullType": "ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance",
           "description": "Delete a workflow instance.\n\n @internal\n Permanently removes a WorkflowInstance resource.\n - Does NOT delete the referenced Workflow template (templates are reusable)\n - Does NOT delete the referenced Environment resources (environments are reusable)\n - DOES cascade delete any dependent WorkflowExecution resources (executions belong to instance)\n\n Authorization:\n Requires \"delete\" permission on the specific WorkflowInstance resource.\n Field path \"value\" extracts the resource ID from WorkflowInstanceId wrapper.\n\n Returns the deleted WorkflowInstance (final state before deletion).\n\n Error: PERMISSION_DENIED if user lacks delete permission\n Error: NOT_FOUND if instance ID doesn't exist"
+        },
+        {
+          "name": "UpdateVisibility",
+          "inputType": "UpdateVisibilityInput",
+          "inputFullType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
+          "outputType": "WorkflowInstance",
+          "outputFullType": "ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance",
+          "description": "Update the visibility of an existing workflow instance.\n\n Supports the full visibility spectrum: private, org, and public.\n Org visibility writes an FGA userset tuple; workflow executions\n inherit visibility from the parent instance.\n\n @internal\n Authorization: Requires can_edit permission on the workflow instance."
         }
       ]
     },
@@ -224,6 +232,35 @@
           "validation": {
             "pattern": "^$|^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$"
           }
+        }
+      ]
+    },
+    {
+      "name": "UpdateVisibilityInput",
+      "description": "Input for updating the visibility of any API resource.\n\n Used by resource-specific command controllers to toggle between\n PRIVATE and PUBLIC visibility. Each controller's updateVisibility RPC\n accepts this shared input and returns the full updated resource.\n\n Visibility transitions trigger FGA tuple management in Cloud mode:\n - PRIVATE → PUBLIC: creates resource#viewer@identity_account:* tuple\n - PUBLIC → PRIVATE: deletes the wildcard viewer tuple",
+      "protoType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
+      "fields": [
+        {
+          "name": "ResourceId",
+          "jsonName": "resourceId",
+          "protoField": "resource_id",
+          "type": {
+            "kind": "string"
+          },
+          "required": true,
+          "description": "ID of the resource whose visibility is being updated."
+        },
+        {
+          "name": "Visibility",
+          "jsonName": "visibility",
+          "protoField": "visibility",
+          "type": {
+            "kind": "enum",
+            "enumType": "ApiResourceVisibility"
+          },
+          "required": true,
+          "description": "The target visibility level."
         }
       ]
     }

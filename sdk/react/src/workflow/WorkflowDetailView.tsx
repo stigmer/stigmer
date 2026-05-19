@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
+import type { WorkflowInstance } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ValidationState } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/serverless/validation_pb";
 import type { WorkflowInput } from "@stigmer/sdk";
@@ -16,6 +17,9 @@ import { WorkflowTopologyPreview } from "./WorkflowTopologyPreview";
 import { WorkflowExecutionPhaseBadge } from "./WorkflowExecutionPhaseBadge";
 import { ErrorMessage } from "../error/ErrorMessage";
 import { VisibilityToggle } from "../library/VisibilityToggle";
+import { InstanceVisibilitySelector } from "../library/InstanceVisibilitySelector";
+import { useUpdateVisibility } from "../library/useUpdateVisibility";
+import { PermissionGate } from "../iam-policy/PermissionGate";
 import { ResourceDetailShell } from "../resource-detail/ResourceDetailShell";
 import { Section } from "../resource-detail/Section";
 import { useDetailTabs } from "../resource-detail/useDetailTabs";
@@ -201,19 +205,27 @@ export function WorkflowDetailView({
     <ValidationIndicator state={validationState} />
   ) : undefined;
 
-  const isPublic = meta?.visibility === ApiResourceVisibility.visibility_public;
-  const visibilityControl =
-    onVisibilityChange && meta ? (
-      <VisibilityToggle
-        visibility={meta.visibility}
-        onVisibilityChange={onVisibilityChange}
-        isPending={isVisibilityPending}
-      />
-    ) : isPublic ? (
+  const visibilityBadge =
+    meta?.visibility === ApiResourceVisibility.visibility_public ? (
       <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
         Public
       </span>
     ) : undefined;
+
+  const visibilityControl =
+    onVisibilityChange && meta ? (
+      <PermissionGate
+        resource={{ kind: "workflow", id: meta.id }}
+        relation="can_edit"
+        fallback={visibilityBadge}
+      >
+        <VisibilityToggle
+          visibility={meta.visibility}
+          onVisibilityChange={onVisibilityChange}
+          isPending={isVisibilityPending}
+        />
+      </PermissionGate>
+    ) : visibilityBadge;
 
   let tabContent: React.ReactNode;
   if (activeAdditionalTab) {
@@ -482,25 +494,63 @@ function InstancesTab({ workflowId }: { readonly workflowId?: string }) {
         <thead>
           <tr className="border-b border-border bg-muted/50">
             <th className="px-4 py-2 text-left font-medium text-muted-foreground">Name</th>
+            <th className="px-4 py-2 text-left font-medium text-muted-foreground">Visibility</th>
             <th className="px-4 py-2 text-left font-medium text-muted-foreground">ID</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
           {instances.map((inst) => (
-            <tr key={inst.metadata?.id} className="hover:bg-muted/30 transition-colors">
-              <td className="px-4 py-2.5 font-medium text-foreground">
-                {inst.metadata?.name || inst.metadata?.slug || "—"}
-              </td>
-              <td className="px-4 py-2.5">
-                <code className="text-xs text-muted-foreground">
-                  {inst.metadata?.id || "—"}
-                </code>
-              </td>
-            </tr>
+            <InstanceRow key={inst.metadata?.id} instance={inst} />
           ))}
         </tbody>
       </table>
     </div>
+  );
+}
+
+const VISIBILITY_LABELS: Record<number, string> = {
+  [ApiResourceVisibility.visibility_private]: "Private",
+  [ApiResourceVisibility.visibility_org]: "Organization",
+  [ApiResourceVisibility.visibility_public]: "Public",
+};
+
+function InstanceRow({ instance }: { readonly instance: WorkflowInstance }) {
+  const meta = instance.metadata;
+  const id = meta?.id ?? "";
+  const { updateVisibility, isPending } = useUpdateVisibility("workflowInstance", id || null);
+
+  return (
+    <tr className="hover:bg-muted/30 transition-colors">
+      <td className="px-4 py-2.5 font-medium text-foreground">
+        {meta?.name || meta?.slug || "—"}
+      </td>
+      <td className="px-4 py-2.5">
+        {id ? (
+          <PermissionGate
+            resource={{ kind: "workflow_instance", id }}
+            relation="can_edit"
+            fallback={
+              <span className="text-xs text-muted-foreground">
+                {VISIBILITY_LABELS[meta?.visibility ?? 0] ?? "Private"}
+              </span>
+            }
+          >
+            <InstanceVisibilitySelector
+              visibility={meta?.visibility ?? ApiResourceVisibility.visibility_private}
+              onVisibilityChange={updateVisibility}
+              isPending={isPending}
+            />
+          </PermissionGate>
+        ) : (
+          <span className="text-xs text-muted-foreground">—</span>
+        )}
+      </td>
+      <td className="px-4 py-2.5">
+        <code className="text-xs text-muted-foreground">
+          {id || "—"}
+        </code>
+      </td>
+    </tr>
   );
 }
 

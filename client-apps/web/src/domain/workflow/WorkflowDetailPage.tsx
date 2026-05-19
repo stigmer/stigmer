@@ -15,11 +15,14 @@ import {
   useDeleteResource,
   useExportResource,
   useUpdateVisibility,
+  PermissionGate,
+  SharePanel,
   ConfirmDialog,
   useBreadcrumbOverride,
   type DetailAction,
   type AdditionalTab,
 } from "@stigmer/react";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
 
 interface WorkflowDetailPageInnerProps {
@@ -55,6 +58,7 @@ export function WorkflowDetailPageInner({
     "workflow",
     resourceId,
   );
+  const [showSharePanel, setShowSharePanel] = useState(false);
 
   useEffect(() => () => setLabel(null), [setLabel]);
 
@@ -156,6 +160,13 @@ export function WorkflowDetailPageInner({
         disabled: !workflow,
       },
       {
+        id: "share",
+        label: "Share",
+        group: "sharing",
+        onAction: () => setShowSharePanel((v) => !v),
+        disabled: !resourceId,
+      },
+      {
         id: "delete",
         label: "Delete",
         variant: "destructive" as const,
@@ -192,18 +203,35 @@ export function WorkflowDetailPageInner({
 
   return (
     <>
-      <WorkflowDetailView
-        org={org}
-        slug={slug}
-        onResourceLoad={handleResourceLoad}
-        onVisibilityChange={updateVisibility}
-        isVisibilityPending={isVisibilityPending}
-        editable
-        primaryAction={primaryAction}
-        actions={actions}
-        additionalTabs={additionalTabs}
-        onExecutionClick={(id) => router.push(`/executions/${id}`)}
-      />
+      <div className="relative">
+        <WorkflowDetailView
+          org={org}
+          slug={slug}
+          onResourceLoad={handleResourceLoad}
+          onVisibilityChange={updateVisibility}
+          isVisibilityPending={isVisibilityPending}
+          editable
+          primaryAction={primaryAction}
+          actions={actions}
+          additionalTabs={additionalTabs}
+          onExecutionClick={(id) => router.push(`/executions/${id}`)}
+        />
+        {showSharePanel && resourceId && (
+          <PermissionGate
+            resource={{ kind: "workflow", id: resourceId }}
+            relation="can_grant_access"
+          >
+            <div className="absolute right-0 top-0 z-10 w-80 rounded-lg border border-border bg-popover shadow-lg">
+              <SharePanel
+                resource={{ kind: "workflow", id: resourceId, resourceKind: ApiResourceKind.workflow }}
+                resourceKindString="workflow"
+                resourceKind={ApiResourceKind.workflow}
+                onClose={() => setShowSharePanel(false)}
+              />
+            </div>
+          </PermissionGate>
+        )}
+      </div>
       <ConfirmDialog
         state={confirmState}
         onConfirm={handleConfirm}

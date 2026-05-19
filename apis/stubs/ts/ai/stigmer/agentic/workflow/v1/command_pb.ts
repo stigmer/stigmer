@@ -10,6 +10,8 @@ import type { WorkflowIdSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_workflow_v1_io } from "./io_pb.js";
 import type { ServerlessWorkflowValidationSchema } from "./serverless/validation_pb.js";
 import { file_ai_stigmer_agentic_workflow_v1_serverless_validation } from "./serverless/validation_pb.js";
+import type { UpdateVisibilityInputSchema } from "../../../commons/apiresource/io_pb.js";
+import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb.js";
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
 
@@ -17,7 +19,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/workflow/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_workflow_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CixhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvY29tbWFuZC5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxMqkGChlXb3JrZmxvd0NvbW1hbmRDb250cm9sbGVyElsKBWFwcGx5EiguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93GiguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93EqoBCgZjcmVhdGUSKC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3caKC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3ciTMK4GEgIBxAeIgxtZXRhZGF0YS5vcmcqNHVuYXV0aG9yaXplZCB0byBjcmVhdGUgd29ya2Zsb3cgaW4gdGhpcyBvcmdhbml6YXRpb24SlAEKBnVwZGF0ZRIoLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdxooLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdyI2wrgYMggCEDIiC21ldGFkYXRhLmlkKh91bmF1dGhvcml6ZWQgdG8gdXBkYXRlIHdvcmtmbG93EpABCgZkZWxldGUSKi5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3dJZBooLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdyIwwrgYLAgDEDIiBXZhbHVlKh91bmF1dGhvcml6ZWQgdG8gZGVsZXRlIHdvcmtmbG93EtEBCgx2YWxpZGF0ZVNwZWMSKC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3caRy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuc2VydmVybGVzcy5TZXJ2ZXJsZXNzV29ya2Zsb3dWYWxpZGF0aW9uIk7CuBhKCAcQHiIMbWV0YWRhdGEub3JnKjZ1bmF1dGhvcml6ZWQgdG8gdmFsaWRhdGUgd29ya2Zsb3cgaW4gdGhpcyBvcmdhbml6YXRpb24aBKD/KzJiBnByb3RvMw", [file_ai_stigmer_agentic_workflow_v1_api, file_ai_stigmer_agentic_workflow_v1_io, file_ai_stigmer_agentic_workflow_v1_serverless_validation, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CixhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvY29tbWFuZC5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxMuIHChlXb3JrZmxvd0NvbW1hbmRDb250cm9sbGVyElsKBWFwcGx5EiguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93GiguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93EqoBCgZjcmVhdGUSKC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3caKC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3ciTMK4GEgIBxAeIgxtZXRhZGF0YS5vcmcqNHVuYXV0aG9yaXplZCB0byBjcmVhdGUgd29ya2Zsb3cgaW4gdGhpcyBvcmdhbml6YXRpb24SlAEKBnVwZGF0ZRIoLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdxooLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdyI2wrgYMggCEDIiC21ldGFkYXRhLmlkKh91bmF1dGhvcml6ZWQgdG8gdXBkYXRlIHdvcmtmbG93ErYBChB1cGRhdGVWaXNpYmlsaXR5EjUuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLlVwZGF0ZVZpc2liaWxpdHlJbnB1dBooLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdyJBwrgYPQgCEDIiC3Jlc291cmNlX2lkKip1bmF1dGhvcml6ZWQgdG8gdXBkYXRlIHdvcmtmbG93IHZpc2liaWxpdHkSkAEKBmRlbGV0ZRIqLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvd0lkGiguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93IjDCuBgsCAMQMiIFdmFsdWUqH3VuYXV0aG9yaXplZCB0byBkZWxldGUgd29ya2Zsb3cS0QEKDHZhbGlkYXRlU3BlYxIoLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdxpHLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5zZXJ2ZXJsZXNzLlNlcnZlcmxlc3NXb3JrZmxvd1ZhbGlkYXRpb24iTsK4GEoIBxAeIgxtZXRhZGF0YS5vcmcqNnVuYXV0aG9yaXplZCB0byB2YWxpZGF0ZSB3b3JrZmxvdyBpbiB0aGlzIG9yZ2FuaXphdGlvbhoEoP8rMmIGcHJvdG8z", [file_ai_stigmer_agentic_workflow_v1_api, file_ai_stigmer_agentic_workflow_v1_io, file_ai_stigmer_agentic_workflow_v1_serverless_validation, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * WorkflowCommandController handles write operations for workflows.
@@ -62,6 +64,27 @@ export const WorkflowCommandController: GenService<{
   update: {
     methodKind: "unary";
     input: typeof WorkflowSchema;
+    output: typeof WorkflowSchema;
+  },
+  /**
+   * Update the visibility of an existing workflow.
+   *
+   * This is a targeted metadata update — it only modifies metadata.visibility,
+   * leaving spec, status, and other metadata fields untouched. Use this to
+   * make a workflow publicly accessible or to revoke public access without
+   * sending the entire workflow resource (avoiding read-modify-write races).
+   *
+   * @internal
+   * Authorization: Requires can_edit permission on the workflow resource.
+   * Visibility transitions trigger FGA tuple management in Cloud mode:
+   * - PRIVATE → PUBLIC: creates workflow#viewer@identity_account:* tuple
+   * - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
+   *
+   * @generated from rpc ai.stigmer.agentic.workflow.v1.WorkflowCommandController.updateVisibility
+   */
+  updateVisibility: {
+    methodKind: "unary";
+    input: typeof UpdateVisibilityInputSchema;
     output: typeof WorkflowSchema;
   },
   /**

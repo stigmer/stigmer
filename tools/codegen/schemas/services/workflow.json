@@ -47,6 +47,14 @@
           "outputType": "ServerlessWorkflowValidation",
           "outputFullType": "ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation",
           "description": "Validate a workflow spec without persisting it.\n\n Runs the same two-layer validation pipeline used by create/update:\n   Layer 1: Proto field constraints (buf validate / protovalidate)\n   Layer 2: Temporal-based structural validation (Go activity: proto → YAML → Zigflow)\n\n Returns ServerlessWorkflowValidation with:\n   - VALID: Workflow structure passed all checks\n   - INVALID: User error (bad structure, missing fields, unknown task kinds)\n   - FAILED: System error (Temporal unavailable, converter crash)\n\n This RPC does NOT persist, authorize, or create instances. It is a\n pure validation endpoint suitable for iterative authoring workflows\n where the caller needs fast feedback before committing.\n\n @internal\n Authorization: Uses the same permission as create — caller must have\n can_create_workflow in the org. This prevents unauthenticated abuse\n of the validation pipeline while allowing any user who could create\n a workflow to also validate one."
+        },
+        {
+          "name": "UpdateVisibility",
+          "inputType": "UpdateVisibilityInput",
+          "inputFullType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
+          "outputType": "Workflow",
+          "outputFullType": "ai.stigmer.agentic.workflow.v1.Workflow",
+          "description": "Update the visibility of an existing workflow.\n\n This is a targeted metadata update — it only modifies metadata.visibility,\n leaving spec, status, and other metadata fields untouched.\n\n @internal\n Authorization: Requires can_edit permission on the workflow resource."
         }
       ]
     },
@@ -286,6 +294,35 @@
           },
           "description": "All registered task kind descriptors, one per WorkflowTaskKind value.\n Excludes workflow_task_kind_unspecified.",
           "required": false
+        }
+      ]
+    },
+    {
+      "name": "UpdateVisibilityInput",
+      "description": "Input for updating the visibility of any API resource.\n\n Used by resource-specific command controllers to toggle between\n PRIVATE and PUBLIC visibility. Each controller's updateVisibility RPC\n accepts this shared input and returns the full updated resource.\n\n Visibility transitions trigger FGA tuple management in Cloud mode:\n - PRIVATE → PUBLIC: creates resource#viewer@identity_account:* tuple\n - PUBLIC → PRIVATE: deletes the wildcard viewer tuple",
+      "protoType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
+      "fields": [
+        {
+          "name": "ResourceId",
+          "jsonName": "resourceId",
+          "protoField": "resource_id",
+          "type": {
+            "kind": "string"
+          },
+          "required": true,
+          "description": "ID of the resource whose visibility is being updated."
+        },
+        {
+          "name": "Visibility",
+          "jsonName": "visibility",
+          "protoField": "visibility",
+          "type": {
+            "kind": "enum",
+            "enumType": "ApiResourceVisibility"
+          },
+          "required": true,
+          "description": "The target visibility level."
         }
       ]
     }
