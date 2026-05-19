@@ -1,0 +1,36 @@
+{
+  "description": "Representative workflow state matching Go State struct (pkg/utils/state.go)",
+  "state": {
+    "$context": {
+      "userId": 7,
+      "id": 42,
+      "initialize": {
+        "items": [1, 2, 3],
+        "shouldProceed": "TRUE"
+      },
+      "outer": {
+        "id": 101,
+        "title": "Outer task"
+      }
+    },
+    "$data": {
+      "valid": true,
+      "items": [1, 2, 3],
+      "item": "current-item",
+      "index": 0,
+      "workflow": {
+        "workflow_execution_id": "wf-test-001",
+        "namespace": "default"
+      }
+    },
+    "$env": {
+      "NODE_ENV": "test",
+      "STIGMER_ORG_ID": "org-test"
+    },
+    "$input": {
+      "workflowYaml": "...",
+      "orgId": "org-test"
+    },
+    "$output": null
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "name": "workflow-runner-ts-spike",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Phase 0 validation spike — jq, gRPC, CNCF Serverless Workflow SDK",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "t01a": "tsx src/t01a-jq-validation.ts",
+    "t01b": "tsx src/t01b-grpc-validation.ts",
+    "t01c": "tsx src/t01c-cncf-sdk-validation.ts"
+  },
+  "dependencies": {
+    "node-jq": "^6.0.1",
+    "jq-wasm": "^1.1.0-jq-1.8.1",
+    "@grpc/grpc-js": "^1.12.0",
+    "@grpc/proto-loader": "^0.7.0",
+    "@serverlessworkflow/sdk": "^1.0.0",
+    "yaml": "^2.7.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.21.0",
+    "typescript": "^5.7.0",
+    "@types/node": "^22.0.0"
+  }
+}
