@@ -17,19 +17,20 @@ import (
 
 // InvokeAgentExecutionWorkflowImpl implements InvokeAgentExecutionWorkflow.
 //
-// Polyglot Workflow Pattern:
-// - Workflow (Go): Orchestrates activity execution
-// - Python Activities (agent-runner): ExecuteGraphton, EnsureThread (on runner base queue)
-// - TypeScript Activities (cursor-runner): ExecuteCursor (on {baseQueue}:cursor)
+// Unified Runner Architecture:
+// - Workflow (Go): Orchestrates activity execution on "agent_execution_stigmer" queue
+// - TypeScript unified runner: Polls the runner's base queue (runner:{id})
+//   and registers both ExecuteCursor and ExecuteDeepAgent activities
+// - Python agent-runner (legacy): ExecuteGraphton, EnsureThread on base queue
 //
 // Harness dispatch: input.Harness determines which flow runs:
 // - NATIVE/UNSPECIFIED: executeGraphtonFlow (EnsureThread -> ExecuteGraphton)
 // - CURSOR: executeCursorFlow (ReadSessionThreadId -> ExecuteCursor)
 //
-// Queue routing: Python activities dispatch to the base queue from the memo.
-// ExecuteCursor dispatches to {baseQueue}:cursor via CursorQueueSuffix in the
-// activity stub. This ensures deterministic routing — Temporal dispatches
-// activity tasks to any worker on a queue without activity-type awareness.
+// Queue routing: All activities dispatch to the same base queue from the memo.
+// Temporal routes by activity name within a queue — the unified runner
+// registers all activities on a single queue, eliminating the need for
+// per-harness queue suffixes.
 //
 // Both flows share the same HITL approval loop (approvalGateResolved signal)
 // and pause/resume pattern (CancellationScope).
