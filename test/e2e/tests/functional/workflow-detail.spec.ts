@@ -56,7 +56,7 @@ test.describe("Workflow detail page", () => {
     await page.goto(workflowUrl!);
     await page.waitForLoadState("networkidle");
 
-    const expectedTabs = ["Overview", "Tasks", "Instances", "Executions", "Editor"];
+    const expectedTabs = ["Overview", "Instances", "Executions", "Editor"];
     for (const tabName of expectedTabs) {
       const tab = page.locator(`[role="tab"]:has-text("${tabName}")`);
       await expect(tab).toBeVisible({ timeout: 10_000 });
@@ -72,13 +72,13 @@ test.describe("Workflow detail page", () => {
 
     // The overview tab is active by default, check for section headings
     const descriptionSection = page.locator('text="Description"').first();
-    const tasksSection = page.locator('h3:has-text("Tasks"), [class*="section"]:has-text("Tasks")').first();
+    const taskFlowSection = page.locator('h3:has-text("Task Flow")').first();
 
     const hasDescription = await descriptionSection.isVisible().catch(() => false);
-    const hasTasks = await tasksSection.isVisible().catch(() => false);
+    const hasTaskFlow = await taskFlowSection.isVisible().catch(() => false);
 
-    // At minimum, the Tasks section should exist (all workflows have tasks)
-    expect(hasDescription || hasTasks).toBeTruthy();
+    // At minimum, the Task Flow section should exist (all workflows have tasks)
+    expect(hasDescription || hasTaskFlow).toBeTruthy();
   });
 
   test("tab switching works", async ({ page }) => {
@@ -88,13 +88,13 @@ test.describe("Workflow detail page", () => {
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(2000);
 
-    // Click Tasks tab
-    const tasksTab = page.locator('[role="tab"]:has-text("Tasks")');
-    await tasksTab.click();
+    // Click Instances tab
+    const instancesTab = page.locator('[role="tab"]:has-text("Instances")');
+    await instancesTab.click();
     await page.waitForTimeout(500);
 
-    // Tasks tab should now be active
-    await expect(tasksTab).toHaveAttribute("aria-selected", "true");
+    // Instances tab should now be active
+    await expect(instancesTab).toHaveAttribute("aria-selected", "true");
 
     // Click Executions tab
     const executionsTab = page.locator('[role="tab"]:has-text("Executions")');
