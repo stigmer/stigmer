@@ -12,7 +12,7 @@ import { useUpdateWorkflow } from "./useUpdateWorkflow";
 import { workflowToInput } from "./internal/workflowToInput";
 import { useWorkflowInstances } from "./useWorkflowInstances";
 import { useWorkflowExecutionList } from "./useWorkflowExecutionList";
-import { WorkflowTaskList } from "./WorkflowTaskList";
+import { WorkflowTopologyPreview } from "./WorkflowTopologyPreview";
 import { WorkflowExecutionPhaseBadge } from "./WorkflowExecutionPhaseBadge";
 import { ErrorMessage } from "../error/ErrorMessage";
 import { VisibilityToggle } from "../library/VisibilityToggle";
@@ -26,9 +26,10 @@ import type { AdditionalTab, DetailAction, ResourceHeaderMeta } from "../resourc
 import type { TabItem } from "../tabs/Tabs";
 
 const OVERVIEW_TAB: TabItem = { id: "overview", label: "Overview" };
-const TASKS_TAB: TabItem = { id: "tasks", label: "Tasks" };
 const INSTANCES_TAB: TabItem = { id: "instances", label: "Instances" };
 const EXECUTIONS_TAB: TabItem = { id: "executions", label: "Executions" };
+
+const DESCRIPTION_COLLAPSED_HEIGHT = "8rem";
 
 /** Props for {@link WorkflowDetailView}. */
 export interface WorkflowDetailViewProps {
@@ -92,8 +93,7 @@ export interface WorkflowDetailViewProps {
  * Fetches the workflow via {@link useWorkflow} internally and renders
  * its full specification inside a {@link ResourceDetailShell}:
  *
- * - **Overview**: Description, document metadata, budget summary, env vars
- * - **Tasks**: Task list with kind icons and sequential flow
+ * - **Overview**: Description, budget, env vars, task flow DAG, document metadata
  * - **Instances**: Environment-bound deployments (embedded, not standalone)
  * - **Executions**: Recent executions with phase badges and timing
  *
@@ -147,7 +147,7 @@ export function WorkflowDetailView({
   );
 
   const builtInTabs = useMemo<readonly TabItem[]>(
-    () => [OVERVIEW_TAB, TASKS_TAB, INSTANCES_TAB, EXECUTIONS_TAB],
+    () => [OVERVIEW_TAB, INSTANCES_TAB, EXECUTIONS_TAB],
     [],
   );
 
@@ -190,7 +190,7 @@ export function WorkflowDetailView({
     id: meta?.id || "",
     org: meta?.org,
     slug: meta?.slug,
-    description: editable ? undefined : spec?.description,
+    description: undefined,
     icon: <WorkflowIcon className="size-6 text-muted-foreground" />,
     createdAt: specAudit?.createdAt ? timestampDate(specAudit.createdAt) : null,
     updatedAt: specAudit?.updatedAt ? timestampDate(specAudit.updatedAt) : null,
@@ -218,8 +218,6 @@ export function WorkflowDetailView({
   let tabContent: React.ReactNode;
   if (activeAdditionalTab) {
     tabContent = activeAdditionalTab.content;
-  } else if (effectiveActiveTab === "tasks") {
-    tabContent = <TasksTab tasks={spec?.tasks ?? []} />;
   } else if (effectiveActiveTab === "instances") {
     tabContent = <InstancesTab workflowId={meta?.id} />;
   } else if (effectiveActiveTab === "executions") {
@@ -327,11 +325,7 @@ function OverviewTab({
               />
             </div>
           ) : (
-            <div className="p-3">
-              <pre className="whitespace-pre-wrap break-words text-sm text-foreground font-sans">
-                {spec?.description}
-              </pre>
-            </div>
+            <DescriptionContent text={spec?.description ?? ""} />
           )}
         </Section>
       )}
@@ -403,10 +397,8 @@ function OverviewTab({
         </Section>
       )}
 
-      <Section title="Tasks" count={spec?.tasks?.length}>
-        <div className="p-4">
-          <WorkflowTaskList tasks={spec?.tasks ?? []} />
-        </div>
+      <Section title="Task Flow" count={spec?.tasks?.length}>
+        <WorkflowTopologyPreview tasks={spec?.tasks ?? []} />
       </Section>
 
       {doc && (
@@ -422,14 +414,41 @@ function OverviewTab({
   );
 }
 
-function TasksTab({
-  tasks,
-}: {
-  readonly tasks: readonly import("@stigmer/protos/ai/stigmer/agentic/workflow/v1/spec_pb").WorkflowTask[];
-}) {
+function DescriptionContent({ text }: { readonly text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const contentRef = useRef<HTMLPreElement>(null);
+  const [overflows, setOverflows] = useState(false);
+
+  useEffect(() => {
+    const el = contentRef.current;
+    if (!el) return;
+    setOverflows(el.scrollHeight > el.clientHeight);
+  }, [text]);
+
   return (
-    <div className="rounded-lg border border-border p-4">
-      <WorkflowTaskList tasks={tasks} />
+    <div className="relative p-3">
+      <pre
+        ref={contentRef}
+        className={cn(
+          "whitespace-pre-wrap break-words text-sm text-foreground font-sans overflow-y-auto transition-[max-height] duration-200",
+          !expanded && "overflow-hidden",
+        )}
+        style={{ maxHeight: expanded ? "none" : DESCRIPTION_COLLAPSED_HEIGHT }}
+      >
+        {text}
+      </pre>
+      {!expanded && overflows && (
+        <div className="pointer-events-none absolute inset-x-3 bottom-10 h-8 bg-gradient-to-t from-background to-transparent" />
+      )}
+      {overflows && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="mt-2 text-xs font-medium text-primary transition-colors hover:text-primary-muted"
+        >
+          {expanded ? "Show less" : "Show more"}
+        </button>
+      )}
     </div>
   );
 }

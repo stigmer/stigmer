@@ -155,6 +155,13 @@ export {
   type WorkflowTaskListProps,
 } from "./WorkflowTaskList";
 
+export { topologyFromTasks } from "./topologyFromTasks";
+
+export {
+  WorkflowTopologyPreview,
+  type WorkflowTopologyPreviewProps,
+} from "./WorkflowTopologyPreview";
+
 export {
   WorkflowDetailView,
   type WorkflowDetailViewProps,

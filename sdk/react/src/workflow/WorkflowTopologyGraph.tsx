@@ -10,6 +10,8 @@ import { CATEGORY_COLORS, DAGRE_CONFIG, GRAPH_PADDING } from "./canvas-constants
 export interface WorkflowTopologyGraphProps {
   /** Topology data from {@link useWorkflowTopology}. */
   readonly topology: UseWorkflowTopologyReturn;
+  /** Whether to show zoom/pan controls. @default true */
+  readonly showControls?: boolean;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -21,16 +23,19 @@ export interface WorkflowTopologyGraphProps {
  * rounded rectangles with category-based coloring. Edges are drawn
  * as SVG paths with arrowhead markers.
  *
- * Supports mouse wheel zoom and drag-to-pan for large workflows.
+ * Supports mouse wheel zoom, drag-to-pan, and a visible control
+ * toolbar with zoom in/out and fit-to-view reset buttons.
  * All colors flow through `--stgm-*` tokens with sensible fallbacks.
  *
  * @since T10 (YAML Editor with Graph Preview)
  */
 export const WorkflowTopologyGraph = memo(function WorkflowTopologyGraph({
   topology,
+  showControls = true,
   className,
 }: WorkflowTopologyGraphProps) {
   const { nodes, edges } = topology;
+  const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
@@ -75,6 +80,24 @@ export const WorkflowTopologyGraph = memo(function WorkflowTopologyGraph({
     dragState.current = null;
   }, []);
 
+  const handleZoomIn = useCallback(() => {
+    setTransform((prev) => ({
+      ...prev,
+      scale: Math.min(3, prev.scale * 1.3),
+    }));
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    setTransform((prev) => ({
+      ...prev,
+      scale: Math.max(0.2, prev.scale / 1.3),
+    }));
+  }, []);
+
+  const handleFitToView = useCallback(() => {
+    setTransform({ x: 0, y: 0, scale: 1 });
+  }, []);
+
   if (!layout || nodes.length === 0) {
     return (
       <div className={cn("flex items-center justify-center text-sm text-muted-foreground", className)}>
@@ -86,46 +109,98 @@ export const WorkflowTopologyGraph = memo(function WorkflowTopologyGraph({
   const { layoutNodes, layoutEdges, width, height } = layout;
 
   return (
-    <svg
-      ref={svgRef}
-      className={cn("h-full w-full cursor-grab select-none active:cursor-grabbing", className)}
-      viewBox={`0 0 ${width + GRAPH_PADDING * 2} ${height + GRAPH_PADDING * 2}`}
-      onWheel={handleWheel}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
-      role="img"
-      aria-label="Workflow topology graph"
-    >
-      <defs>
-        <marker
-          id="arrowhead"
-          markerWidth="8"
-          markerHeight="6"
-          refX="8"
-          refY="3"
-          orient="auto"
+    <div ref={containerRef} className={cn("relative", className)}>
+      <svg
+        ref={svgRef}
+        className="h-full w-full cursor-grab select-none active:cursor-grabbing"
+        viewBox={`0 0 ${width + GRAPH_PADDING * 2} ${height + GRAPH_PADDING * 2}`}
+        onWheel={handleWheel}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        role="img"
+        aria-label="Workflow topology graph"
+      >
+        <defs>
+          <marker
+            id="arrowhead"
+            markerWidth="8"
+            markerHeight="6"
+            refX="8"
+            refY="3"
+            orient="auto"
+          >
+            <polygon
+              points="0 0, 8 3, 0 6"
+              fill="var(--stgm-border, #d4d4d8)"
+            />
+          </marker>
+        </defs>
+
+        <g transform={`translate(${GRAPH_PADDING + transform.x}, ${GRAPH_PADDING + transform.y}) scale(${transform.scale})`}>
+          {layoutEdges.map((edge, i) => (
+            <EdgePath key={i} edge={edge} />
+          ))}
+
+          {layoutNodes.map((node) => (
+            <NodeRect key={node.id} node={node} />
+          ))}
+        </g>
+      </svg>
+
+      {showControls && (
+        <div
+          className="absolute bottom-3 right-3 flex items-center gap-1 rounded-lg border border-border bg-background p-1 shadow-sm backdrop-blur-sm"
+          role="toolbar"
+          aria-label="Graph controls"
         >
-          <polygon
-            points="0 0, 8 3, 0 6"
-            fill="var(--stgm-border, #d4d4d8)"
-          />
-        </marker>
-      </defs>
-
-      <g transform={`translate(${GRAPH_PADDING + transform.x}, ${GRAPH_PADDING + transform.y}) scale(${transform.scale})`}>
-        {layoutEdges.map((edge, i) => (
-          <EdgePath key={i} edge={edge} />
-        ))}
-
-        {layoutNodes.map((node) => (
-          <NodeRect key={node.id} node={node} />
-        ))}
-      </g>
-    </svg>
+          <GraphControlButton onClick={handleZoomIn} label="Zoom in">
+            <ZoomInIcon />
+          </GraphControlButton>
+          <GraphControlButton onClick={handleZoomOut} label="Zoom out">
+            <ZoomOutIcon />
+          </GraphControlButton>
+          <div className="mx-0.5 h-4 w-px bg-border" />
+          <GraphControlButton onClick={handleFitToView} label="Fit to view">
+            <FitViewIcon />
+          </GraphControlButton>
+        </div>
+      )}
+    </div>
   );
 });
+
+// ---------------------------------------------------------------------------
+// Graph control button
+// ---------------------------------------------------------------------------
+
+function GraphControlButton({
+  onClick,
+  label,
+  children,
+}: {
+  readonly onClick: () => void;
+  readonly label: string;
+  readonly children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className={cn(
+        "inline-flex size-7 items-center justify-center rounded-md text-muted-foreground",
+        "hover:bg-accent-hover hover:text-foreground",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "transition-colors",
+      )}
+    >
+      {children}
+    </button>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Layout computation with dagre
@@ -247,4 +322,34 @@ function EdgePath({ edge }: { readonly edge: LayoutEdge }) {
 function truncateLabel(label: string, maxLen: number): string {
   if (label.length <= maxLen) return label;
   return label.slice(0, maxLen - 1) + "\u2026";
+}
+
+// ---------------------------------------------------------------------------
+// Control icons — inline SVGs (no icon library dependency per DD-004)
+// ---------------------------------------------------------------------------
+
+function ZoomInIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="7" cy="7" r="5" />
+      <path d="M11 11l3.5 3.5M7 5v4M5 7h4" />
+    </svg>
+  );
+}
+
+function ZoomOutIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="7" cy="7" r="5" />
+      <path d="M11 11l3.5 3.5M5 7h4" />
+    </svg>
+  );
+}
+
+function FitViewIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M2 6V3a1 1 0 011-1h3M10 2h3a1 1 0 011 1v3M14 10v3a1 1 0 01-1 1h-3M6 14H3a1 1 0 01-1-1v-3" />
+    </svg>
+  );
 }
