@@ -16,7 +16,7 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260518.01.unified-runner-migration/checkpoints/2026-05-19-session-14-phase4-multi-provider.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260518.01.unified-runner-migration/checkpoints/2026-05-19-session-15-phase4-connect-backfill.md
 ```
 
 ### 2. Current Task
@@ -44,22 +44,27 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 **Created**: 2026-05-18 15:11  
-**Last Session**: 2026-05-19 — Phase 4 Multi-Provider Model Support  
+**Last Session**: 2026-05-19 — Phase 4 Connect Backfill for Deep Agent  
 **Current Task**: Phase 4 — Supporting Activities (in progress)  
-**Status**: Multi-provider (Anthropic + OpenAI) COMPLETE; proxy routing bug FIXED; all 5 activities + 2 workflows ported; 471 tests passing
+**Status**: Connect backfill unified into shared module + wired into deep-agent; MCP pre-installer removed (unnecessary); all 5 activities + 2 workflows ported; 488 tests passing
 
 ## Session Progress (2026-05-19, latest)
 
-### What Was Accomplished (Phase 4 — Multi-Provider Model Support)
+### What Was Accomplished (Phase 4 — Connect Backfill for Deep Agent)
 
 **2 new files**:
-- **`src/shared/llm-proxy.ts`** — Shared LLM proxy routing: `inferProvider`, `stripProviderPrefix`, `resolveProxyBaseUrl`, `buildProxyHeaders`
-- **`src/shared/__tests__/llm-proxy.test.ts`** — 39 unit tests for provider inference, URL resolution, header construction
+- **`src/shared/connect-backfill.ts`** — Shared connect backfill logic: `needsBackfill`, `backfillMcpServersIfNeeded`, `extractRuntimeEnvForServer`. Simplified `ResolvedMcpServer[]` in/out signature (harness-agnostic).
+- **`src/shared/__tests__/connect-backfill.test.ts`** — 17 unit tests covering: no-backfill early return, connect RPC trigger, failure/timeout resilience, partial success re-resolution, heartbeat callbacks, env var extraction, orphan server handling.
 
-**3 files modified**:
-- **`src/activities/execute-deep-agent/setup.ts`** — Refactored `constructModel` to multi-provider dispatch (Anthropic + OpenAI); removed Phase 4 throw; added scope headers
-- **`src/activities/classify-tool-approvals.ts`** — Fixed proxy URL routing with `resolveProxyBaseUrl`
-- **`src/activities/__tests__/classify-tool-approvals.test.ts`** — Updated assertion for corrected proxy URL
+**2 files modified**:
+- **`src/activities/execute-deep-agent/setup.ts`** — Inserted `backfillMcpServersIfNeeded()` between `resolveMcpServers()` and `connectMcpServers()` in the MCP server setup step.
+- **`src/activities/execute-cursor/connect-backfill.ts`** — Refactored from full implementation to thin wrapper that delegates to shared module and rebuilds cursor-specific `McpResolutionResult` (with `cursorConfig`).
+
+**Key decisions**: (1) MCP package pre-installer removed from roadmap — all 56 seedpack servers use self-installing commands (npx, uvx, go run); no failure mode exists. (2) Shared backfill uses `ResolvedMcpServer[]` in/out (not wrapper types) for maximum composability. (3) Cursor wrapper preserves existing call site interface (Option A from plan).
+
+**Results**: 488 tests passing (17 new). `tsc --noEmit` clean. No new dependencies.
+
+### Prior Sessions (Phase 4 — Multi-Provider Model Support)
 
 **Key findings**: (1) Proxy routing was broken — TS runner passed bare `proxyEndpoint` to LangChain without `/v1/proxy/llm/{provider}` suffix expected by `LlmProxyController`. (2) Gemini deferred — cloud proxy only supports openai + anthropic; no `google` provider in `LlmProxyConfig`. (3) `createDeepAgent` is provider-agnostic (`BaseLanguageModel | string` param); `cache_control` annotations are no-op for non-Anthropic. (4) 471 tests passing (39 new).
 
@@ -80,7 +85,7 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-1. **Phase 4: Supporting Activities (in progress)** — ~~EnsureThread~~ DONE; ~~ClassifyToolApprovals~~ DONE; ~~DiscoverMcpServer~~ DONE; ~~ConnectMcpServerWorkflow~~ DONE; ~~Summarization middleware~~ VERIFIED (DD-004); ~~Multi-provider model support~~ DONE (Anthropic + OpenAI, proxy routing fixed); next: MCP package pre-installer; connect backfill for undiscovered servers; skill relevance filtering
+1. **Phase 4: Supporting Activities (in progress)** — ~~EnsureThread~~ DONE; ~~ClassifyToolApprovals~~ DONE; ~~DiscoverMcpServer~~ DONE; ~~ConnectMcpServerWorkflow~~ DONE; ~~Summarization middleware~~ VERIFIED (DD-004); ~~Multi-provider model support~~ DONE (Anthropic + OpenAI, proxy routing fixed); ~~Connect backfill~~ DONE (shared module, wired into deep-agent + cursor); ~~MCP package pre-installer~~ REMOVED (unnecessary — npx/uvx/go-run self-install); next: skill relevance filtering
 2. **Phase 5: Testing** — port Python tests, integration, HITL e2e
 
 ## Context for Resume
@@ -93,7 +98,7 @@ Drop this file into your conversation to quickly resume work on this project.
 - Writeback coordinator: `src/activities/execute-deep-agent/writeback-coordinator.ts` (incremental git, per-entry mutex)
 - Post-stream: `src/activities/execute-deep-agent/post-stream.ts` + `auto-publish.ts`
 - Middleware: `src/middleware/` (types, think-tool, tool-truncation, error-hints, loop-detection, graceful-stop, execution-budget, cost-cap, otel-spans, approval-gate, index)
-- Shared modules: `src/shared/` (status, checkpointer, workspace, mcp-manager, mcp-resolver, grpc-retry, model-pricing, artifact-storage, approval-policy, subagent-gate, model-registry, llm-proxy, placeholder-resolver)
+- Shared modules: `src/shared/` (status, checkpointer, workspace, mcp-manager, mcp-resolver, connect-backfill, grpc-retry, model-pricing, artifact-storage, approval-policy, subagent-gate, model-registry, llm-proxy, placeholder-resolver)
 - Deep agent modules: `src/activities/execute-deep-agent/` (index, setup, environment, prompt-builder, status-builder, streaming, streaming-scheduler, execution-state, inline-publisher, writeback-coordinator, auto-publish, post-stream, hitl, subagent-wiring)
 - Python `agent-runner` still handles `ExecuteGraphton` on the base queue until cutover
 - `cursor-runner` remains in production until Phase 7 cleanup
@@ -116,8 +121,8 @@ Drop this file into your conversation to quickly resume work on this project.
 ### Phase 4+ (Supporting)
 - ~~ConnectMcpServerWorkflow~~ Done (discover → classify with fingerprint short-circuit, ES2022 string-named exports for Temporal type names, snake_case boundary adapter)
 - ~~Multi-provider model support~~ Done (Anthropic + OpenAI via proxy; `llm-proxy.ts` shared module; proxy routing bug fixed; 39 new tests)
-- MCP package pre-installer (npm/pip install before tool connections)
-- Connect backfill for undiscovered/stale MCP servers
+- ~~Connect backfill~~ Done (shared `connect-backfill.ts` module, wired into deep-agent `setup.ts` + cursor delegates to shared; 17 new tests)
+- ~~MCP package pre-installer~~ Removed (npx/uvx/go-run self-install; no MCP server in seedpack needs explicit pre-installation; 270s discovery timeout is sufficient for cold starts)
 - Skill relevance filtering (exclude low-relevance skills when count >= 8)
 - Remote workspace backend (Daytona sandbox)
 
@@ -150,7 +155,7 @@ None.
 | 3b-ii | Middleware Stack | 3-4 | COMPLETE |
 | 3b-iii | Artifacts + Writeback | 2-3 | COMPLETE |
 | 3c | HITL + Approval | 2-3 | COMPLETE |
-| 4 | Supporting Activities | 2-3 | **IN PROGRESS** (3/3 activities + 2 workflows + summarization verified + multi-provider done, remaining items next) |
+| 4 | Supporting Activities | 2-3 | **IN PROGRESS** (3/3 activities + 2 workflows + summarization verified + multi-provider done + connect backfill done; remaining: skill filtering, Daytona) |
 | 5 | Testing | 3-4 | Blocked on Phase 4 |
 | 6 | Deployment | 2-3 | Blocked on Phase 5 |
 | 7 | Cleanup | 1-2 | Blocked on Phase 6 |
@@ -171,7 +176,7 @@ None.
 
 ## Quick Commands
 
-- "Continue with Phase 4" — Start MCP package pre-installer or remaining Phase 4 items
+- "Continue with Phase 4" — Skill relevance filtering or remaining Phase 4 items
 - "Show project status" — Roadmap and file overview
 - `@_projects/2026-05/20260518.01.unified-runner-migration/next-task.md` — Resume context
 
