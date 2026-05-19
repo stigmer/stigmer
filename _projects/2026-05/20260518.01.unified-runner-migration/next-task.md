@@ -6,15 +6,17 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Project: 20260518.01.unified-runner-migration
 
-**Description**: Migrate Python agent-runner and TypeScript cursor-runner into a single unified TypeScript runner service (backend/services/runner/), eliminating Python from the agent execution path and creating a common codebase for both LangGraph deep agents and Cursor SDK harnesses.
-**Goal**: Single TypeScript runner service that handles ExecuteDeepAgent, ExecuteCursor, EnsureThread, DiscoverMcpServer, and ClassifyToolApprovals — with all shared infrastructure (MCP resolver, HITL, status builder) unified. Python agent-runner, cursor-runner, and graphton library deleted after validated cutover.
+**Description**: Migrate Python agent-runner and TypeScript cursor-runner into a single unified TypeScript runner service (`backend/services/runner/`), eliminating Python from the agent execution path and creating a common codebase for both LangGraph deep agents and Cursor SDK harnesses.
+
+**Goal**: Single TypeScript runner service that handles ExecuteDeepAgent, ExecuteCursor, EnsureThread, DiscoverMcpServer, and ClassifyToolApprovals — with all shared infrastructure unified. Python agent-runner, cursor-runner, and graphton library deleted after validated cutover.
+
 **Tech Stack**: TypeScript/Node.js, Temporal SDK, deepagents JS (npm), LangGraph JS, Connect-ES (gRPC), @bufbuild/protobuf, Vitest
 
 ## Essential Files to Review
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260518.01.unified-runner-migration/checkpoints/
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260518.01.unified-runner-migration/checkpoints/2026-05-19-session-3-phase2.md
 ```
 
 ### 2. Current Task
@@ -32,62 +34,59 @@ Drop this file into your conversation to quickly resume work on this project.
 /Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260518.01.unified-runner-migration/design-decisions/
 ```
 
-### Coding Guidelines
+### Coding Guidelines / Wrong Assumptions / Don't Dos
 ```
 /Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260518.01.unified-runner-migration/coding-guidelines/
-```
-
-### Wrong Assumptions
-```
 /Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260518.01.unified-runner-migration/wrong-assumptions/
-```
-
-### Don't Dos
-```
 /Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260518.01.unified-runner-migration/dont-dos/
 ```
 
-## Current Status
+## Current State
 
-**Created**: 2026-05-18 15:11
-**Current Task**: Phase 1 — Service Scaffold
-**Status**: COMPLETE — unified runner service scaffolded, typecheck passes, tests pass, Go/Java workflow updated
+**Created**: 2026-05-18 15:11  
+**Last Session**: 2026-05-19 — Phase 2 core shared infrastructure  
+**Current Task**: Phase 3 — ExecuteDeepAgent Activity  
+**Status**: Phase 2 COMPLETE — shared infrastructure in place; deep agent implementation is next
 
-## Session Progress (2026-05-19)
+## Session Progress (2026-05-19, latest)
 
-### What Was Accomplished
-- Created `backend/services/runner/` as a fresh TypeScript package (not a copy)
-- Built shared infrastructure: config, OTel, heartbeat, idle-watchdog, gRPC client
-- Extracted harness-agnostic adapters into `shared/`: mcp-resolver, placeholder-resolver, approval-policy, model-pricing
-- Moved ExecuteCursor activity with all cursor-specific adapters into `activities/execute-cursor/`
-- Created ExecuteDeepAgent activity stub (Phase 3 implementation pending)
-- Built `main.ts` + `worker.ts` — single Worker polling one queue with both activities
-- Removed `CursorQueueSuffix` from Go (`stigmer-server`) and Java (`stigmer-cloud`) workflow orchestrators
-- All 18 tests pass, typecheck clean, build clean
+### What Was Accomplished (Phase 2)
+- **2d** `shared/status.ts` — extracted `persistStatus`, `reportSetupProgress`, `slimStatus`, `utcTimestamp`; ExecuteCursor updated
+- **2b** `shared/checkpointer/` — MemorySaver + HttpCheckpointSaver (HTTP proxy to Java); config fields added
+- **2c** `shared/workspace/` — provisioner (git, local path, empty), local backend, file tree
+- **2a** `shared/mcp-manager.ts` — `MultiServerMCPClient`, cloud compatibility warnings
+- **52 new tests** (70 total), typecheck clean, build clean
 
-### Key Decisions Made
-- **Single queue architecture**: Eliminated the `:cursor` queue suffix. Both activities register on the base queue (`runner:{id}`). Temporal routes by activity name.
-- **Fresh package, selective moves**: Started `backend/services/runner/` from scratch rather than copying cursor-runner wholesale. Deliberate inclusion of each module.
-- **Shared vs cursor-specific split**: MCP resolution, approval policies, and model pricing are harness-agnostic in `shared/`. Cursor SDK lifecycle, fetch interceptor, hook scripts stay in `activities/execute-cursor/`.
-- **Go/Java workflow change in Phase 1**: Rather than deferring, we made the trivial workflow change now (remove suffix, both activities dispatch to same queue).
+### Key Decisions (Phase 2)
+- Checkpointer: **memory (OSS)** + **HTTP proxy (cloud)** — SQLite and direct MongoDB dropped
+- **StatusBuilder deferred to Phase 3** — LangGraph vs Cursor event models are too different for a speculative shared abstraction now
+- MCP cloud guard: **warn only** for non-installable stdio commands (no proto change)
 
-### Key Discoveries
-- The `@stigmer/protos` package exports use `.ts` extension mapping (`"./*": "./*.ts"`) — imports must NOT have `.js` suffix
-- The cursor-runner's 20+ adapter files all moved cleanly once import paths were adjusted
-- Go workflow change was 2 lines (remove constant + remove suffix concatenation)
+### Prior Sessions
+- **Phase 1 (2026-05-19 earlier)**: Service scaffold, single queue, ExecuteCursor ported, ExecuteDeepAgent stub — see `checkpoints/2026-05-19-session-2.md`
 
 ## Next Steps
-1. **Phase 2: Core Shared Infrastructure** — Extract MCP manager, checkpointer, status builder from existing runners into shared/
-2. Add `@langchain/langgraph-checkpoint-mongodb` for production checkpointers
-3. Build the StatusBuilder equivalent in TypeScript (streaming execution status → gRPC)
-4. Wire up the workspace/sandbox management for deep-agent activity
+
+1. **Phase 3: ExecuteDeepAgent** — wire shared checkpointer, MCP manager, workspace provisioner; port graphton-ts middleware; build LangGraph StatusBuilder
+2. Implement HITL interrupt/resume with LangGraph `interrupt()` + `Command({ resume })`
+3. **Phase 4**: EnsureThread, MCP discovery, classify tool approvals (after Phase 3)
 
 ## Context for Resume
-- The unified runner is at `backend/services/runner/` — fully functional for ExecuteCursor, stub for ExecuteDeepAgent
-- The Go/Java workflow now dispatches both activities to the same base queue
-- cursor-runner still exists and works in production — it won't be deleted until Phase 7
-- The ExecuteDeepAgent stub returns EXECUTION_FAILED with a clear message — safe to deploy but won't handle real traffic
-- Python agent-runner is unmodified and still handles ExecuteGraphton on the base queue
+
+- Unified runner: `backend/services/runner/` — ExecuteCursor production-ready; ExecuteDeepAgent still stub
+- Shared modules: `src/shared/` (status, checkpointer, workspace, mcp-manager)
+- Python `agent-runner` still handles `ExecuteGraphton` on the base queue until cutover
+- `cursor-runner` remains in production until Phase 7 cleanup
+- Remote workspace backend (Daytona) and MCP package installer deferred to Phase 3+
+
+## Open Questions / Design Notes
+
+- **Cursor Cloud + native stdio MCP**: npx/node-based stdio generally works when passed to Cursor SDK; arbitrary local binaries do not. Deep-agent stdio is runner-managed. See changelog and Phase 2 plan for validation-guard approach.
+- **HttpCheckpointSaver**: Must stay wire-compatible with Java proxy (`$binary` serde format)
+
+## Blockers
+
+None.
 
 ## Migration Phases (Full Roadmap)
 
@@ -95,27 +94,24 @@ Drop this file into your conversation to quickly resume work on this project.
 |-------|------|-----------|--------|
 | 0 | Research Spike (T01) | 1 | COMPLETE |
 | 1 | Service Scaffold | 2 | COMPLETE |
-| 2 | Core Shared Infrastructure — MCP, workspace, checkpointer, status | 3-4 | NEXT |
-| 3 | ExecuteDeepAgent Activity — the core migration | 4-5 | Blocked on Phase 2 |
-| 4 | Supporting Activities — EnsureThread, MCP discovery, classify | 2-3 | Blocked on Phase 3 |
-| 5 | Testing — port Python tests, integration, HITL e2e | 3-4 | Blocked on Phase 4 |
-| 6 | Deployment — sandbox image, CI, cutover | 2-3 | Blocked on Phase 5 |
-| 7 | Cleanup — delete Python/cursor-runner, graphton, update CI | 1-2 | Blocked on Phase 6 |
+| 2 | Core Shared Infrastructure | 3-4 | COMPLETE |
+| 3 | ExecuteDeepAgent Activity | 4-5 | **NEXT** |
+| 4 | Supporting Activities | 2-3 | Blocked on Phase 3 |
+| 5 | Testing | 3-4 | Blocked on Phase 4 |
+| 6 | Deployment | 2-3 | Blocked on Phase 5 |
+| 7 | Cleanup | 1-2 | Blocked on Phase 6 |
 
 ## Key References
 
 - **Unified runner**: `backend/services/runner/`
-- **Python agent-runner** (to be retired): `backend/services/agent-runner/`
-- **TypeScript cursor-runner** (to be retired): `backend/services/cursor-runner/`
-- **Go workflow**: `backend/services/stigmer-server/pkg/domain/agentexecution/temporal/workflows/invoke_workflow_impl.go`
-- **Gate decision**: `_projects/2026-05/20260518.01.unified-runner-migration/design-decisions/003-t01-gate-decision.md`
+- **Phase 2 changelog**: `_changelog/2026-05/2026-05-19-150821-unified-runner-phase2-shared-infrastructure.md`
+- **Gate decision**: `design-decisions/003-t01-gate-decision.md`
 
 ## Quick Commands
 
-After loading context:
-- "Continue with Phase 2" - Start core shared infrastructure
-- "Show project status" - Get overview of progress
-- "Create checkpoint" - Save current progress
+- "Continue with Phase 3" — Start ExecuteDeepAgent implementation
+- "Show project status" — Roadmap and file overview
+- `@_projects/2026-05/20260518.01.unified-runner-migration/next-task.md` — Resume context
 
 ---
 

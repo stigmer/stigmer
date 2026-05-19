@@ -42,6 +42,8 @@ export interface Config {
   readonly idleTimeoutSeconds: number | null;
   readonly cloudModeEnabled: boolean;
   readonly runnerId: string | null;
+  readonly checkpointerType: "memory" | "http";
+  readonly checkpointerProxyEndpoint: string | null;
 }
 
 export function loadConfig(): Config {
@@ -85,6 +87,11 @@ export function loadConfig(): Config {
 
   const runnerId = process.env.STIGMER_RUNNER_ID ?? null;
 
+  const checkpointerType = (process.env.STIGMER_CHECKPOINTER_TYPE as "memory" | "http" | undefined)
+    ?? (mode === "cloud" ? "http" : "memory");
+  const checkpointerProxyEndpoint = process.env.STIGMER_CHECKPOINTER_PROXY_ENDPOINT
+    ?? proxyEndpoint;
+
   return {
     taskQueue,
     temporalAddress,
@@ -99,6 +106,8 @@ export function loadConfig(): Config {
     idleTimeoutSeconds,
     cloudModeEnabled: process.env.STIGMER_CURSOR_CLOUD_MODE_ENABLED === "true",
     runnerId,
+    checkpointerType,
+    checkpointerProxyEndpoint,
   };
 }
 
