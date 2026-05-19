@@ -81,7 +81,7 @@ export async function resolveMcpServers(
   return { resolvedServers: resolved };
 }
 
-function mcpServerToResolved(
+export function mcpServerToResolved(
   server: McpServer,
   slug: string,
   envVars: Record<string, string>,
