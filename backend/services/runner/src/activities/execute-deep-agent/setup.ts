@@ -10,6 +10,7 @@
 
 import { createDeepAgent, StateBackend } from "deepagents";
 import { ChatAnthropic } from "@langchain/anthropic";
+import { ChatOpenAI } from "@langchain/openai";
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import type { BaseCheckpointSaver } from "@langchain/langgraph-checkpoint";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -44,6 +45,12 @@ import {
   mergeApprovalPolicies,
   type MergedToolPolicy,
 } from "../../shared/approval-policy.js";
+import {
+  inferProvider,
+  stripProviderPrefix,
+  resolveProxyBaseUrl,
+  buildProxyHeaders,
+} from "../../shared/llm-proxy.js";
 
 export interface SetupResult {
   readonly agentGraph: AgentGraph;
@@ -165,7 +172,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
     });
 
     // Step 9: Construct the LLM model
-    const model = constructModel(modelName, config);
+    const model = constructModel(modelName, config, executionId);
 
     // Step 10: Build middleware stack
     await ensurePricingLoaded();
@@ -284,29 +291,83 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
 }
 
 /**
- * Construct the appropriate chat model with proxy routing.
+ * Construct the appropriate chat model for the given model name.
  *
- * Uses pre-constructed BaseChatModel with explicit baseURL for proxy
- * routing control rather than relying on a global fetch interceptor.
+ * Provider inference uses name prefix heuristics (claude → Anthropic,
+ * gpt/o1/o3/o4 → OpenAI). In proxy mode, requests route through the
+ * stigmer-cloud LlmProxyController at provider-specific paths.
  */
-function constructModel(modelName: string, config: Config): BaseChatModel {
-  const baseUrl = config.proxyEndpoint ?? undefined;
+function constructModel(
+  modelName: string,
+  config: Config,
+  executionId?: string,
+): BaseChatModel {
+  const provider = inferProvider(modelName);
+  const apiModelId = stripProviderPrefix(modelName);
+
+  const baseUrl = config.proxyEndpoint
+    ? resolveProxyBaseUrl(config.proxyEndpoint, provider)
+    : undefined;
+
+  const headers = config.proxyEndpoint && config.stigmerToken
+    ? buildProxyHeaders(config.stigmerToken, { executionId })
+    : undefined;
+
+  switch (provider) {
+    case "anthropic":
+      return buildAnthropicModel(apiModelId, baseUrl, headers, config);
+    case "openai":
+      return buildOpenAIModel(apiModelId, baseUrl, headers, config);
+  }
+}
+
+function buildAnthropicModel(
+  model: string,
+  baseUrl: string | undefined,
+  headers: Record<string, string> | undefined,
+  config: Config,
+): BaseChatModel {
   const apiKey = config.proxyEndpoint
     ? (config.stigmerToken ?? "proxy-managed")
-    : (process.env.ANTHROPIC_API_KEY ?? process.env.OPENAI_API_KEY ?? "");
-
-  if (modelName.startsWith("gpt") || modelName.startsWith("o1") || modelName.startsWith("o3")) {
-    throw new Error(
-      `OpenAI model '${modelName}' requested but @langchain/openai is not ` +
-      `configured in Phase 3a. Multi-provider support is deferred to Phase 4.`,
-    );
-  }
+    : (process.env.ANTHROPIC_API_KEY ?? "");
 
   return new ChatAnthropic({
-    model: modelName,
+    model,
     apiKey,
-    ...(baseUrl ? { clientOptions: { baseURL: baseUrl } } : {}),
     temperature: 0,
+    ...(baseUrl || headers
+      ? {
+          clientOptions: {
+            ...(baseUrl ? { baseURL: baseUrl } : {}),
+            ...(headers ? { defaultHeaders: headers } : {}),
+          },
+        }
+      : {}),
+  });
+}
+
+function buildOpenAIModel(
+  model: string,
+  baseUrl: string | undefined,
+  headers: Record<string, string> | undefined,
+  config: Config,
+): BaseChatModel {
+  const apiKey = config.proxyEndpoint
+    ? (config.stigmerToken ?? "proxy-managed")
+    : (process.env.OPENAI_API_KEY ?? "");
+
+  return new ChatOpenAI({
+    model,
+    apiKey,
+    temperature: 0,
+    ...(baseUrl || headers
+      ? {
+          configuration: {
+            ...(baseUrl ? { baseURL: baseUrl } : {}),
+            ...(headers ? { defaultHeaders: headers } : {}),
+          },
+        }
+      : {}),
   });
 }
 

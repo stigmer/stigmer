@@ -362,7 +362,7 @@ describe("ClassifyToolApprovals activity", () => {
       expect(ChatOpenAI).toHaveBeenCalledWith(
         expect.objectContaining({
           configuration: expect.objectContaining({
-            baseURL: "http://proxy:8080",
+            baseURL: "http://proxy:8080/v1/proxy/llm/openai/v1",
             defaultHeaders: expect.objectContaining({
               "Authorization": "Bearer my-token",
               "X-Stigmer-Mcp-Server-Id": "mcp-abc",

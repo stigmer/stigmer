@@ -23,6 +23,7 @@ import { ChatOpenAI } from "@langchain/openai";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { activityStarted, activityFinished } from "../idle-watchdog.js";
 import { getSummarizationModel } from "../shared/model-registry.js";
+import { resolveProxyBaseUrl, buildProxyHeaders } from "../shared/llm-proxy.js";
 import type { Config } from "../config.js";
 
 const BATCH_SIZE = 40;
@@ -213,20 +214,17 @@ async function classifyBatch(params: ClassifyBatchParams): Promise<ToolApprovalR
 
   const maxTokens = Math.max(MIN_MAX_TOKENS, batch.length * MAX_TOKENS_PER_TOOL);
 
-  const headers: Record<string, string> = {};
-  if (stigmerToken) {
-    headers["Authorization"] = `Bearer ${stigmerToken}`;
-  }
-  if (mcpServerId) {
-    headers["X-Stigmer-Mcp-Server-Id"] = mcpServerId;
-  }
+  const resolvedBaseUrl = resolveProxyBaseUrl(proxyEndpoint, "openai");
+  const headers = stigmerToken
+    ? buildProxyHeaders(stigmerToken, { mcpServerId: mcpServerId ?? undefined })
+    : {};
 
   const llm = new ChatOpenAI({
     model,
     temperature: 0,
     maxTokens,
     configuration: {
-      baseURL: proxyEndpoint,
+      baseURL: resolvedBaseUrl,
       defaultHeaders: headers,
     },
   });
