@@ -44,6 +44,7 @@ export interface Config {
   readonly runnerId: string | null;
   readonly checkpointerType: "memory" | "http";
   readonly checkpointerProxyEndpoint: string | null;
+  readonly primaryModel: string;
 }
 
 export function loadConfig(): Config {
@@ -92,6 +93,8 @@ export function loadConfig(): Config {
   const checkpointerProxyEndpoint = process.env.STIGMER_CHECKPOINTER_PROXY_ENDPOINT
     ?? proxyEndpoint;
 
+  const primaryModel = process.env.STIGMER_PRIMARY_MODEL ?? "gpt-4.1";
+
   return {
     taskQueue,
     temporalAddress,
@@ -108,6 +111,7 @@ export function loadConfig(): Config {
     runnerId,
     checkpointerType,
     checkpointerProxyEndpoint,
+    primaryModel,
   };
 }
 

@@ -16,7 +16,7 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260518.01.unified-runner-migration/checkpoints/2026-05-19-session-9-phase4-ensurethread.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260518.01.unified-runner-migration/checkpoints/2026-05-19-session-10-phase4-classify-tool-approvals.md
 ```
 
 ### 2. Current Task
@@ -44,23 +44,26 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 **Created**: 2026-05-18 15:11  
-**Last Session**: 2026-05-19 — Phase 4 EnsureThread port  
+**Last Session**: 2026-05-19 — Phase 4 ClassifyToolApprovals port  
 **Current Task**: Phase 4 — Supporting Activities (in progress)  
-**Status**: EnsureThread COMPLETE — ported from Python to TypeScript, registered on unified runner; 352 tests passing
+**Status**: ClassifyToolApprovals COMPLETE — ported from Python to TypeScript with @langchain/openai + Zod structured output; 376 tests passing
 
 ## Session Progress (2026-05-19, latest)
 
-### What Was Accomplished (Phase 4 — EnsureThread)
+### What Was Accomplished (Phase 4 — ClassifyToolApprovals)
 
-**1 new file**:
-- **activities/ensure-thread.ts** — `createEnsureThreadActivities()` factory; derives LangGraph thread ID from session ID (deterministic `thread-{sessionId}`) or creates ephemeral ID (`ephemeral-{agentId}-{8hex}`); pure function, no DB/gRPC dependencies
+**2 new files**:
+- **shared/model-registry.ts** — `getSummarizationModel()` factory; derives economy-tier model from primary model's provider (anthropic→claude-haiku-4.5, openai→gpt-4o-mini)
+- **activities/classify-tool-approvals.ts** — `createClassifyToolApprovalsActivities(config)` factory; LLM-based tool safety classification using @langchain/openai + Zod structured output
 
-**1 new test file**, 11 new tests (352 total), typecheck clean, build clean
+**2 new test files**, 24 new tests (376 total), typecheck clean, build clean
 
 **Modified files:**
-- `main.ts` — registers EnsureThread alongside ExecuteCursor and ExecuteDeepAgent
+- `config.ts` — added `primaryModel` field (env: `STIGMER_PRIMARY_MODEL`, default: `gpt-4.1`)
+- `main.ts` — registers ClassifyToolApprovals alongside ExecuteCursor, ExecuteDeepAgent, EnsureThread
+- `package.json` — added `@langchain/openai` and `zod` as direct dependencies
 
-**Key finding**: Python EnsureThread never persists thread_id to session (despite Java docstring claiming it does). The deterministic derivation from session_id makes persistence redundant. Ported as-is to match behavior exactly.
+**Key decisions**: Used @langchain/openai (not raw fetch) to mirror Python's with_structured_output() exactly. Provider→economy tier derivation ported from Python ModelRegistry. X-Stigmer-Mcp-Server-Id header passed for FGA-scoped proxy auth.
 
 ### Prior Sessions
 - **Phase 3c (2026-05-19)**: HITL approval gate, sub-agent infrastructure — see `checkpoints/2026-05-19-session-8-phase3c.md`
@@ -73,12 +76,12 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-1. **Phase 4: Supporting Activities (in progress)** — ~~EnsureThread~~ DONE; next: ClassifyToolApprovals, DiscoverMcpServer; then: summarization middleware verification (DeepAgents JS built-in vs custom port); `@langchain/openai` multi-provider support; MCP package pre-installer; connect backfill for undiscovered servers; skill relevance filtering
+1. **Phase 4: Supporting Activities (in progress)** — ~~EnsureThread~~ DONE; ~~ClassifyToolApprovals~~ DONE; next: DiscoverMcpServer; then: summarization middleware verification (DeepAgents JS built-in vs custom port); `@langchain/openai` multi-provider support; MCP package pre-installer; connect backfill for undiscovered servers; skill relevance filtering
 2. **Phase 5: Testing** — port Python tests, integration, HITL e2e
 
 ## Context for Resume
 
-- Unified runner: `backend/services/runner/` — ExecuteCursor production-ready; ExecuteDeepAgent has full streaming pipeline + middleware stack + artifact/writeback; EnsureThread ported from Python
+- Unified runner: `backend/services/runner/` — ExecuteCursor production-ready; ExecuteDeepAgent has full streaming pipeline + middleware stack + artifact/writeback; EnsureThread ported from Python; ClassifyToolApprovals ported with @langchain/openai structured output
 - Artifact storage: `src/shared/artifact-storage.ts` (interface, local, proxy, factory)
 - Inline publisher: `src/activities/execute-deep-agent/inline-publisher.ts` (fire-and-forget, SHA-256 dedup)
 - Writeback coordinator: `src/activities/execute-deep-agent/writeback-coordinator.ts` (incremental git, per-entry mutex)
