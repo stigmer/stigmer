@@ -19,14 +19,16 @@ import type {
   TaskEntry,
   TaskDef,
   DoTaskDef,
+  ForTaskDef,
   WorkflowModel,
   WorkflowState,
   TaskExecutionContext,
   ExpressionEvaluator,
 } from "./types.js";
 import { isTermination, isExplicitTarget, FLOW_CONTINUE } from "./types.js";
-import { createTaskBuilder, DO_TASK_KIND } from "./task-factory.js";
+import { createTaskBuilder, DO_TASK_KIND, FOR_TASK_KIND } from "./task-factory.js";
 import { extractFlowDirective } from "./tasks/switch.js";
+import { executeForTask } from "./tasks/for.js";
 
 /**
  * Executes a `do` task list — the top-level entry point and the
@@ -148,6 +150,17 @@ async function runSingleTask(
     const doTaskDef = taskDef as DoTaskDef;
     return executeDoTasks(
       doTaskDef.do,
+      input,
+      state,
+      doc,
+      ctx.evaluateExpressions,
+    );
+  }
+
+  if (taskDef.kind === FOR_TASK_KIND) {
+    const forTaskDef = taskDef as ForTaskDef;
+    return executeForTask(
+      forTaskDef,
       input,
       state,
       doc,

@@ -2,8 +2,8 @@
  * Task builder factory — creates the appropriate TaskBuilder for a
  * given task definition based on the `kind` discriminator.
  *
- * Phase 1 supports: set, switch, do (nested).
- * Future phases add: for, fork, try, wait, listen, raise,
+ * Phase 1–2 supports: set, switch, do (nested), for (iteration).
+ * Future phases add: fork, try, wait, listen, raise,
  * call:http, call:grpc, call:function, run.
  *
  * Mirrors Go's `NewTaskBuilder` type switch in `task_builder.go`.
@@ -12,6 +12,7 @@
 import type { TaskDef, TaskBuilder, WorkflowModel } from "./types.js";
 import { SetTaskBuilder } from "./tasks/set.js";
 import { SwitchTaskBuilder } from "./tasks/switch.js";
+import { ForTaskPlaceholderBuilder } from "./tasks/for.js";
 
 export function createTaskBuilder(
   taskName: string,
@@ -24,14 +25,13 @@ export function createTaskBuilder(
     case "switch":
       return new SwitchTaskBuilder(taskName, taskDef);
     case "do":
-      // DoTask is handled inline by the executor — it recursively
-      // calls executeDoTasks. We return a placeholder builder that
-      // the executor recognizes and handles specially.
       return new DoTaskPlaceholderBuilder(taskName, taskDef);
+    case "for":
+      return new ForTaskPlaceholderBuilder(taskName, taskDef);
     default:
       throw new Error(
         `Unsupported task type '${(taskDef as TaskDef).kind}' for task '${taskName}'. ` +
-        `Phase 1 supports: set, switch, do. Other types will be added in later phases.`,
+        `Supported: set, switch, do, for. Other types will be added in later phases.`,
       );
   }
 }
@@ -65,3 +65,4 @@ class DoTaskPlaceholderBuilder implements TaskBuilder {
 }
 
 export const DO_TASK_KIND = "do" as const;
+export const FOR_TASK_KIND = "for" as const;

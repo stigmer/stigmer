@@ -309,5 +309,81 @@ do:
       expect(model.do[0].task.then).toBe("end");
       expect(model.do[0].task.export?.as).toBe("${ . }");
     });
+
+    it("discriminates for tasks with all config options", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  name: test
+do:
+  - loop:
+      for:
+        each: pet
+        in: \${ $data.pets }
+        at: idx
+      while: \${ $data.idx < 10 }
+      do:
+        - process:
+            set:
+              name: \${ $data.pet }
+`;
+      const model = loadWorkflowFromYaml(yaml);
+      expect(model.do[0].task.kind).toBe("for");
+      if (model.do[0].task.kind === "for") {
+        expect(model.do[0].task.for.each).toBe("pet");
+        expect(model.do[0].task.for.in).toBe("${ $data.pets }");
+        expect(model.do[0].task.for.at).toBe("idx");
+        expect(model.do[0].task.while).toBe("${ $data.idx < 10 }");
+        expect(model.do[0].task.do).toHaveLength(1);
+        expect(model.do[0].task.do[0].key).toBe("process");
+        expect(model.do[0].task.do[0].task.kind).toBe("set");
+      }
+    });
+
+    it("discriminates for tasks with defaults (no each, no at)", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  name: test
+do:
+  - loop:
+      for:
+        in: \${ $data.items }
+      do:
+        - step:
+            set:
+              x: 1
+`;
+      const model = loadWorkflowFromYaml(yaml);
+      expect(model.do[0].task.kind).toBe("for");
+      if (model.do[0].task.kind === "for") {
+        expect(model.do[0].task.for.each).toBeUndefined();
+        expect(model.do[0].task.for.in).toBe("${ $data.items }");
+        expect(model.do[0].task.for.at).toBeUndefined();
+        expect(model.do[0].task.while).toBeUndefined();
+      }
+    });
+
+    it("parses golden 03-foreach-loop.yaml for task fields", () => {
+      const model = loadWorkflowFromYaml(loadGolden("03-foreach-loop.yaml"));
+      const forEntry = model.do.find((t) => t.task.kind === "for");
+      expect(forEntry).toBeDefined();
+      if (forEntry?.task.kind === "for") {
+        expect(forEntry.task.for.each).toBe("item");
+        expect(forEntry.task.for.in).toBe("${ $data.items }");
+        expect(forEntry.task.do.length).toBeGreaterThan(0);
+      }
+    });
+
+    it("parses golden 09-nested-states.yaml for task with context expression", () => {
+      const model = loadWorkflowFromYaml(loadGolden("09-nested-states.yaml"));
+      const forEntry = model.do.find((t) => t.task.kind === "for");
+      expect(forEntry).toBeDefined();
+      if (forEntry?.task.kind === "for") {
+        expect(forEntry.task.for.each).toBe("item");
+        expect(forEntry.task.for.in).toContain("$context");
+        expect(forEntry.task.do.length).toBeGreaterThan(0);
+      }
+    });
   });
 });
