@@ -496,4 +496,107 @@ describe("executeDoTasks", () => {
       expect(state.data.caught).toBeUndefined();
     });
   });
+
+  describe("fork execution", () => {
+    it("dispatches fork task and collects branch outputs", async () => {
+      const tasks: TaskList = [
+        { key: "setup", task: { kind: "set", set: { prefix: "test" } } },
+        {
+          key: "parallel",
+          task: {
+            kind: "fork",
+            fork: {
+              branches: [
+                { key: "a", task: { kind: "do", do: [
+                  { key: "s", task: { kind: "set", set: { from: "branchA" } } },
+                ]}},
+                { key: "b", task: { kind: "do", do: [
+                  { key: "s", task: { kind: "set", set: { from: "branchB" } } },
+                ]}},
+              ],
+            },
+          },
+        },
+        {
+          key: "aggregate",
+          task: {
+            kind: "set",
+            set: {
+              resultA: "${ $output.a.from }",
+              resultB: "${ $output.b.from }",
+            },
+          },
+        },
+      ];
+
+      const state = createState();
+      await executeDoTasks(tasks, null, state, doc, evaluateExpressionBatch);
+
+      expect(state.output).toEqual({
+        resultA: "branchA",
+        resultB: "branchB",
+      });
+    });
+
+    it("fork output flows through output.as transform", async () => {
+      const tasks: TaskList = [
+        {
+          key: "parallel",
+          task: {
+            kind: "fork",
+            fork: {
+              branches: [
+                { key: "a", task: { kind: "do", do: [
+                  { key: "s", task: { kind: "set", set: { v: 1 } } },
+                ]}},
+                { key: "b", task: { kind: "do", do: [
+                  { key: "s", task: { kind: "set", set: { v: 2 } } },
+                ]}},
+              ],
+            },
+            output: { as: "${ . | keys }" },
+          },
+        },
+      ];
+
+      const state = createState();
+      await executeDoTasks(tasks, null, state, doc, evaluateExpressionBatch);
+
+      const output = state.output as string[];
+      expect(output).toContain("a");
+      expect(output).toContain("b");
+      expect(output).toHaveLength(2);
+    });
+
+    it("fork output stored via export.as in context", async () => {
+      const tasks: TaskList = [
+        {
+          key: "parallel",
+          task: {
+            kind: "fork",
+            fork: {
+              branches: [
+                { key: "x", task: { kind: "do", do: [
+                  { key: "s", task: { kind: "set", set: { val: 42 } } },
+                ]}},
+              ],
+            },
+            export: { as: "${ . }" },
+          },
+        },
+        {
+          key: "read",
+          task: {
+            kind: "set",
+            set: { fromContext: "${ $context.parallel.x.val }" },
+          },
+        },
+      ];
+
+      const state = createState();
+      await executeDoTasks(tasks, null, state, doc, evaluateExpressionBatch);
+
+      expect(state.output).toEqual({ fromContext: 42 });
+    });
+  });
 });

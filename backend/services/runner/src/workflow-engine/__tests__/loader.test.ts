@@ -624,6 +624,123 @@ do:
     });
   });
 
+  describe("fork parsing", () => {
+    it("parses fork with branches and compete flag", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  name: fork-test
+do:
+  - parallel:
+      fork:
+        compete: true
+        branches:
+          - fast:
+              do:
+                - s1:
+                    set:
+                      result: quick
+          - slow:
+              do:
+                - s2:
+                    set:
+                      result: delayed
+`;
+      const model = loadWorkflowFromYaml(yaml);
+      const task = model.do[0].task;
+      expect(task.kind).toBe("fork");
+      if (task.kind === "fork") {
+        expect(task.fork.compete).toBe(true);
+        expect(task.fork.branches).toHaveLength(2);
+        expect(task.fork.branches[0].key).toBe("fast");
+        expect(task.fork.branches[1].key).toBe("slow");
+      }
+    });
+
+    it("parses fork with nested do blocks in branches", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  name: fork-nested-test
+do:
+  - parallel:
+      fork:
+        branches:
+          - branchA:
+              do:
+                - step1:
+                    set:
+                      a: 1
+                - step2:
+                    set:
+                      b: 2
+`;
+      const model = loadWorkflowFromYaml(yaml);
+      const task = model.do[0].task;
+      expect(task.kind).toBe("fork");
+      if (task.kind === "fork") {
+        expect(task.fork.compete).toBeUndefined();
+        expect(task.fork.branches).toHaveLength(1);
+        const branch = task.fork.branches[0];
+        expect(branch.key).toBe("branchA");
+        expect(branch.task.kind).toBe("do");
+        if (branch.task.kind === "do") {
+          expect(branch.task.do).toHaveLength(2);
+        }
+      }
+    });
+
+    it("parses golden 04 fork with complete branch structure", () => {
+      const model = loadWorkflowFromYaml(loadGolden("04-parallel-concurrent.yaml"));
+      const entry = model.do[0];
+      expect(entry.key).toBe("runParallel");
+      expect(entry.task.kind).toBe("fork");
+      if (entry.task.kind === "fork") {
+        expect(entry.task.fork.branches).toHaveLength(3);
+        expect(entry.task.fork.branches[0].key).toBe("branch1");
+        expect(entry.task.fork.branches[1].key).toBe("branch2");
+        expect(entry.task.fork.branches[2].key).toBe("branch3");
+        for (const branch of entry.task.fork.branches) {
+          expect(branch.task.kind).toBe("do");
+          if (branch.task.kind === "do") {
+            expect(branch.task.do).toHaveLength(1);
+            expect(branch.task.do[0].task.kind).toBe("call:http");
+          }
+        }
+      }
+    });
+
+    it("parses 15-fork-parallel.yaml with non-compete, compete, and nested forks", () => {
+      const model = loadWorkflowFromYaml(loadGolden("15-fork-parallel.yaml"));
+      expect(model.document.name).toBe("fork-parallel-test");
+
+      const forkTasks = model.do.filter((t) => t.task.kind === "fork");
+      expect(forkTasks).toHaveLength(3);
+
+      const nonCompete = forkTasks[0].task;
+      if (nonCompete.kind === "fork") {
+        expect(nonCompete.fork.branches).toHaveLength(3);
+        expect(nonCompete.fork.compete).toBeUndefined();
+      }
+
+      const compete = forkTasks[1].task;
+      if (compete.kind === "fork") {
+        expect(compete.fork.compete).toBe(true);
+        expect(compete.fork.branches).toHaveLength(2);
+      }
+
+      const nested = forkTasks[2].task;
+      if (nested.kind === "fork") {
+        expect(nested.fork.branches).toHaveLength(2);
+        const leftBranch = nested.fork.branches[0];
+        if (leftBranch.task.kind === "do") {
+          const innerFork = leftBranch.task.do[0];
+          expect(innerFork.task.kind).toBe("fork");
+        }
+      }
+    });
+  });
+
   describe("raise parsing", () => {
     it("parses a raise task with all fields", () => {
       const yaml = `
