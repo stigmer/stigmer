@@ -13,11 +13,51 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-19
-**Current Task**: Phase 4b — call:agent (async completion + HITL)
+**Current Task**: Phase 5 — Advanced Tasks
 **Status**: NOT STARTED
-**Last Session**: 2026-05-20, Session 5
+**Last Session**: 2026-05-20, Session 6
 
-## Session Progress (2026-05-20, Session 5)
+## Session Progress (2026-05-20, Session 6)
+
+### Accomplishments — Phase 4b: call:agent (Async Completion + HITL)
+- **4b.1 StigmerClient**: Extended with `getAgentByReference`, `createSession`, `createAgentExecution`, `updateWorkflowExecutionStatus` using Connect-RPC + existing transport patterns
+- **4b.2 CallAgent Activity**: Async completion via `CompleteAsyncError` — extracts Temporal task token, resolves secrets JIT, creates Session + AgentExecution with callback token and parent workflow ID
+- **4b.3 Approval Status Activities**: Two local activities (`UpdateWorkflowTaskApprovalStatus`, `ClearWorkflowApprovalStatus`) for surfacing child agent HITL state on parent WorkflowExecution — best-effort, non-fatal
+- **4b.4 Signal Orchestrator**: Workflow-side module (`call-agent-orchestrator.ts`) with `child_approval_required` signal handler, condition loop waiting for activity completion or signal arrival, and local activity calls for status updates
+- **4b.5 Kernel Integration**: New `CallAgentTaskDef` type, `callAgent` callback on `TaskExecutionContext`, dedicated loader parsing with validation + harness normalization, `CallAgentTaskBuilder` with expression evaluation and structured output retry loop, task factory dispatch
+- **4b.6 Structured Output Validation**: Lightweight sandbox-safe JSON Schema validator (type, required, properties, enum checks) — no external dependency needed. Supports ON_INVALID_FAIL, ON_INVALID_RETRY (re-prompt with augmented message), and ON_INVALID_FALLBACK (flow directive)
+- **4b.7 Wiring**: `execute-serverless-workflow.ts` wires `callAgent` callback to orchestrator using `workflowInfo().workflowId` for parent workflow ID; `main.ts` registers CallAgent + status activities
+- **4b.8 Testing**: 23 new tests — CallAgentTaskBuilder (5), structured output validation (13), loader call:agent parsing (5). All existing tests updated for `callAgent` stub compatibility
+- **4b.9 Golden YAML #13**: `13-agent-call.yaml` — code review triage pipeline with jq expressions, secret env, structured output schema, retry policy, and switch branching on severity
+- **Zero regressions**, 1159 total tests passing, `tsc --noEmit` clean
+
+### Key Architectural Decisions
+- **Kernel purity preserved** — call:agent's async completion and signal handling live in `workflows/call-agent-orchestrator.ts` (Temporal sandbox), not in the Temporal-agnostic kernel. The kernel just calls `ctx.callAgent()` like any other callback.
+- **Dedicated loader kind `call:agent`** — not routed through `call:function`. Matches Go's factory sub-dispatch pattern. Enables strict validation (agent + message required) at parse time.
+- **No Ajv dependency** — structured output validation uses a lightweight inline validator (type, required, properties, enum). Full Ajv can be added later if Draft 2020-12 features ($ref, if/then/else) are needed.
+- **Activity timeout 1h** (not Go's 5m default) — agent calls can run for extended periods. Configurable via YAML metadata if needed.
+- **Task token as Uint8Array** — `callbackToken` proto field is `bytes`, TS Temporal SDK provides `Uint8Array`. No base64 encoding needed — proto serialization handles it.
+
+### Files Created
+- **Created**: `backend/services/runner/src/activities/call-agent.ts` (~150 lines)
+- **Created**: `backend/services/runner/src/activities/call-agent-status.ts` (~75 lines)
+- **Created**: `backend/services/runner/src/workflows/call-agent-orchestrator.ts` (~140 lines)
+- **Created**: `backend/services/runner/src/workflow-engine/tasks/call-agent.ts` (~120 lines)
+- **Created**: `backend/services/runner/src/workflow-engine/tasks/call-agent-output.ts` (~120 lines)
+- **Created**: 2 test files (23 tests total)
+- **Created**: `backend/services/workflow-runner/test/golden/13-agent-call.yaml` (~120 lines)
+
+### Files Modified
+- **Modified**: `backend/services/runner/src/client/stigmer-client.ts` (+30 lines — 4 new methods, WorkflowExecution imports)
+- **Modified**: `backend/services/runner/src/workflow-engine/types.ts` (+75 lines — CallAgentTaskDef, callAgent callback, agent call types)
+- **Modified**: `backend/services/runner/src/workflow-engine/loader.ts` (+50 lines — call:agent parsing, harness normalization)
+- **Modified**: `backend/services/runner/src/workflow-engine/task-factory.ts` (+3 lines — call:agent case)
+- **Modified**: `backend/services/runner/src/workflow-engine/do-executor.ts` (+1 line — callAgent stub)
+- **Modified**: `backend/services/runner/src/workflows/execute-serverless-workflow.ts` (+15 lines — callAgent callback wiring)
+- **Modified**: `backend/services/runner/src/main.ts` (+5 lines — activity registration)
+- **Modified**: 6 test files (callAgent stub compatibility)
+
+## Previous Session Progress (2026-05-20, Session 5)
 
 ### Accomplishments — Phase 4: External Call Tasks (4.1–4.4)
 - **4.1 Shared Infrastructure**: Extended `TaskExecutionContext` with call callbacks (`callHttp`, `callGrpc`, `callFunction`), extracted expression resolution utilities into `resolve.ts`, wired `proxyActivities` in workflow function, updated task-factory dispatch
@@ -67,10 +107,9 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-1. **Phase 4b: call:agent** — async completion pattern, HITL signal handling, platform gRPC integration (dedicated planning session)
-2. **Phase 5: Advanced Tasks** — try/catch, wait/listen, emit_event, notification, human_input, fork (parallel)
-3. **Phase 6: Supporting Infrastructure** — claimcheck, heartbeat, interceptors, OTel, event emission, budget tracking
-4. **Phase 7: Integration Testing** — 12 golden YAMLs passing identically, regression suite
+1. **Phase 5: Advanced Tasks** — try/catch, wait/listen, emit_event, notification, human_input, fork (parallel)
+2. **Phase 6: Supporting Infrastructure** — claimcheck, heartbeat, interceptors, OTel, event emission, budget tracking
+3. **Phase 7: Integration Testing** — 13 golden YAMLs passing identically, regression suite
 
 ## Context for Resume
 
@@ -79,12 +118,14 @@ Drop this file into your conversation to quickly resume work on this project.
 - **New in Phase 4**: External call tasks use regular Temporal activities via `proxyActivities`. The kernel calls `ctx.callHttp(config, env)` etc. — opaque callbacks wired to activity proxies by the workflow function.
 - The `resolve.ts` module provides shared utilities: `resolveConfigExpressions` (workflow-side jq evaluation), `resolveObjectPlaceholders` (activity-side secret resolution), `collectExpressions`, `substituteResults`
 - `call:function` is the dispatch point for Stigmer extensions (llm, agent, etc.) — `CallFunctionTaskBuilder` passes the `call` string through to the activity which routes internally
-- `call:agent` is not yet implemented — throws `ApplicationFailure.nonRetryable` with "Phase 4b" message. Requires async completion + HITL signals.
+- **New in Phase 4b**: `call:agent` uses Temporal async completion — activity creates AgentExecution with task token, throws `CompleteAsyncError`. Workflow-side orchestrator (`workflows/call-agent-orchestrator.ts`) manages `child_approval_required` signal handling and approval status local activities.
+- `call:agent` is architecturally distinct from sync calls: signal handling, condition loops, and local activity calls live in the workflow bundle (not the Temporal-agnostic kernel). The kernel just calls `ctx.callAgent()`.
+- Structured output validation runs sandbox-safe (lightweight JSON Schema: type, required, properties, enum). Supports ON_INVALID_RETRY with augmented re-prompt, ON_INVALID_FAIL, and ON_INVALID_FALLBACK.
 - The Temporal workflow `"stigmer/workflow/execute"` lives at `workflows/execute-serverless-workflow.ts`
 - `executeDoTasks()` now accepts an optional `TaskExecutionContext` parameter; when omitted, `buildMinimalContext()` creates a fallback with throwing stubs for call callbacks
 - The Go reference implementation is at `backend/services/workflow-runner/pkg/zigflow/` (~12.7K lines, 22 packages)
 - Golden test YAMLs are at `backend/services/workflow-runner/test/golden/` (12 canonical workflows)
-- Executable task types: `set`, `switch`, `do`, `for`, `call:http`, `call:grpc`, `call:function`. All others parse but throw at runtime.
+- Executable task types: `set`, `switch`, `do`, `for`, `call:http`, `call:grpc`, `call:agent`, `call:function`. All others parse but throw at runtime.
 
 ## Prior Research
 
@@ -105,10 +146,10 @@ Full report: `_projects/2026-05/20260518.01.unified-runner-migration/research.wo
 | 1 | Core Engine Scaffold — YAML parsing, task graph builder, expression engine | 2-3 | **COMPLETE** (119 tests, 3,147 LOC) |
 | 2 | Simple Task Types — for, nested iteration | 1-2 | **COMPLETE** (26 tests, 583 LOC) |
 | 3 | Expression Engine (full) — Temporal integration, local activity, input/output transforms | 1-2 | **COMPLETE** (24 tests, ~670 LOC) |
-| 4 | External Call Tasks — call_http, call_grpc, call_llm, call_agent | 3-4 | **4.1–4.4 COMPLETE** (77 tests, ~1,600 LOC). 4.5 call:agent deferred. |
-| 5 | Advanced Tasks — try/catch, wait/listen, emit_event, notification, human_input, fork | 2-3 | Blocked on Phase 4b |
-| 6 | Supporting Infrastructure — claimcheck, heartbeat, interceptors, OTel | 2-3 | Blocked on Phase 4b |
-| 7 | Integration Testing — 12 golden YAMLs, regression suite | 3-4 | Blocked on Phase 5 |
+| 4 | External Call Tasks — call_http, call_grpc, call_llm, call_agent | 3-4 | **COMPLETE** (100 tests, ~2,200 LOC) |
+| 5 | Advanced Tasks — try/catch, wait/listen, emit_event, notification, human_input, fork | 2-3 | NOT STARTED |
+| 6 | Supporting Infrastructure — claimcheck, heartbeat, interceptors, OTel | 2-3 | Blocked on Phase 5 |
+| 7 | Integration Testing — 13 golden YAMLs, regression suite | 3-4 | Blocked on Phase 5 |
 | 8 | Deployment & Cutover — Docker, CI, gradual rollout | 2-3 | Blocked on Phase 7 |
 | 9 | Cleanup — Delete Go workflow-runner, update CI | 1 | Blocked on Phase 8 |
 
@@ -129,6 +170,12 @@ Full report: `_projects/2026-05/20260518.01.unified-runner-migration/research.wo
 - **TS workflow function**: `backend/services/runner/src/workflows/execute-serverless-workflow.ts`
 - **TS resolve utilities**: `backend/services/runner/src/workflow-engine/resolve.ts`
 - **TS call activities**: `backend/services/runner/src/activities/call-http.ts`, `call-grpc.ts`, `call-llm.ts`, `call-function.ts`
+- **TS call:agent activity**: `backend/services/runner/src/activities/call-agent.ts` (async completion)
+- **TS call:agent status activities**: `backend/services/runner/src/activities/call-agent-status.ts` (local activities for HITL)
+- **TS call:agent orchestrator**: `backend/services/runner/src/workflows/call-agent-orchestrator.ts` (signal handling, condition loop)
+- **TS call:agent task builder**: `backend/services/runner/src/workflow-engine/tasks/call-agent.ts` (kernel, expression eval, output validation)
+- **TS structured output validation**: `backend/services/runner/src/workflow-engine/tasks/call-agent-output.ts`
+- **Golden YAML #13**: `backend/services/workflow-runner/test/golden/13-agent-call.yaml` (code review triage)
 
 ---
 

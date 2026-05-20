@@ -272,7 +272,7 @@ do:
       expect(model.do[0].task.kind).toBe("call:http");
     });
 
-    it("discriminates custom call:function tasks", () => {
+    it("discriminates call:agent tasks", () => {
       const yaml = `
 document:
   dsl: '1.0.0'
@@ -282,11 +282,32 @@ do:
       call: agent
       with:
         agent: my-agent
+        message: "Do something"
+`;
+      const model = loadWorkflowFromYaml(yaml);
+      expect(model.do[0].task.kind).toBe("call:agent");
+      if (model.do[0].task.kind === "call:agent") {
+        expect(model.do[0].task.call).toBe("agent");
+        expect(model.do[0].task.with.agent).toBe("my-agent");
+        expect(model.do[0].task.with.message).toBe("Do something");
+      }
+    });
+
+    it("discriminates custom call:function tasks", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  name: test
+do:
+  - invoke:
+      call: transform
+      with:
+        template: my-template
 `;
       const model = loadWorkflowFromYaml(yaml);
       expect(model.do[0].task.kind).toBe("call:function");
       if (model.do[0].task.kind === "call:function") {
-        expect(model.do[0].task.call).toBe("agent");
+        expect(model.do[0].task.call).toBe("transform");
       }
     });
 
@@ -386,4 +407,112 @@ do:
       }
     });
   });
+
+  describe("call:agent parsing", () => {
+    it("parses call:agent with full config", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  name: test
+do:
+  - triage:
+      call: agent
+      with:
+        agent: "acme/support-triage"
+        message: "Triage this ticket"
+        org: acme
+        env:
+          API_KEY: "\${.secrets.KEY}"
+        config:
+          model: claude-3-5-sonnet
+          timeout: 300
+        output:
+          schema:
+            type: object
+            required: [severity]
+            properties:
+              severity:
+                type: string
+                enum: [low, medium, high, critical]
+          on_invalid: ON_INVALID_RETRY
+          max_retries: 2
+        harness: cursor
+`;
+      const model = loadWorkflowFromYaml(yaml);
+      const task = model.do[0].task;
+      expect(task.kind).toBe("call:agent");
+      if (task.kind === "call:agent") {
+        expect(task.with.agent).toBe("acme/support-triage");
+        expect(task.with.message).toBe("Triage this ticket");
+        expect(task.with.org).toBe("acme");
+        expect(task.with.env?.API_KEY).toBe("${.secrets.KEY}");
+        expect(task.with.config?.model).toBe("claude-3-5-sonnet");
+        expect(task.with.config?.timeout).toBe(300);
+        expect(task.with.output?.schema.type).toBe("object");
+        expect(task.with.output?.on_invalid).toBe("ON_INVALID_RETRY");
+        expect(task.with.output?.max_retries).toBe(2);
+        expect(task.with.harness).toBe("HARNESS_CURSOR");
+      }
+    });
+
+    it("normalizes harness shorthand 'native' to HARNESS_NATIVE", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  name: test
+do:
+  - invoke:
+      call: agent
+      with:
+        agent: reviewer
+        message: Review
+        harness: native
+`;
+      const model = loadWorkflowFromYaml(yaml);
+      if (model.do[0].task.kind === "call:agent") {
+        expect(model.do[0].task.with.harness).toBe("HARNESS_NATIVE");
+      }
+    });
+
+    it("throws when agent is missing", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  name: test
+do:
+  - invoke:
+      call: agent
+      with:
+        message: Hello
+`;
+      expect(() => loadWorkflowFromYaml(yaml)).toThrow("call:agent requires 'agent'");
+    });
+
+    it("throws when message is missing", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  name: test
+do:
+  - invoke:
+      call: agent
+      with:
+        agent: my-agent
+`;
+      expect(() => loadWorkflowFromYaml(yaml)).toThrow("call:agent requires 'message'");
+    });
+
+    it("throws when with block is missing", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  name: test
+do:
+  - invoke:
+      call: agent
+`;
+      expect(() => loadWorkflowFromYaml(yaml)).toThrow("call:agent task requires a 'with' configuration block");
+    });
+  });
 });
+

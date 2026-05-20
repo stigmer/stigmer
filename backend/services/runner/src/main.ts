@@ -54,6 +54,8 @@ async function main(): Promise<void> {
   const { createCallHttpActivities } = await import("./activities/call-http.js");
   const { createCallGrpcActivities } = await import("./activities/call-grpc.js");
   const { createCallFunctionActivities } = await import("./activities/call-function.js");
+  const { createCallAgentActivities } = await import("./activities/call-agent.js");
+  const { createCallAgentStatusActivities } = await import("./activities/call-agent-status.js");
   const { startWorker } = await import("./worker.js");
 
   const cursorActivities = createCursorActivities(config);
@@ -65,6 +67,8 @@ async function main(): Promise<void> {
   const callHttpActivities = createCallHttpActivities();
   const callGrpcActivities = createCallGrpcActivities();
   const callFunctionActivities = createCallFunctionActivities();
+  const callAgentActivities = createCallAgentActivities();
+  const callAgentStatusActivities = createCallAgentStatusActivities();
 
   const allActivities = {
     ...cursorActivities,
@@ -76,6 +80,8 @@ async function main(): Promise<void> {
     ...callHttpActivities,
     ...callGrpcActivities,
     ...callFunctionActivities,
+    ...callAgentActivities,
+    ...callAgentStatusActivities,
   };
 
   console.log(

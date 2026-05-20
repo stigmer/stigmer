@@ -17,12 +17,19 @@ vi.mock("@temporalio/workflow", () => ({
     CallHttp: vi.fn(),
     CallGrpc: vi.fn(),
     CallFunction: vi.fn(),
+    CallAgent: vi.fn(),
   })),
   log: {
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
   },
+  defineSignal: vi.fn(() => "child_approval_required"),
+  setHandler: vi.fn(),
+  condition: vi.fn(),
+  workflowInfo: vi.fn(() => ({ workflowId: "test-wf-id" })),
+  CancellationScope: { current: vi.fn() },
+  isCancellation: vi.fn(() => false),
 }));
 
 describe("executeServerlessWorkflow", () => {

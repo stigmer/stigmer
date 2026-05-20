@@ -76,6 +76,7 @@ export type TaskDef =
   | RaiseTaskDef
   | CallHttpTaskDef
   | CallGrpcTaskDef
+  | CallAgentTaskDef
   | CallFunctionTaskDef
   | RunTaskDef;
 
@@ -140,8 +141,21 @@ export interface CallGrpcTaskDef extends TaskBase {
 }
 
 /**
+ * Agent call — invokes a Stigmer agent as a workflow task. Uses
+ * Temporal async completion: the activity creates an AgentExecution
+ * with a callback token, then the platform completes the activity
+ * when the agent finishes. Separate from generic call:function
+ * because it requires workflow-side signal handling for HITL.
+ */
+export interface CallAgentTaskDef extends TaskBase {
+  readonly kind: "call:agent";
+  readonly call: "agent";
+  readonly with: AgentCallConfig;
+}
+
+/**
  * Custom call function — covers Stigmer extensions:
- * call: agent | llm | transform | validate | human_input |
+ * call: llm | transform | validate | human_input |
  *       emit_event | notification | eval | activity
  */
 export interface CallFunctionTaskDef extends TaskBase {
@@ -383,6 +397,7 @@ export interface TaskExecutionContext {
   readonly callHttp: CallHttpFn;
   readonly callGrpc: CallGrpcFn;
   readonly callFunction: CallFunctionFn;
+  readonly callAgent: CallAgentFn;
 }
 
 /**
@@ -445,6 +460,70 @@ export interface TaskBuilder {
   readonly taskDef: TaskDef;
   build(): TaskExecutorFn;
   shouldRun(state: WorkflowState): Promise<boolean>;
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Agent Call Types
+// ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Invokes a Stigmer agent as an async-completion Temporal activity.
+ * The activity creates a Session + AgentExecution with a callback
+ * token. The platform completes the activity when the agent finishes.
+ * While pending, the workflow listens for HITL approval signals.
+ */
+export type CallAgentFn = (
+  config: AgentCallConfig,
+  runtimeEnv: Record<string, unknown>,
+  metadata: CallAgentMetadata,
+) => Promise<AgentCallResult>;
+
+/**
+ * Agent call configuration — mirrors the proto `AgentCallTaskConfig`.
+ * Parsed from the YAML `with:` block of a `call: agent` task.
+ */
+export interface AgentCallConfig {
+  readonly agent: string;
+  readonly message: string;
+  readonly org?: string;
+  readonly env?: Record<string, string>;
+  readonly config?: AgentExecutionCallConfig;
+  readonly output?: AgentCallOutputContract;
+  readonly harness?: string;
+}
+
+export interface AgentExecutionCallConfig {
+  readonly model?: string;
+  readonly timeout?: number;
+  readonly temperature?: number;
+  readonly max_cost_micros?: number;
+}
+
+export interface AgentCallOutputContract {
+  readonly schema: Record<string, unknown>;
+  readonly on_invalid?: "ON_INVALID_FAIL" | "ON_INVALID_RETRY" | "ON_INVALID_FALLBACK";
+  readonly max_retries?: number;
+  readonly fallback_task?: string;
+}
+
+export interface CallAgentMetadata {
+  readonly parentWorkflowId: string;
+  readonly taskName: string;
+  readonly workflowExecutionId: string;
+}
+
+export interface AgentCallResult {
+  readonly structured?: unknown;
+  readonly final_text?: string;
+  readonly agent_execution_id?: string;
+  readonly usage_summary?: AgentUsageSummary;
+}
+
+export interface AgentUsageSummary {
+  readonly total_tokens?: number;
+  readonly estimated_cost_usd?: number;
+  readonly tool_call_count?: number;
+  readonly artifact_count?: number;
 }
 
 // ─────────────────────────────────────────────────────────────────────

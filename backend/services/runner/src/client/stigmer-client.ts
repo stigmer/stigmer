@@ -37,6 +37,9 @@ import { create } from "@bufbuild/protobuf";
 import { ConnectInputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { AgentExecutionUpdateStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import type { UpdateStatusResponse } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+import { WorkflowExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/command_pb";
+import type { WorkflowExecution, WorkflowExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import { WorkflowExecutionUpdateStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
 
 export interface StigmerClientOptions {
   endpoint: string;
@@ -56,6 +59,7 @@ export class StigmerClient {
   private readonly mcpServerCommand: Client<typeof McpServerCommandController>;
   private readonly skillQuery: Client<typeof SkillQueryController>;
   private readonly billingCommand: Client<typeof BillingCommandController>;
+  private readonly workflowExecutionCommand: Client<typeof WorkflowExecutionCommandController>;
 
   constructor(options: StigmerClientOptions) {
     const token = options.token;
@@ -82,6 +86,7 @@ export class StigmerClient {
     this.mcpServerCommand = createClient(McpServerCommandController, this.transport);
     this.skillQuery = createClient(SkillQueryController, this.transport);
     this.billingCommand = createClient(BillingCommandController, this.transport);
+    this.workflowExecutionCommand = createClient(WorkflowExecutionCommandController, this.transport);
   }
 
   async getExecution(executionId: string): Promise<AgentExecution> {
@@ -164,5 +169,28 @@ export class StigmerClient {
 
   async recordLlmCallUsage(input: RecordLlmCallUsageInput): Promise<RecordLlmCallUsageResponse> {
     return this.billingCommand.recordLlmCallUsage(input);
+  }
+
+  async getAgentByReference(ref: ApiResourceReference): Promise<Agent> {
+    return this.agentQuery.getByReference(ref);
+  }
+
+  async createSession(session: Session): Promise<Session> {
+    return this.sessionCommand.create(session);
+  }
+
+  async createAgentExecution(execution: AgentExecution): Promise<AgentExecution> {
+    return this.executionCommand.create(execution);
+  }
+
+  async updateWorkflowExecutionStatus(
+    executionId: string,
+    status: WorkflowExecutionStatus,
+  ): Promise<WorkflowExecution> {
+    const input = create(WorkflowExecutionUpdateStatusInputSchema, {
+      executionId,
+      status,
+    });
+    return this.workflowExecutionCommand.updateStatus(input);
   }
 }

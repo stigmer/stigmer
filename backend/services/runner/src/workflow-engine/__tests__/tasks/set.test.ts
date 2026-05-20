@@ -13,6 +13,7 @@ function makeCtx(): TaskExecutionContext {
     callHttp: notAvailable,
     callGrpc: notAvailable,
     callFunction: notAvailable,
+    callAgent: notAvailable,
   };
 }
 

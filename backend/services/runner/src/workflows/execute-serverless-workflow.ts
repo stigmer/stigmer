@@ -21,12 +21,13 @@
  * type-only imports, and pure JS/TS logic.
  */
 
-import { proxyLocalActivities, proxyActivities, log } from "@temporalio/workflow";
+import { proxyLocalActivities, proxyActivities, log, workflowInfo } from "@temporalio/workflow";
 
 import type { createEvaluateExpressionsActivities } from "../activities/evaluate-expressions.js";
 import type { createCallHttpActivities } from "../activities/call-http.js";
 import type { createCallGrpcActivities } from "../activities/call-grpc.js";
 import type { createCallFunctionActivities } from "../activities/call-function.js";
+import { orchestrateAgentCall } from "./call-agent-orchestrator.js";
 import { executeDoTasks } from "../workflow-engine/do-executor.js";
 import { createState } from "../workflow-engine/state.js";
 import type {
@@ -35,6 +36,8 @@ import type {
   HttpCallConfig,
   GrpcCallConfig,
   CallFunctionMetadata,
+  CallAgentMetadata,
+  AgentCallConfig,
   TaskExecutionContext,
 } from "../workflow-engine/types.js";
 
@@ -115,6 +118,18 @@ export async function executeServerlessWorkflow(
         runtimeEnv,
         fnMeta.workflowExecutionId ?? metadata?.execution_id ?? "",
       ),
+    callAgent: (
+      config: AgentCallConfig,
+      runtimeEnv: Record<string, unknown>,
+      agentMeta: CallAgentMetadata,
+    ) =>
+      orchestrateAgentCall({
+        config,
+        runtimeEnv,
+        parentWorkflowId: agentMeta.parentWorkflowId || workflowInfo().workflowId,
+        taskName: agentMeta.taskName,
+        workflowExecutionId: agentMeta.workflowExecutionId || metadata?.execution_id || "",
+      }),
   };
 
   const state = createState();
