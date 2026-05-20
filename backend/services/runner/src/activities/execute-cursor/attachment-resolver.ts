@@ -9,6 +9,7 @@
 import { mkdir, copyFile } from "node:fs/promises";
 import { join, basename } from "node:path";
 import type { Attachment } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+import { getPlatformDir } from "../../shared/workspace/platform-dir.js";
 
 const STIGMER_LOCAL_STATE_DIR = ".stigmer";
 const INPUTS_SUBDIR = "inputs";
@@ -75,7 +76,3 @@ async function resolveAttachment(
   return null;
 }
 
-function getPlatformDir(sessionId: string): string {
-  const home = process.env.HOME || process.env.USERPROFILE || "/tmp";
-  return join(home, ".stigmer", "sessions", sessionId, "platform");
-}
