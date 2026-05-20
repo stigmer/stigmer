@@ -13,53 +13,61 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-19
-**Current Task**: Phase 4 — External Call Tasks
+**Current Task**: Phase 4b — call:agent (async completion + HITL)
 **Status**: NOT STARTED
-**Last Session**: 2026-05-20, Session 4
+**Last Session**: 2026-05-20, Session 5
 
-## Session Progress (2026-05-20, Session 4)
+## Session Progress (2026-05-20, Session 5)
 
-### Accomplishments — Phase 3: Expression Engine Temporal Integration
-- Wired jq-wasm expression engine into Temporal as a local activity
-- **activities/evaluate-expressions.ts**: Factory wrapping `evaluateExpressionBatch` for deterministic replay
-- **workflows/execute-serverless-workflow.ts**: Temporal workflow `"stigmer/workflow/execute"` with full data pipeline
-  - `proxyLocalActivities` proxy for expression evaluation
-  - Workflow-level `input.from` transform
-  - Workflow-level `output.as` transform
-  - State initialization with env vars
-- **do-executor.ts**: Added `resolveTaskInput()` for task-level `input.from` processing
-- **Registration**: Workflow in `workflows/index.ts`, activity in `main.ts`
-- **24 new tests**: 8 activity unit + 11 workflow integration + 5 input.from
+### Accomplishments — Phase 4: External Call Tasks (4.1–4.4)
+- **4.1 Shared Infrastructure**: Extended `TaskExecutionContext` with call callbacks (`callHttp`, `callGrpc`, `callFunction`), extracted expression resolution utilities into `resolve.ts`, wired `proxyActivities` in workflow function, updated task-factory dispatch
+- **4.2 call:http**: Activity with fetch, error classification (4xx non-retryable, 5xx retryable), 3 output modes (content/response/raw), runtime placeholder resolution. Builder with expression evaluation in URI/headers/body/query. 21 tests.
+- **4.3 call:grpc**: Activity with dynamic proto loading via `@grpc/proto-loader` + `@grpc/grpc-js`. Builder with expression evaluation in service/method/arguments. 7 tests.
+- **4.4 call:llm**: Activity with OpenAI + Anthropic support, proxy mode + direct mode, response schema handling, token counting. CallFunction dispatcher routes by call string. 25 tests.
+- **Backward compatibility**: `buildMinimalContext` fallback for existing callers; `for.ts` and nested `do` propagate full context. 4 existing test files updated.
+- **77 new tests**, 1135 total tests passing, zero regressions
 
 ### Key Decisions
-- **Local activity IS the determinism boundary** — no separate sideEffect needed; results recorded in history, replayed without re-execution. More correct than Go which only wraps Set tasks.
-- **Single generic workflow type** — `"stigmer/workflow/execute"` receives WorkflowModel as input. No per-definition dynamic registration.
-- **Kernel already sandbox-safe** — Phase 2 correctly routed all expression evaluation through the injected ExpressionEvaluator. No refactoring needed.
-- **Set tasks ignore effective input** — evaluate with null as jq input, access data through state variables ($context, $data, etc.). Matches Go behavior.
+- **Per-type callbacks on TaskExecutionContext** — not a generic dispatcher. Type safety at the kernel boundary, each call type has a distinct input/output shape.
+- **Two-phase expression evaluation** — workflow evaluates `${ ... }` jq expressions (deterministic, in history), activities resolve `${.secrets.*}` runtime placeholders (never in history). Security pattern from Go.
+- **Raw fetch for LLM** — used native `fetch()` instead of LangChain wrappers. Lighter for simple prompt-response.
+- **call:agent deferred to Phase 4b** — placeholder throws `ApplicationFailure.nonRetryable` with clear message. Needs dedicated planning for async completion, HITL signal handling, and platform gRPC integration.
 
 ### Key Findings
-- `proxyLocalActivities` with ~1ms overhead is perfect for high-frequency jq evaluation calls
-- The kernel module graph has zero Node.js transitive dependencies — only `expression.ts` touches node:crypto and jq-wasm
-- Temporal workflow bundler should handle kernel imports since they're pure TS with no Node.js deps (verified via `tsc --noEmit`)
+- `@grpc/proto-loader` and `@grpc/grpc-js` were already installed as transitive deps — no new package additions needed
+- The `collectExpressions`/`substituteResults` pattern from `set.ts` generalized cleanly to all call types via `resolveConfigExpressions`
+- `buildMinimalContext` with throwing stubs provides clean backward compatibility — existing tests that don't exercise call tasks work unchanged
 
-### Files Created/Modified
-- **Created**: `backend/services/runner/src/activities/evaluate-expressions.ts`
-- **Created**: `backend/services/runner/src/workflows/execute-serverless-workflow.ts`
-- **Created**: `backend/services/runner/src/activities/__tests__/evaluate-expressions.test.ts` (8 tests)
-- **Created**: `backend/services/runner/src/workflows/__tests__/execute-serverless-workflow.test.ts` (11 tests)
-- **Modified**: `backend/services/runner/src/workflow-engine/do-executor.ts` (+40 lines)
-- **Modified**: `backend/services/runner/src/workflows/index.ts` (+4 lines)
-- **Modified**: `backend/services/runner/src/main.ts` (+3 lines)
+### Files Created
+- **Created**: `backend/services/runner/src/workflow-engine/resolve.ts` (~170 lines)
+- **Created**: `backend/services/runner/src/workflow-engine/tasks/call-http.ts`
+- **Created**: `backend/services/runner/src/workflow-engine/tasks/call-grpc.ts`
+- **Created**: `backend/services/runner/src/workflow-engine/tasks/call-function.ts`
+- **Created**: `backend/services/runner/src/activities/call-http.ts` (~155 lines)
+- **Created**: `backend/services/runner/src/activities/call-grpc.ts` (~120 lines)
+- **Created**: `backend/services/runner/src/activities/call-llm.ts` (~210 lines)
+- **Created**: `backend/services/runner/src/activities/call-function.ts` (~55 lines)
+- **Created**: 8 test files (77 tests total)
+
+### Files Modified
+- **Modified**: `backend/services/runner/src/workflow-engine/types.ts` (+47 lines — call callbacks, metadata types)
+- **Modified**: `backend/services/runner/src/workflow-engine/task-factory.ts` (+17 lines — 3 new cases)
+- **Modified**: `backend/services/runner/src/workflow-engine/do-executor.ts` (+53 lines — full ctx propagation)
+- **Modified**: `backend/services/runner/src/workflow-engine/tasks/set.ts` (-94 lines, +2 — uses resolve.ts)
+- **Modified**: `backend/services/runner/src/workflow-engine/tasks/for.ts` (+3 lines — ctx param)
+- **Modified**: `backend/services/runner/src/workflows/execute-serverless-workflow.ts` (+60 lines — proxyActivities)
+- **Modified**: `backend/services/runner/src/main.ts` (+9 lines — 3 activity registrations)
+- **Modified**: 4 test files (updated for TaskExecutionContext compatibility)
 
 ### Test Results
-- 24 new tests (8 activity + 11 workflow + 5 input.from in do-executor)
-- 1045 total tests passing across the entire runner
+- 77 new tests (22 resolve + 5 call-http builder + 4 call-grpc builder + 5 call-function builder + 16 call-http activity + 3 call-grpc activity + 19 call-llm activity + 4 call-function activity)
+- 1135 total tests passing across the entire runner
 - `tsc --noEmit` clean
 - Zero regressions
 
 ## Next Steps
 
-1. **Phase 4: External Call Tasks** — call:http, call:grpc, call:llm, call:agent as Temporal activities
+1. **Phase 4b: call:agent** — async completion pattern, HITL signal handling, platform gRPC integration (dedicated planning session)
 2. **Phase 5: Advanced Tasks** — try/catch, wait/listen, emit_event, notification, human_input, fork (parallel)
 3. **Phase 6: Supporting Infrastructure** — claimcheck, heartbeat, interceptors, OTel, event emission, budget tracking
 4. **Phase 7: Integration Testing** — 12 golden YAMLs passing identically, regression suite
@@ -68,13 +76,15 @@ Drop this file into your conversation to quickly resume work on this project.
 
 - The workflow engine at `src/workflow-engine/` is a sandbox-safe execution kernel with zero Node.js dependencies
 - Expression evaluation runs in a local activity (`activities/evaluate-expressions.ts`) — the kernel calls it via the injected `ExpressionEvaluator` callback
+- **New in Phase 4**: External call tasks use regular Temporal activities via `proxyActivities`. The kernel calls `ctx.callHttp(config, env)` etc. — opaque callbacks wired to activity proxies by the workflow function.
+- The `resolve.ts` module provides shared utilities: `resolveConfigExpressions` (workflow-side jq evaluation), `resolveObjectPlaceholders` (activity-side secret resolution), `collectExpressions`, `substituteResults`
+- `call:function` is the dispatch point for Stigmer extensions (llm, agent, etc.) — `CallFunctionTaskBuilder` passes the `call` string through to the activity which routes internally
+- `call:agent` is not yet implemented — throws `ApplicationFailure.nonRetryable` with "Phase 4b" message. Requires async completion + HITL signals.
 - The Temporal workflow `"stigmer/workflow/execute"` lives at `workflows/execute-serverless-workflow.ts`
-- `executeDoTasks()` is the kernel entry point. `for` and `do` are handled inline; `set` and `switch` go through TaskBuilder
-- Task-level `input.from` is resolved in `do-executor.ts` via `resolveTaskInput()` before task dispatch
-- Workflow-level `input.from` and `output.as` are handled in the workflow function itself
+- `executeDoTasks()` now accepts an optional `TaskExecutionContext` parameter; when omitted, `buildMinimalContext()` creates a fallback with throwing stubs for call callbacks
 - The Go reference implementation is at `backend/services/workflow-runner/pkg/zigflow/` (~12.7K lines, 22 packages)
 - Golden test YAMLs are at `backend/services/workflow-runner/test/golden/` (12 canonical workflows)
-- Executable task types: `set`, `switch`, `do`, `for`. All others parse but throw at runtime.
+- Executable task types: `set`, `switch`, `do`, `for`, `call:http`, `call:grpc`, `call:function`. All others parse but throw at runtime.
 
 ## Prior Research
 
@@ -95,9 +105,9 @@ Full report: `_projects/2026-05/20260518.01.unified-runner-migration/research.wo
 | 1 | Core Engine Scaffold — YAML parsing, task graph builder, expression engine | 2-3 | **COMPLETE** (119 tests, 3,147 LOC) |
 | 2 | Simple Task Types — for, nested iteration | 1-2 | **COMPLETE** (26 tests, 583 LOC) |
 | 3 | Expression Engine (full) — Temporal integration, local activity, input/output transforms | 1-2 | **COMPLETE** (24 tests, ~670 LOC) |
-| 4 | External Call Tasks — call_http, call_grpc, call_llm, call_agent | 3-4 | **Next** |
-| 5 | Advanced Tasks — try/catch, wait/listen, emit_event, notification, human_input, fork | 2-3 | Blocked on Phase 4 |
-| 6 | Supporting Infrastructure — claimcheck, heartbeat, interceptors, OTel | 2-3 | Blocked on Phase 4 |
+| 4 | External Call Tasks — call_http, call_grpc, call_llm, call_agent | 3-4 | **4.1–4.4 COMPLETE** (77 tests, ~1,600 LOC). 4.5 call:agent deferred. |
+| 5 | Advanced Tasks — try/catch, wait/listen, emit_event, notification, human_input, fork | 2-3 | Blocked on Phase 4b |
+| 6 | Supporting Infrastructure — claimcheck, heartbeat, interceptors, OTel | 2-3 | Blocked on Phase 4b |
 | 7 | Integration Testing — 12 golden YAMLs, regression suite | 3-4 | Blocked on Phase 5 |
 | 8 | Deployment & Cutover — Docker, CI, gradual rollout | 2-3 | Blocked on Phase 7 |
 | 9 | Cleanup — Delete Go workflow-runner, update CI | 1 | Blocked on Phase 8 |
@@ -108,12 +118,17 @@ Full report: `_projects/2026-05/20260518.01.unified-runner-migration/research.wo
 - **Zigflow engine core**: `backend/services/workflow-runner/pkg/zigflow/` (~12.7K lines)
 - **Go for-task reference**: `backend/services/workflow-runner/pkg/zigflow/tasks/task_builder_for.go` (604 lines)
 - **Go call:http reference**: `backend/services/workflow-runner/pkg/zigflow/tasks/task_builder_call_http.go`
+- **Go call:grpc reference**: `backend/services/workflow-runner/pkg/zigflow/tasks/task_builder_call_grpc.go`
+- **Go call:llm reference**: `backend/services/workflow-runner/pkg/zigflow/tasks/task_builder_call_llm.go`
+- **Go call:agent reference**: `backend/services/workflow-runner/pkg/zigflow/tasks/task_builder_call_agent.go` (~1,500 lines)
 - **Golden test YAMLs**: `backend/services/workflow-runner/test/golden/` (12 canonical workflows)
 - **Runtime expressions**: `backend/services/workflow-runner/pkg/utils/runtime_expressions.go`
 - **Unified runner project**: `_projects/2026-05/20260518.01.unified-runner-migration/`
 - **PoC results**: `_projects/2026-05/20260519.01.workflow-runner-typescript-rewrite/poc/results/`
 - **TS workflow engine**: `backend/services/runner/src/workflow-engine/`
 - **TS workflow function**: `backend/services/runner/src/workflows/execute-serverless-workflow.ts`
+- **TS resolve utilities**: `backend/services/runner/src/workflow-engine/resolve.ts`
+- **TS call activities**: `backend/services/runner/src/activities/call-http.ts`, `call-grpc.ts`, `call-llm.ts`, `call-function.ts`
 
 ---
 

@@ -13,6 +13,11 @@ vi.mock("@temporalio/workflow", () => ({
       stateVars: Record<string, unknown>,
     ) => mockEvaluateExpressions(exprs, input, stateVars),
   })),
+  proxyActivities: vi.fn(() => ({
+    CallHttp: vi.fn(),
+    CallGrpc: vi.fn(),
+    CallFunction: vi.fn(),
+  })),
   log: {
     info: vi.fn(),
     warn: vi.fn(),

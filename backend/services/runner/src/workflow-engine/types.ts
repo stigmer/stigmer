@@ -370,12 +370,55 @@ export type TaskExecutorFn = (
 
 /**
  * Runtime context passed to task executors. Provides access to
- * expression evaluation and the workflow document without coupling
- * task implementations to Temporal APIs.
+ * expression evaluation, the workflow document, and external call
+ * capabilities without coupling task implementations to Temporal APIs.
+ *
+ * Call callbacks (`callHttp`, `callGrpc`, `callFunction`) are wired
+ * to Temporal `proxyActivities` in the workflow function. The kernel
+ * invokes them as opaque callbacks — it never imports Temporal APIs.
  */
 export interface TaskExecutionContext {
   readonly evaluateExpressions: ExpressionEvaluator;
   readonly doc: WorkflowModel;
+  readonly callHttp: CallHttpFn;
+  readonly callGrpc: CallGrpcFn;
+  readonly callFunction: CallFunctionFn;
+}
+
+/**
+ * Executes an HTTP call as a Temporal activity. Receives the
+ * expression-evaluated config and the runtime environment for
+ * just-in-time secret resolution in the activity.
+ */
+export type CallHttpFn = (
+  config: HttpCallConfig,
+  runtimeEnv: Record<string, unknown>,
+) => Promise<unknown>;
+
+/**
+ * Executes a gRPC call as a Temporal activity. Receives the
+ * expression-evaluated config and the runtime environment.
+ */
+export type CallGrpcFn = (
+  config: GrpcCallConfig,
+  runtimeEnv: Record<string, unknown>,
+) => Promise<unknown>;
+
+/**
+ * Executes a custom function call (llm, agent, etc.) as a Temporal
+ * activity. The `call` string identifies the function type; the
+ * activity dispatches internally based on this value.
+ */
+export type CallFunctionFn = (
+  call: string,
+  config: Record<string, unknown>,
+  runtimeEnv: Record<string, unknown>,
+  metadata: CallFunctionMetadata,
+) => Promise<unknown>;
+
+export interface CallFunctionMetadata {
+  readonly workflowExecutionId?: string;
+  readonly parentWorkflowId?: string;
 }
 
 /**

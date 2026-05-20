@@ -22,6 +22,7 @@ import type {
   WorkflowModel,
   WorkflowState,
   ExpressionEvaluator,
+  TaskExecutionContext,
   TaskBuilder,
   TaskDef,
 } from "../types.js";
@@ -63,6 +64,7 @@ export async function executeForTask(
   state: WorkflowState,
   doc: WorkflowModel,
   evaluateExpressions: ExpressionEvaluator,
+  ctx?: TaskExecutionContext,
 ): Promise<unknown[]> {
   const executeDoTasks = await getExecuteDoTasks();
 
@@ -101,6 +103,7 @@ export async function executeForTask(
       iterState,
       doc,
       evaluateExpressions,
+      ctx,
     );
 
     results.push(iterState.output);
