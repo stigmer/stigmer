@@ -16,7 +16,7 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260518.01.unified-runner-migration/checkpoints/2026-05-20-session-19-phase5-tier6-w2-attachment-injector.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260518.01.unified-runner-migration/checkpoints/2026-05-20-session-20-phase5-tier6-w3-subagent-transformer.md
 ```
 
 ### 2. Current Task
@@ -44,13 +44,35 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 **Created**: 2026-05-18 15:11  
-**Last Session**: 2026-05-20 — Phase 5 Tier 6 W2 (Attachment Injector)  
-**Current Task**: Phase 5 Tier 6 W3 (Subagent Transformer)  
-**Status**: W2 Attachment Injector COMPLETE — 33 new tests (961 total); W3 next
+**Last Session**: 2026-05-20 — Phase 5 Tier 6 W3 (Subagent Transformer)  
+**Current Task**: Phase 6 Deployment (or remaining Tier 6 integration tests)  
+**Status**: W3 Subagent Transformer COMPLETE — 45 new tests (1057 total); Phase 5 Tier 6 COMPLETE
 
 ## Session Progress (2026-05-20, latest)
 
-### What Was Accomplished (Phase 5 Tier 6 W2 — Attachment Injector)
+### What Was Accomplished (Phase 5 Tier 6 W3 — Subagent Transformer)
+
+**2 new files** (1 module + 1 test suite):
+- **`src/activities/execute-deep-agent/subagent-transformer.ts`** — 340 LOC: `createBuiltinSubagents()` (explore+shell), `transformSingleSubagent()` (proto→spec), `filterMcpToolsForSubagent()` (slug validation + tool intersection), `collectAllSkillRefs()` + `resolveSubagentSkillPrompt()` (batch fetch + prompt inject), `compileSubagents()` (createDeepAgent + middleware + gate), `transformAndCompileSubagents()` (top-level orchestrator).
+- **`src/activities/execute-deep-agent/__tests__/subagent-transformer.test.ts`** — 45 tests covering built-ins, core transform, MCP filtering, skill resolution, model validation, think tool injection, compilation, integration pipeline, edge cases.
+
+**4 files modified**:
+- **`src/shared/model-registry.ts`** — Added `isModelRegistered()` for SubAgent model override validation.
+- **`src/shared/subagent-gate.ts`** — Added `wrapRunnable()` method using `RunnableLambda` for CompiledSubAgent integration.
+- **`src/middleware/index.ts`** — Exposed `costCap` in `MiddlewareStackResult` for sub-agent cost sharing via `forSubAgent()`.
+- **`src/activities/execute-deep-agent/setup.ts`** — Wired Step 11b: transform + compile subagents, pass to `createDeepAgent({ subagents })`.
+
+**Design decisions**:
+- CompiledSubAgent format (full middleware control over deepagents' unwanted defaults)
+- Filter parent MCP tools (no reconnection; stateless REST bridges)
+- Prompt injection for skills (StateBackend incompatible with native field)
+- Built-in explore/shell use StateBackend built-ins + prompt-based tool restriction
+- SubAgentGate wraps via RunnableLambda for Runnable interface compatibility
+- Model override fail-fast (invalid override → skip subagent entirely)
+
+**Results**: 1057 tests passing (45 new). `tsc --noEmit` clean. No new dependencies.
+
+### Previous: What Was Accomplished (Phase 5 Tier 6 W2 — Attachment Injector)
 
 **2 new files** (1 module + 1 test suite):
 - **`src/activities/execute-deep-agent/attachment-injector.ts`** — 320 LOC: `validateZipForExtraction()` (pure, 7 security checks), `injectAttachments()` (collision detection, local/cloud download, fail-hard), typed error classes (`AttachmentInjectionError`, `AttachmentValidationError`).
@@ -144,6 +166,7 @@ The following Python tests cover features with **no TS implementation**. These r
 **Key findings**: (1) Proxy routing was broken — TS runner passed bare `proxyEndpoint` to LangChain without `/v1/proxy/llm/{provider}` suffix expected by `LlmProxyController`. (2) Gemini deferred — cloud proxy only supports openai + anthropic; no `google` provider in `LlmProxyConfig`. (3) `createDeepAgent` is provider-agnostic (`BaseLanguageModel | string` param); `cache_control` annotations are no-op for non-Anthropic. (4) 471 tests passing (39 new).
 
 ### Prior Sessions
+- **Phase 5 Tier 6 W3 Subagent Transformer (2026-05-20)**: Proto→CompiledSubAgent pipeline — see `checkpoints/2026-05-20-session-20-phase5-tier6-w3-subagent-transformer.md`
 - **Phase 5 Tier 6 W2 Attachment Injector (2026-05-20)**: Full attachment injection pipeline — see `checkpoints/2026-05-20-session-19-phase5-tier6-w2-attachment-injector.md`
 - **Phase 5 Tier 6 W1 Platform Mount (2026-05-20)**: Virtual platform mount with separate platformDir — see `checkpoints/2026-05-20-session-18-phase5-tier6-w1-platform-mount.md`
 - **Phase 5 Test Porting (2026-05-20)**: 181 new tests across 8 files — see `checkpoints/2026-05-20-session-17-phase5-test-porting.md`
@@ -167,8 +190,8 @@ The following Python tests cover features with **no TS implementation**. These r
 
 1. ~~**Phase 4: Supporting Activities**~~ — **COMPLETE**.
 2. ~~**Phase 5 Tiers 0–5: Testing**~~ — **COMPLETE** (181 new tests, 723 total).
-3. **Phase 5 Tier 6: Feature-Gap Modules** — **IN PROGRESS** (W1 Platform Mount COMPLETE; W2 Attachment Injector COMPLETE; W3 Subagent Transformer NEXT).
-4. **Phase 6: Deployment** — After Tier 6 complete.
+3. ~~**Phase 5 Tier 6: Feature-Gap Modules**~~ — **COMPLETE** (W1 Platform Mount, W2 Attachment Injector, W3 Subagent Transformer all done; 1057 total tests).
+4. **Phase 6: Deployment** — Docker image, queue routing, cutover plan.
 
 ## Context for Resume
 
@@ -238,8 +261,8 @@ None.
 | 3b-iii | Artifacts + Writeback | 2-3 | COMPLETE |
 | 3c | HITL + Approval | 2-3 | COMPLETE |
 | 4 | Supporting Activities | 2-3 | **COMPLETE** (all items done or removed from scope; 542 tests passing) |
-| 5 | Testing | 3-4 | **IN PROGRESS** (Tiers 0–5 done; Tier 6 W1–W2 done, W3 next) |
-| 6 | Deployment | 2-3 | Blocked on Phase 5 |
+| 5 | Testing | 3-4 | **COMPLETE** (Tiers 0–6 done; 1057 tests passing) |
+| 6 | Deployment | 2-3 | **NEXT** |
 | 7 | Cleanup | 1-2 | Blocked on Phase 6 |
 
 ## Key References
@@ -258,7 +281,6 @@ None.
 
 ## Quick Commands
 
-- "Continue with W3: Subagent Transformer" — Next Tier 6 workstream (2 sessions)
 - "Start Phase 6" — Deployment: Docker image, queue routing, cutover
 - "Show project status" — Roadmap and file overview
 - `@_projects/2026-05/20260518.01.unified-runner-migration/next-task.md` — Resume context
