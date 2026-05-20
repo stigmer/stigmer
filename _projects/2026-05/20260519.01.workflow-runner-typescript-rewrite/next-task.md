@@ -13,11 +13,44 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-19
-**Current Task**: Phase 5 — Advanced Tasks
-**Status**: IN PROGRESS (5.1 + 5.2 + 5.3 complete, Phase 6 next)
-**Last Session**: 2026-05-20, Session 9
+**Current Task**: Phase 5 — Complete (including 5.1b Retry)
+**Status**: IN PROGRESS (Phases 1–5 complete, Phase 6 next)
+**Last Session**: 2026-05-20, Session 10
 
-## Session Progress (2026-05-20, Session 9)
+## Session Progress (2026-05-20, Session 10)
+
+### Accomplishments — Phase 5.1b: Catch-Level Retry (COMPLETE)
+- **Net-new CNCF spec implementation** — Go never implemented `catch.retry`; this is a greenfield feature implementing the CNCF Serverless Workflow retry policy spec directly
+- **Retry delay calculator**: Pure `computeRetryDelay()` function in `retry.ts` — three backoff strategies (constant, exponential, linear), jitter (random range [from, to]), attempt count + total duration limits. Returns `null` when limits exceeded.
+- **Retry loop in `executeTryTask()`**: After error matching (`catch.errors.with`, `catch.when`) passes, retry loop re-executes the try block with computed delays via `ctx.sleep()`. On retry success, catch.do is skipped entirely. On exhaustion, last error flows to existing catch logic.
+- **`retry.when` and `retry.exceptWhen`**: Conditional retry expressions evaluated with `$error` binding (same as `catch.when`). `exceptWhen` is the inverse filter (retry everything except matching errors).
+- **Structured retry parsing**: Replaced opaque `catchRaw.retry as CatchConfig["retry"]` cast in `parseCatchConfig()` with validated `parseRetryConfig()` — backoff mutual exclusion, positive integer attempt count, DurationDef validation for delay/jitter/limit.
+- **Shared duration utility**: Extracted `durationToMs()` from `tasks/wait.ts` into `duration.ts` to avoid retry depending on a task builder file. Re-export in wait.ts preserves backward compatibility.
+- **Golden YAML #21**: `21-retry-backoff.yaml` — fixed delay, exponential backoff with jitter, conditional retry (when), inverse condition (exceptWhen), linear backoff, attempt/duration limits
+- **Zero regressions**, 413 total tests passing (from 368 at session 9 start), `tsc --noEmit` clean for workflow-engine
+
+### Key Architectural Decisions
+- **Kernel purity preserved** — retry loop lives entirely in the Temporal-agnostic kernel (`workflow-engine/`). Delays use existing `ctx.sleep()` callback. Jitter uses `Math.random()` (Temporal's sandbox patches it to a deterministic PRNG). No new Temporal imports, no new `TaskExecutionContext` callbacks.
+- **Practical subset + exceptWhen** — implements delay, backoff (3 strategies), jitter, limit (attempt count + total duration), when, exceptWhen. Deferred: `Ref` (reusable policy references, needs document-level schema change with zero demand), `limit.attempt.duration` (per-attempt timeout, would break kernel Temporal-agnosticism).
+- **Backoff without delay defaults to 1s base** — multiplying zero by a backoff factor is never useful, so when backoff is specified without an explicit delay, a 1-second base is used.
+- **Retry success skips catch.do** — if a retry attempt succeeds, the result is returned immediately; `catch.as` binding and `catch.do` execution do not run.
+- **Last error flows to catch** — when retries exhaust, the most recent error (not the first) is used for `catch.as` binding.
+
+### Files Created
+- `backend/services/runner/src/workflow-engine/duration.ts` (~22 lines)
+- `backend/services/runner/src/workflow-engine/retry.ts` (~108 lines)
+- `backend/services/runner/src/workflow-engine/__tests__/retry.test.ts` (~260 lines, 30 tests)
+- `backend/services/workflow-runner/test/golden/21-retry-backoff.yaml` (~130 lines)
+
+### Files Modified
+- `types.ts` (+1 line — `exceptWhen` on `RetryConfig`)
+- `tasks/wait.ts` (refactored: imports `durationToMs` from shared `duration.ts`, re-exports)
+- `tasks/try.ts` (~174 lines rewritten — retry loop, `evaluateCondition` shared helper, `executeRetryLoop` function)
+- `loader.ts` (+92 lines — `parseRetryConfig`, `parseDurationDef`, `parseBackoffConfig`, `parseRetryLimit`, `parseJitterConfig`)
+- `__tests__/do-executor.test.ts` (+8 tests — retry integration)
+- `__tests__/loader.test.ts` (+8 tests — retry parsing including golden #21)
+
+## Previous Session Progress (2026-05-20, Session 9)
 
 ### Accomplishments — Phase 5.3: Remaining Advanced Tasks (COMPLETE)
 - **5.3.1 Wait task**: `WaitTaskBuilder` with duration parser (days/hours/minutes/seconds/milliseconds), `SleepFn` callback on `TaskExecutionContext`, wired to Temporal's `sleep()` with cancellation handling, golden YAML #16, 15 tests
@@ -206,10 +239,9 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-1. **Phase 5.1b: Retry** (optional) — `sleep` callback now exists; implement retry loop with backoff in `executeTryTask()`, update test mocks
-2. **Phase 6: Supporting Infrastructure** — claimcheck, heartbeat, interceptors, OTel, event emission, budget tracking, notification provider registry, listen query/update event types
-3. **Phase 7: Integration Testing** — 20 golden YAMLs passing identically, regression suite
-4. **Phase 8: Deployment & Cutover** — Docker, CI, gradual rollout
+1. **Phase 6: Supporting Infrastructure** — claimcheck, heartbeat, interceptors, OTel, event emission, budget tracking, notification provider registry, listen query/update event types
+2. **Phase 7: Integration Testing** — 21 golden YAMLs passing identically, regression suite
+3. **Phase 8: Deployment & Cutover** — Docker, CI, gradual rollout
 
 ## Context for Resume
 
@@ -230,6 +262,7 @@ Drop this file into your conversation to quickly resume work on this project.
 - **New in Phase 5.2**: `fork` uses a dedicated executor (`executeForkTask()`) dispatched from `runSingleTask()` — same pattern as `do`, `for`, and `try`. Non-compete mode uses `Promise.all`, compete mode uses `Promise.race`. State isolation via clone per branch. No `TaskExecutionContext` changes.
 - **New in Phase 5.3**: `wait` uses `WaitTaskBuilder` → `ctx.sleep(ms)`. `listen` (signal only) uses `executeListenTask()` → `ctx.listen(config)` → `listen-orchestrator.ts`. `run` uses `RunTaskBuilder` → `ctx.runCommand`/`ctx.runWorkflow`. `emit_event` routes through `call:function` dispatcher. `human_input` uses `executeHumanInputTask()` → `ctx.awaitHumanInput(config)` → `human-input-orchestrator.ts`.
 - **New in Phase 5.3**: `TaskExecutionContext` now has 5 additional callbacks: `sleep`, `listen`, `runCommand`, `runWorkflow`, `awaitHumanInput`. Each wired to Temporal primitives in `execute-serverless-workflow.ts`.
+- **New in Phase 5.1b**: `catch.retry` with delay, backoff (constant/exponential/linear), jitter, limits (attempt count + total duration), `when`/`exceptWhen` conditional expressions. Retry delay calculator is a pure function in `retry.ts`. `durationToMs()` utility extracted to shared `duration.ts`. `executeTryTask()` has a full retry loop that re-executes the try block with computed delays. Deferred: `Ref` (reusable policy refs), `limit.attempt.duration` (per-attempt timeout).
 - Executable task types: `set`, `switch`, `do`, `for`, `fork`, `try`, `raise`, `wait`, `listen`, `run`, `emit_event`, `human_input`, `call:http`, `call:grpc`, `call:agent`, `call:function`. Remaining for Phase 6: `notification`, listen query/update.
 
 ## Prior Research
@@ -252,9 +285,9 @@ Full report: `_projects/2026-05/20260518.01.unified-runner-migration/research.wo
 | 2 | Simple Task Types — for, nested iteration | 1-2 | **COMPLETE** (26 tests, 583 LOC) |
 | 3 | Expression Engine (full) — Temporal integration, local activity, input/output transforms | 1-2 | **COMPLETE** (24 tests, ~670 LOC) |
 | 4 | External Call Tasks — call_http, call_grpc, call_llm, call_agent | 3-4 | **COMPLETE** (100 tests, ~2,200 LOC) |
-| 5 | Advanced Tasks — try/catch, wait/listen, emit_event, human_input, fork | 2-3 | **COMPLETE** (5.1 try/catch+raise, 5.2 fork, 5.3 wait/listen/run/emit/human_input — 130 tests) |
-| 6 | Supporting Infrastructure — claimcheck, heartbeat, interceptors, OTel | 2-3 | Blocked on Phase 5 |
-| 7 | Integration Testing — 13 golden YAMLs, regression suite | 3-4 | Blocked on Phase 5 |
+| 5 | Advanced Tasks — try/catch, wait/listen, emit_event, human_input, fork, retry | 2-3 | **COMPLETE** (5.1 try/catch+raise, 5.1b retry, 5.2 fork, 5.3 wait/listen/run/emit/human_input — 175 tests) |
+| 6 | Supporting Infrastructure — claimcheck, heartbeat, interceptors, OTel | 2-3 | Unblocked |
+| 7 | Integration Testing — 21 golden YAMLs, regression suite | 3-4 | Blocked on Phase 6 |
 | 8 | Deployment & Cutover — Docker, CI, gradual rollout | 2-3 | Blocked on Phase 7 |
 | 9 | Cleanup — Delete Go workflow-runner, update CI | 1 | Blocked on Phase 8 |
 
@@ -287,6 +320,9 @@ Full report: `_projects/2026-05/20260518.01.unified-runner-migration/research.wo
 - **Golden YAML #14**: `backend/services/workflow-runner/test/golden/14-try-catch-raise.yaml` (try/catch/raise)
 - **TS fork executor**: `backend/services/runner/src/workflow-engine/tasks/fork.ts` (executeForkTask, branch normalization, placeholder builder)
 - **Golden YAML #15**: `backend/services/workflow-runner/test/golden/15-fork-parallel.yaml` (non-compete, compete, nested fork)
+- **TS retry delay calculator**: `backend/services/runner/src/workflow-engine/retry.ts` (computeRetryDelay, backoff strategies, jitter, limits)
+- **TS duration utility**: `backend/services/runner/src/workflow-engine/duration.ts` (shared durationToMs)
+- **Golden YAML #21**: `backend/services/workflow-runner/test/golden/21-retry-backoff.yaml` (fixed delay, exponential, linear, conditional, exceptWhen)
 
 ---
 

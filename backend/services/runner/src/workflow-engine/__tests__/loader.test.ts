@@ -624,6 +624,238 @@ do:
     });
   });
 
+  describe("catch.retry parsing", () => {
+    it("parses retry with all fields", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  name: retry-full
+do:
+  - op:
+      try:
+        - step:
+            set:
+              x: 1
+      catch:
+        retry:
+          when: \${ .error.status >= 500 }
+          exceptWhen: \${ .error.type == "auth/expired" }
+          delay:
+            seconds: 2
+          backoff:
+            exponential: {}
+          limit:
+            attempt:
+              count: 5
+            duration:
+              minutes: 2
+          jitter:
+            from:
+              milliseconds: 100
+            to:
+              milliseconds: 500
+        do:
+          - fallback:
+              set:
+                failed: true
+`;
+      const model = loadWorkflowFromYaml(yaml);
+      const task = model.do[0].task;
+      expect(task.kind).toBe("try");
+      if (task.kind === "try") {
+        const retry = task.catch.retry!;
+        expect(retry.when).toBe("${ .error.status >= 500 }");
+        expect(retry.exceptWhen).toBe('${ .error.type == "auth/expired" }');
+        expect(retry.delay).toEqual({ seconds: 2 });
+        expect(retry.backoff?.exponential).toEqual({});
+        expect(retry.limit?.attempt?.count).toBe(5);
+        expect(retry.limit?.duration).toEqual({ minutes: 2 });
+        expect(retry.jitter?.from).toEqual({ milliseconds: 100 });
+        expect(retry.jitter?.to).toEqual({ milliseconds: 500 });
+      }
+    });
+
+    it("parses retry with partial fields (delay only)", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  name: retry-partial
+do:
+  - op:
+      try:
+        - step:
+            set:
+              x: 1
+      catch:
+        retry:
+          delay:
+            seconds: 1
+          limit:
+            attempt:
+              count: 3
+`;
+      const model = loadWorkflowFromYaml(yaml);
+      const task = model.do[0].task;
+      if (task.kind === "try") {
+        const retry = task.catch.retry!;
+        expect(retry.delay).toEqual({ seconds: 1 });
+        expect(retry.limit?.attempt?.count).toBe(3);
+        expect(retry.backoff).toBeUndefined();
+        expect(retry.jitter).toBeUndefined();
+        expect(retry.when).toBeUndefined();
+        expect(retry.exceptWhen).toBeUndefined();
+      }
+    });
+
+    it("parses retry with linear backoff", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  name: retry-linear
+do:
+  - op:
+      try:
+        - step:
+            set:
+              x: 1
+      catch:
+        retry:
+          delay:
+            seconds: 1
+          backoff:
+            linear: {}
+`;
+      const model = loadWorkflowFromYaml(yaml);
+      const task = model.do[0].task;
+      if (task.kind === "try") {
+        expect(task.catch.retry?.backoff?.linear).toEqual({});
+        expect(task.catch.retry?.backoff?.exponential).toBeUndefined();
+        expect(task.catch.retry?.backoff?.constant).toBeUndefined();
+      }
+    });
+
+    it("rejects backoff with multiple strategies", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  name: retry-bad-backoff
+do:
+  - op:
+      try:
+        - step:
+            set:
+              x: 1
+      catch:
+        retry:
+          backoff:
+            exponential: {}
+            linear: {}
+`;
+      expect(() => loadWorkflowFromYaml(yaml)).toThrow(
+        "Retry backoff must specify exactly one strategy",
+      );
+    });
+
+    it("handles missing retry config gracefully", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  name: no-retry
+do:
+  - op:
+      try:
+        - step:
+            set:
+              x: 1
+      catch:
+        as: error
+`;
+      const model = loadWorkflowFromYaml(yaml);
+      const task = model.do[0].task;
+      if (task.kind === "try") {
+        expect(task.catch.retry).toBeUndefined();
+      }
+    });
+
+    it("parses golden YAML #21 (retry-backoff)", () => {
+      const model = loadWorkflowFromYaml(loadGolden("21-retry-backoff.yaml"));
+      expect(model.document.name).toBe("retry-backoff-test");
+      expect(model.do).toHaveLength(7);
+
+      expect(model.do[0].task.kind).toBe("set");
+      expect(model.do[1].task.kind).toBe("try");
+      expect(model.do[2].task.kind).toBe("try");
+      expect(model.do[3].task.kind).toBe("try");
+      expect(model.do[4].task.kind).toBe("try");
+      expect(model.do[5].task.kind).toBe("try");
+      expect(model.do[6].task.kind).toBe("set");
+
+      const fixedDelay = model.do[1].task;
+      if (fixedDelay.kind === "try") {
+        const retry = fixedDelay.catch.retry!;
+        expect(retry.delay).toEqual({ seconds: 2 });
+        expect(retry.limit?.attempt?.count).toBe(3);
+        expect(retry.backoff).toBeUndefined();
+      }
+
+      const exponential = model.do[2].task;
+      if (exponential.kind === "try") {
+        const retry = exponential.catch.retry!;
+        expect(retry.delay).toEqual({ seconds: 1 });
+        expect(retry.backoff?.exponential).toEqual({});
+        expect(retry.jitter?.from).toEqual({ milliseconds: 0 });
+        expect(retry.jitter?.to).toEqual({ milliseconds: 200 });
+        expect(retry.limit?.attempt?.count).toBe(4);
+        expect(retry.limit?.duration).toEqual({ seconds: 30 });
+      }
+
+      const conditional = model.do[3].task;
+      if (conditional.kind === "try") {
+        const retry = conditional.catch.retry!;
+        expect(retry.when).toBe("${ $error.status == 429 or $error.status == 503 }");
+        expect(retry.backoff?.constant).toEqual({});
+      }
+
+      const exceptWhen = model.do[4].task;
+      if (exceptWhen.kind === "try") {
+        const retry = exceptWhen.catch.retry!;
+        expect(retry.exceptWhen).toBe('${ $error.type == "auth/token-expired" }');
+      }
+
+      const linear = model.do[5].task;
+      if (linear.kind === "try") {
+        const retry = linear.catch.retry!;
+        expect(retry.delay).toEqual({ milliseconds: 500 });
+        expect(retry.backoff?.linear).toEqual({});
+        expect(retry.limit?.attempt?.count).toBe(3);
+      }
+    });
+
+    it("ignores non-positive-integer attempt count", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  name: retry-bad-count
+do:
+  - op:
+      try:
+        - step:
+            set:
+              x: 1
+      catch:
+        retry:
+          limit:
+            attempt:
+              count: -1
+`;
+      const model = loadWorkflowFromYaml(yaml);
+      const task = model.do[0].task;
+      if (task.kind === "try") {
+        expect(task.catch.retry?.limit?.attempt).toBeUndefined();
+      }
+    });
+  });
+
   describe("fork parsing", () => {
     it("parses fork with branches and compete flag", () => {
       const yaml = `

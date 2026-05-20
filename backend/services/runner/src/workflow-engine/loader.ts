@@ -29,6 +29,11 @@ import type {
   AgentCallConfig,
   CatchConfig,
   RaiseConfig,
+  RetryConfig,
+  RetryLimit,
+  BackoffConfig,
+  JitterConfig,
+  DurationDef,
 } from "./types.js";
 
 const SUPPORTED_DSL_RANGE = ">=1.0.0 <2.0.0";
@@ -302,15 +307,92 @@ function parseCatchConfig(raw: unknown): CatchConfig {
   if (!raw || typeof raw !== "object") return {};
   const catchRaw = raw as Record<string, unknown>;
 
-  const errors = catchRaw.errors as CatchConfig["errors"];
-  const retry = catchRaw.retry as CatchConfig["retry"];
-
   return {
-    errors,
+    errors: catchRaw.errors as CatchConfig["errors"],
     as: typeof catchRaw.as === "string" ? catchRaw.as : undefined,
     when: typeof catchRaw.when === "string" ? catchRaw.when : undefined,
     do: catchRaw.do ? parseTaskList(catchRaw.do) : undefined,
-    retry,
+    retry: catchRaw.retry ? parseRetryConfig(catchRaw.retry) : undefined,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Retry Config Parsing
+// ─────────────────────────────────────────────────────────────────────
+
+function parseRetryConfig(raw: unknown): RetryConfig {
+  if (!raw || typeof raw !== "object") return {};
+  const obj = raw as Record<string, unknown>;
+
+  return {
+    when: typeof obj.when === "string" ? obj.when : undefined,
+    exceptWhen: typeof obj.exceptWhen === "string" ? obj.exceptWhen : undefined,
+    delay: obj.delay ? parseDurationDef(obj.delay) : undefined,
+    backoff: obj.backoff ? parseBackoffConfig(obj.backoff) : undefined,
+    limit: obj.limit ? parseRetryLimit(obj.limit) : undefined,
+    jitter: obj.jitter ? parseJitterConfig(obj.jitter) : undefined,
+  };
+}
+
+function parseDurationDef(raw: unknown): DurationDef {
+  if (!raw || typeof raw !== "object") return {};
+  const obj = raw as Record<string, unknown>;
+  return {
+    days: typeof obj.days === "number" ? obj.days : undefined,
+    hours: typeof obj.hours === "number" ? obj.hours : undefined,
+    minutes: typeof obj.minutes === "number" ? obj.minutes : undefined,
+    seconds: typeof obj.seconds === "number" ? obj.seconds : undefined,
+    milliseconds: typeof obj.milliseconds === "number" ? obj.milliseconds : undefined,
+  };
+}
+
+function parseBackoffConfig(raw: unknown): BackoffConfig {
+  if (!raw || typeof raw !== "object") return {};
+  const obj = raw as Record<string, unknown>;
+
+  const strategies = ["constant", "exponential", "linear"] as const;
+  const present = strategies.filter((s) => s in obj);
+
+  if (present.length > 1) {
+    throw new Error(
+      `Retry backoff must specify exactly one strategy (constant, exponential, or linear), ` +
+      `got: ${present.join(", ")}`,
+    );
+  }
+
+  return {
+    constant: obj.constant != null ? (obj.constant as Record<string, unknown>) : undefined,
+    exponential: obj.exponential != null ? (obj.exponential as Record<string, unknown>) : undefined,
+    linear: obj.linear != null ? (obj.linear as Record<string, unknown>) : undefined,
+  };
+}
+
+function parseRetryLimit(raw: unknown): RetryLimit {
+  if (!raw || typeof raw !== "object") return {};
+  const obj = raw as Record<string, unknown>;
+
+  let attempt: RetryLimit["attempt"];
+  if (obj.attempt && typeof obj.attempt === "object") {
+    const attemptRaw = obj.attempt as Record<string, unknown>;
+    const count = attemptRaw.count;
+    if (typeof count === "number" && count > 0 && Number.isInteger(count)) {
+      attempt = { count };
+    }
+  }
+
+  return {
+    attempt,
+    duration: obj.duration ? parseDurationDef(obj.duration) : undefined,
+  };
+}
+
+function parseJitterConfig(raw: unknown): JitterConfig {
+  if (!raw || typeof raw !== "object") return {};
+  const obj = raw as Record<string, unknown>;
+
+  return {
+    from: obj.from ? parseDurationDef(obj.from) : undefined,
+    to: obj.to ? parseDurationDef(obj.to) : undefined,
   };
 }
 
