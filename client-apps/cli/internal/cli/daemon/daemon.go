@@ -62,6 +62,11 @@ type StartOptions struct {
 	Secrets          map[string]string
 	OnLLMSetupFailed func(err error)
 
+	// ActivityRouting controls how the server dispatches Temporal activities.
+	// "global" (default): all activities go to a shared runner queue.
+	// "session": activities route to per-session queues (session:{id}).
+	ActivityRouting string
+
 	// ServerOnly starts only the control plane (Temporal + stigmer-server +
 	// web console) without workflow-runner or agent-runner. This is the
 	// foundation for `stigmer up server` which starts the control plane
@@ -304,6 +309,10 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 			fmt.Sprintf("STIGMER_CURSOR_RUNNER_APP_DIR=%s", cursorResult.AppDir),
 			fmt.Sprintf("STIGMER_CURSOR_RUNNER_ENTRY_ARGS=%s", strings.Join(cursorResult.EntryArgs, ",")),
 		)
+	}
+
+	if opts.ActivityRouting != "" {
+		env = append(env, fmt.Sprintf("STIGMER_ACTIVITY_ROUTING=%s", opts.ActivityRouting))
 	}
 
 	if opts.ServerOnly {

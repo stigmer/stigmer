@@ -8,7 +8,7 @@ import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution
  * Compares two `AgentExecution` snapshots and returns a hybrid object
  * that reuses old references for unchanged subtrees.
  *
- * The runner appends new messages and mutates the streaming tail.
+ * The backend appends new messages and mutates the streaming tail.
  * Messages at stable indices with unchanged content keep the previous
  * reference so downstream `React.memo` can skip re-renders.
  *
@@ -48,8 +48,7 @@ export function structuralShare(
     prevStatus.phase === nextStatus.phase &&
     prevStatus.error === nextStatus.error &&
     prevStatus.startedAt === nextStatus.startedAt &&
-    prevStatus.completedAt === nextStatus.completedAt &&
-    prevStatus.runnerId === nextStatus.runnerId;
+    prevStatus.completedAt === nextStatus.completedAt;
 
   if (
     messagesUnchanged &&

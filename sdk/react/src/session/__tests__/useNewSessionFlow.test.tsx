@@ -62,17 +62,6 @@ vi.mock("../../execution/useSessionVariables", () => ({
   useSessionVariables: () => mockSessionVariables,
 }));
 
-const mockRunnerList = {
-  runners: [] as { metadata?: { id: string; name?: string } }[],
-  isLoading: false,
-  isRefetching: false,
-  error: null,
-  refetch: vi.fn(),
-};
-vi.mock("../../runner/useRunnerList", () => ({
-  useRunnerList: () => mockRunnerList,
-}));
-
 import { useNewSessionFlow } from "../useNewSessionFlow";
 
 const TEST_MODELS = parseRegistryJson({
@@ -113,8 +102,6 @@ describe("useNewSessionFlow", () => {
     };
     mockDefaultAgent.isLoading = false;
     mockDefaultAgent.error = null;
-    mockRunnerList.runners = [];
-    mockRunnerList.isLoading = false;
     mockCreateSession.mockResolvedValue({ sessionId: "sess-new" });
     mockCreateExecution.mockResolvedValue({});
   });
@@ -246,39 +233,6 @@ describe("useNewSessionFlow", () => {
 
       // Should extract plain modelId and validate against registry
       expect(result.current.modelId).toBe(DEFAULT_CURSOR_MODEL_ID);
-    });
-  });
-
-  describe("runner validation gate", () => {
-    it("restores runner when it exists in the live runner list", () => {
-      localStorage.setItem("stigmer:session:runner", "runner-abc");
-      mockRunnerList.runners = [{ metadata: { id: "runner-abc", name: "My Runner" } }];
-      mockRunnerList.isLoading = false;
-
-      const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
-
-      expect(result.current.runnerId).toBe("runner-abc");
-    });
-
-    it("discards stale runner that no longer exists in the runner list", () => {
-      localStorage.setItem("stigmer:session:runner", "deleted-runner");
-      mockRunnerList.runners = [{ metadata: { id: "runner-abc", name: "My Runner" } }];
-      mockRunnerList.isLoading = false;
-
-      const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
-
-      expect(result.current.runnerId).toBeNull();
-      expect(localStorage.getItem("stigmer:session:runner")).toBeNull();
-    });
-
-    it("does not restore runner while runner list is loading", () => {
-      localStorage.setItem("stigmer:session:runner", "runner-abc");
-      mockRunnerList.runners = [];
-      mockRunnerList.isLoading = true;
-
-      const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
-
-      expect(result.current.runnerId).toBeNull();
     });
   });
 

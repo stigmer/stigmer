@@ -5,9 +5,9 @@ import { useCallback, useSyncExternalStore } from "react";
 const STORAGE_KEY_PREFIX = "stigmer:recent-workspaces:";
 const MAX_RECENT = 8;
 
-/** A recently used or favorited workspace path for a specific runner. */
+/** A recently used or favorited workspace path. */
 export interface RecentWorkspace {
-  /** Absolute path on the runner's filesystem. */
+  /** Absolute path on the filesystem. */
   readonly path: string;
   /** Whether the user pinned this path as a favorite. */
   readonly pinned: boolean;
@@ -27,13 +27,13 @@ export interface UseRecentWorkspacesReturn {
   readonly remove: (path: string) => void;
 }
 
-function storageKey(runnerId: string): string {
-  return `${STORAGE_KEY_PREFIX}${runnerId}`;
+function storageKey(scopeId: string): string {
+  return `${STORAGE_KEY_PREFIX}${scopeId}`;
 }
 
-function readEntries(runnerId: string): RecentWorkspace[] {
+function readEntries(scopeId: string): RecentWorkspace[] {
   try {
-    const raw = localStorage.getItem(storageKey(runnerId));
+    const raw = localStorage.getItem(storageKey(scopeId));
     if (!raw) return [];
     return JSON.parse(raw) as RecentWorkspace[];
   } catch {
@@ -41,9 +41,9 @@ function readEntries(runnerId: string): RecentWorkspace[] {
   }
 }
 
-function writeEntries(runnerId: string, entries: RecentWorkspace[]): void {
+function writeEntries(scopeId: string, entries: RecentWorkspace[]): void {
   try {
-    localStorage.setItem(storageKey(runnerId), JSON.stringify(entries));
+    localStorage.setItem(storageKey(scopeId), JSON.stringify(entries));
   } catch {
     // localStorage full or unavailable — silently degrade.
   }
@@ -71,43 +71,43 @@ function subscribe(callback: () => void): () => void {
 
 const EMPTY: readonly RecentWorkspace[] = [];
 
-let cachedRunnerId: string | null = null;
+let cachedScopeId: string | null = null;
 let cachedVersion = -1;
 let cachedResult: readonly RecentWorkspace[] = EMPTY;
 
-function getSnapshot(runnerId: string | null): readonly RecentWorkspace[] {
-  if (!runnerId) return EMPTY;
-  if (runnerId === cachedRunnerId && snapshotVersion === cachedVersion) {
+function getSnapshot(scopeId: string | null): readonly RecentWorkspace[] {
+  if (!scopeId) return EMPTY;
+  if (scopeId === cachedScopeId && snapshotVersion === cachedVersion) {
     return cachedResult;
   }
-  cachedRunnerId = runnerId;
+  cachedScopeId = scopeId;
   cachedVersion = snapshotVersion;
-  cachedResult = sortEntries(readEntries(runnerId));
+  cachedResult = sortEntries(readEntries(scopeId));
   return cachedResult;
 }
 
 /**
- * Manages recently used workspace paths for a specific runner,
- * persisted in `localStorage`.
+ * Manages recently used workspace paths, persisted in `localStorage`.
  *
- * Entries are keyed by `runner_id` so each runner maintains its own
- * history. Pinned paths appear first, then by most-recently-used.
+ * Entries are keyed by `scopeId` (e.g. a session ID or machine identifier)
+ * so each scope maintains its own history. Pinned paths appear first,
+ * then by most-recently-used.
  *
- * @param runnerId - Runner to scope the history to. When `null`, returns empty.
+ * @param scopeId - Scope to key the history to. When `null`, returns empty.
  */
 export function useRecentWorkspaces(
-  runnerId: string | null,
+  scopeId: string | null,
 ): UseRecentWorkspacesReturn {
   const entries = useSyncExternalStore(
     subscribe,
-    () => getSnapshot(runnerId),
+    () => getSnapshot(scopeId),
     () => EMPTY,
   );
 
   const recordSelection = useCallback(
     (path: string) => {
-      if (!runnerId) return;
-      const existing = readEntries(runnerId);
+      if (!scopeId) return;
+      const existing = readEntries(scopeId);
       const idx = existing.findIndex((e) => e.path === path);
       const now = Date.now();
 
@@ -128,34 +128,34 @@ export function useRecentWorkspaces(
         }
       }
 
-      writeEntries(runnerId, updated);
+      writeEntries(scopeId, updated);
       notifyListeners();
     },
-    [runnerId],
+    [scopeId],
   );
 
   const togglePin = useCallback(
     (path: string) => {
-      if (!runnerId) return;
-      const existing = readEntries(runnerId);
+      if (!scopeId) return;
+      const existing = readEntries(scopeId);
       const idx = existing.findIndex((e) => e.path === path);
       if (idx < 0) return;
       const updated = [...existing];
       updated[idx] = { ...updated[idx], pinned: !updated[idx].pinned };
-      writeEntries(runnerId, updated);
+      writeEntries(scopeId, updated);
       notifyListeners();
     },
-    [runnerId],
+    [scopeId],
   );
 
   const remove = useCallback(
     (path: string) => {
-      if (!runnerId) return;
-      const updated = readEntries(runnerId).filter((e) => e.path !== path);
-      writeEntries(runnerId, updated);
+      if (!scopeId) return;
+      const updated = readEntries(scopeId).filter((e) => e.path !== path);
+      writeEntries(scopeId, updated);
       notifyListeners();
     },
-    [runnerId],
+    [scopeId],
   );
 
   return { entries, recordSelection, togglePin, remove };

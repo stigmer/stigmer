@@ -14,8 +14,65 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-20
-**Current Task**: T05 Complete — T06 ready to start
-**Status**: Runner API fully deleted from both OSS and Cloud. Per-session task queue routing implemented in both Go (stigmer-server) and Java (stigmer-service). Dispatch mirrors between both control planes.
+**Current Task**: T06 in progress — T06a/b/d complete, T06c blocked on architecture decision
+**Status**: Runner API vestiges cleaned from SDK and client apps. CLI wired with `--activity-routing` flag. File browsing migrated to native Tauri IPC. Per-session worker spawning design pending.
+
+## Session Progress (2026-05-20, Session 6)
+
+### What was accomplished
+- **T06a: SDK and client app runner cleanup**
+  - Removed 47 runner references from `SessionComposer` (runnerId prop, showRunner, RunnerConfigPanel, WorkspaceRunnerSelector, runner imports from deleted `src/runner/`)
+  - Removed `RunnerFileBrowser` import and runner props from `WorkspaceEditor`
+  - Cleaned `useRecentWorkspaces` — renamed `runnerId` param to `scopeId`
+  - Removed `"runner"` type from `ContextChip` and `RunnerIcon` from icons
+  - Removed `runnerId` from `structural-share.ts` equality check
+  - Removed `"runner"` case from `useDeleteResource` DeletableResourceKind
+  - Cleaned stale `runnerId={flow.runnerId}` from both desktop and web `SessionLauncher`
+  - Deleted web runner pages (`/runners`, `/runners/[id]`, `/settings/runners`), domain files, and sidebar link
+  - Removed runner mock and runner validation tests from `useNewSessionFlow.test.tsx`
+  - All `tsc --noEmit` clean across sdk/react, desktop, and web
+  - All 475 SDK tests pass, 3 desktop tests pass
+
+- **T06b: CLI activity routing flag**
+  - Added `ActivityRouting` to `daemon.StartOptions`
+  - Added `--activity-routing` flag to `stigmer up` and `stigmer up server`
+  - Wired through to `STIGMER_ACTIVITY_ROUTING` env var in daemon process env
+  - CLI `go build` clean
+
+- **T06d: File browsing via native Tauri IPC**
+  - Already complete: `onBrowseLocalFolder` via `useNativeFolderPicker` is the replacement
+  - `WorkspaceEditor` now only shows Browse Folder when `onBrowseLocalFolder` is provided
+  - No `RunnerFileBrowser` or runner-gated browsing remains
+
+### Key changes
+1. **`sdk/react/src/composer/SessionComposer.tsx`**: ~200 lines removed — runner imports, props, state, chips, config panel, `RunnerConfigPanel` component
+2. **`sdk/react/src/workspace/WorkspaceEditor.tsx`**: RunnerFileBrowser import and drill-in removed, runner props removed, `canBrowse` simplified to `enableLocal`
+3. **`sdk/react/src/workspace/useRecentWorkspaces.ts`**: `runnerId` → `scopeId` throughout
+4. **`sdk/react/src/composer/ContextChip.tsx`**: `"runner"` type removed
+5. **`sdk/react/src/composer/icons.tsx`**: `RunnerIcon` export deleted
+6. **`sdk/react/src/internal/store/structural-share.ts`**: `runnerId` equality check removed
+7. **`sdk/react/src/resource-detail/useDeleteResource.ts`**: `"runner"` case removed
+8. **Client apps**: Both `SessionLauncher` files cleaned; web runner pages/routes/sidebar deleted
+9. **CLI**: `--activity-routing` flag added to `stigmer up`, wired through daemon env
+
+### Decisions made
+- Runner vestiges in SDK were more extensive than T02 notes suggested — the SessionComposer, WorkspaceEditor, and web runner pages all survived the T02 deletion
+- `useRecentWorkspaces` kept with `scopeId` parameter (preserves localStorage data compatibility)
+- Web runner pages deleted entirely (no user-facing runner management in the new architecture)
+- T06d effectively complete via existing `onBrowseLocalFolder`/`useNativeFolderPicker` pattern
+
+### Surprises discovered
+- Web app had full runner management pages (`/runners`, runner detail page, sidebar link) that were NOT cleaned in T02
+- `useDeleteResource` in the SDK had a `"runner"` case calling `stigmer.runner.delete()` — would have been a runtime error
+- `structural-share.ts` compared `runnerId` on execution status — stale since proto field was deleted
+
+## Next Steps
+
+1. **T06c: Per-session worker spawning** — requires architecture decision:
+   - Option A (recommended): CLI daemon manages workers — thin desktop, works from CLI too
+   - Option B: Desktop manages via sidecar commands — simpler notification but splits supervision
+   - Option C: Hybrid with dynamic queue registration — blocked by Temporal limitation
+2. **Cloud sandbox provisioning** — design `EnsureSessionSandbox` Temporal activity
 
 ## Session Progress (2026-05-20, Session 5)
 
