@@ -261,6 +261,7 @@ export interface CatchErrors {
 
 export interface RetryConfig {
   readonly when?: string;
+  readonly exceptWhen?: string;
   readonly limit?: RetryLimit;
   readonly backoff?: BackoffConfig;
   readonly jitter?: JitterConfig;
