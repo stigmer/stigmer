@@ -27,6 +27,8 @@ import type {
   OutputDef,
   ExportDef,
   AgentCallConfig,
+  CatchConfig,
+  RaiseConfig,
 } from "./types.js";
 
 const SUPPORTED_DSL_RANGE = ">=1.0.0 <2.0.0";
@@ -188,7 +190,7 @@ function discriminateTask(taskName: string, raw: Record<string, unknown>): TaskD
   }
 
   if ("raise" in raw) {
-    return { kind: "raise", ...base, raise: raw.raise as any };
+    return { kind: "raise", ...base, raise: parseRaiseConfig(taskName, raw.raise) };
   }
 
   if ("call" in raw) {
@@ -288,15 +290,19 @@ function parseSwitchCases(raw: unknown): SwitchCase[] {
 // Catch Config
 // ─────────────────────────────────────────────────────────────────────
 
-function parseCatchConfig(raw: unknown): any {
+function parseCatchConfig(raw: unknown): CatchConfig {
   if (!raw || typeof raw !== "object") return {};
   const catchRaw = raw as Record<string, unknown>;
+
+  const errors = catchRaw.errors as CatchConfig["errors"];
+  const retry = catchRaw.retry as CatchConfig["retry"];
+
   return {
-    errors: catchRaw.errors,
+    errors,
     as: typeof catchRaw.as === "string" ? catchRaw.as : undefined,
     when: typeof catchRaw.when === "string" ? catchRaw.when : undefined,
     do: catchRaw.do ? parseTaskList(catchRaw.do) : undefined,
-    retry: catchRaw.retry,
+    retry,
   };
 }
 
@@ -328,6 +334,39 @@ function parseExportDef(raw: unknown): ExportDef {
   return {
     as: obj.as as string | Record<string, unknown> | undefined,
     schema: obj.schema as Record<string, unknown> | undefined,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Raise Config Parsing
+// ─────────────────────────────────────────────────────────────────────
+
+function parseRaiseConfig(taskName: string, raw: unknown): RaiseConfig {
+  if (!raw || typeof raw !== "object") {
+    throw new Error(`raise task '${taskName}' requires an error definition`);
+  }
+  const obj = raw as Record<string, unknown>;
+
+  const errorDef = obj.error as Record<string, unknown> | undefined;
+  if (!errorDef || typeof errorDef !== "object") {
+    throw new Error(`raise task '${taskName}' requires 'error' in raise definition`);
+  }
+
+  if (typeof errorDef.type !== "string" || !errorDef.type) {
+    throw new Error(`raise task '${taskName}' requires 'error.type' (string)`);
+  }
+  if (typeof errorDef.status !== "number") {
+    throw new Error(`raise task '${taskName}' requires 'error.status' (number)`);
+  }
+
+  return {
+    error: {
+      type: errorDef.type,
+      status: errorDef.status,
+      title: typeof errorDef.title === "string" ? errorDef.title : undefined,
+      detail: typeof errorDef.detail === "string" ? errorDef.detail : undefined,
+      instance: typeof errorDef.instance === "string" ? errorDef.instance : undefined,
+    },
   };
 }
 

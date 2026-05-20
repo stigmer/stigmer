@@ -514,5 +514,171 @@ do:
       expect(() => loadWorkflowFromYaml(yaml)).toThrow("call:agent task requires a 'with' configuration block");
     });
   });
+
+  describe("try/catch parsing", () => {
+    it("parses a try/catch task with catch.as and catch.do", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  name: try-test
+do:
+  - tryCatch:
+      try:
+        - attempt:
+            set:
+              x: 1
+      catch:
+        as: error
+        do:
+          - recover:
+              set:
+                recovered: true
+`;
+      const model = loadWorkflowFromYaml(yaml);
+      expect(model.do).toHaveLength(1);
+
+      const task = model.do[0].task;
+      expect(task.kind).toBe("try");
+      if (task.kind === "try") {
+        expect(task.try).toHaveLength(1);
+        expect(task.try[0].key).toBe("attempt");
+        expect(task.catch.as).toBe("error");
+        expect(task.catch.do).toHaveLength(1);
+        expect(task.catch.do![0].key).toBe("recover");
+      }
+    });
+
+    it("parses catch.errors.with filter", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  name: filter-test
+do:
+  - tryCatch:
+      try:
+        - step:
+            set:
+              x: 1
+      catch:
+        errors:
+          with:
+            type: test/validation
+            status: 400
+        do:
+          - handle:
+              set:
+                handled: true
+`;
+      const model = loadWorkflowFromYaml(yaml);
+      const task = model.do[0].task;
+      if (task.kind === "try") {
+        expect(task.catch.errors?.with).toEqual({ type: "test/validation", status: 400 });
+      }
+    });
+
+    it("parses 08-error-retry.yaml (golden parity)", () => {
+      const model = loadWorkflowFromYaml(loadGolden("08-error-retry.yaml"));
+      expect(model.document.name).toBe("error-retry-test");
+      expect(model.do).toHaveLength(1);
+
+      const task = model.do[0].task;
+      expect(task.kind).toBe("try");
+      if (task.kind === "try") {
+        expect(task.try).toHaveLength(1);
+        expect(task.try[0].key).toBe("attemptCall");
+        expect(task.catch.as).toBe("error");
+        expect(task.catch.do).toHaveLength(1);
+        expect(task.catch.do![0].key).toBe("errorHandler");
+      }
+    });
+
+    it("parses 14-try-catch-raise.yaml", () => {
+      const model = loadWorkflowFromYaml(loadGolden("14-try-catch-raise.yaml"));
+      expect(model.document.name).toBe("try-catch-raise-test");
+      expect(model.do).toHaveLength(5);
+
+      expect(model.do[0].task.kind).toBe("set");
+      expect(model.do[1].task.kind).toBe("try");
+      expect(model.do[2].task.kind).toBe("try");
+      expect(model.do[3].task.kind).toBe("try");
+      expect(model.do[4].task.kind).toBe("set");
+
+      const basicTry = model.do[1].task;
+      if (basicTry.kind === "try") {
+        expect(basicTry.try[0].task.kind).toBe("raise");
+        expect(basicTry.catch.as).toBe("validationError");
+      }
+
+      const filteredTry = model.do[2].task;
+      if (filteredTry.kind === "try") {
+        expect(filteredTry.catch.errors?.with).toEqual({
+          type: "https://serverlessworkflow.io/spec/1.0.0/errors/timeout",
+        });
+      }
+
+      const nestedTry = model.do[3].task;
+      if (nestedTry.kind === "try") {
+        expect(nestedTry.try).toHaveLength(3);
+        expect(nestedTry.try[1].task.kind).toBe("try");
+      }
+    });
+  });
+
+  describe("raise parsing", () => {
+    it("parses a raise task with all fields", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  name: raise-test
+do:
+  - throwError:
+      raise:
+        error:
+          type: custom/validation
+          status: 400
+          title: Validation Error
+          detail: Field is required
+          instance: exec-123
+`;
+      const model = loadWorkflowFromYaml(yaml);
+      const task = model.do[0].task;
+      expect(task.kind).toBe("raise");
+      if (task.kind === "raise") {
+        expect(task.raise.error.type).toBe("custom/validation");
+        expect(task.raise.error.status).toBe(400);
+        expect(task.raise.error.title).toBe("Validation Error");
+        expect(task.raise.error.detail).toBe("Field is required");
+        expect(task.raise.error.instance).toBe("exec-123");
+      }
+    });
+
+    it("throws when raise.error.type is missing", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  name: bad-raise
+do:
+  - throwError:
+      raise:
+        error:
+          status: 500
+`;
+      expect(() => loadWorkflowFromYaml(yaml)).toThrow("requires 'error.type'");
+    });
+
+    it("throws when raise.error.status is missing", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  name: bad-raise
+do:
+  - throwError:
+      raise:
+        error:
+          type: test/error
+`;
+      expect(() => loadWorkflowFromYaml(yaml)).toThrow("requires 'error.status'");
+    });
+  });
 });
 

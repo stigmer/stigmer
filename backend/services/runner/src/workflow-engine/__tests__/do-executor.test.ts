@@ -407,4 +407,93 @@ describe("executeDoTasks", () => {
       ]);
     });
   });
+
+  describe("try/catch execution", () => {
+    it("executes try/catch in a do-executor task list", async () => {
+      const tasks: TaskList = [
+        { key: "before", task: { kind: "set", set: { step: "before" } } },
+        {
+          key: "tryCatch",
+          task: {
+            kind: "try",
+            try: [{ key: "fail", task: {
+              kind: "raise",
+              raise: { error: { type: "test/error", status: 500, title: "Boom" } },
+            }}],
+            catch: {
+              as: "error",
+              do: [{ key: "recover", task: { kind: "set", set: { recovered: true } } }],
+            },
+          },
+        },
+        { key: "after", task: { kind: "set", set: { step: "after" } } },
+      ];
+
+      const state = createState();
+      await executeDoTasks(tasks, null, state, doc, evaluateExpressionBatch);
+
+      expect(state.data.step).toBe("after");
+      expect(state.data.recovered).toBe(true);
+      expect(state.data.error).toBeDefined();
+    });
+
+    it("handles raise-then-catch pipeline", async () => {
+      const tasks: TaskList = [
+        {
+          key: "tryCatch",
+          task: {
+            kind: "try",
+            try: [
+              { key: "setup", task: { kind: "set", set: { started: true } } },
+              { key: "fail", task: {
+                kind: "raise",
+                raise: { error: { type: "test/validation", status: 400, detail: "bad input" } },
+              }},
+              { key: "unreachable", task: { kind: "set", set: { never: true } } },
+            ],
+            catch: {
+              as: "caught",
+              do: [{ key: "handle", task: { kind: "set", set: { handled: true } } }],
+            },
+          },
+        },
+      ];
+
+      const state = createState();
+      await executeDoTasks(tasks, null, state, doc, evaluateExpressionBatch);
+
+      expect(state.data.started).toBe(true);
+      expect(state.data.never).toBeUndefined();
+      expect(state.data.handled).toBe(true);
+      const caught = state.data.caught as Record<string, unknown>;
+      expect(caught.type).toBe("test/validation");
+      expect(caught.detail).toBe("bad input");
+    });
+
+    it("propagates unhandled error from try block", async () => {
+      const tasks: TaskList = [
+        {
+          key: "tryCatch",
+          task: {
+            kind: "try",
+            try: [{ key: "fail", task: {
+              kind: "raise",
+              raise: { error: { type: "test/timeout", status: 408 } },
+            }}],
+            catch: {
+              errors: { with: { type: "test/validation" } },
+              do: [{ key: "handle", task: { kind: "set", set: { caught: true } } }],
+            },
+          },
+        },
+      ];
+
+      const state = createState();
+      await expect(
+        executeDoTasks(tasks, null, state, doc, evaluateExpressionBatch),
+      ).rejects.toThrow();
+
+      expect(state.data.caught).toBeUndefined();
+    });
+  });
 });

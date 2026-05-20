@@ -14,10 +14,41 @@ Drop this file into your conversation to quickly resume work on this project.
 
 **Created**: 2026-05-19
 **Current Task**: Phase 5 — Advanced Tasks
-**Status**: NOT STARTED
-**Last Session**: 2026-05-20, Session 6
+**Status**: IN PROGRESS (5.1 complete, 5.2+ pending)
+**Last Session**: 2026-05-20, Session 7
 
-## Session Progress (2026-05-20, Session 6)
+## Session Progress (2026-05-20, Session 7)
+
+### Accomplishments — Phase 5.1: Try/Catch + Raise
+- **5.1.1 WorkflowError class**: `WorkflowError extends Error` with CNCF error shape (`type`, `status`, `title`, `detail`, `instance`), `toJSON()` serialization, `fromUnknown()` wrapping, `matches()` error filtering — sandbox-safe, zero dependencies
+- **5.1.2 Try/catch executor**: `executeTryTask()` with full error handling pipeline — error normalization via `fromUnknown()`, error filtering via `catch.errors.with` (type + status exact match), conditional catch via `catch.when` (jq expression with `$error` binding), error capture via `catch.as` (binds `toJSON()` into state.data), catch.do task list execution
+- **5.1.3 Raise task builder**: `RaiseTaskBuilder` throws typed `WorkflowError` with jq expression evaluation in `title` and `detail` fields
+- **5.1.4 Wiring**: `do-executor.ts` dispatches `TRY_TASK_KIND` via `executeTryTask()` (same pattern as `for`); `task-factory.ts` registers `raise` → `RaiseTaskBuilder` + `try` → `TryTaskPlaceholderBuilder`; `loader.ts` replaces `raw.raise as any` with validated `parseRaiseConfig()` and types `parseCatchConfig()` return
+- **5.1.5 Testing**: 42 new tests — WorkflowError (16), try/catch executor (12), raise builder (5), loader (9 additions), do-executor (3 additions). All existing tests unchanged.
+- **5.1.6 Golden YAML #14**: `14-try-catch-raise.yaml` — basic try/catch, raise, catch.as binding, error filtering by type, nested try/catch
+- **Zero regressions**, 1201 total tests passing, `tsc --noEmit` clean
+
+### Key Architectural Decisions
+- **Dedicated handler in do-executor** — try/catch follows the same pattern as `do` and `for`: handled as a special case in `runSingleTask()` with a dedicated executor function and a placeholder builder in the task factory. Orchestration tasks don't fit the single-shot `TaskExecutorFn` pattern.
+- **WorkflowError as the universal error shape** — all errors caught by try blocks are normalized to `WorkflowError` via `fromUnknown()`. This gives catch blocks a consistent structure regardless of error source (raise, activity failure, runtime error).
+- **catch.as actually works** — unlike Go, which parses `catch.as` but never binds the error into state, our implementation properly injects the error JSON into `state.data[catch.as]`, making `${ .error }` expressions work in catch blocks.
+- **Retry deferred to Phase 5.1b** — retry with delay requires `sleep` on `TaskExecutionContext` (kernel contract change affecting all test mocks). No platform workflow uses catch-level retry today. Types and parsing already exist; execution is purely additive.
+- **No changes to TaskExecutionContext** — the entire Phase 5.1 was implemented without modifying the kernel contract, execute-serverless-workflow.ts, or existing test mocks. Clean, focused, additive.
+
+### Files Created
+- **Created**: `backend/services/runner/src/workflow-engine/errors.ts` (~130 lines)
+- **Created**: `backend/services/runner/src/workflow-engine/tasks/try.ts` (~170 lines)
+- **Created**: `backend/services/runner/src/workflow-engine/tasks/raise.ts` (~80 lines)
+- **Created**: 3 test files (33 tests)
+- **Created**: `backend/services/workflow-runner/test/golden/14-try-catch-raise.yaml` (~90 lines)
+
+### Files Modified
+- **Modified**: `backend/services/runner/src/workflow-engine/do-executor.ts` (+16 lines — TRY_TASK_KIND handling, import)
+- **Modified**: `backend/services/runner/src/workflow-engine/task-factory.ts` (+10 lines — raise + try dispatch)
+- **Modified**: `backend/services/runner/src/workflow-engine/loader.ts` (+47 lines — parseRaiseConfig validation, typed parseCatchConfig)
+- **Modified**: 2 test files (+9 tests — loader try/catch/raise parsing, do-executor try/catch flow)
+
+## Previous Session Progress (2026-05-20, Session 6)
 
 ### Accomplishments — Phase 4b: call:agent (Async Completion + HITL)
 - **4b.1 StigmerClient**: Extended with `getAgentByReference`, `createSession`, `createAgentExecution`, `updateWorkflowExecutionStatus` using Connect-RPC + existing transport patterns
@@ -107,9 +138,11 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-1. **Phase 5: Advanced Tasks** — try/catch, wait/listen, emit_event, notification, human_input, fork (parallel)
-2. **Phase 6: Supporting Infrastructure** — claimcheck, heartbeat, interceptors, OTel, event emission, budget tracking
-3. **Phase 7: Integration Testing** — 13 golden YAMLs passing identically, regression suite
+1. **Phase 5.1b: Retry** (optional) — add `sleep` callback to `TaskExecutionContext`, implement retry loop with backoff in `executeTryTask()`, update test mocks
+2. **Phase 5.2: Fork (parallel)** — parallel execution branches, architecturally significant
+3. **Phase 5.3: Remaining Advanced Tasks** — wait/listen, emit_event, notification, human_input
+4. **Phase 6: Supporting Infrastructure** — claimcheck, heartbeat, interceptors, OTel, event emission, budget tracking
+5. **Phase 7: Integration Testing** — 14 golden YAMLs passing identically, regression suite
 
 ## Context for Resume
 
@@ -125,7 +158,9 @@ Drop this file into your conversation to quickly resume work on this project.
 - `executeDoTasks()` now accepts an optional `TaskExecutionContext` parameter; when omitted, `buildMinimalContext()` creates a fallback with throwing stubs for call callbacks
 - The Go reference implementation is at `backend/services/workflow-runner/pkg/zigflow/` (~12.7K lines, 22 packages)
 - Golden test YAMLs are at `backend/services/workflow-runner/test/golden/` (12 canonical workflows)
-- Executable task types: `set`, `switch`, `do`, `for`, `call:http`, `call:grpc`, `call:agent`, `call:function`. All others parse but throw at runtime.
+- **New in Phase 5.1**: `try/catch` uses a dedicated executor (`executeTryTask()`) dispatched from `runSingleTask()` — same pattern as `do` and `for`. `WorkflowError` class normalizes all caught errors to CNCF shape for filtering and state binding.
+- **New in Phase 5.1**: `raise` task throws typed `WorkflowError` with expression evaluation in title/detail. Integrated via `RaiseTaskBuilder` in the task factory.
+- Executable task types: `set`, `switch`, `do`, `for`, `try`, `raise`, `call:http`, `call:grpc`, `call:agent`, `call:function`. Remaining: `fork`, `wait`, `listen`, `run`.
 
 ## Prior Research
 
@@ -147,7 +182,7 @@ Full report: `_projects/2026-05/20260518.01.unified-runner-migration/research.wo
 | 2 | Simple Task Types — for, nested iteration | 1-2 | **COMPLETE** (26 tests, 583 LOC) |
 | 3 | Expression Engine (full) — Temporal integration, local activity, input/output transforms | 1-2 | **COMPLETE** (24 tests, ~670 LOC) |
 | 4 | External Call Tasks — call_http, call_grpc, call_llm, call_agent | 3-4 | **COMPLETE** (100 tests, ~2,200 LOC) |
-| 5 | Advanced Tasks — try/catch, wait/listen, emit_event, notification, human_input, fork | 2-3 | NOT STARTED |
+| 5 | Advanced Tasks — try/catch, wait/listen, emit_event, notification, human_input, fork | 2-3 | **IN PROGRESS** (5.1 try/catch+raise COMPLETE, 42 tests) |
 | 6 | Supporting Infrastructure — claimcheck, heartbeat, interceptors, OTel | 2-3 | Blocked on Phase 5 |
 | 7 | Integration Testing — 13 golden YAMLs, regression suite | 3-4 | Blocked on Phase 5 |
 | 8 | Deployment & Cutover — Docker, CI, gradual rollout | 2-3 | Blocked on Phase 7 |
@@ -162,7 +197,7 @@ Full report: `_projects/2026-05/20260518.01.unified-runner-migration/research.wo
 - **Go call:grpc reference**: `backend/services/workflow-runner/pkg/zigflow/tasks/task_builder_call_grpc.go`
 - **Go call:llm reference**: `backend/services/workflow-runner/pkg/zigflow/tasks/task_builder_call_llm.go`
 - **Go call:agent reference**: `backend/services/workflow-runner/pkg/zigflow/tasks/task_builder_call_agent.go` (~1,500 lines)
-- **Golden test YAMLs**: `backend/services/workflow-runner/test/golden/` (12 canonical workflows)
+- **Golden test YAMLs**: `backend/services/workflow-runner/test/golden/` (14 canonical workflows)
 - **Runtime expressions**: `backend/services/workflow-runner/pkg/utils/runtime_expressions.go`
 - **Unified runner project**: `_projects/2026-05/20260518.01.unified-runner-migration/`
 - **PoC results**: `_projects/2026-05/20260519.01.workflow-runner-typescript-rewrite/poc/results/`
@@ -176,6 +211,10 @@ Full report: `_projects/2026-05/20260518.01.unified-runner-migration/research.wo
 - **TS call:agent task builder**: `backend/services/runner/src/workflow-engine/tasks/call-agent.ts` (kernel, expression eval, output validation)
 - **TS structured output validation**: `backend/services/runner/src/workflow-engine/tasks/call-agent-output.ts`
 - **Golden YAML #13**: `backend/services/workflow-runner/test/golden/13-agent-call.yaml` (code review triage)
+- **TS WorkflowError**: `backend/services/runner/src/workflow-engine/errors.ts` (CNCF error shape, serialization, filtering)
+- **TS try/catch executor**: `backend/services/runner/src/workflow-engine/tasks/try.ts` (executeTryTask, placeholder builder)
+- **TS raise task builder**: `backend/services/runner/src/workflow-engine/tasks/raise.ts` (throw typed errors)
+- **Golden YAML #14**: `backend/services/workflow-runner/test/golden/14-try-catch-raise.yaml` (try/catch/raise)
 
 ---
 
