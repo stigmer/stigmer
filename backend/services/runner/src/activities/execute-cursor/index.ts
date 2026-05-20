@@ -66,7 +66,7 @@ import { ContextTracker } from "./context-tracker.js";
 import { RecordLlmCallUsageInputSchema } from "@stigmer/protos/ai/stigmer/billing/v1/io_pb";
 import { TokenUsageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
 import { UsageCompletionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
-import { RunnerUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
+import { StreamingUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
 import { buildSessionMemory, persistSessionMemory, estimateTokens } from "./session-memory.js";
 import { activityStarted, activityFinished } from "../../idle-watchdog.js";
 
@@ -389,7 +389,7 @@ async function executeCursor(
 
       const shouldPersist = eventCount % 20 === 0 || deltaEnricher.isDirty || todoTracker.isDirty;
       if (usageAccumulator.hasTurns) {
-        status.runnerUsage = create(RunnerUsageSummarySchema, usageAccumulator.snapshot());
+        status.streamingUsage = create(StreamingUsageSummarySchema, usageAccumulator.snapshot());
       }
       if (contextTracker.hasData) {
         status.contextInfo = contextTracker.snapshot();
@@ -417,7 +417,7 @@ async function executeCursor(
     deltaEnricher.finalize(status.messages);
     status.subAgentExecutions = accumulator.subAgentExecutions;
     if (usageAccumulator.hasTurns) {
-      status.runnerUsage = create(RunnerUsageSummarySchema, usageAccumulator.snapshot());
+      status.streamingUsage = create(StreamingUsageSummarySchema, usageAccumulator.snapshot());
     }
     if (contextTracker.hasData) {
       status.contextInfo = contextTracker.snapshot();

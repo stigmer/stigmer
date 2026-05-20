@@ -169,14 +169,19 @@ func (ApiResourceStateOperationType) EnumDescriptor() ([]byte, []int) {
 //
 // All resources belong to an organization. Visibility determines whether
 // users outside that organization can access the resource.
+//
+// The three visibility levels map to FGA tuples:
+// - PRIVATE: no additional viewer tuples (owner-only access)
+// - ORG: resource#viewer@organization:<org>#member tuple (all org members)
+// - PUBLIC: resource#viewer@identity_account:* with allow_public (all users)
 type ApiResourceVisibility int32
 
 const (
 	// Default/unspecified - backend infers from context.
 	// For new resources: defaults to visibility_private.
 	ApiResourceVisibility_api_resource_visibility_unspecified ApiResourceVisibility = 0
-	// Only members of the owning organization can access.
-	// This is the default for most resources.
+	// Only the owner (and explicitly granted principals) can access.
+	// This is the default for instances and personal resources.
 	// Named visibility_private to avoid Java reserved keyword conflict.
 	ApiResourceVisibility_visibility_private ApiResourceVisibility = 1
 	// Anyone can access (read) this resource.
@@ -184,6 +189,15 @@ const (
 	// Write access still requires org membership.
 	// Named visibility_public to avoid Java reserved keyword conflict.
 	ApiResourceVisibility_visibility_public ApiResourceVisibility = 2
+	// All members of the owning organization can access (read) this resource.
+	// Used for instances where a team wants shared observability of executions
+	// without granting access to all authenticated users.
+	//
+	// FGA tuple: resource#viewer@organization:<org>#member
+	//
+	// For workflow instances, this enables zero-tuple-per-execution shared
+	// observability: all org members see all executions via inheritance.
+	ApiResourceVisibility_visibility_org ApiResourceVisibility = 3
 )
 
 // Enum value maps for ApiResourceVisibility.
@@ -192,11 +206,13 @@ var (
 		0: "api_resource_visibility_unspecified",
 		1: "visibility_private",
 		2: "visibility_public",
+		3: "visibility_org",
 	}
 	ApiResourceVisibility_value = map[string]int32{
 		"api_resource_visibility_unspecified": 0,
 		"visibility_private":                  1,
 		"visibility_public":                   2,
+		"visibility_org":                      3,
 	}
 )
 
@@ -249,11 +265,12 @@ const file_ai_stigmer_commons_apiresource_enum_proto_rawDesc = "" +
 	"\x06delete\x10\x03\x12\b\n" +
 	"\x04read\x10\x04\x12\n" +
 	"\n" +
-	"\x06stream\x10\x05*o\n" +
+	"\x06stream\x10\x05*\x83\x01\n" +
 	"\x15ApiResourceVisibility\x12'\n" +
 	"#api_resource_visibility_unspecified\x10\x00\x12\x16\n" +
 	"\x12visibility_private\x10\x01\x12\x15\n" +
-	"\x11visibility_public\x10\x02B\x94\x02\n" +
+	"\x11visibility_public\x10\x02\x12\x12\n" +
+	"\x0evisibility_org\x10\x03B\x94\x02\n" +
 	"\"com.ai.stigmer.commons.apiresourceB\tEnumProtoP\x01ZGgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource\xa2\x02\x04ASCA\xaa\x02\x1eAi.Stigmer.Commons.Apiresource\xca\x02\x1eAi\\Stigmer\\Commons\\Apiresource\xe2\x02*Ai\\Stigmer\\Commons\\Apiresource\\GPBMetadata\xea\x02!Ai::Stigmer::Commons::Apiresourceb\x06proto3"
 
 var (

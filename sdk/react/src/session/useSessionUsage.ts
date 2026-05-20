@@ -7,7 +7,7 @@ import {
   GetSessionUsageReportInputSchema,
   type GetSessionUsageReportOutput,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
-import type { ModelUsage, RunnerUsageSummary } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
+import type { ModelUsage, StreamingUsageSummary } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
 import { useStigmer } from "../hooks";
 import { useFetch } from "../internal/useFetch";
 
@@ -110,11 +110,11 @@ function mapReport(report: GetSessionUsageReportOutput): UseSessionUsageReturn {
 }
 
 /**
- * Aggregate runner-reported usage from execution status objects.
+ * Aggregate streaming-reported usage from execution status objects.
  * Used as a fallback when the server-side session usage report is empty
  * (e.g., Cursor harness where the proxy does not capture main agent turns).
  */
-function aggregateRunnerUsage(
+function aggregateStreamingUsage(
   executions: readonly AgentExecution[],
 ): UseSessionUsageReturn {
   let inputTokens = 0;
@@ -127,7 +127,7 @@ function aggregateRunnerUsage(
   let model = "";
 
   for (const exec of executions) {
-    const ru = exec.status?.runnerUsage;
+    const ru = exec.status?.streamingUsage;
     if (!ru || ru.turnCount === 0) continue;
     inputTokens += Number(ru.inputTokens);
     outputTokens += Number(ru.outputTokens);
@@ -200,8 +200,8 @@ export function useSessionUsage(
     { cacheKey: sessionId ? `session-usage:${sessionId}` : undefined },
   );
 
-  const runnerFallback = useMemo(
-    () => aggregateRunnerUsage(executions),
+  const streamingFallback = useMemo(
+    () => aggregateStreamingUsage(executions),
     [executions],
   );
 
@@ -210,6 +210,6 @@ export function useSessionUsage(
       const mapped = mapReport(report);
       if (mapped.hasUsage) return mapped;
     }
-    return runnerFallback;
-  }, [report, runnerFallback]);
+    return streamingFallback;
+  }, [report, streamingFallback]);
 }

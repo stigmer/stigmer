@@ -20,7 +20,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/session/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9zcGVjLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSLOBgoLU2Vzc2lvblNwZWMSGQoRYWdlbnRfaW5zdGFuY2VfaWQYASABKAkSDwoHc3ViamVjdBgCIAEoCRIRCgl0aHJlYWRfaWQYAyABKAkSFgoKc2FuZGJveF9pZBgEIAEoCUICGAESSgoIbWV0YWRhdGEYBSADKAsyOC5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uU3BlYy5NZXRhZGF0YUVudHJ5EkgKEXdvcmtzcGFjZV9lbnRyaWVzGAYgAygLMi0uYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuV29ya3NwYWNlRW50cnkS2QEKEW1jcF9zZXJ2ZXJfdXNhZ2VzGAcgAygLMisuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLk1jcFNlcnZlclVzYWdlQpABukiMAZIBiAEihQG6AYEBCh5zZXNzaW9uX21jcF9zZXJ2ZXJfdXNhZ2VzLmtpbmQSP21jcF9zZXJ2ZXJfdXNhZ2VzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9bWNwX3NlcnZlchoedGhpcy5tY3Bfc2VydmVyX3JlZi5raW5kID09IDQ0EhEKCXJ1bm5lcl9pZBgJIAEoCRK4AQoKc2tpbGxfcmVmcxgIIAMoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJuukhnkgFkImK6AV8KF3Nlc3Npb25fc2tpbGxfcmVmcy5raW5kEjNza2lsbF9yZWZzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9c2tpbGwaD3RoaXMua2luZCA9PSA0M+CFLCsSNwoHaGFybmVzcxgKIAEoDjImLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkhhcm5lc3MSPgoLY3Vyc29yX21vZGUYCyABKA4yKS5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5DdXJzb3JNb2RlGi8KDU1ldGFkYXRhRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4AWIGcHJvdG8z", [file_ai_stigmer_agentic_agent_v1_spec, file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_session_v1_workspace, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9zcGVjLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSK7BgoLU2Vzc2lvblNwZWMSGQoRYWdlbnRfaW5zdGFuY2VfaWQYASABKAkSDwoHc3ViamVjdBgCIAEoCRIRCgl0aHJlYWRfaWQYAyABKAkSFgoKc2FuZGJveF9pZBgEIAEoCUICGAESSgoIbWV0YWRhdGEYBSADKAsyOC5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uU3BlYy5NZXRhZGF0YUVudHJ5EkgKEXdvcmtzcGFjZV9lbnRyaWVzGAYgAygLMi0uYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuV29ya3NwYWNlRW50cnkS2QEKEW1jcF9zZXJ2ZXJfdXNhZ2VzGAcgAygLMisuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLk1jcFNlcnZlclVzYWdlQpABukiMAZIBiAEihQG6AYEBCh5zZXNzaW9uX21jcF9zZXJ2ZXJfdXNhZ2VzLmtpbmQSP21jcF9zZXJ2ZXJfdXNhZ2VzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9bWNwX3NlcnZlchoedGhpcy5tY3Bfc2VydmVyX3JlZi5raW5kID09IDQ0ErgBCgpza2lsbF9yZWZzGAggAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQm66SGeSAWQiYroBXwoXc2Vzc2lvbl9za2lsbF9yZWZzLmtpbmQSM3NraWxsX3JlZnMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1za2lsbBoPdGhpcy5raW5kID09IDQz4IUsKxI3CgdoYXJuZXNzGAogASgOMiYuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuSGFybmVzcxI+CgtjdXJzb3JfbW9kZRgLIAEoDjIpLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkN1cnNvck1vZGUaLwoNTWV0YWRhdGFFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBYgZwcm90bzM", [file_ai_stigmer_agentic_agent_v1_spec, file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_session_v1_workspace, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * SessionSpec defines the configurable properties of a session.
@@ -62,8 +62,7 @@ export type SessionSpec = Message<"ai.stigmer.agentic.session.v1.SessionSpec"> &
   threadId: string;
 
   /**
-   * Deprecated: sandbox lifecycle is now managed at the Runner level via
-   * the stigmer.ai/sandbox-id metadata label on the Runner resource.
+   * Deprecated: sandbox lifecycle is managed at the session level.
    * Existing sessions may still have this field populated; new sessions
    * should not set it.
    *
@@ -109,26 +108,6 @@ export type SessionSpec = Message<"ai.stigmer.agentic.session.v1.SessionSpec"> &
    * @generated from field: repeated ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7;
    */
   mcpServerUsages: McpServerUsage[];
-
-  /**
-   * Runner that executes work for this session.
-   *
-   * When set, all executions in this session route to this runner's task queue.
-   * When empty, the platform auto-creates an ephemeral cloud runner on first
-   * execution and sets this field.
-   *
-   * For persistent runners (user-created via CLI/desktop), this is set by the
-   * session composer when the user picks their runner. For cloud executions,
-   * this is set automatically by the system.
-   *
-   * @internal
-   * The execution workflow reads this field to resolve the Temporal task queue
-   * for scheduling activities. When empty, the workflow calls the
-   * RunnerLauncher to spawn an ephemeral runner and populates this field.
-   *
-   * @generated from field: string runner_id = 9;
-   */
-  runnerId: string;
 
   /**
    * Skills to inject into this session's context.

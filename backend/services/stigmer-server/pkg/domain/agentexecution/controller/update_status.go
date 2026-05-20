@@ -234,17 +234,12 @@ func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*agen
 		updated.Status.GetSubAgentExecutions(),
 	)
 
-	// Merge runner_id (replace with latest from request)
-	if requestStatus.RunnerId != "" {
-		updated.Status.RunnerId = requestStatus.RunnerId
-	}
-
-	// Merge runner_usage (replace with latest from request).
-	// Populated by cursor-runner's UsageAccumulator during streaming;
+	// Merge streaming_usage (replace with latest from request).
+	// Populated by execution worker's UsageAccumulator during streaming;
 	// used by the frontend as a display-only fallback when proxy-reported
 	// usage is unavailable (e.g., Cursor harness).
-	if requestStatus.RunnerUsage != nil {
-		updated.Status.RunnerUsage = requestStatus.RunnerUsage
+	if requestStatus.StreamingUsage != nil {
+		updated.Status.StreamingUsage = requestStatus.StreamingUsage
 	}
 
 	// Merge context_info (replace with latest from request)
@@ -279,7 +274,7 @@ func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*agen
 		Bool("has_context_info", updated.Status.ContextInfo != nil).
 		Bool("has_resolved_context", updated.Status.ResolvedContext != nil).
 		Bool("has_setup_progress", updated.Status.SetupProgress != nil).
-		Bool("has_runner_usage", updated.Status.RunnerUsage != nil).
+		Bool("has_streaming_usage", updated.Status.StreamingUsage != nil).
 		Msg("Merged status fields")
 
 	// Store merged execution in context for persist step

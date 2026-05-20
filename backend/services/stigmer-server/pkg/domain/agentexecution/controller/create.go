@@ -569,14 +569,14 @@ func (s *startWorkflowStep) Execute(ctx *pipeline.RequestContext[*agentexecution
 		Str("execution_id", executionID).
 		Msg("Starting Temporal workflow")
 
-	// Resolve runner dispatch: per-runner queue from session binding or best available runner
+	// Resolve dispatch: determines the Temporal task queue for activities
 	dispatch, err := agentexecutiontemporal.ResolveActivityTaskQueue(
 		ctx.Context(), s.store, execution.GetSpec().GetSessionId())
 	if err != nil {
 		log.Warn().
 			Err(err).
 			Str("execution_id", executionID).
-			Msg("Runner dispatch failed")
+			Msg("Activity dispatch failed")
 		return grpclib.WrapError(err, codes.FailedPrecondition, err.Error())
 	}
 
@@ -590,7 +590,6 @@ func (s *startWorkflowStep) Execute(ctx *pipeline.RequestContext[*agentexecution
 		CallbackToken:    execution.GetSpec().GetCallbackToken(),
 		AutoApproveAll:   execution.GetSpec().GetAutoApproveAll(),
 		ParentWorkflowID: execution.GetSpec().GetParentWorkflowId(),
-		RunnerID:         dispatch.RunnerID,
 		Harness:          int32(dispatch.Harness),
 	}
 

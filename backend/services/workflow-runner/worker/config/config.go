@@ -61,10 +61,6 @@ type Config struct {
 	// In sandbox mode, the validation queue is not registered.
 	SandboxMode bool
 
-	// RunnerID is the ephemeral runner's ID (STIGMER_RUNNER_ID).
-	// Empty in OSS/local mode. Set as runner_id on sessions created for agent calls.
-	RunnerID string
-
 	MaxConcurrency int
 
 	// Claim Check Pattern configuration
@@ -128,7 +124,6 @@ func LoadFromEnv() (*Config, error) {
 		ExecutionTaskQueue:     execQueue,
 		ValidationTaskQueue:    validationQueue,
 		SandboxMode:            sandboxMode,
-		RunnerID:               os.Getenv("STIGMER_RUNNER_ID"),
 		MaxConcurrency:         getEnvAsIntOrDefault("TEMPORAL_MAX_CONCURRENCY", 10),
 
 		ClaimCheckEnabled:            getEnvAsBoolOrDefault("CLAIMCHECK_ENABLED", false),
@@ -231,6 +226,6 @@ func getEnvAsBoolOrDefault(key string, defaultValue bool) bool {
 }
 
 func (c *Config) String() string {
-	return fmt.Sprintf("TemporalServiceAddress=%s, Namespace=%s, OrchestrationQueue=%s, ExecutionQueue=%s, ValidationQueue=%s, SandboxMode=%v, RunnerID=%s, MaxConcurrency=%d, ClaimCheckEnabled=%v, ClaimCheckStorageType=%s",
-		c.TemporalServiceAddress, c.TemporalNamespace, c.OrchestrationTaskQueue, c.ExecutionTaskQueue, c.ValidationTaskQueue, c.SandboxMode, c.RunnerID, c.MaxConcurrency, c.ClaimCheckEnabled, c.ClaimCheckStorageType)
+	return fmt.Sprintf("TemporalServiceAddress=%s, Namespace=%s, OrchestrationQueue=%s, ExecutionQueue=%s, ValidationQueue=%s, SandboxMode=%v, MaxConcurrency=%d, ClaimCheckEnabled=%v, ClaimCheckStorageType=%s",
+		c.TemporalServiceAddress, c.TemporalNamespace, c.OrchestrationTaskQueue, c.ExecutionTaskQueue, c.ValidationTaskQueue, c.SandboxMode, c.MaxConcurrency, c.ClaimCheckEnabled, c.ClaimCheckStorageType)
 }

@@ -108,6 +108,37 @@ public final class AgentInstanceCommandControllerGrpc {
     return getUpdateMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.UpdateVisibilityInput,
+      ai.stigmer.agentic.agentinstance.v1.AgentInstance> getUpdateVisibilityMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "updateVisibility",
+      requestType = ai.stigmer.commons.apiresource.UpdateVisibilityInput.class,
+      responseType = ai.stigmer.agentic.agentinstance.v1.AgentInstance.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.UpdateVisibilityInput,
+      ai.stigmer.agentic.agentinstance.v1.AgentInstance> getUpdateVisibilityMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.UpdateVisibilityInput, ai.stigmer.agentic.agentinstance.v1.AgentInstance> getUpdateVisibilityMethod;
+    if ((getUpdateVisibilityMethod = AgentInstanceCommandControllerGrpc.getUpdateVisibilityMethod) == null) {
+      synchronized (AgentInstanceCommandControllerGrpc.class) {
+        if ((getUpdateVisibilityMethod = AgentInstanceCommandControllerGrpc.getUpdateVisibilityMethod) == null) {
+          AgentInstanceCommandControllerGrpc.getUpdateVisibilityMethod = getUpdateVisibilityMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.commons.apiresource.UpdateVisibilityInput, ai.stigmer.agentic.agentinstance.v1.AgentInstance>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "updateVisibility"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.commons.apiresource.UpdateVisibilityInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agentinstance.v1.AgentInstance.getDefaultInstance()))
+              .setSchemaDescriptor(new AgentInstanceCommandControllerMethodDescriptorSupplier("updateVisibility"))
+              .build();
+        }
+      }
+    }
+    return getUpdateVisibilityMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agentinstance.v1.AgentInstanceId,
       ai.stigmer.agentic.agentinstance.v1.AgentInstance> getDeleteMethod;
 
@@ -251,6 +282,29 @@ public final class AgentInstanceCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update the visibility of an existing agent instance.
+     * Changes who can view this instance and interact with it. Supports the
+     * full visibility spectrum: PRIVATE (owner only), ORG (all org members),
+     * or PUBLIC (all authenticated users).
+     * For agent instances, visibility controls who can create sessions and run
+     * executions against this instance. Sessions remain personal regardless of
+     * instance visibility (conversation privacy is preserved).
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the agent instance.
+     * Visibility transitions trigger FGA tuple management in Cloud mode:
+     * - PRIVATE → ORG: creates agent_instance#viewer&#64;organization:&lt;org&gt;#member
+     * - PRIVATE → PUBLIC: creates agent_instance#viewer&#64;identity_account:*
+     * - ORG → PRIVATE: deletes the org member viewer tuple
+     * - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
+     * </pre>
+     */
+    default void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentinstance.v1.AgentInstance> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdateVisibilityMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
      * Delete an agent instance.
      * &#64;internal
      * Authorization: Only owner can delete (can_delete permission).
@@ -344,6 +398,30 @@ public final class AgentInstanceCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update the visibility of an existing agent instance.
+     * Changes who can view this instance and interact with it. Supports the
+     * full visibility spectrum: PRIVATE (owner only), ORG (all org members),
+     * or PUBLIC (all authenticated users).
+     * For agent instances, visibility controls who can create sessions and run
+     * executions against this instance. Sessions remain personal regardless of
+     * instance visibility (conversation privacy is preserved).
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the agent instance.
+     * Visibility transitions trigger FGA tuple management in Cloud mode:
+     * - PRIVATE → ORG: creates agent_instance#viewer&#64;organization:&lt;org&gt;#member
+     * - PRIVATE → PUBLIC: creates agent_instance#viewer&#64;identity_account:*
+     * - ORG → PRIVATE: deletes the org member viewer tuple
+     * - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
+     * </pre>
+     */
+    public void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentinstance.v1.AgentInstance> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getUpdateVisibilityMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * Delete an agent instance.
      * &#64;internal
      * Authorization: Only owner can delete (can_delete permission).
@@ -421,6 +499,29 @@ public final class AgentInstanceCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update the visibility of an existing agent instance.
+     * Changes who can view this instance and interact with it. Supports the
+     * full visibility spectrum: PRIVATE (owner only), ORG (all org members),
+     * or PUBLIC (all authenticated users).
+     * For agent instances, visibility controls who can create sessions and run
+     * executions against this instance. Sessions remain personal regardless of
+     * instance visibility (conversation privacy is preserved).
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the agent instance.
+     * Visibility transitions trigger FGA tuple management in Cloud mode:
+     * - PRIVATE → ORG: creates agent_instance#viewer&#64;organization:&lt;org&gt;#member
+     * - PRIVATE → PUBLIC: creates agent_instance#viewer&#64;identity_account:*
+     * - ORG → PRIVATE: deletes the org member viewer tuple
+     * - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
+     * </pre>
+     */
+    public ai.stigmer.agentic.agentinstance.v1.AgentInstance updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getUpdateVisibilityMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * Delete an agent instance.
      * &#64;internal
      * Authorization: Only owner can delete (can_delete permission).
@@ -493,6 +594,29 @@ public final class AgentInstanceCommandControllerGrpc {
     public ai.stigmer.agentic.agentinstance.v1.AgentInstance update(ai.stigmer.agentic.agentinstance.v1.AgentInstance request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getUpdateMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Update the visibility of an existing agent instance.
+     * Changes who can view this instance and interact with it. Supports the
+     * full visibility spectrum: PRIVATE (owner only), ORG (all org members),
+     * or PUBLIC (all authenticated users).
+     * For agent instances, visibility controls who can create sessions and run
+     * executions against this instance. Sessions remain personal regardless of
+     * instance visibility (conversation privacy is preserved).
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the agent instance.
+     * Visibility transitions trigger FGA tuple management in Cloud mode:
+     * - PRIVATE → ORG: creates agent_instance#viewer&#64;organization:&lt;org&gt;#member
+     * - PRIVATE → PUBLIC: creates agent_instance#viewer&#64;identity_account:*
+     * - ORG → PRIVATE: deletes the org member viewer tuple
+     * - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
+     * </pre>
+     */
+    public ai.stigmer.agentic.agentinstance.v1.AgentInstance updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getUpdateVisibilityMethod(), getCallOptions(), request);
     }
 
     /**
@@ -576,6 +700,30 @@ public final class AgentInstanceCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update the visibility of an existing agent instance.
+     * Changes who can view this instance and interact with it. Supports the
+     * full visibility spectrum: PRIVATE (owner only), ORG (all org members),
+     * or PUBLIC (all authenticated users).
+     * For agent instances, visibility controls who can create sessions and run
+     * executions against this instance. Sessions remain personal regardless of
+     * instance visibility (conversation privacy is preserved).
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the agent instance.
+     * Visibility transitions trigger FGA tuple management in Cloud mode:
+     * - PRIVATE → ORG: creates agent_instance#viewer&#64;organization:&lt;org&gt;#member
+     * - PRIVATE → PUBLIC: creates agent_instance#viewer&#64;identity_account:*
+     * - ORG → PRIVATE: deletes the org member viewer tuple
+     * - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentinstance.v1.AgentInstance> updateVisibility(
+        ai.stigmer.commons.apiresource.UpdateVisibilityInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getUpdateVisibilityMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * Delete an agent instance.
      * &#64;internal
      * Authorization: Only owner can delete (can_delete permission).
@@ -591,7 +739,8 @@ public final class AgentInstanceCommandControllerGrpc {
   private static final int METHODID_APPLY = 0;
   private static final int METHODID_CREATE = 1;
   private static final int METHODID_UPDATE = 2;
-  private static final int METHODID_DELETE = 3;
+  private static final int METHODID_UPDATE_VISIBILITY = 3;
+  private static final int METHODID_DELETE = 4;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -620,6 +769,10 @@ public final class AgentInstanceCommandControllerGrpc {
           break;
         case METHODID_UPDATE:
           serviceImpl.update((ai.stigmer.agentic.agentinstance.v1.AgentInstance) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentinstance.v1.AgentInstance>) responseObserver);
+          break;
+        case METHODID_UPDATE_VISIBILITY:
+          serviceImpl.updateVisibility((ai.stigmer.commons.apiresource.UpdateVisibilityInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentinstance.v1.AgentInstance>) responseObserver);
           break;
         case METHODID_DELETE:
@@ -665,6 +818,13 @@ public final class AgentInstanceCommandControllerGrpc {
               ai.stigmer.agentic.agentinstance.v1.AgentInstance,
               ai.stigmer.agentic.agentinstance.v1.AgentInstance>(
                 service, METHODID_UPDATE)))
+        .addMethod(
+          getUpdateVisibilityMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.commons.apiresource.UpdateVisibilityInput,
+              ai.stigmer.agentic.agentinstance.v1.AgentInstance>(
+                service, METHODID_UPDATE_VISIBILITY)))
         .addMethod(
           getDeleteMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -723,6 +883,7 @@ public final class AgentInstanceCommandControllerGrpc {
               .addMethod(getApplyMethod())
               .addMethod(getCreateMethod())
               .addMethod(getUpdateMethod())
+              .addMethod(getUpdateVisibilityMethod())
               .addMethod(getDeleteMethod())
               .build();
         }

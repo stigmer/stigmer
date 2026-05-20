@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n)ai/stigmer/commons/apiresource/enum.proto\x12\x1e\x61i.stigmer.commons.apiresource*v\n\x14\x41piResourceEventType\x12\x0f\n\x0bunspecified\x10\x00\x12\x0b\n\x07\x63reated\x10\x01\x12\x0b\n\x07updated\x10\x02\x12\x0b\n\x07\x64\x65leted\x10\x03\x12\x0b\n\x07renamed\x10\x04\x12\x19\n\x15stack_outputs_updated\x10\x05*\x8c\x01\n\x1d\x41piResourceStateOperationType\x12\x31\n-api_resource_state_operation_type_unspecified\x10\x00\x12\n\n\x06\x63reate\x10\x01\x12\n\n\x06update\x10\x02\x12\n\n\x06\x64\x65lete\x10\x03\x12\x08\n\x04read\x10\x04\x12\n\n\x06stream\x10\x05*o\n\x15\x41piResourceVisibility\x12\'\n#api_resource_visibility_unspecified\x10\x00\x12\x16\n\x12visibility_private\x10\x01\x12\x15\n\x11visibility_public\x10\x02\x42\xcb\x01\n\"com.ai.stigmer.commons.apiresourceB\tEnumProtoP\x01\xa2\x02\x04\x41SCA\xaa\x02\x1e\x41i.Stigmer.Commons.Apiresource\xca\x02\x1e\x41i\\Stigmer\\Commons\\Apiresource\xe2\x02*Ai\\Stigmer\\Commons\\Apiresource\\GPBMetadata\xea\x02!Ai::Stigmer::Commons::Apiresourceb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n)ai/stigmer/commons/apiresource/enum.proto\x12\x1e\x61i.stigmer.commons.apiresource*v\n\x14\x41piResourceEventType\x12\x0f\n\x0bunspecified\x10\x00\x12\x0b\n\x07\x63reated\x10\x01\x12\x0b\n\x07updated\x10\x02\x12\x0b\n\x07\x64\x65leted\x10\x03\x12\x0b\n\x07renamed\x10\x04\x12\x19\n\x15stack_outputs_updated\x10\x05*\x8c\x01\n\x1d\x41piResourceStateOperationType\x12\x31\n-api_resource_state_operation_type_unspecified\x10\x00\x12\n\n\x06\x63reate\x10\x01\x12\n\n\x06update\x10\x02\x12\n\n\x06\x64\x65lete\x10\x03\x12\x08\n\x04read\x10\x04\x12\n\n\x06stream\x10\x05*\x83\x01\n\x15\x41piResourceVisibility\x12\'\n#api_resource_visibility_unspecified\x10\x00\x12\x16\n\x12visibility_private\x10\x01\x12\x15\n\x11visibility_public\x10\x02\x12\x12\n\x0evisibility_org\x10\x03\x42\xcb\x01\n\"com.ai.stigmer.commons.apiresourceB\tEnumProtoP\x01\xa2\x02\x04\x41SCA\xaa\x02\x1e\x41i.Stigmer.Commons.Apiresource\xca\x02\x1e\x41i\\Stigmer\\Commons\\Apiresource\xe2\x02*Ai\\Stigmer\\Commons\\Apiresource\\GPBMetadata\xea\x02!Ai::Stigmer::Commons::Apiresourceb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -36,6 +36,6 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_APIRESOURCEEVENTTYPE']._serialized_end=195
   _globals['_APIRESOURCESTATEOPERATIONTYPE']._serialized_start=198
   _globals['_APIRESOURCESTATEOPERATIONTYPE']._serialized_end=338
-  _globals['_APIRESOURCEVISIBILITY']._serialized_start=340
-  _globals['_APIRESOURCEVISIBILITY']._serialized_end=451
+  _globals['_APIRESOURCEVISIBILITY']._serialized_start=341
+  _globals['_APIRESOURCEVISIBILITY']._serialized_end=472
 # @@protoc_insertion_point(module_scope)

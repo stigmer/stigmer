@@ -148,30 +148,6 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 	// Get activity task queue from workflow memo
 	activityTaskQueue := w.getActivityTaskQueue(ctx)
 
-	// Step 0: Wait for ephemeral runner readiness (local activity)
-	// For ephemeral runners provisioned via DaytonaSandboxRunnerLauncher,
-	// the sandbox boot + Python worker startup happens asynchronously.
-	// This gate blocks until the runner reports READY via heartbeat,
-	// preventing ScheduleToStart timeouts on subsequent Python activities.
-	// For persistent runners or the global queue path, this returns immediately.
-	if input.RunnerID != "" {
-		logger.Info("Step 0: Waiting for runner readiness", "runner_id", input.RunnerID)
-
-		localCtx := workflow.WithLocalActivityOptions(ctx, workflow.LocalActivityOptions{
-			ScheduleToCloseTimeout: 5 * time.Minute,
-			RetryPolicy: &temporal.RetryPolicy{
-				MaximumAttempts: 1, // No retries — the activity polls internally
-			},
-		})
-
-		err := workflow.ExecuteLocalActivity(localCtx,
-			activities.WaitForRunnerReadyActivityName, input.RunnerID).Get(localCtx, nil)
-		if err != nil {
-			return w.wrapActivityError("WaitForRunnerReady", err)
-		}
-		logger.Info("Step 0: Runner is ready", "runner_id", input.RunnerID)
-	}
-
 	// Step 1: Ensure thread exists (Python activity)
 	logger.Info("Step 1: Ensuring thread", "session_id", sessionID, "agent_id", agentID)
 
@@ -423,19 +399,6 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeCursorFlow(ctx workflow.Contex
 	executionID := input.ExecutionID
 
 	activityTaskQueue := w.getActivityTaskQueue(ctx)
-
-	// Wait for runner readiness (same as Graphton)
-	if input.RunnerID != "" {
-		logger.Info("Waiting for runner readiness", "runner_id", input.RunnerID)
-		localCtx := workflow.WithLocalActivityOptions(ctx, workflow.LocalActivityOptions{
-			ScheduleToCloseTimeout: 5 * time.Minute,
-			RetryPolicy:            &temporal.RetryPolicy{MaximumAttempts: 1},
-		})
-		if err := workflow.ExecuteLocalActivity(localCtx,
-			activities.WaitForRunnerReadyActivityName, input.RunnerID).Get(localCtx, nil); err != nil {
-			return w.wrapActivityError("WaitForRunnerReady", err)
-		}
-	}
 
 	// Generate session subject (fire-and-forget, non-blocking).
 	// The Cursor SDK does not expose a generated conversation title for local

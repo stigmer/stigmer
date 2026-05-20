@@ -1731,18 +1731,23 @@
     },
     {
       "name": "ApiResourceVisibility",
-      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines whether\n users outside that organization can access the resource.",
+      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines whether\n users outside that organization can access the resource.\n\n The three visibility levels map to FGA tuples:\n - PRIVATE: no additional viewer tuples (owner-only access)\n - ORG: resource#viewer@organization:\u003corg\u003e#member tuple (all org members)\n - PUBLIC: resource#viewer@identity_account:* with allow_public (all users)",
       "protoType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
       "values": [
         {
           "name": "visibility_private",
           "number": 1,
-          "description": "Only members of the owning organization can access.\n This is the default for most resources.\n Named visibility_private to avoid Java reserved keyword conflict."
+          "description": "Only the owner (and explicitly granted principals) can access.\n This is the default for instances and personal resources.\n Named visibility_private to avoid Java reserved keyword conflict."
         },
         {
           "name": "visibility_public",
           "number": 2,
           "description": "Anyone can access (read) this resource.\n Used for marketplace-published resources (e.g., \"stigmer/web-search\").\n Write access still requires org membership.\n Named visibility_public to avoid Java reserved keyword conflict."
+        },
+        {
+          "name": "visibility_org",
+          "number": 3,
+          "description": "All members of the owning organization can access (read) this resource.\n Used for instances where a team wants shared observability of executions\n without granting access to all authenticated users.\n\n FGA tuple: resource#viewer@organization:\u003corg\u003e#member\n\n For workflow instances, this enables zero-tuple-per-execution shared\n observability: all org members see all executions via inheritance."
         }
       ]
     },
@@ -1964,24 +1969,14 @@
         "required": false
       },
       {
-        "name": "RunnerId",
-        "jsonName": "runnerId",
-        "protoField": "runner_id",
-        "type": {
-          "kind": "string"
-        },
-        "description": "ID of the Runner that executed this execution.\n\n Set once when the execution is dispatched to a runner; immutable after.\n For cloud executions, this references the system-managed ephemeral runner\n that was auto-created for this execution. For local executions, this\n references the user-created persistent runner selected via the session.\n\n Used for observability: \"which runner handled this work?\"",
-        "required": false
-      },
-      {
-        "name": "RunnerUsage",
-        "jsonName": "runnerUsage",
-        "protoField": "runner_usage",
+        "name": "StreamingUsage",
+        "jsonName": "streamingUsage",
+        "protoField": "streaming_usage",
         "type": {
           "kind": "message",
-          "messageType": "RunnerUsageSummary"
+          "messageType": "StreamingUsageSummary"
         },
-        "description": "Runner-reported usage summary, updated progressively during streaming.",
+        "description": "Streaming usage summary, updated progressively during execution.",
         "required": false
       }
     ]
@@ -2614,9 +2609,27 @@
       ]
     },
     {
-      "name": "RunnerUsageSummary",
-      "description": "Accumulated token usage from runner-observed turn-ended events.\n Carried on AgentExecutionStatus.runner_usage for real-time streaming UX.",
-      "protoType": "ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary",
+      "name": "SetupProgress",
+      "description": "Setup progress reported during the EXECUTION_PENDING phase.\n\n @internal\n Designed as a sub-message (rather than a bare string) so future fields\n (completed_phases, total_phases, phase_index) can be added without\n deprecation or breaking changes.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.SetupProgress",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/api.proto",
+      "fields": [
+        {
+          "name": "CurrentPhase",
+          "jsonName": "currentPhase",
+          "protoField": "current_phase",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable label for the current setup phase.\n Examples: \"Initializing sandbox…\", \"Setting up workspace…\", \"Loading skills…\"\n Empty when setup phase reporting has not started or is complete.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "StreamingUsageSummary",
+      "description": "Accumulated token usage from execution worker turn-ended events.\n Carried on AgentExecutionStatus.streaming_usage for real-time streaming UX.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary",
       "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/usage.proto",
       "fields": [
         {
@@ -2707,24 +2720,6 @@
             "kind": "string"
           },
           "description": "ISO 8601 timestamp of the last turn-ended event observed.",
-          "required": false
-        }
-      ]
-    },
-    {
-      "name": "SetupProgress",
-      "description": "Setup progress reported during the EXECUTION_PENDING phase.\n\n @internal\n Designed as a sub-message (rather than a bare string) so future fields\n (completed_phases, total_phases, phase_index) can be added without\n deprecation or breaking changes.",
-      "protoType": "ai.stigmer.agentic.agentexecution.v1.SetupProgress",
-      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/api.proto",
-      "fields": [
-        {
-          "name": "CurrentPhase",
-          "jsonName": "currentPhase",
-          "protoField": "current_phase",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Human-readable label for the current setup phase.\n Examples: \"Initializing sandbox…\", \"Setting up workspace…\", \"Loading skills…\"\n Empty when setup phase reporting has not started or is complete.",
           "required": false
         }
       ]

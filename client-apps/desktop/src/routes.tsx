@@ -39,8 +39,6 @@ const WorkflowExecutionDetailPage = lazy(() => import("./pages/workflow/Workflow
 const SettingsLayout = lazy(() => import("./pages/settings/SettingsLayout"));
 const SettingsLanding = lazy(() => import("./pages/settings/SettingsLanding"));
 const BillingPage = lazy(() => import("./pages/settings/BillingPage"));
-const RunnersPage = lazy(() => import("./pages/runners/RunnersPage"));
-const RunnerDetailPage = lazy(() => import("./pages/runners/RunnerDetailPage"));
 
 function LazyPage({ children }: { children: React.ReactNode }) {
   return (
@@ -215,22 +213,6 @@ const routes: RouteObject[] = [
         element: <Navigate to="/library/workflows" replace />,
       },
       {
-        path: "runners",
-        element: (
-          <LazyPage>
-            <RunnersPage />
-          </LazyPage>
-        ),
-      },
-      {
-        path: "runners/:id",
-        element: (
-          <LazyPage>
-            <RunnerDetailPage />
-          </LazyPage>
-        ),
-      },
-      {
         path: "settings",
         children: [
           {
@@ -264,10 +246,6 @@ const routes: RouteObject[] = [
                     <BillingPage />
                   </LazyPage>
                 ),
-              },
-              {
-                path: "runners",
-                element: <Navigate to="/runners" replace />,
               },
             ],
           },

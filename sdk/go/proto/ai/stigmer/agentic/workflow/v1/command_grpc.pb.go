@@ -9,6 +9,7 @@ package workflowv1
 import (
 	context "context"
 	serverless "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflow/v1/serverless"
+	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -20,11 +21,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	WorkflowCommandController_Apply_FullMethodName        = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/apply"
-	WorkflowCommandController_Create_FullMethodName       = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/create"
-	WorkflowCommandController_Update_FullMethodName       = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/update"
-	WorkflowCommandController_Delete_FullMethodName       = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/delete"
-	WorkflowCommandController_ValidateSpec_FullMethodName = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/validateSpec"
+	WorkflowCommandController_Apply_FullMethodName            = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/apply"
+	WorkflowCommandController_Create_FullMethodName           = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/create"
+	WorkflowCommandController_Update_FullMethodName           = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/update"
+	WorkflowCommandController_UpdateVisibility_FullMethodName = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/updateVisibility"
+	WorkflowCommandController_Delete_FullMethodName           = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/delete"
+	WorkflowCommandController_ValidateSpec_FullMethodName     = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/validateSpec"
 )
 
 // WorkflowCommandControllerClient is the client API for WorkflowCommandController service.
@@ -48,6 +50,19 @@ type WorkflowCommandControllerClient interface {
 	Create(ctx context.Context, in *Workflow, opts ...grpc.CallOption) (*Workflow, error)
 	// Update an existing workflow.
 	Update(ctx context.Context, in *Workflow, opts ...grpc.CallOption) (*Workflow, error)
+	// Update the visibility of an existing workflow.
+	//
+	// This is a targeted metadata update — it only modifies metadata.visibility,
+	// leaving spec, status, and other metadata fields untouched. Use this to
+	// make a workflow publicly accessible or to revoke public access without
+	// sending the entire workflow resource (avoiding read-modify-write races).
+	//
+	// @internal
+	// Authorization: Requires can_edit permission on the workflow resource.
+	// Visibility transitions trigger FGA tuple management in Cloud mode:
+	// - PRIVATE → PUBLIC: creates workflow#viewer@identity_account:* tuple
+	// - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
+	UpdateVisibility(ctx context.Context, in *apiresource.UpdateVisibilityInput, opts ...grpc.CallOption) (*Workflow, error)
 	// Delete a workflow.
 	Delete(ctx context.Context, in *WorkflowId, opts ...grpc.CallOption) (*Workflow, error)
 	// Validate a workflow spec without persisting it.
@@ -112,6 +127,16 @@ func (c *workflowCommandControllerClient) Update(ctx context.Context, in *Workfl
 	return out, nil
 }
 
+func (c *workflowCommandControllerClient) UpdateVisibility(ctx context.Context, in *apiresource.UpdateVisibilityInput, opts ...grpc.CallOption) (*Workflow, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Workflow)
+	err := c.cc.Invoke(ctx, WorkflowCommandController_UpdateVisibility_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *workflowCommandControllerClient) Delete(ctx context.Context, in *WorkflowId, opts ...grpc.CallOption) (*Workflow, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Workflow)
@@ -153,6 +178,19 @@ type WorkflowCommandControllerServer interface {
 	Create(context.Context, *Workflow) (*Workflow, error)
 	// Update an existing workflow.
 	Update(context.Context, *Workflow) (*Workflow, error)
+	// Update the visibility of an existing workflow.
+	//
+	// This is a targeted metadata update — it only modifies metadata.visibility,
+	// leaving spec, status, and other metadata fields untouched. Use this to
+	// make a workflow publicly accessible or to revoke public access without
+	// sending the entire workflow resource (avoiding read-modify-write races).
+	//
+	// @internal
+	// Authorization: Requires can_edit permission on the workflow resource.
+	// Visibility transitions trigger FGA tuple management in Cloud mode:
+	// - PRIVATE → PUBLIC: creates workflow#viewer@identity_account:* tuple
+	// - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
+	UpdateVisibility(context.Context, *apiresource.UpdateVisibilityInput) (*Workflow, error)
 	// Delete a workflow.
 	Delete(context.Context, *WorkflowId) (*Workflow, error)
 	// Validate a workflow spec without persisting it.
@@ -194,6 +232,9 @@ func (UnimplementedWorkflowCommandControllerServer) Create(context.Context, *Wor
 }
 func (UnimplementedWorkflowCommandControllerServer) Update(context.Context, *Workflow) (*Workflow, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
+}
+func (UnimplementedWorkflowCommandControllerServer) UpdateVisibility(context.Context, *apiresource.UpdateVisibilityInput) (*Workflow, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateVisibility not implemented")
 }
 func (UnimplementedWorkflowCommandControllerServer) Delete(context.Context, *WorkflowId) (*Workflow, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
@@ -275,6 +316,24 @@ func _WorkflowCommandController_Update_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WorkflowCommandController_UpdateVisibility_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(apiresource.UpdateVisibilityInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WorkflowCommandControllerServer).UpdateVisibility(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WorkflowCommandController_UpdateVisibility_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WorkflowCommandControllerServer).UpdateVisibility(ctx, req.(*apiresource.UpdateVisibilityInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _WorkflowCommandController_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(WorkflowId)
 	if err := dec(in); err != nil {
@@ -329,6 +388,10 @@ var WorkflowCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "update",
 			Handler:    _WorkflowCommandController_Update_Handler,
+		},
+		{
+			MethodName: "updateVisibility",
+			Handler:    _WorkflowCommandController_UpdateVisibility_Handler,
 		},
 		{
 			MethodName: "delete",

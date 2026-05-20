@@ -244,19 +244,10 @@ type AgentExecutionStatus struct {
 	// Only meaningful while phase == EXECUTION_PENDING. Cleared by the server
 	// when phase transitions away from PENDING.
 	SetupProgress *SetupProgress `protobuf:"bytes,18,opt,name=setup_progress,json=setupProgress,proto3" json:"setup_progress,omitempty"`
-	// ID of the Runner that executed this execution.
-	//
-	// Set once when the execution is dispatched to a runner; immutable after.
-	// For cloud executions, this references the system-managed ephemeral runner
-	// that was auto-created for this execution. For local executions, this
-	// references the user-created persistent runner selected via the session.
-	//
-	// Used for observability: "which runner handled this work?"
-	RunnerId string `protobuf:"bytes,19,opt,name=runner_id,json=runnerId,proto3" json:"runner_id,omitempty"`
-	// Runner-reported usage summary, updated progressively during streaming.
-	RunnerUsage   *RunnerUsageSummary `protobuf:"bytes,20,opt,name=runner_usage,json=runnerUsage,proto3" json:"runner_usage,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// Streaming usage summary, updated progressively during execution.
+	StreamingUsage *StreamingUsageSummary `protobuf:"bytes,20,opt,name=streaming_usage,json=streamingUsage,proto3" json:"streaming_usage,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *AgentExecutionStatus) Reset() {
@@ -394,16 +385,9 @@ func (x *AgentExecutionStatus) GetSetupProgress() *SetupProgress {
 	return nil
 }
 
-func (x *AgentExecutionStatus) GetRunnerId() string {
+func (x *AgentExecutionStatus) GetStreamingUsage() *StreamingUsageSummary {
 	if x != nil {
-		return x.RunnerId
-	}
-	return ""
-}
-
-func (x *AgentExecutionStatus) GetRunnerUsage() *RunnerUsageSummary {
-	if x != nil {
-		return x.RunnerUsage
+		return x.StreamingUsage
 	}
 	return nil
 }
@@ -474,7 +458,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\x0eAgentExecutionR\x04kind\x12W\n" +
 	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\bmetadata\x12L\n" +
 	"\x04spec\x18\x04 \x01(\v28.ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpecR\x04spec\x12R\n" +
-	"\x06status\x18\x05 \x01(\v2:.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatusR\x06status\"\xf5\n" +
+	"\x06status\x18\x05 \x01(\v2:.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatusR\x06status\"\xe1\n" +
 	"\n" +
 	"\x14AgentExecutionStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12N\n" +
@@ -493,9 +477,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\fcontext_info\x18\x0e \x01(\v21.ai.stigmer.agentic.agentexecution.v1.ContextInfoR\vcontextInfo\x12U\n" +
 	"\tartifacts\x18\x0f \x03(\v27.ai.stigmer.agentic.agentexecution.v1.ExecutionArtifactR\tartifacts\x12l\n" +
 	"\x15workspace_write_backs\x18\x11 \x03(\v28.ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBackR\x13workspaceWriteBacks\x12Z\n" +
-	"\x0esetup_progress\x18\x12 \x01(\v23.ai.stigmer.agentic.agentexecution.v1.SetupProgressR\rsetupProgress\x12\x1b\n" +
-	"\trunner_id\x18\x13 \x01(\tR\brunnerId\x12[\n" +
-	"\frunner_usage\x18\x14 \x01(\v28.ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummaryR\vrunnerUsage\x1ah\n" +
+	"\x0esetup_progress\x18\x12 \x01(\v23.ai.stigmer.agentic.agentexecution.v1.SetupProgressR\rsetupProgress\x12d\n" +
+	"\x0fstreaming_usage\x18\x14 \x01(\v2;.ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummaryR\x0estreamingUsage\x1ah\n" +
 	"\n" +
 	"TodosEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12D\n" +
@@ -533,7 +516,7 @@ var file_ai_stigmer_agentic_agentexecution_v1_api_proto_goTypes = []any{
 	(*ContextInfo)(nil),                     // 12: ai.stigmer.agentic.agentexecution.v1.ContextInfo
 	(*ExecutionArtifact)(nil),               // 13: ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact
 	(*WorkspaceWriteBack)(nil),              // 14: ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack
-	(*RunnerUsageSummary)(nil),              // 15: ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary
+	(*StreamingUsageSummary)(nil),           // 15: ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary
 	(*TodoItem)(nil),                        // 16: ai.stigmer.agentic.agentexecution.v1.TodoItem
 }
 var file_ai_stigmer_agentic_agentexecution_v1_api_proto_depIdxs = []int32{
@@ -551,7 +534,7 @@ var file_ai_stigmer_agentic_agentexecution_v1_api_proto_depIdxs = []int32{
 	13, // 11: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.artifacts:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact
 	14, // 12: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.workspace_write_backs:type_name -> ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack
 	2,  // 13: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.setup_progress:type_name -> ai.stigmer.agentic.agentexecution.v1.SetupProgress
-	15, // 14: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.runner_usage:type_name -> ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary
+	15, // 14: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.streaming_usage:type_name -> ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary
 	16, // 15: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry.value:type_name -> ai.stigmer.agentic.agentexecution.v1.TodoItem
 	16, // [16:16] is the sub-list for method output_type
 	16, // [16:16] is the sub-list for method input_type

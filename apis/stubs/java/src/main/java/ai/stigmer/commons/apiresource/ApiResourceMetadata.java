@@ -81,9 +81,11 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Human-readable name of the resource.
+   * Max 63 characters. Validation is skipped when the field is empty (e.g.,
+   * server-generated responses or partial messages).
    * </pre>
    *
-   * <code>string name = 1 [json_name = "name"];</code>
+   * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
    * @return The name.
    */
   @java.lang.Override
@@ -102,9 +104,11 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Human-readable name of the resource.
+   * Max 63 characters. Validation is skipped when the field is empty (e.g.,
+   * server-generated responses or partial messages).
    * </pre>
    *
-   * <code>string name = 1 [json_name = "name"];</code>
+   * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
    * @return The bytes for name.
    */
   @java.lang.Override
@@ -129,9 +133,12 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * URL-friendly identifier, unique within the organization.
    * Combined with org, forms the canonical reference: "org/slug".
+   * Format: 2-63 lowercase alphanumeric characters and hyphens; must start
+   * with a letter and end with a letter or digit. When empty, the server
+   * derives the slug from the name.
    * </pre>
    *
-   * <code>string slug = 2 [json_name = "slug"];</code>
+   * <code>string slug = 2 [json_name = "slug", (.buf.validate.field) = { ... }</code>
    * @return The slug.
    */
   @java.lang.Override
@@ -151,9 +158,12 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * URL-friendly identifier, unique within the organization.
    * Combined with org, forms the canonical reference: "org/slug".
+   * Format: 2-63 lowercase alphanumeric characters and hyphens; must start
+   * with a letter and end with a letter or digit. When empty, the server
+   * derives the slug from the name.
    * </pre>
    *
-   * <code>string slug = 2 [json_name = "slug"];</code>
+   * <code>string slug = 2 [json_name = "slug", (.buf.validate.field) = { ... }</code>
    * @return The bytes for slug.
    */
   @java.lang.Override
@@ -1168,9 +1178,11 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Human-readable name of the resource.
+     * Max 63 characters. Validation is skipped when the field is empty (e.g.,
+     * server-generated responses or partial messages).
      * </pre>
      *
-     * <code>string name = 1 [json_name = "name"];</code>
+     * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
      * @return The name.
      */
     public java.lang.String getName() {
@@ -1188,9 +1200,11 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Human-readable name of the resource.
+     * Max 63 characters. Validation is skipped when the field is empty (e.g.,
+     * server-generated responses or partial messages).
      * </pre>
      *
-     * <code>string name = 1 [json_name = "name"];</code>
+     * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
      * @return The bytes for name.
      */
     public com.google.protobuf.ByteString
@@ -1209,9 +1223,11 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Human-readable name of the resource.
+     * Max 63 characters. Validation is skipped when the field is empty (e.g.,
+     * server-generated responses or partial messages).
      * </pre>
      *
-     * <code>string name = 1 [json_name = "name"];</code>
+     * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
      * @param value The name to set.
      * @return This builder for chaining.
      */
@@ -1226,9 +1242,11 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Human-readable name of the resource.
+     * Max 63 characters. Validation is skipped when the field is empty (e.g.,
+     * server-generated responses or partial messages).
      * </pre>
      *
-     * <code>string name = 1 [json_name = "name"];</code>
+     * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
     public Builder clearName() {
@@ -1240,9 +1258,11 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Human-readable name of the resource.
+     * Max 63 characters. Validation is skipped when the field is empty (e.g.,
+     * server-generated responses or partial messages).
      * </pre>
      *
-     * <code>string name = 1 [json_name = "name"];</code>
+     * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
      * @param value The bytes for name to set.
      * @return This builder for chaining.
      */
@@ -1261,9 +1281,12 @@ java.lang.String defaultValue) {
      * <pre>
      * URL-friendly identifier, unique within the organization.
      * Combined with org, forms the canonical reference: "org/slug".
+     * Format: 2-63 lowercase alphanumeric characters and hyphens; must start
+     * with a letter and end with a letter or digit. When empty, the server
+     * derives the slug from the name.
      * </pre>
      *
-     * <code>string slug = 2 [json_name = "slug"];</code>
+     * <code>string slug = 2 [json_name = "slug", (.buf.validate.field) = { ... }</code>
      * @return The slug.
      */
     public java.lang.String getSlug() {
@@ -1282,9 +1305,12 @@ java.lang.String defaultValue) {
      * <pre>
      * URL-friendly identifier, unique within the organization.
      * Combined with org, forms the canonical reference: "org/slug".
+     * Format: 2-63 lowercase alphanumeric characters and hyphens; must start
+     * with a letter and end with a letter or digit. When empty, the server
+     * derives the slug from the name.
      * </pre>
      *
-     * <code>string slug = 2 [json_name = "slug"];</code>
+     * <code>string slug = 2 [json_name = "slug", (.buf.validate.field) = { ... }</code>
      * @return The bytes for slug.
      */
     public com.google.protobuf.ByteString
@@ -1304,9 +1330,12 @@ java.lang.String defaultValue) {
      * <pre>
      * URL-friendly identifier, unique within the organization.
      * Combined with org, forms the canonical reference: "org/slug".
+     * Format: 2-63 lowercase alphanumeric characters and hyphens; must start
+     * with a letter and end with a letter or digit. When empty, the server
+     * derives the slug from the name.
      * </pre>
      *
-     * <code>string slug = 2 [json_name = "slug"];</code>
+     * <code>string slug = 2 [json_name = "slug", (.buf.validate.field) = { ... }</code>
      * @param value The slug to set.
      * @return This builder for chaining.
      */
@@ -1322,9 +1351,12 @@ java.lang.String defaultValue) {
      * <pre>
      * URL-friendly identifier, unique within the organization.
      * Combined with org, forms the canonical reference: "org/slug".
+     * Format: 2-63 lowercase alphanumeric characters and hyphens; must start
+     * with a letter and end with a letter or digit. When empty, the server
+     * derives the slug from the name.
      * </pre>
      *
-     * <code>string slug = 2 [json_name = "slug"];</code>
+     * <code>string slug = 2 [json_name = "slug", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
     public Builder clearSlug() {
@@ -1337,9 +1369,12 @@ java.lang.String defaultValue) {
      * <pre>
      * URL-friendly identifier, unique within the organization.
      * Combined with org, forms the canonical reference: "org/slug".
+     * Format: 2-63 lowercase alphanumeric characters and hyphens; must start
+     * with a letter and end with a letter or digit. When empty, the server
+     * derives the slug from the name.
      * </pre>
      *
-     * <code>string slug = 2 [json_name = "slug"];</code>
+     * <code>string slug = 2 [json_name = "slug", (.buf.validate.field) = { ... }</code>
      * @param value The bytes for slug to set.
      * @return This builder for chaining.
      */

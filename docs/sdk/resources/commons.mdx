@@ -99,7 +99,6 @@ API resource kinds for Stigmer.
 | `skill` | Knowledge resource that provides domain-specific context to an agent. |
 | `mcp_server` | External tool server connected via the Model Context Protocol. |
 | `agent_instance` | Configured deployment of an agent with environment-specific overrides. |
-| `runner` | Process that executes work, either user-created or system-managed. |
 | `workflow` | Multi-step orchestration defining how agents collaborate on a task. |
 | `workflow_instance` | Configured deployment of a workflow with environment-specific bindings. |
 | `workflow_execution` | Single run of a workflow instance, tracking step progress and outcomes. |
@@ -114,6 +113,7 @@ Visibility controls who can access an API resource.
 
 | Value | Description |
 |-------|-------------|
-| `visibility_private` | Only members of the owning organization can access. |
+| `visibility_private` | Only the owner (and explicitly granted principals) can access. |
 | `visibility_public` | Anyone can access (read) this resource. |
+| `visibility_org` | All members of the owning organization can access (read) this resource. |
 

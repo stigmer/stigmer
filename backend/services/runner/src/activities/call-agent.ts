@@ -83,7 +83,6 @@ export async function callAgentAction(
       spec: create(SessionSpecSchema, {
         agentInstanceId: defaultInstanceId,
         harness,
-        ...(appConfig.runnerId ? { runnerId: appConfig.runnerId } : {}),
       }),
     }),
   );

@@ -41,7 +41,6 @@ export interface Config {
   readonly maxConcurrentActivities: number;
   readonly idleTimeoutSeconds: number | null;
   readonly cloudModeEnabled: boolean;
-  readonly runnerId: string | null;
   readonly checkpointerType: "memory" | "http";
   readonly checkpointerProxyEndpoint: string | null;
   readonly primaryModel: string;
@@ -86,8 +85,6 @@ export function loadConfig(): Config {
   const idleTimeoutRaw = process.env.STIGMER_IDLE_TIMEOUT_SECONDS;
   const idleTimeoutSeconds = idleTimeoutRaw ? parseInt(idleTimeoutRaw, 10) : null;
 
-  const runnerId = process.env.STIGMER_RUNNER_ID ?? null;
-
   const checkpointerType = (process.env.STIGMER_CHECKPOINTER_TYPE as "memory" | "http" | undefined)
     ?? (mode === "cloud" ? "http" : "memory");
   const checkpointerProxyEndpoint = process.env.STIGMER_CHECKPOINTER_PROXY_ENDPOINT
@@ -108,7 +105,6 @@ export function loadConfig(): Config {
     maxConcurrentActivities,
     idleTimeoutSeconds,
     cloudModeEnabled: process.env.STIGMER_CURSOR_CLOUD_MODE_ENABLED === "true",
-    runnerId,
     checkpointerType,
     checkpointerProxyEndpoint,
     primaryModel,

@@ -10,8 +10,6 @@ import { AuthProvider, useAuth } from "./auth/AuthProvider";
 import { LoginScreen } from "./auth/LoginScreen";
 import { AppUpdaterProvider } from "./hooks/AppUpdaterContext";
 import { useColorModePreference } from "./hooks/useColorModePreference";
-import { useDeepLinkHandler } from "./hooks/useDeepLinkHandler";
-import { useRunnerNotifications } from "./hooks/useRunnerNotifications";
 
 const BASE_URL = import.meta.env.VITE_STIGMER_API_URL ?? "http://localhost:7234";
 
@@ -51,7 +49,6 @@ export function App() {
 
 function AuthenticatedApp() {
   const { getAccessToken, isAuthenticated, isInitialized } = useAuth();
-  useRunnerNotifications();
   const { colorMode } = useColorModePreference();
 
   const client = useMemo(
@@ -65,8 +62,6 @@ function AuthenticatedApp() {
   );
 
   const deploymentMode = useServerDeploymentMode(client);
-
-  useDeepLinkHandler(client, BASE_URL, isAuthenticated);
 
   return (
     <StigmerProvider

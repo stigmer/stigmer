@@ -42,7 +42,6 @@ private static final long serialVersionUID = 0L;
     sandboxId_ = "";
     workspaceEntries_ = java.util.Collections.emptyList();
     mcpServerUsages_ = java.util.Collections.emptyList();
-    runnerId_ = "";
     skillRefs_ = java.util.Collections.emptyList();
     harness_ = 0;
     cursorMode_ = 0;
@@ -240,15 +239,14 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object sandboxId_ = "";
   /**
    * <pre>
-   * Deprecated: sandbox lifecycle is now managed at the Runner level via
-   * the stigmer.ai/sandbox-id metadata label on the Runner resource.
+   * Deprecated: sandbox lifecycle is managed at the session level.
    * Existing sessions may still have this field populated; new sessions
    * should not set it.
    * </pre>
    *
    * <code>string sandbox_id = 4 [json_name = "sandboxId", deprecated = true];</code>
    * @deprecated ai.stigmer.agentic.session.v1.SessionSpec.sandbox_id is deprecated.
-   *     See ai/stigmer/agentic/session/v1/spec.proto;l=38
+   *     See ai/stigmer/agentic/session/v1/spec.proto;l=37
    * @return The sandboxId.
    */
   @java.lang.Override
@@ -266,15 +264,14 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Deprecated: sandbox lifecycle is now managed at the Runner level via
-   * the stigmer.ai/sandbox-id metadata label on the Runner resource.
+   * Deprecated: sandbox lifecycle is managed at the session level.
    * Existing sessions may still have this field populated; new sessions
    * should not set it.
    * </pre>
    *
    * <code>string sandbox_id = 4 [json_name = "sandboxId", deprecated = true];</code>
    * @deprecated ai.stigmer.agentic.session.v1.SessionSpec.sandbox_id is deprecated.
-   *     See ai/stigmer/agentic/session/v1/spec.proto;l=38
+   *     See ai/stigmer/agentic/session/v1/spec.proto;l=37
    * @return The bytes for sandboxId.
    */
   @java.lang.Override
@@ -594,79 +591,6 @@ java.lang.String defaultValue) {
     return mcpServerUsages_.get(index);
   }
 
-  public static final int RUNNER_ID_FIELD_NUMBER = 9;
-  @SuppressWarnings("serial")
-  private volatile java.lang.Object runnerId_ = "";
-  /**
-   * <pre>
-   * Runner that executes work for this session.
-   *
-   * When set, all executions in this session route to this runner's task queue.
-   * When empty, the platform auto-creates an ephemeral cloud runner on first
-   * execution and sets this field.
-   *
-   * For persistent runners (user-created via CLI/desktop), this is set by the
-   * session composer when the user picks their runner. For cloud executions,
-   * this is set automatically by the system.
-   *
-   * &#64;internal
-   * The execution workflow reads this field to resolve the Temporal task queue
-   * for scheduling activities. When empty, the workflow calls the
-   * RunnerLauncher to spawn an ephemeral runner and populates this field.
-   * </pre>
-   *
-   * <code>string runner_id = 9 [json_name = "runnerId"];</code>
-   * @return The runnerId.
-   */
-  @java.lang.Override
-  public java.lang.String getRunnerId() {
-    java.lang.Object ref = runnerId_;
-    if (ref instanceof java.lang.String) {
-      return (java.lang.String) ref;
-    } else {
-      com.google.protobuf.ByteString bs = 
-          (com.google.protobuf.ByteString) ref;
-      java.lang.String s = bs.toStringUtf8();
-      runnerId_ = s;
-      return s;
-    }
-  }
-  /**
-   * <pre>
-   * Runner that executes work for this session.
-   *
-   * When set, all executions in this session route to this runner's task queue.
-   * When empty, the platform auto-creates an ephemeral cloud runner on first
-   * execution and sets this field.
-   *
-   * For persistent runners (user-created via CLI/desktop), this is set by the
-   * session composer when the user picks their runner. For cloud executions,
-   * this is set automatically by the system.
-   *
-   * &#64;internal
-   * The execution workflow reads this field to resolve the Temporal task queue
-   * for scheduling activities. When empty, the workflow calls the
-   * RunnerLauncher to spawn an ephemeral runner and populates this field.
-   * </pre>
-   *
-   * <code>string runner_id = 9 [json_name = "runnerId"];</code>
-   * @return The bytes for runnerId.
-   */
-  @java.lang.Override
-  public com.google.protobuf.ByteString
-      getRunnerIdBytes() {
-    java.lang.Object ref = runnerId_;
-    if (ref instanceof java.lang.String) {
-      com.google.protobuf.ByteString b = 
-          com.google.protobuf.ByteString.copyFromUtf8(
-              (java.lang.String) ref);
-      runnerId_ = b;
-      return b;
-    } else {
-      return (com.google.protobuf.ByteString) ref;
-    }
-  }
-
   public static final int SKILL_REFS_FIELD_NUMBER = 8;
   @SuppressWarnings("serial")
   private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> skillRefs_;
@@ -912,9 +836,6 @@ java.lang.String defaultValue) {
     for (int i = 0; i < skillRefs_.size(); i++) {
       output.writeMessage(8, skillRefs_.get(i));
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(runnerId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 9, runnerId_);
-    }
     if (harness_ != ai.stigmer.agentic.session.v1.Harness.HARNESS_UNSPECIFIED.getNumber()) {
       output.writeEnum(10, harness_);
     }
@@ -979,9 +900,6 @@ java.lang.String defaultValue) {
           }
           size += 1 * count;
         }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(runnerId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(9, runnerId_);
-    }
     if (harness_ != ai.stigmer.agentic.session.v1.Harness.HARNESS_UNSPECIFIED.getNumber()) {
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(10, harness_);
@@ -1019,8 +937,6 @@ java.lang.String defaultValue) {
         .equals(other.getWorkspaceEntriesList())) return false;
     if (!getMcpServerUsagesList()
         .equals(other.getMcpServerUsagesList())) return false;
-    if (!getRunnerId()
-        .equals(other.getRunnerId())) return false;
     if (!getSkillRefsList()
         .equals(other.getSkillRefsList())) return false;
     if (harness_ != other.harness_) return false;
@@ -1056,8 +972,6 @@ java.lang.String defaultValue) {
       hash = (37 * hash) + MCP_SERVER_USAGES_FIELD_NUMBER;
       hash = (53 * hash) + getMcpServerUsagesList().hashCode();
     }
-    hash = (37 * hash) + RUNNER_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getRunnerId().hashCode();
     if (getSkillRefsCount() > 0) {
       hash = (37 * hash) + SKILL_REFS_FIELD_NUMBER;
       hash = (53 * hash) + getSkillRefsList().hashCode();
@@ -1246,14 +1160,13 @@ java.lang.String defaultValue) {
         mcpServerUsagesBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000040);
-      runnerId_ = "";
       if (skillRefsBuilder_ == null) {
         skillRefs_ = java.util.Collections.emptyList();
       } else {
         skillRefs_ = null;
         skillRefsBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000100);
+      bitField0_ = (bitField0_ & ~0x00000080);
       harness_ = 0;
       cursorMode_ = 0;
       return this;
@@ -1308,9 +1221,9 @@ java.lang.String defaultValue) {
         result.mcpServerUsages_ = mcpServerUsagesBuilder_.build();
       }
       if (skillRefsBuilder_ == null) {
-        if (((bitField0_ & 0x00000100) != 0)) {
+        if (((bitField0_ & 0x00000080) != 0)) {
           skillRefs_ = java.util.Collections.unmodifiableList(skillRefs_);
-          bitField0_ = (bitField0_ & ~0x00000100);
+          bitField0_ = (bitField0_ & ~0x00000080);
         }
         result.skillRefs_ = skillRefs_;
       } else {
@@ -1336,13 +1249,10 @@ java.lang.String defaultValue) {
         result.metadata_ = internalGetMetadata();
         result.metadata_.makeImmutable();
       }
-      if (((from_bitField0_ & 0x00000080) != 0)) {
-        result.runnerId_ = runnerId_;
-      }
-      if (((from_bitField0_ & 0x00000200) != 0)) {
+      if (((from_bitField0_ & 0x00000100) != 0)) {
         result.harness_ = harness_;
       }
-      if (((from_bitField0_ & 0x00000400) != 0)) {
+      if (((from_bitField0_ & 0x00000200) != 0)) {
         result.cursorMode_ = cursorMode_;
       }
     }
@@ -1434,16 +1344,11 @@ java.lang.String defaultValue) {
           }
         }
       }
-      if (!other.getRunnerId().isEmpty()) {
-        runnerId_ = other.runnerId_;
-        bitField0_ |= 0x00000080;
-        onChanged();
-      }
       if (skillRefsBuilder_ == null) {
         if (!other.skillRefs_.isEmpty()) {
           if (skillRefs_.isEmpty()) {
             skillRefs_ = other.skillRefs_;
-            bitField0_ = (bitField0_ & ~0x00000100);
+            bitField0_ = (bitField0_ & ~0x00000080);
           } else {
             ensureSkillRefsIsMutable();
             skillRefs_.addAll(other.skillRefs_);
@@ -1456,7 +1361,7 @@ java.lang.String defaultValue) {
             skillRefsBuilder_.dispose();
             skillRefsBuilder_ = null;
             skillRefs_ = other.skillRefs_;
-            bitField0_ = (bitField0_ & ~0x00000100);
+            bitField0_ = (bitField0_ & ~0x00000080);
             skillRefsBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetSkillRefsFieldBuilder() : null;
@@ -1565,19 +1470,14 @@ java.lang.String defaultValue) {
               }
               break;
             } // case 66
-            case 74: {
-              runnerId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000080;
-              break;
-            } // case 74
             case 80: {
               harness_ = input.readEnum();
-              bitField0_ |= 0x00000200;
+              bitField0_ |= 0x00000100;
               break;
             } // case 80
             case 88: {
               cursorMode_ = input.readEnum();
-              bitField0_ |= 0x00000400;
+              bitField0_ |= 0x00000200;
               break;
             } // case 88
             default: {
@@ -1916,15 +1816,14 @@ java.lang.String defaultValue) {
     private java.lang.Object sandboxId_ = "";
     /**
      * <pre>
-     * Deprecated: sandbox lifecycle is now managed at the Runner level via
-     * the stigmer.ai/sandbox-id metadata label on the Runner resource.
+     * Deprecated: sandbox lifecycle is managed at the session level.
      * Existing sessions may still have this field populated; new sessions
      * should not set it.
      * </pre>
      *
      * <code>string sandbox_id = 4 [json_name = "sandboxId", deprecated = true];</code>
      * @deprecated ai.stigmer.agentic.session.v1.SessionSpec.sandbox_id is deprecated.
-     *     See ai/stigmer/agentic/session/v1/spec.proto;l=38
+     *     See ai/stigmer/agentic/session/v1/spec.proto;l=37
      * @return The sandboxId.
      */
     @java.lang.Deprecated public java.lang.String getSandboxId() {
@@ -1941,15 +1840,14 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Deprecated: sandbox lifecycle is now managed at the Runner level via
-     * the stigmer.ai/sandbox-id metadata label on the Runner resource.
+     * Deprecated: sandbox lifecycle is managed at the session level.
      * Existing sessions may still have this field populated; new sessions
      * should not set it.
      * </pre>
      *
      * <code>string sandbox_id = 4 [json_name = "sandboxId", deprecated = true];</code>
      * @deprecated ai.stigmer.agentic.session.v1.SessionSpec.sandbox_id is deprecated.
-     *     See ai/stigmer/agentic/session/v1/spec.proto;l=38
+     *     See ai/stigmer/agentic/session/v1/spec.proto;l=37
      * @return The bytes for sandboxId.
      */
     @java.lang.Deprecated public com.google.protobuf.ByteString
@@ -1967,15 +1865,14 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Deprecated: sandbox lifecycle is now managed at the Runner level via
-     * the stigmer.ai/sandbox-id metadata label on the Runner resource.
+     * Deprecated: sandbox lifecycle is managed at the session level.
      * Existing sessions may still have this field populated; new sessions
      * should not set it.
      * </pre>
      *
      * <code>string sandbox_id = 4 [json_name = "sandboxId", deprecated = true];</code>
      * @deprecated ai.stigmer.agentic.session.v1.SessionSpec.sandbox_id is deprecated.
-     *     See ai/stigmer/agentic/session/v1/spec.proto;l=38
+     *     See ai/stigmer/agentic/session/v1/spec.proto;l=37
      * @param value The sandboxId to set.
      * @return This builder for chaining.
      */
@@ -1989,15 +1886,14 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Deprecated: sandbox lifecycle is now managed at the Runner level via
-     * the stigmer.ai/sandbox-id metadata label on the Runner resource.
+     * Deprecated: sandbox lifecycle is managed at the session level.
      * Existing sessions may still have this field populated; new sessions
      * should not set it.
      * </pre>
      *
      * <code>string sandbox_id = 4 [json_name = "sandboxId", deprecated = true];</code>
      * @deprecated ai.stigmer.agentic.session.v1.SessionSpec.sandbox_id is deprecated.
-     *     See ai/stigmer/agentic/session/v1/spec.proto;l=38
+     *     See ai/stigmer/agentic/session/v1/spec.proto;l=37
      * @return This builder for chaining.
      */
     @java.lang.Deprecated public Builder clearSandboxId() {
@@ -2008,15 +1904,14 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Deprecated: sandbox lifecycle is now managed at the Runner level via
-     * the stigmer.ai/sandbox-id metadata label on the Runner resource.
+     * Deprecated: sandbox lifecycle is managed at the session level.
      * Existing sessions may still have this field populated; new sessions
      * should not set it.
      * </pre>
      *
      * <code>string sandbox_id = 4 [json_name = "sandboxId", deprecated = true];</code>
      * @deprecated ai.stigmer.agentic.session.v1.SessionSpec.sandbox_id is deprecated.
-     *     See ai/stigmer/agentic/session/v1/spec.proto;l=38
+     *     See ai/stigmer/agentic/session/v1/spec.proto;l=37
      * @param value The bytes for sandboxId to set.
      * @return This builder for chaining.
      */
@@ -3115,169 +3010,12 @@ java.lang.String defaultValue) {
       return mcpServerUsagesBuilder_;
     }
 
-    private java.lang.Object runnerId_ = "";
-    /**
-     * <pre>
-     * Runner that executes work for this session.
-     *
-     * When set, all executions in this session route to this runner's task queue.
-     * When empty, the platform auto-creates an ephemeral cloud runner on first
-     * execution and sets this field.
-     *
-     * For persistent runners (user-created via CLI/desktop), this is set by the
-     * session composer when the user picks their runner. For cloud executions,
-     * this is set automatically by the system.
-     *
-     * &#64;internal
-     * The execution workflow reads this field to resolve the Temporal task queue
-     * for scheduling activities. When empty, the workflow calls the
-     * RunnerLauncher to spawn an ephemeral runner and populates this field.
-     * </pre>
-     *
-     * <code>string runner_id = 9 [json_name = "runnerId"];</code>
-     * @return The runnerId.
-     */
-    public java.lang.String getRunnerId() {
-      java.lang.Object ref = runnerId_;
-      if (!(ref instanceof java.lang.String)) {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        runnerId_ = s;
-        return s;
-      } else {
-        return (java.lang.String) ref;
-      }
-    }
-    /**
-     * <pre>
-     * Runner that executes work for this session.
-     *
-     * When set, all executions in this session route to this runner's task queue.
-     * When empty, the platform auto-creates an ephemeral cloud runner on first
-     * execution and sets this field.
-     *
-     * For persistent runners (user-created via CLI/desktop), this is set by the
-     * session composer when the user picks their runner. For cloud executions,
-     * this is set automatically by the system.
-     *
-     * &#64;internal
-     * The execution workflow reads this field to resolve the Temporal task queue
-     * for scheduling activities. When empty, the workflow calls the
-     * RunnerLauncher to spawn an ephemeral runner and populates this field.
-     * </pre>
-     *
-     * <code>string runner_id = 9 [json_name = "runnerId"];</code>
-     * @return The bytes for runnerId.
-     */
-    public com.google.protobuf.ByteString
-        getRunnerIdBytes() {
-      java.lang.Object ref = runnerId_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        runnerId_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-    /**
-     * <pre>
-     * Runner that executes work for this session.
-     *
-     * When set, all executions in this session route to this runner's task queue.
-     * When empty, the platform auto-creates an ephemeral cloud runner on first
-     * execution and sets this field.
-     *
-     * For persistent runners (user-created via CLI/desktop), this is set by the
-     * session composer when the user picks their runner. For cloud executions,
-     * this is set automatically by the system.
-     *
-     * &#64;internal
-     * The execution workflow reads this field to resolve the Temporal task queue
-     * for scheduling activities. When empty, the workflow calls the
-     * RunnerLauncher to spawn an ephemeral runner and populates this field.
-     * </pre>
-     *
-     * <code>string runner_id = 9 [json_name = "runnerId"];</code>
-     * @param value The runnerId to set.
-     * @return This builder for chaining.
-     */
-    public Builder setRunnerId(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      runnerId_ = value;
-      bitField0_ |= 0x00000080;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Runner that executes work for this session.
-     *
-     * When set, all executions in this session route to this runner's task queue.
-     * When empty, the platform auto-creates an ephemeral cloud runner on first
-     * execution and sets this field.
-     *
-     * For persistent runners (user-created via CLI/desktop), this is set by the
-     * session composer when the user picks their runner. For cloud executions,
-     * this is set automatically by the system.
-     *
-     * &#64;internal
-     * The execution workflow reads this field to resolve the Temporal task queue
-     * for scheduling activities. When empty, the workflow calls the
-     * RunnerLauncher to spawn an ephemeral runner and populates this field.
-     * </pre>
-     *
-     * <code>string runner_id = 9 [json_name = "runnerId"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearRunnerId() {
-      runnerId_ = getDefaultInstance().getRunnerId();
-      bitField0_ = (bitField0_ & ~0x00000080);
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Runner that executes work for this session.
-     *
-     * When set, all executions in this session route to this runner's task queue.
-     * When empty, the platform auto-creates an ephemeral cloud runner on first
-     * execution and sets this field.
-     *
-     * For persistent runners (user-created via CLI/desktop), this is set by the
-     * session composer when the user picks their runner. For cloud executions,
-     * this is set automatically by the system.
-     *
-     * &#64;internal
-     * The execution workflow reads this field to resolve the Temporal task queue
-     * for scheduling activities. When empty, the workflow calls the
-     * RunnerLauncher to spawn an ephemeral runner and populates this field.
-     * </pre>
-     *
-     * <code>string runner_id = 9 [json_name = "runnerId"];</code>
-     * @param value The bytes for runnerId to set.
-     * @return This builder for chaining.
-     */
-    public Builder setRunnerIdBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      runnerId_ = value;
-      bitField0_ |= 0x00000080;
-      onChanged();
-      return this;
-    }
-
     private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> skillRefs_ =
       java.util.Collections.emptyList();
     private void ensureSkillRefsIsMutable() {
-      if (!((bitField0_ & 0x00000100) != 0)) {
+      if (!((bitField0_ & 0x00000080) != 0)) {
         skillRefs_ = new java.util.ArrayList<ai.stigmer.commons.apiresource.ApiResourceReference>(skillRefs_);
-        bitField0_ |= 0x00000100;
+        bitField0_ |= 0x00000080;
        }
     }
 
@@ -3548,7 +3286,7 @@ java.lang.String defaultValue) {
     public Builder clearSkillRefs() {
       if (skillRefsBuilder_ == null) {
         skillRefs_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000100);
+        bitField0_ = (bitField0_ & ~0x00000080);
         onChanged();
       } else {
         skillRefsBuilder_.clear();
@@ -3702,7 +3440,7 @@ java.lang.String defaultValue) {
         skillRefsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder>(
                 skillRefs_,
-                ((bitField0_ & 0x00000100) != 0),
+                ((bitField0_ & 0x00000080) != 0),
                 getParentForChildren(),
                 isClean());
         skillRefs_ = null;
@@ -3758,7 +3496,7 @@ java.lang.String defaultValue) {
      */
     public Builder setHarnessValue(int value) {
       harness_ = value;
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }
@@ -3810,7 +3548,7 @@ java.lang.String defaultValue) {
      */
     public Builder setHarness(ai.stigmer.agentic.session.v1.Harness value) {
       if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000100;
       harness_ = value.getNumber();
       onChanged();
       return this;
@@ -3836,7 +3574,7 @@ java.lang.String defaultValue) {
      * @return This builder for chaining.
      */
     public Builder clearHarness() {
-      bitField0_ = (bitField0_ & ~0x00000200);
+      bitField0_ = (bitField0_ & ~0x00000100);
       harness_ = 0;
       onChanged();
       return this;
@@ -3898,7 +3636,7 @@ java.lang.String defaultValue) {
      */
     public Builder setCursorModeValue(int value) {
       cursorMode_ = value;
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000200;
       onChanged();
       return this;
     }
@@ -3958,7 +3696,7 @@ java.lang.String defaultValue) {
      */
     public Builder setCursorMode(ai.stigmer.agentic.session.v1.CursorMode value) {
       if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000200;
       cursorMode_ = value.getNumber();
       onChanged();
       return this;
@@ -3988,7 +3726,7 @@ java.lang.String defaultValue) {
      * @return This builder for chaining.
      */
     public Builder clearCursorMode() {
-      bitField0_ = (bitField0_ & ~0x00000400);
+      bitField0_ = (bitField0_ & ~0x00000200);
       cursorMode_ = 0;
       onChanged();
       return this;

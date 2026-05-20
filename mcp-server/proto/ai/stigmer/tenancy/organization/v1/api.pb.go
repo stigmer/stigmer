@@ -114,17 +114,14 @@ var File_ai_stigmer_tenancy_organization_v1_api_proto protoreflect.FileDescripto
 
 const file_ai_stigmer_tenancy_organization_v1_api_proto_rawDesc = "" +
 	"\n" +
-	",ai/stigmer/tenancy/organization/v1/api.proto\x12\"ai.stigmer.tenancy.organization.v1\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a-ai/stigmer/tenancy/organization/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\"\xdd\x05\n" +
+	",ai/stigmer/tenancy/organization/v1/api.proto\x12\"ai.stigmer.tenancy.organization.v1\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a-ai/stigmer/tenancy/organization/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\"\xe9\x02\n" +
 	"\fOrganization\x12=\n" +
 	"\vapi_version\x18\x01 \x01(\tB\x1c\xbaH\x19r\x17\n" +
 	"\x15tenancy.stigmer.ai/v1R\n" +
 	"apiVersion\x12'\n" +
 	"\x04kind\x18\x02 \x01(\tB\x13\xbaH\x10r\x0e\n" +
-	"\fOrganizationR\x04kind\x12\xca\x03\n" +
-	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\xf8\x02\xbaH\xf4\x02\xba\x01\x81\x01\n" +
-	"\x13metadata.slug.chars\x12Gmetadata.slug: Only lowercase letters, numbers, and hyphens are allowed\x1a!this.slug.matches('^[a-z0-9-]+$')\xba\x01h\n" +
-	"\x13metadata.slug.start\x121metadata.slug: Must start with a lowercase letter\x1a\x1ethis.slug.matches('^[a-z].*$')\xba\x01~\n" +
-	"\x14metadata.slug.length\x127metadata.slug: Must be between 2 and 15 characters long\x1a-size(this.slug) >= 2 && size(this.slug) <= 15\xc8\x01\x01R\bmetadata\x12H\n" +
+	"\fOrganizationR\x04kind\x12W\n" +
+	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\bmetadata\x12H\n" +
 	"\x04spec\x18\x04 \x01(\v24.ai.stigmer.tenancy.organization.v1.OrganizationSpecR\x04spec\x12N\n" +
 	"\x06status\x18\x05 \x01(\v26.ai.stigmer.commons.apiresource.ApiResourceAuditStatusR\x06statusB\xbe\x02\n" +
 	"&com.ai.stigmer.tenancy.organization.v1B\bApiProtoP\x01Z]github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/tenancy/organization/v1;organizationv1\xa2\x02\x04ASTO\xaa\x02\"Ai.Stigmer.Tenancy.Organization.V1\xca\x02\"Ai\\Stigmer\\Tenancy\\Organization\\V1\xe2\x02.Ai\\Stigmer\\Tenancy\\Organization\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Tenancy::Organization::V1b\x06proto3"

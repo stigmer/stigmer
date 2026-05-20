@@ -4,6 +4,7 @@ import grpc
 
 from ai.stigmer.agentic.agentinstance.v1 import api_pb2 as ai_dot_stigmer_dot_agentic_dot_agentinstance_dot_v1_dot_api__pb2
 from ai.stigmer.agentic.agentinstance.v1 import io_pb2 as ai_dot_stigmer_dot_agentic_dot_agentinstance_dot_v1_dot_io__pb2
+from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2
 
 
 class AgentInstanceCommandControllerStub(object):
@@ -29,6 +30,11 @@ class AgentInstanceCommandControllerStub(object):
         self.update = channel.unary_unary(
                 '/ai.stigmer.agentic.agentinstance.v1.AgentInstanceCommandController/update',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_agentinstance_dot_v1_dot_api__pb2.AgentInstance.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentinstance_dot_v1_dot_api__pb2.AgentInstance.FromString,
+                _registered_method=True)
+        self.updateVisibility = channel.unary_unary(
+                '/ai.stigmer.agentic.agentinstance.v1.AgentInstanceCommandController/updateVisibility',
+                request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.UpdateVisibilityInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentinstance_dot_v1_dot_api__pb2.AgentInstance.FromString,
                 _registered_method=True)
         self.delete = channel.unary_unary(
@@ -81,6 +87,29 @@ class AgentInstanceCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def updateVisibility(self, request, context):
+        """Update the visibility of an existing agent instance.
+
+        Changes who can view this instance and interact with it. Supports the
+        full visibility spectrum: PRIVATE (owner only), ORG (all org members),
+        or PUBLIC (all authenticated users).
+
+        For agent instances, visibility controls who can create sessions and run
+        executions against this instance. Sessions remain personal regardless of
+        instance visibility (conversation privacy is preserved).
+
+        @internal
+        Authorization: Requires can_edit permission on the agent instance.
+        Visibility transitions trigger FGA tuple management in Cloud mode:
+        - PRIVATE → ORG: creates agent_instance#viewer@organization:<org>#member
+        - PRIVATE → PUBLIC: creates agent_instance#viewer@identity_account:*
+        - ORG → PRIVATE: deletes the org member viewer tuple
+        - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def delete(self, request, context):
         """Delete an agent instance.
 
@@ -107,6 +136,11 @@ def add_AgentInstanceCommandControllerServicer_to_server(servicer, server):
             'update': grpc.unary_unary_rpc_method_handler(
                     servicer.update,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentinstance_dot_v1_dot_api__pb2.AgentInstance.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_agentinstance_dot_v1_dot_api__pb2.AgentInstance.SerializeToString,
+            ),
+            'updateVisibility': grpc.unary_unary_rpc_method_handler(
+                    servicer.updateVisibility,
+                    request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.UpdateVisibilityInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_agentinstance_dot_v1_dot_api__pb2.AgentInstance.SerializeToString,
             ),
             'delete': grpc.unary_unary_rpc_method_handler(
@@ -196,6 +230,33 @@ class AgentInstanceCommandController(object):
             target,
             '/ai.stigmer.agentic.agentinstance.v1.AgentInstanceCommandController/update',
             ai_dot_stigmer_dot_agentic_dot_agentinstance_dot_v1_dot_api__pb2.AgentInstance.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_agentinstance_dot_v1_dot_api__pb2.AgentInstance.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def updateVisibility(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.agentinstance.v1.AgentInstanceCommandController/updateVisibility',
+            ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.UpdateVisibilityInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_agentinstance_dot_v1_dot_api__pb2.AgentInstance.FromString,
             options,
             channel_credentials,

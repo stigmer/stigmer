@@ -21,9 +21,7 @@ message Organization {
   string kind = 2 [(buf.validate.field).string.const = "Organization"];
 
   // Resource metadata including name, organization, and labels.
-  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [
-    (buf.validate.field).required = true
-  ];
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
 
   // Configurable properties: description, logo, and management mode.
   OrganizationSpec spec = 4;

@@ -8,7 +8,6 @@ go_library(
     deps = [
         "//backend/services/workflow-runner/pkg/claimcheck",
         "//backend/services/workflow-runner/pkg/executor",
-        "//backend/services/workflow-runner/pkg/heartbeat",
         "//backend/services/workflow-runner/pkg/interceptors",
         "//backend/services/workflow-runner/pkg/temporal/searchattributes",
         "//backend/services/workflow-runner/pkg/zigflow/tasks",

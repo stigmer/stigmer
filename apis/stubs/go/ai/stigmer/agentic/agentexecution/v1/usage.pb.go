@@ -1477,9 +1477,9 @@ func (x *ModelUsage) GetProviderCostMicros() int64 {
 	return 0
 }
 
-// Accumulated token usage from runner-observed turn-ended events.
-// Carried on AgentExecutionStatus.runner_usage for real-time streaming UX.
-type RunnerUsageSummary struct {
+// Accumulated token usage from execution worker turn-ended events.
+// Carried on AgentExecutionStatus.streaming_usage for real-time streaming UX.
+type StreamingUsageSummary struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Accumulated input tokens across all turns.
 	InputTokens int64 `protobuf:"varint,1,opt,name=input_tokens,json=inputTokens,proto3" json:"input_tokens,omitempty"`
@@ -1504,20 +1504,20 @@ type RunnerUsageSummary struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *RunnerUsageSummary) Reset() {
-	*x = RunnerUsageSummary{}
+func (x *StreamingUsageSummary) Reset() {
+	*x = StreamingUsageSummary{}
 	mi := &file_ai_stigmer_agentic_agentexecution_v1_usage_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *RunnerUsageSummary) String() string {
+func (x *StreamingUsageSummary) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RunnerUsageSummary) ProtoMessage() {}
+func (*StreamingUsageSummary) ProtoMessage() {}
 
-func (x *RunnerUsageSummary) ProtoReflect() protoreflect.Message {
+func (x *StreamingUsageSummary) ProtoReflect() protoreflect.Message {
 	mi := &file_ai_stigmer_agentic_agentexecution_v1_usage_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1529,68 +1529,68 @@ func (x *RunnerUsageSummary) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RunnerUsageSummary.ProtoReflect.Descriptor instead.
-func (*RunnerUsageSummary) Descriptor() ([]byte, []int) {
+// Deprecated: Use StreamingUsageSummary.ProtoReflect.Descriptor instead.
+func (*StreamingUsageSummary) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDescGZIP(), []int{8}
 }
 
-func (x *RunnerUsageSummary) GetInputTokens() int64 {
+func (x *StreamingUsageSummary) GetInputTokens() int64 {
 	if x != nil {
 		return x.InputTokens
 	}
 	return 0
 }
 
-func (x *RunnerUsageSummary) GetOutputTokens() int64 {
+func (x *StreamingUsageSummary) GetOutputTokens() int64 {
 	if x != nil {
 		return x.OutputTokens
 	}
 	return 0
 }
 
-func (x *RunnerUsageSummary) GetCacheReadTokens() int64 {
+func (x *StreamingUsageSummary) GetCacheReadTokens() int64 {
 	if x != nil {
 		return x.CacheReadTokens
 	}
 	return 0
 }
 
-func (x *RunnerUsageSummary) GetCacheWriteTokens() int64 {
+func (x *StreamingUsageSummary) GetCacheWriteTokens() int64 {
 	if x != nil {
 		return x.CacheWriteTokens
 	}
 	return 0
 }
 
-func (x *RunnerUsageSummary) GetTotalTokens() int64 {
+func (x *StreamingUsageSummary) GetTotalTokens() int64 {
 	if x != nil {
 		return x.TotalTokens
 	}
 	return 0
 }
 
-func (x *RunnerUsageSummary) GetTurnCount() int32 {
+func (x *StreamingUsageSummary) GetTurnCount() int32 {
 	if x != nil {
 		return x.TurnCount
 	}
 	return 0
 }
 
-func (x *RunnerUsageSummary) GetEstimatedCostUsd() float64 {
+func (x *StreamingUsageSummary) GetEstimatedCostUsd() float64 {
 	if x != nil {
 		return x.EstimatedCostUsd
 	}
 	return 0
 }
 
-func (x *RunnerUsageSummary) GetModel() string {
+func (x *StreamingUsageSummary) GetModel() string {
 	if x != nil {
 		return x.Model
 	}
 	return ""
 }
 
-func (x *RunnerUsageSummary) GetObservedAt() string {
+func (x *StreamingUsageSummary) GetObservedAt() string {
 	if x != nil {
 		return x.ObservedAt
 	}
@@ -1722,8 +1722,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDesc = "" +
 	"\n" +
 	"call_count\x18\a \x01(\x05R\tcallCount\x120\n" +
 	"\x14billable_cost_micros\x18\b \x01(\x03R\x12billableCostMicros\x120\n" +
-	"\x14provider_cost_micros\x18\t \x01(\x03R\x12providerCostMicros\"\xdd\x02\n" +
-	"\x12RunnerUsageSummary\x12!\n" +
+	"\x14provider_cost_micros\x18\t \x01(\x03R\x12providerCostMicros\"\xe0\x02\n" +
+	"\x15StreamingUsageSummary\x12!\n" +
 	"\finput_tokens\x18\x01 \x01(\x03R\vinputTokens\x12#\n" +
 	"\routput_tokens\x18\x02 \x01(\x03R\foutputTokens\x12*\n" +
 	"\x11cache_read_tokens\x18\x03 \x01(\x03R\x0fcacheReadTokens\x12,\n" +
@@ -1802,7 +1802,7 @@ var file_ai_stigmer_agentic_agentexecution_v1_usage_proto_goTypes = []any{
 	(*LlmCallUsageRecord)(nil),    // 10: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord
 	(*UsageReportAggregate)(nil),  // 11: ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate
 	(*ModelUsage)(nil),            // 12: ai.stigmer.agentic.agentexecution.v1.ModelUsage
-	(*RunnerUsageSummary)(nil),    // 13: ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary
+	(*StreamingUsageSummary)(nil), // 13: ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary
 	nil,                           // 14: ai.stigmer.agentic.agentexecution.v1.TokenUsage.ProviderTokenDetailsEntry
 	nil,                           // 15: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.LabelsEntry
 	(*timestamppb.Timestamp)(nil), // 16: google.protobuf.Timestamp

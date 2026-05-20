@@ -837,62 +837,28 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue);
 
   /**
    * <pre>
-   * ID of the Runner that executed this execution.
-   *
-   * Set once when the execution is dispatched to a runner; immutable after.
-   * For cloud executions, this references the system-managed ephemeral runner
-   * that was auto-created for this execution. For local executions, this
-   * references the user-created persistent runner selected via the session.
-   *
-   * Used for observability: "which runner handled this work?"
+   * Streaming usage summary, updated progressively during execution.
    * </pre>
    *
-   * <code>string runner_id = 19 [json_name = "runnerId"];</code>
-   * @return The runnerId.
+   * <code>.ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary streaming_usage = 20 [json_name = "streamingUsage"];</code>
+   * @return Whether the streamingUsage field is set.
    */
-  java.lang.String getRunnerId();
+  boolean hasStreamingUsage();
   /**
    * <pre>
-   * ID of the Runner that executed this execution.
-   *
-   * Set once when the execution is dispatched to a runner; immutable after.
-   * For cloud executions, this references the system-managed ephemeral runner
-   * that was auto-created for this execution. For local executions, this
-   * references the user-created persistent runner selected via the session.
-   *
-   * Used for observability: "which runner handled this work?"
+   * Streaming usage summary, updated progressively during execution.
    * </pre>
    *
-   * <code>string runner_id = 19 [json_name = "runnerId"];</code>
-   * @return The bytes for runnerId.
+   * <code>.ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary streaming_usage = 20 [json_name = "streamingUsage"];</code>
+   * @return The streamingUsage.
    */
-  com.google.protobuf.ByteString
-      getRunnerIdBytes();
-
+  ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary getStreamingUsage();
   /**
    * <pre>
-   * Runner-reported usage summary, updated progressively during streaming.
+   * Streaming usage summary, updated progressively during execution.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary runner_usage = 20 [json_name = "runnerUsage"];</code>
-   * @return Whether the runnerUsage field is set.
+   * <code>.ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary streaming_usage = 20 [json_name = "streamingUsage"];</code>
    */
-  boolean hasRunnerUsage();
-  /**
-   * <pre>
-   * Runner-reported usage summary, updated progressively during streaming.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary runner_usage = 20 [json_name = "runnerUsage"];</code>
-   * @return The runnerUsage.
-   */
-  ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary getRunnerUsage();
-  /**
-   * <pre>
-   * Runner-reported usage summary, updated progressively during streaming.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary runner_usage = 20 [json_name = "runnerUsage"];</code>
-   */
-  ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummaryOrBuilder getRunnerUsageOrBuilder();
+  ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummaryOrBuilder getStreamingUsageOrBuilder();
 }

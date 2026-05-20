@@ -45,8 +45,7 @@ type SessionSpec struct {
 	// @internal
 	// Generated on first execution, persists across all executions.
 	ThreadId string `protobuf:"bytes,3,opt,name=thread_id,json=threadId,proto3" json:"thread_id,omitempty"`
-	// Deprecated: sandbox lifecycle is now managed at the Runner level via
-	// the stigmer.ai/sandbox-id metadata label on the Runner resource.
+	// Deprecated: sandbox lifecycle is managed at the session level.
 	// Existing sessions may still have this field populated; new sessions
 	// should not set it.
 	//
@@ -75,21 +74,6 @@ type SessionSpec struct {
 	// runner merges these with the agent's mcp_server_usages when constructing
 	// the execution graph.
 	McpServerUsages []*v1.McpServerUsage `protobuf:"bytes,7,rep,name=mcp_server_usages,json=mcpServerUsages,proto3" json:"mcp_server_usages,omitempty"`
-	// Runner that executes work for this session.
-	//
-	// When set, all executions in this session route to this runner's task queue.
-	// When empty, the platform auto-creates an ephemeral cloud runner on first
-	// execution and sets this field.
-	//
-	// For persistent runners (user-created via CLI/desktop), this is set by the
-	// session composer when the user picks their runner. For cloud executions,
-	// this is set automatically by the system.
-	//
-	// @internal
-	// The execution workflow reads this field to resolve the Temporal task queue
-	// for scheduling activities. When empty, the workflow calls the
-	// RunnerLauncher to spawn an ephemeral runner and populates this field.
-	RunnerId string `protobuf:"bytes,9,opt,name=runner_id,json=runnerId,proto3" json:"runner_id,omitempty"`
 	// Skills to inject into this session's context.
 	//
 	// Provides domain-specific knowledge for this specific conversation without
@@ -215,13 +199,6 @@ func (x *SessionSpec) GetMcpServerUsages() []*v1.McpServerUsage {
 	return nil
 }
 
-func (x *SessionSpec) GetRunnerId() string {
-	if x != nil {
-		return x.RunnerId
-	}
-	return ""
-}
-
 func (x *SessionSpec) GetSkillRefs() []*apiresource.ApiResourceReference {
 	if x != nil {
 		return x.SkillRefs
@@ -247,7 +224,7 @@ var File_ai_stigmer_agentic_session_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"(ai/stigmer/agentic/session/v1/spec.proto\x12\x1dai.stigmer.agentic.session.v1\x1a&ai/stigmer/agentic/agent/v1/spec.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xe0\a\n" +
+	"(ai/stigmer/agentic/session/v1/spec.proto\x12\x1dai.stigmer.agentic.session.v1\x1a&ai/stigmer/agentic/agent/v1/spec.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xc3\a\n" +
 	"\vSessionSpec\x12*\n" +
 	"\x11agent_instance_id\x18\x01 \x01(\tR\x0fagentInstanceId\x12\x18\n" +
 	"\asubject\x18\x02 \x01(\tR\asubject\x12\x1b\n" +
@@ -257,8 +234,7 @@ const file_ai_stigmer_agentic_session_v1_spec_proto_rawDesc = "" +
 	"\bmetadata\x18\x05 \x03(\v28.ai.stigmer.agentic.session.v1.SessionSpec.MetadataEntryR\bmetadata\x12Z\n" +
 	"\x11workspace_entries\x18\x06 \x03(\v2-.ai.stigmer.agentic.session.v1.WorkspaceEntryR\x10workspaceEntries\x12\xea\x01\n" +
 	"\x11mcp_server_usages\x18\a \x03(\v2+.ai.stigmer.agentic.agent.v1.McpServerUsageB\x90\x01\xbaH\x8c\x01\x92\x01\x88\x01\"\x85\x01\xba\x01\x81\x01\n" +
-	"\x1esession_mcp_server_usages.kind\x12?mcp_server_usages must reference resources with kind=mcp_server\x1a\x1ethis.mcp_server_ref.kind == 44R\x0fmcpServerUsages\x12\x1b\n" +
-	"\trunner_id\x18\t \x01(\tR\brunnerId\x12\xc3\x01\n" +
+	"\x1esession_mcp_server_usages.kind\x12?mcp_server_usages must reference resources with kind=mcp_server\x1a\x1ethis.mcp_server_ref.kind == 44R\x0fmcpServerUsages\x12\xc3\x01\n" +
 	"\n" +
 	"skill_refs\x18\b \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBn\xbaHg\x92\x01d\"b\xba\x01_\n" +
 	"\x17session_skill_refs.kind\x123skill_refs must reference resources with kind=skill\x1a\x0fthis.kind == 43\xe0\x85,+R\tskillRefs\x12@\n" +

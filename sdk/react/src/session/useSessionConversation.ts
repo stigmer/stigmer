@@ -480,7 +480,6 @@ function buildUpdateInput(
     subject: spec?.subject || undefined,
     threadId: spec?.threadId || undefined,
     sandboxId: spec?.sandboxId || undefined,
-    runnerId: spec?.runnerId || undefined,
     harness: spec?.harness,
     metadata:
       spec?.metadata && Object.keys(spec.metadata).length > 0

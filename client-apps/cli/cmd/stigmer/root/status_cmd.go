@@ -1,9 +1,7 @@
 package root
 
 import (
-	"fmt"
 	"os"
-	"sort"
 	"strings"
 	"time"
 
@@ -12,7 +10,6 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/llm"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/runner"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
 )
 
@@ -178,30 +175,7 @@ func addBootstrapSection(result *clioutput.CommandResult, dataDir string) {
 	}
 }
 
-func addStandaloneRunnerSection(result *clioutput.CommandResult) {
-	states, err := runner.ListAllRunnerStates()
-	if err != nil || len(states) == 0 {
-		return
-	}
-
-	names := make([]string, 0, len(states))
-	for name := range states {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-
-	sec := result.AddSection("Standalone Runners")
-	for _, name := range names {
-		state := states[name]
-		runtimeTag := ""
-		if state.IsDocker() {
-			runtimeTag = " (Docker)"
-		}
-		sec.Field(name, fmt.Sprintf("PID %d | %s | started %s%s",
-			state.PID, state.BackendEndpoint,
-			formatDuration(time.Since(state.StartedAt))+" ago",
-			runtimeTag))
-	}
+func addStandaloneRunnerSection(_ *clioutput.CommandResult) {
 }
 
 func addLLMSections(result *clioutput.CommandResult, cfg *config.Config) {

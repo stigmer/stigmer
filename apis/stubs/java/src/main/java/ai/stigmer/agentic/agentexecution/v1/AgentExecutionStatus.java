@@ -43,7 +43,6 @@ private static final long serialVersionUID = 0L;
     pendingApprovals_ = java.util.Collections.emptyList();
     artifacts_ = java.util.Collections.emptyList();
     workspaceWriteBacks_ = java.util.Collections.emptyList();
-    runnerId_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -1162,103 +1161,42 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     return setupProgress_ == null ? ai.stigmer.agentic.agentexecution.v1.SetupProgress.getDefaultInstance() : setupProgress_;
   }
 
-  public static final int RUNNER_ID_FIELD_NUMBER = 19;
-  @SuppressWarnings("serial")
-  private volatile java.lang.Object runnerId_ = "";
+  public static final int STREAMING_USAGE_FIELD_NUMBER = 20;
+  private ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary streamingUsage_;
   /**
    * <pre>
-   * ID of the Runner that executed this execution.
-   *
-   * Set once when the execution is dispatched to a runner; immutable after.
-   * For cloud executions, this references the system-managed ephemeral runner
-   * that was auto-created for this execution. For local executions, this
-   * references the user-created persistent runner selected via the session.
-   *
-   * Used for observability: "which runner handled this work?"
+   * Streaming usage summary, updated progressively during execution.
    * </pre>
    *
-   * <code>string runner_id = 19 [json_name = "runnerId"];</code>
-   * @return The runnerId.
+   * <code>.ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary streaming_usage = 20 [json_name = "streamingUsage"];</code>
+   * @return Whether the streamingUsage field is set.
    */
   @java.lang.Override
-  public java.lang.String getRunnerId() {
-    java.lang.Object ref = runnerId_;
-    if (ref instanceof java.lang.String) {
-      return (java.lang.String) ref;
-    } else {
-      com.google.protobuf.ByteString bs = 
-          (com.google.protobuf.ByteString) ref;
-      java.lang.String s = bs.toStringUtf8();
-      runnerId_ = s;
-      return s;
-    }
-  }
-  /**
-   * <pre>
-   * ID of the Runner that executed this execution.
-   *
-   * Set once when the execution is dispatched to a runner; immutable after.
-   * For cloud executions, this references the system-managed ephemeral runner
-   * that was auto-created for this execution. For local executions, this
-   * references the user-created persistent runner selected via the session.
-   *
-   * Used for observability: "which runner handled this work?"
-   * </pre>
-   *
-   * <code>string runner_id = 19 [json_name = "runnerId"];</code>
-   * @return The bytes for runnerId.
-   */
-  @java.lang.Override
-  public com.google.protobuf.ByteString
-      getRunnerIdBytes() {
-    java.lang.Object ref = runnerId_;
-    if (ref instanceof java.lang.String) {
-      com.google.protobuf.ByteString b = 
-          com.google.protobuf.ByteString.copyFromUtf8(
-              (java.lang.String) ref);
-      runnerId_ = b;
-      return b;
-    } else {
-      return (com.google.protobuf.ByteString) ref;
-    }
-  }
-
-  public static final int RUNNER_USAGE_FIELD_NUMBER = 20;
-  private ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary runnerUsage_;
-  /**
-   * <pre>
-   * Runner-reported usage summary, updated progressively during streaming.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary runner_usage = 20 [json_name = "runnerUsage"];</code>
-   * @return Whether the runnerUsage field is set.
-   */
-  @java.lang.Override
-  public boolean hasRunnerUsage() {
+  public boolean hasStreamingUsage() {
     return ((bitField0_ & 0x00000010) != 0);
   }
   /**
    * <pre>
-   * Runner-reported usage summary, updated progressively during streaming.
+   * Streaming usage summary, updated progressively during execution.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary runner_usage = 20 [json_name = "runnerUsage"];</code>
-   * @return The runnerUsage.
+   * <code>.ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary streaming_usage = 20 [json_name = "streamingUsage"];</code>
+   * @return The streamingUsage.
    */
   @java.lang.Override
-  public ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary getRunnerUsage() {
-    return runnerUsage_ == null ? ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary.getDefaultInstance() : runnerUsage_;
+  public ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary getStreamingUsage() {
+    return streamingUsage_ == null ? ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary.getDefaultInstance() : streamingUsage_;
   }
   /**
    * <pre>
-   * Runner-reported usage summary, updated progressively during streaming.
+   * Streaming usage summary, updated progressively during execution.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary runner_usage = 20 [json_name = "runnerUsage"];</code>
+   * <code>.ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary streaming_usage = 20 [json_name = "streamingUsage"];</code>
    */
   @java.lang.Override
-  public ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummaryOrBuilder getRunnerUsageOrBuilder() {
-    return runnerUsage_ == null ? ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary.getDefaultInstance() : runnerUsage_;
+  public ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummaryOrBuilder getStreamingUsageOrBuilder() {
+    return streamingUsage_ == null ? ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary.getDefaultInstance() : streamingUsage_;
   }
 
   private byte memoizedIsInitialized = -1;
@@ -1320,11 +1258,8 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     if (((bitField0_ & 0x00000008) != 0)) {
       output.writeMessage(18, getSetupProgress());
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(runnerId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 19, runnerId_);
-    }
     if (((bitField0_ & 0x00000010) != 0)) {
-      output.writeMessage(20, getRunnerUsage());
+      output.writeMessage(20, getStreamingUsage());
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(99, getAudit());
@@ -1422,12 +1357,9 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(18, getSetupProgress());
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(runnerId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(19, runnerId_);
-    }
     if (((bitField0_ & 0x00000010) != 0)) {
       size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(20, getRunnerUsage());
+        .computeMessageSize(20, getStreamingUsage());
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
@@ -1489,12 +1421,10 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       if (!getSetupProgress()
           .equals(other.getSetupProgress())) return false;
     }
-    if (!getRunnerId()
-        .equals(other.getRunnerId())) return false;
-    if (hasRunnerUsage() != other.hasRunnerUsage()) return false;
-    if (hasRunnerUsage()) {
-      if (!getRunnerUsage()
-          .equals(other.getRunnerUsage())) return false;
+    if (hasStreamingUsage() != other.hasStreamingUsage()) return false;
+    if (hasStreamingUsage()) {
+      if (!getStreamingUsage()
+          .equals(other.getStreamingUsage())) return false;
     }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
@@ -1557,11 +1487,9 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       hash = (37 * hash) + SETUP_PROGRESS_FIELD_NUMBER;
       hash = (53 * hash) + getSetupProgress().hashCode();
     }
-    hash = (37 * hash) + RUNNER_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getRunnerId().hashCode();
-    if (hasRunnerUsage()) {
-      hash = (37 * hash) + RUNNER_USAGE_FIELD_NUMBER;
-      hash = (53 * hash) + getRunnerUsage().hashCode();
+    if (hasStreamingUsage()) {
+      hash = (37 * hash) + STREAMING_USAGE_FIELD_NUMBER;
+      hash = (53 * hash) + getStreamingUsage().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -1729,7 +1657,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         internalGetArtifactsFieldBuilder();
         internalGetWorkspaceWriteBacksFieldBuilder();
         internalGetSetupProgressFieldBuilder();
-        internalGetRunnerUsageFieldBuilder();
+        internalGetStreamingUsageFieldBuilder();
       }
     }
     @java.lang.Override
@@ -1797,11 +1725,10 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         setupProgressBuilder_.dispose();
         setupProgressBuilder_ = null;
       }
-      runnerId_ = "";
-      runnerUsage_ = null;
-      if (runnerUsageBuilder_ != null) {
-        runnerUsageBuilder_.dispose();
-        runnerUsageBuilder_ = null;
+      streamingUsage_ = null;
+      if (streamingUsageBuilder_ != null) {
+        streamingUsageBuilder_.dispose();
+        streamingUsageBuilder_ = null;
       }
       return this;
     }
@@ -1929,12 +1856,9 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         to_bitField0_ |= 0x00000008;
       }
       if (((from_bitField0_ & 0x00008000) != 0)) {
-        result.runnerId_ = runnerId_;
-      }
-      if (((from_bitField0_ & 0x00010000) != 0)) {
-        result.runnerUsage_ = runnerUsageBuilder_ == null
-            ? runnerUsage_
-            : runnerUsageBuilder_.build();
+        result.streamingUsage_ = streamingUsageBuilder_ == null
+            ? streamingUsage_
+            : streamingUsageBuilder_.build();
         to_bitField0_ |= 0x00000010;
       }
       result.bitField0_ |= to_bitField0_;
@@ -2118,13 +2042,8 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       if (other.hasSetupProgress()) {
         mergeSetupProgress(other.getSetupProgress());
       }
-      if (!other.getRunnerId().isEmpty()) {
-        runnerId_ = other.runnerId_;
-        bitField0_ |= 0x00008000;
-        onChanged();
-      }
-      if (other.hasRunnerUsage()) {
-        mergeRunnerUsage(other.getRunnerUsage());
+      if (other.hasStreamingUsage()) {
+        mergeStreamingUsage(other.getStreamingUsage());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -2272,16 +2191,11 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
               bitField0_ |= 0x00004000;
               break;
             } // case 146
-            case 154: {
-              runnerId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00008000;
-              break;
-            } // case 154
             case 162: {
               input.readMessage(
-                  internalGetRunnerUsageFieldBuilder().getBuilder(),
+                  internalGetStreamingUsageFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00010000;
+              bitField0_ |= 0x00008000;
               break;
             } // case 162
             case 794: {
@@ -6258,288 +6172,161 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       return setupProgressBuilder_;
     }
 
-    private java.lang.Object runnerId_ = "";
-    /**
-     * <pre>
-     * ID of the Runner that executed this execution.
-     *
-     * Set once when the execution is dispatched to a runner; immutable after.
-     * For cloud executions, this references the system-managed ephemeral runner
-     * that was auto-created for this execution. For local executions, this
-     * references the user-created persistent runner selected via the session.
-     *
-     * Used for observability: "which runner handled this work?"
-     * </pre>
-     *
-     * <code>string runner_id = 19 [json_name = "runnerId"];</code>
-     * @return The runnerId.
-     */
-    public java.lang.String getRunnerId() {
-      java.lang.Object ref = runnerId_;
-      if (!(ref instanceof java.lang.String)) {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        runnerId_ = s;
-        return s;
-      } else {
-        return (java.lang.String) ref;
-      }
-    }
-    /**
-     * <pre>
-     * ID of the Runner that executed this execution.
-     *
-     * Set once when the execution is dispatched to a runner; immutable after.
-     * For cloud executions, this references the system-managed ephemeral runner
-     * that was auto-created for this execution. For local executions, this
-     * references the user-created persistent runner selected via the session.
-     *
-     * Used for observability: "which runner handled this work?"
-     * </pre>
-     *
-     * <code>string runner_id = 19 [json_name = "runnerId"];</code>
-     * @return The bytes for runnerId.
-     */
-    public com.google.protobuf.ByteString
-        getRunnerIdBytes() {
-      java.lang.Object ref = runnerId_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        runnerId_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-    /**
-     * <pre>
-     * ID of the Runner that executed this execution.
-     *
-     * Set once when the execution is dispatched to a runner; immutable after.
-     * For cloud executions, this references the system-managed ephemeral runner
-     * that was auto-created for this execution. For local executions, this
-     * references the user-created persistent runner selected via the session.
-     *
-     * Used for observability: "which runner handled this work?"
-     * </pre>
-     *
-     * <code>string runner_id = 19 [json_name = "runnerId"];</code>
-     * @param value The runnerId to set.
-     * @return This builder for chaining.
-     */
-    public Builder setRunnerId(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      runnerId_ = value;
-      bitField0_ |= 0x00008000;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * ID of the Runner that executed this execution.
-     *
-     * Set once when the execution is dispatched to a runner; immutable after.
-     * For cloud executions, this references the system-managed ephemeral runner
-     * that was auto-created for this execution. For local executions, this
-     * references the user-created persistent runner selected via the session.
-     *
-     * Used for observability: "which runner handled this work?"
-     * </pre>
-     *
-     * <code>string runner_id = 19 [json_name = "runnerId"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearRunnerId() {
-      runnerId_ = getDefaultInstance().getRunnerId();
-      bitField0_ = (bitField0_ & ~0x00008000);
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * ID of the Runner that executed this execution.
-     *
-     * Set once when the execution is dispatched to a runner; immutable after.
-     * For cloud executions, this references the system-managed ephemeral runner
-     * that was auto-created for this execution. For local executions, this
-     * references the user-created persistent runner selected via the session.
-     *
-     * Used for observability: "which runner handled this work?"
-     * </pre>
-     *
-     * <code>string runner_id = 19 [json_name = "runnerId"];</code>
-     * @param value The bytes for runnerId to set.
-     * @return This builder for chaining.
-     */
-    public Builder setRunnerIdBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      runnerId_ = value;
-      bitField0_ |= 0x00008000;
-      onChanged();
-      return this;
-    }
-
-    private ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary runnerUsage_;
+    private ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary streamingUsage_;
     private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary, ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary.Builder, ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummaryOrBuilder> runnerUsageBuilder_;
+        ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary, ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary.Builder, ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummaryOrBuilder> streamingUsageBuilder_;
     /**
      * <pre>
-     * Runner-reported usage summary, updated progressively during streaming.
+     * Streaming usage summary, updated progressively during execution.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary runner_usage = 20 [json_name = "runnerUsage"];</code>
-     * @return Whether the runnerUsage field is set.
+     * <code>.ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary streaming_usage = 20 [json_name = "streamingUsage"];</code>
+     * @return Whether the streamingUsage field is set.
      */
-    public boolean hasRunnerUsage() {
-      return ((bitField0_ & 0x00010000) != 0);
+    public boolean hasStreamingUsage() {
+      return ((bitField0_ & 0x00008000) != 0);
     }
     /**
      * <pre>
-     * Runner-reported usage summary, updated progressively during streaming.
+     * Streaming usage summary, updated progressively during execution.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary runner_usage = 20 [json_name = "runnerUsage"];</code>
-     * @return The runnerUsage.
+     * <code>.ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary streaming_usage = 20 [json_name = "streamingUsage"];</code>
+     * @return The streamingUsage.
      */
-    public ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary getRunnerUsage() {
-      if (runnerUsageBuilder_ == null) {
-        return runnerUsage_ == null ? ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary.getDefaultInstance() : runnerUsage_;
+    public ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary getStreamingUsage() {
+      if (streamingUsageBuilder_ == null) {
+        return streamingUsage_ == null ? ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary.getDefaultInstance() : streamingUsage_;
       } else {
-        return runnerUsageBuilder_.getMessage();
+        return streamingUsageBuilder_.getMessage();
       }
     }
     /**
      * <pre>
-     * Runner-reported usage summary, updated progressively during streaming.
+     * Streaming usage summary, updated progressively during execution.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary runner_usage = 20 [json_name = "runnerUsage"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary streaming_usage = 20 [json_name = "streamingUsage"];</code>
      */
-    public Builder setRunnerUsage(ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary value) {
-      if (runnerUsageBuilder_ == null) {
+    public Builder setStreamingUsage(ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary value) {
+      if (streamingUsageBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        runnerUsage_ = value;
+        streamingUsage_ = value;
       } else {
-        runnerUsageBuilder_.setMessage(value);
+        streamingUsageBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00010000;
+      bitField0_ |= 0x00008000;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Runner-reported usage summary, updated progressively during streaming.
+     * Streaming usage summary, updated progressively during execution.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary runner_usage = 20 [json_name = "runnerUsage"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary streaming_usage = 20 [json_name = "streamingUsage"];</code>
      */
-    public Builder setRunnerUsage(
-        ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary.Builder builderForValue) {
-      if (runnerUsageBuilder_ == null) {
-        runnerUsage_ = builderForValue.build();
+    public Builder setStreamingUsage(
+        ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary.Builder builderForValue) {
+      if (streamingUsageBuilder_ == null) {
+        streamingUsage_ = builderForValue.build();
       } else {
-        runnerUsageBuilder_.setMessage(builderForValue.build());
+        streamingUsageBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00010000;
+      bitField0_ |= 0x00008000;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Runner-reported usage summary, updated progressively during streaming.
+     * Streaming usage summary, updated progressively during execution.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary runner_usage = 20 [json_name = "runnerUsage"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary streaming_usage = 20 [json_name = "streamingUsage"];</code>
      */
-    public Builder mergeRunnerUsage(ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary value) {
-      if (runnerUsageBuilder_ == null) {
-        if (((bitField0_ & 0x00010000) != 0) &&
-          runnerUsage_ != null &&
-          runnerUsage_ != ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary.getDefaultInstance()) {
-          getRunnerUsageBuilder().mergeFrom(value);
+    public Builder mergeStreamingUsage(ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary value) {
+      if (streamingUsageBuilder_ == null) {
+        if (((bitField0_ & 0x00008000) != 0) &&
+          streamingUsage_ != null &&
+          streamingUsage_ != ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary.getDefaultInstance()) {
+          getStreamingUsageBuilder().mergeFrom(value);
         } else {
-          runnerUsage_ = value;
+          streamingUsage_ = value;
         }
       } else {
-        runnerUsageBuilder_.mergeFrom(value);
+        streamingUsageBuilder_.mergeFrom(value);
       }
-      if (runnerUsage_ != null) {
-        bitField0_ |= 0x00010000;
+      if (streamingUsage_ != null) {
+        bitField0_ |= 0x00008000;
         onChanged();
       }
       return this;
     }
     /**
      * <pre>
-     * Runner-reported usage summary, updated progressively during streaming.
+     * Streaming usage summary, updated progressively during execution.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary runner_usage = 20 [json_name = "runnerUsage"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary streaming_usage = 20 [json_name = "streamingUsage"];</code>
      */
-    public Builder clearRunnerUsage() {
-      bitField0_ = (bitField0_ & ~0x00010000);
-      runnerUsage_ = null;
-      if (runnerUsageBuilder_ != null) {
-        runnerUsageBuilder_.dispose();
-        runnerUsageBuilder_ = null;
+    public Builder clearStreamingUsage() {
+      bitField0_ = (bitField0_ & ~0x00008000);
+      streamingUsage_ = null;
+      if (streamingUsageBuilder_ != null) {
+        streamingUsageBuilder_.dispose();
+        streamingUsageBuilder_ = null;
       }
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Runner-reported usage summary, updated progressively during streaming.
+     * Streaming usage summary, updated progressively during execution.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary runner_usage = 20 [json_name = "runnerUsage"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary streaming_usage = 20 [json_name = "streamingUsage"];</code>
      */
-    public ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary.Builder getRunnerUsageBuilder() {
-      bitField0_ |= 0x00010000;
+    public ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary.Builder getStreamingUsageBuilder() {
+      bitField0_ |= 0x00008000;
       onChanged();
-      return internalGetRunnerUsageFieldBuilder().getBuilder();
+      return internalGetStreamingUsageFieldBuilder().getBuilder();
     }
     /**
      * <pre>
-     * Runner-reported usage summary, updated progressively during streaming.
+     * Streaming usage summary, updated progressively during execution.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary runner_usage = 20 [json_name = "runnerUsage"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary streaming_usage = 20 [json_name = "streamingUsage"];</code>
      */
-    public ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummaryOrBuilder getRunnerUsageOrBuilder() {
-      if (runnerUsageBuilder_ != null) {
-        return runnerUsageBuilder_.getMessageOrBuilder();
+    public ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummaryOrBuilder getStreamingUsageOrBuilder() {
+      if (streamingUsageBuilder_ != null) {
+        return streamingUsageBuilder_.getMessageOrBuilder();
       } else {
-        return runnerUsage_ == null ?
-            ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary.getDefaultInstance() : runnerUsage_;
+        return streamingUsage_ == null ?
+            ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary.getDefaultInstance() : streamingUsage_;
       }
     }
     /**
      * <pre>
-     * Runner-reported usage summary, updated progressively during streaming.
+     * Streaming usage summary, updated progressively during execution.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary runner_usage = 20 [json_name = "runnerUsage"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary streaming_usage = 20 [json_name = "streamingUsage"];</code>
      */
     private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary, ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary.Builder, ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummaryOrBuilder> 
-        internalGetRunnerUsageFieldBuilder() {
-      if (runnerUsageBuilder_ == null) {
-        runnerUsageBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-            ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary, ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary.Builder, ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummaryOrBuilder>(
-                getRunnerUsage(),
+        ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary, ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary.Builder, ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummaryOrBuilder> 
+        internalGetStreamingUsageFieldBuilder() {
+      if (streamingUsageBuilder_ == null) {
+        streamingUsageBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary, ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary.Builder, ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummaryOrBuilder>(
+                getStreamingUsage(),
                 getParentForChildren(),
                 isClean());
-        runnerUsage_ = null;
+        streamingUsage_ = null;
       }
-      return runnerUsageBuilder_;
+      return streamingUsageBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus)

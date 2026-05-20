@@ -212,7 +212,7 @@ describe("StatusBuilder", () => {
         cache_creation_input_tokens: 5,
       }));
 
-      const usage = sb.currentStatus.runnerUsage;
+      const usage = sb.currentStatus.streamingUsage;
       expect(usage).toBeDefined();
       expect(usage!.inputTokens).toBe(100n);
       expect(usage!.outputTokens).toBe(50n);
@@ -235,7 +235,7 @@ describe("StatusBuilder", () => {
         output_tokens: 100,
       }));
 
-      const usage = sb.currentStatus.runnerUsage!;
+      const usage = sb.currentStatus.streamingUsage!;
       expect(usage.inputTokens).toBe(300n);
       expect(usage.outputTokens).toBe(150n);
       expect(usage.turnCount).toBe(2);
@@ -864,7 +864,7 @@ describe("StatusBuilder", () => {
       sb.processEvent(chatStreamEvent("run-1", "text"));
       sb.processEvent(chatEndEvent("run-1"));
 
-      expect(sb.currentStatus.runnerUsage).toBeUndefined();
+      expect(sb.currentStatus.streamingUsage).toBeUndefined();
     });
 
     it("handles usage with zero tokens", () => {
@@ -875,7 +875,7 @@ describe("StatusBuilder", () => {
         output_tokens: 0,
       }));
 
-      const usage = sb.currentStatus.runnerUsage!;
+      const usage = sb.currentStatus.streamingUsage!;
       expect(usage.inputTokens).toBe(0n);
       expect(usage.outputTokens).toBe(0n);
       expect(usage.turnCount).toBe(1);
@@ -890,7 +890,7 @@ describe("StatusBuilder", () => {
         cache_read_input_tokens: undefined,
       }));
 
-      const usage = sb.currentStatus.runnerUsage!;
+      const usage = sb.currentStatus.streamingUsage!;
       expect(usage.inputTokens).toBe(0n);
       expect(usage.outputTokens).toBe(0n);
       expect(usage.cacheReadTokens).toBe(0n);
@@ -905,7 +905,7 @@ describe("StatusBuilder", () => {
         output_tokens: 50n,
       }));
 
-      const usage = sb.currentStatus.runnerUsage!;
+      const usage = sb.currentStatus.streamingUsage!;
       expect(usage.inputTokens).toBe(100n);
       expect(usage.outputTokens).toBe(50n);
     });
@@ -920,7 +920,7 @@ describe("StatusBuilder", () => {
         cache_creation_input_tokens: 10,
       }));
 
-      const usage = sb.currentStatus.runnerUsage!;
+      const usage = sb.currentStatus.streamingUsage!;
       expect(usage.totalTokens).toBe(180n);
     });
 
@@ -941,7 +941,7 @@ describe("StatusBuilder", () => {
         },
       });
 
-      const usage = sb.currentStatus.runnerUsage!;
+      const usage = sb.currentStatus.streamingUsage!;
       expect(usage.inputTokens).toBe(42n);
       expect(usage.outputTokens).toBe(13n);
     });
@@ -954,7 +954,7 @@ describe("StatusBuilder", () => {
         output_tokens: 5,
       }));
 
-      const usage = sb.currentStatus.runnerUsage!;
+      const usage = sb.currentStatus.streamingUsage!;
       expect(usage.observedAt).toBeTruthy();
       expect(usage.observedAt).toContain("T");
     });
@@ -1146,7 +1146,7 @@ describe("StatusBuilder", () => {
       }));
 
       // Usage should still accumulate even without a prior message
-      const usage = sb.currentStatus.runnerUsage!;
+      const usage = sb.currentStatus.streamingUsage!;
       expect(usage.inputTokens).toBe(50n);
       expect(usage.outputTokens).toBe(25n);
       expect(usage.turnCount).toBe(1);

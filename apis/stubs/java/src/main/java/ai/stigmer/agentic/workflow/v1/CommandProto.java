@@ -40,34 +40,40 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "ai/stigmer/agentic/workflow/v1/api.proto" +
       "\032\'ai/stigmer/agentic/workflow/v1/io.prot" +
       "o\032:ai/stigmer/agentic/workflow/v1/server" +
-      "less/validation.proto\0328ai/stigmer/common" +
-      "s/apiresource/rpc_service_options.proto\032" +
-      "+ai/stigmer/commons/rpc/method_options.p" +
-      "roto2\251\006\n\031WorkflowCommandController\022[\n\005ap" +
-      "ply\022(.ai.stigmer.agentic.workflow.v1.Wor" +
-      "kflow\032(.ai.stigmer.agentic.workflow.v1.W" +
-      "orkflow\022\252\001\n\006create\022(.ai.stigmer.agentic." +
-      "workflow.v1.Workflow\032(.ai.stigmer.agenti" +
-      "c.workflow.v1.Workflow\"L\302\270\030H\010\007\020\036\"\014metada" +
-      "ta.org*4unauthorized to create workflow " +
-      "in this organization\022\224\001\n\006update\022(.ai.sti" +
-      "gmer.agentic.workflow.v1.Workflow\032(.ai.s" +
-      "tigmer.agentic.workflow.v1.Workflow\"6\302\270\030" +
-      "2\010\002\0202\"\013metadata.id*\037unauthorized to upda" +
-      "te workflow\022\220\001\n\006delete\022*.ai.stigmer.agen" +
-      "tic.workflow.v1.WorkflowId\032(.ai.stigmer." +
-      "agentic.workflow.v1.Workflow\"0\302\270\030,\010\003\0202\"\005" +
-      "value*\037unauthorized to delete workflow\022\321" +
-      "\001\n\014validateSpec\022(.ai.stigmer.agentic.wor" +
-      "kflow.v1.Workflow\032G.ai.stigmer.agentic.w" +
-      "orkflow.v1.serverless.ServerlessWorkflow" +
-      "Validation\"N\302\270\030J\010\007\020\036\"\014metadata.org*6unau" +
-      "thorized to validate workflow in this or" +
-      "ganization\032\004\240\377+2B\253\001B\014CommandProtoP\001\242\002\004AS" +
-      "AW\252\002\036Ai.Stigmer.Agentic.Workflow.V1\312\002\036Ai" +
-      "\\Stigmer\\Agentic\\Workflow\\V1\342\002*Ai\\Stigme" +
-      "r\\Agentic\\Workflow\\V1\\GPBMetadata\352\002\"Ai::" +
-      "Stigmer::Agentic::Workflow::V1b\006proto3"
+      "less/validation.proto\032\'ai/stigmer/common" +
+      "s/apiresource/io.proto\0328ai/stigmer/commo" +
+      "ns/apiresource/rpc_service_options.proto" +
+      "\032+ai/stigmer/commons/rpc/method_options." +
+      "proto2\342\007\n\031WorkflowCommandController\022[\n\005a" +
+      "pply\022(.ai.stigmer.agentic.workflow.v1.Wo" +
+      "rkflow\032(.ai.stigmer.agentic.workflow.v1." +
+      "Workflow\022\252\001\n\006create\022(.ai.stigmer.agentic" +
+      ".workflow.v1.Workflow\032(.ai.stigmer.agent" +
+      "ic.workflow.v1.Workflow\"L\302\270\030H\010\007\020\036\"\014metad" +
+      "ata.org*4unauthorized to create workflow" +
+      " in this organization\022\224\001\n\006update\022(.ai.st" +
+      "igmer.agentic.workflow.v1.Workflow\032(.ai." +
+      "stigmer.agentic.workflow.v1.Workflow\"6\302\270" +
+      "\0302\010\002\0202\"\013metadata.id*\037unauthorized to upd" +
+      "ate workflow\022\266\001\n\020updateVisibility\0225.ai.s" +
+      "tigmer.commons.apiresource.UpdateVisibil" +
+      "ityInput\032(.ai.stigmer.agentic.workflow.v" +
+      "1.Workflow\"A\302\270\030=\010\002\0202\"\013resource_id**unaut" +
+      "horized to update workflow visibility\022\220\001" +
+      "\n\006delete\022*.ai.stigmer.agentic.workflow.v" +
+      "1.WorkflowId\032(.ai.stigmer.agentic.workfl" +
+      "ow.v1.Workflow\"0\302\270\030,\010\003\0202\"\005value*\037unautho" +
+      "rized to delete workflow\022\321\001\n\014validateSpe" +
+      "c\022(.ai.stigmer.agentic.workflow.v1.Workf" +
+      "low\032G.ai.stigmer.agentic.workflow.v1.ser" +
+      "verless.ServerlessWorkflowValidation\"N\302\270" +
+      "\030J\010\007\020\036\"\014metadata.org*6unauthorized to va" +
+      "lidate workflow in this organization\032\004\240\377" +
+      "+2B\253\001B\014CommandProtoP\001\242\002\004ASAW\252\002\036Ai.Stigme" +
+      "r.Agentic.Workflow.V1\312\002\036Ai\\Stigmer\\Agent" +
+      "ic\\Workflow\\V1\342\002*Ai\\Stigmer\\Agentic\\Work" +
+      "flow\\V1\\GPBMetadata\352\002\"Ai::Stigmer::Agent" +
+      "ic::Workflow::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -75,6 +81,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
           ai.stigmer.agentic.workflow.v1.ApiProto.getDescriptor(),
           ai.stigmer.agentic.workflow.v1.IoProto.getDescriptor(),
           ai.stigmer.agentic.workflow.v1.serverless.ValidationProto.getDescriptor(),
+          ai.stigmer.commons.apiresource.IoProto.getDescriptor(),
           ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor(),
           ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor(),
         });
@@ -82,6 +89,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
     ai.stigmer.agentic.workflow.v1.ApiProto.getDescriptor();
     ai.stigmer.agentic.workflow.v1.IoProto.getDescriptor();
     ai.stigmer.agentic.workflow.v1.serverless.ValidationProto.getDescriptor();
+    ai.stigmer.commons.apiresource.IoProto.getDescriptor();
     ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor();
     ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
