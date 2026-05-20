@@ -1,7 +1,7 @@
 {
   "name": "@stigmer/runner",
   "version": "0.0.0-dev",
-  "description": "Unified Temporal activity worker for the Stigmer platform — handles ExecuteCursor and ExecuteDeepAgent",
+  "description": "Embeddable Temporal worker for the Stigmer AI agent platform — handles agent execution, workflow orchestration, and MCP server management",
   "license": "Apache-2.0",
   "type": "module",
   "engines": {
@@ -10,7 +10,19 @@
   "bin": {
     "stigmer-runner": "./dist/main.js"
   },
-  "main": "./src/main.ts",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./src/index.ts"
+    },
+    "./cli": {
+      "types": "./dist/main.d.ts",
+      "import": "./dist/main.js",
+      "default": "./src/main.ts"
+    }
+  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "start": "tsx src/main.ts",
@@ -33,10 +45,14 @@
   ],
   "publishConfig": {
     "access": "public",
-    "main": "./dist/main.js",
-    "types": "./dist/main.d.ts",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
     "exports": {
       ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js"
+      },
+      "./cli": {
         "types": "./dist/main.d.ts",
         "import": "./dist/main.js"
       }
