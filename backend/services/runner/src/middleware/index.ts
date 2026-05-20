@@ -20,7 +20,7 @@ import { createExecutionBudgetMiddleware } from "./execution-budget.js";
 import { createToolTruncationMiddleware } from "./tool-truncation.js";
 import { createGracefulStopMiddleware } from "./graceful-stop.js";
 import { createApprovalGateMiddleware } from "./approval-gate.js";
-import { createCostCapMiddleware } from "./cost-cap.js";
+import { createCostCapMiddleware, type CostCapMiddleware } from "./cost-cap.js";
 import { createErrorHintsMiddleware } from "./error-hints.js";
 import { createOtelSpansMiddleware } from "./otel-spans.js";
 
@@ -32,6 +32,7 @@ export type { StigmerMiddleware, MiddlewareStackConfig } from "./types.js";
 export interface MiddlewareStackResult {
   readonly middleware: StigmerMiddleware[];
   readonly gracefulStop: GracefulStopMiddleware;
+  readonly costCap: CostCapMiddleware | null;
 }
 
 export function buildMiddlewareStack(
@@ -53,12 +54,17 @@ export function buildMiddlewareStack(
   }
 
   if (config.costCap && config.costCap.maxCostUsd > 0) {
-    stack.push(createCostCapMiddleware(config.costCap));
+    const costCapMiddleware = createCostCapMiddleware(config.costCap);
+    stack.push(costCapMiddleware);
+
+    stack.push(createErrorHintsMiddleware());
+    stack.push(createOtelSpansMiddleware(config.otelSpans));
+
+    return { middleware: stack, gracefulStop, costCap: costCapMiddleware };
   }
 
   stack.push(createErrorHintsMiddleware());
-
   stack.push(createOtelSpansMiddleware(config.otelSpans));
 
-  return { middleware: stack, gracefulStop };
+  return { middleware: stack, gracefulStop, costCap: null };
 }

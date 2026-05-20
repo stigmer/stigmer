@@ -65,6 +65,7 @@ import {
 } from "../../shared/skill-writer.js";
 import { filterSkills, SKILL_COUNT_THRESHOLD } from "../../shared/skill-relevance.js";
 import { injectAttachments } from "./attachment-injector.js";
+import { transformAndCompileSubagents } from "./subagent-transformer.js";
 
 export interface SetupResult {
   readonly agentGraph: AgentGraph;
@@ -278,7 +279,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
     );
 
     const maxCostUsd = execConfig?.maxCostUsd ?? 0;
-    const { middleware, gracefulStop } = buildMiddlewareStack({
+    const { middleware, gracefulStop, costCap: costCapMiddleware } = buildMiddlewareStack({
       loopDetection: {
         historySize: 20,
         consecutiveThreshold: 7,
@@ -314,6 +315,35 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       createThinkTool(),
     ];
 
+    // Step 11b: Transform and compile subagents
+    const subAgentProtos = agent.spec!.subAgents || [];
+    let compiledSubagents: Awaited<ReturnType<typeof transformAndCompileSubagents>> | undefined;
+
+    if (subAgentProtos.length > 0 || workspaceBackend.rootDir) {
+      await reportSetupProgress(client, executionId, "Configuring sub-agents…");
+
+      const parentMcpServerToolMap = new Map<string, DynamicStructuredTool[]>();
+      if (mcpConnection) {
+        for (const [serverName, serverTools] of Object.entries(mcpConnection.serverToolMap)) {
+          parentMcpServerToolMap.set(serverName, serverTools as DynamicStructuredTool[]);
+        }
+      }
+
+      compiledSubagents = await transformAndCompileSubagents({
+        subAgents: subAgentProtos,
+        parentMcpTools: mcpConnection?.tools as DynamicStructuredTool[] ?? [],
+        parentMcpServerToolMap,
+        parentMcpUsages: mcpServerUsages,
+        skillClient: client,
+        workspaceBackend,
+        approvalPolicies,
+        autoApproveAll,
+        parentModelName: modelName,
+        parentHasNativeThinking: _modelHasNativeThinking(modelName),
+        costCap: costCapMiddleware ?? undefined,
+      });
+    }
+
     // Step 12: Create the agent graph with middleware
     await reportSetupProgress(client, executionId, "Creating agent…");
     const agentGraph = await createDeepAgent({
@@ -323,7 +353,8 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       systemPrompt,
       tools,
       middleware: middleware as any,
-    });
+      subagents: compiledSubagents ?? undefined,
+    } as Parameters<typeof createDeepAgent>[0]);
 
     // Step 11: Prepare invocation input and config
     const userMessage = execution.spec!.message;
@@ -489,4 +520,25 @@ async function provisionWorkspace(
   }
 
   return { workspaceBackend, provisionResults };
+}
+
+/**
+ * Heuristic check for native extended thinking support.
+ * Models with thinking support don't need the explicit think tool.
+ */
+function _modelHasNativeThinking(modelId: string): boolean {
+  const lower = modelId.toLowerCase();
+
+  if (lower.includes("haiku")) return false;
+  if (lower.includes("gpt-4o-mini")) return false;
+
+  if (lower.includes("claude") && (
+    lower.includes("sonnet") || lower.includes("opus")
+  )) return true;
+
+  if (lower.includes("o1") || lower.includes("o3") || lower.includes("o4")) {
+    return true;
+  }
+
+  return false;
 }
