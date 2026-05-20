@@ -25,6 +25,7 @@ type AgentExecutionController struct {
 	environmentClient      *environment.Client
 	executionContextClient *executioncontext.Client
 	workflowCreator        *temporal.InvokeAgentExecutionWorkflowCreator
+	temporalConfig         *temporal.Config
 	streamBroker           *StreamBroker
 	temporalClient         temporalclient.Client           // Temporal client for lifecycle operations
 	artifactStorage        artifactstorage.ArtifactStorage // Artifact storage for attachments and outputs
@@ -78,6 +79,12 @@ func (c *AgentExecutionController) SetClients(
 // If nil, workflows will not be started (graceful degradation)
 func (c *AgentExecutionController) SetWorkflowCreator(creator *temporal.InvokeAgentExecutionWorkflowCreator) {
 	c.workflowCreator = creator
+}
+
+// SetTemporalConfig sets the Temporal configuration for activity routing.
+// This determines how the dispatch function resolves task queues (global vs per-session).
+func (c *AgentExecutionController) SetTemporalConfig(cfg *temporal.Config) {
+	c.temporalConfig = cfg
 }
 
 // GetStreamBroker returns the stream broker for use by Temporal activities

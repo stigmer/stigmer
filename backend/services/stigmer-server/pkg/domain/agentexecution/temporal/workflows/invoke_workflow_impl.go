@@ -19,18 +19,18 @@ import (
 //
 // Unified Runner Architecture:
 // - Workflow (Go): Orchestrates activity execution on "agent_execution_stigmer" queue
-// - TypeScript unified runner: Polls the runner's base queue (runner:{id})
-//   and registers both ExecuteCursor and ExecuteDeepAgent activities
-// - Python agent-runner (legacy): ExecuteGraphton, EnsureThread on base queue
+// - TypeScript unified runner: Polls the activity task queue (global or per-session)
+//   and registers ExecuteCursor, ExecuteDeepAgent, and workflow activities
+// - Python agent-runner (legacy): ExecuteGraphton, EnsureThread on the same queue
 //
 // Harness dispatch: input.Harness determines which flow runs:
 // - NATIVE/UNSPECIFIED: executeGraphtonFlow (EnsureThread -> ExecuteGraphton)
 // - CURSOR: executeCursorFlow (ReadSessionThreadId -> ExecuteCursor)
 //
-// Queue routing: All activities dispatch to the same base queue from the memo.
-// Temporal routes by activity name within a queue — the unified runner
-// registers all activities on a single queue, eliminating the need for
-// per-harness queue suffixes.
+// Queue routing: The activity task queue is stored in workflow memo at creation
+// time. In global mode this is "agent_execution_runner"; in per-session mode
+// it is "session:{session_id}". The unified runner registers all activities on
+// a single queue, so Temporal routes by activity name within that queue.
 //
 // Both flows share the same HITL approval loop (approvalGateResolved signal)
 // and pause/resume pattern (CancellationScope).

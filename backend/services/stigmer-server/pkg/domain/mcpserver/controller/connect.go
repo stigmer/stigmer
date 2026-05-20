@@ -423,6 +423,11 @@ func (c *McpServerController) deleteConnectExecutionContext(
 
 // executeConnectWorkflow starts the Python DiscoverMcpServerWorkflow on
 // the runner queue and blocks until it completes or times out.
+//
+// MCP connect is not session-scoped (it discovers tools at the server level),
+// so it always routes to the default runner queue regardless of routing mode.
+// Session-scoped MCP tool invocation during execution is handled by the
+// execution workflow's activity routing, not by this connect flow.
 func (c *McpServerController) executeConnectWorkflow(
 	ctx context.Context,
 	mcpServerID string,
@@ -430,9 +435,10 @@ func (c *McpServerController) executeConnectWorkflow(
 ) (*connectWorkflowOutput, error) {
 	workflowID := fmt.Sprintf("%s/%s/%s", connectWorkflowName, mcpServerID, uuid.New().String()[:8])
 
+	runnerQueue := c.temporalConfig.RunnerQueue
 	options := client.StartWorkflowOptions{
 		ID:                 workflowID,
-		TaskQueue:          c.runnerQueue,
+		TaskQueue:          runnerQueue,
 		WorkflowRunTimeout: connectTimeout,
 	}
 
@@ -448,7 +454,7 @@ func (c *McpServerController) executeConnectWorkflow(
 	log.Info().
 		Str("workflow_id", workflowID).
 		Str("mcp_server_id", mcpServerID).
-		Str("runner_queue", c.runnerQueue).
+		Str("runner_queue", runnerQueue).
 		Msg("Started MCP connect workflow")
 
 	var result connectWorkflowOutput
@@ -678,9 +684,10 @@ func (c *McpServerController) StartBestEffortConnect(
 
 	workflowID := fmt.Sprintf("%s/%s/%s", connectWorkflowName, mcpServerID, uuid.New().String()[:8])
 
+	runnerQueue := c.temporalConfig.RunnerQueue
 	options := client.StartWorkflowOptions{
 		ID:                 workflowID,
-		TaskQueue:          c.runnerQueue,
+		TaskQueue:          runnerQueue,
 		WorkflowRunTimeout: connectTimeout,
 	}
 

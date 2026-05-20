@@ -517,12 +517,14 @@ func (s *setInitialPhaseStep) Execute(ctx *pipeline.RequestContext[*agentexecuti
 type startWorkflowStep struct {
 	workflowCreator *agentexecutiontemporal.InvokeAgentExecutionWorkflowCreator
 	store           store.Store
+	temporalConfig  *agentexecutiontemporal.Config
 }
 
 func (c *AgentExecutionController) newStartWorkflowStep() *startWorkflowStep {
 	return &startWorkflowStep{
 		workflowCreator: c.workflowCreator,
 		store:           c.store,
+		temporalConfig:  c.temporalConfig,
 	}
 }
 
@@ -571,7 +573,7 @@ func (s *startWorkflowStep) Execute(ctx *pipeline.RequestContext[*agentexecution
 
 	// Resolve dispatch: determines the Temporal task queue for activities
 	dispatch, err := agentexecutiontemporal.ResolveActivityTaskQueue(
-		ctx.Context(), s.store, execution.GetSpec().GetSessionId())
+		ctx.Context(), s.store, execution.GetSpec().GetSessionId(), s.temporalConfig)
 	if err != nil {
 		log.Warn().
 			Err(err).

@@ -34,13 +34,34 @@ This implementation follows the **exact same polyglot pattern** as the Java (sti
 
 - **Go Workflow Queue**: `agent_execution_stigmer` (env: `TEMPORAL_AGENT_EXECUTION_STIGMER_TASK_QUEUE`)
   - Handles workflow orchestration
-  - Routes activity calls to Python worker
+  - Routes activity calls to the runner queue (via memo)
   - Manages local activities (UpdateStatus)
 
-- **Python Activity Queue**: `agent_execution_runner` (env: `TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE`)
-  - Executes Graphton agents
-  - Manages thread state
-  - Processes agent events
+- **Runner Activity Queue** (env: `TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE`, default: `agent_execution_runner`)
+  - In **global** routing mode: all sessions share this single queue
+  - In **session** routing mode: serves as the fallback when session ID is empty
+
+### Activity Routing Modes
+
+Controlled by `STIGMER_ACTIVITY_ROUTING` (default: `global`):
+
+| Mode | Queue Name | Use Case |
+|------|-----------|----------|
+| `global` | `agent_execution_runner` | OSS local dev — single runner polls one shared queue |
+| `session` | `session:{session_id}` | Desktop (embedded runners) and cloud (per-session sandboxes) |
+
+In **session** mode, each session's activities route to a dedicated queue derived
+from the session ID (e.g., `session:ses_01arz3ndektsv4rrffq69g5fav`). The runner
+polling that queue handles all execution activities for that session, providing
+workspace isolation and data locality.
+
+The queue name is derived by convention (`FormatSessionTaskQueue`), not stored as
+state. Dispatch does not need to check whether a runner is polling — Temporal holds
+activities in the queue until a worker connects.
+
+Environment variables:
+- `STIGMER_ACTIVITY_ROUTING`: `global` (default) or `session`
+- `TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE`: Default/fallback runner queue name
 
 ### Why Polyglot?
 

@@ -14,8 +14,41 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-20
-**Current Task**: T03 Complete — T04 ready to start
-**Status**: `createStigmerRunner()` factory scaffolded, `@stigmer/runner` is now a library-first package
+**Current Task**: T04 Complete — T05 ready to start
+**Status**: Per-session task queue routing implemented. Dispatch supports `global` and `session` modes.
+
+## Session Progress (2026-05-20, Session 4)
+
+### What was accomplished
+- **Completed T04: Per-session task queue routing**
+  - Added `STIGMER_ACTIVITY_ROUTING` env var (values: `global`, `session`)
+  - Implemented `FormatSessionTaskQueue(sessionID)` → `"session:{session_id}"`
+  - Refactored `ResolveActivityTaskQueue` to branch on routing mode with `*Config` parameter
+  - Updated `AgentExecutionController` with `SetTemporalConfig` setter
+  - Updated MCP `SetConnectDependencies` to accept `*Config` instead of `string`
+  - Hoisted config creation in `server.go` for shared access
+  - 12 unit tests covering both modes, fallback, harness extraction
+  - Updated stale comments referencing old `runner:{id}` convention
+  - Updated README.md with routing mode documentation
+
+### Key changes
+1. **`config.go`**: Added `ActivityRouting` field, `RoutingGlobal`/`RoutingSession` constants, `STIGMER_ACTIVITY_ROUTING` env var
+2. **`dispatch.go`**: `FormatSessionTaskQueue` pure function, `resolveTaskQueue` helper, refactored `ResolveActivityTaskQueue` with `*Config` param
+3. **`dispatch_test.go`**: 12 tests — global mode, session mode, fallback, pure function
+4. **`create.go`** + **`agentexecution_controller.go`**: Thread `temporalConfig` into `startWorkflowStep`
+5. **`mcpserver_controller.go`** + **`connect.go`**: Replace `runnerQueue string` with `*Config`, use `temporalConfig.RunnerQueue`
+6. **`server.go`**: Hoist config, wire to both controllers, add routing mode to log output
+
+### Decisions made
+- Queue naming: `session:{session_id}` (colon separator, matches Go workflow-runner suffix convention)
+- Routing mode is server-level (env var), not per-session (no proto change needed)
+- MCP connect always routes to global queue (discovery is not session-scoped)
+- `FormatSessionTaskQueue` is exported for use by tests, integration harness, and cloud provisioning
+- Config hoisted outside Temporal connection block (routing mode doesn't depend on connection)
+
+### Surprises discovered
+- MCP connect has no session ID in its request — it operates at the MCP server level. Per-session routing for MCP tool invocation is already handled by the execution workflow's activity routing during runtime, not by the connect flow.
+- The `workflowinstance_controller_test.go` has a pre-existing failure (proto validation regex for task names) — unrelated to T04.
 
 ## Session Progress (2026-05-20, Session 3)
 
@@ -73,25 +106,28 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-1. **T04: Per-session task queue routing** — replace `DefaultActivityTaskQueue` constant in `dispatch.go` with session-derived queue naming. Design decision needed: queue naming convention (`session:{id}` vs `stigmer/session/{id}`) and desktop multi-session handling.
-2. **T05: Java control plane refactor** — delete Runner domain in `stigmer-cloud`, add session-based dispatch (HIGH risk, depends on T02 being merged to update buf module)
-3. **T06: Desktop app refactor** — embed runner, remove Runner UI/launch tokens (depends on T03 + T04)
+1. **T05: Java control plane refactor** — delete Runner domain in `stigmer-cloud`, add session-based dispatch using `session:{id}` convention, implement `EnsureSessionSandbox` activity (HIGH risk, depends on T02 being merged to update buf module)
+2. **T06: Desktop app refactor** — embed runner with per-session workers, set `STIGMER_ACTIVITY_ROUTING=session` on embedded server, remove Runner UI/launch tokens (depends on T04 ✅)
 
 ## Context for Resume
 
 - Branch: `feat/unified-runner-migration`
-- T03 files: `src/runner.ts` (factory), `src/index.ts` (barrel), `src/__tests__/runner.test.ts` (tests)
-- The factory registers all 16 activity types (14 original + 3 newly registered)
-- `main.ts` now delegates to `createStigmerRunner()` — it's a thin CLI entry
-- `package.json` has dual exports: `.` (library) and `./cli` (binary)
-- All builds pass: `tsc --noEmit`, 1367/1368 Vitest tests
+- T04 files (dispatch routing):
+  - `backend/services/stigmer-server/pkg/domain/agentexecution/temporal/config.go` — routing constants + env var
+  - `backend/services/stigmer-server/pkg/domain/agentexecution/temporal/dispatch.go` — `FormatSessionTaskQueue`, `resolveTaskQueue`, refactored `ResolveActivityTaskQueue`
+  - `backend/services/stigmer-server/pkg/domain/agentexecution/temporal/dispatch_test.go` — 12 tests
+  - `backend/services/stigmer-server/pkg/domain/mcpserver/controller/mcpserver_controller.go` — uses `*Config` now
+  - `backend/services/stigmer-server/pkg/server/server.go` — wiring changes
+- All builds pass: `go build ./...`, `go vet ./...`, all affected test packages green
+- TypeScript runner already aligned: `STIGMER_TASK_QUEUE=session:ses_xyz` works out of the box
+- Key env var: `STIGMER_ACTIVITY_ROUTING=global|session` (default: `global`)
 - Research report: `_projects/2026-05/20260518.01.unified-runner-migration/research.control-plane-runner-architecture-review/04.report.gemini.md`
-- Audit report: `tasks/T01_inventory-and-impact-audit.md`
 
 ## Quick Commands
 
 After loading context:
-- "Start T04 — per-session task queue routing" - Begin session-based dispatch
+- "Start T05 — Java control plane refactor" - Begin cloud session routing
+- "Start T06 — Desktop app embedded runner" - Begin desktop integration
 - "Show project status" - Get overview of progress
 - "Commit and push" - Commit changes
 
