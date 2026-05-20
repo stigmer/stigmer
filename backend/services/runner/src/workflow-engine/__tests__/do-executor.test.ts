@@ -1,8 +1,8 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { executeDoTasks } from "../do-executor.js";
 import { createState } from "../state.js";
 import { evaluateExpressionBatch } from "../expression.js";
-import type { TaskList, WorkflowModel } from "../types.js";
+import type { TaskList, WorkflowModel, TaskExecutionContext } from "../types.js";
 
 const doc: WorkflowModel = {
   document: { dsl: "1.0.0", name: "test-workflow" },
@@ -263,9 +263,9 @@ describe("executeDoTasks", () => {
 
   describe("unsupported task types", () => {
     it("throws for unsupported task types", async () => {
-      const tasks: TaskList = [
-        { key: "shell", task: { kind: "run" as any, run: { shell: { command: "echo hi" } } } },
-      ];
+      const tasks = [
+        { key: "unknown", task: { kind: "exotic" } },
+      ] as unknown as TaskList;
 
       const state = createState();
       await expect(
@@ -597,6 +597,72 @@ describe("executeDoTasks", () => {
       await executeDoTasks(tasks, null, state, doc, evaluateExpressionBatch);
 
       expect(state.output).toEqual({ fromContext: 42 });
+    });
+  });
+
+  describe("wait task execution", () => {
+    const notAvailable = () => { throw new Error("not available"); };
+
+    function makeCtx(sleepFn?: (ms: number) => Promise<void>): TaskExecutionContext {
+      return {
+        evaluateExpressions: evaluateExpressionBatch,
+        doc,
+        sleep: sleepFn ?? (async () => {}),
+        listen: notAvailable,
+        runCommand: notAvailable,
+        runWorkflow: notAvailable,
+        awaitHumanInput: notAvailable,
+        callHttp: notAvailable,
+        callGrpc: notAvailable,
+        callFunction: notAvailable,
+        callAgent: notAvailable,
+      };
+    }
+
+    it("executes wait task between set tasks", async () => {
+      const sleepFn = vi.fn(async () => {});
+      const tasks: TaskList = [
+        { key: "before", task: { kind: "set", set: { step: "before" } } },
+        { key: "pause", task: { kind: "wait", wait: { seconds: 5 } } },
+        { key: "after", task: { kind: "set", set: { step: "after" } } },
+      ];
+
+      const state = createState();
+      await executeDoTasks(tasks, null, state, doc, evaluateExpressionBatch, makeCtx(sleepFn));
+
+      expect(sleepFn).toHaveBeenCalledWith(5_000);
+      expect(state.data.step).toBe("after");
+    });
+
+    it("wait task produces undefined output (does not overwrite state.output)", async () => {
+      const tasks: TaskList = [
+        { key: "init", task: { kind: "set", set: { value: 42 } } },
+        { key: "delay", task: { kind: "wait", wait: { seconds: 1 }, output: { as: "${ . }" } } },
+        { key: "check", task: { kind: "set", set: { final: true } } },
+      ];
+
+      const state = createState();
+      await executeDoTasks(tasks, null, state, doc, evaluateExpressionBatch, makeCtx());
+
+      expect(state.data.final).toBe(true);
+    });
+
+    it("wait task respects if-guard", async () => {
+      const sleepFn = vi.fn(async () => {});
+      const tasks: TaskList = [
+        { key: "init", task: { kind: "set", set: { skip_wait: true } } },
+        {
+          key: "conditionalWait",
+          task: { kind: "wait", wait: { seconds: 10 }, if: "${ $data.skip_wait == false }" },
+        },
+        { key: "done", task: { kind: "set", set: { completed: true } } },
+      ];
+
+      const state = createState();
+      await executeDoTasks(tasks, null, state, doc, evaluateExpressionBatch, makeCtx(sleepFn));
+
+      expect(sleepFn).not.toHaveBeenCalled();
+      expect(state.data.completed).toBe(true);
     });
   });
 });

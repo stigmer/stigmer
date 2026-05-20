@@ -21,13 +21,18 @@
  * type-only imports, and pure JS/TS logic.
  */
 
-import { proxyLocalActivities, proxyActivities, log, workflowInfo } from "@temporalio/workflow";
+import { proxyLocalActivities, proxyActivities, log, workflowInfo, sleep } from "@temporalio/workflow";
+import { CancelledFailure } from "@temporalio/workflow";
 
 import type { createEvaluateExpressionsActivities } from "../activities/evaluate-expressions.js";
 import type { createCallHttpActivities } from "../activities/call-http.js";
 import type { createCallGrpcActivities } from "../activities/call-grpc.js";
 import type { createCallFunctionActivities } from "../activities/call-function.js";
+import type { createRunCommandActivities } from "../activities/run-command.js";
 import { orchestrateAgentCall } from "./call-agent-orchestrator.js";
+import { orchestrateListenTask } from "./listen-orchestrator.js";
+import { orchestrateRunWorkflow } from "./run-orchestrator.js";
+import { orchestrateHumanInput } from "./human-input-orchestrator.js";
 import { executeDoTasks } from "../workflow-engine/do-executor.js";
 import { createState } from "../workflow-engine/state.js";
 import type {
@@ -38,6 +43,10 @@ import type {
   CallFunctionMetadata,
   CallAgentMetadata,
   AgentCallConfig,
+  ListenExecutionConfig,
+  RunCommandConfig,
+  RunWorkflowExecutionConfig,
+  HumanInputExecutionConfig,
   TaskExecutionContext,
 } from "../workflow-engine/types.js";
 
@@ -49,6 +58,7 @@ type EvalActivities = ReturnType<typeof createEvaluateExpressionsActivities>;
 type HttpActivities = ReturnType<typeof createCallHttpActivities>;
 type GrpcActivities = ReturnType<typeof createCallGrpcActivities>;
 type FunctionActivities = ReturnType<typeof createCallFunctionActivities>;
+type RunActivities = ReturnType<typeof createRunCommandActivities>;
 
 const evalProxy = proxyLocalActivities<EvalActivities>({
   startToCloseTimeout: "10s",
@@ -61,6 +71,16 @@ const callProxy = proxyActivities<HttpActivities & GrpcActivities & FunctionActi
     initialInterval: "1s",
     backoffCoefficient: 2,
     maximumInterval: "1m",
+  },
+});
+
+const runProxy = proxyActivities<RunActivities>({
+  startToCloseTimeout: "5m",
+  retry: {
+    maximumAttempts: 3,
+    initialInterval: "1s",
+    backoffCoefficient: 2,
+    maximumInterval: "30s",
   },
 });
 
@@ -102,6 +122,21 @@ export async function executeServerlessWorkflow(
   const ctx: TaskExecutionContext = {
     evaluateExpressions,
     doc: model,
+    sleep: async (durationMs: number) => {
+      try {
+        await sleep(durationMs);
+      } catch (err) {
+        if (err instanceof CancelledFailure) return;
+        throw err;
+      }
+    },
+    listen: (config: ListenExecutionConfig) => orchestrateListenTask(config),
+    runCommand: (config: RunCommandConfig) =>
+      config.mode === "script"
+        ? runProxy.RunScript(config)
+        : runProxy.RunShell(config),
+    runWorkflow: (config: RunWorkflowExecutionConfig) => orchestrateRunWorkflow(config),
+    awaitHumanInput: (config: HumanInputExecutionConfig) => orchestrateHumanInput(config),
     callHttp: (config: HttpCallConfig, runtimeEnv: Record<string, unknown>) =>
       callProxy.CallHttp(config, runtimeEnv),
     callGrpc: (config: GrpcCallConfig, runtimeEnv: Record<string, unknown>) =>
