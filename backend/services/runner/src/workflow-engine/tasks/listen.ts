@@ -1,5 +1,5 @@
 /**
- * Listen task executor — waits for external events (signals) to arrive.
+ * Listen task executor — waits for external events to arrive.
  *
  * The kernel validates and normalizes the listen configuration, then
  * delegates to `ctx.listen()` which is wired to the Temporal workflow
@@ -10,8 +10,12 @@
  * - `to.all`: wait for ALL events to fire
  * - `to.any`: wait for the FIRST event to fire
  *
- * Each event filter specifies a signal `id` and `type`. Only `type: "signal"`
- * is supported in this phase (query/update deferred to Phase 6).
+ * Three Temporal transport types (Stigmer extension of CNCF DSL):
+ * - `type: "signal"` — blocking; receives data via Temporal signal channel
+ * - `type: "query"`  — non-blocking; registers a read-only query handler
+ *   that returns computed data (does NOT count toward all/any completion)
+ * - `type: "update"` — blocking; registers a bidirectional update handler
+ *   with validation (counts toward all/any completion like signals)
  *
  * YAML shape:
  *   - waitForApproval:
@@ -34,7 +38,7 @@ import type {
 } from "../types.js";
 
 const DEFAULT_TIMEOUT_MS = 60_000;
-const SUPPORTED_EVENT_TYPES = ["signal"];
+const SUPPORTED_EVENT_TYPES = ["signal", "query", "update"];
 
 /**
  * Executes a listen task. Called from `runSingleTask` in do-executor
@@ -135,8 +139,9 @@ function validateEventFilter(
   }
 
   const acceptIf = w.acceptIf as string | undefined;
+  const data = w.data as unknown | undefined;
 
-  return { id, type, acceptIf };
+  return { id, type, acceptIf, data };
 }
 
 function extractTimeout(listen: ListenConfig, _taskName: string): number {

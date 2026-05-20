@@ -183,6 +183,9 @@ export async function callLlmAction(
   const provider = inferProvider(config.model);
   const modelId = stripProviderPrefix(config.model);
   const timeoutMs = (config.timeout ?? 60) * 1000;
+  const callStart = Date.now();
+
+  let result: LlmCallResult;
 
   const proxyEndpoint = process.env.STIGMER_PROXY_ENDPOINT;
   const stigmerToken = process.env.STIGMER_TOKEN;
@@ -192,22 +195,41 @@ export async function callLlmAction(
     const headers = buildProxyHeaders(stigmerToken, { executionId });
 
     if (provider === "openai") {
-      return callOpenAI(config, modelId, baseUrl, headers, timeoutMs);
+      result = await callOpenAI(config, modelId, baseUrl, headers, timeoutMs);
+    } else {
+      result = await callAnthropic(config, modelId, baseUrl, headers, timeoutMs);
     }
-    return callAnthropic(config, modelId, baseUrl, headers, timeoutMs);
-  }
-
-  if (provider === "openai") {
+  } else if (provider === "openai") {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) throw new Error("OPENAI_API_KEY not set and no proxy configured");
     const headers = { Authorization: `Bearer ${apiKey}` };
-    return callOpenAI(config, modelId, "https://api.openai.com/v1", headers, timeoutMs);
+    result = await callOpenAI(config, modelId, "https://api.openai.com/v1", headers, timeoutMs);
+  } else {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) throw new Error("ANTHROPIC_API_KEY not set and no proxy configured");
+    const headers = { "x-api-key": apiKey };
+    result = await callAnthropic(config, modelId, "https://api.anthropic.com", headers, timeoutMs);
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error("ANTHROPIC_API_KEY not set and no proxy configured");
-  const headers = { "x-api-key": apiKey };
-  return callAnthropic(config, modelId, "https://api.anthropic.com", headers, timeoutMs);
+  recordLlmMetrics(Date.now() - callStart, result);
+  return result;
+}
+
+async function recordLlmMetrics(durationMs: number, result: LlmCallResult): Promise<void> {
+  try {
+    const { getInstruments } = await import("../otel-metrics.js");
+    const mi = await getInstruments();
+    const attrs = {
+      "stigmer.llm.provider": result.provider,
+      "stigmer.llm.model": result.model,
+    };
+    mi.llmCallDuration.record(durationMs, attrs);
+    mi.llmCallCount.add(1, attrs);
+    if (result.input_tokens) mi.llmTokensInput.add(result.input_tokens, attrs);
+    if (result.output_tokens) mi.llmTokensOutput.add(result.output_tokens, attrs);
+  } catch {
+    // OTel not initialized — silently skip
+  }
 }
 
 export function createCallLlmActivities() {

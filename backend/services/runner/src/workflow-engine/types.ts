@@ -448,6 +448,8 @@ export interface ListenEventDef {
   readonly id: string;
   readonly type: string;
   readonly acceptIf?: string;
+  /** Reply template for query/update handlers — evaluated against state */
+  readonly data?: unknown;
 }
 
 /**
