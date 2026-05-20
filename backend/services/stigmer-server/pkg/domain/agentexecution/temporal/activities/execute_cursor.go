@@ -28,10 +28,10 @@ import (
 // returns. The workflow reads it back via ReadSessionThreadId on reinvocation.
 //
 // Unified Runner Architecture:
-// Both ExecuteCursor and ExecuteDeepAgent are registered on the same base
-// task queue (runner:{id}). Temporal routes by activity name — no queue
-// suffix is needed. The workflow dispatches to the correct activity based
-// on session.spec.harness.
+// Both ExecuteCursor and ExecuteDeepAgent are registered on the same activity
+// task queue (global: agent_execution_runner, or per-session: session:{id}).
+// Temporal routes by activity name — no queue suffix is needed. The workflow
+// dispatches to the correct activity based on session.spec.harness.
 type ExecuteCursorActivity interface {
 	ExecuteCursor(executionID string, threadID string) (*agentexecutionv1.AgentExecutionStatus, error)
 }

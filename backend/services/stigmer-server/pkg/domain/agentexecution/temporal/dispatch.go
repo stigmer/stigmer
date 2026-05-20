@@ -12,8 +12,12 @@ import (
 )
 
 // DefaultActivityTaskQueue is the fallback Temporal task queue for activity
-// routing. This will be replaced by per-session task queue routing in T04.
+// routing. Used in global routing mode and as a fallback when session ID is
+// empty in per-session mode.
 const DefaultActivityTaskQueue = "agent_execution_runner"
+
+// sessionTaskQueuePrefix is the prefix for per-session task queue names.
+const sessionTaskQueuePrefix = "session:"
 
 // DispatchResult holds the resolved Temporal task queue and session harness
 // for workflow creation.
@@ -22,13 +26,29 @@ type DispatchResult struct {
 	Harness   sessionv1.Harness
 }
 
+// FormatSessionTaskQueue derives the canonical Temporal task queue name for a
+// given session ID. The format is "session:{session_id}".
+//
+// This is a pure function with no side effects — it can be used by any
+// component that needs to derive or validate a session task queue name
+// (e.g., runner boot scripts, integration tests, cloud sandbox provisioning).
+func FormatSessionTaskQueue(sessionID string) string {
+	return sessionTaskQueuePrefix + sessionID
+}
+
 // ResolveActivityTaskQueue determines which Temporal task queue an execution's
 // activities should be routed to.
 //
-// Current (simplified): Returns the default global queue. The session is loaded
-// only to extract the harness configuration. Per-session routing will replace
-// this in T04.
-func ResolveActivityTaskQueue(ctx context.Context, s store.Store, sessionID string) (DispatchResult, error) {
+// Routing modes (controlled by Config.ActivityRouting):
+//   - "global": Always returns DefaultActivityTaskQueue. All sessions share
+//     one runner pool. This is the default for OSS local development.
+//   - "session": Returns session:{session_id} when a session ID is available.
+//     Each session routes to a dedicated runner. Used by desktop (embedded
+//     runners) and cloud (per-session sandboxes).
+//
+// In both modes, the session is loaded to extract the harness configuration
+// (NATIVE vs CURSOR) which determines which activity type the workflow invokes.
+func ResolveActivityTaskQueue(ctx context.Context, s store.Store, sessionID string, cfg *Config) (DispatchResult, error) {
 	harness := sessionv1.Harness_HARNESS_NATIVE
 
 	if sessionID != "" {
@@ -38,19 +58,30 @@ func ResolveActivityTaskQueue(ctx context.Context, s store.Store, sessionID stri
 				return DispatchResult{}, fmt.Errorf("failed to load session for dispatch: %w", err)
 			}
 			log.Warn().Str("session_id", sessionID).
-				Msg("Session not found during dispatch, using default queue")
+				Msg("Session not found during dispatch, using default harness")
 		} else {
 			harness = session.GetSpec().GetHarness()
 		}
 	}
 
+	taskQueue := resolveTaskQueue(sessionID, cfg)
+
 	log.Info().
 		Str("session_id", sessionID).
-		Str("task_queue", DefaultActivityTaskQueue).
-		Msg("Dispatch resolved to default activity queue")
+		Str("task_queue", taskQueue).
+		Str("routing_mode", cfg.ActivityRouting).
+		Msg("Dispatch resolved activity task queue")
 
 	return DispatchResult{
-		TaskQueue: DefaultActivityTaskQueue,
+		TaskQueue: taskQueue,
 		Harness:   harness,
 	}, nil
+}
+
+// resolveTaskQueue derives the task queue name based on routing mode and session ID.
+func resolveTaskQueue(sessionID string, cfg *Config) string {
+	if cfg.ActivityRouting == RoutingSession && sessionID != "" {
+		return FormatSessionTaskQueue(sessionID)
+	}
+	return cfg.RunnerQueue
 }

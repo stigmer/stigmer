@@ -152,6 +152,11 @@ func Run() error {
 	temporalClient := temporalManager.InitialConnect(context.Background())
 	defer temporalManager.Close()
 
+	// Load agent execution temporal config (routing mode, queue names).
+	// This is needed by both the workflow creator and the execution controller
+	// for dispatch routing, so it's created outside the Temporal connection block.
+	agentExecutionTemporalConfig := agentexecutiontemporal.NewConfig()
+
 	// Create workflow creators if initial connection succeeded
 	var workflowExecutionWorkflowCreator *workflowexecutionworkflows.InvokeWorkflowExecutionWorkflowCreator
 	var agentExecutionWorkflowCreator *agentexecutiontemporal.InvokeAgentExecutionWorkflowCreator
@@ -172,7 +177,6 @@ func Run() error {
 			Msg("Created workflow execution workflow creator")
 
 		// Create agent execution workflow creator
-		agentExecutionTemporalConfig := agentexecutiontemporal.NewConfig()
 		agentExecutionWorkflowCreator = agentexecutiontemporal.NewInvokeAgentExecutionWorkflowCreator(
 			temporalClient,
 			agentExecutionTemporalConfig,
@@ -181,6 +185,7 @@ func Run() error {
 		log.Info().
 			Str("stigmer_queue", agentExecutionTemporalConfig.StigmerQueue).
 			Str("runner_queue", agentExecutionTemporalConfig.RunnerQueue).
+			Str("activity_routing", agentExecutionTemporalConfig.ActivityRouting).
 			Msg("Created agent execution workflow creator")
 
 		// Create workflow validator
@@ -456,6 +461,7 @@ func Run() error {
 	// Inject workflow creators (nil-safe, controllers handle gracefully)
 	workflowExecutionController.SetWorkflowCreator(workflowExecutionWorkflowCreator)
 	agentExecutionController.SetWorkflowCreator(agentExecutionWorkflowCreator)
+	agentExecutionController.SetTemporalConfig(agentExecutionTemporalConfig)
 
 	// Inject Temporal client for lifecycle operations (cancel, terminate, recover, pause, resume)
 	// This enables direct Temporal API calls for workflow lifecycle management
@@ -467,21 +473,21 @@ func Run() error {
 	workflowExecutionController.SetAgentExecutionClient(agentExecutionController)
 
 	// Inject discovery dependencies into McpServerController.
-	// Uses the agent-runner queue for the Temporal workflow since connect
-	// activities (and the wrapper workflow) run on the Python worker.
+	// The connect workflow runs on the runner's activity queue. In per-session
+	// routing mode, the queue is derived from the session ID at connect time.
 	// The Go handler creates an ephemeral ExecutionContext with resolved env
 	// vars and passes its ID to the Temporal workflow. The Python activity
 	// reads from the scoped ExecutionContext (least-privilege).
 	if temporalClient != nil {
-		agentExecutionTemporalCfg := agentexecutiontemporal.NewConfig()
 		mcpServerController.SetConnectDependencies(
 			temporalClient,
-			agentExecutionTemporalCfg.RunnerQueue,
+			agentExecutionTemporalConfig,
 			environmentClient,
 			executionContextClient,
 		)
 		log.Info().
-			Str("runner_queue", agentExecutionTemporalCfg.RunnerQueue).
+			Str("runner_queue", agentExecutionTemporalConfig.RunnerQueue).
+			Str("activity_routing", agentExecutionTemporalConfig.ActivityRouting).
 			Msg("Injected MCP connect dependencies into McpServerController")
 	}
 

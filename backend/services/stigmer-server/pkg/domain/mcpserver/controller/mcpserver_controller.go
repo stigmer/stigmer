@@ -28,6 +28,7 @@ package mcpserver
 import (
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
+	agentexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/mcpserver/oauth"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/environment"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/executioncontext"
@@ -57,7 +58,7 @@ type McpServerController struct {
 
 	// Optional dependencies for connect. Nil when Temporal is unavailable.
 	temporalClient     client.Client
-	runnerQueue        string
+	temporalConfig     *agentexecutiontemporal.Config
 	environmentClient  *environment.Client
 	executionCtxClient *executioncontext.Client
 
@@ -94,12 +95,12 @@ func NewMcpServerController(store store.Store) *McpServerController {
 // indicating that the connect flow is unavailable.
 func (c *McpServerController) SetConnectDependencies(
 	temporalClient client.Client,
-	runnerQueue string,
+	temporalConfig *agentexecutiontemporal.Config,
 	environmentClient *environment.Client,
 	executionCtxClient *executioncontext.Client,
 ) {
 	c.temporalClient = temporalClient
-	c.runnerQueue = runnerQueue
+	c.temporalConfig = temporalConfig
 	c.environmentClient = environmentClient
 	c.executionCtxClient = executionCtxClient
 	c.managedEnvService = oauth.NewManagedEnvironmentService(environmentClient)
