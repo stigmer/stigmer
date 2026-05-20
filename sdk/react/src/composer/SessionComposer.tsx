@@ -23,8 +23,6 @@ import { SessionVariablesInput } from "../execution/SessionVariablesInput";
 import type { UseSessionVariablesReturn } from "../execution/useSessionVariables";
 import type { UseWorkspaceEntriesReturn } from "../workspace/useWorkspaceEntries";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection";
-import { useRunnerList } from "../runner/useRunnerList";
-import { WorkspaceRunnerSelector } from "../runner/WorkspaceRunnerSelector";
 import { useAttachments } from "../attachment/useAttachments";
 import { AttachmentChipList } from "../attachment/AttachmentChipList";
 import { useSessionEnvPool } from "../environment/useSessionEnvPool";
@@ -35,19 +33,11 @@ import {
   resolveSystemEnvVarValues,
 } from "../environment/systemEnvVars";
 import { useRenderTracer } from "../internal/dev";
-import { RunnerPhase } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/enum_pb";
-import {
-  isActivePhase,
-  phaseLabel,
-  phaseDotColor,
-  PHASE_SORT_ORDER,
-} from "../runner/phase";
 import {
   AgentIcon,
   McpServerIcon,
   SkillIcon,
   SecretsIcon,
-  RunnerIcon,
   AlertTriangleIcon,
   ResolveSpinner,
 } from "./icons";
@@ -288,24 +278,6 @@ export interface SessionComposerProps {
   readonly onSkillRefsChange?: (refs: ResourceRef[]) => void;
 
   /**
-   * Currently selected runner ID, or `null` for "Auto" (backend decides).
-   *
-   * When `onRunnerIdChange` is provided and `org` is set, renders a
-   * runner picker in the toolbar's Tier 1 (alongside Model Selector).
-   *
-   * The selected runner ID flows through to `session.create({ runnerId })`
-   * so the session is bound to that runner's task queue.
-   */
-  readonly runnerId?: string | null;
-  /**
-   * Called when the user selects a different runner. `null` = "Auto".
-   *
-   * Providing this callback enables the runner picker in the toolbar.
-   * Requires `org` to be set (same prerequisite as agent/MCP pickers).
-   */
-  readonly onRunnerIdChange?: (runnerId: string | null) => void;
-
-  /**
    * Session variables state managed by {@link useSessionVariables}.
    * When provided, renders a "Session Variables" trigger in the toolbar
    * that opens a key-value editor for environment variables.
@@ -466,8 +438,6 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   onMcpServerUsagesChange,
   skillRefs,
   onSkillRefsChange,
-  runnerId,
-  onRunnerIdChange,
   sessionVariables,
   enableAttachments = true,
   onAttachmentValidationError,
@@ -507,45 +477,8 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   const showMcp = onMcpServerUsagesChange != null && org != null;
   const showWorkspace = workspace != null;
   const showSkills = onSkillRefsChange != null && org != null;
-  const showRunner = onRunnerIdChange != null && org != null;
   const showSessionVars = sessionVariables != null;
   const showAttach = enableAttachments;
-
-  // ---------------------------------------------------------------------------
-  // Runner resolution — name for contextual hint + ID for file browsing
-  // ---------------------------------------------------------------------------
-
-  const needsRunnerList = showRunner && (runnerId || (showWorkspace && enableLocal));
-
-  const { runners: runnerListForBrowse } = useRunnerList(
-    needsRunnerList ? (org ?? null) : null,
-  );
-
-  const selectedRunner = useMemo(() => {
-    if (!runnerId) return undefined;
-    return runnerListForBrowse.find((r) => r.metadata?.id === runnerId);
-  }, [runnerId, runnerListForBrowse]);
-
-  const selectedRunnerName = selectedRunner?.metadata?.name;
-  const selectedRunnerHostname = selectedRunner?.status?.connectionInfo?.hostname;
-
-  const browseRunnerId = runnerId ?? null;
-
-  // ---------------------------------------------------------------------------
-  // Runner-switch safety — clear local workspace entries when runner changes
-  // ---------------------------------------------------------------------------
-
-  const prevRunnerIdRef = useRef(runnerId);
-
-  useEffect(() => {
-    if (prevRunnerIdRef.current !== runnerId) {
-      const hadLocal = workspace?.entries.some((e) => e.type === "local");
-      prevRunnerIdRef.current = runnerId;
-      if (hadLocal) {
-        workspace?.clearLocal();
-      }
-    }
-  }, [runnerId, workspace]);
 
   // ---------------------------------------------------------------------------
   // Configure menu state — drives the Tier 2 drill-down popover
@@ -1143,10 +1076,6 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
     mcpSetup.entries,
     mcpSetup.removeServer,
     skillRefs,
-    showRunner,
-    runnerId,
-    selectedRunnerName,
-    onRunnerIdChange,
     sessionVariables,
     displayNames,
     onSkillRefsChange,
@@ -1221,14 +1150,6 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
         count: skillCount,
       });
     }
-    if (showRunner && !showWorkspace) {
-      items.push({
-        id: "runner",
-        icon: <RunnerIcon />,
-        label: "Runner",
-        count: runnerId ? 1 : 0,
-      });
-    }
     if (showSessionVars) {
       items.push({
         id: "sessionVars",
@@ -1238,7 +1159,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
       });
     }
     return items;
-  }, [showAgent, agentRef, agentSetup.state, showMcp, mcpCount, mcpSetup.needsSetupCount, showSkills, skillCount, showRunner, showWorkspace, runnerId, showSessionVars, sessionVarCount]);
+  }, [showAgent, agentRef, agentSetup.state, showMcp, mcpCount, mcpSetup.needsSetupCount, showSkills, skillCount, showSessionVars, sessionVarCount]);
 
   const renderConfigPanel = useCallback(
     (panelId: string): React.ReactNode => {
@@ -1320,16 +1241,6 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
             />
           );
 
-        case "runner":
-          return (
-            <RunnerConfigPanel
-              org={org!}
-              value={runnerId ?? null}
-              onChange={(id) => onRunnerIdChange?.(id)}
-              disabled={isDisabled}
-            />
-          );
-
         case "sessionVars":
           return (
             <SessionVariablesInput
@@ -1356,8 +1267,6 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
       mcpSetup,
       skillRefs,
       onSkillRefsChange,
-      runnerId,
-      onRunnerIdChange,
       sessionVariables,
       pool,
       requiredByMap,
@@ -1514,27 +1423,14 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
           workspaceCount={workspaceCount}
           workspaceContent={
             workspace
-              ? <div className="space-y-3">
-                  {showRunner && org && (
-                    <WorkspaceRunnerSelector
-                      org={org}
-                      value={runnerId ?? null}
-                      onChange={(id) => onRunnerIdChange?.(id)}
-                      disabled={isDisabled}
-                    />
-                  )}
-                  <WorkspaceEditor
+              ? <WorkspaceEditor
                     workspace={workspace}
                     disabled={isDisabled}
                     gitHubConnection={gitHubConnection}
                     enableGitHub={enableGitHub}
                     enableLocal={enableLocal}
-                    runnerId={browseRunnerId}
-                    onBrowseLocalFolder={runnerId ? onBrowseLocalFolder : undefined}
-                    runnerName={selectedRunnerName}
-                    runnerHostname={selectedRunnerHostname}
+                    onBrowseLocalFolder={onBrowseLocalFolder}
                   />
-                </div>
               : null
           }
           showAttach={showAttach}
@@ -1592,166 +1488,3 @@ function mcpRefFromKey(key: string): ResourceRef {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Runner config panel — inline list for the Configure menu
-// ---------------------------------------------------------------------------
-
-function RunnerConfigPanel({
-  org,
-  value,
-  onChange,
-  disabled,
-}: {
-  org: string;
-  value: string | null;
-  onChange: (runnerId: string | null) => void;
-  disabled?: boolean;
-}) {
-  const { runners, isLoading } = useRunnerList(org);
-
-  const { active, inactive } = useMemo(() => {
-    type R = (typeof runners)[number];
-    const act: R[] = [];
-    const inact: R[] = [];
-    for (const r of runners) {
-      if (isActivePhase(r.status?.phase ?? RunnerPhase.UNSPECIFIED)) {
-        act.push(r);
-      } else {
-        inact.push(r);
-      }
-    }
-    const sorter = (a: R, b: R) => {
-      const pa = a.status?.phase ?? RunnerPhase.UNSPECIFIED;
-      const pb = b.status?.phase ?? RunnerPhase.UNSPECIFIED;
-      const po = PHASE_SORT_ORDER[pa] - PHASE_SORT_ORDER[pb];
-      if (po !== 0) return po;
-      return (a.metadata?.name ?? "").localeCompare(b.metadata?.name ?? "");
-    };
-    act.sort(sorter);
-    inact.sort(sorter);
-    return { active: act, inactive: inact };
-  }, [runners]);
-
-  const isAutoSelected = value === null;
-
-  return (
-    <div className="w-72 space-y-1">
-      {/* Auto option */}
-      <button
-        type="button"
-        onClick={() => onChange(null)}
-        disabled={disabled}
-        className={cn(
-          "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors",
-          "disabled:pointer-events-none disabled:opacity-50",
-          isAutoSelected
-            ? "bg-accent font-medium text-foreground"
-            : "text-foreground hover:bg-accent-hover",
-        )}
-        role="option"
-        aria-selected={isAutoSelected}
-      >
-        <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-primary" aria-hidden="true" />
-        <span className="flex-1">Default</span>
-        <span className="text-[0.6rem] text-muted-foreground">auto</span>
-      </button>
-
-      {/* Available runners */}
-      {active.length > 0 && (
-        <>
-          <div className="px-2 pt-1 text-[0.65rem] font-medium uppercase tracking-wider text-muted-foreground">
-            Available
-          </div>
-          {active.map((r) => {
-            const id = r.metadata!.id;
-            const name = r.metadata?.name ?? "Unnamed";
-            const phase = r.status?.phase ?? RunnerPhase.UNSPECIFIED;
-            const hostname = r.status?.connectionInfo?.hostname;
-            const isSelected = value === id;
-            return (
-              <button
-                key={id}
-                type="button"
-                onClick={() => onChange(id)}
-                disabled={disabled}
-                className={cn(
-                  "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors",
-                  "disabled:pointer-events-none disabled:opacity-50",
-                  isSelected
-                    ? "bg-accent font-medium text-foreground"
-                    : "text-foreground hover:bg-accent-hover",
-                )}
-                role="option"
-                aria-selected={isSelected}
-              >
-                <span
-                  className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${phaseDotColor(phase)}`}
-                  aria-hidden="true"
-                />
-                <div className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate">{name}</span>
-                  {hostname && (
-                    <span className="truncate text-[0.6rem] leading-tight text-muted-foreground">
-                      {hostname}
-                    </span>
-                  )}
-                </div>
-                <span className="shrink-0 text-[0.6rem] lowercase text-muted-foreground">
-                  {phaseLabel(phase)}
-                </span>
-              </button>
-            );
-          })}
-        </>
-      )}
-
-      {/* Offline runners */}
-      {inactive.length > 0 && (
-        <>
-          <div className="px-2 pt-1 text-[0.65rem] font-medium uppercase tracking-wider text-muted-foreground">
-            Offline
-          </div>
-          {inactive.map((r) => {
-            const id = r.metadata!.id;
-            const name = r.metadata?.name ?? "Unnamed";
-            const phase = r.status?.phase ?? RunnerPhase.UNSPECIFIED;
-            return (
-              <div
-                key={id}
-                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-muted-foreground opacity-50"
-              >
-                <span
-                  className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${phaseDotColor(phase)}`}
-                  aria-hidden="true"
-                />
-                <span className="min-w-0 flex-1 truncate">{name}</span>
-                <span className="shrink-0 text-[0.6rem] lowercase">
-                  {phaseLabel(phase)}
-                </span>
-              </div>
-            );
-          })}
-        </>
-      )}
-
-      {/* Empty state */}
-      {runners.length === 0 && !isLoading && (
-        <p className="py-3 text-center text-xs text-muted-foreground">
-          No runners registered. Use the CLI or desktop app to start one.
-        </p>
-      )}
-
-      {/* Loading state */}
-      {isLoading && (
-        <div className="py-3 text-center text-xs text-muted-foreground">
-          Loading runners...
-        </div>
-      )}
-
-      {/* Hint */}
-      <p className="px-2 pt-1 text-[0.6rem] leading-relaxed text-muted-foreground">
-        Default assigns a cloud runner automatically. Select a specific runner to execute on your own machine.
-      </p>
-    </div>
-  );
-}

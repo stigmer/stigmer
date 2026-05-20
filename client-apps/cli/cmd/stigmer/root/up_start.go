@@ -67,6 +67,7 @@ func prepareAndStartServer(cmd *cobra.Command, format clioutput.OutputFormat, se
 		opts.SandboxTTL, _ = cmd.Flags().GetInt("sandbox-ttl")
 	}
 
+	opts.ActivityRouting, _ = cmd.Flags().GetString("activity-routing")
 	opts.NoWeb, _ = cmd.Flags().GetBool("no-web")
 	openBrowser, _ := cmd.Flags().GetBool("open")
 

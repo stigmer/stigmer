@@ -19,7 +19,6 @@ function makeSpec(overrides: Partial<NonNullable<SessionSpec>> = {}): SessionSpe
     workspaceEntries: [],
     mcpServerUsages: [],
     skillRefs: [],
-    runnerId: "",
     harness: 0,
     cursorMode: 0,
     ...overrides,
