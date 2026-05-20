@@ -64,6 +64,7 @@ import {
   fetchSkillArtifacts,
 } from "../../shared/skill-writer.js";
 import { filterSkills, SKILL_COUNT_THRESHOLD } from "../../shared/skill-relevance.js";
+import { injectAttachments } from "./attachment-injector.js";
 
 export interface SetupResult {
   readonly agentGraph: AgentGraph;
@@ -228,6 +229,15 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       }
     }
 
+    // Step 7c: Inject attachments
+    const attachments = execution.spec!.attachments || [];
+    const injectedFiles = await injectAttachments({
+      backend: workspaceBackend,
+      attachments,
+      storage: artifactStorage,
+      isLocalMode: config.mode === "local",
+    });
+
     // Step 8: Build enhanced system prompt
     const systemPrompt = buildEnhancedSystemPrompt({
       instructions,
@@ -236,7 +246,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       skillsPromptSection,
       workspaceFileRefs: execution.spec!.workspaceFileRefs || [],
       workspaceRoot: workspaceBackend.rootDir,
-      injectedFiles: [],
+      injectedFiles,
     });
 
     // Step 9: Construct the LLM model

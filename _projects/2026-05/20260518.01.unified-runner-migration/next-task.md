@@ -16,7 +16,7 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260518.01.unified-runner-migration/checkpoints/2026-05-20-session-18-phase5-tier6-w1-platform-mount.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260518.01.unified-runner-migration/checkpoints/2026-05-20-session-19-phase5-tier6-w2-attachment-injector.md
 ```
 
 ### 2. Current Task
@@ -44,13 +44,36 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 **Created**: 2026-05-18 15:11  
-**Last Session**: 2026-05-20 — Phase 5 Tier 6 W1 (Platform Mount)  
-**Current Task**: Phase 5 Tier 6 W2 (Attachment Injector)  
-**Status**: W1 Platform Mount COMPLETE — 86 new tests (809 total); W2 next
+**Last Session**: 2026-05-20 — Phase 5 Tier 6 W2 (Attachment Injector)  
+**Current Task**: Phase 5 Tier 6 W3 (Subagent Transformer)  
+**Status**: W2 Attachment Injector COMPLETE — 33 new tests (961 total); W3 next
 
 ## Session Progress (2026-05-20, latest)
 
-### What Was Accomplished (Phase 5 Tier 6 W1 — Platform Mount)
+### What Was Accomplished (Phase 5 Tier 6 W2 — Attachment Injector)
+
+**2 new files** (1 module + 1 test suite):
+- **`src/activities/execute-deep-agent/attachment-injector.ts`** — 320 LOC: `validateZipForExtraction()` (pure, 7 security checks), `injectAttachments()` (collision detection, local/cloud download, fail-hard), typed error classes (`AttachmentInjectionError`, `AttachmentValidationError`).
+- **`src/activities/execute-deep-agent/__tests__/attachment-injector.test.ts`** — 33 tests covering ZIP validation, injection flow, error propagation, collision detection, binary content, and edge cases.
+
+**8 files modified**:
+- **`src/shared/workspace/types.ts`** — Added `writeFileBuffer(path: string, content: Buffer)` to `WorkspaceBackend` interface.
+- **`src/shared/workspace/local-backend.ts`** — Implemented `writeFileBuffer`, extracted `ensureParentDir` helper.
+- **`src/__test-utils__/mock-workspace.ts`** — Added `writeFileBuffer` mock.
+- **`src/activities/execute-deep-agent/setup.ts`** — Wired Step 7c: `injectAttachments()` between skills and prompt building; replaced `injectedFiles: []` with live result.
+- **`src/activities/execute-deep-agent/__tests__/inline-publisher.test.ts`** — Added `writeFileBuffer` to inline mock.
+- **`src/activities/execute-deep-agent/__tests__/writeback-coordinator.test.ts`** — Added `writeFileBuffer` to inline mock.
+- **`src/shared/__tests__/skill-writer.test.ts`** — Added `writeFileBuffer` to inline mock.
+
+**Design decisions**:
+- Binary writes via separate `writeFileBuffer` (VS Code/Deno pattern)
+- Fail-hard error handling (Kubernetes init containers pattern)
+- Mount path collision rejection before downloads (Kubernetes volume mounts pattern)
+- ZIP parser independent from skill-writer (different trust boundaries)
+
+**Results**: 961 tests passing (33 new). `tsc --noEmit` clean. No new dependencies.
+
+### Previous: What Was Accomplished (Phase 5 Tier 6 W1 — Platform Mount)
 
 **4 new files** (2 modules + 2 test suites):
 - **`src/shared/workspace/platform-mount.ts`** — 5 pure functions + 3 constants: classifyPlatformPath, humanizePlatformRefs, resolvePlatformCommand, humanizeSandboxPaths, resolveDisplayEnvVars. Ported from Python `graphton/core/backends/platform_mount.py`.
@@ -121,6 +144,7 @@ The following Python tests cover features with **no TS implementation**. These r
 **Key findings**: (1) Proxy routing was broken — TS runner passed bare `proxyEndpoint` to LangChain without `/v1/proxy/llm/{provider}` suffix expected by `LlmProxyController`. (2) Gemini deferred — cloud proxy only supports openai + anthropic; no `google` provider in `LlmProxyConfig`. (3) `createDeepAgent` is provider-agnostic (`BaseLanguageModel | string` param); `cache_control` annotations are no-op for non-Anthropic. (4) 471 tests passing (39 new).
 
 ### Prior Sessions
+- **Phase 5 Tier 6 W2 Attachment Injector (2026-05-20)**: Full attachment injection pipeline — see `checkpoints/2026-05-20-session-19-phase5-tier6-w2-attachment-injector.md`
 - **Phase 5 Tier 6 W1 Platform Mount (2026-05-20)**: Virtual platform mount with separate platformDir — see `checkpoints/2026-05-20-session-18-phase5-tier6-w1-platform-mount.md`
 - **Phase 5 Test Porting (2026-05-20)**: 181 new tests across 8 files — see `checkpoints/2026-05-20-session-17-phase5-test-porting.md`
 - **Phase 4 Skill Relevance Filtering (2026-05-19)**: BM25 scoring + skill pipeline for deep-agent — see `checkpoints/2026-05-19-session-16-phase4-skill-relevance.md`
@@ -143,7 +167,7 @@ The following Python tests cover features with **no TS implementation**. These r
 
 1. ~~**Phase 4: Supporting Activities**~~ — **COMPLETE**.
 2. ~~**Phase 5 Tiers 0–5: Testing**~~ — **COMPLETE** (181 new tests, 723 total).
-3. **Phase 5 Tier 6: Feature-Gap Modules** — **IN PROGRESS** (W1 Platform Mount COMPLETE; W2 Attachment Injector NEXT; W3 Subagent Transformer after).
+3. **Phase 5 Tier 6: Feature-Gap Modules** — **IN PROGRESS** (W1 Platform Mount COMPLETE; W2 Attachment Injector COMPLETE; W3 Subagent Transformer NEXT).
 4. **Phase 6: Deployment** — After Tier 6 complete.
 
 ## Context for Resume
@@ -214,7 +238,7 @@ None.
 | 3b-iii | Artifacts + Writeback | 2-3 | COMPLETE |
 | 3c | HITL + Approval | 2-3 | COMPLETE |
 | 4 | Supporting Activities | 2-3 | **COMPLETE** (all items done or removed from scope; 542 tests passing) |
-| 5 | Testing | 3-4 | **IN PROGRESS** (Tiers 0–5 done; Tier 6 W1 done, W2 next) |
+| 5 | Testing | 3-4 | **IN PROGRESS** (Tiers 0–5 done; Tier 6 W1–W2 done, W3 next) |
 | 6 | Deployment | 2-3 | Blocked on Phase 5 |
 | 7 | Cleanup | 1-2 | Blocked on Phase 6 |
 
@@ -234,8 +258,7 @@ None.
 
 ## Quick Commands
 
-- "Continue with W2: Attachment Injector" — Next Tier 6 workstream (depends on W1)
-- "Continue with W3: Subagent Transformer" — After W2 (2 sessions)
+- "Continue with W3: Subagent Transformer" — Next Tier 6 workstream (2 sessions)
 - "Start Phase 6" — Deployment: Docker image, queue routing, cutover
 - "Show project status" — Roadmap and file overview
 - `@_projects/2026-05/20260518.01.unified-runner-migration/next-task.md` — Resume context

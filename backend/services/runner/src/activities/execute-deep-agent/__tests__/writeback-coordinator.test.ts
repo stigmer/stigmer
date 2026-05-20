@@ -71,6 +71,7 @@ function mockWorkspaceBackend(responses: Record<string, string> = {}): Workspace
     }),
     readFile: vi.fn(),
     writeFile: vi.fn(),
+    writeFileBuffer: vi.fn(),
     exists: vi.fn(),
   };
 }

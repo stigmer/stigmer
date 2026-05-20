@@ -21,6 +21,7 @@ export function mockWorkspaceBackend(overrides: MockOverrides = {}): WorkspaceBa
     execute: vi.fn().mockResolvedValue(""),
     readFile: vi.fn().mockResolvedValue(""),
     writeFile: vi.fn().mockResolvedValue(undefined),
+    writeFileBuffer: vi.fn().mockResolvedValue(undefined),
     exists: vi.fn().mockResolvedValue(false),
     ...methodOverrides,
   };
