@@ -18,3 +18,7 @@ export {
   connectMcpServer as "stigmer/mcp-server/connect",
   discoverMcpServerLegacy as "stigmer/mcp-server/discover",
 } from "./connect-mcp-server.js";
+
+export {
+  executeServerlessWorkflow as "stigmer/workflow/execute",
+} from "./execute-serverless-workflow.js";

@@ -71,7 +71,8 @@ export async function executeDoTasks(
       continue;
     }
 
-    const taskOutput = await runSingleTask(entry, input, state, doc, ctx);
+    const effectiveInput = await resolveTaskInput(entry, input, state, ctx);
+    const taskOutput = await runSingleTask(entry, effectiveInput, state, doc, ctx);
 
     const switchDirective = extractFlowDirective(taskOutput);
     if (switchDirective !== undefined) {
@@ -131,6 +132,43 @@ async function checkTaskCondition(
     return result.toUpperCase() === "TRUE" || result === "1";
   }
   return false;
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Task Input Resolution
+// ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Resolves a task's effective input. If `task.input.from` is defined,
+ * evaluates the expression against the current state and uses the
+ * result as the task input. Otherwise, the parent input passes through.
+ *
+ * Mirrors Go's pre-task input resolution in `evaluateTaskArguments`.
+ */
+async function resolveTaskInput(
+  entry: TaskEntry,
+  parentInput: unknown,
+  state: WorkflowState,
+  ctx: TaskExecutionContext,
+): Promise<unknown> {
+  const inputFrom = entry.task.input?.from;
+  if (inputFrom === undefined) return parentInput;
+
+  if (typeof inputFrom === "string") {
+    const rawExpr = inputFrom.startsWith("${ ") && inputFrom.endsWith(" }")
+      ? inputFrom.slice(3, -2)
+      : inputFrom;
+
+    const stateVars = state.getAsMap();
+    const results = await ctx.evaluateExpressions(
+      { __input__: rawExpr },
+      parentInput,
+      stateVars,
+    );
+    return results.__input__;
+  }
+
+  return inputFrom;
 }
 
 // ─────────────────────────────────────────────────────────────────────
