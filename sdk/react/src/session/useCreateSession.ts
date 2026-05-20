@@ -24,14 +24,6 @@ export interface SharedSessionFields {
   /** Skill references to enable for executions in this session. */
   readonly skillRefs?: ResourceRef[];
   /**
-   * Runner to bind this session to.
-   *
-   * When set, all executions in the session are routed to this runner's
-   * task queue. When omitted, the backend auto-selects a runner (session
-   * auto-bind in OSS, cloud auto-provisioning in Cloud).
-   */
-  readonly runnerId?: string;
-  /**
    * Execution harness for this session.
    *
    * Determines which execution engine processes agent activities.
@@ -163,7 +155,6 @@ export function useCreateSession(): UseCreateSessionReturn {
           workspaceEntries: input.workspaceEntries,
           mcpServerUsages: input.mcpServerUsages,
           skillRefs: input.skillRefs,
-          runnerId: input.runnerId,
           agentInstanceId: resolvedInstanceId,
           harness: input.harness ? toProtoHarness(input.harness) : undefined,
         });

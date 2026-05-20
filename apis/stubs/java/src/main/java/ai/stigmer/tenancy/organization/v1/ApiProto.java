@@ -46,30 +46,21 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
       "ata.proto\032+ai/stigmer/commons/apiresourc" +
       "e/status.proto\032-ai/stigmer/tenancy/organ" +
       "ization/v1/spec.proto\032\033buf/validate/vali" +
-      "date.proto\"\335\005\n\014Organization\022=\n\013api_versi" +
+      "date.proto\"\351\002\n\014Organization\022=\n\013api_versi" +
       "on\030\001 \001(\tB\034\272H\031r\027\n\025tenancy.stigmer.ai/v1R\n" +
       "apiVersion\022\'\n\004kind\030\002 \001(\tB\023\272H\020r\016\n\014Organiz" +
-      "ationR\004kind\022\312\003\n\010metadata\030\003 \001(\01323.ai.stig" +
-      "mer.commons.apiresource.ApiResourceMetad" +
-      "ataB\370\002\272H\364\002\272\001\201\001\n\023metadata.slug.chars\022Gmet" +
-      "adata.slug: Only lowercase letters, numb" +
-      "ers, and hyphens are allowed\032!this.slug." +
-      "matches(\'^[a-z0-9-]+$\')\272\001h\n\023metadata.slu" +
-      "g.start\0221metadata.slug: Must start with " +
-      "a lowercase letter\032\036this.slug.matches(\'^" +
-      "[a-z].*$\')\272\001~\n\024metadata.slug.length\0227met" +
-      "adata.slug: Must be between 2 and 15 cha" +
-      "racters long\032-size(this.slug) >= 2 && si" +
-      "ze(this.slug) <= 15\310\001\001R\010metadata\022H\n\004spec" +
-      "\030\004 \001(\01324.ai.stigmer.tenancy.organization" +
-      ".v1.OrganizationSpecR\004spec\022N\n\006status\030\005 \001" +
-      "(\01326.ai.stigmer.commons.apiresource.ApiR" +
-      "esourceAuditStatusR\006statusB\267\001B\010ApiProtoP" +
-      "\001\242\002\004ASTO\252\002\"Ai.Stigmer.Tenancy.Organizati" +
-      "on.V1\312\002\"Ai\\Stigmer\\Tenancy\\Organization\\" +
-      "V1\342\002.Ai\\Stigmer\\Tenancy\\Organization\\V1\\" +
-      "GPBMetadata\352\002&Ai::Stigmer::Tenancy::Orga" +
-      "nization::V1b\006proto3"
+      "ationR\004kind\022W\n\010metadata\030\003 \001(\01323.ai.stigm" +
+      "er.commons.apiresource.ApiResourceMetada" +
+      "taB\006\272H\003\310\001\001R\010metadata\022H\n\004spec\030\004 \001(\01324.ai." +
+      "stigmer.tenancy.organization.v1.Organiza" +
+      "tionSpecR\004spec\022N\n\006status\030\005 \001(\01326.ai.stig" +
+      "mer.commons.apiresource.ApiResourceAudit" +
+      "StatusR\006statusB\267\001B\010ApiProtoP\001\242\002\004ASTO\252\002\"A" +
+      "i.Stigmer.Tenancy.Organization.V1\312\002\"Ai\\S" +
+      "tigmer\\Tenancy\\Organization\\V1\342\002.Ai\\Stig" +
+      "mer\\Tenancy\\Organization\\V1\\GPBMetadata\352" +
+      "\002&Ai::Stigmer::Tenancy::Organization::V1" +
+      "b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

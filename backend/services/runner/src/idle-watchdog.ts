@@ -1,9 +1,9 @@
 /**
- * Activity execution tracking for the unified runner.
+ * Activity execution tracking for the execution worker.
  *
  * Tracks the number of concurrently executing Temporal activities and the
- * timestamp of the last activity event. The heartbeat client reads these
- * to report current_executions and determine the runner's phase (READY/BUSY).
+ * timestamp of the last activity event. Used by activities for diagnostics
+ * and concurrency-aware behavior.
  */
 
 let lastActivityAt = Date.now();

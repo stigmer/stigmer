@@ -5,6 +5,7 @@ import grpc
 from ai.stigmer.agentic.workflow.v1 import api_pb2 as ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_api__pb2
 from ai.stigmer.agentic.workflow.v1 import io_pb2 as ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_io__pb2
 from ai.stigmer.agentic.workflow.v1.serverless import validation_pb2 as ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_serverless_dot_validation__pb2
+from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2
 
 
 class WorkflowCommandControllerStub(object):
@@ -30,6 +31,11 @@ class WorkflowCommandControllerStub(object):
         self.update = channel.unary_unary(
                 '/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/update',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_api__pb2.Workflow.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_api__pb2.Workflow.FromString,
+                _registered_method=True)
+        self.updateVisibility = channel.unary_unary(
+                '/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/updateVisibility',
+                request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.UpdateVisibilityInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_api__pb2.Workflow.FromString,
                 _registered_method=True)
         self.delete = channel.unary_unary(
@@ -73,6 +79,24 @@ class WorkflowCommandControllerServicer(object):
 
     def update(self, request, context):
         """Update an existing workflow.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def updateVisibility(self, request, context):
+        """Update the visibility of an existing workflow.
+
+        This is a targeted metadata update — it only modifies metadata.visibility,
+        leaving spec, status, and other metadata fields untouched. Use this to
+        make a workflow publicly accessible or to revoke public access without
+        sending the entire workflow resource (avoiding read-modify-write races).
+
+        @internal
+        Authorization: Requires can_edit permission on the workflow resource.
+        Visibility transitions trigger FGA tuple management in Cloud mode:
+        - PRIVATE → PUBLIC: creates workflow#viewer@identity_account:* tuple
+        - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -127,6 +151,11 @@ def add_WorkflowCommandControllerServicer_to_server(servicer, server):
             'update': grpc.unary_unary_rpc_method_handler(
                     servicer.update,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_api__pb2.Workflow.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_api__pb2.Workflow.SerializeToString,
+            ),
+            'updateVisibility': grpc.unary_unary_rpc_method_handler(
+                    servicer.updateVisibility,
+                    request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.UpdateVisibilityInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_api__pb2.Workflow.SerializeToString,
             ),
             'delete': grpc.unary_unary_rpc_method_handler(
@@ -221,6 +250,33 @@ class WorkflowCommandController(object):
             target,
             '/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/update',
             ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_api__pb2.Workflow.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_api__pb2.Workflow.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def updateVisibility(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/updateVisibility',
+            ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.UpdateVisibilityInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_api__pb2.Workflow.FromString,
             options,
             channel_credentials,

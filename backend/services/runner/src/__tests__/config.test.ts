@@ -29,7 +29,6 @@ describe("loadConfig", () => {
     expect(config.cursorApiKey).toBe("test-key");
     expect(config.proxyEndpoint).toBeNull();
     expect(config.maxConcurrentActivities).toBe(5);
-    expect(config.runnerId).toBeNull();
   });
 
   it("respects STIGMER_TASK_QUEUE", () => {
@@ -103,14 +102,6 @@ describe("loadConfig", () => {
     const config = loadConfig();
 
     expect(config.maxConcurrentActivities).toBe(10);
-  });
-
-  it("reads runnerId from STIGMER_RUNNER_ID", () => {
-    process.env.STIGMER_RUNNER_ID = "runner-xyz";
-    process.env.CURSOR_API_KEY = "test-key";
-    const config = loadConfig();
-
-    expect(config.runnerId).toBe("runner-xyz");
   });
 
   it("reads cloudModeEnabled flag", () => {

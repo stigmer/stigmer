@@ -39,42 +39,50 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "mmand.proto\022#ai.stigmer.agentic.agentins" +
       "tance.v1\032-ai/stigmer/agentic/agentinstan" +
       "ce/v1/api.proto\032,ai/stigmer/agentic/agen" +
-      "tinstance/v1/io.proto\0328ai/stigmer/common" +
-      "s/apiresource/rpc_service_options.proto\032" +
-      "+ai/stigmer/commons/rpc/method_options.p" +
-      "roto2\355\004\n\036AgentInstanceCommandController\022" +
-      "o\n\005apply\0222.ai.stigmer.agentic.agentinsta" +
-      "nce.v1.AgentInstance\0322.ai.stigmer.agenti" +
-      "c.agentinstance.v1.AgentInstance\022v\n\006crea" +
-      "te\0222.ai.stigmer.agentic.agentinstance.v1" +
-      ".AgentInstance\0322.ai.stigmer.agentic.agen" +
-      "tinstance.v1.AgentInstance\"\004\320\270\030\001\022\256\001\n\006upd" +
+      "tinstance/v1/io.proto\032\'ai/stigmer/common" +
+      "s/apiresource/io.proto\0328ai/stigmer/commo" +
+      "ns/apiresource/rpc_service_options.proto" +
+      "\032+ai/stigmer/commons/rpc/method_options." +
+      "proto2\266\006\n\036AgentInstanceCommandController" +
+      "\022o\n\005apply\0222.ai.stigmer.agentic.agentinst" +
+      "ance.v1.AgentInstance\0322.ai.stigmer.agent" +
+      "ic.agentinstance.v1.AgentInstance\022v\n\006cre" +
       "ate\0222.ai.stigmer.agentic.agentinstance.v" +
       "1.AgentInstance\0322.ai.stigmer.agentic.age" +
-      "ntinstance.v1.AgentInstance\"<\302\270\0308\010\002\020-\"\013m" +
-      "etadata.id*%unauthorized to update agent" +
-      " instance\022\252\001\n\006delete\0224.ai.stigmer.agenti" +
-      "c.agentinstance.v1.AgentInstanceId\0322.ai." +
-      "stigmer.agentic.agentinstance.v1.AgentIn" +
-      "stance\"6\302\270\0302\010\003\020-\"\005value*%unauthorized to" +
-      " delete agent instance\032\004\240\377+-B\277\001B\014Command" +
-      "ProtoP\001\242\002\004ASAA\252\002#Ai.Stigmer.Agentic.Agen" +
-      "tinstance.V1\312\002#Ai\\Stigmer\\Agentic\\Agenti" +
-      "nstance\\V1\342\002/Ai\\Stigmer\\Agentic\\Agentins" +
-      "tance\\V1\\GPBMetadata\352\002\'Ai::Stigmer::Agen" +
-      "tic::Agentinstance::V1b\006proto3"
+      "ntinstance.v1.AgentInstance\"\004\320\270\030\001\022\256\001\n\006up" +
+      "date\0222.ai.stigmer.agentic.agentinstance." +
+      "v1.AgentInstance\0322.ai.stigmer.agentic.ag" +
+      "entinstance.v1.AgentInstance\"<\302\270\0308\010\002\020-\"\013" +
+      "metadata.id*%unauthorized to update agen" +
+      "t instance\022\306\001\n\020updateVisibility\0225.ai.sti" +
+      "gmer.commons.apiresource.UpdateVisibilit" +
+      "yInput\0322.ai.stigmer.agentic.agentinstanc" +
+      "e.v1.AgentInstance\"G\302\270\030C\010\002\020-\"\013resource_i" +
+      "d*0unauthorized to update agent instance" +
+      " visibility\022\252\001\n\006delete\0224.ai.stigmer.agen" +
+      "tic.agentinstance.v1.AgentInstanceId\0322.a" +
+      "i.stigmer.agentic.agentinstance.v1.Agent" +
+      "Instance\"6\302\270\0302\010\003\020-\"\005value*%unauthorized " +
+      "to delete agent instance\032\004\240\377+-B\277\001B\014Comma" +
+      "ndProtoP\001\242\002\004ASAA\252\002#Ai.Stigmer.Agentic.Ag" +
+      "entinstance.V1\312\002#Ai\\Stigmer\\Agentic\\Agen" +
+      "tinstance\\V1\342\002/Ai\\Stigmer\\Agentic\\Agenti" +
+      "nstance\\V1\\GPBMetadata\352\002\'Ai::Stigmer::Ag" +
+      "entic::Agentinstance::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           ai.stigmer.agentic.agentinstance.v1.ApiProto.getDescriptor(),
           ai.stigmer.agentic.agentinstance.v1.IoProto.getDescriptor(),
+          ai.stigmer.commons.apiresource.IoProto.getDescriptor(),
           ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor(),
           ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor(),
         });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.agentinstance.v1.ApiProto.getDescriptor();
     ai.stigmer.agentic.agentinstance.v1.IoProto.getDescriptor();
+    ai.stigmer.commons.apiresource.IoProto.getDescriptor();
     ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor();
     ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =

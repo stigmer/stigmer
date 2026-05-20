@@ -83,7 +83,6 @@ type SessionInput struct {
 	Metadata         map[string]string
 	WorkspaceEntries []*WorkspaceEntryInput
 	McpServerUsages  []*McpServerUsageInput
-	RunnerId         string
 	SkillRefs        []ResourceRef
 	Harness          sessionv1.Harness
 	CursorMode       sessionv1.CursorMode
@@ -139,7 +138,6 @@ func (i *SessionInput) toProto() *sessionv1.Session {
 	for _, item := range i.McpServerUsages {
 		resource.Spec.McpServerUsages = append(resource.Spec.McpServerUsages, item.toProto())
 	}
-	resource.Spec.RunnerId = i.RunnerId
 	for _, r := range i.SkillRefs {
 		ref := r.toProto()
 		ref.Kind = apiresourcekind.ApiResourceKind_skill
@@ -185,7 +183,6 @@ func SessionInputFromProto(p *sessionv1.Session) *SessionInput {
 		for _, item := range s.GetMcpServerUsages() {
 			input.McpServerUsages = append(input.McpServerUsages, mcpServerUsageInputFromProto(item))
 		}
-		input.RunnerId = s.GetRunnerId()
 		for _, r := range s.GetSkillRefs() {
 			input.SkillRefs = append(input.SkillRefs, resourceRefFromProto(r))
 		}

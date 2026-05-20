@@ -1,7 +1,7 @@
 [package]
 name = "stigmer"
 version = "0.1.0"
-description = "Stigmer Desktop — native app for sessions, agents, and runner management"
+description = "Stigmer Desktop — native app for sessions and agents"
 authors = ["Stigmer <oss@stigmer.ai>"]
 edition = "2021"
 
@@ -24,11 +24,5 @@ tauri-plugin-window-state = "2"
 tauri-plugin-deep-link = "2"
 tauri-plugin-http = "2"
 tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
-tokio = { version = "1", features = ["sync", "net", "io-util"] }
 serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-dirs = "6"
-log = "0.4"
-hostname = "0.4"
-libc = "0.2"
 url = "2"

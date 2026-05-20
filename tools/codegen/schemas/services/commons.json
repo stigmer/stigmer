@@ -13,8 +13,11 @@
           "type": {
             "kind": "string"
           },
-          "description": "Human-readable name of the resource.",
-          "required": false
+          "description": "Human-readable name of the resource.\n Max 63 characters. Validation is skipped when the field is empty (e.g.,\n server-generated responses or partial messages).",
+          "required": false,
+          "validation": {
+            "maxLength": 63
+          }
         },
         {
           "name": "Slug",
@@ -23,8 +26,13 @@
           "type": {
             "kind": "string"
           },
-          "description": "URL-friendly identifier, unique within the organization.\n Combined with org, forms the canonical reference: \"org/slug\".",
-          "required": false
+          "description": "URL-friendly identifier, unique within the organization.\n Combined with org, forms the canonical reference: \"org/slug\".\n Format: 2-63 lowercase alphanumeric characters and hyphens; must start\n with a letter and end with a letter or digit. When empty, the server\n derives the slug from the name.",
+          "required": false,
+          "validation": {
+            "minLength": 2,
+            "maxLength": 63,
+            "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$"
+          }
         },
         {
           "name": "Id",
@@ -55,7 +63,8 @@
             "enumType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
             "enumValues": [
               "visibility_private",
-              "visibility_public"
+              "visibility_public",
+              "visibility_org"
             ]
           },
           "description": "Visibility controls who can access this resource.\n - PRIVATE: Only members of the owning organization can access.\n - PUBLIC: Anyone can access (read). Write access still requires org membership.\n Default: PRIVATE for new resources.",
@@ -363,11 +372,6 @@
           "description": "Configured deployment of an agent with environment-specific overrides."
         },
         {
-          "name": "runner",
-          "number": 46,
-          "description": "Process that executes work, either user-created or system-managed."
-        },
-        {
           "name": "workflow",
           "number": 50,
           "description": "Multi-step orchestration defining how agents collaborate on a task."
@@ -406,18 +410,23 @@
     },
     {
       "name": "ApiResourceVisibility",
-      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines whether\n users outside that organization can access the resource.",
+      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines whether\n users outside that organization can access the resource.\n\n The three visibility levels map to FGA tuples:\n - PRIVATE: no additional viewer tuples (owner-only access)\n - ORG: resource#viewer@organization:\u003corg\u003e#member tuple (all org members)\n - PUBLIC: resource#viewer@identity_account:* with allow_public (all users)",
       "protoType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
       "values": [
         {
           "name": "visibility_private",
           "number": 1,
-          "description": "Only members of the owning organization can access.\n This is the default for most resources.\n Named visibility_private to avoid Java reserved keyword conflict."
+          "description": "Only the owner (and explicitly granted principals) can access.\n This is the default for instances and personal resources.\n Named visibility_private to avoid Java reserved keyword conflict."
         },
         {
           "name": "visibility_public",
           "number": 2,
           "description": "Anyone can access (read) this resource.\n Used for marketplace-published resources (e.g., \"stigmer/web-search\").\n Write access still requires org membership.\n Named visibility_public to avoid Java reserved keyword conflict."
+        },
+        {
+          "name": "visibility_org",
+          "number": 3,
+          "description": "All members of the owning organization can access (read) this resource.\n Used for instances where a team wants shared observability of executions\n without granting access to all authenticated users.\n\n FGA tuple: resource#viewer@organization:\u003corg\u003e#member\n\n For workflow instances, this enables zero-tuple-per-execution shared\n observability: all org members see all executions via inheritance."
         }
       ]
     }

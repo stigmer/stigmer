@@ -7,17 +7,17 @@ package ai.stigmer.agentic.agentexecution.v1;
 
 /**
  * <pre>
- * Accumulated token usage from runner-observed turn-ended events.
- * Carried on AgentExecutionStatus.runner_usage for real-time streaming UX.
+ * Accumulated token usage from execution worker turn-ended events.
+ * Carried on AgentExecutionStatus.streaming_usage for real-time streaming UX.
  * </pre>
  *
- * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary}
+ * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary}
  */
 @com.google.protobuf.Generated
-public final class RunnerUsageSummary extends
+public final class StreamingUsageSummary extends
     com.google.protobuf.GeneratedMessage implements
-    // @@protoc_insertion_point(message_implements:ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary)
-    RunnerUsageSummaryOrBuilder {
+    // @@protoc_insertion_point(message_implements:ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary)
+    StreamingUsageSummaryOrBuilder {
 private static final long serialVersionUID = 0L;
   static {
     com.google.protobuf.RuntimeVersion.validateProtobufGencodeVersion(
@@ -26,33 +26,33 @@ private static final long serialVersionUID = 0L;
       /* minor= */ 34,
       /* patch= */ 0,
       /* suffix= */ "",
-      "RunnerUsageSummary");
+      "StreamingUsageSummary");
   }
-  // Use RunnerUsageSummary.newBuilder() to construct.
-  private RunnerUsageSummary(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+  // Use StreamingUsageSummary.newBuilder() to construct.
+  private StreamingUsageSummary(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
     super(builder);
   }
-  private RunnerUsageSummary() {
+  private StreamingUsageSummary() {
     model_ = "";
     observedAt_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
       getDescriptor() {
-    return ai.stigmer.agentic.agentexecution.v1.UsageProto.internal_static_ai_stigmer_agentic_agentexecution_v1_RunnerUsageSummary_descriptor;
+    return ai.stigmer.agentic.agentexecution.v1.UsageProto.internal_static_ai_stigmer_agentic_agentexecution_v1_StreamingUsageSummary_descriptor;
   }
 
   @java.lang.Override
   public com.google.protobuf.Descriptors.Descriptor getDescriptorForType() {
-    return ai.stigmer.agentic.agentexecution.v1.UsageProto.internal_static_ai_stigmer_agentic_agentexecution_v1_RunnerUsageSummary_descriptor;
+    return ai.stigmer.agentic.agentexecution.v1.UsageProto.internal_static_ai_stigmer_agentic_agentexecution_v1_StreamingUsageSummary_descriptor;
   }
 
   @java.lang.Override
   protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internalGetFieldAccessorTable() {
-    return ai.stigmer.agentic.agentexecution.v1.UsageProto.internal_static_ai_stigmer_agentic_agentexecution_v1_RunnerUsageSummary_fieldAccessorTable
+    return ai.stigmer.agentic.agentexecution.v1.UsageProto.internal_static_ai_stigmer_agentic_agentexecution_v1_StreamingUsageSummary_fieldAccessorTable
         .ensureFieldAccessorsInitialized(
-            ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary.class, ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary.Builder.class);
+            ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary.class, ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary.Builder.class);
   }
 
   public static final int INPUT_TOKENS_FIELD_NUMBER = 1;
@@ -349,10 +349,10 @@ private static final long serialVersionUID = 0L;
     if (obj == this) {
      return true;
     }
-    if (!(obj instanceof ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary)) {
+    if (!(obj instanceof ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary)) {
       return super.equals(obj);
     }
-    ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary other = (ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary) obj;
+    ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary other = (ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary) obj;
 
     if (getInputTokens()
         != other.getInputTokens()) return false;
@@ -413,44 +413,44 @@ private static final long serialVersionUID = 0L;
     return hash;
   }
 
-  public static ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary parseFrom(
+  public static ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary parseFrom(
       java.nio.ByteBuffer data)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data);
   }
-  public static ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary parseFrom(
+  public static ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary parseFrom(
       java.nio.ByteBuffer data,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data, extensionRegistry);
   }
-  public static ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary parseFrom(
+  public static ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary parseFrom(
       com.google.protobuf.ByteString data)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data);
   }
-  public static ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary parseFrom(
+  public static ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary parseFrom(
       com.google.protobuf.ByteString data,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data, extensionRegistry);
   }
-  public static ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary parseFrom(byte[] data)
+  public static ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary parseFrom(byte[] data)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data);
   }
-  public static ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary parseFrom(
+  public static ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary parseFrom(
       byte[] data,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data, extensionRegistry);
   }
-  public static ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary parseFrom(java.io.InputStream input)
+  public static ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary parseFrom(java.io.InputStream input)
       throws java.io.IOException {
     return com.google.protobuf.GeneratedMessage
         .parseWithIOException(PARSER, input);
   }
-  public static ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary parseFrom(
+  public static ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary parseFrom(
       java.io.InputStream input,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws java.io.IOException {
@@ -458,26 +458,26 @@ private static final long serialVersionUID = 0L;
         .parseWithIOException(PARSER, input, extensionRegistry);
   }
 
-  public static ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary parseDelimitedFrom(java.io.InputStream input)
+  public static ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary parseDelimitedFrom(java.io.InputStream input)
       throws java.io.IOException {
     return com.google.protobuf.GeneratedMessage
         .parseDelimitedWithIOException(PARSER, input);
   }
 
-  public static ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary parseDelimitedFrom(
+  public static ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary parseDelimitedFrom(
       java.io.InputStream input,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws java.io.IOException {
     return com.google.protobuf.GeneratedMessage
         .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
   }
-  public static ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary parseFrom(
+  public static ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary parseFrom(
       com.google.protobuf.CodedInputStream input)
       throws java.io.IOException {
     return com.google.protobuf.GeneratedMessage
         .parseWithIOException(PARSER, input);
   }
-  public static ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary parseFrom(
+  public static ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary parseFrom(
       com.google.protobuf.CodedInputStream input,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws java.io.IOException {
@@ -490,7 +490,7 @@ private static final long serialVersionUID = 0L;
   public static Builder newBuilder() {
     return DEFAULT_INSTANCE.toBuilder();
   }
-  public static Builder newBuilder(ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary prototype) {
+  public static Builder newBuilder(ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary prototype) {
     return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
   }
   @java.lang.Override
@@ -507,30 +507,30 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Accumulated token usage from runner-observed turn-ended events.
-   * Carried on AgentExecutionStatus.runner_usage for real-time streaming UX.
+   * Accumulated token usage from execution worker turn-ended events.
+   * Carried on AgentExecutionStatus.streaming_usage for real-time streaming UX.
    * </pre>
    *
-   * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary}
+   * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary}
    */
   public static final class Builder extends
       com.google.protobuf.GeneratedMessage.Builder<Builder> implements
-      // @@protoc_insertion_point(builder_implements:ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary)
-      ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummaryOrBuilder {
+      // @@protoc_insertion_point(builder_implements:ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary)
+      ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummaryOrBuilder {
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
-      return ai.stigmer.agentic.agentexecution.v1.UsageProto.internal_static_ai_stigmer_agentic_agentexecution_v1_RunnerUsageSummary_descriptor;
+      return ai.stigmer.agentic.agentexecution.v1.UsageProto.internal_static_ai_stigmer_agentic_agentexecution_v1_StreamingUsageSummary_descriptor;
     }
 
     @java.lang.Override
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return ai.stigmer.agentic.agentexecution.v1.UsageProto.internal_static_ai_stigmer_agentic_agentexecution_v1_RunnerUsageSummary_fieldAccessorTable
+      return ai.stigmer.agentic.agentexecution.v1.UsageProto.internal_static_ai_stigmer_agentic_agentexecution_v1_StreamingUsageSummary_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
-              ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary.class, ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary.Builder.class);
+              ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary.class, ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary.Builder.class);
     }
 
-    // Construct using ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary.newBuilder()
+    // Construct using ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary.newBuilder()
     private Builder() {
 
     }
@@ -559,17 +559,17 @@ private static final long serialVersionUID = 0L;
     @java.lang.Override
     public com.google.protobuf.Descriptors.Descriptor
         getDescriptorForType() {
-      return ai.stigmer.agentic.agentexecution.v1.UsageProto.internal_static_ai_stigmer_agentic_agentexecution_v1_RunnerUsageSummary_descriptor;
+      return ai.stigmer.agentic.agentexecution.v1.UsageProto.internal_static_ai_stigmer_agentic_agentexecution_v1_StreamingUsageSummary_descriptor;
     }
 
     @java.lang.Override
-    public ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary getDefaultInstanceForType() {
-      return ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary.getDefaultInstance();
+    public ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary getDefaultInstanceForType() {
+      return ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary.getDefaultInstance();
     }
 
     @java.lang.Override
-    public ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary build() {
-      ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary result = buildPartial();
+    public ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary build() {
+      ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary result = buildPartial();
       if (!result.isInitialized()) {
         throw newUninitializedMessageException(result);
       }
@@ -577,14 +577,14 @@ private static final long serialVersionUID = 0L;
     }
 
     @java.lang.Override
-    public ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary buildPartial() {
-      ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary result = new ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary(this);
+    public ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary buildPartial() {
+      ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary result = new ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary(this);
       if (bitField0_ != 0) { buildPartial0(result); }
       onBuilt();
       return result;
     }
 
-    private void buildPartial0(ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary result) {
+    private void buildPartial0(ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary result) {
       int from_bitField0_ = bitField0_;
       if (((from_bitField0_ & 0x00000001) != 0)) {
         result.inputTokens_ = inputTokens_;
@@ -617,16 +617,16 @@ private static final long serialVersionUID = 0L;
 
     @java.lang.Override
     public Builder mergeFrom(com.google.protobuf.Message other) {
-      if (other instanceof ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary) {
-        return mergeFrom((ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary)other);
+      if (other instanceof ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary) {
+        return mergeFrom((ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary)other);
       } else {
         super.mergeFrom(other);
         return this;
       }
     }
 
-    public Builder mergeFrom(ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary other) {
-      if (other == ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary.getDefaultInstance()) return this;
+    public Builder mergeFrom(ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary other) {
+      if (other == ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary.getDefaultInstance()) return this;
       if (other.getInputTokens() != 0L) {
         setInputTokens(other.getInputTokens());
       }
@@ -1241,23 +1241,23 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary)
+    // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary)
   }
 
-  // @@protoc_insertion_point(class_scope:ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary)
-  private static final ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary DEFAULT_INSTANCE;
+  // @@protoc_insertion_point(class_scope:ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary)
+  private static final ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary DEFAULT_INSTANCE;
   static {
-    DEFAULT_INSTANCE = new ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary();
+    DEFAULT_INSTANCE = new ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary();
   }
 
-  public static ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary getDefaultInstance() {
+  public static ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary getDefaultInstance() {
     return DEFAULT_INSTANCE;
   }
 
-  private static final com.google.protobuf.Parser<RunnerUsageSummary>
-      PARSER = new com.google.protobuf.AbstractParser<RunnerUsageSummary>() {
+  private static final com.google.protobuf.Parser<StreamingUsageSummary>
+      PARSER = new com.google.protobuf.AbstractParser<StreamingUsageSummary>() {
     @java.lang.Override
-    public RunnerUsageSummary parsePartialFrom(
+    public StreamingUsageSummary parsePartialFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -1276,17 +1276,17 @@ private static final long serialVersionUID = 0L;
     }
   };
 
-  public static com.google.protobuf.Parser<RunnerUsageSummary> parser() {
+  public static com.google.protobuf.Parser<StreamingUsageSummary> parser() {
     return PARSER;
   }
 
   @java.lang.Override
-  public com.google.protobuf.Parser<RunnerUsageSummary> getParserForType() {
+  public com.google.protobuf.Parser<StreamingUsageSummary> getParserForType() {
     return PARSER;
   }
 
   @java.lang.Override
-  public ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary getDefaultInstanceForType() {
+  public ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary getDefaultInstanceForType() {
     return DEFAULT_INSTANCE;
   }
 

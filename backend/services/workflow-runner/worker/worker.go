@@ -23,7 +23,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/claimcheck"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/executor"
-	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/heartbeat"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/interceptors"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/temporal/searchattributes"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/zigflow/tasks"
@@ -54,9 +53,6 @@ type ZigflowWorker struct {
 	claimCheckManager          *claimcheck.Manager
 	executeWorkflowActivity    *activities.ExecuteWorkflowActivityImpl
 	validateWorkflowActivities *activities.ValidateWorkflowActivities
-
-	activityCounter *heartbeat.ActivityCounter
-	heartbeatClient *heartbeat.Client
 }
 
 // NewZigflowWorker creates a new Temporal worker system with two-queue architecture.
@@ -163,15 +159,10 @@ func NewZigflowWorker(cfg *config.Config) (*ZigflowWorker, error) {
 		log.Info().Msg("ValidateWorkflowActivities initialized (non-sandbox mode)")
 	}
 
-	activityCounter := heartbeat.NewActivityCounter()
 	progressInterceptor := interceptors.NewProgressReportingInterceptor(cfg.StigmerConfig)
-	counterInterceptor := heartbeat.NewActivityCounterInterceptor(activityCounter)
 
 	orchestrationWorker := worker.New(temporalClient, cfg.OrchestrationTaskQueue, worker.Options{
 		MaxConcurrentActivityExecutionSize: cfg.MaxConcurrency,
-		Interceptors: []interceptor.WorkerInterceptor{
-			counterInterceptor,
-		},
 	})
 	log.Info().
 		Str("task_queue", cfg.OrchestrationTaskQueue).
@@ -182,7 +173,6 @@ func NewZigflowWorker(cfg *config.Config) (*ZigflowWorker, error) {
 		MaxConcurrentActivityExecutionSize: cfg.MaxConcurrency,
 		Interceptors: []interceptor.WorkerInterceptor{
 			progressInterceptor,
-			counterInterceptor,
 		},
 	})
 	log.Info().
@@ -201,8 +191,6 @@ func NewZigflowWorker(cfg *config.Config) (*ZigflowWorker, error) {
 		log.Info().Msg("Validation worker skipped (sandbox mode — global K8s pod handles validation)")
 	}
 
-	hbClient := heartbeat.NewClient(cfg.RunnerID, cfg.StigmerConfig, activityCounter)
-
 	return &ZigflowWorker{
 		temporalClient:             temporalClient,
 		config:                     cfg,
@@ -212,8 +200,6 @@ func NewZigflowWorker(cfg *config.Config) (*ZigflowWorker, error) {
 		claimCheckManager:          claimCheckMgr,
 		executeWorkflowActivity:    executeWorkflowActivity,
 		validateWorkflowActivities: validateWorkflowActivities,
-		activityCounter:            activityCounter,
-		heartbeatClient:            hbClient,
 	}, nil
 }
 
@@ -260,11 +246,9 @@ func (w *ZigflowWorker) RegisterWorkflowsAndActivities() {
 		Msg("All workflows and activities registered")
 }
 
-// Start starts all Temporal workers and the heartbeat client (blocking call).
+// Start starts all Temporal workers (blocking call).
 func (w *ZigflowWorker) Start() error {
 	log.Info().Bool("sandbox_mode", w.config.SandboxMode).Msg("Starting Temporal worker system")
-
-	w.heartbeatClient.Start()
 
 	orchestrationErrCh := make(chan error, 1)
 	go func() {
@@ -308,11 +292,9 @@ func (w *ZigflowWorker) Start() error {
 	}
 }
 
-// Stop gracefully stops the heartbeat client and all workers.
+// Stop gracefully stops all workers.
 func (w *ZigflowWorker) Stop() {
 	log.Info().Msg("Stopping Temporal worker system...")
-
-	w.heartbeatClient.Stop()
 
 	w.orchestrationWorker.Stop()
 	w.executionWorker.Stop()

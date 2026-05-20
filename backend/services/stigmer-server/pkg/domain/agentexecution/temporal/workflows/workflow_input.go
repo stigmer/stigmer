@@ -21,10 +21,6 @@ type InvokeAgentExecutionWorkflowInput struct {
 	AutoApproveAll           bool   `json:"auto_approve_all,omitempty"`
 	ParentWorkflowID         string `json:"parent_workflow_id,omitempty"`
 	InvokerIdentityAccountID string `json:"invoker_identity_account_id,omitempty"`
-	// RunnerID is the ID of the Runner resolved by dispatch, or empty
-	// when using the global shared runner queue. The workflow records this on
-	// AgentExecutionStatus.runner_id for observability.
-	RunnerID string `json:"runner_id,omitempty"`
 	// Harness is the session's execution harness as a proto enum numeric value.
 	// 0=HARNESS_UNSPECIFIED (treated as NATIVE), 1=HARNESS_NATIVE, 2=HARNESS_CURSOR.
 	// Determines which activity type the workflow dispatches (ExecuteGraphton vs ExecuteCursor).

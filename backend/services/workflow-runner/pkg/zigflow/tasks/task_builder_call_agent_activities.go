@@ -181,10 +181,9 @@ func (a *CallAgentActivities) CallAgentActivity(
 		"agent_id", agentId, "default_instance_id", defaultInstanceId)
 
 	// **STEP 3: Create Session** (unified with frontend two-step pattern)
-	// Session owns harness, runner affinity, and workspace config.
+	// Session owns harness and workspace config.
 	session, err := a.createSession(authCtx, orgId, defaultInstanceId,
-		resolvedConfig.Harness, os.Getenv("STIGMER_RUNNER_ID"),
-		resolvedConfig.Agent)
+		resolvedConfig.Harness, resolvedConfig.Agent)
 	if err != nil {
 		logger.Error("❌ Failed to create session for agent call", "error", err)
 		return nil, fmt.Errorf("failed to create session: %w", err)
@@ -377,7 +376,6 @@ func (a *CallAgentActivities) createSession(
 	orgId string,
 	instanceId string,
 	harness sessionv1.Harness,
-	runnerId string,
 	agentSlug string,
 ) (*sessionv1.Session, error) {
 	client, err := getSessionCommandClient()
@@ -398,10 +396,6 @@ func (a *CallAgentActivities) createSession(
 			Subject:         fmt.Sprintf("Workflow: %s", agentSlug),
 			Harness:         harness,
 		},
-	}
-
-	if runnerId != "" {
-		session.Spec.RunnerId = runnerId
 	}
 
 	created, err := client.Create(ctx, session)

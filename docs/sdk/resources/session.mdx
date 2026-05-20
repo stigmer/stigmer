@@ -220,7 +220,6 @@ const session = await stigmer.session.apply({
   metadata: {},
   workspaceEntries: [],
   mcpServerUsages: [],
-  runnerId: "...",
   skillRefs: [],
   harness: "...",
   cursorMode: "...",
@@ -241,7 +240,6 @@ session, err := client.Session.Apply(ctx, &stigmer.SessionInput{
   Metadata:         map[string]string{},
   WorkspaceEntries: []stigmer.WorkspaceEntryInput{},
   McpServerUsages:  []stigmer.McpServerUsageInput{},
-  RunnerId:         "...",
   SkillRefs:        []stigmer.ResourceRef{},
   Harness:          "...",
   CursorMode:       "...",
@@ -262,7 +260,6 @@ session = client.sessions.apply(SessionInput(
     metadata={},
     workspace_entries=[],
     mcp_server_usages=[],
-    runner_id="...",
     skill_refs=[],
     harness="...",
     cursor_mode="...",
@@ -283,7 +280,6 @@ Session session = client.sessions().apply(SessionInput.builder()
     .metadata(Map.of())
     .workspaceEntries(List.of())
     .mcpServerUsages(List.of())
-    .runnerId("...")
     .skillRefs(List.of())
     .harness("...")
     .cursorMode("...")
@@ -315,7 +311,6 @@ const session = await stigmer.session.create({
   metadata: {},
   workspaceEntries: [],
   mcpServerUsages: [],
-  runnerId: "...",
   skillRefs: [],
   harness: "...",
   cursorMode: "...",
@@ -336,7 +331,6 @@ session, err := client.Session.Create(ctx, &stigmer.SessionInput{
   Metadata:         map[string]string{},
   WorkspaceEntries: []stigmer.WorkspaceEntryInput{},
   McpServerUsages:  []stigmer.McpServerUsageInput{},
-  RunnerId:         "...",
   SkillRefs:        []stigmer.ResourceRef{},
   Harness:          "...",
   CursorMode:       "...",
@@ -357,7 +351,6 @@ session = client.sessions.create(SessionInput(
     metadata={},
     workspace_entries=[],
     mcp_server_usages=[],
-    runner_id="...",
     skill_refs=[],
     harness="...",
     cursor_mode="...",
@@ -378,7 +371,6 @@ Session session = client.sessions().create(SessionInput.builder()
     .metadata(Map.of())
     .workspaceEntries(List.of())
     .mcpServerUsages(List.of())
-    .runnerId("...")
     .skillRefs(List.of())
     .harness("...")
     .cursorMode("...")
@@ -410,7 +402,6 @@ const session = await stigmer.session.update({
   metadata: {},
   workspaceEntries: [],
   mcpServerUsages: [],
-  runnerId: "...",
   skillRefs: [],
   harness: "...",
   cursorMode: "...",
@@ -431,7 +422,6 @@ session, err := client.Session.Update(ctx, &stigmer.SessionInput{
   Metadata:         map[string]string{},
   WorkspaceEntries: []stigmer.WorkspaceEntryInput{},
   McpServerUsages:  []stigmer.McpServerUsageInput{},
-  RunnerId:         "...",
   SkillRefs:        []stigmer.ResourceRef{},
   Harness:          "...",
   CursorMode:       "...",
@@ -452,7 +442,6 @@ session = client.sessions.update(SessionInput(
     metadata={},
     workspace_entries=[],
     mcp_server_usages=[],
-    runner_id="...",
     skill_refs=[],
     harness="...",
     cursor_mode="...",
@@ -473,7 +462,6 @@ Session session = client.sessions().update(SessionInput.builder()
     .metadata(Map.of())
     .workspaceEntries(List.of())
     .mcpServerUsages(List.of())
-    .runnerId("...")
     .skillRefs(List.of())
     .harness("...")
     .cursorMode("...")
@@ -626,11 +614,10 @@ Input for creating or updating a Session.
     agentInstanceId: { type: "string", description: "Agent instance this session runs against." },
     subject: { type: "string", description: "Conversation title for UI display." },
     threadId: { type: "string", description: "Thread ID that carries the conversation history across executions." },
-    sandboxId: { type: "string", description: "Deprecated: sandbox lifecycle is now managed at the Runner level via the stigmer.ai/sandbox-id metadata label on the Runner resource." },
+    sandboxId: { type: "string", description: "Deprecated: sandbox lifecycle is managed at the session level." },
     metadata: { type: "Record<string, string>", description: "Custom key-value pairs for client-specific information." },
     workspaceEntries: { type: "WorkspaceEntryInput[]", description: "Workspace entries for this session.", typeDescriptionLink: "#workspaceentryinput" },
     mcpServerUsages: { type: "McpServerUsageInput[]", description: "MCP servers to make available in this session.", typeDescriptionLink: "#mcpserverusageinput" },
-    runnerId: { type: "string", description: "Runner that executes work for this session." },
     skillRefs: { type: "ResourceRef[]", description: "Skills to inject into this session's context.", typeDescriptionLink: "#resourceref" },
     harness: { type: "Harness", description: "Execution harness for this session.", typeDescriptionLink: "#harness" },
     cursorMode: { type: "CursorMode", description: "Cursor SDK agent mode for this session.", typeDescriptionLink: "#cursormode" },

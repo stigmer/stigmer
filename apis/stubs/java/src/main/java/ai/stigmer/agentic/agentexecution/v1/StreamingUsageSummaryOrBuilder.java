@@ -6,8 +6,8 @@
 package ai.stigmer.agentic.agentexecution.v1;
 
 @com.google.protobuf.Generated
-public interface RunnerUsageSummaryOrBuilder extends
-    // @@protoc_insertion_point(interface_extends:ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary)
+public interface StreamingUsageSummaryOrBuilder extends
+    // @@protoc_insertion_point(interface_extends:ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary)
     com.google.protobuf.MessageOrBuilder {
 
   /**

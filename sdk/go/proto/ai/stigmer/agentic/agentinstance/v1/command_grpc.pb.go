@@ -8,6 +8,7 @@ package agentinstancev1
 
 import (
 	context "context"
+	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -19,10 +20,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AgentInstanceCommandController_Apply_FullMethodName  = "/ai.stigmer.agentic.agentinstance.v1.AgentInstanceCommandController/apply"
-	AgentInstanceCommandController_Create_FullMethodName = "/ai.stigmer.agentic.agentinstance.v1.AgentInstanceCommandController/create"
-	AgentInstanceCommandController_Update_FullMethodName = "/ai.stigmer.agentic.agentinstance.v1.AgentInstanceCommandController/update"
-	AgentInstanceCommandController_Delete_FullMethodName = "/ai.stigmer.agentic.agentinstance.v1.AgentInstanceCommandController/delete"
+	AgentInstanceCommandController_Apply_FullMethodName            = "/ai.stigmer.agentic.agentinstance.v1.AgentInstanceCommandController/apply"
+	AgentInstanceCommandController_Create_FullMethodName           = "/ai.stigmer.agentic.agentinstance.v1.AgentInstanceCommandController/create"
+	AgentInstanceCommandController_Update_FullMethodName           = "/ai.stigmer.agentic.agentinstance.v1.AgentInstanceCommandController/update"
+	AgentInstanceCommandController_UpdateVisibility_FullMethodName = "/ai.stigmer.agentic.agentinstance.v1.AgentInstanceCommandController/updateVisibility"
+	AgentInstanceCommandController_Delete_FullMethodName           = "/ai.stigmer.agentic.agentinstance.v1.AgentInstanceCommandController/delete"
 )
 
 // AgentInstanceCommandControllerClient is the client API for AgentInstanceCommandController service.
@@ -55,6 +57,24 @@ type AgentInstanceCommandControllerClient interface {
 	// No individual field updates — always provide complete state.
 	// Authorization: Only owner can update (can_edit permission).
 	Update(ctx context.Context, in *AgentInstance, opts ...grpc.CallOption) (*AgentInstance, error)
+	// Update the visibility of an existing agent instance.
+	//
+	// Changes who can view this instance and interact with it. Supports the
+	// full visibility spectrum: PRIVATE (owner only), ORG (all org members),
+	// or PUBLIC (all authenticated users).
+	//
+	// For agent instances, visibility controls who can create sessions and run
+	// executions against this instance. Sessions remain personal regardless of
+	// instance visibility (conversation privacy is preserved).
+	//
+	// @internal
+	// Authorization: Requires can_edit permission on the agent instance.
+	// Visibility transitions trigger FGA tuple management in Cloud mode:
+	// - PRIVATE → ORG: creates agent_instance#viewer@organization:<org>#member
+	// - PRIVATE → PUBLIC: creates agent_instance#viewer@identity_account:*
+	// - ORG → PRIVATE: deletes the org member viewer tuple
+	// - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
+	UpdateVisibility(ctx context.Context, in *apiresource.UpdateVisibilityInput, opts ...grpc.CallOption) (*AgentInstance, error)
 	// Delete an agent instance.
 	//
 	// @internal
@@ -94,6 +114,16 @@ func (c *agentInstanceCommandControllerClient) Update(ctx context.Context, in *A
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(AgentInstance)
 	err := c.cc.Invoke(ctx, AgentInstanceCommandController_Update_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentInstanceCommandControllerClient) UpdateVisibility(ctx context.Context, in *apiresource.UpdateVisibilityInput, opts ...grpc.CallOption) (*AgentInstance, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AgentInstance)
+	err := c.cc.Invoke(ctx, AgentInstanceCommandController_UpdateVisibility_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -140,6 +170,24 @@ type AgentInstanceCommandControllerServer interface {
 	// No individual field updates — always provide complete state.
 	// Authorization: Only owner can update (can_edit permission).
 	Update(context.Context, *AgentInstance) (*AgentInstance, error)
+	// Update the visibility of an existing agent instance.
+	//
+	// Changes who can view this instance and interact with it. Supports the
+	// full visibility spectrum: PRIVATE (owner only), ORG (all org members),
+	// or PUBLIC (all authenticated users).
+	//
+	// For agent instances, visibility controls who can create sessions and run
+	// executions against this instance. Sessions remain personal regardless of
+	// instance visibility (conversation privacy is preserved).
+	//
+	// @internal
+	// Authorization: Requires can_edit permission on the agent instance.
+	// Visibility transitions trigger FGA tuple management in Cloud mode:
+	// - PRIVATE → ORG: creates agent_instance#viewer@organization:<org>#member
+	// - PRIVATE → PUBLIC: creates agent_instance#viewer@identity_account:*
+	// - ORG → PRIVATE: deletes the org member viewer tuple
+	// - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
+	UpdateVisibility(context.Context, *apiresource.UpdateVisibilityInput) (*AgentInstance, error)
 	// Delete an agent instance.
 	//
 	// @internal
@@ -162,6 +210,9 @@ func (UnimplementedAgentInstanceCommandControllerServer) Create(context.Context,
 }
 func (UnimplementedAgentInstanceCommandControllerServer) Update(context.Context, *AgentInstance) (*AgentInstance, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
+}
+func (UnimplementedAgentInstanceCommandControllerServer) UpdateVisibility(context.Context, *apiresource.UpdateVisibilityInput) (*AgentInstance, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateVisibility not implemented")
 }
 func (UnimplementedAgentInstanceCommandControllerServer) Delete(context.Context, *AgentInstanceId) (*AgentInstance, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
@@ -240,6 +291,24 @@ func _AgentInstanceCommandController_Update_Handler(srv interface{}, ctx context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AgentInstanceCommandController_UpdateVisibility_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(apiresource.UpdateVisibilityInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentInstanceCommandControllerServer).UpdateVisibility(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentInstanceCommandController_UpdateVisibility_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentInstanceCommandControllerServer).UpdateVisibility(ctx, req.(*apiresource.UpdateVisibilityInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _AgentInstanceCommandController_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(AgentInstanceId)
 	if err := dec(in); err != nil {
@@ -276,6 +345,10 @@ var AgentInstanceCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "update",
 			Handler:    _AgentInstanceCommandController_Update_Handler,
+		},
+		{
+			MethodName: "updateVisibility",
+			Handler:    _AgentInstanceCommandController_UpdateVisibility_Handler,
 		},
 		{
 			MethodName: "delete",

@@ -9,8 +9,7 @@
  * 3. Install fetch interceptor (for Cursor SDK proxy mode)
  * 4. Import activity factories (after interceptor is in place)
  * 5. Start Temporal Worker with all activities registered
- * 6. Start server heartbeat (if runner ID is set)
- * 7. Listen for shutdown signals
+ * 6. Listen for shutdown signals
  *
  * The fetch interceptor MUST be installed before any module that imports
  * @cursor/sdk. The SDK captures a reference to fetch() at import time.
@@ -18,7 +17,6 @@
 
 import { loadConfig } from "./config.js";
 import { initTracing, initMetrics } from "./otel.js";
-import { startHeartbeat } from "./heartbeat.js";
 
 process.on("unhandledRejection", (reason) => {
   console.error("Unhandled rejection in runner:", reason);
@@ -95,8 +93,6 @@ async function main(): Promise<void> {
 
   const worker = await startWorker(config, allActivities);
 
-  const stopHeartbeat = startHeartbeat(config);
-
   const shutdown = async (signal: string) => {
     if (shutdownRequested) {
       console.warn("Shutdown already in progress, ignoring duplicate signal");
@@ -104,7 +100,6 @@ async function main(): Promise<void> {
     }
     shutdownRequested = true;
     console.log(`Received ${signal}, stopping worker gracefully...`);
-    stopHeartbeat();
     worker.shutdown();
   };
 

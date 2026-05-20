@@ -55,6 +55,12 @@ export class WorkflowClient {
     } catch (e) { throw wrapError(e); }
   }
 
+  async updateVisibility(input: UpdateVisibilityInput): Promise<Workflow> {
+    try {
+      return await this.command.updateVisibility(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
   async delete(id: string): Promise<Workflow> {
     try {
       return await this.command.delete(create(WorkflowIdSchema, { value: id }));
@@ -64,12 +70,6 @@ export class WorkflowClient {
   async validateSpec(input: WorkflowInput): Promise<ServerlessWorkflowValidation> {
     try {
       return await this.command.validateSpec(buildWorkflowProto(input));
-    } catch (e) { throw wrapError(e); }
-  }
-
-  async updateVisibility(input: UpdateVisibilityInput): Promise<Workflow> {
-    try {
-      return await this.command.updateVisibility(input);
     } catch (e) { throw wrapError(e); }
   }
 

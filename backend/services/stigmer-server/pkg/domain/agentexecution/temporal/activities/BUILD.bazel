@@ -12,13 +12,11 @@ go_library(
         "read_session_thread_id.go",
         "update_status.go",
         "update_status_impl.go",
-        "wait_for_runner_ready.go",
     ],
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal/activities",
     visibility = ["//visibility:public"],
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/agentexecution/v1:agentexecution",
-        "//apis/stubs/go/ai/stigmer/agentic/runner/v1:runner",
         "//apis/stubs/go/ai/stigmer/agentic/session/v1:session",
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",

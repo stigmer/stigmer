@@ -19,20 +19,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 
-	stigmer "github.com/stigmer/stigmer/sdk/go"
-	runnerv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/runner/v1"
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	orgv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/tenancy/organization/v1"
-
 	"github.com/stigmer/stigmer/client-apps/cli/embedded/webconsole"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/seedpackbootstrap"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/temporal"
-
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/keepalive"
-	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 const (
@@ -54,12 +42,6 @@ const (
 	// component ~30s to recover on its own.
 	maxUnhealthyChecks = 3
 
-	// EmbeddedRunnerName is the fixed name for the agent-runner managed by
-	// the daemon when running `stigmer up server`. It appears in
-	// `stigmer list runners` and is stored as ~/.stigmer/runners/embedded.json.
-	EmbeddedRunnerName = "embedded"
-
-	runnersDirName = "runners"
 )
 
 // HealthState is written atomically by the daemon process and read by the
@@ -182,147 +164,6 @@ func (c *managedComponent) restartComponent() bool {
 	return true
 }
 
-// embeddedRunnerIdentity holds the Runner resource identity obtained by
-// registerEmbeddedRunner. Passed to the agent-runner process via env vars.
-type embeddedRunnerIdentity struct {
-	RunnerID  string
-	TaskQueue string
-	Org       string
-}
-
-// registerEmbeddedRunner bootstraps the seedpack (ensuring the org exists),
-// discovers the organization slug, and applies a Runner resource for the
-// daemon's embedded agent-runner. This must be called after stigmer-server
-// is ready and before the agent-runner component is started.
-func registerEmbeddedRunner(grpcPort int, dataDir string) (*embeddedRunnerIdentity, error) {
-	log.Info().Msg("Registering embedded runner identity")
-
-	_, err := seedpackbootstrap.Apply(seedpackbootstrap.Options{
-		MarkerDir: dataDir,
-	})
-	if err != nil {
-		return nil, errors.Wrap(err, "seedpack bootstrap failed")
-	}
-
-	endpoint := fmt.Sprintf("localhost:%d", grpcPort)
-	conn, err := grpc.NewClient(endpoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to connect to stigmer-server")
-	}
-	defer conn.Close()
-
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
-
-	orgClient := orgv1.NewOrganizationQueryControllerClient(conn)
-	orgResp, err := orgClient.FindMyOrganizations(ctx, &emptypb.Empty{})
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to query organizations")
-	}
-	if len(orgResp.GetEntries()) == 0 {
-		return nil, errors.New("no organizations found — seedpack may not have applied correctly")
-	}
-
-	org := orgResp.GetEntries()[0].GetMetadata().GetSlug()
-	log.Info().Str("org", org).Msg("Resolved organization for embedded runner")
-
-	runnerClient := runnerv1.NewRunnerCommandControllerClient(conn)
-	applied, err := runnerClient.Apply(ctx, &runnerv1.Runner{
-		ApiVersion: "agentic.stigmer.ai/v1",
-		Kind:       "Runner",
-		Metadata: &apiresource.ApiResourceMetadata{
-			Name: EmbeddedRunnerName,
-			Slug: EmbeddedRunnerName,
-			Org:  org,
-		},
-	})
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to apply embedded runner resource")
-	}
-
-	id := applied.GetMetadata().GetId()
-	tq := applied.GetStatus().GetTaskQueue()
-
-	log.Info().
-		Str("runner_id", id).
-		Str("task_queue", tq).
-		Str("org", org).
-		Msg("Embedded runner registered")
-
-	return &embeddedRunnerIdentity{
-		RunnerID:  id,
-		TaskQueue: tq,
-		Org:       org,
-	}, nil
-}
-
-// embeddedRunnerState mirrors runner.RunnerState with an additional
-// ManagedByDaemon field. Defined here to avoid a circular dependency
-// (the runner package imports the daemon package).
-type embeddedRunnerState struct {
-	RunnerID        string    `json:"runner_id"`
-	Slug            string    `json:"slug"`
-	Org             string    `json:"org"`
-	BackendEndpoint string    `json:"backend_endpoint"`
-	PID             int       `json:"pid"`
-	TaskQueue       string    `json:"task_queue"`
-	StartedAt       time.Time `json:"started_at"`
-	ManagedByDaemon bool      `json:"managed_by_daemon,omitempty"`
-}
-
-// saveEmbeddedRunnerState writes ~/.stigmer/runners/embedded.json so that
-// `stigmer list runners` shows the daemon-managed runner.
-func saveEmbeddedRunnerState(identity *embeddedRunnerIdentity, grpcPort, pid int) {
-	configDir, err := config.GetConfigDir()
-	if err != nil {
-		log.Warn().Err(err).Msg("Failed to resolve config dir for embedded runner state")
-		return
-	}
-	dir := filepath.Join(configDir, runnersDirName)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		log.Warn().Err(err).Msg("Failed to create runners directory for embedded runner state")
-		return
-	}
-
-	state := embeddedRunnerState{
-		RunnerID:        identity.RunnerID,
-		Slug:            EmbeddedRunnerName,
-		Org:             identity.Org,
-		BackendEndpoint: fmt.Sprintf("localhost:%d", grpcPort),
-		PID:             pid,
-		TaskQueue:       identity.TaskQueue,
-		StartedAt:       time.Now(),
-		ManagedByDaemon: true,
-	}
-
-	data, err := json.MarshalIndent(state, "", "  ")
-	if err != nil {
-		log.Warn().Err(err).Msg("Failed to marshal embedded runner state")
-		return
-	}
-
-	path := filepath.Join(dir, EmbeddedRunnerName+".json")
-	if err := os.WriteFile(path, data, 0600); err != nil {
-		log.Warn().Err(err).Msg("Failed to write embedded runner state")
-		return
-	}
-
-	log.Info().Str("path", path).Msg("Saved embedded runner state")
-}
-
-// removeEmbeddedRunnerState deletes ~/.stigmer/runners/embedded.json during
-// daemon shutdown so the runner no longer appears in `stigmer list runners`.
-func removeEmbeddedRunnerState() {
-	configDir, err := config.GetConfigDir()
-	if err != nil {
-		return
-	}
-	path := filepath.Join(configDir, runnersDirName, EmbeddedRunnerName+".json")
-	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
-		log.Warn().Err(err).Msg("Failed to remove embedded runner state")
-	}
-}
-
 // RunDaemonProcess is the entry point for `stigmer internal-daemon`.
 // It reads resolved config from env vars, starts all child components,
 // monitors their health, and handles graceful shutdown.
@@ -394,12 +235,7 @@ func RunDaemonProcess() error {
 
 	serverOnly := os.Getenv("STIGMER_SERVER_ONLY") == "true"
 
-	// embeddedIdentity is populated by registerEmbeddedRunner after
-	// stigmer-server becomes ready. The agent-runner closure in
-	// buildComponents dereferences this pointer at start time to pick
-	// up the runner ID and task queue.
-	var embeddedIdentity *embeddedRunnerIdentity
-	components := buildComponents(cliBin, dataDir, logDir, grpcPort, serverOnly, &embeddedIdentity)
+	components := buildComponents(cliBin, dataDir, logDir, grpcPort, serverOnly)
 
 	// Start components sequentially. stigmer-server must be first because
 	// workflow-runner and agent-runner communicate with it.
@@ -450,33 +286,6 @@ func RunDaemonProcess() error {
 			}
 			readyCancel()
 			log.Info().Str("endpoint", endpoint).Msg("stigmer-server gRPC is ready")
-
-			// Register the embedded runner between server readiness and
-			// runner start. Seedpack bootstrap runs first (idempotent) to
-			// ensure the organization exists, then Runner.Apply creates or
-			// reactivates the runner resource.
-			if !serverOnly {
-				identity, regErr := registerEmbeddedRunner(grpcPort, dataDir)
-				if regErr != nil {
-					writeHealthState(dataDir, hs)
-					return errors.Wrap(regErr, "failed to register embedded runner")
-				}
-				embeddedIdentity = identity
-			}
-		}
-	}
-
-	// Persist the embedded runner state so `stigmer list runners` includes it.
-	if embeddedIdentity != nil {
-		agentRunnerPID := 0
-		for _, c := range components {
-			if c.name == "agent-runner" && c.cmd != nil && c.cmd.Process != nil {
-				agentRunnerPID = c.cmd.Process.Pid
-				break
-			}
-		}
-		if agentRunnerPID > 0 {
-			saveEmbeddedRunnerState(embeddedIdentity, grpcPort, agentRunnerPID)
 		}
 	}
 
@@ -532,57 +341,6 @@ func RunDaemonProcess() error {
 
 	writeHealthState(dataDir, hs)
 
-	// Start the runner command stream if the embedded runner is registered.
-	// The stream sends heartbeats and handles server-initiated commands
-	// (e.g., ListDirectory for workspace browsing).
-	var streamClient *stigmer.Client
-	var streamCancel context.CancelFunc
-	var streamWg sync.WaitGroup
-
-	if embeddedIdentity != nil {
-		endpoint := fmt.Sprintf("localhost:%d", grpcPort)
-		sdkClient, sdkErr := stigmer.NewClient(
-			stigmer.WithBaseURL(endpoint),
-			stigmer.WithInsecure(),
-			stigmer.WithKeepaliveParams(keepalive.ClientParameters{
-				Time:                30 * time.Second,
-				Timeout:             10 * time.Second,
-				PermitWithoutStream: true,
-			}),
-		)
-		if sdkErr != nil {
-			log.Warn().Err(sdkErr).Msg("Failed to create SDK client for runner stream (non-fatal)")
-		} else {
-			streamClient = sdkClient
-
-			var streamCtx context.Context
-			streamCtx, streamCancel = context.WithCancel(context.Background())
-
-			rsc := NewRunnerStreamClient(RunnerStreamConfig{
-				RunnerID: embeddedIdentity.RunnerID,
-				ConnectFn: func(ctx context.Context) (CommandStream, error) {
-					s, err := sdkClient.Runner.Connect(ctx)
-					if err != nil {
-						return nil, err
-					}
-					return s, nil
-				},
-			})
-
-			streamWg.Add(1)
-			go func() {
-				defer streamWg.Done()
-				if err := rsc.Run(streamCtx); err != nil && streamCtx.Err() == nil {
-					log.Warn().Err(err).Msg("Runner stream exited unexpectedly")
-				}
-			}()
-
-			log.Info().
-				Str("runner_id", embeddedIdentity.RunnerID).
-				Msg("Runner command stream started")
-		}
-	}
-
 	// Start health monitoring
 	ctx, cancel := context.WithCancel(context.Background())
 	var wg sync.WaitGroup
@@ -602,16 +360,6 @@ func RunDaemonProcess() error {
 	// Cancel health monitor
 	cancel()
 	wg.Wait()
-
-	// Cancel runner stream first — sends STOPPED heartbeat before children stop.
-	if streamCancel != nil {
-		streamCancel()
-		streamWg.Wait()
-		log.Info().Msg("Runner command stream stopped")
-	}
-	if streamClient != nil {
-		streamClient.Close()
-	}
 
 	// Stop the web console HTTP server before stopping child processes.
 	if webConsoleServer != nil {
@@ -636,11 +384,6 @@ func RunDaemonProcess() error {
 		c.killAndWait()
 		_ = os.Remove(c.pidFile)
 		c.state.State = "stopped"
-	}
-
-	// Remove embedded runner state after the agent-runner has been stopped.
-	if embeddedIdentity != nil {
-		removeEmbeddedRunnerState()
 	}
 
 	// Stop managed Temporal last -- workers need it available while they drain.
@@ -685,11 +428,7 @@ func findSiblingBinary(cliBin, name string) (string, error) {
 // buildComponents constructs the list of managed components in startup order.
 // When serverOnly is true, only the control plane (stigmer-server) is included;
 // workflow-runner and agent-runner are omitted.
-//
-// embeddedIdentity is a pointer populated by registerEmbeddedRunner between
-// stigmer-server readiness and agent-runner start. The agent-runner closure
-// dereferences it at call time (not at buildComponents time).
-func buildComponents(cliBin, dataDir, logDir string, grpcPort int, serverOnly bool, embeddedIdentity **embeddedRunnerIdentity) []*managedComponent {
+func buildComponents(cliBin, dataDir, logDir string, grpcPort int, serverOnly bool) []*managedComponent {
 	components := []*managedComponent{
 		{
 			name:    "stigmer-server",
@@ -738,12 +477,7 @@ func buildComponents(cliBin, dataDir, logDir string, grpcPort int, serverOnly bo
 				if _, err := os.Stat(mainPy); err != nil {
 					return nil, errors.Wrapf(err, "agent-runner entry point not found at %s", mainPy)
 				}
-				var runnerID, taskQueue string
-				if embeddedIdentity != nil && *embeddedIdentity != nil {
-					runnerID = (*embeddedIdentity).RunnerID
-					taskQueue = (*embeddedIdentity).TaskQueue
-				}
-				env := buildRunnerEnv(dataDir, grpcPort, runnerID, taskQueue, appDir)
+				env := buildRunnerEnv(dataDir, grpcPort, appDir)
 				return startChildProcessWithDir(pythonBin, []string{mainPy}, appDir, logDir, "agent-runner", env)
 			},
 		},
@@ -760,9 +494,6 @@ func buildComponents(cliBin, dataDir, logDir string, grpcPort int, serverOnly bo
 	if cursorNodeBin != "" && cursorAppDir != "" && cursorEntryArgsRaw != "" {
 		cursorEntryArgs := strings.Split(cursorEntryArgsRaw, ",")
 
-		// Make entry point args absolute so the process can run from any
-		// cwd — the workspace dir, not the app dir. This prevents
-		// process.cwd() from ever being the runner's own source tree.
 		absoluteEntryArgs := make([]string, len(cursorEntryArgs))
 		for i, arg := range cursorEntryArgs {
 			if !filepath.IsAbs(arg) {
@@ -777,12 +508,7 @@ func buildComponents(cliBin, dataDir, logDir string, grpcPort int, serverOnly bo
 			pidFile: filepath.Join(dataDir, CursorRunnerPIDFileName),
 			state:   &ComponentState{},
 			startFn: func() (*exec.Cmd, error) {
-				var runnerID, taskQueue string
-				if embeddedIdentity != nil && *embeddedIdentity != nil {
-					runnerID = (*embeddedIdentity).RunnerID
-					taskQueue = (*embeddedIdentity).TaskQueue
-				}
-				env := buildCursorRunnerEnv(dataDir, grpcPort, runnerID, taskQueue)
+				env := buildCursorRunnerEnv(dataDir, grpcPort)
 				workspaceDir := filepath.Join(dataDir, "workspace")
 				return startChildProcessWithDir(cursorNodeBin, absoluteEntryArgs, workspaceDir, logDir, "cursor-runner", env)
 			},
@@ -817,11 +543,7 @@ func buildWorkflowRunnerEnv(grpcPort int) []string {
 
 // buildRunnerEnv constructs the environment for the native runner process.
 // Values are inherited from the daemon's own environment (set by StartWithOptions).
-//
-// When runnerID is non-empty, STIGMER_RUNNER_ID is set (enabling heartbeats).
-// When taskQueue is non-empty, STIGMER_TASK_QUEUE is set (per-runner queue);
-// otherwise the legacy TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE is used.
-func buildRunnerEnv(dataDir string, grpcPort int, runnerID, taskQueue, appDir string) []string {
+func buildRunnerEnv(dataDir string, grpcPort int, appDir string) []string {
 	workspaceDir := filepath.Join(dataDir, "workspace")
 	artifactsDir := filepath.Join(dataDir, "artifacts")
 
@@ -854,16 +576,31 @@ func buildRunnerEnv(dataDir string, grpcPort int, runnerID, taskQueue, appDir st
 		fmt.Sprintf("LOCAL_ARTIFACT_PATH=%s", artifactsDir),
 		fmt.Sprintf("LOCAL_ARTIFACT_SERVE_URL=http://localhost:%d", grpcPort+1),
 		"LANGGRAPH_DEFAULT_RECURSION_LIMIT=10000000",
+		"TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE=agent_execution_runner",
 	)
 
-	if runnerID != "" {
-		env = append(env, fmt.Sprintf("STIGMER_RUNNER_ID=%s", runnerID))
-	}
+	return env
+}
 
-	if taskQueue != "" {
-		env = append(env, fmt.Sprintf("STIGMER_TASK_QUEUE=%s", taskQueue))
-	} else {
-		env = append(env, "TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE=agent_execution_runner")
+// buildCursorRunnerEnv constructs the environment for the cursor-runner
+// child process in the daemon (local mode).
+func buildCursorRunnerEnv(dataDir string, grpcPort int) []string {
+	workspaceDir := filepath.Join(dataDir, "workspace")
+	_ = os.MkdirAll(workspaceDir, 0755)
+
+	env := os.Environ()
+	env = append(env,
+		"MODE=local",
+		fmt.Sprintf("STIGMER_BACKEND_ENDPOINT=http://localhost:%d", grpcPort),
+		fmt.Sprintf("TEMPORAL_SERVICE_ADDRESS=%s", os.Getenv("TEMPORAL_SERVICE_ADDRESS")),
+		"TEMPORAL_NAMESPACE=default",
+		fmt.Sprintf("WORKSPACE_ROOT_DIR=%s", workspaceDir),
+		"LOG_LEVEL=DEBUG",
+		"TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE=agent_execution_runner",
+	)
+
+	if cursorKey := os.Getenv("CURSOR_API_KEY"); cursorKey != "" {
+		env = append(env, fmt.Sprintf("CURSOR_API_KEY=%s", cursorKey))
 	}
 
 	return env

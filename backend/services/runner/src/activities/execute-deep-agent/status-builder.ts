@@ -26,8 +26,8 @@ import {
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { type MergedToolPolicy, resolveApprovalMessage as resolveApprovalMsg } from "../../shared/approval-policy.js";
-import { RunnerUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
-import type { RunnerUsageSummary } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
+import { StreamingUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
+import type { StreamingUsageSummary } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
 import { ExecutionState } from "./execution-state.js";
 import { utcTimestamp } from "../../shared/status.js";
 
@@ -363,7 +363,7 @@ export class StatusBuilder {
 
   private syncUsageToProto(): void {
     const snapshot = this.usageAccumulator.snapshot();
-    this.state.proto.runnerUsage = create(RunnerUsageSummarySchema, snapshot);
+    this.state.proto.streamingUsage = create(StreamingUsageSummarySchema, snapshot);
   }
 }
 

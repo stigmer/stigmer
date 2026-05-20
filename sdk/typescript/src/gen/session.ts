@@ -96,7 +96,6 @@ export interface SessionInput {
   metadata?: Record<string, string>;
   workspaceEntries?: WorkspaceEntryInput[];
   mcpServerUsages?: McpServerUsageInput[];
-  runnerId?: string;
   skillRefs?: ResourceRef[];
   harness?: Harness;
   cursorMode?: CursorMode;
@@ -213,7 +212,6 @@ function buildSessionProto(input: SessionInput): Session {
       metadata: input.metadata,
       workspaceEntries,
       mcpServerUsages,
-      runnerId: input.runnerId,
       skillRefs,
       harness: input.harness,
       cursorMode: input.cursorMode,

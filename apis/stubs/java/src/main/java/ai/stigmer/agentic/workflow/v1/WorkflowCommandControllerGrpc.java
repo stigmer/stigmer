@@ -108,6 +108,37 @@ public final class WorkflowCommandControllerGrpc {
     return getUpdateMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.UpdateVisibilityInput,
+      ai.stigmer.agentic.workflow.v1.Workflow> getUpdateVisibilityMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "updateVisibility",
+      requestType = ai.stigmer.commons.apiresource.UpdateVisibilityInput.class,
+      responseType = ai.stigmer.agentic.workflow.v1.Workflow.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.UpdateVisibilityInput,
+      ai.stigmer.agentic.workflow.v1.Workflow> getUpdateVisibilityMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.UpdateVisibilityInput, ai.stigmer.agentic.workflow.v1.Workflow> getUpdateVisibilityMethod;
+    if ((getUpdateVisibilityMethod = WorkflowCommandControllerGrpc.getUpdateVisibilityMethod) == null) {
+      synchronized (WorkflowCommandControllerGrpc.class) {
+        if ((getUpdateVisibilityMethod = WorkflowCommandControllerGrpc.getUpdateVisibilityMethod) == null) {
+          WorkflowCommandControllerGrpc.getUpdateVisibilityMethod = getUpdateVisibilityMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.commons.apiresource.UpdateVisibilityInput, ai.stigmer.agentic.workflow.v1.Workflow>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "updateVisibility"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.commons.apiresource.UpdateVisibilityInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.workflow.v1.Workflow.getDefaultInstance()))
+              .setSchemaDescriptor(new WorkflowCommandControllerMethodDescriptorSupplier("updateVisibility"))
+              .build();
+        }
+      }
+    }
+    return getUpdateVisibilityMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.WorkflowId,
       ai.stigmer.agentic.workflow.v1.Workflow> getDeleteMethod;
 
@@ -275,6 +306,25 @@ public final class WorkflowCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update the visibility of an existing workflow.
+     * This is a targeted metadata update — it only modifies metadata.visibility,
+     * leaving spec, status, and other metadata fields untouched. Use this to
+     * make a workflow publicly accessible or to revoke public access without
+     * sending the entire workflow resource (avoiding read-modify-write races).
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the workflow resource.
+     * Visibility transitions trigger FGA tuple management in Cloud mode:
+     * - PRIVATE → PUBLIC: creates workflow#viewer&#64;identity_account:* tuple
+     * - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
+     * </pre>
+     */
+    default void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.Workflow> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdateVisibilityMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
      * Delete a workflow.
      * </pre>
      */
@@ -384,6 +434,26 @@ public final class WorkflowCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update the visibility of an existing workflow.
+     * This is a targeted metadata update — it only modifies metadata.visibility,
+     * leaving spec, status, and other metadata fields untouched. Use this to
+     * make a workflow publicly accessible or to revoke public access without
+     * sending the entire workflow resource (avoiding read-modify-write races).
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the workflow resource.
+     * Visibility transitions trigger FGA tuple management in Cloud mode:
+     * - PRIVATE → PUBLIC: creates workflow#viewer&#64;identity_account:* tuple
+     * - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
+     * </pre>
+     */
+    public void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.Workflow> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getUpdateVisibilityMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * Delete a workflow.
      * </pre>
      */
@@ -478,6 +548,25 @@ public final class WorkflowCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update the visibility of an existing workflow.
+     * This is a targeted metadata update — it only modifies metadata.visibility,
+     * leaving spec, status, and other metadata fields untouched. Use this to
+     * make a workflow publicly accessible or to revoke public access without
+     * sending the entire workflow resource (avoiding read-modify-write races).
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the workflow resource.
+     * Visibility transitions trigger FGA tuple management in Cloud mode:
+     * - PRIVATE → PUBLIC: creates workflow#viewer&#64;identity_account:* tuple
+     * - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
+     * </pre>
+     */
+    public ai.stigmer.agentic.workflow.v1.Workflow updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getUpdateVisibilityMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * Delete a workflow.
      * </pre>
      */
@@ -566,6 +655,25 @@ public final class WorkflowCommandControllerGrpc {
     public ai.stigmer.agentic.workflow.v1.Workflow update(ai.stigmer.agentic.workflow.v1.Workflow request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getUpdateMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Update the visibility of an existing workflow.
+     * This is a targeted metadata update — it only modifies metadata.visibility,
+     * leaving spec, status, and other metadata fields untouched. Use this to
+     * make a workflow publicly accessible or to revoke public access without
+     * sending the entire workflow resource (avoiding read-modify-write races).
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the workflow resource.
+     * Visibility transitions trigger FGA tuple management in Cloud mode:
+     * - PRIVATE → PUBLIC: creates workflow#viewer&#64;identity_account:* tuple
+     * - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
+     * </pre>
+     */
+    public ai.stigmer.agentic.workflow.v1.Workflow updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getUpdateVisibilityMethod(), getCallOptions(), request);
     }
 
     /**
@@ -665,6 +773,26 @@ public final class WorkflowCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update the visibility of an existing workflow.
+     * This is a targeted metadata update — it only modifies metadata.visibility,
+     * leaving spec, status, and other metadata fields untouched. Use this to
+     * make a workflow publicly accessible or to revoke public access without
+     * sending the entire workflow resource (avoiding read-modify-write races).
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the workflow resource.
+     * Visibility transitions trigger FGA tuple management in Cloud mode:
+     * - PRIVATE → PUBLIC: creates workflow#viewer&#64;identity_account:* tuple
+     * - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflow.v1.Workflow> updateVisibility(
+        ai.stigmer.commons.apiresource.UpdateVisibilityInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getUpdateVisibilityMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * Delete a workflow.
      * </pre>
      */
@@ -704,8 +832,9 @@ public final class WorkflowCommandControllerGrpc {
   private static final int METHODID_APPLY = 0;
   private static final int METHODID_CREATE = 1;
   private static final int METHODID_UPDATE = 2;
-  private static final int METHODID_DELETE = 3;
-  private static final int METHODID_VALIDATE_SPEC = 4;
+  private static final int METHODID_UPDATE_VISIBILITY = 3;
+  private static final int METHODID_DELETE = 4;
+  private static final int METHODID_VALIDATE_SPEC = 5;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -734,6 +863,10 @@ public final class WorkflowCommandControllerGrpc {
           break;
         case METHODID_UPDATE:
           serviceImpl.update((ai.stigmer.agentic.workflow.v1.Workflow) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.Workflow>) responseObserver);
+          break;
+        case METHODID_UPDATE_VISIBILITY:
+          serviceImpl.updateVisibility((ai.stigmer.commons.apiresource.UpdateVisibilityInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.Workflow>) responseObserver);
           break;
         case METHODID_DELETE:
@@ -783,6 +916,13 @@ public final class WorkflowCommandControllerGrpc {
               ai.stigmer.agentic.workflow.v1.Workflow,
               ai.stigmer.agentic.workflow.v1.Workflow>(
                 service, METHODID_UPDATE)))
+        .addMethod(
+          getUpdateVisibilityMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.commons.apiresource.UpdateVisibilityInput,
+              ai.stigmer.agentic.workflow.v1.Workflow>(
+                service, METHODID_UPDATE_VISIBILITY)))
         .addMethod(
           getDeleteMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -848,6 +988,7 @@ public final class WorkflowCommandControllerGrpc {
               .addMethod(getApplyMethod())
               .addMethod(getCreateMethod())
               .addMethod(getUpdateMethod())
+              .addMethod(getUpdateVisibilityMethod())
               .addMethod(getDeleteMethod())
               .addMethod(getValidateSpecMethod())
               .build();

@@ -28,7 +28,6 @@ describe("ExecuteDeepAgent activity", () => {
     maxConcurrentActivities: 5,
     idleTimeoutSeconds: null,
     cloudModeEnabled: false,
-    runnerId: null,
     checkpointerType: "memory",
     checkpointerProxyEndpoint: null,
     primaryModel: "gpt-4.1",

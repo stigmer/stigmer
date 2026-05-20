@@ -7,7 +7,6 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/runner"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
 )
 
@@ -21,11 +20,9 @@ func NewDownCommand() *cobra.Command {
 		Long: `Stop all running Stigmer services.
 
 Stops the daemon process and all managed components (Temporal,
-stigmer-server, workflow-runner, agent-runner, web console),
-and any standalone runners.
+stigmer-server, workflow-runner, agent-runner, web console).
 
-Use 'stigmer down server' to stop only the control plane.
-Use 'stigmer down runner' to stop standalone runners.`,
+Use 'stigmer down server' to stop only the control plane.`,
 		Example: `  # Stop all services
   stigmer down`,
 		Run: func(cmd *cobra.Command, args []string) {
@@ -36,7 +33,6 @@ Use 'stigmer down runner' to stop standalone runners.`,
 	addResultFormatFlags(cmd, &jsonOutput, &quietOutput)
 
 	cmd.AddCommand(newDownServerCommand())
-	cmd.AddCommand(newDownRunnerCommand())
 
 	return cmd
 }
@@ -58,35 +54,8 @@ func newDownServerCommand() *cobra.Command {
 	return cmd
 }
 
-func newDownRunnerCommand() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "runner",
-		Short: "Stop standalone runners",
-		Long: `Stop standalone agent runner processes.
-
-By default, stops all active runners. Use --name to stop a specific runner.`,
-		Example: `  # Stop all runners
-  stigmer down runner
-
-  # Stop a specific runner
-  stigmer down runner --name my-macbook`,
-		Run: func(cmd *cobra.Command, args []string) {
-			name, _ := cmd.Flags().GetString("name")
-			handleStopRunner(name)
-		},
-	}
-
-	cmd.Flags().String("name", "", "Name of the runner to stop (default: stop all)")
-
-	return cmd
-}
-
 func handleStop(format clioutput.OutputFormat) {
 	handleStopServer(format)
-
-	if err := runner.StopAllRunners(); err != nil {
-		clierr.Handle(err)
-	}
 }
 
 func handleStopServer(format clioutput.OutputFormat) {
@@ -111,16 +80,4 @@ func handleStopServer(format clioutput.OutputFormat) {
 
 	result := clioutput.Success("Server stopped successfully")
 	renderer.Render(result)
-}
-
-func handleStopRunner(name string) {
-	if name != "" {
-		if err := runner.StopRunner(name); err != nil {
-			clierr.Handle(err)
-		}
-		return
-	}
-	if err := runner.StopAllRunners(); err != nil {
-		clierr.Handle(err)
-	}
 }

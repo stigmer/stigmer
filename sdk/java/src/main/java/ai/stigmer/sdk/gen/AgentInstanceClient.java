@@ -9,6 +9,7 @@ import ai.stigmer.agentic.agentinstance.v1.AgentInstanceList;
 import ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryControllerGrpc;
 import ai.stigmer.agentic.agentinstance.v1.GetAgentInstancesByAgentRequest;
 import ai.stigmer.agentic.agentinstance.v1.ListAgentInstancesRequest;
+import ai.stigmer.commons.apiresource.UpdateVisibilityInput;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
@@ -38,6 +39,12 @@ public final class AgentInstanceClient {
     public AgentInstance update(AgentInstanceInput input) {
         try {
             return command.update(input.toProto());
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public AgentInstance updateVisibility(UpdateVisibilityInput input) {
+        try {
+            return command.updateVisibility(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

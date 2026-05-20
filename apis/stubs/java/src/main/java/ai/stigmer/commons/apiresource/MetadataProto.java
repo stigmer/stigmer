@@ -58,30 +58,32 @@ public final class MetadataProto extends com.google.protobuf.GeneratedFile {
       "\n-ai/stigmer/commons/apiresource/metadat" +
       "a.proto\022\036ai.stigmer.commons.apiresource\032" +
       ")ai/stigmer/commons/apiresource/enum.pro" +
-      "to\032\033buf/validate/validate.proto\"\346\004\n\023ApiR" +
-      "esourceMetadata\022\022\n\004name\030\001 \001(\tR\004name\022\022\n\004s" +
-      "lug\030\002 \001(\tR\004slug\022\016\n\002id\030\003 \001(\tR\002id\022\020\n\003org\030\004" +
-      " \001(\tR\003org\022_\n\nvisibility\030\005 \001(\01625.ai.stigm" +
-      "er.commons.apiresource.ApiResourceVisibi" +
-      "lityB\010\272H\005\202\001\002\020\001R\nvisibility\022W\n\006labels\030\006 \003" +
-      "(\0132?.ai.stigmer.commons.apiresource.ApiR" +
-      "esourceMetadata.LabelsEntryR\006labels\022f\n\013a" +
-      "nnotations\030\007 \003(\0132D.ai.stigmer.commons.ap" +
-      "iresource.ApiResourceMetadata.Annotation" +
-      "sEntryR\013annotations\022\022\n\004tags\030\010 \003(\tR\004tags\022" +
-      "T\n\007version\030\t \001(\0132:.ai.stigmer.commons.ap" +
-      "iresource.ApiResourceMetadataVersionR\007ve" +
-      "rsion\0329\n\013LabelsEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024" +
-      "\n\005value\030\002 \001(\tR\005value:\0028\001\032>\n\020AnnotationsE" +
-      "ntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005v" +
-      "alue:\0028\001\"v\n\032ApiResourceMetadataVersion\022\016" +
-      "\n\002id\030\001 \001(\tR\002id\022\030\n\007message\030\002 \001(\tR\007message" +
-      "\022.\n\023previous_version_id\030\003 \001(\tR\021previousV" +
-      "ersionIdB\253\001B\rMetadataProtoP\001\242\002\004ASCA\252\002\036Ai" +
-      ".Stigmer.Commons.Apiresource\312\002\036Ai\\Stigme" +
-      "r\\Commons\\Apiresource\342\002*Ai\\Stigmer\\Commo" +
-      "ns\\Apiresource\\GPBMetadata\352\002!Ai::Stigmer" +
-      "::Commons::Apiresourceb\006proto3"
+      "to\032\033buf/validate/validate.proto\"\233\005\n\023ApiR" +
+      "esourceMetadata\022\036\n\004name\030\001 \001(\tB\n\272H\007r\002\030?\330\001" +
+      "\001R\004name\022;\n\004slug\030\002 \001(\tB\'\272H$r\037\020\002\030?2\031^[a-z]" +
+      "[a-z0-9-]*[a-z0-9]$\330\001\001R\004slug\022\016\n\002id\030\003 \001(\t" +
+      "R\002id\022\020\n\003org\030\004 \001(\tR\003org\022_\n\nvisibility\030\005 \001" +
+      "(\01625.ai.stigmer.commons.apiresource.ApiR" +
+      "esourceVisibilityB\010\272H\005\202\001\002\020\001R\nvisibility\022" +
+      "W\n\006labels\030\006 \003(\0132?.ai.stigmer.commons.api" +
+      "resource.ApiResourceMetadata.LabelsEntry" +
+      "R\006labels\022f\n\013annotations\030\007 \003(\0132D.ai.stigm" +
+      "er.commons.apiresource.ApiResourceMetada" +
+      "ta.AnnotationsEntryR\013annotations\022\022\n\004tags" +
+      "\030\010 \003(\tR\004tags\022T\n\007version\030\t \001(\0132:.ai.stigm" +
+      "er.commons.apiresource.ApiResourceMetada" +
+      "taVersionR\007version\0329\n\013LabelsEntry\022\020\n\003key" +
+      "\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005value:\0028\001\032>\n" +
+      "\020AnnotationsEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005v" +
+      "alue\030\002 \001(\tR\005value:\0028\001\"v\n\032ApiResourceMeta" +
+      "dataVersion\022\016\n\002id\030\001 \001(\tR\002id\022\030\n\007message\030\002" +
+      " \001(\tR\007message\022.\n\023previous_version_id\030\003 \001" +
+      "(\tR\021previousVersionIdB\253\001B\rMetadataProtoP" +
+      "\001\242\002\004ASCA\252\002\036Ai.Stigmer.Commons.Apiresourc" +
+      "e\312\002\036Ai\\Stigmer\\Commons\\Apiresource\342\002*Ai\\" +
+      "Stigmer\\Commons\\Apiresource\\GPBMetadata\352" +
+      "\002!Ai::Stigmer::Commons::Apiresourceb\006pro" +
+      "to3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

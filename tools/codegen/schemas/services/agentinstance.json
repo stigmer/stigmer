@@ -33,20 +33,20 @@
           "description": "Update an existing agent instance.\n\n @internal\n Replaces the entire instance configuration including metadata, spec, and secrets.\n No individual field updates — always provide complete state.\n Authorization: Only owner can update (can_edit permission)."
         },
         {
+          "name": "UpdateVisibility",
+          "inputType": "UpdateVisibilityInput",
+          "inputFullType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
+          "outputType": "AgentInstance",
+          "outputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstance",
+          "description": "Update the visibility of an existing agent instance.\n\n Changes who can view this instance and interact with it. Supports the\n full visibility spectrum: PRIVATE (owner only), ORG (all org members),\n or PUBLIC (all authenticated users).\n\n For agent instances, visibility controls who can create sessions and run\n executions against this instance. Sessions remain personal regardless of\n instance visibility (conversation privacy is preserved).\n\n @internal\n Authorization: Requires can_edit permission on the agent instance.\n Visibility transitions trigger FGA tuple management in Cloud mode:\n - PRIVATE → ORG: creates agent_instance#viewer@organization:\u003corg\u003e#member\n - PRIVATE → PUBLIC: creates agent_instance#viewer@identity_account:*\n - ORG → PRIVATE: deletes the org member viewer tuple\n - PUBLIC → PRIVATE: deletes the wildcard viewer tuple"
+        },
+        {
           "name": "Delete",
           "inputType": "AgentInstanceId",
           "inputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstanceId",
           "outputType": "AgentInstance",
           "outputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstance",
           "description": "Delete an agent instance.\n\n @internal\n Authorization: Only owner can delete (can_delete permission)."
-        },
-        {
-          "name": "UpdateVisibility",
-          "inputType": "UpdateVisibilityInput",
-          "inputFullType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
-          "outputType": "AgentInstance",
-          "outputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstance",
-          "description": "Update the visibility of an existing agent instance.\n\n Supports the full visibility spectrum: private, org, and public.\n Org visibility writes an FGA userset tuple for shared observability.\n\n @internal\n Authorization: Requires can_edit permission on the agent instance."
         }
       ]
     },
@@ -91,6 +91,43 @@
     }
   ],
   "methodTypes": [
+    {
+      "name": "UpdateVisibilityInput",
+      "description": "Input for updating the visibility of any API resource.\n\n Used by resource-specific command controllers to change visibility.\n Each controller's updateVisibility RPC accepts this shared input\n and returns the full updated resource.\n\n Visibility transitions trigger FGA tuple management in Cloud mode:\n - PRIVATE → PUBLIC: creates resource#viewer@identity_account:* tuple\n - PUBLIC → PRIVATE: deletes the wildcard viewer tuple\n - PRIVATE → ORG: creates resource#viewer@organization:\u003corg\u003e#member tuple\n - ORG → PRIVATE: deletes the org member viewer tuple\n - ORG → PUBLIC: deletes org tuple, creates wildcard tuple\n - PUBLIC → ORG: deletes wildcard tuple, creates org tuple\n\n Not all resources support all visibility levels:\n - Blueprints (agent, workflow, skill, mcp_server): PRIVATE or PUBLIC only\n - Instances (agent_instance, workflow_instance): PRIVATE, ORG, or PUBLIC",
+      "protoType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
+      "fields": [
+        {
+          "name": "ResourceId",
+          "jsonName": "resourceId",
+          "protoField": "resource_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the resource whose visibility is being updated.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Visibility",
+          "jsonName": "visibility",
+          "protoField": "visibility",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
+            "enumValues": [
+              "visibility_private",
+              "visibility_public",
+              "visibility_org"
+            ]
+          },
+          "description": "The new visibility setting for the resource.\n Must not be unspecified (0). Valid values depend on resource kind:\n - Blueprints: visibility_private (1) or visibility_public (2)\n - Instances: visibility_private (1), visibility_public (2), or visibility_org (3)",
+          "required": false
+        }
+      ]
+    },
     {
       "name": "GetAgentInstancesByAgentRequest",
       "description": "Input for retrieving all instances deployed from a specific agent.",
@@ -172,7 +209,7 @@
           "required": false,
           "validation": {
             "maxLength": 63,
-            "pattern": "^$|^[a-z][a-z0-9-]*$"
+            "pattern": "^$|^[a-z][a-z0-9-]*[a-z0-9]$"
           }
         },
         {
@@ -199,7 +236,6 @@
               "skill",
               "mcp_server",
               "agent_instance",
-              "runner",
               "workflow",
               "workflow_instance",
               "workflow_execution",
@@ -219,13 +255,13 @@
           "type": {
             "kind": "string"
           },
-          "description": "Resource slug (user-friendly identifier, unique within org).\n Format: lowercase alphanumeric with hyphens, must start with a letter (e.g., \"web-search\", \"code-reviewer\").\n Length: 1-63 characters.",
+          "description": "Resource slug (user-friendly identifier, unique within org).\n Format: lowercase alphanumeric with hyphens, must start with a letter\n and end with a letter or digit (e.g., \"web-search\", \"code-reviewer\").\n Length: 2-63 characters.",
           "required": true,
           "validation": {
             "required": true,
-            "minLength": 1,
+            "minLength": 2,
             "maxLength": 63,
-            "pattern": "^[a-z][a-z0-9-]*$"
+            "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$"
           }
         },
         {
@@ -290,38 +326,31 @@
           "required": false
         }
       ]
-    },
-    {
-      "name": "UpdateVisibilityInput",
-      "description": "Input for updating the visibility of any API resource.\n\n Used by resource-specific command controllers to toggle between\n PRIVATE and PUBLIC visibility. Each controller's updateVisibility RPC\n accepts this shared input and returns the full updated resource.\n\n Visibility transitions trigger FGA tuple management in Cloud mode:\n - PRIVATE → PUBLIC: creates resource#viewer@identity_account:* tuple\n - PUBLIC → PRIVATE: deletes the wildcard viewer tuple",
-      "protoType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
-      "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
-      "fields": [
-        {
-          "name": "ResourceId",
-          "jsonName": "resourceId",
-          "protoField": "resource_id",
-          "type": {
-            "kind": "string"
-          },
-          "required": true,
-          "description": "ID of the resource whose visibility is being updated."
-        },
-        {
-          "name": "Visibility",
-          "jsonName": "visibility",
-          "protoField": "visibility",
-          "type": {
-            "kind": "enum",
-            "enumType": "ApiResourceVisibility"
-          },
-          "required": true,
-          "description": "The target visibility level."
-        }
-      ]
     }
   ],
   "enumTypes": [
+    {
+      "name": "ApiResourceVisibility",
+      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines whether\n users outside that organization can access the resource.\n\n The three visibility levels map to FGA tuples:\n - PRIVATE: no additional viewer tuples (owner-only access)\n - ORG: resource#viewer@organization:\u003corg\u003e#member tuple (all org members)\n - PUBLIC: resource#viewer@identity_account:* with allow_public (all users)",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
+      "values": [
+        {
+          "name": "visibility_private",
+          "number": 1,
+          "description": "Only the owner (and explicitly granted principals) can access.\n This is the default for instances and personal resources.\n Named visibility_private to avoid Java reserved keyword conflict."
+        },
+        {
+          "name": "visibility_public",
+          "number": 2,
+          "description": "Anyone can access (read) this resource.\n Used for marketplace-published resources (e.g., \"stigmer/web-search\").\n Write access still requires org membership.\n Named visibility_public to avoid Java reserved keyword conflict."
+        },
+        {
+          "name": "visibility_org",
+          "number": 3,
+          "description": "All members of the owning organization can access (read) this resource.\n Used for instances where a team wants shared observability of executions\n without granting access to all authenticated users.\n\n FGA tuple: resource#viewer@organization:\u003corg\u003e#member\n\n For workflow instances, this enables zero-tuple-per-execution shared\n observability: all org members see all executions via inheritance."
+        }
+      ]
+    },
     {
       "name": "ApiResourceKind",
       "description": "API resource kinds for Stigmer.",
@@ -408,11 +437,6 @@
           "description": "Configured deployment of an agent with environment-specific overrides."
         },
         {
-          "name": "runner",
-          "number": 46,
-          "description": "Process that executes work, either user-created or system-managed."
-        },
-        {
           "name": "workflow",
           "number": 50,
           "description": "Multi-step orchestration defining how agents collaborate on a task."
@@ -446,23 +470,6 @@
           "name": "project",
           "number": 60,
           "description": "Aggregate root grouping related resources for lifecycle management."
-        }
-      ]
-    },
-    {
-      "name": "ApiResourceVisibility",
-      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines whether\n users outside that organization can access the resource.",
-      "protoType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
-      "values": [
-        {
-          "name": "visibility_private",
-          "number": 1,
-          "description": "Only members of the owning organization can access.\n This is the default for most resources.\n Named visibility_private to avoid Java reserved keyword conflict."
-        },
-        {
-          "name": "visibility_public",
-          "number": 2,
-          "description": "Anyone can access (read) this resource.\n Used for marketplace-published resources (e.g., \"stigmer/web-search\").\n Write access still requires org membership.\n Named visibility_public to avoid Java reserved keyword conflict."
         }
       ]
     }

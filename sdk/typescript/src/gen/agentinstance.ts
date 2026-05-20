@@ -43,15 +43,15 @@ export class AgentInstanceClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async delete(id: string): Promise<AgentInstance> {
-    try {
-      return await this.command.delete(create(AgentInstanceIdSchema, { value: id }));
-    } catch (e) { throw wrapError(e); }
-  }
-
   async updateVisibility(input: UpdateVisibilityInput): Promise<AgentInstance> {
     try {
       return await this.command.updateVisibility(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async delete(id: string): Promise<AgentInstance> {
+    try {
+      return await this.command.delete(create(AgentInstanceIdSchema, { value: id }));
     } catch (e) { throw wrapError(e); }
   }
 

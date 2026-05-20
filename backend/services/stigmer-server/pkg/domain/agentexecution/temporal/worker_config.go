@@ -64,9 +64,8 @@ type WorkerConfig struct {
 	store                     store.Store
 	updateStatusActivityImpl  *activities.UpdateExecutionStatusActivityImpl
 	loadExecutionActivityImpl *activities.LoadAgentExecutionActivityImpl
-	deleteECActivityImpl      *ecactivities.DeleteExecutionContextActivityImpl
-	waitForRunnerReadyImpl    *activities.WaitForRunnerReadyActivityImpl
-	readSessionThreadIdImpl   *activities.ReadSessionThreadIdActivityImpl
+	deleteECActivityImpl    *ecactivities.DeleteExecutionContextActivityImpl
+	readSessionThreadIdImpl *activities.ReadSessionThreadIdActivityImpl
 }
 
 // NewWorkerConfig creates a new WorkerConfig.
@@ -81,7 +80,6 @@ func NewWorkerConfig(
 		updateStatusActivityImpl:  activities.NewUpdateExecutionStatusActivityImpl(store, streamBroker),
 		loadExecutionActivityImpl: activities.NewLoadAgentExecutionActivityImpl(store),
 		deleteECActivityImpl:      ecactivities.NewDeleteExecutionContextActivityImpl(store),
-		waitForRunnerReadyImpl:    activities.NewWaitForRunnerReadyActivityImpl(store),
 		readSessionThreadIdImpl:   activities.NewReadSessionThreadIdActivityImpl(store),
 	}
 }
@@ -153,13 +151,11 @@ func (wc *WorkerConfig) CreateWorker(temporalClient client.Client) worker.Worker
 	// Local-only activities (run in-process, don't participate in task queue routing)
 	w.RegisterActivity(wc.loadExecutionActivityImpl.LoadAgentExecution)
 	w.RegisterActivity(wc.deleteECActivityImpl.DeleteExecutionContext)
-	w.RegisterActivity(wc.waitForRunnerReadyImpl.WaitForRunnerReady)
 	w.RegisterActivity(wc.readSessionThreadIdImpl.ReadSessionThreadId)
 
 	log.Info().Msg("✅ [POLYGLOT] Registered UpdateExecutionStatusActivity (regular + local, named)")
 	log.Info().Msg("✅ [POLYGLOT] Registered LoadAgentExecutionActivity as LOCAL activity (in-process)")
 	log.Info().Msg("✅ [POLYGLOT] Registered DeleteExecutionContextActivity as LOCAL activity (in-process)")
-	log.Info().Msg("✅ [POLYGLOT] Registered WaitForRunnerReadyActivity as LOCAL activity (ephemeral runner gate)")
 	log.Info().Msg("✅ [POLYGLOT] Registered ReadSessionThreadIdActivity as LOCAL activity (Cursor harness thread_id)")
 	log.Info().Msg("✅ [POLYGLOT] Temporal will route: workflow tasks → Go, Python activity tasks → Python")
 

@@ -227,25 +227,9 @@ message AgentExecutionStatus {
   SetupProgress setup_progress = 18;
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Runner Binding (Runner Resource)
+  // Execution Usage (DISPLAY_ONLY Trust Level)
   //
-  // Records which runner handled this execution for observability.
-  // ─────────────────────────────────────────────────────────────────────────────
-
-  // ID of the Runner that executed this execution.
-  //
-  // Set once when the execution is dispatched to a runner; immutable after.
-  // For cloud executions, this references the system-managed ephemeral runner
-  // that was auto-created for this execution. For local executions, this
-  // references the user-created persistent runner selected via the session.
-  //
-  // Used for observability: "which runner handled this work?"
-  string runner_id = 19;
-
-  // ─────────────────────────────────────────────────────────────────────────────
-  // Runner-Reported Usage (DISPLAY_ONLY Trust Level)
-  //
-  // Provisional usage captured from the runner's onDelta callbacks.
+  // Provisional usage captured from the execution worker's onDelta callbacks.
   // For Cursor harness: accumulated from SDK turn-ended events.
   // For native harness: not populated (authoritative usage comes from proxy).
   //
@@ -254,8 +238,8 @@ message AgentExecutionStatus {
   // future Cursor Admin API reconciliation.
   // ─────────────────────────────────────────────────────────────────────────────
 
-  // Runner-reported usage summary, updated progressively during streaming.
-  RunnerUsageSummary runner_usage = 20;
+  // Streaming usage summary, updated progressively during execution.
+  StreamingUsageSummary streaming_usage = 20;
 }
 
 // Setup progress reported during the EXECUTION_PENDING phase.

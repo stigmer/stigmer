@@ -2,7 +2,6 @@ package daemon
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -38,8 +37,6 @@ func bootstrapCursorRunnerRuntime() (*CursorRunnerBootstrapResult, error) {
 	return bootstrapCursorRunnerEmbedMode()
 }
 
-// bootstrapCursorRunnerDevMode uses system Node.js + tsx with source from
-// the repository tree. This is the T05 flow, preserved for developers.
 func bootstrapCursorRunnerDevMode() (*CursorRunnerBootstrapResult, error) {
 	appDir := cursorrunner.SourceDir()
 	if _, err := os.Stat(filepath.Join(appDir, "package.json")); err != nil {
@@ -75,8 +72,6 @@ func bootstrapCursorRunnerDevMode() (*CursorRunnerBootstrapResult, error) {
 	}, nil
 }
 
-// bootstrapCursorRunnerEmbedMode uses a managed Node.js runtime with compiled
-// JS extracted from the embedded source. Downloads Node.js on first run.
 func bootstrapCursorRunnerEmbedMode() (*CursorRunnerBootstrapResult, error) {
 	sourceFS := cursorrunner.SourceFS()
 	if sourceFS == nil {
@@ -114,40 +109,4 @@ func bootstrapCursorRunnerEmbedMode() (*CursorRunnerBootstrapResult, error) {
 		AppDir:    mgr.AppDir(),
 		EntryArgs: []string{filepath.Join("dist", "main.js")},
 	}, nil
-}
-
-// buildCursorRunnerEnv constructs the environment for the cursor-runner
-// child process in the daemon (local mode).
-//
-// The daemon always runs in local mode. Cloud-mode cursor-runner deployments
-// are handled by Kubernetes, not the CLI daemon.
-func buildCursorRunnerEnv(dataDir string, grpcPort int, runnerID, taskQueue string) []string {
-	workspaceDir := filepath.Join(dataDir, "workspace")
-	_ = os.MkdirAll(workspaceDir, 0755)
-
-	env := os.Environ()
-	env = append(env,
-		"MODE=local",
-		fmt.Sprintf("STIGMER_BACKEND_ENDPOINT=http://localhost:%d", grpcPort),
-		fmt.Sprintf("TEMPORAL_SERVICE_ADDRESS=%s", os.Getenv("TEMPORAL_SERVICE_ADDRESS")),
-		"TEMPORAL_NAMESPACE=default",
-		fmt.Sprintf("WORKSPACE_ROOT_DIR=%s", workspaceDir),
-		"LOG_LEVEL=DEBUG",
-	)
-
-	if runnerID != "" {
-		env = append(env, fmt.Sprintf("STIGMER_RUNNER_ID=%s", runnerID))
-	}
-
-	if taskQueue != "" {
-		env = append(env, fmt.Sprintf("STIGMER_TASK_QUEUE=%s", taskQueue))
-	} else {
-		env = append(env, "TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE=agent_execution_runner")
-	}
-
-	if cursorKey := os.Getenv("CURSOR_API_KEY"); cursorKey != "" {
-		env = append(env, fmt.Sprintf("CURSOR_API_KEY=%s", cursorKey))
-	}
-
-	return env
 }

@@ -43,15 +43,15 @@ export class WorkflowInstanceClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async delete(id: string): Promise<WorkflowInstance> {
-    try {
-      return await this.command.delete(create(WorkflowInstanceIdSchema, { value: id }));
-    } catch (e) { throw wrapError(e); }
-  }
-
   async updateVisibility(input: UpdateVisibilityInput): Promise<WorkflowInstance> {
     try {
       return await this.command.updateVisibility(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async delete(id: string): Promise<WorkflowInstance> {
+    try {
+      return await this.command.delete(create(WorkflowInstanceIdSchema, { value: id }));
     } catch (e) { throw wrapError(e); }
   }
 
