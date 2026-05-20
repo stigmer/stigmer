@@ -70,17 +70,50 @@ describe("executeListenTask", () => {
     it("throws when event type is unsupported", async () => {
       const taskDef: ListenTaskDef = {
         kind: "listen",
-        listen: { to: { one: { with: { id: "q1", type: "query" } } } },
+        listen: { to: { one: { with: { id: "q1", type: "webhook" } } } },
       };
 
       await expect(
         executeListenTask(taskDef, "waitTask", createState(), makeCtx()),
-      ).rejects.toThrow("'query' is not supported");
+      ).rejects.toThrow("'webhook' is not supported");
+    });
+
+    it("accepts signal event type", async () => {
+      const listenFn = vi.fn(async () => undefined);
+      const taskDef: ListenTaskDef = {
+        kind: "listen",
+        listen: { to: { one: { with: { id: "s1", type: "signal" } } } },
+      };
+
+      await executeListenTask(taskDef, "t", createState(), makeCtx(listenFn));
+      expect(listenFn).toHaveBeenCalled();
+    });
+
+    it("accepts query event type", async () => {
+      const listenFn = vi.fn(async () => undefined);
+      const taskDef: ListenTaskDef = {
+        kind: "listen",
+        listen: { to: { one: { with: { id: "q1", type: "query" } } } },
+      };
+
+      await executeListenTask(taskDef, "t", createState(), makeCtx(listenFn));
+      expect(listenFn).toHaveBeenCalled();
+    });
+
+    it("accepts update event type", async () => {
+      const listenFn = vi.fn(async () => undefined);
+      const taskDef: ListenTaskDef = {
+        kind: "listen",
+        listen: { to: { one: { with: { id: "u1", type: "update" } } } },
+      };
+
+      await executeListenTask(taskDef, "t", createState(), makeCtx(listenFn));
+      expect(listenFn).toHaveBeenCalled();
     });
   });
 
   describe("single event (to.one)", () => {
-    it("calls ctx.listen with normalized config for to.one", async () => {
+    it("calls ctx.listen with normalized config for to.one signal", async () => {
       const listenFn = vi.fn(async () => ({ approved: true }));
       const taskDef: ListenTaskDef = {
         kind: "listen",
@@ -95,7 +128,7 @@ describe("executeListenTask", () => {
       const result = await executeListenTask(taskDef, "waitApproval", state, makeCtx(listenFn));
 
       expect(listenFn).toHaveBeenCalledWith({
-        events: [{ id: "approval_signal", type: "signal", acceptIf: undefined }],
+        events: [{ id: "approval_signal", type: "signal", acceptIf: undefined, data: undefined }],
         mode: "all",
         timeoutMs: 60_000,
       });
@@ -135,6 +168,92 @@ describe("executeListenTask", () => {
     });
   });
 
+  describe("query event type", () => {
+    it("passes query event config to ctx.listen", async () => {
+      let capturedConfig: ListenExecutionConfig | undefined;
+      const listenFn: ListenFn = async (config) => {
+        capturedConfig = config;
+        return undefined;
+      };
+      const taskDef: ListenTaskDef = {
+        kind: "listen",
+        listen: {
+          to: {
+            one: { with: { id: "get_status", type: "query", data: { status: "running" } } },
+          },
+        },
+      };
+
+      await executeListenTask(taskDef, "queryHandler", createState(), makeCtx(listenFn));
+
+      expect(capturedConfig!.events[0]).toEqual({
+        id: "get_status",
+        type: "query",
+        acceptIf: undefined,
+        data: { status: "running" },
+      });
+    });
+  });
+
+  describe("update event type", () => {
+    it("passes update event config to ctx.listen", async () => {
+      let capturedConfig: ListenExecutionConfig | undefined;
+      const listenFn: ListenFn = async (config) => {
+        capturedConfig = config;
+        return { result: "updated" };
+      };
+      const taskDef: ListenTaskDef = {
+        kind: "listen",
+        listen: {
+          to: {
+            one: { with: { id: "apply_update", type: "update", acceptIf: "${ .valid == true }" } },
+          },
+        },
+      };
+
+      const state = createState();
+      await executeListenTask(taskDef, "updateHandler", state, makeCtx(listenFn));
+
+      expect(capturedConfig!.events[0]).toEqual({
+        id: "apply_update",
+        type: "update",
+        acceptIf: "${ .valid == true }",
+        data: undefined,
+      });
+    });
+  });
+
+  describe("mixed event types", () => {
+    it("passes mixed signal/query/update events to ctx.listen", async () => {
+      let capturedConfig: ListenExecutionConfig | undefined;
+      const listenFn: ListenFn = async (config) => {
+        capturedConfig = config;
+        return { sig1: "data" };
+      };
+      const taskDef: ListenTaskDef = {
+        kind: "listen",
+        listen: {
+          to: {
+            all: [
+              { with: { id: "sig1", type: "signal" } },
+              { with: { id: "q1", type: "query", data: "reply" } },
+              { with: { id: "upd1", type: "update" } },
+            ],
+          },
+        },
+      };
+
+      await executeListenTask(taskDef, "mixed", createState(), makeCtx(listenFn));
+
+      expect(capturedConfig!.events).toHaveLength(3);
+      expect(capturedConfig!.events[0].type).toBe("signal");
+      expect(capturedConfig!.events[1].type).toBe("query");
+      expect(capturedConfig!.events[1].data).toBe("reply");
+      expect(capturedConfig!.events[2].type).toBe("update");
+      expect(capturedConfig!.mode).toBe("all");
+    });
+  });
+
   describe("all events (to.all)", () => {
     it("normalizes to.all with mode 'all'", async () => {
       const listenFn = vi.fn(async () => ({ sig1: "a", sig2: "b" }));
@@ -155,8 +274,8 @@ describe("executeListenTask", () => {
 
       expect(listenFn).toHaveBeenCalledWith({
         events: [
-          { id: "sig1", type: "signal", acceptIf: undefined },
-          { id: "sig2", type: "signal", acceptIf: undefined },
+          { id: "sig1", type: "signal", acceptIf: undefined, data: undefined },
+          { id: "sig2", type: "signal", acceptIf: undefined, data: undefined },
         ],
         mode: "all",
         timeoutMs: 60_000,
@@ -184,8 +303,8 @@ describe("executeListenTask", () => {
 
       expect(listenFn).toHaveBeenCalledWith({
         events: [
-          { id: "sig1", type: "signal", acceptIf: undefined },
-          { id: "sig2", type: "signal", acceptIf: undefined },
+          { id: "sig1", type: "signal", acceptIf: undefined, data: undefined },
+          { id: "sig2", type: "signal", acceptIf: undefined, data: undefined },
         ],
         mode: "any",
         timeoutMs: 60_000,

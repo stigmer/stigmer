@@ -13,11 +13,53 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-19
-**Current Task**: Phase 6 — Claimcheck PayloadCodec + OTel Workflow Instrumentation (COMPLETE)
-**Status**: IN PROGRESS (Phases 1–6 partial complete, remaining Phase 6 items next)
-**Last Session**: 2026-05-20, Session 11
+**Current Task**: Phase 6 — COMPLETE (all remaining items delivered)
+**Status**: IN PROGRESS (Phases 1–6 complete, Phase 7 Integration Testing next)
+**Last Session**: 2026-05-20, Session 12
 
-## Session Progress (2026-05-20, Session 11)
+## Session Progress (2026-05-20, Session 12)
+
+### Accomplishments — Phase 6 Remaining Items (ALL COMPLETE)
+- **Listen query/update event types**: Expanded kernel `SUPPORTED_EVENT_TYPES` to `["signal", "query", "update"]`. Orchestrator routes by event type — `defineQuery` (non-blocking, read-only), `defineUpdate` (blocking, bidirectional with validator), `defineSignal` (existing). Added `data` field to `ListenEventDef` for query/update reply templates. Golden YAML #22.
+- **Notification task**: New `src/notification/` module — `NotificationProvider` interface, thread-safe registry, `WebhookProvider` (HTTP POST, non-fatal delivery matching Go's semantics). `notificationAction()` with JIT placeholder resolution in body/subject/recipients/metadata. Wired into `call-function.ts` as `case "notification"`. Golden YAML #23.
+- **Event emission delivery**: Extended `emitEventAction` with optional `delivery` targets — webhook (HTTP POST with `application/cloudevents+json`, header placeholder resolution) and signal (Temporal `WorkflowClient.signal()` for cross-workflow CloudEvents routing). Non-fatal error collection. Backward compatible — no delivery config = envelope-only.
+- **Budget tracking (4a)**: Added 4 missing LLM metric instruments to `RunnerInstruments` — now 9 instruments matching Go parity (`stigmer.llm.call.duration`, `.call.count`, `.tokens.input`, `.tokens.output`). Wired into `callLlmAction` with per-call recording.
+- **Budget tracking (4b-4c)**: Ported Go's `budget.Tracker` as `BudgetTracker` — pure sandbox-safe class, accumulates cost/tokens/duration, checks against `WorkflowBudget` limits. `extractCostFromOutput()` with `__stigmer_*` prefix convention (falls back to unprefixed keys, fixing Go's broken LLM-to-budget pipeline). Three `BudgetExceededPolicy` modes: `terminate`, `warn`, `human_review`.
+- **91 new tests** across all four items (22 listen + 23 notification + 17 emit-event + 29 budget), `tsc --noEmit` clean.
+
+### Key Architectural Decisions
+- **Temporal update handler type assertion** — `@temporalio/workflow` SDK's `setHandler` overloads reject `[unknown]` args at compile time. Runtime types are compatible; `as any` assertion bridges the gap (same pattern used for OTel interceptor SDK mismatch in Phase 6).
+- **Notification non-fatal delivery** — Webhook delivery failures return `NotificationResult` with `delivered: false` rather than throwing, matching Go's semantics. This means a failed notification never fails the workflow — the result is visible in task output for downstream decision-making.
+- **Emit event backward compatibility** — No `delivery` config = envelope returned as output only (existing behavior). Delivery is purely additive. Webhook delivery uses `application/cloudevents+json` content type per spec. Signal delivery uses `@temporalio/client` import (safe in activity code, outside deterministic sandbox).
+- **Budget `extractCostFromOutput` fallback** — Reads `__stigmer_*` prefixed keys first, falls back to unprefixed `input_tokens`/`output_tokens`. This fixes Go's broken pipeline where LLM activities return unprefixed keys but the tracker only reads prefixed ones. Deliberate improvement over Go.
+- **Budget tracker sandbox-safe** — Pure class with zero dependencies. Can run inside Temporal deterministic isolate. Budget config arrives via `TemporalWorkflowInput` (outside YAML) because budget is a Stigmer extension.
+
+### Files Created
+- `backend/services/runner/src/notification/provider.ts` (~55 lines)
+- `backend/services/runner/src/notification/webhook.ts` (~60 lines)
+- `backend/services/runner/src/notification/index.ts` (~15 lines)
+- `backend/services/runner/src/activities/notification.ts` (~70 lines)
+- `backend/services/runner/src/budget/tracker.ts` (~155 lines)
+- `backend/services/runner/src/budget/index.ts` (~10 lines)
+- `backend/services/runner/src/notification/__tests__/provider.test.ts` (~70 lines, 6 tests)
+- `backend/services/runner/src/notification/__tests__/webhook.test.ts` (~100 lines, 7 tests)
+- `backend/services/runner/src/activities/__tests__/notification.test.ts` (~130 lines, 10 tests)
+- `backend/services/runner/src/budget/__tests__/tracker.test.ts` (~210 lines, 29 tests)
+- `backend/services/workflow-runner/test/golden/22-listen-query-update.yaml` (~55 lines)
+- `backend/services/workflow-runner/test/golden/23-notification.yaml` (~35 lines)
+
+### Files Modified
+- `src/workflow-engine/tasks/listen.ts` (+15 lines — expanded SUPPORTED_EVENT_TYPES, added data field extraction)
+- `src/workflow-engine/types.ts` (+2 lines — data field on ListenEventDef)
+- `src/workflows/listen-orchestrator.ts` (+116 lines rewritten — query/update/signal routing, registerBlockingHandler, registerQueryHandler, registerUpdateHandler)
+- `src/activities/call-function.ts` (+7 lines — notification case, import)
+- `src/activities/call-llm.ts` (+42 lines — OTel metric recording after each call)
+- `src/activities/emit-event.ts` (+160 lines rewritten — delivery targets, webhook/signal delivery, DeliveryError collection)
+- `src/otel-metrics.ts` (+19 lines — 4 LLM metric instruments)
+- `src/workflow-engine/__tests__/tasks/listen.test.ts` (+135 lines — query/update/mixed event type tests)
+- `src/workflow-engine/__tests__/tasks/emit-event.test.ts` (+302 lines rewritten — delivery tests)
+
+## Previous Session Progress (2026-05-20, Session 11)
 
 ### Accomplishments — Phase 6: Claimcheck + OTel (COMPLETE)
 - **Claimcheck PayloadCodec**: Transparent large-payload offloading at the Temporal serialization boundary. Payloads >= 128KB are compressed (gzip) and uploaded to ArtifactStorage, replaced with a small reference marker in Temporal history. Decoded transparently on replay. Env-gated via `CLAIMCHECK_ENABLED=true`.
@@ -282,9 +324,9 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-1. **Phase 6 (remaining)**: Event emission delivery, budget tracking, notification provider registry, listen query/update event types
-2. **Phase 7: Integration Testing** — 21 golden YAMLs passing identically, regression suite (claimcheck golden #11-#12 now testable)
-3. **Phase 8: Deployment & Cutover** — Docker, CI, gradual rollout
+1. **Phase 7: Integration Testing** — 23 golden YAMLs passing identically (21 original + 2 new), regression suite, claimcheck golden #11-#12 now testable
+2. **Phase 8: Deployment & Cutover** — Docker, CI, gradual rollout
+3. **Phase 9: Cleanup** — Delete Go workflow-runner, update CI
 
 ## Context for Resume
 
@@ -310,7 +352,9 @@ Drop this file into your conversation to quickly resume work on this project.
 - **New in Phase 6**: OTel workflow instrumentation via `@temporalio/interceptors-opentelemetry` workflow-side interceptors (`workflowModules` in worker options) + `makeWorkflowExporter` sink. Metric instruments in `otel-metrics.ts`. Workflow metrics sink (`workflows/metrics-sink.ts` + `interceptors/workflow-metrics-sink.ts`) bridges sandbox → worker OTel.
 - **New in Phase 6**: Activity heartbeating via `shared/heartbeat.ts` — `startHeartbeat(intervalMs, getDetails)` returns `{ stop(), cancelled }`. Used by CallHttp, CallAgent, RunScript, RunShell. Proxy options have `heartbeatTimeout: "30s"`.
 - **New in Phase 6**: W3C baggage propagation — `__stigmer_execution_id`, `__stigmer_org_id`, `__stigmer_workflow_id` injected into `state.env` at workflow start. HTTP activities inject `baggage` header on outgoing requests.
-- Executable task types: `set`, `switch`, `do`, `for`, `fork`, `try`, `raise`, `wait`, `listen`, `run`, `emit_event`, `human_input`, `call:http`, `call:grpc`, `call:agent`, `call:function`. Remaining for Phase 6: `notification`, listen query/update, event delivery, budget tracking.
+- Executable task types: `set`, `switch`, `do`, `for`, `fork`, `try`, `raise`, `wait`, `listen`, `run`, `emit_event`, `human_input`, `call:http`, `call:grpc`, `call:agent`, `call:function` (includes `llm`, `emit_event`, `notification`). All Phase 6 items complete.
+- **New in Phase 6 (Session 12)**: `notification` task via `call:function` dispatcher — provider registry + webhook provider at `src/notification/`. Event emission delivery with optional `delivery` targets (webhook + signal). Budget tracker at `src/budget/tracker.ts` — pure sandbox-safe class. OTel LLM metrics parity (9 instruments matching Go). Listen supports `signal`, `query`, `update` event types.
+- **Golden YAML count**: 23 (21 original + `22-listen-query-update.yaml` + `23-notification.yaml`)
 
 ## Prior Research
 
@@ -333,7 +377,7 @@ Full report: `_projects/2026-05/20260518.01.unified-runner-migration/research.wo
 | 3 | Expression Engine (full) — Temporal integration, local activity, input/output transforms | 1-2 | **COMPLETE** (24 tests, ~670 LOC) |
 | 4 | External Call Tasks — call_http, call_grpc, call_llm, call_agent | 3-4 | **COMPLETE** (100 tests, ~2,200 LOC) |
 | 5 | Advanced Tasks — try/catch, wait/listen, emit_event, human_input, fork, retry | 2-3 | **COMPLETE** (5.1 try/catch+raise, 5.1b retry, 5.2 fork, 5.3 wait/listen/run/emit/human_input — 175 tests) |
-| 6 | Supporting Infrastructure — claimcheck, heartbeat, interceptors, OTel | 2-3 | **PARTIAL** (claimcheck + OTel + heartbeat done; event delivery, budget, notification remaining) |
+| 6 | Supporting Infrastructure — claimcheck, heartbeat, interceptors, OTel, notification, budget, event delivery | 2-3 | **COMPLETE** (claimcheck, OTel, heartbeat, baggage, notification, budget tracker, event delivery, listen query/update — 91 tests) |
 | 7 | Integration Testing — 21 golden YAMLs, regression suite | 3-4 | Blocked on Phase 6 |
 | 8 | Deployment & Cutover — Docker, CI, gradual rollout | 2-3 | Blocked on Phase 7 |
 | 9 | Cleanup — Delete Go workflow-runner, update CI | 1 | Blocked on Phase 8 |
@@ -370,6 +414,14 @@ Full report: `_projects/2026-05/20260518.01.unified-runner-migration/research.wo
 - **TS retry delay calculator**: `backend/services/runner/src/workflow-engine/retry.ts` (computeRetryDelay, backoff strategies, jitter, limits)
 - **TS duration utility**: `backend/services/runner/src/workflow-engine/duration.ts` (shared durationToMs)
 - **Golden YAML #21**: `backend/services/workflow-runner/test/golden/21-retry-backoff.yaml` (fixed delay, exponential, linear, conditional, exceptWhen)
+
+- **TS notification provider registry**: `backend/services/runner/src/notification/provider.ts`
+- **TS notification webhook provider**: `backend/services/runner/src/notification/webhook.ts`
+- **TS notification activity**: `backend/services/runner/src/activities/notification.ts`
+- **TS budget tracker**: `backend/services/runner/src/budget/tracker.ts` (BudgetTracker, extractCostFromOutput)
+- **TS emit event delivery**: `backend/services/runner/src/activities/emit-event.ts` (webhook + signal delivery targets)
+- **Golden YAML #22**: `backend/services/workflow-runner/test/golden/22-listen-query-update.yaml` (query/update/mixed listen)
+- **Golden YAML #23**: `backend/services/workflow-runner/test/golden/23-notification.yaml` (webhook notification)
 
 ---
 

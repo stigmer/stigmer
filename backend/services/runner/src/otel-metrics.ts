@@ -16,6 +16,10 @@ export interface RunnerInstruments {
   readonly activityDuration: Histogram;
   readonly workflowTaskDuration: Histogram;
   readonly workflowTaskCount: Counter;
+  readonly llmCallDuration: Histogram;
+  readonly llmCallCount: Counter;
+  readonly llmTokensInput: Counter;
+  readonly llmTokensOutput: Counter;
 }
 
 let instruments: RunnerInstruments | null = null;
@@ -43,6 +47,21 @@ export async function getInstruments(): Promise<RunnerInstruments> {
     }),
     workflowTaskCount: meter.createCounter("stigmer.workflow.task.count", {
       description: "Total number of workflow tasks executed",
+    }),
+    llmCallDuration: meter.createHistogram("stigmer.llm.call.duration", {
+      unit: "ms",
+      description: "Duration of LLM API calls in milliseconds",
+    }),
+    llmCallCount: meter.createCounter("stigmer.llm.call.count", {
+      description: "Total number of LLM API calls",
+    }),
+    llmTokensInput: meter.createCounter("stigmer.llm.tokens.input", {
+      unit: "{token}",
+      description: "Total input tokens consumed across LLM calls",
+    }),
+    llmTokensOutput: meter.createCounter("stigmer.llm.tokens.output", {
+      unit: "{token}",
+      description: "Total output tokens produced across LLM calls",
     }),
   };
 
