@@ -22,6 +22,7 @@ function mockWorkspaceBackend(files: Record<string, string>): WorkspaceBackend {
       return content;
     }),
     writeFile: vi.fn(),
+    writeFileBuffer: vi.fn(),
     exists: vi.fn(async (path: string) => path in files),
   };
 }

@@ -74,6 +74,9 @@ function makeMockBackend(): WorkspaceBackend & {
     async writeFile(path: string, content: string) {
       writtenFiles.set(path, content);
     },
+    async writeFileBuffer(path: string, content: Buffer) {
+      writtenFiles.set(path, content.toString("utf-8"));
+    },
     async readFile(path: string) {
       return writtenFiles.get(path) ?? "";
     },

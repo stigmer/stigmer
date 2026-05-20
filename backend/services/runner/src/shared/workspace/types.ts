@@ -64,5 +64,6 @@ export interface WorkspaceBackend {
   execute(command: string, options?: { cwd?: string }): Promise<string>;
   readFile(path: string): Promise<string>;
   writeFile(path: string, content: string): Promise<void>;
+  writeFileBuffer(path: string, content: Buffer): Promise<void>;
   exists(path: string): Promise<boolean>;
 }

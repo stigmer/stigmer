@@ -66,16 +66,24 @@ export class LocalWorkspaceBackend implements WorkspaceBackend {
 
   async writeFile(path: string, content: string): Promise<void> {
     const full = this.resolvePath(path);
+    await this.ensureParentDir(path, full);
+    await writeFile(full, content, "utf-8");
+  }
 
-    if (this.platformDir && !isAbsolute(path)) {
-      const { isPlatform } = classifyPlatformPath(path);
+  async writeFileBuffer(path: string, content: Buffer): Promise<void> {
+    const full = this.resolvePath(path);
+    await this.ensureParentDir(path, full);
+    await writeFile(full, content);
+  }
+
+  private async ensureParentDir(relativePath: string, resolvedPath: string): Promise<void> {
+    if (this.platformDir && !isAbsolute(relativePath)) {
+      const { isPlatform } = classifyPlatformPath(relativePath);
       if (isPlatform) {
-        const parentDir = join(full, "..");
+        const parentDir = join(resolvedPath, "..");
         await mkdir(parentDir, { recursive: true });
       }
     }
-
-    await writeFile(full, content, "utf-8");
   }
 
   async exists(path: string): Promise<boolean> {
