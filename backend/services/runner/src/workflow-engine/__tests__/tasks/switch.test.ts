@@ -4,10 +4,15 @@ import { createState } from "../../state.js";
 import { evaluateExpressionBatch } from "../../expression.js";
 import type { SwitchTaskDef, TaskExecutionContext } from "../../types.js";
 
+const notAvailable = () => { throw new Error("not available in test"); };
+
 function makeCtx(): TaskExecutionContext {
   return {
     evaluateExpressions: evaluateExpressionBatch,
     doc: { document: { dsl: "1.0.0", name: "test" }, do: [] },
+    callHttp: notAvailable,
+    callGrpc: notAvailable,
+    callFunction: notAvailable,
   };
 }
 

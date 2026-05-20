@@ -51,6 +51,9 @@ async function main(): Promise<void> {
   const { createClassifyToolApprovalsActivities } = await import("./activities/classify-tool-approvals.js");
   const { createDiscoverMcpServerActivities } = await import("./activities/discover-mcp-server.js");
   const { createEvaluateExpressionsActivities } = await import("./activities/evaluate-expressions.js");
+  const { createCallHttpActivities } = await import("./activities/call-http.js");
+  const { createCallGrpcActivities } = await import("./activities/call-grpc.js");
+  const { createCallFunctionActivities } = await import("./activities/call-function.js");
   const { startWorker } = await import("./worker.js");
 
   const cursorActivities = createCursorActivities(config);
@@ -59,6 +62,9 @@ async function main(): Promise<void> {
   const classifyActivities = createClassifyToolApprovalsActivities(config);
   const discoverActivities = createDiscoverMcpServerActivities(config);
   const evaluateExpressionsActivities = createEvaluateExpressionsActivities();
+  const callHttpActivities = createCallHttpActivities();
+  const callGrpcActivities = createCallGrpcActivities();
+  const callFunctionActivities = createCallFunctionActivities();
 
   const allActivities = {
     ...cursorActivities,
@@ -67,6 +73,9 @@ async function main(): Promise<void> {
     ...classifyActivities,
     ...discoverActivities,
     ...evaluateExpressionsActivities,
+    ...callHttpActivities,
+    ...callGrpcActivities,
+    ...callFunctionActivities,
   };
 
   console.log(

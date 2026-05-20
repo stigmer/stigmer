@@ -8,9 +8,10 @@
  * to a local activity since jq-wasm requires Node.js built-ins blocked
  * in the sandbox.
  *
- * The kernel modules (do-executor, state, types, tasks/*) are sandbox-safe
- * — they have zero Node.js dependencies. Only expression.ts (jq-wasm)
- * is excluded and accessed via the local activity proxy.
+ * External call tasks (call:http, call:grpc, call:function) are
+ * delegated to regular Temporal activities via proxyActivities.
+ * The kernel accesses these through opaque callbacks on the
+ * TaskExecutionContext — it never imports Temporal APIs directly.
  *
  * Data pipeline: input.from → executeDoTasks → output.as
  *
@@ -20,21 +21,44 @@
  * type-only imports, and pure JS/TS logic.
  */
 
-import { proxyLocalActivities, log } from "@temporalio/workflow";
+import { proxyLocalActivities, proxyActivities, log } from "@temporalio/workflow";
 
 import type { createEvaluateExpressionsActivities } from "../activities/evaluate-expressions.js";
+import type { createCallHttpActivities } from "../activities/call-http.js";
+import type { createCallGrpcActivities } from "../activities/call-grpc.js";
+import type { createCallFunctionActivities } from "../activities/call-function.js";
 import { executeDoTasks } from "../workflow-engine/do-executor.js";
 import { createState } from "../workflow-engine/state.js";
-import type { ExpressionEvaluator, WorkflowModel } from "../workflow-engine/types.js";
+import type {
+  ExpressionEvaluator,
+  WorkflowModel,
+  HttpCallConfig,
+  GrpcCallConfig,
+  CallFunctionMetadata,
+  TaskExecutionContext,
+} from "../workflow-engine/types.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Activity Proxy
+// Activity Proxies
 // ─────────────────────────────────────────────────────────────────────────────
 
 type EvalActivities = ReturnType<typeof createEvaluateExpressionsActivities>;
+type HttpActivities = ReturnType<typeof createCallHttpActivities>;
+type GrpcActivities = ReturnType<typeof createCallGrpcActivities>;
+type FunctionActivities = ReturnType<typeof createCallFunctionActivities>;
 
 const evalProxy = proxyLocalActivities<EvalActivities>({
   startToCloseTimeout: "10s",
+});
+
+const callProxy = proxyActivities<HttpActivities & GrpcActivities & FunctionActivities>({
+  startToCloseTimeout: "5m",
+  retry: {
+    maximumAttempts: 5,
+    initialInterval: "1s",
+    backoffCoefficient: 2,
+    maximumInterval: "1m",
+  },
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -62,7 +86,7 @@ export interface ExecutionMetadata {
 export async function executeServerlessWorkflow(
   input: ExecuteServerlessWorkflowInput,
 ): Promise<unknown> {
-  const { model, workflow_input, env } = input;
+  const { model, workflow_input, env, metadata } = input;
 
   log.info("Starting serverless workflow execution", {
     workflowName: model.document.name,
@@ -71,6 +95,27 @@ export async function executeServerlessWorkflow(
 
   const evaluateExpressions: ExpressionEvaluator = (exprs, jqInput, stateVars) =>
     evalProxy.EvaluateExpressions(exprs, jqInput, stateVars);
+
+  const ctx: TaskExecutionContext = {
+    evaluateExpressions,
+    doc: model,
+    callHttp: (config: HttpCallConfig, runtimeEnv: Record<string, unknown>) =>
+      callProxy.CallHttp(config, runtimeEnv),
+    callGrpc: (config: GrpcCallConfig, runtimeEnv: Record<string, unknown>) =>
+      callProxy.CallGrpc(config, runtimeEnv),
+    callFunction: (
+      call: string,
+      config: Record<string, unknown>,
+      runtimeEnv: Record<string, unknown>,
+      fnMeta: CallFunctionMetadata,
+    ) =>
+      callProxy.CallFunction(
+        call,
+        config,
+        runtimeEnv,
+        fnMeta.workflowExecutionId ?? metadata?.execution_id ?? "",
+      ),
+  };
 
   const state = createState();
   state.env = env;
@@ -93,6 +138,7 @@ export async function executeServerlessWorkflow(
     state,
     model,
     evaluateExpressions,
+    ctx,
   );
 
   if (model.output?.as !== undefined) {

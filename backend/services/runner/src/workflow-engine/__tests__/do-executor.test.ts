@@ -264,13 +264,24 @@ describe("executeDoTasks", () => {
   describe("unsupported task types", () => {
     it("throws for unsupported task types", async () => {
       const tasks: TaskList = [
-        { key: "http", task: { kind: "call:http", call: "http", with: { method: "GET", endpoint: { uri: "https://example.com" } } } },
+        { key: "shell", task: { kind: "run" as any, run: { shell: { command: "echo hi" } } } },
       ];
 
       const state = createState();
       await expect(
         executeDoTasks(tasks, null, state, doc, evaluateExpressionBatch),
       ).rejects.toThrow("Unsupported task type");
+    });
+
+    it("call tasks require full TaskExecutionContext", async () => {
+      const tasks: TaskList = [
+        { key: "http", task: { kind: "call:http", call: "http", with: { method: "GET", endpoint: { uri: "https://example.com" } } } },
+      ];
+
+      const state = createState();
+      await expect(
+        executeDoTasks(tasks, null, state, doc, evaluateExpressionBatch),
+      ).rejects.toThrow("callHttp is not available");
     });
   });
 

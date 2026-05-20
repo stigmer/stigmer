@@ -17,7 +17,6 @@
 import type {
   TaskList,
   TaskEntry,
-  TaskDef,
   DoTaskDef,
   ForTaskDef,
   WorkflowModel,
@@ -25,7 +24,7 @@ import type {
   TaskExecutionContext,
   ExpressionEvaluator,
 } from "./types.js";
-import { isTermination, isExplicitTarget, FLOW_CONTINUE } from "./types.js";
+import { isTermination, isExplicitTarget } from "./types.js";
 import { createTaskBuilder, DO_TASK_KIND, FOR_TASK_KIND } from "./task-factory.js";
 import { extractFlowDirective } from "./tasks/switch.js";
 import { executeForTask } from "./tasks/for.js";
@@ -34,12 +33,10 @@ import { executeForTask } from "./tasks/for.js";
  * Executes a `do` task list — the top-level entry point and the
  * recursive handler for nested `do` blocks.
  *
- * @param tasks - Ordered list of named tasks to execute
- * @param input - The workflow or parent task input
- * @param state - Mutable workflow state
- * @param doc - The workflow document (for task builder context)
- * @param evaluateExpressions - Batch expression evaluator (local activity)
- * @returns The final state.output value
+ * Accepts the full TaskExecutionContext for call task support.
+ * The `evaluateExpressions` parameter is kept for backward
+ * compatibility with `for.ts` — when `ctx` is omitted, a minimal
+ * context is constructed from `evaluateExpressions` and `doc`.
  */
 export async function executeDoTasks(
   tasks: TaskList,
@@ -47,8 +44,9 @@ export async function executeDoTasks(
   state: WorkflowState,
   doc: WorkflowModel,
   evaluateExpressions: ExpressionEvaluator,
+  ctx?: TaskExecutionContext,
 ): Promise<unknown> {
-  const ctx: TaskExecutionContext = { evaluateExpressions, doc };
+  const effectiveCtx: TaskExecutionContext = ctx ?? buildMinimalContext(evaluateExpressions, doc);
   let nextTargetName: string | null = null;
 
   for (let i = 0; i < tasks.length; i++) {
@@ -66,13 +64,13 @@ export async function executeDoTasks(
       task: { name: entry.key },
     });
 
-    const shouldRun = await checkTaskCondition(entry, state, ctx);
+    const shouldRun = await checkTaskCondition(entry, state, effectiveCtx);
     if (!shouldRun) {
       continue;
     }
 
-    const effectiveInput = await resolveTaskInput(entry, input, state, ctx);
-    const taskOutput = await runSingleTask(entry, effectiveInput, state, doc, ctx);
+    const effectiveInput = await resolveTaskInput(entry, input, state, effectiveCtx);
+    const taskOutput = await runSingleTask(entry, effectiveInput, state, doc, effectiveCtx);
 
     const switchDirective = extractFlowDirective(taskOutput);
     if (switchDirective !== undefined) {
@@ -83,8 +81,8 @@ export async function executeDoTasks(
       }
     }
 
-    await processTaskOutput(entry, taskOutput, state, ctx);
-    await processTaskExport(entry, taskOutput, state, ctx);
+    await processTaskOutput(entry, taskOutput, state, effectiveCtx);
+    await processTaskExport(entry, taskOutput, state, effectiveCtx);
 
     const staticDirective = entry.task.then;
     if (staticDirective !== undefined) {
@@ -101,6 +99,31 @@ export async function executeDoTasks(
   }
 
   return state.output;
+}
+
+/**
+ * Builds a minimal TaskExecutionContext when only evaluateExpressions
+ * is available (backward compatibility for for.ts and tests).
+ * Call callbacks throw if invoked — call tasks require the full ctx.
+ */
+function buildMinimalContext(
+  evaluateExpressions: ExpressionEvaluator,
+  doc: WorkflowModel,
+): TaskExecutionContext {
+  const notAvailable = (name: string) => () => {
+    throw new Error(
+      `${name} is not available in this execution context. ` +
+      `Call tasks require the full TaskExecutionContext from the workflow function.`,
+    );
+  };
+
+  return {
+    evaluateExpressions,
+    doc,
+    callHttp: notAvailable("callHttp"),
+    callGrpc: notAvailable("callGrpc"),
+    callFunction: notAvailable("callFunction"),
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -192,6 +215,7 @@ async function runSingleTask(
       state,
       doc,
       ctx.evaluateExpressions,
+      ctx,
     );
   }
 
@@ -203,6 +227,7 @@ async function runSingleTask(
       state,
       doc,
       ctx.evaluateExpressions,
+      ctx,
     );
   }
 

@@ -1,0 +1,136 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { CallFunctionTaskBuilder } from "../../tasks/call-function.js";
+import { createState } from "../../state.js";
+import { evaluateExpressionBatch } from "../../expression.js";
+import type { CallFunctionTaskDef, TaskExecutionContext } from "../../types.js";
+
+let mockCallFunction: ReturnType<typeof vi.fn>;
+
+function makeCtx(): TaskExecutionContext {
+  return {
+    evaluateExpressions: evaluateExpressionBatch,
+    doc: { document: { dsl: "1.0.0", name: "test-workflow" }, do: [] },
+    callHttp: () => { throw new Error("not used"); },
+    callGrpc: () => { throw new Error("not used"); },
+    callFunction: (...args: Parameters<TaskExecutionContext["callFunction"]>) => mockCallFunction(...args),
+  };
+}
+
+describe("CallFunctionTaskBuilder", () => {
+  beforeEach(() => {
+    mockCallFunction = vi.fn();
+  });
+
+  it("calls ctx.callFunction with the correct call type", async () => {
+    mockCallFunction.mockResolvedValue({ result: "hello", input_tokens: 10, output_tokens: 5 });
+
+    const taskDef: CallFunctionTaskDef = {
+      kind: "call:function",
+      call: "llm",
+      with: {
+        model: "gpt-4o-mini",
+        prompt: "Say hello",
+      },
+    };
+
+    const builder = new CallFunctionTaskBuilder("askLlm", taskDef);
+    const executor = builder.build();
+    const state = createState();
+
+    const result = await executor(null, state, makeCtx());
+
+    expect(result).toEqual({ result: "hello", input_tokens: 10, output_tokens: 5 });
+    expect(mockCallFunction).toHaveBeenCalledWith(
+      "llm",
+      expect.objectContaining({ model: "gpt-4o-mini", prompt: "Say hello" }),
+      expect.any(Object),
+      expect.objectContaining({ workflowExecutionId: "test-workflow" }),
+    );
+  });
+
+  it("evaluates expressions in the with config", async () => {
+    mockCallFunction.mockResolvedValue({ result: "analyzed" });
+
+    const taskDef: CallFunctionTaskDef = {
+      kind: "call:function",
+      call: "llm",
+      with: {
+        model: "claude-sonnet-4-5",
+        prompt: "${ $context.userMessage }",
+        system_prompt: "You are a helpful assistant.",
+      },
+    };
+
+    const builder = new CallFunctionTaskBuilder("analyze", taskDef);
+    const executor = builder.build();
+    const state = createState();
+    state.context = { userMessage: "What is 2+2?" };
+
+    await executor(null, state, makeCtx());
+
+    const calledConfig = mockCallFunction.mock.calls[0][1];
+    expect(calledConfig.prompt).toBe("What is 2+2?");
+    expect(calledConfig.system_prompt).toBe("You are a helpful assistant.");
+  });
+
+  it("passes state.env as runtimeEnv", async () => {
+    mockCallFunction.mockResolvedValue({});
+
+    const taskDef: CallFunctionTaskDef = {
+      kind: "call:function",
+      call: "llm",
+      with: { model: "gpt-4o", prompt: "test" },
+    };
+
+    const builder = new CallFunctionTaskBuilder("envTest", taskDef);
+    const executor = builder.build();
+    const state = createState();
+    state.env = { LLM_KEY: "secret" };
+
+    await executor(null, state, makeCtx());
+
+    const calledEnv = mockCallFunction.mock.calls[0][2];
+    expect(calledEnv).toEqual({ LLM_KEY: "secret" });
+  });
+
+  it("handles missing with config", async () => {
+    mockCallFunction.mockResolvedValue({ ok: true });
+
+    const taskDef: CallFunctionTaskDef = {
+      kind: "call:function",
+      call: "transform",
+    };
+
+    const builder = new CallFunctionTaskBuilder("noConfig", taskDef);
+    const executor = builder.build();
+    const state = createState();
+
+    await executor(null, state, makeCtx());
+
+    expect(mockCallFunction).toHaveBeenCalledWith(
+      "transform",
+      {},
+      expect.any(Object),
+      expect.any(Object),
+    );
+  });
+
+  it("passes workflowExecutionId from doc.document.name", async () => {
+    mockCallFunction.mockResolvedValue({});
+
+    const taskDef: CallFunctionTaskDef = {
+      kind: "call:function",
+      call: "llm",
+      with: { model: "gpt-4o", prompt: "hi" },
+    };
+
+    const builder = new CallFunctionTaskBuilder("metaTest", taskDef);
+    const executor = builder.build();
+    const state = createState();
+
+    await executor(null, state, makeCtx());
+
+    const calledMeta = mockCallFunction.mock.calls[0][3];
+    expect(calledMeta.workflowExecutionId).toBe("test-workflow");
+  });
+});
