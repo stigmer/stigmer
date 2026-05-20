@@ -9,13 +9,57 @@ Drop this file into your conversation to quickly resume work on this project.
 **Description**: Eliminate the overengineered Runner API resource (CRUD, bidi stream, 6-phase lifecycle, launch tokens) and replace it with a simple @stigmer/runner NPM package using per-session Temporal task queue routing. No backward compatibility — delete the Runner API entirely.
 **Goal**: Single @stigmer/runner NPM package with a createStigmerRunner() factory function that uses per-session Temporal task queues. Runner API protos deleted. Control plane routes executions via session-derived task queues instead of runner IDs. Desktop app embeds the runner automatically. Cloud sandbox boots with session ID. Customers can npm install and integrate in minutes.
 **Tech Stack**: TypeScript/Node.js, Temporal TypeScript SDK, Protobuf/gRPC (deletion), Java Spring Boot (stigmer-service control plane changes), Vitest
-**Components**: apis/ai/stigmer/agentic/runner (DELETED), backend/services/runner (refactored), stigmer-cloud/stigmer-service Runner controllers and DB (DELETE pending), session routing in stigmer-service, desktop app runner lifecycle (DELETED), Electron IPC for filesystem browsing
+**Components**: apis/ai/stigmer/agentic/runner (DELETED), backend/services/runner (refactored), stigmer-cloud/stigmer-service Runner domain (DELETED), session routing in both stigmer-server and stigmer-service, desktop app runner lifecycle (DELETED), Electron IPC for filesystem browsing
 
 ## Current Status
 
 **Created**: 2026-05-20
-**Current Task**: T04 Complete — T05 ready to start
-**Status**: Per-session task queue routing implemented. Dispatch supports `global` and `session` modes.
+**Current Task**: T05 Complete — T06 ready to start
+**Status**: Runner API fully deleted from both OSS and Cloud. Per-session task queue routing implemented in both Go (stigmer-server) and Java (stigmer-service). Dispatch mirrors between both control planes.
+
+## Session Progress (2026-05-20, Session 5)
+
+### What was accomplished
+- **Completed T05: Java control plane Runner domain refactor**
+  - 203 files changed, 966 insertions, 42,771 deletions in stigmer-cloud
+  - Proto stubs regenerated from OSS branch (Runner protos deleted, StreamingUsageSummary renamed)
+  - Entire `domain/agentic/runner/` package deleted (31 Java files: handlers, repo, heartbeat, streams, launch tokens, launcher)
+  - Downstream gRPC client deleted (`RunnerGrpcRepo`, `RunnerGrpcRepoImpl`)
+  - MongoDB migration (`U20260421_RunnerIndexes`) deleted
+  - FGA model (`runner.fga`) deleted, `can_create_runner` removed from organization
+  - New `SessionDispatchService` replaces `RunnerDispatchService` — mirrors Go T04 implementation
+  - `DispatchResult` simplified: removed `runnerId`, now `(taskQueue, harness)`
+  - `AgentExecutionTemporalConfig` extended with `activityRouting` field + constants
+  - `WorkflowExecutionDispatchService` simplified to global queue only (no provisioning)
+  - `InvokeWorkflowExecutionWorkflowImpl` cleaned of `runner:` prefix detection
+  - Removed Daytona SDK dependency from `MODULE.bazel`
+  - Removed `application-runner-launcher.yaml` config and runner-launcher Spring profile
+  - Cleaned kustomize overlays (local + prod) of runner-launcher env vars
+  - 10 new unit tests for `SessionDispatchService`, all 60 Bazel tests pass
+
+### Key changes
+1. **Proto stubs**: All runner/v1 stubs deleted across Java, Go, Python, TypeScript, Dart. `RunnerUsageSummary` → `StreamingUsageSummary`. `runner_id` removed from Session/AgentExecution stubs.
+2. **`SessionDispatchService.java`**: `STIGMER_ACTIVITY_ROUTING` env var (`global`/`session`), `formatSessionTaskQueue("session:" + id)`, loads session for harness extraction, global fallback
+3. **`AgentExecutionCreateHandler`**: Uses `SessionDispatchService.resolve()` instead of `RunnerDispatchService.resolveOrProvision()`
+4. **`AgentExecutionRecoverHandler`**: Same dispatch update
+5. **`McpServerConnectHandler`**: Uses `SessionDispatchService.resolve(null)` — MCP connect always global
+6. **`AgentExecutionUpdateStatusHandler`**: `runner_id` merge removed, `runnerUsage` → `streamingUsage`
+7. **`WorkflowExecutionDispatchService`**: Reduced to single `resolve()` → global queue
+8. **`InvokeWorkflowExecutionWorkflowImpl`**: `getActivityTaskQueue()` always appends `:wf-orch` suffix (no `runner:` prefix branching)
+9. **`InvokeAgentExecutionWorkflowInput`**: `runnerId` field removed
+10. **Build/config**: Daytona SDK removed, runner-launcher config deleted, FGA model cleaned, kustomize overlays stripped
+
+### Decisions made
+- Sandbox provisioning deferred (Option A from plan): cloud mode uses `global` routing with pre-deployed workers until `EnsureSessionSandbox` is designed as a follow-up
+- `SessionDispatchService` is behaviorally identical to Go `ResolveActivityTaskQueue` — same env var, same queue naming, same fallback
+- MCP connect always uses global queue (no session context) — matches OSS behavior
+- Workflow executions stay on global queue (no session concept for workflows)
+- `WorkflowDispatchResult` no longer has `hasRunner()` branching — suffix always appended
+
+### Surprises discovered
+- The `ProtoFgaSchemaConsistencyTest` still referenced deleted `runner.v1.CommandProto` and `runner.v1.QueryProto` descriptors — fixed by removing those entries
+- The `AgentExecutionUpdateStatusHandler` had a log line referencing `hasRunnerUsage()` — updated to `hasStreamingUsage()`
+- `InvokeWorkflowExecutionWorkflowImpl.getActivityTaskQueue()` had a `runner:` prefix detection branch to decide whether to append `:wf-orch` — now always appends since all queues are either global or `session:` prefixed
 
 ## Session Progress (2026-05-20, Session 4)
 
@@ -106,28 +150,30 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-1. **T05: Java control plane refactor** — delete Runner domain in `stigmer-cloud`, add session-based dispatch using `session:{id}` convention, implement `EnsureSessionSandbox` activity (HIGH risk, depends on T02 being merged to update buf module)
-2. **T06: Desktop app refactor** — embed runner with per-session workers, set `STIGMER_ACTIVITY_ROUTING=session` on embedded server, remove Runner UI/launch tokens (depends on T04 ✅)
+1. **T06: Desktop app refactor** — embed runner with per-session workers, set `STIGMER_ACTIVITY_ROUTING=session` on embedded server, remove Runner UI/launch tokens (depends on T04 ✅)
+2. **Cloud sandbox provisioning** — design `EnsureSessionSandbox` Temporal activity to replace the deleted `DaytonaSandboxRunnerLauncher` (deferred from T05)
 
 ## Context for Resume
 
-- Branch: `feat/unified-runner-migration`
-- T04 files (dispatch routing):
-  - `backend/services/stigmer-server/pkg/domain/agentexecution/temporal/config.go` — routing constants + env var
-  - `backend/services/stigmer-server/pkg/domain/agentexecution/temporal/dispatch.go` — `FormatSessionTaskQueue`, `resolveTaskQueue`, refactored `ResolveActivityTaskQueue`
-  - `backend/services/stigmer-server/pkg/domain/agentexecution/temporal/dispatch_test.go` — 12 tests
-  - `backend/services/stigmer-server/pkg/domain/mcpserver/controller/mcpserver_controller.go` — uses `*Config` now
-  - `backend/services/stigmer-server/pkg/server/server.go` — wiring changes
-- All builds pass: `go build ./...`, `go vet ./...`, all affected test packages green
-- TypeScript runner already aligned: `STIGMER_TASK_QUEUE=session:ses_xyz` works out of the box
+- Branch: `feat/unified-runner-migration` (both repos)
+- stigmer-cloud commit: `24e3d82c` — T05 complete
+- T05 files (Java dispatch):
+  - `backend/services/stigmer-service/.../dispatch/SessionDispatchService.java` — new dispatch service
+  - `backend/services/stigmer-service/.../AgentExecutionTemporalConfig.java` — `activityRouting` field
+  - `backend/services/stigmer-service/.../dispatch/DispatchResult.java` — simplified `(taskQueue, harness)`
+  - `backend/services/stigmer-service/.../dispatch/SessionDispatchServiceTest.java` — 10 tests
+- All builds pass: `./bazelw build //backend/services/stigmer-service/...` clean, 60/60 tests pass
+- Both control planes now implement identical `STIGMER_ACTIVITY_ROUTING` behavior:
+  - Go: `ResolveActivityTaskQueue` in `dispatch.go`
+  - Java: `SessionDispatchService.resolve()` in `SessionDispatchService.java`
 - Key env var: `STIGMER_ACTIVITY_ROUTING=global|session` (default: `global`)
 - Research report: `_projects/2026-05/20260518.01.unified-runner-migration/research.control-plane-runner-architecture-review/04.report.gemini.md`
 
 ## Quick Commands
 
 After loading context:
-- "Start T05 — Java control plane refactor" - Begin cloud session routing
 - "Start T06 — Desktop app embedded runner" - Begin desktop integration
+- "Design EnsureSessionSandbox activity" - Cloud sandbox provisioning follow-up
 - "Show project status" - Get overview of progress
 - "Commit and push" - Commit changes
 
