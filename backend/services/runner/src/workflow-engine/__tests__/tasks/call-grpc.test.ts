@@ -13,6 +13,7 @@ function makeCtx(): TaskExecutionContext {
     callHttp: () => { throw new Error("not used"); },
     callGrpc: (...args: Parameters<TaskExecutionContext["callGrpc"]>) => mockCallGrpc(...args),
     callFunction: () => { throw new Error("not used"); },
+    callAgent: () => { throw new Error("not used"); },
   };
 }
 

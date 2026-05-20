@@ -26,6 +26,7 @@ import type {
   InputDef,
   OutputDef,
   ExportDef,
+  AgentCallConfig,
 } from "./types.js";
 
 const SUPPORTED_DSL_RANGE = ">=1.0.0 <2.0.0";
@@ -211,6 +212,15 @@ function discriminateTask(taskName: string, raw: Record<string, unknown>): TaskD
       };
     }
 
+    if (callValue === "agent") {
+      return {
+        kind: "call:agent",
+        ...base,
+        call: "agent",
+        with: parseAgentCallConfig(raw.with),
+      };
+    }
+
     return {
       kind: "call:function",
       ...base,
@@ -318,5 +328,42 @@ function parseExportDef(raw: unknown): ExportDef {
   return {
     as: obj.as as string | Record<string, unknown> | undefined,
     schema: obj.schema as Record<string, unknown> | undefined,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Agent Call Config Parsing
+// ─────────────────────────────────────────────────────────────────────
+
+const HARNESS_SHORTHANDS: Record<string, string> = {
+  native: "HARNESS_NATIVE",
+  cursor: "HARNESS_CURSOR",
+};
+
+function parseAgentCallConfig(raw: unknown): AgentCallConfig {
+  if (!raw || typeof raw !== "object") {
+    throw new Error("call:agent task requires a 'with' configuration block");
+  }
+  const obj = raw as Record<string, unknown>;
+
+  if (typeof obj.agent !== "string" || !obj.agent) {
+    throw new Error("call:agent requires 'agent' (slug or org/slug) in 'with'");
+  }
+  if (typeof obj.message !== "string" || !obj.message) {
+    throw new Error("call:agent requires 'message' in 'with'");
+  }
+
+  const harness = typeof obj.harness === "string"
+    ? (HARNESS_SHORTHANDS[obj.harness.toLowerCase()] ?? obj.harness)
+    : undefined;
+
+  return {
+    agent: obj.agent,
+    message: obj.message,
+    org: typeof obj.org === "string" ? obj.org : undefined,
+    env: obj.env as Record<string, string> | undefined,
+    config: obj.config as AgentCallConfig["config"],
+    output: obj.output as AgentCallConfig["output"],
+    harness,
   };
 }

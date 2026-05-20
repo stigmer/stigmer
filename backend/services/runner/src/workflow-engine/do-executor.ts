@@ -123,6 +123,7 @@ function buildMinimalContext(
     callHttp: notAvailable("callHttp"),
     callGrpc: notAvailable("callGrpc"),
     callFunction: notAvailable("callFunction"),
+    callAgent: notAvailable("callAgent"),
   };
 }
 

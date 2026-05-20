@@ -1,0 +1,159 @@
+/**
+ * CallAgent Temporal activity — creates a Stigmer AgentExecution via
+ * the platform gRPC API and uses Temporal async completion.
+ *
+ * Flow:
+ * 1. Extract Temporal task token (for async completion callback)
+ * 2. Resolve runtime placeholders (${.secrets.*}, ${.env_vars.*})
+ * 3. Resolve agent by slug → get agent ID and default instance
+ * 4. Create Session (harness, runner affinity)
+ * 5. Create AgentExecution (callback token, parent workflow ID)
+ * 6. Throw CompleteAsyncError — worker thread released
+ *
+ * The platform completes this activity asynchronously via the token
+ * when the agent execution workflow finishes.
+ *
+ * Activity contract:
+ *   Name:   "CallAgent"
+ *   Input:  (config, runtimeEnv, parentWorkflowId)
+ *   Output: (completed asynchronously by platform)
+ */
+
+import { Context, CompleteAsyncError } from "@temporalio/activity";
+import { StigmerClient } from "../client/stigmer-client.js";
+import { loadConfig } from "../config.js";
+import { resolveObjectPlaceholders } from "../workflow-engine/resolve.js";
+import type { AgentCallConfig } from "../workflow-engine/types.js";
+import { create } from "@bufbuild/protobuf";
+import { AgentExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
+import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+
+export async function callAgentAction(
+  config: AgentCallConfig,
+  runtimeEnv: Record<string, unknown>,
+  parentWorkflowId: string,
+): Promise<void> {
+  const taskToken = Context.current().info.taskToken;
+
+  const resolved = resolveObjectPlaceholders(config, runtimeEnv) as AgentCallConfig;
+
+  const orgId = resolved.org
+    ?? (runtimeEnv["__stigmer_org_id"] as string | undefined)
+    ?? "";
+
+  if (!orgId) {
+    throw new Error(
+      "call:agent requires an organization context. " +
+      "Set 'org' in the task config or ensure '__stigmer_org_id' is in the workflow environment.",
+    );
+  }
+
+  const appConfig = loadConfig();
+  const client = new StigmerClient({
+    endpoint: appConfig.stigmerBackendEndpoint,
+    token: appConfig.stigmerToken,
+  });
+
+  const agentRef = parseAgentReference(resolved.agent, orgId);
+  const agent = await client.getAgentByReference(
+    create(ApiResourceReferenceSchema, agentRef),
+  );
+
+  const agentId = agent.metadata?.id ?? "";
+  const defaultInstanceId = agent.status?.defaultInstanceId ?? "";
+
+  if (!agentId) {
+    throw new Error(`Agent '${resolved.agent}' resolved but has no metadata.id`);
+  }
+
+  const sessionName = `wf-${extractSlug(resolved.agent)}-${Math.floor(Date.now() / 1000)}`;
+  const harness = resolveHarness(resolved.harness);
+
+  const session = await client.createSession(
+    create(SessionSchema, {
+      metadata: create(ApiResourceMetadataSchema, {
+        name: sessionName,
+        org: orgId,
+      }),
+      spec: create(SessionSpecSchema, {
+        agentInstanceId: defaultInstanceId,
+        harness,
+        ...(appConfig.runnerId ? { runnerId: appConfig.runnerId } : {}),
+      }),
+    }),
+  );
+
+  const sessionId = session.metadata?.id ?? "";
+
+  const executionRuntimeEnv: Record<string, { value: string; isSecret: boolean }> = {};
+  if (resolved.env) {
+    for (const [key, value] of Object.entries(resolved.env)) {
+      executionRuntimeEnv[key] = { value: String(value), isSecret: false };
+    }
+  }
+
+  await client.createAgentExecution(
+    create(AgentExecutionSchema, {
+      metadata: create(ApiResourceMetadataSchema, { org: orgId }),
+      spec: create(AgentExecutionSpecSchema, {
+        sessionId,
+        agentId,
+        message: resolved.message,
+        callbackToken: taskToken,
+        parentWorkflowId,
+        ...(resolved.config?.model
+          ? { executionConfig: { modelName: resolved.config.model } as any }
+          : {}),
+      }),
+    }),
+  );
+
+  throw new CompleteAsyncError();
+}
+
+function parseAgentReference(
+  agentStr: string,
+  defaultOrg: string,
+): { org: string; slug: string } {
+  if (agentStr.includes("/")) {
+    const [org, slug] = agentStr.split("/", 2);
+    return { org, slug };
+  }
+  return { org: defaultOrg, slug: agentStr };
+}
+
+function extractSlug(agentStr: string): string {
+  return agentStr.includes("/") ? agentStr.split("/", 2)[1] : agentStr;
+}
+
+function resolveHarness(harnessStr?: string): Harness {
+  if (!harnessStr) return Harness.NATIVE;
+
+  switch (harnessStr.toUpperCase()) {
+    case "HARNESS_NATIVE":
+    case "NATIVE":
+      return Harness.NATIVE;
+    case "HARNESS_CURSOR":
+    case "CURSOR":
+      return Harness.CURSOR;
+    default:
+      return Harness.NATIVE;
+  }
+}
+
+export function createCallAgentActivities() {
+  return {
+    CallAgent: async (
+      config: AgentCallConfig,
+      runtimeEnv: Record<string, unknown>,
+      parentWorkflowId: string,
+    ): Promise<void> => {
+      return callAgentAction(config, runtimeEnv, parentWorkflowId);
+    },
+  };
+}
