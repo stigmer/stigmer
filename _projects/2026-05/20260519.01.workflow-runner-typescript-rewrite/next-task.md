@@ -13,11 +13,54 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-19
-**Current Task**: Phase 5 — Complete (including 5.1b Retry)
-**Status**: IN PROGRESS (Phases 1–5 complete, Phase 6 next)
-**Last Session**: 2026-05-20, Session 10
+**Current Task**: Phase 6 — Claimcheck PayloadCodec + OTel Workflow Instrumentation (COMPLETE)
+**Status**: IN PROGRESS (Phases 1–6 partial complete, remaining Phase 6 items next)
+**Last Session**: 2026-05-20, Session 11
 
-## Session Progress (2026-05-20, Session 10)
+## Session Progress (2026-05-20, Session 11)
+
+### Accomplishments — Phase 6: Claimcheck + OTel (COMPLETE)
+- **Claimcheck PayloadCodec**: Transparent large-payload offloading at the Temporal serialization boundary. Payloads >= 128KB are compressed (gzip) and uploaded to ArtifactStorage, replaced with a small reference marker in Temporal history. Decoded transparently on replay. Env-gated via `CLAIMCHECK_ENABLED=true`.
+- **OTel Metric Instrument Registry**: Singleton `getInstruments()` providing `stigmer.execution.count`, `stigmer.execution.active`, `stigmer.activity.duration`, `stigmer.workflow.task.duration`, `stigmer.workflow.task.count` — matching Go `pkg/otel/metrics.go`.
+- **Workflow OTel Interceptors**: Full `@temporalio/interceptors-opentelemetry` workflow-side spans via `workflowModules` + `makeWorkflowExporter` sink. Creates per-workflow-execution trace trees.
+- **Workflow Metrics Sink**: Custom Temporal sink (`proxySinks`) pushing execution start/end timing from the deterministic sandbox to the worker-side OTel instruments.
+- **Activity Heartbeating**: `startHeartbeat()` utility with cancellation detection. Wired into `CallHttp` (10s), `CallAgent` (15s), `RunScript`/`RunShell` (10s). `heartbeatTimeout: "30s"` added to activity proxy options.
+- **Baggage Propagation**: Execution metadata (`execution_id`, `org_id`, `workflow_id`) injected into `state.env` and propagated as W3C `baggage` headers on outgoing HTTP calls.
+- **OTel Constants**: Full Go parity span names and attribute keys in `otel.ts`.
+- **`@opentelemetry/sdk-metrics`** added as explicit dependency.
+- **Zero regressions**: 1386 tests passing (1 pre-existing failure in `call-function.test.ts` unrelated to Phase 6), `tsc --noEmit` clean.
+
+### Key Architectural Decisions
+- **PayloadCodec over explicit activities** — Unlike Go's field-level offload/retrieve activities that require kernel awareness, the TS implementation uses Temporal's `PayloadCodec` interface which operates at the transport layer below the kernel. Kernel purity is preserved — zero changes to `src/workflow-engine/`.
+- **Workflow sinks for metrics** — The Temporal deterministic sandbox cannot import `@opentelemetry/api`. Metrics flow from sandbox → worker via `proxySinks` (the SDK-sanctioned pattern for getting data out of the sandbox).
+- **Synchronous gzip** — Compression uses `gzipSync`/`gunzipSync` since the codec runs in the worker process (not sandbox). Avoids async Buffer type inference issues with Node 23 / TS 5.7.
+- **OTel type assertion for interceptor SDK mismatch** — `@temporalio/interceptors-opentelemetry` bundles an older `@opentelemetry/sdk-trace-base`. Runtime types are compatible; type assertion bridges the compile-time gap.
+
+### Files Created
+- `backend/services/runner/src/claimcheck/payload-codec.ts` (~105 lines)
+- `backend/services/runner/src/claimcheck/compressor.ts` (~10 lines)
+- `backend/services/runner/src/claimcheck/config.ts` (~22 lines)
+- `backend/services/runner/src/claimcheck/index.ts` (~4 lines)
+- `backend/services/runner/src/otel-metrics.ts` (~55 lines)
+- `backend/services/runner/src/workflows/metrics-sink.ts` (~45 lines)
+- `backend/services/runner/src/interceptors/workflow-metrics-sink.ts` (~55 lines)
+- `backend/services/runner/src/shared/heartbeat.ts` (~50 lines)
+- `backend/services/runner/src/__tests__/claimcheck-codec.test.ts` (~250 lines, 15 tests)
+- `backend/services/runner/src/__tests__/otel-metrics.test.ts` (~35 lines, 4 tests)
+
+### Files Modified
+- `package.json` (+1 dep: `@opentelemetry/sdk-metrics`)
+- `src/worker.ts` (rewritten: `StartWorkerOptions` interface, dataConverter, sinks, workflowModules)
+- `src/runner.ts` (+`createPayloadCodec()`, updated `startWorker` call signature)
+- `src/otel.ts` (+15 span/attribute constants for Go parity)
+- `src/workflows/execute-serverless-workflow.ts` (+heartbeatTimeout, +execution metrics, +baggage env)
+- `src/workflows/index.ts` (+comment about OTel interceptor registration via workflowModules)
+- `src/activities/call-http.ts` (+heartbeat, +baggage header injection)
+- `src/activities/call-agent.ts` (+heartbeat)
+- `src/activities/run-command.ts` (+heartbeat, refactored to impl functions)
+- `src/workflows/__tests__/execute-serverless-workflow.test.ts` (+proxySinks/sleep/CancelledFailure in mock)
+
+## Previous Session Progress (2026-05-20, Session 10)
 
 ### Accomplishments — Phase 5.1b: Catch-Level Retry (COMPLETE)
 - **Net-new CNCF spec implementation** — Go never implemented `catch.retry`; this is a greenfield feature implementing the CNCF Serverless Workflow retry policy spec directly
@@ -239,8 +282,8 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-1. **Phase 6: Supporting Infrastructure** — claimcheck, heartbeat, interceptors, OTel, event emission, budget tracking, notification provider registry, listen query/update event types
-2. **Phase 7: Integration Testing** — 21 golden YAMLs passing identically, regression suite
+1. **Phase 6 (remaining)**: Event emission delivery, budget tracking, notification provider registry, listen query/update event types
+2. **Phase 7: Integration Testing** — 21 golden YAMLs passing identically, regression suite (claimcheck golden #11-#12 now testable)
 3. **Phase 8: Deployment & Cutover** — Docker, CI, gradual rollout
 
 ## Context for Resume
@@ -263,7 +306,11 @@ Drop this file into your conversation to quickly resume work on this project.
 - **New in Phase 5.3**: `wait` uses `WaitTaskBuilder` → `ctx.sleep(ms)`. `listen` (signal only) uses `executeListenTask()` → `ctx.listen(config)` → `listen-orchestrator.ts`. `run` uses `RunTaskBuilder` → `ctx.runCommand`/`ctx.runWorkflow`. `emit_event` routes through `call:function` dispatcher. `human_input` uses `executeHumanInputTask()` → `ctx.awaitHumanInput(config)` → `human-input-orchestrator.ts`.
 - **New in Phase 5.3**: `TaskExecutionContext` now has 5 additional callbacks: `sleep`, `listen`, `runCommand`, `runWorkflow`, `awaitHumanInput`. Each wired to Temporal primitives in `execute-serverless-workflow.ts`.
 - **New in Phase 5.1b**: `catch.retry` with delay, backoff (constant/exponential/linear), jitter, limits (attempt count + total duration), `when`/`exceptWhen` conditional expressions. Retry delay calculator is a pure function in `retry.ts`. `durationToMs()` utility extracted to shared `duration.ts`. `executeTryTask()` has a full retry loop that re-executes the try block with computed delays. Deferred: `Ref` (reusable policy refs), `limit.attempt.duration` (per-attempt timeout).
-- Executable task types: `set`, `switch`, `do`, `for`, `fork`, `try`, `raise`, `wait`, `listen`, `run`, `emit_event`, `human_input`, `call:http`, `call:grpc`, `call:agent`, `call:function`. Remaining for Phase 6: `notification`, listen query/update.
+- **New in Phase 6**: `ClaimcheckPayloadCodec` at `src/claimcheck/` — transparent PayloadCodec offloading large payloads to ArtifactStorage. Threshold 128KB, gzip compression, env-gated. Registered in `worker.ts` via `dataConverter.payloadCodecs`.
+- **New in Phase 6**: OTel workflow instrumentation via `@temporalio/interceptors-opentelemetry` workflow-side interceptors (`workflowModules` in worker options) + `makeWorkflowExporter` sink. Metric instruments in `otel-metrics.ts`. Workflow metrics sink (`workflows/metrics-sink.ts` + `interceptors/workflow-metrics-sink.ts`) bridges sandbox → worker OTel.
+- **New in Phase 6**: Activity heartbeating via `shared/heartbeat.ts` — `startHeartbeat(intervalMs, getDetails)` returns `{ stop(), cancelled }`. Used by CallHttp, CallAgent, RunScript, RunShell. Proxy options have `heartbeatTimeout: "30s"`.
+- **New in Phase 6**: W3C baggage propagation — `__stigmer_execution_id`, `__stigmer_org_id`, `__stigmer_workflow_id` injected into `state.env` at workflow start. HTTP activities inject `baggage` header on outgoing requests.
+- Executable task types: `set`, `switch`, `do`, `for`, `fork`, `try`, `raise`, `wait`, `listen`, `run`, `emit_event`, `human_input`, `call:http`, `call:grpc`, `call:agent`, `call:function`. Remaining for Phase 6: `notification`, listen query/update, event delivery, budget tracking.
 
 ## Prior Research
 
@@ -286,7 +333,7 @@ Full report: `_projects/2026-05/20260518.01.unified-runner-migration/research.wo
 | 3 | Expression Engine (full) — Temporal integration, local activity, input/output transforms | 1-2 | **COMPLETE** (24 tests, ~670 LOC) |
 | 4 | External Call Tasks — call_http, call_grpc, call_llm, call_agent | 3-4 | **COMPLETE** (100 tests, ~2,200 LOC) |
 | 5 | Advanced Tasks — try/catch, wait/listen, emit_event, human_input, fork, retry | 2-3 | **COMPLETE** (5.1 try/catch+raise, 5.1b retry, 5.2 fork, 5.3 wait/listen/run/emit/human_input — 175 tests) |
-| 6 | Supporting Infrastructure — claimcheck, heartbeat, interceptors, OTel | 2-3 | Unblocked |
+| 6 | Supporting Infrastructure — claimcheck, heartbeat, interceptors, OTel | 2-3 | **PARTIAL** (claimcheck + OTel + heartbeat done; event delivery, budget, notification remaining) |
 | 7 | Integration Testing — 21 golden YAMLs, regression suite | 3-4 | Blocked on Phase 6 |
 | 8 | Deployment & Cutover — Docker, CI, gradual rollout | 2-3 | Blocked on Phase 7 |
 | 9 | Cleanup — Delete Go workflow-runner, update CI | 1 | Blocked on Phase 8 |

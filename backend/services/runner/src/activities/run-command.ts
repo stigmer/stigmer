@@ -16,18 +16,33 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import { ApplicationFailure } from "@temporalio/activity";
 import type { RunCommandConfig } from "../workflow-engine/types.js";
+import { startHeartbeat } from "../shared/heartbeat.js";
 
 const execFileAsync = promisify(execFile);
 const execAsync = promisify(exec);
 
 export function createRunCommandActivities() {
   return {
-    RunScript,
-    RunShell,
+    async RunScript(config: RunCommandConfig): Promise<unknown> {
+      const hb = startHeartbeat(10_000, () => ({ phase: "running_script" }));
+      try {
+        return await runScriptImpl(config);
+      } finally {
+        hb.stop();
+      }
+    },
+    async RunShell(config: RunCommandConfig): Promise<unknown> {
+      const hb = startHeartbeat(10_000, () => ({ phase: "running_shell" }));
+      try {
+        return await runShellImpl(config);
+      } finally {
+        hb.stop();
+      }
+    },
   };
 }
 
-async function RunScript(config: RunCommandConfig): Promise<unknown> {
+async function runScriptImpl(config: RunCommandConfig): Promise<unknown> {
   if (config.mode !== "script") {
     throw ApplicationFailure.nonRetryable("RunScript called with non-script config");
   }
@@ -69,7 +84,7 @@ async function RunScript(config: RunCommandConfig): Promise<unknown> {
   }
 }
 
-async function RunShell(config: RunCommandConfig): Promise<unknown> {
+async function runShellImpl(config: RunCommandConfig): Promise<unknown> {
   if (config.mode !== "shell") {
     throw ApplicationFailure.nonRetryable("RunShell called with non-shell config");
   }

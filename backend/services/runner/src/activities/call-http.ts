@@ -21,6 +21,7 @@ import type { HttpCallConfig, EndpointDef } from "../workflow-engine/types.js";
 import {
   resolveObjectPlaceholders,
 } from "../workflow-engine/resolve.js";
+import { startHeartbeat } from "../shared/heartbeat.js";
 
 export interface HttpResponse {
   readonly request: {
@@ -31,6 +32,20 @@ export interface HttpResponse {
   readonly statusCode: number;
   readonly headers: Record<string, string>;
   readonly content: unknown;
+}
+
+function injectBaggageHeaders(
+  headers: Record<string, string>,
+  env: Record<string, unknown>,
+): void {
+  const parts: string[] = [];
+  const execId = env["__stigmer_execution_id"];
+  const orgId = env["__stigmer_org_id"];
+  if (execId) parts.push(`stigmer.execution_id=${execId}`);
+  if (orgId) parts.push(`stigmer.org_id=${orgId}`);
+  if (parts.length > 0 && !headers["baggage"]) {
+    headers["baggage"] = parts.join(",");
+  }
 }
 
 function resolveEndpointUri(endpoint: EndpointDef): string {
@@ -61,6 +76,8 @@ export async function callHttpAction(
   }
 
   const headers: Record<string, string> = { ...resolved.headers };
+
+  injectBaggageHeaders(headers, runtimeEnv);
 
   let body: string | undefined;
   if (resolved.body !== undefined && resolved.body !== null) {
@@ -157,7 +174,12 @@ export function createCallHttpActivities() {
       config: HttpCallConfig,
       runtimeEnv: Record<string, unknown>,
     ): Promise<unknown> => {
-      return callHttpAction(config, runtimeEnv);
+      const hb = startHeartbeat(10_000, () => ({ phase: "http_call" }));
+      try {
+        return await callHttpAction(config, runtimeEnv);
+      } finally {
+        hb.stop();
+      }
     },
   };
 }

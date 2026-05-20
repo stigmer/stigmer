@@ -24,6 +24,7 @@ import { StigmerClient } from "../client/stigmer-client.js";
 import { loadConfig } from "../config.js";
 import { resolveObjectPlaceholders } from "../workflow-engine/resolve.js";
 import type { AgentCallConfig } from "../workflow-engine/types.js";
+import { startHeartbeat } from "../shared/heartbeat.js";
 import { create } from "@bufbuild/protobuf";
 import { AgentExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
@@ -152,7 +153,12 @@ export function createCallAgentActivities() {
       runtimeEnv: Record<string, unknown>,
       parentWorkflowId: string,
     ): Promise<void> => {
-      return callAgentAction(config, runtimeEnv, parentWorkflowId);
+      const hb = startHeartbeat(15_000, () => ({ phase: "creating_agent_execution" }));
+      try {
+        return await callAgentAction(config, runtimeEnv, parentWorkflowId);
+      } finally {
+        hb.stop();
+      }
     },
   };
 }
