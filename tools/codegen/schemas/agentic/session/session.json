@@ -133,6 +133,21 @@
       },
       "description": "Cursor SDK agent mode for this session.\n\n Determines whether the Cursor agent runs locally (Agent.create with\n local.cwd) or in the cloud (Agent.create with cloud.repos). Set once\n at session creation based on workspace entries and never changed —\n switching mid-session would lose Cursor-side conversation state.\n\n Only meaningful when harness == HARNESS_CURSOR. Ignored for other\n harness types.\n\n @internal\n Set by the cursor-runner on the first execution when cursor_mode is\n UNSPECIFIED. The workflow reads it back on subsequent executions to\n route to the correct Agent.create / Agent.resume path.\n\n When UNSPECIFIED on an existing CURSOR session, the runner defaults\n to LOCAL for backward compatibility.",
       "required": false
+    },
+    {
+      "name": "ExecutionTarget",
+      "jsonName": "executionTarget",
+      "protoField": "execution_target",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.session.v1.ExecutionTarget",
+        "enumValues": [
+          "EXECUTION_TARGET_LOCAL",
+          "EXECUTION_TARGET_CLOUD"
+        ]
+      },
+      "description": "Where session activities are executed — local client or cloud sandbox.\n\n Determines dispatch routing: LOCAL means the client's embedded runner\n (desktop app or CLI) polls the session's task queue; CLOUD means the\n server provisions a sandbox with a runner.\n\n Set by the client at session creation:\n - Desktop/CLI set LOCAL (they run an embedded runner)\n - Web console sets CLOUD (or UNSPECIFIED → server defaults to CLOUD)\n - Customer SDK sets whatever fits their architecture\n\n Immutable once an execution has run — workspace state may not be\n portable between local and cloud environments.",
+      "required": false
     }
   ]
 }

@@ -513,4 +513,47 @@ java.lang.String defaultValue);
    * @return The cursorMode.
    */
   ai.stigmer.agentic.session.v1.CursorMode getCursorMode();
+
+  /**
+   * <pre>
+   * Where session activities are executed — local client or cloud sandbox.
+   *
+   * Determines dispatch routing: LOCAL means the client's embedded runner
+   * (desktop app or CLI) polls the session's task queue; CLOUD means the
+   * server provisions a sandbox with a runner.
+   *
+   * Set by the client at session creation:
+   * - Desktop/CLI set LOCAL (they run an embedded runner)
+   * - Web console sets CLOUD (or UNSPECIFIED → server defaults to CLOUD)
+   * - Customer SDK sets whatever fits their architecture
+   *
+   * Immutable once an execution has run — workspace state may not be
+   * portable between local and cloud environments.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.ExecutionTarget execution_target = 12 [json_name = "executionTarget"];</code>
+   * @return The enum numeric value on the wire for executionTarget.
+   */
+  int getExecutionTargetValue();
+  /**
+   * <pre>
+   * Where session activities are executed — local client or cloud sandbox.
+   *
+   * Determines dispatch routing: LOCAL means the client's embedded runner
+   * (desktop app or CLI) polls the session's task queue; CLOUD means the
+   * server provisions a sandbox with a runner.
+   *
+   * Set by the client at session creation:
+   * - Desktop/CLI set LOCAL (they run an embedded runner)
+   * - Web console sets CLOUD (or UNSPECIFIED → server defaults to CLOUD)
+   * - Customer SDK sets whatever fits their architecture
+   *
+   * Immutable once an execution has run — workspace state may not be
+   * portable between local and cloud environments.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.ExecutionTarget execution_target = 12 [json_name = "executionTarget"];</code>
+   * @return The executionTarget.
+   */
+  ai.stigmer.agentic.session.v1.ExecutionTarget getExecutionTarget();
 }

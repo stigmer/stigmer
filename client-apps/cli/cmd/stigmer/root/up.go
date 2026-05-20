@@ -53,31 +53,26 @@ func newUpServerCommand() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "server",
-		Short: "Start the full local development stack",
-		Long: `Start the complete local Stigmer stack: Temporal, stigmer-server,
-and an embedded execution worker. This is the quickstart command for
-local development — no cloud account needed.`,
-		Example: `  # Start the full local stack
+		Short: "Start the control plane only (no embedded runner)",
+		Long: `Start only the control plane: Temporal and stigmer-server.
+No runner processes are started. Use this when you manage your own
+runners (desktop app with embedded runner, customer code, or cloud
+sandboxes).
+
+Use 'stigmer up' (without 'server') for the full stack including runners.`,
+		Example: `  # Start control plane only
   stigmer up server
 
   # Start with the web console open
   stigmer up server --open
 
-  # Start in sandbox execution mode
-  stigmer up server --execution-mode sandbox
-
   # Start without the web console
   stigmer up server --no-web`,
 		Run: func(cmd *cobra.Command, args []string) {
-			prepareAndStartServer(cmd, resolveResultFormat(jsonOutput, quietOutput), false)
+			prepareAndStartServer(cmd, resolveResultFormat(jsonOutput, quietOutput), true)
 		},
 	}
 
-	cmd.Flags().String("execution-mode", "", "Agent execution mode: local, sandbox, or auto (default: local)")
-	cmd.Flags().String("sandbox-image", "", "Docker image for sandbox mode")
-	cmd.Flags().Bool("sandbox-auto-pull", true, "Auto-pull sandbox image if missing")
-	cmd.Flags().Bool("sandbox-cleanup", true, "Cleanup sandbox containers after execution")
-	cmd.Flags().Int("sandbox-ttl", 3600, "Sandbox container reuse TTL in seconds")
 	cmd.Flags().String("activity-routing", "", "Activity routing mode: global or session (default: global)")
 	cmd.Flags().Bool("no-web", false, "Disable the embedded web console")
 	cmd.Flags().Bool("open", false, "Open the web console in your browser after startup")

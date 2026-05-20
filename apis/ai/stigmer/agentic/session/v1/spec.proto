@@ -117,4 +117,19 @@ message SessionSpec {
   // When UNSPECIFIED on an existing CURSOR session, the runner defaults
   // to LOCAL for backward compatibility.
   CursorMode cursor_mode = 11;
+
+  // Where session activities are executed — local client or cloud sandbox.
+  //
+  // Determines dispatch routing: LOCAL means the client's embedded runner
+  // (desktop app or CLI) polls the session's task queue; CLOUD means the
+  // server provisions a sandbox with a runner.
+  //
+  // Set by the client at session creation:
+  // - Desktop/CLI set LOCAL (they run an embedded runner)
+  // - Web console sets CLOUD (or UNSPECIFIED → server defaults to CLOUD)
+  // - Customer SDK sets whatever fits their architecture
+  //
+  // Immutable once an execution has run — workspace state may not be
+  // portable between local and cloud environments.
+  ExecutionTarget execution_target = 12;
 }

@@ -6,7 +6,7 @@ import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { McpServerUsage } from "../../agent/v1/spec_pb.js";
 import { file_ai_stigmer_agentic_agent_v1_spec } from "../../agent/v1/spec_pb.js";
-import type { CursorMode, Harness } from "./enum_pb.js";
+import type { CursorMode, ExecutionTarget, Harness } from "./enum_pb.js";
 import { file_ai_stigmer_agentic_session_v1_enum } from "./enum_pb.js";
 import type { WorkspaceEntry } from "./workspace_pb.js";
 import { file_ai_stigmer_agentic_session_v1_workspace } from "./workspace_pb.js";
@@ -20,7 +20,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/session/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9zcGVjLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSK7BgoLU2Vzc2lvblNwZWMSGQoRYWdlbnRfaW5zdGFuY2VfaWQYASABKAkSDwoHc3ViamVjdBgCIAEoCRIRCgl0aHJlYWRfaWQYAyABKAkSFgoKc2FuZGJveF9pZBgEIAEoCUICGAESSgoIbWV0YWRhdGEYBSADKAsyOC5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uU3BlYy5NZXRhZGF0YUVudHJ5EkgKEXdvcmtzcGFjZV9lbnRyaWVzGAYgAygLMi0uYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuV29ya3NwYWNlRW50cnkS2QEKEW1jcF9zZXJ2ZXJfdXNhZ2VzGAcgAygLMisuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLk1jcFNlcnZlclVzYWdlQpABukiMAZIBiAEihQG6AYEBCh5zZXNzaW9uX21jcF9zZXJ2ZXJfdXNhZ2VzLmtpbmQSP21jcF9zZXJ2ZXJfdXNhZ2VzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9bWNwX3NlcnZlchoedGhpcy5tY3Bfc2VydmVyX3JlZi5raW5kID09IDQ0ErgBCgpza2lsbF9yZWZzGAggAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQm66SGeSAWQiYroBXwoXc2Vzc2lvbl9za2lsbF9yZWZzLmtpbmQSM3NraWxsX3JlZnMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1za2lsbBoPdGhpcy5raW5kID09IDQz4IUsKxI3CgdoYXJuZXNzGAogASgOMiYuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuSGFybmVzcxI+CgtjdXJzb3JfbW9kZRgLIAEoDjIpLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkN1cnNvck1vZGUaLwoNTWV0YWRhdGFFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBYgZwcm90bzM", [file_ai_stigmer_agentic_agent_v1_spec, file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_session_v1_workspace, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9zcGVjLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSKFBwoLU2Vzc2lvblNwZWMSGQoRYWdlbnRfaW5zdGFuY2VfaWQYASABKAkSDwoHc3ViamVjdBgCIAEoCRIRCgl0aHJlYWRfaWQYAyABKAkSFgoKc2FuZGJveF9pZBgEIAEoCUICGAESSgoIbWV0YWRhdGEYBSADKAsyOC5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uU3BlYy5NZXRhZGF0YUVudHJ5EkgKEXdvcmtzcGFjZV9lbnRyaWVzGAYgAygLMi0uYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuV29ya3NwYWNlRW50cnkS2QEKEW1jcF9zZXJ2ZXJfdXNhZ2VzGAcgAygLMisuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLk1jcFNlcnZlclVzYWdlQpABukiMAZIBiAEihQG6AYEBCh5zZXNzaW9uX21jcF9zZXJ2ZXJfdXNhZ2VzLmtpbmQSP21jcF9zZXJ2ZXJfdXNhZ2VzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9bWNwX3NlcnZlchoedGhpcy5tY3Bfc2VydmVyX3JlZi5raW5kID09IDQ0ErgBCgpza2lsbF9yZWZzGAggAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQm66SGeSAWQiYroBXwoXc2Vzc2lvbl9za2lsbF9yZWZzLmtpbmQSM3NraWxsX3JlZnMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1za2lsbBoPdGhpcy5raW5kID09IDQz4IUsKxI3CgdoYXJuZXNzGAogASgOMiYuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuSGFybmVzcxI+CgtjdXJzb3JfbW9kZRgLIAEoDjIpLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkN1cnNvck1vZGUSSAoQZXhlY3V0aW9uX3RhcmdldBgMIAEoDjIuLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkV4ZWN1dGlvblRhcmdldBovCg1NZXRhZGF0YUVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAFiBnByb3RvMw", [file_ai_stigmer_agentic_agent_v1_spec, file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_session_v1_workspace, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * SessionSpec defines the configurable properties of a session.
@@ -164,6 +164,25 @@ export type SessionSpec = Message<"ai.stigmer.agentic.session.v1.SessionSpec"> &
    * @generated from field: ai.stigmer.agentic.session.v1.CursorMode cursor_mode = 11;
    */
   cursorMode: CursorMode;
+
+  /**
+   * Where session activities are executed — local client or cloud sandbox.
+   *
+   * Determines dispatch routing: LOCAL means the client's embedded runner
+   * (desktop app or CLI) polls the session's task queue; CLOUD means the
+   * server provisions a sandbox with a runner.
+   *
+   * Set by the client at session creation:
+   * - Desktop/CLI set LOCAL (they run an embedded runner)
+   * - Web console sets CLOUD (or UNSPECIFIED → server defaults to CLOUD)
+   * - Customer SDK sets whatever fits their architecture
+   *
+   * Immutable once an execution has run — workspace state may not be
+   * portable between local and cloud environments.
+   *
+   * @generated from field: ai.stigmer.agentic.session.v1.ExecutionTarget execution_target = 12;
+   */
+  executionTarget: ExecutionTarget;
 };
 
 /**

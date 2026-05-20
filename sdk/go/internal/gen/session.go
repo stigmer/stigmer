@@ -86,6 +86,7 @@ type SessionInput struct {
 	SkillRefs        []ResourceRef
 	Harness          sessionv1.Harness
 	CursorMode       sessionv1.CursorMode
+	ExecutionTarget  sessionv1.ExecutionTarget
 }
 
 // WorkspaceEntryInput is the SDK input type for WorkspaceEntry.
@@ -145,6 +146,7 @@ func (i *SessionInput) toProto() *sessionv1.Session {
 	}
 	resource.Spec.Harness = i.Harness
 	resource.Spec.CursorMode = i.CursorMode
+	resource.Spec.ExecutionTarget = i.ExecutionTarget
 	return resource
 }
 
@@ -188,6 +190,7 @@ func SessionInputFromProto(p *sessionv1.Session) *SessionInput {
 		}
 		input.Harness = s.GetHarness()
 		input.CursorMode = s.GetCursorMode()
+		input.ExecutionTarget = s.GetExecutionTarget()
 	}
 	return input
 }

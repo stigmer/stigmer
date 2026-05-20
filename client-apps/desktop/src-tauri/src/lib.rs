@@ -1,8 +1,10 @@
 mod auth;
 mod menu;
+mod runner;
 mod tray;
 
 use auth::{AuthCallbackPayload, param};
+use runner::RunnerState;
 use tauri::{Emitter, Manager, RunEvent, WindowEvent};
 use tauri_plugin_deep_link::DeepLinkExt;
 use tauri_plugin_window_state::{AppHandleExt, StateFlags};
@@ -31,11 +33,17 @@ pub fn run() {
                 .with_state_flags(StateFlags::all() & !StateFlags::VISIBLE)
                 .build(),
         )
+        .manage(RunnerState::new())
         .invoke_handler(tauri::generate_handler![
             auth::open_auth_in_browser,
             auth::cancel_auth,
             auth::start_auth_callback_server,
             auth::start_github_callback_server,
+            runner::start_runner,
+            runner::stop_runner,
+            runner::add_session,
+            runner::remove_session,
+            runner::runner_status,
         ])
         .on_menu_event(|app, event| menu::handle_menu_event(app, &event))
         .setup(|app| {

@@ -114,9 +114,23 @@ type SessionSpec struct {
 	//
 	// When UNSPECIFIED on an existing CURSOR session, the runner defaults
 	// to LOCAL for backward compatibility.
-	CursorMode    CursorMode `protobuf:"varint,11,opt,name=cursor_mode,json=cursorMode,proto3,enum=ai.stigmer.agentic.session.v1.CursorMode" json:"cursor_mode,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	CursorMode CursorMode `protobuf:"varint,11,opt,name=cursor_mode,json=cursorMode,proto3,enum=ai.stigmer.agentic.session.v1.CursorMode" json:"cursor_mode,omitempty"`
+	// Where session activities are executed — local client or cloud sandbox.
+	//
+	// Determines dispatch routing: LOCAL means the client's embedded runner
+	// (desktop app or CLI) polls the session's task queue; CLOUD means the
+	// server provisions a sandbox with a runner.
+	//
+	// Set by the client at session creation:
+	// - Desktop/CLI set LOCAL (they run an embedded runner)
+	// - Web console sets CLOUD (or UNSPECIFIED → server defaults to CLOUD)
+	// - Customer SDK sets whatever fits their architecture
+	//
+	// Immutable once an execution has run — workspace state may not be
+	// portable between local and cloud environments.
+	ExecutionTarget ExecutionTarget `protobuf:"varint,12,opt,name=execution_target,json=executionTarget,proto3,enum=ai.stigmer.agentic.session.v1.ExecutionTarget" json:"execution_target,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *SessionSpec) Reset() {
@@ -220,11 +234,18 @@ func (x *SessionSpec) GetCursorMode() CursorMode {
 	return CursorMode_CURSOR_MODE_UNSPECIFIED
 }
 
+func (x *SessionSpec) GetExecutionTarget() ExecutionTarget {
+	if x != nil {
+		return x.ExecutionTarget
+	}
+	return ExecutionTarget_EXECUTION_TARGET_UNSPECIFIED
+}
+
 var File_ai_stigmer_agentic_session_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"(ai/stigmer/agentic/session/v1/spec.proto\x12\x1dai.stigmer.agentic.session.v1\x1a&ai/stigmer/agentic/agent/v1/spec.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xc3\a\n" +
+	"(ai/stigmer/agentic/session/v1/spec.proto\x12\x1dai.stigmer.agentic.session.v1\x1a&ai/stigmer/agentic/agent/v1/spec.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\x9e\b\n" +
 	"\vSessionSpec\x12*\n" +
 	"\x11agent_instance_id\x18\x01 \x01(\tR\x0fagentInstanceId\x12\x18\n" +
 	"\asubject\x18\x02 \x01(\tR\asubject\x12\x1b\n" +
@@ -241,7 +262,8 @@ const file_ai_stigmer_agentic_session_v1_spec_proto_rawDesc = "" +
 	"\aharness\x18\n" +
 	" \x01(\x0e2&.ai.stigmer.agentic.session.v1.HarnessR\aharness\x12J\n" +
 	"\vcursor_mode\x18\v \x01(\x0e2).ai.stigmer.agentic.session.v1.CursorModeR\n" +
-	"cursorMode\x1a;\n" +
+	"cursorMode\x12Y\n" +
+	"\x10execution_target\x18\f \x01(\x0e2..ai.stigmer.agentic.session.v1.ExecutionTargetR\x0fexecutionTarget\x1a;\n" +
 	"\rMetadataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\x98\x02\n" +
@@ -268,6 +290,7 @@ var file_ai_stigmer_agentic_session_v1_spec_proto_goTypes = []any{
 	(*apiresource.ApiResourceReference)(nil), // 4: ai.stigmer.commons.apiresource.ApiResourceReference
 	(Harness)(0),                             // 5: ai.stigmer.agentic.session.v1.Harness
 	(CursorMode)(0),                          // 6: ai.stigmer.agentic.session.v1.CursorMode
+	(ExecutionTarget)(0),                     // 7: ai.stigmer.agentic.session.v1.ExecutionTarget
 }
 var file_ai_stigmer_agentic_session_v1_spec_proto_depIdxs = []int32{
 	1, // 0: ai.stigmer.agentic.session.v1.SessionSpec.metadata:type_name -> ai.stigmer.agentic.session.v1.SessionSpec.MetadataEntry
@@ -276,11 +299,12 @@ var file_ai_stigmer_agentic_session_v1_spec_proto_depIdxs = []int32{
 	4, // 3: ai.stigmer.agentic.session.v1.SessionSpec.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
 	5, // 4: ai.stigmer.agentic.session.v1.SessionSpec.harness:type_name -> ai.stigmer.agentic.session.v1.Harness
 	6, // 5: ai.stigmer.agentic.session.v1.SessionSpec.cursor_mode:type_name -> ai.stigmer.agentic.session.v1.CursorMode
-	6, // [6:6] is the sub-list for method output_type
-	6, // [6:6] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	7, // 6: ai.stigmer.agentic.session.v1.SessionSpec.execution_target:type_name -> ai.stigmer.agentic.session.v1.ExecutionTarget
+	7, // [7:7] is the sub-list for method output_type
+	7, // [7:7] is the sub-list for method input_type
+	7, // [7:7] is the sub-list for extension type_name
+	7, // [7:7] is the sub-list for extension extendee
+	0, // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_session_v1_spec_proto_init() }

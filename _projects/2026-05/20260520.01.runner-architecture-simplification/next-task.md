@@ -14,8 +14,48 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-20
-**Current Task**: T06 in progress — T06a/b/d complete, T06c blocked on architecture decision
-**Status**: Runner API vestiges cleaned from SDK and client apps. CLI wired with `--activity-routing` flag. File browsing migrated to native Tauri IPC. Per-session worker spawning design pending.
+**Current Task**: T06c complete — all 7 tracks implemented
+**Status**: Desktop-owned embedded runner with execution target routing fully implemented. ExecutionTarget proto added, dispatch updated (Go + Java), RunnerManager API created, IPC protocol wired, Tauri commands added, React hooks integrated, CLI daemon unified, `stigmer up server` fixed. All builds pass.
+
+## Session Progress (2026-05-20, Session 7)
+
+### What was accomplished
+- **T06c: Desktop-owned embedded runner with execution target routing** — all 7 tracks complete
+  - Track 0: Added `ExecutionTarget` enum (UNSPECIFIED/LOCAL/CLOUD) to session proto, codegen across Go/TS/Python/Java SDKs, updated Go + Java dispatch with `resolveExecutionTarget` and `DefaultExecutionTarget` config
+  - Track 1: Created `createStigmerRunnerManager()` in `src/runner-manager.ts` — shared NativeConnection, dynamic addSession/removeSession, pool shutdown
+  - Track 2: Added stdin/stdout JSON IPC protocol to `main.ts` — `STIGMER_RUNNER_MODE=manager` enters manager mode with newline-delimited JSON commands
+  - Track 3: Created `src-tauri/src/runner.rs` with Tauri IPC commands (start_runner, stop_runner, add_session, remove_session, runner_status)
+  - Track 4: Created `useEmbeddedRunner` hook + `EmbeddedRunnerContext` provider, mounted in App.tsx, wired `addSession` into SessionLauncher `onSessionCreated`
+  - Track 5: Replaced workflow-runner + agent-runner + cursor-runner in daemon with single unified `runner` component, removed Python bootstrap requirement
+  - Track 6: Fixed `stigmer up server` to pass `serverOnly: true` (was `false`)
+  - Track 7: Added 7 new Go dispatch tests for execution target resolution, verified all 19 Go tests pass, 1451/1452 runner tests pass (1 pre-existing), 10/10 Java tests pass
+  - Regenerated Java proto stubs in stigmer-cloud from updated OSS protos
+
+### Key changes
+1. **Proto**: `apis/ai/stigmer/agentic/session/v1/enum.proto` — `ExecutionTarget` enum
+2. **Proto**: `apis/ai/stigmer/agentic/session/v1/spec.proto` — `execution_target` field 12
+3. **Go dispatch**: `config.go` + `dispatch.go` — `DefaultExecutionTarget`, `resolveExecutionTarget()`
+4. **Runner**: `src/runner-manager.ts` — dynamic per-session Worker pool (~310 lines)
+5. **Runner**: `src/main.ts` — IPC manager mode (~185 lines added)
+6. **Tauri**: `src-tauri/src/runner.rs` — spawn/manage runner process (~260 lines)
+7. **React**: `useEmbeddedRunner.ts` + `EmbeddedRunnerContext.tsx` — hook + provider
+8. **CLI**: `daemon_process.go` — `buildComponents` simplified to single runner
+9. **CLI**: `daemon.go` — removed Python bootstrap, single Node.js runner bootstrap
+10. **CLI**: `up.go` — `stigmer up server` passes `serverOnly: true`
+11. **Java**: `SessionDispatchService` + `DispatchResult` + `AgentExecutionTemporalConfig` — execution target
+
+### Decisions made
+- `ExecutionTarget` is immutable once an execution has run (like harness)
+- Both LOCAL and CLOUD use `session:{id}` queues — only differs in who provides the runner
+- `DefaultExecutionTarget` config: OSS defaults to LOCAL, cloud defaults to CLOUD
+- Runner manager uses one shared NativeConnection + shared activities across all Workers
+- stdin/stdout JSON protocol matches LSP pattern (logs to stderr)
+- Tauri runner commands are fire-and-forget (don't block on IPC response for add/remove)
+- CLI daemon now requires the unified runner (Node.js) — removed Python agent-runner dependency
+
+### Surprises discovered
+- `stigmer up server` was passing `serverOnly: false` — same as `stigmer up` — never actually worked as documented
+- `daemon.go` imported `agentrunner` package unconditionally even in server-only mode
 
 ## Session Progress (2026-05-20, Session 6)
 
@@ -68,11 +108,10 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-1. **T06c: Per-session worker spawning** — requires architecture decision:
-   - Option A (recommended): CLI daemon manages workers — thin desktop, works from CLI too
-   - Option B: Desktop manages via sidecar commands — simpler notification but splits supervision
-   - Option C: Hybrid with dynamic queue registration — blocked by Temporal limitation
-2. **Cloud sandbox provisioning** — design `EnsureSessionSandbox` Temporal activity
+1. **Cloud sandbox provisioning** — design `EnsureSessionSandbox` Temporal activity (when `execution_target=CLOUD`)
+2. **TypeScript SDK `useNewSessionFlow`** — set `execution_target=LOCAL` when desktop has embedded runner
+3. **E2E testing** — desktop launch → runner starts → create session → addSession → activity executes
+4. **Worker count scaling** — verify 20+ Workers in one process doesn't overload Temporal connection
 
 ## Session Progress (2026-05-20, Session 5)
 
@@ -213,17 +252,20 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Context for Resume
 
 - Branch: `feat/unified-runner-migration` (both repos)
-- stigmer-cloud commit: `24e3d82c` — T05 complete
-- T05 files (Java dispatch):
-  - `backend/services/stigmer-service/.../dispatch/SessionDispatchService.java` — new dispatch service
-  - `backend/services/stigmer-service/.../AgentExecutionTemporalConfig.java` — `activityRouting` field
-  - `backend/services/stigmer-service/.../dispatch/DispatchResult.java` — simplified `(taskQueue, harness)`
-  - `backend/services/stigmer-service/.../dispatch/SessionDispatchServiceTest.java` — 10 tests
-- All builds pass: `./bazelw build //backend/services/stigmer-service/...` clean, 60/60 tests pass
-- Both control planes now implement identical `STIGMER_ACTIVITY_ROUTING` behavior:
-  - Go: `ResolveActivityTaskQueue` in `dispatch.go`
-  - Java: `SessionDispatchService.resolve()` in `SessionDispatchService.java`
-- Key env var: `STIGMER_ACTIVITY_ROUTING=global|session` (default: `global`)
+- T06c files:
+  - `apis/ai/stigmer/agentic/session/v1/enum.proto` — `ExecutionTarget` enum
+  - `backend/services/runner/src/runner-manager.ts` — `createStigmerRunnerManager()`
+  - `backend/services/runner/src/main.ts` — IPC manager mode
+  - `client-apps/desktop/src-tauri/src/runner.rs` — Tauri IPC commands
+  - `client-apps/desktop/src/hooks/useEmbeddedRunner.ts` + `EmbeddedRunnerContext.tsx`
+  - `backend/services/stigmer-server/.../dispatch.go` — `ExecutionTarget` in DispatchResult
+  - `client-apps/cli/internal/cli/daemon/daemon_process.go` — single unified runner
+- Key env vars:
+  - `STIGMER_RUNNER_MODE=manager` — enables IPC protocol in runner
+  - `STIGMER_ACTIVITY_ROUTING=global|session` (default: `global`)
+  - `STIGMER_DEFAULT_EXECUTION_TARGET=local|cloud` (default: `local` for OSS, `cloud` for managed)
+  - `STIGMER_RUNNER_NODE_BIN`, `STIGMER_RUNNER_APP_DIR`, `STIGMER_RUNNER_ENTRY_ARGS` — daemon runner config
+- All builds pass: Go, TypeScript (runner + desktop), Rust (Tauri), Java (Bazel)
 - Research report: `_projects/2026-05/20260518.01.unified-runner-migration/research.control-plane-runner-architecture-review/04.report.gemini.md`
 
 ## Quick Commands

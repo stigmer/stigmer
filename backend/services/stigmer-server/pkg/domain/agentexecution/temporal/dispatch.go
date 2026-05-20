@@ -19,11 +19,12 @@ const DefaultActivityTaskQueue = "agent_execution_runner"
 // sessionTaskQueuePrefix is the prefix for per-session task queue names.
 const sessionTaskQueuePrefix = "session:"
 
-// DispatchResult holds the resolved Temporal task queue and session harness
-// for workflow creation.
+// DispatchResult holds the resolved Temporal task queue, session harness,
+// and execution target for workflow creation.
 type DispatchResult struct {
-	TaskQueue string
-	Harness   sessionv1.Harness
+	TaskQueue       string
+	Harness         sessionv1.Harness
+	ExecutionTarget sessionv1.ExecutionTarget
 }
 
 // FormatSessionTaskQueue derives the canonical Temporal task queue name for a
@@ -47,9 +48,11 @@ func FormatSessionTaskQueue(sessionID string) string {
 //     runners) and cloud (per-session sandboxes).
 //
 // In both modes, the session is loaded to extract the harness configuration
-// (NATIVE vs CURSOR) which determines which activity type the workflow invokes.
+// (NATIVE vs CURSOR) and the execution target (LOCAL vs CLOUD) which determines
+// which activity type the workflow invokes and who provides the runner.
 func ResolveActivityTaskQueue(ctx context.Context, s store.Store, sessionID string, cfg *Config) (DispatchResult, error) {
 	harness := sessionv1.Harness_HARNESS_NATIVE
+	executionTarget := sessionv1.ExecutionTarget_EXECUTION_TARGET_UNSPECIFIED
 
 	if sessionID != "" {
 		session := &sessionv1.Session{}
@@ -58,24 +61,39 @@ func ResolveActivityTaskQueue(ctx context.Context, s store.Store, sessionID stri
 				return DispatchResult{}, fmt.Errorf("failed to load session for dispatch: %w", err)
 			}
 			log.Warn().Str("session_id", sessionID).
-				Msg("Session not found during dispatch, using default harness")
+				Msg("Session not found during dispatch, using defaults")
 		} else {
 			harness = session.GetSpec().GetHarness()
+			executionTarget = session.GetSpec().GetExecutionTarget()
 		}
 	}
 
+	resolvedTarget := resolveExecutionTarget(executionTarget, cfg)
 	taskQueue := resolveTaskQueue(sessionID, cfg)
 
 	log.Info().
 		Str("session_id", sessionID).
 		Str("task_queue", taskQueue).
 		Str("routing_mode", cfg.ActivityRouting).
+		Str("execution_target", resolvedTarget.String()).
 		Msg("Dispatch resolved activity task queue")
 
 	return DispatchResult{
-		TaskQueue: taskQueue,
-		Harness:   harness,
+		TaskQueue:       taskQueue,
+		Harness:         harness,
+		ExecutionTarget: resolvedTarget,
 	}, nil
+}
+
+// resolveExecutionTarget resolves UNSPECIFIED to the configured default.
+func resolveExecutionTarget(target sessionv1.ExecutionTarget, cfg *Config) sessionv1.ExecutionTarget {
+	if target != sessionv1.ExecutionTarget_EXECUTION_TARGET_UNSPECIFIED {
+		return target
+	}
+	if cfg.DefaultExecutionTarget == DefaultExecutionTargetCloud {
+		return sessionv1.ExecutionTarget_EXECUTION_TARGET_CLOUD
+	}
+	return sessionv1.ExecutionTarget_EXECUTION_TARGET_LOCAL
 }
 
 // resolveTaskQueue derives the task queue name based on routing mode and session ID.

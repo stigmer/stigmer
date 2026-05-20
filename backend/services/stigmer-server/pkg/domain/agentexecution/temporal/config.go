@@ -18,6 +18,17 @@ const (
 	RoutingSession = "session"
 )
 
+// Default execution target constants.
+const (
+	// DefaultExecutionTargetLocal resolves UNSPECIFIED to LOCAL.
+	// Used in OSS/self-hosted deployments.
+	DefaultExecutionTargetLocal = "local"
+
+	// DefaultExecutionTargetCloud resolves UNSPECIFIED to CLOUD.
+	// Used in managed cloud service.
+	DefaultExecutionTargetCloud = "cloud"
+)
+
 // Config holds configuration for agent execution Temporal workers.
 //
 // Polyglot Architecture:
@@ -28,6 +39,7 @@ const (
 // - TEMPORAL_AGENT_EXECUTION_STIGMER_TASK_QUEUE: Queue for Go workflows
 // - TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE: Default queue for runner activities
 // - STIGMER_ACTIVITY_ROUTING: Routing mode ("global" or "session")
+// - STIGMER_DEFAULT_EXECUTION_TARGET: Default target when session's is UNSPECIFIED ("local" or "cloud")
 type Config struct {
 	// StigmerQueue is the task queue for Go workflows (stigmer-server).
 	// Default: agent_execution_stigmer
@@ -44,6 +56,11 @@ type Config struct {
 	// "global" (default): all activities route to RunnerQueue.
 	// "session": activities route to session:{session_id} per-session queues.
 	ActivityRouting string
+
+	// DefaultExecutionTarget resolves EXECUTION_TARGET_UNSPECIFIED on sessions.
+	// "local" (default): client's runner polls the queue.
+	// "cloud": server provisions a sandbox.
+	DefaultExecutionTarget string
 }
 
 // NewConfig creates a new Config with values from environment variables or defaults.
@@ -63,9 +80,15 @@ func NewConfig() *Config {
 		activityRouting = RoutingGlobal
 	}
 
+	defaultTarget := os.Getenv("STIGMER_DEFAULT_EXECUTION_TARGET")
+	if defaultTarget == "" {
+		defaultTarget = DefaultExecutionTargetLocal
+	}
+
 	return &Config{
-		StigmerQueue:    stigmerQueue,
-		RunnerQueue:     runnerQueue,
-		ActivityRouting: activityRouting,
+		StigmerQueue:           stigmerQueue,
+		RunnerQueue:            runnerQueue,
+		ActivityRouting:        activityRouting,
+		DefaultExecutionTarget: defaultTarget,
 	}
 }

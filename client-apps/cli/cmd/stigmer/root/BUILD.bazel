@@ -120,7 +120,6 @@ go_library(
         "//client-apps/cli/internal/cli/oauthapp",
         "//client-apps/cli/internal/cli/organization",
         "//client-apps/cli/internal/cli/project",
-        "//client-apps/cli/internal/cli/runner",
         "//client-apps/cli/internal/cli/search",
         "//client-apps/cli/internal/cli/seedpackbootstrap",
         "//client-apps/cli/internal/cli/session",
