@@ -19,6 +19,7 @@ import type {
   TaskEntry,
   DoTaskDef,
   ForTaskDef,
+  ForkTaskDef,
   TryTaskDef,
   WorkflowModel,
   WorkflowState,
@@ -26,9 +27,10 @@ import type {
   ExpressionEvaluator,
 } from "./types.js";
 import { isTermination, isExplicitTarget } from "./types.js";
-import { createTaskBuilder, DO_TASK_KIND, FOR_TASK_KIND, TRY_TASK_KIND } from "./task-factory.js";
+import { createTaskBuilder, DO_TASK_KIND, FOR_TASK_KIND, FORK_TASK_KIND, TRY_TASK_KIND } from "./task-factory.js";
 import { extractFlowDirective } from "./tasks/switch.js";
 import { executeForTask } from "./tasks/for.js";
+import { executeForkTask } from "./tasks/fork.js";
 import { executeTryTask } from "./tasks/try.js";
 
 /**
@@ -226,6 +228,18 @@ async function runSingleTask(
     const forTaskDef = taskDef as ForTaskDef;
     return executeForTask(
       forTaskDef,
+      input,
+      state,
+      doc,
+      ctx.evaluateExpressions,
+      ctx,
+    );
+  }
+
+  if (taskDef.kind === FORK_TASK_KIND) {
+    const forkTaskDef = taskDef as ForkTaskDef;
+    return executeForkTask(
+      forkTaskDef,
       input,
       state,
       doc,

@@ -14,10 +14,38 @@ Drop this file into your conversation to quickly resume work on this project.
 
 **Created**: 2026-05-19
 **Current Task**: Phase 5 — Advanced Tasks
-**Status**: IN PROGRESS (5.1 complete, 5.2+ pending)
-**Last Session**: 2026-05-20, Session 7
+**Status**: IN PROGRESS (5.1 + 5.2 complete, 5.3+ pending)
+**Last Session**: 2026-05-20, Session 8
 
-## Session Progress (2026-05-20, Session 7)
+## Session Progress (2026-05-20, Session 8)
+
+### Accomplishments — Phase 5.2: Fork (Parallel Execution)
+- **5.2.1 Fork executor**: `executeForkTask()` with two execution modes — non-compete (`Promise.all`, output = `{ branchName: branchOutput }`) and compete/race (`Promise.race`, output = winner's raw output). State isolation via `state.clone().clearOutput()` per branch. Lazy `executeDoTasks` import for circular dependency resolution (same pattern as for/try).
+- **5.2.2 Branch normalization**: `normalizeBranchTasks()` unwraps `DoTaskDef` branches into their task list, wraps single leaf tasks into one-element lists. Mirrors Go's branch wrapping in `ForkTaskBuilder.buildOrPostLoad()`.
+- **5.2.3 Wiring**: `do-executor.ts` dispatches `FORK_TASK_KIND` via `executeForkTask()` (same pattern as `for` and `try`); `task-factory.ts` registers `fork` → `ForkTaskPlaceholderBuilder`
+- **5.2.4 Testing**: 37 new tests — fork executor (29: non-compete output shape, state isolation, error handling, compete mode, branch normalization, nested orchestration, input propagation, conditional fork, output/export integration), do-executor (3: dispatch + output.as + export.as), loader (4: fork parsing + compete flag + golden #15). Plus 1 golden YAML parsing test.
+- **5.2.5 Golden YAML #15**: `15-fork-parallel.yaml` — non-compete 3-branch fork, downstream aggregation via `$output`, compete mode with 2 branches, nested fork (fork inside fork)
+- **Zero regressions**, 1238 total tests passing, `tsc --noEmit` clean
+
+### Key Architectural Decisions
+- **No active cancellation in compete mode** — losing branches run to completion but results are discarded. Preserves kernel Temporal-agnosticism (no `CancellationScope` import). Go's cancellation via `workflow.WithCancel` also does not short-circuit in practice (documented in `TestWorkflowFork_CompeteCancellationTiming`). Active cancellation can be added later via a `forkBranches` callback on `TaskExecutionContext` if needed.
+- **Compete output is winner's raw output, not Go's `maps.Copy`** — Go type-asserts `result.data.(map[string]any)` which panics on non-map branch outputs. Our implementation returns the winner's output as-is (any type), matching CNCF spec ("returns only the output of the winning branch"). Cleaner, type-safe, spec-aligned.
+- **Fail-fast error semantics** — `Promise.all` for non-compete, `Promise.race` for compete. First error from any branch fails the entire fork. Composes correctly with `try/catch` (users can wrap fork in try for error tolerance, or put try/catch inside branches for per-branch isolation). No error aggregation — matches Go behavior.
+- **Unhandled rejection prevention** — compete mode attaches no-op `.catch()` handlers to all branch promises before racing, preventing unhandled promise rejection warnings from losing branches.
+- **No changes to TaskExecutionContext** — fork follows the same pure-kernel pattern as for/try. No new callbacks, no test mock changes, no workflow function changes. Clean, focused, additive.
+
+### Files Created
+- **Created**: `backend/services/runner/src/workflow-engine/tasks/fork.ts` (~190 lines)
+- **Created**: `backend/services/runner/src/workflow-engine/__tests__/fork.test.ts` (~450 lines, 29 tests)
+- **Created**: `backend/services/workflow-runner/test/golden/15-fork-parallel.yaml` (~90 lines)
+
+### Files Modified
+- **Modified**: `backend/services/runner/src/workflow-engine/do-executor.ts` (+12 lines — FORK_TASK_KIND handling, import)
+- **Modified**: `backend/services/runner/src/workflow-engine/task-factory.ts` (+6 lines — fork case, ForkTaskPlaceholderBuilder import, FORK_TASK_KIND export)
+- **Modified**: `backend/services/runner/src/workflow-engine/__tests__/do-executor.test.ts` (+60 lines — 3 fork integration tests)
+- **Modified**: `backend/services/runner/src/workflow-engine/__tests__/loader.test.ts` (+70 lines — 4 fork parsing tests including golden #15)
+
+## Previous Session Progress (2026-05-20, Session 7)
 
 ### Accomplishments — Phase 5.1: Try/Catch + Raise
 - **5.1.1 WorkflowError class**: `WorkflowError extends Error` with CNCF error shape (`type`, `status`, `title`, `detail`, `instance`), `toJSON()` serialization, `fromUnknown()` wrapping, `matches()` error filtering — sandbox-safe, zero dependencies
@@ -139,10 +167,9 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Next Steps
 
 1. **Phase 5.1b: Retry** (optional) — add `sleep` callback to `TaskExecutionContext`, implement retry loop with backoff in `executeTryTask()`, update test mocks
-2. **Phase 5.2: Fork (parallel)** — parallel execution branches, architecturally significant
-3. **Phase 5.3: Remaining Advanced Tasks** — wait/listen, emit_event, notification, human_input
-4. **Phase 6: Supporting Infrastructure** — claimcheck, heartbeat, interceptors, OTel, event emission, budget tracking
-5. **Phase 7: Integration Testing** — 14 golden YAMLs passing identically, regression suite
+2. **Phase 5.3: Remaining Advanced Tasks** — wait/listen, emit_event, notification, human_input
+3. **Phase 6: Supporting Infrastructure** — claimcheck, heartbeat, interceptors, OTel, event emission, budget tracking
+4. **Phase 7: Integration Testing** — 15 golden YAMLs passing identically, regression suite
 
 ## Context for Resume
 
@@ -160,7 +187,8 @@ Drop this file into your conversation to quickly resume work on this project.
 - Golden test YAMLs are at `backend/services/workflow-runner/test/golden/` (12 canonical workflows)
 - **New in Phase 5.1**: `try/catch` uses a dedicated executor (`executeTryTask()`) dispatched from `runSingleTask()` — same pattern as `do` and `for`. `WorkflowError` class normalizes all caught errors to CNCF shape for filtering and state binding.
 - **New in Phase 5.1**: `raise` task throws typed `WorkflowError` with expression evaluation in title/detail. Integrated via `RaiseTaskBuilder` in the task factory.
-- Executable task types: `set`, `switch`, `do`, `for`, `try`, `raise`, `call:http`, `call:grpc`, `call:agent`, `call:function`. Remaining: `fork`, `wait`, `listen`, `run`.
+- **New in Phase 5.2**: `fork` uses a dedicated executor (`executeForkTask()`) dispatched from `runSingleTask()` — same pattern as `do`, `for`, and `try`. Non-compete mode uses `Promise.all`, compete mode uses `Promise.race`. State isolation via clone per branch. No `TaskExecutionContext` changes.
+- Executable task types: `set`, `switch`, `do`, `for`, `fork`, `try`, `raise`, `call:http`, `call:grpc`, `call:agent`, `call:function`. Remaining: `wait`, `listen`, `run`.
 
 ## Prior Research
 
@@ -182,7 +210,7 @@ Full report: `_projects/2026-05/20260518.01.unified-runner-migration/research.wo
 | 2 | Simple Task Types — for, nested iteration | 1-2 | **COMPLETE** (26 tests, 583 LOC) |
 | 3 | Expression Engine (full) — Temporal integration, local activity, input/output transforms | 1-2 | **COMPLETE** (24 tests, ~670 LOC) |
 | 4 | External Call Tasks — call_http, call_grpc, call_llm, call_agent | 3-4 | **COMPLETE** (100 tests, ~2,200 LOC) |
-| 5 | Advanced Tasks — try/catch, wait/listen, emit_event, notification, human_input, fork | 2-3 | **IN PROGRESS** (5.1 try/catch+raise COMPLETE, 42 tests) |
+| 5 | Advanced Tasks — try/catch, wait/listen, emit_event, notification, human_input, fork | 2-3 | **IN PROGRESS** (5.1 try/catch+raise COMPLETE, 5.2 fork COMPLETE, 79 tests) |
 | 6 | Supporting Infrastructure — claimcheck, heartbeat, interceptors, OTel | 2-3 | Blocked on Phase 5 |
 | 7 | Integration Testing — 13 golden YAMLs, regression suite | 3-4 | Blocked on Phase 5 |
 | 8 | Deployment & Cutover — Docker, CI, gradual rollout | 2-3 | Blocked on Phase 7 |
@@ -197,7 +225,7 @@ Full report: `_projects/2026-05/20260518.01.unified-runner-migration/research.wo
 - **Go call:grpc reference**: `backend/services/workflow-runner/pkg/zigflow/tasks/task_builder_call_grpc.go`
 - **Go call:llm reference**: `backend/services/workflow-runner/pkg/zigflow/tasks/task_builder_call_llm.go`
 - **Go call:agent reference**: `backend/services/workflow-runner/pkg/zigflow/tasks/task_builder_call_agent.go` (~1,500 lines)
-- **Golden test YAMLs**: `backend/services/workflow-runner/test/golden/` (14 canonical workflows)
+- **Golden test YAMLs**: `backend/services/workflow-runner/test/golden/` (15 canonical workflows)
 - **Runtime expressions**: `backend/services/workflow-runner/pkg/utils/runtime_expressions.go`
 - **Unified runner project**: `_projects/2026-05/20260518.01.unified-runner-migration/`
 - **PoC results**: `_projects/2026-05/20260519.01.workflow-runner-typescript-rewrite/poc/results/`
@@ -215,6 +243,8 @@ Full report: `_projects/2026-05/20260518.01.unified-runner-migration/research.wo
 - **TS try/catch executor**: `backend/services/runner/src/workflow-engine/tasks/try.ts` (executeTryTask, placeholder builder)
 - **TS raise task builder**: `backend/services/runner/src/workflow-engine/tasks/raise.ts` (throw typed errors)
 - **Golden YAML #14**: `backend/services/workflow-runner/test/golden/14-try-catch-raise.yaml` (try/catch/raise)
+- **TS fork executor**: `backend/services/runner/src/workflow-engine/tasks/fork.ts` (executeForkTask, branch normalization, placeholder builder)
+- **Golden YAML #15**: `backend/services/workflow-runner/test/golden/15-fork-parallel.yaml` (non-compete, compete, nested fork)
 
 ---
 
