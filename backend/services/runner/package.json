@@ -72,6 +72,7 @@
     "@temporalio/worker": "^1.11.0",
     "@temporalio/workflow": "^1.16.2",
     "deepagents": "^1.10.0",
+    "jq-wasm": "^1.1.0-jq-1.8.1",
     "zod": "^3.25.0"
   },
   "devDependencies": {

@@ -51,9 +51,16 @@ export class WorkspaceProvisionError extends Error {
  *
  * In local mode, commands run via child_process. In cloud mode (Phase 3),
  * commands route through the Daytona sandbox proxy.
+ *
+ * When `platformDir` is set, paths under `.stigmer/` are transparently
+ * routed to the platform directory instead of the workspace root. This
+ * keeps platform files (skills, inputs) physically separate from the
+ * user's workspace while presenting a unified `.stigmer/` namespace to
+ * the agent.
  */
 export interface WorkspaceBackend {
   readonly rootDir: string;
+  readonly platformDir?: string;
   execute(command: string, options?: { cwd?: string }): Promise<string>;
   readFile(path: string): Promise<string>;
   writeFile(path: string, content: string): Promise<void>;

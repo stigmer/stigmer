@@ -15,6 +15,7 @@ import type { StigmerClient } from "../../client/stigmer-client.js";
 import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import type { SkillMetadata } from "./prompt-builder.js";
+import { getPlatformDir } from "../../shared/workspace/platform-dir.js";
 
 const STIGMER_LOCAL_STATE_DIR = ".stigmer";
 const SKILLS_SUBDIR = "skills";
@@ -114,11 +115,6 @@ async function ensureStigmerSymlink(
   }
 
   await symlink(platformDir, linkPath, "dir");
-}
-
-function getPlatformDir(sessionId: string): string {
-  const home = process.env.HOME || process.env.USERPROFILE || "/tmp";
-  return join(home, ".stigmer", "sessions", sessionId, "platform");
 }
 
 /**

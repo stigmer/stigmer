@@ -30,6 +30,7 @@ import { backfillMcpServersIfNeeded } from "../../shared/connect-backfill.js";
 import { WorkspaceProvisioner } from "../../shared/workspace/provisioner.js";
 import { LocalWorkspaceBackend } from "../../shared/workspace/local-backend.js";
 import type { WorkspaceBackend, ProvisionResult } from "../../shared/workspace/types.js";
+import { ensurePlatformDir } from "../../shared/workspace/platform-dir.js";
 import { buildWorkspaceFileTree } from "../../shared/workspace/file-tree.js";
 import { reportSetupProgress } from "../../shared/status.js";
 import { resolveEnvironment, type EnvironmentResult } from "./environment.js";
@@ -152,6 +153,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       config,
       session,
       envResult.mergedEnvVars,
+      sessionId,
     );
 
     // Step 7: Resolve and connect MCP servers
@@ -444,8 +446,10 @@ async function provisionWorkspace(
   config: Config,
   session: Session,
   mergedEnvVars: Record<string, string>,
+  sessionId: string,
 ): Promise<{ workspaceBackend: WorkspaceBackend; provisionResults: ProvisionResult[] }> {
-  const workspaceBackend = new LocalWorkspaceBackend(config.workspaceRootDir);
+  const platformDir = await ensurePlatformDir(sessionId);
+  const workspaceBackend = new LocalWorkspaceBackend(config.workspaceRootDir, platformDir);
 
   const workspaceEntries = session.spec!.workspaceEntries || [];
   if (workspaceEntries.length === 0) {
@@ -463,13 +467,13 @@ async function provisionWorkspace(
     config.mode === "local",
   );
 
-  // If single entry changed root dir, create a new backend
+  // If single entry changed root dir, create a new backend with the same platformDir
   if (
     provisionResults.length === 1 &&
     provisionResults[0].rootDir !== workspaceBackend.rootDir
   ) {
     return {
-      workspaceBackend: new LocalWorkspaceBackend(provisionResults[0].rootDir),
+      workspaceBackend: new LocalWorkspaceBackend(provisionResults[0].rootDir, platformDir),
       provisionResults,
     };
   }

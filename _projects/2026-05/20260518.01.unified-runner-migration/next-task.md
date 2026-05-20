@@ -16,7 +16,7 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260518.01.unified-runner-migration/checkpoints/2026-05-20-session-17-phase5-test-porting.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260518.01.unified-runner-migration/checkpoints/2026-05-20-session-18-phase5-tier6-w1-platform-mount.md
 ```
 
 ### 2. Current Task
@@ -44,13 +44,32 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 **Created**: 2026-05-18 15:11  
-**Last Session**: 2026-05-20 — Phase 5 Test Porting (Workstream 1, Tiers 0–5)  
-**Current Task**: Phase 5 Tier 6 (Feature-Gap Items) or Phase 6 (Deployment)  
-**Status**: Phase 5 Tiers 0–5 COMPLETE — 181 new tests, 723 total; Tier 6 deferred (feature builds, not test ports)
+**Last Session**: 2026-05-20 — Phase 5 Tier 6 W1 (Platform Mount)  
+**Current Task**: Phase 5 Tier 6 W2 (Attachment Injector)  
+**Status**: W1 Platform Mount COMPLETE — 86 new tests (809 total); W2 next
 
 ## Session Progress (2026-05-20, latest)
 
-### What Was Accomplished (Phase 5 — Test Porting, Tiers 0–5)
+### What Was Accomplished (Phase 5 Tier 6 W1 — Platform Mount)
+
+**4 new files** (2 modules + 2 test suites):
+- **`src/shared/workspace/platform-mount.ts`** — 5 pure functions + 3 constants: classifyPlatformPath, humanizePlatformRefs, resolvePlatformCommand, humanizeSandboxPaths, resolveDisplayEnvVars. Ported from Python `graphton/core/backends/platform_mount.py`.
+- **`src/shared/workspace/platform-dir.ts`** — Shared `getPlatformDir`/`ensurePlatformDir` for session-scoped platform directory. Replaces duplication in Cursor harness.
+- **`src/shared/workspace/__tests__/platform-mount.test.ts`** — 61 tests covering all pure functions + combined pipeline.
+- **`src/shared/workspace/__tests__/local-backend-platform.test.ts`** — 25 tests for routing, env injection, traversal safety, backward compat.
+
+**5 files modified**:
+- **`src/shared/workspace/types.ts`** — Added optional `platformDir` to `WorkspaceBackend` interface.
+- **`src/shared/workspace/local-backend.ts`** — Added `.stigmer/` path routing via `resolvePath()`, `STIGMER_PLATFORM_DIR` env injection in `execute()`, auto-mkdir for platform writes, path traversal guard.
+- **`src/activities/execute-deep-agent/setup.ts`** — Wired `ensurePlatformDir(sessionId)` into `provisionWorkspace()`, passes `platformDir` to all `LocalWorkspaceBackend` instances.
+- **`src/activities/execute-cursor/skill-resolver.ts`** — Replaced local `getPlatformDir` with shared module.
+- **`src/activities/execute-cursor/attachment-resolver.ts`** — Replaced local `getPlatformDir` with shared module.
+
+**Design decision**: Chose separate `platformDir` over real `.stigmer/` directory. Skills/inputs physically live at `~/.stigmer/sessions/{sessionId}/platform/`, never inside workspace entries. Matches Python AD-01 v3 and existing Cursor harness pattern.
+
+**Results**: 809 tests passing (86 new). `tsc --noEmit` clean. No new dependencies.
+
+### Previous: What Was Accomplished (Phase 5 — Test Porting, Tiers 0–5)
 
 **11 new files** (3 shared test-utils + 8 test suites):
 - **`src/__test-utils__/mock-client.ts`** — Reusable StigmerClient mock factory.
@@ -102,6 +121,7 @@ The following Python tests cover features with **no TS implementation**. These r
 **Key findings**: (1) Proxy routing was broken — TS runner passed bare `proxyEndpoint` to LangChain without `/v1/proxy/llm/{provider}` suffix expected by `LlmProxyController`. (2) Gemini deferred — cloud proxy only supports openai + anthropic; no `google` provider in `LlmProxyConfig`. (3) `createDeepAgent` is provider-agnostic (`BaseLanguageModel | string` param); `cache_control` annotations are no-op for non-Anthropic. (4) 471 tests passing (39 new).
 
 ### Prior Sessions
+- **Phase 5 Tier 6 W1 Platform Mount (2026-05-20)**: Virtual platform mount with separate platformDir — see `checkpoints/2026-05-20-session-18-phase5-tier6-w1-platform-mount.md`
 - **Phase 5 Test Porting (2026-05-20)**: 181 new tests across 8 files — see `checkpoints/2026-05-20-session-17-phase5-test-porting.md`
 - **Phase 4 Skill Relevance Filtering (2026-05-19)**: BM25 scoring + skill pipeline for deep-agent — see `checkpoints/2026-05-19-session-16-phase4-skill-relevance.md`
 - **Phase 4 Connect Backfill (2026-05-19)**: Shared connect-backfill module + wired into deep-agent — see `checkpoints/2026-05-19-session-15-phase4-connect-backfill.md`
@@ -121,9 +141,10 @@ The following Python tests cover features with **no TS implementation**. These r
 
 ## Next Steps
 
-1. ~~**Phase 4: Supporting Activities**~~ — **COMPLETE**. All items done or removed from scope.
-2. **Phase 5: Testing** — Tiers 0–5 COMPLETE (181 new tests, 723 total). **Tier 6 deferred** — feature-gap items requiring new TS module builds (~223 Python tests across 8 feature areas).
-3. **Phase 5 Tier 6 OR Phase 6: Deployment** — Choose: build missing TS modules for Tier 6 feature parity, or proceed to deployment with current 723-test coverage.
+1. ~~**Phase 4: Supporting Activities**~~ — **COMPLETE**.
+2. ~~**Phase 5 Tiers 0–5: Testing**~~ — **COMPLETE** (181 new tests, 723 total).
+3. **Phase 5 Tier 6: Feature-Gap Modules** — **IN PROGRESS** (W1 Platform Mount COMPLETE; W2 Attachment Injector NEXT; W3 Subagent Transformer after).
+4. **Phase 6: Deployment** — After Tier 6 complete.
 
 ## Context for Resume
 
@@ -193,7 +214,7 @@ None.
 | 3b-iii | Artifacts + Writeback | 2-3 | COMPLETE |
 | 3c | HITL + Approval | 2-3 | COMPLETE |
 | 4 | Supporting Activities | 2-3 | **COMPLETE** (all items done or removed from scope; 542 tests passing) |
-| 5 | Testing | 3-4 | **IN PROGRESS** (Tiers 0–5 done, 723 tests; Tier 6 deferred) |
+| 5 | Testing | 3-4 | **IN PROGRESS** (Tiers 0–5 done; Tier 6 W1 done, W2 next) |
 | 6 | Deployment | 2-3 | Blocked on Phase 5 |
 | 7 | Cleanup | 1-2 | Blocked on Phase 6 |
 
@@ -213,7 +234,8 @@ None.
 
 ## Quick Commands
 
-- "Continue Phase 5 Tier 6" — Build missing TS modules for feature-gap Python tests
+- "Continue with W2: Attachment Injector" — Next Tier 6 workstream (depends on W1)
+- "Continue with W3: Subagent Transformer" — After W2 (2 sessions)
 - "Start Phase 6" — Deployment: Docker image, queue routing, cutover
 - "Show project status" — Roadmap and file overview
 - `@_projects/2026-05/20260518.01.unified-runner-migration/next-task.md` — Resume context
