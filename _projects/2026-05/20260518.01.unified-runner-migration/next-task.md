@@ -16,7 +16,7 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260518.01.unified-runner-migration/checkpoints/2026-05-19-session-16-phase4-skill-relevance.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260518.01.unified-runner-migration/checkpoints/2026-05-20-session-17-phase5-test-porting.md
 ```
 
 ### 2. Current Task
@@ -44,26 +44,54 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 **Created**: 2026-05-18 15:11  
-**Last Session**: 2026-05-19 — Phase 4 Skill Relevance Filtering  
-**Current Task**: Phase 5 — Testing (next)  
-**Status**: Phase 4 COMPLETE — all supporting activities ported, skill relevance filtering done, Daytona removed from scope; 542 tests passing
+**Last Session**: 2026-05-20 — Phase 5 Test Porting (Workstream 1, Tiers 0–5)  
+**Current Task**: Phase 5 Tier 6 (Feature-Gap Items) or Phase 6 (Deployment)  
+**Status**: Phase 5 Tiers 0–5 COMPLETE — 181 new tests, 723 total; Tier 6 deferred (feature builds, not test ports)
 
-## Session Progress (2026-05-19, latest)
+## Session Progress (2026-05-20, latest)
 
-### What Was Accomplished (Phase 4 — Skill Relevance Filtering)
+### What Was Accomplished (Phase 5 — Test Porting, Tiers 0–5)
 
-**4 new files**:
-- **`src/shared/skill-relevance.ts`** — BM25-based skill scoring: tokenization with stop-word removal, IDF computation, term-frequency saturation, document-length normalization. Threshold of 8 skills activates filtering; safety floor keeps at least half included.
-- **`src/shared/skill-writer.ts`** — Complete skill pipeline: `mergeSkillRefs`, `fetchSkillsByRefs`, `writeSkills` (ZIP extraction), `generatePromptSection` (progressive disclosure), `generateAlsoAvailableSection`, `fetchSkillArtifacts`, `checkSkillIntegrity` (resume fast-path).
-- **`src/shared/__tests__/skill-relevance.test.ts`** — 27 unit tests covering tokenization, BM25 scoring, threshold filtering, safety floor, alphabetical ordering.
-- **`src/shared/__tests__/skill-writer.test.ts`** — 27 unit tests covering merge logic, gRPC fetch with error resilience, workspace writing, prompt generation, artifact downloads.
+**11 new files** (3 shared test-utils + 8 test suites):
+- **`src/__test-utils__/mock-client.ts`** — Reusable StigmerClient mock factory.
+- **`src/__test-utils__/mock-workspace.ts`** — Reusable WorkspaceBackend mock factory.
+- **`src/__test-utils__/proto-helpers.ts`** — Shared proto message builders (emptyStatus, aiMessage, toolCall).
+- **`src/shared/workspace/__tests__/file-tree.test.ts`** — 20 tests (zero before): ignores, depth/entry caps, gitignore, dotfiles, truncation.
+- **`src/shared/workspace/__tests__/git-source.test.ts`** — 17 tests (zero before): clone, idempotent reuse, token injection/sanitization, targetSubdir, git excludes, metadata.
+- **`src/shared/workspace/__tests__/local-backend.test.ts`** — 18 tests (3 before): execute, read/write/exists, cwd options, absolute paths, initializeLocalWorkspace.
+- **`src/shared/__tests__/placeholder-resolver.test.ts`** — 26 tests (zero before): `${VAR}` resolution, strict errors, headers, filterEnvToDeclaredKeys, pattern edge cases.
+- **`src/shared/__tests__/approval-policy.test.ts`** — 16 tests (zero before): four-level merge chain, autoApproveAll, pinned overrides, lookupMcpToolPolicy, resolveApprovalMessage.
+- **`src/shared/__tests__/grpc-retry-extended.test.ts`** — 13 tests: INTERNAL/ALREADY_EXISTS codes, mixed error sequences, maxRetries=0, custom backoff.
+- **`src/shared/__tests__/artifact-storage-extended.test.ts`** — 18 tests: local upload/download/exists, proxy presign flow, createArtifactStorage factory.
+- **`src/activities/execute-deep-agent/__tests__/execution-state-extended.test.ts`** — 8 tests: rebuildToolCallIndex, resetEphemeralState, reference identity.
 
 **1 file modified**:
-- **`src/activities/execute-deep-agent/setup.ts`** — Added Step 7b: merge skill_refs from agent + session, fetch skills via gRPC, download artifacts, write to workspace, apply BM25 relevance filter, generate prompt section.
+- **`src/activities/execute-deep-agent/__tests__/status-builder.test.ts`** — +45 tests: approval provider integration, args sanitization, namespace routing, usage edge cases, error resilience, concurrent tools, thinking interleaving, content edge cases.
 
-**Key decisions**: (1) Zero external dependencies for BM25 (standard library only). (2) Daytona sandbox removed from roadmap — runners execute inside Daytona sandboxes created by stigmer-service; no runner-level SDK needed. (3) ZIP parser is minimal and built-in (node:zlib). (4) Shared modules in `src/shared/` (not activity-specific) for eventual cursor-runner consolidation.
+**Results**: 723 tests passing (181 new). `tsc --noEmit` clean. No new dependencies. 51 test files (8 new).
 
-**Results**: 542 tests passing (54 new). `tsc --noEmit` clean. No new dependencies.
+### Deferred: Phase 5 Tier 6 (Feature-Gap Items)
+
+The following Python tests cover features with **no TS implementation**. These require building new modules, not just porting tests:
+
+| Feature | Python Tests | Module Needed |
+|---------|-------------|---------------|
+| Subagent transformer | 39 | `subagent-transformer.ts` — SubAgent proto → runtime format |
+| Task-aware relevance | 60 | `relevance.ts` — file path extraction from user messages |
+| Attachment injection | 30 | `attachment-injector.ts` — ZIP extraction with security guards |
+| Platform mount | 21 | `platform-mount.ts` — virtual mount path routing |
+| Integration: skill pipeline | 36 | E2E test for gRPC fetch → artifact → ZIP → prompt |
+| Integration: subagent pipeline | 9 | E2E for transform → MCP → skill injection |
+| Multi-workspace integration | 21 | Full provisioner → file tree → prompt section |
+| Skill client | 7 | Dedicated gRPC client unit tests |
+
+**Total deferred: ~223 tests** across 8 feature areas. These are Phase 5 Tier 6 scope or can be bundled with Phase 6.
+
+### Prior Session (Phase 4 — Skill Relevance Filtering, 2026-05-19)
+
+**4 new files**: skill-relevance.ts, skill-writer.ts, and their test suites (54 tests).
+**1 file modified**: setup.ts — Step 7b: skill pipeline wiring.
+**Results**: 542 tests passing.
 
 ### Prior Sessions (Phase 4 — Connect Backfill for Deep Agent)
 
@@ -74,6 +102,7 @@ Drop this file into your conversation to quickly resume work on this project.
 **Key findings**: (1) Proxy routing was broken — TS runner passed bare `proxyEndpoint` to LangChain without `/v1/proxy/llm/{provider}` suffix expected by `LlmProxyController`. (2) Gemini deferred — cloud proxy only supports openai + anthropic; no `google` provider in `LlmProxyConfig`. (3) `createDeepAgent` is provider-agnostic (`BaseLanguageModel | string` param); `cache_control` annotations are no-op for non-Anthropic. (4) 471 tests passing (39 new).
 
 ### Prior Sessions
+- **Phase 5 Test Porting (2026-05-20)**: 181 new tests across 8 files — see `checkpoints/2026-05-20-session-17-phase5-test-porting.md`
 - **Phase 4 Skill Relevance Filtering (2026-05-19)**: BM25 scoring + skill pipeline for deep-agent — see `checkpoints/2026-05-19-session-16-phase4-skill-relevance.md`
 - **Phase 4 Connect Backfill (2026-05-19)**: Shared connect-backfill module + wired into deep-agent — see `checkpoints/2026-05-19-session-15-phase4-connect-backfill.md`
 - **Phase 4 Multi-Provider Model Support (2026-05-19)**: OpenAI + Anthropic via proxy; proxy routing bug fix — see `checkpoints/2026-05-19-session-14-phase4-multi-provider.md`
@@ -93,7 +122,8 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Next Steps
 
 1. ~~**Phase 4: Supporting Activities**~~ — **COMPLETE**. All items done or removed from scope.
-2. **Phase 5: Testing** — port Python tests, integration tests, HITL e2e validation. This is the next phase to work on.
+2. **Phase 5: Testing** — Tiers 0–5 COMPLETE (181 new tests, 723 total). **Tier 6 deferred** — feature-gap items requiring new TS module builds (~223 Python tests across 8 feature areas).
+3. **Phase 5 Tier 6 OR Phase 6: Deployment** — Choose: build missing TS modules for Tier 6 feature parity, or proceed to deployment with current 723-test coverage.
 
 ## Context for Resume
 
@@ -163,7 +193,7 @@ None.
 | 3b-iii | Artifacts + Writeback | 2-3 | COMPLETE |
 | 3c | HITL + Approval | 2-3 | COMPLETE |
 | 4 | Supporting Activities | 2-3 | **COMPLETE** (all items done or removed from scope; 542 tests passing) |
-| 5 | Testing | 3-4 | **NEXT** |
+| 5 | Testing | 3-4 | **IN PROGRESS** (Tiers 0–5 done, 723 tests; Tier 6 deferred) |
 | 6 | Deployment | 2-3 | Blocked on Phase 5 |
 | 7 | Cleanup | 1-2 | Blocked on Phase 6 |
 
@@ -183,7 +213,8 @@ None.
 
 ## Quick Commands
 
-- "Start Phase 5" — Testing: port Python tests, integration, HITL e2e
+- "Continue Phase 5 Tier 6" — Build missing TS modules for feature-gap Python tests
+- "Start Phase 6" — Deployment: Docker image, queue routing, cutover
 - "Show project status" — Roadmap and file overview
 - `@_projects/2026-05/20260518.01.unified-runner-migration/next-task.md` — Resume context
 
