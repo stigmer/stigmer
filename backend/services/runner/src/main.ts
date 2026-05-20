@@ -50,6 +50,7 @@ async function main(): Promise<void> {
   const { createEnsureThreadActivities } = await import("./activities/ensure-thread.js");
   const { createClassifyToolApprovalsActivities } = await import("./activities/classify-tool-approvals.js");
   const { createDiscoverMcpServerActivities } = await import("./activities/discover-mcp-server.js");
+  const { createEvaluateExpressionsActivities } = await import("./activities/evaluate-expressions.js");
   const { startWorker } = await import("./worker.js");
 
   const cursorActivities = createCursorActivities(config);
@@ -57,6 +58,7 @@ async function main(): Promise<void> {
   const ensureThreadActivities = createEnsureThreadActivities();
   const classifyActivities = createClassifyToolApprovalsActivities(config);
   const discoverActivities = createDiscoverMcpServerActivities(config);
+  const evaluateExpressionsActivities = createEvaluateExpressionsActivities();
 
   const allActivities = {
     ...cursorActivities,
@@ -64,6 +66,7 @@ async function main(): Promise<void> {
     ...ensureThreadActivities,
     ...classifyActivities,
     ...discoverActivities,
+    ...evaluateExpressionsActivities,
   };
 
   console.log(

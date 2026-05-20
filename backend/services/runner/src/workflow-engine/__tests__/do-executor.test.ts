@@ -281,4 +281,119 @@ describe("executeDoTasks", () => {
       expect(result).toBeNull();
     });
   });
+
+  describe("input.from processing", () => {
+    it("resolves input.from and passes to nested do block", async () => {
+      const tasks: TaskList = [
+        {
+          key: "outer",
+          task: {
+            kind: "do",
+            input: { from: "${ $data.source }" },
+            do: [
+              { key: "inner", task: { kind: "set", set: { ran: true } } },
+            ],
+          },
+        },
+      ];
+
+      const state = createState();
+      state.addData({ source: { message: "from input.from" } });
+      await executeDoTasks(tasks, null, state, doc, evaluateExpressionBatch);
+
+      expect(state.data.ran).toBe(true);
+    });
+
+    it("resolves input.from expression using state variables", async () => {
+      const tasks: TaskList = [
+        {
+          key: "setup",
+          task: {
+            kind: "set",
+            set: { apiUrl: "https://api.example.com" },
+            export: { as: "${ . }" },
+          },
+        },
+        {
+          key: "use",
+          task: {
+            kind: "set",
+            set: { url: "${ $context.setup.apiUrl }" },
+            input: { from: "${ $context.setup }" },
+          },
+        },
+      ];
+
+      const state = createState();
+      await executeDoTasks(tasks, null, state, doc, evaluateExpressionBatch);
+
+      expect(state.data.url).toBe("https://api.example.com");
+    });
+
+    it("passes parent input through when no input.from is defined", async () => {
+      const tasks: TaskList = [
+        {
+          key: "step1",
+          task: { kind: "set", set: { value: "${ $input }" } },
+        },
+      ];
+
+      const state = createState();
+      state.input = { parentField: 99 };
+      await executeDoTasks(tasks, { parentField: 99 }, state, doc, evaluateExpressionBatch);
+
+      expect(state.data.value).toEqual({ parentField: 99 });
+    });
+
+    it("uses static object as input when input.from is a plain object", async () => {
+      const tasks: TaskList = [
+        {
+          key: "step1",
+          task: {
+            kind: "do",
+            input: { from: { static: "value" } as unknown as string },
+            do: [
+              { key: "inner", task: { kind: "set", set: { ran: true } } },
+            ],
+          },
+        },
+      ];
+
+      const state = createState();
+      await executeDoTasks(tasks, { original: true }, state, doc, evaluateExpressionBatch);
+
+      expect(state.data.ran).toBe(true);
+    });
+
+    it("input.from resolves for-task collection from state", async () => {
+      const tasks: TaskList = [
+        {
+          key: "setup",
+          task: {
+            kind: "set",
+            set: { items: ["a", "b", "c"] },
+          },
+        },
+        {
+          key: "loop",
+          task: {
+            kind: "for",
+            for: { each: "item", in: "${ $data.items }" },
+            do: [
+              { key: "collect", task: { kind: "set", set: { current: "${ $data.item }" } } },
+            ],
+          },
+        },
+      ];
+
+      const state = createState();
+      await executeDoTasks(tasks, null, state, doc, evaluateExpressionBatch);
+
+      expect(state.output).toEqual([
+        { current: "a" },
+        { current: "b" },
+        { current: "c" },
+      ]);
+    });
+  });
 });
