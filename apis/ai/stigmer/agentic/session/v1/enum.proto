@@ -55,6 +55,39 @@ enum Harness {
   HARNESS_CURSOR = 2;
 }
 
+// ExecutionTarget specifies where session activities are executed.
+//
+// Determines whether the runner that processes agent activities lives on the
+// client's machine (desktop app or CLI) or in a cloud-provisioned sandbox.
+// Set at session creation time and immutable once an execution has run —
+// workspace state may not be portable between local and cloud environments.
+//
+// @internal
+// The control plane uses this field in dispatch to decide whether to route
+// activities to a client-polled per-session queue (LOCAL) or provision a
+// cloud sandbox (CLOUD). Both use task queues named "session:{session_id}".
+// The difference is who provides the runner: the client (LOCAL) or the
+// server (CLOUD).
+enum ExecutionTarget {
+  // Platform default — server decides based on deployment context.
+  //
+  // @internal
+  // Resolves to LOCAL for OSS/self-hosted, CLOUD for managed cloud service.
+  EXECUTION_TARGET_UNSPECIFIED = 0;
+
+  // Client's embedded runner handles activities.
+  //
+  // Desktop app or CLI spawns a local runner process that polls the
+  // session's task queue. No server-side provisioning needed.
+  EXECUTION_TARGET_LOCAL = 1;
+
+  // Server provisions a cloud sandbox for execution.
+  //
+  // The control plane triggers EnsureSessionSandbox to create an isolated
+  // environment with a runner polling the session's task queue.
+  EXECUTION_TARGET_CLOUD = 2;
+}
+
 // CursorMode selects the Cursor SDK agent type for sessions using
 // HARNESS_CURSOR.
 //

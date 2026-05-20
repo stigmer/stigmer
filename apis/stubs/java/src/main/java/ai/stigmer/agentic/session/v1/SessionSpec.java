@@ -45,6 +45,7 @@ private static final long serialVersionUID = 0L;
     skillRefs_ = java.util.Collections.emptyList();
     harness_ = 0;
     cursorMode_ = 0;
+    executionTarget_ = 0;
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -795,6 +796,56 @@ java.lang.String defaultValue) {
     return result == null ? ai.stigmer.agentic.session.v1.CursorMode.UNRECOGNIZED : result;
   }
 
+  public static final int EXECUTION_TARGET_FIELD_NUMBER = 12;
+  private int executionTarget_ = 0;
+  /**
+   * <pre>
+   * Where session activities are executed — local client or cloud sandbox.
+   *
+   * Determines dispatch routing: LOCAL means the client's embedded runner
+   * (desktop app or CLI) polls the session's task queue; CLOUD means the
+   * server provisions a sandbox with a runner.
+   *
+   * Set by the client at session creation:
+   * - Desktop/CLI set LOCAL (they run an embedded runner)
+   * - Web console sets CLOUD (or UNSPECIFIED → server defaults to CLOUD)
+   * - Customer SDK sets whatever fits their architecture
+   *
+   * Immutable once an execution has run — workspace state may not be
+   * portable between local and cloud environments.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.ExecutionTarget execution_target = 12 [json_name = "executionTarget"];</code>
+   * @return The enum numeric value on the wire for executionTarget.
+   */
+  @java.lang.Override public int getExecutionTargetValue() {
+    return executionTarget_;
+  }
+  /**
+   * <pre>
+   * Where session activities are executed — local client or cloud sandbox.
+   *
+   * Determines dispatch routing: LOCAL means the client's embedded runner
+   * (desktop app or CLI) polls the session's task queue; CLOUD means the
+   * server provisions a sandbox with a runner.
+   *
+   * Set by the client at session creation:
+   * - Desktop/CLI set LOCAL (they run an embedded runner)
+   * - Web console sets CLOUD (or UNSPECIFIED → server defaults to CLOUD)
+   * - Customer SDK sets whatever fits their architecture
+   *
+   * Immutable once an execution has run — workspace state may not be
+   * portable between local and cloud environments.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.ExecutionTarget execution_target = 12 [json_name = "executionTarget"];</code>
+   * @return The executionTarget.
+   */
+  @java.lang.Override public ai.stigmer.agentic.session.v1.ExecutionTarget getExecutionTarget() {
+    ai.stigmer.agentic.session.v1.ExecutionTarget result = ai.stigmer.agentic.session.v1.ExecutionTarget.forNumber(executionTarget_);
+    return result == null ? ai.stigmer.agentic.session.v1.ExecutionTarget.UNRECOGNIZED : result;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -841,6 +892,9 @@ java.lang.String defaultValue) {
     }
     if (cursorMode_ != ai.stigmer.agentic.session.v1.CursorMode.CURSOR_MODE_UNSPECIFIED.getNumber()) {
       output.writeEnum(11, cursorMode_);
+    }
+    if (executionTarget_ != ai.stigmer.agentic.session.v1.ExecutionTarget.EXECUTION_TARGET_UNSPECIFIED.getNumber()) {
+      output.writeEnum(12, executionTarget_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -908,6 +962,10 @@ java.lang.String defaultValue) {
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(11, cursorMode_);
     }
+    if (executionTarget_ != ai.stigmer.agentic.session.v1.ExecutionTarget.EXECUTION_TARGET_UNSPECIFIED.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(12, executionTarget_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -941,6 +999,7 @@ java.lang.String defaultValue) {
         .equals(other.getSkillRefsList())) return false;
     if (harness_ != other.harness_) return false;
     if (cursorMode_ != other.cursorMode_) return false;
+    if (executionTarget_ != other.executionTarget_) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -980,6 +1039,8 @@ java.lang.String defaultValue) {
     hash = (53 * hash) + harness_;
     hash = (37 * hash) + CURSOR_MODE_FIELD_NUMBER;
     hash = (53 * hash) + cursorMode_;
+    hash = (37 * hash) + EXECUTION_TARGET_FIELD_NUMBER;
+    hash = (53 * hash) + executionTarget_;
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1169,6 +1230,7 @@ java.lang.String defaultValue) {
       bitField0_ = (bitField0_ & ~0x00000080);
       harness_ = 0;
       cursorMode_ = 0;
+      executionTarget_ = 0;
       return this;
     }
 
@@ -1254,6 +1316,9 @@ java.lang.String defaultValue) {
       }
       if (((from_bitField0_ & 0x00000200) != 0)) {
         result.cursorMode_ = cursorMode_;
+      }
+      if (((from_bitField0_ & 0x00000400) != 0)) {
+        result.executionTarget_ = executionTarget_;
       }
     }
 
@@ -1376,6 +1441,9 @@ java.lang.String defaultValue) {
       if (other.cursorMode_ != 0) {
         setCursorModeValue(other.getCursorModeValue());
       }
+      if (other.executionTarget_ != 0) {
+        setExecutionTargetValue(other.getExecutionTargetValue());
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -1480,6 +1548,11 @@ java.lang.String defaultValue) {
               bitField0_ |= 0x00000200;
               break;
             } // case 88
+            case 96: {
+              executionTarget_ = input.readEnum();
+              bitField0_ |= 0x00000400;
+              break;
+            } // case 96
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -3728,6 +3801,138 @@ java.lang.String defaultValue) {
     public Builder clearCursorMode() {
       bitField0_ = (bitField0_ & ~0x00000200);
       cursorMode_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private int executionTarget_ = 0;
+    /**
+     * <pre>
+     * Where session activities are executed — local client or cloud sandbox.
+     *
+     * Determines dispatch routing: LOCAL means the client's embedded runner
+     * (desktop app or CLI) polls the session's task queue; CLOUD means the
+     * server provisions a sandbox with a runner.
+     *
+     * Set by the client at session creation:
+     * - Desktop/CLI set LOCAL (they run an embedded runner)
+     * - Web console sets CLOUD (or UNSPECIFIED → server defaults to CLOUD)
+     * - Customer SDK sets whatever fits their architecture
+     *
+     * Immutable once an execution has run — workspace state may not be
+     * portable between local and cloud environments.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.ExecutionTarget execution_target = 12 [json_name = "executionTarget"];</code>
+     * @return The enum numeric value on the wire for executionTarget.
+     */
+    @java.lang.Override public int getExecutionTargetValue() {
+      return executionTarget_;
+    }
+    /**
+     * <pre>
+     * Where session activities are executed — local client or cloud sandbox.
+     *
+     * Determines dispatch routing: LOCAL means the client's embedded runner
+     * (desktop app or CLI) polls the session's task queue; CLOUD means the
+     * server provisions a sandbox with a runner.
+     *
+     * Set by the client at session creation:
+     * - Desktop/CLI set LOCAL (they run an embedded runner)
+     * - Web console sets CLOUD (or UNSPECIFIED → server defaults to CLOUD)
+     * - Customer SDK sets whatever fits their architecture
+     *
+     * Immutable once an execution has run — workspace state may not be
+     * portable between local and cloud environments.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.ExecutionTarget execution_target = 12 [json_name = "executionTarget"];</code>
+     * @param value The enum numeric value on the wire for executionTarget to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setExecutionTargetValue(int value) {
+      executionTarget_ = value;
+      bitField0_ |= 0x00000400;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Where session activities are executed — local client or cloud sandbox.
+     *
+     * Determines dispatch routing: LOCAL means the client's embedded runner
+     * (desktop app or CLI) polls the session's task queue; CLOUD means the
+     * server provisions a sandbox with a runner.
+     *
+     * Set by the client at session creation:
+     * - Desktop/CLI set LOCAL (they run an embedded runner)
+     * - Web console sets CLOUD (or UNSPECIFIED → server defaults to CLOUD)
+     * - Customer SDK sets whatever fits their architecture
+     *
+     * Immutable once an execution has run — workspace state may not be
+     * portable between local and cloud environments.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.ExecutionTarget execution_target = 12 [json_name = "executionTarget"];</code>
+     * @return The executionTarget.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.ExecutionTarget getExecutionTarget() {
+      ai.stigmer.agentic.session.v1.ExecutionTarget result = ai.stigmer.agentic.session.v1.ExecutionTarget.forNumber(executionTarget_);
+      return result == null ? ai.stigmer.agentic.session.v1.ExecutionTarget.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * Where session activities are executed — local client or cloud sandbox.
+     *
+     * Determines dispatch routing: LOCAL means the client's embedded runner
+     * (desktop app or CLI) polls the session's task queue; CLOUD means the
+     * server provisions a sandbox with a runner.
+     *
+     * Set by the client at session creation:
+     * - Desktop/CLI set LOCAL (they run an embedded runner)
+     * - Web console sets CLOUD (or UNSPECIFIED → server defaults to CLOUD)
+     * - Customer SDK sets whatever fits their architecture
+     *
+     * Immutable once an execution has run — workspace state may not be
+     * portable between local and cloud environments.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.ExecutionTarget execution_target = 12 [json_name = "executionTarget"];</code>
+     * @param value The executionTarget to set.
+     * @return This builder for chaining.
+     */
+    public Builder setExecutionTarget(ai.stigmer.agentic.session.v1.ExecutionTarget value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x00000400;
+      executionTarget_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Where session activities are executed — local client or cloud sandbox.
+     *
+     * Determines dispatch routing: LOCAL means the client's embedded runner
+     * (desktop app or CLI) polls the session's task queue; CLOUD means the
+     * server provisions a sandbox with a runner.
+     *
+     * Set by the client at session creation:
+     * - Desktop/CLI set LOCAL (they run an embedded runner)
+     * - Web console sets CLOUD (or UNSPECIFIED → server defaults to CLOUD)
+     * - Customer SDK sets whatever fits their architecture
+     *
+     * Immutable once an execution has run — workspace state may not be
+     * portable between local and cloud environments.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.ExecutionTarget execution_target = 12 [json_name = "executionTarget"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearExecutionTarget() {
+      bitField0_ = (bitField0_ & ~0x00000400);
+      executionTarget_ = 0;
       onChanged();
       return this;
     }

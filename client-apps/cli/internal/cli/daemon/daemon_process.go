@@ -427,7 +427,7 @@ func findSiblingBinary(cliBin, name string) (string, error) {
 
 // buildComponents constructs the list of managed components in startup order.
 // When serverOnly is true, only the control plane (stigmer-server) is included;
-// workflow-runner and agent-runner are omitted.
+// the unified runner is omitted.
 func buildComponents(cliBin, dataDir, logDir string, grpcPort int, serverOnly bool) []*managedComponent {
 	components := []*managedComponent{
 		{
@@ -448,143 +448,58 @@ func buildComponents(cliBin, dataDir, logDir string, grpcPort int, serverOnly bo
 		return components
 	}
 
-	pythonBin := os.Getenv("STIGMER_AGENT_RUNNER_PYTHON_BIN")
-	appDir := os.Getenv("STIGMER_AGENT_RUNNER_APP_DIR")
+	// Unified runner: single Node.js process handling all activity types
+	// (native, cursor, workflow tasks, MCP). Replaces the legacy split of
+	// agent-runner (Python), workflow-runner (Go), and cursor-runner (Node).
+	runnerNodeBin := os.Getenv("STIGMER_RUNNER_NODE_BIN")
+	runnerAppDir := os.Getenv("STIGMER_RUNNER_APP_DIR")
+	runnerEntryArgsRaw := os.Getenv("STIGMER_RUNNER_ENTRY_ARGS")
 
-	components = append(components,
-		&managedComponent{
-			name:    "workflow-runner",
-			pidFile: filepath.Join(dataDir, WorkflowRunnerPIDFileName),
-			state:   &ComponentState{},
-			startFn: func() (*exec.Cmd, error) {
-				bin, err := findSiblingBinary(cliBin, "stigmer-workflow-runner")
-				if err != nil {
-					return nil, err
-				}
-				env := buildWorkflowRunnerEnv(grpcPort)
-				return startChildProcess(bin, nil, logDir, "workflow-runner", env)
-			},
-		},
-		&managedComponent{
-			name:    "agent-runner",
-			pidFile: filepath.Join(dataDir, RunnerPIDFileName),
-			state:   &ComponentState{},
-			startFn: func() (*exec.Cmd, error) {
-				if pythonBin == "" || appDir == "" {
-					return nil, errors.New("STIGMER_AGENT_RUNNER_PYTHON_BIN and STIGMER_AGENT_RUNNER_APP_DIR are required")
-				}
-				mainPy := filepath.Join(appDir, "main.py")
-				if _, err := os.Stat(mainPy); err != nil {
-					return nil, errors.Wrapf(err, "agent-runner entry point not found at %s", mainPy)
-				}
-				env := buildRunnerEnv(dataDir, grpcPort, appDir)
-				return startChildProcessWithDir(pythonBin, []string{mainPy}, appDir, logDir, "agent-runner", env)
-			},
-		},
-	)
+	// Fallback to cursor-runner env vars for backward compatibility during migration
+	if runnerNodeBin == "" {
+		runnerNodeBin = os.Getenv("STIGMER_CURSOR_RUNNER_NODE_BIN")
+	}
+	if runnerAppDir == "" {
+		runnerAppDir = os.Getenv("STIGMER_CURSOR_RUNNER_APP_DIR")
+	}
+	if runnerEntryArgsRaw == "" {
+		runnerEntryArgsRaw = os.Getenv("STIGMER_CURSOR_RUNNER_ENTRY_ARGS")
+	}
 
-	// cursor-runner is optional. It starts only when the daemon receives
-	// STIGMER_CURSOR_RUNNER_NODE_BIN, STIGMER_CURSOR_RUNNER_APP_DIR, and
-	// STIGMER_CURSOR_RUNNER_ENTRY_ARGS (set by StartWithOptions when
-	// CURSOR_API_KEY is available and Node.js bootstrap succeeds).
-	cursorNodeBin := os.Getenv("STIGMER_CURSOR_RUNNER_NODE_BIN")
-	cursorAppDir := os.Getenv("STIGMER_CURSOR_RUNNER_APP_DIR")
-	cursorEntryArgsRaw := os.Getenv("STIGMER_CURSOR_RUNNER_ENTRY_ARGS")
+	if runnerNodeBin != "" && runnerAppDir != "" && runnerEntryArgsRaw != "" {
+		entryArgs := strings.Split(runnerEntryArgsRaw, ",")
 
-	if cursorNodeBin != "" && cursorAppDir != "" && cursorEntryArgsRaw != "" {
-		cursorEntryArgs := strings.Split(cursorEntryArgsRaw, ",")
-
-		absoluteEntryArgs := make([]string, len(cursorEntryArgs))
-		for i, arg := range cursorEntryArgs {
+		absoluteEntryArgs := make([]string, len(entryArgs))
+		for i, arg := range entryArgs {
 			if !filepath.IsAbs(arg) {
-				absoluteEntryArgs[i] = filepath.Join(cursorAppDir, arg)
+				absoluteEntryArgs[i] = filepath.Join(runnerAppDir, arg)
 			} else {
 				absoluteEntryArgs[i] = arg
 			}
 		}
 
 		components = append(components, &managedComponent{
-			name:    "cursor-runner",
-			pidFile: filepath.Join(dataDir, CursorRunnerPIDFileName),
+			name:    "runner",
+			pidFile: filepath.Join(dataDir, RunnerPIDFileName),
 			state:   &ComponentState{},
 			startFn: func() (*exec.Cmd, error) {
-				env := buildCursorRunnerEnv(dataDir, grpcPort)
+				env := buildUnifiedRunnerEnv(dataDir, grpcPort)
 				workspaceDir := filepath.Join(dataDir, "workspace")
-				return startChildProcessWithDir(cursorNodeBin, absoluteEntryArgs, workspaceDir, logDir, "cursor-runner", env)
+				return startChildProcessWithDir(runnerNodeBin, absoluteEntryArgs, workspaceDir, logDir, "runner", env)
 			},
 		})
-		log.Info().Msg("Cursor harness: enabled (cursor-runner component registered)")
+		log.Info().Msg("Unified runner registered")
 	} else {
-		log.Debug().Msg("Cursor harness: not registered (env vars not set)")
+		log.Warn().Msg("Runner not registered (STIGMER_RUNNER_NODE_BIN, STIGMER_RUNNER_APP_DIR, or STIGMER_RUNNER_ENTRY_ARGS not set)")
 	}
 
 	return components
 }
 
-// buildWorkflowRunnerEnv constructs the environment for workflow-runner.
-// The values are inherited from the daemon's own environment (set by StartWithOptions).
-func buildWorkflowRunnerEnv(grpcPort int) []string {
-	env := os.Environ()
-	env = append(env,
-		"EXECUTION_MODE=temporal",
-		fmt.Sprintf("TEMPORAL_SERVICE_ADDRESS=%s", os.Getenv("TEMPORAL_SERVICE_ADDRESS")),
-		"TEMPORAL_NAMESPACE=default",
-		"TEMPORAL_WORKFLOW_EXECUTION_RUNNER_TASK_QUEUE=workflow_execution_runner",
-		"TEMPORAL_ZIGFLOW_EXECUTION_TASK_QUEUE=zigflow_execution",
-		"TEMPORAL_WORKFLOW_VALIDATION_RUNNER_TASK_QUEUE=workflow_validation_runner",
-		fmt.Sprintf("STIGMER_BACKEND_ENDPOINT=localhost:%d", grpcPort),
-		"STIGMER_API_KEY=dummy-local-key",
-		"STIGMER_SERVICE_USE_TLS=false",
-		"LOG_LEVEL=DEBUG",
-		"ENV=local",
-	)
-	return env
-}
-
-// buildRunnerEnv constructs the environment for the native runner process.
-// Values are inherited from the daemon's own environment (set by StartWithOptions).
-func buildRunnerEnv(dataDir string, grpcPort int, appDir string) []string {
-	workspaceDir := filepath.Join(dataDir, "workspace")
-	artifactsDir := filepath.Join(dataDir, "artifacts")
-
-	_ = os.MkdirAll(workspaceDir, 0755)
-	_ = os.MkdirAll(artifactsDir, 0755)
-
-	env := os.Environ()
-
-	if appDir != "" {
-		env = append(env, fmt.Sprintf("PYTHONPATH=%s", filepath.Join(appDir, "src")))
-	}
-
-	env = append(env,
-		"MODE=local",
-		fmt.Sprintf("STIGMER_BACKEND_ENDPOINT=localhost:%d", grpcPort),
-		fmt.Sprintf("TEMPORAL_SERVICE_ADDRESS=%s", os.Getenv("TEMPORAL_SERVICE_ADDRESS")),
-		"TEMPORAL_NAMESPACE=default",
-		"SANDBOX_TYPE=filesystem",
-		fmt.Sprintf("SANDBOX_ROOT_DIR=%s", workspaceDir),
-		"LOG_LEVEL=DEBUG",
-		fmt.Sprintf("STIGMER_LLM_PROVIDER=%s", os.Getenv("STIGMER_LLM_PROVIDER")),
-		fmt.Sprintf("STIGMER_LLM_MODEL=%s", os.Getenv("STIGMER_LLM_MODEL")),
-		fmt.Sprintf("STIGMER_LLM_BASE_URL=%s", os.Getenv("STIGMER_LLM_BASE_URL")),
-		fmt.Sprintf("OLLAMA_BASE_URL=%s", os.Getenv("STIGMER_LLM_BASE_URL")),
-		fmt.Sprintf("STIGMER_EXECUTION_MODE=%s", os.Getenv("STIGMER_EXECUTION_MODE")),
-		fmt.Sprintf("STIGMER_SANDBOX_IMAGE=%s", os.Getenv("STIGMER_SANDBOX_IMAGE")),
-		fmt.Sprintf("STIGMER_SANDBOX_AUTO_PULL=%s", os.Getenv("STIGMER_SANDBOX_AUTO_PULL")),
-		fmt.Sprintf("STIGMER_SANDBOX_CLEANUP=%s", os.Getenv("STIGMER_SANDBOX_CLEANUP")),
-		fmt.Sprintf("STIGMER_SANDBOX_TTL=%s", os.Getenv("STIGMER_SANDBOX_TTL")),
-		fmt.Sprintf("LOCAL_ARTIFACT_PATH=%s", artifactsDir),
-		fmt.Sprintf("LOCAL_ARTIFACT_SERVE_URL=http://localhost:%d", grpcPort+1),
-		"LANGGRAPH_DEFAULT_RECURSION_LIMIT=10000000",
-		"TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE=agent_execution_runner",
-	)
-
-	return env
-}
-
-// buildCursorRunnerEnv constructs the environment for the cursor-runner
-// child process in the daemon (local mode).
-func buildCursorRunnerEnv(dataDir string, grpcPort int) []string {
+// buildUnifiedRunnerEnv constructs the environment for the unified runner process.
+// The unified runner handles all activity types (native, cursor, workflow tasks, MCP)
+// in a single Node.js process polling the agent_execution_runner queue.
+func buildUnifiedRunnerEnv(dataDir string, grpcPort int) []string {
 	workspaceDir := filepath.Join(dataDir, "workspace")
 	_ = os.MkdirAll(workspaceDir, 0755)
 
@@ -592,15 +507,19 @@ func buildCursorRunnerEnv(dataDir string, grpcPort int) []string {
 	env = append(env,
 		"MODE=local",
 		fmt.Sprintf("STIGMER_BACKEND_ENDPOINT=http://localhost:%d", grpcPort),
-		fmt.Sprintf("TEMPORAL_SERVICE_ADDRESS=%s", os.Getenv("TEMPORAL_SERVICE_ADDRESS")),
+		fmt.Sprintf("TEMPORAL_ADDRESS=%s", os.Getenv("TEMPORAL_SERVICE_ADDRESS")),
 		"TEMPORAL_NAMESPACE=default",
 		fmt.Sprintf("WORKSPACE_ROOT_DIR=%s", workspaceDir),
-		"LOG_LEVEL=DEBUG",
 		"TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE=agent_execution_runner",
+		"LOG_LEVEL=DEBUG",
 	)
 
 	if cursorKey := os.Getenv("CURSOR_API_KEY"); cursorKey != "" {
 		env = append(env, fmt.Sprintf("CURSOR_API_KEY=%s", cursorKey))
+	}
+
+	if routing := os.Getenv("STIGMER_ACTIVITY_ROUTING"); routing != "" {
+		env = append(env, fmt.Sprintf("STIGMER_ACTIVITY_ROUTING=%s", routing))
 	}
 
 	return env

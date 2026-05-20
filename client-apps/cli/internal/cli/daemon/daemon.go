@@ -15,7 +15,6 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/stigmer/stigmer/client-apps/cli/embedded"
-	"github.com/stigmer/stigmer/client-apps/cli/embedded/agentrunner"
 	"github.com/stigmer/stigmer/client-apps/cli/embedded/cursorrunner"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
@@ -194,59 +193,29 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 		log.Info().Str("address", temporalAddr).Msg("Using external Temporal")
 	}
 
-	// Bootstrap the native Python runtime for agent-runner.
-	// This runs in the foreground so the user sees progress.
-	// Independent of Temporal — only needs configDir and embedded source.
+	// Bootstrap the unified runner Node.js runtime.
+	// The cursor-runner bootstrap prepares Node.js and the compiled runner —
+	// the same code now handles all activity types (native, cursor, workflow).
 	// Skipped in server-only mode where no runners are started.
-	var pythonBin, appDir string
+	var runnerResult *CursorRunnerBootstrapResult
+	runnerAvailable := false
 
 	if !opts.ServerOnly {
-		if opts.Progress != nil {
-			opts.Progress.SetPhase(cliprint.PhaseInstalling, "Bootstrapping Python runtime")
-		}
-
-		if !agentrunner.IsAvailable() {
-			return errors.New("agent-runner Python runtime is not bundled in this binary. " +
-				"If you are using the desktop app, update to the latest version. " +
-				"If building from source, run sync.sh and build with -tags embed_agentrunner")
-		}
-
-		pythonBin, appDir, err = bootstrapRunnerRuntime()
-		if err != nil {
-			return errors.Wrap(err, "failed to bootstrap agent-runner runtime")
-		}
-	}
-
-	// Bootstrap cursor-runner runtime if CURSOR_API_KEY is available and
-	// the cursor-runner source is present. This is optional -- users who
-	// don't have a Cursor API key simply run without the Cursor harness.
-	var cursorResult *CursorRunnerBootstrapResult
-	cursorAvailable := false
-
-	if !opts.ServerOnly {
-		cursorAPIKey := os.Getenv("CURSOR_API_KEY")
-		if cursorAPIKey == "" {
-			if secretKey, ok := secrets["CURSOR_API_KEY"]; ok && secretKey != "" {
-				cursorAPIKey = secretKey
-			}
-		}
-
-		if cursorAPIKey != "" && cursorrunner.IsAvailable() {
+		if cursorrunner.IsAvailable() {
 			if opts.Progress != nil {
-				opts.Progress.SetPhase(cliprint.PhaseInstalling, "Bootstrapping Node.js runtime")
+				opts.Progress.SetPhase(cliprint.PhaseInstalling, "Bootstrapping runner runtime")
 			}
 
-			var cursorErr error
-			cursorResult, cursorErr = bootstrapCursorRunnerRuntime()
-			if cursorErr != nil {
-				log.Warn().Err(cursorErr).Msg("Cursor harness bootstrap failed (non-fatal, continuing without Cursor harness)")
-			} else {
-				cursorAvailable = true
+			var runnerErr error
+			runnerResult, runnerErr = bootstrapCursorRunnerRuntime()
+			if runnerErr != nil {
+				return errors.Wrap(runnerErr, "failed to bootstrap runner runtime")
 			}
-		} else if cursorAPIKey == "" {
-			log.Debug().Msg("Cursor harness: skipped (CURSOR_API_KEY not set)")
+			runnerAvailable = true
 		} else {
-			log.Debug().Msg("Cursor harness: skipped (cursor-runner source not found)")
+			return errors.New("runner runtime is not bundled in this binary. " +
+				"If you are using the desktop app, update to the latest version. " +
+				"If building from source, ensure the runner is built")
 		}
 	}
 
@@ -296,18 +265,11 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 		fmt.Sprintf("STIGMER_SANDBOX_TTL=%d", opts.SandboxTTL),
 	)
 
-	if !opts.ServerOnly {
+	if runnerAvailable {
 		env = append(env,
-			fmt.Sprintf("STIGMER_AGENT_RUNNER_PYTHON_BIN=%s", pythonBin),
-			fmt.Sprintf("STIGMER_AGENT_RUNNER_APP_DIR=%s", appDir),
-		)
-	}
-
-	if cursorAvailable {
-		env = append(env,
-			fmt.Sprintf("STIGMER_CURSOR_RUNNER_NODE_BIN=%s", cursorResult.NodeBin),
-			fmt.Sprintf("STIGMER_CURSOR_RUNNER_APP_DIR=%s", cursorResult.AppDir),
-			fmt.Sprintf("STIGMER_CURSOR_RUNNER_ENTRY_ARGS=%s", strings.Join(cursorResult.EntryArgs, ",")),
+			fmt.Sprintf("STIGMER_RUNNER_NODE_BIN=%s", runnerResult.NodeBin),
+			fmt.Sprintf("STIGMER_RUNNER_APP_DIR=%s", runnerResult.AppDir),
+			fmt.Sprintf("STIGMER_RUNNER_ENTRY_ARGS=%s", strings.Join(runnerResult.EntryArgs, ",")),
 		)
 	}
 

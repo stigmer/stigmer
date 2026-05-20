@@ -99,6 +99,7 @@ class SessionInput:
     skill_refs: list[ResourceRef] = field(default_factory=list)
     harness: int = 0
     cursor_mode: int = 0
+    execution_target: int = 0
 
     def _to_proto(self) -> api_pb2.Session:
         spec = spec_pb2.SessionSpec(
@@ -108,6 +109,7 @@ class SessionInput:
             sandbox_id=self.sandbox_id,
             harness=self.harness,
             cursor_mode=self.cursor_mode,
+            execution_target=self.execution_target,
         )
         if self.metadata:
             spec.metadata.update(self.metadata)

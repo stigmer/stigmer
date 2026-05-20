@@ -13,7 +13,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class SessionSpec(_message.Message):
-    __slots__ = ("agent_instance_id", "subject", "thread_id", "sandbox_id", "metadata", "workspace_entries", "mcp_server_usages", "skill_refs", "harness", "cursor_mode")
+    __slots__ = ("agent_instance_id", "subject", "thread_id", "sandbox_id", "metadata", "workspace_entries", "mcp_server_usages", "skill_refs", "harness", "cursor_mode", "execution_target")
     class MetadataEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -31,6 +31,7 @@ class SessionSpec(_message.Message):
     SKILL_REFS_FIELD_NUMBER: _ClassVar[int]
     HARNESS_FIELD_NUMBER: _ClassVar[int]
     CURSOR_MODE_FIELD_NUMBER: _ClassVar[int]
+    EXECUTION_TARGET_FIELD_NUMBER: _ClassVar[int]
     agent_instance_id: str
     subject: str
     thread_id: str
@@ -41,4 +42,5 @@ class SessionSpec(_message.Message):
     skill_refs: _containers.RepeatedCompositeFieldContainer[_io_pb2.ApiResourceReference]
     harness: _enum_pb2.Harness
     cursor_mode: _enum_pb2.CursorMode
-    def __init__(self, agent_instance_id: _Optional[str] = ..., subject: _Optional[str] = ..., thread_id: _Optional[str] = ..., sandbox_id: _Optional[str] = ..., metadata: _Optional[_Mapping[str, str]] = ..., workspace_entries: _Optional[_Iterable[_Union[_workspace_pb2.WorkspaceEntry, _Mapping]]] = ..., mcp_server_usages: _Optional[_Iterable[_Union[_spec_pb2.McpServerUsage, _Mapping]]] = ..., skill_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., harness: _Optional[_Union[_enum_pb2.Harness, str]] = ..., cursor_mode: _Optional[_Union[_enum_pb2.CursorMode, str]] = ...) -> None: ...
+    execution_target: _enum_pb2.ExecutionTarget
+    def __init__(self, agent_instance_id: _Optional[str] = ..., subject: _Optional[str] = ..., thread_id: _Optional[str] = ..., sandbox_id: _Optional[str] = ..., metadata: _Optional[_Mapping[str, str]] = ..., workspace_entries: _Optional[_Iterable[_Union[_workspace_pb2.WorkspaceEntry, _Mapping]]] = ..., mcp_server_usages: _Optional[_Iterable[_Union[_spec_pb2.McpServerUsage, _Mapping]]] = ..., skill_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., harness: _Optional[_Union[_enum_pb2.Harness, str]] = ..., cursor_mode: _Optional[_Union[_enum_pb2.CursorMode, str]] = ..., execution_target: _Optional[_Union[_enum_pb2.ExecutionTarget, str]] = ...) -> None: ...

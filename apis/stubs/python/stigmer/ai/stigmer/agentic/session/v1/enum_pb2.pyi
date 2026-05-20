@@ -15,6 +15,12 @@ class Harness(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     HARNESS_NATIVE: _ClassVar[Harness]
     HARNESS_CURSOR: _ClassVar[Harness]
 
+class ExecutionTarget(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    EXECUTION_TARGET_UNSPECIFIED: _ClassVar[ExecutionTarget]
+    EXECUTION_TARGET_LOCAL: _ClassVar[ExecutionTarget]
+    EXECUTION_TARGET_CLOUD: _ClassVar[ExecutionTarget]
+
 class CursorMode(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     CURSOR_MODE_UNSPECIFIED: _ClassVar[CursorMode]
@@ -25,6 +31,9 @@ GIT_WRITE_BACK_BRANCH_AND_PR: GitWriteBackMode
 HARNESS_UNSPECIFIED: Harness
 HARNESS_NATIVE: Harness
 HARNESS_CURSOR: Harness
+EXECUTION_TARGET_UNSPECIFIED: ExecutionTarget
+EXECUTION_TARGET_LOCAL: ExecutionTarget
+EXECUTION_TARGET_CLOUD: ExecutionTarget
 CURSOR_MODE_UNSPECIFIED: CursorMode
 CURSOR_MODE_LOCAL: CursorMode
 CURSOR_MODE_CLOUD: CursorMode

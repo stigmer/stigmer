@@ -5,6 +5,7 @@ package ai.stigmer.sdk.gen;
 import ai.stigmer.agentic.agent.v1.McpServerUsage;
 import ai.stigmer.agentic.agent.v1.ToolApprovalOverride;
 import ai.stigmer.agentic.session.v1.CursorMode;
+import ai.stigmer.agentic.session.v1.ExecutionTarget;
 import ai.stigmer.agentic.session.v1.GitRepoSource;
 import ai.stigmer.agentic.session.v1.GitWriteBackMode;
 import ai.stigmer.agentic.session.v1.Harness;
@@ -34,6 +35,7 @@ public final class SessionInput {
     private final java.util.List<ResourceRef> skillRefs;
     private final Harness harness;
     private final CursorMode cursorMode;
+    private final ExecutionTarget executionTarget;
 
     private SessionInput(Builder builder) {
         this.name = builder.name;
@@ -51,6 +53,7 @@ public final class SessionInput {
         this.skillRefs = builder.skillRefs;
         this.harness = builder.harness;
         this.cursorMode = builder.cursorMode;
+        this.executionTarget = builder.executionTarget;
     }
 
     Session toProto() {
@@ -92,6 +95,9 @@ public final class SessionInput {
         if (this.cursorMode != null) {
             spec.setCursorMode(this.cursorMode);
         }
+        if (this.executionTarget != null) {
+            spec.setExecutionTarget(this.executionTarget);
+        }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name)
             .setOrg(this.org);
@@ -130,6 +136,7 @@ public final class SessionInput {
         private java.util.List<ResourceRef> skillRefs;
         private Harness harness;
         private CursorMode cursorMode;
+        private ExecutionTarget executionTarget;
 
         private Builder() {}
 
@@ -148,6 +155,7 @@ public final class SessionInput {
         public Builder skillRefs(java.util.List<ResourceRef> skillRefs) { this.skillRefs = skillRefs; return this; }
         public Builder harness(Harness harness) { this.harness = harness; return this; }
         public Builder cursorMode(CursorMode cursorMode) { this.cursorMode = cursorMode; return this; }
+        public Builder executionTarget(ExecutionTarget executionTarget) { this.executionTarget = executionTarget; return this; }
 
         public SessionInput build() { return new SessionInput(this); }
     }

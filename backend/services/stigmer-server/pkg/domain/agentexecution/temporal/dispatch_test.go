@@ -34,17 +34,28 @@ func saveSession(t *testing.T, s *sqlite.Store, id string, harness sessionv1.Har
 
 func globalConfig() *Config {
 	return &Config{
-		StigmerQueue:    "agent_execution_stigmer",
-		RunnerQueue:     DefaultActivityTaskQueue,
-		ActivityRouting: RoutingGlobal,
+		StigmerQueue:           "agent_execution_stigmer",
+		RunnerQueue:            DefaultActivityTaskQueue,
+		ActivityRouting:        RoutingGlobal,
+		DefaultExecutionTarget: DefaultExecutionTargetLocal,
 	}
 }
 
 func sessionConfig() *Config {
 	return &Config{
-		StigmerQueue:    "agent_execution_stigmer",
-		RunnerQueue:     DefaultActivityTaskQueue,
-		ActivityRouting: RoutingSession,
+		StigmerQueue:           "agent_execution_stigmer",
+		RunnerQueue:            DefaultActivityTaskQueue,
+		ActivityRouting:        RoutingSession,
+		DefaultExecutionTarget: DefaultExecutionTargetLocal,
+	}
+}
+
+func cloudConfig() *Config {
+	return &Config{
+		StigmerQueue:           "agent_execution_stigmer",
+		RunnerQueue:            DefaultActivityTaskQueue,
+		ActivityRouting:        RoutingSession,
+		DefaultExecutionTarget: DefaultExecutionTargetCloud,
 	}
 }
 
@@ -247,4 +258,121 @@ func TestResolveTaskQueue(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestResolveExecutionTarget(t *testing.T) {
+	tests := []struct {
+		name   string
+		target sessionv1.ExecutionTarget
+		cfg    *Config
+		want   sessionv1.ExecutionTarget
+	}{
+		{
+			name:   "LOCAL target passes through",
+			target: sessionv1.ExecutionTarget_EXECUTION_TARGET_LOCAL,
+			cfg:    globalConfig(),
+			want:   sessionv1.ExecutionTarget_EXECUTION_TARGET_LOCAL,
+		},
+		{
+			name:   "CLOUD target passes through",
+			target: sessionv1.ExecutionTarget_EXECUTION_TARGET_CLOUD,
+			cfg:    globalConfig(),
+			want:   sessionv1.ExecutionTarget_EXECUTION_TARGET_CLOUD,
+		},
+		{
+			name:   "UNSPECIFIED resolves to LOCAL when default is local",
+			target: sessionv1.ExecutionTarget_EXECUTION_TARGET_UNSPECIFIED,
+			cfg:    sessionConfig(),
+			want:   sessionv1.ExecutionTarget_EXECUTION_TARGET_LOCAL,
+		},
+		{
+			name:   "UNSPECIFIED resolves to CLOUD when default is cloud",
+			target: sessionv1.ExecutionTarget_EXECUTION_TARGET_UNSPECIFIED,
+			cfg:    cloudConfig(),
+			want:   sessionv1.ExecutionTarget_EXECUTION_TARGET_CLOUD,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := resolveExecutionTarget(tt.target, tt.cfg)
+			if got != tt.want {
+				t.Errorf("resolveExecutionTarget(%v) = %v, want %v", tt.target, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestResolveActivityTaskQueue_ExecutionTarget(t *testing.T) {
+	t.Run("session with LOCAL target returns LOCAL in result", func(t *testing.T) {
+		s := setupTestStore(t)
+		defer s.Close()
+
+		sessionID := "ses_local"
+		session := &sessionv1.Session{
+			ApiVersion: "agentic.stigmer.ai/v1",
+			Kind:       "Session",
+			Metadata:   &apiresource.ApiResourceMetadata{Id: sessionID, Name: "test", Org: "test-org"},
+			Spec: &sessionv1.SessionSpec{
+				AgentInstanceId: "test-instance",
+				Harness:         sessionv1.Harness_HARNESS_NATIVE,
+				ExecutionTarget: sessionv1.ExecutionTarget_EXECUTION_TARGET_LOCAL,
+			},
+		}
+		if err := s.SaveResource(context.Background(), apiresourcekind.ApiResourceKind_session, sessionID, session); err != nil {
+			t.Fatalf("failed to save session: %v", err)
+		}
+
+		result, err := ResolveActivityTaskQueue(context.Background(), s, sessionID, sessionConfig())
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if result.ExecutionTarget != sessionv1.ExecutionTarget_EXECUTION_TARGET_LOCAL {
+			t.Errorf("expected LOCAL, got %v", result.ExecutionTarget)
+		}
+	})
+
+	t.Run("session with CLOUD target returns CLOUD in result", func(t *testing.T) {
+		s := setupTestStore(t)
+		defer s.Close()
+
+		sessionID := "ses_cloud"
+		session := &sessionv1.Session{
+			ApiVersion: "agentic.stigmer.ai/v1",
+			Kind:       "Session",
+			Metadata:   &apiresource.ApiResourceMetadata{Id: sessionID, Name: "test", Org: "test-org"},
+			Spec: &sessionv1.SessionSpec{
+				AgentInstanceId: "test-instance",
+				Harness:         sessionv1.Harness_HARNESS_NATIVE,
+				ExecutionTarget: sessionv1.ExecutionTarget_EXECUTION_TARGET_CLOUD,
+			},
+		}
+		if err := s.SaveResource(context.Background(), apiresourcekind.ApiResourceKind_session, sessionID, session); err != nil {
+			t.Fatalf("failed to save session: %v", err)
+		}
+
+		result, err := ResolveActivityTaskQueue(context.Background(), s, sessionID, sessionConfig())
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if result.ExecutionTarget != sessionv1.ExecutionTarget_EXECUTION_TARGET_CLOUD {
+			t.Errorf("expected CLOUD, got %v", result.ExecutionTarget)
+		}
+	})
+
+	t.Run("session with UNSPECIFIED target resolves based on config", func(t *testing.T) {
+		s := setupTestStore(t)
+		defer s.Close()
+
+		sessionID := "ses_unspecified"
+		saveSession(t, s, sessionID, sessionv1.Harness_HARNESS_NATIVE)
+
+		result, err := ResolveActivityTaskQueue(context.Background(), s, sessionID, cloudConfig())
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if result.ExecutionTarget != sessionv1.ExecutionTarget_EXECUTION_TARGET_CLOUD {
+			t.Errorf("expected CLOUD (from config default), got %v", result.ExecutionTarget)
+		}
+	})
 }

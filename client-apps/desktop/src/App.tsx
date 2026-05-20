@@ -9,6 +9,7 @@ import { router } from "./routes";
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
 import { LoginScreen } from "./auth/LoginScreen";
 import { AppUpdaterProvider } from "./hooks/AppUpdaterContext";
+import { EmbeddedRunnerProvider } from "./hooks/EmbeddedRunnerContext";
 import { useColorModePreference } from "./hooks/useColorModePreference";
 
 const BASE_URL = import.meta.env.VITE_STIGMER_API_URL ?? "http://localhost:7234";
@@ -96,12 +97,14 @@ function AppContent({
 
   return (
     <AppUpdaterProvider>
-      <FetchCacheProvider>
-        <OrgProvider>
-          <RouterProvider router={router} />
-          <Toaster position="bottom-right" richColors />
-        </OrgProvider>
-      </FetchCacheProvider>
+      <EmbeddedRunnerProvider>
+        <FetchCacheProvider>
+          <OrgProvider>
+            <RouterProvider router={router} />
+            <Toaster position="bottom-right" richColors />
+          </OrgProvider>
+        </FetchCacheProvider>
+      </EmbeddedRunnerProvider>
     </AppUpdaterProvider>
   );
 }

@@ -155,6 +155,80 @@ func (Harness) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_session_v1_enum_proto_rawDescGZIP(), []int{1}
 }
 
+// ExecutionTarget specifies where session activities are executed.
+//
+// Determines whether the runner that processes agent activities lives on the
+// client's machine (desktop app or CLI) or in a cloud-provisioned sandbox.
+// Set at session creation time and immutable once an execution has run —
+// workspace state may not be portable between local and cloud environments.
+//
+// @internal
+// The control plane uses this field in dispatch to decide whether to route
+// activities to a client-polled per-session queue (LOCAL) or provision a
+// cloud sandbox (CLOUD). Both use task queues named "session:{session_id}".
+// The difference is who provides the runner: the client (LOCAL) or the
+// server (CLOUD).
+type ExecutionTarget int32
+
+const (
+	// Platform default — server decides based on deployment context.
+	//
+	// @internal
+	// Resolves to LOCAL for OSS/self-hosted, CLOUD for managed cloud service.
+	ExecutionTarget_EXECUTION_TARGET_UNSPECIFIED ExecutionTarget = 0
+	// Client's embedded runner handles activities.
+	//
+	// Desktop app or CLI spawns a local runner process that polls the
+	// session's task queue. No server-side provisioning needed.
+	ExecutionTarget_EXECUTION_TARGET_LOCAL ExecutionTarget = 1
+	// Server provisions a cloud sandbox for execution.
+	//
+	// The control plane triggers EnsureSessionSandbox to create an isolated
+	// environment with a runner polling the session's task queue.
+	ExecutionTarget_EXECUTION_TARGET_CLOUD ExecutionTarget = 2
+)
+
+// Enum value maps for ExecutionTarget.
+var (
+	ExecutionTarget_name = map[int32]string{
+		0: "EXECUTION_TARGET_UNSPECIFIED",
+		1: "EXECUTION_TARGET_LOCAL",
+		2: "EXECUTION_TARGET_CLOUD",
+	}
+	ExecutionTarget_value = map[string]int32{
+		"EXECUTION_TARGET_UNSPECIFIED": 0,
+		"EXECUTION_TARGET_LOCAL":       1,
+		"EXECUTION_TARGET_CLOUD":       2,
+	}
+)
+
+func (x ExecutionTarget) Enum() *ExecutionTarget {
+	p := new(ExecutionTarget)
+	*p = x
+	return p
+}
+
+func (x ExecutionTarget) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ExecutionTarget) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_session_v1_enum_proto_enumTypes[2].Descriptor()
+}
+
+func (ExecutionTarget) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_session_v1_enum_proto_enumTypes[2]
+}
+
+func (x ExecutionTarget) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ExecutionTarget.Descriptor instead.
+func (ExecutionTarget) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_session_v1_enum_proto_rawDescGZIP(), []int{2}
+}
+
 // CursorMode selects the Cursor SDK agent type for sessions using
 // HARNESS_CURSOR.
 //
@@ -221,11 +295,11 @@ func (x CursorMode) String() string {
 }
 
 func (CursorMode) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_agentic_session_v1_enum_proto_enumTypes[2].Descriptor()
+	return file_ai_stigmer_agentic_session_v1_enum_proto_enumTypes[3].Descriptor()
 }
 
 func (CursorMode) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_agentic_session_v1_enum_proto_enumTypes[2]
+	return &file_ai_stigmer_agentic_session_v1_enum_proto_enumTypes[3]
 }
 
 func (x CursorMode) Number() protoreflect.EnumNumber {
@@ -234,7 +308,7 @@ func (x CursorMode) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use CursorMode.Descriptor instead.
 func (CursorMode) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_session_v1_enum_proto_rawDescGZIP(), []int{2}
+	return file_ai_stigmer_agentic_session_v1_enum_proto_rawDescGZIP(), []int{3}
 }
 
 var File_ai_stigmer_agentic_session_v1_enum_proto protoreflect.FileDescriptor
@@ -248,7 +322,11 @@ const file_ai_stigmer_agentic_session_v1_enum_proto_rawDesc = "" +
 	"\aHarness\x12\x17\n" +
 	"\x13HARNESS_UNSPECIFIED\x10\x00\x12\x12\n" +
 	"\x0eHARNESS_NATIVE\x10\x01\x12\x12\n" +
-	"\x0eHARNESS_CURSOR\x10\x02*W\n" +
+	"\x0eHARNESS_CURSOR\x10\x02*k\n" +
+	"\x0fExecutionTarget\x12 \n" +
+	"\x1cEXECUTION_TARGET_UNSPECIFIED\x10\x00\x12\x1a\n" +
+	"\x16EXECUTION_TARGET_LOCAL\x10\x01\x12\x1a\n" +
+	"\x16EXECUTION_TARGET_CLOUD\x10\x02*W\n" +
 	"\n" +
 	"CursorMode\x12\x1b\n" +
 	"\x17CURSOR_MODE_UNSPECIFIED\x10\x00\x12\x15\n" +
@@ -268,11 +346,12 @@ func file_ai_stigmer_agentic_session_v1_enum_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_session_v1_enum_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_session_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+var file_ai_stigmer_agentic_session_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
 var file_ai_stigmer_agentic_session_v1_enum_proto_goTypes = []any{
 	(GitWriteBackMode)(0), // 0: ai.stigmer.agentic.session.v1.GitWriteBackMode
 	(Harness)(0),          // 1: ai.stigmer.agentic.session.v1.Harness
-	(CursorMode)(0),       // 2: ai.stigmer.agentic.session.v1.CursorMode
+	(ExecutionTarget)(0),  // 2: ai.stigmer.agentic.session.v1.ExecutionTarget
+	(CursorMode)(0),       // 3: ai.stigmer.agentic.session.v1.CursorMode
 }
 var file_ai_stigmer_agentic_session_v1_enum_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -292,7 +371,7 @@ func file_ai_stigmer_agentic_session_v1_enum_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_session_v1_enum_proto_rawDesc), len(file_ai_stigmer_agentic_session_v1_enum_proto_rawDesc)),
-			NumEnums:      3,
+			NumEnums:      4,
 			NumMessages:   0,
 			NumExtensions: 0,
 			NumServices:   0,
