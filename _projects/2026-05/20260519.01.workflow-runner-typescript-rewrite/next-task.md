@@ -14,10 +14,50 @@ Drop this file into your conversation to quickly resume work on this project.
 
 **Created**: 2026-05-19
 **Current Task**: Phase 5 — Advanced Tasks
-**Status**: IN PROGRESS (5.1 + 5.2 complete, 5.3+ pending)
-**Last Session**: 2026-05-20, Session 8
+**Status**: IN PROGRESS (5.1 + 5.2 + 5.3 complete, Phase 6 next)
+**Last Session**: 2026-05-20, Session 9
 
-## Session Progress (2026-05-20, Session 8)
+## Session Progress (2026-05-20, Session 9)
+
+### Accomplishments — Phase 5.3: Remaining Advanced Tasks (COMPLETE)
+- **5.3.1 Wait task**: `WaitTaskBuilder` with duration parser (days/hours/minutes/seconds/milliseconds), `SleepFn` callback on `TaskExecutionContext`, wired to Temporal's `sleep()` with cancellation handling, golden YAML #16, 15 tests
+- **5.3.2 Listen task (signal only)**: `executeListenTask()` executor dispatched from `runSingleTask`, validates event filters (id/type/acceptIf), normalizes to.one/all/any → mode, `ListenFn` callback, `listen-orchestrator.ts` with `defineSignal`/`setHandler`/`condition` + timeout, golden YAML #17, 16 tests
+- **5.3.3 Run task (script/shell/workflow)**: `RunTaskBuilder` with 3-mode validation, `RunCommandFn` + `RunWorkflowFn` callbacks, `run-command.ts` activity (temp file + `child_process.execFile`/`exec`), `run-orchestrator.ts` (child workflow with `executeChild` + `ParentClosePolicy`), golden YAML #18, 16 tests
+- **5.3.4 Emit event**: `emitEventAction` in `emit-event.ts` (CloudEvents 1.0 envelope), added `case "emit_event"` in `call-function.ts` dispatcher, golden YAML #19, 10 tests
+- **5.3.5 Human input (HITL)**: `executeHumanInputTask()` executor, loader reclassifies `call: "human_input"` → dedicated `HumanInputTaskDef` kind, `AwaitHumanInputFn` callback, `human-input-orchestrator.ts` (signal + timer + timeout policies: fail/approve/deny), golden YAML #20, 14 tests
+- **Zero regressions**, 368 total tests passing (from 312 at session start), `tsc --noEmit` clean for workflow-engine
+
+### Key Architectural Decisions
+- **Kernel purity preserved** — all 5 new tasks use opaque callbacks on `TaskExecutionContext`. No Temporal imports in `workflow-engine/`. Signal handling, timers, and child workflows live exclusively in `workflows/` orchestrator files.
+- **Listen: signal only** — query/update event types deferred to Phase 6. Signal covers golden YAML #05 and all platform workflows.
+- **Human input reclassified at load time** — `call: "human_input"` in YAML becomes `kind: "human_input"` (not generic `call:function`) because it requires Temporal signal handling that a simple activity proxy cannot provide. Same pattern as `call: "agent"` → `call:agent`.
+- **Run: all three modes** — script (JS/Python), shell, and child workflow. Activity handles script/shell; orchestrator handles child workflow with await/fire-and-forget.
+- **Emit event: CloudEvents 1.0 only** — envelope construction, no delivery. Delivery deferred to Phase 6.
+- **Notification deferred to Phase 6** — needs provider registry infrastructure.
+
+### Files Created
+- `backend/services/runner/src/workflow-engine/tasks/wait.ts` (~65 lines)
+- `backend/services/runner/src/workflow-engine/tasks/listen.ts` (~140 lines)
+- `backend/services/runner/src/workflow-engine/tasks/run.ts` (~120 lines)
+- `backend/services/runner/src/workflow-engine/tasks/human-input.ts` (~65 lines)
+- `backend/services/runner/src/workflows/listen-orchestrator.ts` (~120 lines)
+- `backend/services/runner/src/workflows/run-orchestrator.ts` (~35 lines)
+- `backend/services/runner/src/workflows/human-input-orchestrator.ts` (~75 lines)
+- `backend/services/runner/src/activities/run-command.ts` (~130 lines)
+- `backend/services/runner/src/activities/emit-event.ts` (~55 lines)
+- 5 test files (wait, listen, run, emit-event, human-input)
+- 5 golden YAMLs (#16-#20)
+
+### Files Modified
+- `types.ts` (+DurationDef expanded, +SleepFn, +ListenFn, +ListenExecutionConfig, +ListenEventDef, +RunCommandFn, +RunCommandConfig, +RunWorkflowFn, +RunWorkflowExecutionConfig, +AwaitHumanInputFn, +HumanInputExecutionConfig, +HumanInputResult, +HumanInputConfig, +HumanInputTaskDef)
+- `do-executor.ts` (+listen/human_input dispatch in runSingleTask, +buildMinimalContext stubs)
+- `task-factory.ts` (+wait/listen/run/human_input cases, +placeholder builders, +kind constants)
+- `loader.ts` (+parseHumanInputConfig, +human_input reclassification)
+- `execute-serverless-workflow.ts` (+sleep/listen/runCommand/runWorkflow/awaitHumanInput callback wiring, +runProxy activities)
+- `activities/call-function.ts` (+emit_event case)
+- All existing test files updated (new callback stubs in makeCtx)
+
+## Previous Session Progress (2026-05-20, Session 8)
 
 ### Accomplishments — Phase 5.2: Fork (Parallel Execution)
 - **5.2.1 Fork executor**: `executeForkTask()` with two execution modes — non-compete (`Promise.all`, output = `{ branchName: branchOutput }`) and compete/race (`Promise.race`, output = winner's raw output). State isolation via `state.clone().clearOutput()` per branch. Lazy `executeDoTasks` import for circular dependency resolution (same pattern as for/try).
@@ -166,10 +206,10 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-1. **Phase 5.1b: Retry** (optional) — add `sleep` callback to `TaskExecutionContext`, implement retry loop with backoff in `executeTryTask()`, update test mocks
-2. **Phase 5.3: Remaining Advanced Tasks** — wait/listen, emit_event, notification, human_input
-3. **Phase 6: Supporting Infrastructure** — claimcheck, heartbeat, interceptors, OTel, event emission, budget tracking
-4. **Phase 7: Integration Testing** — 15 golden YAMLs passing identically, regression suite
+1. **Phase 5.1b: Retry** (optional) — `sleep` callback now exists; implement retry loop with backoff in `executeTryTask()`, update test mocks
+2. **Phase 6: Supporting Infrastructure** — claimcheck, heartbeat, interceptors, OTel, event emission, budget tracking, notification provider registry, listen query/update event types
+3. **Phase 7: Integration Testing** — 20 golden YAMLs passing identically, regression suite
+4. **Phase 8: Deployment & Cutover** — Docker, CI, gradual rollout
 
 ## Context for Resume
 
@@ -188,7 +228,9 @@ Drop this file into your conversation to quickly resume work on this project.
 - **New in Phase 5.1**: `try/catch` uses a dedicated executor (`executeTryTask()`) dispatched from `runSingleTask()` — same pattern as `do` and `for`. `WorkflowError` class normalizes all caught errors to CNCF shape for filtering and state binding.
 - **New in Phase 5.1**: `raise` task throws typed `WorkflowError` with expression evaluation in title/detail. Integrated via `RaiseTaskBuilder` in the task factory.
 - **New in Phase 5.2**: `fork` uses a dedicated executor (`executeForkTask()`) dispatched from `runSingleTask()` — same pattern as `do`, `for`, and `try`. Non-compete mode uses `Promise.all`, compete mode uses `Promise.race`. State isolation via clone per branch. No `TaskExecutionContext` changes.
-- Executable task types: `set`, `switch`, `do`, `for`, `fork`, `try`, `raise`, `call:http`, `call:grpc`, `call:agent`, `call:function`. Remaining: `wait`, `listen`, `run`.
+- **New in Phase 5.3**: `wait` uses `WaitTaskBuilder` → `ctx.sleep(ms)`. `listen` (signal only) uses `executeListenTask()` → `ctx.listen(config)` → `listen-orchestrator.ts`. `run` uses `RunTaskBuilder` → `ctx.runCommand`/`ctx.runWorkflow`. `emit_event` routes through `call:function` dispatcher. `human_input` uses `executeHumanInputTask()` → `ctx.awaitHumanInput(config)` → `human-input-orchestrator.ts`.
+- **New in Phase 5.3**: `TaskExecutionContext` now has 5 additional callbacks: `sleep`, `listen`, `runCommand`, `runWorkflow`, `awaitHumanInput`. Each wired to Temporal primitives in `execute-serverless-workflow.ts`.
+- Executable task types: `set`, `switch`, `do`, `for`, `fork`, `try`, `raise`, `wait`, `listen`, `run`, `emit_event`, `human_input`, `call:http`, `call:grpc`, `call:agent`, `call:function`. Remaining for Phase 6: `notification`, listen query/update.
 
 ## Prior Research
 
@@ -210,7 +252,7 @@ Full report: `_projects/2026-05/20260518.01.unified-runner-migration/research.wo
 | 2 | Simple Task Types — for, nested iteration | 1-2 | **COMPLETE** (26 tests, 583 LOC) |
 | 3 | Expression Engine (full) — Temporal integration, local activity, input/output transforms | 1-2 | **COMPLETE** (24 tests, ~670 LOC) |
 | 4 | External Call Tasks — call_http, call_grpc, call_llm, call_agent | 3-4 | **COMPLETE** (100 tests, ~2,200 LOC) |
-| 5 | Advanced Tasks — try/catch, wait/listen, emit_event, notification, human_input, fork | 2-3 | **IN PROGRESS** (5.1 try/catch+raise COMPLETE, 5.2 fork COMPLETE, 79 tests) |
+| 5 | Advanced Tasks — try/catch, wait/listen, emit_event, human_input, fork | 2-3 | **COMPLETE** (5.1 try/catch+raise, 5.2 fork, 5.3 wait/listen/run/emit/human_input — 130 tests) |
 | 6 | Supporting Infrastructure — claimcheck, heartbeat, interceptors, OTel | 2-3 | Blocked on Phase 5 |
 | 7 | Integration Testing — 13 golden YAMLs, regression suite | 3-4 | Blocked on Phase 5 |
 | 8 | Deployment & Cutover — Docker, CI, gradual rollout | 2-3 | Blocked on Phase 7 |

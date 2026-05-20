@@ -21,6 +21,11 @@ function makeCtx(): TaskExecutionContext {
   return {
     evaluateExpressions: evaluateExpressionBatch,
     doc,
+    sleep: notAvailable,
+    listen: notAvailable,
+    runCommand: notAvailable,
+    runWorkflow: notAvailable,
+    awaitHumanInput: notAvailable,
     callHttp: notAvailable,
     callGrpc: notAvailable,
     callFunction: notAvailable,

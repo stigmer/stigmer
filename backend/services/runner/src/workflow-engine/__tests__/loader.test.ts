@@ -797,5 +797,176 @@ do:
       expect(() => loadWorkflowFromYaml(yaml)).toThrow("requires 'error.status'");
     });
   });
+
+  describe("listen parsing", () => {
+    it("parses a listen task with to.one", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  name: listen-test
+do:
+  - waitForSignal:
+      listen:
+        to:
+          one:
+            with:
+              id: approval_signal
+              type: signal
+`;
+      const model = loadWorkflowFromYaml(yaml);
+      const task = model.do[0].task;
+      expect(task.kind).toBe("listen");
+      if (task.kind === "listen") {
+        expect(task.listen.to.one).toBeDefined();
+        expect((task.listen.to.one!.with as any).id).toBe("approval_signal");
+        expect((task.listen.to.one!.with as any).type).toBe("signal");
+      }
+    });
+
+    it("parses a listen task with to.all (multiple events)", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  name: listen-all
+do:
+  - waitForAll:
+      listen:
+        to:
+          all:
+            - with:
+                id: sig1
+                type: signal
+            - with:
+                id: sig2
+                type: signal
+`;
+      const model = loadWorkflowFromYaml(yaml);
+      const task = model.do[0].task;
+      expect(task.kind).toBe("listen");
+      if (task.kind === "listen") {
+        expect(task.listen.to.all).toHaveLength(2);
+      }
+    });
+
+    it("parses golden YAML #17 (listen-signal)", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  namespace: golden-tests
+  name: listen-signal-test
+  version: '1.0.0'
+do:
+  - waitForApproval:
+      listen:
+        to:
+          one:
+            with:
+              id: approval_signal
+              type: signal
+  - processApproval:
+      set:
+        approved: true
+  - waitForAllReviewers:
+      listen:
+        to:
+          all:
+            - with:
+                id: reviewer_1_signal
+                type: signal
+            - with:
+                id: reviewer_2_signal
+                type: signal
+  - allReviewsComplete:
+      set:
+        reviews_done: true
+`;
+      const model = loadWorkflowFromYaml(yaml);
+      expect(model.do).toHaveLength(4);
+      expect(model.do[0].task.kind).toBe("listen");
+      expect(model.do[1].task.kind).toBe("set");
+      expect(model.do[2].task.kind).toBe("listen");
+      expect(model.do[3].task.kind).toBe("set");
+    });
+  });
+
+  describe("wait parsing", () => {
+    it("parses a wait task with seconds", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  name: wait-test
+do:
+  - delay:
+      wait:
+        seconds: 5
+`;
+      const model = loadWorkflowFromYaml(yaml);
+      const task = model.do[0].task;
+      expect(task.kind).toBe("wait");
+      if (task.kind === "wait") {
+        expect(task.wait).toEqual({ seconds: 5 });
+      }
+    });
+
+    it("parses a wait task with multiple duration fields", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  name: wait-multi
+do:
+  - longPause:
+      wait:
+        minutes: 2
+        seconds: 30
+        milliseconds: 500
+`;
+      const model = loadWorkflowFromYaml(yaml);
+      const task = model.do[0].task;
+      expect(task.kind).toBe("wait");
+      if (task.kind === "wait") {
+        expect(task.wait).toEqual({ minutes: 2, seconds: 30, milliseconds: 500 });
+      }
+    });
+
+    it("parses golden YAML #16 (wait-delay)", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  namespace: golden-tests
+  name: wait-delay-test
+  version: '1.0.0'
+do:
+  - setupData:
+      set:
+        started: true
+  - shortDelay:
+      wait:
+        seconds: 5
+  - markAfterShort:
+      set:
+        after_short: true
+  - multiFieldDelay:
+      wait:
+        minutes: 1
+        seconds: 30
+  - markAfterMulti:
+      set:
+        after_multi: true
+`;
+      const model = loadWorkflowFromYaml(yaml);
+      expect(model.do).toHaveLength(5);
+      expect(model.do[1].task.kind).toBe("wait");
+      expect(model.do[3].task.kind).toBe("wait");
+
+      const shortDelay = model.do[1].task;
+      if (shortDelay.kind === "wait") {
+        expect(shortDelay.wait).toEqual({ seconds: 5 });
+      }
+      const multiDelay = model.do[3].task;
+      if (multiDelay.kind === "wait") {
+        expect(multiDelay.wait).toEqual({ minutes: 1, seconds: 30 });
+      }
+    });
+  });
 });
 

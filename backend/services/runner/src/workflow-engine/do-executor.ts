@@ -21,17 +21,21 @@ import type {
   ForTaskDef,
   ForkTaskDef,
   TryTaskDef,
+  ListenTaskDef,
+  HumanInputTaskDef,
   WorkflowModel,
   WorkflowState,
   TaskExecutionContext,
   ExpressionEvaluator,
 } from "./types.js";
 import { isTermination, isExplicitTarget } from "./types.js";
-import { createTaskBuilder, DO_TASK_KIND, FOR_TASK_KIND, FORK_TASK_KIND, TRY_TASK_KIND } from "./task-factory.js";
+import { createTaskBuilder, DO_TASK_KIND, FOR_TASK_KIND, FORK_TASK_KIND, TRY_TASK_KIND, LISTEN_TASK_KIND, HUMAN_INPUT_TASK_KIND } from "./task-factory.js";
 import { extractFlowDirective } from "./tasks/switch.js";
 import { executeForTask } from "./tasks/for.js";
 import { executeForkTask } from "./tasks/fork.js";
 import { executeTryTask } from "./tasks/try.js";
+import { executeListenTask } from "./tasks/listen.js";
+import { executeHumanInputTask } from "./tasks/human-input.js";
 
 /**
  * Executes a `do` task list — the top-level entry point and the
@@ -124,6 +128,11 @@ function buildMinimalContext(
   return {
     evaluateExpressions,
     doc,
+    sleep: notAvailable("sleep"),
+    listen: notAvailable("listen"),
+    runCommand: notAvailable("runCommand"),
+    runWorkflow: notAvailable("runWorkflow"),
+    awaitHumanInput: notAvailable("awaitHumanInput"),
     callHttp: notAvailable("callHttp"),
     callGrpc: notAvailable("callGrpc"),
     callFunction: notAvailable("callFunction"),
@@ -258,6 +267,16 @@ async function runSingleTask(
       ctx.evaluateExpressions,
       ctx,
     );
+  }
+
+  if (taskDef.kind === LISTEN_TASK_KIND) {
+    const listenTaskDef = taskDef as ListenTaskDef;
+    return executeListenTask(listenTaskDef, entry.key, state, ctx);
+  }
+
+  if (taskDef.kind === HUMAN_INPUT_TASK_KIND) {
+    const humanInputDef = taskDef as HumanInputTaskDef;
+    return executeHumanInputTask(humanInputDef, entry.key, state, ctx);
   }
 
   const builder = createTaskBuilder(entry.key, taskDef, doc);

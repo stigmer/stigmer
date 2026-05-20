@@ -73,6 +73,7 @@ export type TaskDef =
   | TryTaskDef
   | WaitTaskDef
   | ListenTaskDef
+  | HumanInputTaskDef
   | RaiseTaskDef
   | CallHttpTaskDef
   | CallGrpcTaskDef
@@ -121,6 +122,11 @@ export interface WaitTaskDef extends TaskBase {
 export interface ListenTaskDef extends TaskBase {
   readonly kind: "listen";
   readonly listen: ListenConfig;
+}
+
+export interface HumanInputTaskDef extends TaskBase {
+  readonly kind: "human_input";
+  readonly humanInput: HumanInputConfig;
 }
 
 export interface RaiseTaskDef extends TaskBase {
@@ -281,7 +287,13 @@ export interface JitterConfig {
 // Wait / Listen / Raise / Run
 // ─────────────────────────────────────────────────────────────────────
 
-export type DurationDef = string | { readonly seconds?: number; readonly minutes?: number; readonly hours?: number };
+export interface DurationDef {
+  readonly days?: number;
+  readonly hours?: number;
+  readonly minutes?: number;
+  readonly seconds?: number;
+  readonly milliseconds?: number;
+}
 
 export interface ListenConfig {
   readonly to: EventConsumptionConfig;
@@ -394,10 +406,110 @@ export type TaskExecutorFn = (
 export interface TaskExecutionContext {
   readonly evaluateExpressions: ExpressionEvaluator;
   readonly doc: WorkflowModel;
+  readonly sleep: SleepFn;
+  readonly listen: ListenFn;
+  readonly runCommand: RunCommandFn;
+  readonly runWorkflow: RunWorkflowFn;
+  readonly awaitHumanInput: AwaitHumanInputFn;
   readonly callHttp: CallHttpFn;
   readonly callGrpc: CallGrpcFn;
   readonly callFunction: CallFunctionFn;
   readonly callAgent: CallAgentFn;
+}
+
+/**
+ * Pauses workflow execution for the specified duration in milliseconds.
+ * Wired to Temporal's `sleep()` in the workflow function. Returns
+ * undefined when the timer completes or the workflow is cancelled.
+ */
+export type SleepFn = (durationMs: number) => Promise<void>;
+
+/**
+ * Waits for external events (signals) to arrive at the workflow.
+ * Wired to the listen-orchestrator which registers Temporal signal
+ * channels and blocks until the consumption strategy is satisfied
+ * (one/all/any). Returns the received signal payload(s).
+ */
+export type ListenFn = (config: ListenExecutionConfig) => Promise<unknown>;
+
+/**
+ * Normalized listen configuration passed to the workflow-layer
+ * orchestrator. The kernel validates and normalizes the raw
+ * ListenConfig before invoking this callback.
+ */
+export interface ListenExecutionConfig {
+  readonly events: ListenEventDef[];
+  readonly mode: "all" | "any";
+  readonly timeoutMs: number;
+}
+
+export interface ListenEventDef {
+  readonly id: string;
+  readonly type: string;
+  readonly acceptIf?: string;
+}
+
+/**
+ * Executes a script or shell command via a Temporal activity.
+ * The activity writes inline code to a temp file and executes it,
+ * or runs a shell command directly. Returns stdout as a string.
+ */
+export type RunCommandFn = (config: RunCommandConfig) => Promise<unknown>;
+
+export interface RunCommandConfig {
+  readonly mode: "script" | "shell";
+  readonly language?: string;
+  readonly code?: string;
+  readonly command?: string;
+  readonly arguments?: unknown;
+  readonly environment?: Record<string, string>;
+  readonly runtimeEnv: Record<string, unknown>;
+}
+
+/**
+ * Executes a child Temporal workflow. When `await` is true, blocks
+ * until the child completes and returns its result. When false,
+ * fires and forgets (returns undefined immediately).
+ */
+export type RunWorkflowFn = (config: RunWorkflowExecutionConfig) => Promise<unknown>;
+
+export interface RunWorkflowExecutionConfig {
+  readonly name: string;
+  readonly input?: unknown;
+  readonly await: boolean;
+}
+
+/**
+ * Blocks workflow execution until a human provides input via signal.
+ * Supports configurable timeout with policies (fail, approve, deny).
+ */
+export type AwaitHumanInputFn = (config: HumanInputExecutionConfig) => Promise<HumanInputResult>;
+
+export interface HumanInputExecutionConfig {
+  readonly signalName: string;
+  readonly timeoutSeconds: number;
+  readonly onTimeout: "fail" | "approve" | "deny";
+}
+
+export interface HumanInputResult {
+  readonly outcome: string;
+  readonly reviewer?: string;
+  readonly responded_at?: string;
+  readonly form_data?: Record<string, unknown>;
+  readonly auto_resolved?: boolean;
+  readonly reason?: string;
+}
+
+export interface HumanInputConfig {
+  readonly prompt: string;
+  readonly outcomes?: HumanInputOutcome[];
+  readonly timeout?: number;
+  readonly onTimeout?: "fail" | "approve" | "deny";
+}
+
+export interface HumanInputOutcome {
+  readonly name: string;
+  readonly then?: string;
 }
 
 /**

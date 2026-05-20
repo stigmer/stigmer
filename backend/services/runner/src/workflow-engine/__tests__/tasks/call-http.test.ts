@@ -10,6 +10,11 @@ function makeCtx(): TaskExecutionContext {
   return {
     evaluateExpressions: evaluateExpressionBatch,
     doc: { document: { dsl: "1.0.0", name: "test" }, do: [] },
+    sleep: () => { throw new Error("not used"); },
+    listen: () => { throw new Error("not used"); },
+    runCommand: () => { throw new Error("not used"); },
+    runWorkflow: () => { throw new Error("not used"); },
+    awaitHumanInput: () => { throw new Error("not used"); },
     callHttp: (...args: Parameters<TaskExecutionContext["callHttp"]>) => mockCallHttp(...args),
     callGrpc: () => { throw new Error("not used"); },
     callFunction: () => { throw new Error("not used"); },

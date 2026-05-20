@@ -16,6 +16,7 @@
 
 import { ApplicationFailure } from "@temporalio/activity";
 import { callLlmAction, type LlmCallConfig } from "./call-llm.js";
+import { emitEventAction, type EmitEventConfig } from "./emit-event.js";
 import { resolveObjectPlaceholders } from "../workflow-engine/resolve.js";
 
 export async function callFunctionAction(
@@ -29,15 +30,16 @@ export async function callFunctionAction(
   switch (call) {
     case "llm":
       return callLlmAction(resolved as unknown as LlmCallConfig, runtimeEnv, executionId);
+    case "emit_event":
+      return emitEventAction(resolved as unknown as EmitEventConfig, executionId);
     case "agent":
       throw ApplicationFailure.nonRetryable(
-        `call:agent is not yet implemented in the TypeScript workflow runner. ` +
-        `It will be added in Phase 4b.`,
+        `call:agent is not yet implemented via call:function. Use the dedicated call:agent task kind.`,
         "CALL_AGENT_NOT_IMPLEMENTED",
       );
     default:
       throw ApplicationFailure.nonRetryable(
-        `Unknown custom call function '${call}'. Supported: llm. Coming soon: agent.`,
+        `Unknown custom call function '${call}'. Supported: llm, emit_event.`,
         "UNKNOWN_CALL_FUNCTION",
       );
   }

@@ -18,6 +18,8 @@ import { ForTaskPlaceholderBuilder } from "./tasks/for.js";
 import { ForkTaskPlaceholderBuilder } from "./tasks/fork.js";
 import { TryTaskPlaceholderBuilder } from "./tasks/try.js";
 import { RaiseTaskBuilder } from "./tasks/raise.js";
+import { WaitTaskBuilder } from "./tasks/wait.js";
+import { RunTaskBuilder } from "./tasks/run.js";
 import { CallHttpTaskBuilder } from "./tasks/call-http.js";
 import { CallGrpcTaskBuilder } from "./tasks/call-grpc.js";
 import { CallAgentTaskBuilder } from "./tasks/call-agent.js";
@@ -43,6 +45,14 @@ export function createTaskBuilder(
       return new TryTaskPlaceholderBuilder(taskName, taskDef);
     case "raise":
       return new RaiseTaskBuilder(taskName, taskDef);
+    case "wait":
+      return new WaitTaskBuilder(taskName, taskDef);
+    case "listen":
+      return new ListenTaskPlaceholderBuilder(taskName, taskDef);
+    case "human_input":
+      return new HumanInputTaskPlaceholderBuilder(taskName, taskDef);
+    case "run":
+      return new RunTaskBuilder(taskName, taskDef);
     case "call:http":
       return new CallHttpTaskBuilder(taskName, taskDef);
     case "call:grpc":
@@ -54,7 +64,7 @@ export function createTaskBuilder(
     default:
       throw new Error(
         `Unsupported task type '${(taskDef as TaskDef).kind}' for task '${taskName}'. ` +
-        `Supported: set, switch, do, for, fork, try, raise, call:http, call:grpc, call:agent, call:function. ` +
+        `Supported: set, switch, do, for, fork, try, raise, wait, listen, run, call:http, call:grpc, call:agent, call:function. ` +
         `Other types will be added in later phases.`,
       );
   }
@@ -88,7 +98,63 @@ class DoTaskPlaceholderBuilder implements TaskBuilder {
   }
 }
 
+/**
+ * Placeholder builder for `listen` tasks. Execution is handled by
+ * the dedicated `executeListenTask` function in do-executor.
+ */
+class ListenTaskPlaceholderBuilder implements TaskBuilder {
+  readonly taskName: string;
+  readonly taskDef: TaskDef;
+
+  constructor(taskName: string, taskDef: TaskDef) {
+    this.taskName = taskName;
+    this.taskDef = taskDef;
+  }
+
+  build() {
+    return async () => {
+      throw new Error(
+        `ListenTaskPlaceholderBuilder.build() should never be called directly. ` +
+        `The executor handles 'listen' tasks via the listen orchestrator.`,
+      );
+    };
+  }
+
+  async shouldRun() {
+    return true;
+  }
+}
+
+/**
+ * Placeholder builder for `human_input` tasks. Execution is handled by
+ * the dedicated `executeHumanInputTask` function in do-executor.
+ */
+class HumanInputTaskPlaceholderBuilder implements TaskBuilder {
+  readonly taskName: string;
+  readonly taskDef: TaskDef;
+
+  constructor(taskName: string, taskDef: TaskDef) {
+    this.taskName = taskName;
+    this.taskDef = taskDef;
+  }
+
+  build() {
+    return async () => {
+      throw new Error(
+        `HumanInputTaskPlaceholderBuilder.build() should never be called directly. ` +
+        `The executor handles 'human_input' tasks via the HITL orchestrator.`,
+      );
+    };
+  }
+
+  async shouldRun() {
+    return true;
+  }
+}
+
 export const DO_TASK_KIND = "do" as const;
 export const FOR_TASK_KIND = "for" as const;
 export const FORK_TASK_KIND = "fork" as const;
 export const TRY_TASK_KIND = "try" as const;
+export const LISTEN_TASK_KIND = "listen" as const;
+export const HUMAN_INPUT_TASK_KIND = "human_input" as const;

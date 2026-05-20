@@ -223,6 +223,14 @@ function discriminateTask(taskName: string, raw: Record<string, unknown>): TaskD
       };
     }
 
+    if (callValue === "human_input") {
+      return {
+        kind: "human_input",
+        ...base,
+        humanInput: parseHumanInputConfig(taskName, raw.with),
+      };
+    }
+
     return {
       kind: "call:function",
       ...base,
@@ -404,5 +412,25 @@ function parseAgentCallConfig(raw: unknown): AgentCallConfig {
     config: obj.config as AgentCallConfig["config"],
     output: obj.output as AgentCallConfig["output"],
     harness,
+  };
+}
+
+function parseHumanInputConfig(taskName: string, raw: unknown): import("./types.js").HumanInputConfig {
+  if (!raw || typeof raw !== "object") {
+    throw new Error(`human_input task '${taskName}' requires a 'with' configuration block`);
+  }
+  const obj = raw as Record<string, unknown>;
+
+  if (typeof obj.prompt !== "string" || !obj.prompt) {
+    throw new Error(`human_input task '${taskName}' requires 'prompt' in 'with'`);
+  }
+
+  return {
+    prompt: obj.prompt,
+    outcomes: Array.isArray(obj.outcomes)
+      ? obj.outcomes.map((o: any) => ({ name: o.name, then: o.then }))
+      : undefined,
+    timeout: typeof obj.timeout === "number" ? obj.timeout : undefined,
+    onTimeout: (obj.on_timeout as "fail" | "approve" | "deny") ?? undefined,
   };
 }
