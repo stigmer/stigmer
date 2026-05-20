@@ -19,6 +19,7 @@ vi.mock("@temporalio/workflow", () => ({
     CallFunction: vi.fn(),
     CallAgent: vi.fn(),
   })),
+  proxySinks: vi.fn(() => ({ metrics: { recordTaskDuration: vi.fn(), recordExecutionStart: vi.fn(), recordExecutionEnd: vi.fn() } })),
   log: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -27,7 +28,9 @@ vi.mock("@temporalio/workflow", () => ({
   defineSignal: vi.fn(() => "child_approval_required"),
   setHandler: vi.fn(),
   condition: vi.fn(),
+  sleep: vi.fn(),
   workflowInfo: vi.fn(() => ({ workflowId: "test-wf-id" })),
+  CancelledFailure: class CancelledFailure extends Error { constructor(msg: string) { super(msg); } },
   CancellationScope: { current: vi.fn() },
   isCancellation: vi.fn(() => false),
 }));

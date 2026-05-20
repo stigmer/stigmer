@@ -23,6 +23,7 @@
 
 import { proxyLocalActivities, proxyActivities, log, workflowInfo, sleep } from "@temporalio/workflow";
 import { CancelledFailure } from "@temporalio/workflow";
+import { recordExecutionStartMetric, recordExecutionEndMetric } from "./metrics-sink.js";
 
 import type { createEvaluateExpressionsActivities } from "../activities/evaluate-expressions.js";
 import type { createCallHttpActivities } from "../activities/call-http.js";
@@ -66,6 +67,7 @@ const evalProxy = proxyLocalActivities<EvalActivities>({
 
 const callProxy = proxyActivities<HttpActivities & GrpcActivities & FunctionActivities>({
   startToCloseTimeout: "5m",
+  heartbeatTimeout: "30s",
   retry: {
     maximumAttempts: 5,
     initialInterval: "1s",
@@ -76,6 +78,7 @@ const callProxy = proxyActivities<HttpActivities & GrpcActivities & FunctionActi
 
 const runProxy = proxyActivities<RunActivities>({
   startToCloseTimeout: "5m",
+  heartbeatTimeout: "30s",
   retry: {
     maximumAttempts: 3,
     initialInterval: "1s",
@@ -110,11 +113,14 @@ export async function executeServerlessWorkflow(
   input: ExecuteServerlessWorkflowInput,
 ): Promise<unknown> {
   const { model, workflow_input, env, metadata } = input;
+  const executionStartMs = Date.now();
 
   log.info("Starting serverless workflow execution", {
     workflowName: model.document.name,
     dsl: model.document.dsl,
   });
+
+  recordExecutionStartMetric(model.document.name);
 
   const evaluateExpressions: ExpressionEvaluator = (exprs, jqInput, stateVars) =>
     evalProxy.EvaluateExpressions(exprs, jqInput, stateVars);
@@ -168,7 +174,12 @@ export async function executeServerlessWorkflow(
   };
 
   const state = createState();
-  state.env = env;
+  state.env = {
+    ...env,
+    __stigmer_execution_id: metadata?.execution_id ?? "",
+    __stigmer_org_id: metadata?.org_id ?? "",
+    __stigmer_workflow_id: metadata?.workflow_id ?? "",
+  };
   state.input = workflow_input;
 
   let effectiveInput = workflow_input;
@@ -199,8 +210,12 @@ export async function executeServerlessWorkflow(
     );
   }
 
+  const durationMs = Date.now() - executionStartMs;
+  recordExecutionEndMetric(model.document.name, true, durationMs);
+
   log.info("Serverless workflow execution completed", {
     workflowName: model.document.name,
+    durationMs,
   });
 
   return state.output;

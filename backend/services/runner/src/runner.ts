@@ -15,6 +15,7 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { homedir, tmpdir } from "node:os";
+import type { PayloadCodec } from "@temporalio/common";
 import type { Config } from "./config.js";
 import type { WorkerActivities } from "./worker.js";
 
@@ -127,8 +128,10 @@ export async function createStigmerRunner(
       `Max concurrency: ${config.maxConcurrentActivities}`,
   );
 
+  const payloadCodec = await createPayloadCodec(config);
+
   const { startWorker } = await import("./worker.js");
-  const worker = await startWorker(config, activities);
+  const worker = await startWorker({ config, activities, payloadCodec });
 
   return {
     async start() {
@@ -241,6 +244,28 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
     ...createCallAgentStatusActivities(),
     ...createRunCommandActivities(),
   };
+}
+
+async function createPayloadCodec(config: Config): Promise<PayloadCodec | undefined> {
+  const { loadClaimcheckConfig, ClaimcheckPayloadCodec } = await import("./claimcheck/index.js");
+  const claimcheckConfig = loadClaimcheckConfig();
+  if (!claimcheckConfig.enabled) {
+    return undefined;
+  }
+
+  const { loadArtifactStorageConfig, createArtifactStorage } = await import(
+    "./shared/artifact-storage.js"
+  );
+  const storageConfig = loadArtifactStorageConfig(config);
+  const storage = createArtifactStorage(storageConfig);
+
+  console.log(
+    `[runner] Claimcheck enabled (threshold=${claimcheckConfig.thresholdBytes}B, ` +
+      `compression=${claimcheckConfig.compressionEnabled}, ` +
+      `storage=${storageConfig.type})`,
+  );
+
+  return new ClaimcheckPayloadCodec(storage, claimcheckConfig);
 }
 
 function resolveDefaultWorkspaceDir(): string {
