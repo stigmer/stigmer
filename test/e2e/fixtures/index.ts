@@ -4,6 +4,7 @@ import type { Stigmer } from "@stigmer/sdk";
 import {
   createTestAgent,
   createTestWorkflow,
+  createTestWaitWorkflow,
   type TestAgentResult,
   type TestWorkflowResult,
 } from "./seed-helpers";
@@ -15,6 +16,7 @@ type WorkerFixtures = {
 type TestFixtures = {
   testAgent: TestAgentResult;
   testWorkflow: TestWorkflowResult;
+  testWaitWorkflow: TestWorkflowResult;
 };
 
 export const test = base.extend<TestFixtures, WorkerFixtures>({
@@ -38,6 +40,12 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
 
   testWorkflow: async ({ stigmerClient }, use) => {
     const result = await createTestWorkflow(stigmerClient);
+    await use(result);
+    await result.cleanup();
+  },
+
+  testWaitWorkflow: async ({ stigmerClient }, use) => {
+    const result = await createTestWaitWorkflow(stigmerClient);
     await use(result);
     await result.cleanup();
   },

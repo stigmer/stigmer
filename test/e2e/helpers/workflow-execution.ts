@@ -50,3 +50,29 @@ export async function verifyTimelineHasEvents(
     });
   }
 }
+
+export async function clickPause(page: Page): Promise<void> {
+  await page.getByRole("button", { name: "Pause" }).click();
+}
+
+export async function clickResume(page: Page): Promise<void> {
+  await page.getByRole("button", { name: "Resume" }).click();
+}
+
+export async function clickCancel(page: Page): Promise<void> {
+  await page.getByRole("button", { name: "Cancel" }).click();
+}
+
+/**
+ * Wait for the execution phase badge to show a specific phase.
+ * Uses Playwright's auto-retry mechanism via expect().toBeVisible().
+ */
+export async function waitForPhaseTransition(
+  page: Page,
+  targetPhase: WorkflowPhase,
+  opts?: { timeout?: number },
+): Promise<void> {
+  await expect(page.getByRole("status", { name: targetPhase })).toBeVisible({
+    timeout: opts?.timeout ?? 15_000,
+  });
+}
