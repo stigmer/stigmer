@@ -14,8 +14,8 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-21
-**Current Task**: T01 — Workstream B complete, Workstream A in progress (separate conversation)
-**Status**: Workstream B (Dispatch Routing) implemented and ready. Workstream A (Sandbox Provisioning) in progress in another conversation. Workstreams C, D, E pending.
+**Current Task**: T01 — Workstreams A and B complete. D unblocked.
+**Status**: Workstream A (Sandbox Provisioning) and B (Dispatch Routing) are COMPLETE. Workstream D (Lifecycle Hooks) is now unblocked (depends on A). Workstreams C and E pending.
 
 ## Critical Architectural Insight
 
@@ -30,10 +30,10 @@ This is why the plan has **5 workstreams, not 4** — Workstream D (Lifecycle Ho
 
 | Workstream | Sessions | Status | Can Parallel With |
 |------------|----------|--------|-------------------|
-| **A: Sandbox Provisioning + Deprovisioning** | 1.5 | IN PROGRESS (separate conversation) | B, C |
+| **A: Sandbox Provisioning + Deprovisioning** | 1.5 | **COMPLETE** | B, C |
 | **B: Dispatch Routing** | 1 | **COMPLETE** | A, C |
 | **C: Agent Override Wiring + Security** | 1 | PENDING | A, B |
-| **D: Lifecycle Hooks (Cleanup)** | 1 | PENDING | After A |
+| **D: Lifecycle Hooks (Cleanup)** | 1 | **UNBLOCKED** (depends on A ✓) | After A |
 | **E: Tests + Validation** | 1 | PENDING | After A+B+C+D |
 
 **Parallel plan**: A, B, and C can each be tackled in separate conversations simultaneously. D depends on A's provisioner methods being ready. E ties everything together.
