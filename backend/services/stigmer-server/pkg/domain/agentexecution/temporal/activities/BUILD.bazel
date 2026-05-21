@@ -6,7 +6,7 @@ go_library(
         "complete_external_activity.go",
         "ensure_thread.go",
         "execute_cursor.go",
-        "execute_graphton.go",
+        "execute_deep_agent.go",
         "generate_session_subject.go",
         "load_execution.go",
         "read_harness_state_id.go",

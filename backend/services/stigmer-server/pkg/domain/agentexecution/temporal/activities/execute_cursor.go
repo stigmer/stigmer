@@ -18,7 +18,7 @@ import (
 // 5. Sends progressive status updates to DB via gRPC during execution
 // 6. Returns a slim status summary to the workflow
 //
-// The Cursor harness uses the same slim-payload and HITL patterns as Graphton:
+// The Cursor harness uses the same slim-payload and HITL patterns as DeepAgent:
 // - Input: executionID + threadID (Cursor agentId, empty on first execution)
 // - Output: slim AgentExecutionStatus (phase, pending_approvals, error, timestamps)
 // - HITL: hook-deny + workflow reinvoke (same approvalGateResolved signal)

@@ -8,12 +8,12 @@ import (
 	"go.temporal.io/sdk/workflow"
 )
 
-// ExecuteGraphtonActivity is the interface for executing Graphton agents.
+// ExecuteDeepAgentActivity is the interface for executing native deep agents.
 //
-// This activity is implemented in Python (agent-runner) and:
+// This activity is implemented in TypeScript (unified runner) and:
 // 1. Fetches AgentExecution from database via gRPC get(executionID)
 // 2. Fetches Agent configuration via gRPC chain resolution
-// 3. Creates Graphton agent at runtime using create_deep_agent()
+// 3. Creates a deep agent at runtime using createDeepAgent()
 // 4. Invokes agent with thread_id for state persistence
 // 5. Sends progressive status updates to DB via gRPC during execution
 // 6. Returns a slim status summary to the workflow
@@ -33,13 +33,15 @@ import (
 //
 // This keeps both input and output payloads well under Temporal's ~2 MB limit.
 //
-// Polyglot Pattern:
-// - Python activity sends real-time status to DB via gRPC
-// - Returns slim summary to workflow for orchestration decisions
+// Unified Runner Architecture:
+// Both ExecuteCursor and ExecuteDeepAgent are registered on the same activity
+// task queue (global: agent_execution_runner, or per-session: session:{id}).
+// Temporal routes by activity name — no queue suffix is needed. The workflow
+// dispatches to the correct activity based on session.spec.harness.
 //
-// Graphton agents support thread-based state persistence via LangGraph.
-type ExecuteGraphtonActivity interface {
-	// ExecuteGraphton executes a Graphton agent and returns a slim status summary.
+// Deep agents support thread-based state persistence via LangGraph.
+type ExecuteDeepAgentActivity interface {
+	// ExecuteDeepAgent executes a native deep agent and returns a slim status summary.
 	//
 	// The returned AgentExecutionStatus contains only workflow-critical fields
 	// (phase, pending_approvals, error, usage, timestamps).  Heavy fields like
@@ -47,23 +49,22 @@ type ExecuteGraphtonActivity interface {
 	// updates sent during execution and are intentionally omitted to stay under
 	// Temporal's payload size limit.
 	//
-	// HITL approval decisions are read from the database by the Python activity
+	// HITL approval decisions are read from the database by the activity
 	// (DB-driven resume). No decisions are passed via Temporal arguments.
 	//
 	// executionID: The AgentExecution ID to fetch and execute
 	// threadID: The LangGraph thread ID for conversation state persistence
 	//
 	// Returns: Slim execution status (phase, pending_approvals, error, usage).
-	ExecuteGraphton(executionID string, threadID string) (*agentexecutionv1.AgentExecutionStatus, error)
+	ExecuteDeepAgent(executionID string, threadID string) (*agentexecutionv1.AgentExecutionStatus, error)
 }
 
-// ExecuteGraphtonActivityName is the activity name used for registration.
-// This MUST match the Python activity name exactly for polyglot to work.
-const ExecuteGraphtonActivityName = "ExecuteGraphton"
+// ExecuteDeepAgentActivityName is the activity name used for Temporal registration.
+// This MUST match the TypeScript unified runner activity name exactly.
+const ExecuteDeepAgentActivityName = "ExecuteDeepAgent"
 
-// NewExecuteGraphtonActivityStub creates an activity stub for calling ExecuteGraphton from workflows.
-// This is used by workflow implementations to call the Python activity.
-func NewExecuteGraphtonActivityStub(ctx workflow.Context, taskQueue string) ExecuteGraphtonActivity {
+// NewExecuteDeepAgentActivityStub creates an activity stub for calling ExecuteDeepAgent from workflows.
+func NewExecuteDeepAgentActivityStub(ctx workflow.Context, taskQueue string) ExecuteDeepAgentActivity {
 	options := workflow.ActivityOptions{
 		TaskQueue:              taskQueue,
 		StartToCloseTimeout:    24 * time.Hour,
@@ -78,16 +79,15 @@ func NewExecuteGraphtonActivityStub(ctx workflow.Context, taskQueue string) Exec
 
 	ctx = workflow.WithActivityOptions(ctx, options)
 
-	return &executeGraphtonActivityStub{ctx: ctx}
+	return &executeDeepAgentActivityStub{ctx: ctx}
 }
 
-// executeGraphtonActivityStub is the internal stub implementation.
-type executeGraphtonActivityStub struct {
+type executeDeepAgentActivityStub struct {
 	ctx workflow.Context
 }
 
-func (s *executeGraphtonActivityStub) ExecuteGraphton(executionID string, threadID string) (*agentexecutionv1.AgentExecutionStatus, error) {
+func (s *executeDeepAgentActivityStub) ExecuteDeepAgent(executionID string, threadID string) (*agentexecutionv1.AgentExecutionStatus, error) {
 	var result *agentexecutionv1.AgentExecutionStatus
-	err := workflow.ExecuteActivity(s.ctx, ExecuteGraphtonActivityName, executionID, threadID).Get(s.ctx, &result)
+	err := workflow.ExecuteActivity(s.ctx, ExecuteDeepAgentActivityName, executionID, threadID).Get(s.ctx, &result)
 	return result, err
 }
