@@ -87,6 +87,13 @@ func WithWorkspaceEntries(entries []*sessionv1.WorkspaceEntry) SessionOption {
 	}
 }
 
+// WithExecutionTarget sets the execution target on the session spec.
+func WithExecutionTarget(target sessionv1.ExecutionTarget) SessionOption {
+	return func(s *sessionv1.SessionSpec) {
+		s.ExecutionTarget = target
+	}
+}
+
 // CreateTestSession creates a session for agent execution tests with the
 // specified harness. The session is deleted on test cleanup.
 func CreateTestSession(t *testing.T, ctx context.Context, clients *Clients, agentInstanceID string, harness sessionv1.Harness, opts ...SessionOption) *sessionv1.Session {

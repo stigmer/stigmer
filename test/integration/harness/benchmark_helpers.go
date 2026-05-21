@@ -131,7 +131,7 @@ func RunBenchmarkExecution(
 	// Runner-reported usage (display-only, for cross-reference)
 	var runnerEstimatedCost float64
 	var turnCount int32
-	if ru := result.GetStatus().GetRunnerUsage(); ru != nil {
+	if ru := result.GetStatus().GetStreamingUsage(); ru != nil {
 		runnerEstimatedCost = ru.GetEstimatedCostUsd()
 		turnCount = ru.GetTurnCount()
 		if model == "" {
@@ -332,7 +332,7 @@ func RunCursorModeBenchmark(
 
 	var runnerEstimatedCost float64
 	var turnCount int32
-	if ru := result.GetStatus().GetRunnerUsage(); ru != nil {
+	if ru := result.GetStatus().GetStreamingUsage(); ru != nil {
 		runnerEstimatedCost = ru.GetEstimatedCostUsd()
 		turnCount = ru.GetTurnCount()
 		if model == "" {

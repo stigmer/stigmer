@@ -48,6 +48,8 @@ Drop this file into your conversation to quickly resume work on this project.
 **Current Task**: Phase 6 Deployment (or remaining Tier 6 integration tests)  
 **Status**: W3 Subagent Transformer COMPLETE — 45 new tests (1057 total); Phase 5 Tier 6 COMPLETE
 
+**Cross-project update (2026-05-21)**: E2E integration tests for the unified runner's IPC manager mode and per-session task queue routing are now implemented in `test/integration-session-routing/` (runner-architecture-simplification project, Session 11). The tests validate `createStigmerRunnerManager()` addSession/removeSession IPC protocol, per-session Worker creation, and `ExecuteCursor` activity dispatch on `session:{id}` queues. Discovery: `ExecuteGraphton` → `ExecuteDeepAgent` name mismatch means native harness per-session routing is blocked until Java workflow is updated.
+
 ## Session Progress (2026-05-20, latest)
 
 ### What Was Accomplished (Phase 5 Tier 6 W3 — Subagent Transformer)

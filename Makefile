@@ -262,6 +262,14 @@ test-integration-stress: ## Run integration tests 3x to detect flakes (no quaran
 test-integration-security: ## Run security integration tests (JWT validation, production auth chain)
 	$(MAKE) -C test/integration-security test
 
+.PHONY: test-integration-session-routing
+test-integration-session-routing: ## Run offline session routing integration tests (per-session task queue routing)
+	$(MAKE) -C test/integration-session-routing test
+
+.PHONY: test-integration-session-routing-providers
+test-integration-session-routing-providers: ## Run provider-backed session routing E2E tests (auto-fetches CURSOR_API_KEY)
+	$(MAKE) -C test/integration-session-routing test-providers
+
 .PHONY: test-replay
 test-replay: ## Run Temporal workflow replay determinism tests (fast, no infra needed)
 	$(MAKE) -C backend/services/workflow-runner test-replay
