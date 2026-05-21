@@ -467,7 +467,7 @@ func TestWorkflowArchitect_RefineAndApply(t *testing.T) {
 					Kind:       workflowv1.WorkflowTaskKind_set_vars,
 					TaskConfig: taskConfig,
 					Export:     &workflowv1.Export{As: "${.}"},
-					Flow:       &workflowv1.Flow{Then: "setFarewell"},
+					Flow:       &workflowv1.FlowControl{Then: "setFarewell"},
 				},
 				{
 					Name:       "setFarewell",

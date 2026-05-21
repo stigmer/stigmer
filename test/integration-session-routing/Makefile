@@ -34,9 +34,19 @@ ensure-service-jar:
 	fi
 
 RUNNER_DIR := $(CURDIR)/../../backend/services/runner
+PROTOS_DIR := $(CURDIR)/../../apis/stubs/ts
 
-.PHONY: ensure-runner-built
-ensure-runner-built:
+.PHONY: ensure-protos-built ensure-runner-built
+
+ensure-protos-built:
+	@if [ ! -d "$(PROTOS_DIR)/dist/ai" ]; then \
+		echo "Building proto stubs TypeScript..."; \
+		cd "$(PROTOS_DIR)" && npm run build; \
+	else \
+		echo "proto stubs: already built"; \
+	fi
+
+ensure-runner-built: ensure-protos-built
 	@if [ ! -f "$(RUNNER_DIR)/dist/main.js" ]; then \
 		echo "Building unified runner TypeScript..."; \
 		cd "$(RUNNER_DIR)" && npm run build; \

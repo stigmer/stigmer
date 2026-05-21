@@ -34,7 +34,7 @@ import { WorkflowExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agenti
 import {
   WorkflowExecutionUpdateStatusInputSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
-import { Struct } from "@bufbuild/protobuf/wkt";
+import type { JsonObject } from "@bufbuild/protobuf";
 import type { WorkflowEventDescriptor } from "../workflow-engine/types.js";
 
 const TASK_KIND_MAP: Record<string, number> = {
@@ -70,7 +70,7 @@ function nextSequence(): bigint {
   return BigInt(sequenceCounter);
 }
 
-export function resetSequenceCounter(): void {
+export async function resetSequenceCounter(): Promise<void> {
   sequenceCounter = 0;
 }
 
@@ -181,7 +181,7 @@ export function toProtoEvent(desc: WorkflowEventDescriptor): WorkflowExecutionEv
             create(HumanInputOutcomeInfoSchema, { name: o.name, label: o.label }),
           ),
           formSchema: desc.formSchema
-            ? Struct.fromJson(desc.formSchema as Record<string, unknown>)
+            ? (desc.formSchema as JsonObject)
             : undefined,
         }),
       };
