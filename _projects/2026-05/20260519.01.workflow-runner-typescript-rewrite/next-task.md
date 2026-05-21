@@ -27,10 +27,10 @@ Drop this file into your conversation to quickly resume work on this project.
 - **Tier 3: Go golden test infrastructure deleted** — Removed `golden_test.go` (Go parse+build tests), `BUILD.bazel`, and 12 `test-*.sh` manual gRPC integration scripts. All 23 golden YAML fixture files preserved as shared fixtures referenced by TS tests.
 - **41 new tests** (25 kernel + 16 E2E), 1492/1493 passing (1 pre-existing failure in `call-function.test.ts`), zero regressions.
 
-### Known Issues Discovered (Follow-Up Required)
-1. **`structuredClone` not available in Temporal sandbox** — `set.ts` line 27 uses `structuredClone(this.taskDef.set)` which is unavailable in the Temporal deterministic V8 isolate. The Temporal sandbox patches many global APIs but not `structuredClone`. Fix: replace with `JSON.parse(JSON.stringify(...))` or use the existing `deepClone` utility from `state.ts`. This blocks E2E tests from executing real workflows and would also block production execution of workflow tasks that use the set task.
-2. **Golden #13 YAML parse error** — `13-agent-call.yaml` has `input.from: ${ { pr_number: .pr_number, ... } }` with unquoted braces that js-yaml interprets as YAML mapping syntax. The `loader.test.ts` also skips this YAML. Fix: quote the `from` value in the YAML file.
-3. **Set task jq input mismatch** — The TS set task evaluates expressions with `null` as jq input (`.`), while Go uses `state.Data`. This means `${ .a + .b }` works in Go (evaluates against data fields) but returns `null` in TS (evaluates against null input). Expressions using `$data.field` work in both. This is a behavioral parity issue for Phase 9 review.
+### Known Issues Discovered — ALL RESOLVED (Session 14)
+1. **`structuredClone` not available in Temporal sandbox** — FIXED. Extracted `deepClone` utility to `workflow-engine/clone.ts` (sandbox-safe: prefers `structuredClone`, falls back to JSON round-trip). Replaced bare `structuredClone` in `set.ts` and `resolve.ts`. Updated `state.ts` to import from shared utility. E2E tests and production execution are unblocked.
+2. **Golden #13 YAML parse error** — FIXED. Quoted the `input.from` expression in `13-agent-call.yaml`. Updated the golden execution test to load from the YAML file directly (was using inline YAML workaround).
+3. **Set task jq input mismatch** — FALSE ALARM. Go's `task_builder_set.go` passes `nil` as jq input (`.`) — identical to TS. The original description was incorrect: Go does NOT use `state.Data` as jq input. Both engines expose state data only through `$data` variable bindings. No code change required.
 
 ### Key Architectural Decisions
 - **Kernel-level tests load golden YAMLs from the Go workflow-runner fixture directory** via relative path `../../../../workflow-runner/test/golden/` — same pattern as the existing `loader.test.ts`. This avoids duplicating the YAML files and ensures both the parse tests and execution tests use the same fixtures.
@@ -353,9 +353,9 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-1. **Fix structuredClone sandbox issue** — Replace `structuredClone` in `set.ts` with JSON round-trip or `deepClone` from `state.ts`. This unblocks E2E tests and production workflow execution.
-2. **Fix golden #13 YAML** — Quote the `input.from` expression in `13-agent-call.yaml` to avoid js-yaml parse error.
-3. **Evaluate set task jq input parity** — Decide whether the TS set task should use `state.data` as jq input (matching Go behavior) or keep `null` and require `$data.field` syntax.
+1. ~~**Fix structuredClone sandbox issue**~~ — DONE (Session 14). Extracted `deepClone` to `workflow-engine/clone.ts`.
+2. ~~**Fix golden #13 YAML**~~ — DONE (Session 14). Quoted `input.from` expression.
+3. ~~**Evaluate set task jq input parity**~~ — RESOLVED (Session 14). False alarm — Go also passes nil.
 4. **Phase 8: Deployment & Cutover** — Docker, CI, gradual rollout
 5. **Phase 9: Cleanup** — Delete Go workflow-runner, update CI
 6. **Full-stack integration tests** — After Phase 8, update the Go integration harness (`test/integration/`) to start the TS runner instead of Go, and add golden YAML submissions as full-stack E2E tests.
@@ -365,6 +365,7 @@ Drop this file into your conversation to quickly resume work on this project.
 - The workflow engine at `src/workflow-engine/` is a sandbox-safe execution kernel with zero Node.js dependencies
 - Expression evaluation runs in a local activity (`activities/evaluate-expressions.ts`) — the kernel calls it via the injected `ExpressionEvaluator` callback
 - **New in Phase 4**: External call tasks use regular Temporal activities via `proxyActivities`. The kernel calls `ctx.callHttp(config, env)` etc. — opaque callbacks wired to activity proxies by the workflow function.
+- The `clone.ts` module provides the sandbox-safe `deepClone` utility used by `state.ts`, `set.ts`, and `resolve.ts` — prefers `structuredClone`, falls back to JSON round-trip for the Temporal deterministic sandbox.
 - The `resolve.ts` module provides shared utilities: `resolveConfigExpressions` (workflow-side jq evaluation), `resolveObjectPlaceholders` (activity-side secret resolution), `collectExpressions`, `substituteResults`
 - `call:function` is the dispatch point for Stigmer extensions (llm, agent, etc.) — `CallFunctionTaskBuilder` passes the `call` string through to the activity which routes internally
 - **New in Phase 4b**: `call:agent` uses Temporal async completion — activity creates AgentExecution with task token, throws `CompleteAsyncError`. Workflow-side orchestrator (`workflows/call-agent-orchestrator.ts`) manages `child_approval_required` signal handling and approval status local activities.
@@ -390,9 +391,9 @@ Drop this file into your conversation to quickly resume work on this project.
 - **New in Phase 7**: Kernel-level golden execution tests at `src/workflow-engine/__tests__/golden-execution.test.ts` — loads golden YAMLs and executes through `executeDoTasks()` with mock callbacks. 25 tests covering all 23 golden YAMLs.
 - **New in Phase 7**: Temporal E2E tests at `src/__tests__/golden-e2e.test.ts` — uses `@temporalio/testing` `TestWorkflowEnvironment` with real workflow bundling. 16 tests, currently gracefully skipped until `structuredClone` sandbox issue is fixed.
 - **New in Phase 7**: Go golden test infrastructure deleted — `golden_test.go`, `BUILD.bazel`, and 12 `test-*.sh` scripts removed. The 23 golden YAML fixture files are preserved at `backend/services/workflow-runner/test/golden/`.
-- **Known bug**: `set.ts` line 27 uses `structuredClone` which is unavailable in the Temporal V8 sandbox. Must be replaced before E2E tests or production execution works.
-- **Known gap**: Golden #13 (`13-agent-call.yaml`) has a YAML parse error due to unquoted braces in `input.from`. Needs quoting fix.
-- **Known gap**: TS set task evaluates `${ .field }` expressions against `null` jq input, while Go uses `state.Data`. Expressions using `$data.field` work in both.
+- **Resolved (Session 14)**: `structuredClone` sandbox issue fixed — extracted `deepClone` to `clone.ts` with JSON round-trip fallback. E2E tests and production execution unblocked.
+- **Resolved (Session 14)**: Golden #13 YAML parse error fixed — `input.from` expression quoted. Test updated to load from file.
+- **Resolved (Session 14)**: Set task jq input parity confirmed — both Go and TS pass `nil`/`null` as jq input (`.`). State data accessible only via `$data` variable bindings in both engines.
 
 ## Prior Research
 

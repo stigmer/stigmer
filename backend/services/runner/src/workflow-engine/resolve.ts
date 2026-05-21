@@ -13,6 +13,7 @@
  */
 
 import type { ExpressionEvaluator, WorkflowState } from "./types.js";
+import { deepClone } from "./clone.js";
 
 /**
  * Resolves all `${ ... }` expressions in a config object. Deep-clones
@@ -27,7 +28,7 @@ export async function resolveConfigExpressions(
   state: WorkflowState,
   evaluateExpressions: ExpressionEvaluator,
 ): Promise<Record<string, unknown>> {
-  const cloned = structuredClone(config);
+  const cloned = deepClone(config);
   const expressions = collectExpressions(cloned);
 
   if (Object.keys(expressions).length === 0) {
