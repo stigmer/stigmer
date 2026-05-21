@@ -104,6 +104,58 @@ export interface TestWorkflowExecutionResult {
   cleanup: () => Promise<void>;
 }
 
+export interface CreateTestWaitWorkflowOpts {
+  name?: string;
+  org?: string;
+  waitDurationSeconds?: number;
+}
+
+export async function createTestWaitWorkflow(
+  client: Stigmer,
+  opts?: CreateTestWaitWorkflowOpts,
+): Promise<TestWorkflowResult> {
+  const name = opts?.name ?? `e2e-wait-wf-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  const org = opts?.org ?? DEFAULT_ORG;
+  const waitSeconds = opts?.waitDurationSeconds ?? 10;
+
+  const workflow = await client.workflow.apply({
+    name,
+    org,
+    description: "E2E workflow with wait task for lifecycle testing",
+    document: {
+      dsl: "1.0.0",
+      namespace: org,
+      name,
+      version: "1.0.0",
+    },
+    tasks: [
+      {
+        name: "blocking-wait",
+        kind: WorkflowTaskKind.wait,
+        taskConfig: { seconds: waitSeconds },
+      },
+      {
+        name: "final-step",
+        kind: WorkflowTaskKind.set_vars,
+        taskConfig: { variables: { completed: "true" } },
+        export: { as: "${ . }" },
+      },
+    ],
+  });
+
+  const id = workflow.metadata!.id;
+  const slug = workflow.metadata!.name;
+
+  return {
+    id,
+    slug,
+    org,
+    cleanup: async () => {
+      await client.workflow.delete(id).catch(() => {});
+    },
+  };
+}
+
 export async function createTestWorkflowExecution(
   client: Stigmer,
   workflowId: string,

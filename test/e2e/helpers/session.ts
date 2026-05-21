@@ -54,3 +54,37 @@ export async function waitForAIResponse(
   await expect(aiResponse).not.toHaveAttribute("aria-busy", "true", { timeout });
   return aiResponse;
 }
+
+/**
+ * Sidebar execution progress region (visible on lg+ viewports).
+ * Contains the phase badge and task list for the active/last execution.
+ */
+export function getExecutionProgressRegion(page: Page): Locator {
+  return page.getByRole("region", { name: "Execution progress" });
+}
+
+/**
+ * Wait for the sidebar execution progress to show a specific phase.
+ * Scoped to the "Execution progress" region to avoid matching
+ * phase badges that appear inline in the message thread.
+ */
+export async function waitForExecutionPhase(
+  page: Page,
+  phase: string,
+  opts?: { timeout?: number },
+): Promise<void> {
+  const region = getExecutionProgressRegion(page);
+  await expect(region.getByRole("status", { name: phase })).toBeVisible({
+    timeout: opts?.timeout ?? 60_000,
+  });
+}
+
+export async function assertComposerDisabled(page: Page): Promise<void> {
+  const form = getSessionComposer(page);
+  await expect(form.getByRole("textbox")).toBeDisabled();
+}
+
+export async function assertComposerEnabled(page: Page): Promise<void> {
+  const form = getSessionComposer(page);
+  await expect(form.getByRole("textbox")).toBeEnabled();
+}
