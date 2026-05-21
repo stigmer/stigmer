@@ -26,7 +26,7 @@
  * subsequent executions because local SDK context loading is unreliable.
  */
 
-import { heartbeat } from "@temporalio/activity";
+import { heartbeat, Context, CancelledFailure } from "@temporalio/activity";
 import { create } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
@@ -347,6 +347,7 @@ async function executeCursor(
     const todoTracker = new TodoTracker(status.todos);
 
     let platformStopSignaled = false;
+    let pauseDetected = false;
     let firstTurnAttributionLogged = false;
 
     const run = await resolution.agent.send(prompt, {
@@ -367,7 +368,15 @@ async function executeCursor(
           }
         }
         deltaEnricher.processDelta(update);
-        heartbeat();
+        try {
+          heartbeat();
+        } catch (hbErr) {
+          if (hbErr instanceof CancelledFailure) {
+            pauseDetected = true;
+            return;
+          }
+          throw hbErr;
+        }
       },
     });
 
@@ -375,6 +384,11 @@ async function executeCursor(
     let eventCount = 0;
 
     for await (const event of run.stream()) {
+      if (pauseDetected || Context.current().cancellationSignal.aborted) {
+        pauseDetected = true;
+        break;
+      }
+
       collectedEvents.push(event);
       accumulator.processEvent(event);
       todoTracker.processEvent(event);
@@ -446,6 +460,20 @@ async function executeCursor(
       // Metrics not initialized — silently skip.
     }
 
+
+    // Phase 11a: Handle pause (activity cancellation from orchestrator)
+    if (pauseDetected) {
+      status.phase = ExecutionPhase.EXECUTION_PAUSED;
+      status.messages.push(create(AgentMessageSchema, {
+        type: MessageType.MESSAGE_SYSTEM,
+        content: "Execution paused by user. Use resume to continue.",
+        timestamp: utcTimestamp(),
+      }));
+      await persistStatus(client, executionId, status);
+      await maybePeristSessionMemory(client, sessionId, session, status, userMessage);
+      console.log(`ExecuteCursor paused: execution=${executionId}, events=${eventCount}`);
+      throw new CancelledFailure("Activity paused by orchestrator");
+    }
 
     // Phase 11b: Handle platform stop signal early exit
     if (platformStopSignaled) {
@@ -542,6 +570,14 @@ async function executeCursor(
     return slimStatus(status);
 
   } catch (err) {
+    if (err instanceof CancelledFailure) {
+      console.log(`ExecuteCursor cancelled (pause) for execution ${executionId}`);
+      status.phase = ExecutionPhase.EXECUTION_PAUSED;
+      await persistStatus(client, executionId, status).catch(() => {});
+      await maybePeristSessionMemory(client, sessionId, session, status, userMessage);
+      throw err;
+    }
+
     const errMsg = err instanceof Error ? err.message : String(err);
     const errType = err instanceof Error ? err.constructor.name : "Unknown";
     console.error(`ExecuteCursor failed: execution=${executionId}, [${errType}] ${errMsg}`);

@@ -14,8 +14,8 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-21
-**Current Task**: Workstreams A+B+C+D+E+F complete. Workflow Sandbox Affinity complete. Follow-up: Agent Pause/Resume TS runner gap.
-**Status**: ALL workstreams COMPLETE. Follow-up workstream identified: agent execution pause/resume broken in TS runner.
+**Current Task**: ALL workstreams + follow-up complete. Agent Pause/Resume TS runner fix implemented.
+**Status**: ALL workstreams COMPLETE. Agent execution pause/resume fixed in TS runner. Integration test un-skipped.
 
 ## Workstream Summary (Parallel Execution)
 

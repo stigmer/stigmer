@@ -127,6 +127,64 @@ describe("streamExecution", () => {
       const terminal = result.terminalStatus as Record<string, unknown>;
       expect(terminal.phase).toBe("EXECUTION_PAUSED");
     });
+
+    it("includes system message explaining pause", async () => {
+      const status = create(AgentExecutionStatusSchema, {});
+      const result = await streamExecution(baseDeps({
+        initialStatus: status,
+        isCancelledFn: () => true,
+      }));
+
+      expect(result.terminalStatus).toBeDefined();
+      expect(status.phase).toBe(ExecutionPhase.EXECUTION_PAUSED);
+      expect(status.messages.length).toBeGreaterThanOrEqual(1);
+      const pauseMsg = status.messages.find(
+        (m) => m.content.includes("paused"),
+      );
+      expect(pauseMsg).toBeDefined();
+    });
+
+    it("preserves events processed before cancellation", async () => {
+      let callCount = 0;
+      const result = await streamExecution(baseDeps({
+        agentGraph: mockGraph([
+          chatStreamEvent("run-1", "Hello"),
+          chatStreamEvent("run-1", "World"),
+          chatEndEvent("run-1"),
+        ]),
+        isCancelledFn: () => {
+          callCount++;
+          return callCount > 1;
+        },
+      }));
+
+      expect(result.eventsProcessed).toBe(1);
+      expect(result.terminalStatus).toBeDefined();
+      const terminal = result.terminalStatus as Record<string, unknown>;
+      expect(terminal.phase).toBe("EXECUTION_PAUSED");
+    });
+
+    it("returns pending publish/writeback promises on pause", async () => {
+      const publishPromise = Promise.resolve();
+      const mockInlinePublisher = {
+        publish: vi.fn().mockReturnValue(publishPromise),
+      };
+
+      const events = [
+        makeEvent("on_tool_end", "run-1", {
+          input: { path: "/test/file.ts" },
+        }),
+      ];
+      Object.defineProperty(events[0], "name", { value: "write_file" });
+
+      const result = await streamExecution(baseDeps({
+        agentGraph: mockGraph(events),
+        isCancelledFn: () => false,
+      }));
+
+      expect(result.pendingPublishPromises).toBeDefined();
+      expect(result.pendingWritebackPromises).toBeDefined();
+    });
   });
 
   describe("recursion limit", () => {

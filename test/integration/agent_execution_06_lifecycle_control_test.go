@@ -198,7 +198,6 @@ func TestAgentExecution_Terminate(t *testing.T) {
 }
 
 func TestAgentExecution_Pause_Resume(t *testing.T) {
-	t.Skip("pause/resume requires runner-side checkpoint saving on Temporal activity cancellation — tracked separately")
 
 	require.NotNil(t, grpcConn)
 

@@ -35,11 +35,18 @@ export async function processPostStream(opts: PostStreamOptions): Promise<void> 
     executionId,
   } = opts;
 
-  if (status.phase === ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL) {
-    console.log(
-      `[postStream] execution=${executionId} — skipping post-stream ` +
-      `(phase is WAITING_FOR_APPROVAL)`,
-    );
+  if (status.phase === ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL ||
+      status.phase === ExecutionPhase.EXECUTION_PAUSED) {
+    const phaseName = status.phase === ExecutionPhase.EXECUTION_PAUSED
+      ? "PAUSED" : "WAITING_FOR_APPROVAL";
+
+    if (pendingPublishPromises.length > 0 || pendingWritebackPromises.length > 0) {
+      await Promise.allSettled([...pendingPublishPromises, ...pendingWritebackPromises]);
+      console.log(
+        `[postStream] execution=${executionId} — drained pending promises ` +
+        `(phase is ${phaseName})`,
+      );
+    }
     return;
   }
 
