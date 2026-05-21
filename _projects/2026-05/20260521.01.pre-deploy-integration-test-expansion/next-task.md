@@ -14,8 +14,8 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-21
-**Current Task**: Workstream A complete. Workstream B next.
-**Status**: Gating item (Workstream A) completed. B is unblocked. C/D/E/F can start in parallel.
+**Current Task**: Workstreams A+D+F complete. B next on critical path. C+E in progress (parallel).
+**Status**: Gating item (A) completed. D completed. F completed. B unblocked. C/E in parallel conversations.
 
 ## Workstream Summary (Parallel Execution)
 
@@ -23,12 +23,12 @@ Drop this file into your conversation to quickly resume work on this project.
 |------------|----------|--------|------------|
 | **A: TS Hydration Activity** | 1 (done) | COMPLETED | — |
 | **B: Java + Go Orchestrator Rewrite** | 3.5-5 | Not started (UNBLOCKED) | — |
-| **C: Go Integration Tests (New)** | 3-4 | Not started | Nothing |
-| **D: Playwright E2E (Structural)** | 2 | Not started | Nothing |
-| **E: stigmer-cloud BUILD.bazel** | 2-3 | Not started | Nothing |
-| **F: SDK Component Tests** | 1 | Not started | Nothing |
+| **C: Go Integration Tests (New)** | 3-4 | IN PROGRESS (parallel) | Nothing |
+| **D: Playwright E2E (Structural)** | 1 (done) | COMPLETED | — |
+| **E: stigmer-cloud BUILD.bazel** | 2-3 | IN PROGRESS (parallel) | Nothing |
+| **F: SDK Component Tests** | 1 (done) | COMPLETED | — |
 
-**Critical path**: B → B-tests (3.5-5 sessions remaining). C/D/E/F can all run in parallel now.
+**Critical path**: B → B-tests (3.5-5 sessions remaining). C/E in progress.
 
 ## Session Progress (2026-05-21, Workstream A)
 
@@ -67,6 +67,57 @@ Drop this file into your conversation to quickly resume work on this project.
 - `backend/services/runner/src/runner-manager.ts`
 - `backend/services/runner/src/__test-utils__/mock-client.ts`
 
+## Session Progress (2026-05-21, Workstream D — Playwright E2E)
+
+### What was accomplished
+- **6 new Playwright spec files** (52 tests) covering settings, library skills/MCP servers, error resilience, accessibility (axe-core), and responsive sidebar
+- **Fixed 21 stale locators** in 6 authorization specs (`data-testid="resource-card"` → `role="listitem"`)
+- **Added `@axe-core/playwright`** dependency for WCAG 2.0 AA audits
+- Total functional E2E: 52 → 104 tests in 19 files
+- All tests compile and list successfully (`npx playwright test --list` exit 0)
+
+### Key decisions made
+- **Selectors grounded in SDK DOM analysis**: Every locator verified against actual component `aria-labelledby` IDs, `aria-label` strings, and `role` attributes
+- **No `waitForTimeout`**: All waits use `expect()` auto-waiting with explicit timeouts
+- **Axe audits filter to critical+serious** for initial rollout; composer textarea excluded (known missing `aria-label`)
+- **Error state tests handle both backend modes**: Use `.or()` composition to pass whether backend returns NOT_FOUND or connection errors
+- **Responsive tests use `localStorage` init scripts** for deterministic sidebar state
+
+### Files created
+- `test/e2e/tests/functional/settings.spec.ts` (24 tests)
+- `test/e2e/tests/functional/library-skills.spec.ts` (5 tests)
+- `test/e2e/tests/functional/library-mcp-servers.spec.ts` (5 tests)
+- `test/e2e/tests/functional/error-states.spec.ts` (6 tests)
+- `test/e2e/tests/functional/accessibility.spec.ts` (7 tests)
+- `test/e2e/tests/functional/responsive.spec.ts` (5 tests)
+
+### Files modified
+- `test/e2e/package.json` (added `@axe-core/playwright`)
+- 6 authorization spec files (locator fixes)
+
+## Session Progress (2026-05-21, Workstream F — SDK Component Tests)
+
+### What was accomplished
+- **27 new tests** across 3 files protecting the public `@stigmer/react` API surface
+- **`useComposer` hook tests (11)**: First-ever tests for this public headless hook — validates submit, canSubmit, Enter/Shift+Enter, clear, disabled state
+- **`MessageThread` render tests (8)**: Approval callback propagation end-to-end, pending message rendering, phase badge, plan-completion card
+- **`SessionComposer` contract tests (8)**: role/aria-label a11y, textarea presence, disabled states, async submit flow
+- Full suite: 506 tests pass (45 files), zero regressions, zero lint errors
+
+### Key decisions made
+- Followed DD-003 headless-first: tested `useComposer` hook independently before component rendering
+- No premature shared test utilities — each file self-contained (matching existing 42-file pattern)
+- SessionComposer tested at public contract level only (not internal setup orchestration)
+
+### Discoveries
+- `SessionComposer` submit is async (calls `stigmer.getAuthCredential()` for system env vars) — mock needed `getAuthCredential` + `baseUrl` on Stigmer client
+- `MessageThread` renders `spec.message` as synthetic human bubble in addition to `status.messages` — both appear in DOM
+
+### Files created
+- `sdk/react/src/composer/__tests__/useComposer.test.ts`
+- `sdk/react/src/execution/__tests__/MessageThread.test.tsx`
+- `sdk/react/src/composer/__tests__/SessionComposer-contract.test.tsx`
+
 ## Key Architectural Findings
 
 1. **Workflow tests won't compile**: `testHarness.WorkflowRunner` field deleted, 58 references in ~25 files
@@ -82,6 +133,10 @@ Check if workflow execution is broken in production (old Go workflow-runner dele
 ## Context for Resume
 
 - Workstream A changelog: `_changelog/2026-05/2026-05-21-164357-ts-hydration-activity-wrapper-workflow.md`
+- Workstream D changelog: `_changelog/2026-05/2026-05-21-165518-playwright-e2e-structural-test-expansion.md`
+- Workstream F changelog: `_changelog/2026-05/2026-05-21-165758-sdk-react-component-contract-tests.md`
+- Workstream D plan: `.cursor/plans/playwright_e2e_expansion_e116dae9.plan.md`
+- Workstream F plan: `.cursor/plans/sdk_component_tests_e4b001e2.plan.md`
 - Detailed plan: `_projects/2026-05/20260521.01.pre-deploy-integration-test-expansion/tasks/T01_0_plan.md`
 - Workstream A plan: `.cursor/plans/workstream_a_ts_hydration_c07d339d.plan.md`
 
@@ -112,9 +167,9 @@ Check if workflow execution is broken in production (old Go workflow-runner dele
 After loading context:
 - "Start Workstream B — Java + Go orchestrator rewrite" — Next on critical path (UNBLOCKED)
 - "Start Workstream C — New Go integration tests" — Independent, can start immediately
-- "Start Workstream D — Playwright E2E" — Independent, structural tests
+- ~~"Start Workstream D — Playwright E2E"~~ — COMPLETED (52 new tests, 104 total)
 - "Start Workstream E — Wire BUILD.bazel" — Independent, stigmer-cloud
-- "Start Workstream F — SDK tests" — Independent, smallest scope
+- ~~"Start Workstream F — SDK tests"~~ — COMPLETED (27 new tests, 506 total)
 - "Show project status" — Get overview of progress
 - "Verify production workflow status" — Check if workflows work in prod
 
