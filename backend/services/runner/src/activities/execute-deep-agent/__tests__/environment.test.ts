@@ -10,7 +10,7 @@ function createMockClient(execContext: any) {
 function createNotFoundClient() {
   return {
     getExecutionContextByExecutionId: vi.fn().mockRejectedValue(
-      Object.assign(new Error("not found"), { code: "NOT_FOUND" }),
+      Object.assign(new Error("not found"), { code: 5 }),
     ),
   } as any;
 }

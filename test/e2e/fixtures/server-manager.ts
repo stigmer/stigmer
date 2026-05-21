@@ -107,6 +107,17 @@ function findRunnerDir(): string {
   return path.join(REPO_ROOT, "backend", "services", "runner");
 }
 
+function resolveRunnerEntrypoint(runnerDir: string): string {
+  const distEntry = path.join(runnerDir, "dist", "main.js");
+  if (fs.existsSync(distEntry)) return distEntry;
+
+  throw new Error(
+    `Unified runner not built: ${distEntry} not found.\n` +
+    `  Run: npm run build -w @stigmer/protos && npm run build -w @stigmer/runner\n` +
+    `  Or:  make ensure-runner-built (from test/integration-session-routing/)`,
+  );
+}
+
 export async function startBackendStack(opts: {
   apiPort?: number;
   temporalPort?: number;
@@ -166,18 +177,10 @@ export async function startBackendStack(opts: {
   await waitForPort(apiPort, "127.0.0.1", 30_000, 500);
   console.log(`[e2e] stigmer-server ready (pid: ${server.pid})`);
 
-  // 3. Unified runner (static mode)
+  // 3. Unified runner (static mode, compiled JS)
   console.log("[e2e] Starting unified runner (static mode)...");
   const runnerDir = findRunnerDir();
-  const tsxBin = path.join(runnerDir, "node_modules", ".bin", "tsx");
-
-  if (!fs.existsSync(tsxBin)) {
-    temporal.kill();
-    server.kill();
-    throw new Error(
-      `tsx not found at ${tsxBin}. Run: cd backend/services/runner && npm install`,
-    );
-  }
+  const entrypoint = resolveRunnerEntrypoint(runnerDir);
 
   const runnerEnv: Record<string, string> = {
     ...process.env as Record<string, string>,
@@ -191,11 +194,15 @@ export async function startBackendStack(opts: {
     LOG_LEVEL: "info",
   };
 
-  const runner = spawn(tsxBin, [path.join(runnerDir, "src", "main.ts")], {
+  const runnerOutput: string[] = [];
+  const runner = spawn("node", [entrypoint], {
     cwd: runnerDir,
     env: runnerEnv,
     stdio: ["ignore", "pipe", "pipe"],
   });
+
+  runner.stdout?.on("data", (data: Buffer) => runnerOutput.push(data.toString()));
+  runner.stderr?.on("data", (data: Buffer) => runnerOutput.push(data.toString()));
 
   if (!runner.pid) {
     temporal.kill();
@@ -203,7 +210,17 @@ export async function startBackendStack(opts: {
     throw new Error("Failed to spawn unified runner");
   }
 
-  await waitForOutput(runner, /Worker ready, polling for tasks/i, 30_000);
+  try {
+    await waitForOutput(runner, /Worker ready, polling for tasks/i, 30_000);
+  } catch (err) {
+    const tail = runnerOutput.slice(-20).join("");
+    throw new Error(
+      `Unified runner failed to start.\n` +
+      `  Entrypoint: ${entrypoint}\n` +
+      `  Last output:\n${tail}\n` +
+      `  Original error: ${err instanceof Error ? err.message : err}`,
+    );
+  }
   console.log(`[e2e] Unified runner ready (pid: ${runner.pid})`);
 
   return {

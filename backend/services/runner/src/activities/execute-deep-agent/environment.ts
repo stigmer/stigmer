@@ -32,8 +32,10 @@ export async function resolveEnvironment(
   try {
     execCtx = await client.getExecutionContextByExecutionId(executionId);
   } catch (err: unknown) {
-    const code = (err as { code?: string })?.code;
-    if (code === "not_found" || code === "NOT_FOUND") {
+    // ConnectError uses numeric Code.NotFound (5); match the pattern
+    // from execute-cursor/env-resolver.ts.
+    const code = (err as { code?: number | string })?.code;
+    if (code === 5 || code === "not_found" || code === "NOT_FOUND") {
       console.log(
         `[env] No ExecutionContext found for execution ${executionId} — ` +
         `proceeding with empty environment.`,
