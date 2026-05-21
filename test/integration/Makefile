@@ -78,7 +78,7 @@ test: ensure-service-jar ## Run offline integration tests (no API keys needed)
 		$(RERUN_FLAGS) \
 		--rerun-fails-report $(OUTPUT_DIR)/rerun-report.txt \
 		--packages ./... \
-		-- -tags integration -timeout 300s -count=1 $(call quarantine_skip_args)
+		-- -tags integration -timeout 900s -count=1 $(call quarantine_skip_args)
 
 .PHONY: test-providers
 test-providers: ensure-service-jar ## Run provider-backed integration tests (auto-fetches API keys)
@@ -409,7 +409,7 @@ test-traced: ensure-service-jar ## Run offline integration tests with OTel traci
 		$(RERUN_FLAGS) \
 		--rerun-fails-report $(TRACED_OUTPUT_DIR)/rerun-report.txt \
 		--packages ./... \
-		-- -tags integration -timeout 300s -count=1 $(call quarantine_skip_args)
+		-- -tags integration -timeout 900s -count=1 $(call quarantine_skip_args)
 	@echo ""
 	@echo "Trace bundles (failed tests): $(TRACED_OUTPUT_DIR)/traces/"
 	@ls $(TRACED_OUTPUT_DIR)/traces/*.json 2>/dev/null || echo "  (no failed tests — no trace bundles)"

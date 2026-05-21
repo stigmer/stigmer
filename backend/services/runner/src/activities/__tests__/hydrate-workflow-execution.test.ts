@@ -245,9 +245,9 @@ describe("hydrateWorkflowExecution", () => {
         .rejects.toThrow("Workflow 'wfl_wf-789' not found");
     });
 
-    it("uses empty env when ExecutionContext not found", async () => {
+    it("uses empty env when ExecutionContext not found (ConnectError numeric code)", async () => {
       const client = makeMockClient({
-        executionContextError: { code: "not_found" },
+        executionContextError: Object.assign(new Error("not found"), { code: 5 }),
       });
 
       const result = await hydrateWorkflowExecution(makeInput(), client);

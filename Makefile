@@ -437,16 +437,36 @@ tsdoc-check: ## Validate TSDoc quality for all TypeScript SDKs
 test-demos: docs-build ## Run Playwright demo e2e tests — slow (~20 min), run explicitly or in CI
 	$(MAKE) -C site test-demos
 
+RUNNER_DIR := backend/services/runner
+PROTOS_DIR := apis/stubs/ts
+
+.PHONY: ensure-protos-built ensure-runner-built
+ensure-protos-built:
+	@if [ ! -d "$(PROTOS_DIR)/dist/ai" ]; then \
+		echo "Building proto stubs TypeScript..."; \
+		cd "$(PROTOS_DIR)" && npm run build; \
+	else \
+		echo "proto stubs: already built"; \
+	fi
+
+ensure-runner-built: ensure-protos-built
+	@if [ ! -f "$(RUNNER_DIR)/dist/main.js" ]; then \
+		echo "Building unified runner TypeScript..."; \
+		cd "$(RUNNER_DIR)" && npm run build; \
+	else \
+		echo "unified runner: already built"; \
+	fi
+
 test-e2e: ## Run Playwright functional E2E tests against local dev server
 	cd test/e2e && npx playwright install --with-deps chromium && npx playwright test --project=functional
 
 test-e2e-smoke: ## Run Playwright smoke tests against a deployed instance (set STIGMER_E2E_BASE_URL)
 	cd test/e2e && npx playwright install --with-deps chromium && npx playwright test --project=smoke
 
-test-e2e-interactive: ## Run Playwright interactive E2E tests (requires full backend stack)
+test-e2e-interactive: ensure-runner-built ## Run Playwright interactive E2E tests (requires full backend stack)
 	cd test/e2e && npx playwright install --with-deps chromium && npx playwright test --project=interactive
 
-test-e2e-all: ## Run all Playwright E2E tests (smoke + functional + interactive)
+test-e2e-all: ensure-runner-built ## Run all Playwright E2E tests (smoke + functional + interactive)
 	cd test/e2e && npx playwright install --with-deps chromium && npx playwright test
 
 check: tidy fix lint lint-docs format-docs-check tsdoc-check gen-sdk-docs gen-sdk-docs-check check-links build test test-web test-desktop validate-demos ## Run full CI gate locally

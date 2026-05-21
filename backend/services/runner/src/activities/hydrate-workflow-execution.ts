@@ -91,8 +91,8 @@ async function fetchWorkflowExecution(
   try {
     return await client.getWorkflowExecution(executionId);
   } catch (err: unknown) {
-    const code = (err as { code?: string })?.code;
-    if (code === "not_found" || code === "NOT_FOUND") {
+    const code = (err as { code?: number | string })?.code;
+    if (code === 5 || code === "not_found" || code === "NOT_FOUND") {
       throw ApplicationFailure.nonRetryable(
         `WorkflowExecution '${executionId}' not found`,
         "WORKFLOW_EXECUTION_NOT_FOUND",
@@ -128,8 +128,8 @@ async function resolveWorkflowId(
     return resolved;
   } catch (err: unknown) {
     if (err instanceof ApplicationFailure) throw err;
-    const code = (err as { code?: string })?.code;
-    if (code === "not_found" || code === "NOT_FOUND") {
+    const code = (err as { code?: number | string })?.code;
+    if (code === 5 || code === "not_found" || code === "NOT_FOUND") {
       throw ApplicationFailure.nonRetryable(
         `WorkflowInstance '${workflowInstanceId}' not found`,
         "WORKFLOW_INSTANCE_NOT_FOUND",
@@ -147,8 +147,8 @@ async function fetchAndValidateWorkflowYaml(
   try {
     workflow = await client.getWorkflow(workflowId);
   } catch (err: unknown) {
-    const code = (err as { code?: string })?.code;
-    if (code === "not_found" || code === "NOT_FOUND") {
+    const code = (err as { code?: number | string })?.code;
+    if (code === 5 || code === "not_found" || code === "NOT_FOUND") {
       throw ApplicationFailure.nonRetryable(
         `Workflow '${workflowId}' not found`,
         "WORKFLOW_NOT_FOUND",
@@ -225,8 +225,10 @@ async function fetchAndFlattenEnv(
   try {
     execCtx = await client.getExecutionContextByExecutionId(executionId);
   } catch (err: unknown) {
-    const code = (err as { code?: string })?.code;
-    if (code === "not_found" || code === "NOT_FOUND") {
+    // ConnectError uses numeric Code.NotFound (5); match the pattern
+    // from execute-cursor/env-resolver.ts.
+    const code = (err as { code?: number | string })?.code;
+    if (code === 5 || code === "not_found" || code === "NOT_FOUND") {
       console.log(
         `[hydrate] No ExecutionContext found for execution ${executionId} — ` +
         `proceeding with empty environment`,

@@ -51,11 +51,17 @@ func RequireNativePrereqs(t *testing.T, th *TestHarness) {
 	}
 }
 
-// RequireCursorPrereqs skips the test if the unified runner is not available.
+// RequireCursorPrereqs skips the test if the unified runner is not available
+// or if the Cursor API key is absent. Every cursor harness test dispatches
+// an agent execution through the Cursor proxy, which requires an upstream key.
+// Without it, executions fail immediately with HTTP 502 from the proxy.
 func RequireCursorPrereqs(t *testing.T, th *TestHarness) {
 	t.Helper()
 	if th.UnifiedRunner == nil {
 		t.Skip("unified runner not available — skipping cursor harness test")
+	}
+	if os.Getenv("CURSOR_API_KEY") == "" {
+		t.Skip("CURSOR_API_KEY not set — skipping cursor harness test (requires Cursor proxy)")
 	}
 }
 
