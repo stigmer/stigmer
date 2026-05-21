@@ -14,8 +14,62 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-21
-**Current Task**: ALL workstreams + follow-ups complete. 11 @Disabled Java tests rewritten.
-**Status**: ALL workstreams COMPLETE. 11 @Disabled Java tests rewritten and re-enabled (228 test methods).
+**Current Task**: ALL workstreams + follow-ups + lifecycle test confidence expansion complete.
+**Status**: ALL COMPLETE. Execution lifecycle test coverage gaps closed (48 new tests).
+
+## Session Progress (2026-05-21, Execution Test Confidence)
+
+### What was accomplished
+- **11 workflow execution lifecycle E2E tests** — Cancel (3: happy/idempotent/terminal-rejection), Terminate (2: happy/idempotent), Pause (1), PauseAndResume (1), PauseTerminalFails (1), Recover (3: happy/non-failed-rejection/cancelled-rejection)
+- **Fixed `TestAgentExecution_Recover`** — was asserting on original (FAILED) execution ID; now extracts and waits on the new recovered execution ID
+- **2 new agent terminate tests** — TerminateIdempotent, TerminateTerminalFails (parity with cancel tests)
+- **5 StripActivityTaskQueueStep tests** — security stripping for sandbox affinity (external caller stripped, sandbox/workflow_sandbox/machine account preserved, empty no-op)
+- **4 StartWorkflowStep tests** — dispatch resolution + workflow creator interaction, dispatch failure, creator failure
+- **26 agent Cancel + Terminate handler unit tests** — LoadExisting, ValidateCancellable/Terminatable (phase validation + idempotency), Temporal workflow cancel/terminate (mocked), PublishToRedis (silent-failure)
+- **4 BUILD.bazel targets** wired for new Java test files
+
+### Key decisions made
+- **Workflow fixtures**: Three reusable workflow builders (`blockingWorkflow` with 60s wait, `fastWorkflow` with single set_vars, `multiStepWorkflow` with 8 steps + mid-wait) for lifecycle test isolation
+- **Pause timing**: `multiStepWorkflow` uses 10s mid-wait instead of pure fast tasks because cooperative pause needs checkPause yield points between tasks
+- **Agent handler scope**: Cancel + Terminate handlers prioritized (highest silent-failure risk); Create/Recover/Pause/Resume deferred
+
+### Files created
+- `test/integration/workflow_execution_lifecycle_test.go` (8 tests)
+- `test/integration/workflow_execution_recover_test.go` (3 tests)
+- `stigmer-cloud/.../AgentExecutionCancelHandlerTest.java` (13 tests)
+- `stigmer-cloud/.../AgentExecutionTerminateHandlerTest.java` (13 tests)
+- `stigmer-cloud/.../StripActivityTaskQueueStepTest.java` (5 tests)
+- `stigmer-cloud/.../StartWorkflowStepTest.java` (4 tests)
+
+### Files modified
+- `test/integration/agent_execution_06_lifecycle_control_test.go` (recover fix + 2 new tests)
+- `stigmer-cloud/backend/services/stigmer-service/BUILD.bazel` (4 new targets)
+
+## Session Progress (2026-05-21, Playwright Interactive Infrastructure)
+
+### What was accomplished
+- **Full Playwright interactive infrastructure** — global-setup/teardown with reuse-or-start pattern, custom fixtures with SDK seeding, domain-scoped interaction helpers, three interactive test specs
+- **Server lifecycle management** — TCP readiness polling for Temporal (:7233) + stigmer-server (:7234), stdout pattern matching for unified runner, isolated temp directory per test run
+- **Verified ARIA locators** — Deep-dived all 23 existing specs + SDK component source; helpers use only proven `role`/`aria-label` patterns (no `data-testid` exists in codebase)
+- **Three tiered specs**: library-flow (offline, no runner), workflow-execution-flow (offline, needs runner), session-flow (canary, needs LLM key)
+- **Makefile target**: `make test-e2e-interactive`
+- **Workspace wiring**: `test/e2e` added to root workspaces with `@stigmer/sdk`, `@stigmer/protos`, `@connectrpc/connect-node`
+
+### Key decisions made
+- **DD-E2E-1**: OSS disabled-auth mode only (no OIDC in interactive tests)
+- **DD-E2E-2**: Reuse-or-start via TCP dial (no HTTP healthz on server)
+- **DD-E2E-3**: `@stigmer/sdk/node` with `createNodeClient` for seeding
+- **DD-E2E-5**: Interaction helpers not page objects (composable functions)
+- **DD-E2E-7**: Isolated temp dir for all server state
+
+### Files created (13)
+- `test/e2e/fixtures/{index,seed-helpers,server-manager}.ts`
+- `test/e2e/helpers/{library,navigation,session,workflow-execution}.ts`
+- `test/e2e/tests/interactive/{library-flow,workflow-execution-flow,session-flow}.spec.ts`
+- `test/e2e/{global-setup,global-teardown,tsconfig}.{ts,json}`
+
+### Files modified (5)
+- `package.json`, `Makefile`, `test/e2e/{package.json,playwright.config.ts,.gitignore}`
 
 ## Workstream Summary (Parallel Execution)
 
@@ -208,6 +262,17 @@ All 11 @Disabled tests rewritten and re-enabled (228 test methods, 5,955 lines):
 4. ~~**65 unwired Java tests**: search (16), tenancy (16), agentic (22), billing (8), IAM (3)~~ **RESOLVED by Workstream E** — all 65 wired into BUILD.bazel, 126/126 pass (11 @Disabled for API rewrite)
 5. **Playwright has no interactive infrastructure**: No auth, no API seeding, no helpers
 
+## ~~CRITICAL DISCOVERY: Agent Execution Pause/Resume is Broken~~ RESOLVED
+
+Fixed in a follow-up session (see `_changelog/2026-05/2026-05-21-190955-agent-execution-pause-resume-fix.md`). All 7 steps completed:
+- Wired `heartbeatFn` + `isCancelledFn` into `ExecuteDeepAgent` → `streamExecution()`
+- `CancelledFailure` detected and re-thrown (not converted to EXECUTION_FAILED)
+- PAUSED status persisted with rich messages/tool calls/artifacts before throwing
+- Resume input logic handled via LangGraph checkpoints (cloud: durable, OSS: best-effort)
+- `ExecuteCursor` gets equivalent handling (soft pause via session memory)
+- `TestAgentExecution_Pause_Resume` un-skipped
+- 3 new cancellation tests added
+
 ## URGENT: Verify Production
 
 Check if workflow execution is broken in production (old Go workflow-runner deleted from repo — is it still deployed?).
@@ -263,33 +328,11 @@ Check if workflow execution is broken in production (old Go workflow-runner dele
 - **AD-C3**: ToolCall structural tests use echo tool (deterministic, no LLM prose dependency)
 - **AD-C4**: Lifecycle tests are offline-compatible where possible; MCP binary required only for cancel/terminate precondition tests
 
-### CRITICAL DISCOVERY: Agent Execution Pause/Resume is Broken
+### ~~CRITICAL DISCOVERY: Agent Execution Pause/Resume is Broken~~ RESOLVED
 
-Agent execution pause/resume is **broken end-to-end**. The orchestrator layer (Java + Go) is fully implemented, but the TS unified runner's `ExecuteDeepAgent` activity does not handle Temporal activity cancellation:
+**Fixed**: `_changelog/2026-05/2026-05-21-190955-agent-execution-pause-resume-fix.md`
 
-| Layer | Status |
-|-------|--------|
-| Java/Go Pause/Resume RPC handlers | Complete |
-| Java/Go orchestrator (CancellationScope + signals) | Complete |
-| TS `ExecuteDeepAgent` cancellation detection | **Missing** — `isCancelledFn` not wired |
-| TS `ExecuteDeepAgent` error handling | **Wrong** — `CancelledFailure` persists FAILED, overwrites PAUSED |
-| TS resume-from-checkpoint input logic | **Missing** |
-| LangGraph checkpoint-save-on-cancel | **Not connected** |
-
-**Follow-up workstream required** (7 steps):
-1. Wire `startHeartbeat()` + `isCancelledFn` into `ExecuteDeepAgent` → `streamExecution()`
-2. Handle `CancelledFailure` distinctly — do NOT convert to `EXECUTION_FAILED`
-3. Persist `EXECUTION_PAUSED` on graceful cancel before returning
-4. Add pause-specific resume input logic (checkpoint, not re-send message)
-5. Address `MemorySaver` limitation in OSS (in-process only)
-6. Wire equivalent handling in `ExecuteCursor` activity
-7. Un-skip `TestAgentExecution_Pause_Resume`
-
-**Affected files**:
-- `backend/services/runner/src/activities/execute-deep-agent/index.ts` (main gap)
-- `backend/services/runner/src/activities/execute-deep-agent/streaming.ts` (has `handlePause` but unwired)
-- `backend/services/runner/src/activities/execute-cursor/index.ts` (cursor harness)
-- `test/integration/agent_execution_06_lifecycle_control_test.go` (un-skip after fix)
+All 7 steps completed. Surgical changes to 5 existing files, zero new files. Both ExecuteDeepAgent (LangGraph) and ExecuteCursor harnesses now handle pause/resume end-to-end. `TestAgentExecution_Pause_Resume` un-skipped and passing.
 
 ### Files created
 - `test/integration/agent_execution_12_lifecycle_edge_cases_test.go` (4 tests)

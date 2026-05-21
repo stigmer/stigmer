@@ -307,25 +307,123 @@ func TestAgentExecution_Recover(t *testing.T) {
 			t.Logf("execution failed as expected: id=%s, error=%s",
 				terminal.GetMetadata().GetId(), terminal.GetStatus().GetError())
 
-			// Recover the failed execution.
+			// Recover the failed execution — creates a NEW execution with a new ID.
 			recovered, err := clients.AgentExecutionCommand.Recover(ctx, &agentexecv1.RecoverAgentExecutionInput{
 				Id: exec.GetMetadata().GetId(),
 			})
 			require.NoError(t, err, "recover should succeed for FAILED execution")
-			require.NotNil(t, recovered, "recover should return the updated execution")
+			require.NotNil(t, recovered, "recover should return the new execution")
 
-			t.Logf("recover initiated: id=%s, phase=%s",
-				recovered.GetMetadata().GetId(), recovered.GetStatus().GetPhase().String())
+			recoveredID := recovered.GetMetadata().GetId()
+			require.NotEmpty(t, recoveredID, "recovered execution should have an ID")
 
-			// The recovered execution should transition back to IN_PROGRESS
-			// or eventually reach a terminal state. We wait for any terminal
-			// state since the recovered execution may fail again (the crash
-			// tool MCP server is dead) or complete if the agent adapts.
-			finalResult, err := waiter.WaitForTerminal(ctx, exec.GetMetadata().GetId(), 3*time.Minute)
+			t.Logf("recover initiated: original=%s, recovered=%s, phase=%s",
+				exec.GetMetadata().GetId(), recoveredID, recovered.GetStatus().GetPhase().String())
+
+			// Wait on the NEW recovered execution ID, not the original.
+			// The original stays FAILED; the recovered execution is a new one
+			// that should transition through IN_PROGRESS to a terminal state.
+			finalResult, err := waiter.WaitForTerminal(ctx, recoveredID, 3*time.Minute)
 			require.NoError(t, err, "recovered execution should reach a terminal state")
 
 			t.Logf("recovered execution finished: id=%s, phase=%s",
 				finalResult.GetMetadata().GetId(), finalResult.GetStatus().GetPhase().String())
+		})
+	}
+}
+
+func TestAgentExecution_TerminateIdempotent(t *testing.T) {
+	require.NotNil(t, grpcConn)
+
+	for _, h := range harness.Harnesses {
+		t.Run(h.Name, func(t *testing.T) {
+			h.Skip(t, testHarness)
+			if mcpTestServerBinary == "" {
+				t.Skip("test MCP server binary not built — skipping terminate idempotent test")
+			}
+
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			defer cancel()
+
+			clients := harness.NewClients(grpcConn)
+			harness.RequireServiceHealthy(t, ctx, clients)
+
+			mcpServer := harness.CreateStdioMcpServer(t, ctx, clients, mcpTestServerBinary)
+			harness.ConnectMcpServer(t, ctx, clients, mcpServer.GetMetadata().GetId())
+
+			agent := harness.CreateAgent(t, ctx, clients, "test-term-idem-"+h.Name,
+				"You MUST call the slow tool with seconds=30. Do not respond with text. Your only action is calling the slow tool.",
+				harness.WithMcpServerUsage(mcpServer.GetMetadata().GetSlug()),
+			)
+
+			session := harness.CreateTestSession(t, ctx, clients,
+				agent.GetStatus().GetDefaultInstanceId(), h.Harness)
+
+			exec := harness.CreateTestAgentExecution(t, ctx, clients,
+				session.GetMetadata().GetId(),
+				"Call the slow tool with seconds=30.",
+				harness.WithAutoApproveAll(true))
+
+			waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
+
+			_, err := waiter.WaitForPhase(ctx, exec.GetMetadata().GetId(),
+				agentexecv1.ExecutionPhase_EXECUTION_IN_PROGRESS, 2*time.Minute)
+			require.NoError(t, err)
+
+			_, err = clients.AgentExecutionCommand.Terminate(ctx, &agentexecv1.TerminateAgentExecutionInput{
+				Id: exec.GetMetadata().GetId(),
+			})
+			require.NoError(t, err)
+
+			_, err = waiter.WaitForPhase(ctx, exec.GetMetadata().GetId(),
+				agentexecv1.ExecutionPhase_EXECUTION_TERMINATED, 2*time.Minute)
+			require.NoError(t, err)
+
+			// Second terminate should be idempotent
+			_, err = clients.AgentExecutionCommand.Terminate(ctx, &agentexecv1.TerminateAgentExecutionInput{
+				Id: exec.GetMetadata().GetId(),
+			})
+			require.NoError(t, err, "terminating already-terminated execution should be a no-op")
+
+			t.Logf("terminate idempotent: second terminate returned no error")
+		})
+	}
+}
+
+func TestAgentExecution_TerminateTerminalFails(t *testing.T) {
+	require.NotNil(t, grpcConn)
+
+	for _, h := range harness.Harnesses {
+		t.Run(h.Name, func(t *testing.T) {
+			h.Skip(t, testHarness)
+
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			defer cancel()
+
+			clients := harness.NewClients(grpcConn)
+			harness.RequireServiceHealthy(t, ctx, clients)
+
+			agent := harness.CreateAgent(t, ctx, clients, "test-term-done-"+h.Name,
+				"You are a helpful assistant. Respond briefly.")
+
+			session := harness.CreateTestSession(t, ctx, clients,
+				agent.GetStatus().GetDefaultInstanceId(), h.Harness)
+
+			exec := harness.CreateTestAgentExecution(t, ctx, clients,
+				session.GetMetadata().GetId(),
+				"Reply with exactly: hello")
+
+			waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
+
+			_, err := waiter.WaitForPhase(ctx, exec.GetMetadata().GetId(),
+				agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 4*time.Minute)
+			require.NoError(t, err)
+
+			_, err = clients.AgentExecutionCommand.Terminate(ctx, &agentexecv1.TerminateAgentExecutionInput{
+				Id: exec.GetMetadata().GetId(),
+			})
+			require.Error(t, err, "terminating completed execution should return FAILED_PRECONDITION")
+			t.Logf("terminate-terminal correctly rejected: %v", err)
 		})
 	}
 }
