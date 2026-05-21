@@ -22,7 +22,7 @@ require (
 	github.com/stigmer/stigmer/apis/stubs/go v0.0.0-00010101000000-000000000000
 	github.com/stigmer/stigmer/backend/libs/go v0.0.0-00010101000000-000000000000
 	github.com/stretchr/testify v1.11.1
-	go.temporal.io/api v1.62.1
+	go.temporal.io/api v1.62.12
 	go.temporal.io/sdk v1.39.0
 	google.golang.org/grpc v1.80.0
 	google.golang.org/protobuf v1.36.11
@@ -78,8 +78,8 @@ require (
 	golang.org/x/sys v0.42.0 // indirect
 	golang.org/x/text v0.35.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20260401024825-9d38bb4040a9 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260406210006-6f92a3bedf2d // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20260511170946-3700d4141b60 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260511170946-3700d4141b60 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	modernc.org/libc v1.67.6 // indirect
 	modernc.org/mathutil v1.7.1 // indirect

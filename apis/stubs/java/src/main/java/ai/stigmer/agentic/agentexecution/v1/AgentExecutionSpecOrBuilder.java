@@ -600,4 +600,60 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
    */
   com.google.protobuf.ByteString
       getWorkspaceFileRefsBytes(int index);
+
+  /**
+   * <pre>
+   * Explicit Temporal task queue override for activity routing.
+   *
+   * &#64;internal
+   * When set, the agent execution's activities are routed to this queue
+   * instead of the normally-resolved queue (session:{id} or global stigmer_runner).
+   * This enables sandbox sharing: a parent workflow execution passes its own
+   * queue so child agents run in the same sandbox without provisioning new VMs.
+   *
+   * When empty: normal dispatch resolution applies (default behavior).
+   *
+   * Security: Only accepted from internal callers (workflow engine's CallAgent
+   * activity). External API callers cannot set this field — the create handler
+   * strips it during input sanitization. Presence of parent_workflow_id is used
+   * as a co-validation signal.
+   *
+   * Format: "wfexec:{workflow_execution_id}" (matches the parent workflow's
+   * sandbox queue). The prefix ensures no collision with session:{id} queues.
+   *
+   * &#64;since Workflow Sandbox Affinity
+   * </pre>
+   *
+   * <code>string activity_task_queue = 11 [json_name = "activityTaskQueue"];</code>
+   * @return The activityTaskQueue.
+   */
+  java.lang.String getActivityTaskQueue();
+  /**
+   * <pre>
+   * Explicit Temporal task queue override for activity routing.
+   *
+   * &#64;internal
+   * When set, the agent execution's activities are routed to this queue
+   * instead of the normally-resolved queue (session:{id} or global stigmer_runner).
+   * This enables sandbox sharing: a parent workflow execution passes its own
+   * queue so child agents run in the same sandbox without provisioning new VMs.
+   *
+   * When empty: normal dispatch resolution applies (default behavior).
+   *
+   * Security: Only accepted from internal callers (workflow engine's CallAgent
+   * activity). External API callers cannot set this field — the create handler
+   * strips it during input sanitization. Presence of parent_workflow_id is used
+   * as a co-validation signal.
+   *
+   * Format: "wfexec:{workflow_execution_id}" (matches the parent workflow's
+   * sandbox queue). The prefix ensures no collision with session:{id} queues.
+   *
+   * &#64;since Workflow Sandbox Affinity
+   * </pre>
+   *
+   * <code>string activity_task_queue = 11 [json_name = "activityTaskQueue"];</code>
+   * @return The bytes for activityTaskQueue.
+   */
+  com.google.protobuf.ByteString
+      getActivityTaskQueueBytes();
 }

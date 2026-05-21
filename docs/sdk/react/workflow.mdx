@@ -712,6 +712,7 @@ function useWorkflowExecutionActions(executionId: string | null): UseWorkflowExe
     recover: { type: "(reason?: string) => Promise<WorkflowExecution | null>", description: "Recover a failed execution from its last checkpoint." },
     resume: { type: "() => Promise<WorkflowExecution | null>", description: "Resume a paused execution." },
     submitApproval: { type: "(toolCallId: string, action: ApprovalAction, comment?: string) => Promise<WorkflowExecution | null>", description: "Submit an approval decision for a child agent's tool execution." },
+    submitTaskApproval: { type: "(taskName: string, outcome: string, formData?: Record<string, unknown>, comment?: string) => Promise<WorkflowExecution | null>", description: "Submit a reviewer's decision for a workflow-level human_input task.  Unlike `submitApproval` (which forwards agent tool approvals), this sends a Temporal signal to the workflow runner's human_input orchestrator, unblocking the task with the selected outcome." },
     terminate: { type: "(reason?: string) => Promise<WorkflowExecution | null>", description: "Terminate a running execution immediately." },
   }}
 />
@@ -1163,8 +1164,7 @@ Operational detail hub for a Workflow blueprint.
 Fetches the workflow via [`useWorkflow`](#useworkflow) internally and renders
 its full specification inside a [`ResourceDetailShell`](/docs/sdk/react/resource-detail#resourcedetailshell):
 
-- **Overview**: Description, document metadata, budget summary, env vars
-- **Tasks**: Task list with kind icons and sequential flow
+- **Overview**: Description, budget, env vars, task flow DAG, document metadata
 - **Instances**: Environment-bound deployments (embedded, not standalone)
 - **Executions**: Recent executions with phase badges and timing
 
@@ -1181,9 +1181,13 @@ All visual properties flow through `--stgm-*` design tokens.
     additionalTabs: { type: "readonly AdditionalTab[]", description: "Additional tabs to render alongside the built-in tabs." },
     className: { type: "string", description: "Additional CSS classes for the root container." },
     defaultTab: { type: "string", description: "Default active tab ID when in uncontrolled mode." },
+    editable: { type: "boolean", description: "When `true`, description and environment variables become click-to-edit. Each field saves independently via `stigmer.workflow.update()`." },
+    isVisibilityPending: { type: "boolean", description: "`true` while a visibility update RPC is in flight." },
     onExecutionClick: { type: "(executionId: string) => void", description: "Called when a user clicks an execution row in the Executions tab. Receives the execution ID — use for navigation to the execution viewer." },
     onResourceLoad: { type: "(meta: { id: string; name: string }) => void", description: "Called once when the workflow resource has been fetched successfully. Provides the resource display name for breadcrumbs, document titles, etc." },
+    onResourceUpdated: { type: "(workflow: Workflow) => void", description: "Called after a successful inline field save with the updated workflow." },
     onTabChange: { type: "(tabId: string) => void", description: "Controlled tab change handler." },
+    onVisibilityChange: { type: "(v: ApiResourceVisibility) => void", description: "Called when the user toggles visibility via the inline control. When provided, the header renders an interactive VisibilityToggle instead of a read-only badge." },
     org: { type: "string", description: "Organization slug that owns the workflow.", required: true },
     primaryAction: { type: "DetailAction", description: "Primary action rendered as a visible button in the header area.", typeDescriptionLink: "/docs/sdk/react/resource-detail#detailaction" },
     slug: { type: "string", description: "Workflow slug (URL-friendly identifier unique within the org).", required: true },
@@ -1861,6 +1865,18 @@ Internal state held by the task kind registry context provider.
 />
 
 
+### TaskOutcome
+
+Outcome descriptor for UI rendering.
+
+<TypeTable
+  type={{
+    label: { type: "string", description: "", required: true },
+    name: { type: "string", description: "", required: true },
+  }}
+/>
+
+
 ### TaskPickerPopover
 
 Searchable, categorized popover for selecting a workflow task kind.
@@ -2355,8 +2371,11 @@ Props for [`WorkflowExecutionTimeline`](#workflowexecutiontimeline).
   type={{
     className: { type: "string", description: "Additional CSS class names." },
     events: { type: "readonly WorkflowExecutionEvent[]", description: "Events ordered by sequence_number ascending.", required: true },
+    isSubmittingApproval: { type: "boolean", description: "True while a task approval submission is in flight." },
     onNavigateToAgentExecution: { type: "(executionId: string) => void", description: "Callback when user clicks an agent execution link." },
+    onSubmitTaskApproval: { type: "(taskName: string, outcome: string, formData?: Record<string, unknown>, comment?: string) => Promise<unknown>", description: "Callback to submit a human_input task approval decision." },
     streamState: { type: "WorkflowEventStreamState", description: "Current stream lifecycle state.", required: true },
+    taskStates: { type: "ReadonlyMap<string, DerivedTaskState>", description: "Derived task states for rendering interactive approval cards." },
   }}
 />
 
@@ -2530,6 +2549,52 @@ Props for [`WorkflowInspectorPanel`](#workflowinspectorpanel).
 />
 
 
+### WorkflowTaskApprovalCard
+
+Interactive approval card for workflow-level human_input tasks.
+
+Renders dynamic outcome buttons (from workflow configuration),
+optional form fields (from JSON Schema), and a comment textarea.
+Designed for inline rendering in the execution timeline when a
+human_input task is in `waiting_approval` state.
+
+Distinct from `WorkflowExecutionApprovalCard` (which handles agent
+tool approvals with `toolCallId` + `ApprovalAction`). This component
+uses `taskName` + `outcome` string + optional `formData`.
+
+Follows SDK component standards:
+- All colors via `--stgm-*` tokens (DD-005)
+- Keyboard navigable with ARIA labels (a11y)
+- `React.memo` for referential stability (DD-010)
+- Zero framework dependencies (DD-004)
+
+```tsx
+<WorkflowTaskApprovalCard
+  taskName="daily_approval"
+  outcomes={[{ name: "approve", label: "Approve Plan" }, { name: "reject", label: "Reject" }]}
+  formSchema={{ type: "object", properties: { feedback: { type: "string" } } }}
+  onSubmit={actions.submitTaskApproval}
+  isSubmitting={actions.isSubmitting}
+/>
+```
+
+
+### WorkflowTaskApprovalCardProps
+
+Props for [`WorkflowTaskApprovalCard`](#workflowtaskapprovalcard).
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    formSchema: { type: "Record<string, unknown>", description: "JSON Schema describing the reviewer's input form. When provided, renders form fields from the schema's `properties`. Text properties render as textareas; others as text inputs." },
+    isSubmitting: { type: "boolean", description: "True while the submission RPC is in flight.", required: true },
+    onSubmit: { type: "(taskName: string, outcome: string, formData?: Record<string, unknown>, comment?: string) => Promise<unknown>", description: "Called when the reviewer submits a decision. The consumer (typically WorkflowExecutionViewer) wires this to `useWorkflowExecutionActions().submitTaskApproval`.", required: true },
+    outcomes: { type: "readonly TaskOutcome[]", description: "Configured outcomes from the workflow definition. Each entry renders as a button with the label as text. When empty, defaults to \"Approve\" / \"Reject\".", required: true },
+    taskName: { type: "string", description: "Name of the human_input task awaiting a decision.", required: true },
+  }}
+/>
+
+
 ### WorkflowTaskList
 
 Compact list of tasks in a workflow specification.
@@ -2590,7 +2655,8 @@ Uses dagre for layered layout computation and renders nodes as
 rounded rectangles with category-based coloring. Edges are drawn
 as SVG paths with arrowhead markers.
 
-Supports mouse wheel zoom and drag-to-pan for large workflows.
+Supports mouse wheel zoom, drag-to-pan, and a visible control
+toolbar with zoom in/out and fit-to-view reset buttons.
 All colors flow through `--stgm-*` tokens with sensible fallbacks.
 
 
@@ -2601,6 +2667,7 @@ Props for [`WorkflowTopologyGraph`](#workflowtopologygraph).
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
+    showControls: { type: "boolean", description: "Whether to show zoom/pan controls." },
     topology: { type: "UseWorkflowTopologyReturn", description: "Topology data from useWorkflowTopology.", required: true, typeDescriptionLink: "#useworkflowtopologyreturn" },
   }}
 />

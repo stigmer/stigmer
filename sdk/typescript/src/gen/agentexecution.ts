@@ -178,6 +178,7 @@ export interface AgentExecutionInput {
   parentWorkflowId?: string;
   attachments?: AttachmentInput[];
   workspaceFileRefs?: string[];
+  activityTaskQueue?: string;
 }
 
 /** SDK input type for ExecutionConfig. */
@@ -266,6 +267,7 @@ function buildAgentExecutionProto(input: AgentExecutionInput): AgentExecution {
       parentWorkflowId: input.parentWorkflowId,
       attachments,
       workspaceFileRefs: input.workspaceFileRefs,
+      activityTaskQueue: input.activityTaskQueue,
     })),
   }) as AgentExecution;
 }

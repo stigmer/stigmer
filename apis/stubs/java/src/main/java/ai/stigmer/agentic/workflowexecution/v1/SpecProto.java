@@ -53,40 +53,44 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "\n2ai/stigmer/agentic/workflowexecution/v" +
       "1/spec.proto\022\'ai.stigmer.agentic.workflo" +
       "wexecution.v1\0321ai/stigmer/agentic/execut" +
-      "ioncontext/v1/spec.proto\"\346\004\n\025WorkflowExe" +
-      "cutionSpec\0220\n\024workflow_instance_id\030\001 \001(\t" +
-      "R\022workflowInstanceId\022\037\n\013workflow_id\030\006 \001(" +
-      "\tR\nworkflowId\022\'\n\017trigger_message\030\003 \001(\tR\016" +
-      "triggerMessage\022~\n\020trigger_metadata\030\004 \003(\013" +
-      "2S.ai.stigmer.agentic.workflowexecution." +
-      "v1.WorkflowExecutionSpec.TriggerMetadata" +
-      "EntryR\017triggerMetadata\022o\n\013runtime_env\030\005 " +
-      "\003(\0132N.ai.stigmer.agentic.workflowexecuti" +
-      "on.v1.WorkflowExecutionSpec.RuntimeEnvEn" +
-      "tryR\nruntimeEnv\022%\n\016callback_token\030\007 \001(\014R" +
-      "\rcallbackToken\032B\n\024TriggerMetadataEntry\022\020" +
-      "\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005value:\002" +
-      "8\001\032u\n\017RuntimeEnvEntry\022\020\n\003key\030\001 \001(\tR\003key\022" +
-      "L\n\005value\030\002 \001(\01326.ai.stigmer.agentic.exec" +
-      "utioncontext.v1.ExecutionValueR\005value:\0028" +
-      "\001B\314\001B\tSpecProtoP\001\242\002\004ASAW\252\002\'Ai.Stigmer.Ag" +
-      "entic.Workflowexecution.V1\312\002\'Ai\\Stigmer\\" +
-      "Agentic\\Workflowexecution\\V1\342\0023Ai\\Stigme" +
-      "r\\Agentic\\Workflowexecution\\V1\\GPBMetada" +
-      "ta\352\002+Ai::Stigmer::Agentic::Workflowexecu" +
-      "tion::V1b\006proto3"
+      "ioncontext/v1/spec.proto\032(ai/stigmer/age" +
+      "ntic/session/v1/enum.proto\"\301\005\n\025WorkflowE" +
+      "xecutionSpec\0220\n\024workflow_instance_id\030\001 \001" +
+      "(\tR\022workflowInstanceId\022\037\n\013workflow_id\030\006 " +
+      "\001(\tR\nworkflowId\022\'\n\017trigger_message\030\003 \001(\t" +
+      "R\016triggerMessage\022~\n\020trigger_metadata\030\004 \003" +
+      "(\0132S.ai.stigmer.agentic.workflowexecutio" +
+      "n.v1.WorkflowExecutionSpec.TriggerMetada" +
+      "taEntryR\017triggerMetadata\022o\n\013runtime_env\030" +
+      "\005 \003(\0132N.ai.stigmer.agentic.workflowexecu" +
+      "tion.v1.WorkflowExecutionSpec.RuntimeEnv" +
+      "EntryR\nruntimeEnv\022%\n\016callback_token\030\007 \001(" +
+      "\014R\rcallbackToken\022Y\n\020execution_target\030\010 \001" +
+      "(\0162..ai.stigmer.agentic.session.v1.Execu" +
+      "tionTargetR\017executionTarget\032B\n\024TriggerMe" +
+      "tadataEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030\002" +
+      " \001(\tR\005value:\0028\001\032u\n\017RuntimeEnvEntry\022\020\n\003ke" +
+      "y\030\001 \001(\tR\003key\022L\n\005value\030\002 \001(\01326.ai.stigmer" +
+      ".agentic.executioncontext.v1.ExecutionVa" +
+      "lueR\005value:\0028\001B\314\001B\tSpecProtoP\001\242\002\004ASAW\252\002\'" +
+      "Ai.Stigmer.Agentic.Workflowexecution.V1\312" +
+      "\002\'Ai\\Stigmer\\Agentic\\Workflowexecution\\V" +
+      "1\342\0023Ai\\Stigmer\\Agentic\\Workflowexecution" +
+      "\\V1\\GPBMetadata\352\002+Ai::Stigmer::Agentic::" +
+      "Workflowexecution::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           ai.stigmer.agentic.executioncontext.v1.SpecProto.getDescriptor(),
+          ai.stigmer.agentic.session.v1.EnumProto.getDescriptor(),
         });
     internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowExecutionSpec_descriptor =
       getDescriptor().getMessageType(0);
     internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowExecutionSpec_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowExecutionSpec_descriptor,
-        new java.lang.String[] { "WorkflowInstanceId", "WorkflowId", "TriggerMessage", "TriggerMetadata", "RuntimeEnv", "CallbackToken", });
+        new java.lang.String[] { "WorkflowInstanceId", "WorkflowId", "TriggerMessage", "TriggerMetadata", "RuntimeEnv", "CallbackToken", "ExecutionTarget", });
     internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowExecutionSpec_TriggerMetadataEntry_descriptor =
       internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowExecutionSpec_descriptor.getNestedType(0);
     internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowExecutionSpec_TriggerMetadataEntry_fieldAccessorTable = new
@@ -101,6 +105,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
         new java.lang.String[] { "Key", "Value", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.executioncontext.v1.SpecProto.getDescriptor();
+    ai.stigmer.agentic.session.v1.EnumProto.getDescriptor();
   }
 
   // @@protoc_insertion_point(outer_class_scope)

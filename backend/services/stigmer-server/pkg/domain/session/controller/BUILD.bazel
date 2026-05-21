@@ -12,6 +12,7 @@ go_library(
         "session_controller.go",
         "update.go",
         "update_subject.go",
+        "validate_execution_target_immutability.go",
         "validate_harness_immutability.go",
     ],
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/session/controller",

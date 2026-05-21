@@ -5,6 +5,7 @@ package gen
 import (
 	"context"
 
+	environmentv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/environment/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/mcpserver/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
@@ -28,18 +29,18 @@ func NewMcpServerClient(conn grpc.ClientConnInterface) *McpServerClient {
 	}
 }
 
-func (m *McpServerClient) Apply(ctx context.Context, input *mcpserverv1.McpServer) (*mcpserverv1.McpServer, error) {
-	resp, err := m.command.Apply(ctx, input)
+func (m *McpServerClient) Apply(ctx context.Context, input *McpServerInput) (*mcpserverv1.McpServer, error) {
+	resp, err := m.command.Apply(ctx, input.toProto())
 	return resp, wrapErr(err)
 }
 
-func (m *McpServerClient) Create(ctx context.Context, input *mcpserverv1.McpServer) (*mcpserverv1.McpServer, error) {
-	resp, err := m.command.Create(ctx, input)
+func (m *McpServerClient) Create(ctx context.Context, input *McpServerInput) (*mcpserverv1.McpServer, error) {
+	resp, err := m.command.Create(ctx, input.toProto())
 	return resp, wrapErr(err)
 }
 
-func (m *McpServerClient) Update(ctx context.Context, input *mcpserverv1.McpServer) (*mcpserverv1.McpServer, error) {
-	resp, err := m.command.Update(ctx, input)
+func (m *McpServerClient) Update(ctx context.Context, input *McpServerInput) (*mcpserverv1.McpServer, error) {
+	resp, err := m.command.Update(ctx, input.toProto())
 	return resp, wrapErr(err)
 }
 
@@ -128,4 +129,220 @@ func (m *McpServerClient) List(ctx context.Context, params *ListParams) (*ListRe
 		TotalCount: resp.GetTotalCount(),
 		TotalPages: resp.GetTotalPages(),
 	}, nil
+}
+
+// McpServerInput holds the fields for creating/updating a McpServer.
+type McpServerInput struct {
+	Name                string
+	Slug                string
+	Org                 string
+	Labels              map[string]string
+	Visibility          apiresource.ApiResourceVisibility
+	Description         string
+	IconUrl             string
+	Stdio               *StdioServerConfigInput
+	Http                *HttpServerConfigInput
+	DefaultEnabledTools []string
+	Env                 map[string]*EnvVarDeclarationInput
+	PinnedToolApprovals []*ToolApprovalPolicyInput
+	RepositoryUrl       string
+	GithubStars         int32
+	Auth                *McpServerAuthInput
+}
+
+// StdioServerConfigInput is the SDK input type for StdioServerConfig.
+type StdioServerConfigInput struct {
+	Command    string
+	Args       []string
+	WorkingDir string
+}
+
+// HttpServerConfigInput is the SDK input type for HttpServerConfig.
+type HttpServerConfigInput struct {
+	Url            string
+	Headers        map[string]string
+	QueryParams    map[string]string
+	TimeoutSeconds int32
+}
+
+// ToolApprovalPolicyInput is the SDK input type for ToolApprovalPolicy.
+type ToolApprovalPolicyInput struct {
+	ToolName string
+	Message  string
+}
+
+// McpServerAuthInput is the SDK input type for McpServerAuth.
+type McpServerAuthInput struct {
+	OauthAppRef       ResourceRef
+	TargetEnvVar      string
+	TokenLifetimeHint string
+	ScopeHints        []string
+	DiscoveryUrl      string
+}
+
+func (i *McpServerInput) toProto() *mcpserverv1.McpServer {
+	resource := &mcpserverv1.McpServer{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       "McpServer",
+		Metadata: &apiresource.ApiResourceMetadata{
+			Name:       i.Name,
+			Slug:       i.Slug,
+			Org:        i.Org,
+			Labels:     i.Labels,
+			Visibility: i.Visibility,
+		},
+		Spec: &mcpserverv1.McpServerSpec{},
+	}
+	resource.Spec.Description = i.Description
+	resource.Spec.IconUrl = i.IconUrl
+	if i.Stdio != nil {
+		resource.Spec.ServerType = &mcpserverv1.McpServerSpec_Stdio{
+			Stdio: &mcpserverv1.StdioServerConfig{
+				Command:    i.Stdio.Command,
+				Args:       i.Stdio.Args,
+				WorkingDir: i.Stdio.WorkingDir,
+			},
+		}
+	}
+	if i.Http != nil {
+		resource.Spec.ServerType = &mcpserverv1.McpServerSpec_Http{
+			Http: &mcpserverv1.HttpServerConfig{
+				Url:            i.Http.Url,
+				Headers:        i.Http.Headers,
+				QueryParams:    i.Http.QueryParams,
+				TimeoutSeconds: i.Http.TimeoutSeconds,
+			},
+		}
+	}
+	resource.Spec.DefaultEnabledTools = i.DefaultEnabledTools
+	if len(i.Env) > 0 {
+		resource.Spec.Env = make(map[string]*environmentv1.EnvVarDeclaration, len(i.Env))
+		for k, v := range i.Env {
+			resource.Spec.Env[k] = v.toProto()
+		}
+	}
+	for _, item := range i.PinnedToolApprovals {
+		resource.Spec.PinnedToolApprovals = append(resource.Spec.PinnedToolApprovals, item.toProto())
+	}
+	resource.Spec.RepositoryUrl = i.RepositoryUrl
+	resource.Spec.GithubStars = i.GithubStars
+	if i.Auth != nil {
+		resource.Spec.Auth = i.Auth.toProto()
+	}
+	return resource
+}
+
+func (i *ToolApprovalPolicyInput) toProto() *mcpserverv1.ToolApprovalPolicy {
+	return &mcpserverv1.ToolApprovalPolicy{
+		ToolName: i.ToolName,
+		Message:  i.Message,
+	}
+}
+
+func (i *McpServerAuthInput) toProto() *mcpserverv1.McpServerAuth {
+	p := &mcpserverv1.McpServerAuth{}
+	if i.OauthAppRef.Org != "" || i.OauthAppRef.Slug != "" {
+		ref := i.OauthAppRef.toProto()
+		ref.Kind = apiresourcekind.ApiResourceKind_oauth_app
+		p.OauthAppRef = ref
+	}
+	p.TargetEnvVar = i.TargetEnvVar
+	p.TokenLifetimeHint = i.TokenLifetimeHint
+	p.ScopeHints = i.ScopeHints
+	p.DiscoveryUrl = i.DiscoveryUrl
+	return p
+}
+
+// McpServerInputFromProto creates a McpServerInput from a proto McpServer resource.
+func McpServerInputFromProto(p *mcpserverv1.McpServer) *McpServerInput {
+	if p == nil {
+		return &McpServerInput{}
+	}
+	input := &McpServerInput{}
+	if m := p.GetMetadata(); m != nil {
+		input.Name = m.GetName()
+		input.Slug = m.GetSlug()
+		input.Org = m.GetOrg()
+		input.Labels = m.GetLabels()
+		input.Visibility = m.GetVisibility()
+	}
+	if s := p.GetSpec(); s != nil {
+		input.Description = s.GetDescription()
+		input.IconUrl = s.GetIconUrl()
+		input.DefaultEnabledTools = s.GetDefaultEnabledTools()
+		if len(s.GetEnv()) > 0 {
+			input.Env = make(map[string]*EnvVarDeclarationInput, len(s.GetEnv()))
+			for k, v := range s.GetEnv() {
+				input.Env[k] = envVarDeclarationInputFromProto(v)
+			}
+		}
+		for _, item := range s.GetPinnedToolApprovals() {
+			input.PinnedToolApprovals = append(input.PinnedToolApprovals, toolApprovalPolicyInputFromProto(item))
+		}
+		input.RepositoryUrl = s.GetRepositoryUrl()
+		input.GithubStars = s.GetGithubStars()
+		input.Auth = mcpServerAuthInputFromProto(s.GetAuth())
+		if ov := s.GetStdio(); ov != nil {
+			input.Stdio = &StdioServerConfigInput{
+				Command:    ov.GetCommand(),
+				Args:       ov.GetArgs(),
+				WorkingDir: ov.GetWorkingDir(),
+			}
+		}
+		if ov := s.GetHttp(); ov != nil {
+			input.Http = &HttpServerConfigInput{
+				Url:            ov.GetUrl(),
+				Headers:        ov.GetHeaders(),
+				QueryParams:    ov.GetQueryParams(),
+				TimeoutSeconds: ov.GetTimeoutSeconds(),
+			}
+		}
+	}
+	return input
+}
+
+func stdioServerConfigInputFromProto(p *mcpserverv1.StdioServerConfig) *StdioServerConfigInput {
+	if p == nil {
+		return nil
+	}
+	input := &StdioServerConfigInput{}
+	input.Command = p.GetCommand()
+	input.Args = p.GetArgs()
+	input.WorkingDir = p.GetWorkingDir()
+	return input
+}
+
+func httpServerConfigInputFromProto(p *mcpserverv1.HttpServerConfig) *HttpServerConfigInput {
+	if p == nil {
+		return nil
+	}
+	input := &HttpServerConfigInput{}
+	input.Url = p.GetUrl()
+	input.Headers = p.GetHeaders()
+	input.QueryParams = p.GetQueryParams()
+	input.TimeoutSeconds = p.GetTimeoutSeconds()
+	return input
+}
+
+func toolApprovalPolicyInputFromProto(p *mcpserverv1.ToolApprovalPolicy) *ToolApprovalPolicyInput {
+	if p == nil {
+		return nil
+	}
+	input := &ToolApprovalPolicyInput{}
+	input.ToolName = p.GetToolName()
+	input.Message = p.GetMessage()
+	return input
+}
+
+func mcpServerAuthInputFromProto(p *mcpserverv1.McpServerAuth) *McpServerAuthInput {
+	if p == nil {
+		return nil
+	}
+	input := &McpServerAuthInput{}
+	input.OauthAppRef = resourceRefFromProto(p.GetOauthAppRef())
+	input.TargetEnvVar = p.GetTargetEnvVar()
+	input.TokenLifetimeHint = p.GetTokenLifetimeHint()
+	input.ScopeHints = p.GetScopeHints()
+	input.DiscoveryUrl = p.GetDiscoveryUrl()
+	return input
 }

@@ -3,6 +3,7 @@
 package ai.stigmer.sdk.gen;
 
 import ai.stigmer.agentic.executioncontext.v1.ExecutionValue;
+import ai.stigmer.agentic.session.v1.ExecutionTarget;
 import ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution;
 import ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
@@ -21,6 +22,7 @@ public final class WorkflowExecutionInput {
     private final java.util.Map<String, String> triggerMetadata;
     private final java.util.Map<String, EnvVarInput> runtimeEnv;
     private final byte[] callbackToken;
+    private final ExecutionTarget executionTarget;
 
     private WorkflowExecutionInput(Builder builder) {
         this.name = builder.name;
@@ -34,6 +36,7 @@ public final class WorkflowExecutionInput {
         this.triggerMetadata = builder.triggerMetadata;
         this.runtimeEnv = builder.runtimeEnv;
         this.callbackToken = builder.callbackToken;
+        this.executionTarget = builder.executionTarget;
     }
 
     WorkflowExecution toProto() {
@@ -60,6 +63,9 @@ public final class WorkflowExecutionInput {
         }
         if (this.callbackToken != null) {
             spec.setCallbackToken(com.google.protobuf.ByteString.copyFrom(this.callbackToken));
+        }
+        if (this.executionTarget != null) {
+            spec.setExecutionTarget(this.executionTarget);
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name)
@@ -95,6 +101,7 @@ public final class WorkflowExecutionInput {
         private java.util.Map<String, String> triggerMetadata;
         private java.util.Map<String, EnvVarInput> runtimeEnv;
         private byte[] callbackToken;
+        private ExecutionTarget executionTarget;
 
         private Builder() {}
 
@@ -109,6 +116,7 @@ public final class WorkflowExecutionInput {
         public Builder triggerMetadata(java.util.Map<String, String> triggerMetadata) { this.triggerMetadata = triggerMetadata; return this; }
         public Builder runtimeEnv(java.util.Map<String, EnvVarInput> runtimeEnv) { this.runtimeEnv = runtimeEnv; return this; }
         public Builder callbackToken(byte[] callbackToken) { this.callbackToken = callbackToken; return this; }
+        public Builder executionTarget(ExecutionTarget executionTarget) { this.executionTarget = executionTarget; return this; }
 
         public WorkflowExecutionInput build() { return new WorkflowExecutionInput(this); }
     }

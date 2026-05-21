@@ -424,7 +424,7 @@ java.lang.String defaultValue);
    *
    * Determines which Temporal activity type is dispatched when an
    * AgentExecution is created in this session:
-   * - NATIVE (default): ExecuteGraphton activity -&gt; Stigmer native worker
+   * - NATIVE (default): ExecuteDeepAgent activity -&gt; Stigmer unified runner
    * - CURSOR: ExecuteCursor activity -&gt; TypeScript/Cursor SDK worker
    *
    * The harness affects which tools the agent has, how conversation state
@@ -445,7 +445,7 @@ java.lang.String defaultValue);
    *
    * Determines which Temporal activity type is dispatched when an
    * AgentExecution is created in this session:
-   * - NATIVE (default): ExecuteGraphton activity -&gt; Stigmer native worker
+   * - NATIVE (default): ExecuteDeepAgent activity -&gt; Stigmer unified runner
    * - CURSOR: ExecuteCursor activity -&gt; TypeScript/Cursor SDK worker
    *
    * The harness affects which tools the agent has, how conversation state

@@ -9,10 +9,9 @@ description: Stop Stigmer services
 Stop all running Stigmer services.
 
 Stops the daemon process and all managed components (Temporal, stigmer-server,
-workflow-runner, agent-runner, web console), and any standalone runners.
+workflow-runner, agent-runner, web console).
 
-Use 'stigmer down server' to stop only the control plane. Use 'stigmer down
-runner' to stop standalone runners.
+Use 'stigmer down server' to stop only the control plane.
 
 ## Usage
 
@@ -44,28 +43,6 @@ stigmer down
 ```
 
 ## Subcommands
-
-### stigmer down runner
-
-Stop standalone agent runner processes.
-
-By default, stops all active runners. Use --name to stop a specific runner.
-
-```bash
-stigmer down runner [flags]
-```
-
-| Flag     | Type     | Default | Description                                    |
-| -------- | -------- | ------- | ---------------------------------------------- |
-| `--name` | `string` |         | Name of the runner to stop (default: stop all) |
-
-```bash
-# Stop all runners
-stigmer down runner
-
-# Stop a specific runner
-stigmer down runner --name my-macbook
-```
 
 ### stigmer down server
 
