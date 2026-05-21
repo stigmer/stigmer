@@ -340,8 +340,6 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 			fmt.Sprintf("AUTH0_DOMAIN=%s", auth0Domain),
 			"AUTH0_CLIENT_ID=test-client-id",
 			"AUTH0_CLIENT_SECRET=test-client-secret",
-			"AUTH0_MACHINE_ACCOUNT_CLIENT_ID=test-machine-client-id",
-			"AUTH0_MACHINE_ACCOUNT_CLIENT_SECRET=test-machine-client-secret",
 			fmt.Sprintf("AUTH0_API_AUDIENCE=%s", auth0Audience),
 		)
 		if cfg.Auth0TokenURL != "" {

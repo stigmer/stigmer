@@ -77,13 +77,13 @@ func StartUnifiedRunnerManager(ctx context.Context, cfg UnifiedRunnerConfig, log
 		return nil, fmt.Errorf("unified runner source directory not found")
 	}
 
-	// Manager mode always uses tsx because it imports TypeScript stubs directly
-	// (apis/stubs/ts/) which are not compiled to JS.
-	tsxBin := filepath.Join(runnerDir, "node_modules", ".bin", "tsx")
-	if _, err := os.Stat(tsxBin); err != nil {
-		return nil, fmt.Errorf("tsx not found at %s — run 'npm install' in runner", tsxBin)
+	// Use the same resolution logic as static mode: prefer pre-built
+	// dist/main.js (avoids Temporal webpack bundler failures with raw .ts
+	// proto stubs), fall back to tsx for development convenience.
+	runBin, entrypoint, resolveErr := resolveRunnerCommand(runnerDir)
+	if resolveErr != nil {
+		return nil, resolveErr
 	}
-	entrypoint := filepath.Join(runnerDir, "src", "main.ts")
 
 	logDir := cfg.LogDir
 	if logDir == "" {
@@ -100,7 +100,7 @@ func StartUnifiedRunnerManager(ctx context.Context, cfg UnifiedRunnerConfig, log
 	}
 	logger.Info("unified-runner-manager log", "path", logPath)
 
-	cmd := exec.Command(tsxBin, entrypoint)
+	cmd := exec.Command(runBin, entrypoint)
 	cmd.Dir = runnerDir
 	cmd.Env = buildUnifiedRunnerEnv(cfg, "manager", "")
 	cmd.Stderr = logFile
@@ -118,7 +118,8 @@ func StartUnifiedRunnerManager(ctx context.Context, cfg UnifiedRunnerConfig, log
 	}
 
 	logger.Info("starting unified-runner-manager",
-		"tsx", tsxBin,
+		"bin", runBin,
+		"entrypoint", entrypoint,
 		"dir", runnerDir,
 		"temporal", cfg.TemporalAddress,
 		"stigmer_endpoint", cfg.StigmerServiceAddress,
