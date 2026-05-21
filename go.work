@@ -4,7 +4,6 @@ use (
 	./apis/stubs/go
 	./backend/libs/go
 	./backend/services/stigmer-server
-	./backend/services/workflow-runner
 	./client-apps/cli
 	./mcp-server
 	./sdk/go

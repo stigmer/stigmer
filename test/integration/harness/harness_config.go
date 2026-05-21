@@ -35,26 +35,21 @@ var Harnesses = []HarnessConfig{
 	},
 }
 
-// RequireNativePrereqs skips the test if the native (Graphton) agent-runner
-// is not available. Requires both workflow-runner and agent-runner.
+// RequireNativePrereqs skips the test if the unified runner is not available.
+// The unified runner registers both ExecuteDeepAgent (native) and ExecuteCursor
+// activities, so a single process serves both harnesses.
 func RequireNativePrereqs(t *testing.T, th *TestHarness) {
 	t.Helper()
-	if th.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
-	}
-	if th.AgentRunner == nil {
-		t.Skip("agent-runner not available — skipping native harness test")
+	if th.UnifiedRunner == nil {
+		t.Skip("unified runner not available — skipping native harness test")
 	}
 }
 
-// RequireCursorPrereqs skips the test if the Cursor runner is not available.
+// RequireCursorPrereqs skips the test if the unified runner is not available.
 func RequireCursorPrereqs(t *testing.T, th *TestHarness) {
 	t.Helper()
-	if th.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
-	}
-	if th.CursorRunner == nil {
-		t.Skip("cursor-runner not available — skipping cursor harness test")
+	if th.UnifiedRunner == nil {
+		t.Skip("unified runner not available — skipping cursor harness test")
 	}
 }
 

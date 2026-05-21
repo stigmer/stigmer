@@ -4,15 +4,11 @@ GO_MODULES := \
 	apis/stubs/go \
 	backend/libs/go \
 	backend/services/stigmer-server \
-	backend/services/workflow-runner \
 	client-apps/cli \
 	mcp-server \
 	sdk/go \
 	seedpack \
 	tools
-
-AGENT_RUNNER_DIR := backend/services/agent-runner
-CURSOR_RUNNER_DIR := backend/services/cursor-runner
 
 .DEFAULT_GOAL := help
 
@@ -32,10 +28,8 @@ setup: ## Install all dependencies (one-time)
 		echo "go mod download  $$mod"; \
 		(cd $$mod && go mod download) || exit 1; \
 	done
-	@echo "poetry install   $(AGENT_RUNNER_DIR)"
-	@cd $(AGENT_RUNNER_DIR) && poetry install
-	@echo "npm install      $(CURSOR_RUNNER_DIR)"
-	@cd $(CURSOR_RUNNER_DIR) && npm install
+	@echo "npm install      backend/services/runner"
+	@cd backend/services/runner && npm install
 	@if command -v pre-commit >/dev/null 2>&1; then \
 		pre-commit install && echo "pre-commit hooks installed"; \
 	else \
@@ -82,14 +76,13 @@ install-vale: ## Install Vale prose linter (auto-detects OS)
 
 # ─── Build ────────────────────────────────────
 
-.PHONY: build build-mcp-server build-java-protos build-java-sdk build-cursor-runner protos codegen gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-task-docs gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-task-docs-check
-build: libs-build build-web verify-desktop docs-build build-mcp-server build-java-sdk build-cursor-runner ## Build all project artifacts
+.PHONY: build build-mcp-server build-java-protos build-java-sdk protos codegen gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-task-docs gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-task-docs-check
+build: libs-build build-web verify-desktop docs-build build-mcp-server build-java-sdk ## Build all project artifacts
 	@mkdir -p bin
 	cd client-apps/cli && go build -o ../../bin/stigmer .
 	cd backend/services/stigmer-server && go build -o ../../../bin/stigmer-server ./cmd/server
-	cd backend/services/workflow-runner && go build -o ../../../bin/stigmer-workflow-runner ./cmd/zigflow
 	@echo ""
-	@echo "built: bin/stigmer, bin/stigmer-server, bin/stigmer-workflow-runner, mcp-server/bin/mcp-server-stigmer"
+	@echo "built: bin/stigmer, bin/stigmer-server, mcp-server/bin/mcp-server-stigmer"
 
 build-mcp-server: ## Build MCP server binary
 	$(MAKE) -C mcp-server build
@@ -100,10 +93,6 @@ build-java-protos: ## Install Java proto stubs to local Maven repo
 
 build-java-sdk: build-java-protos ## Compile Java SDK
 	$(MAKE) -C sdk/java build
-
-build-cursor-runner: ## Compile Cursor runner (TypeScript)
-	@echo "build    $(CURSOR_RUNNER_DIR)"
-	@cd $(CURSOR_RUNNER_DIR) && npm run build
 
 protos: ## Generate protocol buffer stubs and SDK client code
 	$(MAKE) -C apis build
@@ -233,10 +222,6 @@ test: ## Run all unit tests
 		echo "testing  $$mod"; \
 		(cd $$mod && go test -race -timeout 30s ./...) || exit 1; \
 	done
-	@echo "testing  $(AGENT_RUNNER_DIR)"
-	@cd $(AGENT_RUNNER_DIR) && poetry run pip install -e . --no-deps -q && poetry run pip install -e ../../libs/python/graphton --no-deps -q && poetry run pip install ../../../apis/stubs/python/stigmer --no-deps -q && poetry run pytest
-	@echo "testing  $(CURSOR_RUNNER_DIR)"
-	@cd $(CURSOR_RUNNER_DIR) && npm test
 
 # ─── Integration Test ─────────────────────────
 # All integration test logic lives in test/integration/Makefile.
@@ -269,10 +254,6 @@ test-integration-session-routing: ## Run offline session routing integration tes
 .PHONY: test-integration-session-routing-providers
 test-integration-session-routing-providers: ## Run provider-backed session routing E2E tests (auto-fetches CURSOR_API_KEY)
 	$(MAKE) -C test/integration-session-routing test-providers
-
-.PHONY: test-replay
-test-replay: ## Run Temporal workflow replay determinism tests (fast, no infra needed)
-	$(MAKE) -C backend/services/workflow-runner test-replay
 
 .PHONY: capture-replay-histories
 capture-replay-histories: ## Capture Temporal event histories for replay tests (needs full harness)
@@ -317,8 +298,6 @@ tidy: ## Run go mod tidy on all Go modules
        test-web test-desktop test-e2e check check-all
 fix: ## Auto-fix linting and formatting issues
 	@gofmt -s -w .
-	@cd backend/libs/python/graphton && poetry run ruff check --fix .
-	@cd $(AGENT_RUNNER_DIR) && poetry run ruff check --fix .
 	-npm run lint:fix -w @stigmer/react
 	-npm run lint -w client-apps/web -- --fix
 
@@ -328,15 +307,10 @@ lint: ## Run all linters and type checks
 	done
 	@gofmt -s -w .
 	@$(MAKE) -C apis lint
-	@cd backend/libs/python/graphton && poetry run ruff check .
-	@cd $(AGENT_RUNNER_DIR) && poetry run ruff check .
-	@cd $(AGENT_RUNNER_DIR) && poetry run mypy src/stigmer_runner/grpc_client/ src/stigmer_runner/worker/ --show-error-codes
 	npm run typecheck -w @stigmer/sdk
 	npm run lint -w @stigmer/react
 	npm run typecheck -w @stigmer/react
 	npm run lint -w client-apps/web
-	@echo "typecheck $(CURSOR_RUNNER_DIR)"
-	@cd $(CURSOR_RUNNER_DIR) && npm run typecheck
 	$(MAKE) -C site lint
 	$(MAKE) -C site typecheck
 
@@ -439,7 +413,7 @@ build-cli: ## Build CLI binary
 
 install-cli: ## Build CLI with dev flags + install to ~/bin
 	@mkdir -p bin $(HOME)/bin
-	@cd client-apps/cli && go build -ldflags '$(DEV_LDFLAGS)' -o ../../bin/stigmer .
+	@cd client-apps/cli && go build -o ../../bin/stigmer .
 	@cp bin/stigmer $(HOME)/bin/
 	@chmod +x $(HOME)/bin/stigmer
 	@echo "installed: $(HOME)/bin/stigmer"
@@ -519,44 +493,20 @@ check-links: ## Check for broken links in documentation
 
 # ─── Dependencies ─────────────────────────────
 
-.PHONY: update-deps
-update-deps: ## Regenerate agent-runner requirements.txt from poetry.lock
-	@cd $(AGENT_RUNNER_DIR) && poetry show --only main --no-ansi \
-		| awk '{ name=$$1; ver=$$2; if (name=="graphton" || name=="stigmer-protos") next; printf "%s==%s\n", name, ver }' \
-		| sort > /tmp/stigmer-ar-deps.txt
-	@cd $(AGENT_RUNNER_DIR) && poetry show pathspec --no-ansi >/dev/null 2>&1 \
-		&& echo "pathspec==$$(cd $(AGENT_RUNNER_DIR) && poetry show pathspec --no-ansi | awk '/version/{print $$3}')" >> /tmp/stigmer-ar-deps.txt \
-		&& sort -o /tmp/stigmer-ar-deps.txt /tmp/stigmer-ar-deps.txt || true
-	@{ echo "# Auto-generated from poetry.lock — do not edit manually."; \
-	   echo "# Regenerate with: make update-deps"; \
-	   echo "#"; \
-	   echo "# This file lists all PyPI dependencies (direct + transitive) needed to run"; \
-	   echo "# agent-runner inside the hermetic pythonrt venv.  Path dependencies (graphton,"; \
-	   echo "# stigmer-protos) are excluded; they are installed separately from the local"; \
-	   echo "# source tree by the bootstrap pipeline."; \
-	   cat /tmp/stigmer-ar-deps.txt; \
-	} > $(AGENT_RUNNER_DIR)/requirements.txt
-	@rm -f /tmp/stigmer-ar-deps.txt
-	@echo "updated: $(AGENT_RUNNER_DIR)/requirements.txt ($$(wc -l < $(AGENT_RUNNER_DIR)/requirements.txt | tr -d ' ') lines)"
-
 
 # ─── Local Dev ────────────────────────────────
 
-DEV_LDFLAGS := -X github.com/stigmer/stigmer/client-apps/cli/embedded/agentrunner.devSourceDir=$(CURDIR)/backend/services/agent-runner \
-               -X github.com/stigmer/stigmer/client-apps/cli/embedded/cursorrunner.devSourceDir=$(CURDIR)/backend/services/cursor-runner
-
 .PHONY: local
-local: ## Build + install CLI, server, and workflow-runner for local development
-	@rm -f $(HOME)/bin/stigmer $(HOME)/bin/stigmer-server $(HOME)/bin/stigmer-workflow-runner 2>/dev/null || true
-	@rm -f /usr/local/bin/stigmer bin/stigmer bin/stigmer-server bin/stigmer-workflow-runner 2>/dev/null || true
+local: ## Build + install CLI and server for local development
+	@rm -f $(HOME)/bin/stigmer $(HOME)/bin/stigmer-server 2>/dev/null || true
+	@rm -f /usr/local/bin/stigmer bin/stigmer bin/stigmer-server 2>/dev/null || true
 	@$(MAKE) web-console-build
 	@mkdir -p bin $(HOME)/bin
-	@cd client-apps/cli && go build -tags 'embed_webconsole' -ldflags '$(DEV_LDFLAGS)' -o ../../bin/stigmer .
+	@cd client-apps/cli && go build -tags 'embed_webconsole' -o ../../bin/stigmer .
 	@cd backend/services/stigmer-server && go build -o ../../../bin/stigmer-server ./cmd/server
-	@cd backend/services/workflow-runner && go build -o ../../../bin/stigmer-workflow-runner ./cmd/zigflow
-	@cp bin/stigmer bin/stigmer-server bin/stigmer-workflow-runner $(HOME)/bin/
-	@chmod +x $(HOME)/bin/stigmer $(HOME)/bin/stigmer-server $(HOME)/bin/stigmer-workflow-runner
-	@echo "installed: $(HOME)/bin/stigmer, stigmer-server, stigmer-workflow-runner"
+	@cp bin/stigmer bin/stigmer-server $(HOME)/bin/
+	@chmod +x $(HOME)/bin/stigmer $(HOME)/bin/stigmer-server
+	@echo "installed: $(HOME)/bin/stigmer, stigmer-server"
 	@stigmer --version 2>/dev/null || echo "cli: development build"
 	@echo ""
 	@echo "stigmer server will auto-detect API keys from your environment."
@@ -655,9 +605,6 @@ release: ## Tag and push a release (usage: make release [bump=patch|minor|major]
 clean: ## Remove all build artifacts
 	rm -rf bin/ coverage/ coverage.txt coverage.html
 	rm -rf backend/services/stigmer-server/bin/
-	rm -rf backend/services/workflow-runner/bin/
-	rm -rf client-apps/cli/embedded/agentrunner/source/
-	rm -rf client-apps/cli/embedded/cursorrunner/source/
 	rm -rf client-apps/cli/embedded/webconsole/out/
 	rm -rf client-apps/web/out/ client-apps/web/.next/
 	$(MAKE) -C apis clean

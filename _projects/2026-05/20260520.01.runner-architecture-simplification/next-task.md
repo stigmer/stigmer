@@ -14,8 +14,43 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-20
-**Current Task**: ExecuteGraphton→ExecuteDeepAgent rename complete
-**Status**: Activity name mismatch fixed. Go and Java workflows now dispatch `ExecuteDeepAgent` matching the unified TS runner. Native harness per-session routing unblocked. All Go tests + 61 Java Bazel tests pass.
+**Current Task**: Legacy runner cleanup and integration test migration complete
+**Status**: All three legacy runners deleted (agent-runner, cursor-runner, workflow-runner), graphton library deleted, CLI embedded copies deleted, integration test harness migrated to unified runner, docs/codegen artifacts cleaned. 1,569 files changed, 322,572 lines deleted.
+
+## Session Progress (2026-05-21, Session 14)
+
+### What was accomplished
+- **Deleted all legacy runner services** — agent-runner (Python, 132 files), cursor-runner (TS, 56 files), workflow-runner (Go, 142 files), graphton (Python lib)
+- **Deleted CLI embedded copies** — agentrunner (694 files), cursorrunner (1,068 files)
+- **Rewrote CLI daemon bootstrap** — `cursor_bootstrap.go` now discovers unified runner at `backend/services/runner/`, deleted `runner_native.go` (Python bootstrap), cleaned daemon.go imports and PID constants
+- **Migrated integration test harness** — deleted 3 legacy harness files, `TestHarness` struct uses `UnifiedRunner *UnifiedRunnerStatic`, `RequireNativePrereqs`/`RequireCursorPrereqs` check unified runner
+- **Migrated suite_test.go** — replaced 3 runner startup blocks with single `StartUnifiedRunnerStatic` on `agent_execution_runner` queue
+- **Updated build infrastructure** — `go.work`, `Makefile` (GO_MODULES, setup, build, test, lint, local, clean targets)
+- **Cleaned stale artifacts** — `docs/guides/runners/` (9 files), `tools/codegen/schemas/agentic/runner/`, `mcp-server/gen/agentic/runner/`, `docs/guides/meta.json`
+
+### Key changes
+1. **Deleted**: `backend/services/agent-runner/`, `backend/services/cursor-runner/`, `backend/services/workflow-runner/`
+2. **Deleted**: `backend/libs/python/graphton/`
+3. **Deleted**: `client-apps/cli/embedded/agentrunner/`, `client-apps/cli/embedded/cursorrunner/`
+4. **Deleted**: `test/integration/harness/agent_runner.go`, `cursor_runner.go`, `workflow_runner.go`
+5. **Deleted**: `client-apps/cli/internal/cli/daemon/runner_native.go`
+6. **Deleted**: `docs/guides/runners/`, `tools/codegen/schemas/agentic/runner/`, `mcp-server/gen/agentic/runner/`
+7. **Rewrote**: `cursor_bootstrap.go` — unified runner discovery via `findRunnerDir()`
+8. **Modified**: `daemon.go` — removed cursorrunner import, simplified PID constants, cleaned bootstrap
+9. **Modified**: `harness.go` — `UnifiedRunner *UnifiedRunnerStatic` replaces three fields
+10. **Modified**: `suite_test.go` — single `StartUnifiedRunnerStatic` call
+11. **Modified**: `Makefile` — removed ~80 lines of legacy runner targets/variables
+12. **Modified**: `go.work` — removed `./backend/services/workflow-runner`
+
+### Decisions made
+- **Keep two test suites separate**: `test/integration/` (global routing) and `test/integration-session-routing/` (session routing) test different Java service configurations. Merging would require running two Java instances or changing all existing tests.
+- **Static mode for main suite**: Main suite uses `ActivityRouting=global`, so `UnifiedRunnerStatic` polls the `agent_execution_runner` queue. Session routing suite uses manager mode with per-session queues.
+- **Rewrite CLI bootstrap, not stub**: Rather than stubbing out the daemon bootstrap, rewrote it to discover `backend/services/runner/` directly, preserving the CLI daemon's ability to start the runner.
+
+### Surprises discovered
+- CLI daemon had two additional files (`runner_native.go`, `cursor_bootstrap.go`) importing deleted packages, plus `daemon.go` directly importing `cursorrunner` — these were not just on-disk directories but active Go imports causing compilation failures
+- The `download.go` file in CLI daemon has a dead `downloadAgentRunner()` function that downloads agent-runner binaries from GitHub releases — left as dead code (not imported anywhere)
+- Platform embed files (`embedded_darwin_arm64.go`, etc.) had stale comments about Docker-based agent-runner — updated all 5 files
 
 ## Session Progress (2026-05-21, Session 13)
 
@@ -327,6 +362,7 @@ Drop this file into your conversation to quickly resume work on this project.
 5. **Sandbox orphan cleanup** — background job to clean up sandboxes whose sessions were deleted but cleanup step failed
 6. ~~**Fix ExecuteGraphton→ExecuteDeepAgent name mismatch**~~ — ✅ Done (Session 13). Go and Java workflows now dispatch `ExecuteDeepAgent`.
 7. **Token renewal mechanism** — if 4h TTL proves too short for continuous use, add runner-side token refresh (deferred from token exchange design)
+8. ~~**Delete legacy runners and migrate integration harness**~~ — ✅ Done (Session 14). All three legacy runners deleted, CLI daemon bootstrap rewritten, test harness migrated to unified runner, docs/codegen artifacts cleaned. 322K lines removed.
 
 ## Session Progress (2026-05-20, Session 5)
 
