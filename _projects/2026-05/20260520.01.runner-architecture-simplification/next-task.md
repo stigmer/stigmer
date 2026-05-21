@@ -14,8 +14,47 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-20
-**Current Task**: Session proto field consolidation complete
-**Status**: T06c complete. Session proto cleaned up: `thread_id` renamed to `harness_state_id`, `sandbox_id` deleted entirely. All consumers updated across both repos. All builds and tests pass.
+**Current Task**: execution_target session creation wiring complete
+**Status**: execution_target wired through React SDK session creation flow. Desktop sets LOCAL, web leaves UNSPECIFIED. Server-side immutability guards added in both Go and Java. All typechecks pass.
+
+## Session Progress (2026-05-21, Session 9)
+
+### What was accomplished
+- **Wired execution_target through session creation flow** — full SDK-to-server-to-guard implementation
+  - Created `ExecutionTargetOption` type with `toProtoExecutionTarget`/`fromProtoExecutionTarget` converters in new `execution-target.ts`
+  - Added `executionTarget` to `SharedSessionFields` in `useCreateSession`, mapped to proto enum
+  - Added `executionTarget` as configuration value (not state) to `UseNewSessionFlowOptions`
+  - Exposed `executionTarget` as read-only derived value on `useSessionPageFlow` (for future UI badge)
+  - Fixed `buildUpdateInput` in `useSessionConversation` — was silently dropping `executionTarget` AND `cursorMode` during session updates
+  - Desktop `SessionLauncher` passes `executionTarget: "local"` to `useNewSessionFlow`
+  - Web `SessionLauncher` confirmed no changes needed (UNSPECIFIED = server decides)
+  - Created Go `ValidateExecutionTargetImmutabilityStep` and registered in update pipeline
+  - Created Java `ValidateExecutionTargetImmutabilityStep` nested class in `SessionUpdateHandler` and registered in update pipeline
+  - Added 13 tests total: 4 Go, 5 Java, 2 React SDK (useNewSessionFlow), 2 React SDK (useCreateSession)
+  - Exported `ExecutionTargetOption`, `toProtoExecutionTarget`, `fromProtoExecutionTarget` from `@stigmer/react`
+  - All typechecks pass (React SDK, desktop lint+typecheck+cargo)
+
+### Key changes
+1. **New**: `sdk/react/src/session/execution-target.ts` — type + converters (~40 lines)
+2. **New**: `backend/.../validate_execution_target_immutability.go` — Go immutability guard (~80 lines)
+3. **New**: `stigmer-cloud/.../SessionUpdateExecutionTargetImmutabilityTest.java` — 5 Java tests
+4. **Modified**: `useCreateSession.ts` — `executionTarget` on `SharedSessionFields`, mapped in `create()`
+5. **Modified**: `useNewSessionFlow.ts` — `executionTarget` on options, included in `sessionFields`
+6. **Modified**: `useSessionPageFlow.ts` — read-only `executionTarget` derived from session spec
+7. **Modified**: `useSessionConversation.ts` — `buildUpdateInput` preserves `executionTarget` + `cursorMode`
+8. **Modified**: Desktop `SessionLauncher.tsx` — `executionTarget: "local"`
+9. **Modified**: Go `update.go` — registered new immutability step
+10. **Modified**: Java `SessionUpdateHandler.java` — added nested step class + pipeline registration
+
+### Decisions made
+- `executionTarget` on `useNewSessionFlow` is a configuration value in `UseNewSessionFlowOptions`, NOT managed state — it's environment-determined (desktop=local, web=unspecified), not user-toggled like `harness`
+- Same immutability sentinel as harness: `harness_state_id` non-empty means both harness and execution_target are locked
+- UNSPECIFIED treated as LOCAL for immutability comparison (resolved at dispatch time, not stored)
+- Web console does not set execution_target — leaves UNSPECIFIED so server config (`STIGMER_DEFAULT_EXECUTION_TARGET`) decides
+- `fromProtoExecutionTarget` returns `undefined` for UNSPECIFIED (not "local") because the server hasn't resolved it yet
+
+### Surprises discovered
+- `buildUpdateInput` in `useSessionConversation.ts` was also silently dropping `cursorMode` during session updates — fixed alongside `executionTarget`. This would have been a latent bug when Cursor cloud mode is used with follow-up messages that trigger session updates.
 
 ## Session Progress (2026-05-21, Session 8)
 
@@ -139,9 +178,8 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Next Steps
 
 1. **Cloud sandbox provisioning** — design `EnsureSessionSandbox` Temporal activity (when `execution_target=CLOUD`)
-2. **TypeScript SDK `useNewSessionFlow`** — set `execution_target=LOCAL` when desktop has embedded runner
-3. **E2E testing** — desktop launch → runner starts → create session → addSession → activity executes
-4. **Worker count scaling** — verify 20+ Workers in one process doesn't overload Temporal connection
+2. **E2E testing** — desktop launch → runner starts → create session (LOCAL) → addSession → activity executes
+3. **Worker count scaling** — verify 20+ Workers in one process doesn't overload Temporal connection
 
 ## Session Progress (2026-05-20, Session 5)
 

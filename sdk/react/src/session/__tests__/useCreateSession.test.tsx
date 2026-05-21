@@ -150,6 +150,48 @@ describe("useCreateSession", () => {
     expect(result.current.isCreating).toBe(false);
   });
 
+  it("passes executionTarget to stigmer.session.create()", async () => {
+    const create = vi.fn().mockResolvedValue({ metadata: { id: "ses-et" } });
+    const client = createMockStigmer({ create });
+
+    const { result } = renderHook(() => useCreateSession(), {
+      wrapper: wrapper(client),
+    });
+
+    await act(async () => {
+      await result.current.create({
+        org: "acme",
+        agentInstanceId: "ain-123",
+        executionTarget: "local",
+      });
+    });
+
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        executionTarget: 1,
+      }),
+    );
+  });
+
+  it("omits executionTarget when not provided", async () => {
+    const create = vi.fn().mockResolvedValue({ metadata: { id: "ses-no-et" } });
+    const client = createMockStigmer({ create });
+
+    const { result } = renderHook(() => useCreateSession(), {
+      wrapper: wrapper(client),
+    });
+
+    await act(async () => {
+      await result.current.create({
+        org: "acme",
+        agentInstanceId: "ain-123",
+      });
+    });
+
+    const callArg = create.mock.calls[0][0];
+    expect(callArg.executionTarget).toBeUndefined();
+  });
+
   it("clearError resets the error state", async () => {
     const create = vi.fn().mockRejectedValue(new Error("fail"));
     const client = createMockStigmer({ create });

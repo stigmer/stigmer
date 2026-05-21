@@ -10,6 +10,7 @@ import {
 import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
 import { toProtoHarness, type HarnessOption } from "../models/harness";
+import { toProtoExecutionTarget, type ExecutionTargetOption } from "./execution-target";
 
 /** Shared fields present in both variants of {@link CreateSessionInput}. */
 export interface SharedSessionFields {
@@ -30,6 +31,18 @@ export interface SharedSessionFields {
    * Immutable after the first execution runs. Defaults to `"native"`.
    */
   readonly harness?: HarnessOption;
+  /**
+   * Where session activities are executed.
+   *
+   * - `"local"` — Client's embedded runner (desktop app or CLI) polls
+   *   the session's task queue.
+   * - `"cloud"` — Server provisions a cloud sandbox with a runner.
+   * - `undefined` — Server decides based on deployment context
+   *   (LOCAL for OSS, CLOUD for managed).
+   *
+   * Immutable after the first execution runs.
+   */
+  readonly executionTarget?: ExecutionTargetOption;
 }
 
 /**
@@ -157,6 +170,9 @@ export function useCreateSession(): UseCreateSessionReturn {
           skillRefs: input.skillRefs,
           agentInstanceId: resolvedInstanceId,
           harness: input.harness ? toProtoHarness(input.harness) : undefined,
+          executionTarget: input.executionTarget
+            ? toProtoExecutionTarget(input.executionTarget)
+            : undefined,
         });
 
         return { sessionId: session.metadata!.id };

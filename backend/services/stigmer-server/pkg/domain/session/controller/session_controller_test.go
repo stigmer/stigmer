@@ -438,6 +438,141 @@ func TestSessionController_Update(t *testing.T) {
 	})
 }
 
+func TestSessionController_ExecutionTargetImmutability(t *testing.T) {
+	controller, store := setupTestController(t)
+	defer store.Close()
+
+	t.Run("create session with execution_target LOCAL persists the value", func(t *testing.T) {
+		session := &sessionv1.Session{
+			ApiVersion: "agentic.stigmer.ai/v1",
+			Kind:       "Session",
+			Metadata: &apiresource.ApiResourceMetadata{
+				Name: "ET Local Session",
+				Org:  "test-org",
+			},
+			Spec: &sessionv1.SessionSpec{
+				AgentInstanceId: "test-agent-instance-id",
+				Subject:         "Test",
+				ExecutionTarget: sessionv1.ExecutionTarget_EXECUTION_TARGET_LOCAL,
+			},
+		}
+
+		created, err := controller.Create(contextWithSessionKind(), session)
+		if err != nil {
+			t.Fatalf("Create failed: %v", err)
+		}
+
+		if created.Spec.ExecutionTarget != sessionv1.ExecutionTarget_EXECUTION_TARGET_LOCAL {
+			t.Errorf("Expected EXECUTION_TARGET_LOCAL, got %v", created.Spec.ExecutionTarget)
+		}
+	})
+
+	t.Run("update execution_target before first execution is allowed", func(t *testing.T) {
+		session := &sessionv1.Session{
+			ApiVersion: "agentic.stigmer.ai/v1",
+			Kind:       "Session",
+			Metadata: &apiresource.ApiResourceMetadata{
+				Name: "ET Mutable Session",
+				Org:  "test-org",
+			},
+			Spec: &sessionv1.SessionSpec{
+				AgentInstanceId: "test-agent-instance-id",
+				Subject:         "Test",
+				ExecutionTarget: sessionv1.ExecutionTarget_EXECUTION_TARGET_LOCAL,
+			},
+		}
+
+		created, err := controller.Create(contextWithSessionKind(), session)
+		if err != nil {
+			t.Fatalf("Create failed: %v", err)
+		}
+
+		created.Spec.ExecutionTarget = sessionv1.ExecutionTarget_EXECUTION_TARGET_CLOUD
+		updated, err := controller.Update(contextWithSessionKind(), created)
+		if err != nil {
+			t.Fatalf("Update should succeed before first execution: %v", err)
+		}
+
+		if updated.Spec.ExecutionTarget != sessionv1.ExecutionTarget_EXECUTION_TARGET_CLOUD {
+			t.Errorf("Expected EXECUTION_TARGET_CLOUD, got %v", updated.Spec.ExecutionTarget)
+		}
+	})
+
+	t.Run("update execution_target after first execution is rejected", func(t *testing.T) {
+		session := &sessionv1.Session{
+			ApiVersion: "agentic.stigmer.ai/v1",
+			Kind:       "Session",
+			Metadata: &apiresource.ApiResourceMetadata{
+				Name: "ET Immutable Session",
+				Org:  "test-org",
+			},
+			Spec: &sessionv1.SessionSpec{
+				AgentInstanceId: "test-agent-instance-id",
+				Subject:         "Test",
+				ExecutionTarget: sessionv1.ExecutionTarget_EXECUTION_TARGET_LOCAL,
+			},
+		}
+
+		created, err := controller.Create(contextWithSessionKind(), session)
+		if err != nil {
+			t.Fatalf("Create failed: %v", err)
+		}
+
+		// Simulate first execution completing by setting harness_state_id
+		created.Spec.HarnessStateId = "thread-abc123"
+		created, err = controller.Update(contextWithSessionKind(), created)
+		if err != nil {
+			t.Fatalf("Update with harness_state_id failed: %v", err)
+		}
+
+		// Now try to change execution_target
+		created.Spec.ExecutionTarget = sessionv1.ExecutionTarget_EXECUTION_TARGET_CLOUD
+		_, err = controller.Update(contextWithSessionKind(), created)
+		if err == nil {
+			t.Error("Expected error when changing execution_target after first execution")
+		}
+	})
+
+	t.Run("update with same execution_target after first execution is allowed", func(t *testing.T) {
+		session := &sessionv1.Session{
+			ApiVersion: "agentic.stigmer.ai/v1",
+			Kind:       "Session",
+			Metadata: &apiresource.ApiResourceMetadata{
+				Name: "ET Same Target Session",
+				Org:  "test-org",
+			},
+			Spec: &sessionv1.SessionSpec{
+				AgentInstanceId: "test-agent-instance-id",
+				Subject:         "Test",
+				ExecutionTarget: sessionv1.ExecutionTarget_EXECUTION_TARGET_LOCAL,
+			},
+		}
+
+		created, err := controller.Create(contextWithSessionKind(), session)
+		if err != nil {
+			t.Fatalf("Create failed: %v", err)
+		}
+
+		created.Spec.HarnessStateId = "thread-def456"
+		created, err = controller.Update(contextWithSessionKind(), created)
+		if err != nil {
+			t.Fatalf("Update with harness_state_id failed: %v", err)
+		}
+
+		// Updating with the same target should succeed
+		created.Spec.ExecutionTarget = sessionv1.ExecutionTarget_EXECUTION_TARGET_LOCAL
+		created.Spec.Subject = "Updated subject"
+		updated, err := controller.Update(contextWithSessionKind(), created)
+		if err != nil {
+			t.Fatalf("Update with same execution_target should succeed: %v", err)
+		}
+
+		if updated.Spec.Subject != "Updated subject" {
+			t.Errorf("Expected 'Updated subject', got '%s'", updated.Spec.Subject)
+		}
+	})
+}
+
 func TestSessionController_Delete(t *testing.T) {
 	controller, store := setupTestController(t)
 	defer store.Close()

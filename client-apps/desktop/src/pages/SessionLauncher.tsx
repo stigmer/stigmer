@@ -94,6 +94,7 @@ export function SessionLauncher() {
 
   const flow = useNewSessionFlow({
     org,
+    executionTarget: "local",
     onSessionCreated: async (id) => {
       addSession(id).catch((err) =>
         console.warn("[runner] Failed to add session to runner:", err),
