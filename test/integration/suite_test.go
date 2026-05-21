@@ -125,24 +125,29 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
-	runnerCfg := harness.WorkflowRunnerConfig{
+	// Start unified runner on the global task queue.
+	// It registers all activities: ExecuteCursor, ExecuteDeepAgent,
+	// workflow engine tasks, MCP activities.
+	unifiedCfg := harness.UnifiedRunnerConfig{
 		StigmerServiceAddress: svc.GRPCAddress(),
 		TemporalAddress:       testHarness.Temporal.Address(),
 		LogDir:                logDir,
+		CursorAPIKey:          cursorKey,
+		ProxyEndpoint:         svc.HTTPAddress(),
 	}
 	if testHarness.OTelEnabled() {
-		runnerCfg.OTLPEndpoint = testHarness.Jaeger.OTLPAddress
+		unifiedCfg.OTLPEndpoint = testHarness.Jaeger.OTLPAddress
 	}
 
-	runner, err := harness.StartWorkflowRunner(ctx, runnerCfg, suiteLogger)
+	unifiedRunner, err := harness.StartUnifiedRunnerStatic(
+		ctx, unifiedCfg, "agent_execution_runner", suiteLogger,
+	)
 	if err != nil {
-		suiteLogger.Warn("workflow-runner failed to start — execution tests will be skipped", "error", err)
+		suiteLogger.Warn("unified runner failed to start — execution tests will be skipped", "error", err)
 	} else {
-		testHarness.WorkflowRunner = runner
+		testHarness.UnifiedRunner = unifiedRunner
 	}
 
-	// Seed base FGA tuples (platform operator, org ownership) so the test
-	// identity passes authorization checks when real OpenFGA is active.
 	if testHarness.OpenFGA != nil {
 		if err := harness.SeedBaseFGATuples(ctx, testHarness.OpenFGA); err != nil {
 			suiteLogger.Error("failed to seed FGA tuples", "error", err)
@@ -152,21 +157,16 @@ func TestMain(m *testing.M) {
 		suiteLogger.Info("FGA base tuples seeded")
 	}
 
-	// Provision a billing account for the test org so agent executions
-	// pass the billing authorization gate in InvokeAgentExecutionWorkflow.
 	if err := provisionTestBillingAccount(ctx, grpcConn); err != nil {
 		suiteLogger.Warn("failed to provision test billing account — agent_call tests may fail", "error", err)
 	}
 
-	// Seed the default agent from the seedpack so tests that depend on
-	// "get default agent" (e.g. session creation, authz tests) work.
 	if err := seedDefaultAgent(ctx, grpcConn); err != nil {
 		suiteLogger.Warn("failed to seed default agent — tests requiring a default agent may fail", "error", err)
 	} else {
 		suiteLogger.Info("default agent seeded")
 	}
 
-	// Build the test MCP server binary for HITL and MCP integration tests.
 	mcpBinary, mcpErr := harness.BuildTestMcpServer(cfg.OutputDir)
 	if mcpErr != nil {
 		suiteLogger.Warn("failed to build test MCP server — MCP/HITL tests will be skipped", "error", mcpErr)
@@ -175,7 +175,6 @@ func TestMain(m *testing.M) {
 		suiteLogger.Info("built test MCP server", "path", mcpBinary)
 	}
 
-	// Build the real mcp-server-stigmer binary for Workflow Architect tests.
 	stigmerMcpBinary, stigmerMcpErr := harness.BuildMcpServerStigmer(cfg.OutputDir)
 	if stigmerMcpErr != nil {
 		suiteLogger.Warn("failed to build mcp-server-stigmer — workflow architect tests will be skipped", "error", stigmerMcpErr)
@@ -184,60 +183,11 @@ func TestMain(m *testing.M) {
 		suiteLogger.Info("built mcp-server-stigmer", "path", stigmerMcpBinary)
 	}
 
-	// Start agent-runner only when an LLM API key is available.
-	// This keeps the default offline suite unaffected.
-	if anthropicKey != "" && runner != nil {
-		agentRunnerCfg := harness.AgentRunnerConfig{
-			StigmerServiceAddress: svc.GRPCAddress(),
-			TemporalAddress:       testHarness.Temporal.Address(),
-			LogDir:                logDir,
-			AnthropicAPIKey:       anthropicKey,
-			ProxyEndpoint:         svc.HTTPAddress(),
-		}
-		if testHarness.MinIO != nil {
-			agentRunnerCfg.R2Endpoint = testHarness.MinIO.Endpoint
-			agentRunnerCfg.R2AccessKey = testHarness.MinIO.AccessKey
-			agentRunnerCfg.R2SecretKey = testHarness.MinIO.SecretKey
-			agentRunnerCfg.R2Bucket = "test-bucket"
-		}
-		if testHarness.OTelEnabled() {
-			agentRunnerCfg.OTLPEndpoint = testHarness.Jaeger.OTLPAddress
-		}
-		agentRunner, agentErr := harness.StartAgentRunner(ctx, agentRunnerCfg, suiteLogger)
-		if agentErr != nil {
-			suiteLogger.Warn("agent-runner failed to start — agent_call tests will be skipped", "error", agentErr)
-		} else {
-			testHarness.AgentRunner = agentRunner
-		}
-	}
-
-	// Start cursor-runner only when a Cursor API key is available.
-	if cursorKey != "" && runner != nil {
-		cursorRunnerCfg := harness.CursorRunnerConfig{
-			StigmerServiceAddress: svc.GRPCAddress(),
-			TemporalAddress:       testHarness.Temporal.Address(),
-			LogDir:                logDir,
-			CursorAPIKey:          cursorKey,
-			ProxyEndpoint:         svc.HTTPAddress(),
-		}
-		if testHarness.OTelEnabled() {
-			cursorRunnerCfg.OTLPEndpoint = testHarness.Jaeger.OTLPAddress
-		}
-		cursorRunner, cursorErr := harness.StartCursorRunner(ctx, cursorRunnerCfg, suiteLogger)
-		if cursorErr != nil {
-			suiteLogger.Warn("cursor-runner failed to start — cursor_call tests will be skipped", "error", cursorErr)
-		} else {
-			testHarness.CursorRunner = cursorRunner
-		}
-	}
-
 	suiteLogger.Info("suite infrastructure ready",
 		"grpc_address", svc.GRPCAddress(),
 		"mongo", fmt.Sprintf("%s:%s", testHarness.Mongo.Host, testHarness.Mongo.Port),
 		"temporal", testHarness.Temporal.Address(),
-		"workflow_runner", runner != nil,
-		"agent_runner", testHarness.AgentRunner != nil,
-		"cursor_runner", testHarness.CursorRunner != nil,
+		"unified_runner", testHarness.UnifiedRunner != nil,
 		"log_dir", logDir,
 	)
 

@@ -8,39 +8,28 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
-	"github.com/stigmer/stigmer/client-apps/cli/embedded"
-	"github.com/stigmer/stigmer/client-apps/cli/embedded/cursorrunner"
-	cliconfig "github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/nodert"
 )
 
-// CursorRunnerBootstrapResult holds the output of cursor-runner bootstrap.
-// EntryArgs contains the arguments for the cursor-runner entry point:
-// dev mode returns tsx args; embed mode returns ["dist/main.js"].
-type CursorRunnerBootstrapResult struct {
+// RunnerBootstrapResult holds the output of the unified runner bootstrap.
+type RunnerBootstrapResult struct {
 	NodeBin   string
 	AppDir    string
 	EntryArgs []string
 }
 
-// bootstrapCursorRunnerRuntime prepares the Node.js runtime and installs
-// dependencies for the cursor-runner. Returns bootstrap result containing
-// the node binary path, app directory, and entry point args.
-//
-// Two modes:
-//   - Dev mode (SourceDir != ""): system Node.js + tsx, source from repo tree
-//   - Embed mode (SourceFS != nil, SourceDir == ""): managed Node.js + compiled JS
-func bootstrapCursorRunnerRuntime() (*CursorRunnerBootstrapResult, error) {
-	if cursorrunner.SourceDir() != "" {
-		return bootstrapCursorRunnerDevMode()
+// bootstrapRunnerRuntime prepares the Node.js runtime for the unified runner
+// at backend/services/runner/. In dev mode, it discovers the runner source
+// directory relative to the CLI binary and uses tsx for TypeScript execution.
+func bootstrapRunnerRuntime() (*RunnerBootstrapResult, error) {
+	appDir := findRunnerDir()
+	if appDir == "" {
+		return nil, errors.New("unified runner (backend/services/runner) not found. " +
+			"Ensure the runner is available or set STIGMER_RUNNER_DIR")
 	}
-	return bootstrapCursorRunnerEmbedMode()
-}
 
-func bootstrapCursorRunnerDevMode() (*CursorRunnerBootstrapResult, error) {
-	appDir := cursorrunner.SourceDir()
 	if _, err := os.Stat(filepath.Join(appDir, "package.json")); err != nil {
-		return nil, errors.Wrapf(err, "cursor-runner package.json not found at %s", appDir)
+		return nil, errors.Wrapf(err, "runner package.json not found at %s", appDir)
 	}
 
 	nodeBin, err := nodert.EnsureNodeAvailable()
@@ -52,7 +41,7 @@ func bootstrapCursorRunnerDevMode() (*CursorRunnerBootstrapResult, error) {
 	defer cancel()
 
 	if err := nodert.EnsureDepsInstalled(ctx, appDir); err != nil {
-		return nil, errors.Wrap(err, "failed to install cursor-runner dependencies")
+		return nil, errors.Wrap(err, "failed to install runner dependencies")
 	}
 
 	tsxArgs, err := nodert.TsxArgs(appDir, filepath.Join("src", "main.ts"))
@@ -63,50 +52,38 @@ func bootstrapCursorRunnerDevMode() (*CursorRunnerBootstrapResult, error) {
 	log.Info().
 		Str("node", nodeBin).
 		Str("app_dir", appDir).
-		Msg("Cursor runner runtime bootstrapped (dev mode)")
+		Msg("Runner runtime bootstrapped")
 
-	return &CursorRunnerBootstrapResult{
+	return &RunnerBootstrapResult{
 		NodeBin:   nodeBin,
 		AppDir:    appDir,
 		EntryArgs: tsxArgs,
 	}, nil
 }
 
-func bootstrapCursorRunnerEmbedMode() (*CursorRunnerBootstrapResult, error) {
-	sourceFS := cursorrunner.SourceFS()
-	if sourceFS == nil {
-		return nil, errors.New("cursor-runner source is not available. " +
-			"If building from source, run sync.sh and build with -tags embed_cursorrunner")
+func findRunnerDir() string {
+	if dir := os.Getenv("STIGMER_RUNNER_DIR"); dir != "" {
+		return dir
 	}
 
-	configDir, err := cliconfig.GetConfigDir()
+	exe, err := os.Executable()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to resolve config directory")
+		return ""
+	}
+	repoRoot := filepath.Dir(filepath.Dir(filepath.Dir(filepath.Dir(exe))))
+	candidate := filepath.Join(repoRoot, "backend", "services", "runner")
+	if _, err := os.Stat(filepath.Join(candidate, "package.json")); err == nil {
+		return candidate
 	}
 
-	mgr, err := nodert.NewManager(nodert.Config{
-		BaseDir:     filepath.Join(configDir, "runtimes", "cursor-runner"),
-		CLIVersion:  embedded.GetBuildVersion(),
-		AppSourceFS: sourceFS,
-	})
+	cwd, err := os.Getwd()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create Node.js runtime manager")
+		return ""
+	}
+	candidate = filepath.Join(cwd, "backend", "services", "runner")
+	if _, err := os.Stat(filepath.Join(candidate, "package.json")); err == nil {
+		return candidate
 	}
 
-	log.Info().
-		Str("runtime_dir", mgr.RuntimeDir()).
-		Msg("Bootstrapping Node.js runtime for cursor-runner")
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
-	defer cancel()
-
-	if err := mgr.EnsureReady(ctx); err != nil {
-		return nil, errors.Wrap(err, "failed to bootstrap Node.js runtime")
-	}
-
-	return &CursorRunnerBootstrapResult{
-		NodeBin:   mgr.NodeBin(),
-		AppDir:    mgr.AppDir(),
-		EntryArgs: []string{filepath.Join("dist", "main.js")},
-	}, nil
+	return ""
 }

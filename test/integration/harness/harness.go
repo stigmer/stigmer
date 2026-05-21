@@ -12,16 +12,14 @@ import (
 // TestHarness orchestrates all infrastructure and services needed for
 // integration tests against the Stigmer Cloud Java service.
 type TestHarness struct {
-	Mongo          *MongoContainer
-	Redis          *RedisContainer
-	Temporal       *TemporalDevServer
-	OpenFGA        *OpenFGAContainer
-	MinIO          *MinIOContainer
-	Jaeger         *JaegerContainer
-	Service        *JavaService
-	WorkflowRunner *WorkflowRunner
-	AgentRunner    *AgentRunner
-	CursorRunner   *CursorRunner
+	Mongo         *MongoContainer
+	Redis         *RedisContainer
+	Temporal      *TemporalDevServer
+	OpenFGA       *OpenFGAContainer
+	MinIO         *MinIOContainer
+	Jaeger        *JaegerContainer
+	Service       *JavaService
+	UnifiedRunner *UnifiedRunnerStatic
 
 	outputDir string
 	logger    *slog.Logger
@@ -87,14 +85,8 @@ func (h *TestHarness) LogPaths() []string {
 	if h.Service != nil && h.Service.LogPath() != "" {
 		paths = append(paths, h.Service.LogPath())
 	}
-	if h.WorkflowRunner != nil && h.WorkflowRunner.LogPath() != "" {
-		paths = append(paths, h.WorkflowRunner.LogPath())
-	}
-	if h.AgentRunner != nil && h.AgentRunner.LogPath() != "" {
-		paths = append(paths, h.AgentRunner.LogPath())
-	}
-	if h.CursorRunner != nil && h.CursorRunner.LogPath() != "" {
-		paths = append(paths, h.CursorRunner.LogPath())
+	if h.UnifiedRunner != nil && h.UnifiedRunner.LogPath() != "" {
+		paths = append(paths, h.UnifiedRunner.LogPath())
 	}
 	return paths
 }
@@ -233,21 +225,9 @@ func Start(ctx context.Context, cfg Config) (*TestHarness, error) {
 func (h *TestHarness) Stop(ctx context.Context) {
 	h.logger.Info("stopping test infrastructure")
 
-	if h.CursorRunner != nil {
-		if err := h.CursorRunner.Stop(); err != nil {
-			h.logger.Error("failed to stop cursor-runner", "error", err)
-		}
-	}
-
-	if h.AgentRunner != nil {
-		if err := h.AgentRunner.Stop(); err != nil {
-			h.logger.Error("failed to stop agent-runner", "error", err)
-		}
-	}
-
-	if h.WorkflowRunner != nil {
-		if err := h.WorkflowRunner.Stop(); err != nil {
-			h.logger.Error("failed to stop workflow-runner", "error", err)
+	if h.UnifiedRunner != nil {
+		if err := h.UnifiedRunner.Stop(); err != nil {
+			h.logger.Error("failed to stop unified-runner", "error", err)
 		}
 	}
 

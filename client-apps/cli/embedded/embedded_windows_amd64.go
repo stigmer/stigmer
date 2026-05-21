@@ -2,10 +2,13 @@
 
 package embedded
 
-// Windows AMD64 - Docker-only mode
+// Windows AMD64
 //
-// The agent runner is pulled as a Docker image on first daemon start.
-// GetRunnerBinary returns nil to trigger that Docker pull path.
+// The unified runner (@stigmer/runner) is a TypeScript/Node.js process started
+// directly by the daemon. No embedded binary is needed.
+
+// GetRunnerBinary is a legacy stub retained for backward compatibility.
+// Returns nil (no binary to extract).
 
 func GetRunnerBinary() ([]byte, error) {
 	return nil, nil

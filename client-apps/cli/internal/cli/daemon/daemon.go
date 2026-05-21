@@ -15,7 +15,6 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/stigmer/stigmer/client-apps/cli/embedded"
-	"github.com/stigmer/stigmer/client-apps/cli/embedded/cursorrunner"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/llm"
@@ -39,14 +38,8 @@ const (
 	// PIDFileName stores the daemon process's own PID.
 	PIDFileName = "daemon.pid"
 
-	// WorkflowRunnerPIDFileName stores the workflow-runner PID.
-	WorkflowRunnerPIDFileName = "workflow-runner.pid"
-
-	// RunnerPIDFileName stores the agent-runner PID.
-	RunnerPIDFileName = "agent-runner.pid"
-
-	// CursorRunnerPIDFileName stores the cursor-runner PID.
-	CursorRunnerPIDFileName = "cursor-runner.pid"
+	// RunnerPIDFileName stores the unified runner PID.
+	RunnerPIDFileName = "runner.pid"
 )
 
 // StartOptions provides options for starting the daemon.
@@ -67,7 +60,7 @@ type StartOptions struct {
 	ActivityRouting string
 
 	// ServerOnly starts only the control plane (Temporal + stigmer-server +
-	// web console) without workflow-runner or agent-runner. This is the
+	// web console) without the runner process. This is the
 	// foundation for `stigmer up server` which starts the control plane
 	// independently of any runners.
 	ServerOnly bool
@@ -194,29 +187,22 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 	}
 
 	// Bootstrap the unified runner Node.js runtime.
-	// The cursor-runner bootstrap prepares Node.js and the compiled runner —
-	// the same code now handles all activity types (native, cursor, workflow).
+	// The unified runner handles all activity types (native, cursor, workflow).
 	// Skipped in server-only mode where no runners are started.
-	var runnerResult *CursorRunnerBootstrapResult
+	var runnerResult *RunnerBootstrapResult
 	runnerAvailable := false
 
 	if !opts.ServerOnly {
-		if cursorrunner.IsAvailable() {
-			if opts.Progress != nil {
-				opts.Progress.SetPhase(cliprint.PhaseInstalling, "Bootstrapping runner runtime")
-			}
-
-			var runnerErr error
-			runnerResult, runnerErr = bootstrapCursorRunnerRuntime()
-			if runnerErr != nil {
-				return errors.Wrap(runnerErr, "failed to bootstrap runner runtime")
-			}
-			runnerAvailable = true
-		} else {
-			return errors.New("runner runtime is not bundled in this binary. " +
-				"If you are using the desktop app, update to the latest version. " +
-				"If building from source, ensure the runner is built")
+		if opts.Progress != nil {
+			opts.Progress.SetPhase(cliprint.PhaseInstalling, "Bootstrapping runner runtime")
 		}
+
+		var runnerErr error
+		runnerResult, runnerErr = bootstrapRunnerRuntime()
+		if runnerErr != nil {
+			return errors.Wrap(runnerErr, "failed to bootstrap runner runtime")
+		}
+		runnerAvailable = true
 	}
 
 	// --- Phase 3: Starting ---
@@ -357,11 +343,9 @@ func cleanupOrphanedProcesses(dataDir string) {
 	log.Debug().Msg("Checking for orphaned processes from previous runs")
 
 	pidFiles := map[string]string{
-		"daemon":          filepath.Join(dataDir, PIDFileName),
-		"stigmer-server":  filepath.Join(dataDir, StigmerServerPIDFileName),
-		"workflow-runner": filepath.Join(dataDir, WorkflowRunnerPIDFileName),
-		"agent-runner":    filepath.Join(dataDir, RunnerPIDFileName),
-		"cursor-runner":   filepath.Join(dataDir, CursorRunnerPIDFileName),
+		"daemon":         filepath.Join(dataDir, PIDFileName),
+		"stigmer-server": filepath.Join(dataDir, StigmerServerPIDFileName),
+		"runner":         filepath.Join(dataDir, RunnerPIDFileName),
 	}
 
 	orphansFound := false
@@ -680,18 +664,18 @@ func getPID(dataDir string) (int, error) {
 	return pid, nil
 }
 
-// GetWorkflowRunnerPID reads the workflow-runner PID file.
-func GetWorkflowRunnerPID(dataDir string) (int, error) {
-	pidFile := filepath.Join(dataDir, WorkflowRunnerPIDFileName)
+// GetRunnerPID reads the unified runner PID file.
+func GetRunnerPID(dataDir string) (int, error) {
+	pidFile := filepath.Join(dataDir, RunnerPIDFileName)
 
 	data, err := os.ReadFile(pidFile)
 	if err != nil {
-		return 0, errors.Wrap(err, "failed to read workflow-runner PID file")
+		return 0, errors.Wrap(err, "failed to read runner PID file")
 	}
 
 	pid, err := strconv.Atoi(strings.TrimSpace(string(data)))
 	if err != nil {
-		return 0, errors.Wrap(err, "invalid PID in workflow-runner PID file")
+		return 0, errors.Wrap(err, "invalid PID in runner PID file")
 	}
 
 	return pid, nil
@@ -733,12 +717,8 @@ func rotateLogsIfNeeded(dataDir string) error {
 		"daemon.log",
 		"stigmer-server.log",
 		"stigmer-server.err",
-		"agent-runner.log",
-		"agent-runner.err",
-		"workflow-runner.log",
-		"workflow-runner.err",
-		"cursor-runner.log",
-		"cursor-runner.err",
+		"runner.log",
+		"runner.err",
 		"temporal.log",
 		"llm.log",
 	}

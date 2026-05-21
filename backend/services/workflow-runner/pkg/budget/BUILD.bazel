@@ -1,9 +1,0 @@
-load("@rules_go//go:def.bzl", "go_library")
-
-go_library(
-    name = "budget",
-    srcs = ["tracker.go"],
-    importpath = "github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/budget",
-    visibility = ["//visibility:public"],
-    deps = ["//apis/stubs/go/ai/stigmer/agentic/workflow/v1:workflow"],
-)

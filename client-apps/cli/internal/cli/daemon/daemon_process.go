@@ -238,7 +238,7 @@ func RunDaemonProcess() error {
 	components := buildComponents(cliBin, dataDir, logDir, grpcPort, serverOnly)
 
 	// Start components sequentially. stigmer-server must be first because
-	// workflow-runner and agent-runner communicate with it.
+	// the runner communicates with it.
 	for _, c := range components {
 		hs.Components[c.name] = c.state
 		log.Info().Str("component", c.name).Msg("Starting component")
@@ -271,9 +271,9 @@ func RunDaemonProcess() error {
 		log.Info().Str("component", c.name).Int("pid", cmd.Process.Pid).Msg("Component started")
 
 		// After stigmer-server starts, wait for gRPC readiness before
-		// starting workflow-runner and agent-runner. Without this gate the
-		// workers can start polling Temporal and executing activities
-		// against a server that is not yet accepting RPCs.
+		// starting the runner. Without this gate the runner can start
+		// polling Temporal and executing activities against a server
+		// that is not yet accepting RPCs.
 		if c.name == "stigmer-server" {
 			endpoint := fmt.Sprintf("localhost:%d", grpcPort)
 			readyCtx, readyCancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -449,22 +449,10 @@ func buildComponents(cliBin, dataDir, logDir string, grpcPort int, serverOnly bo
 	}
 
 	// Unified runner: single Node.js process handling all activity types
-	// (native, cursor, workflow tasks, MCP). Replaces the legacy split of
-	// agent-runner (Python), workflow-runner (Go), and cursor-runner (Node).
+	// (native, cursor, workflow tasks, MCP).
 	runnerNodeBin := os.Getenv("STIGMER_RUNNER_NODE_BIN")
 	runnerAppDir := os.Getenv("STIGMER_RUNNER_APP_DIR")
 	runnerEntryArgsRaw := os.Getenv("STIGMER_RUNNER_ENTRY_ARGS")
-
-	// Fallback to cursor-runner env vars for backward compatibility during migration
-	if runnerNodeBin == "" {
-		runnerNodeBin = os.Getenv("STIGMER_CURSOR_RUNNER_NODE_BIN")
-	}
-	if runnerAppDir == "" {
-		runnerAppDir = os.Getenv("STIGMER_CURSOR_RUNNER_APP_DIR")
-	}
-	if runnerEntryArgsRaw == "" {
-		runnerEntryArgsRaw = os.Getenv("STIGMER_CURSOR_RUNNER_ENTRY_ARGS")
-	}
 
 	if runnerNodeBin != "" && runnerAppDir != "" && runnerEntryArgsRaw != "" {
 		entryArgs := strings.Split(runnerEntryArgsRaw, ",")
