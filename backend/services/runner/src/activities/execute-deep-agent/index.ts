@@ -9,6 +9,7 @@
  * incremental git writeback, and post-stream safety net.
  */
 
+import { Context, CancelledFailure } from "@temporalio/activity";
 import { create } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
@@ -99,6 +100,8 @@ export function createDeepAgentActivities(config: Config) {
             })
           : null;
 
+        const cancellationSignal = Context.current().cancellationSignal;
+
         const result: StreamResult = await streamExecution({
           agentGraph: setup.agentGraph,
           langgraphInput: effectiveInput as Record<string, unknown>,
@@ -110,6 +113,8 @@ export function createDeepAgentActivities(config: Config) {
           gracefulStop: setup.gracefulStop,
           inlinePublisher,
           writebackCoordinator: writebackCoordinator ?? undefined,
+          heartbeatFn: (details) => Context.current().heartbeat(details),
+          isCancelledFn: () => cancellationSignal.aborted,
         });
 
         await processPostStream({
@@ -122,6 +127,11 @@ export function createDeepAgentActivities(config: Config) {
         });
 
         if (result.terminalStatus) {
+          if (initialStatus.phase === ExecutionPhase.EXECUTION_PAUSED) {
+            await persistStatus(client, executionId, initialStatus);
+            console.log(`[ExecuteDeepAgent] Paused for execution ${executionId}: events=${result.eventsProcessed}`);
+            throw new CancelledFailure("Activity paused by orchestrator");
+          }
           return result.terminalStatus;
         }
 
@@ -140,6 +150,15 @@ export function createDeepAgentActivities(config: Config) {
         return slimStatus(initialStatus);
 
       } catch (err: unknown) {
+        if (err instanceof CancelledFailure) {
+          console.log(`[ExecuteDeepAgent] Cancelled (pause) for execution ${executionId}`);
+          const pausedStatus = create(AgentExecutionStatusSchema, {
+            phase: ExecutionPhase.EXECUTION_PAUSED,
+          });
+          await persistStatus(client, executionId, pausedStatus).catch(() => {});
+          throw err;
+        }
+
         const errorMessage = err instanceof Error ? err.message : String(err);
         const errorType = err instanceof Error ? err.constructor.name : "UnknownError";
 
