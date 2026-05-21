@@ -91,10 +91,13 @@ export {
   groupSessionsByTime,
   groupSearchResultsByTime,
   useSessionSearch,
+  toProtoExecutionTarget,
+  fromProtoExecutionTarget,
   PENDING_SUBJECT,
   resolvedSubject,
 } from "./session";
 export type {
+  ExecutionTargetOption,
   SharedSessionFields,
   CreateSessionInput,
   CreateSessionResult,

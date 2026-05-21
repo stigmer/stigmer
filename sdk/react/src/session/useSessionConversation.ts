@@ -480,6 +480,8 @@ function buildUpdateInput(
     subject: spec?.subject || undefined,
     harnessStateId: spec?.harnessStateId || undefined,
     harness: spec?.harness,
+    cursorMode: spec?.cursorMode,
+    executionTarget: spec?.executionTarget,
     metadata:
       spec?.metadata && Object.keys(spec.metadata).length > 0
         ? { ...spec.metadata }

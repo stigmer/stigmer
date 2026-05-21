@@ -13,6 +13,7 @@ import type { SessionComposerSubmitContext } from "../composer";
 import { withTimeout } from "../internal/withTimeout";
 import { useCreateSession } from "./useCreateSession";
 import { useCreateAgentExecution } from "../execution/useCreateAgentExecution";
+import type { ExecutionTargetOption } from "./execution-target";
 
 const DEFAULT_AGENT_TIMEOUT_MS = 10_000;
 
@@ -39,6 +40,16 @@ export interface UseNewSessionFlowOptions {
    * If not provided, errors are still available via {@link UseNewSessionFlowReturn.submitError}.
    */
   readonly onError?: (message: string) => void;
+  /**
+   * Where session activities should execute.
+   *
+   * This is a configuration value determined by the runtime environment,
+   * not user-toggled state. Desktop apps pass `"local"` (they have an
+   * embedded runner); the web console omits it (server decides).
+   *
+   * Immutable on the session once the first execution runs.
+   */
+  readonly executionTarget?: ExecutionTargetOption;
 }
 
 /** Return value of {@link useNewSessionFlow}. */
@@ -142,7 +153,7 @@ export interface UseNewSessionFlowReturn {
 export function useNewSessionFlow(
   options: UseNewSessionFlowOptions,
 ): UseNewSessionFlowReturn {
-  const { org, onSessionCreated, onError } = options;
+  const { org, onSessionCreated, onError, executionTarget } = options;
 
   const [harness, setHarnessRaw] = useState<HarnessOption>(() => {
     if (typeof window === "undefined") return DEFAULT_HARNESS;
@@ -235,6 +246,7 @@ export function useNewSessionFlow(
           mcpServerUsages: mcpServerUsages.length > 0 ? mcpServerUsages : undefined,
           skillRefs: skillRefs.length > 0 ? skillRefs : undefined,
           harness,
+          executionTarget,
         };
 
         const executionFields = {
@@ -302,6 +314,7 @@ export function useNewSessionFlow(
       isSubmitting,
       org,
       harness,
+      executionTarget,
       validModelId,
       workspace,
       mcpServerUsages,

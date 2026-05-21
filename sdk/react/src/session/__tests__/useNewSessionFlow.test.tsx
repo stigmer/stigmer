@@ -335,6 +335,34 @@ describe("useNewSessionFlow", () => {
     });
   });
 
+  describe("submit with executionTarget", () => {
+    it("passes executionTarget to createSession when provided", async () => {
+      const opts = { ...defaultOptions(), executionTarget: "local" as const };
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+
+      expect(mockCreateSession).toHaveBeenCalledOnce();
+      const sessionInput = mockCreateSession.mock.calls[0][0];
+      expect(sessionInput.executionTarget).toBe("local");
+    });
+
+    it("does not include executionTarget when not provided", async () => {
+      const opts = defaultOptions();
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+
+      expect(mockCreateSession).toHaveBeenCalledOnce();
+      const sessionInput = mockCreateSession.mock.calls[0][0];
+      expect(sessionInput.executionTarget).toBeUndefined();
+    });
+  });
+
   describe("submit while default agent is loading", () => {
     it("awaits default agent and creates session when fetch resolves", async () => {
       const resolvedAgent = { status: { defaultInstanceId: "awaited-inst" } };
