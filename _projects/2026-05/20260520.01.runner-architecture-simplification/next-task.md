@@ -14,8 +14,47 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-20
-**Current Task**: execution_target session creation wiring complete
-**Status**: execution_target wired through React SDK session creation flow. Desktop sets LOCAL, web leaves UNSPECIFIED. Server-side immutability guards added in both Go and Java. All typechecks pass.
+**Current Task**: Cloud sandbox provisioning implemented
+**Status**: Cloud sandbox provisioning complete. Daytona SDK re-added. DaytonaSandboxProvisioner handles full lifecycle (create, restart, restore, recreate). Pipeline step in AgentExecutionCreateHandler provisions sandboxes fire-and-forget when execution_target=CLOUD. User JWT captured from gRPC context and injected into sandbox. All 61 Java tests pass, all Go tests pass.
+
+## Session Progress (2026-05-21, Session 10)
+
+### What was accomplished
+- **Implemented cloud sandbox provisioning** — full Daytona integration for EXECUTION_TARGET_CLOUD sessions
+  - Re-added `io.daytona:sdk:0.168.0` to MODULE.bazel
+  - Created `domain/agentic/sandbox/` package with 7 classes: SessionSandbox entity, SessionSandboxRepo (MongoDB), SandboxProvisioner interface, DaytonaSandboxProvisioner (full lifecycle), NoopSandboxProvisioner, SandboxProvisionerConfig, SandboxEnvironment, SandboxProvisioningException
+  - DaytonaSandboxProvisioner reuses core logic from deleted DaytonaSandboxRunnerLauncher — keyed on sessionId instead of runnerId, task queue is session:{id}, single Node.js runner
+  - Created `EnsureSessionSandboxStep` pipeline step in AgentExecutionCreateHandler (after StartWorkflow, fire-and-forget, non-critical)
+  - Same step added to AgentExecutionRecoverHandler for recovered executions
+  - Added `DeprovisionSandboxStep` to SessionDeleteHandler for sandbox cleanup on session deletion
+  - User JWT captured from UserTokenHolder.get() in gRPC context, passed in-memory to sandbox as STIGMER_TOKEN — never touches Temporal history
+  - Created application-sandbox.yaml config with Daytona properties, added `sandbox` to Spring active profiles
+  - Added `ExecutionTarget int32` to Go workflow input for forward-compatibility
+  - 11 unit tests for DaytonaSandboxProvisioner (all lifecycle states) + 3 Go JSON round-trip tests
+  - All 61 Java Bazel tests pass, all Go tests pass
+
+### Key changes
+1. **New**: `domain/agentic/sandbox/` package — 7 Java classes (~500 lines)
+2. **New**: `application-sandbox.yaml` — Spring config for sandbox provisioning
+3. **New**: `DaytonaSandboxProvisionerTest.java` — 11 tests for full lifecycle
+4. **New**: `workflow_input_test.go` — 3 Go JSON round-trip tests
+5. **Modified**: `MODULE.bazel` — re-added Daytona SDK
+6. **Modified**: `AgentExecutionCreateHandler.java` — added EnsureSessionSandboxStep
+7. **Modified**: `AgentExecutionRecoverHandler.java` — added EnsureSessionSandboxStep
+8. **Modified**: `SessionDeleteHandler.java` — added DeprovisionSandboxStep
+9. **Modified**: `SessionDispatchService.java` — made formatSessionTaskQueue public
+10. **Modified**: Go `workflow_input.go` — added ExecutionTarget field
+11. **Modified**: Go `create.go` — passes dispatch.ExecutionTarget to workflow input
+
+### Decisions made
+- **Pipeline step, not Temporal activity**: Sandbox provisioning runs as a pipeline step in the gRPC handler, not a Temporal activity. This preserves access to UserTokenHolder.get() (the user's JWT from the gRPC context) without putting secrets in Temporal workflow history. Same pattern as the deleted ProvisionInfrastructureStep.
+- **Fire-and-forget**: The pipeline step is non-critical (isCritical=false). If provisioning fails, the workflow's agent activity eventually hits ScheduleToStartTimeout with a clear error. Same tradeoff as the old Runner architecture.
+- **Full lifecycle handling**: DaytonaSandboxProvisioner handles all Daytona states (started, stopped, archived, not found) on every execution — not just first execution. Follow-up messages trigger the same ensure path.
+- **User JWT for sandbox auth**: The caller's JWT is captured from the gRPC context and passed in-memory to the sandbox as STIGMER_TOKEN. This is the same pattern as the old DaytonaSandboxRunnerLauncher. The JWT has a limited lifetime; a TokenExchangeService for short-lived sandbox-scoped tokens is a follow-up.
+
+### Surprises discovered
+- The original plan used a Temporal activity for sandbox provisioning. This created a token problem — inside a Temporal activity, there's no gRPC context, so UserTokenHolder.get() doesn't work. The user caught this and redirected to the pipeline step approach, which is simpler and matches the old architecture.
+- Daytona SDK 0.168.0 API has changed from the old code's assumptions: DaytonaConfig uses a Builder pattern (not setters), Sandbox.getState() returns String (not SandboxState enum), no SandboxInfo class. Adapted all code to the actual API.
 
 ## Session Progress (2026-05-21, Session 9)
 
@@ -177,9 +216,11 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-1. **Cloud sandbox provisioning** — design `EnsureSessionSandbox` Temporal activity (when `execution_target=CLOUD`)
+1. **TokenExchangeService** — mint short-lived sandbox-scoped tokens instead of forwarding the user's JWT (limited lifetime)
 2. **E2E testing** — desktop launch → runner starts → create session (LOCAL) → addSession → activity executes
-3. **Worker count scaling** — verify 20+ Workers in one process doesn't overload Temporal connection
+3. **E2E cloud testing** — web console → create session (CLOUD) → sandbox boots → activity executes on session queue
+4. **Worker count scaling** — verify 20+ Workers in one process doesn't overload Temporal connection
+5. **Sandbox orphan cleanup** — background job to clean up sandboxes whose sessions were deleted but cleanup step failed
 
 ## Session Progress (2026-05-20, Session 5)
 
