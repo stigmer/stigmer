@@ -173,8 +173,8 @@ func TestWorkflowLlmCall_SimplePrompt(t *testing.T) {
 // is available (billing resolved).
 func TestWorkflowLlmCall_OpenAI_StructuredOutput(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 	if os.Getenv("OPENAI_API_KEY") == "" {
 		t.Skip("OPENAI_API_KEY not set — skipping OpenAI llm_call test")
@@ -249,8 +249,8 @@ func TestWorkflowLlmCall_OpenAI_StructuredOutput(t *testing.T) {
 func requireLlmPrereqs(t *testing.T) {
 	t.Helper()
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 	if os.Getenv("ANTHROPIC_API_KEY") == "" {
 		t.Skip("ANTHROPIC_API_KEY not set — skipping llm_call test")

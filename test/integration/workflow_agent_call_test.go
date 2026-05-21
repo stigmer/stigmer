@@ -163,8 +163,8 @@ func TestWorkflowAgentCall_StructuredOutput(t *testing.T) {
 func requireAgentCallPrereqs(t *testing.T) {
 	t.Helper()
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 	if testHarness.AgentRunner == nil {
 		t.Skip("agent-runner not available — skipping agent_call test")

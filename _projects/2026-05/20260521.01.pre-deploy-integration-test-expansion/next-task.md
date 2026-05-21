@@ -14,21 +14,21 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-21
-**Current Task**: Workstreams A+D+F complete. B next on critical path. C+E in progress (parallel).
-**Status**: Gating item (A) completed. D completed. F completed. B unblocked. C/E in parallel conversations.
+**Current Task**: Workstreams A+B+D+F complete. C+E in progress (parallel).
+**Status**: Critical path COMPLETE (A → B). C/E in parallel conversations.
 
 ## Workstream Summary (Parallel Execution)
 
 | Workstream | Sessions | Status | Blocked By |
 |------------|----------|--------|------------|
 | **A: TS Hydration Activity** | 1 (done) | COMPLETED | — |
-| **B: Java + Go Orchestrator Rewrite** | 3.5-5 | Not started (UNBLOCKED) | — |
+| **B: Java + Go Orchestrator Rewrite** | 1 (done) | COMPLETED | — |
 | **C: Go Integration Tests (New)** | 3-4 | IN PROGRESS (parallel) | Nothing |
 | **D: Playwright E2E (Structural)** | 1 (done) | COMPLETED | — |
 | **E: stigmer-cloud BUILD.bazel** | 2-3 | IN PROGRESS (parallel) | Nothing |
 | **F: SDK Component Tests** | 1 (done) | COMPLETED | — |
 
-**Critical path**: B → B-tests (3.5-5 sessions remaining). C/E in progress.
+**Critical path**: COMPLETE (A → B done). C/E remaining in parallel.
 
 ## Session Progress (2026-05-21, Workstream A)
 
@@ -118,11 +118,45 @@ Drop this file into your conversation to quickly resume work on this project.
 - `sdk/react/src/execution/__tests__/MessageThread.test.tsx`
 - `sdk/react/src/composer/__tests__/SessionComposer-contract.test.tsx`
 
+## Session Progress (2026-05-21, Workstream B — Orchestrator Rewrite)
+
+### What was accomplished
+- **B.0: TS Engine Pause/Resume** — Added `checkPause` yield points to do-executor (between tasks), for.ts (between iterations), try.ts (between retries). Created `workflow-signals.ts` with shared Temporal signal definitions. Both wrapper and direct workflow entry points register pause/resume handlers. 8 new engine-level tests. Config default changed to `stigmer_runner`.
+- **B.1: Java Orchestrator Rewrite** — Replaced `ExecuteWorkflowActivity` stub with child workflow (`stigmer/workflow/execute-from-execution`). Removed CancellationScope pause loop. Signal handlers now update status and relay to child. Deleted `ExecuteWorkflowActivity.java`. Removed `:wf-orch`/`:wf-exec` suffixes. Added `Workflow.getVersion` for replay safety. 7 new Temporal test environment tests.
+- **B.2: Go Orchestrator Rewrite** — Replaced activity with child workflow. Added signal handling (pause/resume/relay) — previously missing in Go OSS. Version gate. Updated agent+workflow queue configs to `stigmer_runner`. 7 new Go orchestrator tests.
+- **B.3: Test Fixes** — Fixed 54 `WorkflowRunner` → `UnifiedRunner` references across 24+ test files. Changed harness queue to `stigmer_runner`.
+- **B.4: Docs Cleanup** — Fixed stale LangGraph checkpoint references in pause.go/resume.go. Rewrote temporal README.md and IMPLEMENTATION_SUMMARY.md.
+
+### Key decisions made
+- **AD-B1**: Single queue `stigmer_runner` — domain-agnostic, permanent name for unified runner
+- **AD-B2**: Signal-based pause/resume via Temporal `condition()` — no external checkpoint needed, ~50 lines vs ~1000+
+- **AD-B3**: Drop return value from child workflow — progressive gRPC is the status mechanism
+- **AD-B5**: Removed WorkflowRunTimeout — pause-compatible, matches agent execution pattern
+- **AD-B6**: Temporal workflow versioning for in-flight workflow safety
+- **AD-B7**: Memo key `activityTaskQueue` → `runnerTaskQueue`
+
+### Surprises discovered (during planning, resolved before coding)
+- **Old Go runner never had production checkpointing** — Gap C1 was deferred. The CancellationScope in Java assumed checkpoint support that never existed.
+- **TS engine runs as workflow, not activity** — each task result is in Temporal history. This makes external checkpointing unnecessary — Temporal replay IS the checkpoint.
+- **Go OSS had no signal handling** — LISTEN/human_input tasks couldn't receive signals through the Go path. Pre-existing gap, fixed in B.2.
+
+### Files created
+- `backend/services/runner/src/workflows/workflow-signals.ts`
+- `backend/services/runner/src/workflow-engine/__tests__/pause-resume.test.ts`
+- `backend/services/stigmer-server/.../workflows/invoke_workflow_impl_test.go`
+- `stigmer-cloud/.../workflow/InvokeWorkflowExecutionWorkflowImplTest.java`
+
+### Files modified (major)
+- 9 TS runner files (engine, workflows, config)
+- 10 Go stigmer-server files (orchestrator, config, agent config, docs)
+- 14 Java stigmer-cloud files (orchestrator, config, kustomize, dispatch)
+- 27 integration test files (WorkflowRunner → UnifiedRunner, queue rename)
+
 ## Key Architectural Findings
 
-1. **Workflow tests won't compile**: `testHarness.WorkflowRunner` field deleted, 58 references in ~25 files
-2. **Queue mismatch**: Unified runner on `agent_execution_runner`, workflow dispatch to `workflow_execution_runner:wf-orch`
-3. ~~**Activity/workflow gap**: Java calls `ExecuteWorkflow` activity (deleted), unified runner registers `stigmer/workflow/execute` workflow~~ **RESOLVED by Workstream A** — wrapper workflow bridges this gap
+1. ~~**Workflow tests won't compile**: `testHarness.WorkflowRunner` field deleted, 58 references in ~25 files~~ **RESOLVED by Workstream B.3** — all references updated to `testHarness.UnifiedRunner`
+2. ~~**Queue mismatch**: Unified runner on `agent_execution_runner`, workflow dispatch to `workflow_execution_runner:wf-orch`~~ **RESOLVED by Workstream B** — all queues unified under `stigmer_runner`
+3. ~~**Activity/workflow gap**: Java calls `ExecuteWorkflow` activity (deleted), unified runner registers `stigmer/workflow/execute` workflow~~ **RESOLVED by Workstream A+B** — child workflow dispatch
 4. **65 unwired Java tests**: search (16), tenancy (16), agentic (22), billing (8), IAM (3)
 5. **Playwright has no interactive infrastructure**: No auth, no API seeding, no helpers
 
@@ -133,8 +167,10 @@ Check if workflow execution is broken in production (old Go workflow-runner dele
 ## Context for Resume
 
 - Workstream A changelog: `_changelog/2026-05/2026-05-21-164357-ts-hydration-activity-wrapper-workflow.md`
+- Workstream B changelog: `_changelog/2026-05/2026-05-21-174307-workstream-b-orchestrator-rewrite-pause-resume.md`
 - Workstream D changelog: `_changelog/2026-05/2026-05-21-165518-playwright-e2e-structural-test-expansion.md`
 - Workstream F changelog: `_changelog/2026-05/2026-05-21-165758-sdk-react-component-contract-tests.md`
+- Workstream B plan: `.cursor/plans/workstream_b_plan_7a02dbbc.plan.md`
 - Workstream D plan: `.cursor/plans/playwright_e2e_expansion_e116dae9.plan.md`
 - Workstream F plan: `.cursor/plans/sdk_component_tests_e4b001e2.plan.md`
 - Detailed plan: `_projects/2026-05/20260521.01.pre-deploy-integration-test-expansion/tasks/T01_0_plan.md`
@@ -165,13 +201,14 @@ Check if workflow execution is broken in production (old Go workflow-runner dele
 ## Quick Commands
 
 After loading context:
-- "Start Workstream B — Java + Go orchestrator rewrite" — Next on critical path (UNBLOCKED)
+- ~~"Start Workstream B — Java + Go orchestrator rewrite"~~ — COMPLETED (child workflow, pause/resume, queue unification)
 - "Start Workstream C — New Go integration tests" — Independent, can start immediately
 - ~~"Start Workstream D — Playwright E2E"~~ — COMPLETED (52 new tests, 104 total)
 - "Start Workstream E — Wire BUILD.bazel" — Independent, stigmer-cloud
 - ~~"Start Workstream F — SDK tests"~~ — COMPLETED (27 new tests, 506 total)
 - "Show project status" — Get overview of progress
 - "Verify production workflow status" — Check if workflows work in prod
+- "Run `make test-integration`" — Validate all workflow tests compile and pass
 
 ---
 

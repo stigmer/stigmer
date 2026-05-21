@@ -80,6 +80,8 @@ export async function executeForTask(
   const results: unknown[] = [];
 
   for (const item of items) {
+    if (ctx?.checkPause) await ctx.checkPause();
+
     const iterState = state.clone();
     iterState.clearOutput();
 

@@ -156,6 +156,8 @@ async function executeRetryLoop(
       }
     }
 
+    if (ctx?.checkPause) await ctx.checkPause();
+
     attempt++;
     const delay = computeRetryDelay(attempt, retryConfig, elapsedMs);
     if (delay === null) break;

@@ -21,8 +21,8 @@ import (
 // Expected: all 6 iterations complete, executing up to 3 at a time.
 func TestWorkflowForEach_Parallel(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -95,8 +95,8 @@ func TestWorkflowForEach_Parallel(t *testing.T) {
 // Expected: items processed in 2 batches of 3, each batch with up to 2 concurrent.
 func TestWorkflowForEach_Batched(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -171,8 +171,8 @@ func TestWorkflowForEach_Batched(t *testing.T) {
 // on_error=FOR_EACH_CONTINUE). One inner task raises an error.
 func TestWorkflowForEach_OnErrorContinue(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -247,8 +247,8 @@ func TestWorkflowForEach_OnErrorContinue(t *testing.T) {
 // string as a single-element sequence and completes rather than failing.
 func TestWorkflowForEach_NonIterableInput(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)

@@ -21,7 +21,7 @@ describe("loadConfig", () => {
     const config = loadConfig();
 
     expect(config.mode).toBe("local");
-    expect(config.taskQueue).toBe("agent_execution_runner");
+    expect(config.taskQueue).toBe("stigmer_runner");
     expect(config.temporalAddress).toBe("localhost:7233");
     expect(config.temporalNamespace).toBe("default");
     expect(config.stigmerBackendEndpoint).toBe("http://localhost:7234");

@@ -140,7 +140,7 @@ func TestMain(m *testing.M) {
 	}
 
 	unifiedRunner, err := harness.StartUnifiedRunnerStatic(
-		ctx, unifiedCfg, "agent_execution_runner", suiteLogger,
+		ctx, unifiedCfg, "stigmer_runner", suiteLogger,
 	)
 	if err != nil {
 		suiteLogger.Warn("unified runner failed to start — execution tests will be skipped", "error", err)

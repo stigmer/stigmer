@@ -682,7 +682,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) getActivityTaskQueue(ctx workflow.Con
 	}
 
 	// Default fallback (should never happen if workflow is created properly)
-	return "agent_execution_runner"
+	return "stigmer_runner"
 }
 
 // updateStatusOnFailure updates the execution status to FAILED when a system error occurs.

@@ -53,7 +53,7 @@ export function loadConfig(): Config {
 
   const taskQueue = process.env.STIGMER_TASK_QUEUE
     ?? process.env.TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE
-    ?? "agent_execution_runner";
+    ?? "stigmer_runner";
 
   const temporalAddress = mode === "local"
     ? (process.env.TEMPORAL_SERVICE_ADDRESS ?? "localhost:7233")

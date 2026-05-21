@@ -21,8 +21,8 @@ import (
 // Workflow: stepOne (set_vars, then: end) → stepTwo (set_vars, never reached)
 func TestWorkflowFlowControl_ThenEnd(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -104,8 +104,8 @@ func TestWorkflowFlowControl_ThenEnd(t *testing.T) {
 // Workflow: stepOne (then: stepThree) → stepTwo (skipped) → stepThree
 func TestWorkflowFlowControl_ThenJumpToTask(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -196,8 +196,8 @@ func TestWorkflowFlowControl_ThenJumpToTask(t *testing.T) {
 // Workflow: init (set severity="low") → route (switch: only "critical" case) → afterSwitch
 func TestWorkflowFlowControl_SwitchNoMatchNoDefault(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -302,8 +302,8 @@ func TestWorkflowFlowControl_SwitchNoMatchNoDefault(t *testing.T) {
 //	catch: raise_error "CatchError" (catch itself fails)
 func TestWorkflowFlowControl_TryCatchBlockFails(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -383,8 +383,8 @@ func TestWorkflowFlowControl_TryCatchBlockFails(t *testing.T) {
 // using $context.producerTask.greeting)
 func TestWorkflowFlowControl_ExportContextScoping(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)

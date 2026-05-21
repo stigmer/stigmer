@@ -22,8 +22,8 @@ import (
 // Workflow: awaitApproval (human_input, timeout=5s, on_timeout=FAIL) → afterApproval (never reached)
 func TestWorkflowHITL_HumanInputTimeout(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -107,8 +107,8 @@ func TestWorkflowHITL_HumanInputTimeout(t *testing.T) {
 // When "needsRevision" is selected, execution should jump to gatherMore.
 func TestWorkflowHITL_HumanInputOutcomeRouting(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)

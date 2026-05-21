@@ -3,7 +3,6 @@ package workflows
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/rs/zerolog/log"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/activities"
@@ -13,10 +12,10 @@ import (
 // InvokeWorkflowExecutionWorkflowCreator creates and starts Temporal workflows for workflow execution invocation.
 // Called by WorkflowExecutionController after persisting execution to SQLite.
 //
-// Polyglot Configuration:
-// - stigmer: Go workflows on workflow_execution_stigmer (stigmer-server)
-// - runner: Go activities on workflow_execution_runner (workflow-runner)
-// - Activity queue passed via memo for workflow to use when calling activities
+// Configuration:
+// - stigmer: Go orchestrator workflows on workflow_execution_stigmer (stigmer-server)
+// - runner: TS child workflows on stigmer_runner (unified runner)
+// - Runner queue passed via memo for workflow to use when starting child workflows
 type InvokeWorkflowExecutionWorkflowCreator struct {
 	workflowClient client.Client
 	stigmerQueue   string
@@ -45,11 +44,10 @@ func (c *InvokeWorkflowExecutionWorkflowCreator) Create(ctx context.Context, inp
 	workflowID := fmt.Sprintf("%s/%s", InvokeWorkflowExecutionWorkflowName, executionID)
 
 	options := client.StartWorkflowOptions{
-		ID:                 workflowID,
-		TaskQueue:          c.stigmerQueue,
-		WorkflowRunTimeout: 30 * time.Minute, // Max 30 minutes per workflow execution
+		ID:        workflowID,
+		TaskQueue: c.stigmerQueue,
 		Memo: map[string]interface{}{
-			"activityTaskQueue": c.runnerQueue, // Pass runner queue to workflow
+			"runnerTaskQueue": c.runnerQueue,
 		},
 	}
 
@@ -96,11 +94,10 @@ func (c *InvokeWorkflowExecutionWorkflowCreator) SignalWithStart(
 	workflowID := fmt.Sprintf("%s/%s", InvokeWorkflowExecutionWorkflowName, executionID)
 
 	options := client.StartWorkflowOptions{
-		ID:                 workflowID,
-		TaskQueue:          c.stigmerQueue,
-		WorkflowRunTimeout: 30 * time.Minute,
+		ID:        workflowID,
+		TaskQueue: c.stigmerQueue,
 		Memo: map[string]interface{}{
-			"activityTaskQueue": c.runnerQueue,
+			"runnerTaskQueue": c.runnerQueue,
 		},
 	}
 

@@ -48,7 +48,7 @@ func TestSDKAcceptance_TypeScript(t *testing.T) {
 
 	addr := testHarness.Service.GRPCAddress()
 	workflowRunnerAvailable := "false"
-	if testHarness.WorkflowRunner != nil {
+	if testHarness.UnifiedRunner != nil {
 		workflowRunnerAvailable = "true"
 	}
 
@@ -92,7 +92,7 @@ func TestSDKAcceptance_Python(t *testing.T) {
 
 	addr := testHarness.Service.GRPCAddress()
 	workflowRunnerAvailable := "false"
-	if testHarness.WorkflowRunner != nil {
+	if testHarness.UnifiedRunner != nil {
 		workflowRunnerAvailable = "true"
 	}
 

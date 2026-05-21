@@ -103,7 +103,7 @@ type ServiceConfig struct {
 	Auth0TokenURL string
 
 	// ActivityRouting controls how the Java service dispatches runner activities.
-	// "global" (default): all activities route to agent_execution_runner.
+	// "global" (default): all activities route to stigmer_runner.
 	// "session": activities route to session:{session_id} per-session queues.
 	ActivityRouting string
 

@@ -23,8 +23,8 @@ import (
 // Expected: execution fails with BudgetExceeded after ~3s.
 func TestWorkflowBudget_DurationTerminate(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -101,8 +101,8 @@ func TestWorkflowBudget_DurationTerminate(t *testing.T) {
 // Expected: execution completes (warning logged, not terminated).
 func TestWorkflowBudget_DurationWarn(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -187,8 +187,8 @@ func TestWorkflowBudget_DurationWarn(t *testing.T) {
 // field runs normally without any budget enforcement.
 func TestWorkflowBudget_NoBudget(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)

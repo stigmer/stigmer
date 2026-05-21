@@ -58,6 +58,8 @@ export async function executeDoTasks(
   let nextTargetName: string | null = null;
 
   for (let i = 0; i < tasks.length; i++) {
+    if (effectiveCtx.checkPause) await effectiveCtx.checkPause();
+
     const entry = tasks[i];
 
     if (nextTargetName !== null) {

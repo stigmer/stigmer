@@ -16,8 +16,10 @@
  * type-only imports, and pure JS/TS logic.
  */
 
+import { isCancellation } from "@temporalio/workflow";
 import type { WorkflowModel } from "../workflow-engine/types.js";
 import { runWorkflowEngine } from "./engine-core.js";
+import { setupPauseResumeHandlers } from "./workflow-signals.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Workflow Input/Output Types
@@ -44,5 +46,14 @@ export interface ExecutionMetadata {
 export async function executeServerlessWorkflow(
   input: ExecuteServerlessWorkflowInput,
 ): Promise<unknown> {
-  return runWorkflowEngine(input);
+  const { checkPause } = setupPauseResumeHandlers();
+
+  try {
+    return await runWorkflowEngine(input, { checkPause });
+  } catch (err) {
+    if (isCancellation(err)) {
+      // Let CancelledFailure propagate — parent handles cleanup
+    }
+    throw err;
+  }
 }

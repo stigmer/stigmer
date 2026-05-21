@@ -25,8 +25,8 @@ import (
 //	  └─ badBranch: raise_error "BranchFailed"
 func TestWorkflowFork_BranchErrorNonCompete(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -119,8 +119,8 @@ func TestWorkflowFork_BranchErrorNonCompete(t *testing.T) {
 //	  └─ slowBranch: wait 5s → set_vars
 func TestWorkflowFork_CompeteCancellationTiming(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)

@@ -33,7 +33,7 @@ const (
 //
 // Polyglot Architecture:
 // - stigmer-queue: Go workflows (stigmer-server) on agent_execution_stigmer
-// - runner-queue: Activities on agent_execution_runner (global) or session:{id} (per-session)
+// - runner-queue: Activities on stigmer_runner (global) or session:{id} (per-session)
 //
 // Environment Variables:
 // - TEMPORAL_AGENT_EXECUTION_STIGMER_TASK_QUEUE: Queue for Go workflows
@@ -46,7 +46,7 @@ type Config struct {
 	StigmerQueue string
 
 	// RunnerQueue is the default task queue for runner activities.
-	// Default: agent_execution_runner
+	// Default: stigmer_runner
 	//
 	// In global routing mode, all activities route here.
 	// In session routing mode, this serves as the fallback when session ID is empty.
@@ -72,7 +72,7 @@ func NewConfig() *Config {
 
 	runnerQueue := os.Getenv("TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE")
 	if runnerQueue == "" {
-		runnerQueue = "agent_execution_runner"
+		runnerQueue = "stigmer_runner"
 	}
 
 	activityRouting := os.Getenv("STIGMER_ACTIVITY_ROUTING")
