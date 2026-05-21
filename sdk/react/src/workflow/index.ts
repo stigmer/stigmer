@@ -203,6 +203,12 @@ export {
   type WorkflowExecutionApprovalCardProps,
 } from "./WorkflowExecutionApprovalCard";
 
+export {
+  WorkflowTaskApprovalCard,
+  type WorkflowTaskApprovalCardProps,
+  type TaskOutcome,
+} from "./WorkflowTaskApprovalCard";
+
 // T14: Dashboard — data hooks
 export {
   useWorkflowDashboardSummary,

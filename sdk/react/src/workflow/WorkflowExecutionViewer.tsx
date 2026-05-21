@@ -178,6 +178,9 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
           events={events}
           streamState={streamState}
           onNavigateToAgentExecution={onNavigateToAgentExecution}
+          taskStates={taskStates}
+          onSubmitTaskApproval={actions.submitTaskApproval}
+          isSubmittingApproval={actions.isSubmitting}
           className="flex-1 border-r border-border"
         />
 

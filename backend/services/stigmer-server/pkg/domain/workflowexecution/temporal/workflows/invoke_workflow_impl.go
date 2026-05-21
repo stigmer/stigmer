@@ -38,10 +38,11 @@ import (
 // - Secrets (runtime_env) are kept out of Temporal's durable workflow history
 type InvokeWorkflowExecutionWorkflowImpl struct{}
 
-// relaySignalPayload carries an arbitrary signal to be forwarded to the child workflow.
+// RelaySignalPayload carries an arbitrary signal to be forwarded to the child workflow.
 // Used by signal-receiving tasks (human_input, listen) that register signal channels
-// in the TS child workflow.
-type relaySignalPayload struct {
+// in the TS child workflow. Exported so that controller handlers (SubmitWorkflowTaskApproval,
+// SendSignal) can construct relay payloads for SignalWithStart calls.
+type RelaySignalPayload struct {
 	SignalName string      `json:"signalName"`
 	Payload    interface{} `json:"payload"`
 }
@@ -126,7 +127,7 @@ func (w *InvokeWorkflowExecutionWorkflowImpl) startSignalHandlers(ctx workflow.C
 	relayCh := workflow.GetSignalChannel(ctx, "relaySignal")
 	workflow.Go(ctx, func(gCtx workflow.Context) {
 		for {
-			var payload relaySignalPayload
+			var payload RelaySignalPayload
 			relayCh.Receive(gCtx, &payload)
 			logger := workflow.GetLogger(gCtx)
 			logger.Info("Relay signal received", "execution_id", executionID, "signal", payload.SignalName)

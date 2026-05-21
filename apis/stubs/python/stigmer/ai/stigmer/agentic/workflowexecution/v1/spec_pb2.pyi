@@ -1,4 +1,5 @@
 from ai.stigmer.agentic.executioncontext.v1 import spec_pb2 as _spec_pb2
+from ai.stigmer.agentic.session.v1 import enum_pb2 as _enum_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
@@ -8,7 +9,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class WorkflowExecutionSpec(_message.Message):
-    __slots__ = ("workflow_instance_id", "workflow_id", "trigger_message", "trigger_metadata", "runtime_env", "callback_token")
+    __slots__ = ("workflow_instance_id", "workflow_id", "trigger_message", "trigger_metadata", "runtime_env", "callback_token", "execution_target")
     class TriggerMetadataEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -29,10 +30,12 @@ class WorkflowExecutionSpec(_message.Message):
     TRIGGER_METADATA_FIELD_NUMBER: _ClassVar[int]
     RUNTIME_ENV_FIELD_NUMBER: _ClassVar[int]
     CALLBACK_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    EXECUTION_TARGET_FIELD_NUMBER: _ClassVar[int]
     workflow_instance_id: str
     workflow_id: str
     trigger_message: str
     trigger_metadata: _containers.ScalarMap[str, str]
     runtime_env: _containers.MessageMap[str, _spec_pb2.ExecutionValue]
     callback_token: bytes
-    def __init__(self, workflow_instance_id: _Optional[str] = ..., workflow_id: _Optional[str] = ..., trigger_message: _Optional[str] = ..., trigger_metadata: _Optional[_Mapping[str, str]] = ..., runtime_env: _Optional[_Mapping[str, _spec_pb2.ExecutionValue]] = ..., callback_token: _Optional[bytes] = ...) -> None: ...
+    execution_target: _enum_pb2.ExecutionTarget
+    def __init__(self, workflow_instance_id: _Optional[str] = ..., workflow_id: _Optional[str] = ..., trigger_message: _Optional[str] = ..., trigger_metadata: _Optional[_Mapping[str, str]] = ..., runtime_env: _Optional[_Mapping[str, _spec_pb2.ExecutionValue]] = ..., callback_token: _Optional[bytes] = ..., execution_target: _Optional[_Union[_enum_pb2.ExecutionTarget, str]] = ...) -> None: ...
