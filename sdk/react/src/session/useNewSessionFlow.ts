@@ -14,6 +14,7 @@ import { withTimeout } from "../internal/withTimeout";
 import { useCreateSession } from "./useCreateSession";
 import { useCreateAgentExecution } from "../execution/useCreateAgentExecution";
 import type { ExecutionTargetOption } from "./execution-target";
+import { useExecutionTarget } from "../execution-target-context";
 
 const DEFAULT_AGENT_TIMEOUT_MS = 10_000;
 
@@ -43,11 +44,14 @@ export interface UseNewSessionFlowOptions {
   /**
    * Where session activities should execute.
    *
-   * This is a configuration value determined by the runtime environment,
-   * not user-toggled state. Desktop apps pass `"local"` (they have an
-   * embedded runner); the web console omits it (server decides).
+   * @deprecated Prefer setting `executionTarget` on `StigmerProvider`
+   * instead. The provider-level value is inherited by all hooks in the
+   * tree automatically. This per-hook option is honored as an override
+   * for backward compatibility but will be removed in a future major.
    *
-   * Immutable on the session once the first execution runs.
+   * When omitted, the hook reads from `StigmerProvider`'s
+   * `executionTarget` prop via context. If that is also unset, the
+   * server decides based on deployment context.
    */
   readonly executionTarget?: ExecutionTargetOption;
 }
@@ -153,7 +157,9 @@ export interface UseNewSessionFlowReturn {
 export function useNewSessionFlow(
   options: UseNewSessionFlowOptions,
 ): UseNewSessionFlowReturn {
-  const { org, onSessionCreated, onError, executionTarget } = options;
+  const { org, onSessionCreated, onError } = options;
+  const contextTarget = useExecutionTarget();
+  const executionTarget = options.executionTarget ?? contextTarget;
 
   const [harness, setHarnessRaw] = useState<HarnessOption>(() => {
     if (typeof window === "undefined") return DEFAULT_HARNESS;

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from typing import Literal
 from types import TracebackType
 
 import grpc
@@ -10,6 +11,13 @@ from ._gen._client import GeneratedClient
 from ._github import GitHubClient
 from ._search import SearchClient
 from ._transport import DEFAULT_TARGET, create_channel
+
+ExecutionTargetOption = Literal["local", "cloud"]
+
+_EXECUTION_TARGET_MAP = {
+    "local": 1,   # EXECUTION_TARGET_LOCAL
+    "cloud": 2,   # EXECUTION_TARGET_CLOUD
+}
 
 
 class StigmerClient(GeneratedClient):
@@ -36,10 +44,15 @@ class StigmerClient(GeneratedClient):
 
         with StigmerClient("sk_live_abc123") as client:
             agent = client.agents.get("agent-id")
+
+    With an app-level execution target::
+
+        client = StigmerClient("sk_live_abc123", execution_target="local")
     """
 
     search: SearchClient
     github: GitHubClient
+    default_execution_target: int
 
     def __init__(
         self,
@@ -47,13 +60,28 @@ class StigmerClient(GeneratedClient):
         *,
         base_url: str = DEFAULT_TARGET,
         insecure: bool = False,
+        execution_target: ExecutionTargetOption | None = None,
     ) -> None:
+        """Create a Stigmer client.
+
+        Args:
+            api_key: Stigmer API key (``sk_live_...``).
+            base_url: gRPC target address. Defaults to ``api.stigmer.ai:443``.
+            insecure: Disable TLS (local development only).
+            execution_target: Default execution target for all sessions
+                created through this client. ``"local"`` means the client
+                provides runners; ``"cloud"`` means the server provisions
+                sandboxes. ``None`` lets the server decide.
+        """
         if not api_key:
             raise ValueError("stigmer: API key is required")
 
         self._channel = create_channel(base_url, api_key, insecure=insecure)
         super().__init__(self._channel)
 
+        self.default_execution_target = (
+            _EXECUTION_TARGET_MAP[execution_target] if execution_target else 0
+        )
         self.search = SearchClient(self._channel)
         self.github = GitHubClient(self._channel)
 

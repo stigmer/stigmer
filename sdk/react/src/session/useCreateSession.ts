@@ -11,6 +11,7 @@ import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
 import { toProtoHarness, type HarnessOption } from "../models/harness";
 import { toProtoExecutionTarget, type ExecutionTargetOption } from "./execution-target";
+import { useExecutionTarget } from "../execution-target-context";
 
 /** Shared fields present in both variants of {@link CreateSessionInput}. */
 export interface SharedSessionFields {
@@ -127,6 +128,7 @@ export interface UseCreateSessionReturn {
  */
 export function useCreateSession(): UseCreateSessionReturn {
   const stigmer = useStigmer();
+  const contextTarget = useExecutionTarget();
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
@@ -161,6 +163,8 @@ export function useCreateSession(): UseCreateSessionReturn {
           );
         }
 
+        const resolvedTarget = input.executionTarget ?? contextTarget;
+
         const session = await stigmer.session.create({
           name: `session-${Date.now()}`,
           org: input.org,
@@ -170,8 +174,8 @@ export function useCreateSession(): UseCreateSessionReturn {
           skillRefs: input.skillRefs,
           agentInstanceId: resolvedInstanceId,
           harness: input.harness ? toProtoHarness(input.harness) : undefined,
-          executionTarget: input.executionTarget
-            ? toProtoExecutionTarget(input.executionTarget)
+          executionTarget: resolvedTarget
+            ? toProtoExecutionTarget(resolvedTarget)
             : undefined,
         });
 
@@ -183,7 +187,7 @@ export function useCreateSession(): UseCreateSessionReturn {
         setIsCreating(false);
       }
     },
-    [stigmer],
+    [stigmer, contextTarget],
   );
 
   return { create, isCreating, error, clearError };

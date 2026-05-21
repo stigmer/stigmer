@@ -9,6 +9,9 @@ import {
   type StigmerConfig,
   type TokenProvider,
 } from "./config";
+import { ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+
+type ExecutionTargetOption = StigmerConfig["executionTarget"];
 
 /**
  * Top-level Stigmer API client.
@@ -55,6 +58,18 @@ export class Stigmer extends GeneratedClient {
    */
   readonly fetch: typeof globalThis.fetch | undefined;
 
+  /**
+   * Default execution target for sessions and workflow executions.
+   *
+   * When set, `session.create()` and `workflowExecution.create()`
+   * apply this as the default when the per-call input does not
+   * specify an explicit `executionTarget`.
+   *
+   * `undefined` means the server decides (LOCAL for OSS, CLOUD for
+   * managed).
+   */
+  readonly defaultExecutionTarget: ExecutionTarget | undefined;
+
   readonly billing: BillingClient;
   readonly platform: PlatformClient;
   readonly search: SearchClient;
@@ -70,6 +85,7 @@ export class Stigmer extends GeneratedClient {
 
     this.baseUrl = config.baseUrl;
     this.fetch = config.fetch;
+    this.defaultExecutionTarget = toExecutionTarget(config.executionTarget);
     this._tokenProvider = config.apiKey
       ? () => config.apiKey!
       : config.getAccessToken ?? (() => null);
@@ -78,6 +94,29 @@ export class Stigmer extends GeneratedClient {
     this.platform = new PlatformClient(transport);
     this.search = new SearchClient(transport);
     this.github = new GitHubClient(transport);
+
+    if (this.defaultExecutionTarget != null) {
+      this._applyExecutionTargetDefaults();
+    }
+  }
+
+  /**
+   * Wrap `session.create/apply` so that the client-level
+   * `defaultExecutionTarget` is applied when the per-call input
+   * does not specify one.
+   *
+   * WorkflowExecutionInput does not yet have `executionTarget` in
+   * codegen; that will be wired once the codegen schema is updated.
+   */
+  private _applyExecutionTargetDefaults(): void {
+    const target = this.defaultExecutionTarget!;
+    const origSessionCreate = this.session.create.bind(this.session);
+    const origSessionApply = this.session.apply.bind(this.session);
+
+    this.session.create = (input) =>
+      origSessionCreate(applySessionDefault(input, target));
+    this.session.apply = (input) =>
+      origSessionApply(applySessionDefault(input, target));
   }
 
   /**
@@ -94,3 +133,30 @@ export class Stigmer extends GeneratedClient {
     return await this._tokenProvider();
   }
 }
+
+function toExecutionTarget(
+  opt: ExecutionTargetOption,
+): ExecutionTarget | undefined {
+  switch (opt) {
+    case "local":
+      return ExecutionTarget.LOCAL;
+    case "cloud":
+      return ExecutionTarget.CLOUD;
+    default:
+      return undefined;
+  }
+}
+
+function applySessionDefault<T extends { executionTarget?: ExecutionTarget }>(
+  input: T,
+  target: ExecutionTarget,
+): T {
+  if (
+    input.executionTarget == null ||
+    input.executionTarget === ExecutionTarget.UNSPECIFIED
+  ) {
+    return { ...input, executionTarget: target };
+  }
+  return input;
+}
+

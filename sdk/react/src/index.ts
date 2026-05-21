@@ -22,6 +22,12 @@ export {
   useDeploymentMode,
   useResourceAvailable,
 } from "./deployment-mode";
+
+// Execution target
+export {
+  ExecutionTargetContext,
+  useExecutionTarget,
+} from "./execution-target-context";
 export { type DeploymentMode, isResourceAvailable, ApiResourceKind } from "@stigmer/sdk";
 export { CloudFeatureNotice, type CloudFeatureNoticeProps } from "./internal/CloudFeatureNotice";
 

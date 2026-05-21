@@ -6,6 +6,7 @@ import (
 
 	"github.com/stigmer/stigmer/sdk/go/internal/gen"
 	"github.com/stigmer/stigmer/sdk/go/internal/transport"
+	sessionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/session/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/connectivity"
 )
@@ -20,6 +21,11 @@ type Client struct {
 	*gen.Client
 	Search *SearchClient
 	GitHub *GitHubClient
+
+	// DefaultExecutionTarget is applied as the default for session and
+	// workflow execution creation when the per-call input does not
+	// specify an explicit ExecutionTarget. Set via WithExecutionTarget.
+	DefaultExecutionTarget sessionv1.ExecutionTarget
 
 	conn *grpc.ClientConn
 }
@@ -71,11 +77,23 @@ func NewClient(opts ...ClientOption) (*Client, error) {
 	}
 
 	return &Client{
-		Client: gen.NewClient(conn),
-		Search: newSearchClient(conn),
-		GitHub: newGitHubClient(conn),
-		conn:   conn,
+		Client:                 gen.NewClient(conn),
+		Search:                 newSearchClient(conn),
+		GitHub:                 newGitHubClient(conn),
+		DefaultExecutionTarget: cfg.executionTarget,
+		conn:                   conn,
 	}, nil
+}
+
+// ApplyDefaultExecutionTarget sets the ExecutionTarget on a SessionInput
+// if it is currently UNSPECIFIED and the client has a configured default.
+// This is a convenience for callers who want client-level defaults
+// applied to individual create calls without manual checks.
+func (c *Client) ApplyDefaultExecutionTarget(input *gen.SessionInput) {
+	if c.DefaultExecutionTarget != sessionv1.ExecutionTarget_EXECUTION_TARGET_UNSPECIFIED &&
+		input.ExecutionTarget == sessionv1.ExecutionTarget_EXECUTION_TARGET_UNSPECIFIED {
+		input.ExecutionTarget = c.DefaultExecutionTarget
+	}
 }
 
 // Connect triggers an eager connection attempt and blocks until the

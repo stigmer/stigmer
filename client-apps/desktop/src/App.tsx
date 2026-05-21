@@ -68,6 +68,7 @@ function AuthenticatedApp() {
     <StigmerProvider
       client={client}
       deploymentMode={deploymentMode}
+      executionTarget="local"
       colorMode={colorMode}
       preset="monochrome"
     >
