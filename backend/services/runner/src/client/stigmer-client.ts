@@ -38,8 +38,13 @@ import { ConnectInputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver
 import { AgentExecutionUpdateStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import type { UpdateStatusResponse } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import { WorkflowExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/command_pb";
+import { WorkflowExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/query_pb";
 import type { WorkflowExecution, WorkflowExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import { WorkflowExecutionUpdateStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
+import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
+import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
+import { WorkflowInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/query_pb";
+import type { WorkflowInstance } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
 
 export interface StigmerClientOptions {
   endpoint: string;
@@ -60,6 +65,9 @@ export class StigmerClient {
   private readonly skillQuery: Client<typeof SkillQueryController>;
   private readonly billingCommand: Client<typeof BillingCommandController>;
   private readonly workflowExecutionCommand: Client<typeof WorkflowExecutionCommandController>;
+  private readonly workflowExecutionQuery: Client<typeof WorkflowExecutionQueryController>;
+  private readonly workflowQuery: Client<typeof WorkflowQueryController>;
+  private readonly workflowInstanceQuery: Client<typeof WorkflowInstanceQueryController>;
 
   constructor(options: StigmerClientOptions) {
     const token = options.token;
@@ -87,6 +95,9 @@ export class StigmerClient {
     this.skillQuery = createClient(SkillQueryController, this.transport);
     this.billingCommand = createClient(BillingCommandController, this.transport);
     this.workflowExecutionCommand = createClient(WorkflowExecutionCommandController, this.transport);
+    this.workflowExecutionQuery = createClient(WorkflowExecutionQueryController, this.transport);
+    this.workflowQuery = createClient(WorkflowQueryController, this.transport);
+    this.workflowInstanceQuery = createClient(WorkflowInstanceQueryController, this.transport);
   }
 
   async getExecution(executionId: string): Promise<AgentExecution> {
@@ -192,5 +203,17 @@ export class StigmerClient {
       status,
     });
     return this.workflowExecutionCommand.updateStatus(input);
+  }
+
+  async getWorkflowExecution(executionId: string): Promise<WorkflowExecution> {
+    return this.workflowExecutionQuery.get({ value: executionId });
+  }
+
+  async getWorkflow(workflowId: string): Promise<Workflow> {
+    return this.workflowQuery.get({ value: workflowId });
+  }
+
+  async getWorkflowInstance(instanceId: string): Promise<WorkflowInstance> {
+    return this.workflowInstanceQuery.get({ value: instanceId });
   }
 }
