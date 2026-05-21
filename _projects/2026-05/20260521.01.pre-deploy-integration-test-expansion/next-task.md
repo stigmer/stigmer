@@ -14,8 +14,8 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-21
-**Current Task**: ALL workstreams + follow-up complete. Agent Pause/Resume TS runner fix implemented.
-**Status**: ALL workstreams COMPLETE. Agent execution pause/resume fixed in TS runner. Integration test un-skipped.
+**Current Task**: ALL workstreams + follow-ups complete. 11 @Disabled Java tests rewritten.
+**Status**: ALL workstreams COMPLETE. 11 @Disabled Java tests rewritten and re-enabled (228 test methods).
 
 ## Workstream Summary (Parallel Execution)
 
@@ -185,18 +185,20 @@ Drop this file into your conversation to quickly resume work on this project.
 - `WorkflowExecutionCancelHandler.java` — Context.Key visibility
 - 20 test files — stale import fixes, proto API updates, @Disabled annotations
 
-### Follow-up work (11 @Disabled tests needing rewrite)
-- `AgentExecutionSubmitApprovalHandlerTest` — AgentExecutionMetadata proto removed, Context.Key API changed
-- `InvokeAgentExecutionWorkflowSignalTest` — GenerateSessionSubjectActivity removed, input type changed
-- `InvokeAgentExecutionWorkflowCursorTest` — Temporal workflow registration changed
-- `WorkflowExecutionCancelHandlerTest` — Handler steps restructured
-- `WorkflowExecutionTerminateHandlerTest` — Handler steps restructured
-- `WorkflowExecutionRecoverHandlerTest` — Handler steps restructured
-- `WorkflowExecutionSubmitApprovalHandlerTest` — Child handler API changed
-- `EnvironmentMergeServiceTest` — Constructor + merge() signature changed
-- `EnvironmentEncryptionIntegrationTest` — EncryptSecretValues pipeline step changed
-- `NotifyParentActivitiesImplTest` — Signal name/parameters changed
-- `ProjectApplyHandlerTest` — Pipeline steps restructured
+### ~~Follow-up work (11 @Disabled tests needing rewrite)~~ RESOLVED
+
+All 11 @Disabled tests rewritten and re-enabled (228 test methods, 5,955 lines):
+- ~~`AgentExecutionSubmitApprovalHandlerTest`~~ — 44 tests, full rewrite
+- ~~`InvokeAgentExecutionWorkflowSignalTest`~~ — 5 tests, full rewrite
+- ~~`InvokeAgentExecutionWorkflowCursorTest`~~ — 5 tests, removed stale @Disabled
+- ~~`WorkflowExecutionCancelHandlerTest`~~ — 31 tests, removed stale @Disabled
+- ~~`WorkflowExecutionTerminateHandlerTest`~~ — 31 tests, full rewrite
+- ~~`WorkflowExecutionRecoverHandlerTest`~~ — 20 tests, full rewrite
+- ~~`WorkflowExecutionSubmitApprovalHandlerTest`~~ — 19 tests, full rewrite
+- ~~`EnvironmentMergeServiceTest`~~ — 26 tests, full rewrite
+- ~~`EnvironmentEncryptionIntegrationTest`~~ — 9 tests, removed stale @Disabled
+- ~~`NotifyParentActivitiesImplTest`~~ — 8 tests, removed stale @Disabled
+- ~~`ProjectApplyHandlerTest`~~ — 30 tests, rewritten for reconciliation
 
 ## Key Architectural Findings
 
