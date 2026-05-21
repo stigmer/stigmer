@@ -6,7 +6,10 @@
   "type": "module",
   "sideEffects": false,
   "exports": {
-    "./*": "./*.ts"
+    "./*": {
+      "types": "./dist/*.d.ts",
+      "import": "./dist/*.js"
+    }
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",

@@ -57,8 +57,7 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install E2E dependencies
-        working-directory: test/e2e
+      - name: Install dependencies
         run: npm ci
 
       - name: Install Playwright browsers

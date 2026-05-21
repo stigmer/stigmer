@@ -438,16 +438,16 @@ test-demos: docs-build ## Run Playwright demo e2e tests — slow (~20 min), run 
 	$(MAKE) -C site test-demos
 
 test-e2e: ## Run Playwright functional E2E tests against local dev server
-	cd test/e2e && npm ci && npx playwright install --with-deps chromium && npx playwright test --project=functional
+	cd test/e2e && npx playwright install --with-deps chromium && npx playwright test --project=functional
 
 test-e2e-smoke: ## Run Playwright smoke tests against a deployed instance (set STIGMER_E2E_BASE_URL)
-	cd test/e2e && npm ci && npx playwright install --with-deps chromium && npx playwright test --project=smoke
+	cd test/e2e && npx playwright install --with-deps chromium && npx playwright test --project=smoke
 
 test-e2e-interactive: ## Run Playwright interactive E2E tests (requires full backend stack)
-	cd test/e2e && npm ci && npx playwright install --with-deps chromium && npx playwright test --project=interactive
+	cd test/e2e && npx playwright install --with-deps chromium && npx playwright test --project=interactive
 
 test-e2e-all: ## Run all Playwright E2E tests (smoke + functional + interactive)
-	cd test/e2e && npm ci && npx playwright install --with-deps chromium && npx playwright test
+	cd test/e2e && npx playwright install --with-deps chromium && npx playwright test
 
 check: tidy fix lint lint-docs format-docs-check tsdoc-check gen-sdk-docs gen-sdk-docs-check check-links build test test-web test-desktop validate-demos ## Run full CI gate locally
 
