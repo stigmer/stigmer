@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { DEFAULT_MODEL_ID, DEFAULT_CURSOR_MODEL_ID, parseRegistryJson } from "../../models/registry";
 import { ModelRegistryContext } from "../../models/ModelRegistryContext";
 import type { ModelRegistryState } from "../../models/ModelRegistryContext";
+import { ExecutionTargetContext } from "../../execution-target-context";
 import type { UseCreateSessionReturn } from "../useCreateSession";
 
 const mockCreateSession = vi.fn<UseCreateSessionReturn["create"]>();
@@ -71,13 +72,15 @@ const TEST_MODELS = parseRegistryJson({
   ],
 });
 
-function createWrapper() {
+function createWrapper(executionTarget?: "local" | "cloud") {
   const state: ModelRegistryState = { models: TEST_MODELS, isLoading: false, error: null, refetch: () => {} };
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
-      <ModelRegistryContext.Provider value={state}>
-        {children}
-      </ModelRegistryContext.Provider>
+      <ExecutionTargetContext.Provider value={executionTarget}>
+        <ModelRegistryContext.Provider value={state}>
+          {children}
+        </ModelRegistryContext.Provider>
+      </ExecutionTargetContext.Provider>
     );
   };
 }
@@ -360,6 +363,32 @@ describe("useNewSessionFlow", () => {
       expect(mockCreateSession).toHaveBeenCalledOnce();
       const sessionInput = mockCreateSession.mock.calls[0][0];
       expect(sessionInput.executionTarget).toBeUndefined();
+    });
+
+    it("uses context executionTarget when per-hook option is omitted", async () => {
+      const opts = defaultOptions();
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper("local") });
+
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+
+      expect(mockCreateSession).toHaveBeenCalledOnce();
+      const sessionInput = mockCreateSession.mock.calls[0][0];
+      expect(sessionInput.executionTarget).toBe("local");
+    });
+
+    it("per-hook executionTarget option overrides context", async () => {
+      const opts = { ...defaultOptions(), executionTarget: "local" as const };
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper("cloud") });
+
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+
+      expect(mockCreateSession).toHaveBeenCalledOnce();
+      const sessionInput = mockCreateSession.mock.calls[0][0];
+      expect(sessionInput.executionTarget).toBe("local");
     });
   });
 

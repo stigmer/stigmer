@@ -14,8 +14,35 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-21
-**Current Task**: ALL workstreams + follow-ups + lifecycle test confidence expansion complete.
-**Status**: ALL COMPLETE. Execution lifecycle test coverage gaps closed (48 new tests).
+**Current Task**: ALL workstreams + follow-ups + interactive E2E critical flows complete.
+**Status**: ALL COMPLETE. Interactive E2E critical user flow tests committed (2d98bfd3d).
+
+## Session Progress (2026-05-21, Interactive E2E Critical User Flows)
+
+### What was accomplished
+- **9 new interactive Playwright E2E tests** covering the two primary user journeys
+- **Workflow Run button flow** (5 tests, offline): Run dialog opens, submission navigates to execution page, execution completes with timeline, pause/resume lifecycle, cancel
+- **Agent execution via session** (4 tests, LLM-gated): Sidebar execution progress, composer disabled/enabled lifecycle, AI response in thread, multi-turn follow-up
+- **New helper module**: `test/e2e/helpers/workflow-detail.ts` — navigation and Run dialog interaction
+- **Extended existing helpers**: workflow-execution (pause/resume/cancel), session (execution progress, composer state)
+- **New fixture**: `testWaitWorkflow` — workflow with 10s `wait` task for deterministic lifecycle testing
+
+### Key decisions made
+- **Wait task for pause/cancel** (not set_vars): `set_vars` completes in ~10-50ms per task — impossible to race with Playwright click. The `wait` task (Temporal timer) gives a stable 10s IN_PROGRESS window.
+- **Orchestrator phase is immediate**: Go orchestrator updates DB on signal receipt; UI reflects before engine cooperatively freezes. E2E can reliably assert phase badge changes.
+- **LLM-gated session tests**: Full agent execution flow inherently requires LLM. Tests skip without API keys, assert on structure (not content).
+- **No agent cancel/terminate tests**: No UI surface exists for agent lifecycle control (confirmed finding).
+
+### Files created (3)
+- `test/e2e/helpers/workflow-detail.ts`
+- `test/e2e/tests/interactive/workflow-run-flow.spec.ts`
+- `test/e2e/tests/interactive/session-execution-flow.spec.ts`
+
+### Files modified (4)
+- `test/e2e/fixtures/seed-helpers.ts` — added `createTestWaitWorkflow`
+- `test/e2e/fixtures/index.ts` — wired `testWaitWorkflow` fixture
+- `test/e2e/helpers/workflow-execution.ts` — added lifecycle action helpers
+- `test/e2e/helpers/session.ts` — added execution progress and composer state helpers
 
 ## Session Progress (2026-05-21, Execution Test Confidence)
 
@@ -276,6 +303,35 @@ Fixed in a follow-up session (see `_changelog/2026-05/2026-05-21-190955-agent-ex
 ## URGENT: Verify Production
 
 Check if workflow execution is broken in production (old Go workflow-runner deleted from repo — is it still deployed?).
+
+## Session Progress (2026-05-21, App-Level Execution Target Test Coverage)
+
+### What was accomplished
+- **29 new tests** across 9 files covering the app-level `executionTarget` SDK change (commit `71fc66484`)
+- **React SDK** (17 tests): converter round-trips, `useExecutionTarget` context hook, context fallback in `useCreateSession` and `useNewSessionFlow`, per-call override precedence
+- **Go SDK** (3 tests): `WithExecutionTarget` option, `ApplyDefaultExecutionTarget` fill/preserve/no-op branches
+- **TypeScript SDK** (7 tests): `Stigmer` default injection via capturing transport, proto serialization
+- **Python SDK** (4 tests): `execution_target` constructor parameter, `default_execution_target` property values
+- All tests pass: React (51/51), Go (3/3), TS (7/7), Python (4/4)
+
+### Key decisions made
+- Followed each SDK's established test patterns exactly (vitest/happy-dom for React, vitest for TS, Go stdlib testing, pytest for Python)
+- React `createWrapper` in `useNewSessionFlow.test.tsx` updated to accept optional `executionTarget` and wrap with `ExecutionTargetContext.Provider`
+- SDK smoke/acceptance tests intentionally NOT modified — unit tests cover SDK-layer logic, session-routing integration tests cover server-side behavior
+- Desktop app e2e tests not needed — identical runtime behavior, context propagation tested at React SDK level
+
+### Files created (3)
+- `sdk/react/src/session/__tests__/execution-target.test.ts`
+- `sdk/typescript/src/__tests__/stigmer.test.ts`
+- `sdk/python/tests/test_client.py`
+
+### Files modified (6)
+- `sdk/react/src/__tests__/hooks.test.tsx`
+- `sdk/react/src/session/__tests__/useCreateSession.test.tsx`
+- `sdk/react/src/session/__tests__/useNewSessionFlow.test.tsx`
+- `sdk/go/options_test.go`
+- `sdk/go/client_test.go`
+- `sdk/typescript/src/__tests__/gen/session-client.test.ts`
 
 ## Session Progress (2026-05-21, Workflow Sandbox Affinity)
 

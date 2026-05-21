@@ -3,6 +3,7 @@ import { renderHook, waitFor, act } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
+import { ExecutionTargetContext } from "../../execution-target-context";
 import { useCreateSession } from "../useCreateSession";
 
 function createMockStigmer(overrides: {
@@ -213,5 +214,85 @@ describe("useCreateSession", () => {
     act(() => result.current.clearError());
 
     expect(result.current.error).toBeNull();
+  });
+
+  describe("executionTarget context fallback", () => {
+    function wrapperWithExecutionTarget(client: unknown, executionTarget?: "local" | "cloud") {
+      return function Wrapper({ children }: { children: ReactNode }) {
+        return (
+          <FetchCacheContext.Provider value={null}>
+            <ExecutionTargetContext.Provider value={executionTarget}>
+              <StigmerContext.Provider value={client as never}>
+                {children}
+              </StigmerContext.Provider>
+            </ExecutionTargetContext.Provider>
+          </FetchCacheContext.Provider>
+        );
+      };
+    }
+
+    it("uses context executionTarget when per-call input omits it", async () => {
+      const create = vi.fn().mockResolvedValue({ metadata: { id: "ses-ctx" } });
+      const client = createMockStigmer({ create });
+
+      const { result } = renderHook(() => useCreateSession(), {
+        wrapper: wrapperWithExecutionTarget(client, "local"),
+      });
+
+      await act(async () => {
+        await result.current.create({
+          org: "acme",
+          agentInstanceId: "ain-123",
+        });
+      });
+
+      expect(create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          executionTarget: 1,
+        }),
+      );
+    });
+
+    it("per-call executionTarget overrides context", async () => {
+      const create = vi.fn().mockResolvedValue({ metadata: { id: "ses-override" } });
+      const client = createMockStigmer({ create });
+
+      const { result } = renderHook(() => useCreateSession(), {
+        wrapper: wrapperWithExecutionTarget(client, "cloud"),
+      });
+
+      await act(async () => {
+        await result.current.create({
+          org: "acme",
+          agentInstanceId: "ain-123",
+          executionTarget: "local",
+        });
+      });
+
+      expect(create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          executionTarget: 1,
+        }),
+      );
+    });
+
+    it("omits executionTarget when neither context nor per-call provides it", async () => {
+      const create = vi.fn().mockResolvedValue({ metadata: { id: "ses-none" } });
+      const client = createMockStigmer({ create });
+
+      const { result } = renderHook(() => useCreateSession(), {
+        wrapper: wrapperWithExecutionTarget(client, undefined),
+      });
+
+      await act(async () => {
+        await result.current.create({
+          org: "acme",
+          agentInstanceId: "ain-123",
+        });
+      });
+
+      const callArg = create.mock.calls[0][0];
+      expect(callArg.executionTarget).toBeUndefined();
+    });
   });
 });
