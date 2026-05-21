@@ -97,6 +97,12 @@ export async function callAgentAction(
     }
   }
 
+  // Propagate sandbox affinity: when the parent workflow runs in a dedicated
+  // sandbox (wfexec:{id} queue), tell the platform to route the child agent's
+  // activities to the same queue. This avoids provisioning a separate sandbox.
+  const parentQueue = runtimeEnv["__stigmer_activity_task_queue"] as string | undefined;
+  const activityTaskQueue = parentQueue?.startsWith("wfexec:") ? parentQueue : "";
+
   await client.createAgentExecution(
     create(AgentExecutionSchema, {
       metadata: create(ApiResourceMetadataSchema, { org: orgId }),
@@ -106,6 +112,7 @@ export async function callAgentAction(
         message: resolved.message,
         callbackToken: taskToken,
         parentWorkflowId,
+        activityTaskQueue,
         ...(resolved.config?.model
           ? { executionConfig: { modelName: resolved.config.model } as any }
           : {}),

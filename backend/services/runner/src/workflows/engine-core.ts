@@ -177,6 +177,7 @@ export async function runWorkflowEngine(
     __stigmer_execution_id: metadata?.execution_id ?? "",
     __stigmer_org_id: metadata?.org_id ?? "",
     __stigmer_workflow_id: metadata?.workflow_id ?? "",
+    __stigmer_activity_task_queue: workflowInfo().taskQueue,
   };
   state.input = workflow_input;
 

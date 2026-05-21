@@ -14,8 +14,8 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-21
-**Current Task**: Workstreams A+B+D+F complete. C+E in progress (parallel).
-**Status**: Critical path COMPLETE (A → B). C/E in parallel conversations.
+**Current Task**: Workstreams A+B+D+F complete. Workflow Sandbox Affinity (new) complete. C+E in progress (parallel).
+**Status**: Critical path COMPLETE (A → B → Sandbox Affinity). C/E in parallel conversations.
 
 ## Workstream Summary (Parallel Execution)
 
@@ -164,8 +164,45 @@ Drop this file into your conversation to quickly resume work on this project.
 
 Check if workflow execution is broken in production (old Go workflow-runner deleted from repo — is it still deployed?).
 
+## Session Progress (2026-05-21, Workflow Sandbox Affinity)
+
+### What was accomplished
+- **Proto**: Added `execution_target` (field 8) to `WorkflowExecutionSpec`, `activity_task_queue` (field 11) to `AgentExecutionSpec`
+- **Workflow dispatch (Go)**: New `ResolveWorkflowTaskQueue()` with routing modes (global/execution), resolves to `wfexec:{id}` for CLOUD
+- **Config extension**: `WorkflowActivityRouting` + `DefaultExecutionTarget` env vars
+- **Orchestrator routing**: `WorkflowCreator.Create()` now accepts dynamic queue, passes via `runnerTaskQueue` memo
+- **Runner propagation (TS)**: `engine-core.ts` injects `__stigmer_activity_task_queue`, `call-agent.ts` propagates to child AgentExecution
+- **Agent dispatch override (Go)**: `ResolveActivityTaskQueue()` respects `activityTaskQueueOverride`, returns `LOCAL` to prevent double-provisioning
+- **Tests**: 9 new test cases (6 workflow dispatch + 3 agent override)
+- **Codegen**: `make codegen` (OSS) + `make protos` (Cloud) — all stubs regenerated
+
+### Key decisions made
+- `activity_task_queue` lives on AgentExecutionSpec (not Session) — sessions stay pure agent semantics
+- Override returns `ExecutionTarget=LOCAL` to suppress `EnsureSessionSandboxStep`
+- Propagation uses existing `__stigmer_*` env var pattern from `workflowInfo().taskQueue`
+- Only propagates when queue starts with `wfexec:` (global queue is never forwarded)
+
+### Next steps (cloud-side)
+1. Java `EnsureWorkflowSandboxStep` in workflow execution create handler (mirrors agent's `EnsureSessionSandboxStep`)
+2. `SandboxTokenService` extension: mint `token_type=workflow_sandbox` JWTs
+3. `DaytonaSandboxProvisioner` support for `wfexec:` keyed sandboxes
+4. Agent dispatch: strip `activity_task_queue` from external API callers (security)
+
+### Files created
+- `backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/dispatch.go`
+- `backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/dispatch_test.go`
+- `_changelog/2026-05/2026-05-21-180841-workflow-sandbox-affinity-architecture.md`
+
+### Files modified
+- 2 proto files, 3 Go stubs, 3 TS stubs
+- 7 Go server files (dispatch, config, controller, workflow_creator)
+- 2 TS runner files (engine-core, call-agent)
+- 1 Go test file updated (10 calls + 3 new tests)
+
 ## Context for Resume
 
+- Sandbox Affinity changelog: `_changelog/2026-05/2026-05-21-180841-workflow-sandbox-affinity-architecture.md`
+- Sandbox Affinity plan: `.cursor/plans/workflow_sandbox_affinity_a90709b5.plan.md`
 - Workstream A changelog: `_changelog/2026-05/2026-05-21-164357-ts-hydration-activity-wrapper-workflow.md`
 - Workstream B changelog: `_changelog/2026-05/2026-05-21-174307-workstream-b-orchestrator-rewrite-pause-resume.md`
 - Workstream D changelog: `_changelog/2026-05/2026-05-21-165518-playwright-e2e-structural-test-expansion.md`
