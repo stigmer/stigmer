@@ -2,6 +2,9 @@
 # Invoked from the repo root via: make test-integration, test-integration-providers, test-integration-agent
 # Can also be run directly: cd test/integration && make test
 
+# Disable Go workspace to avoid cross-module dependency conflicts (CI has no go.work).
+export GOWORK := off
+
 STIGMER_CLOUD_ROOT ?= $(CURDIR)/../../../stigmer-cloud
 STIGMER_SERVICE_JAR ?= $(STIGMER_CLOUD_ROOT)/bazel-bin/backend/services/stigmer-service/stigmer_service_fatjar.jar
 

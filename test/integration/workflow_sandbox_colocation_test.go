@@ -100,16 +100,16 @@ func TestSandboxColocation_SessionRunnerID(t *testing.T) {
 			continue
 		}
 
-		runnerId := session.GetSpec().GetRunnerId()
-		if runnerId != "" {
-			t.Logf("found session with runner_id=%s (session_id=%s, execution_id=%s)",
-				runnerId, sessionId, ae.GetMetadata().GetId())
+		harnessStateId := session.GetSpec().GetHarnessStateId()
+		if harnessStateId != "" {
+			t.Logf("found session with harness_state_id=%s (session_id=%s, execution_id=%s)",
+				harnessStateId, sessionId, ae.GetMetadata().GetId())
 			return
 		}
 	}
 
-	t.Logf("no session with runner_id found — " +
-		"this is expected when STIGMER_RUNNER_ID is not set on the workflow-runner")
+	t.Logf("no session with harness_state_id found — " +
+		"this is expected when the runner has not yet bound to the session")
 }
 
 func createTestAgentForColocation(t *testing.T, ctx context.Context, clients *harness.Clients) *agentv1.Agent {

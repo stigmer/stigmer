@@ -40,8 +40,8 @@ func TestAgentExecution_Usage_RunnerUsageSummary(t *testing.T) {
 				agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 4*time.Minute)
 			require.NoError(t, err, "execution should complete")
 
-			usage := result.GetStatus().GetRunnerUsage()
-			require.NotNil(t, usage, "runner_usage should be populated after completion")
+			usage := result.GetStatus().GetStreamingUsage()
+			require.NotNil(t, usage, "streaming_usage should be populated after completion")
 
 			assert.Greater(t, usage.GetInputTokens(), int64(0),
 				"input_tokens should be non-zero")

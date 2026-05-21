@@ -77,11 +77,12 @@ func StartUnifiedRunnerManager(ctx context.Context, cfg UnifiedRunnerConfig, log
 		return nil, fmt.Errorf("unified runner source directory not found")
 	}
 
+	// Manager mode always uses tsx because it imports TypeScript stubs directly
+	// (apis/stubs/ts/) which are not compiled to JS.
 	tsxBin := filepath.Join(runnerDir, "node_modules", ".bin", "tsx")
 	if _, err := os.Stat(tsxBin); err != nil {
 		return nil, fmt.Errorf("tsx not found at %s — run 'npm install' in runner", tsxBin)
 	}
-
 	entrypoint := filepath.Join(runnerDir, "src", "main.ts")
 
 	logDir := cfg.LogDir
@@ -305,12 +306,10 @@ func StartUnifiedRunnerStatic(ctx context.Context, cfg UnifiedRunnerConfig, task
 		return nil, fmt.Errorf("unified runner source directory not found")
 	}
 
-	tsxBin := filepath.Join(runnerDir, "node_modules", ".bin", "tsx")
-	if _, err := os.Stat(tsxBin); err != nil {
-		return nil, fmt.Errorf("tsx not found at %s — run 'npm install' in runner", tsxBin)
+	runBin, entrypoint, resolveErr := resolveRunnerCommand(runnerDir)
+	if resolveErr != nil {
+		return nil, resolveErr
 	}
-
-	entrypoint := filepath.Join(runnerDir, "src", "main.ts")
 
 	logDir := cfg.LogDir
 	if logDir == "" {
@@ -327,14 +326,15 @@ func StartUnifiedRunnerStatic(ctx context.Context, cfg UnifiedRunnerConfig, task
 	}
 	logger.Info("unified-runner-static log", "path", logPath, "task_queue", taskQueue)
 
-	cmd := exec.Command(tsxBin, entrypoint)
+	cmd := exec.Command(runBin, entrypoint)
 	cmd.Dir = runnerDir
 	cmd.Env = buildUnifiedRunnerEnv(cfg, "static", taskQueue)
 	cmd.Stdout = logFile
 	cmd.Stderr = logFile
 
 	logger.Info("starting unified-runner-static",
-		"tsx", tsxBin,
+		"bin", runBin,
+		"entrypoint", entrypoint,
 		"dir", runnerDir,
 		"task_queue", taskQueue,
 		"temporal", cfg.TemporalAddress,
@@ -405,6 +405,25 @@ func findUnifiedRunnerDir() string {
 	}
 
 	return ""
+}
+
+// resolveRunnerCommand determines the best way to launch the runner:
+// - If dist/main.js exists (pre-built), uses "node dist/main.js" for production-like behavior
+// - Otherwise, falls back to "tsx src/main.ts" for development convenience
+func resolveRunnerCommand(runnerDir string) (bin string, entrypoint string, err error) {
+	distEntry := filepath.Join(runnerDir, "dist", "main.js")
+	if _, statErr := os.Stat(distEntry); statErr == nil {
+		nodeBin, lookErr := exec.LookPath("node")
+		if lookErr == nil {
+			return nodeBin, distEntry, nil
+		}
+	}
+
+	tsxBin := filepath.Join(runnerDir, "node_modules", ".bin", "tsx")
+	if _, statErr := os.Stat(tsxBin); statErr != nil {
+		return "", "", fmt.Errorf("tsx not found at %s — run 'npm install' in runner", tsxBin)
+	}
+	return tsxBin, filepath.Join(runnerDir, "src", "main.ts"), nil
 }
 
 func buildUnifiedRunnerEnv(cfg UnifiedRunnerConfig, mode, taskQueue string) []string {
