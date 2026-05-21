@@ -14,7 +14,6 @@ import (
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config"
 	agentexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal"
 	agentexecutionactivities "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal/activities"
-	workflowtemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/temporal"
 	workflowexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal"
 	workflowexecutionactivities "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/activities"
 	workflowexecutionworkflows "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows"
@@ -406,15 +405,6 @@ func (tm *TemporalManager) createWorkers(temporalClient client.Client) []worker.
 		}
 	}
 
-	// 3. Create workflow validation worker
-	workflowValidationTemporalConfig := workflowtemporal.NewConfig()
-	workerConfig := workflowtemporal.NewWorkerConfig(workflowValidationTemporalConfig)
-	workers = append(workers, workerConfig.CreateWorker(temporalClient))
-	log.Debug().
-		Str("stigmer_queue", workflowValidationTemporalConfig.StigmerQueue).
-		Str("runner_queue", workflowValidationTemporalConfig.RunnerQueue).
-		Msg("Created workflow validation worker")
-
 	return workers
 }
 
@@ -516,24 +506,7 @@ func (tm *TemporalManager) reinjectWorkflowCreators(temporalClient client.Client
 		}
 	}
 
-	// 3. Create and inject workflow validator
-	if tm.serverDeps.workflowController != nil {
-		workflowValidationTemporalConfig := workflowtemporal.NewConfig()
-		workflowValidator := workflowtemporal.NewServerlessWorkflowValidator(
-			temporalClient,
-			workflowValidationTemporalConfig,
-		)
-
-		// Type assert to access SetValidator method
-		if controller, ok := tm.serverDeps.workflowController.(interface {
-			SetValidator(*workflowtemporal.ServerlessWorkflowValidator)
-		}); ok {
-			controller.SetValidator(workflowValidator)
-			log.Debug().Msg("Reinjected workflow validator")
-		}
-	}
-
-	log.Info().Msg("✅ Workflow creators reinjected successfully")
+	log.Info().Msg("Workflow creators reinjected successfully")
 }
 
 // Close closes the Temporal connection and stops all workers

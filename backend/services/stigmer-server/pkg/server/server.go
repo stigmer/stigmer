@@ -47,7 +47,7 @@ import (
 	skillcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/skill/controller"
 	skillstorage "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/skill/storage"
 	workflowcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/controller"
-	workflowtemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/temporal"
+	workflowvalidation "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/validation"
 	workflowexecutioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/controller"
 	workflowexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal"
 	workflowexecutionworkflows "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows"
@@ -157,10 +157,13 @@ func Run() error {
 	// for dispatch routing, so it's created outside the Temporal connection block.
 	agentExecutionTemporalConfig := agentexecutiontemporal.NewConfig()
 
+	// Create in-process workflow validator (no Temporal dependency)
+	workflowValidator := workflowvalidation.NewInProcessValidator()
+	log.Info().Msg("Created in-process workflow validator")
+
 	// Create workflow creators if initial connection succeeded
 	var workflowExecutionWorkflowCreator *workflowexecutionworkflows.InvokeWorkflowExecutionWorkflowCreator
 	var agentExecutionWorkflowCreator *agentexecutiontemporal.InvokeAgentExecutionWorkflowCreator
-	var workflowValidator *workflowtemporal.ServerlessWorkflowValidator
 
 	if temporalClient != nil {
 		// Create workflow execution workflow creator
@@ -187,18 +190,6 @@ func Run() error {
 			Str("runner_queue", agentExecutionTemporalConfig.RunnerQueue).
 			Str("activity_routing", agentExecutionTemporalConfig.ActivityRouting).
 			Msg("Created agent execution workflow creator")
-
-		// Create workflow validator
-		workflowValidationTemporalConfig := workflowtemporal.NewConfig()
-		workflowValidator = workflowtemporal.NewServerlessWorkflowValidator(
-			temporalClient,
-			workflowValidationTemporalConfig,
-		)
-
-		log.Info().
-			Str("stigmer_queue", workflowValidationTemporalConfig.StigmerQueue).
-			Str("runner_queue", workflowValidationTemporalConfig.RunnerQueue).
-			Msg("Created workflow validator")
 	}
 
 	// Create gRPC server with apiresource interceptor and in-process support
