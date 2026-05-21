@@ -14,8 +14,85 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-20
-**Current Task**: Cloud sandbox provisioning implemented
-**Status**: Cloud sandbox provisioning complete. Daytona SDK re-added. DaytonaSandboxProvisioner handles full lifecycle (create, restart, restore, recreate). Pipeline step in AgentExecutionCreateHandler provisions sandboxes fire-and-forget when execution_target=CLOUD. User JWT captured from gRPC context and injected into sandbox. All 61 Java tests pass, all Go tests pass.
+**Current Task**: Sandbox token exchange implemented
+**Status**: Cloud sandbox token exchange complete. SandboxTokenService mints session-scoped Stigmer-signed JWTs (4h TTL) instead of forwarding the caller's raw JWT. Stale-token-aware sandbox recreation handles expiry. All 61 Java Bazel tests pass. E2E integration test suite also in progress (separate conversation).
+
+## Session Progress (2026-05-21, Session 12)
+
+### What was accomplished
+- **Implemented sandbox token exchange service** — replaces forwarded user JWT with purpose-built session-scoped tokens
+  - Created `SandboxTokenService` in `domain/agentic/sandbox/` — mints Stigmer-signed JWTs (RSA256, `iss=stigmer`, `sub=identityAccountId`) with `session_id`, `token_type=sandbox`, `org` claims and 4h configurable TTL
+  - Added `sandboxTokenTtlSeconds` (default 14400) to `StigmerJwtSigningConfig` in shared `api-authentication` lib
+  - Added `tokenExpiresAt` field to `SessionSandbox` record with `isTokenStale(graceSeconds)` method (nullable for backward compatibility with legacy records)
+  - Updated `SessionSandboxRepo` to persist/read `token_expires_at` in MongoDB
+  - Renamed `SandboxEnvironment.userJwt` to `sandboxToken`, added `tokenExpiresAt` field
+  - Added stale-token check in `DaytonaSandboxProvisioner.ensureExistingSandbox` — if token is expired or within 10-minute grace window, recreates sandbox instead of restarting (Daytona preserves original env vars on restart)
+  - Updated both `EnsureSessionSandboxStep` (create + recover handlers) to resolve caller identity from `InterceptorContextHolder` and mint via `SandboxTokenService` instead of forwarding `UserTokenHolder.get()`
+  - 7 unit tests for `SandboxTokenService` (claims, TTL, JTI uniqueness, missing key error)
+  - 4 new stale-token tests in `DaytonaSandboxProvisionerTest` (expired, grace window, fresh, legacy null)
+  - All 61 Java Bazel tests pass
+
+### Key changes
+1. **New**: `SandboxTokenService.java` — session-scoped JWT minting (~100 lines)
+2. **New**: `SandboxTokenServiceTest.java` — 7 unit tests
+3. **Modified**: `StigmerJwtSigningConfig.java` — added `sandboxTokenTtlSeconds` property
+4. **Modified**: `SessionSandbox.java` — added `tokenExpiresAt` field + `isTokenStale()` method
+5. **Modified**: `SessionSandboxRepo.java` — persist/read `token_expires_at`
+6. **Modified**: `SandboxEnvironment.java` — renamed `userJwt` to `sandboxToken`, added `tokenExpiresAt`
+7. **Modified**: `DaytonaSandboxProvisioner.java` — stale-token check + store `tokenExpiresAt`
+8. **Modified**: `AgentExecutionCreateHandler.java` — `EnsureSessionSandboxStep` uses `SandboxTokenService`
+9. **Modified**: `AgentExecutionRecoverHandler.java` — same change in recover handler
+10. **Modified**: `BUILD.bazel` — added `@maven//:com_auth0_java_jwt` dependency
+11. **Modified**: `DaytonaSandboxProvisionerTest.java` — 4 new stale-token tests
+
+### Decisions made
+- **4h TTL, no renewal**: Sandbox token lasts 4 hours. When it expires, `ensureExistingSandbox` detects staleness and recreates the sandbox from scratch (30-60s cold start). Renewal mechanism deferred — the recreate-on-stale approach is simpler and covers all edge cases.
+- **No proxy-level scope enforcement**: FGA remains the sole authorization boundary. The `session_id` claim is for audit, not enforcement. Scope enforcement can be layered on later as an additive change.
+- **Reuse existing auth chain**: Sandbox tokens use `iss=stigmer` and flow through `PlatformClientTokenAuthenticationProvider`. The `platform_client_id` claim is absent (null) — verified that `RequestCallerIdentityMapper` and FGA handle this correctly.
+- **Domain service, not auth primitive**: `SandboxTokenService` lives in `domain/agentic/sandbox/` (not `api-authentication` lib) because it's a domain-specific concern, not a reusable auth building block.
+- **Caller identity from interceptor context**: Used `InterceptorContextHolder.getContext().getCaller().getIdentityAccountId()` instead of `UserTokenHolder.get()` — the interceptor context is in gRPC Context (survives SecurityContextHolder mutations from in-process calls).
+
+### Surprises discovered
+- None — the implementation followed the plan exactly. The auth chain compatibility (null `platformClientId`) was verified by code reading and confirmed by all tests passing.
+
+## Session Progress (2026-05-21, Session 11)
+
+### What was accomplished
+- **Created session routing E2E integration test suite** — new `test/integration-session-routing/` module
+  - Tier 1 (offline, 4 tests): Temporal workflow memo verification — proves `SessionDispatchService.resolve()` correctly routes to `session:{id}` queues
+  - Tier 2 (offline, 4 tests): Runner IPC + activity dispatch — unified runner manager picks up `ExecuteCursor` on per-session queues
+  - Tier 3 (provider-backed, 3 tests): Full E2E with `CURSOR_API_KEY` — session routing through to COMPLETED execution
+  - Cloud control plane (2 tests): CLOUD execution target routing with noop sandbox provisioner
+- **Extended shared harness** (`test/integration/harness/`)
+  - `service.go`: Added `ActivityRouting`, `DefaultExecutionTarget`, `SandboxType` to `ServiceConfig` + `sandbox` Spring profile
+  - `temporal.go`: Added `Client()` method for Temporal Go SDK workflow memo verification
+  - `unified_runner.go`: New file (~450 lines) — `UnifiedRunnerManager` (IPC mode) + `UnifiedRunnerStatic` (single-queue mode)
+  - `harness_config.go`: Added `WithExecutionTarget` session option
+  - `benchmark_helpers.go`: Fixed pre-existing `GetRunnerUsage` → `GetStreamingUsage` rename
+- **Build infrastructure**: `go.mod`, `BUILD.bazel`, `Makefile` (offline + provider lanes), root `go.work` + `Makefile` delegate targets
+- All Go builds clean (`go vet -tags integration` passes)
+
+### Key changes
+1. **New**: `test/integration-session-routing/` — 7 files (suite, 4 test files, go.mod, Makefile, BUILD.bazel)
+2. **New**: `test/integration/harness/unified_runner.go` — IPC manager + static runner helpers
+3. **Modified**: `test/integration/harness/service.go` — session routing config fields
+4. **Modified**: `test/integration/harness/temporal.go` — Temporal SDK client method
+5. **Modified**: `test/integration/harness/harness_config.go` — WithExecutionTarget option
+6. **Modified**: `test/integration/harness/benchmark_helpers.go` — RunnerUsage→StreamingUsage fix
+7. **Modified**: `go.work` — added session-routing module
+8. **Modified**: `Makefile` — two new delegate targets
+
+### Decisions made
+- **Separate test suite**: Session routing (`STIGMER_ACTIVITY_ROUTING=session`) changes dispatch for ALL requests — incompatible with existing global-routing suite's runners
+- **CURSOR harness only**: Unified runner registers `ExecuteCursor` but not `ExecuteGraphton` (native). Native per-session routing requires Python agent-runner which lacks per-session support
+- **Three-tier structure**: Offline memo verification (no runner), offline dispatch verification (runner, no API key), provider-backed E2E (runner + API key)
+- **Temporal memo as verification point**: `DescribeWorkflowExecution` to read `activityTaskQueue` memo — proves routing without needing activity execution
+- **No runners in TestMain**: Each test starts its own runner infrastructure, keeping Tier 1 completely runner-free
+
+### Surprises discovered
+- `benchmark_helpers.go` had a pre-existing `GetRunnerUsage` reference that should have been renamed to `GetStreamingUsage` during the T02 runner API removal — fixed as part of this session
+- The `sandbox` Spring profile was missing from the test harness's `SPRING_PROFILES_ACTIVE` — the test `buildServiceEnv()` constructs profiles explicitly without `sandbox`, which means `EnsureSessionSandboxStep` was never loaded in tests
+- The Java workflow still dispatches `ExecuteGraphton` for native harness, while the unified runner registers `ExecuteDeepAgent` — a name mismatch that means native per-session routing via the unified runner won't work until Java or TS is updated
 
 ## Session Progress (2026-05-21, Session 10)
 
@@ -216,11 +293,13 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-1. **TokenExchangeService** — mint short-lived sandbox-scoped tokens instead of forwarding the user's JWT (limited lifetime)
-2. **E2E testing** — desktop launch → runner starts → create session (LOCAL) → addSession → activity executes
-3. **E2E cloud testing** — web console → create session (CLOUD) → sandbox boots → activity executes on session queue
+1. ~~**TokenExchangeService**~~ — ✅ Complete (Session 12). Sandbox tokens replace forwarded user JWTs.
+2. ~~**E2E testing**~~ — ✅ Done (Session 11 — test/integration-session-routing/)
+3. ~~**E2E cloud testing**~~ — ✅ Done (Session 11 — cloud_control_plane_test.go, control plane level; full Daytona E2E deferred to cloud CI)
 4. **Worker count scaling** — verify 20+ Workers in one process doesn't overload Temporal connection
 5. **Sandbox orphan cleanup** — background job to clean up sandboxes whose sessions were deleted but cleanup step failed
+6. **Fix ExecuteGraphton→ExecuteDeepAgent name mismatch** — Java workflow still dispatches `ExecuteGraphton` but unified runner registers `ExecuteDeepAgent`. Native harness per-session routing blocked until resolved.
+7. **Token renewal mechanism** — if 4h TTL proves too short for continuous use, add runner-side token refresh (deferred from token exchange design)
 
 ## Session Progress (2026-05-20, Session 5)
 
