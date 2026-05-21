@@ -38,8 +38,7 @@ private static final long serialVersionUID = 0L;
   private SessionSpec() {
     agentInstanceId_ = "";
     subject_ = "";
-    threadId_ = "";
-    sandboxId_ = "";
+    harnessStateId_ = "";
     workspaceEntries_ = java.util.Collections.emptyList();
     mcpServerUsages_ = java.util.Collections.emptyList();
     skillRefs_ = java.util.Collections.emptyList();
@@ -182,108 +181,79 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int THREAD_ID_FIELD_NUMBER = 3;
+  public static final int HARNESS_STATE_ID_FIELD_NUMBER = 3;
   @SuppressWarnings("serial")
-  private volatile java.lang.Object threadId_ = "";
+  private volatile java.lang.Object harnessStateId_ = "";
   /**
    * <pre>
-   * Thread ID that carries the conversation history across executions.
+   * Harness-specific state identifier for conversation continuity.
+   *
+   * Populated after the first execution completes; empty until then.
+   * Each harness uses this field differently:
+   *
+   * - NATIVE: LangGraph thread ID, derived deterministically as
+   * "thread-{session_id}" by the EnsureThread activity. Stored here
+   * so the immutability sentinel works uniformly across harnesses.
+   *
+   * - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
+   * returned by Agent.create(). Used for Agent.resume() on
+   * subsequent executions.
    *
    * &#64;internal
-   * Generated on first execution, persists across all executions.
+   * Also serves as the immutability sentinel: when non-empty, the
+   * session's harness and cursor_mode cannot be changed — each harness
+   * owns its conversation state independently.
    * </pre>
    *
-   * <code>string thread_id = 3 [json_name = "threadId"];</code>
-   * @return The threadId.
+   * <code>string harness_state_id = 3 [json_name = "harnessStateId"];</code>
+   * @return The harnessStateId.
    */
   @java.lang.Override
-  public java.lang.String getThreadId() {
-    java.lang.Object ref = threadId_;
+  public java.lang.String getHarnessStateId() {
+    java.lang.Object ref = harnessStateId_;
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
     } else {
       com.google.protobuf.ByteString bs = 
           (com.google.protobuf.ByteString) ref;
       java.lang.String s = bs.toStringUtf8();
-      threadId_ = s;
+      harnessStateId_ = s;
       return s;
     }
   }
   /**
    * <pre>
-   * Thread ID that carries the conversation history across executions.
+   * Harness-specific state identifier for conversation continuity.
+   *
+   * Populated after the first execution completes; empty until then.
+   * Each harness uses this field differently:
+   *
+   * - NATIVE: LangGraph thread ID, derived deterministically as
+   * "thread-{session_id}" by the EnsureThread activity. Stored here
+   * so the immutability sentinel works uniformly across harnesses.
+   *
+   * - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
+   * returned by Agent.create(). Used for Agent.resume() on
+   * subsequent executions.
    *
    * &#64;internal
-   * Generated on first execution, persists across all executions.
+   * Also serves as the immutability sentinel: when non-empty, the
+   * session's harness and cursor_mode cannot be changed — each harness
+   * owns its conversation state independently.
    * </pre>
    *
-   * <code>string thread_id = 3 [json_name = "threadId"];</code>
-   * @return The bytes for threadId.
+   * <code>string harness_state_id = 3 [json_name = "harnessStateId"];</code>
+   * @return The bytes for harnessStateId.
    */
   @java.lang.Override
   public com.google.protobuf.ByteString
-      getThreadIdBytes() {
-    java.lang.Object ref = threadId_;
+      getHarnessStateIdBytes() {
+    java.lang.Object ref = harnessStateId_;
     if (ref instanceof java.lang.String) {
       com.google.protobuf.ByteString b = 
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
-      threadId_ = b;
-      return b;
-    } else {
-      return (com.google.protobuf.ByteString) ref;
-    }
-  }
-
-  public static final int SANDBOX_ID_FIELD_NUMBER = 4;
-  @SuppressWarnings("serial")
-  private volatile java.lang.Object sandboxId_ = "";
-  /**
-   * <pre>
-   * Deprecated: sandbox lifecycle is managed at the session level.
-   * Existing sessions may still have this field populated; new sessions
-   * should not set it.
-   * </pre>
-   *
-   * <code>string sandbox_id = 4 [json_name = "sandboxId", deprecated = true];</code>
-   * @deprecated ai.stigmer.agentic.session.v1.SessionSpec.sandbox_id is deprecated.
-   *     See ai/stigmer/agentic/session/v1/spec.proto;l=37
-   * @return The sandboxId.
-   */
-  @java.lang.Override
-  @java.lang.Deprecated public java.lang.String getSandboxId() {
-    java.lang.Object ref = sandboxId_;
-    if (ref instanceof java.lang.String) {
-      return (java.lang.String) ref;
-    } else {
-      com.google.protobuf.ByteString bs = 
-          (com.google.protobuf.ByteString) ref;
-      java.lang.String s = bs.toStringUtf8();
-      sandboxId_ = s;
-      return s;
-    }
-  }
-  /**
-   * <pre>
-   * Deprecated: sandbox lifecycle is managed at the session level.
-   * Existing sessions may still have this field populated; new sessions
-   * should not set it.
-   * </pre>
-   *
-   * <code>string sandbox_id = 4 [json_name = "sandboxId", deprecated = true];</code>
-   * @deprecated ai.stigmer.agentic.session.v1.SessionSpec.sandbox_id is deprecated.
-   *     See ai/stigmer/agentic/session/v1/spec.proto;l=37
-   * @return The bytes for sandboxId.
-   */
-  @java.lang.Override
-  @java.lang.Deprecated public com.google.protobuf.ByteString
-      getSandboxIdBytes() {
-    java.lang.Object ref = sandboxId_;
-    if (ref instanceof java.lang.String) {
-      com.google.protobuf.ByteString b = 
-          com.google.protobuf.ByteString.copyFromUtf8(
-              (java.lang.String) ref);
-      sandboxId_ = b;
+      harnessStateId_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
@@ -866,11 +836,8 @@ java.lang.String defaultValue) {
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(subject_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 2, subject_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(threadId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 3, threadId_);
-    }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(sandboxId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 4, sandboxId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(harnessStateId_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 3, harnessStateId_);
     }
     com.google.protobuf.GeneratedMessage
       .serializeStringMapTo(
@@ -911,11 +878,8 @@ java.lang.String defaultValue) {
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(subject_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(2, subject_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(threadId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(3, threadId_);
-    }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(sandboxId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(4, sandboxId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(harnessStateId_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(3, harnessStateId_);
     }
     for (java.util.Map.Entry<java.lang.String, java.lang.String> entry
          : internalGetMetadata().getMap().entrySet()) {
@@ -985,10 +949,8 @@ java.lang.String defaultValue) {
         .equals(other.getAgentInstanceId())) return false;
     if (!getSubject()
         .equals(other.getSubject())) return false;
-    if (!getThreadId()
-        .equals(other.getThreadId())) return false;
-    if (!getSandboxId()
-        .equals(other.getSandboxId())) return false;
+    if (!getHarnessStateId()
+        .equals(other.getHarnessStateId())) return false;
     if (!internalGetMetadata().equals(
         other.internalGetMetadata())) return false;
     if (!getWorkspaceEntriesList()
@@ -1015,10 +977,8 @@ java.lang.String defaultValue) {
     hash = (53 * hash) + getAgentInstanceId().hashCode();
     hash = (37 * hash) + SUBJECT_FIELD_NUMBER;
     hash = (53 * hash) + getSubject().hashCode();
-    hash = (37 * hash) + THREAD_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getThreadId().hashCode();
-    hash = (37 * hash) + SANDBOX_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getSandboxId().hashCode();
+    hash = (37 * hash) + HARNESS_STATE_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getHarnessStateId().hashCode();
     if (!internalGetMetadata().getMap().isEmpty()) {
       hash = (37 * hash) + METADATA_FIELD_NUMBER;
       hash = (53 * hash) + internalGetMetadata().hashCode();
@@ -1204,8 +1164,7 @@ java.lang.String defaultValue) {
       bitField0_ = 0;
       agentInstanceId_ = "";
       subject_ = "";
-      threadId_ = "";
-      sandboxId_ = "";
+      harnessStateId_ = "";
       internalGetMutableMetadata().clear();
       if (workspaceEntriesBuilder_ == null) {
         workspaceEntries_ = java.util.Collections.emptyList();
@@ -1213,21 +1172,21 @@ java.lang.String defaultValue) {
         workspaceEntries_ = null;
         workspaceEntriesBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000020);
+      bitField0_ = (bitField0_ & ~0x00000010);
       if (mcpServerUsagesBuilder_ == null) {
         mcpServerUsages_ = java.util.Collections.emptyList();
       } else {
         mcpServerUsages_ = null;
         mcpServerUsagesBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000040);
+      bitField0_ = (bitField0_ & ~0x00000020);
       if (skillRefsBuilder_ == null) {
         skillRefs_ = java.util.Collections.emptyList();
       } else {
         skillRefs_ = null;
         skillRefsBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000080);
+      bitField0_ = (bitField0_ & ~0x00000040);
       harness_ = 0;
       cursorMode_ = 0;
       executionTarget_ = 0;
@@ -1265,27 +1224,27 @@ java.lang.String defaultValue) {
 
     private void buildPartialRepeatedFields(ai.stigmer.agentic.session.v1.SessionSpec result) {
       if (workspaceEntriesBuilder_ == null) {
-        if (((bitField0_ & 0x00000020) != 0)) {
+        if (((bitField0_ & 0x00000010) != 0)) {
           workspaceEntries_ = java.util.Collections.unmodifiableList(workspaceEntries_);
-          bitField0_ = (bitField0_ & ~0x00000020);
+          bitField0_ = (bitField0_ & ~0x00000010);
         }
         result.workspaceEntries_ = workspaceEntries_;
       } else {
         result.workspaceEntries_ = workspaceEntriesBuilder_.build();
       }
       if (mcpServerUsagesBuilder_ == null) {
-        if (((bitField0_ & 0x00000040) != 0)) {
+        if (((bitField0_ & 0x00000020) != 0)) {
           mcpServerUsages_ = java.util.Collections.unmodifiableList(mcpServerUsages_);
-          bitField0_ = (bitField0_ & ~0x00000040);
+          bitField0_ = (bitField0_ & ~0x00000020);
         }
         result.mcpServerUsages_ = mcpServerUsages_;
       } else {
         result.mcpServerUsages_ = mcpServerUsagesBuilder_.build();
       }
       if (skillRefsBuilder_ == null) {
-        if (((bitField0_ & 0x00000080) != 0)) {
+        if (((bitField0_ & 0x00000040) != 0)) {
           skillRefs_ = java.util.Collections.unmodifiableList(skillRefs_);
-          bitField0_ = (bitField0_ & ~0x00000080);
+          bitField0_ = (bitField0_ & ~0x00000040);
         }
         result.skillRefs_ = skillRefs_;
       } else {
@@ -1302,22 +1261,19 @@ java.lang.String defaultValue) {
         result.subject_ = subject_;
       }
       if (((from_bitField0_ & 0x00000004) != 0)) {
-        result.threadId_ = threadId_;
+        result.harnessStateId_ = harnessStateId_;
       }
       if (((from_bitField0_ & 0x00000008) != 0)) {
-        result.sandboxId_ = sandboxId_;
-      }
-      if (((from_bitField0_ & 0x00000010) != 0)) {
         result.metadata_ = internalGetMetadata();
         result.metadata_.makeImmutable();
       }
-      if (((from_bitField0_ & 0x00000100) != 0)) {
+      if (((from_bitField0_ & 0x00000080) != 0)) {
         result.harness_ = harness_;
       }
-      if (((from_bitField0_ & 0x00000200) != 0)) {
+      if (((from_bitField0_ & 0x00000100) != 0)) {
         result.cursorMode_ = cursorMode_;
       }
-      if (((from_bitField0_ & 0x00000400) != 0)) {
+      if (((from_bitField0_ & 0x00000200) != 0)) {
         result.executionTarget_ = executionTarget_;
       }
     }
@@ -1344,24 +1300,19 @@ java.lang.String defaultValue) {
         bitField0_ |= 0x00000002;
         onChanged();
       }
-      if (!other.getThreadId().isEmpty()) {
-        threadId_ = other.threadId_;
+      if (!other.getHarnessStateId().isEmpty()) {
+        harnessStateId_ = other.harnessStateId_;
         bitField0_ |= 0x00000004;
-        onChanged();
-      }
-      if (!other.getSandboxId().isEmpty()) {
-        sandboxId_ = other.sandboxId_;
-        bitField0_ |= 0x00000008;
         onChanged();
       }
       internalGetMutableMetadata().mergeFrom(
           other.internalGetMetadata());
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000008;
       if (workspaceEntriesBuilder_ == null) {
         if (!other.workspaceEntries_.isEmpty()) {
           if (workspaceEntries_.isEmpty()) {
             workspaceEntries_ = other.workspaceEntries_;
-            bitField0_ = (bitField0_ & ~0x00000020);
+            bitField0_ = (bitField0_ & ~0x00000010);
           } else {
             ensureWorkspaceEntriesIsMutable();
             workspaceEntries_.addAll(other.workspaceEntries_);
@@ -1374,7 +1325,7 @@ java.lang.String defaultValue) {
             workspaceEntriesBuilder_.dispose();
             workspaceEntriesBuilder_ = null;
             workspaceEntries_ = other.workspaceEntries_;
-            bitField0_ = (bitField0_ & ~0x00000020);
+            bitField0_ = (bitField0_ & ~0x00000010);
             workspaceEntriesBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetWorkspaceEntriesFieldBuilder() : null;
@@ -1387,7 +1338,7 @@ java.lang.String defaultValue) {
         if (!other.mcpServerUsages_.isEmpty()) {
           if (mcpServerUsages_.isEmpty()) {
             mcpServerUsages_ = other.mcpServerUsages_;
-            bitField0_ = (bitField0_ & ~0x00000040);
+            bitField0_ = (bitField0_ & ~0x00000020);
           } else {
             ensureMcpServerUsagesIsMutable();
             mcpServerUsages_.addAll(other.mcpServerUsages_);
@@ -1400,7 +1351,7 @@ java.lang.String defaultValue) {
             mcpServerUsagesBuilder_.dispose();
             mcpServerUsagesBuilder_ = null;
             mcpServerUsages_ = other.mcpServerUsages_;
-            bitField0_ = (bitField0_ & ~0x00000040);
+            bitField0_ = (bitField0_ & ~0x00000020);
             mcpServerUsagesBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetMcpServerUsagesFieldBuilder() : null;
@@ -1413,7 +1364,7 @@ java.lang.String defaultValue) {
         if (!other.skillRefs_.isEmpty()) {
           if (skillRefs_.isEmpty()) {
             skillRefs_ = other.skillRefs_;
-            bitField0_ = (bitField0_ & ~0x00000080);
+            bitField0_ = (bitField0_ & ~0x00000040);
           } else {
             ensureSkillRefsIsMutable();
             skillRefs_.addAll(other.skillRefs_);
@@ -1426,7 +1377,7 @@ java.lang.String defaultValue) {
             skillRefsBuilder_.dispose();
             skillRefsBuilder_ = null;
             skillRefs_ = other.skillRefs_;
-            bitField0_ = (bitField0_ & ~0x00000080);
+            bitField0_ = (bitField0_ & ~0x00000040);
             skillRefsBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetSkillRefsFieldBuilder() : null;
@@ -1481,22 +1432,17 @@ java.lang.String defaultValue) {
               break;
             } // case 18
             case 26: {
-              threadId_ = input.readStringRequireUtf8();
+              harnessStateId_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000004;
               break;
             } // case 26
-            case 34: {
-              sandboxId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000008;
-              break;
-            } // case 34
             case 42: {
               com.google.protobuf.MapEntry<java.lang.String, java.lang.String>
               metadata__ = input.readMessage(
                   MetadataDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
               internalGetMutableMetadata().getMutableMap().put(
                   metadata__.getKey(), metadata__.getValue());
-              bitField0_ |= 0x00000010;
+              bitField0_ |= 0x00000008;
               break;
             } // case 42
             case 50: {
@@ -1540,17 +1486,17 @@ java.lang.String defaultValue) {
             } // case 66
             case 80: {
               harness_ = input.readEnum();
-              bitField0_ |= 0x00000100;
+              bitField0_ |= 0x00000080;
               break;
             } // case 80
             case 88: {
               cursorMode_ = input.readEnum();
-              bitField0_ |= 0x00000200;
+              bitField0_ |= 0x00000100;
               break;
             } // case 88
             case 96: {
               executionTarget_ = input.readEnum();
-              bitField0_ |= 0x00000400;
+              bitField0_ |= 0x00000200;
               break;
             } // case 96
             default: {
@@ -1779,25 +1725,38 @@ java.lang.String defaultValue) {
       return this;
     }
 
-    private java.lang.Object threadId_ = "";
+    private java.lang.Object harnessStateId_ = "";
     /**
      * <pre>
-     * Thread ID that carries the conversation history across executions.
+     * Harness-specific state identifier for conversation continuity.
+     *
+     * Populated after the first execution completes; empty until then.
+     * Each harness uses this field differently:
+     *
+     * - NATIVE: LangGraph thread ID, derived deterministically as
+     * "thread-{session_id}" by the EnsureThread activity. Stored here
+     * so the immutability sentinel works uniformly across harnesses.
+     *
+     * - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
+     * returned by Agent.create(). Used for Agent.resume() on
+     * subsequent executions.
      *
      * &#64;internal
-     * Generated on first execution, persists across all executions.
+     * Also serves as the immutability sentinel: when non-empty, the
+     * session's harness and cursor_mode cannot be changed — each harness
+     * owns its conversation state independently.
      * </pre>
      *
-     * <code>string thread_id = 3 [json_name = "threadId"];</code>
-     * @return The threadId.
+     * <code>string harness_state_id = 3 [json_name = "harnessStateId"];</code>
+     * @return The harnessStateId.
      */
-    public java.lang.String getThreadId() {
-      java.lang.Object ref = threadId_;
+    public java.lang.String getHarnessStateId() {
+      java.lang.Object ref = harnessStateId_;
       if (!(ref instanceof java.lang.String)) {
         com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        threadId_ = s;
+        harnessStateId_ = s;
         return s;
       } else {
         return (java.lang.String) ref;
@@ -1805,23 +1764,36 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Thread ID that carries the conversation history across executions.
+     * Harness-specific state identifier for conversation continuity.
+     *
+     * Populated after the first execution completes; empty until then.
+     * Each harness uses this field differently:
+     *
+     * - NATIVE: LangGraph thread ID, derived deterministically as
+     * "thread-{session_id}" by the EnsureThread activity. Stored here
+     * so the immutability sentinel works uniformly across harnesses.
+     *
+     * - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
+     * returned by Agent.create(). Used for Agent.resume() on
+     * subsequent executions.
      *
      * &#64;internal
-     * Generated on first execution, persists across all executions.
+     * Also serves as the immutability sentinel: when non-empty, the
+     * session's harness and cursor_mode cannot be changed — each harness
+     * owns its conversation state independently.
      * </pre>
      *
-     * <code>string thread_id = 3 [json_name = "threadId"];</code>
-     * @return The bytes for threadId.
+     * <code>string harness_state_id = 3 [json_name = "harnessStateId"];</code>
+     * @return The bytes for harnessStateId.
      */
     public com.google.protobuf.ByteString
-        getThreadIdBytes() {
-      java.lang.Object ref = threadId_;
+        getHarnessStateIdBytes() {
+      java.lang.Object ref = harnessStateId_;
       if (ref instanceof String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        threadId_ = b;
+        harnessStateId_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
@@ -1829,171 +1801,98 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Thread ID that carries the conversation history across executions.
+     * Harness-specific state identifier for conversation continuity.
+     *
+     * Populated after the first execution completes; empty until then.
+     * Each harness uses this field differently:
+     *
+     * - NATIVE: LangGraph thread ID, derived deterministically as
+     * "thread-{session_id}" by the EnsureThread activity. Stored here
+     * so the immutability sentinel works uniformly across harnesses.
+     *
+     * - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
+     * returned by Agent.create(). Used for Agent.resume() on
+     * subsequent executions.
      *
      * &#64;internal
-     * Generated on first execution, persists across all executions.
+     * Also serves as the immutability sentinel: when non-empty, the
+     * session's harness and cursor_mode cannot be changed — each harness
+     * owns its conversation state independently.
      * </pre>
      *
-     * <code>string thread_id = 3 [json_name = "threadId"];</code>
-     * @param value The threadId to set.
+     * <code>string harness_state_id = 3 [json_name = "harnessStateId"];</code>
+     * @param value The harnessStateId to set.
      * @return This builder for chaining.
      */
-    public Builder setThreadId(
+    public Builder setHarnessStateId(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      threadId_ = value;
+      harnessStateId_ = value;
       bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Thread ID that carries the conversation history across executions.
+     * Harness-specific state identifier for conversation continuity.
+     *
+     * Populated after the first execution completes; empty until then.
+     * Each harness uses this field differently:
+     *
+     * - NATIVE: LangGraph thread ID, derived deterministically as
+     * "thread-{session_id}" by the EnsureThread activity. Stored here
+     * so the immutability sentinel works uniformly across harnesses.
+     *
+     * - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
+     * returned by Agent.create(). Used for Agent.resume() on
+     * subsequent executions.
      *
      * &#64;internal
-     * Generated on first execution, persists across all executions.
+     * Also serves as the immutability sentinel: when non-empty, the
+     * session's harness and cursor_mode cannot be changed — each harness
+     * owns its conversation state independently.
      * </pre>
      *
-     * <code>string thread_id = 3 [json_name = "threadId"];</code>
+     * <code>string harness_state_id = 3 [json_name = "harnessStateId"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearThreadId() {
-      threadId_ = getDefaultInstance().getThreadId();
+    public Builder clearHarnessStateId() {
+      harnessStateId_ = getDefaultInstance().getHarnessStateId();
       bitField0_ = (bitField0_ & ~0x00000004);
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Thread ID that carries the conversation history across executions.
+     * Harness-specific state identifier for conversation continuity.
+     *
+     * Populated after the first execution completes; empty until then.
+     * Each harness uses this field differently:
+     *
+     * - NATIVE: LangGraph thread ID, derived deterministically as
+     * "thread-{session_id}" by the EnsureThread activity. Stored here
+     * so the immutability sentinel works uniformly across harnesses.
+     *
+     * - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
+     * returned by Agent.create(). Used for Agent.resume() on
+     * subsequent executions.
      *
      * &#64;internal
-     * Generated on first execution, persists across all executions.
+     * Also serves as the immutability sentinel: when non-empty, the
+     * session's harness and cursor_mode cannot be changed — each harness
+     * owns its conversation state independently.
      * </pre>
      *
-     * <code>string thread_id = 3 [json_name = "threadId"];</code>
-     * @param value The bytes for threadId to set.
+     * <code>string harness_state_id = 3 [json_name = "harnessStateId"];</code>
+     * @param value The bytes for harnessStateId to set.
      * @return This builder for chaining.
      */
-    public Builder setThreadIdBytes(
+    public Builder setHarnessStateIdBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
-      threadId_ = value;
+      harnessStateId_ = value;
       bitField0_ |= 0x00000004;
-      onChanged();
-      return this;
-    }
-
-    private java.lang.Object sandboxId_ = "";
-    /**
-     * <pre>
-     * Deprecated: sandbox lifecycle is managed at the session level.
-     * Existing sessions may still have this field populated; new sessions
-     * should not set it.
-     * </pre>
-     *
-     * <code>string sandbox_id = 4 [json_name = "sandboxId", deprecated = true];</code>
-     * @deprecated ai.stigmer.agentic.session.v1.SessionSpec.sandbox_id is deprecated.
-     *     See ai/stigmer/agentic/session/v1/spec.proto;l=37
-     * @return The sandboxId.
-     */
-    @java.lang.Deprecated public java.lang.String getSandboxId() {
-      java.lang.Object ref = sandboxId_;
-      if (!(ref instanceof java.lang.String)) {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        sandboxId_ = s;
-        return s;
-      } else {
-        return (java.lang.String) ref;
-      }
-    }
-    /**
-     * <pre>
-     * Deprecated: sandbox lifecycle is managed at the session level.
-     * Existing sessions may still have this field populated; new sessions
-     * should not set it.
-     * </pre>
-     *
-     * <code>string sandbox_id = 4 [json_name = "sandboxId", deprecated = true];</code>
-     * @deprecated ai.stigmer.agentic.session.v1.SessionSpec.sandbox_id is deprecated.
-     *     See ai/stigmer/agentic/session/v1/spec.proto;l=37
-     * @return The bytes for sandboxId.
-     */
-    @java.lang.Deprecated public com.google.protobuf.ByteString
-        getSandboxIdBytes() {
-      java.lang.Object ref = sandboxId_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        sandboxId_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-    /**
-     * <pre>
-     * Deprecated: sandbox lifecycle is managed at the session level.
-     * Existing sessions may still have this field populated; new sessions
-     * should not set it.
-     * </pre>
-     *
-     * <code>string sandbox_id = 4 [json_name = "sandboxId", deprecated = true];</code>
-     * @deprecated ai.stigmer.agentic.session.v1.SessionSpec.sandbox_id is deprecated.
-     *     See ai/stigmer/agentic/session/v1/spec.proto;l=37
-     * @param value The sandboxId to set.
-     * @return This builder for chaining.
-     */
-    @java.lang.Deprecated public Builder setSandboxId(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      sandboxId_ = value;
-      bitField0_ |= 0x00000008;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Deprecated: sandbox lifecycle is managed at the session level.
-     * Existing sessions may still have this field populated; new sessions
-     * should not set it.
-     * </pre>
-     *
-     * <code>string sandbox_id = 4 [json_name = "sandboxId", deprecated = true];</code>
-     * @deprecated ai.stigmer.agentic.session.v1.SessionSpec.sandbox_id is deprecated.
-     *     See ai/stigmer/agentic/session/v1/spec.proto;l=37
-     * @return This builder for chaining.
-     */
-    @java.lang.Deprecated public Builder clearSandboxId() {
-      sandboxId_ = getDefaultInstance().getSandboxId();
-      bitField0_ = (bitField0_ & ~0x00000008);
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Deprecated: sandbox lifecycle is managed at the session level.
-     * Existing sessions may still have this field populated; new sessions
-     * should not set it.
-     * </pre>
-     *
-     * <code>string sandbox_id = 4 [json_name = "sandboxId", deprecated = true];</code>
-     * @deprecated ai.stigmer.agentic.session.v1.SessionSpec.sandbox_id is deprecated.
-     *     See ai/stigmer/agentic/session/v1/spec.proto;l=37
-     * @param value The bytes for sandboxId to set.
-     * @return This builder for chaining.
-     */
-    @java.lang.Deprecated public Builder setSandboxIdBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      sandboxId_ = value;
-      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }
@@ -2017,7 +1916,7 @@ java.lang.String defaultValue) {
       if (!metadata_.isMutable()) {
         metadata_ = metadata_.copy();
       }
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000008;
       onChanged();
       return metadata_;
     }
@@ -2093,7 +1992,7 @@ java.lang.String defaultValue) {
       return map.get(key);
     }
     public Builder clearMetadata() {
-      bitField0_ = (bitField0_ & ~0x00000010);
+      bitField0_ = (bitField0_ & ~0x00000008);
       internalGetMutableMetadata().getMutableMap()
           .clear();
       return this;
@@ -2118,7 +2017,7 @@ java.lang.String defaultValue) {
     @java.lang.Deprecated
     public java.util.Map<java.lang.String, java.lang.String>
         getMutableMetadata() {
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000008;
       return internalGetMutableMetadata().getMutableMap();
     }
     /**
@@ -2135,7 +2034,7 @@ java.lang.String defaultValue) {
       if (value == null) { throw new NullPointerException("map value"); }
       internalGetMutableMetadata().getMutableMap()
           .put(key, value);
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000008;
       return this;
     }
     /**
@@ -2149,16 +2048,16 @@ java.lang.String defaultValue) {
         java.util.Map<java.lang.String, java.lang.String> values) {
       internalGetMutableMetadata().getMutableMap()
           .putAll(values);
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000008;
       return this;
     }
 
     private java.util.List<ai.stigmer.agentic.session.v1.WorkspaceEntry> workspaceEntries_ =
       java.util.Collections.emptyList();
     private void ensureWorkspaceEntriesIsMutable() {
-      if (!((bitField0_ & 0x00000020) != 0)) {
+      if (!((bitField0_ & 0x00000010) != 0)) {
         workspaceEntries_ = new java.util.ArrayList<ai.stigmer.agentic.session.v1.WorkspaceEntry>(workspaceEntries_);
-        bitField0_ |= 0x00000020;
+        bitField0_ |= 0x00000010;
        }
     }
 
@@ -2418,7 +2317,7 @@ java.lang.String defaultValue) {
     public Builder clearWorkspaceEntries() {
       if (workspaceEntriesBuilder_ == null) {
         workspaceEntries_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000020);
+        bitField0_ = (bitField0_ & ~0x00000010);
         onChanged();
       } else {
         workspaceEntriesBuilder_.clear();
@@ -2565,7 +2464,7 @@ java.lang.String defaultValue) {
         workspaceEntriesBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.agentic.session.v1.WorkspaceEntry, ai.stigmer.agentic.session.v1.WorkspaceEntry.Builder, ai.stigmer.agentic.session.v1.WorkspaceEntryOrBuilder>(
                 workspaceEntries_,
-                ((bitField0_ & 0x00000020) != 0),
+                ((bitField0_ & 0x00000010) != 0),
                 getParentForChildren(),
                 isClean());
         workspaceEntries_ = null;
@@ -2576,9 +2475,9 @@ java.lang.String defaultValue) {
     private java.util.List<ai.stigmer.agentic.agent.v1.McpServerUsage> mcpServerUsages_ =
       java.util.Collections.emptyList();
     private void ensureMcpServerUsagesIsMutable() {
-      if (!((bitField0_ & 0x00000040) != 0)) {
+      if (!((bitField0_ & 0x00000020) != 0)) {
         mcpServerUsages_ = new java.util.ArrayList<ai.stigmer.agentic.agent.v1.McpServerUsage>(mcpServerUsages_);
-        bitField0_ |= 0x00000040;
+        bitField0_ |= 0x00000020;
        }
     }
 
@@ -2893,7 +2792,7 @@ java.lang.String defaultValue) {
     public Builder clearMcpServerUsages() {
       if (mcpServerUsagesBuilder_ == null) {
         mcpServerUsages_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000040);
+        bitField0_ = (bitField0_ & ~0x00000020);
         onChanged();
       } else {
         mcpServerUsagesBuilder_.clear();
@@ -3075,7 +2974,7 @@ java.lang.String defaultValue) {
         mcpServerUsagesBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.agentic.agent.v1.McpServerUsage, ai.stigmer.agentic.agent.v1.McpServerUsage.Builder, ai.stigmer.agentic.agent.v1.McpServerUsageOrBuilder>(
                 mcpServerUsages_,
-                ((bitField0_ & 0x00000040) != 0),
+                ((bitField0_ & 0x00000020) != 0),
                 getParentForChildren(),
                 isClean());
         mcpServerUsages_ = null;
@@ -3086,9 +2985,9 @@ java.lang.String defaultValue) {
     private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> skillRefs_ =
       java.util.Collections.emptyList();
     private void ensureSkillRefsIsMutable() {
-      if (!((bitField0_ & 0x00000080) != 0)) {
+      if (!((bitField0_ & 0x00000040) != 0)) {
         skillRefs_ = new java.util.ArrayList<ai.stigmer.commons.apiresource.ApiResourceReference>(skillRefs_);
-        bitField0_ |= 0x00000080;
+        bitField0_ |= 0x00000040;
        }
     }
 
@@ -3359,7 +3258,7 @@ java.lang.String defaultValue) {
     public Builder clearSkillRefs() {
       if (skillRefsBuilder_ == null) {
         skillRefs_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000080);
+        bitField0_ = (bitField0_ & ~0x00000040);
         onChanged();
       } else {
         skillRefsBuilder_.clear();
@@ -3513,7 +3412,7 @@ java.lang.String defaultValue) {
         skillRefsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder>(
                 skillRefs_,
-                ((bitField0_ & 0x00000080) != 0),
+                ((bitField0_ & 0x00000040) != 0),
                 getParentForChildren(),
                 isClean());
         skillRefs_ = null;
@@ -3569,7 +3468,7 @@ java.lang.String defaultValue) {
      */
     public Builder setHarnessValue(int value) {
       harness_ = value;
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }
@@ -3621,7 +3520,7 @@ java.lang.String defaultValue) {
      */
     public Builder setHarness(ai.stigmer.agentic.session.v1.Harness value) {
       if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000080;
       harness_ = value.getNumber();
       onChanged();
       return this;
@@ -3647,7 +3546,7 @@ java.lang.String defaultValue) {
      * @return This builder for chaining.
      */
     public Builder clearHarness() {
-      bitField0_ = (bitField0_ & ~0x00000100);
+      bitField0_ = (bitField0_ & ~0x00000080);
       harness_ = 0;
       onChanged();
       return this;
@@ -3709,7 +3608,7 @@ java.lang.String defaultValue) {
      */
     public Builder setCursorModeValue(int value) {
       cursorMode_ = value;
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }
@@ -3769,7 +3668,7 @@ java.lang.String defaultValue) {
      */
     public Builder setCursorMode(ai.stigmer.agentic.session.v1.CursorMode value) {
       if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000100;
       cursorMode_ = value.getNumber();
       onChanged();
       return this;
@@ -3799,7 +3698,7 @@ java.lang.String defaultValue) {
      * @return This builder for chaining.
      */
     public Builder clearCursorMode() {
-      bitField0_ = (bitField0_ & ~0x00000200);
+      bitField0_ = (bitField0_ & ~0x00000100);
       cursorMode_ = 0;
       onChanged();
       return this;
@@ -3853,7 +3752,7 @@ java.lang.String defaultValue) {
      */
     public Builder setExecutionTargetValue(int value) {
       executionTarget_ = value;
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000200;
       onChanged();
       return this;
     }
@@ -3905,7 +3804,7 @@ java.lang.String defaultValue) {
      */
     public Builder setExecutionTarget(ai.stigmer.agentic.session.v1.ExecutionTarget value) {
       if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000200;
       executionTarget_ = value.getNumber();
       onChanged();
       return this;
@@ -3931,7 +3830,7 @@ java.lang.String defaultValue) {
      * @return This builder for chaining.
      */
     public Builder clearExecutionTarget() {
-      bitField0_ = (bitField0_ & ~0x00000400);
+      bitField0_ = (bitField0_ & ~0x00000200);
       executionTarget_ = 0;
       onChanged();
       return this;

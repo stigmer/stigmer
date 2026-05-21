@@ -13,8 +13,7 @@ function makeSpec(overrides: Partial<NonNullable<SessionSpec>> = {}): SessionSpe
   return {
     agentInstanceId: "",
     subject: "",
-    threadId: "",
-    sandboxId: "",
+    harnessStateId: "",
     metadata: {},
     workspaceEntries: [],
     mcpServerUsages: [],

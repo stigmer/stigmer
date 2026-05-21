@@ -25,7 +25,7 @@ import (
 //
 // Harness dispatch: input.Harness determines which flow runs:
 // - NATIVE/UNSPECIFIED: executeGraphtonFlow (EnsureThread -> ExecuteGraphton)
-// - CURSOR: executeCursorFlow (ReadSessionThreadId -> ExecuteCursor)
+// - CURSOR: executeCursorFlow (ReadHarnessStateId -> ExecuteCursor)
 //
 // Queue routing: The activity task queue is stored in workflow memo at creation
 // time. In global mode this is "agent_execution_runner"; in per-session mode
@@ -387,7 +387,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonWithHitl(
 
 // executeCursorFlow executes a Cursor harness agent. Structurally identical to
 // executeGraphtonFlow with two variation points:
-//   - threadId comes from ReadSessionThreadId (not EnsureThread)
+//   - harnessStateId comes from ReadHarnessStateId (not EnsureThread)
 //   - ExecuteCursor activity (not ExecuteGraphton)
 //
 // Same GenerateSessionSubject (fire-and-forget), same HITL approval loop,
@@ -487,7 +487,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeCursorFlow(ctx workflow.Contex
 }
 
 // executeCursorWithHitl runs the ExecuteCursor activity and handles the HITL
-// approval loop. Reads threadId from the session before each invocation so
+// approval loop. Reads harness_state_id from the session before each invocation so
 // the Cursor agentId (stored by the activity on first run) is available for
 // reinvocations.
 func (w *InvokeAgentExecutionWorkflowImpl) executeCursorWithHitl(
@@ -498,18 +498,18 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeCursorWithHitl(
 ) (*agentexecutionv1.AgentExecutionStatus, error) {
 	logger := workflow.GetLogger(ctx)
 
-	// Read threadId (Cursor agentId) from session — empty on first execution,
+	// Read harness_state_id (Cursor agentId) from session — empty on first execution,
 	// populated by the activity after Agent.create().
-	threadID, err := w.readSessionThreadId(ctx, sessionID)
+	harnessStateID, err := w.readHarnessStateId(ctx, sessionID)
 	if err != nil {
-		logger.Warn("Failed to read session thread_id (non-fatal, using empty)",
+		logger.Warn("Failed to read session harness_state_id (non-fatal, using empty)",
 			"session_id", sessionID, "error", err.Error())
-		threadID = ""
+		harnessStateID = ""
 	}
 
 	executeCursorActivity := activities.NewExecuteCursorActivityStub(ctx, activityTaskQueue)
 
-	finalStatus, err := executeCursorActivity.ExecuteCursor(executionID, threadID)
+	finalStatus, err := executeCursorActivity.ExecuteCursor(executionID, harnessStateID)
 	if err != nil {
 		return nil, err
 	}
@@ -557,16 +557,16 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeCursorWithHitl(
 				"execution_id", executionID, "cycle", approvalCycle)
 		}
 
-		// Re-read threadId — the first ExecuteCursor call stored the Cursor agentId
-		threadID, err = w.readSessionThreadId(ctx, sessionID)
+		// Re-read harness_state_id — the first ExecuteCursor call stored the Cursor agentId
+		harnessStateID, err = w.readHarnessStateId(ctx, sessionID)
 		if err != nil {
-			return nil, fmt.Errorf("failed to read session thread_id for reinvocation: %w", err)
+			return nil, fmt.Errorf("failed to read session harness_state_id for reinvocation: %w", err)
 		}
 
 		logger.Info("Re-invoking Cursor after approval", "execution_id", executionID,
-			"cycle", approvalCycle, "thread_id", threadID)
+			"cycle", approvalCycle, "harness_state_id", harnessStateID)
 
-		finalStatus, err = executeCursorActivity.ExecuteCursor(executionID, threadID)
+		finalStatus, err = executeCursorActivity.ExecuteCursor(executionID, harnessStateID)
 		if err != nil {
 			return nil, err
 		}
@@ -584,8 +584,8 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeCursorWithHitl(
 	return finalStatus, nil
 }
 
-// readSessionThreadId reads the thread_id from a session via local activity.
-func (w *InvokeAgentExecutionWorkflowImpl) readSessionThreadId(ctx workflow.Context, sessionID string) (string, error) {
+// readHarnessStateId reads the harness_state_id from a session via local activity.
+func (w *InvokeAgentExecutionWorkflowImpl) readHarnessStateId(ctx workflow.Context, sessionID string) (string, error) {
 	localCtx := workflow.WithLocalActivityOptions(ctx, workflow.LocalActivityOptions{
 		ScheduleToCloseTimeout: 30 * time.Second,
 		RetryPolicy: &temporal.RetryPolicy{
@@ -594,12 +594,12 @@ func (w *InvokeAgentExecutionWorkflowImpl) readSessionThreadId(ctx workflow.Cont
 		},
 	})
 
-	var threadID string
-	err := workflow.ExecuteLocalActivity(localCtx, activities.ReadSessionThreadIdActivityName, sessionID).Get(localCtx, &threadID)
+	var harnessStateID string
+	err := workflow.ExecuteLocalActivity(localCtx, activities.ReadHarnessStateIdActivityName, sessionID).Get(localCtx, &harnessStateID)
 	if err != nil {
-		return "", fmt.Errorf("read session thread_id for %s: %w", sessionID, err)
+		return "", fmt.Errorf("read session harness_state_id for %s: %w", sessionID, err)
 	}
-	return threadID, nil
+	return harnessStateID, nil
 }
 
 // wrapActivityError wraps activity errors with helpful context for troubleshooting.

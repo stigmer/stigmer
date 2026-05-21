@@ -2,7 +2,7 @@
  * ExecuteCursor Temporal activity — the core of the cursor-runner service.
  *
  * Implements the same Slim-Payload Pattern as ExecuteGraphton:
- * - Receives only executionId + threadId (Cursor agentId)
+ * - Receives only executionId + harnessStateId (Cursor agentId)
  * - Hydrates execution from DB via gRPC
  * - Resolves full agent blueprint (instructions, MCP servers, skills, sub-agents)
  * - Runs the Cursor agent, streams events, reports status
@@ -81,10 +81,10 @@ export function createActivities(config: Config) {
   });
 
   return {
-    ExecuteCursor: async (executionId: string, threadId: string): Promise<unknown> => {
+    ExecuteCursor: async (executionId: string, harnessStateId: string): Promise<unknown> => {
       activityStarted();
       try {
-        return await executeCursor(config, client, executionId, threadId);
+        return await executeCursor(config, client, executionId, harnessStateId);
       } finally {
         activityFinished();
       }
@@ -96,9 +96,9 @@ async function executeCursor(
   config: Config,
   client: StigmerClient,
   executionId: string,
-  threadId: string,
+  harnessStateId: string,
 ): Promise<unknown> {
-  console.log(`ExecuteCursor started: execution=${executionId}, threadId=${threadId || "(new)"}`);
+  console.log(`ExecuteCursor started: execution=${executionId}, harnessStateId=${harnessStateId || "(new)"}`);
 
   setInterceptorExecutionId(executionId);
 
@@ -154,7 +154,7 @@ async function executeCursor(
     heartbeat();
 
     // Phase 3: Check if this is a reinvocation after approval
-    const isReinvocation = !!threadId;
+    const isReinvocation = !!harnessStateId;
     let approvalDecisions: Map<string, ApprovalAction> | undefined;
 
     if (isReinvocation) {
@@ -258,7 +258,7 @@ async function executeCursor(
         };
 
     const resolution: AgentResolution = await resolveAgent(
-      threadId,
+      harnessStateId,
       createOptions,
       agentMode,
     );
@@ -278,20 +278,20 @@ async function executeCursor(
     );
     await writeHooksToWorkspace(primaryWorkspaceDir, approvalState);
 
-    // Phase 9: Store new agentId as thread_id and persist cursor_mode
+    // Phase 9: Store new agentId as harness_state_id and persist cursor_mode
     if (resolution.isNew && resolution.agentId) {
       try {
-        blueprint.sessionSpec.threadId = resolution.agentId;
+        blueprint.sessionSpec.harnessStateId = resolution.agentId;
         if (blueprint.sessionSpec.cursorMode === CursorMode.UNSPECIFIED) {
           blueprint.sessionSpec.cursorMode = cursorMode;
         }
         await client.updateSession(blueprint.session);
         console.log(
-          `Stored Cursor agentId=${resolution.agentId} as thread_id, ` +
+          `Stored Cursor agentId=${resolution.agentId} as harness_state_id, ` +
           `cursorMode=${CursorMode[cursorMode]} on session ${sessionId}`,
         );
       } catch (err) {
-        console.warn("Failed to persist thread_id/cursorMode on session (non-fatal):", err);
+        console.warn("Failed to persist harness_state_id/cursorMode on session (non-fatal):", err);
       }
     }
 

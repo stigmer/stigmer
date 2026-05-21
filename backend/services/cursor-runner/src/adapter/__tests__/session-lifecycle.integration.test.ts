@@ -98,7 +98,7 @@ describe.skipIf(SKIP)("session-lifecycle integration (real Cursor API)", () => {
     );
   }, TIMEOUT);
 
-  it("resolveAgent creates on empty threadId (model passed via createOptions)", async () => {
+  it("resolveAgent creates on empty harnessStateId (model passed via createOptions)", async () => {
     const { agent: newAgent, isNew } = await resolveAgent("", {
       apiKey: API_KEY!,
       model: "default",

@@ -306,8 +306,7 @@ func TestSessionController_Update(t *testing.T) {
 
 		// Update the session
 		created.Spec.Subject = "Updated subject"
-		created.Spec.ThreadId = "new-thread-id"
-		created.Spec.SandboxId = "new-sandbox-id"
+		created.Spec.HarnessStateId = "new-harness-state-id"
 
 		updated, err := controller.Update(contextWithSessionKind(), created)
 		if err != nil {
@@ -318,12 +317,8 @@ func TestSessionController_Update(t *testing.T) {
 			t.Errorf("Expected subject 'Updated subject', got '%s'", updated.Spec.Subject)
 		}
 
-		if updated.Spec.ThreadId != "new-thread-id" {
-			t.Errorf("Expected thread_id 'new-thread-id', got '%s'", updated.Spec.ThreadId)
-		}
-
-		if updated.Spec.SandboxId != "new-sandbox-id" {
-			t.Errorf("Expected sandbox_id 'new-sandbox-id', got '%s'", updated.Spec.SandboxId)
+		if updated.Spec.HarnessStateId != "new-harness-state-id" {
+			t.Errorf("Expected harness_state_id 'new-harness-state-id', got '%s'", updated.Spec.HarnessStateId)
 		}
 
 		// Verify ID and slug remain unchanged
@@ -510,8 +505,7 @@ func TestSessionController_Delete(t *testing.T) {
 			Spec: &sessionv1.SessionSpec{
 				AgentInstanceId: "verify-agent-instance-id",
 				Subject:         "Verify deletion subject",
-				ThreadId:        "test-thread-id",
-				SandboxId:       "test-sandbox-id",
+				HarnessStateId:  "test-harness-state-id",
 			},
 		}
 
@@ -535,12 +529,8 @@ func TestSessionController_Delete(t *testing.T) {
 			t.Errorf("Expected subject 'Verify deletion subject', got '%s'", deleted.Spec.Subject)
 		}
 
-		if deleted.Spec.ThreadId != "test-thread-id" {
-			t.Errorf("Expected thread_id 'test-thread-id', got '%s'", deleted.Spec.ThreadId)
-		}
-
-		if deleted.Spec.SandboxId != "test-sandbox-id" {
-			t.Errorf("Expected sandbox_id 'test-sandbox-id', got '%s'", deleted.Spec.SandboxId)
+		if deleted.Spec.HarnessStateId != "test-harness-state-id" {
+			t.Errorf("Expected harness_state_id 'test-harness-state-id', got '%s'", deleted.Spec.HarnessStateId)
 		}
 
 		if deleted.Metadata.Name != "Delete Verify Session" {
