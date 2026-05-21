@@ -94,7 +94,7 @@ func TestSDKAcceptance_Go(t *testing.T) {
 
 	t.Run("Tier2_WorkflowExecution", func(t *testing.T) {
 		if !workflowRunnerAvailable() {
-			t.Skip("workflow-runner not available — skipping workflow execution test")
+			t.Skip("unified runner not available — skipping workflow execution test")
 		}
 
 		workflowName := fmt.Sprintf("sdk-smoke-wf-go-%s", testName)

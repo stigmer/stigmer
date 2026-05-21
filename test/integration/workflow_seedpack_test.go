@@ -21,8 +21,8 @@ import (
 func requireSeedpackPrereqs(t *testing.T) {
 	t.Helper()
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 	hasAnthropic := os.Getenv("ANTHROPIC_API_KEY") != ""
 	hasOpenAI := os.Getenv("OPENAI_API_KEY") != ""

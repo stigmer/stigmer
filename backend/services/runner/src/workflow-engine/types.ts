@@ -416,6 +416,17 @@ export interface TaskExecutionContext {
   readonly callGrpc: CallGrpcFn;
   readonly callFunction: CallFunctionFn;
   readonly callAgent: CallAgentFn;
+
+  /**
+   * Optional pause yield point. When provided, the engine calls this
+   * between tasks, between for-each iterations, and between try
+   * retries. If the workflow is paused (via Temporal signal), this
+   * callback blocks until resumed. If not paused, returns immediately.
+   *
+   * The engine has no knowledge of Temporal signals — it simply awaits
+   * this opaque callback at well-defined yield points.
+   */
+  readonly checkPause?: () => Promise<void>;
 }
 
 /**

@@ -35,7 +35,7 @@ func TestCaptureReplayHistories(t *testing.T) {
 	}
 
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	require.NotNil(t, testHarness.WorkflowRunner, "workflow-runner must be running")
+	require.NotNil(t, testHarness.UnifiedRunner, "unified runner must be running")
 
 	outputDir := os.Getenv("REPLAY_HISTORY_OUTPUT_DIR")
 	if outputDir == "" {

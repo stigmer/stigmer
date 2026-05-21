@@ -7,6 +7,7 @@ import (
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	ecactivities "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/executioncontext/temporal/activities"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/activities"
+	enumspb "go.temporal.io/api/enums/v1"
 	"go.temporal.io/sdk/converter"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
@@ -14,25 +15,36 @@ import (
 
 // InvokeWorkflowExecutionWorkflowImpl implements InvokeWorkflowExecutionWorkflow.
 //
-// Polyglot Workflow Pattern:
-// - Workflow (Go): Orchestrates activity execution
-// - Go Activities (workflow-runner): ExecuteWorkflow (on "runner" queue)
+// Unified Runner Architecture:
+// - Workflow (Go): Orchestrates child workflow execution on "workflow_execution_stigmer" queue
+// - TS unified runner: Polls the runner task queue and exposes
+//   "stigmer/workflow/execute-from-execution" as a Temporal child workflow
+//
+// Signal handling: pause, resume, and relaySignal signals are forwarded from
+// this orchestrator to the TS child workflow via SignalExternalWorkflow.
 //
 // The workflow:
-// 1. Executes Zigflow workflow (Go activity)
-//   - During execution, workflow-runner sends progressive status updates via gRPC
-//   - Updates are processed by WorkflowExecutionUpdateHandler (custom status merge logic)
-//   - Final status is returned to workflow for observability
+// 1. Starts signal handler goroutines (pause, resume, relaySignal)
+// 2. Executes the TS child workflow (version-gated for deterministic replay)
+// 3. Handles cancellation/failure with status updates and EC cleanup
 //
 // Status Update Strategy:
-// - Real-time updates: gRPC calls from Go activity to stigmer-server
+// - Real-time updates: gRPC calls from TS runner to stigmer-server
 // - Final state: Returned to workflow (for Temporal observability)
 //
 // Slim-Input Pattern:
 // - Go workflow receives slim orchestration coordinates (execution_id, IDs, org_id)
-// - Go activity hydrates full context via gRPC
+// - TS child workflow hydrates full context via gRPC
 // - Secrets (runtime_env) are kept out of Temporal's durable workflow history
 type InvokeWorkflowExecutionWorkflowImpl struct{}
+
+// relaySignalPayload carries an arbitrary signal to be forwarded to the child workflow.
+// Used by signal-receiving tasks (human_input, listen) that register signal channels
+// in the TS child workflow.
+type relaySignalPayload struct {
+	SignalName string      `json:"signalName"`
+	Payload    interface{} `json:"payload"`
+}
 
 // Run implements InvokeWorkflowExecutionWorkflow.Run
 func (w *InvokeWorkflowExecutionWorkflowImpl) Run(ctx workflow.Context, input *activities.InvokeWorkflowExecutionWorkflowInput) error {
@@ -41,57 +53,153 @@ func (w *InvokeWorkflowExecutionWorkflowImpl) Run(ctx workflow.Context, input *a
 
 	logger.Info("Starting workflow for execution", "execution_id", executionID)
 
-	// Execute the Zigflow workflow flow
-	if err := w.executeWorkflowFlow(ctx, input); err != nil {
-		// Cancellation path: workflow was cancelled externally (user cancel, namespace timeout).
-		// All cleanup runs in a disconnected context to guarantee execution.
+	// Start signal handler goroutines for pause, resume, and relay
+	w.startSignalHandlers(ctx, executionID)
+
+	// Version gate for deterministic replay: existing workflow histories
+	// that started before this migration will replay with version 0 (legacy
+	// activity path). New workflows get version 1 (child workflow path).
+	v := workflow.GetVersion(ctx, "child-workflow-migration", workflow.DefaultVersion, 1)
+
+	if err := w.executeVersioned(ctx, v, input); err != nil {
 		if temporal.IsCanceledError(ctx.Err()) {
 			logger.Info("Workflow cancelled, running cancellation cleanup", "execution_id", executionID)
 			w.handleCancellation(ctx, executionID)
 			return err
 		}
 
-		// Failure path (unchanged)
 		logger.Error("Workflow execution failed", "execution_id", executionID, "error", err.Error())
 
-		// Update execution status to FAILED with error details
-		// This handles system errors (workflow type not found, activity registration, etc.)
-		if err := w.updateStatusOnFailure(ctx, executionID, err); err != nil {
-			logger.Error("Failed to update execution status", "error", err.Error())
+		if statusErr := w.updateStatusOnFailure(ctx, executionID, err); statusErr != nil {
+			logger.Error("Failed to update execution status", "error", statusErr.Error())
 		}
 
 		w.deleteExecutionContext(ctx, executionID)
 		return temporal.NewApplicationError("Workflow execution failed", "", err)
 	}
 
-	logger.Info("✅ Workflow completed for execution (status updates were sent progressively via gRPC)", "execution_id", executionID)
+	logger.Info("Workflow completed for execution (status updates were sent progressively via gRPC)", "execution_id", executionID)
 
 	w.deleteExecutionContext(ctx, executionID)
 	return nil
 }
 
-// executeWorkflowFlow executes the Zigflow workflow via polyglot Go activity.
+// startSignalHandlers launches goroutines to handle pause, resume, and relay
+// signals. Each goroutine loops forever, receiving from its signal channel and
+// forwarding to the TS child workflow via SignalExternalWorkflow.
 //
-// Orchestrates:
-// 1. Go activity: Execute workflow (on "runner" queue)
-//   - Queries Stigmer for WorkflowInstance and Workflow via gRPC
-//   - Converts WorkflowSpec proto to YAML (Phase 2 converter)
-//   - Executes via Zigflow engine
-//   - Sends progressive status updates via gRPC
-//   - Returns final status for Temporal observability
-func (w *InvokeWorkflowExecutionWorkflowImpl) executeWorkflowFlow(ctx workflow.Context, input *activities.InvokeWorkflowExecutionWorkflowInput) error {
+// This mirrors the Java @SignalMethod handlers (pause, resume, relaySignal) on
+// InvokeWorkflowExecutionWorkflow, adapted for Go's channel-based signal pattern.
+func (w *InvokeWorkflowExecutionWorkflowImpl) startSignalHandlers(ctx workflow.Context, executionID string) {
+	// Pause signal handler
+	pauseCh := workflow.GetSignalChannel(ctx, SignalPause)
+	workflow.Go(ctx, func(gCtx workflow.Context) {
+		for {
+			var reason string
+			pauseCh.Receive(gCtx, &reason)
+			logger := workflow.GetLogger(gCtx)
+			logger.Info("Pause signal received", "execution_id", executionID, "reason", reason)
+
+			w.updateStatusToPaused(gCtx, executionID)
+			w.relaySignalToChild(gCtx, executionID, SignalPause, reason)
+		}
+	})
+
+	// Resume signal handler
+	resumeCh := workflow.GetSignalChannel(ctx, SignalResume)
+	workflow.Go(ctx, func(gCtx workflow.Context) {
+		for {
+			var ignored string
+			resumeCh.Receive(gCtx, &ignored)
+			logger := workflow.GetLogger(gCtx)
+			logger.Info("Resume signal received", "execution_id", executionID)
+
+			w.updateStatusToRunning(gCtx, executionID)
+			w.relaySignalToChild(gCtx, executionID, SignalResume, nil)
+		}
+	})
+
+	// Generic relay signal handler (for LISTEN/human_input tasks).
+	// The API layer sends signals to this outer orchestrator via SignalWithStart;
+	// this handler forwards them to the TS child workflow where task-specific
+	// signal channels are registered.
+	relayCh := workflow.GetSignalChannel(ctx, "relaySignal")
+	workflow.Go(ctx, func(gCtx workflow.Context) {
+		for {
+			var payload relaySignalPayload
+			relayCh.Receive(gCtx, &payload)
+			logger := workflow.GetLogger(gCtx)
+			logger.Info("Relay signal received", "execution_id", executionID, "signal", payload.SignalName)
+
+			w.relaySignalToChild(gCtx, executionID, payload.SignalName, payload.Payload)
+		}
+	})
+}
+
+// relaySignalToChild forwards a signal to the TS child workflow using
+// SignalExternalWorkflow. The child workflow ID follows the convention
+// "workflow-exec-{executionId}" which matches the Java implementation.
+func (w *InvokeWorkflowExecutionWorkflowImpl) relaySignalToChild(ctx workflow.Context, executionID, signalName string, payload interface{}) {
+	childWorkflowID := "workflow-exec-" + executionID
 	logger := workflow.GetLogger(ctx)
 
+	err := workflow.SignalExternalWorkflow(ctx, childWorkflowID, "", signalName, payload).Get(ctx, nil)
+	if err != nil {
+		logger.Warn("Failed to relay signal to child workflow",
+			"execution_id", executionID,
+			"signal", signalName,
+			"child_workflow_id", childWorkflowID,
+			"error", err.Error())
+	}
+}
+
+// executeVersioned dispatches to the child workflow (v1) or legacy activity (v0)
+// based on the workflow version. This preserves deterministic replay for
+// workflows that were started before the child-workflow migration.
+func (w *InvokeWorkflowExecutionWorkflowImpl) executeVersioned(ctx workflow.Context, version int, input *activities.InvokeWorkflowExecutionWorkflowInput) error {
+	if version >= 1 {
+		return w.executeChildWorkflow(ctx, input)
+	}
+	return w.executeLegacyActivity(ctx, input)
+}
+
+// executeChildWorkflow starts the TS unified runner's workflow as a Temporal
+// child workflow. The child handles the actual CNCF Serverless Workflow
+// execution and reports progressive status updates via gRPC.
+func (w *InvokeWorkflowExecutionWorkflowImpl) executeChildWorkflow(ctx workflow.Context, input *activities.InvokeWorkflowExecutionWorkflowInput) error {
 	executionID := input.ExecutionID
-	workflowInstanceID := input.WorkflowInstanceID
+	childWorkflowID := "workflow-exec-" + executionID
+	taskQueue := w.getRunnerTaskQueue(ctx)
 
-	logger.Info("Starting workflow execution", "execution_id", executionID, "instance_id", workflowInstanceID)
+	childCtx := workflow.WithChildOptions(ctx, workflow.ChildWorkflowOptions{
+		WorkflowID:        childWorkflowID,
+		TaskQueue:         taskQueue,
+		ParentClosePolicy: enumspb.PARENT_CLOSE_POLICY_REQUEST_CANCEL,
+		RetryPolicy: &temporal.RetryPolicy{
+			MaximumAttempts: 1,
+		},
+	})
 
-	// Get activity task queue from workflow memo
-	activityTaskQueue := w.getActivityTaskQueue(ctx)
+	logger := workflow.GetLogger(ctx)
+	logger.Info("Starting child workflow",
+		"execution_id", executionID,
+		"child_workflow_id", childWorkflowID,
+		"task_queue", taskQueue)
 
-	logger.Info("Executing Zigflow workflow", "execution_id", executionID)
-	logger.Info("workflow-runner will send progressive status updates via gRPC during execution")
+	return workflow.ExecuteChildWorkflow(childCtx, "stigmer/workflow/execute-from-execution", input).Get(childCtx, nil)
+}
+
+// executeLegacyActivity preserves the old activity-based path for version 0
+// workflows that are replaying from history. The Go workflow-runner has been
+// deleted, so any new workflow starting this path will timeout on
+// ScheduleToStart (no worker polls the old queue).
+func (w *InvokeWorkflowExecutionWorkflowImpl) executeLegacyActivity(ctx workflow.Context, input *activities.InvokeWorkflowExecutionWorkflowInput) error {
+	logger := workflow.GetLogger(ctx)
+	executionID := input.ExecutionID
+
+	logger.Info("Legacy activity path (version 0)", "execution_id", executionID)
+
+	activityTaskQueue := w.getRunnerTaskQueue(ctx)
 
 	executeWorkflowActivity := activities.NewExecuteWorkflowActivityStub(ctx, activityTaskQueue)
 	finalStatus, err := executeWorkflowActivity.ExecuteWorkflow(input)
@@ -99,38 +207,98 @@ func (w *InvokeWorkflowExecutionWorkflowImpl) executeWorkflowFlow(ctx workflow.C
 		return fmt.Errorf("failed to execute workflow: %w", err)
 	}
 
-	// Defensive null check
 	if finalStatus == nil {
-		logger.Error("❌ ExecuteWorkflow returned NULL status", "execution_id", executionID)
-		return fmt.Errorf("go activity returned null status - this should never happen")
+		logger.Error("ExecuteWorkflow returned NULL status", "execution_id", executionID)
+		return fmt.Errorf("activity returned null status - this should never happen")
 	}
 
-	logger.Info("✅ Zigflow execution completed - final status received",
+	logger.Info("Legacy execution completed - final status received",
 		"tasks", len(finalStatus.GetTasks()),
 		"phase", finalStatus.GetPhase().String())
 
 	return nil
 }
 
-// getActivityTaskQueue retrieves the activity task queue from workflow memo.
-// This allows configurable task queues for polyglot setup.
+// getRunnerTaskQueue retrieves the runner task queue from workflow memo.
+// Tries the new "runnerTaskQueue" key first, falls back to the legacy
+// "activityTaskQueue" key for backward compatibility with in-flight workflows.
 //
-// Returns: Activity task queue name (defaults to "workflow_execution_runner")
-func (w *InvokeWorkflowExecutionWorkflowImpl) getActivityTaskQueue(ctx workflow.Context) string {
+// Returns: Runner task queue name (defaults to "stigmer_runner")
+func (w *InvokeWorkflowExecutionWorkflowImpl) getRunnerTaskQueue(ctx workflow.Context) string {
 	info := workflow.GetInfo(ctx)
 
-	// Access memo fields directly
 	if info.Memo != nil && info.Memo.Fields != nil {
-		if taskQueueField, ok := info.Memo.Fields["activityTaskQueue"]; ok {
-			var taskQueueStr string
-			if err := converter.GetDefaultDataConverter().FromPayload(taskQueueField, &taskQueueStr); err == nil && taskQueueStr != "" {
-				return taskQueueStr
+		// New key (post-migration)
+		if field, ok := info.Memo.Fields["runnerTaskQueue"]; ok {
+			var queue string
+			if err := converter.GetDefaultDataConverter().FromPayload(field, &queue); err == nil && queue != "" {
+				return queue
+			}
+		}
+		// Legacy key (pre-migration in-flight workflows)
+		if field, ok := info.Memo.Fields["activityTaskQueue"]; ok {
+			var queue string
+			if err := converter.GetDefaultDataConverter().FromPayload(field, &queue); err == nil && queue != "" {
+				return queue
 			}
 		}
 	}
 
-	// Default fallback (should never happen if workflow is created properly)
-	return "workflow_execution_runner"
+	return "stigmer_runner"
+}
+
+// updateStatusToPaused updates the execution status to PAUSED.
+// Best-effort: logs on error but never propagates.
+func (w *InvokeWorkflowExecutionWorkflowImpl) updateStatusToPaused(ctx workflow.Context, executionID string) {
+	logger := workflow.GetLogger(ctx)
+
+	pausedStatus := &workflowexecutionv1.WorkflowExecutionStatus{
+		Phase: workflowexecutionv1.ExecutionPhase_EXECUTION_PAUSED,
+	}
+
+	localCtx := workflow.WithLocalActivityOptions(ctx, workflow.LocalActivityOptions{
+		ScheduleToCloseTimeout: 30 * time.Second,
+		RetryPolicy: &temporal.RetryPolicy{
+			MaximumAttempts: 3,
+			InitialInterval: 2 * time.Second,
+		},
+	})
+
+	err := workflow.ExecuteLocalActivity(localCtx, activities.UpdateWorkflowExecutionStatusActivityName, executionID, pausedStatus).Get(localCtx, nil)
+	if err != nil {
+		logger.Warn("Failed to update execution status to PAUSED",
+			"execution_id", executionID, "error", err.Error())
+		return
+	}
+
+	logger.Info("Updated execution status to PAUSED", "execution_id", executionID)
+}
+
+// updateStatusToRunning updates the execution status to IN_PROGRESS (running).
+// Best-effort: logs on error but never propagates.
+func (w *InvokeWorkflowExecutionWorkflowImpl) updateStatusToRunning(ctx workflow.Context, executionID string) {
+	logger := workflow.GetLogger(ctx)
+
+	runningStatus := &workflowexecutionv1.WorkflowExecutionStatus{
+		Phase: workflowexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS,
+	}
+
+	localCtx := workflow.WithLocalActivityOptions(ctx, workflow.LocalActivityOptions{
+		ScheduleToCloseTimeout: 30 * time.Second,
+		RetryPolicy: &temporal.RetryPolicy{
+			MaximumAttempts: 3,
+			InitialInterval: 2 * time.Second,
+		},
+	})
+
+	err := workflow.ExecuteLocalActivity(localCtx, activities.UpdateWorkflowExecutionStatusActivityName, executionID, runningStatus).Get(localCtx, nil)
+	if err != nil {
+		logger.Warn("Failed to update execution status to IN_PROGRESS",
+			"execution_id", executionID, "error", err.Error())
+		return
+	}
+
+	logger.Info("Updated execution status to IN_PROGRESS", "execution_id", executionID)
 }
 
 // updateStatusOnFailure updates the execution status to FAILED when a system error occurs.

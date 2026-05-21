@@ -85,6 +85,10 @@ const runProxy = proxyActivities<RunActivities>({
 // Engine Core
 // ─────────────────────────────────────────────────────────────────────────────
 
+export interface RunWorkflowEngineOptions {
+  readonly checkPause?: () => Promise<void>;
+}
+
 /**
  * Run the CNCF Serverless Workflow engine with a fully materialized input.
  *
@@ -96,9 +100,14 @@ const runProxy = proxyActivities<RunActivities>({
  * Called by both:
  * - `executeServerlessWorkflow` (direct invocation with pre-materialized input)
  * - `executeFromExecution` (wrapper that hydrates from slim IDs first)
+ *
+ * @param options.checkPause Optional pause yield point callback. When
+ *   provided, the engine calls this between tasks and allows the
+ *   workflow to block on a Temporal condition when paused.
  */
 export async function runWorkflowEngine(
   input: ExecuteServerlessWorkflowInput,
+  options?: RunWorkflowEngineOptions,
 ): Promise<unknown> {
   const { model, workflow_input, env, metadata } = input;
   const executionStartMs = Date.now();
@@ -116,6 +125,7 @@ export async function runWorkflowEngine(
   const ctx: TaskExecutionContext = {
     evaluateExpressions,
     doc: model,
+    checkPause: options?.checkPause,
     sleep: async (durationMs: number) => {
       try {
         await sleep(durationMs);

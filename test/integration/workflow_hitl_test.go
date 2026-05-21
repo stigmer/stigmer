@@ -19,8 +19,8 @@ import (
 // for the configured duration and then completes automatically.
 func TestWorkflowHITL_WaitTask(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -106,8 +106,8 @@ func TestWorkflowHITL_WaitTask(t *testing.T) {
 //  4. Verify execution reaches COMPLETED
 func TestWorkflowHITL_HumanInputApproval(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -206,8 +206,8 @@ func TestWorkflowHITL_HumanInputApproval(t *testing.T) {
 // data, not a failure).
 func TestWorkflowHITL_HumanInputRejection(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)

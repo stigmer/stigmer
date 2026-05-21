@@ -18,9 +18,10 @@ import (
 // secrets) and other fields the workflow never accessed. By using a slim input,
 // secrets are kept out of Temporal's durable workflow history.
 //
-// The same input type is passed to the ExecuteWorkflow activity. The Go activity
-// hydrates the full context (WorkflowInstance, Workflow, ExecutionContext) via
-// gRPC using the IDs carried here.
+// The same input type is passed to the TS child workflow
+// ("stigmer/workflow/execute-from-execution"). The child workflow hydrates the
+// full context (WorkflowInstance, Workflow, ExecutionContext) via gRPC using
+// the IDs carried here.
 //
 // This type lives in the activities package (rather than workflows) to avoid an
 // import cycle: workflows imports activities for stubs, so shared types must be
@@ -34,48 +35,27 @@ type InvokeWorkflowExecutionWorkflowInput struct {
 	InvokerIdentityAccountID string `json:"invoker_identity_account_id,omitempty"`
 }
 
-// ExecuteWorkflowActivity is the interface for executing Zigflow workflows.
-//
-// Implementation: Go (workflow-runner service)
-// Task Queue: "workflow_execution_runner"
-//
-// Slim-Payload Pattern:
-//   - Receives slim orchestration coordinates (execution_id, workflow_instance_id,
-//     workflow_id, org_id, invoker_identity_account_id)
-//   - Queries Stigmer service via gRPC to hydrate full context:
-//   - GetWorkflowInstance from input.WorkflowInstanceID
-//   - GetWorkflow from instance.spec.workflow_id
-//   - GetExecutionContext by execution_id (merged environment)
-//
-// - Converts WorkflowSpec proto to YAML (Phase 2 converter)
-// - Executes via Zigflow engine
-// - Sends progressive status updates via gRPC callbacks
-// - Returns final status to Temporal workflow
-//
-// This is implemented in Go at:
-// backend/services/workflow-runner/worker/activities/execute_workflow_activity.go
+// Legacy activity stub retained for version 0 deterministic replay.
+// The Go workflow-runner has been deleted; any new execution hitting this path
+// will timeout on ScheduleToStart because no worker polls the old queue.
+
+// ExecuteWorkflowActivity is the legacy interface for executing workflows via
+// a Go activity. Retained for version 0 backward compatibility only.
 type ExecuteWorkflowActivity interface {
-	// ExecuteWorkflow executes a Zigflow workflow using slim orchestration coordinates.
-	//
-	// The activity hydrates the full context (WorkflowInstance, Workflow,
-	// ExecutionContext) via gRPC using the IDs in the input.
 	ExecuteWorkflow(input *InvokeWorkflowExecutionWorkflowInput) (*workflowexecutionv1.WorkflowExecutionStatus, error)
 }
 
-// ExecuteWorkflowActivityName is the activity name used for registration.
-// This MUST match the activity name in the workflow-runner implementation.
+// ExecuteWorkflowActivityName is the legacy activity name.
 const ExecuteWorkflowActivityName = "ExecuteWorkflow"
 
-// NewExecuteWorkflowActivityStub creates an activity stub for executing workflows.
-//
-// ctx: Workflow context
-// taskQueue: Task queue for routing to Go worker (from workflow memo)
+// NewExecuteWorkflowActivityStub creates a legacy activity stub.
+// Retained for version 0 deterministic replay only.
 func NewExecuteWorkflowActivityStub(ctx workflow.Context, taskQueue string) ExecuteWorkflowActivity {
 	options := workflow.ActivityOptions{
 		TaskQueue:           taskQueue,
-		StartToCloseTimeout: 30 * time.Minute, // Longer timeout for workflows
+		StartToCloseTimeout: 30 * time.Minute,
 		RetryPolicy: &temporal.RetryPolicy{
-			MaximumAttempts: 1, // No retries for workflow execution
+			MaximumAttempts: 1,
 			InitialInterval: 10 * time.Second,
 		},
 	}
@@ -84,12 +64,10 @@ func NewExecuteWorkflowActivityStub(ctx workflow.Context, taskQueue string) Exec
 	return &executeWorkflowActivityStub{ctx: activityCtx}
 }
 
-// executeWorkflowActivityStub is the client-side stub for ExecuteWorkflowActivity.
 type executeWorkflowActivityStub struct {
 	ctx workflow.Context
 }
 
-// ExecuteWorkflow implements ExecuteWorkflowActivity.ExecuteWorkflow
 func (s *executeWorkflowActivityStub) ExecuteWorkflow(input *InvokeWorkflowExecutionWorkflowInput) (*workflowexecutionv1.WorkflowExecutionStatus, error) {
 	var result *workflowexecutionv1.WorkflowExecutionStatus
 	err := workflow.ExecuteActivity(s.ctx, ExecuteWorkflowActivityName, input).Get(s.ctx, &result)

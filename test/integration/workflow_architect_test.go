@@ -241,8 +241,8 @@ func TestWorkflowArchitect_Refine(t *testing.T) {
 func TestWorkflowArchitect_DiagnoseExecution(t *testing.T) {
 	require.NotNil(t, grpcConn)
 	requireNativeArchitectPrereqs(t)
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available — cannot create failing execution")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available — cannot create failing execution")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Minute)

@@ -21,8 +21,9 @@
  * isolate. No Node.js built-ins, no non-deterministic operations.
  */
 
-import { proxyActivities, log } from "@temporalio/workflow";
+import { proxyActivities, log, isCancellation } from "@temporalio/workflow";
 import { runWorkflowEngine } from "./engine-core.js";
+import { setupPauseResumeHandlers } from "./workflow-signals.js";
 
 import type { createHydrateWorkflowActivities } from "../activities/hydrate-workflow-execution.js";
 
@@ -62,6 +63,8 @@ export interface ExecuteFromExecutionInput {
 export async function executeFromExecution(
   input: ExecuteFromExecutionInput,
 ): Promise<unknown> {
+  const { checkPause } = setupPauseResumeHandlers();
+
   log.info("Hydrating workflow execution from slim IDs", {
     executionId: input.execution_id,
     workflowId: input.workflow_id,
@@ -81,5 +84,14 @@ export async function executeFromExecution(
     envCount: Object.keys(materialized.env).length,
   });
 
-  return runWorkflowEngine(materialized);
+  try {
+    return await runWorkflowEngine(materialized, { checkPause });
+  } catch (err) {
+    if (isCancellation(err)) {
+      log.info("Workflow cancelled while paused or executing", {
+        executionId: input.execution_id,
+      });
+    }
+    throw err;
+  }
 }

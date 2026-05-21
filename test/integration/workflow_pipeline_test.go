@@ -26,8 +26,8 @@ import (
 // The test sets priority to "high" and asserts the correct branch executes.
 func TestWorkflowPipeline_LinearMultiStep(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -146,8 +146,8 @@ func TestWorkflowPipeline_LinearMultiStep(t *testing.T) {
 // simultaneously and asserts they complete independently without interference.
 func TestWorkflowPipeline_ConcurrentIsolation(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -244,8 +244,8 @@ func TestWorkflowPipeline_ConcurrentIsolation(t *testing.T) {
 // workflow and execution should fail with NOT_FOUND.
 func TestWorkflowPipeline_CleanupVerification(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)

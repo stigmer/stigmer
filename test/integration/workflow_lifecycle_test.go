@@ -17,8 +17,8 @@ import (
 
 func TestWorkflowLifecycle_SetTask_Completes(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available — cannot run execution tests")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available — cannot run execution tests")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)

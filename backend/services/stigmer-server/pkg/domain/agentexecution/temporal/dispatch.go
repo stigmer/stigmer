@@ -14,7 +14,7 @@ import (
 // DefaultActivityTaskQueue is the fallback Temporal task queue for activity
 // routing. Used in global routing mode and as a fallback when session ID is
 // empty in per-session mode.
-const DefaultActivityTaskQueue = "agent_execution_runner"
+const DefaultActivityTaskQueue = "stigmer_runner"
 
 // sessionTaskQueuePrefix is the prefix for per-session task queue names.
 const sessionTaskQueuePrefix = "session:"

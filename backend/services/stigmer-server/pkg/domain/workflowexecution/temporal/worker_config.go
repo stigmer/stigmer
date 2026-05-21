@@ -13,48 +13,31 @@ import (
 
 // WorkerConfig configures and creates Temporal workers for workflow execution.
 //
-// Polyglot Workflow Architecture:
+// Architecture:
 // ================================
-// Go Workflow Queue: "workflow_execution_stigmer" (stigmer-server owns Go workflows)
-// Go Activity Queue: "workflow_execution_runner" (workflow-runner owns Go activities)
+// Go Orchestrator Queue: "workflow_execution_stigmer" (stigmer-server owns Go workflows)
+// TS Runner Queue: "stigmer_runner" (unified runner owns TS child workflows)
 //
 // Go Worker (this):
 // - Registers: InvokeWorkflowExecutionWorkflow (orchestration only)
 // - Registers: UpdateWorkflowExecutionStatusActivity (for failure recovery, as LOCAL activity)
-// - Does NOT register: ExecuteWorkflow (that's a Go activity in workflow-runner)
+// - Registers: DeleteExecutionContextActivity (for EC cleanup, as LOCAL activity)
+// - Does NOT register: TS child workflow (that runs in the unified runner)
 //
-// Go Worker (workflow-runner):
-// - Registers: ExecuteWorkflow activity (Zigflow execution)
-// - Does NOT register: workflows (Go handles orchestration)
+// TS Unified Runner:
+// - Registers: "stigmer/workflow/execute-from-execution" workflow
+// - Handles actual CNCF Serverless Workflow execution
 //
-// How Polyglot Works:
+// How It Works:
 // ===================
 // 1. Go worker polls "workflow_execution_stigmer" for workflow tasks
-// 2. Go worker (workflow-runner) polls "workflow_execution_runner" for activity tasks
-// 3. Go workflows call activities with explicit task queue routing
-// 4. Temporal routes activity tasks to correct worker based on task queue
-//
-// CRITICAL Rules for Polyglot Success:
-// =====================================
-// ✅ CORRECT: Each worker registers ONLY what it implements
-// ✅ CORRECT: stigmer-server = workflows + local activities
-// ✅ CORRECT: workflow-runner = workflow execution activities only
-// ✅ CORRECT: Activity calls must specify target task queue
-//
-// ❌ WRONG: stigmer-server registers ExecuteWorkflow → Load balancing breaks
-// ❌ WRONG: workflow-runner registers workflows → Workflow dispatch confusion
-// ❌ WRONG: Missing task queue in activity calls → Wrong worker receives task
-//
-// Why This Works:
-// ===============
-// Temporal routes tasks based on what each worker advertises:
-// - Workflow task for "InvokeWorkflowExecutionWorkflow" → Goes to stigmer-server (only worker that has it)
-// - Activity task for "ExecuteWorkflow" → Goes to workflow-runner (only worker on that queue)
-// - Activity task for "UpdateWorkflowExecutionStatusActivity" → Goes to stigmer-server (local activity, in-process)
+// 2. Go orchestrator starts a child workflow on the runner queue
+// 3. TS unified runner polls "stigmer_runner" for child workflow tasks
+// 4. Signal handlers forward pause/resume/relay signals to the child
 //
 // Environment Variables:
 // - TEMPORAL_WORKFLOW_EXECUTION_STIGMER_TASK_QUEUE (Go workflows, default: workflow_execution_stigmer)
-// - TEMPORAL_WORKFLOW_EXECUTION_RUNNER_TASK_QUEUE (Go activities, default: workflow_execution_runner)
+// - TEMPORAL_WORKFLOW_EXECUTION_RUNNER_TASK_QUEUE (TS child workflows, default: stigmer_runner)
 type WorkerConfig struct {
 	config                   *Config
 	store                    store.Store
@@ -78,45 +61,39 @@ func NewWorkerConfig(
 
 // CreateWorker creates and configures a Temporal worker for workflow execution workflows.
 //
-// Task Queue: "workflow_execution_stigmer" (stigmer-server owns Go workflows)
+// Task Queue: "workflow_execution_stigmer" (stigmer-server owns Go orchestrator workflows)
 //
 // Registered Components:
-// - Workflows: InvokeWorkflowExecutionWorkflow (Go)
-// - Activities: UpdateWorkflowExecutionStatusActivity (Go - for error recovery, LOCAL activity)
+// - Workflows: InvokeWorkflowExecutionWorkflow (Go orchestrator)
+// - Activities: UpdateWorkflowExecutionStatusActivity (Go - for status updates, LOCAL activity)
+// - Activities: DeleteExecutionContextActivity (Go - for EC cleanup, LOCAL activity)
 //
-// NOT Registered (handled by workflow-runner on "workflow_execution_runner" queue):
-// - ExecuteWorkflow (Go)
+// NOT Registered (handled by unified TS runner on "stigmer_runner" queue):
+// - "stigmer/workflow/execute-from-execution" (TS child workflow)
 func (wc *WorkerConfig) CreateWorker(temporalClient client.Client) worker.Worker {
-	// Create worker on workflow_execution_stigmer queue for Go workflows
 	w := worker.New(temporalClient, wc.config.StigmerQueue, worker.Options{})
 
-	// Register Go workflow implementations ONLY
-	// CRITICAL: Must register with explicit name to match the workflow invocation
-	// The workflow is invoked with "stigmer/workflow-execution/invoke" but without explicit
-	// registration name, Temporal would use "Run" (the method name), causing "workflow type not found"
 	w.RegisterWorkflowWithOptions(
 		(&workflows.InvokeWorkflowExecutionWorkflowImpl{}).Run,
 		workflow.RegisterOptions{
-			Name: workflows.InvokeWorkflowExecutionWorkflowName, // "stigmer/workflow-execution/invoke"
+			Name: workflows.InvokeWorkflowExecutionWorkflowName,
 		},
 	)
 
 	log.Info().
 		Str("queue", wc.config.StigmerQueue).
-		Msg("✅ [POLYGLOT] Registered InvokeWorkflowExecutionWorkflow (Go)")
+		Msg("Registered InvokeWorkflowExecutionWorkflow (Go orchestrator)")
 
 	log.Info().
 		Str("queue", wc.config.RunnerQueue).
-		Msg("✅ [POLYGLOT] Go activities (ExecuteWorkflow) on workflow-runner worker")
+		Msg("TS child workflows (unified runner) on runner queue")
 
 	// Register local activities (run in-process, don't participate in task queue routing)
-	// This avoids need for separate task queue configuration
 	w.RegisterActivity(wc.updateStatusActivityImpl.UpdateExecutionStatus)
 	w.RegisterActivity(wc.deleteECActivityImpl.DeleteExecutionContext)
 
-	log.Info().Msg("✅ [POLYGLOT] Registered UpdateWorkflowExecutionStatusActivity as LOCAL activity (in-process)")
-	log.Info().Msg("✅ [POLYGLOT] Registered DeleteExecutionContextActivity as LOCAL activity (in-process)")
-	log.Info().Msg("✅ [POLYGLOT] Temporal will route: workflow tasks → stigmer-server, activity tasks → workflow-runner")
+	log.Info().Msg("Registered UpdateWorkflowExecutionStatusActivity as LOCAL activity (in-process)")
+	log.Info().Msg("Registered DeleteExecutionContextActivity as LOCAL activity (in-process)")
 
 	return w
 }

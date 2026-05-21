@@ -23,8 +23,8 @@ import (
 // Workflow: setURL (set_vars with mock URL) → fetchData (http_call GET)
 func TestWorkflowHTTP_SuccessfulCall(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 
 	mock := harness.NewMockHTTPServer([]harness.MockRoute{
@@ -116,8 +116,8 @@ func TestWorkflowHTTP_SuccessfulCall(t *testing.T) {
 // a 500 response results in a failed execution.
 func TestWorkflowHTTP_ServerError(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 
 	mock := harness.NewMockHTTPServer([]harness.MockRoute{
@@ -206,8 +206,8 @@ func TestWorkflowHTTP_ServerError(t *testing.T) {
 // delivery is deferred; this test validates envelope construction and task lifecycle.
 func TestWorkflowIO_EmitEvent(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -295,8 +295,8 @@ func TestWorkflowIO_EmitEvent(t *testing.T) {
 // task completion and payload content.
 func TestWorkflowIO_Notification_Webhook(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 
 	capture := harness.NewWebhookCaptureServer()
@@ -376,8 +376,8 @@ func TestWorkflowIO_Notification_Webhook(t *testing.T) {
 // succeeds (the task completes) but the result indicates delivery failure.
 func TestWorkflowIO_Notification_WebhookFailed(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
