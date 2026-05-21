@@ -171,11 +171,10 @@ func TestWorkflowHITL_HumanInputApproval(t *testing.T) {
 	executionID := execution.GetMetadata().GetId()
 	t.Logf("execution created: id=%s, waiting for human_input to block...", executionID)
 
-	// Wait for the workflow to start and reach the human_input gate.
-	time.Sleep(3 * time.Second)
+	waiter := harness.NewExecutionWaiter(clients.ExecutionQuery, suiteLogger)
+	_, err = waiter.WaitForTaskWaitingApproval(ctx, executionID, "awaitApproval", 90*time.Second)
+	require.NoError(t, err, "task should reach WAITING_APPROVAL")
 
-	// Submit approval through the gRPC API — exercises the full signal routing:
-	// Java handler → outer workflow relaySignal → inner Go workflow signal channel
 	t.Logf("submitting approval via gRPC API for task 'awaitApproval' on execution %s", executionID)
 	_, err = clients.ExecutionCommand.SubmitWorkflowTaskApproval(ctx,
 		&workflowexecutionv1.SubmitWorkflowTaskApprovalInput{
@@ -185,8 +184,6 @@ func TestWorkflowHITL_HumanInputApproval(t *testing.T) {
 			Reviewer:    "integration-test",
 		})
 	require.NoError(t, err, "gRPC submitWorkflowTaskApproval should succeed")
-
-	waiter := harness.NewExecutionWaiter(clients.ExecutionQuery, suiteLogger)
 	result, err := waiter.WaitForPhase(ctx, executionID,
 		workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED, 90*time.Second)
 	require.NoError(t, err)
@@ -271,10 +268,10 @@ func TestWorkflowHITL_HumanInputRejection(t *testing.T) {
 	executionID := execution.GetMetadata().GetId()
 	t.Logf("execution created: id=%s, waiting for human_input to block...", executionID)
 
-	time.Sleep(3 * time.Second)
+	waiter := harness.NewExecutionWaiter(clients.ExecutionQuery, suiteLogger)
+	_, err = waiter.WaitForTaskWaitingApproval(ctx, executionID, "awaitReview", 90*time.Second)
+	require.NoError(t, err, "task should reach WAITING_APPROVAL")
 
-	// Submit rejection through the gRPC API — exercises the full signal routing:
-	// Java handler → outer workflow relaySignal → inner Go workflow signal channel
 	t.Logf("submitting rejection via gRPC API for task 'awaitReview' on execution %s", executionID)
 	_, err = clients.ExecutionCommand.SubmitWorkflowTaskApproval(ctx,
 		&workflowexecutionv1.SubmitWorkflowTaskApprovalInput{
@@ -284,10 +281,6 @@ func TestWorkflowHITL_HumanInputRejection(t *testing.T) {
 			Reviewer:    "integration-test",
 		})
 	require.NoError(t, err, "gRPC submitWorkflowTaskApproval should succeed")
-
-	// When outcomes are explicitly defined (approve/reject), a "reject" outcome
-	// completes the task normally — the outcome is informational data.
-	waiter := harness.NewExecutionWaiter(clients.ExecutionQuery, suiteLogger)
 	result, err := waiter.WaitForPhase(ctx, executionID,
 		workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED, 90*time.Second)
 	require.NoError(t, err)
@@ -299,4 +292,255 @@ func TestWorkflowHITL_HumanInputRejection(t *testing.T) {
 	})
 
 	t.Logf("human_input rejection flow completed via gRPC API: reject outcome treated as data, not failure")
+}
+
+// TestWorkflowHITL_HumanInputWithFormData verifies that form_data submitted
+// through the approval API flows through the signal to the task result and
+// is exported into the execution output.
+func TestWorkflowHITL_HumanInputWithFormData(t *testing.T) {
+	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	deployer := harness.NewFixtureDeployer(clients, "hitl-formdata", suiteLogger)
+	defer deployer.Cleanup(ctx)
+
+	humanInputConfig, err := structpb.NewStruct(map[string]any{
+		"prompt": "Review and provide feedback",
+		"outcomes": []any{
+			map[string]any{"name": "approve", "label": "Approve"},
+			map[string]any{"name": "reject", "label": "Reject"},
+		},
+		"form_schema": map[string]any{
+			"type": "object",
+			"properties": map[string]any{
+				"feedback": map[string]any{"type": "string"},
+			},
+		},
+		"timeout": float64(120),
+	})
+	require.NoError(t, err)
+
+	workflow := &workflowv1.Workflow{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       "Workflow",
+		Metadata: &apiresource.ApiResourceMetadata{
+			Name: "integration-test-hitl-formdata",
+			Org:  "test-org",
+		},
+		Spec: &workflowv1.WorkflowSpec{
+			Description: "Integration test: human_input with form_data passthrough",
+			Document: &workflowv1.WorkflowDocument{
+				Dsl:       "1.0.0",
+				Namespace: "test-org",
+				Name:      "integration-test-hitl-formdata",
+				Version:   "1.0.0",
+			},
+			Tasks: []*workflowv1.WorkflowTask{
+				{
+					Name:       "awaitFeedback",
+					Kind:       workflowv1.WorkflowTaskKind_human_input,
+					TaskConfig: humanInputConfig,
+					Export:     &workflowv1.Export{As: "${ . }"},
+				},
+			},
+		},
+	}
+
+	_, execution, err := deployer.DeployAndExecute(ctx, workflow, "hitl form_data test")
+	require.NoError(t, err)
+
+	executionID := execution.GetMetadata().GetId()
+
+	waiter := harness.NewExecutionWaiter(clients.ExecutionQuery, suiteLogger)
+	_, err = waiter.WaitForTaskWaitingApproval(ctx, executionID, "awaitFeedback", 90*time.Second)
+	require.NoError(t, err)
+
+	formData, err := structpb.NewStruct(map[string]any{
+		"feedback": "Looks good, ship it!",
+	})
+	require.NoError(t, err)
+
+	_, err = clients.ExecutionCommand.SubmitWorkflowTaskApproval(ctx,
+		&workflowexecutionv1.SubmitWorkflowTaskApprovalInput{
+			ExecutionId: executionID,
+			TaskName:    "awaitFeedback",
+			Outcome:     "approve",
+			FormData:    formData,
+			Reviewer:    "integration-test",
+		})
+	require.NoError(t, err)
+
+	result, err := waiter.WaitForPhase(ctx, executionID,
+		workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED, 90*time.Second)
+	require.NoError(t, err)
+
+	harness.AssertPhase(t, result, workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED)
+	t.Logf("human_input with form_data completed successfully")
+}
+
+// TestWorkflowHITL_HumanInputWithComment verifies that a reviewer comment
+// is passed through the approval signal.
+func TestWorkflowHITL_HumanInputWithComment(t *testing.T) {
+	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	deployer := harness.NewFixtureDeployer(clients, "hitl-comment", suiteLogger)
+	defer deployer.Cleanup(ctx)
+
+	humanInputConfig, err := structpb.NewStruct(map[string]any{
+		"prompt": "Review this change",
+		"outcomes": []any{
+			map[string]any{"name": "approve", "label": "Approve"},
+			map[string]any{"name": "reject", "label": "Reject"},
+		},
+		"timeout": float64(120),
+	})
+	require.NoError(t, err)
+
+	workflow := &workflowv1.Workflow{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       "Workflow",
+		Metadata: &apiresource.ApiResourceMetadata{
+			Name: "integration-test-hitl-comment",
+			Org:  "test-org",
+		},
+		Spec: &workflowv1.WorkflowSpec{
+			Description: "Integration test: human_input with comment",
+			Document: &workflowv1.WorkflowDocument{
+				Dsl:       "1.0.0",
+				Namespace: "test-org",
+				Name:      "integration-test-hitl-comment",
+				Version:   "1.0.0",
+			},
+			Tasks: []*workflowv1.WorkflowTask{
+				{
+					Name:       "awaitReview",
+					Kind:       workflowv1.WorkflowTaskKind_human_input,
+					TaskConfig: humanInputConfig,
+					Export:     &workflowv1.Export{As: "${ . }"},
+				},
+			},
+		},
+	}
+
+	_, execution, err := deployer.DeployAndExecute(ctx, workflow, "hitl comment test")
+	require.NoError(t, err)
+
+	executionID := execution.GetMetadata().GetId()
+
+	waiter := harness.NewExecutionWaiter(clients.ExecutionQuery, suiteLogger)
+	_, err = waiter.WaitForTaskWaitingApproval(ctx, executionID, "awaitReview", 90*time.Second)
+	require.NoError(t, err)
+
+	_, err = clients.ExecutionCommand.SubmitWorkflowTaskApproval(ctx,
+		&workflowexecutionv1.SubmitWorkflowTaskApprovalInput{
+			ExecutionId: executionID,
+			TaskName:    "awaitReview",
+			Outcome:     "approve",
+			Comment:     "LGTM - approved by reviewer",
+			Reviewer:    "integration-test",
+		})
+	require.NoError(t, err)
+
+	result, err := waiter.WaitForPhase(ctx, executionID,
+		workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED, 90*time.Second)
+	require.NoError(t, err)
+
+	harness.AssertPhase(t, result, workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED)
+	t.Logf("human_input with comment completed successfully")
+}
+
+// TestWorkflowHITL_HumanInputThreeWayOutcome verifies a human_input task
+// with three custom outcomes (the Tiny Tactics pattern: "Pause Active
+// Campaigns", "Adjust Strategy", "Monitor Only") completes correctly when
+// a non-binary outcome is selected.
+func TestWorkflowHITL_HumanInputThreeWayOutcome(t *testing.T) {
+	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	deployer := harness.NewFixtureDeployer(clients, "hitl-3way", suiteLogger)
+	defer deployer.Cleanup(ctx)
+
+	humanInputConfig, err := structpb.NewStruct(map[string]any{
+		"prompt": "What action should we take on the campaign?",
+		"outcomes": []any{
+			map[string]any{"name": "pause_campaigns", "label": "Pause Active Campaigns"},
+			map[string]any{"name": "adjust_strategy", "label": "Adjust Strategy"},
+			map[string]any{"name": "monitor_only", "label": "Monitor Only"},
+		},
+		"timeout": float64(120),
+	})
+	require.NoError(t, err)
+
+	workflow := &workflowv1.Workflow{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       "Workflow",
+		Metadata: &apiresource.ApiResourceMetadata{
+			Name: "integration-test-hitl-3way",
+			Org:  "test-org",
+		},
+		Spec: &workflowv1.WorkflowSpec{
+			Description: "Integration test: 3-way human_input outcome",
+			Document: &workflowv1.WorkflowDocument{
+				Dsl:       "1.0.0",
+				Namespace: "test-org",
+				Name:      "integration-test-hitl-3way",
+				Version:   "1.0.0",
+			},
+			Tasks: []*workflowv1.WorkflowTask{
+				{
+					Name:       "decideAction",
+					Kind:       workflowv1.WorkflowTaskKind_human_input,
+					TaskConfig: humanInputConfig,
+					Export:     &workflowv1.Export{As: "${ . }"},
+				},
+			},
+		},
+	}
+
+	_, execution, err := deployer.DeployAndExecute(ctx, workflow, "3-way outcome test")
+	require.NoError(t, err)
+
+	executionID := execution.GetMetadata().GetId()
+
+	waiter := harness.NewExecutionWaiter(clients.ExecutionQuery, suiteLogger)
+	_, err = waiter.WaitForTaskWaitingApproval(ctx, executionID, "decideAction", 90*time.Second)
+	require.NoError(t, err)
+
+	_, err = clients.ExecutionCommand.SubmitWorkflowTaskApproval(ctx,
+		&workflowexecutionv1.SubmitWorkflowTaskApprovalInput{
+			ExecutionId: executionID,
+			TaskName:    "decideAction",
+			Outcome:     "monitor_only",
+			Reviewer:    "integration-test",
+		})
+	require.NoError(t, err)
+
+	result, err := waiter.WaitForPhase(ctx, executionID,
+		workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED, 90*time.Second)
+	require.NoError(t, err)
+
+	harness.AssertPhase(t, result, workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED)
+	harness.AssertTaskStatus(t, result, "decideAction",
+		workflowexecutionv1.WorkflowTaskStatus_WORKFLOW_TASK_COMPLETED)
+
+	t.Logf("3-way human_input completed with 'monitor_only' outcome")
 }

@@ -74,7 +74,8 @@ export function resetSequenceCounter(): void {
   sequenceCounter = 0;
 }
 
-function toProtoEvent(desc: WorkflowEventDescriptor): WorkflowExecutionEvent {
+/** @internal Exported for unit testing only. */
+export function toProtoEvent(desc: WorkflowEventDescriptor): WorkflowExecutionEvent {
   const base = create(WorkflowExecutionEventSchema, {
     eventId: crypto.randomUUID(),
     sequenceNumber: nextSequence(),

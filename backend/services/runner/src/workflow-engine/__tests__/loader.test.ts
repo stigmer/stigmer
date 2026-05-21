@@ -1200,5 +1200,194 @@ do:
       }
     });
   });
+
+  describe("human_input task reclassification", () => {
+    it("call: human_input with prompt is reclassified to kind human_input", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  name: test
+do:
+  - askUser:
+      call: human_input
+      with:
+        prompt: "Please approve this deployment"
+`;
+      const model = loadWorkflowFromYaml(yaml);
+      expect(model.do).toHaveLength(1);
+      expect(model.do[0].key).toBe("askUser");
+      const task = model.do[0].task;
+      expect(task.kind).toBe("human_input");
+      if (task.kind === "human_input") {
+        expect(task.humanInput.prompt).toBe("Please approve this deployment");
+        expect(task.humanInput.outcomes).toBeUndefined();
+        expect(task.humanInput.formSchema).toBeUndefined();
+        expect(task.humanInput.approvers).toBeUndefined();
+        expect(task.humanInput.timeout).toBeUndefined();
+        expect(task.humanInput.onTimeout).toBeUndefined();
+      }
+    });
+
+    it("call: human_input with outcomes array", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  name: test
+do:
+  - approval:
+      call: human_input
+      with:
+        prompt: "Approve or reject"
+        outcomes:
+          - name: approve
+            label: Approve
+            then: deployStep
+          - name: reject
+            label: Reject
+`;
+      const model = loadWorkflowFromYaml(yaml);
+      const task = model.do[0].task;
+      expect(task.kind).toBe("human_input");
+      if (task.kind === "human_input") {
+        expect(task.humanInput.outcomes).toHaveLength(2);
+        expect(task.humanInput.outcomes![0]).toEqual({
+          name: "approve",
+          label: "Approve",
+          then: "deployStep",
+        });
+        expect(task.humanInput.outcomes![1]).toEqual({
+          name: "reject",
+          label: "Reject",
+          then: undefined,
+        });
+      }
+    });
+
+    it("call: human_input with form_schema", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  name: test
+do:
+  - collectInfo:
+      call: human_input
+      with:
+        prompt: "Fill out the form"
+        form_schema:
+          type: object
+          required:
+            - reason
+          properties:
+            reason:
+              type: string
+            priority:
+              type: number
+`;
+      const model = loadWorkflowFromYaml(yaml);
+      const task = model.do[0].task;
+      expect(task.kind).toBe("human_input");
+      if (task.kind === "human_input") {
+        expect(task.humanInput.formSchema).toBeDefined();
+        expect(task.humanInput.formSchema!.type).toBe("object");
+        expect(task.humanInput.formSchema!.required).toEqual(["reason"]);
+        expect(task.humanInput.formSchema!.properties).toEqual({
+          reason: { type: "string" },
+          priority: { type: "number" },
+        });
+      }
+    });
+
+    it("call: human_input with approvers", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  name: test
+do:
+  - gatedApproval:
+      call: human_input
+      with:
+        prompt: "Approve deployment"
+        approvers:
+          - alice@example.com
+          - bob@example.com
+          - 42
+          - true
+`;
+      const model = loadWorkflowFromYaml(yaml);
+      const task = model.do[0].task;
+      expect(task.kind).toBe("human_input");
+      if (task.kind === "human_input") {
+        expect(task.humanInput.approvers).toEqual(["alice@example.com", "bob@example.com"]);
+      }
+    });
+
+    it("call: human_input with timeout and on_timeout", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  name: test
+do:
+  - timedApproval:
+      call: human_input
+      with:
+        prompt: "Approve within time limit"
+        timeout: 3600
+        on_timeout: deny
+`;
+      const model = loadWorkflowFromYaml(yaml);
+      const task = model.do[0].task;
+      expect(task.kind).toBe("human_input");
+      if (task.kind === "human_input") {
+        expect(task.humanInput.timeout).toBe(3600);
+        expect(task.humanInput.onTimeout).toBe("deny");
+      }
+    });
+
+    it("call: human_input missing prompt throws", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  name: test
+do:
+  - noPrompt:
+      call: human_input
+      with:
+        timeout: 300
+`;
+      expect(() => loadWorkflowFromYaml(yaml)).toThrow("requires 'prompt'");
+    });
+
+    it("call: human_input missing with block throws", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  name: test
+do:
+  - noWith:
+      call: human_input
+`;
+      expect(() => loadWorkflowFromYaml(yaml)).toThrow("requires a 'with' configuration block");
+    });
+
+    it("call: human_input with empty outcomes array", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  name: test
+do:
+  - emptyOutcomes:
+      call: human_input
+      with:
+        prompt: "Choose an action"
+        outcomes: []
+`;
+      const model = loadWorkflowFromYaml(yaml);
+      const task = model.do[0].task;
+      expect(task.kind).toBe("human_input");
+      if (task.kind === "human_input") {
+        expect(task.humanInput.outcomes).toBeUndefined();
+      }
+    });
+  });
 });
 
