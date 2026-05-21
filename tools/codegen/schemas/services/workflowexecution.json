@@ -1771,6 +1771,23 @@
       ]
     },
     {
+      "name": "ExecutionTarget",
+      "description": "ExecutionTarget specifies where session activities are executed.\n\n Determines whether the runner that processes agent activities lives on the\n client's machine (desktop app or CLI) or in a cloud-provisioned sandbox.\n Set at session creation time and immutable once an execution has run —\n workspace state may not be portable between local and cloud environments.\n\n @internal\n The control plane uses this field in dispatch to decide whether to route\n activities to a client-polled per-session queue (LOCAL) or provision a\n cloud sandbox (CLOUD). Both use task queues named \"session:{session_id}\".\n The difference is who provides the runner: the client (LOCAL) or the\n server (CLOUD).",
+      "protoType": "ai.stigmer.agentic.session.v1.ExecutionTarget",
+      "values": [
+        {
+          "name": "EXECUTION_TARGET_LOCAL",
+          "number": 1,
+          "description": "Client's embedded runner handles activities.\n\n Desktop app or CLI spawns a local runner process that polls the\n session's task queue. No server-side provisioning needed."
+        },
+        {
+          "name": "EXECUTION_TARGET_CLOUD",
+          "number": 2,
+          "description": "Server provisions a cloud sandbox for execution.\n\n The control plane triggers EnsureSessionSandbox to create an isolated\n environment with a runner polling the session's task queue."
+        }
+      ]
+    },
+    {
       "name": "WorkflowTaskKind",
       "description": "WorkflowTaskKind defines the supported task types in a workflow.\n\n @internal\n These map directly to Zigflow DSL task types.\n\n Naming conventions:\n - Zero value: Prefixed for clarity (workflow_task_kind_unspecified)\n - Invocations: Consistent _call suffix (http_call, grpc_call, agent_call, activity_call)\n - Control flow keywords: Semantic suffixes to avoid reserved words (switch_case, for_each, try_catch)\n - Self-descriptive verbs: No suffix needed (fork, listen, wait)\n - Verb + object: For clarity when verb alone is ambiguous (set_vars, run_workflow, raise_error)\n\n Task config schemas (for each kind):\n\n set_vars: {\"variables\": {\"key\": \"value\", ...}}\n http_call: {\"method\": \"POST\", \"endpoint\": {\"uri\": \"...\"}, \"headers\": {...}, \"body\": {...}}\n grpc_call: {\"service\": \"...\", \"method\": \"...\", \"request\": {...}}\n activity_call: {\"activity\": \"ActivityName\", \"input\": {...}}\n switch_case: {\"cases\": [{\"name\": \"...\", \"when\": \"${expr}\", \"then\": \"taskName\"}, ...]}\n for_each: {\"each\": \"item\", \"in\": \"${$data.items}\", \"do\": [{task}, ...]}\n fork: {\"branches\": [{\"name\": \"...\", \"do\": [{task}, ...]}, ...], \"compete\": false}\n try_catch: {\"try\": [{task}, ...], \"catch\": {\"as\": \"error\", \"do\": [{task}, ...]}}\n listen: {\"to\": {\"mode\": \"one\", \"signals\": [{\"id\": \"...\", \"type\": \"signal\"}]}}\n wait: {\"seconds\": 5}\n raise_error: {\"error\": \"ErrorType\", \"message\": \"${...}\"}\n run_workflow: {\"workflow\": \"workflow-name\", \"input\": {...}}\n agent_call: {\"agent\": \"agent-slug\", \"message\": \"...\", \"env\": {...}}\n llm_call: {\"model\": \"...\", \"prompt\": \"...\", \"response_schema\": {...}, \"on_invalid\": \"...\"}\n transform: {\"engine\": \"jq\", \"expression\": \"...\", \"input\": \"${...}\"}\n human_input: {\"prompt\": \"...\", \"form_schema\": {...}, \"outcomes\": [...], \"approvers\": [...], \"timeout\": 86400}\n validate: {\"input\": \"${...}\", \"schema\": {...}, \"rules\": [...], \"on_fail\": \"...\"}\n emit_event: {\"event\": {\"type\": \"...\", \"source\": \"...\", \"subject\": \"...\", \"data\": {...}}}\n notification: {\"channel\": \"slack\", \"recipients\": [\"...\"], \"subject\": \"...\", \"body\": \"...\", \"template\": \"...\", \"metadata\": {...}}\n eval: {\"model\": \"...\", \"subject\": \"${...}\", \"rubric\": \"...\", \"scoring_mode\": \"EVAL_PASS_FAIL\", \"threshold\": 0.7, \"on_fail\": \"EVAL_FAIL_RAISE\", \"criteria\": [...]}",
       "protoType": "ai.stigmer.agentic.workflow.v1.WorkflowTaskKind",

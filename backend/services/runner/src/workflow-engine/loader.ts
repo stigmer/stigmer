@@ -510,7 +510,13 @@ function parseHumanInputConfig(taskName: string, raw: unknown): import("./types.
   return {
     prompt: obj.prompt,
     outcomes: Array.isArray(obj.outcomes)
-      ? obj.outcomes.map((o: any) => ({ name: o.name, then: o.then }))
+      ? obj.outcomes.map((o: any) => ({ name: o.name, label: o.label, then: o.then }))
+      : undefined,
+    formSchema: obj.form_schema && typeof obj.form_schema === "object"
+      ? obj.form_schema as Record<string, unknown>
+      : undefined,
+    approvers: Array.isArray(obj.approvers)
+      ? obj.approvers.filter((a: unknown) => typeof a === "string") as string[]
       : undefined,
     timeout: typeof obj.timeout === "number" ? obj.timeout : undefined,
     onTimeout: (obj.on_timeout as "fail" | "approve" | "deny") ?? undefined,

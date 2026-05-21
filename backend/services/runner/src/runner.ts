@@ -214,6 +214,7 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
     { createCallAgentStatusActivities },
     { createRunCommandActivities },
     { createHydrateWorkflowActivities },
+    { createWorkflowEventActivities },
   ] = await Promise.all([
     import("./activities/execute-cursor/index.js"),
     import("./activities/execute-deep-agent/index.js"),
@@ -229,6 +230,7 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
     import("./activities/call-agent-status.js"),
     import("./activities/run-command.js"),
     import("./activities/hydrate-workflow-execution.js"),
+    import("./activities/workflow-event-activities.js"),
   ]);
 
   return {
@@ -246,6 +248,7 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
     ...createCallAgentStatusActivities(),
     ...createRunCommandActivities(),
     ...createHydrateWorkflowActivities(config),
+    ...createWorkflowEventActivities(),
   };
 }
 

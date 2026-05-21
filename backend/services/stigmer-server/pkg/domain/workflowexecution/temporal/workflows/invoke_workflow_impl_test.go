@@ -217,7 +217,7 @@ func TestRelaySignal_ForwardsToChild(t *testing.T) {
 		Return(nil)
 
 	env.RegisterDelayedCallback(func() {
-		env.SignalWorkflow("relaySignal", relaySignalPayload{
+		env.SignalWorkflow("relaySignal", RelaySignalPayload{
 			SignalName: "human_input_awaitApproval",
 			Payload:    map[string]string{"decision": "approved"},
 		})

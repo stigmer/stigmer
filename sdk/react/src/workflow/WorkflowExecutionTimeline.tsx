@@ -4,7 +4,7 @@ import { memo, useCallback, useEffect, useRef } from "react";
 import type { WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
 import { cn } from "@stigmer/theme";
 import { WorkflowExecutionTimelineEvent } from "./WorkflowExecutionTimelineEvent";
-import type { WorkflowEventStreamState } from "../internal/store/workflow-execution-event-store";
+import type { WorkflowEventStreamState, DerivedTaskState } from "../internal/store/workflow-execution-event-store";
 
 /** Props for {@link WorkflowExecutionTimeline}. */
 export interface WorkflowExecutionTimelineProps {
@@ -14,6 +14,17 @@ export interface WorkflowExecutionTimelineProps {
   readonly streamState: WorkflowEventStreamState;
   /** Callback when user clicks an agent execution link. */
   readonly onNavigateToAgentExecution?: (executionId: string) => void;
+  /** Derived task states for rendering interactive approval cards. */
+  readonly taskStates?: ReadonlyMap<string, DerivedTaskState>;
+  /** Callback to submit a human_input task approval decision. */
+  readonly onSubmitTaskApproval?: (
+    taskName: string,
+    outcome: string,
+    formData?: Record<string, unknown>,
+    comment?: string,
+  ) => Promise<unknown>;
+  /** True while a task approval submission is in flight. */
+  readonly isSubmittingApproval?: boolean;
   /** Additional CSS class names. */
   readonly className?: string;
 }
@@ -34,6 +45,9 @@ export const WorkflowExecutionTimeline = memo(function WorkflowExecutionTimeline
   events,
   streamState,
   onNavigateToAgentExecution,
+  taskStates,
+  onSubmitTaskApproval,
+  isSubmittingApproval,
   className,
 }: WorkflowExecutionTimelineProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -91,6 +105,9 @@ export const WorkflowExecutionTimeline = memo(function WorkflowExecutionTimeline
           key={event.eventId}
           event={event}
           onNavigateToAgentExecution={onNavigateToAgentExecution}
+          taskStates={taskStates}
+          onSubmitTaskApproval={onSubmitTaskApproval}
+          isSubmittingApproval={isSubmittingApproval}
         />
       ))}
 

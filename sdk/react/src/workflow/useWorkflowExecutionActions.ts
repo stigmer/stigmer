@@ -11,7 +11,9 @@ import {
   ResumeWorkflowExecutionInputSchema,
   RecoverWorkflowExecutionInputSchema,
   SubmitWorkflowApprovalInputSchema,
+  SubmitWorkflowTaskApprovalInputSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
+import { Struct } from "@bufbuild/protobuf/wkt";
 import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
 
@@ -31,6 +33,19 @@ export interface UseWorkflowExecutionActionsReturn {
   readonly submitApproval: (
     toolCallId: string,
     action: ApprovalAction,
+    comment?: string,
+  ) => Promise<WorkflowExecution | null>;
+  /**
+   * Submit a reviewer's decision for a workflow-level human_input task.
+   *
+   * Unlike `submitApproval` (which forwards agent tool approvals),
+   * this sends a Temporal signal to the workflow runner's human_input
+   * orchestrator, unblocking the task with the selected outcome.
+   */
+  readonly submitTaskApproval: (
+    taskName: string,
+    outcome: string,
+    formData?: Record<string, unknown>,
     comment?: string,
   ) => Promise<WorkflowExecution | null>;
   /** `true` while any action is in flight. */
@@ -166,6 +181,23 @@ export function useWorkflowExecutionActions(
     [wrap],
   );
 
+  const submitTaskApproval = useCallback(
+    (taskName: string, outcome: string, formData?: Record<string, unknown>, comment?: string) =>
+      wrap(() =>
+        stigmerRef.current.workflowExecution.submitWorkflowTaskApproval(
+          create(SubmitWorkflowTaskApprovalInputSchema, {
+            executionId: executionIdRef.current!,
+            taskName,
+            outcome,
+            formData: formData ? Struct.fromJson(formData) : undefined,
+            reviewer: "",
+            comment: comment ?? "",
+          }),
+        ),
+      ),
+    [wrap],
+  );
+
   return {
     cancel,
     terminate,
@@ -173,6 +205,7 @@ export function useWorkflowExecutionActions(
     resume,
     recover,
     submitApproval,
+    submitTaskApproval,
     isSubmitting,
     error,
   };

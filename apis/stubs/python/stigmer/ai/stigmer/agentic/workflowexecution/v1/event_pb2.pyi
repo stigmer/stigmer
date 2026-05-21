@@ -276,19 +276,31 @@ class AgentCallCompletedPayload(_message.Message):
     error: str
     def __init__(self, child_execution_id: _Optional[str] = ..., agent_phase: _Optional[_Union[_enum_pb2.ExecutionPhase, str]] = ..., duration_ms: _Optional[int] = ..., tokens_consumed: _Optional[int] = ..., cost_micros: _Optional[int] = ..., error: _Optional[str] = ...) -> None: ...
 
+class HumanInputOutcomeInfo(_message.Message):
+    __slots__ = ("name", "label")
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    LABEL_FIELD_NUMBER: _ClassVar[int]
+    name: str
+    label: str
+    def __init__(self, name: _Optional[str] = ..., label: _Optional[str] = ...) -> None: ...
+
 class ApprovalRequestedPayload(_message.Message):
-    __slots__ = ("prompt", "approvers", "timeout_seconds", "tool_call_id", "child_execution_id")
+    __slots__ = ("prompt", "approvers", "timeout_seconds", "tool_call_id", "child_execution_id", "outcomes", "form_schema")
     PROMPT_FIELD_NUMBER: _ClassVar[int]
     APPROVERS_FIELD_NUMBER: _ClassVar[int]
     TIMEOUT_SECONDS_FIELD_NUMBER: _ClassVar[int]
     TOOL_CALL_ID_FIELD_NUMBER: _ClassVar[int]
     CHILD_EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
+    OUTCOMES_FIELD_NUMBER: _ClassVar[int]
+    FORM_SCHEMA_FIELD_NUMBER: _ClassVar[int]
     prompt: str
     approvers: _containers.RepeatedScalarFieldContainer[str]
     timeout_seconds: int
     tool_call_id: str
     child_execution_id: str
-    def __init__(self, prompt: _Optional[str] = ..., approvers: _Optional[_Iterable[str]] = ..., timeout_seconds: _Optional[int] = ..., tool_call_id: _Optional[str] = ..., child_execution_id: _Optional[str] = ...) -> None: ...
+    outcomes: _containers.RepeatedCompositeFieldContainer[HumanInputOutcomeInfo]
+    form_schema: _struct_pb2.Struct
+    def __init__(self, prompt: _Optional[str] = ..., approvers: _Optional[_Iterable[str]] = ..., timeout_seconds: _Optional[int] = ..., tool_call_id: _Optional[str] = ..., child_execution_id: _Optional[str] = ..., outcomes: _Optional[_Iterable[_Union[HumanInputOutcomeInfo, _Mapping]]] = ..., form_schema: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ...) -> None: ...
 
 class ApprovalResolvedPayload(_message.Message):
     __slots__ = ("action", "resolved_by", "comment", "wait_duration_ms")

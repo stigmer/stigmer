@@ -76,11 +76,60 @@ export async function executeDoTasks(
 
     const shouldRun = await checkTaskCondition(entry, state, effectiveCtx);
     if (!shouldRun) {
+      if (effectiveCtx.emitEvents) {
+        await effectiveCtx.emitEvents([{
+          type: "task_skipped",
+          taskName: entry.key,
+          occurredAt: new Date().toISOString(),
+          taskKind: entry.task.kind,
+          reason: "condition evaluated to false",
+        }]);
+      }
       continue;
     }
 
-    const effectiveInput = await resolveTaskInput(entry, input, state, effectiveCtx);
-    const taskOutput = await runSingleTask(entry, effectiveInput, state, doc, effectiveCtx);
+    if (effectiveCtx.emitEvents) {
+      await effectiveCtx.emitEvents([{
+        type: "task_started",
+        taskName: entry.key,
+        occurredAt: new Date().toISOString(),
+        taskKind: entry.task.kind,
+        attemptNumber: 1,
+      }]);
+    }
+
+    const taskStartMs = Date.now();
+    let taskOutput: unknown;
+    try {
+      const effectiveInput = await resolveTaskInput(entry, input, state, effectiveCtx);
+      taskOutput = await runSingleTask(entry, effectiveInput, state, doc, effectiveCtx);
+    } catch (taskErr) {
+      if (effectiveCtx.emitEvents) {
+        await effectiveCtx.emitEvents([{
+          type: "task_failed",
+          taskName: entry.key,
+          occurredAt: new Date().toISOString(),
+          taskKind: entry.task.kind,
+          error: taskErr instanceof Error ? taskErr.message : String(taskErr),
+          attemptNumber: 1,
+          willRetry: false,
+          durationMs: Date.now() - taskStartMs,
+        }]);
+      }
+      throw taskErr;
+    }
+
+    if (effectiveCtx.emitEvents) {
+      await effectiveCtx.emitEvents([{
+        type: "task_completed",
+        taskName: entry.key,
+        occurredAt: new Date().toISOString(),
+        taskKind: entry.task.kind,
+        durationMs: Date.now() - taskStartMs,
+        costMicros: 0,
+        tokensUsed: 0,
+      }]);
+    }
 
     const switchDirective = extractFlowDirective(taskOutput);
     if (switchDirective !== undefined) {

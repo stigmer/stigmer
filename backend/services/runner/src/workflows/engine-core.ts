@@ -22,6 +22,7 @@ import type { createCallHttpActivities } from "../activities/call-http.js";
 import type { createCallGrpcActivities } from "../activities/call-grpc.js";
 import type { createCallFunctionActivities } from "../activities/call-function.js";
 import type { createRunCommandActivities } from "../activities/run-command.js";
+import type { createWorkflowEventActivities } from "../activities/workflow-event-activities.js";
 import { orchestrateAgentCall } from "./call-agent-orchestrator.js";
 import { orchestrateListenTask } from "./listen-orchestrator.js";
 import { orchestrateRunWorkflow } from "./run-orchestrator.js";
@@ -40,6 +41,7 @@ import type {
   RunWorkflowExecutionConfig,
   HumanInputExecutionConfig,
   TaskExecutionContext,
+  WorkflowEventDescriptor,
 } from "../workflow-engine/types.js";
 
 import type { ExecuteServerlessWorkflowInput } from "./execute-serverless-workflow.js";
@@ -54,6 +56,7 @@ type HttpActivities = ReturnType<typeof createCallHttpActivities>;
 type GrpcActivities = ReturnType<typeof createCallGrpcActivities>;
 type FunctionActivities = ReturnType<typeof createCallFunctionActivities>;
 type RunActivities = ReturnType<typeof createRunCommandActivities>;
+type EventActivities = ReturnType<typeof createWorkflowEventActivities>;
 
 const evalProxy = proxyLocalActivities<EvalActivities>({
   startToCloseTimeout: "10s",
@@ -78,6 +81,14 @@ const runProxy = proxyActivities<RunActivities>({
     initialInterval: "1s",
     backoffCoefficient: 2,
     maximumInterval: "30s",
+  },
+});
+
+const eventProxy = proxyLocalActivities<EventActivities>({
+  startToCloseTimeout: "10s",
+  retry: {
+    maximumAttempts: 2,
+    initialInterval: "500ms",
   },
 });
 
@@ -110,6 +121,7 @@ export async function runWorkflowEngine(
   options?: RunWorkflowEngineOptions,
 ): Promise<unknown> {
   const { model, workflow_input, env, metadata } = input;
+  const executionId = metadata?.execution_id ?? "";
   const executionStartMs = Date.now();
 
   log.info("Starting serverless workflow execution", {
@@ -119,6 +131,31 @@ export async function runWorkflowEngine(
 
   recordExecutionStartMetric(model.document.name);
 
+  await eventProxy.ResetEventSequence();
+
+  const emitEvents = async (events: WorkflowEventDescriptor[]): Promise<void> => {
+    if (!executionId || events.length === 0) return;
+    try {
+      await eventProxy.EmitWorkflowEvents(executionId, events);
+    } catch (err) {
+      log.warn("Failed to emit workflow events (non-fatal)", {
+        executionId,
+        eventCount: events.length,
+        error: String(err),
+      });
+    }
+  };
+
+  const nowIso = () => new Date().toISOString();
+
+  await emitEvents([{
+    type: "execution_started",
+    occurredAt: nowIso(),
+    totalTasks: model.do.length,
+    workflowId: metadata?.workflow_id ?? "",
+    workflowInstanceId: "",
+  }]);
+
   const evaluateExpressions: ExpressionEvaluator = (exprs, jqInput, stateVars) =>
     evalProxy.EvaluateExpressions(exprs, jqInput, stateVars);
 
@@ -126,6 +163,7 @@ export async function runWorkflowEngine(
     evaluateExpressions,
     doc: model,
     checkPause: options?.checkPause,
+    emitEvents,
     sleep: async (durationMs: number) => {
       try {
         await sleep(durationMs);
@@ -155,7 +193,7 @@ export async function runWorkflowEngine(
         call,
         config,
         runtimeEnv,
-        fnMeta.workflowExecutionId ?? metadata?.execution_id ?? "",
+        fnMeta.workflowExecutionId ?? executionId,
       ),
     callAgent: (
       config: AgentCallConfig,
@@ -167,14 +205,14 @@ export async function runWorkflowEngine(
         runtimeEnv,
         parentWorkflowId: agentMeta.parentWorkflowId || workflowInfo().workflowId,
         taskName: agentMeta.taskName,
-        workflowExecutionId: agentMeta.workflowExecutionId || metadata?.execution_id || "",
+        workflowExecutionId: agentMeta.workflowExecutionId || executionId,
       }),
   };
 
   const state = createState();
   state.env = {
     ...env,
-    __stigmer_execution_id: metadata?.execution_id ?? "",
+    __stigmer_execution_id: executionId,
     __stigmer_org_id: metadata?.org_id ?? "",
     __stigmer_workflow_id: metadata?.workflow_id ?? "",
     __stigmer_activity_task_queue: workflowInfo().taskQueue,
@@ -192,32 +230,55 @@ export async function runWorkflowEngine(
     state.input = effectiveInput;
   }
 
-  await executeDoTasks(
-    model.do,
-    effectiveInput,
-    state,
-    model,
-    evaluateExpressions,
-    ctx,
-  );
-
-  if (model.output?.as !== undefined) {
-    state.output = await resolveOutputAs(
-      model.output.as,
+  try {
+    await executeDoTasks(
+      model.do,
+      effectiveInput,
       state,
+      model,
       evaluateExpressions,
+      ctx,
     );
+
+    if (model.output?.as !== undefined) {
+      state.output = await resolveOutputAs(
+        model.output.as,
+        state,
+        evaluateExpressions,
+      );
+    }
+
+    const durationMs = Date.now() - executionStartMs;
+    recordExecutionEndMetric(model.document.name, true, durationMs);
+
+    await emitEvents([{
+      type: "execution_completed",
+      occurredAt: nowIso(),
+      durationMs,
+      totalCostMicros: 0,
+      totalTokens: 0,
+    }]);
+
+    log.info("Serverless workflow execution completed", {
+      workflowName: model.document.name,
+      durationMs,
+    });
+
+    return state.output;
+  } catch (err) {
+    const durationMs = Date.now() - executionStartMs;
+    recordExecutionEndMetric(model.document.name, false, durationMs);
+
+    await emitEvents([{
+      type: "execution_failed",
+      occurredAt: nowIso(),
+      error: err instanceof Error ? err.message : String(err),
+      failedTaskName: "",
+      durationMs,
+    }]);
+
+    throw err;
   }
-
-  const durationMs = Date.now() - executionStartMs;
-  recordExecutionEndMetric(model.document.name, true, durationMs);
-
-  log.info("Serverless workflow execution completed", {
-    workflowName: model.document.name,
-    durationMs,
-  });
-
-  return state.output;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

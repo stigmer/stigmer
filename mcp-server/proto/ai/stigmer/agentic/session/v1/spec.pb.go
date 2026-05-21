@@ -94,7 +94,7 @@ type SessionSpec struct {
 	//
 	// Determines which Temporal activity type is dispatched when an
 	// AgentExecution is created in this session:
-	// - NATIVE (default): ExecuteGraphton activity -> Stigmer native worker
+	// - NATIVE (default): ExecuteDeepAgent activity -> Stigmer unified runner
 	// - CURSOR: ExecuteCursor activity -> TypeScript/Cursor SDK worker
 	//
 	// The harness affects which tools the agent has, how conversation state

@@ -48,11 +48,42 @@ export async function executeHumanInputTask(
   const timeoutSeconds = config.timeout ?? DEFAULT_TIMEOUT_SECONDS;
   const onTimeout = config.onTimeout ?? DEFAULT_ON_TIMEOUT;
 
+  const approvalRequestedAt = Date.now();
+
+  if (ctx.emitEvents) {
+    await ctx.emitEvents([{
+      type: "approval_requested",
+      taskName,
+      occurredAt: new Date().toISOString(),
+      prompt: config.prompt,
+      approvers: config.approvers ?? [],
+      timeoutSeconds,
+      outcomes: (config.outcomes ?? []).map((o) => ({
+        name: o.name,
+        label: o.label ?? "",
+      })),
+      formSchema: config.formSchema,
+    }]);
+  }
+
   const result: HumanInputResult = await ctx.awaitHumanInput({
     signalName,
     timeoutSeconds,
     onTimeout,
   });
+
+  if (ctx.emitEvents) {
+    await ctx.emitEvents([{
+      type: "approval_resolved",
+      taskName,
+      occurredAt: new Date().toISOString(),
+      outcome: result.outcome,
+      resolvedBy: result.reviewer ?? "",
+      comment: "",
+      waitDurationMs: Date.now() - approvalRequestedAt,
+      autoResolved: result.auto_resolved ?? false,
+    }]);
+  }
 
   state.addData({ [taskName]: result });
 

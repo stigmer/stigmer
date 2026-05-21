@@ -64,7 +64,7 @@ export class StigmerClient {
   private readonly mcpServerCommand: Client<typeof McpServerCommandController>;
   private readonly skillQuery: Client<typeof SkillQueryController>;
   private readonly billingCommand: Client<typeof BillingCommandController>;
-  private readonly workflowExecutionCommand: Client<typeof WorkflowExecutionCommandController>;
+  readonly workflowExecutionCommand: Client<typeof WorkflowExecutionCommandController>;
   private readonly workflowExecutionQuery: Client<typeof WorkflowExecutionQueryController>;
   private readonly workflowQuery: Client<typeof WorkflowQueryController>;
   private readonly workflowInstanceQuery: Client<typeof WorkflowInstanceQueryController>;

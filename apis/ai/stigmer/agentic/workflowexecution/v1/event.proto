@@ -555,6 +555,26 @@ message AgentCallCompletedPayload {
 // Approval Payloads
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Lightweight outcome descriptor for UI rendering in approval cards.
+//
+// @internal
+// A subset of HumanInputOutcome (from workflow/v1/tasks/human_input.proto)
+// that carries only what the approval UI needs: the identifier to submit
+// and the label to display. The `then` routing field is deliberately
+// excluded — routing is a runner concern, not a UI concern.
+//
+// @since T13c (Workflow HITL Approval UI)
+message HumanInputOutcomeInfo {
+  // Outcome identifier submitted as the "outcome" string in
+  // SubmitWorkflowTaskApprovalInput (e.g. "approve", "pause_campaigns").
+  string name = 1;
+
+  // Human-readable label displayed on the approval button
+  // (e.g. "Approve Plan", "Pause Active Campaigns").
+  // When empty, the UI should display the capitalized name.
+  string label = 2;
+}
+
 // Payload for approval_requested events.
 //
 // @internal
@@ -562,7 +582,14 @@ message AgentCallCompletedPayload {
 // child agent enters EXECUTION_WAITING_FOR_APPROVAL. Captures who can
 // approve, the timeout, and the request context.
 //
-// @since T06
+// For workflow-level human_input tasks (tool_call_id is empty):
+// - outcomes[] contains the configured outcome buttons for the approval UI
+// - form_schema contains the JSON Schema for the reviewer's input form
+//
+// For agent tool approvals (tool_call_id is populated):
+// - outcomes and form_schema are empty (agent approvals use ApprovalAction enum)
+//
+// @since T06, extended T13c (outcomes + form_schema)
 message ApprovalRequestedPayload {
   // Human-readable prompt explaining what needs approval.
   string prompt = 1;
@@ -582,6 +609,30 @@ message ApprovalRequestedPayload {
   // For agent tool approvals: the child AgentExecution ID.
   // Empty for workflow-level human_input tasks.
   string child_execution_id = 5;
+
+  // Configured outcomes for workflow-level human_input tasks.
+  //
+  // @internal
+  // Populated from HumanInputTaskConfig.outcomes when a human_input task
+  // activates. Each entry provides the outcome identifier (name) and
+  // the human-readable button label. Empty for agent tool approvals
+  // and for human_input tasks with no custom outcomes (which default
+  // to binary approve/deny).
+  //
+  // @since T13c (Workflow HITL Approval UI)
+  repeated HumanInputOutcomeInfo outcomes = 6;
+
+  // JSON Schema for the reviewer's input form.
+  //
+  // @internal
+  // Populated from HumanInputTaskConfig.form_schema when a human_input
+  // task activates and defines a form. The approval UI renders form fields
+  // based on this schema, and the reviewer's response is submitted as
+  // form_data in SubmitWorkflowTaskApprovalInput. Empty when no form
+  // is required or for agent tool approvals.
+  //
+  // @since T13c (Workflow HITL Approval UI)
+  google.protobuf.Struct form_schema = 7;
 }
 
 // Payload for approval_resolved events.

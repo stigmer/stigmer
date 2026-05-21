@@ -7,6 +7,7 @@ import (
 	"io"
 
 	executioncontextv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/executioncontext/v1"
+	sessionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/session/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflowexecution/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
 	"google.golang.org/grpc"
@@ -176,6 +177,7 @@ type WorkflowExecutionInput struct {
 	TriggerMetadata    map[string]string
 	RuntimeEnv         map[string]EnvVarInput
 	CallbackToken      []byte
+	ExecutionTarget    sessionv1.ExecutionTarget
 }
 
 func (i *WorkflowExecutionInput) toProto() *workflowexecutionv1.WorkflowExecution {
@@ -202,6 +204,7 @@ func (i *WorkflowExecutionInput) toProto() *workflowexecutionv1.WorkflowExecutio
 		}
 	}
 	resource.Spec.CallbackToken = i.CallbackToken
+	resource.Spec.ExecutionTarget = i.ExecutionTarget
 	return resource
 }
 
@@ -230,6 +233,7 @@ func WorkflowExecutionInputFromProto(p *workflowexecutionv1.WorkflowExecution) *
 			}
 		}
 		input.CallbackToken = s.GetCallbackToken()
+		input.ExecutionTarget = s.GetExecutionTarget()
 	}
 	return input
 }

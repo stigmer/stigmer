@@ -418,6 +418,17 @@ export interface TaskExecutionContext {
   readonly callAgent: CallAgentFn;
 
   /**
+   * Emit workflow execution events to the server. Events are sent as
+   * a batch via a local activity call to `updateWorkflowExecutionStatus`.
+   * Best-effort — failures are logged but do not block the workflow.
+   *
+   * Accepts plain event descriptors (no proto imports needed in the
+   * sandbox). The activity converts them to `WorkflowExecutionEvent`
+   * proto objects before sending.
+   */
+  readonly emitEvents?: EmitEventsFn;
+
+  /**
    * Optional pause yield point. When provided, the engine calls this
    * between tasks, between for-each iterations, and between try
    * retries. If the workflow is paused (via Temporal signal), this
@@ -517,12 +528,15 @@ export interface HumanInputResult {
 export interface HumanInputConfig {
   readonly prompt: string;
   readonly outcomes?: HumanInputOutcome[];
+  readonly formSchema?: Record<string, unknown>;
+  readonly approvers?: readonly string[];
   readonly timeout?: number;
   readonly onTimeout?: "fail" | "approve" | "deny";
 }
 
 export interface HumanInputOutcome {
   readonly name: string;
+  readonly label?: string;
   readonly then?: string;
 }
 
@@ -651,6 +665,119 @@ export interface AgentUsageSummary {
   readonly tool_call_count?: number;
   readonly artifact_count?: number;
 }
+
+// ─────────────────────────────────────────────────────────────────────
+// Workflow Execution Event Descriptors
+//
+// Plain-object event descriptors that can be constructed inside the
+// Temporal deterministic sandbox (no proto imports, no I/O). The
+// emit activity converts these to WorkflowExecutionEvent proto
+// objects before sending to the server.
+// ─────────────────────────────────────────────────────────────────────
+
+export type WorkflowEventDescriptor =
+  | ExecutionStartedEvent
+  | ExecutionCompletedEvent
+  | ExecutionFailedEvent
+  | TaskStartedEvent
+  | TaskCompletedEvent
+  | TaskFailedEvent
+  | TaskSkippedEvent
+  | ApprovalRequestedEvent
+  | ApprovalResolvedEvent
+  | AgentCallStartedEvent
+  | AgentCallCompletedEvent;
+
+interface EventBase {
+  readonly taskName?: string;
+  readonly occurredAt: string;
+}
+
+export interface ExecutionStartedEvent extends EventBase {
+  readonly type: "execution_started";
+  readonly totalTasks: number;
+  readonly workflowId: string;
+  readonly workflowInstanceId: string;
+}
+
+export interface ExecutionCompletedEvent extends EventBase {
+  readonly type: "execution_completed";
+  readonly durationMs: number;
+  readonly totalCostMicros: number;
+  readonly totalTokens: number;
+}
+
+export interface ExecutionFailedEvent extends EventBase {
+  readonly type: "execution_failed";
+  readonly error: string;
+  readonly failedTaskName: string;
+  readonly durationMs: number;
+}
+
+export interface TaskStartedEvent extends EventBase {
+  readonly type: "task_started";
+  readonly taskKind: string;
+  readonly attemptNumber: number;
+}
+
+export interface TaskCompletedEvent extends EventBase {
+  readonly type: "task_completed";
+  readonly taskKind: string;
+  readonly durationMs: number;
+  readonly costMicros: number;
+  readonly tokensUsed: number;
+}
+
+export interface TaskFailedEvent extends EventBase {
+  readonly type: "task_failed";
+  readonly taskKind: string;
+  readonly error: string;
+  readonly attemptNumber: number;
+  readonly willRetry: boolean;
+  readonly durationMs: number;
+}
+
+export interface TaskSkippedEvent extends EventBase {
+  readonly type: "task_skipped";
+  readonly taskKind: string;
+  readonly reason: string;
+}
+
+export interface ApprovalRequestedEvent extends EventBase {
+  readonly type: "approval_requested";
+  readonly prompt: string;
+  readonly approvers: readonly string[];
+  readonly timeoutSeconds: number;
+  readonly outcomes: ReadonlyArray<{ name: string; label: string }>;
+  readonly formSchema?: Record<string, unknown>;
+}
+
+export interface ApprovalResolvedEvent extends EventBase {
+  readonly type: "approval_resolved";
+  readonly outcome: string;
+  readonly resolvedBy: string;
+  readonly comment: string;
+  readonly waitDurationMs: number;
+  readonly autoResolved: boolean;
+}
+
+export interface AgentCallStartedEvent extends EventBase {
+  readonly type: "agent_call_started";
+  readonly childExecutionId: string;
+  readonly agentSlug: string;
+  readonly messageSummary: string;
+}
+
+export interface AgentCallCompletedEvent extends EventBase {
+  readonly type: "agent_call_completed";
+  readonly childExecutionId: string;
+  readonly durationMs: number;
+  readonly tokensConsumed: number;
+  readonly costMicros: number;
+  readonly error: string;
+}
+
+export type EmitEventsFn = (events: WorkflowEventDescriptor[]) => Promise<void>;
 
 // ─────────────────────────────────────────────────────────────────────
 // WorkflowState (forward declaration — implemented in state.ts)

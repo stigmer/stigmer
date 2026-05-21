@@ -5,10 +5,20 @@ import type { WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/
 import { WorkflowEventType } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { cn } from "@stigmer/theme";
+import type { DerivedTaskState } from "../internal/store/workflow-execution-event-store";
+import { WorkflowTaskApprovalCard } from "./WorkflowTaskApprovalCard";
 
 interface TimelineEventProps {
   readonly event: WorkflowExecutionEvent;
   readonly onNavigateToAgentExecution?: (id: string) => void;
+  readonly taskStates?: ReadonlyMap<string, DerivedTaskState>;
+  readonly onSubmitTaskApproval?: (
+    taskName: string,
+    outcome: string,
+    formData?: Record<string, unknown>,
+    comment?: string,
+  ) => Promise<unknown>;
+  readonly isSubmittingApproval?: boolean;
 }
 
 /**
@@ -24,6 +34,9 @@ interface TimelineEventProps {
 export const WorkflowExecutionTimelineEvent = memo(function WorkflowExecutionTimelineEvent({
   event,
   onNavigateToAgentExecution,
+  taskStates,
+  onSubmitTaskApproval,
+  isSubmittingApproval,
 }: TimelineEventProps) {
   const timestamp = formatTimestamp(event.occurredAt);
   const p = event.payload;
@@ -230,7 +243,11 @@ export const WorkflowExecutionTimelineEvent = memo(function WorkflowExecutionTim
 
     // ── Approval ─────────────────────────────────────────────────────
 
-    case "approvalRequested":
+    case "approvalRequested": {
+      const isHumanInput = !p.value.toolCallId;
+      const isWaiting = taskStates?.get(event.taskName)?.status === "waiting_approval";
+      const showCard = isWaiting && isHumanInput && onSubmitTaskApproval;
+
       return (
         <EventRow icon={<ShieldIcon />} iconColor="text-warning" timestamp={timestamp}>
           <span className="font-medium text-warning">Approval requested</span>
@@ -245,8 +262,23 @@ export const WorkflowExecutionTimelineEvent = memo(function WorkflowExecutionTim
               Timeout: {formatDurationMs(p.value.timeoutSeconds * 1000)}
             </p>
           )}
+          {showCard && (
+            <WorkflowTaskApprovalCard
+              taskName={event.taskName}
+              outcomes={(p.value.outcomes ?? []).map((o) => ({
+                name: o.name,
+                label: o.label,
+              }))}
+              formSchema={p.value.formSchema
+                ? (p.value.formSchema as unknown as Record<string, unknown>)
+                : undefined}
+              onSubmit={onSubmitTaskApproval}
+              isSubmitting={isSubmittingApproval ?? false}
+            />
+          )}
         </EventRow>
       );
+    }
 
     case "approvalResolved":
       return (
