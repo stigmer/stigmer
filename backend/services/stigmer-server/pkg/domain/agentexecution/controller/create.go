@@ -573,7 +573,8 @@ func (s *startWorkflowStep) Execute(ctx *pipeline.RequestContext[*agentexecution
 
 	// Resolve dispatch: determines the Temporal task queue for activities
 	dispatch, err := agentexecutiontemporal.ResolveActivityTaskQueue(
-		ctx.Context(), s.store, execution.GetSpec().GetSessionId(), s.temporalConfig)
+		ctx.Context(), s.store, execution.GetSpec().GetSessionId(), s.temporalConfig,
+		execution.GetSpec().GetActivityTaskQueue())
 	if err != nil {
 		log.Warn().
 			Err(err).
