@@ -218,3 +218,44 @@ func AssertHasAnyToolCall(t *testing.T, exec *agentexecv1.AgentExecution, toolNa
 	}
 	t.Errorf("expected at least one tool call from %v, but none found", toolNames)
 }
+
+// WorkflowArchitectEnabledTools returns the hardcoded enabled tools list
+// for comparison in sync tests.
+func WorkflowArchitectEnabledTools() []string {
+	return workflowArchitectEnabledTools
+}
+
+// LoadWorkflowArchitectEnabledTools is the exported version for tests
+// outside the harness package.
+func LoadWorkflowArchitectEnabledTools() ([]string, error) {
+	return loadWorkflowArchitectEnabledTools()
+}
+
+// loadWorkflowArchitectEnabledTools reads the enabled_tools list from the
+// seedpack workflow-architect agent definition. Used by SeedpackSync test
+// to detect drift between harness constants and the seedpack source of truth.
+func loadWorkflowArchitectEnabledTools() ([]string, error) {
+	_, thisFile, _, _ := runtime.Caller(0)
+	seedpackPath := filepath.Join(filepath.Dir(thisFile), "..", "..", "..", "..", "seedpack", "agents", "workflow-architect.yaml")
+
+	data, err := os.ReadFile(seedpackPath)
+	if err != nil {
+		return nil, fmt.Errorf("read seedpack agent: %w", err)
+	}
+
+	var agent seedpackAgentSpec
+	if err := yaml.Unmarshal(data, &agent); err != nil {
+		return nil, fmt.Errorf("parse seedpack agent YAML: %w", err)
+	}
+
+	if len(agent.Spec.McpServerUsages) == 0 {
+		return nil, fmt.Errorf("seedpack agent has no mcp_server_usages")
+	}
+
+	tools := agent.Spec.McpServerUsages[0].EnabledTools
+	if len(tools) == 0 {
+		return nil, fmt.Errorf("seedpack agent has empty enabled_tools")
+	}
+
+	return tools, nil
+}
