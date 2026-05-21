@@ -10,6 +10,9 @@
 #   make test-integration-session-routing            # Tier 1 + 2 (offline)
 #   make test-integration-session-routing-providers   # Tier 3 (provider-backed)
 
+# Disable Go workspace to avoid cross-module dependency conflicts (CI has no go.work).
+export GOWORK := off
+
 STIGMER_CLOUD_ROOT ?= $(CURDIR)/../../../stigmer-cloud
 STIGMER_SERVICE_JAR ?= $(STIGMER_CLOUD_ROOT)/bazel-bin/backend/services/stigmer-service/stigmer_service_fatjar.jar
 
@@ -30,10 +33,21 @@ ensure-service-jar:
 		exit 1; \
 	fi
 
+RUNNER_DIR := $(CURDIR)/../../backend/services/runner
+
+.PHONY: ensure-runner-built
+ensure-runner-built:
+	@if [ ! -f "$(RUNNER_DIR)/dist/main.js" ]; then \
+		echo "Building unified runner TypeScript..."; \
+		cd "$(RUNNER_DIR)" && npm run build; \
+	else \
+		echo "unified runner: already built"; \
+	fi
+
 # ─── Offline Tests (Tier 1 + Tier 2) ────────────────────────────────────────
 
 .PHONY: test
-test: ensure-service-jar ## Run offline session routing tests (no API keys needed)
+test: ensure-service-jar ensure-runner-built ## Run offline session routing tests (no API keys needed)
 	@command -v gotestsum >/dev/null 2>&1 || { \
 		echo "error: gotestsum not found"; \
 		echo "  install: go install gotest.tools/gotestsum@latest"; \
@@ -53,7 +67,7 @@ test: ensure-service-jar ## Run offline session routing tests (no API keys neede
 # ─── Provider-Backed Tests (Tier 3) ─────────────────────────────────────────
 
 .PHONY: test-providers
-test-providers: ensure-service-jar ## Run provider-backed session routing E2E tests (auto-fetches CURSOR_API_KEY)
+test-providers: ensure-service-jar ensure-runner-built ## Run provider-backed session routing E2E tests (auto-fetches CURSOR_API_KEY)
 	@command -v gotestsum >/dev/null 2>&1 || { \
 		echo "error: gotestsum not found"; \
 		echo "  install: go install gotest.tools/gotestsum@latest"; \

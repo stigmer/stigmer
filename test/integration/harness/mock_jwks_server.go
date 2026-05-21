@@ -180,7 +180,7 @@ func (m *MockJWKSServer) handleOAuthToken(w http.ResponseWriter, r *http.Request
 		audience = "https://api.stigmer.test"
 	}
 
-	token, err := m.SignJWT("machine-account@stigmer.ai", audience, map[string]any{
+	token, err := m.SignJWT("test-machine-client-id@clients", audience, map[string]any{
 		"gty":   "client-credentials",
 		"scope": "machine-account",
 	})

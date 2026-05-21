@@ -111,11 +111,12 @@ func TestSessionRouting_ExecutionTargetImmutability(t *testing.T) {
 	session := harness.CreateTestSession(t, ctx, clients, "", sessionv1.Harness_HARNESS_CURSOR)
 	sessionID := session.GetMetadata().GetId()
 
-	// Run an execution to lock the execution target.
+	// Create an execution and simulate the runner binding to the session by
+	// setting harness_state_id. The immutability guard only fires when
+	// harness_state_id is non-empty (indicating infrastructure is bound).
 	harness.CreateTestAgentExecution(t, ctx, clients, sessionID, "lock target")
-	time.Sleep(2 * time.Second)
 
-	// Attempt to change execution_target on the session — should be rejected.
+	// Seed harness_state_id to simulate the runner having bound.
 	_, err := clients.SessionCommand.Update(ctx, &sessionv1.Session{
 		ApiVersion: testAPIVersion,
 		Kind:       "Session",
@@ -124,6 +125,25 @@ func TestSessionRouting_ExecutionTargetImmutability(t *testing.T) {
 			AgentInstanceId: session.GetSpec().GetAgentInstanceId(),
 			Subject:         session.GetSpec().GetSubject(),
 			Harness:         session.GetSpec().GetHarness(),
+			HarnessStateId:  "simulated-cursor-agent-id",
+		},
+	})
+	require.NoError(t, err, "seeding harness_state_id should succeed")
+
+	// Re-fetch the session to get the latest metadata version.
+	session, err = clients.SessionQuery.Get(ctx, &sessionv1.SessionId{Value: sessionID})
+	require.NoError(t, err)
+
+	// Attempt to change execution_target on the session — should be rejected.
+	_, err = clients.SessionCommand.Update(ctx, &sessionv1.Session{
+		ApiVersion: testAPIVersion,
+		Kind:       "Session",
+		Metadata:   session.GetMetadata(),
+		Spec: &sessionv1.SessionSpec{
+			AgentInstanceId: session.GetSpec().GetAgentInstanceId(),
+			Subject:         session.GetSpec().GetSubject(),
+			Harness:         session.GetSpec().GetHarness(),
+			HarnessStateId:  session.GetSpec().GetHarnessStateId(),
 			ExecutionTarget: sessionv1.ExecutionTarget_EXECUTION_TARGET_CLOUD,
 		},
 	})

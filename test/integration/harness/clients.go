@@ -3,6 +3,7 @@ package harness
 import (
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	agentexecv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	agentinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
@@ -34,6 +35,8 @@ type Clients struct {
 	// Agent services
 	AgentCommand          agentv1.AgentCommandControllerClient
 	AgentQuery            agentv1.AgentQueryControllerClient
+	AgentInstanceCommand  agentinstancev1.AgentInstanceCommandControllerClient
+	AgentInstanceQuery    agentinstancev1.AgentInstanceQueryControllerClient
 	AgentExecutionCommand agentexecv1.AgentExecutionCommandControllerClient
 	AgentExecutionQuery   agentexecv1.AgentExecutionQueryControllerClient
 
@@ -95,6 +98,8 @@ func NewClients(conn grpc.ClientConnInterface) *Clients {
 
 		AgentCommand:          agentv1.NewAgentCommandControllerClient(conn),
 		AgentQuery:            agentv1.NewAgentQueryControllerClient(conn),
+		AgentInstanceCommand:  agentinstancev1.NewAgentInstanceCommandControllerClient(conn),
+		AgentInstanceQuery:    agentinstancev1.NewAgentInstanceQueryControllerClient(conn),
 		AgentExecutionCommand: agentexecv1.NewAgentExecutionCommandControllerClient(conn),
 		AgentExecutionQuery:   agentexecv1.NewAgentExecutionQueryControllerClient(conn),
 

@@ -9,6 +9,21 @@ import (
 	"sync"
 )
 
+// AgentRunnerProcess represents a running agent-runner (Python/LangGraph).
+// Currently a stub for in-progress workstreams; tests skip when nil.
+type AgentRunnerProcess struct{}
+
+// CursorRunnerProcess represents a running cursor-runner (TypeScript/Cursor SDK).
+// Currently a stub for in-progress workstreams; tests skip when nil.
+type CursorRunnerProcess struct {
+	workspaceDir string
+}
+
+// WorkspaceDir returns the workspace directory used by the cursor runner.
+func (c *CursorRunnerProcess) WorkspaceDir() string {
+	return c.workspaceDir
+}
+
 // TestHarness orchestrates all infrastructure and services needed for
 // integration tests against the Stigmer Cloud Java service.
 type TestHarness struct {
@@ -20,6 +35,8 @@ type TestHarness struct {
 	Jaeger        *JaegerContainer
 	Service       *JavaService
 	UnifiedRunner *UnifiedRunnerStatic
+	AgentRunner   *AgentRunnerProcess
+	CursorRunner  *CursorRunnerProcess
 
 	outputDir string
 	logger    *slog.Logger
