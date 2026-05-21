@@ -86,7 +86,7 @@ func TestResolveActivityTaskQueue_GlobalRouting(t *testing.T) {
 		s := setupTestStore(t)
 		defer s.Close()
 
-		result, err := ResolveActivityTaskQueue(context.Background(), s, "", cfg)
+		result, err := ResolveActivityTaskQueue(context.Background(), s, "", cfg, "")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -102,7 +102,7 @@ func TestResolveActivityTaskQueue_GlobalRouting(t *testing.T) {
 		s := setupTestStore(t)
 		defer s.Close()
 
-		result, err := ResolveActivityTaskQueue(context.Background(), s, "nonexistent-session", cfg)
+		result, err := ResolveActivityTaskQueue(context.Background(), s, "nonexistent-session", cfg, "")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -117,7 +117,7 @@ func TestResolveActivityTaskQueue_GlobalRouting(t *testing.T) {
 
 		saveSession(t, s, "ses_global_test", sessionv1.Harness_HARNESS_CURSOR)
 
-		result, err := ResolveActivityTaskQueue(context.Background(), s, "ses_global_test", cfg)
+		result, err := ResolveActivityTaskQueue(context.Background(), s, "ses_global_test", cfg, "")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -137,7 +137,7 @@ func TestResolveActivityTaskQueue_SessionRouting(t *testing.T) {
 		s := setupTestStore(t)
 		defer s.Close()
 
-		result, err := ResolveActivityTaskQueue(context.Background(), s, "", cfg)
+		result, err := ResolveActivityTaskQueue(context.Background(), s, "", cfg, "")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -156,7 +156,7 @@ func TestResolveActivityTaskQueue_SessionRouting(t *testing.T) {
 		sessionID := "ses_01arz3ndektsv4rrffq69g5fav"
 		saveSession(t, s, sessionID, sessionv1.Harness_HARNESS_NATIVE)
 
-		result, err := ResolveActivityTaskQueue(context.Background(), s, sessionID, cfg)
+		result, err := ResolveActivityTaskQueue(context.Background(), s, sessionID, cfg, "")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -175,7 +175,7 @@ func TestResolveActivityTaskQueue_SessionRouting(t *testing.T) {
 		defer s.Close()
 
 		sessionID := "ses_nonexistent"
-		result, err := ResolveActivityTaskQueue(context.Background(), s, sessionID, cfg)
+		result, err := ResolveActivityTaskQueue(context.Background(), s, sessionID, cfg, "")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -196,7 +196,7 @@ func TestResolveActivityTaskQueue_SessionRouting(t *testing.T) {
 		sessionID := "ses_cursor_session"
 		saveSession(t, s, sessionID, sessionv1.Harness_HARNESS_CURSOR)
 
-		result, err := ResolveActivityTaskQueue(context.Background(), s, sessionID, cfg)
+		result, err := ResolveActivityTaskQueue(context.Background(), s, sessionID, cfg, "")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -323,7 +323,7 @@ func TestResolveActivityTaskQueue_ExecutionTarget(t *testing.T) {
 			t.Fatalf("failed to save session: %v", err)
 		}
 
-		result, err := ResolveActivityTaskQueue(context.Background(), s, sessionID, sessionConfig())
+		result, err := ResolveActivityTaskQueue(context.Background(), s, sessionID, sessionConfig(), "")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -351,7 +351,7 @@ func TestResolveActivityTaskQueue_ExecutionTarget(t *testing.T) {
 			t.Fatalf("failed to save session: %v", err)
 		}
 
-		result, err := ResolveActivityTaskQueue(context.Background(), s, sessionID, sessionConfig())
+		result, err := ResolveActivityTaskQueue(context.Background(), s, sessionID, sessionConfig(), "")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -367,12 +367,71 @@ func TestResolveActivityTaskQueue_ExecutionTarget(t *testing.T) {
 		sessionID := "ses_unspecified"
 		saveSession(t, s, sessionID, sessionv1.Harness_HARNESS_NATIVE)
 
-		result, err := ResolveActivityTaskQueue(context.Background(), s, sessionID, cloudConfig())
+		result, err := ResolveActivityTaskQueue(context.Background(), s, sessionID, cloudConfig(), "")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 		if result.ExecutionTarget != sessionv1.ExecutionTarget_EXECUTION_TARGET_CLOUD {
 			t.Errorf("expected CLOUD (from config default), got %v", result.ExecutionTarget)
+		}
+	})
+
+	t.Run("activity_task_queue override routes to parent workflow sandbox", func(t *testing.T) {
+		s := setupTestStore(t)
+		defer s.Close()
+
+		sessionID := "ses_override_test"
+		saveSession(t, s, sessionID, sessionv1.Harness_HARNESS_CURSOR)
+
+		override := "wfexec:wfx_parent_abc123"
+		result, err := ResolveActivityTaskQueue(context.Background(), s, sessionID, sessionConfig(), override)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if result.TaskQueue != override {
+			t.Errorf("expected override queue %q, got %q", override, result.TaskQueue)
+		}
+		if result.Harness != sessionv1.Harness_HARNESS_CURSOR {
+			t.Errorf("expected session's harness CURSOR, got %v", result.Harness)
+		}
+		if result.ExecutionTarget != sessionv1.ExecutionTarget_EXECUTION_TARGET_LOCAL {
+			t.Errorf("expected LOCAL (no provisioning needed), got %v", result.ExecutionTarget)
+		}
+	})
+
+	t.Run("activity_task_queue override with no session still works", func(t *testing.T) {
+		s := setupTestStore(t)
+		defer s.Close()
+
+		override := "wfexec:wfx_no_session"
+		result, err := ResolveActivityTaskQueue(context.Background(), s, "", cloudConfig(), override)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if result.TaskQueue != override {
+			t.Errorf("expected override queue %q, got %q", override, result.TaskQueue)
+		}
+		if result.Harness != sessionv1.Harness_HARNESS_NATIVE {
+			t.Errorf("expected default NATIVE harness, got %v", result.Harness)
+		}
+		if result.ExecutionTarget != sessionv1.ExecutionTarget_EXECUTION_TARGET_LOCAL {
+			t.Errorf("expected LOCAL (sandbox already exists), got %v", result.ExecutionTarget)
+		}
+	})
+
+	t.Run("empty override falls through to normal routing", func(t *testing.T) {
+		s := setupTestStore(t)
+		defer s.Close()
+
+		sessionID := "ses_no_override"
+		saveSession(t, s, sessionID, sessionv1.Harness_HARNESS_NATIVE)
+
+		result, err := ResolveActivityTaskQueue(context.Background(), s, sessionID, sessionConfig(), "")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if result.TaskQueue != FormatSessionTaskQueue(sessionID) {
+			t.Errorf("expected session queue %q, got %q", FormatSessionTaskQueue(sessionID), result.TaskQueue)
 		}
 	})
 }

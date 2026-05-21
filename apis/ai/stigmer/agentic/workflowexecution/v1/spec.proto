@@ -3,6 +3,7 @@ syntax = "proto3";
 package ai.stigmer.agentic.workflowexecution.v1;
 
 import "ai/stigmer/agentic/executioncontext/v1/spec.proto";
+import "ai/stigmer/agentic/session/v1/enum.proto";
 
 // WorkflowExecutionSpec defines the user-provided inputs for a workflow execution.
 //
@@ -133,4 +134,21 @@ message WorkflowExecutionSpec {
   //
   // @since 2026-01-22
   bytes callback_token = 7;
+
+  // Where workflow activities are executed — shared runner pool or dedicated sandbox.
+  //
+  // @internal
+  // Determines dispatch routing for the workflow and all child executions:
+  // - UNSPECIFIED: server defaults (LOCAL for OSS, CLOUD for managed)
+  // - LOCAL: workflow runs on global queue (stigmer_runner)
+  // - CLOUD: server provisions a dedicated sandbox with per-execution queue
+  //
+  // When CLOUD: all call:agent tasks within this workflow share the same sandbox.
+  // Child agent executions inherit this sandbox via activity_task_queue propagation
+  // on AgentExecutionSpec, avoiding N separate sandbox cold starts.
+  //
+  // Immutable after creation (sandbox provisioning is a one-time operation).
+  //
+  // @since Workflow Sandbox Affinity
+  ai.stigmer.agentic.session.v1.ExecutionTarget execution_target = 8;
 }
