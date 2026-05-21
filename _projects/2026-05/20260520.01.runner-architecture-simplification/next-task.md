@@ -14,8 +14,35 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-20
-**Current Task**: Sandbox token exchange implemented
-**Status**: Cloud sandbox token exchange complete. SandboxTokenService mints session-scoped Stigmer-signed JWTs (4h TTL) instead of forwarding the caller's raw JWT. Stale-token-aware sandbox recreation handles expiry. All 61 Java Bazel tests pass. E2E integration test suite also in progress (separate conversation).
+**Current Task**: ExecuteGraphton→ExecuteDeepAgent rename complete
+**Status**: Activity name mismatch fixed. Go and Java workflows now dispatch `ExecuteDeepAgent` matching the unified TS runner. Native harness per-session routing unblocked. All Go tests + 61 Java Bazel tests pass.
+
+## Session Progress (2026-05-21, Session 13)
+
+### What was accomplished
+- **Fixed ExecuteGraphton→ExecuteDeepAgent name mismatch** — the blocker for native harness per-session routing
+  - Go OSS: Renamed `execute_graphton.go` → `execute_deep_agent.go`, updated interface/constant/stub/method names, updated workflow flow methods and HITL loop, updated pause tests
+  - Java Cloud: Renamed `ExecuteGraphtonActivity.java` → `ExecuteDeepAgentActivity.java`, updated `@ActivityMethod(name = "ExecuteDeepAgent")`, updated workflow impl, config comments, test mocks
+  - Updated `spec.proto` harness→activity mapping documentation
+  - All Go tests pass, all 61 Java Bazel tests pass
+
+### Key changes
+1. **Renamed**: `execute_graphton.go` → `execute_deep_agent.go` (Go interface, constant, stub)
+2. **Renamed**: `ExecuteGraphtonActivity.java` → `ExecuteDeepAgentActivity.java` (Java interface, annotation)
+3. **Modified**: `invoke_workflow_impl.go` — `executeDeepAgentFlow`, `executeDeepAgentWithHitl`
+4. **Modified**: `InvokeAgentExecutionWorkflowImpl.java` — same flow renames, stub type, invocations
+5. **Modified**: `AgentExecutionTemporalWorkerConfig.java` — comments reference unified runner
+6. **Modified**: `AgentExecutionTemporalWorkflowTypes.java` — updated activity list
+7. **Modified**: Both test files — mock type and method renames
+8. **Modified**: `spec.proto` — harness→activity mapping comment
+
+### Decisions made
+- **Rename workflow side, not runner side**: The unified TS runner already registers `ExecuteDeepAgent` — rename the orchestrators to match rather than changing the runner
+- **Don't touch Python agent-runner**: Scheduled for deletion; no point updating legacy code
+- **Activity name reflects execution engine**: `DeepAgent` (the `deepagents` npm/Python library) is the correct term, not `Graphton` (deprecated Python wrapper)
+
+### Surprises discovered
+- None — this was a clean mechanical rename with no architectural decisions needed
 
 ## Session Progress (2026-05-21, Session 12)
 
@@ -298,7 +325,7 @@ Drop this file into your conversation to quickly resume work on this project.
 3. ~~**E2E cloud testing**~~ — ✅ Done (Session 11 — cloud_control_plane_test.go, control plane level; full Daytona E2E deferred to cloud CI)
 4. **Worker count scaling** — verify 20+ Workers in one process doesn't overload Temporal connection
 5. **Sandbox orphan cleanup** — background job to clean up sandboxes whose sessions were deleted but cleanup step failed
-6. **Fix ExecuteGraphton→ExecuteDeepAgent name mismatch** — Java workflow still dispatches `ExecuteGraphton` but unified runner registers `ExecuteDeepAgent`. Native harness per-session routing blocked until resolved.
+6. ~~**Fix ExecuteGraphton→ExecuteDeepAgent name mismatch**~~ — ✅ Done (Session 13). Go and Java workflows now dispatch `ExecuteDeepAgent`.
 7. **Token renewal mechanism** — if 4h TTL proves too short for continuous use, add runner-side token refresh (deferred from token exchange design)
 
 ## Session Progress (2026-05-20, Session 5)
