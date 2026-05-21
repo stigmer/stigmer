@@ -2,6 +2,7 @@ package harness
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
@@ -35,13 +36,18 @@ var Harnesses = []HarnessConfig{
 	},
 }
 
-// RequireNativePrereqs skips the test if the unified runner is not available.
-// The unified runner registers both ExecuteDeepAgent (native) and ExecuteCursor
-// activities, so a single process serves both harnesses.
+// RequireNativePrereqs skips the test if the unified runner is not available
+// or if the Anthropic API key is absent. Every native harness test dispatches
+// an agent execution through the LLM proxy, which requires an upstream key.
+// Without it, executions hang until the test context expires (~4 min), causing
+// a panic that aborts the entire suite.
 func RequireNativePrereqs(t *testing.T, th *TestHarness) {
 	t.Helper()
 	if th.UnifiedRunner == nil {
 		t.Skip("unified runner not available — skipping native harness test")
+	}
+	if os.Getenv("ANTHROPIC_API_KEY") == "" {
+		t.Skip("ANTHROPIC_API_KEY not set — skipping native harness test (requires LLM)")
 	}
 }
 

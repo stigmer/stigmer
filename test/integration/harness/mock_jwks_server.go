@@ -169,10 +169,22 @@ func (m *MockJWKSServer) handleOIDCDiscovery(w http.ResponseWriter, _ *http.Requ
 // handleOAuthToken implements the OAuth 2.0 client_credentials grant for the
 // mock OIDC server. The Java service's MachineAccountJwtProvider calls this
 // endpoint to obtain a machine-account JWT for internal service-to-service calls.
+//
+// The handler reads client_id from the JSON POST body (matching the real Auth0
+// client_credentials flow) and constructs the JWT subject as "{client_id}@clients".
+// This ensures the mock JWT subject aligns with what the Mongock bootstrap
+// migration seeds in MongoDB (spec.idpId = "{AUTH0_CLIENT_ID}@clients").
 func (m *MockJWKSServer) handleOAuthToken(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
+	}
+
+	var body struct {
+		ClientID string `json:"client_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.ClientID == "" {
+		body.ClientID = "test-client-id"
 	}
 
 	audience := m.Audience
@@ -180,7 +192,8 @@ func (m *MockJWKSServer) handleOAuthToken(w http.ResponseWriter, r *http.Request
 		audience = "https://api.stigmer.test"
 	}
 
-	token, err := m.SignJWT("test-machine-client-id@clients", audience, map[string]any{
+	sub := body.ClientID + "@clients"
+	token, err := m.SignJWT(sub, audience, map[string]any{
 		"gty":   "client-credentials",
 		"scope": "machine-account",
 	})
