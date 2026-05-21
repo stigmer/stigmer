@@ -11,11 +11,10 @@
  * - @temporalio/testing ephemeral server binary (installed via npm)
  * - Temporal CLI (`temporal`) on PATH
  *
- * Known issue: The workflow-engine uses `structuredClone` in set.ts,
- * which is unavailable in the Temporal deterministic V8 sandbox. This
- * must be fixed (use JSON round-trip or state.ts deepClone) before
- * these E2E tests can pass. Until then, tests are skipped if the
- * environment can't execute workflows.
+ * The workflow-engine uses `deepClone` from `clone.ts` which falls
+ * back to JSON round-trip when `structuredClone` is unavailable in
+ * the Temporal deterministic V8 sandbox. Tests are skipped if the
+ * environment can't start a Temporal test server.
  *
  * Run with: npx vitest run src/__tests__/golden-e2e.test.ts
  */
@@ -133,10 +132,8 @@ describe("Golden E2E — Temporal TestWorkflowEnvironment", () => {
   }, 30_000);
 
   // ─────────────────────────────────────────────────────────────────
-  // Each test skips gracefully if the environment isn't ready
-  // (e.g., structuredClone not available in Temporal sandbox).
-  // These tests become active once the engine sandbox compatibility
-  // issue is resolved.
+  // Each test skips gracefully if the Temporal test server
+  // cannot start or the smoke test fails.
   // ─────────────────────────────────────────────────────────────────
 
   it("#01 operation-basic — sequential set tasks", async () => {

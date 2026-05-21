@@ -12,6 +12,7 @@ import type {
   TaskExecutorFn,
 } from "../types.js";
 import { collectExpressions, substituteResults } from "../resolve.js";
+import { deepClone } from "../clone.js";
 
 export class SetTaskBuilder implements TaskBuilder {
   readonly taskName: string;
@@ -24,7 +25,7 @@ export class SetTaskBuilder implements TaskBuilder {
 
   build(): TaskExecutorFn {
     return async (_input, state, ctx) => {
-      const setObject = structuredClone(this.taskDef.set);
+      const setObject = deepClone(this.taskDef.set);
 
       const stateVars = state.getAsMap();
       const result = await ctx.evaluateExpressions(

@@ -9,6 +9,7 @@
  */
 
 import type { WorkflowState as IWorkflowState } from "./types.js";
+import { deepClone } from "./clone.js";
 
 export class WorkflowStateImpl implements IWorkflowState {
   context: unknown = null;
@@ -48,20 +49,6 @@ export class WorkflowStateImpl implements IWorkflowState {
   clearOutput(): void {
     this.output = null;
   }
-}
-
-/**
- * Deep clone via structured clone. Falls back to JSON round-trip
- * for environments where structuredClone is unavailable (should
- * not happen on Node 20+, but defensive).
- */
-function deepClone<T>(value: T): T {
-  if (value === null || value === undefined) return value;
-  if (typeof value !== "object") return value;
-  if (typeof globalThis.structuredClone === "function") {
-    return structuredClone(value);
-  }
-  return JSON.parse(JSON.stringify(value));
 }
 
 export function createState(): WorkflowStateImpl {

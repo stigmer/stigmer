@@ -112,10 +112,9 @@ describe("Golden Execution — Tier 1b: Expression Evaluation", () => {
 
     await executeDoTasks(model.do, null, state, model, evaluateExpressionBatch, ctx);
 
-    // The set task evaluates expressions with null jq input;
-    // ${ .a + .b } uses bare dot notation which resolves against jq input,
-    // not $data. The TS engine correctly produces null here (Go uses state.Data
-    // as jq input, a behavioral difference noted for Phase 9 parity review).
+    // Both Go and TS pass null as jq input (.) for set tasks.
+    // Bare dot expressions like ${ .a + .b } resolve against null;
+    // state data is accessible only via $data variable bindings.
     expect(state.data.message).toBe("Data injected");
     expect(mockCallHttp).toHaveBeenCalledOnce();
   });
@@ -311,63 +310,10 @@ describe("Golden Execution — Tier 1d: Advanced Tasks", () => {
   });
 
   it("#13 agent-call — call:agent with structured output, switch on severity", async () => {
-    // Golden #13 uses `input.from: ${ { pr_number: ... } }` which js-yaml
-    // rejects (unquoted braces parsed as YAML mapping syntax). Construct the
-    // equivalent model inline to test the execution pipeline.
-    const agentYaml = [
-      "document:",
-      "  dsl: '1.0.0'",
-      "  namespace: stigmer",
-      "  name: code-review-triage",
-      "  version: '1.0.0'",
-      "do:",
-      "  - setupContext:",
-      "      set:",
-      "        review_request:",
-      "          pr_number: 42",
-      "          repo: stigmer/stigmer",
-      "  - reviewCode:",
-      "      call: agent",
-      "      with:",
-      '        agent: "code-reviewer"',
-      '        message: "Review the code changes"',
-      "        config:",
-      '          model: "claude-3-5-sonnet"',
-      "      export:",
-      '        as: "${ .structured }"',
-      "  - routeBySeverity:",
-      "      switch:",
-      "        - critical:",
-      '            when: ${ $context.reviewCode.severity == "critical" }',
-      "            then: handleCritical",
-      "        - high:",
-      '            when: ${ $context.reviewCode.severity == "high" }',
-      "            then: handleHigh",
-      "        - default:",
-      "            then: handleStandard",
-      "  - handleCritical:",
-      "      set:",
-      "        action: block_merge",
-      "        notification: urgent",
-      "        assignee: security-team",
-      "      then: finalize",
-      "  - handleHigh:",
-      "      set:",
-      "        action: request_changes",
-      "        notification: normal",
-      "        assignee: senior-reviewer",
-      "      then: finalize",
-      "  - handleStandard:",
-      "      set:",
-      "        action: auto_approve",
-      "        notification: none",
-      "  - finalize:",
-      "      set:",
-      "        completed: true",
-    ].join("\n");
-
-    const model = loadWorkflowFromYaml(agentYaml);
+    const model = loadWorkflowFromYaml(loadGolden("13-agent-call.yaml"));
     const state = createState();
+    state.input = { pr_number: 42, repo: "stigmer/stigmer", diff: "--- a/foo.ts\n+++ b/foo.ts" };
+
     const mockCallAgent = vi.fn(async () => ({
       structured: { severity: "high", category: "security", customer_impact: true },
       final_text: "Review complete",
@@ -375,7 +321,7 @@ describe("Golden Execution — Tier 1d: Advanced Tasks", () => {
     }));
     const ctx = makeCtx({ callAgent: mockCallAgent });
 
-    await executeDoTasks(model.do, null, state, model, evaluateExpressionBatch, ctx);
+    await executeDoTasks(model.do, state.input, state, model, evaluateExpressionBatch, ctx);
 
     expect(mockCallAgent).toHaveBeenCalledOnce();
     expect(state.data.action).toBe("request_changes");
