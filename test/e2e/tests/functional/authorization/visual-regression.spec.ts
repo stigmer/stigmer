@@ -20,7 +20,7 @@ test.describe("Visual Regression - Authorization Components", () => {
       await page.goto("/library/agents");
       await page.waitForLoadState("networkidle");
 
-      const firstAgent = page.locator('[data-testid="resource-card"]').first();
+      const firstAgent = page.locator('[role="listitem"]').first();
       if (!(await firstAgent.isVisible())) {
         test.skip();
         return;
@@ -45,7 +45,7 @@ test.describe("Visual Regression - Authorization Components", () => {
       await page.goto("/library/agents");
       await page.waitForLoadState("networkidle");
 
-      const firstAgent = page.locator('[data-testid="resource-card"]').first();
+      const firstAgent = page.locator('[role="listitem"]').first();
       if (!(await firstAgent.isVisible())) {
         test.skip();
         return;
@@ -79,7 +79,7 @@ test.describe("Visual Regression - Authorization Components", () => {
       await page.waitForLoadState("networkidle");
 
       const firstWorkflow = page
-        .locator('[data-testid="resource-card"]')
+        .locator('[role="listitem"]')
         .first();
       if (!(await firstWorkflow.isVisible())) {
         test.skip();
@@ -106,7 +106,7 @@ test.describe("Visual Regression - Authorization Components", () => {
       await page.goto("/library/agents");
       await page.waitForLoadState("networkidle");
 
-      const firstAgent = page.locator('[data-testid="resource-card"]').first();
+      const firstAgent = page.locator('[role="listitem"]').first();
       if (!(await firstAgent.isVisible())) {
         test.skip();
         return;
@@ -138,7 +138,7 @@ test.describe("Visual Regression - Authorization Components", () => {
       await page.goto("/library/agents");
       await page.waitForLoadState("networkidle");
 
-      const firstAgent = page.locator('[data-testid="resource-card"]').first();
+      const firstAgent = page.locator('[role="listitem"]').first();
       if (!(await firstAgent.isVisible())) {
         test.skip();
         return;

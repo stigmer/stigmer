@@ -22,7 +22,7 @@ test.describe("Instance Visibility", () => {
       await page.waitForLoadState("networkidle");
 
       const firstWorkflow = page
-        .locator('[data-testid="resource-card"]')
+        .locator('[role="listitem"]')
         .first();
       await firstWorkflow.click();
       await page.waitForLoadState("networkidle");
@@ -62,7 +62,7 @@ test.describe("Instance Visibility", () => {
       await page.waitForLoadState("networkidle");
 
       const firstWorkflow = page
-        .locator('[data-testid="resource-card"]')
+        .locator('[role="listitem"]')
         .first();
       await firstWorkflow.click();
 
@@ -90,7 +90,7 @@ test.describe("Instance Visibility", () => {
       await page.waitForLoadState("networkidle");
 
       const firstWorkflow = page
-        .locator('[data-testid="resource-card"]')
+        .locator('[role="listitem"]')
         .first();
       await firstWorkflow.click();
 
