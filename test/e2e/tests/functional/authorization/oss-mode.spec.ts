@@ -45,7 +45,7 @@ test.describe("OSS Mode - Authorization UI", () => {
     await page.goto("/library/agents");
     await page.waitForLoadState("networkidle");
 
-    const firstAgent = page.locator('[data-testid="resource-card"]').first();
+    const firstAgent = page.locator('[role="listitem"]').first();
     if (await firstAgent.isVisible()) {
       await firstAgent.click();
       await page.waitForLoadState("networkidle");
@@ -62,7 +62,7 @@ test.describe("OSS Mode - Authorization UI", () => {
     await page.goto("/library/agents");
     await page.waitForLoadState("networkidle");
 
-    const firstAgent = page.locator('[data-testid="resource-card"]').first();
+    const firstAgent = page.locator('[role="listitem"]').first();
     if (await firstAgent.isVisible()) {
       await firstAgent.click();
       await page.waitForLoadState("networkidle");
@@ -78,7 +78,7 @@ test.describe("OSS Mode - Authorization UI", () => {
     await page.waitForLoadState("networkidle");
 
     const firstWorkflow = page
-      .locator('[data-testid="resource-card"]')
+      .locator('[role="listitem"]')
       .first();
     if (await firstWorkflow.isVisible()) {
       await firstWorkflow.click();

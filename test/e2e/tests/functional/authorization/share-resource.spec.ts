@@ -18,7 +18,7 @@ test.describe("Resource Sharing", () => {
       await page.goto("/library/agents");
       await page.waitForLoadState("networkidle");
 
-      const firstAgent = page.locator('[data-testid="resource-card"]').first();
+      const firstAgent = page.locator('[role="listitem"]').first();
       await firstAgent.click();
       await page.waitForLoadState("networkidle");
 
@@ -33,7 +33,7 @@ test.describe("Resource Sharing", () => {
       await page.goto("/library/agents");
       await page.waitForLoadState("networkidle");
 
-      const firstAgent = page.locator('[data-testid="resource-card"]').first();
+      const firstAgent = page.locator('[role="listitem"]').first();
       await firstAgent.click();
       await page.waitForLoadState("networkidle");
 
@@ -58,7 +58,7 @@ test.describe("Resource Sharing", () => {
       await page.goto("/library/agents");
       await page.waitForLoadState("networkidle");
 
-      const firstAgent = page.locator('[data-testid="resource-card"]').first();
+      const firstAgent = page.locator('[role="listitem"]').first();
       await firstAgent.click();
 
       const shareButton = page.getByRole("button", { name: /share/i });
@@ -74,7 +74,7 @@ test.describe("Resource Sharing", () => {
       await page.goto("/library/agents");
       await page.waitForLoadState("networkidle");
 
-      const firstAgent = page.locator('[data-testid="resource-card"]').first();
+      const firstAgent = page.locator('[role="listitem"]').first();
       await firstAgent.click();
 
       const shareButton = page.getByRole("button", { name: /share/i });

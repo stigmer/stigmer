@@ -20,7 +20,7 @@ test.describe("Blueprint Visibility", () => {
       await page.goto("/library/agents");
       await page.waitForLoadState("networkidle");
 
-      const firstAgent = page.locator('[data-testid="resource-card"]').first();
+      const firstAgent = page.locator('[role="listitem"]').first();
       await firstAgent.click();
 
       const radiogroup = page.getByRole("radiogroup", {
@@ -38,7 +38,7 @@ test.describe("Blueprint Visibility", () => {
       await page.goto("/library/agents");
       await page.waitForLoadState("networkidle");
 
-      const firstAgent = page.locator('[data-testid="resource-card"]').first();
+      const firstAgent = page.locator('[role="listitem"]').first();
       await firstAgent.click();
 
       const radiogroup = page.getByRole("radiogroup", {
@@ -62,7 +62,7 @@ test.describe("Blueprint Visibility", () => {
       await page.waitForLoadState("networkidle");
 
       const firstWorkflow = page
-        .locator('[data-testid="resource-card"]')
+        .locator('[role="listitem"]')
         .first();
       await firstWorkflow.click();
 
