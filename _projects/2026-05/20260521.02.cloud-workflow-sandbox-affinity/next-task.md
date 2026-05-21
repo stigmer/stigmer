@@ -14,8 +14,8 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-21
-**Current Task**: T01 — Workstreams A, B, C, and D complete. E unblocked.
-**Status**: Workstreams A (Sandbox Provisioning), B (Dispatch Routing), C (Agent Override Wiring + Security), and D (Lifecycle Hooks) are COMPLETE. Workstream E (Tests + Validation) is the only remaining workstream.
+**Current Task**: T01 — ALL WORKSTREAMS COMPLETE (A through E).
+**Status**: All 5 workstreams are COMPLETE. The cloud-side workflow sandbox affinity feature is fully implemented and tested.
 
 ## Critical Architectural Insight
 
@@ -34,7 +34,7 @@ This is why the plan has **5 workstreams, not 4** — Workstream D (Lifecycle Ho
 | **B: Dispatch Routing** | 1 | **COMPLETE** | A, C |
 | **C: Agent Override Wiring + Security** | 1 | **COMPLETE** | A, B |
 | **D: Lifecycle Hooks (Cleanup)** | 1 | **COMPLETE** | After A |
-| **E: Tests + Validation** | 1 | **UNBLOCKED** (depends on A+B+C+D ✓) | After A+B+C+D |
+| **E: Tests + Validation** | 1 | **COMPLETE** | After A+B+C+D |
 
 **Parallel plan**: A, B, and C can each be tackled in separate conversations simultaneously. D depends on A's provisioner methods being ready. E ties everything together.
 
