@@ -3,7 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { create } from "@bufbuild/protobuf";
+import { create, type JsonObject } from "@bufbuild/protobuf";
 import {
   CancelWorkflowExecutionInputSchema,
   TerminateWorkflowExecutionInputSchema,
@@ -13,7 +13,6 @@ import {
   SubmitWorkflowApprovalInputSchema,
   SubmitWorkflowTaskApprovalInputSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
-import { Struct } from "@bufbuild/protobuf/wkt";
 import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
 
@@ -189,7 +188,7 @@ export function useWorkflowExecutionActions(
             executionId: executionIdRef.current!,
             taskName,
             outcome,
-            formData: formData ? Struct.fromJson(formData) : undefined,
+            formData: formData as JsonObject | undefined,
             reviewer: "",
             comment: comment ?? "",
           }),

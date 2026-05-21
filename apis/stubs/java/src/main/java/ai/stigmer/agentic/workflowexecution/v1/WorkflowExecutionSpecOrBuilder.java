@@ -453,4 +453,51 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
    * @return The callbackToken.
    */
   com.google.protobuf.ByteString getCallbackToken();
+
+  /**
+   * <pre>
+   * Where workflow activities are executed — shared runner pool or dedicated sandbox.
+   *
+   * &#64;internal
+   * Determines dispatch routing for the workflow and all child executions:
+   * - UNSPECIFIED: server defaults (LOCAL for OSS, CLOUD for managed)
+   * - LOCAL: workflow runs on global queue (stigmer_runner)
+   * - CLOUD: server provisions a dedicated sandbox with per-execution queue
+   *
+   * When CLOUD: all call:agent tasks within this workflow share the same sandbox.
+   * Child agent executions inherit this sandbox via activity_task_queue propagation
+   * on AgentExecutionSpec, avoiding N separate sandbox cold starts.
+   *
+   * Immutable after creation (sandbox provisioning is a one-time operation).
+   *
+   * &#64;since Workflow Sandbox Affinity
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.ExecutionTarget execution_target = 8 [json_name = "executionTarget"];</code>
+   * @return The enum numeric value on the wire for executionTarget.
+   */
+  int getExecutionTargetValue();
+  /**
+   * <pre>
+   * Where workflow activities are executed — shared runner pool or dedicated sandbox.
+   *
+   * &#64;internal
+   * Determines dispatch routing for the workflow and all child executions:
+   * - UNSPECIFIED: server defaults (LOCAL for OSS, CLOUD for managed)
+   * - LOCAL: workflow runs on global queue (stigmer_runner)
+   * - CLOUD: server provisions a dedicated sandbox with per-execution queue
+   *
+   * When CLOUD: all call:agent tasks within this workflow share the same sandbox.
+   * Child agent executions inherit this sandbox via activity_task_queue propagation
+   * on AgentExecutionSpec, avoiding N separate sandbox cold starts.
+   *
+   * Immutable after creation (sandbox provisioning is a one-time operation).
+   *
+   * &#64;since Workflow Sandbox Affinity
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.ExecutionTarget execution_target = 8 [json_name = "executionTarget"];</code>
+   * @return The executionTarget.
+   */
+  ai.stigmer.agentic.session.v1.ExecutionTarget getExecutionTarget();
 }

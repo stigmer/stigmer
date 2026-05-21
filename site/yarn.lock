@@ -77,10 +77,41 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@bufbuild/cel-spec@npm:0.4.0":
+  version: 0.4.0
+  resolution: "@bufbuild/cel-spec@npm:0.4.0"
+  peerDependencies:
+    "@bufbuild/protobuf": ^2.6.2
+  checksum: 10c0/1f7796b613a5e3cd5f45a09d694382c4dd8b82eae2cb55c8d6af149dc9fd46b9312adf7e6394f415f14f0d98c50b35e3c502903373e39a1ef470e633f0ec6256
+  languageName: node
+  linkType: hard
+
+"@bufbuild/cel@npm:0.4.0":
+  version: 0.4.0
+  resolution: "@bufbuild/cel@npm:0.4.0"
+  dependencies:
+    "@bufbuild/cel-spec": "npm:0.4.0"
+  peerDependencies:
+    "@bufbuild/protobuf": ^2.6.2
+  checksum: 10c0/86af1b4cfb7769a566e3df4c624c06c3c36c33e7163b68df72631c0628da5217ba195fba847420da9961c77828ba56b14298b87338395ed9cde4b0c4f995cac7
+  languageName: node
+  linkType: hard
+
 "@bufbuild/protobuf@npm:2.12.0, @bufbuild/protobuf@npm:^2.11.0":
   version: 2.12.0
   resolution: "@bufbuild/protobuf@npm:2.12.0"
   checksum: 10c0/28959e371fd2e7c8d67d52af9e3c8f8e6770e2e116dcc5508f469ca736afa6905e216bc76183835898a5f3deb8aa2e7db47d4a0e706fba76115e9a1996893191
+  languageName: node
+  linkType: hard
+
+"@bufbuild/protovalidate@npm:^1.1.1":
+  version: 1.2.0
+  resolution: "@bufbuild/protovalidate@npm:1.2.0"
+  dependencies:
+    "@bufbuild/cel": "npm:0.4.0"
+  peerDependencies:
+    "@bufbuild/protobuf": ^2.8.0
+  checksum: 10c0/7695f7071f6f922f408997333127509700a220154c9842f26b6c4e04b7247de266be8a79f5fc1232c5af20695bada991b7104a02415e78dc1360d260472c4b2e
   languageName: node
   linkType: hard
 
@@ -2344,17 +2375,18 @@ __metadata:
 
 "@stigmer/protos@file:../apis/stubs/ts::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/protos@file:../apis/stubs/ts#../apis/stubs/ts::hash=9e6693&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/protos@file:../apis/stubs/ts#../apis/stubs/ts::hash=c1e59d&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@bufbuild/protobuf": "npm:2.12.0"
-  checksum: 10c0/7da5f9cbb724ad780880dc4c08ad40fc7232e4d3f1e6825ed68c2f1b67fe74460550b945b6fd82e4da44aa636f3297e89877351c9a0bf2d66e403a7aa50e9ba2
+  checksum: 10c0/ff127443a918cbbb004f3934fec3a4a1f091894e337facafe687b14ee2a2f856c217e014157357b277d6dc6830d6a288aef7251ca0ff0622167affefb6c52d53
   languageName: node
   linkType: hard
 
 "@stigmer/react@file:../sdk/react::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/react@file:../sdk/react#../sdk/react::hash=ac77d9&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/react@file:../sdk/react#../sdk/react::hash=a4a485&locator=stigmer-site%40workspace%3A."
   dependencies:
+    "@bufbuild/protovalidate": "npm:^1.1.1"
     "@dagrejs/dagre": "npm:^1.1.4"
     "@stigmer/theme": "npm:*"
     diff: "npm:^8.0.3"
@@ -2366,7 +2398,7 @@ __metadata:
     yaml: "npm:^2.8.2"
   peerDependencies:
     "@base-ui/react": ^1.0.0
-    "@bufbuild/protobuf": ^2.0.0
+    "@bufbuild/protobuf": ^2.8.0
     "@codemirror/autocomplete": ^6.0.0
     "@codemirror/commands": ^6.0.0
     "@codemirror/lang-yaml": ^6.0.0
@@ -2411,13 +2443,13 @@ __metadata:
       optional: true
     recharts:
       optional: true
-  checksum: 10c0/027acc8264ad47883c5fa2971e6da013572d33913eba206881fd74268fd6aaef862bc6e28c2ceb651b7ab0def842a203421d9d31978277e46c514657c7ee4bff
+  checksum: 10c0/2a1a47ec45b89c672daecfad961082014f2e7d80bac238c8649c9cd0825a859e951c02edab4a9f21e98fa5371c3e90e43066c47911b21fcac3a00b5ceba70198
   languageName: node
   linkType: hard
 
 "@stigmer/sdk@file:../sdk/typescript::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/sdk@file:../sdk/typescript#../sdk/typescript::hash=7d21af&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/sdk@file:../sdk/typescript#../sdk/typescript::hash=8e62e8&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@connectrpc/connect": "npm:^2.0.0"
     "@connectrpc/connect-web": "npm:^2.0.0"
@@ -2428,7 +2460,7 @@ __metadata:
   peerDependenciesMeta:
     "@connectrpc/connect-node":
       optional: true
-  checksum: 10c0/e1f528333f7f1232d18962091a36a72736d2285ab438e4f89ada85918e175172692dc0dc35a075a65e5c49a48746650be522c3829b1a7cbf256b377f744503ca
+  checksum: 10c0/381b89279ab9e19744835b0d1f5bf7e0f6db199077374a76f42c145e73b30164af2c584d03a7508f2b3bccdf451ef24848c4f7f03f4739f2b1005d72ccd3cd8c
   languageName: node
   linkType: hard
 

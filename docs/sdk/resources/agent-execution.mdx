@@ -612,6 +612,7 @@ const agentExecution = await stigmer.agentExecution.create({
   parentWorkflowId: "...",
   attachments: [],
   workspaceFileRefs: [],
+  activityTaskQueue: "...",
 });
 ```
 </Tab>
@@ -632,6 +633,7 @@ agentExecution, err := client.AgentExecution.Create(ctx, &stigmer.AgentExecution
   ParentWorkflowId:  "...",
   Attachments:       []stigmer.AttachmentInput{},
   WorkspaceFileRefs: []string{},
+  ActivityTaskQueue: "...",
 })
 ```
 </Tab>
@@ -652,6 +654,7 @@ agent_execution = client.agent_executions.create(AgentExecutionInput(
     parent_workflow_id="...",
     attachments=[],
     workspace_file_refs=[],
+    activity_task_queue="...",
 ))
 ```
 </Tab>
@@ -672,6 +675,7 @@ AgentExecution agentExecution = client.agentExecutions().create(AgentExecutionIn
     .parentWorkflowId("...")
     .attachments(List.of())
     .workspaceFileRefs(List.of())
+    .activityTaskQueue("...")
     .build());
 ```
 </Tab>
@@ -703,6 +707,7 @@ const agentExecution = await stigmer.agentExecution.update({
   parentWorkflowId: "...",
   attachments: [],
   workspaceFileRefs: [],
+  activityTaskQueue: "...",
 });
 ```
 </Tab>
@@ -723,6 +728,7 @@ agentExecution, err := client.AgentExecution.Update(ctx, &stigmer.AgentExecution
   ParentWorkflowId:  "...",
   Attachments:       []stigmer.AttachmentInput{},
   WorkspaceFileRefs: []string{},
+  ActivityTaskQueue: "...",
 })
 ```
 </Tab>
@@ -743,6 +749,7 @@ agent_execution = client.agent_executions.update(AgentExecutionInput(
     parent_workflow_id="...",
     attachments=[],
     workspace_file_refs=[],
+    activity_task_queue="...",
 ))
 ```
 </Tab>
@@ -763,6 +770,7 @@ AgentExecution agentExecution = client.agentExecutions().update(AgentExecutionIn
     .parentWorkflowId("...")
     .attachments(List.of())
     .workspaceFileRefs(List.of())
+    .activityTaskQueue("...")
     .build());
 ```
 </Tab>
@@ -1189,6 +1197,7 @@ Input for creating or updating an Agent Execution.
     parentWorkflowId: { type: "string", description: "Parent workflow ID when this execution was triggered by a workflow (optional)." },
     attachments: { type: "AttachmentInput[]", description: "Files attached to this execution.", typeDescriptionLink: "#attachmentinput" },
     workspaceFileRefs: { type: "string[]", description: "Workspace-relative file paths the user wants the agent to focus on." },
+    activityTaskQueue: { type: "string", description: "Explicit Temporal task queue override for activity routing." },
   }}
 />
 

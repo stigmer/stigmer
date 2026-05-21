@@ -6,6 +6,7 @@ import { type EnvVarInput } from "./types";
 import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { ExecutionValueSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
+import { ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { WorkflowExecutionSchema, type WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import { WorkflowExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/command_pb";
 import { WorkflowExecutionEventSchema, type WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
@@ -164,6 +165,7 @@ export interface WorkflowExecutionInput {
   triggerMetadata?: Record<string, string>;
   runtimeEnv?: Record<string, EnvVarInput>;
   callbackToken?: Uint8Array;
+  executionTarget?: ExecutionTarget;
 }
 
 function buildWorkflowExecutionProto(input: WorkflowExecutionInput): WorkflowExecution {
@@ -189,6 +191,7 @@ function buildWorkflowExecutionProto(input: WorkflowExecutionInput): WorkflowExe
       triggerMetadata: input.triggerMetadata,
       runtimeEnv,
       callbackToken: input.callbackToken,
+      executionTarget: input.executionTarget,
     })),
   }) as WorkflowExecution;
 }

@@ -8,7 +8,8 @@
   "exports": {
     "./*": {
       "types": "./dist/*.d.ts",
-      "import": "./dist/*.js"
+      "import": "./dist/*.js",
+      "default": "./dist/*.js"
     }
   },
   "scripts": {
@@ -33,7 +34,8 @@
     "exports": {
       "./*": {
         "types": "./dist/*.d.ts",
-        "import": "./dist/*.js"
+        "import": "./dist/*.js",
+        "default": "./dist/*.js"
       }
     }
   },

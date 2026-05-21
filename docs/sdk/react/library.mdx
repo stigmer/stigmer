@@ -297,8 +297,11 @@ if (preview) {
 
 ### useUpdateVisibility
 
-Behavior hook that updates the visibility of a Skill, Agent, or
-MCP Server.
+Behavior hook that updates the visibility of a resource.
+
+Supports blueprints (Agent, Workflow, Skill, MCP Server) with
+private/public visibility, and instances (AgentInstance,
+WorkflowInstance) with the full private/org/public spectrum.
 
 Wraps the generated `stigmer.{kind}.updateVisibility()` SDK method
 with loading and error state management. The hook is stateless with
@@ -333,10 +336,10 @@ function useUpdateVisibility(kind: VisibilityResourceKind, resourceId: string | 
 />
 
 ```tsx
-const { updateVisibility, isPending } = useUpdateVisibility("skill", skill.metadata.id);
+const { updateVisibility, isPending } = useUpdateVisibility("workflow", workflow.metadata.id);
 
 <VisibilityToggle
-  visibility={skill.metadata.visibility}
+  visibility={workflow.metadata.visibility}
   onVisibilityChange={updateVisibility}
   isPending={isPending}
 />
