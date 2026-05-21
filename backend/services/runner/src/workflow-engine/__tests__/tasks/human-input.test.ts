@@ -7,11 +7,13 @@ import type {
   HumanInputExecutionConfig,
   HumanInputResult,
   AwaitHumanInputFn,
+  EmitEventsFn,
+  WorkflowEventDescriptor,
 } from "../../types.js";
 
 const notAvailable = () => { throw new Error("not available in test"); };
 
-function makeCtx(awaitFn?: AwaitHumanInputFn): TaskExecutionContext {
+function makeCtx(awaitFn?: AwaitHumanInputFn, emitFn?: EmitEventsFn): TaskExecutionContext {
   return {
     evaluateExpressions: async () => ({}),
     doc: { document: { dsl: "1.0.0", name: "test" }, do: [] },
@@ -24,6 +26,7 @@ function makeCtx(awaitFn?: AwaitHumanInputFn): TaskExecutionContext {
     callGrpc: notAvailable,
     callFunction: notAvailable,
     callAgent: notAvailable,
+    emitEvents: emitFn,
   };
 }
 
@@ -222,6 +225,192 @@ describe("executeHumanInputTask", () => {
       const result = await executeHumanInputTask(taskDef, "gate", createState(), makeCtx(awaitFn));
 
       expect(result).toEqual({ outcome: "deny", auto_resolved: true, reason: "timeout" });
+    });
+  });
+
+  describe("event emission", () => {
+    it("emits approval_requested before blocking with correct fields", async () => {
+      const emitted: WorkflowEventDescriptor[][] = [];
+      const emitFn: EmitEventsFn = async (events) => { emitted.push(events); };
+      const awaitFn: AwaitHumanInputFn = async () => ({ outcome: "approve", reviewer: "alice" });
+
+      const taskDef: HumanInputTaskDef = {
+        kind: "human_input",
+        humanInput: {
+          prompt: "Please review the deployment",
+          approvers: ["alice", "bob"],
+          timeout: 300,
+          outcomes: [
+            { name: "approve", label: "Approve Plan" },
+            { name: "reject", label: "Reject" },
+          ],
+          formSchema: { type: "object", properties: { feedback: { type: "string" } } },
+        },
+      };
+
+      await executeHumanInputTask(taskDef, "reviewGate", createState(), makeCtx(awaitFn, emitFn));
+
+      expect(emitted.length).toBeGreaterThanOrEqual(1);
+      const requestedBatch = emitted[0];
+      expect(requestedBatch).toHaveLength(1);
+
+      const requested = requestedBatch[0];
+      expect(requested.type).toBe("approval_requested");
+      if (requested.type !== "approval_requested") throw new Error("unexpected");
+
+      expect(requested.taskName).toBe("reviewGate");
+      expect(requested.prompt).toBe("Please review the deployment");
+      expect(requested.approvers).toEqual(["alice", "bob"]);
+      expect(requested.timeoutSeconds).toBe(300);
+      expect(requested.outcomes).toEqual([
+        { name: "approve", label: "Approve Plan" },
+        { name: "reject", label: "Reject" },
+      ]);
+      expect(requested.formSchema).toEqual({
+        type: "object",
+        properties: { feedback: { type: "string" } },
+      });
+    });
+
+    it("emits approval_resolved after signal with correct fields", async () => {
+      const emitted: WorkflowEventDescriptor[][] = [];
+      const emitFn: EmitEventsFn = async (events) => { emitted.push(events); };
+      const awaitFn: AwaitHumanInputFn = async () => ({
+        outcome: "reject",
+        reviewer: "carol",
+        auto_resolved: false,
+      });
+
+      const taskDef: HumanInputTaskDef = {
+        kind: "human_input",
+        humanInput: { prompt: "Confirm?" },
+      };
+
+      await executeHumanInputTask(taskDef, "gate", createState(), makeCtx(awaitFn, emitFn));
+
+      expect(emitted).toHaveLength(2);
+      const resolvedBatch = emitted[1];
+      expect(resolvedBatch).toHaveLength(1);
+
+      const resolved = resolvedBatch[0];
+      expect(resolved.type).toBe("approval_resolved");
+      if (resolved.type !== "approval_resolved") throw new Error("unexpected");
+
+      expect(resolved.taskName).toBe("gate");
+      expect(resolved.outcome).toBe("reject");
+      expect(resolved.resolvedBy).toBe("carol");
+      expect(resolved.autoResolved).toBe(false);
+      expect(resolved.waitDurationMs).toBeGreaterThanOrEqual(0);
+    });
+
+    it("does not error when emitEvents is undefined (backward compat)", async () => {
+      const awaitFn: AwaitHumanInputFn = async () => ({ outcome: "approve" });
+
+      const taskDef: HumanInputTaskDef = {
+        kind: "human_input",
+        humanInput: { prompt: "Review" },
+      };
+
+      const ctx = makeCtx(awaitFn, undefined);
+      const result = await executeHumanInputTask(taskDef, "t", createState(), ctx);
+
+      expect(result).toEqual({ outcome: "approve" });
+    });
+
+    it("maps outcomes correctly with and without labels", async () => {
+      const emitted: WorkflowEventDescriptor[][] = [];
+      const emitFn: EmitEventsFn = async (events) => { emitted.push(events); };
+      const awaitFn: AwaitHumanInputFn = async () => ({ outcome: "approve" });
+
+      const taskDef: HumanInputTaskDef = {
+        kind: "human_input",
+        humanInput: {
+          prompt: "Review",
+          outcomes: [
+            { name: "approve", label: "Approve Plan" },
+            { name: "monitor" },
+          ],
+        },
+      };
+
+      await executeHumanInputTask(taskDef, "t", createState(), makeCtx(awaitFn, emitFn));
+
+      const requested = emitted[0][0];
+      if (requested.type !== "approval_requested") throw new Error("unexpected");
+
+      expect(requested.outcomes).toEqual([
+        { name: "approve", label: "Approve Plan" },
+        { name: "monitor", label: "" },
+      ]);
+    });
+
+    it("includes formSchema in approval_requested when provided", async () => {
+      const emitted: WorkflowEventDescriptor[][] = [];
+      const emitFn: EmitEventsFn = async (events) => { emitted.push(events); };
+      const awaitFn: AwaitHumanInputFn = async () => ({ outcome: "approve" });
+
+      const schema = {
+        type: "object",
+        properties: {
+          budget_override: { type: "number", description: "New budget amount" },
+          justification: { type: "string", description: "Reason for change" },
+        },
+      };
+
+      const taskDef: HumanInputTaskDef = {
+        kind: "human_input",
+        humanInput: { prompt: "Approve budget?", formSchema: schema },
+      };
+
+      await executeHumanInputTask(taskDef, "budgetGate", createState(), makeCtx(awaitFn, emitFn));
+
+      const requested = emitted[0][0];
+      if (requested.type !== "approval_requested") throw new Error("unexpected");
+
+      expect(requested.formSchema).toEqual(schema);
+    });
+
+    it("defaults approvers and outcomes when not configured", async () => {
+      const emitted: WorkflowEventDescriptor[][] = [];
+      const emitFn: EmitEventsFn = async (events) => { emitted.push(events); };
+      const awaitFn: AwaitHumanInputFn = async () => ({ outcome: "approve" });
+
+      const taskDef: HumanInputTaskDef = {
+        kind: "human_input",
+        humanInput: { prompt: "Simple gate" },
+      };
+
+      await executeHumanInputTask(taskDef, "simple", createState(), makeCtx(awaitFn, emitFn));
+
+      const requested = emitted[0][0];
+      if (requested.type !== "approval_requested") throw new Error("unexpected");
+
+      expect(requested.approvers).toEqual([]);
+      expect(requested.outcomes).toEqual([]);
+      expect(requested.formSchema).toBeUndefined();
+    });
+
+    it("emits approval_resolved with autoResolved true on timeout auto-approve", async () => {
+      const emitted: WorkflowEventDescriptor[][] = [];
+      const emitFn: EmitEventsFn = async (events) => { emitted.push(events); };
+      const awaitFn: AwaitHumanInputFn = async () => ({
+        outcome: "approve",
+        auto_resolved: true,
+        reason: "timeout",
+      });
+
+      const taskDef: HumanInputTaskDef = {
+        kind: "human_input",
+        humanInput: { prompt: "Review", timeout: 5, onTimeout: "approve" },
+      };
+
+      await executeHumanInputTask(taskDef, "autoGate", createState(), makeCtx(awaitFn, emitFn));
+
+      const resolved = emitted[1][0];
+      if (resolved.type !== "approval_resolved") throw new Error("unexpected");
+
+      expect(resolved.autoResolved).toBe(true);
+      expect(resolved.outcome).toBe("approve");
     });
   });
 });

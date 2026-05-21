@@ -509,7 +509,7 @@ function parseHumanInputConfig(taskName: string, raw: unknown): import("./types.
 
   return {
     prompt: obj.prompt,
-    outcomes: Array.isArray(obj.outcomes)
+    outcomes: Array.isArray(obj.outcomes) && obj.outcomes.length > 0
       ? obj.outcomes.map((o: any) => ({ name: o.name, label: o.label, then: o.then }))
       : undefined,
     formSchema: obj.form_schema && typeof obj.form_schema === "object"

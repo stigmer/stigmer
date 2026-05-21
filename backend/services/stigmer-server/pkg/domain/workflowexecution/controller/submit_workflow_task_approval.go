@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
-	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
@@ -179,9 +178,9 @@ func (s *ValidateHumanInputTaskStep) Execute(ctx *pipeline.RequestContext[*workf
 	tasks := execution.GetStatus().GetTasks()
 	for _, task := range tasks {
 		if task.GetTaskName() == taskName {
-			if task.GetTaskKind() != workflowv1.WorkflowTaskKind_human_input {
+			if task.GetTaskType() != workflowexecutionv1.WorkflowTaskType_WORKFLOW_TASK_APPROVAL {
 				return grpclib.InvalidArgumentError(
-					fmt.Sprintf("task '%s' is not a human_input task (kind: %s)", taskName, task.GetTaskKind().String()),
+					fmt.Sprintf("task '%s' is not a human_input task (type: %s)", taskName, task.GetTaskType().String()),
 				)
 			}
 			return nil
