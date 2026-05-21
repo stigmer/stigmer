@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /**
- * E2E tests for the Stigmer web console, split into two tiers:
+ * E2E tests for the Stigmer web console, split into three tiers:
  *
  * - **smoke**: lightweight checks that work against any deployment (including
  *   production behind auth). Validates page loads, absence of error banners,
@@ -10,6 +10,10 @@ import { defineConfig, devices } from "@playwright/test";
  * - **functional**: content assertions that require the full app rendering
  *   (dashboard heading, session composer input, 404 page). These run against
  *   a local dev server via `make test-e2e`.
+ *
+ * - **interactive**: tests that require the full backend stack (stigmer-server,
+ *   Temporal, unified runner). Create real resources via API, verify they render
+ *   correctly, and exercise complete user flows. Run via `make test-e2e-interactive`.
  *
  * Override the target with STIGMER_E2E_BASE_URL for staging or local.
  * When no STIGMER_E2E_BASE_URL is set, Playwright auto-starts the local
@@ -44,7 +48,15 @@ export default defineConfig({
       testDir: "./tests/functional",
       use: { ...devices["Desktop Chrome"] },
     },
+    {
+      name: "interactive",
+      testDir: "./tests/interactive",
+      use: { ...devices["Desktop Chrome"] },
+    },
   ],
+
+  globalSetup: "./global-setup.ts",
+  globalTeardown: "./global-teardown.ts",
 
   webServer: !isExternalTarget
     ? {
