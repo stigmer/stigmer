@@ -26,3 +26,7 @@ export {
 export {
   executeServerlessWorkflow as "stigmer/workflow/execute",
 } from "./execute-serverless-workflow.js";
+
+export {
+  executeFromExecution as "stigmer/workflow/execute-from-execution",
+} from "./execute-from-execution.js";

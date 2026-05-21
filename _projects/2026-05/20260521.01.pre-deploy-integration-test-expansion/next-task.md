@@ -14,73 +14,64 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-21
-**Last Session**: 2026-05-21 — Workstream C Session 1 complete
-**Current Task**: Workstream C Session 2 (tool call + streaming tests) or continue other workstreams
-**Status**: Workstream A in progress (separate conversation). Workstream C Session 1 complete (21 tests delivered).
+**Current Task**: Workstream A complete. Workstream B next.
+**Status**: Gating item (Workstream A) completed. B is unblocked. C/D/E/F can start in parallel.
 
 ## Workstream Summary (Parallel Execution)
 
 | Workstream | Sessions | Status | Blocked By |
 |------------|----------|--------|------------|
-| **A: TS Hydration Activity** | 2-3 | In progress (separate conversation) | Nothing (GATING ITEM) |
-| **B: Java + Go Orchestrator Rewrite** | 3.5-5 | Not started | A |
-| **C: Go Integration Tests (New)** | 3-4 | **Session 1 complete** (21 tests) | Nothing |
+| **A: TS Hydration Activity** | 1 (done) | COMPLETED | — |
+| **B: Java + Go Orchestrator Rewrite** | 3.5-5 | Not started (UNBLOCKED) | — |
+| **C: Go Integration Tests (New)** | 3-4 | Not started | Nothing |
 | **D: Playwright E2E (Structural)** | 2 | Not started | Nothing |
 | **E: stigmer-cloud BUILD.bazel** | 2-3 | Not started | Nothing |
 | **F: SDK Component Tests** | 1 | Not started | Nothing |
 
-**Critical path**: A → B → B-tests (6-7 sessions). C/D/E/F can all run in parallel.
+**Critical path**: B → B-tests (3.5-5 sessions remaining). C/D/E/F can all run in parallel now.
 
-## Workstream C Session 1 Progress (2026-05-21)
+## Session Progress (2026-05-21, Workstream A)
 
-### Delivered
+### What was accomplished
+- **Built `HydrateWorkflowExecution` activity** — gRPC-fetches WorkflowExecution (trigger_message), Workflow (YAML from status), ExecutionContext (env). Validates YAML state, parses via `loadWorkflowFromYaml`, flattens env, parses trigger_message as JSON.
+- **Extracted engine core** — Moved engine setup/execution from `executeServerlessWorkflow` into shared `runWorkflowEngine()` in `engine-core.ts`. Both direct and wrapper workflows use it. Zero duplication.
+- **Built wrapper workflow** — `stigmer/workflow/execute-from-execution` calls hydration activity then `runWorkflowEngine` inline. Workflow ID = `workflow-exec-{executionId}` for direct signal routing.
+- **Extended StigmerClient** — Added `getWorkflow`, `getWorkflowInstance`, `getWorkflowExecution` query methods.
+- **Registered** — New workflow in `index.ts`, new activity in both `runner.ts` and `runner-manager.ts`.
+- **18 unit tests** — All pass. 23 existing workflow engine tests pass after refactor.
 
-3 new test files, 21 tests, 1,193 lines of Go:
+### Key decisions made
+- **AD-1**: New wrapper workflow (not modified existing) — preserves backward compat
+- **AD-2**: Wrapper IS the signal target — flat architecture (one hop from Java), no double-nesting
+- **AD-3**: Shared engine core via extraction — `engine-core.ts` is sandbox-safe
+- **YAML source**: Read from `workflow.status.serverlessWorkflowValidation.yaml` (Cloud path). OSS gap documented.
+- **trigger_message → workflow_input**: JSON.parse with null fallback for invalid/empty
+- **Status updates**: NOT implemented in wrapper (pre-existing gap, deferred to Workstream B/future)
 
-**`test/integration/agent_crud_test.go`** (9 tests):
-- Apply/Get/Delete lifecycle with default instance verification
-- Apply upsert by (org, slug) semantics
-- Status preservation across updates
-- Instructions min_len=10 protovalidate enforcement
-- MCP reference normalization (empty org filled)
-- GetByReference slug resolution + error paths
-- UpdateVisibility private→public→private
-- Non-cascading delete (instances survive)
-- Delete nonexistent
+### Surprises discovered
+- **OSS YAML not persisted**: `PopulateServerlessValidation` step only exists in Cloud (Java). Go server stores validation result in pipeline context but never writes YAML to WorkflowStatus. The `validateSpec` RPC also won't work in OSS since it routes through the deleted Go runner's Temporal activity. Both paths broken in OSS.
+- **Progressive status updates missing**: The old Go runner sent per-task status updates via gRPC. The TS engine sends zero. This is a pre-existing gap, not caused by this work.
+- **callback_token not propagated**: Proto field exists on WorkflowExecutionSpec but `create.go` never copies it to the slim Temporal input. Not relevant for this workstream.
 
-**`test/integration/session_lifecycle_test.go`** (9 tests):
-- Create/Get/Delete lifecycle
-- Default agent resolution when agent_instance_id empty
-- Invalid agent instance behavioral discovery
-- Offset-based List pagination (page_token as page number string)
-- ListByAgent filtering (documents agent_instance_id field name mismatch)
-- Atomic UpdateSubject + empty clears
-- Metadata map round-trip via Update
-- Delete nonexistent
-- Delete does not cascade to executions (provider-backed)
+### Files created
+- `backend/services/runner/src/activities/hydrate-workflow-execution.ts`
+- `backend/services/runner/src/workflows/engine-core.ts`
+- `backend/services/runner/src/workflows/execute-from-execution.ts`
+- `backend/services/runner/src/activities/__tests__/hydrate-workflow-execution.test.ts`
 
-**`test/integration/agent_execution_11_conversation_journey_test.go`** (3 tests):
-- ListBySession execution count growth across 3 turns
-- Concurrent session context isolation (code words ALPHA/BRAVO)
-- Follow-up on auto-created session + ListBySession verification
-
-### Key Discoveries
-
-1. Session Create does NOT validate agent_instance_id existence — stores bogus IDs without error
-2. ListByAgent `agent_id` field actually filters by `agent_instance_id` (proto/implementation mismatch)
-3. ListByAgent ignores pagination fields despite proto definition
-4. Session List uses offset-based pagination (page_token is string page number, not cursor)
-
-### What's Next for Workstream C
-
-- **Session 2**: Tool call structure verification, streaming event ordering (C.3 from master plan)
-- **Session 3**: Remaining lifecycle edge cases not covered by existing _06 tests (C.2)
+### Files modified
+- `backend/services/runner/src/client/stigmer-client.ts`
+- `backend/services/runner/src/workflows/execute-serverless-workflow.ts`
+- `backend/services/runner/src/workflows/index.ts`
+- `backend/services/runner/src/runner.ts`
+- `backend/services/runner/src/runner-manager.ts`
+- `backend/services/runner/src/__test-utils__/mock-client.ts`
 
 ## Key Architectural Findings
 
 1. **Workflow tests won't compile**: `testHarness.WorkflowRunner` field deleted, 58 references in ~25 files
 2. **Queue mismatch**: Unified runner on `agent_execution_runner`, workflow dispatch to `workflow_execution_runner:wf-orch`
-3. **Activity/workflow gap**: Java calls `ExecuteWorkflow` activity (deleted), unified runner registers `stigmer/workflow/execute` workflow
+3. ~~**Activity/workflow gap**: Java calls `ExecuteWorkflow` activity (deleted), unified runner registers `stigmer/workflow/execute` workflow~~ **RESOLVED by Workstream A** — wrapper workflow bridges this gap
 4. **65 unwired Java tests**: search (16), tenancy (16), agentic (22), billing (8), IAM (3)
 5. **Playwright has no interactive infrastructure**: No auth, no API seeding, no helpers
 
@@ -90,29 +81,27 @@ Check if workflow execution is broken in production (old Go workflow-runner dele
 
 ## Context for Resume
 
-- Plan chat: Workstream C Session 1 conversation
+- Workstream A changelog: `_changelog/2026-05/2026-05-21-164357-ts-hydration-activity-wrapper-workflow.md`
 - Detailed plan: `_projects/2026-05/20260521.01.pre-deploy-integration-test-expansion/tasks/T01_0_plan.md`
-- Workstream C refined plan: `.cursor/plans/workstream_c_session_1_b49d913a.plan.md`
-- Changelog: `_changelog/2026-05/2026-05-21-164333-workstream-c-agent-session-crud-conversation-tests.md`
+- Workstream A plan: `.cursor/plans/workstream_a_ts_hydration_c07d339d.plan.md`
 
 ## Key Files
 
-**New test files (Workstream C Session 1)**:
-- `test/integration/agent_crud_test.go`
-- `test/integration/session_lifecycle_test.go`
-- `test/integration/agent_execution_11_conversation_journey_test.go`
+**Workflow execution (NEW — Workstream A)**:
+- Hydration activity: `backend/services/runner/src/activities/hydrate-workflow-execution.ts`
+- Engine core: `backend/services/runner/src/workflows/engine-core.ts`
+- Wrapper workflow: `backend/services/runner/src/workflows/execute-from-execution.ts`
+- Tests: `backend/services/runner/src/activities/__tests__/hydrate-workflow-execution.test.ts`
 
-**Workflow execution (broken path)**:
+**Workflow execution (Workstream B — next)**:
 - Java orchestrator: `stigmer-cloud/backend/services/stigmer-service/.../workflowexecution/temporal/workflow/InvokeWorkflowExecutionWorkflowImpl.java`
 - Go orchestrator: `backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows/invoke_workflow_impl.go`
 - TS runner workflows: `backend/services/runner/src/workflows/index.ts`
-- TS runner activities: `backend/services/runner/src/runner.ts`
 
 **Test infrastructure**:
 - Integration harness: `test/integration/harness/`
 - Suite setup: `test/integration/suite_test.go`
 - Unified runner: `test/integration/harness/unified_runner.go`
-- Playwright config: `test/e2e/playwright.config.ts`
 
 **stigmer-cloud BUILD**:
 - Java tests: `stigmer-cloud/backend/services/stigmer-service/BUILD.bazel`
@@ -121,7 +110,8 @@ Check if workflow execution is broken in production (old Go workflow-runner dele
 ## Quick Commands
 
 After loading context:
-- "Continue Workstream C — Session 2 (tool call + streaming tests)" — Next C session
+- "Start Workstream B — Java + Go orchestrator rewrite" — Next on critical path (UNBLOCKED)
+- "Start Workstream C — New Go integration tests" — Independent, can start immediately
 - "Start Workstream D — Playwright E2E" — Independent, structural tests
 - "Start Workstream E — Wire BUILD.bazel" — Independent, stigmer-cloud
 - "Start Workstream F — SDK tests" — Independent, smallest scope
