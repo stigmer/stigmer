@@ -14,8 +14,8 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-21
-**Current Task**: Workstreams A+B+D+F complete. Workflow Sandbox Affinity (new) complete. C+E in progress (parallel).
-**Status**: Critical path COMPLETE (A → B → Sandbox Affinity). C/E in parallel conversations.
+**Current Task**: Workstreams A+B+C+D+E+F complete. Workflow Sandbox Affinity complete. Follow-up: Agent Pause/Resume TS runner gap.
+**Status**: ALL workstreams COMPLETE. Follow-up workstream identified: agent execution pause/resume broken in TS runner.
 
 ## Workstream Summary (Parallel Execution)
 
@@ -23,12 +23,12 @@ Drop this file into your conversation to quickly resume work on this project.
 |------------|----------|--------|------------|
 | **A: TS Hydration Activity** | 1 (done) | COMPLETED | — |
 | **B: Java + Go Orchestrator Rewrite** | 1 (done) | COMPLETED | — |
-| **C: Go Integration Tests (New)** | 3-4 | IN PROGRESS (parallel) | Nothing |
+| **C: Go Integration Tests (New)** | 3 (done) | COMPLETED | — |
 | **D: Playwright E2E (Structural)** | 1 (done) | COMPLETED | — |
 | **E: stigmer-cloud BUILD.bazel** | 1 (done) | COMPLETED | — |
 | **F: SDK Component Tests** | 1 (done) | COMPLETED | — |
 
-**Critical path**: COMPLETE (A → B done). C remaining. E complete.
+**Critical path**: ALL COMPLETE (A → B → C → D → E → F).
 
 ## Session Progress (2026-05-21, Workstream A)
 
@@ -245,8 +245,58 @@ Check if workflow execution is broken in production (old Go workflow-runner dele
 - 2 TS runner files (engine-core, call-agent)
 - 1 Go test file updated (10 calls + 3 new tests)
 
+## Session Progress (2026-05-21, Workstream C — Go Integration Tests)
+
+### What was accomplished
+- **8 new integration tests** across 3 files covering proto contract gaps identified through deep audit
+- **Lifecycle edge cases** (4 tests): Recover rejection on CANCELLED, COMPLETED, TERMINATED (proto precondition guards), rapid-fire concurrent executions on a single session
+- **ToolCall structural verification** (2 tests): Full proto-field contract for `id`, `name`, `args`, `result`, `status`, `started_at`, `completed_at`, `mcp_server_slug` (existing tests only checked `name` and `slug`); failed tool call error field verification
+- **Subscribe streaming** (2 tests): First-ever gRPC streaming tests in the integration suite — phase progression delivery, late-subscriber snapshot on already-terminal execution
+- **Prior sessions** (21 tests already complete): `agent_execution_11_conversation_journey_test.go` (3), `session_lifecycle_test.go` (9), `agent_crud_test.go` (9)
+- **Total Workstream C**: 29 new tests across 6 files
+
+### Key decisions made
+- **AD-C1**: Do NOT un-skip `TestAgentExecution_Pause_Resume` — TS runner gap is real (see follow-up below)
+- **AD-C2**: Streaming tests break client-side on terminal phase — server does not auto-close on TERMINATED or on already-terminal initial snapshot
+- **AD-C3**: ToolCall structural tests use echo tool (deterministic, no LLM prose dependency)
+- **AD-C4**: Lifecycle tests are offline-compatible where possible; MCP binary required only for cancel/terminate precondition tests
+
+### CRITICAL DISCOVERY: Agent Execution Pause/Resume is Broken
+
+Agent execution pause/resume is **broken end-to-end**. The orchestrator layer (Java + Go) is fully implemented, but the TS unified runner's `ExecuteDeepAgent` activity does not handle Temporal activity cancellation:
+
+| Layer | Status |
+|-------|--------|
+| Java/Go Pause/Resume RPC handlers | Complete |
+| Java/Go orchestrator (CancellationScope + signals) | Complete |
+| TS `ExecuteDeepAgent` cancellation detection | **Missing** — `isCancelledFn` not wired |
+| TS `ExecuteDeepAgent` error handling | **Wrong** — `CancelledFailure` persists FAILED, overwrites PAUSED |
+| TS resume-from-checkpoint input logic | **Missing** |
+| LangGraph checkpoint-save-on-cancel | **Not connected** |
+
+**Follow-up workstream required** (7 steps):
+1. Wire `startHeartbeat()` + `isCancelledFn` into `ExecuteDeepAgent` → `streamExecution()`
+2. Handle `CancelledFailure` distinctly — do NOT convert to `EXECUTION_FAILED`
+3. Persist `EXECUTION_PAUSED` on graceful cancel before returning
+4. Add pause-specific resume input logic (checkpoint, not re-send message)
+5. Address `MemorySaver` limitation in OSS (in-process only)
+6. Wire equivalent handling in `ExecuteCursor` activity
+7. Un-skip `TestAgentExecution_Pause_Resume`
+
+**Affected files**:
+- `backend/services/runner/src/activities/execute-deep-agent/index.ts` (main gap)
+- `backend/services/runner/src/activities/execute-deep-agent/streaming.ts` (has `handlePause` but unwired)
+- `backend/services/runner/src/activities/execute-cursor/index.ts` (cursor harness)
+- `test/integration/agent_execution_06_lifecycle_control_test.go` (un-skip after fix)
+
+### Files created
+- `test/integration/agent_execution_12_lifecycle_edge_cases_test.go` (4 tests)
+- `test/integration/agent_execution_13_tool_calls_test.go` (2 tests)
+- `test/integration/agent_execution_14_streaming_test.go` (2 tests)
+
 ## Context for Resume
 
+- Workstream C plan: `.cursor/plans/workstream_c_integration_tests_f07fad0d.plan.md`
 - Workstream E changelog: `_changelog/2026-05/2026-05-21-181820-wire-orphaned-java-tests-stigmer-cloud-build-bazel.md`
 - Workstream E plan: `.cursor/plans/wire_java_tests_build.bazel_b0291b16.plan.md`
 - Sandbox Affinity changelog: `_changelog/2026-05/2026-05-21-180841-workflow-sandbox-affinity-architecture.md`
@@ -287,7 +337,7 @@ Check if workflow execution is broken in production (old Go workflow-runner dele
 
 After loading context:
 - ~~"Start Workstream B — Java + Go orchestrator rewrite"~~ — COMPLETED (child workflow, pause/resume, queue unification)
-- "Start Workstream C — New Go integration tests" — Independent, can start immediately
+- ~~"Start Workstream C — New Go integration tests"~~ — COMPLETED (29 new tests, 8 in this session + 21 from prior sessions)
 - ~~"Start Workstream D — Playwright E2E"~~ — COMPLETED (52 new tests, 104 total)
 - ~~"Start Workstream E — Wire BUILD.bazel"~~ — COMPLETED (65 tests wired, CI gate added)
 - ~~"Start Workstream F — SDK tests"~~ — COMPLETED (27 new tests, 506 total)
