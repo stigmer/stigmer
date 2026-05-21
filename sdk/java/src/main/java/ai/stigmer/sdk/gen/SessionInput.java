@@ -27,8 +27,7 @@ public final class SessionInput {
     private final ApiResourceVisibility visibility;
     private final String agentInstanceId;
     private final String subject;
-    private final String threadId;
-    private final String sandboxId;
+    private final String harnessStateId;
     private final java.util.Map<String, String> metadata;
     private final java.util.List<WorkspaceEntryInput> workspaceEntries;
     private final java.util.List<McpServerUsageInput> mcpServerUsages;
@@ -45,8 +44,7 @@ public final class SessionInput {
         this.visibility = builder.visibility;
         this.agentInstanceId = builder.agentInstanceId;
         this.subject = builder.subject;
-        this.threadId = builder.threadId;
-        this.sandboxId = builder.sandboxId;
+        this.harnessStateId = builder.harnessStateId;
         this.metadata = builder.metadata;
         this.workspaceEntries = builder.workspaceEntries;
         this.mcpServerUsages = builder.mcpServerUsages;
@@ -64,11 +62,8 @@ public final class SessionInput {
         if (this.subject != null) {
             spec.setSubject(this.subject);
         }
-        if (this.threadId != null) {
-            spec.setThreadId(this.threadId);
-        }
-        if (this.sandboxId != null) {
-            spec.setSandboxId(this.sandboxId);
+        if (this.harnessStateId != null) {
+            spec.setHarnessStateId(this.harnessStateId);
         }
         if (this.metadata != null && !this.metadata.isEmpty()) {
             spec.putAllMetadata(this.metadata);
@@ -128,8 +123,7 @@ public final class SessionInput {
         private ApiResourceVisibility visibility;
         private String agentInstanceId;
         private String subject;
-        private String threadId;
-        private String sandboxId;
+        private String harnessStateId;
         private java.util.Map<String, String> metadata;
         private java.util.List<WorkspaceEntryInput> workspaceEntries;
         private java.util.List<McpServerUsageInput> mcpServerUsages;
@@ -147,8 +141,7 @@ public final class SessionInput {
         public Builder visibility(ApiResourceVisibility visibility) { this.visibility = visibility; return this; }
         public Builder agentInstanceId(String agentInstanceId) { this.agentInstanceId = agentInstanceId; return this; }
         public Builder subject(String subject) { this.subject = subject; return this; }
-        public Builder threadId(String threadId) { this.threadId = threadId; return this; }
-        public Builder sandboxId(String sandboxId) { this.sandboxId = sandboxId; return this; }
+        public Builder harnessStateId(String harnessStateId) { this.harnessStateId = harnessStateId; return this; }
         public Builder metadata(java.util.Map<String, String> metadata) { this.metadata = metadata; return this; }
         public Builder workspaceEntries(java.util.List<WorkspaceEntryInput> workspaceEntries) { this.workspaceEntries = workspaceEntries; return this; }
         public Builder mcpServerUsages(java.util.List<McpServerUsageInput> mcpServerUsages) { this.mcpServerUsages = mcpServerUsages; return this; }

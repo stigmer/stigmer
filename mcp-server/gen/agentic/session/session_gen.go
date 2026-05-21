@@ -33,10 +33,8 @@ type SessionInput struct {
 	AgentInstanceId string `json:"agent_instance_id,omitempty" jsonschema:"Agent instance this session runs against. @internal When empty, the backend resolves the platform default agent (labeled stigmer.ai/default-agent: 'true' with visibility_public) and auto-creates a default instance if needed."`
 	// Conversation title for UI display.
 	Subject string `json:"subject,omitempty" jsonschema:"Conversation title for UI display."`
-	// Thread ID that carries the conversation history across executions. @internal Generated on first execution, persists across all executions.
-	ThreadId string `json:"thread_id,omitempty" jsonschema:"Thread ID that carries the conversation history across executions. @internal Generated on first execution, persists across all executions."`
-	// Deprecated: sandbox lifecycle is managed at the session level. Existing sessions may still have this field populated; new sessions should not set it.
-	SandboxId string `json:"sandbox_id,omitempty" jsonschema:"Deprecated: sandbox lifecycle is managed at the session level. Existing sessions may still have this field populated; new sessions should not set it."`
+	// Harness-specific state identifier for conversation continuity. Populated after the first execution completes; empty until then. Each harness uses this field differently: - NATIVE: LangGraph thread ID, derived deterministically as "thread-{session_id}" by the EnsureThread activity. Stored here so the immutability sentinel works uniformly across harnesses. - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx") returned by Agent.create(). Used for Agent.resume() on subsequent executions. @internal Also serves as the immutability sentinel: when non-empty, the session's harness and cursor_mode cannot be changed — each harness owns its conversation state independently.
+	HarnessStateId string `json:"harness_state_id,omitempty" jsonschema:"Harness-specific state identifier for conversation continuity. Populated after the first execution completes; empty until then. Each harness uses this field differently: - NATIVE: LangGraph thread ID, derived deterministically as 'thread-{session_id}' by the EnsureThread activity. Stored here so the immutability sentinel works uniformly across harnesses. - CURSOR: Cursor SDK agent ID (e.g., 'agent-xxx' or 'bc-xxx') returned by Agent.create(). Used for Agent.resume() on subsequent executions. @internal Also serves as the immutability sentinel: when non-empty, the session's harness and cursor_mode cannot be changed — each harness owns its conversation state independently."`
 	// Custom key-value pairs for client-specific information.
 	Metadata map[string]string `json:"metadata,omitempty" jsonschema:"Custom key-value pairs for client-specific information."`
 	// Workspace entries for this session. Each entry pairs a name with a source (git repo or local path), forming a multi-root workspace. Entries are provisioned on the first execution; subsequent executions reuse the same workspace. When empty, the session uses an empty workspace directory.
@@ -159,8 +157,7 @@ func (input *SessionInput) specToProto() (*sessionv1.SessionSpec, error) {
 
 	spec.AgentInstanceId = input.AgentInstanceId
 	spec.Subject = input.Subject
-	spec.ThreadId = input.ThreadId
-	spec.SandboxId = input.SandboxId
+	spec.HarnessStateId = input.HarnessStateId
 	spec.Metadata = input.Metadata
 	for _, item := range input.WorkspaceEntries {
 		v, err := item.toProto()

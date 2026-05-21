@@ -1,7 +1,7 @@
 /**
  * Maps Stigmer Session lifecycle to Cursor Agent lifecycle.
  *
- * SessionSpec.thread_id stores the Cursor agentId. This module handles
+ * SessionSpec.harness_state_id stores the Cursor agentId. This module handles
  * creating new agents (first execution), resuming existing agents
  * (subsequent executions), graceful fallback on resume failure, and
  * cleaning up agents (session deletion).
@@ -110,7 +110,7 @@ export type AgentResolutionReason =
 
 /**
  * Result of resolveAgent() — carries the agent handle plus metadata that
- * downstream phases use for prompt selection, thread_id persistence, and
+ * downstream phases use for prompt selection, harness_state_id persistence, and
  * diagnostic logging.
  */
 export interface AgentResolution {
@@ -252,7 +252,7 @@ export async function resumeCloudAgent(options: ResumeCloudAgentOptions): Promis
  * - "local": createAgent / resumeAgent (with platform options)
  * - "cloud": createCloudAgent / resumeCloudAgent (no platform options)
  *
- * When threadId is non-empty (subsequent execution):
+ * When harnessStateId is non-empty (subsequent execution):
  *   1. Attempt Agent.resume with mode-appropriate options.
  *   2. On success: return { resumed: true, reason: "resumed_successfully" }.
  *   3. On failure: log warning, create a fresh agent, return
@@ -260,29 +260,29 @@ export async function resumeCloudAgent(options: ResumeCloudAgentOptions): Promis
  *      The caller injects a continuation prompt from SessionMemory so
  *      the fresh agent inherits conversational context.
  *
- * When threadId is empty (first execution):
+ * When harnessStateId is empty (first execution):
  *   Create a new agent; return { reason: "created_first_execution" }.
  *
  * Agent creation failures always propagate — if we cannot create an agent
  * at all, that is an unrecoverable infrastructure error.
  */
 export async function resolveAgent(
-  threadId: string,
+  harnessStateId: string,
   options: CreateAgentOptions | CreateCloudAgentOptions,
   mode: "local" | "cloud" = "local",
 ): Promise<AgentResolution> {
-  if (threadId) {
+  if (harnessStateId) {
     try {
       const agent = mode === "cloud"
         ? await resumeCloudAgent({
             apiKey: options.apiKey,
-            agentId: threadId,
+            agentId: harnessStateId,
             model: options.model,
             mcpServers: options.mcpServers,
           })
         : await resumeAgent({
             apiKey: options.apiKey,
-            agentId: threadId,
+            agentId: harnessStateId,
             sessionId: (options as CreateAgentOptions).sessionId,
             model: options.model,
             mcpServers: options.mcpServers,
@@ -299,7 +299,7 @@ export async function resolveAgent(
     } catch (err) {
       const detail = err instanceof Error ? err.message : String(err);
       console.warn(
-        `resolveAgent: resume failed for ${mode} agent "${threadId}", ` +
+        `resolveAgent: resume failed for ${mode} agent "${harnessStateId}", ` +
         `creating fresh agent with continuation context. ` +
         `sessionId=${options.sessionId}, error: ${detail}`,
       );
@@ -310,7 +310,7 @@ export async function resolveAgent(
 
       console.log(
         `resolveAgent: fallback ${mode} agent created. ` +
-        `oldAgentId=${threadId}, newAgentId=${agent.agentId}, ` +
+        `oldAgentId=${harnessStateId}, newAgentId=${agent.agentId}, ` +
         `sessionId=${options.sessionId}`,
       );
 

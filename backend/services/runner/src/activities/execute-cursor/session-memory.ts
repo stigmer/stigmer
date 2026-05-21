@@ -362,7 +362,7 @@ export function buildSessionMemory(options: BuildSessionMemoryOptions): SessionM
  *
  * This uses a dedicated field-level update that atomically sets only
  * status.session_memory on the server — no read-before-write, no race
- * with concurrent subject generation or thread_id writes.
+ * with concurrent subject generation or harness_state_id writes.
  *
  * Errors are logged and swallowed — memory loss is acceptable (next
  * execution will rebuild from whatever is available), but execution

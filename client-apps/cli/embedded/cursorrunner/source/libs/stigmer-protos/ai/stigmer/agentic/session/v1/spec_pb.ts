@@ -59,7 +59,7 @@ export type SessionSpec = Message<"ai.stigmer.agentic.session.v1.SessionSpec"> &
    *
    * @generated from field: string thread_id = 3;
    */
-  threadId: string;
+  harnessStateId: string;
 
   /**
    * Deprecated: sandbox lifecycle is now managed at the Runner level via
@@ -70,7 +70,6 @@ export type SessionSpec = Message<"ai.stigmer.agentic.session.v1.SessionSpec"> &
    * @generated from field: string sandbox_id = 4 [deprecated = true];
    * @deprecated
    */
-  sandboxId: string;
 
   /**
    * Custom key-value pairs for client-specific information.

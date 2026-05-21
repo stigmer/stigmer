@@ -351,7 +351,7 @@ export function useSessionConversation(
 
         if (needsSessionUpdate) {
           // Fetch the latest session to avoid overwriting fields that were
-          // modified server-side (e.g., LLM-generated subject, sandbox_id)
+          // modified server-side (e.g., LLM-generated subject)
           // since the React state was last loaded.
           const freshSession = await stigmer.session.get(sessionId);
           await updateSession(
@@ -478,8 +478,7 @@ function buildUpdateInput(
     org: meta.org,
     agentInstanceId: overrides.agentInstanceId ?? (spec?.agentInstanceId || undefined),
     subject: spec?.subject || undefined,
-    threadId: spec?.threadId || undefined,
-    sandboxId: spec?.sandboxId || undefined,
+    harnessStateId: spec?.harnessStateId || undefined,
     harness: spec?.harness,
     metadata:
       spec?.metadata && Object.keys(spec.metadata).length > 0

@@ -9,7 +9,7 @@ go_library(
         "execute_graphton.go",
         "generate_session_subject.go",
         "load_execution.go",
-        "read_session_thread_id.go",
+        "read_harness_state_id.go",
         "update_status.go",
         "update_status_impl.go",
     ],

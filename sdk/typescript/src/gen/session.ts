@@ -91,8 +91,7 @@ export interface SessionInput {
   visibility?: ApiResourceVisibility;
   agentInstanceId?: string;
   subject?: string;
-  threadId?: string;
-  sandboxId?: string;
+  harnessStateId?: string;
   metadata?: Record<string, string>;
   workspaceEntries?: WorkspaceEntryInput[];
   mcpServerUsages?: McpServerUsageInput[];
@@ -208,8 +207,7 @@ function buildSessionProto(input: SessionInput): Session {
     spec: Object.assign(create(SessionSpecSchema), stripUndefined({
       agentInstanceId: input.agentInstanceId,
       subject: input.subject,
-      threadId: input.threadId,
-      sandboxId: input.sandboxId,
+      harnessStateId: input.harnessStateId,
       metadata: input.metadata,
       workspaceEntries,
       mcpServerUsages,

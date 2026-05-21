@@ -12,7 +12,7 @@ import (
 // Resume resumes a paused agent execution.
 //
 // This RPC continues execution from the checkpoint where it was paused. The agent
-// re-invokes with the same thread_id, loading from LangGraph checkpoint
+// re-invokes with the same harness_state_id, loading from LangGraph checkpoint
 // and continuing from where it left off.
 //
 // Pipeline Steps:

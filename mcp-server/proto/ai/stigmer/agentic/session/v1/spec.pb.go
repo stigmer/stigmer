@@ -40,17 +40,24 @@ type SessionSpec struct {
 	AgentInstanceId string `protobuf:"bytes,1,opt,name=agent_instance_id,json=agentInstanceId,proto3" json:"agent_instance_id,omitempty"`
 	// Conversation title for UI display.
 	Subject string `protobuf:"bytes,2,opt,name=subject,proto3" json:"subject,omitempty"`
-	// Thread ID that carries the conversation history across executions.
+	// Harness-specific state identifier for conversation continuity.
+	//
+	// Populated after the first execution completes; empty until then.
+	// Each harness uses this field differently:
+	//
+	//   - NATIVE: LangGraph thread ID, derived deterministically as
+	//     "thread-{session_id}" by the EnsureThread activity. Stored here
+	//     so the immutability sentinel works uniformly across harnesses.
+	//
+	//   - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
+	//     returned by Agent.create(). Used for Agent.resume() on
+	//     subsequent executions.
 	//
 	// @internal
-	// Generated on first execution, persists across all executions.
-	ThreadId string `protobuf:"bytes,3,opt,name=thread_id,json=threadId,proto3" json:"thread_id,omitempty"`
-	// Deprecated: sandbox lifecycle is managed at the session level.
-	// Existing sessions may still have this field populated; new sessions
-	// should not set it.
-	//
-	// Deprecated: Marked as deprecated in ai/stigmer/agentic/session/v1/spec.proto.
-	SandboxId string `protobuf:"bytes,4,opt,name=sandbox_id,json=sandboxId,proto3" json:"sandbox_id,omitempty"`
+	// Also serves as the immutability sentinel: when non-empty, the
+	// session's harness and cursor_mode cannot be changed — each harness
+	// owns its conversation state independently.
+	HarnessStateId string `protobuf:"bytes,3,opt,name=harness_state_id,json=harnessStateId,proto3" json:"harness_state_id,omitempty"`
 	// Custom key-value pairs for client-specific information.
 	Metadata map[string]string `protobuf:"bytes,5,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// Workspace entries for this session.
@@ -177,17 +184,9 @@ func (x *SessionSpec) GetSubject() string {
 	return ""
 }
 
-func (x *SessionSpec) GetThreadId() string {
+func (x *SessionSpec) GetHarnessStateId() string {
 	if x != nil {
-		return x.ThreadId
-	}
-	return ""
-}
-
-// Deprecated: Marked as deprecated in ai/stigmer/agentic/session/v1/spec.proto.
-func (x *SessionSpec) GetSandboxId() string {
-	if x != nil {
-		return x.SandboxId
+		return x.HarnessStateId
 	}
 	return ""
 }
@@ -245,13 +244,11 @@ var File_ai_stigmer_agentic_session_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"(ai/stigmer/agentic/session/v1/spec.proto\x12\x1dai.stigmer.agentic.session.v1\x1a&ai/stigmer/agentic/agent/v1/spec.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\x9e\b\n" +
+	"(ai/stigmer/agentic/session/v1/spec.proto\x12\x1dai.stigmer.agentic.session.v1\x1a&ai/stigmer/agentic/agent/v1/spec.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\x88\b\n" +
 	"\vSessionSpec\x12*\n" +
 	"\x11agent_instance_id\x18\x01 \x01(\tR\x0fagentInstanceId\x12\x18\n" +
-	"\asubject\x18\x02 \x01(\tR\asubject\x12\x1b\n" +
-	"\tthread_id\x18\x03 \x01(\tR\bthreadId\x12!\n" +
-	"\n" +
-	"sandbox_id\x18\x04 \x01(\tB\x02\x18\x01R\tsandboxId\x12T\n" +
+	"\asubject\x18\x02 \x01(\tR\asubject\x12(\n" +
+	"\x10harness_state_id\x18\x03 \x01(\tR\x0eharnessStateId\x12T\n" +
 	"\bmetadata\x18\x05 \x03(\v28.ai.stigmer.agentic.session.v1.SessionSpec.MetadataEntryR\bmetadata\x12Z\n" +
 	"\x11workspace_entries\x18\x06 \x03(\v2-.ai.stigmer.agentic.session.v1.WorkspaceEntryR\x10workspaceEntries\x12\xea\x01\n" +
 	"\x11mcp_server_usages\x18\a \x03(\v2+.ai.stigmer.agentic.agent.v1.McpServerUsageB\x90\x01\xbaH\x8c\x01\x92\x01\x88\x01\"\x85\x01\xba\x01\x81\x01\n" +

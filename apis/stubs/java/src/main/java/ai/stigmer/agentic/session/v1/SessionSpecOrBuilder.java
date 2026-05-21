@@ -62,57 +62,55 @@ public interface SessionSpecOrBuilder extends
 
   /**
    * <pre>
-   * Thread ID that carries the conversation history across executions.
+   * Harness-specific state identifier for conversation continuity.
+   *
+   * Populated after the first execution completes; empty until then.
+   * Each harness uses this field differently:
+   *
+   * - NATIVE: LangGraph thread ID, derived deterministically as
+   * "thread-{session_id}" by the EnsureThread activity. Stored here
+   * so the immutability sentinel works uniformly across harnesses.
+   *
+   * - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
+   * returned by Agent.create(). Used for Agent.resume() on
+   * subsequent executions.
    *
    * &#64;internal
-   * Generated on first execution, persists across all executions.
+   * Also serves as the immutability sentinel: when non-empty, the
+   * session's harness and cursor_mode cannot be changed — each harness
+   * owns its conversation state independently.
    * </pre>
    *
-   * <code>string thread_id = 3 [json_name = "threadId"];</code>
-   * @return The threadId.
+   * <code>string harness_state_id = 3 [json_name = "harnessStateId"];</code>
+   * @return The harnessStateId.
    */
-  java.lang.String getThreadId();
+  java.lang.String getHarnessStateId();
   /**
    * <pre>
-   * Thread ID that carries the conversation history across executions.
+   * Harness-specific state identifier for conversation continuity.
+   *
+   * Populated after the first execution completes; empty until then.
+   * Each harness uses this field differently:
+   *
+   * - NATIVE: LangGraph thread ID, derived deterministically as
+   * "thread-{session_id}" by the EnsureThread activity. Stored here
+   * so the immutability sentinel works uniformly across harnesses.
+   *
+   * - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
+   * returned by Agent.create(). Used for Agent.resume() on
+   * subsequent executions.
    *
    * &#64;internal
-   * Generated on first execution, persists across all executions.
+   * Also serves as the immutability sentinel: when non-empty, the
+   * session's harness and cursor_mode cannot be changed — each harness
+   * owns its conversation state independently.
    * </pre>
    *
-   * <code>string thread_id = 3 [json_name = "threadId"];</code>
-   * @return The bytes for threadId.
+   * <code>string harness_state_id = 3 [json_name = "harnessStateId"];</code>
+   * @return The bytes for harnessStateId.
    */
   com.google.protobuf.ByteString
-      getThreadIdBytes();
-
-  /**
-   * <pre>
-   * Deprecated: sandbox lifecycle is managed at the session level.
-   * Existing sessions may still have this field populated; new sessions
-   * should not set it.
-   * </pre>
-   *
-   * <code>string sandbox_id = 4 [json_name = "sandboxId", deprecated = true];</code>
-   * @deprecated ai.stigmer.agentic.session.v1.SessionSpec.sandbox_id is deprecated.
-   *     See ai/stigmer/agentic/session/v1/spec.proto;l=37
-   * @return The sandboxId.
-   */
-  @java.lang.Deprecated java.lang.String getSandboxId();
-  /**
-   * <pre>
-   * Deprecated: sandbox lifecycle is managed at the session level.
-   * Existing sessions may still have this field populated; new sessions
-   * should not set it.
-   * </pre>
-   *
-   * <code>string sandbox_id = 4 [json_name = "sandboxId", deprecated = true];</code>
-   * @deprecated ai.stigmer.agentic.session.v1.SessionSpec.sandbox_id is deprecated.
-   *     See ai/stigmer/agentic/session/v1/spec.proto;l=37
-   * @return The bytes for sandboxId.
-   */
-  @java.lang.Deprecated com.google.protobuf.ByteString
-      getSandboxIdBytes();
+      getHarnessStateIdBytes();
 
   /**
    * <pre>

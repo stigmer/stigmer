@@ -14,8 +14,38 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-20
-**Current Task**: T06c complete — all 7 tracks implemented
-**Status**: Desktop-owned embedded runner with execution target routing fully implemented. ExecutionTarget proto added, dispatch updated (Go + Java), RunnerManager API created, IPC protocol wired, Tauri commands added, React hooks integrated, CLI daemon unified, `stigmer up server` fixed. All builds pass.
+**Current Task**: Session proto field consolidation complete
+**Status**: T06c complete. Session proto cleaned up: `thread_id` renamed to `harness_state_id`, `sandbox_id` deleted entirely. All consumers updated across both repos. All builds and tests pass.
+
+## Session Progress (2026-05-21, Session 8)
+
+### What was accomplished
+- **Session proto field consolidation** — cross-repo rename and cleanup
+  - Renamed `SessionSpec.thread_id` (field 3) to `harness_state_id` with comprehensive per-harness documentation
+  - Deleted `SessionSpec.sandbox_id` (field 4) entirely (no reserved, no deprecated)
+  - Confirmed `cursor_mode` and `execution_target` are orthogonal (not redundant) — kept both with improved docs
+  - Updated Go server: renamed activity file, struct, method, constant; updated immutability guard, workflow dispatch
+  - Updated TypeScript runners (unified + cursor-runner): proto field access, parameter names, comments
+  - Updated Java cloud service: SessionContext record, UpdateExecutionStatusActivityImpl, workflow, immutability guard
+  - Updated React SDK: useSessionConversation hook
+  - Python agent-runner: no changes needed (all thread_id refs are LangGraph internals)
+  - Regenerated all stubs via `make codegen` (OSS) and `make protos` (cloud)
+  - Updated CLI embedded proto stubs
+  - All builds compile, all tests pass
+
+### Key changes
+1. **Proto**: `apis/ai/stigmer/agentic/session/v1/spec.proto` — `thread_id` → `harness_state_id`, `sandbox_id` deleted
+2. **Go**: `read_session_thread_id.go` → `read_harness_state_id.go`, `validate_harness_immutability.go`, `invoke_workflow_impl.go`
+3. **TypeScript**: `execute-cursor/index.ts`, `session-lifecycle.ts`, `session-memory.ts` (both runners)
+4. **Java**: `SessionContext.java`, `UpdateExecutionStatusActivityImpl.java`, `InvokeAgentExecutionWorkflowImpl.java`, `SessionUpdateHandler.java`
+5. **React**: `useSessionConversation.ts`, `session-spec-converters.test.ts`
+
+### Decisions made
+- `harness_state_id` chosen over alternatives (`cursor_agent_id`) because it's generic enough for future harness types
+- `sandbox_id` deleted without `reserved` — no one uses this system yet, clean break preferred
+- LangGraph `thread_id` references in Python/TypeScript left unchanged — they are LangGraph API keys, not our proto field
+- `ProxyAuthorizationService.sessionIdFromThreadId()` left unchanged — parses LangGraph format, not proto field
+- Keep persisting `harness_state_id` for NATIVE harness (serves as immutability sentinel)
 
 ## Session Progress (2026-05-20, Session 7)
 

@@ -78,8 +78,7 @@ type SessionInput struct {
 	Visibility       apiresource.ApiResourceVisibility
 	AgentInstanceId  string
 	Subject          string
-	ThreadId         string
-	SandboxId        string
+	HarnessStateId   string
 	Metadata         map[string]string
 	WorkspaceEntries []*WorkspaceEntryInput
 	McpServerUsages  []*McpServerUsageInput
@@ -130,8 +129,7 @@ func (i *SessionInput) toProto() *sessionv1.Session {
 	}
 	resource.Spec.AgentInstanceId = i.AgentInstanceId
 	resource.Spec.Subject = i.Subject
-	resource.Spec.ThreadId = i.ThreadId
-	resource.Spec.SandboxId = i.SandboxId
+	resource.Spec.HarnessStateId = i.HarnessStateId
 	resource.Spec.Metadata = i.Metadata
 	for _, item := range i.WorkspaceEntries {
 		resource.Spec.WorkspaceEntries = append(resource.Spec.WorkspaceEntries, item.toProto())
@@ -176,8 +174,7 @@ func SessionInputFromProto(p *sessionv1.Session) *SessionInput {
 	if s := p.GetSpec(); s != nil {
 		input.AgentInstanceId = s.GetAgentInstanceId()
 		input.Subject = s.GetSubject()
-		input.ThreadId = s.GetThreadId()
-		input.SandboxId = s.GetSandboxId()
+		input.HarnessStateId = s.GetHarnessStateId()
 		input.Metadata = s.GetMetadata()
 		for _, item := range s.GetWorkspaceEntries() {
 			input.WorkspaceEntries = append(input.WorkspaceEntries, workspaceEntryInputFromProto(item))

@@ -283,7 +283,7 @@ describe("resolveAgent", () => {
     sessionId: FAKE_SESSION_ID,
   };
 
-  describe("local mode — first execution (empty threadId)", () => {
+  describe("local mode — first execution (empty harnessStateId)", () => {
     it("creates a new agent and returns created_first_execution", async () => {
       const fakeAgent = mockAgent("agent-new-456");
       vi.mocked(Agent.create).mockResolvedValue(fakeAgent as any);
@@ -330,7 +330,7 @@ describe("resolveAgent", () => {
     });
   });
 
-  describe("local mode — subsequent execution (non-empty threadId) — resume success", () => {
+  describe("local mode — subsequent execution (non-empty harnessStateId) — resume success", () => {
     it("resumes the agent and returns resumed_successfully", async () => {
       const fakeAgent = mockAgent(FAKE_AGENT_ID);
       vi.mocked(Agent.resume).mockResolvedValue(fakeAgent as any);

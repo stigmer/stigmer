@@ -26,23 +26,13 @@
       "required": false
     },
     {
-      "name": "ThreadId",
-      "jsonName": "threadId",
-      "protoField": "thread_id",
+      "name": "HarnessStateId",
+      "jsonName": "harnessStateId",
+      "protoField": "harness_state_id",
       "type": {
         "kind": "string"
       },
-      "description": "Thread ID that carries the conversation history across executions.\n\n @internal\n Generated on first execution, persists across all executions.",
-      "required": false
-    },
-    {
-      "name": "SandboxId",
-      "jsonName": "sandboxId",
-      "protoField": "sandbox_id",
-      "type": {
-        "kind": "string"
-      },
-      "description": "Deprecated: sandbox lifecycle is managed at the session level.\n Existing sessions may still have this field populated; new sessions\n should not set it.",
+      "description": "Harness-specific state identifier for conversation continuity.\n\n Populated after the first execution completes; empty until then.\n Each harness uses this field differently:\n\n - NATIVE: LangGraph thread ID, derived deterministically as\n   \"thread-{session_id}\" by the EnsureThread activity. Stored here\n   so the immutability sentinel works uniformly across harnesses.\n\n - CURSOR: Cursor SDK agent ID (e.g., \"agent-xxx\" or \"bc-xxx\")\n   returned by Agent.create(). Used for Agent.resume() on\n   subsequent executions.\n\n @internal\n Also serves as the immutability sentinel: when non-empty, the\n session's harness and cursor_mode cannot be changed — each harness\n owns its conversation state independently.",
       "required": false
     },
     {

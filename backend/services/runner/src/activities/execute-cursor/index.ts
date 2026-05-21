@@ -2,7 +2,7 @@
  * ExecuteCursor Temporal activity — the core of the cursor-runner service.
  *
  * Implements the same Slim-Payload Pattern as ExecuteGraphton:
- * - Receives only executionId + threadId (Cursor agentId)
+ * - Receives only executionId + harnessStateId (Cursor agentId)
  * - Hydrates execution from DB via gRPC
  * - Resolves full agent blueprint (instructions, MCP servers, skills, sub-agents)
  * - Runs the Cursor agent, streams events, reports status
@@ -278,20 +278,20 @@ async function executeCursor(
     );
     await writeHooksToWorkspace(primaryWorkspaceDir, approvalState);
 
-    // Phase 9: Store new agentId as thread_id and persist cursor_mode
+    // Phase 9: Store new agentId as harness_state_id and persist cursor_mode
     if (resolution.isNew && resolution.agentId) {
       try {
-        blueprint.sessionSpec.threadId = resolution.agentId;
+        blueprint.sessionSpec.harnessStateId = resolution.agentId;
         if (blueprint.sessionSpec.cursorMode === CursorMode.UNSPECIFIED) {
           blueprint.sessionSpec.cursorMode = cursorMode;
         }
         await client.updateSession(blueprint.session);
         console.log(
-          `Stored Cursor agentId=${resolution.agentId} as thread_id, ` +
+          `Stored Cursor agentId=${resolution.agentId} as harness_state_id, ` +
           `cursorMode=${CursorMode[cursorMode]} on session ${sessionId}`,
         );
       } catch (err) {
-        console.warn("Failed to persist thread_id/cursorMode on session (non-fatal):", err);
+        console.warn("Failed to persist harness_state_id/cursorMode on session (non-fatal):", err);
       }
     }
 
