@@ -13,7 +13,6 @@ import type { DraftResourceType, InteractionModeOption } from "@stigmer/react";
 import type { ResourceRef } from "@stigmer/sdk";
 import { useNativeFolderPicker } from "../hooks/useNativeFolderPicker";
 import { useDesktopGitHubConnection } from "../hooks/useDesktopGitHubConnection";
-import { useRunner } from "../hooks/EmbeddedRunnerContext";
 
 const DRAFT_PLACEHOLDERS: Record<DraftResourceType, string> = {
   agent:
@@ -48,7 +47,6 @@ export function SessionLauncher() {
   const org = useActiveOrgSlug();
   const gitHubConnection = useDesktopGitHubConnection(org);
   const browseLocalFolder = useNativeFolderPicker();
-  const { addSession } = useRunner();
 
   const draftParams = parseDraftParams(searchParams);
   const liveDraftType = draftParams?.draftType ?? null;
@@ -94,12 +92,7 @@ export function SessionLauncher() {
 
   const flow = useNewSessionFlow({
     org,
-    onSessionCreated: async (id) => {
-      addSession(id).catch((err) =>
-        console.warn("[runner] Failed to add session to runner:", err),
-      );
-      navigate(`/sessions/${id}`);
-    },
+    onSessionCreated: (id) => navigate(`/sessions/${id}`),
     onError: (msg) => toast.error(msg),
   });
 

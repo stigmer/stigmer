@@ -2,6 +2,9 @@
 export { StigmerProvider, type StigmerProviderProps } from "./provider";
 export { StigmerContext } from "./context";
 
+// Runner adapter
+export { type RunnerAdapter, useRunnerAdapter } from "./runner-adapter";
+
 // Fetch cache
 export { FetchCacheProvider } from "./internal/FetchCacheProvider";
 export type { FetchCacheOptions } from "./internal/fetch-cache";
@@ -22,12 +25,6 @@ export {
   useDeploymentMode,
   useResourceAvailable,
 } from "./deployment-mode";
-
-// Execution target
-export {
-  ExecutionTargetContext,
-  useExecutionTarget,
-} from "./execution-target-context";
 export { type DeploymentMode, isResourceAvailable, ApiResourceKind } from "@stigmer/sdk";
 export { CloudFeatureNotice, type CloudFeatureNoticeProps } from "./internal/CloudFeatureNotice";
 
@@ -97,13 +94,10 @@ export {
   groupSessionsByTime,
   groupSearchResultsByTime,
   useSessionSearch,
-  toProtoExecutionTarget,
-  fromProtoExecutionTarget,
   PENDING_SUBJECT,
   resolvedSubject,
 } from "./session";
 export type {
-  ExecutionTargetOption,
   SharedSessionFields,
   CreateSessionInput,
   CreateSessionResult,
@@ -533,13 +527,9 @@ export {
   useCreateIamPolicy,
   useDeleteIamPolicy,
   useRevokeOrgAccess,
-  useShareFlow,
-  useCheckPermission,
   RoleSelector,
   GrantAccessForm,
   OrgMembersPanel,
-  SharePanel,
-  PermissionGate,
 } from "./iam-policy";
 export type {
   UseGrantableRolesReturn,
@@ -553,15 +543,9 @@ export type {
   UseCreateIamPolicyReturn,
   UseDeleteIamPolicyReturn,
   UseRevokeOrgAccessReturn,
-  UseShareFlowReturn,
-  ShareFlowResource,
-  UseCheckPermissionReturn,
-  PermissionCheckResource,
   RoleSelectorProps,
   GrantAccessFormProps,
   OrgMembersPanelProps,
-  SharePanelProps,
-  PermissionGateProps,
 } from "./iam-policy";
 
 // Organization — context provider, hooks, data hooks, behavior hooks, styled form, profile panel, and org switcher
@@ -899,6 +883,52 @@ export type {
   UseCreateAgentInstanceReturn,
 } from "./agent-instance";
 
+// Runner — data hooks, action hooks, styled picker, admin list panel, detail view, and phase utilities
+export {
+  useRunner,
+  RunnerDetailView,
+  useRunnerList,
+  useLaunchLocalRunner,
+  useRunnerCredential,
+  useStopRunner,
+  useDeleteRunner,
+  useRunnerFileBrowser,
+  RunnerPicker,
+  RunnerFileBrowser,
+  RunnerListPanel,
+  RunnerIcon,
+  PhaseBadge,
+  formatRelativeTime,
+  phaseLabel,
+  phaseDotColor,
+  isActivePhase,
+  isTransitionalPhase,
+  PHASE_SORT_ORDER,
+} from "./runner";
+export type {
+  UseRunnerReturn,
+  UseRunnerOptions,
+  RunnerDetailViewProps,
+  UseRunnerListOptions,
+  UseRunnerListReturn,
+  UseLaunchLocalRunnerOptions,
+  UseLaunchLocalRunnerReturn,
+  LaunchLocalRunnerResult,
+  RunnerCredential,
+  UseRunnerCredentialReturn,
+  StopRunnerInput,
+  UseStopRunnerReturn,
+  UseDeleteRunnerReturn,
+  UseRunnerFileBrowserReturn,
+  PathSegment,
+  RunnerPickerProps,
+  RunnerFileBrowserProps,
+  RunnerListPanelProps,
+  RunnerSortKey,
+  RunnerIconProps,
+  PhaseBadgeProps,
+} from "./runner";
+
 // Tabs — accessible tabbed panel primitive
 export { Tabs } from "./tabs";
 export type { TabsProps, TabItem } from "./tabs";
@@ -1102,7 +1132,6 @@ export {
   WorkflowExecutionCostPanel,
   WorkflowExecutionArtifactPanel,
   WorkflowExecutionApprovalCard,
-  WorkflowTaskApprovalCard,
   serializeWorkflowYaml,
   parseWorkflowYaml,
   useWorkflowYaml,
@@ -1183,8 +1212,6 @@ export type {
   WorkflowExecutionCostPanelProps,
   WorkflowExecutionArtifactPanelProps,
   WorkflowExecutionApprovalCardProps,
-  WorkflowTaskApprovalCardProps,
-  TaskOutcome,
   UseWorkflowYamlReturn,
   UseWorkflowSaveReturn,
   UseWorkflowValidationReturn,

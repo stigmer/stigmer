@@ -1,9 +1,20 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
 import { isNotFound } from "@stigmer/sdk";
 import { useStigmer } from "../hooks";
 import { useFetch } from "../internal/useFetch";
+import { useRunnerAdapter } from "../runner-adapter";
+import { useExecutionTarget } from "../execution-target-context";
+
+const TERMINAL_EXECUTION_PHASES = new Set([
+  ExecutionPhase.EXECUTION_COMPLETED,
+  ExecutionPhase.EXECUTION_FAILED,
+  ExecutionPhase.EXECUTION_CANCELLED,
+  ExecutionPhase.EXECUTION_TERMINATED,
+]);
 
 /** Return value of {@link useWorkflowExecution}. */
 export interface UseWorkflowExecutionReturn {
@@ -44,6 +55,9 @@ export function useWorkflowExecution(
   executionId: string | null,
 ): UseWorkflowExecutionReturn {
   const stigmer = useStigmer();
+  const adapter = useRunnerAdapter();
+  const contextTarget = useExecutionTarget();
+  const terminatedRef = useRef<string | null>(null);
 
   const fetchFn = executionId
     ? async () => {
@@ -62,6 +76,25 @@ export function useWorkflowExecution(
     null,
     { cacheKey: executionId ? `workflow-execution:${executionId}` : undefined },
   );
+
+  useEffect(() => {
+    const phase = execution?.status?.phase;
+    if (
+      adapter &&
+      contextTarget === "local" &&
+      executionId &&
+      phase != null &&
+      TERMINAL_EXECUTION_PHASES.has(phase) &&
+      terminatedRef.current !== executionId
+    ) {
+      terminatedRef.current = executionId;
+      adapter.onWorkflowExecutionTerminated(executionId).catch(() => {});
+    }
+  }, [execution?.status?.phase, executionId, adapter, contextTarget]);
+
+  useEffect(() => {
+    terminatedRef.current = null;
+  }, [executionId]);
 
   return { execution, isLoading, isRefetching, error, refetch };
 }

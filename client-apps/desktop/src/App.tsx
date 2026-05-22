@@ -10,6 +10,7 @@ import { AuthProvider, useAuth } from "./auth/AuthProvider";
 import { LoginScreen } from "./auth/LoginScreen";
 import { AppUpdaterProvider } from "./hooks/AppUpdaterContext";
 import { EmbeddedRunnerProvider, useRunner } from "./hooks/EmbeddedRunnerContext";
+import { useTauriRunnerAdapter } from "./hooks/useTauriRunnerAdapter";
 import { useColorModePreference } from "./hooks/useColorModePreference";
 
 const BASE_URL = import.meta.env.VITE_STIGMER_API_URL ?? "http://localhost:7234";
@@ -65,10 +66,44 @@ function AuthenticatedApp() {
   const deploymentMode = useServerDeploymentMode(client);
 
   return (
+    <EmbeddedRunnerProvider>
+      <RunnerAdapterBridge
+        client={client}
+        deploymentMode={deploymentMode}
+        colorMode={colorMode}
+        isInitialized={isInitialized}
+        isAuthenticated={isAuthenticated}
+      />
+    </EmbeddedRunnerProvider>
+  );
+}
+
+/**
+ * Bridge component that reads the runner adapter from EmbeddedRunnerProvider
+ * context and passes it to StigmerProvider. Necessary because the adapter
+ * depends on the runner context being available above it.
+ */
+function RunnerAdapterBridge({
+  client,
+  deploymentMode,
+  colorMode,
+  isInitialized,
+  isAuthenticated,
+}: {
+  client: Stigmer;
+  deploymentMode: DeploymentMode;
+  colorMode: "light" | "dark" | "system";
+  isInitialized: boolean;
+  isAuthenticated: boolean;
+}) {
+  const runnerAdapter = useTauriRunnerAdapter();
+
+  return (
     <StigmerProvider
       client={client}
       deploymentMode={deploymentMode}
       executionTarget="local"
+      runnerAdapter={runnerAdapter}
       colorMode={colorMode}
       preset="monochrome"
     >
@@ -98,15 +133,13 @@ function AppContent({
 
   return (
     <AppUpdaterProvider>
-      <EmbeddedRunnerProvider>
-        <TokenBridge />
-        <FetchCacheProvider>
-          <OrgProvider>
-            <RouterProvider router={router} />
-            <Toaster position="bottom-right" richColors />
-          </OrgProvider>
-        </FetchCacheProvider>
-      </EmbeddedRunnerProvider>
+      <TokenBridge />
+      <FetchCacheProvider>
+        <OrgProvider>
+          <RouterProvider router={router} />
+          <Toaster position="bottom-right" richColors />
+        </OrgProvider>
+      </FetchCacheProvider>
     </AppUpdaterProvider>
   );
 }

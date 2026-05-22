@@ -10,6 +10,7 @@ Usage::
 """
 
 from ._client import StigmerClient
+from ._runner_adapter import RunnerAdapter
 from ._github import (
     ExchangeOAuthCodeParams,
     GetOAuthAuthorizeUrlParams,
@@ -108,6 +109,8 @@ from .platform_client_auth import (
 __all__ = [
     # Client
     "StigmerClient",
+    # Runner adapter
+    "RunnerAdapter",
     # GitHub
     "ExchangeOAuthCodeParams",
     "GetOAuthAuthorizeUrlParams",

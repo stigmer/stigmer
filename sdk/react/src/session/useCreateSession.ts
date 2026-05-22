@@ -12,6 +12,7 @@ import { toError } from "../internal/toError";
 import { toProtoHarness, type HarnessOption } from "../models/harness";
 import { toProtoExecutionTarget, type ExecutionTargetOption } from "./execution-target";
 import { useExecutionTarget } from "../execution-target-context";
+import { useRunnerAdapter } from "../runner-adapter";
 
 /** Shared fields present in both variants of {@link CreateSessionInput}. */
 export interface SharedSessionFields {
@@ -129,6 +130,7 @@ export interface UseCreateSessionReturn {
 export function useCreateSession(): UseCreateSessionReturn {
   const stigmer = useStigmer();
   const contextTarget = useExecutionTarget();
+  const adapter = useRunnerAdapter();
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
@@ -179,7 +181,13 @@ export function useCreateSession(): UseCreateSessionReturn {
             : undefined,
         });
 
-        return { sessionId: session.metadata!.id };
+        const sessionId = session.metadata!.id;
+
+        if (adapter && resolvedTarget === "local") {
+          await adapter.onSessionCreated(sessionId);
+        }
+
+        return { sessionId };
       } catch (err) {
         setError(toError(err));
         throw err;
@@ -187,7 +195,7 @@ export function useCreateSession(): UseCreateSessionReturn {
         setIsCreating(false);
       }
     },
-    [stigmer, contextTarget],
+    [stigmer, contextTarget, adapter],
   );
 
   return { create, isCreating, error, clearError };

@@ -3,6 +3,9 @@
 // Top-level client
 export { Stigmer } from "./stigmer";
 
+// Runner adapter
+export { type RunnerAdapter } from "./runner-adapter";
+
 // Configuration
 export { type StigmerConfig, type TokenProvider } from "./config";
 

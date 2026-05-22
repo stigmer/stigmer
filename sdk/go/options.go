@@ -17,6 +17,7 @@ type clientConfig struct {
 	keepaliveParams *keepalive.ClientParameters
 	dialOptions     []grpc.DialOption
 	executionTarget sessionv1.ExecutionTarget
+	runnerAdapter   RunnerAdapter
 }
 
 func defaultConfig() clientConfig {
@@ -89,5 +90,23 @@ func WithDialOptions(opts ...grpc.DialOption) ClientOption {
 func WithExecutionTarget(target sessionv1.ExecutionTarget) ClientOption {
 	return func(c *clientConfig) {
 		c.executionTarget = target
+	}
+}
+
+// WithRunnerAdapter sets the runner adapter for local execution lifecycle
+// management.
+//
+// When ExecutionTarget is LOCAL, the SDK automatically calls adapter methods
+// after session/execution creation and on terminal phase detection. Cloud
+// consumers omit this option entirely.
+//
+//	client, _ := stigmer.NewClient(
+//	    stigmer.WithAPIKey("sk_live_..."),
+//	    stigmer.WithExecutionTarget(sessionv1.ExecutionTarget_EXECUTION_TARGET_LOCAL),
+//	    stigmer.WithRunnerAdapter(myAdapter),
+//	)
+func WithRunnerAdapter(adapter RunnerAdapter) ClientOption {
+	return func(c *clientConfig) {
+		c.runnerAdapter = adapter
 	}
 }

@@ -27,6 +27,11 @@ type Client struct {
 	// specify an explicit ExecutionTarget. Set via WithExecutionTarget.
 	DefaultExecutionTarget sessionv1.ExecutionTarget
 
+	// RunnerAdapter handles runner lifecycle for local execution.
+	// Nil when no adapter is configured (cloud consumers).
+	// Set via WithRunnerAdapter.
+	RunnerAdapter RunnerAdapter
+
 	conn *grpc.ClientConn
 }
 
@@ -81,6 +86,7 @@ func NewClient(opts ...ClientOption) (*Client, error) {
 		Search:                 newSearchClient(conn),
 		GitHub:                 newGitHubClient(conn),
 		DefaultExecutionTarget: cfg.executionTarget,
+		RunnerAdapter:          cfg.runnerAdapter,
 		conn:                   conn,
 	}, nil
 }
