@@ -9,6 +9,7 @@ import grpc
 
 from ._gen._client import GeneratedClient
 from ._github import GitHubClient
+from ._runner_adapter import RunnerAdapter
 from ._search import SearchClient
 from ._transport import DEFAULT_TARGET, create_channel
 
@@ -53,6 +54,7 @@ class StigmerClient(GeneratedClient):
     search: SearchClient
     github: GitHubClient
     default_execution_target: int
+    runner_adapter: RunnerAdapter | None
 
     def __init__(
         self,
@@ -61,6 +63,7 @@ class StigmerClient(GeneratedClient):
         base_url: str = DEFAULT_TARGET,
         insecure: bool = False,
         execution_target: ExecutionTargetOption | None = None,
+        runner_adapter: RunnerAdapter | None = None,
     ) -> None:
         """Create a Stigmer client.
 
@@ -72,6 +75,10 @@ class StigmerClient(GeneratedClient):
                 created through this client. ``"local"`` means the client
                 provides runners; ``"cloud"`` means the server provisions
                 sandboxes. ``None`` lets the server decide.
+            runner_adapter: Runner adapter for local execution lifecycle
+                management. When ``execution_target`` is ``"local"``, the
+                SDK calls adapter methods after session/execution creation
+                and on terminal phase detection. Cloud consumers omit this.
         """
         if not api_key:
             raise ValueError("stigmer: API key is required")
@@ -82,6 +89,7 @@ class StigmerClient(GeneratedClient):
         self.default_execution_target = (
             _EXECUTION_TARGET_MAP[execution_target] if execution_target else 0
         )
+        self.runner_adapter = runner_adapter
         self.search = SearchClient(self._channel)
         self.github = GitHubClient(self._channel)
 

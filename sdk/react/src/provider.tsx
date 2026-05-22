@@ -8,6 +8,8 @@ import { StigmerContext } from "./context";
 import { DeploymentModeContext } from "./deployment-mode";
 import { ExecutionTargetContext } from "./execution-target-context";
 import type { ExecutionTargetOption } from "./session/execution-target";
+import type { RunnerAdapter } from "./runner-adapter";
+import { RunnerAdapterContext } from "./runner-adapter";
 import type { ColorMode, ResolvedColorMode } from "./color-mode";
 import { ColorModeContext, useSystemColorMode } from "./color-mode";
 import { PortalContainerContext } from "./portal-container";
@@ -51,6 +53,26 @@ export interface StigmerProviderProps {
    * context so every session in the tree inherits the same target.
    */
   readonly executionTarget?: ExecutionTargetOption;
+  /**
+   * Runner adapter for local execution lifecycle management.
+   *
+   * When `executionTarget` is `"local"`, SDK hooks automatically call
+   * the adapter after session/execution creation and on terminal phase
+   * detection. Cloud consumers omit this prop entirely.
+   *
+   * Desktop apps provide a Tauri-based adapter; self-hosted customers
+   * provide their own implementation of the {@link RunnerAdapter}
+   * interface.
+   *
+   * @example
+   * ```tsx
+   * const adapter = useTauriRunnerAdapter();
+   * <StigmerProvider client={client} executionTarget="local" runnerAdapter={adapter}>
+   *   <App />
+   * </StigmerProvider>
+   * ```
+   */
+  readonly runnerAdapter?: RunnerAdapter;
   /**
    * Built-in theme preset to apply.
    *
@@ -139,6 +161,7 @@ export function StigmerProvider({
   children,
   deploymentMode = "cloud",
   executionTarget,
+  runnerAdapter,
   preset,
   className,
   colorMode = "light",
@@ -157,20 +180,22 @@ export function StigmerProvider({
     <StigmerContext.Provider value={client}>
       <DeploymentModeContext.Provider value={deploymentMode}>
         <ExecutionTargetContext.Provider value={executionTarget}>
-          <ColorModeContext.Provider value={resolvedMode}>
-            <ModelRegistryContext.Provider value={registryState}>
-              <TaskKindRegistryContext.Provider value={taskKindRegistryState}>
-                <PortalContainerContext.Provider value={portalContainer}>
-                  <div
-                    className={cn("stgm", presetClass, className)}
-                    data-stgm-color-mode={resolvedMode}
-                  >
-                    {children}
-                  </div>
-                </PortalContainerContext.Provider>
-              </TaskKindRegistryContext.Provider>
-            </ModelRegistryContext.Provider>
-          </ColorModeContext.Provider>
+          <RunnerAdapterContext.Provider value={runnerAdapter ?? null}>
+            <ColorModeContext.Provider value={resolvedMode}>
+              <ModelRegistryContext.Provider value={registryState}>
+                <TaskKindRegistryContext.Provider value={taskKindRegistryState}>
+                  <PortalContainerContext.Provider value={portalContainer}>
+                    <div
+                      className={cn("stgm", presetClass, className)}
+                      data-stgm-color-mode={resolvedMode}
+                    >
+                      {children}
+                    </div>
+                  </PortalContainerContext.Provider>
+                </TaskKindRegistryContext.Provider>
+              </ModelRegistryContext.Provider>
+            </ColorModeContext.Provider>
+          </RunnerAdapterContext.Provider>
         </ExecutionTargetContext.Provider>
       </DeploymentModeContext.Provider>
     </StigmerContext.Provider>

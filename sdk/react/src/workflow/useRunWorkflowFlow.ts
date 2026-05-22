@@ -7,7 +7,8 @@ import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workf
 import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { getUserMessage } from "@stigmer/sdk";
 import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
+import { useExecutionTarget } from "../execution-target-context";
+import { useRunnerAdapter } from "../runner-adapter";
 
 /** Field-level validation errors keyed by field name. */
 export type RunWorkflowFieldErrors = Record<string, string>;
@@ -100,6 +101,8 @@ export function useRunWorkflowFlow(
 ): UseRunWorkflowFlowReturn {
   const { org, workflow, instances, onSuccess, onError } = options;
   const stigmer = useStigmer();
+  const contextTarget = useExecutionTarget();
+  const adapter = useRunnerAdapter();
 
   const [triggerMessage, setTriggerMessage] = useState("");
   const [runtimeEnv, setRuntimeEnv] = useState<Record<string, string>>({});
@@ -187,6 +190,10 @@ export function useRunWorkflowFlow(
         );
       }
 
+      if (adapter && contextTarget === "local") {
+        await adapter.onWorkflowExecutionCreated(executionId);
+      }
+
       onSuccessRef.current(executionId);
     } catch (err) {
       const message = getUserMessage(
@@ -207,6 +214,8 @@ export function useRunWorkflowFlow(
     triggerMessage,
     runtimeEnv,
     envDeclarations,
+    adapter,
+    contextTarget,
   ]);
 
   const reset = useCallback(() => {
