@@ -380,6 +380,70 @@ describe("Golden Execution — Tier 1d: Advanced Tasks", () => {
     expect(state.data.assignee).toBe("security-team");
   });
 
+  it("#13 agent-call — callAgent receives correct agent slug, env, config, and output contract", async () => {
+    const model = loadWorkflowFromYaml(loadGolden("13-agent-call.yaml"));
+    const state = createState();
+    state.input = { pr_number: 7, repo: "acme/app", diff: "--- a/main.ts" };
+
+    const mockCallAgent = vi.fn(async () => ({
+      structured: { severity: "low", category: "style", customer_impact: false },
+      final_text: "LGTM",
+      agent_execution_id: "aex-verify",
+    }));
+    const ctx = makeCtx({ callAgent: mockCallAgent });
+
+    await executeDoTasks(model.do, state.input, state, model, evaluateExpressionBatch, ctx);
+
+    expect(mockCallAgent).toHaveBeenCalledOnce();
+    const [config, _env, metadata] = mockCallAgent.mock.calls[0];
+
+    expect(config.agent).toBe("code-reviewer");
+    expect(config.message).toContain("Review the following code changes");
+    expect(config.env).toEqual({ GITHUB_TOKEN: "${.secrets.GITHUB_TOKEN}" });
+    expect(config.config?.model).toBe("claude-3-5-sonnet");
+    expect(config.config?.timeout).toBe(300);
+    expect(config.config?.temperature).toBe(0.2);
+    expect(config.harness).toBe("HARNESS_NATIVE");
+    expect(config.output?.schema).toBeDefined();
+    expect(config.output?.schema.required).toContain("severity");
+    expect(config.output?.on_invalid).toBe("ON_INVALID_RETRY");
+    expect(config.output?.max_retries).toBe(2);
+    expect(metadata.taskName).toBe("reviewCode");
+  });
+
+  it("#13 agent-call — cross-org agent reference preserves org/slug format", async () => {
+    const crossOrgYaml = [
+      "document:",
+      "  dsl: '1.0.0'",
+      "  namespace: my-org",
+      "  name: cross-org-agent",
+      "  version: '1.0.0'",
+      "do:",
+      "  - callRemoteAgent:",
+      "      call: agent",
+      "      with:",
+      '        agent: "stigmer/code-reviewer"',
+      '        message: "Review this"',
+      '        org: "stigmer"',
+    ].join("\n");
+
+    const model = loadWorkflowFromYaml(crossOrgYaml);
+    const state = createState();
+
+    const mockCallAgent = vi.fn(async () => ({
+      final_text: "done",
+    }));
+    const ctx = makeCtx({ callAgent: mockCallAgent });
+
+    await executeDoTasks(model.do, null, state, model, evaluateExpressionBatch, ctx);
+
+    expect(mockCallAgent).toHaveBeenCalledOnce();
+    const [config] = mockCallAgent.mock.calls[0];
+    expect(config.agent).toBe("stigmer/code-reviewer");
+    expect(config.org).toBe("stigmer");
+    expect(config.message).toBe("Review this");
+  });
+
   it("#16 wait-delay — multiple timer durations (seconds, minutes+seconds, milliseconds)", async () => {
     const model = loadWorkflowFromYaml(loadGolden("16-wait-delay.yaml"));
     const state = createState();

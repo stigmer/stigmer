@@ -33,6 +33,7 @@ import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 export async function callAgentAction(
   config: AgentCallConfig,
@@ -126,12 +127,12 @@ export async function callAgentAction(
 function parseAgentReference(
   agentStr: string,
   defaultOrg: string,
-): { org: string; slug: string } {
+): { org: string; slug: string; kind: ApiResourceKind } {
   if (agentStr.includes("/")) {
     const [org, slug] = agentStr.split("/", 2);
-    return { org, slug };
+    return { org, slug, kind: ApiResourceKind.agent };
   }
-  return { org: defaultOrg, slug: agentStr };
+  return { org: defaultOrg, slug: agentStr, kind: ApiResourceKind.agent };
 }
 
 function extractSlug(agentStr: string): string {
