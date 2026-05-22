@@ -96,6 +96,9 @@ jobs:
       - name: Install npm dependencies
         run: npm ci
 
+      - name: Build SDK libraries
+        run: npm run build:libs
+
       - name: Install site dependencies
         run: cd site && YARN_ENABLE_IMMUTABLE_INSTALLS=false yarn install
 
