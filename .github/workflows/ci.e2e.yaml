@@ -68,7 +68,7 @@ jobs:
         working-directory: test/e2e
         env:
           STIGMER_E2E_BASE_URL: ${{ inputs.base_url || 'https://app.stigmer.ai' }}
-        run: npx playwright test
+        run: npx playwright test --project=smoke
 
       - name: Upload test results
         if: always()

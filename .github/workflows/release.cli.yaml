@@ -208,17 +208,11 @@ jobs:
             -X github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config.defaultGitHubOAuthClientSecret=$GH_OAUTH_CLIENT_SECRET" \
             -o ../../../bin/stigmer-server ./cmd/server
 
-      - name: Build stigmer-workflow-runner
-        run: |
-          cd backend/services/workflow-runner
-          go build -ldflags="-s -w" \
-            -o ../../../bin/stigmer-workflow-runner ./cmd/zigflow
-
       - name: Verify binaries
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
-          file bin/stigmer bin/stigmer-server bin/stigmer-workflow-runner
+          file bin/stigmer bin/stigmer-server
           ls -lh bin/
           ./bin/stigmer --version || echo "Version: $VERSION"
 
@@ -227,7 +221,7 @@ jobs:
           VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
           cd bin
-          tar -czf stigmer-$VERSION-darwin-arm64.tar.gz stigmer stigmer-server stigmer-workflow-runner
+          tar -czf stigmer-$VERSION-darwin-arm64.tar.gz stigmer stigmer-server
           shasum -a 256 stigmer-$VERSION-darwin-arm64.tar.gz > stigmer-$VERSION-darwin-arm64.tar.gz.sha256
 
       - name: Upload artifacts
@@ -290,20 +284,11 @@ jobs:
             -X github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config.defaultGitHubOAuthClientSecret=$GH_OAUTH_CLIENT_SECRET" \
             -o ../../../bin/stigmer-server ./cmd/server
 
-      - name: Build stigmer-workflow-runner (cross-compile to Intel)
-        env:
-          GOARCH: amd64
-          GOOS: darwin
-        run: |
-          cd backend/services/workflow-runner
-          go build -ldflags="-s -w" \
-            -o ../../../bin/stigmer-workflow-runner ./cmd/zigflow
-
       - name: Verify binaries
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
-          file bin/stigmer bin/stigmer-server bin/stigmer-workflow-runner
+          file bin/stigmer bin/stigmer-server
           ls -lh bin/
           echo "Version: $VERSION (Intel binaries, cannot run on ARM Mac)"
 
@@ -312,7 +297,7 @@ jobs:
           VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
           cd bin
-          tar -czf stigmer-$VERSION-darwin-amd64.tar.gz stigmer stigmer-server stigmer-workflow-runner
+          tar -czf stigmer-$VERSION-darwin-amd64.tar.gz stigmer stigmer-server
           shasum -a 256 stigmer-$VERSION-darwin-amd64.tar.gz > stigmer-$VERSION-darwin-amd64.tar.gz.sha256
 
       - name: Upload artifacts
@@ -371,17 +356,11 @@ jobs:
             -X github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config.defaultGitHubOAuthClientSecret=$GH_OAUTH_CLIENT_SECRET" \
             -o ../../../bin/stigmer-server ./cmd/server
 
-      - name: Build stigmer-workflow-runner
-        run: |
-          cd backend/services/workflow-runner
-          go build -ldflags="-s -w" \
-            -o ../../../bin/stigmer-workflow-runner ./cmd/zigflow
-
       - name: Verify binaries
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
-          file bin/stigmer bin/stigmer-server bin/stigmer-workflow-runner
+          file bin/stigmer bin/stigmer-server
           ls -lh bin/
           ./bin/stigmer --version || echo "Version: $VERSION"
 
@@ -390,7 +369,7 @@ jobs:
           VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
           cd bin
-          tar -czf stigmer-$VERSION-linux-amd64.tar.gz stigmer stigmer-server stigmer-workflow-runner
+          tar -czf stigmer-$VERSION-linux-amd64.tar.gz stigmer stigmer-server
           sha256sum stigmer-$VERSION-linux-amd64.tar.gz > stigmer-$VERSION-linux-amd64.tar.gz.sha256
 
       - name: Upload artifacts
@@ -618,7 +597,6 @@ jobs:
             def install
               bin.install "stigmer"
               bin.install "stigmer-server"
-              bin.install "stigmer-workflow-runner"
             end
 
             def caveats
