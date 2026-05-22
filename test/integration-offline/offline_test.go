@@ -209,7 +209,7 @@ func TestOffline_ToolCall_ProtoFieldContract(t *testing.T) {
 	mcpServer := harness.CreateStdioMcpServer(t, ctx, clients, mcpTestServerBinary)
 
 	agent := harness.CreateAgent(t, ctx, clients,
-		"offline-contract-"+t.Name(),
+		"offline-contract",
 		"You are a test agent. Use the tools provided.",
 		harness.WithMcpServerUsage(mcpServer.GetMetadata().GetSlug(), "echo"),
 	)

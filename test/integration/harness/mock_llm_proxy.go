@@ -90,9 +90,20 @@ func (m *MockLLMProxyServer) handleRequest(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// Consume the request body (important for connection management)
-	io.ReadAll(r.Body)
+	bodyBytes, _ := io.ReadAll(r.Body)
 	r.Body.Close()
+
+	isStreaming := false
+	if len(bodyBytes) > 0 {
+		var reqBody map[string]any
+		if json.Unmarshal(bodyBytes, &reqBody) == nil {
+			if v, ok := reqBody["stream"]; ok {
+				if b, ok := v.(bool); ok && b {
+					isStreaming = true
+				}
+			}
+		}
+	}
 
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -109,6 +120,19 @@ func (m *MockLLMProxyServer) handleRequest(w http.ResponseWriter, r *http.Reques
 	m.cursor++
 
 	resp := entry.Response
+
+	isAnthropic := pathContains(path, "/v1/messages") || pathContains(path, "anthropic")
+	isOpenAI := pathContains(path, "/chat/completions") || pathContains(path, "openai")
+
+	if isStreaming && isAnthropic {
+		m.writeAnthropicSSE(w, resp)
+		return
+	}
+	if isStreaming && isOpenAI {
+		m.writeOpenAISSE(w, resp)
+		return
+	}
+
 	for k, v := range resp.Headers {
 		w.Header().Set(k, v)
 	}
@@ -124,6 +148,210 @@ func (m *MockLLMProxyServer) handleRequest(w http.ResponseWriter, r *http.Reques
 
 	if resp.Body != nil {
 		json.NewEncoder(w).Encode(resp.Body)
+	}
+}
+
+// writeAnthropicSSE converts a recorded Anthropic response into SSE events
+// that the @langchain/anthropic streaming parser expects.
+func (m *MockLLMProxyServer) writeAnthropicSSE(w http.ResponseWriter, resp RecordedLLMResponse) {
+	body, ok := resp.Body.(map[string]any)
+	if !ok {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.WriteHeader(200)
+
+	flusher, _ := w.(http.Flusher)
+
+	writeSSE := func(event, data string) {
+		fmt.Fprintf(w, "event: %s\ndata: %s\n\n", event, data)
+		if flusher != nil {
+			flusher.Flush()
+		}
+	}
+
+	usage, _ := body["usage"].(map[string]any)
+	inputTokens := intVal(usage, "input_tokens")
+	outputTokens := intVal(usage, "output_tokens")
+
+	msgStart := map[string]any{
+		"type": "message_start",
+		"message": map[string]any{
+			"id":            body["id"],
+			"type":          "message",
+			"role":          "assistant",
+			"content":       []any{},
+			"model":         body["model"],
+			"stop_reason":   nil,
+			"stop_sequence": nil,
+			"usage":         map[string]any{"input_tokens": inputTokens, "output_tokens": 0},
+		},
+	}
+	b, _ := json.Marshal(msgStart)
+	writeSSE("message_start", string(b))
+
+	content, _ := body["content"].([]any)
+	for idx, block := range content {
+		blockMap, ok := block.(map[string]any)
+		if !ok {
+			continue
+		}
+
+		blockType, _ := blockMap["type"].(string)
+
+		switch blockType {
+		case "text":
+			text, _ := blockMap["text"].(string)
+			cbStart, _ := json.Marshal(map[string]any{
+				"type":          "content_block_start",
+				"index":         idx,
+				"content_block": map[string]any{"type": "text", "text": ""},
+			})
+			writeSSE("content_block_start", string(cbStart))
+
+			delta, _ := json.Marshal(map[string]any{
+				"type":  "content_block_delta",
+				"index": idx,
+				"delta": map[string]any{"type": "text_delta", "text": text},
+			})
+			writeSSE("content_block_delta", string(delta))
+
+			cbStop, _ := json.Marshal(map[string]any{"type": "content_block_stop", "index": idx})
+			writeSSE("content_block_stop", string(cbStop))
+
+		case "tool_use":
+			inputBytes, _ := json.Marshal(blockMap["input"])
+			cbStart, _ := json.Marshal(map[string]any{
+				"type":  "content_block_start",
+				"index": idx,
+				"content_block": map[string]any{
+					"type":  "tool_use",
+					"id":    blockMap["id"],
+					"name":  blockMap["name"],
+					"input": map[string]any{},
+				},
+			})
+			writeSSE("content_block_start", string(cbStart))
+
+			delta, _ := json.Marshal(map[string]any{
+				"type":  "content_block_delta",
+				"index": idx,
+				"delta": map[string]any{
+					"type":         "input_json_delta",
+					"partial_json": string(inputBytes),
+				},
+			})
+			writeSSE("content_block_delta", string(delta))
+
+			cbStop, _ := json.Marshal(map[string]any{"type": "content_block_stop", "index": idx})
+			writeSSE("content_block_stop", string(cbStop))
+		}
+	}
+
+	stopReason := "end_turn"
+	if sr, ok := body["stop_reason"].(string); ok {
+		stopReason = sr
+	}
+
+	msgDelta, _ := json.Marshal(map[string]any{
+		"type":  "message_delta",
+		"delta": map[string]any{"stop_reason": stopReason, "stop_sequence": nil},
+		"usage": map[string]any{"output_tokens": outputTokens},
+	})
+	writeSSE("message_delta", string(msgDelta))
+
+	msgStop, _ := json.Marshal(map[string]any{"type": "message_stop"})
+	writeSSE("message_stop", string(msgStop))
+}
+
+// writeOpenAISSE converts a recorded OpenAI response into SSE events.
+func (m *MockLLMProxyServer) writeOpenAISSE(w http.ResponseWriter, resp RecordedLLMResponse) {
+	body, ok := resp.Body.(map[string]any)
+	if !ok {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.WriteHeader(200)
+
+	flusher, _ := w.(http.Flusher)
+
+	choices, _ := body["choices"].([]any)
+	if len(choices) == 0 {
+		return
+	}
+	choice, _ := choices[0].(map[string]any)
+	message, _ := choice["message"].(map[string]any)
+	content, _ := message["content"].(string)
+
+	chunk := map[string]any{
+		"id":      body["id"],
+		"object":  "chat.completion.chunk",
+		"created": body["created"],
+		"model":   body["model"],
+		"choices": []map[string]any{
+			{
+				"index": 0,
+				"delta": map[string]any{
+					"role":    "assistant",
+					"content": content,
+				},
+				"finish_reason": nil,
+			},
+		},
+	}
+	b, _ := json.Marshal(chunk)
+	fmt.Fprintf(w, "data: %s\n\n", string(b))
+	if flusher != nil {
+		flusher.Flush()
+	}
+
+	doneChunk := map[string]any{
+		"id":      body["id"],
+		"object":  "chat.completion.chunk",
+		"created": body["created"],
+		"model":   body["model"],
+		"choices": []map[string]any{
+			{
+				"index":         0,
+				"delta":         map[string]any{},
+				"finish_reason": "stop",
+			},
+		},
+		"usage": body["usage"],
+	}
+	b2, _ := json.Marshal(doneChunk)
+	fmt.Fprintf(w, "data: %s\n\n", string(b2))
+	if flusher != nil {
+		flusher.Flush()
+	}
+
+	fmt.Fprintf(w, "data: [DONE]\n\n")
+	if flusher != nil {
+		flusher.Flush()
+	}
+}
+
+func intVal(m map[string]any, key string) int {
+	if m == nil {
+		return 0
+	}
+	v, ok := m[key]
+	if !ok {
+		return 0
+	}
+	switch n := v.(type) {
+	case float64:
+		return int(n)
+	case int:
+		return n
+	default:
+		return 0
 	}
 }
 

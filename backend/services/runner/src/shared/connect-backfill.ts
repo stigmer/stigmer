@@ -26,12 +26,23 @@ import type { McpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/agent/v1
 const CONNECT_TIMEOUT_MS = 60_000;
 
 /**
+ * When true, skip connect backfill entirely. The runner discovers
+ * tools directly via stdio/HTTP when it connects MCP servers, so
+ * the backfill (which routes through the Java service's Temporal
+ * workflow) is only needed for LLM-based approval classification.
+ * Offline tests set this because no worker polls the stigmer_runner
+ * queue that the Connect workflow dispatches to.
+ */
+const SKIP_BACKFILL = process.env.SKIP_MCP_CONNECT_BACKFILL === "true";
+
+/**
  * Check whether an MCP server needs a connect backfill.
  *
  * Returns true if the server has never been discovered (empty
  * capabilities). Exported for testing.
  */
 export function needsBackfill(server: ResolvedMcpServer): boolean {
+  if (SKIP_BACKFILL) return false;
   return server.discoveredCapabilitiesEmpty;
 }
 

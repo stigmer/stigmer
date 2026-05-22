@@ -526,6 +526,8 @@ func buildUnifiedRunnerEnv(cfg UnifiedRunnerConfig, mode, taskQueue string) []st
 		"LOG_LEVEL=INFO",
 
 		fmt.Sprintf("STIGMER_SERVER_ADDRESS=%s", cfg.StigmerServiceAddress),
+
+		"SKIP_MCP_CONNECT_BACKFILL=true",
 	)
 
 	if mode == "manager" {
@@ -546,6 +548,7 @@ func buildUnifiedRunnerEnv(cfg UnifiedRunnerConfig, mode, taskQueue string) []st
 		env = append(env,
 			fmt.Sprintf("STIGMER_PROXY_ENDPOINT=%s", cfg.ProxyEndpoint),
 			fmt.Sprintf("STIGMER_TOKEN=%s", runnerJWT),
+			"ARTIFACT_STORAGE_TYPE=proxy",
 		)
 	} else if cfg.CursorAPIKey != "" {
 		env = append(env, fmt.Sprintf("CURSOR_API_KEY=%s", cfg.CursorAPIKey))
