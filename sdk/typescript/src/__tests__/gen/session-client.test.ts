@@ -83,8 +83,6 @@ describe("SessionClient proto serialization", () => {
       org: "o1",
       agentInstanceId: "ai-123",
       subject: "Help with deployment",
-      threadId: "thread-abc",
-      sandboxId: "sandbox-xyz",
     };
 
     await client.create(input);
@@ -92,8 +90,6 @@ describe("SessionClient proto serialization", () => {
     const proto = captured[0].message as Session;
     expect(proto.spec?.agentInstanceId).toBe("ai-123");
     expect(proto.spec?.subject).toBe("Help with deployment");
-    expect(proto.spec?.threadId).toBe("thread-abc");
-    expect(proto.spec?.sandboxId).toBe("sandbox-xyz");
   });
 
   it("does not overwrite protobuf defaults when optional fields are omitted", async () => {
@@ -102,8 +98,6 @@ describe("SessionClient proto serialization", () => {
     const proto = captured[0].message as Session;
     expect(proto.spec?.agentInstanceId).toBe("");
     expect(proto.spec?.subject).toBe("");
-    expect(proto.spec?.threadId).toBe("");
-    expect(proto.spec?.sandboxId).toBe("");
   });
 
   it("serializes executionTarget when provided", async () => {

@@ -89,46 +89,10 @@ jobs:
           path: proto-stubs.tar.gz
           retention-days: 1
 
-  # Lint and type-check agent-runner (Python)
-  # Gates the desktop build to prevent shipping broken code in the sidecar.
-  lint-and-typecheck-agent-runner:
-    needs: [determine-version, generate-protos]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Download proto stubs
-        uses: actions/download-artifact@v4
-        with:
-          name: proto-stubs
-
-      - name: Extract proto stubs
-        run: tar -xzf proto-stubs.tar.gz
-
-      - name: Install dependencies
-        working-directory: backend/services/agent-runner
-        run: |
-          pip install -r requirements.txt
-          pip install ../../libs/python/graphton ../../../apis/stubs/python/stigmer
-          pip install mypy ruff types-pyyaml
-
-      - name: Run MyPy type checking
-        working-directory: backend/services/agent-runner
-        run: mypy src/stigmer_runner/grpc_client/ src/stigmer_runner/worker/ --show-error-codes
-
-      - name: Run Ruff linter
-        working-directory: backend/services/agent-runner
-        run: ruff check src/stigmer_runner/grpc_client/ src/stigmer_runner/worker/
 
   build:
     if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
-    needs: [determine-version, generate-protos, lint-and-typecheck-agent-runner]
+    needs: [determine-version, generate-protos]
     permissions:
       contents: write
     defaults:
@@ -174,18 +138,6 @@ jobs:
         with:
           go-version: '1.25'
 
-      - name: Sync agent-runner source for embedding
-        run: |
-          cd client-apps/cli/embedded/agentrunner
-          chmod +x sync.sh
-          ./sync.sh
-
-      - name: Sync cursor-runner source for embedding
-        run: |
-          cd client-apps/cli/embedded/cursorrunner
-          chmod +x sync.sh
-          ./sync.sh
-
       - name: Build CLI sidecar
         shell: bash
         env:
@@ -193,16 +145,16 @@ jobs:
         run: |
           BINDIR=client-apps/desktop/src-tauri/binaries
           if [ "${{ matrix.go_arch }}" = "universal" ]; then
-            GOOS=darwin GOARCH=arm64 go build -tags 'embed_agentrunner embed_cursorrunner' -ldflags="-s -w" \
+            GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" \
               -o "$BINDIR/stigmer-cli-aarch64-apple-darwin" ./client-apps/cli
-            GOOS=darwin GOARCH=amd64 go build -tags 'embed_agentrunner embed_cursorrunner' -ldflags="-s -w" \
+            GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" \
               -o "$BINDIR/stigmer-cli-x86_64-apple-darwin" ./client-apps/cli
             lipo -create \
               -output "$BINDIR/stigmer-cli-universal-apple-darwin" \
               "$BINDIR/stigmer-cli-aarch64-apple-darwin" \
               "$BINDIR/stigmer-cli-x86_64-apple-darwin"
           else
-            GOOS=${{ matrix.go_os }} GOARCH=${{ matrix.go_arch }} go build -tags 'embed_agentrunner embed_cursorrunner' -ldflags="-s -w" \
+            GOOS=${{ matrix.go_os }} GOARCH=${{ matrix.go_arch }} go build -ldflags="-s -w" \
               -o "$BINDIR/${{ matrix.sidecar_name }}" \
               ./client-apps/cli
           fi
@@ -217,14 +169,6 @@ jobs:
           else
             ls -lh "$BINDIR/${{ matrix.sidecar_name }}"
             file "$BINDIR/${{ matrix.sidecar_name }}"
-          fi
-
-      - name: Verify agent-runner source embedded
-        shell: bash
-        run: |
-          if [ ! -f "client-apps/cli/embedded/agentrunner/source/main.py" ]; then
-            echo "ERROR: agent-runner source not synced -- sidecar will fail at runtime"
-            exit 1
           fi
 
       - name: Set up Node.js
