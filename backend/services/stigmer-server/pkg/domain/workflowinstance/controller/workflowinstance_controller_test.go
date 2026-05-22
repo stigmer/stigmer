@@ -185,7 +185,7 @@ func createTestWorkflow(t *testing.T, controllers *testControllers, name string,
 			},
 			Tasks: []*workflowv1.WorkflowTask{
 				{
-					Name:       "test-task",
+					Name:       "test_task",
 					Kind:       workflowv1.WorkflowTaskKind_set_vars,
 					TaskConfig: taskConfig,
 				},

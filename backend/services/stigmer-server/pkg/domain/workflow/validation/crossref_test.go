@@ -18,7 +18,7 @@ func makeTask(name string, kind workflowv1.WorkflowTaskKind, config map[string]i
 }
 
 func TestValidateCrossTaskReferences_UniqueNames(t *testing.T) {
-	cfg := map[string]interface{}{"variables": map[string]interface{}{"x": 1}}
+	cfg := map[string]interface{}{"variables": map[string]interface{}{"x": "1"}}
 	spec := &workflowv1.WorkflowSpec{
 		Tasks: []*workflowv1.WorkflowTask{
 			makeTask("step_a", workflowv1.WorkflowTaskKind_set_vars, cfg),
@@ -36,7 +36,7 @@ func TestValidateCrossTaskReferences_UniqueNames(t *testing.T) {
 }
 
 func TestValidateCrossTaskReferences_InvalidFlowThen(t *testing.T) {
-	cfg := map[string]interface{}{"variables": map[string]interface{}{"x": 1}}
+	cfg := map[string]interface{}{"variables": map[string]interface{}{"x": "1"}}
 	spec := &workflowv1.WorkflowSpec{
 		Tasks: []*workflowv1.WorkflowTask{
 			{
@@ -58,7 +58,7 @@ func TestValidateCrossTaskReferences_InvalidFlowThen(t *testing.T) {
 }
 
 func TestValidateCrossTaskReferences_ValidFlowEnd(t *testing.T) {
-	cfg := map[string]interface{}{"variables": map[string]interface{}{"x": 1}}
+	cfg := map[string]interface{}{"variables": map[string]interface{}{"x": "1"}}
 	spec := &workflowv1.WorkflowSpec{
 		Tasks: []*workflowv1.WorkflowTask{
 			{
@@ -77,7 +77,7 @@ func TestValidateCrossTaskReferences_ValidFlowEnd(t *testing.T) {
 }
 
 func TestValidateCrossTaskReferences_CycleDetection(t *testing.T) {
-	cfg := map[string]interface{}{"variables": map[string]interface{}{"x": 1}}
+	cfg := map[string]interface{}{"variables": map[string]interface{}{"x": "1"}}
 	spec := &workflowv1.WorkflowSpec{
 		Tasks: []*workflowv1.WorkflowTask{
 			{
@@ -109,7 +109,7 @@ func TestValidateCrossTaskReferences_CycleDetection(t *testing.T) {
 }
 
 func TestValidateCrossTaskReferences_ValidWorkflow(t *testing.T) {
-	cfg := map[string]interface{}{"variables": map[string]interface{}{"x": 1}}
+	cfg := map[string]interface{}{"variables": map[string]interface{}{"x": "1"}}
 	spec := &workflowv1.WorkflowSpec{
 		Tasks: []*workflowv1.WorkflowTask{
 			{
@@ -134,7 +134,7 @@ func TestValidateCrossTaskReferences_ValidWorkflow(t *testing.T) {
 }
 
 func TestValidateCrossTaskReferences_DidYouMean(t *testing.T) {
-	cfg := map[string]interface{}{"variables": map[string]interface{}{"x": 1}}
+	cfg := map[string]interface{}{"variables": map[string]interface{}{"x": "1"}}
 	spec := &workflowv1.WorkflowSpec{
 		Tasks: []*workflowv1.WorkflowTask{
 			{

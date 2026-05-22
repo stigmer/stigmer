@@ -157,7 +157,7 @@ func createValidWorkflow(name, description string) *workflowv1.Workflow {
 			},
 			Tasks: []*workflowv1.WorkflowTask{
 				{
-					Name:       "test-task",
+					Name:       "test_task",
 					Kind:       workflowv1.WorkflowTaskKind_set_vars,
 					TaskConfig: taskConfig,
 				},

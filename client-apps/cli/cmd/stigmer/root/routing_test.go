@@ -213,15 +213,14 @@ func TestTypeResolution_RegistryCompleteness(t *testing.T) {
 	reg := types.DefaultRegistry()
 	allTypes := reg.All()
 
-	// Verify we have exactly 14 CLI-relevant types (7 original + 6 T02 additions + runner)
-	if len(allTypes) != 14 {
-		t.Errorf("expected 14 CLI-relevant types, got %d", len(allTypes))
+	// Verify we have exactly 13 CLI-relevant types (7 original + 6 T02 additions)
+	if len(allTypes) != 13 {
+		t.Errorf("expected 13 CLI-relevant types, got %d", len(allTypes))
 	}
 
 	expectedTypes := []string{
 		"Organization", "Agent", "Workflow", "Skill", "McpServer", "Project", "ApiKey",
 		"IdentityProvider", "OAuthApp", "Environment", "AgentInstance", "WorkflowInstance", "Session",
-		"Runner",
 	}
 	found := make(map[string]bool)
 

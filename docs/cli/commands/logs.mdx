@@ -12,8 +12,8 @@ By default, streams logs in real-time from all components (like kubectl logs
 -f). Use --follow=false to disable streaming and only show recent logs. Use
 --tail to limit how many existing lines to show before streaming (default: 50).
 Use --stderr to view error logs. Use --component to select a specific component
-(stigmer-server, agent-runner, or workflow-runner). Use --all to view logs from
-all components in a single interleaved stream.
+(stigmer-server or runner). Use --all to view logs from all components in a
+single interleaved stream.
 
 ## Usage
 
@@ -23,13 +23,13 @@ stigmer logs [flags]
 
 ## Options
 
-| Flag                | Type     | Default          | Description                                                                   |
-| ------------------- | -------- | ---------------- | ----------------------------------------------------------------------------- |
-| `--all`             | `bool`   | `true`           | Show logs from all components (interleaved by timestamp)                      |
-| `--component`, `-c` | `string` | `stigmer-server` | Component to show logs for (stigmer-server, agent-runner, or workflow-runner) |
-| `--follow`, `-f`    | `bool`   | `true`           | Stream logs in real-time (like kubectl logs -f)                               |
-| `--stderr`          | `bool`   |                  | Show stderr logs instead of stdout                                            |
-| `--tail`, `-n`      | `int`    | `50`             | Number of recent lines to show before streaming (0 = all lines)               |
+| Flag                | Type     | Default          | Description                                                     |
+| ------------------- | -------- | ---------------- | --------------------------------------------------------------- |
+| `--all`             | `bool`   | `true`           | Show logs from all components (interleaved by timestamp)        |
+| `--component`, `-c` | `string` | `stigmer-server` | Component to show logs for (stigmer-server or runner)           |
+| `--follow`, `-f`    | `bool`   | `true`           | Stream logs in real-time (like kubectl logs -f)                 |
+| `--stderr`          | `bool`   |                  | Show stderr logs instead of stdout                              |
+| `--tail`, `-n`      | `int`    | `50`             | Number of recent lines to show before streaming (0 = all lines) |
 
 ## Global Flags
 
@@ -49,8 +49,8 @@ stigmer logs
 # Show last 100 lines without streaming
 stigmer logs --follow=false --tail 100
 
-# View only agent-runner logs
-stigmer logs --component agent-runner
+# View only runner logs
+stigmer logs --component runner
 ```
 
 ## See also

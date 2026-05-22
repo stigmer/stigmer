@@ -2,7 +2,6 @@ package workflowexecution
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -155,7 +154,7 @@ func (s *ValidateApprovalSignalableStep) Execute(ctx *pipeline.RequestContext[*w
 		return nil
 	default:
 		return grpclib.FailedPreconditionError(
-			fmt.Sprintf("cannot submit task approval: execution is in %s phase", phase.String()),
+			"cannot submit task approval: execution is in %s phase", phase.String(),
 		)
 	}
 }
@@ -180,7 +179,7 @@ func (s *ValidateHumanInputTaskStep) Execute(ctx *pipeline.RequestContext[*workf
 		if task.GetTaskName() == taskName {
 			if task.GetTaskType() != workflowexecutionv1.WorkflowTaskType_WORKFLOW_TASK_APPROVAL {
 				return grpclib.InvalidArgumentError(
-					fmt.Sprintf("task '%s' is not a human_input task (type: %s)", taskName, task.GetTaskType().String()),
+					"task '%s' is not a human_input task (type: %s)", taskName, task.GetTaskType().String(),
 				)
 			}
 			return nil
@@ -188,7 +187,7 @@ func (s *ValidateHumanInputTaskStep) Execute(ctx *pipeline.RequestContext[*workf
 	}
 
 	return grpclib.InvalidArgumentError(
-		fmt.Sprintf("task '%s' not found in execution status", taskName),
+		"task '%s' not found in execution status", taskName,
 	)
 }
 
@@ -243,6 +242,12 @@ func (s *SendTaskApprovalSignalStep) Execute(ctx *pipeline.RequestContext[*workf
 		OrgID:              execution.GetMetadata().GetOrg(),
 	}
 
+	if s.workflowCreator == nil {
+		return grpclib.UnavailableError(
+			"workflow creator not configured for task '%s'", input.GetTaskName(),
+		)
+	}
+
 	dispatch := wftemporal.ResolveWorkflowTaskQueue(
 		executionID,
 		execution.GetSpec().GetExecutionTarget(),
@@ -258,7 +263,7 @@ func (s *SendTaskApprovalSignalStep) Execute(ctx *pipeline.RequestContext[*workf
 	)
 	if err != nil {
 		return grpclib.UnavailableError(
-			fmt.Sprintf("failed to send approval signal for task '%s': %v", input.GetTaskName(), err),
+			"failed to send approval signal for task '%s': %v", input.GetTaskName(), err,
 		)
 	}
 
