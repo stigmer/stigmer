@@ -44,6 +44,8 @@ export interface Config {
   readonly checkpointerType: "memory" | "http";
   readonly checkpointerProxyEndpoint: string | null;
   readonly primaryModel: string;
+  /** Shared mutable token reference for dynamic token updates (manager mode). */
+  readonly stigmerTokenRef?: { current: string | null };
 }
 
 export function loadConfig(): Config {

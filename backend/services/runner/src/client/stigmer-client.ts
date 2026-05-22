@@ -46,13 +46,24 @@ import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/ap
 import { WorkflowInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/query_pb";
 import type { WorkflowInstance } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
 
+/**
+ * A shared mutable token reference. When provided, the interceptor
+ * reads from this on every request, enabling token updates to
+ * propagate to all clients sharing the same ref.
+ */
+export interface TokenRef {
+  current: string | null;
+}
+
 export interface StigmerClientOptions {
   endpoint: string;
   token: string | null;
+  tokenRef?: TokenRef;
 }
 
 export class StigmerClient {
   readonly transport: Transport;
+  private currentToken: string | null;
   private readonly executionQuery: Client<typeof AgentExecutionQueryController>;
   private readonly executionCommand: Client<typeof AgentExecutionCommandController>;
   private readonly executionContextQuery: Client<typeof ExecutionContextQueryController>;
@@ -69,18 +80,22 @@ export class StigmerClient {
   private readonly workflowQuery: Client<typeof WorkflowQueryController>;
   private readonly workflowInstanceQuery: Client<typeof WorkflowInstanceQueryController>;
 
+  private readonly tokenRef: TokenRef | null;
+
   constructor(options: StigmerClientOptions) {
-    const token = options.token;
+    this.currentToken = options.token;
+    this.tokenRef = options.tokenRef ?? null;
     this.transport = createGrpcTransport({
       baseUrl: options.endpoint,
-      interceptors: token
-        ? [
-            (next) => async (req) => {
-              req.header.set("authorization", `Bearer ${token}`);
-              return next(req);
-            },
-          ]
-        : [],
+      interceptors: [
+        (next) => async (req) => {
+          const token = this.tokenRef?.current ?? this.currentToken;
+          if (token) {
+            req.header.set("authorization", `Bearer ${token}`);
+          }
+          return next(req);
+        },
+      ],
     });
 
     this.executionQuery = createClient(AgentExecutionQueryController, this.transport);
@@ -215,5 +230,9 @@ export class StigmerClient {
 
   async getWorkflowInstance(instanceId: string): Promise<WorkflowInstance> {
     return this.workflowInstanceQuery.get({ value: instanceId });
+  }
+
+  updateToken(token: string | null): void {
+    this.currentToken = token;
   }
 }

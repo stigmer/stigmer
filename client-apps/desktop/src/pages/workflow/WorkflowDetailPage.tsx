@@ -57,10 +57,13 @@ export default function WorkflowDetailPage() {
   );
 
   const handleRunSuccess = useCallback(
-    (executionId: string) => {
-      addWorkflowExecution(executionId).catch((err) =>
-        console.warn("[runner] Failed to add workflow execution to runner:", err),
-      );
+    async (executionId: string) => {
+      try {
+        await addWorkflowExecution(executionId);
+      } catch (err) {
+        toast.error(`Failed to start runner worker: ${err}`);
+        return;
+      }
       toast.success("Workflow execution started");
       navigate(`/executions/${executionId}`);
     },

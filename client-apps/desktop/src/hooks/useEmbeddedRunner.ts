@@ -1,13 +1,15 @@
 /**
  * Hook to manage the embedded runner process lifecycle.
  *
- * Starts the runner on mount via Tauri IPC and provides methods to
- * add/remove per-session Workers. The runner is automatically stopped
- * when the component unmounts or the app closes.
+ * Uses lazy startup: the runner is started on the first
+ * addSession/addWorkflowExecution call, not at mount time.
+ * Provides methods to add/remove per-session Workers and
+ * push token updates to the running runner process.
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { loadTokens } from "../auth/token-store";
 
 interface RunnerConfig {
   nodeBinary: string;
@@ -35,6 +37,7 @@ export interface UseEmbeddedRunnerResult {
   removeSession: (sessionId: string) => Promise<void>;
   addWorkflowExecution: (executionId: string) => Promise<string>;
   removeWorkflowExecution: (executionId: string) => Promise<void>;
+  updateRunnerToken: (token: string | null) => Promise<void>;
   error: string | null;
 }
 
@@ -47,7 +50,7 @@ function getRunnerConfig(): RunnerConfig {
     import.meta.env.VITE_STIGMER_TEMPORAL_ADDRESS
     || localStorage.getItem("stigmer.temporalAddress")
     || "localhost:7233";
-  const stigmerToken = localStorage.getItem("stigmer.token") || undefined;
+  const stigmerToken = loadTokens()?.accessToken || undefined;
 
   return {
     nodeBinary: "node",
@@ -64,55 +67,49 @@ export function useEmbeddedRunner(): UseEmbeddedRunnerResult {
   const [activeSessions, setActiveSessions] = useState<string[]>([]);
   const [activeWorkflowExecutions, setActiveWorkflowExecutions] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const startedRef = useRef(false);
+  const startingRef = useRef<Promise<void> | null>(null);
 
-  useEffect(() => {
-    if (startedRef.current) return;
-    startedRef.current = true;
-
-    let mounted = true;
-
-    async function startRunner() {
-      try {
-        // Check if already running (app restart / HMR)
-        const status = await invoke<RunnerStatus>("runner_status");
-        if (status.running) {
-          if (mounted) {
-            setIsRunning(true);
-            setActiveSessions(status.activeSessions);
-            setActiveWorkflowExecutions(status.activeWorkflowExecutions ?? []);
-          }
-          return;
-        }
-
-        const config = getRunnerConfig();
-        await invoke("start_runner", { config });
-        if (mounted) {
-          setIsRunning(true);
-          setError(null);
-        }
-      } catch (err) {
-        if (mounted) {
-          setError(String(err));
-          setIsRunning(false);
-        }
-      }
+  const ensureRunning = useCallback(async (): Promise<void> => {
+    if (startingRef.current) {
+      await startingRef.current;
+      return;
     }
 
-    startRunner();
+    const status = await invoke<RunnerStatus>("runner_status");
+    if (status.running) {
+      setIsRunning(true);
+      setActiveSessions(status.activeSessions);
+      setActiveWorkflowExecutions(status.activeWorkflowExecutions ?? []);
+      return;
+    }
 
-    return () => {
-      mounted = false;
-    };
+    const startPromise = (async () => {
+      const config = getRunnerConfig();
+      await invoke("start_runner", { config });
+      setIsRunning(true);
+      setError(null);
+    })();
+
+    startingRef.current = startPromise;
+
+    try {
+      await startPromise;
+    } catch (err) {
+      startingRef.current = null;
+      setError(String(err));
+      setIsRunning(false);
+      throw err;
+    }
   }, []);
 
   const addSession = useCallback(async (sessionId: string): Promise<string> => {
+    await ensureRunning();
     const taskQueue = await invoke<string>("add_session", { sessionId });
     setActiveSessions((prev) =>
       prev.includes(sessionId) ? prev : [...prev, sessionId],
     );
     return taskQueue;
-  }, []);
+  }, [ensureRunning]);
 
   const removeSession = useCallback(async (sessionId: string): Promise<void> => {
     await invoke("remove_session", { sessionId });
@@ -120,16 +117,23 @@ export function useEmbeddedRunner(): UseEmbeddedRunnerResult {
   }, []);
 
   const addWorkflowExecution = useCallback(async (executionId: string): Promise<string> => {
+    await ensureRunning();
     const taskQueue = await invoke<string>("add_workflow_execution", { executionId });
     setActiveWorkflowExecutions((prev) =>
       prev.includes(executionId) ? prev : [...prev, executionId],
     );
     return taskQueue;
-  }, []);
+  }, [ensureRunning]);
 
   const removeWorkflowExecution = useCallback(async (executionId: string): Promise<void> => {
     await invoke("remove_workflow_execution", { executionId });
     setActiveWorkflowExecutions((prev) => prev.filter((id) => id !== executionId));
+  }, []);
+
+  const updateRunnerToken = useCallback(async (token: string | null): Promise<void> => {
+    const status = await invoke<RunnerStatus>("runner_status");
+    if (!status.running) return;
+    await invoke("update_runner_token", { token });
   }, []);
 
   return {
@@ -140,6 +144,7 @@ export function useEmbeddedRunner(): UseEmbeddedRunnerResult {
     removeSession,
     addWorkflowExecution,
     removeWorkflowExecution,
+    updateRunnerToken,
     error,
   };
 }

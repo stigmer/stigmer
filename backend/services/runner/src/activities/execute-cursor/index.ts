@@ -78,6 +78,7 @@ export function createCursorActivities(config: Config) {
   const client = new StigmerClient({
     endpoint: config.stigmerBackendEndpoint,
     token: config.stigmerToken,
+    tokenRef: config.stigmerTokenRef,
   });
 
   return {

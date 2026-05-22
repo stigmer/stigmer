@@ -55,6 +55,11 @@ interface IpcRemoveWorkflowExecution {
   executionId: string;
 }
 
+interface IpcUpdateToken {
+  type: "updateToken";
+  token: string | null;
+}
+
 interface IpcShutdown {
   type: "shutdown";
 }
@@ -64,6 +69,7 @@ type IpcCommand =
   | IpcRemoveSession
   | IpcAddWorkflowExecution
   | IpcRemoveWorkflowExecution
+  | IpcUpdateToken
   | IpcShutdown;
 
 interface IpcReady {
@@ -98,6 +104,10 @@ interface IpcError {
   fatal: boolean;
 }
 
+interface IpcTokenUpdated {
+  type: "tokenUpdated";
+}
+
 interface IpcShutdownComplete {
   type: "shutdownComplete";
 }
@@ -108,6 +118,7 @@ type IpcResponse =
   | IpcSessionRemoved
   | IpcWorkflowExecutionAdded
   | IpcWorkflowExecutionRemoved
+  | IpcTokenUpdated
   | IpcError
   | IpcShutdownComplete;
 
@@ -201,6 +212,11 @@ async function runManagerMode(): Promise<void> {
         case "removeWorkflowExecution": {
           await manager.removeWorkflowExecution(cmd.executionId);
           sendIpc({ type: "workflowExecutionRemoved", executionId: cmd.executionId });
+          break;
+        }
+        case "updateToken": {
+          manager.updateToken(cmd.token);
+          sendIpc({ type: "tokenUpdated" });
           break;
         }
         case "shutdown": {

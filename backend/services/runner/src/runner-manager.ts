@@ -18,6 +18,7 @@ import { createRequire } from "node:module";
 import {
   NativeConnection,
   Worker,
+  bundleWorkflowCode,
   type ActivityInterceptorsFactory,
   type InjectedSinks,
 } from "@temporalio/worker";
@@ -85,6 +86,9 @@ export interface StigmerRunnerManager {
   /** List currently active workflow execution IDs. */
   activeWorkflowExecutions(): string[];
 
+  /** Push a refreshed auth token to all activity clients. */
+  updateToken(token: string | null): void;
+
   /** Graceful shutdown of all Workers and the Temporal connection. */
   shutdown(): Promise<void>;
 }
@@ -122,7 +126,8 @@ export async function createStigmerRunnerManager(
 ): Promise<StigmerRunnerManager> {
   validateManagerOptions(options);
 
-  const config = mapManagerOptionsToConfig(options);
+  const tokenRef = { current: options.stigmerToken ?? null };
+  const config = mapManagerOptionsToConfig(options, tokenRef);
 
   // Install fetch interceptor before any @cursor/sdk imports
   const { installFetchInterceptor } = await import(
@@ -145,6 +150,10 @@ export async function createStigmerRunnerManager(
     new URL("./workflows/index.js", import.meta.url),
   );
 
+  console.log("[runner-manager] Pre-bundling workflow code...");
+  const workflowBundle = await bundleWorkflowCode({ workflowsPath });
+  console.log("[runner-manager] Workflow code bundled successfully");
+
   const sessions = new Map<string, ManagedSession>();
   const workflowExecutions = new Map<string, ManagedSession>();
   let shuttingDown = false;
@@ -155,7 +164,7 @@ export async function createStigmerRunnerManager(
       namespace: config.temporalNamespace,
       taskQueue,
       activities,
-      workflowsPath,
+      workflowBundle,
       maxConcurrentActivityTaskExecutions: config.maxConcurrentActivities,
       dataConverter: payloadCodec
         ? { payloadCodecs: [payloadCodec] }
@@ -243,6 +252,17 @@ export async function createStigmerRunnerManager(
       return Array.from(workflowExecutions.keys());
     },
 
+    updateToken(token: string | null): void {
+      tokenRef.current = token;
+      // Also update env so activities calling loadConfig() at runtime pick it up
+      if (token) {
+        process.env.STIGMER_TOKEN = token;
+      } else {
+        delete process.env.STIGMER_TOKEN;
+      }
+      console.log("[runner-manager] Auth token updated");
+    },
+
     async shutdown(): Promise<void> {
       shuttingDown = true;
       const totalWorkers = sessions.size + workflowExecutions.size;
@@ -289,7 +309,10 @@ function validateManagerOptions(options: RunnerManagerOptions): void {
   }
 }
 
-function mapManagerOptionsToConfig(options: RunnerManagerOptions): Config {
+function mapManagerOptionsToConfig(
+  options: RunnerManagerOptions,
+  tokenRef?: { current: string | null },
+): Config {
   const proxyActive = !!options.proxyEndpoint;
   const mode = proxyActive ? ("cloud" as const) : ("local" as const);
 
@@ -299,6 +322,7 @@ function mapManagerOptionsToConfig(options: RunnerManagerOptions): Config {
     temporalNamespace: options.temporalNamespace ?? "default",
     stigmerBackendEndpoint: normalizeEndpoint(options.stigmerEndpoint),
     stigmerToken: options.stigmerToken ?? null,
+    stigmerTokenRef: tokenRef,
     cursorApiKey: proxyActive
       ? (options.cursorApiKey ?? "proxy-managed")
       : (options.cursorApiKey ?? ""),

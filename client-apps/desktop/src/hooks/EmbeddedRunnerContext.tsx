@@ -17,6 +17,7 @@ interface EmbeddedRunnerContext {
   removeSession: (sessionId: string) => Promise<void>;
   addWorkflowExecution: (executionId: string) => Promise<string>;
   removeWorkflowExecution: (executionId: string) => Promise<void>;
+  updateRunnerToken: (token: string | null) => Promise<void>;
   error: string | null;
 }
 
