@@ -61,7 +61,7 @@
           "inputFullType": "ai.stigmer.iam.invitation.v1.InvitationTokenInput",
           "outputType": "InvitationPreview",
           "outputFullType": "ai.stigmer.iam.invitation.v1.InvitationPreview",
-          "description": "Get a preview of an invitation by its shareable token.\n\n Returns a safe projection (InvitationPreview) containing only the\n information needed to render the invite acceptance page: organization\n name, logo, the role being offered, and whether the invitation is\n still valid.\n\n This endpoint is called by the web app's invite page before the user\n has authenticated, so it requires no authorization. The response\n intentionally omits the token value, redemption history, and internal\n invitation metadata.\n\n @internal\n Authorization: none — unauthenticated, public endpoint for rendering\n the invite acceptance page. Uses is_skip_authorization following the\n getSsoProvider precedent."
+          "description": "Get a preview of an invitation by its shareable token.\n\n Returns a safe projection (InvitationPreview) containing only the\n information needed to render the invite acceptance page: organization\n name, logo, the role being offered, and whether the invitation is\n still valid.\n\n This endpoint is called by the web app's invite page before the user\n has authenticated, so it requires no authorization. The response\n intentionally omits the token value, redemption history, and internal\n invitation metadata.\n\n @internal\n Authorization: none — unauthenticated, public endpoint for rendering\n the invite acceptance page. Marked is_public so the authentication\n interceptor skips token validation entirely."
         }
       ]
     }

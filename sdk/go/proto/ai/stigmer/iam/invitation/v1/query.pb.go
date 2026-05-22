@@ -31,7 +31,7 @@ const file_ai_stigmer_iam_invitation_v1_query_proto_rawDesc = "" +
 	"\x03get\x12*.ai.stigmer.iam.invitation.v1.InvitationId\x1a(.ai.stigmer.iam.invitation.v1.Invitation\"0¸\x18,\b\x01\x10\x14\"\x05value*\x1funauthorized to view invitation\x12\xb5\x01\n" +
 	"\tlistByOrg\x127.ai.stigmer.iam.invitation.v1.ListInvitationsByOrgInput\x1a).ai.stigmer.iam.invitation.v1.Invitations\"D¸\x18@\b\x05\x10\x1e\"\x03org*5unauthorized to list invitations in this organization\x12w\n" +
 	"\n" +
-	"getByToken\x122.ai.stigmer.iam.invitation.v1.InvitationTokenInput\x1a/.ai.stigmer.iam.invitation.v1.InvitationPreview\"\x04и\x18\x01\x1a\x04\xa0\xff+\x14B\x96\x02\n" +
+	"getByToken\x122.ai.stigmer.iam.invitation.v1.InvitationTokenInput\x1a/.ai.stigmer.iam.invitation.v1.InvitationPreview\"\x04ȸ\x18\x01\x1a\x04\xa0\xff+\x14B\x96\x02\n" +
 	" com.ai.stigmer.iam.invitation.v1B\n" +
 	"QueryProtoP\x01ZQgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/invitation/v1;invitationv1\xa2\x02\x04ASII\xaa\x02\x1cAi.Stigmer.Iam.Invitation.V1\xca\x02\x1cAi\\Stigmer\\Iam\\Invitation\\V1\xe2\x02(Ai\\Stigmer\\Iam\\Invitation\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Iam::Invitation::V1b\x06proto3"
 

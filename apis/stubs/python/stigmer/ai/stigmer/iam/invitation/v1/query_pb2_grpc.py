@@ -76,8 +76,8 @@ class InvitationQueryControllerServicer(object):
 
         @internal
         Authorization: none — unauthenticated, public endpoint for rendering
-        the invite acceptance page. Uses is_skip_authorization following the
-        getSsoProvider precedent.
+        the invite acceptance page. Marked is_public so the authentication
+        interceptor skips token validation entirely.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
