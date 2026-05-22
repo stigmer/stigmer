@@ -6,6 +6,11 @@ const STATE_FILE = path.join(__dirname, ".e2e-server-state.json");
 const API_PORT = Number(process.env.STIGMER_E2E_API_PORT ?? "7234");
 
 async function globalSetup() {
+  if (process.env.STIGMER_E2E_BASE_URL) {
+    console.log(`[e2e] External target (${process.env.STIGMER_E2E_BASE_URL}) — skipping backend stack startup`);
+    return;
+  }
+
   const alreadyRunning = await isPortReachable(API_PORT);
 
   if (alreadyRunning) {

@@ -153,6 +153,16 @@ jobs:
         with:
           node-version: 22
 
+      - name: Install npm workspace dependencies
+        run: npm ci
+
+      - name: Build proto stubs
+        run: npm run build -w @stigmer/protos
+
+      - name: Install and build unified runner
+        working-directory: backend/services/runner
+        run: npm ci && npm run build
+
       - name: Install Temporal CLI
         uses: temporalio/setup-temporal@v0
 
