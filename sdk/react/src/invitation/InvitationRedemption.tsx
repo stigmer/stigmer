@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { cn } from "@stigmer/theme";
-import { getUserMessage, iamRoleDisplayName } from "@stigmer/sdk";
+import { getUserMessage, iamRoleDisplayName, iamRoleDescription } from "@stigmer/sdk";
 import type { Invitation } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { useInvitationPreview } from "./useInvitationPreview";
@@ -141,7 +141,7 @@ export function InvitationRedemption({
     const roleName = iamRoleDisplayName(preview.role);
     return (
       <div className={cn("mx-auto max-w-sm", className)}>
-        <div className="rounded-lg border border-primary/30 bg-primary-subtle p-6 text-center">
+        <div className="rounded-lg border border-primary/30 bg-primary-subtle p-6 text-center shadow-sm">
           <SuccessIcon />
           <h2 className="mt-3 text-base font-semibold text-foreground">
             You&rsquo;ve joined {orgName}
@@ -162,17 +162,17 @@ export function InvitationRedemption({
 
   return (
     <div className={cn("mx-auto max-w-sm", className)}>
-      <div className="rounded-lg border border-border bg-card p-6">
+      <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
         {/* Org identity */}
         <div className="flex flex-col items-center text-center">
           {orgLogo ? (
             <img
               src={orgLogo}
               alt={`${orgName} logo`}
-              className="size-12 rounded-full object-cover"
+              className="size-14 rounded-full object-cover"
             />
           ) : (
-            <div className="flex size-12 items-center justify-center rounded-full bg-muted text-lg font-semibold text-muted-foreground">
+            <div className="flex size-14 items-center justify-center rounded-full bg-muted text-xl font-semibold text-muted-foreground">
               {orgInitial}
             </div>
           )}
@@ -182,23 +182,25 @@ export function InvitationRedemption({
           </h2>
 
           {preview.label && (
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="mt-1 text-sm italic text-muted-foreground">
               {preview.label}
             </p>
           )}
         </div>
 
         {/* Role + expiry details */}
-        <div className="mt-4 flex items-center justify-center gap-3 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1">
+        <div className="mt-4 flex flex-col items-center gap-1.5 text-center">
+          <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted px-2.5 py-1 text-xs font-medium text-foreground">
             <ShieldIcon />
             {roleName} access
           </span>
+          <span className="text-[0.7rem] text-muted-foreground">
+            {iamRoleDescription(preview.role)}
+          </span>
           {expiresAt && (
-            <>
-              <Separator />
-              <span>{formatExpiry(expiresAt)}</span>
-            </>
+            <span className="text-[0.7rem] text-muted-foreground">
+              {formatExpiry(expiresAt)}
+            </span>
           )}
         </div>
 
@@ -217,7 +219,7 @@ export function InvitationRedemption({
                   onClick={handleAccept}
                   disabled={isRedeeming}
                   className={cn(
-                    "w-full inline-flex items-center justify-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium",
+                    "w-full inline-flex items-center justify-center gap-1.5 rounded-md px-4 py-2.5 text-sm font-medium",
                     "bg-primary text-primary-foreground hover:bg-primary-hover",
                     "disabled:pointer-events-none disabled:opacity-50",
                     "transition-colors",
@@ -237,7 +239,7 @@ export function InvitationRedemption({
                 type="button"
                 onClick={onAuthRequired}
                 className={cn(
-                  "w-full inline-flex items-center justify-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium",
+                  "w-full inline-flex items-center justify-center gap-1.5 rounded-md px-4 py-2.5 text-sm font-medium",
                   "bg-primary text-primary-foreground hover:bg-primary-hover",
                   "transition-colors",
                 )}
@@ -279,7 +281,7 @@ function ErrorCard({
   onRetry?: () => void;
 }) {
   return (
-    <div className="rounded-lg border border-destructive/30 bg-destructive-subtle p-6 text-center">
+    <div className="rounded-lg border border-destructive/30 bg-destructive-subtle p-6 text-center shadow-sm">
       <p className="text-sm text-destructive">{message}</p>
       {onRetry && (
         <button
@@ -304,17 +306,18 @@ function ErrorCard({
 
 function LoadingSkeleton() {
   return (
-    <div className="rounded-lg border border-border bg-card p-6 space-y-4">
+    <div className="rounded-lg border border-border bg-card p-6 shadow-sm space-y-4">
       <div className="flex flex-col items-center gap-3">
-        <div className="size-12 rounded-full bg-muted-subtle animate-pulse" />
+        <div className="size-14 rounded-full bg-muted-subtle animate-pulse" />
         <div className="h-5 w-40 rounded bg-muted-subtle animate-pulse" />
         <div className="h-4 w-56 rounded bg-muted-subtle animate-pulse" />
       </div>
-      <div className="flex justify-center gap-3">
-        <div className="h-4 w-24 rounded bg-muted-subtle animate-pulse" />
-        <div className="h-4 w-24 rounded bg-muted-subtle animate-pulse" />
+      <div className="flex flex-col items-center gap-1.5">
+        <div className="h-6 w-28 rounded-md bg-muted-subtle animate-pulse" />
+        <div className="h-3 w-44 rounded bg-muted-subtle animate-pulse" />
+        <div className="h-3 w-24 rounded bg-muted-subtle animate-pulse" />
       </div>
-      <div className="h-10 w-full rounded-md bg-muted-subtle animate-pulse" />
+      <div className="h-[42px] w-full rounded-md bg-muted-subtle animate-pulse" />
     </div>
   );
 }
@@ -338,18 +341,6 @@ function formatExpiry(date: Date): string {
     day: "numeric",
     year: "numeric",
   })}`;
-}
-
-// ---------------------------------------------------------------------------
-// Separator (internal)
-// ---------------------------------------------------------------------------
-
-function Separator() {
-  return (
-    <span className="text-border" aria-hidden="true">
-      &middot;
-    </span>
-  );
 }
 
 // ---------------------------------------------------------------------------

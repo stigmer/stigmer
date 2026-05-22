@@ -11,6 +11,7 @@ import { getApiBaseUrl } from "@/config/env";
 import { resolveAuthConfig } from "@/auth/config";
 import { createUserManager } from "@/auth/oidc/oidc-manager";
 import { saveSsoLoginState } from "@/auth/oidc/sso-session";
+import { StigmerLogo } from "@/auth/StigmerLogo";
 
 const REDIRECT_PATH_KEY = "stigmer:auth:redirect_path";
 
@@ -137,29 +138,6 @@ export function LoginSkeleton() {
           <div className="h-10 animate-pulse rounded-md bg-muted" />
         </div>
       </div>
-    </div>
-  );
-}
-
-function StigmerLogo() {
-  return (
-    <div className="mx-auto flex size-10 items-center justify-center rounded-lg bg-primary">
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="text-primary-foreground"
-        aria-hidden="true"
-      >
-        <path d="M12 2L2 7l10 5 10-5-10-5z" />
-        <path d="M2 17l10 5 10-5" />
-        <path d="M2 12l10 5 10-5" />
-      </svg>
     </div>
   );
 }
