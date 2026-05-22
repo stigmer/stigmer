@@ -40,7 +40,9 @@ export interface UseEmbeddedRunnerResult {
 
 function getRunnerConfig(): RunnerConfig {
   const stigmerEndpoint =
-    localStorage.getItem("stigmer.serverEndpoint") || "http://localhost:7234";
+    import.meta.env.VITE_STIGMER_SIDECAR_ENDPOINT
+    || localStorage.getItem("stigmer.serverEndpoint")
+    || "http://localhost:7234";
   const temporalAddress =
     import.meta.env.VITE_STIGMER_TEMPORAL_ADDRESS
     || localStorage.getItem("stigmer.temporalAddress")
