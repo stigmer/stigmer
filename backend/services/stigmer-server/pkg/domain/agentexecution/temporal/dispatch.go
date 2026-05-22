@@ -6,197 +6,130 @@ import (
 	"fmt"
 
 	"github.com/rs/zerolog/log"
-	runnerv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/runner/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
-	"google.golang.org/protobuf/proto"
 )
 
-// DispatchResult holds the resolved Temporal task queue, Runner ID, and
-// session harness for workflow creation. Every successful dispatch now
-// resolves to a specific runner — the global shared queue is no longer used.
+// DefaultActivityTaskQueue is the fallback Temporal task queue for activity
+// routing. Used in global routing mode and as a fallback when session ID is
+// empty in per-session mode.
+const DefaultActivityTaskQueue = "stigmer_runner"
+
+// sessionTaskQueuePrefix is the prefix for per-session task queue names.
+const sessionTaskQueuePrefix = "session:"
+
+// DispatchResult holds the resolved Temporal task queue, session harness,
+// and execution target for workflow creation.
 type DispatchResult struct {
-	TaskQueue string
-	RunnerID  string
-	Harness   sessionv1.Harness
+	TaskQueue       string
+	Harness         sessionv1.Harness
+	ExecutionTarget sessionv1.ExecutionTarget
 }
 
-// HasRunner returns true when dispatch resolved to a specific Runner.
-func (d DispatchResult) HasRunner() bool {
-	return d.RunnerID != ""
+// FormatSessionTaskQueue derives the canonical Temporal task queue name for a
+// given session ID. The format is "session:{session_id}".
+//
+// This is a pure function with no side effects — it can be used by any
+// component that needs to derive or validate a session task queue name
+// (e.g., runner boot scripts, integration tests, cloud sandbox provisioning).
+func FormatSessionTaskQueue(sessionID string) string {
+	return sessionTaskQueuePrefix + sessionID
 }
 
 // ResolveActivityTaskQueue determines which Temporal task queue an execution's
-// Python activities should be routed to.
+// activities should be routed to.
 //
-// Resolution logic (two paths):
+// When activityTaskQueueOverride is non-empty, it is used directly — this
+// enables sandbox sharing where a parent workflow execution passes its own
+// queue (wfexec:{id}) so child agents run in the same sandbox without
+// provisioning new VMs. ExecutionTarget is set to LOCAL in this case to
+// prevent EnsureSessionSandboxStep from triggering.
 //
-// Explicit binding — session has a runner_id:
-//  1. Load the Runner by ID.
-//  2. Verify it is in an active phase (READY or BUSY).
-//  3. Return its per-runner task queue.
-//  4. Error if the runner is missing, inactive, or has no queue.
+// Routing modes (controlled by Config.ActivityRouting):
+//   - "global": Always returns DefaultActivityTaskQueue. All sessions share
+//     one runner pool. This is the default for OSS local development.
+//   - "session": Returns session:{session_id} when a session ID is available.
+//     Each session routes to a dedicated runner. Used by desktop (embedded
+//     runners) and cloud (per-session sandboxes).
 //
-// Auto-route — session has no runner_id (or no session):
-//  1. Scan all runners for active ones (READY or BUSY).
-//  2. Prefer READY over BUSY.
-//  3. Return the best candidate's task queue.
-//  4. Error if no active runner exists (fail fast with actionable message).
-func ResolveActivityTaskQueue(ctx context.Context, s store.Store, sessionID string) (DispatchResult, error) {
-	if sessionID == "" {
-		log.Debug().Msg("No session ID provided, resolving by available runner")
-		return resolveByAvailableRunner(ctx, s)
+// In both modes, the session is loaded to extract the harness configuration
+// (NATIVE vs CURSOR) and the execution target (LOCAL vs CLOUD) which determines
+// which activity type the workflow invokes and who provides the runner.
+func ResolveActivityTaskQueue(ctx context.Context, s store.Store, sessionID string, cfg *Config, activityTaskQueueOverride string) (DispatchResult, error) {
+	// Sandbox affinity: parent workflow already has a sandbox on this queue.
+	// Route there directly — no session routing, no sandbox provisioning needed.
+	if activityTaskQueueOverride != "" {
+		harness := sessionv1.Harness_HARNESS_NATIVE
+		if sessionID != "" {
+			session := &sessionv1.Session{}
+			if err := s.GetResource(ctx, apiresourcekind.ApiResourceKind_session, sessionID, session); err == nil {
+				harness = session.GetSpec().GetHarness()
+			}
+		}
+
+		log.Info().
+			Str("session_id", sessionID).
+			Str("task_queue", activityTaskQueueOverride).
+			Str("override_source", "parent_workflow_sandbox").
+			Msg("Dispatch using activity_task_queue override (sandbox affinity)")
+
+		return DispatchResult{
+			TaskQueue:       activityTaskQueueOverride,
+			Harness:         harness,
+			ExecutionTarget: sessionv1.ExecutionTarget_EXECUTION_TARGET_LOCAL,
+		}, nil
 	}
 
-	session := &sessionv1.Session{}
-	if err := s.GetResource(ctx, apiresourcekind.ApiResourceKind_session, sessionID, session); err != nil {
-		if errors.Is(err, store.ErrNotFound) {
+	harness := sessionv1.Harness_HARNESS_NATIVE
+	executionTarget := sessionv1.ExecutionTarget_EXECUTION_TARGET_UNSPECIFIED
+
+	if sessionID != "" {
+		session := &sessionv1.Session{}
+		if err := s.GetResource(ctx, apiresourcekind.ApiResourceKind_session, sessionID, session); err != nil {
+			if !errors.Is(err, store.ErrNotFound) {
+				return DispatchResult{}, fmt.Errorf("failed to load session for dispatch: %w", err)
+			}
 			log.Warn().Str("session_id", sessionID).
-				Msg("Session not found during dispatch, resolving by available runner")
-			return resolveByAvailableRunner(ctx, s)
+				Msg("Session not found during dispatch, using defaults")
+		} else {
+			harness = session.GetSpec().GetHarness()
+			executionTarget = session.GetSpec().GetExecutionTarget()
 		}
-		return DispatchResult{}, fmt.Errorf("failed to load session for dispatch: %w", err)
 	}
 
-	harness := session.GetSpec().GetHarness()
-
-	runnerID := session.GetSpec().GetRunnerId()
-	if runnerID == "" {
-		log.Debug().Str("session_id", sessionID).
-			Msg("Session has no bound runner, resolving by available runner")
-		result, err := resolveByAvailableRunner(ctx, s)
-		if err != nil {
-			return result, err
-		}
-		result.Harness = harness
-		return result, nil
-	}
-
-	result, err := resolveByExplicitRunner(ctx, s, sessionID, runnerID)
-	if err != nil {
-		return result, err
-	}
-	result.Harness = harness
-	return result, nil
-}
-
-// resolveByExplicitRunner loads the runner that a session is explicitly bound
-// to and verifies it can accept work.
-func resolveByExplicitRunner(ctx context.Context, s store.Store, sessionID, runnerID string) (DispatchResult, error) {
-	runner := &runnerv1.Runner{}
-	if err := s.GetResource(ctx, apiresourcekind.ApiResourceKind_runner, runnerID, runner); err != nil {
-		if errors.Is(err, store.ErrNotFound) {
-			return DispatchResult{}, fmt.Errorf(
-				"runner '%s' not found — it may have been deleted", runnerID)
-		}
-		return DispatchResult{}, fmt.Errorf("failed to load runner for dispatch: %w", err)
-	}
-
-	phase := runner.GetStatus().GetPhase()
-	if !isActivePhase(phase) {
-		return DispatchResult{}, fmt.Errorf(
-			"runner '%s' is in %s phase and cannot accept work",
-			runner.GetMetadata().GetName(), formatPhase(phase))
-	}
-
-	taskQueue := runner.GetStatus().GetTaskQueue()
-	if taskQueue == "" {
-		return DispatchResult{}, fmt.Errorf(
-			"runner '%s' has no task queue configured", runnerID)
-	}
+	resolvedTarget := resolveExecutionTarget(executionTarget, cfg)
+	taskQueue := resolveTaskQueue(sessionID, cfg)
 
 	log.Info().
 		Str("session_id", sessionID).
-		Str("runner_id", runnerID).
-		Str("phase", phase.String()).
 		Str("task_queue", taskQueue).
-		Msg("Dispatch resolved to explicitly bound runner")
+		Str("routing_mode", cfg.ActivityRouting).
+		Str("execution_target", resolvedTarget.String()).
+		Msg("Dispatch resolved activity task queue")
 
-	return DispatchResult{TaskQueue: taskQueue, RunnerID: runnerID}, nil
+	return DispatchResult{
+		TaskQueue:       taskQueue,
+		Harness:         harness,
+		ExecutionTarget: resolvedTarget,
+	}, nil
 }
 
-// resolveByAvailableRunner scans all runners and picks the best active
-// candidate. Prefers READY over BUSY. Returns a descriptive error when no
-// active runner can accept work.
-func resolveByAvailableRunner(ctx context.Context, s store.Store) (DispatchResult, error) {
-	data, err := s.ListResources(ctx, apiresourcekind.ApiResourceKind_runner)
-	if err != nil {
-		return DispatchResult{}, fmt.Errorf("failed to list runners for dispatch: %w", err)
+// resolveExecutionTarget resolves UNSPECIFIED to the configured default.
+func resolveExecutionTarget(target sessionv1.ExecutionTarget, cfg *Config) sessionv1.ExecutionTarget {
+	if target != sessionv1.ExecutionTarget_EXECUTION_TARGET_UNSPECIFIED {
+		return target
 	}
-
-	if len(data) == 0 {
-		return DispatchResult{}, fmt.Errorf(
-			"no runners registered — start one with 'stigmer up' or 'stigmer up runner'")
+	if cfg.DefaultExecutionTarget == DefaultExecutionTargetCloud {
+		return sessionv1.ExecutionTarget_EXECUTION_TARGET_CLOUD
 	}
-
-	var bestReady, bestBusy *runnerv1.Runner
-	totalCount := 0
-
-	for _, d := range data {
-		runner := &runnerv1.Runner{}
-		if err := proto.Unmarshal(d, runner); err != nil {
-			log.Warn().Err(err).Msg("Failed to unmarshal runner during dispatch scan, skipping entry")
-			continue
-		}
-		totalCount++
-
-		switch runner.GetStatus().GetPhase() {
-		case runnerv1.RunnerPhase_RUNNER_PHASE_READY:
-			if bestReady == nil {
-				bestReady = runner
-			}
-		case runnerv1.RunnerPhase_RUNNER_PHASE_BUSY:
-			if bestBusy == nil {
-				bestBusy = runner
-			}
-		}
-	}
-
-	selected := bestReady
-	if selected == nil {
-		selected = bestBusy
-	}
-
-	if selected == nil {
-		return DispatchResult{}, fmt.Errorf(
-			"no active runners available (found %d runner(s), none in READY phase) — "+
-				"check with 'stigmer list runners' and restart with 'stigmer up'",
-			totalCount)
-	}
-
-	taskQueue := selected.GetStatus().GetTaskQueue()
-	if taskQueue == "" {
-		return DispatchResult{}, fmt.Errorf(
-			"runner '%s' has no task queue configured",
-			selected.GetMetadata().GetName())
-	}
-
-	runnerID := selected.GetMetadata().GetId()
-	log.Info().
-		Str("runner_id", runnerID).
-		Str("runner_name", selected.GetMetadata().GetName()).
-		Str("phase", selected.GetStatus().GetPhase().String()).
-		Str("task_queue", taskQueue).
-		Msg("Dispatch auto-routed to available runner")
-
-	return DispatchResult{TaskQueue: taskQueue, RunnerID: runnerID}, nil
+	return sessionv1.ExecutionTarget_EXECUTION_TARGET_LOCAL
 }
 
-func isActivePhase(phase runnerv1.RunnerPhase) bool {
-	return phase == runnerv1.RunnerPhase_RUNNER_PHASE_READY ||
-		phase == runnerv1.RunnerPhase_RUNNER_PHASE_BUSY
-}
-
-func formatPhase(phase runnerv1.RunnerPhase) string {
-	switch phase {
-	case runnerv1.RunnerPhase_RUNNER_PHASE_PENDING:
-		return "PENDING"
-	case runnerv1.RunnerPhase_RUNNER_PHASE_STOPPED:
-		return "STOPPED"
-	case runnerv1.RunnerPhase_RUNNER_PHASE_FAILED:
-		return "FAILED"
-	default:
-		return phase.String()
+// resolveTaskQueue derives the task queue name based on routing mode and session ID.
+func resolveTaskQueue(sessionID string, cfg *Config) string {
+	if cfg.ActivityRouting == RoutingSession && sessionID != "" {
+		return FormatSessionTaskQueue(sessionID)
 	}
+	return cfg.RunnerQueue
 }

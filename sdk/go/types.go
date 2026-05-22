@@ -21,7 +21,6 @@ type OAuthAppClient = gen.OAuthAppClient
 type OrganizationClient = gen.OrganizationClient
 type PlatformClientClient = gen.PlatformClientClient
 type ProjectClient = gen.ProjectClient
-type RunnerClient = gen.RunnerClient
 type SessionClient = gen.SessionClient
 type SkillClient = gen.SkillClient
 type WorkflowClient = gen.WorkflowClient
@@ -60,7 +59,6 @@ type OAuthAppInput = gen.OAuthAppInput
 type OrganizationInput = gen.OrganizationInput
 type PlatformClientInput = gen.PlatformClientInput
 type ProjectInput = gen.ProjectInput
-type RunnerInput = gen.RunnerInput
 type SessionInput = gen.SessionInput
 type WorkspaceEntryInput = gen.WorkspaceEntryInput
 type WorkspaceSourceInput = gen.WorkspaceSourceInput
@@ -78,7 +76,6 @@ type WorkflowInstanceInput = gen.WorkflowInstanceInput
 
 // Streaming types.
 type AgentExecutionSubscribeStream = gen.AgentExecutionSubscribeStream
-type RunnerConnectStream = gen.RunnerConnectStream
 type WorkflowExecutionSubscribeStream = gen.WorkflowExecutionSubscribeStream
 type WorkflowExecutionSubscribeEventsStream = gen.WorkflowExecutionSubscribeEventsStream
 

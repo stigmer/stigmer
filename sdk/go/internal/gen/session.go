@@ -78,15 +78,14 @@ type SessionInput struct {
 	Visibility       apiresource.ApiResourceVisibility
 	AgentInstanceId  string
 	Subject          string
-	ThreadId         string
-	SandboxId        string
+	HarnessStateId   string
 	Metadata         map[string]string
 	WorkspaceEntries []*WorkspaceEntryInput
 	McpServerUsages  []*McpServerUsageInput
-	RunnerId         string
 	SkillRefs        []ResourceRef
 	Harness          sessionv1.Harness
 	CursorMode       sessionv1.CursorMode
+	ExecutionTarget  sessionv1.ExecutionTarget
 }
 
 // WorkspaceEntryInput is the SDK input type for WorkspaceEntry.
@@ -130,8 +129,7 @@ func (i *SessionInput) toProto() *sessionv1.Session {
 	}
 	resource.Spec.AgentInstanceId = i.AgentInstanceId
 	resource.Spec.Subject = i.Subject
-	resource.Spec.ThreadId = i.ThreadId
-	resource.Spec.SandboxId = i.SandboxId
+	resource.Spec.HarnessStateId = i.HarnessStateId
 	resource.Spec.Metadata = i.Metadata
 	for _, item := range i.WorkspaceEntries {
 		resource.Spec.WorkspaceEntries = append(resource.Spec.WorkspaceEntries, item.toProto())
@@ -139,7 +137,6 @@ func (i *SessionInput) toProto() *sessionv1.Session {
 	for _, item := range i.McpServerUsages {
 		resource.Spec.McpServerUsages = append(resource.Spec.McpServerUsages, item.toProto())
 	}
-	resource.Spec.RunnerId = i.RunnerId
 	for _, r := range i.SkillRefs {
 		ref := r.toProto()
 		ref.Kind = apiresourcekind.ApiResourceKind_skill
@@ -147,6 +144,7 @@ func (i *SessionInput) toProto() *sessionv1.Session {
 	}
 	resource.Spec.Harness = i.Harness
 	resource.Spec.CursorMode = i.CursorMode
+	resource.Spec.ExecutionTarget = i.ExecutionTarget
 	return resource
 }
 
@@ -176,8 +174,7 @@ func SessionInputFromProto(p *sessionv1.Session) *SessionInput {
 	if s := p.GetSpec(); s != nil {
 		input.AgentInstanceId = s.GetAgentInstanceId()
 		input.Subject = s.GetSubject()
-		input.ThreadId = s.GetThreadId()
-		input.SandboxId = s.GetSandboxId()
+		input.HarnessStateId = s.GetHarnessStateId()
 		input.Metadata = s.GetMetadata()
 		for _, item := range s.GetWorkspaceEntries() {
 			input.WorkspaceEntries = append(input.WorkspaceEntries, workspaceEntryInputFromProto(item))
@@ -185,12 +182,12 @@ func SessionInputFromProto(p *sessionv1.Session) *SessionInput {
 		for _, item := range s.GetMcpServerUsages() {
 			input.McpServerUsages = append(input.McpServerUsages, mcpServerUsageInputFromProto(item))
 		}
-		input.RunnerId = s.GetRunnerId()
 		for _, r := range s.GetSkillRefs() {
 			input.SkillRefs = append(input.SkillRefs, resourceRefFromProto(r))
 		}
 		input.Harness = s.GetHarness()
 		input.CursorMode = s.GetCursorMode()
+		input.ExecutionTarget = s.GetExecutionTarget()
 	}
 	return input
 }

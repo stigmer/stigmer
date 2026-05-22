@@ -4,6 +4,7 @@ import (
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/dedupe"
+	wftemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/environment"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/executioncontext"
@@ -47,6 +48,7 @@ type WorkflowExecutionController struct {
 	agentExecutionClient   AgentExecutionApprovalClient // For forwarding approvals to child agents
 	temporalClient         client.Client                // For lifecycle operations (cancel, terminate, recover)
 	signalDedupeStore      dedupe.SignalDedupeStore     // For signal deduplication (Gap B2)
+	temporalConfig         *wftemporal.Config           // For workflow dispatch routing (sandbox affinity)
 }
 
 // NewWorkflowExecutionController creates a new WorkflowExecutionController
@@ -62,6 +64,7 @@ func NewWorkflowExecutionController(
 		store:                  store,
 		workflowInstanceClient: workflowInstanceClient,
 		streamBroker:           NewStreamBroker(),
+		temporalConfig:         wftemporal.LoadConfig(),
 	}
 }
 

@@ -49,13 +49,7 @@ export interface UseWorkspaceEntriesReturn {
   readonly remove: (id: string) => void;
   /** Remove all entries. */
   readonly clear: () => void;
-  /**
-   * Remove all local folder entries, keeping git entries intact.
-   *
-   * Used when the user switches runners — local paths from the previous
-   * runner are invalid on the new runner, but git repos are
-   * runner-independent and can stay.
-   */
+  /** Remove all local folder entries, keeping git entries intact. */
   readonly clearLocal: () => void;
   /** Convert entries to the `WorkspaceEntryInput[]` shape required by the SDK. */
   readonly toInput: () => WorkspaceEntryInput[];

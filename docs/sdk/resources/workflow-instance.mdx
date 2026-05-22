@@ -59,6 +59,7 @@ WorkflowInstance workflowInstance = client.workflowInstances().get("win_01j5q3k7
 | [`apply`](#apply) | Create or update a workflow instance. |
 | [`create`](#create) | Create a workflow instance. |
 | [`update`](#update) | Update an existing workflow instance. |
+| [`updateVisibility`](#updatevisibility) | Update the visibility of an existing workflow instance. |
 | [`delete`](#delete) | Delete a workflow instance. |
 
 ### get
@@ -381,6 +382,53 @@ WorkflowInstance workflowInstance = client.workflowInstances().update(WorkflowIn
 
 **Returns**: [`WorkflowInstance`](#workflowinstance)
 
+### updateVisibility
+
+Update the visibility of an existing workflow instance.
+
+Changes who can view this instance and its executions. Supports the full visibility spectrum: PRIVATE (owner only), ORG (all org members), or PUBLIC (all authenticated users).
+
+For workflow instances, visibility has cascading effects on execution observability: workflow executions inherit visibility from their parent instance via FGA. An ORG-visible instance means all org members can see all executions — zero per-execution tuples needed.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const workflowInstance = await stigmer.workflowInstance.updateVisibility({
+  resourceId: "...",
+  visibility: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+workflowInstance, err := client.WorkflowInstance.UpdateVisibility(ctx, &stigmer.UpdateVisibilityInput{
+  ResourceId: "...",
+  Visibility: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+workflow_instance = client.workflow_instances.update_visibility(UpdateVisibilityInput(
+    resource_id="...",
+    visibility="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+WorkflowInstance workflowInstance = client.workflowInstances().updateVisibility(UpdateVisibilityInput.builder()
+    .resourceId("...")
+    .visibility("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`UpdateVisibilityInput`](#updatevisibilityinput)
+
+**Returns**: [`WorkflowInstance`](#workflowinstance)
+
 ### delete
 
 Delete a workflow instance.
@@ -444,6 +492,17 @@ Generic reference to any API resource by org and slug.
     kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcekind" },
     slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
     version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
+  }}
+/>
+
+### UpdateVisibilityInput
+
+Input for updating the visibility of any API resource.
+
+<TypeTable
+  type={{
+    resourceId: { type: "string", description: "ID of the resource whose visibility is being updated.", required: true },
+    visibility: { type: "ApiResourceVisibility", description: "The new visibility setting for the resource.", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcevisibility" },
   }}
 />
 

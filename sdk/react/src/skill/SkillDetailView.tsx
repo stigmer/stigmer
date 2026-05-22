@@ -12,6 +12,7 @@ import { useSkill } from "./useSkill";
 import { SkillFileBrowser } from "./SkillFileBrowser";
 import { ErrorMessage } from "../error/ErrorMessage";
 import { VisibilityToggle } from "../library/VisibilityToggle";
+import { PermissionGate } from "../iam-policy/PermissionGate";
 import { MARKDOWN_COMPONENTS, REMARK_PLUGINS, stripFrontmatter } from "../internal/markdown-components";
 import { ResourceDetailShell } from "../resource-detail/ResourceDetailShell";
 import { Section } from "../resource-detail/Section";
@@ -242,19 +243,27 @@ export function SkillDetailView({
     statusLabel: status ? skillStateLabel(status.state) : undefined,
   };
 
-  const isPublic = meta?.visibility === ApiResourceVisibility.visibility_public;
-  const visibilityControl =
-    onVisibilityChange && meta ? (
-      <VisibilityToggle
-        visibility={meta.visibility}
-        onVisibilityChange={onVisibilityChange}
-        isPending={isVisibilityPending}
-      />
-    ) : isPublic ? (
+  const visibilityBadge =
+    meta?.visibility === ApiResourceVisibility.visibility_public ? (
       <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
         Public
       </span>
     ) : undefined;
+
+  const visibilityControl =
+    onVisibilityChange && meta ? (
+      <PermissionGate
+        resource={{ kind: "skill", id: meta.id }}
+        relation="can_edit"
+        fallback={visibilityBadge}
+      >
+        <VisibilityToggle
+          visibility={meta.visibility}
+          onVisibilityChange={onVisibilityChange}
+          isPending={isVisibilityPending}
+        />
+      </PermissionGate>
+    ) : visibilityBadge;
 
   let tabContent: React.ReactNode;
   if (activeAdditionalTab) {

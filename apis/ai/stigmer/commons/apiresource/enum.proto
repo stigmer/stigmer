@@ -52,13 +52,18 @@ enum ApiResourceStateOperationType {
 //
 // All resources belong to an organization. Visibility determines whether
 // users outside that organization can access the resource.
+//
+// The three visibility levels map to FGA tuples:
+// - PRIVATE: no additional viewer tuples (owner-only access)
+// - ORG: resource#viewer@organization:<org>#member tuple (all org members)
+// - PUBLIC: resource#viewer@identity_account:* with allow_public (all users)
 enum ApiResourceVisibility {
   // Default/unspecified - backend infers from context.
   // For new resources: defaults to visibility_private.
   api_resource_visibility_unspecified = 0;
 
-  // Only members of the owning organization can access.
-  // This is the default for most resources.
+  // Only the owner (and explicitly granted principals) can access.
+  // This is the default for instances and personal resources.
   // Named visibility_private to avoid Java reserved keyword conflict.
   visibility_private = 1;
 
@@ -67,4 +72,14 @@ enum ApiResourceVisibility {
   // Write access still requires org membership.
   // Named visibility_public to avoid Java reserved keyword conflict.
   visibility_public = 2;
+
+  // All members of the owning organization can access (read) this resource.
+  // Used for instances where a team wants shared observability of executions
+  // without granting access to all authenticated users.
+  //
+  // FGA tuple: resource#viewer@organization:<org>#member
+  //
+  // For workflow instances, this enables zero-tuple-per-execution shared
+  // observability: all org members see all executions via inheritance.
+  visibility_org = 3;
 }

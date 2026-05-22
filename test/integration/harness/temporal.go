@@ -6,6 +6,8 @@ import (
 	"net"
 	"os/exec"
 	"time"
+
+	"go.temporal.io/sdk/client"
 )
 
 type TemporalDevServer struct {
@@ -52,6 +54,12 @@ func StartTemporal(ctx context.Context) (*TemporalDevServer, error) {
 
 func (t *TemporalDevServer) Address() string {
 	return fmt.Sprintf("%s:%s", t.Host, t.Port)
+}
+
+// Client returns a Temporal Go SDK client connected to this dev server.
+// The caller is responsible for closing the returned client.
+func (t *TemporalDevServer) Client() (client.Client, error) {
+	return NewTemporalClient(t.Address())
 }
 
 func (t *TemporalDevServer) Stop() error {

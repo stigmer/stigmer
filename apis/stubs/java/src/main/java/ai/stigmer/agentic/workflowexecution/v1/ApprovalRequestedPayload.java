@@ -14,7 +14,14 @@ package ai.stigmer.agentic.workflowexecution.v1;
  * child agent enters EXECUTION_WAITING_FOR_APPROVAL. Captures who can
  * approve, the timeout, and the request context.
  *
- * &#64;since T06
+ * For workflow-level human_input tasks (tool_call_id is empty):
+ * - outcomes[] contains the configured outcome buttons for the approval UI
+ * - form_schema contains the JSON Schema for the reviewer's input form
+ *
+ * For agent tool approvals (tool_call_id is populated):
+ * - outcomes and form_schema are empty (agent approvals use ApprovalAction enum)
+ *
+ * &#64;since T06, extended T13c (outcomes + form_schema)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.ApprovalRequestedPayload}
@@ -44,6 +51,7 @@ private static final long serialVersionUID = 0L;
         com.google.protobuf.LazyStringArrayList.emptyList();
     toolCallId_ = "";
     childExecutionId_ = "";
+    outcomes_ = java.util.Collections.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -64,6 +72,7 @@ private static final long serialVersionUID = 0L;
             ai.stigmer.agentic.workflowexecution.v1.ApprovalRequestedPayload.class, ai.stigmer.agentic.workflowexecution.v1.ApprovalRequestedPayload.Builder.class);
   }
 
+  private int bitField0_;
   public static final int PROMPT_FIELD_NUMBER = 1;
   @SuppressWarnings("serial")
   private volatile java.lang.Object prompt_ = "";
@@ -282,6 +291,177 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int OUTCOMES_FIELD_NUMBER = 6;
+  @SuppressWarnings("serial")
+  private java.util.List<ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo> outcomes_;
+  /**
+   * <pre>
+   * Configured outcomes for workflow-level human_input tasks.
+   *
+   * &#64;internal
+   * Populated from HumanInputTaskConfig.outcomes when a human_input task
+   * activates. Each entry provides the outcome identifier (name) and
+   * the human-readable button label. Empty for agent tool approvals
+   * and for human_input tasks with no custom outcomes (which default
+   * to binary approve/deny).
+   *
+   * &#64;since T13c (Workflow HITL Approval UI)
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo outcomes = 6 [json_name = "outcomes"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo> getOutcomesList() {
+    return outcomes_;
+  }
+  /**
+   * <pre>
+   * Configured outcomes for workflow-level human_input tasks.
+   *
+   * &#64;internal
+   * Populated from HumanInputTaskConfig.outcomes when a human_input task
+   * activates. Each entry provides the outcome identifier (name) and
+   * the human-readable button label. Empty for agent tool approvals
+   * and for human_input tasks with no custom outcomes (which default
+   * to binary approve/deny).
+   *
+   * &#64;since T13c (Workflow HITL Approval UI)
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo outcomes = 6 [json_name = "outcomes"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<? extends ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfoOrBuilder> 
+      getOutcomesOrBuilderList() {
+    return outcomes_;
+  }
+  /**
+   * <pre>
+   * Configured outcomes for workflow-level human_input tasks.
+   *
+   * &#64;internal
+   * Populated from HumanInputTaskConfig.outcomes when a human_input task
+   * activates. Each entry provides the outcome identifier (name) and
+   * the human-readable button label. Empty for agent tool approvals
+   * and for human_input tasks with no custom outcomes (which default
+   * to binary approve/deny).
+   *
+   * &#64;since T13c (Workflow HITL Approval UI)
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo outcomes = 6 [json_name = "outcomes"];</code>
+   */
+  @java.lang.Override
+  public int getOutcomesCount() {
+    return outcomes_.size();
+  }
+  /**
+   * <pre>
+   * Configured outcomes for workflow-level human_input tasks.
+   *
+   * &#64;internal
+   * Populated from HumanInputTaskConfig.outcomes when a human_input task
+   * activates. Each entry provides the outcome identifier (name) and
+   * the human-readable button label. Empty for agent tool approvals
+   * and for human_input tasks with no custom outcomes (which default
+   * to binary approve/deny).
+   *
+   * &#64;since T13c (Workflow HITL Approval UI)
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo outcomes = 6 [json_name = "outcomes"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo getOutcomes(int index) {
+    return outcomes_.get(index);
+  }
+  /**
+   * <pre>
+   * Configured outcomes for workflow-level human_input tasks.
+   *
+   * &#64;internal
+   * Populated from HumanInputTaskConfig.outcomes when a human_input task
+   * activates. Each entry provides the outcome identifier (name) and
+   * the human-readable button label. Empty for agent tool approvals
+   * and for human_input tasks with no custom outcomes (which default
+   * to binary approve/deny).
+   *
+   * &#64;since T13c (Workflow HITL Approval UI)
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo outcomes = 6 [json_name = "outcomes"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfoOrBuilder getOutcomesOrBuilder(
+      int index) {
+    return outcomes_.get(index);
+  }
+
+  public static final int FORM_SCHEMA_FIELD_NUMBER = 7;
+  private com.google.protobuf.Struct formSchema_;
+  /**
+   * <pre>
+   * JSON Schema for the reviewer's input form.
+   *
+   * &#64;internal
+   * Populated from HumanInputTaskConfig.form_schema when a human_input
+   * task activates and defines a form. The approval UI renders form fields
+   * based on this schema, and the reviewer's response is submitted as
+   * form_data in SubmitWorkflowTaskApprovalInput. Empty when no form
+   * is required or for agent tool approvals.
+   *
+   * &#64;since T13c (Workflow HITL Approval UI)
+   * </pre>
+   *
+   * <code>.google.protobuf.Struct form_schema = 7 [json_name = "formSchema"];</code>
+   * @return Whether the formSchema field is set.
+   */
+  @java.lang.Override
+  public boolean hasFormSchema() {
+    return ((bitField0_ & 0x00000001) != 0);
+  }
+  /**
+   * <pre>
+   * JSON Schema for the reviewer's input form.
+   *
+   * &#64;internal
+   * Populated from HumanInputTaskConfig.form_schema when a human_input
+   * task activates and defines a form. The approval UI renders form fields
+   * based on this schema, and the reviewer's response is submitted as
+   * form_data in SubmitWorkflowTaskApprovalInput. Empty when no form
+   * is required or for agent tool approvals.
+   *
+   * &#64;since T13c (Workflow HITL Approval UI)
+   * </pre>
+   *
+   * <code>.google.protobuf.Struct form_schema = 7 [json_name = "formSchema"];</code>
+   * @return The formSchema.
+   */
+  @java.lang.Override
+  public com.google.protobuf.Struct getFormSchema() {
+    return formSchema_ == null ? com.google.protobuf.Struct.getDefaultInstance() : formSchema_;
+  }
+  /**
+   * <pre>
+   * JSON Schema for the reviewer's input form.
+   *
+   * &#64;internal
+   * Populated from HumanInputTaskConfig.form_schema when a human_input
+   * task activates and defines a form. The approval UI renders form fields
+   * based on this schema, and the reviewer's response is submitted as
+   * form_data in SubmitWorkflowTaskApprovalInput. Empty when no form
+   * is required or for agent tool approvals.
+   *
+   * &#64;since T13c (Workflow HITL Approval UI)
+   * </pre>
+   *
+   * <code>.google.protobuf.Struct form_schema = 7 [json_name = "formSchema"];</code>
+   */
+  @java.lang.Override
+  public com.google.protobuf.StructOrBuilder getFormSchemaOrBuilder() {
+    return formSchema_ == null ? com.google.protobuf.Struct.getDefaultInstance() : formSchema_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -310,6 +490,12 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(childExecutionId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 5, childExecutionId_);
+    }
+    for (int i = 0; i < outcomes_.size(); i++) {
+      output.writeMessage(6, outcomes_.get(i));
+    }
+    if (((bitField0_ & 0x00000001) != 0)) {
+      output.writeMessage(7, getFormSchema());
     }
     getUnknownFields().writeTo(output);
   }
@@ -341,6 +527,19 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(childExecutionId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(5, childExecutionId_);
     }
+
+        {
+          final int count = outcomes_.size();
+          for (int i = 0; i < count; i++) {
+            size += com.google.protobuf.CodedOutputStream
+              .computeMessageSizeNoTag(outcomes_.get(i));
+          }
+          size += 1 * count;
+        }
+    if (((bitField0_ & 0x00000001) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(7, getFormSchema());
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -366,6 +565,13 @@ private static final long serialVersionUID = 0L;
         .equals(other.getToolCallId())) return false;
     if (!getChildExecutionId()
         .equals(other.getChildExecutionId())) return false;
+    if (!getOutcomesList()
+        .equals(other.getOutcomesList())) return false;
+    if (hasFormSchema() != other.hasFormSchema()) return false;
+    if (hasFormSchema()) {
+      if (!getFormSchema()
+          .equals(other.getFormSchema())) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -389,6 +595,14 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getToolCallId().hashCode();
     hash = (37 * hash) + CHILD_EXECUTION_ID_FIELD_NUMBER;
     hash = (53 * hash) + getChildExecutionId().hashCode();
+    if (getOutcomesCount() > 0) {
+      hash = (37 * hash) + OUTCOMES_FIELD_NUMBER;
+      hash = (53 * hash) + getOutcomesList().hashCode();
+    }
+    if (hasFormSchema()) {
+      hash = (37 * hash) + FORM_SCHEMA_FIELD_NUMBER;
+      hash = (53 * hash) + getFormSchema().hashCode();
+    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -495,7 +709,14 @@ private static final long serialVersionUID = 0L;
    * child agent enters EXECUTION_WAITING_FOR_APPROVAL. Captures who can
    * approve, the timeout, and the request context.
    *
-   * &#64;since T06
+   * For workflow-level human_input tasks (tool_call_id is empty):
+   * - outcomes[] contains the configured outcome buttons for the approval UI
+   * - form_schema contains the JSON Schema for the reviewer's input form
+   *
+   * For agent tool approvals (tool_call_id is populated):
+   * - outcomes and form_schema are empty (agent approvals use ApprovalAction enum)
+   *
+   * &#64;since T06, extended T13c (outcomes + form_schema)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.ApprovalRequestedPayload}
@@ -519,13 +740,20 @@ private static final long serialVersionUID = 0L;
 
     // Construct using ai.stigmer.agentic.workflowexecution.v1.ApprovalRequestedPayload.newBuilder()
     private Builder() {
-
+      maybeForceBuilderInitialization();
     }
 
     private Builder(
         com.google.protobuf.GeneratedMessage.BuilderParent parent) {
       super(parent);
-
+      maybeForceBuilderInitialization();
+    }
+    private void maybeForceBuilderInitialization() {
+      if (com.google.protobuf.GeneratedMessage
+              .alwaysUseFieldBuilders) {
+        internalGetOutcomesFieldBuilder();
+        internalGetFormSchemaFieldBuilder();
+      }
     }
     @java.lang.Override
     public Builder clear() {
@@ -537,6 +765,18 @@ private static final long serialVersionUID = 0L;
       timeoutSeconds_ = 0;
       toolCallId_ = "";
       childExecutionId_ = "";
+      if (outcomesBuilder_ == null) {
+        outcomes_ = java.util.Collections.emptyList();
+      } else {
+        outcomes_ = null;
+        outcomesBuilder_.clear();
+      }
+      bitField0_ = (bitField0_ & ~0x00000020);
+      formSchema_ = null;
+      if (formSchemaBuilder_ != null) {
+        formSchemaBuilder_.dispose();
+        formSchemaBuilder_ = null;
+      }
       return this;
     }
 
@@ -563,9 +803,22 @@ private static final long serialVersionUID = 0L;
     @java.lang.Override
     public ai.stigmer.agentic.workflowexecution.v1.ApprovalRequestedPayload buildPartial() {
       ai.stigmer.agentic.workflowexecution.v1.ApprovalRequestedPayload result = new ai.stigmer.agentic.workflowexecution.v1.ApprovalRequestedPayload(this);
+      buildPartialRepeatedFields(result);
       if (bitField0_ != 0) { buildPartial0(result); }
       onBuilt();
       return result;
+    }
+
+    private void buildPartialRepeatedFields(ai.stigmer.agentic.workflowexecution.v1.ApprovalRequestedPayload result) {
+      if (outcomesBuilder_ == null) {
+        if (((bitField0_ & 0x00000020) != 0)) {
+          outcomes_ = java.util.Collections.unmodifiableList(outcomes_);
+          bitField0_ = (bitField0_ & ~0x00000020);
+        }
+        result.outcomes_ = outcomes_;
+      } else {
+        result.outcomes_ = outcomesBuilder_.build();
+      }
     }
 
     private void buildPartial0(ai.stigmer.agentic.workflowexecution.v1.ApprovalRequestedPayload result) {
@@ -586,6 +839,14 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000010) != 0)) {
         result.childExecutionId_ = childExecutionId_;
       }
+      int to_bitField0_ = 0;
+      if (((from_bitField0_ & 0x00000040) != 0)) {
+        result.formSchema_ = formSchemaBuilder_ == null
+            ? formSchema_
+            : formSchemaBuilder_.build();
+        to_bitField0_ |= 0x00000001;
+      }
+      result.bitField0_ |= to_bitField0_;
     }
 
     @java.lang.Override
@@ -627,6 +888,35 @@ private static final long serialVersionUID = 0L;
         childExecutionId_ = other.childExecutionId_;
         bitField0_ |= 0x00000010;
         onChanged();
+      }
+      if (outcomesBuilder_ == null) {
+        if (!other.outcomes_.isEmpty()) {
+          if (outcomes_.isEmpty()) {
+            outcomes_ = other.outcomes_;
+            bitField0_ = (bitField0_ & ~0x00000020);
+          } else {
+            ensureOutcomesIsMutable();
+            outcomes_.addAll(other.outcomes_);
+          }
+          onChanged();
+        }
+      } else {
+        if (!other.outcomes_.isEmpty()) {
+          if (outcomesBuilder_.isEmpty()) {
+            outcomesBuilder_.dispose();
+            outcomesBuilder_ = null;
+            outcomes_ = other.outcomes_;
+            bitField0_ = (bitField0_ & ~0x00000020);
+            outcomesBuilder_ = 
+              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                 internalGetOutcomesFieldBuilder() : null;
+          } else {
+            outcomesBuilder_.addAllMessages(other.outcomes_);
+          }
+        }
+      }
+      if (other.hasFormSchema()) {
+        mergeFormSchema(other.getFormSchema());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -679,6 +969,26 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000010;
               break;
             } // case 42
+            case 50: {
+              ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo m =
+                  input.readMessage(
+                      ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo.parser(),
+                      extensionRegistry);
+              if (outcomesBuilder_ == null) {
+                ensureOutcomesIsMutable();
+                outcomes_.add(m);
+              } else {
+                outcomesBuilder_.addMessage(m);
+              }
+              break;
+            } // case 50
+            case 58: {
+              input.readMessage(
+                  internalGetFormSchemaFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00000040;
+              break;
+            } // case 58
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1183,6 +1493,718 @@ private static final long serialVersionUID = 0L;
       bitField0_ |= 0x00000010;
       onChanged();
       return this;
+    }
+
+    private java.util.List<ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo> outcomes_ =
+      java.util.Collections.emptyList();
+    private void ensureOutcomesIsMutable() {
+      if (!((bitField0_ & 0x00000020) != 0)) {
+        outcomes_ = new java.util.ArrayList<ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo>(outcomes_);
+        bitField0_ |= 0x00000020;
+       }
+    }
+
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo, ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo.Builder, ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfoOrBuilder> outcomesBuilder_;
+
+    /**
+     * <pre>
+     * Configured outcomes for workflow-level human_input tasks.
+     *
+     * &#64;internal
+     * Populated from HumanInputTaskConfig.outcomes when a human_input task
+     * activates. Each entry provides the outcome identifier (name) and
+     * the human-readable button label. Empty for agent tool approvals
+     * and for human_input tasks with no custom outcomes (which default
+     * to binary approve/deny).
+     *
+     * &#64;since T13c (Workflow HITL Approval UI)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo outcomes = 6 [json_name = "outcomes"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo> getOutcomesList() {
+      if (outcomesBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(outcomes_);
+      } else {
+        return outcomesBuilder_.getMessageList();
+      }
+    }
+    /**
+     * <pre>
+     * Configured outcomes for workflow-level human_input tasks.
+     *
+     * &#64;internal
+     * Populated from HumanInputTaskConfig.outcomes when a human_input task
+     * activates. Each entry provides the outcome identifier (name) and
+     * the human-readable button label. Empty for agent tool approvals
+     * and for human_input tasks with no custom outcomes (which default
+     * to binary approve/deny).
+     *
+     * &#64;since T13c (Workflow HITL Approval UI)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo outcomes = 6 [json_name = "outcomes"];</code>
+     */
+    public int getOutcomesCount() {
+      if (outcomesBuilder_ == null) {
+        return outcomes_.size();
+      } else {
+        return outcomesBuilder_.getCount();
+      }
+    }
+    /**
+     * <pre>
+     * Configured outcomes for workflow-level human_input tasks.
+     *
+     * &#64;internal
+     * Populated from HumanInputTaskConfig.outcomes when a human_input task
+     * activates. Each entry provides the outcome identifier (name) and
+     * the human-readable button label. Empty for agent tool approvals
+     * and for human_input tasks with no custom outcomes (which default
+     * to binary approve/deny).
+     *
+     * &#64;since T13c (Workflow HITL Approval UI)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo outcomes = 6 [json_name = "outcomes"];</code>
+     */
+    public ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo getOutcomes(int index) {
+      if (outcomesBuilder_ == null) {
+        return outcomes_.get(index);
+      } else {
+        return outcomesBuilder_.getMessage(index);
+      }
+    }
+    /**
+     * <pre>
+     * Configured outcomes for workflow-level human_input tasks.
+     *
+     * &#64;internal
+     * Populated from HumanInputTaskConfig.outcomes when a human_input task
+     * activates. Each entry provides the outcome identifier (name) and
+     * the human-readable button label. Empty for agent tool approvals
+     * and for human_input tasks with no custom outcomes (which default
+     * to binary approve/deny).
+     *
+     * &#64;since T13c (Workflow HITL Approval UI)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo outcomes = 6 [json_name = "outcomes"];</code>
+     */
+    public Builder setOutcomes(
+        int index, ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo value) {
+      if (outcomesBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureOutcomesIsMutable();
+        outcomes_.set(index, value);
+        onChanged();
+      } else {
+        outcomesBuilder_.setMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Configured outcomes for workflow-level human_input tasks.
+     *
+     * &#64;internal
+     * Populated from HumanInputTaskConfig.outcomes when a human_input task
+     * activates. Each entry provides the outcome identifier (name) and
+     * the human-readable button label. Empty for agent tool approvals
+     * and for human_input tasks with no custom outcomes (which default
+     * to binary approve/deny).
+     *
+     * &#64;since T13c (Workflow HITL Approval UI)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo outcomes = 6 [json_name = "outcomes"];</code>
+     */
+    public Builder setOutcomes(
+        int index, ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo.Builder builderForValue) {
+      if (outcomesBuilder_ == null) {
+        ensureOutcomesIsMutable();
+        outcomes_.set(index, builderForValue.build());
+        onChanged();
+      } else {
+        outcomesBuilder_.setMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Configured outcomes for workflow-level human_input tasks.
+     *
+     * &#64;internal
+     * Populated from HumanInputTaskConfig.outcomes when a human_input task
+     * activates. Each entry provides the outcome identifier (name) and
+     * the human-readable button label. Empty for agent tool approvals
+     * and for human_input tasks with no custom outcomes (which default
+     * to binary approve/deny).
+     *
+     * &#64;since T13c (Workflow HITL Approval UI)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo outcomes = 6 [json_name = "outcomes"];</code>
+     */
+    public Builder addOutcomes(ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo value) {
+      if (outcomesBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureOutcomesIsMutable();
+        outcomes_.add(value);
+        onChanged();
+      } else {
+        outcomesBuilder_.addMessage(value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Configured outcomes for workflow-level human_input tasks.
+     *
+     * &#64;internal
+     * Populated from HumanInputTaskConfig.outcomes when a human_input task
+     * activates. Each entry provides the outcome identifier (name) and
+     * the human-readable button label. Empty for agent tool approvals
+     * and for human_input tasks with no custom outcomes (which default
+     * to binary approve/deny).
+     *
+     * &#64;since T13c (Workflow HITL Approval UI)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo outcomes = 6 [json_name = "outcomes"];</code>
+     */
+    public Builder addOutcomes(
+        int index, ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo value) {
+      if (outcomesBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureOutcomesIsMutable();
+        outcomes_.add(index, value);
+        onChanged();
+      } else {
+        outcomesBuilder_.addMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Configured outcomes for workflow-level human_input tasks.
+     *
+     * &#64;internal
+     * Populated from HumanInputTaskConfig.outcomes when a human_input task
+     * activates. Each entry provides the outcome identifier (name) and
+     * the human-readable button label. Empty for agent tool approvals
+     * and for human_input tasks with no custom outcomes (which default
+     * to binary approve/deny).
+     *
+     * &#64;since T13c (Workflow HITL Approval UI)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo outcomes = 6 [json_name = "outcomes"];</code>
+     */
+    public Builder addOutcomes(
+        ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo.Builder builderForValue) {
+      if (outcomesBuilder_ == null) {
+        ensureOutcomesIsMutable();
+        outcomes_.add(builderForValue.build());
+        onChanged();
+      } else {
+        outcomesBuilder_.addMessage(builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Configured outcomes for workflow-level human_input tasks.
+     *
+     * &#64;internal
+     * Populated from HumanInputTaskConfig.outcomes when a human_input task
+     * activates. Each entry provides the outcome identifier (name) and
+     * the human-readable button label. Empty for agent tool approvals
+     * and for human_input tasks with no custom outcomes (which default
+     * to binary approve/deny).
+     *
+     * &#64;since T13c (Workflow HITL Approval UI)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo outcomes = 6 [json_name = "outcomes"];</code>
+     */
+    public Builder addOutcomes(
+        int index, ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo.Builder builderForValue) {
+      if (outcomesBuilder_ == null) {
+        ensureOutcomesIsMutable();
+        outcomes_.add(index, builderForValue.build());
+        onChanged();
+      } else {
+        outcomesBuilder_.addMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Configured outcomes for workflow-level human_input tasks.
+     *
+     * &#64;internal
+     * Populated from HumanInputTaskConfig.outcomes when a human_input task
+     * activates. Each entry provides the outcome identifier (name) and
+     * the human-readable button label. Empty for agent tool approvals
+     * and for human_input tasks with no custom outcomes (which default
+     * to binary approve/deny).
+     *
+     * &#64;since T13c (Workflow HITL Approval UI)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo outcomes = 6 [json_name = "outcomes"];</code>
+     */
+    public Builder addAllOutcomes(
+        java.lang.Iterable<? extends ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo> values) {
+      if (outcomesBuilder_ == null) {
+        ensureOutcomesIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, outcomes_);
+        onChanged();
+      } else {
+        outcomesBuilder_.addAllMessages(values);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Configured outcomes for workflow-level human_input tasks.
+     *
+     * &#64;internal
+     * Populated from HumanInputTaskConfig.outcomes when a human_input task
+     * activates. Each entry provides the outcome identifier (name) and
+     * the human-readable button label. Empty for agent tool approvals
+     * and for human_input tasks with no custom outcomes (which default
+     * to binary approve/deny).
+     *
+     * &#64;since T13c (Workflow HITL Approval UI)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo outcomes = 6 [json_name = "outcomes"];</code>
+     */
+    public Builder clearOutcomes() {
+      if (outcomesBuilder_ == null) {
+        outcomes_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000020);
+        onChanged();
+      } else {
+        outcomesBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Configured outcomes for workflow-level human_input tasks.
+     *
+     * &#64;internal
+     * Populated from HumanInputTaskConfig.outcomes when a human_input task
+     * activates. Each entry provides the outcome identifier (name) and
+     * the human-readable button label. Empty for agent tool approvals
+     * and for human_input tasks with no custom outcomes (which default
+     * to binary approve/deny).
+     *
+     * &#64;since T13c (Workflow HITL Approval UI)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo outcomes = 6 [json_name = "outcomes"];</code>
+     */
+    public Builder removeOutcomes(int index) {
+      if (outcomesBuilder_ == null) {
+        ensureOutcomesIsMutable();
+        outcomes_.remove(index);
+        onChanged();
+      } else {
+        outcomesBuilder_.remove(index);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Configured outcomes for workflow-level human_input tasks.
+     *
+     * &#64;internal
+     * Populated from HumanInputTaskConfig.outcomes when a human_input task
+     * activates. Each entry provides the outcome identifier (name) and
+     * the human-readable button label. Empty for agent tool approvals
+     * and for human_input tasks with no custom outcomes (which default
+     * to binary approve/deny).
+     *
+     * &#64;since T13c (Workflow HITL Approval UI)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo outcomes = 6 [json_name = "outcomes"];</code>
+     */
+    public ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo.Builder getOutcomesBuilder(
+        int index) {
+      return internalGetOutcomesFieldBuilder().getBuilder(index);
+    }
+    /**
+     * <pre>
+     * Configured outcomes for workflow-level human_input tasks.
+     *
+     * &#64;internal
+     * Populated from HumanInputTaskConfig.outcomes when a human_input task
+     * activates. Each entry provides the outcome identifier (name) and
+     * the human-readable button label. Empty for agent tool approvals
+     * and for human_input tasks with no custom outcomes (which default
+     * to binary approve/deny).
+     *
+     * &#64;since T13c (Workflow HITL Approval UI)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo outcomes = 6 [json_name = "outcomes"];</code>
+     */
+    public ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfoOrBuilder getOutcomesOrBuilder(
+        int index) {
+      if (outcomesBuilder_ == null) {
+        return outcomes_.get(index);  } else {
+        return outcomesBuilder_.getMessageOrBuilder(index);
+      }
+    }
+    /**
+     * <pre>
+     * Configured outcomes for workflow-level human_input tasks.
+     *
+     * &#64;internal
+     * Populated from HumanInputTaskConfig.outcomes when a human_input task
+     * activates. Each entry provides the outcome identifier (name) and
+     * the human-readable button label. Empty for agent tool approvals
+     * and for human_input tasks with no custom outcomes (which default
+     * to binary approve/deny).
+     *
+     * &#64;since T13c (Workflow HITL Approval UI)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo outcomes = 6 [json_name = "outcomes"];</code>
+     */
+    public java.util.List<? extends ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfoOrBuilder> 
+         getOutcomesOrBuilderList() {
+      if (outcomesBuilder_ != null) {
+        return outcomesBuilder_.getMessageOrBuilderList();
+      } else {
+        return java.util.Collections.unmodifiableList(outcomes_);
+      }
+    }
+    /**
+     * <pre>
+     * Configured outcomes for workflow-level human_input tasks.
+     *
+     * &#64;internal
+     * Populated from HumanInputTaskConfig.outcomes when a human_input task
+     * activates. Each entry provides the outcome identifier (name) and
+     * the human-readable button label. Empty for agent tool approvals
+     * and for human_input tasks with no custom outcomes (which default
+     * to binary approve/deny).
+     *
+     * &#64;since T13c (Workflow HITL Approval UI)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo outcomes = 6 [json_name = "outcomes"];</code>
+     */
+    public ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo.Builder addOutcomesBuilder() {
+      return internalGetOutcomesFieldBuilder().addBuilder(
+          ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Configured outcomes for workflow-level human_input tasks.
+     *
+     * &#64;internal
+     * Populated from HumanInputTaskConfig.outcomes when a human_input task
+     * activates. Each entry provides the outcome identifier (name) and
+     * the human-readable button label. Empty for agent tool approvals
+     * and for human_input tasks with no custom outcomes (which default
+     * to binary approve/deny).
+     *
+     * &#64;since T13c (Workflow HITL Approval UI)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo outcomes = 6 [json_name = "outcomes"];</code>
+     */
+    public ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo.Builder addOutcomesBuilder(
+        int index) {
+      return internalGetOutcomesFieldBuilder().addBuilder(
+          index, ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Configured outcomes for workflow-level human_input tasks.
+     *
+     * &#64;internal
+     * Populated from HumanInputTaskConfig.outcomes when a human_input task
+     * activates. Each entry provides the outcome identifier (name) and
+     * the human-readable button label. Empty for agent tool approvals
+     * and for human_input tasks with no custom outcomes (which default
+     * to binary approve/deny).
+     *
+     * &#64;since T13c (Workflow HITL Approval UI)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo outcomes = 6 [json_name = "outcomes"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo.Builder> 
+         getOutcomesBuilderList() {
+      return internalGetOutcomesFieldBuilder().getBuilderList();
+    }
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo, ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo.Builder, ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfoOrBuilder> 
+        internalGetOutcomesFieldBuilder() {
+      if (outcomesBuilder_ == null) {
+        outcomesBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+            ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo, ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo.Builder, ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfoOrBuilder>(
+                outcomes_,
+                ((bitField0_ & 0x00000020) != 0),
+                getParentForChildren(),
+                isClean());
+        outcomes_ = null;
+      }
+      return outcomesBuilder_;
+    }
+
+    private com.google.protobuf.Struct formSchema_;
+    private com.google.protobuf.SingleFieldBuilder<
+        com.google.protobuf.Struct, com.google.protobuf.Struct.Builder, com.google.protobuf.StructOrBuilder> formSchemaBuilder_;
+    /**
+     * <pre>
+     * JSON Schema for the reviewer's input form.
+     *
+     * &#64;internal
+     * Populated from HumanInputTaskConfig.form_schema when a human_input
+     * task activates and defines a form. The approval UI renders form fields
+     * based on this schema, and the reviewer's response is submitted as
+     * form_data in SubmitWorkflowTaskApprovalInput. Empty when no form
+     * is required or for agent tool approvals.
+     *
+     * &#64;since T13c (Workflow HITL Approval UI)
+     * </pre>
+     *
+     * <code>.google.protobuf.Struct form_schema = 7 [json_name = "formSchema"];</code>
+     * @return Whether the formSchema field is set.
+     */
+    public boolean hasFormSchema() {
+      return ((bitField0_ & 0x00000040) != 0);
+    }
+    /**
+     * <pre>
+     * JSON Schema for the reviewer's input form.
+     *
+     * &#64;internal
+     * Populated from HumanInputTaskConfig.form_schema when a human_input
+     * task activates and defines a form. The approval UI renders form fields
+     * based on this schema, and the reviewer's response is submitted as
+     * form_data in SubmitWorkflowTaskApprovalInput. Empty when no form
+     * is required or for agent tool approvals.
+     *
+     * &#64;since T13c (Workflow HITL Approval UI)
+     * </pre>
+     *
+     * <code>.google.protobuf.Struct form_schema = 7 [json_name = "formSchema"];</code>
+     * @return The formSchema.
+     */
+    public com.google.protobuf.Struct getFormSchema() {
+      if (formSchemaBuilder_ == null) {
+        return formSchema_ == null ? com.google.protobuf.Struct.getDefaultInstance() : formSchema_;
+      } else {
+        return formSchemaBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * JSON Schema for the reviewer's input form.
+     *
+     * &#64;internal
+     * Populated from HumanInputTaskConfig.form_schema when a human_input
+     * task activates and defines a form. The approval UI renders form fields
+     * based on this schema, and the reviewer's response is submitted as
+     * form_data in SubmitWorkflowTaskApprovalInput. Empty when no form
+     * is required or for agent tool approvals.
+     *
+     * &#64;since T13c (Workflow HITL Approval UI)
+     * </pre>
+     *
+     * <code>.google.protobuf.Struct form_schema = 7 [json_name = "formSchema"];</code>
+     */
+    public Builder setFormSchema(com.google.protobuf.Struct value) {
+      if (formSchemaBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        formSchema_ = value;
+      } else {
+        formSchemaBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00000040;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * JSON Schema for the reviewer's input form.
+     *
+     * &#64;internal
+     * Populated from HumanInputTaskConfig.form_schema when a human_input
+     * task activates and defines a form. The approval UI renders form fields
+     * based on this schema, and the reviewer's response is submitted as
+     * form_data in SubmitWorkflowTaskApprovalInput. Empty when no form
+     * is required or for agent tool approvals.
+     *
+     * &#64;since T13c (Workflow HITL Approval UI)
+     * </pre>
+     *
+     * <code>.google.protobuf.Struct form_schema = 7 [json_name = "formSchema"];</code>
+     */
+    public Builder setFormSchema(
+        com.google.protobuf.Struct.Builder builderForValue) {
+      if (formSchemaBuilder_ == null) {
+        formSchema_ = builderForValue.build();
+      } else {
+        formSchemaBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00000040;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * JSON Schema for the reviewer's input form.
+     *
+     * &#64;internal
+     * Populated from HumanInputTaskConfig.form_schema when a human_input
+     * task activates and defines a form. The approval UI renders form fields
+     * based on this schema, and the reviewer's response is submitted as
+     * form_data in SubmitWorkflowTaskApprovalInput. Empty when no form
+     * is required or for agent tool approvals.
+     *
+     * &#64;since T13c (Workflow HITL Approval UI)
+     * </pre>
+     *
+     * <code>.google.protobuf.Struct form_schema = 7 [json_name = "formSchema"];</code>
+     */
+    public Builder mergeFormSchema(com.google.protobuf.Struct value) {
+      if (formSchemaBuilder_ == null) {
+        if (((bitField0_ & 0x00000040) != 0) &&
+          formSchema_ != null &&
+          formSchema_ != com.google.protobuf.Struct.getDefaultInstance()) {
+          getFormSchemaBuilder().mergeFrom(value);
+        } else {
+          formSchema_ = value;
+        }
+      } else {
+        formSchemaBuilder_.mergeFrom(value);
+      }
+      if (formSchema_ != null) {
+        bitField0_ |= 0x00000040;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * JSON Schema for the reviewer's input form.
+     *
+     * &#64;internal
+     * Populated from HumanInputTaskConfig.form_schema when a human_input
+     * task activates and defines a form. The approval UI renders form fields
+     * based on this schema, and the reviewer's response is submitted as
+     * form_data in SubmitWorkflowTaskApprovalInput. Empty when no form
+     * is required or for agent tool approvals.
+     *
+     * &#64;since T13c (Workflow HITL Approval UI)
+     * </pre>
+     *
+     * <code>.google.protobuf.Struct form_schema = 7 [json_name = "formSchema"];</code>
+     */
+    public Builder clearFormSchema() {
+      bitField0_ = (bitField0_ & ~0x00000040);
+      formSchema_ = null;
+      if (formSchemaBuilder_ != null) {
+        formSchemaBuilder_.dispose();
+        formSchemaBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * JSON Schema for the reviewer's input form.
+     *
+     * &#64;internal
+     * Populated from HumanInputTaskConfig.form_schema when a human_input
+     * task activates and defines a form. The approval UI renders form fields
+     * based on this schema, and the reviewer's response is submitted as
+     * form_data in SubmitWorkflowTaskApprovalInput. Empty when no form
+     * is required or for agent tool approvals.
+     *
+     * &#64;since T13c (Workflow HITL Approval UI)
+     * </pre>
+     *
+     * <code>.google.protobuf.Struct form_schema = 7 [json_name = "formSchema"];</code>
+     */
+    public com.google.protobuf.Struct.Builder getFormSchemaBuilder() {
+      bitField0_ |= 0x00000040;
+      onChanged();
+      return internalGetFormSchemaFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * JSON Schema for the reviewer's input form.
+     *
+     * &#64;internal
+     * Populated from HumanInputTaskConfig.form_schema when a human_input
+     * task activates and defines a form. The approval UI renders form fields
+     * based on this schema, and the reviewer's response is submitted as
+     * form_data in SubmitWorkflowTaskApprovalInput. Empty when no form
+     * is required or for agent tool approvals.
+     *
+     * &#64;since T13c (Workflow HITL Approval UI)
+     * </pre>
+     *
+     * <code>.google.protobuf.Struct form_schema = 7 [json_name = "formSchema"];</code>
+     */
+    public com.google.protobuf.StructOrBuilder getFormSchemaOrBuilder() {
+      if (formSchemaBuilder_ != null) {
+        return formSchemaBuilder_.getMessageOrBuilder();
+      } else {
+        return formSchema_ == null ?
+            com.google.protobuf.Struct.getDefaultInstance() : formSchema_;
+      }
+    }
+    /**
+     * <pre>
+     * JSON Schema for the reviewer's input form.
+     *
+     * &#64;internal
+     * Populated from HumanInputTaskConfig.form_schema when a human_input
+     * task activates and defines a form. The approval UI renders form fields
+     * based on this schema, and the reviewer's response is submitted as
+     * form_data in SubmitWorkflowTaskApprovalInput. Empty when no form
+     * is required or for agent tool approvals.
+     *
+     * &#64;since T13c (Workflow HITL Approval UI)
+     * </pre>
+     *
+     * <code>.google.protobuf.Struct form_schema = 7 [json_name = "formSchema"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        com.google.protobuf.Struct, com.google.protobuf.Struct.Builder, com.google.protobuf.StructOrBuilder> 
+        internalGetFormSchemaFieldBuilder() {
+      if (formSchemaBuilder_ == null) {
+        formSchemaBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            com.google.protobuf.Struct, com.google.protobuf.Struct.Builder, com.google.protobuf.StructOrBuilder>(
+                getFormSchema(),
+                getParentForChildren(),
+                isClean());
+        formSchema_ = null;
+      }
+      return formSchemaBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.workflowexecution.v1.ApprovalRequestedPayload)

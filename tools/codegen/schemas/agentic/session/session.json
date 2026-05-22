@@ -26,23 +26,13 @@
       "required": false
     },
     {
-      "name": "ThreadId",
-      "jsonName": "threadId",
-      "protoField": "thread_id",
+      "name": "HarnessStateId",
+      "jsonName": "harnessStateId",
+      "protoField": "harness_state_id",
       "type": {
         "kind": "string"
       },
-      "description": "Thread ID that carries the conversation history across executions.\n\n @internal\n Generated on first execution, persists across all executions.",
-      "required": false
-    },
-    {
-      "name": "SandboxId",
-      "jsonName": "sandboxId",
-      "protoField": "sandbox_id",
-      "type": {
-        "kind": "string"
-      },
-      "description": "Deprecated: sandbox lifecycle is now managed at the Runner level via\n the stigmer.ai/sandbox-id metadata label on the Runner resource.\n Existing sessions may still have this field populated; new sessions\n should not set it.",
+      "description": "Harness-specific state identifier for conversation continuity.\n\n Populated after the first execution completes; empty until then.\n Each harness uses this field differently:\n\n - NATIVE: LangGraph thread ID, derived deterministically as\n   \"thread-{session_id}\" by the EnsureThread activity. Stored here\n   so the immutability sentinel works uniformly across harnesses.\n\n - CURSOR: Cursor SDK agent ID (e.g., \"agent-xxx\" or \"bc-xxx\")\n   returned by Agent.create(). Used for Agent.resume() on\n   subsequent executions.\n\n @internal\n Also serves as the immutability sentinel: when non-empty, the\n session's harness and cursor_mode cannot be changed — each harness\n owns its conversation state independently.",
       "required": false
     },
     {
@@ -90,16 +80,6 @@
       "required": false
     },
     {
-      "name": "RunnerId",
-      "jsonName": "runnerId",
-      "protoField": "runner_id",
-      "type": {
-        "kind": "string"
-      },
-      "description": "Runner that executes work for this session.\n\n When set, all executions in this session route to this runner's task queue.\n When empty, the platform auto-creates an ephemeral cloud runner on first\n execution and sets this field.\n\n For persistent runners (user-created via CLI/desktop), this is set by the\n session composer when the user picks their runner. For cloud executions,\n this is set automatically by the system.\n\n @internal\n The execution workflow reads this field to resolve the Temporal task queue\n for scheduling activities. When empty, the workflow calls the\n RunnerLauncher to spawn an ephemeral runner and populates this field.",
-      "required": false
-    },
-    {
       "name": "SkillRefs",
       "jsonName": "skillRefs",
       "protoField": "skill_refs",
@@ -126,7 +106,7 @@
           "HARNESS_CURSOR"
         ]
       },
-      "description": "Execution harness for this session.\n\n Determines which Temporal activity type is dispatched when an\n AgentExecution is created in this session:\n - NATIVE (default): ExecuteGraphton activity -\u003e Stigmer native worker\n - CURSOR: ExecuteCursor activity -\u003e TypeScript/Cursor SDK worker\n\n The harness affects which tools the agent has, how conversation state\n is managed, available models, and billing tier. Once set and an execution\n has run, the harness is immutable — changing it would break conversation\n continuity since each harness owns its own state.\n\n When unspecified, defaults to HARNESS_NATIVE.",
+      "description": "Execution harness for this session.\n\n Determines which Temporal activity type is dispatched when an\n AgentExecution is created in this session:\n - NATIVE (default): ExecuteDeepAgent activity -\u003e Stigmer unified runner\n - CURSOR: ExecuteCursor activity -\u003e TypeScript/Cursor SDK worker\n\n The harness affects which tools the agent has, how conversation state\n is managed, available models, and billing tier. Once set and an execution\n has run, the harness is immutable — changing it would break conversation\n continuity since each harness owns its own state.\n\n When unspecified, defaults to HARNESS_NATIVE.",
       "required": false
     },
     {
@@ -142,6 +122,21 @@
         ]
       },
       "description": "Cursor SDK agent mode for this session.\n\n Determines whether the Cursor agent runs locally (Agent.create with\n local.cwd) or in the cloud (Agent.create with cloud.repos). Set once\n at session creation based on workspace entries and never changed —\n switching mid-session would lose Cursor-side conversation state.\n\n Only meaningful when harness == HARNESS_CURSOR. Ignored for other\n harness types.\n\n @internal\n Set by the cursor-runner on the first execution when cursor_mode is\n UNSPECIFIED. The workflow reads it back on subsequent executions to\n route to the correct Agent.create / Agent.resume path.\n\n When UNSPECIFIED on an existing CURSOR session, the runner defaults\n to LOCAL for backward compatibility.",
+      "required": false
+    },
+    {
+      "name": "ExecutionTarget",
+      "jsonName": "executionTarget",
+      "protoField": "execution_target",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.session.v1.ExecutionTarget",
+        "enumValues": [
+          "EXECUTION_TARGET_LOCAL",
+          "EXECUTION_TARGET_CLOUD"
+        ]
+      },
+      "description": "Where session activities are executed — local client or cloud sandbox.\n\n Determines dispatch routing: LOCAL means the client's embedded runner\n (desktop app or CLI) polls the session's task queue; CLOUD means the\n server provisions a sandbox with a runner.\n\n Set by the client at session creation:\n - Desktop/CLI set LOCAL (they run an embedded runner)\n - Web console sets CLOUD (or UNSPECIFIED → server defaults to CLOUD)\n - Customer SDK sets whatever fits their architecture\n\n Immutable once an execution has run — workspace state may not be\n portable between local and cloud environments.",
       "required": false
     }
   ]

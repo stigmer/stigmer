@@ -6,7 +6,7 @@ import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { McpServerUsage } from "../../agent/v1/spec_pb.js";
 import { file_ai_stigmer_agentic_agent_v1_spec } from "../../agent/v1/spec_pb.js";
-import type { CursorMode, Harness } from "./enum_pb.js";
+import type { CursorMode, ExecutionTarget, Harness } from "./enum_pb.js";
 import { file_ai_stigmer_agentic_session_v1_enum } from "./enum_pb.js";
 import type { WorkspaceEntry } from "./workspace_pb.js";
 import { file_ai_stigmer_agentic_session_v1_workspace } from "./workspace_pb.js";
@@ -20,7 +20,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/session/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9zcGVjLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSLOBgoLU2Vzc2lvblNwZWMSGQoRYWdlbnRfaW5zdGFuY2VfaWQYASABKAkSDwoHc3ViamVjdBgCIAEoCRIRCgl0aHJlYWRfaWQYAyABKAkSFgoKc2FuZGJveF9pZBgEIAEoCUICGAESSgoIbWV0YWRhdGEYBSADKAsyOC5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uU3BlYy5NZXRhZGF0YUVudHJ5EkgKEXdvcmtzcGFjZV9lbnRyaWVzGAYgAygLMi0uYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuV29ya3NwYWNlRW50cnkS2QEKEW1jcF9zZXJ2ZXJfdXNhZ2VzGAcgAygLMisuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLk1jcFNlcnZlclVzYWdlQpABukiMAZIBiAEihQG6AYEBCh5zZXNzaW9uX21jcF9zZXJ2ZXJfdXNhZ2VzLmtpbmQSP21jcF9zZXJ2ZXJfdXNhZ2VzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9bWNwX3NlcnZlchoedGhpcy5tY3Bfc2VydmVyX3JlZi5raW5kID09IDQ0EhEKCXJ1bm5lcl9pZBgJIAEoCRK4AQoKc2tpbGxfcmVmcxgIIAMoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJuukhnkgFkImK6AV8KF3Nlc3Npb25fc2tpbGxfcmVmcy5raW5kEjNza2lsbF9yZWZzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9c2tpbGwaD3RoaXMua2luZCA9PSA0M+CFLCsSNwoHaGFybmVzcxgKIAEoDjImLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkhhcm5lc3MSPgoLY3Vyc29yX21vZGUYCyABKA4yKS5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5DdXJzb3JNb2RlGi8KDU1ldGFkYXRhRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4AWIGcHJvdG8z", [file_ai_stigmer_agentic_agent_v1_spec, file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_session_v1_workspace, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9zcGVjLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSL0BgoLU2Vzc2lvblNwZWMSGQoRYWdlbnRfaW5zdGFuY2VfaWQYASABKAkSDwoHc3ViamVjdBgCIAEoCRIYChBoYXJuZXNzX3N0YXRlX2lkGAMgASgJEkoKCG1ldGFkYXRhGAUgAygLMjguYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvblNwZWMuTWV0YWRhdGFFbnRyeRJIChF3b3Jrc3BhY2VfZW50cmllcxgGIAMoCzItLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLldvcmtzcGFjZUVudHJ5EtkBChFtY3Bfc2VydmVyX3VzYWdlcxgHIAMoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5NY3BTZXJ2ZXJVc2FnZUKQAbpIjAGSAYgBIoUBugGBAQoec2Vzc2lvbl9tY3Bfc2VydmVyX3VzYWdlcy5raW5kEj9tY3Bfc2VydmVyX3VzYWdlcyBtdXN0IHJlZmVyZW5jZSByZXNvdXJjZXMgd2l0aCBraW5kPW1jcF9zZXJ2ZXIaHnRoaXMubWNwX3NlcnZlcl9yZWYua2luZCA9PSA0NBK4AQoKc2tpbGxfcmVmcxgIIAMoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJuukhnkgFkImK6AV8KF3Nlc3Npb25fc2tpbGxfcmVmcy5raW5kEjNza2lsbF9yZWZzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9c2tpbGwaD3RoaXMua2luZCA9PSA0M+CFLCsSNwoHaGFybmVzcxgKIAEoDjImLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkhhcm5lc3MSPgoLY3Vyc29yX21vZGUYCyABKA4yKS5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5DdXJzb3JNb2RlEkgKEGV4ZWN1dGlvbl90YXJnZXQYDCABKA4yLi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5FeGVjdXRpb25UYXJnZXQaLwoNTWV0YWRhdGFFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBYgZwcm90bzM", [file_ai_stigmer_agentic_agent_v1_spec, file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_session_v1_workspace, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * SessionSpec defines the configurable properties of a session.
@@ -52,25 +52,27 @@ export type SessionSpec = Message<"ai.stigmer.agentic.session.v1.SessionSpec"> &
   subject: string;
 
   /**
-   * Thread ID that carries the conversation history across executions.
+   * Harness-specific state identifier for conversation continuity.
+   *
+   * Populated after the first execution completes; empty until then.
+   * Each harness uses this field differently:
+   *
+   * - NATIVE: LangGraph thread ID, derived deterministically as
+   *   "thread-{session_id}" by the EnsureThread activity. Stored here
+   *   so the immutability sentinel works uniformly across harnesses.
+   *
+   * - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
+   *   returned by Agent.create(). Used for Agent.resume() on
+   *   subsequent executions.
    *
    * @internal
-   * Generated on first execution, persists across all executions.
+   * Also serves as the immutability sentinel: when non-empty, the
+   * session's harness and cursor_mode cannot be changed — each harness
+   * owns its conversation state independently.
    *
-   * @generated from field: string thread_id = 3;
+   * @generated from field: string harness_state_id = 3;
    */
-  threadId: string;
-
-  /**
-   * Deprecated: sandbox lifecycle is now managed at the Runner level via
-   * the stigmer.ai/sandbox-id metadata label on the Runner resource.
-   * Existing sessions may still have this field populated; new sessions
-   * should not set it.
-   *
-   * @generated from field: string sandbox_id = 4 [deprecated = true];
-   * @deprecated
-   */
-  sandboxId: string;
+  harnessStateId: string;
 
   /**
    * Custom key-value pairs for client-specific information.
@@ -111,26 +113,6 @@ export type SessionSpec = Message<"ai.stigmer.agentic.session.v1.SessionSpec"> &
   mcpServerUsages: McpServerUsage[];
 
   /**
-   * Runner that executes work for this session.
-   *
-   * When set, all executions in this session route to this runner's task queue.
-   * When empty, the platform auto-creates an ephemeral cloud runner on first
-   * execution and sets this field.
-   *
-   * For persistent runners (user-created via CLI/desktop), this is set by the
-   * session composer when the user picks their runner. For cloud executions,
-   * this is set automatically by the system.
-   *
-   * @internal
-   * The execution workflow reads this field to resolve the Temporal task queue
-   * for scheduling activities. When empty, the workflow calls the
-   * RunnerLauncher to spawn an ephemeral runner and populates this field.
-   *
-   * @generated from field: string runner_id = 9;
-   */
-  runnerId: string;
-
-  /**
    * Skills to inject into this session's context.
    *
    * Provides domain-specific knowledge for this specific conversation without
@@ -149,7 +131,7 @@ export type SessionSpec = Message<"ai.stigmer.agentic.session.v1.SessionSpec"> &
    *
    * Determines which Temporal activity type is dispatched when an
    * AgentExecution is created in this session:
-   * - NATIVE (default): ExecuteGraphton activity -> Stigmer native worker
+   * - NATIVE (default): ExecuteDeepAgent activity -> Stigmer unified runner
    * - CURSOR: ExecuteCursor activity -> TypeScript/Cursor SDK worker
    *
    * The harness affects which tools the agent has, how conversation state
@@ -185,6 +167,25 @@ export type SessionSpec = Message<"ai.stigmer.agentic.session.v1.SessionSpec"> &
    * @generated from field: ai.stigmer.agentic.session.v1.CursorMode cursor_mode = 11;
    */
   cursorMode: CursorMode;
+
+  /**
+   * Where session activities are executed — local client or cloud sandbox.
+   *
+   * Determines dispatch routing: LOCAL means the client's embedded runner
+   * (desktop app or CLI) polls the session's task queue; CLOUD means the
+   * server provisions a sandbox with a runner.
+   *
+   * Set by the client at session creation:
+   * - Desktop/CLI set LOCAL (they run an embedded runner)
+   * - Web console sets CLOUD (or UNSPECIFIED → server defaults to CLOUD)
+   * - Customer SDK sets whatever fits their architecture
+   *
+   * Immutable once an execution has run — workspace state may not be
+   * portable between local and cloud environments.
+   *
+   * @generated from field: ai.stigmer.agentic.session.v1.ExecutionTarget execution_target = 12;
+   */
+  executionTarget: ExecutionTarget;
 };
 
 /**

@@ -2,17 +2,13 @@
 
 package embedded
 
-// Darwin AMD64 (Intel Mac) - Download-only mode
+// Darwin AMD64 (Intel Mac)
 //
-// Intel Mac binaries cannot be cross-compiled from ARM Mac runners (GitHub Actions limitation).
-// Since GitHub retired macos-13 (Intel) runners, we cannot build Intel binaries natively.
-//
-// Strategy: Return empty binary to trigger download fallback on first daemon start.
-// The daemon will automatically download the agent-runner binary from GitHub releases.
-//
-// User impact: Intel Mac users need internet connectivity on first run only.
+// The unified runner (@stigmer/runner) is a TypeScript/Node.js process started
+// directly by the daemon. No embedded binary is needed.
 
-// GetRunnerBinary returns nil to trigger download fallback for Intel Macs
+// GetRunnerBinary is a legacy stub retained for backward compatibility.
+// Returns nil (no binary to extract).
 func GetRunnerBinary() ([]byte, error) {
 	return nil, nil
 }

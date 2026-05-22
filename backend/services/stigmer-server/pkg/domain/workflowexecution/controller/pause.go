@@ -16,7 +16,8 @@ import (
 // (allowing them to checkpoint), and waits for a resume signal.
 //
 // Unlike cancel, the execution is NOT terminal and can be resumed later.
-// The workflow preserves all progress via LangGraph checkpoints.
+// The workflow engine pauses at the next task boundary via Temporal signal.
+// Completed tasks are preserved in Temporal workflow history and are not re-executed on resume.
 //
 // Pipeline Steps:
 // 1. LoadExecutionById - Load execution from database

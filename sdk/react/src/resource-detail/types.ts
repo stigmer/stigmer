@@ -78,7 +78,7 @@ export interface DetailAction {
  * Metadata rendered in the {@link ResourceDetailShell} header.
  *
  * This is the shared shape for all resource types — agent, skill,
- * MCP server, runner. Each detail page maps its resource-specific
+ * MCP server, workflow. Each detail page maps its resource-specific
  * protobuf to this shape before passing it to the shell.
  */
 export interface ResourceHeaderMeta {

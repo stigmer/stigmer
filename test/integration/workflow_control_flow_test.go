@@ -27,8 +27,8 @@ import (
 // executes while handleDefault is skipped.
 func TestWorkflowControlFlow_SwitchCase(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -150,8 +150,8 @@ func TestWorkflowControlFlow_SwitchCase(t *testing.T) {
 // iteration tasks complete successfully.
 func TestWorkflowControlFlow_ForEach_Array(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -233,8 +233,8 @@ func TestWorkflowControlFlow_ForEach_Array(t *testing.T) {
 // with index values 0..N-1.
 func TestWorkflowControlFlow_ForEach_IntRange(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -312,8 +312,8 @@ func TestWorkflowControlFlow_ForEach_IntRange(t *testing.T) {
 // Both branches run in parallel and contribute their results to the output.
 func TestWorkflowControlFlow_Fork_Parallel(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -412,8 +412,8 @@ func TestWorkflowControlFlow_Fork_Parallel(t *testing.T) {
 // and total execution time should be well under 30 seconds.
 func TestWorkflowControlFlow_Fork_Compete(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)

@@ -1,7 +1,0 @@
-# Workflow Runner Service
-#
-# This is a marker BUILD file that makes the workflow-runner directory a Bazel
-# package. The actual binary is built from cmd/zigflow (the single entry point
-# for both production and integration tests).
-#
-# Production binary target: //backend/services/workflow-runner/cmd/zigflow:zigflow

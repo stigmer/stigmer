@@ -1,0 +1,356 @@
+import { describe, it, expect, beforeEach } from "vitest";
+import { toProtoEvent, resetSequenceCounter, emitWorkflowEvents } from "../workflow-event-activities.js";
+import { WorkflowEventType } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
+import type { WorkflowEventDescriptor } from "../../workflow-engine/types.js";
+
+const NOW = "2026-05-22T00:00:00.000Z";
+
+describe("toProtoEvent", () => {
+  beforeEach(() => {
+    resetSequenceCounter();
+  });
+
+  describe("sequence numbering", () => {
+    it("assigns monotonically increasing sequence numbers", () => {
+      const desc: WorkflowEventDescriptor = {
+        type: "task_started",
+        taskName: "t1",
+        occurredAt: NOW,
+        taskKind: "set",
+        attemptNumber: 1,
+      };
+
+      const e1 = toProtoEvent(desc);
+      const e2 = toProtoEvent(desc);
+      const e3 = toProtoEvent(desc);
+
+      expect(e1.sequenceNumber).toBe(BigInt(1));
+      expect(e2.sequenceNumber).toBe(BigInt(2));
+      expect(e3.sequenceNumber).toBe(BigInt(3));
+    });
+
+    it("resets to 1 after resetSequenceCounter", () => {
+      toProtoEvent({
+        type: "task_started",
+        taskName: "t",
+        occurredAt: NOW,
+        taskKind: "set",
+        attemptNumber: 1,
+      });
+
+      resetSequenceCounter();
+
+      const evt = toProtoEvent({
+        type: "task_started",
+        taskName: "t",
+        occurredAt: NOW,
+        taskKind: "set",
+        attemptNumber: 1,
+      });
+      expect(evt.sequenceNumber).toBe(BigInt(1));
+    });
+  });
+
+  describe("execution_started", () => {
+    it("converts descriptor to proto with correct fields", () => {
+      const evt = toProtoEvent({
+        type: "execution_started",
+        occurredAt: NOW,
+        totalTasks: 5,
+        workflowId: "wf-123",
+        workflowInstanceId: "wfi-456",
+      });
+
+      expect(evt.eventType).toBe(WorkflowEventType.execution_started);
+      expect(evt.payload.case).toBe("executionStarted");
+      if (evt.payload.case !== "executionStarted") throw new Error("unexpected");
+      expect(evt.payload.value.totalTasks).toBe(5);
+      expect(evt.payload.value.workflowId).toBe("wf-123");
+      expect(evt.payload.value.workflowInstanceId).toBe("wfi-456");
+    });
+  });
+
+  describe("execution_completed", () => {
+    it("converts descriptor with bigint duration/cost/tokens", () => {
+      const evt = toProtoEvent({
+        type: "execution_completed",
+        occurredAt: NOW,
+        durationMs: 12000,
+        totalCostMicros: 500000,
+        totalTokens: 1500,
+      });
+
+      expect(evt.eventType).toBe(WorkflowEventType.execution_completed);
+      expect(evt.payload.case).toBe("executionCompleted");
+      if (evt.payload.case !== "executionCompleted") throw new Error("unexpected");
+      expect(evt.payload.value.durationMs).toBe(BigInt(12000));
+      expect(evt.payload.value.totalCostMicros).toBe(BigInt(500000));
+      expect(evt.payload.value.totalTokens).toBe(BigInt(1500));
+    });
+  });
+
+  describe("execution_failed", () => {
+    it("converts descriptor with error and failed task", () => {
+      const evt = toProtoEvent({
+        type: "execution_failed",
+        occurredAt: NOW,
+        error: "API call failed",
+        failedTaskName: "callApi",
+        durationMs: 3000,
+      });
+
+      expect(evt.eventType).toBe(WorkflowEventType.execution_failed);
+      expect(evt.payload.case).toBe("executionFailed");
+      if (evt.payload.case !== "executionFailed") throw new Error("unexpected");
+      expect(evt.payload.value.error).toBe("API call failed");
+      expect(evt.payload.value.failedTaskName).toBe("callApi");
+      expect(evt.payload.value.durationMs).toBe(BigInt(3000));
+    });
+  });
+
+  describe("task_started", () => {
+    it("maps task kind string to proto enum value", () => {
+      const evt = toProtoEvent({
+        type: "task_started",
+        taskName: "myTask",
+        occurredAt: NOW,
+        taskKind: "human_input",
+        attemptNumber: 1,
+      });
+
+      expect(evt.eventType).toBe(WorkflowEventType.task_started);
+      expect(evt.taskName).toBe("myTask");
+      expect(evt.payload.case).toBe("taskStarted");
+      if (evt.payload.case !== "taskStarted") throw new Error("unexpected");
+      expect(evt.payload.value.taskKind).toBe(16);
+      expect(evt.payload.value.attemptNumber).toBe(1);
+    });
+
+    it("defaults to 0 for unknown task kinds", () => {
+      const evt = toProtoEvent({
+        type: "task_started",
+        taskName: "t",
+        occurredAt: NOW,
+        taskKind: "unknown_kind" as any,
+        attemptNumber: 1,
+      });
+
+      if (evt.payload.case !== "taskStarted") throw new Error("unexpected");
+      expect(evt.payload.value.taskKind).toBe(0);
+    });
+  });
+
+  describe("task_completed", () => {
+    it("converts with cost and token bigints", () => {
+      const evt = toProtoEvent({
+        type: "task_completed",
+        taskName: "llmTask",
+        occurredAt: NOW,
+        taskKind: "call:agent",
+        durationMs: 5000,
+        costMicros: 100000,
+        tokensUsed: 800,
+      });
+
+      expect(evt.eventType).toBe(WorkflowEventType.task_completed);
+      if (evt.payload.case !== "taskCompleted") throw new Error("unexpected");
+      expect(evt.payload.value.durationMs).toBe(BigInt(5000));
+      expect(evt.payload.value.costMicros).toBe(BigInt(100000));
+      expect(evt.payload.value.tokensUsed).toBe(BigInt(800));
+    });
+  });
+
+  describe("task_failed", () => {
+    it("converts with retry information", () => {
+      const evt = toProtoEvent({
+        type: "task_failed",
+        taskName: "flaky",
+        occurredAt: NOW,
+        taskKind: "call:http",
+        error: "Connection refused",
+        attemptNumber: 2,
+        willRetry: true,
+        durationMs: 1000,
+      });
+
+      expect(evt.eventType).toBe(WorkflowEventType.task_failed);
+      if (evt.payload.case !== "taskFailed") throw new Error("unexpected");
+      expect(evt.payload.value.error).toBe("Connection refused");
+      expect(evt.payload.value.attemptNumber).toBe(2);
+      expect(evt.payload.value.willRetry).toBe(true);
+    });
+  });
+
+  describe("task_skipped", () => {
+    it("converts with skip reason", () => {
+      const evt = toProtoEvent({
+        type: "task_skipped",
+        taskName: "conditional",
+        occurredAt: NOW,
+        taskKind: "set",
+        reason: "condition evaluated to false",
+      });
+
+      expect(evt.eventType).toBe(WorkflowEventType.task_skipped);
+      if (evt.payload.case !== "taskSkipped") throw new Error("unexpected");
+      expect(evt.payload.value.reason).toBe("condition evaluated to false");
+    });
+  });
+
+  describe("approval_requested", () => {
+    it("converts outcomes to HumanInputOutcomeInfo protos", () => {
+      const evt = toProtoEvent({
+        type: "approval_requested",
+        taskName: "reviewGate",
+        occurredAt: NOW,
+        prompt: "Please review the deployment plan",
+        approvers: ["alice", "bob"],
+        timeoutSeconds: 300,
+        outcomes: [
+          { name: "approve", label: "Approve Plan" },
+          { name: "reject", label: "Reject" },
+          { name: "monitor", label: "Monitor Only" },
+        ],
+        formSchema: {
+          type: "object",
+          properties: { feedback: { type: "string" } },
+        },
+      });
+
+      expect(evt.eventType).toBe(WorkflowEventType.approval_requested);
+      expect(evt.taskName).toBe("reviewGate");
+      if (evt.payload.case !== "approvalRequested") throw new Error("unexpected");
+
+      const p = evt.payload.value;
+      expect(p.prompt).toBe("Please review the deployment plan");
+      expect(p.approvers).toEqual(["alice", "bob"]);
+      expect(p.timeoutSeconds).toBe(300);
+
+      expect(p.outcomes).toHaveLength(3);
+      expect(p.outcomes[0].name).toBe("approve");
+      expect(p.outcomes[0].label).toBe("Approve Plan");
+      expect(p.outcomes[1].name).toBe("reject");
+      expect(p.outcomes[2].name).toBe("monitor");
+      expect(p.outcomes[2].label).toBe("Monitor Only");
+
+      expect(p.formSchema).toBeDefined();
+    });
+
+    it("handles empty outcomes and no formSchema", () => {
+      const evt = toProtoEvent({
+        type: "approval_requested",
+        taskName: "simple",
+        occurredAt: NOW,
+        prompt: "Approve?",
+        approvers: [],
+        timeoutSeconds: 0,
+        outcomes: [],
+      });
+
+      if (evt.payload.case !== "approvalRequested") throw new Error("unexpected");
+      expect(evt.payload.value.outcomes).toHaveLength(0);
+      expect(evt.payload.value.formSchema).toBeUndefined();
+    });
+  });
+
+  describe("approval_resolved", () => {
+    it("maps resolvedBy, comment, and waitDurationMs", () => {
+      const evt = toProtoEvent({
+        type: "approval_resolved",
+        taskName: "reviewGate",
+        occurredAt: NOW,
+        outcome: "approve",
+        resolvedBy: "alice",
+        comment: "LGTM",
+        waitDurationMs: 45000,
+        autoResolved: false,
+      });
+
+      expect(evt.eventType).toBe(WorkflowEventType.approval_resolved);
+      if (evt.payload.case !== "approvalResolved") throw new Error("unexpected");
+
+      const p = evt.payload.value;
+      expect(p.resolvedBy).toBe("alice");
+      expect(p.comment).toBe("LGTM");
+      expect(p.waitDurationMs).toBe(BigInt(45000));
+    });
+
+    it("does not map outcome or autoResolved (proto limitation)", () => {
+      const evt = toProtoEvent({
+        type: "approval_resolved",
+        taskName: "gate",
+        occurredAt: NOW,
+        outcome: "needs_revision",
+        resolvedBy: "bob",
+        comment: "",
+        waitDurationMs: 1000,
+        autoResolved: true,
+      });
+
+      if (evt.payload.case !== "approvalResolved") throw new Error("unexpected");
+      // action field stays at default (UNSPECIFIED) because toProtoEvent
+      // does not map the string outcome to ApprovalAction enum.
+      // autoResolved has no corresponding proto field.
+      // This documents the current limitation per Finding #2.
+      expect(evt.payload.value.resolvedBy).toBe("bob");
+      expect(evt.payload.value.waitDurationMs).toBe(BigInt(1000));
+    });
+  });
+
+  describe("agent_call_started", () => {
+    it("converts agent call fields", () => {
+      const evt = toProtoEvent({
+        type: "agent_call_started",
+        taskName: "callAgent",
+        occurredAt: NOW,
+        childExecutionId: "exec-child-1",
+        agentSlug: "my-agent",
+        messageSummary: "Summarize the report",
+      });
+
+      expect(evt.eventType).toBe(WorkflowEventType.agent_call_started);
+      if (evt.payload.case !== "agentCallStarted") throw new Error("unexpected");
+      expect(evt.payload.value.childExecutionId).toBe("exec-child-1");
+      expect(evt.payload.value.agentSlug).toBe("my-agent");
+      expect(evt.payload.value.messageSummary).toBe("Summarize the report");
+    });
+  });
+
+  describe("agent_call_completed", () => {
+    it("converts with cost and token data", () => {
+      const evt = toProtoEvent({
+        type: "agent_call_completed",
+        taskName: "callAgent",
+        occurredAt: NOW,
+        childExecutionId: "exec-child-1",
+        durationMs: 8000,
+        tokensConsumed: 2000,
+        costMicros: 300000,
+        error: "",
+      });
+
+      expect(evt.eventType).toBe(WorkflowEventType.agent_call_completed);
+      if (evt.payload.case !== "agentCallCompleted") throw new Error("unexpected");
+      expect(evt.payload.value.durationMs).toBe(BigInt(8000));
+      expect(evt.payload.value.tokensConsumed).toBe(BigInt(2000));
+      expect(evt.payload.value.costMicros).toBe(BigInt(300000));
+    });
+  });
+});
+
+describe("emitWorkflowEvents", () => {
+  it("returns silently for empty events array", async () => {
+    await expect(emitWorkflowEvents("exec-1", [])).resolves.toBeUndefined();
+  });
+
+  it("returns silently for empty executionId", async () => {
+    const events: WorkflowEventDescriptor[] = [{
+      type: "task_started",
+      taskName: "t",
+      occurredAt: NOW,
+      taskKind: "set",
+      attemptNumber: 1,
+    }];
+    await expect(emitWorkflowEvents("", events)).resolves.toBeUndefined();
+  });
+});

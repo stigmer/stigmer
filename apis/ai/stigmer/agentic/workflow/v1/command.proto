@@ -5,6 +5,7 @@ package ai.stigmer.agentic.workflow.v1;
 import "ai/stigmer/agentic/workflow/v1/api.proto";
 import "ai/stigmer/agentic/workflow/v1/io.proto";
 import "ai/stigmer/agentic/workflow/v1/serverless/validation.proto";
+import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
 import "ai/stigmer/commons/rpc/method_options.proto";
 
@@ -38,6 +39,25 @@ service WorkflowCommandController {
     option (ai.stigmer.commons.rpc.config).permission = can_edit;
     option (ai.stigmer.commons.rpc.config).field_path = "metadata.id";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update workflow";
+  }
+
+  // Update the visibility of an existing workflow.
+  //
+  // This is a targeted metadata update — it only modifies metadata.visibility,
+  // leaving spec, status, and other metadata fields untouched. Use this to
+  // make a workflow publicly accessible or to revoke public access without
+  // sending the entire workflow resource (avoiding read-modify-write races).
+  //
+  // @internal
+  // Authorization: Requires can_edit permission on the workflow resource.
+  // Visibility transitions trigger FGA tuple management in Cloud mode:
+  // - PRIVATE → PUBLIC: creates workflow#viewer@identity_account:* tuple
+  // - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
+  rpc updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput) returns (Workflow) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = workflow;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update workflow visibility";
   }
 
   // Delete a workflow.

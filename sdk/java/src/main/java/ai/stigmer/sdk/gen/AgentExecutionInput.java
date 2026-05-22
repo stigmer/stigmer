@@ -29,6 +29,7 @@ public final class AgentExecutionInput {
     private final String parentWorkflowId;
     private final java.util.List<AttachmentInput> attachments;
     private final java.util.List<String> workspaceFileRefs;
+    private final String activityTaskQueue;
 
     private AgentExecutionInput(Builder builder) {
         this.name = builder.name;
@@ -46,6 +47,7 @@ public final class AgentExecutionInput {
         this.parentWorkflowId = builder.parentWorkflowId;
         this.attachments = builder.attachments;
         this.workspaceFileRefs = builder.workspaceFileRefs;
+        this.activityTaskQueue = builder.activityTaskQueue;
     }
 
     AgentExecution toProto() {
@@ -85,6 +87,9 @@ public final class AgentExecutionInput {
         if (this.workspaceFileRefs != null && !this.workspaceFileRefs.isEmpty()) {
             spec.addAllWorkspaceFileRefs(this.workspaceFileRefs);
         }
+        if (this.activityTaskQueue != null) {
+            spec.setActivityTaskQueue(this.activityTaskQueue);
+        }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name)
             .setOrg(this.org);
@@ -123,6 +128,7 @@ public final class AgentExecutionInput {
         private String parentWorkflowId;
         private java.util.List<AttachmentInput> attachments;
         private java.util.List<String> workspaceFileRefs;
+        private String activityTaskQueue;
 
         private Builder() {}
 
@@ -141,6 +147,7 @@ public final class AgentExecutionInput {
         public Builder parentWorkflowId(String parentWorkflowId) { this.parentWorkflowId = parentWorkflowId; return this; }
         public Builder attachments(java.util.List<AttachmentInput> attachments) { this.attachments = attachments; return this; }
         public Builder workspaceFileRefs(java.util.List<String> workspaceFileRefs) { this.workspaceFileRefs = workspaceFileRefs; return this; }
+        public Builder activityTaskQueue(String activityTaskQueue) { this.activityTaskQueue = activityTaskQueue; return this; }
 
         public AgentExecutionInput build() { return new AgentExecutionInput(this); }
     }

@@ -120,7 +120,7 @@ async function main(): Promise<void> {
   // Tier 2: Workflow execution lifecycle
   // -----------------------------------------------------------------------
   if (!workflowRunnerAvailable) {
-    log("workflow-runner not available — skipping Tier 2");
+    log("unified runner not available — skipping Tier 2");
     result.tier2 = "skip";
     finish(0);
   }

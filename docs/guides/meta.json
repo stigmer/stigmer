@@ -1,4 +1,4 @@
 {
   "title": "Guides",
-  "pages": ["runners", "integrations", "authentication", "workflows", "workflow-tasks", "workflow-patterns", "workflow-execution"]
+  "pages": ["integrations", "authentication", "workflows", "workflow-tasks", "workflow-patterns", "workflow-execution"]
 }

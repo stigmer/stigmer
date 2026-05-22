@@ -10,15 +10,15 @@ import { DEFAULT_HARNESS, type HarnessOption } from "../models/harness";
 import { useWorkspaceEntries, type UseWorkspaceEntriesReturn } from "../workspace";
 import { useSessionVariables, type UseSessionVariablesReturn } from "../execution/useSessionVariables";
 import type { SessionComposerSubmitContext } from "../composer";
-import { useRunnerList } from "../runner/useRunnerList";
 import { withTimeout } from "../internal/withTimeout";
 import { useCreateSession } from "./useCreateSession";
 import { useCreateAgentExecution } from "../execution/useCreateAgentExecution";
+import type { ExecutionTargetOption } from "./execution-target";
+import { useExecutionTarget } from "../execution-target-context";
 
 const DEFAULT_AGENT_TIMEOUT_MS = 10_000;
 
 const STORAGE_KEY_HARNESS = "stigmer:session:harness";
-const STORAGE_KEY_RUNNER = "stigmer:session:runner";
 
 function modelStorageKey(harness: HarnessOption): string {
   return harness === "cursor"
@@ -41,6 +41,19 @@ export interface UseNewSessionFlowOptions {
    * If not provided, errors are still available via {@link UseNewSessionFlowReturn.submitError}.
    */
   readonly onError?: (message: string) => void;
+  /**
+   * Where session activities should execute.
+   *
+   * @deprecated Prefer setting `executionTarget` on `StigmerProvider`
+   * instead. The provider-level value is inherited by all hooks in the
+   * tree automatically. This per-hook option is honored as an override
+   * for backward compatibility but will be removed in a future major.
+   *
+   * When omitted, the hook reads from `StigmerProvider`'s
+   * `executionTarget` prop via context. If that is also unset, the
+   * server decides based on deployment context.
+   */
+  readonly executionTarget?: ExecutionTargetOption;
 }
 
 /** Return value of {@link useNewSessionFlow}. */
@@ -75,11 +88,6 @@ export interface UseNewSessionFlowReturn {
   /** Update skill references. */
   readonly setSkillRefs: (refs: ResourceRef[]) => void;
 
-  /** Selected runner ID, or `null` for auto-selection. */
-  readonly runnerId: string | null;
-  /** Update the selected runner. */
-  readonly setRunnerId: (id: string | null) => void;
-
   /** Workspace entries manager (git repos and local paths). */
   readonly workspace: UseWorkspaceEntriesReturn;
   /** Session variables (per-execution secrets) manager. */
@@ -94,7 +102,7 @@ export interface UseNewSessionFlowReturn {
    * Create a session with the first execution.
    *
    * Composes all managed state (agent, workspace, MCP servers, skills,
-   * runner, model, session variables) into the session and execution
+   * model, session variables) into the session and execution
    * creation RPCs, then calls `onSessionCreated` on success.
    *
    * The `model` parameter overrides `modelId` for this submission only
@@ -112,7 +120,7 @@ export interface UseNewSessionFlowReturn {
  *
  * Manages all the state required to configure and submit a new session:
  * model selection (with localStorage persistence), agent resolution,
- * MCP server/skill/runner selection, workspace entries, and session
+ * MCP server/skill selection, workspace entries, and session
  * variables. On submission, creates the session and its first execution
  * in sequence, then notifies the consumer via `onSessionCreated`.
  *
@@ -140,9 +148,7 @@ export interface UseNewSessionFlowReturn {
  *   onMcpServerUsagesChange={flow.setMcpServerUsages}
  *   skillRefs={flow.skillRefs}
  *   onSkillRefsChange={flow.setSkillRefs}
- *   runnerId={flow.runnerId}
- *   onRunnerIdChange={flow.setRunnerId}
- *   sessionVariables={flow.sessionVariables}
+   *   sessionVariables={flow.sessionVariables}
  *   defaultModelId={flow.modelId}
  *   onModelChange={flow.setModelId}
  * />
@@ -152,6 +158,8 @@ export function useNewSessionFlow(
   options: UseNewSessionFlowOptions,
 ): UseNewSessionFlowReturn {
   const { org, onSessionCreated, onError } = options;
+  const contextTarget = useExecutionTarget();
+  const executionTarget = options.executionTarget ?? contextTarget;
 
   const [harness, setHarnessRaw] = useState<HarnessOption>(() => {
     if (typeof window === "undefined") return DEFAULT_HARNESS;
@@ -160,7 +168,6 @@ export function useNewSessionFlow(
   });
 
   const { getModel, isLoading: isModelsLoading } = useModelRegistry({ harness });
-  const { runners, isLoading: isRunnersLoading } = useRunnerList(org);
   const { create: createSession } = useCreateSession();
   const { create: createExecution } = useCreateAgentExecution();
   const {
@@ -177,7 +184,6 @@ export function useNewSessionFlow(
   const [resolution, setResolution] = useState<AgentResolution | null>(null);
   const [mcpServerUsages, setMcpServerUsages] = useState<McpServerUsageInput[]>([]);
   const [skillRefs, setSkillRefs] = useState<ResourceRef[]>([]);
-  const [runnerId, setRunnerId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -220,30 +226,6 @@ export function useNewSessionFlow(
     }
   }, [modelId, harness]);
 
-  // Restore persisted runner — validate against the live runner list.
-  // If the stored runner no longer exists, discard it and clean up localStorage.
-  useEffect(() => {
-    if (isRunnersLoading) return;
-    const stored = localStorage.getItem(STORAGE_KEY_RUNNER);
-    if (!stored) return;
-
-    const exists = runners.some((r) => r.metadata?.id === stored);
-    if (exists) {
-      setRunnerId(stored);
-    } else {
-      localStorage.removeItem(STORAGE_KEY_RUNNER);
-    }
-  }, [runners, isRunnersLoading]);
-
-  // Persist runner on change
-  useEffect(() => {
-    if (runnerId) {
-      localStorage.setItem(STORAGE_KEY_RUNNER, runnerId);
-    } else {
-      localStorage.removeItem(STORAGE_KEY_RUNNER);
-    }
-  }, [runnerId]);
-
   const submit = useCallback(
     async (
       message: string,
@@ -269,8 +251,8 @@ export function useNewSessionFlow(
             : undefined,
           mcpServerUsages: mcpServerUsages.length > 0 ? mcpServerUsages : undefined,
           skillRefs: skillRefs.length > 0 ? skillRefs : undefined,
-          runnerId: runnerId ?? undefined,
           harness,
+          executionTarget,
         };
 
         const executionFields = {
@@ -338,11 +320,11 @@ export function useNewSessionFlow(
       isSubmitting,
       org,
       harness,
+      executionTarget,
       validModelId,
       workspace,
       mcpServerUsages,
       skillRefs,
-      runnerId,
       agentRef,
       resolution,
       defaultAgent,
@@ -370,8 +352,6 @@ export function useNewSessionFlow(
     setMcpServerUsages,
     skillRefs,
     setSkillRefs,
-    runnerId,
-    setRunnerId,
     workspace,
     sessionVariables,
     isSubmitting,

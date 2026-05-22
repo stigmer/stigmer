@@ -8,6 +8,7 @@ package workflowexecutionv1
 
 import (
 	v1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/executioncontext/v1"
+	v11 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/session/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -147,8 +148,24 @@ type WorkflowExecutionSpec struct {
 	//
 	// @since 2026-01-22
 	CallbackToken []byte `protobuf:"bytes,7,opt,name=callback_token,json=callbackToken,proto3" json:"callback_token,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// Where workflow activities are executed — shared runner pool or dedicated sandbox.
+	//
+	// @internal
+	// Determines dispatch routing for the workflow and all child executions:
+	// - UNSPECIFIED: server defaults (LOCAL for OSS, CLOUD for managed)
+	// - LOCAL: workflow runs on global queue (stigmer_runner)
+	// - CLOUD: server provisions a dedicated sandbox with per-execution queue
+	//
+	// When CLOUD: all call:agent tasks within this workflow share the same sandbox.
+	// Child agent executions inherit this sandbox via activity_task_queue propagation
+	// on AgentExecutionSpec, avoiding N separate sandbox cold starts.
+	//
+	// Immutable after creation (sandbox provisioning is a one-time operation).
+	//
+	// @since Workflow Sandbox Affinity
+	ExecutionTarget v11.ExecutionTarget `protobuf:"varint,8,opt,name=execution_target,json=executionTarget,proto3,enum=ai.stigmer.agentic.session.v1.ExecutionTarget" json:"execution_target,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *WorkflowExecutionSpec) Reset() {
@@ -223,11 +240,18 @@ func (x *WorkflowExecutionSpec) GetCallbackToken() []byte {
 	return nil
 }
 
+func (x *WorkflowExecutionSpec) GetExecutionTarget() v11.ExecutionTarget {
+	if x != nil {
+		return x.ExecutionTarget
+	}
+	return v11.ExecutionTarget(0)
+}
+
 var File_ai_stigmer_agentic_workflowexecution_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_workflowexecution_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"2ai/stigmer/agentic/workflowexecution/v1/spec.proto\x12'ai.stigmer.agentic.workflowexecution.v1\x1a1ai/stigmer/agentic/executioncontext/v1/spec.proto\"\xe6\x04\n" +
+	"2ai/stigmer/agentic/workflowexecution/v1/spec.proto\x12'ai.stigmer.agentic.workflowexecution.v1\x1a1ai/stigmer/agentic/executioncontext/v1/spec.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\"\xc1\x05\n" +
 	"\x15WorkflowExecutionSpec\x120\n" +
 	"\x14workflow_instance_id\x18\x01 \x01(\tR\x12workflowInstanceId\x12\x1f\n" +
 	"\vworkflow_id\x18\x06 \x01(\tR\n" +
@@ -236,7 +260,8 @@ const file_ai_stigmer_agentic_workflowexecution_v1_spec_proto_rawDesc = "" +
 	"\x10trigger_metadata\x18\x04 \x03(\v2S.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec.TriggerMetadataEntryR\x0ftriggerMetadata\x12o\n" +
 	"\vruntime_env\x18\x05 \x03(\v2N.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec.RuntimeEnvEntryR\n" +
 	"runtimeEnv\x12%\n" +
-	"\x0ecallback_token\x18\a \x01(\fR\rcallbackToken\x1aB\n" +
+	"\x0ecallback_token\x18\a \x01(\fR\rcallbackToken\x12Y\n" +
+	"\x10execution_target\x18\b \x01(\x0e2..ai.stigmer.agentic.session.v1.ExecutionTargetR\x0fexecutionTarget\x1aB\n" +
 	"\x14TriggerMetadataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1au\n" +
@@ -262,17 +287,19 @@ var file_ai_stigmer_agentic_workflowexecution_v1_spec_proto_goTypes = []any{
 	(*WorkflowExecutionSpec)(nil), // 0: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec
 	nil,                           // 1: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec.TriggerMetadataEntry
 	nil,                           // 2: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec.RuntimeEnvEntry
-	(*v1.ExecutionValue)(nil),     // 3: ai.stigmer.agentic.executioncontext.v1.ExecutionValue
+	(v11.ExecutionTarget)(0),      // 3: ai.stigmer.agentic.session.v1.ExecutionTarget
+	(*v1.ExecutionValue)(nil),     // 4: ai.stigmer.agentic.executioncontext.v1.ExecutionValue
 }
 var file_ai_stigmer_agentic_workflowexecution_v1_spec_proto_depIdxs = []int32{
 	1, // 0: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec.trigger_metadata:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec.TriggerMetadataEntry
 	2, // 1: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec.runtime_env:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec.RuntimeEnvEntry
-	3, // 2: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec.RuntimeEnvEntry.value:type_name -> ai.stigmer.agentic.executioncontext.v1.ExecutionValue
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	3, // 2: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec.execution_target:type_name -> ai.stigmer.agentic.session.v1.ExecutionTarget
+	4, // 3: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec.RuntimeEnvEntry.value:type_name -> ai.stigmer.agentic.executioncontext.v1.ExecutionValue
+	4, // [4:4] is the sub-list for method output_type
+	4, // [4:4] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_workflowexecution_v1_spec_proto_init() }

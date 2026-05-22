@@ -5,6 +5,7 @@ package ai.stigmer.sdk.gen;
 import ai.stigmer.agentic.agent.v1.McpServerUsage;
 import ai.stigmer.agentic.agent.v1.ToolApprovalOverride;
 import ai.stigmer.agentic.session.v1.CursorMode;
+import ai.stigmer.agentic.session.v1.ExecutionTarget;
 import ai.stigmer.agentic.session.v1.GitRepoSource;
 import ai.stigmer.agentic.session.v1.GitWriteBackMode;
 import ai.stigmer.agentic.session.v1.Harness;
@@ -26,15 +27,14 @@ public final class SessionInput {
     private final ApiResourceVisibility visibility;
     private final String agentInstanceId;
     private final String subject;
-    private final String threadId;
-    private final String sandboxId;
+    private final String harnessStateId;
     private final java.util.Map<String, String> metadata;
     private final java.util.List<WorkspaceEntryInput> workspaceEntries;
     private final java.util.List<McpServerUsageInput> mcpServerUsages;
-    private final String runnerId;
     private final java.util.List<ResourceRef> skillRefs;
     private final Harness harness;
     private final CursorMode cursorMode;
+    private final ExecutionTarget executionTarget;
 
     private SessionInput(Builder builder) {
         this.name = builder.name;
@@ -44,15 +44,14 @@ public final class SessionInput {
         this.visibility = builder.visibility;
         this.agentInstanceId = builder.agentInstanceId;
         this.subject = builder.subject;
-        this.threadId = builder.threadId;
-        this.sandboxId = builder.sandboxId;
+        this.harnessStateId = builder.harnessStateId;
         this.metadata = builder.metadata;
         this.workspaceEntries = builder.workspaceEntries;
         this.mcpServerUsages = builder.mcpServerUsages;
-        this.runnerId = builder.runnerId;
         this.skillRefs = builder.skillRefs;
         this.harness = builder.harness;
         this.cursorMode = builder.cursorMode;
+        this.executionTarget = builder.executionTarget;
     }
 
     Session toProto() {
@@ -63,11 +62,8 @@ public final class SessionInput {
         if (this.subject != null) {
             spec.setSubject(this.subject);
         }
-        if (this.threadId != null) {
-            spec.setThreadId(this.threadId);
-        }
-        if (this.sandboxId != null) {
-            spec.setSandboxId(this.sandboxId);
+        if (this.harnessStateId != null) {
+            spec.setHarnessStateId(this.harnessStateId);
         }
         if (this.metadata != null && !this.metadata.isEmpty()) {
             spec.putAllMetadata(this.metadata);
@@ -82,9 +78,6 @@ public final class SessionInput {
                 spec.addMcpServerUsages(item.toProto());
             }
         }
-        if (this.runnerId != null) {
-            spec.setRunnerId(this.runnerId);
-        }
         if (this.skillRefs != null) {
             for (ResourceRef item : this.skillRefs) {
                 spec.addSkillRefs(item.toProto().toBuilder()
@@ -96,6 +89,9 @@ public final class SessionInput {
         }
         if (this.cursorMode != null) {
             spec.setCursorMode(this.cursorMode);
+        }
+        if (this.executionTarget != null) {
+            spec.setExecutionTarget(this.executionTarget);
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name)
@@ -127,15 +123,14 @@ public final class SessionInput {
         private ApiResourceVisibility visibility;
         private String agentInstanceId;
         private String subject;
-        private String threadId;
-        private String sandboxId;
+        private String harnessStateId;
         private java.util.Map<String, String> metadata;
         private java.util.List<WorkspaceEntryInput> workspaceEntries;
         private java.util.List<McpServerUsageInput> mcpServerUsages;
-        private String runnerId;
         private java.util.List<ResourceRef> skillRefs;
         private Harness harness;
         private CursorMode cursorMode;
+        private ExecutionTarget executionTarget;
 
         private Builder() {}
 
@@ -146,15 +141,14 @@ public final class SessionInput {
         public Builder visibility(ApiResourceVisibility visibility) { this.visibility = visibility; return this; }
         public Builder agentInstanceId(String agentInstanceId) { this.agentInstanceId = agentInstanceId; return this; }
         public Builder subject(String subject) { this.subject = subject; return this; }
-        public Builder threadId(String threadId) { this.threadId = threadId; return this; }
-        public Builder sandboxId(String sandboxId) { this.sandboxId = sandboxId; return this; }
+        public Builder harnessStateId(String harnessStateId) { this.harnessStateId = harnessStateId; return this; }
         public Builder metadata(java.util.Map<String, String> metadata) { this.metadata = metadata; return this; }
         public Builder workspaceEntries(java.util.List<WorkspaceEntryInput> workspaceEntries) { this.workspaceEntries = workspaceEntries; return this; }
         public Builder mcpServerUsages(java.util.List<McpServerUsageInput> mcpServerUsages) { this.mcpServerUsages = mcpServerUsages; return this; }
-        public Builder runnerId(String runnerId) { this.runnerId = runnerId; return this; }
         public Builder skillRefs(java.util.List<ResourceRef> skillRefs) { this.skillRefs = skillRefs; return this; }
         public Builder harness(Harness harness) { this.harness = harness; return this; }
         public Builder cursorMode(CursorMode cursorMode) { this.cursorMode = cursorMode; return this; }
+        public Builder executionTarget(ExecutionTarget executionTarget) { this.executionTarget = executionTarget; return this; }
 
         public SessionInput build() { return new SessionInput(this); }
     }

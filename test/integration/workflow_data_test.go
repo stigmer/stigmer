@@ -22,8 +22,8 @@ import (
 // Asserts both tasks complete and data flows correctly.
 func TestWorkflowData_SetVarsChaining(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -105,8 +105,8 @@ func TestWorkflowData_SetVarsChaining(t *testing.T) {
 // The transform extracts and reshapes data from the workflow state.
 func TestWorkflowData_Transform(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -186,8 +186,8 @@ func TestWorkflowData_Transform(t *testing.T) {
 // The schema requires "name" (string) and "age" (integer, minimum 0).
 func TestWorkflowData_Validate_SchemaPass(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -212,7 +212,7 @@ func TestWorkflowData_Validate_SchemaPass(t *testing.T) {
 	require.NoError(t, err)
 
 	validateConfig, err := structpb.NewStruct(map[string]any{
-		"input": "${ $data.buildUser }",
+		"input": "${ $context.buildUser }",
 		"schema": map[string]any{
 			"type": "object",
 			"properties": map[string]any{
@@ -288,8 +288,8 @@ func TestWorkflowData_Validate_SchemaPass(t *testing.T) {
 // Workflow: setUser (set_vars, missing required "age") → validateUser (validate)
 func TestWorkflowData_Validate_SchemaFail(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -372,8 +372,8 @@ func TestWorkflowData_Validate_SchemaFail(t *testing.T) {
 // Rules: total > 0, items array non-empty.
 func TestWorkflowData_Validate_BusinessRules(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -399,7 +399,7 @@ func TestWorkflowData_Validate_BusinessRules(t *testing.T) {
 	require.NoError(t, err)
 
 	validateConfig, err := structpb.NewStruct(map[string]any{
-		"input": "${ $data.buildOrder }",
+		"input": "${ $context.buildOrder }",
 		"rules": []any{
 			map[string]any{
 				"name":       "positive_total",

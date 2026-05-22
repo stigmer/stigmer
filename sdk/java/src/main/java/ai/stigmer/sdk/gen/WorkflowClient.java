@@ -10,6 +10,7 @@ import ai.stigmer.agentic.workflow.v1.WorkflowCommandControllerGrpc;
 import ai.stigmer.agentic.workflow.v1.WorkflowId;
 import ai.stigmer.agentic.workflow.v1.WorkflowQueryControllerGrpc;
 import ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation;
+import ai.stigmer.commons.apiresource.UpdateVisibilityInput;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 import ai.stigmer.commons.rpc.PageInfo;
 import ai.stigmer.search.v1.SearchRequest;
@@ -47,6 +48,12 @@ public final class WorkflowClient {
     public Workflow update(WorkflowInput input) {
         try {
             return command.update(input.toProto());
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public Workflow updateVisibility(UpdateVisibilityInput input) {
+        try {
+            return command.updateVisibility(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

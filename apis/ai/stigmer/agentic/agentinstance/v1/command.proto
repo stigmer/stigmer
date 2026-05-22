@@ -4,6 +4,7 @@ package ai.stigmer.agentic.agentinstance.v1;
 
 import "ai/stigmer/agentic/agentinstance/v1/api.proto";
 import "ai/stigmer/agentic/agentinstance/v1/io.proto";
+import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
 import "ai/stigmer/commons/rpc/method_options.proto";
 
@@ -43,6 +44,30 @@ service AgentInstanceCommandController {
     option (ai.stigmer.commons.rpc.config).permission = can_edit;
     option (ai.stigmer.commons.rpc.config).field_path = "metadata.id";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update agent instance";
+  }
+
+  // Update the visibility of an existing agent instance.
+  //
+  // Changes who can view this instance and interact with it. Supports the
+  // full visibility spectrum: PRIVATE (owner only), ORG (all org members),
+  // or PUBLIC (all authenticated users).
+  //
+  // For agent instances, visibility controls who can create sessions and run
+  // executions against this instance. Sessions remain personal regardless of
+  // instance visibility (conversation privacy is preserved).
+  //
+  // @internal
+  // Authorization: Requires can_edit permission on the agent instance.
+  // Visibility transitions trigger FGA tuple management in Cloud mode:
+  // - PRIVATE → ORG: creates agent_instance#viewer@organization:<org>#member
+  // - PRIVATE → PUBLIC: creates agent_instance#viewer@identity_account:*
+  // - ORG → PRIVATE: deletes the org member viewer tuple
+  // - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
+  rpc updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput) returns (AgentInstance) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = agent_instance;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update agent instance visibility";
   }
 
   // Delete an agent instance.

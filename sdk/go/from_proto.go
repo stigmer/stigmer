@@ -11,7 +11,6 @@ import (
 	environmentv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/environment/v1"
 	executioncontextv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/executioncontext/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/mcpserver/v1"
-	runnerv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/runner/v1"
 	sessionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/session/v1"
 	skillv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/skill/v1"
 	workflowv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflow/v1"
@@ -106,11 +105,6 @@ func PlatformClientInputFromProto(p *platformclientv1.PlatformClient) *PlatformC
 // ProjectInputFromProto creates a ProjectInput from a proto Project resource.
 func ProjectInputFromProto(p *projectv1.Project) *ProjectInput {
 	return gen.ProjectInputFromProto(p)
-}
-
-// RunnerInputFromProto creates a RunnerInput from a proto Runner resource.
-func RunnerInputFromProto(p *runnerv1.Runner) *RunnerInput {
-	return gen.RunnerInputFromProto(p)
 }
 
 // SessionInputFromProto creates a SessionInput from a proto Session resource.

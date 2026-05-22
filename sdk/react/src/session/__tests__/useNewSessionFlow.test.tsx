@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { DEFAULT_MODEL_ID, DEFAULT_CURSOR_MODEL_ID, parseRegistryJson } from "../../models/registry";
 import { ModelRegistryContext } from "../../models/ModelRegistryContext";
 import type { ModelRegistryState } from "../../models/ModelRegistryContext";
+import { ExecutionTargetContext } from "../../execution-target-context";
 import type { UseCreateSessionReturn } from "../useCreateSession";
 
 const mockCreateSession = vi.fn<UseCreateSessionReturn["create"]>();
@@ -62,17 +63,6 @@ vi.mock("../../execution/useSessionVariables", () => ({
   useSessionVariables: () => mockSessionVariables,
 }));
 
-const mockRunnerList = {
-  runners: [] as { metadata?: { id: string; name?: string } }[],
-  isLoading: false,
-  isRefetching: false,
-  error: null,
-  refetch: vi.fn(),
-};
-vi.mock("../../runner/useRunnerList", () => ({
-  useRunnerList: () => mockRunnerList,
-}));
-
 import { useNewSessionFlow } from "../useNewSessionFlow";
 
 const TEST_MODELS = parseRegistryJson({
@@ -82,13 +72,15 @@ const TEST_MODELS = parseRegistryJson({
   ],
 });
 
-function createWrapper() {
+function createWrapper(executionTarget?: "local" | "cloud") {
   const state: ModelRegistryState = { models: TEST_MODELS, isLoading: false, error: null, refetch: () => {} };
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
-      <ModelRegistryContext.Provider value={state}>
-        {children}
-      </ModelRegistryContext.Provider>
+      <ExecutionTargetContext.Provider value={executionTarget}>
+        <ModelRegistryContext.Provider value={state}>
+          {children}
+        </ModelRegistryContext.Provider>
+      </ExecutionTargetContext.Provider>
     );
   };
 }
@@ -113,8 +105,6 @@ describe("useNewSessionFlow", () => {
     };
     mockDefaultAgent.isLoading = false;
     mockDefaultAgent.error = null;
-    mockRunnerList.runners = [];
-    mockRunnerList.isLoading = false;
     mockCreateSession.mockResolvedValue({ sessionId: "sess-new" });
     mockCreateExecution.mockResolvedValue({});
   });
@@ -249,39 +239,6 @@ describe("useNewSessionFlow", () => {
     });
   });
 
-  describe("runner validation gate", () => {
-    it("restores runner when it exists in the live runner list", () => {
-      localStorage.setItem("stigmer:session:runner", "runner-abc");
-      mockRunnerList.runners = [{ metadata: { id: "runner-abc", name: "My Runner" } }];
-      mockRunnerList.isLoading = false;
-
-      const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
-
-      expect(result.current.runnerId).toBe("runner-abc");
-    });
-
-    it("discards stale runner that no longer exists in the runner list", () => {
-      localStorage.setItem("stigmer:session:runner", "deleted-runner");
-      mockRunnerList.runners = [{ metadata: { id: "runner-abc", name: "My Runner" } }];
-      mockRunnerList.isLoading = false;
-
-      const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
-
-      expect(result.current.runnerId).toBeNull();
-      expect(localStorage.getItem("stigmer:session:runner")).toBeNull();
-    });
-
-    it("does not restore runner while runner list is loading", () => {
-      localStorage.setItem("stigmer:session:runner", "runner-abc");
-      mockRunnerList.runners = [];
-      mockRunnerList.isLoading = true;
-
-      const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
-
-      expect(result.current.runnerId).toBeNull();
-    });
-  });
-
   describe("model validation timing", () => {
     it("does not restore model while registry is loading", () => {
       localStorage.setItem(STORAGE_KEY_MODEL_NATIVE, DEFAULT_MODEL_ID);
@@ -378,6 +335,60 @@ describe("useNewSessionFlow", () => {
       });
 
       expect(result.current.isSubmitting).toBe(false);
+    });
+  });
+
+  describe("submit with executionTarget", () => {
+    it("passes executionTarget to createSession when provided", async () => {
+      const opts = { ...defaultOptions(), executionTarget: "local" as const };
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+
+      expect(mockCreateSession).toHaveBeenCalledOnce();
+      const sessionInput = mockCreateSession.mock.calls[0][0];
+      expect(sessionInput.executionTarget).toBe("local");
+    });
+
+    it("does not include executionTarget when not provided", async () => {
+      const opts = defaultOptions();
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+
+      expect(mockCreateSession).toHaveBeenCalledOnce();
+      const sessionInput = mockCreateSession.mock.calls[0][0];
+      expect(sessionInput.executionTarget).toBeUndefined();
+    });
+
+    it("uses context executionTarget when per-hook option is omitted", async () => {
+      const opts = defaultOptions();
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper("local") });
+
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+
+      expect(mockCreateSession).toHaveBeenCalledOnce();
+      const sessionInput = mockCreateSession.mock.calls[0][0];
+      expect(sessionInput.executionTarget).toBe("local");
+    });
+
+    it("per-hook executionTarget option overrides context", async () => {
+      const opts = { ...defaultOptions(), executionTarget: "local" as const };
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper("cloud") });
+
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+
+      expect(mockCreateSession).toHaveBeenCalledOnce();
+      const sessionInput = mockCreateSession.mock.calls[0][0];
+      expect(sessionInput.executionTarget).toBe("local");
     });
   });
 

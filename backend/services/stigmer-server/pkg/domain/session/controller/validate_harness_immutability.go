@@ -11,11 +11,11 @@ import (
 // change the harness after the session has been used for execution.
 //
 // Each harness owns its conversation state independently (LangGraph uses
-// Stigmer checkpoints via thread_id; Cursor uses a Cursor-hosted Agent
-// via cursor_agent_id in thread_id). Switching harness mid-session would
+// Stigmer checkpoints via harness_state_id; Cursor uses a Cursor-hosted Agent
+// via cursor_agent_id in harness_state_id). Switching harness mid-session would
 // silently discard conversation history.
 //
-// A session is considered "used" when its thread_id is non-empty, which
+// A session is considered "used" when its harness_state_id is non-empty, which
 // is set after the first execution completes.
 type ValidateHarnessImmutabilityStep struct{}
 
@@ -46,7 +46,7 @@ func (s *ValidateHarnessImmutabilityStep) Execute(ctx *pipeline.RequestContext[*
 	}
 
 	// Session has not been used yet — harness can still change.
-	if existingSpec.GetThreadId() == "" {
+	if existingSpec.GetHarnessStateId() == "" {
 		return nil
 	}
 

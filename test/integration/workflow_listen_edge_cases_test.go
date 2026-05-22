@@ -25,8 +25,8 @@ import (
 // Workflow: awaitSignal (listen with 5s timeout, no signal sent) → afterSignal (never reached)
 func TestWorkflowListen_Timeout(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)

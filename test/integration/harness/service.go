@@ -101,6 +101,19 @@ type ServiceConfig struct {
 	// uses for client_credentials grants. When set, the Java service calls this URL
 	// instead of constructing https://<auth0Domain>/oauth/token.
 	Auth0TokenURL string
+
+	// ActivityRouting controls how the Java service dispatches runner activities.
+	// "global" (default): all activities route to stigmer_runner.
+	// "session": activities route to session:{session_id} per-session queues.
+	ActivityRouting string
+
+	// DefaultExecutionTarget resolves EXECUTION_TARGET_UNSPECIFIED on sessions.
+	// "local" (default) or "cloud".
+	DefaultExecutionTarget string
+
+	// SandboxType controls sandbox provisioning. When non-empty, the "sandbox"
+	// Spring profile is activated. Values: "noop" (default) or "daytona".
+	SandboxType string
 }
 
 // StartJavaService launches the stigmer-service fat JAR as a child process
@@ -224,6 +237,9 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 	productionSecurity := cfg.Security == SecurityModeProduction
 
 	profiles := "mongo,temporal,iam,logging,auth0,skill-r2,agent-execution-r2,claimcheck-r2"
+	if cfg.SandboxType != "" {
+		profiles += ",sandbox"
+	}
 	if fgaEnabled {
 		profiles += ",openfga"
 	}
@@ -288,6 +304,10 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 		"STIGMER_BILLING_RESERVATION_EXPIRY_ENABLED=false",
 		"STIGMER_RUNNER_LAUNCHER_TYPE=noop",
 
+		fmt.Sprintf("STIGMER_ACTIVITY_ROUTING=%s", activityRouting(cfg)),
+		fmt.Sprintf("STIGMER_DEFAULT_EXECUTION_TARGET=%s", defaultExecutionTarget(cfg)),
+		fmt.Sprintf("STIGMER_SANDBOX_TYPE=%s", sandboxType(cfg)),
+
 		"STIGMER_PROXY_REQUIRE_SCOPE_HEADER=false",
 
 		// Skip JWKS URI reachability check for IdentityProvider create/update.
@@ -320,8 +340,6 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 			fmt.Sprintf("AUTH0_DOMAIN=%s", auth0Domain),
 			"AUTH0_CLIENT_ID=test-client-id",
 			"AUTH0_CLIENT_SECRET=test-client-secret",
-			"AUTH0_MACHINE_ACCOUNT_CLIENT_ID=test-machine-client-id",
-			"AUTH0_MACHINE_ACCOUNT_CLIENT_SECRET=test-machine-client-secret",
 			fmt.Sprintf("AUTH0_API_AUDIENCE=%s", auth0Audience),
 		)
 		if cfg.Auth0TokenURL != "" {
@@ -391,4 +409,25 @@ func r2SecretKey(cfg ServiceConfig) string {
 		return cfg.MinIOSecretKey
 	}
 	return "test"
+}
+
+func activityRouting(cfg ServiceConfig) string {
+	if cfg.ActivityRouting != "" {
+		return cfg.ActivityRouting
+	}
+	return "global"
+}
+
+func defaultExecutionTarget(cfg ServiceConfig) string {
+	if cfg.DefaultExecutionTarget != "" {
+		return cfg.DefaultExecutionTarget
+	}
+	return "local"
+}
+
+func sandboxType(cfg ServiceConfig) string {
+	if cfg.SandboxType != "" {
+		return cfg.SandboxType
+	}
+	return "noop"
 }

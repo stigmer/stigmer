@@ -9,7 +9,7 @@ import { enumDesc, fileDesc } from "@bufbuild/protobuf/codegenv1";
  * Describes the file ai/stigmer/agentic/session/v1/enum.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_enum: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9lbnVtLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSpZChBHaXRXcml0ZUJhY2tNb2RlEiMKH0dJVF9XUklURV9CQUNLX01PREVfVU5TUEVDSUZJRUQQABIgChxHSVRfV1JJVEVfQkFDS19CUkFOQ0hfQU5EX1BSEAEqSgoHSGFybmVzcxIXChNIQVJORVNTX1VOU1BFQ0lGSUVEEAASEgoOSEFSTkVTU19OQVRJVkUQARISCg5IQVJORVNTX0NVUlNPUhACKlcKCkN1cnNvck1vZGUSGwoXQ1VSU09SX01PREVfVU5TUEVDSUZJRUQQABIVChFDVVJTT1JfTU9ERV9MT0NBTBABEhUKEUNVUlNPUl9NT0RFX0NMT1VEEAJiBnByb3RvMw");
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9lbnVtLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSpZChBHaXRXcml0ZUJhY2tNb2RlEiMKH0dJVF9XUklURV9CQUNLX01PREVfVU5TUEVDSUZJRUQQABIgChxHSVRfV1JJVEVfQkFDS19CUkFOQ0hfQU5EX1BSEAEqSgoHSGFybmVzcxIXChNIQVJORVNTX1VOU1BFQ0lGSUVEEAASEgoOSEFSTkVTU19OQVRJVkUQARISCg5IQVJORVNTX0NVUlNPUhACKmsKD0V4ZWN1dGlvblRhcmdldBIgChxFWEVDVVRJT05fVEFSR0VUX1VOU1BFQ0lGSUVEEAASGgoWRVhFQ1VUSU9OX1RBUkdFVF9MT0NBTBABEhoKFkVYRUNVVElPTl9UQVJHRVRfQ0xPVUQQAipXCgpDdXJzb3JNb2RlEhsKF0NVUlNPUl9NT0RFX1VOU1BFQ0lGSUVEEAASFQoRQ1VSU09SX01PREVfTE9DQUwQARIVChFDVVJTT1JfTU9ERV9DTE9VRBACYgZwcm90bzM");
 
 /**
  * GitWriteBackMode controls the platform's git workflow for a git-backed workspace entry.
@@ -105,6 +105,61 @@ export const HarnessSchema: GenEnum<Harness> = /*@__PURE__*/
   enumDesc(file_ai_stigmer_agentic_session_v1_enum, 1);
 
 /**
+ * ExecutionTarget specifies where session activities are executed.
+ *
+ * Determines whether the runner that processes agent activities lives on the
+ * client's machine (desktop app or CLI) or in a cloud-provisioned sandbox.
+ * Set at session creation time and immutable once an execution has run —
+ * workspace state may not be portable between local and cloud environments.
+ *
+ * @internal
+ * The control plane uses this field in dispatch to decide whether to route
+ * activities to a client-polled per-session queue (LOCAL) or provision a
+ * cloud sandbox (CLOUD). Both use task queues named "session:{session_id}".
+ * The difference is who provides the runner: the client (LOCAL) or the
+ * server (CLOUD).
+ *
+ * @generated from enum ai.stigmer.agentic.session.v1.ExecutionTarget
+ */
+export enum ExecutionTarget {
+  /**
+   * Platform default — server decides based on deployment context.
+   *
+   * @internal
+   * Resolves to LOCAL for OSS/self-hosted, CLOUD for managed cloud service.
+   *
+   * @generated from enum value: EXECUTION_TARGET_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * Client's embedded runner handles activities.
+   *
+   * Desktop app or CLI spawns a local runner process that polls the
+   * session's task queue. No server-side provisioning needed.
+   *
+   * @generated from enum value: EXECUTION_TARGET_LOCAL = 1;
+   */
+  LOCAL = 1,
+
+  /**
+   * Server provisions a cloud sandbox for execution.
+   *
+   * The control plane triggers EnsureSessionSandbox to create an isolated
+   * environment with a runner polling the session's task queue.
+   *
+   * @generated from enum value: EXECUTION_TARGET_CLOUD = 2;
+   */
+  CLOUD = 2,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.session.v1.ExecutionTarget.
+ */
+export const ExecutionTargetSchema: GenEnum<ExecutionTarget> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_session_v1_enum, 2);
+
+/**
  * CursorMode selects the Cursor SDK agent type for sessions using
  * HARNESS_CURSOR.
  *
@@ -165,5 +220,5 @@ export enum CursorMode {
  * Describes the enum ai.stigmer.agentic.session.v1.CursorMode.
  */
 export const CursorModeSchema: GenEnum<CursorMode> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_agentic_session_v1_enum, 2);
+  enumDesc(file_ai_stigmer_agentic_session_v1_enum, 3);
 

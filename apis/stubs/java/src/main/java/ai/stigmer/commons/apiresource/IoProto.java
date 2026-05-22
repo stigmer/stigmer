@@ -87,18 +87,19 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "B\006\272H\003\310\001\001R\nresourceId\022a\n\nvisibility\030\002 \001(\016" +
       "25.ai.stigmer.commons.apiresource.ApiRes" +
       "ourceVisibilityB\n\272H\007\202\001\004\020\001 \000R\nvisibility\"" +
-      "\240\002\n\024ApiResourceReference\022/\n\003org\030\001 \001(\tB\035\272" +
-      "H\032r\030\030?2\024^$|^[a-z][a-z0-9-]*$R\003org\022S\n\004kin" +
-      "d\030\002 \001(\0162?.ai.stigmer.commons.apiresource" +
-      ".apiresourcekind.ApiResourceKindR\004kind\0223" +
-      "\n\004slug\030\003 \001(\tB\037\272H\034r\027\020\001\030?2\021^[a-z][a-z0-9-]" +
-      "*$\310\001\001R\004slug\022M\n\007version\030\004 \001(\tB3\272H0r.2,^$|" +
-      "^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}" +
-      "$R\007versionB\245\001B\007IoProtoP\001\242\002\004ASCA\252\002\036Ai.Sti" +
-      "gmer.Commons.Apiresource\312\002\036Ai\\Stigmer\\Co" +
-      "mmons\\Apiresource\342\002*Ai\\Stigmer\\Commons\\A" +
-      "piresource\\GPBMetadata\352\002!Ai::Stigmer::Co" +
-      "mmons::Apiresourceb\006proto3"
+      "\260\002\n\024ApiResourceReference\0227\n\003org\030\001 \001(\tB%\272" +
+      "H\"r \030?2\034^$|^[a-z][a-z0-9-]*[a-z0-9]$R\003or" +
+      "g\022S\n\004kind\030\002 \001(\0162?.ai.stigmer.commons.api" +
+      "resource.apiresourcekind.ApiResourceKind" +
+      "R\004kind\022;\n\004slug\030\003 \001(\tB\'\272H$r\037\020\002\030?2\031^[a-z][" +
+      "a-z0-9-]*[a-z0-9]$\310\001\001R\004slug\022M\n\007version\030\004" +
+      " \001(\tB3\272H0r.2,^$|^latest$|^[a-zA-Z0-9._-]" +
+      "+$|^[a-f0-9]{64}$R\007versionB\245\001B\007IoProtoP\001" +
+      "\242\002\004ASCA\252\002\036Ai.Stigmer.Commons.Apiresource" +
+      "\312\002\036Ai\\Stigmer\\Commons\\Apiresource\342\002*Ai\\S" +
+      "tigmer\\Commons\\Apiresource\\GPBMetadata\352\002" +
+      "!Ai::Stigmer::Commons::Apiresourceb\006prot" +
+      "o3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

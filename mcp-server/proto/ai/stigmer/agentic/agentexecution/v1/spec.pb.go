@@ -205,6 +205,26 @@ type AgentExecutionSpec struct {
 	//
 	// @since Workspace-Aware File Referencing
 	WorkspaceFileRefs []string `protobuf:"bytes,10,rep,name=workspace_file_refs,json=workspaceFileRefs,proto3" json:"workspace_file_refs,omitempty"`
+	// Explicit Temporal task queue override for activity routing.
+	//
+	// @internal
+	// When set, the agent execution's activities are routed to this queue
+	// instead of the normally-resolved queue (session:{id} or global stigmer_runner).
+	// This enables sandbox sharing: a parent workflow execution passes its own
+	// queue so child agents run in the same sandbox without provisioning new VMs.
+	//
+	// When empty: normal dispatch resolution applies (default behavior).
+	//
+	// Security: Only accepted from internal callers (workflow engine's CallAgent
+	// activity). External API callers cannot set this field — the create handler
+	// strips it during input sanitization. Presence of parent_workflow_id is used
+	// as a co-validation signal.
+	//
+	// Format: "wfexec:{workflow_execution_id}" (matches the parent workflow's
+	// sandbox queue). The prefix ensures no collision with session:{id} queues.
+	//
+	// @since Workflow Sandbox Affinity
+	ActivityTaskQueue string `protobuf:"bytes,11,opt,name=activity_task_queue,json=activityTaskQueue,proto3" json:"activity_task_queue,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -307,6 +327,13 @@ func (x *AgentExecutionSpec) GetWorkspaceFileRefs() []string {
 		return x.WorkspaceFileRefs
 	}
 	return nil
+}
+
+func (x *AgentExecutionSpec) GetActivityTaskQueue() string {
+	if x != nil {
+		return x.ActivityTaskQueue
+	}
+	return ""
 }
 
 // Configuration that can be applied at execution time.
@@ -743,7 +770,7 @@ var File_ai_stigmer_agentic_agentexecution_v1_spec_proto protoreflect.FileDescri
 
 const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"/ai/stigmer/agentic/agentexecution/v1/spec.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a1ai/stigmer/agentic/executioncontext/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\"\xb8\x05\n" +
+	"/ai/stigmer/agentic/agentexecution/v1/spec.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a1ai/stigmer/agentic/executioncontext/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\"\xe8\x05\n" +
 	"\x12AgentExecutionSpec\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x19\n" +
@@ -757,7 +784,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	"\x12parent_workflow_id\x18\b \x01(\tR\x10parentWorkflowId\x12R\n" +
 	"\vattachments\x18\t \x03(\v20.ai.stigmer.agentic.agentexecution.v1.AttachmentR\vattachments\x12.\n" +
 	"\x13workspace_file_refs\x18\n" +
-	" \x03(\tR\x11workspaceFileRefs\x1au\n" +
+	" \x03(\tR\x11workspaceFileRefs\x12.\n" +
+	"\x13activity_task_queue\x18\v \x01(\tR\x11activityTaskQueue\x1au\n" +
 	"\x0fRuntimeEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12L\n" +
 	"\x05value\x18\x02 \x01(\v26.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x028\x01\"\x87\x03\n" +

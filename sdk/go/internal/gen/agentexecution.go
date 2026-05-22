@@ -171,6 +171,7 @@ type AgentExecutionInput struct {
 	ParentWorkflowId  string
 	Attachments       []*AttachmentInput
 	WorkspaceFileRefs []string
+	ActivityTaskQueue string
 }
 
 // ExecutionConfigInput is the SDK input type for ExecutionConfig.
@@ -232,6 +233,7 @@ func (i *AgentExecutionInput) toProto() *agentexecutionv1.AgentExecution {
 		resource.Spec.Attachments = append(resource.Spec.Attachments, item.toProto())
 	}
 	resource.Spec.WorkspaceFileRefs = i.WorkspaceFileRefs
+	resource.Spec.ActivityTaskQueue = i.ActivityTaskQueue
 	return resource
 }
 
@@ -295,6 +297,7 @@ func AgentExecutionInputFromProto(p *agentexecutionv1.AgentExecution) *AgentExec
 			input.Attachments = append(input.Attachments, attachmentInputFromProto(item))
 		}
 		input.WorkspaceFileRefs = s.GetWorkspaceFileRefs()
+		input.ActivityTaskQueue = s.GetActivityTaskQueue()
 	}
 	return input
 }

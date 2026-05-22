@@ -6,6 +6,8 @@ import { cn, resolvePresetClass } from "@stigmer/theme";
 import type { ThemePresetId } from "@stigmer/theme";
 import { StigmerContext } from "./context";
 import { DeploymentModeContext } from "./deployment-mode";
+import { ExecutionTargetContext } from "./execution-target-context";
+import type { ExecutionTargetOption } from "./session/execution-target";
 import type { ColorMode, ResolvedColorMode } from "./color-mode";
 import { ColorModeContext, useSystemColorMode } from "./color-mode";
 import { PortalContainerContext } from "./portal-container";
@@ -34,6 +36,21 @@ export interface StigmerProviderProps {
    * Platform builders pass it based on their deployment context.
    */
   readonly deploymentMode?: DeploymentMode;
+  /**
+   * Default execution target for all sessions created within this
+   * provider scope.
+   *
+   * - `"local"` -- Client provides runners (desktop app, CLI, or
+   *   customer-managed runner process).
+   * - `"cloud"` -- Server provisions cloud sandboxes automatically.
+   * - `undefined` (default) -- Server decides based on deployment
+   *   context (LOCAL for OSS, CLOUD for managed).
+   *
+   * This is an app-level setting, not a per-session choice. Hooks
+   * like `useNewSessionFlow` and `useCreateSession` read this from
+   * context so every session in the tree inherits the same target.
+   */
+  readonly executionTarget?: ExecutionTargetOption;
   /**
    * Built-in theme preset to apply.
    *
@@ -121,6 +138,7 @@ export function StigmerProvider({
   client,
   children,
   deploymentMode = "cloud",
+  executionTarget,
   preset,
   className,
   colorMode = "light",
@@ -138,20 +156,22 @@ export function StigmerProvider({
   return (
     <StigmerContext.Provider value={client}>
       <DeploymentModeContext.Provider value={deploymentMode}>
-        <ColorModeContext.Provider value={resolvedMode}>
-          <ModelRegistryContext.Provider value={registryState}>
-            <TaskKindRegistryContext.Provider value={taskKindRegistryState}>
-              <PortalContainerContext.Provider value={portalContainer}>
-                <div
-                  className={cn("stgm", presetClass, className)}
-                  data-stgm-color-mode={resolvedMode}
-                >
-                  {children}
-                </div>
-              </PortalContainerContext.Provider>
-            </TaskKindRegistryContext.Provider>
-          </ModelRegistryContext.Provider>
-        </ColorModeContext.Provider>
+        <ExecutionTargetContext.Provider value={executionTarget}>
+          <ColorModeContext.Provider value={resolvedMode}>
+            <ModelRegistryContext.Provider value={registryState}>
+              <TaskKindRegistryContext.Provider value={taskKindRegistryState}>
+                <PortalContainerContext.Provider value={portalContainer}>
+                  <div
+                    className={cn("stgm", presetClass, className)}
+                    data-stgm-color-mode={resolvedMode}
+                  >
+                    {children}
+                  </div>
+                </PortalContainerContext.Provider>
+              </TaskKindRegistryContext.Provider>
+            </ModelRegistryContext.Provider>
+          </ColorModeContext.Provider>
+        </ExecutionTargetContext.Provider>
       </DeploymentModeContext.Provider>
     </StigmerContext.Provider>
   );

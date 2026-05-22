@@ -5,6 +5,7 @@
 
 import { Workflow } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
+import { UpdateVisibilityInput } from "../../../commons/apiresource/io_pbjs";
 import { WorkflowId } from "./io_pbjs";
 import { ServerlessWorkflowValidation } from "./serverless/validation_pbjs";
 
@@ -55,6 +56,28 @@ export const WorkflowCommandController = {
     update: {
       name: "update",
       I: Workflow,
+      O: Workflow,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Update the visibility of an existing workflow.
+     *
+     * This is a targeted metadata update — it only modifies metadata.visibility,
+     * leaving spec, status, and other metadata fields untouched. Use this to
+     * make a workflow publicly accessible or to revoke public access without
+     * sending the entire workflow resource (avoiding read-modify-write races).
+     *
+     * @internal
+     * Authorization: Requires can_edit permission on the workflow resource.
+     * Visibility transitions trigger FGA tuple management in Cloud mode:
+     * - PRIVATE → PUBLIC: creates workflow#viewer@identity_account:* tuple
+     * - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
+     *
+     * @generated from rpc ai.stigmer.agentic.workflow.v1.WorkflowCommandController.updateVisibility
+     */
+    updateVisibility: {
+      name: "updateVisibility",
+      I: UpdateVisibilityInput,
       O: Workflow,
       kind: MethodKind.Unary,
     },

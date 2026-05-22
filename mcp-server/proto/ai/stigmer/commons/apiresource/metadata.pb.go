@@ -27,9 +27,14 @@ const (
 type ApiResourceMetadata struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Human-readable name of the resource.
+	// Max 63 characters. Validation is skipped when the field is empty (e.g.,
+	// server-generated responses or partial messages).
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// URL-friendly identifier, unique within the organization.
 	// Combined with org, forms the canonical reference: "org/slug".
+	// Format: 2-63 lowercase alphanumeric characters and hyphens; must start
+	// with a letter and end with a letter or digit. When empty, the server
+	// derives the slug from the name.
 	Slug string `protobuf:"bytes,2,opt,name=slug,proto3" json:"slug,omitempty"`
 	// System-generated unique identifier.
 	Id string `protobuf:"bytes,3,opt,name=id,proto3" json:"id,omitempty"`
@@ -216,10 +221,11 @@ var File_ai_stigmer_commons_apiresource_metadata_proto protoreflect.FileDescript
 
 const file_ai_stigmer_commons_apiresource_metadata_proto_rawDesc = "" +
 	"\n" +
-	"-ai/stigmer/commons/apiresource/metadata.proto\x12\x1eai.stigmer.commons.apiresource\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a\x1bbuf/validate/validate.proto\"\xe6\x04\n" +
-	"\x13ApiResourceMetadata\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12\x12\n" +
-	"\x04slug\x18\x02 \x01(\tR\x04slug\x12\x0e\n" +
+	"-ai/stigmer/commons/apiresource/metadata.proto\x12\x1eai.stigmer.commons.apiresource\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a\x1bbuf/validate/validate.proto\"\x9b\x05\n" +
+	"\x13ApiResourceMetadata\x12\x1e\n" +
+	"\x04name\x18\x01 \x01(\tB\n" +
+	"\xbaH\a\xd8\x01\x01r\x02\x18?R\x04name\x12;\n" +
+	"\x04slug\x18\x02 \x01(\tB'\xbaH$\xd8\x01\x01r\x1f\x10\x02\x18?2\x19^[a-z][a-z0-9-]*[a-z0-9]$R\x04slug\x12\x0e\n" +
 	"\x02id\x18\x03 \x01(\tR\x02id\x12\x10\n" +
 	"\x03org\x18\x04 \x01(\tR\x03org\x12_\n" +
 	"\n" +

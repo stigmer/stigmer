@@ -16,6 +16,34 @@
   </head>
   <body class="antialiased">
     <div id="root"></div>
+    <script>
+      // Suppress macOS WebKit form autocomplete pills, autocorrect, and
+      // auto-capitalization on all inputs. WKWebView (used by Tauri on macOS)
+      // inherits Safari's form autofill behavior -- a floating "pill" appears
+      // below text inputs with previously typed values, and autocorrect rewrites
+      // partial words. A MutationObserver catches inputs added later by React.
+      (function() {
+        var attrs = {autocomplete:'off',autocorrect:'off',autocapitalize:'off'};
+        function suppress(el) {
+          for (var k in attrs) el.setAttribute(k, attrs[k]);
+          el.spellcheck = false;
+        }
+        function walk(root) {
+          root.querySelectorAll('input,textarea').forEach(suppress);
+        }
+        new MutationObserver(function(mutations) {
+          for (var i = 0; i < mutations.length; i++) {
+            var nodes = mutations[i].addedNodes;
+            for (var j = 0; j < nodes.length; j++) {
+              var n = nodes[j];
+              if (n.nodeType !== 1) continue;
+              if (n.tagName === 'INPUT' || n.tagName === 'TEXTAREA') suppress(n);
+              if (n.querySelectorAll) walk(n);
+            }
+          }
+        }).observe(document.documentElement, {childList:true,subtree:true});
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -17,7 +17,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/commons/apiresource/io.proto.
  */
 export const file_ai_stigmer_commons_apiresource_io: GenFile = /*@__PURE__*/
-  fileDesc("CidhaS9zdGlnbWVyL2NvbW1vbnMvYXBpcmVzb3VyY2UvaW8ucHJvdG8SHmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZSImCg1BcGlSZXNvdXJjZUlkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiXQoWQXBpUmVzb3VyY2VEZWxldGVJbnB1dBIbCgtyZXNvdXJjZV9pZBgBIAEoCUIGukgDyAEBEhcKD3ZlcnNpb25fbWVzc2FnZRgCIAEoCRINCgVmb3JjZRgDIAEoCCJKCh1BcGlSZXNvdXJjZUJ5T3JnQnlTbHVnUmVxdWVzdBITCgNvcmcYASABKAlCBrpIA8gBARIUCgRzbHVnGAIgASgJQga6SAPIAQEilAEKF0ZpbmRBcGlSZXNvdXJjZXNSZXF1ZXN0EhMKA29yZxgBIAEoCUIGukgDyAEBEgwKBGtpbmQYAyABKAkSLgoEcGFnZRgEIAEoCzIgLmFpLnN0aWdtZXIuY29tbW9ucy5ycGMuUGFnZUluZm8SEwoLcGFnZV9udW1iZXIYBSABKAUSEQoJcGFnZV9zaXplGAYgASgFIosBChVVcGRhdGVWaXNpYmlsaXR5SW5wdXQSGwoLcmVzb3VyY2VfaWQYASABKAlCBrpIA8gBARJVCgp2aXNpYmlsaXR5GAIgASgOMjUuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlVmlzaWJpbGl0eUIKukgHggEEEAEgACKGAgoUQXBpUmVzb3VyY2VSZWZlcmVuY2USKgoDb3JnGAEgASgJQh26SBpyGBg/MhReJHxeW2Etel1bYS16MC05LV0qJBJNCgRraW5kGAIgASgOMj8uYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLmFwaXJlc291cmNla2luZC5BcGlSZXNvdXJjZUtpbmQSLQoEc2x1ZxgDIAEoCUIfukgcyAEBchcQARg/MhFeW2Etel1bYS16MC05LV0qJBJECgd2ZXJzaW9uGAQgASgJQjO6SDByLjIsXiR8XmxhdGVzdCR8XlthLXpBLVowLTkuXy1dKyR8XlthLWYwLTldezY0fSRiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind, file_ai_stigmer_commons_apiresource_enum, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate]);
+  fileDesc("CidhaS9zdGlnbWVyL2NvbW1vbnMvYXBpcmVzb3VyY2UvaW8ucHJvdG8SHmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZSImCg1BcGlSZXNvdXJjZUlkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiXQoWQXBpUmVzb3VyY2VEZWxldGVJbnB1dBIbCgtyZXNvdXJjZV9pZBgBIAEoCUIGukgDyAEBEhcKD3ZlcnNpb25fbWVzc2FnZRgCIAEoCRINCgVmb3JjZRgDIAEoCCJKCh1BcGlSZXNvdXJjZUJ5T3JnQnlTbHVnUmVxdWVzdBITCgNvcmcYASABKAlCBrpIA8gBARIUCgRzbHVnGAIgASgJQga6SAPIAQEilAEKF0ZpbmRBcGlSZXNvdXJjZXNSZXF1ZXN0EhMKA29yZxgBIAEoCUIGukgDyAEBEgwKBGtpbmQYAyABKAkSLgoEcGFnZRgEIAEoCzIgLmFpLnN0aWdtZXIuY29tbW9ucy5ycGMuUGFnZUluZm8SEwoLcGFnZV9udW1iZXIYBSABKAUSEQoJcGFnZV9zaXplGAYgASgFIosBChVVcGRhdGVWaXNpYmlsaXR5SW5wdXQSGwoLcmVzb3VyY2VfaWQYASABKAlCBrpIA8gBARJVCgp2aXNpYmlsaXR5GAIgASgOMjUuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlVmlzaWJpbGl0eUIKukgHggEEEAEgACKWAgoUQXBpUmVzb3VyY2VSZWZlcmVuY2USMgoDb3JnGAEgASgJQiW6SCJyIBg/MhxeJHxeW2Etel1bYS16MC05LV0qW2EtejAtOV0kEk0KBGtpbmQYAiABKA4yPy5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kLkFwaVJlc291cmNlS2luZBI1CgRzbHVnGAMgASgJQie6SCTIAQFyHxACGD8yGV5bYS16XVthLXowLTktXSpbYS16MC05XSQSRAoHdmVyc2lvbhgEIAEoCUIzukgwci4yLF4kfF5sYXRlc3QkfF5bYS16QS1aMC05Ll8tXSskfF5bYS1mMC05XXs2NH0kYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind, file_ai_stigmer_commons_apiresource_enum, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate]);
 
 /**
  * Wraps a system-generated resource identifier.
@@ -154,13 +154,21 @@ export const FindApiResourcesRequestSchema: GenMessage<FindApiResourcesRequest> 
 /**
  * Input for updating the visibility of any API resource.
  *
- * Used by resource-specific command controllers to toggle between
- * PRIVATE and PUBLIC visibility. Each controller's updateVisibility RPC
- * accepts this shared input and returns the full updated resource.
+ * Used by resource-specific command controllers to change visibility.
+ * Each controller's updateVisibility RPC accepts this shared input
+ * and returns the full updated resource.
  *
  * Visibility transitions trigger FGA tuple management in Cloud mode:
  * - PRIVATE → PUBLIC: creates resource#viewer@identity_account:* tuple
  * - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
+ * - PRIVATE → ORG: creates resource#viewer@organization:<org>#member tuple
+ * - ORG → PRIVATE: deletes the org member viewer tuple
+ * - ORG → PUBLIC: deletes org tuple, creates wildcard tuple
+ * - PUBLIC → ORG: deletes wildcard tuple, creates org tuple
+ *
+ * Not all resources support all visibility levels:
+ * - Blueprints (agent, workflow, skill, mcp_server): PRIVATE or PUBLIC only
+ * - Instances (agent_instance, workflow_instance): PRIVATE, ORG, or PUBLIC
  *
  * @generated from message ai.stigmer.commons.apiresource.UpdateVisibilityInput
  */
@@ -174,7 +182,9 @@ export type UpdateVisibilityInput = Message<"ai.stigmer.commons.apiresource.Upda
 
   /**
    * The new visibility setting for the resource.
-   * Must be either visibility_private or visibility_public.
+   * Must not be unspecified (0). Valid values depend on resource kind:
+   * - Blueprints: visibility_private (1) or visibility_public (2)
+   * - Instances: visibility_private (1), visibility_public (2), or visibility_org (3)
    *
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 2;
    */
@@ -222,8 +232,9 @@ export type ApiResourceReference = Message<"ai.stigmer.commons.apiresource.ApiRe
 
   /**
    * Resource slug (user-friendly identifier, unique within org).
-   * Format: lowercase alphanumeric with hyphens, must start with a letter (e.g., "web-search", "code-reviewer").
-   * Length: 1-63 characters.
+   * Format: lowercase alphanumeric with hyphens, must start with a letter
+   * and end with a letter or digit (e.g., "web-search", "code-reviewer").
+   * Length: 2-63 characters.
    *
    * @generated from field: string slug = 3;
    */

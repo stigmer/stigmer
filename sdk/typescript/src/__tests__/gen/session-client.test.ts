@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import type { Transport } from "@connectrpc/connect";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { SessionClient, type SessionInput } from "../../gen/session";
 
 interface CapturedRequest {
@@ -103,6 +104,17 @@ describe("SessionClient proto serialization", () => {
     expect(proto.spec?.subject).toBe("");
     expect(proto.spec?.threadId).toBe("");
     expect(proto.spec?.sandboxId).toBe("");
+  });
+
+  it("serializes executionTarget when provided", async () => {
+    await client.create({
+      name: "s1",
+      org: "o1",
+      executionTarget: ExecutionTarget.LOCAL,
+    });
+
+    const proto = captured[0].message as Session;
+    expect(proto.spec?.executionTarget).toBe(ExecutionTarget.LOCAL);
   });
 
   it("serializes metadata map when provided", async () => {

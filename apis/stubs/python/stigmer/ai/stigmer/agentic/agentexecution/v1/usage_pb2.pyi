@@ -319,7 +319,7 @@ class ModelUsage(_message.Message):
     provider_cost_micros: int
     def __init__(self, model: _Optional[str] = ..., provider: _Optional[str] = ..., input_tokens: _Optional[int] = ..., output_tokens: _Optional[int] = ..., cache_creation_input_tokens: _Optional[int] = ..., cache_read_input_tokens: _Optional[int] = ..., call_count: _Optional[int] = ..., billable_cost_micros: _Optional[int] = ..., provider_cost_micros: _Optional[int] = ...) -> None: ...
 
-class RunnerUsageSummary(_message.Message):
+class StreamingUsageSummary(_message.Message):
     __slots__ = ("input_tokens", "output_tokens", "cache_read_tokens", "cache_write_tokens", "total_tokens", "turn_count", "estimated_cost_usd", "model", "observed_at")
     INPUT_TOKENS_FIELD_NUMBER: _ClassVar[int]
     OUTPUT_TOKENS_FIELD_NUMBER: _ClassVar[int]

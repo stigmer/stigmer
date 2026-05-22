@@ -91,25 +91,23 @@ class SessionInput:
     visibility: int = 0
     agent_instance_id: str = ""
     subject: str = ""
-    thread_id: str = ""
-    sandbox_id: str = ""
+    harness_state_id: str = ""
     metadata: dict[str, str] = field(default_factory=dict)
     workspace_entries: list[WorkspaceEntryInput] = field(default_factory=list)
     mcp_server_usages: list[McpServerUsageInput] = field(default_factory=list)
-    runner_id: str = ""
     skill_refs: list[ResourceRef] = field(default_factory=list)
     harness: int = 0
     cursor_mode: int = 0
+    execution_target: int = 0
 
     def _to_proto(self) -> api_pb2.Session:
         spec = spec_pb2.SessionSpec(
             agent_instance_id=self.agent_instance_id,
             subject=self.subject,
-            thread_id=self.thread_id,
-            sandbox_id=self.sandbox_id,
-            runner_id=self.runner_id,
+            harness_state_id=self.harness_state_id,
             harness=self.harness,
             cursor_mode=self.cursor_mode,
+            execution_target=self.execution_target,
         )
         if self.metadata:
             spec.metadata.update(self.metadata)

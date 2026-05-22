@@ -17,19 +17,19 @@ import (
 
 // InvokeAgentExecutionWorkflowImpl implements InvokeAgentExecutionWorkflow.
 //
-// Polyglot Workflow Pattern:
-// - Workflow (Go): Orchestrates activity execution
-// - Python Activities (agent-runner): ExecuteGraphton, EnsureThread (on runner base queue)
-// - TypeScript Activities (cursor-runner): ExecuteCursor (on {baseQueue}:cursor)
+// Unified Runner Architecture:
+// - Workflow (Go): Orchestrates activity execution on "agent_execution_stigmer" queue
+// - TypeScript unified runner: Polls the activity task queue (global or per-session)
+//   and registers ExecuteCursor, ExecuteDeepAgent, and workflow activities
 //
 // Harness dispatch: input.Harness determines which flow runs:
-// - NATIVE/UNSPECIFIED: executeGraphtonFlow (EnsureThread -> ExecuteGraphton)
-// - CURSOR: executeCursorFlow (ReadSessionThreadId -> ExecuteCursor)
+// - NATIVE/UNSPECIFIED: executeDeepAgentFlow (EnsureThread -> ExecuteDeepAgent)
+// - CURSOR: executeCursorFlow (ReadHarnessStateId -> ExecuteCursor)
 //
-// Queue routing: Python activities dispatch to the base queue from the memo.
-// ExecuteCursor dispatches to {baseQueue}:cursor via CursorQueueSuffix in the
-// activity stub. This ensures deterministic routing — Temporal dispatches
-// activity tasks to any worker on a queue without activity-type awareness.
+// Queue routing: The activity task queue is stored in workflow memo at creation
+// time. In global mode this is "agent_execution_runner"; in per-session mode
+// it is "session:{session_id}". The unified runner registers all activities on
+// a single queue, so Temporal routes by activity name within that queue.
 //
 // Both flows share the same HITL approval loop (approvalGateResolved signal)
 // and pause/resume pattern (CancellationScope).
@@ -56,7 +56,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) Run(ctx workflow.Context, input *Invo
 	if sessionv1.Harness(input.Harness) == sessionv1.Harness_HARNESS_CURSOR {
 		flowErr = w.executeCursorFlow(ctx, input)
 	} else {
-		flowErr = w.executeGraphtonFlow(ctx, input)
+		flowErr = w.executeDeepAgentFlow(ctx, input)
 	}
 	if err := flowErr; err != nil {
 		// Cancellation path: workflow was cancelled externally (user cancel, namespace timeout).
@@ -118,26 +118,23 @@ const MaxPauseCycles = 100
 // Must match the constant in temporal/workflow_types.go.
 const SignalApprovalGateResolved = "approvalGateResolved"
 
-// executeGraphtonFlow executes the Graphton agent flow with polyglot activities.
+// executeDeepAgentFlow executes the native deep agent flow.
 //
 // Orchestrates:
-// 1. Python activity: Ensure thread (on "execution" queue)
-// 2. Python activity: Execute agent (on "execution" queue), with pause/resume
-//   - During execution, agent-runner sends progressive status updates via gRPC
+// 1. EnsureThread activity (on runner queue)
+// 2. ExecuteDeepAgent activity (on runner queue), with pause/resume
+//   - During execution, the unified runner sends progressive status updates via gRPC
 //   - Final status is returned for Temporal observability
 //
 // 3. Pause/resume outer loop: If a "pause" signal arrives while the activity is
 //
-//	running, the workflow cancels the activity (Python saves a LangGraph
+//	running, the workflow cancels the activity (LangGraph saves a
 //	checkpoint), waits for a "resume" signal, then re-invokes.
 //
 // 4. HITL approval loop (inside the pause scope): If a tool requires approval,
 //
 //	wait for approvalGateResolved signal and re-invoke.
-//
-// Modeled after the Java implementation's CancellationScope + Async.procedure
-// pattern (InvokeAgentExecutionWorkflowImpl.java lines 452-533).
-func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Context, input *InvokeAgentExecutionWorkflowInput) error {
+func (w *InvokeAgentExecutionWorkflowImpl) executeDeepAgentFlow(ctx workflow.Context, input *InvokeAgentExecutionWorkflowInput) error {
 	logger := workflow.GetLogger(ctx)
 
 	sessionID := input.SessionID
@@ -146,30 +143,6 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 
 	// Get activity task queue from workflow memo
 	activityTaskQueue := w.getActivityTaskQueue(ctx)
-
-	// Step 0: Wait for ephemeral runner readiness (local activity)
-	// For ephemeral runners provisioned via DaytonaSandboxRunnerLauncher,
-	// the sandbox boot + Python worker startup happens asynchronously.
-	// This gate blocks until the runner reports READY via heartbeat,
-	// preventing ScheduleToStart timeouts on subsequent Python activities.
-	// For persistent runners or the global queue path, this returns immediately.
-	if input.RunnerID != "" {
-		logger.Info("Step 0: Waiting for runner readiness", "runner_id", input.RunnerID)
-
-		localCtx := workflow.WithLocalActivityOptions(ctx, workflow.LocalActivityOptions{
-			ScheduleToCloseTimeout: 5 * time.Minute,
-			RetryPolicy: &temporal.RetryPolicy{
-				MaximumAttempts: 1, // No retries — the activity polls internally
-			},
-		})
-
-		err := workflow.ExecuteLocalActivity(localCtx,
-			activities.WaitForRunnerReadyActivityName, input.RunnerID).Get(localCtx, nil)
-		if err != nil {
-			return w.wrapActivityError("WaitForRunnerReady", err)
-		}
-		logger.Info("Step 0: Runner is ready", "runner_id", input.RunnerID)
-	}
 
 	// Step 1: Ensure thread exists (Python activity)
 	logger.Info("Step 1: Ensuring thread", "session_id", sessionID, "agent_id", agentID)
@@ -192,7 +165,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 		}
 	})
 
-	// Step 2: Execute Graphton with pause/resume loop
+	// Step 2: Execute deep agent with pause/resume loop
 	//
 	// The outer loop handles pause/resume. When a "pause" signal arrives, the
 	// workflow cancels the activity context (which propagates to the running
@@ -201,7 +174,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 	//
 	// Pattern: workflow.Go() monitors the pause signal and calls cancelActivity()
 	// when received — equivalent to Java's Async.procedure + CancellationScope.
-	logger.Info("Step 2: Executing Graphton agent", "execution_id", executionID, "thread_id", threadID)
+	logger.Info("Step 2: Executing deep agent", "execution_id", executionID, "thread_id", threadID)
 
 	pauseCh := workflow.GetSignalChannel(ctx, SignalPause)
 	resumeCh := workflow.GetSignalChannel(ctx, SignalResume)
@@ -228,7 +201,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 		})
 
 		// Execute the agent with HITL approval loop (uses cancellable context)
-		finalStatus, err = w.executeGraphtonWithHitl(
+		finalStatus, err = w.executeDeepAgentWithHitl(
 			activityCtx, activityTaskQueue, executionID, threadID,
 		)
 
@@ -269,14 +242,14 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 		cancelActivity()
 
 		if err != nil {
-			return w.wrapActivityError("ExecuteGraphton", err)
+			return w.wrapActivityError("ExecuteDeepAgent", err)
 		}
 
 		// Activity completed normally
 		break
 	}
 
-	logger.Info("Graphton execution completed - final slim status received",
+	logger.Info("Deep agent execution completed - final slim status received",
 		"execution_id", executionID,
 		"phase", finalStatus.GetPhase().String(),
 		"pending_approvals", len(finalStatus.GetPendingApprovals()),
@@ -299,13 +272,10 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 	return nil
 }
 
-// executeGraphtonWithHitl runs the ExecuteGraphton activity and handles the HITL
+// executeDeepAgentWithHitl runs the ExecuteDeepAgent activity and handles the HITL
 // approval loop. It uses the provided context for all blocking operations, so the
 // caller can cancel it (e.g., for pause).
-//
-// Extracted from executeGraphtonFlow to work with the pause/resume cancellation
-// scope, matching Java's executeGraphtonWithHitl() pattern.
-func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonWithHitl(
+func (w *InvokeAgentExecutionWorkflowImpl) executeDeepAgentWithHitl(
 	ctx workflow.Context,
 	activityTaskQueue string,
 	executionID string,
@@ -313,16 +283,16 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonWithHitl(
 ) (*agentexecutionv1.AgentExecutionStatus, error) {
 	logger := workflow.GetLogger(ctx)
 
-	executeGraphtonActivity := activities.NewExecuteGraphtonActivityStub(ctx, activityTaskQueue)
+	executeDeepAgentActivity := activities.NewExecuteDeepAgentActivityStub(ctx, activityTaskQueue)
 
-	finalStatus, err := executeGraphtonActivity.ExecuteGraphton(executionID, threadID)
+	finalStatus, err := executeDeepAgentActivity.ExecuteDeepAgent(executionID, threadID)
 	if err != nil {
 		return nil, err
 	}
 
 	if finalStatus == nil {
-		logger.Error("ExecuteGraphton returned NULL status", "execution_id", executionID)
-		return nil, fmt.Errorf("python activity returned null status - this should never happen")
+		logger.Error("ExecuteDeepAgent returned NULL status", "execution_id", executionID)
+		return nil, fmt.Errorf("activity returned null status - this should never happen")
 	}
 
 	logger.Info("Activity returned slim status",
@@ -384,18 +354,18 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonWithHitl(
 				"cycle", approvalCycle)
 		}
 
-		logger.Info("Re-invoking Graphton after approval gate resolved",
+		logger.Info("Re-invoking deep agent after approval gate resolved",
 			"execution_id", executionID,
 			"cycle", approvalCycle)
 
-		finalStatus, err = executeGraphtonActivity.ExecuteGraphton(executionID, threadID)
+		finalStatus, err = executeDeepAgentActivity.ExecuteDeepAgent(executionID, threadID)
 		if err != nil {
 			return nil, err
 		}
 
 		if finalStatus == nil {
-			logger.Error("ExecuteGraphton returned NULL status after approval", "execution_id", executionID)
-			return nil, fmt.Errorf("python activity returned null status after approval - this should never happen")
+			logger.Error("ExecuteDeepAgent returned NULL status after approval", "execution_id", executionID)
+			return nil, fmt.Errorf("activity returned null status after approval - this should never happen")
 		}
 
 		logger.Info("Activity returned slim status after approval",
@@ -409,9 +379,9 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonWithHitl(
 }
 
 // executeCursorFlow executes a Cursor harness agent. Structurally identical to
-// executeGraphtonFlow with two variation points:
-//   - threadId comes from ReadSessionThreadId (not EnsureThread)
-//   - ExecuteCursor activity (not ExecuteGraphton)
+// executeDeepAgentFlow with two variation points:
+//   - harnessStateId comes from ReadHarnessStateId (not EnsureThread)
+//   - ExecuteCursor activity (not ExecuteDeepAgent)
 //
 // Same GenerateSessionSubject (fire-and-forget), same HITL approval loop,
 // same pause/resume pattern.
@@ -423,22 +393,9 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeCursorFlow(ctx workflow.Contex
 
 	activityTaskQueue := w.getActivityTaskQueue(ctx)
 
-	// Wait for runner readiness (same as Graphton)
-	if input.RunnerID != "" {
-		logger.Info("Waiting for runner readiness", "runner_id", input.RunnerID)
-		localCtx := workflow.WithLocalActivityOptions(ctx, workflow.LocalActivityOptions{
-			ScheduleToCloseTimeout: 5 * time.Minute,
-			RetryPolicy:            &temporal.RetryPolicy{MaximumAttempts: 1},
-		})
-		if err := workflow.ExecuteLocalActivity(localCtx,
-			activities.WaitForRunnerReadyActivityName, input.RunnerID).Get(localCtx, nil); err != nil {
-			return w.wrapActivityError("WaitForRunnerReady", err)
-		}
-	}
-
 	// Generate session subject (fire-and-forget, non-blocking).
 	// The Cursor SDK does not expose a generated conversation title for local
-	// agents, so we use the same LLM-based title generation as the Graphton flow.
+	// agents, so we use the same LLM-based title generation as the deep agent flow.
 	workflow.Go(ctx, func(ctx workflow.Context) {
 		subjectActivity := activities.NewGenerateSessionSubjectActivityStub(ctx, activityTaskQueue)
 		if err := subjectActivity.GenerateSessionSubject(executionID); err != nil {
@@ -523,7 +480,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeCursorFlow(ctx workflow.Contex
 }
 
 // executeCursorWithHitl runs the ExecuteCursor activity and handles the HITL
-// approval loop. Reads threadId from the session before each invocation so
+// approval loop. Reads harness_state_id from the session before each invocation so
 // the Cursor agentId (stored by the activity on first run) is available for
 // reinvocations.
 func (w *InvokeAgentExecutionWorkflowImpl) executeCursorWithHitl(
@@ -534,18 +491,18 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeCursorWithHitl(
 ) (*agentexecutionv1.AgentExecutionStatus, error) {
 	logger := workflow.GetLogger(ctx)
 
-	// Read threadId (Cursor agentId) from session — empty on first execution,
+	// Read harness_state_id (Cursor agentId) from session — empty on first execution,
 	// populated by the activity after Agent.create().
-	threadID, err := w.readSessionThreadId(ctx, sessionID)
+	harnessStateID, err := w.readHarnessStateId(ctx, sessionID)
 	if err != nil {
-		logger.Warn("Failed to read session thread_id (non-fatal, using empty)",
+		logger.Warn("Failed to read session harness_state_id (non-fatal, using empty)",
 			"session_id", sessionID, "error", err.Error())
-		threadID = ""
+		harnessStateID = ""
 	}
 
 	executeCursorActivity := activities.NewExecuteCursorActivityStub(ctx, activityTaskQueue)
 
-	finalStatus, err := executeCursorActivity.ExecuteCursor(executionID, threadID)
+	finalStatus, err := executeCursorActivity.ExecuteCursor(executionID, harnessStateID)
 	if err != nil {
 		return nil, err
 	}
@@ -593,16 +550,16 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeCursorWithHitl(
 				"execution_id", executionID, "cycle", approvalCycle)
 		}
 
-		// Re-read threadId — the first ExecuteCursor call stored the Cursor agentId
-		threadID, err = w.readSessionThreadId(ctx, sessionID)
+		// Re-read harness_state_id — the first ExecuteCursor call stored the Cursor agentId
+		harnessStateID, err = w.readHarnessStateId(ctx, sessionID)
 		if err != nil {
-			return nil, fmt.Errorf("failed to read session thread_id for reinvocation: %w", err)
+			return nil, fmt.Errorf("failed to read session harness_state_id for reinvocation: %w", err)
 		}
 
 		logger.Info("Re-invoking Cursor after approval", "execution_id", executionID,
-			"cycle", approvalCycle, "thread_id", threadID)
+			"cycle", approvalCycle, "harness_state_id", harnessStateID)
 
-		finalStatus, err = executeCursorActivity.ExecuteCursor(executionID, threadID)
+		finalStatus, err = executeCursorActivity.ExecuteCursor(executionID, harnessStateID)
 		if err != nil {
 			return nil, err
 		}
@@ -620,8 +577,8 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeCursorWithHitl(
 	return finalStatus, nil
 }
 
-// readSessionThreadId reads the thread_id from a session via local activity.
-func (w *InvokeAgentExecutionWorkflowImpl) readSessionThreadId(ctx workflow.Context, sessionID string) (string, error) {
+// readHarnessStateId reads the harness_state_id from a session via local activity.
+func (w *InvokeAgentExecutionWorkflowImpl) readHarnessStateId(ctx workflow.Context, sessionID string) (string, error) {
 	localCtx := workflow.WithLocalActivityOptions(ctx, workflow.LocalActivityOptions{
 		ScheduleToCloseTimeout: 30 * time.Second,
 		RetryPolicy: &temporal.RetryPolicy{
@@ -630,12 +587,12 @@ func (w *InvokeAgentExecutionWorkflowImpl) readSessionThreadId(ctx workflow.Cont
 		},
 	})
 
-	var threadID string
-	err := workflow.ExecuteLocalActivity(localCtx, activities.ReadSessionThreadIdActivityName, sessionID).Get(localCtx, &threadID)
+	var harnessStateID string
+	err := workflow.ExecuteLocalActivity(localCtx, activities.ReadHarnessStateIdActivityName, sessionID).Get(localCtx, &harnessStateID)
 	if err != nil {
-		return "", fmt.Errorf("read session thread_id for %s: %w", sessionID, err)
+		return "", fmt.Errorf("read session harness_state_id for %s: %w", sessionID, err)
 	}
-	return threadID, nil
+	return harnessStateID, nil
 }
 
 // wrapActivityError wraps activity errors with helpful context for troubleshooting.
@@ -725,7 +682,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) getActivityTaskQueue(ctx workflow.Con
 	}
 
 	// Default fallback (should never happen if workflow is created properly)
-	return "agent_execution_runner"
+	return "stigmer_runner"
 }
 
 // updateStatusOnFailure updates the execution status to FAILED when a system error occurs.

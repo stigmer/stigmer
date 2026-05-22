@@ -20,6 +20,7 @@ go_library(
         "send_signal.go",
         "stream_broker.go",
         "submit_approval.go",
+        "submit_workflow_task_approval.go",
         "subscribe.go",
         "subscribe_events.go",
         "terminate.go",
@@ -44,6 +45,7 @@ go_library(
         "//backend/libs/go/grpc/request/pipeline/steps",
         "//backend/libs/go/store",
         "//backend/services/stigmer-server/pkg/domain/workflowexecution/dedupe",
+        "//backend/services/stigmer-server/pkg/domain/workflowexecution/temporal",
         "//backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/activities",
         "//backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows",
         "//backend/services/stigmer-server/pkg/downstream/environment",
@@ -67,6 +69,7 @@ go_test(
     srcs = [
         "lifecycle_test.go",
         "send_signal_test.go",
+        "submit_workflow_task_approval_test.go",
         "workflowexecution_controller_test.go",
     ],
     embed = [":controller"],

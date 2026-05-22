@@ -433,6 +433,7 @@ const workflowExecution = await stigmer.workflowExecution.create({
   triggerMetadata: {},
   runtimeEnv: {},
   callbackToken: "...",
+  executionTarget: "...",
 });
 ```
 </Tab>
@@ -449,6 +450,7 @@ workflowExecution, err := client.WorkflowExecution.Create(ctx, &stigmer.Workflow
   TriggerMetadata:    map[string]string{},
   RuntimeEnv:         map[string]string{},
   CallbackToken:      "...",
+  ExecutionTarget:    "...",
 })
 ```
 </Tab>
@@ -465,6 +467,7 @@ workflow_execution = client.workflow_executions.create(WorkflowExecutionInput(
     trigger_metadata={},
     runtime_env={},
     callback_token="...",
+    execution_target="...",
 ))
 ```
 </Tab>
@@ -481,6 +484,7 @@ WorkflowExecution workflowExecution = client.workflowExecutions().create(Workflo
     .triggerMetadata(Map.of())
     .runtimeEnv(Map.of())
     .callbackToken("...")
+    .executionTarget("...")
     .build());
 ```
 </Tab>
@@ -508,6 +512,7 @@ const workflowExecution = await stigmer.workflowExecution.update({
   triggerMetadata: {},
   runtimeEnv: {},
   callbackToken: "...",
+  executionTarget: "...",
 });
 ```
 </Tab>
@@ -524,6 +529,7 @@ workflowExecution, err := client.WorkflowExecution.Update(ctx, &stigmer.Workflow
   TriggerMetadata:    map[string]string{},
   RuntimeEnv:         map[string]string{},
   CallbackToken:      "...",
+  ExecutionTarget:    "...",
 })
 ```
 </Tab>
@@ -540,6 +546,7 @@ workflow_execution = client.workflow_executions.update(WorkflowExecutionInput(
     trigger_metadata={},
     runtime_env={},
     callback_token="...",
+    execution_target="...",
 ))
 ```
 </Tab>
@@ -556,6 +563,7 @@ WorkflowExecution workflowExecution = client.workflowExecutions().update(Workflo
     .triggerMetadata(Map.of())
     .runtimeEnv(Map.of())
     .callbackToken("...")
+    .executionTarget("...")
     .build());
 ```
 </Tab>
@@ -1103,6 +1111,7 @@ Input for creating or updating a Workflow Execution.
     triggerMetadata: { type: "Record<string, string>", description: "Contextual metadata about what triggered this execution." },
     runtimeEnv: { type: "Record<string, EnvVarInput>", description: "Execution-scoped environment variables and secrets that override instance defaults.", typeDescriptionLink: "#envvarinput" },
     callbackToken: { type: "Uint8Array", description: "Opaque callback token for asynchronous completion by a parent orchestrator." },
+    executionTarget: { type: "ExecutionTarget", description: "Where workflow activities are executed — shared runner pool or dedicated sandbox.", typeDescriptionLink: "#executiontarget" },
   }}
 />
 
@@ -1572,6 +1581,15 @@ WorkflowTaskStatus defines the execution status of a workflow task.
 | `WORKFLOW_TASK_FAILED` | Task failed during execution. |
 | `WORKFLOW_TASK_SKIPPED` | Task was skipped due to conditional logic. |
 | `WORKFLOW_TASK_WAITING_APPROVAL` | Task is waiting for human approval from a child agent execution. |
+
+### ExecutionTarget
+
+ExecutionTarget specifies where session activities are executed.
+
+| Value | Description |
+|-------|-------------|
+| `EXECUTION_TARGET_LOCAL` | Client's embedded runner handles activities. |
+| `EXECUTION_TARGET_CLOUD` | Server provisions a cloud sandbox for execution. |
 
 ### WorkflowTaskKind
 

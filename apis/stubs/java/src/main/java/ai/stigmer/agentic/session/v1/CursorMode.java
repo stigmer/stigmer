@@ -174,7 +174,7 @@ public enum CursorMode
   }
   public static com.google.protobuf.Descriptors.EnumDescriptor
       getDescriptor() {
-    return ai.stigmer.agentic.session.v1.EnumProto.getDescriptor().getEnumType(2);
+    return ai.stigmer.agentic.session.v1.EnumProto.getDescriptor().getEnumType(3);
   }
 
   private static final CursorMode[] VALUES = values();

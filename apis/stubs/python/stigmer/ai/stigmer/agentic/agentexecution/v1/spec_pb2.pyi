@@ -10,7 +10,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class AgentExecutionSpec(_message.Message):
-    __slots__ = ("session_id", "agent_id", "message", "execution_config", "runtime_env", "callback_token", "auto_approve_all", "parent_workflow_id", "attachments", "workspace_file_refs")
+    __slots__ = ("session_id", "agent_id", "message", "execution_config", "runtime_env", "callback_token", "auto_approve_all", "parent_workflow_id", "attachments", "workspace_file_refs", "activity_task_queue")
     class RuntimeEnvEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -28,6 +28,7 @@ class AgentExecutionSpec(_message.Message):
     PARENT_WORKFLOW_ID_FIELD_NUMBER: _ClassVar[int]
     ATTACHMENTS_FIELD_NUMBER: _ClassVar[int]
     WORKSPACE_FILE_REFS_FIELD_NUMBER: _ClassVar[int]
+    ACTIVITY_TASK_QUEUE_FIELD_NUMBER: _ClassVar[int]
     session_id: str
     agent_id: str
     message: str
@@ -38,7 +39,8 @@ class AgentExecutionSpec(_message.Message):
     parent_workflow_id: str
     attachments: _containers.RepeatedCompositeFieldContainer[Attachment]
     workspace_file_refs: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, session_id: _Optional[str] = ..., agent_id: _Optional[str] = ..., message: _Optional[str] = ..., execution_config: _Optional[_Union[ExecutionConfig, _Mapping]] = ..., runtime_env: _Optional[_Mapping[str, _spec_pb2.ExecutionValue]] = ..., callback_token: _Optional[bytes] = ..., auto_approve_all: bool = ..., parent_workflow_id: _Optional[str] = ..., attachments: _Optional[_Iterable[_Union[Attachment, _Mapping]]] = ..., workspace_file_refs: _Optional[_Iterable[str]] = ...) -> None: ...
+    activity_task_queue: str
+    def __init__(self, session_id: _Optional[str] = ..., agent_id: _Optional[str] = ..., message: _Optional[str] = ..., execution_config: _Optional[_Union[ExecutionConfig, _Mapping]] = ..., runtime_env: _Optional[_Mapping[str, _spec_pb2.ExecutionValue]] = ..., callback_token: _Optional[bytes] = ..., auto_approve_all: bool = ..., parent_workflow_id: _Optional[str] = ..., attachments: _Optional[_Iterable[_Union[Attachment, _Mapping]]] = ..., workspace_file_refs: _Optional[_Iterable[str]] = ..., activity_task_queue: _Optional[str] = ...) -> None: ...
 
 class ExecutionConfig(_message.Message):
     __slots__ = ("model_name", "context_management", "max_tool_rounds", "max_tool_result_chars", "max_cost_usd", "interaction_mode")

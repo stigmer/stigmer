@@ -1,9 +1,0 @@
-load("@rules_go//go:def.bzl", "go_library")
-
-go_library(
-    name = "dotenv",
-    srcs = ["loader.go"],
-    importpath = "github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/dotenv",
-    visibility = ["//backend/services/workflow-runner:__subpackages__"],
-    deps = ["@com_github_joho_godotenv//:godotenv"],
-)

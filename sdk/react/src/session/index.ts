@@ -1,3 +1,6 @@
+export { toProtoExecutionTarget, fromProtoExecutionTarget } from "./execution-target";
+export type { ExecutionTargetOption } from "./execution-target";
+
 export { useCreateSession } from "./useCreateSession";
 export type {
   SharedSessionFields,

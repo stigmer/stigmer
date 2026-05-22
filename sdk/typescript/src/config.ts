@@ -74,6 +74,26 @@ export interface StigmerConfig {
   readonly fetch?: typeof globalThis.fetch;
 
   /**
+   * Default execution target for all sessions and workflow executions
+   * created through this client.
+   *
+   * - `"local"` -- Client provides runners (desktop app, CLI, or
+   *   customer-managed runner process).
+   * - `"cloud"` -- Server provisions cloud sandboxes automatically.
+   * - `undefined` (default) -- Server decides based on deployment
+   *   context (`LOCAL` for OSS/self-hosted, `CLOUD` for managed).
+   *
+   * This is an app-level setting, not a per-session choice. Workspace
+   * state, runner processes, and sandbox provisioning are all scoped
+   * to the application, not individual sessions.
+   *
+   * Per-call overrides on `SessionInput.executionTarget` or
+   * `WorkflowExecutionInput.executionTarget` take precedence when
+   * explicitly set.
+   */
+  readonly executionTarget?: "local" | "cloud";
+
+  /**
    * Pre-built ConnectRPC transport.
    *
    * When provided, the SDK uses this transport directly instead of

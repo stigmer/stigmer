@@ -6,13 +6,15 @@ import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { ExecutionValue } from "../../executioncontext/v1/spec_pb.js";
 import { file_ai_stigmer_agentic_executioncontext_v1_spec } from "../../executioncontext/v1/spec_pb.js";
+import type { ExecutionTarget } from "../../session/v1/enum_pb.js";
+import { file_ai_stigmer_agentic_session_v1_enum } from "../../session/v1/enum_pb.js";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ai/stigmer/agentic/workflowexecution/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_workflowexecution_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CjJhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3dleGVjdXRpb24vdjEvc3BlYy5wcm90bxInYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxIvIDChVXb3JrZmxvd0V4ZWN1dGlvblNwZWMSHAoUd29ya2Zsb3dfaW5zdGFuY2VfaWQYASABKAkSEwoLd29ya2Zsb3dfaWQYBiABKAkSFwoPdHJpZ2dlcl9tZXNzYWdlGAMgASgJEm0KEHRyaWdnZXJfbWV0YWRhdGEYBCADKAsyUy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuV29ya2Zsb3dFeGVjdXRpb25TcGVjLlRyaWdnZXJNZXRhZGF0YUVudHJ5EmMKC3J1bnRpbWVfZW52GAUgAygLMk4uYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXhlY3V0aW9uU3BlYy5SdW50aW1lRW52RW50cnkSFgoOY2FsbGJhY2tfdG9rZW4YByABKAwaNgoUVHJpZ2dlck1ldGFkYXRhRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ARppCg9SdW50aW1lRW52RW50cnkSCwoDa2V5GAEgASgJEkUKBXZhbHVlGAIgASgLMjYuYWkuc3RpZ21lci5hZ2VudGljLmV4ZWN1dGlvbmNvbnRleHQudjEuRXhlY3V0aW9uVmFsdWU6AjgBYgZwcm90bzM", [file_ai_stigmer_agentic_executioncontext_v1_spec]);
+  fileDesc("CjJhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3dleGVjdXRpb24vdjEvc3BlYy5wcm90bxInYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxIrwEChVXb3JrZmxvd0V4ZWN1dGlvblNwZWMSHAoUd29ya2Zsb3dfaW5zdGFuY2VfaWQYASABKAkSEwoLd29ya2Zsb3dfaWQYBiABKAkSFwoPdHJpZ2dlcl9tZXNzYWdlGAMgASgJEm0KEHRyaWdnZXJfbWV0YWRhdGEYBCADKAsyUy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuV29ya2Zsb3dFeGVjdXRpb25TcGVjLlRyaWdnZXJNZXRhZGF0YUVudHJ5EmMKC3J1bnRpbWVfZW52GAUgAygLMk4uYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXhlY3V0aW9uU3BlYy5SdW50aW1lRW52RW50cnkSFgoOY2FsbGJhY2tfdG9rZW4YByABKAwSSAoQZXhlY3V0aW9uX3RhcmdldBgIIAEoDjIuLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkV4ZWN1dGlvblRhcmdldBo2ChRUcmlnZ2VyTWV0YWRhdGFFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBGmkKD1J1bnRpbWVFbnZFbnRyeRILCgNrZXkYASABKAkSRQoFdmFsdWUYAiABKAsyNi5haS5zdGlnbWVyLmFnZW50aWMuZXhlY3V0aW9uY29udGV4dC52MS5FeGVjdXRpb25WYWx1ZToCOAFiBnByb3RvMw", [file_ai_stigmer_agentic_executioncontext_v1_spec, file_ai_stigmer_agentic_session_v1_enum]);
 
 /**
  * WorkflowExecutionSpec defines the user-provided inputs for a workflow execution.
@@ -171,6 +173,27 @@ export type WorkflowExecutionSpec = Message<"ai.stigmer.agentic.workflowexecutio
    * @generated from field: bytes callback_token = 7;
    */
   callbackToken: Uint8Array;
+
+  /**
+   * Where workflow activities are executed — shared runner pool or dedicated sandbox.
+   *
+   * @internal
+   * Determines dispatch routing for the workflow and all child executions:
+   * - UNSPECIFIED: server defaults (LOCAL for OSS, CLOUD for managed)
+   * - LOCAL: workflow runs on global queue (stigmer_runner)
+   * - CLOUD: server provisions a dedicated sandbox with per-execution queue
+   *
+   * When CLOUD: all call:agent tasks within this workflow share the same sandbox.
+   * Child agent executions inherit this sandbox via activity_task_queue propagation
+   * on AgentExecutionSpec, avoiding N separate sandbox cold starts.
+   *
+   * Immutable after creation (sandbox provisioning is a one-time operation).
+   *
+   * @since Workflow Sandbox Affinity
+   *
+   * @generated from field: ai.stigmer.agentic.session.v1.ExecutionTarget execution_target = 8;
+   */
+  executionTarget: ExecutionTarget;
 };
 
 /**

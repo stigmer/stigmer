@@ -23,8 +23,11 @@ import {
   SecretFlowErrorGuide,
   isSecretFlowError,
   useActiveOrgSlug,
+  SharePanel,
+  PermissionGate,
 } from "@stigmer/react";
 import type { InteractionModeOption, SessionComposerHandle } from "@stigmer/react";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { getUserMessage } from "@stigmer/sdk";
 import { useDeploymentMode } from "@/domain/_shared/hooks/useDeploymentMode";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
@@ -47,6 +50,7 @@ export function SessionPageInner({ id }: { id: string }) {
   const [interactionMode, setInteractionMode] = useState<InteractionModeOption>("agent");
   const ctxWindow = useContextWindow(flow.displayExecution ?? null);
   const composerRef = useRef<SessionComposerHandle>(null);
+  const [showSharePanel, setShowSharePanel] = useState(false);
 
   const handleBuildFromPlan = useCallback(() => {
     setInteractionMode("agent");
@@ -59,7 +63,31 @@ export function SessionPageInner({ id }: { id: string }) {
   if (!conv.session && !conv.isLoading) return <SessionStarting />;
 
   return (
-    <div className="flex h-full w-full flex-col pl-[220px]">
+    <div className="relative flex h-full w-full flex-col pl-[220px]">
+      {/* Share button — cloud-only, owner sees it */}
+      <PermissionGate resource={{ kind: "session", id }} relation="can_grant_access">
+        <div className="absolute top-2 right-6 z-10">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowSharePanel((v) => !v)}
+            aria-label="Share session"
+            aria-expanded={showSharePanel}
+          >
+            Share
+          </Button>
+          {showSharePanel && (
+            <div className="absolute right-0 top-full mt-1 w-80 rounded-lg border border-border bg-popover shadow-lg">
+              <SharePanel
+                resource={{ kind: "session", id, resourceKind: ApiResourceKind.session }}
+                resourceKindString="session"
+                resourceKind={ApiResourceKind.session}
+                onClose={() => setShowSharePanel(false)}
+              />
+            </div>
+          )}
+        </div>
+      </PermissionGate>
       <div className="flex min-h-0 flex-1 gap-3">
         <div className="flex min-w-0 flex-1 flex-col">
           <MessageThread

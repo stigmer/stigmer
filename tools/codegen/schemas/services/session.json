@@ -272,18 +272,23 @@
   "enumTypes": [
     {
       "name": "ApiResourceVisibility",
-      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines whether\n users outside that organization can access the resource.",
+      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines whether\n users outside that organization can access the resource.\n\n The three visibility levels map to FGA tuples:\n - PRIVATE: no additional viewer tuples (owner-only access)\n - ORG: resource#viewer@organization:\u003corg\u003e#member tuple (all org members)\n - PUBLIC: resource#viewer@identity_account:* with allow_public (all users)",
       "protoType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
       "values": [
         {
           "name": "visibility_private",
           "number": 1,
-          "description": "Only members of the owning organization can access.\n This is the default for most resources.\n Named visibility_private to avoid Java reserved keyword conflict."
+          "description": "Only the owner (and explicitly granted principals) can access.\n This is the default for instances and personal resources.\n Named visibility_private to avoid Java reserved keyword conflict."
         },
         {
           "name": "visibility_public",
           "number": 2,
           "description": "Anyone can access (read) this resource.\n Used for marketplace-published resources (e.g., \"stigmer/web-search\").\n Write access still requires org membership.\n Named visibility_public to avoid Java reserved keyword conflict."
+        },
+        {
+          "name": "visibility_org",
+          "number": 3,
+          "description": "All members of the owning organization can access (read) this resource.\n Used for instances where a team wants shared observability of executions\n without granting access to all authenticated users.\n\n FGA tuple: resource#viewer@organization:\u003corg\u003e#member\n\n For workflow instances, this enables zero-tuple-per-execution shared\n observability: all org members see all executions via inheritance."
         }
       ]
     },
@@ -318,6 +323,23 @@
           "name": "CURSOR_MODE_CLOUD",
           "number": 2,
           "description": "Cloud Cursor agent created with a cloud repos configuration.\n\n Requires all workspace entries to be GitRepoSource (HTTPS URLs).\n Cursor natively manages conversation state for cloud agents, but\n Stigmer persists session memory as backup because cloud agents can\n expire. Feature-flagged — requires STIGMER_CURSOR_CLOUD_MODE_ENABLED."
+        }
+      ]
+    },
+    {
+      "name": "ExecutionTarget",
+      "description": "ExecutionTarget specifies where session activities are executed.\n\n Determines whether the runner that processes agent activities lives on the\n client's machine (desktop app or CLI) or in a cloud-provisioned sandbox.\n Set at session creation time and immutable once an execution has run —\n workspace state may not be portable between local and cloud environments.\n\n @internal\n The control plane uses this field in dispatch to decide whether to route\n activities to a client-polled per-session queue (LOCAL) or provision a\n cloud sandbox (CLOUD). Both use task queues named \"session:{session_id}\".\n The difference is who provides the runner: the client (LOCAL) or the\n server (CLOUD).",
+      "protoType": "ai.stigmer.agentic.session.v1.ExecutionTarget",
+      "values": [
+        {
+          "name": "EXECUTION_TARGET_LOCAL",
+          "number": 1,
+          "description": "Client's embedded runner handles activities.\n\n Desktop app or CLI spawns a local runner process that polls the\n session's task queue. No server-side provisioning needed."
+        },
+        {
+          "name": "EXECUTION_TARGET_CLOUD",
+          "number": 2,
+          "description": "Server provisions a cloud sandbox for execution.\n\n The control plane triggers EnsureSessionSandbox to create an isolated\n environment with a runner polling the session's task queue."
         }
       ]
     },
@@ -417,11 +439,6 @@
           "name": "agent_instance",
           "number": 45,
           "description": "Configured deployment of an agent with environment-specific overrides."
-        },
-        {
-          "name": "runner",
-          "number": 46,
-          "description": "Process that executes work, either user-created or system-managed."
         },
         {
           "name": "workflow",

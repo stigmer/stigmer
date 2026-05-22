@@ -117,7 +117,7 @@ def main() -> None:
     # Tier 2: Workflow execution lifecycle
     # -------------------------------------------------------------------
     if not workflow_runner_available:
-        log("workflow-runner not available — skipping Tier 2")
+        log("unified runner not available — skipping Tier 2")
         result["tier2"] = "skip"
         print(json.dumps(result))
         sys.exit(0)

@@ -67,7 +67,6 @@ var cliRelevantKinds = map[apiresourcekind.ApiResourceKind]bool{
 	apiresourcekind.ApiResourceKind_agent_instance:    true,
 	apiresourcekind.ApiResourceKind_workflow_instance: true,
 	apiresourcekind.ApiResourceKind_session:           true,
-	apiresourcekind.ApiResourceKind_runner:            true,
 }
 
 // buildRegistry creates the registry from proto metadata.

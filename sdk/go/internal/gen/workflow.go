@@ -48,6 +48,11 @@ func (w *WorkflowClient) Update(ctx context.Context, input *WorkflowInput) (*wor
 	return resp, wrapErr(err)
 }
 
+func (w *WorkflowClient) UpdateVisibility(ctx context.Context, input *apiresource.UpdateVisibilityInput) (*workflowv1.Workflow, error) {
+	resp, err := w.command.UpdateVisibility(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (w *WorkflowClient) Delete(ctx context.Context, id string) (*workflowv1.Workflow, error) {
 	resp, err := w.command.Delete(ctx, &workflowv1.WorkflowId{Value: id})
 	return resp, wrapErr(err)
