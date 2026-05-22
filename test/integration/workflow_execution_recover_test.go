@@ -164,7 +164,9 @@ func TestWorkflowExecution_RecoverOnCancelledFails(t *testing.T) {
 	executionID := execution.GetMetadata().GetId()
 	waiter := harness.NewExecutionWaiter(clients.ExecutionQuery, suiteLogger)
 
-	time.Sleep(3 * time.Second)
+	_, err = waiter.WaitForPhase(ctx, executionID,
+		workflowexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS, 30*time.Second)
+	require.NoError(t, err, "execution should reach IN_PROGRESS before cancel")
 
 	_, err = clients.ExecutionCommand.Cancel(ctx, &workflowexecutionv1.CancelWorkflowExecutionInput{
 		Id: executionID,

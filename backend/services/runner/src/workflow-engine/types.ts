@@ -12,6 +12,8 @@
  * exhaustive type checking in TypeScript.
  */
 
+import type { TaskStatusAccumulator } from "./task-status-accumulator.js";
+
 // ─────────────────────────────────────────────────────────────────────
 // Workflow Model (top-level)
 // ─────────────────────────────────────────────────────────────────────
@@ -438,6 +440,13 @@ export interface TaskExecutionContext {
    * this opaque callback at well-defined yield points.
    */
   readonly checkPause?: () => Promise<void>;
+
+  /**
+   * Accumulates per-task status entries throughout the workflow run.
+   * Passed to the emit activity on every event batch so the server
+   * receives a complete snapshot of task statuses with each update.
+   */
+  readonly taskStatusAccumulator?: TaskStatusAccumulator;
 }
 
 /**

@@ -254,6 +254,47 @@ func extractAndValidateRefs(
 	return errors
 }
 
+// ValidateTaskConfigRequiredFields checks that task-type-specific required
+// fields are present in each task's config struct.
+func ValidateTaskConfigRequiredFields(spec *workflowv1.WorkflowSpec) []string {
+	if spec == nil || len(spec.Tasks) == 0 {
+		return nil
+	}
+
+	var errors []string
+	for _, task := range spec.Tasks {
+		if task.TaskConfig == nil {
+			continue
+		}
+		fields := task.TaskConfig.GetFields()
+
+		switch task.Kind {
+		case workflowv1.WorkflowTaskKind_eval:
+			if model := getStringField(fields, "model"); model == "" {
+				errors = append(errors, fmt.Sprintf("task '%s' (eval): required field 'model' is missing or empty", task.Name))
+			}
+			if subject := getStringField(fields, "subject"); subject == "" {
+				errors = append(errors, fmt.Sprintf("task '%s' (eval): required field 'subject' is missing or empty", task.Name))
+			}
+			if rubric := getStringField(fields, "rubric"); rubric == "" {
+				errors = append(errors, fmt.Sprintf("task '%s' (eval): required field 'rubric' is missing or empty", task.Name))
+			}
+
+		case workflowv1.WorkflowTaskKind_http_call:
+			if method := getStringField(fields, "method"); method == "" {
+				errors = append(errors, fmt.Sprintf("task '%s' (http_call): required field 'method' is missing or empty", task.Name))
+			}
+			endpoint := getStructField(fields, "endpoint")
+			if endpoint == nil {
+				errors = append(errors, fmt.Sprintf("task '%s' (http_call): required field 'endpoint' is missing", task.Name))
+			} else if uri := getStringField(endpoint.GetFields(), "uri"); uri == "" {
+				errors = append(errors, fmt.Sprintf("task '%s' (http_call): required field 'endpoint.uri' is missing or empty", task.Name))
+			}
+		}
+	}
+	return errors
+}
+
 func getStringField(fields map[string]*structpb.Value, keys ...string) string {
 	for _, key := range keys {
 		if v, ok := fields[key]; ok {
