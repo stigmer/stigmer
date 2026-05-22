@@ -254,9 +254,11 @@ func TestWorkflowArchitect_DiagnoseExecution(t *testing.T) {
 
 	// Create a workflow that will fail: http_call to an unreachable endpoint.
 	httpConfig, err := structpb.NewStruct(map[string]any{
-		"method":  "GET",
-		"url":     "http://127.0.0.1:1/nonexistent-endpoint",
-		"timeout": "5s",
+		"method": "GET",
+		"endpoint": map[string]any{
+			"uri": "http://127.0.0.1:1/nonexistent-endpoint",
+		},
+		"timeout_seconds": float64(5),
 	})
 	require.NoError(t, err)
 
@@ -518,9 +520,11 @@ func TestWorkflowArchitect_DiagnoseAndRepair(t *testing.T) {
 
 	// Deploy a workflow that will fail: http_call to unreachable endpoint.
 	httpConfig, err := structpb.NewStruct(map[string]any{
-		"method":  "GET",
-		"url":     "http://127.0.0.1:1/nonexistent-endpoint",
-		"timeout": "5s",
+		"method": "GET",
+		"endpoint": map[string]any{
+			"uri": "http://127.0.0.1:1/nonexistent-endpoint",
+		},
+		"timeout_seconds": float64(5),
 	})
 	require.NoError(t, err)
 

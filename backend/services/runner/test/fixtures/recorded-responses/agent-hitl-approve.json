@@ -1,0 +1,68 @@
+{
+  "name": "agent-hitl-approve",
+  "recordedAt": "2026-05-22T00:00:00Z",
+  "entries": [
+    {
+      "index": 0,
+      "timestamp": "2026-05-22T00:00:00.100Z",
+      "request": {
+        "method": "POST",
+        "url": "https://proxy.stigmer.ai/v1/proxy/llm/anthropic/v1/messages",
+        "headers": { "authorization": "[REDACTED]", "content-type": "application/json" },
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "statusText": "OK",
+        "headers": { "content-type": "application/json" },
+        "body": {
+          "id": "msg_test_hitl_approve_01",
+          "type": "message",
+          "role": "assistant",
+          "model": "claude-sonnet-4-20250514",
+          "content": [
+            {
+              "type": "tool_use",
+              "id": "toolu_hitl_01",
+              "name": "echo",
+              "input": { "text": "hello-hitl" }
+            }
+          ],
+          "stop_reason": "tool_use",
+          "usage": { "input_tokens": 150, "output_tokens": 48 }
+        }
+      },
+      "durationMs": 920
+    },
+    {
+      "index": 1,
+      "timestamp": "2026-05-22T00:00:05.500Z",
+      "request": {
+        "method": "POST",
+        "url": "https://proxy.stigmer.ai/v1/proxy/llm/anthropic/v1/messages",
+        "headers": { "authorization": "[REDACTED]", "content-type": "application/json" },
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "statusText": "OK",
+        "headers": { "content-type": "application/json" },
+        "body": {
+          "id": "msg_test_hitl_approve_02",
+          "type": "message",
+          "role": "assistant",
+          "model": "claude-sonnet-4-20250514",
+          "content": [
+            {
+              "type": "text",
+              "text": "The tool was approved and executed successfully. Echo returned: hello-hitl."
+            }
+          ],
+          "stop_reason": "end_turn",
+          "usage": { "input_tokens": 210, "output_tokens": 25 }
+        }
+      },
+      "durationMs": 480
+    }
+  ]
+}

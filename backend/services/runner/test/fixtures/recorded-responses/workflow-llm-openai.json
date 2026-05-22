@@ -1,0 +1,38 @@
+{
+  "name": "workflow-llm-openai",
+  "recordedAt": "2026-05-22T00:00:00Z",
+  "entries": [
+    {
+      "index": 0,
+      "timestamp": "2026-05-22T00:00:00Z",
+      "request": {
+        "method": "POST",
+        "url": "https://proxy/v1/proxy/llm/openai/v1/chat/completions",
+        "headers": { "authorization": "[REDACTED]", "content-type": "application/json" },
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "statusText": "OK",
+        "headers": { "content-type": "application/json" },
+        "body": {
+          "id": "chatcmpl-test-llm-openai-01",
+          "object": "chat.completion",
+          "model": "gpt-4o",
+          "choices": [
+            {
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": "{\"sentiment\": \"positive\", \"confidence\": 0.92}"
+              },
+              "finish_reason": "stop"
+            }
+          ],
+          "usage": { "prompt_tokens": 150, "completion_tokens": 40, "total_tokens": 190 }
+        }
+      },
+      "durationMs": 850
+    }
+  ]
+}

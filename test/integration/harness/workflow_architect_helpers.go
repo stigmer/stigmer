@@ -101,7 +101,7 @@ type seedpackAgentSpec struct {
 // that production uses.
 func loadWorkflowArchitectInstructions() (string, error) {
 	_, thisFile, _, _ := runtime.Caller(0)
-	seedpackPath := filepath.Join(filepath.Dir(thisFile), "..", "..", "..", "..", "seedpack", "agents", "workflow-architect.yaml")
+	seedpackPath := filepath.Join(filepath.Dir(thisFile), "..", "..", "..", "seedpack", "agents", "workflow-architect.yaml")
 
 	data, err := os.ReadFile(seedpackPath)
 	if err != nil {
@@ -236,7 +236,7 @@ func LoadWorkflowArchitectEnabledTools() ([]string, error) {
 // to detect drift between harness constants and the seedpack source of truth.
 func loadWorkflowArchitectEnabledTools() ([]string, error) {
 	_, thisFile, _, _ := runtime.Caller(0)
-	seedpackPath := filepath.Join(filepath.Dir(thisFile), "..", "..", "..", "..", "seedpack", "agents", "workflow-architect.yaml")
+	seedpackPath := filepath.Join(filepath.Dir(thisFile), "..", "..", "..", "seedpack", "agents", "workflow-architect.yaml")
 
 	data, err := os.ReadFile(seedpackPath)
 	if err != nil {

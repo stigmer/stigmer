@@ -18,6 +18,7 @@
 
 import { ApplicationFailure } from "@temporalio/activity";
 import { callLlmAction, type LlmCallConfig } from "./call-llm.js";
+import { callEvalAction, type EvalConfig } from "./call-eval.js";
 import { emitEventAction, type EmitEventConfig } from "./emit-event.js";
 import { notificationAction, type NotificationConfig } from "./notification.js";
 import { transformAction, type TransformConfig } from "./call-transform.js";
@@ -35,6 +36,8 @@ export async function callFunctionAction(
   switch (call) {
     case "llm":
       return callLlmAction(resolved as unknown as LlmCallConfig, runtimeEnv, executionId);
+    case "eval":
+      return callEvalAction(resolved as unknown as EvalConfig, runtimeEnv, executionId);
     case "emit_event":
       return emitEventAction(resolved as unknown as EmitEventConfig, executionId, runtimeEnv);
     case "notification":
@@ -50,7 +53,7 @@ export async function callFunctionAction(
       );
     default:
       throw ApplicationFailure.nonRetryable(
-        `Unknown custom call function '${call}'. Supported: llm, emit_event, notification, transform, validate.`,
+        `Unknown custom call function '${call}'. Supported: llm, eval, emit_event, notification, transform, validate.`,
         "UNKNOWN_CALL_FUNCTION",
       );
   }

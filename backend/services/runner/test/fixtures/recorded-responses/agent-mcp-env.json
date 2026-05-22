@@ -1,0 +1,68 @@
+{
+  "name": "agent-mcp-env",
+  "recordedAt": "2026-05-22T00:00:00Z",
+  "entries": [
+    {
+      "index": 0,
+      "timestamp": "2026-05-22T00:00:00.100Z",
+      "request": {
+        "method": "POST",
+        "url": "https://proxy.stigmer.ai/v1/proxy/llm/anthropic/v1/messages",
+        "headers": { "authorization": "[REDACTED]", "content-type": "application/json" },
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "statusText": "OK",
+        "headers": { "content-type": "application/json" },
+        "body": {
+          "id": "msg_test_mcp_env_01",
+          "type": "message",
+          "role": "assistant",
+          "model": "claude-sonnet-4-20250514",
+          "content": [
+            {
+              "type": "tool_use",
+              "id": "toolu_env_01",
+              "name": "echo",
+              "input": { "text": "env-resolved" }
+            }
+          ],
+          "stop_reason": "tool_use",
+          "usage": { "input_tokens": 140, "output_tokens": 38 }
+        }
+      },
+      "durationMs": 820
+    },
+    {
+      "index": 1,
+      "timestamp": "2026-05-22T00:00:01.200Z",
+      "request": {
+        "method": "POST",
+        "url": "https://proxy.stigmer.ai/v1/proxy/llm/anthropic/v1/messages",
+        "headers": { "authorization": "[REDACTED]", "content-type": "application/json" },
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "statusText": "OK",
+        "headers": { "content-type": "application/json" },
+        "body": {
+          "id": "msg_test_mcp_env_02",
+          "type": "message",
+          "role": "assistant",
+          "model": "claude-sonnet-4-20250514",
+          "content": [
+            {
+              "type": "text",
+              "text": "The echo tool returned: env-resolved. Environment variable resolution is working correctly."
+            }
+          ],
+          "stop_reason": "end_turn",
+          "usage": { "input_tokens": 190, "output_tokens": 28 }
+        }
+      },
+      "durationMs": 510
+    }
+  ]
+}

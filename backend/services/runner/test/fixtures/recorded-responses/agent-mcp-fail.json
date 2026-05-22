@@ -1,0 +1,68 @@
+{
+  "name": "agent-mcp-fail",
+  "recordedAt": "2026-05-22T00:00:00Z",
+  "entries": [
+    {
+      "index": 0,
+      "timestamp": "2026-05-22T00:00:00.100Z",
+      "request": {
+        "method": "POST",
+        "url": "https://proxy.stigmer.ai/v1/proxy/llm/anthropic/v1/messages",
+        "headers": { "authorization": "[REDACTED]", "content-type": "application/json" },
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "statusText": "OK",
+        "headers": { "content-type": "application/json" },
+        "body": {
+          "id": "msg_test_mcp_fail_01",
+          "type": "message",
+          "role": "assistant",
+          "model": "claude-sonnet-4-20250514",
+          "content": [
+            {
+              "type": "tool_use",
+              "id": "toolu_fail_01",
+              "name": "fail",
+              "input": { "message": "test-error" }
+            }
+          ],
+          "stop_reason": "tool_use",
+          "usage": { "input_tokens": 115, "output_tokens": 40 }
+        }
+      },
+      "durationMs": 780
+    },
+    {
+      "index": 1,
+      "timestamp": "2026-05-22T00:00:01.100Z",
+      "request": {
+        "method": "POST",
+        "url": "https://proxy.stigmer.ai/v1/proxy/llm/anthropic/v1/messages",
+        "headers": { "authorization": "[REDACTED]", "content-type": "application/json" },
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "statusText": "OK",
+        "headers": { "content-type": "application/json" },
+        "body": {
+          "id": "msg_test_mcp_fail_02",
+          "type": "message",
+          "role": "assistant",
+          "model": "claude-sonnet-4-20250514",
+          "content": [
+            {
+              "type": "text",
+              "text": "The tool call failed with error: test-error. I was unable to complete the requested operation."
+            }
+          ],
+          "stop_reason": "end_turn",
+          "usage": { "input_tokens": 195, "output_tokens": 35 }
+        }
+      },
+      "durationMs": 550
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "name": "agent-mcp-filter",
+  "recordedAt": "2026-05-22T00:00:00Z",
+  "entries": [
+    {
+      "index": 0,
+      "timestamp": "2026-05-22T00:00:00.100Z",
+      "request": {
+        "method": "POST",
+        "url": "https://proxy.stigmer.ai/v1/proxy/llm/anthropic/v1/messages",
+        "headers": { "authorization": "[REDACTED]", "content-type": "application/json" },
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "statusText": "OK",
+        "headers": { "content-type": "application/json" },
+        "body": {
+          "id": "msg_test_mcp_filter_01",
+          "type": "message",
+          "role": "assistant",
+          "model": "claude-sonnet-4-20250514",
+          "content": [
+            {
+              "type": "tool_use",
+              "id": "toolu_filter_01",
+              "name": "echo",
+              "input": { "text": "filter-test" }
+            }
+          ],
+          "stop_reason": "tool_use",
+          "usage": { "input_tokens": 130, "output_tokens": 42 }
+        }
+      },
+      "durationMs": 900
+    },
+    {
+      "index": 1,
+      "timestamp": "2026-05-22T00:00:01.300Z",
+      "request": {
+        "method": "POST",
+        "url": "https://proxy.stigmer.ai/v1/proxy/llm/anthropic/v1/messages",
+        "headers": { "authorization": "[REDACTED]", "content-type": "application/json" },
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "statusText": "OK",
+        "headers": { "content-type": "application/json" },
+        "body": {
+          "id": "msg_test_mcp_filter_02",
+          "type": "message",
+          "role": "assistant",
+          "model": "claude-sonnet-4-20250514",
+          "content": [
+            {
+              "type": "text",
+              "text": "The echo tool (the only enabled tool) returned: filter-test. Tool filtering is working as expected."
+            }
+          ],
+          "stop_reason": "end_turn",
+          "usage": { "input_tokens": 185, "output_tokens": 32 }
+        }
+      },
+      "durationMs": 580
+    }
+  ]
+}
