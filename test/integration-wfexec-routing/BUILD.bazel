@@ -1,0 +1,3 @@
+# Empty BUILD file to satisfy Bazel module resolution for the
+# test/integration-wfexec-routing go.mod. This module is not built
+# through Bazel — tests run via `go test` / `gotestsum`.
