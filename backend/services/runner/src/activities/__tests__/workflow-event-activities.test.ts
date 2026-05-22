@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { toProtoEvent, resetSequenceCounter, emitWorkflowEvents } from "../workflow-event-activities.js";
 import { WorkflowEventType } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
+import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import type { WorkflowEventDescriptor } from "../../workflow-engine/types.js";
 
 const NOW = "2026-05-22T00:00:00.000Z";
@@ -137,6 +138,86 @@ describe("toProtoEvent", () => {
 
       if (evt.payload.case !== "taskStarted") throw new Error("unexpected");
       expect(evt.payload.value.taskKind).toBe(0);
+    });
+
+    it("maps call:agent to proto agent_call (13), not http_call (2)", () => {
+      const evt = toProtoEvent({
+        type: "task_started",
+        taskName: "run_analyst",
+        occurredAt: NOW,
+        taskKind: "call:agent",
+        attemptNumber: 1,
+      });
+
+      if (evt.payload.case !== "taskStarted") throw new Error("unexpected");
+      expect(evt.payload.value.taskKind).toBe(WorkflowTaskKind.agent_call);
+      expect(evt.payload.value.taskKind).toBe(13);
+    });
+
+    it("maps call:http to proto http_call (2)", () => {
+      const evt = toProtoEvent({
+        type: "task_started",
+        taskName: "fetch_data",
+        occurredAt: NOW,
+        taskKind: "call:http",
+        attemptNumber: 1,
+      });
+
+      if (evt.payload.case !== "taskStarted") throw new Error("unexpected");
+      expect(evt.payload.value.taskKind).toBe(WorkflowTaskKind.http_call);
+      expect(evt.payload.value.taskKind).toBe(2);
+    });
+
+    it("maps call:function:llm to proto llm_call (14)", () => {
+      const evt = toProtoEvent({
+        type: "task_started",
+        taskName: "classify",
+        occurredAt: NOW,
+        taskKind: "call:function:llm",
+        attemptNumber: 1,
+      });
+
+      if (evt.payload.case !== "taskStarted") throw new Error("unexpected");
+      expect(evt.payload.value.taskKind).toBe(WorkflowTaskKind.llm_call);
+    });
+
+    it("maps call:function:eval to proto eval (20)", () => {
+      const evt = toProtoEvent({
+        type: "task_started",
+        taskName: "quality_check",
+        occurredAt: NOW,
+        taskKind: "call:function:eval",
+        attemptNumber: 1,
+      });
+
+      if (evt.payload.case !== "taskStarted") throw new Error("unexpected");
+      expect(evt.payload.value.taskKind).toBe(WorkflowTaskKind.eval);
+    });
+
+    it("maps call:function:emit_event to proto emit_event (18)", () => {
+      const evt = toProtoEvent({
+        type: "task_started",
+        taskName: "notify",
+        occurredAt: NOW,
+        taskKind: "call:function:emit_event",
+        attemptNumber: 1,
+      });
+
+      if (evt.payload.case !== "taskStarted") throw new Error("unexpected");
+      expect(evt.payload.value.taskKind).toBe(WorkflowTaskKind.emit_event);
+    });
+
+    it("falls back to activity_call for generic call:function", () => {
+      const evt = toProtoEvent({
+        type: "task_started",
+        taskName: "custom",
+        occurredAt: NOW,
+        taskKind: "call:function",
+        attemptNumber: 1,
+      });
+
+      if (evt.payload.case !== "taskStarted") throw new Error("unexpected");
+      expect(evt.payload.value.taskKind).toBe(WorkflowTaskKind.activity_call);
     });
   });
 

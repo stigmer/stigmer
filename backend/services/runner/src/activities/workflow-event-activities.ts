@@ -35,6 +35,7 @@ import {
   WorkflowExecutionUpdateStatusInputSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
 import { ExecutionPhase, WorkflowTaskStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import type { JsonObject } from "@bufbuild/protobuf";
 import type { WorkflowEventDescriptor } from "../workflow-engine/types.js";
 import type { TaskStatusEntry } from "../workflow-engine/task-status-accumulator.js";
@@ -47,22 +48,39 @@ const TASK_STATUS_MAP: Record<TaskStatusEntry["status"], WorkflowTaskStatus> = {
   waiting_approval: WorkflowTaskStatus.WORKFLOW_TASK_WAITING_APPROVAL,
 };
 
+/**
+ * Maps internal DSL task kind strings to proto WorkflowTaskKind enum values.
+ *
+ * IMPORTANT: Values must match the proto enum in
+ * apis/ai/stigmer/agentic/workflow/v1/enum.proto — use the imported
+ * WorkflowTaskKind enum to prevent drift.
+ *
+ * The "call:function:<sub>" entries handle call:function sub-types.
+ * The do-executor emits these composite strings so the event carries
+ * the specific proto kind (llm_call, eval, etc.) instead of the
+ * generic activity_call fallback.
+ */
 const TASK_KIND_MAP: Record<string, number> = {
-  "set": 1,
-  "call:agent": 2,
-  "call:http": 3,
-  "call:grpc": 4,
-  "call:function": 5,
-  "do": 6,
-  "for": 7,
-  "fork": 8,
-  "listen": 9,
-  "switch": 10,
-  "try": 11,
-  "wait": 12,
-  "raise": 13,
-  "run": 14,
-  "human_input": 16,
+  "set": WorkflowTaskKind.set_vars,
+  "call:http": WorkflowTaskKind.http_call,
+  "call:grpc": WorkflowTaskKind.grpc_call,
+  "call:function": WorkflowTaskKind.activity_call,
+  "call:function:llm": WorkflowTaskKind.llm_call,
+  "call:function:transform": WorkflowTaskKind.transform,
+  "call:function:validate": WorkflowTaskKind.validate,
+  "call:function:emit_event": WorkflowTaskKind.emit_event,
+  "call:function:notification": WorkflowTaskKind.notification,
+  "call:function:eval": WorkflowTaskKind.eval,
+  "switch": WorkflowTaskKind.switch_case,
+  "for": WorkflowTaskKind.for_each,
+  "fork": WorkflowTaskKind.fork,
+  "try": WorkflowTaskKind.try_catch,
+  "listen": WorkflowTaskKind.listen,
+  "wait": WorkflowTaskKind.wait,
+  "raise": WorkflowTaskKind.raise_error,
+  "run": WorkflowTaskKind.run_workflow,
+  "call:agent": WorkflowTaskKind.agent_call,
+  "human_input": WorkflowTaskKind.human_input,
 };
 
 function buildClient(): StigmerClient {

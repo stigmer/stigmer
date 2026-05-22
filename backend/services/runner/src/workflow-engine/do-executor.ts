@@ -17,6 +17,7 @@
 import type {
   TaskList,
   TaskEntry,
+  CallFunctionTaskDef,
   DoTaskDef,
   ForTaskDef,
   ForkTaskDef,
@@ -36,6 +37,20 @@ import { executeForkTask } from "./tasks/fork.js";
 import { executeTryTask } from "./tasks/try.js";
 import { executeListenTask } from "./tasks/listen.js";
 import { executeHumanInputTask } from "./tasks/human-input.js";
+
+/**
+ * Returns the task kind string used for event emission. For call:function
+ * tasks, appends the specific function name (e.g., "call:function:llm")
+ * so the event system can map to the precise proto WorkflowTaskKind
+ * (llm_call, eval, etc.) instead of the generic activity_call fallback.
+ */
+function eventTaskKind(entry: TaskEntry): string {
+  if (entry.task.kind === "call:function") {
+    const call = (entry.task as CallFunctionTaskDef).call;
+    return `call:function:${call}`;
+  }
+  return entry.task.kind;
+}
 
 /**
  * Executes a `do` task list — the top-level entry point and the
@@ -82,20 +97,21 @@ export async function executeDoTasks(
           type: "task_skipped",
           taskName: entry.key,
           occurredAt: new Date().toISOString(),
-          taskKind: entry.task.kind,
+          taskKind: eventTaskKind(entry),
           reason: "condition evaluated to false",
         }]);
       }
       continue;
     }
 
-    effectiveCtx.taskStatusAccumulator?.taskStarted(entry.key, entry.task.kind);
+    const kind = eventTaskKind(entry);
+    effectiveCtx.taskStatusAccumulator?.taskStarted(entry.key, kind);
     if (effectiveCtx.emitEvents) {
       await effectiveCtx.emitEvents([{
         type: "task_started",
         taskName: entry.key,
         occurredAt: new Date().toISOString(),
-        taskKind: entry.task.kind,
+        taskKind: kind,
         attemptNumber: 1,
       }]);
     }
@@ -113,7 +129,7 @@ export async function executeDoTasks(
           type: "task_failed",
           taskName: entry.key,
           occurredAt: new Date().toISOString(),
-          taskKind: entry.task.kind,
+          taskKind: kind,
           error: errorMsg,
           attemptNumber: 1,
           willRetry: false,
@@ -130,7 +146,7 @@ export async function executeDoTasks(
         type: "task_completed",
         taskName: entry.key,
         occurredAt: new Date().toISOString(),
-        taskKind: entry.task.kind,
+        taskKind: kind,
         durationMs: taskDurationMs,
         costMicros: 0,
         tokensUsed: 0,
