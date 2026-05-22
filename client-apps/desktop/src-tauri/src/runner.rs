@@ -107,7 +107,7 @@ pub async fn start_runner(
     let mut cmd = Command::new(&config.node_binary);
     cmd.arg(&config.runner_entry);
     cmd.env("STIGMER_RUNNER_MODE", "manager");
-    cmd.env("TEMPORAL_ADDRESS", &config.temporal_address);
+    cmd.env("TEMPORAL_SERVICE_ADDRESS", &config.temporal_address);
     cmd.env("STIGMER_BACKEND_ENDPOINT", &config.stigmer_endpoint);
 
     if let Some(ns) = &config.temporal_namespace {
