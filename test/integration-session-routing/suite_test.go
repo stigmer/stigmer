@@ -4,25 +4,15 @@ package sessionrouting
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
-	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
-	billingv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/billing/v1"
-	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/test/integration/harness"
 	"go.temporal.io/sdk/client"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-)
-
-const (
-	testOrg        = "test-org"
-	testAPIVersion = "agentic.stigmer.ai/v1"
 )
 
 var (
@@ -36,7 +26,7 @@ var (
 func TestMain(m *testing.M) {
 	suiteLogger = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo}))
 
-	jarPath := findServiceJar()
+	jarPath := harness.FindServiceJar()
 	if jarPath == "" {
 		suiteLogger.Warn("stigmer-service fat JAR not found — skipping session routing integration tests",
 			"hint", "set STIGMER_SERVICE_JAR or build with bazel in stigmer-cloud")
@@ -129,11 +119,11 @@ func TestMain(m *testing.M) {
 		}
 	}
 
-	if err := provisionTestBillingAccount(ctx, grpcConn); err != nil {
+	if err := harness.ProvisionTestBillingAccount(ctx, grpcConn, "session-routing-test-seed-credits"); err != nil {
 		suiteLogger.Warn("failed to provision test billing account", "error", err)
 	}
 
-	if err := seedDefaultAgent(ctx, grpcConn); err != nil {
+	if err := harness.SeedDefaultAgent(ctx, grpcConn); err != nil {
 		suiteLogger.Warn("failed to seed default agent", "error", err)
 	} else {
 		suiteLogger.Info("default agent seeded")
@@ -154,67 +144,3 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func seedDefaultAgent(ctx context.Context, conn *grpc.ClientConn) error {
-	clients := harness.NewClients(conn)
-	_, err := clients.AgentCommand.Apply(ctx, &agentv1.Agent{
-		ApiVersion: testAPIVersion,
-		Kind:       "Agent",
-		Metadata: &apiresource.ApiResourceMetadata{
-			Name:       "assistant",
-			Org:        testOrg,
-			Visibility: apiresource.ApiResourceVisibility_visibility_public,
-			Labels: map[string]string{
-				"stigmer.ai/system":        "true",
-				"stigmer.ai/default-agent": "true",
-			},
-		},
-		Spec: &agentv1.AgentSpec{
-			Description:  "General-purpose AI assistant.",
-			Instructions: "You are a general-purpose AI assistant.",
-		},
-	})
-	return err
-}
-
-func provisionTestBillingAccount(ctx context.Context, conn *grpc.ClientConn) error {
-	billing := billingv1.NewBillingCommandControllerClient(conn)
-
-	_, err := billing.GetOrCreateBillingAccount(ctx, &billingv1.GetOrCreateBillingAccountInput{
-		OrgId: testOrg,
-	})
-	if err != nil {
-		return fmt.Errorf("getOrCreateBillingAccount: %w", err)
-	}
-
-	_, err = billing.AdjustCredits(ctx, &billingv1.AdjustCreditsInput{
-		OrgId:          testOrg,
-		AmountMicros:   100_000_000,
-		Reason:         "session routing integration test seed",
-		IdempotencyKey: "session-routing-test-seed-credits",
-	})
-	if err != nil {
-		return fmt.Errorf("adjustCredits: %w", err)
-	}
-
-	return nil
-}
-
-func findServiceJar() string {
-	if jar := os.Getenv("STIGMER_SERVICE_JAR"); jar != "" {
-		return jar
-	}
-
-	candidates := []string{
-		"../../../stigmer-cloud/bazel-bin/backend/services/stigmer-service/stigmer_service_fatjar.jar",
-	}
-	for _, c := range candidates {
-		abs, err := filepath.Abs(c)
-		if err != nil {
-			continue
-		}
-		if _, err := os.Stat(abs); err == nil {
-			return abs
-		}
-	}
-	return ""
-}

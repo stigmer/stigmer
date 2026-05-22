@@ -37,7 +37,7 @@ func SeedBaseFGATuples(ctx context.Context, fga *OpenFGAContainer) error {
 		{
 			User:     "identity_account:" + testIdentityAccountID,
 			Relation: "owner",
-			Object:   "organization:" + testOrg,
+			Object:   "organization:" + TestOrg,
 		},
 
 		// Machine account — platform operator for inProcessChannelAsSystem calls.
@@ -57,7 +57,7 @@ func SeedBaseFGATuples(ctx context.Context, fga *OpenFGAContainer) error {
 		{
 			User:     "identity_account:" + testMachineAccountID,
 			Relation: "admin",
-			Object:   "organization:" + testOrg,
+			Object:   "organization:" + TestOrg,
 		},
 	}
 

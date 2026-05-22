@@ -230,8 +230,9 @@ test: ## Run all unit tests
 	@cd $(RUNNER_DIR) && npm test
 
 # ─── Integration Test ─────────────────────────
-# All integration test logic lives in test/integration/Makefile.
+# Integration test logic lives in each suite's Makefile under test/.
 # These are thin delegates that pass through env vars.
+# Use `make test-integration-all` to run all suites (PROVIDERS=true for provider-backed).
 
 .PHONY: test-integration
 test-integration: ## Run integration tests (offline, no API keys needed)
@@ -252,6 +253,36 @@ test-integration-stress: ## Run integration tests 3x to detect flakes (no quaran
 .PHONY: test-integration-security
 test-integration-security: ## Run security integration tests (JWT validation, production auth chain)
 	$(MAKE) -C test/integration-security test
+
+.PHONY: test-integration-session-routing
+test-integration-session-routing: ## Run offline session routing integration tests (no API keys needed)
+	$(MAKE) -C test/integration-session-routing test
+
+.PHONY: test-integration-session-routing-providers
+test-integration-session-routing-providers: ## Run provider-backed session routing E2E tests (auto-fetches CURSOR_API_KEY)
+	$(MAKE) -C test/integration-session-routing test-providers
+
+.PHONY: test-integration-wfexec-routing
+test-integration-wfexec-routing: ## Run offline workflow execution routing tests (no API keys needed)
+	$(MAKE) -C test/integration-wfexec-routing test
+
+.PHONY: test-integration-all
+test-integration-all: ## Run all integration suites. PROVIDERS=true includes provider-backed tests.
+	@echo "=== Offline: integration ==="
+	$(MAKE) test-integration
+	@echo "=== Offline: security ==="
+	$(MAKE) test-integration-security
+	@echo "=== Offline: session-routing ==="
+	$(MAKE) test-integration-session-routing
+	@echo "=== Offline: wfexec-routing ==="
+	$(MAKE) test-integration-wfexec-routing
+ifeq ($(PROVIDERS),true)
+	@echo "=== Provider: integration (LLM) ==="
+	$(MAKE) test-integration-providers
+	@echo "=== Provider: session-routing (Cursor) ==="
+	$(MAKE) test-integration-session-routing-providers
+endif
+	@echo "All integration suites complete."
 
 .PHONY: test-replay
 test-replay: ## Run Temporal workflow replay determinism tests (fast, no infra needed)

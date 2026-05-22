@@ -23,7 +23,7 @@ func AssertProxyMetered(t *testing.T, ctx context.Context, clients *Clients, exe
 	time.Sleep(2 * time.Second)
 
 	ledger, err := clients.BillingQuery.GetCreditLedger(ctx, &billingv1.GetCreditLedgerInput{
-		OrgId: testOrg,
+		OrgId: TestOrg,
 		Page:  &rpcpb.PageInfo{Size: 100},
 	})
 	require.NoError(t, err, "get credit ledger should succeed")

@@ -4,23 +4,15 @@ package wfexecrouting
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
-	billingv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/billing/v1"
 	"github.com/stigmer/stigmer/test/integration/harness"
 	"go.temporal.io/sdk/client"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-)
-
-const (
-	testOrg        = "test-org"
-	testAPIVersion = "agentic.stigmer.ai/v1"
 )
 
 var (
@@ -33,7 +25,7 @@ var (
 func TestMain(m *testing.M) {
 	suiteLogger = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo}))
 
-	jarPath := findServiceJar()
+	jarPath := harness.FindServiceJar()
 	if jarPath == "" {
 		suiteLogger.Warn("stigmer-service fat JAR not found — skipping wfexec routing integration tests",
 			"hint", "set STIGMER_SERVICE_JAR or build with bazel in stigmer-cloud")
@@ -123,7 +115,7 @@ func TestMain(m *testing.M) {
 		}
 	}
 
-	if err := provisionTestBillingAccount(ctx, grpcConn); err != nil {
+	if err := harness.ProvisionTestBillingAccount(ctx, grpcConn, "wfexec-routing-test-seed-credits"); err != nil {
 		suiteLogger.Warn("failed to provision test billing account", "error", err)
 	}
 
@@ -141,45 +133,3 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func provisionTestBillingAccount(ctx context.Context, conn *grpc.ClientConn) error {
-	billing := billingv1.NewBillingCommandControllerClient(conn)
-
-	_, err := billing.GetOrCreateBillingAccount(ctx, &billingv1.GetOrCreateBillingAccountInput{
-		OrgId: testOrg,
-	})
-	if err != nil {
-		return fmt.Errorf("getOrCreateBillingAccount: %w", err)
-	}
-
-	_, err = billing.AdjustCredits(ctx, &billingv1.AdjustCreditsInput{
-		OrgId:          testOrg,
-		AmountMicros:   100_000_000,
-		Reason:         "wfexec routing integration test seed",
-		IdempotencyKey: "wfexec-routing-test-seed-credits",
-	})
-	if err != nil {
-		return fmt.Errorf("adjustCredits: %w", err)
-	}
-
-	return nil
-}
-
-func findServiceJar() string {
-	if jar := os.Getenv("STIGMER_SERVICE_JAR"); jar != "" {
-		return jar
-	}
-
-	candidates := []string{
-		"../../../stigmer-cloud/bazel-bin/backend/services/stigmer-service/stigmer_service_fatjar.jar",
-	}
-	for _, c := range candidates {
-		abs, err := filepath.Abs(c)
-		if err != nil {
-			continue
-		}
-		if _, err := os.Stat(abs); err == nil {
-			return abs
-		}
-	}
-	return ""
-}

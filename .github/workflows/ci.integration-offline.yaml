@@ -1,16 +1,18 @@
 # =============================================================================
 # Integration Tests (Offline)
 # =============================================================================
-# End-to-end integration tests for the workflow execution pipeline. Validates
-# the full path: Go test harness → Testcontainers (Mongo, Redis) → Temporal →
-# Java service (stigmer-cloud) → Go workflow-runner → zigflow → gRPC callbacks.
+# Runs ALL offline integration test suites against the Stigmer Cloud Java
+# service. "Offline" means no LLM provider API keys are needed.
 #
-# "Offline" means no LLM provider API keys are needed. These tests exercise
-# the orchestration infrastructure without making external AI calls.
+# Suites:
+#   1. integration          — core platform (agents, workflows, auth, FGA, SDK)
+#   2. integration-security — production JWT auth chain, federated IdP
+#   3. integration-session-routing  — per-session Temporal task queue routing
+#   4. integration-wfexec-routing   — per-execution workflow activity routing
 #
 # Architecture:
 #   Job 1 (build-service-jar) — checks out stigmer-cloud, builds the fat JAR
-#   Job 2 (integration-tests) — runs `make test-integration` with the JAR
+#   Job 2 (integration-tests) — runs all offline suites with the JAR
 #
 # Job 1 is intentionally isolated so it can be replaced with a pre-built
 # artifact download when stigmer-cloud publishes standalone JAR releases.
@@ -23,6 +25,9 @@ on:
     paths:
       - "backend/**"
       - "test/integration/**"
+      - "test/integration-security/**"
+      - "test/integration-session-routing/**"
+      - "test/integration-wfexec-routing/**"
       - "apis/**"
       - "go.work"
       - "go.work.sum"
@@ -33,6 +38,9 @@ on:
     paths:
       - "backend/**"
       - "test/integration/**"
+      - "test/integration-security/**"
+      - "test/integration-session-routing/**"
+      - "test/integration-wfexec-routing/**"
       - "apis/**"
       - "go.work"
       - "go.work.sum"
@@ -104,13 +112,16 @@ jobs:
           if-no-files-found: error
 
   # ---------------------------------------------------------------------------
-  # Job 2: Run the integration test suite.
+  # Job 2: Run all offline integration test suites.
   #
   # Downloads the JAR from Job 1, sets up runtime dependencies (Go, Java 21,
-  # Temporal CLI, gotestsum), and runs `make test-integration`. Docker is
-  # available on ubuntu-latest for Testcontainers (Mongo 7, Redis 7).
+  # Node.js, Temporal CLI, gotestsum), and runs all four suites sequentially.
+  # Docker is available on ubuntu-latest for Testcontainers (Mongo 7, Redis 7).
   #
-  # Outputs: JUnit XML, JSON event log, Java service log, workflow-runner log.
+  # Each suite spins up its own infrastructure (containers + Java service) with
+  # different service configurations, then tears it down on completion.
+  #
+  # Outputs: JUnit XML, JSON event log, service logs per suite.
   # ---------------------------------------------------------------------------
   integration-tests:
     name: Integration Tests
@@ -137,6 +148,11 @@ jobs:
           distribution: temurin
           java-version: "21"
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
       - name: Install Temporal CLI
         uses: temporalio/setup-temporal@v0
 
@@ -154,14 +170,16 @@ jobs:
           name: fga-model
           path: .artifacts/fga-model
 
-      - name: Run integration tests
+      # ── Suite 1: Core integration tests ──────────────────────────────────
+
+      - name: "Suite 1: Run integration tests"
         env:
           STIGMER_SERVICE_JAR: ${{ github.workspace }}/.artifacts/stigmer_service_fatjar.jar
           STIGMER_FGA_MODEL_DIR: ${{ github.workspace }}/.artifacts/fga-model
           INTEGRATION_TEST_OTEL: "true"
         run: make test-integration
 
-      - name: Guard against silent test skip
+      - name: "Suite 1: Guard against silent test skip"
         if: success()
         run: |
           JUNIT="test/integration/.test-output/junit.xml"
@@ -176,7 +194,7 @@ jobs:
           fi
           echo "Integration tests executed: $COUNT"
 
-      - name: Generate flake report
+      - name: "Suite 1: Generate flake report"
         if: always()
         run: |
           REPORT_DIR=test/integration/.test-output
@@ -188,13 +206,69 @@ jobs:
               >> "$GITHUB_STEP_SUMMARY"
           fi
 
-      - name: Upload test results
+      # ── Suite 2: Security integration tests ─────────────────────────────
+
+      - name: "Suite 2: Run security integration tests"
+        if: always()
+        env:
+          STIGMER_SERVICE_JAR: ${{ github.workspace }}/.artifacts/stigmer_service_fatjar.jar
+          STIGMER_FGA_MODEL_DIR: ${{ github.workspace }}/.artifacts/fga-model
+        run: make test-integration-security
+
+      # ── Suite 3: Session routing integration tests ──────────────────────
+
+      - name: "Suite 3: Run session routing integration tests"
+        if: always()
+        env:
+          STIGMER_SERVICE_JAR: ${{ github.workspace }}/.artifacts/stigmer_service_fatjar.jar
+          STIGMER_FGA_MODEL_DIR: ${{ github.workspace }}/.artifacts/fga-model
+        run: make test-integration-session-routing
+
+      # ── Suite 4: Workflow execution routing integration tests ────────────
+
+      - name: "Suite 4: Run wfexec routing integration tests"
+        if: always()
+        env:
+          STIGMER_SERVICE_JAR: ${{ github.workspace }}/.artifacts/stigmer_service_fatjar.jar
+          STIGMER_FGA_MODEL_DIR: ${{ github.workspace }}/.artifacts/fga-model
+        run: make test-integration-wfexec-routing
+
+      # ── Artifacts ───────────────────────────────────────────────────────
+
+      - name: Upload integration test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: integration-test-results
           path: test/integration/.test-output/
           retention-days: 30
+
+      - name: Upload security test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-test-results
+          path: test/integration-security/.test-output-security/
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: Upload session routing test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: session-routing-test-results
+          path: test/integration-session-routing/.test-output-session-routing/
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: Upload wfexec routing test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wfexec-routing-test-results
+          path: test/integration-wfexec-routing/.test-output-wfexec-routing/
+          retention-days: 30
+          if-no-files-found: ignore
 
       - name: Upload trace bundles
         if: failure() && hashFiles('test/integration/.test-output/traces/*.json') != ''
@@ -204,10 +278,34 @@ jobs:
           path: test/integration/.test-output/traces/
           retention-days: 30
 
-      - name: Publish test report
+      - name: Publish integration test report
         if: always() && hashFiles('test/integration/.test-output/junit.xml') != ''
         uses: dorny/test-reporter@v3
         with:
           name: Integration Test Report
           path: test/integration/.test-output/junit.xml
+          reporter: java-junit
+
+      - name: Publish security test report
+        if: always() && hashFiles('test/integration-security/.test-output-security/junit.xml') != ''
+        uses: dorny/test-reporter@v3
+        with:
+          name: Security Test Report
+          path: test/integration-security/.test-output-security/junit.xml
+          reporter: java-junit
+
+      - name: Publish session routing test report
+        if: always() && hashFiles('test/integration-session-routing/.test-output-session-routing/junit.xml') != ''
+        uses: dorny/test-reporter@v3
+        with:
+          name: Session Routing Test Report
+          path: test/integration-session-routing/.test-output-session-routing/junit.xml
+          reporter: java-junit
+
+      - name: Publish wfexec routing test report
+        if: always() && hashFiles('test/integration-wfexec-routing/.test-output-wfexec-routing/junit.xml') != ''
+        uses: dorny/test-reporter@v3
+        with:
+          name: WfExec Routing Test Report
+          path: test/integration-wfexec-routing/.test-output-wfexec-routing/junit.xml
           reporter: java-junit

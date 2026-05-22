@@ -118,7 +118,7 @@ func TestSessionRouting_ExecutionTargetImmutability(t *testing.T) {
 
 	// Seed harness_state_id to simulate the runner having bound.
 	_, err := clients.SessionCommand.Update(ctx, &sessionv1.Session{
-		ApiVersion: testAPIVersion,
+		ApiVersion: harness.TestAPIVersion,
 		Kind:       "Session",
 		Metadata:   session.GetMetadata(),
 		Spec: &sessionv1.SessionSpec{
@@ -136,7 +136,7 @@ func TestSessionRouting_ExecutionTargetImmutability(t *testing.T) {
 
 	// Attempt to change execution_target on the session — should be rejected.
 	_, err = clients.SessionCommand.Update(ctx, &sessionv1.Session{
-		ApiVersion: testAPIVersion,
+		ApiVersion: harness.TestAPIVersion,
 		Kind:       "Session",
 		Metadata:   session.GetMetadata(),
 		Spec: &sessionv1.SessionSpec{

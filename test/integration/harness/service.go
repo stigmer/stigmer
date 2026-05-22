@@ -10,6 +10,28 @@ import (
 	"time"
 )
 
+// FindServiceJar locates the stigmer-service fat JAR. It checks the
+// STIGMER_SERVICE_JAR env var first, then falls back to the default
+// sibling-repo Bazel output path relative to the caller's working directory.
+func FindServiceJar() string {
+	if jar := os.Getenv("STIGMER_SERVICE_JAR"); jar != "" {
+		return jar
+	}
+	candidates := []string{
+		"../../../stigmer-cloud/bazel-bin/backend/services/stigmer-service/stigmer_service_fatjar.jar",
+	}
+	for _, c := range candidates {
+		abs, err := filepath.Abs(c)
+		if err != nil {
+			continue
+		}
+		if _, err := os.Stat(abs); err == nil {
+			return abs
+		}
+	}
+	return ""
+}
+
 // JavaService manages the stigmer-service fat JAR as a child process.
 type JavaService struct {
 	cmd      *exec.Cmd

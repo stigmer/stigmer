@@ -19,9 +19,6 @@ import (
 
 const (
 	iamAPIVersion = "iam.stigmer.ai/v1"
-
-	// TestOrg is exported for use by test files that need the org slug.
-	TestOrg = testOrg
 )
 
 // PlatformClientCredentials holds the one-time credentials returned by create
@@ -97,7 +94,7 @@ type platformClientConfig struct {
 }
 
 func platformClientDefaults() platformClientConfig {
-	return platformClientConfig{org: testOrg}
+	return platformClientConfig{org: TestOrg}
 }
 
 // WithAutoProvision enables JIT account provisioning on the platform client.
@@ -150,7 +147,7 @@ func CreateIdentityProvider(t *testing.T, ctx context.Context, clients *Clients,
 		Kind:       "IdentityProvider",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name: "test-idp-" + uuid.New().String()[:8],
-			Org:  testOrg,
+			Org:  TestOrg,
 		},
 		Spec: &identityproviderv1.IdentityProviderSpec{
 			DisplayName:      displayName,

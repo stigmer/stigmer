@@ -20,7 +20,7 @@ func WithMcpServerUsage(slug string, enabledTools ...string) AgentOption {
 		s.McpServerUsages = append(s.McpServerUsages, &agentv1.McpServerUsage{
 			McpServerRef: &apiresource.ApiResourceReference{
 				Slug: slug,
-				Org:  testOrg,
+				Org:  TestOrg,
 				Kind: 44, // mcp_server
 			},
 			EnabledTools: enabledTools,
@@ -34,7 +34,7 @@ func WithMcpServerUsageAndApproval(slug string, overrides []*agentv1.ToolApprova
 		s.McpServerUsages = append(s.McpServerUsages, &agentv1.McpServerUsage{
 			McpServerRef: &apiresource.ApiResourceReference{
 				Slug: slug,
-				Org:  testOrg,
+				Org:  TestOrg,
 				Kind: 44,
 			},
 			EnabledTools:          enabledTools,
@@ -48,7 +48,7 @@ func WithSkillRef(slug string) AgentOption {
 	return func(s *agentv1.AgentSpec) {
 		s.SkillRefs = append(s.SkillRefs, &apiresource.ApiResourceReference{
 			Slug: slug,
-			Org:  testOrg,
+			Org:  TestOrg,
 			Kind: 43, // skill
 		})
 	}
@@ -103,11 +103,11 @@ func createAgentInternal(t *testing.T, ctx context.Context, clients *Clients, na
 	}
 
 	agent := &agentv1.Agent{
-		ApiVersion: testAPIVersion,
+		ApiVersion: TestAPIVersion,
 		Kind:       "Agent",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name: name + "-" + uuid.New().String()[:8],
-			Org:  testOrg,
+			Org:  TestOrg,
 		},
 		Spec: spec,
 	}

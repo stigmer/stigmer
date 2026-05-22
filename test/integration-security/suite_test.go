@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -53,7 +52,7 @@ var (
 func TestMain(m *testing.M) {
 	suiteLogger = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo}))
 
-	jarPath := findServiceJar()
+	jarPath := harness.FindServiceJar()
 	if jarPath == "" {
 		suiteLogger.Warn("stigmer-service fat JAR not found — skipping security integration tests",
 			"hint", "set STIGMER_SERVICE_JAR or build with bazel in stigmer-cloud")
@@ -260,25 +259,6 @@ func TestMain(m *testing.M) {
 	mongoSeeder.Close(context.Background())
 	testHarness.Stop(context.Background())
 	os.Exit(code)
-}
-
-func findServiceJar() string {
-	if jar := os.Getenv("STIGMER_SERVICE_JAR"); jar != "" {
-		return jar
-	}
-	candidates := []string{
-		"../../../stigmer-cloud/bazel-bin/backend/services/stigmer-service/stigmer_service_fatjar.jar",
-	}
-	for _, c := range candidates {
-		abs, err := filepath.Abs(c)
-		if err != nil {
-			continue
-		}
-		if _, err := os.Stat(abs); err == nil {
-			return abs
-		}
-	}
-	return ""
 }
 
 // bearerUnaryInterceptor attaches a Bearer token to every unary RPC.
