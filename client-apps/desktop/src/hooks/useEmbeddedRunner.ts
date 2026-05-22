@@ -42,7 +42,9 @@ function getRunnerConfig(): RunnerConfig {
   const stigmerEndpoint =
     localStorage.getItem("stigmer.serverEndpoint") || "http://localhost:7234";
   const temporalAddress =
-    localStorage.getItem("stigmer.temporalAddress") || "localhost:7233";
+    import.meta.env.VITE_STIGMER_TEMPORAL_ADDRESS
+    || localStorage.getItem("stigmer.temporalAddress")
+    || "localhost:7233";
   const stigmerToken = localStorage.getItem("stigmer.token") || undefined;
 
   return {

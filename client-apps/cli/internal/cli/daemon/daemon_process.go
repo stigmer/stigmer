@@ -494,7 +494,7 @@ func buildUnifiedRunnerEnv(dataDir string, grpcPort int) []string {
 	env = append(env,
 		"MODE=local",
 		fmt.Sprintf("STIGMER_BACKEND_ENDPOINT=http://localhost:%d", grpcPort),
-		fmt.Sprintf("TEMPORAL_ADDRESS=%s", os.Getenv("TEMPORAL_SERVICE_ADDRESS")),
+		fmt.Sprintf("TEMPORAL_SERVICE_ADDRESS=%s", os.Getenv("TEMPORAL_SERVICE_ADDRESS")),
 		"TEMPORAL_NAMESPACE=default",
 		fmt.Sprintf("WORKSPACE_ROOT_DIR=%s", workspaceDir),
 		"TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE=agent_execution_runner",
