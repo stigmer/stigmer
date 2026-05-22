@@ -457,9 +457,13 @@ func buildUnifiedRunnerEnv(cfg UnifiedRunnerConfig, mode, taskQueue string) []st
 	}
 
 	if cfg.ProxyEndpoint != "" {
+		runnerJWT, err := MintRunnerToken()
+		if err != nil {
+			runnerJWT = "test-integration-key"
+		}
 		env = append(env,
 			fmt.Sprintf("STIGMER_PROXY_ENDPOINT=%s", cfg.ProxyEndpoint),
-			"STIGMER_TOKEN=test-integration-key",
+			fmt.Sprintf("STIGMER_TOKEN=%s", runnerJWT),
 		)
 	} else if cfg.CursorAPIKey != "" {
 		env = append(env, fmt.Sprintf("CURSOR_API_KEY=%s", cfg.CursorAPIKey))
