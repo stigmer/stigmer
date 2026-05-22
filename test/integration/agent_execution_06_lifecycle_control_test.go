@@ -3,7 +3,6 @@
 package integration
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -19,7 +18,7 @@ func TestAgentExecution_Cancel(t *testing.T) {
 		t.Run(h.Name, func(t *testing.T) {
 			h.Skip(t, testHarness)
 
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			ctx, cancel := harness.TestContext(t, 5*time.Minute)
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
@@ -63,7 +62,7 @@ func TestAgentExecution_CancelIdempotent(t *testing.T) {
 		t.Run(h.Name, func(t *testing.T) {
 			h.Skip(t, testHarness)
 
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			ctx, cancel := harness.TestContext(t, 5*time.Minute)
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
@@ -110,7 +109,7 @@ func TestAgentExecution_CancelTerminalFails(t *testing.T) {
 		t.Run(h.Name, func(t *testing.T) {
 			h.Skip(t, testHarness)
 
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			ctx, cancel := harness.TestContext(t, 5*time.Minute)
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
@@ -152,7 +151,7 @@ func TestAgentExecution_Terminate(t *testing.T) {
 				t.Skip("test MCP server binary not built — skipping terminate test")
 			}
 
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			ctx, cancel := harness.TestContext(t, 5*time.Minute)
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
@@ -205,7 +204,7 @@ func TestAgentExecution_Pause_Resume(t *testing.T) {
 		t.Run(h.Name, func(t *testing.T) {
 			h.Skip(t, testHarness)
 
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			ctx, cancel := harness.TestContext(t, 5*time.Minute)
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
@@ -266,7 +265,7 @@ func TestAgentExecution_Recover(t *testing.T) {
 				t.Skip("test MCP server binary not built — skipping recover test")
 			}
 
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			ctx, cancel := harness.TestContext(t, 5*time.Minute)
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
@@ -342,7 +341,7 @@ func TestAgentExecution_TerminateIdempotent(t *testing.T) {
 				t.Skip("test MCP server binary not built — skipping terminate idempotent test")
 			}
 
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			ctx, cancel := harness.TestContext(t, 5*time.Minute)
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
@@ -397,7 +396,7 @@ func TestAgentExecution_TerminateTerminalFails(t *testing.T) {
 		t.Run(h.Name, func(t *testing.T) {
 			h.Skip(t, testHarness)
 
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			ctx, cancel := harness.TestContext(t, 5*time.Minute)
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)

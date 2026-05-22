@@ -3,7 +3,6 @@
 package integration
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -20,7 +19,7 @@ func TestAgentExecution_SubAgent_Delegation(t *testing.T) {
 		t.Run(h.Name, func(t *testing.T) {
 			h.Skip(t, testHarness)
 
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			ctx, cancel := harness.TestContext(t, 5*time.Minute)
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
@@ -69,7 +68,7 @@ func TestAgentExecution_SubAgent_ParentCancelCascade(t *testing.T) {
 		t.Run(h.Name, func(t *testing.T) {
 			h.Skip(t, testHarness)
 
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			ctx, cancel := harness.TestContext(t, 5*time.Minute)
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
@@ -131,7 +130,7 @@ func TestAgentExecution_SubAgent_McpAccess(t *testing.T) {
 				t.Skip("test MCP server binary not built — skipping sub-agent MCP access test")
 			}
 
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			ctx, cancel := harness.TestContext(t, 5*time.Minute)
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)

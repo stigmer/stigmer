@@ -3,7 +3,6 @@
 package integration
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -20,7 +19,7 @@ func TestAgentExecution_Usage_RunnerUsageSummary(t *testing.T) {
 		t.Run(h.Name, func(t *testing.T) {
 			h.Skip(t, testHarness)
 
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			ctx, cancel := harness.TestContext(t, 5*time.Minute)
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
@@ -65,7 +64,7 @@ func TestAgentExecution_Usage_ExecutionReport(t *testing.T) {
 		t.Run(h.Name, func(t *testing.T) {
 			h.Skip(t, testHarness)
 
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			ctx, cancel := harness.TestContext(t, 5*time.Minute)
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
@@ -124,7 +123,7 @@ func TestAgentExecution_Usage_SessionReport(t *testing.T) {
 		t.Run(h.Name, func(t *testing.T) {
 			h.Skip(t, testHarness)
 
-			ctx, cancel := context.WithTimeout(context.Background(), 8*time.Minute)
+			ctx, cancel := harness.TestContext(t, 8*time.Minute)
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
@@ -190,7 +189,7 @@ func TestAgentExecution_Usage_OrgReport(t *testing.T) {
 		t.Run(h.Name, func(t *testing.T) {
 			h.Skip(t, testHarness)
 
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			ctx, cancel := harness.TestContext(t, 5*time.Minute)
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)

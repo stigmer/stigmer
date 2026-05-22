@@ -3,7 +3,6 @@
 package integration
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -22,7 +21,7 @@ func TestAgentExecution_Billing_CreditDebit(t *testing.T) {
 		t.Run(h.Name, func(t *testing.T) {
 			h.Skip(t, testHarness)
 
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			ctx, cancel := harness.TestContext(t, 5*time.Minute)
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
@@ -78,7 +77,7 @@ func TestAgentExecution_Billing_LedgerAuditTrail(t *testing.T) {
 		t.Run(h.Name, func(t *testing.T) {
 			h.Skip(t, testHarness)
 
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			ctx, cancel := harness.TestContext(t, 5*time.Minute)
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
@@ -151,7 +150,7 @@ func TestAgentExecution_Billing_LedgerAuditTrail(t *testing.T) {
 func TestAgentExecution_Billing_NoCreditsBlocked(t *testing.T) {
 	require.NotNil(t, grpcConn)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	ctx, cancel := harness.TestContext(t, 2*time.Minute)
 	defer cancel()
 
 	clients := harness.NewClients(grpcConn)
@@ -179,7 +178,7 @@ func TestAgentExecution_Billing_NoCreditsBlocked(t *testing.T) {
 		t.Run(h.Name, func(t *testing.T) {
 			h.Skip(t, testHarness)
 
-			testCtx, testCancel := context.WithTimeout(context.Background(), 3*time.Minute)
+			testCtx, testCancel := harness.TestContext(t, 3*time.Minute)
 			defer testCancel()
 
 			agent := harness.CreateAgent(t, testCtx, clients, "test-no-credits-"+h.Name,

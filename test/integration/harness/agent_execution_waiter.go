@@ -35,16 +35,14 @@ func (w *AgentExecutionWaiter) WaitForPhase(ctx context.Context, executionID str
 	interval := defaultPollInterval
 
 	for time.Now().Before(deadline) {
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		default:
-		}
-
 		exec, err := w.client.Get(ctx, &agentexecv1.AgentExecutionId{Value: executionID})
 		if err != nil {
 			w.logger.Debug("agent execution poll error (will retry)", "execution_id", executionID, "error", err)
-			time.Sleep(interval)
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(interval):
+			}
 			interval = nextInterval(interval)
 			continue
 		}
@@ -65,7 +63,11 @@ func (w *AgentExecutionWaiter) WaitForPhase(ctx context.Context, executionID str
 			"messages", len(exec.GetStatus().GetMessages()),
 		)
 
-		time.Sleep(interval)
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(interval):
+		}
 		interval = nextInterval(interval)
 	}
 
@@ -88,16 +90,14 @@ func (w *AgentExecutionWaiter) WaitForTerminal(ctx context.Context, executionID 
 	interval := defaultPollInterval
 
 	for time.Now().Before(deadline) {
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		default:
-		}
-
 		exec, err := w.client.Get(ctx, &agentexecv1.AgentExecutionId{Value: executionID})
 		if err != nil {
 			w.logger.Debug("agent execution poll error (will retry)", "execution_id", executionID, "error", err)
-			time.Sleep(interval)
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(interval):
+			}
 			interval = nextInterval(interval)
 			continue
 		}
@@ -106,7 +106,11 @@ func (w *AgentExecutionWaiter) WaitForTerminal(ctx context.Context, executionID 
 			return exec, nil
 		}
 
-		time.Sleep(interval)
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(interval):
+		}
 		interval = nextInterval(interval)
 	}
 
@@ -172,7 +176,11 @@ func (w *AgentExecutionWaiter) ResolveApprovalsUntilPhase(
 			)
 		}
 
-		time.Sleep(interval)
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(interval):
+		}
 	}
 
 	return nil, fmt.Errorf(
