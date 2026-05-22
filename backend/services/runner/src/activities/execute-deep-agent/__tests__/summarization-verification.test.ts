@@ -124,7 +124,7 @@ describe("summarization state checkpoint serialization", () => {
       filePath: "/conversation_history/session_abc12345.md",
     };
 
-    const [typeTag, payload] = saver.serde.dumpsTyped(summarizationEvent);
+    const [typeTag, payload] = await saver.serde.dumpsTyped(summarizationEvent);
     expect(typeTag).toBeDefined();
     expect(payload).toBeInstanceOf(Uint8Array);
     expect(payload.length).toBeGreaterThan(0);
@@ -142,7 +142,7 @@ describe("summarization state checkpoint serialization", () => {
   it("serializes _summarizationSessionId as a plain string", async () => {
     const sessionId = "session_abc12345";
 
-    const [typeTag, payload] = saver.serde.dumpsTyped(sessionId);
+    const [typeTag, payload] = await saver.serde.dumpsTyped(sessionId);
     const restored = await saver.serde.loadsTyped(typeTag, payload);
 
     expect(restored).toBe(sessionId);
@@ -168,7 +168,7 @@ describe("summarization state checkpoint serialization", () => {
       _summarizationSessionId: "session_def67890",
     };
 
-    const [typeTag, payload] = saver.serde.dumpsTyped(channelValues);
+    const [typeTag, payload] = await saver.serde.dumpsTyped(channelValues);
     const restored = await saver.serde.loadsTyped(typeTag, payload) as typeof channelValues;
 
     expect(restored._summarizationSessionId).toBe("session_def67890");
@@ -186,7 +186,7 @@ describe("summarization state checkpoint serialization", () => {
       filePath: null,
     };
 
-    const [typeTag, payload] = saver.serde.dumpsTyped(event);
+    const [typeTag, payload] = await saver.serde.dumpsTyped(event);
     const restored = await saver.serde.loadsTyped(typeTag, payload) as typeof event;
 
     expect(restored.filePath).toBeNull();
