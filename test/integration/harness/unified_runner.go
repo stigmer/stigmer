@@ -29,14 +29,18 @@ type UnifiedRunnerConfig struct {
 
 	// OTLPEndpoint enables OpenTelemetry tracing.
 	OTLPEndpoint string
+
+	// StigmerToken is an auth token passed to the runner as STIGMER_TOKEN.
+	StigmerToken string
 }
 
 // --- IPC Protocol Types (mirrors main.ts) ---
 
 type ipcCommand struct {
-	Type        string `json:"type"`
-	SessionID   string `json:"sessionId,omitempty"`
-	ExecutionID string `json:"executionId,omitempty"`
+	Type        string  `json:"type"`
+	SessionID   string  `json:"sessionId,omitempty"`
+	ExecutionID string  `json:"executionId,omitempty"`
+	Token       *string `json:"token,omitempty"`
 }
 
 type ipcResponse struct {
@@ -257,6 +261,30 @@ func (m *UnifiedRunnerManager) RemoveWorkflowExecution(ctx context.Context, exec
 	}
 
 	m.logger.Info("workflow execution removed", "execution_id", executionID)
+	return nil
+}
+
+// UpdateToken sends an updateToken IPC command and waits for confirmation.
+func (m *UnifiedRunnerManager) UpdateToken(ctx context.Context, token *string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if err := m.sendCommand(ipcCommand{Type: "updateToken", Token: token}); err != nil {
+		return fmt.Errorf("send updateToken: %w", err)
+	}
+
+	resp, err := m.readResponse(ctx, 10*time.Second)
+	if err != nil {
+		return fmt.Errorf("updateToken response: %w", err)
+	}
+	if resp.Type == "error" {
+		return fmt.Errorf("updateToken error: %s", resp.Message)
+	}
+	if resp.Type != "tokenUpdated" {
+		return fmt.Errorf("unexpected updateToken response: %s", resp.Type)
+	}
+
+	m.logger.Info("token updated")
 	return nil
 }
 
@@ -504,6 +532,10 @@ func buildUnifiedRunnerEnv(cfg UnifiedRunnerConfig, mode, taskQueue string) []st
 		env = append(env, "STIGMER_RUNNER_MODE=manager")
 	} else if taskQueue != "" {
 		env = append(env, fmt.Sprintf("STIGMER_TASK_QUEUE=%s", taskQueue))
+	}
+
+	if cfg.StigmerToken != "" {
+		env = append(env, fmt.Sprintf("STIGMER_TOKEN=%s", cfg.StigmerToken))
 	}
 
 	if cfg.ProxyEndpoint != "" {

@@ -25,6 +25,7 @@ enum IpcCommand {
     AddWorkflowExecution { execution_id: String },
     #[serde(rename_all = "camelCase")]
     RemoveWorkflowExecution { execution_id: String },
+    UpdateToken { token: Option<String> },
     Shutdown,
 }
 
@@ -51,6 +52,7 @@ enum IpcResponse {
     WorkflowExecutionRemoved {
         execution_id: String,
     },
+    TokenUpdated,
     Error {
         message: String,
         fatal: bool,
@@ -340,6 +342,24 @@ pub async fn remove_workflow_execution(
     proc.stdin.flush().await.ok();
 
     proc.active_workflow_executions.remove(&execution_id);
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn update_runner_token(
+    state: State<'_, RunnerState>,
+    token: Option<String>,
+) -> Result<(), String> {
+    let mut guard = state.process.lock().await;
+    let proc = guard.as_mut().ok_or("Runner is not running")?;
+
+    let cmd = serde_json::to_string(&IpcCommand::UpdateToken { token }).unwrap();
+    proc.stdin
+        .write_all(format!("{cmd}\n").as_bytes())
+        .await
+        .map_err(|e| format!("Failed to send updateToken: {e}"))?;
+    proc.stdin.flush().await.ok();
+
     Ok(())
 }
 

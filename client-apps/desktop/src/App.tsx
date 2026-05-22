@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { RouterProvider } from "react-router-dom";
 import { Stigmer } from "@stigmer/sdk";
 import type { DeploymentMode } from "@stigmer/sdk";
@@ -9,7 +9,7 @@ import { router } from "./routes";
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
 import { LoginScreen } from "./auth/LoginScreen";
 import { AppUpdaterProvider } from "./hooks/AppUpdaterContext";
-import { EmbeddedRunnerProvider } from "./hooks/EmbeddedRunnerContext";
+import { EmbeddedRunnerProvider, useRunner } from "./hooks/EmbeddedRunnerContext";
 import { useColorModePreference } from "./hooks/useColorModePreference";
 
 const BASE_URL = import.meta.env.VITE_STIGMER_API_URL ?? "http://localhost:7234";
@@ -99,6 +99,7 @@ function AppContent({
   return (
     <AppUpdaterProvider>
       <EmbeddedRunnerProvider>
+        <TokenBridge />
         <FetchCacheProvider>
           <OrgProvider>
             <RouterProvider router={router} />
@@ -108,4 +109,26 @@ function AppContent({
       </EmbeddedRunnerProvider>
     </AppUpdaterProvider>
   );
+}
+
+/**
+ * Watches the auth token and pushes updates to the embedded runner.
+ * Rendered inside both AuthProvider and EmbeddedRunnerProvider so it
+ * can read from useAuth and write via useRunner.
+ */
+function TokenBridge() {
+  const { getAccessToken } = useAuth();
+  const { updateRunnerToken, isRunning } = useRunner();
+  const lastTokenRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!isRunning) return;
+    const token = getAccessToken();
+    if (token !== lastTokenRef.current) {
+      lastTokenRef.current = token;
+      updateRunnerToken(token).catch(() => {});
+    }
+  });
+
+  return null;
 }

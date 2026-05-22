@@ -31,7 +31,7 @@ export default function WorkflowExecutionDetailPage() {
 
   useEffect(() => {
     const phase = execution?.status?.phase;
-    if (id && phase && !TERMINAL_PHASES.has(phase)) {
+    if (id && phase != null && !TERMINAL_PHASES.has(phase)) {
       addWorkflowExecution(id).catch((err) =>
         console.warn("[runner] Failed to ensure workflow execution worker:", err),
       );
@@ -40,7 +40,7 @@ export default function WorkflowExecutionDetailPage() {
 
   useEffect(() => {
     const phase = execution?.status?.phase;
-    if (id && phase && TERMINAL_PHASES.has(phase) && !cleanedUpRef.current) {
+    if (id && phase != null && TERMINAL_PHASES.has(phase) && !cleanedUpRef.current) {
       cleanedUpRef.current = true;
       removeWorkflowExecution(id).catch((err) =>
         console.warn("[runner] Failed to remove workflow execution from runner:", err),
