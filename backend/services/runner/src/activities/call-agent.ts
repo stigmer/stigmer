@@ -78,6 +78,8 @@ export async function callAgentAction(
 
   const session = await client.createSession(
     create(SessionSchema, {
+      apiVersion: "agentic.stigmer.ai/v1",
+      kind: "Session",
       metadata: create(ApiResourceMetadataSchema, {
         name: sessionName,
         org: orgId,
@@ -106,6 +108,8 @@ export async function callAgentAction(
 
   await client.createAgentExecution(
     create(AgentExecutionSchema, {
+      apiVersion: "agentic.stigmer.ai/v1",
+      kind: "AgentExecution",
       metadata: create(ApiResourceMetadataSchema, { org: orgId }),
       spec: create(AgentExecutionSpecSchema, {
         sessionId,
