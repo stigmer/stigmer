@@ -14,7 +14,7 @@
  */
 
 import { proxyLocalActivities, proxyActivities, log, workflowInfo, sleep } from "@temporalio/workflow";
-import { CancelledFailure } from "@temporalio/workflow";
+import { ApplicationFailure, CancelledFailure } from "@temporalio/workflow";
 import { recordExecutionStartMetric, recordExecutionEndMetric } from "./metrics-sink.js";
 
 import type { createEvaluateExpressionsActivities } from "../activities/evaluate-expressions.js";
@@ -29,6 +29,7 @@ import { orchestrateRunWorkflow } from "./run-orchestrator.js";
 import { orchestrateHumanInput } from "./human-input-orchestrator.js";
 import { executeDoTasks } from "../workflow-engine/do-executor.js";
 import { createState } from "../workflow-engine/state.js";
+import { TaskStatusAccumulator } from "../workflow-engine/task-status-accumulator.js";
 import type {
   ExpressionEvaluator,
   HttpCallConfig,
@@ -133,10 +134,12 @@ export async function runWorkflowEngine(
 
   await eventProxy.ResetEventSequence();
 
+  const taskStatusAccumulator = new TaskStatusAccumulator();
+
   const emitEvents = async (events: WorkflowEventDescriptor[]): Promise<void> => {
     if (!executionId || events.length === 0) return;
     try {
-      await eventProxy.EmitWorkflowEvents(executionId, events);
+      await eventProxy.EmitWorkflowEvents(executionId, events, taskStatusAccumulator.toArray());
     } catch (err) {
       log.warn("Failed to emit workflow events (non-fatal)", {
         executionId,
@@ -164,6 +167,7 @@ export async function runWorkflowEngine(
     doc: model,
     checkPause: options?.checkPause,
     emitEvents,
+    taskStatusAccumulator,
     sleep: async (durationMs: number) => {
       try {
         await sleep(durationMs);
@@ -277,7 +281,13 @@ export async function runWorkflowEngine(
       durationMs,
     }]);
 
-    throw err;
+    if (err instanceof CancelledFailure || err instanceof ApplicationFailure) {
+      throw err;
+    }
+    throw ApplicationFailure.nonRetryable(
+      err instanceof Error ? err.message : String(err),
+      "WORKFLOW_EXECUTION_FAILED",
+    );
   }
 }
 

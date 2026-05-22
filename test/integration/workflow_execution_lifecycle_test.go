@@ -193,8 +193,9 @@ func TestWorkflowExecution_Cancel(t *testing.T) {
 	executionID := execution.GetMetadata().GetId()
 	waiter := harness.NewExecutionWaiter(clients.ExecutionQuery, suiteLogger)
 
-	// Wait until the workflow is running (first set_vars completes, wait starts)
-	time.Sleep(3 * time.Second)
+	_, err = waiter.WaitForPhase(ctx, executionID,
+		workflowexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS, 30*time.Second)
+	require.NoError(t, err, "execution should reach IN_PROGRESS before cancel")
 
 	t.Logf("cancelling execution %s", executionID)
 	_, err = clients.ExecutionCommand.Cancel(ctx, &workflowexecutionv1.CancelWorkflowExecutionInput{
@@ -233,7 +234,9 @@ func TestWorkflowExecution_CancelIdempotent(t *testing.T) {
 	executionID := execution.GetMetadata().GetId()
 	waiter := harness.NewExecutionWaiter(clients.ExecutionQuery, suiteLogger)
 
-	time.Sleep(3 * time.Second)
+	_, err = waiter.WaitForPhase(ctx, executionID,
+		workflowexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS, 30*time.Second)
+	require.NoError(t, err, "execution should reach IN_PROGRESS before cancel")
 
 	_, err = clients.ExecutionCommand.Cancel(ctx, &workflowexecutionv1.CancelWorkflowExecutionInput{
 		Id: executionID,
@@ -306,7 +309,9 @@ func TestWorkflowExecution_Terminate(t *testing.T) {
 	executionID := execution.GetMetadata().GetId()
 	waiter := harness.NewExecutionWaiter(clients.ExecutionQuery, suiteLogger)
 
-	time.Sleep(3 * time.Second)
+	_, err = waiter.WaitForPhase(ctx, executionID,
+		workflowexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS, 30*time.Second)
+	require.NoError(t, err, "execution should reach IN_PROGRESS before terminate")
 
 	t.Logf("terminating execution %s", executionID)
 	_, err = clients.ExecutionCommand.Terminate(ctx, &workflowexecutionv1.TerminateWorkflowExecutionInput{
@@ -345,7 +350,9 @@ func TestWorkflowExecution_TerminateIdempotent(t *testing.T) {
 	executionID := execution.GetMetadata().GetId()
 	waiter := harness.NewExecutionWaiter(clients.ExecutionQuery, suiteLogger)
 
-	time.Sleep(3 * time.Second)
+	_, err = waiter.WaitForPhase(ctx, executionID,
+		workflowexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS, 30*time.Second)
+	require.NoError(t, err, "execution should reach IN_PROGRESS before terminate")
 
 	_, err = clients.ExecutionCommand.Terminate(ctx, &workflowexecutionv1.TerminateWorkflowExecutionInput{
 		Id: executionID,
@@ -386,8 +393,9 @@ func TestWorkflowExecution_Pause(t *testing.T) {
 	executionID := execution.GetMetadata().GetId()
 	waiter := harness.NewExecutionWaiter(clients.ExecutionQuery, suiteLogger)
 
-	// Let the workflow start executing tasks
-	time.Sleep(3 * time.Second)
+	_, err = waiter.WaitForPhase(ctx, executionID,
+		workflowexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS, 30*time.Second)
+	require.NoError(t, err, "execution should reach IN_PROGRESS before pause")
 
 	t.Logf("pausing execution %s", executionID)
 	_, err = clients.ExecutionCommand.Pause(ctx, &workflowexecutionv1.PauseWorkflowExecutionInput{
@@ -431,7 +439,9 @@ func TestWorkflowExecution_PauseAndResume(t *testing.T) {
 	executionID := execution.GetMetadata().GetId()
 	waiter := harness.NewExecutionWaiter(clients.ExecutionQuery, suiteLogger)
 
-	time.Sleep(3 * time.Second)
+	_, err = waiter.WaitForPhase(ctx, executionID,
+		workflowexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS, 30*time.Second)
+	require.NoError(t, err, "execution should reach IN_PROGRESS before pause")
 
 	t.Logf("pausing execution %s", executionID)
 	_, err = clients.ExecutionCommand.Pause(ctx, &workflowexecutionv1.PauseWorkflowExecutionInput{

@@ -212,7 +212,7 @@ func TestWorkflowData_Validate_SchemaPass(t *testing.T) {
 	require.NoError(t, err)
 
 	validateConfig, err := structpb.NewStruct(map[string]any{
-		"input": "${ $data.buildUser }",
+		"input": "${ $context.buildUser }",
 		"schema": map[string]any{
 			"type": "object",
 			"properties": map[string]any{
@@ -399,7 +399,7 @@ func TestWorkflowData_Validate_BusinessRules(t *testing.T) {
 	require.NoError(t, err)
 
 	validateConfig, err := structpb.NewStruct(map[string]any{
-		"input": "${ $data.buildOrder }",
+		"input": "${ $context.buildOrder }",
 		"rules": []any{
 			map[string]any{
 				"name":       "positive_total",

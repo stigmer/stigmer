@@ -76,6 +76,7 @@ export async function executeDoTasks(
 
     const shouldRun = await checkTaskCondition(entry, state, effectiveCtx);
     if (!shouldRun) {
+      effectiveCtx.taskStatusAccumulator?.taskSkipped(entry.key, "condition evaluated to false");
       if (effectiveCtx.emitEvents) {
         await effectiveCtx.emitEvents([{
           type: "task_skipped",
@@ -88,6 +89,7 @@ export async function executeDoTasks(
       continue;
     }
 
+    effectiveCtx.taskStatusAccumulator?.taskStarted(entry.key, entry.task.kind);
     if (effectiveCtx.emitEvents) {
       await effectiveCtx.emitEvents([{
         type: "task_started",
@@ -104,13 +106,15 @@ export async function executeDoTasks(
       const effectiveInput = await resolveTaskInput(entry, input, state, effectiveCtx);
       taskOutput = await runSingleTask(entry, effectiveInput, state, doc, effectiveCtx);
     } catch (taskErr) {
+      const errorMsg = taskErr instanceof Error ? taskErr.message : String(taskErr);
+      effectiveCtx.taskStatusAccumulator?.taskFailed(entry.key, errorMsg);
       if (effectiveCtx.emitEvents) {
         await effectiveCtx.emitEvents([{
           type: "task_failed",
           taskName: entry.key,
           occurredAt: new Date().toISOString(),
           taskKind: entry.task.kind,
-          error: taskErr instanceof Error ? taskErr.message : String(taskErr),
+          error: errorMsg,
           attemptNumber: 1,
           willRetry: false,
           durationMs: Date.now() - taskStartMs,
@@ -119,13 +123,15 @@ export async function executeDoTasks(
       throw taskErr;
     }
 
+    const taskDurationMs = Date.now() - taskStartMs;
+    effectiveCtx.taskStatusAccumulator?.taskCompleted(entry.key, taskDurationMs);
     if (effectiveCtx.emitEvents) {
       await effectiveCtx.emitEvents([{
         type: "task_completed",
         taskName: entry.key,
         occurredAt: new Date().toISOString(),
         taskKind: entry.task.kind,
-        durationMs: Date.now() - taskStartMs,
+        durationMs: taskDurationMs,
         costMicros: 0,
         tokensUsed: 0,
       }]);
@@ -240,7 +246,7 @@ async function resolveTaskInput(
   ctx: TaskExecutionContext,
 ): Promise<unknown> {
   const inputFrom = entry.task.input?.from;
-  if (inputFrom === undefined) return parentInput;
+  if (inputFrom === undefined) return state.output !== undefined ? state.output : parentInput;
 
   if (typeof inputFrom === "string") {
     const rawExpr = inputFrom.startsWith("${ ") && inputFrom.endsWith(" }")

@@ -37,8 +37,14 @@ export class CallFunctionTaskBuilder implements TaskBuilder {
         ctx.evaluateExpressions,
       );
 
+      const callType = this.taskDef.call;
+      if ((callType === "transform" || callType === "validate") &&
+          !("input" in resolved) || resolved.input === undefined) {
+        resolved.input = input;
+      }
+
       const result = await ctx.callFunction(
-        this.taskDef.call,
+        callType,
         resolved,
         state.env,
         {

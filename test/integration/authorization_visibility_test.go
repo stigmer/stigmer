@@ -17,20 +17,41 @@ import (
 	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
 	apiresourcepb "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/test/integration/harness"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func createTestWorkflow(t *testing.T, ctx context.Context, clients *harness.Clients, name string) *workflowv1.Workflow {
 	t.Helper()
 	suffix := uuid.New().String()[:8]
+	fullName := fmt.Sprintf("%s-%s", name, suffix)
+
+	taskConfig, err := structpb.NewStruct(map[string]any{
+		"variables": map[string]any{"ok": "true"},
+	})
+	require.NoError(t, err, "build task config")
+
 	wf, err := clients.WorkflowCommand.Create(ctx, &workflowv1.Workflow{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Workflow",
 		Metadata: &apiresourcepb.ApiResourceMetadata{
-			Name: fmt.Sprintf("%s-%s", name, suffix),
+			Name: fullName,
 			Org:  "test-org",
 		},
 		Spec: &workflowv1.WorkflowSpec{
 			Description: "Test workflow for visibility tests",
+			Document: &workflowv1.WorkflowDocument{
+				Dsl:       "1.0.0",
+				Namespace: "test-org",
+				Name:      fullName,
+				Version:   "1.0.0",
+			},
+			Tasks: []*workflowv1.WorkflowTask{
+				{
+					Name:       "noop",
+					Kind:       workflowv1.WorkflowTaskKind_set_vars,
+					TaskConfig: taskConfig,
+				},
+			},
 		},
 	})
 	require.NoError(t, err, "create test workflow")

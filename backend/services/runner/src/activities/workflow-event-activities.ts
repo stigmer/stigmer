@@ -30,12 +30,22 @@ import {
   AgentCallCompletedPayloadSchema,
   HumanInputOutcomeInfoSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
-import { WorkflowExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import { WorkflowExecutionStatusSchema, WorkflowTaskSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import {
   WorkflowExecutionUpdateStatusInputSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
+import { WorkflowTaskStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
 import type { JsonObject } from "@bufbuild/protobuf";
 import type { WorkflowEventDescriptor } from "../workflow-engine/types.js";
+import type { TaskStatusEntry } from "../workflow-engine/task-status-accumulator.js";
+
+const TASK_STATUS_MAP: Record<TaskStatusEntry["status"], WorkflowTaskStatus> = {
+  started: WorkflowTaskStatus.WORKFLOW_TASK_IN_PROGRESS,
+  completed: WorkflowTaskStatus.WORKFLOW_TASK_COMPLETED,
+  failed: WorkflowTaskStatus.WORKFLOW_TASK_FAILED,
+  skipped: WorkflowTaskStatus.WORKFLOW_TASK_SKIPPED,
+  waiting_approval: WorkflowTaskStatus.WORKFLOW_TASK_WAITING_APPROVAL,
+};
 
 const TASK_KIND_MAP: Record<string, number> = {
   "set": 1,
@@ -232,15 +242,29 @@ export function toProtoEvent(desc: WorkflowEventDescriptor): WorkflowExecutionEv
 export async function emitWorkflowEvents(
   executionId: string,
   events: WorkflowEventDescriptor[],
+  taskStatuses?: TaskStatusEntry[],
 ): Promise<void> {
   if (!executionId || events.length === 0) return;
 
   try {
     const client = buildClient();
     const protoEvents = events.map(toProtoEvent);
+
+    const protoTasks = (taskStatuses ?? []).map(ts =>
+      create(WorkflowTaskSchema, {
+        taskName: ts.taskName,
+        status: TASK_STATUS_MAP[ts.status],
+        startedAt: ts.startedAt ?? "",
+        completedAt: ts.completedAt ?? "",
+        error: ts.error ?? "",
+      }),
+    );
+
     const input = create(WorkflowExecutionUpdateStatusInputSchema, {
       executionId,
-      status: create(WorkflowExecutionStatusSchema, {}),
+      status: create(WorkflowExecutionStatusSchema, {
+        tasks: protoTasks,
+      }),
       events: protoEvents,
     });
     await client.workflowExecutionCommand.updateStatus(input);

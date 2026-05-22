@@ -141,17 +141,19 @@ func (c *Converter) convertForTask(cfg *tasksv1.ForTaskConfig) (map[string]inter
 		forMap["each"] = cfg.Each
 	}
 
+	result := map[string]interface{}{
+		"for": forMap,
+	}
+
 	if len(cfg.Do) > 0 {
 		doTasks, err := c.convertTaskList(cfg.Do)
 		if err != nil {
 			return nil, fmt.Errorf("for_each do block: %w", err)
 		}
-		forMap["do"] = doTasks
+		result["do"] = doTasks
 	}
 
-	return map[string]interface{}{
-		"for": forMap,
-	}, nil
+	return result, nil
 }
 
 func (c *Converter) convertForkTask(cfg *tasksv1.ForkTaskConfig) (map[string]interface{}, error) {

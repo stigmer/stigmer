@@ -75,6 +75,11 @@ func (v *InProcessValidator) Validate(ctx context.Context, spec *workflowv1.Work
 		errors = append(errors, crossRefErrors...)
 	}
 
+	// Step 2b: Task config required field validation
+	if configErrors := ValidateTaskConfigRequiredFields(spec); len(configErrors) > 0 {
+		errors = append(errors, configErrors...)
+	}
+
 	// Step 3: Budget warnings
 	if budgetWarnings := CheckBudgetWarnings(spec.Budget, spec.Tasks); len(budgetWarnings) > 0 {
 		warnings = append(warnings, budgetWarnings...)

@@ -66,6 +66,8 @@ export async function executeHumanInputTask(
     }]);
   }
 
+  ctx.taskStatusAccumulator?.taskWaitingApproval(taskName);
+
   const result: HumanInputResult = await ctx.awaitHumanInput({
     signalName,
     timeoutSeconds,
