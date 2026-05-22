@@ -24,6 +24,7 @@ COPY client-apps/web/ client-apps/web/
 
 # Install dependencies and build
 RUN npm ci && \
+    npm run build -w @stigmer/protos && \
     npm run build -w client-apps/web
 
 # Runtime stage — nginx serves the static export + runtime config
