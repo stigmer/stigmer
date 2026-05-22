@@ -1865,18 +1865,6 @@ Internal state held by the task kind registry context provider.
 />
 
 
-### TaskOutcome
-
-Outcome descriptor for UI rendering.
-
-<TypeTable
-  type={{
-    label: { type: "string", description: "", required: true },
-    name: { type: "string", description: "", required: true },
-  }}
-/>
-
-
 ### TaskPickerPopover
 
 Searchable, categorized popover for selecting a workflow task kind.
@@ -2545,52 +2533,6 @@ Props for [`WorkflowInspectorPanel`](#workflowinspectorpanel).
     onUpdateField: { type: "(nodeId: string, fieldPath: string, value: unknown) => void", description: "Called when a config field value changes.", required: true },
     onUpdateFlow: { type: "(nodeId: string, thenTarget: string | undefined) => void", description: "Called when a node's flow.then changes.", required: true },
     selection: { type: "CanvasSelection | null", description: "Currently selected element on the canvas.", required: true },
-  }}
-/>
-
-
-### WorkflowTaskApprovalCard
-
-Interactive approval card for workflow-level human_input tasks.
-
-Renders dynamic outcome buttons (from workflow configuration),
-optional form fields (from JSON Schema), and a comment textarea.
-Designed for inline rendering in the execution timeline when a
-human_input task is in `waiting_approval` state.
-
-Distinct from `WorkflowExecutionApprovalCard` (which handles agent
-tool approvals with `toolCallId` + `ApprovalAction`). This component
-uses `taskName` + `outcome` string + optional `formData`.
-
-Follows SDK component standards:
-- All colors via `--stgm-*` tokens (DD-005)
-- Keyboard navigable with ARIA labels (a11y)
-- `React.memo` for referential stability (DD-010)
-- Zero framework dependencies (DD-004)
-
-```tsx
-<WorkflowTaskApprovalCard
-  taskName="daily_approval"
-  outcomes={[{ name: "approve", label: "Approve Plan" }, { name: "reject", label: "Reject" }]}
-  formSchema={{ type: "object", properties: { feedback: { type: "string" } } }}
-  onSubmit={actions.submitTaskApproval}
-  isSubmitting={actions.isSubmitting}
-/>
-```
-
-
-### WorkflowTaskApprovalCardProps
-
-Props for [`WorkflowTaskApprovalCard`](#workflowtaskapprovalcard).
-
-<TypeTable
-  type={{
-    className: { type: "string", description: "Additional CSS class names for the root container." },
-    formSchema: { type: "Record<string, unknown>", description: "JSON Schema describing the reviewer's input form. When provided, renders form fields from the schema's `properties`. Text properties render as textareas; others as text inputs." },
-    isSubmitting: { type: "boolean", description: "True while the submission RPC is in flight.", required: true },
-    onSubmit: { type: "(taskName: string, outcome: string, formData?: Record<string, unknown>, comment?: string) => Promise<unknown>", description: "Called when the reviewer submits a decision. The consumer (typically WorkflowExecutionViewer) wires this to `useWorkflowExecutionActions().submitTaskApproval`.", required: true },
-    outcomes: { type: "readonly TaskOutcome[]", description: "Configured outcomes from the workflow definition. Each entry renders as a button with the label as text. When empty, defaults to \"Approve\" / \"Reject\".", required: true },
-    taskName: { type: "string", description: "Name of the human_input task awaiting a decision.", required: true },
   }}
 />
 

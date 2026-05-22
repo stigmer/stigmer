@@ -9,7 +9,7 @@ import type { TaskExecutionContext, HttpCallConfig, RunCommandConfig, ListenExec
 
 const GOLDEN_DIR = join(
   import.meta.dirname,
-  "../../../../workflow-runner/test/golden",
+  "../../../test/golden",
 );
 
 function loadGolden(filename: string): string {

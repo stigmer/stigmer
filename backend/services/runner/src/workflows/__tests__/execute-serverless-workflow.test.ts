@@ -12,12 +12,16 @@ vi.mock("@temporalio/workflow", () => ({
       input: unknown,
       stateVars: Record<string, unknown>,
     ) => mockEvaluateExpressions(exprs, input, stateVars),
+    ResetEventSequence: vi.fn(),
+    EmitWorkflowEvents: vi.fn(),
   })),
   proxyActivities: vi.fn(() => ({
     CallHttp: vi.fn(),
     CallGrpc: vi.fn(),
     CallFunction: vi.fn(),
     CallAgent: vi.fn(),
+    RunScript: vi.fn(),
+    RunShell: vi.fn(),
   })),
   proxySinks: vi.fn(() => ({ metrics: { recordTaskDuration: vi.fn(), recordExecutionStart: vi.fn(), recordExecutionEnd: vi.fn() } })),
   log: {
@@ -30,6 +34,10 @@ vi.mock("@temporalio/workflow", () => ({
   condition: vi.fn(),
   sleep: vi.fn(),
   workflowInfo: vi.fn(() => ({ workflowId: "test-wf-id" })),
+  ApplicationFailure: class ApplicationFailure extends Error {
+    constructor(msg: string) { super(msg); }
+    static nonRetryable(msg: string, type?: string) { return new ApplicationFailure(msg); }
+  },
   CancelledFailure: class CancelledFailure extends Error { constructor(msg: string) { super(msg); } },
   CancellationScope: { current: vi.fn() },
   isCancellation: vi.fn(() => false),

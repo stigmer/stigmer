@@ -1,0 +1,156 @@
+# Golden Test 21: Catch-Level Retry with Backoff
+#
+# Exercises:
+# - catch.retry with fixed delay
+# - catch.retry with exponential backoff and jitter
+# - catch.retry with attempt count limit
+# - catch.retry with total duration limit
+# - catch.retry with conditional retry (retry.when)
+# - catch.retry with inverse condition (retry.exceptWhen)
+# - retry exhaustion falling through to catch.do
+#
+# Note: These scenarios exercise the full retry contract. The try
+# blocks use raise tasks to simulate persistent failures. In production,
+# retry wraps transient failures from call:http, call:grpc, etc.
+# DSL 1.0.0 FORMAT
+
+document:
+  dsl: '1.0.0'
+  namespace: golden-tests
+  name: retry-backoff-test
+  version: '1.0.0'
+  description: Tests catch-level retry with backoff strategies
+
+do:
+  - setupContext:
+      set:
+        phase: started
+
+  - fixedDelayRetry:
+      try:
+        - failTransient:
+            raise:
+              error:
+                type: https://serverlessworkflow.io/spec/1.0.0/errors/communication
+                status: 503
+                title: Service Unavailable
+                detail: Upstream service temporarily down
+      catch:
+        retry:
+          delay:
+            seconds: 2
+          limit:
+            attempt:
+              count: 3
+        as: commError
+        do:
+          - handleCommFailure:
+              set:
+                comm_retried: true
+                comm_error_type: ${ $data.commError.type }
+
+  - exponentialBackoffRetry:
+      try:
+        - failWithTimeout:
+            raise:
+              error:
+                type: https://serverlessworkflow.io/spec/1.0.0/errors/timeout
+                status: 408
+                title: Request Timeout
+      catch:
+        retry:
+          delay:
+            seconds: 1
+          backoff:
+            exponential: {}
+          jitter:
+            from:
+              milliseconds: 0
+            to:
+              milliseconds: 200
+          limit:
+            attempt:
+              count: 4
+            duration:
+              seconds: 30
+        as: timeoutError
+        do:
+          - handleTimeout:
+              set:
+                timeout_retried: true
+                timeout_title: ${ $data.timeoutError.title }
+
+  - conditionalRetry:
+      try:
+        - failConditional:
+            raise:
+              error:
+                type: infrastructure/rate-limit
+                status: 429
+                title: Rate Limited
+                detail: Too many requests
+      catch:
+        retry:
+          when: ${ $error.status == 429 or $error.status == 503 }
+          delay:
+            seconds: 5
+          backoff:
+            constant: {}
+          limit:
+            attempt:
+              count: 2
+        as: rateLimitError
+        do:
+          - handleRateLimit:
+              set:
+                rate_limited: true
+
+  - exceptWhenRetry:
+      try:
+        - failAuth:
+            raise:
+              error:
+                type: auth/token-expired
+                status: 401
+                title: Unauthorized
+      catch:
+        retry:
+          exceptWhen: ${ $error.type == "auth/token-expired" }
+          delay:
+            seconds: 1
+          limit:
+            attempt:
+              count: 3
+        as: authError
+        do:
+          - handleAuth:
+              set:
+                auth_skipped_retry: true
+                auth_error_detail: ${ $data.authError.title }
+
+  - linearBackoffRetry:
+      try:
+        - failLinear:
+            raise:
+              error:
+                type: infrastructure/overloaded
+                status: 503
+                title: Server Overloaded
+      catch:
+        retry:
+          delay:
+            milliseconds: 500
+          backoff:
+            linear: {}
+          limit:
+            attempt:
+              count: 3
+        as: overloadError
+        do:
+          - handleOverload:
+              set:
+                overload_retried: true
+
+  - finalCheck:
+      set:
+        phase: completed

@@ -1,0 +1,126 @@
+# Golden Test 13: Agent Call with Structured Output
+#
+# Exercises:
+# - call:agent task type (async completion, HITL signal handling)
+# - jq expression interpolation in agent message
+# - Secret env vars with runtime placeholders (${.secrets.*})
+# - Structured output schema validation (JSON Schema)
+# - ON_INVALID_RETRY policy for schema validation failures
+# - Export of structured result to workflow context
+# - Switch branching on agent output fields
+#
+# This workflow simulates a code review triage pipeline:
+# 1. Set up the review context (PR diff)
+# 2. Call a code-reviewer agent with the diff
+# 3. Validate the agent's structured output (severity, category)
+# 4. Branch on severity for downstream actions
+#
+# Note: This YAML validates the full contract but requires a running
+# agent infrastructure to execute end-to-end. For unit testing, the
+# loader and builder tests cover parsing and config validation.
+
+document:
+  dsl: '1.0.0'
+  namespace: stigmer
+  name: code-review-triage
+  version: '1.0.0'
+  description: Triage code changes via an AI code-reviewer agent
+
+input:
+  from: "${ { pr_number: .pr_number, repo: .repo, diff: .diff } }"
+
+do:
+  - setupContext:
+      set:
+        review_request:
+          pr_number: ${ $input.pr_number }
+          repo: ${ $input.repo }
+          timestamp: ${ now | todate }
+
+  - reviewCode:
+      call: agent
+      with:
+        agent: "code-reviewer"
+        message: >-
+          Review the following code changes from PR #${ $context.setupContext.review_request.pr_number }
+          in repository ${ $context.setupContext.review_request.repo }.
+
+          Diff:
+          ${ $input.diff }
+
+          Provide a structured assessment including severity, category, and rationale.
+        env:
+          GITHUB_TOKEN: "${.secrets.GITHUB_TOKEN}"
+        config:
+          model: "claude-3-5-sonnet"
+          timeout: 300
+          temperature: 0.2
+        output:
+          schema:
+            type: object
+            required:
+              - severity
+              - category
+              - customer_impact
+            properties:
+              severity:
+                type: string
+                enum:
+                  - low
+                  - medium
+                  - high
+                  - critical
+              category:
+                type: string
+              customer_impact:
+                type: boolean
+              rationale:
+                type: string
+          on_invalid: ON_INVALID_RETRY
+          max_retries: 2
+        harness: native
+      export:
+        as: ${ .structured }
+
+  - routeBySeverity:
+      switch:
+        - critical:
+            when: ${ $context.reviewCode.severity == "critical" }
+            then: handleCritical
+        - high:
+            when: ${ $context.reviewCode.severity == "high" }
+            then: handleHigh
+        - default:
+            then: handleStandard
+
+  - handleCritical:
+      set:
+        action: block_merge
+        notification: urgent
+        assignee: security-team
+      then: finalize
+
+  - handleHigh:
+      set:
+        action: request_changes
+        notification: normal
+        assignee: senior-reviewer
+      then: finalize
+
+  - handleStandard:
+      set:
+        action: auto_approve
+        notification: none
+        assignee: null
+
+  - finalize:
+      set:
+        result:
+          pr_number: ${ $context.setupContext.review_request.pr_number }
+          severity: ${ $context.reviewCode.severity }
+          category: ${ $context.reviewCode.category }
+          action: ${ $data.action }
+          notification: ${ $data.notification }
+
+output:
+  as: ${ $context.finalize.result }

@@ -1,0 +1,34 @@
+# Golden Test 08: Error Handling and Retry
+# Tests: Error handling, retry policies, error recovery
+# CONVERTED TO DSL 1.0.0 FORMAT
+
+document:
+  dsl: '1.0.0'
+  namespace: golden-tests
+  name: error-retry-test
+  version: '1.0.0'
+  description: Tests error handling and retry mechanisms
+
+do:
+  - flakyOperation:
+      try:
+        - attemptCall:
+            call: http
+            with:
+              method: POST
+              endpoint:
+                uri: https://jsonplaceholder.typicode.com/post
+              body:
+                title: Flaky operation test
+      catch:
+        as: error
+        do:
+          - errorHandler:
+              call: http
+              with:
+                method: POST
+                endpoint:
+                  uri: https://jsonplaceholder.typicode.com/posts
+                body:
+                  message: "Error handled"
+                  error: ${ .error }

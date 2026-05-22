@@ -890,28 +890,6 @@ Each type maps to a Stigmer system agent that guides the user
 through the creation/editing flow in a conversational session.
 
 
-### ExecutionTargetOption
-
-String literal alias for the proto `ExecutionTarget` enum.
-
-Used on hook options so platform builders do not need to import
-proto enums to configure where session activities execute.
-
-- `"local"` — Client's embedded runner (desktop app or CLI) polls
-  the session's task queue.
-- `"cloud"` — Server provisions a cloud sandbox with a runner.
-
-
-### fromProtoExecutionTarget
-
-Convert a proto `ExecutionTarget` enum to an [`ExecutionTargetOption`](#executiontargetoption) string,
-or `undefined` when the value is `UNSPECIFIED` (server decides).
-
-```tsx
-function fromProtoExecutionTarget(t: ExecutionTarget): ExecutionTargetOption | undefined
-```
-
-
 ### groupSearchResultsByTime
 
 Groups SearchResult entries by their `createdAt` timestamp into time-based
@@ -1095,7 +1073,7 @@ Shared fields present in both variants of [`CreateSessionInput`](#createsessioni
 
 <TypeTable
   type={{
-    executionTarget: { type: "ExecutionTargetOption", description: "Where session activities are executed.  - `\"local\"` — Client's embedded runner (desktop app or CLI) polls   the session's task queue. - `\"cloud\"` — Server provisions a cloud sandbox with a runner. - `undefined` — Server decides based on deployment context   (LOCAL for OSS, CLOUD for managed).  Immutable after the first execution runs.", typeDescriptionLink: "#executiontargetoption" },
+    executionTarget: { type: "ExecutionTargetOption", description: "Where session activities are executed.  - `\"local\"` — Client's embedded runner (desktop app or CLI) polls   the session's task queue. - `\"cloud\"` — Server provisions a cloud sandbox with a runner. - `undefined` — Server decides based on deployment context   (LOCAL for OSS, CLOUD for managed).  Immutable after the first execution runs." },
     harness: { type: "HarnessOption", description: "Execution harness for this session.  Determines which execution engine processes agent activities. Immutable after the first execution runs. Defaults to `\"native\"`.", typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
     mcpServerUsages: { type: "McpServerUsageInput[]", description: "MCP server configurations to include for tool access." },
     org: { type: "string", description: "Organization slug for the new session.", required: true },
@@ -1106,22 +1084,13 @@ Shared fields present in both variants of [`CreateSessionInput`](#createsessioni
 />
 
 
-### toProtoExecutionTarget
-
-Convert an [`ExecutionTargetOption`](#executiontargetoption) string to the proto `ExecutionTarget` enum.
-
-```tsx
-function toProtoExecutionTarget(t: ExecutionTargetOption): ExecutionTarget
-```
-
-
 ### UseNewSessionFlowOptions
 
 Options for [`useNewSessionFlow`](#usenewsessionflow).
 
 <TypeTable
   type={{
-    executionTarget: { type: "ExecutionTargetOption", description: "Where session activities should execute.", typeDescriptionLink: "#executiontargetoption" },
+    executionTarget: { type: "ExecutionTargetOption", description: "Where session activities should execute." },
     onError: { type: "(message: string) => void", description: "Called when an error occurs during session creation. The consumer can use this for toast notifications or other UI feedback. If not provided, errors are still available via UseNewSessionFlowReturn.submitError." },
     onSessionCreated: { type: "(sessionId: string) => void", description: "Called after a session and its first execution are created successfully. The consumer is responsible for navigation (e.g. `router.push`).", required: true },
     org: { type: "string", description: "Organization slug. Required for session and execution creation.", required: true },

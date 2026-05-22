@@ -1,0 +1,93 @@
+# Golden Test 15: Fork Parallel Execution
+# Tests: Parallel branch execution, state isolation, downstream aggregation,
+#         compete (race) mode, nested orchestration (fork inside fork)
+
+document:
+  dsl: '1.0.0'
+  namespace: golden-tests
+  name: fork-parallel-test
+  version: '1.0.0'
+  description: Tests fork task with non-compete and compete modes
+
+do:
+  # Pre-fork setup — branches should see this in $data
+  - setup:
+      set:
+        config:
+          environment: test
+          version: 15
+
+  # Non-compete fork: all branches run, output keyed by branch name
+  - parallelProcessing:
+      fork:
+        branches:
+          - analyzeData:
+              do:
+                - compute:
+                    set:
+                      analysis: complete
+                      score: 95
+          - validateSchema:
+              do:
+                - check:
+                    set:
+                      valid: true
+                      checks_passed: 12
+          - generateReport:
+              do:
+                - build:
+                    set:
+                      report: generated
+                      pages: 5
+
+  # Downstream task aggregates fork results via $output
+  - aggregate:
+      set:
+        summary:
+          analysis_result: ${ $output.analyzeData.analysis }
+          validation_passed: ${ $output.validateSchema.valid }
+          report_status: ${ $output.generateReport.report }
+          total_checks: ${ $output.validateSchema.checks_passed }
+
+  # Compete fork: first branch to complete wins
+  - raceStrategies:
+      fork:
+        compete: true
+        branches:
+          - strategyA:
+              do:
+                - execute:
+                    set:
+                      strategy: A
+                      confidence: 0.85
+          - strategyB:
+              do:
+                - execute:
+                    set:
+                      strategy: B
+                      confidence: 0.92
+
+  # Nested fork: fork inside a fork branch
+  - nestedParallel:
+      fork:
+        branches:
+          - outerLeft:
+              do:
+                - innerFork:
+                    fork:
+                      branches:
+                        - innerA:
+                            do:
+                              - compute:
+                                  set:
+                                    position: left-A
+                        - innerB:
+                            do:
+                              - compute:
+                                  set:
+                                    position: left-B
+          - outerRight:
+              do:
+                - simple:
+                    set:
+                      position: right

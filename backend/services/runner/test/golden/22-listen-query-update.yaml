@@ -1,0 +1,68 @@
+# Golden Test 22: Listen Query/Update Event Types
+# Tests: Query (non-blocking), Update (blocking), mixed with signals
+# CNCF DSL 1.0.0 FORMAT — Stigmer transport type extension
+
+document:
+  dsl: '1.0.0'
+  namespace: golden-tests
+  name: listen-query-update-test
+  version: '1.0.0'
+  description: Tests listen task with query, update, and mixed event types
+
+do:
+  # Query-only: registers a read-only handler and returns immediately
+  - registerStatus:
+      listen:
+        to:
+          one:
+            with:
+              id: get_workflow_status
+              type: query
+              data:
+                phase: running
+                progress: 50
+
+  # Update: blocks until an update is received
+  - waitForConfig:
+      listen:
+        to:
+          one:
+            with:
+              id: apply_config
+              type: update
+              data:
+                applied: true
+
+  # Mixed: signal + update in to.all — waits for both
+  - waitForBoth:
+      listen:
+        to:
+          all:
+            - with:
+                id: data_ready
+                type: signal
+            - with:
+                id: confirm_receipt
+                type: update
+                acceptIf: "${ .acknowledged == true }"
+        metadata:
+          timeout: 2m
+
+  # Mixed: signal + query in to.any — query is non-blocking,
+  # only signal counts toward completion
+  - hybridListen:
+      listen:
+        to:
+          any:
+            - with:
+                id: status_query
+                type: query
+                data:
+                  available: true
+            - with:
+                id: completion_signal
+                type: signal
+
+  - markDone:
+      set:
+        listen_tests_complete: true

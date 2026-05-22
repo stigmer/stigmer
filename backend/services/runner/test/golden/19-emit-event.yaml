@@ -1,0 +1,36 @@
+# Golden Test 19: Emit Event (CloudEvents Envelope)
+# Tests: CloudEvents 1.0 envelope construction via call:function
+# CNCF DSL 1.0.0 FORMAT
+
+document:
+  dsl: '1.0.0'
+  namespace: golden-tests
+  name: emit-event-test
+  version: '1.0.0'
+  description: Tests emitting CloudEvents envelopes
+
+do:
+  - emitStepComplete:
+      call: emit_event
+      with:
+        event:
+          type: workflow.step.completed
+          subject: data-enrichment
+          data:
+            step_name: enrichment
+            status: success
+            duration_ms: 1200
+
+  - emitCustomSource:
+      call: emit_event
+      with:
+        event:
+          type: audit.action.performed
+          source: /services/stigmer/workflows
+          data:
+            action: approve
+            actor: reviewer@example.com
+
+  - markDone:
+      set:
+        events_emitted: true
