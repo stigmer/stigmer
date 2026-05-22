@@ -165,7 +165,7 @@ export function useRunWorkflowFlow(
 
       const execution: WorkflowExecution =
         await stigmerRef.current.workflowExecution.create({
-          name: `${workflowName} execution`,
+          name: `${workflowName} ${new Date().toISOString().slice(0, 19).replace("T", " ")}`,
           org,
           workflowId: selectedInstanceId
             ? undefined
