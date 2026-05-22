@@ -1,7 +1,9 @@
 "use client";
 
-import { memo, useCallback, useState, type ReactNode } from "react";
+import { memo, useCallback, useMemo, useState, type ReactNode } from "react";
 import { cn } from "@stigmer/theme";
+import { WorkflowTaskStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { useWorkflowExecution } from "./useWorkflowExecution";
 import { useWorkflowExecutionEventStream } from "./useWorkflowExecutionEventStream";
 import { useWorkflowExecutionArtifacts } from "./useWorkflowExecutionArtifacts";
@@ -12,6 +14,7 @@ import { WorkflowExecutionTaskPanel } from "./WorkflowExecutionTaskPanel";
 import { WorkflowExecutionCostPanel } from "./WorkflowExecutionCostPanel";
 import { WorkflowExecutionArtifactPanel } from "./WorkflowExecutionArtifactPanel";
 import { WorkflowRepairCard } from "./WorkflowRepairCard";
+import type { DerivedTaskState } from "../internal/store/workflow-execution-event-store";
 
 /** Props for {@link WorkflowExecutionViewer}. */
 export interface WorkflowExecutionViewerProps {
@@ -84,6 +87,63 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
   } = useWorkflowExecutionEventStream(executionId, {
     executionPhase: phase,
   });
+
+  // Fallback: when the event log is empty but the execution has task status
+  // snapshots (e.g., due to event persistence failure), derive task states
+  // from the status.tasks array so the panel is never completely blank.
+  const fallbackTaskStates = useMemo((): ReadonlyMap<string, DerivedTaskState> | null => {
+    if (events.length > 0 || streamState.stage !== "complete") return null;
+    const tasks = execution?.status?.tasks;
+    if (!tasks || tasks.length === 0) return null;
+
+    const map = new Map<string, DerivedTaskState>();
+    for (const t of tasks) {
+      const name = t.taskName;
+      if (!name) continue;
+
+      let status: DerivedTaskState["status"] = "pending";
+      switch (t.status) {
+        case WorkflowTaskStatus.WORKFLOW_TASK_IN_PROGRESS:
+          status = "running";
+          break;
+        case WorkflowTaskStatus.WORKFLOW_TASK_COMPLETED:
+          status = "completed";
+          break;
+        case WorkflowTaskStatus.WORKFLOW_TASK_FAILED:
+          status = "failed";
+          break;
+        case WorkflowTaskStatus.WORKFLOW_TASK_SKIPPED:
+          status = "skipped";
+          break;
+        case WorkflowTaskStatus.WORKFLOW_TASK_WAITING_APPROVAL:
+          status = "waiting_approval";
+          break;
+        default:
+          status = "pending";
+      }
+
+      let durationMs = 0;
+      if (t.startedAt && t.completedAt) {
+        durationMs = new Date(t.completedAt).getTime() - new Date(t.startedAt).getTime();
+      }
+
+      map.set(name, {
+        taskName: name,
+        taskKind: WorkflowTaskKind.workflow_task_kind_unspecified,
+        status,
+        durationMs,
+        costMicros: BigInt(0),
+        tokensUsed: BigInt(0),
+        attemptNumber: 1,
+        error: t.error ?? "",
+        childExecutionId: "",
+      });
+    }
+    return map;
+  }, [events.length, streamState.stage, execution?.status?.tasks]);
+
+  const effectiveTaskStates = fallbackTaskStates ?? taskStates;
+  const effectiveTotalTasks = fallbackTaskStates ? fallbackTaskStates.size : totalTasks;
 
   const {
     artifacts,
@@ -178,7 +238,7 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
           events={events}
           streamState={streamState}
           onNavigateToAgentExecution={onNavigateToAgentExecution}
-          taskStates={taskStates}
+          taskStates={effectiveTaskStates}
           onSubmitTaskApproval={actions.submitTaskApproval}
           isSubmittingApproval={actions.isSubmitting}
           className="flex-1 border-r border-border"
@@ -204,8 +264,8 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
           ) : (
             <>
               <WorkflowExecutionTaskPanel
-                taskStates={taskStates}
-                totalTasks={totalTasks}
+                taskStates={effectiveTaskStates}
+                totalTasks={effectiveTotalTasks}
                 selectedTaskName={selectedTaskName}
                 onSelectTask={setSelectedTaskName}
               />
