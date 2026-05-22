@@ -54,6 +54,15 @@ func (v *InProcessValidator) Validate(ctx context.Context, spec *workflowv1.Work
 
 	log.Debug().Msg("Starting in-process workflow validation")
 
+	// Step 0: Task kind validation (fail fast for unknown kinds)
+	if kindErrors := ValidateTaskKinds(spec); len(kindErrors) > 0 {
+		return &serverlessv1.ServerlessWorkflowValidation{
+			State:       serverlessv1.ValidationState_INVALID,
+			Errors:      kindErrors,
+			ValidatedAt: timestamppb.Now(),
+		}, nil
+	}
+
 	// Step 1: Convert proto to CNCF YAML
 	yaml, err := v.converter.ProtoToYAML(spec)
 	if err != nil {
