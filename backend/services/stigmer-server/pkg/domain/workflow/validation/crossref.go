@@ -9,6 +9,23 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
+// ValidateTaskKinds checks that every task in the spec has a recognized,
+// non-zero WorkflowTaskKind. Returns errors for unspecified (0) or unknown
+// enum values that don't appear in the generated name map.
+func ValidateTaskKinds(spec *workflowv1.WorkflowSpec) []string {
+	if spec == nil || len(spec.Tasks) == 0 {
+		return nil
+	}
+	var errors []string
+	for _, task := range spec.Tasks {
+		if _, ok := workflowv1.WorkflowTaskKind_name[int32(task.Kind)]; !ok || task.Kind == 0 {
+			errors = append(errors, fmt.Sprintf(
+				"task '%s': unknown or unspecified task kind (value=%d)", task.Name, int32(task.Kind)))
+		}
+	}
+	return errors
+}
+
 // ValidateCrossTaskReferences checks that all task-name references within a
 // workflow point to tasks that actually exist.
 //
@@ -289,6 +306,19 @@ func ValidateTaskConfigRequiredFields(spec *workflowv1.WorkflowSpec) []string {
 				errors = append(errors, fmt.Sprintf("task '%s' (http_call): required field 'endpoint' is missing", task.Name))
 			} else if uri := getStringField(endpoint.GetFields(), "uri"); uri == "" {
 				errors = append(errors, fmt.Sprintf("task '%s' (http_call): required field 'endpoint.uri' is missing or empty", task.Name))
+			}
+
+		case workflowv1.WorkflowTaskKind_grpc_call:
+			if service := getStringField(fields, "service"); service == "" {
+				errors = append(errors, fmt.Sprintf("task '%s' (grpc_call): required field 'service' is missing or empty", task.Name))
+			}
+			if method := getStringField(fields, "method"); method == "" {
+				errors = append(errors, fmt.Sprintf("task '%s' (grpc_call): required field 'method' is missing or empty", task.Name))
+			}
+
+		case workflowv1.WorkflowTaskKind_activity_call:
+			if activity := getStringField(fields, "activity"); activity == "" {
+				errors = append(errors, fmt.Sprintf("task '%s' (activity_call): required field 'activity' is missing or empty", task.Name))
 			}
 		}
 	}
