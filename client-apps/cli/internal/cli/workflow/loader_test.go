@@ -33,7 +33,7 @@ spec:
     name: test-workflow
     version: "1.0.0"
   tasks:
-    - name: set-greeting
+    - name: set_greeting
       kind: set_vars
       task_config:
         variables:
@@ -55,7 +55,7 @@ spec:
     name: code-review
     version: "1.0.0"
   tasks:
-    - name: fetch-code
+    - name: fetch_code
       kind: http_call
       task_config:
         method: GET
@@ -89,7 +89,7 @@ func minimalValidWorkflowJSON() string {
     },
     "tasks": [
       {
-        "name": "set-greeting",
+        "name": "set_greeting",
         "kind": "set_vars",
         "task_config": {
           "variables": {
@@ -196,7 +196,7 @@ spec:
     name: test-workflow
     version: "1.0.0"
   tasks:
-    - name: set-greeting
+    - name: set_greeting
       kind: set_vars
       task_config:
         variables:
@@ -233,7 +233,7 @@ spec:
     name: test-workflow
     version: "1.0.0"
   tasks:
-    - name: set-greeting
+    - name: set_greeting
       kind: set_vars
       task_config:
         variables:
@@ -254,7 +254,7 @@ spec:
     name: test-workflow
     version: "1.0.0"
   tasks:
-    - name: set-greeting
+    - name: set_greeting
       kind: set_vars
       task_config:
         variables:
@@ -273,7 +273,7 @@ spec:
     name: test-workflow
     version: "1.0.0"
   tasks:
-    - name: set-greeting
+    - name: set_greeting
       kind: set_vars
       task_config:
         variables:
@@ -289,7 +289,7 @@ metadata:
   name: test-workflow
 spec:
   tasks:
-    - name: set-greeting
+    - name: set_greeting
       kind: set_vars
       task_config:
         variables:
@@ -310,7 +310,7 @@ spec:
     name: test-workflow
     version: "1.0.0"
   tasks:
-    - name: set-greeting
+    - name: set_greeting
       kind: set_vars
       task_config:
         variables:
@@ -367,7 +367,7 @@ spec:
     name: test-workflow
     version: "1.0.0"
   tasks:
-    - name: set-greeting
+    - name: set_greeting
       task_config:
         variables:
           greeting: "Hello"
@@ -387,7 +387,7 @@ spec:
     name: test-workflow
     version: "1.0.0"
   tasks:
-    - name: set-greeting
+    - name: set_greeting
       kind: set_vars
 `,
 			errorContains: "workflow validation failed",
@@ -404,7 +404,7 @@ spec:
     name: test-workflow
     version: "1.0.0"
   tasks:
-    - name: set-greeting
+    - name: set_greeting
       kind: set_vars
       task_config:
         variables:
@@ -448,7 +448,7 @@ func TestLoad_MinimalValidWorkflow(t *testing.T) {
 	assert.Equal(t, "test-workflow", result.Workflow.Spec.Document.Name)
 	assert.Equal(t, "1.0.0", result.Workflow.Spec.Document.Version)
 	assert.Len(t, result.Workflow.Spec.Tasks, 1)
-	assert.Equal(t, "set-greeting", result.Workflow.Spec.Tasks[0].Name)
+	assert.Equal(t, "set_greeting", result.Workflow.Spec.Tasks[0].Name)
 }
 
 func TestLoad_FullWorkflow(t *testing.T) {
@@ -467,7 +467,7 @@ func TestLoad_FullWorkflow(t *testing.T) {
 
 	// Verify first task (http_call)
 	task1 := result.Workflow.Spec.Tasks[0]
-	assert.Equal(t, "fetch-code", task1.Name)
+	assert.Equal(t, "fetch_code", task1.Name)
 	assert.NotNil(t, task1.Export)
 	assert.Equal(t, "${.}", task1.Export.As)
 
@@ -496,7 +496,7 @@ spec:
       task_config:
         variables:
           status: "started"
-    - name: fetch-data
+    - name: fetch_data
       kind: http_call
       task_config:
         method: GET
@@ -519,7 +519,7 @@ spec:
 
 	assert.Len(t, result.Workflow.Spec.Tasks, 4)
 	assert.Equal(t, "initialize", result.Workflow.Spec.Tasks[0].Name)
-	assert.Equal(t, "fetch-data", result.Workflow.Spec.Tasks[1].Name)
+	assert.Equal(t, "fetch_data", result.Workflow.Spec.Tasks[1].Name)
 	assert.Equal(t, "process", result.Workflow.Spec.Tasks[2].Name)
 	assert.Equal(t, "delay", result.Workflow.Spec.Tasks[3].Name)
 }
@@ -541,7 +541,7 @@ spec:
     name: test-workflow
     version: "1.0.0"
   tasks:
-    - name: set-greeting
+    - name: set_greeting
       kind: set_vars
       task_config:
         variables:
@@ -570,7 +570,7 @@ spec:
     name: test-workflow
     version: "1.0.0"
   tasks:
-    - name: set-greeting
+    - name: set_greeting
       kind: set_vars
       task_config:
         variables:
@@ -632,7 +632,7 @@ spec:
     name: test-workflow
     version: "1.0.0"
   tasks:
-    - name: http-request
+    - name: http_request
       kind: http_call
       task_config:
         method: POST
@@ -659,7 +659,7 @@ spec:
 
 	assert.Len(t, result.Workflow.Spec.Tasks, 1)
 	task := result.Workflow.Spec.Tasks[0]
-	assert.Equal(t, "http-request", task.Name)
+	assert.Equal(t, "http_request", task.Name)
 	assert.NotNil(t, task.TaskConfig)
 	// TaskConfig is a google.protobuf.Struct, verify it was parsed
 	assert.NotNil(t, task.TaskConfig.Fields)

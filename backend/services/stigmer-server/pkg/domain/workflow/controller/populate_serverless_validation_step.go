@@ -81,7 +81,14 @@ func (s *populateServerlessValidationStepForUpdate) Execute(ctx *pipeline.Reques
 		workflowID = wf.GetMetadata().GetId()
 	}
 
-	validation, ok := ctx.Get(ServerlessValidationKey).(*serverlessv1.ServerlessWorkflowValidation)
+	raw := ctx.Get(ServerlessValidationKey)
+	if raw == nil {
+		log.Warn().
+			Str("workflow_id", workflowID).
+			Msg("Serverless validation result not found in context - validator may be disabled")
+		return nil
+	}
+	validation, ok := raw.(*serverlessv1.ServerlessWorkflowValidation)
 	if !ok || validation == nil {
 		return fmt.Errorf("serverless validation result not found in context for workflow %s", workflowID)
 	}

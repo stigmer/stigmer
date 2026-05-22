@@ -136,7 +136,6 @@ func TestVerbSupport_TypesForVerb(t *testing.T) {
 				apiresourcekind.ApiResourceKind_agent_instance,
 				apiresourcekind.ApiResourceKind_workflow_instance,
 				apiresourcekind.ApiResourceKind_session,
-				apiresourcekind.ApiResourceKind_runner,
 			},
 		},
 	}

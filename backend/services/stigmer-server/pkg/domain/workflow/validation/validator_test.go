@@ -63,7 +63,7 @@ func TestInProcessValidator_NilSpec(t *testing.T) {
 
 func TestInProcessValidator_DuplicateTaskNames(t *testing.T) {
 	config, _ := structpb.NewStruct(map[string]interface{}{
-		"variables": map[string]interface{}{"x": 1},
+		"variables": map[string]interface{}{"x": "1"},
 	})
 
 	spec := &workflowv1.WorkflowSpec{
@@ -137,7 +137,7 @@ func TestInProcessValidator_BudgetWarnings(t *testing.T) {
 
 func TestInProcessValidator_MultipleTaskTypes(t *testing.T) {
 	setConfig, _ := structpb.NewStruct(map[string]interface{}{
-		"variables": map[string]interface{}{"initialized": true},
+		"variables": map[string]interface{}{"initialized": "true"},
 	})
 	httpConfig, _ := structpb.NewStruct(map[string]interface{}{
 		"method": "GET",

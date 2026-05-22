@@ -201,6 +201,17 @@ export class HttpCheckpointSaver extends BaseCheckpointSaver {
     };
   }
 
+  async deleteThread(threadId: string): Promise<void> {
+    const params = new URLSearchParams({ thread_id: threadId });
+    const resp = await fetch(`${this.baseUrl}/thread?${params}`, {
+      method: "DELETE",
+      headers: this.headers,
+    });
+    if (!resp.ok && resp.status !== 404) {
+      throw new Error(`Checkpoint DELETE thread failed: ${resp.status} ${resp.statusText}`);
+    }
+  }
+
   async putWrites(
     config: RunnableConfig,
     writes: PendingWrite[],

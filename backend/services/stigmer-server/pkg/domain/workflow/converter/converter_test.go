@@ -12,7 +12,7 @@ func TestProtoToYAML_BasicSetVars(t *testing.T) {
 	vars, _ := structpb.NewStruct(map[string]interface{}{
 		"variables": map[string]interface{}{
 			"greeting": "hello",
-			"count":    42,
+			"count":    "42",
 		},
 	})
 
@@ -132,7 +132,7 @@ func TestProtoToYAML_AgentCall(t *testing.T) {
 
 func TestProtoToYAML_FlowControl(t *testing.T) {
 	config, _ := structpb.NewStruct(map[string]interface{}{
-		"variables": map[string]interface{}{"x": 1},
+		"variables": map[string]interface{}{"x": "1"},
 	})
 
 	spec := &workflowv1.WorkflowSpec{
