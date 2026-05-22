@@ -214,8 +214,8 @@ public final class InvitationQueryControllerGrpc {
      * invitation metadata.
      * &#64;internal
      * Authorization: none — unauthenticated, public endpoint for rendering
-     * the invite acceptance page. Uses is_skip_authorization following the
-     * getSsoProvider precedent.
+     * the invite acceptance page. Marked is_public so the authentication
+     * interceptor skips token validation entirely.
      * </pre>
      */
     default void getByToken(ai.stigmer.iam.invitation.v1.InvitationTokenInput request,
@@ -299,8 +299,8 @@ public final class InvitationQueryControllerGrpc {
      * invitation metadata.
      * &#64;internal
      * Authorization: none — unauthenticated, public endpoint for rendering
-     * the invite acceptance page. Uses is_skip_authorization following the
-     * getSsoProvider precedent.
+     * the invite acceptance page. Marked is_public so the authentication
+     * interceptor skips token validation entirely.
      * </pre>
      */
     public void getByToken(ai.stigmer.iam.invitation.v1.InvitationTokenInput request,
@@ -369,8 +369,8 @@ public final class InvitationQueryControllerGrpc {
      * invitation metadata.
      * &#64;internal
      * Authorization: none — unauthenticated, public endpoint for rendering
-     * the invite acceptance page. Uses is_skip_authorization following the
-     * getSsoProvider precedent.
+     * the invite acceptance page. Marked is_public so the authentication
+     * interceptor skips token validation entirely.
      * </pre>
      */
     public ai.stigmer.iam.invitation.v1.InvitationPreview getByToken(ai.stigmer.iam.invitation.v1.InvitationTokenInput request) throws io.grpc.StatusException {
@@ -438,8 +438,8 @@ public final class InvitationQueryControllerGrpc {
      * invitation metadata.
      * &#64;internal
      * Authorization: none — unauthenticated, public endpoint for rendering
-     * the invite acceptance page. Uses is_skip_authorization following the
-     * getSsoProvider precedent.
+     * the invite acceptance page. Marked is_public so the authentication
+     * interceptor skips token validation entirely.
      * </pre>
      */
     public ai.stigmer.iam.invitation.v1.InvitationPreview getByToken(ai.stigmer.iam.invitation.v1.InvitationTokenInput request) {
@@ -509,8 +509,8 @@ public final class InvitationQueryControllerGrpc {
      * invitation metadata.
      * &#64;internal
      * Authorization: none — unauthenticated, public endpoint for rendering
-     * the invite acceptance page. Uses is_skip_authorization following the
-     * getSsoProvider precedent.
+     * the invite acceptance page. Marked is_public so the authentication
+     * interceptor skips token validation entirely.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.invitation.v1.InvitationPreview> getByToken(

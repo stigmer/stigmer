@@ -62,8 +62,8 @@ export const InvitationQueryController = {
      *
      * @internal
      * Authorization: none — unauthenticated, public endpoint for rendering
-     * the invite acceptance page. Uses is_skip_authorization following the
-     * getSsoProvider precedent.
+     * the invite acceptance page. Marked is_public so the authentication
+     * interceptor skips token validation entirely.
      *
      * @generated from rpc ai.stigmer.iam.invitation.v1.InvitationQueryController.getByToken
      */

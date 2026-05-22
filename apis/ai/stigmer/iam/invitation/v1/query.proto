@@ -51,9 +51,9 @@ service InvitationQueryController {
   //
   // @internal
   // Authorization: none — unauthenticated, public endpoint for rendering
-  // the invite acceptance page. Uses is_skip_authorization following the
-  // getSsoProvider precedent.
+  // the invite acceptance page. Marked is_public so the authentication
+  // interceptor skips token validation entirely.
   rpc getByToken(InvitationTokenInput) returns (InvitationPreview) {
-    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.is_public) = true;
   }
 }

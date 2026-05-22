@@ -58,8 +58,8 @@ type InvitationQueryControllerClient interface {
 	//
 	// @internal
 	// Authorization: none — unauthenticated, public endpoint for rendering
-	// the invite acceptance page. Uses is_skip_authorization following the
-	// getSsoProvider precedent.
+	// the invite acceptance page. Marked is_public so the authentication
+	// interceptor skips token validation entirely.
 	GetByToken(ctx context.Context, in *InvitationTokenInput, opts ...grpc.CallOption) (*InvitationPreview, error)
 }
 
@@ -135,8 +135,8 @@ type InvitationQueryControllerServer interface {
 	//
 	// @internal
 	// Authorization: none — unauthenticated, public endpoint for rendering
-	// the invite acceptance page. Uses is_skip_authorization following the
-	// getSsoProvider precedent.
+	// the invite acceptance page. Marked is_public so the authentication
+	// interceptor skips token validation entirely.
 	GetByToken(context.Context, *InvitationTokenInput) (*InvitationPreview, error)
 }
 
