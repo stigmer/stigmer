@@ -270,6 +270,10 @@ test-integration-wfexec-routing: ## Run offline workflow execution routing tests
 test-integration-offline: ## Run deterministic offline integration tests (recorded LLM responses, no API keys)
 	$(MAKE) -C test/integration-offline test
 
+.PHONY: test-integration-canary
+test-integration-canary: ## Run canary tests (live provider health checks, needs API keys)
+	$(MAKE) -C test/integration test-canary
+
 .PHONY: test-integration-all
 test-integration-all: ## Run all integration suites. PROVIDERS=true includes provider-backed tests.
 	@echo "=== Offline: integration ==="
