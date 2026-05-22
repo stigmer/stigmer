@@ -96,6 +96,33 @@ test.describe("Workflow execution via Run button", () => {
     await verifyTimelineHasEvents(page, 1);
   });
 
+  test("running the same workflow twice creates two distinct executions", async ({
+    page,
+    testWorkflow,
+  }) => {
+    await navigateToWorkflowDetail(page, testWorkflow.org, testWorkflow.slug);
+
+    await openRunDialog(page);
+    await submitRunAndWaitForExecution(page);
+    await assertNoErrorBoundary(page);
+
+    const firstUrl = page.url();
+    await waitForPhaseBadge(page, "Completed", { timeout: 30_000 });
+
+    await navigateToWorkflowDetail(page, testWorkflow.org, testWorkflow.slug);
+
+    await openRunDialog(page);
+    await submitRunAndWaitForExecution(page);
+    await assertNoErrorBoundary(page);
+
+    const secondUrl = page.url();
+    await waitForPhaseBadge(page, "Completed", { timeout: 30_000 });
+
+    expect(firstUrl).not.toBe(secondUrl);
+    expect(firstUrl).toMatch(/\/executions\/wex_/);
+    expect(secondUrl).toMatch(/\/executions\/wex_/);
+  });
+
   test("cancel a running execution", async ({ page, testWaitWorkflow }) => {
     await navigateToWorkflowDetail(
       page,
