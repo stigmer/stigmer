@@ -20,6 +20,7 @@ import {
   BaseCheckpointSaver,
   type Checkpoint,
   type CheckpointListOptions,
+  type CheckpointPendingWrite,
   type CheckpointTuple,
   type ChannelVersions,
 } from "@langchain/langgraph-checkpoint";
@@ -89,8 +90,8 @@ export class HttpCheckpointSaver extends BaseCheckpointSaver {
     };
   }
 
-  private serializeTyped(obj: unknown): [string, BinaryObj] {
-    const [typeTag, payload] = this.serde.dumpsTyped(obj);
+  private async serializeTyped(obj: unknown): Promise<[string, BinaryObj]> {
+    const [typeTag, payload] = await this.serde.dumpsTyped(obj);
     return [typeTag, encodeBinary(payload)];
   }
 
@@ -151,7 +152,7 @@ export class HttpCheckpointSaver extends BaseCheckpointSaver {
 
     const data = (await resp.json()) as { checkpoints?: Record<string, any>[] };
     for (const doc of data.checkpoints ?? []) {
-      yield this.parseCheckpointDocWithoutWrites(doc);
+      yield await this.parseCheckpointDocWithoutWrites(doc);
     }
   }
 
@@ -165,8 +166,8 @@ export class HttpCheckpointSaver extends BaseCheckpointSaver {
     const checkpointNs = configNs(config);
     const checkpointId = checkpoint.id;
 
-    const [cpType, cpBinary] = this.serializeTyped(checkpoint);
-    const [mdType, mdBinary] = this.serializeTyped(metadata);
+    const [cpType, cpBinary] = await this.serializeTyped(checkpoint);
+    const [mdType, mdBinary] = await this.serializeTyped(metadata);
 
     const doc: Record<string, unknown> = {
       thread_id: threadId,
@@ -210,8 +211,8 @@ export class HttpCheckpointSaver extends BaseCheckpointSaver {
     const checkpointId = configCheckpointId(config);
     const orgId = configOrg(config);
 
-    const docs = writes.map(([channel, value], idx) => {
-      const [typeTag, binaryVal] = this.serializeTyped(value);
+    const docs = await Promise.all(writes.map(async ([channel, value], idx) => {
+      const [typeTag, binaryVal] = await this.serializeTyped(value);
       const doc: Record<string, unknown> = {
         thread_id: threadId,
         checkpoint_ns: checkpointNs,
@@ -224,7 +225,7 @@ export class HttpCheckpointSaver extends BaseCheckpointSaver {
       };
       if (orgId) doc.org_id = orgId;
       return doc;
-    });
+    }));
 
     const resp = await fetch(`${this.baseUrl}/writes`, {
       method: "PUT",
@@ -241,7 +242,7 @@ export class HttpCheckpointSaver extends BaseCheckpointSaver {
     threadId: string,
     checkpointNs: string,
   ): Promise<CheckpointTuple> {
-    const cpType = doc.type ?? "msgpack";
+    const cpType = doc.type ?? "json";
     const checkpoint = (await this.deserializeTyped(cpType, doc.checkpoint)) as Checkpoint;
 
     const mdType = doc.metadata_type ?? cpType;
@@ -268,7 +269,7 @@ export class HttpCheckpointSaver extends BaseCheckpointSaver {
       })}`,
       { headers: this.headers },
     );
-    const pendingWrites = this.parseWrites(
+    const pendingWrites = await this.parseWrites(
       writesResp.ok ? (await writesResp.json()) as Record<string, any> : {},
     );
 
@@ -287,15 +288,15 @@ export class HttpCheckpointSaver extends BaseCheckpointSaver {
     };
   }
 
-  private parseCheckpointDocWithoutWrites(
+  private async parseCheckpointDocWithoutWrites(
     doc: Record<string, any>,
-  ): CheckpointTuple {
-    const cpType = doc.type ?? "msgpack";
-    const checkpoint = this.serde.loadsTyped(cpType, decodeBinary(doc.checkpoint)) as Checkpoint;
+  ): Promise<CheckpointTuple> {
+    const cpType = doc.type ?? "json";
+    const checkpoint = (await this.serde.loadsTyped(cpType, decodeBinary(doc.checkpoint))) as Checkpoint;
 
     const mdType = doc.metadata_type ?? cpType;
     const metadata = doc.metadata
-      ? (this.serde.loadsTyped(mdType, decodeBinary(doc.metadata)) as CheckpointMetadata)
+      ? ((await this.serde.loadsTyped(mdType, decodeBinary(doc.metadata))) as CheckpointMetadata)
       : undefined;
 
     let parentConfig: RunnableConfig | undefined;
@@ -323,13 +324,13 @@ export class HttpCheckpointSaver extends BaseCheckpointSaver {
     };
   }
 
-  private parseWrites(
+  private async parseWrites(
     data: Record<string, any>,
-  ): Array<[string, string, unknown]> {
-    const result: Array<[string, string, unknown]> = [];
+  ): Promise<CheckpointPendingWrite[]> {
+    const result: CheckpointPendingWrite[] = [];
     for (const w of data.writes ?? []) {
-      const wType = w.type ?? "msgpack";
-      const value = this.serde.loadsTyped(wType, decodeBinary(w.value));
+      const wType = w.type ?? "json";
+      const value = await this.serde.loadsTyped(wType, decodeBinary(w.value));
       result.push([w.task_id, w.channel, value]);
     }
     return result;

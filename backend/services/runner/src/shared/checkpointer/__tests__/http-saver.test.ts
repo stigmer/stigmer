@@ -16,9 +16,9 @@ function makeConfig(overrides: Record<string, string> = {}) {
   };
 }
 
-function serializeForProxy(obj: unknown): { type: string; binary: Record<string, any> } {
+async function serializeForProxy(obj: unknown): Promise<{ type: string; binary: Record<string, any> }> {
   const helperSaver = new HttpCheckpointSaver(PROXY, TOKEN);
-  const [typeTag, payload] = helperSaver.serde.dumpsTyped(obj);
+  const [typeTag, payload] = await helperSaver.serde.dumpsTyped(obj);
   const b64 = Buffer.from(payload).toString("base64");
   return {
     type: typeTag,
@@ -70,13 +70,12 @@ describe("HttpCheckpointSaver", () => {
       fetchSpy.mockResolvedValue({ ok: true, json: () => Promise.resolve({}) });
 
       const checkpoint: Checkpoint = {
-        v: 1,
+        v: 4,
         id: "cp-new",
         ts: new Date().toISOString(),
         channel_values: {},
         channel_versions: {},
         versions_seen: {},
-        pending_sends: [],
       };
       const metadata: CheckpointMetadata = {
         source: "loop",
@@ -127,17 +126,16 @@ describe("HttpCheckpointSaver", () => {
   describe("list", () => {
     it("yields checkpoint tuples from proxy response", async () => {
       const cp: Checkpoint = {
-        v: 1,
+        v: 4,
         id: "cp-list-1",
         ts: new Date().toISOString(),
         channel_values: {},
         channel_versions: {},
         versions_seen: {},
-        pending_sends: [],
       };
       const md: CheckpointMetadata = { source: "loop", step: 1, writes: null, parents: {} };
-      const cpSer = serializeForProxy(cp);
-      const mdSer = serializeForProxy(md);
+      const cpSer = await serializeForProxy(cp);
+      const mdSer = await serializeForProxy(md);
 
       fetchSpy.mockResolvedValue({
         ok: true,
