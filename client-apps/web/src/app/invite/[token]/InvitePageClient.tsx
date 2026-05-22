@@ -12,6 +12,7 @@ import { resolveAuthConfig } from "@/auth/config";
 import { createUserManager } from "@/auth/oidc/oidc-manager";
 import { getSsoSession, isValidSsoState } from "@/auth/oidc/sso-session";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
+import { StigmerLogo } from "@/auth/StigmerLogo";
 
 const REDIRECT_PATH_KEY = "stigmer:auth:redirect_path";
 
@@ -96,13 +97,21 @@ export default function InvitePageClient() {
 
   return (
     <StigmerProvider client={client} colorMode={colorMode} preset="monochrome">
-      <div className="flex min-h-screen items-center justify-center p-4">
-        <InvitationRedemption
-          token={token ?? ""}
-          isAuthenticated={isAuthenticated}
-          onAccepted={handleAccepted}
-          onAuthRequired={handleAuthRequired}
-        />
+      <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
+        <div className="w-full max-w-sm space-y-8">
+          <div className="text-center">
+            <StigmerLogo />
+            <h1 className="mt-4 text-lg font-semibold text-foreground">
+              You&rsquo;re invited
+            </h1>
+          </div>
+          <InvitationRedemption
+            token={token ?? ""}
+            isAuthenticated={isAuthenticated}
+            onAccepted={handleAccepted}
+            onAuthRequired={handleAuthRequired}
+          />
+        </div>
       </div>
     </StigmerProvider>
   );
