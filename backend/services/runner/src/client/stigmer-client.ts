@@ -45,6 +45,7 @@ import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/work
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/query_pb";
 import type { WorkflowInstance } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
+import { assertCreateRequirements, assertReferenceRequirements } from "./server-contracts.js";
 
 /**
  * A shared mutable token reference. When provided, the interceptor
@@ -198,16 +199,17 @@ export class StigmerClient {
   }
 
   async getAgentByReference(ref: ApiResourceReference): Promise<Agent> {
+    assertReferenceRequirements(ref, "Agent", "getAgentByReference");
     return this.agentQuery.getByReference(ref);
   }
 
   async createSession(session: Session): Promise<Session> {
-    assertEnvelope(session, "Session", "createSession");
+    assertCreateRequirements(session, "Session", "createSession");
     return this.sessionCommand.create(session);
   }
 
   async createAgentExecution(execution: AgentExecution): Promise<AgentExecution> {
-    assertEnvelope(execution, "AgentExecution", "createAgentExecution");
+    assertCreateRequirements(execution, "AgentExecution", "createAgentExecution");
     return this.executionCommand.create(execution);
   }
 
@@ -236,37 +238,5 @@ export class StigmerClient {
 
   updateToken(token: string | null): void {
     this.currentToken = token;
-  }
-}
-
-const STIGMER_API_VERSION = "agentic.stigmer.ai/v1";
-
-/**
- * Fail fast with a clear error if a top-level API resource proto is
- * missing the required envelope fields. The server enforces these via
- * buf-validate, but the server error is cryptic ("value must equal ...").
- * Catching it here gives developers an actionable message at the call site.
- */
-function assertEnvelope(
-  resource: { apiVersion: string; kind: string },
-  expectedKind: string,
-  caller: string,
-): void {
-  const problems: string[] = [];
-  if (resource.apiVersion !== STIGMER_API_VERSION) {
-    problems.push(
-      `apiVersion must be "${STIGMER_API_VERSION}" (got "${resource.apiVersion || ""}")`,
-    );
-  }
-  if (resource.kind !== expectedKind) {
-    problems.push(
-      `kind must be "${expectedKind}" (got "${resource.kind || ""}")`,
-    );
-  }
-  if (problems.length > 0) {
-    throw new Error(
-      `${caller}: API resource envelope validation failed — ${problems.join("; ")}. ` +
-      `Set apiVersion and kind when constructing the proto with create().`,
-    );
   }
 }

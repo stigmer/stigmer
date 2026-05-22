@@ -44,6 +44,21 @@ export async function callAgentAction(
 
   const resolved = resolveObjectPlaceholders(config, runtimeEnv) as AgentCallConfig;
 
+  if (!resolved.agent) {
+    throw new Error(
+      "call:agent: 'agent' resolved to empty after placeholder substitution. " +
+      "If using ${.secrets.X} or ${.env_vars.X}, ensure the referenced key " +
+      "exists in the workflow's env block and is provisioned in the environment.",
+    );
+  }
+
+  if (!resolved.message) {
+    throw new Error(
+      "call:agent: 'message' resolved to empty after placeholder substitution. " +
+      "The agent requires a non-empty prompt message.",
+    );
+  }
+
   const orgId = resolved.org
     ?? (runtimeEnv["__stigmer_org_id"] as string | undefined)
     ?? "";
@@ -106,11 +121,16 @@ export async function callAgentAction(
   const parentQueue = runtimeEnv["__stigmer_activity_task_queue"] as string | undefined;
   const activityTaskQueue = parentQueue?.startsWith("wfexec:") ? parentQueue : "";
 
+  const executionName = `aex-wf-${extractSlug(resolved.agent)}-${Date.now()}`;
+
   await client.createAgentExecution(
     create(AgentExecutionSchema, {
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "AgentExecution",
-      metadata: create(ApiResourceMetadataSchema, { org: orgId }),
+      metadata: create(ApiResourceMetadataSchema, {
+        name: executionName,
+        org: orgId,
+      }),
       spec: create(AgentExecutionSpecSchema, {
         sessionId,
         agentId,

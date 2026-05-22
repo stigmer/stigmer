@@ -164,11 +164,67 @@ func requireAgentCallPrereqs(t *testing.T) {
 	t.Helper()
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
 	if testHarness.UnifiedRunner == nil {
-		t.Skip("unified runner not available")
+		t.Skip("unified runner not available — skipping agent_call test")
 	}
-	if testHarness.AgentRunner == nil {
-		t.Skip("agent-runner not available — skipping agent_call test")
+}
+
+// TestWorkflowAgentCall_NonexistentAgent verifies that a workflow with
+// a call:agent task referencing a nonexistent agent fails with a clear
+// error rather than hanging or producing an opaque failure.
+func TestWorkflowAgentCall_NonexistentAgent(t *testing.T) {
+	requireAgentCallPrereqs(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	harness.RequireServiceHealthy(t, ctx, clients)
+	deployer := harness.NewFixtureDeployer(clients, "agent-notfound", suiteLogger)
+	defer deployer.Cleanup(ctx)
+
+	taskConfig, err := structpb.NewStruct(map[string]any{
+		"agent":   "nonexistent-agent-slug-xyz",
+		"org":     "test-org",
+		"message": "This should fail because the agent does not exist",
+	})
+	require.NoError(t, err)
+
+	workflow := &workflowv1.Workflow{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       "Workflow",
+		Metadata: &apiresource.ApiResourceMetadata{
+			Name: "integration-test-agent-notfound",
+			Org:  "test-org",
+		},
+		Spec: &workflowv1.WorkflowSpec{
+			Description: "Integration test: agent_call with nonexistent agent",
+			Document: &workflowv1.WorkflowDocument{
+				Dsl:       "1.0.0",
+				Namespace: "test-org",
+				Name:      "integration-test-agent-notfound",
+				Version:   "1.0.0",
+			},
+			Tasks: []*workflowv1.WorkflowTask{
+				{
+					Name:       "callMissingAgent",
+					Kind:       workflowv1.WorkflowTaskKind_agent_call,
+					TaskConfig: taskConfig,
+				},
+			},
+		},
 	}
+
+	_, execution, err := deployer.DeployAndExecute(ctx, workflow, "agent not found test")
+	require.NoError(t, err)
+	require.NotEmpty(t, execution.GetMetadata().GetId())
+
+	waiter := harness.NewExecutionWaiter(clients.ExecutionQuery, suiteLogger)
+	result, err := waiter.WaitForPhase(ctx, execution.GetMetadata().GetId(),
+		workflowexecutionv1.ExecutionPhase_EXECUTION_FAILED, 90*time.Second)
+	require.NoError(t, err, "execution should reach FAILED phase for nonexistent agent")
+	harness.AssertPhase(t, result, workflowexecutionv1.ExecutionPhase_EXECUTION_FAILED)
+
+	t.Logf("execution correctly failed for nonexistent agent: id=%s", result.GetMetadata().GetId())
 }
 
 func createTestAgent(t *testing.T, ctx context.Context, clients *harness.Clients, name, instructions string) *agentv1.Agent {
