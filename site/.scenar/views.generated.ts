@@ -72,7 +72,6 @@ import { ProvisionGrantPlayback } from "../src/components/docs/demos/scenarios/p
 import { QuickstartPlayback } from "../src/components/docs/demos/scenarios/quickstart-playback/index";
 import { QuickstartTour } from "../src/components/docs/demos/scenarios/quickstart-tour/index";
 import { RegisterIdpPlayback } from "../src/components/docs/demos/scenarios/register-idp-playback/index";
-import { RunnerListDetail } from "../src/components/docs/demos/scenarios/runner-list-detail/index";
 import { SessionMemoryPlayback } from "../src/components/docs/demos/scenarios/session-memory-playback/index";
 import { SkillCreationTour } from "../src/components/docs/demos/scenarios/skill-creation-tour/index";
 import { SkillDetail } from "../src/components/docs/demos/scenarios/skill-detail/index";
@@ -151,7 +150,6 @@ export const generatedViews = {
   QuickstartPlayback,
   QuickstartTour,
   RegisterIdpPlayback,
-  RunnerListDetail,
   SessionMemoryPlayback,
   SkillCreationTour,
   SkillDetail,

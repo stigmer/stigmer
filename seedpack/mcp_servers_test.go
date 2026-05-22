@@ -14,10 +14,10 @@ import (
 // mcpServerYAML mirrors the YAML structure for validation purposes.
 // Does not import proto to keep the seedpack module dependency-free.
 type mcpServerYAML struct {
-	APIVersion string          `yaml:"apiVersion"`
-	Kind       string          `yaml:"kind"`
-	Metadata   mcpMetadata     `yaml:"metadata"`
-	Spec       mcpServerSpec   `yaml:"spec"`
+	APIVersion string        `yaml:"apiVersion"`
+	Kind       string        `yaml:"kind"`
+	Metadata   mcpMetadata   `yaml:"metadata"`
+	Spec       mcpServerSpec `yaml:"spec"`
 }
 
 type mcpMetadata struct {
@@ -28,15 +28,15 @@ type mcpMetadata struct {
 }
 
 type mcpServerSpec struct {
-	Description        string                    `yaml:"description"`
-	IconURL            string                    `yaml:"icon_url"`
-	RepositoryURL      string                    `yaml:"repository_url"`
-	Tags               []string                  `yaml:"tags"`
-	Stdio              *stdioConfig              `yaml:"stdio"`
-	HTTP               *httpConfig               `yaml:"http"`
-	Env                map[string]envDeclaration `yaml:"env"`
-	Auth               *mcpAuth                  `yaml:"auth"`
-	DefaultEnabledTools []string                 `yaml:"default_enabled_tools"`
+	Description         string                    `yaml:"description"`
+	IconURL             string                    `yaml:"icon_url"`
+	RepositoryURL       string                    `yaml:"repository_url"`
+	Tags                []string                  `yaml:"tags"`
+	Stdio               *stdioConfig              `yaml:"stdio"`
+	HTTP                *httpConfig               `yaml:"http"`
+	Env                 map[string]envDeclaration `yaml:"env"`
+	Auth                *mcpAuth                  `yaml:"auth"`
+	DefaultEnabledTools []string                  `yaml:"default_enabled_tools"`
 }
 
 type stdioConfig struct {
@@ -59,11 +59,11 @@ type envDeclaration struct {
 }
 
 type mcpAuth struct {
-	OAuthAppRef      *oauthAppRef `yaml:"oauth_app_ref"`
-	TargetEnvVar     string       `yaml:"target_env_var"`
-	TokenLifetimeHint string      `yaml:"token_lifetime_hint"`
-	ScopeHints       []string     `yaml:"scope_hints"`
-	DiscoveryURL     string       `yaml:"discovery_url"`
+	OAuthAppRef       *oauthAppRef `yaml:"oauth_app_ref"`
+	TargetEnvVar      string       `yaml:"target_env_var"`
+	TokenLifetimeHint string       `yaml:"token_lifetime_hint"`
+	ScopeHints        []string     `yaml:"scope_hints"`
+	DiscoveryURL      string       `yaml:"discovery_url"`
 }
 
 type oauthAppRef struct {
@@ -75,14 +75,14 @@ type oauthAppRef struct {
 var validCategories = map[string]bool{
 	"developer-tools":      true,
 	"databases":            true,
-	"search":              true,
+	"search":               true,
 	"cloud-infrastructure": true,
 	"communication":        true,
 	"productivity":         true,
 	"web-automation":       true,
 	"monitoring":           true,
 	"payments":             true,
-	"design":              true,
+	"design":               true,
 	"ai-reasoning":         true,
 	"notifications":        true,
 	"scheduling":           true,

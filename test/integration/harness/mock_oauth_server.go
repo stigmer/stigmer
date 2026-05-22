@@ -22,11 +22,11 @@ import (
 type MockOAuthServer struct {
 	Server *httptest.Server
 
-	mu              sync.Mutex
-	issuedCodes     map[string]codeRecord
-	registeredApps  []registeredClient
-	issuedTokens    []string
-	refreshTokens   map[string]string // refresh_token -> access_token
+	mu             sync.Mutex
+	issuedCodes    map[string]codeRecord
+	registeredApps []registeredClient
+	issuedTokens   []string
+	refreshTokens  map[string]string // refresh_token -> access_token
 }
 
 type codeRecord struct {
@@ -90,14 +90,14 @@ func (m *MockOAuthServer) RegisteredApps() []registeredClient {
 
 func (m *MockOAuthServer) handleMetadata(w http.ResponseWriter, r *http.Request) {
 	metadata := map[string]interface{}{
-		"issuer":                 m.Server.URL,
-		"authorization_endpoint": m.Server.URL + "/authorize",
-		"token_endpoint":         m.Server.URL + "/token",
-		"registration_endpoint":  m.Server.URL + "/register",
-		"response_types_supported": []string{"code"},
-		"grant_types_supported":    []string{"authorization_code", "refresh_token"},
+		"issuer":                           m.Server.URL,
+		"authorization_endpoint":           m.Server.URL + "/authorize",
+		"token_endpoint":                   m.Server.URL + "/token",
+		"registration_endpoint":            m.Server.URL + "/register",
+		"response_types_supported":         []string{"code"},
+		"grant_types_supported":            []string{"authorization_code", "refresh_token"},
 		"code_challenge_methods_supported": []string{"S256"},
-		"scopes_supported":        []string{"read", "write"},
+		"scopes_supported":                 []string{"read", "write"},
 	}
 
 	w.Header().Set("Content-Type", "application/json")

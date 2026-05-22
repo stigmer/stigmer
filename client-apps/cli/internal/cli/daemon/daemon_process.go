@@ -41,7 +41,6 @@ const (
 	// the component and attempts a restart. At 10s per check this gives the
 	// component ~30s to recover on its own.
 	maxUnhealthyChecks = 3
-
 )
 
 // HealthState is written atomically by the daemon process and read by the

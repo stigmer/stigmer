@@ -8,12 +8,12 @@ import (
 	"time"
 
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	iampolicyv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/iampolicy/v1"
 	identityaccountv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/identityaccount/v1"
 	identityproviderv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/identityprovider/v1"
-	iampolicyv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/iampolicy/v1"
 	invitationv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/invitation/v1"
-	iamv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/v1"
 	oauthappv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/oauthapp/v1"
+	iamv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/v1"
 	"github.com/stigmer/stigmer/test/integration/harness"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -142,12 +142,12 @@ func TestIdentityAccount_CreateFederated_Lifecycle(t *testing.T) {
 	// Create a federated account
 	created, err := clients.IdentityAccountCommand.CreateFederatedAccount(ctx,
 		&identityaccountv1.CreateFederatedAccountInput{
-			Org:                  harness.TestOrg,
-			IdentityProviderRef:  idpRef,
-			ExternalSub:          "ext-sub-12345",
-			Email:                "federated@test.stigmer.ai",
-			FirstName:            "Federated",
-			LastName:             "User",
+			Org:                 harness.TestOrg,
+			IdentityProviderRef: idpRef,
+			ExternalSub:         "ext-sub-12345",
+			Email:               "federated@test.stigmer.ai",
+			FirstName:           "Federated",
+			LastName:            "User",
 		})
 	require.NoError(t, err, "createFederatedAccount should succeed")
 	assert.NotEmpty(t, created.GetMetadata().GetId())
@@ -158,12 +158,12 @@ func TestIdentityAccount_CreateFederated_Lifecycle(t *testing.T) {
 	// Update the federated account profile
 	updated, err := clients.IdentityAccountCommand.UpdateFederatedAccount(ctx,
 		&identityaccountv1.UpdateFederatedAccountInput{
-			Org:                  harness.TestOrg,
-			IdentityProviderRef:  idpRef,
-			ExternalSub:          "ext-sub-12345",
-			Email:                "updated-federated@test.stigmer.ai",
-			FirstName:            "Updated",
-			LastName:             "FedUser",
+			Org:                 harness.TestOrg,
+			IdentityProviderRef: idpRef,
+			ExternalSub:         "ext-sub-12345",
+			Email:               "updated-federated@test.stigmer.ai",
+			FirstName:           "Updated",
+			LastName:            "FedUser",
 		})
 	require.NoError(t, err, "updateFederatedAccount should succeed")
 	assert.Equal(t, "updated-federated@test.stigmer.ai", updated.GetSpec().GetEmail())
@@ -171,10 +171,10 @@ func TestIdentityAccount_CreateFederated_Lifecycle(t *testing.T) {
 	// Deprovision (revoke only, don't delete)
 	deprovisioned, err := clients.IdentityAccountCommand.DeprovisionFederatedAccount(ctx,
 		&identityaccountv1.DeprovisionFederatedAccountInput{
-			Org:                  harness.TestOrg,
-			IdentityProviderRef:  idpRef,
-			ExternalSub:          "ext-sub-12345",
-			DeleteAccount:        false,
+			Org:                 harness.TestOrg,
+			IdentityProviderRef: idpRef,
+			ExternalSub:         "ext-sub-12345",
+			DeleteAccount:       false,
 		})
 	require.NoError(t, err, "deprovisionFederatedAccount (revoke-only) should succeed")
 	assert.Equal(t, created.GetMetadata().GetId(), deprovisioned.GetMetadata().GetId())

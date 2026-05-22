@@ -300,4 +300,3 @@ func bearerStreamInterceptor(token string) grpc.StreamClientInterceptor {
 func appendBearerMetadata(ctx context.Context, token string) context.Context {
 	return metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+token)
 }
-

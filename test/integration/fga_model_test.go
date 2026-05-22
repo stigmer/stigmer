@@ -395,8 +395,8 @@ func fgaListObjectsWithContext(t *testing.T, fga *harness.OpenFGAContainer, user
 
 	body := map[string]any{
 		"user":                   user,
-		"relation":              relation,
-		"type":                  objectType,
+		"relation":               relation,
+		"type":                   objectType,
 		"authorization_model_id": fga.ModelID,
 	}
 	if fgaContext != nil {

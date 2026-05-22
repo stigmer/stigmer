@@ -18,9 +18,9 @@ import (
 // InvokeAgentExecutionWorkflowImpl implements InvokeAgentExecutionWorkflow.
 //
 // Unified Runner Architecture:
-// - Workflow (Go): Orchestrates activity execution on "agent_execution_stigmer" queue
-// - TypeScript unified runner: Polls the activity task queue (global or per-session)
-//   and registers ExecuteCursor, ExecuteDeepAgent, and workflow activities
+//   - Workflow (Go): Orchestrates activity execution on "agent_execution_stigmer" queue
+//   - TypeScript unified runner: Polls the activity task queue (global or per-session)
+//     and registers ExecuteCursor, ExecuteDeepAgent, and workflow activities
 //
 // Harness dispatch: input.Harness determines which flow runs:
 // - NATIVE/UNSPECIFIED: executeDeepAgentFlow (EnsureThread -> ExecuteDeepAgent)
