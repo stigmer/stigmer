@@ -17,7 +17,7 @@ export default function WorkflowExecutionDetailPage() {
   const org = searchParams.get("org") ?? undefined;
   const navigate = useNavigate();
   const [pendingAgentExecutionId, setPendingAgentExecutionId] = useState<string | null>(null);
-  const { removeWorkflowExecution } = useRunner();
+  const { addWorkflowExecution, removeWorkflowExecution } = useRunner();
   const { execution } = useWorkflowExecution(id ?? "");
   const cleanedUpRef = useRef(false);
 
@@ -28,6 +28,15 @@ export default function WorkflowExecutionDetailPage() {
       navigate(`/sessions/${sessionId}`, { replace: true });
     }
   }, [sessionId, navigate]);
+
+  useEffect(() => {
+    const phase = execution?.status?.phase;
+    if (id && phase && !TERMINAL_PHASES.has(phase)) {
+      addWorkflowExecution(id).catch((err) =>
+        console.warn("[runner] Failed to ensure workflow execution worker:", err),
+      );
+    }
+  }, [id, execution?.status?.phase, addWorkflowExecution]);
 
   useEffect(() => {
     const phase = execution?.status?.phase;
