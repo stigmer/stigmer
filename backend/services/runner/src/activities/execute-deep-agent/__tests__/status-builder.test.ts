@@ -265,11 +265,13 @@ describe("StatusBuilder", () => {
       expect(sb.forceNextUpdate).toBe(true);
     });
 
-    it("does nothing if no current AI message exists", () => {
+    it("creates AI message for tool-only turn when no prior AI message exists", () => {
       const sb = makeBuilder();
       sb.processEvent(toolStartEvent("tool-run-1", "read"));
 
-      expect(sb.currentStatus.messages).toHaveLength(0);
+      expect(sb.currentStatus.messages).toHaveLength(1);
+      expect(sb.currentStatus.messages[0].toolCalls).toHaveLength(1);
+      expect(sb.currentStatus.messages[0].toolCalls[0].name).toBe("read");
     });
   });
 
@@ -1159,11 +1161,12 @@ describe("StatusBuilder", () => {
       expect(sb.currentStatus.messages).toHaveLength(0);
     });
 
-    it("handles tool_start without prior AI message", () => {
+    it("creates AI message for tool_start without prior text stream", () => {
       const sb = makeBuilder();
       sb.processEvent(toolStartEvent("orphan-tool", "read"));
-      // No parent message → tool call not attached
-      expect(sb.currentStatus.messages).toHaveLength(0);
+      expect(sb.currentStatus.messages).toHaveLength(1);
+      expect(sb.currentStatus.messages[0].toolCalls).toHaveLength(1);
+      expect(sb.currentStatus.messages[0].toolCalls[0].name).toBe("read");
     });
   });
 

@@ -76,7 +76,7 @@ func TestOffline_MCP_EchoToolExecution(t *testing.T) {
 	// Turn 2: LLM responds with summary after getting tool result
 	entries := []harness.RecordedLLMEntry{
 		harness.BuildLLMEntry(0, harness.AnthropicToolUseResponse(
-			"toolu_echo_01", "echo", map[string]any{"text": "hello-offline-test"},
+			"toolu_echo_01", "echo", map[string]any{"input": "hello-offline-test"},
 			300, 40,
 		)),
 		harness.BuildLLMEntry(1, harness.AnthropicTextResponse(
@@ -193,7 +193,7 @@ func TestOffline_ToolCall_ProtoFieldContract(t *testing.T) {
 
 	entries := []harness.RecordedLLMEntry{
 		harness.BuildLLMEntry(0, harness.AnthropicToolUseResponse(
-			"toolu_contract_01", "echo", map[string]any{"text": "structural-test"},
+			"toolu_contract_01", "echo", map[string]any{"input": "structural-test"},
 			300, 35,
 		)),
 		harness.BuildLLMEntry(1, harness.AnthropicTextResponse(

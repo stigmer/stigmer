@@ -193,7 +193,7 @@ func (m *MockLLMProxyServer) writeAnthropicSSE(w http.ResponseWriter, resp Recor
 	b, _ := json.Marshal(msgStart)
 	writeSSE("message_start", string(b))
 
-	content, _ := body["content"].([]any)
+	content := toAnySlice(body["content"])
 	for idx, block := range content {
 		blockMap, ok := block.(map[string]any)
 		if !ok {
@@ -377,6 +377,26 @@ func (m *MockLLMProxyServer) Remaining() int {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return len(m.entries) - m.cursor
+}
+
+// toAnySlice converts typed slices (e.g., []map[string]any) to []any.
+// In-memory entries from BuildLLMEntry use concrete Go types that don't
+// satisfy the []any type assertion; JSON-deserialized fixtures use []any.
+func toAnySlice(v any) []any {
+	if v == nil {
+		return nil
+	}
+	if s, ok := v.([]any); ok {
+		return s
+	}
+	if s, ok := v.([]map[string]any); ok {
+		out := make([]any, len(s))
+		for i, item := range s {
+			out[i] = item
+		}
+		return out
+	}
+	return nil
 }
 
 func pathContains(path, substr string) bool {
