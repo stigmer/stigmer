@@ -10,10 +10,10 @@
  */
 export function StigmerLogo() {
   return (
-    <div className="mx-auto flex size-10 items-center justify-center rounded-lg bg-primary">
+    <div className="mx-auto flex size-14 items-center justify-center rounded-xl bg-primary">
       <svg
-        width="20"
-        height="20"
+        width="28"
+        height="28"
         viewBox="0 0 34 34"
         fill="currentColor"
         className="text-primary-foreground"
