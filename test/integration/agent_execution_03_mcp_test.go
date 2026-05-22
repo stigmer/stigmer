@@ -32,7 +32,7 @@ func TestAgentExecution_MCP_StdioToolExecution(t *testing.T) {
 		t.Run(h.Name, func(t *testing.T) {
 			requireMCPPrereqs(t, h)
 
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			ctx, cancel := harness.TestContext(t, 5*time.Minute)
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
@@ -76,7 +76,7 @@ func TestAgentExecution_MCP_ToolFailure(t *testing.T) {
 		t.Run(h.Name, func(t *testing.T) {
 			requireMCPPrereqs(t, h)
 
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			ctx, cancel := harness.TestContext(t, 5*time.Minute)
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
@@ -116,7 +116,7 @@ func TestAgentExecution_MCP_EnabledToolsFilter(t *testing.T) {
 		t.Run(h.Name, func(t *testing.T) {
 			requireMCPPrereqs(t, h)
 
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			ctx, cancel := harness.TestContext(t, 5*time.Minute)
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
@@ -155,7 +155,7 @@ func TestAgentExecution_MCP_ConnectionFailure(t *testing.T) {
 		t.Run(h.Name, func(t *testing.T) {
 			h.Skip(t, testHarness)
 
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			ctx, cancel := harness.TestContext(t, 5*time.Minute)
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
@@ -200,7 +200,7 @@ func TestAgentExecution_MCP_HttpToolExecution(t *testing.T) {
 		t.Run(h.Name, func(t *testing.T) {
 			h.Skip(t, testHarness)
 
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			ctx, cancel := harness.TestContext(t, 5*time.Minute)
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
@@ -274,7 +274,7 @@ func TestAgentExecution_MCP_EnvVarResolution(t *testing.T) {
 				t.Skip("test MCP server binary not built — skipping env var resolution test")
 			}
 
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			ctx, cancel := harness.TestContext(t, 5*time.Minute)
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
@@ -317,7 +317,11 @@ func TestAgentExecution_MCP_EnvVarResolution(t *testing.T) {
 				clients.McpServerCommand.Delete(cleanCtx, &apiresource.ApiResourceDeleteInput{ResourceId: mcpServer.GetMetadata().GetId()})
 			})
 
-			harness.ConnectMcpServer(t, ctx, clients, mcpServer.GetMetadata().GetId())
+			harness.ConnectMcpServer(t, ctx, clients, mcpServer.GetMetadata().GetId(),
+				harness.WithConnectRuntimeEnv(map[string]*executionctxv1.ExecutionValue{
+					"TEST_SECRET": {Value: "resolved-secret-value", IsSecret: true},
+				}),
+			)
 
 			agent := harness.CreateAgent(t, ctx, clients, "test-envvar-"+h.Name,
 				"You are a helpful assistant with access to tools. Use the echo tool to echo 'env-resolved'.",

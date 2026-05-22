@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	executionctxv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stretchr/testify/require"
@@ -187,14 +188,31 @@ func WaitForMcpServerTool(t *testing.T, ctx context.Context, clients *Clients, s
 	return nil
 }
 
+// ConnectOption configures a ConnectInput before the connect RPC is called.
+type ConnectOption func(*mcpserverv1.ConnectInput)
+
+// WithConnectRuntimeEnv sets runtime environment variables on the connect
+// request. When provided, the backend uses these values directly instead of
+// resolving from the caller's personal environment.
+func WithConnectRuntimeEnv(env map[string]*executionctxv1.ExecutionValue) ConnectOption {
+	return func(input *mcpserverv1.ConnectInput) {
+		input.RuntimeEnv = env
+	}
+}
+
 // ConnectMcpServer runs the connect RPC to populate discovered_capabilities.
-func ConnectMcpServer(t *testing.T, ctx context.Context, clients *Clients, serverID string) *mcpserverv1.McpServer {
+func ConnectMcpServer(t *testing.T, ctx context.Context, clients *Clients, serverID string, opts ...ConnectOption) *mcpserverv1.McpServer {
 	t.Helper()
 
-	result, err := clients.McpServerCommand.Connect(ctx, &mcpserverv1.ConnectInput{
+	input := &mcpserverv1.ConnectInput{
 		McpServerId: serverID,
 		Org:         testOrg,
-	})
+	}
+	for _, opt := range opts {
+		opt(input)
+	}
+
+	result, err := clients.McpServerCommand.Connect(ctx, input)
 	require.NoError(t, err, "connect MCP server should succeed")
 
 	t.Logf("connected MCP server: id=%s, tools=%d",
