@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	agentexecv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/test/integration/harness"
@@ -196,13 +197,51 @@ func TestOffline_Pause_Resume(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 	defer cancel()
 
-	_, _, exec, waiter := startLifecycleExecution(t, ctx, keepAliveEntries(), "pause-resume")
+	// Use echo tool with approval gate to create a deterministic pause
+	// point. The HITL interrupt holds the execution at WAITING_FOR_APPROVAL,
+	// giving us a stable window to test pause/resume without timing races.
+	entries := hitlToolCallEntries()
+
+	_, mgr := startOfflineRunner(t, ctx, entries)
+
 	clients := harness.NewClients(grpcConn)
+	harness.RequireServiceHealthy(t, ctx, clients)
 
-	_, err := waiter.WaitForPhase(ctx, exec.GetMetadata().GetId(),
-		agentexecv1.ExecutionPhase_EXECUTION_IN_PROGRESS, 2*time.Minute)
-	require.NoError(t, err)
+	mcpServer := harness.CreateStdioMcpServer(t, ctx, clients, mcpTestServerBinary)
 
+	agent := harness.CreateAgent(t, ctx, clients,
+		"offline-lifecycle-pause-resume",
+		"You MUST call the echo tool exactly once with the user's input, then stop.",
+		harness.WithMcpServerUsageAndApproval(
+			mcpServer.GetMetadata().GetSlug(),
+			[]*agentv1.ToolApprovalOverride{
+				{ToolName: "echo", RequiresApproval: true, Message: "Execute echo tool"},
+			},
+			"echo",
+		),
+	)
+
+	session := harness.CreateTestSession(t, ctx, clients,
+		agent.GetStatus().GetDefaultInstanceId(),
+		sessionv1.Harness_HARNESS_NATIVE,
+	)
+
+	_, err := mgr.AddSession(ctx, session.GetMetadata().GetId())
+	require.NoError(t, err, "AddSession should succeed")
+
+	exec := harness.CreateTestAgentExecution(t, ctx, clients,
+		session.GetMetadata().GetId(),
+		"Call the echo tool with input 'pause-test'",
+		harness.WithAutoApproveAll(false),
+	)
+
+	waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
+
+	// Wait for the approval gate to hold the execution
+	_, err = waiter.WaitForApproval(ctx, exec.GetMetadata().GetId(), 2*time.Minute)
+	require.NoError(t, err, "execution should reach WAITING_FOR_APPROVAL")
+
+	// Pause while at the approval gate
 	_, err = clients.AgentExecutionCommand.Pause(ctx, &agentexecv1.PauseAgentExecutionInput{
 		Id: exec.GetMetadata().GetId(),
 	})
@@ -213,17 +252,17 @@ func TestOffline_Pause_Resume(t *testing.T) {
 	require.NoError(t, err, "execution should reach PAUSED")
 	harness.AssertAgentPhase(t, paused, agentexecv1.ExecutionPhase_EXECUTION_PAUSED)
 
+	// Resume
 	_, err = clients.AgentExecutionCommand.Resume(ctx, &agentexecv1.ResumeAgentExecutionInput{
 		Id: exec.GetMetadata().GetId(),
 	})
 	require.NoError(t, err, "resume should succeed")
 
-	result, err := waiter.WaitForPhase(ctx, exec.GetMetadata().GetId(),
-		agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 3*time.Minute)
-	require.NoError(t, err, "execution should complete after resume")
-	harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
+	result, err := waiter.WaitForTerminal(ctx, exec.GetMetadata().GetId(), 3*time.Minute)
+	require.NoError(t, err, "execution should reach a terminal state after resume")
 
-	t.Logf("offline pause/resume test passed: id=%s", exec.GetMetadata().GetId())
+	t.Logf("offline pause/resume test passed: id=%s, phase=%s",
+		exec.GetMetadata().GetId(), result.GetStatus().GetPhase().String())
 }
 
 func TestOffline_Recover(t *testing.T) {

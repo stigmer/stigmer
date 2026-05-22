@@ -609,6 +609,22 @@ describe("StatusBuilder", () => {
       expect(tc.requiresApproval).toBe(false);
     });
 
+    it("sets mcpServerSlug even when autoApproveAll is true", () => {
+      const sb = makeBuilder();
+      sb.setApprovalProvider(makeApprovalProvider({
+        toolServerMap: new Map([["echo", "test-mcp-server"]]),
+        autoApproveAll: true,
+      }));
+
+      sb.processEvent(chatStreamEvent("run-1", "echoing"));
+      sb.processEvent(toolStartEvent("tool-1", "echo", { input: "hello" }));
+
+      const tc = sb.currentStatus.messages[0].toolCalls[0];
+      expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_RUNNING);
+      expect(tc.requiresApproval).toBe(false);
+      expect(tc.mcpServerSlug).toBe("test-mcp-server");
+    });
+
     it("does not require approval for tools without policies", () => {
       const sb = makeBuilder();
       sb.setApprovalProvider(makeApprovalProvider({
@@ -621,6 +637,7 @@ describe("StatusBuilder", () => {
 
       const tc = sb.currentStatus.messages[0].toolCalls[0];
       expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_RUNNING);
+      expect(tc.mcpServerSlug).toBe("filesystem");
     });
 
     it("does not require approval for tools not in toolServerMap", () => {

@@ -12,8 +12,8 @@
 import { Context, CancelledFailure } from "@temporalio/activity";
 import { create } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { ExecutionPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { ExecutionPhase, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { activityStarted, activityFinished } from "../../idle-watchdog.js";
 import { persistStatus, slimStatus, utcTimestamp } from "../../shared/status.js";
 import type { Config } from "../../config.js";
@@ -116,6 +116,11 @@ export function createDeepAgentActivities(config: Config) {
           writebackCoordinator: writebackCoordinator ?? undefined,
           heartbeatFn: (details) => Context.current().heartbeat(details),
           isCancelledFn: () => cancellationSignal.aborted,
+          approvalProvider: {
+            policies: setup.approvalPolicies,
+            toolServerMap: setup.toolServerMap,
+            autoApproveAll: setup.autoApproveAll,
+          },
         });
 
         await processPostStream({
@@ -134,6 +139,55 @@ export function createDeepAgentActivities(config: Config) {
             throw new CancelledFailure("Activity paused by orchestrator");
           }
           return result.terminalStatus;
+        }
+
+        if (!setup.autoApproveAll) {
+          const graphState = await setup.agentGraph.getState(setup.langgraphConfig);
+          const pendingInterrupts = graphState.tasks?.flatMap(
+            (task: { id: string; interrupts?: readonly { value: Record<string, unknown>; resumeValue?: unknown }[] }) =>
+              (task.interrupts ?? [])
+                .filter((intr) => intr.resumeValue === undefined)
+                .map((intr) => {
+                  const val = intr.value as Record<string, unknown>;
+                  return {
+                    toolCallId: (val?.tool_call_id as string) ?? "",
+                    toolName: (val?.tool_name as string) ?? "",
+                    mcpServerSlug: (val?.mcp_server_slug as string) ?? "",
+                    message: (val?.message as string) ?? "",
+                  };
+                }),
+          ) ?? [];
+
+          if (pendingInterrupts.length > 0) {
+            console.log(
+              `[ExecuteDeepAgent] Detected ${pendingInterrupts.length} pending interrupt(s) ` +
+              `for execution ${executionId} — setting WAITING_FOR_APPROVAL`,
+            );
+            initialStatus.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL;
+
+            const aiMsg = create(AgentMessageSchema, {
+              type: MessageType.MESSAGE_AI,
+              content: "",
+              timestamp: utcTimestamp(),
+              isStreaming: false,
+            });
+            for (const intr of pendingInterrupts) {
+              aiMsg.toolCalls.push(create(ToolCallSchema, {
+                id: intr.toolCallId,
+                name: intr.toolName,
+                status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+                requiresApproval: true,
+                approvalMessage: intr.message,
+                approvalRequestedAt: utcTimestamp(),
+                mcpServerSlug: intr.mcpServerSlug,
+                startedAt: utcTimestamp(),
+              }));
+            }
+            initialStatus.messages.push(aiMsg);
+
+            await persistStatus(client, executionId, initialStatus);
+            return slimStatus(initialStatus);
+          }
         }
 
         initialStatus.phase = ExecutionPhase.EXECUTION_COMPLETED;
@@ -158,6 +212,15 @@ export function createDeepAgentActivities(config: Config) {
           });
           await persistStatus(client, executionId, pausedStatus).catch(() => {});
           throw err;
+        }
+
+        if (Context.current().cancellationSignal.aborted) {
+          console.log(`[ExecuteDeepAgent] Error during cancellation for ${executionId}, treating as pause: ${err}`);
+          const pausedStatus = create(AgentExecutionStatusSchema, {
+            phase: ExecutionPhase.EXECUTION_PAUSED,
+          });
+          await persistStatus(client, executionId, pausedStatus).catch(() => {});
+          throw new CancelledFailure("Activity paused by orchestrator (error during cancellation)");
         }
 
         const errorMessage = err instanceof Error ? err.message : String(err);

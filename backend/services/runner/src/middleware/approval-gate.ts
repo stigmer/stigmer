@@ -92,6 +92,8 @@ export function createApprovalGateMiddleware(
 
       const approvalRequest = {
         tool_call_id: toolCall.id,
+        tool_name: toolName,
+        mcp_server_slug: serverSlug,
         message: requirement.message,
       };
 
