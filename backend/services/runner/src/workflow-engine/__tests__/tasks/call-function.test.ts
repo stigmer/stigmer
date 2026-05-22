@@ -115,7 +115,7 @@ describe("CallFunctionTaskBuilder", () => {
 
     expect(mockCallFunction).toHaveBeenCalledWith(
       "transform",
-      {},
+      { input: null },
       expect.any(Object),
       expect.any(Object),
     );

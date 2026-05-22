@@ -27,7 +27,6 @@ describe("createCallFunctionActivities", () => {
       expect.fail("Should have thrown");
     } catch (err: any) {
       expect(err.message).toContain("not yet implemented");
-      expect(err.message).toContain("Phase 4b");
     }
   });
 

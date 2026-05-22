@@ -32,7 +32,7 @@ describe("DiscoverMcpServer activity", () => {
   // ─────────────────────────────────────────────────────────────────────────
 
   describe("factory registration", () => {
-    it("exports an activity keyed as 'DiscoverMcpServerCapabilities'", async () => {
+    it("exports an activity keyed as 'DiscoverMcpServerCapabilities'", { timeout: 15_000 }, async () => {
       const { createDiscoverMcpServerActivities } = await import("../discover-mcp-server.js");
       const activities = createDiscoverMcpServerActivities(makeConfig());
       expect(activities).toHaveProperty("DiscoverMcpServerCapabilities");

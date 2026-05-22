@@ -19,11 +19,11 @@ import (
 
 // recordingAdapter is a thread-safe mock RunnerAdapter that records all calls.
 type recordingAdapter struct {
-	mu                     sync.Mutex
-	sessionsCreated        []string
-	sessionsTerminated     []string
-	executionsCreated      []string
-	executionsTerminated   []string
+	mu                   sync.Mutex
+	sessionsCreated      []string
+	sessionsTerminated   []string
+	executionsCreated    []string
+	executionsTerminated []string
 }
 
 func (r *recordingAdapter) OnSessionCreated(_ context.Context, sessionID string) error {

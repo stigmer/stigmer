@@ -1,0 +1,85 @@
+# Golden Test 14: Try/Catch and Raise
+# Tests: Error handling, raise task, catch.as binding, error filtering, nested try/catch
+# DSL 1.0.0 FORMAT
+
+document:
+  dsl: '1.0.0'
+  namespace: golden-tests
+  name: try-catch-raise-test
+  version: '1.0.0'
+  description: Tests try/catch error handling and raise task
+
+do:
+  - setupContext:
+      set:
+        phase: started
+
+  - basicTryCatch:
+      try:
+        - raiseError:
+            raise:
+              error:
+                type: https://serverlessworkflow.io/spec/1.0.0/errors/validation
+                status: 400
+                title: Validation Error
+                detail: Input payload is malformed
+      catch:
+        as: validationError
+        do:
+          - handleValidation:
+              set:
+                validation_caught: true
+                error_type: ${ $data.validationError.type }
+                error_status: ${ $data.validationError.status }
+
+  - filteredCatch:
+      try:
+        - raiseTimeout:
+            raise:
+              error:
+                type: https://serverlessworkflow.io/spec/1.0.0/errors/timeout
+                status: 408
+                title: Operation Timeout
+      catch:
+        errors:
+          with:
+            type: https://serverlessworkflow.io/spec/1.0.0/errors/timeout
+        as: timeoutError
+        do:
+          - handleTimeout:
+              set:
+                timeout_caught: true
+                timeout_detail: ${ $data.timeoutError.title }
+
+  - nestedTryCatch:
+      try:
+        - outerSetup:
+            set:
+              outer_started: true
+        - innerTry:
+            try:
+              - innerRaise:
+                  raise:
+                    error:
+                      type: inner/error
+                      status: 422
+                      detail: Inner failure
+            catch:
+              as: innerError
+              do:
+                - innerRecover:
+                    set:
+                      inner_caught: true
+                      inner_type: ${ $data.innerError.type }
+        - afterInner:
+            set:
+              after_inner: true
+      catch:
+        do:
+          - outerRecover:
+              set:
+                outer_caught: true
+
+  - finalCheck:
+      set:
+        phase: completed

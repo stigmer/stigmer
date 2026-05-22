@@ -1,0 +1,48 @@
+# Golden Test 04: Parallel Execution
+# Tests: Parallel execution, branch synchronization, concurrent operations
+# CONVERTED TO DSL 1.0.0 FORMAT
+
+document:
+  dsl: '1.0.0'
+  namespace: golden-tests
+  name: parallel-execution-test
+  version: '1.0.0'
+  description: Tests concurrent execution with parallel branches
+
+do:
+  - runParallel:
+      fork:
+        branches:
+          - branch1:
+              do:
+                - task1:
+                    call: http
+                    with:
+                      method: POST
+                      endpoint:
+                        uri: https://jsonplaceholder.typicode.com/posts
+                      body:
+                        title: Task 1
+                        branch: branch1
+          - branch2:
+              do:
+                - task2:
+                    call: http
+                    with:
+                      method: POST
+                      endpoint:
+                        uri: https://jsonplaceholder.typicode.com/posts
+                      body:
+                        title: Task 2
+                        branch: branch2
+          - branch3:
+              do:
+                - task3:
+                    call: http
+                    with:
+                      method: POST
+                      endpoint:
+                        uri: https://jsonplaceholder.typicode.com/posts
+                      body:
+                        title: Task 3
+                        branch: branch3

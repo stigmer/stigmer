@@ -10,9 +10,9 @@ import (
 
 // mockRunnerAdapter records all calls for verification.
 type mockRunnerAdapter struct {
-	sessionsCreated    []string
-	sessionsTerminated []string
-	executionsCreated  []string
+	sessionsCreated      []string
+	sessionsTerminated   []string
+	executionsCreated    []string
 	executionsTerminated []string
 }
 

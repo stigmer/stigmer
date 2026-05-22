@@ -29,7 +29,7 @@ import type { ExecuteServerlessWorkflowInput } from "../workflows/execute-server
 import type { WorkflowModel } from "../workflow-engine/types.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const GOLDEN_DIR = join(__dirname, "../../../workflow-runner/test/golden");
+const GOLDEN_DIR = join(__dirname, "../../test/golden");
 const WORKFLOWS_PATH = join(__dirname, "../workflows/index.ts");
 const TASK_QUEUE = "golden-e2e-test";
 

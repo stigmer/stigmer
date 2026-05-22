@@ -1,0 +1,41 @@
+# Golden Test 18: Run Task (Script / Shell / Workflow)
+# Tests: Inline JS script, shell command, child workflow
+# CNCF DSL 1.0.0 FORMAT
+
+document:
+  dsl: '1.0.0'
+  namespace: golden-tests
+  name: run-task-test
+  version: '1.0.0'
+  description: Tests run task with script, shell, and workflow modes
+
+do:
+  - runJsScript:
+      run:
+        script:
+          language: js
+          code: |
+            const result = JSON.stringify({ computed: 2 + 2 });
+            process.stdout.write(result);
+
+  - runShellCommand:
+      run:
+        shell:
+          command: echo
+          arguments:
+            msg: "hello from shell"
+          environment:
+            MY_VAR: test_value
+
+  - runChildWorkflow:
+      run:
+        workflow:
+          name: data-enrichment
+          namespace: default
+          version: '1.0.0'
+          input:
+            user_id: user_123
+
+  - markComplete:
+      set:
+        all_runs_done: true
