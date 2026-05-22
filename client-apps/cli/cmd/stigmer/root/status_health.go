@@ -131,21 +131,7 @@ func createBasicHealthState(dataDir string, daemonPID int) *daemon.HealthState {
 			State: state,
 		}
 	} else {
-		hs.Components["workflow-runner"] = &daemon.ComponentState{State: "stopped"}
-	}
-
-	arPID := readPIDFile(dataDir, daemon.RunnerPIDFileName)
-	if arPID > 0 {
-		state := "running"
-		if !isProcessAlive(arPID) {
-			state = "stopped"
-		}
-		hs.Components["agent-runner"] = &daemon.ComponentState{
-			PID:   arPID,
-			State: state,
-		}
-	} else {
-		hs.Components["agent-runner"] = &daemon.ComponentState{State: "stopped"}
+		hs.Components["runner"] = &daemon.ComponentState{State: "stopped"}
 	}
 
 	webConsoleAddr := fmt.Sprintf("localhost:%d", daemon.WebConsolePort)
