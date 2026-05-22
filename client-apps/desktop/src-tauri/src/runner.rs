@@ -19,6 +19,8 @@ use tokio::sync::Mutex;
 enum IpcCommand {
     AddSession { session_id: String },
     RemoveSession { session_id: String },
+    AddWorkflowExecution { execution_id: String },
+    RemoveWorkflowExecution { execution_id: String },
     Shutdown,
 }
 
@@ -34,6 +36,13 @@ enum IpcResponse {
     SessionRemoved {
         session_id: String,
     },
+    WorkflowExecutionAdded {
+        execution_id: String,
+        task_queue: String,
+    },
+    WorkflowExecutionRemoved {
+        execution_id: String,
+    },
     Error {
         message: String,
         fatal: bool,
@@ -47,6 +56,7 @@ struct RunnerProcess {
     child: Child,
     stdin: tokio::process::ChildStdin,
     active_sessions: HashSet<String>,
+    active_workflow_executions: HashSet<String>,
 }
 
 pub struct RunnerState {
@@ -188,6 +198,7 @@ pub async fn start_runner(
         child,
         stdin,
         active_sessions: HashSet::new(),
+        active_workflow_executions: HashSet::new(),
     });
 
     Ok(())
@@ -271,6 +282,60 @@ pub async fn remove_session(
 }
 
 #[tauri::command]
+pub async fn add_workflow_execution(
+    state: State<'_, RunnerState>,
+    execution_id: String,
+) -> Result<String, String> {
+    let mut guard = state.process.lock().await;
+    let proc = guard.as_mut().ok_or("Runner is not running")?;
+
+    if proc.active_workflow_executions.contains(&execution_id) {
+        return Ok(format!("wfexec:{execution_id}"));
+    }
+
+    let cmd = serde_json::to_string(&IpcCommand::AddWorkflowExecution {
+        execution_id: execution_id.clone(),
+    })
+    .unwrap();
+
+    proc.stdin
+        .write_all(format!("{cmd}\n").as_bytes())
+        .await
+        .map_err(|e| format!("Failed to send addWorkflowExecution: {e}"))?;
+    proc.stdin.flush().await.ok();
+
+    proc.active_workflow_executions.insert(execution_id.clone());
+    Ok(format!("wfexec:{execution_id}"))
+}
+
+#[tauri::command]
+pub async fn remove_workflow_execution(
+    state: State<'_, RunnerState>,
+    execution_id: String,
+) -> Result<(), String> {
+    let mut guard = state.process.lock().await;
+    let proc = guard.as_mut().ok_or("Runner is not running")?;
+
+    if !proc.active_workflow_executions.contains(&execution_id) {
+        return Ok(());
+    }
+
+    let cmd = serde_json::to_string(&IpcCommand::RemoveWorkflowExecution {
+        execution_id: execution_id.clone(),
+    })
+    .unwrap();
+
+    proc.stdin
+        .write_all(format!("{cmd}\n").as_bytes())
+        .await
+        .map_err(|e| format!("Failed to send removeWorkflowExecution: {e}"))?;
+    proc.stdin.flush().await.ok();
+
+    proc.active_workflow_executions.remove(&execution_id);
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn runner_status(
     state: State<'_, RunnerState>,
 ) -> Result<RunnerStatusResponse, String> {
@@ -279,10 +344,12 @@ pub async fn runner_status(
         Some(proc) => Ok(RunnerStatusResponse {
             running: true,
             active_sessions: proc.active_sessions.iter().cloned().collect(),
+            active_workflow_executions: proc.active_workflow_executions.iter().cloned().collect(),
         }),
         None => Ok(RunnerStatusResponse {
             running: false,
             active_sessions: vec![],
+            active_workflow_executions: vec![],
         }),
     }
 }
@@ -292,4 +359,5 @@ pub async fn runner_status(
 pub struct RunnerStatusResponse {
     pub running: bool,
     pub active_sessions: Vec<String>,
+    pub active_workflow_executions: Vec<String>,
 }

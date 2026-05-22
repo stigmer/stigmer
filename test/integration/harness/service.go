@@ -107,6 +107,11 @@ type ServiceConfig struct {
 	// "session": activities route to session:{session_id} per-session queues.
 	ActivityRouting string
 
+	// WorkflowActivityRouting controls how the Java service dispatches workflow
+	// child workflows. "global" (default): all child workflows route to
+	// stigmer_runner. "execution": child workflows route to wfexec:{execution_id}.
+	WorkflowActivityRouting string
+
 	// DefaultExecutionTarget resolves EXECUTION_TARGET_UNSPECIFIED on sessions.
 	// "local" (default) or "cloud".
 	DefaultExecutionTarget string
@@ -305,6 +310,7 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 		"STIGMER_RUNNER_LAUNCHER_TYPE=noop",
 
 		fmt.Sprintf("STIGMER_ACTIVITY_ROUTING=%s", activityRouting(cfg)),
+		fmt.Sprintf("STIGMER_WORKFLOW_ACTIVITY_ROUTING=%s", workflowActivityRouting(cfg)),
 		fmt.Sprintf("STIGMER_DEFAULT_EXECUTION_TARGET=%s", defaultExecutionTarget(cfg)),
 		fmt.Sprintf("STIGMER_SANDBOX_TYPE=%s", sandboxType(cfg)),
 
@@ -414,6 +420,13 @@ func r2SecretKey(cfg ServiceConfig) string {
 func activityRouting(cfg ServiceConfig) string {
 	if cfg.ActivityRouting != "" {
 		return cfg.ActivityRouting
+	}
+	return "global"
+}
+
+func workflowActivityRouting(cfg ServiceConfig) string {
+	if cfg.WorkflowActivityRouting != "" {
+		return cfg.WorkflowActivityRouting
 	}
 	return "global"
 }

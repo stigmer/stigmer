@@ -24,13 +24,17 @@ interface RunnerConfig {
 interface RunnerStatus {
   running: boolean;
   activeSessions: string[];
+  activeWorkflowExecutions: string[];
 }
 
-interface UseEmbeddedRunnerResult {
+export interface UseEmbeddedRunnerResult {
   isRunning: boolean;
   activeSessions: string[];
+  activeWorkflowExecutions: string[];
   addSession: (sessionId: string) => Promise<string>;
   removeSession: (sessionId: string) => Promise<void>;
+  addWorkflowExecution: (executionId: string) => Promise<string>;
+  removeWorkflowExecution: (executionId: string) => Promise<void>;
   error: string | null;
 }
 
@@ -54,6 +58,7 @@ function getRunnerConfig(): RunnerConfig {
 export function useEmbeddedRunner(): UseEmbeddedRunnerResult {
   const [isRunning, setIsRunning] = useState(false);
   const [activeSessions, setActiveSessions] = useState<string[]>([]);
+  const [activeWorkflowExecutions, setActiveWorkflowExecutions] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const startedRef = useRef(false);
 
@@ -71,6 +76,7 @@ export function useEmbeddedRunner(): UseEmbeddedRunnerResult {
           if (mounted) {
             setIsRunning(true);
             setActiveSessions(status.activeSessions);
+            setActiveWorkflowExecutions(status.activeWorkflowExecutions ?? []);
           }
           return;
         }
@@ -109,5 +115,27 @@ export function useEmbeddedRunner(): UseEmbeddedRunnerResult {
     setActiveSessions((prev) => prev.filter((id) => id !== sessionId));
   }, []);
 
-  return { isRunning, activeSessions, addSession, removeSession, error };
+  const addWorkflowExecution = useCallback(async (executionId: string): Promise<string> => {
+    const taskQueue = await invoke<string>("add_workflow_execution", { executionId });
+    setActiveWorkflowExecutions((prev) =>
+      prev.includes(executionId) ? prev : [...prev, executionId],
+    );
+    return taskQueue;
+  }, []);
+
+  const removeWorkflowExecution = useCallback(async (executionId: string): Promise<void> => {
+    await invoke("remove_workflow_execution", { executionId });
+    setActiveWorkflowExecutions((prev) => prev.filter((id) => id !== executionId));
+  }, []);
+
+  return {
+    isRunning,
+    activeSessions,
+    activeWorkflowExecutions,
+    addSession,
+    removeSession,
+    addWorkflowExecution,
+    removeWorkflowExecution,
+    error,
+  };
 }

@@ -45,11 +45,26 @@ interface IpcRemoveSession {
   sessionId: string;
 }
 
+interface IpcAddWorkflowExecution {
+  type: "addWorkflowExecution";
+  executionId: string;
+}
+
+interface IpcRemoveWorkflowExecution {
+  type: "removeWorkflowExecution";
+  executionId: string;
+}
+
 interface IpcShutdown {
   type: "shutdown";
 }
 
-type IpcCommand = IpcAddSession | IpcRemoveSession | IpcShutdown;
+type IpcCommand =
+  | IpcAddSession
+  | IpcRemoveSession
+  | IpcAddWorkflowExecution
+  | IpcRemoveWorkflowExecution
+  | IpcShutdown;
 
 interface IpcReady {
   type: "ready";
@@ -66,6 +81,17 @@ interface IpcSessionRemoved {
   sessionId: string;
 }
 
+interface IpcWorkflowExecutionAdded {
+  type: "workflowExecutionAdded";
+  executionId: string;
+  taskQueue: string;
+}
+
+interface IpcWorkflowExecutionRemoved {
+  type: "workflowExecutionRemoved";
+  executionId: string;
+}
+
 interface IpcError {
   type: "error";
   message: string;
@@ -80,6 +106,8 @@ type IpcResponse =
   | IpcReady
   | IpcSessionAdded
   | IpcSessionRemoved
+  | IpcWorkflowExecutionAdded
+  | IpcWorkflowExecutionRemoved
   | IpcError
   | IpcShutdownComplete;
 
@@ -159,6 +187,20 @@ async function runManagerMode(): Promise<void> {
         case "removeSession": {
           await manager.removeSession(cmd.sessionId);
           sendIpc({ type: "sessionRemoved", sessionId: cmd.sessionId });
+          break;
+        }
+        case "addWorkflowExecution": {
+          await manager.addWorkflowExecution(cmd.executionId);
+          sendIpc({
+            type: "workflowExecutionAdded",
+            executionId: cmd.executionId,
+            taskQueue: `wfexec:${cmd.executionId}`,
+          });
+          break;
+        }
+        case "removeWorkflowExecution": {
+          await manager.removeWorkflowExecution(cmd.executionId);
+          sendIpc({ type: "workflowExecutionRemoved", executionId: cmd.executionId });
           break;
         }
         case "shutdown": {

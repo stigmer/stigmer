@@ -34,16 +34,18 @@ type UnifiedRunnerConfig struct {
 // --- IPC Protocol Types (mirrors main.ts) ---
 
 type ipcCommand struct {
-	Type      string `json:"type"`
-	SessionID string `json:"sessionId,omitempty"`
+	Type        string `json:"type"`
+	SessionID   string `json:"sessionId,omitempty"`
+	ExecutionID string `json:"executionId,omitempty"`
 }
 
 type ipcResponse struct {
-	Type      string `json:"type"`
-	SessionID string `json:"sessionId,omitempty"`
-	TaskQueue string `json:"taskQueue,omitempty"`
-	Message   string `json:"message,omitempty"`
-	Fatal     bool   `json:"fatal,omitempty"`
+	Type        string `json:"type"`
+	SessionID   string `json:"sessionId,omitempty"`
+	ExecutionID string `json:"executionId,omitempty"`
+	TaskQueue   string `json:"taskQueue,omitempty"`
+	Message     string `json:"message,omitempty"`
+	Fatal       bool   `json:"fatal,omitempty"`
 }
 
 // --- UnifiedRunnerManager (IPC manager mode) ---
@@ -207,6 +209,54 @@ func (m *UnifiedRunnerManager) RemoveSession(ctx context.Context, sessionID stri
 	}
 
 	m.logger.Info("session removed", "session_id", sessionID)
+	return nil
+}
+
+// AddWorkflowExecution sends an addWorkflowExecution IPC command and waits for confirmation.
+func (m *UnifiedRunnerManager) AddWorkflowExecution(ctx context.Context, executionID string) (string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if err := m.sendCommand(ipcCommand{Type: "addWorkflowExecution", ExecutionID: executionID}); err != nil {
+		return "", fmt.Errorf("send addWorkflowExecution: %w", err)
+	}
+
+	resp, err := m.readResponse(ctx, 30*time.Second)
+	if err != nil {
+		return "", fmt.Errorf("addWorkflowExecution response: %w", err)
+	}
+	if resp.Type == "error" {
+		return "", fmt.Errorf("addWorkflowExecution error: %s", resp.Message)
+	}
+	if resp.Type != "workflowExecutionAdded" {
+		return "", fmt.Errorf("unexpected addWorkflowExecution response: %s", resp.Type)
+	}
+
+	m.logger.Info("workflow execution added", "execution_id", executionID, "task_queue", resp.TaskQueue)
+	return resp.TaskQueue, nil
+}
+
+// RemoveWorkflowExecution sends a removeWorkflowExecution IPC command and waits for confirmation.
+func (m *UnifiedRunnerManager) RemoveWorkflowExecution(ctx context.Context, executionID string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if err := m.sendCommand(ipcCommand{Type: "removeWorkflowExecution", ExecutionID: executionID}); err != nil {
+		return fmt.Errorf("send removeWorkflowExecution: %w", err)
+	}
+
+	resp, err := m.readResponse(ctx, 10*time.Second)
+	if err != nil {
+		return fmt.Errorf("removeWorkflowExecution response: %w", err)
+	}
+	if resp.Type == "error" {
+		return fmt.Errorf("removeWorkflowExecution error: %s", resp.Message)
+	}
+	if resp.Type != "workflowExecutionRemoved" {
+		return fmt.Errorf("unexpected removeWorkflowExecution response: %s", resp.Type)
+	}
+
+	m.logger.Info("workflow execution removed", "execution_id", executionID)
 	return nil
 }
 

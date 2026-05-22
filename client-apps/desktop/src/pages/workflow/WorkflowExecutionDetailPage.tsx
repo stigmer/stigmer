@@ -1,6 +1,15 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { WorkflowExecutionViewer, useResolveAgentExecutionSession } from "@stigmer/react";
+import { WorkflowExecutionViewer, useResolveAgentExecutionSession, useWorkflowExecution } from "@stigmer/react";
+import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import { useRunner } from "../../hooks/EmbeddedRunnerContext";
+
+const TERMINAL_PHASES = new Set([
+  ExecutionPhase.EXECUTION_COMPLETED,
+  ExecutionPhase.EXECUTION_FAILED,
+  ExecutionPhase.EXECUTION_CANCELLED,
+  ExecutionPhase.EXECUTION_TERMINATED,
+]);
 
 export default function WorkflowExecutionDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -8,6 +17,9 @@ export default function WorkflowExecutionDetailPage() {
   const org = searchParams.get("org") ?? undefined;
   const navigate = useNavigate();
   const [pendingAgentExecutionId, setPendingAgentExecutionId] = useState<string | null>(null);
+  const { removeWorkflowExecution } = useRunner();
+  const { execution } = useWorkflowExecution(id ?? "");
+  const cleanedUpRef = useRef(false);
 
   const { sessionId, isLoading: isResolving } = useResolveAgentExecutionSession(pendingAgentExecutionId);
 
@@ -16,6 +28,16 @@ export default function WorkflowExecutionDetailPage() {
       navigate(`/sessions/${sessionId}`, { replace: true });
     }
   }, [sessionId, navigate]);
+
+  useEffect(() => {
+    const phase = execution?.status?.phase;
+    if (id && phase && TERMINAL_PHASES.has(phase) && !cleanedUpRef.current) {
+      cleanedUpRef.current = true;
+      removeWorkflowExecution(id).catch((err) =>
+        console.warn("[runner] Failed to remove workflow execution from runner:", err),
+      );
+    }
+  }, [id, execution?.status?.phase, removeWorkflowExecution]);
 
   const handleNavigateToAgentExecution = useCallback(
     (agentExecutionId: string) => {
