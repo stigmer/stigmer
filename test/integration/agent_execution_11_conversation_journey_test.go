@@ -23,7 +23,7 @@ func TestAgentExecution_ConversationJourney_ListBySession(t *testing.T) {
 		t.Run(h.Name, func(t *testing.T) {
 			h.Skip(t, testHarness)
 
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			ctx, cancel := harness.TestContext(t, 5*time.Minute)
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
@@ -87,7 +87,7 @@ func TestAgentExecution_ConcurrentSessions_Isolation(t *testing.T) {
 		t.Run(h.Name, func(t *testing.T) {
 			h.Skip(t, testHarness)
 
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			ctx, cancel := harness.TestContext(t, 5*time.Minute)
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
@@ -175,7 +175,7 @@ func TestAgentExecution_AutoSession_FollowUp(t *testing.T) {
 		t.Run(h.Name, func(t *testing.T) {
 			h.Skip(t, testHarness)
 
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			ctx, cancel := harness.TestContext(t, 5*time.Minute)
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)

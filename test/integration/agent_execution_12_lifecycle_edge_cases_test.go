@@ -3,7 +3,6 @@
 package integration
 
 import (
-	"context"
 	"fmt"
 	"sync"
 	"testing"
@@ -32,7 +31,7 @@ func TestAgentExecution_RecoverCancelled_Rejected(t *testing.T) {
 				t.Skip("test MCP server binary not built — need slow tool to guarantee IN_PROGRESS")
 			}
 
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			ctx, cancel := harness.TestContext(t, 5*time.Minute)
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
@@ -96,7 +95,7 @@ func TestAgentExecution_RecoverCompleted_Rejected(t *testing.T) {
 		t.Run(h.Name, func(t *testing.T) {
 			h.Skip(t, testHarness)
 
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			ctx, cancel := harness.TestContext(t, 5*time.Minute)
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
@@ -151,7 +150,7 @@ func TestAgentExecution_RecoverTerminated_Rejected(t *testing.T) {
 				t.Skip("test MCP server binary not built — need slow tool to guarantee IN_PROGRESS")
 			}
 
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			ctx, cancel := harness.TestContext(t, 5*time.Minute)
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
@@ -216,7 +215,7 @@ func TestAgentExecution_RapidFireExecutions_AllComplete(t *testing.T) {
 		t.Run(h.Name, func(t *testing.T) {
 			h.Skip(t, testHarness)
 
-			ctx, cancel := context.WithTimeout(context.Background(), 8*time.Minute)
+			ctx, cancel := harness.TestContext(t, 8*time.Minute)
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)

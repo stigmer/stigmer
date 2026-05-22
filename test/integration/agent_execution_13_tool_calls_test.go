@@ -3,7 +3,6 @@
 package integration
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -42,7 +41,7 @@ func TestAgentExecution_ToolCall_ProtoFieldContract(t *testing.T) {
 				t.Skip("test MCP server binary not built — skipping tool call structural test")
 			}
 
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			ctx, cancel := harness.TestContext(t, 5*time.Minute)
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
@@ -146,7 +145,7 @@ func TestAgentExecution_ToolCall_FailedStatus_HasError(t *testing.T) {
 				t.Skip("test MCP server binary not built — skipping tool call failure test")
 			}
 
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			ctx, cancel := harness.TestContext(t, 5*time.Minute)
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)

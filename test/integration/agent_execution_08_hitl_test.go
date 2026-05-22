@@ -3,7 +3,6 @@
 package integration
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -31,7 +30,7 @@ func TestAgentExecution_HITL_Approve(t *testing.T) {
 			requireHITLPrereqs(t, h)
 			harness.SkipCursorForHITLGate(t, h)
 
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			ctx, cancel := harness.TestContext(t, 5*time.Minute)
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
@@ -88,7 +87,7 @@ func TestAgentExecution_HITL_Skip(t *testing.T) {
 			requireHITLPrereqs(t, h)
 			harness.SkipCursorForHITLGate(t, h)
 
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			ctx, cancel := harness.TestContext(t, 5*time.Minute)
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
@@ -139,7 +138,7 @@ func TestAgentExecution_HITL_Reject(t *testing.T) {
 			requireHITLPrereqs(t, h)
 			harness.SkipCursorForHITLGate(t, h)
 
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			ctx, cancel := harness.TestContext(t, 5*time.Minute)
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
@@ -189,7 +188,7 @@ func TestAgentExecution_HITL_AutoApproveAll(t *testing.T) {
 		t.Run(h.Name, func(t *testing.T) {
 			requireHITLPrereqs(t, h)
 
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			ctx, cancel := harness.TestContext(t, 5*time.Minute)
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
@@ -234,7 +233,7 @@ func TestAgentExecution_HITL_WrongPhase(t *testing.T) {
 		t.Run(h.Name, func(t *testing.T) {
 			h.Skip(t, testHarness)
 
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			ctx, cancel := harness.TestContext(t, 5*time.Minute)
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
@@ -276,7 +275,7 @@ func TestAgentExecution_HITL_PendingApprovalDetails(t *testing.T) {
 		t.Run(h.Name, func(t *testing.T) {
 			requireHITLPrereqs(t, h)
 
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			ctx, cancel := harness.TestContext(t, 5*time.Minute)
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
@@ -343,7 +342,7 @@ func TestAgentExecution_HITL_IdempotentApproval(t *testing.T) {
 		t.Run(h.Name, func(t *testing.T) {
 			requireHITLPrereqs(t, h)
 
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			ctx, cancel := harness.TestContext(t, 5*time.Minute)
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)

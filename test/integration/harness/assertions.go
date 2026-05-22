@@ -46,16 +46,14 @@ func (w *ExecutionWaiter) WaitForPhase(ctx context.Context, executionID string, 
 	interval := defaultPollInterval
 
 	for time.Now().Before(deadline) {
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		default:
-		}
-
 		exec, err := w.client.Get(ctx, &workflowexecutionv1.WorkflowExecutionId{Value: executionID})
 		if err != nil {
 			w.logger.Debug("poll error (will retry)", "execution_id", executionID, "error", err)
-			time.Sleep(interval)
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(interval):
+			}
 			interval = nextInterval(interval)
 			continue
 		}
@@ -70,7 +68,11 @@ func (w *ExecutionWaiter) WaitForPhase(ctx context.Context, executionID string, 
 				currentPhase.String(), target.String())
 		}
 
-		time.Sleep(interval)
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(interval):
+		}
 		interval = nextInterval(interval)
 	}
 
@@ -96,17 +98,15 @@ func (w *ExecutionWaiter) WaitForTerminal(ctx context.Context, executionID strin
 	interval := defaultPollInterval
 
 	for time.Now().Before(deadline) {
-		select {
-		case <-ctx.Done():
-			span.SetStatus(codes.Error, "context cancelled")
-			return nil, ctx.Err()
-		default:
-		}
-
 		exec, err := w.client.Get(ctx, &workflowexecutionv1.WorkflowExecutionId{Value: executionID})
 		if err != nil {
 			w.logger.Debug("poll error (will retry)", "execution_id", executionID, "error", err)
-			time.Sleep(interval)
+			select {
+			case <-ctx.Done():
+				span.SetStatus(codes.Error, "context cancelled")
+				return nil, ctx.Err()
+			case <-time.After(interval):
+			}
 			interval = nextInterval(interval)
 			continue
 		}
@@ -126,7 +126,12 @@ func (w *ExecutionWaiter) WaitForTerminal(ctx context.Context, executionID strin
 			"tasks", len(exec.GetStatus().GetTasks()),
 		)
 
-		time.Sleep(interval)
+		select {
+		case <-ctx.Done():
+			span.SetStatus(codes.Error, "context cancelled")
+			return nil, ctx.Err()
+		case <-time.After(interval):
+		}
 		interval = nextInterval(interval)
 	}
 
@@ -193,16 +198,14 @@ func (w *ExecutionWaiter) WaitForTaskWaitingApproval(ctx context.Context, execut
 	interval := defaultPollInterval
 
 	for time.Now().Before(deadline) {
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		default:
-		}
-
 		exec, err := w.client.Get(ctx, &workflowexecutionv1.WorkflowExecutionId{Value: executionID})
 		if err != nil {
 			w.logger.Debug("poll error (will retry)", "execution_id", executionID, "error", err)
-			time.Sleep(interval)
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(interval):
+			}
 			interval = nextInterval(interval)
 			continue
 		}
@@ -228,7 +231,11 @@ func (w *ExecutionWaiter) WaitForTaskWaitingApproval(ctx context.Context, execut
 			"phase", phase.String(),
 		)
 
-		time.Sleep(interval)
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(interval):
+		}
 		interval = nextInterval(interval)
 	}
 
