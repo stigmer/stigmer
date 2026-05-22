@@ -9,6 +9,9 @@ const (
 	// Must match IntegrationTestSecurityConfig.TEST_IDENTITY_ACCOUNT_ID
 	testIdentityAccountID = "test-identity-account-id"
 
+	// Must match IntegrationTestDataSeeder.MACHINE_ACCOUNT_ID
+	testMachineAccountID = "test-machine-account-id"
+
 	// Singleton platform resource used for operator permissions
 	platformStigmer = "platform:stigmer"
 )
@@ -34,6 +37,26 @@ func SeedBaseFGATuples(ctx context.Context, fga *OpenFGAContainer) error {
 		{
 			User:     "identity_account:" + testIdentityAccountID,
 			Relation: "owner",
+			Object:   "organization:" + testOrg,
+		},
+
+		// Machine account — platform operator for inProcessChannelAsSystem calls.
+		// In production, the machine account is seeded by Mongock migration and
+		// its JWT is fetched from Auth0. In test mode, TestMachineAccountJwtProviderConfig
+		// mints Stigmer-signed JWTs with this identity as the subject.
+		{
+			User:     "identity_account:" + testMachineAccountID,
+			Relation: "operator",
+			Object:   platformStigmer,
+		},
+
+		// Machine account — org admin for auto-grant operations.
+		// JIT provisioning with auto_grant_on_org calls createPolicy, which
+		// requires can_grant_access on the target org (derived from admin).
+		// In production, the machine account receives org admin during org creation.
+		{
+			User:     "identity_account:" + testMachineAccountID,
+			Relation: "admin",
 			Object:   "organization:" + testOrg,
 		},
 	}
