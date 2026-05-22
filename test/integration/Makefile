@@ -123,6 +123,47 @@ test-providers: ensure-service-jar ## Run provider-backed integration tests (aut
 		--packages ./... \
 		-- -tags integration -timeout 900s -count=1 $(call quarantine_skip_args) -run 'TestWorkflow(LlmCall|AgentCall|CursorCall|Architect|Eval)|TestAgentExecution'
 
+.PHONY: test-canary
+test-canary: ensure-service-jar ## Run canary tests (live provider health checks, auto-fetches API keys)
+	@command -v gotestsum >/dev/null 2>&1 || { \
+		echo "error: gotestsum not found"; \
+		echo "  install: go install gotest.tools/gotestsum@latest"; \
+		exit 1; \
+	}
+	@mkdir -p .test-output-canary
+	@ANTHROPIC_KEY=$${ANTHROPIC_API_KEY:-}; \
+	if [ -z "$$ANTHROPIC_KEY" ]; then \
+		if command -v planton >/dev/null 2>&1; then \
+			echo "Fetching ANTHROPIC_API_KEY from Planton..."; \
+			ANTHROPIC_KEY=$$(planton service secrets get-value --org stigmer --group anthropic --name prod.api-key 2>&1); \
+			if [ -z "$$ANTHROPIC_KEY" ]; then \
+				echo "error: planton returned empty value for anthropic/prod.api-key"; \
+				exit 1; \
+			fi; \
+		else \
+			echo "error: ANTHROPIC_API_KEY not set and planton CLI not found"; \
+			echo "  either: export ANTHROPIC_API_KEY=<key>"; \
+			echo "  or:     install planton CLI (brew install plantonhq/tap/planton)"; \
+			exit 1; \
+		fi; \
+	fi; \
+	CURSOR_KEY=$${CURSOR_API_KEY:-}; \
+	if [ -z "$$CURSOR_KEY" ] && command -v planton >/dev/null 2>&1; then \
+		echo "Fetching CURSOR_API_KEY from Planton..."; \
+		CURSOR_KEY=$$(planton service secrets get-value --org stigmer --group cursor --name prod.api-key 2>&1 || true); \
+		if [ -n "$$CURSOR_KEY" ]; then echo "CURSOR_API_KEY fetched"; else echo "CURSOR_API_KEY not available — cursor canary will be skipped"; fi; \
+	fi; \
+	ANTHROPIC_API_KEY=$$ANTHROPIC_KEY \
+	CURSOR_API_KEY=$$CURSOR_KEY \
+	STIGMER_SERVICE_JAR=$(STIGMER_SERVICE_JAR) \
+	INTEGRATION_TEST_OUTPUT_DIR=$(abspath .test-output-canary) gotestsum \
+		--junitfile .test-output-canary/junit.xml \
+		--junitfile-testsuite-name short \
+		--jsonfile .test-output-canary/test-output.json \
+		--format testname \
+		--packages ./... \
+		-- -tags integration -timeout 600s -count=1 -run 'TestCanary_'
+
 .PHONY: test-workflow-architect
 test-workflow-architect: ensure-service-jar ## Run Workflow Architect agent E2E tests (auto-fetches API keys)
 	@command -v gotestsum >/dev/null 2>&1 || { \

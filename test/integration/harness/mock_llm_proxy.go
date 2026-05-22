@@ -224,6 +224,31 @@ func AnthropicToolUseResponse(toolID, toolName string, toolInput map[string]any,
 	}
 }
 
+// OpenAITextResponse builds a minimal OpenAI chat completion API response body.
+func OpenAITextResponse(text string, promptTokens, completionTokens int) map[string]any {
+	return map[string]any{
+		"id":      fmt.Sprintf("chatcmpl-mock-%d", promptTokens),
+		"object":  "chat.completion",
+		"created": 1700000000,
+		"model":   "gpt-4o-mini",
+		"choices": []map[string]any{
+			{
+				"index": 0,
+				"message": map[string]any{
+					"role":    "assistant",
+					"content": text,
+				},
+				"finish_reason": "stop",
+			},
+		},
+		"usage": map[string]any{
+			"prompt_tokens":     promptTokens,
+			"completion_tokens": completionTokens,
+			"total_tokens":      promptTokens + completionTokens,
+		},
+	}
+}
+
 // BuildLLMEntry creates a RecordedLLMEntry for use in mock servers.
 func BuildLLMEntry(index int, responseBody map[string]any) RecordedLLMEntry {
 	return RecordedLLMEntry{

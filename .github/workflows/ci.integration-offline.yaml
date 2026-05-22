@@ -9,6 +9,7 @@
 #   2. integration-security — production JWT auth chain, federated IdP
 #   3. integration-session-routing  — per-session Temporal task queue routing
 #   4. integration-wfexec-routing   — per-execution workflow activity routing
+#   5. integration-offline  — deterministic tests with recorded LLM responses
 #
 # Architecture:
 #   Job 1 (build-service-jar) — checks out stigmer-cloud, builds the fat JAR
@@ -25,6 +26,7 @@ on:
     paths:
       - "backend/**"
       - "test/integration/**"
+      - "test/integration-offline/**"
       - "test/integration-security/**"
       - "test/integration-session-routing/**"
       - "test/integration-wfexec-routing/**"
@@ -38,6 +40,7 @@ on:
     paths:
       - "backend/**"
       - "test/integration/**"
+      - "test/integration-offline/**"
       - "test/integration-security/**"
       - "test/integration-session-routing/**"
       - "test/integration-wfexec-routing/**"
@@ -243,6 +246,15 @@ jobs:
           STIGMER_FGA_MODEL_DIR: ${{ github.workspace }}/.artifacts/fga-model
         run: make test-integration-wfexec-routing
 
+      # ── Suite 5: Deterministic offline tests (recorded LLM responses) ──
+
+      - name: "Suite 5: Run deterministic offline tests (recorded LLM)"
+        if: always()
+        env:
+          STIGMER_SERVICE_JAR: ${{ github.workspace }}/.artifacts/stigmer_service_fatjar.jar
+          STIGMER_FGA_MODEL_DIR: ${{ github.workspace }}/.artifacts/fga-model
+        run: make test-integration-offline
+
       # ── Artifacts ───────────────────────────────────────────────────────
 
       - name: Upload integration test results
@@ -277,6 +289,15 @@ jobs:
         with:
           name: wfexec-routing-test-results
           path: test/integration-wfexec-routing/.test-output-wfexec-routing/
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: Upload deterministic offline test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deterministic-offline-test-results
+          path: test/integration-offline/.test-output-offline/
           retention-days: 30
           if-no-files-found: ignore
 
@@ -318,4 +339,12 @@ jobs:
         with:
           name: WfExec Routing Test Report
           path: test/integration-wfexec-routing/.test-output-wfexec-routing/junit.xml
+          reporter: java-junit
+
+      - name: Publish deterministic offline test report
+        if: always() && hashFiles('test/integration-offline/.test-output-offline/junit.xml') != ''
+        uses: dorny/test-reporter@v3
+        with:
+          name: Deterministic Offline Test Report
+          path: test/integration-offline/.test-output-offline/junit.xml
           reporter: java-junit
