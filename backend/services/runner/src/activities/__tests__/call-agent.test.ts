@@ -151,6 +151,28 @@ describe("callAgentAction", () => {
     });
   });
 
+  describe("post-resolution validation", () => {
+    it("throws when agent field resolves to empty string", async () => {
+      await expect(
+        callAgentAction(
+          { agent: "", message: "Hello" },
+          { __stigmer_org_id: "test-org" },
+          "wfl_parent",
+        ),
+      ).rejects.toThrow("'agent' resolved to empty");
+    });
+
+    it("throws when message field resolves to empty string", async () => {
+      await expect(
+        callAgentAction(
+          { agent: "my-agent", message: "" },
+          { __stigmer_org_id: "test-org" },
+          "wfl_parent",
+        ),
+      ).rejects.toThrow("'message' resolved to empty");
+    });
+  });
+
   describe("downstream calls", () => {
     it("creates session with correct envelope, metadata, and spec", async () => {
       await expect(
@@ -184,6 +206,7 @@ describe("callAgentAction", () => {
       expect(execution.apiVersion).toBe("agentic.stigmer.ai/v1");
       expect(execution.kind).toBe("AgentExecution");
       expect(execution.metadata.org).toBe("test-org");
+      expect(execution.metadata.name).toMatch(/^aex-wf-my-agent-\d+$/);
       expect(execution.spec.agentId).toBe("agt_test123");
       expect(execution.spec.sessionId).toBe("ses_test789");
       expect(execution.spec.message).toBe("Review this");
