@@ -57,6 +57,8 @@ export async function executeHumanInputTask(
 
   const approvalRequestedAt = Date.now();
 
+  ctx.taskStatusAccumulator?.taskWaitingApproval(taskName);
+
   if (ctx.emitEvents) {
     await ctx.emitEvents([{
       type: "approval_requested",
@@ -72,8 +74,6 @@ export async function executeHumanInputTask(
       formSchema: config.formSchema,
     }]);
   }
-
-  ctx.taskStatusAccumulator?.taskWaitingApproval(taskName);
 
   const result: HumanInputResult = await ctx.awaitHumanInput({
     signalName,
