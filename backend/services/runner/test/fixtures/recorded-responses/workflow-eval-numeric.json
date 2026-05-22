@@ -1,0 +1,36 @@
+{
+  "name": "workflow-eval-numeric",
+  "recordedAt": "2026-05-22T00:00:00Z",
+  "entries": [
+    {
+      "index": 0,
+      "timestamp": "2026-05-22T00:00:00Z",
+      "request": {
+        "method": "POST",
+        "url": "https://proxy/v1/proxy/llm/anthropic/v1/messages",
+        "headers": { "authorization": "[REDACTED]", "content-type": "application/json" },
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "statusText": "OK",
+        "headers": { "content-type": "application/json" },
+        "body": {
+          "id": "msg_test_eval_num_01",
+          "type": "message",
+          "role": "assistant",
+          "model": "claude-sonnet-4-20250514",
+          "content": [
+            {
+              "type": "text",
+              "text": "{\"score\": 0.85, \"reasoning\": \"The definition is clear and accurate, covering the key aspects of machine learning including data-driven learning and pattern recognition. Minor deduction for not mentioning generalization.\"}"
+            }
+          ],
+          "stop_reason": "end_turn",
+          "usage": { "input_tokens": 180, "output_tokens": 65 }
+        }
+      },
+      "durationMs": 950
+    }
+  ]
+}

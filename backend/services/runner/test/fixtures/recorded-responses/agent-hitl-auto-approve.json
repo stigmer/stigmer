@@ -1,0 +1,68 @@
+{
+  "name": "agent-hitl-auto-approve",
+  "recordedAt": "2026-05-22T00:00:00Z",
+  "entries": [
+    {
+      "index": 0,
+      "timestamp": "2026-05-22T00:00:00.100Z",
+      "request": {
+        "method": "POST",
+        "url": "https://proxy.stigmer.ai/v1/proxy/llm/anthropic/v1/messages",
+        "headers": { "authorization": "[REDACTED]", "content-type": "application/json" },
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "statusText": "OK",
+        "headers": { "content-type": "application/json" },
+        "body": {
+          "id": "msg_test_hitl_auto_01",
+          "type": "message",
+          "role": "assistant",
+          "model": "claude-sonnet-4-20250514",
+          "content": [
+            {
+              "type": "tool_use",
+              "id": "toolu_auto_01",
+              "name": "echo",
+              "input": { "text": "auto-approved" }
+            }
+          ],
+          "stop_reason": "tool_use",
+          "usage": { "input_tokens": 135, "output_tokens": 44 }
+        }
+      },
+      "durationMs": 870
+    },
+    {
+      "index": 1,
+      "timestamp": "2026-05-22T00:00:01.100Z",
+      "request": {
+        "method": "POST",
+        "url": "https://proxy.stigmer.ai/v1/proxy/llm/anthropic/v1/messages",
+        "headers": { "authorization": "[REDACTED]", "content-type": "application/json" },
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "statusText": "OK",
+        "headers": { "content-type": "application/json" },
+        "body": {
+          "id": "msg_test_hitl_auto_02",
+          "type": "message",
+          "role": "assistant",
+          "model": "claude-sonnet-4-20250514",
+          "content": [
+            {
+              "type": "text",
+              "text": "The tool was auto-approved and executed immediately. Echo returned: auto-approved."
+            }
+          ],
+          "stop_reason": "end_turn",
+          "usage": { "input_tokens": 200, "output_tokens": 27 }
+        }
+      },
+      "durationMs": 450
+    }
+  ]
+}

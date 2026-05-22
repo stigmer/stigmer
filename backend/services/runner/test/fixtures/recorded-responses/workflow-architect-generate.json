@@ -1,0 +1,134 @@
+{
+  "name": "workflow-architect-generate",
+  "recordedAt": "2026-05-22T00:00:00Z",
+  "entries": [
+    {
+      "index": 0,
+      "timestamp": "2026-05-22T00:00:01Z",
+      "request": {
+        "method": "POST",
+        "url": "https://proxy/v1/proxy/llm/anthropic/v1/messages",
+        "headers": { "authorization": "[REDACTED]", "content-type": "application/json" },
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "statusText": "OK",
+        "headers": { "content-type": "application/json" },
+        "body": {
+          "id": "msg_gen_01",
+          "type": "message",
+          "role": "assistant",
+          "model": "claude-sonnet-4-20250514",
+          "content": [
+            {
+              "type": "tool_use",
+              "id": "toolu_gen_01",
+              "name": "get_task_kind_registry",
+              "input": {}
+            }
+          ],
+          "stop_reason": "tool_use",
+          "usage": { "input_tokens": 1200, "output_tokens": 45 }
+        }
+      },
+      "durationMs": 1500
+    },
+    {
+      "index": 1,
+      "timestamp": "2026-05-22T00:00:03Z",
+      "request": {
+        "method": "POST",
+        "url": "https://proxy/v1/proxy/llm/anthropic/v1/messages",
+        "headers": { "authorization": "[REDACTED]", "content-type": "application/json" },
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "statusText": "OK",
+        "headers": { "content-type": "application/json" },
+        "body": {
+          "id": "msg_gen_02",
+          "type": "message",
+          "role": "assistant",
+          "model": "claude-sonnet-4-20250514",
+          "content": [
+            {
+              "type": "tool_use",
+              "id": "toolu_gen_02",
+              "name": "get_task_kind",
+              "input": { "kind": "set_vars" }
+            }
+          ],
+          "stop_reason": "tool_use",
+          "usage": { "input_tokens": 2500, "output_tokens": 30 }
+        }
+      },
+      "durationMs": 800
+    },
+    {
+      "index": 2,
+      "timestamp": "2026-05-22T00:00:05Z",
+      "request": {
+        "method": "POST",
+        "url": "https://proxy/v1/proxy/llm/anthropic/v1/messages",
+        "headers": { "authorization": "[REDACTED]", "content-type": "application/json" },
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "statusText": "OK",
+        "headers": { "content-type": "application/json" },
+        "body": {
+          "id": "msg_gen_03",
+          "type": "message",
+          "role": "assistant",
+          "model": "claude-sonnet-4-20250514",
+          "content": [
+            {
+              "type": "tool_use",
+              "id": "toolu_gen_03",
+              "name": "validate_workflow_yaml",
+              "input": {
+                "yaml": "apiVersion: agentic.stigmer.ai/v1\nkind: Workflow\nmetadata:\n  name: test-workflow\n  org: test-org\nspec:\n  description: A simple workflow with two set_vars tasks\n  document:\n    dsl: '1.0.0'\n    namespace: test-org\n    name: test-workflow\n    version: '1.0.0'\n  tasks:\n    - name: setMessage\n      kind: set_vars\n      task_config:\n        variables:\n          message: hello world\n      flow:\n        then: setStatus\n    - name: setStatus\n      kind: set_vars\n      task_config:\n        variables:\n          status: complete\n"
+              }
+            }
+          ],
+          "stop_reason": "tool_use",
+          "usage": { "input_tokens": 3200, "output_tokens": 180 }
+        }
+      },
+      "durationMs": 1200
+    },
+    {
+      "index": 3,
+      "timestamp": "2026-05-22T00:00:07Z",
+      "request": {
+        "method": "POST",
+        "url": "https://proxy/v1/proxy/llm/anthropic/v1/messages",
+        "headers": { "authorization": "[REDACTED]", "content-type": "application/json" },
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "statusText": "OK",
+        "headers": { "content-type": "application/json" },
+        "body": {
+          "id": "msg_gen_04",
+          "type": "message",
+          "role": "assistant",
+          "model": "claude-sonnet-4-20250514",
+          "content": [
+            {
+              "type": "text",
+              "text": "I've created a workflow for organization 'test-org' with two tasks as requested. Here's the workflow YAML:\n\n```yaml\napiVersion: agentic.stigmer.ai/v1\nkind: Workflow\nmetadata:\n  name: test-workflow\n  org: test-org\nspec:\n  description: A simple workflow with two set_vars tasks\n  document:\n    dsl: '1.0.0'\n    namespace: test-org\n    name: test-workflow\n    version: '1.0.0'\n  tasks:\n    - name: setMessage\n      kind: set_vars\n      task_config:\n        variables:\n          message: hello world\n      flow:\n        then: setStatus\n    - name: setStatus\n      kind: set_vars\n      task_config:\n        variables:\n          status: complete\n```\n\nThe workflow has:\n1. **setMessage** — sets the `message` variable to `hello world`, then flows to the next task\n2. **setStatus** — sets the `status` variable to `complete`\n\nI validated the YAML using the `validate_workflow_yaml` tool and it passes validation."
+            }
+          ],
+          "stop_reason": "end_turn",
+          "usage": { "input_tokens": 3800, "output_tokens": 250 }
+        }
+      },
+      "durationMs": 2000
+    }
+  ]
+}

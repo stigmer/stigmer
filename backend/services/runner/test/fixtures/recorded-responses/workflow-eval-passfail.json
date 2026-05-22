@@ -1,0 +1,36 @@
+{
+  "name": "workflow-eval-passfail",
+  "recordedAt": "2026-05-22T00:00:00Z",
+  "entries": [
+    {
+      "index": 0,
+      "timestamp": "2026-05-22T00:00:00Z",
+      "request": {
+        "method": "POST",
+        "url": "https://proxy/v1/proxy/llm/anthropic/v1/messages",
+        "headers": { "authorization": "[REDACTED]", "content-type": "application/json" },
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "statusText": "OK",
+        "headers": { "content-type": "application/json" },
+        "body": {
+          "id": "msg_test_eval_pf_01",
+          "type": "message",
+          "role": "assistant",
+          "model": "claude-sonnet-4-20250514",
+          "content": [
+            {
+              "type": "text",
+              "text": "{\"pass\": true, \"reasoning\": \"The statement is factually correct. The Earth orbits the Sun in approximately 365.25 days, which aligns with established astronomical observations.\"}"
+            }
+          ],
+          "stop_reason": "end_turn",
+          "usage": { "input_tokens": 200, "output_tokens": 80 }
+        }
+      },
+      "durationMs": 1000
+    }
+  ]
+}

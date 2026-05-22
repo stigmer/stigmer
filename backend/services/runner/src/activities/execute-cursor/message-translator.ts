@@ -189,6 +189,15 @@ export function buildToolCallProto(
       : JSON.stringify(event.args);
   }
 
+  const argsObj = mcpDetails?.innerArgs ?? (
+    typeof event.args === "object" && event.args !== null
+      ? event.args as Record<string, unknown>
+      : undefined
+  );
+  if (argsObj && typeof argsObj === "object") {
+    toolCall.args = argsObj as import("@bufbuild/protobuf").JsonObject;
+  }
+
   // Populate approval fields from the merged policy chain
   if (mergedPolicies && mcpDetails) {
     const policy = lookupMcpToolPolicy(actualName, mcpServerSlug, mergedPolicies);

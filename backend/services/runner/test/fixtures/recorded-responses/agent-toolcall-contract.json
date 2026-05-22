@@ -1,0 +1,68 @@
+{
+  "name": "agent-toolcall-contract",
+  "recordedAt": "2026-05-22T00:00:00Z",
+  "entries": [
+    {
+      "index": 0,
+      "timestamp": "2026-05-22T00:00:01Z",
+      "request": {
+        "method": "POST",
+        "url": "https://proxy/v1/proxy/llm/anthropic/v1/messages",
+        "headers": { "authorization": "[REDACTED]", "content-type": "application/json" },
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "statusText": "OK",
+        "headers": { "content-type": "application/json" },
+        "body": {
+          "id": "msg_tc_01",
+          "type": "message",
+          "role": "assistant",
+          "model": "claude-sonnet-4-20250514",
+          "content": [
+            {
+              "type": "tool_use",
+              "id": "toolu_tc_01",
+              "name": "echo",
+              "input": { "text": "structural-test" }
+            }
+          ],
+          "stop_reason": "tool_use",
+          "usage": { "input_tokens": 300, "output_tokens": 35 }
+        }
+      },
+      "durationMs": 900
+    },
+    {
+      "index": 1,
+      "timestamp": "2026-05-22T00:00:03Z",
+      "request": {
+        "method": "POST",
+        "url": "https://proxy/v1/proxy/llm/anthropic/v1/messages",
+        "headers": { "authorization": "[REDACTED]", "content-type": "application/json" },
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "statusText": "OK",
+        "headers": { "content-type": "application/json" },
+        "body": {
+          "id": "msg_tc_02",
+          "type": "message",
+          "role": "assistant",
+          "model": "claude-sonnet-4-20250514",
+          "content": [
+            {
+              "type": "text",
+              "text": "The echo tool returned: structural-test"
+            }
+          ],
+          "stop_reason": "end_turn",
+          "usage": { "input_tokens": 450, "output_tokens": 20 }
+        }
+      },
+      "durationMs": 600
+    }
+  ]
+}
