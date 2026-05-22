@@ -19,12 +19,14 @@ import {
   type DetailAction,
   type AdditionalTab,
 } from "@stigmer/react";
+import { useRunner } from "../../hooks/EmbeddedRunnerContext";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 export default function WorkflowDetailPage() {
   const { org, slug } = useParams<{ org: string; slug: string }>();
   const navigate = useNavigate();
   const { setLabel } = useBreadcrumbOverride();
+  const { addWorkflowExecution } = useRunner();
   const [resourceId, setResourceId] = useState<string | null>(null);
   const [resourceName, setResourceName] = useState<string>("Workflow");
   const { copyId, copyQualifiedSlug } = useCopyResource();
@@ -56,10 +58,13 @@ export default function WorkflowDetailPage() {
 
   const handleRunSuccess = useCallback(
     (executionId: string) => {
+      addWorkflowExecution(executionId).catch((err) =>
+        console.warn("[runner] Failed to add workflow execution to runner:", err),
+      );
       toast.success("Workflow execution started");
       navigate(`/executions/${executionId}`);
     },
-    [navigate],
+    [navigate, addWorkflowExecution],
   );
 
   const handleRunError = useCallback((message: string) => {

@@ -55,10 +55,16 @@ func TestResolveWorkflowTaskQueue(t *testing.T) {
 		}
 	})
 
-	t.Run("execution routing with LOCAL returns global queue", func(t *testing.T) {
-		result := ResolveWorkflowTaskQueue("wfx_local_bbb", sessionv1.ExecutionTarget_EXECUTION_TARGET_LOCAL, executionCfg)
-		if result.TaskQueue != "stigmer_runner" {
-			t.Errorf("expected stigmer_runner for LOCAL target, got %q", result.TaskQueue)
+	t.Run("execution routing with LOCAL returns wfexec queue", func(t *testing.T) {
+		localExecCfg := &Config{
+			RunnerQueue:             "stigmer_runner",
+			WorkflowActivityRouting: RoutingExecution,
+			DefaultExecutionTarget:  DefaultExecutionTargetLocal,
+		}
+		result := ResolveWorkflowTaskQueue("wfx_local_bbb", sessionv1.ExecutionTarget_EXECUTION_TARGET_LOCAL, localExecCfg)
+		expected := "wfexec:wfx_local_bbb"
+		if result.TaskQueue != expected {
+			t.Errorf("expected %q, got %q", expected, result.TaskQueue)
 		}
 		if result.ExecutionTarget != sessionv1.ExecutionTarget_EXECUTION_TARGET_LOCAL {
 			t.Errorf("expected LOCAL, got %v", result.ExecutionTarget)

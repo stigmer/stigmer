@@ -12,8 +12,11 @@ import { useEmbeddedRunner } from "./useEmbeddedRunner";
 interface EmbeddedRunnerContext {
   isRunning: boolean;
   activeSessions: string[];
+  activeWorkflowExecutions: string[];
   addSession: (sessionId: string) => Promise<string>;
   removeSession: (sessionId: string) => Promise<void>;
+  addWorkflowExecution: (executionId: string) => Promise<string>;
+  removeWorkflowExecution: (executionId: string) => Promise<void>;
   error: string | null;
 }
 

@@ -43,6 +43,8 @@ pub fn run() {
             runner::stop_runner,
             runner::add_session,
             runner::remove_session,
+            runner::add_workflow_execution,
+            runner::remove_workflow_execution,
             runner::runner_status,
         ])
         .on_menu_event(|app, event| menu::handle_menu_event(app, &event))

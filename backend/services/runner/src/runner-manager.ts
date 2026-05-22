@@ -26,6 +26,7 @@ import type { Config } from "./config.js";
 import type { WorkerActivities } from "./worker.js";
 
 const SESSION_QUEUE_PREFIX = "session:";
+const WFEXEC_QUEUE_PREFIX = "wfexec:";
 
 export interface RunnerManagerOptions {
   /** Temporal server address (e.g. "localhost:7233"). */
@@ -74,6 +75,15 @@ export interface StigmerRunnerManager {
 
   /** List currently active session IDs. */
   activeSessions(): string[];
+
+  /** Add a workflow execution — creates a Worker polling wfexec:{executionId}. Idempotent. */
+  addWorkflowExecution(executionId: string): Promise<void>;
+
+  /** Remove a workflow execution — gracefully shuts down that execution's Worker. */
+  removeWorkflowExecution(executionId: string): Promise<void>;
+
+  /** List currently active workflow execution IDs. */
+  activeWorkflowExecutions(): string[];
 
   /** Graceful shutdown of all Workers and the Temporal connection. */
   shutdown(): Promise<void>;
@@ -136,7 +146,33 @@ export async function createStigmerRunnerManager(
   );
 
   const sessions = new Map<string, ManagedSession>();
+  const workflowExecutions = new Map<string, ManagedSession>();
   let shuttingDown = false;
+
+  async function createWorkerOnQueue(taskQueue: string): Promise<ManagedSession> {
+    const worker = await Worker.create({
+      connection,
+      namespace: config.temporalNamespace,
+      taskQueue,
+      activities,
+      workflowsPath,
+      maxConcurrentActivityTaskExecutions: config.maxConcurrentActivities,
+      dataConverter: payloadCodec
+        ? { payloadCodecs: [payloadCodec] }
+        : undefined,
+      sinks: interceptorConfig.sinks,
+      interceptors: interceptorConfig.interceptors,
+    });
+
+    const runPromise = worker.run().catch((err) => {
+      console.error(
+        `[runner-manager] Worker for queue ${taskQueue} exited with error:`,
+        err,
+      );
+    });
+
+    return { worker, runPromise };
+  }
 
   return {
     async addSession(sessionId: string): Promise<void> {
@@ -144,33 +180,12 @@ export async function createStigmerRunnerManager(
         throw new Error("RunnerManager is shutting down");
       }
       if (sessions.has(sessionId)) {
-        return; // idempotent
+        return;
       }
 
       const taskQueue = SESSION_QUEUE_PREFIX + sessionId;
-
-      const worker = await Worker.create({
-        connection,
-        namespace: config.temporalNamespace,
-        taskQueue,
-        activities,
-        workflowsPath,
-        maxConcurrentActivityTaskExecutions: config.maxConcurrentActivities,
-        dataConverter: payloadCodec
-          ? { payloadCodecs: [payloadCodec] }
-          : undefined,
-        sinks: interceptorConfig.sinks,
-        interceptors: interceptorConfig.interceptors,
-      });
-
-      const runPromise = worker.run().catch((err) => {
-        console.error(
-          `[runner-manager] Worker for session ${sessionId} exited with error:`,
-          err,
-        );
-      });
-
-      sessions.set(sessionId, { worker, runPromise });
+      const managed = await createWorkerOnQueue(taskQueue);
+      sessions.set(sessionId, managed);
       console.log(
         `[runner-manager] Added session ${sessionId} (queue=${taskQueue}, active=${sessions.size})`,
       );
@@ -179,7 +194,7 @@ export async function createStigmerRunnerManager(
     async removeSession(sessionId: string): Promise<void> {
       const session = sessions.get(sessionId);
       if (!session) {
-        return; // idempotent
+        return;
       }
 
       session.worker.shutdown();
@@ -194,22 +209,67 @@ export async function createStigmerRunnerManager(
       return Array.from(sessions.keys());
     },
 
+    async addWorkflowExecution(executionId: string): Promise<void> {
+      if (shuttingDown) {
+        throw new Error("RunnerManager is shutting down");
+      }
+      if (workflowExecutions.has(executionId)) {
+        return;
+      }
+
+      const taskQueue = WFEXEC_QUEUE_PREFIX + executionId;
+      const managed = await createWorkerOnQueue(taskQueue);
+      workflowExecutions.set(executionId, managed);
+      console.log(
+        `[runner-manager] Added workflow execution ${executionId} (queue=${taskQueue}, active=${workflowExecutions.size})`,
+      );
+    },
+
+    async removeWorkflowExecution(executionId: string): Promise<void> {
+      const execution = workflowExecutions.get(executionId);
+      if (!execution) {
+        return;
+      }
+
+      execution.worker.shutdown();
+      await execution.runPromise;
+      workflowExecutions.delete(executionId);
+      console.log(
+        `[runner-manager] Removed workflow execution ${executionId} (active=${workflowExecutions.size})`,
+      );
+    },
+
+    activeWorkflowExecutions(): string[] {
+      return Array.from(workflowExecutions.keys());
+    },
+
     async shutdown(): Promise<void> {
       shuttingDown = true;
+      const totalWorkers = sessions.size + workflowExecutions.size;
       console.log(
-        `[runner-manager] Shutting down ${sessions.size} session workers...`,
+        `[runner-manager] Shutting down ${totalWorkers} workers (${sessions.size} sessions, ${workflowExecutions.size} workflow executions)...`,
       );
 
-      const shutdownPromises = Array.from(sessions.entries()).map(
-        async ([sessionId, session]) => {
-          session.worker.shutdown();
-          await session.runPromise;
-          console.log(`[runner-manager] Worker for ${sessionId} stopped`);
-        },
-      );
+      const shutdownPromises = [
+        ...Array.from(sessions.entries()).map(
+          async ([id, session]) => {
+            session.worker.shutdown();
+            await session.runPromise;
+            console.log(`[runner-manager] Session worker ${id} stopped`);
+          },
+        ),
+        ...Array.from(workflowExecutions.entries()).map(
+          async ([id, execution]) => {
+            execution.worker.shutdown();
+            await execution.runPromise;
+            console.log(`[runner-manager] Workflow execution worker ${id} stopped`);
+          },
+        ),
+      ];
 
       await Promise.all(shutdownPromises);
       sessions.clear();
+      workflowExecutions.clear();
       connection.close();
       console.log("[runner-manager] All workers stopped, connection closed");
     },
@@ -272,6 +332,7 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
     { createCallAgentStatusActivities },
     { createRunCommandActivities },
     { createHydrateWorkflowActivities },
+    { createWorkflowEventActivities },
   ] = await Promise.all([
     import("./activities/execute-cursor/index.js"),
     import("./activities/execute-deep-agent/index.js"),
@@ -287,6 +348,7 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
     import("./activities/call-agent-status.js"),
     import("./activities/run-command.js"),
     import("./activities/hydrate-workflow-execution.js"),
+    import("./activities/workflow-event-activities.js"),
   ]);
 
   return {
@@ -304,6 +366,7 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
     ...createCallAgentStatusActivities(),
     ...createRunCommandActivities(),
     ...createHydrateWorkflowActivities(config),
+    ...createWorkflowEventActivities(),
   };
 }
 

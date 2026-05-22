@@ -27,14 +27,14 @@ func FormatWfExecTaskQueue(executionID string) string {
 //
 // Routing modes (controlled by Config.WorkflowActivityRouting):
 //   - "global": Always returns Config.RunnerQueue (stigmer_runner). All workflow
-//     executions share the global runner pool. Default for OSS.
-//   - "execution": Returns wfexec:{execution_id} when execution_target resolves
-//     to CLOUD. A dedicated sandbox is provisioned for that queue. Used by
-//     managed cloud service for sandbox sharing between workflow and child agents.
+//     executions share the global runner pool.
+//   - "execution": Returns wfexec:{execution_id} regardless of execution target.
+//     For CLOUD, a dedicated sandbox is provisioned for that queue. For LOCAL,
+//     the desktop runner-manager creates a worker on that queue.
 func ResolveWorkflowTaskQueue(executionID string, executionTarget sessionv1.ExecutionTarget, cfg *Config) WorkflowDispatchResult {
 	resolved := resolveWorkflowExecutionTarget(executionTarget, cfg)
 
-	if cfg.WorkflowActivityRouting == RoutingExecution && resolved == sessionv1.ExecutionTarget_EXECUTION_TARGET_CLOUD {
+	if cfg.WorkflowActivityRouting == RoutingExecution {
 		taskQueue := FormatWfExecTaskQueue(executionID)
 
 		log.Info().
