@@ -203,6 +203,9 @@ func TestAgentExecution_Pause_Resume(t *testing.T) {
 	for _, h := range harness.Harnesses {
 		t.Run(h.Name, func(t *testing.T) {
 			h.Skip(t, testHarness)
+			if mcpTestServerBinary == "" {
+				t.Skip("test MCP server binary not built — skipping pause/resume test")
+			}
 
 			ctx, cancel := harness.TestContext(t, 5*time.Minute)
 			defer cancel()
@@ -210,15 +213,25 @@ func TestAgentExecution_Pause_Resume(t *testing.T) {
 			clients := harness.NewClients(grpcConn)
 			harness.RequireServiceHealthy(t, ctx, clients)
 
+			// Use the slow MCP tool (30s sleep) to guarantee the execution
+			// is still running when the pause signal arrives, avoiding
+			// the race condition where a text-only prompt completes too fast
+			// on the cursor harness.
+			mcpServer := harness.CreateStdioMcpServer(t, ctx, clients, mcpTestServerBinary)
+			harness.ConnectMcpServer(t, ctx, clients, mcpServer.GetMetadata().GetId())
+
 			agent := harness.CreateAgent(t, ctx, clients, "test-pause-resume-"+h.Name,
-				"You are a helpful assistant. Write a detailed essay about quantum computing.")
+				"You MUST call the slow tool with seconds=30. Do not respond with text. Your only action is calling the slow tool.",
+				harness.WithMcpServerUsage(mcpServer.GetMetadata().GetSlug()),
+			)
 
 			session := harness.CreateTestSession(t, ctx, clients,
 				agent.GetStatus().GetDefaultInstanceId(), h.Harness)
 
 			exec := harness.CreateTestAgentExecution(t, ctx, clients,
 				session.GetMetadata().GetId(),
-				"Write a detailed essay about quantum computing. Include at least 5 paragraphs.")
+				"Call the slow tool with seconds=30.",
+				harness.WithAutoApproveAll(true))
 
 			waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
 

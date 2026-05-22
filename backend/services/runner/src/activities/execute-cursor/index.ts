@@ -110,6 +110,7 @@ async function executeCursor(
   let sessionId: string | undefined;
   let session: import("@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb").Session | undefined;
   let userMessage: string | undefined;
+  let pauseDetected = false;
 
   try {
     // Phase 1: Hydrate execution from DB
@@ -347,7 +348,6 @@ async function executeCursor(
     const todoTracker = new TodoTracker(status.todos);
 
     let platformStopSignaled = false;
-    let pauseDetected = false;
     let firstTurnAttributionLogged = false;
 
     const run = await resolution.agent.send(prompt, {
@@ -462,6 +462,12 @@ async function executeCursor(
 
 
     // Phase 11a: Handle pause (activity cancellation from orchestrator)
+    // Re-check cancellation signal — it may have arrived between the last
+    // stream event and now (e.g. during finalize/metrics), after the
+    // stream loop's per-event check.
+    if (Context.current().cancellationSignal.aborted) {
+      pauseDetected = true;
+    }
     if (pauseDetected) {
       status.phase = ExecutionPhase.EXECUTION_PAUSED;
       status.messages.push(create(AgentMessageSchema, {
@@ -576,6 +582,26 @@ async function executeCursor(
       await persistStatus(client, executionId, status).catch(() => {});
       await maybePeristSessionMemory(client, sessionId, session, status, userMessage);
       throw err;
+    }
+
+    // If a non-CancelledFailure error occurs while a pause is in progress,
+    // treat the execution as paused rather than failed. The error was likely
+    // caused by the cancellation (e.g. SDK stream teardown) and should not
+    // overwrite the PAUSED state that the Pause RPC already set in the DB.
+    if (pauseDetected || Context.current().cancellationSignal.aborted) {
+      const errDetail = err instanceof Error ? err.message : String(err);
+      console.log(
+        `ExecuteCursor error during pause (treating as pause): execution=${executionId}, error=${errDetail}`,
+      );
+      status.phase = ExecutionPhase.EXECUTION_PAUSED;
+      status.messages.push(create(AgentMessageSchema, {
+        type: MessageType.MESSAGE_SYSTEM,
+        content: "Execution paused by user. Use resume to continue.",
+        timestamp: utcTimestamp(),
+      }));
+      await persistStatus(client, executionId, status).catch(() => {});
+      await maybePeristSessionMemory(client, sessionId, session, status, userMessage);
+      throw new CancelledFailure("Activity paused by orchestrator (error during pause)");
     }
 
     const errMsg = err instanceof Error ? err.message : String(err);
