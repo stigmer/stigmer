@@ -40,6 +40,12 @@ jobs:
       - name: Enable Corepack
         run: corepack enable
 
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Build SDK libraries
+        run: npm run build:libs
+
       - name: Install Vale
         run: make install-vale
 
