@@ -266,6 +266,10 @@ test-integration-session-routing-providers: ## Run provider-backed session routi
 test-integration-wfexec-routing: ## Run offline workflow execution routing tests (no API keys needed)
 	$(MAKE) -C test/integration-wfexec-routing test
 
+.PHONY: test-integration-offline
+test-integration-offline: ## Run deterministic offline integration tests (recorded LLM responses, no API keys)
+	$(MAKE) -C test/integration-offline test
+
 .PHONY: test-integration-all
 test-integration-all: ## Run all integration suites. PROVIDERS=true includes provider-backed tests.
 	@echo "=== Offline: integration ==="
@@ -276,6 +280,8 @@ test-integration-all: ## Run all integration suites. PROVIDERS=true includes pro
 	$(MAKE) test-integration-session-routing
 	@echo "=== Offline: wfexec-routing ==="
 	$(MAKE) test-integration-wfexec-routing
+	@echo "=== Offline: deterministic (recorded LLM) ==="
+	$(MAKE) test-integration-offline
 ifeq ($(PROVIDERS),true)
 	@echo "=== Provider: integration (LLM) ==="
 	$(MAKE) test-integration-providers
