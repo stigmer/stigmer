@@ -1,16 +1,17 @@
 # =============================================================================
 # Integration Tests (Provider-Backed)
 # =============================================================================
-# LLM provider integration tests that make real API calls to Anthropic/OpenAI.
-# These are MANUAL-ONLY (workflow_dispatch) — never triggered by PR or push.
+# Provider integration tests that make real API calls to LLM providers and
+# Cursor. These are MANUAL-ONLY (workflow_dispatch).
 #
-# Tests exercise two execution paths:
+# Tests exercise:
 #   - llm_call: direct LLM API calls via workflow-runner (cheap, ~$0.001/test)
 #   - agent_call: full pipeline through Java + Python agent-runner (~$0.01/test)
+#   - session-routing Tier 3: full E2E via Cursor SDK
 #
 # Cost: under $0.10 per full run with claude-sonnet-4-20250514.
 #
-# Secrets: ANTHROPIC_API_KEY from the "provider-integration" GitHub environment.
+# Secrets: ANTHROPIC_API_KEY and CURSOR_API_KEY from "provider-integration".
 # =============================================================================
 
 name: ci.integration-providers
@@ -108,11 +109,23 @@ jobs:
           python -m venv .venv
           .venv/bin/pip install -e ".[dev]"
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
       - name: Run provider integration tests
         env:
           STIGMER_SERVICE_JAR: ${{ github.workspace }}/.artifacts/stigmer_service_fatjar.jar
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: make test-integration-providers
+
+      - name: Run session routing provider tests
+        if: always()
+        env:
+          STIGMER_SERVICE_JAR: ${{ github.workspace }}/.artifacts/stigmer_service_fatjar.jar
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+        run: make test-integration-session-routing-providers
 
       - name: Generate flake report
         if: always()
@@ -126,7 +139,7 @@ jobs:
               >> "$GITHUB_STEP_SUMMARY"
           fi
 
-      - name: Upload test results
+      - name: Upload provider test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -134,10 +147,27 @@ jobs:
           path: test/integration/.test-output-providers/
           retention-days: 30
 
-      - name: Publish test report
+      - name: Upload session routing provider results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: session-routing-provider-results
+          path: test/integration-session-routing/.test-output-session-routing-providers/
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: Publish provider test report
         if: always() && hashFiles('test/integration/.test-output-providers/junit.xml') != ''
         uses: dorny/test-reporter@v3
         with:
           name: Provider Integration Test Report
           path: test/integration/.test-output-providers/junit.xml
+          reporter: java-junit
+
+      - name: Publish session routing provider test report
+        if: always() && hashFiles('test/integration-session-routing/.test-output-session-routing-providers/junit.xml') != ''
+        uses: dorny/test-reporter@v3
+        with:
+          name: Session Routing Provider Test Report
+          path: test/integration-session-routing/.test-output-session-routing-providers/junit.xml
           reporter: java-junit

@@ -107,11 +107,11 @@ func CreateTestSession(t *testing.T, ctx context.Context, clients *Clients, agen
 	t.Helper()
 
 	session := &sessionv1.Session{
-		ApiVersion: testAPIVersion,
+		ApiVersion: TestAPIVersion,
 		Kind:       "Session",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name: "test-session-" + uuid.New().String()[:8],
-			Org:  testOrg,
+			Org:  TestOrg,
 		},
 		Spec: &sessionv1.SessionSpec{
 			AgentInstanceId: agentInstanceID,
@@ -156,11 +156,11 @@ func CreateTestAgentExecution(t *testing.T, ctx context.Context, clients *Client
 	}
 
 	exec := &agentexecv1.AgentExecution{
-		ApiVersion: testAPIVersion,
+		ApiVersion: TestAPIVersion,
 		Kind:       "AgentExecution",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name: "test-exec-" + uuid.New().String()[:8],
-			Org:  testOrg,
+			Org:  TestOrg,
 		},
 		Spec: spec,
 	}

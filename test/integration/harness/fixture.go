@@ -6,19 +6,22 @@ import (
 	"log/slog"
 
 	"github.com/google/uuid"
+	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	executionctxv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
+	billingv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/billing/v1"
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
+	"google.golang.org/grpc"
 )
 
 const (
-	testOrg        = "test-org"
-	testAPIVersion = "agentic.stigmer.ai/v1"
+	TestOrg        = "test-org"
+	TestAPIVersion = "agentic.stigmer.ai/v1"
 )
 
 type resourceKind int
@@ -53,7 +56,7 @@ func NewFixtureDeployer(clients *Clients, testName string, logger *slog.Logger) 
 	return &FixtureDeployer{
 		clients:  clients,
 		testName: testName,
-		org:      testOrg,
+		org:      TestOrg,
 		logger:   logger,
 	}
 }
@@ -157,7 +160,7 @@ func (f *FixtureDeployer) DeployAndExecute(ctx context.Context, wf *workflowv1.W
 
 	execName := f.uniqueName("exec")
 	exec := &workflowexecutionv1.WorkflowExecution{
-		ApiVersion: testAPIVersion,
+		ApiVersion: TestAPIVersion,
 		Kind:       "WorkflowExecution",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name: execName,
@@ -187,7 +190,7 @@ func (f *FixtureDeployer) DeployAndExecuteWithEnv(ctx context.Context, wf *workf
 
 	execName := f.uniqueName("exec")
 	exec := &workflowexecutionv1.WorkflowExecution{
-		ApiVersion: testAPIVersion,
+		ApiVersion: TestAPIVersion,
 		Kind:       "WorkflowExecution",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name: execName,
@@ -235,4 +238,56 @@ func (f *FixtureDeployer) Cleanup(ctx context.Context) {
 		}
 	}
 	f.created = nil
+}
+
+// SeedDefaultAgent creates the system default "assistant" agent in test-org
+// via the Agent Apply RPC. This agent is required by tests that create sessions
+// without specifying an explicit agent.
+func SeedDefaultAgent(ctx context.Context, conn grpc.ClientConnInterface) error {
+	clients := NewClients(conn)
+	_, err := clients.AgentCommand.Apply(ctx, &agentv1.Agent{
+		ApiVersion: TestAPIVersion,
+		Kind:       "Agent",
+		Metadata: &apiresource.ApiResourceMetadata{
+			Name:       "assistant",
+			Org:        TestOrg,
+			Visibility: apiresource.ApiResourceVisibility_visibility_public,
+			Labels: map[string]string{
+				"stigmer.ai/system":        "true",
+				"stigmer.ai/default-agent": "true",
+			},
+		},
+		Spec: &agentv1.AgentSpec{
+			Description:  "General-purpose AI assistant.",
+			Instructions: "You are a general-purpose AI assistant.",
+		},
+	})
+	return err
+}
+
+// ProvisionTestBillingAccount creates a billing account for test-org and
+// seeds generous credits ($100) so agent/workflow executions do not hit the
+// balance gate. The idempotencyKey must be unique per suite to avoid
+// conflicts across concurrent test runs.
+func ProvisionTestBillingAccount(ctx context.Context, conn grpc.ClientConnInterface, idempotencyKey string) error {
+	billing := billingv1.NewBillingCommandControllerClient(conn)
+
+	_, err := billing.GetOrCreateBillingAccount(ctx, &billingv1.GetOrCreateBillingAccountInput{
+		OrgId: TestOrg,
+	})
+	if err != nil {
+		return fmt.Errorf("getOrCreateBillingAccount: %w", err)
+	}
+
+	_, err = billing.AdjustCredits(ctx, &billingv1.AdjustCreditsInput{
+		OrgId:          TestOrg,
+		AmountMicros:   100_000_000, // $100 in micro-USD
+		Reason:         "integration test seed",
+		IdempotencyKey: idempotencyKey,
+	})
+	if err != nil {
+		return fmt.Errorf("adjustCredits: %w", err)
+	}
+
+	return nil
 }

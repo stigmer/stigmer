@@ -27,17 +27,17 @@ func newMinimalWorkflow(name string) *workflowv1.Workflow {
 	})
 
 	return &workflowv1.Workflow{
-		ApiVersion: testAPIVersion,
+		ApiVersion: harness.TestAPIVersion,
 		Kind:       "Workflow",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name: name,
-			Org:  testOrg,
+			Org:  harness.TestOrg,
 		},
 		Spec: &workflowv1.WorkflowSpec{
 			Description: "Integration test: wfexec routing verification",
 			Document: &workflowv1.WorkflowDocument{
 				Dsl:       "1.0.0",
-				Namespace: testOrg,
+				Namespace: harness.TestOrg,
 				Name:      name,
 				Version:   "1.0.0",
 			},

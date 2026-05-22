@@ -48,11 +48,11 @@ func CreateStdioMcpServer(t *testing.T, ctx context.Context, clients *Clients, b
 
 	name := "test-mcp-" + uuid.New().String()[:8]
 	server := &mcpserverv1.McpServer{
-		ApiVersion: testAPIVersion,
+		ApiVersion: TestAPIVersion,
 		Kind:       "McpServer",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name: name,
-			Org:  testOrg,
+			Org:  TestOrg,
 		},
 		Spec: &mcpserverv1.McpServerSpec{
 			Description: "Integration test MCP server (stdio)",
@@ -92,11 +92,11 @@ func CreateHttpMcpServer(t *testing.T, ctx context.Context, clients *Clients, se
 
 	name := "test-mcp-http-" + uuid.New().String()[:8]
 	server := &mcpserverv1.McpServer{
-		ApiVersion: testAPIVersion,
+		ApiVersion: TestAPIVersion,
 		Kind:       "McpServer",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name: name,
-			Org:  testOrg,
+			Org:  TestOrg,
 		},
 		Spec: &mcpserverv1.McpServerSpec{
 			Description: "Integration test MCP server (HTTP+SSE)",
@@ -206,7 +206,7 @@ func ConnectMcpServer(t *testing.T, ctx context.Context, clients *Clients, serve
 
 	input := &mcpserverv1.ConnectInput{
 		McpServerId: serverID,
-		Org:         testOrg,
+		Org:         TestOrg,
 	}
 	for _, opt := range opts {
 		opt(input)

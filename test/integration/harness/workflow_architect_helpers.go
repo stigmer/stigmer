@@ -44,11 +44,11 @@ func CreateStigmerMcpServer(t *testing.T, ctx context.Context, clients *Clients,
 
 	name := "test-stigmer-mcp-" + uuid.New().String()[:8]
 	server := &mcpserverv1.McpServer{
-		ApiVersion: testAPIVersion,
+		ApiVersion: TestAPIVersion,
 		Kind:       "McpServer",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name: name,
-			Org:  testOrg,
+			Org:  TestOrg,
 		},
 		Spec: &mcpserverv1.McpServerSpec{
 			Description: "Integration test: mcp-server-stigmer (real binary)",

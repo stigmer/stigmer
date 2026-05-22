@@ -36,7 +36,7 @@ func MintRunnerToken() (string, error) {
 		"sub":   testIdentityAccountID,
 		"iat":   now.Unix(),
 		"exp":   now.Add(4 * time.Hour).Unix(),
-		"org":   testOrg,
+		"org":   TestOrg,
 		"email": "test@integration.stigmer.ai",
 		"name":  "Integration Test Runner",
 	}
