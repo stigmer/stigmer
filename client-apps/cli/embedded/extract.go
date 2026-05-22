@@ -1,10 +1,6 @@
 package embedded
 
 import (
-	"archive/tar"
-	"compress/gzip"
-	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 
@@ -13,39 +9,21 @@ import (
 )
 
 // EnsureBinariesExtracted ensures the bin directory and version marker exist.
-// Agent-runner now runs as a native Python process managed by pythonrt, so
-// no binaries are embedded. This function maintains the version marker for
-// legacy compatibility and future use.
+// The runner is now a TypeScript/Node.js process (@stigmer/runner) started
+// directly by the daemon — no binaries are embedded or extracted.
+// This function maintains the bin directory and version marker for
+// compatibility with code that checks the data directory layout.
 func EnsureBinariesExtracted(dataDir string) error {
 	binDir := filepath.Join(dataDir, "bin")
 
-	needsExtraction, err := needsExtraction(binDir)
-	if err != nil {
-		return errors.Wrap(err, "failed to check extraction status")
-	}
-
-	if !needsExtraction {
-		log.Debug().Msg("Bin directory already initialized, skipping")
-		return nil
-	}
-
-	currentVersion := GetBuildVersion()
-	if extractedVersion, _ := readVersionFile(binDir); extractedVersion != "" {
-		log.Info().
-			Str("extracted", extractedVersion).
-			Str("current", currentVersion).
-			Msg("Version mismatch detected, reinitializing bin directory")
-	}
-
-	if err := os.RemoveAll(binDir); err != nil && !os.IsNotExist(err) {
-		return errors.Wrap(err, "failed to remove old bin directory")
-	}
 	if err := os.MkdirAll(binDir, 0755); err != nil {
 		return errors.Wrap(err, "failed to create bin directory")
 	}
 
-	if err := extractRunner(binDir); err != nil {
-		return errors.Wrap(err, "failed to extract runner")
+	currentVersion := GetBuildVersion()
+	if extractedVersion, err := readVersionFile(binDir); err == nil && extractedVersion == currentVersion {
+		log.Debug().Msg("Bin directory already initialized, skipping")
+		return nil
 	}
 
 	if err := writeVersionFile(binDir, currentVersion); err != nil {
@@ -55,143 +33,20 @@ func EnsureBinariesExtracted(dataDir string) error {
 	return nil
 }
 
-// extractRunner handles legacy embedded runner binaries.
-// The native architecture uses pythonrt instead; this is retained for
-// backward compatibility with older binary formats.
-func extractRunner(binDir string) error {
-	data, err := GetRunnerBinary()
+func readVersionFile(binDir string) (string, error) {
+	versionFile := filepath.Join(binDir, ".version")
+	data, err := os.ReadFile(versionFile)
 	if err != nil {
-		return err
+		return "", errors.Wrap(err, "failed to read version file")
 	}
-	if data == nil || len(data) == 0 {
-		return nil
-	}
-	destPath := filepath.Join(binDir, "agent-runner")
-	return extractBinary(destPath, data)
+
+	return string(data), nil
 }
 
-// extractBinary writes a binary to disk and makes it executable
-func extractBinary(destPath string, data []byte) error {
-	// Write binary
-	if err := os.WriteFile(destPath, data, 0755); err != nil {
-		return errors.Wrapf(err, "failed to write binary to %s", destPath)
+func writeVersionFile(binDir string, version string) error {
+	versionFile := filepath.Join(binDir, ".version")
+	if err := os.WriteFile(versionFile, []byte(version), 0644); err != nil {
+		return errors.Wrap(err, "failed to write version file")
 	}
-
-	// Ensure executable permissions
-	if err := os.Chmod(destPath, 0755); err != nil {
-		return errors.Wrapf(err, "failed to set executable permissions on %s", destPath)
-	}
-
-	log.Debug().
-		Str("path", destPath).
-		Int("size_bytes", len(data)).
-		Msg("Extracted binary")
-
 	return nil
-}
-
-// extractTarball extracts a tar.gz archive to a destination directory
-func extractTarball(destDir string, data []byte) error {
-	// Create destination directory
-	if err := os.MkdirAll(destDir, 0755); err != nil {
-		return errors.Wrapf(err, "failed to create directory %s", destDir)
-	}
-
-	// Create gzip reader
-	gzipReader, err := gzip.NewReader(io.NopCloser(io.Reader(newBytesReader(data))))
-	if err != nil {
-		return errors.Wrap(err, "failed to create gzip reader")
-	}
-	defer gzipReader.Close()
-
-	// Create tar reader
-	tarReader := tar.NewReader(gzipReader)
-
-	// Extract all files
-	fileCount := 0
-	for {
-		header, err := tarReader.Next()
-		if err == io.EOF {
-			break // End of archive
-		}
-		if err != nil {
-			return errors.Wrap(err, "failed to read tar header")
-		}
-
-		// Construct destination path
-		targetPath := filepath.Join(destDir, header.Name)
-
-		// Ensure target path is within destDir (prevent path traversal)
-		if !filepath.HasPrefix(targetPath, filepath.Clean(destDir)+string(os.PathSeparator)) {
-			return fmt.Errorf("invalid file path in tarball: %s", header.Name)
-		}
-
-		switch header.Typeflag {
-		case tar.TypeDir:
-			// Create directory
-			if err := os.MkdirAll(targetPath, os.FileMode(header.Mode)); err != nil {
-				return errors.Wrapf(err, "failed to create directory %s", targetPath)
-			}
-
-		case tar.TypeReg:
-			// Create parent directory if needed
-			if err := os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
-				return errors.Wrapf(err, "failed to create parent directory for %s", targetPath)
-			}
-
-			// Create file
-			outFile, err := os.OpenFile(targetPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.FileMode(header.Mode))
-			if err != nil {
-				return errors.Wrapf(err, "failed to create file %s", targetPath)
-			}
-
-			// Copy file contents
-			if _, err := io.Copy(outFile, tarReader); err != nil {
-				outFile.Close()
-				return errors.Wrapf(err, "failed to write file %s", targetPath)
-			}
-
-			outFile.Close()
-			fileCount++
-
-		case tar.TypeSymlink:
-			// Create symlink
-			if err := os.Symlink(header.Linkname, targetPath); err != nil {
-				return errors.Wrapf(err, "failed to create symlink %s -> %s", targetPath, header.Linkname)
-			}
-
-		default:
-			log.Warn().
-				Str("name", header.Name).
-				Int("type", int(header.Typeflag)).
-				Msg("Skipping unsupported tar entry type")
-		}
-	}
-
-	log.Debug().
-		Str("path", destDir).
-		Int("file_count", fileCount).
-		Int("size_bytes", len(data)).
-		Msg("Extracted tarball")
-
-	return nil
-}
-
-// bytesReader wraps a byte slice to implement io.Reader
-type bytesReader struct {
-	data []byte
-	pos  int
-}
-
-func newBytesReader(data []byte) *bytesReader {
-	return &bytesReader{data: data}
-}
-
-func (r *bytesReader) Read(p []byte) (n int, err error) {
-	if r.pos >= len(r.data) {
-		return 0, io.EOF
-	}
-	n = copy(p, r.data[r.pos:])
-	r.pos += n
-	return n, nil
 }

@@ -31,7 +31,7 @@ By default, streams logs in real-time from all components (like kubectl logs -f)
 Use --follow=false to disable streaming and only show recent logs.
 Use --tail to limit how many existing lines to show before streaming (default: 50).
 Use --stderr to view error logs.
-Use --component to select a specific component (stigmer-server, agent-runner, or workflow-runner).
+Use --component to select a specific component (stigmer-server or runner).
 Use --all to view logs from all components in a single interleaved stream.`,
 		Example: `  # Stream all logs
   stigmer logs
@@ -39,8 +39,8 @@ Use --all to view logs from all components in a single interleaved stream.`,
   # Show last 100 lines without streaming
   stigmer logs --follow=false --tail 100
 
-  # View only agent-runner logs
-  stigmer logs --component agent-runner`,
+  # View only runner logs
+  stigmer logs --component runner`,
 		Run: func(cmd *cobra.Command, args []string) {
 			handleLogs(cmd, follow, lines, component, showStderr, showAll)
 		},
@@ -48,7 +48,7 @@ Use --all to view logs from all components in a single interleaved stream.`,
 
 	cmd.Flags().BoolVarP(&follow, "follow", "f", true, "Stream logs in real-time (like kubectl logs -f)")
 	cmd.Flags().IntVarP(&lines, "tail", "n", 50, "Number of recent lines to show before streaming (0 = all lines)")
-	cmd.Flags().StringVarP(&component, "component", "c", "stigmer-server", "Component to show logs for (stigmer-server, agent-runner, or workflow-runner)")
+	cmd.Flags().StringVarP(&component, "component", "c", "stigmer-server", "Component to show logs for (stigmer-server or runner)")
 	cmd.Flags().BoolVar(&showStderr, "stderr", false, "Show stderr logs instead of stdout")
 	cmd.Flags().BoolVar(&showAll, "all", true, "Show logs from all components (interleaved by timestamp)")
 
@@ -108,8 +108,8 @@ func handleLogs(cmd *cobra.Command, follow bool, lines int, component string, sh
 		return
 	}
 
-	if component != "stigmer-server" && component != "agent-runner" && component != "workflow-runner" {
-		climsg.Error("Invalid component: %s (must be 'stigmer-server', 'agent-runner', or 'workflow-runner')", component)
+	if component != "stigmer-server" && component != "runner" {
+		climsg.Error("Invalid component: %s (must be 'stigmer-server' or 'runner')", component)
 		return
 	}
 
@@ -150,15 +150,9 @@ func getComponentConfigsWithStreamPreferences(logDir string, useSmartDefaults bo
 			PreferStderr: false,
 		},
 		{
-			Name:         "workflow-runner",
-			LogFile:      filepath.Join(logDir, "workflow-runner.log"),
-			ErrFile:      filepath.Join(logDir, "workflow-runner.err"),
-			PreferStderr: false,
-		},
-		{
-			Name:         "agent-runner",
-			LogFile:      filepath.Join(logDir, "agent-runner.log"),
-			ErrFile:      filepath.Join(logDir, "agent-runner.err"),
+			Name:         "runner",
+			LogFile:      filepath.Join(logDir, "runner.log"),
+			ErrFile:      filepath.Join(logDir, "runner.err"),
 			PreferStderr: false,
 		},
 	}

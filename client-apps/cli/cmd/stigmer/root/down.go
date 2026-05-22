@@ -20,7 +20,7 @@ func NewDownCommand() *cobra.Command {
 		Long: `Stop all running Stigmer services.
 
 Stops the daemon process and all managed components (Temporal,
-stigmer-server, workflow-runner, agent-runner, web console).
+stigmer-server, runner, web console).
 
 Use 'stigmer down server' to stop only the control plane.`,
 		Example: `  # Stop all services

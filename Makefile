@@ -10,6 +10,8 @@ GO_MODULES := \
 	seedpack \
 	tools
 
+RUNNER_DIR := backend/services/runner
+
 .DEFAULT_GOAL := help
 
 # ─── Help ─────────────────────────────────────
@@ -28,8 +30,6 @@ setup: ## Install all dependencies (one-time)
 		echo "go mod download  $$mod"; \
 		(cd $$mod && go mod download) || exit 1; \
 	done
-	@echo "npm install      backend/services/runner"
-	@cd backend/services/runner && npm install
 	@if command -v pre-commit >/dev/null 2>&1; then \
 		pre-commit install && echo "pre-commit hooks installed"; \
 	else \
@@ -76,8 +76,8 @@ install-vale: ## Install Vale prose linter (auto-detects OS)
 
 # ─── Build ────────────────────────────────────
 
-.PHONY: build build-mcp-server build-java-protos build-java-sdk protos codegen gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-task-docs gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-task-docs-check
-build: libs-build build-web verify-desktop docs-build build-mcp-server build-java-sdk ## Build all project artifacts
+.PHONY: build build-mcp-server build-java-protos build-java-sdk build-runner protos codegen gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-task-docs gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-task-docs-check
+build: libs-build build-web verify-desktop docs-build build-mcp-server build-java-sdk build-runner ## Build all project artifacts
 	@mkdir -p bin
 	cd client-apps/cli && go build -o ../../bin/stigmer .
 	cd backend/services/stigmer-server && go build -o ../../../bin/stigmer-server ./cmd/server
@@ -93,6 +93,10 @@ build-java-protos: ## Install Java proto stubs to local Maven repo
 
 build-java-sdk: build-java-protos ## Compile Java SDK
 	$(MAKE) -C sdk/java build
+
+build-runner: ## Compile unified runner (TypeScript)
+	@echo "build    $(RUNNER_DIR)"
+	@cd $(RUNNER_DIR) && npm run build
 
 protos: ## Generate protocol buffer stubs and SDK client code
 	$(MAKE) -C apis build
@@ -222,6 +226,8 @@ test: ## Run all unit tests
 		echo "testing  $$mod"; \
 		(cd $$mod && go test -race -timeout 30s ./...) || exit 1; \
 	done
+	@echo "testing  $(RUNNER_DIR)"
+	@cd $(RUNNER_DIR) && npm test
 
 # ─── Integration Test ─────────────────────────
 # All integration test logic lives in test/integration/Makefile.
@@ -247,13 +253,9 @@ test-integration-stress: ## Run integration tests 3x to detect flakes (no quaran
 test-integration-security: ## Run security integration tests (JWT validation, production auth chain)
 	$(MAKE) -C test/integration-security test
 
-.PHONY: test-integration-session-routing
-test-integration-session-routing: ## Run offline session routing integration tests (per-session task queue routing)
-	$(MAKE) -C test/integration-session-routing test
-
-.PHONY: test-integration-session-routing-providers
-test-integration-session-routing-providers: ## Run provider-backed session routing E2E tests (auto-fetches CURSOR_API_KEY)
-	$(MAKE) -C test/integration-session-routing test-providers
+.PHONY: test-replay
+test-replay: ## Run Temporal workflow replay determinism tests (fast, no infra needed)
+	@echo "test-replay: workflow-runner has been removed (unified into runner)"
 
 .PHONY: capture-replay-histories
 capture-replay-histories: ## Capture Temporal event histories for replay tests (needs full harness)
@@ -413,7 +415,7 @@ build-cli: ## Build CLI binary
 
 install-cli: ## Build CLI with dev flags + install to ~/bin
 	@mkdir -p bin $(HOME)/bin
-	@cd client-apps/cli && go build -o ../../bin/stigmer .
+	@cd client-apps/cli && go build -ldflags '$(DEV_LDFLAGS)' -o ../../bin/stigmer .
 	@cp bin/stigmer $(HOME)/bin/
 	@chmod +x $(HOME)/bin/stigmer
 	@echo "installed: $(HOME)/bin/stigmer"
@@ -437,37 +439,14 @@ tsdoc-check: ## Validate TSDoc quality for all TypeScript SDKs
 test-demos: docs-build ## Run Playwright demo e2e tests — slow (~20 min), run explicitly or in CI
 	$(MAKE) -C site test-demos
 
-RUNNER_DIR := backend/services/runner
-PROTOS_DIR := apis/stubs/ts
-
-.PHONY: ensure-protos-built ensure-runner-built
-ensure-protos-built:
-	@if [ ! -d "$(PROTOS_DIR)/dist/ai" ]; then \
-		echo "Building proto stubs TypeScript..."; \
-		cd "$(PROTOS_DIR)" && npm run build; \
-	else \
-		echo "proto stubs: already built"; \
-	fi
-
-ensure-runner-built: ensure-protos-built
-	@if [ ! -f "$(RUNNER_DIR)/dist/main.js" ]; then \
-		echo "Building unified runner TypeScript..."; \
-		cd "$(RUNNER_DIR)" && npm run build; \
-	else \
-		echo "unified runner: already built"; \
-	fi
-
 test-e2e: ## Run Playwright functional E2E tests against local dev server
-	cd test/e2e && npx playwright install --with-deps chromium && npx playwright test --project=functional
+	cd test/e2e && npm ci && npx playwright install --with-deps chromium && npx playwright test --project=functional
 
 test-e2e-smoke: ## Run Playwright smoke tests against a deployed instance (set STIGMER_E2E_BASE_URL)
-	cd test/e2e && npx playwright install --with-deps chromium && npx playwright test --project=smoke
+	cd test/e2e && npm ci && npx playwright install --with-deps chromium && npx playwright test --project=smoke
 
-test-e2e-interactive: ensure-runner-built ## Run Playwright interactive E2E tests (requires full backend stack)
-	cd test/e2e && npx playwright install --with-deps chromium && npx playwright test --project=interactive
-
-test-e2e-all: ensure-runner-built ## Run all Playwright E2E tests (smoke + functional + interactive)
-	cd test/e2e && npx playwright install --with-deps chromium && npx playwright test
+test-e2e-all: ## Run all Playwright E2E tests (smoke + functional)
+	cd test/e2e && npm ci && npx playwright install --with-deps chromium && npx playwright test
 
 check: tidy fix lint lint-docs format-docs-check tsdoc-check gen-sdk-docs gen-sdk-docs-check check-links build test test-web test-desktop validate-demos ## Run full CI gate locally
 
@@ -517,7 +496,10 @@ check-links: ## Check for broken links in documentation
 # ─── Dependencies ─────────────────────────────
 
 
+
 # ─── Local Dev ────────────────────────────────
+
+DEV_LDFLAGS :=
 
 .PHONY: local
 local: ## Build + install CLI and server for local development
@@ -525,7 +507,7 @@ local: ## Build + install CLI and server for local development
 	@rm -f /usr/local/bin/stigmer bin/stigmer bin/stigmer-server 2>/dev/null || true
 	@$(MAKE) web-console-build
 	@mkdir -p bin $(HOME)/bin
-	@cd client-apps/cli && go build -tags 'embed_webconsole' -o ../../bin/stigmer .
+	@cd client-apps/cli && go build -tags 'embed_webconsole' -ldflags '$(DEV_LDFLAGS)' -o ../../bin/stigmer .
 	@cd backend/services/stigmer-server && go build -o ../../../bin/stigmer-server ./cmd/server
 	@cp bin/stigmer bin/stigmer-server $(HOME)/bin/
 	@chmod +x $(HOME)/bin/stigmer $(HOME)/bin/stigmer-server
@@ -628,6 +610,8 @@ release: ## Tag and push a release (usage: make release [bump=patch|minor|major]
 clean: ## Remove all build artifacts
 	rm -rf bin/ coverage/ coverage.txt coverage.html
 	rm -rf backend/services/stigmer-server/bin/
+	rm -rf client-apps/cli/embedded/agentrunner/source/
+	rm -rf client-apps/cli/embedded/cursorrunner/source/
 	rm -rf client-apps/cli/embedded/webconsole/out/
 	rm -rf client-apps/web/out/ client-apps/web/.next/
 	$(MAKE) -C apis clean

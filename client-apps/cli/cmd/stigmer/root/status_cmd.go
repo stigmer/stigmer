@@ -72,13 +72,12 @@ func handleStatus(format clioutput.OutputFormat) {
 			Field("Uptime", formatDuration(time.Since(hs.StartedAt)))
 	}
 
-	componentOrder := []string{"temporal", "stigmer-server", "workflow-runner", "agent-runner", "web-console"}
+	componentOrder := []string{"temporal", "stigmer-server", "runner", "web-console"}
 	componentLabels := map[string]string{
-		"temporal":        "Temporal",
-		"stigmer-server":  "Stigmer Server",
-		"workflow-runner": "Workflow Runner",
-		"agent-runner":    "Agent Runner",
-		"web-console":     "Web Console",
+		"temporal":       "Temporal",
+		"stigmer-server": "Stigmer Server",
+		"runner":         "Runner",
+		"web-console":    "Web Console",
 	}
 
 	for _, name := range componentOrder {

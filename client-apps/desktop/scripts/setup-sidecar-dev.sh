@@ -4,8 +4,8 @@
 # local Tauri development.
 #
 # Tauri expects binaries at src-tauri/binaries/<name>-<target-triple>.
-# This script builds the CLI with embedded agent-runner source, installs
-# it to GOPATH/bin, and creates a symlink at the expected path.
+# This script builds the CLI, installs it to GOPATH/bin, and creates a
+# symlink at the expected path.
 #
 # The build always runs to ensure the sidecar reflects the latest source.
 # The symlink is recreated if the target has changed.
@@ -27,21 +27,9 @@ GOPATH_BIN="$(go env GOPATH 2>/dev/null)/bin/stigmer"
 
 mkdir -p "$BINARIES_DIR"
 
-echo "Syncing agent-runner source for embedding..."
-(cd "$CLI_DIR/embedded/agentrunner" && bash sync.sh)
-
-echo "Syncing cursor-runner source for embedding..."
-(cd "$CLI_DIR/embedded/cursorrunner" && bash sync.sh)
-
-# Compute a content hash of the embedded source so the runtime managers
-# can skip refreshDevSource() when the source hasn't changed between restarts.
-EMBED_HASH=$(cd "$CLI_DIR/embedded" && find agentrunner/source cursorrunner/source -type f 2>/dev/null | sort | xargs shasum -a 256 | shasum -a 256 | cut -c1-12)
-BUILD_VERSION="dev-${EMBED_HASH}"
-
-echo "Building stigmer CLI from source (version: $BUILD_VERSION)..."
+echo "Building stigmer CLI from source..."
 (cd "$CLI_DIR" && CGO_ENABLED=0 go build \
-  -tags 'embed_agentrunner embed_cursorrunner' \
-  -ldflags="-s -w -X github.com/stigmer/stigmer/client-apps/cli/embedded.buildVersion=${BUILD_VERSION}" \
+  -ldflags="-s -w" \
   -o "$GOPATH_BIN" .)
 echo "Installed: $GOPATH_BIN"
 
