@@ -22,9 +22,10 @@ import { loadRuntimeConfig } from "@/config/runtime-config";
  * or OrgGate — those assume an authenticated user and would fail or
  * redirect on pre-authentication pages.
  *
- * The login page creates its own unauthenticated StigmerProvider.
+ * Each public page creates its own StigmerProvider (unauthenticated for
+ * the initial load, optionally authenticated after an OIDC return).
  */
-const PUBLIC_ROUTES = ["/login"] as const;
+const PUBLIC_ROUTES = ["/login", "/invite/"] as const;
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -57,8 +58,8 @@ const queryClient = new QueryClient({
  * 8. OrgGate                  — blocks app until user has at least one organization
  * 9. Toaster                  — sonner toast container (themed, top-right)
  *
- * Public routes (e.g. `/login`) receive only ConfigGate + ThemeProvider.
- * They manage their own SDK client and provider.
+ * Public routes (e.g. `/login`, `/invite/`) receive only ConfigGate +
+ * ThemeProvider. They manage their own SDK client and provider.
  *
  * Query retry strategy:
  * - Only transient errors (server / unavailable) are retried once
