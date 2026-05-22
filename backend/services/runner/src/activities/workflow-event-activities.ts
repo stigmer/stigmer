@@ -34,7 +34,7 @@ import { WorkflowExecutionStatusSchema, WorkflowTaskSchema } from "@stigmer/prot
 import {
   WorkflowExecutionUpdateStatusInputSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
-import { WorkflowTaskStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import { ExecutionPhase, WorkflowTaskStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
 import type { JsonObject } from "@bufbuild/protobuf";
 import type { WorkflowEventDescriptor } from "../workflow-engine/types.js";
 import type { TaskStatusEntry } from "../workflow-engine/task-status-accumulator.js";
@@ -260,10 +260,16 @@ export async function emitWorkflowEvents(
       }),
     );
 
+    const startedEvent = events.find(e => e.type === "execution_started");
+
     const input = create(WorkflowExecutionUpdateStatusInputSchema, {
       executionId,
       status: create(WorkflowExecutionStatusSchema, {
         tasks: protoTasks,
+        ...(startedEvent && {
+          phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+          startedAt: startedEvent.occurredAt,
+        }),
       }),
       events: protoEvents,
     });
