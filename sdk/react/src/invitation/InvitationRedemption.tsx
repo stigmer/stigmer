@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage, iamRoleDisplayName, iamRoleDescription } from "@stigmer/sdk";
 import type { Invitation } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
@@ -19,13 +19,26 @@ export interface InvitationRedemptionProps {
   /**
    * Whether the current user is authenticated.
    *
-   * When `false`, the component shows a "Sign in to accept" CTA
-   * instead of the accept button. When `true` or omitted, the
-   * accept button calls `redeem` directly.
+   * Controls the button's click behavior, not its label. Both
+   * states show "Accept Invitation". When `false`, clicking
+   * fires {@link onAuthRequired} to initiate the auth flow.
+   * When `true` or omitted, clicking redeems the invitation
+   * directly.
    *
    * @default true
    */
   readonly isAuthenticated?: boolean;
+  /**
+   * When `true`, automatically triggers invitation redemption
+   * on mount (requires `isAuthenticated` to also be `true`).
+   *
+   * Used by host applications to complete the acceptance flow
+   * after an OIDC redirect — the user clicked "Accept Invitation"
+   * before the redirect, so no second click should be required.
+   *
+   * @default false
+   */
+  readonly autoAccept?: boolean;
   /**
    * Fired after the invitation is successfully redeemed.
    *
@@ -35,11 +48,11 @@ export interface InvitationRedemptionProps {
    */
   readonly onAccepted?: (invitation: Invitation) => void;
   /**
-   * Fired when an unauthenticated user clicks "Sign in to accept".
+   * Fired when an unauthenticated user clicks "Accept Invitation".
    *
-   * The host application controls what "sign in" means — this
-   * callback typically triggers a redirect to the login page with
-   * a return URL back to the invite page.
+   * The host application controls what happens next — this
+   * callback typically triggers a redirect to the OIDC provider
+   * with a return URL back to the invite page.
    */
   readonly onAuthRequired?: () => void;
   /** Additional CSS class names for the root container. */
@@ -59,8 +72,14 @@ export interface InvitationRedemptionProps {
  *
  * The component is auth-agnostic: it delegates authentication
  * decisions to the host application via `isAuthenticated` and
- * `onAuthRequired` props. Platform builders who render this
- * component only for authenticated users can ignore both props.
+ * `onAuthRequired` props. The button always reads "Accept Invitation"
+ * regardless of auth state — `isAuthenticated` only controls whether
+ * clicking redeems directly or triggers the auth flow first.
+ *
+ * When `autoAccept` is `true` and the user is authenticated, the
+ * component automatically triggers redemption on mount. This enables
+ * a seamless post-OIDC-redirect flow where the user doesn't need
+ * to click "Accept Invitation" a second time.
  *
  * All visual properties flow through `--stgm-*` design tokens.
  *
@@ -74,14 +93,16 @@ export interface InvitationRedemptionProps {
  * <InvitationRedemption
  *   token={tokenFromUrl}
  *   isAuthenticated={!!currentUser}
+ *   autoAccept={shouldAutoAccept}
  *   onAccepted={(inv) => router.push(`/org/${inv.metadata?.org}`)}
- *   onAuthRequired={() => router.push(`/login?return=/invite/${token}`)}
+ *   onAuthRequired={() => redirectToLogin()}
  * />
  * ```
  */
 export function InvitationRedemption({
   token,
   isAuthenticated = true,
+  autoAccept = false,
   onAccepted,
   onAuthRequired,
   className,
@@ -89,6 +110,7 @@ export function InvitationRedemption({
   const { preview, isLoading, error: fetchError, refetch } = useInvitationPreview(token);
   const { redeem, isRedeeming, error: redeemError, clearError } = useRedeemInvitation();
   const [accepted, setAccepted] = useState<Invitation | null>(null);
+  const autoAcceptFired = useRef(false);
 
   const handleAccept = useCallback(async () => {
     clearError();
@@ -100,6 +122,20 @@ export function InvitationRedemption({
       // error state is managed by useRedeemInvitation
     }
   }, [token, redeem, clearError, onAccepted]);
+
+  useEffect(() => {
+    if (
+      autoAccept &&
+      isAuthenticated &&
+      preview?.isValid &&
+      !accepted &&
+      !isRedeeming &&
+      !autoAcceptFired.current
+    ) {
+      autoAcceptFired.current = true;
+      handleAccept();
+    }
+  }, [autoAccept, isAuthenticated, preview, accepted, isRedeeming, handleAccept]);
 
   // Loading state
   if (isLoading) {
@@ -244,7 +280,7 @@ export function InvitationRedemption({
                   "transition-colors",
                 )}
               >
-                Sign in to accept
+                Accept Invitation
               </button>
             )}
           </div>

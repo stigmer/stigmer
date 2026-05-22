@@ -15,6 +15,7 @@ import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam"
 import { StigmerLogo } from "@/auth/StigmerLogo";
 
 const REDIRECT_PATH_KEY = "stigmer:auth:redirect_path";
+const AUTO_ACCEPT_KEY = "stigmer:invite:auto_accept";
 
 /**
  * Resolve the UserManager for the current session.
@@ -50,15 +51,19 @@ function resolveActiveManager(auth0Config: {
  * 1. First visit (unauthenticated) — creates a Stigmer client with no
  *    token. The `getByToken` RPC is public (`is_public` in proto), so
  *    the invite preview renders without authentication. The user sees
- *    "Sign in to accept".
+ *    "Accept Invitation".
  *
- * 2. After clicking "Sign in to accept" — the current path is saved in
- *    sessionStorage and the user is redirected to the OIDC provider.
+ * 2. After clicking "Accept Invitation" — the current path and an
+ *    auto-accept flag are saved in sessionStorage and the user is
+ *    redirected to the OIDC provider. If the user already has an
+ *    active IdP session (e.g. logged in on another tab), the
+ *    redirect round-trip is near-instant.
  *
  * 3. Return visit (after OIDC callback) — the page detects the OIDC
  *    session in sessionStorage via `UserManager.getUser()`, extracts
  *    the access token, and creates an authenticated Stigmer client.
- *    The user sees "Accept Invitation".
+ *    The auto-accept flag triggers automatic redemption so the user
+ *    lands directly on the success state without a second click.
  *
  * This follows the same self-contained pattern as `LoginPageView`.
  */
@@ -69,7 +74,7 @@ export default function InvitePageClient() {
   const colorMode: ResolvedColorMode =
     resolvedTheme === "dark" ? "dark" : "light";
 
-  const { accessToken, isAuthenticated } = useInviteAuth();
+  const { accessToken, isAuthenticated, autoAccept } = useInviteAuth();
 
   const client = useMemo(
     () =>
@@ -92,6 +97,7 @@ export default function InvitePageClient() {
     const config = resolveAuthConfig();
     if (config.mode !== "oidc") return;
     sessionStorage.setItem(REDIRECT_PATH_KEY, window.location.pathname);
+    sessionStorage.setItem(AUTO_ACCEPT_KEY, "1");
     resolveActiveManager(config.oidc).signinRedirect();
   }, []);
 
@@ -108,6 +114,7 @@ export default function InvitePageClient() {
           <InvitationRedemption
             token={token ?? ""}
             isAuthenticated={isAuthenticated}
+            autoAccept={autoAccept}
             onAccepted={handleAccepted}
             onAuthRequired={handleAuthRequired}
           />
@@ -124,6 +131,7 @@ export default function InvitePageClient() {
 interface InviteAuthState {
   readonly accessToken: string | null;
   readonly isAuthenticated: boolean;
+  readonly autoAccept: boolean;
 }
 
 /**
@@ -133,6 +141,11 @@ interface InviteAuthState {
  * `oidc-client-ts` after a successful login). If so, extracts the
  * access token so the invite page can make authenticated RPCs (redeem).
  *
+ * Also checks for the auto-accept flag set before the OIDC redirect.
+ * When present, the flag is consumed (cleared) and `autoAccept` is
+ * set to `true`, signalling that the invitation should be redeemed
+ * automatically without requiring a second click.
+ *
  * In disabled-auth mode (OSS/self-hosted), the user is treated as
  * always authenticated with no token — matching `DisabledAuthProvider`.
  */
@@ -140,9 +153,9 @@ function useInviteAuth(): InviteAuthState {
   const [state, setState] = useState<InviteAuthState>(() => {
     const config = resolveAuthConfig();
     if (config.mode === "disabled") {
-      return { accessToken: null, isAuthenticated: true };
+      return { accessToken: null, isAuthenticated: true, autoAccept: false };
     }
-    return { accessToken: null, isAuthenticated: false };
+    return { accessToken: null, isAuthenticated: false, autoAccept: false };
   });
 
   useEffect(() => {
@@ -152,7 +165,16 @@ function useInviteAuth(): InviteAuthState {
     const manager = resolveActiveManager(config.oidc);
     manager.getUser().then((user) => {
       if (user && !user.expired) {
-        setState({ accessToken: user.access_token, isAuthenticated: true });
+        const shouldAutoAccept =
+          sessionStorage.getItem(AUTO_ACCEPT_KEY) === "1";
+        if (shouldAutoAccept) {
+          sessionStorage.removeItem(AUTO_ACCEPT_KEY);
+        }
+        setState({
+          accessToken: user.access_token,
+          isAuthenticated: true,
+          autoAccept: shouldAutoAccept,
+        });
       }
     });
   }, []);
