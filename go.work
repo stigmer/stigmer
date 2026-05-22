@@ -9,6 +9,7 @@ use (
 	./sdk/go
 	./seedpack
 	./test/integration
+	./test/integration-offline
 	./test/integration-security
 	./test/integration-session-routing
 	./test/integration/sdk
