@@ -14,7 +14,7 @@
  */
 
 import { proxyLocalActivities, proxyActivities, log, workflowInfo, sleep } from "@temporalio/workflow";
-import { ApplicationFailure, CancelledFailure } from "@temporalio/workflow";
+import { ApplicationFailure, CancelledFailure, ActivityFailure } from "@temporalio/workflow";
 import { recordExecutionStartMetric, recordExecutionEndMetric } from "./metrics-sink.js";
 
 import type { createEvaluateExpressionsActivities } from "../activities/evaluate-expressions.js";
@@ -273,10 +273,12 @@ export async function runWorkflowEngine(
     const durationMs = Date.now() - executionStartMs;
     recordExecutionEndMetric(model.document.name, false, durationMs);
 
+    const errorMessage = extractErrorMessage(err);
+
     await emitEvents([{
       type: "execution_failed",
       occurredAt: nowIso(),
-      error: err instanceof Error ? err.message : String(err),
+      error: errorMessage,
       failedTaskName: "",
       durationMs,
     }]);
@@ -284,11 +286,28 @@ export async function runWorkflowEngine(
     if (err instanceof CancelledFailure || err instanceof ApplicationFailure) {
       throw err;
     }
-    throw ApplicationFailure.nonRetryable(
-      err instanceof Error ? err.message : String(err),
-      "WORKFLOW_EXECUTION_FAILED",
-    );
+    if (err instanceof ActivityFailure && err.cause instanceof ApplicationFailure) {
+      throw err.cause;
+    }
+    throw ApplicationFailure.nonRetryable(errorMessage, "WORKFLOW_EXECUTION_FAILED");
   }
+}
+
+/**
+ * Extracts a meaningful error message from Temporal workflow errors,
+ * unwrapping ActivityFailure chains to find the root cause.
+ */
+function extractErrorMessage(err: unknown): string {
+  if (err instanceof ActivityFailure && err.cause) {
+    const cause = err.cause;
+    if (cause instanceof ApplicationFailure) {
+      return cause.type
+        ? `[${cause.type}] ${cause.message}`
+        : cause.message;
+    }
+    return cause instanceof Error ? cause.message : String(cause);
+  }
+  return err instanceof Error ? err.message : String(err);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
