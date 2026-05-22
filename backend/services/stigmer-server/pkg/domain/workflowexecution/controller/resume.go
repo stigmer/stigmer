@@ -12,9 +12,8 @@ import (
 // Resume resumes a paused workflow execution.
 //
 // This RPC sends a resume signal to the workflow via Temporal's SignalWorkflow API.
-// The workflow receives the signal, unblocks from its wait state, and re-invokes
-// activities with the same execution context. Activities load from LangGraph
-// checkpoint and continue from where they left off.
+// The outer orchestrator forwards the signal to the TS child workflow, which
+// unblocks the engine's condition() and continues execution from the next task.
 //
 // This operation is only valid for executions in EXECUTION_PAUSED phase.
 //

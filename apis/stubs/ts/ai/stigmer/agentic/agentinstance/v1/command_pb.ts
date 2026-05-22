@@ -8,6 +8,8 @@ import type { AgentInstanceSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_agentinstance_v1_api } from "./api_pb.js";
 import type { AgentInstanceIdSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_agentinstance_v1_io } from "./io_pb.js";
+import type { UpdateVisibilityInputSchema } from "../../../commons/apiresource/io_pb.js";
+import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb.js";
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
 
@@ -15,7 +17,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/agentinstance/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_agentinstance_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CjFhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRpbnN0YW5jZS92MS9jb21tYW5kLnByb3RvEiNhaS5zdGlnbWVyLmFnZW50aWMuYWdlbnRpbnN0YW5jZS52MTLtBAoeQWdlbnRJbnN0YW5jZUNvbW1hbmRDb250cm9sbGVyEm8KBWFwcGx5EjIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50aW5zdGFuY2UudjEuQWdlbnRJbnN0YW5jZRoyLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGluc3RhbmNlLnYxLkFnZW50SW5zdGFuY2USdgoGY3JlYXRlEjIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50aW5zdGFuY2UudjEuQWdlbnRJbnN0YW5jZRoyLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGluc3RhbmNlLnYxLkFnZW50SW5zdGFuY2UiBNC4GAESrgEKBnVwZGF0ZRIyLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGluc3RhbmNlLnYxLkFnZW50SW5zdGFuY2UaMi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRpbnN0YW5jZS52MS5BZ2VudEluc3RhbmNlIjzCuBg4CAIQLSILbWV0YWRhdGEuaWQqJXVuYXV0aG9yaXplZCB0byB1cGRhdGUgYWdlbnQgaW5zdGFuY2USqgEKBmRlbGV0ZRI0LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGluc3RhbmNlLnYxLkFnZW50SW5zdGFuY2VJZBoyLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGluc3RhbmNlLnYxLkFnZW50SW5zdGFuY2UiNsK4GDIIAxAtIgV2YWx1ZSoldW5hdXRob3JpemVkIHRvIGRlbGV0ZSBhZ2VudCBpbnN0YW5jZRoEoP8rLWIGcHJvdG8z", [file_ai_stigmer_agentic_agentinstance_v1_api, file_ai_stigmer_agentic_agentinstance_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CjFhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRpbnN0YW5jZS92MS9jb21tYW5kLnByb3RvEiNhaS5zdGlnbWVyLmFnZW50aWMuYWdlbnRpbnN0YW5jZS52MTK2BgoeQWdlbnRJbnN0YW5jZUNvbW1hbmRDb250cm9sbGVyEm8KBWFwcGx5EjIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50aW5zdGFuY2UudjEuQWdlbnRJbnN0YW5jZRoyLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGluc3RhbmNlLnYxLkFnZW50SW5zdGFuY2USdgoGY3JlYXRlEjIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50aW5zdGFuY2UudjEuQWdlbnRJbnN0YW5jZRoyLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGluc3RhbmNlLnYxLkFnZW50SW5zdGFuY2UiBNC4GAESrgEKBnVwZGF0ZRIyLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGluc3RhbmNlLnYxLkFnZW50SW5zdGFuY2UaMi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRpbnN0YW5jZS52MS5BZ2VudEluc3RhbmNlIjzCuBg4CAIQLSILbWV0YWRhdGEuaWQqJXVuYXV0aG9yaXplZCB0byB1cGRhdGUgYWdlbnQgaW5zdGFuY2USxgEKEHVwZGF0ZVZpc2liaWxpdHkSNS5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuVXBkYXRlVmlzaWJpbGl0eUlucHV0GjIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50aW5zdGFuY2UudjEuQWdlbnRJbnN0YW5jZSJHwrgYQwgCEC0iC3Jlc291cmNlX2lkKjB1bmF1dGhvcml6ZWQgdG8gdXBkYXRlIGFnZW50IGluc3RhbmNlIHZpc2liaWxpdHkSqgEKBmRlbGV0ZRI0LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGluc3RhbmNlLnYxLkFnZW50SW5zdGFuY2VJZBoyLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGluc3RhbmNlLnYxLkFnZW50SW5zdGFuY2UiNsK4GDIIAxAtIgV2YWx1ZSoldW5hdXRob3JpemVkIHRvIGRlbGV0ZSBhZ2VudCBpbnN0YW5jZRoEoP8rLWIGcHJvdG8z", [file_ai_stigmer_agentic_agentinstance_v1_api, file_ai_stigmer_agentic_agentinstance_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * AgentInstanceCommandController handles write operations for agent instances.
@@ -69,6 +71,32 @@ export const AgentInstanceCommandController: GenService<{
   update: {
     methodKind: "unary";
     input: typeof AgentInstanceSchema;
+    output: typeof AgentInstanceSchema;
+  },
+  /**
+   * Update the visibility of an existing agent instance.
+   *
+   * Changes who can view this instance and interact with it. Supports the
+   * full visibility spectrum: PRIVATE (owner only), ORG (all org members),
+   * or PUBLIC (all authenticated users).
+   *
+   * For agent instances, visibility controls who can create sessions and run
+   * executions against this instance. Sessions remain personal regardless of
+   * instance visibility (conversation privacy is preserved).
+   *
+   * @internal
+   * Authorization: Requires can_edit permission on the agent instance.
+   * Visibility transitions trigger FGA tuple management in Cloud mode:
+   * - PRIVATE → ORG: creates agent_instance#viewer@organization:<org>#member
+   * - PRIVATE → PUBLIC: creates agent_instance#viewer@identity_account:*
+   * - ORG → PRIVATE: deletes the org member viewer tuple
+   * - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
+   *
+   * @generated from rpc ai.stigmer.agentic.agentinstance.v1.AgentInstanceCommandController.updateVisibility
+   */
+  updateVisibility: {
+    methodKind: "unary";
+    input: typeof UpdateVisibilityInputSchema;
     output: typeof AgentInstanceSchema;
   },
   /**

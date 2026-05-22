@@ -1,6 +1,7 @@
 package stigmer
 
 import (
+	sessionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/session/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 )
@@ -15,6 +16,7 @@ type clientConfig struct {
 	insecure        bool
 	keepaliveParams *keepalive.ClientParameters
 	dialOptions     []grpc.DialOption
+	executionTarget sessionv1.ExecutionTarget
 }
 
 func defaultConfig() clientConfig {
@@ -70,5 +72,22 @@ func WithKeepaliveParams(params keepalive.ClientParameters) ClientOption {
 func WithDialOptions(opts ...grpc.DialOption) ClientOption {
 	return func(c *clientConfig) {
 		c.dialOptions = append(c.dialOptions, opts...)
+	}
+}
+
+// WithExecutionTarget sets the default execution target for all sessions
+// and workflow executions created through this client.
+//
+// When set, Session.Create() and WorkflowExecution.Create() apply this
+// as the default when the per-call input does not specify an explicit
+// ExecutionTarget. This is an app-level setting, not a per-session choice.
+//
+//	client, _ := stigmer.NewClient(
+//	    stigmer.WithAPIKey("sk_live_..."),
+//	    stigmer.WithExecutionTarget(sessionv1.ExecutionTarget_EXECUTION_TARGET_LOCAL),
+//	)
+func WithExecutionTarget(target sessionv1.ExecutionTarget) ClientOption {
+	return func(c *clientConfig) {
+		c.executionTarget = target
 	}
 }

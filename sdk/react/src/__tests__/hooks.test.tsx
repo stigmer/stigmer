@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import type { Stigmer } from "@stigmer/sdk";
 import { StigmerContext } from "../context";
 import { useStigmer } from "../hooks";
+import { ExecutionTargetContext, useExecutionTarget } from "../execution-target-context";
 
 describe("useStigmer", () => {
   it("throws when used outside StigmerProvider", () => {
@@ -24,5 +25,32 @@ describe("useStigmer", () => {
 
     const { result } = renderHook(() => useStigmer(), { wrapper });
     expect(result.current).toBe(mockClient);
+  });
+});
+
+describe("useExecutionTarget", () => {
+  it("returns undefined when no ExecutionTargetContext.Provider wraps it", () => {
+    const { result } = renderHook(() => useExecutionTarget());
+    expect(result.current).toBeUndefined();
+  });
+
+  it("returns 'local' when provider sets executionTarget to local", () => {
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <ExecutionTargetContext.Provider value="local">
+        {children}
+      </ExecutionTargetContext.Provider>
+    );
+    const { result } = renderHook(() => useExecutionTarget(), { wrapper });
+    expect(result.current).toBe("local");
+  });
+
+  it("returns 'cloud' when provider sets executionTarget to cloud", () => {
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <ExecutionTargetContext.Provider value="cloud">
+        {children}
+      </ExecutionTargetContext.Provider>
+    );
+    const { result } = renderHook(() => useExecutionTarget(), { wrapper });
+    expect(result.current).toBe("cloud");
   });
 });

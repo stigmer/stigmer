@@ -18,7 +18,6 @@ import (
 	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
-	runnerv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/runner/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
@@ -44,12 +43,11 @@ import (
 	organizationcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/organization/controller"
 	projectcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/project/controller"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/project/reconcile"
-	runnercontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/runner/controller"
 	sessioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/session/controller"
 	skillcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/skill/controller"
 	skillstorage "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/skill/storage"
 	workflowcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/controller"
-	workflowtemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/temporal"
+	workflowvalidation "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/validation"
 	workflowexecutioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/controller"
 	workflowexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal"
 	workflowexecutionworkflows "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows"
@@ -154,10 +152,18 @@ func Run() error {
 	temporalClient := temporalManager.InitialConnect(context.Background())
 	defer temporalManager.Close()
 
+	// Load agent execution temporal config (routing mode, queue names).
+	// This is needed by both the workflow creator and the execution controller
+	// for dispatch routing, so it's created outside the Temporal connection block.
+	agentExecutionTemporalConfig := agentexecutiontemporal.NewConfig()
+
+	// Create in-process workflow validator (no Temporal dependency)
+	workflowValidator := workflowvalidation.NewInProcessValidator()
+	log.Info().Msg("Created in-process workflow validator")
+
 	// Create workflow creators if initial connection succeeded
 	var workflowExecutionWorkflowCreator *workflowexecutionworkflows.InvokeWorkflowExecutionWorkflowCreator
 	var agentExecutionWorkflowCreator *agentexecutiontemporal.InvokeAgentExecutionWorkflowCreator
-	var workflowValidator *workflowtemporal.ServerlessWorkflowValidator
 
 	if temporalClient != nil {
 		// Create workflow execution workflow creator
@@ -174,7 +180,6 @@ func Run() error {
 			Msg("Created workflow execution workflow creator")
 
 		// Create agent execution workflow creator
-		agentExecutionTemporalConfig := agentexecutiontemporal.NewConfig()
 		agentExecutionWorkflowCreator = agentexecutiontemporal.NewInvokeAgentExecutionWorkflowCreator(
 			temporalClient,
 			agentExecutionTemporalConfig,
@@ -183,19 +188,8 @@ func Run() error {
 		log.Info().
 			Str("stigmer_queue", agentExecutionTemporalConfig.StigmerQueue).
 			Str("runner_queue", agentExecutionTemporalConfig.RunnerQueue).
+			Str("activity_routing", agentExecutionTemporalConfig.ActivityRouting).
 			Msg("Created agent execution workflow creator")
-
-		// Create workflow validator
-		workflowValidationTemporalConfig := workflowtemporal.NewConfig()
-		workflowValidator = workflowtemporal.NewServerlessWorkflowValidator(
-			temporalClient,
-			workflowValidationTemporalConfig,
-		)
-
-		log.Info().
-			Str("stigmer_queue", workflowValidationTemporalConfig.StigmerQueue).
-			Str("runner_queue", workflowValidationTemporalConfig.RunnerQueue).
-			Msg("Created workflow validator")
 	}
 
 	// Create gRPC server with apiresource interceptor and in-process support
@@ -344,13 +338,6 @@ func Run() error {
 
 	log.Info().Msg("Registered Organization controllers")
 
-	// Create and register Runner controller
-	runnerController := runnercontroller.NewRunnerController(store)
-	runnerv1.RegisterRunnerCommandControllerServer(grpcServer, runnerController)
-	runnerv1.RegisterRunnerQueryControllerServer(grpcServer, runnerController)
-
-	log.Info().Msg("Registered Runner controllers")
-
 	// Create and register SearchService controller (CQRS Query Service)
 	// The search service provides unified search across all searchable resources
 	// (agents, skills, mcp_servers, workflows) using FTS5 full-text search.
@@ -465,6 +452,7 @@ func Run() error {
 	// Inject workflow creators (nil-safe, controllers handle gracefully)
 	workflowExecutionController.SetWorkflowCreator(workflowExecutionWorkflowCreator)
 	agentExecutionController.SetWorkflowCreator(agentExecutionWorkflowCreator)
+	agentExecutionController.SetTemporalConfig(agentExecutionTemporalConfig)
 
 	// Inject Temporal client for lifecycle operations (cancel, terminate, recover, pause, resume)
 	// This enables direct Temporal API calls for workflow lifecycle management
@@ -476,21 +464,21 @@ func Run() error {
 	workflowExecutionController.SetAgentExecutionClient(agentExecutionController)
 
 	// Inject discovery dependencies into McpServerController.
-	// Uses the agent-runner queue for the Temporal workflow since connect
-	// activities (and the wrapper workflow) run on the Python worker.
+	// The connect workflow runs on the runner's activity queue. In per-session
+	// routing mode, the queue is derived from the session ID at connect time.
 	// The Go handler creates an ephemeral ExecutionContext with resolved env
 	// vars and passes its ID to the Temporal workflow. The Python activity
 	// reads from the scoped ExecutionContext (least-privilege).
 	if temporalClient != nil {
-		agentExecutionTemporalCfg := agentexecutiontemporal.NewConfig()
 		mcpServerController.SetConnectDependencies(
 			temporalClient,
-			agentExecutionTemporalCfg.RunnerQueue,
+			agentExecutionTemporalConfig,
 			environmentClient,
 			executionContextClient,
 		)
 		log.Info().
-			Str("runner_queue", agentExecutionTemporalCfg.RunnerQueue).
+			Str("runner_queue", agentExecutionTemporalConfig.RunnerQueue).
+			Str("activity_routing", agentExecutionTemporalConfig.ActivityRouting).
 			Msg("Injected MCP connect dependencies into McpServerController")
 	}
 

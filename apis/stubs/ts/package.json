@@ -6,7 +6,11 @@
   "type": "module",
   "sideEffects": false,
   "exports": {
-    "./*": "./*.ts"
+    "./*": {
+      "types": "./dist/*.d.ts",
+      "import": "./dist/*.js",
+      "default": "./dist/*.js"
+    }
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
@@ -30,7 +34,8 @@
     "exports": {
       "./*": {
         "types": "./dist/*.d.ts",
-        "import": "./dist/*.js"
+        "import": "./dist/*.js",
+        "default": "./dist/*.js"
       }
     }
   },

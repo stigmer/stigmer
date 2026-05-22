@@ -305,8 +305,10 @@ func (s *SendSignalToWorkflowStep[T]) Execute(ctx *pipeline.RequestContext[T]) e
 		OrgID:              execution.GetMetadata().GetOrg(),
 	}
 
-	// Use SignalWithStart for race-proof delivery (slim input keeps secrets out of history)
-	err := s.workflowCreator.SignalWithStart(ctx.Context(), workflowInput, signalName, signalPayload)
+	// Use SignalWithStart for race-proof delivery (slim input keeps secrets out of history).
+	// Empty runner queue uses the configured default — the workflow's memo already carries
+	// the correct queue from when it was originally created.
+	err := s.workflowCreator.SignalWithStart(ctx.Context(), workflowInput, signalName, signalPayload, "")
 	if err != nil {
 		return grpclib.InternalError(err, "failed to send signal to workflow")
 	}

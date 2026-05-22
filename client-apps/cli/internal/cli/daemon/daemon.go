@@ -15,8 +15,6 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/stigmer/stigmer/client-apps/cli/embedded"
-	"github.com/stigmer/stigmer/client-apps/cli/embedded/agentrunner"
-	"github.com/stigmer/stigmer/client-apps/cli/embedded/cursorrunner"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/llm"
@@ -40,14 +38,8 @@ const (
 	// PIDFileName stores the daemon process's own PID.
 	PIDFileName = "daemon.pid"
 
-	// WorkflowRunnerPIDFileName stores the workflow-runner PID.
-	WorkflowRunnerPIDFileName = "workflow-runner.pid"
-
-	// RunnerPIDFileName stores the agent-runner PID.
-	RunnerPIDFileName = "agent-runner.pid"
-
-	// CursorRunnerPIDFileName stores the cursor-runner PID.
-	CursorRunnerPIDFileName = "cursor-runner.pid"
+	// RunnerPIDFileName stores the unified runner PID.
+	RunnerPIDFileName = "runner.pid"
 )
 
 // StartOptions provides options for starting the daemon.
@@ -62,8 +54,13 @@ type StartOptions struct {
 	Secrets          map[string]string
 	OnLLMSetupFailed func(err error)
 
+	// ActivityRouting controls how the server dispatches Temporal activities.
+	// "global" (default): all activities go to a shared runner queue.
+	// "session": activities route to per-session queues (session:{id}).
+	ActivityRouting string
+
 	// ServerOnly starts only the control plane (Temporal + stigmer-server +
-	// web console) without workflow-runner or agent-runner. This is the
+	// web console) without the runner process. This is the
 	// foundation for `stigmer up server` which starts the control plane
 	// independently of any runners.
 	ServerOnly bool
@@ -189,60 +186,23 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 		log.Info().Str("address", temporalAddr).Msg("Using external Temporal")
 	}
 
-	// Bootstrap the native Python runtime for agent-runner.
-	// This runs in the foreground so the user sees progress.
-	// Independent of Temporal — only needs configDir and embedded source.
+	// Bootstrap the unified runner Node.js runtime.
+	// The unified runner handles all activity types (native, cursor, workflow).
 	// Skipped in server-only mode where no runners are started.
-	var pythonBin, appDir string
+	var runnerResult *RunnerBootstrapResult
+	runnerAvailable := false
 
 	if !opts.ServerOnly {
 		if opts.Progress != nil {
-			opts.Progress.SetPhase(cliprint.PhaseInstalling, "Bootstrapping Python runtime")
+			opts.Progress.SetPhase(cliprint.PhaseInstalling, "Bootstrapping runner runtime")
 		}
 
-		if !agentrunner.IsAvailable() {
-			return errors.New("agent-runner Python runtime is not bundled in this binary. " +
-				"If you are using the desktop app, update to the latest version. " +
-				"If building from source, run sync.sh and build with -tags embed_agentrunner")
+		var runnerErr error
+		runnerResult, runnerErr = bootstrapRunnerRuntime()
+		if runnerErr != nil {
+			return errors.Wrap(runnerErr, "failed to bootstrap runner runtime")
 		}
-
-		pythonBin, appDir, err = bootstrapRunnerRuntime()
-		if err != nil {
-			return errors.Wrap(err, "failed to bootstrap agent-runner runtime")
-		}
-	}
-
-	// Bootstrap cursor-runner runtime if CURSOR_API_KEY is available and
-	// the cursor-runner source is present. This is optional -- users who
-	// don't have a Cursor API key simply run without the Cursor harness.
-	var cursorResult *CursorRunnerBootstrapResult
-	cursorAvailable := false
-
-	if !opts.ServerOnly {
-		cursorAPIKey := os.Getenv("CURSOR_API_KEY")
-		if cursorAPIKey == "" {
-			if secretKey, ok := secrets["CURSOR_API_KEY"]; ok && secretKey != "" {
-				cursorAPIKey = secretKey
-			}
-		}
-
-		if cursorAPIKey != "" && cursorrunner.IsAvailable() {
-			if opts.Progress != nil {
-				opts.Progress.SetPhase(cliprint.PhaseInstalling, "Bootstrapping Node.js runtime")
-			}
-
-			var cursorErr error
-			cursorResult, cursorErr = bootstrapCursorRunnerRuntime()
-			if cursorErr != nil {
-				log.Warn().Err(cursorErr).Msg("Cursor harness bootstrap failed (non-fatal, continuing without Cursor harness)")
-			} else {
-				cursorAvailable = true
-			}
-		} else if cursorAPIKey == "" {
-			log.Debug().Msg("Cursor harness: skipped (CURSOR_API_KEY not set)")
-		} else {
-			log.Debug().Msg("Cursor harness: skipped (cursor-runner source not found)")
-		}
+		runnerAvailable = true
 	}
 
 	// --- Phase 3: Starting ---
@@ -291,19 +251,16 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 		fmt.Sprintf("STIGMER_SANDBOX_TTL=%d", opts.SandboxTTL),
 	)
 
-	if !opts.ServerOnly {
+	if runnerAvailable {
 		env = append(env,
-			fmt.Sprintf("STIGMER_AGENT_RUNNER_PYTHON_BIN=%s", pythonBin),
-			fmt.Sprintf("STIGMER_AGENT_RUNNER_APP_DIR=%s", appDir),
+			fmt.Sprintf("STIGMER_RUNNER_NODE_BIN=%s", runnerResult.NodeBin),
+			fmt.Sprintf("STIGMER_RUNNER_APP_DIR=%s", runnerResult.AppDir),
+			fmt.Sprintf("STIGMER_RUNNER_ENTRY_ARGS=%s", strings.Join(runnerResult.EntryArgs, ",")),
 		)
 	}
 
-	if cursorAvailable {
-		env = append(env,
-			fmt.Sprintf("STIGMER_CURSOR_RUNNER_NODE_BIN=%s", cursorResult.NodeBin),
-			fmt.Sprintf("STIGMER_CURSOR_RUNNER_APP_DIR=%s", cursorResult.AppDir),
-			fmt.Sprintf("STIGMER_CURSOR_RUNNER_ENTRY_ARGS=%s", strings.Join(cursorResult.EntryArgs, ",")),
-		)
+	if opts.ActivityRouting != "" {
+		env = append(env, fmt.Sprintf("STIGMER_ACTIVITY_ROUTING=%s", opts.ActivityRouting))
 	}
 
 	if opts.ServerOnly {
@@ -386,11 +343,9 @@ func cleanupOrphanedProcesses(dataDir string) {
 	log.Debug().Msg("Checking for orphaned processes from previous runs")
 
 	pidFiles := map[string]string{
-		"daemon":          filepath.Join(dataDir, PIDFileName),
-		"stigmer-server":  filepath.Join(dataDir, StigmerServerPIDFileName),
-		"workflow-runner": filepath.Join(dataDir, WorkflowRunnerPIDFileName),
-		"agent-runner":    filepath.Join(dataDir, RunnerPIDFileName),
-		"cursor-runner":   filepath.Join(dataDir, CursorRunnerPIDFileName),
+		"daemon":         filepath.Join(dataDir, PIDFileName),
+		"stigmer-server": filepath.Join(dataDir, StigmerServerPIDFileName),
+		"runner":         filepath.Join(dataDir, RunnerPIDFileName),
 	}
 
 	orphansFound := false
@@ -709,18 +664,18 @@ func getPID(dataDir string) (int, error) {
 	return pid, nil
 }
 
-// GetWorkflowRunnerPID reads the workflow-runner PID file.
-func GetWorkflowRunnerPID(dataDir string) (int, error) {
-	pidFile := filepath.Join(dataDir, WorkflowRunnerPIDFileName)
+// GetRunnerPID reads the unified runner PID file.
+func GetRunnerPID(dataDir string) (int, error) {
+	pidFile := filepath.Join(dataDir, RunnerPIDFileName)
 
 	data, err := os.ReadFile(pidFile)
 	if err != nil {
-		return 0, errors.Wrap(err, "failed to read workflow-runner PID file")
+		return 0, errors.Wrap(err, "failed to read runner PID file")
 	}
 
 	pid, err := strconv.Atoi(strings.TrimSpace(string(data)))
 	if err != nil {
-		return 0, errors.Wrap(err, "invalid PID in workflow-runner PID file")
+		return 0, errors.Wrap(err, "invalid PID in runner PID file")
 	}
 
 	return pid, nil
@@ -762,12 +717,8 @@ func rotateLogsIfNeeded(dataDir string) error {
 		"daemon.log",
 		"stigmer-server.log",
 		"stigmer-server.err",
-		"agent-runner.log",
-		"agent-runner.err",
-		"workflow-runner.log",
-		"workflow-runner.err",
-		"cursor-runner.log",
-		"cursor-runner.err",
+		"runner.log",
+		"runner.err",
 		"temporal.log",
 		"llm.log",
 	}

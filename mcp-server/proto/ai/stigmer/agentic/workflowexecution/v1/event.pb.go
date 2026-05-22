@@ -1800,6 +1800,72 @@ func (x *AgentCallCompletedPayload) GetError() string {
 	return ""
 }
 
+// Lightweight outcome descriptor for UI rendering in approval cards.
+//
+// @internal
+// A subset of HumanInputOutcome (from workflow/v1/tasks/human_input.proto)
+// that carries only what the approval UI needs: the identifier to submit
+// and the label to display. The `then` routing field is deliberately
+// excluded — routing is a runner concern, not a UI concern.
+//
+// @since T13c (Workflow HITL Approval UI)
+type HumanInputOutcomeInfo struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Outcome identifier submitted as the "outcome" string in
+	// SubmitWorkflowTaskApprovalInput (e.g. "approve", "pause_campaigns").
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// Human-readable label displayed on the approval button
+	// (e.g. "Approve Plan", "Pause Active Campaigns").
+	// When empty, the UI should display the capitalized name.
+	Label         string `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *HumanInputOutcomeInfo) Reset() {
+	*x = HumanInputOutcomeInfo{}
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_event_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HumanInputOutcomeInfo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HumanInputOutcomeInfo) ProtoMessage() {}
+
+func (x *HumanInputOutcomeInfo) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_event_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HumanInputOutcomeInfo.ProtoReflect.Descriptor instead.
+func (*HumanInputOutcomeInfo) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_workflowexecution_v1_event_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *HumanInputOutcomeInfo) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *HumanInputOutcomeInfo) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
 // Payload for approval_requested events.
 //
 // @internal
@@ -1807,7 +1873,14 @@ func (x *AgentCallCompletedPayload) GetError() string {
 // child agent enters EXECUTION_WAITING_FOR_APPROVAL. Captures who can
 // approve, the timeout, and the request context.
 //
-// @since T06
+// For workflow-level human_input tasks (tool_call_id is empty):
+// - outcomes[] contains the configured outcome buttons for the approval UI
+// - form_schema contains the JSON Schema for the reviewer's input form
+//
+// For agent tool approvals (tool_call_id is populated):
+// - outcomes and form_schema are empty (agent approvals use ApprovalAction enum)
+//
+// @since T06, extended T13c (outcomes + form_schema)
 type ApprovalRequestedPayload struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Human-readable prompt explaining what needs approval.
@@ -1824,13 +1897,35 @@ type ApprovalRequestedPayload struct {
 	// For agent tool approvals: the child AgentExecution ID.
 	// Empty for workflow-level human_input tasks.
 	ChildExecutionId string `protobuf:"bytes,5,opt,name=child_execution_id,json=childExecutionId,proto3" json:"child_execution_id,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// Configured outcomes for workflow-level human_input tasks.
+	//
+	// @internal
+	// Populated from HumanInputTaskConfig.outcomes when a human_input task
+	// activates. Each entry provides the outcome identifier (name) and
+	// the human-readable button label. Empty for agent tool approvals
+	// and for human_input tasks with no custom outcomes (which default
+	// to binary approve/deny).
+	//
+	// @since T13c (Workflow HITL Approval UI)
+	Outcomes []*HumanInputOutcomeInfo `protobuf:"bytes,6,rep,name=outcomes,proto3" json:"outcomes,omitempty"`
+	// JSON Schema for the reviewer's input form.
+	//
+	// @internal
+	// Populated from HumanInputTaskConfig.form_schema when a human_input
+	// task activates and defines a form. The approval UI renders form fields
+	// based on this schema, and the reviewer's response is submitted as
+	// form_data in SubmitWorkflowTaskApprovalInput. Empty when no form
+	// is required or for agent tool approvals.
+	//
+	// @since T13c (Workflow HITL Approval UI)
+	FormSchema    *structpb.Struct `protobuf:"bytes,7,opt,name=form_schema,json=formSchema,proto3" json:"form_schema,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ApprovalRequestedPayload) Reset() {
 	*x = ApprovalRequestedPayload{}
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_event_proto_msgTypes[16]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_event_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1842,7 +1937,7 @@ func (x *ApprovalRequestedPayload) String() string {
 func (*ApprovalRequestedPayload) ProtoMessage() {}
 
 func (x *ApprovalRequestedPayload) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_event_proto_msgTypes[16]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_event_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1855,7 +1950,7 @@ func (x *ApprovalRequestedPayload) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApprovalRequestedPayload.ProtoReflect.Descriptor instead.
 func (*ApprovalRequestedPayload) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_workflowexecution_v1_event_proto_rawDescGZIP(), []int{16}
+	return file_ai_stigmer_agentic_workflowexecution_v1_event_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *ApprovalRequestedPayload) GetPrompt() string {
@@ -1893,6 +1988,20 @@ func (x *ApprovalRequestedPayload) GetChildExecutionId() string {
 	return ""
 }
 
+func (x *ApprovalRequestedPayload) GetOutcomes() []*HumanInputOutcomeInfo {
+	if x != nil {
+		return x.Outcomes
+	}
+	return nil
+}
+
+func (x *ApprovalRequestedPayload) GetFormSchema() *structpb.Struct {
+	if x != nil {
+		return x.FormSchema
+	}
+	return nil
+}
+
 // Payload for approval_resolved events.
 //
 // @internal
@@ -1916,7 +2025,7 @@ type ApprovalResolvedPayload struct {
 
 func (x *ApprovalResolvedPayload) Reset() {
 	*x = ApprovalResolvedPayload{}
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_event_proto_msgTypes[17]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_event_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1928,7 +2037,7 @@ func (x *ApprovalResolvedPayload) String() string {
 func (*ApprovalResolvedPayload) ProtoMessage() {}
 
 func (x *ApprovalResolvedPayload) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_event_proto_msgTypes[17]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_event_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1941,7 +2050,7 @@ func (x *ApprovalResolvedPayload) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApprovalResolvedPayload.ProtoReflect.Descriptor instead.
 func (*ApprovalResolvedPayload) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_workflowexecution_v1_event_proto_rawDescGZIP(), []int{17}
+	return file_ai_stigmer_agentic_workflowexecution_v1_event_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *ApprovalResolvedPayload) GetAction() v11.ApprovalAction {
@@ -2010,7 +2119,7 @@ type BudgetCheckpointPayload struct {
 
 func (x *BudgetCheckpointPayload) Reset() {
 	*x = BudgetCheckpointPayload{}
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_event_proto_msgTypes[18]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_event_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2022,7 +2131,7 @@ func (x *BudgetCheckpointPayload) String() string {
 func (*BudgetCheckpointPayload) ProtoMessage() {}
 
 func (x *BudgetCheckpointPayload) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_event_proto_msgTypes[18]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_event_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2035,7 +2144,7 @@ func (x *BudgetCheckpointPayload) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BudgetCheckpointPayload.ProtoReflect.Descriptor instead.
 func (*BudgetCheckpointPayload) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_workflowexecution_v1_event_proto_rawDescGZIP(), []int{18}
+	return file_ai_stigmer_agentic_workflowexecution_v1_event_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *BudgetCheckpointPayload) GetCostConsumedMicros() int64 {
@@ -2100,7 +2209,7 @@ type SignalReceivedPayload struct {
 
 func (x *SignalReceivedPayload) Reset() {
 	*x = SignalReceivedPayload{}
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_event_proto_msgTypes[19]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_event_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2112,7 +2221,7 @@ func (x *SignalReceivedPayload) String() string {
 func (*SignalReceivedPayload) ProtoMessage() {}
 
 func (x *SignalReceivedPayload) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_event_proto_msgTypes[19]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_event_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2125,7 +2234,7 @@ func (x *SignalReceivedPayload) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SignalReceivedPayload.ProtoReflect.Descriptor instead.
 func (*SignalReceivedPayload) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_workflowexecution_v1_event_proto_rawDescGZIP(), []int{19}
+	return file_ai_stigmer_agentic_workflowexecution_v1_event_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *SignalReceivedPayload) GetSignalName() string {
@@ -2164,7 +2273,7 @@ type EventEmittedPayload struct {
 
 func (x *EventEmittedPayload) Reset() {
 	*x = EventEmittedPayload{}
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_event_proto_msgTypes[20]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_event_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2176,7 +2285,7 @@ func (x *EventEmittedPayload) String() string {
 func (*EventEmittedPayload) ProtoMessage() {}
 
 func (x *EventEmittedPayload) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_event_proto_msgTypes[20]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_event_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2189,7 +2298,7 @@ func (x *EventEmittedPayload) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EventEmittedPayload.ProtoReflect.Descriptor instead.
 func (*EventEmittedPayload) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_workflowexecution_v1_event_proto_rawDescGZIP(), []int{20}
+	return file_ai_stigmer_agentic_workflowexecution_v1_event_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *EventEmittedPayload) GetEventType() string {
@@ -2242,7 +2351,7 @@ type ArtifactCreatedPayload struct {
 
 func (x *ArtifactCreatedPayload) Reset() {
 	*x = ArtifactCreatedPayload{}
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_event_proto_msgTypes[21]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_event_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2254,7 +2363,7 @@ func (x *ArtifactCreatedPayload) String() string {
 func (*ArtifactCreatedPayload) ProtoMessage() {}
 
 func (x *ArtifactCreatedPayload) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_event_proto_msgTypes[21]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_event_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2267,7 +2376,7 @@ func (x *ArtifactCreatedPayload) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ArtifactCreatedPayload.ProtoReflect.Descriptor instead.
 func (*ArtifactCreatedPayload) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_workflowexecution_v1_event_proto_rawDescGZIP(), []int{21}
+	return file_ai_stigmer_agentic_workflowexecution_v1_event_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *ArtifactCreatedPayload) GetArtifactId() string {
@@ -2415,14 +2524,20 @@ const file_ai_stigmer_agentic_workflowexecution_v1_event_proto_rawDesc = "" +
 	"\x0ftokens_consumed\x18\x04 \x01(\x03R\x0etokensConsumed\x12\x1f\n" +
 	"\vcost_micros\x18\x05 \x01(\x03R\n" +
 	"costMicros\x12\x14\n" +
-	"\x05error\x18\x06 \x01(\tR\x05error\"\xc9\x01\n" +
+	"\x05error\x18\x06 \x01(\tR\x05error\"A\n" +
+	"\x15HumanInputOutcomeInfo\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
+	"\x05label\x18\x02 \x01(\tR\x05label\"\xdf\x02\n" +
 	"\x18ApprovalRequestedPayload\x12\x16\n" +
 	"\x06prompt\x18\x01 \x01(\tR\x06prompt\x12\x1c\n" +
 	"\tapprovers\x18\x02 \x03(\tR\tapprovers\x12'\n" +
 	"\x0ftimeout_seconds\x18\x03 \x01(\x05R\x0etimeoutSeconds\x12 \n" +
 	"\ftool_call_id\x18\x04 \x01(\tR\n" +
 	"toolCallId\x12,\n" +
-	"\x12child_execution_id\x18\x05 \x01(\tR\x10childExecutionId\"\xcc\x01\n" +
+	"\x12child_execution_id\x18\x05 \x01(\tR\x10childExecutionId\x12Z\n" +
+	"\boutcomes\x18\x06 \x03(\v2>.ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfoR\boutcomes\x128\n" +
+	"\vform_schema\x18\a \x01(\v2\x17.google.protobuf.StructR\n" +
+	"formSchema\"\xcc\x01\n" +
 	"\x17ApprovalResolvedPayload\x12L\n" +
 	"\x06action\x18\x01 \x01(\x0e24.ai.stigmer.agentic.agentexecution.v1.ApprovalActionR\x06action\x12\x1f\n" +
 	"\vresolved_by\x18\x02 \x01(\tR\n" +
@@ -2491,7 +2606,7 @@ func file_ai_stigmer_agentic_workflowexecution_v1_event_proto_rawDescGZIP() []by
 }
 
 var file_ai_stigmer_agentic_workflowexecution_v1_event_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_ai_stigmer_agentic_workflowexecution_v1_event_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
+var file_ai_stigmer_agentic_workflowexecution_v1_event_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_ai_stigmer_agentic_workflowexecution_v1_event_proto_goTypes = []any{
 	(WorkflowEventType)(0),             // 0: ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType
 	(*WorkflowExecutionEvent)(nil),     // 1: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent
@@ -2510,17 +2625,18 @@ var file_ai_stigmer_agentic_workflowexecution_v1_event_proto_goTypes = []any{
 	(*AgentCallStartedPayload)(nil),    // 14: ai.stigmer.agentic.workflowexecution.v1.AgentCallStartedPayload
 	(*AgentCallProgressPayload)(nil),   // 15: ai.stigmer.agentic.workflowexecution.v1.AgentCallProgressPayload
 	(*AgentCallCompletedPayload)(nil),  // 16: ai.stigmer.agentic.workflowexecution.v1.AgentCallCompletedPayload
-	(*ApprovalRequestedPayload)(nil),   // 17: ai.stigmer.agentic.workflowexecution.v1.ApprovalRequestedPayload
-	(*ApprovalResolvedPayload)(nil),    // 18: ai.stigmer.agentic.workflowexecution.v1.ApprovalResolvedPayload
-	(*BudgetCheckpointPayload)(nil),    // 19: ai.stigmer.agentic.workflowexecution.v1.BudgetCheckpointPayload
-	(*SignalReceivedPayload)(nil),      // 20: ai.stigmer.agentic.workflowexecution.v1.SignalReceivedPayload
-	(*EventEmittedPayload)(nil),        // 21: ai.stigmer.agentic.workflowexecution.v1.EventEmittedPayload
-	(*ArtifactCreatedPayload)(nil),     // 22: ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload
-	(*structpb.Struct)(nil),            // 23: google.protobuf.Struct
-	(v1.WorkflowTaskKind)(0),           // 24: ai.stigmer.agentic.workflow.v1.WorkflowTaskKind
-	(v11.ExecutionPhase)(0),            // 25: ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
-	(v11.ApprovalAction)(0),            // 26: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
-	(v1.BudgetExceededPolicy)(0),       // 27: ai.stigmer.agentic.workflow.v1.BudgetExceededPolicy
+	(*HumanInputOutcomeInfo)(nil),      // 17: ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo
+	(*ApprovalRequestedPayload)(nil),   // 18: ai.stigmer.agentic.workflowexecution.v1.ApprovalRequestedPayload
+	(*ApprovalResolvedPayload)(nil),    // 19: ai.stigmer.agentic.workflowexecution.v1.ApprovalResolvedPayload
+	(*BudgetCheckpointPayload)(nil),    // 20: ai.stigmer.agentic.workflowexecution.v1.BudgetCheckpointPayload
+	(*SignalReceivedPayload)(nil),      // 21: ai.stigmer.agentic.workflowexecution.v1.SignalReceivedPayload
+	(*EventEmittedPayload)(nil),        // 22: ai.stigmer.agentic.workflowexecution.v1.EventEmittedPayload
+	(*ArtifactCreatedPayload)(nil),     // 23: ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload
+	(*structpb.Struct)(nil),            // 24: google.protobuf.Struct
+	(v1.WorkflowTaskKind)(0),           // 25: ai.stigmer.agentic.workflow.v1.WorkflowTaskKind
+	(v11.ExecutionPhase)(0),            // 26: ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
+	(v11.ApprovalAction)(0),            // 27: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
+	(v1.BudgetExceededPolicy)(0),       // 28: ai.stigmer.agentic.workflow.v1.BudgetExceededPolicy
 }
 var file_ai_stigmer_agentic_workflowexecution_v1_event_proto_depIdxs = []int32{
 	0,  // 0: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent.event_type:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType
@@ -2539,29 +2655,31 @@ var file_ai_stigmer_agentic_workflowexecution_v1_event_proto_depIdxs = []int32{
 	14, // 13: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent.agent_call_started:type_name -> ai.stigmer.agentic.workflowexecution.v1.AgentCallStartedPayload
 	15, // 14: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent.agent_call_progress:type_name -> ai.stigmer.agentic.workflowexecution.v1.AgentCallProgressPayload
 	16, // 15: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent.agent_call_completed:type_name -> ai.stigmer.agentic.workflowexecution.v1.AgentCallCompletedPayload
-	17, // 16: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent.approval_requested:type_name -> ai.stigmer.agentic.workflowexecution.v1.ApprovalRequestedPayload
-	18, // 17: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent.approval_resolved:type_name -> ai.stigmer.agentic.workflowexecution.v1.ApprovalResolvedPayload
-	19, // 18: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent.budget_checkpoint:type_name -> ai.stigmer.agentic.workflowexecution.v1.BudgetCheckpointPayload
-	20, // 19: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent.signal_received:type_name -> ai.stigmer.agentic.workflowexecution.v1.SignalReceivedPayload
-	21, // 20: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent.event_emitted:type_name -> ai.stigmer.agentic.workflowexecution.v1.EventEmittedPayload
-	22, // 21: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent.artifact_created:type_name -> ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload
-	23, // 22: ai.stigmer.agentic.workflowexecution.v1.ExecutionCompletedPayload.output_summary:type_name -> google.protobuf.Struct
-	24, // 23: ai.stigmer.agentic.workflowexecution.v1.TaskStartedPayload.task_kind:type_name -> ai.stigmer.agentic.workflow.v1.WorkflowTaskKind
-	23, // 24: ai.stigmer.agentic.workflowexecution.v1.TaskStartedPayload.input_summary:type_name -> google.protobuf.Struct
-	24, // 25: ai.stigmer.agentic.workflowexecution.v1.TaskCompletedPayload.task_kind:type_name -> ai.stigmer.agentic.workflow.v1.WorkflowTaskKind
-	23, // 26: ai.stigmer.agentic.workflowexecution.v1.TaskCompletedPayload.output_summary:type_name -> google.protobuf.Struct
-	24, // 27: ai.stigmer.agentic.workflowexecution.v1.TaskFailedPayload.task_kind:type_name -> ai.stigmer.agentic.workflow.v1.WorkflowTaskKind
-	24, // 28: ai.stigmer.agentic.workflowexecution.v1.TaskSkippedPayload.task_kind:type_name -> ai.stigmer.agentic.workflow.v1.WorkflowTaskKind
-	25, // 29: ai.stigmer.agentic.workflowexecution.v1.AgentCallProgressPayload.agent_phase:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
-	25, // 30: ai.stigmer.agentic.workflowexecution.v1.AgentCallCompletedPayload.agent_phase:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
-	26, // 31: ai.stigmer.agentic.workflowexecution.v1.ApprovalResolvedPayload.action:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalAction
-	27, // 32: ai.stigmer.agentic.workflowexecution.v1.BudgetCheckpointPayload.on_exceeded_policy:type_name -> ai.stigmer.agentic.workflow.v1.BudgetExceededPolicy
-	23, // 33: ai.stigmer.agentic.workflowexecution.v1.SignalReceivedPayload.payload_summary:type_name -> google.protobuf.Struct
-	34, // [34:34] is the sub-list for method output_type
-	34, // [34:34] is the sub-list for method input_type
-	34, // [34:34] is the sub-list for extension type_name
-	34, // [34:34] is the sub-list for extension extendee
-	0,  // [0:34] is the sub-list for field type_name
+	18, // 16: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent.approval_requested:type_name -> ai.stigmer.agentic.workflowexecution.v1.ApprovalRequestedPayload
+	19, // 17: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent.approval_resolved:type_name -> ai.stigmer.agentic.workflowexecution.v1.ApprovalResolvedPayload
+	20, // 18: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent.budget_checkpoint:type_name -> ai.stigmer.agentic.workflowexecution.v1.BudgetCheckpointPayload
+	21, // 19: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent.signal_received:type_name -> ai.stigmer.agentic.workflowexecution.v1.SignalReceivedPayload
+	22, // 20: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent.event_emitted:type_name -> ai.stigmer.agentic.workflowexecution.v1.EventEmittedPayload
+	23, // 21: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent.artifact_created:type_name -> ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload
+	24, // 22: ai.stigmer.agentic.workflowexecution.v1.ExecutionCompletedPayload.output_summary:type_name -> google.protobuf.Struct
+	25, // 23: ai.stigmer.agentic.workflowexecution.v1.TaskStartedPayload.task_kind:type_name -> ai.stigmer.agentic.workflow.v1.WorkflowTaskKind
+	24, // 24: ai.stigmer.agentic.workflowexecution.v1.TaskStartedPayload.input_summary:type_name -> google.protobuf.Struct
+	25, // 25: ai.stigmer.agentic.workflowexecution.v1.TaskCompletedPayload.task_kind:type_name -> ai.stigmer.agentic.workflow.v1.WorkflowTaskKind
+	24, // 26: ai.stigmer.agentic.workflowexecution.v1.TaskCompletedPayload.output_summary:type_name -> google.protobuf.Struct
+	25, // 27: ai.stigmer.agentic.workflowexecution.v1.TaskFailedPayload.task_kind:type_name -> ai.stigmer.agentic.workflow.v1.WorkflowTaskKind
+	25, // 28: ai.stigmer.agentic.workflowexecution.v1.TaskSkippedPayload.task_kind:type_name -> ai.stigmer.agentic.workflow.v1.WorkflowTaskKind
+	26, // 29: ai.stigmer.agentic.workflowexecution.v1.AgentCallProgressPayload.agent_phase:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
+	26, // 30: ai.stigmer.agentic.workflowexecution.v1.AgentCallCompletedPayload.agent_phase:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
+	17, // 31: ai.stigmer.agentic.workflowexecution.v1.ApprovalRequestedPayload.outcomes:type_name -> ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo
+	24, // 32: ai.stigmer.agentic.workflowexecution.v1.ApprovalRequestedPayload.form_schema:type_name -> google.protobuf.Struct
+	27, // 33: ai.stigmer.agentic.workflowexecution.v1.ApprovalResolvedPayload.action:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalAction
+	28, // 34: ai.stigmer.agentic.workflowexecution.v1.BudgetCheckpointPayload.on_exceeded_policy:type_name -> ai.stigmer.agentic.workflow.v1.BudgetExceededPolicy
+	24, // 35: ai.stigmer.agentic.workflowexecution.v1.SignalReceivedPayload.payload_summary:type_name -> google.protobuf.Struct
+	36, // [36:36] is the sub-list for method output_type
+	36, // [36:36] is the sub-list for method input_type
+	36, // [36:36] is the sub-list for extension type_name
+	36, // [36:36] is the sub-list for extension extendee
+	0,  // [0:36] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_workflowexecution_v1_event_proto_init() }
@@ -2598,7 +2716,7 @@ func file_ai_stigmer_agentic_workflowexecution_v1_event_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_workflowexecution_v1_event_proto_rawDesc), len(file_ai_stigmer_agentic_workflowexecution_v1_event_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   22,
+			NumMessages:   23,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

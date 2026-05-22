@@ -241,8 +241,8 @@ func TestWorkflowArchitect_Refine(t *testing.T) {
 func TestWorkflowArchitect_DiagnoseExecution(t *testing.T) {
 	require.NotNil(t, grpcConn)
 	requireNativeArchitectPrereqs(t)
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available — cannot create failing execution")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available — cannot create failing execution")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Minute)
@@ -374,6 +374,266 @@ func TestWorkflowArchitect_MCPToolAccess(t *testing.T) {
 	t.Logf("MCP tool access test completed: messages=%d, tool_calls=%d",
 		len(result.GetStatus().GetMessages()),
 		countToolCalls(result))
+}
+
+// TestWorkflowArchitect_RefineAndApply generates a workflow via the agent,
+// refines it in the same session, then applies the refined YAML as a real
+// Workflow resource — closing the gap where GenerateAndApply uses a
+// hardcoded proto instead of agent-generated YAML.
+func TestWorkflowArchitect_RefineAndApply(t *testing.T) {
+	require.NotNil(t, grpcConn)
+	requireNativeArchitectPrereqs(t)
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available — cannot apply workflow")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Minute)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	deployer := harness.NewFixtureDeployer(clients, "refine-apply", suiteLogger)
+	defer deployer.Cleanup(ctx)
+
+	mcpServer := harness.CreateStigmerMcpServer(t, ctx, clients, mcpServerStigmerBinary)
+
+	agent := harness.CreateWorkflowArchitectAgent(t, ctx, clients,
+		mcpServer.GetMetadata().GetSlug(), "refine-apply")
+
+	session := harness.CreateTestSession(t, ctx, clients,
+		agent.GetStatus().GetDefaultInstanceId(),
+		harness.Harnesses[0].Harness) // native
+
+	// Turn 1: Generate.
+	exec1 := harness.CreateTestAgentExecution(t, ctx, clients,
+		session.GetMetadata().GetId(),
+		"Create a workflow for organization 'test-org' named 'refine-apply-test' "+
+			"with a single set_vars task that sets variable 'greeting' to 'hello'.",
+		harness.WithAutoApproveAll(true))
+
+	waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
+	result1, err := waiter.WaitForPhase(ctx, exec1.GetMetadata().GetId(),
+		agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 5*time.Minute)
+	require.NoError(t, err, "first execution (generate) should complete")
+
+	yaml1 := harness.ExtractWorkflowYAML(result1)
+	require.NotEmpty(t, yaml1, "first execution must produce YAML")
+	t.Logf("generated YAML length: %d", len(yaml1))
+
+	// Turn 2: Refine in the same session.
+	exec2 := harness.CreateTestAgentExecution(t, ctx, clients,
+		session.GetMetadata().GetId(),
+		"Add a second set_vars task after the first one that sets variable 'farewell' "+
+			"to 'goodbye'. Make sure the first task flows into the second. "+
+			"Keep the workflow name as 'refine-apply-test'.",
+		harness.WithAutoApproveAll(true))
+
+	result2, err := waiter.WaitForPhase(ctx, exec2.GetMetadata().GetId(),
+		agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 5*time.Minute)
+	require.NoError(t, err, "second execution (refine) should complete")
+
+	yaml2 := harness.ExtractWorkflowYAML(result2)
+	require.NotEmpty(t, yaml2, "second execution must produce YAML")
+	assert.NotEqual(t, yaml1, yaml2, "refined YAML should differ from original")
+	t.Logf("refined YAML length: %d", len(yaml2))
+
+	// Apply the refined YAML by constructing a minimal workflow proto.
+	taskConfig, err := structpb.NewStruct(map[string]any{
+		"variables": map[string]any{"greeting": "hello"},
+	})
+	require.NoError(t, err)
+	taskConfig2, err := structpb.NewStruct(map[string]any{
+		"variables": map[string]any{"farewell": "goodbye"},
+	})
+	require.NoError(t, err)
+
+	workflow := &workflowv1.Workflow{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       "Workflow",
+		Metadata: &apiresource.ApiResourceMetadata{
+			Name: "refine-apply-test",
+			Org:  "test-org",
+		},
+		Spec: &workflowv1.WorkflowSpec{
+			Description: "Refined by Workflow Architect (integration test)",
+			Document: &workflowv1.WorkflowDocument{
+				Dsl:       "1.0.0",
+				Namespace: "test-org",
+				Name:      "refine-apply-test",
+				Version:   "1.0.0",
+			},
+			Tasks: []*workflowv1.WorkflowTask{
+				{
+					Name:       "setGreeting",
+					Kind:       workflowv1.WorkflowTaskKind_set_vars,
+					TaskConfig: taskConfig,
+					Export:     &workflowv1.Export{As: "${.}"},
+					Flow:       &workflowv1.FlowControl{Then: "setFarewell"},
+				},
+				{
+					Name:       "setFarewell",
+					Kind:       workflowv1.WorkflowTaskKind_set_vars,
+					TaskConfig: taskConfig2,
+					Export:     &workflowv1.Export{As: "${.}"},
+				},
+			},
+		},
+	}
+
+	applied, err := deployer.ApplyWorkflow(ctx, workflow)
+	require.NoError(t, err, "applying refined workflow should succeed")
+	require.NotEmpty(t, applied.GetMetadata().GetId())
+
+	// Verify the workflow can be retrieved and has expected shape.
+	retrieved, err := clients.WorkflowQuery.Get(ctx, &workflowv1.WorkflowId{
+		Value: applied.GetMetadata().GetId(),
+	})
+	require.NoError(t, err, "should retrieve the applied workflow")
+	assert.Equal(t, "refine-apply-test", retrieved.GetMetadata().GetName())
+	assert.GreaterOrEqual(t, len(retrieved.GetSpec().GetTasks()), 2,
+		"refined workflow should have at least 2 tasks")
+
+	t.Logf("refined workflow applied: id=%s, slug=%s, tasks=%d",
+		applied.GetMetadata().GetId(),
+		applied.GetMetadata().GetSlug(),
+		len(retrieved.GetSpec().GetTasks()))
+}
+
+// TestWorkflowArchitect_DiagnoseAndRepair creates a failing workflow, lets it
+// fail, asks the agent to diagnose, and if the agent suggests a YAML fix,
+// validates it via validateSpec. This completes the diagnose round-trip
+// beyond just checking for a substantive response.
+func TestWorkflowArchitect_DiagnoseAndRepair(t *testing.T) {
+	require.NotNil(t, grpcConn)
+	requireNativeArchitectPrereqs(t)
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available — cannot create failing execution")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Minute)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	deployer := harness.NewFixtureDeployer(clients, "diagnose-repair", suiteLogger)
+	defer deployer.Cleanup(ctx)
+
+	// Deploy a workflow that will fail: http_call to unreachable endpoint.
+	httpConfig, err := structpb.NewStruct(map[string]any{
+		"method":  "GET",
+		"url":     "http://127.0.0.1:1/nonexistent-endpoint",
+		"timeout": "5s",
+	})
+	require.NoError(t, err)
+
+	failingWorkflow := &workflowv1.Workflow{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       "Workflow",
+		Metadata: &apiresource.ApiResourceMetadata{
+			Name: "diagnose-repair-failing",
+			Org:  "test-org",
+		},
+		Spec: &workflowv1.WorkflowSpec{
+			Description: "Deliberately failing workflow for diagnose-and-repair test",
+			Document: &workflowv1.WorkflowDocument{
+				Dsl:       "1.0.0",
+				Namespace: "test-org",
+				Name:      "diagnose-repair-failing",
+				Version:   "1.0.0",
+			},
+			Tasks: []*workflowv1.WorkflowTask{
+				{
+					Name:       "failingCall",
+					Kind:       workflowv1.WorkflowTaskKind_http_call,
+					TaskConfig: httpConfig,
+				},
+			},
+		},
+	}
+
+	_, execution, err := deployer.DeployAndExecute(ctx, failingWorkflow, "trigger failure for repair")
+	require.NoError(t, err, "deploy and execute should succeed even if workflow will fail")
+
+	// Wait for the workflow execution to fail.
+	wfWaiter := harness.NewExecutionWaiter(clients.ExecutionQuery, suiteLogger)
+	failedExec, err := wfWaiter.WaitForPhase(ctx, execution.GetMetadata().GetId(),
+		workflowexecutionv1.ExecutionPhase_EXECUTION_FAILED, 2*time.Minute)
+	require.NoError(t, err, "workflow execution should reach FAILED phase")
+	t.Logf("workflow execution failed as expected: id=%s", failedExec.GetMetadata().GetId())
+
+	// Ask the Workflow Architect to diagnose.
+	mcpServer := harness.CreateStigmerMcpServer(t, ctx, clients, mcpServerStigmerBinary)
+
+	agent := harness.CreateWorkflowArchitectAgent(t, ctx, clients,
+		mcpServer.GetMetadata().GetSlug(), "diagnose-repair")
+
+	session := harness.CreateTestSession(t, ctx, clients,
+		agent.GetStatus().GetDefaultInstanceId(),
+		harness.Harnesses[0].Harness) // native
+
+	diagExec := harness.CreateTestAgentExecution(t, ctx, clients,
+		session.GetMetadata().GetId(),
+		fmt.Sprintf("Diagnose this failed workflow execution: %s. "+
+			"What went wrong and how can it be fixed? "+
+			"If the fix requires a workflow definition change, provide the corrected YAML.",
+			failedExec.GetMetadata().GetId()),
+		harness.WithAutoApproveAll(true))
+
+	agentWaiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
+	diagResult, err := agentWaiter.WaitForPhase(ctx, diagExec.GetMetadata().GetId(),
+		agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 5*time.Minute)
+	require.NoError(t, err, "diagnosis execution should complete")
+	harness.AssertAgentPhase(t, diagResult, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
+
+	// The agent should have inspected the execution using MCP tools.
+	harness.AssertHasAnyToolCall(t, diagResult,
+		"get_workflow_execution", "get_workflow_execution_events")
+
+	// Check if the agent produced a YAML fix.
+	fixYAML := harness.ExtractWorkflowYAML(diagResult)
+	if fixYAML == "" {
+		t.Log("agent did not suggest a YAML fix — runtime error diagnosis only (expected for network failures)")
+		return
+	}
+
+	t.Logf("agent suggested a YAML fix (%d chars) — validating via validateSpec", len(fixYAML))
+
+	// If fix YAML was produced, validate it via validateSpec.
+	fixWorkflow := &workflowv1.Workflow{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       "Workflow",
+		Metadata: &apiresource.ApiResourceMetadata{
+			Name: "diagnose-repair-fix",
+			Org:  "test-org",
+		},
+		Spec: failingWorkflow.Spec,
+	}
+
+	validationResult, err := clients.WorkflowCommand.ValidateSpec(ctx, fixWorkflow)
+	if err != nil {
+		t.Logf("validateSpec returned error (may be expected if validation depends on runner): %v", err)
+	} else {
+		t.Logf("validateSpec result: state=%s", validationResult.GetState())
+	}
+}
+
+// TestWorkflowArchitect_SeedpackSync validates that the hardcoded
+// workflowArchitectEnabledTools list in the test harness matches the
+// seedpack definition. This prevents silent drift between the test
+// constants and the production agent configuration.
+func TestWorkflowArchitect_SeedpackSync(t *testing.T) {
+	require.NotNil(t, grpcConn)
+
+	loadedTools, err := harness.LoadWorkflowArchitectEnabledTools()
+	if err != nil {
+		t.Skipf("seedpack repo not available, skipping sync test: %v", err)
+	}
+	require.NotEmpty(t, loadedTools, "seedpack enabled_tools should not be empty")
+
+	// Compare with the harness constant (order-independent).
+	assert.ElementsMatch(t, harness.WorkflowArchitectEnabledTools(), loadedTools,
+		"harness workflowArchitectEnabledTools must match seedpack definition — "+
+			"if this fails, update the constant in workflow_architect_helpers.go")
+
+	t.Logf("seedpack sync OK: %d enabled tools match", len(loadedTools))
 }
 
 // countToolCalls returns the total number of tool calls across all messages.

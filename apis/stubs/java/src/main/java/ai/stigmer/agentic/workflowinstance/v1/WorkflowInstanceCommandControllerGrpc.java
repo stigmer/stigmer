@@ -116,6 +116,37 @@ public final class WorkflowInstanceCommandControllerGrpc {
     return getUpdateMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.UpdateVisibilityInput,
+      ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance> getUpdateVisibilityMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "updateVisibility",
+      requestType = ai.stigmer.commons.apiresource.UpdateVisibilityInput.class,
+      responseType = ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.UpdateVisibilityInput,
+      ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance> getUpdateVisibilityMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.UpdateVisibilityInput, ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance> getUpdateVisibilityMethod;
+    if ((getUpdateVisibilityMethod = WorkflowInstanceCommandControllerGrpc.getUpdateVisibilityMethod) == null) {
+      synchronized (WorkflowInstanceCommandControllerGrpc.class) {
+        if ((getUpdateVisibilityMethod = WorkflowInstanceCommandControllerGrpc.getUpdateVisibilityMethod) == null) {
+          WorkflowInstanceCommandControllerGrpc.getUpdateVisibilityMethod = getUpdateVisibilityMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.commons.apiresource.UpdateVisibilityInput, ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "updateVisibility"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.commons.apiresource.UpdateVisibilityInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance.getDefaultInstance()))
+              .setSchemaDescriptor(new WorkflowInstanceCommandControllerMethodDescriptorSupplier("updateVisibility"))
+              .build();
+        }
+      }
+    }
+    return getUpdateVisibilityMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceId,
       ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance> getDeleteMethod;
 
@@ -277,6 +308,30 @@ public final class WorkflowInstanceCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update the visibility of an existing workflow instance.
+     * Changes who can view this instance and its executions. Supports the full
+     * visibility spectrum: PRIVATE (owner only), ORG (all org members), or
+     * PUBLIC (all authenticated users).
+     * For workflow instances, visibility has cascading effects on execution
+     * observability: workflow executions inherit visibility from their parent
+     * instance via FGA. An ORG-visible instance means all org members can see
+     * all executions — zero per-execution tuples needed.
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the workflow instance.
+     * Visibility transitions trigger FGA tuple management in Cloud mode:
+     * - PRIVATE → ORG: creates workflow_instance#viewer&#64;organization:&lt;org&gt;#member
+     * - PRIVATE → PUBLIC: creates workflow_instance#viewer&#64;identity_account:*
+     * - ORG → PRIVATE: deletes the org member viewer tuple
+     * - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
+     * </pre>
+     */
+    default void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdateVisibilityMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
      * Delete a workflow instance.
      * &#64;internal
      * Permanently removes a WorkflowInstance resource.
@@ -405,6 +460,31 @@ public final class WorkflowInstanceCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update the visibility of an existing workflow instance.
+     * Changes who can view this instance and its executions. Supports the full
+     * visibility spectrum: PRIVATE (owner only), ORG (all org members), or
+     * PUBLIC (all authenticated users).
+     * For workflow instances, visibility has cascading effects on execution
+     * observability: workflow executions inherit visibility from their parent
+     * instance via FGA. An ORG-visible instance means all org members can see
+     * all executions — zero per-execution tuples needed.
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the workflow instance.
+     * Visibility transitions trigger FGA tuple management in Cloud mode:
+     * - PRIVATE → ORG: creates workflow_instance#viewer&#64;organization:&lt;org&gt;#member
+     * - PRIVATE → PUBLIC: creates workflow_instance#viewer&#64;identity_account:*
+     * - ORG → PRIVATE: deletes the org member viewer tuple
+     * - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
+     * </pre>
+     */
+    public void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getUpdateVisibilityMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * Delete a workflow instance.
      * &#64;internal
      * Permanently removes a WorkflowInstance resource.
@@ -509,6 +589,30 @@ public final class WorkflowInstanceCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update the visibility of an existing workflow instance.
+     * Changes who can view this instance and its executions. Supports the full
+     * visibility spectrum: PRIVATE (owner only), ORG (all org members), or
+     * PUBLIC (all authenticated users).
+     * For workflow instances, visibility has cascading effects on execution
+     * observability: workflow executions inherit visibility from their parent
+     * instance via FGA. An ORG-visible instance means all org members can see
+     * all executions — zero per-execution tuples needed.
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the workflow instance.
+     * Visibility transitions trigger FGA tuple management in Cloud mode:
+     * - PRIVATE → ORG: creates workflow_instance#viewer&#64;organization:&lt;org&gt;#member
+     * - PRIVATE → PUBLIC: creates workflow_instance#viewer&#64;identity_account:*
+     * - ORG → PRIVATE: deletes the org member viewer tuple
+     * - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
+     * </pre>
+     */
+    public ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getUpdateVisibilityMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * Delete a workflow instance.
      * &#64;internal
      * Permanently removes a WorkflowInstance resource.
@@ -608,6 +712,30 @@ public final class WorkflowInstanceCommandControllerGrpc {
     public ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance update(ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getUpdateMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Update the visibility of an existing workflow instance.
+     * Changes who can view this instance and its executions. Supports the full
+     * visibility spectrum: PRIVATE (owner only), ORG (all org members), or
+     * PUBLIC (all authenticated users).
+     * For workflow instances, visibility has cascading effects on execution
+     * observability: workflow executions inherit visibility from their parent
+     * instance via FGA. An ORG-visible instance means all org members can see
+     * all executions — zero per-execution tuples needed.
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the workflow instance.
+     * Visibility transitions trigger FGA tuple management in Cloud mode:
+     * - PRIVATE → ORG: creates workflow_instance#viewer&#64;organization:&lt;org&gt;#member
+     * - PRIVATE → PUBLIC: creates workflow_instance#viewer&#64;identity_account:*
+     * - ORG → PRIVATE: deletes the org member viewer tuple
+     * - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
+     * </pre>
+     */
+    public ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getUpdateVisibilityMethod(), getCallOptions(), request);
     }
 
     /**
@@ -718,6 +846,31 @@ public final class WorkflowInstanceCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update the visibility of an existing workflow instance.
+     * Changes who can view this instance and its executions. Supports the full
+     * visibility spectrum: PRIVATE (owner only), ORG (all org members), or
+     * PUBLIC (all authenticated users).
+     * For workflow instances, visibility has cascading effects on execution
+     * observability: workflow executions inherit visibility from their parent
+     * instance via FGA. An ORG-visible instance means all org members can see
+     * all executions — zero per-execution tuples needed.
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the workflow instance.
+     * Visibility transitions trigger FGA tuple management in Cloud mode:
+     * - PRIVATE → ORG: creates workflow_instance#viewer&#64;organization:&lt;org&gt;#member
+     * - PRIVATE → PUBLIC: creates workflow_instance#viewer&#64;identity_account:*
+     * - ORG → PRIVATE: deletes the org member viewer tuple
+     * - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance> updateVisibility(
+        ai.stigmer.commons.apiresource.UpdateVisibilityInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getUpdateVisibilityMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * Delete a workflow instance.
      * &#64;internal
      * Permanently removes a WorkflowInstance resource.
@@ -742,7 +895,8 @@ public final class WorkflowInstanceCommandControllerGrpc {
   private static final int METHODID_APPLY = 0;
   private static final int METHODID_CREATE = 1;
   private static final int METHODID_UPDATE = 2;
-  private static final int METHODID_DELETE = 3;
+  private static final int METHODID_UPDATE_VISIBILITY = 3;
+  private static final int METHODID_DELETE = 4;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -771,6 +925,10 @@ public final class WorkflowInstanceCommandControllerGrpc {
           break;
         case METHODID_UPDATE:
           serviceImpl.update((ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance>) responseObserver);
+          break;
+        case METHODID_UPDATE_VISIBILITY:
+          serviceImpl.updateVisibility((ai.stigmer.commons.apiresource.UpdateVisibilityInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance>) responseObserver);
           break;
         case METHODID_DELETE:
@@ -816,6 +974,13 @@ public final class WorkflowInstanceCommandControllerGrpc {
               ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance,
               ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance>(
                 service, METHODID_UPDATE)))
+        .addMethod(
+          getUpdateVisibilityMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.commons.apiresource.UpdateVisibilityInput,
+              ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance>(
+                service, METHODID_UPDATE_VISIBILITY)))
         .addMethod(
           getDeleteMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -874,6 +1039,7 @@ public final class WorkflowInstanceCommandControllerGrpc {
               .addMethod(getApplyMethod())
               .addMethod(getCreateMethod())
               .addMethod(getUpdateMethod())
+              .addMethod(getUpdateVisibilityMethod())
               .addMethod(getDeleteMethod())
               .build();
         }

@@ -70,3 +70,6 @@ export type {
   VisibilityResourceKind,
   UseUpdateVisibilityReturn,
 } from "./useUpdateVisibility";
+
+export { InstanceVisibilitySelector } from "./InstanceVisibilitySelector";
+export type { InstanceVisibilitySelectorProps } from "./InstanceVisibilitySelector";

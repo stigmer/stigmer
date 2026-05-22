@@ -82,7 +82,7 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
       "er.agentic.agentexecution.v1.AgentExecut" +
       "ionSpecR\004spec\022R\n\006status\030\005 \001(\0132:.ai.stigm" +
       "er.agentic.agentexecution.v1.AgentExecut" +
-      "ionStatusR\006status\"\365\n\n\024AgentExecutionStat" +
+      "ionStatusR\006status\"\341\n\n\024AgentExecutionStat" +
       "us\022F\n\005audit\030c \001(\01320.ai.stigmer.commons.a" +
       "piresource.ApiResourceAuditR\005audit\022N\n\010me" +
       "ssages\030\001 \003(\01322.ai.stigmer.agentic.agente" +
@@ -111,19 +111,19 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
       "agentexecution.v1.WorkspaceWriteBackR\023wo" +
       "rkspaceWriteBacks\022Z\n\016setup_progress\030\022 \001(" +
       "\01323.ai.stigmer.agentic.agentexecution.v1" +
-      ".SetupProgressR\rsetupProgress\022\033\n\trunner_" +
-      "id\030\023 \001(\tR\010runnerId\022[\n\014runner_usage\030\024 \001(\013" +
-      "28.ai.stigmer.agentic.agentexecution.v1." +
-      "RunnerUsageSummaryR\013runnerUsage\032h\n\nTodos" +
-      "Entry\022\020\n\003key\030\001 \001(\tR\003key\022D\n\005value\030\002 \001(\0132." +
-      ".ai.stigmer.agentic.agentexecution.v1.To" +
-      "doItemR\005value:\0028\001\"4\n\rSetupProgress\022#\n\rcu" +
-      "rrent_phase\030\001 \001(\tR\014currentPhaseB\277\001B\010ApiP" +
-      "rotoP\001\242\002\004ASAA\252\002$Ai.Stigmer.Agentic.Agent" +
-      "execution.V1\312\002$Ai\\Stigmer\\Agentic\\Agente" +
-      "xecution\\V1\342\0020Ai\\Stigmer\\Agentic\\Agentex" +
-      "ecution\\V1\\GPBMetadata\352\002(Ai::Stigmer::Ag" +
-      "entic::Agentexecution::V1b\006proto3"
+      ".SetupProgressR\rsetupProgress\022d\n\017streami" +
+      "ng_usage\030\024 \001(\0132;.ai.stigmer.agentic.agen" +
+      "texecution.v1.StreamingUsageSummaryR\016str" +
+      "eamingUsage\032h\n\nTodosEntry\022\020\n\003key\030\001 \001(\tR\003" +
+      "key\022D\n\005value\030\002 \001(\0132..ai.stigmer.agentic." +
+      "agentexecution.v1.TodoItemR\005value:\0028\001\"4\n" +
+      "\rSetupProgress\022#\n\rcurrent_phase\030\001 \001(\tR\014c" +
+      "urrentPhaseB\277\001B\010ApiProtoP\001\242\002\004ASAA\252\002$Ai.S" +
+      "tigmer.Agentic.Agentexecution.V1\312\002$Ai\\St" +
+      "igmer\\Agentic\\Agentexecution\\V1\342\0020Ai\\Sti" +
+      "gmer\\Agentic\\Agentexecution\\V1\\GPBMetada" +
+      "ta\352\002(Ai::Stigmer::Agentic::Agentexecutio" +
+      "n::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -153,7 +153,7 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_agentexecution_v1_AgentExecutionStatus_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_AgentExecutionStatus_descriptor,
-        new java.lang.String[] { "Audit", "Messages", "Phase", "SubAgentExecutions", "Error", "StartedAt", "CompletedAt", "Todos", "CallbackToken", "ResolvedContext", "PendingApprovals", "ContextInfo", "Artifacts", "WorkspaceWriteBacks", "SetupProgress", "RunnerId", "RunnerUsage", });
+        new java.lang.String[] { "Audit", "Messages", "Phase", "SubAgentExecutions", "Error", "StartedAt", "CompletedAt", "Todos", "CallbackToken", "ResolvedContext", "PendingApprovals", "ContextInfo", "Artifacts", "WorkspaceWriteBacks", "SetupProgress", "StreamingUsage", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_AgentExecutionStatus_TodosEntry_descriptor =
       internal_static_ai_stigmer_agentic_agentexecution_v1_AgentExecutionStatus_descriptor.getNestedType(0);
     internal_static_ai_stigmer_agentic_agentexecution_v1_AgentExecutionStatus_TodosEntry_fieldAccessorTable = new

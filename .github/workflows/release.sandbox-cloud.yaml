@@ -1,33 +1,18 @@
 name: release.sandbox-cloud
 
-# Builds the full (cloud) sandbox image used by Daytona in cloud mode.
-# Triggers on main when the sandbox Dockerfile, runner code, or runner
-# dependencies change. No semver tags — latest + commit SHA.
+# Builds the cloud sandbox image (unified TypeScript runner) used by
+# Daytona in cloud mode. Triggers on main when the runner code, proto
+# stubs, or Dockerfile change. No semver tags — latest + commit SHA.
 on:
   push:
     branches:
       - main
     paths:
-      - 'backend/services/agent-runner/sandbox/Dockerfile.sandbox.full'
-      - 'backend/services/agent-runner/pyproject.toml'
-      - 'backend/services/agent-runner/poetry.lock'
-      - 'backend/services/agent-runner/main.py'
-      - 'backend/services/agent-runner/src/stigmer_runner/worker/**'
-      - 'backend/services/agent-runner/src/stigmer_runner/grpc_client/**'
-      - 'backend/libs/python/graphton/**'
-      - 'apis/stubs/python/**'
-      - 'backend/services/cursor-runner/src/**'
-      - 'backend/services/cursor-runner/package.json'
-      - 'backend/services/cursor-runner/package-lock.json'
-      - 'backend/services/cursor-runner/tsconfig*.json'
-      - 'backend/services/workflow-runner/cmd/**'
-      - 'backend/services/workflow-runner/main.go'
-      - 'backend/services/workflow-runner/pkg/**'
-      - 'backend/services/workflow-runner/worker/**'
-      - 'backend/services/workflow-runner/go.mod'
-      - 'backend/services/workflow-runner/go.sum'
-      - 'backend/libs/model-registry.json'
-      - 'apis/stubs/go/**'
+      - 'backend/services/runner/src/**'
+      - 'backend/services/runner/package.json'
+      - 'backend/services/runner/package-lock.json'
+      - 'backend/services/runner/tsconfig*.json'
+      - 'backend/services/runner/Dockerfile.sandbox'
       - 'apis/stubs/ts/**'
   workflow_dispatch:
 
@@ -59,13 +44,13 @@ jobs:
           echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
           echo "Building: latest + main-$SHORT_SHA"
 
-      - name: Build and push full sandbox image
+      - name: Build and push sandbox image
         run: |
           docker buildx build \
             --platform linux/amd64 \
-            --file backend/services/agent-runner/sandbox/Dockerfile.sandbox.full \
-            --tag ghcr.io/${{ github.repository_owner }}/agent-sandbox-full:latest \
-            --tag ghcr.io/${{ github.repository_owner }}/agent-sandbox-full:main-${{ steps.tags.outputs.short_sha }} \
+            --file backend/services/runner/Dockerfile.sandbox \
+            --tag ghcr.io/${{ github.repository_owner }}/runner:latest \
+            --tag ghcr.io/${{ github.repository_owner }}/runner:main-${{ steps.tags.outputs.short_sha }} \
             --push \
             .
 
@@ -74,7 +59,7 @@ jobs:
         run: |
           gh api \
             -X PUT \
-            /orgs/${{ github.repository_owner }}/packages/container/agent-sandbox-full/visibility \
+            /orgs/${{ github.repository_owner }}/packages/container/runner/visibility \
             -f visibility=public
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -94,7 +79,7 @@ jobs:
         env:
           PLANTON_API_KEY: ${{ secrets.PLANTON_API_KEY }}
         run: |
-          IMAGE="ghcr.io/${{ github.repository_owner }}/agent-sandbox-full:main-${{ steps.tags.outputs.short_sha }}"
+          IMAGE="ghcr.io/${{ github.repository_owner }}/runner:main-${{ steps.tags.outputs.short_sha }}"
           cat > /tmp/sandbox-ci-vargroup.yaml <<EOF
           apiVersion: service-hub.planton.ai/v1
           kind: VariablesGroup
@@ -120,7 +105,7 @@ jobs:
         timeout-minutes: 5
         env:
           DAYTONA_API_KEY: ${{ secrets.DAYTONA_API_KEY }}
-          IMAGE: ghcr.io/${{ github.repository_owner }}/agent-sandbox-full:main-${{ steps.tags.outputs.short_sha }}
+          IMAGE: ghcr.io/${{ github.repository_owner }}/runner:main-${{ steps.tags.outputs.short_sha }}
         run: |
           pip install daytona-sdk
           python - <<'PYEOF'
@@ -143,7 +128,7 @@ jobs:
         run: |
           echo "## Cloud Sandbox Image Published" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Image:** \`ghcr.io/${{ github.repository_owner }}/agent-sandbox-full\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Image:** \`ghcr.io/${{ github.repository_owner }}/runner\`" >> $GITHUB_STEP_SUMMARY
           echo "**Tags:** \`latest\`, \`main-${{ steps.tags.outputs.short_sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Architecture:** linux/amd64" >> $GITHUB_STEP_SUMMARY
           echo "**Planton variable:** updated \`sandbox-ci/prod.sandbox-image\`" >> $GITHUB_STEP_SUMMARY

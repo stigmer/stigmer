@@ -517,12 +517,14 @@ func (s *setInitialPhaseStep) Execute(ctx *pipeline.RequestContext[*agentexecuti
 type startWorkflowStep struct {
 	workflowCreator *agentexecutiontemporal.InvokeAgentExecutionWorkflowCreator
 	store           store.Store
+	temporalConfig  *agentexecutiontemporal.Config
 }
 
 func (c *AgentExecutionController) newStartWorkflowStep() *startWorkflowStep {
 	return &startWorkflowStep{
 		workflowCreator: c.workflowCreator,
 		store:           c.store,
+		temporalConfig:  c.temporalConfig,
 	}
 }
 
@@ -569,14 +571,15 @@ func (s *startWorkflowStep) Execute(ctx *pipeline.RequestContext[*agentexecution
 		Str("execution_id", executionID).
 		Msg("Starting Temporal workflow")
 
-	// Resolve runner dispatch: per-runner queue from session binding or best available runner
+	// Resolve dispatch: determines the Temporal task queue for activities
 	dispatch, err := agentexecutiontemporal.ResolveActivityTaskQueue(
-		ctx.Context(), s.store, execution.GetSpec().GetSessionId())
+		ctx.Context(), s.store, execution.GetSpec().GetSessionId(), s.temporalConfig,
+		execution.GetSpec().GetActivityTaskQueue())
 	if err != nil {
 		log.Warn().
 			Err(err).
 			Str("execution_id", executionID).
-			Msg("Runner dispatch failed")
+			Msg("Activity dispatch failed")
 		return grpclib.WrapError(err, codes.FailedPrecondition, err.Error())
 	}
 
@@ -590,8 +593,8 @@ func (s *startWorkflowStep) Execute(ctx *pipeline.RequestContext[*agentexecution
 		CallbackToken:    execution.GetSpec().GetCallbackToken(),
 		AutoApproveAll:   execution.GetSpec().GetAutoApproveAll(),
 		ParentWorkflowID: execution.GetSpec().GetParentWorkflowId(),
-		RunnerID:         dispatch.RunnerID,
 		Harness:          int32(dispatch.Harness),
+		ExecutionTarget:  int32(dispatch.ExecutionTarget),
 	}
 
 	// Start the Temporal workflow with slim input and dispatch routing

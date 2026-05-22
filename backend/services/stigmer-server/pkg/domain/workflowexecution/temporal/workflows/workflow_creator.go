@@ -3,7 +3,6 @@ package workflows
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/rs/zerolog/log"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/activities"
@@ -13,10 +12,10 @@ import (
 // InvokeWorkflowExecutionWorkflowCreator creates and starts Temporal workflows for workflow execution invocation.
 // Called by WorkflowExecutionController after persisting execution to SQLite.
 //
-// Polyglot Configuration:
-// - stigmer: Go workflows on workflow_execution_stigmer (stigmer-server)
-// - runner: Go activities on workflow_execution_runner (workflow-runner)
-// - Activity queue passed via memo for workflow to use when calling activities
+// Configuration:
+// - stigmer: Go orchestrator workflows on workflow_execution_stigmer (stigmer-server)
+// - runner: TS child workflows on stigmer_runner (unified runner)
+// - Runner queue passed via memo for workflow to use when starting child workflows
 type InvokeWorkflowExecutionWorkflowCreator struct {
 	workflowClient client.Client
 	stigmerQueue   string
@@ -38,18 +37,27 @@ func NewInvokeWorkflowExecutionWorkflowCreator(
 
 // Create starts a new workflow execution workflow with slim input.
 // Secrets (runtime_env) are excluded from Temporal history — they live in the ExecutionContext.
-func (c *InvokeWorkflowExecutionWorkflowCreator) Create(ctx context.Context, input *activities.InvokeWorkflowExecutionWorkflowInput) error {
+//
+// The runnerQueue parameter specifies the TS unified runner queue for the child workflow.
+// When empty, falls back to c.runnerQueue (the configured default, typically "stigmer_runner").
+// Callers pass the resolved queue from ResolveWorkflowTaskQueue() to enable per-execution
+// sandbox routing (wfexec:{id}) in cloud mode.
+func (c *InvokeWorkflowExecutionWorkflowCreator) Create(ctx context.Context, input *activities.InvokeWorkflowExecutionWorkflowInput, runnerQueue string) error {
 	executionID := input.ExecutionID
+
+	effectiveRunnerQueue := c.runnerQueue
+	if runnerQueue != "" {
+		effectiveRunnerQueue = runnerQueue
+	}
 
 	// Workflow ID format: stigmer/workflow-execution/invoke/{execution-id}
 	workflowID := fmt.Sprintf("%s/%s", InvokeWorkflowExecutionWorkflowName, executionID)
 
 	options := client.StartWorkflowOptions{
-		ID:                 workflowID,
-		TaskQueue:          c.stigmerQueue,
-		WorkflowRunTimeout: 30 * time.Minute, // Max 30 minutes per workflow execution
+		ID:        workflowID,
+		TaskQueue: c.stigmerQueue,
 		Memo: map[string]interface{}{
-			"activityTaskQueue": c.runnerQueue, // Pass runner queue to workflow
+			"runnerTaskQueue": effectiveRunnerQueue,
 		},
 	}
 
@@ -68,7 +76,7 @@ func (c *InvokeWorkflowExecutionWorkflowCreator) Create(ctx context.Context, inp
 		Str("workflow_id", workflowID).
 		Str("execution_id", executionID).
 		Str("stigmer_queue", c.stigmerQueue).
-		Str("runner_queue", c.runnerQueue).
+		Str("runner_queue", effectiveRunnerQueue).
 		Msg("Started InvokeWorkflowExecutionWorkflow")
 
 	return nil
@@ -89,18 +97,23 @@ func (c *InvokeWorkflowExecutionWorkflowCreator) SignalWithStart(
 	input *activities.InvokeWorkflowExecutionWorkflowInput,
 	signalName string,
 	signalPayload interface{},
+	runnerQueue string,
 ) error {
 	executionID := input.ExecutionID
+
+	effectiveRunnerQueue := c.runnerQueue
+	if runnerQueue != "" {
+		effectiveRunnerQueue = runnerQueue
+	}
 
 	// Workflow ID format: stigmer/workflow-execution/invoke/{execution-id}
 	workflowID := fmt.Sprintf("%s/%s", InvokeWorkflowExecutionWorkflowName, executionID)
 
 	options := client.StartWorkflowOptions{
-		ID:                 workflowID,
-		TaskQueue:          c.stigmerQueue,
-		WorkflowRunTimeout: 30 * time.Minute,
+		ID:        workflowID,
+		TaskQueue: c.stigmerQueue,
 		Memo: map[string]interface{}{
-			"activityTaskQueue": c.runnerQueue,
+			"runnerTaskQueue": effectiveRunnerQueue,
 		},
 	}
 

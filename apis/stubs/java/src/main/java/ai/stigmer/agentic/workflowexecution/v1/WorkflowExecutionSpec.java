@@ -48,6 +48,7 @@ private static final long serialVersionUID = 0L;
     workflowId_ = "";
     triggerMessage_ = "";
     callbackToken_ = com.google.protobuf.ByteString.EMPTY;
+    executionTarget_ = 0;
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -662,6 +663,60 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     return callbackToken_;
   }
 
+  public static final int EXECUTION_TARGET_FIELD_NUMBER = 8;
+  private int executionTarget_ = 0;
+  /**
+   * <pre>
+   * Where workflow activities are executed — shared runner pool or dedicated sandbox.
+   *
+   * &#64;internal
+   * Determines dispatch routing for the workflow and all child executions:
+   * - UNSPECIFIED: server defaults (LOCAL for OSS, CLOUD for managed)
+   * - LOCAL: workflow runs on global queue (stigmer_runner)
+   * - CLOUD: server provisions a dedicated sandbox with per-execution queue
+   *
+   * When CLOUD: all call:agent tasks within this workflow share the same sandbox.
+   * Child agent executions inherit this sandbox via activity_task_queue propagation
+   * on AgentExecutionSpec, avoiding N separate sandbox cold starts.
+   *
+   * Immutable after creation (sandbox provisioning is a one-time operation).
+   *
+   * &#64;since Workflow Sandbox Affinity
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.ExecutionTarget execution_target = 8 [json_name = "executionTarget"];</code>
+   * @return The enum numeric value on the wire for executionTarget.
+   */
+  @java.lang.Override public int getExecutionTargetValue() {
+    return executionTarget_;
+  }
+  /**
+   * <pre>
+   * Where workflow activities are executed — shared runner pool or dedicated sandbox.
+   *
+   * &#64;internal
+   * Determines dispatch routing for the workflow and all child executions:
+   * - UNSPECIFIED: server defaults (LOCAL for OSS, CLOUD for managed)
+   * - LOCAL: workflow runs on global queue (stigmer_runner)
+   * - CLOUD: server provisions a dedicated sandbox with per-execution queue
+   *
+   * When CLOUD: all call:agent tasks within this workflow share the same sandbox.
+   * Child agent executions inherit this sandbox via activity_task_queue propagation
+   * on AgentExecutionSpec, avoiding N separate sandbox cold starts.
+   *
+   * Immutable after creation (sandbox provisioning is a one-time operation).
+   *
+   * &#64;since Workflow Sandbox Affinity
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.ExecutionTarget execution_target = 8 [json_name = "executionTarget"];</code>
+   * @return The executionTarget.
+   */
+  @java.lang.Override public ai.stigmer.agentic.session.v1.ExecutionTarget getExecutionTarget() {
+    ai.stigmer.agentic.session.v1.ExecutionTarget result = ai.stigmer.agentic.session.v1.ExecutionTarget.forNumber(executionTarget_);
+    return result == null ? ai.stigmer.agentic.session.v1.ExecutionTarget.UNRECOGNIZED : result;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -699,6 +754,9 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     if (!callbackToken_.isEmpty()) {
       output.writeBytes(7, callbackToken_);
+    }
+    if (executionTarget_ != ai.stigmer.agentic.session.v1.ExecutionTarget.EXECUTION_TARGET_UNSPECIFIED.getNumber()) {
+      output.writeEnum(8, executionTarget_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -742,6 +800,10 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       size += com.google.protobuf.CodedOutputStream
         .computeBytesSize(7, callbackToken_);
     }
+    if (executionTarget_ != ai.stigmer.agentic.session.v1.ExecutionTarget.EXECUTION_TARGET_UNSPECIFIED.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(8, executionTarget_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -769,6 +831,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         other.internalGetRuntimeEnv())) return false;
     if (!getCallbackToken()
         .equals(other.getCallbackToken())) return false;
+    if (executionTarget_ != other.executionTarget_) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -796,6 +859,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     hash = (37 * hash) + CALLBACK_TOKEN_FIELD_NUMBER;
     hash = (53 * hash) + getCallbackToken().hashCode();
+    hash = (37 * hash) + EXECUTION_TARGET_FIELD_NUMBER;
+    hash = (53 * hash) + executionTarget_;
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -975,6 +1040,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       internalGetMutableTriggerMetadata().clear();
       internalGetMutableRuntimeEnv().clear();
       callbackToken_ = com.google.protobuf.ByteString.EMPTY;
+      executionTarget_ = 0;
       return this;
     }
 
@@ -1027,6 +1093,9 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (((from_bitField0_ & 0x00000020) != 0)) {
         result.callbackToken_ = callbackToken_;
       }
+      if (((from_bitField0_ & 0x00000040) != 0)) {
+        result.executionTarget_ = executionTarget_;
+      }
     }
 
     @java.lang.Override
@@ -1064,6 +1133,9 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       bitField0_ |= 0x00000010;
       if (!other.getCallbackToken().isEmpty()) {
         setCallbackToken(other.getCallbackToken());
+      }
+      if (other.executionTarget_ != 0) {
+        setExecutionTargetValue(other.getExecutionTargetValue());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1129,6 +1201,11 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
               bitField0_ |= 0x00000020;
               break;
             } // case 58
+            case 64: {
+              executionTarget_ = input.readEnum();
+              bitField0_ |= 0x00000040;
+              break;
+            } // case 64
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2326,6 +2403,148 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     public Builder clearCallbackToken() {
       bitField0_ = (bitField0_ & ~0x00000020);
       callbackToken_ = getDefaultInstance().getCallbackToken();
+      onChanged();
+      return this;
+    }
+
+    private int executionTarget_ = 0;
+    /**
+     * <pre>
+     * Where workflow activities are executed — shared runner pool or dedicated sandbox.
+     *
+     * &#64;internal
+     * Determines dispatch routing for the workflow and all child executions:
+     * - UNSPECIFIED: server defaults (LOCAL for OSS, CLOUD for managed)
+     * - LOCAL: workflow runs on global queue (stigmer_runner)
+     * - CLOUD: server provisions a dedicated sandbox with per-execution queue
+     *
+     * When CLOUD: all call:agent tasks within this workflow share the same sandbox.
+     * Child agent executions inherit this sandbox via activity_task_queue propagation
+     * on AgentExecutionSpec, avoiding N separate sandbox cold starts.
+     *
+     * Immutable after creation (sandbox provisioning is a one-time operation).
+     *
+     * &#64;since Workflow Sandbox Affinity
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.ExecutionTarget execution_target = 8 [json_name = "executionTarget"];</code>
+     * @return The enum numeric value on the wire for executionTarget.
+     */
+    @java.lang.Override public int getExecutionTargetValue() {
+      return executionTarget_;
+    }
+    /**
+     * <pre>
+     * Where workflow activities are executed — shared runner pool or dedicated sandbox.
+     *
+     * &#64;internal
+     * Determines dispatch routing for the workflow and all child executions:
+     * - UNSPECIFIED: server defaults (LOCAL for OSS, CLOUD for managed)
+     * - LOCAL: workflow runs on global queue (stigmer_runner)
+     * - CLOUD: server provisions a dedicated sandbox with per-execution queue
+     *
+     * When CLOUD: all call:agent tasks within this workflow share the same sandbox.
+     * Child agent executions inherit this sandbox via activity_task_queue propagation
+     * on AgentExecutionSpec, avoiding N separate sandbox cold starts.
+     *
+     * Immutable after creation (sandbox provisioning is a one-time operation).
+     *
+     * &#64;since Workflow Sandbox Affinity
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.ExecutionTarget execution_target = 8 [json_name = "executionTarget"];</code>
+     * @param value The enum numeric value on the wire for executionTarget to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setExecutionTargetValue(int value) {
+      executionTarget_ = value;
+      bitField0_ |= 0x00000040;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Where workflow activities are executed — shared runner pool or dedicated sandbox.
+     *
+     * &#64;internal
+     * Determines dispatch routing for the workflow and all child executions:
+     * - UNSPECIFIED: server defaults (LOCAL for OSS, CLOUD for managed)
+     * - LOCAL: workflow runs on global queue (stigmer_runner)
+     * - CLOUD: server provisions a dedicated sandbox with per-execution queue
+     *
+     * When CLOUD: all call:agent tasks within this workflow share the same sandbox.
+     * Child agent executions inherit this sandbox via activity_task_queue propagation
+     * on AgentExecutionSpec, avoiding N separate sandbox cold starts.
+     *
+     * Immutable after creation (sandbox provisioning is a one-time operation).
+     *
+     * &#64;since Workflow Sandbox Affinity
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.ExecutionTarget execution_target = 8 [json_name = "executionTarget"];</code>
+     * @return The executionTarget.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.ExecutionTarget getExecutionTarget() {
+      ai.stigmer.agentic.session.v1.ExecutionTarget result = ai.stigmer.agentic.session.v1.ExecutionTarget.forNumber(executionTarget_);
+      return result == null ? ai.stigmer.agentic.session.v1.ExecutionTarget.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * Where workflow activities are executed — shared runner pool or dedicated sandbox.
+     *
+     * &#64;internal
+     * Determines dispatch routing for the workflow and all child executions:
+     * - UNSPECIFIED: server defaults (LOCAL for OSS, CLOUD for managed)
+     * - LOCAL: workflow runs on global queue (stigmer_runner)
+     * - CLOUD: server provisions a dedicated sandbox with per-execution queue
+     *
+     * When CLOUD: all call:agent tasks within this workflow share the same sandbox.
+     * Child agent executions inherit this sandbox via activity_task_queue propagation
+     * on AgentExecutionSpec, avoiding N separate sandbox cold starts.
+     *
+     * Immutable after creation (sandbox provisioning is a one-time operation).
+     *
+     * &#64;since Workflow Sandbox Affinity
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.ExecutionTarget execution_target = 8 [json_name = "executionTarget"];</code>
+     * @param value The executionTarget to set.
+     * @return This builder for chaining.
+     */
+    public Builder setExecutionTarget(ai.stigmer.agentic.session.v1.ExecutionTarget value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x00000040;
+      executionTarget_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Where workflow activities are executed — shared runner pool or dedicated sandbox.
+     *
+     * &#64;internal
+     * Determines dispatch routing for the workflow and all child executions:
+     * - UNSPECIFIED: server defaults (LOCAL for OSS, CLOUD for managed)
+     * - LOCAL: workflow runs on global queue (stigmer_runner)
+     * - CLOUD: server provisions a dedicated sandbox with per-execution queue
+     *
+     * When CLOUD: all call:agent tasks within this workflow share the same sandbox.
+     * Child agent executions inherit this sandbox via activity_task_queue propagation
+     * on AgentExecutionSpec, avoiding N separate sandbox cold starts.
+     *
+     * Immutable after creation (sandbox provisioning is a one-time operation).
+     *
+     * &#64;since Workflow Sandbox Affinity
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.ExecutionTarget execution_target = 8 [json_name = "executionTarget"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearExecutionTarget() {
+      bitField0_ = (bitField0_ & ~0x00000040);
+      executionTarget_ = 0;
       onChanged();
       return this;
     }

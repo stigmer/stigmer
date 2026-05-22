@@ -9,7 +9,8 @@ import { useWorkspaceEntries, type UseWorkspaceEntriesReturn } from "../workspac
 import { useSessionVariables, type UseSessionVariablesReturn } from "../execution/useSessionVariables";
 import type { SessionComposerSubmitContext } from "../composer";
 import { fromProtoHarness, type HarnessOption } from "../models/harness";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { Harness, ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { fromProtoExecutionTarget, type ExecutionTargetOption } from "./execution-target";
 import { useSessionConversation, type UseSessionConversationReturn } from "./useSessionConversation";
 import { useAgentRefFromSession } from "./useAgentRefFromSession";
 import { usePersistedModel, type UsePersistedModelReturn } from "./usePersistedModel";
@@ -44,6 +45,15 @@ export interface UseSessionPageFlowReturn {
    * Defaults to `"native"` while the session is loading.
    */
   readonly harness: HarnessOption;
+
+  /**
+   * Where session activities execute (read-only, derived from session spec).
+   *
+   * `"local"` when the client's embedded runner handles activities,
+   * `"cloud"` when the server provisions a sandbox, or `undefined`
+   * when the server decides (UNSPECIFIED).
+   */
+  readonly executionTarget: ExecutionTargetOption | undefined;
 
   /** Persisted model selection: `[modelId, setModelId]`. */
   readonly model: UsePersistedModelReturn;
@@ -156,6 +166,9 @@ export function useSessionPageFlow(
   const conv = useSessionConversation(sessionId, org);
   const harness: HarnessOption = fromProtoHarness(
     conv.session?.spec?.harness ?? Harness.UNSPECIFIED,
+  );
+  const executionTarget: ExecutionTargetOption | undefined = fromProtoExecutionTarget(
+    conv.session?.spec?.executionTarget ?? ExecutionTarget.UNSPECIFIED,
   );
   const [persistedModelId, setPersistedModelId] = usePersistedModel({ harness });
 
@@ -306,6 +319,7 @@ export function useSessionPageFlow(
   return {
     conv,
     harness,
+    executionTarget,
     model,
     agentRef,
     setAgentRef,

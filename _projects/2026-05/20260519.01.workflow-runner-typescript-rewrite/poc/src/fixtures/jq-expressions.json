@@ -1,0 +1,224 @@
+{
+  "description": "jq expressions extracted from the 12 golden YAML files and Go source code",
+  "extractedFrom": [
+    "backend/services/workflow-runner/test/golden/*.yaml",
+    "backend/services/workflow-runner/pkg/utils/runtime_expressions.go",
+    "backend/services/workflow-runner/pkg/zigflow/tasks/task_builder_transform_activities.go"
+  ],
+  "runtimeExpressions": {
+    "description": "Expressions using ${ ... } wrapper, evaluated with state variables ($context, $data, $env, $input, $output) via gojq.WithVariables",
+    "testCases": [
+      {
+        "id": "identity",
+        "expression": ".",
+        "input": {"message": "hello"},
+        "variables": {},
+        "expected": {"message": "hello"},
+        "source": "golden/05-event-signal.yaml (${ . })"
+      },
+      {
+        "id": "simple-path",
+        "expression": ".message",
+        "input": {"message": "Hello, Zigflow!"},
+        "variables": {},
+        "expected": "Hello, Zigflow!",
+        "source": "golden/07-inject-transform.yaml (${ .message })"
+      },
+      {
+        "id": "arithmetic",
+        "expression": ".a + .b",
+        "input": {"a": 10, "b": 20},
+        "variables": {},
+        "expected": 30,
+        "source": "golden/07-inject-transform.yaml (${ .a + .b })"
+      },
+      {
+        "id": "data-variable-path",
+        "expression": "$data.valid",
+        "input": null,
+        "variables": {"$data": {"valid": true, "items": [1, 2, 3]}},
+        "expected": true,
+        "source": "golden/10-complex-workflow.yaml (${ $data.valid == true } condition)"
+      },
+      {
+        "id": "data-variable-equality",
+        "expression": "$data.valid == true",
+        "input": null,
+        "variables": {"$data": {"valid": true}},
+        "expected": true,
+        "source": "golden/10-complex-workflow.yaml (switch condition)"
+      },
+      {
+        "id": "context-variable-comparison-gt",
+        "expression": "$context.userId > 5",
+        "input": null,
+        "variables": {"$context": {"userId": 7, "id": 42}},
+        "expected": true,
+        "source": "golden/02-switch-conditional.yaml (highValueCase)"
+      },
+      {
+        "id": "context-variable-comparison-lte",
+        "expression": "$context.userId <= 5",
+        "input": null,
+        "variables": {"$context": {"userId": 3, "id": 10}},
+        "expected": true,
+        "source": "golden/02-switch-conditional.yaml (regularUserCase)"
+      },
+      {
+        "id": "context-variable-access",
+        "expression": "$context.userId",
+        "input": null,
+        "variables": {"$context": {"userId": 7, "id": 42}},
+        "expected": 7,
+        "source": "golden/02-switch-conditional.yaml (body interpolation)"
+      },
+      {
+        "id": "data-variable-items",
+        "expression": "$data.items",
+        "input": null,
+        "variables": {"$data": {"items": [1, 2, 3]}},
+        "expected": [1, 2, 3],
+        "source": "golden/03-foreach-loop.yaml (for.in)"
+      },
+      {
+        "id": "data-variable-item",
+        "expression": "$data.item",
+        "input": null,
+        "variables": {"$data": {"item": "current-item"}},
+        "expected": "current-item",
+        "source": "golden/03-foreach-loop.yaml (processItem body)"
+      },
+      {
+        "id": "pipe-length",
+        "expression": ".fetchPhotos | length",
+        "input": {"fetchPhotos": [1, 2, 3, 4, 5]},
+        "variables": {},
+        "expected": 5,
+        "source": "golden/12-claimcheck-between-steps.yaml"
+      },
+      {
+        "id": "pipe-length-2",
+        "expression": ".fetchComments | length",
+        "input": {"fetchComments": [{"id": 1}, {"id": 2}]},
+        "variables": {},
+        "expected": 2,
+        "source": "golden/12-claimcheck-between-steps.yaml"
+      },
+      {
+        "id": "null-check",
+        "expression": ".fetchPhotos != null",
+        "input": {"fetchPhotos": [1, 2]},
+        "variables": {},
+        "expected": true,
+        "source": "golden/12-claimcheck-between-steps.yaml (canAccessPhotos)"
+      },
+      {
+        "id": "null-check-missing",
+        "expression": ".missing != null",
+        "input": {},
+        "variables": {},
+        "expected": false,
+        "source": "derived: null check on missing field"
+      },
+      {
+        "id": "context-object-merge",
+        "expression": "$context + { initialize: . }",
+        "input": {"items": [1, 2, 3], "shouldProceed": "TRUE"},
+        "variables": {"$context": {"existingKey": "existingValue"}},
+        "expected": {"existingKey": "existingValue", "initialize": {"items": [1, 2, 3], "shouldProceed": "TRUE"}},
+        "source": "golden/09-nested-states.yaml (export.as)"
+      },
+      {
+        "id": "context-nested-path",
+        "expression": "$context.initialize.items",
+        "input": null,
+        "variables": {"$context": {"initialize": {"items": [1, 2, 3]}}},
+        "expected": [1, 2, 3],
+        "source": "golden/09-nested-states.yaml (nestedForEach for.in)"
+      },
+      {
+        "id": "context-nested-path-2",
+        "expression": "$context.outer.id",
+        "input": null,
+        "variables": {"$context": {"outer": {"id": 101, "title": "Outer task"}}},
+        "expected": 101,
+        "source": "golden/09-nested-states.yaml (processItem body)"
+      },
+      {
+        "id": "task-output-path",
+        "expression": ".parallelProcessing.branchA",
+        "input": {"parallelProcessing": {"branchA": {"title": "Process A"}, "branchB": {"title": "Process B"}}},
+        "variables": {},
+        "expected": {"title": "Process A"},
+        "source": "golden/10-complex-workflow.yaml (aggregate body)"
+      },
+      {
+        "id": "always-true",
+        "expression": "1 == 1",
+        "input": null,
+        "variables": {},
+        "expected": true,
+        "source": "golden/09-nested-states.yaml (always-true switch)"
+      },
+      {
+        "id": "error-path",
+        "expression": ".error",
+        "input": {"error": "connection refused"},
+        "variables": {},
+        "expected": "connection refused",
+        "source": "golden/08-error-retry.yaml (catch handler)"
+      },
+      {
+        "id": "export-as-identity",
+        "expression": ".",
+        "input": {"userId": 1, "id": 7, "title": "foo", "body": "bar"},
+        "variables": {},
+        "expected": {"userId": 1, "id": 7, "title": "foo", "body": "bar"},
+        "source": "golden/02-switch-conditional.yaml (export.as: ${ . })"
+      },
+      {
+        "id": "builtin-now",
+        "expression": "now",
+        "input": null,
+        "variables": {},
+        "expected": "__TIMESTAMP__",
+        "source": "golden/07-inject-transform.yaml (${ now })"
+      }
+    ]
+  },
+  "transformExpressions": {
+    "description": "Expressions run directly against input document (no state variables), used by transform and validate tasks",
+    "testCases": [
+      {
+        "id": "transform-select-fields",
+        "expression": "{ name: .name, email: .email }",
+        "input": {"name": "Alice", "email": "alice@example.com", "age": 30, "role": "admin"},
+        "expected": {"name": "Alice", "email": "alice@example.com"}
+      },
+      {
+        "id": "transform-map-array",
+        "expression": "[.items[] | { id: .id, upper_name: (.name | ascii_upcase) }]",
+        "input": {"items": [{"id": 1, "name": "foo"}, {"id": 2, "name": "bar"}]},
+        "expected": [{"id": 1, "upper_name": "FOO"}, {"id": 2, "upper_name": "BAR"}]
+      },
+      {
+        "id": "transform-filter",
+        "expression": "[.items[] | select(.active == true)]",
+        "input": {"items": [{"id": 1, "active": true}, {"id": 2, "active": false}, {"id": 3, "active": true}]},
+        "expected": [{"id": 1, "active": true}, {"id": 3, "active": true}]
+      },
+      {
+        "id": "validate-boolean-rule",
+        "expression": ".age >= 18",
+        "input": {"age": 25},
+        "expected": true
+      },
+      {
+        "id": "validate-string-check",
+        "expression": ".email | test(\"@\")",
+        "input": {"email": "user@example.com"},
+        "expected": true
+      }
+    ]
+  }
+}

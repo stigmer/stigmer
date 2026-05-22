@@ -39,12 +39,13 @@ func (c *WorkflowController) Update(ctx context.Context, workflow *workflowv1.Wo
 func (c *WorkflowController) buildUpdatePipeline() *pipeline.Pipeline[*workflowv1.Workflow] {
 	return pipeline.NewPipeline[*workflowv1.Workflow]("workflow-update").
 		AddStep(steps.NewValidateProtoStep[*workflowv1.Workflow]()).                                      // 1. Validate field constraints (Layer 1)
-		AddStep(newValidateWorkflowSpecStep(c.validator)).                                                // 2. Validate via Temporal (Layer 2: Go converts + validates - SSOT)
+		AddStep(newValidateWorkflowSpecStep(c.validator)).                                                // 2. In-process validation (proto → CNCF YAML + structural checks)
 		AddStep(steps.NewResolveSlugStep[*workflowv1.Workflow]()).                                        // 3. Resolve slug
 		AddStep(steps.NewLoadExistingStep[*workflowv1.Workflow](c.store)).                                // 4. Load existing workflow
 		AddStep(steps.NewBuildUpdateStateStep[*workflowv1.Workflow]()).                                   // 5. Build updated state (merge spec, preserve status, update audit)
 		AddStep(steps.NewNormalizeReferencesStep[*workflowv1.Workflow]()).                                // 6. Normalize cross-references
-		AddStep(steps.NewPersistStep[*workflowv1.Workflow](c.store)).                                     // 7. Persist workflow
-		AddStep(steps.NewIndexSearchStep[*workflowv1.Workflow](c.store, &extractor.WorkflowExtractor{})). // 7. Update search index
+		AddStep(newPopulateServerlessValidationStepForUpdate()).                                          // 7. Refresh serverless validation YAML on update
+		AddStep(steps.NewPersistStep[*workflowv1.Workflow](c.store)).                                     // 8. Persist workflow
+		AddStep(steps.NewIndexSearchStep[*workflowv1.Workflow](c.store, &extractor.WorkflowExtractor{})). // 9. Update search index
 		Build()
 }

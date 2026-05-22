@@ -26,8 +26,8 @@ import (
 // Does NOT require: agent-runner or any LLM API key.
 func TestSandboxColocation_SessionRunnerID(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
@@ -100,16 +100,16 @@ func TestSandboxColocation_SessionRunnerID(t *testing.T) {
 			continue
 		}
 
-		runnerId := session.GetSpec().GetRunnerId()
-		if runnerId != "" {
-			t.Logf("found session with runner_id=%s (session_id=%s, execution_id=%s)",
-				runnerId, sessionId, ae.GetMetadata().GetId())
+		harnessStateId := session.GetSpec().GetHarnessStateId()
+		if harnessStateId != "" {
+			t.Logf("found session with harness_state_id=%s (session_id=%s, execution_id=%s)",
+				harnessStateId, sessionId, ae.GetMetadata().GetId())
 			return
 		}
 	}
 
-	t.Logf("no session with runner_id found — " +
-		"this is expected when STIGMER_RUNNER_ID is not set on the workflow-runner")
+	t.Logf("no session with harness_state_id found — " +
+		"this is expected when the runner has not yet bound to the session")
 }
 
 func createTestAgentForColocation(t *testing.T, ctx context.Context, clients *harness.Clients) *agentv1.Agent {

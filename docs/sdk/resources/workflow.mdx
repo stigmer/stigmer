@@ -72,6 +72,7 @@ Workflow workflow = client.workflows().get("wfl_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`apply`](#apply) | Create or update a workflow. |
 | [`create`](#create) | Create a workflow. |
 | [`update`](#update) | Update an existing workflow. |
+| [`updateVisibility`](#updatevisibility) | Update the visibility of an existing workflow. |
 | [`delete`](#delete) | Delete a workflow. |
 | [`validateSpec`](#validatespec) | Validate a workflow spec without persisting it. |
 
@@ -409,6 +410,51 @@ Workflow workflow = client.workflows().update(WorkflowInput.builder()
 
 **Returns**: [`Workflow`](#workflow)
 
+### updateVisibility
+
+Update the visibility of an existing workflow.
+
+This is a targeted metadata update — it only modifies metadata.visibility, leaving spec, status, and other metadata fields untouched. Use this to make a workflow publicly accessible or to revoke public access without sending the entire workflow resource (avoiding read-modify-write races).
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const workflow = await stigmer.workflow.updateVisibility({
+  resourceId: "...",
+  visibility: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+workflow, err := client.Workflow.UpdateVisibility(ctx, &stigmer.UpdateVisibilityInput{
+  ResourceId: "...",
+  Visibility: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+workflow = client.workflows.update_visibility(UpdateVisibilityInput(
+    resource_id="...",
+    visibility="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+Workflow workflow = client.workflows().updateVisibility(UpdateVisibilityInput.builder()
+    .resourceId("...")
+    .visibility("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`UpdateVisibilityInput`](#updatevisibilityinput)
+
+**Returns**: [`Workflow`](#workflow)
+
 ### delete
 
 Delete a workflow.
@@ -612,6 +658,17 @@ WorkflowBudget declares cost, token, and duration limits for a workflow executio
     maxTotalTokens: { type: "number", description: "Maximum total tokens (input + output) across all LLM/agent tasks." },
     maxDurationSeconds: { type: "number", description: "Maximum wall-clock duration for the entire workflow execution in seconds." },
     onExceeded: { type: "BudgetExceededPolicy", description: "Policy when any budget limit is exceeded.", typeDescriptionLink: "#budgetexceededpolicy" },
+  }}
+/>
+
+### UpdateVisibilityInput
+
+Input for updating the visibility of any API resource.
+
+<TypeTable
+  type={{
+    resourceId: { type: "string", description: "ID of the resource whose visibility is being updated.", required: true },
+    visibility: { type: "ApiResourceVisibility", description: "The new visibility setting for the resource.", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcevisibility" },
   }}
 />
 

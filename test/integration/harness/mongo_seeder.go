@@ -56,6 +56,9 @@ type SeedIdentityAccountInput struct {
 	FirstName string
 	// LastName for spec.lastName.
 	LastName string
+	// IsMachineAccount marks this as a service-to-service machine account
+	// (e.g., the Auth0 client-credentials account used for internal gRPC calls).
+	IsMachineAccount bool
 }
 
 // SeedIdentityAccount upserts an identity_account document into MongoDB.
@@ -64,6 +67,15 @@ type SeedIdentityAccountInput struct {
 func (s *MongoSeeder) SeedIdentityAccount(ctx context.Context, input SeedIdentityAccountInput) error {
 	coll := s.client.Database(s.dbName).Collection(identityAccountCollection)
 
+	spec := bson.D{
+		{Key: "idpId", Value: input.IdpID},
+		{Key: "email", Value: input.Email},
+		{Key: "firstName", Value: input.FirstName},
+		{Key: "lastName", Value: input.LastName},
+		{Key: "pictureUrl", Value: ""},
+		{Key: "isMachineAccount", Value: input.IsMachineAccount},
+	}
+
 	doc := bson.D{
 		{Key: "apiVersion", Value: "iam.stigmer.ai/v1"},
 		{Key: "kind", Value: "IdentityAccount"},
@@ -71,13 +83,7 @@ func (s *MongoSeeder) SeedIdentityAccount(ctx context.Context, input SeedIdentit
 			{Key: "id", Value: input.ID},
 			{Key: "name", Value: input.Name},
 		}},
-		{Key: "spec", Value: bson.D{
-			{Key: "idpId", Value: input.IdpID},
-			{Key: "email", Value: input.Email},
-			{Key: "firstName", Value: input.FirstName},
-			{Key: "lastName", Value: input.LastName},
-			{Key: "pictureUrl", Value: ""},
-		}},
+		{Key: "spec", Value: spec},
 	}
 
 	filter := bson.D{{Key: "metadata.id", Value: input.ID}}

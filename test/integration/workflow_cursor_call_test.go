@@ -181,8 +181,8 @@ func TestWorkflowCursorCall_StructuredOutput(t *testing.T) {
 func requireCursorCallPrereqs(t *testing.T) {
 	t.Helper()
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 	if testHarness.CursorRunner == nil {
 		t.Skip("cursor-runner not available — skipping cursor_call test")

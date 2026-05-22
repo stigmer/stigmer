@@ -40,18 +40,24 @@ type SessionSpec struct {
 	AgentInstanceId string `protobuf:"bytes,1,opt,name=agent_instance_id,json=agentInstanceId,proto3" json:"agent_instance_id,omitempty"`
 	// Conversation title for UI display.
 	Subject string `protobuf:"bytes,2,opt,name=subject,proto3" json:"subject,omitempty"`
-	// Thread ID that carries the conversation history across executions.
+	// Harness-specific state identifier for conversation continuity.
+	//
+	// Populated after the first execution completes; empty until then.
+	// Each harness uses this field differently:
+	//
+	//   - NATIVE: LangGraph thread ID, derived deterministically as
+	//     "thread-{session_id}" by the EnsureThread activity. Stored here
+	//     so the immutability sentinel works uniformly across harnesses.
+	//
+	//   - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
+	//     returned by Agent.create(). Used for Agent.resume() on
+	//     subsequent executions.
 	//
 	// @internal
-	// Generated on first execution, persists across all executions.
-	ThreadId string `protobuf:"bytes,3,opt,name=thread_id,json=threadId,proto3" json:"thread_id,omitempty"`
-	// Deprecated: sandbox lifecycle is now managed at the Runner level via
-	// the stigmer.ai/sandbox-id metadata label on the Runner resource.
-	// Existing sessions may still have this field populated; new sessions
-	// should not set it.
-	//
-	// Deprecated: Marked as deprecated in ai/stigmer/agentic/session/v1/spec.proto.
-	SandboxId string `protobuf:"bytes,4,opt,name=sandbox_id,json=sandboxId,proto3" json:"sandbox_id,omitempty"`
+	// Also serves as the immutability sentinel: when non-empty, the
+	// session's harness and cursor_mode cannot be changed — each harness
+	// owns its conversation state independently.
+	HarnessStateId string `protobuf:"bytes,3,opt,name=harness_state_id,json=harnessStateId,proto3" json:"harness_state_id,omitempty"`
 	// Custom key-value pairs for client-specific information.
 	Metadata map[string]string `protobuf:"bytes,5,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// Workspace entries for this session.
@@ -75,21 +81,6 @@ type SessionSpec struct {
 	// runner merges these with the agent's mcp_server_usages when constructing
 	// the execution graph.
 	McpServerUsages []*v1.McpServerUsage `protobuf:"bytes,7,rep,name=mcp_server_usages,json=mcpServerUsages,proto3" json:"mcp_server_usages,omitempty"`
-	// Runner that executes work for this session.
-	//
-	// When set, all executions in this session route to this runner's task queue.
-	// When empty, the platform auto-creates an ephemeral cloud runner on first
-	// execution and sets this field.
-	//
-	// For persistent runners (user-created via CLI/desktop), this is set by the
-	// session composer when the user picks their runner. For cloud executions,
-	// this is set automatically by the system.
-	//
-	// @internal
-	// The execution workflow reads this field to resolve the Temporal task queue
-	// for scheduling activities. When empty, the workflow calls the
-	// RunnerLauncher to spawn an ephemeral runner and populates this field.
-	RunnerId string `protobuf:"bytes,9,opt,name=runner_id,json=runnerId,proto3" json:"runner_id,omitempty"`
 	// Skills to inject into this session's context.
 	//
 	// Provides domain-specific knowledge for this specific conversation without
@@ -103,7 +94,7 @@ type SessionSpec struct {
 	//
 	// Determines which Temporal activity type is dispatched when an
 	// AgentExecution is created in this session:
-	// - NATIVE (default): ExecuteGraphton activity -> Stigmer native worker
+	// - NATIVE (default): ExecuteDeepAgent activity -> Stigmer unified runner
 	// - CURSOR: ExecuteCursor activity -> TypeScript/Cursor SDK worker
 	//
 	// The harness affects which tools the agent has, how conversation state
@@ -130,9 +121,23 @@ type SessionSpec struct {
 	//
 	// When UNSPECIFIED on an existing CURSOR session, the runner defaults
 	// to LOCAL for backward compatibility.
-	CursorMode    CursorMode `protobuf:"varint,11,opt,name=cursor_mode,json=cursorMode,proto3,enum=ai.stigmer.agentic.session.v1.CursorMode" json:"cursor_mode,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	CursorMode CursorMode `protobuf:"varint,11,opt,name=cursor_mode,json=cursorMode,proto3,enum=ai.stigmer.agentic.session.v1.CursorMode" json:"cursor_mode,omitempty"`
+	// Where session activities are executed — local client or cloud sandbox.
+	//
+	// Determines dispatch routing: LOCAL means the client's embedded runner
+	// (desktop app or CLI) polls the session's task queue; CLOUD means the
+	// server provisions a sandbox with a runner.
+	//
+	// Set by the client at session creation:
+	// - Desktop/CLI set LOCAL (they run an embedded runner)
+	// - Web console sets CLOUD (or UNSPECIFIED → server defaults to CLOUD)
+	// - Customer SDK sets whatever fits their architecture
+	//
+	// Immutable once an execution has run — workspace state may not be
+	// portable between local and cloud environments.
+	ExecutionTarget ExecutionTarget `protobuf:"varint,12,opt,name=execution_target,json=executionTarget,proto3,enum=ai.stigmer.agentic.session.v1.ExecutionTarget" json:"execution_target,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *SessionSpec) Reset() {
@@ -179,17 +184,9 @@ func (x *SessionSpec) GetSubject() string {
 	return ""
 }
 
-func (x *SessionSpec) GetThreadId() string {
+func (x *SessionSpec) GetHarnessStateId() string {
 	if x != nil {
-		return x.ThreadId
-	}
-	return ""
-}
-
-// Deprecated: Marked as deprecated in ai/stigmer/agentic/session/v1/spec.proto.
-func (x *SessionSpec) GetSandboxId() string {
-	if x != nil {
-		return x.SandboxId
+		return x.HarnessStateId
 	}
 	return ""
 }
@@ -215,13 +212,6 @@ func (x *SessionSpec) GetMcpServerUsages() []*v1.McpServerUsage {
 	return nil
 }
 
-func (x *SessionSpec) GetRunnerId() string {
-	if x != nil {
-		return x.RunnerId
-	}
-	return ""
-}
-
 func (x *SessionSpec) GetSkillRefs() []*apiresource.ApiResourceReference {
 	if x != nil {
 		return x.SkillRefs
@@ -243,29 +233,34 @@ func (x *SessionSpec) GetCursorMode() CursorMode {
 	return CursorMode_CURSOR_MODE_UNSPECIFIED
 }
 
+func (x *SessionSpec) GetExecutionTarget() ExecutionTarget {
+	if x != nil {
+		return x.ExecutionTarget
+	}
+	return ExecutionTarget_EXECUTION_TARGET_UNSPECIFIED
+}
+
 var File_ai_stigmer_agentic_session_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"(ai/stigmer/agentic/session/v1/spec.proto\x12\x1dai.stigmer.agentic.session.v1\x1a&ai/stigmer/agentic/agent/v1/spec.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xe0\a\n" +
+	"(ai/stigmer/agentic/session/v1/spec.proto\x12\x1dai.stigmer.agentic.session.v1\x1a&ai/stigmer/agentic/agent/v1/spec.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\x88\b\n" +
 	"\vSessionSpec\x12*\n" +
 	"\x11agent_instance_id\x18\x01 \x01(\tR\x0fagentInstanceId\x12\x18\n" +
-	"\asubject\x18\x02 \x01(\tR\asubject\x12\x1b\n" +
-	"\tthread_id\x18\x03 \x01(\tR\bthreadId\x12!\n" +
-	"\n" +
-	"sandbox_id\x18\x04 \x01(\tB\x02\x18\x01R\tsandboxId\x12T\n" +
+	"\asubject\x18\x02 \x01(\tR\asubject\x12(\n" +
+	"\x10harness_state_id\x18\x03 \x01(\tR\x0eharnessStateId\x12T\n" +
 	"\bmetadata\x18\x05 \x03(\v28.ai.stigmer.agentic.session.v1.SessionSpec.MetadataEntryR\bmetadata\x12Z\n" +
 	"\x11workspace_entries\x18\x06 \x03(\v2-.ai.stigmer.agentic.session.v1.WorkspaceEntryR\x10workspaceEntries\x12\xea\x01\n" +
 	"\x11mcp_server_usages\x18\a \x03(\v2+.ai.stigmer.agentic.agent.v1.McpServerUsageB\x90\x01\xbaH\x8c\x01\x92\x01\x88\x01\"\x85\x01\xba\x01\x81\x01\n" +
-	"\x1esession_mcp_server_usages.kind\x12?mcp_server_usages must reference resources with kind=mcp_server\x1a\x1ethis.mcp_server_ref.kind == 44R\x0fmcpServerUsages\x12\x1b\n" +
-	"\trunner_id\x18\t \x01(\tR\brunnerId\x12\xc3\x01\n" +
+	"\x1esession_mcp_server_usages.kind\x12?mcp_server_usages must reference resources with kind=mcp_server\x1a\x1ethis.mcp_server_ref.kind == 44R\x0fmcpServerUsages\x12\xc3\x01\n" +
 	"\n" +
 	"skill_refs\x18\b \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBn\xbaHg\x92\x01d\"b\xba\x01_\n" +
 	"\x17session_skill_refs.kind\x123skill_refs must reference resources with kind=skill\x1a\x0fthis.kind == 43\xe0\x85,+R\tskillRefs\x12@\n" +
 	"\aharness\x18\n" +
 	" \x01(\x0e2&.ai.stigmer.agentic.session.v1.HarnessR\aharness\x12J\n" +
 	"\vcursor_mode\x18\v \x01(\x0e2).ai.stigmer.agentic.session.v1.CursorModeR\n" +
-	"cursorMode\x1a;\n" +
+	"cursorMode\x12Y\n" +
+	"\x10execution_target\x18\f \x01(\x0e2..ai.stigmer.agentic.session.v1.ExecutionTargetR\x0fexecutionTarget\x1a;\n" +
 	"\rMetadataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\x99\x02\n" +
@@ -292,6 +287,7 @@ var file_ai_stigmer_agentic_session_v1_spec_proto_goTypes = []any{
 	(*apiresource.ApiResourceReference)(nil), // 4: ai.stigmer.commons.apiresource.ApiResourceReference
 	(Harness)(0),                             // 5: ai.stigmer.agentic.session.v1.Harness
 	(CursorMode)(0),                          // 6: ai.stigmer.agentic.session.v1.CursorMode
+	(ExecutionTarget)(0),                     // 7: ai.stigmer.agentic.session.v1.ExecutionTarget
 }
 var file_ai_stigmer_agentic_session_v1_spec_proto_depIdxs = []int32{
 	1, // 0: ai.stigmer.agentic.session.v1.SessionSpec.metadata:type_name -> ai.stigmer.agentic.session.v1.SessionSpec.MetadataEntry
@@ -300,11 +296,12 @@ var file_ai_stigmer_agentic_session_v1_spec_proto_depIdxs = []int32{
 	4, // 3: ai.stigmer.agentic.session.v1.SessionSpec.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
 	5, // 4: ai.stigmer.agentic.session.v1.SessionSpec.harness:type_name -> ai.stigmer.agentic.session.v1.Harness
 	6, // 5: ai.stigmer.agentic.session.v1.SessionSpec.cursor_mode:type_name -> ai.stigmer.agentic.session.v1.CursorMode
-	6, // [6:6] is the sub-list for method output_type
-	6, // [6:6] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	7, // 6: ai.stigmer.agentic.session.v1.SessionSpec.execution_target:type_name -> ai.stigmer.agentic.session.v1.ExecutionTarget
+	7, // [7:7] is the sub-list for method output_type
+	7, // [7:7] is the sub-list for method input_type
+	7, // [7:7] is the sub-list for extension type_name
+	7, // [7:7] is the sub-list for extension extendee
+	0, // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_session_v1_spec_proto_init() }

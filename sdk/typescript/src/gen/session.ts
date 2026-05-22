@@ -8,7 +8,7 @@ import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { ToolApprovalOverrideSchema, McpServerUsageSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
-import { Harness, CursorMode, GitWriteBackMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { Harness, CursorMode, ExecutionTarget, GitWriteBackMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { SessionIdSchema, UpdateSessionSubjectRequestSchema, UpdateSessionMemoryRequestSchema, ListSessionsRequestSchema, SessionListSchema, ListSessionsByAgentRequestSchema, type UpdateSessionSubjectRequest, type UpdateSessionMemoryRequest, type ListSessionsRequest, type SessionList, type ListSessionsByAgentRequest } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
@@ -91,15 +91,14 @@ export interface SessionInput {
   visibility?: ApiResourceVisibility;
   agentInstanceId?: string;
   subject?: string;
-  threadId?: string;
-  sandboxId?: string;
+  harnessStateId?: string;
   metadata?: Record<string, string>;
   workspaceEntries?: WorkspaceEntryInput[];
   mcpServerUsages?: McpServerUsageInput[];
-  runnerId?: string;
   skillRefs?: ResourceRef[];
   harness?: Harness;
   cursorMode?: CursorMode;
+  executionTarget?: ExecutionTarget;
 }
 
 /** SDK input type for WorkspaceEntry. */
@@ -208,15 +207,14 @@ function buildSessionProto(input: SessionInput): Session {
     spec: Object.assign(create(SessionSpecSchema), stripUndefined({
       agentInstanceId: input.agentInstanceId,
       subject: input.subject,
-      threadId: input.threadId,
-      sandboxId: input.sandboxId,
+      harnessStateId: input.harnessStateId,
       metadata: input.metadata,
       workspaceEntries,
       mcpServerUsages,
-      runnerId: input.runnerId,
       skillRefs,
       harness: input.harness,
       cursorMode: input.cursorMode,
+      executionTarget: input.executionTarget,
     })),
   }) as Session;
 }

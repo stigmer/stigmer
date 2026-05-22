@@ -273,19 +273,29 @@ func (x *FindApiResourcesRequest) GetPageSize() int32 {
 
 // Input for updating the visibility of any API resource.
 //
-// Used by resource-specific command controllers to toggle between
-// PRIVATE and PUBLIC visibility. Each controller's updateVisibility RPC
-// accepts this shared input and returns the full updated resource.
+// Used by resource-specific command controllers to change visibility.
+// Each controller's updateVisibility RPC accepts this shared input
+// and returns the full updated resource.
 //
 // Visibility transitions trigger FGA tuple management in Cloud mode:
 // - PRIVATE → PUBLIC: creates resource#viewer@identity_account:* tuple
 // - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
+// - PRIVATE → ORG: creates resource#viewer@organization:<org>#member tuple
+// - ORG → PRIVATE: deletes the org member viewer tuple
+// - ORG → PUBLIC: deletes org tuple, creates wildcard tuple
+// - PUBLIC → ORG: deletes wildcard tuple, creates org tuple
+//
+// Not all resources support all visibility levels:
+// - Blueprints (agent, workflow, skill, mcp_server): PRIVATE or PUBLIC only
+// - Instances (agent_instance, workflow_instance): PRIVATE, ORG, or PUBLIC
 type UpdateVisibilityInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// ID of the resource whose visibility is being updated.
 	ResourceId string `protobuf:"bytes,1,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
 	// The new visibility setting for the resource.
-	// Must be either visibility_private or visibility_public.
+	// Must not be unspecified (0). Valid values depend on resource kind:
+	// - Blueprints: visibility_private (1) or visibility_public (2)
+	// - Instances: visibility_private (1), visibility_public (2), or visibility_org (3)
 	Visibility    ApiResourceVisibility `protobuf:"varint,2,opt,name=visibility,proto3,enum=ai.stigmer.commons.apiresource.ApiResourceVisibility" json:"visibility,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -355,8 +365,9 @@ type ApiResourceReference struct {
 	// Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).
 	Kind apiresourcekind.ApiResourceKind `protobuf:"varint,2,opt,name=kind,proto3,enum=ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind" json:"kind,omitempty"`
 	// Resource slug (user-friendly identifier, unique within org).
-	// Format: lowercase alphanumeric with hyphens, must start with a letter (e.g., "web-search", "code-reviewer").
-	// Length: 1-63 characters.
+	// Format: lowercase alphanumeric with hyphens, must start with a letter
+	// and end with a letter or digit (e.g., "web-search", "code-reviewer").
+	// Length: 2-63 characters.
 	Slug string `protobuf:"bytes,3,opt,name=slug,proto3" json:"slug,omitempty"`
 	// Version of the resource (optional, only applicable to versioned resources like Skills).
 	// Supports three formats:
@@ -464,11 +475,11 @@ const file_ai_stigmer_commons_apiresource_io_proto_rawDesc = "" +
 	"\n" +
 	"visibility\x18\x02 \x01(\x0e25.ai.stigmer.commons.apiresource.ApiResourceVisibilityB\n" +
 	"\xbaH\a\x82\x01\x04\x10\x01 \x00R\n" +
-	"visibility\"\xa0\x02\n" +
-	"\x14ApiResourceReference\x12/\n" +
-	"\x03org\x18\x01 \x01(\tB\x1d\xbaH\x1ar\x18\x18?2\x14^$|^[a-z][a-z0-9-]*$R\x03org\x12S\n" +
-	"\x04kind\x18\x02 \x01(\x0e2?.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindR\x04kind\x123\n" +
-	"\x04slug\x18\x03 \x01(\tB\x1f\xbaH\x1c\xc8\x01\x01r\x17\x10\x01\x18?2\x11^[a-z][a-z0-9-]*$R\x04slug\x12M\n" +
+	"visibility\"\xb0\x02\n" +
+	"\x14ApiResourceReference\x127\n" +
+	"\x03org\x18\x01 \x01(\tB%\xbaH\"r \x18?2\x1c^$|^[a-z][a-z0-9-]*[a-z0-9]$R\x03org\x12S\n" +
+	"\x04kind\x18\x02 \x01(\x0e2?.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindR\x04kind\x12;\n" +
+	"\x04slug\x18\x03 \x01(\tB'\xbaH$\xc8\x01\x01r\x1f\x10\x02\x18?2\x19^[a-z][a-z0-9-]*[a-z0-9]$R\x04slug\x12M\n" +
 	"\aversion\x18\x04 \x01(\tB3\xbaH0r.2,^$|^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$R\aversionB\x92\x02\n" +
 	"\"com.ai.stigmer.commons.apiresourceB\aIoProtoP\x01ZGgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource\xa2\x02\x04ASCA\xaa\x02\x1eAi.Stigmer.Commons.Apiresource\xca\x02\x1eAi\\Stigmer\\Commons\\Apiresource\xe2\x02*Ai\\Stigmer\\Commons\\Apiresource\\GPBMetadata\xea\x02!Ai::Stigmer::Commons::Apiresourceb\x06proto3"
 

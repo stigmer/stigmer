@@ -10,6 +10,8 @@ import {
 import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
 import { toProtoHarness, type HarnessOption } from "../models/harness";
+import { toProtoExecutionTarget, type ExecutionTargetOption } from "./execution-target";
+import { useExecutionTarget } from "../execution-target-context";
 
 /** Shared fields present in both variants of {@link CreateSessionInput}. */
 export interface SharedSessionFields {
@@ -24,20 +26,24 @@ export interface SharedSessionFields {
   /** Skill references to enable for executions in this session. */
   readonly skillRefs?: ResourceRef[];
   /**
-   * Runner to bind this session to.
-   *
-   * When set, all executions in the session are routed to this runner's
-   * task queue. When omitted, the backend auto-selects a runner (session
-   * auto-bind in OSS, cloud auto-provisioning in Cloud).
-   */
-  readonly runnerId?: string;
-  /**
    * Execution harness for this session.
    *
    * Determines which execution engine processes agent activities.
    * Immutable after the first execution runs. Defaults to `"native"`.
    */
   readonly harness?: HarnessOption;
+  /**
+   * Where session activities are executed.
+   *
+   * - `"local"` — Client's embedded runner (desktop app or CLI) polls
+   *   the session's task queue.
+   * - `"cloud"` — Server provisions a cloud sandbox with a runner.
+   * - `undefined` — Server decides based on deployment context
+   *   (LOCAL for OSS, CLOUD for managed).
+   *
+   * Immutable after the first execution runs.
+   */
+  readonly executionTarget?: ExecutionTargetOption;
 }
 
 /**
@@ -122,6 +128,7 @@ export interface UseCreateSessionReturn {
  */
 export function useCreateSession(): UseCreateSessionReturn {
   const stigmer = useStigmer();
+  const contextTarget = useExecutionTarget();
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
@@ -156,6 +163,8 @@ export function useCreateSession(): UseCreateSessionReturn {
           );
         }
 
+        const resolvedTarget = input.executionTarget ?? contextTarget;
+
         const session = await stigmer.session.create({
           name: `session-${Date.now()}`,
           org: input.org,
@@ -163,9 +172,11 @@ export function useCreateSession(): UseCreateSessionReturn {
           workspaceEntries: input.workspaceEntries,
           mcpServerUsages: input.mcpServerUsages,
           skillRefs: input.skillRefs,
-          runnerId: input.runnerId,
           agentInstanceId: resolvedInstanceId,
           harness: input.harness ? toProtoHarness(input.harness) : undefined,
+          executionTarget: resolvedTarget
+            ? toProtoExecutionTarget(resolvedTarget)
+            : undefined,
         });
 
         return { sessionId: session.metadata!.id };
@@ -176,7 +187,7 @@ export function useCreateSession(): UseCreateSessionReturn {
         setIsCreating(false);
       }
     },
-    [stigmer],
+    [stigmer, contextTarget],
   );
 
   return { create, isCreating, error, clearError };

@@ -121,13 +121,13 @@ func createBasicHealthState(dataDir string, daemonPID int) *daemon.HealthState {
 		hs.Components["stigmer-server"] = &daemon.ComponentState{State: "running"}
 	}
 
-	if wfPID, err := daemon.GetWorkflowRunnerPID(dataDir); err == nil {
+	if runnerPID, err := daemon.GetRunnerPID(dataDir); err == nil {
 		state := "running"
-		if !isProcessAlive(wfPID) {
+		if !isProcessAlive(runnerPID) {
 			state = "stopped"
 		}
-		hs.Components["workflow-runner"] = &daemon.ComponentState{
-			PID:   wfPID,
+		hs.Components["runner"] = &daemon.ComponentState{
+			PID:   runnerPID,
 			State: state,
 		}
 	} else {

@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package sample.v1;
+
+// Matches patterns used in workflow-runner gRPC call tasks:
+// - Nested message types
+// - Repeated fields
+// - Enum handling
+// - Unary RPC
+
+enum Priority {
+  PRIORITY_UNSPECIFIED = 0;
+  PRIORITY_LOW = 1;
+  PRIORITY_MEDIUM = 2;
+  PRIORITY_HIGH = 3;
+}
+
+message Address {
+  string street = 1;
+  string city = 2;
+  string country = 3;
+  string zip_code = 4;
+}
+
+message GetUserRequest {
+  string user_id = 1;
+}
+
+message GetUserResponse {
+  string user_id = 1;
+  string name = 2;
+  string email = 3;
+  Address address = 4;
+  repeated string roles = 5;
+  Priority priority = 6;
+}
+
+message CreateUserRequest {
+  string name = 1;
+  string email = 2;
+  Address address = 3;
+  repeated string roles = 4;
+  Priority priority = 5;
+}
+
+message CreateUserResponse {
+  string user_id = 1;
+  bool success = 2;
+}
+
+service UserService {
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
+}

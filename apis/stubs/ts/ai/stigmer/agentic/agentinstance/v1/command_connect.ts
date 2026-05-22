@@ -5,6 +5,7 @@
 
 import { AgentInstance } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
+import { UpdateVisibilityInput } from "../../../commons/apiresource/io_pbjs";
 import { AgentInstanceId } from "./io_pbjs";
 
 /**
@@ -63,6 +64,33 @@ export const AgentInstanceCommandController = {
     update: {
       name: "update",
       I: AgentInstance,
+      O: AgentInstance,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Update the visibility of an existing agent instance.
+     *
+     * Changes who can view this instance and interact with it. Supports the
+     * full visibility spectrum: PRIVATE (owner only), ORG (all org members),
+     * or PUBLIC (all authenticated users).
+     *
+     * For agent instances, visibility controls who can create sessions and run
+     * executions against this instance. Sessions remain personal regardless of
+     * instance visibility (conversation privacy is preserved).
+     *
+     * @internal
+     * Authorization: Requires can_edit permission on the agent instance.
+     * Visibility transitions trigger FGA tuple management in Cloud mode:
+     * - PRIVATE → ORG: creates agent_instance#viewer@organization:<org>#member
+     * - PRIVATE → PUBLIC: creates agent_instance#viewer@identity_account:*
+     * - ORG → PRIVATE: deletes the org member viewer tuple
+     * - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
+     *
+     * @generated from rpc ai.stigmer.agentic.agentinstance.v1.AgentInstanceCommandController.updateVisibility
+     */
+    updateVisibility: {
+      name: "updateVisibility",
+      I: UpdateVisibilityInput,
       O: AgentInstance,
       kind: MethodKind.Unary,
     },

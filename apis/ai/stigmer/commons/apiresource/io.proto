@@ -47,19 +47,29 @@ message FindApiResourcesRequest {
 
 // Input for updating the visibility of any API resource.
 //
-// Used by resource-specific command controllers to toggle between
-// PRIVATE and PUBLIC visibility. Each controller's updateVisibility RPC
-// accepts this shared input and returns the full updated resource.
+// Used by resource-specific command controllers to change visibility.
+// Each controller's updateVisibility RPC accepts this shared input
+// and returns the full updated resource.
 //
 // Visibility transitions trigger FGA tuple management in Cloud mode:
 // - PRIVATE → PUBLIC: creates resource#viewer@identity_account:* tuple
 // - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
+// - PRIVATE → ORG: creates resource#viewer@organization:<org>#member tuple
+// - ORG → PRIVATE: deletes the org member viewer tuple
+// - ORG → PUBLIC: deletes org tuple, creates wildcard tuple
+// - PUBLIC → ORG: deletes wildcard tuple, creates org tuple
+//
+// Not all resources support all visibility levels:
+// - Blueprints (agent, workflow, skill, mcp_server): PRIVATE or PUBLIC only
+// - Instances (agent_instance, workflow_instance): PRIVATE, ORG, or PUBLIC
 message UpdateVisibilityInput {
   // ID of the resource whose visibility is being updated.
   string resource_id = 1 [(buf.validate.field).required = true];
 
   // The new visibility setting for the resource.
-  // Must be either visibility_private or visibility_public.
+  // Must not be unspecified (0). Valid values depend on resource kind:
+  // - Blueprints: visibility_private (1) or visibility_public (2)
+  // - Instances: visibility_private (1), visibility_public (2), or visibility_org (3)
   ApiResourceVisibility visibility = 2 [(buf.validate.field).enum = {
     defined_only: true
     not_in: [0]
@@ -83,19 +93,20 @@ message ApiResourceReference {
   // Use explicit org for cross-org references (e.g., marketplace resources).
   string org = 1 [
     (buf.validate.field).string.max_len = 63,
-    (buf.validate.field).string.pattern = "^$|^[a-z][a-z0-9-]*$"
+    (buf.validate.field).string.pattern = "^$|^[a-z][a-z0-9-]*[a-z0-9]$"
   ];
 
   // Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).
   ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kind = 2;
 
   // Resource slug (user-friendly identifier, unique within org).
-  // Format: lowercase alphanumeric with hyphens, must start with a letter (e.g., "web-search", "code-reviewer").
-  // Length: 1-63 characters.
+  // Format: lowercase alphanumeric with hyphens, must start with a letter
+  // and end with a letter or digit (e.g., "web-search", "code-reviewer").
+  // Length: 2-63 characters.
   string slug = 3 [
     (buf.validate.field).required = true,
-    (buf.validate.field).string.pattern = "^[a-z][a-z0-9-]*$",
-    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.pattern = "^[a-z][a-z0-9-]*[a-z0-9]$",
+    (buf.validate.field).string.min_len = 2,
     (buf.validate.field).string.max_len = 63
   ];
 

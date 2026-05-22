@@ -62,59 +62,55 @@ public interface SessionSpecOrBuilder extends
 
   /**
    * <pre>
-   * Thread ID that carries the conversation history across executions.
+   * Harness-specific state identifier for conversation continuity.
+   *
+   * Populated after the first execution completes; empty until then.
+   * Each harness uses this field differently:
+   *
+   * - NATIVE: LangGraph thread ID, derived deterministically as
+   * "thread-{session_id}" by the EnsureThread activity. Stored here
+   * so the immutability sentinel works uniformly across harnesses.
+   *
+   * - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
+   * returned by Agent.create(). Used for Agent.resume() on
+   * subsequent executions.
    *
    * &#64;internal
-   * Generated on first execution, persists across all executions.
+   * Also serves as the immutability sentinel: when non-empty, the
+   * session's harness and cursor_mode cannot be changed — each harness
+   * owns its conversation state independently.
    * </pre>
    *
-   * <code>string thread_id = 3 [json_name = "threadId"];</code>
-   * @return The threadId.
+   * <code>string harness_state_id = 3 [json_name = "harnessStateId"];</code>
+   * @return The harnessStateId.
    */
-  java.lang.String getThreadId();
+  java.lang.String getHarnessStateId();
   /**
    * <pre>
-   * Thread ID that carries the conversation history across executions.
+   * Harness-specific state identifier for conversation continuity.
+   *
+   * Populated after the first execution completes; empty until then.
+   * Each harness uses this field differently:
+   *
+   * - NATIVE: LangGraph thread ID, derived deterministically as
+   * "thread-{session_id}" by the EnsureThread activity. Stored here
+   * so the immutability sentinel works uniformly across harnesses.
+   *
+   * - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
+   * returned by Agent.create(). Used for Agent.resume() on
+   * subsequent executions.
    *
    * &#64;internal
-   * Generated on first execution, persists across all executions.
+   * Also serves as the immutability sentinel: when non-empty, the
+   * session's harness and cursor_mode cannot be changed — each harness
+   * owns its conversation state independently.
    * </pre>
    *
-   * <code>string thread_id = 3 [json_name = "threadId"];</code>
-   * @return The bytes for threadId.
+   * <code>string harness_state_id = 3 [json_name = "harnessStateId"];</code>
+   * @return The bytes for harnessStateId.
    */
   com.google.protobuf.ByteString
-      getThreadIdBytes();
-
-  /**
-   * <pre>
-   * Deprecated: sandbox lifecycle is now managed at the Runner level via
-   * the stigmer.ai/sandbox-id metadata label on the Runner resource.
-   * Existing sessions may still have this field populated; new sessions
-   * should not set it.
-   * </pre>
-   *
-   * <code>string sandbox_id = 4 [json_name = "sandboxId", deprecated = true];</code>
-   * @deprecated ai.stigmer.agentic.session.v1.SessionSpec.sandbox_id is deprecated.
-   *     See ai/stigmer/agentic/session/v1/spec.proto;l=38
-   * @return The sandboxId.
-   */
-  @java.lang.Deprecated java.lang.String getSandboxId();
-  /**
-   * <pre>
-   * Deprecated: sandbox lifecycle is now managed at the Runner level via
-   * the stigmer.ai/sandbox-id metadata label on the Runner resource.
-   * Existing sessions may still have this field populated; new sessions
-   * should not set it.
-   * </pre>
-   *
-   * <code>string sandbox_id = 4 [json_name = "sandboxId", deprecated = true];</code>
-   * @deprecated ai.stigmer.agentic.session.v1.SessionSpec.sandbox_id is deprecated.
-   *     See ai/stigmer/agentic/session/v1/spec.proto;l=38
-   * @return The bytes for sandboxId.
-   */
-  @java.lang.Deprecated com.google.protobuf.ByteString
-      getSandboxIdBytes();
+      getHarnessStateIdBytes();
 
   /**
    * <pre>
@@ -345,52 +341,6 @@ java.lang.String defaultValue);
 
   /**
    * <pre>
-   * Runner that executes work for this session.
-   *
-   * When set, all executions in this session route to this runner's task queue.
-   * When empty, the platform auto-creates an ephemeral cloud runner on first
-   * execution and sets this field.
-   *
-   * For persistent runners (user-created via CLI/desktop), this is set by the
-   * session composer when the user picks their runner. For cloud executions,
-   * this is set automatically by the system.
-   *
-   * &#64;internal
-   * The execution workflow reads this field to resolve the Temporal task queue
-   * for scheduling activities. When empty, the workflow calls the
-   * RunnerLauncher to spawn an ephemeral runner and populates this field.
-   * </pre>
-   *
-   * <code>string runner_id = 9 [json_name = "runnerId"];</code>
-   * @return The runnerId.
-   */
-  java.lang.String getRunnerId();
-  /**
-   * <pre>
-   * Runner that executes work for this session.
-   *
-   * When set, all executions in this session route to this runner's task queue.
-   * When empty, the platform auto-creates an ephemeral cloud runner on first
-   * execution and sets this field.
-   *
-   * For persistent runners (user-created via CLI/desktop), this is set by the
-   * session composer when the user picks their runner. For cloud executions,
-   * this is set automatically by the system.
-   *
-   * &#64;internal
-   * The execution workflow reads this field to resolve the Temporal task queue
-   * for scheduling activities. When empty, the workflow calls the
-   * RunnerLauncher to spawn an ephemeral runner and populates this field.
-   * </pre>
-   *
-   * <code>string runner_id = 9 [json_name = "runnerId"];</code>
-   * @return The bytes for runnerId.
-   */
-  com.google.protobuf.ByteString
-      getRunnerIdBytes();
-
-  /**
-   * <pre>
    * Skills to inject into this session's context.
    *
    * Provides domain-specific knowledge for this specific conversation without
@@ -474,7 +424,7 @@ java.lang.String defaultValue);
    *
    * Determines which Temporal activity type is dispatched when an
    * AgentExecution is created in this session:
-   * - NATIVE (default): ExecuteGraphton activity -&gt; Stigmer native worker
+   * - NATIVE (default): ExecuteDeepAgent activity -&gt; Stigmer unified runner
    * - CURSOR: ExecuteCursor activity -&gt; TypeScript/Cursor SDK worker
    *
    * The harness affects which tools the agent has, how conversation state
@@ -495,7 +445,7 @@ java.lang.String defaultValue);
    *
    * Determines which Temporal activity type is dispatched when an
    * AgentExecution is created in this session:
-   * - NATIVE (default): ExecuteGraphton activity -&gt; Stigmer native worker
+   * - NATIVE (default): ExecuteDeepAgent activity -&gt; Stigmer unified runner
    * - CURSOR: ExecuteCursor activity -&gt; TypeScript/Cursor SDK worker
    *
    * The harness affects which tools the agent has, how conversation state
@@ -561,4 +511,47 @@ java.lang.String defaultValue);
    * @return The cursorMode.
    */
   ai.stigmer.agentic.session.v1.CursorMode getCursorMode();
+
+  /**
+   * <pre>
+   * Where session activities are executed — local client or cloud sandbox.
+   *
+   * Determines dispatch routing: LOCAL means the client's embedded runner
+   * (desktop app or CLI) polls the session's task queue; CLOUD means the
+   * server provisions a sandbox with a runner.
+   *
+   * Set by the client at session creation:
+   * - Desktop/CLI set LOCAL (they run an embedded runner)
+   * - Web console sets CLOUD (or UNSPECIFIED → server defaults to CLOUD)
+   * - Customer SDK sets whatever fits their architecture
+   *
+   * Immutable once an execution has run — workspace state may not be
+   * portable between local and cloud environments.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.ExecutionTarget execution_target = 12 [json_name = "executionTarget"];</code>
+   * @return The enum numeric value on the wire for executionTarget.
+   */
+  int getExecutionTargetValue();
+  /**
+   * <pre>
+   * Where session activities are executed — local client or cloud sandbox.
+   *
+   * Determines dispatch routing: LOCAL means the client's embedded runner
+   * (desktop app or CLI) polls the session's task queue; CLOUD means the
+   * server provisions a sandbox with a runner.
+   *
+   * Set by the client at session creation:
+   * - Desktop/CLI set LOCAL (they run an embedded runner)
+   * - Web console sets CLOUD (or UNSPECIFIED → server defaults to CLOUD)
+   * - Customer SDK sets whatever fits their architecture
+   *
+   * Immutable once an execution has run — workspace state may not be
+   * portable between local and cloud environments.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.ExecutionTarget execution_target = 12 [json_name = "executionTarget"];</code>
+   * @return The executionTarget.
+   */
+  ai.stigmer.agentic.session.v1.ExecutionTarget getExecutionTarget();
 }

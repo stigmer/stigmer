@@ -155,6 +155,13 @@ export {
   type WorkflowTaskListProps,
 } from "./WorkflowTaskList";
 
+export { topologyFromTasks } from "./topologyFromTasks";
+
+export {
+  WorkflowTopologyPreview,
+  type WorkflowTopologyPreviewProps,
+} from "./WorkflowTopologyPreview";
+
 export {
   WorkflowDetailView,
   type WorkflowDetailViewProps,
@@ -195,6 +202,12 @@ export {
   WorkflowExecutionApprovalCard,
   type WorkflowExecutionApprovalCardProps,
 } from "./WorkflowExecutionApprovalCard";
+
+export {
+  WorkflowTaskApprovalCard,
+  type WorkflowTaskApprovalCardProps,
+  type TaskOutcome,
+} from "./WorkflowTaskApprovalCard";
 
 // T14: Dashboard — data hooks
 export {
@@ -364,6 +377,14 @@ export {
   WorkflowRepairCard,
   type WorkflowRepairCardProps,
 } from "./WorkflowRepairCard";
+
+// Workflow update — mutation hook + input converter
+export {
+  useUpdateWorkflow,
+  type UseUpdateWorkflowReturn,
+} from "./useUpdateWorkflow";
+
+export { workflowToInput } from "./internal/workflowToInput";
 
 // Starter YAML template for new workflow creation
 export { STARTER_WORKFLOW_YAML } from "./starter-workflow-yaml";

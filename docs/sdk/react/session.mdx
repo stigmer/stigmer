@@ -143,7 +143,7 @@ Orchestrates the "create a new session" flow.
 
 Manages all the state required to configure and submit a new session:
 model selection (with localStorage persistence), agent resolution,
-MCP server/skill/runner selection, workspace entries, and session
+MCP server/skill selection, workspace entries, and session
 variables. On submission, creates the session and its first execution
 in sequence, then notifies the consumer via `onSessionCreated`.
 
@@ -173,17 +173,15 @@ function useNewSessionFlow(options: UseNewSessionFlowOptions): UseNewSessionFlow
     mcpServerUsages: { type: "McpServerUsageInput[]", description: "Active MCP server configurations." },
     modelId: { type: "string | undefined", description: "Currently selected model ID (persisted per-harness to localStorage)." },
     resolution: { type: "AgentResolution | null", description: "Current agent resolution state (saved instance vs direct reference)." },
-    runnerId: { type: "string | null", description: "Selected runner ID, or `null` for auto-selection." },
     sessionVariables: { type: "UseSessionVariablesReturn", description: "Session variables (per-execution secrets) manager.", typeDescriptionLink: "/docs/sdk/react/execution#usesessionvariablesreturn" },
     setAgentRef: { type: "(ref: ResourceRef | null) => void", description: "Update the selected agent reference." },
     setHarness: { type: "(harness: HarnessOption) => void", description: "Switch the harness. Resets the model if invalid for the new harness." },
     setMcpServerUsages: { type: "(usages: McpServerUsageInput[]) => void", description: "Update MCP server configurations." },
     setModelId: { type: "(id: string) => void", description: "Update the selected model. Automatically persists to localStorage." },
     setResolution: { type: "(r: AgentResolution | null) => void", description: "Update the agent resolution." },
-    setRunnerId: { type: "(id: string | null) => void", description: "Update the selected runner." },
     setSkillRefs: { type: "(refs: ResourceRef[]) => void", description: "Update skill references." },
     skillRefs: { type: "ResourceRef[]", description: "Active skill references." },
-    submit: { type: "(message: string, model?: string, context?: SessionComposerSubmitContext) => Promise<void>", description: "Create a session with the first execution.  Composes all managed state (agent, workspace, MCP servers, skills, runner, model, session variables) into the session and execution creation RPCs, then calls `onSessionCreated` on success.  The `model` parameter overrides `modelId` for this submission only (used when SessionComposer passes a per-message model selection)." },
+    submit: { type: "(message: string, model?: string, context?: SessionComposerSubmitContext) => Promise<void>", description: "Create a session with the first execution.  Composes all managed state (agent, workspace, MCP servers, skills, model, session variables) into the session and execution creation RPCs, then calls `onSessionCreated` on success.  The `model` parameter overrides `modelId` for this submission only (used when SessionComposer passes a per-message model selection)." },
     submitError: { type: "string | null", description: "Human-readable error from the last failed submission, or `null`." },
     workspace: { type: "UseWorkspaceEntriesReturn", description: "Workspace entries manager (git repos and local paths).", typeDescriptionLink: "/docs/sdk/react/workspace#useworkspaceentriesreturn" },
   }}
@@ -208,9 +206,7 @@ const flow = useNewSessionFlow({
   onMcpServerUsagesChange={flow.setMcpServerUsages}
   skillRefs={flow.skillRefs}
   onSkillRefsChange={flow.setSkillRefs}
-  runnerId={flow.runnerId}
-  onRunnerIdChange={flow.setRunnerId}
-  sessionVariables={flow.sessionVariables}
+  *   sessionVariables={flow.sessionVariables}
   defaultModelId={flow.modelId}
   onModelChange={flow.setModelId}
 />
@@ -593,6 +589,7 @@ function useSessionPageFlow(options: UseSessionPageFlowOptions): UseSessionPageF
     allExecutions: { type: "readonly AgentExecution[]", description: "All executions for widget display (completed + active stream)." },
     conv: { type: "UseSessionConversationReturn", description: "Full conversation state from `useSessionConversation`.", typeDescriptionLink: "#usesessionconversationreturn" },
     displayExecution: { type: "AgentExecution | null", description: "The most relevant execution for sidebar display — the active streaming execution, or the last completed one." },
+    executionTarget: { type: "ExecutionTargetOption | undefined", description: "Where session activities execute (read-only, derived from session spec).  `\"local\"` when the client's embedded runner handles activities, `\"cloud\"` when the server provisions a sandbox, or `undefined` when the server decides (UNSPECIFIED)." },
     handleSubmit: { type: "(message: string, model?: string, context?: SessionComposerSubmitContext) => Promise<void>", description: "Submit a follow-up message. Handles agent override resolution (if the user changed the agent mid-session) and delegates to `conv.sendFollowUp` with all managed state." },
     harness: { type: "HarnessOption", description: "Session's execution harness (read-only, derived from session spec).  Use this to: - Filter the model selector for follow-up messages - Render a harness badge in the session header  Defaults to `\"native\"` while the session is loading.", typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
     isDefaultAgent: { type: "boolean", description: "`true` when the session's agent is the org's default agent. Used to render the agent chip as non-removable in the composer." },
@@ -893,6 +890,28 @@ Each type maps to a Stigmer system agent that guides the user
 through the creation/editing flow in a conversational session.
 
 
+### ExecutionTargetOption
+
+String literal alias for the proto `ExecutionTarget` enum.
+
+Used on hook options so platform builders do not need to import
+proto enums to configure where session activities execute.
+
+- `"local"` — Client's embedded runner (desktop app or CLI) polls
+  the session's task queue.
+- `"cloud"` — Server provisions a cloud sandbox with a runner.
+
+
+### fromProtoExecutionTarget
+
+Convert a proto `ExecutionTarget` enum to an [`ExecutionTargetOption`](#executiontargetoption) string,
+or `undefined` when the value is `UNSPECIFIED` (server decides).
+
+```tsx
+function fromProtoExecutionTarget(t: ExecutionTarget): ExecutionTargetOption | undefined
+```
+
+
 ### groupSearchResultsByTime
 
 Groups SearchResult entries by their `createdAt` timestamp into time-based
@@ -1076,15 +1095,24 @@ Shared fields present in both variants of [`CreateSessionInput`](#createsessioni
 
 <TypeTable
   type={{
+    executionTarget: { type: "ExecutionTargetOption", description: "Where session activities are executed.  - `\"local\"` — Client's embedded runner (desktop app or CLI) polls   the session's task queue. - `\"cloud\"` — Server provisions a cloud sandbox with a runner. - `undefined` — Server decides based on deployment context   (LOCAL for OSS, CLOUD for managed).  Immutable after the first execution runs.", typeDescriptionLink: "#executiontargetoption" },
     harness: { type: "HarnessOption", description: "Execution harness for this session.  Determines which execution engine processes agent activities. Immutable after the first execution runs. Defaults to `\"native\"`.", typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
     mcpServerUsages: { type: "McpServerUsageInput[]", description: "MCP server configurations to include for tool access." },
     org: { type: "string", description: "Organization slug for the new session.", required: true },
-    runnerId: { type: "string", description: "Runner to bind this session to.  When set, all executions in the session are routed to this runner's task queue. When omitted, the backend auto-selects a runner (session auto-bind in OSS, cloud auto-provisioning in Cloud)." },
     skillRefs: { type: "ResourceRef[]", description: "Skill references to enable for executions in this session." },
     subject: { type: "string", description: "Initial conversation subject (defaults to `PENDING_SUBJECT`)." },
     workspaceEntries: { type: "WorkspaceEntryInput[]", description: "Workspace source entries to attach to the session." },
   }}
 />
+
+
+### toProtoExecutionTarget
+
+Convert an [`ExecutionTargetOption`](#executiontargetoption) string to the proto `ExecutionTarget` enum.
+
+```tsx
+function toProtoExecutionTarget(t: ExecutionTargetOption): ExecutionTarget
+```
 
 
 ### UseNewSessionFlowOptions
@@ -1093,6 +1121,7 @@ Options for [`useNewSessionFlow`](#usenewsessionflow).
 
 <TypeTable
   type={{
+    executionTarget: { type: "ExecutionTargetOption", description: "Where session activities should execute.", typeDescriptionLink: "#executiontargetoption" },
     onError: { type: "(message: string) => void", description: "Called when an error occurs during session creation. The consumer can use this for toast notifications or other UI feedback. If not provided, errors are still available via UseNewSessionFlowReturn.submitError." },
     onSessionCreated: { type: "(sessionId: string) => void", description: "Called after a session and its first execution are created successfully. The consumer is responsible for navigation (e.g. `router.push`).", required: true },
     org: { type: "string", description: "Organization slug. Required for session and execution creation.", required: true },

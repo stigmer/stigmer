@@ -4,7 +4,7 @@ import { ChipSpinner, XIcon } from "./icons";
 export interface ChipItem {
   key: string;
   label: string;
-  type: "agent" | "workspace" | "mcp" | "skill" | "secret" | "runner";
+  type: "agent" | "workspace" | "mcp" | "skill" | "secret";
   /**
    * Remove handler. When omitted, the chip renders without an X button
    * and with a subtly muted style to signal it is non-removable
@@ -25,7 +25,6 @@ const CHIP_TYPE_LABELS: Record<ChipItem["type"], string> = {
   mcp: "MCP",
   skill: "Skill",
   secret: "1-time",
-  runner: "Runner",
 };
 
 export function ContextChip({

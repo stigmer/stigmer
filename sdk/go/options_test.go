@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	sessionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/session/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 )
@@ -84,5 +85,17 @@ func TestWithDialOptions(t *testing.T) {
 	WithDialOptions(opt)(&cfg)
 	if len(cfg.dialOptions) != 1 {
 		t.Errorf("expected 1 dial option, got %d", len(cfg.dialOptions))
+	}
+}
+
+func TestWithExecutionTarget(t *testing.T) {
+	cfg := defaultConfig()
+	if cfg.executionTarget != sessionv1.ExecutionTarget_EXECUTION_TARGET_UNSPECIFIED {
+		t.Error("expected UNSPECIFIED execution target by default")
+	}
+
+	WithExecutionTarget(sessionv1.ExecutionTarget_EXECUTION_TARGET_LOCAL)(&cfg)
+	if cfg.executionTarget != sessionv1.ExecutionTarget_EXECUTION_TARGET_LOCAL {
+		t.Errorf("expected LOCAL, got %v", cfg.executionTarget)
 	}
 }

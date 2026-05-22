@@ -22,8 +22,8 @@ import (
 // Workflow: awaitApproval (human_input, timeout=5s, on_timeout=FAIL) → afterApproval (never reached)
 func TestWorkflowHITL_HumanInputTimeout(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -107,8 +107,8 @@ func TestWorkflowHITL_HumanInputTimeout(t *testing.T) {
 // When "needsRevision" is selected, execution should jump to gatherMore.
 func TestWorkflowHITL_HumanInputOutcomeRouting(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
-	if testHarness.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -190,9 +190,10 @@ func TestWorkflowHITL_HumanInputOutcomeRouting(t *testing.T) {
 	executionID := execution.GetMetadata().GetId()
 	t.Logf("execution created: id=%s, waiting for human_input to block...", executionID)
 
-	time.Sleep(3 * time.Second)
+	waiter := harness.NewExecutionWaiter(clients.ExecutionQuery, suiteLogger)
+	_, err = waiter.WaitForTaskWaitingApproval(ctx, executionID, "awaitReview", 90*time.Second)
+	require.NoError(t, err, "task should reach WAITING_APPROVAL")
 
-	// Submit "needsRevision" which has then=gatherMore
 	t.Logf("submitting outcome 'needsRevision' for task 'awaitReview' on execution %s", executionID)
 	_, err = clients.ExecutionCommand.SubmitWorkflowTaskApproval(ctx,
 		&workflowexecutionv1.SubmitWorkflowTaskApprovalInput{
@@ -202,8 +203,6 @@ func TestWorkflowHITL_HumanInputOutcomeRouting(t *testing.T) {
 			Reviewer:    "integration-test",
 		})
 	require.NoError(t, err, "submitting outcome should succeed")
-
-	waiter := harness.NewExecutionWaiter(clients.ExecutionQuery, suiteLogger)
 	result, err := waiter.WaitForPhase(ctx, executionID,
 		workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED, 90*time.Second)
 	require.NoError(t, err)
@@ -221,4 +220,162 @@ func TestWorkflowHITL_HumanInputOutcomeRouting(t *testing.T) {
 			afterTask.GetStatus(), "afterReview should be skipped — outcome routed to gatherMore")
 	}
 	t.Logf("human_input outcome routing: needsRevision → gatherMore, afterReview skipped")
+}
+
+// TestWorkflowHITL_ApprovalInvalidTaskName verifies that submitting an
+// approval for a task name that does not exist in the execution returns
+// an INVALID_ARGUMENT error.
+func TestWorkflowHITL_ApprovalInvalidTaskName(t *testing.T) {
+	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	deployer := harness.NewFixtureDeployer(clients, "hitl-bad-task", suiteLogger)
+	defer deployer.Cleanup(ctx)
+
+	humanInputConfig, err := structpb.NewStruct(map[string]any{
+		"prompt":  "Review this",
+		"timeout": float64(120),
+	})
+	require.NoError(t, err)
+
+	workflow := &workflowv1.Workflow{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       "Workflow",
+		Metadata: &apiresource.ApiResourceMetadata{
+			Name: "integration-test-hitl-bad-task",
+			Org:  "test-org",
+		},
+		Spec: &workflowv1.WorkflowSpec{
+			Description: "Integration test: approval with invalid task name",
+			Document: &workflowv1.WorkflowDocument{
+				Dsl:       "1.0.0",
+				Namespace: "test-org",
+				Name:      "integration-test-hitl-bad-task",
+				Version:   "1.0.0",
+			},
+			Tasks: []*workflowv1.WorkflowTask{
+				{
+					Name:       "awaitApproval",
+					Kind:       workflowv1.WorkflowTaskKind_human_input,
+					TaskConfig: humanInputConfig,
+				},
+			},
+		},
+	}
+
+	_, execution, err := deployer.DeployAndExecute(ctx, workflow, "invalid task name test")
+	require.NoError(t, err)
+
+	executionID := execution.GetMetadata().GetId()
+
+	waiter := harness.NewExecutionWaiter(clients.ExecutionQuery, suiteLogger)
+	_, err = waiter.WaitForTaskWaitingApproval(ctx, executionID, "awaitApproval", 90*time.Second)
+	require.NoError(t, err)
+
+	_, err = clients.ExecutionCommand.SubmitWorkflowTaskApproval(ctx,
+		&workflowexecutionv1.SubmitWorkflowTaskApprovalInput{
+			ExecutionId: executionID,
+			TaskName:    "nonexistentTask",
+			Outcome:     "approve",
+			Reviewer:    "integration-test",
+		})
+	require.Error(t, err, "submitting approval for a nonexistent task should fail")
+	t.Logf("correctly rejected approval for invalid task name: %v", err)
+
+	// Clean up: approve the real task so the execution can terminate
+	_, _ = clients.ExecutionCommand.SubmitWorkflowTaskApproval(ctx,
+		&workflowexecutionv1.SubmitWorkflowTaskApprovalInput{
+			ExecutionId: executionID,
+			TaskName:    "awaitApproval",
+			Outcome:     "approve",
+			Reviewer:    "integration-test",
+		})
+}
+
+// TestWorkflowHITL_ApprovalAfterCompletion verifies that submitting an
+// approval after the execution has already completed returns a
+// FAILED_PRECONDITION error.
+func TestWorkflowHITL_ApprovalAfterCompletion(t *testing.T) {
+	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	deployer := harness.NewFixtureDeployer(clients, "hitl-post-complete", suiteLogger)
+	defer deployer.Cleanup(ctx)
+
+	humanInputConfig, err := structpb.NewStruct(map[string]any{
+		"prompt":  "Review",
+		"timeout": float64(120),
+	})
+	require.NoError(t, err)
+
+	workflow := &workflowv1.Workflow{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       "Workflow",
+		Metadata: &apiresource.ApiResourceMetadata{
+			Name: "integration-test-hitl-post-complete",
+			Org:  "test-org",
+		},
+		Spec: &workflowv1.WorkflowSpec{
+			Description: "Integration test: approval after execution completes",
+			Document: &workflowv1.WorkflowDocument{
+				Dsl:       "1.0.0",
+				Namespace: "test-org",
+				Name:      "integration-test-hitl-post-complete",
+				Version:   "1.0.0",
+			},
+			Tasks: []*workflowv1.WorkflowTask{
+				{
+					Name:       "awaitApproval",
+					Kind:       workflowv1.WorkflowTaskKind_human_input,
+					TaskConfig: humanInputConfig,
+				},
+			},
+		},
+	}
+
+	_, execution, err := deployer.DeployAndExecute(ctx, workflow, "post-completion test")
+	require.NoError(t, err)
+
+	executionID := execution.GetMetadata().GetId()
+
+	waiter := harness.NewExecutionWaiter(clients.ExecutionQuery, suiteLogger)
+	_, err = waiter.WaitForTaskWaitingApproval(ctx, executionID, "awaitApproval", 90*time.Second)
+	require.NoError(t, err)
+
+	// First approval completes the execution
+	_, err = clients.ExecutionCommand.SubmitWorkflowTaskApproval(ctx,
+		&workflowexecutionv1.SubmitWorkflowTaskApprovalInput{
+			ExecutionId: executionID,
+			TaskName:    "awaitApproval",
+			Outcome:     "approve",
+			Reviewer:    "integration-test",
+		})
+	require.NoError(t, err)
+
+	_, err = waiter.WaitForPhase(ctx, executionID,
+		workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED, 90*time.Second)
+	require.NoError(t, err)
+
+	// Second approval should fail — execution is already completed
+	_, err = clients.ExecutionCommand.SubmitWorkflowTaskApproval(ctx,
+		&workflowexecutionv1.SubmitWorkflowTaskApprovalInput{
+			ExecutionId: executionID,
+			TaskName:    "awaitApproval",
+			Outcome:     "approve",
+			Reviewer:    "integration-test",
+		})
+	require.Error(t, err, "submitting approval after completion should fail")
+	t.Logf("correctly rejected approval on completed execution: %v", err)
 }

@@ -2,6 +2,7 @@ package harness
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
@@ -35,26 +36,32 @@ var Harnesses = []HarnessConfig{
 	},
 }
 
-// RequireNativePrereqs skips the test if the native (Graphton) agent-runner
-// is not available. Requires both workflow-runner and agent-runner.
+// RequireNativePrereqs skips the test if the unified runner is not available
+// or if the Anthropic API key is absent. Every native harness test dispatches
+// an agent execution through the LLM proxy, which requires an upstream key.
+// Without it, executions hang until the test context expires (~4 min), causing
+// a panic that aborts the entire suite.
 func RequireNativePrereqs(t *testing.T, th *TestHarness) {
 	t.Helper()
-	if th.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if th.UnifiedRunner == nil {
+		t.Skip("unified runner not available — skipping native harness test")
 	}
-	if th.AgentRunner == nil {
-		t.Skip("agent-runner not available — skipping native harness test")
+	if os.Getenv("ANTHROPIC_API_KEY") == "" {
+		t.Skip("ANTHROPIC_API_KEY not set — skipping native harness test (requires LLM)")
 	}
 }
 
-// RequireCursorPrereqs skips the test if the Cursor runner is not available.
+// RequireCursorPrereqs skips the test if the unified runner is not available
+// or if the Cursor API key is absent. Every cursor harness test dispatches
+// an agent execution through the Cursor proxy, which requires an upstream key.
+// Without it, executions fail immediately with HTTP 502 from the proxy.
 func RequireCursorPrereqs(t *testing.T, th *TestHarness) {
 	t.Helper()
-	if th.WorkflowRunner == nil {
-		t.Skip("workflow-runner not available")
+	if th.UnifiedRunner == nil {
+		t.Skip("unified runner not available — skipping cursor harness test")
 	}
-	if th.CursorRunner == nil {
-		t.Skip("cursor-runner not available — skipping cursor harness test")
+	if os.Getenv("CURSOR_API_KEY") == "" {
+		t.Skip("CURSOR_API_KEY not set — skipping cursor harness test (requires Cursor proxy)")
 	}
 }
 
@@ -84,6 +91,13 @@ func WithCursorMode(mode sessionv1.CursorMode) SessionOption {
 func WithWorkspaceEntries(entries []*sessionv1.WorkspaceEntry) SessionOption {
 	return func(s *sessionv1.SessionSpec) {
 		s.WorkspaceEntries = entries
+	}
+}
+
+// WithExecutionTarget sets the execution target on the session spec.
+func WithExecutionTarget(target sessionv1.ExecutionTarget) SessionOption {
+	return func(s *sessionv1.SessionSpec) {
+		s.ExecutionTarget = target
 	}
 }
 

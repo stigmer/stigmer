@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	runnerv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/runner/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
@@ -307,8 +306,7 @@ func TestSessionController_Update(t *testing.T) {
 
 		// Update the session
 		created.Spec.Subject = "Updated subject"
-		created.Spec.ThreadId = "new-thread-id"
-		created.Spec.SandboxId = "new-sandbox-id"
+		created.Spec.HarnessStateId = "new-harness-state-id"
 
 		updated, err := controller.Update(contextWithSessionKind(), created)
 		if err != nil {
@@ -319,12 +317,8 @@ func TestSessionController_Update(t *testing.T) {
 			t.Errorf("Expected subject 'Updated subject', got '%s'", updated.Spec.Subject)
 		}
 
-		if updated.Spec.ThreadId != "new-thread-id" {
-			t.Errorf("Expected thread_id 'new-thread-id', got '%s'", updated.Spec.ThreadId)
-		}
-
-		if updated.Spec.SandboxId != "new-sandbox-id" {
-			t.Errorf("Expected sandbox_id 'new-sandbox-id', got '%s'", updated.Spec.SandboxId)
+		if updated.Spec.HarnessStateId != "new-harness-state-id" {
+			t.Errorf("Expected harness_state_id 'new-harness-state-id', got '%s'", updated.Spec.HarnessStateId)
 		}
 
 		// Verify ID and slug remain unchanged
@@ -444,6 +438,141 @@ func TestSessionController_Update(t *testing.T) {
 	})
 }
 
+func TestSessionController_ExecutionTargetImmutability(t *testing.T) {
+	controller, store := setupTestController(t)
+	defer store.Close()
+
+	t.Run("create session with execution_target LOCAL persists the value", func(t *testing.T) {
+		session := &sessionv1.Session{
+			ApiVersion: "agentic.stigmer.ai/v1",
+			Kind:       "Session",
+			Metadata: &apiresource.ApiResourceMetadata{
+				Name: "ET Local Session",
+				Org:  "test-org",
+			},
+			Spec: &sessionv1.SessionSpec{
+				AgentInstanceId: "test-agent-instance-id",
+				Subject:         "Test",
+				ExecutionTarget: sessionv1.ExecutionTarget_EXECUTION_TARGET_LOCAL,
+			},
+		}
+
+		created, err := controller.Create(contextWithSessionKind(), session)
+		if err != nil {
+			t.Fatalf("Create failed: %v", err)
+		}
+
+		if created.Spec.ExecutionTarget != sessionv1.ExecutionTarget_EXECUTION_TARGET_LOCAL {
+			t.Errorf("Expected EXECUTION_TARGET_LOCAL, got %v", created.Spec.ExecutionTarget)
+		}
+	})
+
+	t.Run("update execution_target before first execution is allowed", func(t *testing.T) {
+		session := &sessionv1.Session{
+			ApiVersion: "agentic.stigmer.ai/v1",
+			Kind:       "Session",
+			Metadata: &apiresource.ApiResourceMetadata{
+				Name: "ET Mutable Session",
+				Org:  "test-org",
+			},
+			Spec: &sessionv1.SessionSpec{
+				AgentInstanceId: "test-agent-instance-id",
+				Subject:         "Test",
+				ExecutionTarget: sessionv1.ExecutionTarget_EXECUTION_TARGET_LOCAL,
+			},
+		}
+
+		created, err := controller.Create(contextWithSessionKind(), session)
+		if err != nil {
+			t.Fatalf("Create failed: %v", err)
+		}
+
+		created.Spec.ExecutionTarget = sessionv1.ExecutionTarget_EXECUTION_TARGET_CLOUD
+		updated, err := controller.Update(contextWithSessionKind(), created)
+		if err != nil {
+			t.Fatalf("Update should succeed before first execution: %v", err)
+		}
+
+		if updated.Spec.ExecutionTarget != sessionv1.ExecutionTarget_EXECUTION_TARGET_CLOUD {
+			t.Errorf("Expected EXECUTION_TARGET_CLOUD, got %v", updated.Spec.ExecutionTarget)
+		}
+	})
+
+	t.Run("update execution_target after first execution is rejected", func(t *testing.T) {
+		session := &sessionv1.Session{
+			ApiVersion: "agentic.stigmer.ai/v1",
+			Kind:       "Session",
+			Metadata: &apiresource.ApiResourceMetadata{
+				Name: "ET Immutable Session",
+				Org:  "test-org",
+			},
+			Spec: &sessionv1.SessionSpec{
+				AgentInstanceId: "test-agent-instance-id",
+				Subject:         "Test",
+				ExecutionTarget: sessionv1.ExecutionTarget_EXECUTION_TARGET_LOCAL,
+			},
+		}
+
+		created, err := controller.Create(contextWithSessionKind(), session)
+		if err != nil {
+			t.Fatalf("Create failed: %v", err)
+		}
+
+		// Simulate first execution completing by setting harness_state_id
+		created.Spec.HarnessStateId = "thread-abc123"
+		created, err = controller.Update(contextWithSessionKind(), created)
+		if err != nil {
+			t.Fatalf("Update with harness_state_id failed: %v", err)
+		}
+
+		// Now try to change execution_target
+		created.Spec.ExecutionTarget = sessionv1.ExecutionTarget_EXECUTION_TARGET_CLOUD
+		_, err = controller.Update(contextWithSessionKind(), created)
+		if err == nil {
+			t.Error("Expected error when changing execution_target after first execution")
+		}
+	})
+
+	t.Run("update with same execution_target after first execution is allowed", func(t *testing.T) {
+		session := &sessionv1.Session{
+			ApiVersion: "agentic.stigmer.ai/v1",
+			Kind:       "Session",
+			Metadata: &apiresource.ApiResourceMetadata{
+				Name: "ET Same Target Session",
+				Org:  "test-org",
+			},
+			Spec: &sessionv1.SessionSpec{
+				AgentInstanceId: "test-agent-instance-id",
+				Subject:         "Test",
+				ExecutionTarget: sessionv1.ExecutionTarget_EXECUTION_TARGET_LOCAL,
+			},
+		}
+
+		created, err := controller.Create(contextWithSessionKind(), session)
+		if err != nil {
+			t.Fatalf("Create failed: %v", err)
+		}
+
+		created.Spec.HarnessStateId = "thread-def456"
+		created, err = controller.Update(contextWithSessionKind(), created)
+		if err != nil {
+			t.Fatalf("Update with harness_state_id failed: %v", err)
+		}
+
+		// Updating with the same target should succeed
+		created.Spec.ExecutionTarget = sessionv1.ExecutionTarget_EXECUTION_TARGET_LOCAL
+		created.Spec.Subject = "Updated subject"
+		updated, err := controller.Update(contextWithSessionKind(), created)
+		if err != nil {
+			t.Fatalf("Update with same execution_target should succeed: %v", err)
+		}
+
+		if updated.Spec.Subject != "Updated subject" {
+			t.Errorf("Expected 'Updated subject', got '%s'", updated.Spec.Subject)
+		}
+	})
+}
+
 func TestSessionController_Delete(t *testing.T) {
 	controller, store := setupTestController(t)
 	defer store.Close()
@@ -511,8 +640,7 @@ func TestSessionController_Delete(t *testing.T) {
 			Spec: &sessionv1.SessionSpec{
 				AgentInstanceId: "verify-agent-instance-id",
 				Subject:         "Verify deletion subject",
-				ThreadId:        "test-thread-id",
-				SandboxId:       "test-sandbox-id",
+				HarnessStateId:  "test-harness-state-id",
 			},
 		}
 
@@ -536,12 +664,8 @@ func TestSessionController_Delete(t *testing.T) {
 			t.Errorf("Expected subject 'Verify deletion subject', got '%s'", deleted.Spec.Subject)
 		}
 
-		if deleted.Spec.ThreadId != "test-thread-id" {
-			t.Errorf("Expected thread_id 'test-thread-id', got '%s'", deleted.Spec.ThreadId)
-		}
-
-		if deleted.Spec.SandboxId != "test-sandbox-id" {
-			t.Errorf("Expected sandbox_id 'test-sandbox-id', got '%s'", deleted.Spec.SandboxId)
+		if deleted.Spec.HarnessStateId != "test-harness-state-id" {
+			t.Errorf("Expected harness_state_id 'test-harness-state-id', got '%s'", deleted.Spec.HarnessStateId)
 		}
 
 		if deleted.Metadata.Name != "Delete Verify Session" {
@@ -550,164 +674,4 @@ func TestSessionController_Delete(t *testing.T) {
 	})
 }
 
-// saveTestRunner is a helper that persists a Runner resource into the store
-// with the given phase and task queue.
-func saveTestRunner(t *testing.T, s store.Store, id, name string, phase runnerv1.RunnerPhase, taskQueue string) {
-	t.Helper()
-	runner := &runnerv1.Runner{
-		ApiVersion: "agentic.stigmer.ai/v1",
-		Kind:       "Runner",
-		Metadata: &apiresource.ApiResourceMetadata{
-			Id:   id,
-			Name: name,
-			Org:  "test-org",
-		},
-		Spec: &runnerv1.RunnerSpec{},
-		Status: &runnerv1.RunnerStatus{
-			Phase:     phase,
-			TaskQueue: taskQueue,
-		},
-	}
-	if err := s.SaveResource(context.Background(), apiresourcekind.ApiResourceKind_runner, id, runner); err != nil {
-		t.Fatalf("failed to save test runner: %v", err)
-	}
-}
 
-func TestResolveDefaultRunner(t *testing.T) {
-	t.Run("sole READY runner is auto-bound", func(t *testing.T) {
-		controller, s := setupTestController(t)
-		defer s.Close()
-
-		saveTestRunner(t, s, "rnr_abc", "embedded", runnerv1.RunnerPhase_RUNNER_PHASE_READY, "runner:rnr_abc")
-
-		session := &sessionv1.Session{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "Session",
-			Metadata:   &apiresource.ApiResourceMetadata{Name: "Runner Bind Test", Org: "test-org"},
-			Spec:       &sessionv1.SessionSpec{AgentInstanceId: "test-instance"},
-		}
-
-		created, err := controller.Create(contextWithSessionKind(), session)
-		if err != nil {
-			t.Fatalf("Create failed: %v", err)
-		}
-
-		if created.Spec.RunnerId != "rnr_abc" {
-			t.Errorf("Expected runner_id 'rnr_abc', got '%s'", created.Spec.RunnerId)
-		}
-	})
-
-	t.Run("no runners — runner_id stays empty", func(t *testing.T) {
-		controller, s := setupTestController(t)
-		defer s.Close()
-
-		session := &sessionv1.Session{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "Session",
-			Metadata:   &apiresource.ApiResourceMetadata{Name: "No Runner Test", Org: "test-org"},
-			Spec:       &sessionv1.SessionSpec{AgentInstanceId: "test-instance"},
-		}
-
-		created, err := controller.Create(contextWithSessionKind(), session)
-		if err != nil {
-			t.Fatalf("Create failed: %v", err)
-		}
-
-		if created.Spec.RunnerId != "" {
-			t.Errorf("Expected empty runner_id, got '%s'", created.Spec.RunnerId)
-		}
-	})
-
-	t.Run("multiple READY runners — runner_id stays empty", func(t *testing.T) {
-		controller, s := setupTestController(t)
-		defer s.Close()
-
-		saveTestRunner(t, s, "rnr_1", "runner-1", runnerv1.RunnerPhase_RUNNER_PHASE_READY, "runner:rnr_1")
-		saveTestRunner(t, s, "rnr_2", "runner-2", runnerv1.RunnerPhase_RUNNER_PHASE_READY, "runner:rnr_2")
-
-		session := &sessionv1.Session{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "Session",
-			Metadata:   &apiresource.ApiResourceMetadata{Name: "Multi Runner Test", Org: "test-org"},
-			Spec:       &sessionv1.SessionSpec{AgentInstanceId: "test-instance"},
-		}
-
-		created, err := controller.Create(contextWithSessionKind(), session)
-		if err != nil {
-			t.Fatalf("Create failed: %v", err)
-		}
-
-		if created.Spec.RunnerId != "" {
-			t.Errorf("Expected empty runner_id with multiple runners, got '%s'", created.Spec.RunnerId)
-		}
-	})
-
-	t.Run("explicit runner_id preserved — no override", func(t *testing.T) {
-		controller, s := setupTestController(t)
-		defer s.Close()
-
-		saveTestRunner(t, s, "rnr_sole", "sole-runner", runnerv1.RunnerPhase_RUNNER_PHASE_READY, "runner:rnr_sole")
-
-		session := &sessionv1.Session{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "Session",
-			Metadata:   &apiresource.ApiResourceMetadata{Name: "Explicit Runner Test", Org: "test-org"},
-			Spec:       &sessionv1.SessionSpec{AgentInstanceId: "test-instance", RunnerId: "rnr_explicit"},
-		}
-
-		created, err := controller.Create(contextWithSessionKind(), session)
-		if err != nil {
-			t.Fatalf("Create failed: %v", err)
-		}
-
-		if created.Spec.RunnerId != "rnr_explicit" {
-			t.Errorf("Expected runner_id 'rnr_explicit', got '%s'", created.Spec.RunnerId)
-		}
-	})
-
-	t.Run("only BUSY runner — runner_id stays empty", func(t *testing.T) {
-		controller, s := setupTestController(t)
-		defer s.Close()
-
-		saveTestRunner(t, s, "rnr_busy", "busy-runner", runnerv1.RunnerPhase_RUNNER_PHASE_BUSY, "runner:rnr_busy")
-
-		session := &sessionv1.Session{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "Session",
-			Metadata:   &apiresource.ApiResourceMetadata{Name: "Busy Runner Test", Org: "test-org"},
-			Spec:       &sessionv1.SessionSpec{AgentInstanceId: "test-instance"},
-		}
-
-		created, err := controller.Create(contextWithSessionKind(), session)
-		if err != nil {
-			t.Fatalf("Create failed: %v", err)
-		}
-
-		if created.Spec.RunnerId != "" {
-			t.Errorf("Expected empty runner_id with only BUSY runner, got '%s'", created.Spec.RunnerId)
-		}
-	})
-
-	t.Run("only STOPPED runner — runner_id stays empty", func(t *testing.T) {
-		controller, s := setupTestController(t)
-		defer s.Close()
-
-		saveTestRunner(t, s, "rnr_stop", "stopped-runner", runnerv1.RunnerPhase_RUNNER_PHASE_STOPPED, "runner:rnr_stop")
-
-		session := &sessionv1.Session{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "Session",
-			Metadata:   &apiresource.ApiResourceMetadata{Name: "Stopped Runner Test", Org: "test-org"},
-			Spec:       &sessionv1.SessionSpec{AgentInstanceId: "test-instance"},
-		}
-
-		created, err := controller.Create(contextWithSessionKind(), session)
-		if err != nil {
-			t.Fatalf("Create failed: %v", err)
-		}
-
-		if created.Spec.RunnerId != "" {
-			t.Errorf("Expected empty runner_id with only STOPPED runner, got '%s'", created.Spec.RunnerId)
-		}
-	})
-}

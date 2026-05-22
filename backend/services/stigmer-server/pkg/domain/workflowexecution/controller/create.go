@@ -14,6 +14,7 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
+	wftemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal"
 	wfactivities "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/activities"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflowinstance"
@@ -417,12 +418,14 @@ func (s *setInitialPhaseStep) Execute(ctx *pipeline.RequestContext[*workflowexec
 type startWorkflowStep struct {
 	workflowCreator *workflows.InvokeWorkflowExecutionWorkflowCreator
 	store           store.Store
+	temporalConfig  *wftemporal.Config
 }
 
 func (c *WorkflowExecutionController) newStartWorkflowStep() *startWorkflowStep {
 	return &startWorkflowStep{
 		workflowCreator: c.workflowCreator,
 		store:           c.store,
+		temporalConfig:  c.temporalConfig,
 	}
 }
 
@@ -446,6 +449,15 @@ func (s *startWorkflowStep) Execute(ctx *pipeline.RequestContext[*workflowexecut
 		Str("execution_id", executionID).
 		Msg("Starting Temporal workflow")
 
+	// Resolve runner task queue based on execution_target and routing config.
+	// In global mode (OSS default): always routes to stigmer_runner.
+	// In execution mode (cloud): routes to wfexec:{id} for per-execution sandboxes.
+	dispatch := wftemporal.ResolveWorkflowTaskQueue(
+		executionID,
+		execution.GetSpec().GetExecutionTarget(),
+		s.temporalConfig,
+	)
+
 	// Build slim workflow input from execution.
 	// OSS does not have multi-tenant identity, so invoker identity is empty.
 	workflowInput := &wfactivities.InvokeWorkflowExecutionWorkflowInput{
@@ -456,7 +468,9 @@ func (s *startWorkflowStep) Execute(ctx *pipeline.RequestContext[*workflowexecut
 	}
 
 	// Start the Temporal workflow with slim input (secrets excluded from history)
-	if err := s.workflowCreator.Create(ctx.Context(), workflowInput); err != nil {
+	// Pass the resolved runner queue so the orchestrator dispatches the child
+	// workflow to the correct queue (global or per-execution sandbox).
+	if err := s.workflowCreator.Create(ctx.Context(), workflowInput, dispatch.TaskQueue); err != nil {
 		log.Error().
 			Err(err).
 			Str("execution_id", executionID).

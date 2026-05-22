@@ -95,8 +95,8 @@
       "slug": "iam-policy",
       "title": "IAM Policy",
       "description": "Hooks and components for access control bindings, role assignment, and org membership.",
-      "hooks": 8,
-      "components": 3
+      "hooks": 10,
+      "components": 5
     },
     {
       "slug": "identity-account",
@@ -181,13 +181,6 @@
       "description": "Layout shell and collection hooks for building resource management consoles.",
       "hooks": 4,
       "components": 12
-    },
-    {
-      "slug": "runner",
-      "title": "Runner",
-      "description": "Hooks and components for runner lifecycle, fleet management, local launch, and picker.",
-      "hooks": 7,
-      "components": 6
     },
     {
       "slug": "session",

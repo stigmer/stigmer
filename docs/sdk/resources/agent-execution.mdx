@@ -612,6 +612,7 @@ const agentExecution = await stigmer.agentExecution.create({
   parentWorkflowId: "...",
   attachments: [],
   workspaceFileRefs: [],
+  activityTaskQueue: "...",
 });
 ```
 </Tab>
@@ -632,6 +633,7 @@ agentExecution, err := client.AgentExecution.Create(ctx, &stigmer.AgentExecution
   ParentWorkflowId:  "...",
   Attachments:       []stigmer.AttachmentInput{},
   WorkspaceFileRefs: []string{},
+  ActivityTaskQueue: "...",
 })
 ```
 </Tab>
@@ -652,6 +654,7 @@ agent_execution = client.agent_executions.create(AgentExecutionInput(
     parent_workflow_id="...",
     attachments=[],
     workspace_file_refs=[],
+    activity_task_queue="...",
 ))
 ```
 </Tab>
@@ -672,6 +675,7 @@ AgentExecution agentExecution = client.agentExecutions().create(AgentExecutionIn
     .parentWorkflowId("...")
     .attachments(List.of())
     .workspaceFileRefs(List.of())
+    .activityTaskQueue("...")
     .build());
 ```
 </Tab>
@@ -703,6 +707,7 @@ const agentExecution = await stigmer.agentExecution.update({
   parentWorkflowId: "...",
   attachments: [],
   workspaceFileRefs: [],
+  activityTaskQueue: "...",
 });
 ```
 </Tab>
@@ -723,6 +728,7 @@ agentExecution, err := client.AgentExecution.Update(ctx, &stigmer.AgentExecution
   ParentWorkflowId:  "...",
   Attachments:       []stigmer.AttachmentInput{},
   WorkspaceFileRefs: []string{},
+  ActivityTaskQueue: "...",
 })
 ```
 </Tab>
@@ -743,6 +749,7 @@ agent_execution = client.agent_executions.update(AgentExecutionInput(
     parent_workflow_id="...",
     attachments=[],
     workspace_file_refs=[],
+    activity_task_queue="...",
 ))
 ```
 </Tab>
@@ -763,6 +770,7 @@ AgentExecution agentExecution = client.agentExecutions().update(AgentExecutionIn
     .parentWorkflowId("...")
     .attachments(List.of())
     .workspaceFileRefs(List.of())
+    .activityTaskQueue("...")
     .build());
 ```
 </Tab>
@@ -1189,6 +1197,7 @@ Input for creating or updating an Agent Execution.
     parentWorkflowId: { type: "string", description: "Parent workflow ID when this execution was triggered by a workflow (optional)." },
     attachments: { type: "AttachmentInput[]", description: "Files attached to this execution.", typeDescriptionLink: "#attachmentinput" },
     workspaceFileRefs: { type: "string[]", description: "Workspace-relative file paths the user wants the agent to focus on." },
+    activityTaskQueue: { type: "string", description: "Explicit Temporal task queue override for activity routing." },
   }}
 />
 
@@ -1607,8 +1616,7 @@ AgentExecutionStatus contains all execution results and state.
     artifacts: { type: "ExecutionArtifact[]", description: "Files/directories published by the agent for download.", typeDescriptionLink: "#executionartifact" },
     workspaceWriteBacks: { type: "WorkspaceWriteBack[]", description: "Git write-back outcomes for workspace entries that had changes.", typeDescriptionLink: "#workspacewriteback" },
     setupProgress: { type: "SetupProgress", description: "Real-time setup progress reported by the agent-runner during EXECUTION_PENDING.", typeDescriptionLink: "#setupprogress" },
-    runnerId: { type: "string", description: "ID of the Runner that executed this execution." },
-    runnerUsage: { type: "RunnerUsageSummary", description: "Runner-reported usage summary, updated progressively during streaming.", typeDescriptionLink: "#runnerusagesummary" },
+    streamingUsage: { type: "StreamingUsageSummary", description: "Streaming usage summary, updated progressively during execution.", typeDescriptionLink: "#streamingusagesummary" },
   }}
 />
 
@@ -1708,9 +1716,19 @@ ResolvedExecutionContext captures the resolved configuration state at execution 
   }}
 />
 
-### RunnerUsageSummary
+### SetupProgress
 
-Accumulated token usage from runner-observed turn-ended events.
+Setup progress reported during the EXECUTION_PENDING phase.
+
+<TypeTable
+  type={{
+    currentPhase: { type: "string", description: "Human-readable label for the current setup phase." },
+  }}
+/>
+
+### StreamingUsageSummary
+
+Accumulated token usage from execution worker turn-ended events.
 
 <TypeTable
   type={{
@@ -1723,16 +1741,6 @@ Accumulated token usage from runner-observed turn-ended events.
     estimatedCostUsd: { type: "number", description: "Estimated cost in USD computed from runner-side rate card." },
     model: { type: "string", description: "Model identifier observed during streaming (from RunResult or assistant events)." },
     observedAt: { type: "string", description: "ISO 8601 timestamp of the last turn-ended event observed." },
-  }}
-/>
-
-### SetupProgress
-
-Setup progress reported during the EXECUTION_PENDING phase.
-
-<TypeTable
-  type={{
-    currentPhase: { type: "string", description: "Human-readable label for the current setup phase." },
   }}
 />
 

@@ -30,6 +30,7 @@ go_library(
         "//backend/libs/go/grpc/request/pipeline",
         "//backend/libs/go/grpc/request/pipeline/steps",
         "//backend/libs/go/store",
+        "//backend/services/stigmer-server/pkg/domain/agentexecution/temporal",
         "//backend/services/stigmer-server/pkg/domain/mcpserver/oauth",
         "//backend/services/stigmer-server/pkg/downstream/environment",
         "//backend/services/stigmer-server/pkg/downstream/executioncontext",

@@ -1,0 +1,35 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "validation",
+    srcs = [
+        "budget_warnings.go",
+        "crossref.go",
+        "validator.go",
+    ],
+    importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/validation",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/workflow/v1:workflow",
+        "//apis/stubs/go/ai/stigmer/agentic/workflow/v1/serverless",
+        "//apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks",
+        "//backend/services/stigmer-server/pkg/domain/workflow/converter",
+        "@com_github_rs_zerolog//log",
+        "@org_golang_google_protobuf//types/known/structpb",
+        "@org_golang_google_protobuf//types/known/timestamppb",
+    ],
+)
+
+go_test(
+    name = "validation_test",
+    srcs = [
+        "crossref_test.go",
+        "validator_test.go",
+    ],
+    embed = [":validation"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/workflow/v1:workflow",
+        "//apis/stubs/go/ai/stigmer/agentic/workflow/v1/serverless",
+        "@org_golang_google_protobuf//types/known/structpb",
+    ],
+)

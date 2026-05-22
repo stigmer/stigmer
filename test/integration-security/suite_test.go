@@ -128,6 +128,27 @@ func TestMain(m *testing.M) {
 		"idp_id", bootstrapIdpID,
 	)
 
+	// Seed the machine account identity that the Java service uses for internal
+	// gRPC calls. In production, the Mongock migration U20250102_InsertBootstrapIdentityAccounts
+	// creates this record. The IdP ID must be "{AUTH0_CLIENT_ID}@clients" to match
+	// the subject of the machine account JWT minted via the mock OAuth token endpoint.
+	err = mongoSeeder.SeedIdentityAccount(ctx, harness.SeedIdentityAccountInput{
+		ID:               "security-test-machine-account",
+		IdpID:            "test-client-id@clients",
+		Email:            "machine-account-stigmer@backend.stigmer.ai",
+		Name:             "Stigmer Backend Service Machine Account",
+		IsMachineAccount: true,
+	})
+	if err != nil {
+		suiteLogger.Error("failed to seed machine account identity", "error", err)
+		mongoSeeder.Close(ctx)
+		testHarness.Stop(ctx)
+		os.Exit(1)
+	}
+	suiteLogger.Info("seeded machine account identity",
+		"idp_id", "test-client-id@clients",
+	)
+
 	// --- Start Java service in PRODUCTION security mode ---
 	logDir := testHarness.LogDir()
 
@@ -143,6 +164,12 @@ func TestMain(m *testing.M) {
 		Auth0IssuerURL:  mockAuth0.Issuer,
 		Auth0Audience:   testAudience,
 		Auth0TokenURL:   mockAuth0.URL + "/oauth/token",
+	}
+
+	if testHarness.OpenFGA != nil {
+		svcCfg.OpenFGAAPIURL = testHarness.OpenFGA.HTTPEndpoint
+		svcCfg.OpenFGAStoreID = testHarness.OpenFGA.StoreID
+		svcCfg.OpenFGAModelID = testHarness.OpenFGA.ModelID
 	}
 
 	if testHarness.MinIO != nil {
@@ -164,6 +191,38 @@ func TestMain(m *testing.M) {
 		"grpc", svc.GRPCAddress(),
 		"auth0_issuer", mockAuth0.Issuer,
 	)
+
+	// --- Seed FGA tuples for machine account and bootstrap user ---
+	// In production, the Mongock migration grants the machine account the
+	// "operator" role on platform:stigmer, which provides
+	// can_manage_identity_accounts. The bootstrap user also needs operator
+	// permissions to create IdentityProviders and PlatformClients.
+	if testHarness.OpenFGA != nil {
+		tuples := []harness.RelationshipTuple{
+			{
+				User:     "identity_account:security-test-machine-account",
+				Relation: "operator",
+				Object:   "platform:stigmer",
+			},
+			{
+				User:     "identity_account:" + bootstrapIdentityAccountID,
+				Relation: "operator",
+				Object:   "platform:stigmer",
+			},
+			{
+				User:     "identity_account:" + bootstrapIdentityAccountID,
+				Relation: "owner",
+				Object:   "organization:" + testOrg,
+			},
+		}
+		if fgaErr := testHarness.OpenFGA.WriteTuples(ctx, tuples); fgaErr != nil {
+			suiteLogger.Error("failed to seed FGA tuples", "error", fgaErr)
+			mongoSeeder.Close(ctx)
+			testHarness.Stop(ctx)
+			os.Exit(1)
+		}
+		suiteLogger.Info("seeded FGA tuples for machine account and bootstrap user")
+	}
 
 	// --- Create bootstrap authenticated connection ---
 	bootstrapToken, err := mockAuth0.SignJWT(bootstrapIdpID, testAudience, nil)

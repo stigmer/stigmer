@@ -4,6 +4,7 @@ import grpc
 
 from ai.stigmer.agentic.workflowinstance.v1 import api_pb2 as ai_dot_stigmer_dot_agentic_dot_workflowinstance_dot_v1_dot_api__pb2
 from ai.stigmer.agentic.workflowinstance.v1 import io_pb2 as ai_dot_stigmer_dot_agentic_dot_workflowinstance_dot_v1_dot_io__pb2
+from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2
 
 
 class WorkflowInstanceCommandControllerStub(object):
@@ -40,6 +41,11 @@ class WorkflowInstanceCommandControllerStub(object):
         self.update = channel.unary_unary(
                 '/ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceCommandController/update',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_workflowinstance_dot_v1_dot_api__pb2.WorkflowInstance.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowinstance_dot_v1_dot_api__pb2.WorkflowInstance.FromString,
+                _registered_method=True)
+        self.updateVisibility = channel.unary_unary(
+                '/ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceCommandController/updateVisibility',
+                request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.UpdateVisibilityInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowinstance_dot_v1_dot_api__pb2.WorkflowInstance.FromString,
                 _registered_method=True)
         self.delete = channel.unary_unary(
@@ -117,6 +123,30 @@ class WorkflowInstanceCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def updateVisibility(self, request, context):
+        """Update the visibility of an existing workflow instance.
+
+        Changes who can view this instance and its executions. Supports the full
+        visibility spectrum: PRIVATE (owner only), ORG (all org members), or
+        PUBLIC (all authenticated users).
+
+        For workflow instances, visibility has cascading effects on execution
+        observability: workflow executions inherit visibility from their parent
+        instance via FGA. An ORG-visible instance means all org members can see
+        all executions — zero per-execution tuples needed.
+
+        @internal
+        Authorization: Requires can_edit permission on the workflow instance.
+        Visibility transitions trigger FGA tuple management in Cloud mode:
+        - PRIVATE → ORG: creates workflow_instance#viewer@organization:<org>#member
+        - PRIVATE → PUBLIC: creates workflow_instance#viewer@identity_account:*
+        - ORG → PRIVATE: deletes the org member viewer tuple
+        - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def delete(self, request, context):
         """Delete a workflow instance.
 
@@ -155,6 +185,11 @@ def add_WorkflowInstanceCommandControllerServicer_to_server(servicer, server):
             'update': grpc.unary_unary_rpc_method_handler(
                     servicer.update,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowinstance_dot_v1_dot_api__pb2.WorkflowInstance.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_workflowinstance_dot_v1_dot_api__pb2.WorkflowInstance.SerializeToString,
+            ),
+            'updateVisibility': grpc.unary_unary_rpc_method_handler(
+                    servicer.updateVisibility,
+                    request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.UpdateVisibilityInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_workflowinstance_dot_v1_dot_api__pb2.WorkflowInstance.SerializeToString,
             ),
             'delete': grpc.unary_unary_rpc_method_handler(
@@ -255,6 +290,33 @@ class WorkflowInstanceCommandController(object):
             target,
             '/ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceCommandController/update',
             ai_dot_stigmer_dot_agentic_dot_workflowinstance_dot_v1_dot_api__pb2.WorkflowInstance.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_workflowinstance_dot_v1_dot_api__pb2.WorkflowInstance.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def updateVisibility(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceCommandController/updateVisibility',
+            ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.UpdateVisibilityInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_workflowinstance_dot_v1_dot_api__pb2.WorkflowInstance.FromString,
             options,
             channel_credentials,

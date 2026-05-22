@@ -4,7 +4,7 @@ import InvitePageClient from "./InvitePageClient";
 // “missing”). Real tokens are still resolved client-side when the host routes unknown
 // paths to this app shell.
 export function generateStaticParams() {
-  return [{ token: "_" }];
+  return [{ token: "__placeholder__" }];
 }
 
 export default function InvitePage() {

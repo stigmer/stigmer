@@ -39,44 +39,53 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "/command.proto\022&ai.stigmer.agentic.workf" +
       "lowinstance.v1\0320ai/stigmer/agentic/workf" +
       "lowinstance/v1/api.proto\032/ai/stigmer/age" +
-      "ntic/workflowinstance/v1/io.proto\0328ai/st" +
-      "igmer/commons/apiresource/rpc_service_op" +
-      "tions.proto\032+ai/stigmer/commons/rpc/meth" +
-      "od_options.proto2\247\005\n!WorkflowInstanceCom" +
-      "mandController\022{\n\005apply\0228.ai.stigmer.age" +
-      "ntic.workflowinstance.v1.WorkflowInstanc" +
-      "e\0328.ai.stigmer.agentic.workflowinstance." +
-      "v1.WorkflowInstance\022\202\001\n\006create\0228.ai.stig" +
-      "mer.agentic.workflowinstance.v1.Workflow" +
-      "Instance\0328.ai.stigmer.agentic.workflowin" +
-      "stance.v1.WorkflowInstance\"\004\320\270\030\001\022\275\001\n\006upd" +
-      "ate\0228.ai.stigmer.agentic.workflowinstanc" +
-      "e.v1.WorkflowInstance\0328.ai.stigmer.agent" +
+      "ntic/workflowinstance/v1/io.proto\032\'ai/st" +
+      "igmer/commons/apiresource/io.proto\0328ai/s" +
+      "tigmer/commons/apiresource/rpc_service_o" +
+      "ptions.proto\032+ai/stigmer/commons/rpc/met" +
+      "hod_options.proto2\371\006\n!WorkflowInstanceCo" +
+      "mmandController\022{\n\005apply\0228.ai.stigmer.ag" +
+      "entic.workflowinstance.v1.WorkflowInstan" +
+      "ce\0328.ai.stigmer.agentic.workflowinstance" +
+      ".v1.WorkflowInstance\022\202\001\n\006create\0228.ai.sti" +
+      "gmer.agentic.workflowinstance.v1.Workflo" +
+      "wInstance\0328.ai.stigmer.agentic.workflowi" +
+      "nstance.v1.WorkflowInstance\"\004\320\270\030\001\022\275\001\n\006up" +
+      "date\0228.ai.stigmer.agentic.workflowinstan" +
+      "ce.v1.WorkflowInstance\0328.ai.stigmer.agen" +
+      "tic.workflowinstance.v1.WorkflowInstance" +
+      "\"?\302\270\030;\010\002\0203\"\013metadata.id*(unauthorized to" +
+      " update workflow instance\022\317\001\n\020updateVisi" +
+      "bility\0225.ai.stigmer.commons.apiresource." +
+      "UpdateVisibilityInput\0328.ai.stigmer.agent" +
       "ic.workflowinstance.v1.WorkflowInstance\"" +
-      "?\302\270\030;\010\002\0203\"\013metadata.id*(unauthorized to " +
-      "update workflow instance\022\271\001\n\006delete\022:.ai" +
-      ".stigmer.agentic.workflowinstance.v1.Wor" +
-      "kflowInstanceId\0328.ai.stigmer.agentic.wor" +
-      "kflowinstance.v1.WorkflowInstance\"9\302\270\0305\010" +
-      "\003\0203\"\005value*(unauthorized to delete workf" +
-      "low instance\032\004\240\377+3B\313\001B\014CommandProtoP\001\242\002\004" +
-      "ASAW\252\002&Ai.Stigmer.Agentic.Workflowinstan" +
-      "ce.V1\312\002&Ai\\Stigmer\\Agentic\\Workflowinsta" +
-      "nce\\V1\342\0022Ai\\Stigmer\\Agentic\\Workflowinst" +
-      "ance\\V1\\GPBMetadata\352\002*Ai::Stigmer::Agent" +
-      "ic::Workflowinstance::V1b\006proto3"
+      "J\302\270\030F\010\002\0203\"\013resource_id*3unauthorized to " +
+      "update workflow instance visibility\022\271\001\n\006" +
+      "delete\022:.ai.stigmer.agentic.workflowinst" +
+      "ance.v1.WorkflowInstanceId\0328.ai.stigmer." +
+      "agentic.workflowinstance.v1.WorkflowInst" +
+      "ance\"9\302\270\0305\010\003\0203\"\005value*(unauthorized to d" +
+      "elete workflow instance\032\004\240\377+3B\313\001B\014Comman" +
+      "dProtoP\001\242\002\004ASAW\252\002&Ai.Stigmer.Agentic.Wor" +
+      "kflowinstance.V1\312\002&Ai\\Stigmer\\Agentic\\Wo" +
+      "rkflowinstance\\V1\342\0022Ai\\Stigmer\\Agentic\\W" +
+      "orkflowinstance\\V1\\GPBMetadata\352\002*Ai::Sti" +
+      "gmer::Agentic::Workflowinstance::V1b\006pro" +
+      "to3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           ai.stigmer.agentic.workflowinstance.v1.ApiProto.getDescriptor(),
           ai.stigmer.agentic.workflowinstance.v1.IoProto.getDescriptor(),
+          ai.stigmer.commons.apiresource.IoProto.getDescriptor(),
           ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor(),
           ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor(),
         });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.workflowinstance.v1.ApiProto.getDescriptor();
     ai.stigmer.agentic.workflowinstance.v1.IoProto.getDescriptor();
+    ai.stigmer.commons.apiresource.IoProto.getDescriptor();
     ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor();
     ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =

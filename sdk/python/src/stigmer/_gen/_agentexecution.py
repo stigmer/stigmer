@@ -180,6 +180,7 @@ class AgentExecutionInput:
     parent_workflow_id: str = ""
     attachments: list[AttachmentInput] = field(default_factory=list)
     workspace_file_refs: list[str] = field(default_factory=list)
+    activity_task_queue: str = ""
 
     def _to_proto(self) -> api_pb2.AgentExecution:
         spec = spec_pb2.AgentExecutionSpec(
@@ -189,6 +190,7 @@ class AgentExecutionInput:
             callback_token=self.callback_token,
             auto_approve_all=self.auto_approve_all,
             parent_workflow_id=self.parent_workflow_id,
+            activity_task_queue=self.activity_task_queue,
         )
         if self.execution_config is not None:
             spec.execution_config.CopyFrom(self.execution_config._to_proto())

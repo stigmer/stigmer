@@ -430,12 +430,12 @@ message ModelUsage {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// RUNNER-REPORTED USAGE SUMMARY
+// EXECUTION USAGE SUMMARY
 //
-// Provisional usage captured from the runner's onDelta callbacks during
-// streaming. Updated progressively as turn-ended events arrive.
+// Provisional usage captured from the execution worker's onDelta callbacks
+// during streaming. Updated progressively as turn-ended events arrive.
 //
-// Trust level: DISPLAY_ONLY. This data is reported by the runner process
+// Trust level: DISPLAY_ONLY. This data is reported by the execution worker
 // (which may run on untrusted user machines) and is NOT billing-authoritative.
 // Use for real-time UX (session sidebar cost display) only.
 //
@@ -443,9 +443,9 @@ message ModelUsage {
 // or future Cursor Admin API reconciliation (Cursor harness).
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// Accumulated token usage from runner-observed turn-ended events.
-// Carried on AgentExecutionStatus.runner_usage for real-time streaming UX.
-message RunnerUsageSummary {
+// Accumulated token usage from execution worker turn-ended events.
+// Carried on AgentExecutionStatus.streaming_usage for real-time streaming UX.
+message StreamingUsageSummary {
   // Accumulated input tokens across all turns.
   int64 input_tokens = 1;
 

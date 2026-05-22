@@ -8,7 +8,7 @@ package workflowv1
 
 import (
 	serverless "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/serverless"
-	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -27,33 +27,37 @@ var File_ai_stigmer_agentic_workflow_v1_command_proto protoreflect.FileDescripto
 
 const file_ai_stigmer_agentic_workflow_v1_command_proto_rawDesc = "" +
 	"\n" +
-	",ai/stigmer/agentic/workflow/v1/command.proto\x12\x1eai.stigmer.agentic.workflow.v1\x1a(ai/stigmer/agentic/workflow/v1/api.proto\x1a'ai/stigmer/agentic/workflow/v1/io.proto\x1a:ai/stigmer/agentic/workflow/v1/serverless/validation.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xa9\x06\n" +
+	",ai/stigmer/agentic/workflow/v1/command.proto\x12\x1eai.stigmer.agentic.workflow.v1\x1a(ai/stigmer/agentic/workflow/v1/api.proto\x1a'ai/stigmer/agentic/workflow/v1/io.proto\x1a:ai/stigmer/agentic/workflow/v1/serverless/validation.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xe2\a\n" +
 	"\x19WorkflowCommandController\x12[\n" +
 	"\x05apply\x12(.ai.stigmer.agentic.workflow.v1.Workflow\x1a(.ai.stigmer.agentic.workflow.v1.Workflow\x12\xaa\x01\n" +
 	"\x06create\x12(.ai.stigmer.agentic.workflow.v1.Workflow\x1a(.ai.stigmer.agentic.workflow.v1.Workflow\"L¸\x18H\b\a\x10\x1e\"\fmetadata.org*4unauthorized to create workflow in this organization\x12\x94\x01\n" +
-	"\x06update\x12(.ai.stigmer.agentic.workflow.v1.Workflow\x1a(.ai.stigmer.agentic.workflow.v1.Workflow\"6¸\x182\b\x02\x102\"\vmetadata.id*\x1funauthorized to update workflow\x12\x90\x01\n" +
+	"\x06update\x12(.ai.stigmer.agentic.workflow.v1.Workflow\x1a(.ai.stigmer.agentic.workflow.v1.Workflow\"6¸\x182\b\x02\x102\"\vmetadata.id*\x1funauthorized to update workflow\x12\xb6\x01\n" +
+	"\x10updateVisibility\x125.ai.stigmer.commons.apiresource.UpdateVisibilityInput\x1a(.ai.stigmer.agentic.workflow.v1.Workflow\"A¸\x18=\b\x02\x102\"\vresource_id**unauthorized to update workflow visibility\x12\x90\x01\n" +
 	"\x06delete\x12*.ai.stigmer.agentic.workflow.v1.WorkflowId\x1a(.ai.stigmer.agentic.workflow.v1.Workflow\"0¸\x18,\b\x03\x102\"\x05value*\x1funauthorized to delete workflow\x12\xd1\x01\n" +
 	"\fvalidateSpec\x12(.ai.stigmer.agentic.workflow.v1.Workflow\x1aG.ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation\"N¸\x18J\b\a\x10\x1e\"\fmetadata.org*6unauthorized to validate workflow in this organization\x1a\x04\xa0\xff+2B\xa3\x02\n" +
 	"\"com.ai.stigmer.agentic.workflow.v1B\fCommandProtoP\x01ZRgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1;workflowv1\xa2\x02\x04ASAW\xaa\x02\x1eAi.Stigmer.Agentic.Workflow.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Workflow\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Workflow::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_workflow_v1_command_proto_goTypes = []any{
-	(*Workflow)(nil),   // 0: ai.stigmer.agentic.workflow.v1.Workflow
-	(*WorkflowId)(nil), // 1: ai.stigmer.agentic.workflow.v1.WorkflowId
-	(*serverless.ServerlessWorkflowValidation)(nil), // 2: ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation
+	(*Workflow)(nil), // 0: ai.stigmer.agentic.workflow.v1.Workflow
+	(*apiresource.UpdateVisibilityInput)(nil),       // 1: ai.stigmer.commons.apiresource.UpdateVisibilityInput
+	(*WorkflowId)(nil),                              // 2: ai.stigmer.agentic.workflow.v1.WorkflowId
+	(*serverless.ServerlessWorkflowValidation)(nil), // 3: ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation
 }
 var file_ai_stigmer_agentic_workflow_v1_command_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.agentic.workflow.v1.WorkflowCommandController.apply:input_type -> ai.stigmer.agentic.workflow.v1.Workflow
 	0, // 1: ai.stigmer.agentic.workflow.v1.WorkflowCommandController.create:input_type -> ai.stigmer.agentic.workflow.v1.Workflow
 	0, // 2: ai.stigmer.agentic.workflow.v1.WorkflowCommandController.update:input_type -> ai.stigmer.agentic.workflow.v1.Workflow
-	1, // 3: ai.stigmer.agentic.workflow.v1.WorkflowCommandController.delete:input_type -> ai.stigmer.agentic.workflow.v1.WorkflowId
-	0, // 4: ai.stigmer.agentic.workflow.v1.WorkflowCommandController.validateSpec:input_type -> ai.stigmer.agentic.workflow.v1.Workflow
-	0, // 5: ai.stigmer.agentic.workflow.v1.WorkflowCommandController.apply:output_type -> ai.stigmer.agentic.workflow.v1.Workflow
-	0, // 6: ai.stigmer.agentic.workflow.v1.WorkflowCommandController.create:output_type -> ai.stigmer.agentic.workflow.v1.Workflow
-	0, // 7: ai.stigmer.agentic.workflow.v1.WorkflowCommandController.update:output_type -> ai.stigmer.agentic.workflow.v1.Workflow
-	0, // 8: ai.stigmer.agentic.workflow.v1.WorkflowCommandController.delete:output_type -> ai.stigmer.agentic.workflow.v1.Workflow
-	2, // 9: ai.stigmer.agentic.workflow.v1.WorkflowCommandController.validateSpec:output_type -> ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation
-	5, // [5:10] is the sub-list for method output_type
-	0, // [0:5] is the sub-list for method input_type
+	1, // 3: ai.stigmer.agentic.workflow.v1.WorkflowCommandController.updateVisibility:input_type -> ai.stigmer.commons.apiresource.UpdateVisibilityInput
+	2, // 4: ai.stigmer.agentic.workflow.v1.WorkflowCommandController.delete:input_type -> ai.stigmer.agentic.workflow.v1.WorkflowId
+	0, // 5: ai.stigmer.agentic.workflow.v1.WorkflowCommandController.validateSpec:input_type -> ai.stigmer.agentic.workflow.v1.Workflow
+	0, // 6: ai.stigmer.agentic.workflow.v1.WorkflowCommandController.apply:output_type -> ai.stigmer.agentic.workflow.v1.Workflow
+	0, // 7: ai.stigmer.agentic.workflow.v1.WorkflowCommandController.create:output_type -> ai.stigmer.agentic.workflow.v1.Workflow
+	0, // 8: ai.stigmer.agentic.workflow.v1.WorkflowCommandController.update:output_type -> ai.stigmer.agentic.workflow.v1.Workflow
+	0, // 9: ai.stigmer.agentic.workflow.v1.WorkflowCommandController.updateVisibility:output_type -> ai.stigmer.agentic.workflow.v1.Workflow
+	0, // 10: ai.stigmer.agentic.workflow.v1.WorkflowCommandController.delete:output_type -> ai.stigmer.agentic.workflow.v1.Workflow
+	3, // 11: ai.stigmer.agentic.workflow.v1.WorkflowCommandController.validateSpec:output_type -> ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation
+	6, // [6:12] is the sub-list for method output_type
+	0, // [0:6] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name

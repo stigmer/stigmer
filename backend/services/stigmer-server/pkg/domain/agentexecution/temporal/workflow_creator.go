@@ -84,7 +84,6 @@ func (c *InvokeAgentExecutionWorkflowCreator) Create(input *workflows.InvokeAgen
 		Str("execution_id", executionID).
 		Str("stigmer_queue", c.config.StigmerQueue).
 		Str("activity_queue", activityQueue).
-		Str("runner_id", dispatch.RunnerID).
 		Msg("Started InvokeAgentExecutionWorkflow")
 
 	return nil

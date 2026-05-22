@@ -2,10 +2,8 @@ package temporal
 
 import (
 	"context"
-	"strings"
 	"testing"
 
-	runnerv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/runner/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
@@ -21,241 +19,419 @@ func setupTestStore(t *testing.T) *sqlite.Store {
 	return s
 }
 
-func saveRunner(t *testing.T, s *sqlite.Store, id, name string, phase runnerv1.RunnerPhase, taskQueue string) {
-	t.Helper()
-	runner := &runnerv1.Runner{
-		ApiVersion: "agentic.stigmer.ai/v1",
-		Kind:       "Runner",
-		Metadata:   &apiresource.ApiResourceMetadata{Id: id, Name: name, Org: "test-org"},
-		Spec:       &runnerv1.RunnerSpec{},
-		Status:     &runnerv1.RunnerStatus{Phase: phase, TaskQueue: taskQueue},
-	}
-	if err := s.SaveResource(context.Background(), apiresourcekind.ApiResourceKind_runner, id, runner); err != nil {
-		t.Fatalf("failed to save runner: %v", err)
-	}
-}
-
-func saveSession(t *testing.T, s *sqlite.Store, id string, runnerID string) {
+func saveSession(t *testing.T, s *sqlite.Store, id string, harness sessionv1.Harness) {
 	t.Helper()
 	session := &sessionv1.Session{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Session",
 		Metadata:   &apiresource.ApiResourceMetadata{Id: id, Name: "test-session", Org: "test-org"},
-		Spec:       &sessionv1.SessionSpec{AgentInstanceId: "test-instance", RunnerId: runnerID},
+		Spec:       &sessionv1.SessionSpec{AgentInstanceId: "test-instance", Harness: harness},
 	}
 	if err := s.SaveResource(context.Background(), apiresourcekind.ApiResourceKind_session, id, session); err != nil {
 		t.Fatalf("failed to save session: %v", err)
 	}
 }
 
-func TestResolveActivityTaskQueue_AutoRoute(t *testing.T) {
-	t.Run("no session ID — routes to sole READY runner", func(t *testing.T) {
+func globalConfig() *Config {
+	return &Config{
+		StigmerQueue:           "agent_execution_stigmer",
+		RunnerQueue:            DefaultActivityTaskQueue,
+		ActivityRouting:        RoutingGlobal,
+		DefaultExecutionTarget: DefaultExecutionTargetLocal,
+	}
+}
+
+func sessionConfig() *Config {
+	return &Config{
+		StigmerQueue:           "agent_execution_stigmer",
+		RunnerQueue:            DefaultActivityTaskQueue,
+		ActivityRouting:        RoutingSession,
+		DefaultExecutionTarget: DefaultExecutionTargetLocal,
+	}
+}
+
+func cloudConfig() *Config {
+	return &Config{
+		StigmerQueue:           "agent_execution_stigmer",
+		RunnerQueue:            DefaultActivityTaskQueue,
+		ActivityRouting:        RoutingSession,
+		DefaultExecutionTarget: DefaultExecutionTargetCloud,
+	}
+}
+
+func TestFormatSessionTaskQueue(t *testing.T) {
+	tests := []struct {
+		sessionID string
+		want      string
+	}{
+		{"ses_01arz3ndektsv4rrffq69g5fav", "session:ses_01arz3ndektsv4rrffq69g5fav"},
+		{"ses_abc123", "session:ses_abc123"},
+		{"any-arbitrary-id", "session:any-arbitrary-id"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.sessionID, func(t *testing.T) {
+			got := FormatSessionTaskQueue(tt.sessionID)
+			if got != tt.want {
+				t.Errorf("FormatSessionTaskQueue(%q) = %q, want %q", tt.sessionID, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestResolveActivityTaskQueue_GlobalRouting(t *testing.T) {
+	cfg := globalConfig()
+
+	t.Run("no session ID — returns default queue with NATIVE harness", func(t *testing.T) {
 		s := setupTestStore(t)
 		defer s.Close()
 
-		saveRunner(t, s, "rnr_1", "my-runner", runnerv1.RunnerPhase_RUNNER_PHASE_READY, "runner:rnr_1")
-
-		result, err := ResolveActivityTaskQueue(context.Background(), s, "")
+		result, err := ResolveActivityTaskQueue(context.Background(), s, "", cfg, "")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if result.TaskQueue != "runner:rnr_1" {
-			t.Errorf("expected task queue 'runner:rnr_1', got '%s'", result.TaskQueue)
+		if result.TaskQueue != DefaultActivityTaskQueue {
+			t.Errorf("expected task queue %q, got %q", DefaultActivityTaskQueue, result.TaskQueue)
 		}
-		if result.RunnerID != "rnr_1" {
-			t.Errorf("expected runner ID 'rnr_1', got '%s'", result.RunnerID)
+		if result.Harness != sessionv1.Harness_HARNESS_NATIVE {
+			t.Errorf("expected HARNESS_NATIVE, got %v", result.Harness)
 		}
 	})
 
-	t.Run("session not found — routes to available runner", func(t *testing.T) {
+	t.Run("session not found — returns default queue without error", func(t *testing.T) {
 		s := setupTestStore(t)
 		defer s.Close()
 
-		saveRunner(t, s, "rnr_1", "my-runner", runnerv1.RunnerPhase_RUNNER_PHASE_READY, "runner:rnr_1")
-
-		result, err := ResolveActivityTaskQueue(context.Background(), s, "nonexistent-session")
+		result, err := ResolveActivityTaskQueue(context.Background(), s, "nonexistent-session", cfg, "")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if result.TaskQueue != "runner:rnr_1" {
-			t.Errorf("expected task queue 'runner:rnr_1', got '%s'", result.TaskQueue)
+		if result.TaskQueue != DefaultActivityTaskQueue {
+			t.Errorf("expected task queue %q, got %q", DefaultActivityTaskQueue, result.TaskQueue)
 		}
 	})
 
-	t.Run("session with no runner_id — routes to available runner", func(t *testing.T) {
+	t.Run("valid session — returns default queue even with session present", func(t *testing.T) {
 		s := setupTestStore(t)
 		defer s.Close()
 
-		saveRunner(t, s, "rnr_1", "my-runner", runnerv1.RunnerPhase_RUNNER_PHASE_READY, "runner:rnr_1")
-		saveSession(t, s, "sess_1", "")
+		saveSession(t, s, "ses_global_test", sessionv1.Harness_HARNESS_CURSOR)
 
-		result, err := ResolveActivityTaskQueue(context.Background(), s, "sess_1")
+		result, err := ResolveActivityTaskQueue(context.Background(), s, "ses_global_test", cfg, "")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if result.TaskQueue != "runner:rnr_1" {
-			t.Errorf("expected task queue 'runner:rnr_1', got '%s'", result.TaskQueue)
+		if result.TaskQueue != DefaultActivityTaskQueue {
+			t.Errorf("global routing must always return default queue, got %q", result.TaskQueue)
 		}
-		if result.RunnerID != "rnr_1" {
-			t.Errorf("expected runner ID 'rnr_1', got '%s'", result.RunnerID)
+		if result.Harness != sessionv1.Harness_HARNESS_CURSOR {
+			t.Errorf("expected HARNESS_CURSOR, got %v", result.Harness)
 		}
 	})
 }
 
-func TestResolveActivityTaskQueue_ExplicitBinding(t *testing.T) {
-	t.Run("session with explicit runner — uses per-runner queue", func(t *testing.T) {
+func TestResolveActivityTaskQueue_SessionRouting(t *testing.T) {
+	cfg := sessionConfig()
+
+	t.Run("no session ID — falls back to default queue", func(t *testing.T) {
 		s := setupTestStore(t)
 		defer s.Close()
 
-		saveRunner(t, s, "rnr_explicit", "explicit-runner", runnerv1.RunnerPhase_RUNNER_PHASE_READY, "runner:rnr_explicit")
-		saveSession(t, s, "sess_1", "rnr_explicit")
-
-		result, err := ResolveActivityTaskQueue(context.Background(), s, "sess_1")
+		result, err := ResolveActivityTaskQueue(context.Background(), s, "", cfg, "")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if result.TaskQueue != "runner:rnr_explicit" {
-			t.Errorf("expected task queue 'runner:rnr_explicit', got '%s'", result.TaskQueue)
+		if result.TaskQueue != DefaultActivityTaskQueue {
+			t.Errorf("empty session ID must fall back to default queue, got %q", result.TaskQueue)
 		}
-		if result.RunnerID != "rnr_explicit" {
-			t.Errorf("expected runner ID 'rnr_explicit', got '%s'", result.RunnerID)
-		}
-	})
-
-	t.Run("explicit runner not found — error", func(t *testing.T) {
-		s := setupTestStore(t)
-		defer s.Close()
-
-		saveSession(t, s, "sess_1", "rnr_deleted")
-
-		_, err := ResolveActivityTaskQueue(context.Background(), s, "sess_1")
-		if err == nil {
-			t.Fatal("expected error when runner is not found")
-		}
-		if !strings.Contains(err.Error(), "not found") {
-			t.Errorf("expected 'not found' in error, got: %v", err)
+		if result.Harness != sessionv1.Harness_HARNESS_NATIVE {
+			t.Errorf("expected HARNESS_NATIVE, got %v", result.Harness)
 		}
 	})
 
-	t.Run("explicit runner STOPPED — error", func(t *testing.T) {
+	t.Run("valid session ID — returns per-session queue", func(t *testing.T) {
 		s := setupTestStore(t)
 		defer s.Close()
 
-		saveRunner(t, s, "rnr_stopped", "stopped-runner", runnerv1.RunnerPhase_RUNNER_PHASE_STOPPED, "runner:rnr_stopped")
-		saveSession(t, s, "sess_1", "rnr_stopped")
+		sessionID := "ses_01arz3ndektsv4rrffq69g5fav"
+		saveSession(t, s, sessionID, sessionv1.Harness_HARNESS_NATIVE)
 
-		_, err := ResolveActivityTaskQueue(context.Background(), s, "sess_1")
-		if err == nil {
-			t.Fatal("expected error when runner is STOPPED")
+		result, err := ResolveActivityTaskQueue(context.Background(), s, sessionID, cfg, "")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
 		}
-		if !strings.Contains(err.Error(), "STOPPED") {
-			t.Errorf("expected 'STOPPED' in error, got: %v", err)
+
+		expectedQueue := "session:" + sessionID
+		if result.TaskQueue != expectedQueue {
+			t.Errorf("expected task queue %q, got %q", expectedQueue, result.TaskQueue)
+		}
+		if result.Harness != sessionv1.Harness_HARNESS_NATIVE {
+			t.Errorf("expected HARNESS_NATIVE, got %v", result.Harness)
+		}
+	})
+
+	t.Run("session not found — still returns per-session queue", func(t *testing.T) {
+		s := setupTestStore(t)
+		defer s.Close()
+
+		sessionID := "ses_nonexistent"
+		result, err := ResolveActivityTaskQueue(context.Background(), s, sessionID, cfg, "")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		expectedQueue := "session:" + sessionID
+		if result.TaskQueue != expectedQueue {
+			t.Errorf("expected task queue %q, got %q", expectedQueue, result.TaskQueue)
+		}
+		if result.Harness != sessionv1.Harness_HARNESS_NATIVE {
+			t.Errorf("expected HARNESS_NATIVE (default when session not found), got %v", result.Harness)
+		}
+	})
+
+	t.Run("CURSOR harness — returns per-session queue with correct harness", func(t *testing.T) {
+		s := setupTestStore(t)
+		defer s.Close()
+
+		sessionID := "ses_cursor_session"
+		saveSession(t, s, sessionID, sessionv1.Harness_HARNESS_CURSOR)
+
+		result, err := ResolveActivityTaskQueue(context.Background(), s, sessionID, cfg, "")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		expectedQueue := "session:" + sessionID
+		if result.TaskQueue != expectedQueue {
+			t.Errorf("expected task queue %q, got %q", expectedQueue, result.TaskQueue)
+		}
+		if result.Harness != sessionv1.Harness_HARNESS_CURSOR {
+			t.Errorf("expected HARNESS_CURSOR, got %v", result.Harness)
 		}
 	})
 }
 
-func TestResolveActivityTaskQueue_FailFast(t *testing.T) {
-	t.Run("no runners registered — error with guidance", func(t *testing.T) {
-		s := setupTestStore(t)
-		defer s.Close()
+func TestResolveTaskQueue(t *testing.T) {
+	tests := []struct {
+		name      string
+		sessionID string
+		cfg       *Config
+		want      string
+	}{
+		{
+			name:      "global routing ignores session ID",
+			sessionID: "ses_123",
+			cfg:       globalConfig(),
+			want:      DefaultActivityTaskQueue,
+		},
+		{
+			name:      "global routing with empty session ID",
+			sessionID: "",
+			cfg:       globalConfig(),
+			want:      DefaultActivityTaskQueue,
+		},
+		{
+			name:      "session routing with valid ID",
+			sessionID: "ses_abc",
+			cfg:       sessionConfig(),
+			want:      "session:ses_abc",
+		},
+		{
+			name:      "session routing with empty ID falls back",
+			sessionID: "",
+			cfg:       sessionConfig(),
+			want:      DefaultActivityTaskQueue,
+		},
+		{
+			name:      "custom runner queue used as fallback",
+			sessionID: "",
+			cfg:       &Config{RunnerQueue: "custom_queue", ActivityRouting: RoutingSession},
+			want:      "custom_queue",
+		},
+	}
 
-		_, err := ResolveActivityTaskQueue(context.Background(), s, "")
-		if err == nil {
-			t.Fatal("expected error when no runners exist")
-		}
-		if !strings.Contains(err.Error(), "no runners registered") {
-			t.Errorf("expected 'no runners registered' in error, got: %v", err)
-		}
-		if !strings.Contains(err.Error(), "stigmer up") {
-			t.Errorf("expected guidance mentioning 'stigmer up', got: %v", err)
-		}
-	})
-
-	t.Run("all runners STOPPED — error with count", func(t *testing.T) {
-		s := setupTestStore(t)
-		defer s.Close()
-
-		saveRunner(t, s, "rnr_1", "runner-1", runnerv1.RunnerPhase_RUNNER_PHASE_STOPPED, "runner:rnr_1")
-		saveRunner(t, s, "rnr_2", "runner-2", runnerv1.RunnerPhase_RUNNER_PHASE_FAILED, "runner:rnr_2")
-
-		_, err := ResolveActivityTaskQueue(context.Background(), s, "")
-		if err == nil {
-			t.Fatal("expected error when all runners are inactive")
-		}
-		if !strings.Contains(err.Error(), "no active runners available") {
-			t.Errorf("expected 'no active runners available' in error, got: %v", err)
-		}
-		if !strings.Contains(err.Error(), "2 runner(s)") {
-			t.Errorf("expected '2 runner(s)' count in error, got: %v", err)
-		}
-	})
-
-	t.Run("all runners PENDING — error", func(t *testing.T) {
-		s := setupTestStore(t)
-		defer s.Close()
-
-		saveRunner(t, s, "rnr_1", "pending-runner", runnerv1.RunnerPhase_RUNNER_PHASE_PENDING, "runner:rnr_1")
-
-		_, err := ResolveActivityTaskQueue(context.Background(), s, "")
-		if err == nil {
-			t.Fatal("expected error when only PENDING runners exist")
-		}
-		if !strings.Contains(err.Error(), "no active runners") {
-			t.Errorf("expected 'no active runners' in error, got: %v", err)
-		}
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := resolveTaskQueue(tt.sessionID, tt.cfg)
+			if got != tt.want {
+				t.Errorf("resolveTaskQueue(%q) = %q, want %q", tt.sessionID, got, tt.want)
+			}
+		})
+	}
 }
 
-func TestResolveActivityTaskQueue_RunnerPreference(t *testing.T) {
-	t.Run("prefers READY over BUSY", func(t *testing.T) {
-		s := setupTestStore(t)
-		defer s.Close()
+func TestResolveExecutionTarget(t *testing.T) {
+	tests := []struct {
+		name   string
+		target sessionv1.ExecutionTarget
+		cfg    *Config
+		want   sessionv1.ExecutionTarget
+	}{
+		{
+			name:   "LOCAL target passes through",
+			target: sessionv1.ExecutionTarget_EXECUTION_TARGET_LOCAL,
+			cfg:    globalConfig(),
+			want:   sessionv1.ExecutionTarget_EXECUTION_TARGET_LOCAL,
+		},
+		{
+			name:   "CLOUD target passes through",
+			target: sessionv1.ExecutionTarget_EXECUTION_TARGET_CLOUD,
+			cfg:    globalConfig(),
+			want:   sessionv1.ExecutionTarget_EXECUTION_TARGET_CLOUD,
+		},
+		{
+			name:   "UNSPECIFIED resolves to LOCAL when default is local",
+			target: sessionv1.ExecutionTarget_EXECUTION_TARGET_UNSPECIFIED,
+			cfg:    sessionConfig(),
+			want:   sessionv1.ExecutionTarget_EXECUTION_TARGET_LOCAL,
+		},
+		{
+			name:   "UNSPECIFIED resolves to CLOUD when default is cloud",
+			target: sessionv1.ExecutionTarget_EXECUTION_TARGET_UNSPECIFIED,
+			cfg:    cloudConfig(),
+			want:   sessionv1.ExecutionTarget_EXECUTION_TARGET_CLOUD,
+		},
+	}
 
-		saveRunner(t, s, "rnr_busy", "busy-runner", runnerv1.RunnerPhase_RUNNER_PHASE_BUSY, "runner:rnr_busy")
-		saveRunner(t, s, "rnr_ready", "ready-runner", runnerv1.RunnerPhase_RUNNER_PHASE_READY, "runner:rnr_ready")
-
-		result, err := ResolveActivityTaskQueue(context.Background(), s, "")
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if result.RunnerID != "rnr_ready" {
-			t.Errorf("expected READY runner 'rnr_ready', got '%s'", result.RunnerID)
-		}
-	})
-
-	t.Run("falls back to BUSY when no READY runners", func(t *testing.T) {
-		s := setupTestStore(t)
-		defer s.Close()
-
-		saveRunner(t, s, "rnr_busy", "busy-runner", runnerv1.RunnerPhase_RUNNER_PHASE_BUSY, "runner:rnr_busy")
-		saveRunner(t, s, "rnr_stopped", "stopped-runner", runnerv1.RunnerPhase_RUNNER_PHASE_STOPPED, "runner:rnr_stopped")
-
-		result, err := ResolveActivityTaskQueue(context.Background(), s, "")
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if result.RunnerID != "rnr_busy" {
-			t.Errorf("expected BUSY runner 'rnr_busy', got '%s'", result.RunnerID)
-		}
-		if result.TaskQueue != "runner:rnr_busy" {
-			t.Errorf("expected task queue 'runner:rnr_busy', got '%s'", result.TaskQueue)
-		}
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := resolveExecutionTarget(tt.target, tt.cfg)
+			if got != tt.want {
+				t.Errorf("resolveExecutionTarget(%v) = %v, want %v", tt.target, got, tt.want)
+			}
+		})
+	}
 }
 
-func TestResolveActivityTaskQueue_HasRunner(t *testing.T) {
-	t.Run("auto-routed result has runner", func(t *testing.T) {
+func TestResolveActivityTaskQueue_ExecutionTarget(t *testing.T) {
+	t.Run("session with LOCAL target returns LOCAL in result", func(t *testing.T) {
 		s := setupTestStore(t)
 		defer s.Close()
 
-		saveRunner(t, s, "rnr_1", "my-runner", runnerv1.RunnerPhase_RUNNER_PHASE_READY, "runner:rnr_1")
+		sessionID := "ses_local"
+		session := &sessionv1.Session{
+			ApiVersion: "agentic.stigmer.ai/v1",
+			Kind:       "Session",
+			Metadata:   &apiresource.ApiResourceMetadata{Id: sessionID, Name: "test", Org: "test-org"},
+			Spec: &sessionv1.SessionSpec{
+				AgentInstanceId: "test-instance",
+				Harness:         sessionv1.Harness_HARNESS_NATIVE,
+				ExecutionTarget: sessionv1.ExecutionTarget_EXECUTION_TARGET_LOCAL,
+			},
+		}
+		if err := s.SaveResource(context.Background(), apiresourcekind.ApiResourceKind_session, sessionID, session); err != nil {
+			t.Fatalf("failed to save session: %v", err)
+		}
 
-		result, err := ResolveActivityTaskQueue(context.Background(), s, "")
+		result, err := ResolveActivityTaskQueue(context.Background(), s, sessionID, sessionConfig(), "")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if !result.HasRunner() {
-			t.Error("expected HasRunner() to be true for auto-routed result")
+		if result.ExecutionTarget != sessionv1.ExecutionTarget_EXECUTION_TARGET_LOCAL {
+			t.Errorf("expected LOCAL, got %v", result.ExecutionTarget)
+		}
+	})
+
+	t.Run("session with CLOUD target returns CLOUD in result", func(t *testing.T) {
+		s := setupTestStore(t)
+		defer s.Close()
+
+		sessionID := "ses_cloud"
+		session := &sessionv1.Session{
+			ApiVersion: "agentic.stigmer.ai/v1",
+			Kind:       "Session",
+			Metadata:   &apiresource.ApiResourceMetadata{Id: sessionID, Name: "test", Org: "test-org"},
+			Spec: &sessionv1.SessionSpec{
+				AgentInstanceId: "test-instance",
+				Harness:         sessionv1.Harness_HARNESS_NATIVE,
+				ExecutionTarget: sessionv1.ExecutionTarget_EXECUTION_TARGET_CLOUD,
+			},
+		}
+		if err := s.SaveResource(context.Background(), apiresourcekind.ApiResourceKind_session, sessionID, session); err != nil {
+			t.Fatalf("failed to save session: %v", err)
+		}
+
+		result, err := ResolveActivityTaskQueue(context.Background(), s, sessionID, sessionConfig(), "")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if result.ExecutionTarget != sessionv1.ExecutionTarget_EXECUTION_TARGET_CLOUD {
+			t.Errorf("expected CLOUD, got %v", result.ExecutionTarget)
+		}
+	})
+
+	t.Run("session with UNSPECIFIED target resolves based on config", func(t *testing.T) {
+		s := setupTestStore(t)
+		defer s.Close()
+
+		sessionID := "ses_unspecified"
+		saveSession(t, s, sessionID, sessionv1.Harness_HARNESS_NATIVE)
+
+		result, err := ResolveActivityTaskQueue(context.Background(), s, sessionID, cloudConfig(), "")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if result.ExecutionTarget != sessionv1.ExecutionTarget_EXECUTION_TARGET_CLOUD {
+			t.Errorf("expected CLOUD (from config default), got %v", result.ExecutionTarget)
+		}
+	})
+
+	t.Run("activity_task_queue override routes to parent workflow sandbox", func(t *testing.T) {
+		s := setupTestStore(t)
+		defer s.Close()
+
+		sessionID := "ses_override_test"
+		saveSession(t, s, sessionID, sessionv1.Harness_HARNESS_CURSOR)
+
+		override := "wfexec:wfx_parent_abc123"
+		result, err := ResolveActivityTaskQueue(context.Background(), s, sessionID, sessionConfig(), override)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if result.TaskQueue != override {
+			t.Errorf("expected override queue %q, got %q", override, result.TaskQueue)
+		}
+		if result.Harness != sessionv1.Harness_HARNESS_CURSOR {
+			t.Errorf("expected session's harness CURSOR, got %v", result.Harness)
+		}
+		if result.ExecutionTarget != sessionv1.ExecutionTarget_EXECUTION_TARGET_LOCAL {
+			t.Errorf("expected LOCAL (no provisioning needed), got %v", result.ExecutionTarget)
+		}
+	})
+
+	t.Run("activity_task_queue override with no session still works", func(t *testing.T) {
+		s := setupTestStore(t)
+		defer s.Close()
+
+		override := "wfexec:wfx_no_session"
+		result, err := ResolveActivityTaskQueue(context.Background(), s, "", cloudConfig(), override)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if result.TaskQueue != override {
+			t.Errorf("expected override queue %q, got %q", override, result.TaskQueue)
+		}
+		if result.Harness != sessionv1.Harness_HARNESS_NATIVE {
+			t.Errorf("expected default NATIVE harness, got %v", result.Harness)
+		}
+		if result.ExecutionTarget != sessionv1.ExecutionTarget_EXECUTION_TARGET_LOCAL {
+			t.Errorf("expected LOCAL (sandbox already exists), got %v", result.ExecutionTarget)
+		}
+	})
+
+	t.Run("empty override falls through to normal routing", func(t *testing.T) {
+		s := setupTestStore(t)
+		defer s.Close()
+
+		sessionID := "ses_no_override"
+		saveSession(t, s, sessionID, sessionv1.Harness_HARNESS_NATIVE)
+
+		result, err := ResolveActivityTaskQueue(context.Background(), s, sessionID, sessionConfig(), "")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if result.TaskQueue != FormatSessionTaskQueue(sessionID) {
+			t.Errorf("expected session queue %q, got %q", FormatSessionTaskQueue(sessionID), result.TaskQueue)
 		}
 	})
 }

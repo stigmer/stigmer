@@ -72,8 +72,9 @@ public interface ApiResourceReferenceOrBuilder extends
   /**
    * <pre>
    * Resource slug (user-friendly identifier, unique within org).
-   * Format: lowercase alphanumeric with hyphens, must start with a letter (e.g., "web-search", "code-reviewer").
-   * Length: 1-63 characters.
+   * Format: lowercase alphanumeric with hyphens, must start with a letter
+   * and end with a letter or digit (e.g., "web-search", "code-reviewer").
+   * Length: 2-63 characters.
    * </pre>
    *
    * <code>string slug = 3 [json_name = "slug", (.buf.validate.field) = { ... }</code>
@@ -83,8 +84,9 @@ public interface ApiResourceReferenceOrBuilder extends
   /**
    * <pre>
    * Resource slug (user-friendly identifier, unique within org).
-   * Format: lowercase alphanumeric with hyphens, must start with a letter (e.g., "web-search", "code-reviewer").
-   * Length: 1-63 characters.
+   * Format: lowercase alphanumeric with hyphens, must start with a letter
+   * and end with a letter or digit (e.g., "web-search", "code-reviewer").
+   * Length: 2-63 characters.
    * </pre>
    *
    * <code>string slug = 3 [json_name = "slug", (.buf.validate.field) = { ... }</code>

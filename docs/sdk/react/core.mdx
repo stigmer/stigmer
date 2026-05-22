@@ -39,6 +39,25 @@ function useDeploymentMode(): DeploymentMode
 ```
 
 
+### useExecutionTarget
+
+Read the app-level execution target from the nearest
+`StigmerProvider`.
+
+Returns `"local"`, `"cloud"`, or `undefined` when the provider
+does not specify one (server decides).
+
+Hooks like `useNewSessionFlow` and `useCreateSession` read this
+to apply a consistent execution target across all sessions without
+requiring per-call configuration.
+
+**Signature**
+
+```tsx
+function useExecutionTarget(): ExecutionTargetOption | undefined
+```
+
+
 ### useResourceAvailable
 
 Check whether a given `ApiResourceKind` is available in the
@@ -218,6 +237,7 @@ for custom styling.
     client: { type: "Stigmer", description: "A configured Stigmer client instance.", required: true },
     colorMode: { type: "ColorMode", description: "Controls the color mode for all descendant Stigmer components.  - `\"light\"` — light design tokens (default). - `\"dark\"`  — dark design tokens. - `\"system\"` — follows the user's OS preference via   `prefers-color-scheme`. Resolved to `\"light\"` or `\"dark\"`   before reaching CSS or React context.  The resolved value is set as `data-stgm-color-mode` on the scoping container and exposed via useColorMode. Host applications pass their own theme state directly — no ancestor CSS class conventions are required.", typeDescriptionLink: "#colormode" },
     deploymentMode: { type: "DeploymentMode", description: "Deployment mode of the connected Stigmer backend.  - `\"local\"` — local Go CLI server (OSS). Cloud-only resources   (API keys, IAM, identity management) are unavailable. - `\"cloud\"` — Stigmer Cloud. All resources are available.  Defaults to `\"cloud\"` so existing consumers see no change. The Stigmer Console derives this from the API URL hostname. Platform builders pass it based on their deployment context.", typeDescriptionLink: "#deploymentmode" },
+    executionTarget: { type: "ExecutionTargetOption", description: "Default execution target for all sessions created within this provider scope.  - `\"local\"` -- Client provides runners (desktop app, CLI, or   customer-managed runner process). - `\"cloud\"` -- Server provisions cloud sandboxes automatically. - `undefined` (default) -- Server decides based on deployment   context (LOCAL for OSS, CLOUD for managed).  This is an app-level setting, not a per-session choice. Hooks like `useNewSessionFlow` and `useCreateSession` read this from context so every session in the tree inherits the same target.", typeDescriptionLink: "/docs/sdk/react/session#executiontargetoption" },
     preset: { type: "\"default\" | \"corporate\" | \"startup\" | \"friendly\" | \"fintech\" | \"monochrome\"", description: "Built-in theme preset to apply.  Maps to a CSS class on the scoping container so the preset's design tokens take effect for all descendant Stigmer components. Omit (or pass `\"default\"`) to use the base Stigmer palette." },
   }}
 />
@@ -274,6 +294,17 @@ pattern and avoid circular imports.
 
 Defaults to `"cloud"` so existing consumers who don't pass
 `deploymentMode` to `StigmerProvider` see all features enabled.
+
+
+### ExecutionTargetContext
+
+React context for the app-level execution target.
+
+Separated from the provider to mirror the `DeploymentModeContext`
+pattern and avoid circular imports.
+
+`undefined` means no explicit target was configured at the provider
+level -- the server decides based on deployment context.
 
 
 ### FetchCacheOptions

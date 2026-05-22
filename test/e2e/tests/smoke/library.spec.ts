@@ -19,4 +19,29 @@ test.describe("Library pages", () => {
       await expect(errorBoundary).toHaveCount(0);
     });
   }
+
+  test("/library/workflows has view toggle and defaults to cards", async ({ page }) => {
+    await page.goto("/library/workflows");
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(3000);
+
+    const errorBoundary = page.locator('text="Something went wrong"');
+    await expect(errorBoundary).toHaveCount(0);
+
+    // The workbench should render — either cards, table, or empty state
+    const workbench = page.locator('[aria-label="Workflow workbench"]');
+    await expect(workbench).toBeVisible({ timeout: 10_000 });
+  });
+
+  test("/library/agents has view toggle and defaults to cards", async ({ page }) => {
+    await page.goto("/library/agents");
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(3000);
+
+    const errorBoundary = page.locator('text="Something went wrong"');
+    await expect(errorBoundary).toHaveCount(0);
+
+    const workbench = page.locator('[aria-label="Agent workbench"]');
+    await expect(workbench).toBeVisible({ timeout: 10_000 });
+  });
 });

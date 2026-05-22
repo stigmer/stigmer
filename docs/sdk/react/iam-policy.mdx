@@ -7,6 +7,57 @@ description: Hooks and components for access control bindings, role assignment, 
 
 ## Hooks
 
+### useCheckPermission
+
+Hook that checks whether the current user has a specific permission
+on a resource.
+
+Wraps `iamPolicy.checkAuthorization()` with caching and graceful
+degradation. When the server does not support authorization checks
+(OSS edition where the IAM service is not registered), the hook
+returns `allowed: true` — ensuring all UI is visible in single-user
+local mode.
+
+Pass `null` as `resource` to skip the check (returns `allowed: true`
+immediately — the "no resource yet" case is permissive to avoid
+flashing hidden UI).
+
+Results are cached per (kind, id, relation) triple for the lifetime
+of the component mount. Re-mount or change inputs to re-check.
+
+**Signature**
+
+```tsx
+function useCheckPermission(resource: PermissionCheckResource | null, relation: string): UseCheckPermissionReturn
+```
+
+<TypeTable
+  type={{
+    resource: { type: "PermissionCheckResource | null", description: "The resource to check, or `null` to skip.", required: true },
+    relation: { type: "string", description: "The permission to check (e.g. \"can_edit\", \"can_grant_access\").", required: true },
+  }}
+/>
+
+**Returns** — `UseCheckPermissionReturn`
+
+<TypeTable
+  type={{
+    allowed: { type: "boolean", description: "Whether the current user has the specified permission." },
+    error: { type: "Error | null", description: "Error from the last check, or `null`." },
+    isLoading: { type: "boolean", description: "`true` while the authorization check is in flight." },
+  }}
+/>
+
+```tsx
+const { allowed, isLoading } = useCheckPermission(
+  { kind: "agent", id: agentId },
+  "can_edit",
+);
+
+if (!allowed) return null; // hide edit button
+```
+
+
 ### useCreateIamPolicy
 
 Behavior hook that wraps `iamPolicy.create()` with loading/error
@@ -289,6 +340,65 @@ options.map(opt => (
 ```
 
 
+### useShareFlow
+
+Behavior hook that orchestrates the share flow for any resource.
+
+Composes [`useResourceAccess`](#useresourceaccess), [`useCreateIamPolicy`](#usecreateiampolicy), and
+[`useDeleteIamPolicy`](#usedeleteiampolicy) into a single cohesive API suitable for
+powering a share dialog.
+
+Pass `null` as `resource` to produce a stable no-op (useful while
+the resource hasn't loaded yet).
+
+**Signature**
+
+```tsx
+function useShareFlow(resource: ShareFlowResource | null): UseShareFlowReturn
+```
+
+<TypeTable
+  type={{
+    resource: { type: "ShareFlowResource | null", description: "The resource to share, or `null` to skip.", required: true },
+  }}
+/>
+
+**Returns** — `UseShareFlowReturn`
+
+<TypeTable
+  type={{
+    accessList: { type: "readonly PrincipalAccess[]", description: "Principals with their role grants on the resource." },
+    clearErrors: { type: "() => void", description: "Clear all errors." },
+    fetchError: { type: "Error | null", description: "Error from the last access list fetch, or `null`." },
+    grantableRoles: { type: "readonly IamRole[]", description: "Roles that can be granted on this resource kind." },
+    grantAccess: { type: "(principalId: string, role: string) => Promise<void>", description: "Grant a principal access with the specified role." },
+    grantError: { type: "Error | null", description: "Error from the last grant attempt, or `null`." },
+    hasGrantableRoles: { type: "boolean", description: "Whether the resource kind supports role grants." },
+    isGranting: { type: "boolean", description: "Whether a grant operation is in flight." },
+    isLoading: { type: "boolean", description: "Whether the initial access list is loading." },
+    isRefetching: { type: "boolean", description: "Whether a background refetch of the access list is in flight." },
+    isRevoking: { type: "boolean", description: "Whether a revoke operation is in flight." },
+    refetch: { type: "() => void", description: "Re-fetch the access list from the server." },
+    revokeAccess: { type: "(principalId: string, role: string) => Promise<void>", description: "Revoke a principal's role on this resource." },
+    revokeError: { type: "Error | null", description: "Error from the last revoke attempt, or `null`." },
+  }}
+/>
+
+```tsx
+const share = useShareFlow({
+  kind: "session",
+  id: sessionId,
+  resourceKind: ApiResourceKind.session,
+});
+
+// Render access list
+share.accessList.map(entry => ...);
+
+// Grant viewer access
+await share.grantAccess(userId, "viewer");
+```
+
+
 ### useWhoAmI
 
 Data hook that fetches the current authenticated user's
@@ -388,6 +498,47 @@ All visual properties flow through `--stgm-*` design tokens.
 ```
 
 
+### PermissionGate
+
+Conditionally renders children based on the current user's
+permission on a resource.
+
+Uses [`useCheckPermission`](#usecheckpermission) under the hood. In OSS mode (where
+the IAM service is unavailable), the gate is always permissive —
+children are rendered immediately without a network call.
+
+This component is designed to hide UI elements (buttons, actions,
+controls) that the user cannot perform. It does NOT enforce
+security — the server rejects unauthorized requests regardless of
+what the client renders.
+
+**Props** — `PermissionGateProps`
+
+<TypeTable
+  type={{
+    children: { type: "ReactNode", description: "Content rendered when the user has the required permission.", required: true },
+    fallback: { type: "ReactNode", description: "Optional content rendered when the user lacks permission. Defaults to rendering nothing (null)." },
+    loading: { type: "ReactNode", description: "Optional content rendered while the permission check is in flight. Defaults to rendering nothing (null) to avoid UI flicker." },
+    relation: { type: "string", description: "The permission relation to check (e.g. \"can_edit\", \"can_delete\").", required: true },
+    resource: { type: "PermissionCheckResource | null", description: "The resource to check permission on, or `null` to skip (permissive).", required: true },
+  }}
+/>
+
+```tsx
+<PermissionGate resource={{ kind: "agent", id }} relation="can_edit">
+  <EditButton onClick={handleEdit} />
+</PermissionGate>
+
+<PermissionGate
+  resource={{ kind: "session", id }}
+  relation="can_grant_access"
+  fallback={<Tooltip content="You don't have permission to share" />}
+>
+  <ShareButton onClick={openShareDialog} />
+</PermissionGate>
+```
+
+
 ### RoleSelector
 
 Styled radio-group for selecting an IAM role.
@@ -420,7 +571,52 @@ All visual properties flow through `--stgm-*` design tokens.
 ```
 
 
+### SharePanel
+
+Self-contained sharing panel that displays who has access to a
+resource and allows granting/revoking access.
+
+Combines the access list (from [`useShareFlow`](#useshareflow)) with the
+[`GrantAccessForm`](#grantaccessform) in a single panel suitable for embedding
+in a popover, sidebar, or dialog.
+
+All visual properties flow through `--stgm-*` design tokens.
+
+**Props** — `SharePanelProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    onClose: { type: "() => void", description: "Fired when the user closes the panel." },
+    resource: { type: "ShareFlowResource", description: "The resource to share.", required: true, typeDescriptionLink: "#shareflowresource" },
+    resourceKind: { type: "ApiResourceKind", description: "ApiResourceKind enum value for grantable-role lookup.", required: true },
+    resourceKindString: { type: "string", description: "Resource kind string for the API ref (e.g. \"agent\", \"session\").", required: true },
+  }}
+/>
+
+```tsx
+<SharePanel
+  resource={{ kind: "session", id: sessionId, resourceKind: ApiResourceKind.session }}
+  resourceKindString="session"
+  resourceKind={ApiResourceKind.session}
+  onClose={() => setOpen(false)}
+/>
+```
+
+
 ## Types
+
+### PermissionCheckResource
+
+Resource reference for permission checks.
+
+<TypeTable
+  type={{
+    id: { type: "string", description: "Resource ID.", required: true },
+    kind: { type: "string", description: "Resource kind (e.g. \"agent\", \"session\").", required: true },
+  }}
+/>
+
 
 ### ResourceAccessRef
 
@@ -444,6 +640,19 @@ A single role option with display metadata.
     label: { type: "string", description: "Human-readable display name (e.g. \"Admin\").", required: true },
     role: { type: "IamRole", description: "The IamRole enum value.", required: true },
     value: { type: "string", description: "The FGA relation string (e.g. \"admin\").", required: true },
+  }}
+/>
+
+
+### ShareFlowResource
+
+Identifies a resource for the share flow.
+
+<TypeTable
+  type={{
+    id: { type: "string", description: "Resource ID.", required: true },
+    kind: { type: "string", description: "Resource kind string (e.g. \"agent\", \"session\").", required: true },
+    resourceKind: { type: "ApiResourceKind", description: "ApiResourceKind enum value for grantable-role lookup." },
   }}
 />
 

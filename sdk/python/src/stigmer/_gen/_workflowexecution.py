@@ -166,6 +166,7 @@ class WorkflowExecutionInput:
     trigger_metadata: dict[str, str] = field(default_factory=dict)
     runtime_env: dict[str, EnvVarInput] = field(default_factory=dict)
     callback_token: bytes = b""
+    execution_target: int = 0
 
     def _to_proto(self) -> api_pb2.WorkflowExecution:
         spec = spec_pb2.WorkflowExecutionSpec(
@@ -173,6 +174,7 @@ class WorkflowExecutionInput:
             workflow_id=self.workflow_id,
             trigger_message=self.trigger_message,
             callback_token=self.callback_token,
+            execution_target=self.execution_target,
         )
         if self.trigger_metadata:
             spec.trigger_metadata.update(self.trigger_metadata)

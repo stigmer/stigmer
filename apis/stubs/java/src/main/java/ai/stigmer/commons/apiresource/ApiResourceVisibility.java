@@ -17,6 +17,11 @@ package ai.stigmer.commons.apiresource;
  *
  * All resources belong to an organization. Visibility determines whether
  * users outside that organization can access the resource.
+ *
+ * The three visibility levels map to FGA tuples:
+ * - PRIVATE: no additional viewer tuples (owner-only access)
+ * - ORG: resource#viewer&#64;organization:&lt;org&gt;#member tuple (all org members)
+ * - PUBLIC: resource#viewer&#64;identity_account:* with allow_public (all users)
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.commons.apiresource.ApiResourceVisibility}
@@ -35,8 +40,8 @@ public enum ApiResourceVisibility
   api_resource_visibility_unspecified(0),
   /**
    * <pre>
-   * Only members of the owning organization can access.
-   * This is the default for most resources.
+   * Only the owner (and explicitly granted principals) can access.
+   * This is the default for instances and personal resources.
    * Named visibility_private to avoid Java reserved keyword conflict.
    * </pre>
    *
@@ -54,6 +59,21 @@ public enum ApiResourceVisibility
    * <code>visibility_public = 2;</code>
    */
   visibility_public(2),
+  /**
+   * <pre>
+   * All members of the owning organization can access (read) this resource.
+   * Used for instances where a team wants shared observability of executions
+   * without granting access to all authenticated users.
+   *
+   * FGA tuple: resource#viewer&#64;organization:&lt;org&gt;#member
+   *
+   * For workflow instances, this enables zero-tuple-per-execution shared
+   * observability: all org members see all executions via inheritance.
+   * </pre>
+   *
+   * <code>visibility_org = 3;</code>
+   */
+  visibility_org(3),
   UNRECOGNIZED(-1),
   ;
 
@@ -77,8 +97,8 @@ public enum ApiResourceVisibility
   public static final int api_resource_visibility_unspecified_VALUE = 0;
   /**
    * <pre>
-   * Only members of the owning organization can access.
-   * This is the default for most resources.
+   * Only the owner (and explicitly granted principals) can access.
+   * This is the default for instances and personal resources.
    * Named visibility_private to avoid Java reserved keyword conflict.
    * </pre>
    *
@@ -96,6 +116,21 @@ public enum ApiResourceVisibility
    * <code>visibility_public = 2;</code>
    */
   public static final int visibility_public_VALUE = 2;
+  /**
+   * <pre>
+   * All members of the owning organization can access (read) this resource.
+   * Used for instances where a team wants shared observability of executions
+   * without granting access to all authenticated users.
+   *
+   * FGA tuple: resource#viewer&#64;organization:&lt;org&gt;#member
+   *
+   * For workflow instances, this enables zero-tuple-per-execution shared
+   * observability: all org members see all executions via inheritance.
+   * </pre>
+   *
+   * <code>visibility_org = 3;</code>
+   */
+  public static final int visibility_org_VALUE = 3;
 
 
   public final int getNumber() {
@@ -125,6 +160,7 @@ public enum ApiResourceVisibility
       case 0: return api_resource_visibility_unspecified;
       case 1: return visibility_private;
       case 2: return visibility_public;
+      case 3: return visibility_org;
       default: return null;
     }
   }

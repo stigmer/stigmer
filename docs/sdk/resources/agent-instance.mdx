@@ -61,6 +61,7 @@ AgentInstance agentInstance = client.agentInstances().get("ain_01j5q3k7m8r2s4tnz
 | [`apply`](#apply) | Create or update an agent instance. |
 | [`create`](#create) | Create an agent instance. |
 | [`update`](#update) | Update an existing agent instance. |
+| [`updateVisibility`](#updatevisibility) | Update the visibility of an existing agent instance. |
 | [`delete`](#delete) | Delete an agent instance. |
 
 ### get
@@ -430,6 +431,53 @@ AgentInstance agentInstance = client.agentInstances().update(AgentInstanceInput.
 
 **Returns**: [`AgentInstance`](#agentinstance)
 
+### updateVisibility
+
+Update the visibility of an existing agent instance.
+
+Changes who can view this instance and interact with it. Supports the full visibility spectrum: PRIVATE (owner only), ORG (all org members), or PUBLIC (all authenticated users).
+
+For agent instances, visibility controls who can create sessions and run executions against this instance. Sessions remain personal regardless of instance visibility (conversation privacy is preserved).
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const agentInstance = await stigmer.agentInstance.updateVisibility({
+  resourceId: "...",
+  visibility: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+agentInstance, err := client.AgentInstance.UpdateVisibility(ctx, &stigmer.UpdateVisibilityInput{
+  ResourceId: "...",
+  Visibility: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+agent_instance = client.agent_instances.update_visibility(UpdateVisibilityInput(
+    resource_id="...",
+    visibility="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+AgentInstance agentInstance = client.agentInstances().updateVisibility(UpdateVisibilityInput.builder()
+    .resourceId("...")
+    .visibility("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`UpdateVisibilityInput`](#updatevisibilityinput)
+
+**Returns**: [`AgentInstance`](#agentinstance)
+
 ### delete
 
 Delete an agent instance.
@@ -493,6 +541,17 @@ Generic reference to any API resource by org and slug.
     kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcekind" },
     slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
     version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
+  }}
+/>
+
+### UpdateVisibilityInput
+
+Input for updating the visibility of any API resource.
+
+<TypeTable
+  type={{
+    resourceId: { type: "string", description: "ID of the resource whose visibility is being updated.", required: true },
+    visibility: { type: "ApiResourceVisibility", description: "The new visibility setting for the resource.", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcevisibility" },
   }}
 />
 

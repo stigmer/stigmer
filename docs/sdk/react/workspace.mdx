@@ -29,7 +29,7 @@ function useWorkspaceEntries(): UseWorkspaceEntriesReturn
     addGitRepo: { type: "(url: string, branch?: string) => void", description: "Add a git repository by URL with an optional branch." },
     addLocalPath: { type: "(path: string) => void", description: "Add a local filesystem directory by absolute path." },
     clear: { type: "() => void", description: "Remove all entries." },
-    clearLocal: { type: "() => void", description: "Remove all local folder entries, keeping git entries intact.  Used when the user switches runners — local paths from the previous runner are invalid on the new runner, but git repos are runner-independent and can stay." },
+    clearLocal: { type: "() => void", description: "Remove all local folder entries, keeping git entries intact." },
     entries: { type: "readonly WorkspaceEntry[]", description: "Current workspace entries." },
     hasEntries: { type: "boolean", description: "`true` when at least one entry exists." },
     remove: { type: "(id: string) => void", description: "Remove an entry by its stable ID." },
@@ -85,12 +85,9 @@ All visual properties flow through `--stgm-*` tokens.
     className: { type: "string", description: "Additional CSS class names for the root container." },
     disabled: { type: "boolean", description: "Disables all add/remove interactions." },
     enableGitHub: { type: "boolean", description: "Enable the \"Connect GitHub\" action. Default: true." },
-    enableLocal: { type: "boolean", description: "Enable the \"Browse Folder\" action.  The action is only functional when `runnerId` is also provided, since the file browser requires a connected runner to query. When `runnerId` is null (Auto selected), the action is disabled." },
+    enableLocal: { type: "boolean", description: "Enable the \"Browse Folder\" action." },
     gitHubConnection: { type: "UseGitHubConnectionReturn", description: "GitHub connection state. When provided, enables the GitHub repo picker.", typeDescriptionLink: "/docs/sdk/react/github#usegithubconnectionreturn" },
-    onBrowseLocalFolder: { type: "() => Promise<string | null>", description: "Native folder picker callback for desktop environments.  When provided alongside `runnerId`, renders an \"Open system dialog\" button in the Browse Folder drill-in view. Desktop-only enhancement." },
-    runnerHostname: { type: "string", description: "Hostname of the runner's machine (e.g. \"Alice's MacBook Pro\"). Passed through to RunnerFileBrowser for the context header." },
-    runnerId: { type: "string | null", description: "ID of the runner to use for filesystem browsing.  When provided together with `enableLocal`, the \"Browse Folder\" action drills into a RunnerFileBrowser that queries the runner's filesystem via the `ListDirectory` command." },
-    runnerName: { type: "string", description: "Display name of the currently selected runner. Passed through to RunnerFileBrowser for the context header." },
+    onBrowseLocalFolder: { type: "() => Promise<string | null>", description: "Native folder picker callback for desktop environments.  When provided alongside `enableLocal`, renders a \"Browse Folder\" button that opens the system folder dialog. Desktop-only enhancement." },
     workspace: { type: "UseWorkspaceEntriesReturn", description: "Workspace state from useWorkspaceEntries.", required: true, typeDescriptionLink: "#useworkspaceentriesreturn" },
   }}
 />
@@ -106,7 +103,6 @@ function SessionSetup({ org }: { org: string }) {
       gitHubConnection={gh}
       enableGitHub
       enableLocal
-      runnerId={browseRunnerId}
     />
   );
 }

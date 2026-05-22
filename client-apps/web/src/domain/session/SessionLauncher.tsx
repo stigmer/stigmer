@@ -151,8 +151,6 @@ export function SessionLauncher() {
           onMcpServerUsagesChange={flow.setMcpServerUsages}
           skillRefs={flow.skillRefs}
           onSkillRefsChange={flow.setSkillRefs}
-          runnerId={flow.runnerId}
-          onRunnerIdChange={flow.setRunnerId}
           sessionVariables={flow.sessionVariables}
           showHarnessSelector
           harness={flow.harness}

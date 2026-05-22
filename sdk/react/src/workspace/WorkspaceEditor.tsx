@@ -4,7 +4,6 @@ import { useState, useCallback, useEffect, type KeyboardEvent } from "react";
 import type { UseWorkspaceEntriesReturn } from "./useWorkspaceEntries";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection";
 import { GitHubRepoPicker } from "../github/GitHubRepoPicker";
-import { RunnerFileBrowser } from "../runner/RunnerFileBrowser";
 import { useScrollShadows } from "../internal/useScrollShadows";
 import { ScrollFade } from "../internal/ScrollFade";
 
@@ -20,42 +19,18 @@ export interface WorkspaceEditorProps {
   readonly gitHubConnection?: UseGitHubConnectionReturn;
   /** Enable the "Connect GitHub" action. Default: true. */
   readonly enableGitHub?: boolean;
-  /**
-   * Enable the "Browse Folder" action.
-   *
-   * The action is only functional when `runnerId` is also provided,
-   * since the file browser requires a connected runner to query.
-   * When `runnerId` is null (Auto selected), the action is disabled.
-   */
+  /** Enable the "Browse Folder" action. */
   readonly enableLocal?: boolean;
-  /**
-   * ID of the runner to use for filesystem browsing.
-   *
-   * When provided together with `enableLocal`, the "Browse Folder"
-   * action drills into a {@link RunnerFileBrowser} that queries the
-   * runner's filesystem via the `ListDirectory` command.
-   */
-  readonly runnerId?: string | null;
   /**
    * Native folder picker callback for desktop environments.
    *
-   * When provided alongside `runnerId`, renders an "Open system dialog"
-   * button in the Browse Folder drill-in view. Desktop-only enhancement.
+   * When provided alongside `enableLocal`, renders a "Browse Folder"
+   * button that opens the system folder dialog. Desktop-only enhancement.
    */
   readonly onBrowseLocalFolder?: () => Promise<string | null>;
-  /**
-   * Display name of the currently selected runner.
-   * Passed through to {@link RunnerFileBrowser} for the context header.
-   */
-  readonly runnerName?: string;
-  /**
-   * Hostname of the runner's machine (e.g. "Alice's MacBook Pro").
-   * Passed through to {@link RunnerFileBrowser} for the context header.
-   */
-  readonly runnerHostname?: string;
 }
 
-type ActivePanel = "browse" | "github" | null;
+type ActivePanel = "github" | null;
 
 const TYPE_LABELS: Record<string, string> = {
   git: "GitHub",
@@ -87,7 +62,6 @@ const TYPE_LABELS: Record<string, string> = {
  *       gitHubConnection={gh}
  *       enableGitHub
  *       enableLocal
- *       runnerId={browseRunnerId}
  *     />
  *   );
  * }
@@ -100,17 +74,14 @@ export function WorkspaceEditor({
   gitHubConnection,
   enableGitHub = true,
   enableLocal = false,
-  runnerId,
   onBrowseLocalFolder,
-  runnerName,
-  runnerHostname,
 }: WorkspaceEditorProps) {
   const [activePanel, setActivePanel] = useState<ActivePanel>(null);
   const [manualUrl, setManualUrl] = useState("");
   const [manualBranch, setManualBranch] = useState("");
   const entryList = useScrollShadows();
 
-  const canBrowse = enableLocal && !!runnerId;
+  const canBrowse = enableLocal;
 
   const handleGitHubSelect = useCallback(
     (repoUrl: string, branch: string) => {
@@ -138,37 +109,6 @@ export function WorkspaceEditor({
   );
 
   const goBack = useCallback(() => setActivePanel(null), []);
-
-  // ---------------------------------------------------------------------------
-  // Drill-in: Browse Folder
-  // ---------------------------------------------------------------------------
-
-  if (activePanel === "browse" && canBrowse) {
-    return (
-      <div className={["space-y-2", className].filter(Boolean).join(" ")}>
-        <button
-          type="button"
-          onClick={goBack}
-          className="inline-flex items-center gap-1 text-[0.65rem] text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ChevronLeftIcon />
-          Back
-        </button>
-        <div className="space-y-2">
-          <RunnerFileBrowser
-            runnerId={runnerId!}
-            onSelect={(path) => {
-              workspace.addLocalPath(path);
-              setActivePanel(null);
-            }}
-            onCancel={goBack}
-            runnerName={runnerName}
-            runnerHostname={runnerHostname}
-          />
-        </div>
-      </div>
-    );
-  }
 
   // ---------------------------------------------------------------------------
   // Drill-in: Connect GitHub
@@ -269,23 +209,18 @@ export function WorkspaceEditor({
 
       {/* Action items */}
       <div className="space-y-0.5">
-        {canBrowse && (
+        {canBrowse && onBrowseLocalFolder && (
           <button
             type="button"
-            onClick={
-              onBrowseLocalFolder
-                ? async () => {
-                    const path = await onBrowseLocalFolder();
-                    if (path) workspace.addLocalPath(path);
-                  }
-                : () => setActivePanel("browse")
-            }
+            onClick={async () => {
+              const path = await onBrowseLocalFolder();
+              if (path) workspace.addLocalPath(path);
+            }}
             disabled={disabled}
             className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-xs text-foreground transition-colors hover:bg-accent-hover disabled:pointer-events-none disabled:opacity-40"
           >
             <FolderIcon />
             <span className="flex-1 text-left">Browse Folder</span>
-            {!onBrowseLocalFolder && <ChevronRightIcon />}
           </button>
         )}
         {enableGitHub && (
