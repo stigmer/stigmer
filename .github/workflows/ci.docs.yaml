@@ -63,6 +63,9 @@ jobs:
       - name: Install npm dependencies
         run: npm ci
 
+      - name: Build SDK libraries
+        run: npm run build:libs
+
       - name: Check formatting
         run: make format-docs-check
 
