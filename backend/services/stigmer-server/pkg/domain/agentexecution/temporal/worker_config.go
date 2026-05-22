@@ -64,8 +64,8 @@ type WorkerConfig struct {
 	store                     store.Store
 	updateStatusActivityImpl  *activities.UpdateExecutionStatusActivityImpl
 	loadExecutionActivityImpl *activities.LoadAgentExecutionActivityImpl
-	deleteECActivityImpl    *ecactivities.DeleteExecutionContextActivityImpl
-	readHarnessStateIdImpl *activities.ReadHarnessStateIdActivityImpl
+	deleteECActivityImpl      *ecactivities.DeleteExecutionContextActivityImpl
+	readHarnessStateIdImpl    *activities.ReadHarnessStateIdActivityImpl
 }
 
 // NewWorkerConfig creates a new WorkerConfig.

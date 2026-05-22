@@ -673,5 +673,3 @@ func TestSessionController_Delete(t *testing.T) {
 		}
 	})
 }
-
-

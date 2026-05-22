@@ -16,9 +16,9 @@ import (
 // InvokeWorkflowExecutionWorkflowImpl implements InvokeWorkflowExecutionWorkflow.
 //
 // Unified Runner Architecture:
-// - Workflow (Go): Orchestrates child workflow execution on "workflow_execution_stigmer" queue
-// - TS unified runner: Polls the runner task queue and exposes
-//   "stigmer/workflow/execute-from-execution" as a Temporal child workflow
+//   - Workflow (Go): Orchestrates child workflow execution on "workflow_execution_stigmer" queue
+//   - TS unified runner: Polls the runner task queue and exposes
+//     "stigmer/workflow/execute-from-execution" as a Temporal child workflow
 //
 // Signal handling: pause, resume, and relaySignal signals are forwarded from
 // this orchestrator to the TS child workflow via SignalExternalWorkflow.
@@ -157,7 +157,7 @@ func (w *InvokeWorkflowExecutionWorkflowImpl) relaySignalToChild(ctx workflow.Co
 // executeVersioned dispatches to the child workflow (v1) or legacy activity (v0)
 // based on the workflow version. This preserves deterministic replay for
 // workflows that were started before the child-workflow migration.
-func (w *InvokeWorkflowExecutionWorkflowImpl) executeVersioned(ctx workflow.Context, version int, input *activities.InvokeWorkflowExecutionWorkflowInput) error {
+func (w *InvokeWorkflowExecutionWorkflowImpl) executeVersioned(ctx workflow.Context, version workflow.Version, input *activities.InvokeWorkflowExecutionWorkflowInput) error {
 	if version >= 1 {
 		return w.executeChildWorkflow(ctx, input)
 	}

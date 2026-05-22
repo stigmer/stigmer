@@ -27,7 +27,6 @@ export { ByoaSetup as DemoByoaSetup } from "./demos/scenarios/byoa-setup";
 export { SkillCreationTour as DemoSkillCreationTour } from "./demos/scenarios/skill-creation-tour";
 export { PlatformClientSetupTour as DemoPlatformClientSetupTour } from "./demos/scenarios/platform-client-setup-tour";
 export { PlatformClientTokenFlow as DemoPlatformClientTokenFlow } from "./demos/scenarios/platform-client-token-flow";
-export { RunnerListDetail as DemoRunnerListDetail } from "./demos/scenarios/runner-list-detail";
 export { glossary } from "./glossary";
 export { Mermaid } from "./mermaid";
 export { PageFeedback } from "./page-feedback";
