@@ -1,0 +1,101 @@
+# Cloud Sandbox — Unified TypeScript Runner
+# Daytona sandbox image for cloud-mode execution. Published to GHCR.
+#
+# Build context: Repository root
+# Build command: docker build -f backend/services/runner/Dockerfile.sandbox .
+#
+# This image provides:
+#   1. Unified Temporal worker (Node.js) handling all execution types:
+#      ExecuteDeepAgent, ExecuteCursor, ExecuteServerlessWorkflow
+#   2. MCP server runtimes: npx (Node.js 22 LTS), uvx (Python), go run (Go)
+#   3. Core utilities: git, curl, jq, yq, yamllint
+#
+# MCP server packages (npm, pip, go modules) are NOT baked into the image.
+# They are installed on-demand by the runner during execution setup,
+# derived from the merged (agent + session) MCP server specs.
+#
+# The runner process is started by stigmer-service via
+# sandbox.process.executeCommand() after sandbox creation — CMD stays
+# /bin/bash per Daytona convention.
+#
+# Platform: linux/amd64 only (Temporal native bindings are arch-specific)
+
+# ---------- Build Proto Stubs + Runner ----------
+FROM node:22-slim AS builder
+
+RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+
+# Build @stigmer/protos (file: dependency of the runner).
+# Proto stubs have no lock file — single dependency (@bufbuild/protobuf).
+COPY apis/stubs/ts/package.json apis/stubs/ts/
+RUN cd apis/stubs/ts && npm install --ignore-scripts
+COPY apis/stubs/ts/ apis/stubs/ts/
+RUN cd apis/stubs/ts && npm run build
+
+# Install runner production dependencies.
+# The directory layout preserves the file:../../../apis/stubs/ts reference.
+COPY backend/services/runner/package.json backend/services/runner/package-lock.json backend/services/runner/
+WORKDIR /build/backend/services/runner
+RUN npm ci --legacy-peer-deps
+
+# Compile TypeScript to dist/
+COPY backend/services/runner/ .
+RUN npm run build
+
+# Strip dev dependencies and resolve the @stigmer/protos symlink into a
+# real copy so the runtime stage doesn't need the stubs directory tree.
+RUN npm prune --omit=dev --legacy-peer-deps && \
+    if [ -L node_modules/@stigmer/protos ]; then \
+      target="$(readlink -f node_modules/@stigmer/protos)" && \
+      rm node_modules/@stigmer/protos && \
+      cp -r "$target" node_modules/@stigmer/protos; \
+    fi
+
+# ---------- Runtime ----------
+FROM debian:bookworm-slim
+
+# --- Node.js 22 LTS (copied from official image, not Debian's v18) ---
+COPY --from=node:22-slim /usr/local/bin/node /usr/local/bin/node
+COPY --from=node:22-slim /usr/local/lib/node_modules/ /usr/local/lib/node_modules/
+RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm && \
+    ln -s /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
+
+# --- System packages ---
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        git \
+        jq \
+        unzip \
+        wget \
+        python3 \
+        python3-pip \
+        python3-venv \
+        yamllint \
+    && rm -rf /var/lib/apt/lists/*
+
+# --- Go 1.25 toolchain (for MCP servers via `go run`) ---
+COPY --from=golang:1.25-bookworm /usr/local/go /usr/local/go
+ENV PATH="/usr/local/go/bin:${PATH}"
+
+# --- uv / uvx (Python package runner for MCP servers) ---
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
+    mv /root/.local/bin/uv /usr/local/bin/uv && \
+    mv /root/.local/bin/uvx /usr/local/bin/uvx
+
+# --- yq (YAML processor) ---
+RUN curl -fsSL https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 \
+        -o /usr/local/bin/yq && \
+    chmod +x /usr/local/bin/yq
+
+# --- Unified runner ---
+COPY --from=builder /build/backend/services/runner/dist/ /runner/dist/
+COPY --from=builder /build/backend/services/runner/node_modules/ /runner/node_modules/
+COPY --from=builder /build/backend/services/runner/package.json /runner/package.json
+
+WORKDIR /workspace
+
+CMD ["/bin/bash"]
