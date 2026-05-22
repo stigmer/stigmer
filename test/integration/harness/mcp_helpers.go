@@ -24,7 +24,12 @@ func BuildTestMcpServer(outputDir string) (string, error) {
 	_, thisFile, _, _ := runtime.Caller(0)
 	serverSrc := filepath.Join(filepath.Dir(thisFile), "..", "testdata", "mcp-test-server")
 
-	binaryPath := filepath.Join(outputDir, "mcp-test-server")
+	absOutputDir, err := filepath.Abs(outputDir)
+	if err != nil {
+		return "", fmt.Errorf("resolve output dir: %w", err)
+	}
+
+	binaryPath := filepath.Join(absOutputDir, "mcp-test-server")
 	if runtime.GOOS == "windows" {
 		binaryPath += ".exe"
 	}
@@ -140,7 +145,12 @@ func BuildMcpServerStigmer(outputDir string) (string, error) {
 		return "", fmt.Errorf("mcp-server module not found at %s", mcpServerDir)
 	}
 
-	binaryPath := filepath.Join(outputDir, "mcp-server-stigmer")
+	absOutputDir, err := filepath.Abs(outputDir)
+	if err != nil {
+		return "", fmt.Errorf("resolve output dir: %w", err)
+	}
+
+	binaryPath := filepath.Join(absOutputDir, "mcp-server-stigmer")
 	if runtime.GOOS == "windows" {
 		binaryPath += ".exe"
 	}

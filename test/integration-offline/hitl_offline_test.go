@@ -21,7 +21,7 @@ import (
 func hitlToolCallEntries() []harness.RecordedLLMEntry {
 	return []harness.RecordedLLMEntry{
 		harness.BuildLLMEntry(0, harness.AnthropicToolUseResponse(
-			"toolu_hitl_01", "echo", map[string]any{"text": "hello-hitl"},
+			"toolu_hitl_01", "echo", map[string]any{"input": "hello-hitl"},
 			300, 35,
 		)),
 		harness.BuildLLMEntry(1, harness.AnthropicTextResponse(
@@ -35,7 +35,7 @@ func hitlToolCallEntries() []harness.RecordedLLMEntry {
 func hitlSkipRejectEntries() []harness.RecordedLLMEntry {
 	return []harness.RecordedLLMEntry{
 		harness.BuildLLMEntry(0, harness.AnthropicToolUseResponse(
-			"toolu_hitl_sr", "echo", map[string]any{"text": "test-skip-reject"},
+			"toolu_hitl_sr", "echo", map[string]any{"input": "test-skip-reject"},
 			300, 35,
 		)),
 		harness.BuildLLMEntry(1, harness.AnthropicTextResponse(

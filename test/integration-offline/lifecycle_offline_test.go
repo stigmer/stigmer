@@ -20,7 +20,7 @@ import (
 func keepAliveEntries() []harness.RecordedLLMEntry {
 	return []harness.RecordedLLMEntry{
 		harness.BuildLLMEntry(0, harness.AnthropicToolUseResponse(
-			"toolu_keepalive_01", "echo", map[string]any{"text": "keep-alive"},
+			"toolu_keepalive_01", "echo", map[string]any{"input": "keep-alive"},
 			300, 40,
 		)),
 		harness.BuildLLMEntry(1, harness.AnthropicTextResponse(

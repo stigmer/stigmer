@@ -195,7 +195,8 @@ export class StatusBuilder {
   }
 
   private handleToolStart(event: StreamEvent, namespace: string): void {
-    const parentMsg = this.state.currentAiMessage.get(namespace);
+    const parentMsg = this.state.currentAiMessage.get(namespace)
+      ?? this.ensureAiMessageForToolCall(event.run_id, namespace);
     if (!parentMsg) return;
 
     const toolName = event.name ?? "unknown_tool";
@@ -350,6 +351,38 @@ export class StatusBuilder {
     this.state.messagesByRun.set(runId, msg);
     this.state.currentAiMessage.set(namespace, msg);
     this.state.lastLlmRunId.set(namespace, runId);
+
+    return msg;
+  }
+
+  /**
+   * Create an AI message for a tool-only LLM turn (no preceding text).
+   * When the model responds with only tool_use blocks and no text,
+   * handleChatModelStream never creates an AI message. This method
+   * ensures tool calls still get attached to a proper AI message.
+   */
+  private ensureAiMessageForToolCall(
+    _toolRunId: string,
+    namespace: string,
+  ): AgentMessage | null {
+    const lastRunId = this.state.lastLlmRunId.get(namespace);
+    if (lastRunId) {
+      const existing = this.state.messagesByRun.get(lastRunId);
+      if (existing) {
+        this.state.currentAiMessage.set(namespace, existing);
+        return existing;
+      }
+    }
+
+    const msg = create(AgentMessageSchema, {
+      type: MessageType.MESSAGE_AI,
+      content: "",
+      timestamp: utcTimestamp(),
+      isStreaming: false,
+    });
+
+    this.state.proto.messages.push(msg);
+    this.state.currentAiMessage.set(namespace, msg);
 
     return msg;
   }
