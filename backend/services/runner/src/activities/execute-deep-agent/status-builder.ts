@@ -218,14 +218,14 @@ export class StatusBuilder {
       tc.args = rawArgs as JsonObject;
     }
 
+    if (approvalReq.serverSlug) {
+      tc.mcpServerSlug = approvalReq.serverSlug;
+    }
+
     if (approvalReq.requiresApproval) {
       tc.requiresApproval = true;
       tc.approvalMessage = approvalReq.message;
       tc.approvalRequestedAt = utcTimestamp();
-
-      if (approvalReq.serverSlug) {
-        tc.mcpServerSlug = approvalReq.serverSlug;
-      }
 
       const argsPreview = sanitizeArgsPreview(args);
       if (argsPreview) {
@@ -246,11 +246,16 @@ export class StatusBuilder {
     toolName: string,
     args: Record<string, unknown>,
   ): { requiresApproval: boolean; message: string; serverSlug: string } {
-    if (!this.approvalProvider || this.approvalProvider.autoApproveAll) {
+    if (!this.approvalProvider) {
       return { requiresApproval: false, message: "", serverSlug: "" };
     }
 
     const serverSlug = this.approvalProvider.toolServerMap.get(toolName) ?? "";
+
+    if (this.approvalProvider.autoApproveAll) {
+      return { requiresApproval: false, message: "", serverSlug };
+    }
+
     if (serverSlug) {
       const key = `${serverSlug}/${toolName}`;
       const policy = this.approvalProvider.policies.get(key);

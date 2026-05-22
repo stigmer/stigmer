@@ -22,7 +22,7 @@ import {
   MessageType,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
-import { StatusBuilder, type StreamEvent } from "./status-builder.js";
+import { StatusBuilder, type StreamEvent, type ApprovalPolicyProvider } from "./status-builder.js";
 import {
   StreamingUpdateScheduler,
   type StreamingConfig,
@@ -62,6 +62,8 @@ export interface StreamDependencies {
   readonly inlinePublisher?: InlinePublisher;
   /** Incremental git write-back coordinator. */
   readonly writebackCoordinator?: WriteBackCoordinator;
+  /** Approval policy provider for StatusBuilder tool-call phase tracking. */
+  readonly approvalProvider?: ApprovalPolicyProvider;
 }
 
 export interface StreamResult {
@@ -93,9 +95,13 @@ export async function streamExecution(
     gracefulStop,
     inlinePublisher,
     writebackCoordinator,
+    approvalProvider,
   } = deps;
 
   const statusBuilder = new StatusBuilder(executionId, initialStatus);
+  if (approvalProvider) {
+    statusBuilder.setApprovalProvider(approvalProvider);
+  }
   const scheduler = new StreamingUpdateScheduler(streamingConfig);
 
   let eventsProcessed = 0;

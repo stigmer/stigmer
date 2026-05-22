@@ -68,7 +68,7 @@ export function toMcpClientConfig(
         transport: "stdio",
         command: server.command,
         args: server.args ?? [],
-        env: server.env,
+        env: server.env ?? processEnvAsStrings(),
         cwd: server.cwd,
       };
     } else if (server.connectionType === "http" || server.connectionType === "sse") {
@@ -127,4 +127,24 @@ export async function connectMcpServers(
   );
 
   return { client, tools, serverToolMap };
+}
+
+/**
+ * Snapshot of process.env as a string-only record (no undefined values).
+ * Used as a fallback when an MCP server has no declared env — the
+ * subprocess inherits the runner's full environment, matching standard
+ * Unix child-process behavior.
+ *
+ * Without this, @modelcontextprotocol/sdk only passes a restricted
+ * whitelist (HOME, PATH, USER, etc.) which drops platform variables
+ * like STIGMER_SERVER_ADDRESS.
+ */
+function processEnvAsStrings(): Record<string, string> {
+  const env: Record<string, string> = {};
+  for (const [key, value] of Object.entries(process.env)) {
+    if (value !== undefined) {
+      env[key] = value;
+    }
+  }
+  return env;
 }
