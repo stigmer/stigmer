@@ -11,6 +11,7 @@ import (
 	agentexecv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
+	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/test/integration/harness"
 	"github.com/stretchr/testify/require"
@@ -75,19 +76,27 @@ func TestSandboxColocation_SessionRunnerID(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, execution.GetMetadata().GetId())
 
-	t.Logf("workflow execution created: id=%s", execution.GetMetadata().GetId())
+	executionId := execution.GetMetadata().GetId()
+	t.Logf("workflow execution created: id=%s", executionId)
 
 	// Wait for the call:agent activity to create the session and agent execution.
-	// The execution will likely fail (no agent-runner), but the session should
-	// exist with runner_id set.
-	time.Sleep(15 * time.Second)
+	// The child agent execution will fail (no agent-runner polling), but the
+	// CallAgent activity must succeed far enough to create a session — if it
+	// can't even create the session (e.g. proto validation failure), the
+	// workflow execution fails fast and this test must catch that.
+	waiter := harness.NewExecutionWaiter(clients.ExecutionQuery, suiteLogger)
+	result, err := waiter.WaitForTerminal(ctx, executionId, 2*time.Minute)
+	require.NoError(t, err, "workflow execution should reach a terminal phase")
+	wfPhase := result.GetStatus().GetPhase()
+	t.Logf("workflow execution reached phase: %s", wfPhase.String())
 
+	// The CallAgent activity must have created the child agent execution.
+	// If the workflow failed before that (e.g. Session creation rejected by
+	// proto validation), we have zero agent executions — that is a hard failure.
 	agentExecs, err := clients.AgentExecutionQuery.List(ctx, &agentexecv1.ListAgentExecutionsRequest{})
-	if err != nil {
-		t.Logf("warning: could not list agent executions: %v (session verification skipped)", err)
-		return
-	}
+	require.NoError(t, err, "listing agent executions should succeed")
 
+	var foundSession bool
 	for _, ae := range agentExecs.GetEntries() {
 		sessionId := ae.GetSpec().GetSessionId()
 		if sessionId == "" {
@@ -100,16 +109,23 @@ func TestSandboxColocation_SessionRunnerID(t *testing.T) {
 			continue
 		}
 
+		foundSession = true
+		t.Logf("found session: id=%s, execution_id=%s", sessionId, ae.GetMetadata().GetId())
+
 		harnessStateId := session.GetSpec().GetHarnessStateId()
 		if harnessStateId != "" {
-			t.Logf("found session with harness_state_id=%s (session_id=%s, execution_id=%s)",
-				harnessStateId, sessionId, ae.GetMetadata().GetId())
-			return
+			t.Logf("session has harness_state_id=%s (runner bound)", harnessStateId)
 		}
 	}
 
-	t.Logf("no session with harness_state_id found — " +
-		"this is expected when the runner has not yet bound to the session")
+	if wfPhase == workflowexecutionv1.ExecutionPhase_EXECUTION_FAILED && !foundSession {
+		t.Fatal("workflow execution FAILED and no child session was created — " +
+			"CallAgent activity likely failed during Session or AgentExecution creation " +
+			"(check runner logs for proto validation or gRPC errors)")
+	}
+
+	require.True(t, foundSession,
+		"CallAgent activity must create at least one session; none found")
 }
 
 func createTestAgentForColocation(t *testing.T, ctx context.Context, clients *harness.Clients) *agentv1.Agent {

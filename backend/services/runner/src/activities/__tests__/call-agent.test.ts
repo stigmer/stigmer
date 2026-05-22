@@ -152,7 +152,7 @@ describe("callAgentAction", () => {
   });
 
   describe("downstream calls", () => {
-    it("creates session with correct agent instance and harness", async () => {
+    it("creates session with correct envelope, metadata, and spec", async () => {
       await expect(
         callAgentAction(
           { agent: "my-agent", message: "Hello", harness: "CURSOR" },
@@ -163,10 +163,14 @@ describe("callAgentAction", () => {
 
       expect(mockCreateSession).toHaveBeenCalledOnce();
       const session = mockCreateSession.mock.calls[0][0];
+      expect(session.apiVersion).toBe("agentic.stigmer.ai/v1");
+      expect(session.kind).toBe("Session");
+      expect(session.metadata.org).toBe("test-org");
+      expect(session.metadata.name).toMatch(/^wf-my-agent-\d+$/);
       expect(session.spec.agentInstanceId).toBe("ain_default456");
     });
 
-    it("creates agent execution with callback token and parent workflow", async () => {
+    it("creates agent execution with correct envelope and spec", async () => {
       await expect(
         callAgentAction(
           { agent: "my-agent", message: "Review this" },
@@ -177,7 +181,11 @@ describe("callAgentAction", () => {
 
       expect(mockCreateAgentExecution).toHaveBeenCalledOnce();
       const execution = mockCreateAgentExecution.mock.calls[0][0];
+      expect(execution.apiVersion).toBe("agentic.stigmer.ai/v1");
+      expect(execution.kind).toBe("AgentExecution");
+      expect(execution.metadata.org).toBe("test-org");
       expect(execution.spec.agentId).toBe("agt_test123");
+      expect(execution.spec.sessionId).toBe("ses_test789");
       expect(execution.spec.message).toBe("Review this");
       expect(execution.spec.parentWorkflowId).toBe("wfl_parent_id");
       expect(execution.spec.callbackToken).toEqual(new Uint8Array([1, 2, 3]));
