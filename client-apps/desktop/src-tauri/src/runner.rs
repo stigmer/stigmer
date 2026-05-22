@@ -17,9 +17,13 @@ use tokio::sync::Mutex;
 #[derive(Serialize)]
 #[serde(tag = "type", rename_all = "camelCase")]
 enum IpcCommand {
+    #[serde(rename_all = "camelCase")]
     AddSession { session_id: String },
+    #[serde(rename_all = "camelCase")]
     RemoveSession { session_id: String },
+    #[serde(rename_all = "camelCase")]
     AddWorkflowExecution { execution_id: String },
+    #[serde(rename_all = "camelCase")]
     RemoveWorkflowExecution { execution_id: String },
     Shutdown,
 }
@@ -29,17 +33,21 @@ enum IpcCommand {
 #[allow(dead_code)]
 enum IpcResponse {
     Ready,
+    #[serde(rename_all = "camelCase")]
     SessionAdded {
         session_id: String,
         task_queue: String,
     },
+    #[serde(rename_all = "camelCase")]
     SessionRemoved {
         session_id: String,
     },
+    #[serde(rename_all = "camelCase")]
     WorkflowExecutionAdded {
         execution_id: String,
         task_queue: String,
     },
+    #[serde(rename_all = "camelCase")]
     WorkflowExecutionRemoved {
         execution_id: String,
     },
