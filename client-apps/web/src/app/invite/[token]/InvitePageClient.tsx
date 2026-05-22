@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Stigmer } from "@stigmer/sdk";
 import { StigmerProvider, InvitationRedemption } from "@stigmer/react";
@@ -11,6 +11,7 @@ import { getApiBaseUrl } from "@/config/env";
 import { resolveAuthConfig } from "@/auth/config";
 import { createUserManager } from "@/auth/oidc/oidc-manager";
 import { getSsoSession, isValidSsoState } from "@/auth/oidc/sso-session";
+import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
 
 const REDIRECT_PATH_KEY = "stigmer:auth:redirect_path";
 
@@ -61,7 +62,7 @@ function resolveActiveManager(auth0Config: {
  * This follows the same self-contained pattern as `LoginPageView`.
  */
 export default function InvitePageClient() {
-  const params = useParams<{ token: string }>();
+  const token = useStaticRouteParam("token");
   const router = useRouter();
   const { resolvedTheme } = useTheme();
   const colorMode: ResolvedColorMode =
@@ -97,7 +98,7 @@ export default function InvitePageClient() {
     <StigmerProvider client={client} colorMode={colorMode} preset="monochrome">
       <div className="flex min-h-screen items-center justify-center p-4">
         <InvitationRedemption
-          token={params.token}
+          token={token ?? ""}
           isAuthenticated={isAuthenticated}
           onAccepted={handleAccepted}
           onAuthRequired={handleAuthRequired}
