@@ -7,6 +7,11 @@
  * The kernel validates the config and delegates to `ctx.awaitHumanInput()`
  * which is wired to the Temporal workflow layer's signal/timer selector.
  *
+ * Outcome routing: when an outcome defines a `then` field (e.g.,
+ * `then: "gatherMore"`), the returned output includes a
+ * `__flow_directive__` that the do-executor uses to jump to the
+ * named task — the same mechanism used by switch and validate tasks.
+ *
  * YAML shape (via loader reclassification from call: human_input):
  *   - requireApproval:
  *       call: human_input
@@ -17,6 +22,8 @@
  *         outcomes:
  *           - name: approve
  *           - name: deny
+ *           - name: revise
+ *             then: gatherMore
  */
 
 import type {
@@ -88,6 +95,11 @@ export async function executeHumanInputTask(
   }
 
   state.addData({ [taskName]: result });
+
+  const selectedOutcome = config.outcomes?.find(o => o.name === result.outcome);
+  if (selectedOutcome?.then) {
+    return { ...result, __flow_directive__: selectedOutcome.then };
+  }
 
   return result;
 }

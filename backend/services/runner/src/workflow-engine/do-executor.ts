@@ -137,6 +137,9 @@ export async function executeDoTasks(
       }]);
     }
 
+    await processTaskOutput(entry, taskOutput, state, effectiveCtx);
+    await processTaskExport(entry, taskOutput, state, effectiveCtx);
+
     const switchDirective = extractFlowDirective(taskOutput);
     if (switchDirective !== undefined) {
       if (isTermination(switchDirective)) break;
@@ -145,9 +148,6 @@ export async function executeDoTasks(
         continue;
       }
     }
-
-    await processTaskOutput(entry, taskOutput, state, effectiveCtx);
-    await processTaskExport(entry, taskOutput, state, effectiveCtx);
 
     const staticDirective = entry.task.then;
     if (staticDirective !== undefined) {
@@ -348,9 +348,29 @@ async function runSingleTask(
 // ─────────────────────────────────────────────────────────────────────
 
 /**
+ * Strips the internal `__flow_directive__` key from task output before
+ * storing it in state. The directive is a routing instruction consumed
+ * by the executor loop — it should not leak into workflow state data.
+ */
+function stripFlowDirective(output: unknown): unknown {
+  if (
+    output !== null &&
+    typeof output === "object" &&
+    "__flow_directive__" in (output as Record<string, unknown>)
+  ) {
+    const { __flow_directive__: _, ...rest } = output as Record<string, unknown>;
+    return Object.keys(rest).length > 0 ? rest : undefined;
+  }
+  return output;
+}
+
+/**
  * Processes a task's `output.as` transform. If defined, evaluates
  * the expression against the task output and updates state.output.
  * If not defined, state.output is set to the raw task output.
+ *
+ * The `__flow_directive__` key is stripped before storing — it is an
+ * internal routing mechanism, not user-visible data.
  */
 async function processTaskOutput(
   entry: TaskEntry,
@@ -358,8 +378,10 @@ async function processTaskOutput(
   state: WorkflowState,
   ctx: TaskExecutionContext,
 ): Promise<void> {
+  const cleanOutput = stripFlowDirective(taskOutput);
+
   if (entry.task.output?.as === undefined) {
-    state.output = taskOutput;
+    state.output = cleanOutput;
     return;
   }
 
@@ -370,15 +392,15 @@ async function processTaskOutput(
       const stateVars = state.getAsMap();
       const results = await ctx.evaluateExpressions(
         { __output__: outputAs.slice(3, -2) },
-        taskOutput,
+        cleanOutput,
         stateVars,
       );
       state.output = results.__output__;
     } else {
-      state.output = taskOutput;
+      state.output = cleanOutput;
     }
   } else {
-    state.output = taskOutput;
+    state.output = cleanOutput;
   }
 }
 
@@ -386,6 +408,8 @@ async function processTaskOutput(
  * Processes a task's `export.as` transform. If defined, evaluates
  * the expression against the task output and merges the result
  * into state.context keyed by task name.
+ *
+ * Like processTaskOutput, the `__flow_directive__` key is stripped.
  */
 async function processTaskExport(
   entry: TaskEntry,
@@ -395,6 +419,7 @@ async function processTaskExport(
 ): Promise<void> {
   if (entry.task.export?.as === undefined) return;
 
+  const cleanOutput = stripFlowDirective(taskOutput);
   const exportAs = entry.task.export.as;
   let exportValue: unknown;
 
@@ -403,15 +428,15 @@ async function processTaskExport(
       const stateVars = state.getAsMap();
       const results = await ctx.evaluateExpressions(
         { __export__: exportAs.slice(3, -2) },
-        taskOutput,
+        cleanOutput,
         stateVars,
       );
       exportValue = results.__export__;
     } else {
-      exportValue = taskOutput;
+      exportValue = cleanOutput;
     }
   } else {
-    exportValue = taskOutput;
+    exportValue = cleanOutput;
   }
 
   if (state.context === null) {
