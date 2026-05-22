@@ -57,7 +57,6 @@ func TestOffline_HITL_Approve(t *testing.T) {
 	harness.RequireServiceHealthy(t, ctx, clients)
 
 	mcpServer := harness.CreateStdioMcpServer(t, ctx, clients, mcpTestServerBinary)
-	harness.ConnectMcpServer(t, ctx, clients, mcpServer.GetMetadata().GetId())
 
 	agent := harness.CreateAgent(t, ctx, clients, "offline-hitl-approve",
 		"You MUST call the echo tool exactly once with the user's input, then stop.",
@@ -119,7 +118,6 @@ func TestOffline_HITL_Skip(t *testing.T) {
 	harness.RequireServiceHealthy(t, ctx, clients)
 
 	mcpServer := harness.CreateStdioMcpServer(t, ctx, clients, mcpTestServerBinary)
-	harness.ConnectMcpServer(t, ctx, clients, mcpServer.GetMetadata().GetId())
 
 	agent := harness.CreateAgent(t, ctx, clients, "offline-hitl-skip",
 		"You MUST call the echo tool exactly once with the user's input, then stop.",
@@ -174,7 +172,6 @@ func TestOffline_HITL_Reject(t *testing.T) {
 	harness.RequireServiceHealthy(t, ctx, clients)
 
 	mcpServer := harness.CreateStdioMcpServer(t, ctx, clients, mcpTestServerBinary)
-	harness.ConnectMcpServer(t, ctx, clients, mcpServer.GetMetadata().GetId())
 
 	agent := harness.CreateAgent(t, ctx, clients, "offline-hitl-reject",
 		"You MUST call the echo tool exactly once with the user's input, then stop.",
@@ -229,7 +226,6 @@ func TestOffline_HITL_AutoApproveAll(t *testing.T) {
 	harness.RequireServiceHealthy(t, ctx, clients)
 
 	mcpServer := harness.CreateStdioMcpServer(t, ctx, clients, mcpTestServerBinary)
-	harness.ConnectMcpServer(t, ctx, clients, mcpServer.GetMetadata().GetId())
 
 	agent := harness.CreateAgent(t, ctx, clients, "offline-hitl-auto",
 		"You MUST call the echo tool. Your ONLY action must be calling the echo tool.",
@@ -277,7 +273,6 @@ func TestOffline_HITL_PendingApprovalDetails(t *testing.T) {
 	harness.RequireServiceHealthy(t, ctx, clients)
 
 	mcpServer := harness.CreateStdioMcpServer(t, ctx, clients, mcpTestServerBinary)
-	harness.ConnectMcpServer(t, ctx, clients, mcpServer.GetMetadata().GetId())
 	mcpSlug := mcpServer.GetMetadata().GetSlug()
 
 	agent := harness.CreateAgent(t, ctx, clients, "offline-hitl-details",
