@@ -91,9 +91,13 @@ export const WorkflowExecutionTimeline = memo(function WorkflowExecutionTimeline
   }
 
   if (events.length === 0 && isComplete) {
+    const hasTaskFallback = taskStates && taskStates.size > 0;
     return (
-      <div className={cn("flex flex-1 items-center justify-center text-sm text-muted-foreground", className)}>
-        No events recorded
+      <div className={cn("flex flex-1 flex-col items-center justify-center gap-1 text-sm text-muted-foreground", className)}>
+        <span>No events recorded</span>
+        {hasTaskFallback && (
+          <span className="text-xs">Task status available in the panel</span>
+        )}
       </div>
     );
   }
