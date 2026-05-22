@@ -8,9 +8,17 @@ set -euo pipefail
 # 1. Install bazelisk once if not present
 if ! command -v bazelisk >/dev/null 2>&1 ; then
   echo "Installing bazelisk..."
+
+  os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+  arch="$(uname -m)"
+  case "${arch}" in
+    x86_64)  arch="amd64" ;;
+    aarch64) arch="arm64" ;;
+  esac
+
   mkdir -p "${HOME}/.local/bin"
   curl -sSfL \
-    "https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m)" \
+    "https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-${os}-${arch}" \
     -o "${HOME}/.local/bin/bazelisk"
   chmod +x "${HOME}/.local/bin/bazelisk"
   export PATH="${HOME}/.local/bin:${PATH}"
