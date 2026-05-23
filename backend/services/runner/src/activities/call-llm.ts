@@ -22,6 +22,7 @@ import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import type { BaseMessageChunk } from "@langchain/core/messages";
 import { z } from "zod";
+import { ApplicationFailure } from "@temporalio/activity";
 
 import {
   inferProvider,
@@ -177,6 +178,108 @@ async function streamAndCollect(
   return { content, inputTokens, outputTokens };
 }
 
+/**
+ * Classify an LLM call error and re-throw as a Temporal ApplicationFailure
+ * with correct retryability semantics and a user-facing message.
+ *
+ * Both OpenAI and Anthropic SDKs throw typed error subclasses of APIError
+ * with a `.status` property. We duck-type on `.status` to avoid importing
+ * either SDK's error classes directly.
+ *
+ * Retryability policy:
+ *   - 4xx (except 429): nonRetryable — client/config errors won't self-heal
+ *   - 429: nonRetryable at Temporal level — the SDK already retries internally
+ *          with exponential backoff; Temporal retrying on top causes duplicates
+ *   - 5xx: retryable — transient provider outages
+ *   - Connection/timeout: retryable — transient network issues
+ *   - ZodError: nonRetryable — schema mismatch won't self-heal
+ */
+function classifyAndThrowLlmError(
+  err: unknown,
+  modelId: string,
+  provider: LlmProvider,
+): never {
+  const status = typeof (err as { status?: unknown }).status === "number"
+    ? (err as { status: number }).status
+    : undefined;
+
+  const rawMessage = err instanceof Error ? err.message : String(err);
+  const providerLabel = provider === "anthropic" ? "Anthropic" : "OpenAI";
+
+  if (err instanceof z.ZodError) {
+    throw ApplicationFailure.nonRetryable(
+      `Structured output from model "${modelId}" (${providerLabel}) did not match the expected schema. ` +
+      `Validation errors: ${err.errors.map(e => `${e.path.join(".")}: ${e.message}`).join("; ")}`,
+      "LLM_SCHEMA_VALIDATION",
+    );
+  }
+
+  if (status !== undefined) {
+    const context = `model "${modelId}" (${providerLabel})`;
+
+    switch (status) {
+      case 401:
+        throw ApplicationFailure.nonRetryable(
+          `Authentication failed for ${context}. Check that your API key is valid and not expired.`,
+          "LLM_AUTHENTICATION_ERROR",
+        );
+      case 403:
+        throw ApplicationFailure.nonRetryable(
+          `Access denied for ${context}. Verify that your API key has permission to use this model.`,
+          "LLM_PERMISSION_DENIED",
+        );
+      case 404:
+        throw ApplicationFailure.nonRetryable(
+          `Model not found: ${context}. Verify the model name is correct and available in your account.`,
+          "LLM_MODEL_NOT_FOUND",
+        );
+      case 400:
+        throw ApplicationFailure.nonRetryable(
+          `Invalid request to ${context}: ${rawMessage}`,
+          "LLM_BAD_REQUEST",
+        );
+      case 422:
+        throw ApplicationFailure.nonRetryable(
+          `Unprocessable request to ${context}: ${rawMessage}`,
+          "LLM_UNPROCESSABLE_REQUEST",
+        );
+      case 429:
+        throw ApplicationFailure.nonRetryable(
+          `Rate limit exceeded for ${context}. The provider's built-in retry was exhausted. ` +
+          `Try again later or reduce request frequency.`,
+          "LLM_RATE_LIMIT",
+        );
+      default:
+        if (status >= 500) {
+          throw new Error(
+            `${providerLabel} provider error (HTTP ${status}) for ${context}: ${rawMessage}`,
+          );
+        }
+        throw ApplicationFailure.nonRetryable(
+          `${providerLabel} API error (HTTP ${status}) for ${context}: ${rawMessage}`,
+          "LLM_API_ERROR",
+        );
+    }
+  }
+
+  const errName = err instanceof Error ? err.constructor.name : "";
+  if (errName.includes("Timeout") || errName.includes("ConnectionTimeout")) {
+    throw new Error(
+      `Connection timed out for model "${modelId}" (${providerLabel}): ${rawMessage}`,
+    );
+  }
+  if (errName.includes("Connection")) {
+    throw new Error(
+      `Connection failed for model "${modelId}" (${providerLabel}): ${rawMessage}`,
+    );
+  }
+
+  throw ApplicationFailure.nonRetryable(
+    `LLM call failed for model "${modelId}" (${providerLabel}): ${rawMessage}`,
+    "LLM_UNKNOWN_ERROR",
+  );
+}
+
 export async function callLlmAction(
   config: LlmCallConfig,
   runtimeEnv: Record<string, unknown>,
@@ -195,17 +298,35 @@ export async function callLlmAction(
 
   const proxyEndpoint = process.env.STIGMER_PROXY_ENDPOINT;
   const stigmerToken = process.env.STIGMER_TOKEN;
+  const proxyActive = !!(proxyEndpoint && stigmerToken);
+
+  console.log(
+    `[call-llm] model=${modelId} provider=${provider} proxy=${proxyActive} ` +
+    `structured=${!!config.response_schema} execution=${executionId}`,
+  );
 
   let baseUrl: string | undefined;
   let headers: Record<string, string> | undefined;
 
-  if (proxyEndpoint && stigmerToken) {
-    baseUrl = resolveProxyBaseUrl(proxyEndpoint, provider);
-    headers = buildProxyHeaders(stigmerToken, { workflowExecutionId: executionId });
+  if (proxyActive) {
+    baseUrl = resolveProxyBaseUrl(proxyEndpoint!, provider);
+    headers = buildProxyHeaders(stigmerToken!, { workflowExecutionId: executionId });
   } else if (provider === "openai") {
-    if (!process.env.OPENAI_API_KEY) throw new Error("OPENAI_API_KEY not set and no proxy configured");
+    if (!process.env.OPENAI_API_KEY) {
+      throw ApplicationFailure.nonRetryable(
+        `OPENAI_API_KEY is not set and no proxy is configured. ` +
+        `Set the API key in your environment or connect to a Stigmer Cloud deployment.`,
+        "LLM_MISSING_API_KEY",
+      );
+    }
   } else {
-    if (!process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY not set and no proxy configured");
+    if (!process.env.ANTHROPIC_API_KEY) {
+      throw ApplicationFailure.nonRetryable(
+        `ANTHROPIC_API_KEY is not set and no proxy is configured. ` +
+        `Set the API key in your environment or connect to a Stigmer Cloud deployment.`,
+        "LLM_MISSING_API_KEY",
+      );
+    }
   }
 
   const model = constructModel(provider, modelId, config, baseUrl, headers);
@@ -218,28 +339,32 @@ export async function callLlmAction(
 
   let result: LlmCallResult;
 
-  if (config.response_schema) {
-    const zodSchema = jsonSchemaToZod(config.response_schema);
-    const structured = model.withStructuredOutput(zodSchema);
-    const structuredResult = await structured.invoke(messages);
+  try {
+    if (config.response_schema) {
+      const zodSchema = jsonSchemaToZod(config.response_schema);
+      const structured = model.withStructuredOutput(zodSchema);
+      const structuredResult = await structured.invoke(messages);
 
-    result = {
-      input_tokens: 0,
-      output_tokens: 0,
-      result: structuredResult,
-      model: modelId,
-      provider,
-    };
-  } else {
-    const { content, inputTokens, outputTokens } = await streamAndCollect(model, messages);
+      result = {
+        input_tokens: 0,
+        output_tokens: 0,
+        result: structuredResult,
+        model: modelId,
+        provider,
+      };
+    } else {
+      const { content, inputTokens, outputTokens } = await streamAndCollect(model, messages);
 
-    result = {
-      input_tokens: inputTokens,
-      output_tokens: outputTokens,
-      result: content,
-      model: modelId,
-      provider,
-    };
+      result = {
+        input_tokens: inputTokens,
+        output_tokens: outputTokens,
+        result: content,
+        model: modelId,
+        provider,
+      };
+    }
+  } catch (err) {
+    classifyAndThrowLlmError(err, modelId, provider);
   }
 
   recordLlmMetrics(Date.now() - callStart, result);

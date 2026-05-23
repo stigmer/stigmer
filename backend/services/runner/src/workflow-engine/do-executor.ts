@@ -39,6 +39,7 @@ import { executeListenTask } from "./tasks/listen.js";
 import { executeHumanInputTask } from "./tasks/human-input.js";
 import { extractCostFromOutput } from "../budget/index.js";
 import { truncatePayload } from "./task-status-accumulator.js";
+import { extractRootErrorMessage, extractStructuredError } from "./error-utils.js";
 
 /**
  * Returns the task kind string used for event emission. For call:function
@@ -125,8 +126,13 @@ export async function executeDoTasks(
       effectiveCtx.taskStatusAccumulator?.taskStartedWithInput(entry.key, kind, truncatePayload(effectiveInput));
       taskOutput = await runSingleTask(entry, effectiveInput, state, doc, effectiveCtx);
     } catch (taskErr) {
-      const errorMsg = taskErr instanceof Error ? taskErr.message : String(taskErr);
-      effectiveCtx.taskStatusAccumulator?.taskFailed(entry.key, errorMsg);
+      const errorMsg = extractRootErrorMessage(taskErr);
+      const structuredError = extractStructuredError(taskErr);
+      effectiveCtx.taskStatusAccumulator?.taskFailed(
+        entry.key,
+        errorMsg,
+        structuredError ?? undefined,
+      );
       if (effectiveCtx.emitEvents) {
         await effectiveCtx.emitEvents([{
           type: "task_failed",

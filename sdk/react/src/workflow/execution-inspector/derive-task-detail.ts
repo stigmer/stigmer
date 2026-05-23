@@ -60,6 +60,8 @@ export interface TaskDetailError {
   readonly maxAttempts: number;
   readonly willRetry: boolean;
   readonly durationMs: number;
+  readonly category: string | null;
+  readonly detail: string | null;
 }
 
 export interface TaskDetailRetryHistory {
@@ -137,7 +139,10 @@ export function deriveTaskDetail(
   const summary = buildSummary(taskSnapshot, derivedState, buckets);
   const input = buildIO(taskSnapshot?.input, buckets.inputSummary, taskSnapshot?.artifactIds ?? []);
   const output = buildIO(taskSnapshot?.output, buckets.outputSummary, []);
-  const error = buildError(buckets);
+  const snapshotMeta = taskSnapshot?.metadata
+    ? (taskSnapshot.metadata as unknown as Record<string, unknown>)
+    : undefined;
+  const error = buildError(buckets, snapshotMeta);
   const retries = buildRetryHistory(buckets);
   const agentCall = buildAgentCall(buckets);
   const approval = buildApproval(buckets);
@@ -366,16 +371,25 @@ function buildIO(
   return null;
 }
 
-function buildError(buckets: EventBuckets): TaskDetailError | null {
+function buildError(buckets: EventBuckets, snapshotMetadata?: Record<string, unknown>): TaskDetailError | null {
   if (buckets.failures.length === 0) return null;
 
   const latest = buckets.failures[buckets.failures.length - 1];
+  const category = typeof snapshotMetadata?.error_category === "string"
+    ? snapshotMetadata.error_category
+    : null;
+  const detail = typeof snapshotMetadata?.error_detail === "string"
+    ? snapshotMetadata.error_detail
+    : null;
+
   return {
     message: latest.error,
     attemptNumber: latest.attemptNumber,
     maxAttempts: latest.maxAttempts,
     willRetry: latest.willRetry,
     durationMs: latest.durationMs,
+    category,
+    detail,
   };
 }
 

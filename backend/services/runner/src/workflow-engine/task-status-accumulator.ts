@@ -112,8 +112,21 @@ export class TaskStatusAccumulator {
     });
   }
 
-  taskFailed(name: string, error: string): void {
+  taskFailed(name: string, error: string, structuredError?: {
+    category: string;
+    detail: string;
+    retryable: boolean;
+  }): void {
     const existing = this.entries.get(name);
+    const metadata = structuredError
+      ? {
+          ...existing?.metadata,
+          error_category: structuredError.category,
+          error_detail: structuredError.detail,
+          error_retryable: structuredError.retryable,
+        }
+      : existing?.metadata;
+
     this.entries.set(name, {
       ...existing,
       taskName: name,
@@ -122,6 +135,7 @@ export class TaskStatusAccumulator {
       startedAt: existing?.startedAt,
       completedAt: new Date().toISOString(),
       error,
+      metadata,
     });
   }
 
