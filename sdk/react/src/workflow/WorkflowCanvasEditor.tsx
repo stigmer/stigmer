@@ -7,6 +7,7 @@ import { ReactFlowProvider } from "@xyflow/react";
 import { useWorkflowCanvas } from "./useWorkflowCanvas";
 import { WorkflowTaskPalette } from "./WorkflowTaskPalette";
 import { WorkflowInspectorPanel } from "./WorkflowInspectorPanel";
+import { WorkflowSummaryPanel } from "./inspector/WorkflowSummaryPanel";
 import { CanvasActionsContext } from "./CanvasActionsContext";
 import type { CanvasActions } from "./CanvasActionsContext";
 import { CanvasContextMenu } from "./CanvasContextMenu";
@@ -551,9 +552,14 @@ const WorkflowCanvasEditorInner = memo(function WorkflowCanvasEditorInner({
             onUpdateFlow={canvas.updateNodeFlow}
             onDeleteEdge={handleDeleteEdge}
             onDeleteNode={handleDeleteNode}
+            onDuplicateNode={handleDuplicateNode}
+            onToggleDisabled={canvas.toggleNodeDisabled}
+            onWrapInTryCatch={canvas.wrapInTryCatch}
             onUpdateBranchRouting={canvas.updateBranchRouting}
             onMigrateBranchHandle={canvas.migrateBranchHandle}
             onRemoveBranchEdges={canvas.removeBranchEdges}
+            validationErrors={nodeErrors}
+            emptyState={canvas.graph ? <WorkflowSummaryPanel graph={canvas.graph} validationErrors={nodeErrors} /> : undefined}
           />
         </div>
       )}

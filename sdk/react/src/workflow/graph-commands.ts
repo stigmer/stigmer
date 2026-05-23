@@ -738,6 +738,149 @@ export class AddCatchHandlerCommand implements GraphCommand {
 }
 
 // ---------------------------------------------------------------------------
+// ToggleNodeDisabledCommand
+// ---------------------------------------------------------------------------
+
+/**
+ * Toggles the `disabled` flag on a graph node.
+ *
+ * Disabled nodes are visually dimmed on the canvas and skipped during
+ * execution. The flag round-trips as `x-stigmer-disabled: true` in YAML.
+ *
+ * @since T10 (Inspector Panel Refactor)
+ */
+export class ToggleNodeDisabledCommand implements GraphCommand {
+  readonly type = "toggle_node_disabled";
+  readonly description: string;
+  private readonly nodeId: string;
+  private previousValue: boolean = false;
+
+  constructor(nodeId: string, taskName: string) {
+    this.nodeId = nodeId;
+    this.description = `Toggle disabled on "${taskName}"`;
+  }
+
+  apply(model: WorkflowGraphModel): WorkflowGraphModel {
+    const nodes = model.nodes.map((n) => {
+      if (n.id !== this.nodeId) return n;
+      const currentDisabled = (n.config as Record<string, unknown>)["x-stigmer-disabled"] === true;
+      this.previousValue = currentDisabled;
+      const config = { ...n.config } as Record<string, unknown>;
+      if (currentDisabled) {
+        delete config["x-stigmer-disabled"];
+      } else {
+        config["x-stigmer-disabled"] = true;
+      }
+      return { ...n, config: config as JsonObject };
+    });
+    return { ...model, nodes };
+  }
+
+  undo(model: WorkflowGraphModel): WorkflowGraphModel {
+    const nodes = model.nodes.map((n) => {
+      if (n.id !== this.nodeId) return n;
+      const config = { ...n.config } as Record<string, unknown>;
+      if (this.previousValue) {
+        config["x-stigmer-disabled"] = true;
+      } else {
+        delete config["x-stigmer-disabled"];
+      }
+      return { ...n, config: config as JsonObject };
+    });
+    return { ...model, nodes };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// WrapInTryCatchCommand
+// ---------------------------------------------------------------------------
+
+/**
+ * Wraps a single node in a `try_catch` container.
+ *
+ * Creates a new `try_catch` node that contains the target node in its
+ * `try` block and inherits the target node's incoming/outgoing edges.
+ *
+ * @since T10 (Inspector Panel Refactor)
+ */
+export class WrapInTryCatchCommand implements GraphCommand {
+  readonly type = "wrap_in_try_catch";
+  readonly description: string;
+  private readonly nodeId: string;
+  private readonly tryCatchName: string;
+  private snapshot: {
+    originalNode: WorkflowGraphNode;
+    originalEdges: WorkflowGraphEdge[];
+  } | null = null;
+
+  constructor(
+    nodeId: string,
+    taskName: string,
+    tryCatchName: string,
+  ) {
+    this.nodeId = nodeId;
+    this.tryCatchName = tryCatchName;
+    this.description = `Wrap "${taskName}" in try/catch`;
+  }
+
+  apply(model: WorkflowGraphModel): WorkflowGraphModel {
+    const targetNode = model.nodes.find((n) => n.id === this.nodeId);
+    if (!targetNode) return model;
+
+    const affectedEdges = model.edges.filter(
+      (e) => e.source === this.nodeId || e.target === this.nodeId,
+    );
+    this.snapshot = {
+      originalNode: targetNode,
+      originalEdges: affectedEdges,
+    };
+
+    const tryCatchNode: WorkflowGraphNode = {
+      id: this.tryCatchName,
+      taskName: this.tryCatchName,
+      kind: targetNode.kind,
+      category: "control_flow" as TopologyNodeCategory,
+      config: {
+        try: [{ name: targetNode.taskName, kind: targetNode.kind.toString(), task_config: targetNode.config }],
+      } as unknown as JsonObject,
+      position: targetNode.position,
+    };
+
+    const nodes = model.nodes
+      .filter((n) => n.id !== this.nodeId)
+      .concat(tryCatchNode);
+
+    const edges = model.edges.map((e) => {
+      if (e.source === this.nodeId) return { ...e, source: this.tryCatchName };
+      if (e.target === this.nodeId) return { ...e, target: this.tryCatchName };
+      return e;
+    });
+
+    return { ...model, nodes, edges };
+  }
+
+  undo(model: WorkflowGraphModel): WorkflowGraphModel {
+    if (!this.snapshot) return model;
+
+    const nodes = model.nodes
+      .filter((n) => n.id !== this.tryCatchName)
+      .concat(this.snapshot.originalNode);
+
+    const tryCatchEdges = new Set(
+      model.edges
+        .filter((e) => e.source === this.tryCatchName || e.target === this.tryCatchName)
+        .map((e) => e.id),
+    );
+
+    const edges = model.edges
+      .filter((e) => !tryCatchEdges.has(e.id))
+      .concat(this.snapshot.originalEdges);
+
+    return { ...model, nodes, edges };
+  }
+}
+
+// ---------------------------------------------------------------------------
 // GraphHistory
 // ---------------------------------------------------------------------------
 
