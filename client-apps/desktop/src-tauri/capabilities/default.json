@@ -22,34 +22,6 @@
         { "url": "https://*.stigmer.ai/**" },
         { "url": "http://localhost:*/**" }
       ]
-    },
-    {
-      "identifier": "shell:allow-spawn",
-      "allow": [
-        {
-          "name": "binaries/stigmer",
-          "sidecar": true,
-          "args": [
-            {
-              "validator": "\\S+"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "identifier": "shell:allow-execute",
-      "allow": [
-        {
-          "name": "binaries/stigmer",
-          "sidecar": true,
-          "args": [
-            {
-              "validator": "\\S+"
-            }
-          ]
-        }
-      ]
     }
   ]
 }

@@ -390,7 +390,8 @@ test-web: ## Run web console component tests (Vitest)
 # ─── Client Apps: Desktop (Tauri v2 + Vite + React) ──
 
 launch-desktop: ## Start desktop app in dev mode (Tauri + Vite hot-reload)
-	client-apps/desktop/scripts/setup-sidecar-dev.sh
+	$(MAKE) build-runner
+	client-apps/desktop/scripts/setup-runner-dev.sh
 	@if command -v caddy >/dev/null 2>&1 && grep -q 'localhost:9090' client-apps/desktop/.env.development 2>/dev/null; then \
 		echo "Starting local dev proxy (:9090 → gRPC-Web :8080 + REST :8081)..."; \
 		-pkill -f "grpcwebproxy.*9091" 2>/dev/null || true; \
@@ -429,7 +430,8 @@ test-desktop: ## Run desktop app component tests (Vitest)
 	npm run test -w desktop
 
 release-desktop-local: ## Debug build + install to /Applications
-	client-apps/desktop/scripts/setup-sidecar-dev.sh
+	$(MAKE) build-runner
+	client-apps/desktop/scripts/setup-runner-dev.sh
 	cd client-apps/desktop && \
 		cp src-tauri/tauri.conf.json src-tauri/tauri.conf.json.bak && \
 		python3 -c "import json; f=open('src-tauri/tauri.conf.json','r+'); c=json.load(f); c.get('bundle',{}).pop('createUpdaterArtifacts',None); f.seek(0); json.dump(c,f,indent=2); f.truncate()" && \

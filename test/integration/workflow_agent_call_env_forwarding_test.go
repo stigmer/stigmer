@@ -12,10 +12,12 @@ import (
 	agentexecv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	executionctxv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
+	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/test/integration/harness"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -207,7 +209,7 @@ func TestWorkflowAgentCall_IdempotentSessionReuse(t *testing.T) {
 
 	// Recover the failed workflow execution
 	_, err = clients.ExecutionCommand.Recover(ctx, &workflowexecutionv1.RecoverWorkflowExecutionInput{
-		ExecutionId: executionID,
+		Id: executionID,
 	})
 	require.NoError(t, err, "recover should succeed for a failed workflow execution")
 	t.Logf("workflow execution recovered: id=%s", executionID)
@@ -228,6 +230,187 @@ func TestWorkflowAgentCall_IdempotentSessionReuse(t *testing.T) {
 
 	t.Logf("PASS: sessions before=%d, after=%d (no duplication)",
 		sessionsBeforeRecover, sessionsAfterRecover)
+}
+
+// TestWorkflowAgentCall_EnvVarsForwardedWithMcpServerRef verifies that
+// workflow env vars reach a child agent whose env declarations come from
+// MCP server references via MergeMcpServerEnvSpecsStep — NOT from explicit
+// agent-level env declarations.
+//
+// This covers the production scenario (e.g., daily-notification-plan →
+// notification-analyst → postgres MCP server) where POSTGRES_CONNECTION_URL
+// is declared on the MCP server, merged into the agent's spec.env at apply
+// time, and must be forwarded through the agent_call pipeline.
+func TestWorkflowAgentCall_EnvVarsForwardedWithMcpServerRef(t *testing.T) {
+	requireAgentCallPrereqs(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	harness.RequireServiceHealthy(t, ctx, clients)
+	deployer := harness.NewFixtureDeployer(clients, "mcp-env", suiteLogger)
+	defer deployer.Cleanup(ctx)
+
+	// 1. Create an MCP server that declares a required env var.
+	mcpServer := &mcpserverv1.McpServer{
+		ApiVersion: harness.TestAPIVersion,
+		Kind:       "McpServer",
+		Metadata: &apiresource.ApiResourceMetadata{
+			Name: "test-mcp-env-server",
+			Org:  harness.TestOrg,
+		},
+		Spec: &mcpserverv1.McpServerSpec{
+			Description: "Integration test MCP server for env forwarding via mcp_server_usages",
+			ServerType: &mcpserverv1.McpServerSpec_Stdio{
+				Stdio: &mcpserverv1.StdioServerConfig{
+					Command: "echo",
+					Args:    []string{"test-mcp-server"},
+				},
+			},
+			Env: map[string]*environmentv1.EnvVarDeclaration{
+				"TEST_MCP_CONN_URL": {
+					IsSecret:    true,
+					Description: "required by the MCP server, must be forwarded from workflow",
+				},
+			},
+		},
+	}
+
+	createdMcp, err := clients.McpServerCommand.Apply(ctx, mcpServer)
+	require.NoError(t, err, "apply MCP server should succeed")
+	t.Cleanup(func() {
+		cleanCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		_, _ = clients.McpServerCommand.Delete(cleanCtx, &apiresource.ApiResourceDeleteInput{ResourceId: createdMcp.GetMetadata().GetId()})
+	})
+
+	// 2. Create an agent that references the MCP server but does NOT
+	//    explicitly declare TEST_MCP_CONN_URL in its own spec.env.
+	//    MergeMcpServerEnvSpecsStep should merge it in at apply time.
+	agent := &agentv1.Agent{
+		ApiVersion: harness.TestAPIVersion,
+		Kind:       "Agent",
+		Metadata: &apiresource.ApiResourceMetadata{
+			Name: "test-mcp-env-agent",
+			Org:  harness.TestOrg,
+		},
+		Spec: &agentv1.AgentSpec{
+			Description:  "Agent for testing env forwarding via MCP server declarations",
+			Instructions: "You are a test agent. Reply with exactly what is asked.",
+			McpServerUsages: []*agentv1.McpServerUsage{
+				{
+					McpServerRef: &apiresource.ApiResourceReference{
+						Slug: "test-mcp-env-server",
+						Org:  harness.TestOrg,
+						Kind: apiresourcekind.ApiResourceKind_mcp_server,
+					},
+				},
+			},
+		},
+	}
+
+	createdAgent, err := clients.AgentCommand.Apply(ctx, agent)
+	require.NoError(t, err, "apply agent should succeed")
+	t.Cleanup(func() {
+		cleanCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		_, _ = clients.AgentCommand.Delete(cleanCtx, &agentv1.AgentId{Value: createdAgent.GetMetadata().GetId()})
+	})
+
+	// 3. Verify MergeMcpServerEnvSpecsStep merged the MCP env var into agent.spec.env.
+	agentEnv := createdAgent.GetSpec().GetEnv()
+	require.Contains(t, agentEnv, "TEST_MCP_CONN_URL",
+		"MergeMcpServerEnvSpecsStep should merge MCP server env into agent.spec.env")
+	assert.True(t, agentEnv["TEST_MCP_CONN_URL"].GetIsSecret(),
+		"merged env var should preserve isSecret from MCP server declaration")
+	t.Logf("agent env after merge: %v", func() []string {
+		keys := make([]string, 0, len(agentEnv))
+		for k := range agentEnv {
+			keys = append(keys, k)
+		}
+		return keys
+	}())
+
+	// 4. Create a workflow that declares the same env var and uses agent_call.
+	taskConfig, err := structpb.NewStruct(map[string]any{
+		"agent":   createdAgent.GetMetadata().GetSlug(),
+		"org":     harness.TestOrg,
+		"message": "Reply with exactly: mcp-env-forwarding-ok",
+	})
+	require.NoError(t, err)
+
+	workflow := &workflowv1.Workflow{
+		ApiVersion: harness.TestAPIVersion,
+		Kind:       "Workflow",
+		Metadata: &apiresource.ApiResourceMetadata{
+			Name: "integration-test-mcp-env-forwarding",
+			Org:  harness.TestOrg,
+		},
+		Spec: &workflowv1.WorkflowSpec{
+			Description: "Integration test: env vars forwarded via MCP server env declarations",
+			Document: &workflowv1.WorkflowDocument{
+				Dsl:       "1.0.0",
+				Namespace: harness.TestOrg,
+				Name:      "integration-test-mcp-env-forwarding",
+				Version:   "1.0.0",
+			},
+			Env: map[string]*environmentv1.EnvVarDeclaration{
+				"TEST_MCP_CONN_URL": {
+					IsSecret:    true,
+					Description: "provided at workflow run time, must reach child agent",
+				},
+			},
+			Tasks: []*workflowv1.WorkflowTask{
+				{
+					Name:       "callMcpAgent",
+					Kind:       workflowv1.WorkflowTaskKind_agent_call,
+					TaskConfig: taskConfig,
+				},
+			},
+		},
+	}
+
+	runtimeEnv := map[string]*executionctxv1.ExecutionValue{
+		"TEST_MCP_CONN_URL": {Value: "postgresql://test:test@localhost:5432/mcp-test", IsSecret: true},
+	}
+
+	_, execution, err := deployer.DeployAndExecuteWithEnv(ctx, workflow, "mcp env forwarding test", runtimeEnv)
+	require.NoError(t, err)
+
+	executionID := execution.GetMetadata().GetId()
+	require.NotEmpty(t, executionID)
+	t.Logf("workflow execution created: id=%s", executionID)
+
+	// 5. Wait for CallAgent to create the child AgentExecution.
+	time.Sleep(20 * time.Second)
+
+	childExec := findChildAgentExecution(t, ctx, clients)
+	require.NotNil(t, childExec,
+		"CallAgent activity should have created a child AgentExecution "+
+			"even though agent env came from MCP server merge, not explicit declaration")
+
+	childExecID := childExec.GetMetadata().GetId()
+	t.Logf("found child agent execution: id=%s", childExecID)
+
+	// 6. Verify the child ExecutionContext contains the MCP-derived env var.
+	childCtx, err := clients.ExecutionContextQuery.GetByExecutionId(ctx,
+		&executionctxv1.ExecutionContextExecutionIdInput{ExecutionId: childExecID})
+	require.NoError(t, err, "should be able to fetch child execution's ExecutionContext")
+
+	ctxData := childCtx.GetSpec().GetData()
+	assert.Contains(t, ctxData, "TEST_MCP_CONN_URL",
+		"child ExecutionContext should contain TEST_MCP_CONN_URL — "+
+			"forwarded from workflow runtime_env through agent_call intersection "+
+			"using MCP-merged agent.spec.env")
+
+	if val, ok := ctxData["TEST_MCP_CONN_URL"]; ok {
+		assert.True(t, val.GetIsSecret(), "TEST_MCP_CONN_URL should be marked as secret")
+		assert.Equal(t, "postgresql://test:test@localhost:5432/mcp-test", val.GetValue(),
+			"TEST_MCP_CONN_URL value should match what was provided in workflow runtime_env")
+	}
+
+	t.Logf("PASS: child ExecutionContext contains MCP-derived env var TEST_MCP_CONN_URL")
 }
 
 func createEnvForwardingTestAgent(t *testing.T, ctx context.Context, clients *harness.Clients) *agentv1.Agent {
