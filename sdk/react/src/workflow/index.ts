@@ -394,3 +394,42 @@ export {
   useResolveAgentExecutionSession,
   type UseResolveAgentExecutionSessionReturn,
 } from "./useResolveAgentExecutionSession";
+
+// T01: Canonical kind metadata (replaces triplicated categorizeKind)
+export { categorizeKind, kindToDisplayName } from "./kind-metadata";
+
+// T01: Task type visual registry
+export {
+  getVisualSpec,
+  VISUAL_REGISTRY,
+  type VisualClass,
+  type PortPattern,
+  type TaskTypeVisualSpec,
+} from "./task-type-visual-registry";
+
+// T03: Layout pipeline
+export type {
+  LayoutEngine,
+  LayoutInput,
+  LayoutResult,
+  LayoutScope,
+  LayoutOptions,
+  NodeDimensions,
+  Position2D,
+  NodePortAssignment,
+  PortDefinition,
+  PortSide,
+  ElkLayoutEngineOptions,
+  UseWorkflowLayoutOptions,
+  UseWorkflowLayoutReturn,
+} from "./layout";
+export {
+  createDagreLayoutEngine,
+  createElkLayoutEngine,
+  useWorkflowLayout,
+  preprocessForElk,
+  ELK_WORKFLOW_DEFAULTS,
+  computePortAssignments,
+  computeNodePorts,
+  postprocessElkResult,
+} from "./layout";

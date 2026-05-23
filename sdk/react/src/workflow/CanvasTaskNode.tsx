@@ -90,7 +90,9 @@ export const CanvasTaskNode = memo(function CanvasTaskNode({
         errorCount > 0 && "!border-[var(--stgm-destructive,#ef4444)]",
       )}
       style={{ borderLeftWidth: 4, borderLeftColor: borderColor }}
-      aria-label={`Task: ${data.taskName}, type: ${formatKindLabel(data.kindString)}${errorCount > 0 ? `, ${errorCount} ${errorCount === 1 ? "error" : "errors"}` : ""}`}
+      data-visual-class={data.visualClass}
+      data-task-kind={data.kindString}
+      aria-label={`${data.displayName} node ${data.taskName}, ${data.ariaShapeLabel} shape${errorCount > 0 ? `, ${errorCount} ${errorCount === 1 ? "error" : "errors"}` : ""}`}
     >
       {errorCount > 0 && (
         <span
@@ -168,7 +170,7 @@ export const CanvasTaskNode = memo(function CanvasTaskNode({
               backgroundColor: `color-mix(in srgb, ${borderColor} 12%, transparent)`,
             }}
           >
-            {formatKindLabel(data.kindString)}
+            {data.displayName}
           </span>
           {isNested && (
             <span className="text-[10px] text-[var(--stgm-muted-foreground,#737373)]">
@@ -264,6 +266,8 @@ function SentinelNode({
         selected && "ring-2 ring-[var(--stgm-ring,#3b82f6)]",
       )}
       style={{ borderColor: CATEGORY_COLORS[data.category] }}
+      data-visual-class={data.visualClass}
+      data-task-kind={data.kindString}
     >
       {isStart ? (
         <Handle
@@ -367,6 +371,3 @@ function getMultiOutputHandles(data: CanvasTaskNodeData): OutputHandle[] {
   return [];
 }
 
-function formatKindLabel(kind: string): string {
-  return kind.replace(/_/g, " ");
-}

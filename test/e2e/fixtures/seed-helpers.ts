@@ -156,6 +156,85 @@ export async function createTestWaitWorkflow(
   };
 }
 
+/**
+ * Creates a workflow with tasks spanning multiple visual classes for T01
+ * visual registry E2E testing. Includes: agent_call (task-card),
+ * switch_case (decision-diamond), human_input (gate-octagon),
+ * set_vars (task-card), and wait (event-circle).
+ */
+export async function createMultiKindTestWorkflow(
+  client: Stigmer,
+  opts?: { name?: string; org?: string },
+): Promise<TestWorkflowResult> {
+  const name = opts?.name ?? `e2e-multi-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  const org = opts?.org ?? DEFAULT_ORG;
+
+  const workflow = await client.workflow.apply({
+    name,
+    org,
+    description: "E2E multi-kind workflow for visual registry testing",
+    document: {
+      dsl: "1.0.0",
+      namespace: org,
+      name,
+      version: "1.0.0",
+    },
+    tasks: [
+      {
+        name: "init_vars",
+        kind: WorkflowTaskKind.set_vars,
+        taskConfig: { variables: { status: "started" } },
+        export: { as: "${ . }" },
+      },
+      {
+        name: "classify_input",
+        kind: WorkflowTaskKind.agent_call,
+        taskConfig: { agent: "test-agent", message: "classify this" },
+        export: { as: "${ . }" },
+      },
+      {
+        name: "route_by_type",
+        kind: WorkflowTaskKind.switch_case,
+        taskConfig: {
+          cases: [
+            { name: "urgent", when: "${ $context.classify_input.severity == 'high' }", then: "approval_gate" },
+            { name: "default", then: "cooldown" },
+          ],
+        },
+      },
+      {
+        name: "approval_gate",
+        kind: WorkflowTaskKind.human_input,
+        taskConfig: {
+          prompt: "Approve escalation?",
+          outcomes: [
+            { name: "approve", label: "Approve" },
+            { name: "deny", label: "Deny" },
+          ],
+        },
+        flow: { then: "cooldown" },
+      },
+      {
+        name: "cooldown",
+        kind: WorkflowTaskKind.wait,
+        taskConfig: { seconds: 1 },
+      },
+    ],
+  });
+
+  const id = workflow.metadata!.id;
+  const slug = workflow.metadata!.name;
+
+  return {
+    id,
+    slug,
+    org,
+    cleanup: async () => {
+      await client.workflow.delete(id).catch(() => {});
+    },
+  };
+}
+
 export async function createTestWorkflowExecution(
   client: Stigmer,
   workflowId: string,

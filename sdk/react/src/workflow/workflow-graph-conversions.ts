@@ -20,6 +20,8 @@ import type {
 } from "./workflow-graph-model";
 import { START_NODE_ID, END_NODE_ID } from "./workflow-graph-model";
 import { CANVAS_NODE_WIDTH, CANVAS_NODE_HEIGHT, SENTINEL_NODE_WIDTH, SENTINEL_NODE_HEIGHT } from "./canvas-constants";
+import { categorizeKind, kindToDisplayName } from "./kind-metadata";
+import { getVisualSpec, type VisualClass } from "./task-type-visual-registry";
 
 // ---------------------------------------------------------------------------
 // React Flow node/edge type identifiers
@@ -29,25 +31,11 @@ export const CANVAS_TASK_NODE_TYPE = "canvasTask" as const;
 export const CANVAS_TRANSITION_EDGE_TYPE = "canvasTransition" as const;
 
 // ---------------------------------------------------------------------------
-// Category classification (mirrors useWorkflowTopology)
+// Re-export categorizeKind from the canonical module for backward compatibility.
+// Callers that previously imported from this file continue to work.
 // ---------------------------------------------------------------------------
 
-const AI_KINDS = new Set(["agent_call", "llm_call", "eval"]);
-const CONTROL_FLOW_KINDS = new Set(["switch_case", "for_each", "fork", "try_catch"]);
-const INVOCATION_KINDS = new Set(["http_call", "grpc_call", "activity_call", "run_workflow"]);
-const DATA_KINDS = new Set(["set_vars", "transform"]);
-const GOVERNANCE_KINDS = new Set(["human_input", "validate"]);
-const EVENT_KINDS = new Set(["listen", "wait", "emit_event", "notification", "raise_error"]);
-
-export function categorizeKind(kind: string): TopologyNodeCategory {
-  if (AI_KINDS.has(kind)) return "ai";
-  if (CONTROL_FLOW_KINDS.has(kind)) return "control_flow";
-  if (INVOCATION_KINDS.has(kind)) return "invocation";
-  if (DATA_KINDS.has(kind)) return "data";
-  if (GOVERNANCE_KINDS.has(kind)) return "governance";
-  if (EVENT_KINDS.has(kind)) return "event";
-  return "unspecified";
-}
+export { categorizeKind } from "./kind-metadata";
 
 // ---------------------------------------------------------------------------
 // Enum maps (reuse the same logic as serialize-workflow-yaml.ts)
@@ -460,6 +448,9 @@ export interface CanvasTaskNodeData extends Record<string, unknown> {
   kind: WorkflowTaskKind;
   kindString: string;
   category: TopologyNodeCategory;
+  visualClass: VisualClass;
+  displayName: string;
+  ariaShapeLabel: string;
   config: JsonObject;
   exportAs?: string;
   isSentinel: boolean;
@@ -484,6 +475,8 @@ export function toReactFlowElements(graph: WorkflowGraphModel): {
 } {
   const nodes: Node[] = graph.nodes.map((node) => {
     const isSentinel = node.id === START_NODE_ID || node.id === END_NODE_ID;
+    const kindString = taskKindToString(node.kind);
+    const visualSpec = getVisualSpec(isSentinel ? node.id : kindString);
     return {
       id: node.id,
       type: CANVAS_TASK_NODE_TYPE,
@@ -491,12 +484,15 @@ export function toReactFlowElements(graph: WorkflowGraphModel): {
       data: {
         taskName: node.taskName,
         kind: node.kind,
-        kindString: taskKindToString(node.kind),
+        kindString,
         category: node.category,
+        visualClass: visualSpec.visualClass,
+        displayName: isSentinel ? node.taskName : kindToDisplayName(kindString),
+        ariaShapeLabel: visualSpec.ariaShapeLabel,
         config: node.config,
         exportAs: node.export?.as,
         isSentinel,
-      },
+      } satisfies Omit<CanvasTaskNodeData, "errorCount">,
       width: isSentinel ? SENTINEL_NODE_WIDTH : CANVAS_NODE_WIDTH,
       height: isSentinel ? SENTINEL_NODE_HEIGHT : CANVAS_NODE_HEIGHT,
       draggable: !isSentinel,
