@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-23 14:12
-**Last Session**: 2026-05-23 — T06 Branch & Parallel Execution Highlighting completed
-**Current Task**: T06 complete — Ready for T07 (Execution Waterfall Timeline)
+**Last Session**: 2026-05-23 — Agent Call Strategy implementation completed
+**Current Task**: Agent call strategy pipeline complete — Proto stubs need regeneration, then ready for T08 or backend follow-ups
 **Status**: In Progress
 
 ## Session Progress (2026-05-23)
@@ -175,17 +175,46 @@ When starting a new session:
 - 21 new unit tests, 3 E2E specs, all 84 workflow tests pass, zero regressions
 - Changelog: `_changelog/2026-05/2026-05-23-182929-feat-workflow-branch-parallel-execution-highlighting-t06.md`
 
+### T03-wire-1: Wire getNodeDimensions from Visual Registry — COMPLETED
+- Extracted `registryNodeDimensions` adapter in `layout/registry-dimensions.ts`
+- Module-scope function (referentially stable per DD-010, no `useCallback` needed)
+- Wired into `useWorkflowLayout()` via `useWorkflowCanvas.ts`
+- Refactored `applyDagreLayout` to use same adapter (DRY: single source of truth)
+- Exported from layout barrel and workflow barrel (SDK public surface)
+- 18 new unit tests covering all visual classes and sentinel nodes
+- All 48 layout tests pass, zero regressions
+- Committed as `267870523`
+- Changelog: `_changelog/2026-05/2026-05-23-190046-feat-wire-visual-registry-dimensions-into-layout-pipeline.md`
+
+### T07: Execution Waterfall Timeline — COMPLETED
+- Created `sdk/react/src/workflow/execution/derive-waterfall-entries.ts` — pure derivation: events → `WaterfallEntry[]` with timing, attempts, child spans, approval wait
+- Created `sdk/react/src/workflow/execution/useWaterfallEntries.ts` — behavior hook with rAF-driven live bar growth, referentially stable returns (DD-010)
+- Created `sdk/react/src/workflow/waterfall/` module — 5 styled components: `WaterfallTimeline`, `WaterfallRow`, `WaterfallBar`, `WaterfallScaleComponent`, `WaterfallTooltip`
+- Replaced inline `TimelinePanel` in `WorkflowExecutionViewer` with tabbed `ExecutionBottomPanel` (Waterfall default + Events tabs)
+- Bidirectional selection sync: clicking a bar selects the task in graph + inspector; external selection scrolls waterfall
+- 38 new unit tests (derivation + scale), 5 new E2E specs (tabs, selection, collapse)
+- All theme-compliant (DD-005), reduced-motion safe (DD-015), memo'd for streaming perf (DD-010)
+- Backend follow-ups documented in `checkpoints/t07-waterfall-backend-followups.md`
+- No client-app changes needed (DD-016 verified)
+
 ## Next Steps
 
 1. ~~**T06: Branch and Parallel Execution Highlighting** — Taken/untaken branch dimming, fork N/M progress~~ DONE
-2. **T07: Execution Waterfall Timeline** — Bottom panel redesign with waterfall bars
-3. **Backend follow-up**: Populate full `WorkflowTask` I/O on status (see `checkpoints/t05-runner-io-followup.md`)
-4. Wire `getNodeDimensions` from T01 registry (see `checkpoints/t03-deferred-wiring.md`)
-5. Enable ELK in client-apps via `workerFactory` (see `checkpoints/t03-deferred-wiring.md`)
-6. **T08–T11: Editor Interactions** — Contextual task picker, branch management, inspector refactor, context menus
+2. ~~Wire `getNodeDimensions` from T01 registry (see `checkpoints/t03-deferred-wiring.md`)~~ DONE
+3. ~~**T07: Execution Waterfall Timeline** — Bottom panel redesign with waterfall bars~~ DONE
+4. **Backend follow-up: Waterfall enrichment** — Agent call events, task retrying events, queue delay, streaming phases, push delivery (see `checkpoints/t07-waterfall-backend-followups.md`)
+5. **Backend follow-up: Runner I/O population** — Populate full `WorkflowTask` I/O on status (see `checkpoints/t05-runner-io-followup.md` and `checkpoints/runner-task-io-followups.md`)
+6. Enable ELK in client-apps via `workerFactory` (see `checkpoints/t03-deferred-wiring.md`)
+7. **T08–T11: Editor Interactions** — Contextual task picker, branch management, inspector refactor, context menus
 
 ## Context for Resume
 
+- T07 waterfall: `deriveWaterfallEntries` is the canonical derivation for the waterfall timeline — walks events once, produces `WaterfallEntry[]` with `startMs`/`endMs` relative to execution start
+- T07 architecture: data model supports agent sub-spans (`WaterfallSpan.children`) and retry segments (`WaterfallAttempt[]`) — these will populate automatically when the runner emits the corresponding events
+- T07 bottom panel: `ExecutionBottomPanel` in `WorkflowExecutionViewer` renders Waterfall (default) + Events tabs; default open (not collapsed)
+- T07 backend follow-ups: 5 items in `checkpoints/t07-waterfall-backend-followups.md` — agent call events (#1), task retrying (#2), queue delay (#3), streaming phases (#4), push delivery (#5)
+- `registryNodeDimensions` is the canonical adapter for node dimensions — used by both `applyDagreLayout` (sync) and `useWorkflowLayout` (async) paths
+- T03 deferred wiring Task 1 is resolved; Task 2 (ELK activation in client-apps) remains
 - T05 inspector reads `WorkflowTask` snapshots for I/O — runner only populates 5 fields today; tabs show graceful empty states
 - `ExecutionInspector` exported from `sdk/react/src/workflow/index.ts` with `deriveTaskDetail`, `useExecutionTaskDetail`
 - `WorkflowExecutionViewer` owns execution fetch + event stream; passes `execution`, `taskStates`, `onAutoSelectTask` to graph

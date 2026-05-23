@@ -10,6 +10,7 @@ import { useWorkflowExecutionArtifacts } from "./useWorkflowExecutionArtifacts";
 import { useWorkflowExecutionActions } from "./useWorkflowExecutionActions";
 import { WorkflowExecutionHeader } from "./WorkflowExecutionHeader";
 import { WorkflowExecutionTimeline, type WorkflowExecutionTimelineProps } from "./WorkflowExecutionTimeline";
+import { WaterfallTimeline } from "./waterfall";
 import { WorkflowExecutionCostPanel } from "./WorkflowExecutionCostPanel";
 import { WorkflowExecutionArtifactPanel } from "./WorkflowExecutionArtifactPanel";
 import { WorkflowRepairCard } from "./WorkflowRepairCard";
@@ -145,6 +146,15 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
 
   const effectiveTaskStates = fallbackTaskStates ?? taskStates;
   const effectiveTotalTasks = fallbackTaskStates ? fallbackTaskStates.size : totalTasks;
+
+  const executionDurationMs = useMemo(() => {
+    const startedAt = execution?.status?.startedAt;
+    const completedAt = execution?.status?.completedAt;
+    if (startedAt && completedAt) {
+      return new Date(completedAt).getTime() - new Date(startedAt).getTime();
+    }
+    return undefined;
+  }, [execution?.status?.startedAt, execution?.status?.completedAt]);
 
   const {
     artifacts,
@@ -294,10 +304,14 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
           </aside>
         </div>
 
-        {/* Collapsible bottom panel: Event timeline */}
-        <TimelinePanel
+        {/* Bottom panel: Waterfall (default) + Event Log tabs */}
+        <ExecutionBottomPanel
           events={events}
           streamState={streamState}
+          executionStartIso={execution.status?.startedAt ?? ""}
+          executionDurationMs={executionDurationMs}
+          selectedTaskName={selectedTaskName}
+          onTaskSelect={setSelectedTaskName}
           onNavigateToAgentExecution={onNavigateToAgentExecution}
           taskStates={effectiveTaskStates}
           onSubmitTaskApproval={actions.submitTaskApproval}
@@ -328,12 +342,18 @@ function LoadingSkeleton() {
 
 
 // ---------------------------------------------------------------------------
-// Collapsible timeline panel (T04)
+// Tabbed bottom panel: Waterfall + Event Log (T07)
 // ---------------------------------------------------------------------------
 
-function TimelinePanel({
+type BottomTab = "waterfall" | "events";
+
+function ExecutionBottomPanel({
   events,
   streamState,
+  executionStartIso,
+  executionDurationMs,
+  selectedTaskName,
+  onTaskSelect,
   onNavigateToAgentExecution,
   taskStates,
   onSubmitTaskApproval,
@@ -341,43 +361,102 @@ function TimelinePanel({
 }: {
   events: WorkflowExecutionTimelineProps["events"];
   streamState: WorkflowExecutionTimelineProps["streamState"];
+  executionStartIso: string;
+  executionDurationMs?: number;
+  selectedTaskName: string | null;
+  onTaskSelect: (taskName: string) => void;
   onNavigateToAgentExecution?: (id: string) => void;
   taskStates: ReadonlyMap<string, DerivedTaskState>;
   onSubmitTaskApproval: WorkflowExecutionTimelineProps["onSubmitTaskApproval"];
   isSubmittingApproval: boolean;
 }) {
-  const [collapsed, setCollapsed] = useState(true);
+  const [collapsed, setCollapsed] = useState(false);
+  const [activeTab, setActiveTab] = useState<BottomTab>("waterfall");
 
   return (
     <div className="border-t border-[var(--stgm-border,#e5e5e5)]">
-      <button
-        type="button"
-        onClick={() => setCollapsed(!collapsed)}
-        className="flex w-full items-center gap-2 px-4 py-2 text-xs font-medium text-[var(--stgm-muted-foreground,#737373)] hover:bg-[var(--stgm-muted,#f5f5f5)]"
-      >
-        <svg
-          width="10"
-          height="10"
-          viewBox="0 0 10 10"
-          className={cn("transition-transform", !collapsed && "rotate-180")}
-          aria-hidden="true"
+      {/* Tab bar */}
+      <div className="flex items-center gap-0 border-b border-[var(--stgm-border,#e5e5e5)]">
+        <button
+          type="button"
+          onClick={() => setCollapsed(!collapsed)}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-[var(--stgm-muted-foreground,#737373)] hover:bg-[var(--stgm-muted,#f5f5f5)]"
+          aria-label={collapsed ? "Expand bottom panel" : "Collapse bottom panel"}
         >
-          <path d="M2 4L5 7L8 4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-        Event Timeline ({events.length} events)
-      </button>
+          <svg
+            width="10"
+            height="10"
+            viewBox="0 0 10 10"
+            className={cn("transition-transform", !collapsed && "rotate-180")}
+            aria-hidden="true"
+          >
+            <path d="M2 4L5 7L8 4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
 
-      {!collapsed && (
-        <WorkflowExecutionTimeline
-          events={events}
-          streamState={streamState}
-          onNavigateToAgentExecution={onNavigateToAgentExecution}
-          taskStates={taskStates}
-          onSubmitTaskApproval={onSubmitTaskApproval}
-          isSubmittingApproval={isSubmittingApproval}
-          className="h-64 border-t border-[var(--stgm-border,#e5e5e5)]"
+        <TabButton
+          label="Waterfall"
+          isActive={activeTab === "waterfall"}
+          onClick={() => { setActiveTab("waterfall"); setCollapsed(false); }}
         />
+        <TabButton
+          label={`Events (${events.length})`}
+          isActive={activeTab === "events"}
+          onClick={() => { setActiveTab("events"); setCollapsed(false); }}
+        />
+      </div>
+
+      {/* Panel content */}
+      {!collapsed && (
+        <div className="h-52">
+          {activeTab === "waterfall" ? (
+            <WaterfallTimeline
+              events={events}
+              streamState={streamState}
+              executionStartIso={executionStartIso}
+              executionDurationMs={executionDurationMs}
+              selectedTaskName={selectedTaskName}
+              onTaskSelect={onTaskSelect}
+              className="h-full"
+            />
+          ) : (
+            <WorkflowExecutionTimeline
+              events={events}
+              streamState={streamState}
+              onNavigateToAgentExecution={onNavigateToAgentExecution}
+              taskStates={taskStates}
+              onSubmitTaskApproval={onSubmitTaskApproval}
+              isSubmittingApproval={isSubmittingApproval}
+              className="h-full"
+            />
+          )}
+        </div>
       )}
     </div>
+  );
+}
+
+function TabButton({
+  label,
+  isActive,
+  onClick,
+}: {
+  readonly label: string;
+  readonly isActive: boolean;
+  readonly onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "px-3 py-1.5 text-xs font-medium transition-colors",
+        isActive
+          ? "border-b-2 border-[var(--stgm-primary,#3b82f6)] text-[var(--stgm-foreground,#171717)]"
+          : "text-[var(--stgm-muted-foreground,#737373)] hover:text-[var(--stgm-foreground,#171717)]",
+      )}
+    >
+      {label}
+    </button>
   );
 }
