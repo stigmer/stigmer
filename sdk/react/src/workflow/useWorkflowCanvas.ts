@@ -56,6 +56,8 @@ import type { TaskKindDescriptor } from "./types";
 import { useGraphHistory } from "./useGraphHistory";
 import { useWorkflowLayout, applyDagreLayout, registryNodeDimensions } from "./layout";
 import type { LayoutEngine } from "./layout";
+import { serializeSelection, pasteClipboard } from "./clipboard";
+import type { ClipboardEntry } from "./clipboard";
 
 /** Selection state for the canvas inspector. */
 export interface CanvasSelection {
@@ -126,6 +128,14 @@ export interface UseWorkflowCanvasReturn {
   readonly selectAll: () => void;
   readonly toggleNodeDisabled: (nodeId: string) => void;
   readonly wrapInTryCatch: (nodeId: string) => void;
+  readonly copySelection: () => void;
+  readonly pasteAtCenter: () => void;
+  readonly cutSelection: () => void;
+  readonly hasClipboard: boolean;
+  readonly duplicateSelection: () => void;
+  readonly disableSelection: () => void;
+  readonly deleteSelection: () => void;
+  readonly getSelectedNodeIds: () => ReadonlySet<string>;
 }
 
 /**
@@ -880,6 +890,111 @@ export function useWorkflowCanvas(
   }, [history, dispatch, layoutGraph]);
 
   // ---------------------------------------------------------------------------
+  // Clipboard (T11: internal copy/paste)
+  // ---------------------------------------------------------------------------
+
+  const clipboardRef = useRef<ClipboardEntry | null>(null);
+  const [hasClipboard, setHasClipboard] = useState(false);
+
+  const getSelectedNodeIds = useCallback((): ReadonlySet<string> => {
+    const selected = new Set<string>();
+    for (const n of nodes) {
+      if (n.selected && !isSentinelNode(n.id)) {
+        selected.add(n.id);
+      }
+    }
+    if (selected.size === 0 && selection?.type === "node" && !isSentinelNode(selection.id)) {
+      selected.add(selection.id);
+    }
+    return selected;
+  }, [nodes, selection]);
+
+  const copySelection = useCallback(() => {
+    const model = history.currentModel;
+    if (!model) return;
+    const selectedIds = getSelectedNodeIds();
+    if (selectedIds.size === 0) return;
+    const entry = serializeSelection(model, selectedIds);
+    if (entry) {
+      clipboardRef.current = entry;
+      setHasClipboard(true);
+    }
+  }, [history.currentModel, getSelectedNodeIds]);
+
+  const pasteAtCenter = useCallback(() => {
+    const entry = clipboardRef.current;
+    const model = history.currentModel;
+    if (!entry || !model) return;
+    const result = pasteClipboard(entry, model);
+    if (!result) return;
+    dispatch(result.command);
+    if (result.newNodeIds.length > 0) {
+      setSelection({ type: "node", id: result.newNodeIds[0] });
+    }
+  }, [history.currentModel, dispatch]);
+
+  const cutSelection = useCallback(() => {
+    copySelection();
+    const selectedIds = getSelectedNodeIds();
+    if (selectedIds.size === 0) return;
+    const toDelete = nodes.filter((n) => selectedIds.has(n.id));
+    if (toDelete.length > 0) {
+      onNodesDelete(toDelete);
+    }
+  }, [copySelection, getSelectedNodeIds, nodes, onNodesDelete]);
+
+  // ---------------------------------------------------------------------------
+  // Batch operations for multi-selection (T11)
+  // ---------------------------------------------------------------------------
+
+  const duplicateSelection = useCallback(() => {
+    const model = history.currentModel;
+    if (!model) return;
+    const selectedIds = getSelectedNodeIds();
+    if (selectedIds.size === 0) return;
+
+    const existingNames = new Set(model.nodes.map((n) => n.taskName));
+    const commands: GraphCommand[] = [];
+    for (const nodeId of selectedIds) {
+      const sourceNode = model.nodes.find((n) => n.id === nodeId);
+      if (!sourceNode) continue;
+      const kindStr = taskKindToString(sourceNode.kind);
+      const newName = generateTaskName(kindStr, existingNames);
+      existingNames.add(newName);
+      commands.push(new DuplicateNodeCommand(nodeId, newName));
+    }
+    if (commands.length > 0) {
+      dispatch(new CompoundCommand(`Duplicate ${commands.length} tasks`, commands));
+    }
+  }, [history.currentModel, getSelectedNodeIds, dispatch]);
+
+  const disableSelection = useCallback(() => {
+    const model = history.currentModel;
+    if (!model) return;
+    const selectedIds = getSelectedNodeIds();
+    if (selectedIds.size === 0) return;
+
+    const commands: GraphCommand[] = [];
+    for (const nodeId of selectedIds) {
+      const node = model.nodes.find((n) => n.id === nodeId);
+      if (!node) continue;
+      commands.push(new ToggleNodeDisabledCommand(nodeId, node.taskName));
+    }
+    if (commands.length > 0) {
+      dispatch(new CompoundCommand(`Toggle disabled on ${commands.length} tasks`, commands));
+    }
+  }, [history.currentModel, getSelectedNodeIds, dispatch]);
+
+  const deleteSelection = useCallback(() => {
+    const selectedIds = getSelectedNodeIds();
+    if (selectedIds.size === 0) return;
+    const toDelete = nodes.filter((n) => selectedIds.has(n.id));
+    if (toDelete.length > 0) {
+      onNodesDelete(toDelete);
+    }
+  }, [getSelectedNodeIds, nodes, onNodesDelete]);
+
+  // ---------------------------------------------------------------------------
   // Undo / Redo (delegates to history, then syncs RF)
   // ---------------------------------------------------------------------------
 
@@ -953,6 +1068,14 @@ export function useWorkflowCanvas(
       selectAll,
       toggleNodeDisabled,
       wrapInTryCatch,
+      copySelection,
+      pasteAtCenter,
+      cutSelection,
+      hasClipboard,
+      duplicateSelection,
+      disableSelection,
+      deleteSelection,
+      getSelectedNodeIds,
     }),
     [
       nodes, edges, onNodesChange, onEdgesChange, onConnect,
@@ -966,6 +1089,8 @@ export function useWorkflowCanvas(
       duplicateNode, addNodeAtPosition,
       addSwitchCase, addForkBranch, addCatchHandler, getGraphModel,
       selectAll, toggleNodeDisabled, wrapInTryCatch,
+      copySelection, pasteAtCenter, cutSelection, hasClipboard,
+      duplicateSelection, disableSelection, deleteSelection, getSelectedNodeIds,
     ],
   );
 }

@@ -49,6 +49,8 @@ export interface WorkflowInspectorPanelProps {
   readonly onRemoveBranchEdges?: (nodeId: string, handleId: string) => void;
   /** Validation errors keyed by node ID. */
   readonly validationErrors?: ReadonlyMap<string, readonly string[]>;
+  /** Called to open the View YAML dialog for a node. */
+  readonly onViewYaml?: (nodeId: string) => void;
   /** Content to render when nothing is selected (workflow summary). */
   readonly emptyState?: React.ReactNode;
   /** Additional CSS class names. */
@@ -82,6 +84,7 @@ export const WorkflowInspectorPanel = memo(function WorkflowInspectorPanel({
   onUpdateBranchRouting,
   onMigrateBranchHandle,
   onRemoveBranchEdges,
+  onViewYaml,
   validationErrors,
   emptyState,
   className,
@@ -122,6 +125,7 @@ export const WorkflowInspectorPanel = memo(function WorkflowInspectorPanel({
       mutations={mutations}
       validationErrors={validationErrors}
       emptyState={emptyState}
+      onViewYaml={onViewYaml}
       className={className}
     />
   );

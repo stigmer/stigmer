@@ -16,6 +16,9 @@ export interface UseCanvasKeyboardShortcutsOptions {
     sourceNodeId?: string,
   ) => void;
   readonly onDismiss: () => void;
+  readonly copySelection?: () => void;
+  readonly pasteAtCenter?: () => void;
+  readonly cutSelection?: () => void;
 }
 
 function isTextInput(target: EventTarget | null): boolean {
@@ -44,6 +47,9 @@ function isFocusInsideContainer(container: HTMLElement): boolean {
  * |-------------------|---------------------------------------|
  * | `Ctrl/Cmd+D`      | Duplicate selected node               |
  * | `Ctrl/Cmd+A`      | Select all non-sentinel nodes         |
+ * | `Ctrl/Cmd+C`      | Copy selected node(s) to clipboard    |
+ * | `Ctrl/Cmd+V`      | Paste from clipboard                  |
+ * | `Ctrl/Cmd+X`      | Cut (copy + delete)                   |
  * | `N` (bare key)    | Open task picker                      |
  * | `Escape`          | Clear selection / close open overlays |
  *
@@ -57,6 +63,9 @@ export function useCanvasKeyboardShortcuts({
   clearSelection,
   onRequestTaskPicker,
   onDismiss,
+  copySelection,
+  pasteAtCenter,
+  cutSelection,
 }: UseCanvasKeyboardShortcutsOptions): void {
   useEffect(() => {
     const container = containerRef.current;
@@ -83,6 +92,33 @@ export function useCanvasKeyboardShortcuts({
         e.preventDefault();
         e.stopPropagation();
         selectAll();
+        return;
+      }
+
+      // Ctrl/Cmd+C — copy selection
+      if (isMod && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "c") {
+        if (isTextInput(e.target)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        copySelection?.();
+        return;
+      }
+
+      // Ctrl/Cmd+V — paste
+      if (isMod && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "v") {
+        if (isTextInput(e.target)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        pasteAtCenter?.();
+        return;
+      }
+
+      // Ctrl/Cmd+X — cut
+      if (isMod && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "x") {
+        if (isTextInput(e.target)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        cutSelection?.();
         return;
       }
 
@@ -130,5 +166,8 @@ export function useCanvasKeyboardShortcuts({
     clearSelection,
     onRequestTaskPicker,
     onDismiss,
+    copySelection,
+    pasteAtCenter,
+    cutSelection,
   ]);
 }

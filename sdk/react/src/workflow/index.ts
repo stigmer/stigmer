@@ -552,3 +552,27 @@ export {
   WaterfallTimeline,
   type WaterfallTimelineProps,
 } from "./waterfall";
+
+// T11: Shortcut registry
+export {
+  getAllShortcuts,
+  getShortcut,
+  getShortcutHint,
+  isMacPlatform,
+  type ShortcutDefinition,
+  type ShortcutScope,
+} from "./shortcut-registry";
+
+// T11: Internal clipboard
+export {
+  serializeSelection,
+  pasteClipboard,
+  type ClipboardEntry,
+  type PasteResult,
+} from "./clipboard";
+
+// T11: View YAML dialog
+export {
+  ViewYamlDialog,
+  type ViewYamlDialogProps,
+} from "./ViewYamlDialog";

@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-23 14:12
-**Last Session**: 2026-05-23 — Structured Output for Architect Flows implemented (full end-to-end pipeline)
-**Current Task**: Structured Output complete — stubs regenerated. Next: T09 (Branch Management), T11 (Context Menus), or enable ELK in client-apps.
+**Last Session**: 2026-05-23 — T11 Context Menus and Keyboard Shortcuts implemented (context menus, clipboard, batch ops, View YAML dialog)
+**Current Task**: T11 complete. Remaining: T09 (Branch Management UX), backend follow-ups (#6 waterfall enrichment, #7 runner I/O)
 **Status**: In Progress
 
 ## Session Progress (2026-05-23)
@@ -235,6 +235,20 @@ When starting a new session:
 - **Go result transform**: Changed activity stubs to `RunnerActivityResult` (`map[string]interface{}`), added `buildCallbackResult()` with `structured`, `final_text`, `usage_summary` pass-through
 - **Post-commit required**: `make protos && make codegen` to regenerate TS/Go/Java stubs from proto change
 
+### T11: Context Menus and Keyboard Shortcuts — COMPLETED
+- Created `shortcut-registry.ts` — canonical shortcut definition table (pure TS, platform-aware hints)
+- Created `clipboard.ts` — internal clipboard serialize/paste with ID regen, edge remapping, position offset
+- Created `ViewYamlDialog.tsx` — read-only YAML modal with copy-to-clipboard (native `<dialog>`)
+- Enriched `CanvasContextMenu` — node menu: +Rename, +Copy, +Disable/Bypass, +Wrap in Try/Catch, +View YAML; pane menu: +Paste, +Zoom to Fit
+- Added multi-selection context menu via `onSelectionContextMenu` — batch Delete/Duplicate/Disable/Copy N tasks
+- Added Cmd+C (copy), Cmd+V (paste), Cmd+X (cut) keyboard shortcuts to `useCanvasKeyboardShortcuts`
+- Added batch operations to `useWorkflowCanvas`: `copySelection`, `pasteAtCenter`, `cutSelection`, `duplicateSelection`, `disableSelection`, `deleteSelection`
+- Threaded View YAML through inspector → `InspectorHeader` overflow menu
+- 53 new unit tests (shortcut-registry: 27, clipboard: 15, context-menu-logic: 11) + 10 E2E test specs
+- Zero regressions on 158 existing tests
+- Checkpoint: `checkpoints/2026-05-23-session-t11-context-menus.md`
+- Changelog: `_changelog/2026-05/2026-05-23-220756-feat-workflow-context-menus-keyboard-shortcuts-t11.md`
+
 ### ELK Layout Engine Wiring — COMPLETED
 - Threaded `layoutEngine` optional prop through `useWorkflowCanvas` → `WorkflowCanvasEditor` → `WorkflowEditorView`
 - Created `useElkLayoutEngine` behavior hook in `sdk/react/src/workflow/layout/useElkLayoutEngine.ts` — async engine creation, Web Worker cleanup, graceful fallback when elkjs unavailable
@@ -256,7 +270,7 @@ When starting a new session:
 8. ~~Enable ELK in client-apps via `workerFactory` (see `checkpoints/t03-deferred-wiring.md`)~~ DONE
 9. ~~**T10: Inspector Panel Refactor** — Tabbed inspector, per-kind forms, empty state, node actions~~ DONE
 10. **T09: Branch Management UX** — Branch handles, reorder, join policy, catch handler listing
-11. **T11: Context Menu and Keyboard Shortcuts** — Right-click menus, Delete/Duplicate/N key shortcuts
+11. ~~**T11: Context Menu and Keyboard Shortcuts** — Right-click menus, Delete/Duplicate/N key shortcuts~~ DONE
 
 ## Context for Resume
 
@@ -296,6 +310,14 @@ When starting a new session:
 - Version mismatch detection compares `status.tasks[]` task names vs graph nodes
 - E2E tests in `interactive` tier: `workflow-execution-graph.spec.ts`
 - All exports added to `sdk/react/src/workflow/index.ts`
+- T11 shortcut registry: `shortcut-registry.ts` — `ShortcutDefinition` with `id`, `label`, `keys`, `hint`, `scope`, `requiresDesignMode`. `getShortcutHint(id)` for menu hint labels.
+- T11 clipboard: `clipboard.ts` — `serializeSelection(model, selectedIds)` deep-clones nodes + internal edges. `pasteClipboard(entry, model)` returns `CompoundCommand` with new IDs and offset positions.
+- T11 clipboard buffer: lives as `useRef<ClipboardEntry | null>` in `useWorkflowCanvas` — in-memory only, no browser clipboard API
+- T11 multi-select context menu: `CanvasContextMenuTarget` now has `type: "selection"` variant with `count`. Wired via `onSelectionContextMenu` on React Flow.
+- T11 batch operations: `duplicateSelection()`, `disableSelection()`, `deleteSelection()` in `useWorkflowCanvas` — all use `CompoundCommand` for single-undo
+- T11 ViewYamlDialog: native `<dialog>` with `showModal()`, `taskToYaml()` from T10, copy-to-clipboard button. State managed as `viewYamlNodeId` in `WorkflowCanvasEditor`.
+- T11 keyboard shortcuts: Cmd+C/V/X added to `useCanvasKeyboardShortcuts` (optional props, backward compatible). Focus-gated, text-input-safe.
+- T11 design decisions: DD-T11-001 (shortcut registry SSOT), DD-T11-002 (internal clipboard only), DD-T11-003 (CompoundCommand for batch), DD-T11-004 (focus-gated, no shortcutMap prop)
 
 ## Quick Commands
 

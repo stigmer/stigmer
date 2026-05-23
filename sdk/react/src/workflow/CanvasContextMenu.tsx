@@ -6,6 +6,7 @@ import { Separator } from "@base-ui/react/separator";
 import { cn } from "@stigmer/theme";
 import { useStigmerPortalContainer } from "../portal-container";
 import { TrashIcon, DuplicateIcon, PlusIcon } from "./canvas-icons";
+import { getShortcutHint } from "./shortcut-registry";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -15,7 +16,8 @@ import { TrashIcon, DuplicateIcon, PlusIcon } from "./canvas-icons";
 export type CanvasContextMenuTarget =
   | { readonly type: "node"; readonly id: string; readonly taskName: string }
   | { readonly type: "edge"; readonly id: string }
-  | { readonly type: "pane" };
+  | { readonly type: "pane" }
+  | { readonly type: "selection"; readonly count: number };
 
 /** Props for {@link CanvasContextMenu}. */
 export interface CanvasContextMenuProps {
@@ -33,6 +35,16 @@ export interface CanvasContextMenuProps {
   readonly onDuplicateNode?: (nodeId: string) => void;
   /** Called to trigger the "add task after" flow (opens TaskPicker). */
   readonly onAddTaskAfter?: (nodeId: string) => void;
+  /** Called to toggle disabled state on a node. */
+  readonly onToggleDisabled?: (nodeId: string) => void;
+  /** Called to wrap a node in try/catch. */
+  readonly onWrapInTryCatch?: (nodeId: string) => void;
+  /** Called to copy a single node to clipboard. */
+  readonly onCopyNode?: (nodeId: string) => void;
+  /** Called to rename a node (triggers inline rename in inspector). */
+  readonly onRenameNode?: (nodeId: string) => void;
+  /** Called to view a node's YAML representation. */
+  readonly onViewYaml?: (nodeId: string) => void;
   /** Called to delete an edge. */
   readonly onDeleteEdge?: (edgeId: string) => void;
   /** Called to trigger the "insert task on edge" flow (opens TaskPicker). */
@@ -43,25 +55,23 @@ export interface CanvasContextMenuProps {
   readonly onSelectAll?: () => void;
   /** Called to trigger auto-layout. */
   readonly onAutoLayout?: () => void;
+  /** Called to paste from clipboard at current position. */
+  readonly onPaste?: () => void;
+  /** Whether the internal clipboard has content available to paste. */
+  readonly hasClipboard?: boolean;
+  /** Called to zoom/fit the canvas. */
+  readonly onFitView?: () => void;
+  /** Called to copy the current selection (multi-select). */
+  readonly onCopySelection?: () => void;
+  /** Called to duplicate the current selection (multi-select). */
+  readonly onDuplicateSelection?: () => void;
+  /** Called to disable/enable the current selection (multi-select). */
+  readonly onDisableSelection?: () => void;
+  /** Called to delete the current selection (multi-select). */
+  readonly onDeleteSelection?: () => void;
   /** Additional CSS class names for the popup. */
   readonly className?: string;
 }
-
-// ---------------------------------------------------------------------------
-// Platform detection & shortcut labels
-// ---------------------------------------------------------------------------
-
-const isMac =
-  typeof navigator !== "undefined" && /Mac|iPhone|iPad|iPod/.test(navigator.platform);
-
-const MOD_LABEL = isMac ? "\u2318" : "Ctrl+";
-
-const SHORTCUT_LABELS = {
-  duplicate: `${MOD_LABEL}D`,
-  selectAll: `${MOD_LABEL}A`,
-  delete: isMac ? "\u232B" : "Del",
-  addTask: "N",
-} as const;
 
 // ---------------------------------------------------------------------------
 // Styling constants
@@ -80,6 +90,11 @@ const ITEM_CLASS = cn(
 const DESTRUCTIVE_ITEM_CLASS = cn(
   "flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-xs text-[var(--stgm-destructive,#ef4444)] outline-none",
   "data-[highlighted]:bg-[var(--stgm-destructive,#ef4444)]/10",
+);
+
+const DISABLED_ITEM_CLASS = cn(
+  "flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-xs text-[var(--stgm-muted-foreground,#737373)] outline-none",
+  "opacity-50",
 );
 
 const SHORTCUT_HINT_CLASS =
@@ -114,11 +129,23 @@ export const CanvasContextMenu = memo(function CanvasContextMenu({
   onDeleteNode,
   onDuplicateNode,
   onAddTaskAfter,
+  onToggleDisabled,
+  onWrapInTryCatch,
+  onCopyNode,
+  onRenameNode,
+  onViewYaml,
   onDeleteEdge,
   onInsertTaskOnEdge,
   onAddTaskAtPosition,
   onSelectAll,
   onAutoLayout,
+  onPaste,
+  hasClipboard,
+  onFitView,
+  onCopySelection,
+  onDuplicateSelection,
+  onDisableSelection,
+  onDeleteSelection,
   className,
 }: CanvasContextMenuProps) {
   const portalContainer = useStigmerPortalContainer();
@@ -161,6 +188,11 @@ export const CanvasContextMenu = memo(function CanvasContextMenu({
                 onDelete={onDeleteNode}
                 onDuplicate={onDuplicateNode}
                 onAddTaskAfter={onAddTaskAfter}
+                onToggleDisabled={onToggleDisabled}
+                onWrapInTryCatch={onWrapInTryCatch}
+                onCopy={onCopyNode}
+                onRename={onRenameNode}
+                onViewYaml={onViewYaml}
               />
             )}
             {target.type === "edge" && (
@@ -175,6 +207,18 @@ export const CanvasContextMenu = memo(function CanvasContextMenu({
                 onAddTask={onAddTaskAtPosition}
                 onSelectAll={onSelectAll}
                 onAutoLayout={onAutoLayout}
+                onPaste={onPaste}
+                hasClipboard={hasClipboard}
+                onFitView={onFitView}
+              />
+            )}
+            {target.type === "selection" && (
+              <SelectionMenuItems
+                count={target.count}
+                onCopy={onCopySelection}
+                onDuplicate={onDuplicateSelection}
+                onDisable={onDisableSelection}
+                onDelete={onDeleteSelection}
               />
             )}
           </Menu.Popup>
@@ -194,15 +238,35 @@ function NodeMenuItems({
   onDelete,
   onDuplicate,
   onAddTaskAfter,
+  onToggleDisabled,
+  onWrapInTryCatch,
+  onCopy,
+  onRename,
+  onViewYaml,
 }: {
   nodeId: string;
   taskName: string;
   onDelete?: (nodeId: string) => void;
   onDuplicate?: (nodeId: string) => void;
   onAddTaskAfter?: (nodeId: string) => void;
+  onToggleDisabled?: (nodeId: string) => void;
+  onWrapInTryCatch?: (nodeId: string) => void;
+  onCopy?: (nodeId: string) => void;
+  onRename?: (nodeId: string) => void;
+  onViewYaml?: (nodeId: string) => void;
 }) {
   return (
     <>
+      {onRename && (
+        <Menu.Item
+          className={ITEM_CLASS}
+          onClick={() => onRename(nodeId)}
+          label="Rename task"
+        >
+          <RenameIcon />
+          Rename
+        </Menu.Item>
+      )}
       {onDuplicate && (
         <Menu.Item
           className={ITEM_CLASS}
@@ -211,7 +275,18 @@ function NodeMenuItems({
         >
           <DuplicateIcon />
           Duplicate
-          <span className={SHORTCUT_HINT_CLASS}>{SHORTCUT_LABELS.duplicate}</span>
+          <span className={SHORTCUT_HINT_CLASS}>{getShortcutHint("duplicate")}</span>
+        </Menu.Item>
+      )}
+      {onCopy && (
+        <Menu.Item
+          className={ITEM_CLASS}
+          onClick={() => onCopy(nodeId)}
+          label="Copy task"
+        >
+          <CopyIcon />
+          Copy
+          <span className={SHORTCUT_HINT_CLASS}>{getShortcutHint("copy")}</span>
         </Menu.Item>
       )}
       {onAddTaskAfter && (
@@ -222,11 +297,41 @@ function NodeMenuItems({
         >
           <PlusIcon />
           Add task after…
+          <span className={SHORTCUT_HINT_CLASS}>{getShortcutHint("addTaskAfter")}</span>
         </Menu.Item>
       )}
-      {(onDuplicate || onAddTaskAfter) && onDelete && (
-        <Separator className={SEPARATOR_CLASS} />
+      <Separator className={SEPARATOR_CLASS} />
+      {onToggleDisabled && (
+        <Menu.Item
+          className={ITEM_CLASS}
+          onClick={() => onToggleDisabled(nodeId)}
+          label="Toggle disabled"
+        >
+          <DisableIcon />
+          Disable / Bypass
+        </Menu.Item>
       )}
+      {onWrapInTryCatch && (
+        <Menu.Item
+          className={ITEM_CLASS}
+          onClick={() => onWrapInTryCatch(nodeId)}
+          label="Wrap in try/catch"
+        >
+          <ShieldIcon />
+          Wrap in Try/Catch
+        </Menu.Item>
+      )}
+      {onViewYaml && (
+        <Menu.Item
+          className={ITEM_CLASS}
+          onClick={() => onViewYaml(nodeId)}
+          label="View YAML"
+        >
+          <CodeIcon />
+          View YAML
+        </Menu.Item>
+      )}
+      <Separator className={SEPARATOR_CLASS} />
       {onDelete && (
         <Menu.Item
           className={DESTRUCTIVE_ITEM_CLASS}
@@ -236,7 +341,7 @@ function NodeMenuItems({
         >
           <TrashIcon />
           Delete
-          <span className={SHORTCUT_HINT_CLASS}>{SHORTCUT_LABELS.delete}</span>
+          <span className={SHORTCUT_HINT_CLASS}>{getShortcutHint("delete")}</span>
         </Menu.Item>
       )}
     </>
@@ -293,10 +398,16 @@ function PaneMenuItems({
   onAddTask,
   onSelectAll,
   onAutoLayout,
+  onPaste,
+  hasClipboard,
+  onFitView,
 }: {
   onAddTask?: () => void;
   onSelectAll?: () => void;
   onAutoLayout?: () => void;
+  onPaste?: () => void;
+  hasClipboard?: boolean;
+  onFitView?: () => void;
 }) {
   return (
     <>
@@ -308,12 +419,22 @@ function PaneMenuItems({
         >
           <PlusIcon />
           Add task…
-          <span className={SHORTCUT_HINT_CLASS}>{SHORTCUT_LABELS.addTask}</span>
+          <span className={SHORTCUT_HINT_CLASS}>{getShortcutHint("addTaskAfter")}</span>
         </Menu.Item>
       )}
-      {onAddTask && (onSelectAll || onAutoLayout) && (
-        <Separator className={SEPARATOR_CLASS} />
+      {onPaste && (
+        <Menu.Item
+          className={hasClipboard ? ITEM_CLASS : DISABLED_ITEM_CLASS}
+          onClick={hasClipboard ? onPaste : undefined}
+          label="Paste"
+          aria-disabled={!hasClipboard}
+        >
+          <PasteIcon />
+          Paste
+          <span className={SHORTCUT_HINT_CLASS}>{getShortcutHint("paste")}</span>
+        </Menu.Item>
       )}
+      <Separator className={SEPARATOR_CLASS} />
       {onSelectAll && (
         <Menu.Item
           className={ITEM_CLASS}
@@ -322,7 +443,7 @@ function PaneMenuItems({
         >
           <SelectAllIcon />
           Select all
-          <span className={SHORTCUT_HINT_CLASS}>{SHORTCUT_LABELS.selectAll}</span>
+          <span className={SHORTCUT_HINT_CLASS}>{getShortcutHint("selectAll")}</span>
         </Menu.Item>
       )}
       {onAutoLayout && (
@@ -333,6 +454,74 @@ function PaneMenuItems({
         >
           <LayoutIcon />
           Auto-layout
+        </Menu.Item>
+      )}
+      {onFitView && (
+        <Menu.Item
+          className={ITEM_CLASS}
+          onClick={onFitView}
+          label="Zoom to fit"
+        >
+          <FitViewIcon />
+          Zoom to fit
+        </Menu.Item>
+      )}
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Selection menu items (multi-select right-click)
+// ---------------------------------------------------------------------------
+
+function SelectionMenuItems({
+  count,
+  onCopy,
+  onDuplicate,
+  onDisable,
+  onDelete,
+}: {
+  count: number;
+  onCopy?: () => void;
+  onDuplicate?: () => void;
+  onDisable?: () => void;
+  onDelete?: () => void;
+}) {
+  const label = `${count} task${count > 1 ? "s" : ""}`;
+  return (
+    <>
+      {onCopy && (
+        <Menu.Item className={ITEM_CLASS} onClick={onCopy} label={`Copy ${label}`}>
+          <CopyIcon />
+          Copy {label}
+          <span className={SHORTCUT_HINT_CLASS}>{getShortcutHint("copy")}</span>
+        </Menu.Item>
+      )}
+      {onDuplicate && (
+        <Menu.Item className={ITEM_CLASS} onClick={onDuplicate} label={`Duplicate ${label}`}>
+          <DuplicateIcon />
+          Duplicate {label}
+          <span className={SHORTCUT_HINT_CLASS}>{getShortcutHint("duplicate")}</span>
+        </Menu.Item>
+      )}
+      {onDisable && (
+        <Menu.Item className={ITEM_CLASS} onClick={onDisable} label={`Disable ${label}`}>
+          <DisableIcon />
+          Disable {label}
+        </Menu.Item>
+      )}
+      {(onCopy || onDuplicate || onDisable) && onDelete && (
+        <Separator className={SEPARATOR_CLASS} />
+      )}
+      {onDelete && (
+        <Menu.Item
+          className={DESTRUCTIVE_ITEM_CLASS}
+          onClick={onDelete}
+          label={`Delete ${label}`}
+        >
+          <TrashIcon />
+          Delete {label}
+          <span className={SHORTCUT_HINT_CLASS}>{getShortcutHint("delete")}</span>
         </Menu.Item>
       )}
     </>
@@ -359,6 +548,66 @@ function LayoutIcon() {
       <rect x="1" y="9.5" width="5" height="3" rx="0.5" />
       <rect x="8" y="9.5" width="5" height="3" rx="0.5" />
       <path d="M7 4.5V7M7 7H3.5M7 7h3.5M3.5 7v2.5M10.5 7v2.5" />
+    </svg>
+  );
+}
+
+function CopyIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="5" y="5" width="7" height="7" rx="1" />
+      <path d="M9 5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h2" />
+    </svg>
+  );
+}
+
+function PasteIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M5.5 2H4a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1H8.5" />
+      <rect x="5" y="1" width="4" height="2.5" rx="0.5" />
+    </svg>
+  );
+}
+
+function RenameIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M8.5 2.5l3 3M2 12l.7-2.8L9.6 2.3a1 1 0 0 1 1.4 0l1.7 1.7a1 1 0 0 1 0 1.4L5.8 12.3 3 13z" />
+    </svg>
+  );
+}
+
+function DisableIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="7" cy="7" r="5" />
+      <path d="M3.5 10.5l7-7" />
+    </svg>
+  );
+}
+
+function ShieldIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M7 1.5L2 3.5v3c0 3.5 2.2 5.5 5 6.5 2.8-1 5-3 5-6.5v-3L7 1.5z" />
+    </svg>
+  );
+}
+
+function CodeIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4.5 4L1.5 7l3 3M9.5 4l3 3-3 3M8 2l-2 10" />
+    </svg>
+  );
+}
+
+function FitViewIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M1.5 5V2.5a1 1 0 0 1 1-1H5M9 1.5h2.5a1 1 0 0 1 1 1V5M12.5 9v2.5a1 1 0 0 1-1 1H9M5 12.5H2.5a1 1 0 0 1-1-1V9" />
+      <rect x="4" y="4" width="6" height="6" rx="0.5" />
     </svg>
   );
 }
