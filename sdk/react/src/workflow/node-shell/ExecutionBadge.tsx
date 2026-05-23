@@ -4,9 +4,18 @@ import { memo } from "react";
 import { cn } from "@stigmer/theme";
 import type { NodeExecutionStatus } from "../workflow-graph-conversions";
 
+/** Fork branch completion progress (T06). */
+export interface ForkProgressInfo {
+  readonly completed: number;
+  readonly total: number;
+  readonly compete: boolean;
+}
+
 export interface ExecutionBadgeProps {
   readonly status: NodeExecutionStatus;
   readonly attemptNumber?: number;
+  /** Fork branch progress. When present on a running fork node, replaces the generic spinner. */
+  readonly forkProgress?: ForkProgressInfo;
 }
 
 /**
@@ -14,14 +23,39 @@ export interface ExecutionBadgeProps {
  * in execution mode. Provides text/icon differentiation beyond color alone
  * (WCAG 1.4.1 compliance).
  *
+ * For fork nodes, displays branch completion progress (e.g. "1/3") when
+ * the fork is running and `forkProgress` is provided (T06).
+ *
  * Uses the same positioning pattern as the validation error badge in
  * `WorkflowNode.tsx`.
  */
 export const ExecutionBadge = memo(function ExecutionBadge({
   status,
   attemptNumber,
+  forkProgress,
 }: ExecutionBadgeProps) {
   if (status === "not_reached" || status === "pending") return null;
+
+  // Fork-specific running badge: show branch progress instead of generic spinner.
+  if (status === "running" && forkProgress) {
+    const progressLabel = forkProgress.compete
+      ? `Fork race, ${forkProgress.completed} of ${forkProgress.total} branches completed`
+      : `Fork running, ${forkProgress.completed} of ${forkProgress.total} branches completed`;
+
+    return (
+      <span
+        className={cn(
+          "absolute -right-1.5 -top-1.5 z-20 flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold leading-none shadow-sm",
+          "bg-[var(--stgm-primary,#6366f1)] text-white stgm-exec-badge-running",
+        )}
+        title={progressLabel}
+        aria-label={progressLabel}
+      >
+        {forkProgress.completed}/{forkProgress.total}
+        {forkProgress.compete && <span className="ml-0.5">⚡</span>}
+      </span>
+    );
+  }
 
   const { icon, label, className } = BADGE_CONFIG[status];
 

@@ -452,6 +452,14 @@ export type {
   NodeExecutionState,
 } from "./workflow-graph-conversions";
 
+// T06: Branch and parallel execution highlighting — pure derivation functions
+export {
+  deriveEdgeExecutionStates,
+  deriveForkProgress,
+  type EdgeExecutionState,
+  type ForkProgress,
+} from "./execution";
+
 // T04: Execution graph — behavior hook
 export {
   useWorkflowExecutionGraph,

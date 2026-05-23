@@ -5,9 +5,48 @@ import { BaseEdge, EdgeLabelRenderer, getSmoothStepPath } from "@xyflow/react";
 import type { EdgeProps } from "@xyflow/react";
 import { cn } from "@stigmer/theme";
 import type { CanvasTransitionEdgeData } from "./workflow-graph-conversions";
+import type { EdgeExecutionState } from "./execution";
 import { CanvasActionsContext } from "./CanvasActionsContext";
 import { TaskPickerPopover } from "./TaskPickerPopover";
 import { useWorkflowGraphMode } from "./WorkflowGraphModeContext";
+
+// ---------------------------------------------------------------------------
+// Execution-state visual mapping (DD-T06-005)
+// ---------------------------------------------------------------------------
+
+interface EdgeVisualStyle {
+  readonly strokeClass: string;
+  readonly opacity: number;
+  readonly dashArray?: string;
+  readonly animate?: boolean;
+  readonly labelDimmed: boolean;
+}
+
+const EDGE_EXECUTION_STYLES: Record<EdgeExecutionState, EdgeVisualStyle> = {
+  taken: {
+    strokeClass: "!stroke-[var(--stgm-success,#22c55e)]",
+    opacity: 1,
+    labelDimmed: false,
+  },
+  not_taken: {
+    strokeClass: "!stroke-[var(--stgm-muted-foreground,#737373)]",
+    opacity: 0.3,
+    dashArray: "5 5",
+    labelDimmed: true,
+  },
+  active: {
+    strokeClass: "!stroke-[var(--stgm-primary,#6366f1)]",
+    opacity: 1,
+    dashArray: "8 4",
+    animate: true,
+    labelDimmed: false,
+  },
+  not_reached: {
+    strokeClass: "!stroke-[var(--stgm-muted-foreground,#737373)]",
+    opacity: 0.25,
+    labelDimmed: true,
+  },
+};
 
 /**
  * Custom React Flow edge rendering a directed transition between tasks.
@@ -16,10 +55,13 @@ import { useWorkflowGraphMode } from "./WorkflowGraphModeContext";
  * Optionally renders a label pill for named branches (switch_case cases,
  * human_input outcomes).
  *
- * Shows a "+" button at the midpoint on hover. Clicking the button inserts
- * a new task node between the source and target, splitting this edge.
+ * In execution mode, applies per-edge visual treatment based on
+ * `data.executionState` (T06): taken/not_taken/active/not_reached.
  *
- * @since T15 (Visual Canvas Editor)
+ * Shows a "+" button at the midpoint on hover in design mode. Clicking
+ * the button inserts a new task node between the source and target.
+ *
+ * @since T15 (Visual Canvas Editor), T06 (Branch Highlighting)
  */
 export const CanvasTransitionEdge = memo(function CanvasTransitionEdge({
   id,
@@ -45,11 +87,13 @@ export const CanvasTransitionEdge = memo(function CanvasTransitionEdge({
   });
 
   const label = data?.label;
+  const execState = data?.executionState;
   const actions = useContext(CanvasActionsContext);
   const [hovered, setHovered] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const insertBtnRef = useRef<HTMLButtonElement>(null);
   const isDesignMode = mode === "design";
+  const isExecutionMode = mode === "execution";
 
   const handleOpenPicker = useCallback(() => {
     setPickerOpen(true);
@@ -66,6 +110,11 @@ export const CanvasTransitionEdge = memo(function CanvasTransitionEdge({
     [actions, id],
   );
 
+  // Resolve visual style: execution mode uses per-state styles, design uses defaults.
+  const execVisual = isExecutionMode && execState
+    ? EDGE_EXECUTION_STYLES[execState]
+    : null;
+
   return (
     <>
       <BaseEdge
@@ -73,13 +122,19 @@ export const CanvasTransitionEdge = memo(function CanvasTransitionEdge({
         path={edgePath}
         markerEnd={markerEnd}
         className={cn(
-          "!stroke-[var(--stgm-border-prominent,#a3a3a3)]",
+          execVisual
+            ? execVisual.strokeClass
+            : "!stroke-[var(--stgm-border-prominent,#a3a3a3)]",
           selected && "!stroke-[var(--stgm-ring,#3b82f6)]",
-          !isDesignMode && "!opacity-60",
+          !isDesignMode && !execVisual && "!opacity-60",
+          execVisual?.animate && "stgm-edge-active",
         )}
         style={{
           strokeWidth: selected ? 2.5 : 2,
+          ...(execVisual && { opacity: execVisual.opacity }),
+          ...(execVisual?.dashArray && { strokeDasharray: execVisual.dashArray }),
         }}
+        data-edge-execution-state={execState}
       />
       <EdgeLabelRenderer>
         <div
@@ -91,7 +146,17 @@ export const CanvasTransitionEdge = memo(function CanvasTransitionEdge({
           onMouseLeave={isDesignMode ? () => setHovered(false) : undefined}
         >
           {label && (
-            <div className="stgm mb-1 rounded-full border border-[var(--stgm-border-prominent,#d4d4d8)] bg-[var(--stgm-card,var(--stgm-background,#fff))] px-2 py-0.5 text-center text-[10px] font-medium text-[var(--stgm-foreground,#1a1a2e)] shadow-sm">
+            <div
+              className={cn(
+                "stgm mb-1 rounded-full border border-[var(--stgm-border-prominent,#d4d4d8)] bg-[var(--stgm-card,var(--stgm-background,#fff))] px-2 py-0.5 text-center text-[10px] font-medium text-[var(--stgm-foreground,#1a1a2e)] shadow-sm",
+                execVisual?.labelDimmed && "opacity-30",
+              )}
+              aria-label={
+                execState
+                  ? `Branch ${label}, ${execState.replace(/_/g, " ")}`
+                  : `Branch ${label}`
+              }
+            >
               {label}
             </div>
           )}

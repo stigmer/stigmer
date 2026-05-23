@@ -479,11 +479,15 @@ export interface CanvasTaskNodeData extends Record<string, unknown> {
   isSentinel: boolean;
   errorCount?: number;
   executionState?: NodeExecutionState;
+  /** Fork branch completion progress (T06). Present only for fork nodes in execution mode. */
+  forkProgress?: { readonly completed: number; readonly total: number; readonly compete: boolean };
 }
 
 /** Data payload attached to canvas transition edges. */
 export interface CanvasTransitionEdgeData extends Record<string, unknown> {
   label?: string;
+  /** Edge execution state (T06). Present only in execution mode. */
+  executionState?: import("./execution").EdgeExecutionState;
 }
 
 /**

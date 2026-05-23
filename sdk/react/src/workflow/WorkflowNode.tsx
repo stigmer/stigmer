@@ -73,6 +73,7 @@ export const WorkflowNode = memo(function WorkflowNode({
         <ExecutionBadge
           status={executionState.status}
           attemptNumber={executionState.attemptNumber}
+          forkProgress={data.forkProgress ?? undefined}
         />
       )}
 
