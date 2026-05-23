@@ -48,10 +48,7 @@ type StatusActivities = ReturnType<typeof createCallAgentStatusActivities>;
 const agentProxy = proxyActivities<AgentActivities>({
   startToCloseTimeout: "1h",
   retry: {
-    maximumAttempts: 3,
-    initialInterval: "2s",
-    backoffCoefficient: 2,
-    maximumInterval: "30s",
+    maximumAttempts: 1,
   },
 });
 
@@ -95,8 +92,13 @@ export async function orchestrateAgentCall(
     pendingNotification = notification;
   });
 
+  const enrichedConfig = {
+    ...input.config,
+    __taskName: input.taskName,
+  };
+
   const activityPromise = agentProxy
-    .CallAgent(input.config, input.runtimeEnv, input.parentWorkflowId)
+    .CallAgent(enrichedConfig, input.runtimeEnv, input.parentWorkflowId)
     .then((result) => {
       activityResult = (result ?? {}) as AgentCallResult;
       activityDone = true;
