@@ -19,7 +19,6 @@ import type {
   WorkflowGraphEnvVar,
 } from "./workflow-graph-model";
 import { START_NODE_ID, END_NODE_ID } from "./workflow-graph-model";
-import { CANVAS_NODE_WIDTH, CANVAS_NODE_HEIGHT, SENTINEL_NODE_WIDTH, SENTINEL_NODE_HEIGHT } from "./canvas-constants";
 import { categorizeKind, kindToDisplayName } from "./kind-metadata";
 import { getVisualSpec, type VisualClass } from "./task-type-visual-registry";
 
@@ -493,8 +492,8 @@ export function toReactFlowElements(graph: WorkflowGraphModel): {
         exportAs: node.export?.as,
         isSentinel,
       } satisfies Omit<CanvasTaskNodeData, "errorCount">,
-      width: isSentinel ? SENTINEL_NODE_WIDTH : CANVAS_NODE_WIDTH,
-      height: isSentinel ? SENTINEL_NODE_HEIGHT : CANVAS_NODE_HEIGHT,
+      width: visualSpec.defaultWidth,
+      height: visualSpec.defaultHeight,
       draggable: !isSentinel,
       selectable: !isSentinel,
       deletable: !isSentinel,

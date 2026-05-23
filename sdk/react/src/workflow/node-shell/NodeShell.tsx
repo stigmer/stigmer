@@ -1,0 +1,162 @@
+"use client";
+
+import { memo } from "react";
+import { cn } from "@stigmer/theme";
+import type { VisualClass } from "../task-type-visual-registry";
+import { getShapePath, SVG_SHAPE_CLASSES } from "./shape-paths";
+
+export interface NodeShellProps {
+  visualClass: VisualClass;
+  width: number;
+  height: number;
+  categoryColor: string;
+  selected?: boolean;
+  errorCount?: number;
+  children: React.ReactNode;
+}
+
+/**
+ * Visual boundary renderer for workflow nodes.
+ *
+ * Dispatches between two rendering strategies:
+ * - Rectangular shapes (task-card, subworkflow-card, container, terminal-pill):
+ *   Standard div with CSS borders, border-radius, and background.
+ * - Non-rectangular shapes (decision-diamond, gate-octagon, event-circle, parallel-bar):
+ *   SVG path background with HTML content overlay.
+ *
+ * The outer container is always a rectangular div for React Flow
+ * hit-testing compatibility.
+ */
+export const NodeShell = memo(function NodeShell({
+  visualClass,
+  width,
+  height,
+  categoryColor,
+  selected,
+  errorCount = 0,
+  children,
+}: NodeShellProps) {
+  if (SVG_SHAPE_CLASSES.has(visualClass)) {
+    return (
+      <SvgShell
+        visualClass={visualClass}
+        width={width}
+        height={height}
+        categoryColor={categoryColor}
+        selected={selected}
+        errorCount={errorCount}
+      >
+        {children}
+      </SvgShell>
+    );
+  }
+
+  return (
+    <CssShell
+      visualClass={visualClass}
+      categoryColor={categoryColor}
+      selected={selected}
+      errorCount={errorCount}
+    >
+      {children}
+    </CssShell>
+  );
+});
+
+// ---------------------------------------------------------------------------
+// CssShell — for rectangular visual classes
+// ---------------------------------------------------------------------------
+
+function CssShell({
+  visualClass,
+  categoryColor,
+  selected,
+  errorCount = 0,
+  children,
+}: Omit<NodeShellProps, "width" | "height">) {
+  const shellClass = CSS_VARIANTS[visualClass] ?? CSS_VARIANTS["task-card"];
+
+  return (
+    <div
+      className={cn(
+        "stgm group relative flex items-center transition-shadow",
+        shellClass,
+        selected && "ring-2 ring-[var(--stgm-ring,#3b82f6)]",
+        errorCount > 0 && "!border-[var(--stgm-destructive,#ef4444)]",
+      )}
+      style={
+        visualClass === "task-card" || visualClass === "subworkflow-card"
+          ? { borderLeftWidth: 4, borderLeftColor: categoryColor }
+          : undefined
+      }
+    >
+      {children}
+    </div>
+  );
+}
+
+const CSS_VARIANTS: Partial<Record<VisualClass, string>> = {
+  "task-card": cn(
+    "min-w-[200px] gap-2 rounded-md border border-[var(--stgm-border-prominent,#d4d4d8)]",
+    "bg-[var(--stgm-card,var(--stgm-background,#fff))] px-3 py-2 shadow-sm",
+  ),
+  "subworkflow-card": cn(
+    "min-w-[200px] gap-2 rounded-md border-2 border-[var(--stgm-border-prominent,#d4d4d8)]",
+    "bg-[var(--stgm-card,var(--stgm-background,#fff))] px-3 py-2 shadow-sm",
+  ),
+  "container": cn(
+    "min-w-[240px] gap-2 rounded-lg border-2 border-dashed border-[var(--stgm-border-prominent,#d4d4d8)]",
+    "bg-[var(--stgm-card,var(--stgm-background,#fff))] px-3 py-2.5 shadow-sm",
+  ),
+  "terminal-pill": cn(
+    "items-center justify-center rounded-full border-2 px-4 py-1.5",
+    "bg-[var(--stgm-muted,#f5f5f5)]",
+  ),
+};
+
+// ---------------------------------------------------------------------------
+// SvgShell — for non-rectangular visual classes
+// ---------------------------------------------------------------------------
+
+function SvgShell({
+  visualClass,
+  width,
+  height,
+  categoryColor,
+  selected,
+  errorCount = 0,
+  children,
+}: NodeShellProps) {
+  const pathD = getShapePath(visualClass, width, height);
+
+  return (
+    <div
+      className={cn(
+        "stgm group relative flex items-center justify-center transition-shadow",
+        selected && "ring-2 ring-[var(--stgm-ring,#3b82f6)]",
+        visualClass === "decision-diamond" && "rounded-sm",
+        visualClass === "event-circle" && "rounded-full",
+        visualClass === "gate-octagon" && "rounded",
+      )}
+      style={{ width, height }}
+    >
+      <svg
+        className="pointer-events-none absolute inset-0"
+        width={width}
+        height={height}
+        viewBox={`0 0 ${width} ${height}`}
+        aria-hidden="true"
+      >
+        <path
+          d={pathD ?? ""}
+          fill="var(--stgm-card, var(--stgm-background, #fff))"
+          stroke={errorCount > 0 ? "var(--stgm-destructive, #ef4444)" : categoryColor}
+          strokeWidth="2"
+        />
+      </svg>
+      <div className="relative z-10 flex items-center justify-center overflow-hidden">
+        {children}
+      </div>
+    </div>
+  );
+}
