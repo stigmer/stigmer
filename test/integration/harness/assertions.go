@@ -287,3 +287,46 @@ func valueToString(v *structpb.Value) string {
 		return fmt.Sprintf("%v", v.GetKind())
 	}
 }
+
+// AssertTaskHasOutput verifies the named task has a non-nil output Struct.
+func AssertTaskHasOutput(t *testing.T, exec *workflowexecutionv1.WorkflowExecution, taskName string) {
+	t.Helper()
+	task := findTask(exec, taskName)
+	if !assert.NotNil(t, task, "task %q not found in execution status", taskName) {
+		return
+	}
+	assert.NotNil(t, task.GetOutput(), "task %q should have non-nil output", taskName)
+}
+
+// AssertTaskHasInput verifies the named task has a non-nil input Struct.
+func AssertTaskHasInput(t *testing.T, exec *workflowexecutionv1.WorkflowExecution, taskName string) {
+	t.Helper()
+	task := findTask(exec, taskName)
+	if !assert.NotNil(t, task, "task %q not found in execution status", taskName) {
+		return
+	}
+	assert.NotNil(t, task.GetInput(), "task %q should have non-nil input", taskName)
+}
+
+// AssertTaskTokens verifies the named task has non-zero token counts.
+func AssertTaskTokens(t *testing.T, exec *workflowexecutionv1.WorkflowExecution, taskName string) {
+	t.Helper()
+	task := findTask(exec, taskName)
+	if !assert.NotNil(t, task, "task %q not found in execution status", taskName) {
+		return
+	}
+	totalTokens := task.GetInputTokens() + task.GetOutputTokens()
+	assert.Greater(t, totalTokens, int64(0),
+		"task %q should have non-zero total tokens (input=%d, output=%d)",
+		taskName, task.GetInputTokens(), task.GetOutputTokens())
+}
+
+// AssertExecutionTotals verifies the execution has non-zero cost or token totals.
+func AssertExecutionTotals(t *testing.T, exec *workflowexecutionv1.WorkflowExecution) {
+	t.Helper()
+	status := exec.GetStatus()
+	totalTokens := status.GetTotalInputTokens() + status.GetTotalOutputTokens()
+	assert.Greater(t, totalTokens, int64(0),
+		"execution should have non-zero total tokens (input=%d, output=%d, cost=%d)",
+		status.GetTotalInputTokens(), status.GetTotalOutputTokens(), status.GetTotalCostMicros())
+}

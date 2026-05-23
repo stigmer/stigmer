@@ -195,6 +195,17 @@ func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*work
 		updated.Status.TemporalWorkflowId = requestStatus.TemporalWorkflowId
 	}
 
+	// Update cost/token totals (if provided, runner accumulates across tasks)
+	if requestStatus.TotalCostMicros > 0 {
+		updated.Status.TotalCostMicros = requestStatus.TotalCostMicros
+	}
+	if requestStatus.TotalInputTokens > 0 {
+		updated.Status.TotalInputTokens = requestStatus.TotalInputTokens
+	}
+	if requestStatus.TotalOutputTokens > 0 {
+		updated.Status.TotalOutputTokens = requestStatus.TotalOutputTokens
+	}
+
 	// Full-replace pending_approvals: workflow-runner always sends the complete set.
 	// Empty list = clear all approvals (child completed).
 	updated.Status.PendingApprovals = requestStatus.PendingApprovals
