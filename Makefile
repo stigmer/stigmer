@@ -335,7 +335,7 @@ tidy: ## Run go mod tidy on all Go modules
 # ─── Lint & Check ────────────────────────────
 
 .PHONY: fix lint lint-web typecheck-web verify-web run-web build-web clean-web clean-build-web \
-       lint-desktop typecheck-desktop verify-desktop launch-desktop build-desktop clean-build-desktop release-desktop-local \
+       lint-desktop typecheck-desktop verify-desktop kill-desktop launch-desktop build-desktop clean-build-desktop release-desktop-local \
        build-cli install-cli release-cli-local \
        lint-docs lint-docs-audit format-docs format-docs-check check-links libs-build web-build validate-demos tsdoc-check test-demos \
        test-web test-desktop test-e2e check check-all
@@ -389,13 +389,18 @@ test-web: ## Run web console component tests (Vitest)
 
 # ─── Client Apps: Desktop (Tauri v2 + Vite + React) ──
 
-launch-desktop: ## Start desktop app in dev mode (Tauri + Vite hot-reload)
+kill-desktop: ## Kill any running Stigmer desktop dev processes
+	@-pkill -f "stigmer.*src-tauri" 2>/dev/null || true
+	@-pkill -f "cargo-tauri.*dev" 2>/dev/null || true
+	@-lsof -ti :5173 | xargs kill 2>/dev/null || true
+	@-caddy stop 2>/dev/null || true
+	@-pkill -f "grpcwebproxy.*9091" 2>/dev/null || true
+
+launch-desktop: kill-desktop ## Start desktop app in dev mode (Tauri + Vite hot-reload)
 	$(MAKE) build-runner
 	client-apps/desktop/scripts/setup-runner-dev.sh
 	@if command -v caddy >/dev/null 2>&1 && grep -q 'localhost:9090' client-apps/desktop/.env.development 2>/dev/null; then \
 		echo "Starting local dev proxy (:9090 → gRPC-Web :8080 + REST :8081)..."; \
-		-pkill -f "grpcwebproxy.*9091" 2>/dev/null || true; \
-		caddy stop 2>/dev/null || true; \
 		grpcwebproxy --backend_addr=localhost:8080 --run_tls_server=false --allow_all_origins --server_http_debug_port=9091 --server_http_max_read_timeout=120s --server_http_max_write_timeout=120s & \
 		sleep 1; \
 		caddy start --config client-apps/desktop/scripts/Caddyfile.dev; \
