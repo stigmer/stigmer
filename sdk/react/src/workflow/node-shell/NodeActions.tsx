@@ -1,15 +1,19 @@
 "use client";
 
-import { forwardRef, memo, useCallback, useContext, useRef, useState } from "react";
+import { forwardRef, memo, useCallback, useContext, useMemo, useRef, useState } from "react";
 import { Position, NodeToolbar } from "@xyflow/react";
 import { cn } from "@stigmer/theme";
 import { CanvasActionsContext } from "../CanvasActionsContext";
 import { TaskPickerPopover } from "../TaskPickerPopover";
+import { BranchAddPopover } from "../picker/BranchAddPopover";
+import type { BranchAddMode, BranchAddResult } from "../picker/BranchAddPopover";
+import type { InsertionContext } from "../picker/insertion-context";
 import { TrashIcon, DuplicateIcon, PlusIcon } from "../canvas-icons";
 
 export interface NodeActionsProps {
   nodeId: string;
   taskName: string;
+  kindString?: string;
 }
 
 /**
@@ -27,6 +31,7 @@ export interface NodeActionsProps {
 export const NodeActions = memo(function NodeActions({
   nodeId,
   taskName,
+  kindString,
 }: NodeActionsProps) {
   const actions = useContext(CanvasActionsContext);
 
@@ -39,9 +44,34 @@ export const NodeActions = memo(function NodeActions({
   }, [actions, nodeId]);
 
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [branchPopoverOpen, setBranchPopoverOpen] = useState(false);
   const hoverAddRef = useRef<HTMLButtonElement>(null);
   const toolbarAddRef = useRef<HTMLButtonElement>(null);
+  const branchAddRef = useRef<HTMLButtonElement>(null);
   const pickerAnchorRef = useRef<HTMLButtonElement | null>(null);
+
+  const branchMode: BranchAddMode | null = useMemo(() => {
+    switch (kindString) {
+      case "switch_case":
+        return "switch-case";
+      case "fork":
+        return "fork-branch";
+      case "try_catch":
+        return "catch-handler";
+      default:
+        return null;
+    }
+  }, [kindString]);
+
+  const insertionContext: InsertionContext | null = useMemo(() => {
+    if (!kindString) return null;
+    return {
+      mode: "append-after",
+      sourceNodeId: nodeId,
+      sourceKind: kindString,
+      sourceDisplayName: taskName,
+    };
+  }, [nodeId, kindString, taskName]);
 
   const openPickerFrom = useCallback(
     (ref: React.RefObject<HTMLButtonElement | null>) => {
@@ -69,6 +99,26 @@ export const NodeActions = memo(function NodeActions({
     },
     [actions, nodeId],
   );
+
+  const handleBranchSubmit = useCallback(
+    (result: BranchAddResult) => {
+      if (!actions || !branchMode) return;
+      switch (branchMode) {
+        case "switch-case":
+          actions.addSwitchCase(nodeId, result.name, result.condition ?? "");
+          break;
+        case "fork-branch":
+          actions.addForkBranch(nodeId, result.name);
+          break;
+        case "catch-handler":
+          actions.addCatchHandler(nodeId, result.errorType ?? "");
+          break;
+      }
+    },
+    [actions, branchMode, nodeId],
+  );
+
+  const graphModel = actions?.getGraphModel() ?? null;
 
   return (
     <>
@@ -144,8 +194,49 @@ export const NodeActions = memo(function NodeActions({
         onOpenChange={handlePickerOpenChange}
         onSelectKind={handleKindSelected}
         anchorRef={pickerAnchorRef as React.RefObject<HTMLElement | null>}
+        insertionContext={insertionContext}
+        graph={graphModel}
         side="bottom"
       />
+
+      {branchMode && (
+        <>
+          <button
+            ref={branchAddRef}
+            type="button"
+            onClick={() => setBranchPopoverOpen(true)}
+            className={cn(
+              "absolute -bottom-3 left-1/2 z-10 flex h-5 -translate-x-1/2 items-center justify-center rounded-full border border-[var(--stgm-border-prominent,#d4d4d8)] bg-[var(--stgm-card,var(--stgm-background,#fff))] px-2 text-[9px] font-medium text-[var(--stgm-muted-foreground,#737373)] shadow-sm transition-all",
+              "hover:border-[var(--stgm-primary,#6366f1)] hover:bg-[var(--stgm-primary,#6366f1)] hover:text-[var(--stgm-primary-foreground,#fff)]",
+              "scale-75 opacity-0 group-hover:scale-100 group-hover:opacity-100",
+            )}
+            aria-label={
+              branchMode === "switch-case"
+                ? "Add case"
+                : branchMode === "fork-branch"
+                  ? "Add branch"
+                  : "Add catch"
+            }
+            title={
+              branchMode === "switch-case"
+                ? "Add case"
+                : branchMode === "fork-branch"
+                  ? "Add branch"
+                  : "Add catch"
+            }
+          >
+            +
+          </button>
+
+          <BranchAddPopover
+            open={branchPopoverOpen}
+            onOpenChange={setBranchPopoverOpen}
+            onSubmit={handleBranchSubmit}
+            anchorRef={branchAddRef as React.RefObject<HTMLElement | null>}
+            mode={branchMode}
+          />
+        </>
+      )}
     </>
   );
 });

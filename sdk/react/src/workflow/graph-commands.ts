@@ -554,6 +554,190 @@ function deleteNestedValue(obj: Record<string, unknown>, path: string): Record<s
 }
 
 // ---------------------------------------------------------------------------
+// T08: Branch-specific insertion commands
+// ---------------------------------------------------------------------------
+
+export class AddSwitchCaseCommand implements GraphCommand {
+  readonly type = "add_switch_case";
+  readonly description: string;
+  private readonly switchNodeId: string;
+  private readonly caseName: string;
+  private readonly condition: string;
+  private readonly childNode: WorkflowGraphNode | null;
+  private readonly childEdge: WorkflowGraphEdge | null;
+
+  constructor(
+    switchNodeId: string,
+    caseName: string,
+    condition: string,
+    childNode: WorkflowGraphNode | null = null,
+    childEdge: WorkflowGraphEdge | null = null,
+  ) {
+    this.switchNodeId = switchNodeId;
+    this.caseName = caseName;
+    this.condition = condition;
+    this.childNode = childNode;
+    this.childEdge = childEdge;
+    this.description = `Add case "${caseName}"`;
+  }
+
+  apply(model: WorkflowGraphModel): WorkflowGraphModel {
+    const nodes = model.nodes.map((node) => {
+      if (node.id !== this.switchNodeId) return node;
+      const prevCases = (node.config as Record<string, unknown>).cases;
+      const nextCases = Array.isArray(prevCases) ? [...prevCases] : [];
+      nextCases.push({
+        name: this.caseName,
+        ...(this.condition.trim() && { when: this.condition.trim() }),
+      });
+      return { ...node, config: { ...node.config, cases: nextCases } as JsonObject };
+    });
+
+    const withChildNode = this.childNode ? [...nodes, this.childNode] : nodes;
+    const edges = this.childEdge ? [...model.edges, this.childEdge] : [...model.edges];
+    return { ...model, nodes: withChildNode, edges };
+  }
+
+  undo(model: WorkflowGraphModel): WorkflowGraphModel {
+    const nodes = model.nodes
+      .filter((node) => !this.childNode || node.id !== this.childNode.id)
+      .map((node) => {
+        if (node.id !== this.switchNodeId) return node;
+        const prevCases = (node.config as Record<string, unknown>).cases;
+        const nextCases = Array.isArray(prevCases)
+          ? prevCases.filter((entry) => {
+              if (typeof entry !== "object" || entry === null) return true;
+              return (entry as { name?: string }).name !== this.caseName;
+            })
+          : [];
+        return { ...node, config: { ...node.config, cases: nextCases } as JsonObject };
+      });
+
+    const edges = this.childEdge
+      ? model.edges.filter((edge) => edge.id !== this.childEdge!.id)
+      : [...model.edges];
+
+    return { ...model, nodes, edges };
+  }
+}
+
+export class AddParallelBranchCommand implements GraphCommand {
+  readonly type = "add_parallel_branch";
+  readonly description: string;
+  private readonly forkNodeId: string;
+  private readonly branchName: string;
+  private readonly childNode: WorkflowGraphNode | null;
+  private readonly childEdge: WorkflowGraphEdge | null;
+
+  constructor(
+    forkNodeId: string,
+    branchName: string,
+    childNode: WorkflowGraphNode | null = null,
+    childEdge: WorkflowGraphEdge | null = null,
+  ) {
+    this.forkNodeId = forkNodeId;
+    this.branchName = branchName;
+    this.childNode = childNode;
+    this.childEdge = childEdge;
+    this.description = `Add branch "${branchName}"`;
+  }
+
+  apply(model: WorkflowGraphModel): WorkflowGraphModel {
+    const nodes = model.nodes.map((node) => {
+      if (node.id !== this.forkNodeId) return node;
+      const prevBranches = (node.config as Record<string, unknown>).branches;
+      const nextBranches = Array.isArray(prevBranches) ? [...prevBranches] : [];
+      nextBranches.push({ name: this.branchName, do: [] });
+      return { ...node, config: { ...node.config, branches: nextBranches } as JsonObject };
+    });
+
+    const withChildNode = this.childNode ? [...nodes, this.childNode] : nodes;
+    const edges = this.childEdge ? [...model.edges, this.childEdge] : [...model.edges];
+    return { ...model, nodes: withChildNode, edges };
+  }
+
+  undo(model: WorkflowGraphModel): WorkflowGraphModel {
+    const nodes = model.nodes
+      .filter((node) => !this.childNode || node.id !== this.childNode.id)
+      .map((node) => {
+        if (node.id !== this.forkNodeId) return node;
+        const prevBranches = (node.config as Record<string, unknown>).branches;
+        const nextBranches = Array.isArray(prevBranches)
+          ? prevBranches.filter((entry) => {
+              if (typeof entry !== "object" || entry === null) return true;
+              return (entry as { name?: string }).name !== this.branchName;
+            })
+          : [];
+        return { ...node, config: { ...node.config, branches: nextBranches } as JsonObject };
+      });
+
+    const edges = this.childEdge
+      ? model.edges.filter((edge) => edge.id !== this.childEdge!.id)
+      : [...model.edges];
+
+    return { ...model, nodes, edges };
+  }
+}
+
+export class AddCatchHandlerCommand implements GraphCommand {
+  readonly type = "add_catch_handler";
+  readonly description: string;
+  private readonly tryCatchNodeId: string;
+  private readonly errorType: string;
+  private readonly childNode: WorkflowGraphNode | null;
+  private readonly childEdge: WorkflowGraphEdge | null;
+  private previousCatch: unknown = undefined;
+
+  constructor(
+    tryCatchNodeId: string,
+    errorType: string,
+    childNode: WorkflowGraphNode | null = null,
+    childEdge: WorkflowGraphEdge | null = null,
+  ) {
+    this.tryCatchNodeId = tryCatchNodeId;
+    this.errorType = errorType;
+    this.childNode = childNode;
+    this.childEdge = childEdge;
+    this.description = "Add catch handler";
+  }
+
+  apply(model: WorkflowGraphModel): WorkflowGraphModel {
+    const nodes = model.nodes.map((node) => {
+      if (node.id !== this.tryCatchNodeId) return node;
+      this.previousCatch = (node.config as Record<string, unknown>).catch;
+      const nextCatch = {
+        as: this.errorType.trim() || "error",
+        do: [],
+      };
+      return { ...node, config: { ...node.config, catch: nextCatch } as JsonObject };
+    });
+
+    const withChildNode = this.childNode ? [...nodes, this.childNode] : nodes;
+    const edges = this.childEdge ? [...model.edges, this.childEdge] : [...model.edges];
+    return { ...model, nodes: withChildNode, edges };
+  }
+
+  undo(model: WorkflowGraphModel): WorkflowGraphModel {
+    const nodes = model.nodes
+      .filter((node) => !this.childNode || node.id !== this.childNode.id)
+      .map((node) => {
+        if (node.id !== this.tryCatchNodeId) return node;
+        if (this.previousCatch === undefined) {
+          const { catch: _removed, ...rest } = node.config as Record<string, unknown>;
+          return { ...node, config: rest as JsonObject };
+        }
+        return { ...node, config: { ...node.config, catch: this.previousCatch } as JsonObject };
+      });
+
+    const edges = this.childEdge
+      ? model.edges.filter((edge) => edge.id !== this.childEdge!.id)
+      : [...model.edges];
+
+    return { ...model, nodes, edges };
+  }
+}
+
+// ---------------------------------------------------------------------------
 // GraphHistory
 // ---------------------------------------------------------------------------
 

@@ -40,6 +40,9 @@ import {
   UpdateNodeMetaCommand,
   MigrateBranchHandleCommand,
   DuplicateNodeCommand,
+  AddSwitchCaseCommand,
+  AddParallelBranchCommand,
+  AddCatchHandlerCommand,
   generateEdgeId,
   generateTaskName,
   createTaskNode,
@@ -102,6 +105,10 @@ export interface UseWorkflowCanvasReturn {
   readonly addSuccessorTask: (sourceNodeId: string, kindString: string) => void;
   readonly duplicateNode: (nodeId: string) => void;
   readonly addNodeAtPosition: (kindString: string, position: { x: number; y: number }) => void;
+  readonly addSwitchCase: (switchNodeId: string, caseName: string, condition: string) => void;
+  readonly addForkBranch: (forkNodeId: string, branchName: string) => void;
+  readonly addCatchHandler: (tryCatchNodeId: string, errorType: string) => void;
+  readonly getGraphModel: () => WorkflowGraphModel;
   readonly selectAll: () => void;
 }
 
@@ -628,17 +635,46 @@ export function useWorkflowCanvas(
       };
 
       const node = createTaskNode(taskName, kind, kindString, category, position);
-      const edge = {
-        id: generateEdgeId(),
-        source: sourceNodeId,
-        target: taskName,
-      };
 
-      const next = dispatch(
-        new CompoundCommand(`Add ${kindString} after "${sourceNode.taskName}"`, [
-          new AddNodeCommand(node, null),
-          new AddEdgeCommand(edge),
-        ]),
+      const existingEdgeToEnd = model.edges.find(
+        (edge) => edge.source === sourceNodeId && edge.target === END_NODE_ID,
+      );
+
+      const commands: GraphCommand[] = [new AddNodeCommand(node, null)];
+
+      if (existingEdgeToEnd) {
+        // splice before end: source -> new -> __end__
+        commands.unshift(new DeleteEdgeCommand(existingEdgeToEnd.id));
+        commands.push(
+          new AddEdgeCommand({
+            id: generateEdgeId(),
+            source: sourceNodeId,
+            target: taskName,
+            ...(existingEdgeToEnd.sourceHandle && {
+              sourceHandle: existingEdgeToEnd.sourceHandle,
+            }),
+          }),
+        );
+        commands.push(
+          new AddEdgeCommand({
+            id: generateEdgeId(),
+            source: taskName,
+            target: END_NODE_ID,
+          }),
+        );
+      } else {
+        // standard append
+        commands.push(
+          new AddEdgeCommand({
+            id: generateEdgeId(),
+            source: sourceNodeId,
+            target: taskName,
+          }),
+        );
+      }
+
+      dispatch(
+        new CompoundCommand(`Add ${kindString} after "${sourceNode.taskName}"`, commands),
       );
 
       setSelection({ type: "node", id: taskName });
@@ -688,6 +724,33 @@ export function useWorkflowCanvas(
     },
     [history.currentModel, dispatch],
   );
+
+  // ---------------------------------------------------------------------------
+  // Branch-specific insertion (T08)
+  // ---------------------------------------------------------------------------
+
+  const addSwitchCase = useCallback(
+    (switchNodeId: string, caseName: string, condition: string) => {
+      dispatch(new AddSwitchCaseCommand(switchNodeId, caseName, condition));
+    },
+    [dispatch],
+  );
+
+  const addForkBranch = useCallback(
+    (forkNodeId: string, branchName: string) => {
+      dispatch(new AddParallelBranchCommand(forkNodeId, branchName));
+    },
+    [dispatch],
+  );
+
+  const addCatchHandler = useCallback(
+    (tryCatchNodeId: string, errorType: string) => {
+      dispatch(new AddCatchHandlerCommand(tryCatchNodeId, errorType));
+    },
+    [dispatch],
+  );
+
+  const getGraphModel = useCallback(() => history.currentModel, [history.currentModel]);
 
   // ---------------------------------------------------------------------------
   // Select all (AD-T05: pane context menu "Select All")
@@ -829,6 +892,10 @@ export function useWorkflowCanvas(
       addSuccessorTask,
       duplicateNode,
       addNodeAtPosition,
+      addSwitchCase,
+      addForkBranch,
+      addCatchHandler,
+      getGraphModel,
       selectAll,
     }),
     [
@@ -840,7 +907,9 @@ export function useWorkflowCanvas(
       getNodeDescriptor, serializeToYaml,
       updateBranchRouting, migrateBranchHandle, removeBranchEdges,
       insertTaskOnEdge, addSuccessorTask,
-      duplicateNode, addNodeAtPosition, selectAll,
+      duplicateNode, addNodeAtPosition,
+      addSwitchCase, addForkBranch, addCatchHandler, getGraphModel,
+      selectAll,
     ],
   );
 }

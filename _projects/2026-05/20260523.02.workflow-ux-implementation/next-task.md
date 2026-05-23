@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-23 14:12
-**Last Session**: 2026-05-23 — Agent Call Strategy implementation completed
-**Current Task**: Agent call strategy pipeline complete — Proto stubs need regeneration, then ready for T08 or backend follow-ups
+**Last Session**: 2026-05-23 — T08 Contextual Task Picker implemented (all 5 phases complete)
+**Current Task**: T08 complete — ready for commit and next task (T09–T11 editor interactions, or backend follow-ups)
 **Status**: In Progress
 
 ## Session Progress (2026-05-23)
@@ -197,6 +197,16 @@ When starting a new session:
 - Backend follow-ups documented in `checkpoints/t07-waterfall-backend-followups.md`
 - No client-app changes needed (DD-016 verified)
 
+### T08: Contextual Task Picker — COMPLETED
+- **Phase 1 — Picker Intelligence Layer**: Created `sdk/react/src/workflow/picker/` module with pure logic: `InsertionContext` types + `buildInsertionHeader`, `getSuggestedKinds` (static compatibility map from research report), `getDisabledKinds` + `getHiddenKinds` (structural DSL constraints), `recents.ts` (localStorage-backed recently-used store)
+- **Phase 2 — Enhanced Picker UI**: `usePickerData` hook bridges intelligence layer and UI; `TaskPickerPopover` upgraded with contextual header, "Suggested" section, "Recent" section, disabled items with aria-disabled + reason tooltip; search filtering across all sections
+- **Phase 3 — Branch-Specific Insertion**: `BranchAddPopover` (inline form for adding case/branch/handler); 3 new `GraphCommand` classes (`AddSwitchCaseCommand`, `AddParallelBranchCommand`, `AddCatchHandlerCommand`) with full undo; `NodeActions` renders branch-mode `+` button on switch_case/fork/try_catch nodes
+- **Phase 4 — Append-After Rewiring**: `addSuccessorTask` detects existing edge to `__end__` and splices new node before it (insert-before-end semantics)
+- **Phase 5 — Tests**: 38 new unit tests (suggestions, compatibility, recents, insertion-context, branch-commands); E2E spec `test/e2e/tests/interactive/workflow-task-insertion.spec.ts` (9 test cases covering edge +, suggested, recent, disabled, branch buttons, append-after, keyboard N, search)
+- All unit tests pass; E2E blocked only by Auth0 login redirect in local env (not logic failure)
+- Modified files: `graph-commands.ts`, `CanvasActionsContext.ts`, `useWorkflowCanvas.ts`, `WorkflowCanvasEditor.tsx`, `TaskPickerPopover.tsx`, `NodeActions.tsx`, `WorkflowNode.tsx`, `CanvasTransitionEdge.tsx`
+- Fixed pre-existing E2E fixture schema drift: wait task `taskConfig.seconds` → `taskConfig.duration.seconds`
+
 ### Agent Call Strategy Implementation — COMPLETED (separate session)
 - Implemented 6-part agent call architecture strategy from plan `agent_call_strategy_0d3e60ec.plan.md`
 - **Workflow YAMLs**: Added `harness: cursor` and `config.model: "claude-sonnet-4"` to all 9 agent_call tasks across 3 Tiny Tactics workflows
@@ -213,14 +223,23 @@ When starting a new session:
 1. ~~**T06: Branch and Parallel Execution Highlighting** — Taken/untaken branch dimming, fork N/M progress~~ DONE
 2. ~~Wire `getNodeDimensions` from T01 registry (see `checkpoints/t03-deferred-wiring.md`)~~ DONE
 3. ~~**T07: Execution Waterfall Timeline** — Bottom panel redesign with waterfall bars~~ DONE
-4. **Run `make protos && make codegen`** — Regenerate TS/Go/Java stubs from `structured_output_schema` proto change
-5. **Backend follow-up: Waterfall enrichment** — Agent call events, task retrying events, queue delay, streaming phases, push delivery (see `checkpoints/t07-waterfall-backend-followups.md`)
-6. **Backend follow-up: Runner I/O population** — Populate full `WorkflowTask` I/O on status (see `checkpoints/t05-runner-io-followup.md` and `checkpoints/runner-task-io-followups.md`)
-7. Enable ELK in client-apps via `workerFactory` (see `checkpoints/t03-deferred-wiring.md`)
-8. **T08–T11: Editor Interactions** — Contextual task picker, branch management, inspector refactor, context menus
+4. ~~**T08: Contextual Task Picker** — Intelligence layer, branch-specific insertion, append-rewiring~~ DONE
+5. **Run `make protos && make codegen`** — Regenerate TS/Go/Java stubs from `structured_output_schema` proto change
+6. **Backend follow-up: Waterfall enrichment** — Agent call events, task retrying events, queue delay, streaming phases, push delivery (see `checkpoints/t07-waterfall-backend-followups.md`)
+7. **Backend follow-up: Runner I/O population** — Populate full `WorkflowTask` I/O on status (see `checkpoints/t05-runner-io-followup.md` and `checkpoints/runner-task-io-followups.md`)
+8. Enable ELK in client-apps via `workerFactory` (see `checkpoints/t03-deferred-wiring.md`)
+9. **T09–T11: Inspector Refactor, Branch Management, Context Menus** — Continue editor interaction work
 
 ## Context for Resume
 
+- T08 picker: `sdk/react/src/workflow/picker/` is the new intelligence layer — pure TypeScript (no React deps) for suggestions, compatibility, recents
+- T08 suggestions map: `SUGGESTIONS_AFTER_KIND` encodes domain knowledge from competitive research (n8n, Retool, Step Functions patterns)
+- T08 `usePickerData` hook: bridges intelligence layer → UI; produces stable memoized `PickerData` driving sections/items/disabled state
+- T08 branch commands: `AddSwitchCaseCommand`, `AddParallelBranchCommand`, `AddCatchHandlerCommand` — all reversible (undo support)
+- T08 `BranchAddPopover`: inline form for mode-driven fields (case name + condition, branch name, handler name + error type)
+- T08 append-after: `addSuccessorTask` now detects edge-to-`__end__` and splices (compound command: delete old edge, add node, create two new edges)
+- T08 E2E: tests depend on `testMultiKindWorkflow` fixture which now uses `taskConfig.duration.seconds` format
+- T08 E2E limitation: interactive tests require Auth0 session; local runs hit login redirect (fixture creation succeeds, page navigation fails without auth tokens)
 - T07 waterfall: `deriveWaterfallEntries` is the canonical derivation for the waterfall timeline — walks events once, produces `WaterfallEntry[]` with `startMs`/`endMs` relative to execution start
 - T07 architecture: data model supports agent sub-spans (`WaterfallSpan.children`) and retry segments (`WaterfallAttempt[]`) — these will populate automatically when the runner emits the corresponding events
 - T07 bottom panel: `ExecutionBottomPanel` in `WorkflowExecutionViewer` renders Waterfall (default) + Events tabs; default open (not collapsed)
