@@ -56,7 +56,9 @@ func (c *WorkflowExecutionController) GetExecutionSummary(
 			continue
 		}
 
-		if workflowFilter != "" && exec.GetSpec().GetWorkflowId() != workflowFilter {
+		if workflowFilter != "" &&
+			exec.GetSpec().GetWorkflowId() != workflowFilter &&
+			exec.GetSpec().GetWorkflowInstanceId() != workflowFilter {
 			continue
 		}
 

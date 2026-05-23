@@ -58,7 +58,9 @@ func (c *WorkflowExecutionController) ListByWorkflow(ctx context.Context, req *w
 		return nil, grpclib.InternalError(err, "failed to list workflow executions")
 	}
 
-	// Filter executions by workflow_instance_id
+	// Filter executions matching the provided workflow or instance ID.
+	// The request field accepts either a Workflow ID (wf_*) or WorkflowInstance ID (wfi_*),
+	// so we check both spec.workflowInstanceId and spec.workflowId.
 	executions := make([]*workflowexecutionv1.WorkflowExecution, 0)
 	for _, d := range data {
 		execution := &workflowexecutionv1.WorkflowExecution{}
@@ -66,13 +68,11 @@ func (c *WorkflowExecutionController) ListByWorkflow(ctx context.Context, req *w
 			log.Warn().
 				Err(err).
 				Msg("Failed to unmarshal workflow execution, skipping")
-			continue // Skip invalid entries
+			continue
 		}
 
-		// Filter by workflow_instance_id
-		// The workflow_id can be either a Workflow ID or WorkflowInstance ID
-		// We filter by spec.workflow_instance_id which contains the WorkflowInstance ID
-		if execution.GetSpec().GetWorkflowInstanceId() == workflowId {
+		if execution.GetSpec().GetWorkflowInstanceId() == workflowId ||
+			execution.GetSpec().GetWorkflowId() == workflowId {
 			executions = append(executions, execution)
 		}
 	}

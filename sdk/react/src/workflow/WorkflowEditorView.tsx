@@ -4,7 +4,7 @@ import { memo, useCallback, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { useWorkflowEditor } from "./useWorkflowEditor";
 import { WorkflowYamlEditor } from "./WorkflowYamlEditor";
-import { WorkflowTopologyGraph } from "./WorkflowTopologyGraph";
+import { WorkflowCodePreviewGraph } from "./WorkflowCodePreviewGraph";
 import { WorkflowCanvasEditor } from "./WorkflowCanvasEditor";
 import type { LayoutEngine } from "./layout";
 import { WorkflowRefinePanel } from "./WorkflowRefinePanel";
@@ -310,8 +310,8 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
                   className="h-full"
                 />
               ) : (
-                <WorkflowTopologyGraph
-                  topology={editor.topology}
+                <WorkflowCodePreviewGraph
+                  yaml={editor.yaml}
                   className="h-full"
                 />
               )}

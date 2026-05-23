@@ -2589,28 +2589,23 @@ Props for [`WorkflowTaskPalette`](#workflowtaskpalette).
 />
 
 
-### WorkflowTopologyGraph
+### WorkflowCodePreviewGraph
 
-Read-only SVG DAG renderer for workflow topology.
+Read-only React Flow graph preview for the code-mode editor side panel.
 
-Uses dagre for layered layout computation and renders nodes as
-rounded rectangles with category-based coloring. Edges are drawn
-as SVG paths with arrowhead markers.
-
-Supports mouse wheel zoom, drag-to-pan, and a visible control
-toolbar with zoom in/out and fit-to-view reset buttons.
-All colors flow through `--stgm-*` tokens with sensible fallbacks.
+Accepts YAML directly and uses the unified `WorkflowNode` / `CanvasTransitionEdge`
+rendering system in `"overview"` mode for DD-001 consistency. Supports pan, zoom,
+minimap, and auto fit-to-view.
 
 
-### WorkflowTopologyGraphProps
+### WorkflowCodePreviewGraphProps
 
-Props for [`WorkflowTopologyGraph`](#workflowtopologygraph).
+Props for [`WorkflowCodePreviewGraph`](#workflowcodepreviewgraph).
 
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
-    showControls: { type: "boolean", description: "Whether to show zoom/pan controls." },
-    topology: { type: "UseWorkflowTopologyReturn", description: "Topology data from useWorkflowTopology.", required: true, typeDescriptionLink: "#useworkflowtopologyreturn" },
+    yaml: { type: "string | null", description: "Workflow YAML to visualize.", required: true },
   }}
 />
 

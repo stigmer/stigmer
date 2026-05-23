@@ -37,7 +37,9 @@ export const WorkflowOverviewSummary = memo(function WorkflowOverviewSummary({
     );
   }
 
-  if (!summary || summary.totalCount === 0) {
+  const totalCount = typeof summary?.totalCount === "number" ? summary.totalCount : 0;
+
+  if (!summary || totalCount === 0) {
     return (
       <div className={cn(
         "rounded-lg border border-[var(--stgm-border,#d4d4d8)] px-4 py-6 text-center text-sm text-[var(--stgm-muted-foreground,#737373)]",
@@ -48,7 +50,7 @@ export const WorkflowOverviewSummary = memo(function WorkflowOverviewSummary({
     );
   }
 
-  const successRate = summary.successRate;
+  const successRate = typeof summary.successRate === "number" ? summary.successRate : -1;
   const successPct = successRate >= 0 ? `${Math.round(successRate * 100)}%` : "—";
   const successColor = successRate >= 0.9
     ? "text-[var(--stgm-success,#22c55e)]"
@@ -66,7 +68,7 @@ export const WorkflowOverviewSummary = memo(function WorkflowOverviewSummary({
 
   return (
     <div className={cn("grid grid-cols-2 gap-3 sm:grid-cols-4", className)}>
-      <StatCard label="Total Executions" value={String(summary.totalCount)} />
+      <StatCard label="Total Executions" value={String(totalCount)} />
       <StatCard label="Success Rate" value={successPct} valueClassName={successRate >= 0 ? successColor : undefined} />
       <StatCard label="Avg Duration" value={avgDuration} />
       <StatCard label="Total Cost" value={totalCost} />
