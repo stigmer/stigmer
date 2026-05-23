@@ -10,10 +10,13 @@ import { useFetch } from "../internal/useFetch";
 import { useWorkflowExecution } from "./useWorkflowExecution";
 import { useWorkflowExecutionEventStream } from "./useWorkflowExecutionEventStream";
 import { serializeWorkflowYaml } from "./serialize-workflow-yaml";
+import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { yamlToGraph, toReactFlowElements } from "./workflow-graph-conversions";
 import type { CanvasTaskNodeData, NodeExecutionState } from "./workflow-graph-conversions";
 import { applyDagreLayout } from "./layout";
 import type { DerivedTaskState } from "../internal/store/workflow-execution-event-store";
+import type { WorkflowGraphModel } from "./workflow-graph-model";
+import { deriveEdgeExecutionStates, deriveForkProgress } from "./execution";
 
 /** Options for {@link useWorkflowExecutionGraph}. */
 export interface UseWorkflowExecutionGraphOptions {
@@ -157,17 +160,23 @@ export function useWorkflowExecutionGraph(
 
   // ── Build graph model ────────────────────────────────────────────
 
-  const baseElements = useMemo<{ nodes: Node[]; edges: Edge[] } | null>(() => {
+  const graphBuild = useMemo<{
+    elements: { nodes: Node[]; edges: Edge[] };
+    graphModel: WorkflowGraphModel;
+  } | null>(() => {
     if (!workflow) return null;
     try {
       const yaml = serializeWorkflowYaml(workflow);
       const graph = yamlToGraph(yaml);
       const laidOut = applyDagreLayout(graph);
-      return toReactFlowElements(laidOut);
+      return { elements: toReactFlowElements(laidOut), graphModel: laidOut };
     } catch {
       return null;
     }
   }, [workflow]);
+
+  const baseElements = graphBuild?.elements ?? null;
+  const graphModel = graphBuild?.graphModel ?? null;
 
   // ── Task states: use external or subscribe own ───────────────────
 
@@ -180,7 +189,7 @@ export function useWorkflowExecutionGraph(
     ? options.taskStates
     : ownStream.taskStates;
 
-  // ── Merge execution state into nodes ─────────────────────────────
+  // ── Merge execution state into nodes (T04) + fork progress (T06) ──
 
   const nodesWithExecution = useMemo<Node[]>(() => {
     if (!baseElements) return [];
@@ -199,9 +208,19 @@ export function useWorkflowExecutionGraph(
           }
         : { status: "not_reached" };
 
+      // T06: Derive fork progress for fork nodes.
+      const forkProgress =
+        nodeData.kind === WorkflowTaskKind.fork && nodeData.config
+          ? deriveForkProgress(nodeData.config, taskStates)
+          : null;
+
       return {
         ...node,
-        data: { ...nodeData, executionState },
+        data: {
+          ...nodeData,
+          executionState,
+          ...(forkProgress && { forkProgress }),
+        },
         draggable: false,
         connectable: false,
         deletable: false,
@@ -209,10 +228,26 @@ export function useWorkflowExecutionGraph(
     });
   }, [baseElements, taskStates]);
 
-  const edges = useMemo<Edge[]>(() => {
-    if (!baseElements) return [];
-    return baseElements.edges;
-  }, [baseElements]);
+  // ── Merge execution state into edges (T06) ──────────────────────
+
+  const edgesWithExecution = useMemo<Edge[]>(() => {
+    if (!baseElements || !graphModel) return [];
+
+    const edgeStates = deriveEdgeExecutionStates(
+      graphModel.edges,
+      graphModel.nodes,
+      taskStates,
+    );
+
+    return baseElements.edges.map((edge) => {
+      const execState = edgeStates.get(edge.id);
+      if (!execState || execState === "not_reached") return edge;
+      return {
+        ...edge,
+        data: { ...edge.data, executionState: execState },
+      };
+    });
+  }, [baseElements, graphModel, taskStates]);
 
   // ── Version mismatch detection ───────────────────────────────────
 
@@ -266,7 +301,7 @@ export function useWorkflowExecutionGraph(
 
   return {
     nodes: nodesWithExecution,
-    edges,
+    edges: edgesWithExecution,
     executionPhase: phase,
     selectedTaskName,
     setSelectedTaskName,

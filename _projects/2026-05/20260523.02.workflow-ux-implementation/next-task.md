@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-23 14:12
-**Last Session**: 2026-05-23 — Runner Task Status Enrichment completed (unblocks T05 Inspector real data)
-**Current Task**: Runner enrichment complete — Ready for T06 (Branch Highlighting)
+**Last Session**: 2026-05-23 — T06 Branch & Parallel Execution Highlighting completed
+**Current Task**: T06 complete — Ready for T07 (Execution Waterfall Timeline)
 **Status**: In Progress
 
 ## Session Progress (2026-05-23)
@@ -163,9 +163,21 @@ When starting a new session:
 - Checkpoint: `checkpoints/runner-task-io-followups.md` (8 deferred items)
 - Changelog: `_changelog/2026-05/2026-05-23-180610-feat-workflow-runner-task-status-enrichment.md`
 
+### T06: Branch and Parallel Execution Highlighting — COMPLETED
+- Created `sdk/react/src/workflow/execution/` module with pure derivation functions
+- `deriveEdgeExecutionStates()`: maps edges to `taken | not_taken | active | not_reached` from graph topology + task statuses
+- `deriveForkProgress()`: reads fork config `branches[].do[]` and counts completed branches
+- Extended `CanvasTransitionEdge` with per-state visual treatment (stroke color, opacity, dash, marching-ants animation)
+- Extended `ExecutionBadge` with fork progress display (N/M with compete-mode indicator)
+- Wired derivation into `useWorkflowExecutionGraph` hook alongside existing node merge pipeline
+- Key discovery: switch-bypassed tasks are absent (not skipped) from status map; fork inner tasks aren't graph nodes
+- DD-T06-003: Fallthrough handling — multiple completed switch targets all marked `taken` (graceful degradation)
+- 21 new unit tests, 3 E2E specs, all 84 workflow tests pass, zero regressions
+- Changelog: `_changelog/2026-05/2026-05-23-182929-feat-workflow-branch-parallel-execution-highlighting-t06.md`
+
 ## Next Steps
 
-1. **T06: Branch and Parallel Execution Highlighting** — Taken/untaken branch dimming, fork N/M progress
+1. ~~**T06: Branch and Parallel Execution Highlighting** — Taken/untaken branch dimming, fork N/M progress~~ DONE
 2. **T07: Execution Waterfall Timeline** — Bottom panel redesign with waterfall bars
 3. **Backend follow-up**: Populate full `WorkflowTask` I/O on status (see `checkpoints/t05-runner-io-followup.md`)
 4. Wire `getNodeDimensions` from T01 registry (see `checkpoints/t03-deferred-wiring.md`)
