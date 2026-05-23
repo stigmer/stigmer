@@ -77,9 +77,12 @@ export const NodeHandles = memo(function NodeHandles({
 // Branched handle rendering
 // ---------------------------------------------------------------------------
 
+const MAX_VISIBLE_HANDLES = 5;
+
 interface OutputHandle {
   id: string;
   label: string;
+  isDefault: boolean;
 }
 
 interface BranchedHandlesProps {
@@ -98,11 +101,20 @@ function BranchedHandles({ inputClass, outputClass, handles }: BranchedHandlesPr
     );
   }
 
+  const visibleHandles = handles.length <= MAX_VISIBLE_HANDLES
+    ? handles
+    : handles.slice(0, MAX_VISIBLE_HANDLES - 1);
+  const overflowCount = handles.length > MAX_VISIBLE_HANDLES
+    ? handles.length - (MAX_VISIBLE_HANDLES - 1)
+    : 0;
+
+  const totalSlots = visibleHandles.length + (overflowCount > 0 ? 1 : 0);
+
   return (
     <>
       <Handle type="target" position={Position.Top} className={inputClass} />
-      {handles.map((handle, idx) => {
-        const leftPct = ((idx + 1) / (handles.length + 1)) * 100;
+      {visibleHandles.map((handle, idx) => {
+        const leftPct = ((idx + 1) / (totalSlots + 1)) * 100;
         return (
           <div key={handle.id}>
             <Handle
@@ -113,7 +125,11 @@ function BranchedHandles({ inputClass, outputClass, handles }: BranchedHandlesPr
               style={{ left: `${leftPct}%` }}
             />
             <span
-              className="pointer-events-none absolute text-[8px] font-medium leading-none text-[var(--stgm-muted-foreground,#737373)]"
+              className={
+                handle.isDefault
+                  ? "pointer-events-none absolute text-[8px] italic leading-none text-[var(--stgm-muted-foreground,#737373)] opacity-70"
+                  : "pointer-events-none absolute text-[8px] font-medium leading-none text-[var(--stgm-muted-foreground,#737373)]"
+              }
               style={{
                 left: `${leftPct}%`,
                 bottom: -14,
@@ -121,11 +137,35 @@ function BranchedHandles({ inputClass, outputClass, handles }: BranchedHandlesPr
                 whiteSpace: "nowrap",
               }}
             >
-              {handle.label}
+              {handle.isDefault ? `${handle.label} ⊘` : handle.label}
             </span>
           </div>
         );
       })}
+      {overflowCount > 0 && (
+        <span
+          className="pointer-events-none absolute text-[8px] font-medium leading-none text-[var(--stgm-muted-foreground,#737373)]"
+          style={{
+            left: `${((totalSlots) / (totalSlots + 1)) * 100}%`,
+            bottom: -14,
+            transform: "translateX(-50%)",
+            whiteSpace: "nowrap",
+          }}
+        >
+          +{overflowCount}
+        </span>
+      )}
+      {/* Hidden handles for overflow cases — still connectable via edges */}
+      {handles.slice(MAX_VISIBLE_HANDLES - 1).map((handle) => (
+        <Handle
+          key={handle.id}
+          type="source"
+          position={Position.Bottom}
+          id={handle.id}
+          className={outputClass}
+          style={{ left: "50%", opacity: 0, pointerEvents: "none" }}
+        />
+      ))}
     </>
   );
 }
@@ -149,6 +189,7 @@ function extractSwitchCaseHandles(data: CanvasTaskNodeData): OutputHandle[] {
     .map((c) => ({
       id: `case_${c.name as string}`,
       label: c.name as string,
+      isDefault: !c.when || (typeof c.when === "string" && c.when.trim() === ""),
     }));
 }
 
@@ -167,5 +208,6 @@ function extractHumanInputHandles(data: CanvasTaskNodeData): OutputHandle[] {
     .map((o) => ({
       id: `outcome_${o.name as string}`,
       label: o.name as string,
+      isDefault: false,
     }));
 }

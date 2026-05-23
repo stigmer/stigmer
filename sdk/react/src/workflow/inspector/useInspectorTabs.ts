@@ -33,6 +33,9 @@ export interface UseInspectorTabsReturn {
 const AI_KINDS = new Set(["agent_call", "llm_call", "eval"]);
 const INVOCATION_KINDS = new Set(["http_call", "grpc_call", "activity_call", "run_workflow"]);
 const CONTAINER_KINDS = new Set(["for_each", "fork", "try_catch"]);
+const BRANCH_TAB_KINDS = new Set(["switch_case", "fork"]);
+const CATCH_TAB_KINDS = new Set(["try_catch"]);
+const ITERATION_TAB_KINDS = new Set(["for_each"]);
 
 /**
  * Behavior hook that computes visible inspector tabs and manages active tab state.
@@ -73,8 +76,21 @@ export function useInspectorTabs({
 
     const result: InspectorTabDefinition[] = [
       { id: "configure", label: "Configure" },
-      { id: "data", label: "Data" },
     ];
+
+    if (BRANCH_TAB_KINDS.has(kindString)) {
+      result.push({ id: "branches", label: "Branches" });
+    }
+
+    if (CATCH_TAB_KINDS.has(kindString)) {
+      result.push({ id: "catch", label: "Catch" });
+    }
+
+    if (ITERATION_TAB_KINDS.has(kindString)) {
+      result.push({ id: "iteration", label: "Iteration" });
+    }
+
+    result.push({ id: "data", label: "Data" });
 
     const showRuntime =
       AI_KINDS.has(kindString) ||

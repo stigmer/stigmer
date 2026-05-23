@@ -5,7 +5,7 @@ import type { NodeProps } from "@xyflow/react";
 import { CATEGORY_COLORS } from "./canvas-constants";
 import type { CanvasTaskNodeData } from "./workflow-graph-conversions";
 import { getVisualSpec } from "./task-type-visual-registry";
-import { NodeShell, NodeContent, NodeHandles, NodeActions, ExecutionBadge } from "./node-shell";
+import { NodeShell, NodeContent, NodeHandles, NodeActions, ExecutionBadge, BranchBadge } from "./node-shell";
 import { useWorkflowGraphMode } from "./WorkflowGraphModeContext";
 
 const NESTED_TASK_KINDS = new Set(["fork", "for_each", "try_catch"]);
@@ -79,6 +79,11 @@ export const WorkflowNode = memo(function WorkflowNode({
 
       <NodeHandles portPattern={visualSpec.portPattern} data={data} />
 
+      {/* Branch badge — design mode only, for container/branch nodes */}
+      {mode === "design" && isNested && (
+        <BranchBadge kindString={data.kindString} config={data.config} />
+      )}
+
       {/* Design-mode actions — hidden in other modes */}
       {mode === "design" && !data.isSentinel && (
         <NodeActions nodeId={id} taskName={data.taskName} kindString={data.kindString} />
@@ -94,6 +99,31 @@ function buildAriaLabel(
 ): string {
   const base = `${data.displayName} node ${data.taskName}, ${data.ariaShapeLabel} shape`;
   const parts = [base];
+
+  const config = data.config as Record<string, unknown>;
+  if (data.kindString === "switch_case" && Array.isArray(config.cases)) {
+    const caseNames = (config.cases as Array<Record<string, unknown>>)
+      .filter((c) => c && typeof c.name === "string")
+      .map((c) => c.name as string);
+    if (caseNames.length > 0) {
+      parts.push(`${caseNames.length} branches: ${caseNames.join(", ")}`);
+    }
+  } else if (data.kindString === "fork" && Array.isArray(config.branches)) {
+    const branchNames = (config.branches as Array<Record<string, unknown>>)
+      .filter((b) => b && typeof b.name === "string")
+      .map((b) => b.name as string);
+    if (branchNames.length > 0) {
+      const joinPolicy = config.compete === true ? "race mode" : "wait for all";
+      parts.push(`${branchNames.length} branches: ${branchNames.join(", ")}. Join policy: ${joinPolicy}`);
+    }
+  } else if (data.kindString === "try_catch" && config.catch && typeof config.catch === "object") {
+    const catchAs = (config.catch as Record<string, unknown>).as as string | undefined;
+    parts.push(`catch handler: ${catchAs || "error"}`);
+  } else if (data.kindString === "for_each") {
+    const par = (config.max_parallelism as number) || 0;
+    parts.push(par > 0 ? `concurrency: ${par}` : "sequential");
+  }
+
   if (executionStatus && executionStatus !== "not_reached") {
     parts.push(executionStatus.replace(/_/g, " "));
   }
