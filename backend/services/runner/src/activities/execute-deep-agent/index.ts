@@ -10,7 +10,7 @@
  */
 
 import { Context, CancelledFailure } from "@temporalio/activity";
-import { create } from "@bufbuild/protobuf";
+import { create, type JsonObject } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { ExecutionPhase, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
@@ -192,9 +192,9 @@ export function createDeepAgentActivities(config: Config) {
 
         initialStatus.phase = ExecutionPhase.EXECUTION_COMPLETED;
         initialStatus.completedAt = utcTimestamp();
-        await persistStatus(client, executionId, initialStatus);
 
-        // Extract structured output from LangGraph state when responseFormat was used
+        // Extract structured output from LangGraph state BEFORE persisting,
+        // so the subscriber sees COMPLETED + structured_output atomically.
         let structuredOutput: unknown = undefined;
         let finalText: string | undefined;
 
@@ -203,6 +203,7 @@ export function createDeepAgentActivities(config: Config) {
             const graphState = await setup.agentGraph.getState(setup.langgraphConfig);
             if (graphState?.values?.structuredResponse !== undefined) {
               structuredOutput = graphState.values.structuredResponse;
+              initialStatus.structuredOutput = structuredOutput as JsonObject;
             }
           } catch (err) {
             console.warn(
@@ -218,6 +219,9 @@ export function createDeepAgentActivities(config: Config) {
         if (lastAiMsg) {
           finalText = lastAiMsg.content;
         }
+
+        // NOW persist — subscriber sees COMPLETED + structured_output atomically
+        await persistStatus(client, executionId, initialStatus);
 
         console.log(
           `[ExecuteDeepAgent] Completed for execution ${executionId}: ` +

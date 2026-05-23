@@ -3,7 +3,7 @@
 import { wrapError } from "./errors";
 import { stripUndefined } from "./proto-utils";
 import { type EnvVarInput } from "./types";
-import { create } from "@bufbuild/protobuf";
+import { create, type JsonObject } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { AgentExecutionSchema, type AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
@@ -189,6 +189,7 @@ export interface ExecutionConfigInput {
   maxToolResultChars?: number;
   maxCostUsd?: number;
   interactionMode?: InteractionMode;
+  structuredOutputSchema?: JsonObject;
 }
 
 /** SDK input type for ContextManagementConfig. */
@@ -224,6 +225,7 @@ function buildExecutionConfigProto(input: ExecutionConfigInput) {
   if (input.maxToolResultChars !== undefined) msg.maxToolResultChars = input.maxToolResultChars;
   if (input.maxCostUsd !== undefined) msg.maxCostUsd = input.maxCostUsd;
   if (input.interactionMode !== undefined) msg.interactionMode = input.interactionMode;
+  if (input.structuredOutputSchema !== undefined) msg.structuredOutputSchema = input.structuredOutputSchema;
   return msg;
 }
 

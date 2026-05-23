@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { cn } from "@stigmer/theme";
 import { ReactFlowProvider } from "@xyflow/react";
 import { useWorkflowCanvas } from "./useWorkflowCanvas";
+import type { LayoutEngine } from "./layout";
 import { WorkflowTaskPalette } from "./WorkflowTaskPalette";
 import { WorkflowInspectorPanel } from "./WorkflowInspectorPanel";
 import { WorkflowSummaryPanel } from "./inspector/WorkflowSummaryPanel";
@@ -41,6 +42,12 @@ export interface WorkflowCanvasEditorProps {
   readonly className?: string;
   /** Fallback to show while the canvas loads (DD-013 lazy loading). */
   readonly loadingFallback?: ReactNode;
+  /**
+   * Layout engine for the "Auto Layout" action.
+   * Pass the result of {@link useElkLayoutEngine} for ELK-powered layout.
+   * When omitted, dagre is used as the default.
+   */
+  readonly layoutEngine?: LayoutEngine | null;
 }
 
 const LazyCanvasInner = lazy(() =>
@@ -70,9 +77,10 @@ const WorkflowCanvasEditorInner = memo(function WorkflowCanvasEditorInner({
   nodeErrors,
   className,
   loadingFallback,
+  layoutEngine,
 }: WorkflowCanvasEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const canvas = useWorkflowCanvas(yaml, containerRef);
+  const canvas = useWorkflowCanvas(yaml, containerRef, { layoutEngine: layoutEngine ?? undefined });
   const [paletteCollapsed, setPaletteCollapsed] = useState(false);
   const togglePalette = useCallback(() => setPaletteCollapsed((p) => !p), []);
 

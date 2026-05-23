@@ -420,16 +420,6 @@ export interface TaskExecutionContext {
   readonly callAgent: CallAgentFn;
 
   /**
-   * Extract structured data from free-text agent output using an
-   * extraction LLM. Optional — only available when the runner has
-   * proxy access. Returns null if extraction fails.
-   */
-  readonly extractStructuredOutput?: (
-    text: string,
-    schema: Record<string, unknown>,
-  ) => Promise<unknown | null>;
-
-  /**
    * Emit workflow execution events to the server. Events are sent as
    * a batch via a local activity call to `updateWorkflowExecutionStatus`.
    * Best-effort — failures are logged but do not block the workflow.

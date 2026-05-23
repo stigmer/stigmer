@@ -11,6 +11,7 @@ import ai.stigmer.agentic.agentexecution.v1.InteractionMode;
 import ai.stigmer.agentic.executioncontext.v1.ExecutionValue;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
 import ai.stigmer.commons.apiresource.ApiResourceVisibility;
+import com.google.protobuf.Struct;
 
 /** Input for creating/updating a AgentExecution. */
 public final class AgentExecutionInput {
@@ -160,6 +161,7 @@ public final class AgentExecutionInput {
         private final int maxToolResultChars;
         private final double maxCostUsd;
         private final InteractionMode interactionMode;
+        private final java.util.Map<String, Object> structuredOutputSchema;
 
         private ExecutionConfigInput(Builder builder) {
             this.modelName = builder.modelName;
@@ -168,6 +170,7 @@ public final class AgentExecutionInput {
             this.maxToolResultChars = builder.maxToolResultChars;
             this.maxCostUsd = builder.maxCostUsd;
             this.interactionMode = builder.interactionMode;
+            this.structuredOutputSchema = builder.structuredOutputSchema;
         }
 
         ExecutionConfig toProto() {
@@ -184,6 +187,9 @@ public final class AgentExecutionInput {
             if (this.interactionMode != null) {
                 builder.setInteractionMode(this.interactionMode);
             }
+            if (this.structuredOutputSchema != null) {
+                builder.setStructuredOutputSchema(ProtoConvert.mapToStruct(this.structuredOutputSchema));
+            }
             return builder.build();
         }
 
@@ -196,6 +202,7 @@ public final class AgentExecutionInput {
             private int maxToolResultChars;
             private double maxCostUsd;
             private InteractionMode interactionMode;
+            private java.util.Map<String, Object> structuredOutputSchema;
 
             private Builder() {}
 
@@ -205,6 +212,7 @@ public final class AgentExecutionInput {
             public Builder maxToolResultChars(int maxToolResultChars) { this.maxToolResultChars = maxToolResultChars; return this; }
             public Builder maxCostUsd(double maxCostUsd) { this.maxCostUsd = maxCostUsd; return this; }
             public Builder interactionMode(InteractionMode interactionMode) { this.interactionMode = interactionMode; return this; }
+            public Builder structuredOutputSchema(java.util.Map<String, Object> structuredOutputSchema) { this.structuredOutputSchema = structuredOutputSchema; return this; }
 
             public ExecutionConfigInput build() { return new ExecutionConfigInput(this); }
         }

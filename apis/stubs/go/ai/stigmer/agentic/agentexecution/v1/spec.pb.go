@@ -11,6 +11,7 @@ import (
 	v1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	structpb "google.golang.org/protobuf/types/known/structpb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -419,8 +420,17 @@ type ExecutionConfig struct {
 	// in the same session. Users toggle mode in the session composer before
 	// sending each message.
 	InteractionMode InteractionMode `protobuf:"varint,6,opt,name=interaction_mode,json=interactionMode,proto3,enum=ai.stigmer.agentic.agentexecution.v1.InteractionMode" json:"interaction_mode,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// JSON Schema that the agent's output must conform to.
+	//
+	// When set, the runner enforces structured output:
+	// - Native harness: uses deepagents responseFormat/ToolStrategy
+	// - Cursor harness: prompt instruction + extraction fallback
+	//
+	// The validated structured data is returned in the activity result
+	// and passed back to the parent workflow as `structured`.
+	StructuredOutputSchema *structpb.Struct `protobuf:"bytes,7,opt,name=structured_output_schema,json=structuredOutputSchema,proto3" json:"structured_output_schema,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *ExecutionConfig) Reset() {
@@ -493,6 +503,13 @@ func (x *ExecutionConfig) GetInteractionMode() InteractionMode {
 		return x.InteractionMode
 	}
 	return InteractionMode_INTERACTION_MODE_UNSPECIFIED
+}
+
+func (x *ExecutionConfig) GetStructuredOutputSchema() *structpb.Struct {
+	if x != nil {
+		return x.StructuredOutputSchema
+	}
+	return nil
 }
 
 // ContextManagementConfig controls automatic context summarization behavior.
@@ -770,7 +787,7 @@ var File_ai_stigmer_agentic_agentexecution_v1_spec_proto protoreflect.FileDescri
 
 const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"/ai/stigmer/agentic/agentexecution/v1/spec.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a1ai/stigmer/agentic/executioncontext/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\"\xe8\x05\n" +
+	"/ai/stigmer/agentic/agentexecution/v1/spec.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a1ai/stigmer/agentic/executioncontext/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xe8\x05\n" +
 	"\x12AgentExecutionSpec\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x19\n" +
@@ -788,7 +805,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	"\x13activity_task_queue\x18\v \x01(\tR\x11activityTaskQueue\x1au\n" +
 	"\x0fRuntimeEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12L\n" +
-	"\x05value\x18\x02 \x01(\v26.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x028\x01\"\x87\x03\n" +
+	"\x05value\x18\x02 \x01(\v26.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x028\x01\"\xda\x03\n" +
 	"\x0fExecutionConfig\x12\x1d\n" +
 	"\n" +
 	"model_name\x18\x01 \x01(\tR\tmodelName\x12l\n" +
@@ -797,7 +814,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	"\x15max_tool_result_chars\x18\x04 \x01(\x05R\x12maxToolResultChars\x12 \n" +
 	"\fmax_cost_usd\x18\x05 \x01(\x01R\n" +
 	"maxCostUsd\x12j\n" +
-	"\x10interaction_mode\x18\x06 \x01(\x0e25.ai.stigmer.agentic.agentexecution.v1.InteractionModeB\b\xbaH\x05\x82\x01\x02\x10\x01R\x0finteractionMode\"\xcc\x01\n" +
+	"\x10interaction_mode\x18\x06 \x01(\x0e25.ai.stigmer.agentic.agentexecution.v1.InteractionModeB\b\xbaH\x05\x82\x01\x02\x10\x01R\x0finteractionMode\x12Q\n" +
+	"\x18structured_output_schema\x18\a \x01(\v2\x17.google.protobuf.StructR\x16structuredOutputSchema\"\xcc\x01\n" +
 	"\x17ContextManagementConfig\x123\n" +
 	"\x15disable_summarization\x18\x01 \x01(\bR\x14disableSummarization\x12A\n" +
 	"\x18custom_trigger_threshold\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\x16customTriggerThreshold\x129\n" +
@@ -835,7 +853,8 @@ var file_ai_stigmer_agentic_agentexecution_v1_spec_proto_goTypes = []any{
 	(*Attachment)(nil),              // 3: ai.stigmer.agentic.agentexecution.v1.Attachment
 	nil,                             // 4: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry
 	(InteractionMode)(0),            // 5: ai.stigmer.agentic.agentexecution.v1.InteractionMode
-	(*v1.ExecutionValue)(nil),       // 6: ai.stigmer.agentic.executioncontext.v1.ExecutionValue
+	(*structpb.Struct)(nil),         // 6: google.protobuf.Struct
+	(*v1.ExecutionValue)(nil),       // 7: ai.stigmer.agentic.executioncontext.v1.ExecutionValue
 }
 var file_ai_stigmer_agentic_agentexecution_v1_spec_proto_depIdxs = []int32{
 	1, // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.execution_config:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionConfig
@@ -843,12 +862,13 @@ var file_ai_stigmer_agentic_agentexecution_v1_spec_proto_depIdxs = []int32{
 	3, // 2: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.attachments:type_name -> ai.stigmer.agentic.agentexecution.v1.Attachment
 	2, // 3: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.context_management:type_name -> ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig
 	5, // 4: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.interaction_mode:type_name -> ai.stigmer.agentic.agentexecution.v1.InteractionMode
-	6, // 5: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry.value:type_name -> ai.stigmer.agentic.executioncontext.v1.ExecutionValue
-	6, // [6:6] is the sub-list for method output_type
-	6, // [6:6] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	6, // 5: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.structured_output_schema:type_name -> google.protobuf.Struct
+	7, // 6: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry.value:type_name -> ai.stigmer.agentic.executioncontext.v1.ExecutionValue
+	7, // [7:7] is the sub-list for method output_type
+	7, // [7:7] is the sub-list for method input_type
+	7, // [7:7] is the sub-list for extension type_name
+	7, // [7:7] is the sub-list for extension extendee
+	0, // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_spec_proto_init() }

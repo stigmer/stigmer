@@ -28,7 +28,7 @@
 
 import type { z } from "zod";
 import { heartbeat, Context, CancelledFailure } from "@temporalio/activity";
-import { create } from "@bufbuild/protobuf";
+import { create, type JsonObject } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
@@ -573,17 +573,12 @@ async function executeCursor(
         status.phase = ExecutionPhase.EXECUTION_COMPLETED;
     }
 
-    await persistStatus(client, executionId, status);
-
-    // Phase 13b: Emit billing records for cursor usage
-    await emitBillingRecords(client, executionId, usageAccumulator, sdkResolvedModel);
-
-    // Phase 13c: Extract structured output for Cursor harness
+    // Extract structured output BEFORE persisting, so the subscriber sees
+    // COMPLETED + structured_output atomically.
     let structuredOutput: unknown = undefined;
     let finalText: string | undefined;
 
     if (status.phase === ExecutionPhase.EXECUTION_COMPLETED) {
-      // Extract final AI message text
       const lastAiMsg = [...status.messages]
         .reverse()
         .find(m => m.type === MessageType.MESSAGE_AI);
@@ -619,7 +614,17 @@ async function executeCursor(
           }
         }
       }
+
+      if (structuredOutput !== undefined) {
+        status.structuredOutput = structuredOutput as JsonObject;
+      }
     }
+
+    // NOW persist — subscriber sees COMPLETED + structured_output atomically
+    await persistStatus(client, executionId, status);
+
+    // Phase 13b: Emit billing records for cursor usage
+    await emitBillingRecords(client, executionId, usageAccumulator, sdkResolvedModel);
 
     // Phase 14: Build and persist session memory
     await maybePeristSessionMemory(client, sessionId, session, status, userMessage);

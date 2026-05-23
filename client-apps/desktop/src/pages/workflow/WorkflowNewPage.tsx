@@ -7,15 +7,20 @@ import {
   STARTER_WORKFLOW_YAML,
   useActiveOrgSlug,
   useBreadcrumbOverride,
+  useElkLayoutEngine,
   toast,
 } from "@stigmer/react";
 import { useRequestFullViewport } from "../library/full-viewport-layout";
+
+const elkWorkerFactory = () =>
+  new Worker(new URL("elkjs/lib/elk-worker.min.js", import.meta.url));
 
 type PagePhase = "picking" | "editor" | "generating";
 
 export default function WorkflowNewPage() {
   const org = useActiveOrgSlug();
   const navigate = useNavigate();
+  const elkEngine = useElkLayoutEngine({ workerFactory: elkWorkerFactory });
   const { setLabel } = useBreadcrumbOverride();
 
   const [phase, setPhase] = useState<PagePhase>("picking");
@@ -71,6 +76,7 @@ export default function WorkflowNewPage() {
             initialYaml={STARTER_WORKFLOW_YAML}
             org={org}
             defaultMode="visual"
+            layoutEngine={elkEngine}
             onSaveSuccess={handleSaveSuccess}
             onSaveError={handleSaveError}
             className="h-full"

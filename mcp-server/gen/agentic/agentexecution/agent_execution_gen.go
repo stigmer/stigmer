@@ -3,10 +3,12 @@
 package agentexecution
 
 import (
+	"fmt"
 	"github.com/stigmer/stigmer/mcp-server/internal/convert"
 	agentexecutionv1 "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/agentexecution/v1"
 	executioncontextv1 "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/executioncontext/v1"
 	"github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource"
+	structpb "google.golang.org/protobuf/types/known/structpb"
 )
 
 // AgentExecutionSpec contains only user-provided inputs for triggering an execution.
@@ -74,6 +76,8 @@ type ExecutionConfigInput struct {
 	MaxCostUsd float64 `json:"max_cost_usd,omitempty" jsonschema:"Maximum estimated cost in USD for this execution. When the running cost exceeds this limit, the agent receives a 'budget exhausted' message and the execution transitions to TERMINATED. 0.0 = no cost cap (default, unlimited). Recommended: 1.00-5.00 for interactive sessions, 10.00+ for batch workflows. Cost is checked after each LLM call using the running total from UsageMetrics.estimated_cost_usd. When approaching the cap (>80%), a budget warning is injected into the conversation."`
 	// Interaction mode for this execution. AGENT (default): full tool access — read, write, create, delete, shell. PLAN: read-only analysis — read, search, list only. No file mutations. When UNSPECIFIED, defaults to AGENT for backward compatibility. The mode is set per-execution and does not carry over between executions in the same session. Users toggle mode in the session composer before sending each message.
 	InteractionMode string `json:"interaction_mode,omitempty" jsonschema:"Interaction mode for this execution. AGENT (default): full tool access — read, write, create, delete, shell. PLAN: read-only analysis — read, search, list only. No file mutations. When UNSPECIFIED, defaults to AGENT for backward compatibility. The mode is set per-execution and does not carry over between executions in the same session. Users toggle mode in the session composer before sending each message. Allowed values: INTERACTION_MODE_AGENT, INTERACTION_MODE_PLAN."`
+	// JSON Schema that the agent's output must conform to. When set, the runner enforces structured output: - Native harness: uses deepagents responseFormat/ToolStrategy - Cursor harness: prompt instruction + extraction fallback The validated structured data is returned in the activity result and passed back to the parent workflow as `structured`.
+	StructuredOutputSchema map[string]any `json:"structured_output_schema,omitempty" jsonschema:"JSON Schema that the agent's output must conform to. When set, the runner enforces structured output: - Native harness: uses deepagents responseFormat/ToolStrategy - Cursor harness: prompt instruction + extraction fallback The validated structured data is returned in the activity result and passed back to the parent workflow as 'structured'."`
 }
 
 // A single runtime configuration or secret value.
@@ -189,6 +193,13 @@ func (input *ExecutionConfigInput) toProto() (*agentexecutionv1.ExecutionConfig,
 	result.MaxToolResultChars = input.MaxToolResultChars
 	result.MaxCostUsd = input.MaxCostUsd
 	result.InteractionMode = agentexecutionv1.InteractionMode(agentexecutionv1.InteractionMode_value[input.InteractionMode])
+	if len(input.StructuredOutputSchema) > 0 {
+		v, err := structpb.NewStruct(input.StructuredOutputSchema)
+		if err != nil {
+			return nil, fmt.Errorf("marshal structured_output_schema: %w", err)
+		}
+		result.StructuredOutputSchema = v
+	}
 	return result, nil
 }
 

@@ -1978,6 +1978,16 @@
         },
         "description": "Streaming usage summary, updated progressively during execution.",
         "required": false
+      },
+      {
+        "name": "StructuredOutput",
+        "jsonName": "structuredOutput",
+        "protoField": "structured_output",
+        "type": {
+          "kind": "struct"
+        },
+        "description": "Structured output extracted from the agent's final response.\n\n Populated when ExecutionConfig.structured_output_schema was set and the\n runner successfully extracted schema-conforming data. Only meaningful\n when phase is EXECUTION_COMPLETED.\n\n For native harness: populated from LangGraph graphState.structuredResponse\n (ToolStrategy enforcement). For Cursor harness: populated from 3-tier\n extraction (JSON.parse → fence extraction → extraction LLM fallback).\n\n Consumers: frontend architect/refine hooks read this instead of parsing\n YAML from messages. Workflow callback path reads structured_output from\n the Temporal activity result (separate channel, same data).",
+        "required": false
       }
     ]
   },

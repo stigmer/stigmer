@@ -6,6 +6,7 @@ import { useWorkflowEditor } from "./useWorkflowEditor";
 import { WorkflowYamlEditor } from "./WorkflowYamlEditor";
 import { WorkflowTopologyGraph } from "./WorkflowTopologyGraph";
 import { WorkflowCanvasEditor } from "./WorkflowCanvasEditor";
+import type { LayoutEngine } from "./layout";
 import { WorkflowRefinePanel } from "./WorkflowRefinePanel";
 import { yamlToGraph } from "./workflow-graph-conversions";
 
@@ -23,6 +24,12 @@ export interface WorkflowEditorViewProps {
   readonly defaultMode?: WorkflowEditorMode;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
+  /**
+   * Layout engine for the visual canvas "Auto Layout" action.
+   * Pass the result of {@link useElkLayoutEngine} for ELK-powered layout.
+   * When omitted, dagre is used as the default.
+   */
+  readonly layoutEngine?: LayoutEngine | null;
 }
 
 /**
@@ -59,6 +66,7 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
   onSaveError,
   defaultMode = "code",
   className,
+  layoutEngine,
 }: WorkflowEditorViewProps) {
   const editor = useWorkflowEditor(initialYaml, { org });
   const [isFullPage, setIsFullPage] = useState(false);
@@ -317,6 +325,7 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
               isSaving={canvasIsSaving}
               onDirtyChange={setCanvasDirty}
               nodeErrors={nodeErrors}
+              layoutEngine={layoutEngine}
               className={showRefinePanel ? "w-[60%]" : "flex-1"}
             />
             {showRefinePanel && (

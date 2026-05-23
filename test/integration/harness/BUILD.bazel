@@ -25,6 +25,7 @@ go_library(
         "minio.go",
         "mock_http.go",
         "mock_jwks_server.go",
+        "mock_llm_proxy.go",
         "mock_oauth_server.go",
         "mongo_seeder.go",
         "openfga.go",

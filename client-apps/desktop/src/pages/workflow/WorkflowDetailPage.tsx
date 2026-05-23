@@ -11,6 +11,7 @@ import {
   useConfirmAction,
   useDeleteResource,
   useUpdateVisibility,
+  useElkLayoutEngine,
   PermissionGate,
   SharePanel,
   ConfirmDialog,
@@ -21,9 +22,13 @@ import {
 } from "@stigmer/react";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
+const elkWorkerFactory = () =>
+  new Worker(new URL("elkjs/lib/elk-worker.min.js", import.meta.url));
+
 export default function WorkflowDetailPage() {
   const { org, slug } = useParams<{ org: string; slug: string }>();
   const navigate = useNavigate();
+  const elkEngine = useElkLayoutEngine({ workerFactory: elkWorkerFactory });
   const { setLabel } = useBreadcrumbOverride();
   const [resourceId, setResourceId] = useState<string | null>(null);
   const [resourceName, setResourceName] = useState<string>("Workflow");
@@ -152,6 +157,7 @@ export default function WorkflowDetailPage() {
                   <WorkflowEditorView
                     initialYaml={initialYaml}
                     org={org ?? ""}
+                    layoutEngine={elkEngine}
                     onSaveSuccess={handleSaveSuccess}
                     onSaveError={handleSaveError}
                   />
@@ -160,7 +166,7 @@ export default function WorkflowDetailPage() {
             },
           ]
         : [],
-    [initialYaml, org, handleSaveSuccess, handleSaveError],
+    [initialYaml, org, elkEngine, handleSaveSuccess, handleSaveError],
   );
 
   if (!org || !slug) return null;

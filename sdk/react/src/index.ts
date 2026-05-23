@@ -1142,6 +1142,7 @@ export {
   useDiagnoseExecutionFlow,
   WorkflowRepairCard,
   STARTER_WORKFLOW_YAML,
+  useElkLayoutEngine,
 } from "./workflow";
 export type {
   TaskKindDescriptor,
@@ -1209,6 +1210,7 @@ export type {
   WorkflowGraphEnvVar,
   WorkflowGraphBudget,
   CanvasSelection,
+  UseWorkflowCanvasOptions,
   UseWorkflowCanvasReturn,
   WorkflowCanvasEditorProps,
   WorkflowTaskPaletteProps,
@@ -1237,6 +1239,7 @@ export type {
   UseDiagnoseExecutionFlowOptions,
   UseDiagnoseExecutionFlowReturn,
   WorkflowRepairCardProps,
+  UseElkLayoutEngineOptions,
 } from "./workflow";
 
 // ─── Dashboard (Unified Platform) ──────────────────────────────────────────

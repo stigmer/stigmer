@@ -10,6 +10,7 @@ import (
 	executioncontextv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/executioncontext/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // AgentExecutionClient provides operations on agentexecution resources.
@@ -176,12 +177,13 @@ type AgentExecutionInput struct {
 
 // ExecutionConfigInput is the SDK input type for ExecutionConfig.
 type ExecutionConfigInput struct {
-	ModelName          string
-	ContextManagement  *ContextManagementConfigInput
-	MaxToolRounds      int32
-	MaxToolResultChars int32
-	MaxCostUsd         float64
-	InteractionMode    agentexecutionv1.InteractionMode
+	ModelName              string
+	ContextManagement      *ContextManagementConfigInput
+	MaxToolRounds          int32
+	MaxToolResultChars     int32
+	MaxCostUsd             float64
+	InteractionMode        agentexecutionv1.InteractionMode
+	StructuredOutputSchema map[string]any
 }
 
 // ContextManagementConfigInput is the SDK input type for ContextManagementConfig.
@@ -238,13 +240,16 @@ func (i *AgentExecutionInput) toProto() *agentexecutionv1.AgentExecution {
 }
 
 func (i *ExecutionConfigInput) toProto() *agentexecutionv1.ExecutionConfig {
-	return &agentexecutionv1.ExecutionConfig{
-		ModelName:          i.ModelName,
-		MaxToolRounds:      i.MaxToolRounds,
-		MaxToolResultChars: i.MaxToolResultChars,
-		MaxCostUsd:         i.MaxCostUsd,
-		InteractionMode:    i.InteractionMode,
+	p := &agentexecutionv1.ExecutionConfig{}
+	p.ModelName = i.ModelName
+	p.MaxToolRounds = i.MaxToolRounds
+	p.MaxToolResultChars = i.MaxToolResultChars
+	p.MaxCostUsd = i.MaxCostUsd
+	p.InteractionMode = i.InteractionMode
+	if i.StructuredOutputSchema != nil {
+		p.StructuredOutputSchema, _ = structpb.NewStruct(i.StructuredOutputSchema)
 	}
+	return p
 }
 
 func (i *ContextManagementConfigInput) toProto() *agentexecutionv1.ContextManagementConfig {
@@ -313,6 +318,9 @@ func executionConfigInputFromProto(p *agentexecutionv1.ExecutionConfig) *Executi
 	input.MaxToolResultChars = p.GetMaxToolResultChars()
 	input.MaxCostUsd = p.GetMaxCostUsd()
 	input.InteractionMode = p.GetInteractionMode()
+	if sv := p.GetStructuredOutputSchema(); sv != nil {
+		input.StructuredOutputSchema = sv.AsMap()
+	}
 	return input
 }
 
