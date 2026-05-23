@@ -107,7 +107,7 @@ describe("ExecutionInspector", () => {
   it("auto-selects Error tab when task status is failed", () => {
     const detail = makeDetail({
       status: "failed",
-      error: { message: "boom", attemptNumber: 1, maxAttempts: 3, willRetry: false, durationMs: 100 },
+      error: { message: "boom", attemptNumber: 1, maxAttempts: 3, willRetry: false, durationMs: 100, category: null, detail: null },
     });
     mockedUseExecutionTaskDetail.mockReturnValue({ detail });
 
@@ -120,7 +120,7 @@ describe("ExecutionInspector", () => {
   it("resets to Summary when selectedTaskName changes to a non-failed task", () => {
     const failedDetail = makeDetail({
       status: "failed",
-      error: { message: "err", attemptNumber: 1, maxAttempts: 1, willRetry: false, durationMs: 50 },
+      error: { message: "err", attemptNumber: 1, maxAttempts: 1, willRetry: false, durationMs: 50, category: null, detail: null },
     });
     mockedUseExecutionTaskDetail.mockReturnValue({ detail: failedDetail });
 
@@ -150,7 +150,7 @@ describe("ExecutionInspector", () => {
 
     const failedDetail = makeDetail({
       status: "failed",
-      error: { message: "crash", attemptNumber: 1, maxAttempts: 1, willRetry: false, durationMs: 200 },
+      error: { message: "crash", attemptNumber: 1, maxAttempts: 1, willRetry: false, durationMs: 200, category: null, detail: null },
     });
     mockedUseExecutionTaskDetail.mockReturnValue({ detail: failedDetail });
 
@@ -200,7 +200,7 @@ describe("ExecutionInspector", () => {
     it("shows Error tab when detail.error is present", () => {
       const detail = makeDetail({
         status: "failed",
-        error: { message: "fail", attemptNumber: 1, maxAttempts: 1, willRetry: false, durationMs: 0 },
+        error: { message: "fail", attemptNumber: 1, maxAttempts: 1, willRetry: false, durationMs: 0, category: null, detail: null },
       });
       mockedUseExecutionTaskDetail.mockReturnValue({ detail });
 
