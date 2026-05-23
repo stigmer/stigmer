@@ -13,7 +13,7 @@ import type { DerivedTaskState } from "../../internal/store/workflow-execution-e
 
 describe("applyDagreLayout", () => {
   const minimalGraph: WorkflowGraphModel = {
-    document: { name: "test", dsl: "1.0.0" },
+    document: { name: "test", dsl: "1.0.0", namespace: "default", version: "0.0.1" },
     nodes: [
       { id: START_NODE_ID, taskName: "Start", kind: WorkflowTaskKind.workflow_task_kind_unspecified, category: "start", config: {}, position: { x: 0, y: 0 } },
       { id: "task_1", taskName: "task_1", kind: WorkflowTaskKind.agent_call, category: "ai", config: {}, position: { x: 0, y: 0 } },
@@ -100,6 +100,8 @@ spec:
   document:
     dsl: "1.0.0"
     name: test-wf
+    namespace: default
+    version: "0.0.1"
   tasks:
     - name: fetch_data
       kind: http_call
