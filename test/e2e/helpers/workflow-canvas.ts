@@ -32,7 +32,7 @@ export async function navigateToVisualEditor(
 /**
  * Returns a locator for a canvas task node by task name.
  *
- * Uses the ARIA label pattern set by CanvasTaskNode:
+ * Uses the ARIA label pattern set by WorkflowNode:
  * `"{DisplayName} node {taskName}, {shape} shape"`.
  */
 export function getCanvasNode(page: Page, taskName: string): Locator {

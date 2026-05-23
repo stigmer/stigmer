@@ -167,3 +167,130 @@ test.describe("Workflow node visual classes (T01)", () => {
     await expect(getCanvasNodeByKind(page, "set_vars")).toBeVisible();
   });
 });
+
+test.describe("Workflow node shape rendering (T02)", () => {
+  test("decision-diamond renders an SVG shape element", async ({
+    page,
+    testMultiKindWorkflow,
+  }) => {
+    await navigateToVisualEditor(
+      page,
+      testMultiKindWorkflow.org,
+      testMultiKindWorkflow.slug,
+    );
+
+    const switchNode = getCanvasNode(page, "route_by_type");
+    await expect(switchNode).toBeVisible({ timeout: 10_000 });
+
+    const svg = switchNode.locator("svg");
+    await expect(svg).toBeVisible();
+
+    const path = svg.locator("path");
+    await expect(path).toBeVisible();
+    const d = await path.getAttribute("d");
+    expect(d).toBeTruthy();
+    expect(d).toContain("L");
+    expect(d).toContain("Z");
+  });
+
+  test("gate-octagon renders an SVG shape element", async ({
+    page,
+    testMultiKindWorkflow,
+  }) => {
+    await navigateToVisualEditor(
+      page,
+      testMultiKindWorkflow.org,
+      testMultiKindWorkflow.slug,
+    );
+
+    const humanNode = getCanvasNode(page, "approval_gate");
+    await expect(humanNode).toBeVisible({ timeout: 10_000 });
+
+    const svg = humanNode.locator("svg");
+    await expect(svg).toBeVisible();
+
+    const path = svg.locator("path");
+    const d = await path.getAttribute("d");
+    expect(d).toBeTruthy();
+    expect(d).toContain("Z");
+  });
+
+  test("event-circle renders an SVG shape element", async ({
+    page,
+    testMultiKindWorkflow,
+  }) => {
+    await navigateToVisualEditor(
+      page,
+      testMultiKindWorkflow.org,
+      testMultiKindWorkflow.slug,
+    );
+
+    const waitNode = getCanvasNode(page, "cooldown");
+    await expect(waitNode).toBeVisible({ timeout: 10_000 });
+
+    const svg = waitNode.locator("svg");
+    await expect(svg).toBeVisible();
+
+    const path = svg.locator("path");
+    const d = await path.getAttribute("d");
+    expect(d).toBeTruthy();
+    expect(d).toContain("A");
+  });
+
+  test("task-card does NOT render an SVG shape background", async ({
+    page,
+    testMultiKindWorkflow,
+  }) => {
+    await navigateToVisualEditor(
+      page,
+      testMultiKindWorkflow.org,
+      testMultiKindWorkflow.slug,
+    );
+
+    const cardNode = getCanvasNode(page, "classify_input");
+    await expect(cardNode).toBeVisible({ timeout: 10_000 });
+
+    const svg = cardNode.locator("svg[aria-hidden='true']");
+    await expect(svg).toHaveCount(0);
+  });
+
+  test("non-rectangular nodes have explicit width and height", async ({
+    page,
+    testMultiKindWorkflow,
+  }) => {
+    await navigateToVisualEditor(
+      page,
+      testMultiKindWorkflow.org,
+      testMultiKindWorkflow.slug,
+    );
+
+    const switchNode = getCanvasNode(page, "route_by_type");
+    await expect(switchNode).toBeVisible({ timeout: 10_000 });
+
+    const shellDiv = switchNode.locator(".stgm").first();
+    const style = await shellDiv.getAttribute("style");
+    expect(style).toContain("width");
+    expect(style).toContain("height");
+  });
+
+  test("clicking a non-rectangular node shows selection ring", async ({
+    page,
+    testMultiKindWorkflow,
+  }) => {
+    await navigateToVisualEditor(
+      page,
+      testMultiKindWorkflow.org,
+      testMultiKindWorkflow.slug,
+    );
+
+    const switchNode = getCanvasNode(page, "route_by_type");
+    await expect(switchNode).toBeVisible({ timeout: 10_000 });
+
+    await switchNode.click();
+    await page.waitForTimeout(300);
+
+    const shellDiv = switchNode.locator(".stgm").first();
+    const classAttr = await shellDiv.getAttribute("class");
+    expect(classAttr).toContain("ring-2");
+  });
+});

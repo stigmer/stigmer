@@ -11,7 +11,7 @@ import type { NodePortAssignment, PortDefinition, PortSide } from "./types";
  * Computes port assignments for all nodes in a workflow graph.
  *
  * Port IDs are deterministic and align with the React Flow handle IDs
- * used in `CanvasTaskNode` (`case_{name}`, `outcome_{name}`). This ensures
+ * used in `WorkflowNode` (`case_{name}`, `outcome_{name}`). This ensures
  * ELK routes edges to the correct port and the postprocessor can map
  * results back to the React Flow model without translation.
  *
