@@ -24,11 +24,14 @@ export { createElkLayoutEngine } from "./elk-layout-engine";
 export type { ElkLayoutEngineOptions } from "./elk-layout-engine";
 
 // ---------------------------------------------------------------------------
-// React behavior hook
+// React behavior hooks
 // ---------------------------------------------------------------------------
 
 export { useWorkflowLayout } from "./use-workflow-layout";
 export type { UseWorkflowLayoutOptions, UseWorkflowLayoutReturn } from "./use-workflow-layout";
+
+export { useElkLayoutEngine } from "./useElkLayoutEngine";
+export type { UseElkLayoutEngineOptions } from "./useElkLayoutEngine";
 
 // ---------------------------------------------------------------------------
 // Synchronous layout utility (shared by editor and execution graph)

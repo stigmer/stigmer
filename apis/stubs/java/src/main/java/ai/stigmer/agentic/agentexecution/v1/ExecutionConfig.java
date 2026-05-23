@@ -293,6 +293,65 @@ private static final long serialVersionUID = 0L;
     return result == null ? ai.stigmer.agentic.agentexecution.v1.InteractionMode.UNRECOGNIZED : result;
   }
 
+  public static final int STRUCTURED_OUTPUT_SCHEMA_FIELD_NUMBER = 7;
+  private com.google.protobuf.Struct structuredOutputSchema_;
+  /**
+   * <pre>
+   * JSON Schema that the agent's output must conform to.
+   *
+   * When set, the runner enforces structured output:
+   * - Native harness: uses deepagents responseFormat/ToolStrategy
+   * - Cursor harness: prompt instruction + extraction fallback
+   *
+   * The validated structured data is returned in the activity result
+   * and passed back to the parent workflow as `structured`.
+   * </pre>
+   *
+   * <code>.google.protobuf.Struct structured_output_schema = 7 [json_name = "structuredOutputSchema"];</code>
+   * @return Whether the structuredOutputSchema field is set.
+   */
+  @java.lang.Override
+  public boolean hasStructuredOutputSchema() {
+    return ((bitField0_ & 0x00000002) != 0);
+  }
+  /**
+   * <pre>
+   * JSON Schema that the agent's output must conform to.
+   *
+   * When set, the runner enforces structured output:
+   * - Native harness: uses deepagents responseFormat/ToolStrategy
+   * - Cursor harness: prompt instruction + extraction fallback
+   *
+   * The validated structured data is returned in the activity result
+   * and passed back to the parent workflow as `structured`.
+   * </pre>
+   *
+   * <code>.google.protobuf.Struct structured_output_schema = 7 [json_name = "structuredOutputSchema"];</code>
+   * @return The structuredOutputSchema.
+   */
+  @java.lang.Override
+  public com.google.protobuf.Struct getStructuredOutputSchema() {
+    return structuredOutputSchema_ == null ? com.google.protobuf.Struct.getDefaultInstance() : structuredOutputSchema_;
+  }
+  /**
+   * <pre>
+   * JSON Schema that the agent's output must conform to.
+   *
+   * When set, the runner enforces structured output:
+   * - Native harness: uses deepagents responseFormat/ToolStrategy
+   * - Cursor harness: prompt instruction + extraction fallback
+   *
+   * The validated structured data is returned in the activity result
+   * and passed back to the parent workflow as `structured`.
+   * </pre>
+   *
+   * <code>.google.protobuf.Struct structured_output_schema = 7 [json_name = "structuredOutputSchema"];</code>
+   */
+  @java.lang.Override
+  public com.google.protobuf.StructOrBuilder getStructuredOutputSchemaOrBuilder() {
+    return structuredOutputSchema_ == null ? com.google.protobuf.Struct.getDefaultInstance() : structuredOutputSchema_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -324,6 +383,9 @@ private static final long serialVersionUID = 0L;
     }
     if (interactionMode_ != ai.stigmer.agentic.agentexecution.v1.InteractionMode.INTERACTION_MODE_UNSPECIFIED.getNumber()) {
       output.writeEnum(6, interactionMode_);
+    }
+    if (((bitField0_ & 0x00000002) != 0)) {
+      output.writeMessage(7, getStructuredOutputSchema());
     }
     getUnknownFields().writeTo(output);
   }
@@ -357,6 +419,10 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(6, interactionMode_);
     }
+    if (((bitField0_ & 0x00000002) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(7, getStructuredOutputSchema());
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -387,6 +453,11 @@ private static final long serialVersionUID = 0L;
         != java.lang.Double.doubleToLongBits(
             other.getMaxCostUsd())) return false;
     if (interactionMode_ != other.interactionMode_) return false;
+    if (hasStructuredOutputSchema() != other.hasStructuredOutputSchema()) return false;
+    if (hasStructuredOutputSchema()) {
+      if (!getStructuredOutputSchema()
+          .equals(other.getStructuredOutputSchema())) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -413,6 +484,10 @@ private static final long serialVersionUID = 0L;
         java.lang.Double.doubleToLongBits(getMaxCostUsd()));
     hash = (37 * hash) + INTERACTION_MODE_FIELD_NUMBER;
     hash = (53 * hash) + interactionMode_;
+    if (hasStructuredOutputSchema()) {
+      hash = (37 * hash) + STRUCTURED_OUTPUT_SCHEMA_FIELD_NUMBER;
+      hash = (53 * hash) + getStructuredOutputSchema().hashCode();
+    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -548,6 +623,7 @@ private static final long serialVersionUID = 0L;
       if (com.google.protobuf.GeneratedMessage
               .alwaysUseFieldBuilders) {
         internalGetContextManagementFieldBuilder();
+        internalGetStructuredOutputSchemaFieldBuilder();
       }
     }
     @java.lang.Override
@@ -564,6 +640,11 @@ private static final long serialVersionUID = 0L;
       maxToolResultChars_ = 0;
       maxCostUsd_ = 0D;
       interactionMode_ = 0;
+      structuredOutputSchema_ = null;
+      if (structuredOutputSchemaBuilder_ != null) {
+        structuredOutputSchemaBuilder_.dispose();
+        structuredOutputSchemaBuilder_ = null;
+      }
       return this;
     }
 
@@ -619,6 +700,12 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000020) != 0)) {
         result.interactionMode_ = interactionMode_;
       }
+      if (((from_bitField0_ & 0x00000040) != 0)) {
+        result.structuredOutputSchema_ = structuredOutputSchemaBuilder_ == null
+            ? structuredOutputSchema_
+            : structuredOutputSchemaBuilder_.build();
+        to_bitField0_ |= 0x00000002;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -653,6 +740,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.interactionMode_ != 0) {
         setInteractionModeValue(other.getInteractionModeValue());
+      }
+      if (other.hasStructuredOutputSchema()) {
+        mergeStructuredOutputSchema(other.getStructuredOutputSchema());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -712,6 +802,13 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000020;
               break;
             } // case 48
+            case 58: {
+              input.readMessage(
+                  internalGetStructuredOutputSchemaFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00000040;
+              break;
+            } // case 58
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1416,6 +1513,226 @@ private static final long serialVersionUID = 0L;
       interactionMode_ = 0;
       onChanged();
       return this;
+    }
+
+    private com.google.protobuf.Struct structuredOutputSchema_;
+    private com.google.protobuf.SingleFieldBuilder<
+        com.google.protobuf.Struct, com.google.protobuf.Struct.Builder, com.google.protobuf.StructOrBuilder> structuredOutputSchemaBuilder_;
+    /**
+     * <pre>
+     * JSON Schema that the agent's output must conform to.
+     *
+     * When set, the runner enforces structured output:
+     * - Native harness: uses deepagents responseFormat/ToolStrategy
+     * - Cursor harness: prompt instruction + extraction fallback
+     *
+     * The validated structured data is returned in the activity result
+     * and passed back to the parent workflow as `structured`.
+     * </pre>
+     *
+     * <code>.google.protobuf.Struct structured_output_schema = 7 [json_name = "structuredOutputSchema"];</code>
+     * @return Whether the structuredOutputSchema field is set.
+     */
+    public boolean hasStructuredOutputSchema() {
+      return ((bitField0_ & 0x00000040) != 0);
+    }
+    /**
+     * <pre>
+     * JSON Schema that the agent's output must conform to.
+     *
+     * When set, the runner enforces structured output:
+     * - Native harness: uses deepagents responseFormat/ToolStrategy
+     * - Cursor harness: prompt instruction + extraction fallback
+     *
+     * The validated structured data is returned in the activity result
+     * and passed back to the parent workflow as `structured`.
+     * </pre>
+     *
+     * <code>.google.protobuf.Struct structured_output_schema = 7 [json_name = "structuredOutputSchema"];</code>
+     * @return The structuredOutputSchema.
+     */
+    public com.google.protobuf.Struct getStructuredOutputSchema() {
+      if (structuredOutputSchemaBuilder_ == null) {
+        return structuredOutputSchema_ == null ? com.google.protobuf.Struct.getDefaultInstance() : structuredOutputSchema_;
+      } else {
+        return structuredOutputSchemaBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * JSON Schema that the agent's output must conform to.
+     *
+     * When set, the runner enforces structured output:
+     * - Native harness: uses deepagents responseFormat/ToolStrategy
+     * - Cursor harness: prompt instruction + extraction fallback
+     *
+     * The validated structured data is returned in the activity result
+     * and passed back to the parent workflow as `structured`.
+     * </pre>
+     *
+     * <code>.google.protobuf.Struct structured_output_schema = 7 [json_name = "structuredOutputSchema"];</code>
+     */
+    public Builder setStructuredOutputSchema(com.google.protobuf.Struct value) {
+      if (structuredOutputSchemaBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        structuredOutputSchema_ = value;
+      } else {
+        structuredOutputSchemaBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00000040;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * JSON Schema that the agent's output must conform to.
+     *
+     * When set, the runner enforces structured output:
+     * - Native harness: uses deepagents responseFormat/ToolStrategy
+     * - Cursor harness: prompt instruction + extraction fallback
+     *
+     * The validated structured data is returned in the activity result
+     * and passed back to the parent workflow as `structured`.
+     * </pre>
+     *
+     * <code>.google.protobuf.Struct structured_output_schema = 7 [json_name = "structuredOutputSchema"];</code>
+     */
+    public Builder setStructuredOutputSchema(
+        com.google.protobuf.Struct.Builder builderForValue) {
+      if (structuredOutputSchemaBuilder_ == null) {
+        structuredOutputSchema_ = builderForValue.build();
+      } else {
+        structuredOutputSchemaBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00000040;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * JSON Schema that the agent's output must conform to.
+     *
+     * When set, the runner enforces structured output:
+     * - Native harness: uses deepagents responseFormat/ToolStrategy
+     * - Cursor harness: prompt instruction + extraction fallback
+     *
+     * The validated structured data is returned in the activity result
+     * and passed back to the parent workflow as `structured`.
+     * </pre>
+     *
+     * <code>.google.protobuf.Struct structured_output_schema = 7 [json_name = "structuredOutputSchema"];</code>
+     */
+    public Builder mergeStructuredOutputSchema(com.google.protobuf.Struct value) {
+      if (structuredOutputSchemaBuilder_ == null) {
+        if (((bitField0_ & 0x00000040) != 0) &&
+          structuredOutputSchema_ != null &&
+          structuredOutputSchema_ != com.google.protobuf.Struct.getDefaultInstance()) {
+          getStructuredOutputSchemaBuilder().mergeFrom(value);
+        } else {
+          structuredOutputSchema_ = value;
+        }
+      } else {
+        structuredOutputSchemaBuilder_.mergeFrom(value);
+      }
+      if (structuredOutputSchema_ != null) {
+        bitField0_ |= 0x00000040;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * JSON Schema that the agent's output must conform to.
+     *
+     * When set, the runner enforces structured output:
+     * - Native harness: uses deepagents responseFormat/ToolStrategy
+     * - Cursor harness: prompt instruction + extraction fallback
+     *
+     * The validated structured data is returned in the activity result
+     * and passed back to the parent workflow as `structured`.
+     * </pre>
+     *
+     * <code>.google.protobuf.Struct structured_output_schema = 7 [json_name = "structuredOutputSchema"];</code>
+     */
+    public Builder clearStructuredOutputSchema() {
+      bitField0_ = (bitField0_ & ~0x00000040);
+      structuredOutputSchema_ = null;
+      if (structuredOutputSchemaBuilder_ != null) {
+        structuredOutputSchemaBuilder_.dispose();
+        structuredOutputSchemaBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * JSON Schema that the agent's output must conform to.
+     *
+     * When set, the runner enforces structured output:
+     * - Native harness: uses deepagents responseFormat/ToolStrategy
+     * - Cursor harness: prompt instruction + extraction fallback
+     *
+     * The validated structured data is returned in the activity result
+     * and passed back to the parent workflow as `structured`.
+     * </pre>
+     *
+     * <code>.google.protobuf.Struct structured_output_schema = 7 [json_name = "structuredOutputSchema"];</code>
+     */
+    public com.google.protobuf.Struct.Builder getStructuredOutputSchemaBuilder() {
+      bitField0_ |= 0x00000040;
+      onChanged();
+      return internalGetStructuredOutputSchemaFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * JSON Schema that the agent's output must conform to.
+     *
+     * When set, the runner enforces structured output:
+     * - Native harness: uses deepagents responseFormat/ToolStrategy
+     * - Cursor harness: prompt instruction + extraction fallback
+     *
+     * The validated structured data is returned in the activity result
+     * and passed back to the parent workflow as `structured`.
+     * </pre>
+     *
+     * <code>.google.protobuf.Struct structured_output_schema = 7 [json_name = "structuredOutputSchema"];</code>
+     */
+    public com.google.protobuf.StructOrBuilder getStructuredOutputSchemaOrBuilder() {
+      if (structuredOutputSchemaBuilder_ != null) {
+        return structuredOutputSchemaBuilder_.getMessageOrBuilder();
+      } else {
+        return structuredOutputSchema_ == null ?
+            com.google.protobuf.Struct.getDefaultInstance() : structuredOutputSchema_;
+      }
+    }
+    /**
+     * <pre>
+     * JSON Schema that the agent's output must conform to.
+     *
+     * When set, the runner enforces structured output:
+     * - Native harness: uses deepagents responseFormat/ToolStrategy
+     * - Cursor harness: prompt instruction + extraction fallback
+     *
+     * The validated structured data is returned in the activity result
+     * and passed back to the parent workflow as `structured`.
+     * </pre>
+     *
+     * <code>.google.protobuf.Struct structured_output_schema = 7 [json_name = "structuredOutputSchema"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        com.google.protobuf.Struct, com.google.protobuf.Struct.Builder, com.google.protobuf.StructOrBuilder> 
+        internalGetStructuredOutputSchemaFieldBuilder() {
+      if (structuredOutputSchemaBuilder_ == null) {
+        structuredOutputSchemaBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            com.google.protobuf.Struct, com.google.protobuf.Struct.Builder, com.google.protobuf.StructOrBuilder>(
+                getStructuredOutputSchema(),
+                getParentForChildren(),
+                isClean());
+        structuredOutputSchema_ = null;
+      }
+      return structuredOutputSchemaBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agentexecution.v1.ExecutionConfig)

@@ -269,6 +269,7 @@ export {
 export {
   useWorkflowCanvas,
   type CanvasSelection,
+  type UseWorkflowCanvasOptions,
   type UseWorkflowCanvasReturn,
 } from "./useWorkflowCanvas";
 
@@ -450,11 +451,13 @@ export type {
   ElkLayoutEngineOptions,
   UseWorkflowLayoutOptions,
   UseWorkflowLayoutReturn,
+  UseElkLayoutEngineOptions,
 } from "./layout";
 export {
   createDagreLayoutEngine,
   createElkLayoutEngine,
   useWorkflowLayout,
+  useElkLayoutEngine,
   applyDagreLayout,
   registryNodeDimensions,
   preprocessForElk,

@@ -47,6 +47,16 @@ function makeExecution(yamlContent?: string) {
   return { status: { messages, phase: 4 } } as any;
 }
 
+function makeExecutionWithStructuredOutput(structured: Record<string, unknown>) {
+  return {
+    status: {
+      messages: [{ type: 2, content: "Agent response" }],
+      phase: 4,
+      structuredOutput: structured,
+    },
+  } as any;
+}
+
 function defaultStreamReturn(overrides: Record<string, unknown> = {}) {
   return {
     execution: null,
@@ -136,7 +146,7 @@ describe("useWorkflowArchitectFlow", () => {
     expect(result.current.phase).toBe("idle");
   });
 
-  it("generate creates session and execution", async () => {
+  it("generate creates session and execution with structuredOutputSchema", async () => {
     const { result } = renderHook(() => useWorkflowArchitectFlow(defaultOptions()));
 
     act(() => {
@@ -154,6 +164,10 @@ describe("useWorkflowArchitectFlow", () => {
         org: "test-org",
         sessionId: "sess-123",
         message: "Create a workflow that processes user onboarding",
+        structuredOutputSchema: expect.objectContaining({
+          type: "object",
+          required: ["action", "explanation"],
+        }),
       }),
     );
   });
@@ -390,5 +404,102 @@ describe("useWorkflowArchitectFlow", () => {
     expect(result.current.prompt).toBe("");
     expect(result.current.extractedYaml).toBeNull();
     expect(result.current.error).toBeNull();
+  });
+
+  it("reads YAML from structuredOutput when available", async () => {
+    const { result, rerender } = renderHook(() =>
+      useWorkflowArchitectFlow(defaultOptions()),
+    );
+
+    act(() => {
+      result.current.setPrompt("Create a workflow that processes user onboarding");
+    });
+
+    await act(async () => {
+      await result.current.generate();
+    });
+
+    const yamlContent = "apiVersion: v1\nname: from-structured";
+    (useExecutionStream as ReturnType<typeof vi.fn>).mockReturnValue(
+      defaultStreamReturn({
+        phase: 4,
+        execution: makeExecutionWithStructuredOutput({
+          action: "generated_yaml",
+          yaml: yamlContent,
+          explanation: "Created a user onboarding workflow.",
+        }),
+        isStreaming: false,
+      }),
+    );
+
+    rerender();
+
+    await waitFor(() => {
+      expect(result.current.phase).toBe("complete");
+    });
+    expect(result.current.extractedYaml).toBe(yamlContent);
+    expect(result.current.explanation).toBe("Created a user onboarding workflow.");
+  });
+
+  it("structured output with clarification action → extraction-failed", async () => {
+    const { result, rerender } = renderHook(() =>
+      useWorkflowArchitectFlow(defaultOptions()),
+    );
+
+    act(() => {
+      result.current.setPrompt("Create a workflow that processes user onboarding");
+    });
+
+    await act(async () => {
+      await result.current.generate();
+    });
+
+    (useExecutionStream as ReturnType<typeof vi.fn>).mockReturnValue(
+      defaultStreamReturn({
+        phase: 4,
+        execution: makeExecutionWithStructuredOutput({
+          action: "clarification",
+          explanation: "Which organization should own this workflow?",
+        }),
+        isStreaming: false,
+      }),
+    );
+
+    rerender();
+
+    await waitFor(() => {
+      expect(result.current.phase).toBe("extraction-failed");
+    });
+    expect(result.current.error).toBe("Which organization should own this workflow?");
+  });
+
+  it("falls back to regex extraction when structuredOutput is absent", async () => {
+    const { result, rerender } = renderHook(() =>
+      useWorkflowArchitectFlow(defaultOptions()),
+    );
+
+    act(() => {
+      result.current.setPrompt("Create a workflow that processes user onboarding");
+    });
+
+    await act(async () => {
+      await result.current.generate();
+    });
+
+    const yamlContent = "apiVersion: v1\nname: from-regex";
+    (useExecutionStream as ReturnType<typeof vi.fn>).mockReturnValue(
+      defaultStreamReturn({
+        phase: 4,
+        execution: makeExecution(yamlContent),
+        isStreaming: false,
+      }),
+    );
+
+    rerender();
+
+    await waitFor(() => {
+      expect(result.current.phase).toBe("complete");
+    });
+    expect(result.current.extractedYaml).toBe(yamlContent);
   });
 });

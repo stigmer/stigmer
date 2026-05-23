@@ -15,6 +15,7 @@ import {
   useDeleteResource,
   useExportResource,
   useUpdateVisibility,
+  useElkLayoutEngine,
   PermissionGate,
   SharePanel,
   ConfirmDialog,
@@ -24,6 +25,9 @@ import {
 } from "@stigmer/react";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
+
+const elkWorkerFactory = () =>
+  new Worker(new URL("elkjs/lib/elk-worker.min.js", import.meta.url));
 
 interface WorkflowDetailPageInnerProps {
   readonly org: string;
@@ -35,6 +39,7 @@ export function WorkflowDetailPageInner({
   slug,
 }: WorkflowDetailPageInnerProps) {
   const router = useRouter();
+  const elkEngine = useElkLayoutEngine({ workerFactory: elkWorkerFactory });
   const { setLabel } = useBreadcrumbOverride();
   const [resourceId, setResourceId] = useState<string | null>(null);
   const [resourceName, setResourceName] = useState<string>("Workflow");
@@ -190,6 +195,7 @@ export function WorkflowDetailPageInner({
                   <WorkflowEditorView
                     initialYaml={initialYaml}
                     org={org}
+                    layoutEngine={elkEngine}
                     onSaveSuccess={handleSaveSuccess}
                     onSaveError={handleSaveError}
                   />
@@ -198,7 +204,7 @@ export function WorkflowDetailPageInner({
             },
           ]
         : [],
-    [initialYaml, org, handleSaveSuccess, handleSaveError],
+    [initialYaml, org, elkEngine, handleSaveSuccess, handleSaveError],
   );
 
   return (

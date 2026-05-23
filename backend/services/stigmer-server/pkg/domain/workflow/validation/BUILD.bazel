@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "budget_warnings.go",
         "crossref.go",
+        "expression_warnings.go",
         "validator.go",
     ],
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/validation",

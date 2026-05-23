@@ -407,4 +407,93 @@ describe("useDiagnoseExecutionFlow", () => {
     expect(result.current.error).toBeNull();
     expect(result.current.completedExecutions).toHaveLength(0);
   });
+
+  it("passes structuredOutputSchema when creating execution", async () => {
+    const opts = { ...defaultOptions(), autoStart: false };
+    const { result } = renderHook(() => useDiagnoseExecutionFlow(opts));
+
+    await act(async () => {
+      await result.current.diagnose();
+    });
+
+    expect(mockCreateExecution).toHaveBeenCalledWith(
+      expect.objectContaining({
+        structuredOutputSchema: expect.objectContaining({
+          type: "object",
+          required: ["action", "explanation"],
+        }),
+      }),
+    );
+  });
+
+  it("reads fix_yaml from structuredOutput on terminal phase", async () => {
+    const opts = { ...defaultOptions(), autoStart: false };
+    const { result, rerender } = renderHook(() =>
+      useDiagnoseExecutionFlow(opts),
+    );
+
+    await act(async () => {
+      await result.current.diagnose();
+    });
+
+    const yamlContent = "apiVersion: v1\nname: fixed-workflow";
+    (useExecutionStream as ReturnType<typeof vi.fn>).mockReturnValue(
+      defaultStreamReturn({
+        phase: 4,
+        execution: {
+          status: {
+            messages: [{ type: 2, content: "Fixed" }],
+            phase: 4,
+            structuredOutput: {
+              action: "fix_yaml",
+              yaml: yamlContent,
+              explanation: "Fixed the missing env var reference.",
+            },
+          },
+        },
+        isStreaming: false,
+      }),
+    );
+    rerender();
+
+    await waitFor(() => {
+      expect(result.current.phase).toBe("complete");
+    });
+    expect(result.current.extractedYaml).toBe(yamlContent);
+    expect(result.current.explanation).toBe("Fixed the missing env var reference.");
+  });
+
+  it("structured output diagnosis action → ready (no YAML fix)", async () => {
+    const opts = { ...defaultOptions(), autoStart: false };
+    const { result, rerender } = renderHook(() =>
+      useDiagnoseExecutionFlow(opts),
+    );
+
+    await act(async () => {
+      await result.current.diagnose();
+    });
+
+    (useExecutionStream as ReturnType<typeof vi.fn>).mockReturnValue(
+      defaultStreamReturn({
+        phase: 4,
+        execution: {
+          status: {
+            messages: [{ type: 2, content: "Diagnosed" }],
+            phase: 4,
+            structuredOutput: {
+              action: "diagnosis",
+              diagnosis: "The MCP server was unreachable.",
+              explanation: "Runtime error: MCP server connection timeout.",
+            },
+          },
+        },
+        isStreaming: false,
+      }),
+    );
+    rerender();
+
+    await waitFor(() => {
+      expect(result.current.phase).toBe("ready");
+    });
+  });
 });

@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-23 14:12
-**Last Session**: 2026-05-23 — T10 Inspector Panel Refactor implemented (all 7 phases complete)
-**Current Task**: T10 complete — ready for commit. Next: T09 (Branch Management), T11 (Context Menus), or backend follow-ups.
+**Last Session**: 2026-05-23 — Structured Output for Architect Flows implemented (full end-to-end pipeline)
+**Current Task**: Structured Output complete — stubs regenerated. Next: T09 (Branch Management), T11 (Context Menus), or enable ELK in client-apps.
 **Status**: In Progress
 
 ## Session Progress (2026-05-23)
@@ -235,16 +235,25 @@ When starting a new session:
 - **Go result transform**: Changed activity stubs to `RunnerActivityResult` (`map[string]interface{}`), added `buildCallbackResult()` with `structured`, `final_text`, `usage_summary` pass-through
 - **Post-commit required**: `make protos && make codegen` to regenerate TS/Go/Java stubs from proto change
 
+### ELK Layout Engine Wiring — COMPLETED
+- Threaded `layoutEngine` optional prop through `useWorkflowCanvas` → `WorkflowCanvasEditor` → `WorkflowEditorView`
+- Created `useElkLayoutEngine` behavior hook in `sdk/react/src/workflow/layout/useElkLayoutEngine.ts` — async engine creation, Web Worker cleanup, graceful fallback when elkjs unavailable
+- Added `elkjs` dependency to both `client-apps/web` and `client-apps/desktop`
+- Wired `useElkLayoutEngine({ workerFactory })` with Web Worker offloading in all 4 workflow pages (web: Detail+New, desktop: Detail+New) per DD-016
+- Initial YAML parse still uses sync dagre for instant rendering; ELK activates on "Auto Layout" button
+- 7 new unit tests (creation, cleanup, race condition, disabled, missing elkjs); all 55 layout tests pass
+- Exported `useElkLayoutEngine`, `UseElkLayoutEngineOptions`, `UseWorkflowCanvasOptions` from SDK public surface
+
 ## Next Steps
 
 1. ~~**T06: Branch and Parallel Execution Highlighting** — Taken/untaken branch dimming, fork N/M progress~~ DONE
 2. ~~Wire `getNodeDimensions` from T01 registry (see `checkpoints/t03-deferred-wiring.md`)~~ DONE
 3. ~~**T07: Execution Waterfall Timeline** — Bottom panel redesign with waterfall bars~~ DONE
 4. ~~**T08: Contextual Task Picker** — Intelligence layer, branch-specific insertion, append-rewiring~~ DONE
-5. **Run `make protos && make codegen`** — Regenerate TS/Go/Java stubs from `structured_output_schema` proto change
+5. ~~**Run `make protos && make codegen`** — Regenerate TS/Go/Java stubs from `structured_output_schema` proto change~~ DONE
 6. **Backend follow-up: Waterfall enrichment** — Agent call events, task retrying events, queue delay, streaming phases, push delivery (see `checkpoints/t07-waterfall-backend-followups.md`)
 7. **Backend follow-up: Runner I/O population** — Populate full `WorkflowTask` I/O on status (see `checkpoints/t05-runner-io-followup.md` and `checkpoints/runner-task-io-followups.md`)
-8. Enable ELK in client-apps via `workerFactory` (see `checkpoints/t03-deferred-wiring.md`)
+8. ~~Enable ELK in client-apps via `workerFactory` (see `checkpoints/t03-deferred-wiring.md`)~~ DONE
 9. ~~**T10: Inspector Panel Refactor** — Tabbed inspector, per-kind forms, empty state, node actions~~ DONE
 10. **T09: Branch Management UX** — Branch handles, reorder, join policy, catch handler listing
 11. **T11: Context Menu and Keyboard Shortcuts** — Right-click menus, Delete/Duplicate/N key shortcuts
@@ -264,7 +273,12 @@ When starting a new session:
 - T07 bottom panel: `ExecutionBottomPanel` in `WorkflowExecutionViewer` renders Waterfall (default) + Events tabs; default open (not collapsed)
 - T07 backend follow-ups: 5 items in `checkpoints/t07-waterfall-backend-followups.md` — agent call events (#1), task retrying (#2), queue delay (#3), streaming phases (#4), push delivery (#5)
 - `registryNodeDimensions` is the canonical adapter for node dimensions — used by both `applyDagreLayout` (sync) and `useWorkflowLayout` (async) paths
-- T03 deferred wiring Task 1 is resolved; Task 2 (ELK activation in client-apps) remains
+- T03 deferred wiring: both tasks resolved — Task 1 (registry dimensions) and Task 2 (ELK activation) are complete
+- ELK wiring: `useElkLayoutEngine` hook in `sdk/react/src/workflow/layout/useElkLayoutEngine.ts` — async creation with Web Worker, cleanup on unmount, returns `null` while loading (safe to pass as `layoutEngine` prop)
+- ELK prop chain: `WorkflowEditorView.layoutEngine` → `WorkflowCanvasEditor.layoutEngine` → `useWorkflowCanvas(yaml, ref, { layoutEngine })` → `useWorkflowLayout({ engine })`
+- ELK initial render: sync `applyDagreLayout` on YAML parse for instant rendering; ELK only activates on "Auto Layout" button click
+- ELK worker factory: `() => new Worker(new URL("elkjs/lib/elk-worker.min.js", import.meta.url))` — works in both Vite and Next.js/Turbopack
+- ELK fallback: three layers — worker fails → bundled WASM, ELK fails → dagre fallback, both fail → null result + error state
 - T05 inspector reads `WorkflowTask` snapshots for I/O — runner only populates 5 fields today; tabs show graceful empty states
 - `ExecutionInspector` exported from `sdk/react/src/workflow/index.ts` with `deriveTaskDetail`, `useExecutionTaskDetail`
 - `WorkflowExecutionViewer` owns execution fetch + event stream; passes `execution`, `taskStates`, `onAutoSelectTask` to graph

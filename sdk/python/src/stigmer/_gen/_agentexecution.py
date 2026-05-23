@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Iterator
+from typing import Any, Iterator
 
 import grpc
 
@@ -230,6 +230,7 @@ class ExecutionConfigInput:
     max_tool_result_chars: int = 0
     max_cost_usd: float = 0.0
     interaction_mode: int = 0
+    structured_output_schema: dict[str, Any] = field(default_factory=dict)
 
     def _to_proto(self) -> spec_pb2.ExecutionConfig:
         msg = spec_pb2.ExecutionConfig(
@@ -241,6 +242,8 @@ class ExecutionConfigInput:
         )
         if self.context_management is not None:
             msg.context_management.CopyFrom(self.context_management._to_proto())
+        if self.structured_output_schema:
+            msg.structured_output_schema.update(self.structured_output_schema)
         return msg
 
 

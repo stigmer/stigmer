@@ -55,11 +55,23 @@ import { useTaskKindRegistry } from "./useTaskKindRegistry";
 import type { TaskKindDescriptor } from "./types";
 import { useGraphHistory } from "./useGraphHistory";
 import { useWorkflowLayout, applyDagreLayout, registryNodeDimensions } from "./layout";
+import type { LayoutEngine } from "./layout";
 
 /** Selection state for the canvas inspector. */
 export interface CanvasSelection {
   readonly type: "node" | "edge";
   readonly id: string;
+}
+
+/** Options for {@link useWorkflowCanvas}. */
+export interface UseWorkflowCanvasOptions {
+  /**
+   * Layout engine for the "Auto Layout" action.
+   * When provided, this engine is used instead of the default dagre engine.
+   * Pass the result of {@link useElkLayoutEngine} for ELK-powered layout.
+   * When `null` or `undefined`, dagre is used as the default.
+   */
+  readonly layoutEngine?: LayoutEngine | null;
 }
 
 /** Return value of {@link useWorkflowCanvas}. */
@@ -126,12 +138,14 @@ export interface UseWorkflowCanvasReturn {
  *
  * @param yaml - The workflow YAML to initialize from. Changes trigger re-parse.
  * @param containerRef - Ref to the canvas container for keyboard shortcut scoping.
+ * @param options - Optional configuration including a custom layout engine.
  *
  * @since T15 (Visual Canvas Editor)
  */
 export function useWorkflowCanvas(
   yaml: string | null,
   containerRef: RefObject<HTMLDivElement | null>,
+  options?: UseWorkflowCanvasOptions,
 ): UseWorkflowCanvasReturn {
   const [error, setError] = useState<string | null>(null);
   const [selection, setSelection] = useState<CanvasSelection | null>(null);
@@ -829,6 +843,7 @@ export function useWorkflowCanvas(
   // ---------------------------------------------------------------------------
 
   const { layoutGraph, isLayouting } = useWorkflowLayout({
+    engine: options?.layoutEngine ?? undefined,
     getNodeDimensions: registryNodeDimensions,
   });
 

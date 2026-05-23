@@ -1,6 +1,7 @@
 from ai.stigmer.agentic.agentexecution.v1 import enum_pb2 as _enum_pb2
 from ai.stigmer.agentic.executioncontext.v1 import spec_pb2 as _spec_pb2
 from buf.validate import validate_pb2 as _validate_pb2
+from google.protobuf import struct_pb2 as _struct_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
@@ -43,20 +44,22 @@ class AgentExecutionSpec(_message.Message):
     def __init__(self, session_id: _Optional[str] = ..., agent_id: _Optional[str] = ..., message: _Optional[str] = ..., execution_config: _Optional[_Union[ExecutionConfig, _Mapping]] = ..., runtime_env: _Optional[_Mapping[str, _spec_pb2.ExecutionValue]] = ..., callback_token: _Optional[bytes] = ..., auto_approve_all: bool = ..., parent_workflow_id: _Optional[str] = ..., attachments: _Optional[_Iterable[_Union[Attachment, _Mapping]]] = ..., workspace_file_refs: _Optional[_Iterable[str]] = ..., activity_task_queue: _Optional[str] = ...) -> None: ...
 
 class ExecutionConfig(_message.Message):
-    __slots__ = ("model_name", "context_management", "max_tool_rounds", "max_tool_result_chars", "max_cost_usd", "interaction_mode")
+    __slots__ = ("model_name", "context_management", "max_tool_rounds", "max_tool_result_chars", "max_cost_usd", "interaction_mode", "structured_output_schema")
     MODEL_NAME_FIELD_NUMBER: _ClassVar[int]
     CONTEXT_MANAGEMENT_FIELD_NUMBER: _ClassVar[int]
     MAX_TOOL_ROUNDS_FIELD_NUMBER: _ClassVar[int]
     MAX_TOOL_RESULT_CHARS_FIELD_NUMBER: _ClassVar[int]
     MAX_COST_USD_FIELD_NUMBER: _ClassVar[int]
     INTERACTION_MODE_FIELD_NUMBER: _ClassVar[int]
+    STRUCTURED_OUTPUT_SCHEMA_FIELD_NUMBER: _ClassVar[int]
     model_name: str
     context_management: ContextManagementConfig
     max_tool_rounds: int
     max_tool_result_chars: int
     max_cost_usd: float
     interaction_mode: _enum_pb2.InteractionMode
-    def __init__(self, model_name: _Optional[str] = ..., context_management: _Optional[_Union[ContextManagementConfig, _Mapping]] = ..., max_tool_rounds: _Optional[int] = ..., max_tool_result_chars: _Optional[int] = ..., max_cost_usd: _Optional[float] = ..., interaction_mode: _Optional[_Union[_enum_pb2.InteractionMode, str]] = ...) -> None: ...
+    structured_output_schema: _struct_pb2.Struct
+    def __init__(self, model_name: _Optional[str] = ..., context_management: _Optional[_Union[ContextManagementConfig, _Mapping]] = ..., max_tool_rounds: _Optional[int] = ..., max_tool_result_chars: _Optional[int] = ..., max_cost_usd: _Optional[float] = ..., interaction_mode: _Optional[_Union[_enum_pb2.InteractionMode, str]] = ..., structured_output_schema: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ...) -> None: ...
 
 class ContextManagementConfig(_message.Message):
     __slots__ = ("disable_summarization", "custom_trigger_threshold", "custom_target_tokens")

@@ -13,6 +13,7 @@ import {
   extractWorkflowYaml,
   type ExtractedWorkflowYaml,
 } from "./extract-workflow-yaml";
+import { WORKFLOW_DIAGNOSIS_RESPONSE_SCHEMA } from "./architect-response-schema";
 
 /**
  * Lifecycle phases for the workflow execution diagnosis flow.
@@ -174,12 +175,32 @@ export function useDiagnoseExecutionFlow(
         setCompletedExecutions((prev) => [...prev, stream.execution!]);
       }
 
-      const result = extractWorkflowYaml(stream.execution);
-      if (result) {
-        setExtracted(result);
-        setPhase("complete");
+      // Primary: read from structured output (deterministic)
+      const structuredOutput = stream.execution?.status?.structuredOutput as
+        | Record<string, unknown>
+        | undefined;
+
+      if (structuredOutput) {
+        const action = structuredOutput.action as string | undefined;
+        const yaml = structuredOutput.yaml as string | undefined;
+        const explanation = structuredOutput.explanation as string | undefined;
+
+        if (action === "fix_yaml" && yaml) {
+          setExtracted({ yaml, explanation: explanation ?? "" });
+          setPhase("complete");
+        } else {
+          // diagnosis or clarification — no YAML fix
+          setPhase("ready");
+        }
       } else {
-        setPhase("ready");
+        // Fallback: regex extraction (backward compat / extraction failure)
+        const result = extractWorkflowYaml(stream.execution);
+        if (result) {
+          setExtracted(result);
+          setPhase("complete");
+        } else {
+          setPhase("ready");
+        }
       }
 
       setActiveExecutionId(null);
@@ -227,6 +248,7 @@ export function useDiagnoseExecutionFlow(
         org: orgRef.current,
         sessionId: activeSessionId,
         message,
+        structuredOutputSchema: WORKFLOW_DIAGNOSIS_RESPONSE_SCHEMA,
       });
 
       setActiveExecutionId(newExecutionId);
@@ -284,6 +306,7 @@ export function useDiagnoseExecutionFlow(
           org: orgRef.current,
           sessionId: activeSessionId,
           message: trimmed,
+          structuredOutputSchema: WORKFLOW_DIAGNOSIS_RESPONSE_SCHEMA,
         });
 
         setActiveExecutionId(newExecutionId);

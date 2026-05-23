@@ -187,4 +187,52 @@ public interface ExecutionConfigOrBuilder extends
    * @return The interactionMode.
    */
   ai.stigmer.agentic.agentexecution.v1.InteractionMode getInteractionMode();
+
+  /**
+   * <pre>
+   * JSON Schema that the agent's output must conform to.
+   *
+   * When set, the runner enforces structured output:
+   * - Native harness: uses deepagents responseFormat/ToolStrategy
+   * - Cursor harness: prompt instruction + extraction fallback
+   *
+   * The validated structured data is returned in the activity result
+   * and passed back to the parent workflow as `structured`.
+   * </pre>
+   *
+   * <code>.google.protobuf.Struct structured_output_schema = 7 [json_name = "structuredOutputSchema"];</code>
+   * @return Whether the structuredOutputSchema field is set.
+   */
+  boolean hasStructuredOutputSchema();
+  /**
+   * <pre>
+   * JSON Schema that the agent's output must conform to.
+   *
+   * When set, the runner enforces structured output:
+   * - Native harness: uses deepagents responseFormat/ToolStrategy
+   * - Cursor harness: prompt instruction + extraction fallback
+   *
+   * The validated structured data is returned in the activity result
+   * and passed back to the parent workflow as `structured`.
+   * </pre>
+   *
+   * <code>.google.protobuf.Struct structured_output_schema = 7 [json_name = "structuredOutputSchema"];</code>
+   * @return The structuredOutputSchema.
+   */
+  com.google.protobuf.Struct getStructuredOutputSchema();
+  /**
+   * <pre>
+   * JSON Schema that the agent's output must conform to.
+   *
+   * When set, the runner enforces structured output:
+   * - Native harness: uses deepagents responseFormat/ToolStrategy
+   * - Cursor harness: prompt instruction + extraction fallback
+   *
+   * The validated structured data is returned in the activity result
+   * and passed back to the parent workflow as `structured`.
+   * </pre>
+   *
+   * <code>.google.protobuf.Struct structured_output_schema = 7 [json_name = "structuredOutputSchema"];</code>
+   */
+  com.google.protobuf.StructOrBuilder getStructuredOutputSchemaOrBuilder();
 }
