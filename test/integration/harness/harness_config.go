@@ -94,6 +94,13 @@ func WithWorkspaceEntries(entries []*sessionv1.WorkspaceEntry) SessionOption {
 	}
 }
 
+// WithSubject sets an explicit subject on the session spec.
+func WithSubject(subject string) SessionOption {
+	return func(s *sessionv1.SessionSpec) {
+		s.Subject = subject
+	}
+}
+
 // WithExecutionTarget sets the execution target on the session spec.
 func WithExecutionTarget(target sessionv1.ExecutionTarget) SessionOption {
 	return func(s *sessionv1.SessionSpec) {
