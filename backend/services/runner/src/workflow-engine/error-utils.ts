@@ -84,8 +84,8 @@ export function extractStructuredError(err: unknown): StructuredErrorInfo | null
   const root = findRootCause(err);
   if (!root.type || typeof root.type !== "string") return null;
 
-  const isNonRetryable = "nonRetryable" in (root as Record<string, unknown>)
-    ? !!(root as Record<string, unknown>).nonRetryable
+  const isNonRetryable = "nonRetryable" in (root as unknown as Record<string, unknown>)
+    ? !!(root as unknown as Record<string, unknown>).nonRetryable
     : true;
 
   return {

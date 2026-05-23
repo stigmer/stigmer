@@ -26,6 +26,7 @@
  * subsequent executions because local SDK context loading is unreliable.
  */
 
+import type { z } from "zod";
 import { heartbeat, Context, CancelledFailure } from "@temporalio/activity";
 import { create } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
