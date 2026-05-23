@@ -4,6 +4,7 @@ import (
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	agentexecv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	agentinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
+	executionctxv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
@@ -39,6 +40,9 @@ type Clients struct {
 	AgentInstanceQuery    agentinstancev1.AgentInstanceQueryControllerClient
 	AgentExecutionCommand agentexecv1.AgentExecutionCommandControllerClient
 	AgentExecutionQuery   agentexecv1.AgentExecutionQueryControllerClient
+
+	// ExecutionContext services
+	ExecutionContextQuery executionctxv1.ExecutionContextQueryControllerClient
 
 	// Session services
 	SessionCommand sessionv1.SessionCommandControllerClient
@@ -102,6 +106,8 @@ func NewClients(conn grpc.ClientConnInterface) *Clients {
 		AgentInstanceQuery:    agentinstancev1.NewAgentInstanceQueryControllerClient(conn),
 		AgentExecutionCommand: agentexecv1.NewAgentExecutionCommandControllerClient(conn),
 		AgentExecutionQuery:   agentexecv1.NewAgentExecutionQueryControllerClient(conn),
+
+		ExecutionContextQuery: executionctxv1.NewExecutionContextQueryControllerClient(conn),
 
 		SessionCommand: sessionv1.NewSessionCommandControllerClient(conn),
 		SessionQuery:   sessionv1.NewSessionQueryControllerClient(conn),

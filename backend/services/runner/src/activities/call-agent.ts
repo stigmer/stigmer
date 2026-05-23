@@ -32,6 +32,8 @@ import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { ExecutionValueSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
+import type { ExecutionValue } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -106,9 +108,9 @@ export async function callAgentAction(
 
   const harness = resolveHarness(resolved.harness);
 
-  let session;
+  let sessionId: string;
   try {
-    session = await client.createSession(
+    const session = await client.createSession(
       create(SessionSchema, {
         apiVersion: "agentic.stigmer.ai/v1",
         kind: "Session",
@@ -122,17 +124,22 @@ export async function callAgentAction(
         }),
       }),
     );
+    sessionId = session?.metadata?.id ?? "";
   } catch (err) {
     if (err instanceof ConnectError && err.code === Code.AlreadyExists) {
-      throw new Error(
-        `Session '${sessionName}' already exists (likely from a previous attempt). ` +
-        `This prevents duplicate agent executions for task '${taskName ?? "unknown"}'.`,
-      );
+      const existingId = extractExistingResourceId(err);
+      if (existingId) {
+        sessionId = existingId;
+      } else {
+        throw new Error(
+          `Session '${sessionName}' already exists but its ID could not be resolved. ` +
+          `This may occur during workflow recovery for task '${taskName ?? "unknown"}'.`,
+        );
+      }
+    } else {
+      throw err;
     }
-    throw err;
   }
-
-  const sessionId = session?.metadata?.id ?? "";
 
   const executionRuntimeEnv: Record<string, { value: string; isSecret: boolean }> = {};
 
@@ -156,8 +163,29 @@ export async function callAgentAction(
     }
   }
 
+  const runtimeEnvProto: Record<string, ExecutionValue> = {};
+  for (const [key, val] of Object.entries(executionRuntimeEnv)) {
+    runtimeEnvProto[key] = create(ExecutionValueSchema, {
+      value: val.value,
+      isSecret: val.isSecret,
+    });
+  }
+
   const parentQueue = runtimeEnv["__stigmer_activity_task_queue"] as string | undefined;
   const activityTaskQueue = parentQueue?.startsWith("wfexec:") ? parentQueue : "";
+
+  const executionSpec = create(AgentExecutionSpecSchema, {
+    sessionId,
+    agentId,
+    message: resolved.message,
+    callbackToken: taskToken,
+    parentWorkflowId,
+    activityTaskQueue,
+    runtimeEnv: runtimeEnvProto,
+    ...(resolved.config?.model
+      ? { executionConfig: { modelName: resolved.config.model } as any }
+      : {}),
+  });
 
   try {
     await client.createAgentExecution(
@@ -168,30 +196,41 @@ export async function callAgentAction(
           name: executionName,
           org: orgId,
         }),
-        spec: create(AgentExecutionSpecSchema, {
-          sessionId,
-          agentId,
-          message: resolved.message,
-          callbackToken: taskToken,
-          parentWorkflowId,
-          activityTaskQueue,
-          ...(resolved.config?.model
-            ? { executionConfig: { modelName: resolved.config.model } as any }
-            : {}),
-        }),
+        spec: executionSpec,
       }),
     );
   } catch (err) {
     if (err instanceof ConnectError && err.code === Code.AlreadyExists) {
-      throw new Error(
-        `Agent execution '${executionName}' already exists for task '${taskName ?? "unknown"}'. ` +
-        `A previous attempt may still be running. This prevents duplicate executions.`,
+      const retryName = `${executionName}-r${Date.now()}`;
+      await client.createAgentExecution(
+        create(AgentExecutionSchema, {
+          apiVersion: "agentic.stigmer.ai/v1",
+          kind: "AgentExecution",
+          metadata: create(ApiResourceMetadataSchema, {
+            name: retryName,
+            org: orgId,
+          }),
+          spec: executionSpec,
+        }),
       );
+    } else {
+      throw err;
     }
-    throw err;
   }
 
   throw new CompleteAsyncError();
+}
+
+/**
+ * Extracts the existing resource ID from an ALREADY_EXISTS error message.
+ *
+ * Both the OSS Go server and the cloud Java server include the existing
+ * resource ID in their duplicate-check error messages using the pattern
+ * `(id: <resource_id>)`. Returns undefined if the pattern is not found.
+ */
+function extractExistingResourceId(err: ConnectError): string | undefined {
+  const match = err.message.match(/\(id:\s*(\S+)\)/);
+  return match?.[1];
 }
 
 function parseAgentReference(
