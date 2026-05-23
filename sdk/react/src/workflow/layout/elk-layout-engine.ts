@@ -1,3 +1,5 @@
+/// <reference path="./elkjs.d.ts" />
+
 import type { LayoutEngine, LayoutInput, LayoutResult, ElkGraph, ElkLayoutResult } from "./types";
 import { preprocessForElk } from "./workflow-preprocessor";
 import { postprocessElkResult } from "./layout-postprocessor";
