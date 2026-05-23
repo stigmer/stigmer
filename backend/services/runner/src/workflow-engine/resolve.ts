@@ -48,13 +48,18 @@ export async function resolveConfigExpressions(
 
   // Phase 1: Strict expressions (whole-value `${ expr }`)
   const strictExprs = collectExpressions(cloned);
+  let phase1Paths: Set<string> = new Set();
   if (Object.keys(strictExprs).length > 0) {
     const strictResults = await evaluateExpressions(strictExprs, input, stateVars);
     substituteResults(cloned, strictResults);
+    phase1Paths = new Set(Object.keys(strictExprs));
   }
 
   // Phase 2: Embedded expressions (`"text ${ expr } more text"`)
-  await resolveEmbeddedExpressions(cloned, input, stateVars, evaluateExpressions);
+  // Skip paths already resolved in Phase 1 to prevent expression injection —
+  // Phase 1 results may contain `${ ... }` patterns from external data
+  // (webhook payloads, API responses) that must NOT be re-interpreted.
+  await resolveEmbeddedExpressions(cloned, input, stateVars, evaluateExpressions, phase1Paths);
 
   return cloned;
 }
@@ -231,17 +236,22 @@ interface EmbeddedExprMapping {
  *
  * Mutates `obj` in place. Returns early if no embedded expressions
  * are found (zero overhead for strict-only workflows).
+ *
+ * @param skipPaths - Paths already resolved in Phase 1 whose string
+ *   results must not be re-interpolated (prevents expression injection
+ *   from external data flowing through `$context`).
  */
 export async function resolveEmbeddedExpressions(
   obj: Record<string, unknown>,
   input: unknown,
   stateVars: Record<string, unknown>,
   evaluateExpressions: ExpressionEvaluator,
+  skipPaths: Set<string> = new Set(),
 ): Promise<void> {
   const mappings: EmbeddedExprMapping[] = [];
   const batchExprs: Record<string, string> = {};
 
-  collectEmbeddedExpressions(obj, "", mappings, batchExprs);
+  collectEmbeddedExpressions(obj, "", mappings, batchExprs, skipPaths);
 
   if (Object.keys(batchExprs).length === 0) return;
 
@@ -254,6 +264,7 @@ export async function resolveEmbeddedExpressions(
 
     for (let i = 0; i < mapping.expressions.length; i++) {
       const embedded = mapping.expressions[i];
+      // Tilde cannot appear in dot/bracket JSON paths, so it's unambiguous as a separator.
       const key = `${mapping.path}~${i}`;
       interpolated += original.slice(lastEnd, embedded.start);
       interpolated += stringifyInterpolatedValue(results[key]);
@@ -275,10 +286,11 @@ function collectEmbeddedExpressions(
   prefix: string,
   mappings: EmbeddedExprMapping[],
   batchExprs: Record<string, string>,
+  skipPaths: Set<string>,
 ): void {
   for (const [key, value] of Object.entries(obj)) {
     const path = prefix ? `${prefix}.${key}` : key;
-    collectEmbeddedFromValue(value, path, mappings, batchExprs);
+    collectEmbeddedFromValue(value, path, mappings, batchExprs, skipPaths);
   }
 }
 
@@ -287,8 +299,10 @@ function collectEmbeddedFromValue(
   path: string,
   mappings: EmbeddedExprMapping[],
   batchExprs: Record<string, string>,
+  skipPaths: Set<string>,
 ): void {
   if (typeof value === "string") {
+    if (skipPaths.has(path)) return;
     if (isStrictExpr(value)) return;
     const expressions = extractEmbeddedExpressions(value);
     if (expressions.length === 0) return;
@@ -299,7 +313,7 @@ function collectEmbeddedFromValue(
     }
   } else if (Array.isArray(value)) {
     for (let i = 0; i < value.length; i++) {
-      collectEmbeddedFromValue(value[i], `${path}[${i}]`, mappings, batchExprs);
+      collectEmbeddedFromValue(value[i], `${path}[${i}]`, mappings, batchExprs, skipPaths);
     }
   } else if (value !== null && typeof value === "object") {
     collectEmbeddedExpressions(
@@ -307,6 +321,7 @@ function collectEmbeddedFromValue(
       path,
       mappings,
       batchExprs,
+      skipPaths,
     );
   }
 }
