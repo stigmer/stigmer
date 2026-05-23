@@ -20,6 +20,7 @@
  */
 
 import { Context, CompleteAsyncError } from "@temporalio/activity";
+import { ConnectError, Code } from "@connectrpc/connect";
 import { StigmerClient } from "../client/stigmer-client.js";
 import { loadConfig } from "../config.js";
 import { resolveObjectPlaceholders } from "../workflow-engine/resolve.js";
@@ -88,25 +89,50 @@ export async function callAgentAction(
     throw new Error(`Agent '${resolved.agent}' resolved but has no metadata.id`);
   }
 
-  const sessionName = `wf-${extractSlug(resolved.agent)}-${Math.floor(Date.now() / 1000)}`;
+  const wfExecId = runtimeEnv["__stigmer_execution_id"] as string | undefined;
+  const taskName = (resolved as Record<string, unknown>).__taskName as string | undefined;
+
+  let sessionName: string;
+  let executionName: string;
+
+  if (wfExecId && taskName) {
+    const taskKey = `${wfExecId}-${taskName}`;
+    sessionName = `ses-wf-${taskKey}`;
+    executionName = `aex-wf-${taskKey}`;
+  } else {
+    sessionName = `wf-${extractSlug(resolved.agent)}-${Math.floor(Date.now() / 1000)}`;
+    executionName = `aex-wf-${extractSlug(resolved.agent)}-${Date.now()}`;
+  }
+
   const harness = resolveHarness(resolved.harness);
 
-  const session = await client.createSession(
-    create(SessionSchema, {
-      apiVersion: "agentic.stigmer.ai/v1",
-      kind: "Session",
-      metadata: create(ApiResourceMetadataSchema, {
-        name: sessionName,
-        org: orgId,
+  let session;
+  try {
+    session = await client.createSession(
+      create(SessionSchema, {
+        apiVersion: "agentic.stigmer.ai/v1",
+        kind: "Session",
+        metadata: create(ApiResourceMetadataSchema, {
+          name: sessionName,
+          org: orgId,
+        }),
+        spec: create(SessionSpecSchema, {
+          agentInstanceId: defaultInstanceId,
+          harness,
+        }),
       }),
-      spec: create(SessionSpecSchema, {
-        agentInstanceId: defaultInstanceId,
-        harness,
-      }),
-    }),
-  );
+    );
+  } catch (err) {
+    if (err instanceof ConnectError && err.code === Code.AlreadyExists) {
+      throw new Error(
+        `Session '${sessionName}' already exists (likely from a previous attempt). ` +
+        `This prevents duplicate agent executions for task '${taskName ?? "unknown"}'.`,
+      );
+    }
+    throw err;
+  }
 
-  const sessionId = session.metadata?.id ?? "";
+  const sessionId = session?.metadata?.id ?? "";
 
   const executionRuntimeEnv: Record<string, { value: string; isSecret: boolean }> = {};
   if (resolved.env) {
@@ -115,35 +141,40 @@ export async function callAgentAction(
     }
   }
 
-  // Propagate sandbox affinity: when the parent workflow runs in a dedicated
-  // sandbox (wfexec:{id} queue), tell the platform to route the child agent's
-  // activities to the same queue. This avoids provisioning a separate sandbox.
   const parentQueue = runtimeEnv["__stigmer_activity_task_queue"] as string | undefined;
   const activityTaskQueue = parentQueue?.startsWith("wfexec:") ? parentQueue : "";
 
-  const executionName = `aex-wf-${extractSlug(resolved.agent)}-${Date.now()}`;
-
-  await client.createAgentExecution(
-    create(AgentExecutionSchema, {
-      apiVersion: "agentic.stigmer.ai/v1",
-      kind: "AgentExecution",
-      metadata: create(ApiResourceMetadataSchema, {
-        name: executionName,
-        org: orgId,
+  try {
+    await client.createAgentExecution(
+      create(AgentExecutionSchema, {
+        apiVersion: "agentic.stigmer.ai/v1",
+        kind: "AgentExecution",
+        metadata: create(ApiResourceMetadataSchema, {
+          name: executionName,
+          org: orgId,
+        }),
+        spec: create(AgentExecutionSpecSchema, {
+          sessionId,
+          agentId,
+          message: resolved.message,
+          callbackToken: taskToken,
+          parentWorkflowId,
+          activityTaskQueue,
+          ...(resolved.config?.model
+            ? { executionConfig: { modelName: resolved.config.model } as any }
+            : {}),
+        }),
       }),
-      spec: create(AgentExecutionSpecSchema, {
-        sessionId,
-        agentId,
-        message: resolved.message,
-        callbackToken: taskToken,
-        parentWorkflowId,
-        activityTaskQueue,
-        ...(resolved.config?.model
-          ? { executionConfig: { modelName: resolved.config.model } as any }
-          : {}),
-      }),
-    }),
-  );
+    );
+  } catch (err) {
+    if (err instanceof ConnectError && err.code === Code.AlreadyExists) {
+      throw new Error(
+        `Agent execution '${executionName}' already exists for task '${taskName ?? "unknown"}'. ` +
+        `A previous attempt may still be running. This prevents duplicate executions.`,
+      );
+    }
+    throw err;
+  }
 
   throw new CompleteAsyncError();
 }
