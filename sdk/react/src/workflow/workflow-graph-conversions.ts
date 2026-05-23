@@ -441,6 +441,30 @@ export function graphToWorkflowInput(
 // toReactFlowElements
 // ---------------------------------------------------------------------------
 
+/**
+ * Execution status for a single node in the execution graph.
+ * Derived from `DerivedTaskState` in the event store, plus a synthetic
+ * `"not_reached"` value for nodes the execution has not touched.
+ */
+export type NodeExecutionStatus =
+  | "not_reached"
+  | "pending"
+  | "running"
+  | "completed"
+  | "failed"
+  | "skipped"
+  | "retrying"
+  | "waiting_approval";
+
+/** Per-node execution state attached to canvas nodes in execution mode. */
+export interface NodeExecutionState {
+  readonly status: NodeExecutionStatus;
+  readonly durationMs?: number;
+  readonly costMicros?: bigint;
+  readonly attemptNumber?: number;
+  readonly error?: string;
+}
+
 /** Data payload attached to canvas task nodes. */
 export interface CanvasTaskNodeData extends Record<string, unknown> {
   taskName: string;
@@ -454,6 +478,7 @@ export interface CanvasTaskNodeData extends Record<string, unknown> {
   exportAs?: string;
   isSentinel: boolean;
   errorCount?: number;
+  executionState?: NodeExecutionState;
 }
 
 /** Data payload attached to canvas transition edges. */

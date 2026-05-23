@@ -7,6 +7,7 @@ import { cn } from "@stigmer/theme";
 import type { CanvasTransitionEdgeData } from "./workflow-graph-conversions";
 import { CanvasActionsContext } from "./CanvasActionsContext";
 import { TaskPickerPopover } from "./TaskPickerPopover";
+import { useWorkflowGraphMode } from "./WorkflowGraphModeContext";
 
 /**
  * Custom React Flow edge rendering a directed transition between tasks.
@@ -32,6 +33,7 @@ export const CanvasTransitionEdge = memo(function CanvasTransitionEdge({
   selected,
   markerEnd,
 }: EdgeProps & { data?: CanvasTransitionEdgeData }) {
+  const mode = useWorkflowGraphMode();
   const [edgePath, labelX, labelY] = getSmoothStepPath({
     sourceX,
     sourceY,
@@ -47,6 +49,7 @@ export const CanvasTransitionEdge = memo(function CanvasTransitionEdge({
   const [hovered, setHovered] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const insertBtnRef = useRef<HTMLButtonElement>(null);
+  const isDesignMode = mode === "design";
 
   const handleOpenPicker = useCallback(() => {
     setPickerOpen(true);
@@ -72,6 +75,7 @@ export const CanvasTransitionEdge = memo(function CanvasTransitionEdge({
         className={cn(
           "!stroke-[var(--stgm-border-prominent,#a3a3a3)]",
           selected && "!stroke-[var(--stgm-ring,#3b82f6)]",
+          !isDesignMode && "!opacity-60",
         )}
         style={{
           strokeWidth: selected ? 2.5 : 2,
@@ -83,38 +87,44 @@ export const CanvasTransitionEdge = memo(function CanvasTransitionEdge({
           style={{
             transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
           }}
-          onMouseEnter={() => setHovered(true)}
-          onMouseLeave={() => setHovered(false)}
+          onMouseEnter={isDesignMode ? () => setHovered(true) : undefined}
+          onMouseLeave={isDesignMode ? () => setHovered(false) : undefined}
         >
           {label && (
             <div className="stgm mb-1 rounded-full border border-[var(--stgm-border-prominent,#d4d4d8)] bg-[var(--stgm-card,var(--stgm-background,#fff))] px-2 py-0.5 text-center text-[10px] font-medium text-[var(--stgm-foreground,#1a1a2e)] shadow-sm">
               {label}
             </div>
           )}
-          <button
-            ref={insertBtnRef}
-            type="button"
-            onClick={handleOpenPicker}
-            className={cn(
-              "flex h-5 w-5 items-center justify-center rounded-full border border-[var(--stgm-border-prominent,#d4d4d8)] bg-[var(--stgm-card,var(--stgm-background,#fff))] text-[var(--stgm-muted-foreground,#737373)] shadow-sm transition-all",
-              "hover:border-[var(--stgm-primary,#6366f1)] hover:bg-[var(--stgm-primary,#6366f1)] hover:text-[var(--stgm-primary-foreground,#fff)]",
-              hovered || selected || pickerOpen ? "scale-100 opacity-100" : "scale-75 opacity-0",
-            )}
-            aria-label="Insert task here"
-            title="Insert task"
-          >
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
-              <path d="M5 2v6M2 5h6" />
-            </svg>
-          </button>
 
-          <TaskPickerPopover
-            open={pickerOpen}
-            onOpenChange={handlePickerOpenChange}
-            onSelectKind={handleKindSelected}
-            anchorRef={insertBtnRef}
-            side="bottom"
-          />
+          {/* Insert button and picker — design mode only */}
+          {isDesignMode && (
+            <>
+              <button
+                ref={insertBtnRef}
+                type="button"
+                onClick={handleOpenPicker}
+                className={cn(
+                  "flex h-5 w-5 items-center justify-center rounded-full border border-[var(--stgm-border-prominent,#d4d4d8)] bg-[var(--stgm-card,var(--stgm-background,#fff))] text-[var(--stgm-muted-foreground,#737373)] shadow-sm transition-all",
+                  "hover:border-[var(--stgm-primary,#6366f1)] hover:bg-[var(--stgm-primary,#6366f1)] hover:text-[var(--stgm-primary-foreground,#fff)]",
+                  hovered || selected || pickerOpen ? "scale-100 opacity-100" : "scale-75 opacity-0",
+                )}
+                aria-label="Insert task here"
+                title="Insert task"
+              >
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+                  <path d="M5 2v6M2 5h6" />
+                </svg>
+              </button>
+
+              <TaskPickerPopover
+                open={pickerOpen}
+                onOpenChange={handlePickerOpenChange}
+                onSelectKind={handleKindSelected}
+                anchorRef={insertBtnRef}
+                side="bottom"
+              />
+            </>
+          )}
         </div>
       </EdgeLabelRenderer>
     </>

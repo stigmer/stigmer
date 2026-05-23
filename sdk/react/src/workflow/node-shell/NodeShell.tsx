@@ -3,6 +3,7 @@
 import { memo } from "react";
 import { cn } from "@stigmer/theme";
 import type { VisualClass } from "../task-type-visual-registry";
+import type { NodeExecutionStatus } from "../workflow-graph-conversions";
 import { getShapePath, SVG_SHAPE_CLASSES } from "./shape-paths";
 
 export interface NodeShellProps {
@@ -12,6 +13,7 @@ export interface NodeShellProps {
   categoryColor: string;
   selected?: boolean;
   errorCount?: number;
+  executionStatus?: NodeExecutionStatus;
   children: React.ReactNode;
 }
 
@@ -34,6 +36,7 @@ export const NodeShell = memo(function NodeShell({
   categoryColor,
   selected,
   errorCount = 0,
+  executionStatus,
   children,
 }: NodeShellProps) {
   if (SVG_SHAPE_CLASSES.has(visualClass)) {
@@ -45,6 +48,7 @@ export const NodeShell = memo(function NodeShell({
         categoryColor={categoryColor}
         selected={selected}
         errorCount={errorCount}
+        executionStatus={executionStatus}
       >
         {children}
       </SvgShell>
@@ -57,6 +61,7 @@ export const NodeShell = memo(function NodeShell({
       categoryColor={categoryColor}
       selected={selected}
       errorCount={errorCount}
+      executionStatus={executionStatus}
     >
       {children}
     </CssShell>
@@ -72,6 +77,7 @@ function CssShell({
   categoryColor,
   selected,
   errorCount = 0,
+  executionStatus,
   children,
 }: Omit<NodeShellProps, "width" | "height">) {
   const shellClass = CSS_VARIANTS[visualClass] ?? CSS_VARIANTS["task-card"];
@@ -83,12 +89,14 @@ function CssShell({
         shellClass,
         selected && "ring-2 ring-[var(--stgm-ring,#3b82f6)]",
         errorCount > 0 && "!border-[var(--stgm-destructive,#ef4444)]",
+        executionStatus && EXECUTION_STATUS_CSS[executionStatus],
       )}
       style={
         visualClass === "task-card" || visualClass === "subworkflow-card"
           ? { borderLeftWidth: 4, borderLeftColor: categoryColor }
           : undefined
       }
+      data-execution-status={executionStatus}
     >
       {children}
     </div>
@@ -125,9 +133,16 @@ function SvgShell({
   categoryColor,
   selected,
   errorCount = 0,
+  executionStatus,
   children,
 }: NodeShellProps) {
   const pathD = getShapePath(visualClass, width, height);
+
+  const strokeColor = executionStatus
+    ? svgStrokeForStatus(executionStatus, categoryColor)
+    : errorCount > 0
+      ? "var(--stgm-destructive, #ef4444)"
+      : categoryColor;
 
   return (
     <div
@@ -137,8 +152,10 @@ function SvgShell({
         visualClass === "decision-diamond" && "rounded-sm",
         visualClass === "event-circle" && "rounded-full",
         visualClass === "gate-octagon" && "rounded",
+        executionStatus && EXECUTION_STATUS_CSS[executionStatus],
       )}
       style={{ width, height }}
+      data-execution-status={executionStatus}
     >
       <svg
         className="pointer-events-none absolute inset-0"
@@ -150,7 +167,7 @@ function SvgShell({
         <path
           d={pathD ?? ""}
           fill="var(--stgm-card, var(--stgm-background, #fff))"
-          stroke={errorCount > 0 ? "var(--stgm-destructive, #ef4444)" : categoryColor}
+          stroke={strokeColor}
           strokeWidth="2"
         />
       </svg>
@@ -159,4 +176,39 @@ function SvgShell({
       </div>
     </div>
   );
+}
+
+// ---------------------------------------------------------------------------
+// Execution status styling (T04)
+// ---------------------------------------------------------------------------
+
+/**
+ * CSS class overrides per execution status. Applied to both CssShell and
+ * SvgShell outer containers. Uses opacity and border-color tokens.
+ * Never uses color alone — badges provide text/icon differentiation.
+ */
+const EXECUTION_STATUS_CSS: Record<NodeExecutionStatus, string> = {
+  not_reached: "opacity-40",
+  pending: "",
+  running: "stgm-exec-running border-[var(--stgm-primary,#6366f1)]",
+  completed: "border-[var(--stgm-success,#22c55e)]",
+  failed: "!border-[var(--stgm-destructive,#ef4444)]",
+  skipped: "opacity-50",
+  retrying: "",
+  waiting_approval: "border-[var(--stgm-warning,#f59e0b)]",
+};
+
+function svgStrokeForStatus(status: NodeExecutionStatus, fallback: string): string {
+  switch (status) {
+    case "running":
+      return "var(--stgm-primary, #6366f1)";
+    case "completed":
+      return "var(--stgm-success, #22c55e)";
+    case "failed":
+      return "var(--stgm-destructive, #ef4444)";
+    case "waiting_approval":
+      return "var(--stgm-warning, #f59e0b)";
+    default:
+      return fallback;
+  }
 }
