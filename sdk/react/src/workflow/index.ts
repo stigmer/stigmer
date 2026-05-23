@@ -505,3 +505,22 @@ export {
   ExecutionInspector,
   type ExecutionInspectorProps,
 } from "./execution-inspector";
+
+// T07: Waterfall timeline — pure derivation + behavior hook
+export {
+  deriveWaterfallEntries,
+  deriveWaterfallScale,
+  type WaterfallEntry,
+  type WaterfallAttempt,
+  type WaterfallSpan,
+  type WaterfallScale,
+  useWaterfallEntries,
+  type UseWaterfallEntriesOptions,
+  type UseWaterfallEntriesReturn,
+} from "./execution";
+
+// T07: Waterfall timeline — styled components
+export {
+  WaterfallTimeline,
+  type WaterfallTimelineProps,
+} from "./waterfall";
