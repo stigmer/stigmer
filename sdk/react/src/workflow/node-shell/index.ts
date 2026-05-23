@@ -2,6 +2,7 @@ export { NodeShell, type NodeShellProps } from "./NodeShell";
 export { NodeContent, type NodeContentProps } from "./NodeContent";
 export { NodeHandles, type NodeHandlesProps } from "./NodeHandles";
 export { NodeActions, type NodeActionsProps } from "./NodeActions";
+export { ExecutionBadge, type ExecutionBadgeProps } from "./ExecutionBadge";
 export {
   getShapePath,
   getContentInsets,

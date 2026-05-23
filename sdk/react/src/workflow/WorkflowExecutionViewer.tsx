@@ -9,11 +9,12 @@ import { useWorkflowExecutionEventStream } from "./useWorkflowExecutionEventStre
 import { useWorkflowExecutionArtifacts } from "./useWorkflowExecutionArtifacts";
 import { useWorkflowExecutionActions } from "./useWorkflowExecutionActions";
 import { WorkflowExecutionHeader } from "./WorkflowExecutionHeader";
-import { WorkflowExecutionTimeline } from "./WorkflowExecutionTimeline";
+import { WorkflowExecutionTimeline, type WorkflowExecutionTimelineProps } from "./WorkflowExecutionTimeline";
 import { WorkflowExecutionTaskPanel } from "./WorkflowExecutionTaskPanel";
 import { WorkflowExecutionCostPanel } from "./WorkflowExecutionCostPanel";
 import { WorkflowExecutionArtifactPanel } from "./WorkflowExecutionArtifactPanel";
 import { WorkflowRepairCard } from "./WorkflowRepairCard";
+import { WorkflowExecutionGraph } from "./WorkflowExecutionGraph";
 import type { DerivedTaskState } from "../internal/store/workflow-execution-event-store";
 
 /** Props for {@link WorkflowExecutionViewer}. */
@@ -232,62 +233,70 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
         </div>
       )}
 
-      <div className="flex min-h-0 flex-1">
-        {/* Main area: Event timeline */}
-        <WorkflowExecutionTimeline
+      <div className="flex min-h-0 flex-1 flex-col">
+        {/* Primary area: Execution graph + inspector stub */}
+        <div className="flex min-h-0 flex-1">
+          {/* Execution graph — primary view (T04) */}
+          <WorkflowExecutionGraph
+            executionId={executionId}
+            onTaskSelect={setSelectedTaskName}
+            className="flex-1"
+          />
+
+          {/* Right panel — inspector stub or diagnosis */}
+          <aside
+            className={cn(
+              "flex shrink-0 flex-col overflow-hidden border-l border-[var(--stgm-border,#e5e5e5)]",
+              showDiagnosis
+                ? "w-[40%] min-w-[360px] max-w-[500px]"
+                : "w-64 overflow-y-auto",
+            )}
+          >
+            {showDiagnosis && org ? (
+              <WorkflowRepairCard
+                executionId={executionId}
+                org={org}
+                onApplyFix={onNavigateToWorkflowEditor ? handleApplyFix : undefined}
+                onClose={handleCloseDiagnosis}
+                className="h-full"
+              />
+            ) : (
+              <>
+                {/* Inspector stub — shows selected task context (full inspector in T05) */}
+                <ExecutionInspectorStub
+                  selectedTaskName={selectedTaskName}
+                  taskStates={effectiveTaskStates}
+                />
+
+                <div className="border-t border-[var(--stgm-border,#e5e5e5)]">
+                  <WorkflowExecutionCostPanel costSummary={costSummary} />
+                </div>
+
+                {artifacts.length > 0 && (
+                  <div className="border-t border-[var(--stgm-border,#e5e5e5)]">
+                    <WorkflowExecutionArtifactPanel artifacts={artifacts} />
+                  </div>
+                )}
+
+                {additionalActions && (
+                  <div className="border-t border-[var(--stgm-border,#e5e5e5)] px-3 py-2">
+                    {additionalActions}
+                  </div>
+                )}
+              </>
+            )}
+          </aside>
+        </div>
+
+        {/* Collapsible bottom panel: Event timeline */}
+        <TimelinePanel
           events={events}
           streamState={streamState}
           onNavigateToAgentExecution={onNavigateToAgentExecution}
           taskStates={effectiveTaskStates}
           onSubmitTaskApproval={actions.submitTaskApproval}
           isSubmittingApproval={actions.isSubmitting}
-          className="flex-1 border-r border-border"
         />
-
-        {/* Right panel — expands when diagnosis is active (AD-B5-001) */}
-        <aside
-          className={cn(
-            "flex shrink-0 flex-col overflow-hidden border-l border-border",
-            showDiagnosis
-              ? "w-[40%] min-w-[360px] max-w-[500px]"
-              : "w-64 overflow-y-auto",
-          )}
-        >
-          {showDiagnosis && org ? (
-            <WorkflowRepairCard
-              executionId={executionId}
-              org={org}
-              onApplyFix={onNavigateToWorkflowEditor ? handleApplyFix : undefined}
-              onClose={handleCloseDiagnosis}
-              className="h-full"
-            />
-          ) : (
-            <>
-              <WorkflowExecutionTaskPanel
-                taskStates={effectiveTaskStates}
-                totalTasks={effectiveTotalTasks}
-                selectedTaskName={selectedTaskName}
-                onSelectTask={setSelectedTaskName}
-              />
-
-              <div className="border-t border-border">
-                <WorkflowExecutionCostPanel costSummary={costSummary} />
-              </div>
-
-              {artifacts.length > 0 && (
-                <div className="border-t border-border">
-                  <WorkflowExecutionArtifactPanel artifacts={artifacts} />
-                </div>
-              )}
-
-              {additionalActions && (
-                <div className="border-t border-border px-3 py-2">
-                  {additionalActions}
-                </div>
-              )}
-            </>
-          )}
-        </aside>
       </div>
     </div>
   );
@@ -306,6 +315,141 @@ function LoadingSkeleton() {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Inspector stub (T04) — full inspector comes in T05
+// ---------------------------------------------------------------------------
+
+function ExecutionInspectorStub({
+  selectedTaskName,
+  taskStates,
+}: {
+  selectedTaskName: string | null;
+  taskStates: ReadonlyMap<string, DerivedTaskState>;
+}) {
+  if (!selectedTaskName) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center px-4 py-6 text-center">
+        <p className="text-xs text-[var(--stgm-muted-foreground,#737373)]">
+          Select a node to view execution details
+        </p>
+      </div>
+    );
+  }
+
+  const state = taskStates.get(selectedTaskName);
+
+  return (
+    <div className="flex flex-col gap-3 px-3 py-3">
+      <div>
+        <h3 className="text-sm font-semibold text-[var(--stgm-foreground,#1a1a2e)]">
+          {selectedTaskName}
+        </h3>
+        {state && (
+          <span
+            className={cn(
+              "mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-medium",
+              state.status === "completed" && "bg-[var(--stgm-success,#22c55e)]/10 text-[var(--stgm-success,#22c55e)]",
+              state.status === "failed" && "bg-[var(--stgm-destructive,#ef4444)]/10 text-[var(--stgm-destructive,#ef4444)]",
+              state.status === "running" && "bg-[var(--stgm-primary,#6366f1)]/10 text-[var(--stgm-primary,#6366f1)]",
+              state.status === "waiting_approval" && "bg-[var(--stgm-warning,#f59e0b)]/10 text-[var(--stgm-warning,#f59e0b)]",
+              (state.status === "pending" || state.status === "retrying" || state.status === "skipped") &&
+                "bg-[var(--stgm-muted,#e5e5e5)] text-[var(--stgm-muted-foreground,#737373)]",
+            )}
+          >
+            {state.status.replace(/_/g, " ")}
+          </span>
+        )}
+      </div>
+
+      {state && (
+        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
+          {state.durationMs > 0 && (
+            <>
+              <dt className="text-[var(--stgm-muted-foreground,#737373)]">Duration</dt>
+              <dd className="text-[var(--stgm-foreground,#1a1a2e)]">{formatDuration(state.durationMs)}</dd>
+            </>
+          )}
+          {state.attemptNumber > 1 && (
+            <>
+              <dt className="text-[var(--stgm-muted-foreground,#737373)]">Attempt</dt>
+              <dd className="text-[var(--stgm-foreground,#1a1a2e)]">{state.attemptNumber}</dd>
+            </>
+          )}
+          {state.error && (
+            <>
+              <dt className="text-[var(--stgm-muted-foreground,#737373)]">Error</dt>
+              <dd className="text-[var(--stgm-destructive,#ef4444)] break-words">{state.error}</dd>
+            </>
+          )}
+        </dl>
+      )}
+    </div>
+  );
+}
+
+function formatDuration(ms: number): string {
+  if (ms < 1000) return `${ms}ms`;
+  if (ms < 60_000) return `${(ms / 1000).toFixed(1)}s`;
+  const mins = Math.floor(ms / 60_000);
+  const secs = Math.round((ms % 60_000) / 1000);
+  return `${mins}m ${secs}s`;
+}
+
+// ---------------------------------------------------------------------------
+// Collapsible timeline panel (T04)
+// ---------------------------------------------------------------------------
+
+function TimelinePanel({
+  events,
+  streamState,
+  onNavigateToAgentExecution,
+  taskStates,
+  onSubmitTaskApproval,
+  isSubmittingApproval,
+}: {
+  events: WorkflowExecutionTimelineProps["events"];
+  streamState: WorkflowExecutionTimelineProps["streamState"];
+  onNavigateToAgentExecution?: (id: string) => void;
+  taskStates: ReadonlyMap<string, DerivedTaskState>;
+  onSubmitTaskApproval: WorkflowExecutionTimelineProps["onSubmitTaskApproval"];
+  isSubmittingApproval: boolean;
+}) {
+  const [collapsed, setCollapsed] = useState(true);
+
+  return (
+    <div className="border-t border-[var(--stgm-border,#e5e5e5)]">
+      <button
+        type="button"
+        onClick={() => setCollapsed(!collapsed)}
+        className="flex w-full items-center gap-2 px-4 py-2 text-xs font-medium text-[var(--stgm-muted-foreground,#737373)] hover:bg-[var(--stgm-muted,#f5f5f5)]"
+      >
+        <svg
+          width="10"
+          height="10"
+          viewBox="0 0 10 10"
+          className={cn("transition-transform", !collapsed && "rotate-180")}
+          aria-hidden="true"
+        >
+          <path d="M2 4L5 7L8 4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        Event Timeline ({events.length} events)
+      </button>
+
+      {!collapsed && (
+        <WorkflowExecutionTimeline
+          events={events}
+          streamState={streamState}
+          onNavigateToAgentExecution={onNavigateToAgentExecution}
+          taskStates={taskStates}
+          onSubmitTaskApproval={onSubmitTaskApproval}
+          isSubmittingApproval={isSubmittingApproval}
+          className="h-64 border-t border-[var(--stgm-border,#e5e5e5)]"
+        />
+      )}
     </div>
   );
 }

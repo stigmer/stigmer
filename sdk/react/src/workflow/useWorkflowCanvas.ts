@@ -25,10 +25,7 @@ import {
 import { TASK_KIND_DRAG_MIME } from "./WorkflowTaskPalette";
 import {
   DAGRE_CONFIG,
-  CANVAS_NODE_WIDTH,
   CANVAS_NODE_HEIGHT,
-  SENTINEL_NODE_WIDTH,
-  SENTINEL_NODE_HEIGHT,
 } from "./canvas-constants";
 import type { GraphCommand } from "./graph-commands";
 import {
@@ -52,8 +49,7 @@ import { graphToYaml } from "./workflow-graph-conversions";
 import { useTaskKindRegistry } from "./useTaskKindRegistry";
 import type { TaskKindDescriptor } from "./types";
 import { useGraphHistory } from "./useGraphHistory";
-import { useWorkflowLayout } from "./layout";
-import dagre from "@dagrejs/dagre";
+import { useWorkflowLayout, applyDagreLayout } from "./layout";
 
 /** Selection state for the canvas inspector. */
 export interface CanvasSelection {
@@ -848,41 +844,10 @@ export function useWorkflowCanvas(
 }
 
 // ---------------------------------------------------------------------------
-// Synchronous dagre layout for initial YAML parse (avoids blank canvas flash)
+// Synchronous dagre layout — delegated to shared utility (T04 extraction)
 // ---------------------------------------------------------------------------
 
-function applyDagreLayout(graph: WorkflowGraphModel): WorkflowGraphModel {
-  const g = new dagre.graphlib.Graph();
-  g.setGraph({ rankdir: DAGRE_CONFIG.rankdir, ranksep: DAGRE_CONFIG.ranksep, nodesep: DAGRE_CONFIG.nodesep });
-  g.setDefaultEdgeLabel(() => ({}));
-
-  for (const node of graph.nodes) {
-    const isSentinel = node.id === START_NODE_ID || node.id === END_NODE_ID;
-    g.setNode(node.id, {
-      width: isSentinel ? SENTINEL_NODE_WIDTH : CANVAS_NODE_WIDTH,
-      height: isSentinel ? SENTINEL_NODE_HEIGHT : CANVAS_NODE_HEIGHT,
-    });
-  }
-
-  for (const edge of graph.edges) {
-    g.setEdge(edge.source, edge.target);
-  }
-
-  dagre.layout(g);
-
-  const layoutNodes: WorkflowGraphNode[] = graph.nodes.map((node) => {
-    const dagreNode = g.node(node.id);
-    const isSentinel = node.id === START_NODE_ID || node.id === END_NODE_ID;
-    const w = isSentinel ? SENTINEL_NODE_WIDTH : CANVAS_NODE_WIDTH;
-    const h = isSentinel ? SENTINEL_NODE_HEIGHT : CANVAS_NODE_HEIGHT;
-    return {
-      ...node,
-      position: {
-        x: (dagreNode?.x ?? 0) - w / 2,
-        y: (dagreNode?.y ?? 0) - h / 2,
-      },
-    };
-  });
-
-  return { ...graph, nodes: layoutNodes };
-}
+// Re-exported from layout module. The shared utility uses per-node dimensions
+// from the visual registry instead of the hardcoded CANVAS_NODE_WIDTH/HEIGHT
+// constants that were previously used here.
+// See: sdk/react/src/workflow/layout/apply-dagre-layout.ts

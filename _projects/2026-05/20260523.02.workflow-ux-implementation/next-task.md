@@ -68,10 +68,23 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-23 14:12
-**Current Task**: T01 + T03 Complete — Ready for T02
+**Current Task**: T04 Complete — Ready for T05 (Runtime Inspector) or T08–T11 (Editor Interactions)
 **Status**: In Progress
 
 ## Session Progress (2026-05-23)
+
+### T02: NodeShell Component — COMPLETED
+- Replaced `CanvasTaskNode.tsx` (374 lines) with decomposed `WorkflowNode` architecture
+- Created `node-shell/` sub-module: `NodeShell`, `NodeContent`, `NodeHandles`, `NodeActions`, `shape-paths`
+- `NodeShell` dispatches hybrid rendering: CSS for rectangular shapes, SVG `<path>` for diamond/octagon/circle/bar
+- `NodeContent` adapts layout per visual class (compact centered for SVG shapes, flex-column for cards)
+- `NodeHandles` generalizes port rendering from the visual registry's `PortPattern`
+- `NodeActions` extracts design-mode interaction affordances (toolbar, picker, hover buttons)
+- Fixed `toReactFlowElements()` dimension gap: now uses `visualSpec.defaultWidth/Height` instead of hardcoded constants
+- 30 new unit tests (shape path validity, content insets, SVG class set)
+- 6 new E2E tests (SVG presence for non-rectangular, absence for cards, selection ring, dimensions)
+- All 183 workflow unit tests pass, zero regressions
+- Committed as `e9f2a1ef3`
 
 ### T03: ELK Layout Pipeline — COMPLETED (parallel session)
 - Created full layout module at `sdk/react/src/workflow/layout/` (8 source files + 4 test files)
@@ -112,25 +125,51 @@ When starting a new session:
 - `--stgm-chart-amber` token doesn't exist in `tokens.css` but is referenced by `BranchConditionBuilder.tsx`
 - Canvas is completely untested surface area — T01 added the first data attributes and E2E infrastructure
 
+### T04: Read-Only Execution Canvas — COMPLETED
+- Introduced `WorkflowGraphModeContext` providing `"design" | "overview" | "execution"` mode
+- Extracted `applyDagreLayout` from private function into shared `layout/apply-dagre-layout.ts` with visual-registry-aware per-node dimensions
+- Extended `CanvasTaskNodeData` with `executionState?: NodeExecutionState` (7 statuses + "not_reached")
+- Extended `NodeShell` with `executionStatus` prop: status-driven border/opacity/stroke for both CSS and SVG shells
+- Created `ExecutionBadge` — WCAG-compliant status badge (text/icon, never color-only)
+- Modified `WorkflowNode` for mode awareness: hides `NodeActions` in execution mode, shows `ExecutionBadge`
+- Built `useWorkflowExecutionGraph` hook: full pipeline from execution → workflow fetch → serialize → yamlToGraph → layout → merge DerivedTaskState
+- Created `WorkflowExecutionGraph` — read-only React Flow canvas with auto-fit, follow-execution, minimap, zoom controls
+- Restructured `WorkflowExecutionViewer`: graph primary, inspector stub right, collapsible timeline bottom
+- Modified `CanvasTransitionEdge` for mode awareness: hides insert button in non-design modes
+- 7 new files, 8 modified files
+- Unit tests for layout utility and state merging
+- 6 E2E tests for execution graph rendering
+
 ## Next Steps
 
-1. **T02: NodeShell Component — Shape Rendering** — direct successor to T01+T03. Uses `getVisualSpec(kind).visualClass` for shapes, and layout engine uses `getVisualSpec(kind).defaultWidth/defaultHeight` for sizing.
-2. Wire `getNodeDimensions` from T01 registry into `useWorkflowLayout` hook (trivial — just pass the function)
-3. Enable ELK in client-apps by providing `workerFactory` to `createElkLayoutEngine` (infrastructure ready)
-4. T04 (Execution Canvas) depends on T02 completing
+1. **T05: Runtime Inspector Panel** — Replace inspector stub with full tabbed inspector (Input/Output/Stream/Error/Retries/Logs/Raw)
+2. **T06: Branch and Parallel Execution Highlighting** — Taken/untaken branch dimming, fork N/M progress
+3. **T07: Execution Waterfall Timeline** — Bottom panel redesign with waterfall bars
+4. Wire `getNodeDimensions` from T01 registry into `useWorkflowLayout` hook
+5. Enable ELK in client-apps by providing `workerFactory` to `createElkLayoutEngine`
+6. **T08–T11: Editor Interactions** — Contextual task picker, branch management, inspector refactor, context menus
 
 ## Context for Resume
 
-- T01 introduced `kind-metadata.ts` and `task-type-visual-registry.ts` in `sdk/react/src/workflow/`
-- `CanvasTaskNode.tsx` now reads `data.visualClass` and `data.displayName` from node data — but still renders the same card shape (T02 changes the rendering)
-- The `categorizeKind` re-export in `workflow-graph-conversions.ts` ensures backward compatibility for any code that imported it from there
-- E2E tests are in the `interactive` tier (require backend) — not in default `make test-e2e` (functional only)
+- T04 introduced `WorkflowGraphModeContext` — defaults to `"design"` for backward compatibility
+- `WorkflowNode` reads mode from context: design → NodeActions; execution → ExecutionBadge
+- `NodeShellProps` now includes optional `executionStatus` — applies border/opacity per status
+- `CanvasTaskNodeData.executionState` is optional — absent means design mode, present means execution
+- `applyDagreLayout` is now exported from `layout/` barrel — used by both editor and execution graph
+- `WorkflowExecutionGraph` is a standalone SDK component (`executionId` prop only)
+- `WorkflowExecutionViewer` layout: graph (flex-1) | inspector stub (w-64) on top; collapsible timeline below
+- `CanvasTransitionEdge` hides insert button unless `mode === "design"`
+- Data path: `execution.spec.workflowId` → `stigmer.workflow.get()` → `serializeWorkflowYaml` → `yamlToGraph` → `applyDagreLayout` → `toReactFlowElements`
+- Version mismatch detection compares `status.tasks[]` task names vs graph nodes
+- E2E tests in `interactive` tier: `workflow-execution-graph.spec.ts`
+- All exports added to `sdk/react/src/workflow/index.ts`
 
 ## Quick Commands
 
 After loading context:
-- "Start T02" - Begin NodeShell component implementation
-- "Start T03" - Begin ELK layout pipeline (parallelizable with T02)
+- "Start T05" - Begin runtime inspector panel
+- "Start T06" - Begin branch highlighting
+- "Start T08" - Begin contextual task picker fix
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 

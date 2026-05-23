@@ -31,6 +31,12 @@ export { useWorkflowLayout } from "./use-workflow-layout";
 export type { UseWorkflowLayoutOptions, UseWorkflowLayoutReturn } from "./use-workflow-layout";
 
 // ---------------------------------------------------------------------------
+// Synchronous layout utility (shared by editor and execution graph)
+// ---------------------------------------------------------------------------
+
+export { applyDagreLayout } from "./apply-dagre-layout";
+
+// ---------------------------------------------------------------------------
 // Preprocessor (exported for advanced use cases and testing)
 // ---------------------------------------------------------------------------
 

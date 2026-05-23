@@ -430,9 +430,37 @@ export {
   createDagreLayoutEngine,
   createElkLayoutEngine,
   useWorkflowLayout,
+  applyDagreLayout,
   preprocessForElk,
   ELK_WORKFLOW_DEFAULTS,
   computePortAssignments,
   computeNodePorts,
   postprocessElkResult,
 } from "./layout";
+
+// T04: Execution graph — mode context
+export {
+  WorkflowGraphModeProvider,
+  useWorkflowGraphMode,
+  type WorkflowGraphMode,
+  type WorkflowGraphModeProviderProps,
+} from "./WorkflowGraphModeContext";
+
+// T04: Execution graph — types
+export type {
+  NodeExecutionStatus,
+  NodeExecutionState,
+} from "./workflow-graph-conversions";
+
+// T04: Execution graph — behavior hook
+export {
+  useWorkflowExecutionGraph,
+  type UseWorkflowExecutionGraphOptions,
+  type UseWorkflowExecutionGraphReturn,
+} from "./useWorkflowExecutionGraph";
+
+// T04: Execution graph — styled component
+export {
+  WorkflowExecutionGraph,
+  type WorkflowExecutionGraphProps,
+} from "./WorkflowExecutionGraph";
