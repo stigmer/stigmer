@@ -128,6 +128,7 @@ export async function callAgentAction(
         spec: create(SessionSpecSchema, {
           agentInstanceId: defaultInstanceId,
           harness,
+          subject: "Auto-created session",
         }),
       }),
     );
