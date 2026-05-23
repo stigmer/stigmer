@@ -197,6 +197,16 @@ export async function callAgentAction(
   const parentQueue = runtimeEnv["__stigmer_activity_task_queue"] as string | undefined;
   const activityTaskQueue = parentQueue?.startsWith("wfexec:") ? parentQueue : "";
 
+  const hasModel = !!resolved.config?.model;
+  const hasOutputSchema = !!resolved.output?.schema;
+
+  let executionConfig: Record<string, unknown> | undefined;
+  if (hasModel || hasOutputSchema) {
+    executionConfig = {};
+    if (hasModel) executionConfig.modelName = resolved.config!.model;
+    if (hasOutputSchema) executionConfig.structuredOutputSchema = resolved.output!.schema;
+  }
+
   const executionSpec = create(AgentExecutionSpecSchema, {
     sessionId,
     agentId,
@@ -205,9 +215,7 @@ export async function callAgentAction(
     parentWorkflowId,
     activityTaskQueue,
     runtimeEnv: runtimeEnvProto,
-    ...(resolved.config?.model
-      ? { executionConfig: { modelName: resolved.config.model } as any }
-      : {}),
+    ...(executionConfig ? { executionConfig: executionConfig as any } : {}),
   });
 
   try {

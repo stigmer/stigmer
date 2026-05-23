@@ -197,15 +197,27 @@ When starting a new session:
 - Backend follow-ups documented in `checkpoints/t07-waterfall-backend-followups.md`
 - No client-app changes needed (DD-016 verified)
 
+### Agent Call Strategy Implementation — COMPLETED (separate session)
+- Implemented 6-part agent call architecture strategy from plan `agent_call_strategy_0d3e60ec.plan.md`
+- **Workflow YAMLs**: Added `harness: cursor` and `config.model: "claude-sonnet-4"` to all 9 agent_call tasks across 3 Tiny Tactics workflows
+- **Proxy headers**: Added `workflowExecutionId` to `buildProxyHeaders` for correct workflow LLM billing via `X-Stigmer-Workflow-Execution-Id`
+- **LLM via LangChain**: Rewrote `call-llm.ts` from raw `fetch()` to LangChain `ChatModel` with streaming + `withStructuredOutput()`
+- **Proto change**: Added `google.protobuf.Struct structured_output_schema = 7` to `ExecutionConfig`
+- **Native structured output**: Wired `responseFormat` through `call-agent.ts` → `execute-deep-agent/setup.ts` (Zod schema from JSON Schema → `createDeepAgent({ responseFormat })`) → `execute-deep-agent/index.ts` (extracts `structuredResponse` from graph state)
+- **Cursor structured output**: 3-tier extraction in `execute-cursor/index.ts` (prompt injection → JSON parse → extraction LLM fallback) + `call-agent.ts` task builder pre-retry extraction
+- **Go result transform**: Changed activity stubs to `RunnerActivityResult` (`map[string]interface{}`), added `buildCallbackResult()` with `structured`, `final_text`, `usage_summary` pass-through
+- **Post-commit required**: `make protos && make codegen` to regenerate TS/Go/Java stubs from proto change
+
 ## Next Steps
 
 1. ~~**T06: Branch and Parallel Execution Highlighting** — Taken/untaken branch dimming, fork N/M progress~~ DONE
 2. ~~Wire `getNodeDimensions` from T01 registry (see `checkpoints/t03-deferred-wiring.md`)~~ DONE
 3. ~~**T07: Execution Waterfall Timeline** — Bottom panel redesign with waterfall bars~~ DONE
-4. **Backend follow-up: Waterfall enrichment** — Agent call events, task retrying events, queue delay, streaming phases, push delivery (see `checkpoints/t07-waterfall-backend-followups.md`)
-5. **Backend follow-up: Runner I/O population** — Populate full `WorkflowTask` I/O on status (see `checkpoints/t05-runner-io-followup.md` and `checkpoints/runner-task-io-followups.md`)
-6. Enable ELK in client-apps via `workerFactory` (see `checkpoints/t03-deferred-wiring.md`)
-7. **T08–T11: Editor Interactions** — Contextual task picker, branch management, inspector refactor, context menus
+4. **Run `make protos && make codegen`** — Regenerate TS/Go/Java stubs from `structured_output_schema` proto change
+5. **Backend follow-up: Waterfall enrichment** — Agent call events, task retrying events, queue delay, streaming phases, push delivery (see `checkpoints/t07-waterfall-backend-followups.md`)
+6. **Backend follow-up: Runner I/O population** — Populate full `WorkflowTask` I/O on status (see `checkpoints/t05-runner-io-followup.md` and `checkpoints/runner-task-io-followups.md`)
+7. Enable ELK in client-apps via `workerFactory` (see `checkpoints/t03-deferred-wiring.md`)
+8. **T08–T11: Editor Interactions** — Contextual task picker, branch management, inspector refactor, context menus
 
 ## Context for Resume
 

@@ -297,6 +297,10 @@ async function executeCursor(
       }
     }
 
+    // Phase 9b: Detect structured output schema from execution config
+    const structuredOutputSchema = spec.executionConfig?.structuredOutputSchema as
+      Record<string, unknown> | undefined;
+
     // Phase 10: Build the prompt
     const sessionMemory = session?.status?.sessionMemory;
     const interactionMode = spec.executionConfig?.interactionMode
@@ -319,9 +323,16 @@ async function executeCursor(
       interactionMode,
     });
 
-    // Phase 10a: Log Stigmer preamble size for context trimming diagnostics
-    const promptChars = prompt.length;
-    const promptEstimatedTokens = estimateTokens(prompt);
+    // Phase 10a: Inject structured output instruction for Cursor harness
+    let effectivePrompt = prompt;
+    if (structuredOutputSchema) {
+      const schemaStr = JSON.stringify(structuredOutputSchema, null, 2);
+      effectivePrompt += `\n\n---\nCRITICAL OUTPUT REQUIREMENT:\nYour final response MUST be a single valid JSON object (no markdown, no commentary, no code fences) that matches this schema:\n${schemaStr}\n\nRespond with ONLY the JSON object. Nothing else.`;
+    }
+
+    // Phase 10a2: Log Stigmer preamble size for context trimming diagnostics
+    const promptChars = effectivePrompt.length;
+    const promptEstimatedTokens = estimateTokens(effectivePrompt);
     console.log(
       `ExecuteCursor prompt built: execution=${executionId}, ` +
       `chars=${promptChars}, estimatedTokens=${promptEstimatedTokens}, ` +
@@ -351,7 +362,7 @@ async function executeCursor(
     let platformStopSignaled = false;
     let firstTurnAttributionLogged = false;
 
-    const run = await resolution.agent.send(prompt, {
+    const run = await resolution.agent.send(effectivePrompt, {
       onDelta: ({ update }) => {
         if (update.type === "turn-ended" && update.usage) {
           usageAccumulator.addTurn(update.usage);
@@ -566,15 +577,66 @@ async function executeCursor(
     // Phase 13b: Emit billing records for cursor usage
     await emitBillingRecords(client, executionId, usageAccumulator, sdkResolvedModel);
 
+    // Phase 13c: Extract structured output for Cursor harness
+    let structuredOutput: unknown = undefined;
+    let finalText: string | undefined;
+
+    if (status.phase === ExecutionPhase.EXECUTION_COMPLETED) {
+      // Extract final AI message text
+      const lastAiMsg = [...status.messages]
+        .reverse()
+        .find(m => m.type === MessageType.MESSAGE_AI);
+      finalText = lastAiMsg?.content;
+
+      if (structuredOutputSchema && finalText) {
+        // Tier 1: Try direct JSON parse
+        try {
+          structuredOutput = JSON.parse(finalText);
+        } catch {
+          // Tier 2: Try extracting JSON from markdown fences or surrounding text
+          const jsonMatch = finalText.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
+          if (jsonMatch) {
+            try {
+              structuredOutput = JSON.parse(jsonMatch[1]);
+            } catch {
+              // fall through to extraction LLM
+            }
+          }
+        }
+
+        if (structuredOutput === undefined) {
+          // Tier 2b: Extraction LLM fallback
+          try {
+            structuredOutput = await extractStructuredOutput(
+              finalText, structuredOutputSchema, config,
+            );
+          } catch (extractErr) {
+            console.warn(
+              `ExecuteCursor structured output extraction failed (non-fatal): execution=${executionId}`,
+              extractErr instanceof Error ? extractErr.message : extractErr,
+            );
+          }
+        }
+      }
+    }
+
     // Phase 14: Build and persist session memory
     await maybePeristSessionMemory(client, sessionId, session, status, userMessage);
 
     console.log(
-      `ExecuteCursor completed: execution=${executionId}, phase=${ExecutionPhase[status.phase]}` +
+      `ExecuteCursor completed: execution=${executionId}, phase=${ExecutionPhase[status.phase]}, ` +
+      `hasStructuredOutput=${structuredOutput !== undefined}` +
         (status.error ? `, error=${status.error}` : ""),
     );
 
-    return slimStatus(status);
+    const slim = slimStatus(status) as Record<string, unknown>;
+    if (structuredOutput !== undefined) {
+      slim.structured_output = structuredOutput;
+    }
+    if (finalText !== undefined) {
+      slim.final_text = finalText;
+    }
+    return slim;
 
   } catch (err) {
     if (err instanceof CancelledFailure) {
@@ -635,6 +697,95 @@ async function executeCursor(
 
     return slimStatus(status);
   }
+}
+
+// ---------------------------------------------------------------------------
+// Structured Output Extraction (Cursor Harness Tier 2)
+// ---------------------------------------------------------------------------
+
+/**
+ * Extract structured data from an agent's free-text response using a
+ * cheap extraction LLM call. Uses haiku-level model with
+ * withStructuredOutput for guaranteed valid JSON.
+ */
+async function extractStructuredOutput(
+  agentResponse: string,
+  schema: Record<string, unknown>,
+  config: Config,
+): Promise<unknown | null> {
+  const { ChatOpenAI } = await import("@langchain/openai");
+  const { z } = await import("zod");
+  const { resolveProxyBaseUrl, buildProxyHeaders } = await import("../../shared/llm-proxy.js");
+  const { getSummarizationModel } = await import("../../shared/model-registry.js");
+
+  const extractionModel = await getSummarizationModel("claude-sonnet-4-20250514");
+
+  const proxyEndpoint = config.proxyEndpoint ?? config.stigmerBackendEndpoint;
+  const baseUrl = resolveProxyBaseUrl(proxyEndpoint, "openai");
+  const headers = config.stigmerToken
+    ? buildProxyHeaders(config.stigmerToken, {})
+    : {};
+
+  const llm = new ChatOpenAI({
+    model: extractionModel,
+    temperature: 0,
+    maxTokens: 4096,
+    configuration: {
+      baseURL: baseUrl,
+      defaultHeaders: headers,
+    },
+  });
+
+  const zodSchema = jsonSchemaToZodForExtraction(schema);
+  const structured = llm.withStructuredOutput(zodSchema);
+
+  const result = await structured.invoke([
+    { role: "system", content: "Extract the structured data from the agent's response. Return only the data that matches the schema." },
+    { role: "user", content: agentResponse },
+  ]);
+
+  return result ?? null;
+}
+
+/**
+ * Convert JSON Schema to Zod for extraction LLM withStructuredOutput.
+ */
+function jsonSchemaToZodForExtraction(schema: Record<string, unknown>): z.ZodType {
+  const { z } = require("zod") as typeof import("zod");
+  return _convertJsonSchemaToZod(schema, z);
+}
+
+function _convertJsonSchemaToZod(schema: Record<string, unknown>, zod: typeof import("zod").z): z.ZodType {
+  const type = schema.type as string | undefined;
+
+  if (type === "object") {
+    const properties = schema.properties as Record<string, Record<string, unknown>> | undefined;
+    const required = new Set(schema.required as string[] | undefined ?? []);
+    if (!properties) return zod.object({}).passthrough();
+
+    const shape: Record<string, z.ZodType> = {};
+    for (const [key, propSchema] of Object.entries(properties)) {
+      let fieldType = _convertJsonSchemaToZod(propSchema, zod);
+      if (!required.has(key)) fieldType = fieldType.optional();
+      shape[key] = fieldType;
+    }
+    return zod.object(shape).passthrough();
+  }
+
+  if (type === "array") {
+    const items = schema.items as Record<string, unknown> | undefined;
+    return zod.array(items ? _convertJsonSchemaToZod(items, zod) : zod.unknown());
+  }
+
+  if (type === "string") {
+    const enumValues = schema.enum as string[] | undefined;
+    if (enumValues?.length) return zod.enum(enumValues as [string, ...string[]]);
+    return zod.string();
+  }
+
+  if (type === "number" || type === "integer") return zod.number();
+  if (type === "boolean") return zod.boolean();
+  return zod.unknown();
 }
 
 // ---------------------------------------------------------------------------

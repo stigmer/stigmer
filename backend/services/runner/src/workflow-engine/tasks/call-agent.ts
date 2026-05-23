@@ -115,6 +115,32 @@ export class CallAgentTaskBuilder implements TaskBuilder {
             original_output: lastResult,
           };
         }
+
+        // ON_INVALID_RETRY: Before burning a full retry, try extracting
+        // structured data from final_text if available (saves ~50-500x
+        // cost vs full agent re-execution when the agent produced correct
+        // data with formatting issues).
+        if (
+          onInvalid === "ON_INVALID_RETRY" &&
+          lastResult.final_text &&
+          !lastResult.structured &&
+          ctx.extractStructuredOutput
+        ) {
+          const extracted = await ctx.extractStructuredOutput(
+            lastResult.final_text,
+            outputContract.schema,
+          );
+          if (extracted) {
+            const enriched = enrichResultWithCost({
+              ...lastResult,
+              structured: extracted,
+            });
+            const revalidation = validateAgentCallOutput(enriched, outputContract.schema);
+            if (revalidation.valid) {
+              return enriched;
+            }
+          }
+        }
       } while (attempts <= maxRetries);
 
       throw new Error(

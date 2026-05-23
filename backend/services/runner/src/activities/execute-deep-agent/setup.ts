@@ -13,6 +13,7 @@ import { ChatAnthropic } from "@langchain/anthropic";
 import { ChatOpenAI } from "@langchain/openai";
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import type { BaseCheckpointSaver } from "@langchain/langgraph-checkpoint";
+import { z } from "zod";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AgentGraph = any;
 
@@ -85,6 +86,7 @@ export interface SetupResult {
   readonly approvalPolicies: ReadonlyMap<string, MergedToolPolicy>;
   readonly toolServerMap: ReadonlyMap<string, string>;
   readonly autoApproveAll: boolean;
+  readonly hasStructuredOutput: boolean;
 }
 
 export interface SetupDependencies {
@@ -346,6 +348,13 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
 
     // Step 12: Create the agent graph with middleware
     await reportSetupProgress(client, executionId, "Creating agent…");
+
+    const outputSchema = execution.spec!.executionConfig?.structuredOutputSchema;
+    let responseFormat: z.ZodType | undefined;
+    if (outputSchema) {
+      responseFormat = jsonSchemaToZod(outputSchema as unknown as Record<string, unknown>);
+    }
+
     const agentGraph = await createDeepAgent({
       model,
       checkpointer: checkpointer as any,
@@ -354,10 +363,14 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       tools,
       middleware: middleware as any,
       subagents: compiledSubagents ?? undefined,
+      ...(responseFormat ? { responseFormat } : {}),
     } as Parameters<typeof createDeepAgent>[0]);
 
     // Step 11: Prepare invocation input and config
-    const userMessage = execution.spec!.message;
+    let userMessage = execution.spec!.message;
+    if (outputSchema) {
+      userMessage += `\n\n---\nIMPORTANT: When your analysis is complete, provide your findings as structured output matching the required schema. The system will capture your structured response automatically.`;
+    }
     const langgraphInput = {
       messages: [{ role: "user", content: userMessage }],
     };
@@ -390,6 +403,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       approvalPolicies,
       toolServerMap,
       autoApproveAll,
+      hasStructuredOutput: !!outputSchema,
     };
   } catch (err) {
     if (mcpConnection) {
@@ -520,6 +534,50 @@ async function provisionWorkspace(
   }
 
   return { workspaceBackend, provisionResults };
+}
+
+/**
+ * Convert a JSON Schema object to a Zod schema for use with deepagents
+ * responseFormat. Handles the subset used by workflow output schemas.
+ */
+function jsonSchemaToZod(schema: Record<string, unknown>): z.ZodType {
+  const type = schema.type as string | undefined;
+
+  if (type === "object") {
+    const properties = schema.properties as Record<string, Record<string, unknown>> | undefined;
+    const required = new Set(schema.required as string[] | undefined ?? []);
+
+    if (!properties) return z.object({}).passthrough();
+
+    const shape: Record<string, z.ZodType> = {};
+    for (const [key, propSchema] of Object.entries(properties)) {
+      let fieldType = jsonSchemaToZod(propSchema);
+      if (!required.has(key)) {
+        fieldType = fieldType.optional();
+      }
+      shape[key] = fieldType;
+    }
+    return z.object(shape).passthrough();
+  }
+
+  if (type === "array") {
+    const items = schema.items as Record<string, unknown> | undefined;
+    return z.array(items ? jsonSchemaToZod(items) : z.unknown());
+  }
+
+  if (type === "string") {
+    const enumValues = schema.enum as string[] | undefined;
+    if (enumValues && enumValues.length > 0) {
+      return z.enum(enumValues as [string, ...string[]]);
+    }
+    return z.string();
+  }
+
+  if (type === "number" || type === "integer") return z.number();
+  if (type === "boolean") return z.boolean();
+  if (type === "null") return z.null();
+
+  return z.unknown();
 }
 
 /**

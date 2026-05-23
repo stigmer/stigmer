@@ -194,15 +194,48 @@ export function createDeepAgentActivities(config: Config) {
         initialStatus.completedAt = utcTimestamp();
         await persistStatus(client, executionId, initialStatus);
 
+        // Extract structured output from LangGraph state when responseFormat was used
+        let structuredOutput: unknown = undefined;
+        let finalText: string | undefined;
+
+        if (setup.hasStructuredOutput) {
+          try {
+            const graphState = await setup.agentGraph.getState(setup.langgraphConfig);
+            if (graphState?.values?.structuredResponse !== undefined) {
+              structuredOutput = graphState.values.structuredResponse;
+            }
+          } catch (err) {
+            console.warn(
+              `[ExecuteDeepAgent] Failed to extract structured output (non-fatal): ${err}`,
+            );
+          }
+        }
+
+        // Extract final AI message text
+        const lastAiMsg = [...initialStatus.messages]
+          .reverse()
+          .find(m => m.type === MessageType.MESSAGE_AI);
+        if (lastAiMsg) {
+          finalText = lastAiMsg.content;
+        }
+
         console.log(
           `[ExecuteDeepAgent] Completed for execution ${executionId}: ` +
           `events=${result.eventsProcessed}, ` +
           `messages=${initialStatus.messages.length}, ` +
           `artifacts=${initialStatus.artifacts.length}, ` +
-          `writebacks=${initialStatus.workspaceWriteBacks.length}`,
+          `writebacks=${initialStatus.workspaceWriteBacks.length}, ` +
+          `hasStructuredOutput=${structuredOutput !== undefined}`,
         );
 
-        return slimStatus(initialStatus);
+        const slim = slimStatus(initialStatus) as Record<string, unknown>;
+        if (structuredOutput !== undefined) {
+          slim.structured_output = structuredOutput;
+        }
+        if (finalText !== undefined) {
+          slim.final_text = finalText;
+        }
+        return slim;
 
       } catch (err: unknown) {
         if (err instanceof CancelledFailure) {
