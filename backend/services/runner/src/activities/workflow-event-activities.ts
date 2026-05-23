@@ -34,7 +34,7 @@ import { WorkflowExecutionStatusSchema, WorkflowTaskSchema } from "@stigmer/prot
 import {
   WorkflowExecutionUpdateStatusInputSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
-import { ExecutionPhase, WorkflowTaskStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import { ExecutionPhase, WorkflowTaskStatus, WorkflowTaskType } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import type { JsonObject } from "@bufbuild/protobuf";
 import type { WorkflowEventDescriptor } from "../workflow-engine/types.js";
@@ -82,6 +82,47 @@ const TASK_KIND_MAP: Record<string, number> = {
   "call:agent": WorkflowTaskKind.agent_call,
   "human_input": WorkflowTaskKind.human_input,
 };
+
+/**
+ * Maps DSL task kind strings to the runtime WorkflowTaskType enum
+ * for the per-task status snapshot on WorkflowExecutionStatus.tasks[].
+ */
+const TASK_KIND_TO_TYPE_MAP: Record<string, WorkflowTaskType> = {
+  "call:agent": WorkflowTaskType.WORKFLOW_TASK_AGENT_INVOCATION,
+  "call:function:llm": WorkflowTaskType.WORKFLOW_TASK_API_CALL,
+  "call:function:eval": WorkflowTaskType.WORKFLOW_TASK_API_CALL,
+  "call:function:cursor": WorkflowTaskType.WORKFLOW_TASK_AGENT_INVOCATION,
+  "call:http": WorkflowTaskType.WORKFLOW_TASK_API_CALL,
+  "call:grpc": WorkflowTaskType.WORKFLOW_TASK_API_CALL,
+  "call:function": WorkflowTaskType.WORKFLOW_TASK_API_CALL,
+  "human_input": WorkflowTaskType.WORKFLOW_TASK_APPROVAL,
+  "switch": WorkflowTaskType.WORKFLOW_TASK_CONDITIONAL,
+  "fork": WorkflowTaskType.WORKFLOW_TASK_PARALLEL,
+  "for": WorkflowTaskType.WORKFLOW_TASK_PARALLEL,
+  "set": WorkflowTaskType.WORKFLOW_TASK_TRANSFORM,
+  "call:function:transform": WorkflowTaskType.WORKFLOW_TASK_TRANSFORM,
+  "call:function:validate": WorkflowTaskType.WORKFLOW_TASK_TRANSFORM,
+  "try": WorkflowTaskType.WORKFLOW_TASK_CUSTOM,
+  "listen": WorkflowTaskType.WORKFLOW_TASK_CUSTOM,
+  "do": WorkflowTaskType.WORKFLOW_TASK_CUSTOM,
+  "wait": WorkflowTaskType.WORKFLOW_TASK_CUSTOM,
+  "raise": WorkflowTaskType.WORKFLOW_TASK_CUSTOM,
+  "run": WorkflowTaskType.WORKFLOW_TASK_CUSTOM,
+};
+
+/**
+ * Converts a plain JS value to a JsonObject suitable for proto Struct fields.
+ * Returns undefined if the value is not a valid JSON-serializable object.
+ */
+function toJsonObject(value: unknown): JsonObject | undefined {
+  if (value === null || value === undefined) return undefined;
+  if (typeof value !== "object" || Array.isArray(value)) return undefined;
+  try {
+    return JSON.parse(JSON.stringify(value)) as JsonObject;
+  } catch {
+    return undefined;
+  }
+}
 
 function buildClient(): StigmerClient {
   const config = loadConfig();
@@ -271,24 +312,46 @@ export async function emitWorkflowEvents(
     const protoTasks = (taskStatuses ?? []).map(ts =>
       create(WorkflowTaskSchema, {
         taskName: ts.taskName,
+        taskType: TASK_KIND_TO_TYPE_MAP[ts.taskKind] ?? WorkflowTaskType.WORKFLOW_TASK_TYPE_UNSPECIFIED,
         status: TASK_STATUS_MAP[ts.status],
         startedAt: ts.startedAt ?? "",
         completedAt: ts.completedAt ?? "",
         error: ts.error ?? "",
+        input: toJsonObject(ts.input),
+        output: toJsonObject(ts.output),
+        metadata: toJsonObject(ts.metadata),
+        costMicros: BigInt(ts.costMicros ?? 0),
+        inputTokens: BigInt(ts.inputTokens ?? 0),
+        outputTokens: BigInt(ts.outputTokens ?? 0),
       }),
     );
 
     const startedEvent = events.find(e => e.type === "execution_started");
+    const completedEvent = events.find(e => e.type === "execution_completed");
+    const failedEvent = events.find(e => e.type === "execution_failed");
+
+    const statusFields: Record<string, unknown> = { tasks: protoTasks };
+
+    if (startedEvent) {
+      statusFields.phase = ExecutionPhase.EXECUTION_IN_PROGRESS;
+      statusFields.startedAt = startedEvent.occurredAt;
+    }
+    if (completedEvent && completedEvent.type === "execution_completed") {
+      statusFields.phase = ExecutionPhase.EXECUTION_COMPLETED;
+      statusFields.completedAt = completedEvent.occurredAt;
+      statusFields.totalCostMicros = BigInt(completedEvent.totalCostMicros);
+      statusFields.totalInputTokens = BigInt(completedEvent.totalInputTokens ?? 0);
+      statusFields.totalOutputTokens = BigInt(completedEvent.totalOutputTokens ?? 0);
+    }
+    if (failedEvent && failedEvent.type === "execution_failed") {
+      statusFields.phase = ExecutionPhase.EXECUTION_FAILED;
+      statusFields.completedAt = failedEvent.occurredAt;
+      statusFields.error = failedEvent.error;
+    }
 
     const input = create(WorkflowExecutionUpdateStatusInputSchema, {
       executionId,
-      status: create(WorkflowExecutionStatusSchema, {
-        tasks: protoTasks,
-        ...(startedEvent && {
-          phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
-          startedAt: startedEvent.occurredAt,
-        }),
-      }),
+      status: create(WorkflowExecutionStatusSchema, statusFields as Parameters<typeof create>[1]),
       events: protoEvents,
     });
     await client.workflowExecutionCommand.updateStatus(input);

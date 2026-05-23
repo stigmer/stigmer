@@ -255,17 +255,26 @@ export async function runWorkflowEngine(
     const durationMs = Date.now() - executionStartMs;
     recordExecutionEndMetric(model.document.name, true, durationMs);
 
+    const allTasks = taskStatusAccumulator.toArray();
+    const totalCostMicros = allTasks.reduce((sum, t) => sum + (t.costMicros ?? 0), 0);
+    const totalInputTokens = allTasks.reduce((sum, t) => sum + (t.inputTokens ?? 0), 0);
+    const totalOutputTokens = allTasks.reduce((sum, t) => sum + (t.outputTokens ?? 0), 0);
+
     await emitEvents([{
       type: "execution_completed",
       occurredAt: nowIso(),
       durationMs,
-      totalCostMicros: 0,
-      totalTokens: 0,
+      totalCostMicros,
+      totalTokens: totalInputTokens + totalOutputTokens,
+      totalInputTokens,
+      totalOutputTokens,
     }]);
 
     log.info("Serverless workflow execution completed", {
       workflowName: model.document.name,
       durationMs,
+      totalCostMicros,
+      totalTokens: totalInputTokens + totalOutputTokens,
     });
 
     return state.output;
@@ -274,12 +283,14 @@ export async function runWorkflowEngine(
     recordExecutionEndMetric(model.document.name, false, durationMs);
 
     const errorMessage = extractErrorMessage(err);
+    const allTasks = taskStatusAccumulator.toArray();
+    const failedTask = allTasks.find(t => t.status === "failed");
 
     await emitEvents([{
       type: "execution_failed",
       occurredAt: nowIso(),
       error: errorMessage,
-      failedTaskName: "",
+      failedTaskName: failedTask?.taskName ?? "",
       durationMs,
     }]);
 

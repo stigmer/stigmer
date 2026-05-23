@@ -24,6 +24,22 @@ import type {
 import { resolveConfigExpressions } from "../resolve.js";
 import { validateAgentCallOutput } from "./call-agent-output.js";
 
+/**
+ * Enriches an AgentCallResult with __stigmer_* keys so that
+ * extractCostFromOutput (in do-executor) can pick up cost/token data.
+ */
+function enrichResultWithCost(result: AgentCallResult): AgentCallResult {
+  const usage = result.usage_summary;
+  if (!usage) return result;
+
+  return {
+    ...result,
+    __stigmer_cost_micros: Math.round((usage.estimated_cost_usd ?? 0) * 1_000_000),
+    input_tokens: usage.total_tokens ?? 0,
+    output_tokens: 0,
+  } as AgentCallResult;
+}
+
 export class CallAgentTaskBuilder implements TaskBuilder {
   readonly taskName: string;
   readonly taskDef: CallAgentTaskDef;
@@ -71,7 +87,7 @@ export class CallAgentTaskBuilder implements TaskBuilder {
         attempts++;
 
         if (!outputContract?.schema) {
-          return lastResult;
+          return enrichResultWithCost(lastResult);
         }
 
         const validation = validateAgentCallOutput(
@@ -80,7 +96,7 @@ export class CallAgentTaskBuilder implements TaskBuilder {
         );
 
         if (validation.valid) {
-          return lastResult;
+          return enrichResultWithCost(lastResult);
         }
 
         const onInvalid = outputContract.on_invalid ?? "ON_INVALID_FAIL";

@@ -50,6 +50,8 @@ export interface EvalResult {
   criteria?: CriterionResult[];
   model_used: string;
   subject: unknown;
+  input_tokens: number;
+  output_tokens: number;
 }
 
 // ─── Judge Prompt Builders ───────────────────────────────────────────────
@@ -290,6 +292,8 @@ export async function callEvalAction(
         reasoning: parsed.reasoning,
         model_used: llmResult.model,
         subject: config.subject,
+        input_tokens: llmResult.input_tokens,
+        output_tokens: llmResult.output_tokens,
       };
       break;
     }
@@ -301,6 +305,8 @@ export async function callEvalAction(
         reasoning: parsed.reasoning,
         model_used: llmResult.model,
         subject: config.subject,
+        input_tokens: llmResult.input_tokens,
+        output_tokens: llmResult.output_tokens,
       };
       break;
     }
@@ -314,6 +320,8 @@ export async function callEvalAction(
         criteria: criteriaResults,
         model_used: llmResult.model,
         subject: config.subject,
+        input_tokens: llmResult.input_tokens,
+        output_tokens: llmResult.output_tokens,
       };
       break;
     }

@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-23 14:12
-**Last Session**: 2026-05-23 — T05 Runtime Inspector Panel completed
-**Current Task**: T05 Complete — Ready for T06 (Branch Highlighting) or T08 (Contextual Task Picker)
+**Last Session**: 2026-05-23 — Runner Task Status Enrichment completed (unblocks T05 Inspector real data)
+**Current Task**: Runner enrichment complete — Ready for T06 (Branch Highlighting)
 **Status**: In Progress
 
 ## Session Progress (2026-05-23)
@@ -150,6 +150,18 @@ When starting a new session:
 - 44 + 21 unit tests; 6 E2E inspector tests; graceful I/O empty states (runner gap documented)
 - Checkpoints: `t03-deferred-wiring.md`, `t05-runner-io-followup.md`, `2026-05-23-session-t05-inspector.md`
 - Changelog: `_changelog/2026-05/2026-05-23-171719-feat-workflow-runtime-execution-inspector-t05.md`
+
+### Runner Task Status Enrichment — COMPLETED (T05 backend prerequisite)
+- Extended `TaskStatusAccumulator` with input/output/metadata/cost/token fields + `truncatePayload` (64KB cap)
+- Wired `do-executor.ts` to capture pipeline input at task start and output+cost at completion
+- Enriched `call-agent.ts` to inject `__stigmer_cost_micros` and token keys from `usage_summary`
+- Fixed `call-eval.ts` to surface LLM tokens (previously stripped from output)
+- Rewrote `workflow-event-activities.ts` task mapping: full proto with `task_type`, I/O Structs, cost/tokens
+- Fixed `engine-core.ts`: real aggregated totals in `execution_completed`, `failedTaskName` in `execution_failed`
+- Fixed Go server `update_status.go`: merge `total_cost_micros/total_input_tokens/total_output_tokens` in gRPC path
+- 19 new unit tests, 1 new integration test, 0 regressions (540 engine + 190 activity tests pass)
+- Checkpoint: `checkpoints/runner-task-io-followups.md` (8 deferred items)
+- Changelog: `_changelog/2026-05/2026-05-23-180610-feat-workflow-runner-task-status-enrichment.md`
 
 ## Next Steps
 

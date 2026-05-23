@@ -714,6 +714,8 @@ export interface ExecutionCompletedEvent extends EventBase {
   readonly durationMs: number;
   readonly totalCostMicros: number;
   readonly totalTokens: number;
+  readonly totalInputTokens?: number;
+  readonly totalOutputTokens?: number;
 }
 
 export interface ExecutionFailedEvent extends EventBase {

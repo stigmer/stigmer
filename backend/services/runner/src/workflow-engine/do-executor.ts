@@ -37,6 +37,8 @@ import { executeForkTask } from "./tasks/fork.js";
 import { executeTryTask } from "./tasks/try.js";
 import { executeListenTask } from "./tasks/listen.js";
 import { executeHumanInputTask } from "./tasks/human-input.js";
+import { extractCostFromOutput } from "../budget/index.js";
+import { truncatePayload } from "./task-status-accumulator.js";
 
 /**
  * Returns the task kind string used for event emission. For call:function
@@ -120,6 +122,7 @@ export async function executeDoTasks(
     let taskOutput: unknown;
     try {
       const effectiveInput = await resolveTaskInput(entry, input, state, effectiveCtx);
+      effectiveCtx.taskStatusAccumulator?.taskStartedWithInput(entry.key, kind, truncatePayload(effectiveInput));
       taskOutput = await runSingleTask(entry, effectiveInput, state, doc, effectiveCtx);
     } catch (taskErr) {
       const errorMsg = taskErr instanceof Error ? taskErr.message : String(taskErr);
@@ -140,7 +143,10 @@ export async function executeDoTasks(
     }
 
     const taskDurationMs = Date.now() - taskStartMs;
-    effectiveCtx.taskStatusAccumulator?.taskCompleted(entry.key, taskDurationMs);
+    const costInfo = extractCostFromOutput(taskOutput);
+    effectiveCtx.taskStatusAccumulator?.taskCompletedWithResult(
+      entry.key, taskDurationMs, truncatePayload(taskOutput), costInfo,
+    );
     if (effectiveCtx.emitEvents) {
       await effectiveCtx.emitEvents([{
         type: "task_completed",
@@ -148,9 +154,22 @@ export async function executeDoTasks(
         occurredAt: new Date().toISOString(),
         taskKind: kind,
         durationMs: taskDurationMs,
-        costMicros: 0,
-        tokensUsed: 0,
+        costMicros: costInfo.costMicros,
+        tokensUsed: costInfo.inputTokens + costInfo.outputTokens,
       }]);
+    }
+
+    if (kind === "call:agent" && taskOutput && typeof taskOutput === "object") {
+      const agentResult = taskOutput as Record<string, unknown>;
+      const meta: Record<string, unknown> = {};
+      if (agentResult.agent_execution_id) meta.agent_execution_id = agentResult.agent_execution_id;
+      if (agentResult.usage_summary && typeof agentResult.usage_summary === "object") {
+        const usage = agentResult.usage_summary as Record<string, unknown>;
+        if (usage.tool_call_count) meta.tool_call_count = usage.tool_call_count;
+      }
+      if (Object.keys(meta).length > 0) {
+        effectiveCtx.taskStatusAccumulator?.setTaskMetadata(entry.key, meta);
+      }
     }
 
     await processTaskOutput(entry, taskOutput, state, effectiveCtx);
