@@ -38,8 +38,8 @@ export interface LayoutInput {
   readonly pinnedNodeIds?: ReadonlySet<string>;
   /**
    * Provides per-node dimensions for the layout algorithm.
-   * Defaults to fixed constants (CANVAS_NODE_WIDTH/HEIGHT) if not provided.
-   * After T01 completes, this will be wired to the TaskTypeRegistry.
+   * When omitted, engines fall back to fixed CANVAS_NODE_WIDTH/HEIGHT constants.
+   * Pass `registryNodeDimensions` for shape-aware sizing from the visual registry.
    */
   readonly getNodeDimensions?: (node: WorkflowGraphNode) => NodeDimensions;
 }

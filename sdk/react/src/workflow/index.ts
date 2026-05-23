@@ -431,6 +431,7 @@ export {
   createElkLayoutEngine,
   useWorkflowLayout,
   applyDagreLayout,
+  registryNodeDimensions,
   preprocessForElk,
   ELK_WORKFLOW_DEFAULTS,
   computePortAssignments,

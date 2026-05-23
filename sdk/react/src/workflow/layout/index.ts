@@ -37,6 +37,12 @@ export type { UseWorkflowLayoutOptions, UseWorkflowLayoutReturn } from "./use-wo
 export { applyDagreLayout } from "./apply-dagre-layout";
 
 // ---------------------------------------------------------------------------
+// Registry-aware node dimensions (canonical adapter from visual registry)
+// ---------------------------------------------------------------------------
+
+export { registryNodeDimensions } from "./registry-dimensions";
+
+// ---------------------------------------------------------------------------
 // Preprocessor (exported for advanced use cases and testing)
 // ---------------------------------------------------------------------------
 

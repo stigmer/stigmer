@@ -22,8 +22,8 @@ export interface UseWorkflowLayoutOptions {
   fallbackEngine?: LayoutEngine;
   /**
    * Per-node dimension provider. Used by the engine to size nodes correctly.
-   * Defaults to fixed CANVAS_NODE_WIDTH/HEIGHT constants.
-   * After T01, wire this to the TaskTypeRegistry.
+   * Defaults to fixed CANVAS_NODE_WIDTH/HEIGHT constants when omitted.
+   * Pass `registryNodeDimensions` for shape-aware sizing from the visual registry.
    */
   getNodeDimensions?: (node: WorkflowGraphNode) => NodeDimensions;
 }
