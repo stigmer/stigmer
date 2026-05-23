@@ -18,8 +18,10 @@ import type {
   CallAgentTaskDef,
   TaskBuilder,
   TaskExecutorFn,
+  TaskExecutionContext,
   AgentCallConfig,
   AgentCallResult,
+  CallAgentMetadata,
 } from "../types.js";
 import { resolveConfigExpressions } from "../resolve.js";
 import { validateAgentCallOutput } from "./call-agent-output.js";
@@ -83,7 +85,9 @@ export class CallAgentTaskBuilder implements TaskBuilder {
             ? config
             : augmentMessageWithValidationError(config, lastResult!);
 
-        lastResult = await ctx.callAgent(effectiveConfig, state.env, metadata);
+        lastResult = await this.executeAgentCall(
+          effectiveConfig, state.env, metadata, ctx,
+        );
         attempts++;
 
         if (!outputContract?.schema) {
@@ -122,6 +126,69 @@ export class CallAgentTaskBuilder implements TaskBuilder {
         `for task '${this.taskName}'. Schema validation did not pass.`,
       );
     };
+  }
+
+  /**
+   * Executes a single agent call with event emission bracketing.
+   *
+   * Emits `agent_call_started` before dispatching and
+   * `agent_call_completed` after completion (success or failure).
+   * These events drive the waterfall timeline's nested sub-span bars.
+   */
+  private async executeAgentCall(
+    config: AgentCallConfig,
+    env: Record<string, unknown>,
+    metadata: CallAgentMetadata,
+    ctx: TaskExecutionContext,
+  ): Promise<AgentCallResult> {
+    const callStartMs = Date.now();
+    const messageSummary = (config.message ?? "").slice(0, 200);
+
+    if (ctx.emitEvents) {
+      await ctx.emitEvents([{
+        type: "agent_call_started",
+        taskName: this.taskName,
+        occurredAt: new Date().toISOString(),
+        childExecutionId: "",
+        agentSlug: config.agent ?? "",
+        messageSummary,
+      }]);
+    }
+
+    let result: AgentCallResult;
+    try {
+      result = await ctx.callAgent(config, env, metadata);
+    } catch (err) {
+      if (ctx.emitEvents) {
+        await ctx.emitEvents([{
+          type: "agent_call_completed",
+          taskName: this.taskName,
+          occurredAt: new Date().toISOString(),
+          childExecutionId: "",
+          durationMs: Date.now() - callStartMs,
+          tokensConsumed: 0,
+          costMicros: 0,
+          error: err instanceof Error ? err.message : String(err),
+        }]);
+      }
+      throw err;
+    }
+
+    if (ctx.emitEvents) {
+      const usage = result.usage_summary;
+      await ctx.emitEvents([{
+        type: "agent_call_completed",
+        taskName: this.taskName,
+        occurredAt: new Date().toISOString(),
+        childExecutionId: result.agent_execution_id ?? "",
+        durationMs: Date.now() - callStartMs,
+        tokensConsumed: usage?.total_tokens ?? 0,
+        costMicros: Math.round((usage?.estimated_cost_usd ?? 0) * 1_000_000),
+        error: "",
+      }]);
+    }
+
+    return result;
   }
 
   async shouldRun(): Promise<boolean> {

@@ -6,7 +6,7 @@ import {
 
 describe("TaskStatusAccumulator", () => {
   describe("taskStarted", () => {
-    it("records task name, kind, status, and startedAt", () => {
+    it("records task name, kind, status, startedAt, and taskId", () => {
       const acc = new TaskStatusAccumulator();
       acc.taskStarted("myTask", "call:http");
       const [entry] = acc.toArray();
@@ -14,6 +14,7 @@ describe("TaskStatusAccumulator", () => {
       expect(entry.taskKind).toBe("call:http");
       expect(entry.status).toBe("started");
       expect(entry.startedAt).toBeDefined();
+      expect(entry.taskId).toBe("myTask:1");
     });
   });
 
@@ -144,6 +145,60 @@ describe("TaskStatusAccumulator", () => {
       acc.taskStarted("c", "switch");
       const names = acc.toArray().map(e => e.taskName);
       expect(names).toEqual(["a", "b", "c"]);
+    });
+  });
+
+  describe("taskId generation", () => {
+    it("generates taskId as taskName:attemptNumber for first attempt", () => {
+      const acc = new TaskStatusAccumulator();
+      acc.taskStarted("validate", "call:http");
+      expect(acc.toArray()[0].taskId).toBe("validate:1");
+    });
+
+    it("increments attempt on repeated taskStarted calls for the same task", () => {
+      const acc = new TaskStatusAccumulator();
+      acc.taskStarted("flaky", "call:http");
+      expect(acc.toArray()[0].taskId).toBe("flaky:1");
+
+      acc.taskStarted("flaky", "call:http");
+      expect(acc.toArray()[0].taskId).toBe("flaky:2");
+    });
+
+    it("preserves taskId from taskStarted through taskStartedWithInput", () => {
+      const acc = new TaskStatusAccumulator();
+      acc.taskStarted("t1", "call:http");
+      acc.taskStartedWithInput("t1", "call:http", { url: "http://example.com" });
+      expect(acc.toArray()[0].taskId).toBe("t1:1");
+    });
+
+    it("preserves taskId through taskCompletedWithResult", () => {
+      const acc = new TaskStatusAccumulator();
+      acc.taskStarted("t1", "set");
+      acc.taskCompletedWithResult("t1", 100, { greeting: "hi" });
+      expect(acc.toArray()[0].taskId).toBe("t1:1");
+    });
+
+    it("preserves taskId through taskFailed", () => {
+      const acc = new TaskStatusAccumulator();
+      acc.taskStarted("t1", "call:http");
+      acc.taskFailed("t1", "timeout");
+      expect(acc.toArray()[0].taskId).toBe("t1:1");
+    });
+
+    it("assigns unique taskIds across different tasks", () => {
+      const acc = new TaskStatusAccumulator();
+      acc.taskStarted("a", "set");
+      acc.taskStarted("b", "call:http");
+      acc.taskStarted("c", "switch");
+      const ids = acc.toArray().map(e => e.taskId);
+      expect(ids).toEqual(["a:1", "b:1", "c:1"]);
+      expect(new Set(ids).size).toBe(3);
+    });
+
+    it("assigns taskId for skipped tasks", () => {
+      const acc = new TaskStatusAccumulator();
+      acc.taskSkipped("conditional", "condition false");
+      expect(acc.toArray()[0].taskId).toBe("conditional:1");
     });
   });
 });

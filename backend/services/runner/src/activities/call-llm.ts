@@ -31,6 +31,7 @@ import {
   buildProxyHeaders,
   type LlmProvider,
 } from "../shared/llm-proxy.js";
+import { computeLlmCostMicros, ensureLoaded as ensurePricingLoaded } from "../shared/model-pricing.js";
 
 export interface LlmCallConfig {
   readonly model: string;
@@ -296,6 +297,8 @@ export async function callLlmAction(
   const modelId = stripProviderPrefix(config.model);
   const callStart = Date.now();
 
+  await ensurePricingLoaded().catch(() => {});
+
   const proxyEndpoint = process.env.STIGMER_PROXY_ENDPOINT;
   const stigmerToken = process.env.STIGMER_TOKEN;
   const proxyActive = !!(proxyEndpoint && stigmerToken);
@@ -367,8 +370,13 @@ export async function callLlmAction(
     classifyAndThrowLlmError(err, modelId, provider);
   }
 
+  const costMicros = computeLlmCostMicros(modelId, result.input_tokens, result.output_tokens);
+  const enrichedResult = costMicros > 0
+    ? { ...result, __stigmer_cost_micros: costMicros }
+    : result;
+
   recordLlmMetrics(Date.now() - callStart, result);
-  return result;
+  return enrichedResult as LlmCallResult;
 }
 
 async function recordLlmMetrics(durationMs: number, result: LlmCallResult): Promise<void> {

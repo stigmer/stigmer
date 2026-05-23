@@ -11,6 +11,7 @@
 const MAX_PAYLOAD_BYTES = 65_536;
 
 export interface TaskStatusEntry {
+  readonly taskId: string;
   readonly taskName: string;
   readonly taskKind: string;
   readonly status: "started" | "completed" | "failed" | "skipped" | "waiting_approval";
@@ -57,9 +58,23 @@ export function truncatePayload(value: unknown, maxBytes = MAX_PAYLOAD_BYTES): u
 
 export class TaskStatusAccumulator {
   private readonly entries = new Map<string, TaskStatusEntry>();
+  private readonly attemptCounts = new Map<string, number>();
+
+  private nextAttempt(name: string): number {
+    const current = this.attemptCounts.get(name) ?? 0;
+    const next = current + 1;
+    this.attemptCounts.set(name, next);
+    return next;
+  }
+
+  private currentAttempt(name: string): number {
+    return this.attemptCounts.get(name) ?? 1;
+  }
 
   taskStarted(name: string, kind: string): void {
+    const attempt = this.nextAttempt(name);
     this.entries.set(name, {
+      taskId: `${name}:${attempt}`,
       taskName: name,
       taskKind: kind,
       status: "started",
@@ -68,7 +83,9 @@ export class TaskStatusAccumulator {
   }
 
   taskStartedWithInput(name: string, kind: string, input: unknown): void {
+    const attempt = this.currentAttempt(name);
     this.entries.set(name, {
+      taskId: `${name}:${attempt}`,
       taskName: name,
       taskKind: kind,
       status: "started",
@@ -81,6 +98,7 @@ export class TaskStatusAccumulator {
     const existing = this.entries.get(name);
     this.entries.set(name, {
       ...existing,
+      taskId: existing?.taskId ?? `${name}:${this.currentAttempt(name)}`,
       taskName: name,
       taskKind: existing?.taskKind ?? "",
       status: "completed",
@@ -99,6 +117,7 @@ export class TaskStatusAccumulator {
     const existing = this.entries.get(name);
     this.entries.set(name, {
       ...existing,
+      taskId: existing?.taskId ?? `${name}:${this.currentAttempt(name)}`,
       taskName: name,
       taskKind: existing?.taskKind ?? "",
       status: "completed",
@@ -129,6 +148,7 @@ export class TaskStatusAccumulator {
 
     this.entries.set(name, {
       ...existing,
+      taskId: existing?.taskId ?? `${name}:${this.currentAttempt(name)}`,
       taskName: name,
       taskKind: existing?.taskKind ?? "",
       status: "failed",
@@ -142,6 +162,7 @@ export class TaskStatusAccumulator {
   taskSkipped(name: string, reason: string): void {
     const existing = this.entries.get(name);
     this.entries.set(name, {
+      taskId: `${name}:${this.currentAttempt(name)}`,
       taskName: name,
       taskKind: existing?.taskKind ?? "",
       status: "skipped",
@@ -154,6 +175,7 @@ export class TaskStatusAccumulator {
     const existing = this.entries.get(name);
     this.entries.set(name, {
       ...existing,
+      taskId: existing?.taskId ?? `${name}:${this.currentAttempt(name)}`,
       taskName: name,
       taskKind: existing?.taskKind ?? "",
       status: "waiting_approval",

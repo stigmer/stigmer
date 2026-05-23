@@ -24,6 +24,7 @@ import {
   TaskCompletedPayloadSchema,
   TaskFailedPayloadSchema,
   TaskSkippedPayloadSchema,
+  TaskRetryingPayloadSchema,
   ApprovalRequestedPayloadSchema,
   ApprovalResolvedPayloadSchema,
   AgentCallStartedPayloadSchema,
@@ -238,6 +239,18 @@ export function toProtoEvent(desc: WorkflowEventDescriptor): WorkflowExecutionEv
       };
       break;
 
+    case "task_retrying":
+      base.eventType = WorkflowEventType.task_retrying;
+      base.payload = {
+        case: "taskRetrying",
+        value: create(TaskRetryingPayloadSchema, {
+          failedAttempt: desc.failedAttempt,
+          nextAttempt: desc.nextAttempt,
+          delayMs: BigInt(desc.delayMs),
+        }),
+      };
+      break;
+
     case "approval_requested":
       base.eventType = WorkflowEventType.approval_requested;
       base.payload = {
@@ -311,6 +324,7 @@ export async function emitWorkflowEvents(
 
     const protoTasks = (taskStatuses ?? []).map(ts =>
       create(WorkflowTaskSchema, {
+        taskId: ts.taskId ?? "",
         taskName: ts.taskName,
         taskType: TASK_KIND_TO_TYPE_MAP[ts.taskKind] ?? WorkflowTaskType.WORKFLOW_TASK_TYPE_UNSPECIFIED,
         status: TASK_STATUS_MAP[ts.status],

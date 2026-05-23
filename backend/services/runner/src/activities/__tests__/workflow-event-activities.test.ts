@@ -278,6 +278,38 @@ describe("toProtoEvent", () => {
     });
   });
 
+  describe("task_retrying", () => {
+    it("converts with attempt and delay fields", () => {
+      const evt = toProtoEvent({
+        type: "task_retrying",
+        occurredAt: NOW,
+        failedAttempt: 1,
+        nextAttempt: 2,
+        delayMs: 2000,
+      });
+
+      expect(evt.eventType).toBe(WorkflowEventType.task_retrying);
+      expect(evt.payload.case).toBe("taskRetrying");
+      if (evt.payload.case !== "taskRetrying") throw new Error("unexpected");
+      expect(evt.payload.value.failedAttempt).toBe(1);
+      expect(evt.payload.value.nextAttempt).toBe(2);
+      expect(evt.payload.value.delayMs).toBe(BigInt(2000));
+    });
+
+    it("handles zero delay (immediate retry)", () => {
+      const evt = toProtoEvent({
+        type: "task_retrying",
+        occurredAt: NOW,
+        failedAttempt: 2,
+        nextAttempt: 3,
+        delayMs: 0,
+      });
+
+      if (evt.payload.case !== "taskRetrying") throw new Error("unexpected");
+      expect(evt.payload.value.delayMs).toBe(BigInt(0));
+    });
+  });
+
   describe("approval_requested", () => {
     it("converts outcomes to HumanInputOutcomeInfo protos", () => {
       const evt = toProtoEvent({
