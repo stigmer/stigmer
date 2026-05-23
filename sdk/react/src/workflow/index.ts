@@ -464,3 +464,34 @@ export {
   WorkflowExecutionGraph,
   type WorkflowExecutionGraphProps,
 } from "./WorkflowExecutionGraph";
+
+// T05: Shared formatting utilities
+export {
+  formatDuration,
+  formatMicroUsd,
+  formatTokenCount,
+  formatBytes,
+  formatTimestamp,
+  formatMetaChips,
+} from "./format-utils";
+
+// T05: Runtime inspector — behavior hook + types
+export {
+  useExecutionTaskDetail,
+  type UseExecutionTaskDetailReturn,
+  type TaskDetail,
+  type TaskDetailSummary,
+  type TaskDetailIO,
+  type TaskDetailError,
+  type TaskDetailRetryHistory,
+  type TaskDetailRetryAttempt,
+  type TaskDetailAgentCall,
+  type TaskDetailApproval,
+  type TaskDetailApprovalDecision,
+} from "./execution-inspector";
+
+// T05: Runtime inspector — styled component
+export {
+  ExecutionInspector,
+  type ExecutionInspectorProps,
+} from "./execution-inspector";

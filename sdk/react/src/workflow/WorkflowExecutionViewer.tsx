@@ -10,12 +10,12 @@ import { useWorkflowExecutionArtifacts } from "./useWorkflowExecutionArtifacts";
 import { useWorkflowExecutionActions } from "./useWorkflowExecutionActions";
 import { WorkflowExecutionHeader } from "./WorkflowExecutionHeader";
 import { WorkflowExecutionTimeline, type WorkflowExecutionTimelineProps } from "./WorkflowExecutionTimeline";
-import { WorkflowExecutionTaskPanel } from "./WorkflowExecutionTaskPanel";
 import { WorkflowExecutionCostPanel } from "./WorkflowExecutionCostPanel";
 import { WorkflowExecutionArtifactPanel } from "./WorkflowExecutionArtifactPanel";
 import { WorkflowRepairCard } from "./WorkflowRepairCard";
 import { WorkflowExecutionGraph } from "./WorkflowExecutionGraph";
 import type { DerivedTaskState } from "../internal/store/workflow-execution-event-store";
+import { ExecutionInspector } from "./execution-inspector";
 
 /** Props for {@link WorkflowExecutionViewer}. */
 export interface WorkflowExecutionViewerProps {
@@ -236,20 +236,23 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
       <div className="flex min-h-0 flex-1 flex-col">
         {/* Primary area: Execution graph + inspector stub */}
         <div className="flex min-h-0 flex-1">
-          {/* Execution graph — primary view (T04) */}
+          {/* Execution graph — primary view (T04), dedup: shares execution + taskStates */}
           <WorkflowExecutionGraph
             executionId={executionId}
+            execution={execution}
+            taskStates={effectiveTaskStates}
             onTaskSelect={setSelectedTaskName}
+            onAutoSelectTask={setSelectedTaskName}
             className="flex-1"
           />
 
-          {/* Right panel — inspector stub or diagnosis */}
+          {/* Right panel — runtime inspector or diagnosis */}
           <aside
             className={cn(
               "flex shrink-0 flex-col overflow-hidden border-l border-[var(--stgm-border,#e5e5e5)]",
               showDiagnosis
                 ? "w-[40%] min-w-[360px] max-w-[500px]"
-                : "w-64 overflow-y-auto",
+                : "w-80 lg:w-96",
             )}
           >
             {showDiagnosis && org ? (
@@ -261,11 +264,14 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
                 className="h-full"
               />
             ) : (
-              <>
-                {/* Inspector stub — shows selected task context (full inspector in T05) */}
-                <ExecutionInspectorStub
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                <ExecutionInspector
                   selectedTaskName={selectedTaskName}
+                  events={events}
                   taskStates={effectiveTaskStates}
+                  taskSnapshots={execution?.status?.tasks ?? undefined}
+                  onNavigateToAgentExecution={onNavigateToAgentExecution}
+                  className="min-h-0 flex-1"
                 />
 
                 <div className="border-t border-[var(--stgm-border,#e5e5e5)]">
@@ -283,7 +289,7 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
                     {additionalActions}
                   </div>
                 )}
-              </>
+              </div>
             )}
           </aside>
         </div>
@@ -319,85 +325,7 @@ function LoadingSkeleton() {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Inspector stub (T04) — full inspector comes in T05
-// ---------------------------------------------------------------------------
 
-function ExecutionInspectorStub({
-  selectedTaskName,
-  taskStates,
-}: {
-  selectedTaskName: string | null;
-  taskStates: ReadonlyMap<string, DerivedTaskState>;
-}) {
-  if (!selectedTaskName) {
-    return (
-      <div className="flex flex-1 flex-col items-center justify-center px-4 py-6 text-center">
-        <p className="text-xs text-[var(--stgm-muted-foreground,#737373)]">
-          Select a node to view execution details
-        </p>
-      </div>
-    );
-  }
-
-  const state = taskStates.get(selectedTaskName);
-
-  return (
-    <div className="flex flex-col gap-3 px-3 py-3">
-      <div>
-        <h3 className="text-sm font-semibold text-[var(--stgm-foreground,#1a1a2e)]">
-          {selectedTaskName}
-        </h3>
-        {state && (
-          <span
-            className={cn(
-              "mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-medium",
-              state.status === "completed" && "bg-[var(--stgm-success,#22c55e)]/10 text-[var(--stgm-success,#22c55e)]",
-              state.status === "failed" && "bg-[var(--stgm-destructive,#ef4444)]/10 text-[var(--stgm-destructive,#ef4444)]",
-              state.status === "running" && "bg-[var(--stgm-primary,#6366f1)]/10 text-[var(--stgm-primary,#6366f1)]",
-              state.status === "waiting_approval" && "bg-[var(--stgm-warning,#f59e0b)]/10 text-[var(--stgm-warning,#f59e0b)]",
-              (state.status === "pending" || state.status === "retrying" || state.status === "skipped") &&
-                "bg-[var(--stgm-muted,#e5e5e5)] text-[var(--stgm-muted-foreground,#737373)]",
-            )}
-          >
-            {state.status.replace(/_/g, " ")}
-          </span>
-        )}
-      </div>
-
-      {state && (
-        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
-          {state.durationMs > 0 && (
-            <>
-              <dt className="text-[var(--stgm-muted-foreground,#737373)]">Duration</dt>
-              <dd className="text-[var(--stgm-foreground,#1a1a2e)]">{formatDuration(state.durationMs)}</dd>
-            </>
-          )}
-          {state.attemptNumber > 1 && (
-            <>
-              <dt className="text-[var(--stgm-muted-foreground,#737373)]">Attempt</dt>
-              <dd className="text-[var(--stgm-foreground,#1a1a2e)]">{state.attemptNumber}</dd>
-            </>
-          )}
-          {state.error && (
-            <>
-              <dt className="text-[var(--stgm-muted-foreground,#737373)]">Error</dt>
-              <dd className="text-[var(--stgm-destructive,#ef4444)] break-words">{state.error}</dd>
-            </>
-          )}
-        </dl>
-      )}
-    </div>
-  );
-}
-
-function formatDuration(ms: number): string {
-  if (ms < 1000) return `${ms}ms`;
-  if (ms < 60_000) return `${(ms / 1000).toFixed(1)}s`;
-  const mins = Math.floor(ms / 60_000);
-  const secs = Math.round((ms % 60_000) / 1000);
-  return `${mins}m ${secs}s`;
-}
 
 // ---------------------------------------------------------------------------
 // Collapsible timeline panel (T04)

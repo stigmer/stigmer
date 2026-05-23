@@ -76,3 +76,28 @@ export async function waitForPhaseTransition(
     timeout: opts?.timeout ?? 15_000,
   });
 }
+
+export function getExecutionInspector(page: Page): Locator {
+  return page.locator("aside");
+}
+
+export async function selectExecutionNode(
+  page: Page,
+  opts?: { timeout?: number },
+): Promise<void> {
+  const node = page.locator('[data-execution-status]').first();
+  await expect(node).toBeVisible({ timeout: opts?.timeout ?? 10_000 });
+  await node.click();
+}
+
+export function getInspectorTabList(page: Page): Locator {
+  return page.getByRole("tablist", { name: "Task execution details" });
+}
+
+export function getInspectorTab(page: Page, name: string): Locator {
+  return page.getByRole("tab", { name });
+}
+
+export function getInspectorTabPanel(page: Page): Locator {
+  return page.getByRole("tabpanel");
+}

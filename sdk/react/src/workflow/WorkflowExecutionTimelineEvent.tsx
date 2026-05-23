@@ -7,6 +7,7 @@ import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1
 import { cn } from "@stigmer/theme";
 import type { DerivedTaskState } from "../internal/store/workflow-execution-event-store";
 import { WorkflowTaskApprovalCard } from "./WorkflowTaskApprovalCard";
+import { formatDuration, formatMicroUsd, formatBytes, formatTimestamp, formatMetaChips } from "./format-utils";
 
 interface TimelineEventProps {
   readonly event: WorkflowExecutionEvent;
@@ -183,7 +184,7 @@ export const WorkflowExecutionTimelineEvent = memo(function WorkflowExecutionTim
           </span>
           {p.value.delayMs > BigInt(0) && (
             <span className="text-xs text-muted-foreground">
-              after {formatDurationMs(Number(p.value.delayMs))}
+              after {formatDuration(Number(p.value.delayMs))}
             </span>
           )}
         </EventRow>
@@ -259,7 +260,7 @@ export const WorkflowExecutionTimelineEvent = memo(function WorkflowExecutionTim
           )}
           {p.value.timeoutSeconds > 0 && (
             <p className="text-xs text-muted-foreground">
-              Timeout: {formatDurationMs(p.value.timeoutSeconds * 1000)}
+              Timeout: {formatDuration(p.value.timeoutSeconds * 1000)}
             </p>
           )}
           {showCard && (
@@ -392,12 +393,9 @@ function MetaChips({
   readonly cost?: bigint;
   readonly tokens?: bigint;
 }) {
-  const parts: string[] = [];
-  if (duration && duration > 0) parts.push(formatDurationMs(duration));
-  if (cost && cost > BigInt(0)) parts.push(formatMicroUsd(cost));
-  if (tokens && tokens > BigInt(0)) parts.push(`${tokens.toLocaleString()} tok`);
-  if (parts.length === 0) return null;
-  return <span className="text-xs text-muted-foreground">{parts.join(" · ")}</span>;
+  const text = formatMetaChips({ durationMs: duration, costMicros: cost, tokens });
+  if (!text) return null;
+  return <span className="text-xs text-muted-foreground">{text}</span>;
 }
 
 // ---------------------------------------------------------------------------
@@ -482,39 +480,3 @@ function kindToString(kind: WorkflowTaskKind): string {
   return entry?.[0] ?? "unknown";
 }
 
-function formatTimestamp(iso: string): string {
-  if (!iso) return "";
-  try {
-    const d = new Date(iso);
-    return d.toLocaleTimeString(undefined, {
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false,
-    });
-  } catch {
-    return iso;
-  }
-}
-
-function formatDurationMs(ms: number): string {
-  if (ms < 1000) return `${ms}ms`;
-  const s = ms / 1000;
-  if (s < 60) return `${s.toFixed(1)}s`;
-  const m = Math.floor(s / 60);
-  const rem = Math.round(s % 60);
-  return rem > 0 ? `${m}m ${rem}s` : `${m}m`;
-}
-
-function formatMicroUsd(micros: bigint): string {
-  const val = Number(micros) / 1_000_000;
-  if (val < 0.01) return `$${val.toFixed(4)}`;
-  return `$${val.toFixed(2)}`;
-}
-
-function formatBytes(bytes: bigint): string {
-  const n = Number(bytes);
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
-}

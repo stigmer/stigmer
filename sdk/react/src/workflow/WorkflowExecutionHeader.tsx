@@ -7,6 +7,7 @@ import { cn } from "@stigmer/theme";
 import { WorkflowExecutionPhaseBadge } from "./WorkflowExecutionPhaseBadge";
 import type { UseWorkflowExecutionActionsReturn } from "./useWorkflowExecutionActions";
 import type { WorkflowEventStreamState, DerivedCostSummary } from "../internal/store/workflow-execution-event-store";
+import { formatDuration, formatMicroUsd } from "./format-utils";
 
 /** Props for {@link WorkflowExecutionHeader}. */
 export interface WorkflowExecutionHeaderProps {
@@ -175,20 +176,3 @@ function ActionButton({
   );
 }
 
-function formatDuration(ms: number): string {
-  if (ms < 1000) return `${ms}ms`;
-  const s = Math.floor(ms / 1000);
-  if (s < 60) return `${s}s`;
-  const m = Math.floor(s / 60);
-  const rem = s % 60;
-  if (m < 60) return rem > 0 ? `${m}m ${rem}s` : `${m}m`;
-  const h = Math.floor(m / 60);
-  const remM = m % 60;
-  return remM > 0 ? `${h}h ${remM}m` : `${h}h`;
-}
-
-function formatMicroUsd(micros: bigint): string {
-  const cents = Number(micros) / 10_000;
-  if (cents < 1) return `$${(Number(micros) / 1_000_000).toFixed(4)}`;
-  return `$${(Number(micros) / 1_000_000).toFixed(2)}`;
-}

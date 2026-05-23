@@ -23,6 +23,7 @@ import { WorkflowGraphModeProvider } from "./WorkflowGraphModeContext";
 import { useWorkflowExecutionGraph } from "./useWorkflowExecutionGraph";
 import type { UseWorkflowExecutionGraphReturn } from "./useWorkflowExecutionGraph";
 import type { DerivedTaskState } from "../internal/store/workflow-execution-event-store";
+import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 
 /** Props for {@link WorkflowExecutionGraph}. */
 export interface WorkflowExecutionGraphProps {
@@ -32,6 +33,24 @@ export interface WorkflowExecutionGraphProps {
   readonly onTaskSelect?: (taskName: string | null) => void;
   /** When true, the viewport auto-pans to follow the currently running node. */
   readonly followExecution?: boolean;
+  /**
+   * Pre-fetched execution from the parent. When provided, the graph
+   * skips its own execution fetch — eliminating duplicate API calls.
+   * Pass `undefined` (or omit) for standalone usage.
+   */
+  readonly execution?: WorkflowExecution | null;
+  /**
+   * Externally-derived task states from a shared event store. When
+   * provided, the graph skips its own event stream subscription.
+   * Pass `undefined` (or omit) for standalone usage.
+   */
+  readonly taskStates?: ReadonlyMap<string, DerivedTaskState>;
+  /**
+   * Callback invoked when the graph auto-selects a failed task on
+   * terminal executions. Wire this to the parent's selected-task
+   * state to keep sibling components (like the inspector) in sync.
+   */
+  readonly onAutoSelectTask?: (taskName: string) => void;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -80,9 +99,17 @@ function WorkflowExecutionGraphInner({
   executionId,
   onTaskSelect,
   followExecution = false,
+  execution: externalExecution,
+  taskStates: externalTaskStates,
+  onAutoSelectTask,
   className,
 }: WorkflowExecutionGraphProps) {
-  const graphState = useWorkflowExecutionGraph({ executionId });
+  const graphState = useWorkflowExecutionGraph({
+    executionId,
+    execution: externalExecution,
+    taskStates: externalTaskStates,
+    onAutoSelectTask,
+  });
   const {
     nodes,
     edges,
