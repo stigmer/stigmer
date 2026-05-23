@@ -23,8 +23,24 @@ interface EmbeddedRunnerContext {
 
 const RunnerContext = createContext<EmbeddedRunnerContext | null>(null);
 
-export function EmbeddedRunnerProvider({ children }: { children: ReactNode }) {
-  const runner = useEmbeddedRunner();
+export interface EmbeddedRunnerProviderProps {
+  /**
+   * LLM proxy endpoint for cloud-edition servers. When provided, the runner
+   * routes LLM calls through `{proxyEndpoint}/v1/proxy/llm/{provider}` using
+   * the stigmer token — no direct provider API keys needed.
+   *
+   * Derived from the server's reported deployment mode: set to the API URL
+   * when the server reports cloud edition, undefined for OSS/local.
+   */
+  proxyEndpoint: string | undefined;
+  children: ReactNode;
+}
+
+export function EmbeddedRunnerProvider({
+  proxyEndpoint,
+  children,
+}: EmbeddedRunnerProviderProps) {
+  const runner = useEmbeddedRunner({ proxyEndpoint });
   return (
     <RunnerContext.Provider value={runner}>{children}</RunnerContext.Provider>
   );

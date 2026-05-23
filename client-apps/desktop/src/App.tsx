@@ -64,9 +64,10 @@ function AuthenticatedApp() {
   );
 
   const deploymentMode = useServerDeploymentMode(client);
+  const runnerProxyEndpoint = deploymentMode === "cloud" ? BASE_URL : undefined;
 
   return (
-    <EmbeddedRunnerProvider>
+    <EmbeddedRunnerProvider proxyEndpoint={runnerProxyEndpoint}>
       <RunnerAdapterBridge
         client={client}
         deploymentMode={deploymentMode}
