@@ -64,6 +64,11 @@ const EMBEDDED_MARKER = "${ ";
  * construction (e.g. `${ { key: .value } }`), unlike a naive regex
  * which would stop at the first `}`.
  *
+ * Known limitation: braces inside jq string literals (e.g. `${ "}" }`)
+ * are counted structurally — the parser does not track quoted context.
+ * This is acceptable because jq string literals containing literal
+ * braces are not a realistic pattern in workflow config values.
+ *
  * Runtime placeholders (`${.secrets.KEY}`, `${.env_vars.KEY}`) are
  * never matched because they lack the space after `${`.
  */

@@ -304,6 +304,21 @@ describe("resolveEmbeddedExpressions", () => {
 
     expect(obj.message).toBe("Value: ");
   });
+
+  it("interpolates in objects nested within arrays", async () => {
+    const obj: Record<string, unknown> = {
+      steps: [
+        { label: "Step: ${ $context.task.name }", count: "${ $context.task.count } total" },
+        { label: "static" },
+      ],
+    };
+
+    await resolveEmbeddedExpressions(obj, null, stateVars, evaluateExpressionBatch);
+
+    expect((obj.steps as any[])[0].label).toBe("Step: Alice");
+    expect((obj.steps as any[])[0].count).toBe("3 total");
+    expect((obj.steps as any[])[1].label).toBe("static");
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────
@@ -389,5 +404,29 @@ describe("resolveConfigExpressions — embedded expression support", () => {
 
     expect(result.message).toBe("Hello Alice!");
     expect(frozen.message).toBe("Hello ${ $context.name }!");
+  });
+
+  it("does not re-interpolate Phase 1 results that contain expression-like syntax", async () => {
+    const config = {
+      template: "${ $context.userTemplate }",
+      static: "Hello ${ $context.name }!",
+    };
+
+    const state = createState();
+    state.context = {
+      userTemplate: "Dangerous ${ $env.SECRET } content",
+      name: "Alice",
+    };
+    state.env = { SECRET: "leaked-value" };
+
+    const result = await resolveConfigExpressions(
+      config,
+      null,
+      state,
+      evaluateExpressionBatch,
+    );
+
+    expect(result.template).toBe("Dangerous ${ $env.SECRET } content");
+    expect(result.static).toBe("Hello Alice!");
   });
 });
