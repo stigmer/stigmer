@@ -168,7 +168,7 @@ async function streamAndCollect(
       content += messageChunk.content;
     }
 
-    const usage = messageChunk.usage_metadata;
+    const usage = (messageChunk as unknown as { usage_metadata?: { input_tokens?: number; output_tokens?: number } }).usage_metadata;
     if (usage) {
       inputTokens = usage.input_tokens ?? inputTokens;
       outputTokens = usage.output_tokens ?? outputTokens;
