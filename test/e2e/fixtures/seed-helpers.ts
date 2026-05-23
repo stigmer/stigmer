@@ -132,7 +132,7 @@ export async function createTestWaitWorkflow(
       {
         name: "blocking-wait",
         kind: WorkflowTaskKind.wait,
-        taskConfig: { seconds: waitSeconds },
+        taskConfig: { duration: { seconds: waitSeconds } },
       },
       {
         name: "final-step",
@@ -217,7 +217,7 @@ export async function createMultiKindTestWorkflow(
       {
         name: "cooldown",
         kind: WorkflowTaskKind.wait,
-        taskConfig: { seconds: 1 },
+        taskConfig: { duration: { seconds: 1 } },
       },
     ],
   });

@@ -327,6 +327,35 @@ const WorkflowCanvasEditorInner = memo(function WorkflowCanvasEditorInner({
     [pendingPicker, canvas.addSuccessorTask, canvas.insertTaskOnEdge, canvas.addNodeAtPosition],
   );
 
+  const pendingInsertionContext = useMemo(() => {
+    if (!pendingPicker) return null;
+    if (pendingPicker.purpose === "add-after-node" && pendingPicker.sourceId) {
+      const graphModel = canvas.getGraphModel();
+      const sourceNode = graphModel.nodes.find((n) => n.id === pendingPicker.sourceId);
+      return {
+        mode: "append-after" as const,
+        sourceNodeId: pendingPicker.sourceId,
+        sourceDisplayName: sourceNode?.taskName ?? pendingPicker.sourceId,
+      };
+    }
+    if (pendingPicker.purpose === "insert-on-edge" && pendingPicker.sourceId) {
+      const graphModel = canvas.getGraphModel();
+      const edge = graphModel.edges.find((e) => e.id === pendingPicker.sourceId);
+      if (!edge) return null;
+      const sourceNode = graphModel.nodes.find((n) => n.id === edge.source);
+      const targetNode = graphModel.nodes.find((n) => n.id === edge.target);
+      return {
+        mode: "edge-splice" as const,
+        edgeId: edge.id,
+        sourceNodeId: edge.source,
+        targetNodeId: edge.target,
+        sourceDisplayName: sourceNode?.taskName ?? edge.source,
+        targetDisplayName: targetNode?.taskName ?? edge.target,
+      };
+    }
+    return { mode: "add-at-position" as const };
+  }, [pendingPicker, canvas]);
+
   const handleSave = useCallback(() => {
     if (!onSave) return;
     const yamlStr = canvas.serializeToYaml();
@@ -360,8 +389,21 @@ const WorkflowCanvasEditorInner = memo(function WorkflowCanvasEditorInner({
       deleteNode: handleDeleteNode,
       addSuccessorTask: canvas.addSuccessorTask,
       duplicateNode: handleDuplicateNode,
+      addSwitchCase: canvas.addSwitchCase,
+      addForkBranch: canvas.addForkBranch,
+      addCatchHandler: canvas.addCatchHandler,
+      getGraphModel: canvas.getGraphModel,
     }),
-    [canvas.insertTaskOnEdge, handleDeleteNode, canvas.addSuccessorTask, handleDuplicateNode],
+    [
+      canvas.insertTaskOnEdge,
+      handleDeleteNode,
+      canvas.addSuccessorTask,
+      handleDuplicateNode,
+      canvas.addSwitchCase,
+      canvas.addForkBranch,
+      canvas.addCatchHandler,
+      canvas.getGraphModel,
+    ],
   );
 
   const descriptor = canvas.selection?.type === "node"
@@ -491,6 +533,8 @@ const WorkflowCanvasEditorInner = memo(function WorkflowCanvasEditorInner({
           onOpenChange={handlePendingPickerOpenChange}
           onSelectKind={handlePendingPickerSelectKind}
           anchorRef={pendingPickerVirtualAnchor}
+          insertionContext={pendingInsertionContext}
+          graph={canvas.getGraphModel()}
           side="bottom"
         />
       </div>

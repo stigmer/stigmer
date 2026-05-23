@@ -81,7 +81,7 @@ export const WorkflowNode = memo(function WorkflowNode({
 
       {/* Design-mode actions — hidden in other modes */}
       {mode === "design" && !data.isSentinel && (
-        <NodeActions nodeId={id} taskName={data.taskName} />
+        <NodeActions nodeId={id} taskName={data.taskName} kindString={data.kindString} />
       )}
     </div>
   );

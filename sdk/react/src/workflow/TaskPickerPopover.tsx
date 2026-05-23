@@ -12,12 +12,15 @@ import { Popover } from "@base-ui/react/popover";
 import { cn } from "@stigmer/theme";
 import { useStigmerPortalContainer } from "../portal-container";
 import { useTaskKindRegistry } from "./useTaskKindRegistry";
-import type { TaskKindDescriptor, TaskKindCategory } from "./types";
+import type { TaskKindCategory } from "./types";
 import {
   CATEGORY_COLORS,
   CATEGORY_DISPLAY_NAMES,
-  CATEGORY_ORDER,
 } from "./canvas-constants";
+import type { InsertionContext } from "./picker/insertion-context";
+import { recordRecentKind } from "./picker/recents";
+import { usePickerData, type PickerItem, type PickerSection } from "./picker/usePickerData";
+import type { WorkflowGraphModel } from "./workflow-graph-model";
 
 /** Props for {@link TaskPickerPopover}. */
 export interface TaskPickerPopoverProps {
@@ -29,6 +32,10 @@ export interface TaskPickerPopoverProps {
   readonly onSelectKind: (kindString: string) => void;
   /** Ref to the element the popover should anchor to. */
   readonly anchorRef: React.RefObject<HTMLElement | null>;
+  /** Context for contextual header/suggestions/compatibility checks. */
+  readonly insertionContext?: InsertionContext | null;
+  /** Current graph model used for compatibility filtering. */
+  readonly graph?: WorkflowGraphModel | null;
   /** Which side of the anchor to position the popover. */
   readonly side?: "top" | "bottom" | "right" | "left";
   /** Alignment along the anchor edge. */
@@ -56,6 +63,8 @@ export const TaskPickerPopover = memo(function TaskPickerPopover({
   onOpenChange,
   onSelectKind,
   anchorRef,
+  insertionContext,
+  graph,
   side = "bottom",
   align = "center",
   className,
@@ -75,40 +84,17 @@ export const TaskPickerPopover = memo(function TaskPickerPopover({
     }
   }, [open]);
 
-  const filteredCategories = useMemo(() => {
-    const query = searchQuery.toLowerCase().trim();
-    const result: Array<{
-      category: TaskKindCategory;
-      descriptors: readonly TaskKindDescriptor[];
-    }> = [];
-
-    for (const cat of CATEGORY_ORDER) {
-      const descriptors = categories.get(cat);
-      if (!descriptors || descriptors.length === 0) continue;
-
-      const filtered = query
-        ? descriptors.filter(
-            (d) =>
-              d.displayName.toLowerCase().includes(query) ||
-              d.description.toLowerCase().includes(query),
-          )
-        : descriptors;
-
-      if (filtered.length > 0) {
-        result.push({ category: cat, descriptors: filtered });
-      }
-    }
-
-    return result;
-  }, [categories, searchQuery]);
-
-  const flatItems = useMemo(
-    () => filteredCategories.flatMap((g) => g.descriptors),
-    [filteredCategories],
+  const pickerData = usePickerData(
+    insertionContext ?? null,
+    categories,
+    graph ?? null,
+    isLoading,
+    searchQuery,
   );
 
   const handleSelect = useCallback(
     (kind: string) => {
+      recordRecentKind(kind);
       onSelectKind(kind);
       onOpenChange(false);
     },
@@ -125,33 +111,42 @@ export const TaskPickerPopover = memo(function TaskPickerPopover({
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (flatItems.length === 0) return;
+      const items = pickerData.selectableItems;
+      if (items.length === 0) return;
 
       switch (e.key) {
         case "ArrowDown": {
           e.preventDefault();
           setFocusedIndex((prev) =>
-            prev < flatItems.length - 1 ? prev + 1 : 0,
+            prev < items.length - 1 ? prev + 1 : 0,
           );
           break;
         }
         case "ArrowUp": {
           e.preventDefault();
           setFocusedIndex((prev) =>
-            prev > 0 ? prev - 1 : flatItems.length - 1,
+            prev > 0 ? prev - 1 : items.length - 1,
           );
           break;
         }
         case "Enter": {
           e.preventDefault();
-          const target = focusedIndex >= 0 ? flatItems[focusedIndex] : flatItems[0];
-          if (target) handleSelect(target.kind);
+          const target = focusedIndex >= 0 ? items[focusedIndex] : items[0];
+          if (target) handleSelect(target.descriptor.kind);
           break;
         }
       }
     },
-    [flatItems, focusedIndex, handleSelect],
+    [pickerData.selectableItems, focusedIndex, handleSelect],
   );
+
+  const focusedKind = useMemo(() => {
+    const items = pickerData.selectableItems;
+    if (focusedIndex >= 0 && focusedIndex < items.length) {
+      return items[focusedIndex].descriptor.kind;
+    }
+    return undefined;
+  }, [pickerData.selectableItems, focusedIndex]);
 
   return (
     <Popover.Root open={open} onOpenChange={onOpenChange}>
@@ -174,6 +169,14 @@ export const TaskPickerPopover = memo(function TaskPickerPopover({
               aria-label="Select task type"
               onKeyDown={handleKeyDown}
             >
+              {insertionContext && (
+                <div className="border-b border-border px-3 py-2">
+                  <div className="text-[11px] font-medium text-[var(--stgm-muted-foreground,#737373)]">
+                    {pickerData.header}
+                  </div>
+                </div>
+              )}
+
               <div className="border-b border-border p-2">
                 <input
                   ref={searchRef}
@@ -202,23 +205,18 @@ export const TaskPickerPopover = memo(function TaskPickerPopover({
                   </div>
                 )}
 
-                {!isLoading && filteredCategories.length === 0 && (
+                {!isLoading && pickerData.sections.length === 0 && (
                   <div className="py-4 text-center text-xs text-[var(--stgm-muted-foreground,#737373)]">
                     {searchQuery ? "No matching tasks" : "No task types available"}
                   </div>
                 )}
 
                 {!isLoading &&
-                  filteredCategories.map(({ category, descriptors }) => (
+                  pickerData.sections.map((section) => (
                     <PickerCategory
-                      key={category}
-                      category={category}
-                      descriptors={descriptors}
-                      focusedKind={
-                        focusedIndex >= 0
-                          ? flatItems[focusedIndex]?.kind
-                          : undefined
-                      }
+                      key={section.id}
+                      section={section}
+                      focusedKind={focusedKind}
                       onSelect={handleSelect}
                     />
                   ))}
@@ -236,35 +234,43 @@ export const TaskPickerPopover = memo(function TaskPickerPopover({
 // ---------------------------------------------------------------------------
 
 function PickerCategory({
-  category,
-  descriptors,
+  section,
   focusedKind,
   onSelect,
 }: {
-  category: TaskKindCategory;
-  descriptors: readonly TaskKindDescriptor[];
+  section: PickerSection;
   focusedKind: string | undefined;
   onSelect: (kind: string) => void;
 }) {
-  const categoryColor =
-    CATEGORY_COLORS[category] ?? CATEGORY_COLORS.unspecified;
+  const isSpecial = section.isSpecial === true;
+  const category = section.id as TaskKindCategory;
+  const categoryColor = !isSpecial
+    ? (CATEGORY_COLORS[category] ?? CATEGORY_COLORS.unspecified)
+    : undefined;
+  const label = isSpecial
+    ? section.label
+    : (CATEGORY_DISPLAY_NAMES[category] ?? section.label);
 
   return (
     <div className="mb-1 last:mb-0">
       <div className="flex items-center gap-1.5 px-1.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--stgm-muted-foreground,#737373)]">
-        <span
-          className="inline-block h-1.5 w-1.5 rounded-full"
-          style={{ backgroundColor: categoryColor }}
-          aria-hidden="true"
-        />
-        {CATEGORY_DISPLAY_NAMES[category]}
+        {categoryColor ? (
+          <span
+            className="inline-block h-1.5 w-1.5 rounded-full"
+            style={{ backgroundColor: categoryColor }}
+            aria-hidden="true"
+          />
+        ) : (
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--stgm-muted-foreground,#737373)]" aria-hidden="true" />
+        )}
+        {label}
       </div>
-      {descriptors.map((descriptor) => (
+      {section.items.map((item) => (
         <PickerItem
-          key={descriptor.kind}
-          descriptor={descriptor}
+          key={item.descriptor.kind}
+          item={item}
           categoryColor={categoryColor}
-          isFocused={descriptor.kind === focusedKind}
+          isFocused={item.descriptor.kind === focusedKind}
           onSelect={onSelect}
         />
       ))}
@@ -277,13 +283,13 @@ function PickerCategory({
 // ---------------------------------------------------------------------------
 
 function PickerItem({
-  descriptor,
+  item,
   categoryColor,
   isFocused,
   onSelect,
 }: {
-  descriptor: TaskKindDescriptor;
-  categoryColor: string;
+  item: PickerItem;
+  categoryColor?: string;
   isFocused: boolean;
   onSelect: (kind: string) => void;
 }) {
@@ -301,24 +307,30 @@ function PickerItem({
       type="button"
       role="option"
       aria-selected={isFocused}
-      onClick={() => onSelect(descriptor.kind)}
+      aria-disabled={item.disabled}
+      title={item.disabled ? item.disabledReason : undefined}
+      onClick={item.disabled ? undefined : () => onSelect(item.descriptor.kind)}
       className={cn(
         "flex w-full items-start gap-2 rounded px-2 py-1.5 text-left transition-colors",
-        "hover:bg-[var(--stgm-muted,#f5f5f5)]",
-        isFocused && "bg-[var(--stgm-muted,#f5f5f5)]",
+        item.disabled
+          ? "cursor-not-allowed opacity-55"
+          : "hover:bg-[var(--stgm-muted,#f5f5f5)]",
+        isFocused && !item.disabled && "bg-[var(--stgm-muted,#f5f5f5)]",
       )}
     >
-      <span
-        className="mt-1 inline-block h-2 w-0.5 shrink-0 rounded-full"
-        style={{ backgroundColor: categoryColor }}
-        aria-hidden="true"
-      />
+      {categoryColor && (
+        <span
+          className="mt-1 inline-block h-2 w-0.5 shrink-0 rounded-full"
+          style={{ backgroundColor: categoryColor }}
+          aria-hidden="true"
+        />
+      )}
       <div className="min-w-0 flex-1">
         <div className="truncate text-xs font-medium text-[var(--stgm-foreground,#1a1a2e)]">
-          {descriptor.displayName}
+          {item.descriptor.displayName}
         </div>
         <div className="truncate text-[10px] leading-tight text-[var(--stgm-muted-foreground,#737373)]">
-          {descriptor.description}
+          {item.disabled ? item.disabledReason : item.descriptor.description}
         </div>
       </div>
     </button>

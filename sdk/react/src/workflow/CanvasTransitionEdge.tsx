@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useContext, useRef, useState } from "react";
+import { memo, useCallback, useContext, useMemo, useRef, useState } from "react";
 import { BaseEdge, EdgeLabelRenderer, getSmoothStepPath } from "@xyflow/react";
 import type { EdgeProps } from "@xyflow/react";
 import { cn } from "@stigmer/theme";
@@ -65,6 +65,8 @@ const EDGE_EXECUTION_STYLES: Record<EdgeExecutionState, EdgeVisualStyle> = {
  */
 export const CanvasTransitionEdge = memo(function CanvasTransitionEdge({
   id,
+  source,
+  target,
   sourceX,
   sourceY,
   targetX,
@@ -109,6 +111,21 @@ export const CanvasTransitionEdge = memo(function CanvasTransitionEdge({
     },
     [actions, id],
   );
+
+  const insertionContext = useMemo(() => {
+    const graph = actions?.getGraphModel();
+    if (!graph) return null;
+    const sourceNode = graph.nodes.find((n) => n.id === source);
+    const targetNode = graph.nodes.find((n) => n.id === target);
+    return {
+      mode: "edge-splice" as const,
+      edgeId: id,
+      sourceNodeId: source,
+      sourceDisplayName: sourceNode?.taskName ?? source,
+      targetNodeId: target,
+      targetDisplayName: targetNode?.taskName ?? target,
+    };
+  }, [actions, id, source, target]);
 
   // Resolve visual style: execution mode uses per-state styles, design uses defaults.
   const execVisual = isExecutionMode && execState
@@ -186,6 +203,8 @@ export const CanvasTransitionEdge = memo(function CanvasTransitionEdge({
                 onOpenChange={handlePickerOpenChange}
                 onSelectKind={handleKindSelected}
                 anchorRef={insertBtnRef}
+                insertionContext={insertionContext}
+                graph={actions?.getGraphModel() ?? null}
                 side="bottom"
               />
             </>
