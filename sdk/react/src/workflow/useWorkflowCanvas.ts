@@ -43,6 +43,15 @@ import {
   AddSwitchCaseCommand,
   AddParallelBranchCommand,
   AddCatchHandlerCommand,
+  RemoveSwitchCaseCommand,
+  ReorderSwitchCasesCommand,
+  RemoveForkBranchCommand,
+  ReorderForkBranchesCommand,
+  RenameForkBranchCommand,
+  SetForkCompeteCommand,
+  UpdateCatchConfigCommand,
+  RemoveCatchBlockCommand,
+  UpdateForEachConfigCommand,
   ToggleNodeDisabledCommand,
   WrapInTryCatchCommand,
   generateEdgeId,
@@ -813,6 +822,73 @@ export function useWorkflowCanvas(
     [dispatch],
   );
 
+  // ---------------------------------------------------------------------------
+  // Branch management (T09)
+  // ---------------------------------------------------------------------------
+
+  const removeSwitchCase = useCallback(
+    (switchNodeId: string, caseName: string) => {
+      dispatch(new RemoveSwitchCaseCommand(switchNodeId, caseName));
+    },
+    [dispatch],
+  );
+
+  const reorderSwitchCases = useCallback(
+    (switchNodeId: string, newOrder: readonly string[]) => {
+      dispatch(new ReorderSwitchCasesCommand(switchNodeId, newOrder));
+    },
+    [dispatch],
+  );
+
+  const removeForkBranch = useCallback(
+    (forkNodeId: string, branchName: string) => {
+      dispatch(new RemoveForkBranchCommand(forkNodeId, branchName));
+    },
+    [dispatch],
+  );
+
+  const reorderForkBranches = useCallback(
+    (forkNodeId: string, newOrder: readonly string[]) => {
+      dispatch(new ReorderForkBranchesCommand(forkNodeId, newOrder));
+    },
+    [dispatch],
+  );
+
+  const renameForkBranch = useCallback(
+    (forkNodeId: string, oldName: string, newName: string) => {
+      dispatch(new RenameForkBranchCommand(forkNodeId, oldName, newName));
+    },
+    [dispatch],
+  );
+
+  const setForkCompete = useCallback(
+    (forkNodeId: string, compete: boolean) => {
+      dispatch(new SetForkCompeteCommand(forkNodeId, compete));
+    },
+    [dispatch],
+  );
+
+  const updateCatchConfig = useCallback(
+    (tryCatchNodeId: string, updates: { as?: string; compensate?: boolean }) => {
+      dispatch(new UpdateCatchConfigCommand(tryCatchNodeId, updates));
+    },
+    [dispatch],
+  );
+
+  const removeCatchBlock = useCallback(
+    (tryCatchNodeId: string) => {
+      dispatch(new RemoveCatchBlockCommand(tryCatchNodeId));
+    },
+    [dispatch],
+  );
+
+  const updateForEachConfig = useCallback(
+    (forEachNodeId: string, updates: Partial<{ each: string; in: string; max_parallelism: number; batch_size: number; on_error: string }>) => {
+      dispatch(new UpdateForEachConfigCommand(forEachNodeId, updates));
+    },
+    [dispatch],
+  );
+
   const getGraphModel = useCallback(() => history.currentModel, [history.currentModel]);
 
   // ---------------------------------------------------------------------------
@@ -1064,6 +1140,15 @@ export function useWorkflowCanvas(
       addSwitchCase,
       addForkBranch,
       addCatchHandler,
+      removeSwitchCase,
+      reorderSwitchCases,
+      removeForkBranch,
+      reorderForkBranches,
+      renameForkBranch,
+      setForkCompete,
+      updateCatchConfig,
+      removeCatchBlock,
+      updateForEachConfig,
       getGraphModel,
       selectAll,
       toggleNodeDisabled,
@@ -1087,7 +1172,11 @@ export function useWorkflowCanvas(
       updateBranchRouting, migrateBranchHandle, removeBranchEdges,
       insertTaskOnEdge, addSuccessorTask,
       duplicateNode, addNodeAtPosition,
-      addSwitchCase, addForkBranch, addCatchHandler, getGraphModel,
+      addSwitchCase, addForkBranch, addCatchHandler,
+      removeSwitchCase, reorderSwitchCases,
+      removeForkBranch, reorderForkBranches, renameForkBranch, setForkCompete,
+      updateCatchConfig, removeCatchBlock, updateForEachConfig,
+      getGraphModel,
       selectAll, toggleNodeDisabled, wrapInTryCatch,
       copySelection, pasteAtCenter, cutSelection, hasClipboard,
       duplicateSelection, disableSelection, deleteSelection, getSelectedNodeIds,

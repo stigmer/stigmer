@@ -120,6 +120,38 @@ export const NodeActions = memo(function NodeActions({
 
   const graphModel = actions?.getGraphModel() ?? null;
 
+  const existingBranchNames: ReadonlySet<string> = useMemo(() => {
+    if (!graphModel || !branchMode) return new Set<string>();
+    const node = graphModel.nodes.find((n) => n.id === nodeId);
+    if (!node) return new Set<string>();
+    const config = node.config as Record<string, unknown>;
+
+    switch (branchMode) {
+      case "switch-case": {
+        const cases = config.cases;
+        if (!Array.isArray(cases)) return new Set<string>();
+        return new Set(
+          cases
+            .filter((c): c is Record<string, unknown> => c != null && typeof c === "object")
+            .map((c) => c.name as string)
+            .filter(Boolean),
+        );
+      }
+      case "fork-branch": {
+        const branches = config.branches;
+        if (!Array.isArray(branches)) return new Set<string>();
+        return new Set(
+          branches
+            .filter((b): b is Record<string, unknown> => b != null && typeof b === "object")
+            .map((b) => b.name as string)
+            .filter(Boolean),
+        );
+      }
+      default:
+        return new Set<string>();
+    }
+  }, [graphModel, branchMode, nodeId]);
+
   return (
     <>
       {/* Selection toolbar — auto-shown by React Flow when selected */}
@@ -234,6 +266,7 @@ export const NodeActions = memo(function NodeActions({
             onSubmit={handleBranchSubmit}
             anchorRef={branchAddRef as React.RefObject<HTMLElement | null>}
             mode={branchMode}
+            existingNames={existingBranchNames}
           />
         </>
       )}

@@ -13,6 +13,9 @@ import { taskKindToString } from "../workflow-graph-conversions";
 import { InspectorHeader } from "./InspectorHeader";
 import { useInspectorTabs } from "./useInspectorTabs";
 import { ConfigureTab } from "./tabs/ConfigureTab";
+import { BranchesTab } from "./tabs/BranchesTab";
+import { CatchTab } from "./tabs/CatchTab";
+import { IterationTab } from "./tabs/IterationTab";
 import { DataTab } from "./tabs/DataTab";
 import { RuntimeTab } from "./tabs/RuntimeTab";
 import { AdvancedTab } from "./tabs/AdvancedTab";
@@ -198,6 +201,20 @@ function NodeInspectorShell({
               onFieldChange={handleFieldChange}
               mutations={mutations}
             />
+          )}
+          {activeTab === "branches" && (
+            <BranchesTab
+              node={node}
+              graph={graph}
+              mutations={mutations}
+              kindString={kindStr}
+            />
+          )}
+          {activeTab === "catch" && (
+            <CatchTab node={node} mutations={mutations} />
+          )}
+          {activeTab === "iteration" && (
+            <IterationTab node={node} mutations={mutations} />
           )}
           {activeTab === "data" && (
             <DataTab

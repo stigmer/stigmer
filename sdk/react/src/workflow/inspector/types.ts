@@ -4,7 +4,7 @@ import type { TaskKindDescriptor, TaskKindCategory } from "../types";
 import type { TopologyNodeCategory } from "../useWorkflowTopology";
 
 /** Identifiers for design-mode inspector tabs. */
-export type DesignTabId = "configure" | "data" | "runtime" | "advanced" | "docs";
+export type DesignTabId = "configure" | "branches" | "catch" | "iteration" | "data" | "runtime" | "advanced" | "docs";
 
 /** Identifiers for execution-mode inspector tabs (matches T05). */
 export type ExecutionTabId = "summary" | "input" | "output" | "error" | "retries" | "agent" | "events";
@@ -71,4 +71,13 @@ export interface InspectorMutations {
     newHandleId: string,
   ) => void;
   readonly onRemoveBranchEdges?: (nodeId: string, handleId: string) => void;
+  readonly onRemoveSwitchCase?: (switchNodeId: string, caseName: string) => void;
+  readonly onReorderSwitchCases?: (switchNodeId: string, newOrder: readonly string[]) => void;
+  readonly onRemoveForkBranch?: (forkNodeId: string, branchName: string) => void;
+  readonly onReorderForkBranches?: (forkNodeId: string, newOrder: readonly string[]) => void;
+  readonly onRenameForkBranch?: (forkNodeId: string, oldName: string, newName: string) => void;
+  readonly onSetForkCompete?: (forkNodeId: string, compete: boolean) => void;
+  readonly onUpdateCatchConfig?: (tryCatchNodeId: string, updates: { as?: string; compensate?: boolean }) => void;
+  readonly onRemoveCatchBlock?: (tryCatchNodeId: string) => void;
+  readonly onUpdateForEachConfig?: (forEachNodeId: string, updates: Partial<{ each: string; in: string; max_parallelism: number; batch_size: number; on_error: string }>) => void;
 }

@@ -68,9 +68,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-23 14:12
-**Last Session**: 2026-05-23 — Fixed stale serverless workflow YAML on workflow update (stigmer-cloud backend)
-**Current Task**: Backend follow-ups (#6 waterfall enrichment, #7 runner I/O), T09 (Branch Management UX)
-**Status**: In Progress
+**Last Session**: 2026-05-23 — T09 Branch Management UX complete (12 commands, 3 inspector tabs, canvas badges, 62 tests)
+**Current Task**: Backend follow-ups (#6 waterfall enrichment, #7 runner I/O)
+**Status**: In Progress — frontend editor feature-complete, backend enrichment remaining
 
 ## Session Progress (2026-05-23)
 
@@ -258,6 +258,19 @@ When starting a new session:
 - Committed as `51cbdcd5` on `feat/workflow-ux-overhaul` branch in stigmer-cloud
 - Changelog: `_changelog/2026-05/2026-05-23-221106-fix-workflow-update-stale-serverless-yaml.md`
 
+### T09: Branch Management UX — COMPLETED
+- 12 new reversible graph commands: RemoveSwitchCase, ReorderSwitchCases, RemoveForkBranch, ReorderForkBranches, RenameForkBranch, SetForkCompete, UpdateCatchConfig, RemoveCatchBlock, UpdateForEachConfig, AddNestedTask, RemoveNestedTask, ReorderNestedTasks
+- 3 new inspector tabs: BranchesTab (switch_case + fork), CatchTab (try_catch), IterationTab (for_each)
+- Canvas BranchBadge: fork branch chips, try_catch catch indicator, for_each iteration badge
+- Enhanced NodeHandles: default-case italic+⊘ styling, condensed "+N more" for >5 cases
+- Enhanced ARIA: branch names, counts, join policies in node labels
+- Wired existingNames duplicate detection into BranchAddPopover
+- Shared NestedTaskList component + useNestedTaskEditor hook
+- 62 new unit tests (all passing), E2E spec created
+- Design decisions: DD-T09-001 through DD-T09-005 (flat graph preserved, proto-honest UI)
+- Checkpoint: `checkpoints/2026-05-23-session-t09-branch-management.md`
+- Changelog: `_changelog/2026-05/2026-05-23-223959-feat-workflow-branch-management-ux-t09.md`
+
 ### ELK Layout Engine Wiring — COMPLETED
 - Threaded `layoutEngine` optional prop through `useWorkflowCanvas` → `WorkflowCanvasEditor` → `WorkflowEditorView`
 - Created `useElkLayoutEngine` behavior hook in `sdk/react/src/workflow/layout/useElkLayoutEngine.ts` — async engine creation, Web Worker cleanup, graceful fallback when elkjs unavailable
@@ -278,7 +291,7 @@ When starting a new session:
 7. **Backend follow-up: Runner I/O population** — Populate full `WorkflowTask` I/O on status (see `checkpoints/t05-runner-io-followup.md` and `checkpoints/runner-task-io-followups.md`)
 8. ~~Enable ELK in client-apps via `workerFactory` (see `checkpoints/t03-deferred-wiring.md`)~~ DONE
 9. ~~**T10: Inspector Panel Refactor** — Tabbed inspector, per-kind forms, empty state, node actions~~ DONE
-10. **T09: Branch Management UX** — Branch handles, reorder, join policy, catch handler listing
+10. ~~**T09: Branch Management UX** — Branch handles, reorder, join policy, catch handler listing~~ DONE
 11. ~~**T11: Context Menu and Keyboard Shortcuts** — Right-click menus, Delete/Duplicate/N key shortcuts~~ DONE
 
 ## Context for Resume

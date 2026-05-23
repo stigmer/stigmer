@@ -1,0 +1,389 @@
+"use client";
+
+import { memo, useCallback, useMemo, useState } from "react";
+import { cn } from "@stigmer/theme";
+import type { WorkflowGraphNode, WorkflowGraphModel } from "../../workflow-graph-model";
+import type { InspectorMutations } from "../types";
+
+export interface BranchesTabProps {
+  readonly node: WorkflowGraphNode;
+  readonly graph: WorkflowGraphModel;
+  readonly mutations: InspectorMutations;
+  readonly kindString: string;
+}
+
+/**
+ * Branches tab for switch_case and fork nodes.
+ *
+ * - switch_case: shows case listing with conditions, default marking, reorder, remove
+ * - fork: shows branch listing, join policy toggle, reorder, remove
+ *
+ * @since T09 (Branch Management UX)
+ */
+export const BranchesTab = memo(function BranchesTab({
+  node,
+  graph,
+  mutations,
+  kindString,
+}: BranchesTabProps) {
+  if (kindString === "switch_case") {
+    return (
+      <SwitchCaseBranches node={node} graph={graph} mutations={mutations} />
+    );
+  }
+
+  if (kindString === "fork") {
+    return <ForkBranches node={node} mutations={mutations} />;
+  }
+
+  return null;
+});
+
+// ---------------------------------------------------------------------------
+// Switch Case branches
+// ---------------------------------------------------------------------------
+
+function SwitchCaseBranches({
+  node,
+  graph,
+  mutations,
+}: {
+  node: WorkflowGraphNode;
+  graph: WorkflowGraphModel;
+  mutations: InspectorMutations;
+}) {
+  const config = node.config as Record<string, unknown>;
+  const cases = useMemo(() => {
+    const raw = config.cases;
+    if (!Array.isArray(raw)) return [];
+    return raw
+      .filter((c): c is Record<string, unknown> => c != null && typeof c === "object")
+      .map((c) => ({
+        name: (c.name as string) || "",
+        when: (c.when as string) || "",
+        then: (c.then as string) || "",
+      }));
+  }, [config.cases]);
+
+  const edges = graph.edges.filter((e) => e.source === node.id && e.sourceHandle?.startsWith("case_"));
+
+  const handleRemove = useCallback(
+    (caseName: string) => {
+      mutations.onRemoveSwitchCase?.(node.id, caseName);
+    },
+    [mutations, node.id],
+  );
+
+  const handleMoveUp = useCallback(
+    (index: number) => {
+      if (index <= 0 || !mutations.onReorderSwitchCases) return;
+      const newOrder = cases.map((c) => c.name);
+      [newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]];
+      mutations.onReorderSwitchCases(node.id, newOrder);
+    },
+    [cases, mutations, node.id],
+  );
+
+  const handleMoveDown = useCallback(
+    (index: number) => {
+      if (index >= cases.length - 1 || !mutations.onReorderSwitchCases) return;
+      const newOrder = cases.map((c) => c.name);
+      [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+      mutations.onReorderSwitchCases(node.id, newOrder);
+    },
+    [cases, mutations, node.id],
+  );
+
+  return (
+    <div className="flex flex-col gap-3 px-3 py-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-xs font-semibold text-[var(--stgm-foreground,#1a1a2e)]">
+          Cases ({cases.length})
+        </h3>
+      </div>
+
+      {cases.length === 0 ? (
+        <p className="text-[11px] text-[var(--stgm-muted-foreground,#737373)]">
+          No cases defined. Add a case to create conditional branches.
+        </p>
+      ) : (
+        <div className="flex flex-col gap-1.5">
+          {cases.map((caseEntry, idx) => {
+            const isDefault = !caseEntry.when;
+            const targetEdge = edges.find((e) => e.sourceHandle === `case_${caseEntry.name}`);
+            return (
+              <div
+                key={caseEntry.name}
+                className={cn(
+                  "group/case flex items-center gap-2 rounded-md border px-2 py-1.5",
+                  isDefault
+                    ? "border-dashed border-[var(--stgm-border,#e5e5e5)] bg-[var(--stgm-muted,#f5f5f5)]"
+                    : "border-[var(--stgm-border,#e5e5e5)]",
+                )}
+              >
+                {/* Reorder controls */}
+                <div className="flex flex-col gap-0.5 opacity-0 group-hover/case:opacity-100 transition-opacity">
+                  <button
+                    type="button"
+                    onClick={() => handleMoveUp(idx)}
+                    disabled={idx === 0}
+                    className="text-[var(--stgm-muted-foreground,#737373)] disabled:opacity-30 hover:text-[var(--stgm-foreground,#1a1a2e)]"
+                    aria-label={`Move ${caseEntry.name} up`}
+                  >
+                    <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true">
+                      <path d="M4 1L1 5h6L4 1z" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleMoveDown(idx)}
+                    disabled={idx === cases.length - 1}
+                    className="text-[var(--stgm-muted-foreground,#737373)] disabled:opacity-30 hover:text-[var(--stgm-foreground,#1a1a2e)]"
+                    aria-label={`Move ${caseEntry.name} down`}
+                  >
+                    <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true">
+                      <path d="M4 7L1 3h6L4 7z" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Case info */}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] font-medium text-[var(--stgm-foreground,#1a1a2e)] truncate">
+                      {caseEntry.name}
+                    </span>
+                    {isDefault && (
+                      <span className="shrink-0 rounded-sm bg-[var(--stgm-muted,#f5f5f5)] border border-[var(--stgm-border,#e5e5e5)] px-1 py-px text-[9px] font-medium text-[var(--stgm-muted-foreground,#737373)]">
+                        default
+                      </span>
+                    )}
+                  </div>
+                  {caseEntry.when && (
+                    <p className="mt-0.5 text-[10px] font-mono text-[var(--stgm-muted-foreground,#737373)] truncate">
+                      {caseEntry.when}
+                    </p>
+                  )}
+                  {targetEdge && (
+                    <p className="mt-0.5 text-[10px] text-[var(--stgm-muted-foreground,#737373)]">
+                      → {targetEdge.target}
+                    </p>
+                  )}
+                </div>
+
+                {/* Remove button */}
+                <button
+                  type="button"
+                  onClick={() => handleRemove(caseEntry.name)}
+                  className="shrink-0 opacity-0 group-hover/case:opacity-100 transition-opacity text-[var(--stgm-muted-foreground,#737373)] hover:text-[var(--stgm-destructive,#ef4444)]"
+                  aria-label={`Remove case ${caseEntry.name}`}
+                  title="Remove case"
+                >
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+                    <path d="M3 3l6 6M9 3l-6 6" />
+                  </svg>
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Fork branches
+// ---------------------------------------------------------------------------
+
+function ForkBranches({
+  node,
+  mutations,
+}: {
+  node: WorkflowGraphNode;
+  mutations: InspectorMutations;
+}) {
+  const config = node.config as Record<string, unknown>;
+  const branches = useMemo(() => {
+    const raw = config.branches;
+    if (!Array.isArray(raw)) return [];
+    return raw
+      .filter((b): b is Record<string, unknown> => b != null && typeof b === "object")
+      .map((b) => ({
+        name: (b.name as string) || "",
+        taskCount: Array.isArray(b.do) ? b.do.length : 0,
+      }));
+  }, [config.branches]);
+
+  const compete = config.compete === true;
+
+  const handleSetCompete = useCallback(
+    (value: boolean) => {
+      mutations.onSetForkCompete?.(node.id, value);
+    },
+    [mutations, node.id],
+  );
+
+  const handleRemove = useCallback(
+    (branchName: string) => {
+      mutations.onRemoveForkBranch?.(node.id, branchName);
+    },
+    [mutations, node.id],
+  );
+
+  const handleMoveUp = useCallback(
+    (index: number) => {
+      if (index <= 0 || !mutations.onReorderForkBranches) return;
+      const newOrder = branches.map((b) => b.name);
+      [newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]];
+      mutations.onReorderForkBranches(node.id, newOrder);
+    },
+    [branches, mutations, node.id],
+  );
+
+  const handleMoveDown = useCallback(
+    (index: number) => {
+      if (index >= branches.length - 1 || !mutations.onReorderForkBranches) return;
+      const newOrder = branches.map((b) => b.name);
+      [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+      mutations.onReorderForkBranches(node.id, newOrder);
+    },
+    [branches, mutations, node.id],
+  );
+
+  const [renamingIdx, setRenamingIdx] = useState<number | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+
+  const startRename = useCallback((idx: number, currentName: string) => {
+    setRenamingIdx(idx);
+    setRenameValue(currentName);
+  }, []);
+
+  const commitRename = useCallback(() => {
+    if (renamingIdx === null) return;
+    const oldName = branches[renamingIdx]?.name;
+    const trimmed = renameValue.trim();
+    if (oldName && trimmed && trimmed !== oldName && /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(trimmed)) {
+      mutations.onRenameForkBranch?.(node.id, oldName, trimmed);
+    }
+    setRenamingIdx(null);
+  }, [renamingIdx, renameValue, branches, mutations, node.id]);
+
+  return (
+    <div className="flex flex-col gap-3 px-3 py-3">
+      {/* Join policy */}
+      <fieldset>
+        <legend className="text-xs font-semibold text-[var(--stgm-foreground,#1a1a2e)] mb-1.5">
+          Join policy
+        </legend>
+        <div className="flex flex-col gap-1.5">
+          <label className="flex items-center gap-2 text-[11px] text-[var(--stgm-foreground,#1a1a2e)] cursor-pointer">
+            <input
+              type="radio"
+              name={`join-policy-${node.id}`}
+              checked={!compete}
+              onChange={() => handleSetCompete(false)}
+              className="h-3 w-3 accent-[var(--stgm-primary,#6366f1)]"
+            />
+            Wait for all branches
+          </label>
+          <label className="flex items-center gap-2 text-[11px] text-[var(--stgm-foreground,#1a1a2e)] cursor-pointer">
+            <input
+              type="radio"
+              name={`join-policy-${node.id}`}
+              checked={compete}
+              onChange={() => handleSetCompete(true)}
+              className="h-3 w-3 accent-[var(--stgm-primary,#6366f1)]"
+            />
+            Race mode (first branch wins)
+          </label>
+        </div>
+      </fieldset>
+
+      {/* Branch listing */}
+      <div>
+        <h3 className="text-xs font-semibold text-[var(--stgm-foreground,#1a1a2e)] mb-1.5">
+          Parallel branches ({branches.length})
+        </h3>
+
+        <div className="flex flex-col gap-1.5">
+          {branches.map((branch, idx) => (
+            <div
+              key={branch.name}
+              className="group/branch flex items-center gap-2 rounded-md border border-[var(--stgm-border,#e5e5e5)] px-2 py-1.5"
+            >
+              {/* Reorder */}
+              <div className="flex flex-col gap-0.5 opacity-0 group-hover/branch:opacity-100 transition-opacity">
+                <button
+                  type="button"
+                  onClick={() => handleMoveUp(idx)}
+                  disabled={idx === 0}
+                  className="text-[var(--stgm-muted-foreground,#737373)] disabled:opacity-30 hover:text-[var(--stgm-foreground,#1a1a2e)]"
+                  aria-label={`Move ${branch.name} up`}
+                >
+                  <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true">
+                    <path d="M4 1L1 5h6L4 1z" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleMoveDown(idx)}
+                  disabled={idx === branches.length - 1}
+                  className="text-[var(--stgm-muted-foreground,#737373)] disabled:opacity-30 hover:text-[var(--stgm-foreground,#1a1a2e)]"
+                  aria-label={`Move ${branch.name} down`}
+                >
+                  <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true">
+                    <path d="M4 7L1 3h6L4 7z" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Branch info */}
+              <div className="min-w-0 flex-1">
+                {renamingIdx === idx ? (
+                  <input
+                    type="text"
+                    value={renameValue}
+                    onChange={(e) => setRenameValue(e.target.value)}
+                    onBlur={commitRename}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") commitRename();
+                      if (e.key === "Escape") setRenamingIdx(null);
+                    }}
+                    autoFocus
+                    className="w-full rounded border border-[var(--stgm-ring,#3b82f6)] bg-[var(--stgm-background,#fff)] px-1 py-0.5 text-[11px] text-[var(--stgm-foreground,#1a1a2e)] outline-none"
+                  />
+                ) : (
+                  <span
+                    className="text-[11px] font-medium text-[var(--stgm-foreground,#1a1a2e)] truncate block cursor-text"
+                    onDoubleClick={() => startRename(idx, branch.name)}
+                    title="Double-click to rename"
+                  >
+                    {branch.name}
+                  </span>
+                )}
+                <span className="text-[10px] text-[var(--stgm-muted-foreground,#737373)]">
+                  {branch.taskCount} {branch.taskCount === 1 ? "task" : "tasks"}
+                </span>
+              </div>
+
+              {/* Remove — disabled if only 2 branches */}
+              <button
+                type="button"
+                onClick={() => handleRemove(branch.name)}
+                disabled={branches.length <= 2}
+                className="shrink-0 opacity-0 group-hover/branch:opacity-100 transition-opacity text-[var(--stgm-muted-foreground,#737373)] hover:text-[var(--stgm-destructive,#ef4444)] disabled:opacity-30 disabled:cursor-not-allowed"
+                aria-label={`Remove branch ${branch.name}`}
+                title={branches.length <= 2 ? "Fork requires at least 2 branches" : "Remove branch"}
+              >
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+                  <path d="M3 3l6 6M9 3l-6 6" />
+                </svg>
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
