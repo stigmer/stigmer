@@ -43,6 +43,8 @@ import {
   AddSwitchCaseCommand,
   AddParallelBranchCommand,
   AddCatchHandlerCommand,
+  ToggleNodeDisabledCommand,
+  WrapInTryCatchCommand,
   generateEdgeId,
   generateTaskName,
   createTaskNode,
@@ -110,6 +112,8 @@ export interface UseWorkflowCanvasReturn {
   readonly addCatchHandler: (tryCatchNodeId: string, errorType: string) => void;
   readonly getGraphModel: () => WorkflowGraphModel;
   readonly selectAll: () => void;
+  readonly toggleNodeDisabled: (nodeId: string) => void;
+  readonly wrapInTryCatch: (nodeId: string) => void;
 }
 
 /**
@@ -705,6 +709,41 @@ export function useWorkflowCanvas(
   );
 
   // ---------------------------------------------------------------------------
+  // Toggle node disabled (T10: Inspector actions)
+  // ---------------------------------------------------------------------------
+
+  const toggleNodeDisabled = useCallback(
+    (nodeId: string) => {
+      const model = history.currentModel;
+      if (!model) return;
+      const node = model.nodes.find((n) => n.id === nodeId);
+      if (!node || isSentinelNode(nodeId)) return;
+      dispatch(new ToggleNodeDisabledCommand(nodeId, node.taskName));
+    },
+    [history.currentModel, dispatch],
+  );
+
+  // ---------------------------------------------------------------------------
+  // Wrap in try/catch (T10: Inspector actions)
+  // ---------------------------------------------------------------------------
+
+  const wrapInTryCatch = useCallback(
+    (nodeId: string) => {
+      const model = history.currentModel;
+      if (!model) return;
+      const node = model.nodes.find((n) => n.id === nodeId);
+      if (!node || isSentinelNode(nodeId)) return;
+
+      const existingNames = new Set(model.nodes.map((n) => n.taskName));
+      const tryCatchName = generateTaskName("try_catch", existingNames);
+
+      dispatch(new WrapInTryCatchCommand(nodeId, node.taskName, tryCatchName));
+      setSelection({ type: "node", id: tryCatchName });
+    },
+    [history.currentModel, dispatch],
+  );
+
+  // ---------------------------------------------------------------------------
   // Add node at position (AD-T05: pane context menu "Add Task")
   // ---------------------------------------------------------------------------
 
@@ -897,6 +936,8 @@ export function useWorkflowCanvas(
       addCatchHandler,
       getGraphModel,
       selectAll,
+      toggleNodeDisabled,
+      wrapInTryCatch,
     }),
     [
       nodes, edges, onNodesChange, onEdgesChange, onConnect,
@@ -909,7 +950,7 @@ export function useWorkflowCanvas(
       insertTaskOnEdge, addSuccessorTask,
       duplicateNode, addNodeAtPosition,
       addSwitchCase, addForkBranch, addCatchHandler, getGraphModel,
-      selectAll,
+      selectAll, toggleNodeDisabled, wrapInTryCatch,
     ],
   );
 }

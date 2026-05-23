@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-23 14:12
-**Last Session**: 2026-05-23 — T08 Contextual Task Picker implemented (all 5 phases complete)
-**Current Task**: T08 complete — ready for commit and next task (T09–T11 editor interactions, or backend follow-ups)
+**Last Session**: 2026-05-23 — T10 Inspector Panel Refactor implemented (all 7 phases complete)
+**Current Task**: T10 complete — ready for commit. Next: T09 (Branch Management), T11 (Context Menus), or backend follow-ups.
 **Status**: In Progress
 
 ## Session Progress (2026-05-23)
@@ -207,6 +207,23 @@ When starting a new session:
 - Modified files: `graph-commands.ts`, `CanvasActionsContext.ts`, `useWorkflowCanvas.ts`, `WorkflowCanvasEditor.tsx`, `TaskPickerPopover.tsx`, `NodeActions.tsx`, `WorkflowNode.tsx`, `CanvasTransitionEdge.tsx`
 - Fixed pre-existing E2E fixture schema drift: wait task `taskConfig.seconds` → `taskConfig.duration.seconds`
 
+### T10: Inspector Panel Refactor — COMPLETED
+- Created `sdk/react/src/workflow/inspector/` module (18 new files)
+- Refactored `WorkflowInspectorPanel` from 568-line monolith to 115-line thin wrapper delegating to `InspectorShell`
+- Implemented tabbed inspector with 5 design-mode tabs: Configure, Data, Runtime, Advanced, Docs
+- Built `WorkflowSummaryPanel` for workflow-level empty state (identity, env vars, budget, validation, task stats)
+- Built `AgentCallForm` (specialized agent_call editor: agent, harness, message, model, structured output)
+- Built `HttpCallForm` (specialized http_call editor: method+URL, headers, conditional body, timeout)
+- Added `InspectorHeader` with overflow actions menu (Rename, Duplicate, Disable, Delete, Wrap in TryCatch)
+- Added `ToggleNodeDisabledCommand` and `WrapInTryCatchCommand` (fully reversible graph commands)
+- Added `toggleNodeDisabled` and `wrapInTryCatch` to `useWorkflowCanvas`
+- Created `ExecutionInspectorAdapter` for future execution-mode visual unification
+- Created `taskToYaml` utility for single-task YAML serialization
+- 38 unit tests across 4 test files; 6 E2E test cases; 16 new barrel exports
+- Zero client-app changes (DD-016); zero lint errors; zero regressions
+- Checkpoint: `checkpoints/2026-05-23-session-t10-inspector-refactor.md`
+- Changelog: `_changelog/2026-05/2026-05-23-211146-feat-workflow-inspector-panel-refactor-t10.md`
+
 ### Agent Call Strategy Implementation — COMPLETED (separate session)
 - Implemented 6-part agent call architecture strategy from plan `agent_call_strategy_0d3e60ec.plan.md`
 - **Workflow YAMLs**: Added `harness: cursor` and `config.model: "claude-sonnet-4"` to all 9 agent_call tasks across 3 Tiny Tactics workflows
@@ -228,7 +245,9 @@ When starting a new session:
 6. **Backend follow-up: Waterfall enrichment** — Agent call events, task retrying events, queue delay, streaming phases, push delivery (see `checkpoints/t07-waterfall-backend-followups.md`)
 7. **Backend follow-up: Runner I/O population** — Populate full `WorkflowTask` I/O on status (see `checkpoints/t05-runner-io-followup.md` and `checkpoints/runner-task-io-followups.md`)
 8. Enable ELK in client-apps via `workerFactory` (see `checkpoints/t03-deferred-wiring.md`)
-9. **T09–T11: Inspector Refactor, Branch Management, Context Menus** — Continue editor interaction work
+9. ~~**T10: Inspector Panel Refactor** — Tabbed inspector, per-kind forms, empty state, node actions~~ DONE
+10. **T09: Branch Management UX** — Branch handles, reorder, join policy, catch handler listing
+11. **T11: Context Menu and Keyboard Shortcuts** — Right-click menus, Delete/Duplicate/N key shortcuts
 
 ## Context for Resume
 

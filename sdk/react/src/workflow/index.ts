@@ -300,6 +300,31 @@ export {
   type WorkflowInspectorPanelProps,
 } from "./WorkflowInspectorPanel";
 
+// T10: Inspector module — tabbed shell, forms, summary, types
+export {
+  InspectorShell,
+  type InspectorShellProps,
+  InspectorHeader,
+  type InspectorHeaderProps,
+  useInspectorTabs,
+  type UseInspectorTabsInput,
+  type UseInspectorTabsReturn,
+  WorkflowSummaryPanel,
+  type WorkflowSummaryPanelProps,
+  AgentCallForm,
+  type AgentCallFormProps,
+  HttpCallForm,
+  type HttpCallFormProps,
+  ExecutionInspectorAdapter,
+  type ExecutionInspectorAdapterProps,
+  taskToYaml,
+  type InspectorMutations,
+  type InspectorNodeIdentity,
+  type InspectorMode,
+  type DesignTabId,
+  type InspectorTabDefinition,
+} from "./inspector";
+
 export {
   TaskConfigForm,
   type TaskConfigFormProps,
