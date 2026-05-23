@@ -344,4 +344,96 @@ describe("useRunWorkflowFlow", () => {
       expect(input.workflowId).toBeUndefined();
     });
   });
+
+  // =========================================================================
+  // Trigger input detection and visibility
+  // =========================================================================
+
+  describe("trigger input visibility", () => {
+    it("sets usesTriggerInput=false when no task references $input", () => {
+      const opts = defaultOptions({
+        workflow: makeWorkflow({
+          spec: {
+            env: { KEY: { optional: false, isSecret: false } },
+            tasks: [
+              {
+                name: "run",
+                kind: 1,
+                taskConfig: { agent: "analyst", message: "${ $env.KEY }" },
+              },
+            ],
+          },
+        }),
+      });
+      const { result } = renderWithClient(opts);
+
+      expect(result.current.usesTriggerInput).toBe(false);
+      expect(result.current.showTriggerMessage).toBe(false);
+    });
+
+    it("sets usesTriggerInput=true when a task references $input", () => {
+      const opts = defaultOptions({
+        workflow: makeWorkflow({
+          spec: {
+            tasks: [
+              {
+                name: "route",
+                kind: 1,
+                taskConfig: { when: "${ $input.score > 80 }" },
+              },
+            ],
+          },
+        }),
+      });
+      const { result } = renderWithClient(opts);
+
+      expect(result.current.usesTriggerInput).toBe(true);
+      expect(result.current.showTriggerMessage).toBe(true);
+    });
+
+    it("allows toggling showTriggerMessage via escape hatch", () => {
+      const opts = defaultOptions();
+      const { result } = renderWithClient(opts);
+
+      expect(result.current.showTriggerMessage).toBe(false);
+
+      act(() => {
+        result.current.setShowTriggerMessage(true);
+      });
+
+      expect(result.current.showTriggerMessage).toBe(true);
+    });
+
+    it("resets showTriggerMessage to usesTriggerInput on reset()", () => {
+      const opts = defaultOptions();
+      const { result } = renderWithClient(opts);
+
+      act(() => {
+        result.current.setShowTriggerMessage(true);
+      });
+      expect(result.current.showTriggerMessage).toBe(true);
+
+      act(() => {
+        result.current.reset();
+      });
+      expect(result.current.showTriggerMessage).toBe(false);
+    });
+
+    it("still sends triggerMessage when field was toggled open and filled", async () => {
+      const opts = defaultOptions();
+      const { result } = renderWithClient(opts);
+
+      act(() => {
+        result.current.setShowTriggerMessage(true);
+        result.current.setTriggerMessage('{"intent": "test"}');
+      });
+
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      const input = mockCreate.mock.calls[0][0];
+      expect(input.triggerMessage).toBe('{"intent": "test"}');
+    });
+  });
 });

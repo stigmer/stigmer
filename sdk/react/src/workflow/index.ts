@@ -133,6 +133,9 @@ export {
   type RunWorkflowFieldErrors,
 } from "./useRunWorkflowFlow";
 
+// T11: Run workflow — trigger input detection
+export { workflowUsesTriggerInput } from "./workflow-uses-trigger-input";
+
 // T11: Run workflow — styled components
 export {
   WorkflowRunForm,

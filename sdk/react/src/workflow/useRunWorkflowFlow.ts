@@ -9,6 +9,7 @@ import { getUserMessage } from "@stigmer/sdk";
 import { useStigmer } from "../hooks";
 import { useExecutionTarget } from "../execution-target-context";
 import { useRunnerAdapter } from "../runner-adapter";
+import { workflowUsesTriggerInput } from "./workflow-uses-trigger-input";
 
 /** Field-level validation errors keyed by field name. */
 export type RunWorkflowFieldErrors = Record<string, string>;
@@ -52,6 +53,22 @@ export interface UseRunWorkflowFlowReturn {
 
   /** Declared environment variables from the workflow spec. */
   readonly envDeclarations: Record<string, EnvVarDeclaration>;
+
+  /**
+   * Whether the workflow references `$input` / trigger_message in its tasks.
+   * When `false`, the trigger message field is irrelevant for this workflow.
+   */
+  readonly usesTriggerInput: boolean;
+
+  /**
+   * Whether the trigger message field should be visible in the form.
+   * Defaults to `usesTriggerInput`; can be toggled by the user via
+   * the escape-hatch "Add trigger input" link.
+   */
+  readonly showTriggerMessage: boolean;
+
+  /** Toggle visibility of the trigger message field (escape hatch). */
+  readonly setShowTriggerMessage: (show: boolean) => void;
 
   /** Field-level validation errors (empty when valid). */
   readonly fieldErrors: RunWorkflowFieldErrors;
@@ -104,11 +121,17 @@ export function useRunWorkflowFlow(
   const contextTarget = useExecutionTarget();
   const adapter = useRunnerAdapter();
 
+  const usesTriggerInput = useMemo(
+    () => workflowUsesTriggerInput(workflow),
+    [workflow],
+  );
+
   const [triggerMessage, setTriggerMessage] = useState("");
   const [runtimeEnv, setRuntimeEnv] = useState<Record<string, string>>({});
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(
     null,
   );
+  const [showTriggerMessage, setShowTriggerMessage] = useState(usesTriggerInput);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<RunWorkflowFieldErrors>({});
@@ -222,9 +245,10 @@ export function useRunWorkflowFlow(
     setTriggerMessage("");
     setRuntimeEnv({});
     setSelectedInstanceId(null);
+    setShowTriggerMessage(usesTriggerInput);
     setError(null);
     setFieldErrors({});
-  }, []);
+  }, [usesTriggerInput]);
 
   return {
     triggerMessage,
@@ -234,6 +258,9 @@ export function useRunWorkflowFlow(
     selectedInstanceId,
     setSelectedInstanceId,
     envDeclarations,
+    usesTriggerInput,
+    showTriggerMessage,
+    setShowTriggerMessage,
     fieldErrors,
     isSubmitting,
     error,
