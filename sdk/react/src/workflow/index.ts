@@ -468,6 +468,7 @@ export {
 // T05: Shared formatting utilities
 export {
   formatDuration,
+  formatDurationSec,
   formatMicroUsd,
   formatTokenCount,
   formatBytes,

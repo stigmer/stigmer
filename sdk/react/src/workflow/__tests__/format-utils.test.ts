@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   formatDuration,
+  formatDurationSec,
   formatMicroUsd,
   formatTokenCount,
   formatBytes,
@@ -134,5 +135,25 @@ describe("formatMetaChips", () => {
       tokens: BigInt(5000),
     });
     expect(result).toBe("1.5s · 5,000 tok");
+  });
+});
+
+describe("formatDurationSec", () => {
+  it("formats sub-minute durations in seconds", () => {
+    expect(formatDurationSec(0)).toBe("0s");
+    expect(formatDurationSec(42)).toBe("42s");
+    expect(formatDurationSec(59.4)).toBe("59s");
+  });
+
+  it("formats minutes with remaining seconds", () => {
+    expect(formatDurationSec(60)).toBe("1m");
+    expect(formatDurationSec(90)).toBe("1m 30s");
+    expect(formatDurationSec(3599)).toBe("59m 59s");
+  });
+
+  it("formats hours with remaining minutes", () => {
+    expect(formatDurationSec(3600)).toBe("1h");
+    expect(formatDurationSec(5400)).toBe("1h 30m");
+    expect(formatDurationSec(7260)).toBe("2h 1m");
   });
 });

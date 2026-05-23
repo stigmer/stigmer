@@ -85,6 +85,26 @@ export function formatTimestamp(iso: string): string {
 }
 
 /**
+ * Formats a duration in whole seconds to a human-readable string.
+ *
+ * Unlike {@link formatDuration} (which takes milliseconds), this is for
+ * API responses that report durations in seconds (e.g., execution summaries).
+ *
+ * Output examples: `42s`, `3m`, `1h 30m`
+ */
+export function formatDurationSec(seconds: number): string {
+  if (seconds < 60) return `${Math.round(seconds)}s`;
+  if (seconds < 3600) {
+    const m = Math.floor(seconds / 60);
+    const rem = Math.round(seconds % 60);
+    return rem > 0 ? `${m}m ${rem}s` : `${m}m`;
+  }
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  return m > 0 ? `${h}h ${m}m` : `${h}h`;
+}
+
+/**
  * Builds a compact "duration · cost · tokens" chip string from metrics.
  * Omits zero/absent values. Returns `null` if all values are empty.
  *

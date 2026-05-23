@@ -8,8 +8,6 @@ import type { DerivedTaskState } from "../../internal/store/workflow-execution-e
 import { Tabs, type TabItem } from "../../tabs/Tabs";
 import { useExecutionTaskDetail } from "./useExecutionTaskDetail";
 import { formatDuration, formatMicroUsd, formatTokenCount } from "../format-utils";
-import { kindToDisplayName } from "../kind-metadata";
-import { taskKindToString } from "../workflow-graph-conversions";
 import { SummaryTab } from "./SummaryTab";
 import { InputOutputTab } from "./InputOutputTab";
 import { ErrorTab } from "./ErrorTab";
@@ -73,20 +71,37 @@ export const ExecutionInspector = memo(function ExecutionInspector({
 
   const [activeTab, setActiveTab] = useState<InspectorTabId>("summary");
   const prevTaskRef = useRef(selectedTaskName);
+  const prevStatusRef = useRef(detail?.status);
+  const userPickedTabRef = useRef(false);
 
-  // Reset tab selection when task changes; auto-select Error for failed tasks
+  // Reset tab when the selected task changes
   useEffect(() => {
     if (selectedTaskName !== prevTaskRef.current) {
       prevTaskRef.current = selectedTaskName;
+      userPickedTabRef.current = false;
       if (detail?.status === "failed" && detail.error) {
         setActiveTab("error");
       } else {
         setActiveTab("summary");
       }
     }
-  }, [selectedTaskName, detail?.status, detail?.error, prevTaskRef]);
+  }, [selectedTaskName, detail?.status, detail?.error]);
+
+  // Auto-select Error tab when status transitions to "failed" (same task)
+  useEffect(() => {
+    if (
+      detail?.status === "failed" &&
+      detail.error &&
+      prevStatusRef.current !== "failed" &&
+      !userPickedTabRef.current
+    ) {
+      setActiveTab("error");
+    }
+    prevStatusRef.current = detail?.status;
+  }, [detail?.status, detail?.error]);
 
   const handleTabChange = useCallback((tabId: string) => {
+    userPickedTabRef.current = true;
     setActiveTab(tabId as InspectorTabId);
   }, []);
 
@@ -115,7 +130,7 @@ export const ExecutionInspector = memo(function ExecutionInspector({
             {detail.taskName}
           </h3>
           <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-            {kindToDisplayName(taskKindToString(detail.taskKind))}
+            {detail.displayName}
           </span>
         </div>
 
