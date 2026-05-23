@@ -94,6 +94,11 @@ func (v *InProcessValidator) Validate(ctx context.Context, spec *workflowv1.Work
 		warnings = append(warnings, budgetWarnings...)
 	}
 
+	// Step 4: Expression warnings ($context.env.* → should be $env.*)
+	if exprWarnings := CheckExpressionWarnings(spec); len(exprWarnings) > 0 {
+		warnings = append(warnings, exprWarnings...)
+	}
+
 	if len(errors) > 0 {
 		log.Warn().
 			Int("errors", len(errors)).

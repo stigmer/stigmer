@@ -29,6 +29,10 @@ export function Sidebar() {
     ? params.id ?? null
     : null;
 
+  const activeExecutionId = location.pathname.startsWith("/executions/")
+    ? params.id ?? null
+    : null;
+
   const isSessionZone =
     location.pathname === "/" || location.pathname.startsWith("/sessions/");
 
@@ -36,7 +40,8 @@ export function Sidebar() {
 
   useEffect(() => {
     refetch();
-    if (!activeSessionId) return;
+    const activeId = activeSessionId ?? activeExecutionId;
+    if (!activeId) return;
 
     const t1 = setTimeout(refetch, 8_000);
     const t2 = setTimeout(refetch, 18_000);
@@ -44,7 +49,7 @@ export function Sidebar() {
       clearTimeout(t1);
       clearTimeout(t2);
     };
-  }, [activeSessionId, refetch]);
+  }, [activeSessionId, activeExecutionId, refetch]);
 
   const groups = useMemo(
     () => groupRecentActivityByTime(entries),

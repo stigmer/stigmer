@@ -135,6 +135,21 @@ export async function callAgentAction(
   const sessionId = session?.metadata?.id ?? "";
 
   const executionRuntimeEnv: Record<string, { value: string; isSecret: boolean }> = {};
+
+  // Automatic intersection forwarding: forward workflow env vars that match the
+  // child agent's declared spec.env keys. This avoids requiring workflow authors
+  // to manually re-declare every env var on every agent_call task.
+  const agentEnvDecls = agent.spec?.env ?? {};
+  for (const [key, decl] of Object.entries(agentEnvDecls)) {
+    if (key in runtimeEnv && runtimeEnv[key] != null) {
+      executionRuntimeEnv[key] = {
+        value: String(runtimeEnv[key]),
+        isSecret: decl.isSecret ?? false,
+      };
+    }
+  }
+
+  // Task-config-level env takes precedence over auto-forwarded values
   if (resolved.env) {
     for (const [key, value] of Object.entries(resolved.env)) {
       executionRuntimeEnv[key] = { value: String(value), isSecret: false };
