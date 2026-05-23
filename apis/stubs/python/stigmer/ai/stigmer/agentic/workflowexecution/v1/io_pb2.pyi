@@ -201,15 +201,17 @@ class SubscribeEventsRequest(_message.Message):
     def __init__(self, execution_id: _Optional[str] = ..., after_sequence: _Optional[int] = ..., event_types: _Optional[_Iterable[_Union[_event_pb2.WorkflowEventType, str]]] = ...) -> None: ...
 
 class GetExecutionSummaryRequest(_message.Message):
-    __slots__ = ("org", "time_window")
+    __slots__ = ("org", "time_window", "workflow_id")
     ORG_FIELD_NUMBER: _ClassVar[int]
     TIME_WINDOW_FIELD_NUMBER: _ClassVar[int]
+    WORKFLOW_ID_FIELD_NUMBER: _ClassVar[int]
     org: str
     time_window: SummaryTimeWindow
-    def __init__(self, org: _Optional[str] = ..., time_window: _Optional[_Union[SummaryTimeWindow, str]] = ...) -> None: ...
+    workflow_id: str
+    def __init__(self, org: _Optional[str] = ..., time_window: _Optional[_Union[SummaryTimeWindow, str]] = ..., workflow_id: _Optional[str] = ...) -> None: ...
 
 class ExecutionSummary(_message.Message):
-    __slots__ = ("active_count", "phase_counts", "total_cost", "avg_duration", "top_failing_workflows", "cost_by_workflow")
+    __slots__ = ("active_count", "phase_counts", "total_cost", "avg_duration", "top_failing_workflows", "cost_by_workflow", "total_count", "success_rate")
     class PhaseCountsEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -223,13 +225,17 @@ class ExecutionSummary(_message.Message):
     AVG_DURATION_FIELD_NUMBER: _ClassVar[int]
     TOP_FAILING_WORKFLOWS_FIELD_NUMBER: _ClassVar[int]
     COST_BY_WORKFLOW_FIELD_NUMBER: _ClassVar[int]
+    TOTAL_COUNT_FIELD_NUMBER: _ClassVar[int]
+    SUCCESS_RATE_FIELD_NUMBER: _ClassVar[int]
     active_count: int
     phase_counts: _containers.ScalarMap[int, int]
     total_cost: WorkflowCostSummary
     avg_duration: _duration_pb2.Duration
     top_failing_workflows: _containers.RepeatedCompositeFieldContainer[WorkflowFailureRank]
     cost_by_workflow: _containers.RepeatedCompositeFieldContainer[WorkflowCostBreakdown]
-    def __init__(self, active_count: _Optional[int] = ..., phase_counts: _Optional[_Mapping[int, int]] = ..., total_cost: _Optional[_Union[WorkflowCostSummary, _Mapping]] = ..., avg_duration: _Optional[_Union[datetime.timedelta, _duration_pb2.Duration, _Mapping]] = ..., top_failing_workflows: _Optional[_Iterable[_Union[WorkflowFailureRank, _Mapping]]] = ..., cost_by_workflow: _Optional[_Iterable[_Union[WorkflowCostBreakdown, _Mapping]]] = ...) -> None: ...
+    total_count: int
+    success_rate: float
+    def __init__(self, active_count: _Optional[int] = ..., phase_counts: _Optional[_Mapping[int, int]] = ..., total_cost: _Optional[_Union[WorkflowCostSummary, _Mapping]] = ..., avg_duration: _Optional[_Union[datetime.timedelta, _duration_pb2.Duration, _Mapping]] = ..., top_failing_workflows: _Optional[_Iterable[_Union[WorkflowFailureRank, _Mapping]]] = ..., cost_by_workflow: _Optional[_Iterable[_Union[WorkflowCostBreakdown, _Mapping]]] = ..., total_count: _Optional[int] = ..., success_rate: _Optional[float] = ...) -> None: ...
 
 class WorkflowCostSummary(_message.Message):
     __slots__ = ("total_cost_usd", "total_input_tokens", "total_output_tokens")

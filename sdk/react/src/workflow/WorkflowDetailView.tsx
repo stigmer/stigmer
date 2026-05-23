@@ -13,7 +13,9 @@ import { useUpdateWorkflow } from "./useUpdateWorkflow";
 import { workflowToInput } from "./internal/workflowToInput";
 import { useWorkflowInstances } from "./useWorkflowInstances";
 import { useWorkflowExecutionList } from "./useWorkflowExecutionList";
-import { WorkflowTopologyPreview } from "./WorkflowTopologyPreview";
+import { useWorkflowDashboardSummary } from "./useWorkflowDashboardSummary";
+import { WorkflowOverviewGraph } from "./WorkflowOverviewGraph";
+import { WorkflowOverviewSummary } from "./WorkflowOverviewSummary";
 import { WorkflowExecutionPhaseBadge } from "./WorkflowExecutionPhaseBadge";
 import { ErrorMessage } from "../error/ErrorMessage";
 import { VisibilityToggle } from "../library/VisibilityToggle";
@@ -88,6 +90,21 @@ export interface WorkflowDetailViewProps {
    * Called after a successful inline field save with the updated workflow.
    */
   readonly onResourceUpdated?: (workflow: Workflow) => void;
+  /**
+   * Called when the user clicks "Open in editor" from the overview graph
+   * node popover. Receives the task name. Wire this to switch to the
+   * editor tab and optionally select the node.
+   *
+   * @since T12 (Overview Page Redesign)
+   */
+  readonly onOpenInEditor?: (taskName: string) => void;
+  /**
+   * Called when the user clicks "View latest run" in the overview quick
+   * actions. Receives the execution ID of the most recent execution.
+   *
+   * @since T12 (Overview Page Redesign)
+   */
+  readonly onViewLatestRun?: (executionId: string) => void;
   /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
@@ -126,6 +143,8 @@ export function WorkflowDetailView({
   onExecutionClick,
   editable = false,
   onResourceUpdated,
+  onOpenInEditor,
+  onViewLatestRun,
   className,
 }: WorkflowDetailViewProps) {
   const { workflow, isLoading, error, refetch } = useWorkflow(org, slug);
@@ -239,9 +258,13 @@ export function WorkflowDetailView({
     tabContent = (
       <OverviewTab
         workflow={workflow}
+        org={org}
         editable={editable}
         isSaving={isUpdating}
         saveField={saveField}
+        onOpenInEditor={onOpenInEditor}
+        onViewLatestRun={onViewLatestRun}
+        onExecutionClick={onExecutionClick}
       />
     );
   }
@@ -270,17 +293,25 @@ export function WorkflowDetailView({
 
 function OverviewTab({
   workflow,
+  org,
   editable,
   isSaving,
   saveField,
+  onOpenInEditor,
+  onViewLatestRun,
+  onExecutionClick,
 }: {
   readonly workflow: Workflow;
+  readonly org: string;
   readonly editable?: boolean;
   readonly isSaving?: boolean;
   readonly saveField?: <K extends keyof WorkflowInput>(
     field: K,
     value: WorkflowInput[K],
   ) => Promise<boolean>;
+  readonly onOpenInEditor?: (taskName: string) => void;
+  readonly onViewLatestRun?: (executionId: string) => void;
+  readonly onExecutionClick?: (executionId: string) => void;
 }) {
   const spec = workflow.spec;
   const doc = spec?.document;
@@ -291,6 +322,18 @@ function OverviewTab({
   const showEnv = editable || envEntries.length > 0;
 
   const [envEditing, setEnvEditing] = useState(false);
+
+  const workflowId = workflow.metadata?.id;
+  const { summary, isLoading: summaryLoading } = useWorkflowDashboardSummary({
+    org,
+    workflowId: workflowId || undefined,
+  });
+
+  const { executions } = useWorkflowExecutionList({
+    workflowId,
+    pageSize: 1,
+  });
+  const latestExecId = executions[0]?.metadata?.id;
 
   const handleEnvSave = useCallback(
     async (rows: KeyValueRow[]) => {
@@ -325,6 +368,52 @@ function OverviewTab({
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Summary stat cards */}
+      <WorkflowOverviewSummary
+        summary={summary}
+        isLoading={summaryLoading}
+      />
+
+      {/* Interactive workflow graph */}
+      {(spec?.tasks?.length ?? 0) > 0 && (
+        <Section title="Task Flow" count={spec?.tasks?.length}>
+          <div className="h-[28rem]">
+            <WorkflowOverviewGraph
+              workflow={workflow}
+              onOpenInEditor={onOpenInEditor}
+              className="h-full w-full rounded-sm bg-[var(--stgm-muted-subtle,#fafafa)]"
+            />
+          </div>
+        </Section>
+      )}
+
+      {/* Quick action links */}
+      {(onOpenInEditor || (onViewLatestRun && latestExecId) || (onExecutionClick && latestExecId)) && (
+        <div className="flex flex-wrap items-center gap-3">
+          {onOpenInEditor && (
+            <QuickActionButton
+              label="Edit workflow"
+              onClick={() => onOpenInEditor("")}
+              icon={<EditIcon />}
+            />
+          )}
+          {latestExecId && onViewLatestRun && (
+            <QuickActionButton
+              label="View latest run"
+              onClick={() => onViewLatestRun(latestExecId)}
+              icon={<PlayIcon />}
+            />
+          )}
+          {latestExecId && !onViewLatestRun && onExecutionClick && (
+            <QuickActionButton
+              label="View latest run"
+              onClick={() => onExecutionClick(latestExecId)}
+              icon={<PlayIcon />}
+            />
+          )}
+        </div>
+      )}
+
       {showDescription && (
         <Section title="Description">
           {editable ? (
@@ -410,10 +499,6 @@ function OverviewTab({
         </Section>
       )}
 
-      <Section title="Task Flow" count={spec?.tasks?.length}>
-        <WorkflowTopologyPreview tasks={spec?.tasks ?? []} />
-      </Section>
-
       {doc && (
         <Section title="Document">
           <div className="flex flex-wrap gap-x-6 gap-y-1 px-4 py-2.5 text-xs text-muted-foreground">
@@ -424,6 +509,50 @@ function OverviewTab({
         </Section>
       )}
     </div>
+  );
+}
+
+function QuickActionButton({
+  label,
+  onClick,
+  icon,
+}: {
+  readonly label: string;
+  readonly onClick: () => void;
+  readonly icon: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
+        "border border-[var(--stgm-border,#d4d4d8)] bg-[var(--stgm-background,#fff)]",
+        "text-[var(--stgm-foreground,#1a1a2e)]",
+        "hover:bg-[var(--stgm-accent,#f5f5f5)]",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--stgm-ring,#6366f1)]",
+        "transition-colors",
+      )}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
+
+function EditIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M11.5 1.5l3 3L5 14H2v-3L11.5 1.5z" />
+    </svg>
+  );
+}
+
+function PlayIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polygon points="5,3 13,8 5,13" />
+    </svg>
   );
 }
 

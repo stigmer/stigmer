@@ -161,11 +161,6 @@ export {
 export { topologyFromTasks } from "./topologyFromTasks";
 
 export {
-  WorkflowTopologyPreview,
-  type WorkflowTopologyPreviewProps,
-} from "./WorkflowTopologyPreview";
-
-export {
   WorkflowDetailView,
   type WorkflowDetailViewProps,
 } from "./WorkflowDetailView";
@@ -576,3 +571,26 @@ export {
   ViewYamlDialog,
   type ViewYamlDialogProps,
 } from "./ViewYamlDialog";
+
+// T12: Overview page redesign — behavior hook
+export {
+  useWorkflowOverviewGraph,
+  type UseWorkflowOverviewGraphOptions,
+  type UseWorkflowOverviewGraphReturn,
+} from "./useWorkflowOverviewGraph";
+
+// T12: Overview page redesign — styled components
+export {
+  WorkflowOverviewGraph,
+  type WorkflowOverviewGraphProps,
+} from "./WorkflowOverviewGraph";
+
+export {
+  WorkflowNodePopover,
+  type WorkflowNodePopoverProps,
+} from "./WorkflowNodePopover";
+
+export {
+  WorkflowOverviewSummary,
+  type WorkflowOverviewSummaryProps,
+} from "./WorkflowOverviewSummary";

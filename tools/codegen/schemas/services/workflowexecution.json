@@ -1261,7 +1261,7 @@
     },
     {
       "name": "GetExecutionSummaryRequest",
-      "description": "GetExecutionSummaryRequest fetches aggregated execution statistics for an organization.\n\n @since T14 (Dashboard Integration)",
+      "description": "GetExecutionSummaryRequest fetches aggregated execution statistics for an organization,\n optionally scoped to a single workflow.\n\n @since T14 (Dashboard Integration)",
       "protoType": "ai.stigmer.agentic.workflowexecution.v1.GetExecutionSummaryRequest",
       "protoFile": "apis/ai/stigmer/agentic/workflowexecution/v1/io.proto",
       "fields": [
@@ -1293,6 +1293,16 @@
             ]
           },
           "description": "Time window for aggregation.\n\n Defaults to LAST_7D when unspecified.",
+          "required": false
+        },
+        {
+          "name": "WorkflowId",
+          "jsonName": "workflowId",
+          "protoField": "workflow_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "When set, scopes the summary to executions of this workflow only.\n When empty, aggregates across all workflows in the organization.\n\n @since T12 (Overview Page Redesign)",
           "required": false
         }
       ]
@@ -1377,6 +1387,26 @@
             }
           },
           "description": "Per-workflow cost breakdown, ranked by total_cost descending.\n\n Capped at 10 entries.",
+          "required": false
+        },
+        {
+          "name": "TotalCount",
+          "jsonName": "totalCount",
+          "protoField": "total_count",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Total number of executions in the time window (sum of all phase_counts values).\n\n @since T12 (Overview Page Redesign)",
+          "required": false
+        },
+        {
+          "name": "SuccessRate",
+          "jsonName": "successRate",
+          "protoField": "success_rate",
+          "type": {
+            "kind": "double"
+          },
+          "description": "Success rate as a ratio (0.0 to 1.0).\n Computed as completed / (completed + failed). Returns -1.0 when no\n completed or failed executions exist in the time window.\n\n @since T12 (Overview Page Redesign)",
           "required": false
         }
       ]
