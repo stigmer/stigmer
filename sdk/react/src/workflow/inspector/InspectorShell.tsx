@@ -35,6 +35,8 @@ export interface InspectorShellProps {
   readonly validationErrors?: ReadonlyMap<string, readonly string[]>;
   /** Content to render when nothing is selected. */
   readonly emptyState?: React.ReactNode;
+  /** Called to open the View YAML dialog for a node. */
+  readonly onViewYaml?: (nodeId: string) => void;
   /** Additional CSS class names. */
   readonly className?: string;
 }
@@ -56,6 +58,7 @@ export const InspectorShell = memo(function InspectorShell({
   mutations,
   validationErrors,
   emptyState,
+  onViewYaml,
   className,
 }: InspectorShellProps) {
   if (!selection || !graph) {
@@ -99,6 +102,7 @@ export const InspectorShell = memo(function InspectorShell({
       descriptor={descriptor}
       mutations={mutations}
       validationErrors={validationErrors}
+      onViewYaml={onViewYaml}
       className={className}
     />
   );
@@ -114,6 +118,7 @@ function NodeInspectorShell({
   descriptor,
   mutations,
   validationErrors,
+  onViewYaml,
   className,
 }: {
   node: WorkflowGraphNode;
@@ -121,6 +126,7 @@ function NodeInspectorShell({
   descriptor: TaskKindDescriptor | undefined;
   mutations: InspectorMutations;
   validationErrors?: ReadonlyMap<string, readonly string[]>;
+  onViewYaml?: (nodeId: string) => void;
   className?: string;
 }) {
   const kindStr = taskKindToString(node.kind);
@@ -171,6 +177,7 @@ function NodeInspectorShell({
         identity={identity}
         graph={graph}
         mutations={mutations}
+        onViewYaml={onViewYaml}
       />
 
       <Tabs

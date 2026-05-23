@@ -14,6 +14,8 @@ export interface InspectorHeaderProps {
   readonly graph: WorkflowGraphModel;
   /** Mutation callbacks for node actions. */
   readonly mutations: InspectorMutations;
+  /** Called to open the View YAML dialog for this node. */
+  readonly onViewYaml?: (nodeId: string) => void;
   /** Additional CSS class names. */
   readonly className?: string;
 }
@@ -30,6 +32,7 @@ export const InspectorHeader = memo(function InspectorHeader({
   identity,
   graph,
   mutations,
+  onViewYaml,
   className,
 }: InspectorHeaderProps) {
   const [editingName, setEditingName] = useState(false);
@@ -133,6 +136,7 @@ export const InspectorHeader = memo(function InspectorHeader({
               nodeId={identity.nodeId}
               mutations={mutations}
               onRename={startEditing}
+              onViewYaml={onViewYaml}
               onClose={closeMenu}
             />
           )}
@@ -168,11 +172,13 @@ function ActionsMenu({
   nodeId,
   mutations,
   onRename,
+  onViewYaml,
   onClose,
 }: {
   nodeId: string;
   mutations: InspectorMutations;
   onRename: () => void;
+  onViewYaml?: (nodeId: string) => void;
   onClose: () => void;
 }) {
   const handleAction = useCallback(
@@ -201,6 +207,9 @@ function ActionsMenu({
         )}
         {mutations.onWrapInTryCatch && (
           <MenuItem label="Wrap in Try/Catch" onClick={() => handleAction(() => mutations.onWrapInTryCatch!(nodeId))} />
+        )}
+        {onViewYaml && (
+          <MenuItem label="View YAML" onClick={() => handleAction(() => onViewYaml(nodeId))} />
         )}
         <MenuDivider />
         {mutations.onDeleteNode && (

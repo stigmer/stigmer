@@ -15,6 +15,7 @@ import { CanvasContextMenu } from "./CanvasContextMenu";
 import type { CanvasContextMenuTarget } from "./CanvasContextMenu";
 import { TaskPickerPopover } from "./TaskPickerPopover";
 import { useCanvasKeyboardShortcuts } from "./useCanvasKeyboardShortcuts";
+import { ViewYamlDialog } from "./ViewYamlDialog";
 
 /** Props for {@link WorkflowCanvasEditor}. */
 export interface WorkflowCanvasEditorProps {
@@ -151,6 +152,9 @@ const WorkflowCanvasEditorInner = memo(function WorkflowCanvasEditorInner({
     clearSelection: canvas.clearSelection,
     onRequestTaskPicker: handleRequestTaskPicker,
     onDismiss: handleKeyboardDismiss,
+    copySelection: canvas.copySelection,
+    pasteAtCenter: canvas.pasteAtCenter,
+    cutSelection: canvas.cutSelection,
   });
 
   useEffect(() => {
@@ -290,6 +294,91 @@ const WorkflowCanvasEditorInner = memo(function WorkflowCanvasEditorInner({
     canvas.autoLayout();
     setContextMenu(null);
   }, [canvas.autoLayout]);
+
+  const handleContextMenuToggleDisabled = useCallback(
+    (nodeId: string) => {
+      canvas.toggleNodeDisabled(nodeId);
+      setContextMenu(null);
+    },
+    [canvas.toggleNodeDisabled],
+  );
+
+  const handleContextMenuWrapInTryCatch = useCallback(
+    (nodeId: string) => {
+      canvas.wrapInTryCatch(nodeId);
+      setContextMenu(null);
+    },
+    [canvas.wrapInTryCatch],
+  );
+
+  const handleContextMenuCopyNode = useCallback(
+    (nodeId: string) => {
+      canvas.selectNode(nodeId);
+      canvas.copySelection();
+      setContextMenu(null);
+    },
+    [canvas.selectNode, canvas.copySelection],
+  );
+
+  const handleContextMenuRenameNode = useCallback(
+    (nodeId: string) => {
+      canvas.selectNode(nodeId);
+      setContextMenu(null);
+    },
+    [canvas.selectNode],
+  );
+
+  const [viewYamlNodeId, setViewYamlNodeId] = useState<string | null>(null);
+
+  const handleContextMenuViewYaml = useCallback(
+    (nodeId: string) => {
+      setViewYamlNodeId(nodeId);
+      setContextMenu(null);
+    },
+    [],
+  );
+
+  const handleContextMenuPaste = useCallback(() => {
+    canvas.pasteAtCenter();
+    setContextMenu(null);
+  }, [canvas.pasteAtCenter]);
+
+  const handleContextMenuFitView = useCallback(() => {
+    setContextMenu(null);
+  }, []);
+
+  const handleContextMenuCopySelection = useCallback(() => {
+    canvas.copySelection();
+    setContextMenu(null);
+  }, [canvas.copySelection]);
+
+  const handleContextMenuDuplicateSelection = useCallback(() => {
+    canvas.duplicateSelection();
+    setContextMenu(null);
+  }, [canvas.duplicateSelection]);
+
+  const handleContextMenuDisableSelection = useCallback(() => {
+    canvas.disableSelection();
+    setContextMenu(null);
+  }, [canvas.disableSelection]);
+
+  const handleContextMenuDeleteSelection = useCallback(() => {
+    canvas.deleteSelection();
+    setContextMenu(null);
+  }, [canvas.deleteSelection]);
+
+  const handleSelectionContextMenu = useCallback(
+    (event: React.MouseEvent, selectedNodes: { id: string }[]) => {
+      event.preventDefault();
+      const nonSentinels = selectedNodes.filter((n) => n.id !== "__start__" && n.id !== "__end__");
+      if (nonSentinels.length === 0) return;
+      setContextMenu({
+        target: { type: "selection", count: nonSentinels.length },
+        position: { x: event.clientX, y: event.clientY },
+      });
+    },
+    [],
+  );
 
   // ---------------------------------------------------------------------------
   // Pending picker handlers (two-step menu-to-picker flow, AD-T05)
@@ -505,6 +594,7 @@ const WorkflowCanvasEditorInner = memo(function WorkflowCanvasEditorInner({
               onNodeContextMenu={handleNodeContextMenu}
               onEdgeContextMenu={handleEdgeContextMenu}
               onPaneContextMenu={handlePaneContextMenu}
+              onSelectionContextMenu={handleSelectionContextMenu}
               nodeErrors={nodeErrors}
             />
           </Suspense>
@@ -530,11 +620,23 @@ const WorkflowCanvasEditorInner = memo(function WorkflowCanvasEditorInner({
           onDeleteNode={handleContextMenuDeleteNode}
           onDuplicateNode={handleContextMenuDuplicateNode}
           onAddTaskAfter={handleContextMenuAddTaskAfter}
+          onToggleDisabled={handleContextMenuToggleDisabled}
+          onWrapInTryCatch={handleContextMenuWrapInTryCatch}
+          onCopyNode={handleContextMenuCopyNode}
+          onRenameNode={handleContextMenuRenameNode}
+          onViewYaml={handleContextMenuViewYaml}
           onDeleteEdge={handleContextMenuDeleteEdge}
           onInsertTaskOnEdge={handleContextMenuInsertTaskOnEdge}
           onAddTaskAtPosition={handleContextMenuAddTaskAtPosition}
           onSelectAll={handleContextMenuSelectAll}
           onAutoLayout={handleContextMenuAutoLayout}
+          onPaste={handleContextMenuPaste}
+          hasClipboard={canvas.hasClipboard}
+          onFitView={handleContextMenuFitView}
+          onCopySelection={handleContextMenuCopySelection}
+          onDuplicateSelection={handleContextMenuDuplicateSelection}
+          onDisableSelection={handleContextMenuDisableSelection}
+          onDeleteSelection={handleContextMenuDeleteSelection}
         />
 
         <TaskPickerPopover
@@ -545,6 +647,12 @@ const WorkflowCanvasEditorInner = memo(function WorkflowCanvasEditorInner({
           insertionContext={pendingInsertionContext}
           graph={canvas.getGraphModel()}
           side="bottom"
+        />
+
+        <ViewYamlDialog
+          nodeId={viewYamlNodeId}
+          graph={canvas.graph}
+          onClose={() => setViewYamlNodeId(null)}
         />
       </div>
 
@@ -566,6 +674,7 @@ const WorkflowCanvasEditorInner = memo(function WorkflowCanvasEditorInner({
             onUpdateBranchRouting={canvas.updateBranchRouting}
             onMigrateBranchHandle={canvas.migrateBranchHandle}
             onRemoveBranchEdges={canvas.removeBranchEdges}
+            onViewYaml={handleContextMenuViewYaml}
             validationErrors={nodeErrors}
             emptyState={canvas.graph ? <WorkflowSummaryPanel graph={canvas.graph} validationErrors={nodeErrors} /> : undefined}
           />
