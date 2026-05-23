@@ -68,9 +68,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-23 14:12
-**Last Session**: 2026-05-23 — T09 Branch Management UX complete (12 commands, 3 inspector tabs, canvas badges, 62 tests)
-**Current Task**: Backend follow-ups (#6 waterfall enrichment, #7 runner I/O)
-**Status**: In Progress — frontend editor feature-complete, backend enrichment remaining
+**Last Session**: 2026-05-23 — T12 Overview Page Redesign complete (React Flow overview graph, summary stats, node popover, 30 tests)
+**Current Task**: Backend follow-ups (#6 waterfall enrichment, #7 runner I/O), then T13
+**Status**: In Progress — T12 complete, T01-T12 all done, T13+ remaining
 
 ## Session Progress (2026-05-23)
 
@@ -271,6 +271,21 @@ When starting a new session:
 - Checkpoint: `checkpoints/2026-05-23-session-t09-branch-management.md`
 - Changelog: `_changelog/2026-05/2026-05-23-223959-feat-workflow-branch-management-ux-t09.md`
 
+### T12: Overview Page Redesign — COMPLETED
+- Extended `GetExecutionSummary` proto with `workflow_id` filter + `total_count` + `success_rate` fields
+- Implemented workflow_id filtering in Go (`get_execution_summary.go`) and Java (`WorkflowExecutionGetExecutionSummaryHandler.java`)
+- Extended `useWorkflowDashboardSummary` hook with optional `workflowId` parameter
+- Created `useWorkflowOverviewGraph` behavior hook — Workflow → YAML → graph model → dagre layout → React Flow elements
+- Created `WorkflowOverviewGraph` — React Flow in `"overview"` mode with MiniMap, Controls, Background, node click → popover
+- Created `WorkflowNodePopover` — positioned popover on node click with task summary + "Open in editor" action
+- Created `WorkflowOverviewSummary` — 4 stat cards (Total Executions, Success Rate, Avg Duration, Total Cost)
+- Redesigned `OverviewTab` in `WorkflowDetailView`: summary cards → interactive graph → quick actions → detail sections
+- Added `onOpenInEditor` and `onViewLatestRun` callback props; controlled tabs in both client apps (DD-016)
+- Deleted `WorkflowTopologyPreview.tsx` (no remaining consumers); kept `WorkflowTopologyGraph` (still used by editor code-mode)
+- 30 unit tests (3 files), 5 E2E test cases; all passing
+- Committed as `1b512e84c`
+- Changelog: `_changelog/2026-05/2026-05-23-231806-feat-workflow-overview-page-redesign-t12.md`
+
 ### ELK Layout Engine Wiring — COMPLETED
 - Threaded `layoutEngine` optional prop through `useWorkflowCanvas` → `WorkflowCanvasEditor` → `WorkflowEditorView`
 - Created `useElkLayoutEngine` behavior hook in `sdk/react/src/workflow/layout/useElkLayoutEngine.ts` — async engine creation, Web Worker cleanup, graceful fallback when elkjs unavailable
@@ -293,6 +308,8 @@ When starting a new session:
 9. ~~**T10: Inspector Panel Refactor** — Tabbed inspector, per-kind forms, empty state, node actions~~ DONE
 10. ~~**T09: Branch Management UX** — Branch handles, reorder, join policy, catch handler listing~~ DONE
 11. ~~**T11: Context Menu and Keyboard Shortcuts** — Right-click menus, Delete/Duplicate/N key shortcuts~~ DONE
+12. ~~**T12: Overview Page Redesign** — React Flow overview graph, summary stats, node popover, quick actions~~ DONE
+13. **T13: Execution History and Operations Dashboard** — Execution table with filters, health metrics, run comparison
 
 ## Context for Resume
 
@@ -340,6 +357,13 @@ When starting a new session:
 - T11 ViewYamlDialog: native `<dialog>` with `showModal()`, `taskToYaml()` from T10, copy-to-clipboard button. State managed as `viewYamlNodeId` in `WorkflowCanvasEditor`.
 - T11 keyboard shortcuts: Cmd+C/V/X added to `useCanvasKeyboardShortcuts` (optional props, backward compatible). Focus-gated, text-input-safe.
 - T11 design decisions: DD-T11-001 (shortcut registry SSOT), DD-T11-002 (internal clipboard only), DD-T11-003 (CompoundCommand for batch), DD-T11-004 (focus-gated, no shortcutMap prop)
+- T12 overview graph: `WorkflowOverviewGraph` in `sdk/react/src/workflow/WorkflowOverviewGraph.tsx` — React Flow in `"overview"` mode, mirrors `WorkflowExecutionGraph` pattern
+- T12 behavior hook: `useWorkflowOverviewGraph` — pipeline: `Workflow` → `serializeWorkflowYaml` → `yamlToGraph` → `applyDagreLayout` → `toReactFlowElements`
+- T12 popover: `WorkflowNodePopover` — positioned at click coordinates, shows task name/kind/config + "Open in editor" action
+- T12 summary: `WorkflowOverviewSummary` — 4 stat cards from `useWorkflowDashboardSummary({ workflowId })`, graceful empty state
+- T12 proto: `GetExecutionSummaryRequest.workflow_id` (field 3) — scopes summary to single workflow; `ExecutionSummary.total_count` (7) + `success_rate` (8)
+- T12 cleanup: `WorkflowTopologyPreview` deleted; `WorkflowTopologyGraph` kept (still used by `WorkflowEditorView` code-mode preview)
+- T12 client wiring: both apps use controlled tabs (`activeTab`/`onTabChange`) + `onOpenInEditor` → `setActiveTab("editor")` + `onViewLatestRun` → navigate to execution
 
 ## Quick Commands
 

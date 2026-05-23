@@ -109,9 +109,9 @@ export {
 } from "./WorkflowYamlEditor";
 
 export {
-  WorkflowTopologyGraph,
-  type WorkflowTopologyGraphProps,
-} from "./WorkflowTopologyGraph";
+  WorkflowCodePreviewGraph,
+  type WorkflowCodePreviewGraphProps,
+} from "./WorkflowCodePreviewGraph";
 
 export {
   useWorkflowEditor,
