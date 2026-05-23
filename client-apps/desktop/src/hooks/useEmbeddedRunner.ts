@@ -5,6 +5,10 @@
  * addSession/addWorkflowExecution call, not at mount time.
  * Provides methods to add/remove per-session Workers and
  * push token updates to the running runner process.
+ *
+ * When a `proxyEndpoint` is provided (cloud-edition server detected),
+ * the runner routes LLM calls through the Stigmer proxy instead of
+ * requiring direct provider API keys (ANTHROPIC_API_KEY, etc.).
  */
 
 import { useCallback, useRef, useState } from "react";
@@ -29,6 +33,15 @@ interface RunnerStatus {
   activeWorkflowExecutions: string[];
 }
 
+export interface UseEmbeddedRunnerOptions {
+  /**
+   * When set, the runner routes LLM calls through this endpoint's proxy
+   * (`{endpoint}/v1/proxy/llm/{provider}`) using the stigmer token for
+   * authorization. Set when connected to a cloud-edition server.
+   */
+  proxyEndpoint?: string;
+}
+
 export interface UseEmbeddedRunnerResult {
   isRunning: boolean;
   activeSessions: string[];
@@ -41,7 +54,7 @@ export interface UseEmbeddedRunnerResult {
   error: string | null;
 }
 
-function getRunnerConfig(): RunnerConfig {
+function getRunnerConfig(proxyEndpoint: string | undefined): RunnerConfig {
   const stigmerEndpoint =
     import.meta.env.VITE_STIGMER_SIDECAR_ENDPOINT
     || localStorage.getItem("stigmer.serverEndpoint")
@@ -59,15 +72,23 @@ function getRunnerConfig(): RunnerConfig {
     stigmerEndpoint,
     temporalNamespace: "default",
     stigmerToken,
+    proxyEndpoint,
   };
 }
 
-export function useEmbeddedRunner(): UseEmbeddedRunnerResult {
+export function useEmbeddedRunner(
+  options?: UseEmbeddedRunnerOptions,
+): UseEmbeddedRunnerResult {
   const [isRunning, setIsRunning] = useState(false);
   const [activeSessions, setActiveSessions] = useState<string[]>([]);
   const [activeWorkflowExecutions, setActiveWorkflowExecutions] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const startingRef = useRef<Promise<void> | null>(null);
+
+  // Ref ensures ensureRunning() always reads the latest proxy endpoint
+  // at call time, even though the callback itself has a stable identity.
+  const proxyEndpointRef = useRef(options?.proxyEndpoint);
+  proxyEndpointRef.current = options?.proxyEndpoint;
 
   const ensureRunning = useCallback(async (): Promise<void> => {
     if (startingRef.current) {
@@ -84,7 +105,7 @@ export function useEmbeddedRunner(): UseEmbeddedRunnerResult {
     }
 
     const startPromise = (async () => {
-      const config = getRunnerConfig();
+      const config = getRunnerConfig(proxyEndpointRef.current);
       await invoke("start_runner", { config });
       setIsRunning(true);
       setError(null);
