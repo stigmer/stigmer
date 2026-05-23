@@ -86,13 +86,20 @@ export async function callAgentAction(
 
   const agentId = agent.metadata?.id ?? "";
   const defaultInstanceId = agent.status?.defaultInstanceId ?? "";
+  const agentEnvKeys = Object.keys(agent.spec?.env ?? {});
+  const workflowEnvKeys = Object.keys(runtimeEnv).filter(k => !k.startsWith("__stigmer_"));
+  console.log(
+    `[CallAgent] agent=${resolved.agent} agentId=${agentId} ` +
+    `agentEnvDecls=[${agentEnvKeys.join(",")}] ` +
+    `workflowEnvKeys=[${workflowEnvKeys.join(",")}]`,
+  );
 
   if (!agentId) {
     throw new Error(`Agent '${resolved.agent}' resolved but has no metadata.id`);
   }
 
   const wfExecId = runtimeEnv["__stigmer_execution_id"] as string | undefined;
-  const taskName = (resolved as Record<string, unknown>).__taskName as string | undefined;
+  const taskName = (resolved as unknown as Record<string, unknown>).__taskName as string | undefined;
 
   let sessionName: string;
   let executionName: string;
@@ -156,12 +163,28 @@ export async function callAgentAction(
     }
   }
 
+  const intersectionKeys = Object.keys(executionRuntimeEnv);
+  const skippedKeys = agentEnvKeys.filter(k => !(k in executionRuntimeEnv));
+  if (skippedKeys.length > 0) {
+    console.warn(
+      `[CallAgent] agent declares env keys not present in workflow env: [${skippedKeys.join(",")}]`,
+    );
+  }
+
   // Task-config-level env takes precedence over auto-forwarded values
   if (resolved.env) {
     for (const [key, value] of Object.entries(resolved.env)) {
       executionRuntimeEnv[key] = { value: String(value), isSecret: false };
     }
   }
+
+  const finalKeys = Object.keys(executionRuntimeEnv);
+  const overrideKeys = finalKeys.filter(k => !intersectionKeys.includes(k));
+  console.log(
+    `[CallAgent] env forwarding: intersection=${intersectionKeys.length} ` +
+    `taskOverrides=${overrideKeys.length} total=${finalKeys.length} ` +
+    `keys=[${finalKeys.join(",")}]`,
+  );
 
   const runtimeEnvProto: Record<string, ExecutionValue> = {};
   for (const [key, val] of Object.entries(executionRuntimeEnv)) {
