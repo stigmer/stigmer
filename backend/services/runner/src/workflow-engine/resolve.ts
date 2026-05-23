@@ -18,7 +18,7 @@ import {
   extractEmbeddedExpressions,
   isStrictExpr,
   stringifyInterpolatedValue,
-} from "./expression.js";
+} from "./expression-utils.js";
 
 /**
  * Resolves all `${ ... }` expressions in a config object using a
