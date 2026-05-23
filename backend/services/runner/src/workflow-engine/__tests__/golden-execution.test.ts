@@ -398,7 +398,11 @@ describe("Golden Execution — Tier 1d: Advanced Tasks", () => {
     const [config, _env, metadata] = mockCallAgent.mock.calls[0];
 
     expect(config.agent).toBe("code-reviewer");
-    expect(config.message).toContain("Review the following code changes");
+    expect(config.message).toContain("Review the following code changes from PR #7");
+    expect(config.message).toContain("in repository acme/app");
+    expect(config.message).toContain("--- a/main.ts");
+    expect(config.message).not.toContain("${ $context");
+    expect(config.message).not.toContain("${ $input");
     expect(config.env).toEqual({ GITHUB_TOKEN: "${.secrets.GITHUB_TOKEN}" });
     expect(config.config?.model).toBe("claude-3-5-sonnet");
     expect(config.config?.timeout).toBe(300);
