@@ -68,9 +68,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-23 14:12
-**Last Session**: 2026-05-23 — T12 Overview Page Redesign complete (React Flow overview graph, summary stats, node popover, 30 tests)
-**Current Task**: Backend follow-ups (#6 waterfall enrichment, #7 runner I/O), then T13
-**Status**: In Progress — T12 complete, T01-T12 all done, T13+ remaining
+**Last Session**: 2026-05-23 — Runner backend enrichment follow-ups complete (agent call events, task retrying, task_id, LLM cost)
+**Current Task**: T13: Execution History and Operations Dashboard
+**Status**: In Progress — T01-T12 + backend follow-ups all done, T13 remaining
 
 ## Session Progress (2026-05-23)
 
@@ -286,6 +286,15 @@ When starting a new session:
 - Committed as `1b512e84c`
 - Changelog: `_changelog/2026-05/2026-05-23-231806-feat-workflow-overview-page-redesign-t12.md`
 
+### Runner Backend Enrichment Follow-ups — COMPLETED
+- **P1: Agent call event emission** — `executeAgentCall()` on `CallAgentTaskBuilder` brackets each `ctx.callAgent()` with `agent_call_started`/`agent_call_completed` events; handles success, failure, and output-validation retries; 6 new tests
+- **P2: Task retrying event emission** — Added `TaskRetryingEvent` descriptor + `task_retrying` → `TaskRetryingPayloadSchema` proto mapping + emission from retry loop in `try.ts`; 4 new tests
+- **P3: task_id generation** — Added `taskId` field to `TaskStatusEntry` with attempt counting; format `{taskName}:{attempt}`; wired to `WorkflowTask.task_id`; 7 new tests
+- **P4: LLM cost attribution** — Added `computeLlmCostMicros()` to existing `model-pricing.ts` using cloud pricing registry; wired into `call-llm.ts` to inject `__stigmer_cost_micros`; 7 new tests
+- **Deferred items** (documented in plan): pending_approvals race condition (proto change), resolved config capture (design decision), agent call live status (Temporal complexity), budget enforcement (UX design), artifact reference model (infrastructure), queue delay/streaming phases/push delivery (future)
+- Committed as `d024b3b0e`
+- Changelog: `_changelog/2026-05/2026-05-23-235048-feat-runner-backend-enrichment-followups.md`
+
 ### ELK Layout Engine Wiring — COMPLETED
 - Threaded `layoutEngine` optional prop through `useWorkflowCanvas` → `WorkflowCanvasEditor` → `WorkflowEditorView`
 - Created `useElkLayoutEngine` behavior hook in `sdk/react/src/workflow/layout/useElkLayoutEngine.ts` — async engine creation, Web Worker cleanup, graceful fallback when elkjs unavailable
@@ -302,8 +311,8 @@ When starting a new session:
 3. ~~**T07: Execution Waterfall Timeline** — Bottom panel redesign with waterfall bars~~ DONE
 4. ~~**T08: Contextual Task Picker** — Intelligence layer, branch-specific insertion, append-rewiring~~ DONE
 5. ~~**Run `make protos && make codegen`** — Regenerate TS/Go/Java stubs from `structured_output_schema` proto change~~ DONE
-6. **Backend follow-up: Waterfall enrichment** — Agent call events, task retrying events, queue delay, streaming phases, push delivery (see `checkpoints/t07-waterfall-backend-followups.md`)
-7. **Backend follow-up: Runner I/O population** — Populate full `WorkflowTask` I/O on status (see `checkpoints/t05-runner-io-followup.md` and `checkpoints/runner-task-io-followups.md`)
+6. ~~**Backend follow-up: Waterfall enrichment** — Agent call events (#1), task retrying (#2)~~ DONE (queue delay, streaming phases, push delivery deferred)
+7. ~~**Backend follow-up: Runner I/O population** — task_id generation, LLM cost attribution~~ DONE (pending_approvals fix, resolved config, agent live status, budget wiring, artifact refs deferred)
 8. ~~Enable ELK in client-apps via `workerFactory` (see `checkpoints/t03-deferred-wiring.md`)~~ DONE
 9. ~~**T10: Inspector Panel Refactor** — Tabbed inspector, per-kind forms, empty state, node actions~~ DONE
 10. ~~**T09: Branch Management UX** — Branch handles, reorder, join policy, catch handler listing~~ DONE
@@ -364,6 +373,12 @@ When starting a new session:
 - T12 proto: `GetExecutionSummaryRequest.workflow_id` (field 3) — scopes summary to single workflow; `ExecutionSummary.total_count` (7) + `success_rate` (8)
 - T12 cleanup: `WorkflowTopologyPreview` deleted; `WorkflowTopologyGraph` kept (still used by `WorkflowEditorView` code-mode preview)
 - T12 client wiring: both apps use controlled tabs (`activeTab`/`onTabChange`) + `onOpenInEditor` → `setActiveTab("editor")` + `onViewLatestRun` → navigate to execution
+- Runner enrichment: agent call events emitted from `CallAgentTaskBuilder.executeAgentCall()` — private method wrapping `ctx.callAgent()` with event bracketing
+- Runner enrichment: `TaskRetryingEvent` added to `WorkflowEventDescriptor` union; emitted from `executeRetryLoop()` in `try.ts` before the backoff sleep
+- Runner enrichment: `TaskStatusEntry.taskId` format is `{taskName}:{attempt}` — attempt counter lives on `TaskStatusAccumulator.attemptCounts` Map
+- Runner enrichment: `computeLlmCostMicros()` added to existing `shared/model-pricing.ts` — uses cloud-fetched pricing registry via `ensureLoaded()`; returns 0 if registry not loaded or model unknown
+- Runner enrichment: `call-llm.ts` calls `ensurePricingLoaded()` (best-effort, catch ignored) then injects `__stigmer_cost_micros` into result; `extractCostFromOutput` picks it up automatically
+- Runner enrichment: deferred items documented in plan file `runner_backend_enrichment_84048628.plan.md`
 
 ## Quick Commands
 
