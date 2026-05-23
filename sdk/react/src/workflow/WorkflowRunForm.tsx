@@ -27,6 +27,14 @@ export interface WorkflowRunFormProps {
   /** Called when the selected instance changes. */
   readonly onInstanceChange: (id: string | null) => void;
 
+  /**
+   * Whether to show the trigger message field.
+   * When `false`, a subtle "Add trigger input" toggle is rendered instead.
+   */
+  readonly showTriggerMessage: boolean;
+  /** Called when the user toggles trigger message visibility. */
+  readonly onShowTriggerMessageChange: (show: boolean) => void;
+
   /** Field-level validation errors keyed by field name. */
   readonly errors: RunWorkflowFieldErrors;
 
@@ -46,9 +54,12 @@ const INPUT_CLASSES = cn(
 /**
  * Form fields for running a workflow execution.
  *
- * Renders a trigger message textarea, auto-generated environment
- * variable fields from the workflow's `spec.env` declarations, and
- * an instance selector (hidden when 0-1 instances exist).
+ * Renders auto-generated environment variable fields from the workflow's
+ * `spec.env` declarations, an instance selector (hidden when 0-1 instances
+ * exist), and a conditionally-visible trigger message textarea.
+ *
+ * Field ordering prioritizes required inputs (env vars) over optional
+ * contextual fields (trigger message), following progressive disclosure.
  *
  * This component is presentational — it does not manage state or
  * submit. Pair with {@link useRunWorkflowFlow} for the full
@@ -70,6 +81,8 @@ const INPUT_CLASSES = cn(
  *   instances={instances}
  *   selectedInstanceId={flow.selectedInstanceId}
  *   onInstanceChange={flow.setSelectedInstanceId}
+ *   showTriggerMessage={flow.showTriggerMessage}
+ *   onShowTriggerMessageChange={flow.setShowTriggerMessage}
  *   errors={flow.fieldErrors}
  *   disabled={flow.isSubmitting}
  * />
@@ -84,6 +97,8 @@ export function WorkflowRunForm({
   instances,
   selectedInstanceId,
   onInstanceChange,
+  showTriggerMessage,
+  onShowTriggerMessageChange,
   errors,
   disabled,
   className,
@@ -94,50 +109,7 @@ export function WorkflowRunForm({
 
   return (
     <div className={cn("flex flex-col gap-4", className)}>
-      {/* Trigger message */}
-      <FieldGroup>
-        <FieldLabel htmlFor={`${formId}-trigger`}>Input Message</FieldLabel>
-        <textarea
-          id={`${formId}-trigger`}
-          value={triggerMessage}
-          onChange={(e) => onTriggerMessageChange(e.target.value)}
-          placeholder="Optional message or JSON payload to trigger the workflow"
-          disabled={disabled}
-          rows={3}
-          className={cn(INPUT_CLASSES, "resize-y")}
-        />
-        <FieldHint>
-          Accessible in the workflow as{" "}
-          <code className="text-[0.7rem]">
-            {"{{workflow.input.trigger_message}}"}
-          </code>
-        </FieldHint>
-      </FieldGroup>
-
-      {/* Instance selector (only when multiple instances exist) */}
-      {showInstanceSelector && (
-        <FieldGroup>
-          <FieldLabel htmlFor={`${formId}-instance`}>Instance</FieldLabel>
-          <select
-            id={`${formId}-instance`}
-            value={selectedInstanceId ?? ""}
-            onChange={(e) =>
-              onInstanceChange(e.target.value || null)
-            }
-            disabled={disabled}
-            className={INPUT_CLASSES}
-          >
-            <option value="">Default instance (auto)</option>
-            {instances.map((inst) => (
-              <option key={inst.metadata?.id} value={inst.metadata?.id ?? ""}>
-                {inst.metadata?.name || inst.metadata?.slug || inst.metadata?.id}
-              </option>
-            ))}
-          </select>
-        </FieldGroup>
-      )}
-
-      {/* Environment variables */}
+      {/* Environment variables (primary — shown first) */}
       {envEntries.length > 0 && (
         <div className="flex flex-col gap-3">
           <h4 className="text-xs font-medium text-muted-foreground">
@@ -199,6 +171,66 @@ export function WorkflowRunForm({
             );
           })}
         </div>
+      )}
+
+      {/* Instance selector (only when multiple instances exist) */}
+      {showInstanceSelector && (
+        <FieldGroup>
+          <FieldLabel htmlFor={`${formId}-instance`}>Instance</FieldLabel>
+          <select
+            id={`${formId}-instance`}
+            value={selectedInstanceId ?? ""}
+            onChange={(e) =>
+              onInstanceChange(e.target.value || null)
+            }
+            disabled={disabled}
+            className={INPUT_CLASSES}
+          >
+            <option value="">Default instance (auto)</option>
+            {instances.map((inst) => (
+              <option key={inst.metadata?.id} value={inst.metadata?.id ?? ""}>
+                {inst.metadata?.name || inst.metadata?.slug || inst.metadata?.id}
+              </option>
+            ))}
+          </select>
+        </FieldGroup>
+      )}
+
+      {/* Trigger message — shown last, only when relevant or toggled open */}
+      {showTriggerMessage ? (
+        <FieldGroup>
+          <FieldLabel htmlFor={`${formId}-trigger`}>
+            Trigger Input
+          </FieldLabel>
+          <textarea
+            id={`${formId}-trigger`}
+            value={triggerMessage}
+            onChange={(e) => onTriggerMessageChange(e.target.value)}
+            placeholder="Optional message or JSON payload to trigger the workflow"
+            disabled={disabled}
+            rows={3}
+            className={cn(INPUT_CLASSES, "resize-y")}
+          />
+          <FieldHint>
+            Accessible in the workflow as{" "}
+            <code className="text-[0.7rem]">
+              {"${ $input }"}
+            </code>
+          </FieldHint>
+        </FieldGroup>
+      ) : (
+        <button
+          type="button"
+          onClick={() => onShowTriggerMessageChange(true)}
+          disabled={disabled}
+          className={cn(
+            "self-start text-[0.7rem] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline",
+            "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:rounded-sm",
+            "disabled:pointer-events-none disabled:opacity-50",
+          )}
+        >
+          + Add trigger input
+        </button>
       )}
     </div>
   );

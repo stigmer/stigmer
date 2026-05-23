@@ -30,7 +30,11 @@ test.describe("Workflow execution via Run button", () => {
     await expect(
       dialog.getByRole("heading", { name: new RegExp(`Run .+`) }),
     ).toBeVisible();
-    await expect(dialog.getByLabel("Input Message")).toBeVisible();
+    // Trigger input is hidden for workflows that don't use $input;
+    // the escape-hatch toggle should be present instead.
+    await expect(
+      dialog.getByRole("button", { name: "+ Add trigger input" }),
+    ).toBeVisible();
     await expect(
       dialog.getByRole("button", { name: "Run Workflow" }),
     ).toBeVisible();

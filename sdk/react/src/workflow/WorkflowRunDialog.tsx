@@ -156,6 +156,8 @@ export function WorkflowRunDialog({
             instances={instances}
             selectedInstanceId={flow.selectedInstanceId}
             onInstanceChange={flow.setSelectedInstanceId}
+            showTriggerMessage={flow.showTriggerMessage}
+            onShowTriggerMessageChange={flow.setShowTriggerMessage}
             errors={flow.fieldErrors}
             disabled={flow.isSubmitting}
           />
