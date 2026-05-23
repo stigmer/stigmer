@@ -49,7 +49,7 @@ import { graphToYaml } from "./workflow-graph-conversions";
 import { useTaskKindRegistry } from "./useTaskKindRegistry";
 import type { TaskKindDescriptor } from "./types";
 import { useGraphHistory } from "./useGraphHistory";
-import { useWorkflowLayout, applyDagreLayout } from "./layout";
+import { useWorkflowLayout, applyDagreLayout, registryNodeDimensions } from "./layout";
 
 /** Selection state for the canvas inspector. */
 export interface CanvasSelection {
@@ -726,7 +726,9 @@ export function useWorkflowCanvas(
   // Auto-layout (AD-T03-002: dispatches MoveNodesCommand for undo support)
   // ---------------------------------------------------------------------------
 
-  const { layoutGraph, isLayouting } = useWorkflowLayout();
+  const { layoutGraph, isLayouting } = useWorkflowLayout({
+    getNodeDimensions: registryNodeDimensions,
+  });
 
   const autoLayout = useCallback(async () => {
     const model = history.currentModel;
@@ -846,8 +848,3 @@ export function useWorkflowCanvas(
 // ---------------------------------------------------------------------------
 // Synchronous dagre layout — delegated to shared utility (T04 extraction)
 // ---------------------------------------------------------------------------
-
-// Re-exported from layout module. The shared utility uses per-node dimensions
-// from the visual registry instead of the hardcoded CANVAS_NODE_WIDTH/HEIGHT
-// constants that were previously used here.
-// See: sdk/react/src/workflow/layout/apply-dagre-layout.ts
