@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { executeTryTask } from "../../tasks/try.js";
 import { createState } from "../../state.js";
 import { evaluateExpressionBatch } from "../../expression.js";
@@ -8,6 +8,8 @@ import type {
   TaskList,
   WorkflowModel,
   TaskExecutionContext,
+  EmitEventsFn,
+  WorkflowEventDescriptor,
 } from "../../types.js";
 
 const doc: WorkflowModel = {
@@ -17,11 +19,11 @@ const doc: WorkflowModel = {
 
 const notAvailable = () => { throw new Error("not available in test"); };
 
-function makeCtx(): TaskExecutionContext {
+function makeCtx(opts?: { emitEvents?: EmitEventsFn; sleep?: TaskExecutionContext["sleep"] }): TaskExecutionContext {
   return {
     evaluateExpressions: evaluateExpressionBatch,
     doc,
-    sleep: notAvailable,
+    sleep: opts?.sleep ?? notAvailable,
     listen: notAvailable,
     runCommand: notAvailable,
     runWorkflow: notAvailable,
@@ -30,6 +32,7 @@ function makeCtx(): TaskExecutionContext {
     callGrpc: notAvailable,
     callFunction: notAvailable,
     callAgent: notAvailable,
+    emitEvents: opts?.emitEvents,
   };
 }
 
@@ -299,5 +302,77 @@ describe("executeTryTask", () => {
     expect(state.data.inner_caught).toBe(true);
     expect(state.data.after).toBe(true);
     expect(state.data.outer_caught).toBeUndefined();
+  });
+});
+
+describe("executeTryTask — task_retrying event emission", () => {
+  let emittedEvents: WorkflowEventDescriptor[];
+  let mockEmitEvents: ReturnType<typeof vi.fn>;
+  let mockSleep: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    emittedEvents = [];
+    mockEmitEvents = vi.fn(async (events: WorkflowEventDescriptor[]) => {
+      emittedEvents.push(...events);
+    });
+    mockSleep = vi.fn().mockResolvedValue(undefined);
+  });
+
+  it("emits task_retrying between failed attempt and retry", async () => {
+    let callCount = 0;
+    const tryTasks: TaskList = [{
+      key: "flaky",
+      task: {
+        kind: "set",
+        set: {
+          get value() {
+            callCount++;
+            if (callCount === 1) throw new Error("transient");
+            return "ok";
+          },
+        },
+      },
+    }];
+
+    const taskDef = makeTryTaskDef(tryTasks, {
+      retry: {
+        delay: { seconds: 1 },
+        limit: { attempt: { count: 3 } },
+      },
+    });
+
+    const state = createState();
+    const ctx = makeCtx({ emitEvents: mockEmitEvents, sleep: mockSleep });
+
+    await executeTryTask(taskDef, null, state, doc, evaluateExpressionBatch, ctx);
+
+    const retryingEvents = emittedEvents.filter(e => e.type === "task_retrying");
+    expect(retryingEvents).toHaveLength(1);
+
+    const evt = retryingEvents[0];
+    if (evt.type !== "task_retrying") throw new Error("wrong type");
+    expect(evt.failedAttempt).toBe(0);
+    expect(evt.nextAttempt).toBe(1);
+    expect(evt.delayMs).toBe(1_000);
+  });
+
+  it("does not emit task_retrying when no retry is configured", async () => {
+    const taskDef = makeTryTaskDef(
+      [{ key: "fail", task: {
+        kind: "raise",
+        raise: { error: { type: "test/error", status: 500 } },
+      }}],
+      {
+        do: [{ key: "recover", task: { kind: "set", set: { handled: true } } }],
+      },
+    );
+
+    const state = createState();
+    const ctx = makeCtx({ emitEvents: mockEmitEvents, sleep: mockSleep });
+
+    await executeTryTask(taskDef, null, state, doc, evaluateExpressionBatch, ctx);
+
+    const retryingEvents = emittedEvents.filter(e => e.type === "task_retrying");
+    expect(retryingEvents).toHaveLength(0);
   });
 });

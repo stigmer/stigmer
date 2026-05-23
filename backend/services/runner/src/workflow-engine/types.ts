@@ -692,6 +692,7 @@ export type WorkflowEventDescriptor =
   | TaskCompletedEvent
   | TaskFailedEvent
   | TaskSkippedEvent
+  | TaskRetryingEvent
   | ApprovalRequestedEvent
   | ApprovalResolvedEvent
   | AgentCallStartedEvent
@@ -752,6 +753,13 @@ export interface TaskSkippedEvent extends EventBase {
   readonly type: "task_skipped";
   readonly taskKind: string;
   readonly reason: string;
+}
+
+export interface TaskRetryingEvent extends EventBase {
+  readonly type: "task_retrying";
+  readonly failedAttempt: number;
+  readonly nextAttempt: number;
+  readonly delayMs: number;
 }
 
 export interface ApprovalRequestedEvent extends EventBase {

@@ -162,6 +162,16 @@ async function executeRetryLoop(
     const delay = computeRetryDelay(attempt, retryConfig, elapsedMs);
     if (delay === null) break;
 
+    if (ctx?.emitEvents) {
+      await ctx.emitEvents([{
+        type: "task_retrying",
+        occurredAt: new Date().toISOString(),
+        failedAttempt: attempt - 1,
+        nextAttempt: attempt,
+        delayMs: delay,
+      }]);
+    }
+
     if (delay > 0 && ctx) {
       await ctx.sleep(delay);
     }
