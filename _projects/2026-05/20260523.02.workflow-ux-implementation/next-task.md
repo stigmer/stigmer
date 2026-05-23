@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-23 14:12
-**Last Session**: 2026-05-23 — T11 Context Menus and Keyboard Shortcuts implemented (context menus, clipboard, batch ops, View YAML dialog)
-**Current Task**: T11 complete. Remaining: T09 (Branch Management UX), backend follow-ups (#6 waterfall enrichment, #7 runner I/O)
+**Last Session**: 2026-05-23 — Fixed stale serverless workflow YAML on workflow update (stigmer-cloud backend)
+**Current Task**: Backend follow-ups (#6 waterfall enrichment, #7 runner I/O), T09 (Branch Management UX)
 **Status**: In Progress
 
 ## Session Progress (2026-05-23)
@@ -248,6 +248,15 @@ When starting a new session:
 - Zero regressions on 158 existing tests
 - Checkpoint: `checkpoints/2026-05-23-session-t11-context-menus.md`
 - Changelog: `_changelog/2026-05/2026-05-23-220756-feat-workflow-context-menus-keyboard-shortcuts-t11.md`
+
+### Fix: Stale Serverless Workflow YAML on Update — COMPLETED (stigmer-cloud)
+- Diagnosed why workflow execution events showed old task names (`run_analyst`) despite updated YAML having new names (`analyze_player_data`)
+- Root cause: `WorkflowUpdateHandler` was missing `PopulateServerlessValidation` pipeline step — `spec.tasks` updated but `status.serverless_workflow_validation.yaml` stayed stale from original create
+- Extracted `PopulateServerlessValidation` inner class from `WorkflowCreateHandler` into shared `PopulateServerlessValidationStep` (typed with `ContextBase<Workflow, Workflow>`)
+- Added step to `WorkflowUpdateHandler` pipeline between `normalizeReferences` and `persist`
+- Updated `WorkflowCreateHandler` to use the shared step (deduplicated ~60 lines)
+- Committed as `51cbdcd5` on `feat/workflow-ux-overhaul` branch in stigmer-cloud
+- Changelog: `_changelog/2026-05/2026-05-23-221106-fix-workflow-update-stale-serverless-yaml.md`
 
 ### ELK Layout Engine Wiring — COMPLETED
 - Threaded `layoutEngine` optional prop through `useWorkflowCanvas` → `WorkflowCanvasEditor` → `WorkflowEditorView`
