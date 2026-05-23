@@ -13,6 +13,8 @@ import type { WorkflowTask } from "@stigmer/protos/ai/stigmer/agentic/workflowex
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import type { JsonObject } from "@bufbuild/protobuf";
 import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store";
+import { kindToDisplayName } from "../kind-metadata";
+import { taskKindToString } from "../workflow-graph-conversions";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -21,6 +23,7 @@ import type { DerivedTaskState } from "../../internal/store/workflow-execution-e
 export interface TaskDetail {
   readonly taskName: string;
   readonly taskKind: WorkflowTaskKind;
+  readonly displayName: string;
   readonly status: DerivedTaskState["status"];
 
   readonly summary: TaskDetailSummary;
@@ -144,10 +147,12 @@ export function deriveTaskDetail(
     WorkflowTaskKind.workflow_task_kind_unspecified;
 
   const status = derivedState?.status ?? "pending";
+  const displayName = kindToDisplayName(taskKindToString(taskKind));
 
   return {
     taskName,
     taskKind,
+    displayName,
     status,
     summary,
     input,

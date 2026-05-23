@@ -3,6 +3,7 @@
 import { memo } from "react";
 import { cn } from "@stigmer/theme";
 import type { TaskDetailError } from "./derive-task-detail";
+import { formatDuration } from "../format-utils";
 
 export interface ErrorTabProps {
   readonly error: TaskDetailError;
@@ -28,7 +29,7 @@ export const ErrorTab = memo(function ErrorTab({ error, className }: ErrorTabPro
           <>
             <dt className="text-muted-foreground">Duration</dt>
             <dd className="tabular-nums text-foreground">
-              {error.durationMs < 1000 ? `${error.durationMs}ms` : `${(error.durationMs / 1000).toFixed(1)}s`}
+              {formatDuration(error.durationMs)}
             </dd>
           </>
         )}

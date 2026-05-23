@@ -18,6 +18,7 @@ import { WorkflowExecutionPhaseBadge } from "./WorkflowExecutionPhaseBadge";
 import { ErrorMessage } from "../error/ErrorMessage";
 import { VisibilityToggle } from "../library/VisibilityToggle";
 import { InstanceVisibilitySelector } from "../library/InstanceVisibilitySelector";
+import { formatDurationSec } from "./format-utils";
 import { useUpdateVisibility } from "../library/useUpdateVisibility";
 import { PermissionGate } from "../iam-policy/PermissionGate";
 import { ResourceDetailShell } from "../resource-detail/ResourceDetailShell";
@@ -360,7 +361,7 @@ function OverviewTab({
             {budget.maxDurationSeconds > 0 && (
               <MetadataRow
                 label="Max Duration"
-                value={formatDuration(budget.maxDurationSeconds)}
+                value={formatDurationSec(budget.maxDurationSeconds)}
               />
             )}
           </div>
@@ -708,13 +709,6 @@ function hasBudget(budget: {
   );
 }
 
-function formatDuration(seconds: number): string {
-  if (seconds < 60) return `${seconds}s`;
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
-  const hours = Math.floor(seconds / 3600);
-  const mins = Math.floor((seconds % 3600) / 60);
-  return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
-}
 
 // ---------------------------------------------------------------------------
 // Loading & empty states
