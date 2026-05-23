@@ -43,6 +43,7 @@ export function WorkflowDetailPageInner({
   const { setLabel } = useBreadcrumbOverride();
   const [resourceId, setResourceId] = useState<string | null>(null);
   const [resourceName, setResourceName] = useState<string>("Workflow");
+  const [activeTab, setActiveTab] = useState<string>("overview");
   const { copyId, copyQualifiedSlug } = useCopyResource();
   const { confirmState, confirm, handleConfirm, handleCancel } =
     useConfirmAction();
@@ -107,6 +108,17 @@ export function WorkflowDetailPageInner({
   const handleSaveError = useCallback((error: Error) => {
     toast.error(error.message);
   }, []);
+
+  const handleOpenInEditor = useCallback((_taskName: string) => {
+    setActiveTab("editor");
+  }, []);
+
+  const handleViewLatestRun = useCallback(
+    (executionId: string) => {
+      router.push(`/executions/${executionId}`);
+    },
+    [router],
+  );
 
   const handleDelete = useCallback(async () => {
     const confirmed = await confirm({
@@ -220,7 +232,11 @@ export function WorkflowDetailPageInner({
           primaryAction={primaryAction}
           actions={actions}
           additionalTabs={additionalTabs}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
           onExecutionClick={(id) => router.push(`/executions/${id}`)}
+          onOpenInEditor={handleOpenInEditor}
+          onViewLatestRun={handleViewLatestRun}
         />
         {showSharePanel && resourceId && (
           <PermissionGate

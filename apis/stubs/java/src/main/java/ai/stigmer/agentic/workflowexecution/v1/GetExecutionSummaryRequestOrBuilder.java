@@ -52,4 +52,30 @@ public interface GetExecutionSummaryRequestOrBuilder extends
    * @return The timeWindow.
    */
   ai.stigmer.agentic.workflowexecution.v1.SummaryTimeWindow getTimeWindow();
+
+  /**
+   * <pre>
+   * When set, scopes the summary to executions of this workflow only.
+   * When empty, aggregates across all workflows in the organization.
+   *
+   * &#64;since T12 (Overview Page Redesign)
+   * </pre>
+   *
+   * <code>string workflow_id = 3 [json_name = "workflowId"];</code>
+   * @return The workflowId.
+   */
+  java.lang.String getWorkflowId();
+  /**
+   * <pre>
+   * When set, scopes the summary to executions of this workflow only.
+   * When empty, aggregates across all workflows in the organization.
+   *
+   * &#64;since T12 (Overview Page Redesign)
+   * </pre>
+   *
+   * <code>string workflow_id = 3 [json_name = "workflowId"];</code>
+   * @return The bytes for workflowId.
+   */
+  com.google.protobuf.ByteString
+      getWorkflowIdBytes();
 }

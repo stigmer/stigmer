@@ -1493,7 +1493,8 @@ func (x *SubscribeEventsRequest) GetEventTypes() []WorkflowEventType {
 	return nil
 }
 
-// GetExecutionSummaryRequest fetches aggregated execution statistics for an organization.
+// GetExecutionSummaryRequest fetches aggregated execution statistics for an organization,
+// optionally scoped to a single workflow.
 //
 // @since T14 (Dashboard Integration)
 type GetExecutionSummaryRequest struct {
@@ -1503,7 +1504,12 @@ type GetExecutionSummaryRequest struct {
 	// Time window for aggregation.
 	//
 	// Defaults to LAST_7D when unspecified.
-	TimeWindow    SummaryTimeWindow `protobuf:"varint,2,opt,name=time_window,json=timeWindow,proto3,enum=ai.stigmer.agentic.workflowexecution.v1.SummaryTimeWindow" json:"time_window,omitempty"`
+	TimeWindow SummaryTimeWindow `protobuf:"varint,2,opt,name=time_window,json=timeWindow,proto3,enum=ai.stigmer.agentic.workflowexecution.v1.SummaryTimeWindow" json:"time_window,omitempty"`
+	// When set, scopes the summary to executions of this workflow only.
+	// When empty, aggregates across all workflows in the organization.
+	//
+	// @since T12 (Overview Page Redesign)
+	WorkflowId    string `protobuf:"bytes,3,opt,name=workflow_id,json=workflowId,proto3" json:"workflow_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1552,6 +1558,13 @@ func (x *GetExecutionSummaryRequest) GetTimeWindow() SummaryTimeWindow {
 	return SummaryTimeWindow_SUMMARY_TIME_WINDOW_UNSPECIFIED
 }
 
+func (x *GetExecutionSummaryRequest) GetWorkflowId() string {
+	if x != nil {
+		return x.WorkflowId
+	}
+	return ""
+}
+
 // ExecutionSummary contains aggregated statistics for workflow executions.
 //
 // All counts, costs, and durations are scoped to the requested time window.
@@ -1580,8 +1593,18 @@ type ExecutionSummary struct {
 	//
 	// Capped at 10 entries.
 	CostByWorkflow []*WorkflowCostBreakdown `protobuf:"bytes,6,rep,name=cost_by_workflow,json=costByWorkflow,proto3" json:"cost_by_workflow,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Total number of executions in the time window (sum of all phase_counts values).
+	//
+	// @since T12 (Overview Page Redesign)
+	TotalCount int32 `protobuf:"varint,7,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
+	// Success rate as a ratio (0.0 to 1.0).
+	// Computed as completed / (completed + failed). Returns -1.0 when no
+	// completed or failed executions exist in the time window.
+	//
+	// @since T12 (Overview Page Redesign)
+	SuccessRate   float64 `protobuf:"fixed64,8,opt,name=success_rate,json=successRate,proto3" json:"success_rate,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ExecutionSummary) Reset() {
@@ -1654,6 +1677,20 @@ func (x *ExecutionSummary) GetCostByWorkflow() []*WorkflowCostBreakdown {
 		return x.CostByWorkflow
 	}
 	return nil
+}
+
+func (x *ExecutionSummary) GetTotalCount() int32 {
+	if x != nil {
+		return x.TotalCount
+	}
+	return 0
+}
+
+func (x *ExecutionSummary) GetSuccessRate() float64 {
+	if x != nil {
+		return x.SuccessRate
+	}
+	return 0
 }
 
 // WorkflowCostSummary aggregates token and dollar costs.
@@ -2176,11 +2213,13 @@ const file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDesc = "" +
 	"\fexecution_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\vexecutionId\x12%\n" +
 	"\x0eafter_sequence\x18\x02 \x01(\x04R\rafterSequence\x12[\n" +
 	"\vevent_types\x18\x03 \x03(\x0e2:.ai.stigmer.agentic.workflowexecution.v1.WorkflowEventTypeR\n" +
-	"eventTypes\"\x94\x01\n" +
+	"eventTypes\"\xb5\x01\n" +
 	"\x1aGetExecutionSummaryRequest\x12\x19\n" +
 	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12[\n" +
 	"\vtime_window\x18\x02 \x01(\x0e2:.ai.stigmer.agentic.workflowexecution.v1.SummaryTimeWindowR\n" +
-	"timeWindow\"\xdb\x04\n" +
+	"timeWindow\x12\x1f\n" +
+	"\vworkflow_id\x18\x03 \x01(\tR\n" +
+	"workflowId\"\x9f\x05\n" +
 	"\x10ExecutionSummary\x12!\n" +
 	"\factive_count\x18\x01 \x01(\x05R\vactiveCount\x12m\n" +
 	"\fphase_counts\x18\x02 \x03(\v2J.ai.stigmer.agentic.workflowexecution.v1.ExecutionSummary.PhaseCountsEntryR\vphaseCounts\x12[\n" +
@@ -2188,7 +2227,10 @@ const file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDesc = "" +
 	"total_cost\x18\x03 \x01(\v2<.ai.stigmer.agentic.workflowexecution.v1.WorkflowCostSummaryR\ttotalCost\x12<\n" +
 	"\favg_duration\x18\x04 \x01(\v2\x19.google.protobuf.DurationR\vavgDuration\x12p\n" +
 	"\x15top_failing_workflows\x18\x05 \x03(\v2<.ai.stigmer.agentic.workflowexecution.v1.WorkflowFailureRankR\x13topFailingWorkflows\x12h\n" +
-	"\x10cost_by_workflow\x18\x06 \x03(\v2>.ai.stigmer.agentic.workflowexecution.v1.WorkflowCostBreakdownR\x0ecostByWorkflow\x1a>\n" +
+	"\x10cost_by_workflow\x18\x06 \x03(\v2>.ai.stigmer.agentic.workflowexecution.v1.WorkflowCostBreakdownR\x0ecostByWorkflow\x12\x1f\n" +
+	"\vtotal_count\x18\a \x01(\x05R\n" +
+	"totalCount\x12!\n" +
+	"\fsuccess_rate\x18\b \x01(\x01R\vsuccessRate\x1a>\n" +
 	"\x10PhaseCountsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\x05R\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\x05R\x05value:\x028\x01\"\x99\x01\n" +
