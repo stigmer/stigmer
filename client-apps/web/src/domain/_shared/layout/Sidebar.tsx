@@ -33,12 +33,17 @@ export function Sidebar() {
   const { activeSessionId, isSessionZone, navigateToSession, navigateToHome } =
     useSessionNavigation();
 
+  const activeExecutionId = pathname.startsWith("/executions/")
+    ? pathname.split("/")[2] ?? null
+    : null;
+
   const isDashboardActive = !isSessionZone && pathname.startsWith("/dashboard");
   const isLibraryActive = !isSessionZone && pathname.startsWith("/library");
   useEffect(() => {
     refetch();
 
-    if (!activeSessionId) return;
+    const activeId = activeSessionId ?? activeExecutionId;
+    if (!activeId) return;
 
     // LLM subject generation runs async after session creation and
     // typically completes within 5-15 seconds. Two staggered refetches
@@ -49,7 +54,7 @@ export function Sidebar() {
       clearTimeout(t1);
       clearTimeout(t2);
     };
-  }, [activeSessionId, refetch]);
+  }, [activeSessionId, activeExecutionId, refetch]);
 
   const groups = useMemo(
     () => groupRecentActivityByTime(entries),

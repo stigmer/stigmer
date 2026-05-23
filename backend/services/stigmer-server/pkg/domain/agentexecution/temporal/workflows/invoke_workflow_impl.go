@@ -259,7 +259,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeDeepAgentFlow(ctx workflow.Con
 	// is Python's gRPC update_status call, but if that failed (transient network
 	// issue, server down), the error would be silently lost.
 	if finalStatus.GetPhase() == agentexecutionv1.ExecutionPhase_EXECUTION_FAILED {
-		logger.Warn("Activity returned EXECUTION_FAILED -- persisting as fallback",
+		logger.Warn("Activity returned EXECUTION_FAILED -- propagating to parent workflow",
 			"execution_id", executionID,
 			"error", finalStatus.GetError())
 
@@ -267,6 +267,8 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeDeepAgentFlow(ctx workflow.Con
 			logger.Error("Failed to persist fallback FAILED status",
 				"execution_id", executionID, "error", err.Error())
 		}
+
+		return fmt.Errorf("agent execution failed: %s", finalStatus.GetError())
 	}
 
 	return nil
@@ -468,12 +470,14 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeCursorFlow(ctx workflow.Contex
 		"pause_cycles", pauseCycle)
 
 	if finalStatus.GetPhase() == agentexecutionv1.ExecutionPhase_EXECUTION_FAILED {
-		logger.Warn("Activity returned EXECUTION_FAILED -- persisting as fallback",
+		logger.Warn("Activity returned EXECUTION_FAILED -- propagating to parent workflow",
 			"execution_id", executionID, "error", finalStatus.GetError())
 		if err := w.persistFinalStatus(ctx, executionID, finalStatus); err != nil {
 			logger.Error("Failed to persist fallback FAILED status",
 				"execution_id", executionID, "error", err.Error())
 		}
+
+		return fmt.Errorf("agent execution failed: %s", finalStatus.GetError())
 	}
 
 	return nil
