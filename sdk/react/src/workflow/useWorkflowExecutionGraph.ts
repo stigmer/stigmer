@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Node, Edge } from "@xyflow/react";
+import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import type { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
 import { isNotFound } from "@stigmer/sdk";
 import { useStigmer } from "../hooks";
@@ -18,6 +19,30 @@ import type { DerivedTaskState } from "../internal/store/workflow-execution-even
 export interface UseWorkflowExecutionGraphOptions {
   /** ID of the workflow execution to visualize. */
   readonly executionId: string;
+
+  /**
+   * Pre-fetched execution from the parent. When provided, the hook
+   * skips its own `useWorkflowExecution` call — eliminating the
+   * duplicate fetch.
+   */
+  readonly execution?: WorkflowExecution | null;
+
+  /**
+   * Externally-derived task states from a shared event store. When
+   * provided, the hook skips its own `useWorkflowExecutionEventStream`
+   * call — eliminating the duplicate gRPC subscription.
+   */
+  readonly taskStates?: ReadonlyMap<string, DerivedTaskState>;
+
+  /**
+   * Callback invoked once when the hook auto-selects a failed task
+   * on a terminal execution. The parent can wire this to its own
+   * `setSelectedTaskName` to keep the inspector in sync.
+   *
+   * Without this, auto-selection only affects the hook's internal
+   * `selectedTaskName` state and is invisible to sibling components.
+   */
+  readonly onAutoSelectTask?: (taskName: string) => void;
 }
 
 /** Return value of {@link useWorkflowExecutionGraph}. */
@@ -41,43 +66,59 @@ export interface UseWorkflowExecutionGraphReturn {
    * indicates the mismatch. `null` when no mismatch detected.
    */
   readonly versionMismatch: string | null;
-  /** Task states from the event stream (for the inspector stub). */
+  /** Task states from the event stream (for the inspector). */
   readonly taskStates: ReadonlyMap<string, DerivedTaskState>;
 }
 
+const EMPTY_TASK_STATES: ReadonlyMap<string, DerivedTaskState> = new Map();
+const TERMINAL_PHASES = new Set([3, 4, 5, 6]);
+
 /**
  * Behavior hook that builds a complete read-only execution graph by:
- * 1. Fetching the execution to get the workflow reference
- * 2. Fetching the Workflow proto to get the definition
- * 3. Serializing to YAML and parsing into a graph model
- * 4. Computing dagre layout
- * 5. Converting to React Flow elements
- * 6. Merging live execution state from the event stream
+ * 1. Resolving the workflow definition (always fetched — it's the graph source)
+ * 2. Serializing to YAML and parsing into a graph model
+ * 3. Computing dagre layout
+ * 4. Converting to React Flow elements
+ * 5. Merging live execution state into node data
  *
- * All data fetching goes through `useStigmer()` — no Console dependencies.
+ * When `execution` and `taskStates` are provided externally (from a
+ * parent that already subscribes), the hook skips its own duplicate
+ * subscriptions. When omitted, it falls back to independent fetching
+ * for standalone `<WorkflowExecutionGraph executionId="..." />` usage.
  */
 export function useWorkflowExecutionGraph(
   options: UseWorkflowExecutionGraphOptions,
 ): UseWorkflowExecutionGraphReturn {
-  const { executionId } = options;
+  const { executionId, onAutoSelectTask } = options;
   const stigmer = useStigmer();
 
   const [selectedTaskName, setSelectedTaskName] = useState<string | null>(null);
 
-  // 1. Fetch execution metadata
-  const {
-    execution,
-    isLoading: isLoadingExecution,
-    error: executionError,
-  } = useWorkflowExecution(executionId);
+  // ── Execution data: use external or fetch own ────────────────────
+
+  const ownExecution = useWorkflowExecution(
+    options.execution !== undefined ? null : executionId,
+  );
+
+  const execution = options.execution !== undefined
+    ? options.execution
+    : ownExecution.execution;
+
+  const isLoadingExecution = options.execution !== undefined
+    ? false
+    : ownExecution.isLoading;
+
+  const executionError = options.execution !== undefined
+    ? null
+    : ownExecution.error;
 
   const phase = execution?.status?.phase;
 
-  // 2. Resolve workflowId from execution spec
+  // ── Workflow definition fetch (always needed for graph building) ──
+
   const workflowId = execution?.spec?.workflowId || null;
   const workflowInstanceId = execution?.spec?.workflowInstanceId || null;
 
-  // If we only have workflowInstanceId, resolve it to workflowId
   const instanceFetchFn = !workflowId && workflowInstanceId
     ? async () => {
         try {
@@ -97,7 +138,6 @@ export function useWorkflowExecutionGraph(
 
   const effectiveWorkflowId = workflowId || resolvedWorkflowId;
 
-  // 3. Fetch the Workflow proto
   const workflowFetchFn = effectiveWorkflowId
     ? async () => {
         try {
@@ -115,7 +155,8 @@ export function useWorkflowExecutionGraph(
     error: workflowError,
   } = useFetch(workflowFetchFn, [effectiveWorkflowId, stigmer], null);
 
-  // 4. Build graph model: serialize -> parse -> layout -> elements
+  // ── Build graph model ────────────────────────────────────────────
+
   const baseElements = useMemo<{ nodes: Node[]; edges: Edge[] } | null>(() => {
     if (!workflow) return null;
     try {
@@ -128,15 +169,19 @@ export function useWorkflowExecutionGraph(
     }
   }, [workflow]);
 
-  // 5. Subscribe to execution event stream for live task states
-  const {
-    taskStates,
-    streamState: _streamState,
-  } = useWorkflowExecutionEventStream(executionId, {
-    executionPhase: phase,
-  });
+  // ── Task states: use external or subscribe own ───────────────────
 
-  // 6. Merge execution state into node data
+  const ownStream = useWorkflowExecutionEventStream(
+    options.taskStates !== undefined ? null : executionId,
+    { executionPhase: phase },
+  );
+
+  const taskStates = options.taskStates !== undefined
+    ? options.taskStates
+    : ownStream.taskStates;
+
+  // ── Merge execution state into nodes ─────────────────────────────
+
   const nodesWithExecution = useMemo<Node[]>(() => {
     if (!baseElements) return [];
     return baseElements.nodes.map((node) => {
@@ -169,7 +214,8 @@ export function useWorkflowExecutionGraph(
     return baseElements.edges;
   }, [baseElements]);
 
-  // 7. Detect version mismatch
+  // ── Version mismatch detection ───────────────────────────────────
+
   const versionMismatch = useMemo<string | null>(() => {
     if (!execution?.status?.tasks || !baseElements) return null;
 
@@ -191,30 +237,32 @@ export function useWorkflowExecutionGraph(
     return null;
   }, [execution?.status?.tasks, baseElements]);
 
-  // Aggregate loading/error state
+  // ── Loading / error aggregation ──────────────────────────────────
+
   const isLoading = isLoadingExecution || isLoadingWorkflow;
   const error = executionError?.message
     ?? workflowError?.message
     ?? (!isLoading && !baseElements && effectiveWorkflowId ? "Unable to build workflow graph" : null)
     ?? null;
 
-  // Auto-select failed task on initial load
-  const autoSelectFailed = useCallback(() => {
+  // ── Auto-select failed task (fires once on terminal phase) ───────
+
+  const didAutoSelectRef = useRef(false);
+
+  useEffect(() => {
+    if (didAutoSelectRef.current) return;
+    if (!phase || !TERMINAL_PHASES.has(phase)) return;
     if (selectedTaskName) return;
+
     for (const [name, state] of taskStates) {
       if (state.status === "failed") {
+        didAutoSelectRef.current = true;
         setSelectedTaskName(name);
+        onAutoSelectTask?.(name);
         return;
       }
     }
-  }, [taskStates, selectedTaskName]);
-
-  // Trigger auto-select when task states arrive and phase is terminal
-  useMemo(() => {
-    if (phase && [3, 4, 5, 6].includes(phase)) {
-      autoSelectFailed();
-    }
-  }, [phase, autoSelectFailed]);
+  }, [phase, taskStates, selectedTaskName, onAutoSelectTask]);
 
   return {
     nodes: nodesWithExecution,

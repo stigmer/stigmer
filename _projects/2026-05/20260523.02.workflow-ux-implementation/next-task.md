@@ -68,7 +68,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-23 14:12
-**Current Task**: T04 Complete — Ready for T05 (Runtime Inspector) or T08–T11 (Editor Interactions)
+**Last Session**: 2026-05-23 — T05 Runtime Inspector Panel completed
+**Current Task**: T05 Complete — Ready for T06 (Branch Highlighting) or T08 (Contextual Task Picker)
 **Status**: In Progress
 
 ## Session Progress (2026-05-23)
@@ -140,24 +141,39 @@ When starting a new session:
 - Unit tests for layout utility and state merging
 - 6 E2E tests for execution graph rendering
 
+### T05: Runtime Inspector Panel — COMPLETED
+- Replaced `ExecutionInspectorStub` with tabbed `ExecutionInspector` (Summary, Input, Output, Error, Retries, Agent Call, Events)
+- Created `execution-inspector/` module: `deriveTaskDetail`, `useExecutionTaskDetail`, 6 tab components
+- Extracted `format-utils.ts` — canonical duration/cost/token/byte/timestamp formatters (deduplicated 5 files)
+- Lifted event store to `WorkflowExecutionViewer` — eliminated duplicate gRPC subscriptions
+- Fixed auto-select propagation: graph failed-task select → viewer `selectedTaskName` via `onAutoSelectTask`
+- 44 + 21 unit tests; 6 E2E inspector tests; graceful I/O empty states (runner gap documented)
+- Checkpoints: `t03-deferred-wiring.md`, `t05-runner-io-followup.md`, `2026-05-23-session-t05-inspector.md`
+- Changelog: `_changelog/2026-05/2026-05-23-171719-feat-workflow-runtime-execution-inspector-t05.md`
+
 ## Next Steps
 
-1. **T05: Runtime Inspector Panel** — Replace inspector stub with full tabbed inspector (Input/Output/Stream/Error/Retries/Logs/Raw)
-2. **T06: Branch and Parallel Execution Highlighting** — Taken/untaken branch dimming, fork N/M progress
-3. **T07: Execution Waterfall Timeline** — Bottom panel redesign with waterfall bars
-4. Wire `getNodeDimensions` from T01 registry into `useWorkflowLayout` hook
-5. Enable ELK in client-apps by providing `workerFactory` to `createElkLayoutEngine`
+1. **T06: Branch and Parallel Execution Highlighting** — Taken/untaken branch dimming, fork N/M progress
+2. **T07: Execution Waterfall Timeline** — Bottom panel redesign with waterfall bars
+3. **Backend follow-up**: Populate full `WorkflowTask` I/O on status (see `checkpoints/t05-runner-io-followup.md`)
+4. Wire `getNodeDimensions` from T01 registry (see `checkpoints/t03-deferred-wiring.md`)
+5. Enable ELK in client-apps via `workerFactory` (see `checkpoints/t03-deferred-wiring.md`)
 6. **T08–T11: Editor Interactions** — Contextual task picker, branch management, inspector refactor, context menus
 
 ## Context for Resume
 
+- T05 inspector reads `WorkflowTask` snapshots for I/O — runner only populates 5 fields today; tabs show graceful empty states
+- `ExecutionInspector` exported from `sdk/react/src/workflow/index.ts` with `deriveTaskDetail`, `useExecutionTaskDetail`
+- `WorkflowExecutionViewer` owns execution fetch + event stream; passes `execution`, `taskStates`, `onAutoSelectTask` to graph
+- Inspector sidebar: `w-80 lg:w-96` (was `w-64` stub)
+- E2E: `workflow-execution-inspector.spec.ts` + helpers in `test/e2e/helpers/workflow-execution.ts`
 - T04 introduced `WorkflowGraphModeContext` — defaults to `"design"` for backward compatibility
 - `WorkflowNode` reads mode from context: design → NodeActions; execution → ExecutionBadge
 - `NodeShellProps` now includes optional `executionStatus` — applies border/opacity per status
 - `CanvasTaskNodeData.executionState` is optional — absent means design mode, present means execution
 - `applyDagreLayout` is now exported from `layout/` barrel — used by both editor and execution graph
 - `WorkflowExecutionGraph` is a standalone SDK component (`executionId` prop only)
-- `WorkflowExecutionViewer` layout: graph (flex-1) | inspector stub (w-64) on top; collapsible timeline below
+- `WorkflowExecutionViewer` layout: graph (flex-1) | inspector (w-80 lg:w-96) on top; collapsible timeline below
 - `CanvasTransitionEdge` hides insert button unless `mode === "design"`
 - Data path: `execution.spec.workflowId` → `stigmer.workflow.get()` → `serializeWorkflowYaml` → `yamlToGraph` → `applyDagreLayout` → `toReactFlowElements`
 - Version mismatch detection compares `status.tasks[]` task names vs graph nodes
@@ -167,8 +183,8 @@ When starting a new session:
 ## Quick Commands
 
 After loading context:
-- "Start T05" - Begin runtime inspector panel
-- "Start T06" - Begin branch highlighting
+- "Start T06" - Begin branch and parallel execution highlighting
+- "Start T07" - Begin waterfall timeline
 - "Start T08" - Begin contextual task picker fix
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
