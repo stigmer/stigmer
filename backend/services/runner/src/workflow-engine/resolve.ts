@@ -14,13 +14,28 @@
 
 import type { ExpressionEvaluator, WorkflowState } from "./types.js";
 import { deepClone } from "./clone.js";
+import {
+  extractEmbeddedExpressions,
+  isStrictExpr,
+  stringifyInterpolatedValue,
+} from "./expression.js";
 
 /**
- * Resolves all `${ ... }` expressions in a config object. Deep-clones
- * the input, collects expressions, evaluates them as a batch via the
- * expression evaluator (local activity), and substitutes results back.
+ * Resolves all `${ ... }` expressions in a config object using a
+ * two-phase pipeline:
  *
- * Returns the fully-resolved config object.
+ * **Phase 1 — Strict expressions** (existing): whole-value `${ expr }`
+ * strings are collected, batch-evaluated, and substituted.
+ *
+ * **Phase 2 — Embedded expressions** (CNCF spec compliant): strings
+ * containing `${ expr }` fragments within larger text are collected,
+ * batch-evaluated, and interpolated. This enables multi-line agent
+ * messages, LLM prompts, and notification bodies with inline variable
+ * references — as demonstrated in the official CNCF Serverless Workflow
+ * 1.0.0 spec reference examples.
+ *
+ * Each phase produces at most one Temporal local activity call (batch
+ * evaluation). Phase 2 is skipped when no embedded expressions exist.
  */
 export async function resolveConfigExpressions(
   config: Record<string, unknown>,
@@ -29,15 +44,19 @@ export async function resolveConfigExpressions(
   evaluateExpressions: ExpressionEvaluator,
 ): Promise<Record<string, unknown>> {
   const cloned = deepClone(config);
-  const expressions = collectExpressions(cloned);
+  const stateVars = state.getAsMap();
 
-  if (Object.keys(expressions).length === 0) {
-    return cloned;
+  // Phase 1: Strict expressions (whole-value `${ expr }`)
+  const strictExprs = collectExpressions(cloned);
+  if (Object.keys(strictExprs).length > 0) {
+    const strictResults = await evaluateExpressions(strictExprs, input, stateVars);
+    substituteResults(cloned, strictResults);
   }
 
-  const stateVars = state.getAsMap();
-  const results = await evaluateExpressions(expressions, input, stateVars);
-  return substituteResults(cloned, results);
+  // Phase 2: Embedded expressions (`"text ${ expr } more text"`)
+  await resolveEmbeddedExpressions(cloned, input, stateVars, evaluateExpressions);
+
+  return cloned;
 }
 
 /**
@@ -187,4 +206,122 @@ export function resolveObjectPlaceholders(
     return result;
   }
   return obj;
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Embedded Expression Resolution (Phase 2)
+// ─────────────────────────────────────────────────────────────────────
+
+interface EmbeddedExprMapping {
+  /** JSON path to the string field in the config object. */
+  path: string;
+  /** Ordered list of expressions found in that string. */
+  expressions: Array<{ start: number; end: number; expr: string }>;
+}
+
+/**
+ * Resolves embedded `${ ... }` expressions within string values of a
+ * config object. Strings where the entire value is a strict expression
+ * are skipped (already handled in Phase 1). Only strings containing
+ * `${ ... }` fragments within larger text are processed.
+ *
+ * All embedded expressions across all fields are collected and
+ * evaluated in a single batch call to the expression evaluator,
+ * preserving the Temporal local activity batch optimization.
+ *
+ * Mutates `obj` in place. Returns early if no embedded expressions
+ * are found (zero overhead for strict-only workflows).
+ */
+export async function resolveEmbeddedExpressions(
+  obj: Record<string, unknown>,
+  input: unknown,
+  stateVars: Record<string, unknown>,
+  evaluateExpressions: ExpressionEvaluator,
+): Promise<void> {
+  const mappings: EmbeddedExprMapping[] = [];
+  const batchExprs: Record<string, string> = {};
+
+  collectEmbeddedExpressions(obj, "", mappings, batchExprs);
+
+  if (Object.keys(batchExprs).length === 0) return;
+
+  const results = await evaluateExpressions(batchExprs, input, stateVars);
+
+  for (const mapping of mappings) {
+    const original = getNestedValue(obj, mapping.path) as string;
+    let interpolated = "";
+    let lastEnd = 0;
+
+    for (let i = 0; i < mapping.expressions.length; i++) {
+      const embedded = mapping.expressions[i];
+      const key = `${mapping.path}~${i}`;
+      interpolated += original.slice(lastEnd, embedded.start);
+      interpolated += stringifyInterpolatedValue(results[key]);
+      lastEnd = embedded.end;
+    }
+
+    interpolated += original.slice(lastEnd);
+    setNestedValue(obj, mapping.path, interpolated);
+  }
+}
+
+/**
+ * Walks the object tree collecting embedded expressions from string
+ * values into the batch map. Each expression gets a composite key
+ * `path~index` so results can be mapped back to their source strings.
+ */
+function collectEmbeddedExpressions(
+  obj: Record<string, unknown>,
+  prefix: string,
+  mappings: EmbeddedExprMapping[],
+  batchExprs: Record<string, string>,
+): void {
+  for (const [key, value] of Object.entries(obj)) {
+    const path = prefix ? `${prefix}.${key}` : key;
+    collectEmbeddedFromValue(value, path, mappings, batchExprs);
+  }
+}
+
+function collectEmbeddedFromValue(
+  value: unknown,
+  path: string,
+  mappings: EmbeddedExprMapping[],
+  batchExprs: Record<string, string>,
+): void {
+  if (typeof value === "string") {
+    if (isStrictExpr(value)) return;
+    const expressions = extractEmbeddedExpressions(value);
+    if (expressions.length === 0) return;
+
+    mappings.push({ path, expressions });
+    for (let i = 0; i < expressions.length; i++) {
+      batchExprs[`${path}~${i}`] = expressions[i].expr;
+    }
+  } else if (Array.isArray(value)) {
+    for (let i = 0; i < value.length; i++) {
+      collectEmbeddedFromValue(value[i], `${path}[${i}]`, mappings, batchExprs);
+    }
+  } else if (value !== null && typeof value === "object") {
+    collectEmbeddedExpressions(
+      value as Record<string, unknown>,
+      path,
+      mappings,
+      batchExprs,
+    );
+  }
+}
+
+function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
+  const parts = parsePath(path);
+  let current: unknown = obj;
+
+  for (const part of parts) {
+    if (typeof part === "number") {
+      current = (current as unknown[])[part];
+    } else {
+      current = (current as Record<string, unknown>)[part];
+    }
+  }
+
+  return current;
 }

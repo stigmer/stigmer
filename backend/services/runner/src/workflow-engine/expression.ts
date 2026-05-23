@@ -5,6 +5,7 @@
  *
  * Supports:
  * - Strict expression detection: `${ .some.path }`
+ * - Embedded expression interpolation: `"Hello ${ .name }!"`
  * - Expression sanitization: strips `${` and `}` wrapper
  * - Single expression evaluation via jq-wasm
  * - Recursive tree traversal for evaluating expressions in nested objects
@@ -36,6 +37,125 @@ export function isStrictExpr(str: string): boolean {
  */
 export function sanitizeExpr(str: string): string {
   return str.slice(3, -2);
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Embedded Expression Extraction (brace-depth tracking)
+// ─────────────────────────────────────────────────────────────────────
+
+export interface EmbeddedExpression {
+  /** Byte offset of the opening `$` in the source string. */
+  start: number;
+  /** Byte offset one past the closing `}`. */
+  end: number;
+  /** The raw jq expression between `${ ` and ` }`. */
+  expr: string;
+}
+
+const EMBEDDED_MARKER = "${ ";
+
+/**
+ * Scans a string for embedded `${ ... }` expressions using
+ * brace-depth tracking. Returns an empty array when:
+ * - The string contains no `${ ` markers
+ * - The entire string IS a strict expression (handled separately)
+ *
+ * Brace-depth tracking correctly handles nested braces in jq object
+ * construction (e.g. `${ { key: .value } }`), unlike a naive regex
+ * which would stop at the first `}`.
+ *
+ * Runtime placeholders (`${.secrets.KEY}`, `${.env_vars.KEY}`) are
+ * never matched because they lack the space after `${`.
+ */
+export function extractEmbeddedExpressions(str: string): EmbeddedExpression[] {
+  if (isStrictExpr(str)) return [];
+
+  const results: EmbeddedExpression[] = [];
+  let searchFrom = 0;
+
+  while (searchFrom < str.length) {
+    const markerIdx = str.indexOf(EMBEDDED_MARKER, searchFrom);
+    if (markerIdx === -1) break;
+
+    const exprStart = markerIdx + EMBEDDED_MARKER.length;
+    let depth = 1;
+    let pos = exprStart;
+
+    while (pos < str.length && depth > 0) {
+      if (str[pos] === "{") depth++;
+      else if (str[pos] === "}") depth--;
+      if (depth > 0) pos++;
+    }
+
+    if (depth !== 0) {
+      searchFrom = exprStart;
+      continue;
+    }
+
+    const rawExpr = str.slice(exprStart, pos);
+    const expr = rawExpr.endsWith(" ") ? rawExpr.slice(0, -1) : rawExpr;
+
+    results.push({
+      start: markerIdx,
+      end: pos + 1,
+      expr,
+    });
+
+    searchFrom = pos + 1;
+  }
+
+  return results;
+}
+
+/**
+ * Checks whether a string contains embedded `${ ... }` expressions
+ * that are NOT strict (the entire value is one expression) and NOT
+ * runtime placeholders (`${.secrets.*}`).
+ */
+export function hasEmbeddedExpressions(str: string): boolean {
+  if (isStrictExpr(str)) return false;
+  return str.includes(EMBEDDED_MARKER);
+}
+
+/**
+ * Interpolates all embedded `${ ... }` expressions within a string.
+ * Each expression is evaluated via jq and substituted in place.
+ *
+ * - `null` / `undefined` results become `""` (consistent with
+ *   `resolveRuntimePlaceholders` in resolve.ts).
+ * - Non-string results (objects, arrays, numbers) are JSON-stringified.
+ * - String results are inserted directly.
+ */
+export async function interpolateString(
+  str: string,
+  input: unknown,
+  stateVars: Record<string, unknown>,
+): Promise<string> {
+  const expressions = extractEmbeddedExpressions(str);
+  if (expressions.length === 0) return str;
+
+  let result = "";
+  let lastEnd = 0;
+
+  for (const embedded of expressions) {
+    result += str.slice(lastEnd, embedded.start);
+    const value = await evaluateExpression(embedded.expr, input, stateVars);
+    result += stringifyInterpolatedValue(value);
+    lastEnd = embedded.end;
+  }
+
+  result += str.slice(lastEnd);
+  return result;
+}
+
+/**
+ * Converts an evaluated expression result to a string for embedding
+ * into a larger template string.
+ */
+export function stringifyInterpolatedValue(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "string") return value;
+  return JSON.stringify(value);
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -161,10 +281,16 @@ export async function evaluateExpressionBatch(
 // ─────────────────────────────────────────────────────────────────────
 
 /**
- * Evaluates a string value: if it's a strict expression (`${ ... }`),
- * evaluates it via jq. Otherwise, returns the string as-is.
+ * Evaluates a string value using a three-step chain:
  *
- * Matches Go's `utils.EvaluateString`.
+ * 1. **Strict**: If the entire string is `${ expr }`, evaluate via
+ *    jq and return the result (may be any type — object, number, etc.).
+ * 2. **Embedded**: If the string contains `${ expr }` fragments within
+ *    larger text, interpolate each fragment and return a string.
+ * 3. **Passthrough**: Return the string unchanged.
+ *
+ * The CNCF Serverless Workflow 1.0.0 spec demonstrates embedded
+ * expressions in multi-line strings (e.g., HTTP body templates).
  */
 export async function evaluateString(
   str: string,
@@ -173,6 +299,9 @@ export async function evaluateString(
 ): Promise<unknown> {
   if (isStrictExpr(str)) {
     return evaluateExpression(sanitizeExpr(str), input, stateVars);
+  }
+  if (hasEmbeddedExpressions(str)) {
+    return interpolateString(str, input, stateVars);
   }
   return str;
 }

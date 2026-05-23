@@ -36,6 +36,8 @@ do:
           pr_number: ${ $input.pr_number }
           repo: ${ $input.repo }
           timestamp: ${ now | todate }
+      export:
+        as: ${ . }
 
   - reviewCode:
       call: agent

@@ -136,4 +136,61 @@ describe("CallAgentTaskBuilder", () => {
     const builder = new CallAgentTaskBuilder("t", taskDef);
     expect(await builder.shouldRun()).toBe(true);
   });
+
+  it("interpolates embedded expressions in multi-line message", async () => {
+    mockCallAgent.mockResolvedValue({ final_text: "done" });
+
+    const taskDef: CallAgentTaskDef = {
+      kind: "call:agent",
+      call: "agent",
+      with: {
+        agent: "analyst",
+        message:
+          "Generate report for ${ $env.GAME_NAME }.\n" +
+          "Date: ${ $env.REPORT_DATE }\n" +
+          "DAU: ${ $context.metrics.dau }\n" +
+          "Analyze the data.",
+      },
+    };
+
+    const builder = new CallAgentTaskBuilder("runAnalyst", taskDef);
+    const executor = builder.build();
+    const state = createState();
+    state.env = { GAME_NAME: "Garden Design", REPORT_DATE: "2026-05-23" };
+    state.context = { metrics: { dau: 25000 } };
+
+    await executor({}, state, makeCtx());
+
+    const [config] = mockCallAgent.mock.calls[0];
+    expect(config.message).toBe(
+      "Generate report for Garden Design.\n" +
+      "Date: 2026-05-23\n" +
+      "DAU: 25000\n" +
+      "Analyze the data.",
+    );
+    expect(config.message).not.toContain("${ ");
+  });
+
+  it("handles missing optional env var in embedded expression (null → empty)", async () => {
+    mockCallAgent.mockResolvedValue({ final_text: "done" });
+
+    const taskDef: CallAgentTaskDef = {
+      kind: "call:agent",
+      call: "agent",
+      with: {
+        agent: "analyst",
+        message: "Date: ${ $env.OPTIONAL_DATE }\nProceed.",
+      },
+    };
+
+    const builder = new CallAgentTaskBuilder("runAnalyst", taskDef);
+    const executor = builder.build();
+    const state = createState();
+    state.env = {};
+
+    await executor({}, state, makeCtx());
+
+    const [config] = mockCallAgent.mock.calls[0];
+    expect(config.message).toBe("Date: \nProceed.");
+  });
 });
