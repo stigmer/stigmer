@@ -11,7 +11,6 @@ import type {
   Connection,
   IsValidConnection,
 } from "@xyflow/react";
-import dagre from "@dagrejs/dagre";
 import type { JsonObject } from "@bufbuild/protobuf";
 import type { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import type { WorkflowGraphModel, WorkflowGraphNode } from "./workflow-graph-model";
@@ -38,6 +37,7 @@ import {
   AddEdgeCommand,
   DeleteEdgeCommand,
   CompoundCommand,
+  MoveNodesCommand,
   UpdateNodeFieldCommand,
   RenameNodeCommand,
   UpdateNodeMetaCommand,
@@ -52,6 +52,8 @@ import { graphToYaml } from "./workflow-graph-conversions";
 import { useTaskKindRegistry } from "./useTaskKindRegistry";
 import type { TaskKindDescriptor } from "./types";
 import { useGraphHistory } from "./useGraphHistory";
+import { useWorkflowLayout } from "./layout";
+import dagre from "@dagrejs/dagre";
 
 /** Selection state for the canvas inspector. */
 export interface CanvasSelection {
@@ -347,11 +349,9 @@ export function useWorkflowCanvas(
         };
         const next = dispatch(new AddNodeCommand(node, autoEdge));
 
-        requestAnimationFrame(() => {
-          const laidOut = applyDagreLayout(next);
-          history.reset(laidOut);
-          syncFromModel(laidOut);
-        });
+        // AD-T03-006: removed rAF→dagre→history.reset() pattern.
+        // The node is already positioned at the drop coordinates.
+        // Users trigger auto-layout explicitly when they want a clean graph.
       } else if (taskNodes.length === 0) {
         const autoEdge = {
           id: generateEdgeId(),
@@ -605,14 +605,6 @@ export function useWorkflowCanvas(
       );
 
       setSelection({ type: "node", id: taskName });
-
-      requestAnimationFrame(() => {
-        if (next.nodes.length > 0) {
-          const laidOut = applyDagreLayout(next);
-          history.reset(laidOut);
-          syncFromModel(laidOut);
-        }
-      });
     },
     [history, dispatch, syncFromModel],
   );
@@ -654,14 +646,6 @@ export function useWorkflowCanvas(
       );
 
       setSelection({ type: "node", id: taskName });
-
-      requestAnimationFrame(() => {
-        if (next.nodes.length > 0) {
-          const laidOut = applyDagreLayout(next);
-          history.reset(laidOut);
-          syncFromModel(laidOut);
-        }
-      });
     },
     [history, dispatch, syncFromModel],
   );
@@ -743,16 +727,42 @@ export function useWorkflowCanvas(
   }, []);
 
   // ---------------------------------------------------------------------------
-  // Auto-layout
+  // Auto-layout (AD-T03-002: dispatches MoveNodesCommand for undo support)
   // ---------------------------------------------------------------------------
 
-  const autoLayout = useCallback(() => {
+  const { layoutGraph, isLayouting } = useWorkflowLayout();
+
+  const autoLayout = useCallback(async () => {
     const model = history.currentModel;
     if (!model || model.nodes.length === 0) return;
-    const laidOut = applyDagreLayout(model);
-    history.reset(laidOut);
-    syncFromModel(laidOut);
-  }, [history, syncFromModel]);
+
+    const oldPositions = model.nodes.map((n) => ({
+      id: n.id,
+      x: n.position.x,
+      y: n.position.y,
+    }));
+
+    const result = await layoutGraph(model, { type: "whole-graph" });
+    if (!result) return;
+
+    const newPositions = model.nodes.map((n) => {
+      const pos = result.positions.get(n.id);
+      return {
+        id: n.id,
+        x: pos?.x ?? n.position.x,
+        y: pos?.y ?? n.position.y,
+      };
+    });
+
+    const hasChanges = newPositions.some((np) => {
+      const op = oldPositions.find((o) => o.id === np.id);
+      return op && (Math.abs(op.x - np.x) > 0.5 || Math.abs(op.y - np.y) > 0.5);
+    });
+
+    if (hasChanges) {
+      dispatch(new MoveNodesCommand(oldPositions, newPositions));
+    }
+  }, [history, dispatch, layoutGraph]);
 
   // ---------------------------------------------------------------------------
   // Undo / Redo (delegates to history, then syncs RF)
@@ -838,16 +848,12 @@ export function useWorkflowCanvas(
 }
 
 // ---------------------------------------------------------------------------
-// Dagre layout
+// Synchronous dagre layout for initial YAML parse (avoids blank canvas flash)
 // ---------------------------------------------------------------------------
 
 function applyDagreLayout(graph: WorkflowGraphModel): WorkflowGraphModel {
   const g = new dagre.graphlib.Graph();
-  g.setGraph({
-    rankdir: DAGRE_CONFIG.rankdir,
-    ranksep: DAGRE_CONFIG.ranksep,
-    nodesep: DAGRE_CONFIG.nodesep,
-  });
+  g.setGraph({ rankdir: DAGRE_CONFIG.rankdir, ranksep: DAGRE_CONFIG.ranksep, nodesep: DAGRE_CONFIG.nodesep });
   g.setDefaultEdgeLabel(() => ({}));
 
   for (const node of graph.nodes) {

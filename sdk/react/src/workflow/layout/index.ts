@@ -1,0 +1,39 @@
+// ---------------------------------------------------------------------------
+// Types (public API for platform builders implementing custom engines)
+// ---------------------------------------------------------------------------
+
+export type {
+  LayoutEngine,
+  LayoutInput,
+  LayoutResult,
+  LayoutScope,
+  LayoutOptions,
+  NodeDimensions,
+  Position2D,
+  NodePortAssignment,
+  PortDefinition,
+  PortSide,
+} from "./types";
+
+// ---------------------------------------------------------------------------
+// Engine factories
+// ---------------------------------------------------------------------------
+
+export { createDagreLayoutEngine } from "./dagre-layout-engine";
+export { createElkLayoutEngine } from "./elk-layout-engine";
+export type { ElkLayoutEngineOptions } from "./elk-layout-engine";
+
+// ---------------------------------------------------------------------------
+// React behavior hook
+// ---------------------------------------------------------------------------
+
+export { useWorkflowLayout } from "./use-workflow-layout";
+export type { UseWorkflowLayoutOptions, UseWorkflowLayoutReturn } from "./use-workflow-layout";
+
+// ---------------------------------------------------------------------------
+// Preprocessor (exported for advanced use cases and testing)
+// ---------------------------------------------------------------------------
+
+export { preprocessForElk, ELK_WORKFLOW_DEFAULTS } from "./workflow-preprocessor";
+export { computePortAssignments, computeNodePorts } from "./port-assignment";
+export { postprocessElkResult } from "./layout-postprocessor";
