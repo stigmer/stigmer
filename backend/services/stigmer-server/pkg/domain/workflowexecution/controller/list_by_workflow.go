@@ -77,6 +77,18 @@ func (c *WorkflowExecutionController) ListByWorkflow(ctx context.Context, req *w
 		}
 	}
 
+	// Apply structured filter criteria (T13).
+	executions = applyFilterCriteria(executions, req.GetFilter())
+
+	// Apply sort (default: started_at descending).
+	sortField := req.GetSortField()
+	ascending := req.GetSortAscending()
+	if sortField == workflowexecutionv1.ExecutionSortField_EXECUTION_SORT_FIELD_UNSPECIFIED {
+		sortField = workflowexecutionv1.ExecutionSortField_EXECUTION_SORT_FIELD_STARTED_AT
+		ascending = false
+	}
+	applySortField(executions, sortField, ascending)
+
 	log.Debug().
 		Str("workflow_id", workflowId).
 		Int("total_found", len(data)).
@@ -85,6 +97,6 @@ func (c *WorkflowExecutionController) ListByWorkflow(ctx context.Context, req *w
 
 	return &workflowexecutionv1.WorkflowExecutionList{
 		Entries:    executions,
-		TotalPages: 1, // OSS doesn't support pagination
+		TotalPages: 1,
 	}, nil
 }

@@ -16,7 +16,7 @@ import { useWorkflowExecutionList } from "./useWorkflowExecutionList";
 import { useWorkflowDashboardSummary } from "./useWorkflowDashboardSummary";
 import { WorkflowOverviewGraph } from "./WorkflowOverviewGraph";
 import { WorkflowOverviewSummary } from "./WorkflowOverviewSummary";
-import { WorkflowExecutionPhaseBadge } from "./WorkflowExecutionPhaseBadge";
+import { WorkflowExecutionHistory } from "./execution-history/WorkflowExecutionHistory";
 import { ErrorMessage } from "../error/ErrorMessage";
 import { VisibilityToggle } from "../library/VisibilityToggle";
 import { InstanceVisibilitySelector } from "../library/InstanceVisibilitySelector";
@@ -253,7 +253,13 @@ export function WorkflowDetailView({
   } else if (effectiveActiveTab === "instances") {
     tabContent = <InstancesTab workflowId={meta?.id} />;
   } else if (effectiveActiveTab === "executions") {
-    tabContent = <ExecutionsTab workflowId={meta?.id} onExecutionClick={onExecutionClick} />;
+    tabContent = (
+      <WorkflowExecutionHistory
+        org={org}
+        workflowId={meta?.id}
+        onExecutionClick={onExecutionClick}
+      />
+    );
   } else {
     tabContent = (
       <OverviewTab
@@ -684,95 +690,6 @@ function InstanceRow({ instance }: { readonly instance: WorkflowInstance }) {
   );
 }
 
-function ExecutionsTab({
-  workflowId,
-  onExecutionClick,
-}: {
-  readonly workflowId?: string;
-  readonly onExecutionClick?: (executionId: string) => void;
-}) {
-  const { executions, isLoading, error } = useWorkflowExecutionList({
-    workflowId,
-    pageSize: 10,
-  });
-
-  if (isLoading) {
-    return <TabLoadingSkeleton />;
-  }
-
-  if (error) {
-    return (
-      <div className="py-8 text-center text-sm text-destructive">
-        Failed to load executions
-      </div>
-    );
-  }
-
-  if (executions.length === 0) {
-    return (
-      <div className="py-8 text-center text-sm text-muted-foreground">
-        No executions yet
-      </div>
-    );
-  }
-
-  return (
-    <div className="overflow-hidden rounded-lg border border-border">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-border bg-muted/50">
-            <th className="px-4 py-2 text-left font-medium text-muted-foreground">Name</th>
-            <th className="px-4 py-2 text-left font-medium text-muted-foreground">Phase</th>
-            <th className="px-4 py-2 text-left font-medium text-muted-foreground">Started</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border">
-          {executions.map((exec) => {
-            const execId = exec.metadata?.id;
-            const startedAt = exec.status?.audit?.specAudit?.createdAt;
-            const clickable = !!onExecutionClick && !!execId;
-            return (
-              <tr
-                key={execId}
-                onClick={clickable ? () => onExecutionClick(execId!) : undefined}
-                role={clickable ? "link" : undefined}
-                tabIndex={clickable ? 0 : undefined}
-                onKeyDown={
-                  clickable
-                    ? (e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          onExecutionClick(execId!);
-                        }
-                      }
-                    : undefined
-                }
-                className={cn(
-                  "transition-colors hover:bg-muted/30",
-                  clickable && "cursor-pointer",
-                )}
-              >
-                <td className="px-4 py-2.5 font-medium text-foreground">
-                  {exec.metadata?.name || exec.metadata?.slug || "—"}
-                </td>
-                <td className="px-4 py-2.5">
-                  {exec.status?.phase != null ? (
-                    <WorkflowExecutionPhaseBadge phase={exec.status.phase} />
-                  ) : (
-                    <span className="text-xs text-muted-foreground">—</span>
-                  )}
-                </td>
-                <td className="px-4 py-2.5 text-xs text-muted-foreground">
-                  {startedAt ? timestampDate(startedAt).toLocaleString() : "—"}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Validation indicator

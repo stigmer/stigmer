@@ -232,16 +232,22 @@ const result = await stigmer.workflowExecution.list({
   pageToken: "...",
   phase: "...",
   tags: [],
+  filter: {},
+  sortField: "...",
+  sortAscending: false,
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 result, err := client.WorkflowExecution.List(ctx, &stigmer.ListWorkflowExecutionsRequest{
-  PageSize:  0,
-  PageToken: "...",
-  Phase:     "...",
-  Tags:      []string{},
+  PageSize:      0,
+  PageToken:     "...",
+  Phase:         "...",
+  Tags:          []string{},
+  Filter:        &stigmer.ExecutionFilterCriteriaInput{},
+  SortField:     "...",
+  SortAscending: false,
 })
 ```
 </Tab>
@@ -252,6 +258,9 @@ result = client.workflow_executions.list(ListWorkflowExecutionsRequest(
     page_token="...",
     phase="...",
     tags=[],
+    filter=None,
+    sort_field="...",
+    sort_ascending=False,
 ))
 ```
 </Tab>
@@ -262,6 +271,9 @@ WorkflowExecutionList result = client.workflowExecutions().list(ListWorkflowExec
     .pageToken("...")
     .phase("...")
     .tags(List.of())
+    .filter(null)
+    .sortField("...")
+    .sortAscending(false)
     .build());
 ```
 </Tab>
@@ -284,15 +296,21 @@ const result = await stigmer.workflowExecution.listByWorkflow({
   workflowId: "...",
   pageSize: 0,
   pageToken: "...",
+  filter: {},
+  sortField: "...",
+  sortAscending: false,
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 result, err := client.WorkflowExecution.ListByWorkflow(ctx, &stigmer.ListWorkflowExecutionsByWorkflowRequest{
-  WorkflowId: "...",
-  PageSize:   0,
-  PageToken:  "...",
+  WorkflowId:    "...",
+  PageSize:      0,
+  PageToken:     "...",
+  Filter:        &stigmer.ExecutionFilterCriteriaInput{},
+  SortField:     "...",
+  SortAscending: false,
 })
 ```
 </Tab>
@@ -302,6 +320,9 @@ result = client.workflow_executions.list_by_workflow(ListWorkflowExecutionsByWor
     workflow_id="...",
     page_size=0,
     page_token="...",
+    filter=None,
+    sort_field="...",
+    sort_ascending=False,
 ))
 ```
 </Tab>
@@ -311,6 +332,9 @@ WorkflowExecutionList result = client.workflowExecutions().listByWorkflow(ListWo
     .workflowId("...")
     .pageSize(0)
     .pageToken("...")
+    .filter(null)
+    .sortField("...")
+    .sortAscending(false)
     .build());
 ```
 </Tab>
@@ -1247,6 +1271,9 @@ ListWorkflowExecutionsRequest specifies parameters for listing workflow executio
     pageToken: { type: "string", description: "Opaque pagination token from a previous response." },
     phase: { type: "ExecutionPhase", description: "Filter by execution phase.", typeDescriptionLink: "#executionphase" },
     tags: { type: "string[]", description: "Filter by resource tags (AND logic)." },
+    filter: { type: "ExecutionFilterCriteriaInput", description: "Structured filter criteria for advanced filtering." },
+    sortField: { type: "ExecutionSortField", description: "Sort field.", typeDescriptionLink: "#executionsortfield" },
+    sortAscending: { type: "boolean", description: "When true, sorts in ascending order." },
   }}
 />
 
@@ -1270,6 +1297,9 @@ ListWorkflowExecutionsByWorkflowRequest lists executions for a specific workflow
     workflowId: { type: "string", description: "Workflow or WorkflowInstance ID to filter by.", required: true },
     pageSize: { type: "number", description: "Maximum number of executions to return per page." },
     pageToken: { type: "string", description: "Opaque pagination token from a previous response." },
+    filter: { type: "ExecutionFilterCriteriaInput", description: "Structured filter criteria for advanced filtering." },
+    sortField: { type: "ExecutionSortField", description: "Sort field.", typeDescriptionLink: "#executionsortfield" },
+    sortAscending: { type: "boolean", description: "When true, sorts in ascending order." },
   }}
 />
 
@@ -1522,6 +1552,17 @@ ExecutionPhase defines the lifecycle phase of a workflow execution.
 | `EXECUTION_CANCELLED` | Execution was cancelled by user or system. |
 | `EXECUTION_TERMINATED` | Execution was force-stopped immediately without cleanup. |
 | `EXECUTION_PAUSED` | Execution was paused by user and can be resumed. |
+
+### ExecutionSortField
+
+ExecutionSortField defines the column to sort execution lists by.
+
+| Value | Description |
+|-------|-------------|
+| `EXECUTION_SORT_FIELD_STARTED_AT` | Sort by execution start time. |
+| `EXECUTION_SORT_FIELD_DURATION` | Sort by execution duration (completed_at - started_at). |
+| `EXECUTION_SORT_FIELD_COST` | Sort by total cost (status.total_cost_micros). |
+| `EXECUTION_SORT_FIELD_STATUS` | Sort by execution phase enum value. |
 
 ### WorkflowEventType
 

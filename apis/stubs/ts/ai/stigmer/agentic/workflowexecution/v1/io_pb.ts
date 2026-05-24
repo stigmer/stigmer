@@ -21,7 +21,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/workflowexecution/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_workflowexecution_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CjBhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3dleGVjdXRpb24vdjEvaW8ucHJvdG8SJ2FpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MSIsChNXb3JrZmxvd0V4ZWN1dGlvbklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiIwoKV29ya2Zsb3dJZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBInkKFVdvcmtmbG93RXhlY3V0aW9uTGlzdBITCgt0b3RhbF9wYWdlcxgBIAEoBRJLCgdlbnRyaWVzGAIgAygLMjouYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXhlY3V0aW9uIpwBCh1MaXN0V29ya2Zsb3dFeGVjdXRpb25zUmVxdWVzdBIRCglwYWdlX3NpemUYASABKAUSEgoKcGFnZV90b2tlbhgCIAEoCRJGCgVwaGFzZRgDIAEoDjI3LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5FeGVjdXRpb25QaGFzZRIMCgR0YWdzGAQgAygJIm0KJ0xpc3RXb3JrZmxvd0V4ZWN1dGlvbnNCeVdvcmtmbG93UmVxdWVzdBIbCgt3b3JrZmxvd19pZBgBIAEoCUIGukgDyAEBEhEKCXBhZ2Vfc2l6ZRgCIAEoBRISCgpwYWdlX3Rva2VuGAMgASgJIu4BCiJXb3JrZmxvd0V4ZWN1dGlvblVwZGF0ZVN0YXR1c0lucHV0Eh0KDGV4ZWN1dGlvbl9pZBgBIAEoCUIHukgEcgIQARJYCgZzdGF0dXMYAiABKAsyQC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuV29ya2Zsb3dFeGVjdXRpb25TdGF0dXNCBrpIA8gBARJPCgZldmVudHMYCiADKAsyPy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuV29ya2Zsb3dFeGVjdXRpb25FdmVudCK+AQobU3VibWl0V29ya2Zsb3dBcHByb3ZhbElucHV0Eh0KDGV4ZWN1dGlvbl9pZBgBIAEoCUIHukgEcgIQARIdCgx0b29sX2NhbGxfaWQYAiABKAlCB7pIBHICEAESUAoGYWN0aW9uGAMgASgOMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFwcHJvdmFsQWN0aW9uQgq6SAeCAQQQASAAEg8KB2NvbW1lbnQYBCABKAkixQEKH1N1Ym1pdFdvcmtmbG93VGFza0FwcHJvdmFsSW5wdXQSHQoMZXhlY3V0aW9uX2lkGAEgASgJQge6SARyAhABEhoKCXRhc2tfbmFtZRgCIAEoCUIHukgEcgIQARIYCgdvdXRjb21lGAMgASgJQge6SARyAhABEioKCWZvcm1fZGF0YRgEIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSEAoIcmV2aWV3ZXIYBSABKAkSDwoHY29tbWVudBgGIAEoCSJBCiFTdWJzY3JpYmVXb3JrZmxvd0V4ZWN1dGlvblJlcXVlc3QSHAoMZXhlY3V0aW9uX2lkGAEgASgJQga6SAPIAQEiQwocQ2FuY2VsV29ya2Zsb3dFeGVjdXRpb25JbnB1dBITCgJpZBgBIAEoCUIHukgEcgIQARIOCgZyZWFzb24YAiABKAkiRgofVGVybWluYXRlV29ya2Zsb3dFeGVjdXRpb25JbnB1dBITCgJpZBgBIAEoCUIHukgEcgIQARIOCgZyZWFzb24YAiABKAkiRAodUmVjb3ZlcldvcmtmbG93RXhlY3V0aW9uSW5wdXQSEwoCaWQYASABKAlCB7pIBHICEAESDgoGcmVhc29uGAIgASgJIkIKG1BhdXNlV29ya2Zsb3dFeGVjdXRpb25JbnB1dBITCgJpZBgBIAEoCUIHukgEcgIQARIOCgZyZWFzb24YAiABKAkiMwocUmVzdW1lV29ya2Zsb3dFeGVjdXRpb25JbnB1dBITCgJpZBgBIAEoCUIHukgEcgIQASKRAQoPU2VuZFNpZ25hbElucHV0Eh0KDGV4ZWN1dGlvbl9pZBgBIAEoCUIHukgEcgIQARIcCgtzaWduYWxfbmFtZRgCIAEoCUIHukgEcgIQARIoCgdwYXlsb2FkGAMgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdBIXCg9pZGVtcG90ZW5jeV9rZXkYBCABKAkiwgEKEkdldEV2ZW50TG9nUmVxdWVzdBIdCgxleGVjdXRpb25faWQYASABKAlCB7pIBHICEAESFgoOYWZ0ZXJfc2VxdWVuY2UYAiABKAQSTwoLZXZlbnRfdHlwZXMYAyADKA4yOi5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuV29ya2Zsb3dFdmVudFR5cGUSEQoJdGFza19uYW1lGAQgASgJEhEKCXBhZ2Vfc2l6ZRgFIAEoBSKRAQoTR2V0RXZlbnRMb2dSZXNwb25zZRJPCgZldmVudHMYASADKAsyPy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuV29ya2Zsb3dFeGVjdXRpb25FdmVudBIQCghoYXNfbW9yZRgCIAEoCBIXCg9sYXRlc3Rfc2VxdWVuY2UYAyABKAQioAEKFlN1YnNjcmliZUV2ZW50c1JlcXVlc3QSHQoMZXhlY3V0aW9uX2lkGAEgASgJQge6SARyAhABEhYKDmFmdGVyX3NlcXVlbmNlGAIgASgEEk8KC2V2ZW50X3R5cGVzGAMgAygOMjouYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXZlbnRUeXBlIpgBChpHZXRFeGVjdXRpb25TdW1tYXJ5UmVxdWVzdBIUCgNvcmcYASABKAlCB7pIBHICEAESTwoLdGltZV93aW5kb3cYAiABKA4yOi5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuU3VtbWFyeVRpbWVXaW5kb3cSEwoLd29ya2Zsb3dfaWQYAyABKAkiowQKEEV4ZWN1dGlvblN1bW1hcnkSFAoMYWN0aXZlX2NvdW50GAEgASgFEmAKDHBoYXNlX2NvdW50cxgCIAMoCzJKLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5FeGVjdXRpb25TdW1tYXJ5LlBoYXNlQ291bnRzRW50cnkSUAoKdG90YWxfY29zdBgDIAEoCzI8LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5Xb3JrZmxvd0Nvc3RTdW1tYXJ5Ei8KDGF2Z19kdXJhdGlvbhgEIAEoCzIZLmdvb2dsZS5wcm90b2J1Zi5EdXJhdGlvbhJbChV0b3BfZmFpbGluZ193b3JrZmxvd3MYBSADKAsyPC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuV29ya2Zsb3dGYWlsdXJlUmFuaxJYChBjb3N0X2J5X3dvcmtmbG93GAYgAygLMj4uYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93Q29zdEJyZWFrZG93bhITCgt0b3RhbF9jb3VudBgHIAEoBRIUCgxzdWNjZXNzX3JhdGUYCCABKAEaMgoQUGhhc2VDb3VudHNFbnRyeRILCgNrZXkYASABKAUSDQoFdmFsdWUYAiABKAU6AjgBImYKE1dvcmtmbG93Q29zdFN1bW1hcnkSFgoOdG90YWxfY29zdF91c2QYASABKAESGgoSdG90YWxfaW5wdXRfdG9rZW5zGAIgASgDEhsKE3RvdGFsX291dHB1dF90b2tlbnMYAyABKAMiWgoTV29ya2Zsb3dGYWlsdXJlUmFuaxIVCg13b3JrZmxvd19zbHVnGAEgASgJEhUKDXdvcmtmbG93X25hbWUYAiABKAkSFQoNZmFpbHVyZV9jb3VudBgDIAEoBSJ2ChVXb3JrZmxvd0Nvc3RCcmVha2Rvd24SFQoNd29ya2Zsb3dfc2x1ZxgBIAEoCRIVCg13b3JrZmxvd19uYW1lGAIgASgJEhYKDnRvdGFsX2Nvc3RfdXNkGAMgASgBEhcKD2V4ZWN1dGlvbl9jb3VudBgEIAEoBSJaChtMaXN0UGVuZGluZ0FwcHJvdmFsc1JlcXVlc3QSFAoDb3JnGAEgASgJQge6SARyAhABEhEKCXBhZ2Vfc2l6ZRgCIAEoBRISCgpwYWdlX3Rva2VuGAMgASgJIvQBCg9QZW5kaW5nQXBwcm92YWwSFAoMZXhlY3V0aW9uX2lkGAEgASgJEhUKDXdvcmtmbG93X25hbWUYAiABKAkSEQoJdGFza19uYW1lGAMgASgJEhEKCXJlcXVlc3RlchgEIAEoCRIwCgxyZXF1ZXN0ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnRpbWVvdXRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEiwKC2Zvcm1fc2NoZW1hGAcgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdCKPAQoUUGVuZGluZ0FwcHJvdmFsc0xpc3QSSQoHZW50cmllcxgBIAMoCzI4LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5QZW5kaW5nQXBwcm92YWwSEwoLdG90YWxfY291bnQYAiABKAUSFwoPbmV4dF9wYWdlX3Rva2VuGAMgASgJKr8BChFTdW1tYXJ5VGltZVdpbmRvdxIjCh9TVU1NQVJZX1RJTUVfV0lORE9XX1VOU1BFQ0lGSUVEEAASIAocU1VNTUFSWV9USU1FX1dJTkRPV19MQVNUXzI0SBABEh8KG1NVTU1BUllfVElNRV9XSU5ET1dfTEFTVF83RBACEiAKHFNVTU1BUllfVElNRV9XSU5ET1dfTEFTVF8zMEQQAxIgChxTVU1NQVJZX1RJTUVfV0lORE9XX0FMTF9USU1FEARiBnByb3RvMw", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_workflowexecution_v1_api, file_ai_stigmer_agentic_workflowexecution_v1_enum, file_ai_stigmer_agentic_workflowexecution_v1_event, file_buf_validate_validate, file_google_protobuf_duration, file_google_protobuf_struct, file_google_protobuf_timestamp]);
+  fileDesc("CjBhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3dleGVjdXRpb24vdjEvaW8ucHJvdG8SJ2FpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MSIsChNXb3JrZmxvd0V4ZWN1dGlvbklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiIwoKV29ya2Zsb3dJZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBInkKFVdvcmtmbG93RXhlY3V0aW9uTGlzdBITCgt0b3RhbF9wYWdlcxgBIAEoBRJLCgdlbnRyaWVzGAIgAygLMjouYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXhlY3V0aW9uItcCCh1MaXN0V29ya2Zsb3dFeGVjdXRpb25zUmVxdWVzdBIRCglwYWdlX3NpemUYASABKAUSEgoKcGFnZV90b2tlbhgCIAEoCRJGCgVwaGFzZRgDIAEoDjI3LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5FeGVjdXRpb25QaGFzZRIMCgR0YWdzGAQgAygJElAKBmZpbHRlchgFIAEoCzJALmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5FeGVjdXRpb25GaWx0ZXJDcml0ZXJpYRJPCgpzb3J0X2ZpZWxkGAYgASgOMjsuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLkV4ZWN1dGlvblNvcnRGaWVsZBIWCg5zb3J0X2FzY2VuZGluZxgHIAEoCCKoAgonTGlzdFdvcmtmbG93RXhlY3V0aW9uc0J5V29ya2Zsb3dSZXF1ZXN0EhsKC3dvcmtmbG93X2lkGAEgASgJQga6SAPIAQESEQoJcGFnZV9zaXplGAIgASgFEhIKCnBhZ2VfdG9rZW4YAyABKAkSUAoGZmlsdGVyGAQgASgLMkAuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLkV4ZWN1dGlvbkZpbHRlckNyaXRlcmlhEk8KCnNvcnRfZmllbGQYBSABKA4yOy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuRXhlY3V0aW9uU29ydEZpZWxkEhYKDnNvcnRfYXNjZW5kaW5nGAYgASgIIu4BCiJXb3JrZmxvd0V4ZWN1dGlvblVwZGF0ZVN0YXR1c0lucHV0Eh0KDGV4ZWN1dGlvbl9pZBgBIAEoCUIHukgEcgIQARJYCgZzdGF0dXMYAiABKAsyQC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuV29ya2Zsb3dFeGVjdXRpb25TdGF0dXNCBrpIA8gBARJPCgZldmVudHMYCiADKAsyPy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuV29ya2Zsb3dFeGVjdXRpb25FdmVudCK+AQobU3VibWl0V29ya2Zsb3dBcHByb3ZhbElucHV0Eh0KDGV4ZWN1dGlvbl9pZBgBIAEoCUIHukgEcgIQARIdCgx0b29sX2NhbGxfaWQYAiABKAlCB7pIBHICEAESUAoGYWN0aW9uGAMgASgOMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFwcHJvdmFsQWN0aW9uQgq6SAeCAQQQASAAEg8KB2NvbW1lbnQYBCABKAkixQEKH1N1Ym1pdFdvcmtmbG93VGFza0FwcHJvdmFsSW5wdXQSHQoMZXhlY3V0aW9uX2lkGAEgASgJQge6SARyAhABEhoKCXRhc2tfbmFtZRgCIAEoCUIHukgEcgIQARIYCgdvdXRjb21lGAMgASgJQge6SARyAhABEioKCWZvcm1fZGF0YRgEIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSEAoIcmV2aWV3ZXIYBSABKAkSDwoHY29tbWVudBgGIAEoCSJBCiFTdWJzY3JpYmVXb3JrZmxvd0V4ZWN1dGlvblJlcXVlc3QSHAoMZXhlY3V0aW9uX2lkGAEgASgJQga6SAPIAQEiQwocQ2FuY2VsV29ya2Zsb3dFeGVjdXRpb25JbnB1dBITCgJpZBgBIAEoCUIHukgEcgIQARIOCgZyZWFzb24YAiABKAkiRgofVGVybWluYXRlV29ya2Zsb3dFeGVjdXRpb25JbnB1dBITCgJpZBgBIAEoCUIHukgEcgIQARIOCgZyZWFzb24YAiABKAkiRAodUmVjb3ZlcldvcmtmbG93RXhlY3V0aW9uSW5wdXQSEwoCaWQYASABKAlCB7pIBHICEAESDgoGcmVhc29uGAIgASgJIkIKG1BhdXNlV29ya2Zsb3dFeGVjdXRpb25JbnB1dBITCgJpZBgBIAEoCUIHukgEcgIQARIOCgZyZWFzb24YAiABKAkiMwocUmVzdW1lV29ya2Zsb3dFeGVjdXRpb25JbnB1dBITCgJpZBgBIAEoCUIHukgEcgIQASKRAQoPU2VuZFNpZ25hbElucHV0Eh0KDGV4ZWN1dGlvbl9pZBgBIAEoCUIHukgEcgIQARIcCgtzaWduYWxfbmFtZRgCIAEoCUIHukgEcgIQARIoCgdwYXlsb2FkGAMgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdBIXCg9pZGVtcG90ZW5jeV9rZXkYBCABKAkiwgEKEkdldEV2ZW50TG9nUmVxdWVzdBIdCgxleGVjdXRpb25faWQYASABKAlCB7pIBHICEAESFgoOYWZ0ZXJfc2VxdWVuY2UYAiABKAQSTwoLZXZlbnRfdHlwZXMYAyADKA4yOi5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuV29ya2Zsb3dFdmVudFR5cGUSEQoJdGFza19uYW1lGAQgASgJEhEKCXBhZ2Vfc2l6ZRgFIAEoBSKRAQoTR2V0RXZlbnRMb2dSZXNwb25zZRJPCgZldmVudHMYASADKAsyPy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuV29ya2Zsb3dFeGVjdXRpb25FdmVudBIQCghoYXNfbW9yZRgCIAEoCBIXCg9sYXRlc3Rfc2VxdWVuY2UYAyABKAQioAEKFlN1YnNjcmliZUV2ZW50c1JlcXVlc3QSHQoMZXhlY3V0aW9uX2lkGAEgASgJQge6SARyAhABEhYKDmFmdGVyX3NlcXVlbmNlGAIgASgEEk8KC2V2ZW50X3R5cGVzGAMgAygOMjouYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXZlbnRUeXBlIowDChdFeGVjdXRpb25GaWx0ZXJDcml0ZXJpYRJHCgZwaGFzZXMYASADKA4yNy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuRXhlY3V0aW9uUGhhc2USMQoNc3RhcnRlZF9hZnRlchgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASMgoOc3RhcnRlZF9iZWZvcmUYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi8KDG1pbl9kdXJhdGlvbhgEIAEoCzIZLmdvb2dsZS5wcm90b2J1Zi5EdXJhdGlvbhIvCgxtYXhfZHVyYXRpb24YBSABKAsyGS5nb29nbGUucHJvdG9idWYuRHVyYXRpb24SFwoPbWluX2Nvc3RfbWljcm9zGAYgASgDEhcKD21heF9jb3N0X21pY3JvcxgHIAEoAxIYChBmYWlsZWRfdGFza19uYW1lGAggASgJEhMKC2hhc19yZXRyaWVzGAkgASgIIpgBChpHZXRFeGVjdXRpb25TdW1tYXJ5UmVxdWVzdBIUCgNvcmcYASABKAlCB7pIBHICEAESTwoLdGltZV93aW5kb3cYAiABKA4yOi5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuU3VtbWFyeVRpbWVXaW5kb3cSEwoLd29ya2Zsb3dfaWQYAyABKAkiowQKEEV4ZWN1dGlvblN1bW1hcnkSFAoMYWN0aXZlX2NvdW50GAEgASgFEmAKDHBoYXNlX2NvdW50cxgCIAMoCzJKLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5FeGVjdXRpb25TdW1tYXJ5LlBoYXNlQ291bnRzRW50cnkSUAoKdG90YWxfY29zdBgDIAEoCzI8LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5Xb3JrZmxvd0Nvc3RTdW1tYXJ5Ei8KDGF2Z19kdXJhdGlvbhgEIAEoCzIZLmdvb2dsZS5wcm90b2J1Zi5EdXJhdGlvbhJbChV0b3BfZmFpbGluZ193b3JrZmxvd3MYBSADKAsyPC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuV29ya2Zsb3dGYWlsdXJlUmFuaxJYChBjb3N0X2J5X3dvcmtmbG93GAYgAygLMj4uYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93Q29zdEJyZWFrZG93bhITCgt0b3RhbF9jb3VudBgHIAEoBRIUCgxzdWNjZXNzX3JhdGUYCCABKAEaMgoQUGhhc2VDb3VudHNFbnRyeRILCgNrZXkYASABKAUSDQoFdmFsdWUYAiABKAU6AjgBImYKE1dvcmtmbG93Q29zdFN1bW1hcnkSFgoOdG90YWxfY29zdF91c2QYASABKAESGgoSdG90YWxfaW5wdXRfdG9rZW5zGAIgASgDEhsKE3RvdGFsX291dHB1dF90b2tlbnMYAyABKAMiWgoTV29ya2Zsb3dGYWlsdXJlUmFuaxIVCg13b3JrZmxvd19zbHVnGAEgASgJEhUKDXdvcmtmbG93X25hbWUYAiABKAkSFQoNZmFpbHVyZV9jb3VudBgDIAEoBSJ2ChVXb3JrZmxvd0Nvc3RCcmVha2Rvd24SFQoNd29ya2Zsb3dfc2x1ZxgBIAEoCRIVCg13b3JrZmxvd19uYW1lGAIgASgJEhYKDnRvdGFsX2Nvc3RfdXNkGAMgASgBEhcKD2V4ZWN1dGlvbl9jb3VudBgEIAEoBSJaChtMaXN0UGVuZGluZ0FwcHJvdmFsc1JlcXVlc3QSFAoDb3JnGAEgASgJQge6SARyAhABEhEKCXBhZ2Vfc2l6ZRgCIAEoBRISCgpwYWdlX3Rva2VuGAMgASgJIvQBCg9QZW5kaW5nQXBwcm92YWwSFAoMZXhlY3V0aW9uX2lkGAEgASgJEhUKDXdvcmtmbG93X25hbWUYAiABKAkSEQoJdGFza19uYW1lGAMgASgJEhEKCXJlcXVlc3RlchgEIAEoCRIwCgxyZXF1ZXN0ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnRpbWVvdXRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEiwKC2Zvcm1fc2NoZW1hGAcgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdCKPAQoUUGVuZGluZ0FwcHJvdmFsc0xpc3QSSQoHZW50cmllcxgBIAMoCzI4LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5QZW5kaW5nQXBwcm92YWwSEwoLdG90YWxfY291bnQYAiABKAUSFwoPbmV4dF9wYWdlX3Rva2VuGAMgASgJKsIBChJFeGVjdXRpb25Tb3J0RmllbGQSJAogRVhFQ1VUSU9OX1NPUlRfRklFTERfVU5TUEVDSUZJRUQQABIjCh9FWEVDVVRJT05fU09SVF9GSUVMRF9TVEFSVEVEX0FUEAESIQodRVhFQ1VUSU9OX1NPUlRfRklFTERfRFVSQVRJT04QAhIdChlFWEVDVVRJT05fU09SVF9GSUVMRF9DT1NUEAMSHwobRVhFQ1VUSU9OX1NPUlRfRklFTERfU1RBVFVTEAQqvwEKEVN1bW1hcnlUaW1lV2luZG93EiMKH1NVTU1BUllfVElNRV9XSU5ET1dfVU5TUEVDSUZJRUQQABIgChxTVU1NQVJZX1RJTUVfV0lORE9XX0xBU1RfMjRIEAESHwobU1VNTUFSWV9USU1FX1dJTkRPV19MQVNUXzdEEAISIAocU1VNTUFSWV9USU1FX1dJTkRPV19MQVNUXzMwRBADEiAKHFNVTU1BUllfVElNRV9XSU5ET1dfQUxMX1RJTUUQBGIGcHJvdG8z", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_workflowexecution_v1_api, file_ai_stigmer_agentic_workflowexecution_v1_enum, file_ai_stigmer_agentic_workflowexecution_v1_event, file_buf_validate_validate, file_google_protobuf_duration, file_google_protobuf_struct, file_google_protobuf_timestamp]);
 
 /**
  * WorkflowExecutionId wraps a workflow execution identifier.
@@ -163,6 +163,36 @@ export type ListWorkflowExecutionsRequest = Message<"ai.stigmer.agentic.workflow
    * @generated from field: repeated string tags = 4;
    */
   tags: string[];
+
+  /**
+   * Structured filter criteria for advanced filtering.
+   *
+   * When set, applies AND-conjunction with the existing `phase` and `tags` fields.
+   * If both `phase` and `filter.phases` are set, `filter.phases` takes precedence.
+   *
+   * @since T13 (Execution History)
+   *
+   * @generated from field: ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria filter = 5;
+   */
+  filter?: ExecutionFilterCriteria;
+
+  /**
+   * Sort field. When unspecified, defaults to started_at descending.
+   *
+   * @since T13 (Execution History)
+   *
+   * @generated from field: ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField sort_field = 6;
+   */
+  sortField: ExecutionSortField;
+
+  /**
+   * When true, sorts in ascending order. Default (false) is descending.
+   *
+   * @since T13 (Execution History)
+   *
+   * @generated from field: bool sort_ascending = 7;
+   */
+  sortAscending: boolean;
 };
 
 /**
@@ -208,6 +238,33 @@ export type ListWorkflowExecutionsByWorkflowRequest = Message<"ai.stigmer.agenti
    * @generated from field: string page_token = 3;
    */
   pageToken: string;
+
+  /**
+   * Structured filter criteria for advanced filtering.
+   *
+   * @since T13 (Execution History)
+   *
+   * @generated from field: ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria filter = 4;
+   */
+  filter?: ExecutionFilterCriteria;
+
+  /**
+   * Sort field. When unspecified, defaults to started_at descending.
+   *
+   * @since T13 (Execution History)
+   *
+   * @generated from field: ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField sort_field = 5;
+   */
+  sortField: ExecutionSortField;
+
+  /**
+   * When true, sorts in ascending order. Default (false) is descending.
+   *
+   * @since T13 (Execution History)
+   *
+   * @generated from field: bool sort_ascending = 6;
+   */
+  sortAscending: boolean;
 };
 
 /**
@@ -921,6 +978,97 @@ export const SubscribeEventsRequestSchema: GenMessage<SubscribeEventsRequest> = 
   messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 17);
 
 /**
+ * ExecutionFilterCriteria defines structured filter conditions for listing
+ * workflow executions. All specified conditions are combined with AND logic.
+ *
+ * @since T13 (Execution History)
+ *
+ * @generated from message ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria
+ */
+export type ExecutionFilterCriteria = Message<"ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria"> & {
+  /**
+   * Filter by execution phases. Empty means all phases.
+   *
+   * Supersedes the top-level `phase` field on ListWorkflowExecutionsRequest
+   * when both are set.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase phases = 1;
+   */
+  phases: ExecutionPhase[];
+
+  /**
+   * Include only executions started at or after this timestamp.
+   *
+   * @generated from field: google.protobuf.Timestamp started_after = 2;
+   */
+  startedAfter?: Timestamp;
+
+  /**
+   * Include only executions started at or before this timestamp.
+   *
+   * @generated from field: google.protobuf.Timestamp started_before = 3;
+   */
+  startedBefore?: Timestamp;
+
+  /**
+   * Minimum execution duration (completed executions only).
+   *
+   * Executions still in progress or without timestamps are excluded
+   * when this filter is set.
+   *
+   * @generated from field: google.protobuf.Duration min_duration = 4;
+   */
+  minDuration?: Duration;
+
+  /**
+   * Maximum execution duration (completed executions only).
+   *
+   * @generated from field: google.protobuf.Duration max_duration = 5;
+   */
+  maxDuration?: Duration;
+
+  /**
+   * Minimum cost in micro-USD.
+   *
+   * @generated from field: int64 min_cost_micros = 6;
+   */
+  minCostMicros: bigint;
+
+  /**
+   * Maximum cost in micro-USD.
+   *
+   * @generated from field: int64 max_cost_micros = 7;
+   */
+  maxCostMicros: bigint;
+
+  /**
+   * Filter to executions containing a failed task with this exact name.
+   *
+   * Matches against any task in status.tasks where
+   * task.status == WORKFLOW_TASK_FAILED AND task.task_name == this value.
+   *
+   * @generated from field: string failed_task_name = 8;
+   */
+  failedTaskName: string;
+
+  /**
+   * When true, include only executions that contain at least one retried task.
+   *
+   * A task is considered retried when its metadata contains a retry_count > 0.
+   *
+   * @generated from field: bool has_retries = 9;
+   */
+  hasRetries: boolean;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria.
+ * Use `create(ExecutionFilterCriteriaSchema)` to create a new message.
+ */
+export const ExecutionFilterCriteriaSchema: GenMessage<ExecutionFilterCriteria> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 18);
+
+/**
  * GetExecutionSummaryRequest fetches aggregated execution statistics for an organization,
  * optionally scoped to a single workflow.
  *
@@ -961,7 +1109,7 @@ export type GetExecutionSummaryRequest = Message<"ai.stigmer.agentic.workflowexe
  * Use `create(GetExecutionSummaryRequestSchema)` to create a new message.
  */
 export const GetExecutionSummaryRequestSchema: GenMessage<GetExecutionSummaryRequest> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 18);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 19);
 
 /**
  * ExecutionSummary contains aggregated statistics for workflow executions.
@@ -1050,7 +1198,7 @@ export type ExecutionSummary = Message<"ai.stigmer.agentic.workflowexecution.v1.
  * Use `create(ExecutionSummarySchema)` to create a new message.
  */
 export const ExecutionSummarySchema: GenMessage<ExecutionSummary> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 19);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 20);
 
 /**
  * WorkflowCostSummary aggregates token and dollar costs.
@@ -1081,7 +1229,7 @@ export type WorkflowCostSummary = Message<"ai.stigmer.agentic.workflowexecution.
  * Use `create(WorkflowCostSummarySchema)` to create a new message.
  */
 export const WorkflowCostSummarySchema: GenMessage<WorkflowCostSummary> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 20);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 21);
 
 /**
  * WorkflowFailureRank represents a workflow and its failure count within a time window.
@@ -1112,7 +1260,7 @@ export type WorkflowFailureRank = Message<"ai.stigmer.agentic.workflowexecution.
  * Use `create(WorkflowFailureRankSchema)` to create a new message.
  */
 export const WorkflowFailureRankSchema: GenMessage<WorkflowFailureRank> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 21);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 22);
 
 /**
  * WorkflowCostBreakdown represents per-workflow cost aggregation.
@@ -1148,7 +1296,7 @@ export type WorkflowCostBreakdown = Message<"ai.stigmer.agentic.workflowexecutio
  * Use `create(WorkflowCostBreakdownSchema)` to create a new message.
  */
 export const WorkflowCostBreakdownSchema: GenMessage<WorkflowCostBreakdown> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 22);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 23);
 
 /**
  * ListPendingApprovalsRequest fetches workflow executions that have active
@@ -1188,7 +1336,7 @@ export type ListPendingApprovalsRequest = Message<"ai.stigmer.agentic.workflowex
  * Use `create(ListPendingApprovalsRequestSchema)` to create a new message.
  */
 export const ListPendingApprovalsRequestSchema: GenMessage<ListPendingApprovalsRequest> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 23);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 24);
 
 /**
  * PendingApproval represents a single human_input task awaiting a reviewer decision.
@@ -1258,7 +1406,7 @@ export type PendingApproval = Message<"ai.stigmer.agentic.workflowexecution.v1.P
  * Use `create(PendingApprovalSchema)` to create a new message.
  */
 export const PendingApprovalSchema: GenMessage<PendingApproval> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 24);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 25);
 
 /**
  * PendingApprovalsList contains a paginated list of pending approvals.
@@ -1293,7 +1441,59 @@ export type PendingApprovalsList = Message<"ai.stigmer.agentic.workflowexecution
  * Use `create(PendingApprovalsListSchema)` to create a new message.
  */
 export const PendingApprovalsListSchema: GenMessage<PendingApprovalsList> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 25);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 26);
+
+/**
+ * ExecutionSortField defines the column to sort execution lists by.
+ *
+ * @since T13 (Execution History)
+ *
+ * @generated from enum ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField
+ */
+export enum ExecutionSortField {
+  /**
+   * Default: sort by started_at descending.
+   *
+   * @generated from enum value: EXECUTION_SORT_FIELD_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * Sort by execution start time.
+   *
+   * @generated from enum value: EXECUTION_SORT_FIELD_STARTED_AT = 1;
+   */
+  STARTED_AT = 1,
+
+  /**
+   * Sort by execution duration (completed_at - started_at).
+   *
+   * Executions without both timestamps sort last.
+   *
+   * @generated from enum value: EXECUTION_SORT_FIELD_DURATION = 2;
+   */
+  DURATION = 2,
+
+  /**
+   * Sort by total cost (status.total_cost_micros).
+   *
+   * @generated from enum value: EXECUTION_SORT_FIELD_COST = 3;
+   */
+  COST = 3,
+
+  /**
+   * Sort by execution phase enum value.
+   *
+   * @generated from enum value: EXECUTION_SORT_FIELD_STATUS = 4;
+   */
+  STATUS = 4,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField.
+ */
+export const ExecutionSortFieldSchema: GenEnum<ExecutionSortField> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 0);
 
 /**
  * SummaryTimeWindow controls the time range for aggregated dashboard queries.
@@ -1333,5 +1533,5 @@ export enum SummaryTimeWindow {
  * Describes the enum ai.stigmer.agentic.workflowexecution.v1.SummaryTimeWindow.
  */
 export const SummaryTimeWindowSchema: GenEnum<SummaryTimeWindow> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 0);
+  enumDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 1);
 
