@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/commons/apiresource/metadata.proto.
  */
 export const file_ai_stigmer_commons_apiresource_metadata: GenFile = /*@__PURE__*/
-  fileDesc("Ci1haS9zdGlnbWVyL2NvbW1vbnMvYXBpcmVzb3VyY2UvbWV0YWRhdGEucHJvdG8SHmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZSK+BAoTQXBpUmVzb3VyY2VNZXRhZGF0YRIYCgRuYW1lGAEgASgJQgq6SAfYAQFyAhg/EjUKBHNsdWcYAiABKAlCJ7pIJNgBAXIfEAIYPzIZXlthLXpdW2EtejAtOS1dKlthLXowLTldJBIKCgJpZBgDIAEoCRILCgNvcmcYBCABKAkSUwoKdmlzaWJpbGl0eRgFIAEoDjI1LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVZpc2liaWxpdHlCCLpIBYIBAhABEk8KBmxhYmVscxgGIAMoCzI/LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZU1ldGFkYXRhLkxhYmVsc0VudHJ5ElkKC2Fubm90YXRpb25zGAcgAygLMkQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlTWV0YWRhdGEuQW5ub3RhdGlvbnNFbnRyeRIMCgR0YWdzGAggAygJEksKB3ZlcnNpb24YCSABKAsyOi5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VNZXRhZGF0YVZlcnNpb24aLQoLTGFiZWxzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ARoyChBBbm5vdGF0aW9uc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiVgoaQXBpUmVzb3VyY2VNZXRhZGF0YVZlcnNpb24SCgoCaWQYASABKAkSDwoHbWVzc2FnZRgCIAEoCRIbChNwcmV2aW91c192ZXJzaW9uX2lkGAMgASgJYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_enum, file_buf_validate_validate]);
+  fileDesc("Ci1haS9zdGlnbWVyL2NvbW1vbnMvYXBpcmVzb3VyY2UvbWV0YWRhdGEucHJvdG8SHmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZSK4BAoTQXBpUmVzb3VyY2VNZXRhZGF0YRIUCgRuYW1lGAEgASgJQga6SAPYAQESMwoEc2x1ZxgCIAEoCUIlukgi2AEBch0QAjIZXlthLXpdW2EtejAtOS1dKlthLXowLTldJBIKCgJpZBgDIAEoCRILCgNvcmcYBCABKAkSUwoKdmlzaWJpbGl0eRgFIAEoDjI1LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVZpc2liaWxpdHlCCLpIBYIBAhABEk8KBmxhYmVscxgGIAMoCzI/LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZU1ldGFkYXRhLkxhYmVsc0VudHJ5ElkKC2Fubm90YXRpb25zGAcgAygLMkQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlTWV0YWRhdGEuQW5ub3RhdGlvbnNFbnRyeRIMCgR0YWdzGAggAygJEksKB3ZlcnNpb24YCSABKAsyOi5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VNZXRhZGF0YVZlcnNpb24aLQoLTGFiZWxzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ARoyChBBbm5vdGF0aW9uc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiVgoaQXBpUmVzb3VyY2VNZXRhZGF0YVZlcnNpb24SCgoCaWQYASABKAkSDwoHbWVzc2FnZRgCIAEoCRIbChNwcmV2aW91c192ZXJzaW9uX2lkGAMgASgJYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_enum, file_buf_validate_validate]);
 
 /**
  * ApiResourceMetadata contains standard metadata for all API resources.
@@ -24,8 +24,8 @@ export const file_ai_stigmer_commons_apiresource_metadata: GenFile = /*@__PURE__
 export type ApiResourceMetadata = Message<"ai.stigmer.commons.apiresource.ApiResourceMetadata"> & {
   /**
    * Human-readable name of the resource.
-   * Max 63 characters. Validation is skipped when the field is empty (e.g.,
-   * server-generated responses or partial messages).
+   * Validation is skipped when the field is empty (e.g., server-generated
+   * responses or partial messages).
    *
    * @generated from field: string name = 1;
    */
@@ -34,9 +34,9 @@ export type ApiResourceMetadata = Message<"ai.stigmer.commons.apiresource.ApiRes
   /**
    * URL-friendly identifier, unique within the organization.
    * Combined with org, forms the canonical reference: "org/slug".
-   * Format: 2-63 lowercase alphanumeric characters and hyphens; must start
-   * with a letter and end with a letter or digit. When empty, the server
-   * derives the slug from the name.
+   * Format: lowercase alphanumeric characters and hyphens (min 2 chars);
+   * must start with a letter and end with a letter or digit. When empty,
+   * the server derives the slug from the name.
    *
    * @generated from field: string slug = 2;
    */

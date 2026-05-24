@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ConnectError, Code } from "@connectrpc/connect";
 import {
   assertCreateRequirements,
   assertReferenceRequirements,
@@ -267,25 +266,68 @@ describe("CallAgent server contract compliance", () => {
     });
   });
 
-  describe("ALREADY_EXISTS idempotent recovery (agent execution)", () => {
-    it("creates retry execution when ALREADY_EXISTS on agent execution", async () => {
-      let callCount = 0;
-      mockCreateExecutionImpl = (exec: any) => {
-        callCount++;
-        if (callCount === 1) {
-          throw new ConnectError(
-            "AgentExecution with slug 'aex-wf-xxx' already exists (id: aex_old)",
-            Code.AlreadyExists,
-          );
-        }
-        return Promise.resolve({ metadata: { id: "aex_retry" } });
+  describe("workflow-context naming (deterministic sessions, unique executions)", () => {
+    const wfContextConfig = { __taskName: "analyze_player_data" } as any;
+    const wfContextEnv = {
+      __stigmer_execution_id: "wex_01abc",
+      __stigmer_org_id: "tt-demo",
+    };
+
+    it("uses deterministic session name from workflow execution ID and task name", async () => {
+      await exerciseCallAgent(wfContextConfig, wfContextEnv);
+      expect(capturedApplySession.metadata.name).toBe("ses-wf-wex_01abc-analyze_player_data");
+    });
+
+    it("uses workflow-context execution name with unique suffix", async () => {
+      await exerciseCallAgent(wfContextConfig, wfContextEnv);
+      expect(capturedCreateExecution.metadata.name).toMatch(
+        /^aex-wf-wex_01abc-analyze_player_data-[0-9a-f]{8}$/,
+      );
+    });
+
+    it("generates unique execution names across invocations", async () => {
+      await exerciseCallAgent(wfContextConfig, wfContextEnv);
+      const firstName = allCapturedExecutions[0].metadata.name;
+
+      await exerciseCallAgent(wfContextConfig, wfContextEnv);
+      const secondName = allCapturedExecutions[1].metadata.name;
+
+      expect(firstName).not.toBe(secondName);
+      expect(firstName).toMatch(/^aex-wf-wex_01abc-analyze_player_data-/);
+      expect(secondName).toMatch(/^aex-wf-wex_01abc-analyze_player_data-/);
+    });
+
+    it("keeps session name identical across invocations for apply reuse", async () => {
+      const sessionNames: string[] = [];
+      mockApplySessionImpl = (session: any) => {
+        sessionNames.push(session.metadata.name);
+        return Promise.resolve({ metadata: { id: "ses_contract_test" } });
       };
 
+      await exerciseCallAgent(wfContextConfig, wfContextEnv);
+      await exerciseCallAgent(wfContextConfig, wfContextEnv);
+
+      expect(sessionNames[0]).toBe(sessionNames[1]);
+      expect(sessionNames[0]).toBe("ses-wf-wex_01abc-analyze_player_data");
+    });
+
+    it("handles long task names without truncation", async () => {
+      await exerciseCallAgent({
+        __taskName: "design_notification_campaigns",
+      } as any, {
+        __stigmer_execution_id: "wex_01kscvbb59yc4kjfqce4en8t6e",
+        __stigmer_org_id: "tt-demo",
+      });
+      expect(capturedCreateExecution.metadata.name).toMatch(
+        /^aex-wf-wex_01kscvbb59yc4kjfqce4en8t6e-design_notification_campaigns-[0-9a-f]{8}$/,
+      );
+    });
+  });
+
+  describe("agent execution uniqueness (no ALREADY_EXISTS retry)", () => {
+    it("does not retry on create — each invocation uses a unique name", async () => {
       await exerciseCallAgent();
-      expect(allCapturedExecutions).toHaveLength(2);
-      const retryExec = allCapturedExecutions[1];
-      expect(retryExec.metadata.name).toMatch(/-r\d+$/);
-      expect(retryExec.spec.sessionId).toBe("ses_contract_test");
+      expect(allCapturedExecutions).toHaveLength(1);
     });
   });
 });

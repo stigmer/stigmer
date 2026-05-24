@@ -13,11 +13,8 @@
           "type": {
             "kind": "string"
           },
-          "description": "Human-readable name of the resource.\n Max 63 characters. Validation is skipped when the field is empty (e.g.,\n server-generated responses or partial messages).",
-          "required": false,
-          "validation": {
-            "maxLength": 63
-          }
+          "description": "Human-readable name of the resource.\n Validation is skipped when the field is empty (e.g., server-generated\n responses or partial messages).",
+          "required": false
         },
         {
           "name": "Slug",
@@ -26,11 +23,10 @@
           "type": {
             "kind": "string"
           },
-          "description": "URL-friendly identifier, unique within the organization.\n Combined with org, forms the canonical reference: \"org/slug\".\n Format: 2-63 lowercase alphanumeric characters and hyphens; must start\n with a letter and end with a letter or digit. When empty, the server\n derives the slug from the name.",
+          "description": "URL-friendly identifier, unique within the organization.\n Combined with org, forms the canonical reference: \"org/slug\".\n Format: lowercase alphanumeric characters and hyphens (min 2 chars);\n must start with a letter and end with a letter or digit. When empty,\n the server derives the slug from the name.",
           "required": false,
           "validation": {
             "minLength": 2,
-            "maxLength": 63,
             "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$"
           }
         },
