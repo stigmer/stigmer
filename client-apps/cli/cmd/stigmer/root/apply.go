@@ -23,6 +23,7 @@ func NewApplyCommand() *cobra.Command {
 	var dryRun bool
 	var configDir string
 	var pruneEnabled bool
+	var publicSkills bool
 	var filePath string
 	var jsonOutput, quietOutput bool
 
@@ -92,6 +93,7 @@ DECLARATIVE MODE supports:
 						OrgOverride:  orgOverride,
 						DryRun:       dryRun,
 						PruneEnabled: pruneEnabled,
+						PublicSkills: publicSkills,
 						OutputFormat: format,
 					})
 				case project.TrackProject:
@@ -100,6 +102,7 @@ DECLARATIVE MODE supports:
 						OrgOverride:  orgOverride,
 						DryRun:       dryRun,
 						PruneEnabled: pruneEnabled,
+						PublicSkills: publicSkills,
 						OutputFormat: format,
 					})
 				}
@@ -113,6 +116,8 @@ DECLARATIVE MODE supports:
 	cmd.Flags().StringVar(&configDir, "config", "", "path to project directory (project mode)")
 	cmd.Flags().BoolVar(&pruneEnabled, "prune", true, "delete orphaned resources (project mode)")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "validate without applying")
+	cmd.Flags().BoolVar(&publicSkills, "public-skills", false, "set pushed skills to public visibility (seedpack internal)")
+	_ = cmd.Flags().MarkHidden("public-skills")
 	addResultFormatFlags(cmd, &jsonOutput, &quietOutput)
 
 	return cmd
@@ -123,6 +128,7 @@ type projectApplyOptions struct {
 	OrgOverride  string
 	DryRun       bool
 	PruneEnabled bool
+	PublicSkills bool
 	OutputFormat clioutput.OutputFormat
 }
 
