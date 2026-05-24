@@ -297,18 +297,20 @@ async function runStaticMode(): Promise<void> {
 // ─── Entry Point ─────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
-  // Set Cursor SDK base URLs for proxy mode BEFORE any @cursor/sdk import.
-  // The SDK reads these at module-load time as top-level constants, so they
-  // must be in process.env before activity code is imported.
+  // Set Cursor SDK base URL for proxy mode BEFORE any @cursor/sdk import.
+  // The SDK reads CURSOR_API_BASE_URL at module-load time as a top-level
+  // constant, so it must be in process.env before activity code is imported.
   //
-  // The SDK uses two separate hosts:
-  //   CURSOR_API_BASE_URL → Connect RPC transport (api2.cursor.sh)
-  //   CURSOR_BACKEND_URL  → REST API / CloudApiClient (api.cursor.com)
+  // Only CURSOR_API_BASE_URL is set here (Connect RPC transport).
+  // CURSOR_BACKEND_URL is intentionally left UNSET so that:
+  //   - CloudApiClient defaults to https://api.cursor.com (REST: /v1/models)
+  //   - Token exchange defaults to https://api2.cursor.sh (/auth/exchange)
+  // Both use globalThis.fetch, which the fetch interceptor rewrites to route
+  // through the proxy while preserving the correct upstream host.
   const bootConfig = loadConfig();
   if (bootConfig.proxyEndpoint) {
     const proxyBase = bootConfig.proxyEndpoint.replace(/\/+$/, "");
     process.env.CURSOR_API_BASE_URL = `${proxyBase}/v1/proxy/cursor/api2.cursor.sh`;
-    process.env.CURSOR_BACKEND_URL = `${proxyBase}/v1/proxy/cursor/api.cursor.com`;
   }
 
   if (process.env.STIGMER_RUNNER_MODE === "manager") {
