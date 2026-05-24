@@ -68,9 +68,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-23 14:12
-**Last Session**: 2026-05-24 — T15 Workflow Template Gallery
-**Current Task**: ALL 16 TASKS COMPLETE (T01-T16)
-**Status**: Complete — T01-T16 + all enrichments + agent call live experience + live progress pipeline fix all done
+**Last Session**: 2026-05-24 — Fix cross-language signal payload mismatch in agent call live experience
+**Current Task**: ALL 16 TASKS COMPLETE (T01-T16) + post-completion polish + agent call live pipeline fix
+**Status**: Complete — T01-T16 + all enrichments + agent call live experience fully working (Java/TS signal mismatch fixed, integration tests added)
 
 ## Session Progress (2026-05-23)
 
@@ -395,14 +395,48 @@ When starting a new session:
 - Committed as `01675e8bf`
 - Changelog: `_changelog/2026-05/2026-05-24-160334-feat-workflow-template-gallery-t15.md`
 
+### Fix: Execution Graph Centering on Active Node — COMPLETED (2026-05-24)
+- Fixed active node being pushed to rightmost corner instead of centered during live execution
+- Root cause: `panelOffsetPx={384}` on `WorkflowExecutionGraph` compensated for an inspector panel assumed to overlay the canvas, but it's actually a flex sibling — the offset double-compensated
+- Removed incorrect `panelOffsetPx={384}` from `WorkflowExecutionViewer` (default 0 is correct for side-by-side layout)
+- Converted `didFitRef` from `useRef` to `useState` for immediate `auto_fit → following` transition
+- Extracted `computeFollowCenter` pure function from hook internals for testability (DD-003)
+- 9 new unit tests covering centering math, offset behavior, zoom scaling, edge cases
+- Committed as `67887a131`
+- Changelog: `_changelog/2026-05/2026-05-24-161956-fix-workflow-execution-graph-centering.md`
+
+### Fix: ExecutionInspector Tab Auto-Selection + Badge Accessibility — COMPLETED (2026-05-24)
+- Fixed 4 pre-existing test failures in `ExecutionInspector` (tab auto-selection timing + badge accessible name)
+- Root cause (tests 1-3): Tab selection ran in `useEffect` (post-render), causing flash of wrong content + synchronous test assertion failures
+- Root cause (test 4): Badge text included in computed accessible name (`"Retries 2"` vs `"Retries"`)
+- Extracted `deriveAutoTab()` pure derivation function (DD-003 pattern)
+- Replaced two `useEffect` blocks with synchronous render-time state derivation (React's "adjusting state when a prop changes" pattern)
+- Added `aria-hidden="true"` to badge `<span>` in shared `Tabs` component for WCAG compliance
+- Fixed test realism: pass new `taskStates` reference on rerender to trigger `memo` (matches production data flow)
+- Test suite: 1294/1295 passing (1 unrelated pre-existing failure in WorkflowArchitectDialog)
+- Committed as `fd811a783`
+- Changelog: `_changelog/2026-05/2026-05-24-164704-fix-execution-inspector-tab-auto-selection.md`
+
+### Fix: Agent Call Live Experience — Cross-Language Signal Mismatch — COMPLETED (2026-05-24)
+- Root cause: Java `signalParentExecutionStarted` sent `executionId` as a bare string, TS handler destructured `{ executionId }` from it → got `undefined`
+- Go implementation sends `{ executionId: "aex_xxx" }` (object), Java sends `"aex_xxx"` (string) — handler only handled the object shape
+- Fix: Made TS signal handler accept both `string` and `{ executionId: string }` payloads
+- Fix: Added post-loop progress emission for fast-completing agents + `agent_execution_id` on result
+- New integration test suite: 3 tests in `workflow_agent_call_live_events_test.go` exercising the full event pipeline via `subscribeEvents` gRPC stream
+- New `EventCollector` harness helper for reusable event stream assertion
+- 2 new SDK unit tests for realistic lifecycle sequence and edge cases
+- All 3 integration tests pass, all 18 SDK tests pass
+- Changelog: `_changelog/2026-05/2026-05-24-175025-fix-agent-call-live-signal-mismatch.md`
+
 ## Next Steps
 
 ALL 16 TASKS COMPLETE. Project deliverables finished.
 
 Optional polish items (not blocking):
-1. Fix 4 pre-existing inspector test failures (tab auto-selection logic)
-2. Verify caption rendering visually in the running desktop app
-3. Run full E2E suite with Auth0 session to validate interactive tests
+1. ~~Fix 4 pre-existing inspector test failures (tab auto-selection logic)~~ — DONE
+2. Fix 1 remaining pre-existing test failure (WorkflowArchitectDialog result phase rendering)
+3. Verify caption rendering visually in the running desktop app
+4. Run full E2E suite with Auth0 session to validate interactive tests
 
 ## Context for Resume
 

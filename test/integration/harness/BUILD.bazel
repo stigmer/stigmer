@@ -12,6 +12,7 @@ go_library(
         "billing_helpers.go",
         "clients.go",
         "context.go",
+        "event_collector.go",
         "fga_seeder.go",
         "fixture.go",
         "harness.go",
