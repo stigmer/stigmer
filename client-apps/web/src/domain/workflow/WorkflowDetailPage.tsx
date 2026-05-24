@@ -7,6 +7,7 @@ import {
   WorkflowDetailView,
   WorkflowEditorView,
   WorkflowRunDialog,
+  CreateWorkflowInstanceDialog,
   useWorkflow,
   useWorkflowYaml,
   useWorkflowInstances,
@@ -56,6 +57,7 @@ export function WorkflowDetailPageInner({
   const { workflow } = useWorkflow(org, slug);
   const { instances } = useWorkflowInstances(workflow?.metadata?.id);
   const [showRunDialog, setShowRunDialog] = useState(false);
+  const [showCreateInstanceDialog, setShowCreateInstanceDialog] = useState(false);
   const { copyYaml, copyJson, downloadYaml } = useExportResource({
     kind: "Workflow",
     resource: workflow,
@@ -235,6 +237,7 @@ export function WorkflowDetailPageInner({
           activeTab={activeTab}
           onTabChange={setActiveTab}
           onExecutionClick={(id) => router.push(`/executions/${id}`)}
+          onCreateInstanceClick={() => setShowCreateInstanceDialog(true)}
           onOpenInEditor={handleOpenInEditor}
           onViewLatestRun={handleViewLatestRun}
         />
@@ -269,6 +272,15 @@ export function WorkflowDetailPageInner({
           defaultInstanceId={workflow.status?.defaultInstanceId}
           onSuccess={handleRunSuccess}
           onError={handleRunError}
+        />
+      )}
+      {workflow?.metadata?.id && (
+        <CreateWorkflowInstanceDialog
+          open={showCreateInstanceDialog}
+          onOpenChange={setShowCreateInstanceDialog}
+          org={org}
+          workflowId={workflow.metadata.id}
+          onCreated={() => toast.success("Instance created")}
         />
       )}
     </>

@@ -390,7 +390,8 @@ test-web: ## Run web console component tests (Vitest)
 # ─── Client Apps: Desktop (Tauri v2 + Vite + React) ──
 
 kill-desktop: ## Kill any running Stigmer desktop dev processes
-	@-pkill -f "stigmer.*src-tauri" 2>/dev/null || true
+	@-pkill -f "target/debug/stigmer" 2>/dev/null || true
+	@-pkill -x stigmer 2>/dev/null || true
 	@-pkill -f "cargo-tauri.*dev" 2>/dev/null || true
 	@-lsof -ti :5173 | xargs kill 2>/dev/null || true
 	@-caddy stop 2>/dev/null || true

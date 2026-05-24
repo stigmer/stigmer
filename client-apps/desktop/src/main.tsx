@@ -1,8 +1,30 @@
-import { StrictMode } from "react";
+import { Component, StrictMode, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import "./globals.css";
 import { App } from "./App";
+
+class BootErrorBoundary extends Component<
+  { children: ReactNode },
+  { error: Error | null }
+> {
+  state: { error: Error | null } = { error: null };
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ padding: "2rem", color: "#f87171", fontFamily: "monospace", whiteSpace: "pre-wrap", backgroundColor: "#09090b", minHeight: "100vh" }}>
+          <h2 style={{ marginBottom: "1rem" }}>Runtime Error</h2>
+          <p>{this.state.error.message}</p>
+          <pre style={{ marginTop: "1rem", fontSize: "0.75rem", color: "#a1a1aa" }}>{this.state.error.stack}</pre>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 /**
  * Tauri v2 injects `__TAURI_INTERNALS__` into the webview at startup.
@@ -36,7 +58,9 @@ const root = createRoot(document.getElementById("root")!);
 if (isTauriRuntime()) {
   root.render(
     <StrictMode>
-      <App />
+      <BootErrorBoundary>
+        <App />
+      </BootErrorBoundary>
     </StrictMode>,
   );
   showWindowOnFirstPaint();
