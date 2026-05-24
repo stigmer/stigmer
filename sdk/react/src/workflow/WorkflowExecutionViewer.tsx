@@ -171,7 +171,9 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
     isLoading: isLoadingArtifacts,
   } = useWorkflowExecutionArtifacts(executionId);
 
-  const actions = useWorkflowExecutionActions(executionId);
+  const actions = useWorkflowExecutionActions(executionId, {
+    onSuccess: refetchExecution,
+  });
 
   const [selectedTaskName, setSelectedTaskName] = useState<string | null>(null);
   const [showDiagnosis, setShowDiagnosis] = useState(false);
@@ -268,6 +270,20 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
         onConfirm={handleCompareConfirm}
         onClose={handleCloseComparePicker}
       />
+
+      {/* Action error banner (lifecycle actions: cancel, pause, recover, etc.) */}
+      {actions.error && (
+        <div className="flex items-center gap-2 border-b border-destructive/20 bg-destructive/5 px-4 py-2">
+          <p className="flex-1 text-xs text-destructive">{actions.error.message}</p>
+          <button
+            type="button"
+            onClick={actions.clearError}
+            className="shrink-0 rounded border border-destructive/30 px-2 py-1 text-xs text-destructive hover:bg-destructive/10"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {/* Comparison view (replaces normal content when active) */}
       {compareTargetId ? (
