@@ -85,6 +85,7 @@ export {
 
 export {
   useWorkflowExecutionActions,
+  type UseWorkflowExecutionActionsOptions,
   type UseWorkflowExecutionActionsReturn,
 } from "./useWorkflowExecutionActions";
 
