@@ -11,17 +11,15 @@ import type { WorkflowInput } from "@stigmer/sdk";
 import { useWorkflow } from "./useWorkflow";
 import { useUpdateWorkflow } from "./useUpdateWorkflow";
 import { workflowToInput } from "./internal/workflowToInput";
-import { useWorkflowInstances } from "./useWorkflowInstances";
 import { useWorkflowExecutionList } from "./useWorkflowExecutionList";
 import { useWorkflowDashboardSummary } from "./useWorkflowDashboardSummary";
 import { WorkflowOverviewGraph } from "./WorkflowOverviewGraph";
 import { WorkflowOverviewSummary } from "./WorkflowOverviewSummary";
 import { WorkflowExecutionHistory } from "./execution-history/WorkflowExecutionHistory";
+import { WorkflowInstanceList } from "./instance/WorkflowInstanceList";
 import { ErrorMessage } from "../error/ErrorMessage";
 import { VisibilityToggle } from "../library/VisibilityToggle";
-import { InstanceVisibilitySelector } from "../library/InstanceVisibilitySelector";
 import { formatDurationSec } from "./format-utils";
-import { useUpdateVisibility } from "../library/useUpdateVisibility";
 import { PermissionGate } from "../iam-policy/PermissionGate";
 import { ResourceDetailShell } from "../resource-detail/ResourceDetailShell";
 import { Section } from "../resource-detail/Section";
@@ -80,6 +78,23 @@ export interface WorkflowDetailViewProps {
    * Receives the execution ID — use for navigation to the execution viewer.
    */
   readonly onExecutionClick?: (executionId: string) => void;
+  /**
+   * Called when the user clicks "Create Instance" in the Instances tab.
+   * Opens the create instance dialog.
+   */
+  readonly onCreateInstanceClick?: () => void;
+  /**
+   * Called when the user clicks an instance row in the Instances tab.
+   */
+  readonly onInstanceClick?: (instance: WorkflowInstance) => void;
+  /**
+   * Called when the user clicks "Run" on a specific instance.
+   */
+  readonly onInstanceRunClick?: (instance: WorkflowInstance) => void;
+  /**
+   * Called when the user clicks "Delete" on a specific instance.
+   */
+  readonly onInstanceDeleteClick?: (instance: WorkflowInstance) => void;
   /**
    * When `true`, description and environment variables become click-to-edit.
    * Each field saves independently via `stigmer.workflow.update()`.
@@ -141,6 +156,10 @@ export function WorkflowDetailView({
   onTabChange,
   defaultTab,
   onExecutionClick,
+  onCreateInstanceClick,
+  onInstanceClick,
+  onInstanceRunClick,
+  onInstanceDeleteClick,
   editable = false,
   onResourceUpdated,
   onOpenInEditor,
@@ -251,7 +270,17 @@ export function WorkflowDetailView({
   if (activeAdditionalTab) {
     tabContent = activeAdditionalTab.content;
   } else if (effectiveActiveTab === "instances") {
-    tabContent = <InstancesTab workflowId={meta?.id} />;
+    tabContent = (
+      <WorkflowInstanceList
+        workflowId={meta?.id ?? ""}
+        defaultInstanceId={workflow?.status?.defaultInstanceId}
+        org={org}
+        onCreateClick={onCreateInstanceClick}
+        onInstanceClick={onInstanceClick}
+        onRunClick={onInstanceRunClick}
+        onDeleteClick={onInstanceDeleteClick}
+      />
+    );
   } else if (effectiveActiveTab === "executions") {
     tabContent = (
       <WorkflowExecutionHistory
@@ -600,96 +629,6 @@ function DescriptionContent({ text }: { readonly text: string }) {
     </div>
   );
 }
-
-function InstancesTab({ workflowId }: { readonly workflowId?: string }) {
-  const { instances, isLoading, error } = useWorkflowInstances(workflowId);
-
-  if (isLoading) {
-    return <TabLoadingSkeleton />;
-  }
-
-  if (error) {
-    return (
-      <div className="py-8 text-center text-sm text-destructive">
-        Failed to load instances
-      </div>
-    );
-  }
-
-  if (instances.length === 0) {
-    return (
-      <div className="py-8 text-center text-sm text-muted-foreground">
-        No instances found. A default instance is created automatically with each workflow.
-      </div>
-    );
-  }
-
-  return (
-    <div className="overflow-hidden rounded-lg border border-border">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-border bg-muted/50">
-            <th className="px-4 py-2 text-left font-medium text-muted-foreground">Name</th>
-            <th className="px-4 py-2 text-left font-medium text-muted-foreground">Visibility</th>
-            <th className="px-4 py-2 text-left font-medium text-muted-foreground">ID</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border">
-          {instances.map((inst) => (
-            <InstanceRow key={inst.metadata?.id} instance={inst} />
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-const VISIBILITY_LABELS: Record<number, string> = {
-  [ApiResourceVisibility.visibility_private]: "Private",
-  [ApiResourceVisibility.visibility_org]: "Organization",
-  [ApiResourceVisibility.visibility_public]: "Public",
-};
-
-function InstanceRow({ instance }: { readonly instance: WorkflowInstance }) {
-  const meta = instance.metadata;
-  const id = meta?.id ?? "";
-  const { updateVisibility, isPending } = useUpdateVisibility("workflowInstance", id || null);
-
-  return (
-    <tr className="hover:bg-muted/30 transition-colors">
-      <td className="px-4 py-2.5 font-medium text-foreground">
-        {meta?.name || meta?.slug || "—"}
-      </td>
-      <td className="px-4 py-2.5">
-        {id ? (
-          <PermissionGate
-            resource={{ kind: "workflow_instance", id }}
-            relation="can_edit"
-            fallback={
-              <span className="text-xs text-muted-foreground">
-                {VISIBILITY_LABELS[meta?.visibility ?? 0] ?? "Private"}
-              </span>
-            }
-          >
-            <InstanceVisibilitySelector
-              visibility={meta?.visibility ?? ApiResourceVisibility.visibility_private}
-              onVisibilityChange={updateVisibility}
-              isPending={isPending}
-            />
-          </PermissionGate>
-        ) : (
-          <span className="text-xs text-muted-foreground">—</span>
-        )}
-      </td>
-      <td className="px-4 py-2.5">
-        <code className="text-xs text-muted-foreground">
-          {id || "—"}
-        </code>
-      </td>
-    </tr>
-  );
-}
-
 
 // ---------------------------------------------------------------------------
 // Validation indicator

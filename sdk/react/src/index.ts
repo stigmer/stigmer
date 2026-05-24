@@ -485,6 +485,7 @@ export {
   buildSystemEnvVars,
   resolveSystemEnvVarValues,
   resolveDeclaredSystemEnvVars,
+  EnvironmentPicker,
 } from "./environment";
 export type {
   UseEnvironmentReturn,
@@ -506,6 +507,7 @@ export type {
   EnvVarFormSubmitOptions,
   SessionEnvPoolInput,
   UseSessionEnvPoolReturn,
+  EnvironmentPickerProps,
 } from "./environment";
 
 // Identity Account — gate hook for ensuring the caller's identity account exists before app render
@@ -1155,6 +1157,15 @@ export {
   HealthMetricsStrip,
   FailureAnalysisPanel,
   WorkflowExecutionHistory,
+  // Workflow Instance management
+  useWorkflowInstance,
+  useCreateWorkflowInstance,
+  useUpdateWorkflowInstance,
+  useDeleteWorkflowInstance,
+  WorkflowInstanceEmptyState,
+  WorkflowInstanceList,
+  CreateWorkflowInstanceDialog,
+  WorkflowInstanceDetailPanel,
 } from "./workflow";
 export type {
   TaskKindDescriptor,
@@ -1266,6 +1277,15 @@ export type {
   HealthMetricsStripProps,
   FailureAnalysisPanelProps,
   WorkflowExecutionHistoryProps,
+  // Workflow Instance management types
+  UseWorkflowInstanceReturn,
+  UseCreateWorkflowInstanceReturn,
+  UseUpdateWorkflowInstanceReturn,
+  UseDeleteWorkflowInstanceReturn,
+  WorkflowInstanceEmptyStateProps,
+  WorkflowInstanceListProps,
+  CreateWorkflowInstanceDialogProps,
+  WorkflowInstanceDetailPanelProps,
 } from "./workflow";
 
 // ─── Dashboard (Unified Platform) ──────────────────────────────────────────

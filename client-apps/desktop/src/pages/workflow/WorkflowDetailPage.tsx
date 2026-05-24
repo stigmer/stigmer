@@ -230,6 +230,7 @@ export default function WorkflowDetailPage() {
           org={org}
           workflow={workflow}
           instances={instances}
+          defaultInstanceId={workflow.status?.defaultInstanceId}
           onSuccess={handleRunSuccess}
           onError={handleRunError}
         />

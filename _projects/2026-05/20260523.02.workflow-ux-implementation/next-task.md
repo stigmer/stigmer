@@ -68,9 +68,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-23 14:12
-**Last Session**: 2026-05-24 — T13 Execution History and Operations Dashboard (full-stack: proto, Go, Java, SDK, E2E)
-**Current Task**: T13 complete. Next: T14 (AI-Assisted Workflow Creation) or deferred follow-ups
-**Status**: In Progress — T01-T13 + backend enrichment + data accuracy hardening all done, T14+ remaining
+**Last Session**: 2026-05-24 — Workflow Instance Management UX (full-stack: Go backend, SDK hooks, React components, E2E tests)
+**Current Task**: Instance management UX complete. Next: T14 (AI-Assisted Workflow Creation) or deferred follow-ups
+**Status**: In Progress — T01-T13 + backend enrichment + data accuracy hardening + instance management UX all done, T14+ remaining
 
 ## Session Progress (2026-05-23)
 

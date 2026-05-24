@@ -26,6 +26,12 @@ export interface WorkflowRunFormProps {
   readonly selectedInstanceId: string | null;
   /** Called when the selected instance changes. */
   readonly onInstanceChange: (id: string | null) => void;
+  /**
+   * The platform-managed default instance ID (from workflow.status.defaultInstanceId).
+   * When provided, the picker shows whenever user-created instances exist (>= 1),
+   * and labels the default option clearly.
+   */
+  readonly defaultInstanceId?: string;
 
   /**
    * Whether to show the trigger message field.
@@ -97,6 +103,7 @@ export function WorkflowRunForm({
   instances,
   selectedInstanceId,
   onInstanceChange,
+  defaultInstanceId,
   showTriggerMessage,
   onShowTriggerMessageChange,
   errors,
@@ -105,7 +112,12 @@ export function WorkflowRunForm({
 }: WorkflowRunFormProps) {
   const formId = useId();
   const envEntries = Object.entries(envDeclarations);
-  const showInstanceSelector = instances.length > 1;
+  const userInstances = defaultInstanceId
+    ? instances.filter((i) => i.metadata?.id !== defaultInstanceId)
+    : instances;
+  const showInstanceSelector = defaultInstanceId
+    ? userInstances.length >= 1
+    : instances.length > 1;
 
   return (
     <div className={cn("flex flex-col gap-4", className)}>
@@ -173,7 +185,7 @@ export function WorkflowRunForm({
         </div>
       )}
 
-      {/* Instance selector (only when multiple instances exist) */}
+      {/* Instance selector (when user-created instances exist) */}
       {showInstanceSelector && (
         <FieldGroup>
           <FieldLabel htmlFor={`${formId}-instance`}>Instance</FieldLabel>
@@ -186,12 +198,16 @@ export function WorkflowRunForm({
             disabled={disabled}
             className={INPUT_CLASSES}
           >
-            <option value="">Default instance (auto)</option>
-            {instances.map((inst) => (
-              <option key={inst.metadata?.id} value={inst.metadata?.id ?? ""}>
-                {inst.metadata?.name || inst.metadata?.slug || inst.metadata?.id}
-              </option>
-            ))}
+            <option value="">Default (no specific configuration)</option>
+            {userInstances.map((inst) => {
+              const envCount = inst.spec?.environmentRefs?.length ?? 0;
+              const envSuffix = envCount > 0 ? ` (${envCount} env${envCount > 1 ? "s" : ""})` : "";
+              return (
+                <option key={inst.metadata?.id} value={inst.metadata?.id ?? ""}>
+                  {inst.metadata?.name || inst.metadata?.slug || inst.metadata?.id}{envSuffix}
+                </option>
+              );
+            })}
           </select>
         </FieldGroup>
       )}
