@@ -572,6 +572,34 @@ export {
   type ViewYamlDialogProps,
 } from "./ViewYamlDialog";
 
+// T13: Execution history — derivation, hooks, and components
+export {
+  deriveExecutionRow,
+  deriveExecutionRows,
+  sortExecutionRows,
+  filterExecutionRows,
+  deriveFailureAnalysis,
+  useExecutionHistoryData,
+  ExecutionHistoryTable,
+  ExecutionFilterBar,
+  HealthMetricsStrip,
+  FailureAnalysisPanel,
+  WorkflowExecutionHistory,
+  type ExecutionRow,
+  type ExecutionSortField as ExecutionHistorySortField,
+  type SortDirection as ExecutionHistorySortDirection,
+  type ExecutionClientFilters,
+  type FailureGroup,
+  type FailureInstance,
+  type UseExecutionHistoryDataOptions,
+  type UseExecutionHistoryDataReturn,
+  type ExecutionHistoryTableProps,
+  type ExecutionFilterBarProps,
+  type HealthMetricsStripProps,
+  type FailureAnalysisPanelProps,
+  type WorkflowExecutionHistoryProps,
+} from "./execution-history";
+
 // T12: Overview page redesign — behavior hook
 export {
   useWorkflowOverviewGraph,

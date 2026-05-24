@@ -624,6 +624,44 @@
           },
           "description": "Filter by resource tags (AND logic).\n\n @internal\n Limits results to executions that have ALL specified tags.\n Tag format: \"key:value\" or \"key\" (for boolean tags).",
           "required": false
+        },
+        {
+          "name": "Filter",
+          "jsonName": "filter",
+          "protoField": "filter",
+          "type": {
+            "kind": "message",
+            "messageType": "ExecutionFilterCriteria"
+          },
+          "description": "Structured filter criteria for advanced filtering.\n\n When set, applies AND-conjunction with the existing `phase` and `tags` fields.\n If both `phase` and `filter.phases` are set, `filter.phases` takes precedence.\n\n @since T13 (Execution History)",
+          "required": false
+        },
+        {
+          "name": "SortField",
+          "jsonName": "sortField",
+          "protoField": "sort_field",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField",
+            "enumValues": [
+              "EXECUTION_SORT_FIELD_STARTED_AT",
+              "EXECUTION_SORT_FIELD_DURATION",
+              "EXECUTION_SORT_FIELD_COST",
+              "EXECUTION_SORT_FIELD_STATUS"
+            ]
+          },
+          "description": "Sort field. When unspecified, defaults to started_at descending.\n\n @since T13 (Execution History)",
+          "required": false
+        },
+        {
+          "name": "SortAscending",
+          "jsonName": "sortAscending",
+          "protoField": "sort_ascending",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "When true, sorts in ascending order. Default (false) is descending.\n\n @since T13 (Execution History)",
+          "required": false
         }
       ]
     },
@@ -696,6 +734,44 @@
             "kind": "string"
           },
           "description": "Opaque pagination token from a previous response.",
+          "required": false
+        },
+        {
+          "name": "Filter",
+          "jsonName": "filter",
+          "protoField": "filter",
+          "type": {
+            "kind": "message",
+            "messageType": "ExecutionFilterCriteria"
+          },
+          "description": "Structured filter criteria for advanced filtering.\n\n @since T13 (Execution History)",
+          "required": false
+        },
+        {
+          "name": "SortField",
+          "jsonName": "sortField",
+          "protoField": "sort_field",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField",
+            "enumValues": [
+              "EXECUTION_SORT_FIELD_STARTED_AT",
+              "EXECUTION_SORT_FIELD_DURATION",
+              "EXECUTION_SORT_FIELD_COST",
+              "EXECUTION_SORT_FIELD_STATUS"
+            ]
+          },
+          "description": "Sort field. When unspecified, defaults to started_at descending.\n\n @since T13 (Execution History)",
+          "required": false
+        },
+        {
+          "name": "SortAscending",
+          "jsonName": "sortAscending",
+          "protoField": "sort_ascending",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "When true, sorts in ascending order. Default (false) is descending.\n\n @since T13 (Execution History)",
           "required": false
         }
       ]
@@ -1557,6 +1633,33 @@
           "name": "EXECUTION_PAUSED",
           "number": 7,
           "description": "Execution was paused by user and can be resumed.\n\n @internal\n NOT a terminal state - execution can be resumed via the resume RPC.\n\n When this phase is reached:\n - Running activities are gracefully cancelled\n - Checkpoints are saved (LangGraph thread_id preserved)\n - No completed_at timestamp (execution is not finished)\n\n Resume behavior:\n - Workflow re-invokes activity with same thread_id\n - Activity loads from LangGraph checkpoint\n - Execution continues from where it was paused"
+        }
+      ]
+    },
+    {
+      "name": "ExecutionSortField",
+      "description": "ExecutionSortField defines the column to sort execution lists by.\n\n @since T13 (Execution History)",
+      "protoType": "ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField",
+      "values": [
+        {
+          "name": "EXECUTION_SORT_FIELD_STARTED_AT",
+          "number": 1,
+          "description": "Sort by execution start time."
+        },
+        {
+          "name": "EXECUTION_SORT_FIELD_DURATION",
+          "number": 2,
+          "description": "Sort by execution duration (completed_at - started_at).\n\n Executions without both timestamps sort last."
+        },
+        {
+          "name": "EXECUTION_SORT_FIELD_COST",
+          "number": 3,
+          "description": "Sort by total cost (status.total_cost_micros)."
+        },
+        {
+          "name": "EXECUTION_SORT_FIELD_STATUS",
+          "number": 4,
+          "description": "Sort by execution phase enum value."
         }
       ]
     },

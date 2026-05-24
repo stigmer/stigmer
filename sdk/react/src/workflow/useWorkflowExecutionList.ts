@@ -5,9 +5,15 @@ import { create } from "@bufbuild/protobuf";
 import {
   ListWorkflowExecutionsRequestSchema,
   ListWorkflowExecutionsByWorkflowRequestSchema,
+  ExecutionFilterCriteriaSchema,
+  type ExecutionFilterCriteria,
 } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
+import { ExecutionSortField } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
 import { useStigmer } from "../hooks";
 import { useFetch } from "../internal/useFetch";
+
+export type { ExecutionFilterCriteria };
+export { ExecutionSortField };
 
 /** Options for {@link useWorkflowExecutionList}. */
 export interface UseWorkflowExecutionListOptions {
@@ -20,6 +26,25 @@ export interface UseWorkflowExecutionListOptions {
    * When omitted, lists all executions across all workflows.
    */
   readonly workflowId?: string | null;
+  /**
+   * Server-side filter criteria. When set, the backend filters
+   * before returning results, reducing transfer size.
+   *
+   * @since T13 (Execution History)
+   */
+  readonly filter?: Partial<ExecutionFilterCriteria>;
+  /**
+   * Server-side sort field.
+   *
+   * @since T13 (Execution History)
+   */
+  readonly sortField?: ExecutionSortField;
+  /**
+   * When true, sorts ascending. Defaults to false (descending).
+   *
+   * @since T13 (Execution History)
+   */
+  readonly sortAscending?: boolean;
 }
 
 /** Return value of {@link useWorkflowExecutionList}. */
@@ -74,15 +99,23 @@ export function useWorkflowExecutionList(
   const pageSize = options?.pageSize ?? 20;
   const pageToken = options?.pageToken ?? "";
   const workflowId = options?.workflowId ?? null;
+  const filter = options?.filter;
+  const sortField = options?.sortField;
+  const sortAscending = options?.sortAscending ?? false;
+
+  const filterProto = filter
+    ? create(ExecutionFilterCriteriaSchema, filter as Record<string, unknown>)
+    : undefined;
 
   const fetchFn = async () => {
     if (workflowId) {
+      const req: Record<string, unknown> = { workflowId, pageSize, pageToken };
+      if (filterProto) req.filter = filterProto;
+      if (sortField != null) req.sortField = sortField;
+      if (sortAscending) req.sortAscending = true;
+
       const resp = await stigmer.workflowExecution.listByWorkflow(
-        create(ListWorkflowExecutionsByWorkflowRequestSchema, {
-          workflowId,
-          pageSize,
-          pageToken,
-        }),
+        create(ListWorkflowExecutionsByWorkflowRequestSchema, req),
       );
       return {
         executions: [...resp.entries],
@@ -90,11 +123,13 @@ export function useWorkflowExecutionList(
       };
     }
 
+    const req: Record<string, unknown> = { pageSize, pageToken };
+    if (filterProto) req.filter = filterProto;
+    if (sortField != null) req.sortField = sortField;
+    if (sortAscending) req.sortAscending = true;
+
     const resp = await stigmer.workflowExecution.list(
-      create(ListWorkflowExecutionsRequestSchema, {
-        pageSize,
-        pageToken,
-      }),
+      create(ListWorkflowExecutionsRequestSchema, req),
     );
     return {
       executions: [...resp.entries],
@@ -108,7 +143,11 @@ export function useWorkflowExecutionList(
     isRefetching,
     error,
     refetch,
-  } = useFetch<ExecutionListData>(fetchFn, [stigmer, workflowId, pageSize, pageToken], INITIAL_DATA);
+  } = useFetch<ExecutionListData>(
+    fetchFn,
+    [stigmer, workflowId, pageSize, pageToken, filter, sortField, sortAscending],
+    INITIAL_DATA,
+  );
 
   return {
     executions: data.executions,

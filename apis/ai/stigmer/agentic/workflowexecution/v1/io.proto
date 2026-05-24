@@ -82,6 +82,24 @@ message ListWorkflowExecutionsRequest {
   // Limits results to executions that have ALL specified tags.
   // Tag format: "key:value" or "key" (for boolean tags).
   repeated string tags = 4;
+
+  // Structured filter criteria for advanced filtering.
+  //
+  // When set, applies AND-conjunction with the existing `phase` and `tags` fields.
+  // If both `phase` and `filter.phases` are set, `filter.phases` takes precedence.
+  //
+  // @since T13 (Execution History)
+  ExecutionFilterCriteria filter = 5;
+
+  // Sort field. When unspecified, defaults to started_at descending.
+  //
+  // @since T13 (Execution History)
+  ExecutionSortField sort_field = 6;
+
+  // When true, sorts in ascending order. Default (false) is descending.
+  //
+  // @since T13 (Execution History)
+  bool sort_ascending = 7;
 }
 
 // ListWorkflowExecutionsByWorkflowRequest lists executions for a specific workflow.
@@ -104,6 +122,21 @@ message ListWorkflowExecutionsByWorkflowRequest {
 
   // Opaque pagination token from a previous response.
   string page_token = 3;
+
+  // Structured filter criteria for advanced filtering.
+  //
+  // @since T13 (Execution History)
+  ExecutionFilterCriteria filter = 4;
+
+  // Sort field. When unspecified, defaults to started_at descending.
+  //
+  // @since T13 (Execution History)
+  ExecutionSortField sort_field = 5;
+
+  // When true, sorts in ascending order. Default (false) is descending.
+  //
+  // @since T13 (Execution History)
+  bool sort_ascending = 6;
 }
 
 // Input for the updateStatus RPC.
@@ -515,6 +548,76 @@ message SubscribeEventsRequest {
   // When empty, all event types are streamed.
   // Applied to both replayed and live events.
   repeated WorkflowEventType event_types = 3;
+}
+
+// ---------------------------------------------------------------------------
+// Execution list filter and sort types
+// ---------------------------------------------------------------------------
+
+// ExecutionFilterCriteria defines structured filter conditions for listing
+// workflow executions. All specified conditions are combined with AND logic.
+//
+// @since T13 (Execution History)
+message ExecutionFilterCriteria {
+  // Filter by execution phases. Empty means all phases.
+  //
+  // Supersedes the top-level `phase` field on ListWorkflowExecutionsRequest
+  // when both are set.
+  repeated ExecutionPhase phases = 1;
+
+  // Include only executions started at or after this timestamp.
+  google.protobuf.Timestamp started_after = 2;
+
+  // Include only executions started at or before this timestamp.
+  google.protobuf.Timestamp started_before = 3;
+
+  // Minimum execution duration (completed executions only).
+  //
+  // Executions still in progress or without timestamps are excluded
+  // when this filter is set.
+  google.protobuf.Duration min_duration = 4;
+
+  // Maximum execution duration (completed executions only).
+  google.protobuf.Duration max_duration = 5;
+
+  // Minimum cost in micro-USD.
+  int64 min_cost_micros = 6;
+
+  // Maximum cost in micro-USD.
+  int64 max_cost_micros = 7;
+
+  // Filter to executions containing a failed task with this exact name.
+  //
+  // Matches against any task in status.tasks where
+  // task.status == WORKFLOW_TASK_FAILED AND task.task_name == this value.
+  string failed_task_name = 8;
+
+  // When true, include only executions that contain at least one retried task.
+  //
+  // A task is considered retried when its metadata contains a retry_count > 0.
+  bool has_retries = 9;
+}
+
+// ExecutionSortField defines the column to sort execution lists by.
+//
+// @since T13 (Execution History)
+enum ExecutionSortField {
+  // Default: sort by started_at descending.
+  EXECUTION_SORT_FIELD_UNSPECIFIED = 0;
+
+  // Sort by execution start time.
+  EXECUTION_SORT_FIELD_STARTED_AT = 1;
+
+  // Sort by execution duration (completed_at - started_at).
+  //
+  // Executions without both timestamps sort last.
+  EXECUTION_SORT_FIELD_DURATION = 2;
+
+  // Sort by total cost (status.total_cost_micros).
+  EXECUTION_SORT_FIELD_COST = 3;
+
+  // Sort by execution phase enum value.
+  EXECUTION_SORT_FIELD_STATUS = 4;
 }
 
 // ---------------------------------------------------------------------------

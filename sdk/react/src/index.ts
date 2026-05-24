@@ -1143,6 +1143,18 @@ export {
   WorkflowRepairCard,
   STARTER_WORKFLOW_YAML,
   useElkLayoutEngine,
+  // T13: Execution history
+  deriveExecutionRow,
+  deriveExecutionRows,
+  sortExecutionRows,
+  filterExecutionRows,
+  deriveFailureAnalysis,
+  useExecutionHistoryData,
+  ExecutionHistoryTable,
+  ExecutionFilterBar,
+  HealthMetricsStrip,
+  FailureAnalysisPanel,
+  WorkflowExecutionHistory,
 } from "./workflow";
 export type {
   TaskKindDescriptor,
@@ -1240,6 +1252,20 @@ export type {
   UseDiagnoseExecutionFlowReturn,
   WorkflowRepairCardProps,
   UseElkLayoutEngineOptions,
+  // T13: Execution history types
+  ExecutionRow,
+  ExecutionHistorySortField,
+  ExecutionHistorySortDirection,
+  ExecutionClientFilters,
+  FailureGroup,
+  FailureInstance,
+  UseExecutionHistoryDataOptions,
+  UseExecutionHistoryDataReturn,
+  ExecutionHistoryTableProps,
+  ExecutionFilterBarProps,
+  HealthMetricsStripProps,
+  FailureAnalysisPanelProps,
+  WorkflowExecutionHistoryProps,
 } from "./workflow";
 
 // ─── Dashboard (Unified Platform) ──────────────────────────────────────────

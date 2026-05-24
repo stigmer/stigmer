@@ -68,9 +68,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-23 14:12
-**Last Session**: 2026-05-24 — Runner data accuracy hardening (8 bug fixes, 23 new tests)
-**Current Task**: T13: Execution History and Operations Dashboard (or medium-priority backend follow-ups)
-**Status**: In Progress — T01-T12 + backend enrichment + data accuracy hardening all done, T13+ remaining
+**Last Session**: 2026-05-24 — T13 Execution History and Operations Dashboard (full-stack: proto, Go, Java, SDK, E2E)
+**Current Task**: T13 complete. Next: T14 (AI-Assisted Workflow Creation) or deferred follow-ups
+**Status**: In Progress — T01-T13 + backend enrichment + data accuracy hardening all done, T14+ remaining
 
 ## Session Progress (2026-05-23)
 
@@ -295,6 +295,20 @@ When starting a new session:
 - Committed as `d024b3b0e`
 - Changelog: `_changelog/2026-05/2026-05-23-235048-feat-runner-backend-enrichment-followups.md`
 
+### T13: Execution History and Operations Dashboard — COMPLETED (2026-05-24)
+- Built full execution history module: 9 new SDK files, proto filter/sort contract, Go + Java backend filtering
+- **Proto**: `ExecutionFilterCriteria` (9 filter fields), `ExecutionSortField` enum, filter/sort on both list requests
+- **Go backend**: `execution_filter.go` with `applyFilterCriteria()` + `applySortField()`, 11 unit tests
+- **Java backend**: `ExecutionFilterHelper.java` mirroring Go logic, wired into both list handlers
+- **SDK derivation**: `deriveExecutionRow()` computes duration, failed task, retry count, tokens from raw proto
+- **SDK components**: `ExecutionHistoryTable` (8 columns, sortable), `ExecutionFilterBar` (phase chips + presets), `HealthMetricsStrip` (6 metrics), `FailureAnalysisPanel` (grouped failures)
+- **Composed view**: `WorkflowExecutionHistory` assembles all pieces, replaced old 3-column `ExecutionsTab`
+- Extended `useWorkflowExecutionList` with `filter`, `sortField`, `sortAscending` options
+- 36 TypeScript unit tests, 11 Go unit tests, 6 Playwright E2E tests
+- Deferred: run comparison (separate task), p50/p95 percentiles, trigger type/version columns
+- Checkpoint: `checkpoints/2026-05-24-session-t13-execution-history.md`
+- Changelog: `_changelog/2026-05/2026-05-24-105730-feat-workflow-execution-history-dashboard-t13.md`
+
 ### Runner Data Accuracy Hardening — COMPLETED (2026-05-24)
 - Fixed 8 data accuracy bugs in the execution data pipeline that corrupted inspector/waterfall/overview UX
 - **Attempt number propagation**: Exposed `getAttempt()` on accumulator; replaced hardcoded `attemptNumber: 1` with tracked values
@@ -332,7 +346,7 @@ When starting a new session:
 10. ~~**T09: Branch Management UX** — Branch handles, reorder, join policy, catch handler listing~~ DONE
 11. ~~**T11: Context Menu and Keyboard Shortcuts** — Right-click menus, Delete/Duplicate/N key shortcuts~~ DONE
 12. ~~**T12: Overview Page Redesign** — React Flow overview graph, summary stats, node popover, quick actions~~ DONE
-13. **T13: Execution History and Operations Dashboard** — Execution table with filters, health metrics, run comparison
+13. ~~**T13: Execution History and Operations Dashboard** — Execution table with filters, health metrics, failure analysis~~ DONE (run comparison deferred)
 
 ## Context for Resume
 
