@@ -420,6 +420,14 @@ export interface TaskExecutionContext {
   readonly callAgent: CallAgentFn;
 
   /**
+   * Promote a large task output to the Artifact store (T07). When the
+   * serialized output exceeds 256KB, the activity calls
+   * ArtifactCommandController.create() and returns an artifact reference.
+   * Returns the original output unchanged if below threshold.
+   */
+  readonly promoteTaskOutput?: PromoteTaskOutputFn;
+
+  /**
    * Emit workflow execution events to the server. Events are sent as
    * a batch via a local activity call to `updateWorkflowExecutionStatus`.
    * Best-effort — failures are logged but do not block the workflow.
@@ -713,7 +721,8 @@ export type WorkflowEventDescriptor =
   | ApprovalResolvedEvent
   | AgentCallStartedEvent
   | AgentCallProgressEvent
-  | AgentCallCompletedEvent;
+  | AgentCallCompletedEvent
+  | ArtifactCreatedEvent;
 
 interface EventBase {
   readonly taskName?: string;
@@ -824,7 +833,34 @@ export interface AgentCallCompletedEvent extends EventBase {
   readonly error: string;
 }
 
+export interface ArtifactCreatedEvent extends EventBase {
+  readonly type: "artifact_created";
+  readonly artifactId: string;
+  readonly displayName: string;
+  readonly contentType: string;
+  readonly sizeBytes: number;
+}
+
 export type EmitEventsFn = (events: WorkflowEventDescriptor[]) => Promise<void>;
+
+export interface PromoteTaskOutputResult {
+  output: unknown;
+  artifactIds: string[];
+  artifactCreatedEvents: Array<{
+    type: "artifact_created";
+    artifactId: string;
+    displayName: string;
+    contentType: string;
+    sizeBytes: number;
+    occurredAt: string;
+  }>;
+}
+
+export type PromoteTaskOutputFn = (
+  taskOutput: unknown,
+  workflowExecutionId: string,
+  taskName: string,
+) => Promise<PromoteTaskOutputResult>;
 
 // ─────────────────────────────────────────────────────────────────────
 // WorkflowState (forward declaration — implemented in state.ts)

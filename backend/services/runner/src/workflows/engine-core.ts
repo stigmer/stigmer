@@ -23,6 +23,7 @@ import type { createCallGrpcActivities } from "../activities/call-grpc.js";
 import type { createCallFunctionActivities } from "../activities/call-function.js";
 import type { createRunCommandActivities } from "../activities/run-command.js";
 import type { createWorkflowEventActivities } from "../activities/workflow-event-activities.js";
+import type { createPromoteTaskOutputActivities } from "../activities/promote-task-output.js";
 import { orchestrateAgentCall } from "./call-agent-orchestrator.js";
 import { orchestrateListenTask } from "./listen-orchestrator.js";
 import { orchestrateRunWorkflow } from "./run-orchestrator.js";
@@ -58,6 +59,7 @@ type GrpcActivities = ReturnType<typeof createCallGrpcActivities>;
 type FunctionActivities = ReturnType<typeof createCallFunctionActivities>;
 type RunActivities = ReturnType<typeof createRunCommandActivities>;
 type EventActivities = ReturnType<typeof createWorkflowEventActivities>;
+type PromoteActivities = ReturnType<typeof createPromoteTaskOutputActivities>;
 
 const evalProxy = proxyLocalActivities<EvalActivities>({
   startToCloseTimeout: "10s",
@@ -90,6 +92,14 @@ const eventProxy = proxyLocalActivities<EventActivities>({
   retry: {
     maximumAttempts: 2,
     initialInterval: "500ms",
+  },
+});
+
+const promoteProxy = proxyLocalActivities<PromoteActivities>({
+  startToCloseTimeout: "30s",
+  retry: {
+    maximumAttempts: 2,
+    initialInterval: "1s",
   },
 });
 
@@ -211,6 +221,8 @@ export async function runWorkflowEngine(
         taskName: agentMeta.taskName,
         workflowExecutionId: agentMeta.workflowExecutionId || executionId,
       }),
+    promoteTaskOutput: (taskOutput: unknown, wexId: string, taskName: string) =>
+      promoteProxy.PromoteTaskOutput(taskOutput, wexId || executionId, taskName),
   };
 
   const state = createState();

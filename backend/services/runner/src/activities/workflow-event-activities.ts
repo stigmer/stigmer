@@ -30,6 +30,7 @@ import {
   AgentCallStartedPayloadSchema,
   AgentCallProgressPayloadSchema,
   AgentCallCompletedPayloadSchema,
+  ArtifactCreatedPayloadSchema,
   HumanInputOutcomeInfoSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
 import { WorkflowExecutionStatusSchema, WorkflowTaskSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
@@ -321,6 +322,19 @@ export function toProtoEvent(desc: WorkflowEventDescriptor): WorkflowExecutionEv
           tokensConsumed: BigInt(desc.tokensConsumed),
           costMicros: BigInt(desc.costMicros),
           error: desc.error,
+        }),
+      };
+      break;
+
+    case "artifact_created":
+      base.eventType = WorkflowEventType.artifact_created;
+      base.payload = {
+        case: "artifactCreated",
+        value: create(ArtifactCreatedPayloadSchema, {
+          artifactId: desc.artifactId,
+          displayName: desc.displayName,
+          contentType: desc.contentType,
+          sizeBytes: BigInt(desc.sizeBytes),
         }),
       };
       break;

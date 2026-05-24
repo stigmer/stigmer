@@ -19,6 +19,9 @@ import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v
 import { AgentInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/query_pb";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
+import { ArtifactCommandController } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/command_pb";
+import type { Artifact } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/api_pb";
+import type { CreateArtifactInput } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/io_pb";
 import { SkillQueryController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/query_pb";
 import { BillingCommandController } from "@stigmer/protos/ai/stigmer/billing/v1/command_pb";
 import type { RecordLlmCallUsageInput, RecordLlmCallUsageResponse } from "@stigmer/protos/ai/stigmer/billing/v1/io_pb";
@@ -77,6 +80,7 @@ export class StigmerClient {
   private readonly mcpServerCommand: Client<typeof McpServerCommandController>;
   private readonly skillQuery: Client<typeof SkillQueryController>;
   private readonly billingCommand: Client<typeof BillingCommandController>;
+  private readonly artifactCommand: Client<typeof ArtifactCommandController>;
   readonly workflowExecutionCommand: Client<typeof WorkflowExecutionCommandController>;
   private readonly workflowExecutionQuery: Client<typeof WorkflowExecutionQueryController>;
   private readonly workflowQuery: Client<typeof WorkflowQueryController>;
@@ -111,6 +115,7 @@ export class StigmerClient {
     this.mcpServerCommand = createClient(McpServerCommandController, this.transport);
     this.skillQuery = createClient(SkillQueryController, this.transport);
     this.billingCommand = createClient(BillingCommandController, this.transport);
+    this.artifactCommand = createClient(ArtifactCommandController, this.transport);
     this.workflowExecutionCommand = createClient(WorkflowExecutionCommandController, this.transport);
     this.workflowExecutionQuery = createClient(WorkflowExecutionQueryController, this.transport);
     this.workflowQuery = createClient(WorkflowQueryController, this.transport);
@@ -196,6 +201,10 @@ export class StigmerClient {
 
   async getSkillArtifact(artifactStorageKey: string): Promise<GetArtifactResponse> {
     return this.skillQuery.getArtifact({ artifactStorageKey });
+  }
+
+  async createArtifact(input: CreateArtifactInput): Promise<Artifact> {
+    return this.artifactCommand.create(input);
   }
 
   async recordLlmCallUsage(input: RecordLlmCallUsageInput): Promise<RecordLlmCallUsageResponse> {
