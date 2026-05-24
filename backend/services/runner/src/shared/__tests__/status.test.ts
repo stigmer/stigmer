@@ -53,6 +53,46 @@ describe("slimStatus", () => {
     expect(json).toBeTruthy();
     expect(JSON.parse(json)).toEqual(result);
   });
+
+  it("preserves structuredOutput when present on the full status", () => {
+    const full = create(AgentExecutionStatusSchema, {
+      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      structuredOutput: {
+        executive_summary: "DAU stable at 7175",
+        dau: 7175,
+        cohorts: [
+          { name: "D1 New Players", size: 10, action_needed: true },
+          { name: "D3 Drop-offs", size: 3589, action_needed: true },
+        ],
+      },
+    });
+    const result = slimStatus(full) as Record<string, unknown>;
+    expect(result).toHaveProperty("structuredOutput");
+    const output = (result as any).structuredOutput;
+    expect(output.executive_summary).toBe("DAU stable at 7175");
+    expect(output.dau).toBe(7175);
+    expect(output.cohorts).toHaveLength(2);
+  });
+
+  it("omits structuredOutput when not present on full status", () => {
+    const full = create(AgentExecutionStatusSchema, {
+      phase: ExecutionPhase.EXECUTION_COMPLETED,
+    });
+    const result = slimStatus(full) as Record<string, unknown>;
+    expect(result).not.toHaveProperty("structuredOutput");
+  });
+
+  it("activity return contains structuredOutput accessible by Go buildCallbackResult", () => {
+    const full = create(AgentExecutionStatusSchema, {
+      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      structuredOutput: {
+        cohorts: [{ name: "D1", size: 500 }],
+      },
+    });
+    const slim = slimStatus(full) as Record<string, unknown>;
+    expect(slim["structuredOutput"]).toBeDefined();
+    expect((slim["structuredOutput"] as any).cohorts).toHaveLength(1);
+  });
 });
 
 describe("persistStatus", () => {

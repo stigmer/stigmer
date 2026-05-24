@@ -78,6 +78,7 @@ export function slimStatus(full: AgentExecutionStatus): unknown {
     startedAt: full.startedAt,
     completedAt: full.completedAt,
     pendingApprovals: full.pendingApprovals,
+    structuredOutput: full.structuredOutput,
   });
   return toJson(AgentExecutionStatusSchema, slim);
 }

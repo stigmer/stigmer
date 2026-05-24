@@ -608,3 +608,215 @@ describe("Golden Execution — Tier 1d: Advanced Tasks", () => {
     expect(state.data.notifications_sent).toBe(true);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────
+// Structured Output Pipeline Regression Tests
+// ─────────────────────────────────────────────────────────────────────
+
+describe("Golden Execution — Structured Output Pipeline", () => {
+  it("agent_call with output.schema — structured output flows to downstream tasks via $context", async () => {
+    const yaml = [
+      "document:",
+      "  dsl: '1.0.0'",
+      "  name: structured-output-pipeline",
+      "  version: '1.0.0'",
+      "do:",
+      "  - analyze:",
+      "      call: agent",
+      "      with:",
+      '        agent: "analyst"',
+      '        message: "Analyze player data"',
+      "        output:",
+      "          schema:",
+      "            type: object",
+      "            required:",
+      "              - executive_summary",
+      "              - cohorts",
+      "            properties:",
+      "              executive_summary:",
+      "                type: string",
+      "              dau:",
+      "                type: number",
+      "              cohorts:",
+      "                type: array",
+      "                items:",
+      "                  type: object",
+      "                  required:",
+      "                    - name",
+      "                    - size",
+      "                  properties:",
+      "                    name:",
+      "                      type: string",
+      "                    size:",
+      "                      type: number",
+      "          on_invalid: ON_INVALID_FAIL",
+      "      export:",
+      '        as: "${ .structured }"',
+      "  - downstream:",
+      "      set:",
+      "        report_dau: ${ $context.analyze.dau }",
+      "        cohort_count: ${ $context.analyze.cohorts | length }",
+      "        first_cohort: ${ $context.analyze.cohorts[0].name }",
+    ].join("\n");
+
+    const model = loadWorkflowFromYaml(yaml);
+    const state = createState();
+
+    const mockCallAgent = vi.fn(async () => ({
+      structured: {
+        executive_summary: "DAU stable at 7175",
+        dau: 7175,
+        cohorts: [
+          { name: "D1 New Players", size: 10 },
+          { name: "D3 Drop-offs", size: 3589 },
+        ],
+      },
+      agent_execution_id: "aex-pipeline-test",
+    }));
+    const ctx = makeCtx({ callAgent: mockCallAgent });
+
+    await executeDoTasks(model.do, null, state, model, evaluateExpressionBatch, ctx);
+
+    expect(mockCallAgent).toHaveBeenCalledOnce();
+    expect(state.context.analyze.dau).toBe(7175);
+    expect(state.context.analyze.executive_summary).toBe("DAU stable at 7175");
+    expect(state.context.analyze.cohorts).toHaveLength(2);
+    expect(state.data.report_dau).toBe(7175);
+    expect(state.data.cohort_count).toBe(2);
+    expect(state.data.first_cohort).toBe("D1 New Players");
+  });
+
+  it("agent_call with output.schema — ON_INVALID_FAIL rejects missing structured output", async () => {
+    const yaml = [
+      "document:",
+      "  dsl: '1.0.0'",
+      "  name: structured-output-fail",
+      "  version: '1.0.0'",
+      "do:",
+      "  - analyze:",
+      "      call: agent",
+      "      with:",
+      '        agent: "analyst"',
+      '        message: "Analyze data"',
+      "        output:",
+      "          schema:",
+      "            type: object",
+      "            required:",
+      "              - executive_summary",
+      "            properties:",
+      "              executive_summary:",
+      "                type: string",
+      "          on_invalid: ON_INVALID_FAIL",
+      "      export:",
+      '        as: "${ .structured }"',
+    ].join("\n");
+
+    const model = loadWorkflowFromYaml(yaml);
+    const state = createState();
+
+    const mockCallAgent = vi.fn(async () => ({
+      final_text: "Here is the analysis...",
+      agent_execution_id: "aex-no-structured",
+    }));
+    const ctx = makeCtx({ callAgent: mockCallAgent });
+
+    await expect(
+      executeDoTasks(model.do, null, state, model, evaluateExpressionBatch, ctx),
+    ).rejects.toThrow(/Agent output validation failed.*Agent did not return structured output/);
+  });
+
+  it("agent_call with output.schema — schema with optional fields validates correctly", async () => {
+    const yaml = [
+      "document:",
+      "  dsl: '1.0.0'",
+      "  name: structured-optional-fields",
+      "  version: '1.0.0'",
+      "do:",
+      "  - analyze:",
+      "      call: agent",
+      "      with:",
+      '        agent: "analyst"',
+      '        message: "Analyze data"',
+      "        output:",
+      "          schema:",
+      "            type: object",
+      "            required:",
+      "              - executive_summary",
+      "              - cohorts",
+      "              - anomalies",
+      "            properties:",
+      "              executive_summary:",
+      "                type: string",
+      "              dau:",
+      "                type: number",
+      "              dau_trend_pct:",
+      "                type: number",
+      "              cohorts:",
+      "                type: array",
+      "                items:",
+      "                  type: object",
+      "                  required:",
+      "                    - name",
+      "                    - size",
+      "                    - action_needed",
+      "                  properties:",
+      "                    name:",
+      "                      type: string",
+      "                    size:",
+      "                      type: number",
+      "                    retention_trend:",
+      "                      type: string",
+      "                    action_needed:",
+      "                      type: boolean",
+      "              anomalies:",
+      "                type: array",
+      "                items:",
+      "                  type: object",
+      "                  properties:",
+      "                    metric:",
+      "                      type: string",
+      "                    description:",
+      "                      type: string",
+      "                    severity:",
+      "                      type: string",
+      "              data_quality_notes:",
+      "                type: string",
+      "          on_invalid: ON_INVALID_FAIL",
+      "      export:",
+      '        as: "${ .structured }"',
+      "  - report:",
+      "      set:",
+      "        summary: ${ $context.analyze.executive_summary }",
+      "        anomaly_count: ${ $context.analyze.anomalies | length }",
+    ].join("\n");
+
+    const model = loadWorkflowFromYaml(yaml);
+    const state = createState();
+
+    const mockCallAgent = vi.fn(async () => ({
+      structured: {
+        executive_summary: "Garden Design Makeover DAU remains stable at 7,175",
+        dau: 7175,
+        dau_trend_pct: 3.4,
+        cohorts: [
+          { name: "D1 New Players", size: 10, retention_trend: "Very low", action_needed: true },
+          { name: "D3 Drop-offs", size: 3589, retention_trend: "Large cohort", action_needed: true },
+        ],
+        anomalies: [
+          { metric: "New User Acquisition", severity: "warning", description: "Only 10 new players" },
+        ],
+        data_quality_notes: "Event data lags 3 days behind current date",
+      },
+      agent_execution_id: "aex-full-schema",
+    }));
+    const ctx = makeCtx({ callAgent: mockCallAgent });
+
+    await executeDoTasks(model.do, null, state, model, evaluateExpressionBatch, ctx);
+
+    expect(state.context.analyze.dau).toBe(7175);
+    expect(state.context.analyze.cohorts).toHaveLength(2);
+    expect(state.context.analyze.anomalies).toHaveLength(1);
+    expect(state.data.summary).toBe("Garden Design Makeover DAU remains stable at 7,175");
+    expect(state.data.anomaly_count).toBe(1);
+  });
+});

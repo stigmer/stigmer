@@ -667,9 +667,6 @@ async function executeCursor(
     );
 
     const slim = slimStatus(status) as Record<string, unknown>;
-    if (structuredOutput !== undefined) {
-      slim.structured_output = structuredOutput;
-    }
     if (finalText !== undefined) {
       slim.final_text = finalText;
     }

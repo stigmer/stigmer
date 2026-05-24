@@ -134,7 +134,15 @@ export async function orchestrateAgentCall(
   const activityPromise = agentProxy
     .CallAgent(enrichedConfig, input.runtimeEnv, input.parentWorkflowId)
     .then((result) => {
-      activityResult = (result ?? {}) as AgentCallResult;
+      if (typeof result === "string") {
+        try {
+          activityResult = JSON.parse(result) as AgentCallResult;
+        } catch {
+          activityResult = {};
+        }
+      } else {
+        activityResult = (result ?? {}) as AgentCallResult;
+      }
       activityDone = true;
     })
     .catch((err) => {
