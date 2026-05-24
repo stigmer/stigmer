@@ -3,7 +3,8 @@
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import type { WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
-import type { WorkflowTask } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import type { WorkflowTask, WorkflowPendingApproval } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store";
 import { Tabs, type TabItem } from "../../tabs/Tabs";
 import { useExecutionTaskDetail } from "./useExecutionTaskDetail";
@@ -14,6 +15,7 @@ import { ErrorTab } from "./ErrorTab";
 import { RetriesTab } from "./RetriesTab";
 import { AgentCallTab } from "./AgentCallTab";
 import { EventLogTab } from "./EventLogTab";
+import { WorkflowExecutionApprovalCard } from "../WorkflowExecutionApprovalCard";
 
 /** Props for {@link ExecutionInspector}. */
 export interface ExecutionInspectorProps {
@@ -27,11 +29,17 @@ export interface ExecutionInspectorProps {
   readonly taskSnapshots?: readonly WorkflowTask[];
   /** Callback when the user clicks "View Agent Execution" on an agent_call task. */
   readonly onNavigateToAgentExecution?: (agentExecutionId: string) => void;
+  /** Pending agent tool approvals from `execution.status.pending_approvals`. */
+  readonly pendingApprovals?: readonly WorkflowPendingApproval[];
+  /** Callback to submit an agent tool approval decision. */
+  readonly onSubmitApproval?: (toolCallId: string, action: ApprovalAction, comment?: string) => Promise<unknown>;
+  /** Whether an approval submission is in flight. */
+  readonly isSubmittingApproval?: boolean;
   /** Additional CSS class names. */
   readonly className?: string;
 }
 
-type InspectorTabId = "summary" | "input" | "output" | "error" | "retries" | "agent" | "events";
+type InspectorTabId = "summary" | "input" | "output" | "error" | "retries" | "agent" | "approval" | "events";
 
 /**
  * Runtime inspector panel for workflow execution tasks.
@@ -60,6 +68,9 @@ export const ExecutionInspector = memo(function ExecutionInspector({
   taskStates,
   taskSnapshots,
   onNavigateToAgentExecution,
+  pendingApprovals,
+  onSubmitApproval,
+  isSubmittingApproval,
   className,
 }: ExecutionInspectorProps) {
   const { detail } = useExecutionTaskDetail({
@@ -88,6 +99,7 @@ export const ExecutionInspector = memo(function ExecutionInspector({
   }, [selectedTaskName, detail?.status, detail?.error]);
 
   // Auto-select Error tab when status transitions to "failed" (same task)
+  // Auto-select Approval tab when status transitions to "waiting_approval"
   useEffect(() => {
     if (
       detail?.status === "failed" &&
@@ -96,6 +108,12 @@ export const ExecutionInspector = memo(function ExecutionInspector({
       !userPickedTabRef.current
     ) {
       setActiveTab("error");
+    } else if (
+      detail?.status === "waiting_approval" &&
+      prevStatusRef.current !== "waiting_approval" &&
+      !userPickedTabRef.current
+    ) {
+      setActiveTab("approval");
     }
     prevStatusRef.current = detail?.status;
   }, [detail?.status, detail?.error]);
@@ -116,7 +134,12 @@ export const ExecutionInspector = memo(function ExecutionInspector({
     );
   }
 
-  const tabs = buildVisibleTabs(detail);
+  // Filter pending approvals relevant to the selected task (match by childExecutionId)
+  const taskApprovals = pendingApprovals?.filter(
+    (pa) => pa.childAgentExecutionId === detail.agentCall?.childExecutionId,
+  ) ?? [];
+
+  const tabs = buildVisibleTabs(detail, taskApprovals.length);
   const effectiveTab = tabs.some((t) => t.id === activeTab) ? activeTab : "summary";
 
   const BZ = BigInt(0);
@@ -165,8 +188,25 @@ export const ExecutionInspector = memo(function ExecutionInspector({
           {effectiveTab === "agent" && detail.agentCall && (
             <AgentCallTab
               agentCall={detail.agentCall}
+              taskStatus={detail.status}
+              isTabActive={effectiveTab === "agent"}
               onNavigateToAgentExecution={onNavigateToAgentExecution}
             />
+          )}
+          {effectiveTab === "approval" && taskApprovals.length > 0 && onSubmitApproval && (
+            <div className="space-y-2">
+              {taskApprovals.map((pa) => (
+                <WorkflowExecutionApprovalCard
+                  key={pa.approval?.toolCallId ?? pa.childAgentExecutionId}
+                  prompt={pa.approval?.message || `Tool "${pa.approval?.toolName}" requires approval`}
+                  toolCallId={pa.approval?.toolCallId ?? ""}
+                  approvers={[]}
+                  timeoutSeconds={0}
+                  onSubmitApproval={onSubmitApproval}
+                  isSubmitting={isSubmittingApproval ?? false}
+                />
+              ))}
+            </div>
           )}
           {effectiveTab === "events" && <EventLogTab events={detail.eventLog} />}
         </div>
@@ -179,7 +219,10 @@ export const ExecutionInspector = memo(function ExecutionInspector({
 // Tab visibility
 // ---------------------------------------------------------------------------
 
-function buildVisibleTabs(detail: NonNullable<ReturnType<typeof useExecutionTaskDetail>["detail"]>): TabItem[] {
+function buildVisibleTabs(
+  detail: NonNullable<ReturnType<typeof useExecutionTaskDetail>["detail"]>,
+  approvalCount: number,
+): TabItem[] {
   const tabs: TabItem[] = [{ id: "summary", label: "Summary" }];
 
   if (detail.input) tabs.push({ id: "input", label: "Input" });
@@ -189,6 +232,9 @@ function buildVisibleTabs(detail: NonNullable<ReturnType<typeof useExecutionTask
     tabs.push({ id: "retries", label: "Retries", badge: detail.retries.attempts.length });
   }
   if (detail.agentCall) tabs.push({ id: "agent", label: "Agent" });
+  if (approvalCount > 0) {
+    tabs.push({ id: "approval", label: "Approval", badge: approvalCount });
+  }
 
   tabs.push({ id: "events", label: "Events", badge: detail.eventLog.length });
 

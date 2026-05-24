@@ -28,6 +28,7 @@ import {
   ApprovalRequestedPayloadSchema,
   ApprovalResolvedPayloadSchema,
   AgentCallStartedPayloadSchema,
+  AgentCallProgressPayloadSchema,
   AgentCallCompletedPayloadSchema,
   HumanInputOutcomeInfoSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
@@ -290,6 +291,22 @@ export function toProtoEvent(desc: WorkflowEventDescriptor): WorkflowExecutionEv
           childExecutionId: desc.childExecutionId,
           agentSlug: desc.agentSlug,
           messageSummary: desc.messageSummary,
+        }),
+      };
+      break;
+
+    case "agent_call_progress":
+      base.eventType = WorkflowEventType.agent_call_progress;
+      base.payload = {
+        case: "agentCallProgress",
+        value: create(AgentCallProgressPayloadSchema, {
+          childExecutionId: desc.childExecutionId,
+          agentSlug: desc.agentSlug,
+          agentPhase: desc.agentPhase,
+          currentToolName: desc.currentToolName,
+          tokensConsumed: BigInt(desc.tokensConsumed),
+          messagesCount: desc.messagesCount,
+          toolCallsCount: desc.toolCallsCount,
         }),
       };
       break;

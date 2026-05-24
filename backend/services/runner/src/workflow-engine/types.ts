@@ -712,6 +712,7 @@ export type WorkflowEventDescriptor =
   | ApprovalRequestedEvent
   | ApprovalResolvedEvent
   | AgentCallStartedEvent
+  | AgentCallProgressEvent
   | AgentCallCompletedEvent;
 
 interface EventBase {
@@ -801,6 +802,17 @@ export interface AgentCallStartedEvent extends EventBase {
   readonly childExecutionId: string;
   readonly agentSlug: string;
   readonly messageSummary: string;
+}
+
+export interface AgentCallProgressEvent extends EventBase {
+  readonly type: "agent_call_progress";
+  readonly childExecutionId: string;
+  readonly agentSlug: string;
+  readonly agentPhase: string;
+  readonly currentToolName: string;
+  readonly tokensConsumed: number;
+  readonly messagesCount: number;
+  readonly toolCallsCount: number;
 }
 
 export interface AgentCallCompletedEvent extends EventBase {

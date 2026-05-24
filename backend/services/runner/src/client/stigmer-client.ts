@@ -216,10 +216,12 @@ export class StigmerClient {
   async updateWorkflowExecutionStatus(
     executionId: string,
     status: WorkflowExecutionStatus,
+    options?: { updatePendingApprovals?: boolean },
   ): Promise<WorkflowExecution> {
     const input = create(WorkflowExecutionUpdateStatusInputSchema, {
       executionId,
       status,
+      updatePendingApprovals: options?.updatePendingApprovals ?? false,
     });
     return this.workflowExecutionCommand.updateStatus(input);
   }

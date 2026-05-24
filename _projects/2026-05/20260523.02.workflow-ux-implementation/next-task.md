@@ -68,9 +68,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-23 14:12
-**Last Session**: 2026-05-24 — Run Comparison View + Eval Kind Fix
-**Current Task**: Run Comparison complete. Eval fix complete. Next: remaining deferred follow-ups
-**Status**: In Progress — T01-T14 + backend enrichment + data accuracy hardening + instance management UX + run comparison + eval fix all done
+**Last Session**: 2026-05-24 — Agent Call Live Experience
+**Current Task**: Agent Call Live Experience complete. Next: `make protos && make codegen`, then Phase B (periodic progress) or T15 (Template Gallery)
+**Status**: In Progress — T01-T14 + backend enrichment + data accuracy hardening + instance management UX + run comparison + eval fix + agent call live experience all done
 
 ## Session Progress (2026-05-23)
 
@@ -356,6 +356,18 @@ When starting a new session:
 - All exports wired to SDK public surface
 - Zero backend changes (client-side diff over existing `get()` calls)
 - Changelog: `_changelog/2026-05/2026-05-24-120224-feat-workflow-run-comparison-eval-fix.md`
+
+### Agent Call Live Experience — COMPLETED (2026-05-24)
+- **pending_approvals race fix**: Added `bool update_pending_approvals = 11` sentinel to proto; Go + Java servers only merge when flag is true; runner's `call-agent-status.ts` sets it
+- **Early childExecutionId**: `child_execution_started` signal from platform (Java `NotifyParentActivities.signalParentExecutionStarted`, Go `SignalExternalWorkflow`). Orchestrator handles signal, emits `agent_call_progress` event with ID.
+- **Live agent inspector**: Rewrote `AgentCallTab` with `useExecutionStream(childExecutionId)` + `MessageThread` — live transcript when running, pending spinner when no ID, static summary when completed. Visibility-aware subscription (DD-LIVE-006).
+- **Approval wiring**: `ExecutionInspector` now has Approval tab with `WorkflowExecutionApprovalCard`, auto-selects on `waiting_approval`, routes through `actions.submitApproval`
+- **Graph badge enhancement**: `ExecutionBadge` shows tool name in approval badge, `approvalToolName` field on `CanvasTaskNodeData`
+- **Event pipeline**: `AgentCallProgressEvent` type + proto conversion in `workflow-event-activities.ts`
+- **Descoped**: `call_llm` (synchronous activity), `run_workflow` (no child DB record — gap documented)
+- Go unit tests (5 cases), TypeScript logic tests
+- Checkpoint: `checkpoints/2026-05-24-session-agent-call-live-experience.md`
+- Changelog: `_changelog/2026-05/2026-05-24-125610-feat-agent-call-live-experience.md`
 
 ## Next Steps
 

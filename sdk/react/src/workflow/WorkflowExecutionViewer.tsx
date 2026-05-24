@@ -324,6 +324,9 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
                   taskStates={effectiveTaskStates}
                   taskSnapshots={execution?.status?.tasks ?? undefined}
                   onNavigateToAgentExecution={onNavigateToAgentExecution}
+                  pendingApprovals={execution?.status?.pendingApprovals}
+                  onSubmitApproval={actions.submitApproval}
+                  isSubmittingApproval={actions.isSubmitting}
                   className="min-h-0 flex-1"
                 />
 

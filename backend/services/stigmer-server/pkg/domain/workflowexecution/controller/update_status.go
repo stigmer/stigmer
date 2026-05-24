@@ -206,9 +206,12 @@ func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*work
 		updated.Status.TotalOutputTokens = requestStatus.TotalOutputTokens
 	}
 
-	// Full-replace pending_approvals: workflow-runner always sends the complete set.
-	// Empty list = clear all approvals (child completed).
-	updated.Status.PendingApprovals = requestStatus.PendingApprovals
+	// Guarded update: only touch pending_approvals when explicitly requested.
+	// This prevents the race condition where event emissions (which don't
+	// include approvals) clobber active approval gates set by call-agent-status.
+	if input.UpdatePendingApprovals {
+		updated.Status.PendingApprovals = requestStatus.PendingApprovals
+	}
 
 	log.Debug().
 		Str("execution_id", input.ExecutionId).
