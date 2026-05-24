@@ -297,14 +297,18 @@ async function runStaticMode(): Promise<void> {
 // ─── Entry Point ─────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
-  // Set Cursor SDK base URL for proxy mode BEFORE any @cursor/sdk import.
-  // The SDK reads CURSOR_API_BASE_URL at module-load time as a top-level
-  // constant, so it must be in process.env before activity code is imported.
+  // Set Cursor SDK base URLs for proxy mode BEFORE any @cursor/sdk import.
+  // The SDK reads these at module-load time as top-level constants, so they
+  // must be in process.env before activity code is imported.
+  //
+  // The SDK uses two separate hosts:
+  //   CURSOR_API_BASE_URL → Connect RPC transport (api2.cursor.sh)
+  //   CURSOR_BACKEND_URL  → REST API / CloudApiClient (api.cursor.com)
   const bootConfig = loadConfig();
   if (bootConfig.proxyEndpoint) {
     const proxyBase = bootConfig.proxyEndpoint.replace(/\/+$/, "");
     process.env.CURSOR_API_BASE_URL = `${proxyBase}/v1/proxy/cursor/api2.cursor.sh`;
-    process.env.CURSOR_BACKEND_URL = `${proxyBase}/v1/proxy/cursor/api2.cursor.sh`;
+    process.env.CURSOR_BACKEND_URL = `${proxyBase}/v1/proxy/cursor/api.cursor.com`;
   }
 
   if (process.env.STIGMER_RUNNER_MODE === "manager") {
