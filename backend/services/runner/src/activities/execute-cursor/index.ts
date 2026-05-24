@@ -26,7 +26,6 @@
  * subsequent executions because local SDK context loading is unreliable.
  */
 
-import type { z } from "zod";
 import { heartbeat, Context, CancelledFailure } from "@temporalio/activity";
 import { create, type JsonObject } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
@@ -601,20 +600,33 @@ async function executeCursor(
       finalText = lastAiMsg?.content;
 
       if (structuredOutputSchema && finalText) {
-        // Tier 1: Direct JSON parse — free, instant, works when agent returns pure JSON
-        try {
-          structuredOutput = JSON.parse(finalText);
-        } catch {
-          // Not pure JSON — proceed to LLM extraction
+        const { extractJsonFromText } = await import("../../shared/extract-json.js");
+
+        // Tier 1 + 1.5: JSON.parse, code-fence extraction, heuristic brace match
+        structuredOutput = extractJsonFromText(finalText);
+        if (structuredOutput !== undefined) {
+          console.log(
+            `ExecuteCursor structured output extracted (text): execution=${executionId}, ` +
+            `finalTextLength=${finalText.length}`,
+          );
         }
 
         if (structuredOutput === undefined) {
           // Tier 2: LLM extraction with withStructuredOutput — deterministic,
           // uses function-calling to guarantee schema-conformant output
+          console.log(
+            `ExecuteCursor text extraction failed, trying LLM extraction: execution=${executionId}, ` +
+            `finalTextLength=${finalText.length}`,
+          );
           try {
             structuredOutput = await extractStructuredOutput(
               finalText, structuredOutputSchema, config, requestedModel,
             );
+            if (structuredOutput !== undefined) {
+              console.log(
+                `ExecuteCursor structured output extracted (LLM): execution=${executionId}`,
+              );
+            }
           } catch (extractErr) {
             const errMsg = extractErr instanceof Error ? extractErr.message : String(extractErr);
             console.error(
@@ -755,7 +767,7 @@ async function extractStructuredOutput(
     },
   });
 
-  const zodSchema = await jsonSchemaToZodForExtraction(schema);
+  const zodSchema = jsonSchemaToZod(schema);
   const structured = llm.withStructuredOutput(zodSchema);
 
   const result = await structured.invoke([
@@ -766,46 +778,9 @@ async function extractStructuredOutput(
   return result ?? null;
 }
 
-/**
- * Convert JSON Schema to Zod for extraction LLM withStructuredOutput.
- */
-async function jsonSchemaToZodForExtraction(schema: Record<string, unknown>): Promise<z.ZodType> {
-  const { z } = await import("zod");
-  return _convertJsonSchemaToZod(schema, z);
-}
-
-function _convertJsonSchemaToZod(schema: Record<string, unknown>, zod: typeof import("zod").z): z.ZodType {
-  const type = schema.type as string | undefined;
-
-  if (type === "object") {
-    const properties = schema.properties as Record<string, Record<string, unknown>> | undefined;
-    const required = new Set(schema.required as string[] | undefined ?? []);
-    if (!properties) return zod.object({}).passthrough();
-
-    const shape: Record<string, z.ZodType> = {};
-    for (const [key, propSchema] of Object.entries(properties)) {
-      let fieldType = _convertJsonSchemaToZod(propSchema, zod);
-      if (!required.has(key)) fieldType = fieldType.optional();
-      shape[key] = fieldType;
-    }
-    return zod.object(shape).passthrough();
-  }
-
-  if (type === "array") {
-    const items = schema.items as Record<string, unknown> | undefined;
-    return zod.array(items ? _convertJsonSchemaToZod(items, zod) : zod.unknown());
-  }
-
-  if (type === "string") {
-    const enumValues = schema.enum as string[] | undefined;
-    if (enumValues?.length) return zod.enum(enumValues as [string, ...string[]]);
-    return zod.string();
-  }
-
-  if (type === "number" || type === "integer") return zod.number();
-  if (type === "boolean") return zod.boolean();
-  return zod.unknown();
-}
+// Re-export for use within this module; shared implementation eliminates
+// the three duplicate converters that previously drifted independently.
+import { jsonSchemaToZod } from "../../shared/json-schema-to-zod.js";
 
 // ---------------------------------------------------------------------------
 // Prompt selection

@@ -55,4 +55,13 @@ When a workflow defines `output.schema` on an `agent_call` task, the Cursor harn
 
 ---
 
-**Status**: ✅ Production Ready
+**Status**: ⚠️ Partial Fix — addressed model resolution but introduced two regressions:
+
+1. **Removed the regex code-fence extraction tier** that handled the most common agent
+   response pattern (prose + markdown-fenced JSON). Without this tier, Tier 1 (JSON.parse)
+   fails on non-pure-JSON responses and falls through to Tier 2.
+2. **Did not fix the Zod `.optional()` bug** in `_convertJsonSchemaToZod`. OpenAI's
+   structured output API rejects `.optional()` without `.nullable()`, so Tier 2 also
+   fails for any schema with non-required fields.
+
+Both issues are resolved in the follow-up fix: `2026-05-24-fix-structured-output-extraction-pipeline-v2`.
