@@ -4,6 +4,7 @@ package integration
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
@@ -22,6 +23,7 @@ import (
 // Skipped when the agent-runner is not available (no API key or venv).
 func TestWorkflowAgentCall_SimpleExecution(t *testing.T) {
 	requireAgentCallPrereqs(t)
+	requireLLMAvailable(t)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
@@ -103,6 +105,7 @@ func TestWorkflowAgentCall_SimpleExecution(t *testing.T) {
 // contain structured data.
 func TestWorkflowAgentCall_StructuredOutput(t *testing.T) {
 	requireAgentCallPrereqs(t)
+	requireLLMAvailable(t)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
@@ -166,6 +169,18 @@ func requireAgentCallPrereqs(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
 	if testHarness.UnifiedRunner == nil {
 		t.Skip("unified runner not available — skipping agent_call test")
+	}
+}
+
+// requireLLMAvailable skips the test if the Anthropic API key is not set.
+// agent_call child executions use HARNESS_NATIVE by default, which routes
+// through the LLM proxy. Without an upstream API key, the child execution
+// hangs until the proxy times out (~110s) and then fails — causing tests
+// that assert EXECUTION_COMPLETED to fail instead of skipping cleanly.
+func requireLLMAvailable(t *testing.T) {
+	t.Helper()
+	if os.Getenv("ANTHROPIC_API_KEY") == "" {
+		t.Skip("ANTHROPIC_API_KEY not set — skipping: child agent_call requires LLM to complete")
 	}
 }
 

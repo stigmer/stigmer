@@ -4,6 +4,7 @@ package integration
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
@@ -23,12 +24,15 @@ import (
 // call:agent tasks carries the runner_id. The two-step pattern (create session,
 // then create execution) ensures runner affinity lives on the session aggregate.
 //
-// Requires: Java service, Temporal, workflow-runner with STIGMER_RUNNER_ID.
-// Does NOT require: agent-runner or any LLM API key.
+// Requires: Java service, Temporal, workflow-runner with STIGMER_RUNNER_ID,
+// and ANTHROPIC_API_KEY (child agent runs ExecuteDeepAgent via unified runner).
 func TestSandboxColocation_SessionRunnerID(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
 	if testHarness.UnifiedRunner == nil {
 		t.Skip("unified runner not available")
+	}
+	if os.Getenv("ANTHROPIC_API_KEY") == "" {
+		t.Skip("ANTHROPIC_API_KEY not set — skipping: child agent_call requires LLM to reach terminal phase")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
