@@ -58,7 +58,7 @@ import { buildContinuationPrompt, buildHitlContinuationPrompt } from "./continua
 import { extractAgentRationale, getGitBranch, getGitHeadSha } from "./continuation-prompt.js";
 import { writeHooksToWorkspace } from "./workspace-setup.js";
 import { buildApprovalState } from "./approval-state.js";
-import { setInterceptorExecutionId } from "./fetch-interceptor.js";
+import { setInterceptorExecutionId, runWithExecutionContext } from "./fetch-interceptor.js";
 import { resolveModelId, ensureLoaded as ensurePricingLoaded } from "./model-pricing.js";
 import { UsageAccumulator } from "./usage-accumulator.js";
 import type { TurnRecord } from "./usage-accumulator.js";
@@ -102,6 +102,15 @@ async function executeCursor(
   console.log(`ExecuteCursor started: execution=${executionId}, threadId=${threadId || "(new)"}`);
 
   setInterceptorExecutionId(executionId);
+  return runWithExecutionContext(executionId, () => executeCursorInner(config, client, executionId, threadId));
+}
+
+async function executeCursorInner(
+  config: Config,
+  client: StigmerClient,
+  executionId: string,
+  threadId: string,
+): Promise<unknown> {
 
   const status = create(AgentExecutionStatusSchema, {
     phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
