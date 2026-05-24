@@ -17,10 +17,10 @@ import {
  */
 
 let capturedGetByRef: any;
-let capturedCreateSession: any;
+let capturedApplySession: any;
 let capturedCreateExecution: any;
 let allCapturedExecutions: any[];
-let mockCreateSessionImpl: (session: any) => Promise<any>;
+let mockApplySessionImpl: (session: any) => Promise<any>;
 let mockCreateExecutionImpl: (exec: any) => Promise<any>;
 let mockAgentEnv: Record<string, any>;
 
@@ -50,9 +50,9 @@ vi.mock("../../client/stigmer-client.js", () => ({
         spec: { env: mockAgentEnv },
       });
     },
-    createSession: (session: any) => {
-      capturedCreateSession = session;
-      return mockCreateSessionImpl(session);
+    applySession: (session: any) => {
+      capturedApplySession = session;
+      return mockApplySessionImpl(session);
     },
     createAgentExecution: (exec: any) => {
       capturedCreateExecution = exec;
@@ -78,11 +78,11 @@ import { callAgentAction } from "../call-agent.js";
 describe("CallAgent server contract compliance", () => {
   beforeEach(() => {
     capturedGetByRef = undefined;
-    capturedCreateSession = undefined;
+    capturedApplySession = undefined;
     capturedCreateExecution = undefined;
     allCapturedExecutions = [];
     mockAgentEnv = {};
-    mockCreateSessionImpl = (session: any) =>
+    mockApplySessionImpl = (session: any) =>
       Promise.resolve({ metadata: { id: "ses_contract_test" } });
     mockCreateExecutionImpl = (exec: any) =>
       Promise.resolve({ metadata: { id: "aex_contract_test" } });
@@ -123,21 +123,21 @@ describe("CallAgent server contract compliance", () => {
     });
   });
 
-  describe("Session create payload", () => {
+  describe("Session apply payload", () => {
     it("satisfies server create requirements", async () => {
       await exerciseCallAgent();
-      expect(() => assertCreateRequirements(capturedCreateSession, "Session", "test"))
+      expect(() => assertCreateRequirements(capturedApplySession, "Session", "test"))
         .not.toThrow();
     });
 
     it("has metadata.name matching expected pattern", async () => {
       await exerciseCallAgent();
-      expect(capturedCreateSession.metadata.name).toMatch(/^wf-notification-analyst-\d+$/);
+      expect(capturedApplySession.metadata.name).toMatch(/^wf-notification-analyst-\d+$/);
     });
 
     it("has metadata.org from runtime environment", async () => {
       await exerciseCallAgent();
-      expect(capturedCreateSession.metadata.org).toBe("tt-demo");
+      expect(capturedApplySession.metadata.org).toBe("tt-demo");
     });
   });
 
@@ -241,18 +241,33 @@ describe("CallAgent server contract compliance", () => {
     });
   });
 
-  describe("ALREADY_EXISTS idempotent recovery", () => {
-    it("reuses existing session when ALREADY_EXISTS returns resource ID", async () => {
-      mockCreateSessionImpl = () => {
-        throw new ConnectError(
-          "Session with slug 'ses-wf-xxx' already exists in org 'tt-demo' (id: ses_recovered_123)",
-          Code.AlreadyExists,
-        );
-      };
+  describe("session idempotency via apply", () => {
+    it("uses apply for session creation (idempotent get-or-create)", async () => {
       await exerciseCallAgent();
-      expect(capturedCreateExecution.spec.sessionId).toBe("ses_recovered_123");
+      expect(capturedApplySession).toBeDefined();
+      expect(capturedApplySession.metadata.org).toBe("tt-demo");
     });
 
+    it("uses session ID returned by apply for agent execution", async () => {
+      mockApplySessionImpl = () =>
+        Promise.resolve({ metadata: { id: "ses_from_apply" } });
+      await exerciseCallAgent();
+      expect(capturedCreateExecution.spec.sessionId).toBe("ses_from_apply");
+    });
+
+    it("succeeds on recovery when session already exists (apply returns existing)", async () => {
+      mockApplySessionImpl = () =>
+        Promise.resolve({ metadata: { id: "ses_existing_789" } });
+      await exerciseCallAgent(
+        {},
+        { __stigmer_execution_id: "wex_recovery_test", __stigmer_org_id: "tt-demo" },
+      );
+      expect(capturedCreateExecution).toBeDefined();
+      expect(capturedCreateExecution.spec.sessionId).toBe("ses_existing_789");
+    });
+  });
+
+  describe("ALREADY_EXISTS idempotent recovery (agent execution)", () => {
     it("creates retry execution when ALREADY_EXISTS on agent execution", async () => {
       let callCount = 0;
       mockCreateExecutionImpl = (exec: any) => {
@@ -271,22 +286,6 @@ describe("CallAgent server contract compliance", () => {
       const retryExec = allCapturedExecutions[1];
       expect(retryExec.metadata.name).toMatch(/-r\d+$/);
       expect(retryExec.spec.sessionId).toBe("ses_contract_test");
-    });
-
-    it("throws when session ALREADY_EXISTS but ID cannot be extracted", async () => {
-      mockCreateSessionImpl = () => {
-        throw new ConnectError(
-          "duplicate resource",
-          Code.AlreadyExists,
-        );
-      };
-      await expect(
-        callAgentAction(
-          { agent: "notification-analyst", message: "test" },
-          { __stigmer_org_id: "tt-demo" },
-          "wfl_parent",
-        ),
-      ).rejects.toThrow(/ID could not be resolved/);
     });
   });
 });

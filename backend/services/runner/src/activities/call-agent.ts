@@ -6,7 +6,7 @@
  * 1. Extract Temporal task token (for async completion callback)
  * 2. Resolve runtime placeholders (${.secrets.*}, ${.env_vars.*})
  * 3. Resolve agent by slug → get agent ID and default instance
- * 4. Create Session (harness, runner affinity)
+ * 4. Apply Session (idempotent get-or-create by slug)
  * 5. Create AgentExecution (callback token, parent workflow ID)
  * 6. Throw CompleteAsyncError — worker thread released
  *
@@ -115,39 +115,22 @@ export async function callAgentAction(
 
   const harness = resolveHarness(resolved.harness);
 
-  let sessionId: string;
-  try {
-    const session = await client.createSession(
-      create(SessionSchema, {
-        apiVersion: "agentic.stigmer.ai/v1",
-        kind: "Session",
-        metadata: create(ApiResourceMetadataSchema, {
-          name: sessionName,
-          org: orgId,
-        }),
-        spec: create(SessionSpecSchema, {
-          agentInstanceId: defaultInstanceId,
-          harness,
-          subject: "Auto-created session",
-        }),
+  const session = await client.applySession(
+    create(SessionSchema, {
+      apiVersion: "agentic.stigmer.ai/v1",
+      kind: "Session",
+      metadata: create(ApiResourceMetadataSchema, {
+        name: sessionName,
+        org: orgId,
       }),
-    );
-    sessionId = session?.metadata?.id ?? "";
-  } catch (err) {
-    if (err instanceof ConnectError && err.code === Code.AlreadyExists) {
-      const existingId = extractExistingResourceId(err);
-      if (existingId) {
-        sessionId = existingId;
-      } else {
-        throw new Error(
-          `Session '${sessionName}' already exists but its ID could not be resolved. ` +
-          `This may occur during workflow recovery for task '${taskName ?? "unknown"}'.`,
-        );
-      }
-    } else {
-      throw err;
-    }
-  }
+      spec: create(SessionSpecSchema, {
+        agentInstanceId: defaultInstanceId,
+        harness,
+        subject: "Auto-created session",
+      }),
+    }),
+  );
+  const sessionId = session?.metadata?.id ?? "";
 
   const executionRuntimeEnv: Record<string, { value: string; isSecret: boolean }> = {};
 
@@ -251,18 +234,6 @@ export async function callAgentAction(
   }
 
   throw new CompleteAsyncError();
-}
-
-/**
- * Extracts the existing resource ID from an ALREADY_EXISTS error message.
- *
- * Both the OSS Go server and the cloud Java server include the existing
- * resource ID in their duplicate-check error messages using the pattern
- * `(id: <resource_id>)`. Returns undefined if the pattern is not found.
- */
-function extractExistingResourceId(err: ConnectError): string | undefined {
-  const match = err.message.match(/\(id:\s*(\S+)\)/);
-  return match?.[1];
 }
 
 function parseAgentReference(

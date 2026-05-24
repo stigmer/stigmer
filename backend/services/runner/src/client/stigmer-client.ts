@@ -208,6 +208,11 @@ export class StigmerClient {
     return this.sessionCommand.create(session);
   }
 
+  async applySession(session: Session): Promise<Session> {
+    assertCreateRequirements(session, "Session", "applySession");
+    return this.sessionCommand.apply(session);
+  }
+
   async createAgentExecution(execution: AgentExecution): Promise<AgentExecution> {
     assertCreateRequirements(execution, "AgentExecution", "createAgentExecution");
     return this.executionCommand.create(execution);

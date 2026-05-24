@@ -24,7 +24,7 @@ vi.mock("@temporalio/activity", () => ({
 vi.mock("../../client/stigmer-client.js", () => ({
   StigmerClient: vi.fn().mockImplementation(() => ({
     getAgentByReference: (...args: unknown[]) => mockGetAgentByReference(...args),
-    createSession: (...args: unknown[]) => mockCreateSession(...args),
+    applySession: (...args: unknown[]) => mockCreateSession(...args),
     createAgentExecution: (...args: unknown[]) => mockCreateAgentExecution(...args),
   })),
 }));
