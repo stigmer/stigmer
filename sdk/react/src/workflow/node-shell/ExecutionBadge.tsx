@@ -79,7 +79,7 @@ export const ExecutionBadge = memo(function ExecutionBadge({
       <span
         className={cn(
           "absolute -right-1.5 -top-1.5 z-20 flex h-5 items-center gap-0.5 rounded-full px-1.5 text-[10px] font-semibold leading-none shadow-sm",
-          "bg-[var(--stgm-primary,#6366f1)] text-white stgm-exec-badge-running",
+          "bg-[var(--stgm-primary,#6366f1)] text-white",
         )}
         title={agentLabel}
         aria-label={agentLabel}
@@ -100,7 +100,7 @@ export const ExecutionBadge = memo(function ExecutionBadge({
       <span
         className={cn(
           "absolute -right-1.5 -top-1.5 z-20 flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold leading-none shadow-sm",
-          "bg-[var(--stgm-primary,#6366f1)] text-white stgm-exec-badge-running",
+          "bg-[var(--stgm-primary,#6366f1)] text-white",
         )}
         title={progressLabel}
         aria-label={progressLabel}
@@ -140,7 +140,7 @@ const BADGE_CONFIG: Record<Exclude<NodeExecutionStatus, "not_reached" | "pending
   running: {
     icon: "⟳",
     label: "Running",
-    className: "bg-[var(--stgm-primary,#6366f1)] text-white stgm-exec-badge-running",
+    className: "bg-[var(--stgm-primary,#6366f1)] text-white",
   },
   completed: {
     icon: "✓",

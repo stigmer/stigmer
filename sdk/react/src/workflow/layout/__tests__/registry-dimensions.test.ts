@@ -68,12 +68,12 @@ describe("registryNodeDimensions", () => {
   });
 
   describe("non-card shapes", () => {
-    it("returns diamond dimensions for switch_case (140x140)", () => {
+    it("returns diamond dimensions for switch_case (140x144 with caption)", () => {
       const node = makeNode("my_switch", WorkflowTaskKind.switch_case);
       const dims = registryNodeDimensions(node);
 
       expect(dims.width).toBe(140);
-      expect(dims.height).toBe(140);
+      expect(dims.height).toBe(120 + 24); // defaultHeight + captionHeight
     });
 
     it("returns parallel-bar dimensions for fork (260x32)", () => {
@@ -84,28 +84,28 @@ describe("registryNodeDimensions", () => {
       expect(dims.height).toBe(32);
     });
 
-    it("returns event-circle dimensions for wait (80x80)", () => {
+    it("returns event-circle dimensions for wait (80x90 with caption)", () => {
       const node = makeNode("my_wait", WorkflowTaskKind.wait);
       const dims = registryNodeDimensions(node);
 
       expect(dims.width).toBe(80);
-      expect(dims.height).toBe(80);
+      expect(dims.height).toBe(70 + 20); // defaultHeight + captionHeight
     });
 
-    it("returns event-circle dimensions for listen (80x80)", () => {
+    it("returns event-circle dimensions for listen (80x90 with caption)", () => {
       const node = makeNode("my_listen", WorkflowTaskKind.listen);
       const dims = registryNodeDimensions(node);
 
       expect(dims.width).toBe(80);
-      expect(dims.height).toBe(80);
+      expect(dims.height).toBe(70 + 20); // defaultHeight + captionHeight
     });
 
-    it("returns gate-octagon dimensions for human_input (160x160)", () => {
+    it("returns gate-octagon dimensions for human_input (160x164 with caption)", () => {
       const node = makeNode("my_gate", WorkflowTaskKind.human_input);
       const dims = registryNodeDimensions(node);
 
       expect(dims.width).toBe(160);
-      expect(dims.height).toBe(160);
+      expect(dims.height).toBe(140 + 24); // defaultHeight + captionHeight
     });
 
     it("returns container dimensions for for_each (280x120)", () => {
