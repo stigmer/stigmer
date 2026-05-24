@@ -622,3 +622,23 @@ export {
   WorkflowOverviewSummary,
   type WorkflowOverviewSummaryProps,
 } from "./WorkflowOverviewSummary";
+
+// Workflow Instance management hooks
+export {
+  useWorkflowInstance,
+  type UseWorkflowInstanceReturn,
+  useCreateWorkflowInstance,
+  type UseCreateWorkflowInstanceReturn,
+  useUpdateWorkflowInstance,
+  type UseUpdateWorkflowInstanceReturn,
+  useDeleteWorkflowInstance,
+  type UseDeleteWorkflowInstanceReturn,
+  WorkflowInstanceEmptyState,
+  type WorkflowInstanceEmptyStateProps,
+  WorkflowInstanceList,
+  type WorkflowInstanceListProps,
+  CreateWorkflowInstanceDialog,
+  type CreateWorkflowInstanceDialogProps,
+  WorkflowInstanceDetailPanel,
+  type WorkflowInstanceDetailPanelProps,
+} from "./instance";
