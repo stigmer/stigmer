@@ -79,7 +79,7 @@ export interface AgentProgressSummary {
   toolCallsCount: number;
   currentToolName: string;
   tokensConsumed: number;
-  agentPhase: string;
+  agentPhase: number;
 }
 
 export async function getAgentExecutionProgress(
@@ -109,7 +109,7 @@ export async function getAgentExecutionProgress(
     const usage = status.streamingUsage;
     const tokensConsumed = Number(usage?.totalTokens ?? 0);
 
-    const phase = String(status.phase ?? 0);
+    const phase = status.phase ?? 0;
 
     return { messagesCount, toolCallsCount, currentToolName, tokensConsumed, agentPhase: phase };
   } catch (err) {
