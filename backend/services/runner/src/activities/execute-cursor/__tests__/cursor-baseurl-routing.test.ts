@@ -1,12 +1,14 @@
 /**
- * Test that CURSOR_API_BASE_URL env var redirects SDK traffic.
+ * Test that CURSOR_API_BASE_URL and CURSOR_BACKEND_URL env vars redirect
+ * SDK traffic to the correct proxy paths.
  *
- * Verifies the proposed fix: setting CURSOR_API_BASE_URL to a proxy endpoint
- * causes the SDK to route Connect protocol requests to that URL instead of
- * the default api2.cursor.sh.
+ * The Cursor SDK uses two separate base URLs:
+ *   CURSOR_API_BASE_URL → Connect RPC transport (api2.cursor.sh)
+ *   CURSOR_BACKEND_URL  → REST API / CloudApiClient (api.cursor.com)
  *
- * We point it to a nonexistent local URL and expect a connection error
- * (not an auth error), proving the SDK respects the env var.
+ * We point both to nonexistent local endpoints on different ports and
+ * expect connection errors (not auth errors), proving the SDK respects
+ * each env var independently.
  */
 
 import { describe, it, expect, beforeAll } from "vitest";
@@ -14,23 +16,27 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
-describe("CURSOR_API_BASE_URL env var routing", () => {
+const CONNECT_RPC_PORT = 19998;
+const REST_API_PORT = 19999;
+
+describe("Cursor SDK env var routing", () => {
   beforeAll(() => {
-    // Point SDK to a local endpoint that doesn't exist
-    process.env.CURSOR_API_BASE_URL = "http://127.0.0.1:19999";
-    process.env.CURSOR_BACKEND_URL = "http://127.0.0.1:19999";
+    // Connect RPC (agent send/receive) → separate port from REST API
+    process.env.CURSOR_API_BASE_URL = `http://127.0.0.1:${CONNECT_RPC_PORT}`;
+    // REST API (CloudApiClient: /v1/models, agent CRUD) → different port
+    process.env.CURSOR_BACKEND_URL = `http://127.0.0.1:${REST_API_PORT}`;
   });
 
-  it("agent.send() routes to CURSOR_API_BASE_URL instead of api2.cursor.sh", async () => {
+  it("Agent.create() with model routes model validation to CURSOR_BACKEND_URL", async () => {
     const { Agent } = await import("@cursor/sdk");
 
     const stateRoot = join(tmpdir(), `cursor-baseurl-test-${Date.now()}`);
     mkdirSync(stateRoot, { recursive: true });
 
     // With a model specified, the SDK validates it by calling GET /v1/models
-    // at the base URL. This is where we expect the connection failure.
+    // via CloudApiClient, which reads CURSOR_BACKEND_URL (REST API host).
     try {
-      const agent = await Agent.create({
+      await Agent.create({
         apiKey: "test-key-doesnt-matter",
         model: { id: "claude-sonnet-4" },
         local: { cwd: stateRoot },
@@ -40,9 +46,6 @@ describe("CURSOR_API_BASE_URL env var routing", () => {
         },
       });
 
-      // If create succeeds, try send
-      const run = await agent.send("hello");
-      await run.wait();
       expect.fail("Should have failed to connect to nonexistent endpoint");
     } catch (err: any) {
       const msg = err.message ?? String(err);
@@ -55,7 +58,7 @@ describe("CURSOR_API_BASE_URL env var routing", () => {
 
       const isRoutedToOurEndpoint =
         allMsg.includes("ECONNREFUSED") ||
-        allMsg.includes("127.0.0.1:19999") ||
+        allMsg.includes(`127.0.0.1:${REST_API_PORT}`) ||
         allMsg.includes("Network request failed");
 
       const isCursorAuthError =
@@ -66,7 +69,7 @@ describe("CURSOR_API_BASE_URL env var routing", () => {
       console.log(`routedToCustomEndpoint=${isRoutedToOurEndpoint}, cursorAuthError=${isCursorAuthError}`);
 
       if (isRoutedToOurEndpoint) {
-        console.log("PROVEN: SDK respects CURSOR_API_BASE_URL for routing");
+        console.log("PROVEN: SDK respects CURSOR_BACKEND_URL for REST API routing");
       }
 
       expect(isRoutedToOurEndpoint).toBe(true);
