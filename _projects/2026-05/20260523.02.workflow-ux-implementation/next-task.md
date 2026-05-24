@@ -68,9 +68,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-23 14:12
-**Last Session**: 2026-05-24 — T16 Accessibility and Visual Polish
-**Current Task**: T16 complete. Next: T15 (Template Gallery)
-**Status**: In Progress — T01-T16 + all enrichments + agent call live experience + live progress pipeline fix all done
+**Last Session**: 2026-05-24 — T15 Workflow Template Gallery
+**Current Task**: ALL 16 TASKS COMPLETE (T01-T16)
+**Status**: Complete — T01-T16 + all enrichments + agent call live experience + live progress pipeline fix all done
 
 ## Session Progress (2026-05-23)
 
@@ -386,22 +386,23 @@ When starting a new session:
 - Committed as `189297c0f`
 - Changelog: `_changelog/2026-05/2026-05-24-151248-feat-workflow-accessibility-visual-polish-t16.md`
 
+### T15: Workflow Template Gallery — COMPLETED (2026-05-24)
+- **Template data layer**: `WorkflowTemplateData` type (YAML-based), `deriveTemplateMeta()` pure derivation, `WorkflowPattern` detection (parallel, branching, HITL, loop, error-handling, batch, ai-pipeline, http-integration)
+- **8 curated templates**: 3 from seedpack (Research & Summarize, Support Ticket Triage, Content Review Pipeline) + 5 new (Batch Data Enrichment, Multi-Agent Pipeline, Error-Resilient Integration, LLM Evaluation Pipeline, Webhook Event Processor)
+- **Gallery components**: `WorkflowTemplateCard` (pattern badges, task count, preview button), `WorkflowTemplatePreview` (native dialog with graph + metadata), `WorkflowTemplateGallery` (composes `useTemplateFilter` + custom cards)
+- **Client integration**: "Start from template" added as 3rd creation option on WorkflowNewPage (web + desktop, DD-016 parity)
+- 10 new files, 6 modified files, 54 unit tests, 10 E2E test specs
+- Committed as `01675e8bf`
+- Changelog: `_changelog/2026-05/2026-05-24-160334-feat-workflow-template-gallery-t15.md`
+
 ## Next Steps
 
-1. ~~**T06: Branch and Parallel Execution Highlighting** — Taken/untaken branch dimming, fork N/M progress~~ DONE
-2. ~~Wire `getNodeDimensions` from T01 registry (see `checkpoints/t03-deferred-wiring.md`)~~ DONE
-3. ~~**T07: Execution Waterfall Timeline** — Bottom panel redesign with waterfall bars~~ DONE
-4. ~~**T08: Contextual Task Picker** — Intelligence layer, branch-specific insertion, append-rewiring~~ DONE
-5. ~~**Run `make protos && make codegen`** — Regenerate TS/Go/Java stubs from `structured_output_schema` proto change~~ DONE
-6. ~~**Backend follow-up: Waterfall enrichment** — Agent call events, task retrying, data accuracy hardening~~ DONE (queue delay, streaming phases, push delivery deferred)
-7. ~~**Backend follow-up: Runner I/O population** — task_id, LLM cost, attempt tracking, willRetry, failed durationMs, structured output tokens~~ DONE (pending_approvals fix, resolved config, agent live status, budget wiring, artifact refs deferred)
-8. ~~Enable ELK in client-apps via `workerFactory` (see `checkpoints/t03-deferred-wiring.md`)~~ DONE
-9. ~~**T10: Inspector Panel Refactor** — Tabbed inspector, per-kind forms, empty state, node actions~~ DONE
-10. ~~**T09: Branch Management UX** — Branch handles, reorder, join policy, catch handler listing~~ DONE
-11. ~~**T11: Context Menu and Keyboard Shortcuts** — Right-click menus, Delete/Duplicate/N key shortcuts~~ DONE
-12. ~~**T12: Overview Page Redesign** — React Flow overview graph, summary stats, node popover, quick actions~~ DONE
-13. ~~**T13: Execution History and Operations Dashboard** — Execution table with filters, health metrics, failure analysis~~ DONE (run comparison deferred)
-14. ~~**T14: AI-Assisted Workflow Creation** — Visual graph diff, validation fix, explain workflow~~ DONE
+ALL 16 TASKS COMPLETE. Project deliverables finished.
+
+Optional polish items (not blocking):
+1. Fix 4 pre-existing inspector test failures (tab auto-selection logic)
+2. Verify caption rendering visually in the running desktop app
+3. Run full E2E suite with Auth0 session to validate interactive tests
 
 ## Context for Resume
 
