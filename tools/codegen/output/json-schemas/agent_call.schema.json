@@ -19,6 +19,14 @@
       "description": "Runtime environment variables to pass to the agent. Values can be literal strings or JQ expressions that reference workflow context or secrets. Example: {\"GITHUB_TOKEN\": \"${ .secrets.GH_TOKEN }\"} Optional.",
       "type": "object"
     },
+    "harness": {
+      "description": "Execution harness for the agent invocation. Determines which execution engine processes the agent call: - HARNESS_UNSPECIFIED / HARNESS_NATIVE: Stigmer native engine (Python/LangGraph) - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor) The workflow-runner creates a Session with this harness before creating the AgentExecution. The harness is a session-level concern — it determines tool availability, state management, model access, and billing tier. When unspecified, defaults to HARNESS_NATIVE for backward compatibility. YAML Example: - code_review: call: agent with: agent: \"code-reviewer\" harness: cursor message: \"Review this PR\"",
+      "enum": [
+        "HARNESS_NATIVE",
+        "HARNESS_CURSOR"
+      ],
+      "type": "string"
+    },
     "message": {
       "description": "Instructions/prompt to send to the agent. Supports interpolation of workflow variables using JQ expressions. Example: \"Analyze this code: ${ $context.fetchCode.body }\" Required field.",
       "minLength": 1,

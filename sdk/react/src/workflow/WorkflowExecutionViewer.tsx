@@ -17,6 +17,8 @@ import { WorkflowRepairCard } from "./WorkflowRepairCard";
 import { WorkflowExecutionGraph } from "./WorkflowExecutionGraph";
 import type { DerivedTaskState } from "../internal/store/workflow-execution-event-store";
 import { ExecutionInspector } from "./execution-inspector";
+import { ExecutionComparisonPicker } from "./execution-comparison/ExecutionComparisonPicker";
+import { ExecutionComparisonView } from "./execution-comparison/ExecutionComparisonView";
 
 /** Props for {@link WorkflowExecutionViewer}. */
 export interface WorkflowExecutionViewerProps {
@@ -165,6 +167,8 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
 
   const [selectedTaskName, setSelectedTaskName] = useState<string | null>(null);
   const [showDiagnosis, setShowDiagnosis] = useState(false);
+  const [showComparePicker, setShowComparePicker] = useState(false);
+  const [compareTargetId, setCompareTargetId] = useState<string | null>(null);
 
   const handleDiagnose = useCallback(() => {
     setShowDiagnosis(true);
@@ -172,6 +176,23 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
 
   const handleCloseDiagnosis = useCallback(() => {
     setShowDiagnosis(false);
+  }, []);
+
+  const handleOpenComparePicker = useCallback(() => {
+    setShowComparePicker(true);
+  }, []);
+
+  const handleCloseComparePicker = useCallback(() => {
+    setShowComparePicker(false);
+  }, []);
+
+  const handleCompareConfirm = useCallback((compareId: string) => {
+    setCompareTargetId(compareId);
+    setShowComparePicker(false);
+  }, []);
+
+  const handleExitComparison = useCallback(() => {
+    setCompareTargetId(null);
   }, []);
 
   const handleApplyFix = useCallback(
@@ -227,8 +248,30 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
         actions={actions}
         onDiagnose={org ? handleDiagnose : undefined}
         isDiagnosing={showDiagnosis}
+        onCompare={handleOpenComparePicker}
       />
 
+      {/* Comparison picker dialog */}
+      <ExecutionComparisonPicker
+        open={showComparePicker}
+        workflowId={execution.spec?.workflowId ?? execution.spec?.workflowInstanceId ?? ""}
+        baseExecutionId={executionId}
+        basePhase={phase ?? 0}
+        onConfirm={handleCompareConfirm}
+        onClose={handleCloseComparePicker}
+      />
+
+      {/* Comparison view (replaces normal content when active) */}
+      {compareTargetId ? (
+        <div className="min-h-0 flex-1 overflow-y-auto p-4">
+          <ExecutionComparisonView
+            baseExecutionId={executionId}
+            compareExecutionId={compareTargetId}
+            onBack={handleExitComparison}
+          />
+        </div>
+      ) : (
+      <>
       {/* Stream error banner */}
       {streamError && (
         <div className="flex items-center gap-2 border-b border-destructive/20 bg-destructive/5 px-4 py-2">
@@ -318,6 +361,8 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
           isSubmittingApproval={actions.isSubmitting}
         />
       </div>
+      </>
+      )}
     </div>
   );
 });

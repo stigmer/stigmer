@@ -558,6 +558,7 @@ func kindOrder(kind string) int {
 		"validate":      17,
 		"emit_event":    18,
 		"notification":  19,
+		"eval":          20,
 	}
 	if v, ok := order[kind]; ok {
 		return v

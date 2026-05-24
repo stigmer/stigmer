@@ -68,9 +68,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-23 14:12
-**Last Session**: 2026-05-24 — T14 AI-Assisted Workflow Creation (visual graph diff, validation fix, explain workflow)
-**Current Task**: T14 complete. All planned tasks done. Next: deferred follow-ups or new features
-**Status**: In Progress — T01-T14 + backend enrichment + data accuracy hardening + instance management UX all done
+**Last Session**: 2026-05-24 — Run Comparison View + Eval Kind Fix
+**Current Task**: Run Comparison complete. Eval fix complete. Next: remaining deferred follow-ups
+**Status**: In Progress — T01-T14 + backend enrichment + data accuracy hardening + instance management UX + run comparison + eval fix all done
 
 ## Session Progress (2026-05-23)
 
@@ -341,6 +341,21 @@ When starting a new session:
 - Initial YAML parse still uses sync dagre for instant rendering; ELK activates on "Auto Layout" button
 - 7 new unit tests (creation, cleanup, race condition, disabled, missing elkjs); all 55 layout tests pass
 - Exported `useElkLayoutEngine`, `UseElkLayoutEngineOptions`, `UseWorkflowCanvasOptions` from SDK public surface
+
+### Run Comparison View + Eval Kind Fix — COMPLETED (2026-05-24)
+- **Eval Fix**: Added `"eval": 20` to codegen `kindOrder()`, regenerated registry to 20 entries, updated embedded data
+- **Run Comparison**: Built `sdk/react/src/workflow/execution-comparison/` module (9 files)
+- Pure derivation `deriveExecutionComparison()` — aligns tasks by name, computes deltas
+- `useExecutionComparison` behavior hook — fetches both executions, derives comparison
+- `ExecutionComparisonPicker` — native dialog with smart pre-selection (last successful)
+- `ComparisonSummaryCards` — 4 delta cards (duration, cost, tokens, task outcomes)
+- `TaskComparisonTable` — per-task table with filter chips (All/Changed/Failed) and divergence marker
+- `ExecutionComparisonView` — top-level composed view
+- Integrated into `WorkflowExecutionViewer` via "Compare with..." button on terminal executions
+- 7 unit tests, 5 E2E test specs
+- All exports wired to SDK public surface
+- Zero backend changes (client-side diff over existing `get()` calls)
+- Changelog: `_changelog/2026-05/2026-05-24-120224-feat-workflow-run-comparison-eval-fix.md`
 
 ## Next Steps
 

@@ -19,6 +19,8 @@ export interface WorkflowExecutionHeaderProps {
   readonly onDiagnose?: () => void;
   /** Whether the diagnosis panel is currently active. */
   readonly isDiagnosing?: boolean;
+  /** Called when the user clicks "Compare with..." on a terminal execution. */
+  readonly onCompare?: () => void;
   readonly className?: string;
 }
 
@@ -36,6 +38,13 @@ const RUNNING_PHASES = new Set<ExecutionPhase>([
  * - Paused: Resume, Cancel
  * - Failed: Recover
  */
+const TERMINAL_PHASES = new Set<ExecutionPhase>([
+  ExecutionPhase.EXECUTION_COMPLETED,
+  ExecutionPhase.EXECUTION_FAILED,
+  ExecutionPhase.EXECUTION_CANCELLED,
+  ExecutionPhase.EXECUTION_TERMINATED,
+]);
+
 export const WorkflowExecutionHeader = memo(function WorkflowExecutionHeader({
   execution,
   streamState,
@@ -43,6 +52,7 @@ export const WorkflowExecutionHeader = memo(function WorkflowExecutionHeader({
   actions,
   onDiagnose,
   isDiagnosing,
+  onCompare,
   className,
 }: WorkflowExecutionHeaderProps) {
   const phase = execution.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
@@ -94,6 +104,14 @@ export const WorkflowExecutionHeader = memo(function WorkflowExecutionHeader({
       )}
 
       <div className="flex shrink-0 items-center gap-1.5">
+        {onCompare && TERMINAL_PHASES.has(phase) && (
+          <ActionButton
+            label="Compare with…"
+            onClick={onCompare}
+            disabled={false}
+          />
+        )}
+
         {isRunning && (
           <>
             <ActionButton
