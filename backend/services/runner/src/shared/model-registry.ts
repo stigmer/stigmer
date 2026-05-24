@@ -2,27 +2,18 @@
  * Model registry — provider lookup and economy-tier model derivation.
  *
  * Fetches the model registry from the Stigmer API (same endpoint as
- * model-pricing-data.ts) but retains the `provider` field for each model.
- * Used by ClassifyToolApprovals to select an economy-tier summarization
- * model based on the primary model's provider.
- *
- * Provider → economy-tier mapping mirrors Python's ModelRegistry:
- *   anthropic → claude-haiku-4.5
- *   openai    → gpt-4o-mini
- *   ollama    → same model (no cost)
+ * model-pricing-data.ts) and uses `costTier` + `harness` fields to
+ * dynamically resolve economy-tier models for extraction/summarization.
  */
 
 const DEFAULT_API_URL = "https://api.stigmer.ai";
 const CACHE_TTL_MS = 3_600_000;
 
-const ECONOMY_MODELS: ReadonlyMap<string, string> = new Map([
-  ["anthropic", "claude-haiku-4.5"],
-  ["openai", "gpt-4o-mini"],
-]);
-
 interface RegistryModel {
   id: string;
   provider: string;
+  costTier: string;
+  harness: string;
 }
 
 let cache: { models: readonly RegistryModel[]; expiresAt: number } | null = null;
@@ -35,7 +26,12 @@ function parseRegistry(json: unknown): RegistryModel[] {
 
   return (models as Array<Record<string, unknown>>)
     .filter((m) => typeof m.id === "string" && typeof m.provider === "string")
-    .map((m) => ({ id: m.id as string, provider: m.provider as string }));
+    .map((m) => ({
+      id: m.id as string,
+      provider: m.provider as string,
+      costTier: (m.costTier as string) ?? "standard",
+      harness: (m.harness as string) ?? "native",
+    }));
 }
 
 async function fetchRegistry(): Promise<readonly RegistryModel[]> {
@@ -98,22 +94,47 @@ export async function isModelRegistered(modelId: string): Promise<boolean> {
  * 3. Fall back to the primary model itself if provider is unknown or unmapped
  */
 export async function getSummarizationModel(primaryModel: string): Promise<string> {
-  const registry = await getRegistry();
-  const entry = registry.find((m) => m.id === primaryModel);
+  return getEconomyModel(primaryModel);
+}
 
-  if (!entry) {
+/**
+ * Resolve the economy-tier model for a given primary model by querying
+ * the registry for costTier=economy + same provider + harness=native.
+ *
+ * Resolution order:
+ * 1. Find the primary model's provider in the registry
+ * 2. Find an economy-tier native model from that provider
+ * 3. Cross-provider fallback: any economy-tier native model
+ * 4. Last resort: return the primary model itself
+ */
+export async function getEconomyModel(primaryModel: string): Promise<string> {
+  const registry = await getRegistry();
+  if (registry.length === 0) {
     console.warn(
-      `Model "${primaryModel}" not found in registry — using it as summarization model`,
+      `Model registry empty — cannot resolve economy model for "${primaryModel}"`,
     );
     return primaryModel;
   }
 
-  const economyModel = ECONOMY_MODELS.get(entry.provider);
-  if (!economyModel) {
-    return primaryModel;
-  }
+  const primary = registry.find((m) => m.id === primaryModel);
+  const targetProvider = primary?.provider ?? "anthropic";
 
-  return economyModel;
+  const sameProviderEconomy = registry.find(
+    (m) => m.provider === targetProvider && m.costTier === "economy" && m.harness === "native",
+  );
+  if (sameProviderEconomy) return sameProviderEconomy.id;
+
+  const anyEconomy = registry.find(
+    (m) => m.costTier === "economy" && m.harness === "native",
+  );
+  if (anyEconomy) return anyEconomy.id;
+
+  if (!primary) {
+    console.warn(
+      `Model "${primaryModel}" not found in registry and no economy fallback available`,
+    );
+  }
+  return primaryModel;
 }
 
 /** Exposed for testing — resets the in-memory cache. */
