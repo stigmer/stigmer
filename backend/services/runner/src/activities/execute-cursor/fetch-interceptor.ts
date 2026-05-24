@@ -15,6 +15,8 @@
  * When STIGMER_PROXY_ENDPOINT is not set, this module is a no-op.
  */
 
+import { AsyncLocalStorage } from "node:async_hooks";
+
 const CURSOR_DOMAINS = [
   "api2.cursor.sh",
   "api.cursor.com",
@@ -29,6 +31,8 @@ interface ProxyConfig {
 
 let interceptorConfig: ProxyConfig | null = null;
 const originalFetch = globalThis.fetch;
+
+const executionContext = new AsyncLocalStorage<{ executionId: string }>();
 
 function isCursorRequest(url: string): boolean {
   try {
@@ -58,8 +62,10 @@ function rewriteUrl(originalUrl: string, proxyEndpoint: string): string {
 function replaceAuth(init: RequestInit | undefined, config: ProxyConfig): RequestInit {
   const headers = new Headers(init?.headers);
   headers.set("authorization", `Bearer ${config.stigmerToken}`);
-  if (config.executionId) {
-    headers.set("x-stigmer-execution-id", config.executionId);
+  const ctx = executionContext.getStore();
+  const effectiveExecutionId = ctx?.executionId ?? config.executionId;
+  if (effectiveExecutionId) {
+    headers.set("x-stigmer-execution-id", effectiveExecutionId);
   }
   return { ...init, headers };
 }
@@ -147,15 +153,28 @@ export function installFetchInterceptor(config: {
 }
 
 /**
- * Update the execution ID on the active interceptor. Called at the start
- * of each Temporal activity to scope proxy requests to the current
- * execution. Temporal workers process one activity at a time per slot,
- * so a mutable config is safe here.
+ * Update the execution ID on the active interceptor (legacy global path).
+ * Prefer {@link runWithExecutionContext} for concurrent-safe isolation.
+ *
+ * @deprecated Use runWithExecutionContext() instead for concurrent activities.
  */
 export function setInterceptorExecutionId(executionId: string | undefined): void {
   if (interceptorConfig) {
     interceptorConfig = { ...interceptorConfig, executionId };
   }
+}
+
+/**
+ * Run an async function with execution-scoped context. The executionId is
+ * propagated through the async call chain via AsyncLocalStorage, ensuring
+ * concurrent activities on the same runner process don't overwrite each
+ * other's proxy headers.
+ */
+export function runWithExecutionContext<T>(
+  executionId: string,
+  fn: () => Promise<T>,
+): Promise<T> {
+  return executionContext.run({ executionId }, fn);
 }
 
 /**
