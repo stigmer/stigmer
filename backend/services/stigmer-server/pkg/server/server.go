@@ -14,6 +14,7 @@ import (
 	"github.com/rs/zerolog/log"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	artifactv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/artifact/v1"
 	agentinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
 	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
@@ -34,6 +35,7 @@ import (
 	agentexecutioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/controller"
 	agentexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal"
 	agentinstancecontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentinstance/controller"
+	artifactcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/artifact/controller"
 	artifactstorage "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/artifact/storage"
 	environmentcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/environment/controller"
 	executioncontextcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/executioncontext/controller"
@@ -278,6 +280,13 @@ func Run() error {
 	log.Info().
 		Str("storage_type", cfg.ArtifactStorage.Type).
 		Msg("Initialized artifact storage for agent execution attachments and outputs")
+
+	// Create and register Artifact controller (T07 Artifact Store)
+	artifactController := artifactcontroller.NewArtifactController(store, agentExecutionArtifactStorage)
+	artifactv1.RegisterArtifactCommandControllerServer(grpcServer, artifactController)
+	artifactv1.RegisterArtifactQueryControllerServer(grpcServer, artifactController)
+
+	log.Info().Msg("Registered Artifact controllers")
 
 	// Create and register Agent controller (without dependencies initially)
 	agentController := agentcontroller.NewAgentController(store, nil)

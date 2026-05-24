@@ -154,12 +154,33 @@ export async function executeDoTasks(
     }
 
     const taskDurationMs = Date.now() - taskStartMs;
+
+    // T07: Promote large outputs to artifact store before truncation.
+    // If promote is unavailable or the output is small, this is a no-op.
+    let promotedOutput = taskOutput;
+    let promotionArtifactIds: string[] = [];
+    const promotionEvents: Array<{ type: "artifact_created"; artifactId: string; displayName: string; contentType: string; sizeBytes: number; occurredAt: string }> = [];
+    if (effectiveCtx.promoteTaskOutput) {
+      try {
+        const promotion = await effectiveCtx.promoteTaskOutput(
+          taskOutput,
+          state.env?.__stigmer_execution_id as string ?? "",
+          entry.key,
+        );
+        promotedOutput = promotion.output;
+        promotionArtifactIds = promotion.artifactIds;
+        promotionEvents.push(...promotion.artifactCreatedEvents);
+      } catch {
+        // Promotion is best-effort; fall through with original output.
+      }
+    }
+
     const costInfo = extractCostFromOutput(taskOutput);
     effectiveCtx.taskStatusAccumulator?.taskCompletedWithResult(
-      entry.key, taskDurationMs, truncatePayload(taskOutput), costInfo,
+      entry.key, taskDurationMs, truncatePayload(promotedOutput), costInfo,
     );
     if (effectiveCtx.emitEvents) {
-      await effectiveCtx.emitEvents([{
+      const events: Parameters<typeof effectiveCtx.emitEvents>[0] = [{
         type: "task_completed",
         taskName: entry.key,
         occurredAt: new Date().toISOString(),
@@ -167,7 +188,11 @@ export async function executeDoTasks(
         durationMs: taskDurationMs,
         costMicros: costInfo.costMicros,
         tokensUsed: costInfo.inputTokens + costInfo.outputTokens,
-      }]);
+      }];
+      for (const evt of promotionEvents) {
+        events.push(evt as unknown as (typeof events)[number]);
+      }
+      await effectiveCtx.emitEvents(events);
     }
 
     if (kind === "call:agent" && taskOutput && typeof taskOutput === "object") {
