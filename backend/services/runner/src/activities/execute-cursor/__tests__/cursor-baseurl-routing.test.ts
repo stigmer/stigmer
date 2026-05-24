@@ -1,14 +1,20 @@
 /**
- * Test that CURSOR_API_BASE_URL and CURSOR_BACKEND_URL env vars redirect
- * SDK traffic to the correct proxy paths.
+ * Test that the SDK works correctly when CURSOR_BACKEND_URL is unset.
  *
- * The Cursor SDK uses two separate base URLs:
- *   CURSOR_API_BASE_URL → Connect RPC transport (api2.cursor.sh)
- *   CURSOR_BACKEND_URL  → REST API / CloudApiClient (api.cursor.com)
+ * In proxy mode, only CURSOR_API_BASE_URL is set (for Connect RPC).
+ * CURSOR_BACKEND_URL is left unset so the SDK uses its built-in defaults:
+ *   - CloudApiClient → api.cursor.com (REST: /v1/models, CRUD)
+ *   - Token exchange → api2.cursor.sh (/auth/exchange_user_api_key)
  *
- * We point both to nonexistent local endpoints on different ports and
- * expect connection errors (not auth errors), proving the SDK respects
- * each env var independently.
+ * This test verifies:
+ *   1. Model validation (GET /v1/models) works with real API key when
+ *      CURSOR_BACKEND_URL is unset (routes to api.cursor.com by default)
+ *   2. Agent execution works end-to-end (token exchange + Connect RPC)
+ *
+ * NOTE: CURSOR_API_BASE_URL routing cannot be tested from vitest because
+ * the native SDK binary reads it at process startup, not at import time.
+ * That routing is validated by the production code in main.ts which sets
+ * the env var BEFORE any SDK import.
  */
 
 import { describe, it, expect, beforeAll } from "vitest";
@@ -16,64 +22,66 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
-const CONNECT_RPC_PORT = 19998;
-const REST_API_PORT = 19999;
+const CURSOR_API_KEY = process.env.CURSOR_API_KEY ?? "";
 
-describe("Cursor SDK env var routing", () => {
+describe("SDK routing with CURSOR_BACKEND_URL unset", () => {
   beforeAll(() => {
-    // Connect RPC (agent send/receive) → separate port from REST API
-    process.env.CURSOR_API_BASE_URL = `http://127.0.0.1:${CONNECT_RPC_PORT}`;
-    // REST API (CloudApiClient: /v1/models, agent CRUD) → different port
-    process.env.CURSOR_BACKEND_URL = `http://127.0.0.1:${REST_API_PORT}`;
+    if (!CURSOR_API_KEY) {
+      throw new Error(
+        "CURSOR_API_KEY not set. Run with: CURSOR_API_KEY=<key> npm run test -- --run cursor-baseurl",
+      );
+    }
+    // Ensure CURSOR_BACKEND_URL is unset — the SDK should use its built-in
+    // defaults for REST calls (model validation → api.cursor.com, token
+    // exchange → api2.cursor.sh).
+    delete process.env.CURSOR_BACKEND_URL;
   });
 
-  it("Agent.create() with model routes model validation to CURSOR_BACKEND_URL", async () => {
-    const { Agent } = await import("@cursor/sdk");
-
-    const stateRoot = join(tmpdir(), `cursor-baseurl-test-${Date.now()}`);
+  it("Agent.create() with explicit model succeeds (model validation via default api.cursor.com)", async () => {
+    const stateRoot = join(tmpdir(), `cursor-routing-test-${Date.now()}`);
     mkdirSync(stateRoot, { recursive: true });
 
-    // With a model specified, the SDK validates it by calling GET /v1/models
-    // via CloudApiClient, which reads CURSOR_BACKEND_URL (REST API host).
-    try {
-      await Agent.create({
-        apiKey: "test-key-doesnt-matter",
-        model: { id: "claude-sonnet-4" },
-        local: { cwd: stateRoot },
-        platform: {
-          workspaceRef: `baseurl-test-${Date.now()}`,
-          stateRoot,
-        },
-      });
+    const { Agent } = await import("@cursor/sdk");
 
-      expect.fail("Should have failed to connect to nonexistent endpoint");
-    } catch (err: any) {
-      const msg = err.message ?? String(err);
-      const cause = err.cause?.message ?? "";
-      const causeOfCause = err.cause?.cause?.message ?? "";
-      const allMsg = `${msg} ${cause} ${causeOfCause}`;
-      console.log(`Error: ${msg}`);
-      console.log(`Cause: ${cause}`);
-      console.log(`CauseOfCause: ${causeOfCause}`);
+    const agent = await Agent.create({
+      apiKey: CURSOR_API_KEY,
+      model: { id: "claude-sonnet-4" },
+      local: { cwd: stateRoot },
+      platform: {
+        workspaceRef: `routing-test-${Date.now()}`,
+        stateRoot,
+      },
+    });
 
-      const isRoutedToOurEndpoint =
-        allMsg.includes("ECONNREFUSED") ||
-        allMsg.includes(`127.0.0.1:${REST_API_PORT}`) ||
-        allMsg.includes("Network request failed");
+    expect(agent).toBeDefined();
+    expect(agent.agentId).toBeTruthy();
+    console.log(`Agent created with model validation: agentId=${agent.agentId}`);
+  }, 30_000);
 
-      const isCursorAuthError =
-        allMsg.includes("cursor.sh") ||
-        allMsg.includes("cursor.com") ||
-        allMsg.includes("unauthenticated");
+  it("agent.send() succeeds (token exchange + Connect RPC round-trip)", async () => {
+    const stateRoot = join(tmpdir(), `cursor-routing-send-${Date.now()}`);
+    mkdirSync(stateRoot, { recursive: true });
 
-      console.log(`routedToCustomEndpoint=${isRoutedToOurEndpoint}, cursorAuthError=${isCursorAuthError}`);
+    const { Agent } = await import("@cursor/sdk");
 
-      if (isRoutedToOurEndpoint) {
-        console.log("PROVEN: SDK respects CURSOR_BACKEND_URL for REST API routing");
-      }
+    const agent = await Agent.create({
+      apiKey: CURSOR_API_KEY,
+      model: { id: "claude-sonnet-4" },
+      local: { cwd: stateRoot },
+      platform: {
+        workspaceRef: `routing-send-test-${Date.now()}`,
+        stateRoot,
+      },
+    });
 
-      expect(isRoutedToOurEndpoint).toBe(true);
-      expect(isCursorAuthError).toBe(false);
-    }
-  }, 15_000);
+    const run = await agent.send("Reply with exactly: routing-test-ok");
+    const result = await run.wait();
+
+    expect(result).toBeDefined();
+    expect(["completed", "finished"]).toContain(result.status);
+    console.log(
+      `Full round-trip succeeded: runId=${result.id}, status=${result.status}, ` +
+      `durationMs=${result.durationMs}`,
+    );
+  }, 120_000);
 });

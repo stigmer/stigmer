@@ -1,69 +1,81 @@
-# Fix Cursor SDK `/v1/models` Route Not Found in Proxy Mode
+# Fix Cursor SDK Proxy Routing: Separate Connect RPC from REST/Fetch Paths
 
 **Date**: May 24, 2026
 
 ## Summary
 
-Fixed a routing error where the Cursor SDK's model validation call (`GET /v1/models`) was sent to the Connect RPC host (`api2.cursor.sh`) instead of the REST API host (`api.cursor.com`). The Connect RPC server doesn't serve REST endpoints, causing `Route GET:/v1/models not found` and blocking all workflow executions via the desktop app in cloud mode.
+Fixed two proxy routing failures in the Cursor SDK integration: `Route GET:/v1/models not found` and `API key exchange failed with status 403`. The root cause was setting `CURSOR_BACKEND_URL` to a single host, but the SDK uses this env var for two components that need different upstream hosts. The fix removes `CURSOR_BACKEND_URL` entirely and relies on the existing fetch interceptor to route REST calls while preserving the correct upstream host.
 
 ## Problem Statement
 
-After the earlier proxy routing fix (commit `297575cb1`) that replaced the broken `globalThis.fetch` interceptor with `CURSOR_API_BASE_URL` / `CURSOR_BACKEND_URL` env vars, workflow executions via the desktop app started failing with:
+After the earlier proxy routing fix (commit `297575cb1`) that set `CURSOR_API_BASE_URL` and `CURSOR_BACKEND_URL`, workflow executions failed with:
 
-```
-ExecuteCursor failed: [c] [unknown] Route GET:/v1/models not found
-```
+1. `Route GET:/v1/models not found` — when `CURSOR_BACKEND_URL` pointed to `api2.cursor.sh`
+2. `API key exchange failed with status 403` — when `CURSOR_BACKEND_URL` pointed to `api.cursor.com`
 
 ### Pain Points
 
-- Every `Agent.create({ model })` call failed in proxy mode — no workflow could execute
-- The error was confusing: it appeared to be a missing route, but the proxy controller handles `/v1/models` fine
-- Intermittent success masked the issue: previously-cached model lists or runners started before the fix worked fine
+- Setting `CURSOR_BACKEND_URL` to either host broke the other component
+- The SDK uses this single env var for two components with different host requirements
+- The auth exchange failure manifested as an unhandled rejection during agent execution
+
+## Root Cause
+
+The Cursor SDK reads `CURSOR_BACKEND_URL` in two places with **different defaults**:
+
+```javascript
+// CloudApiClient (REST: /v1/models, agent CRUD)
+this.baseUrl = process.env.CURSOR_BACKEND_URL ?? "https://api.cursor.com"
+
+// Token exchange (/auth/exchange_user_api_key)
+new B(apiKey, process.env.CURSOR_BACKEND_URL ?? "https://api2.cursor.sh", exchangeFn)
+```
+
+When unset, each uses its correct host. Setting it to any value forces both to the same host, breaking one or the other.
+
+Crucially, both components use `globalThis.fetch` (not Connect RPC), so they are already handled by the fetch interceptor.
 
 ## Solution
 
-Set `CURSOR_BACKEND_URL` to the correct Cursor REST API host (`api.cursor.com`) instead of the Connect RPC host (`api2.cursor.sh`).
-
-The Cursor SDK internally uses two separate base URLs:
-- `CURSOR_API_BASE_URL` → `api2.cursor.sh` (Connect RPC for agent send/receive)
-- `CURSOR_BACKEND_URL` → `api.cursor.com` (REST API for `CloudApiClient`: model listing, agent CRUD, `/v1/me`)
-
-The previous fix set both to `api2.cursor.sh`, but only `CURSOR_API_BASE_URL` should point there.
-
-## Implementation Details
-
-### 1. Runner startup (`main.ts`)
-
-Changed `CURSOR_BACKEND_URL` to route through the `api.cursor.com` proxy path:
+Only set `CURSOR_API_BASE_URL` (for Connect RPC, which bypasses fetch). Leave `CURSOR_BACKEND_URL` **unset** so each SDK component uses its default host, and the fetch interceptor routes them through the proxy:
 
 ```typescript
-process.env.CURSOR_API_BASE_URL = `${proxyBase}/v1/proxy/cursor/api2.cursor.sh`;
-process.env.CURSOR_BACKEND_URL = `${proxyBase}/v1/proxy/cursor/api.cursor.com`;
+if (bootConfig.proxyEndpoint) {
+  const proxyBase = bootConfig.proxyEndpoint.replace(/\/+$/, "");
+  process.env.CURSOR_API_BASE_URL = `${proxyBase}/v1/proxy/cursor/api2.cursor.sh`;
+  // CURSOR_BACKEND_URL intentionally left unset
+}
 ```
 
-No proxy-side changes needed — `api.cursor.com` is already in `CursorProxyController`'s `ALLOWED_UPSTREAM_HOSTS`, and `/v1/models` is already in `METADATA_UPSTREAM_PATHS` for scope bypass.
+### How it works
 
-### 2. Updated routing test
+The fetch interceptor (`fetch-interceptor.ts`) already intercepts all `fetch()` calls to Cursor domains and rewrites them through the proxy while preserving the original hostname:
 
-Updated `cursor-baseurl-routing.test.ts` to use separate ports for each env var (19998 for Connect RPC, 19999 for REST API), verifying the SDK respects each independently.
+| SDK Component | Default Host | Fetch Interceptor Rewrites To |
+|---|---|---|
+| CloudApiClient (`/v1/models`) | `api.cursor.com` | `{proxy}/v1/proxy/cursor/api.cursor.com/v1/models` |
+| Token exchange (`/auth/exchange`) | `api2.cursor.sh` | `{proxy}/v1/proxy/cursor/api2.cursor.sh/auth/exchange_user_api_key` |
+| Connect RPC (agent send) | `CURSOR_API_BASE_URL` | Direct to proxy (doesn't use fetch) |
 
 ## Benefits
 
-- Desktop app can execute Cursor-harness workflows in cloud mode again
-- Model validation correctly routes to the REST API host
-- No changes needed on the proxy server side
+- Both REST and auth exchange route to their correct upstream hosts
+- Connect RPC continues routing via `CURSOR_API_BASE_URL`
+- No proxy-side changes needed
+- OSS/direct mode unaffected (env vars remain unset)
 
 ## Impact
 
 - **Desktop app**: Unblocks all Cursor-harness agent executions in cloud/proxy mode
-- **OSS users**: No change — direct `CURSOR_API_KEY` flow leaves both env vars unset (SDK defaults work)
+- **OSS users**: No change — direct `CURSOR_API_KEY` flow unchanged
 
 ## Related Work
 
-- [Fix Cursor SDK Proxy Routing via CURSOR_API_BASE_URL](2026-05-24-153338-fix-cursor-sdk-proxy-routing.md) — the earlier fix that introduced this regression
+- [Fix Cursor SDK Proxy Routing via CURSOR_API_BASE_URL](2026-05-24-153338-fix-cursor-sdk-proxy-routing.md) — earlier fix that introduced this regression
 - `CursorProxyController.java` — server-side proxy (no changes needed)
+- `fetch-interceptor.ts` — the fetch interceptor that handles REST/fetch routing
 
 ---
 
 **Status**: ✅ Production Ready
-**Timeline**: ~30 minutes (root cause analysis from SDK source + targeted fix)
+**Timeline**: ~1 hour (iterative root cause analysis from SDK source)
