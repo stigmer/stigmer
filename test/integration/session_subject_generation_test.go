@@ -4,6 +4,7 @@ package integration
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
@@ -185,6 +186,9 @@ func TestSession_SubjectGeneration_WorkflowCallAgent(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
 	if testHarness.UnifiedRunner == nil {
 		t.Skip("unified runner not available — skipping workflow agent_call subject test")
+	}
+	if os.Getenv("ANTHROPIC_API_KEY") == "" {
+		t.Skip("ANTHROPIC_API_KEY not set — skipping: child agent_call requires LLM to complete")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
