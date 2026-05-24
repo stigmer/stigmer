@@ -8,6 +8,7 @@ import { WorkflowCodePreviewGraph } from "./WorkflowCodePreviewGraph";
 import { WorkflowCanvasEditor } from "./WorkflowCanvasEditor";
 import type { LayoutEngine } from "./layout";
 import { WorkflowRefinePanel } from "./WorkflowRefinePanel";
+import { WorkflowExplainDialog } from "./WorkflowExplainDialog";
 import { yamlToGraph } from "./workflow-graph-conversions";
 
 /** Props for {@link WorkflowEditorView}. */
@@ -74,6 +75,8 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
   const [showModeWarning, setShowModeWarning] = useState(false);
   const [canvasIsSaving, setCanvasIsSaving] = useState(false);
   const [showRefinePanel, setShowRefinePanel] = useState(false);
+  const [pendingFixInstruction, setPendingFixInstruction] = useState<string | undefined>(undefined);
+  const [showExplainDialog, setShowExplainDialog] = useState(false);
 
   // Track canvas dirty state separately for mode switch prompts
   const [canvasDirty, setCanvasDirty] = useState(false);
@@ -154,7 +157,25 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
 
   const toggleRefinePanel = useCallback(() => {
     setShowRefinePanel((prev) => !prev);
+    setPendingFixInstruction(undefined);
   }, []);
+
+  const handleFixWithAI = useCallback(() => {
+    const errorDiags = editor.diagnostics.filter((d) => d.severity === "error");
+    if (errorDiags.length === 0) return;
+
+    const lines = errorDiags.map((d, i) => `${i + 1}. ${d.message}`);
+    const instruction = [
+      "Fix the following validation errors in this workflow:",
+      "",
+      ...lines,
+      "",
+      "Please fix these issues and return the corrected workflow.",
+    ].join("\n");
+
+    setPendingFixInstruction(instruction);
+    setShowRefinePanel(true);
+  }, [editor.diagnostics]);
 
   const handleRefineAccept = useCallback(
     (updatedYaml: string) => {
@@ -226,6 +247,20 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
             errorCount={editor.errorCount}
             warningCount={editor.warningCount}
           />
+          {editor.errorCount > 0 && (
+            <button
+              type="button"
+              onClick={handleFixWithAI}
+              className={cn(
+                "inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors",
+                "text-muted-foreground hover:bg-muted hover:text-foreground",
+              )}
+              aria-label="Fix validation errors with AI"
+            >
+              <FixSparklesIcon />
+              Fix with AI
+            </button>
+          )}
           {(editor.isDirty || canvasDirty) && (
             <span className="text-xs text-muted-foreground">Unsaved changes</span>
           )}
@@ -262,6 +297,18 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
           )}
           <button
             type="button"
+            onClick={() => setShowExplainDialog(true)}
+            className={cn(
+              "inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors",
+              "text-muted-foreground hover:bg-muted hover:text-foreground",
+            )}
+            aria-label="Explain this workflow"
+          >
+            <ExplainIcon />
+            Explain
+          </button>
+          <button
+            type="button"
             onClick={toggleFullPage}
             className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
             aria-label={isFullPage ? "Exit full page" : "Full page"}
@@ -288,6 +335,14 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
         <DirtyPromptDialog onDiscard={confirmDiscardAndSwitchToCode} onCancel={cancelSwitchToCode} />
       )}
 
+      {/* Explain dialog */}
+      <WorkflowExplainDialog
+        open={showExplainDialog}
+        onOpenChange={setShowExplainDialog}
+        org={org}
+        currentYaml={editor.yaml}
+      />
+
       {/* Main content area */}
       <div className="flex min-h-0 flex-1">
         {mode === "code" ? (
@@ -307,6 +362,7 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
                   currentYaml={editor.yaml}
                   onAccept={handleRefineAccept}
                   onClose={toggleRefinePanel}
+                  initialInstruction={pendingFixInstruction}
                   className="h-full"
                 />
               ) : (
@@ -335,6 +391,7 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
                   currentYaml={editor.yaml}
                   onAccept={handleRefineAccept}
                   onClose={toggleRefinePanel}
+                  initialInstruction={pendingFixInstruction}
                   className="h-full"
                 />
               </div>
@@ -511,6 +568,44 @@ function CheckCircleIcon() {
 }
 
 function RefineSparklesIcon() {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M8 2l1.5 4.5L14 8l-4.5 1.5L8 14l-1.5-4.5L2 8l4.5-1.5z" />
+    </svg>
+  );
+}
+
+function ExplainIcon() {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="8" cy="8" r="6.5" />
+      <path d="M6.5 6a1.5 1.5 0 1 1 1.5 1.5V9" />
+      <circle cx="8" cy="11.5" r="0.5" fill="currentColor" />
+    </svg>
+  );
+}
+
+function FixSparklesIcon() {
   return (
     <svg
       width="12"

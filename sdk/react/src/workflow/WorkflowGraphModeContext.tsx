@@ -11,8 +11,10 @@ import { createContext, useContext, type ReactNode } from "react";
  *   summary popovers, recent health badges.
  * - `execution`: Read-only with live status — execution overlays, branch
  *   highlighting, runtime inspector.
+ * - `diff`: Read-only visual diff — added/removed/modified node badges,
+ *   change-highlighting edges, summary bar.
  */
-export type WorkflowGraphMode = "design" | "overview" | "execution";
+export type WorkflowGraphMode = "design" | "overview" | "execution" | "diff";
 
 const Context = createContext<WorkflowGraphMode>("design");
 

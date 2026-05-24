@@ -15,6 +15,8 @@ import { useWorkflowExecutionList } from "./useWorkflowExecutionList";
 import { useWorkflowDashboardSummary } from "./useWorkflowDashboardSummary";
 import { WorkflowOverviewGraph } from "./WorkflowOverviewGraph";
 import { WorkflowOverviewSummary } from "./WorkflowOverviewSummary";
+import { WorkflowExplainDialog } from "./WorkflowExplainDialog";
+import { serializeWorkflowYaml } from "./serialize-workflow-yaml";
 import { WorkflowExecutionHistory } from "./execution-history/WorkflowExecutionHistory";
 import { WorkflowInstanceList } from "./instance/WorkflowInstanceList";
 import { ErrorMessage } from "../error/ErrorMessage";
@@ -357,6 +359,15 @@ function OverviewTab({
   const showEnv = editable || envEntries.length > 0;
 
   const [envEditing, setEnvEditing] = useState(false);
+  const [showExplain, setShowExplain] = useState(false);
+
+  const workflowYaml = useMemo(() => {
+    try {
+      return serializeWorkflowYaml(workflow);
+    } catch {
+      return "";
+    }
+  }, [workflow]);
 
   const workflowId = workflow.metadata?.id;
   const { summary, isLoading: summaryLoading } = useWorkflowDashboardSummary({
@@ -423,30 +434,45 @@ function OverviewTab({
       )}
 
       {/* Quick action links */}
-      {(onOpenInEditor || (onViewLatestRun && latestExecId) || (onExecutionClick && latestExecId)) && (
-        <div className="flex flex-wrap items-center gap-3">
-          {onOpenInEditor && (
-            <QuickActionButton
-              label="Edit workflow"
-              onClick={() => onOpenInEditor("")}
-              icon={<EditIcon />}
-            />
-          )}
-          {latestExecId && onViewLatestRun && (
-            <QuickActionButton
-              label="View latest run"
-              onClick={() => onViewLatestRun(latestExecId)}
-              icon={<PlayIcon />}
-            />
-          )}
-          {latestExecId && !onViewLatestRun && onExecutionClick && (
-            <QuickActionButton
-              label="View latest run"
-              onClick={() => onExecutionClick(latestExecId)}
-              icon={<PlayIcon />}
-            />
-          )}
-        </div>
+      <div className="flex flex-wrap items-center gap-3">
+        {onOpenInEditor && (
+          <QuickActionButton
+            label="Edit workflow"
+            onClick={() => onOpenInEditor("")}
+            icon={<EditIcon />}
+          />
+        )}
+        {latestExecId && onViewLatestRun && (
+          <QuickActionButton
+            label="View latest run"
+            onClick={() => onViewLatestRun(latestExecId)}
+            icon={<PlayIcon />}
+          />
+        )}
+        {latestExecId && !onViewLatestRun && onExecutionClick && (
+          <QuickActionButton
+            label="View latest run"
+            onClick={() => onExecutionClick(latestExecId)}
+            icon={<PlayIcon />}
+          />
+        )}
+        {workflowYaml && (
+          <QuickActionButton
+            label="What does this workflow do?"
+            onClick={() => setShowExplain(true)}
+            icon={<ExplainQuestionIcon />}
+          />
+        )}
+      </div>
+
+      {/* Explain dialog */}
+      {workflowYaml && (
+        <WorkflowExplainDialog
+          open={showExplain}
+          onOpenChange={setShowExplain}
+          org={org}
+          currentYaml={workflowYaml}
+        />
       )}
 
       {showDescription && (
@@ -587,6 +613,16 @@ function PlayIcon() {
   return (
     <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <polygon points="5,3 13,8 5,13" />
+    </svg>
+  );
+}
+
+function ExplainQuestionIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="8" cy="8" r="6.5" />
+      <path d="M6.5 6a1.5 1.5 0 1 1 1.5 1.5V9" />
+      <circle cx="8" cy="11.5" r="0.5" fill="currentColor" />
     </svg>
   );
 }

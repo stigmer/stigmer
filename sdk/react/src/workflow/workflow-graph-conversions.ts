@@ -481,6 +481,8 @@ export interface CanvasTaskNodeData extends Record<string, unknown> {
   executionState?: NodeExecutionState;
   /** Fork branch completion progress (T06). Present only for fork nodes in execution mode. */
   forkProgress?: { readonly completed: number; readonly total: number; readonly compete: boolean };
+  /** Diff state (T14). Present only in diff mode. */
+  diffState?: { readonly status: import("./diff/types").NodeDiffStatus; readonly changedFields?: readonly string[] };
 }
 
 /** Data payload attached to canvas transition edges. */
@@ -488,6 +490,8 @@ export interface CanvasTransitionEdgeData extends Record<string, unknown> {
   label?: string;
   /** Edge execution state (T06). Present only in execution mode. */
   executionState?: import("./execution").EdgeExecutionState;
+  /** Edge diff state (T14). Present only in diff mode. */
+  diffState?: import("./diff/types").EdgeDiffStatus;
 }
 
 /**

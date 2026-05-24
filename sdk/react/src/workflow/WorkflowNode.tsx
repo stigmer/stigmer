@@ -5,7 +5,7 @@ import type { NodeProps } from "@xyflow/react";
 import { CATEGORY_COLORS } from "./canvas-constants";
 import type { CanvasTaskNodeData } from "./workflow-graph-conversions";
 import { getVisualSpec } from "./task-type-visual-registry";
-import { NodeShell, NodeContent, NodeHandles, NodeActions, ExecutionBadge, BranchBadge } from "./node-shell";
+import { NodeShell, NodeContent, NodeHandles, NodeActions, ExecutionBadge, BranchBadge, DiffBadge } from "./node-shell";
 import { useWorkflowGraphMode } from "./WorkflowGraphModeContext";
 
 const NESTED_TASK_KINDS = new Set(["fork", "for_each", "try_catch"]);
@@ -32,12 +32,14 @@ export const WorkflowNode = memo(function WorkflowNode({
   const errorCount = data.errorCount ?? 0;
   const isNested = NESTED_TASK_KINDS.has(data.kindString);
   const executionState = data.executionState;
+  const diffState = data.diffState;
 
   return (
     <div
       data-visual-class={data.visualClass}
       data-task-kind={data.kindString}
       data-execution-status={executionState?.status}
+      data-diff-status={diffState?.status}
       aria-label={buildAriaLabel(data, errorCount, executionState?.status)}
     >
       <NodeShell
@@ -48,6 +50,7 @@ export const WorkflowNode = memo(function WorkflowNode({
         selected={selected}
         errorCount={mode === "design" ? errorCount : 0}
         executionStatus={executionState?.status}
+        diffStatus={mode === "diff" ? diffState?.status : undefined}
       >
         <NodeContent
           visualClass={visualSpec.visualClass}
@@ -74,6 +77,14 @@ export const WorkflowNode = memo(function WorkflowNode({
           status={executionState.status}
           attemptNumber={executionState.attemptNumber}
           forkProgress={data.forkProgress ?? undefined}
+        />
+      )}
+
+      {/* Diff badge — diff mode only */}
+      {mode === "diff" && diffState && (
+        <DiffBadge
+          status={diffState.status}
+          changedFieldCount={diffState.changedFields?.length}
         />
       )}
 
