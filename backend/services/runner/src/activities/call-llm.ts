@@ -33,6 +33,7 @@ import {
   type LlmProvider,
 } from "../shared/llm-proxy.js";
 import { computeLlmCostMicros, ensureLoaded as ensurePricingLoaded } from "../shared/model-pricing.js";
+import { resolveToApiModelId } from "../shared/model-registry.js";
 
 export interface LlmCallConfig {
   readonly model: string;
@@ -247,8 +248,9 @@ export async function callLlmAction(
     throw new Error("LLM call requires 'prompt' in config");
   }
 
-  const provider = inferProvider(config.model);
-  const modelId = stripProviderPrefix(config.model);
+  const resolvedModel = await resolveToApiModelId(config.model);
+  const provider = inferProvider(resolvedModel);
+  const modelId = stripProviderPrefix(resolvedModel);
   const callStart = Date.now();
 
   await ensurePricingLoaded().catch(() => {});
@@ -328,7 +330,7 @@ export async function callLlmAction(
     classifyAndThrowLlmError(err, modelId, provider);
   }
 
-  const costMicros = computeLlmCostMicros(modelId, result.input_tokens, result.output_tokens);
+  const costMicros = computeLlmCostMicros(config.model, result.input_tokens, result.output_tokens);
   const enrichedResult = costMicros > 0
     ? { ...result, __stigmer_cost_micros: costMicros }
     : result;
