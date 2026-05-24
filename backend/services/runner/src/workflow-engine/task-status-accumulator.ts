@@ -71,6 +71,11 @@ export class TaskStatusAccumulator {
     return this.attemptCounts.get(name) ?? 1;
   }
 
+  /** Returns the current attempt number for a task (1-based). */
+  getAttempt(name: string): number {
+    return this.attemptCounts.get(name) ?? 1;
+  }
+
   taskStarted(name: string, kind: string): void {
     const attempt = this.nextAttempt(name);
     this.entries.set(name, {
@@ -135,7 +140,7 @@ export class TaskStatusAccumulator {
     category: string;
     detail: string;
     retryable: boolean;
-  }): void {
+  }, durationMs?: number): void {
     const existing = this.entries.get(name);
     const metadata = structuredError
       ? {
@@ -155,6 +160,7 @@ export class TaskStatusAccumulator {
       startedAt: existing?.startedAt,
       completedAt: new Date().toISOString(),
       error,
+      durationMs,
       metadata,
     });
   }

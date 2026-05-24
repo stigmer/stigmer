@@ -219,6 +219,18 @@ describe("toProtoEvent", () => {
       if (evt.payload.case !== "taskStarted") throw new Error("unexpected");
       expect(evt.payload.value.taskKind).toBe(WorkflowTaskKind.activity_call);
     });
+
+    it("maps call:function:cursor to proto agent_call (13)", () => {
+      const desc: WorkflowEventDescriptor = {
+        type: "task_started",
+        taskName: "cursor_agent",
+        occurredAt: "2024-01-01T00:00:00.000Z",
+        taskKind: "call:function:cursor",
+        attemptNumber: 1,
+      };
+      const proto = toProtoEvent(desc);
+      expect(proto.payload.value?.taskKind).toBe(WorkflowTaskKind.agent_call);
+    });
   });
 
   describe("task_completed", () => {

@@ -447,6 +447,22 @@ export interface TaskExecutionContext {
    * receives a complete snapshot of task statuses with each update.
    */
   readonly taskStatusAccumulator?: TaskStatusAccumulator;
+
+  /**
+   * Set by try.ts when the current execution is inside a try block
+   * with catch.retry configured. Allows the do-executor to emit
+   * accurate `willRetry` on task_failed events.
+   */
+  readonly retryContext?: RetryContextInfo;
+}
+
+/**
+ * Communicates retry intent from a try/catch block to the do-executor
+ * so task_failed events can report `willRetry` accurately.
+ */
+export interface RetryContextInfo {
+  /** Total attempts allowed (first attempt + retry count). Infinity when only duration-limited. */
+  readonly maxAttempts: number;
 }
 
 /**

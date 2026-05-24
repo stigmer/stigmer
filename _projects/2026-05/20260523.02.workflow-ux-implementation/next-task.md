@@ -68,9 +68,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-23 14:12
-**Last Session**: 2026-05-23 — Runner backend enrichment follow-ups complete (agent call events, task retrying, task_id, LLM cost)
-**Current Task**: T13: Execution History and Operations Dashboard
-**Status**: In Progress — T01-T12 + backend follow-ups all done, T13 remaining
+**Last Session**: 2026-05-24 — Runner data accuracy hardening (8 bug fixes, 23 new tests)
+**Current Task**: T13: Execution History and Operations Dashboard (or medium-priority backend follow-ups)
+**Status**: In Progress — T01-T12 + backend enrichment + data accuracy hardening all done, T13+ remaining
 
 ## Session Progress (2026-05-23)
 
@@ -295,6 +295,20 @@ When starting a new session:
 - Committed as `d024b3b0e`
 - Changelog: `_changelog/2026-05/2026-05-23-235048-feat-runner-backend-enrichment-followups.md`
 
+### Runner Data Accuracy Hardening — COMPLETED (2026-05-24)
+- Fixed 8 data accuracy bugs in the execution data pipeline that corrupted inspector/waterfall/overview UX
+- **Attempt number propagation**: Exposed `getAttempt()` on accumulator; replaced hardcoded `attemptNumber: 1` with tracked values
+- **willRetry signaling**: Added `RetryContextInfo` + `retryContext` on `TaskExecutionContext`; try.ts sets it for retry-capable blocks
+- **Failed task durationMs**: Added `durationMs` param to `taskFailed()` — waterfall bars now have proper width for failures
+- **Cursor kind mapping**: Added `call:function:cursor` to `TASK_KIND_MAP` → `agent_call`
+- **Agent token attribution**: Added `token_attribution: "total_only"` metadata so frontend avoids misleading split display
+- **LLM structured output tokens**: Used `{ includeRaw: true }` on `withStructuredOutput()` to capture `usage_metadata`
+- **Cost fallback**: `computeLlmCostMicros` now falls back to `DEFAULT_PRICING` instead of returning $0 for unknown models
+- 23 new unit tests, enhanced Go integration tests with cost/token assertions
+- 14 files changed, 630 insertions, 0 regressions (1810 total tests, 1783 passing)
+- Checkpoint: `checkpoints/2026-05-24-session-runner-data-accuracy.md`
+- Changelog: `_changelog/2026-05/2026-05-24-101938-fix-runner-execution-data-accuracy-hardening.md`
+
 ### ELK Layout Engine Wiring — COMPLETED
 - Threaded `layoutEngine` optional prop through `useWorkflowCanvas` → `WorkflowCanvasEditor` → `WorkflowEditorView`
 - Created `useElkLayoutEngine` behavior hook in `sdk/react/src/workflow/layout/useElkLayoutEngine.ts` — async engine creation, Web Worker cleanup, graceful fallback when elkjs unavailable
@@ -311,8 +325,8 @@ When starting a new session:
 3. ~~**T07: Execution Waterfall Timeline** — Bottom panel redesign with waterfall bars~~ DONE
 4. ~~**T08: Contextual Task Picker** — Intelligence layer, branch-specific insertion, append-rewiring~~ DONE
 5. ~~**Run `make protos && make codegen`** — Regenerate TS/Go/Java stubs from `structured_output_schema` proto change~~ DONE
-6. ~~**Backend follow-up: Waterfall enrichment** — Agent call events (#1), task retrying (#2)~~ DONE (queue delay, streaming phases, push delivery deferred)
-7. ~~**Backend follow-up: Runner I/O population** — task_id generation, LLM cost attribution~~ DONE (pending_approvals fix, resolved config, agent live status, budget wiring, artifact refs deferred)
+6. ~~**Backend follow-up: Waterfall enrichment** — Agent call events, task retrying, data accuracy hardening~~ DONE (queue delay, streaming phases, push delivery deferred)
+7. ~~**Backend follow-up: Runner I/O population** — task_id, LLM cost, attempt tracking, willRetry, failed durationMs, structured output tokens~~ DONE (pending_approvals fix, resolved config, agent live status, budget wiring, artifact refs deferred)
 8. ~~Enable ELK in client-apps via `workerFactory` (see `checkpoints/t03-deferred-wiring.md`)~~ DONE
 9. ~~**T10: Inspector Panel Refactor** — Tabbed inspector, per-kind forms, empty state, node actions~~ DONE
 10. ~~**T09: Branch Management UX** — Branch handles, reorder, join policy, catch handler listing~~ DONE

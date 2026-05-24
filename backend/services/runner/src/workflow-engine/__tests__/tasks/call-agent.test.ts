@@ -364,3 +364,173 @@ describe("CallAgentTaskBuilder — agent call event emission", () => {
     expect(completed.costMicros).toBe(0);
   });
 });
+
+describe("CallAgentTaskBuilder — enrichResultWithCost", () => {
+  beforeEach(() => {
+    mockCallAgent = vi.fn();
+  });
+
+  it("adds __stigmer_cost_micros and token fields when usage_summary is present", async () => {
+    const result: AgentCallResult = {
+      final_text: "done",
+      agent_execution_id: "aex-cost-1",
+      usage_summary: { total_tokens: 1200, estimated_cost_usd: 0.03 },
+    };
+    mockCallAgent.mockResolvedValue(result);
+
+    const taskDef: CallAgentTaskDef = {
+      kind: "call:agent",
+      call: "agent",
+      with: { agent: "cost-agent", message: "compute" },
+    };
+
+    const builder = new CallAgentTaskBuilder("costTask", taskDef);
+    const executor = builder.build();
+    const output = await executor({}, createState(), makeCtx()) as Record<string, unknown>;
+
+    expect(output.__stigmer_cost_micros).toBe(30_000);
+    expect(output.input_tokens).toBe(1200);
+    expect(output.output_tokens).toBe(0);
+  });
+
+  it("does not add cost fields when usage_summary is absent", async () => {
+    const result: AgentCallResult = {
+      final_text: "no usage",
+      agent_execution_id: "aex-no-cost",
+    };
+    mockCallAgent.mockResolvedValue(result);
+
+    const taskDef: CallAgentTaskDef = {
+      kind: "call:agent",
+      call: "agent",
+      with: { agent: "simple-agent", message: "hello" },
+    };
+
+    const builder = new CallAgentTaskBuilder("noCostTask", taskDef);
+    const executor = builder.build();
+    const output = await executor({}, createState(), makeCtx()) as Record<string, unknown>;
+
+    expect(output.__stigmer_cost_micros).toBeUndefined();
+    expect(output.input_tokens).toBeUndefined();
+    expect(output.output_tokens).toBeUndefined();
+  });
+
+  it("rounds cost micros to nearest integer", async () => {
+    const result: AgentCallResult = {
+      final_text: "done",
+      agent_execution_id: "aex-round",
+      usage_summary: { total_tokens: 50, estimated_cost_usd: 0.000123 },
+    };
+    mockCallAgent.mockResolvedValue(result);
+
+    const taskDef: CallAgentTaskDef = {
+      kind: "call:agent",
+      call: "agent",
+      with: { agent: "round-agent", message: "go" },
+    };
+
+    const builder = new CallAgentTaskBuilder("roundTask", taskDef);
+    const executor = builder.build();
+    const output = await executor({}, createState(), makeCtx()) as Record<string, unknown>;
+
+    expect(output.__stigmer_cost_micros).toBe(Math.round(0.000123 * 1_000_000));
+  });
+});
+
+describe("CallAgentTaskBuilder — ON_INVALID_FAIL", () => {
+  beforeEach(() => {
+    mockCallAgent = vi.fn();
+  });
+
+  it("throws when output validation fails with ON_INVALID_FAIL", async () => {
+    const invalidResult: AgentCallResult = {
+      final_text: "not structured",
+      agent_execution_id: "aex-fail-1",
+    };
+    mockCallAgent.mockResolvedValue(invalidResult);
+
+    const taskDef: CallAgentTaskDef = {
+      kind: "call:agent",
+      call: "agent",
+      with: {
+        agent: "strict-agent",
+        message: "Give me JSON",
+        output: {
+          schema: { type: "object", properties: { name: { type: "string" } }, required: ["name"] },
+          on_invalid: "ON_INVALID_FAIL" as const,
+        },
+      },
+    };
+
+    const builder = new CallAgentTaskBuilder("failTask", taskDef);
+    const executor = builder.build();
+
+    await expect(executor({}, createState(), makeCtx())).rejects.toThrow(
+      /Agent output validation failed for task 'failTask'/,
+    );
+  });
+});
+
+describe("CallAgentTaskBuilder — ON_INVALID_FALLBACK", () => {
+  beforeEach(() => {
+    mockCallAgent = vi.fn();
+  });
+
+  it("returns flow directive when validation fails with ON_INVALID_FALLBACK", async () => {
+    const invalidResult: AgentCallResult = {
+      final_text: "not json",
+      agent_execution_id: "aex-fb-1",
+    };
+    mockCallAgent.mockResolvedValue(invalidResult);
+
+    const taskDef: CallAgentTaskDef = {
+      kind: "call:agent",
+      call: "agent",
+      with: {
+        agent: "fallback-agent",
+        message: "Produce JSON",
+        output: {
+          schema: { type: "object", properties: { id: { type: "number" } }, required: ["id"] },
+          on_invalid: "ON_INVALID_FALLBACK" as const,
+          fallback_task: "handleBadOutput",
+        },
+      },
+    };
+
+    const builder = new CallAgentTaskBuilder("fallbackTask", taskDef);
+    const executor = builder.build();
+    const output = await executor({}, createState(), makeCtx()) as Record<string, unknown>;
+
+    expect(output.__flow_directive__).toBe("handleBadOutput");
+    expect(output.validation_errors).toBeDefined();
+    expect(Array.isArray(output.validation_errors)).toBe(true);
+    expect(output.original_output).toBeDefined();
+  });
+
+  it("defaults fallback_task to 'continue' when not specified", async () => {
+    const invalidResult: AgentCallResult = {
+      final_text: "bad output",
+      agent_execution_id: "aex-fb-2",
+    };
+    mockCallAgent.mockResolvedValue(invalidResult);
+
+    const taskDef: CallAgentTaskDef = {
+      kind: "call:agent",
+      call: "agent",
+      with: {
+        agent: "fallback-agent",
+        message: "Produce JSON",
+        output: {
+          schema: { type: "object", properties: { x: { type: "string" } }, required: ["x"] },
+          on_invalid: "ON_INVALID_FALLBACK" as const,
+        },
+      },
+    };
+
+    const builder = new CallAgentTaskBuilder("fallbackDefault", taskDef);
+    const executor = builder.build();
+    const output = await executor({}, createState(), makeCtx()) as Record<string, unknown>;
+
+    expect(output.__flow_directive__).toBe("continue");
+  });
+});

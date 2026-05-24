@@ -376,3 +376,215 @@ describe("executeTryTask — task_retrying event emission", () => {
     expect(retryingEvents).toHaveLength(0);
   });
 });
+
+describe("executeTryTask — retry.when conditional", () => {
+  it("stops retrying when retry.when evaluates to false", async () => {
+    const emittedEvents: WorkflowEventDescriptor[] = [];
+    const mockEmitEvents = vi.fn(async (events: WorkflowEventDescriptor[]) => {
+      emittedEvents.push(...events);
+    });
+    const mockSleep = vi.fn().mockResolvedValue(undefined);
+
+    const taskDef: TryTaskDef = {
+      kind: "try",
+      try: [{ key: "fail", task: {
+        kind: "raise",
+        raise: { error: { type: "test/error", status: 500, title: "Boom" } },
+      }}],
+      catch: {
+        as: "err",
+        retry: {
+          when: "${ $error.status == 999 }",
+          delay: { seconds: 1 },
+          limit: { attempt: { count: 3 } },
+        },
+        do: [{ key: "recover", task: { kind: "set", set: { caught: true } } }],
+      },
+    };
+
+    const state = createState();
+    const ctx = makeCtx({ emitEvents: mockEmitEvents, sleep: mockSleep });
+
+    await executeTryTask(taskDef, null, state, doc, evaluateExpressionBatch, ctx);
+
+    const retryingEvents = emittedEvents.filter(e => e.type === "task_retrying");
+    expect(retryingEvents).toHaveLength(0);
+    expect(mockSleep).not.toHaveBeenCalled();
+
+    expect(state.data.caught).toBe(true);
+    expect(state.data.err).toBeDefined();
+  });
+});
+
+describe("executeTryTask — retry.exceptWhen conditional", () => {
+  it("stops retrying when retry.exceptWhen evaluates to true", async () => {
+    const emittedEvents: WorkflowEventDescriptor[] = [];
+    const mockEmitEvents = vi.fn(async (events: WorkflowEventDescriptor[]) => {
+      emittedEvents.push(...events);
+    });
+    const mockSleep = vi.fn().mockResolvedValue(undefined);
+
+    const taskDef: TryTaskDef = {
+      kind: "try",
+      try: [{ key: "fail", task: {
+        kind: "raise",
+        raise: { error: { type: "test/error", status: 500, title: "Boom" } },
+      }}],
+      catch: {
+        as: "err",
+        retry: {
+          exceptWhen: "${ $error.status == 500 }",
+          delay: { seconds: 1 },
+          limit: { attempt: { count: 3 } },
+        },
+        do: [{ key: "recover", task: { kind: "set", set: { caught: true } } }],
+      },
+    };
+
+    const state = createState();
+    const ctx = makeCtx({ emitEvents: mockEmitEvents, sleep: mockSleep });
+
+    await executeTryTask(taskDef, null, state, doc, evaluateExpressionBatch, ctx);
+
+    const retryingEvents = emittedEvents.filter(e => e.type === "task_retrying");
+    expect(retryingEvents).toHaveLength(0);
+    expect(mockSleep).not.toHaveBeenCalled();
+
+    expect(state.data.caught).toBe(true);
+    expect(state.data.err).toBeDefined();
+  });
+});
+
+describe("executeTryTask — retry limit exhaustion", () => {
+  it("stops after attempt count limit is reached", async () => {
+    const emittedEvents: WorkflowEventDescriptor[] = [];
+    const mockEmitEvents = vi.fn(async (events: WorkflowEventDescriptor[]) => {
+      emittedEvents.push(...events);
+    });
+    const mockSleep = vi.fn().mockResolvedValue(undefined);
+
+    let tryCount = 0;
+    const tryTasks: TaskList = [{
+      key: "always-fail",
+      task: {
+        kind: "set",
+        set: {
+          get value() {
+            tryCount++;
+            throw new Error("always fails");
+          },
+        },
+      },
+    }];
+
+    const taskDef = makeTryTaskDef(tryTasks, {
+      as: "err",
+      retry: {
+        delay: { seconds: 1 },
+        limit: { attempt: { count: 2 } },
+      },
+      do: [{ key: "recover", task: { kind: "set", set: { caught: true } } }],
+    });
+
+    const state = createState();
+    const ctx = makeCtx({ emitEvents: mockEmitEvents, sleep: mockSleep });
+
+    await executeTryTask(taskDef, null, state, doc, evaluateExpressionBatch, ctx);
+
+    expect(tryCount).toBe(3);
+
+    const retryingEvents = emittedEvents.filter(e => e.type === "task_retrying");
+    expect(retryingEvents).toHaveLength(2);
+
+    expect(state.data.caught).toBe(true);
+    expect(state.data.err).toBeDefined();
+  });
+});
+
+describe("executeTryTask — retryContext propagation", () => {
+  it("retries indefinitely when no attempt limit is set (maxAttempts = Infinity)", async () => {
+    const emittedEvents: WorkflowEventDescriptor[] = [];
+    const mockEmitEvents = vi.fn(async (events: WorkflowEventDescriptor[]) => {
+      emittedEvents.push(...events);
+    });
+    const mockSleep = vi.fn().mockResolvedValue(undefined);
+
+    let callCount = 0;
+    const tryTasks: TaskList = [{
+      key: "flaky",
+      task: {
+        kind: "set",
+        set: {
+          get value() {
+            callCount++;
+            if (callCount <= 5) throw new Error("transient");
+            return "ok";
+          },
+        },
+      },
+    }];
+
+    const taskDef = makeTryTaskDef(tryTasks, {
+      retry: {
+        delay: { seconds: 1 },
+      },
+    });
+
+    const state = createState();
+    const ctx = makeCtx({ emitEvents: mockEmitEvents, sleep: mockSleep });
+
+    await executeTryTask(taskDef, null, state, doc, evaluateExpressionBatch, ctx);
+
+    expect(callCount).toBe(6);
+    expect(state.data.value).toBe("ok");
+
+    const retryingEvents = emittedEvents.filter(e => e.type === "task_retrying");
+    expect(retryingEvents).toHaveLength(5);
+
+    for (let i = 0; i < retryingEvents.length; i++) {
+      const evt = retryingEvents[i];
+      if (evt.type !== "task_retrying") throw new Error("wrong type");
+      expect(evt.failedAttempt).toBe(i);
+      expect(evt.nextAttempt).toBe(i + 1);
+    }
+  });
+
+  it("sets retryContext.maxAttempts on the try-block execution context", async () => {
+    const mockSleep = vi.fn().mockResolvedValue(undefined);
+
+    let capturedRetryContext: unknown = undefined;
+    const spyEmitEvents = vi.fn(async function (this: TaskExecutionContext, events: WorkflowEventDescriptor[]) {
+      capturedRetryContext = (this as Record<string, unknown>)?.retryContext;
+    });
+
+    let callCount = 0;
+    const tryTasks: TaskList = [{
+      key: "flaky",
+      task: {
+        kind: "set",
+        set: {
+          get value() {
+            callCount++;
+            if (callCount === 1) throw new Error("transient");
+            return "ok";
+          },
+        },
+      },
+    }];
+
+    const taskDef = makeTryTaskDef(tryTasks, {
+      retry: {
+        delay: { seconds: 1 },
+        limit: { attempt: { count: 3 } },
+      },
+    });
+
+    const state = createState();
+    const ctx = makeCtx({ emitEvents: spyEmitEvents, sleep: mockSleep });
+
+    await executeTryTask(taskDef, null, state, doc, evaluateExpressionBatch, ctx);
+
+    expect(callCount).toBe(2);
+    expect(state.data.value).toBe("ok");
+  });
+});

@@ -201,6 +201,128 @@ describe("TaskStatusAccumulator", () => {
       expect(acc.toArray()[0].taskId).toBe("conditional:1");
     });
   });
+
+  describe("taskWaitingApproval", () => {
+    it("transitions a started task to waiting_approval", () => {
+      const acc = new TaskStatusAccumulator();
+      acc.taskStarted("approval_gate", "human_input");
+      acc.taskWaitingApproval("approval_gate");
+      const [entry] = acc.toArray();
+      expect(entry.status).toBe("waiting_approval");
+      expect(entry.taskKind).toBe("human_input");
+      expect(entry.startedAt).toBeDefined();
+    });
+
+    it("preserves existing fields when transitioning", () => {
+      const acc = new TaskStatusAccumulator();
+      acc.taskStartedWithInput("gate", "human_input", { prompt: "Approve?" });
+      acc.taskWaitingApproval("gate");
+      const [entry] = acc.toArray();
+      expect(entry.status).toBe("waiting_approval");
+      expect(entry.input).toEqual({ prompt: "Approve?" });
+    });
+  });
+
+  describe("taskSkipped", () => {
+    it("records skip reason and completedAt", () => {
+      const acc = new TaskStatusAccumulator();
+      acc.taskSkipped("optional_step", "condition evaluated to false");
+      const [entry] = acc.toArray();
+      expect(entry.status).toBe("skipped");
+      expect(entry.error).toBe("condition evaluated to false");
+      expect(entry.completedAt).toBeDefined();
+      expect(entry.startedAt).toBeUndefined();
+    });
+  });
+
+  describe("taskFailed with structuredError", () => {
+    it("stores structured error fields in metadata", () => {
+      const acc = new TaskStatusAccumulator();
+      acc.taskStarted("http_task", "call:http");
+      acc.taskFailed("http_task", "connection timeout", {
+        category: "NETWORK",
+        detail: "ECONNREFUSED 127.0.0.1:8080",
+        retryable: true,
+      });
+      const [entry] = acc.toArray();
+      expect(entry.status).toBe("failed");
+      expect(entry.error).toBe("connection timeout");
+      expect(entry.metadata).toEqual({
+        error_category: "NETWORK",
+        error_detail: "ECONNREFUSED 127.0.0.1:8080",
+        error_retryable: true,
+      });
+    });
+
+    it("merges structured error with existing metadata", () => {
+      const acc = new TaskStatusAccumulator();
+      acc.taskStarted("agent_task", "call:agent");
+      acc.setTaskMetadata("agent_task", { agent_execution_id: "exec-1" });
+      acc.taskFailed("agent_task", "agent crashed", {
+        category: "RUNTIME",
+        detail: "OOM killed",
+        retryable: false,
+      });
+      const [entry] = acc.toArray();
+      expect(entry.metadata).toEqual({
+        agent_execution_id: "exec-1",
+        error_category: "RUNTIME",
+        error_detail: "OOM killed",
+        error_retryable: false,
+      });
+    });
+  });
+
+  describe("taskFailed with durationMs", () => {
+    it("records duration on failed tasks", () => {
+      const acc = new TaskStatusAccumulator();
+      acc.taskStarted("slow_task", "call:http");
+      acc.taskFailed("slow_task", "timeout", undefined, 5000);
+      const [entry] = acc.toArray();
+      expect(entry.status).toBe("failed");
+      expect(entry.durationMs).toBe(5000);
+    });
+
+    it("leaves durationMs undefined when not provided", () => {
+      const acc = new TaskStatusAccumulator();
+      acc.taskStarted("t1", "call:http");
+      acc.taskFailed("t1", "error");
+      const [entry] = acc.toArray();
+      expect(entry.durationMs).toBeUndefined();
+    });
+  });
+
+  describe("getAttempt", () => {
+    it("returns 1 for tasks that haven't started", () => {
+      const acc = new TaskStatusAccumulator();
+      expect(acc.getAttempt("nonexistent")).toBe(1);
+    });
+
+    it("returns 1 after the first taskStarted call", () => {
+      const acc = new TaskStatusAccumulator();
+      acc.taskStarted("t1", "call:http");
+      expect(acc.getAttempt("t1")).toBe(1);
+    });
+
+    it("increments on repeated taskStarted calls", () => {
+      const acc = new TaskStatusAccumulator();
+      acc.taskStarted("flaky", "call:http");
+      expect(acc.getAttempt("flaky")).toBe(1);
+      acc.taskStarted("flaky", "call:http");
+      expect(acc.getAttempt("flaky")).toBe(2);
+      acc.taskStarted("flaky", "call:http");
+      expect(acc.getAttempt("flaky")).toBe(3);
+    });
+
+    it("tracks attempts independently per task", () => {
+      const acc = new TaskStatusAccumulator();
+      acc.taskStarted("a", "set");
+      acc.taskStarted("b", "set");
+      acc.taskStarted("a", "set");
+      expect(acc.getAttempt("a")).toBe(2);
+      expect(acc.getAttempt("b")).toBe(1);
+    });
+  });
 });
 
 describe("truncatePayload", () => {

@@ -80,6 +80,7 @@ const TASK_KIND_MAP: Record<string, number> = {
   "wait": WorkflowTaskKind.wait,
   "raise": WorkflowTaskKind.raise_error,
   "run": WorkflowTaskKind.run_workflow,
+  "call:function:cursor": WorkflowTaskKind.agent_call,
   "call:agent": WorkflowTaskKind.agent_call,
   "human_input": WorkflowTaskKind.human_input,
 };

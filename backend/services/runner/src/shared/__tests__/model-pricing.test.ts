@@ -1,16 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { computeLlmCostMicros, computeTurnCost, getModelPricing, ensureLoaded } from "../model-pricing.js";
+import { computeLlmCostMicros, computeTurnCost, getModelPricing, resolveModelId, ensureLoaded } from "../model-pricing.js";
 import type { ModelPricing } from "../model-pricing-data.js";
 
 describe("computeLlmCostMicros", () => {
-  it("returns zero when pricing registry is not loaded", () => {
+  it("falls back to DEFAULT_PRICING when registry is not loaded", () => {
     const cost = computeLlmCostMicros("claude-sonnet-4", 1000, 500);
-    expect(cost).toBe(0);
+    expect(cost).toBeGreaterThan(0);
   });
 
-  it("returns zero for unknown models", () => {
+  it("falls back to DEFAULT_PRICING for unknown models", () => {
     const cost = computeLlmCostMicros("unknown-model-xyz", 1000, 500);
-    expect(cost).toBe(0);
+    // DEFAULT_PRICING: input=$1.25/M, output=$6.00/M
+    // (1000 * 1.25 + 500 * 6.00) / 1M = $0.00425 → 4250 micros
+    expect(cost).toBe(4250);
   });
 
   it("returns zero when tokens are zero", () => {
@@ -51,5 +53,33 @@ describe("computeTurnCost", () => {
     // 1M input * $3/M = $3.00
     const cost = computeTurnCost(testPricing, 1_000_000, 0, 0, 0);
     expect(cost).toBeCloseTo(3.0, 6);
+  });
+});
+
+describe("resolveModelId", () => {
+  it("returns 'default' for empty string", () => {
+    expect(resolveModelId("")).toBe("default");
+  });
+
+  it("returns 'default' for 'default'", () => {
+    expect(resolveModelId("default")).toBe("default");
+  });
+
+  it("returns 'default' for unknown models (registry not loaded)", () => {
+    expect(resolveModelId("nonexistent-model")).toBe("default");
+  });
+});
+
+describe("getModelPricing", () => {
+  it("returns DEFAULT_PRICING for unknown models", () => {
+    const pricing = getModelPricing("some-unknown-model");
+    expect(pricing.model).toBe("some-unknown-model");
+    expect(pricing.inputPricePerMillion).toBe(1.25);
+    expect(pricing.outputPricePerMillion).toBe(6.0);
+  });
+
+  it("overrides model field in fallback pricing", () => {
+    const pricing = getModelPricing("custom-model");
+    expect(pricing.model).toBe("custom-model");
   });
 });

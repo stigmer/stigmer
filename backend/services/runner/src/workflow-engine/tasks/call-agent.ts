@@ -29,6 +29,11 @@ import { validateAgentCallOutput } from "./call-agent-output.js";
 /**
  * Enriches an AgentCallResult with __stigmer_* keys so that
  * extractCostFromOutput (in do-executor) can pick up cost/token data.
+ *
+ * Agent usage_summary only provides total_tokens (no input/output split).
+ * We map total_tokens to input_tokens and leave output_tokens at 0.
+ * The do-executor sets metadata `token_attribution: "total_only"` so
+ * the frontend can avoid displaying a misleading split.
  */
 function enrichResultWithCost(result: AgentCallResult): AgentCallResult {
   const usage = result.usage_summary;

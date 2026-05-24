@@ -345,13 +345,17 @@ export async function callLlmAction(
   try {
     if (config.response_schema) {
       const zodSchema = jsonSchemaToZod(config.response_schema);
-      const structured = model.withStructuredOutput(zodSchema);
-      const structuredResult = await structured.invoke(messages);
+      const structured = model.withStructuredOutput(zodSchema, { includeRaw: true });
+      const response = await structured.invoke(messages);
+
+      const rawUsage = (response.raw as unknown as {
+        usage_metadata?: { input_tokens?: number; output_tokens?: number };
+      }).usage_metadata;
 
       result = {
-        input_tokens: 0,
-        output_tokens: 0,
-        result: structuredResult,
+        input_tokens: rawUsage?.input_tokens ?? 0,
+        output_tokens: rawUsage?.output_tokens ?? 0,
+        result: response.parsed,
         model: modelId,
         provider,
       };
