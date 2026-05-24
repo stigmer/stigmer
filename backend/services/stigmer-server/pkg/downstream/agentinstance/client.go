@@ -84,6 +84,37 @@ func (c *Client) CreateAsSystem(ctx context.Context, instance *agentinstancev1.A
 	return created, nil
 }
 
+// ApplyAsSystem creates or updates an agent instance using system credentials.
+//
+// This makes an in-process gRPC call to AgentInstanceCommandController.Apply()
+// using system context, providing idempotent create-or-update semantics.
+//
+// Use case: Default instance creation during agent Apply. If an orphaned
+// instance with the same slug exists from a prior agent deletion (which
+// doesn't cascade to instances), Apply recovers it by updating the agent_id.
+func (c *Client) ApplyAsSystem(ctx context.Context, instance *agentinstancev1.AgentInstance) (*agentinstancev1.AgentInstance, error) {
+	log.Debug().
+		Str("agent_id", instance.GetSpec().GetAgentId()).
+		Str("name", instance.GetMetadata().GetName()).
+		Msg("Applying agent instance via in-process gRPC (as system)")
+
+	applied, err := c.client.Apply(ctx, instance)
+	if err != nil {
+		log.Error().
+			Err(err).
+			Str("agent_id", instance.GetSpec().GetAgentId()).
+			Msg("Failed to apply agent instance (as system)")
+		return nil, err
+	}
+
+	log.Info().
+		Str("id", applied.GetMetadata().GetId()).
+		Str("agent_id", applied.GetSpec().GetAgentId()).
+		Msg("Successfully applied agent instance (as system)")
+
+	return applied, nil
+}
+
 // GetByAgent retrieves all agent instances for a specific agent.
 //
 // This makes an in-process gRPC call to AgentInstanceQueryController.GetByAgent()

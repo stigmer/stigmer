@@ -44,7 +44,7 @@ func TestWorkflowAgentCall_EnvVarsForwardedToChildExecution(t *testing.T) {
 	deployer := harness.NewFixtureDeployer(clients, "env-fwd", suiteLogger)
 	defer deployer.Cleanup(ctx)
 
-	agent := createEnvForwardingTestAgent(t, ctx, clients)
+	agent := createEnvForwardingTestAgent(t, ctx, clients, "basic")
 
 	taskConfig, err := structpb.NewStruct(map[string]any{
 		"agent":   agent.GetMetadata().GetSlug(),
@@ -104,8 +104,8 @@ func TestWorkflowAgentCall_EnvVarsForwardedToChildExecution(t *testing.T) {
 	// we only need it to get past execution creation (env merge + validation).
 	time.Sleep(20 * time.Second)
 
-	childExec := findChildAgentExecution(t, ctx, clients)
-	require.NotNil(t, childExec, "CallAgent activity should have created a child AgentExecution")
+	childExec := findChildAgentExecution(t, ctx, clients, executionID)
+	require.NotNil(t, childExec, "CallAgent activity should have created a child AgentExecution for workflow %s", executionID)
 
 	childExecID := childExec.GetMetadata().GetId()
 	t.Logf("found child agent execution: id=%s, session=%s, parent_workflow=%s",
@@ -150,7 +150,7 @@ func TestWorkflowAgentCall_IdempotentSessionReuse(t *testing.T) {
 	deployer := harness.NewFixtureDeployer(clients, "idempotent", suiteLogger)
 	defer deployer.Cleanup(ctx)
 
-	agent := createEnvForwardingTestAgent(t, ctx, clients)
+	agent := createEnvForwardingTestAgent(t, ctx, clients, "idempotent")
 
 	taskConfig, err := structpb.NewStruct(map[string]any{
 		"agent":   agent.GetMetadata().GetSlug(),
@@ -385,10 +385,10 @@ func TestWorkflowAgentCall_EnvVarsForwardedWithMcpServerRef(t *testing.T) {
 	// 5. Wait for CallAgent to create the child AgentExecution.
 	time.Sleep(20 * time.Second)
 
-	childExec := findChildAgentExecution(t, ctx, clients)
+	childExec := findChildAgentExecution(t, ctx, clients, executionID)
 	require.NotNil(t, childExec,
-		"CallAgent activity should have created a child AgentExecution "+
-			"even though agent env came from MCP server merge, not explicit declaration")
+		"CallAgent activity should have created a child AgentExecution for workflow %s "+
+			"even though agent env came from MCP server merge, not explicit declaration", executionID)
 
 	childExecID := childExec.GetMetadata().GetId()
 	t.Logf("found child agent execution: id=%s", childExecID)
@@ -413,14 +413,16 @@ func TestWorkflowAgentCall_EnvVarsForwardedWithMcpServerRef(t *testing.T) {
 	t.Logf("PASS: child ExecutionContext contains MCP-derived env var TEST_MCP_CONN_URL")
 }
 
-func createEnvForwardingTestAgent(t *testing.T, ctx context.Context, clients *harness.Clients) *agentv1.Agent {
+func createEnvForwardingTestAgent(t *testing.T, ctx context.Context, clients *harness.Clients, suffix string) *agentv1.Agent {
 	t.Helper()
+
+	agentName := "test-env-fwd-" + suffix
 
 	agent := &agentv1.Agent{
 		ApiVersion: harness.TestAPIVersion,
 		Kind:       "Agent",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name: "test-env-forwarding-agent",
+			Name: agentName,
 			Org:  harness.TestOrg,
 		},
 		Spec: &agentv1.AgentSpec{
@@ -445,14 +447,16 @@ func createEnvForwardingTestAgent(t *testing.T, ctx context.Context, clients *ha
 	return created
 }
 
-func findChildAgentExecution(t *testing.T, ctx context.Context, clients *harness.Clients) *agentexecv1.AgentExecution {
+func findChildAgentExecution(t *testing.T, ctx context.Context, clients *harness.Clients, workflowExecutionID string) *agentexecv1.AgentExecution {
 	t.Helper()
+
+	expectedParentWorkflowID := "workflow-exec-" + workflowExecutionID
 
 	resp, err := clients.AgentExecutionQuery.List(ctx, &agentexecv1.ListAgentExecutionsRequest{})
 	require.NoError(t, err, "listing agent executions should succeed")
 
 	for _, ae := range resp.GetEntries() {
-		if ae.GetSpec().GetParentWorkflowId() != "" {
+		if ae.GetSpec().GetParentWorkflowId() == expectedParentWorkflowID {
 			return ae
 		}
 	}
