@@ -4,7 +4,7 @@ package integration
 
 import (
 	"context"
-	"strings"
+	"fmt"
 	"testing"
 	"time"
 
@@ -98,12 +98,9 @@ func TestWorkflowExpressionInterpolation_EmbeddedEnvInAgentMessage(t *testing.T)
 	require.NotEmpty(t, executionID)
 	t.Logf("workflow execution created: id=%s", executionID)
 
-	// Wait for the CallAgent activity to create the child AgentExecution.
-	time.Sleep(20 * time.Second)
-
-	childExec := findChildAgentExecutionByPrefix(t, ctx, clients, "expr-interp")
+	childExec := findChildAgentExecutionForWorkflow(t, ctx, clients, executionID, 60*time.Second)
 	require.NotNil(t, childExec,
-		"CallAgent activity should have created a child AgentExecution")
+		"CallAgent activity should have created a child AgentExecution for workflow execution %s", executionID)
 
 	childMessage := childExec.GetSpec().GetMessage()
 	t.Logf("child agent execution message: %q", childMessage)
@@ -146,24 +143,40 @@ func createInterpolationTestAgent(t *testing.T, ctx context.Context, clients *ha
 	return created
 }
 
-func findChildAgentExecutionByPrefix(t *testing.T, ctx context.Context, clients *harness.Clients, prefix string) *agentexecv1.AgentExecution {
+// findChildAgentExecutionForWorkflow polls ListAgentExecutions until a child
+// scoped to the given workflow execution appears, or the timeout expires.
+// Child agent executions store parent_workflow_id as "workflow-exec-{wexId}"
+// (the Temporal child workflow ID set in execute-from-execution.ts).
+func findChildAgentExecutionForWorkflow(
+	t *testing.T,
+	ctx context.Context,
+	clients *harness.Clients,
+	workflowExecutionID string,
+	timeout time.Duration,
+) *agentexecv1.AgentExecution {
 	t.Helper()
 
-	resp, err := clients.AgentExecutionQuery.List(ctx, &agentexecv1.ListAgentExecutionsRequest{})
-	require.NoError(t, err, "listing agent executions should succeed")
+	expectedParentID := fmt.Sprintf("workflow-exec-%s", workflowExecutionID)
+	deadline := time.Now().Add(timeout)
 
-	for _, ae := range resp.GetEntries() {
-		if ae.GetSpec().GetParentWorkflowId() != "" &&
-			strings.Contains(ae.GetMetadata().GetSlug(), prefix) {
-			return ae
+	for time.Now().Before(deadline) {
+		resp, err := clients.AgentExecutionQuery.List(ctx, &agentexecv1.ListAgentExecutionsRequest{})
+		require.NoError(t, err, "listing agent executions should succeed")
+
+		for _, ae := range resp.GetEntries() {
+			if ae.GetSpec().GetParentWorkflowId() == expectedParentID {
+				return ae
+			}
+		}
+
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-time.After(3 * time.Second):
 		}
 	}
 
-	for _, ae := range resp.GetEntries() {
-		if ae.GetSpec().GetParentWorkflowId() != "" {
-			return ae
-		}
-	}
-
+	t.Logf("timed out after %v waiting for child agent execution with parent_workflow_id=%s",
+		timeout, expectedParentID)
 	return nil
 }
