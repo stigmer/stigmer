@@ -39,7 +39,7 @@ func TestAgentCallAffinity_ChildRoutesToParentQueue(t *testing.T) {
 	harness.RequireServiceHealthy(t, ctx, clients)
 	mgr := requireRunnerManager(t, ctx)
 
-	agent := createAffinityTestAgent(t, ctx, clients)
+	agent := createAffinityTestAgent(t, ctx, clients, "test-affinity-agent")
 
 	taskConfig, err := structpb.NewStruct(map[string]any{
 		"agent":   agent.GetMetadata().GetSlug(),
@@ -149,14 +149,131 @@ func agentExecutionMemoQueue(t *testing.T, ctx context.Context, executionID stri
 	return taskQueue
 }
 
-func createAffinityTestAgent(t *testing.T, ctx context.Context, clients *harness.Clients) *agentv1.Agent {
+// TestAgentCallAffinity_CursorRoutesToParentQueue is the cursor harness
+// counterpart of TestAgentCallAffinity_ChildRoutesToParentQueue. It verifies
+// that a workflow agent_call with harness:cursor under execution routing
+// dispatches ExecuteCursor to the parent wfexec:{id} queue and that the
+// unified runner actually picks it up.
+//
+// No Cursor API key is required. Without one, ExecuteCursor fails with an
+// expected SDK error. The critical assertion is that the child agent execution
+// reaches a terminal state (FAILED) rather than timing out on ScheduleToStart
+// — proving the activity was dispatched and picked up on the wfexec queue.
+func TestAgentCallAffinity_CursorRoutesToParentQueue(t *testing.T) {
+	require.NotNil(t, testHarness.Service, "java service must be running")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	harness.RequireServiceHealthy(t, ctx, clients)
+	mgr := requireRunnerManager(t, ctx)
+
+	agent := createAffinityTestAgent(t, ctx, clients, "test-cursor-affinity-agent")
+
+	taskConfig, err := structpb.NewStruct(map[string]any{
+		"agent":   agent.GetMetadata().GetSlug(),
+		"org":     harness.TestOrg,
+		"message": "Reply with exactly: cursor-affinity-test-ok",
+		"harness": "cursor",
+	})
+	require.NoError(t, err)
+
+	workflow := &workflowv1.Workflow{
+		ApiVersion: harness.TestAPIVersion,
+		Kind:       "Workflow",
+		Metadata: &apiresource.ApiResourceMetadata{
+			Name: "wfexec-cursor-call-affinity-test",
+			Org:  harness.TestOrg,
+		},
+		Spec: &workflowv1.WorkflowSpec{
+			Description: "Integration test: cursor agent_call sandbox affinity under execution routing",
+			Document: &workflowv1.WorkflowDocument{
+				Dsl:       "1.0.0",
+				Namespace: harness.TestOrg,
+				Name:      "wfexec-cursor-call-affinity-test",
+				Version:   "1.0.0",
+			},
+			Tasks: []*workflowv1.WorkflowTask{
+				{
+					Name:       "callCursorAgent",
+					Kind:       workflowv1.WorkflowTaskKind_agent_call,
+					TaskConfig: taskConfig,
+				},
+			},
+		},
+	}
+
+	deployer := harness.NewFixtureDeployer(clients, "cursor-affinity-test", suiteLogger)
+	t.Cleanup(func() { deployer.Cleanup(context.Background()) })
+
+	_, execution, err := deployer.DeployAndExecute(ctx, workflow, "cursor agent call affinity test")
+	require.NoError(t, err)
+
+	executionID := execution.GetMetadata().GetId()
+	require.NotEmpty(t, executionID)
+	t.Logf("workflow execution created: id=%s", executionID)
+
+	expectedParentQueue := fmt.Sprintf("wfexec:%s", executionID)
+
+	_, err = mgr.AddWorkflowExecution(ctx, executionID)
+	require.NoError(t, err, "addWorkflowExecution should succeed")
+
+	// Wait for CallAgent to create the child AgentExecution with cursor harness.
+	expectedParentWorkflowID := fmt.Sprintf("workflow-exec-%s", executionID)
+	time.Sleep(15 * time.Second)
+
+	agentExecs, err := clients.AgentExecutionQuery.List(ctx, &agentexecv1.ListAgentExecutionsRequest{})
+	require.NoError(t, err, "listing agent executions should succeed")
+
+	var childExecutionID string
+	for _, ae := range agentExecs.GetEntries() {
+		if ae.GetSpec().GetParentWorkflowId() == expectedParentWorkflowID {
+			childExecutionID = ae.GetMetadata().GetId()
+			t.Logf("found child agent execution: id=%s, session=%s, parent_workflow=%s, activity_task_queue=%s",
+				childExecutionID,
+				ae.GetSpec().GetSessionId(),
+				ae.GetSpec().GetParentWorkflowId(),
+				ae.GetSpec().GetActivityTaskQueue())
+			break
+		}
+	}
+
+	require.NotEmpty(t, childExecutionID,
+		"CallAgent activity should have created a child AgentExecution (cursor harness) with parent_workflow_id=%s",
+		expectedParentWorkflowID)
+
+	// Verify queue affinity: child agent execution should route to parent wfexec queue.
+	childActivityQueue := agentExecutionMemoQueue(t, ctx, childExecutionID)
+	assert.Equal(t, expectedParentQueue, childActivityQueue,
+		"cursor child agent execution's activityTaskQueue memo should match parent's wfexec:{id} queue")
+
+	// Verify the runner picks up ExecuteCursor. Without a Cursor API key,
+	// the execution should fail (not timeout). A timeout here means the
+	// runner is NOT polling the wfexec queue for ExecuteCursor activities.
+	agentWaiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
+	result, err := agentWaiter.WaitForTerminal(ctx, childExecutionID, 90*time.Second)
+	require.NoError(t, err,
+		"child agent execution should reach terminal state; "+
+			"timeout means ExecuteCursor was NOT picked up on the wfexec queue")
+
+	phase := result.GetStatus().GetPhase()
+	t.Logf("child agent execution %s reached phase %s on queue %s",
+		childExecutionID, phase.String(), childActivityQueue)
+
+	assert.Equal(t, agentexecv1.ExecutionPhase_EXECUTION_FAILED, phase,
+		"cursor agent execution should FAIL without API key "+
+			"(proves ExecuteCursor was dispatched and picked up on wfexec queue)")
+}
+
+func createAffinityTestAgent(t *testing.T, ctx context.Context, clients *harness.Clients, name string) *agentv1.Agent {
 	t.Helper()
 
 	agent := &agentv1.Agent{
 		ApiVersion: harness.TestAPIVersion,
 		Kind:       "Agent",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name: "test-affinity-agent",
+			Name: name,
 			Org:  harness.TestOrg,
 		},
 		Spec: &agentv1.AgentSpec{
