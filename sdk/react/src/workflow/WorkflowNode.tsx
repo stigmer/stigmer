@@ -78,6 +78,7 @@ export const WorkflowNode = memo(function WorkflowNode({
           attemptNumber={executionState.attemptNumber}
           forkProgress={data.forkProgress ?? undefined}
           approvalToolName={data.approvalToolName}
+          agentActivity={data.agentActivity ?? undefined}
         />
       )}
 

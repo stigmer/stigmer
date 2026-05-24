@@ -34,6 +34,10 @@ export interface DerivedTaskState {
   readonly attemptNumber: number;
   readonly error: string;
   readonly childExecutionId: string;
+  readonly agentSlug: string;
+  readonly currentToolName: string;
+  readonly messagesCount: number;
+  readonly toolCallsCount: number;
 }
 
 export interface DerivedCostSummary {
@@ -227,6 +231,10 @@ function deriveTaskStates(
           attemptNumber: p.value.attemptNumber,
           error: "",
           childExecutionId: prev?.childExecutionId ?? "",
+          agentSlug: prev?.agentSlug ?? "",
+          currentToolName: prev?.currentToolName ?? "",
+          messagesCount: prev?.messagesCount ?? 0,
+          toolCallsCount: prev?.toolCallsCount ?? 0,
         });
         break;
 
@@ -241,6 +249,10 @@ function deriveTaskStates(
           attemptNumber: prev?.attemptNumber ?? 1,
           error: "",
           childExecutionId: prev?.childExecutionId ?? "",
+          agentSlug: prev?.agentSlug ?? "",
+          currentToolName: "",
+          messagesCount: prev?.messagesCount ?? 0,
+          toolCallsCount: prev?.toolCallsCount ?? 0,
         });
         break;
 
@@ -255,6 +267,10 @@ function deriveTaskStates(
           attemptNumber: p.value.attemptNumber,
           error: p.value.error,
           childExecutionId: prev?.childExecutionId ?? "",
+          agentSlug: prev?.agentSlug ?? "",
+          currentToolName: "",
+          messagesCount: prev?.messagesCount ?? 0,
+          toolCallsCount: prev?.toolCallsCount ?? 0,
         });
         break;
 
@@ -269,6 +285,10 @@ function deriveTaskStates(
           attemptNumber: 0,
           error: "",
           childExecutionId: prev?.childExecutionId ?? "",
+          agentSlug: "",
+          currentToolName: "",
+          messagesCount: 0,
+          toolCallsCount: 0,
         });
         break;
 
@@ -282,7 +302,23 @@ function deriveTaskStates(
         if (prev) {
           map.set(taskName, {
             ...prev,
-            childExecutionId: p.value.childExecutionId,
+            childExecutionId: p.value.childExecutionId || prev.childExecutionId,
+            agentSlug: p.value.agentSlug || prev.agentSlug,
+          });
+        }
+        break;
+
+      case "agentCallProgress":
+        if (prev) {
+          map.set(taskName, {
+            ...prev,
+            childExecutionId: p.value.childExecutionId || prev.childExecutionId,
+            currentToolName: p.value.currentToolName || prev.currentToolName,
+            messagesCount: p.value.messagesCount || prev.messagesCount,
+            toolCallsCount: p.value.toolCallsCount || prev.toolCallsCount,
+            tokensUsed: p.value.tokensConsumed > BIGINT_ZERO
+              ? p.value.tokensConsumed
+              : prev.tokensUsed,
           });
         }
         break;
@@ -293,6 +329,7 @@ function deriveTaskStates(
             ...prev,
             costMicros: p.value.costMicros,
             tokensUsed: p.value.tokensConsumed,
+            currentToolName: "",
           });
         }
         break;

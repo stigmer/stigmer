@@ -182,7 +182,7 @@ interface EventBuckets {
   retryings: Array<{ failedAttempt: number; nextAttempt: number; delayMs: number }>;
   skipped: { reason: string } | null;
   agentStarted: { childExecutionId: string; agentSlug: string; messageSummary: string } | null;
-  agentProgress: { agentPhase: number; currentToolName: string; tokensConsumed: bigint; messagesCount: number; toolCallsCount: number } | null;
+  agentProgress: { childExecutionId: string; agentPhase: number; currentToolName: string; tokensConsumed: bigint; messagesCount: number; toolCallsCount: number } | null;
   agentCompleted: { durationMs: number; tokensConsumed: bigint; costMicros: bigint; error: string; agentPhase: number } | null;
   approvalRequested: { prompt: string; approvers: string[]; timeoutSeconds: number; outcomes: Array<{ name: string; label: string }>; formSchema: JsonObject | null } | null;
   approvalResolved: { action: number; resolvedBy: string; comment: string; waitDurationMs: number } | null;
@@ -269,6 +269,7 @@ function bucketEvents(taskEvents: readonly WorkflowExecutionEvent[]): EventBucke
 
       case "agentCallProgress":
         buckets.agentProgress = {
+          childExecutionId: p.value.childExecutionId,
           agentPhase: p.value.agentPhase,
           currentToolName: p.value.currentToolName,
           tokensConsumed: p.value.tokensConsumed,
@@ -428,8 +429,13 @@ function buildRetryHistory(buckets: EventBuckets): TaskDetailRetryHistory | null
 function buildAgentCall(buckets: EventBuckets): TaskDetailAgentCall | null {
   if (!buckets.agentStarted) return null;
 
+  const childExecutionId =
+    buckets.agentStarted.childExecutionId ||
+    buckets.agentProgress?.childExecutionId ||
+    "";
+
   return {
-    childExecutionId: buckets.agentStarted.childExecutionId,
+    childExecutionId,
     agentSlug: buckets.agentStarted.agentSlug,
     agentPhase: String(buckets.agentCompleted?.agentPhase ?? buckets.agentProgress?.agentPhase ?? ""),
     messagesCount: buckets.agentProgress?.messagesCount ?? 0,
