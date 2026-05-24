@@ -468,6 +468,13 @@ async function executeCursor(
       `ExecuteCursor stream ended: execution=${executionId}, events=${eventCount}, messages=${status.messages.length}, subAgents=${status.subAgentExecutions.length}`,
     );
 
+    // Persist immediately after finalize so the UI sees correct tool
+    // call statuses before run.wait() / structured output extraction.
+    // This is unconditional (not throttled) because finalize is a
+    // once-per-execution correctness boundary.
+    await persistStatus(client, executionId, status);
+    heartbeat();
+
     // End OTel turn span with accumulated token usage
     const usageSnapshot = usageAccumulator.snapshot();
     turnSpan.setTokens(Number(usageSnapshot.inputTokens), Number(usageSnapshot.outputTokens));
