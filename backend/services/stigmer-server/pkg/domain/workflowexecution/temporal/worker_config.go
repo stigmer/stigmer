@@ -88,12 +88,16 @@ func (wc *WorkerConfig) CreateWorker(temporalClient client.Client) worker.Worker
 		Str("queue", wc.config.RunnerQueue).
 		Msg("TS child workflows (unified runner) on runner queue")
 
-	// Register local activities (run in-process, don't participate in task queue routing)
+	// Register activities for both local and remote execution.
+	// Local: used by pause/resume signal handlers and v0 failure/cancel paths.
+	// Remote: used by v1 failure/cancel paths to avoid RECORD_MARKER replay bugs.
+	// RegisterActivity makes them available for both ExecuteLocalActivity and
+	// ExecuteActivity calls on this worker's queue.
 	w.RegisterActivity(wc.updateStatusActivityImpl.UpdateExecutionStatus)
 	w.RegisterActivity(wc.deleteECActivityImpl.DeleteExecutionContext)
 
-	log.Info().Msg("Registered UpdateWorkflowExecutionStatusActivity as LOCAL activity (in-process)")
-	log.Info().Msg("Registered DeleteExecutionContextActivity as LOCAL activity (in-process)")
+	log.Info().Msg("Registered UpdateWorkflowExecutionStatusActivity (local + remote)")
+	log.Info().Msg("Registered DeleteExecutionContextActivity (local + remote)")
 
 	return w
 }
