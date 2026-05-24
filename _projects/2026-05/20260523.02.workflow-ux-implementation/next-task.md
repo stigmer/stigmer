@@ -68,9 +68,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-23 14:12
-**Last Session**: 2026-05-24 — Agent Call Live Progress Pipeline Fix
-**Current Task**: Agent call live progress pipeline fix + periodic progress + approval bottom panel complete. Next: T15 (Template Gallery) or T16 (Accessibility)
-**Status**: In Progress — T01-T14 + all enrichments + agent call live experience + live progress pipeline fix all done
+**Last Session**: 2026-05-24 — T16 Accessibility and Visual Polish
+**Current Task**: T16 complete. Next: T15 (Template Gallery)
+**Status**: In Progress — T01-T16 + all enrichments + agent call live experience + live progress pipeline fix all done
 
 ## Session Progress (2026-05-23)
 
@@ -377,6 +377,14 @@ When starting a new session:
 - **Approval bottom panel**: Added "Approvals" tab to `ExecutionBottomPanel` — auto-shows when pending, auto-switches, disappears when resolved. Reuses existing `WorkflowExecutionApprovalCard`.
 - 12 files changed, 550 insertions. 9 new tests, all passing. TypeScript clean.
 - Changelog: `_changelog/2026-05/2026-05-24-135245-feat-agent-call-live-progress-pipeline-fix.md`
+
+### T16: Accessibility and Visual Polish — COMPLETED (2026-05-24)
+- **Part A — Execution follow**: `useFollowExecution` state machine hook (auto_fit → following → user_control), `useActiveTaskName` stable derivation, `ExecutionActiveTaskIndicator` floating overlay with task name + elapsed time + click-to-jump + aria-live
+- **Part B — SVG text legibility**: Added `captionHeight` to `TaskTypeVisualSpec`, below-shape captions for octagon/diamond/circle. Layout engine sees full bounding box. Kind badge inside shape, task name below.
+- **Part C — WCAG accessibility**: `nodesFocusable={true}`, focus rings on nodes, `useExecutionAnnouncements` aria-live region, `motion-preference.ts` for JS viewport animations, defined `stgm-exec-running` CSS animation, removed dead class references.
+- 21 files changed, 1222 insertions, 9 new files, 26 new unit tests
+- Committed as `189297c0f`
+- Changelog: `_changelog/2026-05/2026-05-24-151248-feat-workflow-accessibility-visual-polish-t16.md`
 
 ## Next Steps
 
