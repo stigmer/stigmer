@@ -26,6 +26,7 @@ export async function backfillMcpServersIfNeeded(
   envVars: Record<string, string>,
   org: string,
   onHeartbeat?: () => void,
+  secretKeys?: ReadonlySet<string>,
 ): Promise<McpResolutionResult> {
   const updatedServers = await sharedBackfill(
     client,
@@ -34,6 +35,7 @@ export async function backfillMcpServersIfNeeded(
     envVars,
     org,
     onHeartbeat,
+    secretKeys,
   );
 
   if (updatedServers === currentResult.resolvedServers) {
