@@ -139,6 +139,73 @@ func (s *MongoSeeder) DeleteIdentityAccount(ctx context.Context, id string) erro
 	return err
 }
 
+// SeedBillingPolicies inserts the default billing policies into the
+// billing_policy collection. The Java service normally creates these via
+// Mongock migration, but Mongock is disabled in the integration test
+// environment. Without these policies, the DebitBillingStep fails with
+// "No active billing policy for harness=cursor" and customerBillableAmountMicros
+// remains zero.
+func (s *MongoSeeder) SeedBillingPolicies(ctx context.Context) error {
+	coll := s.client.Database(s.dbName).Collection("billing_policy")
+
+	policies := []bson.D{
+		{
+			{Key: "policy_id", Value: "native-v2"},
+			{Key: "harness", Value: "native"},
+			{Key: "cost_tier", Value: "default"},
+			{Key: "markup_basis_points", Value: int32(12000)},
+			{Key: "minimum_charge_micros", Value: int64(100)},
+			{Key: "rounding_mode", Value: "nearest_micro"},
+			{Key: "active", Value: true},
+		},
+		{
+			{Key: "policy_id", Value: "cursor-v2"},
+			{Key: "harness", Value: "cursor"},
+			{Key: "cost_tier", Value: "default"},
+			{Key: "markup_basis_points", Value: int32(11000)},
+			{Key: "minimum_charge_micros", Value: int64(100)},
+			{Key: "rounding_mode", Value: "nearest_micro"},
+			{Key: "active", Value: true},
+		},
+	}
+
+	for _, doc := range policies {
+		policyID := ""
+		for _, elem := range doc {
+			if elem.Key == "policy_id" {
+				policyID = elem.Value.(string)
+				break
+			}
+		}
+		count, err := coll.CountDocuments(ctx, bson.D{{Key: "policy_id", Value: policyID}})
+		if err != nil {
+			return fmt.Errorf("check billing policy %s: %w", policyID, err)
+		}
+		if count > 0 {
+			continue
+		}
+		if _, err := coll.InsertOne(ctx, doc); err != nil {
+			return fmt.Errorf("seed billing policy %s: %w", policyID, err)
+		}
+	}
+	return nil
+}
+
+// EnsureBillingIndexes creates indexes that Mongock migrations normally
+// create in production. Without the unique index on idempotency_key,
+// duplicate billing records are inserted instead of being deduplicated.
+func (s *MongoSeeder) EnsureBillingIndexes(ctx context.Context) error {
+	coll := s.client.Database(s.dbName).Collection("llm_call_usage_record")
+	_, err := coll.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "idempotency_key", Value: 1}},
+		Options: options.Index().SetUnique(true).SetName("idx_idempotency_key_unique"),
+	})
+	if err != nil {
+		return fmt.Errorf("create idempotency_key unique index: %w", err)
+	}
+	return nil
+}
+
 // Close disconnects the MongoDB client.
 func (s *MongoSeeder) Close(ctx context.Context) error {
 	return s.client.Disconnect(ctx)

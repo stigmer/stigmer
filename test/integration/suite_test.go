@@ -157,6 +157,11 @@ func TestMain(m *testing.M) {
 		suiteLogger.Warn("failed to provision test billing account — agent_call tests may fail", "error", err)
 	}
 
+	mongoURI := fmt.Sprintf("mongodb://%s:%s", testHarness.Mongo.Host, testHarness.Mongo.Port)
+	if err := harness.SeedBillingPolicies(ctx, mongoURI, "stigmer_test"); err != nil {
+		suiteLogger.Warn("failed to seed billing policies — billable_cost_micros may be zero", "error", err)
+	}
+
 	if err := harness.SeedDefaultAgent(ctx, grpcConn); err != nil {
 		suiteLogger.Warn("failed to seed default agent — tests requiring a default agent may fail", "error", err)
 	} else {
