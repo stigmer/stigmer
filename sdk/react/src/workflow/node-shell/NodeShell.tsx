@@ -4,6 +4,7 @@ import { memo } from "react";
 import { cn } from "@stigmer/theme";
 import type { VisualClass } from "../task-type-visual-registry";
 import type { NodeExecutionStatus } from "../workflow-graph-conversions";
+import type { NodeDiffStatus } from "../diff/types";
 import { getShapePath, SVG_SHAPE_CLASSES } from "./shape-paths";
 
 export interface NodeShellProps {
@@ -14,6 +15,7 @@ export interface NodeShellProps {
   selected?: boolean;
   errorCount?: number;
   executionStatus?: NodeExecutionStatus;
+  diffStatus?: NodeDiffStatus;
   children: React.ReactNode;
 }
 
@@ -37,6 +39,7 @@ export const NodeShell = memo(function NodeShell({
   selected,
   errorCount = 0,
   executionStatus,
+  diffStatus,
   children,
 }: NodeShellProps) {
   if (SVG_SHAPE_CLASSES.has(visualClass)) {
@@ -49,6 +52,7 @@ export const NodeShell = memo(function NodeShell({
         selected={selected}
         errorCount={errorCount}
         executionStatus={executionStatus}
+        diffStatus={diffStatus}
       >
         {children}
       </SvgShell>
@@ -62,6 +66,7 @@ export const NodeShell = memo(function NodeShell({
       selected={selected}
       errorCount={errorCount}
       executionStatus={executionStatus}
+      diffStatus={diffStatus}
     >
       {children}
     </CssShell>
@@ -78,6 +83,7 @@ function CssShell({
   selected,
   errorCount = 0,
   executionStatus,
+  diffStatus,
   children,
 }: Omit<NodeShellProps, "width" | "height">) {
   const shellClass = CSS_VARIANTS[visualClass] ?? CSS_VARIANTS["task-card"];
@@ -88,8 +94,9 @@ function CssShell({
         "stgm group relative flex items-center transition-shadow",
         shellClass,
         selected && "ring-2 ring-[var(--stgm-ring,#3b82f6)]",
-        errorCount > 0 && "!border-[var(--stgm-destructive,#ef4444)]",
-        executionStatus && EXECUTION_STATUS_CSS[executionStatus],
+        diffStatus && DIFF_STATUS_CSS[diffStatus],
+        !diffStatus && errorCount > 0 && "!border-[var(--stgm-destructive,#ef4444)]",
+        !diffStatus && executionStatus && EXECUTION_STATUS_CSS[executionStatus],
       )}
       style={
         visualClass === "task-card" || visualClass === "subworkflow-card"
@@ -97,6 +104,7 @@ function CssShell({
           : undefined
       }
       data-execution-status={executionStatus}
+      data-diff-status={diffStatus}
     >
       {children}
     </div>
@@ -134,15 +142,18 @@ function SvgShell({
   selected,
   errorCount = 0,
   executionStatus,
+  diffStatus,
   children,
 }: NodeShellProps) {
   const pathD = getShapePath(visualClass, width, height);
 
-  const strokeColor = executionStatus
-    ? svgStrokeForStatus(executionStatus, categoryColor)
-    : errorCount > 0
-      ? "var(--stgm-destructive, #ef4444)"
-      : categoryColor;
+  const strokeColor = diffStatus
+    ? svgStrokeForDiffStatus(diffStatus, categoryColor)
+    : executionStatus
+      ? svgStrokeForStatus(executionStatus, categoryColor)
+      : errorCount > 0
+        ? "var(--stgm-destructive, #ef4444)"
+        : categoryColor;
 
   return (
     <div
@@ -152,10 +163,12 @@ function SvgShell({
         visualClass === "decision-diamond" && "rounded-sm",
         visualClass === "event-circle" && "rounded-full",
         visualClass === "gate-octagon" && "rounded",
-        executionStatus && EXECUTION_STATUS_CSS[executionStatus],
+        diffStatus && DIFF_STATUS_CSS[diffStatus],
+        !diffStatus && executionStatus && EXECUTION_STATUS_CSS[executionStatus],
       )}
       style={{ width, height }}
       data-execution-status={executionStatus}
+      data-diff-status={diffStatus}
     >
       <svg
         className="pointer-events-none absolute inset-0"
@@ -169,6 +182,7 @@ function SvgShell({
           fill="var(--stgm-card, var(--stgm-background, #fff))"
           stroke={strokeColor}
           strokeWidth="2"
+          strokeDasharray={diffStatus === "removed" ? "6 4" : undefined}
         />
       </svg>
       <div className="relative z-10 flex items-center justify-center overflow-hidden">
@@ -207,6 +221,34 @@ function svgStrokeForStatus(status: NodeExecutionStatus, fallback: string): stri
     case "failed":
       return "var(--stgm-destructive, #ef4444)";
     case "waiting_approval":
+      return "var(--stgm-warning, #f59e0b)";
+    default:
+      return fallback;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Diff status styling (T14)
+// ---------------------------------------------------------------------------
+
+/**
+ * CSS class overrides per diff status. Priority over execution and error
+ * styling — diffStatus > executionStatus > errorCount > categoryColor.
+ */
+const DIFF_STATUS_CSS: Record<NodeDiffStatus, string> = {
+  added: "border-[var(--stgm-success,#22c55e)] bg-[var(--stgm-success,#22c55e)]/5",
+  removed: "opacity-50 border-dashed border-[var(--stgm-destructive,#ef4444)]",
+  modified: "border-[var(--stgm-warning,#f59e0b)]",
+  unchanged: "",
+};
+
+function svgStrokeForDiffStatus(status: NodeDiffStatus, fallback: string): string {
+  switch (status) {
+    case "added":
+      return "var(--stgm-success, #22c55e)";
+    case "removed":
+      return "var(--stgm-destructive, #ef4444)";
+    case "modified":
       return "var(--stgm-warning, #f59e0b)";
     default:
       return fallback;

@@ -623,6 +623,44 @@ export {
   type WorkflowOverviewSummaryProps,
 } from "./WorkflowOverviewSummary";
 
+// T14: Visual diff engine — types and pure functions
+export type {
+  NodeDiffStatus,
+  EdgeDiffStatus,
+  NodeDiffEntry,
+  EdgeDiffEntry,
+  GraphDiff,
+} from "./diff";
+export { computeGraphDiff, buildDiffGraph, jsonEqual } from "./diff";
+export { DiffSummaryBar, type DiffSummaryBarProps } from "./diff";
+
+// T14: Visual diff graph — behavior hook
+export {
+  useWorkflowDiffGraph,
+  type UseWorkflowDiffGraphOptions,
+  type UseWorkflowDiffGraphReturn,
+} from "./useWorkflowDiffGraph";
+
+// T14: Visual diff graph — styled component
+export {
+  WorkflowDiffGraph,
+  type WorkflowDiffGraphProps,
+} from "./WorkflowDiffGraph";
+
+// T14: Explain workflow — behavior hook
+export {
+  useExplainWorkflowFlow,
+  type ExplainPhase,
+  type UseExplainWorkflowFlowOptions,
+  type UseExplainWorkflowFlowReturn,
+} from "./useExplainWorkflowFlow";
+
+// T14: Explain workflow — styled component
+export {
+  WorkflowExplainDialog,
+  type WorkflowExplainDialogProps,
+} from "./WorkflowExplainDialog";
+
 // Workflow Instance management hooks
 export {
   useWorkflowInstance,

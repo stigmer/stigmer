@@ -68,9 +68,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-23 14:12
-**Last Session**: 2026-05-24 — Workflow Instance Management UX (full-stack: Go backend, SDK hooks, React components, E2E tests)
-**Current Task**: Instance management UX complete. Next: T14 (AI-Assisted Workflow Creation) or deferred follow-ups
-**Status**: In Progress — T01-T13 + backend enrichment + data accuracy hardening + instance management UX all done, T14+ remaining
+**Last Session**: 2026-05-24 — T14 AI-Assisted Workflow Creation (visual graph diff, validation fix, explain workflow)
+**Current Task**: T14 complete. All planned tasks done. Next: deferred follow-ups or new features
+**Status**: In Progress — T01-T14 + backend enrichment + data accuracy hardening + instance management UX all done
 
 ## Session Progress (2026-05-23)
 
@@ -309,6 +309,16 @@ When starting a new session:
 - Checkpoint: `checkpoints/2026-05-24-session-t13-execution-history.md`
 - Changelog: `_changelog/2026-05/2026-05-24-105730-feat-workflow-execution-history-dashboard-t13.md`
 
+### T14: AI-Assisted Workflow Creation — COMPLETED (2026-05-24)
+- **Phase 1: Diff Engine + Visual Extensions** — `computeGraphDiff()`, `buildDiffGraph()`, `jsonEqual()`, `NodeDiffStatus`/`EdgeDiffStatus` types. Extended `WorkflowGraphMode` with `"diff"`. Extended `NodeShell` with `diffStatus` (CSS/SVG handling, `DIFF_STATUS_CSS` map). Extended `CanvasTransitionEdge` with `EDGE_DIFF_STYLES`. Created `DiffBadge` (mirrors `ExecutionBadge` pattern). Wired diff mode into `WorkflowNode`.
+- **Phase 2: Diff Canvas Component** — `useWorkflowDiffGraph` hook (YAML pair → parse → diff → merge → layout → React Flow elements). `WorkflowDiffGraph` component (read-only React Flow canvas with `mode="diff"`). `DiffSummaryBar` (compact "+N added −N removed ~N modified" bar).
+- **Phase 3: Integration** — Replaced text `DiffPreview` with `WorkflowDiffGraph` in `WorkflowRefinePanel`, `WorkflowArchitectDialog`, and `WorkflowRepairCard`. Added collapsible "View YAML diff" toggle in each panel.
+- **Phase 4: Validation Fix** — "Fix with AI" button in editor toolbar (visible when `errorCount > 0`). Serializes `editor.diagnostics` into structured instruction. Auto-sends via `initialInstruction` prop on `WorkflowRefinePanel`.
+- **Phase 5: Explain Workflow** — `useExplainWorkflowFlow` hook (single-turn flow via `workflow-architect` agent). `WorkflowExplainDialog` (native `<dialog>`, streaming, copy-to-clipboard). Wired into editor toolbar + overview page quick actions.
+- 12 new files, 10 modified files. 25 new unit tests (all passing). Zero regressions.
+- Checkpoint: `checkpoints/2026-05-24-session-t14-ai-assisted-workflow.md`
+- Changelog: `_changelog/2026-05/2026-05-24-113306-feat-workflow-ai-assisted-visual-diff-explain-fix-t14.md`
+
 ### Runner Data Accuracy Hardening — COMPLETED (2026-05-24)
 - Fixed 8 data accuracy bugs in the execution data pipeline that corrupted inspector/waterfall/overview UX
 - **Attempt number propagation**: Exposed `getAttempt()` on accumulator; replaced hardcoded `attemptNumber: 1` with tracked values
@@ -347,9 +357,22 @@ When starting a new session:
 11. ~~**T11: Context Menu and Keyboard Shortcuts** — Right-click menus, Delete/Duplicate/N key shortcuts~~ DONE
 12. ~~**T12: Overview Page Redesign** — React Flow overview graph, summary stats, node popover, quick actions~~ DONE
 13. ~~**T13: Execution History and Operations Dashboard** — Execution table with filters, health metrics, failure analysis~~ DONE (run comparison deferred)
+14. ~~**T14: AI-Assisted Workflow Creation** — Visual graph diff, validation fix, explain workflow~~ DONE
 
 ## Context for Resume
 
+- T14 diff engine: `sdk/react/src/workflow/diff/` module — pure TypeScript (no React deps) for graph diff computation
+- T14 `computeGraphDiff()`: matches nodes by ID, edges by semantic triple `(source, target, sourceHandle)`. Excludes sentinels. `changedFields` lists top-level config keys that differ.
+- T14 `buildDiffGraph()`: merges after + removed nodes/edges into single graph for unified dagre layout
+- T14 `WorkflowGraphMode`: fourth mode `"diff"` alongside design/overview/execution
+- T14 `NodeShell.diffStatus`: priority chain: diffStatus > executionStatus > errorCount > categoryColor
+- T14 `DiffBadge`: mirrors `ExecutionBadge` positioning (`absolute -right-1.5 -top-1.5 z-20`)
+- T14 `useWorkflowDiffGraph`: pipeline: beforeYaml/afterYaml → parse → diff → merge → layout → toReactFlowElements → merge overlays
+- T14 `WorkflowDiffGraph`: read-only React Flow canvas with `mode="diff"`, same outer/inner pattern as `WorkflowExecutionGraph`
+- T14 integration: all 3 AI panels (Refine, Architect, Repair) now show `WorkflowDiffGraph` with collapsible text diff fallback
+- T14 "Fix with AI": editor toolbar button → serializes `editor.diagnostics` → opens refine panel with `initialInstruction` prop → auto-sends
+- T14 "Explain": `useExplainWorkflowFlow` — single-turn, uses `workflow-architect` agent, `action: "no_changes"` response
+- T14 deferred: DiffDetailPopover, rename detection, large change fallback, deep nested diff
 - T08 picker: `sdk/react/src/workflow/picker/` is the new intelligence layer — pure TypeScript (no React deps) for suggestions, compatibility, recents
 - T08 suggestions map: `SUGGESTIONS_AFTER_KIND` encodes domain knowledge from competitive research (n8n, Retool, Step Functions patterns)
 - T08 `usePickerData` hook: bridges intelligence layer → UI; produces stable memoized `PickerData` driving sections/items/disabled state

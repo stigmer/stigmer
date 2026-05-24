@@ -6,6 +6,7 @@ import type { EdgeProps } from "@xyflow/react";
 import { cn } from "@stigmer/theme";
 import type { CanvasTransitionEdgeData } from "./workflow-graph-conversions";
 import type { EdgeExecutionState } from "./execution";
+import type { EdgeDiffStatus } from "./diff/types";
 import { CanvasActionsContext } from "./CanvasActionsContext";
 import { TaskPickerPopover } from "./TaskPickerPopover";
 import { useWorkflowGraphMode } from "./WorkflowGraphModeContext";
@@ -45,6 +46,25 @@ const EDGE_EXECUTION_STYLES: Record<EdgeExecutionState, EdgeVisualStyle> = {
     strokeClass: "!stroke-[var(--stgm-muted-foreground,#737373)]",
     opacity: 0.25,
     labelDimmed: true,
+  },
+};
+
+const EDGE_DIFF_STYLES: Record<EdgeDiffStatus, EdgeVisualStyle> = {
+  added: {
+    strokeClass: "!stroke-[var(--stgm-success,#22c55e)]",
+    opacity: 1,
+    labelDimmed: false,
+  },
+  removed: {
+    strokeClass: "!stroke-[var(--stgm-destructive,#ef4444)]",
+    opacity: 0.3,
+    dashArray: "5 5",
+    labelDimmed: true,
+  },
+  unchanged: {
+    strokeClass: "!stroke-[var(--stgm-muted-foreground,#737373)]",
+    opacity: 0.6,
+    labelDimmed: false,
   },
 };
 
@@ -90,12 +110,14 @@ export const CanvasTransitionEdge = memo(function CanvasTransitionEdge({
 
   const label = data?.label;
   const execState = data?.executionState;
+  const diffState = (data as CanvasTransitionEdgeData & { diffState?: EdgeDiffStatus })?.diffState;
   const actions = useContext(CanvasActionsContext);
   const [hovered, setHovered] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const insertBtnRef = useRef<HTMLButtonElement>(null);
   const isDesignMode = mode === "design";
   const isExecutionMode = mode === "execution";
+  const isDiffMode = mode === "diff";
 
   const handleOpenPicker = useCallback(() => {
     setPickerOpen(true);
@@ -127,10 +149,12 @@ export const CanvasTransitionEdge = memo(function CanvasTransitionEdge({
     };
   }, [actions, id, source, target]);
 
-  // Resolve visual style: execution mode uses per-state styles, design uses defaults.
-  const execVisual = isExecutionMode && execState
-    ? EDGE_EXECUTION_STYLES[execState]
-    : null;
+  // Resolve visual style: diff mode → diff styles, execution mode → execution styles, else defaults.
+  const execVisual = isDiffMode && diffState
+    ? EDGE_DIFF_STYLES[diffState]
+    : isExecutionMode && execState
+      ? EDGE_EXECUTION_STYLES[execState]
+      : null;
 
   return (
     <>
