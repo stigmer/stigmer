@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useMemo, useState, type ReactNode } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { cn } from "@stigmer/theme";
 import { WorkflowTaskStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
@@ -19,6 +19,9 @@ import type { DerivedTaskState } from "../internal/store/workflow-execution-even
 import { ExecutionInspector } from "./execution-inspector";
 import { ExecutionComparisonPicker } from "./execution-comparison/ExecutionComparisonPicker";
 import { ExecutionComparisonView } from "./execution-comparison/ExecutionComparisonView";
+import { WorkflowExecutionApprovalCard } from "./WorkflowExecutionApprovalCard";
+import type { WorkflowPendingApproval } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 /** Props for {@link WorkflowExecutionViewer}. */
 export interface WorkflowExecutionViewerProps {
@@ -141,6 +144,10 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
         attemptNumber: 1,
         error: t.error ?? "",
         childExecutionId: "",
+        agentSlug: "",
+        currentToolName: "",
+        messagesCount: 0,
+        toolCallsCount: 0,
       });
     }
     return map;
@@ -362,6 +369,8 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
           taskStates={effectiveTaskStates}
           onSubmitTaskApproval={actions.submitTaskApproval}
           isSubmittingApproval={actions.isSubmitting}
+          pendingApprovals={execution?.status?.pendingApprovals}
+          onSubmitApproval={actions.submitApproval}
         />
       </div>
       </>
@@ -390,10 +399,10 @@ function LoadingSkeleton() {
 
 
 // ---------------------------------------------------------------------------
-// Tabbed bottom panel: Waterfall + Event Log (T07)
+// Tabbed bottom panel: Waterfall + Event Log + Approvals
 // ---------------------------------------------------------------------------
 
-type BottomTab = "waterfall" | "events";
+type BottomTab = "waterfall" | "events" | "approvals";
 
 function ExecutionBottomPanel({
   events,
@@ -406,6 +415,8 @@ function ExecutionBottomPanel({
   taskStates,
   onSubmitTaskApproval,
   isSubmittingApproval,
+  pendingApprovals,
+  onSubmitApproval,
 }: {
   events: WorkflowExecutionTimelineProps["events"];
   streamState: WorkflowExecutionTimelineProps["streamState"];
@@ -417,9 +428,27 @@ function ExecutionBottomPanel({
   taskStates: ReadonlyMap<string, DerivedTaskState>;
   onSubmitTaskApproval: WorkflowExecutionTimelineProps["onSubmitTaskApproval"];
   isSubmittingApproval: boolean;
+  pendingApprovals?: readonly WorkflowPendingApproval[];
+  onSubmitApproval?: (toolCallId: string, action: ApprovalAction, comment?: string) => Promise<unknown>;
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState<BottomTab>("waterfall");
+  const prevApprovalCountRef = useRef(0);
+
+  const approvalCount = pendingApprovals?.length ?? 0;
+  const hasApprovals = approvalCount > 0;
+
+  // Auto-switch to Approvals tab when new approvals arrive
+  useEffect(() => {
+    if (approvalCount > prevApprovalCountRef.current && approvalCount > 0) {
+      setActiveTab("approvals");
+      setCollapsed(false);
+    }
+    if (approvalCount === 0 && activeTab === "approvals") {
+      setActiveTab("waterfall");
+    }
+    prevApprovalCountRef.current = approvalCount;
+  }, [approvalCount, activeTab]);
 
   return (
     <div className="border-t border-[var(--stgm-border,#e5e5e5)]">
@@ -452,12 +481,19 @@ function ExecutionBottomPanel({
           isActive={activeTab === "events"}
           onClick={() => { setActiveTab("events"); setCollapsed(false); }}
         />
+        {hasApprovals && (
+          <TabButton
+            label={`Approvals (${approvalCount})`}
+            isActive={activeTab === "approvals"}
+            onClick={() => { setActiveTab("approvals"); setCollapsed(false); }}
+          />
+        )}
       </div>
 
       {/* Panel content */}
       {!collapsed && (
         <div className="h-52">
-          {activeTab === "waterfall" ? (
+          {activeTab === "waterfall" && (
             <WaterfallTimeline
               events={events}
               streamState={streamState}
@@ -467,7 +503,8 @@ function ExecutionBottomPanel({
               onTaskSelect={onTaskSelect}
               className="h-full"
             />
-          ) : (
+          )}
+          {activeTab === "events" && (
             <WorkflowExecutionTimeline
               events={events}
               streamState={streamState}
@@ -477,6 +514,23 @@ function ExecutionBottomPanel({
               isSubmittingApproval={isSubmittingApproval}
               className="h-full"
             />
+          )}
+          {activeTab === "approvals" && pendingApprovals && onSubmitApproval && (
+            <div className="h-full overflow-y-auto px-4 py-3">
+              <div className="space-y-3">
+                {pendingApprovals.map((pa) => (
+                  <WorkflowExecutionApprovalCard
+                    key={pa.approval?.toolCallId ?? pa.childAgentExecutionId}
+                    prompt={pa.approval?.message || `Tool "${pa.approval?.toolName}" requires approval`}
+                    toolCallId={pa.approval?.toolCallId ?? ""}
+                    approvers={[]}
+                    timeoutSeconds={0}
+                    onSubmitApproval={onSubmitApproval}
+                    isSubmitting={isSubmittingApproval}
+                  />
+                ))}
+              </div>
+            </div>
           )}
         </div>
       )}

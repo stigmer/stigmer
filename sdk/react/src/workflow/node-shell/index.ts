@@ -2,7 +2,7 @@ export { NodeShell, type NodeShellProps } from "./NodeShell";
 export { NodeContent, type NodeContentProps } from "./NodeContent";
 export { NodeHandles, type NodeHandlesProps } from "./NodeHandles";
 export { NodeActions, type NodeActionsProps } from "./NodeActions";
-export { ExecutionBadge, type ExecutionBadgeProps } from "./ExecutionBadge";
+export { ExecutionBadge, type ExecutionBadgeProps, type AgentActivityInfo, type ForkProgressInfo } from "./ExecutionBadge";
 export { DiffBadge, type DiffBadgeProps } from "./DiffBadge";
 export { BranchBadge, type BranchBadgeProps } from "./BranchBadge";
 export {

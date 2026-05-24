@@ -189,7 +189,9 @@ export function useWorkflowExecutionGraph(
     ? options.taskStates
     : ownStream.taskStates;
 
-  // ── Merge execution state into nodes (T04) + fork progress (T06) ──
+  // ── Merge execution state into nodes (T04) + fork progress (T06) + agent activity ──
+
+  const pendingApprovals = execution?.status?.pendingApprovals;
 
   const nodesWithExecution = useMemo<Node[]>(() => {
     if (!baseElements) return [];
@@ -214,19 +216,45 @@ export function useWorkflowExecutionGraph(
           ? deriveForkProgress(nodeData.config, taskStates)
           : null;
 
+      // Agent activity for running agent_call nodes.
+      const agentActivity =
+        taskState?.status === "running" &&
+        taskState.agentSlug &&
+        (taskState.currentToolName || taskState.messagesCount > 0)
+          ? {
+              agentSlug: taskState.agentSlug,
+              currentToolName: taskState.currentToolName,
+              messagesCount: taskState.messagesCount,
+              toolCallsCount: taskState.toolCallsCount,
+            }
+          : undefined;
+
+      // Approval tool name from pending approvals matched by childExecutionId.
+      let approvalToolName: string | undefined;
+      if (taskState?.status === "waiting_approval" && taskState.childExecutionId && pendingApprovals) {
+        const match = pendingApprovals.find(
+          (pa) => pa.childAgentExecutionId === taskState.childExecutionId,
+        );
+        if (match?.approval?.toolName) {
+          approvalToolName = match.approval.toolName;
+        }
+      }
+
       return {
         ...node,
         data: {
           ...nodeData,
           executionState,
           ...(forkProgress && { forkProgress }),
+          ...(agentActivity && { agentActivity }),
+          ...(approvalToolName && { approvalToolName }),
         },
         draggable: false,
         connectable: false,
         deletable: false,
       };
     });
-  }, [baseElements, taskStates]);
+  }, [baseElements, taskStates, pendingApprovals]);
 
   // ── Merge execution state into edges (T06) ──────────────────────
 

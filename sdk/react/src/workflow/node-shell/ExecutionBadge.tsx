@@ -11,6 +11,14 @@ export interface ForkProgressInfo {
   readonly compete: boolean;
 }
 
+/** Live agent activity summary for running agent_call nodes. */
+export interface AgentActivityInfo {
+  readonly agentSlug: string;
+  readonly currentToolName: string;
+  readonly messagesCount: number;
+  readonly toolCallsCount: number;
+}
+
 export interface ExecutionBadgeProps {
   readonly status: NodeExecutionStatus;
   readonly attemptNumber?: number;
@@ -18,6 +26,8 @@ export interface ExecutionBadgeProps {
   readonly forkProgress?: ForkProgressInfo;
   /** Tool name awaiting approval. Displayed in the badge when status is waiting_approval. */
   readonly approvalToolName?: string;
+  /** Live agent activity. When present on a running agent_call node, shows what the agent is doing. */
+  readonly agentActivity?: AgentActivityInfo;
 }
 
 /**
@@ -36,6 +46,7 @@ export const ExecutionBadge = memo(function ExecutionBadge({
   attemptNumber,
   forkProgress,
   approvalToolName,
+  agentActivity,
 }: ExecutionBadgeProps) {
   if (status === "not_reached" || status === "pending") return null;
 
@@ -53,6 +64,28 @@ export const ExecutionBadge = memo(function ExecutionBadge({
       >
         ✋
         <span className="max-w-[60px] truncate">{approvalToolName}</span>
+      </span>
+    );
+  }
+
+  // Agent activity badge: show what the agent is doing (tool name or message count).
+  if (status === "running" && agentActivity && (agentActivity.currentToolName || agentActivity.messagesCount > 0)) {
+    const displayText = agentActivity.currentToolName || `${agentActivity.messagesCount} msgs`;
+    const agentLabel = agentActivity.currentToolName
+      ? `Agent using tool: ${agentActivity.currentToolName}`
+      : `Agent: ${agentActivity.messagesCount} messages, ${agentActivity.toolCallsCount} tool calls`;
+
+    return (
+      <span
+        className={cn(
+          "absolute -right-1.5 -top-1.5 z-20 flex h-5 items-center gap-0.5 rounded-full px-1.5 text-[10px] font-semibold leading-none shadow-sm",
+          "bg-[var(--stgm-primary,#6366f1)] text-white stgm-exec-badge-running",
+        )}
+        title={agentLabel}
+        aria-label={agentLabel}
+      >
+        {agentActivity.currentToolName ? "🔧" : "💬"}
+        <span className="max-w-[60px] truncate">{displayText}</span>
       </span>
     );
   }

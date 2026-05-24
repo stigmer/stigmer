@@ -66,9 +66,62 @@ export async function clearWorkflowApprovalStatus(
   });
 }
 
+/**
+ * Queries the child AgentExecution for progress data that can be
+ * emitted as an `agent_call_progress` event on the parent workflow.
+ *
+ * Returns a lightweight summary derived from the agent's status:
+ * message count, last active tool, token consumption. Returns null
+ * if the execution cannot be fetched (best-effort).
+ */
+export interface AgentProgressSummary {
+  messagesCount: number;
+  toolCallsCount: number;
+  currentToolName: string;
+  tokensConsumed: number;
+  agentPhase: string;
+}
+
+export async function getAgentExecutionProgress(
+  childExecutionId: string,
+): Promise<AgentProgressSummary | null> {
+  if (!childExecutionId) return null;
+
+  try {
+    const client = buildClient();
+    const execution = await client.getExecution(childExecutionId);
+    const status = execution?.status;
+    if (!status) return null;
+
+    const messages = status.messages ?? [];
+    const messagesCount = messages.length;
+
+    let toolCallsCount = 0;
+    let currentToolName = "";
+    for (const msg of messages) {
+      const tools = msg.toolCalls ?? [];
+      toolCallsCount += tools.length;
+      for (const tc of tools) {
+        if (tc.name) currentToolName = tc.name;
+      }
+    }
+
+    const usage = status.streamingUsage;
+    const tokensConsumed = Number(usage?.totalTokens ?? 0);
+
+    const phase = String(status.phase ?? 0);
+
+    return { messagesCount, toolCallsCount, currentToolName, tokensConsumed, agentPhase: phase };
+  } catch (err) {
+    console.warn("Failed to fetch agent execution progress (non-fatal):", String(err));
+    return null;
+  }
+}
+
 export function createCallAgentStatusActivities() {
   return {
     UpdateWorkflowTaskApprovalStatus: updateWorkflowTaskApprovalStatus,
     ClearWorkflowApprovalStatus: clearWorkflowApprovalStatus,
+    GetAgentExecutionProgress: getAgentExecutionProgress,
   };
 }

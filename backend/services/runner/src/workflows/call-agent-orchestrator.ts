@@ -27,7 +27,7 @@ import {
 } from "@temporalio/workflow";
 
 import type { createCallAgentActivities } from "../activities/call-agent.js";
-import type { createCallAgentStatusActivities } from "../activities/call-agent-status.js";
+import type { createCallAgentStatusActivities, AgentProgressSummary } from "../activities/call-agent-status.js";
 import type { createWorkflowEventActivities } from "../activities/workflow-event-activities.js";
 import type { AgentCallConfig, AgentCallResult, WorkflowEventDescriptor } from "../workflow-engine/types.js";
 import type { ChildApprovalNotification } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
@@ -96,6 +96,8 @@ export interface AgentCallOrchestrationInput {
  * handler for HITL approval notifications, and waits for the activity
  * to complete. Returns the agent's result.
  */
+const PROGRESS_POLL_INTERVAL = "15s";
+
 export async function orchestrateAgentCall(
   input: AgentCallOrchestrationInput,
 ): Promise<AgentCallResult> {
@@ -104,7 +106,7 @@ export async function orchestrateAgentCall(
   let activityError: unknown = undefined;
   let pendingNotification: ChildApprovalNotification | undefined;
   let childExecId: string | undefined;
-  let progressEmitted = false;
+  let initialProgressEmitted = false;
 
   setHandler(childApprovalRequired, (notification: ChildApprovalNotification) => {
     pendingNotification = notification;
@@ -138,36 +140,39 @@ export async function orchestrateAgentCall(
     });
 
   while (!activityDone) {
-    await condition(
-      () => activityDone || pendingNotification !== undefined || (!!childExecId && !progressEmitted),
+    // Wait for a signal, activity completion, or periodic timeout for progress polling.
+    // condition() returns false on timeout, true when the predicate became true.
+    const conditionMet = await condition(
+      () => activityDone || pendingNotification !== undefined || (!!childExecId && !initialProgressEmitted),
+      PROGRESS_POLL_INTERVAL,
     );
 
-    // Emit agent_call_progress with childExecutionId as soon as it's known
-    if (childExecId && !progressEmitted && !activityDone) {
-      progressEmitted = true;
+    if (activityDone) break;
+
+    // Emit initial progress with childExecutionId as soon as it's known
+    if (childExecId && !initialProgressEmitted) {
+      initialProgressEmitted = true;
+      await emitProgress(input, childExecId, null);
+    }
+
+    // Periodic progress: on timeout, poll the child execution for live data
+    if (!conditionMet && childExecId) {
+      let progress: AgentProgressSummary | null = null;
       try {
-        const progressEvent: WorkflowEventDescriptor = {
-          type: "agent_call_progress",
-          taskName: input.taskName,
-          occurredAt: new Date().toISOString(),
-          childExecutionId: childExecId,
-          agentSlug: input.config.agent ?? "",
-          agentPhase: "",
-          currentToolName: "",
-          tokensConsumed: 0,
-          messagesCount: 0,
-          toolCallsCount: 0,
-        };
-        await eventProxy.EmitWorkflowEvents(input.workflowExecutionId, [progressEvent], []);
-      } catch (emitErr) {
-        log.warn("Failed to emit agent_call_progress (non-fatal)", {
-          error: String(emitErr),
+        progress = await statusProxy.GetAgentExecutionProgress(childExecId);
+      } catch (err) {
+        log.warn("Failed to fetch agent progress (non-fatal)", {
+          error: String(err),
           taskName: input.taskName,
         });
       }
+      if (progress) {
+        await emitProgress(input, childExecId, progress);
+      }
     }
 
-    if (pendingNotification && !activityDone) {
+    // Handle HITL approval notification
+    if (pendingNotification) {
       const notification = pendingNotification;
       pendingNotification = undefined;
 
@@ -199,4 +204,31 @@ export async function orchestrateAgentCall(
   }
 
   return activityResult;
+}
+
+async function emitProgress(
+  input: AgentCallOrchestrationInput,
+  childExecId: string,
+  progress: AgentProgressSummary | null,
+): Promise<void> {
+  try {
+    const progressEvent: WorkflowEventDescriptor = {
+      type: "agent_call_progress",
+      taskName: input.taskName,
+      occurredAt: new Date().toISOString(),
+      childExecutionId: childExecId,
+      agentSlug: input.config.agent ?? "",
+      agentPhase: progress?.agentPhase ?? "",
+      currentToolName: progress?.currentToolName ?? "",
+      tokensConsumed: progress?.tokensConsumed ?? 0,
+      messagesCount: progress?.messagesCount ?? 0,
+      toolCallsCount: progress?.toolCallsCount ?? 0,
+    };
+    await eventProxy.EmitWorkflowEvents(input.workflowExecutionId, [progressEvent], []);
+  } catch (emitErr) {
+    log.warn("Failed to emit agent_call_progress (non-fatal)", {
+      error: String(emitErr),
+      taskName: input.taskName,
+    });
+  }
 }

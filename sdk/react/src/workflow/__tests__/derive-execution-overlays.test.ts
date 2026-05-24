@@ -28,6 +28,10 @@ function makeDerivedState(
     attemptNumber: 1,
     error: "",
     childExecutionId: "",
+    agentSlug: "",
+    currentToolName: "",
+    messagesCount: 0,
+    toolCallsCount: 0,
     ...overrides,
   };
 }

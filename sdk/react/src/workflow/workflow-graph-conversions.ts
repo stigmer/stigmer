@@ -483,6 +483,8 @@ export interface CanvasTaskNodeData extends Record<string, unknown> {
   forkProgress?: { readonly completed: number; readonly total: number; readonly compete: boolean };
   /** Tool name awaiting approval. Present when status is waiting_approval and a tool name is known. */
   approvalToolName?: string;
+  /** Live agent activity summary. Present on running agent_call nodes when progress events arrive. */
+  agentActivity?: { readonly agentSlug: string; readonly currentToolName: string; readonly messagesCount: number; readonly toolCallsCount: number };
   /** Diff state (T14). Present only in diff mode. */
   diffState?: { readonly status: import("./diff/types").NodeDiffStatus; readonly changedFields?: readonly string[] };
 }

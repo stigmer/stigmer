@@ -68,9 +68,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-23 14:12
-**Last Session**: 2026-05-24 — Agent Call Live Experience
-**Current Task**: Agent Call Live Experience complete. Next: `make protos && make codegen`, then Phase B (periodic progress) or T15 (Template Gallery)
-**Status**: In Progress — T01-T14 + backend enrichment + data accuracy hardening + instance management UX + run comparison + eval fix + agent call live experience all done
+**Last Session**: 2026-05-24 — Agent Call Live Progress Pipeline Fix
+**Current Task**: Agent call live progress pipeline fix + periodic progress + approval bottom panel complete. Next: T15 (Template Gallery) or T16 (Accessibility)
+**Status**: In Progress — T01-T14 + all enrichments + agent call live experience + live progress pipeline fix all done
 
 ## Session Progress (2026-05-23)
 
@@ -368,6 +368,15 @@ When starting a new session:
 - Go unit tests (5 cases), TypeScript logic tests
 - Checkpoint: `checkpoints/2026-05-24-session-agent-call-live-experience.md`
 - Changelog: `_changelog/2026-05/2026-05-24-125610-feat-agent-call-live-experience.md`
+
+### Agent Call Live Progress Pipeline Fix — COMPLETED (2026-05-24)
+- **Fixed broken pipeline**: Event store had no `agentCallProgress` handler — `childExecutionId` never reached UI. Added handler, extended `DerivedTaskState` with `agentSlug`, `currentToolName`, `messagesCount`, `toolCallsCount`.
+- **Fixed derive-task-detail**: `buildAgentCall()` now reads `childExecutionId` from `agentProgress` bucket as fallback (was only reading from `agentStarted` which has empty ID).
+- **Graph badge enhancement**: `ExecutionBadge` now shows agent activity (current tool name or message count) on running `agent_call` nodes. `approvalToolName` wired from `pendingApprovals` via `useWorkflowExecutionGraph`.
+- **Periodic progress**: Orchestrator uses `condition(fn, "15s")` timeout to poll child `AgentExecution` and emit `agent_call_progress` events with real data (message count, tool name, tokens).
+- **Approval bottom panel**: Added "Approvals" tab to `ExecutionBottomPanel` — auto-shows when pending, auto-switches, disappears when resolved. Reuses existing `WorkflowExecutionApprovalCard`.
+- 12 files changed, 550 insertions. 9 new tests, all passing. TypeScript clean.
+- Changelog: `_changelog/2026-05/2026-05-24-135245-feat-agent-call-live-progress-pipeline-fix.md`
 
 ## Next Steps
 

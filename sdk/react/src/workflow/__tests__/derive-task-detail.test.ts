@@ -57,6 +57,10 @@ function makeDerived(overrides: Partial<DerivedTaskState>): DerivedTaskState {
     attemptNumber: 1,
     error: "",
     childExecutionId: "",
+    agentSlug: "",
+    currentToolName: "",
+    messagesCount: 0,
+    toolCallsCount: 0,
     ...overrides,
   };
 }
@@ -396,6 +400,7 @@ describe("deriveTaskDetail", () => {
       makeEvent("my-task", 2, "2026-01-01T00:00:01Z", {
         case: "agentCallProgress",
         value: {
+          childExecutionId: "exec-child-1",
           agentPhase: 2,
           currentToolName: "web-search",
           tokensConsumed: BigInt(1000),
@@ -445,6 +450,7 @@ describe("deriveTaskDetail", () => {
       makeEvent("my-task", 2, "2026-01-01T00:00:01Z", {
         case: "agentCallProgress",
         value: {
+          childExecutionId: "exec-child-2",
           agentPhase: 1,
           currentToolName: "file-read",
           tokensConsumed: BigInt(750),
@@ -465,6 +471,37 @@ describe("deriveTaskDetail", () => {
     expect(result!.agentCall!.costMicros).toBe(BigInt(0));
     expect(result!.agentCall!.error).toBe("");
     expect(result!.agentCall!.currentToolName).toBe("file-read");
+  });
+
+  it("uses childExecutionId from agentCallProgress when agentCallStarted has empty ID", () => {
+    const derived = makeDerived({ status: "running" });
+    const events = [
+      makeEvent("my-task", 1, "2026-01-01T00:00:00Z", {
+        case: "agentCallStarted",
+        value: {
+          childExecutionId: "",
+          agentSlug: "my-agent",
+          messageSummary: "",
+        },
+      }),
+      makeEvent("my-task", 2, "2026-01-01T00:00:01Z", {
+        case: "agentCallProgress",
+        value: {
+          childExecutionId: "aex_late_arrival",
+          agentPhase: 1,
+          currentToolName: "web-search",
+          tokensConsumed: BigInt(500),
+          messagesCount: 3,
+          toolCallsCount: 1,
+        },
+      }),
+    ];
+
+    const result = deriveTaskDetail("my-task", events, undefined, derived);
+    expect(result!.agentCall).not.toBeNull();
+    expect(result!.agentCall!.childExecutionId).toBe("aex_late_arrival");
+    expect(result!.agentCall!.agentSlug).toBe("my-agent");
+    expect(result!.agentCall!.currentToolName).toBe("web-search");
   });
 
   it("returns null agentCall when no agentCallStarted event exists", () => {
@@ -884,6 +921,7 @@ describe("deriveTaskDetail", () => {
       makeEvent("my-task", 2, "2026-01-01T00:00:01Z", {
         case: "agentCallProgress",
         value: {
+          childExecutionId: "",
           agentPhase: 4,
           currentToolName: "grep",
           tokensConsumed: BigInt(100),
