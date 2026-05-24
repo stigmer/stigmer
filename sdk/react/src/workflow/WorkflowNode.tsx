@@ -41,11 +41,14 @@ export const WorkflowNode = memo(function WorkflowNode({
       data-execution-status={executionState?.status}
       data-diff-status={diffState?.status}
       aria-label={buildAriaLabel(data, errorCount, executionState?.status)}
+      role="button"
+      className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--stgm-ring,#3b82f6)] focus-visible:ring-offset-1 rounded-sm"
     >
       <NodeShell
         visualClass={visualSpec.visualClass}
         width={visualSpec.defaultWidth}
         height={visualSpec.defaultHeight}
+        captionHeight={visualSpec.captionHeight}
         categoryColor={categoryColor}
         selected={selected}
         errorCount={mode === "design" ? errorCount : 0}
@@ -57,6 +60,7 @@ export const WorkflowNode = memo(function WorkflowNode({
           taskName={data.taskName}
           displayName={data.displayName}
           categoryColor={categoryColor}
+          captionHeight={visualSpec.captionHeight}
           isNested={isNested}
         />
       </NodeShell>

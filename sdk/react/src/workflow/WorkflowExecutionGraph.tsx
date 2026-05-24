@@ -13,7 +13,7 @@ import {
   useReactFlow,
   ReactFlowProvider,
 } from "@xyflow/react";
-import type { Node } from "@xyflow/react";
+import type { Node, Viewport } from "@xyflow/react";
 import { cn } from "@stigmer/theme";
 import { WorkflowNode } from "./WorkflowNode";
 import { CanvasTransitionEdge } from "./CanvasTransitionEdge";
@@ -24,6 +24,11 @@ import { useWorkflowExecutionGraph } from "./useWorkflowExecutionGraph";
 import type { UseWorkflowExecutionGraphReturn } from "./useWorkflowExecutionGraph";
 import type { DerivedTaskState } from "../internal/store/workflow-execution-event-store";
 import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import { useFollowExecution } from "./useFollowExecution";
+import { useActiveTaskName } from "./useActiveTaskName";
+import { useExecutionAnnouncements } from "./useExecutionAnnouncements";
+import { ExecutionActiveTaskIndicator } from "./ExecutionActiveTaskIndicator";
+import { getAnimationDuration } from "./motion-preference";
 
 /** Props for {@link WorkflowExecutionGraph}. */
 export interface WorkflowExecutionGraphProps {
@@ -51,6 +56,13 @@ export interface WorkflowExecutionGraphProps {
    * state to keep sibling components (like the inspector) in sync.
    */
   readonly onAutoSelectTask?: (taskName: string) => void;
+  /**
+   * Pixel width of adjacent panels (inspector, sidebar) that occlude
+   * the right side of the graph viewport. The follow-execution camera
+   * offsets its center to keep the active node visually centered in the
+   * unoccluded area. Defaults to 0.
+   */
+  readonly panelOffsetPx?: number;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -95,6 +107,8 @@ export const WorkflowExecutionGraph = memo(function WorkflowExecutionGraph(
   );
 });
 
+const TERMINAL_EXECUTION_PHASES = new Set([3, 4, 5, 6]);
+
 function WorkflowExecutionGraphInner({
   executionId,
   onTaskSelect,
@@ -102,6 +116,7 @@ function WorkflowExecutionGraphInner({
   execution: externalExecution,
   taskStates: externalTaskStates,
   onAutoSelectTask,
+  panelOffsetPx = 0,
   className,
 }: WorkflowExecutionGraphProps) {
   const graphState = useWorkflowExecutionGraph({
@@ -119,38 +134,41 @@ function WorkflowExecutionGraphInner({
     setSelectedTaskName,
     versionMismatch,
     taskStates,
+    executionPhase,
   } = graphState;
 
-  const { fitView, setCenter } = useReactFlow();
+  const { fitView } = useReactFlow();
   const didFitRef = useRef(false);
-  const prevRunningRef = useRef<string | null>(null);
 
   // Fit view on first render with nodes
   useEffect(() => {
     if (nodes.length > 0 && !didFitRef.current) {
       didFitRef.current = true;
-      setTimeout(() => fitView({ padding: 0.15, duration: 300 }), 50);
+      setTimeout(() => fitView({ padding: 0.15, duration: getAnimationDuration(300) }), 50);
     }
   }, [nodes.length, fitView]);
 
-  // Follow execution: pan to the currently running node
-  useEffect(() => {
-    if (!followExecution || nodes.length === 0) return;
+  // Derive active task name stably from taskStates (not from nodes array — DD-010)
+  const activeTaskInfo = useActiveTaskName(taskStates);
+  const isTerminal = executionPhase != null && TERMINAL_EXECUTION_PHASES.has(executionPhase);
 
-    const runningNode = nodes.find(
-      (n) => (n.data as CanvasTaskNodeData).executionState?.status === "running",
-    );
-    const runningName = runningNode
-      ? (runningNode.data as CanvasTaskNodeData).taskName
-      : null;
+  // Follow-execution state machine
+  const {
+    isFollowing,
+    enableFollow,
+    disableFollow,
+    handleMoveStart,
+  } = useFollowExecution({
+    enabled: followExecution,
+    activeTaskName: activeTaskInfo?.taskName ?? null,
+    nodes,
+    didInitialFit: didFitRef.current,
+    isTerminal,
+    panelOffsetPx,
+  });
 
-    if (runningName && runningName !== prevRunningRef.current && runningNode) {
-      prevRunningRef.current = runningName;
-      const x = runningNode.position.x + (runningNode.width ?? 200) / 2;
-      const y = runningNode.position.y + (runningNode.height ?? 56) / 2;
-      setCenter(x, y, { duration: 400, zoom: 1 });
-    }
-  }, [nodes, followExecution, setCenter]);
+  // Screen reader announcements for task state changes
+  const announcement = useExecutionAnnouncements(taskStates);
 
   const handleNodeClick = useCallback(
     (_event: React.MouseEvent, node: Node) => {
@@ -168,6 +186,13 @@ function WorkflowExecutionGraphInner({
     setSelectedTaskName(null);
     onTaskSelect?.(null);
   }, [setSelectedTaskName, onTaskSelect]);
+
+  const onMoveStart = useCallback(
+    (event: MouseEvent | TouchEvent | null, viewport: Viewport) => {
+      handleMoveStart(event, viewport);
+    },
+    [handleMoveStart],
+  );
 
   // Mark selected node
   const nodesWithSelection = useMemo(
@@ -211,6 +236,17 @@ function WorkflowExecutionGraphInner({
             {versionMismatch}
           </div>
         )}
+
+        {/* Active task indicator — visible at any zoom level */}
+        {followExecution && activeTaskInfo && (
+          <ExecutionActiveTaskIndicator
+            activeTask={activeTaskInfo}
+            isFollowing={isFollowing}
+            onFollowToggle={isFollowing ? disableFollow : enableFollow}
+            onJumpToTask={() => enableFollow()}
+          />
+        )}
+
         <ReactFlow
           nodes={nodesWithSelection}
           edges={edges}
@@ -219,8 +255,10 @@ function WorkflowExecutionGraphInner({
           defaultEdgeOptions={defaultEdgeOptions}
           onNodeClick={handleNodeClick}
           onPaneClick={handlePaneClick}
+          onMoveStart={onMoveStart}
           nodesDraggable={false}
           nodesConnectable={false}
+          nodesFocusable={true}
           elementsSelectable={true}
           panOnDrag={true}
           zoomOnScroll={true}
@@ -228,6 +266,7 @@ function WorkflowExecutionGraphInner({
           minZoom={0.2}
           maxZoom={2}
           proOptions={{ hideAttribution: true }}
+          aria-label="Workflow execution graph. Use Tab to navigate between tasks."
         >
           <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
           <Controls showInteractive={false} />
@@ -244,6 +283,16 @@ function WorkflowExecutionGraphInner({
             zoomable
           />
         </ReactFlow>
+
+        {/* Screen reader live region for execution state announcements */}
+        <div
+          role="log"
+          aria-live="polite"
+          aria-atomic="false"
+          className="sr-only"
+        >
+          {announcement}
+        </div>
       </div>
     </WorkflowGraphModeProvider>
   );

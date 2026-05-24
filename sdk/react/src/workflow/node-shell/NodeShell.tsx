@@ -11,6 +11,8 @@ export interface NodeShellProps {
   visualClass: VisualClass;
   width: number;
   height: number;
+  /** Height reserved for the caption below the shape (0 for internal text shapes). */
+  captionHeight?: number;
   categoryColor: string;
   selected?: boolean;
   errorCount?: number;
@@ -35,6 +37,7 @@ export const NodeShell = memo(function NodeShell({
   visualClass,
   width,
   height,
+  captionHeight = 0,
   categoryColor,
   selected,
   errorCount = 0,
@@ -48,6 +51,7 @@ export const NodeShell = memo(function NodeShell({
         visualClass={visualClass}
         width={width}
         height={height}
+        captionHeight={captionHeight}
         categoryColor={categoryColor}
         selected={selected}
         errorCount={errorCount}
@@ -138,6 +142,7 @@ function SvgShell({
   visualClass,
   width,
   height,
+  captionHeight = 0,
   categoryColor,
   selected,
   errorCount = 0,
@@ -145,7 +150,9 @@ function SvgShell({
   diffStatus,
   children,
 }: NodeShellProps) {
-  const pathD = getShapePath(visualClass, width, height);
+  const shapeHeight = height;
+  const totalHeight = height + captionHeight;
+  const pathD = getShapePath(visualClass, width, shapeHeight);
 
   const strokeColor = diffStatus
     ? svgStrokeForDiffStatus(diffStatus, categoryColor)
@@ -158,7 +165,7 @@ function SvgShell({
   return (
     <div
       className={cn(
-        "stgm group relative flex items-center justify-center transition-shadow",
+        "stgm group relative flex flex-col items-center transition-shadow",
         selected && "ring-2 ring-[var(--stgm-ring,#3b82f6)]",
         visualClass === "decision-diamond" && "rounded-sm",
         visualClass === "event-circle" && "rounded-full",
@@ -166,27 +173,30 @@ function SvgShell({
         diffStatus && DIFF_STATUS_CSS[diffStatus],
         !diffStatus && executionStatus && EXECUTION_STATUS_CSS[executionStatus],
       )}
-      style={{ width, height }}
+      style={{ width, height: totalHeight }}
       data-execution-status={executionStatus}
       data-diff-status={diffStatus}
     >
-      <svg
-        className="pointer-events-none absolute inset-0"
-        width={width}
-        height={height}
-        viewBox={`0 0 ${width} ${height}`}
-        aria-hidden="true"
-      >
-        <path
-          d={pathD ?? ""}
-          fill="var(--stgm-card, var(--stgm-background, #fff))"
-          stroke={strokeColor}
-          strokeWidth="2"
-          strokeDasharray={diffStatus === "removed" ? "6 4" : undefined}
-        />
-      </svg>
-      <div className="relative z-10 flex items-center justify-center overflow-hidden">
-        {children}
+      {/* Shape area */}
+      <div className="relative flex items-center justify-center" style={{ width, height: shapeHeight }}>
+        <svg
+          className="pointer-events-none absolute inset-0"
+          width={width}
+          height={shapeHeight}
+          viewBox={`0 0 ${width} ${shapeHeight}`}
+          aria-hidden="true"
+        >
+          <path
+            d={pathD ?? ""}
+            fill="var(--stgm-card, var(--stgm-background, #fff))"
+            stroke={strokeColor}
+            strokeWidth="2"
+            strokeDasharray={diffStatus === "removed" ? "6 4" : undefined}
+          />
+        </svg>
+        <div className="relative z-10 flex items-center justify-center overflow-hidden">
+          {children}
+        </div>
       </div>
     </div>
   );

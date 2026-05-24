@@ -503,6 +503,24 @@ export {
   type WorkflowExecutionGraphProps,
 } from "./WorkflowExecutionGraph";
 
+// T16: Execution visibility and accessibility
+export {
+  useFollowExecution,
+  type FollowState,
+  type UseFollowExecutionOptions,
+  type UseFollowExecutionReturn,
+} from "./useFollowExecution";
+export {
+  useActiveTaskName,
+  type ActiveTaskInfo,
+} from "./useActiveTaskName";
+export {
+  ExecutionActiveTaskIndicator,
+  type ExecutionActiveTaskIndicatorProps,
+} from "./ExecutionActiveTaskIndicator";
+export { useExecutionAnnouncements } from "./useExecutionAnnouncements";
+export { getAnimationDuration, prefersReducedMotion } from "./motion-preference";
+
 // T05: Shared formatting utilities
 export {
   formatDuration,

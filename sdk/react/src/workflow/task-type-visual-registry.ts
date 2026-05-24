@@ -50,13 +50,25 @@ export type PortPattern =
  *
  * Combines shape, dimension, port, and accessibility metadata.
  * The layout engine (dagre today, ELK in T03) uses `defaultWidth`
- * and `defaultHeight` for node sizing. The renderer (T02 NodeShell)
- * uses `visualClass` to select the SVG shape component.
+ * and `defaultHeight + captionHeight` for node sizing. The renderer
+ * (T02 NodeShell) uses `visualClass` to select the SVG shape component.
+ *
+ * For non-rectangular shapes (diamond, octagon, circle), the task name
+ * renders as an external caption BELOW the shape. `captionHeight` reserves
+ * space for this caption in the layout bounding box. The SVG shape itself
+ * renders at `defaultHeight`, and the full layout allocation is
+ * `defaultHeight + captionHeight`.
  */
 export interface TaskTypeVisualSpec {
   readonly visualClass: VisualClass;
   readonly defaultWidth: number;
   readonly defaultHeight: number;
+  /**
+   * Height reserved for the task name caption below the shape.
+   * 0 for shapes with internal text (cards, bars, pills).
+   * >0 for non-rectangular shapes where text is placed externally.
+   */
+  readonly captionHeight: number;
   readonly portPattern: PortPattern;
   readonly isContainer: boolean;
   readonly ariaShapeLabel: string;
@@ -66,6 +78,7 @@ const TASK_CARD: TaskTypeVisualSpec = {
   visualClass: "task-card",
   defaultWidth: CANVAS_NODE_WIDTH,
   defaultHeight: CANVAS_NODE_HEIGHT,
+  captionHeight: 0,
   portPattern: "standard",
   isContainer: false,
   ariaShapeLabel: "card",
@@ -74,7 +87,8 @@ const TASK_CARD: TaskTypeVisualSpec = {
 const DECISION_DIAMOND: TaskTypeVisualSpec = {
   visualClass: "decision-diamond",
   defaultWidth: 140,
-  defaultHeight: 140,
+  defaultHeight: 120,
+  captionHeight: 24,
   portPattern: "branch-per-case",
   isContainer: false,
   ariaShapeLabel: "diamond",
@@ -84,6 +98,7 @@ const PARALLEL_BAR: TaskTypeVisualSpec = {
   visualClass: "parallel-bar",
   defaultWidth: 260,
   defaultHeight: 32,
+  captionHeight: 0,
   portPattern: "branch-per-branch",
   isContainer: false,
   ariaShapeLabel: "horizontal bar",
@@ -92,7 +107,8 @@ const PARALLEL_BAR: TaskTypeVisualSpec = {
 const EVENT_CIRCLE: TaskTypeVisualSpec = {
   visualClass: "event-circle",
   defaultWidth: 80,
-  defaultHeight: 80,
+  defaultHeight: 70,
+  captionHeight: 20,
   portPattern: "standard",
   isContainer: false,
   ariaShapeLabel: "circle",
@@ -101,7 +117,8 @@ const EVENT_CIRCLE: TaskTypeVisualSpec = {
 const GATE_OCTAGON: TaskTypeVisualSpec = {
   visualClass: "gate-octagon",
   defaultWidth: 160,
-  defaultHeight: 160,
+  defaultHeight: 140,
+  captionHeight: 24,
   portPattern: "branch-per-outcome",
   isContainer: false,
   ariaShapeLabel: "octagon",
@@ -111,6 +128,7 @@ const SUBWORKFLOW_CARD: TaskTypeVisualSpec = {
   visualClass: "subworkflow-card",
   defaultWidth: CANVAS_NODE_WIDTH,
   defaultHeight: CANVAS_NODE_HEIGHT,
+  captionHeight: 0,
   portPattern: "standard",
   isContainer: false,
   ariaShapeLabel: "sub-workflow card",
@@ -120,6 +138,7 @@ const CONTAINER: TaskTypeVisualSpec = {
   visualClass: "container",
   defaultWidth: 280,
   defaultHeight: 120,
+  captionHeight: 0,
   portPattern: "container",
   isContainer: true,
   ariaShapeLabel: "container",
@@ -129,6 +148,7 @@ const TERMINAL_PILL: TaskTypeVisualSpec = {
   visualClass: "terminal-pill",
   defaultWidth: SENTINEL_NODE_WIDTH,
   defaultHeight: SENTINEL_NODE_HEIGHT,
+  captionHeight: 0,
   portPattern: "source-only",
   isContainer: false,
   ariaShapeLabel: "pill",

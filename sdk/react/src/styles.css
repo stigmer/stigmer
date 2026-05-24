@@ -151,6 +151,20 @@
     animation: stgm-marching-ants 0.6s linear infinite;
   }
 
+  /* T16: Running node border pulse — subtle glow to indicate active execution */
+  @keyframes stgm-running-pulse {
+    0%, 100% {
+      box-shadow: 0 0 0 0 var(--stgm-primary, #6366f1);
+    }
+    50% {
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--stgm-primary, #6366f1) 20%, transparent);
+    }
+  }
+
+  .stgm-exec-running {
+    animation: stgm-running-pulse 2s ease-in-out infinite;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .stgm {
       --stgm-motion-duration: 0ms;
