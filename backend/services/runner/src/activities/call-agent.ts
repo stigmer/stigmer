@@ -26,8 +26,8 @@ import { loadConfig } from "../config.js";
 import { resolveObjectPlaceholders } from "../workflow-engine/resolve.js";
 import type { AgentCallConfig } from "../workflow-engine/types.js";
 import { startHeartbeat } from "../shared/heartbeat.js";
-import { create } from "@bufbuild/protobuf";
-import { AgentExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+import { create, type JsonObject } from "@bufbuild/protobuf";
+import { AgentExecutionSpecSchema, ExecutionConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
@@ -184,13 +184,6 @@ export async function callAgentAction(
   const hasModel = !!resolved.config?.model;
   const hasOutputSchema = !!resolved.output?.schema;
 
-  let executionConfig: Record<string, unknown> | undefined;
-  if (hasModel || hasOutputSchema) {
-    executionConfig = {};
-    if (hasModel) executionConfig.modelName = resolved.config!.model;
-    if (hasOutputSchema) executionConfig.structuredOutputSchema = resolved.output!.schema;
-  }
-
   const executionSpec = create(AgentExecutionSpecSchema, {
     sessionId,
     agentId,
@@ -199,8 +192,16 @@ export async function callAgentAction(
     parentWorkflowId,
     activityTaskQueue,
     runtimeEnv: runtimeEnvProto,
-    ...(executionConfig ? { executionConfig: executionConfig as any } : {}),
   });
+
+  if (hasModel || hasOutputSchema) {
+    const execConfig = create(ExecutionConfigSchema, {});
+    if (hasModel) execConfig.modelName = resolved.config!.model!;
+    if (hasOutputSchema) {
+      execConfig.structuredOutputSchema = resolved.output!.schema as JsonObject;
+    }
+    executionSpec.executionConfig = execConfig;
+  }
 
   await client.createAgentExecution(
     create(AgentExecutionSchema, {

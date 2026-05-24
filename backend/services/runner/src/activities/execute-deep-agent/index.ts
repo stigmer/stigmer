@@ -236,6 +236,9 @@ export function createDeepAgentActivities(config: Config) {
         if (finalText !== undefined) {
           slim.final_text = finalText;
         }
+        if (structuredOutput !== undefined) {
+          slim.structured = structuredOutput;
+        }
         return slim;
 
       } catch (err: unknown) {

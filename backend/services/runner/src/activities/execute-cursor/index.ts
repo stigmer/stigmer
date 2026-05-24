@@ -670,6 +670,9 @@ async function executeCursor(
     if (finalText !== undefined) {
       slim.final_text = finalText;
     }
+    if (structuredOutput !== undefined) {
+      slim.structured = structuredOutput;
+    }
     return slim;
 
   } catch (err) {
