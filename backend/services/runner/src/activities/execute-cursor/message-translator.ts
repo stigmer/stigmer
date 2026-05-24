@@ -293,6 +293,13 @@ export interface MessageAccumulatorOptions {
  * toolCalls array — matching the Python agent-runner's StatusBuilder
  * pattern and the UI's MessageThread expectations.
  *
+ * Tool call lifecycle is tracked via a `toolCallIndex` map (keyed by
+ * call_id), mirroring the native harness's `ExecutionState.toolCalls`.
+ * This ensures completion events always find the correct ToolCall proto
+ * regardless of which AI message it was originally attached to — the
+ * index stores the same object reference that lives in the message's
+ * `toolCalls[]` array, so mutations propagate directly to the proto.
+ *
  * Task (sub-agent) tool calls additionally produce SubAgentExecution
  * protos, accessible via the subAgentExecutions getter.
  */
@@ -303,6 +310,7 @@ export class MessageAccumulator {
   private readonly _subAgentExecutions: SubAgentExecution[] = [];
   private readonly subAgentMap = new Map<string, SubAgentExecution>();
   private readonly mergedPolicies?: Map<string, MergedToolPolicy>;
+  private readonly toolCallIndex = new Map<string, ToolCall>();
 
   constructor(messages: AgentMessage[], options?: MessageAccumulatorOptions) {
     this.messages = messages;
@@ -347,14 +355,20 @@ export class MessageAccumulator {
   private attachToolCallToLastAi(
     event: Extract<SDKMessage, { type: "tool_call" }>,
   ): void {
-    const aiMsg = this.findOrCreateLastAiMessage();
     const status = mapToolCallStatus(event.status);
 
     if (event.status === "running") {
+      const aiMsg = this.findOrCreateLastAiMessage();
       const tc = buildToolCallProto(event, this.mergedPolicies);
       aiMsg.toolCalls.push(tc);
+      this.toolCallIndex.set(event.call_id, tc);
     } else {
-      const existing = aiMsg.toolCalls.find((tc) => tc.id === event.call_id);
+      // Look up via the index (O(1), cross-message). Falls back to
+      // creating a new ToolCall on the last AI message when the index
+      // has no entry (e.g. completion event without a preceding running
+      // event — can happen if events are reordered or the stream starts
+      // mid-execution).
+      const existing = this.toolCallIndex.get(event.call_id);
       if (existing) {
         existing.status = status;
         if (isTerminalToolStatus(status)) {
@@ -379,8 +393,10 @@ export class MessageAccumulator {
             : JSON.stringify(event.args);
         }
       } else {
+        const aiMsg = this.findOrCreateLastAiMessage();
         const tc = buildToolCallProto(event, this.mergedPolicies);
         aiMsg.toolCalls.push(tc);
+        this.toolCallIndex.set(event.call_id, tc);
       }
     }
 

@@ -17,6 +17,7 @@ import { loadConfig } from "../config.js";
 import { create } from "@bufbuild/protobuf";
 import { WorkflowExecutionStatusSchema, WorkflowPendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import type { ChildApprovalNotification } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
+import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 function buildClient(): StigmerClient {
   const config = loadConfig();
@@ -102,7 +103,9 @@ export async function getAgentExecutionProgress(
       const tools = msg.toolCalls ?? [];
       toolCallsCount += tools.length;
       for (const tc of tools) {
-        if (tc.name) currentToolName = tc.name;
+        if (tc.name && tc.status === ToolCallStatus.TOOL_CALL_RUNNING) {
+          currentToolName = tc.name;
+        }
       }
     }
 
