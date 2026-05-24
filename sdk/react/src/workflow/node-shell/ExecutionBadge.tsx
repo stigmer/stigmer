@@ -16,6 +16,8 @@ export interface ExecutionBadgeProps {
   readonly attemptNumber?: number;
   /** Fork branch progress. When present on a running fork node, replaces the generic spinner. */
   readonly forkProgress?: ForkProgressInfo;
+  /** Tool name awaiting approval. Displayed in the badge when status is waiting_approval. */
+  readonly approvalToolName?: string;
 }
 
 /**
@@ -33,8 +35,27 @@ export const ExecutionBadge = memo(function ExecutionBadge({
   status,
   attemptNumber,
   forkProgress,
+  approvalToolName,
 }: ExecutionBadgeProps) {
   if (status === "not_reached" || status === "pending") return null;
+
+  // Approval-specific badge: show tool name when available.
+  if (status === "waiting_approval" && approvalToolName) {
+    const approvalLabel = `Awaiting approval: ${approvalToolName}`;
+    return (
+      <span
+        className={cn(
+          "absolute -right-1.5 -top-1.5 z-20 flex h-5 items-center gap-0.5 rounded-full px-1.5 text-[10px] font-semibold leading-none shadow-sm",
+          "bg-[var(--stgm-warning,#f59e0b)] text-white",
+        )}
+        title={approvalLabel}
+        aria-label={approvalLabel}
+      >
+        ✋
+        <span className="max-w-[60px] truncate">{approvalToolName}</span>
+      </span>
+    );
+  }
 
   // Fork-specific running badge: show branch progress instead of generic spinner.
   if (status === "running" && forkProgress) {

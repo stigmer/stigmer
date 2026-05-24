@@ -46,7 +46,9 @@ export async function updateWorkflowTaskApprovalStatus(
     pendingApprovals,
   });
 
-  await client.updateWorkflowExecutionStatus(executionId, status);
+  await client.updateWorkflowExecutionStatus(executionId, status, {
+    updatePendingApprovals: true,
+  });
 }
 
 export async function clearWorkflowApprovalStatus(
@@ -59,7 +61,9 @@ export async function clearWorkflowApprovalStatus(
     pendingApprovals: [],
   });
 
-  await client.updateWorkflowExecutionStatus(executionId, status);
+  await client.updateWorkflowExecutionStatus(executionId, status, {
+    updatePendingApprovals: true,
+  });
 }
 
 export function createCallAgentStatusActivities() {

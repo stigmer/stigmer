@@ -481,6 +481,8 @@ export interface CanvasTaskNodeData extends Record<string, unknown> {
   executionState?: NodeExecutionState;
   /** Fork branch completion progress (T06). Present only for fork nodes in execution mode. */
   forkProgress?: { readonly completed: number; readonly total: number; readonly compete: boolean };
+  /** Tool name awaiting approval. Present when status is waiting_approval and a tool name is known. */
+  approvalToolName?: string;
   /** Diff state (T14). Present only in diff mode. */
   diffState?: { readonly status: import("./diff/types").NodeDiffStatus; readonly changedFields?: readonly string[] };
 }

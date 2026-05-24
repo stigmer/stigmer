@@ -174,6 +174,22 @@ message WorkflowExecutionUpdateStatusInput {
   //
   // @since T06 (Execution Event Stream Model)
   repeated WorkflowExecutionEvent events = 10;
+
+  // When true, status.pending_approvals will be merged into the existing
+  // execution (replacing the stored list). When false (default), existing
+  // pending_approvals are preserved unchanged.
+  //
+  // @internal
+  // This prevents a race condition where concurrent event emissions
+  // (which don't include pending_approvals) inadvertently clear active
+  // approval gates set by call-agent-status.
+  //
+  // Only call-agent-status.ts sets this to true — both when populating
+  // approvals from a child_approval_required signal and when clearing them
+  // after the child agent completes.
+  //
+  // @since Agent Call Live Experience
+  bool update_pending_approvals = 11;
 }
 
 // Input for the submitApproval RPC.

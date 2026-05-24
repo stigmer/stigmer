@@ -53,6 +53,24 @@ func (w *InvokeAgentExecutionWorkflowImpl) Run(ctx workflow.Context, input *Invo
 			"token_length", len(callbackToken))
 	}
 
+	// Notify parent workflow that child execution has started (enables live subscription).
+	// Uses SignalExternalWorkflow — non-blocking, fire-and-forget.
+	if input.ParentWorkflowID != "" {
+		signalCtx, signalCancel := workflow.WithCancel(ctx)
+		workflow.Go(signalCtx, func(gCtx workflow.Context) {
+			defer signalCancel()
+			payload := struct {
+				ExecutionID string `json:"executionId"`
+			}{ExecutionID: executionID}
+			err := workflow.SignalExternalWorkflow(gCtx, input.ParentWorkflowID, "", "child_execution_started", payload).Get(gCtx, nil)
+			if err != nil {
+				logger.Warn("Failed to signal parent execution started (non-fatal)",
+					"parent_workflow_id", input.ParentWorkflowID,
+					"error", err)
+			}
+		})
+	}
+
 	// Dispatch by harness
 	var flowErr error
 	var lastActivityResult activities.RunnerActivityResult
