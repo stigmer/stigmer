@@ -56,6 +56,55 @@ const MIN_FOLLOW_ZOOM = 1.0;
 const FOLLOW_ANIMATION_MS = 400;
 const FOLLOW_DEBOUNCE_MS = 150;
 
+/** Inputs for the pure centering computation. */
+export interface FollowCenterInput {
+  /** Node position x in flow coordinates. */
+  readonly nodeX: number;
+  /** Node position y in flow coordinates. */
+  readonly nodeY: number;
+  /** Node width in flow coordinates. */
+  readonly nodeWidth: number;
+  /** Node height in flow coordinates. */
+  readonly nodeHeight: number;
+  /** Current viewport zoom level. */
+  readonly currentZoom: number;
+  /** Pixel width of an overlay panel occluding the viewport. 0 = no occlusion. */
+  readonly panelOffsetPx: number;
+}
+
+/** Result of the centering computation. */
+export interface FollowCenterResult {
+  /** X coordinate to pass to React Flow's setCenter. */
+  readonly x: number;
+  /** Y coordinate to pass to React Flow's setCenter. */
+  readonly y: number;
+  /** Zoom level to pass to React Flow's setCenter. */
+  readonly zoom: number;
+}
+
+/**
+ * Pure function that computes the viewport center point for following an
+ * active node. Extracted from hook internals for testability (DD-003).
+ *
+ * When `panelOffsetPx > 0`, the center is shifted leftward in flow coordinates
+ * so the node appears centered in the *unoccluded* portion of the viewport.
+ * The shift is inversely proportional to zoom (larger zoom → smaller shift).
+ */
+export function computeFollowCenter(input: FollowCenterInput): FollowCenterResult {
+  const centerX = input.nodeX + input.nodeWidth / 2;
+  const centerY = input.nodeY + input.nodeHeight / 2;
+
+  const offsetX = input.panelOffsetPx > 0
+    ? (input.panelOffsetPx / 2) / input.currentZoom
+    : 0;
+
+  return {
+    x: centerX - offsetX,
+    y: centerY,
+    zoom: Math.max(input.currentZoom, MIN_FOLLOW_ZOOM),
+  };
+}
+
 /**
  * Behavior hook implementing a follow-execution state machine for the
  * workflow execution graph viewport.
@@ -106,17 +155,18 @@ export function useFollowExecution(options: UseFollowExecutionOptions): UseFollo
     debounceTimerRef.current = setTimeout(() => {
       const nodeWidth = targetNode.width ?? targetNode.measured?.width ?? 200;
       const nodeHeight = targetNode.height ?? targetNode.measured?.height ?? 56;
-      const centerX = targetNode.position.x + nodeWidth / 2;
-      const centerY = targetNode.position.y + nodeHeight / 2;
 
-      // Offset for inspector panel: shift center leftward in flow coordinates
-      const currentZoom = getZoom();
-      const offsetX = panelOffsetPx > 0 ? (panelOffsetPx / 2) / currentZoom : 0;
-
-      const targetZoom = Math.max(currentZoom, MIN_FOLLOW_ZOOM);
+      const center = computeFollowCenter({
+        nodeX: targetNode.position.x,
+        nodeY: targetNode.position.y,
+        nodeWidth,
+        nodeHeight,
+        currentZoom: getZoom(),
+        panelOffsetPx,
+      });
       const duration = getAnimationDuration(FOLLOW_ANIMATION_MS);
 
-      setCenter(centerX - offsetX, centerY, { zoom: targetZoom, duration });
+      setCenter(center.x, center.y, { zoom: center.zoom, duration });
       lastPannedTaskRef.current = activeTaskName;
     }, FOLLOW_DEBOUNCE_MS);
 
