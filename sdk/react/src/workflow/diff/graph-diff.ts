@@ -86,7 +86,7 @@ export function computeGraphDiff(
   before: WorkflowGraphModel,
   after: WorkflowGraphModel,
 ): GraphDiff {
-  const SENTINELS = new Set([START_NODE_ID, END_NODE_ID]);
+  const SENTINELS: Set<string> = new Set([START_NODE_ID, END_NODE_ID]);
 
   // -- Node diff --
   const beforeNodes = new Map(

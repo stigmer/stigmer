@@ -68,7 +68,7 @@
       "title": "Environment",
       "description": "Hooks and components for configuration, variables, secrets, and session environment pools.",
       "hooks": 9,
-      "components": 4
+      "components": 5
     },
     {
       "slug": "error",
@@ -228,8 +228,8 @@
       "slug": "workflow",
       "title": "Workflow",
       "description": "Hooks and components for workflow definitions, instances, executions, and the visual builder.",
-      "hooks": 24,
-      "components": 6
+      "hooks": 30,
+      "components": 10
     },
     {
       "slug": "workspace",

@@ -364,11 +364,15 @@ export type WorkflowExecutionStatus = Message<"ai.stigmer.agentic.workflowexecut
    * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
    * requests at the workflow level for UI visibility.
    *
-   * Full-Replace Protocol:
-   * The workflow-runner always sends the complete set of pending approvals
-   * via UpdateStatus. The server replaces the stored list unconditionally:
+   * Guarded Update Protocol:
+   * This field is only modified when UpdateStatusInput.update_pending_approvals
+   * is explicitly set to true. Normal event emissions (which don't concern
+   * approvals) leave this field untouched, preventing race conditions between
+   * concurrent status writers.
+   *
+   * Only call-agent-status manages this field:
    * - Non-empty list: child agent(s) need approval
-   * - Empty list: all approvals resolved, clear the field
+   * - Empty list + update_pending_approvals=true: all approvals resolved
    *
    * Parallel Agents:
    * When multiple child agents run in parallel, entries from different children
