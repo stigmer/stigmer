@@ -70,19 +70,33 @@ describe("extractRuntimeEnvForServer", () => {
     expect(extractRuntimeEnvForServer({ spec: { env: {} } }, { FOO: "bar" })).toBeUndefined();
   });
 
-  it("returns only declared keys present in merged env", () => {
+  it("returns only declared keys present in merged env with isSecret from declarations", () => {
     const server = {
       spec: {
         env: {
-          API_KEY: { is_secret: true },
-          DB_URL: { is_secret: false },
-          UNUSED: { is_secret: false },
+          API_KEY: { isSecret: true },
+          DB_URL: { isSecret: false },
+          UNUSED: { isSecret: false },
         },
       },
     };
     const mergedEnv = { API_KEY: "secret123", DB_URL: "postgres://localhost" };
     const result = extractRuntimeEnvForServer(server, mergedEnv);
-    expect(result).toEqual({ API_KEY: "secret123", DB_URL: "postgres://localhost" });
+    expect(result).toEqual({
+      API_KEY: { value: "secret123", isSecret: true },
+      DB_URL: { value: "postgres://localhost", isSecret: false },
+    });
+  });
+
+  it("falls back to secretKeys when declaration has no isSecret", () => {
+    const server = { spec: { env: { TOKEN: {}, OTHER: {} } } };
+    const mergedEnv = { TOKEN: "abc", OTHER: "def" };
+    const secretKeys = new Set(["TOKEN"]);
+    const result = extractRuntimeEnvForServer(server, mergedEnv, secretKeys);
+    expect(result).toEqual({
+      TOKEN: { value: "abc", isSecret: true },
+      OTHER: { value: "def", isSecret: false },
+    });
   });
 
   it("returns undefined when no declared keys are in merged env", () => {
@@ -196,7 +210,7 @@ describe("backfillMcpServersIfNeeded", () => {
     );
 
     expect(client.connectMcpServer).toHaveBeenCalledWith(
-      "env-server-id", "org", { API_KEY: "secret" },
+      "env-server-id", "org", { API_KEY: { value: "secret", isSecret: false } },
     );
   });
 

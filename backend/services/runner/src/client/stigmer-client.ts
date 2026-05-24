@@ -35,6 +35,7 @@ import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/ap
 import type { GetArtifactResponse } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
 import { create } from "@bufbuild/protobuf";
 import { ConnectInputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
+import { ExecutionValueSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
 import { AgentExecutionUpdateStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import type { UpdateStatusResponse } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import { WorkflowExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/command_pb";
@@ -168,15 +169,18 @@ export class StigmerClient {
   async connectMcpServer(
     mcpServerId: string,
     org: string,
-    runtimeEnv?: Record<string, string>,
+    runtimeEnv?: Record<string, { value: string; isSecret: boolean }>,
   ): Promise<McpServer> {
     const input = create(ConnectInputSchema, {
       mcpServerId,
       org,
     });
     if (runtimeEnv) {
-      for (const [key, value] of Object.entries(runtimeEnv)) {
-        input.runtimeEnv[key] = { value } as any;
+      for (const [key, entry] of Object.entries(runtimeEnv)) {
+        input.runtimeEnv[key] = create(ExecutionValueSchema, {
+          value: entry.value,
+          isSecret: entry.isSecret,
+        });
       }
     }
     return this.mcpServerCommand.connect(input);

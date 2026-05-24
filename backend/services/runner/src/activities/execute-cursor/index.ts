@@ -129,7 +129,7 @@ async function executeCursor(
 
     // Phase 2b: Resolve execution environment (MCP server credentials)
     await reportSetupProgress(client, executionId, "Resolving environment");
-    const { envVars } = await resolveExecutionEnv(client, executionId);
+    const { envVars, secretKeys } = await resolveExecutionEnv(client, executionId);
     heartbeat();
 
     // Set OTel baggage so downstream calls carry execution context.
@@ -199,7 +199,7 @@ async function executeCursor(
     const sessionOrg = session.metadata?.org ?? "";
     mcpResolution = await backfillMcpServersIfNeeded(
       client, mcpResolution, blueprint.mergedMcpServerUsages, envVars, sessionOrg,
-      heartbeat,
+      heartbeat, secretKeys,
     );
     const mcpConfig = mcpResolution.cursorConfig;
 
@@ -230,6 +230,9 @@ async function executeCursor(
       config.mode,
     );
     const attachmentPaths = attachmentResults.map((a) => a.relativePath);
+
+    // Phase 5c: Ensure model pricing registry is populated before validation
+    await ensurePricingLoaded();
 
     // Phase 6: Validate model selection
     const requestedModel = spec.executionConfig?.modelName || "default";
@@ -294,6 +297,12 @@ async function executeCursor(
         blueprint.sessionSpec.harnessStateId = resolution.agentId;
         if (blueprint.sessionSpec.cursorMode === CursorMode.UNSPECIFIED) {
           blueprint.sessionSpec.cursorMode = cursorMode;
+        }
+        // Clear slug to avoid re-validation of potentially invalid
+        // server-generated slugs. BuildUpdateStateStep preserves the
+        // existing slug from the database record.
+        if (blueprint.session.metadata) {
+          blueprint.session.metadata.slug = "";
         }
         await client.updateSession(blueprint.session);
         console.log(

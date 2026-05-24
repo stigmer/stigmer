@@ -180,6 +180,8 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
         mcpServerUsages,
         envResult.mergedEnvVars,
         sessionOrg,
+        undefined,
+        envResult.secretKeys,
       );
       resolvedMcpServers = { resolvedServers: backfilledServers };
 
