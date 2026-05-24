@@ -34,7 +34,7 @@ func NewExecuteCursorActivityStub(ctx workflow.Context, taskQueue string) Execut
 	options := workflow.ActivityOptions{
 		TaskQueue:              taskQueue,
 		StartToCloseTimeout:    24 * time.Hour,
-		ScheduleToStartTimeout: 1 * time.Minute,
+		ScheduleToStartTimeout: 5 * time.Minute,
 		HeartbeatTimeout:       2 * time.Minute,
 		RetryPolicy: &temporal.RetryPolicy{
 			MaximumAttempts:    1,
