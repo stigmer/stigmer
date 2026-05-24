@@ -12,6 +12,8 @@ export type { ResourceTemplate, TemplateCategory } from "./templates/types";
 export { TEMPLATE_CATEGORY_LABELS } from "./templates/types";
 export { AGENT_TEMPLATES } from "./templates/agent-templates";
 export { MCP_SERVER_TEMPLATES } from "./templates/mcp-server-templates";
+export { WORKFLOW_TEMPLATES } from "./templates/workflow-templates";
+export type { WorkflowTemplateData } from "./templates/workflow-templates";
 
 // Hooks
 export { useWizardState } from "./useWizardState";
