@@ -218,7 +218,7 @@ async function emitProgress(
       occurredAt: new Date().toISOString(),
       childExecutionId: childExecId,
       agentSlug: input.config.agent ?? "",
-      agentPhase: progress?.agentPhase ?? "",
+      agentPhase: progress?.agentPhase ?? 0,
       currentToolName: progress?.currentToolName ?? "",
       tokensConsumed: progress?.tokensConsumed ?? 0,
       messagesCount: progress?.messagesCount ?? 0,

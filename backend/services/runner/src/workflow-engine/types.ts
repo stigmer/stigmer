@@ -808,7 +808,7 @@ export interface AgentCallProgressEvent extends EventBase {
   readonly type: "agent_call_progress";
   readonly childExecutionId: string;
   readonly agentSlug: string;
-  readonly agentPhase: string;
+  readonly agentPhase: number;
   readonly currentToolName: string;
   readonly tokensConsumed: number;
   readonly messagesCount: number;

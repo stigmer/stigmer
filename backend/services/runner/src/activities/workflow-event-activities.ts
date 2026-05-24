@@ -37,6 +37,7 @@ import {
   WorkflowExecutionUpdateStatusInputSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
 import { ExecutionPhase, WorkflowTaskStatus, WorkflowTaskType } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import { ExecutionPhase as AgentExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import type { JsonObject } from "@bufbuild/protobuf";
 import type { WorkflowEventDescriptor } from "../workflow-engine/types.js";
@@ -301,8 +302,7 @@ export function toProtoEvent(desc: WorkflowEventDescriptor): WorkflowExecutionEv
         case: "agentCallProgress",
         value: create(AgentCallProgressPayloadSchema, {
           childExecutionId: desc.childExecutionId,
-          agentSlug: desc.agentSlug,
-          agentPhase: desc.agentPhase,
+          agentPhase: desc.agentPhase as AgentExecutionPhase,
           currentToolName: desc.currentToolName,
           tokensConsumed: BigInt(desc.tokensConsumed),
           messagesCount: desc.messagesCount,
