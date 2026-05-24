@@ -636,13 +636,28 @@ func (w *InvokeAgentExecutionWorkflowImpl) buildCallbackResult(
 		"agent_execution_id": execution.GetMetadata().GetId(),
 	}
 
-	// Pass through runner-extracted structured data
+	// Pass through runner-extracted structured data.
+	// The runner's slimStatus() returns proto-JSON with camelCase keys,
+	// so the field is "structuredOutput" (camelCase). Also check
+	// "structured_output" (snake_case) and "structured" for resilience.
 	if activityResult != nil {
-		if structured, ok := activityResult["structured_output"]; ok {
+		if structured, ok := activityResult["structuredOutput"]; ok {
+			result["structured"] = structured
+		} else if structured, ok := activityResult["structured_output"]; ok {
+			result["structured"] = structured
+		} else if structured, ok := activityResult["structured"]; ok {
 			result["structured"] = structured
 		}
 		if finalText, ok := activityResult["final_text"]; ok {
 			result["final_text"] = finalText
+		}
+	}
+
+	// Fallback: if structured output wasn't in the activity result,
+	// read from the persisted execution status (populated via updateStatus gRPC).
+	if _, hasStructured := result["structured"]; !hasStructured {
+		if so := execution.GetStatus().GetStructuredOutput(); so != nil {
+			result["structured"] = so.AsMap()
 		}
 	}
 

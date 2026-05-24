@@ -725,6 +725,172 @@ describe("Golden Execution — Structured Output Pipeline", () => {
     ).rejects.toThrow(/Agent output validation failed.*Agent did not return structured output/);
   });
 
+  // ─────────────────────────────────────────────────────────────────
+  // Regression: Production Callback Result Formats
+  //
+  // In production, the CallAgent activity uses async completion.
+  // The Java/Go backend completes the activity with a callback result.
+  // These tests simulate the exact result formats each backend produces
+  // to verify the workflow engine handles them correctly.
+  // ─────────────────────────────────────────────────────────────────
+
+  it("REGRESSION: Go buildCallbackResult omits structured output due to snake_case key mismatch", async () => {
+    // Go's buildCallbackResult() looks for activityResult["structured_output"]
+    // (snake_case) but the runner's slimStatus() returns "structuredOutput"
+    // (camelCase via proto-JSON). The key is never found, so the callback
+    // result has only agent_execution_id — no "structured" field.
+    //
+    // This is the EXACT format returned by the Go InvokeAgentExecutionWorkflow:
+    //   { agent_execution_id: "aex_xxx" }
+    //
+    // Expected: validation fails because result.structured is undefined.
+    const yaml = [
+      "document:",
+      "  dsl: '1.0.0'",
+      "  name: go-callback-regression",
+      "  version: '1.0.0'",
+      "do:",
+      "  - analyze:",
+      "      call: agent",
+      "      with:",
+      '        agent: "analyst"',
+      '        message: "Analyze data"',
+      "        output:",
+      "          schema:",
+      "            type: object",
+      "            required:",
+      "              - executive_summary",
+      "            properties:",
+      "              executive_summary:",
+      "                type: string",
+      "          on_invalid: ON_INVALID_FAIL",
+      "      export:",
+      '        as: "${ .structured }"',
+    ].join("\n");
+
+    const model = loadWorkflowFromYaml(yaml);
+    const state = createState();
+
+    const mockCallAgent = vi.fn(async () => ({
+      agent_execution_id: "aex-go-regression",
+      // NOTE: no "structured" field — this is what Go's buildCallbackResult
+      // produces because it looks for "structured_output" (snake_case) but
+      // the runner returns "structuredOutput" (camelCase).
+    }));
+    const ctx = makeCtx({ callAgent: mockCallAgent });
+
+    await expect(
+      executeDoTasks(model.do, null, state, model, evaluateExpressionBatch, ctx),
+    ).rejects.toThrow(/Agent output validation failed.*Agent did not return structured output/);
+  });
+
+  it("REGRESSION: Java buildCallbackResultJson includes structured output correctly", async () => {
+    // Java's buildCallbackResultJson() reads structuredOutput from the
+    // proto via finalStatus.hasStructuredOutput() and serializes it as
+    // the "structured" field in the callback JSON.
+    //
+    // When the local Java v3 code handles the workflow, the callback
+    // result is: { agent_execution_id: "aex_xxx", structured: {...} }
+    //
+    // Expected: validation passes, downstream reads structured data.
+    const yaml = [
+      "document:",
+      "  dsl: '1.0.0'",
+      "  name: java-callback-success",
+      "  version: '1.0.0'",
+      "do:",
+      "  - analyze:",
+      "      call: agent",
+      "      with:",
+      '        agent: "analyst"',
+      '        message: "Analyze data"',
+      "        output:",
+      "          schema:",
+      "            type: object",
+      "            required:",
+      "              - executive_summary",
+      "              - dau",
+      "            properties:",
+      "              executive_summary:",
+      "                type: string",
+      "              dau:",
+      "                type: number",
+      "          on_invalid: ON_INVALID_FAIL",
+      "      export:",
+      '        as: "${ .structured }"',
+      "  - downstream:",
+      "      set:",
+      "        report_dau: ${ $context.analyze.dau }",
+      "        summary: ${ $context.analyze.executive_summary }",
+    ].join("\n");
+
+    const model = loadWorkflowFromYaml(yaml);
+    const state = createState();
+
+    const mockCallAgent = vi.fn(async () => ({
+      agent_execution_id: "aex-java-success",
+      structured: {
+        executive_summary: "DAU stable at 7175",
+        dau: 7175,
+      },
+    }));
+    const ctx = makeCtx({ callAgent: mockCallAgent });
+
+    await executeDoTasks(model.do, null, state, model, evaluateExpressionBatch, ctx);
+
+    expect(state.context.analyze.dau).toBe(7175);
+    expect(state.context.analyze.executive_summary).toBe("DAU stable at 7175");
+    expect(state.data.report_dau).toBe(7175);
+    expect(state.data.summary).toBe("DAU stable at 7175");
+  });
+
+  it("REGRESSION: old Java code sends plain string — no structured output", async () => {
+    // Before the v3 fix, Java's executeCursorFlow() completed the async
+    // activity with a plain string like:
+    //   "Agent execution completed - execution_id: aex_xxx, phase: EXECUTION_COMPLETED"
+    //
+    // The TS orchestrator's JSON.parse fails, so activityResult = {}.
+    // At the workflow engine level, callAgent returns {} (empty object).
+    //
+    // Expected: validation fails because result.structured is undefined.
+    const yaml = [
+      "document:",
+      "  dsl: '1.0.0'",
+      "  name: old-java-regression",
+      "  version: '1.0.0'",
+      "do:",
+      "  - analyze:",
+      "      call: agent",
+      "      with:",
+      '        agent: "analyst"',
+      '        message: "Analyze data"',
+      "        output:",
+      "          schema:",
+      "            type: object",
+      "            required:",
+      "              - executive_summary",
+      "            properties:",
+      "              executive_summary:",
+      "                type: string",
+      "          on_invalid: ON_INVALID_FAIL",
+      "      export:",
+      '        as: "${ .structured }"',
+    ].join("\n");
+
+    const model = loadWorkflowFromYaml(yaml);
+    const state = createState();
+
+    const mockCallAgent = vi.fn(async () => ({
+      // Empty object — what the orchestrator produces when JSON.parse
+      // fails on the plain string from old Java code
+    }));
+    const ctx = makeCtx({ callAgent: mockCallAgent });
+
+    await expect(
+      executeDoTasks(model.do, null, state, model, evaluateExpressionBatch, ctx),
+    ).rejects.toThrow(/Agent output validation failed.*Agent did not return structured output/);
+  });
+
   it("agent_call with output.schema — schema with optional fields validates correctly", async () => {
     const yaml = [
       "document:",
