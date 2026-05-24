@@ -105,7 +105,7 @@ export function CreateWorkflowInstanceDialog({
       ref={dialogRef}
       onClose={handleClose}
       className={cn(
-        "w-full max-w-lg rounded-xl border border-border bg-popover p-0 shadow-xl",
+        "fixed inset-0 m-auto w-full max-w-lg rounded-xl border border-border bg-popover p-0 shadow-xl",
         "backdrop:bg-black/50",
       )}
       aria-labelledby="create-instance-title"

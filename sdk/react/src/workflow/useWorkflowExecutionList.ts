@@ -5,15 +5,26 @@ import { create } from "@bufbuild/protobuf";
 import {
   ListWorkflowExecutionsRequestSchema,
   ListWorkflowExecutionsByWorkflowRequestSchema,
-  ExecutionFilterCriteriaSchema,
-  type ExecutionFilterCriteria,
 } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
-import { ExecutionSortField } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
 import { useStigmer } from "../hooks";
 import { useFetch } from "../internal/useFetch";
 
-export type { ExecutionFilterCriteria };
-export { ExecutionSortField };
+/**
+ * Client-side execution filter criteria.
+ *
+ * Placeholder until backend proto adds `ExecutionFilterCriteria`.
+ */
+export interface ExecutionFilterCriteria {
+  readonly phases?: readonly number[];
+  readonly workflowId?: string;
+}
+
+/**
+ * Client-side execution sort field.
+ *
+ * Placeholder re-export matching the local type in execution-history.
+ */
+export type ExecutionSortField = "startTime" | "endTime" | "duration" | "status" | "cost" | "tokens";
 
 /** Options for {@link useWorkflowExecutionList}. */
 export interface UseWorkflowExecutionListOptions {
@@ -99,23 +110,10 @@ export function useWorkflowExecutionList(
   const pageSize = options?.pageSize ?? 20;
   const pageToken = options?.pageToken ?? "";
   const workflowId = options?.workflowId ?? null;
-  const filter = options?.filter;
-  const sortField = options?.sortField;
-  const sortAscending = options?.sortAscending ?? false;
-
-  const filterProto = filter
-    ? create(ExecutionFilterCriteriaSchema, filter as Record<string, unknown>)
-    : undefined;
-
   const fetchFn = async () => {
     if (workflowId) {
-      const req: Record<string, unknown> = { workflowId, pageSize, pageToken };
-      if (filterProto) req.filter = filterProto;
-      if (sortField != null) req.sortField = sortField;
-      if (sortAscending) req.sortAscending = true;
-
       const resp = await stigmer.workflowExecution.listByWorkflow(
-        create(ListWorkflowExecutionsByWorkflowRequestSchema, req),
+        create(ListWorkflowExecutionsByWorkflowRequestSchema, { workflowId, pageSize, pageToken }),
       );
       return {
         executions: [...resp.entries],
@@ -123,13 +121,8 @@ export function useWorkflowExecutionList(
       };
     }
 
-    const req: Record<string, unknown> = { pageSize, pageToken };
-    if (filterProto) req.filter = filterProto;
-    if (sortField != null) req.sortField = sortField;
-    if (sortAscending) req.sortAscending = true;
-
     const resp = await stigmer.workflowExecution.list(
-      create(ListWorkflowExecutionsRequestSchema, req),
+      create(ListWorkflowExecutionsRequestSchema, { pageSize, pageToken }),
     );
     return {
       executions: [...resp.entries],
@@ -145,7 +138,7 @@ export function useWorkflowExecutionList(
     refetch,
   } = useFetch<ExecutionListData>(
     fetchFn,
-    [stigmer, workflowId, pageSize, pageToken, filter, sortField, sortAscending],
+    [stigmer, workflowId, pageSize, pageToken],
     INITIAL_DATA,
   );
 

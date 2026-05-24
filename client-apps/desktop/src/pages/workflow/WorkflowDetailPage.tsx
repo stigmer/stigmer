@@ -4,6 +4,7 @@ import {
   WorkflowDetailView,
   WorkflowEditorView,
   WorkflowRunDialog,
+  CreateWorkflowInstanceDialog,
   useWorkflow,
   useWorkflowYaml,
   useWorkflowInstances,
@@ -45,6 +46,7 @@ export default function WorkflowDetailPage() {
   const { workflow } = useWorkflow(org ?? "", slug ?? "");
   const { instances } = useWorkflowInstances(workflow?.metadata?.id);
   const [showRunDialog, setShowRunDialog] = useState(false);
+  const [showCreateInstanceDialog, setShowCreateInstanceDialog] = useState(false);
   const { updateVisibility, isPending: isVisibilityPending } =
     useUpdateVisibility("workflow", resourceId);
   const [showSharePanel, setShowSharePanel] = useState(false);
@@ -199,6 +201,7 @@ export default function WorkflowDetailPage() {
           activeTab={activeTab}
           onTabChange={setActiveTab}
           onExecutionClick={(id) => navigate(`/executions/${id}`)}
+          onCreateInstanceClick={() => setShowCreateInstanceDialog(true)}
           onOpenInEditor={handleOpenInEditor}
           onViewLatestRun={handleViewLatestRun}
         />
@@ -233,6 +236,15 @@ export default function WorkflowDetailPage() {
           defaultInstanceId={workflow.status?.defaultInstanceId}
           onSuccess={handleRunSuccess}
           onError={handleRunError}
+        />
+      )}
+      {workflow?.metadata?.id && (
+        <CreateWorkflowInstanceDialog
+          open={showCreateInstanceDialog}
+          onOpenChange={setShowCreateInstanceDialog}
+          org={org}
+          workflowId={workflow.metadata.id}
+          onCreated={() => toast.success("Instance created")}
         />
       )}
     </>

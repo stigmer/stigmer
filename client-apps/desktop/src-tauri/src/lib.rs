@@ -54,6 +54,17 @@ pub fn run() {
                 app.deep_link().register_all()?;
             }
 
+            // Fallback: guarantee the window becomes visible even if the
+            // frontend JS fails to call show() (e.g. WebView load error).
+            let show_handle = app.handle().clone();
+            std::thread::spawn(move || {
+                std::thread::sleep(std::time::Duration::from_secs(2));
+                if let Some(window) = show_handle.get_webview_window("main") {
+                    let _ = window.show();
+                    let _ = window.set_focus();
+                }
+            });
+
             let handle = app.handle().clone();
             app.deep_link().on_open_url(move |event| {
                 for raw in event.urls() {
@@ -97,15 +108,21 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("error while building Stigmer Desktop");
 
-    app.run(|app_handle, event| match event {
+    let is_dev = cfg!(debug_assertions);
+
+    app.run(move |app_handle, event| match event {
         RunEvent::WindowEvent {
             label,
             event: WindowEvent::CloseRequested { api, .. },
             ..
         } if label == "main" => {
-            api.prevent_close();
-            if let Some(window) = app_handle.get_webview_window("main") {
-                let _ = window.hide();
+            if is_dev {
+                let _ = app_handle.save_window_state(StateFlags::all());
+            } else {
+                api.prevent_close();
+                if let Some(window) = app_handle.get_webview_window("main") {
+                    let _ = window.hide();
+                }
             }
         }
         RunEvent::ExitRequested { .. } => {
