@@ -34,6 +34,13 @@ export interface WorkflowRunFormProps {
   readonly defaultInstanceId?: string;
 
   /**
+   * Set of env var keys already provided by the selected instance's
+   * bound environments. Fields for these keys are shown as optional
+   * overrides rather than required inputs.
+   */
+  readonly instanceEnvKeys?: Set<string>;
+
+  /**
    * Whether to show the trigger message field.
    * When `false`, a subtle "Add trigger input" toggle is rendered instead.
    */
@@ -104,6 +111,7 @@ export function WorkflowRunForm({
   selectedInstanceId,
   onInstanceChange,
   defaultInstanceId,
+  instanceEnvKeys,
   showTriggerMessage,
   onShowTriggerMessageChange,
   errors,
@@ -121,71 +129,7 @@ export function WorkflowRunForm({
 
   return (
     <div className={cn("flex flex-col gap-4", className)}>
-      {/* Environment variables (primary — shown first) */}
-      {envEntries.length > 0 && (
-        <div className="flex flex-col gap-3">
-          <h4 className="text-xs font-medium text-muted-foreground">
-            Environment Variables
-          </h4>
-          {envEntries.map(([key, decl]) => {
-            const fieldId = `${formId}-env-${key}`;
-            const fieldError = errors[key];
-            return (
-              <FieldGroup key={key}>
-                <FieldLabel htmlFor={fieldId}>
-                  <code className="text-xs">{key}</code>
-                  {!decl.optional && (
-                    <span
-                      className="ml-1 text-destructive"
-                      aria-label="required"
-                    >
-                      *
-                    </span>
-                  )}
-                </FieldLabel>
-                <input
-                  id={fieldId}
-                  type={decl.isSecret ? "password" : "text"}
-                  value={runtimeEnv[key] ?? ""}
-                  onChange={(e) => onEnvVarChange(key, e.target.value)}
-                  placeholder={
-                    decl.optional ? "Optional" : "Required"
-                  }
-                  disabled={disabled}
-                  aria-invalid={!!fieldError}
-                  aria-describedby={
-                    fieldError
-                      ? `${fieldId}-error`
-                      : decl.description
-                        ? `${fieldId}-desc`
-                        : undefined
-                  }
-                  className={cn(
-                    INPUT_CLASSES,
-                    fieldError && "border-destructive focus-visible:ring-destructive",
-                  )}
-                />
-                {decl.description && !fieldError && (
-                  <FieldHint id={`${fieldId}-desc`}>
-                    {decl.description}
-                  </FieldHint>
-                )}
-                {fieldError && (
-                  <p
-                    id={`${fieldId}-error`}
-                    className="text-[0.7rem] text-destructive"
-                    role="alert"
-                  >
-                    {fieldError}
-                  </p>
-                )}
-              </FieldGroup>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Instance selector (when user-created instances exist) */}
+      {/* Instance selector — shown first so env var state reacts to selection */}
       {showInstanceSelector && (
         <FieldGroup>
           <FieldLabel htmlFor={`${formId}-instance`}>Instance</FieldLabel>
@@ -210,6 +154,85 @@ export function WorkflowRunForm({
             })}
           </select>
         </FieldGroup>
+      )}
+
+      {/* Environment variables */}
+      {envEntries.length > 0 && (
+        <div className="flex flex-col gap-3">
+          <h4 className="text-xs font-medium text-muted-foreground">
+            Environment Variables
+          </h4>
+          {envEntries.map(([key, decl]) => {
+            const fieldId = `${formId}-env-${key}`;
+            const fieldError = errors[key];
+            const satisfiedByInstance = instanceEnvKeys?.has(key) ?? false;
+            const isRequired = !decl.optional && !satisfiedByInstance;
+            return (
+              <FieldGroup key={key}>
+                <FieldLabel htmlFor={fieldId}>
+                  <code className="text-xs">{key}</code>
+                  {isRequired && (
+                    <span
+                      className="ml-1 text-destructive"
+                      aria-label="required"
+                    >
+                      *
+                    </span>
+                  )}
+                </FieldLabel>
+                <input
+                  id={fieldId}
+                  type={decl.isSecret ? "password" : "text"}
+                  value={runtimeEnv[key] ?? ""}
+                  onChange={(e) => onEnvVarChange(key, e.target.value)}
+                  placeholder={
+                    satisfiedByInstance
+                      ? "Provided by instance"
+                      : decl.optional
+                        ? "Optional"
+                        : "Required"
+                  }
+                  disabled={disabled}
+                  aria-invalid={!!fieldError}
+                  aria-describedby={
+                    fieldError
+                      ? `${fieldId}-error`
+                      : decl.description || satisfiedByInstance
+                        ? `${fieldId}-desc`
+                        : undefined
+                  }
+                  className={cn(
+                    INPUT_CLASSES,
+                    fieldError && "border-destructive focus-visible:ring-destructive",
+                  )}
+                />
+                {satisfiedByInstance && !fieldError && (
+                  <FieldHint id={`${fieldId}-desc`}>
+                    Provided by instance environment.{" "}
+                    {decl.description
+                      ? `${decl.description} `
+                      : ""}
+                    Enter a value to override.
+                  </FieldHint>
+                )}
+                {!satisfiedByInstance && decl.description && !fieldError && (
+                  <FieldHint id={`${fieldId}-desc`}>
+                    {decl.description}
+                  </FieldHint>
+                )}
+                {fieldError && (
+                  <p
+                    id={`${fieldId}-error`}
+                    className="text-[0.7rem] text-destructive"
+                    role="alert"
+                  >
+                    {fieldError}
+                  </p>
+                )}
+              </FieldGroup>
+            );
+          })}
+        </div>
       )}
 
       {/* Trigger message — shown last, only when relevant or toggled open */}

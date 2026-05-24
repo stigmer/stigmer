@@ -133,6 +133,12 @@ export {
   type RunWorkflowFieldErrors,
 } from "./useRunWorkflowFlow";
 
+// T11: Run workflow — instance env key resolution
+export {
+  useInstanceEnvKeys,
+  type UseInstanceEnvKeysReturn,
+} from "./useInstanceEnvKeys";
+
 // T11: Run workflow — trigger input detection
 export { workflowUsesTriggerInput } from "./workflow-uses-trigger-input";
 

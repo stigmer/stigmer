@@ -163,6 +163,7 @@ export function WorkflowRunDialog({
             selectedInstanceId={flow.selectedInstanceId}
             onInstanceChange={flow.setSelectedInstanceId}
             defaultInstanceId={defaultInstanceId}
+            instanceEnvKeys={flow.instanceEnvKeys}
             showTriggerMessage={flow.showTriggerMessage}
             onShowTriggerMessageChange={flow.setShowTriggerMessage}
             errors={flow.fieldErrors}
