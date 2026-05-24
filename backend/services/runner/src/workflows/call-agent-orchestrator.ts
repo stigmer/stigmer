@@ -115,8 +115,15 @@ export async function orchestrateAgentCall(
     }
   });
 
-  setHandler(childExecutionStarted, ({ executionId }) => {
-    childExecId = executionId;
+  setHandler(childExecutionStarted, (payload: { executionId: string } | string) => {
+    // The Go server sends { executionId: "aex_xxx" } (struct with json tag).
+    // The Java server sends "aex_xxx" (bare string via parentStub.signal(name, id)).
+    // Handle both shapes for cross-implementation resilience.
+    if (typeof payload === "string") {
+      childExecId = payload;
+    } else if (payload && typeof payload === "object" && "executionId" in payload) {
+      childExecId = payload.executionId;
+    }
   });
 
   const enrichedConfig = {
@@ -191,6 +198,13 @@ export async function orchestrateAgentCall(
     }
   }
 
+  // Emit a final progress event if the child ID arrived but was never emitted.
+  // This handles the fast-completion race: the activity finishes before the
+  // orchestrator loop has a chance to process the child_execution_started signal.
+  if (childExecId && !initialProgressEmitted) {
+    await emitProgress(input, childExecId, null);
+  }
+
   try {
     await statusProxy.ClearWorkflowApprovalStatus(input.workflowExecutionId);
   } catch (clearErr) {
@@ -201,6 +215,12 @@ export async function orchestrateAgentCall(
 
   if (activityError) {
     throw activityError;
+  }
+
+  // Ensure the child execution ID is available on the result for the
+  // agent_call_completed event emitted by CallAgentTaskBuilder.
+  if (childExecId && !activityResult.agent_execution_id) {
+    activityResult = { ...activityResult, agent_execution_id: childExecId };
   }
 
   return activityResult;

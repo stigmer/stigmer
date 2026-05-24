@@ -177,6 +177,129 @@ describe("WorkflowExecutionEventStore agentCallProgress", () => {
     expect(state!.toolCallsCount).toBe(3);
     expect(state!.tokensUsed).toBe(BigInt(800));
   });
+
+  it("derives correct agentActivity fields from a realistic full-lifecycle event sequence", () => {
+    const store = new WorkflowExecutionEventStore();
+
+    // Phase 1: execution and task start
+    store.appendEvents([
+      makeStoreEvent("", 1, {
+        case: "executionStarted",
+        value: { totalTasks: 1 },
+      }),
+      makeStoreEvent("analyze_player_data", 2, {
+        case: "taskStarted",
+        value: { taskKind: 1, attemptNumber: 1 },
+      }),
+    ]);
+
+    let state = store.getTaskStates().get("analyze_player_data");
+    expect(state).toBeDefined();
+    expect(state!.status).toBe("running");
+    expect(state!.childExecutionId).toBe("");
+
+    // Phase 2: agent_call_started (childExecutionId empty — not known yet)
+    store.appendEvents([
+      makeStoreEvent("analyze_player_data", 3, {
+        case: "agentCallStarted",
+        value: { childExecutionId: "", agentSlug: "notification-analyst", messageSummary: "Generate the daily cohort analysis..." },
+      }),
+    ]);
+
+    state = store.getTaskStates().get("analyze_player_data");
+    expect(state!.agentSlug).toBe("notification-analyst");
+    expect(state!.childExecutionId).toBe("");
+
+    // Phase 3: first progress with childExecutionId (from child_execution_started signal)
+    store.appendEvents([
+      makeStoreEvent("analyze_player_data", 4, {
+        case: "agentCallProgress",
+        value: {
+          childExecutionId: "aex_01abc",
+          agentPhase: 1,
+          currentToolName: "",
+          tokensConsumed: BigInt(0),
+          messagesCount: 0,
+          toolCallsCount: 0,
+        },
+      }),
+    ]);
+
+    state = store.getTaskStates().get("analyze_player_data");
+    expect(state!.childExecutionId).toBe("aex_01abc");
+    expect(state!.agentSlug).toBe("notification-analyst");
+
+    // Verify agentActivity gate: slug is set but no tool/messages yet → no badge
+    const hasActivityAfterEarlyProgress =
+      state!.status === "running" &&
+      !!state!.agentSlug &&
+      (!!state!.currentToolName || state!.messagesCount > 0);
+    expect(hasActivityAfterEarlyProgress).toBe(false);
+
+    // Phase 4: periodic progress with real data
+    store.appendEvents([
+      makeStoreEvent("analyze_player_data", 5, {
+        case: "agentCallProgress",
+        value: {
+          childExecutionId: "aex_01abc",
+          agentPhase: 1,
+          currentToolName: "execute-sql",
+          tokensConsumed: BigInt(1200),
+          messagesCount: 4,
+          toolCallsCount: 2,
+        },
+      }),
+    ]);
+
+    state = store.getTaskStates().get("analyze_player_data");
+    expect(state!.currentToolName).toBe("execute-sql");
+    expect(state!.messagesCount).toBe(4);
+    expect(state!.toolCallsCount).toBe(2);
+
+    // Verify agentActivity gate: now tool AND slug are present → badge shows
+    const hasActivityAfterRealProgress =
+      state!.status === "running" &&
+      !!state!.agentSlug &&
+      (!!state!.currentToolName || state!.messagesCount > 0);
+    expect(hasActivityAfterRealProgress).toBe(true);
+  });
+
+  it("does not create agentActivity when agentCallProgress arrives without agentCallStarted (no agentSlug)", () => {
+    const store = new WorkflowExecutionEventStore();
+
+    store.appendEvents([
+      makeStoreEvent("orphan-task", 1, {
+        case: "taskStarted",
+        value: { taskKind: 1, attemptNumber: 1 },
+      }),
+      makeStoreEvent("orphan-task", 2, {
+        case: "agentCallProgress",
+        value: {
+          childExecutionId: "aex_orphan",
+          agentPhase: 1,
+          currentToolName: "web-search",
+          tokensConsumed: BigInt(500),
+          messagesCount: 3,
+          toolCallsCount: 1,
+        },
+      }),
+    ]);
+
+    const state = store.getTaskStates().get("orphan-task");
+    expect(state).toBeDefined();
+    // Progress fields should be populated...
+    expect(state!.childExecutionId).toBe("aex_orphan");
+    expect(state!.currentToolName).toBe("web-search");
+    // ...but agentSlug is empty (only set by agentCallStarted)
+    expect(state!.agentSlug).toBe("");
+
+    // agentActivity gate should fail — badge won't render
+    const hasActivity =
+      state!.status === "running" &&
+      !!state!.agentSlug &&
+      (!!state!.currentToolName || state!.messagesCount > 0);
+    expect(hasActivity).toBe(false);
+  });
 });
 
 // ---------------------------------------------------------------------------
