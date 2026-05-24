@@ -149,6 +149,7 @@ export function Tabs({
               {tab.label}
               {tab.badge != null && tab.badge > 0 && (
                 <span
+                  aria-hidden="true"
                   className={cn(
                     "inline-flex min-w-[1.25rem] items-center justify-center rounded-full px-1 py-px text-[10px] font-medium leading-none",
                     isActive
