@@ -19,8 +19,8 @@
  *   Output: (completed asynchronously by platform)
  */
 
+import { randomUUID } from "node:crypto";
 import { Context, CompleteAsyncError } from "@temporalio/activity";
-import { ConnectError, Code } from "@connectrpc/connect";
 import { StigmerClient } from "../client/stigmer-client.js";
 import { loadConfig } from "../config.js";
 import { resolveObjectPlaceholders } from "../workflow-engine/resolve.js";
@@ -107,7 +107,7 @@ export async function callAgentAction(
   if (wfExecId && taskName) {
     const taskKey = `${wfExecId}-${taskName}`;
     sessionName = `ses-wf-${taskKey}`;
-    executionName = `aex-wf-${taskKey}`;
+    executionName = `aex-wf-${taskKey}-${shortUniqueId()}`;
   } else {
     sessionName = `wf-${extractSlug(resolved.agent)}-${Math.floor(Date.now() / 1000)}`;
     executionName = `aex-wf-${extractSlug(resolved.agent)}-${Date.now()}`;
@@ -202,36 +202,17 @@ export async function callAgentAction(
     ...(executionConfig ? { executionConfig: executionConfig as any } : {}),
   });
 
-  try {
-    await client.createAgentExecution(
-      create(AgentExecutionSchema, {
-        apiVersion: "agentic.stigmer.ai/v1",
-        kind: "AgentExecution",
-        metadata: create(ApiResourceMetadataSchema, {
-          name: executionName,
-          org: orgId,
-        }),
-        spec: executionSpec,
+  await client.createAgentExecution(
+    create(AgentExecutionSchema, {
+      apiVersion: "agentic.stigmer.ai/v1",
+      kind: "AgentExecution",
+      metadata: create(ApiResourceMetadataSchema, {
+        name: executionName,
+        org: orgId,
       }),
-    );
-  } catch (err) {
-    if (err instanceof ConnectError && err.code === Code.AlreadyExists) {
-      const retryName = `${executionName}-r${Date.now()}`;
-      await client.createAgentExecution(
-        create(AgentExecutionSchema, {
-          apiVersion: "agentic.stigmer.ai/v1",
-          kind: "AgentExecution",
-          metadata: create(ApiResourceMetadataSchema, {
-            name: retryName,
-            org: orgId,
-          }),
-          spec: executionSpec,
-        }),
-      );
-    } else {
-      throw err;
-    }
-  }
+      spec: executionSpec,
+    }),
+  );
 
   throw new CompleteAsyncError();
 }
@@ -249,6 +230,10 @@ function parseAgentReference(
 
 function extractSlug(agentStr: string): string {
   return agentStr.includes("/") ? agentStr.split("/", 2)[1] : agentStr;
+}
+
+function shortUniqueId(): string {
+  return randomUUID().replace(/-/g, "").slice(0, 8);
 }
 
 function resolveHarness(harnessStr?: string): Harness {
