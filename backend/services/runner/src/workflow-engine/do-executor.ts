@@ -109,13 +109,14 @@ export async function executeDoTasks(
 
     const kind = eventTaskKind(entry);
     effectiveCtx.taskStatusAccumulator?.taskStarted(entry.key, kind);
+    const attemptNumber = effectiveCtx.taskStatusAccumulator?.getAttempt(entry.key) ?? 1;
     if (effectiveCtx.emitEvents) {
       await effectiveCtx.emitEvents([{
         type: "task_started",
         taskName: entry.key,
         occurredAt: new Date().toISOString(),
         taskKind: kind,
-        attemptNumber: 1,
+        attemptNumber,
       }]);
     }
 
@@ -126,13 +127,17 @@ export async function executeDoTasks(
       effectiveCtx.taskStatusAccumulator?.taskStartedWithInput(entry.key, kind, truncatePayload(effectiveInput));
       taskOutput = await runSingleTask(entry, effectiveInput, state, doc, effectiveCtx);
     } catch (taskErr) {
+      const taskDurationMs = Date.now() - taskStartMs;
       const errorMsg = extractRootErrorMessage(taskErr);
       const structuredError = extractStructuredError(taskErr);
       effectiveCtx.taskStatusAccumulator?.taskFailed(
         entry.key,
         errorMsg,
         structuredError ?? undefined,
+        taskDurationMs,
       );
+      const willRetry = effectiveCtx.retryContext != null
+        && attemptNumber < effectiveCtx.retryContext.maxAttempts;
       if (effectiveCtx.emitEvents) {
         await effectiveCtx.emitEvents([{
           type: "task_failed",
@@ -140,9 +145,9 @@ export async function executeDoTasks(
           occurredAt: new Date().toISOString(),
           taskKind: kind,
           error: errorMsg,
-          attemptNumber: 1,
-          willRetry: false,
-          durationMs: Date.now() - taskStartMs,
+          attemptNumber,
+          willRetry,
+          durationMs: taskDurationMs,
         }]);
       }
       throw taskErr;
@@ -167,15 +172,13 @@ export async function executeDoTasks(
 
     if (kind === "call:agent" && taskOutput && typeof taskOutput === "object") {
       const agentResult = taskOutput as Record<string, unknown>;
-      const meta: Record<string, unknown> = {};
+      const meta: Record<string, unknown> = { token_attribution: "total_only" };
       if (agentResult.agent_execution_id) meta.agent_execution_id = agentResult.agent_execution_id;
       if (agentResult.usage_summary && typeof agentResult.usage_summary === "object") {
         const usage = agentResult.usage_summary as Record<string, unknown>;
         if (usage.tool_call_count) meta.tool_call_count = usage.tool_call_count;
       }
-      if (Object.keys(meta).length > 0) {
-        effectiveCtx.taskStatusAccumulator?.setTaskMetadata(entry.key, meta);
-      }
+      effectiveCtx.taskStatusAccumulator?.setTaskMetadata(entry.key, meta);
     }
 
     await processTaskOutput(entry, taskOutput, state, effectiveCtx);
