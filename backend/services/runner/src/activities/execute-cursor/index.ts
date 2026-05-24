@@ -601,31 +601,27 @@ async function executeCursor(
       finalText = lastAiMsg?.content;
 
       if (structuredOutputSchema && finalText) {
-        // Tier 1: Try direct JSON parse
+        // Tier 1: Direct JSON parse — free, instant, works when agent returns pure JSON
         try {
           structuredOutput = JSON.parse(finalText);
         } catch {
-          // Tier 2: Try extracting JSON from markdown fences or surrounding text
-          const jsonMatch = finalText.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
-          if (jsonMatch) {
-            try {
-              structuredOutput = JSON.parse(jsonMatch[1]);
-            } catch {
-              // fall through to extraction LLM
-            }
-          }
+          // Not pure JSON — proceed to LLM extraction
         }
 
         if (structuredOutput === undefined) {
-          // Tier 2b: Extraction LLM fallback
+          // Tier 2: LLM extraction with withStructuredOutput — deterministic,
+          // uses function-calling to guarantee schema-conformant output
           try {
             structuredOutput = await extractStructuredOutput(
-              finalText, structuredOutputSchema, config,
+              finalText, structuredOutputSchema, config, requestedModel,
             );
           } catch (extractErr) {
-            console.warn(
-              `ExecuteCursor structured output extraction failed (non-fatal): execution=${executionId}`,
-              extractErr instanceof Error ? extractErr.message : extractErr,
+            const errMsg = extractErr instanceof Error ? extractErr.message : String(extractErr);
+            console.error(
+              `ExecuteCursor structured output extraction FAILED: execution=${executionId}, ` +
+              `requestedModel=${requestedModel}, ` +
+              `finalTextLength=${finalText.length}, ` +
+              `error=${errMsg}`,
             );
           }
         }
@@ -726,21 +722,22 @@ async function executeCursor(
 // ---------------------------------------------------------------------------
 
 /**
- * Extract structured data from an agent's free-text response using a
- * cheap extraction LLM call. Uses haiku-level model with
- * withStructuredOutput for guaranteed valid JSON.
+ * Extract structured data from an agent's free-text response using an
+ * economy-tier LLM with withStructuredOutput (function-calling).
+ * Guarantees schema-conformant JSON output via the API's tool-use mechanism.
  */
 async function extractStructuredOutput(
   agentResponse: string,
   schema: Record<string, unknown>,
   config: Config,
+  primaryModel: string,
 ): Promise<unknown | null> {
   const { ChatOpenAI } = await import("@langchain/openai");
   const { z } = await import("zod");
   const { resolveProxyBaseUrl, buildProxyHeaders } = await import("../../shared/llm-proxy.js");
-  const { getSummarizationModel } = await import("../../shared/model-registry.js");
+  const { getEconomyModel } = await import("../../shared/model-registry.js");
 
-  const extractionModel = await getSummarizationModel("claude-sonnet-4-20250514");
+  const extractionModel = await getEconomyModel(primaryModel);
 
   const proxyEndpoint = config.proxyEndpoint ?? config.stigmerBackendEndpoint;
   const baseUrl = resolveProxyBaseUrl(proxyEndpoint, "openai");
@@ -758,7 +755,7 @@ async function extractStructuredOutput(
     },
   });
 
-  const zodSchema = jsonSchemaToZodForExtraction(schema);
+  const zodSchema = await jsonSchemaToZodForExtraction(schema);
   const structured = llm.withStructuredOutput(zodSchema);
 
   const result = await structured.invoke([
@@ -772,8 +769,8 @@ async function extractStructuredOutput(
 /**
  * Convert JSON Schema to Zod for extraction LLM withStructuredOutput.
  */
-function jsonSchemaToZodForExtraction(schema: Record<string, unknown>): z.ZodType {
-  const { z } = require("zod") as typeof import("zod");
+async function jsonSchemaToZodForExtraction(schema: Record<string, unknown>): Promise<z.ZodType> {
+  const { z } = await import("zod");
   return _convertJsonSchemaToZod(schema, z);
 }
 
