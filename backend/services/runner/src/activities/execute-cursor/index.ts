@@ -244,16 +244,23 @@ async function executeCursor(
     // Phase 7: Resolve Cursor Agent (create, resume, or graceful fallback)
     await reportSetupProgress(client, executionId, "Initializing Cursor agent");
 
+    // In proxy mode, use the stigmer token as the API key — the proxy
+    // validates it and injects the real Cursor API key server-side.
+    // In direct mode, use the user's own CURSOR_API_KEY.
+    const effectiveApiKey = config.proxyEndpoint
+      ? (config.stigmerTokenRef?.current ?? config.stigmerToken ?? config.cursorApiKey)
+      : config.cursorApiKey;
+
     const createOptions: CreateAgentOptions | CreateCloudAgentOptions = agentMode === "cloud"
       ? {
-          apiKey: config.cursorApiKey,
+          apiKey: effectiveApiKey,
           model: validatedModel || undefined,
           repos: blueprint.cloudRepos,
           sessionId,
           mcpServers: mcpConfig,
         }
       : {
-          apiKey: config.cursorApiKey,
+          apiKey: effectiveApiKey,
           model: validatedModel,
           workspaceDirs: blueprint.workspaceDirs,
           sessionId,

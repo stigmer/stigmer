@@ -67,7 +67,7 @@ function parsePricingTable(json: unknown): ModelPricing[] {
 async function fetchFromApi(): Promise<readonly ModelPricing[]> {
   const url = `${process.env.STIGMER_CLOUD_API_URL ?? DEFAULT_API_URL}/v1/proxy/model-registry`;
   const headers: Record<string, string> = {};
-  const token = process.env.STIGMER_AUTH_TOKEN;
+  const token = process.env.STIGMER_TOKEN ?? process.env.STIGMER_AUTH_TOKEN;
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
   }
