@@ -2,7 +2,7 @@
 
 import "@xyflow/react/dist/style.css";
 
-import { memo, useCallback, useEffect, useMemo, useRef } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ReactFlow,
   Controls,
@@ -138,13 +138,17 @@ function WorkflowExecutionGraphInner({
   } = graphState;
 
   const { fitView } = useReactFlow();
-  const didFitRef = useRef(false);
+  const didFitGuardRef = useRef(false);
+  const [didInitialFit, setDidInitialFit] = useState(false);
 
   // Fit view on first render with nodes
   useEffect(() => {
-    if (nodes.length > 0 && !didFitRef.current) {
-      didFitRef.current = true;
-      setTimeout(() => fitView({ padding: 0.15, duration: getAnimationDuration(300) }), 50);
+    if (nodes.length > 0 && !didFitGuardRef.current) {
+      didFitGuardRef.current = true;
+      setTimeout(() => {
+        fitView({ padding: 0.15, duration: getAnimationDuration(300) });
+        setDidInitialFit(true);
+      }, 50);
     }
   }, [nodes.length, fitView]);
 
@@ -162,7 +166,7 @@ function WorkflowExecutionGraphInner({
     enabled: followExecution,
     activeTaskName: activeTaskInfo?.taskName ?? null,
     nodes,
-    didInitialFit: didFitRef.current,
+    didInitialFit,
     isTerminal,
     panelOffsetPx,
   });

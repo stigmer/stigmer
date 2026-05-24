@@ -321,7 +321,6 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
             onTaskSelect={setSelectedTaskName}
             onAutoSelectTask={setSelectedTaskName}
             followExecution={isRunning}
-            panelOffsetPx={384}
             className="flex-1"
           />
 
