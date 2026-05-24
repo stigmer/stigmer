@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import type { WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
 import type { WorkflowTask, WorkflowPendingApproval } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
@@ -41,6 +41,14 @@ export interface ExecutionInspectorProps {
 
 type InspectorTabId = "summary" | "input" | "output" | "error" | "retries" | "agent" | "approval" | "events";
 
+/** Compute the system-suggested tab from the current task detail (DD-003). */
+function deriveAutoTab(detail: { status: string; error: unknown } | null): InspectorTabId {
+  if (!detail) return "summary";
+  if (detail.status === "failed" && detail.error) return "error";
+  if (detail.status === "waiting_approval") return "approval";
+  return "summary";
+}
+
 /**
  * Runtime inspector panel for workflow execution tasks.
  *
@@ -80,43 +88,33 @@ export const ExecutionInspector = memo(function ExecutionInspector({
     taskSnapshots,
   });
 
-  const [activeTab, setActiveTab] = useState<InspectorTabId>("summary");
-  const prevTaskRef = useRef(selectedTaskName);
-  const prevStatusRef = useRef(detail?.status);
+  const [activeTab, setActiveTab] = useState<InspectorTabId>(() => deriveAutoTab(detail));
+  const [prevSelectedTask, setPrevSelectedTask] = useState(selectedTaskName);
+  const [prevStatus, setPrevStatus] = useState(detail?.status);
   const userPickedTabRef = useRef(false);
 
-  // Reset tab when the selected task changes
-  useEffect(() => {
-    if (selectedTaskName !== prevTaskRef.current) {
-      prevTaskRef.current = selectedTaskName;
-      userPickedTabRef.current = false;
+  // Synchronous tab reset when the selected task changes.
+  // React's "adjusting state when a prop changes" pattern — runs during
+  // render so the correct tab is committed to the DOM on the first paint.
+  if (selectedTaskName !== prevSelectedTask) {
+    setPrevSelectedTask(selectedTaskName);
+    setPrevStatus(detail?.status);
+    userPickedTabRef.current = false;
+    setActiveTab(deriveAutoTab(detail));
+  }
+
+  // Synchronous auto-select on status transition (same task only).
+  // Navigates to Error/Approval when a live execution transitions.
+  if (selectedTaskName === prevSelectedTask && detail?.status !== prevStatus) {
+    setPrevStatus(detail?.status);
+    if (!userPickedTabRef.current) {
       if (detail?.status === "failed" && detail.error) {
         setActiveTab("error");
-      } else {
-        setActiveTab("summary");
+      } else if (detail?.status === "waiting_approval") {
+        setActiveTab("approval");
       }
     }
-  }, [selectedTaskName, detail?.status, detail?.error]);
-
-  // Auto-select Error tab when status transitions to "failed" (same task)
-  // Auto-select Approval tab when status transitions to "waiting_approval"
-  useEffect(() => {
-    if (
-      detail?.status === "failed" &&
-      detail.error &&
-      prevStatusRef.current !== "failed" &&
-      !userPickedTabRef.current
-    ) {
-      setActiveTab("error");
-    } else if (
-      detail?.status === "waiting_approval" &&
-      prevStatusRef.current !== "waiting_approval" &&
-      !userPickedTabRef.current
-    ) {
-      setActiveTab("approval");
-    }
-    prevStatusRef.current = detail?.status;
-  }, [detail?.status, detail?.error]);
+  }
 
   const handleTabChange = useCallback((tabId: string) => {
     userPickedTabRef.current = true;

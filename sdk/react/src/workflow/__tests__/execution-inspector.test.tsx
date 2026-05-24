@@ -154,7 +154,10 @@ describe("ExecutionInspector", () => {
     });
     mockedUseExecutionTaskDetail.mockReturnValue({ detail: failedDetail });
 
-    rerender(<ExecutionInspector {...defaultProps} selectedTaskName="my-task" />);
+    // Pass a new taskStates reference to reflect that status data changed —
+    // in production, the event store updates this Map when a task fails,
+    // which is what triggers memo to allow the re-render.
+    rerender(<ExecutionInspector {...defaultProps} selectedTaskName="my-task" taskStates={new Map()} />);
 
     expect(screen.getByRole("tab", { name: "Error" }).getAttribute("aria-selected")).toBe("true");
   });
