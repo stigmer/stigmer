@@ -2,6 +2,10 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
   "properties": {
+    "batch_size": {
+      "description": "Number of items to process in each batch before moving to the next. 0 (default): no batching — all items are available for parallel execution (up to max_parallelism concurrent). N \u003e 0: items are chunked into groups of N. Each chunk is fully processed before the next chunk begins. Within each chunk, up to max_parallelism iterations run concurrently. Only meaningful when max_parallelism \u003e 0; ignored in sequential mode.",
+      "type": "integer"
+    },
     "do": {
       "description": "Tasks to execute for each iteration. Loop variables available: ${ $data.item }, ${ $data.index }",
       "items": {
@@ -18,6 +22,19 @@
     "in": {
       "description": "Expression evaluating to the collection to iterate over. Example: \"${ $data.items }\" or \"${ [1, 2, 3] }\"",
       "minLength": 1,
+      "type": "string"
+    },
+    "max_parallelism": {
+      "description": "Maximum number of iterations to execute concurrently. 0 (default): sequential execution — iterations run one at a time in input order. This preserves pre-T17 behavior. 1: effectively sequential (one at a time, but uses the parallel execution path — useful for testing). N \u003e 1: up to N iterations run concurrently using Temporal workflow goroutines with a semaphore-based concurrency limiter. Results are always reassembled in original input order regardless of completion order.",
+      "type": "integer"
+    },
+    "on_error": {
+      "description": "Policy for handling individual iteration failures. Default: FOR_EACH_FAIL_FAST (stop on first error). Only meaningful when max_parallelism \u003e 0; in sequential mode, any failure stops the loop regardless of this setting (pre-T17 behavior).",
+      "enum": [
+        "FOR_EACH_FAIL_FAST",
+        "FOR_EACH_CONTINUE",
+        "FOR_EACH_SKIP"
+      ],
       "type": "string"
     }
   },

@@ -680,3 +680,21 @@ export {
   WorkflowInstanceDetailPanel,
   type WorkflowInstanceDetailPanelProps,
 } from "./instance";
+
+// Execution Comparison — run-vs-run comparison
+export {
+  type TaskComparison,
+  type ExecutionComparison,
+  deriveExecutionComparison,
+  useExecutionComparison,
+  type UseExecutionComparisonOptions,
+  type UseExecutionComparisonReturn,
+  ExecutionComparisonPicker,
+  type ExecutionComparisonPickerProps,
+  ComparisonSummaryCards,
+  type ComparisonSummaryCardsProps,
+  TaskComparisonTable,
+  type TaskComparisonTableProps,
+  ExecutionComparisonView,
+  type ExecutionComparisonViewProps,
+} from "./execution-comparison";
