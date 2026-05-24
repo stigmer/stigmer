@@ -227,6 +227,16 @@
           },
           "description": "Execution events to append to the event log alongside this status update.\n\n @internal\n Append-only: events are added to the persistent event log, never replaced.\n This contrasts with status.tasks which uses full-replace protocol.\n\n The workflow-runner appends events atomically with each status update,\n ensuring the event log stays consistent with the status snapshot.\n Events must have monotonically increasing sequence_numbers — the handler\n rejects batches where any event's sequence_number is \u003c= the current\n highest persisted sequence for this execution.\n\n Empty list means no new events (backward compatible — existing runners\n that do not yet emit events continue to work without changes).\n\n @since T06 (Execution Event Stream Model)",
           "required": false
+        },
+        {
+          "name": "UpdatePendingApprovals",
+          "jsonName": "updatePendingApprovals",
+          "protoField": "update_pending_approvals",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "When true, status.pending_approvals will be merged into the existing\n execution (replacing the stored list). When false (default), existing\n pending_approvals are preserved unchanged.\n\n @internal\n This prevents a race condition where concurrent event emissions\n (which don't include pending_approvals) inadvertently clear active\n approval gates set by call-agent-status.\n\n Only call-agent-status.ts sets this to true — both when populating\n approvals from a child_approval_required signal and when clearing them\n after the child agent completes.\n\n @since Agent Call Live Experience",
+          "required": false
         }
       ]
     },
@@ -2210,7 +2220,7 @@
             "messageType": "WorkflowPendingApproval"
           }
         },
-        "description": "Pending approvals from child agent tool executions.\n\n @internal\n Populated when workflow tasks invoke agents that enter\n EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval\n requests at the workflow level for UI visibility.\n\n Full-Replace Protocol:\n The workflow-runner always sends the complete set of pending approvals\n via UpdateStatus. The server replaces the stored list unconditionally:\n - Non-empty list: child agent(s) need approval\n - Empty list: all approvals resolved, clear the field\n\n Parallel Agents:\n When multiple child agents run in parallel, entries from different children\n accumulate in this list. Each entry's child_agent_execution_id distinguishes\n the source.",
+        "description": "Pending approvals from child agent tool executions.\n\n @internal\n Populated when workflow tasks invoke agents that enter\n EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval\n requests at the workflow level for UI visibility.\n\n Guarded Update Protocol:\n This field is only modified when UpdateStatusInput.update_pending_approvals\n is explicitly set to true. Normal event emissions (which don't concern\n approvals) leave this field untouched, preventing race conditions between\n concurrent status writers.\n\n Only call-agent-status manages this field:\n - Non-empty list: child agent(s) need approval\n - Empty list + update_pending_approvals=true: all approvals resolved\n\n Parallel Agents:\n When multiple child agents run in parallel, entries from different children\n accumulate in this list. Each entry's child_agent_execution_id distinguishes\n the source.",
         "required": false
       },
       {

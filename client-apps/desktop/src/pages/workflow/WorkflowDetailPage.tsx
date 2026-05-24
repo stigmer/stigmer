@@ -47,6 +47,7 @@ export default function WorkflowDetailPage() {
   const { instances } = useWorkflowInstances(workflow?.metadata?.id);
   const [showRunDialog, setShowRunDialog] = useState(false);
   const [showCreateInstanceDialog, setShowCreateInstanceDialog] = useState(false);
+  const [instancesRefreshKey, setInstancesRefreshKey] = useState(0);
   const { updateVisibility, isPending: isVisibilityPending } =
     useUpdateVisibility("workflow", resourceId);
   const [showSharePanel, setShowSharePanel] = useState(false);
@@ -204,6 +205,7 @@ export default function WorkflowDetailPage() {
           onCreateInstanceClick={() => setShowCreateInstanceDialog(true)}
           onOpenInEditor={handleOpenInEditor}
           onViewLatestRun={handleViewLatestRun}
+          instancesRefreshKey={instancesRefreshKey}
         />
         {showSharePanel && resourceId && (
           <PermissionGate
@@ -244,7 +246,10 @@ export default function WorkflowDetailPage() {
           onOpenChange={setShowCreateInstanceDialog}
           org={org}
           workflowId={workflow.metadata.id}
-          onCreated={() => toast.success("Instance created")}
+          onCreated={() => {
+            toast.success("Instance created");
+            setInstancesRefreshKey((k) => k + 1);
+          }}
         />
       )}
     </>

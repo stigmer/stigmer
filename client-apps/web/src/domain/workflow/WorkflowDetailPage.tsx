@@ -58,6 +58,7 @@ export function WorkflowDetailPageInner({
   const { instances } = useWorkflowInstances(workflow?.metadata?.id);
   const [showRunDialog, setShowRunDialog] = useState(false);
   const [showCreateInstanceDialog, setShowCreateInstanceDialog] = useState(false);
+  const [instancesRefreshKey, setInstancesRefreshKey] = useState(0);
   const { copyYaml, copyJson, downloadYaml } = useExportResource({
     kind: "Workflow",
     resource: workflow,
@@ -240,6 +241,7 @@ export function WorkflowDetailPageInner({
           onCreateInstanceClick={() => setShowCreateInstanceDialog(true)}
           onOpenInEditor={handleOpenInEditor}
           onViewLatestRun={handleViewLatestRun}
+          instancesRefreshKey={instancesRefreshKey}
         />
         {showSharePanel && resourceId && (
           <PermissionGate
@@ -280,7 +282,10 @@ export function WorkflowDetailPageInner({
           onOpenChange={setShowCreateInstanceDialog}
           org={org}
           workflowId={workflow.metadata.id}
-          onCreated={() => toast.success("Instance created")}
+          onCreated={() => {
+            toast.success("Instance created");
+            setInstancesRefreshKey((k) => k + 1);
+          }}
         />
       )}
     </>

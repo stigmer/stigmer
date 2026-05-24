@@ -98,6 +98,11 @@ export interface WorkflowDetailViewProps {
    */
   readonly onInstanceDeleteClick?: (instance: WorkflowInstance) => void;
   /**
+   * Increment this value to trigger a refetch of the instance list.
+   * Useful after externally creating or deleting an instance.
+   */
+  readonly instancesRefreshKey?: number;
+  /**
    * When `true`, description and environment variables become click-to-edit.
    * Each field saves independently via `stigmer.workflow.update()`.
    * @default false
@@ -162,6 +167,7 @@ export function WorkflowDetailView({
   onInstanceClick,
   onInstanceRunClick,
   onInstanceDeleteClick,
+  instancesRefreshKey,
   editable = false,
   onResourceUpdated,
   onOpenInEditor,
@@ -281,6 +287,7 @@ export function WorkflowDetailView({
         onInstanceClick={onInstanceClick}
         onRunClick={onInstanceRunClick}
         onDeleteClick={onInstanceDeleteClick}
+        refreshKey={instancesRefreshKey}
       />
     );
   } else if (effectiveActiveTab === "executions") {

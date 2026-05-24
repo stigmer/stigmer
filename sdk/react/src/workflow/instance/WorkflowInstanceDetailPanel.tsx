@@ -116,8 +116,9 @@ export function WorkflowInstanceDetailPanel({
     [environments],
   );
 
-  const createdAt = meta?.createdAt ? timestampDate(meta.createdAt) : null;
-  const updatedAt = meta?.updatedAt ? timestampDate(meta.updatedAt) : null;
+  const audit = instance.status?.audit?.specAudit;
+  const createdAt = audit?.createdAt ? timestampDate(audit.createdAt) : null;
+  const updatedAt = audit?.updatedAt ? timestampDate(audit.updatedAt) : null;
 
   return (
     <div className="border border-border rounded-lg bg-background overflow-hidden">

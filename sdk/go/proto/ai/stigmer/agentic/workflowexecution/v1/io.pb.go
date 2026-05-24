@@ -582,9 +582,24 @@ type WorkflowExecutionUpdateStatusInput struct {
 	// that do not yet emit events continue to work without changes).
 	//
 	// @since T06 (Execution Event Stream Model)
-	Events        []*WorkflowExecutionEvent `protobuf:"bytes,10,rep,name=events,proto3" json:"events,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Events []*WorkflowExecutionEvent `protobuf:"bytes,10,rep,name=events,proto3" json:"events,omitempty"`
+	// When true, status.pending_approvals will be merged into the existing
+	// execution (replacing the stored list). When false (default), existing
+	// pending_approvals are preserved unchanged.
+	//
+	// @internal
+	// This prevents a race condition where concurrent event emissions
+	// (which don't include pending_approvals) inadvertently clear active
+	// approval gates set by call-agent-status.
+	//
+	// Only call-agent-status.ts sets this to true — both when populating
+	// approvals from a child_approval_required signal and when clearing them
+	// after the child agent completes.
+	//
+	// @since Agent Call Live Experience
+	UpdatePendingApprovals bool `protobuf:"varint,11,opt,name=update_pending_approvals,json=updatePendingApprovals,proto3" json:"update_pending_approvals,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *WorkflowExecutionUpdateStatusInput) Reset() {
@@ -636,6 +651,13 @@ func (x *WorkflowExecutionUpdateStatusInput) GetEvents() []*WorkflowExecutionEve
 		return x.Events
 	}
 	return nil
+}
+
+func (x *WorkflowExecutionUpdateStatusInput) GetUpdatePendingApprovals() bool {
+	if x != nil {
+		return x.UpdatePendingApprovals
+	}
+	return false
 }
 
 // Input for the submitApproval RPC.
@@ -2430,12 +2452,13 @@ const file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDesc = "" +
 	"\x06filter\x18\x04 \x01(\v2@.ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteriaR\x06filter\x12Z\n" +
 	"\n" +
 	"sort_field\x18\x05 \x01(\x0e2;.ai.stigmer.agentic.workflowexecution.v1.ExecutionSortFieldR\tsortField\x12%\n" +
-	"\x0esort_ascending\x18\x06 \x01(\bR\rsortAscending\"\x8b\x02\n" +
+	"\x0esort_ascending\x18\x06 \x01(\bR\rsortAscending\"\xc5\x02\n" +
 	"\"WorkflowExecutionUpdateStatusInput\x12*\n" +
 	"\fexecution_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\vexecutionId\x12`\n" +
 	"\x06status\x18\x02 \x01(\v2@.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatusB\x06\xbaH\x03\xc8\x01\x01R\x06status\x12W\n" +
 	"\x06events\x18\n" +
-	" \x03(\v2?.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEventR\x06events\"\xe8\x01\n" +
+	" \x03(\v2?.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEventR\x06events\x128\n" +
+	"\x18update_pending_approvals\x18\v \x01(\bR\x16updatePendingApprovals\"\xe8\x01\n" +
 	"\x1bSubmitWorkflowApprovalInput\x12*\n" +
 	"\fexecution_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\vexecutionId\x12)\n" +
 	"\ftool_call_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\n" +

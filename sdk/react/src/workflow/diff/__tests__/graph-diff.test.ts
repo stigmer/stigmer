@@ -18,7 +18,7 @@ function makeNode(
     id,
     taskName: id,
     kind,
-    category: "integration",
+    category: "invocation",
     config,
     position: { x: 0, y: 0 },
   };

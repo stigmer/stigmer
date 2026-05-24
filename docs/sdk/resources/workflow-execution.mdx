@@ -612,15 +612,17 @@ const workflowExecution = await stigmer.workflowExecution.updateStatus({
   executionId: "...",
   status: {},
   events: [],
+  updatePendingApprovals: false,
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 workflowExecution, err := client.WorkflowExecution.UpdateStatus(ctx, &stigmer.WorkflowExecutionUpdateStatusInput{
-  ExecutionId: "...",
-  Status:      &stigmer.WorkflowExecutionStatusInput{},
-  Events:      []stigmer.WorkflowExecutionEventInput{},
+  ExecutionId:            "...",
+  Status:                 &stigmer.WorkflowExecutionStatusInput{},
+  Events:                 []stigmer.WorkflowExecutionEventInput{},
+  UpdatePendingApprovals: false,
 })
 ```
 </Tab>
@@ -630,6 +632,7 @@ workflow_execution = client.workflow_executions.update_status(WorkflowExecutionU
     execution_id="...",
     status=None,
     events=[],
+    update_pending_approvals=False,
 ))
 ```
 </Tab>
@@ -639,6 +642,7 @@ WorkflowExecution workflowExecution = client.workflowExecutions().updateStatus(W
     .executionId("...")
     .status(null)
     .events(List.of())
+    .updatePendingApprovals(false)
     .build());
 ```
 </Tab>
@@ -1163,6 +1167,7 @@ Input for the updateStatus RPC.
     executionId: { type: "string", description: "ID of the workflow execution to update." },
     status: { type: "WorkflowExecutionStatusInput", description: "Status fields to merge into the existing execution status.", required: true },
     events: { type: "WorkflowExecutionEventInput[]", description: "Execution events to append to the event log alongside this status update." },
+    updatePendingApprovals: { type: "boolean", description: "When true, status.pending_approvals will be merged into the existing execution (replacing the stored list)." },
   }}
 />
 

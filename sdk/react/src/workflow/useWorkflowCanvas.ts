@@ -133,6 +133,15 @@ export interface UseWorkflowCanvasReturn {
   readonly addSwitchCase: (switchNodeId: string, caseName: string, condition: string) => void;
   readonly addForkBranch: (forkNodeId: string, branchName: string) => void;
   readonly addCatchHandler: (tryCatchNodeId: string, errorType: string) => void;
+  readonly removeSwitchCase: (switchNodeId: string, caseName: string) => void;
+  readonly reorderSwitchCases: (switchNodeId: string, newOrder: readonly string[]) => void;
+  readonly removeForkBranch: (forkNodeId: string, branchName: string) => void;
+  readonly reorderForkBranches: (forkNodeId: string, newOrder: readonly string[]) => void;
+  readonly renameForkBranch: (forkNodeId: string, oldName: string, newName: string) => void;
+  readonly setForkCompete: (forkNodeId: string, compete: boolean) => void;
+  readonly updateCatchConfig: (tryCatchNodeId: string, updates: { as?: string; compensate?: boolean }) => void;
+  readonly removeCatchBlock: (tryCatchNodeId: string) => void;
+  readonly updateForEachConfig: (forEachNodeId: string, updates: Partial<{ each: string; in: string; max_parallelism: number; batch_size: number; on_error: string }>) => void;
   readonly getGraphModel: () => WorkflowGraphModel;
   readonly selectAll: () => void;
   readonly toggleNodeDisabled: (nodeId: string) => void;

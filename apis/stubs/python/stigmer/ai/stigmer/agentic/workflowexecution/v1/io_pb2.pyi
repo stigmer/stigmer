@@ -98,14 +98,16 @@ class ListWorkflowExecutionsByWorkflowRequest(_message.Message):
     def __init__(self, workflow_id: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ..., filter: _Optional[_Union[ExecutionFilterCriteria, _Mapping]] = ..., sort_field: _Optional[_Union[ExecutionSortField, str]] = ..., sort_ascending: bool = ...) -> None: ...
 
 class WorkflowExecutionUpdateStatusInput(_message.Message):
-    __slots__ = ("execution_id", "status", "events")
+    __slots__ = ("execution_id", "status", "events", "update_pending_approvals")
     EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
     STATUS_FIELD_NUMBER: _ClassVar[int]
     EVENTS_FIELD_NUMBER: _ClassVar[int]
+    UPDATE_PENDING_APPROVALS_FIELD_NUMBER: _ClassVar[int]
     execution_id: str
     status: _api_pb2.WorkflowExecutionStatus
     events: _containers.RepeatedCompositeFieldContainer[_event_pb2.WorkflowExecutionEvent]
-    def __init__(self, execution_id: _Optional[str] = ..., status: _Optional[_Union[_api_pb2.WorkflowExecutionStatus, _Mapping]] = ..., events: _Optional[_Iterable[_Union[_event_pb2.WorkflowExecutionEvent, _Mapping]]] = ...) -> None: ...
+    update_pending_approvals: bool
+    def __init__(self, execution_id: _Optional[str] = ..., status: _Optional[_Union[_api_pb2.WorkflowExecutionStatus, _Mapping]] = ..., events: _Optional[_Iterable[_Union[_event_pb2.WorkflowExecutionEvent, _Mapping]]] = ..., update_pending_approvals: bool = ...) -> None: ...
 
 class SubmitWorkflowApprovalInput(_message.Message):
     __slots__ = ("execution_id", "tool_call_id", "action", "comment")

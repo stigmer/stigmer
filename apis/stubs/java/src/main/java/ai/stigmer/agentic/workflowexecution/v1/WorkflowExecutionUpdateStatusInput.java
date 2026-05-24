@@ -295,6 +295,34 @@ private static final long serialVersionUID = 0L;
     return events_.get(index);
   }
 
+  public static final int UPDATE_PENDING_APPROVALS_FIELD_NUMBER = 11;
+  private boolean updatePendingApprovals_ = false;
+  /**
+   * <pre>
+   * When true, status.pending_approvals will be merged into the existing
+   * execution (replacing the stored list). When false (default), existing
+   * pending_approvals are preserved unchanged.
+   *
+   * &#64;internal
+   * This prevents a race condition where concurrent event emissions
+   * (which don't include pending_approvals) inadvertently clear active
+   * approval gates set by call-agent-status.
+   *
+   * Only call-agent-status.ts sets this to true — both when populating
+   * approvals from a child_approval_required signal and when clearing them
+   * after the child agent completes.
+   *
+   * &#64;since Agent Call Live Experience
+   * </pre>
+   *
+   * <code>bool update_pending_approvals = 11 [json_name = "updatePendingApprovals"];</code>
+   * @return The updatePendingApprovals.
+   */
+  @java.lang.Override
+  public boolean getUpdatePendingApprovals() {
+    return updatePendingApprovals_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -317,6 +345,9 @@ private static final long serialVersionUID = 0L;
     }
     for (int i = 0; i < events_.size(); i++) {
       output.writeMessage(10, events_.get(i));
+    }
+    if (updatePendingApprovals_ != false) {
+      output.writeBool(11, updatePendingApprovals_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -343,6 +374,10 @@ private static final long serialVersionUID = 0L;
           }
           size += 1 * count;
         }
+    if (updatePendingApprovals_ != false) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBoolSize(11, updatePendingApprovals_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -367,6 +402,8 @@ private static final long serialVersionUID = 0L;
     }
     if (!getEventsList()
         .equals(other.getEventsList())) return false;
+    if (getUpdatePendingApprovals()
+        != other.getUpdatePendingApprovals()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -388,6 +425,9 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + EVENTS_FIELD_NUMBER;
       hash = (53 * hash) + getEventsList().hashCode();
     }
+    hash = (37 * hash) + UPDATE_PENDING_APPROVALS_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+        getUpdatePendingApprovals());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -547,6 +587,7 @@ private static final long serialVersionUID = 0L;
         eventsBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000004);
+      updatePendingApprovals_ = false;
       return this;
     }
 
@@ -603,6 +644,9 @@ private static final long serialVersionUID = 0L;
             : statusBuilder_.build();
         to_bitField0_ |= 0x00000001;
       }
+      if (((from_bitField0_ & 0x00000008) != 0)) {
+        result.updatePendingApprovals_ = updatePendingApprovals_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -651,6 +695,9 @@ private static final long serialVersionUID = 0L;
             eventsBuilder_.addAllMessages(other.events_);
           }
         }
+      }
+      if (other.getUpdatePendingApprovals() != false) {
+        setUpdatePendingApprovals(other.getUpdatePendingApprovals());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -703,6 +750,11 @@ private static final long serialVersionUID = 0L;
               }
               break;
             } // case 82
+            case 88: {
+              updatePendingApprovals_ = input.readBool();
+              bitField0_ |= 0x00000008;
+              break;
+            } // case 88
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1591,6 +1643,89 @@ private static final long serialVersionUID = 0L;
         events_ = null;
       }
       return eventsBuilder_;
+    }
+
+    private boolean updatePendingApprovals_ ;
+    /**
+     * <pre>
+     * When true, status.pending_approvals will be merged into the existing
+     * execution (replacing the stored list). When false (default), existing
+     * pending_approvals are preserved unchanged.
+     *
+     * &#64;internal
+     * This prevents a race condition where concurrent event emissions
+     * (which don't include pending_approvals) inadvertently clear active
+     * approval gates set by call-agent-status.
+     *
+     * Only call-agent-status.ts sets this to true — both when populating
+     * approvals from a child_approval_required signal and when clearing them
+     * after the child agent completes.
+     *
+     * &#64;since Agent Call Live Experience
+     * </pre>
+     *
+     * <code>bool update_pending_approvals = 11 [json_name = "updatePendingApprovals"];</code>
+     * @return The updatePendingApprovals.
+     */
+    @java.lang.Override
+    public boolean getUpdatePendingApprovals() {
+      return updatePendingApprovals_;
+    }
+    /**
+     * <pre>
+     * When true, status.pending_approvals will be merged into the existing
+     * execution (replacing the stored list). When false (default), existing
+     * pending_approvals are preserved unchanged.
+     *
+     * &#64;internal
+     * This prevents a race condition where concurrent event emissions
+     * (which don't include pending_approvals) inadvertently clear active
+     * approval gates set by call-agent-status.
+     *
+     * Only call-agent-status.ts sets this to true — both when populating
+     * approvals from a child_approval_required signal and when clearing them
+     * after the child agent completes.
+     *
+     * &#64;since Agent Call Live Experience
+     * </pre>
+     *
+     * <code>bool update_pending_approvals = 11 [json_name = "updatePendingApprovals"];</code>
+     * @param value The updatePendingApprovals to set.
+     * @return This builder for chaining.
+     */
+    public Builder setUpdatePendingApprovals(boolean value) {
+
+      updatePendingApprovals_ = value;
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * When true, status.pending_approvals will be merged into the existing
+     * execution (replacing the stored list). When false (default), existing
+     * pending_approvals are preserved unchanged.
+     *
+     * &#64;internal
+     * This prevents a race condition where concurrent event emissions
+     * (which don't include pending_approvals) inadvertently clear active
+     * approval gates set by call-agent-status.
+     *
+     * Only call-agent-status.ts sets this to true — both when populating
+     * approvals from a child_approval_required signal and when clearing them
+     * after the child agent completes.
+     *
+     * &#64;since Agent Call Live Experience
+     * </pre>
+     *
+     * <code>bool update_pending_approvals = 11 [json_name = "updatePendingApprovals"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearUpdatePendingApprovals() {
+      bitField0_ = (bitField0_ & ~0x00000008);
+      updatePendingApprovals_ = false;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdateStatusInput)

@@ -55,7 +55,7 @@ describe("AgentCallTab view switching", () => {
   });
 
   it("shows static view when task is completed", () => {
-    const taskStatus = "completed" as const;
+    const taskStatus: string = "completed";
     const childExecutionId = "aex_abc123";
     const isTabActive = true;
 
@@ -73,7 +73,7 @@ describe("AgentCallTab view switching", () => {
   });
 
   it("subscribes when task is waiting_approval with childExecutionId", () => {
-    const taskStatus = "waiting_approval" as const;
+    const taskStatus: string = "waiting_approval";
     const childExecutionId = "aex_abc123";
     const isTabActive = true;
 

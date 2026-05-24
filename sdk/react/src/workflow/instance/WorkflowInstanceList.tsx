@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import type { WorkflowInstance } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -27,6 +27,11 @@ export interface WorkflowInstanceListProps {
   readonly onRunClick?: (instance: WorkflowInstance) => void;
   /** Called when the user clicks "Delete" on an instance. */
   readonly onDeleteClick?: (instance: WorkflowInstance) => void;
+  /**
+   * Increment this value to trigger a refetch of the instance list.
+   * Useful after creating or deleting an instance externally.
+   */
+  readonly refreshKey?: number;
   /** Additional CSS class names. */
   readonly className?: string;
 }
@@ -45,10 +50,20 @@ export function WorkflowInstanceList({
   onInstanceClick,
   onRunClick,
   onDeleteClick,
+  refreshKey,
   className,
 }: WorkflowInstanceListProps) {
   const { instances, isLoading, error, refetch } = useWorkflowInstances(workflowId);
   const { environments } = useEnvironmentList(org);
+
+  // Refetch when refreshKey changes (signals external mutation like create/delete)
+  const prevRefreshKey = useRef(refreshKey);
+  useEffect(() => {
+    if (refreshKey !== undefined && refreshKey !== prevRefreshKey.current) {
+      prevRefreshKey.current = refreshKey;
+      refetch();
+    }
+  }, [refreshKey, refetch]);
 
   const userInstances = useMemo(
     () => instances.filter((i) => i.metadata?.id !== defaultInstanceId),
