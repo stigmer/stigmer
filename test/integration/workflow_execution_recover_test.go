@@ -58,6 +58,11 @@ func failingWorkflow(name string) (*workflowv1.Workflow, error) {
 // The workflow always fails via raise_error. After recovery, the execution
 // transitions back to IN_PROGRESS (it will fail again on the same raise_error,
 // but the test validates the recovery mechanism, not eventual success).
+//
+// Key assertions:
+//   - Recover RPC succeeds and clears error field
+//   - Same execution ID is returned (not a new execution)
+//   - Recovered execution reaches a terminal state (not stuck in WTF loop)
 func TestWorkflowExecution_Recover_AfterFailure(t *testing.T) {
 	require.NotNil(t, grpcConn)
 	if testHarness.UnifiedRunner == nil {
@@ -84,8 +89,9 @@ func TestWorkflowExecution_Recover_AfterFailure(t *testing.T) {
 		workflowexecutionv1.ExecutionPhase_EXECUTION_FAILED, 90*time.Second)
 	require.NoError(t, err, "execution should reach FAILED")
 	harness.AssertPhase(t, result, workflowexecutionv1.ExecutionPhase_EXECUTION_FAILED)
+	require.NotEmpty(t, result.GetStatus().GetError(), "failed execution should have error message")
 
-	t.Logf("execution failed as expected: id=%s", executionID)
+	t.Logf("execution failed as expected: id=%s, error=%s", executionID, result.GetStatus().GetError())
 
 	recovered, err := clients.ExecutionCommand.Recover(ctx, &workflowexecutionv1.RecoverWorkflowExecutionInput{
 		Id:     executionID,
@@ -94,17 +100,91 @@ func TestWorkflowExecution_Recover_AfterFailure(t *testing.T) {
 	require.NoError(t, err, "recover should succeed for FAILED execution")
 	require.NotNil(t, recovered)
 
+	// Verify same execution ID (not a new execution)
+	assert.Equal(t, executionID, recovered.GetMetadata().GetId(),
+		"recovered execution should have the same ID")
+
+	// Verify error is cleared after recovery
+	assert.Empty(t, recovered.GetStatus().GetError(),
+		"recovered execution should have error cleared")
+
 	t.Logf("recover initiated: id=%s, phase=%s",
 		recovered.GetMetadata().GetId(), recovered.GetStatus().GetPhase().String())
 
-	// Workflow execution recover resets the same execution (unlike agent
-	// execution recover which creates a new execution). Wait for it to
-	// transition through IN_PROGRESS (it will fail again on raise_error).
+	// Workflow execution recover starts a fresh Temporal workflow for the same
+	// execution ID (unlike agent execution recover which creates a new execution).
+	// The workflow will fail again on the same raise_error, but the key assertion
+	// is that it actually reaches a terminal state — not stuck in a WTF loop.
 	finalResult, err := waiter.WaitForTerminal(ctx, executionID, 90*time.Second)
-	require.NoError(t, err, "recovered execution should reach a terminal state")
+	require.NoError(t, err, "recovered execution should reach a terminal state (not stuck)")
+
+	assert.Equal(t, workflowexecutionv1.ExecutionPhase_EXECUTION_FAILED, finalResult.GetStatus().GetPhase(),
+		"recovered execution should fail again on raise_error")
 
 	t.Logf("recovered execution finished: id=%s, phase=%s",
 		finalResult.GetMetadata().GetId(), finalResult.GetStatus().GetPhase().String())
+}
+
+// TestWorkflowExecution_Recover_IdempotentDoubleRecover verifies that calling
+// recover twice on the same execution is safe — the second call either succeeds
+// as a no-op (if still IN_PROGRESS) or succeeds normally (if failed again).
+func TestWorkflowExecution_Recover_IdempotentDoubleRecover(t *testing.T) {
+	require.NotNil(t, grpcConn)
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	deployer := harness.NewFixtureDeployer(clients, "wf-recover-idem", suiteLogger)
+	defer deployer.Cleanup(ctx)
+
+	wf, err := failingWorkflow("integration-test-wf-recover-idempotent")
+	require.NoError(t, err)
+
+	_, execution, err := deployer.DeployAndExecute(ctx, wf, "double recover test")
+	require.NoError(t, err)
+
+	executionID := execution.GetMetadata().GetId()
+	waiter := harness.NewExecutionWaiter(clients.ExecutionQuery, suiteLogger)
+
+	_, err = waiter.WaitForPhase(ctx, executionID,
+		workflowexecutionv1.ExecutionPhase_EXECUTION_FAILED, 90*time.Second)
+	require.NoError(t, err, "execution should reach FAILED")
+
+	// First recovery
+	_, err = clients.ExecutionCommand.Recover(ctx, &workflowexecutionv1.RecoverWorkflowExecutionInput{
+		Id:     executionID,
+		Reason: "first recovery attempt",
+	})
+	require.NoError(t, err, "first recover should succeed")
+
+	// Wait for it to fail again
+	_, err = waiter.WaitForTerminal(ctx, executionID, 90*time.Second)
+	require.NoError(t, err, "first recovery should reach terminal state")
+
+	// Verify it failed again
+	afterFirst, err := waiter.WaitForPhase(ctx, executionID,
+		workflowexecutionv1.ExecutionPhase_EXECUTION_FAILED, 10*time.Second)
+	require.NoError(t, err, "execution should be FAILED after first recovery cycle")
+
+	t.Logf("first recovery cycle complete: id=%s, phase=%s",
+		executionID, afterFirst.GetStatus().GetPhase().String())
+
+	// Second recovery — should also succeed
+	_, err = clients.ExecutionCommand.Recover(ctx, &workflowexecutionv1.RecoverWorkflowExecutionInput{
+		Id:     executionID,
+		Reason: "second recovery attempt",
+	})
+	require.NoError(t, err, "second recover should succeed (same execution can be recovered multiple times)")
+
+	finalResult, err := waiter.WaitForTerminal(ctx, executionID, 90*time.Second)
+	require.NoError(t, err, "second recovery should reach terminal state")
+
+	t.Logf("double recovery complete: id=%s, final_phase=%s",
+		executionID, finalResult.GetStatus().GetPhase().String())
 }
 
 // TestWorkflowExecution_RecoverNonFailedFails verifies that recovering a
