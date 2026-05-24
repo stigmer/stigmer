@@ -723,3 +723,21 @@ export {
   ExecutionComparisonView,
   type ExecutionComparisonViewProps,
 } from "./execution-comparison";
+
+// T15: Workflow Template Gallery
+export {
+  type WorkflowTemplateData,
+  type WorkflowTemplateCategory,
+  type WorkflowTemplateMeta,
+  type WorkflowPattern,
+  type WorkflowTemplate,
+  PATTERN_LABELS,
+  WORKFLOW_CATEGORY_LABELS,
+  deriveTemplateMeta,
+  WorkflowTemplateCard,
+  type WorkflowTemplateCardProps,
+  WorkflowTemplatePreview,
+  type WorkflowTemplatePreviewProps,
+  WorkflowTemplateGallery,
+  type WorkflowTemplateGalleryProps,
+} from "./templates";

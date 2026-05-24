@@ -938,6 +938,7 @@ export {
   TEMPLATE_CATEGORY_LABELS,
   AGENT_TEMPLATES,
   MCP_SERVER_TEMPLATES,
+  WORKFLOW_TEMPLATES,
 } from "./resource-creation";
 export type {
   EnvVarEntry,
@@ -1166,6 +1167,13 @@ export {
   WorkflowInstanceList,
   CreateWorkflowInstanceDialog,
   WorkflowInstanceDetailPanel,
+  // T15: Workflow Template Gallery
+  PATTERN_LABELS,
+  WORKFLOW_CATEGORY_LABELS,
+  deriveTemplateMeta,
+  WorkflowTemplateCard,
+  WorkflowTemplatePreview,
+  WorkflowTemplateGallery,
 } from "./workflow";
 export type {
   TaskKindDescriptor,
@@ -1286,6 +1294,15 @@ export type {
   WorkflowInstanceListProps,
   CreateWorkflowInstanceDialogProps,
   WorkflowInstanceDetailPanelProps,
+  // T15: Workflow Template Gallery types
+  WorkflowTemplateData,
+  WorkflowTemplateCategory,
+  WorkflowTemplateMeta,
+  WorkflowPattern,
+  WorkflowTemplate,
+  WorkflowTemplateCardProps,
+  WorkflowTemplatePreviewProps,
+  WorkflowTemplateGalleryProps,
 } from "./workflow";
 
 // ─── Dashboard (Unified Platform) ──────────────────────────────────────────
