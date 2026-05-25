@@ -66,7 +66,7 @@ func TestAgentExecution_StructuredOutputPipeline(t *testing.T) {
 			// --- Markdown Prose: Tier 2 extraction needed ---
 
 			t.Run("MarkdownProse", func(t *testing.T) {
-				// Agent produces markdown, NEVER raw JSON → extraction must use Tier 2 (LLM).
+				// Agent produces markdown, NEVER raw JSON -> extraction must use Tier 2 (LLM).
 				// Targets: B1, B2, E4
 				schema := harness.SummaryScoreSchema(t)
 				exec := harness.CreateTestAgentExecution(t, ctx, clients, session.GetMetadata().GetId(),
@@ -84,14 +84,8 @@ func TestAgentExecution_StructuredOutputPipeline(t *testing.T) {
 				require.NoError(t, err)
 				t.Log(harness.FormatStructuredOutputSummary(completed))
 
-				so := completed.GetStatus().GetStructuredOutput()
-				if so == nil {
-					t.Log("[B1/B2/E4 POSSIBLE] structuredOutput is nil for markdown prose — " +
-						"Tier 2 extraction may have failed or extraction was skipped.")
-				} else {
-					harness.AssertStructuredOutputHasKeys(t, completed, "summary", "score")
-					t.Log("Extraction succeeded for markdown prose (likely Tier 2 LLM).")
-				}
+				harness.AssertStructuredOutputPopulated(t, completed)
+				harness.AssertStructuredOutputHasKeys(t, completed, "summary", "score")
 			})
 
 			// --- Code-fenced JSON: Tier 1.5 ---
@@ -121,8 +115,8 @@ func TestAgentExecution_StructuredOutputPipeline(t *testing.T) {
 			// --- Empty final message: B1 ---
 
 			t.Run("EmptyFinalMessage", func(t *testing.T) {
-				// Agent uses tool then stops → empty finalText → extraction skipped.
-				// Targets: B1
+				// Agent uses tool then stops -> empty finalText -> extraction skipped.
+				// Targets: B1. When final turn is tool-only, structuredOutput may be nil.
 				schema := harness.SummaryScoreSchema(t)
 				exec := harness.CreateTestAgentExecution(t, ctx, clients, session.GetMetadata().GetId(),
 					"Use any available tool to check something, then stop immediately. "+
@@ -138,18 +132,24 @@ func TestAgentExecution_StructuredOutputPipeline(t *testing.T) {
 				require.NoError(t, err)
 				t.Log(harness.FormatStructuredOutputSummary(completed))
 
-				so := completed.GetStatus().GetStructuredOutput()
-				if so == nil {
-					t.Log("[B1 CONFIRMED] structuredOutput is nil when agent's final turn is tool-only.")
+				if h.Name == "cursor" {
+					// The Cursor path injects a strong JSON instruction into
+					// the prompt, so the agent typically responds with JSON
+					// even in tool-only scenarios. Structured output being
+					// populated is correct Cursor behavior, not an error.
+					so := completed.GetStatus().GetStructuredOutput()
+					if so != nil {
+						t.Logf("Cursor harness produced structured output in tool-only scenario (expected): %d fields", len(so.GetFields()))
+					}
 				} else {
-					t.Log("[B1 NOT PRESENT] structuredOutput populated despite tool-only final turn.")
+					harness.AssertStructuredOutputNil(t, completed)
 				}
 			})
 
 			// --- Multi-turn verbose: B2 ---
 
 			t.Run("MultiTurnVerbose", func(t *testing.T) {
-				// JSON in middle, "Done!" at end → extraction from wrong message.
+				// JSON in middle, "Done!" at end -> extraction should still find JSON.
 				// Targets: B2
 				schema := harness.SummaryScoreSchema(t)
 				exec := harness.CreateTestAgentExecution(t, ctx, clients, session.GetMetadata().GetId(),
@@ -169,13 +169,8 @@ func TestAgentExecution_StructuredOutputPipeline(t *testing.T) {
 				require.NoError(t, err)
 				t.Log(harness.FormatStructuredOutputSummary(completed))
 
-				so := completed.GetStatus().GetStructuredOutput()
-				if so == nil {
-					t.Log("[B2 CONFIRMED] structuredOutput is nil — extraction only looked at final message ('Done!').")
-				} else {
-					harness.AssertStructuredOutputHasKeys(t, completed, "summary", "score")
-					t.Log("[B2 NOT PRESENT] Extraction found JSON despite verbose multi-turn output.")
-				}
+				harness.AssertStructuredOutputPopulated(t, completed)
+				harness.AssertStructuredOutputHasKeys(t, completed, "summary", "score")
 			})
 
 			// --- Nested schema: D1, D2 ---
@@ -274,7 +269,8 @@ func TestAgentExecution_StructuredOutputPipeline_EdgeCases(t *testing.T) {
 				agent.GetStatus().GetDefaultInstanceId(), h.Harness)
 
 			t.Run("TrailingCommasInJson", func(t *testing.T) {
-				// Targets: B7 — all parse tiers fail, falls to Tier 2
+				// Targets: B7 -- trailing commas are a common LLM quirk that the
+				// pipeline should handle gracefully (via lenient parsing or Tier 2).
 				schema := harness.SummaryScoreSchema(t)
 				exec := harness.CreateTestAgentExecution(t, ctx, clients, session.GetMetadata().GetId(),
 					"Respond with ONLY this: {\"summary\": \"test\", \"score\": 5, } — include the trailing comma.",
@@ -290,17 +286,13 @@ func TestAgentExecution_StructuredOutputPipeline_EdgeCases(t *testing.T) {
 				require.NoError(t, err)
 				t.Log(harness.FormatStructuredOutputSummary(completed))
 
-				so := completed.GetStatus().GetStructuredOutput()
-				if so == nil {
-					t.Log("[B7 CONFIRMED] Trailing commas caused all extraction tiers to fail.")
-				} else {
-					t.Log("[B7 HANDLED] Extraction succeeded despite trailing commas (likely Tier 2).")
-					harness.AssertStructuredOutputHasKeys(t, completed, "summary", "score")
-				}
+				harness.AssertStructuredOutputPopulated(t, completed)
+				harness.AssertStructuredOutputHasKeys(t, completed, "summary", "score")
 			})
 
 			t.Run("MultipleCodeFences_WrongFirst", func(t *testing.T) {
-				// Targets: B3 — which fence wins?
+				// Targets: B3 -- when multiple JSON code fences exist, extraction
+				// should pick the one matching the schema, not blindly the first.
 				schema := harness.SummaryScoreSchema(t)
 				exec := harness.CreateTestAgentExecution(t, ctx, clients, session.GetMetadata().GetId(),
 					"Output exactly two JSON code fences:\n"+
@@ -319,22 +311,15 @@ func TestAgentExecution_StructuredOutputPipeline_EdgeCases(t *testing.T) {
 				require.NoError(t, err)
 				t.Log(harness.FormatStructuredOutputSummary(completed))
 
+				harness.AssertStructuredOutputPopulated(t, completed)
 				so := completed.GetStatus().GetStructuredOutput()
-				if so != nil {
-					_, hasDebug := so.GetFields()["debug"]
-					_, hasSummary := so.GetFields()["summary"]
-					if hasDebug && !hasSummary {
-						t.Log("[B3 CONFIRMED] Extraction picked the FIRST code fence (debug JSON) — silent wrong data.")
-					} else if hasSummary && !hasDebug {
-						t.Log("[B3 NOT PRESENT] Extraction correctly picked the second code fence.")
-					} else {
-						t.Logf("[B3 AMBIGUOUS] Extracted keys: %v", harness.StructKeys(so))
-					}
-				}
+				assert.NotNil(t, so.GetFields()["summary"],
+					"extraction should pick the schema-matching fence with 'summary', not the debug fence")
 			})
 
 			t.Run("ExtraFieldsNotStripped", func(t *testing.T) {
-				// Targets: D5 — additionalProperties: false not enforced
+				// Targets: D5 -- additionalProperties: false. The pipeline should
+				// still produce structuredOutput; extra fields may or may not be stripped.
 				schema, err := structpb.NewStruct(map[string]any{
 					"type": "object",
 					"properties": map[string]any{
@@ -360,19 +345,13 @@ func TestAgentExecution_StructuredOutputPipeline_EdgeCases(t *testing.T) {
 				require.NoError(t, err2)
 				t.Log(harness.FormatStructuredOutputSummary(completed))
 
-				so := completed.GetStatus().GetStructuredOutput()
-				if so != nil {
-					_, hasExtra := so.GetFields()["extra"]
-					if hasExtra {
-						t.Log("[D5 CONFIRMED] Extra fields present despite additionalProperties: false.")
-					} else {
-						t.Log("[D5 NOT PRESENT] Extra fields were stripped.")
-					}
-				}
+				harness.AssertStructuredOutputPopulated(t, completed)
+				harness.AssertStructuredOutputHasKeys(t, completed, "summary", "score")
 			})
 
 			t.Run("MissingRequiredField", func(t *testing.T) {
-				// Targets: D1 — validation of required fields
+				// Targets: D1 -- required field validation. The pipeline should
+				// still produce structuredOutput with whatever fields were extracted.
 				schema := harness.SummaryScoreSchema(t)
 				exec := harness.CreateTestAgentExecution(t, ctx, clients, session.GetMetadata().GetId(),
 					"Respond with ONLY: {\"summary\": \"test\"}. Do NOT include 'score'.",
@@ -387,17 +366,13 @@ func TestAgentExecution_StructuredOutputPipeline_EdgeCases(t *testing.T) {
 				require.NoError(t, err)
 				t.Log(harness.FormatStructuredOutputSummary(completed))
 
-				so := completed.GetStatus().GetStructuredOutput()
-				if so != nil {
-					_, hasScore := so.GetFields()["score"]
-					if !hasScore {
-						t.Log("[D1 INFO] structuredOutput accepted without required 'score' — validation is shallow.")
-					}
-				}
+				harness.AssertStructuredOutputPopulated(t, completed)
+				harness.AssertStructuredOutputHasKeys(t, completed, "summary")
 			})
 
 			t.Run("WrongFieldType", func(t *testing.T) {
-				// Targets: D1 — type validation on fields
+				// Targets: D1 -- type validation. The pipeline should still produce
+				// structuredOutput even when field types don't match the schema.
 				schema := harness.SummaryScoreSchema(t)
 				exec := harness.CreateTestAgentExecution(t, ctx, clients, session.GetMetadata().GetId(),
 					"Respond with ONLY: {\"summary\": \"test\", \"score\": \"eight\"}. score must be a STRING.",
@@ -412,21 +387,11 @@ func TestAgentExecution_StructuredOutputPipeline_EdgeCases(t *testing.T) {
 				require.NoError(t, err)
 				t.Log(harness.FormatStructuredOutputSummary(completed))
 
-				so := completed.GetStatus().GetStructuredOutput()
-				if so != nil {
-					scoreVal := so.GetFields()["score"]
-					if scoreVal != nil {
-						if _, isStr := scoreVal.GetKind().(*structpb.Value_StringValue); isStr {
-							t.Log("[D1 CONFIRMED] score accepted as string — type validation not enforced.")
-						} else {
-							t.Log("score is a number — LLM may have corrected the type.")
-						}
-					}
-				}
+				harness.AssertStructuredOutputPopulated(t, completed)
+				harness.AssertStructuredOutputHasKeys(t, completed, "summary", "score")
 			})
 
 			t.Run("NoSchemaProducesNoOutput", func(t *testing.T) {
-				// Baseline: execution without schema should NOT have structuredOutput
 				exec := harness.CreateTestAgentExecution(t, ctx, clients, session.GetMetadata().GetId(),
 					"Say hello. Respond with: {\"summary\": \"hello\", \"score\": 5}",
 					harness.WithAutoApproveAll(true),
@@ -436,16 +401,10 @@ func TestAgentExecution_StructuredOutputPipeline_EdgeCases(t *testing.T) {
 					agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 4*time.Minute)
 				require.NoError(t, err)
 
-				so := completed.GetStatus().GetStructuredOutput()
-				if so != nil {
-					t.Log("[UNEXPECTED] structuredOutput populated without schema — extraction may run unconditionally.")
-				} else {
-					t.Log("Correct: no schema → no structuredOutput.")
-				}
+				harness.AssertStructuredOutputNil(t, completed)
 			})
 
 			t.Run("FailedExecution_NoStructured", func(t *testing.T) {
-				// Sanity: failed execution should NOT have structuredOutput
 				schema := harness.SummaryScoreSchema(t)
 				exec := harness.CreateTestAgentExecution(t, ctx, clients, session.GetMetadata().GetId(),
 					"{{INVALID_TEMPLATE_TRIGGER_ERROR}}",
@@ -463,10 +422,9 @@ func TestAgentExecution_StructuredOutputPipeline_EdgeCases(t *testing.T) {
 				phase := completed.GetStatus().GetPhase()
 				if phase == agentexecv1.ExecutionPhase_EXECUTION_FAILED {
 					harness.AssertStructuredOutputNil(t, completed)
-					t.Log("Correct: failed execution has no structuredOutput.")
-				} else {
-					t.Logf("Agent completed despite invalid input (phase=%s) — agent is resilient.", phase)
 				}
+				// If the agent completes despite invalid input, that's acceptable --
+				// LLMs can be resilient to malformed prompts.
 			})
 
 			t.Run("CohortsArrayOfObjects", func(t *testing.T) {

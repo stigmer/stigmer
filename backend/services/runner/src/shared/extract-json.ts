@@ -1,81 +1,54 @@
 /**
  * Extract JSON from agent text responses.
  *
- * Agents frequently wrap JSON in prose and markdown code fences.
- * This module provides a robust extraction pipeline that tries
- * multiple strategies before giving up.
+ * Only attempts direct JSON.parse on the full trimmed text. If the
+ * response is not a complete, valid JSON value, returns undefined so
+ * the caller can fall through to LLM-based extraction which provides
+ * schema-guaranteed output via tool-calling.
  *
- * Extraction order:
- * 1. Direct JSON.parse on the full text
- * 2. Extract from markdown code fences (```json ... ``` or ``` ... ```)
- * 3. Heuristic: find outermost { ... } or [ ... ] pair and parse
+ * Heuristic approaches (code-fence scanning, brace matching) were
+ * removed because they produce silent wrong data when the response
+ * contains multiple JSON fragments — a common scenario with markdown
+ * reports, debug output, or multi-step agent responses.
  */
 
-const CODE_FENCE_PATTERN = /```(?:\w*)\s*\n([\s\S]*?)\n\s*```/g;
-
 /**
- * Attempt to extract a JSON object from free-text agent output.
- * Returns the parsed object on success, or undefined if no valid
- * JSON can be extracted.
+ * Attempt to parse the full text as a JSON value.
+ * Returns the parsed object on success, or undefined if the text
+ * is not valid JSON.
+ *
+ * Handles trailing commas (a common LLM output quirk) by stripping
+ * them before parsing. This is a well-defined transformation, not a
+ * heuristic guess.
  */
 export function extractJsonFromText(text: string): unknown | undefined {
   if (!text) return undefined;
 
-  // Tier 1: direct JSON.parse on the full text
+  const trimmed = text.trim();
+
   try {
-    return JSON.parse(text);
+    return JSON.parse(trimmed);
   } catch {
-    // Not pure JSON — continue to code-fence extraction
+    // Fall through to trailing-comma repair
   }
 
-  // Tier 1.5: extract from markdown code fences
-  const fenceResult = extractFromCodeFences(text);
-  if (fenceResult !== undefined) return fenceResult;
-
-  // Tier 1.75: heuristic brace/bracket extraction
-  return extractFromBraces(text);
-}
-
-function extractFromCodeFences(text: string): unknown | undefined {
-  const matches: string[] = [];
-  let match: RegExpExecArray | null;
-
-  CODE_FENCE_PATTERN.lastIndex = 0;
-  while ((match = CODE_FENCE_PATTERN.exec(text)) !== null) {
-    matches.push(match[1].trim());
-  }
-
-  for (const candidate of matches) {
+  const repaired = stripTrailingCommas(trimmed);
+  if (repaired !== trimmed) {
     try {
-      return JSON.parse(candidate);
+      return JSON.parse(repaired);
     } catch {
-      // Not valid JSON in this fence — try next
+      // Trailing-comma repair didn't fix it
     }
   }
 
   return undefined;
 }
 
-function extractFromBraces(text: string): unknown | undefined {
-  const firstBrace = text.indexOf("{");
-  const lastBrace = text.lastIndexOf("}");
-  if (firstBrace !== -1 && lastBrace > firstBrace) {
-    try {
-      return JSON.parse(text.slice(firstBrace, lastBrace + 1));
-    } catch {
-      // Braces didn't contain valid JSON
-    }
-  }
-
-  const firstBracket = text.indexOf("[");
-  const lastBracket = text.lastIndexOf("]");
-  if (firstBracket !== -1 && lastBracket > firstBracket) {
-    try {
-      return JSON.parse(text.slice(firstBracket, lastBracket + 1));
-    } catch {
-      // Brackets didn't contain valid JSON
-    }
-  }
-
-  return undefined;
+/**
+ * Remove trailing commas before } and ] — a common LLM quirk that
+ * produces invalid JSON. Only removes commas that are followed by
+ * optional whitespace and a closing delimiter.
+ */
+function stripTrailingCommas(json: string): string {
+  return json.replace(/,\s*([}\]])/g, "$1");
 }

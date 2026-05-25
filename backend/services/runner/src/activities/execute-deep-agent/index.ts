@@ -10,7 +10,7 @@
  */
 
 import { Context, CancelledFailure } from "@temporalio/activity";
-import { create, type JsonObject } from "@bufbuild/protobuf";
+import { create } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { ExecutionPhase, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
@@ -193,23 +193,18 @@ export function createDeepAgentActivities(config: Config) {
         initialStatus.phase = ExecutionPhase.EXECUTION_COMPLETED;
         initialStatus.completedAt = utcTimestamp();
 
-        // Extract structured output from LangGraph state BEFORE persisting,
-        // so the subscriber sees COMPLETED + structured_output atomically.
         let structuredOutput: unknown = undefined;
         let finalText: string | undefined;
 
         if (setup.hasStructuredOutput) {
-          try {
-            const graphState = await setup.agentGraph.getState(setup.langgraphConfig);
-            if (graphState?.values?.structuredResponse !== undefined) {
-              structuredOutput = graphState.values.structuredResponse;
-              initialStatus.structuredOutput = structuredOutput as JsonObject;
-            }
-          } catch (err) {
-            console.warn(
-              `[ExecuteDeepAgent] Failed to extract structured output (non-fatal): ${err}`,
-            );
-          }
+          // Native path structured output requires v3 streaming migration.
+          // The deepagents `structuredResponse` is an UntrackedValue that is
+          // inaccessible via v2 streamEvents() and stripped from checkpoints.
+          // See: _projects/2026-05/YYYYMMDD.NN.v3-streaming-migration/
+          console.log(
+            `[ExecuteDeepAgent] Structured output requested but not available via v2 streaming ` +
+            `for execution ${executionId}. Use Cursor harness for structured output until v3 migration.`,
+          );
         }
 
         // Extract final AI message text
@@ -303,3 +298,4 @@ async function cleanup(setup: SetupResult | null): Promise<void> {
     }
   }
 }
+

@@ -773,8 +773,11 @@ async function extractStructuredOutput(
     ? buildProxyHeaders(config.stigmerToken, {})
     : {};
 
+  const apiKey = config.stigmerToken ?? process.env.OPENAI_API_KEY ?? "proxy-managed";
+
   const llm = new ChatOpenAI({
     model: extractionModel,
+    apiKey,
     temperature: 0,
     maxTokens: 4096,
     configuration: {
