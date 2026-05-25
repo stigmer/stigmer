@@ -57,16 +57,16 @@ const DIFF_BADGE_CONFIG: Record<
   added: {
     icon: "+",
     label: "Added",
-    className: "bg-[var(--stgm-success,#22c55e)] text-white",
+    className: "bg-[var(--stgm-success,#22c55e)] text-[var(--stgm-success-foreground,#fff)]",
   },
   removed: {
     icon: "−",
     label: "Removed",
-    className: "bg-[var(--stgm-destructive,#ef4444)] text-white",
+    className: "bg-[var(--stgm-destructive,#ef4444)] text-[var(--stgm-destructive-foreground,#fff)]",
   },
   modified: {
     icon: "~",
     label: "Modified",
-    className: "bg-[var(--stgm-warning,#f59e0b)] text-white",
+    className: "bg-[var(--stgm-warning,#f59e0b)] text-[var(--stgm-warning-foreground,#fff)]",
   },
 };

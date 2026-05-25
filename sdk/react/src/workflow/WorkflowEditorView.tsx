@@ -502,7 +502,7 @@ function DirtyPromptDialog({
           <button
             type="button"
             onClick={onDiscard}
-            className="rounded bg-[var(--stgm-destructive,#ef4444)] px-2.5 py-1 text-xs font-medium text-white hover:opacity-90"
+            className="rounded bg-[var(--stgm-destructive,#ef4444)] px-2.5 py-1 text-xs font-medium text-[var(--stgm-destructive-foreground,#fff)] hover:opacity-90"
           >
             Discard &amp; Switch
           </button>

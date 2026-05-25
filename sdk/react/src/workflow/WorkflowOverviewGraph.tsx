@@ -2,7 +2,7 @@
 
 import "@xyflow/react/dist/style.css";
 
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ReactFlow,
   Controls,
@@ -12,8 +12,9 @@ import {
   MarkerType,
   useReactFlow,
   ReactFlowProvider,
+  applyNodeChanges,
 } from "@xyflow/react";
-import type { Node } from "@xyflow/react";
+import type { Node, NodeChange } from "@xyflow/react";
 import { cn } from "@stigmer/theme";
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowNode } from "./WorkflowNode";
@@ -35,6 +36,13 @@ export interface WorkflowOverviewGraphProps {
    * and select the corresponding node.
    */
   readonly onOpenInEditor?: (taskName: string) => void;
+  /**
+   * Whether nodes can be dragged to rearrange the layout.
+   * Useful in fullscreen/presentation contexts where the user wants to
+   * manually position nodes for discussion. Does not persist changes.
+   * @default false
+   */
+  readonly nodesDraggable?: boolean;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -74,7 +82,12 @@ export const WorkflowOverviewGraph = memo(function WorkflowOverviewGraph(
 ) {
   return (
     <ReactFlowProvider>
-      <WorkflowOverviewGraphInner {...props} />
+      <WorkflowOverviewGraphInner
+        workflow={props.workflow}
+        onOpenInEditor={props.onOpenInEditor}
+        nodesDraggable={props.nodesDraggable}
+        className={props.className}
+      />
     </ReactFlowProvider>
   );
 });
@@ -82,9 +95,11 @@ export const WorkflowOverviewGraph = memo(function WorkflowOverviewGraph(
 function WorkflowOverviewGraphInner({
   workflow,
   onOpenInEditor,
+  nodesDraggable: draggable = false,
   className,
 }: WorkflowOverviewGraphProps) {
   const {
+    nodes: baseNodes,
     nodesWithSelection,
     edges,
     selectedTaskName,
@@ -93,6 +108,43 @@ function WorkflowOverviewGraphInner({
 
   const { fitView } = useReactFlow();
   const didFitRef = useRef(false);
+
+  // Track drag-repositioned nodes. Keyed by node ID → position.
+  // Resets when the underlying graph structure changes (workflow edited).
+  const [dragPositions, setDragPositions] = useState<Record<string, { x: number; y: number }>>({});
+
+  useEffect(() => {
+    setDragPositions({});
+  }, [baseNodes]);
+
+  const displayNodes = useMemo(() => {
+    if (!draggable || Object.keys(dragPositions).length === 0) {
+      return nodesWithSelection;
+    }
+    return nodesWithSelection.map((n) => {
+      const pos = dragPositions[n.id];
+      return pos ? { ...n, position: pos } : n;
+    });
+  }, [nodesWithSelection, draggable, dragPositions]);
+
+  const handleNodesChange = useCallback(
+    (changes: NodeChange[]) => {
+      if (!draggable) return;
+      const posChanges = changes.filter(
+        (c): c is NodeChange & { type: "position"; position: { x: number; y: number } } =>
+          c.type === "position" && "position" in c && c.position != null,
+      );
+      if (posChanges.length === 0) return;
+      setDragPositions((prev) => {
+        const next = { ...prev };
+        for (const c of posChanges) {
+          next[c.id] = c.position;
+        }
+        return next;
+      });
+    },
+    [draggable],
+  );
 
   const [popoverAnchor, setPopoverAnchor] = useState<{
     x: number;
@@ -166,14 +218,15 @@ function WorkflowOverviewGraphInner({
     <WorkflowGraphModeProvider mode="overview">
       <div ref={containerRef} className={cn("relative h-full w-full", className)}>
         <ReactFlow
-          nodes={nodesWithSelection}
+          nodes={displayNodes}
           edges={edges}
+          onNodesChange={draggable ? handleNodesChange : undefined}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           defaultEdgeOptions={defaultEdgeOptions}
           onNodeClick={handleNodeClick}
           onPaneClick={handlePaneClick}
-          nodesDraggable={false}
+          nodesDraggable={draggable}
           nodesConnectable={false}
           elementsSelectable={true}
           panOnDrag={true}

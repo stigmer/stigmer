@@ -57,7 +57,7 @@ export const ExecutionBadge = memo(function ExecutionBadge({
       <span
         className={cn(
           "absolute -right-1.5 -top-1.5 z-20 flex h-5 items-center gap-0.5 rounded-full px-1.5 text-[10px] font-semibold leading-none shadow-sm",
-          "bg-[var(--stgm-warning,#f59e0b)] text-white",
+          "bg-[var(--stgm-warning,#f59e0b)] text-[var(--stgm-warning-foreground,#fff)]",
         )}
         title={approvalLabel}
         aria-label={approvalLabel}
@@ -79,7 +79,7 @@ export const ExecutionBadge = memo(function ExecutionBadge({
       <span
         className={cn(
           "absolute -right-1.5 -top-1.5 z-20 flex h-5 items-center gap-0.5 rounded-full px-1.5 text-[10px] font-semibold leading-none shadow-sm",
-          "bg-[var(--stgm-primary,#6366f1)] text-white",
+          "bg-[var(--stgm-primary,#6366f1)] text-[var(--stgm-primary-foreground,#fff)]",
         )}
         title={agentLabel}
         aria-label={agentLabel}
@@ -100,7 +100,7 @@ export const ExecutionBadge = memo(function ExecutionBadge({
       <span
         className={cn(
           "absolute -right-1.5 -top-1.5 z-20 flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold leading-none shadow-sm",
-          "bg-[var(--stgm-primary,#6366f1)] text-white",
+          "bg-[var(--stgm-primary,#6366f1)] text-[var(--stgm-primary-foreground,#fff)]",
         )}
         title={progressLabel}
         aria-label={progressLabel}
@@ -140,17 +140,17 @@ const BADGE_CONFIG: Record<Exclude<NodeExecutionStatus, "not_reached" | "pending
   running: {
     icon: "⟳",
     label: "Running",
-    className: "bg-[var(--stgm-primary,#6366f1)] text-white",
+    className: "bg-[var(--stgm-primary,#6366f1)] text-[var(--stgm-primary-foreground,#fff)]",
   },
   completed: {
     icon: "✓",
     label: "Completed",
-    className: "bg-[var(--stgm-success,#22c55e)] text-white",
+    className: "bg-[var(--stgm-success,#22c55e)] text-[var(--stgm-success-foreground,#fff)]",
   },
   failed: {
     icon: "✕",
     label: "Failed",
-    className: "bg-[var(--stgm-destructive,#ef4444)] text-white",
+    className: "bg-[var(--stgm-destructive,#ef4444)] text-[var(--stgm-destructive-foreground,#fff)]",
   },
   skipped: {
     icon: "—",
@@ -160,11 +160,11 @@ const BADGE_CONFIG: Record<Exclude<NodeExecutionStatus, "not_reached" | "pending
   retrying: {
     icon: "↻",
     label: "Retrying",
-    className: "bg-[var(--stgm-warning,#f59e0b)] text-white",
+    className: "bg-[var(--stgm-warning,#f59e0b)] text-[var(--stgm-warning-foreground,#fff)]",
   },
   waiting_approval: {
     icon: "✋",
     label: "Waiting for approval",
-    className: "bg-[var(--stgm-warning,#f59e0b)] text-white",
+    className: "bg-[var(--stgm-warning,#f59e0b)] text-[var(--stgm-warning-foreground,#fff)]",
   },
 };

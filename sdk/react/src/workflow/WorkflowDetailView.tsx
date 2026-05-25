@@ -14,6 +14,7 @@ import { workflowToInput } from "./internal/workflowToInput";
 import { useWorkflowExecutionList } from "./useWorkflowExecutionList";
 import { useWorkflowDashboardSummary } from "./useWorkflowDashboardSummary";
 import { WorkflowOverviewGraph } from "./WorkflowOverviewGraph";
+import { WorkflowGraphFullscreenDialog } from "./WorkflowGraphFullscreenDialog";
 import { WorkflowOverviewSummary } from "./WorkflowOverviewSummary";
 import { WorkflowExplainDialog } from "./WorkflowExplainDialog";
 import { serializeWorkflowYaml } from "./serialize-workflow-yaml";
@@ -367,6 +368,7 @@ function OverviewTab({
 
   const [envEditing, setEnvEditing] = useState(false);
   const [showExplain, setShowExplain] = useState(false);
+  const [graphExpanded, setGraphExpanded] = useState(false);
 
   const workflowYaml = useMemo(() => {
     try {
@@ -429,15 +431,29 @@ function OverviewTab({
 
       {/* Interactive workflow graph */}
       {(spec?.tasks?.length ?? 0) > 0 && (
-        <Section title="Task Flow" count={spec?.tasks?.length}>
-          <div className="h-[28rem]">
-            <WorkflowOverviewGraph
-              workflow={workflow}
-              onOpenInEditor={onOpenInEditor}
-              className="h-full w-full rounded-sm bg-[var(--stgm-muted-subtle,#fafafa)]"
-            />
-          </div>
-        </Section>
+        <>
+          <Section
+            title="Task Flow"
+            count={spec?.tasks?.length}
+            headerActions={
+              <ExpandButton onClick={() => setGraphExpanded(true)} />
+            }
+          >
+            <div className="h-[28rem]">
+              <WorkflowOverviewGraph
+                workflow={workflow}
+                onOpenInEditor={onOpenInEditor}
+                className="h-full w-full rounded-sm bg-[var(--stgm-muted-subtle,#fafafa)]"
+              />
+            </div>
+          </Section>
+          <WorkflowGraphFullscreenDialog
+            workflow={workflow}
+            open={graphExpanded}
+            onClose={() => setGraphExpanded(false)}
+            onOpenInEditor={onOpenInEditor}
+          />
+        </>
       )}
 
       {/* Quick action links */}
@@ -631,6 +647,39 @@ function ExplainQuestionIcon() {
       <path d="M6.5 6a1.5 1.5 0 1 1 1.5 1.5V9" />
       <circle cx="8" cy="11.5" r="0.5" fill="currentColor" />
     </svg>
+  );
+}
+
+function ExpandButton({ onClick }: { readonly onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label="Expand task flow"
+      className={cn(
+        "inline-flex size-6 items-center justify-center rounded-md text-muted-foreground",
+        "hover:bg-accent-hover hover:text-foreground",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "transition-colors",
+      )}
+    >
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 16 16"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <polyline points="10,2 14,2 14,6" />
+        <polyline points="6,14 2,14 2,10" />
+        <line x1="14" y1="2" x2="9.5" y2="6.5" />
+        <line x1="2" y1="14" x2="6.5" y2="9.5" />
+      </svg>
+    </button>
   );
 }
 

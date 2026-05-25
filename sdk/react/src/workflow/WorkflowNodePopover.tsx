@@ -74,13 +74,14 @@ export const WorkflowNodePopover = memo(function WorkflowNodePopover({
       role="dialog"
       aria-label={`${data.taskName} task details`}
       className={cn(
-        "absolute z-50 w-64 rounded-lg border border-[var(--stgm-border,#d4d4d8)]",
+        "absolute z-50 w-64 overflow-visible rounded-lg border border-[var(--stgm-border,#d4d4d8)]",
         "bg-[var(--stgm-popover,#fff)] p-3 shadow-lg",
         "text-[var(--stgm-popover-foreground,#1a1a2e)]",
       )}
       style={{
         left: Math.min(x, (ref.current?.parentElement?.clientWidth ?? 800) - 272),
         top: y + 8,
+        minWidth: "16rem",
       }}
     >
       <div className="mb-2 flex items-center gap-2">
@@ -110,8 +111,8 @@ export const WorkflowNodePopover = memo(function WorkflowNodePopover({
           type="button"
           onClick={handleOpenInEditor}
           className={cn(
-            "mt-1 w-full rounded-md px-2.5 py-1.5 text-xs font-medium",
-            "bg-[var(--stgm-primary,#6366f1)] text-white",
+            "mt-1 block w-full whitespace-nowrap rounded-md px-2.5 py-1.5 text-center text-xs font-medium",
+            "bg-[var(--stgm-primary,#6366f1)] text-[var(--stgm-primary-foreground,#fff)]",
             "hover:bg-[var(--stgm-primary-hover,#4f46e5)]",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--stgm-ring,#6366f1)]",
             "transition-colors",
