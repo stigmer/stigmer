@@ -109,13 +109,15 @@ export async function getSummarizationModel(primaryModel: string): Promise<strin
  * 3. Cross-provider fallback: any economy-tier native model
  * 4. Last resort: return the primary model itself
  */
+const FALLBACK_ECONOMY_MODEL = "gpt-4o-mini";
+
 export async function getEconomyModel(primaryModel: string): Promise<string> {
   const registry = await getRegistry();
   if (registry.length === 0) {
     console.warn(
-      `Model registry empty — cannot resolve economy model for "${primaryModel}"`,
+      `Model registry empty — using fallback economy model "${FALLBACK_ECONOMY_MODEL}" (primary: "${primaryModel}")`,
     );
-    return primaryModel;
+    return FALLBACK_ECONOMY_MODEL;
   }
 
   const primary = registry.find((m) => m.id === primaryModel);
