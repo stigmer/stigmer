@@ -49,38 +49,17 @@ export const NodeContent = memo(function NodeContent({
     );
   }
 
-  // SVG shapes with external caption: icon + badge inside, task name below
-  if (isSvgShape && captionHeight > 0) {
-    return (
-      <SvgShapeWithCaption
-        displayName={displayName}
-        taskName={taskName}
-        categoryColor={categoryColor}
-        captionHeight={captionHeight}
-        insets={insets}
-      />
-    );
-  }
-
-  // SVG shapes without caption (legacy/fallback): text inside shape
+  // SVG shapes: task name only, centered inside the shape.
+  // The shape outline + category color already communicates the task type.
   if (isSvgShape) {
     const contentWidth = `calc(100% - ${insets.left + insets.right}px)`;
     return (
       <div
-        className="flex flex-col items-center gap-0.5 overflow-hidden text-center"
+        className="flex items-center justify-center overflow-hidden text-center"
         style={{ maxWidth: contentWidth }}
       >
         <span className="truncate text-xs font-medium leading-tight text-[var(--stgm-foreground,#1a1a2e)]">
           {taskName}
-        </span>
-        <span
-          className="inline-block truncate rounded px-1 py-px text-[9px] font-medium leading-tight"
-          style={{
-            color: categoryColor,
-            backgroundColor: `color-mix(in srgb, ${categoryColor} 12%, transparent)`,
-          }}
-        >
-          {displayName}
         </span>
       </div>
     );
@@ -112,52 +91,3 @@ export const NodeContent = memo(function NodeContent({
   );
 });
 
-/**
- * Renders SVG shape content with an external caption below the shape area.
- * Inside the shape: only the kind badge (centered).
- * Below the shape: the task name as a readable caption at full node width.
- */
-function SvgShapeWithCaption({
-  displayName,
-  taskName,
-  categoryColor,
-  captionHeight,
-  insets,
-}: {
-  displayName: string;
-  taskName: string;
-  categoryColor: string;
-  captionHeight: number;
-  insets: ReturnType<typeof getContentInsets>;
-}) {
-  const contentWidth = `calc(100% - ${insets.left + insets.right}px)`;
-  return (
-    <>
-      {/* Inside shape: kind badge only (centered in shape area) */}
-      <div
-        className="flex items-center justify-center overflow-hidden text-center"
-        style={{ maxWidth: contentWidth }}
-      >
-        <span
-          className="inline-block truncate rounded px-1.5 py-0.5 text-[10px] font-medium leading-tight"
-          style={{
-            color: categoryColor,
-            backgroundColor: `color-mix(in srgb, ${categoryColor} 12%, transparent)`,
-          }}
-        >
-          {displayName}
-        </span>
-      </div>
-
-      {/* External caption below shape: task name at full width */}
-      <div
-        className="absolute left-0 right-0 flex items-center justify-center overflow-hidden text-center"
-        style={{ bottom: 0, height: captionHeight }}
-      >
-        <span className="truncate px-1 text-xs font-medium leading-tight text-[var(--stgm-foreground,#1a1a2e)]">
-          {taskName}
-        </span>
-      </div>
-    </>
-  );
-}

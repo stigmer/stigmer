@@ -639,6 +639,11 @@ export {
 } from "./WorkflowOverviewGraph";
 
 export {
+  WorkflowGraphFullscreenDialog,
+  type WorkflowGraphFullscreenDialogProps,
+} from "./WorkflowGraphFullscreenDialog";
+
+export {
   WorkflowNodePopover,
   type WorkflowNodePopoverProps,
 } from "./WorkflowNodePopover";

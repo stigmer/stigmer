@@ -206,9 +206,9 @@ export const ExecutionComparisonPicker = memo(function ExecutionComparisonPicker
             onClick={handleConfirm}
             disabled={!selectedId}
             className={cn(
-              "rounded-md px-3 py-1.5 text-xs font-medium text-white",
+              "rounded-md px-3 py-1.5 text-xs font-medium",
               selectedId
-                ? "bg-[var(--stgm-primary,#4f46e5)] hover:bg-[var(--stgm-primary,#4f46e5)]/90"
+                ? "bg-[var(--stgm-primary,#4f46e5)] text-[var(--stgm-primary-foreground,#fff)] hover:bg-[var(--stgm-primary,#4f46e5)]/90"
                 : "cursor-not-allowed bg-[var(--stgm-muted,#f5f5f5)] text-[var(--stgm-muted-foreground,#737373)]",
             )}
           >
