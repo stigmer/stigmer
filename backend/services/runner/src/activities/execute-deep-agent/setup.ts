@@ -456,10 +456,13 @@ function buildAnthropicModel(
     ? (config.stigmerToken ?? "proxy-managed")
     : (process.env.ANTHROPIC_API_KEY ?? "");
 
+  const requestTimeoutMs = parseInt(process.env.STIGMER_LLM_REQUEST_TIMEOUT_MS ?? "0") || undefined;
+
   return new ChatAnthropic({
     model,
     apiKey,
     temperature: 0,
+    ...(requestTimeoutMs ? { maxRetries: 0, timeout: requestTimeoutMs } : {}),
     ...(baseUrl || headers
       ? {
           clientOptions: {
@@ -481,10 +484,13 @@ function buildOpenAIModel(
     ? (config.stigmerToken ?? "proxy-managed")
     : (process.env.OPENAI_API_KEY ?? "");
 
+  const requestTimeoutMs = parseInt(process.env.STIGMER_LLM_REQUEST_TIMEOUT_MS ?? "0") || undefined;
+
   return new ChatOpenAI({
     model,
     apiKey,
     temperature: 0,
+    ...(requestTimeoutMs ? { maxRetries: 0, timeout: requestTimeoutMs } : {}),
     ...(baseUrl || headers
       ? {
           configuration: {

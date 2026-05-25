@@ -558,5 +558,9 @@ func buildUnifiedRunnerEnv(cfg UnifiedRunnerConfig, mode, taskQueue string) []st
 		env = append(env, fmt.Sprintf("OTEL_EXPORTER_OTLP_ENDPOINT=%s", cfg.OTLPEndpoint))
 	}
 
+	if os.Getenv("ANTHROPIC_API_KEY") == "" && os.Getenv("CURSOR_API_KEY") == "" {
+		env = append(env, "STIGMER_LLM_REQUEST_TIMEOUT_MS=5000")
+	}
+
 	return env
 }

@@ -99,13 +99,15 @@ func TestWorkflowAgentCall_EnvVarsForwardedToChildExecution(t *testing.T) {
 	require.NotEmpty(t, executionID)
 	t.Logf("workflow execution created: id=%s", executionID)
 
-	// Wait for the CallAgent activity to create the child AgentExecution.
+	// Poll for the child AgentExecution created by the CallAgent activity.
 	// The child will eventually fail in offline mode (no LLM provider), but
 	// we only need it to get past execution creation (env merge + validation).
-	time.Sleep(20 * time.Second)
-
-	childExec := findChildAgentExecution(t, ctx, clients, executionID)
-	require.NotNil(t, childExec, "CallAgent activity should have created a child AgentExecution for workflow %s", executionID)
+	var childExec *agentexecv1.AgentExecution
+	require.Eventually(t, func() bool {
+		childExec = findChildAgentExecution(t, ctx, clients, executionID)
+		return childExec != nil
+	}, 30*time.Second, 500*time.Millisecond,
+		"CallAgent activity should have created a child AgentExecution for workflow %s", executionID)
 
 	childExecID := childExec.GetMetadata().GetId()
 	t.Logf("found child agent execution: id=%s, session=%s, parent_workflow=%s",
@@ -141,6 +143,7 @@ func TestWorkflowAgentCall_EnvVarsForwardedToChildExecution(t *testing.T) {
 // ALREADY_EXISTS.
 func TestWorkflowAgentCall_IdempotentSessionReuse(t *testing.T) {
 	requireAgentCallPrereqs(t)
+	requireLLMAvailable(t)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 	defer cancel()
@@ -382,11 +385,12 @@ func TestWorkflowAgentCall_EnvVarsForwardedWithMcpServerRef(t *testing.T) {
 	require.NotEmpty(t, executionID)
 	t.Logf("workflow execution created: id=%s", executionID)
 
-	// 5. Wait for CallAgent to create the child AgentExecution.
-	time.Sleep(20 * time.Second)
-
-	childExec := findChildAgentExecution(t, ctx, clients, executionID)
-	require.NotNil(t, childExec,
+	// 5. Poll for the child AgentExecution created by CallAgent activity.
+	var childExec *agentexecv1.AgentExecution
+	require.Eventually(t, func() bool {
+		childExec = findChildAgentExecution(t, ctx, clients, executionID)
+		return childExec != nil
+	}, 30*time.Second, 500*time.Millisecond,
 		"CallAgent activity should have created a child AgentExecution for workflow %s "+
 			"even though agent env came from MCP server merge, not explicit declaration", executionID)
 
