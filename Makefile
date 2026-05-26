@@ -398,6 +398,8 @@ kill-desktop: ## Kill any running Stigmer desktop dev processes
 	@-pkill -f "grpcwebproxy.*9091" 2>/dev/null || true
 
 launch-desktop: kill-desktop ## Start desktop app in dev mode (Tauri + Vite hot-reload)
+	rm -rf client-apps/desktop/node_modules/.vite
+	npm install -w desktop
 	$(MAKE) build-runner
 	client-apps/desktop/scripts/setup-runner-dev.sh
 	@if command -v caddy >/dev/null 2>&1 && grep -q 'localhost:9090' client-apps/desktop/.env.development 2>/dev/null; then \
@@ -497,7 +499,7 @@ test-e2e-smoke: ## Run Playwright smoke tests against a deployed instance (set S
 test-e2e-all: ## Run all Playwright E2E tests (smoke + functional)
 	cd test/e2e && npm ci && npx playwright install --with-deps chromium && npx playwright test
 
-check: tidy fix lint lint-docs format-docs-check tsdoc-check gen-sdk-docs gen-sdk-docs-check check-links build test test-web test-desktop validate-demos ## Run full CI gate locally
+check: tidy fix lint lint-docs format-docs-check tsdoc-check gen-sdk-docs gen-sdk-docs-check check-links build test test-web test-desktop validate-demos check-deps ## Run full CI gate locally
 
 check-all: check test-demos ## Full CI gate including Playwright demo e2e (slow)
 
@@ -543,6 +545,10 @@ check-links: ## Check for broken links in documentation
 	@lychee --config .lychee.toml --root-dir . docs/
 
 # ─── Dependencies ─────────────────────────────
+
+.PHONY: check-deps
+check-deps: ## Verify runner LangChain dependency hygiene (no duplicate @langchain/core)
+	@cd $(RUNNER_DIR) && npm run check-deps
 
 
 

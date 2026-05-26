@@ -33,6 +33,7 @@ import type { StigmerClient } from "../../client/stigmer-client.js";
 import type { GracefulStopMiddleware } from "../../middleware/index.js";
 import type { InlinePublisher } from "./inline-publisher.js";
 import type { WriteBackCoordinator } from "./writeback-coordinator.js";
+import { createV2EventRecorder } from "./event-recorder.js";
 
 const DEFAULT_STALL_TIMEOUT_MS = 120_000;
 
@@ -103,6 +104,7 @@ export async function streamExecution(
     statusBuilder.setApprovalProvider(approvalProvider);
   }
   const scheduler = new StreamingUpdateScheduler(streamingConfig);
+  const recorder = createV2EventRecorder(executionId, process.env.V2_EVENT_RECORD_DIR);
 
   let eventsProcessed = 0;
   let lastEventTime = performance.now();
@@ -125,6 +127,7 @@ export async function streamExecution(
       }
 
       lastEventTime = performance.now();
+      recorder?.record(event, eventsProcessed);
       statusBuilder.processEvent(event);
       eventsProcessed++;
 
@@ -182,6 +185,8 @@ export async function streamExecution(
     }
     throw err;
   }
+
+  await recorder?.flush();
 
   if (eventsProcessed === 0) {
     throw new Error(

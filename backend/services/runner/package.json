@@ -29,6 +29,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "check-deps": "bash scripts/check-langchain-deps.sh",
     "clean": "rm -rf dist"
   },
   "files": [

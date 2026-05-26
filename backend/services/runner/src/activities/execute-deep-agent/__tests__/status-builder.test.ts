@@ -1286,4 +1286,486 @@ describe("StatusBuilder", () => {
       expect(sb.currentStatus.messages).toHaveLength(0);
     });
   });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // GOLDEN SEQUENCES
+  //
+  // Realistic multi-event conversation sequences that assert on the
+  // complete AgentExecutionStatus shape. These serve as the regression
+  // contract for V3StatusBuilder in Phase 2 of the v3 streaming migration.
+  //
+  // Each sequence represents a real-world conversation pattern and
+  // validates the final proto output end-to-end through StatusBuilder.
+  // ═══════════════════════════════════════════════════════════════════════
+
+  describe("golden sequences", () => {
+
+    describe("plain chat — 2-turn text-only conversation", () => {
+      it("produces 2 AI messages with accumulated usage", () => {
+        const sb = makeBuilder();
+
+        // Turn 1: stream tokens → end
+        sb.processEvent(chatStreamEvent("run-1", "Hello, "));
+        sb.processEvent(chatStreamEvent("run-1", "I can help "));
+        sb.processEvent(chatStreamEvent("run-1", "with that."));
+        sb.processEvent(chatEndEvent("run-1", {
+          input_tokens: 50,
+          output_tokens: 12,
+        }));
+
+        // Turn 2: stream tokens → end
+        sb.processEvent(chatStreamEvent("run-2", "Here is "));
+        sb.processEvent(chatStreamEvent("run-2", "more detail."));
+        sb.processEvent(chatEndEvent("run-2", {
+          input_tokens: 80,
+          output_tokens: 8,
+        }));
+
+        const status = sb.currentStatus;
+
+        // 2 AI messages, both finished streaming
+        expect(status.messages).toHaveLength(2);
+        expect(status.messages[0].type).toBe(MessageType.MESSAGE_AI);
+        expect(status.messages[0].content).toBe("Hello, I can help with that.");
+        expect(status.messages[0].isStreaming).toBe(false);
+        expect(status.messages[0].toolCalls).toHaveLength(0);
+
+        expect(status.messages[1].type).toBe(MessageType.MESSAGE_AI);
+        expect(status.messages[1].content).toBe("Here is more detail.");
+        expect(status.messages[1].isStreaming).toBe(false);
+        expect(status.messages[1].toolCalls).toHaveLength(0);
+
+        // Usage accumulated across turns
+        const usage = status.streamingUsage!;
+        expect(usage.inputTokens).toBe(130n);
+        expect(usage.outputTokens).toBe(20n);
+        expect(usage.turnCount).toBe(2);
+        expect(usage.totalTokens).toBe(150n);
+
+        // Phase stays IN_PROGRESS (terminal phase set by caller)
+        expect(status.phase).toBe(ExecutionPhase.EXECUTION_IN_PROGRESS);
+      });
+    });
+
+    describe("Anthropic thinking + text", () => {
+      it("produces THINKING then AI messages with correct turn boundaries", () => {
+        const sb = makeBuilder();
+
+        // Turn 1: thinking blocks → text blocks (same run_id)
+        sb.processEvent(chatStreamEvent("run-1", [
+          { type: "thinking", thinking: "Let me analyze " },
+        ]));
+        sb.processEvent(chatStreamEvent("run-1", [
+          { type: "thinking", thinking: "this problem carefully." },
+        ]));
+        sb.processEvent(chatStreamEvent("run-1", [
+          { type: "text", text: "Based on my analysis, " },
+        ]));
+        sb.processEvent(chatStreamEvent("run-1", [
+          { type: "text", text: "here is the answer." },
+        ]));
+        sb.processEvent(chatEndEvent("run-1", {
+          input_tokens: 200,
+          output_tokens: 80,
+          cache_read_input_tokens: 50,
+        }));
+
+        // Turn 2: new run_id, text only (follow-up)
+        sb.processEvent(chatStreamEvent("run-2", "Let me elaborate."));
+        sb.processEvent(chatEndEvent("run-2", {
+          input_tokens: 300,
+          output_tokens: 40,
+        }));
+
+        const status = sb.currentStatus;
+
+        // 3 messages: thinking, AI (turn 1), AI (turn 2)
+        expect(status.messages).toHaveLength(3);
+
+        expect(status.messages[0].type).toBe(MessageType.MESSAGE_THINKING);
+        expect(status.messages[0].content).toBe("Let me analyze this problem carefully.");
+        expect(status.messages[0].isStreaming).toBe(true); // thinking messages aren't finalized by chat_model_end
+
+        expect(status.messages[1].type).toBe(MessageType.MESSAGE_AI);
+        expect(status.messages[1].content).toBe("Based on my analysis, here is the answer.");
+        expect(status.messages[1].isStreaming).toBe(false);
+
+        expect(status.messages[2].type).toBe(MessageType.MESSAGE_AI);
+        expect(status.messages[2].content).toBe("Let me elaborate.");
+        expect(status.messages[2].isStreaming).toBe(false);
+
+        // Usage across both turns with cache tokens
+        const usage = status.streamingUsage!;
+        expect(usage.inputTokens).toBe(500n);
+        expect(usage.outputTokens).toBe(120n);
+        expect(usage.cacheReadTokens).toBe(50n);
+        expect(usage.turnCount).toBe(2);
+        expect(usage.totalTokens).toBe(670n);
+      });
+    });
+
+    describe("single tool call — ReAct pattern", () => {
+      it("produces AI message with tool call followed by response", () => {
+        const sb = makeBuilder();
+
+        // Turn 1: model decides to call a tool
+        sb.processEvent(chatStreamEvent("run-1", "I'll read the file for you."));
+        sb.processEvent(chatEndEvent("run-1", {
+          input_tokens: 100,
+          output_tokens: 15,
+        }));
+
+        // Tool execution
+        sb.processEvent(toolStartEvent("tool-run-1", "read_file", { path: "/src/main.ts" }));
+        sb.processEvent(toolEndEvent("tool-run-1", "export function main() { console.log('hello'); }"));
+
+        // Turn 2: model responds with tool result
+        sb.processEvent(chatStreamEvent("run-2", "The file contains a main function that logs 'hello'."));
+        sb.processEvent(chatEndEvent("run-2", {
+          input_tokens: 200,
+          output_tokens: 20,
+        }));
+
+        const status = sb.currentStatus;
+
+        // 2 messages: AI with tool call, AI response
+        expect(status.messages).toHaveLength(2);
+
+        const firstMsg = status.messages[0];
+        expect(firstMsg.type).toBe(MessageType.MESSAGE_AI);
+        expect(firstMsg.content).toBe("I'll read the file for you.");
+        expect(firstMsg.isStreaming).toBe(false);
+        expect(firstMsg.toolCalls).toHaveLength(1);
+
+        const tc = firstMsg.toolCalls[0];
+        expect(tc.id).toBe("tool-run-1");
+        expect(tc.name).toBe("read_file");
+        expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+        expect(tc.args).toEqual({ path: "/src/main.ts" });
+        expect(tc.result).toBe("export function main() { console.log('hello'); }");
+        expect(tc.error).toBe("");
+        expect(tc.isStreaming).toBe(false);
+        expect(tc.startedAt).toBeTruthy();
+        expect(tc.completedAt).toBeTruthy();
+
+        const secondMsg = status.messages[1];
+        expect(secondMsg.type).toBe(MessageType.MESSAGE_AI);
+        expect(secondMsg.content).toBe("The file contains a main function that logs 'hello'.");
+        expect(secondMsg.toolCalls).toHaveLength(0);
+
+        // Usage accumulated across both LLM turns
+        const usage = status.streamingUsage!;
+        expect(usage.inputTokens).toBe(300n);
+        expect(usage.outputTokens).toBe(35n);
+        expect(usage.turnCount).toBe(2);
+      });
+    });
+
+    describe("tool error — failed tool call", () => {
+      it("marks tool as FAILED with error string", () => {
+        const sb = makeBuilder();
+
+        sb.processEvent(chatStreamEvent("run-1", "I'll write to the file."));
+        sb.processEvent(chatEndEvent("run-1", {
+          input_tokens: 50,
+          output_tokens: 10,
+        }));
+
+        sb.processEvent(toolStartEvent("tool-run-1", "write_file", {
+          path: "/etc/passwd",
+          content: "malicious",
+        }));
+        sb.processEvent(toolEndEvent("tool-run-1", {
+          error: "EACCES: permission denied, open '/etc/passwd'",
+        }));
+
+        // Model recovers with error explanation
+        sb.processEvent(chatStreamEvent("run-2", "I don't have permission to write to that file."));
+        sb.processEvent(chatEndEvent("run-2", {
+          input_tokens: 120,
+          output_tokens: 18,
+        }));
+
+        const status = sb.currentStatus;
+
+        expect(status.messages).toHaveLength(2);
+
+        const tc = status.messages[0].toolCalls[0];
+        expect(tc.name).toBe("write_file");
+        expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
+        expect(tc.error).toBe("EACCES: permission denied, open '/etc/passwd'");
+        expect(tc.result).toBe("");
+        expect(tc.completedAt).toBeTruthy();
+
+        expect(status.messages[1].content).toBe(
+          "I don't have permission to write to that file.",
+        );
+
+        const usage = status.streamingUsage!;
+        expect(usage.turnCount).toBe(2);
+      });
+    });
+
+    describe("multi-tool concurrent — parallel tool execution", () => {
+      it("tracks concurrent tools independently on same message", () => {
+        const sb = makeBuilder();
+
+        // Model decides to call two tools in parallel
+        sb.processEvent(chatStreamEvent("run-1", "I'll search both files."));
+        sb.processEvent(chatEndEvent("run-1", {
+          input_tokens: 60,
+          output_tokens: 10,
+        }));
+
+        sb.processEvent(toolStartEvent("tool-a", "read_file", { path: "/a.ts" }));
+        sb.processEvent(toolStartEvent("tool-b", "read_file", { path: "/b.ts" }));
+
+        // Tool B finishes first (out of order)
+        sb.processEvent(toolEndEvent("tool-b", "content of b.ts"));
+        sb.processEvent(toolEndEvent("tool-a", "content of a.ts"));
+
+        // Model synthesizes results
+        sb.processEvent(chatStreamEvent("run-2", "Both files have been read."));
+        sb.processEvent(chatEndEvent("run-2", {
+          input_tokens: 180,
+          output_tokens: 12,
+        }));
+
+        const status = sb.currentStatus;
+
+        expect(status.messages).toHaveLength(2);
+
+        const toolMsg = status.messages[0];
+        expect(toolMsg.toolCalls).toHaveLength(2);
+
+        const tcA = toolMsg.toolCalls.find(t => t.id === "tool-a")!;
+        const tcB = toolMsg.toolCalls.find(t => t.id === "tool-b")!;
+
+        expect(tcA.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+        expect(tcA.result).toBe("content of a.ts");
+        expect(tcB.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+        expect(tcB.result).toBe("content of b.ts");
+
+        // Both completed independently
+        expect(tcA.completedAt).toBeTruthy();
+        expect(tcB.completedAt).toBeTruthy();
+      });
+    });
+
+    describe("HITL approval gate — tool requiring approval", () => {
+      it("transitions phase to WAITING_FOR_APPROVAL with approval fields", () => {
+        const sb = makeBuilder();
+
+        sb.setApprovalProvider({
+          policies: new Map([
+            ["github/create_pull_request", {
+              toolName: "create_pull_request",
+              mcpServerSlug: "github",
+              requiresApproval: true,
+              approvalMessage: "Create PR '{{args.title}}' in {{args.repo}}?",
+            }],
+          ]),
+          toolServerMap: new Map([["create_pull_request", "github"]]),
+          autoApproveAll: false,
+        });
+
+        // Model streams text then calls the approval-gated tool
+        sb.processEvent(chatStreamEvent("run-1", "I'll create a pull request."));
+        sb.processEvent(chatEndEvent("run-1", {
+          input_tokens: 90,
+          output_tokens: 12,
+        }));
+
+        sb.processEvent(toolStartEvent("tool-pr-1", "create_pull_request", {
+          title: "Fix login bug",
+          repo: "stigmer/stigmer",
+        }));
+
+        const status = sb.currentStatus;
+
+        // Phase transitioned to waiting
+        expect(status.phase).toBe(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL);
+
+        const tc = status.messages[0].toolCalls[0];
+        expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+        expect(tc.requiresApproval).toBe(true);
+        expect(tc.approvalMessage).toBe(
+          "Create PR 'Fix login bug' in stigmer/stigmer?",
+        );
+        expect(tc.mcpServerSlug).toBe("github");
+        expect(tc.approvalRequestedAt).toBeTruthy();
+        expect(tc.argsPreview).toBeTruthy();
+
+        // Args preview has sensitive fields redacted
+        const preview = JSON.parse(tc.argsPreview);
+        expect(preview.title).toBe("Fix login bug");
+        expect(preview.repo).toBe("stigmer/stigmer");
+      });
+    });
+
+    describe("usage accumulation — 3-turn with cache tokens", () => {
+      it("accumulates input, output, cache read/write across 3 turns", () => {
+        const sb = makeBuilder();
+
+        // Turn 1: initial prompt
+        sb.processEvent(chatStreamEvent("run-1", "First."));
+        sb.processEvent(chatEndEvent("run-1", {
+          input_tokens: 100,
+          output_tokens: 5,
+          cache_read_input_tokens: 0,
+          cache_creation_input_tokens: 80,
+        }));
+
+        // Turn 2: tool call turn
+        sb.processEvent(chatStreamEvent("run-2", "Reading."));
+        sb.processEvent(chatEndEvent("run-2", {
+          input_tokens: 200,
+          output_tokens: 8,
+          cache_read_input_tokens: 80,
+          cache_creation_input_tokens: 0,
+        }));
+
+        // Turn 3: final response
+        sb.processEvent(chatStreamEvent("run-3", "Done."));
+        sb.processEvent(chatEndEvent("run-3", {
+          input_tokens: 350,
+          output_tokens: 30,
+          cache_read_input_tokens: 80,
+          cache_creation_input_tokens: 20,
+        }));
+
+        const usage = sb.currentStatus.streamingUsage!;
+
+        expect(usage.inputTokens).toBe(650n);
+        expect(usage.outputTokens).toBe(43n);
+        expect(usage.cacheReadTokens).toBe(160n);
+        expect(usage.cacheWriteTokens).toBe(100n);
+        expect(usage.totalTokens).toBe(953n);
+        expect(usage.turnCount).toBe(3);
+        expect(usage.observedAt).toBeTruthy();
+      });
+    });
+
+    describe("namespace isolation — parent + subagent", () => {
+      it("creates separate message trees by namespace", () => {
+        const sb = makeBuilder();
+
+        const parentNs = "";
+        const subagentNs = "tools:delegate-123|agent_node:researcher";
+
+        // Parent agent starts
+        sb.processEvent({
+          event: "on_chat_model_stream",
+          name: "ChatAnthropic",
+          run_id: "parent-run-1",
+          data: { chunk: { content: "I'll delegate this research task." } },
+          metadata: {},
+        });
+        sb.processEvent({
+          event: "on_chat_model_end",
+          name: "ChatAnthropic",
+          run_id: "parent-run-1",
+          data: {
+            output: { content: "done" },
+            usage_metadata: { input_tokens: 100, output_tokens: 15 },
+          },
+        });
+
+        // Subagent thinking
+        sb.processEvent({
+          event: "on_chat_model_stream",
+          name: "ChatAnthropic",
+          run_id: "sub-run-1",
+          data: { chunk: { content: [{ type: "thinking", thinking: "Researching the topic..." }] } },
+          metadata: { langgraph_checkpoint_ns: subagentNs },
+        });
+
+        // Subagent text response
+        sb.processEvent({
+          event: "on_chat_model_stream",
+          name: "ChatAnthropic",
+          run_id: "sub-run-1",
+          data: { chunk: { content: [{ type: "text", text: "I found the following results." }] } },
+          metadata: { langgraph_checkpoint_ns: subagentNs },
+        });
+        sb.processEvent({
+          event: "on_chat_model_end",
+          name: "ChatAnthropic",
+          run_id: "sub-run-1",
+          data: {
+            output: { content: "done" },
+            usage_metadata: { input_tokens: 150, output_tokens: 25 },
+          },
+          metadata: { langgraph_checkpoint_ns: subagentNs },
+        });
+
+        // Subagent tool call
+        sb.processEvent({
+          event: "on_tool_start",
+          name: "web_search",
+          run_id: "sub-tool-1",
+          data: { input: { query: "LangGraph v3 streaming" } },
+          metadata: { langgraph_checkpoint_ns: subagentNs },
+        });
+        sb.processEvent({
+          event: "on_tool_end",
+          name: "web_search",
+          run_id: "sub-tool-1",
+          data: { output: "3 results found" },
+          metadata: { langgraph_checkpoint_ns: subagentNs },
+        });
+
+        // Parent resumes after delegation
+        sb.processEvent({
+          event: "on_chat_model_stream",
+          name: "ChatAnthropic",
+          run_id: "parent-run-2",
+          data: { chunk: { content: "The research is complete." } },
+          metadata: {},
+        });
+        sb.processEvent({
+          event: "on_chat_model_end",
+          name: "ChatAnthropic",
+          run_id: "parent-run-2",
+          data: {
+            output: { content: "done" },
+            usage_metadata: { input_tokens: 400, output_tokens: 10 },
+          },
+        });
+
+        const status = sb.currentStatus;
+
+        // 5 messages: parent-text, sub-thinking, sub-text, parent-text-2
+        // (sub-tool attaches to sub-text message)
+        expect(status.messages).toHaveLength(4);
+
+        // Parent turn 1
+        expect(status.messages[0].type).toBe(MessageType.MESSAGE_AI);
+        expect(status.messages[0].content).toBe("I'll delegate this research task.");
+        expect(status.messages[0].toolCalls).toHaveLength(0);
+
+        // Subagent thinking
+        expect(status.messages[1].type).toBe(MessageType.MESSAGE_THINKING);
+        expect(status.messages[1].content).toBe("Researching the topic...");
+
+        // Subagent text + tool call
+        expect(status.messages[2].type).toBe(MessageType.MESSAGE_AI);
+        expect(status.messages[2].content).toBe("I found the following results.");
+        expect(status.messages[2].toolCalls).toHaveLength(1);
+        expect(status.messages[2].toolCalls[0].name).toBe("web_search");
+        expect(status.messages[2].toolCalls[0].status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+        expect(status.messages[2].toolCalls[0].result).toBe("3 results found");
+
+        // Parent turn 2
+        expect(status.messages[3].type).toBe(MessageType.MESSAGE_AI);
+        expect(status.messages[3].content).toBe("The research is complete.");
+
+        // Usage accumulated across ALL namespaces
+        const usage = status.streamingUsage!;
+        expect(usage.inputTokens).toBe(650n);
+        expect(usage.outputTokens).toBe(50n);
+        expect(usage.turnCount).toBe(3);
+      });
+    });
+  });
 });
