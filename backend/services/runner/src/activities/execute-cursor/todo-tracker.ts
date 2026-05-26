@@ -1,11 +1,15 @@
 /**
- * Tracks TodoWrite tool call events from the Cursor SDK stream and
- * populates AgentExecutionStatus.todos with structured TodoItem protos.
+ * Tracks todo tool call events from the Cursor SDK stream and populates
+ * AgentExecutionStatus.todos with structured TodoItem protos.
  *
- * The Cursor SDK emits TodoWrite as a standard tool_call event. The
- * MessageAccumulator captures it as a MESSAGE_TOOL (preserving visibility
- * in the message thread). This tracker extracts the structured todo data
- * from the args and writes it into the proto map that downstream consumers
+ * The Cursor SDK emits todo updates as tool_call events. Historically the
+ * tool was named "TodoWrite"; current SDK versions use "updateTodos" with
+ * a slightly different args schema (camelCase statuses, no per-item id).
+ * This tracker accepts both names for resilience across SDK versions.
+ *
+ * The MessageAccumulator captures the same event as a MESSAGE_TOOL
+ * (preserving visibility in the message thread). This tracker is a
+ * parallel extraction into the proto map that downstream consumers
  * (React TodoList, CLI emitTodoEvents) already know how to render.
  *
  * Follows the same single-responsibility pattern as DeltaEnricher:
@@ -19,9 +23,12 @@ import { TodoStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1
 import type { SDKMessage } from "@cursor/sdk";
 import { utcTimestamp } from "./message-translator.js";
 
+const TODO_TOOL_NAMES = new Set(["TodoWrite", "updateTodos"]);
+
 const STATUS_MAP: Record<string, TodoStatus> = {
   pending: TodoStatus.TODO_PENDING,
   in_progress: TodoStatus.TODO_IN_PROGRESS,
+  inprogress: TodoStatus.TODO_IN_PROGRESS,
   completed: TodoStatus.TODO_COMPLETED,
   cancelled: TodoStatus.TODO_CANCELLED,
 };
@@ -42,11 +49,12 @@ export class TodoTracker {
   }
 
   /**
-   * Process a stream event. Only acts on completed TodoWrite tool calls.
+   * Process a stream event. Only acts on completed todo tool calls
+   * (both legacy "TodoWrite" and current SDK "updateTodos").
    */
   processEvent(event: SDKMessage): void {
     if (event.type !== "tool_call") return;
-    if (event.name !== "TodoWrite") return;
+    if (!TODO_TOOL_NAMES.has(event.name)) return;
     if (event.status !== "completed") return;
 
     const args = this.parseArgs(event.args);
@@ -86,6 +94,9 @@ export class TodoTracker {
     }
 
     this._isDirty = true;
+    console.log(
+      `TodoTracker: processed ${rawTodos.length} todo(s) from ${event.name} (merge=${merge})`,
+    );
   }
 
   get isDirty(): boolean {
