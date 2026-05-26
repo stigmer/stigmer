@@ -259,4 +259,212 @@ describe("streamExecution", () => {
       expect(callCount).toBeLessThan(events.length);
     });
   });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // Artifact publish + writeback orchestration
+  //
+  // Tests the streaming loop's integration with InlinePublisher and
+  // WriteBackCoordinator — triggered on file-modifying tool_end events.
+  // ═══════════════════════════════════════════════════════════════════════
+
+  describe("artifact publish on tool_end", () => {
+    function writeToolEndEvent(
+      runId: string,
+      toolName: string,
+      filePath: string,
+    ): StreamEvent {
+      return {
+        event: "on_tool_end",
+        name: toolName,
+        run_id: runId,
+        data: { input: { path: filePath }, output: "file written" },
+      };
+    }
+
+    it("calls inlinePublisher.publish for file-modifying tools", async () => {
+      const publishFn = vi.fn().mockResolvedValue(undefined);
+      const mockPublisher = { publish: publishFn };
+
+      const events = [
+        chatStreamEvent("run-1", "Writing a file"),
+        chatEndEvent("run-1"),
+        makeEvent("on_tool_start", "tool-w1", { input: { path: "/ws/app.ts" } }),
+        writeToolEndEvent("tool-w1", "write_file", "/ws/app.ts"),
+        chatStreamEvent("run-2", "Done"),
+        chatEndEvent("run-2"),
+      ];
+      // Set name on tool_start event
+      Object.defineProperty(events[2], "name", { value: "write_file" });
+
+      const result = await streamExecution(baseDeps({
+        agentGraph: mockGraph(events),
+        inlinePublisher: mockPublisher as any,
+      }));
+
+      expect(publishFn).toHaveBeenCalledWith("/ws/app.ts");
+      expect(result.pendingPublishPromises).toHaveLength(1);
+    });
+
+    it("extracts path from file_path, filename, and file input fields", async () => {
+      const publishFn = vi.fn().mockResolvedValue(undefined);
+      const mockPublisher = { publish: publishFn };
+
+      const events = [
+        chatStreamEvent("run-1", "text"),
+        chatEndEvent("run-1"),
+        {
+          event: "on_tool_end",
+          name: "edit_file",
+          run_id: "tool-1",
+          data: { input: { file_path: "/ws/via-file-path.ts" }, output: "ok" },
+        } as StreamEvent,
+        {
+          event: "on_tool_end",
+          name: "create_file",
+          run_id: "tool-2",
+          data: { input: { filename: "/ws/via-filename.ts" }, output: "ok" },
+        } as StreamEvent,
+        {
+          event: "on_tool_end",
+          name: "write",
+          run_id: "tool-3",
+          data: { input: { file: "/ws/via-file.ts" }, output: "ok" },
+        } as StreamEvent,
+      ];
+
+      await streamExecution(baseDeps({
+        agentGraph: mockGraph(events),
+        inlinePublisher: mockPublisher as any,
+      }));
+
+      expect(publishFn).toHaveBeenCalledTimes(3);
+      expect(publishFn).toHaveBeenCalledWith("/ws/via-file-path.ts");
+      expect(publishFn).toHaveBeenCalledWith("/ws/via-filename.ts");
+      expect(publishFn).toHaveBeenCalledWith("/ws/via-file.ts");
+    });
+
+    it("does not call publisher for non-file-modifying tools", async () => {
+      const publishFn = vi.fn().mockResolvedValue(undefined);
+      const mockPublisher = { publish: publishFn };
+
+      const events = [
+        chatStreamEvent("run-1", "text"),
+        chatEndEvent("run-1"),
+        {
+          event: "on_tool_end",
+          name: "read_file",
+          run_id: "tool-1",
+          data: { input: { path: "/ws/readonly.ts" }, output: "contents" },
+        } as StreamEvent,
+      ];
+
+      await streamExecution(baseDeps({
+        agentGraph: mockGraph(events),
+        inlinePublisher: mockPublisher as any,
+      }));
+
+      expect(publishFn).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("writeback on tool_end", () => {
+    it("calls writebackCoordinator.onFileModified for file-modifying tools", async () => {
+      const onFileModified = vi.fn().mockResolvedValue(undefined);
+      const mockCoordinator = { onFileModified };
+
+      const events = [
+        chatStreamEvent("run-1", "editing"),
+        chatEndEvent("run-1"),
+        {
+          event: "on_tool_end",
+          name: "edit_file",
+          run_id: "tool-e1",
+          data: { input: { path: "/ws/service.ts" }, output: "edited" },
+        } as StreamEvent,
+      ];
+
+      const result = await streamExecution(baseDeps({
+        agentGraph: mockGraph(events),
+        writebackCoordinator: mockCoordinator as any,
+      }));
+
+      expect(onFileModified).toHaveBeenCalledWith("/ws/service.ts");
+      expect(result.pendingWritebackPromises).toHaveLength(1);
+    });
+
+    it("triggers both publisher and coordinator on same tool_end", async () => {
+      const publishFn = vi.fn().mockResolvedValue(undefined);
+      const onFileModified = vi.fn().mockResolvedValue(undefined);
+
+      const events = [
+        chatStreamEvent("run-1", "writing"),
+        chatEndEvent("run-1"),
+        {
+          event: "on_tool_end",
+          name: "write_file",
+          run_id: "tool-w1",
+          data: { input: { path: "/ws/both.ts" }, output: "written" },
+        } as StreamEvent,
+      ];
+
+      const result = await streamExecution(baseDeps({
+        agentGraph: mockGraph(events),
+        inlinePublisher: { publish: publishFn } as any,
+        writebackCoordinator: { onFileModified } as any,
+      }));
+
+      expect(publishFn).toHaveBeenCalledWith("/ws/both.ts");
+      expect(onFileModified).toHaveBeenCalledWith("/ws/both.ts");
+      expect(result.pendingPublishPromises).toHaveLength(1);
+      expect(result.pendingWritebackPromises).toHaveLength(1);
+    });
+  });
+
+  describe("graceful stop with pending artifacts", () => {
+    it("returns terminal status while preserving pending promises", async () => {
+      const publishFn = vi.fn().mockResolvedValue(undefined);
+      const mockPublisher = { publish: publishFn };
+
+      const events = [
+        chatStreamEvent("run-1", "writing file"),
+        chatEndEvent("run-1"),
+        // tool_start triggers forceNextUpdate → persist #1 → UNSPECIFIED
+        makeEvent("on_tool_start", "tool-w1", { input: { path: "/ws/artifact.ts" } }),
+        // tool_end triggers publish + forceNextUpdate → persist #2 → STOP
+        {
+          event: "on_tool_end",
+          name: "write_file",
+          run_id: "tool-w1",
+          data: { input: { path: "/ws/artifact.ts" }, output: "written" },
+        } as StreamEvent,
+        chatStreamEvent("run-2", "this should not be reached"),
+      ];
+      Object.defineProperty(events[2], "name", { value: "write_file" });
+
+      // Persist sequence with high thresholds (only forceNextUpdate triggers):
+      //   #1: first-event trigger (chatStream) → UNSPECIFIED
+      //   #2: tool_start forceNextUpdate → UNSPECIFIED
+      //   #3: tool_end forceNextUpdate (publish already queued) → STOP
+      const client = {
+        updateStatus: vi.fn()
+          .mockResolvedValueOnce({ signal: ExecutionControlSignal.UNSPECIFIED })
+          .mockResolvedValueOnce({ signal: ExecutionControlSignal.UNSPECIFIED })
+          .mockResolvedValueOnce({ signal: ExecutionControlSignal.STOP })
+          .mockResolvedValue({ signal: ExecutionControlSignal.UNSPECIFIED }),
+      } as unknown as StigmerClient;
+
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      const result = await streamExecution(baseDeps({
+        agentGraph: mockGraph(events),
+        client,
+        inlinePublisher: mockPublisher as any,
+        streamingConfig: { minIntervalMs: 999999, maxIntervalMs: 999999, burstThreshold: 999 },
+      }));
+      warnSpy.mockRestore();
+
+      expect(result.terminalStatus).toBeDefined();
+      expect(publishFn).toHaveBeenCalledWith("/ws/artifact.ts");
+      expect(result.pendingPublishPromises).toHaveLength(1);
+    });
+  });
 });

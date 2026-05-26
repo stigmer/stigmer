@@ -222,6 +222,25 @@ func (m *MockLLMProxyServer) writeAnthropicSSE(w http.ResponseWriter, resp Recor
 			cbStop, _ := json.Marshal(map[string]any{"type": "content_block_stop", "index": idx})
 			writeSSE("content_block_stop", string(cbStop))
 
+		case "thinking":
+			thinking, _ := blockMap["thinking"].(string)
+			cbStart, _ := json.Marshal(map[string]any{
+				"type":          "content_block_start",
+				"index":         idx,
+				"content_block": map[string]any{"type": "thinking", "thinking": ""},
+			})
+			writeSSE("content_block_start", string(cbStart))
+
+			delta, _ := json.Marshal(map[string]any{
+				"type":  "content_block_delta",
+				"index": idx,
+				"delta": map[string]any{"type": "thinking_delta", "thinking": thinking},
+			})
+			writeSSE("content_block_delta", string(delta))
+
+			cbStop, _ := json.Marshal(map[string]any{"type": "content_block_stop", "index": idx})
+			writeSSE("content_block_stop", string(cbStop))
+
 		case "tool_use":
 			inputBytes, _ := json.Marshal(blockMap["input"])
 			cbStart, _ := json.Marshal(map[string]any{
@@ -493,6 +512,27 @@ func OpenAITextResponse(text string, promptTokens, completionTokens int) map[str
 			"prompt_tokens":     promptTokens,
 			"completion_tokens": completionTokens,
 			"total_tokens":      promptTokens + completionTokens,
+		},
+	}
+}
+
+// AnthropicThinkingTextResponse builds an Anthropic API response with both
+// a thinking block and a text block. Used for testing extended thinking
+// (Anthropic reasoning) where the model emits thinking before the answer.
+func AnthropicThinkingTextResponse(thinking, text string, inputTokens, outputTokens int) map[string]any {
+	return map[string]any{
+		"id":    fmt.Sprintf("msg_mock_%d", inputTokens),
+		"type":  "message",
+		"role":  "assistant",
+		"model": "claude-sonnet-4-20250514",
+		"content": []map[string]any{
+			{"type": "thinking", "thinking": thinking},
+			{"type": "text", "text": text},
+		},
+		"stop_reason": "end_turn",
+		"usage": map[string]any{
+			"input_tokens":  inputTokens,
+			"output_tokens": outputTokens,
 		},
 	}
 }
