@@ -153,6 +153,18 @@ export function installFetchInterceptor(config: {
 }
 
 /**
+ * Update the auth token on the live interceptor config. Must be called
+ * whenever the Stigmer JWT is refreshed (e.g. via IPC updateToken) so
+ * that fetch-intercepted REST calls (token exchange, /v1/models) use the
+ * current token instead of the one frozen at install time.
+ */
+export function updateInterceptorToken(token: string): void {
+  if (interceptorConfig) {
+    interceptorConfig = { ...interceptorConfig, stigmerToken: token };
+  }
+}
+
+/**
  * Update the execution ID on the active interceptor (legacy global path).
  * Prefer {@link runWithExecutionContext} for concurrent-safe isolation.
  *

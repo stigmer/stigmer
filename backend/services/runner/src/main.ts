@@ -130,9 +130,7 @@ function sendIpc(msg: IpcResponse): void {
 
 // ─── Manager Mode ────────────────────────────────────────────────────────────
 
-async function runManagerMode(): Promise<void> {
-  const config = loadConfig();
-
+async function runManagerMode(config: import("./config.js").Config): Promise<void> {
   // In manager mode, redirect console.log to stderr so stdout is reserved for IPC
   const originalLog = console.log;
   console.log = (...args: unknown[]) => {
@@ -248,9 +246,7 @@ async function runManagerMode(): Promise<void> {
 
 // ─── Static Mode ─────────────────────────────────────────────────────────────
 
-async function runStaticMode(): Promise<void> {
-  const config = loadConfig();
-
+async function runStaticMode(config: import("./config.js").Config): Promise<void> {
   const otelShutdown = await initTracing("stigmer-runner");
   const metricsShutdown = await initMetrics("stigmer-runner");
 
@@ -297,6 +293,8 @@ async function runStaticMode(): Promise<void> {
 // ─── Entry Point ─────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
+  const config = loadConfig();
+
   // Set Cursor SDK base URL for proxy mode BEFORE any @cursor/sdk import.
   // The SDK reads CURSOR_API_BASE_URL at module-load time as a top-level
   // constant, so it must be in process.env before activity code is imported.
@@ -307,16 +305,22 @@ async function main(): Promise<void> {
   //   - Token exchange defaults to https://api2.cursor.sh (/auth/exchange)
   // Both use globalThis.fetch, which the fetch interceptor rewrites to route
   // through the proxy while preserving the correct upstream host.
-  const bootConfig = loadConfig();
-  if (bootConfig.proxyEndpoint) {
-    const proxyBase = bootConfig.proxyEndpoint.replace(/\/+$/, "");
+  if (config.proxyEndpoint) {
+    const proxyBase = config.proxyEndpoint.replace(/\/+$/, "");
     process.env.CURSOR_API_BASE_URL = `${proxyBase}/v1/proxy/cursor/api2.cursor.sh`;
   }
 
-  if (process.env.STIGMER_RUNNER_MODE === "manager") {
-    await runManagerMode();
+  const runnerMode = process.env.STIGMER_RUNNER_MODE === "manager" ? "manager" : "static";
+  console.warn(
+    `[runner] mode=${runnerMode}, proxy=${config.proxyEndpoint ?? "none"}, ` +
+    `hasToken=${!!config.stigmerToken}, workspace=${config.workspaceRootDir}, ` +
+    `taskQueue=${config.taskQueue}`,
+  );
+
+  if (runnerMode === "manager") {
+    await runManagerMode(config);
   } else {
-    await runStaticMode();
+    await runStaticMode(config);
   }
 }
 
