@@ -480,12 +480,12 @@ service WorkflowExecutionCommandController {
   //
   // Preconditions
   //
-  // - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+  // - Execution must be in EXECUTION_PENDING, EXECUTION_IN_PROGRESS, or EXECUTION_PAUSED phase
   // - Cannot cancel already-terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
   //
   // State Transitions
   //
-  // - status.phase: PENDING/IN_PROGRESS → CANCELLED
+  // - status.phase: PENDING/IN_PROGRESS/PAUSED → CANCELLED
   // - status.completed_at: Set to current timestamp
   // - In-progress tasks: May complete cleanup or be interrupted
   //
@@ -546,12 +546,12 @@ service WorkflowExecutionCommandController {
   //
   // Preconditions
   //
-  // - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+  // - Execution must be in EXECUTION_PENDING, EXECUTION_IN_PROGRESS, or EXECUTION_PAUSED phase
   // - Cannot terminate already-terminal executions
   //
   // State Transitions
   //
-  // - status.phase: PENDING/IN_PROGRESS → TERMINATED
+  // - status.phase: PENDING/IN_PROGRESS/PAUSED → TERMINATED
   // - status.completed_at: Set to current timestamp
   // - status.error: May contain termination reason
   // - In-progress tasks: Stopped abruptly (no cleanup)

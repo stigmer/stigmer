@@ -24,6 +24,12 @@ import {
 
 import { StatusBuilder, type StreamEvent, type ApprovalPolicyProvider } from "./status-builder.js";
 import {
+  handlePause,
+  handleStop,
+  handleRecursionLimit,
+  isGraphRecursionError,
+} from "./streaming-terminal.js";
+import {
   StreamingUpdateScheduler,
   type StreamingConfig,
 } from "./streaming-scheduler.js";
@@ -232,81 +238,7 @@ async function streamExecutionV2(
   return { eventsProcessed, pendingPublishPromises, pendingWritebackPromises };
 }
 
-// ── Terminal State Handlers ──────────────────────────────────────────
-
-function handlePause(
-  sb: StatusBuilder,
-  eventsProcessed: number,
-  pendingPublishPromises: Promise<void>[],
-  pendingWritebackPromises: Promise<void>[],
-): StreamResult {
-  const status = sb.currentStatus;
-  status.phase = ExecutionPhase.EXECUTION_PAUSED;
-  status.messages.push(create(AgentMessageSchema, {
-    type: MessageType.MESSAGE_SYSTEM,
-    content: "Execution paused by user. Use resume to continue from this checkpoint.",
-    timestamp: utcTimestamp(),
-  }));
-
-  return {
-    eventsProcessed,
-    terminalStatus: slimStatus(status),
-    pendingPublishPromises,
-    pendingWritebackPromises,
-  };
-}
-
-function handleStop(
-  sb: StatusBuilder,
-  eventsProcessed: number,
-  pendingPublishPromises: Promise<void>[],
-  pendingWritebackPromises: Promise<void>[],
-): StreamResult {
-  const status = sb.currentStatus;
-  status.phase = ExecutionPhase.EXECUTION_COMPLETED;
-  status.completedAt = utcTimestamp();
-  status.messages.push(create(AgentMessageSchema, {
-    type: MessageType.MESSAGE_SYSTEM,
-    content: "Execution stopped by the platform.",
-    timestamp: utcTimestamp(),
-  }));
-
-  return {
-    eventsProcessed,
-    terminalStatus: slimStatus(status),
-    pendingPublishPromises,
-    pendingWritebackPromises,
-  };
-}
-
-function handleRecursionLimit(
-  sb: StatusBuilder,
-  eventsProcessed: number,
-  pendingPublishPromises: Promise<void>[],
-  pendingWritebackPromises: Promise<void>[],
-): StreamResult {
-  const status = sb.currentStatus;
-  status.phase = ExecutionPhase.EXECUTION_TERMINATED;
-  status.completedAt = utcTimestamp();
-  status.error =
-    `Agent reached the tool-call limit after processing ${eventsProcessed} events. ` +
-    `Send another message to continue.`;
-  status.messages.push(create(AgentMessageSchema, {
-    type: MessageType.MESSAGE_SYSTEM,
-    content:
-      "The agent reached the tool-call limit for this message. " +
-      "Work completed so far has been saved. " +
-      "Send another message to continue where the agent left off.",
-    timestamp: utcTimestamp(),
-  }));
-
-  return {
-    eventsProcessed,
-    terminalStatus: slimStatus(status),
-    pendingPublishPromises,
-    pendingWritebackPromises,
-  };
-}
+// Terminal state handlers imported from streaming-terminal.ts
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
@@ -361,15 +293,6 @@ function extractFilePathFromToolEnd(event: StreamEvent): string | null {
   if (typeof input.file === "string") return input.file;
 
   return null;
-}
-
-function isGraphRecursionError(err: unknown): boolean {
-  if (err instanceof Error) {
-    return err.constructor.name === "GraphRecursionError" ||
-      err.message.includes("GraphRecursionError") ||
-      err.message.includes("Recursion limit");
-  }
-  return false;
 }
 
 export class StallTimeoutError extends Error {

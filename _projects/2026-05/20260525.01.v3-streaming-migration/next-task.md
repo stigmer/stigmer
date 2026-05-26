@@ -76,9 +76,9 @@ When starting a new session:
 
 **Created**: 2026-05-25
 **Revised**: 2026-05-26
-**Current Phase**: Phase 1 COMPLETE (validated) → Phase 2 next
-**Status**: v3 hypothesis CONFIRMED — `run.output.structuredResponse` accessible with real LLM. Pipeline gap identified (structuredOutput not set on status proto before persist). Ready for Phase 2.
-**Last Session**: 2026-05-26 (Session 6) -- v3 hypothesis validation
+**Current Phase**: Phase 2 COMPLETE → Phase 3 next
+**Status**: V3StatusBuilder + V3ProtocolNormalizer + streaming orchestration parity implemented. 824 tests pass (+106 new). v3 path now produces live AgentExecutionStatus with messages, usage, tools, and terminal states. Ready for Phase 3 (structured output rollout).
+**Last Session**: 2026-05-26 (Session 7) -- Phase 2 implementation
 **Latest Checkpoint**: `checkpoints/CP04_v3_hypothesis_validation.md`
 
 ## Session Progress
@@ -137,13 +137,26 @@ When starting a new session:
 - 9 v3 event recordings captured (~12MB), covering plain text through nested schemas
 - **Decision**: Proceed to Phase 2. Pipeline fix deferred to Phase 3.
 
+### Session 7 (2026-05-26)
+- **Phase 2 COMPLETE** — V3StatusBuilder + V3ProtocolNormalizer + streaming orchestration parity
+- Created `ExecutionStatusWriter` interface: decoupled InlinePublisher/WriteBackCoordinator from v2 StatusBuilder class
+- Extracted `UsageAccumulator` + shared helpers into `status-builder-shared.ts` (88 lines removed from v2)
+- Created `v3-events.ts`: 13-kind `StigmerRunEvent` discriminated union with `formatNamespace()`
+- Created `v3-protocol-normalizer.ts`: stateless normalizer, defensive camelCase/snake_case parsing, 33 unit tests
+- Created `v3-status-builder.ts`: all 8 golden sequences pass, tool_call_id keying, usage dedup, lazy message creation, tool namespace resolution
+- Created `streaming-side-effects.ts`: ToolInputCache fixes broken artifact publish (v3 tool-finished lacks input)
+- Created `streaming-terminal.ts`: shared pause/stop/recursion handlers (v2 + v3)
+- Rewrote `streaming-v3.ts`: full orchestration parity (scheduler, persist, STOP, pause, recursion, heartbeat, approval)
+- 824 tests pass (+106 new), 0 v2 regressions, 10 pre-existing failures in index.test.ts unchanged
+- CP04 failures fixed: messages, usage, final_text. Deferred: structuredOutput on proto (Phase 3), subAgentExecutions tree (Phase 5)
+
 ## Migration Phases Overview
 
 | Phase | Name | Sessions | Status |
 |-------|------|----------|--------|
 | 0 | Contract Freeze (golden v2 runs) | 2 | **COMPLETE** (deferred items resolved in Session 4) |
 | 1 | v3 Event Recorder (feature-flagged, recording only) | 1 | **COMPLETE + VALIDATED** (Session 5-6) |
-| 2 | V3StatusBuilder + Protocol Normalizer | 2-3 | Pending |
+| 2 | V3StatusBuilder + Protocol Normalizer | 1 | **COMPLETE** (Session 7) |
 | 3 | Structured Output Path (first user-visible v3 feature) | 1-2 | Pending |
 | 4 | Full Streaming Parity | 2-3 | Pending |
 | 5 | Subagent UX Upgrade | 1-2 | Pending |
@@ -167,9 +180,9 @@ When starting a new session:
 - Collect `.v2-events.json` files as development reference for Phase 2
 
 ## Next Steps
-1. **Start Phase 2**: Build `StigmerRunEvent` discriminated union, `V3ProtocolNormalizer` (note: event type is at `data.event` not `data.type`), and `V3StatusBuilder`
-2. **Collect golden run corpus**: Run offline tests with `V2_EVENT_RECORD_DIR` as development reference for Phase 2
-3. **Phase 3 pipeline fix**: Set `initialStatus.structuredOutput` from extracted `structuredResponse` before `persistStatus()` call in `index.ts`
+1. **Start Phase 3**: Wire `structuredResponse` from `run.output` into `initialStatus.structuredOutput` before `persistStatus()` in `index.ts`. Enable v3 when `responseFormat` is present.
+2. **Phase 3 testing**: Run structured output integration tests with v3 enabled — `TestAgentExecution_StructuredOutputPipeline` native subtests should pass
+3. **Collect golden run corpus** (optional): Run offline tests with `V2_EVENT_RECORD_DIR` for future regression comparison
 
 ## Critical Reminders (from Deep Research + Validation)
 

@@ -27,7 +27,7 @@ import { GitWriteBackMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import type { WorkspaceBackend, ProvisionResult } from "../../shared/workspace/types.js";
 import { SourceType } from "../../shared/workspace/types.js";
-import type { StatusBuilder } from "./status-builder.js";
+import type { ExecutionStatusWriter } from "./execution-status-writer.js";
 
 const WRITE_BACK_ENABLED_MODES = new Set([
   GitWriteBackMode.GIT_WRITE_BACK_MODE_UNSPECIFIED,
@@ -54,7 +54,7 @@ interface EligibleEntry {
 }
 
 export class WriteBackCoordinator {
-  private readonly statusBuilder: StatusBuilder;
+  private readonly statusWriter: ExecutionStatusWriter;
   private readonly executionId: string;
   private readonly workspaceBackend: WorkspaceBackend;
   private readonly shortId: string;
@@ -65,13 +65,13 @@ export class WriteBackCoordinator {
   private readonly locks = new Map<string, Promise<void>>();
 
   constructor(opts: {
-    statusBuilder: StatusBuilder;
+    statusWriter: ExecutionStatusWriter;
     executionId: string;
     provisionResults: readonly ProvisionResult[];
     workspaceEntries: readonly WorkspaceEntry[];
     workspaceBackend: WorkspaceBackend;
   }) {
-    this.statusBuilder = opts.statusBuilder;
+    this.statusWriter = opts.statusWriter;
     this.executionId = opts.executionId;
     this.workspaceBackend = opts.workspaceBackend;
     this.shortId = opts.executionId.slice(0, 8);
@@ -238,7 +238,7 @@ export class WriteBackCoordinator {
         wb.pullRequestUrl = entryState.prUrl;
         wb.pullRequestNumber = entryState.prNumber;
       }
-      this.statusBuilder.addWriteBack(wb);
+      this.statusWriter.addWriteBack(wb);
     }
   }
 
@@ -371,7 +371,7 @@ export class WriteBackCoordinator {
       phase,
     });
 
-    this.statusBuilder.addWriteBack(wb);
+    this.statusWriter.addWriteBack(wb);
   }
 
   // ── Concurrency ─────────────────────────────────────────────────────

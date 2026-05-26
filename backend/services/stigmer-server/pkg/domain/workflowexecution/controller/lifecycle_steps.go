@@ -135,11 +135,12 @@ func (s *ValidateCancellableStep[T]) Execute(ctx *pipeline.RequestContext[T]) er
 		return nil
 	}
 
-	// Can only cancel PENDING or IN_PROGRESS
+	// Can only cancel PENDING, IN_PROGRESS, or PAUSED
 	if phase != workflowexecutionv1.ExecutionPhase_EXECUTION_PENDING &&
-		phase != workflowexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS {
+		phase != workflowexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS &&
+		phase != workflowexecutionv1.ExecutionPhase_EXECUTION_PAUSED {
 		return grpclib.FailedPreconditionError(
-			"cannot cancel execution in phase %s; only PENDING or IN_PROGRESS can be cancelled",
+			"cannot cancel execution in phase %s; only PENDING, IN_PROGRESS, or PAUSED can be cancelled",
 			phase.String(),
 		)
 	}
@@ -178,11 +179,12 @@ func (s *ValidateTerminableStep[T]) Execute(ctx *pipeline.RequestContext[T]) err
 		return nil
 	}
 
-	// Can only terminate PENDING or IN_PROGRESS
+	// Can only terminate PENDING, IN_PROGRESS, or PAUSED
 	if phase != workflowexecutionv1.ExecutionPhase_EXECUTION_PENDING &&
-		phase != workflowexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS {
+		phase != workflowexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS &&
+		phase != workflowexecutionv1.ExecutionPhase_EXECUTION_PAUSED {
 		return grpclib.FailedPreconditionError(
-			"cannot terminate execution in phase %s; only PENDING or IN_PROGRESS can be terminated",
+			"cannot terminate execution in phase %s; only PENDING, IN_PROGRESS, or PAUSED can be terminated",
 			phase.String(),
 		)
 	}

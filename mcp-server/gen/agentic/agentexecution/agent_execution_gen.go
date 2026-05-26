@@ -82,8 +82,8 @@ type ExecutionConfigInput struct {
 
 // A single runtime configuration or secret value.
 type ExecutionValue struct {
-	// String content of this entry. @internal If is_secret=true: encrypted at rest and redacted in logs. If is_secret=false: stored as plaintext.
-	Value string `json:"value,omitempty" jsonschema:"String content of this entry. @internal If is_secret=true: encrypted at rest and redacted in logs. If is_secret=false: stored as plaintext."`
+	// String content of this entry. Empty strings are valid — optional workflow env vars may be provided with no value, and the workflow engine resolves them to "" in expression interpolation. @internal If is_secret=true: encrypted at rest and redacted in logs. If is_secret=false: stored as plaintext.
+	Value string `json:"value,omitempty" jsonschema:"String content of this entry. Empty strings are valid — optional workflow env vars may be provided with no value, and the workflow engine resolves them to '' in expression interpolation. @internal If is_secret=true: encrypted at rest and redacted in logs. If is_secret=false: stored as plaintext."`
 	// Whether this value should be treated as a secret. @internal When true: value is encrypted at rest, redacted in logs, and deleted when execution completes. When false: value is stored as plaintext and visible in audit logs.
 	IsSecret bool `json:"is_secret,omitempty" jsonschema:"Whether this value should be treated as a secret. @internal When true: value is encrypted at rest, redacted in logs, and deleted when execution completes. When false: value is stored as plaintext and visible in audit logs."`
 }
