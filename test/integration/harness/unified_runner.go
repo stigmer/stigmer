@@ -32,6 +32,12 @@ type UnifiedRunnerConfig struct {
 
 	// StigmerToken is an auth token passed to the runner as STIGMER_TOKEN.
 	StigmerToken string
+
+	// LocalArtifactDir, when non-empty, sets ARTIFACT_STORAGE_TYPE=local
+	// with LOCAL_ARTIFACT_PATH pointing to this directory. Use this in
+	// offline mode where ProxyEndpoint is a MockLLMProxy that does not
+	// handle artifact presign endpoints.
+	LocalArtifactDir string
 }
 
 // --- IPC Protocol Types (mirrors main.ts) ---
@@ -548,8 +554,15 @@ func buildUnifiedRunnerEnv(cfg UnifiedRunnerConfig, mode, taskQueue string) []st
 		env = append(env,
 			fmt.Sprintf("STIGMER_PROXY_ENDPOINT=%s", cfg.ProxyEndpoint),
 			fmt.Sprintf("STIGMER_TOKEN=%s", runnerJWT),
-			"ARTIFACT_STORAGE_TYPE=proxy",
 		)
+		if cfg.LocalArtifactDir != "" {
+			env = append(env,
+				"ARTIFACT_STORAGE_TYPE=local",
+				fmt.Sprintf("LOCAL_ARTIFACT_PATH=%s", cfg.LocalArtifactDir),
+			)
+		} else {
+			env = append(env, "ARTIFACT_STORAGE_TYPE=proxy")
+		}
 	} else if cfg.CursorAPIKey != "" {
 		env = append(env, fmt.Sprintf("CURSOR_API_KEY=%s", cfg.CursorAPIKey))
 	}

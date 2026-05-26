@@ -9,13 +9,13 @@
  * Design decisions:
  * - CompiledSubAgent format: full middleware control, no unwanted deepagents defaults
  * - Filter parent MCP tools: no reconnection overhead, stateless servers are the norm
- * - Prompt injection for skills: StateBackend incompatible with native skills field
+ * - Prompt injection for skills: FilesystemBackend incompatible with native skills field
  * - Built-in explore/shell subagents use prompt-based tool restriction
  * - Invalid configurations are logged and skipped (graceful degradation)
  * - Empty subagent list returns null (no subagents configured)
  */
 
-import { createDeepAgent, StateBackend } from "deepagents";
+import { createDeepAgent, FilesystemBackend } from "deepagents";
 import type { CompiledSubAgent } from "deepagents";
 import type { StructuredTool } from "@langchain/core/tools";
 import type { RunnableConfig } from "@langchain/core/runnables";
@@ -145,7 +145,7 @@ export interface SubagentTransformOptions {
  * Create built-in explore and shell subagent specifications.
  *
  * Built-in subagents receive:
- * - The full deepagents built-in tool set (from StateBackend) restricted via prompt
+ * - The full deepagents built-in tool set (from FilesystemBackend) restricted via prompt
  * - Purpose-built system prompts with explicit scope boundaries
  * - No skills, no MCP tools, no parent prompt inheritance
  *
@@ -388,7 +388,7 @@ export function resolveSubagentSkillPrompt(
  * Compile transformed subagent specifications into CompiledSubAgent instances.
  *
  * Each subagent gets:
- * - Its own agent graph (via createDeepAgent with StateBackend for built-in tools)
+ * - Its own agent graph (via createDeepAgent with FilesystemBackend sharing the workspace)
  * - Per-subagent middleware (loop detection, budget, truncation, cost cap view)
  * - Concurrency gating via shared SubAgentGate
  */
@@ -397,6 +397,7 @@ export async function compileSubagents(
   opts: {
     readonly costCap?: CostCapMiddleware;
     readonly parentModelName: string;
+    readonly workspaceRootDir: string;
   },
 ): Promise<CompiledSubAgent[]> {
   if (transformed.length === 0) return [];
@@ -417,7 +418,7 @@ export async function compileSubagents(
         systemPrompt: spec.systemPrompt,
         tools: spec.tools.length > 0 ? spec.tools : undefined,
         middleware: middleware as unknown[],
-        backend: new StateBackend(),
+        backend: new FilesystemBackend({ rootDir: opts.workspaceRootDir }),
         generalPurposeAgent: false,
       } as Parameters<typeof createDeepAgent>[0]);
 
@@ -587,6 +588,7 @@ export async function transformAndCompileSubagents(
   const compiled = await compileSubagents(allSpecs, {
     costCap,
     parentModelName,
+    workspaceRootDir: workspaceBackend.rootDir,
   });
 
   if (compiled.length === 0) {
