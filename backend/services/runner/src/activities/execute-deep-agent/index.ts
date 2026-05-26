@@ -10,7 +10,7 @@
  */
 
 import { Context, CancelledFailure } from "@temporalio/activity";
-import { create } from "@bufbuild/protobuf";
+import { create, type JsonObject } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { ExecutionPhase, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
@@ -194,34 +194,22 @@ export function createDeepAgentActivities(config: Config) {
         initialStatus.phase = ExecutionPhase.EXECUTION_COMPLETED;
         initialStatus.completedAt = utcTimestamp();
 
-        let structuredOutput: unknown = undefined;
+        let structuredOutput: JsonObject | undefined;
         let finalText: string | undefined;
 
-        if (setup.hasStructuredOutput) {
-          if (result.runOutput) {
-            const sr = result.runOutput.structuredResponse;
-            if (sr !== undefined) {
-              structuredOutput = sr;
-              console.log(
-                `[ExecuteDeepAgent] Structured output extracted from v3 run.output ` +
-                `for execution ${executionId}`,
-              );
-            } else {
-              console.warn(
-                `[ExecuteDeepAgent] v3 run.output resolved but structuredResponse absent ` +
-                `for execution ${executionId}. ` +
-                `Keys: [${Object.keys(result.runOutput).join(", ")}]`,
-              );
-            }
-          } else if (setup.streamVersion === "v2") {
-            console.log(
-              `[ExecuteDeepAgent] Structured output requested but not available via v2 streaming ` +
-              `for execution ${executionId}. Use v3 streaming or Cursor harness.`,
+        if (setup.hasStructuredOutput && result.runOutput) {
+          const sr = result.runOutput.structuredResponse;
+          if (sr != null && typeof sr === "object" && !Array.isArray(sr)) {
+            structuredOutput = sr as JsonObject;
+            initialStatus.structuredOutput = structuredOutput;
+          } else if (sr !== undefined) {
+            console.warn(
+              `[ExecuteDeepAgent] structuredResponse is not a plain object ` +
+              `for execution ${executionId}: type=${typeof sr}`,
             );
           }
         }
 
-        // Extract final AI message text
         const lastAiMsg = [...initialStatus.messages]
           .reverse()
           .find(m => m.type === MessageType.MESSAGE_AI);
@@ -229,7 +217,6 @@ export function createDeepAgentActivities(config: Config) {
           finalText = lastAiMsg.content;
         }
 
-        // NOW persist — subscriber sees COMPLETED + structured_output atomically
         await persistStatus(client, executionId, initialStatus);
 
         console.log(

@@ -383,7 +383,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
     };
 
     const streamVersion: "v2" | "v3" =
-      process.env.LANGGRAPH_STREAM_EVENTS_VERSION === "v3" ? "v3" : "v2";
+      process.env.LANGGRAPH_STREAM_EVENTS_VERSION === "v2" ? "v2" : "v3";
 
     console.log(
       `[setup] Complete: model=${modelName}, ` +
