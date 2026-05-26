@@ -130,7 +130,7 @@ export async function createStigmerRunnerManager(
   const config = mapManagerOptionsToConfig(options, tokenRef);
 
   // Install fetch interceptor before any @cursor/sdk imports
-  const { installFetchInterceptor } = await import(
+  const { installFetchInterceptor, updateInterceptorToken } = await import(
     "./activities/execute-cursor/fetch-interceptor.js"
   );
   installFetchInterceptor({
@@ -254,9 +254,9 @@ export async function createStigmerRunnerManager(
 
     updateToken(token: string | null): void {
       tokenRef.current = token;
-      // Also update env so activities calling loadConfig() at runtime pick it up
       if (token) {
         process.env.STIGMER_TOKEN = token;
+        updateInterceptorToken(token);
       } else {
         delete process.env.STIGMER_TOKEN;
       }

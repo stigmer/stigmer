@@ -129,9 +129,22 @@ pub async fn start_runner(
     if let Some(key) = &config.cursor_api_key {
         cmd.env("CURSOR_API_KEY", key);
     }
-    if let Some(dir) = &config.workspace_root_dir {
-        cmd.env("WORKSPACE_ROOT_DIR", dir);
-    }
+    let workspace_dir = match &config.workspace_root_dir {
+        Some(dir) => dir.clone(),
+        None => {
+            let home = std::env::var("HOME")
+                .or_else(|_| std::env::var("USERPROFILE"))
+                .map_err(|_| "Cannot determine home directory for workspace".to_string())?;
+            let dir = std::path::PathBuf::from(home)
+                .join(".stigmer")
+                .join("desktop")
+                .join("workspace");
+            std::fs::create_dir_all(&dir)
+                .map_err(|e| format!("Failed to create workspace dir: {e}"))?;
+            dir.to_string_lossy().to_string()
+        }
+    };
+    cmd.env("WORKSPACE_ROOT_DIR", &workspace_dir);
     if let Some(proxy) = &config.proxy_endpoint {
         cmd.env("STIGMER_PROXY_ENDPOINT", proxy);
     }
