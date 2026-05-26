@@ -11,7 +11,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/executioncontext/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_executioncontext_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CjFhaS9zdGlnbWVyL2FnZW50aWMvZXhlY3V0aW9uY29udGV4dC92MS9zcGVjLnByb3RvEiZhaS5zdGlnbWVyLmFnZW50aWMuZXhlY3V0aW9uY29udGV4dC52MSLwAQoURXhlY3V0aW9uQ29udGV4dFNwZWMSHQoMZXhlY3V0aW9uX2lkGAEgASgJQge6SARyAhABElQKBGRhdGEYAiADKAsyRi5haS5zdGlnbWVyLmFnZW50aWMuZXhlY3V0aW9uY29udGV4dC52MS5FeGVjdXRpb25Db250ZXh0U3BlYy5EYXRhRW50cnkaYwoJRGF0YUVudHJ5EgsKA2tleRgBIAEoCRJFCgV2YWx1ZRgCIAEoCzI2LmFpLnN0aWdtZXIuYWdlbnRpYy5leGVjdXRpb25jb250ZXh0LnYxLkV4ZWN1dGlvblZhbHVlOgI4ASI7Cg5FeGVjdXRpb25WYWx1ZRIWCgV2YWx1ZRgBIAEoCUIHukgEcgIQARIRCglpc19zZWNyZXQYAiABKAhiBnByb3RvMw", [file_buf_validate_validate]);
+  fileDesc("CjFhaS9zdGlnbWVyL2FnZW50aWMvZXhlY3V0aW9uY29udGV4dC92MS9zcGVjLnByb3RvEiZhaS5zdGlnbWVyLmFnZW50aWMuZXhlY3V0aW9uY29udGV4dC52MSLwAQoURXhlY3V0aW9uQ29udGV4dFNwZWMSHQoMZXhlY3V0aW9uX2lkGAEgASgJQge6SARyAhABElQKBGRhdGEYAiADKAsyRi5haS5zdGlnbWVyLmFnZW50aWMuZXhlY3V0aW9uY29udGV4dC52MS5FeGVjdXRpb25Db250ZXh0U3BlYy5EYXRhRW50cnkaYwoJRGF0YUVudHJ5EgsKA2tleRgBIAEoCRJFCgV2YWx1ZRgCIAEoCzI2LmFpLnN0aWdtZXIuYWdlbnRpYy5leGVjdXRpb25jb250ZXh0LnYxLkV4ZWN1dGlvblZhbHVlOgI4ASIyCg5FeGVjdXRpb25WYWx1ZRINCgV2YWx1ZRgBIAEoCRIRCglpc19zZWNyZXQYAiABKAhiBnByb3RvMw", [file_buf_validate_validate]);
 
 /**
  * Runtime configuration and secrets for a single execution.
@@ -55,7 +55,9 @@ export const ExecutionContextSpecSchema: GenMessage<ExecutionContextSpec> = /*@_
  */
 export type ExecutionValue = Message<"ai.stigmer.agentic.executioncontext.v1.ExecutionValue"> & {
   /**
-   * String content of this entry.
+   * String content of this entry. Empty strings are valid — optional
+   * workflow env vars may be provided with no value, and the workflow
+   * engine resolves them to "" in expression interpolation.
    *
    * @internal
    * If is_secret=true: encrypted at rest and redacted in logs.
