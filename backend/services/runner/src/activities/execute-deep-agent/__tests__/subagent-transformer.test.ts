@@ -112,7 +112,7 @@ describe("createBuiltinSubagents", () => {
     }
   });
 
-  it("built-in subagents have empty tool arrays (use StateBackend built-ins)", () => {
+  it("built-in subagents have empty tool arrays (use FilesystemBackend built-ins)", () => {
     const result = createBuiltinSubagents(true);
     for (const sa of result) {
       expect(sa.tools).toEqual([]);
@@ -350,6 +350,7 @@ describe("compileSubagents", () => {
   it("returns empty array for empty input", async () => {
     const result = await compileSubagents([], {
       parentModelName: "claude-sonnet-4-20250514",
+      workspaceRootDir: "/workspace",
     });
     expect(result).toEqual([]);
   });
@@ -364,6 +365,7 @@ describe("compileSubagents", () => {
 
     const result = await compileSubagents(specs, {
       parentModelName: "claude-sonnet-4-20250514",
+      workspaceRootDir: "/workspace",
     });
 
     expect(result).toHaveLength(1);
@@ -383,6 +385,7 @@ describe("compileSubagents", () => {
 
     const result = await compileSubagents(specs, {
       parentModelName: "claude-sonnet-4-20250514",
+      workspaceRootDir: "/workspace",
     });
 
     expect(result.length).toBeGreaterThan(0);
@@ -402,6 +405,7 @@ describe("compileSubagents", () => {
 
     const result = await compileSubagents(specs, {
       parentModelName: "claude-sonnet-4-20250514",
+      workspaceRootDir: "/workspace",
     });
 
     expect(result).toHaveLength(1);

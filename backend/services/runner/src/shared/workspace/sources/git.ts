@@ -7,10 +7,7 @@
  * - Token is never logged; sanitized in error messages
  * - GITHUB_TOKEN reported in consumedKeys for env stripping
  * - Multi-entry mode: clones into target_subdir
- *
- * Phase 2 scope: local backend only (direct git via child_process).
- * The FUSE+S3/Daytona --separate-git-dir pattern and credential
- * persistence are deferred to Phase 3.
+ * - Credential store configuration for git push/writeback
  */
 
 import { join } from "node:path";
@@ -29,12 +26,13 @@ export interface GitProvisionOptions {
   envVars: Record<string, string>;
   isLocalMode: boolean;
   targetSubdir?: string;
+  configureCredentials?: boolean;
 }
 
 const GITHUB_HOST = "github.com";
 
 export async function provisionGit(options: GitProvisionOptions): Promise<ProvisionResult> {
-  const { url, branch, backend, envVars, isLocalMode, targetSubdir } = options;
+  const { url, branch, backend, envVars, isLocalMode, targetSubdir, configureCredentials } = options;
 
   const cloneDir = targetSubdir
     ? join(backend.rootDir, targetSubdir)
@@ -45,7 +43,7 @@ export async function provisionGit(options: GitProvisionOptions): Promise<Provis
   );
 
   if (gitExists) {
-    return reuseExistingRepo(cloneDir, url, backend, targetSubdir);
+    return reuseExistingRepo(cloneDir, url, backend, envVars, configureCredentials, targetSubdir);
   }
 
   const githubToken = envVars.GITHUB_TOKEN;
@@ -75,7 +73,14 @@ export async function provisionGit(options: GitProvisionOptions): Promise<Provis
     );
   }
 
-  const metadata = await extractGitMetadata(cloneDir, url, backend, targetSubdir);
+  let metadata = await extractGitMetadata(cloneDir, url, backend, targetSubdir);
+
+  if (configureCredentials && githubToken && url.includes(GITHUB_HOST)) {
+    const configured = await configureGitCredentialStore(backend, cloneDir, url, githubToken);
+    if (configured) {
+      metadata = { ...metadata, gitCredentialsConfigured: true };
+    }
+  }
 
   await addGitExcludes(backend, targetSubdir);
 
@@ -96,9 +101,20 @@ async function reuseExistingRepo(
   cloneDir: string,
   url: string,
   backend: WorkspaceBackend,
+  envVars: Record<string, string>,
+  configureCredentials?: boolean,
   targetSubdir?: string,
 ): Promise<ProvisionResult> {
-  const metadata = await extractGitMetadata(cloneDir, url, backend, targetSubdir);
+  let metadata = await extractGitMetadata(cloneDir, url, backend, targetSubdir);
+
+  const githubToken = envVars.GITHUB_TOKEN;
+  if (configureCredentials && githubToken && url.includes(GITHUB_HOST)) {
+    const configured = await configureGitCredentialStore(backend, cloneDir, url, githubToken);
+    if (configured) {
+      metadata = { ...metadata, gitCredentialsConfigured: true };
+    }
+  }
+
   return {
     rootDir: cloneDir,
     sourceType: SourceType.GIT_REPO,
@@ -151,6 +167,52 @@ async function addGitExcludes(backend: WorkspaceBackend, targetSubdir?: string):
   } catch {
     // .git/info/exclude might not exist — non-fatal
   }
+}
+
+/**
+ * Configure git credential store for push operations.
+ *
+ * Three-step process (each step is non-fatal):
+ * 1. Clean the remote URL — remove any embedded token from the origin remote
+ * 2. Set credential.helper to `store` with a repo-local credential file
+ * 3. Write the credential entry to the file
+ *
+ * Using repo-local config (not --global) keeps credentials scoped to
+ * the workspace and avoids polluting the host git config.
+ */
+async function configureGitCredentialStore(
+  backend: WorkspaceBackend,
+  cloneDir: string,
+  url: string,
+  token: string,
+): Promise<boolean> {
+  const exec = (cmd: string) => backend.execute(cmd, { cwd: cloneDir });
+  const credFile = join(cloneDir, ".git", ".git-credentials");
+  const cleanUrl = stripToken(url);
+
+  try {
+    await exec(`git remote set-url origin '${cleanUrl}'`);
+  } catch (err) {
+    console.warn(`[git] Failed to clean remote URL (non-fatal): ${err}`);
+    return false;
+  }
+
+  try {
+    await exec(`git config credential.helper 'store --file=${credFile}'`);
+  } catch (err) {
+    console.warn(`[git] Failed to configure credential helper (non-fatal): ${err}`);
+    return false;
+  }
+
+  const credEntry = `https://x-access-token:${token}@github.com\n`;
+  try {
+    await backend.writeFile(credFile, credEntry);
+  } catch (err) {
+    console.warn(`[git] Failed to write credential file (non-fatal): ${err}`);
+    return false;
+  }
+
+  return true;
 }
 
 function injectToken(url: string, token: string): string {

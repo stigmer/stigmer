@@ -8,7 +8,7 @@
  * the streaming phase needs.
  */
 
-import { createDeepAgent, StateBackend } from "deepagents";
+import { createDeepAgent, FilesystemBackend } from "deepagents";
 import { ChatAnthropic } from "@langchain/anthropic";
 import { ChatOpenAI } from "@langchain/openai";
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
@@ -360,7 +360,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
     const agentGraph = await createDeepAgent({
       model,
       checkpointer: checkpointer as any,
-      backend: new StateBackend(),
+      backend: new FilesystemBackend({ rootDir: workspaceBackend.rootDir }),
       systemPrompt,
       tools,
       middleware: middleware as any,
@@ -528,6 +528,7 @@ async function provisionWorkspace(
     workspaceBackend,
     mergedEnvVars,
     config.mode === "local",
+    config.mode !== "local",
   );
 
   // If single entry changed root dir, create a new backend with the same platformDir
