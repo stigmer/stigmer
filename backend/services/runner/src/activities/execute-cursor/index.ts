@@ -46,7 +46,7 @@ import { MessageAccumulator, extractDeniedToolCalls } from "./message-translator
 import { utcTimestamp, persistStatus, reportSetupProgress, slimStatus } from "../../shared/status.js";
 import { DeltaEnricher } from "./delta-enricher.js";
 import { TodoTracker } from "./todo-tracker.js";
-import { resolveMcpServers } from "./mcp-resolver.js";
+import { resolveMcpServers, validateMcpServerEnv } from "./mcp-resolver.js";
 import { mergeApprovalPolicies } from "./approval-policy.js";
 import { backfillMcpServersIfNeeded } from "./connect-backfill.js";
 import { resolveExecutionEnv } from "./env-resolver.js";
@@ -221,6 +221,19 @@ async function executeCursorInner(
     );
     heartbeat();
 
+    // Phase 4c: Validate MCP server env health (diagnostic, non-blocking)
+    const mcpWarnings = validateMcpServerEnv(
+      mcpResolution.resolvedServers,
+      blueprint.mergedMcpServerUsages,
+      envVars,
+    );
+    if (mcpWarnings.length > 0) {
+      console.warn(
+        `ExecuteCursor MCP pre-flight warnings: execution=${executionId}\n` +
+        mcpWarnings.map((w) => `  - ${w}`).join("\n"),
+      );
+    }
+
     // Phase 5: Resolve skills (merged from agent + session)
     await reportSetupProgress(client, executionId, "Resolving skills");
     const primaryWorkspaceDir = blueprint.workspaceDirs[0];
@@ -261,6 +274,16 @@ async function executeCursorInner(
     const effectiveApiKey = config.proxyEndpoint
       ? (config.stigmerTokenRef?.current ?? config.stigmerToken ?? config.cursorApiKey)
       : config.cursorApiKey;
+
+    if (!effectiveApiKey || effectiveApiKey === "proxy-managed") {
+      const source = config.proxyEndpoint ? "proxy (STIGMER_TOKEN)" : "direct (CURSOR_API_KEY)";
+      throw new Error(
+        `No Cursor API credential available. Mode=${source}, ` +
+        `proxyEndpoint=${config.proxyEndpoint ?? "unset"}, ` +
+        `hasStigmerToken=${!!config.stigmerToken}, ` +
+        `hasTokenRef=${!!config.stigmerTokenRef?.current}`,
+      );
+    }
 
     const createOptions: CreateAgentOptions | CreateCloudAgentOptions = agentMode === "cloud"
       ? {
@@ -590,13 +613,22 @@ async function executeCursorInner(
       case "finished":
         status.phase = ExecutionPhase.EXECUTION_COMPLETED;
         break;
-      case "error":
+      case "error": {
         status.phase = ExecutionPhase.EXECUTION_FAILED;
-        status.error = result.result ?? "Cursor run failed";
+        const resultAny = result as unknown as Record<string, unknown>;
+        const sdkError = result.result
+          ?? resultAny.error
+          ?? resultAny.message
+          ?? resultAny.reason;
+        status.error = sdkError
+          ? String(sdkError)
+          : `Cursor run failed (no detail from SDK). Model=${validatedModel}, mode=${agentMode}, agentId=${resolution.agentId}`;
         console.error(
-          `ExecuteCursor agent error: execution=${executionId}, error=${status.error}`,
+          `ExecuteCursor agent error: execution=${executionId}, ` +
+          `error=${status.error}, rawResult=${JSON.stringify(result)}`,
         );
         break;
+      }
       case "cancelled":
         status.phase = ExecutionPhase.EXECUTION_CANCELLED;
         break;
