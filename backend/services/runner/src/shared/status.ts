@@ -80,5 +80,15 @@ export function slimStatus(full: AgentExecutionStatus): unknown {
     pendingApprovals: full.pendingApprovals,
     structuredOutput: full.structuredOutput,
   });
-  return toJson(AgentExecutionStatusSchema, slim);
+  const json = toJson(AgentExecutionStatusSchema, slim);
+  if (full.structuredOutput) {
+    const jsonObj = json as Record<string, unknown>;
+    const hasField = "structuredOutput" in jsonObj;
+    console.log(
+      `[slimStatus] structuredOutput serialization: ` +
+      `inputPresent=true, outputFieldPresent=${hasField}, ` +
+      `outputKeys=${Object.keys(jsonObj).join(",")}`,
+    );
+  }
+  return json;
 }

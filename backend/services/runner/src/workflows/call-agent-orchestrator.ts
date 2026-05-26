@@ -143,6 +143,11 @@ export async function orchestrateAgentCall(
       } else {
         activityResult = (result ?? {}) as AgentCallResult;
       }
+      log.info("[CallAgent callback] activity result received", {
+        taskName: input.taskName,
+        hasStructured: activityResult.structured !== undefined,
+        resultKeys: Object.keys(activityResult).join(","),
+      });
       activityDone = true;
     })
     .catch((err) => {

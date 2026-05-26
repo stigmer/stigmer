@@ -76,10 +76,10 @@ When starting a new session:
 
 **Created**: 2026-05-25
 **Revised**: 2026-05-26
-**Current Phase**: Phase 1 COMPLETE → Phase 2 next
-**Status**: v3 event recorder implemented and tested; ready to validate with real runs
-**Last Session**: 2026-05-26 (Session 5) -- Phase 1 v3 event recorder
-**Latest Checkpoint**: `checkpoints/CP03_phase1_v3_event_recorder.md`
+**Current Phase**: Phase 1 COMPLETE (validated) → Phase 2 next
+**Status**: v3 hypothesis CONFIRMED — `run.output.structuredResponse` accessible with real LLM. Pipeline gap identified (structuredOutput not set on status proto before persist). Ready for Phase 2.
+**Last Session**: 2026-05-26 (Session 6) -- v3 hypothesis validation
+**Latest Checkpoint**: `checkpoints/CP04_v3_hypothesis_validation.md`
 
 ## Session Progress
 
@@ -126,12 +126,23 @@ When starting a new session:
 - Verified actual node_modules `.d.ts` types: confirmed two-arg v3 signature, `Promise<GraphRunStream>` return, `signal` in options
 - 19 new streaming-v3 tests, 10 new recorder tests, 3 new routing tests — all 358 tests pass
 
+### Session 6 (2026-05-26)
+- **v3 hypothesis CONFIRMED** (see checkpoint CP04 for full details)
+- Ran full offline test suite with `LANGGRAPH_STREAM_EVENTS_VERSION=v3`: 36/46 pass (failures are Phase 1 expected gaps, not v3 issues)
+- Discovered stale runner dist (initial run used pre-v3 build) — rebuilt and re-validated
+- Mock LLM (Anthropic SSE): v3 works, 73 events, `run.output` resolves, but `structuredResponse` absent (mock doesn't support `responseFormat`)
+- Real Anthropic LLM: `run.output.structuredResponse=true` on all 7 structured output executions — **hypothesis confirmed**
+- **Pipeline gap identified**: `structuredResponse` extracted in `index.ts` but only placed in `slim.structured` (activity return), NOT set on `initialStatus.structuredOutput` before `persistStatus()` — tests see nil via gRPC query
+- V3 event shapes differ from research report: event type at `data.event` (not `data.type`) — normalization detail for Phase 2
+- 9 v3 event recordings captured (~12MB), covering plain text through nested schemas
+- **Decision**: Proceed to Phase 2. Pipeline fix deferred to Phase 3.
+
 ## Migration Phases Overview
 
 | Phase | Name | Sessions | Status |
 |-------|------|----------|--------|
 | 0 | Contract Freeze (golden v2 runs) | 2 | **COMPLETE** (deferred items resolved in Session 4) |
-| 1 | v3 Event Recorder (feature-flagged, recording only) | 1 | **COMPLETE** (Session 5) |
+| 1 | v3 Event Recorder (feature-flagged, recording only) | 1 | **COMPLETE + VALIDATED** (Session 5-6) |
 | 2 | V3StatusBuilder + Protocol Normalizer | 2-3 | Pending |
 | 3 | Structured Output Path (first user-visible v3 feature) | 1-2 | Pending |
 | 4 | Full Streaming Parity | 2-3 | Pending |
@@ -156,11 +167,11 @@ When starting a new session:
 - Collect `.v2-events.json` files as development reference for Phase 2
 
 ## Next Steps
-1. **Validate hypothesis**: Run offline tests with `LANGGRAPH_STREAM_EVENTS_VERSION=v3` + `V3_EVENT_RECORD_DIR` to confirm `run.output.structuredResponse` is accessible
-2. **Start Phase 2**: Build `StigmerRunEvent` discriminated union, `V3ProtocolNormalizer`, and `V3StatusBuilder`
-3. **Collect golden run corpus**: Run offline tests with `V2_EVENT_RECORD_DIR` as development reference for Phase 2
+1. **Start Phase 2**: Build `StigmerRunEvent` discriminated union, `V3ProtocolNormalizer` (note: event type is at `data.event` not `data.type`), and `V3StatusBuilder`
+2. **Collect golden run corpus**: Run offline tests with `V2_EVENT_RECORD_DIR` as development reference for Phase 2
+3. **Phase 3 pipeline fix**: Set `initialStatus.structuredOutput` from extracted `structuredResponse` before `persistStatus()` call in `index.ts`
 
-## Critical Reminders (from Deep Research)
+## Critical Reminders (from Deep Research + Validation)
 
 - v3 call is `await agentGraph.streamEvents(input, { ...config, version: "v3" })` -- TWO args, not three
 - `run.updates` does NOT exist -- use raw protocol events with `event.method === "updates"`
@@ -169,6 +180,9 @@ When starting a new session:
 - Cancellation needs caller-owned `AbortController.signal` passed into v3 options
 - Watch for camelCase/snake_case inconsistencies in tool event fields (`tool_call_id` vs `toolCallId`)
 - Watch for multiple `@langchain/core` copies in dependency tree
+- **Event type is at `data.event`** (not `data.type` as research report suggested) -- e.g., `data.event === "message-start"` not `data.type === "message-start"`
+- **`structuredResponse` requires provider-native structured output** -- mock LLM won't produce it (no `responseFormat` support)
+- **Pipeline gap**: `structuredResponse` must be set on `initialStatus.structuredOutput` before `persistStatus()` (currently only in `slim.structured`)
 
 ## Quick Commands
 

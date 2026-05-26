@@ -61,11 +61,7 @@ import { buildApprovalState } from "./approval-state.js";
 import { setInterceptorExecutionId, runWithExecutionContext } from "./fetch-interceptor.js";
 import { resolveModelId, ensureLoaded as ensurePricingLoaded } from "./model-pricing.js";
 import { UsageAccumulator } from "./usage-accumulator.js";
-import type { TurnRecord } from "./usage-accumulator.js";
 import { ContextTracker } from "./context-tracker.js";
-import { RecordLlmCallUsageInputSchema } from "@stigmer/protos/ai/stigmer/billing/v1/io_pb";
-import { TokenUsageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
-import { UsageCompletionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
 import { StreamingUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
 import { buildSessionMemory, persistSessionMemory, estimateTokens } from "./session-memory.js";
 import { activityStarted, activityFinished } from "../../idle-watchdog.js";
@@ -558,7 +554,6 @@ async function executeCursorInner(
         timestamp: utcTimestamp(),
       }));
       await persistStatus(client, executionId, status);
-      await emitBillingRecords(client, executionId, usageAccumulator);
       await maybePeristSessionMemory(client, sessionId, session, status, userMessage);
       console.log(`ExecuteCursor completed (platform stop): execution=${executionId}`);
       return slimStatus(status);
@@ -695,8 +690,9 @@ async function executeCursorInner(
     // NOW persist — subscriber sees COMPLETED + structured_output atomically
     await persistStatus(client, executionId, status);
 
-    // Phase 13b: Emit billing records for cursor usage
-    await emitBillingRecords(client, executionId, usageAccumulator, sdkResolvedModel);
+    // Billing is handled by the Java workflow (billingActivities.recordCursorUsage)
+    // with operator auth after this activity returns. The runner's user token lacks
+    // can_execute_billing_ops, so runner-side billing always fails with permission_denied.
 
     // Phase 14: Build and persist session memory
     await maybePeristSessionMemory(client, sessionId, session, status, userMessage);
@@ -1005,82 +1001,6 @@ async function maybePeristSessionMemory(
   }
 }
 
-/**
- * Emit per-turn billing records via the recordLlmCallUsage RPC.
- *
- * Each turn produces one billing record with sequence = turn number.
- * The billing handler computes cost server-side from the model registry.
- * Best-effort: failures are logged and swallowed — billing gaps are
- * preferable to failing the execution.
- */
-export interface BillingRecordParams {
-  executionId: string;
-  turn: TurnRecord;
-  requestedModel: string;
-  sdkResolvedModel?: string;
-}
-
-export function buildTurnBillingInput(params: BillingRecordParams) {
-  const { executionId, turn, requestedModel, sdkResolvedModel } = params;
-  const resolvedModel = sdkResolvedModel || requestedModel;
-  return create(RecordLlmCallUsageInputSchema, {
-    executionId,
-    sequence: turn.sequence,
-    provider: "cursor",
-    resolvedModel,
-    requestedModel,
-    tokens: create(TokenUsageSchema, {
-      inputTokens: BigInt(turn.inputTokens),
-      outputTokens: BigInt(turn.outputTokens),
-      cacheCreationInputTokens: BigInt(turn.cacheWriteTokens),
-      cacheReadInputTokens: BigInt(turn.cacheReadTokens),
-    }),
-    usageStatus: UsageCompletionStatus.COMPLETE,
-    streaming: true,
-    harness: "cursor",
-  });
-}
-
-async function emitBillingRecords(
-  client: StigmerClient,
-  executionId: string,
-  usage: UsageAccumulator,
-  sdkResolvedModel?: string,
-): Promise<void> {
-  const turns = usage.turns();
-  if (turns.length === 0) return;
-
-  const requestedModel = usage.modelName;
-  const resolvedModel = sdkResolvedModel || requestedModel;
-  let emitted = 0;
-
-  for (const turn of turns) {
-    try {
-      const input = buildTurnBillingInput({
-        executionId,
-        turn,
-        requestedModel,
-        sdkResolvedModel,
-      });
-      await client.recordLlmCallUsage(input);
-      emitted++;
-    } catch (err) {
-      console.warn(
-        `Failed to emit billing record (non-fatal): execution=${executionId}, seq=${turn.sequence}`,
-        err instanceof Error ? err.message : err,
-      );
-    }
-  }
-
-  if (emitted > 0) {
-    const modelInfo = resolvedModel !== requestedModel
-      ? `requested=${requestedModel}, resolved=${resolvedModel}`
-      : `model=${requestedModel}`;
-    console.log(
-      `Emitted ${emitted}/${turns.length} billing records: execution=${executionId}, ${modelInfo}`,
-    );
-  }
-}
 
 /**
  * Find a tool call by ID in the execution's messages.
