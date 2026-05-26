@@ -103,6 +103,35 @@ And the result:
       const result = extractJsonFromText(text);
       expect(result).toEqual({ status: "done", count: 5 });
     });
+
+    it("extracts the last JSON object when multiple exist in prose", () => {
+      const text = `Here is some debug output: {"debug": true, "step": 1}
+More analysis text here.
+Final result: {"answer": 42, "final": true}`;
+      const result = extractJsonFromText(text);
+      expect(result).toEqual({ answer: 42, final: true });
+    });
+
+    it("extracts JSON when prose follows the JSON object", () => {
+      const text = `Analysis complete. Here is the result:
+{"status": "done", "metrics": {"dau": 7175}}
+Done! The workflow has finished.`;
+      const result = extractJsonFromText(text);
+      expect(result).toEqual({ status: "done", metrics: { dau: 7175 } });
+    });
+
+    it("extracts JSON from prose ending with a JSON object (production failure pattern)", () => {
+      const text = `Now let me compile the notification plan based on the data I've analyzed.
+
+I've reviewed the player cohorts and identified the key metrics. The DAU is stable at 7,175 with a slight upward trend.
+
+{"executive_summary": "DAU stable at 7,175 (+1.4%). D3 drop-offs need attention.", "dau": 7175, "dau_trend_pct": 1.38, "cohorts": [{"name": "D1 New Players", "size": 10, "retention_trend": "Low acquisition", "action_needed": true}], "anomalies": [{"metric": "D1 New Acquisition", "severity": "warning", "description": "Only 10 new D1 players"}], "data_quality_notes": "3 days lag"}`;
+      const result = extractJsonFromText(text);
+      expect(result).toBeDefined();
+      expect(result).toHaveProperty("executive_summary");
+      expect(result).toHaveProperty("dau", 7175);
+      expect((result as Record<string, unknown>).cohorts).toHaveLength(1);
+    });
   });
 
   describe("failure cases", () => {

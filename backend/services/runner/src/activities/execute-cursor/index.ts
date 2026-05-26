@@ -753,6 +753,11 @@ async function executeCursorInner(
  * Extract structured data from an agent's free-text response using an
  * economy-tier LLM with withStructuredOutput (function-calling).
  * Guarantees schema-conformant JSON output via the API's tool-use mechanism.
+ *
+ * Provider-aware: resolves the economy model via the registry, infers its
+ * provider (anthropic / openai), and constructs the correct LangChain client
+ * with the matching proxy endpoint. Follows the same pattern as
+ * call-llm.ts constructModel().
  */
 async function extractStructuredOutput(
   agentResponse: string,
@@ -761,30 +766,38 @@ async function extractStructuredOutput(
   primaryModel: string,
 ): Promise<unknown | null> {
   const { ChatOpenAI } = await import("@langchain/openai");
-  const { z } = await import("zod");
-  const { resolveProxyBaseUrl, buildProxyHeaders } = await import("../../shared/llm-proxy.js");
+  const { ChatAnthropic } = await import("@langchain/anthropic");
+  const { inferProvider, resolveProxyBaseUrl, buildProxyHeaders } = await import("../../shared/llm-proxy.js");
   const { getEconomyModel } = await import("../../shared/model-registry.js");
 
   const extractionModel = await getEconomyModel(primaryModel);
+  const provider = inferProvider(extractionModel);
 
   const proxyEndpoint = config.proxyEndpoint ?? config.stigmerBackendEndpoint;
-  const baseUrl = resolveProxyBaseUrl(proxyEndpoint, "openai");
+  const baseUrl = resolveProxyBaseUrl(proxyEndpoint, provider);
   const headers = config.stigmerToken
     ? buildProxyHeaders(config.stigmerToken, {})
     : {};
 
-  const apiKey = config.stigmerToken ?? process.env.OPENAI_API_KEY ?? "proxy-managed";
+  const apiKey = provider === "openai"
+    ? (config.stigmerToken ?? process.env.OPENAI_API_KEY ?? "proxy-managed")
+    : (config.stigmerToken ?? process.env.ANTHROPIC_API_KEY ?? "proxy-managed");
 
-  const llm = new ChatOpenAI({
-    model: extractionModel,
-    apiKey,
-    temperature: 0,
-    maxTokens: 4096,
-    configuration: {
-      baseURL: baseUrl,
-      defaultHeaders: headers,
-    },
-  });
+  const llm = provider === "openai"
+    ? new ChatOpenAI({
+        model: extractionModel,
+        apiKey,
+        temperature: 0,
+        maxTokens: 4096,
+        configuration: { baseURL: baseUrl, defaultHeaders: headers },
+      })
+    : new ChatAnthropic({
+        model: extractionModel,
+        apiKey,
+        temperature: 0,
+        maxTokens: 4096,
+        clientOptions: { baseURL: baseUrl, defaultHeaders: headers },
+      });
 
   const zodSchema = jsonSchemaToZod(schema);
   const structured = llm.withStructuredOutput(zodSchema);
