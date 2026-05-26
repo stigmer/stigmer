@@ -76,9 +76,9 @@ When starting a new session:
 
 **Created**: 2026-05-25
 **Revised**: 2026-05-26
-**Current Phase**: Phase 2 COMPLETE → Phase 3 next
-**Status**: V3StatusBuilder + V3ProtocolNormalizer + streaming orchestration parity implemented. 824 tests pass (+106 new). v3 path now produces live AgentExecutionStatus with messages, usage, tools, and terminal states. Ready for Phase 3 (structured output rollout).
-**Last Session**: 2026-05-26 (Session 7) -- Phase 2 implementation
+**Current Phase**: Phase 3 COMPLETE → Phase 5 next (Phase 4 absorbed)
+**Status**: v3 is now the default streaming protocol. Structured output pipeline fully wired: `run.output.structuredResponse` flows into both `initialStatus.structuredOutput` (gRPC) and `slim.structured` (Temporal). Full integration test suite passes. v2 preserved as explicit escape hatch via `LANGGRAPH_STREAM_EVENTS_VERSION=v2`.
+**Last Session**: 2026-05-26 (Session 8) -- Phase 3 implementation
 **Latest Checkpoint**: `checkpoints/CP04_v3_hypothesis_validation.md`
 
 ## Session Progress
@@ -150,6 +150,15 @@ When starting a new session:
 - 824 tests pass (+106 new), 0 v2 regressions, 10 pre-existing failures in index.test.ts unchanged
 - CP04 failures fixed: messages, usage, final_text. Deferred: structuredOutput on proto (Phase 3), subAgentExecutions tree (Phase 5)
 
+### Session 8 (2026-05-26)
+- **Phase 3 COMPLETE** — v3 default + structured output pipeline wired
+- Architecture decision: v3 is the default streaming protocol, v2 is the explicit escape hatch (not the other way around). This absorbed Phase 4 entirely.
+- Flipped default in `setup.ts`: `LANGGRAPH_STREAM_EVENTS_VERSION` now defaults to `"v3"`, falls back to `"v2"` only if explicitly set
+- Wired `structuredResponse` from `run.output` into `initialStatus.structuredOutput` (protobuf Struct) before `persistStatus()` — both pipeline channels now receive structured output atomically
+- Removed dead v2 structured output warning; added defensive type-check warning
+- All 824 unit tests pass (no regressions), 144 v3-specific tests pass, full integration suite passes (370s, 0 failures)
+- Net code delta: -15 lines (removed conditional complexity, dead branches)
+
 ## Migration Phases Overview
 
 | Phase | Name | Sessions | Status |
@@ -157,8 +166,8 @@ When starting a new session:
 | 0 | Contract Freeze (golden v2 runs) | 2 | **COMPLETE** (deferred items resolved in Session 4) |
 | 1 | v3 Event Recorder (feature-flagged, recording only) | 1 | **COMPLETE + VALIDATED** (Session 5-6) |
 | 2 | V3StatusBuilder + Protocol Normalizer | 1 | **COMPLETE** (Session 7) |
-| 3 | Structured Output Path (first user-visible v3 feature) | 1-2 | Pending |
-| 4 | Full Streaming Parity | 2-3 | Pending |
+| 3 | v3 Default + Structured Output Pipeline | 1 | **COMPLETE** (Session 8) |
+| ~~4~~ | ~~Full Streaming Parity~~ | — | **ABSORBED** into Phase 3 (v3 is default for all runs) |
 | 5 | Subagent UX Upgrade | 1-2 | Pending |
 | 6 | Custom Stigmer Stream Transformers | Future | Pending |
 
@@ -180,8 +189,8 @@ When starting a new session:
 - Collect `.v2-events.json` files as development reference for Phase 2
 
 ## Next Steps
-1. **Start Phase 3**: Wire `structuredResponse` from `run.output` into `initialStatus.structuredOutput` before `persistStatus()` in `index.ts`. Enable v3 when `responseFormat` is present.
-2. **Phase 3 testing**: Run structured output integration tests with v3 enabled — `TestAgentExecution_StructuredOutputPipeline` native subtests should pass
+1. **Start Phase 5**: Consume `run.subagents` to create subagent cards in `AgentExecutionStatus` — expose delegation tree, per-subagent tool calls, and nested outputs
+2. **E2E structured output validation**: Run `TestAgentExecution_StructuredOutputPipeline` with `ANTHROPIC_API_KEY` set to confirm `structured_output` field populates via gRPC query
 3. **Collect golden run corpus** (optional): Run offline tests with `V2_EVENT_RECORD_DIR` for future regression comparison
 
 ## Critical Reminders (from Deep Research + Validation)
@@ -195,7 +204,7 @@ When starting a new session:
 - Watch for multiple `@langchain/core` copies in dependency tree
 - **Event type is at `data.event`** (not `data.type` as research report suggested) -- e.g., `data.event === "message-start"` not `data.type === "message-start"`
 - **`structuredResponse` requires provider-native structured output** -- mock LLM won't produce it (no `responseFormat` support)
-- **Pipeline gap**: `structuredResponse` must be set on `initialStatus.structuredOutput` before `persistStatus()` (currently only in `slim.structured`)
+- ~~**Pipeline gap**: `structuredResponse` must be set on `initialStatus.structuredOutput` before `persistStatus()` (currently only in `slim.structured`)~~ — **RESOLVED** (Session 8)
 
 ## Quick Commands
 
