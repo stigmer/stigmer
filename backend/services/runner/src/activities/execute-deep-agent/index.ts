@@ -121,6 +121,7 @@ export function createDeepAgentActivities(config: Config) {
             toolServerMap: setup.toolServerMap,
             autoApproveAll: setup.autoApproveAll,
           },
+          streamVersion: setup.streamVersion,
         });
 
         await processPostStream({
@@ -197,14 +198,27 @@ export function createDeepAgentActivities(config: Config) {
         let finalText: string | undefined;
 
         if (setup.hasStructuredOutput) {
-          // Native path structured output requires v3 streaming migration.
-          // The deepagents `structuredResponse` is an UntrackedValue that is
-          // inaccessible via v2 streamEvents() and stripped from checkpoints.
-          // See: _projects/2026-05/YYYYMMDD.NN.v3-streaming-migration/
-          console.log(
-            `[ExecuteDeepAgent] Structured output requested but not available via v2 streaming ` +
-            `for execution ${executionId}. Use Cursor harness for structured output until v3 migration.`,
-          );
+          if (result.runOutput) {
+            const sr = result.runOutput.structuredResponse;
+            if (sr !== undefined) {
+              structuredOutput = sr;
+              console.log(
+                `[ExecuteDeepAgent] Structured output extracted from v3 run.output ` +
+                `for execution ${executionId}`,
+              );
+            } else {
+              console.warn(
+                `[ExecuteDeepAgent] v3 run.output resolved but structuredResponse absent ` +
+                `for execution ${executionId}. ` +
+                `Keys: [${Object.keys(result.runOutput).join(", ")}]`,
+              );
+            }
+          } else if (setup.streamVersion === "v2") {
+            console.log(
+              `[ExecuteDeepAgent] Structured output requested but not available via v2 streaming ` +
+              `for execution ${executionId}. Use v3 streaming or Cursor harness.`,
+            );
+          }
         }
 
         // Extract final AI message text
