@@ -87,6 +87,7 @@ export interface SetupResult {
   readonly toolServerMap: ReadonlyMap<string, string>;
   readonly autoApproveAll: boolean;
   readonly hasStructuredOutput: boolean;
+  readonly streamVersion: "v2" | "v3";
 }
 
 export interface SetupDependencies {
@@ -381,10 +382,13 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       configurable: { thread_id: threadId },
     };
 
+    const streamVersion: "v2" | "v3" =
+      process.env.LANGGRAPH_STREAM_EVENTS_VERSION === "v3" ? "v3" : "v2";
+
     console.log(
       `[setup] Complete: model=${modelName}, ` +
       `tools=${tools.length}, middleware=${middleware.length}, ` +
-      `thread_id=${threadId}`,
+      `thread_id=${threadId}, streamVersion=${streamVersion}`,
     );
 
     return {
@@ -406,6 +410,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       toolServerMap,
       autoApproveAll,
       hasStructuredOutput: !!outputSchema,
+      streamVersion,
     };
   } catch (err) {
     if (mcpConnection) {

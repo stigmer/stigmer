@@ -467,4 +467,42 @@ describe("streamExecution", () => {
       expect(result.pendingPublishPromises).toHaveLength(1);
     });
   });
+
+  describe("version routing", () => {
+    it("uses v2 path when streamVersion is undefined", async () => {
+      const result = await streamExecution(baseDeps({ streamVersion: undefined }));
+      expect(result.eventsProcessed).toBe(2);
+    });
+
+    it("uses v2 path when streamVersion is 'v2'", async () => {
+      const result = await streamExecution(baseDeps({ streamVersion: "v2" }));
+      expect(result.eventsProcessed).toBe(2);
+    });
+
+    it("routes to v3 path when streamVersion is 'v3'", async () => {
+      const v3Events = [
+        { type: "event", seq: 0, method: "messages", params: { namespace: [], timestamp: Date.now(), data: {} } },
+      ];
+      const v3Run = {
+        [Symbol.asyncIterator]: async function* () { for (const e of v3Events) yield e; },
+        output: Promise.resolve({ messages: [], structuredResponse: { ok: true } }),
+        abort: vi.fn(),
+        signal: new AbortController().signal,
+      };
+      const v3Graph = {
+        streamEvents: vi.fn().mockResolvedValue(v3Run),
+      };
+
+      const result = await streamExecution(baseDeps({
+        agentGraph: v3Graph as any,
+        streamVersion: "v3",
+      }));
+
+      expect(result.eventsProcessed).toBe(1);
+      expect(result.runOutput?.structuredResponse).toEqual({ ok: true });
+      expect(v3Graph.streamEvents).toHaveBeenCalledTimes(1);
+      const [, config] = v3Graph.streamEvents.mock.calls[0];
+      expect(config.version).toBe("v3");
+    });
+  });
 });

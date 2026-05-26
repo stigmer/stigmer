@@ -76,10 +76,10 @@ When starting a new session:
 
 **Created**: 2026-05-25
 **Revised**: 2026-05-26
-**Current Phase**: Phase 0 COMPLETE (all deferred items resolved) → Phase 1 next
-**Status**: Phase 0 fully complete; artifact publish and writeback blockers fixed
-**Last Session**: 2026-05-26 (Session 4) -- Phase 0 deferred item fixes
-**Latest Checkpoint**: `checkpoints/CP02_phase0_deferred_fixes.md`
+**Current Phase**: Phase 1 COMPLETE → Phase 2 next
+**Status**: v3 event recorder implemented and tested; ready to validate with real runs
+**Last Session**: 2026-05-26 (Session 5) -- Phase 1 v3 event recorder
+**Latest Checkpoint**: `checkpoints/CP03_phase1_v3_event_recorder.md`
 
 ## Session Progress
 
@@ -117,12 +117,21 @@ When starting a new session:
 - 2 new disk-backed `InlinePublisher` tests, 6 new credential configuration tests
 - All 79 affected tests pass (45 subagent-transformer, 11 inline-publisher, 23 git-source)
 
+### Session 5 (2026-05-26)
+- **Phase 1 v3 Event Recorder implemented** (see checkpoint CP03 for full details)
+- Created `streaming-v3.ts`: raw protocol loop, independent `setInterval` heartbeat, caller-owned `AbortController`, `run.output` extraction with 30s timeout, artifact publish on `tool-finished`
+- Created `v3-event-recorder.ts`: records `ProtocolEvent` to disk, gated by `V3_EVENT_RECORD_DIR`
+- Version routing in `streaming.ts`: `deps.streamVersion === "v3"` delegates to v3 path
+- `setup.ts` reads `LANGGRAPH_STREAM_EVENTS_VERSION`, `index.ts` extracts `structuredResponse` from `run.output`
+- Verified actual node_modules `.d.ts` types: confirmed two-arg v3 signature, `Promise<GraphRunStream>` return, `signal` in options
+- 19 new streaming-v3 tests, 10 new recorder tests, 3 new routing tests — all 358 tests pass
+
 ## Migration Phases Overview
 
 | Phase | Name | Sessions | Status |
 |-------|------|----------|--------|
 | 0 | Contract Freeze (golden v2 runs) | 2 | **COMPLETE** (deferred items resolved in Session 4) |
-| 1 | v3 Event Recorder (feature-flagged, recording only) | 1 | **NEXT** |
+| 1 | v3 Event Recorder (feature-flagged, recording only) | 1 | **COMPLETE** (Session 5) |
 | 2 | V3StatusBuilder + Protocol Normalizer | 2-3 | Pending |
 | 3 | Structured Output Path (first user-visible v3 feature) | 1-2 | Pending |
 | 4 | Full Streaming Parity | 2-3 | Pending |
@@ -147,9 +156,9 @@ When starting a new session:
 - Collect `.v2-events.json` files as development reference for Phase 2
 
 ## Next Steps
-1. **Collect golden run corpus**: Run offline tests with `V2_EVENT_RECORD_DIR` to capture raw v2 events
-2. **Start Phase 1**: Add `LANGGRAPH_STREAM_EVENTS_VERSION=v2|v3` env var, implement v3 recording path
-3. **Confirm `run.output.structuredResponse`** on a real deepagents run with exact locked versions
+1. **Validate hypothesis**: Run offline tests with `LANGGRAPH_STREAM_EVENTS_VERSION=v3` + `V3_EVENT_RECORD_DIR` to confirm `run.output.structuredResponse` is accessible
+2. **Start Phase 2**: Build `StigmerRunEvent` discriminated union, `V3ProtocolNormalizer`, and `V3StatusBuilder`
+3. **Collect golden run corpus**: Run offline tests with `V2_EVENT_RECORD_DIR` as development reference for Phase 2
 
 ## Critical Reminders (from Deep Research)
 
