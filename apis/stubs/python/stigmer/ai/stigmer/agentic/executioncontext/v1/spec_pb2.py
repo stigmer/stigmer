@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n1ai/stigmer/agentic/executioncontext/v1/spec.proto\x12&ai.stigmer.agentic.executioncontext.v1\x1a\x1b\x62uf/validate/validate.proto\"\x8f\x02\n\x14\x45xecutionContextSpec\x12*\n\x0c\x65xecution_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x0b\x65xecutionId\x12Z\n\x04\x64\x61ta\x18\x02 \x03(\x0b\x32\x46.ai.stigmer.agentic.executioncontext.v1.ExecutionContextSpec.DataEntryR\x04\x64\x61ta\x1ao\n\tDataEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12L\n\x05value\x18\x02 \x01(\x0b\x32\x36.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x02\x38\x01\"L\n\x0e\x45xecutionValue\x12\x1d\n\x05value\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x05value\x12\x1b\n\tis_secret\x18\x02 \x01(\x08R\x08isSecretB\xf4\x01\n*com.ai.stigmer.agentic.executioncontext.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAE\xaa\x02&Ai.Stigmer.Agentic.Executioncontext.V1\xca\x02&Ai\\Stigmer\\Agentic\\Executioncontext\\V1\xe2\x02\x32\x41i\\Stigmer\\Agentic\\Executioncontext\\V1\\GPBMetadata\xea\x02*Ai::Stigmer::Agentic::Executioncontext::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n1ai/stigmer/agentic/executioncontext/v1/spec.proto\x12&ai.stigmer.agentic.executioncontext.v1\x1a\x1b\x62uf/validate/validate.proto\"\x8f\x02\n\x14\x45xecutionContextSpec\x12*\n\x0c\x65xecution_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x0b\x65xecutionId\x12Z\n\x04\x64\x61ta\x18\x02 \x03(\x0b\x32\x46.ai.stigmer.agentic.executioncontext.v1.ExecutionContextSpec.DataEntryR\x04\x64\x61ta\x1ao\n\tDataEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12L\n\x05value\x18\x02 \x01(\x0b\x32\x36.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x02\x38\x01\"C\n\x0e\x45xecutionValue\x12\x14\n\x05value\x18\x01 \x01(\tR\x05value\x12\x1b\n\tis_secret\x18\x02 \x01(\x08R\x08isSecretB\xf4\x01\n*com.ai.stigmer.agentic.executioncontext.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAE\xaa\x02&Ai.Stigmer.Agentic.Executioncontext.V1\xca\x02&Ai\\Stigmer\\Agentic\\Executioncontext\\V1\xe2\x02\x32\x41i\\Stigmer\\Agentic\\Executioncontext\\V1\\GPBMetadata\xea\x02*Ai::Stigmer::Agentic::Executioncontext::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -37,12 +37,10 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_EXECUTIONCONTEXTSPEC_DATAENTRY']._serialized_options = b'8\001'
   _globals['_EXECUTIONCONTEXTSPEC'].fields_by_name['execution_id']._loaded_options = None
   _globals['_EXECUTIONCONTEXTSPEC'].fields_by_name['execution_id']._serialized_options = b'\272H\004r\002\020\001'
-  _globals['_EXECUTIONVALUE'].fields_by_name['value']._loaded_options = None
-  _globals['_EXECUTIONVALUE'].fields_by_name['value']._serialized_options = b'\272H\004r\002\020\001'
   _globals['_EXECUTIONCONTEXTSPEC']._serialized_start=123
   _globals['_EXECUTIONCONTEXTSPEC']._serialized_end=394
   _globals['_EXECUTIONCONTEXTSPEC_DATAENTRY']._serialized_start=283
   _globals['_EXECUTIONCONTEXTSPEC_DATAENTRY']._serialized_end=394
   _globals['_EXECUTIONVALUE']._serialized_start=396
-  _globals['_EXECUTIONVALUE']._serialized_end=472
+  _globals['_EXECUTIONVALUE']._serialized_end=463
 # @@protoc_insertion_point(module_scope)
