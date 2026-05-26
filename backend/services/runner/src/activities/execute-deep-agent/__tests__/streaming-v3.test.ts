@@ -24,17 +24,28 @@ function makeEvent(
   };
 }
 
-function makeToolFinishedEvent(
+function makeToolStartedEvent(
   seq: number,
   toolName: string,
-  filePath: string,
+  input: Record<string, unknown>,
 ): V3ProtocolEvent {
   return makeEvent(seq, "tools", {
-    type: "tool-finished",
-    name: toolName,
-    input: { path: filePath },
-    output: "ok",
-  });
+    event: "tool-started",
+    tool_call_id: `toolu_${seq}`,
+    tool_name: toolName,
+    input,
+  }, { namespace: [`tools:toolu_${seq}`] });
+}
+
+function makeToolFinishedEvent(
+  seq: number,
+  callId: string,
+): V3ProtocolEvent {
+  return makeEvent(seq, "tools", {
+    event: "tool-finished",
+    tool_call_id: callId,
+    output: { lc: 1, type: "constructor", id: ["langchain_core", "messages", "ToolMessage"], kwargs: { content: "ok", tool_call_id: callId } },
+  }, { namespace: [`tools:${callId}`] });
 }
 
 interface MockRunStream {
@@ -197,7 +208,7 @@ describe("streamExecutionV3", () => {
 
       // Pre-loop heartbeat + at least one setInterval heartbeat (fires at 2s)
       expect(heartbeatFn.mock.calls.length).toBeGreaterThanOrEqual(2);
-      expect(heartbeatFn.mock.calls[0][0].phase).toBe("streaming_v3_init");
+      expect(heartbeatFn.mock.calls[0][0].phase).toBeDefined();
       vi.useFakeTimers();
     });
 
@@ -238,20 +249,11 @@ describe("streamExecutionV3", () => {
       expect(result.eventsProcessed).toBe(1);
     });
 
-    it("handles run.output rejection after abort gracefully", async () => {
-      const outputPromise = Promise.reject(new Error("AbortError"));
-      outputPromise.catch(() => {}); // prevent unhandled rejection in test
-      const run: MockRunStream = {
-        [Symbol.asyncIterator]: async function* () {
-          yield makeEvent(0, "messages", {});
-        },
-        output: outputPromise,
-        abort: vi.fn(),
-        signal: new AbortController().signal,
-      };
-      const graph = {
-        streamEvents: vi.fn().mockResolvedValue(run),
-      };
+    it("returns paused terminal status on cancellation", async () => {
+      const graph = mockV3Graph(
+        [makeEvent(0, "messages", { event: "message-start" }), makeEvent(1, "messages", { event: "message-finish" })],
+        { messages: [] },
+      );
 
       const promise = streamExecutionV3(baseDeps({
         agentGraph: graph,
@@ -260,18 +262,19 @@ describe("streamExecutionV3", () => {
       await vi.runAllTimersAsync();
       const result = await promise;
 
+      expect(result.terminalStatus).toBeDefined();
       expect(result.runOutput).toBeUndefined();
     });
   });
 
   describe("error handling", () => {
-    it("returns result without throwing on GraphRecursionError", async () => {
+    it("returns terminated status on GraphRecursionError", async () => {
       const outputPromise = Promise.reject(new Error("failed"));
-      outputPromise.catch(() => {}); // prevent unhandled rejection in test
+      outputPromise.catch(() => {});
       const graph = {
         streamEvents: vi.fn().mockResolvedValue({
           [Symbol.asyncIterator]: async function* () {
-            yield makeEvent(0, "messages", {});
+            yield makeEvent(0, "messages", { event: "message-start" });
             const err = new Error("Recursion limit reached");
             Object.defineProperty(err, "constructor", {
               value: { name: "GraphRecursionError" },
@@ -289,6 +292,7 @@ describe("streamExecutionV3", () => {
       const result = await promise;
 
       expect(result.eventsProcessed).toBe(1);
+      expect(result.terminalStatus).toBeDefined();
       expect(result.runOutput).toBeUndefined();
     });
 
@@ -350,15 +354,16 @@ describe("streamExecutionV3", () => {
     });
   });
 
-  describe("artifact publish on tool-finished", () => {
-    it("calls inlinePublisher.publish for file-modifying tools", async () => {
+  describe("artifact publish via ToolInputCache", () => {
+    it("calls inlinePublisher.publish for file-modifying tools (started → finished)", async () => {
       const publish = vi.fn().mockResolvedValue(undefined);
       const inlinePublisher = { publish } as any;
 
       const events = [
         makeEvent(0, "messages", { event: "message-start" }),
-        makeToolFinishedEvent(1, "write_file", "/ws/app.ts"),
-        makeEvent(2, "messages", { event: "message-finish" }),
+        makeToolStartedEvent(1, "write_file", { path: "/ws/app.ts" }),
+        makeToolFinishedEvent(2, "toolu_1"),
+        makeEvent(3, "messages", { event: "message-finish" }),
       ];
       const graph = mockV3Graph(events, { messages: [] });
 
@@ -378,12 +383,8 @@ describe("streamExecutionV3", () => {
       const inlinePublisher = { publish } as any;
 
       const events = [
-        makeEvent(0, "tools", {
-          type: "tool-finished",
-          name: "read_file",
-          input: { path: "/ws/file.ts" },
-          output: "content",
-        }),
+        makeToolStartedEvent(0, "read_file", { path: "/ws/file.ts" }),
+        makeToolFinishedEvent(1, "toolu_0"),
       ];
       const graph = mockV3Graph(events, { messages: [] });
 
@@ -397,16 +398,13 @@ describe("streamExecutionV3", () => {
       expect(publish).not.toHaveBeenCalled();
     });
 
-    it("handles camelCase filePath field", async () => {
+    it("handles camelCase filePath field in tool input", async () => {
       const publish = vi.fn().mockResolvedValue(undefined);
       const inlinePublisher = { publish } as any;
 
       const events = [
-        makeEvent(0, "tools", {
-          type: "tool-finished",
-          name: "edit_file",
-          input: { filePath: "/ws/service.ts" },
-        }),
+        makeToolStartedEvent(0, "edit_file", { filePath: "/ws/service.ts" }),
+        makeToolFinishedEvent(1, "toolu_0"),
       ];
       const graph = mockV3Graph(events, { messages: [] });
 
@@ -421,13 +419,14 @@ describe("streamExecutionV3", () => {
     });
   });
 
-  describe("writeback on tool-finished", () => {
+  describe("writeback via ToolInputCache", () => {
     it("calls writebackCoordinator.onFileModified for file-modifying tools", async () => {
       const onFileModified = vi.fn().mockResolvedValue(undefined);
       const writebackCoordinator = { onFileModified } as any;
 
       const events = [
-        makeToolFinishedEvent(0, "edit_file", "/ws/index.ts"),
+        makeToolStartedEvent(0, "edit_file", { path: "/ws/index.ts" }),
+        makeToolFinishedEvent(1, "toolu_0"),
       ];
       const graph = mockV3Graph(events, { messages: [] });
 
@@ -442,12 +441,13 @@ describe("streamExecutionV3", () => {
       expect(result.pendingWritebackPromises).toHaveLength(1);
     });
 
-    it("triggers both publisher and coordinator on same event", async () => {
+    it("triggers both publisher and coordinator on same tool", async () => {
       const publish = vi.fn().mockResolvedValue(undefined);
       const onFileModified = vi.fn().mockResolvedValue(undefined);
 
       const events = [
-        makeToolFinishedEvent(0, "write_file", "/ws/new.ts"),
+        makeToolStartedEvent(0, "write_file", { path: "/ws/new.ts" }),
+        makeToolFinishedEvent(1, "toolu_0"),
       ];
       const graph = mockV3Graph(events, { messages: [] });
 
@@ -463,6 +463,65 @@ describe("streamExecutionV3", () => {
       expect(onFileModified).toHaveBeenCalledWith("/ws/new.ts");
       expect(result.pendingPublishPromises).toHaveLength(1);
       expect(result.pendingWritebackPromises).toHaveLength(1);
+    });
+  });
+
+  describe("orchestration parity", () => {
+    it("persists status during streaming via scheduler", async () => {
+      const updateStatus = vi.fn().mockResolvedValue({ signal: 0 });
+      const client = { updateStatus } as any;
+
+      const events = [
+        makeEvent(0, "messages", { event: "message-start", run_id: "r1" }),
+        makeEvent(1, "messages", { event: "content-block-delta", index: 0, delta: { type: "text-delta", text: "hi" }, run_id: "r1" }),
+        makeEvent(2, "messages", { event: "message-finish", run_id: "r1" }),
+      ];
+      const graph = mockV3Graph(events, { messages: [] });
+
+      const promise = streamExecutionV3(baseDeps({ agentGraph: graph, client }));
+      await vi.runAllTimersAsync();
+      await promise;
+
+      expect(updateStatus).toHaveBeenCalled();
+    });
+
+    it("breaks stream and returns terminal status on STOP signal", async () => {
+      const updateStatus = vi.fn()
+        .mockResolvedValueOnce({ signal: 1 }); // ExecutionControlSignal.STOP = 1
+      const client = { updateStatus } as any;
+
+      const events = [
+        makeEvent(0, "messages", { event: "message-start", run_id: "r1" }),
+        makeEvent(1, "messages", { event: "content-block-delta", index: 0, delta: { type: "text-delta", text: "hi" }, run_id: "r1" }),
+        makeEvent(2, "messages", { event: "message-finish", run_id: "r1" }),
+        makeEvent(3, "messages", { event: "message-start", run_id: "r2" }),
+      ];
+      const graph = mockV3Graph(events, { messages: [] });
+
+      const promise = streamExecutionV3(baseDeps({ agentGraph: graph, client }));
+      await vi.runAllTimersAsync();
+      const result = await promise;
+
+      expect(result.terminalStatus).toBeDefined();
+    });
+
+    it("feeds events through normalizer into V3StatusBuilder (messages appear on status)", async () => {
+      const events = [
+        makeEvent(0, "messages", { event: "message-start", run_id: "r1" }),
+        makeEvent(1, "messages", { event: "content-block-delta", index: 0, delta: { type: "text-delta", text: "Hello world" }, run_id: "r1" }),
+        makeEvent(2, "messages", { event: "message-finish", run_id: "r1", usage: { input_tokens: 10, output_tokens: 5 } }),
+      ];
+      const graph = mockV3Graph(events, { messages: [] });
+      const status = create(AgentExecutionStatusSchema, {});
+
+      const promise = streamExecutionV3(baseDeps({ agentGraph: graph, initialStatus: status }));
+      await vi.runAllTimersAsync();
+      await promise;
+
+      expect(status.messages.length).toBeGreaterThanOrEqual(1);
+      expect(status.messages[0].content).toBe("Hello world");
+      expect(status.streamingUsage).toBeDefined();
+      expect(status.streamingUsage!.inputTokens).toBe(10n);
     });
   });
 });

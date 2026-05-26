@@ -696,9 +696,13 @@ function SessionSidebar() {
 
 Usage hook for session-level cost and token aggregation.
 
-Calls `getSessionUsageReport` to fetch real usage data from the
-billing domain. Returns zeros while loading or when no session is
-available.
+Merges two data sources:
+- Server-side billing report (authoritative, from LlmCallUsageRecord)
+- Streaming usage from execution status (live, DISPLAY_ONLY trust)
+
+Billing takes precedence for settled costs. Streaming supplements with
+live token/cost accrual from in-flight executions (especially Cursor
+harness where billing records are written post-execution).
 
 **Signature**
 
@@ -708,7 +712,7 @@ function useSessionUsage(executions: readonly AgentExecution[]): UseSessionUsage
 
 <TypeTable
   type={{
-    executions: { type: "readonly AgentExecution[]", description: "All executions for a session (used to derive session ID).", required: true },
+    executions: { type: "readonly AgentExecution[]", description: "All executions for a session (completed + active).", required: true },
   }}
 />
 

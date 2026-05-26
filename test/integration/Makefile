@@ -121,7 +121,7 @@ test-providers: ensure-service-jar ## Run provider-backed integration tests (aut
 		$(RERUN_FLAGS) \
 		--rerun-fails-report $(PROVIDER_OUTPUT_DIR)/rerun-report.txt \
 		--packages ./... \
-		-- -tags integration -timeout 900s -count=1 $(call quarantine_skip_args) -run 'TestWorkflow(LlmCall|AgentCall|CursorCall|Architect|Eval)|TestAgentExecution'
+		-- -tags integration -timeout 900s -count=1 $(call quarantine_skip_args) -run 'TestWorkflow(LlmCall|AgentCall|CursorCall|Architect|Eval|_StructuredOutput)|TestAgentExecution'
 
 .PHONY: test-canary
 test-canary: ensure-service-jar ## Run canary tests (live provider health checks, auto-fetches API keys)

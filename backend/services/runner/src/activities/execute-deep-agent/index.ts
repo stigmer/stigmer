@@ -86,14 +86,14 @@ export function createDeepAgentActivities(config: Config) {
         const inlinePublisher = new InlinePublisher({
           workspaceBackend: setup.workspaceBackend,
           artifactStorage: setup.artifactStorage,
-          statusBuilder,
+          statusWriter: statusBuilder,
           executionId,
         });
 
         const workspaceEntries = setup.session.spec?.workspaceEntries ?? [];
         const writebackCoordinator = setup.provisionResults.length > 0
           ? new WriteBackCoordinator({
-              statusBuilder,
+              statusWriter: statusBuilder,
               executionId,
               provisionResults: setup.provisionResults,
               workspaceEntries: workspaceEntries as any,

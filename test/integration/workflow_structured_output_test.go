@@ -244,6 +244,12 @@ func buildStructuredOutputWorkflow(t *testing.T, name, agentSlug, harnessName st
 			Org:  "test-org",
 		},
 		Spec: &workflowv1.WorkflowSpec{
+			Document: &workflowv1.WorkflowDocument{
+				Dsl:       "1.0.0",
+				Namespace: "test-org",
+				Name:      name,
+				Version:   "1.0.0",
+			},
 			Tasks: []*workflowv1.WorkflowTask{
 				{
 					Name:       "analyze",
@@ -277,6 +283,12 @@ func buildStrictSchemaWorkflow(t *testing.T, name, agentSlug, harnessName string
 			Org:  "test-org",
 		},
 		Spec: &workflowv1.WorkflowSpec{
+			Document: &workflowv1.WorkflowDocument{
+				Dsl:       "1.0.0",
+				Namespace: "test-org",
+				Name:      name,
+				Version:   "1.0.0",
+			},
 			Tasks: []*workflowv1.WorkflowTask{
 				{
 					Name:       "strict_analyze",

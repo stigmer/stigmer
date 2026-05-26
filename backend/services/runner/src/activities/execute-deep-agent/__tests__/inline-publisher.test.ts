@@ -67,7 +67,7 @@ describe("InlinePublisher", () => {
     publisher = new InlinePublisher({
       workspaceBackend: backend,
       artifactStorage: storage,
-      statusBuilder: sb,
+      statusWriter: sb,
       executionId: "exec-123",
     });
   });
@@ -129,7 +129,7 @@ describe("InlinePublisher", () => {
     const pub = new InlinePublisher({
       workspaceBackend: failBackend,
       artifactStorage: storage,
-      statusBuilder: sb,
+      statusWriter: sb,
       executionId: "exec-err",
     });
 
@@ -169,7 +169,7 @@ describe("InlinePublisher", () => {
     const pub = new InlinePublisher({
       workspaceBackend: jsonBackend,
       artifactStorage: storage,
-      statusBuilder: sb,
+      statusWriter: sb,
       executionId: "exec-ct",
     });
 
@@ -196,7 +196,7 @@ describe("InlinePublisher with LocalWorkspaceBackend (disk-backed)", () => {
     const publisher = new InlinePublisher({
       workspaceBackend: backend,
       artifactStorage: storage,
-      statusBuilder: sb,
+      statusWriter: sb,
       executionId: "exec-disk",
     });
 
@@ -224,7 +224,7 @@ describe("InlinePublisher with LocalWorkspaceBackend (disk-backed)", () => {
     const publisher = new InlinePublisher({
       workspaceBackend: backend,
       artifactStorage: storage,
-      statusBuilder: sb,
+      statusWriter: sb,
       executionId: "exec-miss",
     });
 

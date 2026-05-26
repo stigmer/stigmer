@@ -97,7 +97,7 @@ describe("WriteBackCoordinator", () => {
 
   it("filters out non-git workspace entries", () => {
     const coord = new WriteBackCoordinator({
-      statusBuilder: sb,
+      statusWriter: sb,
       executionId: "exec-123",
       provisionResults: [makeProvisionResult({ sourceType: SourceType.LOCAL_PATH })],
       workspaceEntries: [makeWorkspaceEntry("my-app")],
@@ -109,7 +109,7 @@ describe("WriteBackCoordinator", () => {
 
   it("filters out entries without git credentials", () => {
     const coord = new WriteBackCoordinator({
-      statusBuilder: sb,
+      statusWriter: sb,
       executionId: "exec-123",
       provisionResults: [makeProvisionResult({
         gitMetadata: {
@@ -128,7 +128,7 @@ describe("WriteBackCoordinator", () => {
 
   it("accepts entries with UNSPECIFIED write-back mode (platform decides)", () => {
     const coord = new WriteBackCoordinator({
-      statusBuilder: sb,
+      statusWriter: sb,
       executionId: "exec-123",
       provisionResults: [makeProvisionResult()],
       workspaceEntries: [makeWorkspaceEntry("my-app", GitWriteBackMode.GIT_WRITE_BACK_MODE_UNSPECIFIED)],
@@ -141,7 +141,7 @@ describe("WriteBackCoordinator", () => {
   it("performs full incremental cycle: branch -> commit -> push -> PR", async () => {
     const backend = mockWorkspaceBackend();
     const coord = new WriteBackCoordinator({
-      statusBuilder: sb,
+      statusWriter: sb,
       executionId: "exec-12345678rest",
       provisionResults: [makeProvisionResult()],
       workspaceEntries: [makeWorkspaceEntry("my-app")],
@@ -174,7 +174,7 @@ describe("WriteBackCoordinator", () => {
     });
 
     const coord = new WriteBackCoordinator({
-      statusBuilder: sb,
+      statusWriter: sb,
       executionId: "exec-123",
       provisionResults: [makeProvisionResult()],
       workspaceEntries: [makeWorkspaceEntry("my-app")],
@@ -189,7 +189,7 @@ describe("WriteBackCoordinator", () => {
   it("on second call, commits to existing branch without re-creating", async () => {
     const backend = mockWorkspaceBackend();
     const coord = new WriteBackCoordinator({
-      statusBuilder: sb,
+      statusWriter: sb,
       executionId: "exec-12345678rest",
       provisionResults: [makeProvisionResult()],
       workspaceEntries: [makeWorkspaceEntry("my-app")],
@@ -223,7 +223,7 @@ describe("WriteBackCoordinator", () => {
     });
 
     const coord = new WriteBackCoordinator({
-      statusBuilder: sb,
+      statusWriter: sb,
       executionId: "exec-123",
       provisionResults: [makeProvisionResult()],
       workspaceEntries: [makeWorkspaceEntry("my-app")],
@@ -242,7 +242,7 @@ describe("WriteBackCoordinator", () => {
   it("finalize catches remaining uncommitted changes", async () => {
     const backend = mockWorkspaceBackend();
     const coord = new WriteBackCoordinator({
-      statusBuilder: sb,
+      statusWriter: sb,
       executionId: "exec-12345678rest",
       provisionResults: [makeProvisionResult()],
       workspaceEntries: [makeWorkspaceEntry("my-app")],
@@ -260,7 +260,7 @@ describe("WriteBackCoordinator", () => {
   it("resolves path to single entry without prefix matching", async () => {
     const backend = mockWorkspaceBackend();
     const coord = new WriteBackCoordinator({
-      statusBuilder: sb,
+      statusWriter: sb,
       executionId: "exec-12345678rest",
       provisionResults: [makeProvisionResult()],
       workspaceEntries: [makeWorkspaceEntry("my-app")],
@@ -275,7 +275,7 @@ describe("WriteBackCoordinator", () => {
   it("resolves path to correct entry in multi-entry workspace", async () => {
     const backend = mockWorkspaceBackend();
     const coord = new WriteBackCoordinator({
-      statusBuilder: sb,
+      statusWriter: sb,
       executionId: "exec-12345678rest",
       provisionResults: [
         makeProvisionResult({ entryName: "frontend", rootDir: "/workspace/frontend" }),
@@ -299,7 +299,7 @@ describe("WriteBackCoordinator", () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     const backend = mockWorkspaceBackend();
     const coord = new WriteBackCoordinator({
-      statusBuilder: sb,
+      statusWriter: sb,
       executionId: "exec-123",
       provisionResults: [
         makeProvisionResult({ entryName: "frontend", rootDir: "/workspace/frontend" }),
@@ -309,7 +309,7 @@ describe("WriteBackCoordinator", () => {
     });
 
     const coord2 = new WriteBackCoordinator({
-      statusBuilder: sb,
+      statusWriter: sb,
       executionId: "exec-123",
       provisionResults: [
         makeProvisionResult({ entryName: "fe", rootDir: "/workspace/fe" }),
@@ -332,7 +332,7 @@ describe("WriteBackCoordinator", () => {
 
     const backend = mockWorkspaceBackend();
     const coord = new WriteBackCoordinator({
-      statusBuilder: sb,
+      statusWriter: sb,
       executionId: "exec-12345678rest",
       provisionResults: [makeProvisionResult()],
       workspaceEntries: [makeWorkspaceEntry("my-app")],

@@ -862,10 +862,10 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * 4. Execution transitions to EXECUTION_CANCELLED phase
      * 5. Returns updated WorkflowExecution with new phase
      * Preconditions
-     * - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+     * - Execution must be in EXECUTION_PENDING, EXECUTION_IN_PROGRESS, or EXECUTION_PAUSED phase
      * - Cannot cancel already-terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
      * State Transitions
-     * - status.phase: PENDING/IN_PROGRESS → CANCELLED
+     * - status.phase: PENDING/IN_PROGRESS/PAUSED → CANCELLED
      * - status.completed_at: Set to current timestamp
      * - In-progress tasks: May complete cleanup or be interrupted
      * Idempotency
@@ -914,10 +914,10 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * 4. No cleanup callbacks or defer blocks are executed
      * 5. Returns updated WorkflowExecution with TERMINATED phase
      * Preconditions
-     * - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+     * - Execution must be in EXECUTION_PENDING, EXECUTION_IN_PROGRESS, or EXECUTION_PAUSED phase
      * - Cannot terminate already-terminal executions
      * State Transitions
-     * - status.phase: PENDING/IN_PROGRESS → TERMINATED
+     * - status.phase: PENDING/IN_PROGRESS/PAUSED → TERMINATED
      * - status.completed_at: Set to current timestamp
      * - status.error: May contain termination reason
      * - In-progress tasks: Stopped abruptly (no cleanup)
@@ -961,19 +961,31 @@ public final class WorkflowExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Recover a failed workflow execution from the last checkpoint.
-     * Resumes execution from the last successful point. Completed work is
-     * preserved - successful tasks are NOT re-executed. This enables
-     * "retry and resume" semantics without duplicating side effects.
+     * Recover a failed workflow execution.
+     * Terminates the existing (possibly stuck) Temporal orchestrator workflow,
+     * recreates the ExecutionContext with freshly resolved environment variables,
+     * and starts a brand-new Temporal workflow for the same execution ID. The
+     * workflow engine re-executes all tasks from the beginning. Individual
+     * activities may implement their own idempotency (e.g., CallAgent session
+     * reuse), but there is no task-level checkpoint resume.
      * &#64;internal
-     * Temporal Equivalent: `temporal workflow reset --workflow-id &lt;id&gt; --type LastWorkflowTask`
+     * Temporal Equivalent: Terminates the existing orchestrator workflow and
+     * starts a fresh one with the same workflow ID.
      * Behavior
      * 1. Validates execution is in FAILED phase (recoverable)
-     * 2. Identifies the last successful checkpoint in workflow history
-     * 3. Creates new Temporal run from that checkpoint via ResetWorkflow
-     * 4. Execution transitions from FAILED to IN_PROGRESS phase
-     * 5. Workflow continues from where it failed
+     * 2. Terminates the existing Temporal orchestrator workflow (handles stuck
+     *    Workflow-Task-Failed loops and already-completed workflows gracefully)
+     * 3. Recreates the ExecutionContext with freshly resolved environment
+     *    variables from the current WorkflowInstance and Workflow configuration
+     * 4. Starts a fresh Temporal orchestrator workflow for the same execution
+     * 5. Execution transitions from FAILED to IN_PROGRESS phase
      * 6. Returns updated WorkflowExecution with IN_PROGRESS phase
+     * Environment Resolution
+     * Environment variables are re-resolved from the current WorkflowInstance
+     * environment_refs and Workflow env declarations. This is desirable: if the
+     * user fixed an environment value (e.g., rotated an API key), recovery picks
+     * up the fix. Runtime env overrides (runtime_env) provided at original
+     * execution time are not preserved — they were stripped before persist.
      * Preconditions
      * - Execution must be in EXECUTION_FAILED phase
      * - TERMINATED executions cannot be recovered (intentional hard stop)
@@ -983,15 +995,14 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * - status.phase: FAILED → IN_PROGRESS
      * - status.completed_at: Cleared (execution is running again)
      * - status.error: Cleared (no longer failed)
-     * - Completed tasks: Preserved (not re-executed)
-     * - Failed tasks: Reset to pending, will be retried
+     * - All tasks: Re-executed from the beginning (activities may be idempotent)
      * Recovery vs Restart
      * | Aspect | recover | Create new execution |
      * |--------|---------|----------------------|
-     * | Completed work | Preserved | Lost (re-executed) |
-     * | Side effects | Not duplicated | May duplicate |
      * | Execution ID | Same | New ID |
-     * | Use case | Resume after fix | Start fresh |
+     * | Environment | Re-resolved (current) | From request |
+     * | Task re-execution | All tasks re-run | All tasks run |
+     * | Use case | Fix config, then retry | Start fresh |
      * Idempotency
      * If recovery already succeeded (execution is now IN_PROGRESS from a
      * previous recover call), the call succeeds as a no-op and returns
@@ -1007,7 +1018,7 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * Example Request
      * {
      *   "id": "wfx_abc123xyz456",
-     *   "reason": "Stripe API recovered, resuming payment processing"
+     *   "reason": "Fixed API key in environment, retrying"
      * }
      * Example Response
      * {
@@ -1016,11 +1027,7 @@ public final class WorkflowExecutionCommandControllerGrpc {
      *   "metadata": { "id": "wfx_abc123xyz456" },
      *   "status": {
      *     "phase": 2,  // EXECUTION_IN_PROGRESS
-     *     "started_at": "2026-02-07T10:00:00Z",
-     *     "tasks": [
-     *       { "task_id": "task-1", "status": 3 },  // COMPLETED (preserved)
-     *       { "task_id": "task-2", "status": 2 }   // IN_PROGRESS (resumed)
-     *     ]
+     *     "started_at": "2026-02-07T10:00:00Z"
      *   }
      * }
      * </pre>
@@ -1609,10 +1616,10 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * 4. Execution transitions to EXECUTION_CANCELLED phase
      * 5. Returns updated WorkflowExecution with new phase
      * Preconditions
-     * - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+     * - Execution must be in EXECUTION_PENDING, EXECUTION_IN_PROGRESS, or EXECUTION_PAUSED phase
      * - Cannot cancel already-terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
      * State Transitions
-     * - status.phase: PENDING/IN_PROGRESS → CANCELLED
+     * - status.phase: PENDING/IN_PROGRESS/PAUSED → CANCELLED
      * - status.completed_at: Set to current timestamp
      * - In-progress tasks: May complete cleanup or be interrupted
      * Idempotency
@@ -1662,10 +1669,10 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * 4. No cleanup callbacks or defer blocks are executed
      * 5. Returns updated WorkflowExecution with TERMINATED phase
      * Preconditions
-     * - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+     * - Execution must be in EXECUTION_PENDING, EXECUTION_IN_PROGRESS, or EXECUTION_PAUSED phase
      * - Cannot terminate already-terminal executions
      * State Transitions
-     * - status.phase: PENDING/IN_PROGRESS → TERMINATED
+     * - status.phase: PENDING/IN_PROGRESS/PAUSED → TERMINATED
      * - status.completed_at: Set to current timestamp
      * - status.error: May contain termination reason
      * - In-progress tasks: Stopped abruptly (no cleanup)
@@ -1710,19 +1717,31 @@ public final class WorkflowExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Recover a failed workflow execution from the last checkpoint.
-     * Resumes execution from the last successful point. Completed work is
-     * preserved - successful tasks are NOT re-executed. This enables
-     * "retry and resume" semantics without duplicating side effects.
+     * Recover a failed workflow execution.
+     * Terminates the existing (possibly stuck) Temporal orchestrator workflow,
+     * recreates the ExecutionContext with freshly resolved environment variables,
+     * and starts a brand-new Temporal workflow for the same execution ID. The
+     * workflow engine re-executes all tasks from the beginning. Individual
+     * activities may implement their own idempotency (e.g., CallAgent session
+     * reuse), but there is no task-level checkpoint resume.
      * &#64;internal
-     * Temporal Equivalent: `temporal workflow reset --workflow-id &lt;id&gt; --type LastWorkflowTask`
+     * Temporal Equivalent: Terminates the existing orchestrator workflow and
+     * starts a fresh one with the same workflow ID.
      * Behavior
      * 1. Validates execution is in FAILED phase (recoverable)
-     * 2. Identifies the last successful checkpoint in workflow history
-     * 3. Creates new Temporal run from that checkpoint via ResetWorkflow
-     * 4. Execution transitions from FAILED to IN_PROGRESS phase
-     * 5. Workflow continues from where it failed
+     * 2. Terminates the existing Temporal orchestrator workflow (handles stuck
+     *    Workflow-Task-Failed loops and already-completed workflows gracefully)
+     * 3. Recreates the ExecutionContext with freshly resolved environment
+     *    variables from the current WorkflowInstance and Workflow configuration
+     * 4. Starts a fresh Temporal orchestrator workflow for the same execution
+     * 5. Execution transitions from FAILED to IN_PROGRESS phase
      * 6. Returns updated WorkflowExecution with IN_PROGRESS phase
+     * Environment Resolution
+     * Environment variables are re-resolved from the current WorkflowInstance
+     * environment_refs and Workflow env declarations. This is desirable: if the
+     * user fixed an environment value (e.g., rotated an API key), recovery picks
+     * up the fix. Runtime env overrides (runtime_env) provided at original
+     * execution time are not preserved — they were stripped before persist.
      * Preconditions
      * - Execution must be in EXECUTION_FAILED phase
      * - TERMINATED executions cannot be recovered (intentional hard stop)
@@ -1732,15 +1751,14 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * - status.phase: FAILED → IN_PROGRESS
      * - status.completed_at: Cleared (execution is running again)
      * - status.error: Cleared (no longer failed)
-     * - Completed tasks: Preserved (not re-executed)
-     * - Failed tasks: Reset to pending, will be retried
+     * - All tasks: Re-executed from the beginning (activities may be idempotent)
      * Recovery vs Restart
      * | Aspect | recover | Create new execution |
      * |--------|---------|----------------------|
-     * | Completed work | Preserved | Lost (re-executed) |
-     * | Side effects | Not duplicated | May duplicate |
      * | Execution ID | Same | New ID |
-     * | Use case | Resume after fix | Start fresh |
+     * | Environment | Re-resolved (current) | From request |
+     * | Task re-execution | All tasks re-run | All tasks run |
+     * | Use case | Fix config, then retry | Start fresh |
      * Idempotency
      * If recovery already succeeded (execution is now IN_PROGRESS from a
      * previous recover call), the call succeeds as a no-op and returns
@@ -1756,7 +1774,7 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * Example Request
      * {
      *   "id": "wfx_abc123xyz456",
-     *   "reason": "Stripe API recovered, resuming payment processing"
+     *   "reason": "Fixed API key in environment, retrying"
      * }
      * Example Response
      * {
@@ -1765,11 +1783,7 @@ public final class WorkflowExecutionCommandControllerGrpc {
      *   "metadata": { "id": "wfx_abc123xyz456" },
      *   "status": {
      *     "phase": 2,  // EXECUTION_IN_PROGRESS
-     *     "started_at": "2026-02-07T10:00:00Z",
-     *     "tasks": [
-     *       { "task_id": "task-1", "status": 3 },  // COMPLETED (preserved)
-     *       { "task_id": "task-2", "status": 2 }   // IN_PROGRESS (resumed)
-     *     ]
+     *     "started_at": "2026-02-07T10:00:00Z"
      *   }
      * }
      * </pre>
@@ -2330,10 +2344,10 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * 4. Execution transitions to EXECUTION_CANCELLED phase
      * 5. Returns updated WorkflowExecution with new phase
      * Preconditions
-     * - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+     * - Execution must be in EXECUTION_PENDING, EXECUTION_IN_PROGRESS, or EXECUTION_PAUSED phase
      * - Cannot cancel already-terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
      * State Transitions
-     * - status.phase: PENDING/IN_PROGRESS → CANCELLED
+     * - status.phase: PENDING/IN_PROGRESS/PAUSED → CANCELLED
      * - status.completed_at: Set to current timestamp
      * - In-progress tasks: May complete cleanup or be interrupted
      * Idempotency
@@ -2382,10 +2396,10 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * 4. No cleanup callbacks or defer blocks are executed
      * 5. Returns updated WorkflowExecution with TERMINATED phase
      * Preconditions
-     * - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+     * - Execution must be in EXECUTION_PENDING, EXECUTION_IN_PROGRESS, or EXECUTION_PAUSED phase
      * - Cannot terminate already-terminal executions
      * State Transitions
-     * - status.phase: PENDING/IN_PROGRESS → TERMINATED
+     * - status.phase: PENDING/IN_PROGRESS/PAUSED → TERMINATED
      * - status.completed_at: Set to current timestamp
      * - status.error: May contain termination reason
      * - In-progress tasks: Stopped abruptly (no cleanup)
@@ -2429,19 +2443,31 @@ public final class WorkflowExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Recover a failed workflow execution from the last checkpoint.
-     * Resumes execution from the last successful point. Completed work is
-     * preserved - successful tasks are NOT re-executed. This enables
-     * "retry and resume" semantics without duplicating side effects.
+     * Recover a failed workflow execution.
+     * Terminates the existing (possibly stuck) Temporal orchestrator workflow,
+     * recreates the ExecutionContext with freshly resolved environment variables,
+     * and starts a brand-new Temporal workflow for the same execution ID. The
+     * workflow engine re-executes all tasks from the beginning. Individual
+     * activities may implement their own idempotency (e.g., CallAgent session
+     * reuse), but there is no task-level checkpoint resume.
      * &#64;internal
-     * Temporal Equivalent: `temporal workflow reset --workflow-id &lt;id&gt; --type LastWorkflowTask`
+     * Temporal Equivalent: Terminates the existing orchestrator workflow and
+     * starts a fresh one with the same workflow ID.
      * Behavior
      * 1. Validates execution is in FAILED phase (recoverable)
-     * 2. Identifies the last successful checkpoint in workflow history
-     * 3. Creates new Temporal run from that checkpoint via ResetWorkflow
-     * 4. Execution transitions from FAILED to IN_PROGRESS phase
-     * 5. Workflow continues from where it failed
+     * 2. Terminates the existing Temporal orchestrator workflow (handles stuck
+     *    Workflow-Task-Failed loops and already-completed workflows gracefully)
+     * 3. Recreates the ExecutionContext with freshly resolved environment
+     *    variables from the current WorkflowInstance and Workflow configuration
+     * 4. Starts a fresh Temporal orchestrator workflow for the same execution
+     * 5. Execution transitions from FAILED to IN_PROGRESS phase
      * 6. Returns updated WorkflowExecution with IN_PROGRESS phase
+     * Environment Resolution
+     * Environment variables are re-resolved from the current WorkflowInstance
+     * environment_refs and Workflow env declarations. This is desirable: if the
+     * user fixed an environment value (e.g., rotated an API key), recovery picks
+     * up the fix. Runtime env overrides (runtime_env) provided at original
+     * execution time are not preserved — they were stripped before persist.
      * Preconditions
      * - Execution must be in EXECUTION_FAILED phase
      * - TERMINATED executions cannot be recovered (intentional hard stop)
@@ -2451,15 +2477,14 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * - status.phase: FAILED → IN_PROGRESS
      * - status.completed_at: Cleared (execution is running again)
      * - status.error: Cleared (no longer failed)
-     * - Completed tasks: Preserved (not re-executed)
-     * - Failed tasks: Reset to pending, will be retried
+     * - All tasks: Re-executed from the beginning (activities may be idempotent)
      * Recovery vs Restart
      * | Aspect | recover | Create new execution |
      * |--------|---------|----------------------|
-     * | Completed work | Preserved | Lost (re-executed) |
-     * | Side effects | Not duplicated | May duplicate |
      * | Execution ID | Same | New ID |
-     * | Use case | Resume after fix | Start fresh |
+     * | Environment | Re-resolved (current) | From request |
+     * | Task re-execution | All tasks re-run | All tasks run |
+     * | Use case | Fix config, then retry | Start fresh |
      * Idempotency
      * If recovery already succeeded (execution is now IN_PROGRESS from a
      * previous recover call), the call succeeds as a no-op and returns
@@ -2475,7 +2500,7 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * Example Request
      * {
      *   "id": "wfx_abc123xyz456",
-     *   "reason": "Stripe API recovered, resuming payment processing"
+     *   "reason": "Fixed API key in environment, retrying"
      * }
      * Example Response
      * {
@@ -2484,11 +2509,7 @@ public final class WorkflowExecutionCommandControllerGrpc {
      *   "metadata": { "id": "wfx_abc123xyz456" },
      *   "status": {
      *     "phase": 2,  // EXECUTION_IN_PROGRESS
-     *     "started_at": "2026-02-07T10:00:00Z",
-     *     "tasks": [
-     *       { "task_id": "task-1", "status": 3 },  // COMPLETED (preserved)
-     *       { "task_id": "task-2", "status": 2 }   // IN_PROGRESS (resumed)
-     *     ]
+     *     "started_at": "2026-02-07T10:00:00Z"
      *   }
      * }
      * </pre>
@@ -3046,10 +3067,10 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * 4. Execution transitions to EXECUTION_CANCELLED phase
      * 5. Returns updated WorkflowExecution with new phase
      * Preconditions
-     * - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+     * - Execution must be in EXECUTION_PENDING, EXECUTION_IN_PROGRESS, or EXECUTION_PAUSED phase
      * - Cannot cancel already-terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
      * State Transitions
-     * - status.phase: PENDING/IN_PROGRESS → CANCELLED
+     * - status.phase: PENDING/IN_PROGRESS/PAUSED → CANCELLED
      * - status.completed_at: Set to current timestamp
      * - In-progress tasks: May complete cleanup or be interrupted
      * Idempotency
@@ -3098,10 +3119,10 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * 4. No cleanup callbacks or defer blocks are executed
      * 5. Returns updated WorkflowExecution with TERMINATED phase
      * Preconditions
-     * - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+     * - Execution must be in EXECUTION_PENDING, EXECUTION_IN_PROGRESS, or EXECUTION_PAUSED phase
      * - Cannot terminate already-terminal executions
      * State Transitions
-     * - status.phase: PENDING/IN_PROGRESS → TERMINATED
+     * - status.phase: PENDING/IN_PROGRESS/PAUSED → TERMINATED
      * - status.completed_at: Set to current timestamp
      * - status.error: May contain termination reason
      * - In-progress tasks: Stopped abruptly (no cleanup)
@@ -3145,19 +3166,31 @@ public final class WorkflowExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Recover a failed workflow execution from the last checkpoint.
-     * Resumes execution from the last successful point. Completed work is
-     * preserved - successful tasks are NOT re-executed. This enables
-     * "retry and resume" semantics without duplicating side effects.
+     * Recover a failed workflow execution.
+     * Terminates the existing (possibly stuck) Temporal orchestrator workflow,
+     * recreates the ExecutionContext with freshly resolved environment variables,
+     * and starts a brand-new Temporal workflow for the same execution ID. The
+     * workflow engine re-executes all tasks from the beginning. Individual
+     * activities may implement their own idempotency (e.g., CallAgent session
+     * reuse), but there is no task-level checkpoint resume.
      * &#64;internal
-     * Temporal Equivalent: `temporal workflow reset --workflow-id &lt;id&gt; --type LastWorkflowTask`
+     * Temporal Equivalent: Terminates the existing orchestrator workflow and
+     * starts a fresh one with the same workflow ID.
      * Behavior
      * 1. Validates execution is in FAILED phase (recoverable)
-     * 2. Identifies the last successful checkpoint in workflow history
-     * 3. Creates new Temporal run from that checkpoint via ResetWorkflow
-     * 4. Execution transitions from FAILED to IN_PROGRESS phase
-     * 5. Workflow continues from where it failed
+     * 2. Terminates the existing Temporal orchestrator workflow (handles stuck
+     *    Workflow-Task-Failed loops and already-completed workflows gracefully)
+     * 3. Recreates the ExecutionContext with freshly resolved environment
+     *    variables from the current WorkflowInstance and Workflow configuration
+     * 4. Starts a fresh Temporal orchestrator workflow for the same execution
+     * 5. Execution transitions from FAILED to IN_PROGRESS phase
      * 6. Returns updated WorkflowExecution with IN_PROGRESS phase
+     * Environment Resolution
+     * Environment variables are re-resolved from the current WorkflowInstance
+     * environment_refs and Workflow env declarations. This is desirable: if the
+     * user fixed an environment value (e.g., rotated an API key), recovery picks
+     * up the fix. Runtime env overrides (runtime_env) provided at original
+     * execution time are not preserved — they were stripped before persist.
      * Preconditions
      * - Execution must be in EXECUTION_FAILED phase
      * - TERMINATED executions cannot be recovered (intentional hard stop)
@@ -3167,15 +3200,14 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * - status.phase: FAILED → IN_PROGRESS
      * - status.completed_at: Cleared (execution is running again)
      * - status.error: Cleared (no longer failed)
-     * - Completed tasks: Preserved (not re-executed)
-     * - Failed tasks: Reset to pending, will be retried
+     * - All tasks: Re-executed from the beginning (activities may be idempotent)
      * Recovery vs Restart
      * | Aspect | recover | Create new execution |
      * |--------|---------|----------------------|
-     * | Completed work | Preserved | Lost (re-executed) |
-     * | Side effects | Not duplicated | May duplicate |
      * | Execution ID | Same | New ID |
-     * | Use case | Resume after fix | Start fresh |
+     * | Environment | Re-resolved (current) | From request |
+     * | Task re-execution | All tasks re-run | All tasks run |
+     * | Use case | Fix config, then retry | Start fresh |
      * Idempotency
      * If recovery already succeeded (execution is now IN_PROGRESS from a
      * previous recover call), the call succeeds as a no-op and returns
@@ -3191,7 +3223,7 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * Example Request
      * {
      *   "id": "wfx_abc123xyz456",
-     *   "reason": "Stripe API recovered, resuming payment processing"
+     *   "reason": "Fixed API key in environment, retrying"
      * }
      * Example Response
      * {
@@ -3200,11 +3232,7 @@ public final class WorkflowExecutionCommandControllerGrpc {
      *   "metadata": { "id": "wfx_abc123xyz456" },
      *   "status": {
      *     "phase": 2,  // EXECUTION_IN_PROGRESS
-     *     "started_at": "2026-02-07T10:00:00Z",
-     *     "tasks": [
-     *       { "task_id": "task-1", "status": 3 },  // COMPLETED (preserved)
-     *       { "task_id": "task-2", "status": 2 }   // IN_PROGRESS (resumed)
-     *     ]
+     *     "started_at": "2026-02-07T10:00:00Z"
      *   }
      * }
      * </pre>
@@ -3769,10 +3797,10 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * 4. Execution transitions to EXECUTION_CANCELLED phase
      * 5. Returns updated WorkflowExecution with new phase
      * Preconditions
-     * - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+     * - Execution must be in EXECUTION_PENDING, EXECUTION_IN_PROGRESS, or EXECUTION_PAUSED phase
      * - Cannot cancel already-terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
      * State Transitions
-     * - status.phase: PENDING/IN_PROGRESS → CANCELLED
+     * - status.phase: PENDING/IN_PROGRESS/PAUSED → CANCELLED
      * - status.completed_at: Set to current timestamp
      * - In-progress tasks: May complete cleanup or be interrupted
      * Idempotency
@@ -3822,10 +3850,10 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * 4. No cleanup callbacks or defer blocks are executed
      * 5. Returns updated WorkflowExecution with TERMINATED phase
      * Preconditions
-     * - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+     * - Execution must be in EXECUTION_PENDING, EXECUTION_IN_PROGRESS, or EXECUTION_PAUSED phase
      * - Cannot terminate already-terminal executions
      * State Transitions
-     * - status.phase: PENDING/IN_PROGRESS → TERMINATED
+     * - status.phase: PENDING/IN_PROGRESS/PAUSED → TERMINATED
      * - status.completed_at: Set to current timestamp
      * - status.error: May contain termination reason
      * - In-progress tasks: Stopped abruptly (no cleanup)
@@ -3870,19 +3898,31 @@ public final class WorkflowExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Recover a failed workflow execution from the last checkpoint.
-     * Resumes execution from the last successful point. Completed work is
-     * preserved - successful tasks are NOT re-executed. This enables
-     * "retry and resume" semantics without duplicating side effects.
+     * Recover a failed workflow execution.
+     * Terminates the existing (possibly stuck) Temporal orchestrator workflow,
+     * recreates the ExecutionContext with freshly resolved environment variables,
+     * and starts a brand-new Temporal workflow for the same execution ID. The
+     * workflow engine re-executes all tasks from the beginning. Individual
+     * activities may implement their own idempotency (e.g., CallAgent session
+     * reuse), but there is no task-level checkpoint resume.
      * &#64;internal
-     * Temporal Equivalent: `temporal workflow reset --workflow-id &lt;id&gt; --type LastWorkflowTask`
+     * Temporal Equivalent: Terminates the existing orchestrator workflow and
+     * starts a fresh one with the same workflow ID.
      * Behavior
      * 1. Validates execution is in FAILED phase (recoverable)
-     * 2. Identifies the last successful checkpoint in workflow history
-     * 3. Creates new Temporal run from that checkpoint via ResetWorkflow
-     * 4. Execution transitions from FAILED to IN_PROGRESS phase
-     * 5. Workflow continues from where it failed
+     * 2. Terminates the existing Temporal orchestrator workflow (handles stuck
+     *    Workflow-Task-Failed loops and already-completed workflows gracefully)
+     * 3. Recreates the ExecutionContext with freshly resolved environment
+     *    variables from the current WorkflowInstance and Workflow configuration
+     * 4. Starts a fresh Temporal orchestrator workflow for the same execution
+     * 5. Execution transitions from FAILED to IN_PROGRESS phase
      * 6. Returns updated WorkflowExecution with IN_PROGRESS phase
+     * Environment Resolution
+     * Environment variables are re-resolved from the current WorkflowInstance
+     * environment_refs and Workflow env declarations. This is desirable: if the
+     * user fixed an environment value (e.g., rotated an API key), recovery picks
+     * up the fix. Runtime env overrides (runtime_env) provided at original
+     * execution time are not preserved — they were stripped before persist.
      * Preconditions
      * - Execution must be in EXECUTION_FAILED phase
      * - TERMINATED executions cannot be recovered (intentional hard stop)
@@ -3892,15 +3932,14 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * - status.phase: FAILED → IN_PROGRESS
      * - status.completed_at: Cleared (execution is running again)
      * - status.error: Cleared (no longer failed)
-     * - Completed tasks: Preserved (not re-executed)
-     * - Failed tasks: Reset to pending, will be retried
+     * - All tasks: Re-executed from the beginning (activities may be idempotent)
      * Recovery vs Restart
      * | Aspect | recover | Create new execution |
      * |--------|---------|----------------------|
-     * | Completed work | Preserved | Lost (re-executed) |
-     * | Side effects | Not duplicated | May duplicate |
      * | Execution ID | Same | New ID |
-     * | Use case | Resume after fix | Start fresh |
+     * | Environment | Re-resolved (current) | From request |
+     * | Task re-execution | All tasks re-run | All tasks run |
+     * | Use case | Fix config, then retry | Start fresh |
      * Idempotency
      * If recovery already succeeded (execution is now IN_PROGRESS from a
      * previous recover call), the call succeeds as a no-op and returns
@@ -3916,7 +3955,7 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * Example Request
      * {
      *   "id": "wfx_abc123xyz456",
-     *   "reason": "Stripe API recovered, resuming payment processing"
+     *   "reason": "Fixed API key in environment, retrying"
      * }
      * Example Response
      * {
@@ -3925,11 +3964,7 @@ public final class WorkflowExecutionCommandControllerGrpc {
      *   "metadata": { "id": "wfx_abc123xyz456" },
      *   "status": {
      *     "phase": 2,  // EXECUTION_IN_PROGRESS
-     *     "started_at": "2026-02-07T10:00:00Z",
-     *     "tasks": [
-     *       { "task_id": "task-1", "status": 3 },  // COMPLETED (preserved)
-     *       { "task_id": "task-2", "status": 2 }   // IN_PROGRESS (resumed)
-     *     ]
+     *     "started_at": "2026-02-07T10:00:00Z"
      *   }
      * }
      * </pre>

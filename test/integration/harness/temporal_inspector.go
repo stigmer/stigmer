@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	enumspb "go.temporal.io/api/enums/v1"
 	historypb "go.temporal.io/api/history/v1"
@@ -133,12 +134,27 @@ func isTemporalTerminal(status enumspb.WorkflowExecutionStatus) bool {
 
 // AssertTemporalTerminal verifies that the Temporal workflow reached a
 // terminal state (COMPLETED, FAILED, CANCELED, TERMINATED, or TIMED_OUT).
+// It polls with a timeout because the Stigmer service updates its DB phase
+// before the Temporal orchestrator finishes cleanup and closes.
 func (ti *TemporalInspector) AssertTemporalTerminal(t *testing.T, ctx context.Context, workflowID string) {
 	t.Helper()
-	status, err := ti.GetWorkflowStatus(ctx, workflowID)
-	require.NoError(t, err, "should be able to describe workflow %s", workflowID)
-	assert.True(t, isTemporalTerminal(status),
-		"Temporal workflow %s should be in terminal state, got %s", workflowID, status.String())
+	const (
+		timeout  = 15 * time.Second
+		interval = 500 * time.Millisecond
+	)
+	deadline := time.Now().Add(timeout)
+	var status enumspb.WorkflowExecutionStatus
+	var err error
+	for time.Now().Before(deadline) {
+		status, err = ti.GetWorkflowStatus(ctx, workflowID)
+		require.NoError(t, err, "should be able to describe workflow %s", workflowID)
+		if isTemporalTerminal(status) {
+			return
+		}
+		time.Sleep(interval)
+	}
+	t.Errorf("Temporal workflow %s should be in terminal state after %s polling, got %s",
+		workflowID, timeout, status.String())
 }
 
 // AssertTemporalStatus verifies that the Temporal workflow is in the
@@ -169,11 +185,14 @@ func (ti *TemporalInspector) AssertNoWTFLoop(t *testing.T, ctx context.Context, 
 // AssertStateConsistency compares the Temporal workflow execution status with
 // the Stigmer gRPC execution phase to detect split-brain state.
 //
-// Mapping: Temporal COMPLETED/FAILED → Stigmer COMPLETED or FAILED (both are valid
+// Mapping: Temporal COMPLETED/FAILED -> Stigmer COMPLETED or FAILED (both are valid
 // because the orchestrator returns ApplicationError on business failure, which
 // shows as FAILED in Temporal, but some paths show COMPLETED because the error was
 // handled). The key assertion is that if Temporal shows RUNNING, Stigmer should
 // NOT show a terminal phase (and vice versa).
+//
+// When Stigmer reports terminal, the method polls Temporal (up to 15s) to allow
+// the orchestrator to finish cleanup before declaring a split-brain.
 func (ti *TemporalInspector) AssertStateConsistency(
 	t *testing.T,
 	ctx context.Context,
@@ -181,19 +200,38 @@ func (ti *TemporalInspector) AssertStateConsistency(
 	stigmerExec *workflowexecutionv1.WorkflowExecution,
 ) {
 	t.Helper()
-	temporalStatus, err := ti.GetWorkflowStatus(ctx, workflowID)
-	require.NoError(t, err, "should be able to describe workflow %s", workflowID)
+	const (
+		timeout  = 15 * time.Second
+		interval = 500 * time.Millisecond
+	)
 
 	stigmerPhase := stigmerExec.GetStatus().GetPhase()
 	stigmerTerminal := isTerminalPhase(stigmerPhase)
+
+	var temporalStatus enumspb.WorkflowExecutionStatus
+	var err error
+
+	if stigmerTerminal {
+		deadline := time.Now().Add(timeout)
+		for time.Now().Before(deadline) {
+			temporalStatus, err = ti.GetWorkflowStatus(ctx, workflowID)
+			require.NoError(t, err, "should be able to describe workflow %s", workflowID)
+			if isTemporalTerminal(temporalStatus) {
+				return
+			}
+			time.Sleep(interval)
+		}
+		t.Errorf("SPLIT-BRAIN: Temporal workflow %s is %s (non-terminal) but Stigmer phase is %s (terminal) after %s polling",
+			workflowID, temporalStatus.String(), stigmerPhase.String(), timeout)
+		return
+	}
+
+	temporalStatus, err = ti.GetWorkflowStatus(ctx, workflowID)
+	require.NoError(t, err, "should be able to describe workflow %s", workflowID)
 	temporalTerminal := isTemporalTerminal(temporalStatus)
 
 	if temporalTerminal && !stigmerTerminal {
 		t.Errorf("SPLIT-BRAIN: Temporal workflow %s is %s (terminal) but Stigmer phase is %s (non-terminal)",
-			workflowID, temporalStatus.String(), stigmerPhase.String())
-	}
-	if !temporalTerminal && stigmerTerminal {
-		t.Errorf("SPLIT-BRAIN: Temporal workflow %s is %s (non-terminal) but Stigmer phase is %s (terminal)",
 			workflowID, temporalStatus.String(), stigmerPhase.String())
 	}
 }

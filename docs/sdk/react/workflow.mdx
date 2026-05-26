@@ -401,6 +401,8 @@ function useRunWorkflowFlow(options: UseRunWorkflowFlowOptions): UseRunWorkflowF
     envDeclarations: { type: "Record<string, EnvVarDeclaration>", description: "Declared environment variables from the workflow spec." },
     error: { type: "string | null", description: "Error from the last failed submission, or `null`." },
     fieldErrors: { type: "RunWorkflowFieldErrors", description: "Field-level validation errors (empty when valid).", typeDescriptionLink: "#runworkflowfielderrors" },
+    instanceEnvKeys: { type: "Set<string>", description: "Set of env var keys already provided by the selected instance's bound environments. Empty when no instance is selected or its environments haven't loaded yet." },
+    isLoadingInstanceEnvKeys: { type: "boolean", description: "`true` while instance environment keys are being resolved." },
     isSubmitting: { type: "boolean", description: "`true` while the create execution RPC is in flight." },
     reset: { type: "() => void", description: "Reset all form state to initial values." },
     runtimeEnv: { type: "Record<string, string>", description: "Current runtime environment variable overrides (keyed by var name)." },
@@ -918,12 +920,13 @@ no-ops that return `null`).
 **Signature**
 
 ```tsx
-function useWorkflowExecutionActions(executionId: string | null): UseWorkflowExecutionActionsReturn
+function useWorkflowExecutionActions(executionId: string | null, options?: UseWorkflowExecutionActionsOptions): UseWorkflowExecutionActionsReturn
 ```
 
 <TypeTable
   type={{
     executionId: { type: "string | null", description: "", required: true },
+    options: { type: "UseWorkflowExecutionActionsOptions", description: "" },
   }}
 />
 
@@ -932,6 +935,7 @@ function useWorkflowExecutionActions(executionId: string | null): UseWorkflowExe
 <TypeTable
   type={{
     cancel: { type: "(reason?: string) => Promise<WorkflowExecution | null>", description: "Cancel a running execution gracefully." },
+    clearError: { type: "() => void", description: "Reset `error` to `null`." },
     error: { type: "Error | null", description: "Error from the last failed action, or `null`." },
     isSubmitting: { type: "boolean", description: "`true` while any action is in flight." },
     pause: { type: "(reason?: string) => Promise<WorkflowExecution | null>", description: "Pause a running execution." },
@@ -944,7 +948,9 @@ function useWorkflowExecutionActions(executionId: string | null): UseWorkflowExe
 />
 
 ```tsx
-const actions = useWorkflowExecutionActions(executionId);
+const actions = useWorkflowExecutionActions(executionId, {
+  onSuccess: () => refetchExecution(),
+});
 
 <button onClick={() => actions.cancel("No longer needed")} disabled={actions.isSubmitting}>
   Cancel
@@ -1680,6 +1686,7 @@ dependencies — safe for platform builder embedding.
     disabled: { type: "boolean", description: "When `true`, all fields are disabled (during submission)." },
     envDeclarations: { type: "Record<string, EnvVarDeclaration>", description: "Declared environment variables from the workflow spec.", required: true },
     errors: { type: "RunWorkflowFieldErrors", description: "Field-level validation errors keyed by field name.", required: true, typeDescriptionLink: "#runworkflowfielderrors" },
+    instanceEnvKeys: { type: "Set<string>", description: "Set of env var keys already provided by the selected instance's bound environments. Fields for these keys are shown as optional overrides rather than required inputs." },
     instances: { type: "readonly WorkflowInstance[]", description: "Available workflow instances for the selector.", required: true },
     onEnvVarChange: { type: "(key: string, value: string) => void", description: "Called when a single env var value changes.", required: true },
     onInstanceChange: { type: "(id: string | null) => void", description: "Called when the selected instance changes.", required: true },
@@ -1710,6 +1717,74 @@ const flow = useRunWorkflowFlow({ ... });
   disabled={flow.isSubmitting}
 />
 ```
+
+
+### WorkflowTemplateCard
+
+Enhanced template card for workflow templates.
+
+Shows the template name, description, category badge, pattern badges,
+task count, and env var count. Click selects the template; an optional
+preview button opens the graph preview dialog.
+
+**Props** — `WorkflowTemplateCardProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "" },
+    onPreview: { type: "(template: WorkflowTemplate) => void", description: "" },
+    onSelect: { type: "(template: WorkflowTemplate) => void", description: "", required: true },
+    template: { type: "WorkflowTemplate", description: "", required: true, typeDescriptionLink: "#workflowtemplate" },
+  }}
+/>
+
+
+### WorkflowTemplateGallery
+
+Searchable, filterable gallery of workflow templates.
+
+Composes the headless `useTemplateFilter` hook with workflow-specific
+`WorkflowTemplateCard` components. Includes an integrated preview
+dialog — clicking the eye icon on a card opens a graph preview
+before committing to the template.
+
+Keyboard navigation follows the same pattern as the generic
+`TemplateGallery`: Tab between search/tabs/cards, Arrow keys
+navigate tabs, Enter/Space activates.
+
+**Props** — `WorkflowTemplateGalleryProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "" },
+    emptyContent: { type: "ReactNode", description: "" },
+    onSelect: { type: "(template: WorkflowTemplate) => void", description: "", required: true },
+    templates: { type: "readonly WorkflowTemplate[]", description: "", required: true },
+  }}
+/>
+
+
+### WorkflowTemplatePreview
+
+Preview dialog for a workflow template.
+
+Shows the template's metadata, pattern badges, and a read-only
+graph preview rendered via the YAML → graph pipeline. Uses a
+native `<dialog>` element for modal semantics.
+
+The graph preview is lazy — it only parses and lays out the YAML
+when the dialog opens, not while browsing cards.
+
+**Props** — `WorkflowTemplatePreviewProps`
+
+<TypeTable
+  type={{
+    onClose: { type: "() => void", description: "", required: true },
+    onSelect: { type: "(template: WorkflowTemplate) => void", description: "", required: true },
+    open: { type: "boolean", description: "", required: true },
+    template: { type: "WorkflowTemplate | null", description: "", required: true },
+  }}
+/>
 
 
 ## Types
@@ -1921,6 +1996,22 @@ within each group sorted by failure time descending (most recent first).
 
 ```tsx
 function deriveFailureAnalysis(executions: readonly WorkflowExecution[]): FailureGroup[]
+```
+
+
+### deriveTemplateMeta
+
+Derive display metadata from a workflow template's YAML string.
+
+This is a pure function with no React or SDK dependencies — it parses
+the YAML, walks the task list, and returns counts, kinds, and detected
+structural patterns. Used by the gallery card and preview dialog.
+
+If the YAML fails to parse, returns a safe zero-value result so the
+gallery card still renders (graceful degradation).
+
+```tsx
+function deriveTemplateMeta(yaml: string): WorkflowTemplateMeta
 ```
 
 
@@ -2297,6 +2388,11 @@ including tasks, env declarations, budget, and flow control.
 ```tsx
 function parseWorkflowYaml(content: string, org: string): WorkflowInput
 ```
+
+
+### PATTERN_LABELS
+
+Human-readable labels for pattern badges.
 
 
 ### PendingApprovalsWidget
@@ -2777,6 +2873,11 @@ Options for [`useWorkflowList`](#useworkflowlist).
     scope: { type: "ResourceListScope", description: "Controls which workflows are visible.  - `\"org\"` — only workflows owned by the given organization. - `\"all\"` — includes public/platform workflows." },
   }}
 />
+
+
+### WORKFLOW_CATEGORY_LABELS
+
+Human-readable labels for workflow template categories.
 
 
 ### WorkflowCanvasEditor
@@ -3301,6 +3402,14 @@ Props for [`WorkflowInspectorPanel`](#workflowinspectorpanel).
 />
 
 
+### WorkflowPattern
+
+A structural workflow pattern detected in a template's YAML.
+
+Pattern badges help users visually identify what a template
+demonstrates without reading the full YAML.
+
+
 ### WorkflowTaskList
 
 Compact list of tasks in a workflow specification.
@@ -3349,6 +3458,53 @@ Props for [`WorkflowTaskPalette`](#workflowtaskpalette).
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
+  }}
+/>
+
+
+### WorkflowTemplate
+
+Workflow template = generic ResourceTemplate with workflow-specific data.
+
+
+### WorkflowTemplateCategory
+
+Workflow-specific template categories for the gallery filter tabs.
+
+These extend the shared `TemplateCategory` type with workflow-specific
+use-case domains. The gallery renders them as filterable tabs alongside
+the generic categories.
+
+
+### WorkflowTemplateData
+
+The data payload carried by a workflow template.
+
+Unlike agent templates (which carry form fields for a wizard),
+workflow templates carry the full YAML string. Selecting a template
+opens the editor with this YAML as `initialYaml`.
+
+<TypeTable
+  type={{
+    yaml: { type: "string", description: "Full workflow YAML including apiVersion/kind/metadata/spec envelope.", required: true },
+  }}
+/>
+
+
+### WorkflowTemplateMeta
+
+Metadata derived from a workflow template's YAML content.
+
+Computed once at render time by `deriveTemplateMeta()` and displayed
+on template cards and preview dialogs.
+
+<TypeTable
+  type={{
+    envVarCount: { type: "number", description: "Number of environment variable declarations.", required: true },
+    hasBudget: { type: "boolean", description: "Whether the template declares a budget.", required: true },
+    patterns: { type: "readonly WorkflowPattern[]", description: "Structural patterns detected in the template.", required: true },
+    taskCount: { type: "number", description: "Number of top-level tasks (excludes nested tasks inside fork/try_catch/for_each).", required: true },
+    taskKinds: { type: "readonly string[]", description: "Unique task kind strings used in the template.", required: true },
   }}
 />
 
