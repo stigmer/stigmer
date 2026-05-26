@@ -230,4 +230,42 @@ export function extractMcpServerSlugs(usages: McpServerUsage[]): string[] {
     .filter((s): s is string => !!s);
 }
 
+/**
+ * Validate that resolved MCP servers have their required env vars populated.
+ * Returns a list of warnings for servers with empty/missing env.
+ * Used as a pre-flight check before agent.send() to surface config issues early.
+ */
+export function validateMcpServerEnv(
+  servers: ResolvedMcpServer[],
+  usages: McpServerUsage[],
+  envVars: Record<string, string>,
+): string[] {
+  const warnings: string[] = [];
+
+  for (const usage of usages) {
+    const slug = usage.mcpServerRef?.slug;
+    if (!slug) continue;
+
+    const resolved = servers.find((s) => s.slug === slug);
+    if (!resolved) {
+      warnings.push(`MCP server '${slug}': failed to resolve (server may not exist or is inaccessible)`);
+      continue;
+    }
+
+    if (resolved.connectionType === "stdio" && resolved.env) {
+      const emptyKeys = Object.entries(resolved.env)
+        .filter(([, v]) => !v)
+        .map(([k]) => k);
+      if (emptyKeys.length > 0) {
+        warnings.push(
+          `MCP server '${slug}': env vars [${emptyKeys.join(", ")}] are empty — ` +
+          `server subprocess will likely fail to connect`,
+        );
+      }
+    }
+  }
+
+  return warnings;
+}
+
 export { PlaceholderResolutionError } from "./placeholder-resolver.js";
