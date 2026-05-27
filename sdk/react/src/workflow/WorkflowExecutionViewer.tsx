@@ -362,6 +362,8 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
                     pendingApprovals={execution?.status?.pendingApprovals}
                     onSubmitApproval={actions.submitApproval}
                     isSubmittingApproval={actions.isSubmitting}
+                    onSubmitTaskApproval={actions.submitTaskApproval}
+                    isSubmittingTaskApproval={actions.isSubmitting}
                     className="min-h-0 flex-1"
                   />
 

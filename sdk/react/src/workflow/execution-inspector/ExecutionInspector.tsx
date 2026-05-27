@@ -16,6 +16,7 @@ import { RetriesTab } from "./RetriesTab";
 import { AgentCallTab } from "./AgentCallTab";
 import { EventLogTab } from "./EventLogTab";
 import { WorkflowExecutionApprovalCard } from "../WorkflowExecutionApprovalCard";
+import { WorkflowTaskApprovalCard } from "../WorkflowTaskApprovalCard";
 
 /** Props for {@link ExecutionInspector}. */
 export interface ExecutionInspectorProps {
@@ -35,6 +36,15 @@ export interface ExecutionInspectorProps {
   readonly onSubmitApproval?: (toolCallId: string, action: ApprovalAction, comment?: string) => Promise<unknown>;
   /** Whether an approval submission is in flight. */
   readonly isSubmittingApproval?: boolean;
+  /** Callback to submit a workflow-level human_input task decision. */
+  readonly onSubmitTaskApproval?: (
+    taskName: string,
+    outcome: string,
+    formData?: Record<string, unknown>,
+    comment?: string,
+  ) => Promise<unknown>;
+  /** Whether a task approval submission is in flight. */
+  readonly isSubmittingTaskApproval?: boolean;
   /** Additional CSS class names. */
   readonly className?: string;
 }
@@ -79,6 +89,8 @@ export const ExecutionInspector = memo(function ExecutionInspector({
   pendingApprovals,
   onSubmitApproval,
   isSubmittingApproval,
+  onSubmitTaskApproval,
+  isSubmittingTaskApproval,
   className,
 }: ExecutionInspectorProps) {
   const { detail } = useExecutionTaskDetail({
@@ -212,6 +224,16 @@ export const ExecutionInspector = memo(function ExecutionInspector({
               ))}
             </div>
           )}
+          {effectiveTab === "approval" && detail.approval && onSubmitTaskApproval && (
+            <WorkflowTaskApprovalCard
+              taskName={detail.taskName}
+              prompt={detail.approval.prompt}
+              outcomes={detail.approval.outcomes}
+              formSchema={detail.approval.formSchema ?? undefined}
+              onSubmit={onSubmitTaskApproval}
+              isSubmitting={isSubmittingTaskApproval ?? false}
+            />
+          )}
           {effectiveTab === "events" && <EventLogTab events={detail.eventLog} />}
         </div>
       </Tabs>
@@ -236,8 +258,8 @@ function buildVisibleTabs(
     tabs.push({ id: "retries", label: "Retries", badge: detail.retries.attempts.length });
   }
   if (detail.agentCall) tabs.push({ id: "agent", label: "Agent" });
-  if (approvalCount > 0) {
-    tabs.push({ id: "approval", label: "Approval", badge: approvalCount });
+  if (approvalCount > 0 || detail.approval) {
+    tabs.push({ id: "approval", label: "Approval", badge: approvalCount || undefined });
   }
 
   tabs.push({ id: "events", label: "Events", badge: detail.eventLog.length });
