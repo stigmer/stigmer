@@ -92,7 +92,7 @@ describe("StructuredDataViewer", () => {
       expect(screen.getByText("summary text")).toBeTruthy();
     });
 
-    it("falls back to JSON at depth >= 2", () => {
+    it("renders depth-2 nested object with scalar leaves as structured", () => {
       render(
         <StructuredDataViewer
           data={{
@@ -106,7 +106,42 @@ describe("StructuredDataViewer", () => {
       );
 
       expect(screen.getByText("Level1")).toBeTruthy();
-      expect(screen.getByText(/Level2/)).toBeTruthy();
+      expect(screen.getByText("Level2")).toBeTruthy();
+      expect(screen.getByText("Deep Value")).toBeTruthy();
+      expect(screen.getByText("nested")).toBeTruthy();
+    });
+
+    it("renders depth-4 nested object with scalar leaves as structured", () => {
+      render(
+        <StructuredDataViewer
+          data={{
+            a: { b: { c: { d: { leaf: "deep" } } } },
+          }}
+        />,
+      );
+
+      expect(screen.getByText("A")).toBeTruthy();
+      expect(screen.getByText("B")).toBeTruthy();
+      expect(screen.getByText("C")).toBeTruthy();
+      expect(screen.getByText("D")).toBeTruthy();
+      expect(screen.getByText("Leaf")).toBeTruthy();
+      expect(screen.getByText("deep")).toBeTruthy();
+    });
+
+    it("falls back to JSON for non-scalar objects beyond MAX_RECURSIVE_DEPTH", () => {
+      render(
+        <StructuredDataViewer
+          data={{
+            a: { b: { c: { d: { e: { nested: { still_going: true } } } } } },
+          }}
+        />,
+      );
+
+      expect(screen.getByText("A")).toBeTruthy();
+      expect(screen.getByText("B")).toBeTruthy();
+      expect(screen.getByText("C")).toBeTruthy();
+      expect(screen.getByText("D")).toBeTruthy();
+      expect(screen.getByText(/E/)).toBeTruthy();
     });
   });
 
@@ -370,7 +405,7 @@ describe("StructuredDataViewer", () => {
       expect(screen.getByText("C1")).toBeTruthy();
     });
 
-    it("falls back to JSON for object arrays at depth >= MAX_RECURSIVE_DEPTH", () => {
+    it("renders object array at depth 3 as structured items", () => {
       render(
         <StructuredDataViewer
           data={{
@@ -384,7 +419,26 @@ describe("StructuredDataViewer", () => {
           }}
         />,
       );
-      expect(screen.getByText(/Level2/)).toBeTruthy();
+      expect(screen.getByText("Level1")).toBeTruthy();
+      expect(screen.getByText("Level2")).toBeTruthy();
+      expect(screen.getByText("Item 1")).toBeTruthy();
+      expect(screen.getByText("deep")).toBeTruthy();
+    });
+
+    it("falls back to JSON for object arrays with complex items beyond MAX_RECURSIVE_DEPTH", () => {
+      render(
+        <StructuredDataViewer
+          data={{
+            a: { b: { c: { d: { e: {
+              items: [
+                { name: "x", nested: { inner: true } },
+              ],
+            } } } } },
+          }}
+        />,
+      );
+      expect(screen.getByText("D")).toBeTruthy();
+      expect(screen.getByText(/E/)).toBeTruthy();
     });
   });
 
@@ -425,6 +479,146 @@ describe("StructuredDataViewer", () => {
 
       expect(screen.queryByText("Key")).toBeFalsy();
       expect(screen.queryByText("value")).toBeFalsy();
+    });
+  });
+
+  describe("scalar-leaf bypass", () => {
+    it("renders scalar-only object as structured even beyond MAX_RECURSIVE_DEPTH", () => {
+      render(
+        <StructuredDataViewer
+          data={{
+            a: { b: { c: { d: { e: {
+              leaf_string: "hello",
+              leaf_number: 42,
+              leaf_bool: true,
+              leaf_null: null,
+            } } } } },
+          }}
+        />,
+      );
+
+      expect(screen.getByText("E")).toBeTruthy();
+      expect(screen.getByText("Leaf String")).toBeTruthy();
+      expect(screen.getByText("hello")).toBeTruthy();
+      expect(screen.getByText("Leaf Number")).toBeTruthy();
+      expect(screen.getByText("42")).toBeTruthy();
+      expect(screen.getByText("Leaf Bool")).toBeTruthy();
+      expect(screen.getByText("true")).toBeTruthy();
+    });
+
+    it("renders scalar-only object array as structured via array bypass", () => {
+      render(
+        <StructuredDataViewer
+          data={{
+            a: { b: { c: { d: {
+              list: [
+                {
+                  deep_items: [
+                    { name: "first", score: 10 },
+                    { name: "second", score: 20 },
+                  ],
+                },
+              ],
+            } } } },
+          }}
+        />,
+      );
+
+      expect(screen.getByText(/Deep Items/)).toBeTruthy();
+      expect(screen.getByText(/2 items/)).toBeTruthy();
+      expect(screen.getByText("first")).toBeTruthy();
+      expect(screen.getByText("second")).toBeTruthy();
+    });
+
+    it("falls back to JSON when deep object has mixed scalar and complex values", () => {
+      render(
+        <StructuredDataViewer
+          data={{
+            a: { b: { c: { d: { e: {
+              name: "test",
+              nested_child: { inner: "value" },
+            } } } } },
+          }}
+        />,
+      );
+
+      expect(screen.getByText("D")).toBeTruthy();
+      expect(screen.getByText(/E/)).toBeTruthy();
+      expect(screen.queryByText("Name")).toBeFalsy();
+    });
+
+    it("falls back to JSON for deep object array when items contain complex values", () => {
+      render(
+        <StructuredDataViewer
+          data={{
+            a: { b: { c: { d: {
+              list: [
+                {
+                  deep_items: [
+                    { name: "x", meta: { key: "val" } },
+                  ],
+                },
+              ],
+            } } } },
+          }}
+        />,
+      );
+
+      expect(screen.getByText("D")).toBeTruthy();
+      expect(screen.getByText(/Deep Items.*1 item/)).toBeTruthy();
+    });
+  });
+
+  describe("real-world agent call output (campaigns with variants)", () => {
+    it("renders all nesting levels structured when leaves are scalar", () => {
+      render(
+        <StructuredDataViewer
+          data={{
+            agent_execution_id: "aex_test123",
+            structured: {
+              campaigns: [
+                {
+                  cohort_name: "D1 New Players",
+                  cohort_size: 9,
+                  disengagement_reason: "Tutorial abandonment",
+                  variants: [
+                    {
+                      name: "Variant A (Control)",
+                      copy: "Your garden awaits!",
+                      timing: "24 hours after tutorial abandonment",
+                      personalization: "user_name (fallback: Player)",
+                    },
+                    {
+                      name: "Variant B",
+                      copy: "Welcome back!",
+                      timing: "24 hours after tutorial abandonment",
+                      personalization: "user_name (fallback: Player)",
+                    },
+                  ],
+                },
+              ],
+            },
+          }}
+        />,
+      );
+
+      expect(screen.getByText("Agent Execution Id")).toBeTruthy();
+      expect(screen.getByText("aex_test123")).toBeTruthy();
+
+      expect(screen.getByText("Structured")).toBeTruthy();
+
+      expect(screen.getByText(/Campaigns/)).toBeTruthy();
+      expect(screen.getByText("Cohort Name")).toBeTruthy();
+      expect(screen.getByText("D1 New Players")).toBeTruthy();
+
+      expect(screen.getByText(/Variants/)).toBeTruthy();
+      expect(screen.getByText(/2 items/)).toBeTruthy();
+
+      expect(screen.getByText("Variant A (Control)")).toBeTruthy();
+      expect(screen.getByText("Your garden awaits!")).toBeTruthy();
+      expect(screen.getByText("Variant B")).toBeTruthy();
+      expect(screen.getByText("Welcome back!")).toBeTruthy();
+      expect(screen.getAllByText("Timing")).toHaveLength(2);
     });
   });
 });
