@@ -13,6 +13,7 @@ import { cn } from "@stigmer/theme";
 import { formatDuration } from "./ToolCallDetail";
 import { MessageEntry } from "./MessageEntry";
 import { ToolCallGroup } from "./ToolCallGroup";
+import { isInternalTool } from "./tool-categories";
 import {
   TodoList,
   TodoInProgressIcon,
@@ -387,11 +388,14 @@ function buildSubAgentThreadItems(
     items.push({ kind: "message", message: msg, key: `${subAgentId}-m${i}` });
 
     if (msg.type === MessageType.MESSAGE_AI && msg.toolCalls.length > 0) {
-      items.push({
-        kind: "tool-group",
-        toolCalls: msg.toolCalls,
-        key: `${subAgentId}-m${i}-tc`,
-      });
+      const visibleTools = msg.toolCalls.filter((tc) => !isInternalTool(tc.name));
+      if (visibleTools.length > 0) {
+        items.push({
+          kind: "tool-group",
+          toolCalls: visibleTools.length === msg.toolCalls.length ? msg.toolCalls : visibleTools,
+          key: `${subAgentId}-m${i}-tc`,
+        });
+      }
     }
   }
 

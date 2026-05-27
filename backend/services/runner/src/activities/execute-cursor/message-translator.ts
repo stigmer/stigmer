@@ -43,6 +43,8 @@ import { utcTimestamp } from "../../shared/status.js";
 
 export { utcTimestamp };
 
+const SUPPRESSED_TOOL_NAMES = new Set(["TodoWrite", "updateTodos"]);
+
 /**
  * Details extracted from an MCP tool call event's args.
  *
@@ -261,6 +263,26 @@ function isTerminalToolStatus(status: ToolCallStatus): boolean {
   );
 }
 
+/**
+ * Extract sub-agent name from task tool args, handling both the
+ * legacy string format (`"generalPurpose"`) and the current SDK
+ * object format (`{ kind: "generalPurpose", name?: "..." }`).
+ */
+function extractSubagentName(args: unknown): string {
+  if (args == null || typeof args !== "object") return "task";
+  const obj = args as Record<string, unknown>;
+
+  const subagentType = obj.subagentType ?? obj.subagent_type;
+  if (typeof subagentType === "string" && subagentType) return subagentType;
+  if (subagentType != null && typeof subagentType === "object") {
+    const typed = subagentType as Record<string, unknown>;
+    if (typeof typed.name === "string" && typed.name) return typed.name;
+    if (typeof typed.kind === "string" && typed.kind) return typed.kind;
+  }
+
+  return "task";
+}
+
 function safeString(obj: unknown, key: string): string {
   if (obj != null && typeof obj === "object" && key in obj) {
     const val = (obj as Record<string, unknown>)[key];
@@ -355,6 +377,8 @@ export class MessageAccumulator {
   private attachToolCallToLastAi(
     event: Extract<SDKMessage, { type: "tool_call" }>,
   ): void {
+    if (SUPPRESSED_TOOL_NAMES.has(event.name)) return;
+
     const status = mapToolCallStatus(event.status);
 
     if (event.status === "running") {
@@ -363,11 +387,6 @@ export class MessageAccumulator {
       aiMsg.toolCalls.push(tc);
       this.toolCallIndex.set(event.call_id, tc);
     } else {
-      // Look up via the index (O(1), cross-message). Falls back to
-      // creating a new ToolCall on the last AI message when the index
-      // has no entry (e.g. completion event without a preceding running
-      // event — can happen if events are reordered or the stream starts
-      // mid-execution).
       const existing = this.toolCallIndex.get(event.call_id);
       if (existing) {
         existing.status = status;
@@ -399,10 +418,6 @@ export class MessageAccumulator {
         this.toolCallIndex.set(event.call_id, tc);
       }
     }
-
-    if (event.name === "task") {
-      this.trackSubAgentExecution(event);
-    }
   }
 
   private findOrCreateLastAiMessage(): AgentMessage {
@@ -420,9 +435,9 @@ export class MessageAccumulator {
     return msg;
   }
 
-  private trackSubAgentExecution(
+  trackSubAgentExecution(
     event: Extract<SDKMessage, { type: "tool_call" }>,
-  ): void {
+  ): SubAgentExecution | undefined {
     const existing = this.subAgentMap.get(event.call_id);
 
     if (existing) {
@@ -440,14 +455,12 @@ export class MessageAccumulator {
           ? event.result
           : "Sub-agent failed";
       }
-      return;
+      return existing;
     }
 
     const sub = create(SubAgentExecutionSchema, {
       id: event.call_id,
-      name: safeString(event.args, "subagentType")
-        || safeString(event.args, "subagent_type")
-        || "task",
+      name: extractSubagentName(event.args),
       subject: safeString(event.args, "description"),
       input: safeString(event.args, "prompt"),
       status: mapSubAgentStatus(event.status),
@@ -455,6 +468,7 @@ export class MessageAccumulator {
     });
     this._subAgentExecutions.push(sub);
     this.subAgentMap.set(event.call_id, sub);
+    return sub;
   }
 
   private accumulateAssistant(

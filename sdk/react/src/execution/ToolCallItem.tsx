@@ -274,6 +274,7 @@ export const CATEGORY_ICON: Record<ToolCategory, () => React.JSX.Element> = {
   list: FolderIcon,
   think: BrainIcon,
   "sub-agent": BotIcon,
+  internal: WrenchIcon,
   mcp: McpPlugIcon,
   unknown: WrenchIcon,
 };

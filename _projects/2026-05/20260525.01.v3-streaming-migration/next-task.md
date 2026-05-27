@@ -76,9 +76,9 @@ When starting a new session:
 
 **Created**: 2026-05-25
 **Revised**: 2026-05-27
-**Current Phase**: Phase 5 COMPLETE → Ready for Phase 6
-**Status**: Broader model migration complete (Session 16). All `claude-sonnet-4-20250514` references migrated to `claude-sonnet-4-6` across both repos (~105 files, ~105 occurrences). Proto stubs regenerated. Tests validated. Platform ready for June 15 retirement deadline.
-**Last Session**: 2026-05-27 (Session 16) -- Broader model ID migration
+**Current Phase**: Cursor harness sub-agent/todo improvements COMPLETE → Ready for Phase 6
+**Status**: Cursor harness todo and sub-agent tracking implemented (Session 17). CursorSubAgentRouter for agent_id-based event routing, scoped todo tracking, two-layer todo tool suppression. Pending agent_id validation with live event recording before full E2E confirmation.
+**Last Session**: 2026-05-27 (Session 17) -- Cursor harness todo/sub-agent tracking
 **Latest Checkpoint**: `checkpoints/CP08_session15_integration_validation.md`
 
 ## Session Progress
@@ -248,6 +248,17 @@ When starting a new session:
 - **Tests**: 172/172 relevant unit tests pass, all failures in full suite confirmed pre-existing (28 pre-existing failures unchanged)
 - **Verification**: Zero stray `claude-sonnet-4-20250514` references in non-historical source/test/doc files across both repos
 
+### Session 17 (2026-05-27)
+- **Cursor harness todo/sub-agent tracking COMPLETE** — four interconnected issues fixed
+- **New `CursorSubAgentRouter`** (`subagent-router.ts`): `agent_id`-based event routing mirrors native `SubAgentTracker` role. Per-sub-agent `MessageAccumulator` + `TodoTracker` instances populate `SubAgentExecution.messages` and `.todos`
+- **Scoped todo tracking**: Sub-agent `updateTodos` writes to `SubAgentExecution.todos` (not parent `status.todos`), protecting parent plan stability
+- **Todo tool suppression (two layers)**: Runner layer (`SUPPRESSED_TOOL_NAMES` in `MessageAccumulator`) prevents `updateTodos`/`TodoWrite` from entering messages; SDK layer (`isInternalTool` + `buildThreadItems` filtering) handles historical data and cross-harness defense
+- **`subagentType` parsing fix**: Handles both string (`"generalPurpose"`) and object (`{ kind: "generalPurpose", name: "researcher" }`) formats via `extractSubagentName()`
+- **Cursor event recorder**: `CURSOR_EVENT_RECORD_DIR`-gated recorder for `agent_id` routing validation (mirrors native `V3_EVENT_RECORD_DIR`)
+- **SDK changes**: `tool-categories.ts` new `"internal"` category; `MessageThread.tsx` + `SubAgentSection.tsx` filter internal tools
+- **Tests**: 28 new tests (17 router, 5 message-translator, 6 thread-keys), all 188 affected tests pass, 0 regressions
+- **Pending**: E2E validation with live event recording to confirm `agent_id` routing hypothesis
+
 ## Migration Phases Overview
 
 | Phase | Name | Sessions | Status |
@@ -288,8 +299,10 @@ When starting a new session:
 8. ~~**Integration validation**~~ — DONE (Session 15): SubAgentTracker namespace fix validated E2E. Default model migrated to `claude-sonnet-4-6`.
 9. **Fix offline mock proxy routing for sub-agents** (deferred): Sub-agents in offline tests don't inherit the mock LLM proxy. Separate infra improvement.
 10. ~~**Broader model migration**~~ — DONE (Session 16): All `claude-sonnet-4-20250514` references migrated to `claude-sonnet-4-6` across both repos. Proto stubs regenerated. Tests validated.
-11. **Phase 6 (future)**: Custom Stigmer Stream Transformers — replace ad-hoc artifact/writeback/usage logic with native v3 stream transformers
-12. **Collect golden run corpus** (optional): Run offline tests with `V2_EVENT_RECORD_DIR` for future regression comparison
+11. ~~**Cursor harness todo/sub-agent tracking**~~ — DONE (Session 17): `CursorSubAgentRouter`, scoped `TodoTracker`, two-layer todo suppression, `subagentType` parsing fix, event recorder
+12. **Validate `agent_id` routing** (next): Run real Cursor execution with `CURSOR_EVENT_RECORD_DIR`, analyze `.cursor-events.jsonl`, confirm sub-agent events flow through parent stream with distinct `agent_id`
+13. **Phase 6 (future)**: Custom Stigmer Stream Transformers — replace ad-hoc artifact/writeback/usage logic with native v3 stream transformers
+14. **Collect golden run corpus** (optional): Run offline tests with `V2_EVENT_RECORD_DIR` for future regression comparison
 
 ## Critical Reminders (from Deep Research + Validation)
 

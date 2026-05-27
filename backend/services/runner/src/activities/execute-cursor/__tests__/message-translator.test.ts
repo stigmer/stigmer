@@ -197,18 +197,95 @@ describe("MessageAccumulator tool call status transitions", () => {
     expect(aiMsg?.isStreaming).toBe(false);
   });
 
-  it("sub-agent tool calls are tracked via subAgentExecutions", () => {
+  it("sub-agent tool calls are tracked via trackSubAgentExecution", () => {
     const messages: AgentMessage[] = [];
     const acc = new MessageAccumulator(messages);
 
     acc.processEvent(assistantEvent("r1", "Delegating to sub-agent."));
-    acc.processEvent(toolCallEvent("tc-sub", "task", "running", "r1", {
+
+    const runningEvent = toolCallEvent("tc-sub", "task", "running", "r1", {
       args: { subagentType: "generalPurpose", description: "Analyze data", prompt: "Do the thing" },
-    }));
-    acc.processEvent(toolCallEvent("tc-sub", "task", "completed", "r1", { result: "Done" }));
+    });
+    acc.processEvent(runningEvent);
+    acc.trackSubAgentExecution(runningEvent);
+
+    const completedEvent = toolCallEvent("tc-sub", "task", "completed", "r1", { result: "Done" });
+    acc.processEvent(completedEvent);
+    acc.trackSubAgentExecution(completedEvent);
 
     expect(acc.subAgentExecutions).toHaveLength(1);
     expect(acc.subAgentExecutions[0].id).toBe("tc-sub");
     expect(acc.subAgentExecutions[0].output).toBe("Done");
+  });
+
+  it("sub-agent name extraction handles object subagentType", () => {
+    const messages: AgentMessage[] = [];
+    const acc = new MessageAccumulator(messages);
+
+    const event = toolCallEvent("tc-sub2", "task", "running", "r1", {
+      args: { subagentType: { kind: "generalPurpose", name: "researcher" }, description: "Research", prompt: "Go" },
+    });
+    acc.processEvent(event);
+    const sub = acc.trackSubAgentExecution(event);
+
+    expect(sub).toBeDefined();
+    expect(sub!.name).toBe("researcher");
+  });
+
+  it("sub-agent name extraction falls back to kind when name is absent", () => {
+    const messages: AgentMessage[] = [];
+    const acc = new MessageAccumulator(messages);
+
+    const event = toolCallEvent("tc-sub3", "task", "running", "r1", {
+      args: { subagentType: { kind: "explore" }, description: "Explore", prompt: "Go" },
+    });
+    acc.processEvent(event);
+    const sub = acc.trackSubAgentExecution(event);
+
+    expect(sub).toBeDefined();
+    expect(sub!.name).toBe("explore");
+  });
+
+  describe("todo tool suppression", () => {
+    it("updateTodos tool calls are excluded from messages", () => {
+      const messages: AgentMessage[] = [];
+      const acc = new MessageAccumulator(messages);
+
+      acc.processEvent(assistantEvent("r1", "Planning..."));
+      acc.processEvent(toolCallEvent("tc-todo", "updateTodos", "running", "r1", {
+        args: { todos: [{ content: "Step 1", status: "pending" }] },
+      }));
+      acc.processEvent(toolCallEvent("tc-todo", "updateTodos", "completed", "r1"));
+
+      const aiMsg = messages.find(m => m.type === MessageType.MESSAGE_AI);
+      expect(aiMsg?.toolCalls).toHaveLength(0);
+    });
+
+    it("TodoWrite tool calls are excluded from messages", () => {
+      const messages: AgentMessage[] = [];
+      const acc = new MessageAccumulator(messages);
+
+      acc.processEvent(assistantEvent("r1", "Planning..."));
+      acc.processEvent(toolCallEvent("tc-tw", "TodoWrite", "running", "r1"));
+      acc.processEvent(toolCallEvent("tc-tw", "TodoWrite", "completed", "r1"));
+
+      const aiMsg = messages.find(m => m.type === MessageType.MESSAGE_AI);
+      expect(aiMsg?.toolCalls).toHaveLength(0);
+    });
+
+    it("non-todo tool calls on the same AI message are preserved", () => {
+      const messages: AgentMessage[] = [];
+      const acc = new MessageAccumulator(messages);
+
+      acc.processEvent(assistantEvent("r1", "Working..."));
+      acc.processEvent(toolCallEvent("tc-shell", "Shell", "running", "r1", { args: { command: "ls" } }));
+      acc.processEvent(toolCallEvent("tc-todo", "updateTodos", "running", "r1"));
+      acc.processEvent(toolCallEvent("tc-shell", "Shell", "completed", "r1", { result: "file.txt" }));
+      acc.processEvent(toolCallEvent("tc-todo", "updateTodos", "completed", "r1"));
+
+      const aiMsg = messages.find(m => m.type === MessageType.MESSAGE_AI);
+      expect(aiMsg?.toolCalls).toHaveLength(1);
+      expect(aiMsg?.toolCalls[0].name).toBe("Shell");
+    });
   });
 });
