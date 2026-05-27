@@ -29,7 +29,7 @@ import type {
   TaskExecutionContext,
   ExpressionEvaluator,
 } from "./types.js";
-import { isTermination, isExplicitTarget } from "./types.js";
+import { isTermination, isExplicitTarget, AgentCallError } from "./types.js";
 import { createTaskBuilder, DO_TASK_KIND, FOR_TASK_KIND, FORK_TASK_KIND, TRY_TASK_KIND, LISTEN_TASK_KIND, HUMAN_INPUT_TASK_KIND } from "./task-factory.js";
 import { extractFlowDirective } from "./tasks/switch.js";
 import { executeForTask } from "./tasks/for.js";
@@ -138,6 +138,11 @@ export async function executeDoTasks(
       );
       const willRetry = effectiveCtx.retryContext != null
         && attemptNumber < effectiveCtx.retryContext.maxAttempts;
+      if (kind === "call:agent" && taskErr instanceof AgentCallError && taskErr.childExecutionId) {
+        effectiveCtx.taskStatusAccumulator?.setTaskMetadata(entry.key, {
+          agent_execution_id: taskErr.childExecutionId,
+        });
+      }
       if (effectiveCtx.emitEvents) {
         await effectiveCtx.emitEvents([{
           type: "task_failed",

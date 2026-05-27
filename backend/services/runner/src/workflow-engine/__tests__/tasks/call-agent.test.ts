@@ -3,6 +3,7 @@ import { CallAgentTaskBuilder } from "../../tasks/call-agent.js";
 import { createState } from "../../state.js";
 import { evaluateExpressionBatch } from "../../expression.js";
 import type { CallAgentTaskDef, TaskExecutionContext, AgentCallResult, EmitEventsFn, WorkflowEventDescriptor } from "../../types.js";
+import { AgentCallError } from "../../types.js";
 
 let mockCallAgent: ReturnType<typeof vi.fn>;
 let mockEmitEvents: ReturnType<typeof vi.fn>;
@@ -741,5 +742,75 @@ describe("CallAgentTaskBuilder — ON_INVALID_FALLBACK", () => {
     const output = await executor({}, createState(), makeCtx()) as Record<string, unknown>;
 
     expect(output.__flow_directive__).toBe("continue");
+  });
+});
+
+describe("CallAgentTaskBuilder — AgentCallError propagation", () => {
+  beforeEach(() => {
+    mockCallAgent = vi.fn();
+    mockEmitEvents = vi.fn().mockResolvedValue(undefined);
+  });
+
+  function agentTaskDef(): CallAgentTaskDef {
+    return {
+      kind: "call:agent",
+      call: "agent",
+      with: { agent: "test-agent", message: "Run task" },
+    };
+  }
+
+  function emittedEvents(): WorkflowEventDescriptor[] {
+    return (mockEmitEvents.mock.calls as WorkflowEventDescriptor[][][]).flatMap(
+      (call) => call[0],
+    );
+  }
+
+  it("emits agent_call_completed with childExecutionId from AgentCallError on failure", async () => {
+    mockCallAgent.mockRejectedValue(new AgentCallError("Cursor run failed", "aex_child123"));
+
+    const builder = new CallAgentTaskBuilder("failWithId", agentTaskDef());
+    const executor = builder.build();
+    const ctx = makeCtx({ emitEvents: mockEmitEvents });
+
+    await expect(executor({}, createState(), ctx)).rejects.toThrow("Cursor run failed");
+
+    const events = emittedEvents();
+    expect(events).toHaveLength(2);
+
+    const completed = events[1];
+    expect(completed.type).toBe("agent_call_completed");
+    if (completed.type !== "agent_call_completed") throw new Error("wrong type");
+    expect(completed.childExecutionId).toBe("aex_child123");
+    expect(completed.error).toBe("Cursor run failed");
+  });
+
+  it("emits empty childExecutionId for non-AgentCallError failures", async () => {
+    mockCallAgent.mockRejectedValue(new Error("generic failure"));
+
+    const builder = new CallAgentTaskBuilder("failGeneric", agentTaskDef());
+    const executor = builder.build();
+    const ctx = makeCtx({ emitEvents: mockEmitEvents });
+
+    await expect(executor({}, createState(), ctx)).rejects.toThrow("generic failure");
+
+    const events = emittedEvents();
+    const completed = events[1];
+    if (completed.type !== "agent_call_completed") throw new Error("wrong type");
+    expect(completed.childExecutionId).toBe("");
+  });
+
+  it("re-throws AgentCallError preserving name and childExecutionId", async () => {
+    const original = new AgentCallError("agent failed: timeout", "aex_timeout_42");
+    mockCallAgent.mockRejectedValue(original);
+
+    const builder = new CallAgentTaskBuilder("rethrowCheck", agentTaskDef());
+    const executor = builder.build();
+    const ctx = makeCtx({ emitEvents: mockEmitEvents });
+
+    await expect(executor({}, createState(), ctx)).rejects.toSatisfy((err: unknown) => {
+      return err instanceof AgentCallError
+        && err.childExecutionId === "aex_timeout_42"
+        && err.name === "AgentCallError";
+    });
   });
 });

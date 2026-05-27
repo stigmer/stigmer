@@ -73,6 +73,14 @@ export function synthesizeError(opts: {
   isResumedHandle: boolean;
   fallbackContext: { model: string; mode: string; agentId: string };
 }): ClassifiedError {
+  console.log(
+    `[error-classifier] synthesizeError diagnostic: ` +
+    `sdkResultFields=${JSON.stringify(opts.sdkResultFields)}, ` +
+    `streamErrorMessage=${JSON.stringify(opts.streamErrorMessage)}, ` +
+    `hasCapturedRejection=${!!opts.capturedRejection}, ` +
+    `isResumedHandle=${opts.isResumedHandle}, ` +
+    `model=${opts.fallbackContext.model}, mode=${opts.fallbackContext.mode}`,
+  );
   if (opts.sdkResultFields) {
     const isBareGeneric = opts.sdkResultFields === "Cursor run failed";
     if (!isBareGeneric) {

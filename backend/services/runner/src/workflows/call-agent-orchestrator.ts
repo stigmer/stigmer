@@ -30,6 +30,7 @@ import type { createCallAgentActivities } from "../activities/call-agent.js";
 import type { createCallAgentStatusActivities, AgentProgressSummary } from "../activities/call-agent-status.js";
 import type { createWorkflowEventActivities } from "../activities/workflow-event-activities.js";
 import type { AgentCallConfig, AgentCallResult, WorkflowEventDescriptor } from "../workflow-engine/types.js";
+import { AgentCallError } from "../workflow-engine/types.js";
 import type { ChildApprovalNotification } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 
 // ─────────────────────────────────────────────────────────────────────
@@ -236,6 +237,12 @@ export async function orchestrateAgentCall(
   }
 
   if (activityError) {
+    if (childExecId) {
+      const msg = activityError instanceof Error
+        ? activityError.message
+        : String(activityError);
+      throw new AgentCallError(msg, childExecId);
+    }
     throw activityError;
   }
 

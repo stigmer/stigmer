@@ -843,6 +843,31 @@ export interface ArtifactCreatedEvent extends EventBase {
 
 export type EmitEventsFn = (events: WorkflowEventDescriptor[]) => Promise<void>;
 
+// ─────────────────────────────────────────────────────────────────────
+// Error types
+// ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Typed error for agent call failures that preserves the child
+ * AgentExecution ID across the error propagation chain.
+ *
+ * The orchestrator throws this when the CallAgent activity fails,
+ * carrying the child execution ID that was captured via the
+ * `child_execution_started` signal. Downstream consumers
+ * (CallAgentTaskBuilder, do-executor) extract the ID to:
+ *   - Emit `agent_call_completed` events with the correct child ref
+ *   - Set task metadata so the execution inspector can link to it
+ */
+export class AgentCallError extends Error {
+  readonly childExecutionId: string;
+
+  constructor(message: string, childExecutionId: string) {
+    super(message);
+    this.name = "AgentCallError";
+    this.childExecutionId = childExecutionId;
+  }
+}
+
 export interface PromoteTaskOutputResult {
   output: unknown;
   artifactIds: string[];
