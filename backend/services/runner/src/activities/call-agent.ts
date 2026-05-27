@@ -109,9 +109,19 @@ export async function callAgentAction(
     sessionName = `ses-wf-${taskKey}`;
     executionName = `aex-wf-${taskKey}-${shortUniqueId()}`;
   } else {
+    console.warn(
+      `[CallAgent] Missing workflow context for session naming: ` +
+      `wfExecId=${wfExecId ?? "(missing)"}, taskName=${taskName ?? "(missing)"}. ` +
+      `Using timestamp-based names — session will NOT be reused on retry.`,
+    );
     sessionName = `wf-${extractSlug(resolved.agent)}-${Math.floor(Date.now() / 1000)}`;
     executionName = `aex-wf-${extractSlug(resolved.agent)}-${Date.now()}`;
   }
+
+  console.log(
+    `[CallAgent] session=${sessionName}, execution=${executionName}, ` +
+    `wfExecId=${wfExecId ?? "(none)"}, task=${taskName ?? "(none)"}`,
+  );
 
   const harness = resolveHarness(resolved.harness);
 

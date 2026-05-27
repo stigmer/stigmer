@@ -65,6 +65,10 @@ import { ContextTracker } from "./context-tracker.js";
 import { StreamingUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
 import { buildSessionMemory, persistSessionMemory, estimateTokens } from "./session-memory.js";
 import { activityStarted, activityFinished } from "../../idle-watchdog.js";
+import { getCapturedRejection, clearCapturedRejection } from "./rejection-capture.js";
+import { synthesizeError, formatClassifiedError, shouldRetryWithFreshAgent } from "./error-classifier.js";
+import type { ClassifiedError } from "./error-classifier.js";
+import { createAgent, createCloudAgent } from "./session-lifecycle.js";
 
 /**
  * Creates the activity functions bound to the runner config.
@@ -405,6 +409,8 @@ async function executeCursorInner(
 
     let platformStopSignaled = false;
     let firstTurnAttributionLogged = false;
+    let streamErrorMessage: string | undefined;
+    let alreadyRetriedWithFreshAgent = false;
 
     const run = await resolution.agent.send(effectivePrompt, {
       onDelta: ({ update }) => {
@@ -455,6 +461,10 @@ async function executeCursorInner(
         console.log(
           `ExecuteCursor stream status: execution=${executionId}, status=${JSON.stringify(event)}`,
         );
+        const statusEvent = event as { status?: string; message?: string };
+        if (statusEvent.status === "ERROR" && statusEvent.message) {
+          streamErrorMessage = statusEvent.message;
+        }
       }
 
       const shouldPersist = eventCount % 20 === 0 || deltaEnricher.isDirty || todoTracker.isDirty;
@@ -609,19 +619,152 @@ async function executeCursorInner(
         status.phase = ExecutionPhase.EXECUTION_COMPLETED;
         break;
       case "error": {
-        status.phase = ExecutionPhase.EXECUTION_FAILED;
         const resultAny = result as unknown as Record<string, unknown>;
         const sdkError = result.result
           ?? resultAny.error
           ?? resultAny.message
           ?? resultAny.reason;
-        status.error = sdkError
-          ? String(sdkError)
-          : `Cursor run failed (no detail from SDK). Model=${validatedModel}, mode=${agentMode}, agentId=${resolution.agentId}`;
+        const sdkErrorStr = sdkError ? String(sdkError) : undefined;
+
+        const capturedRejection = getCapturedRejection(executionId);
+        if (capturedRejection) clearCapturedRejection(executionId);
+
+        const classified = synthesizeError({
+          sdkResultFields: sdkErrorStr,
+          streamErrorMessage,
+          capturedRejection,
+          isResumedHandle: resolution.reason === "resumed_successfully",
+          fallbackContext: { model: validatedModel, mode: agentMode, agentId: resolution.agentId },
+        });
+
         console.error(
           `ExecuteCursor agent error: execution=${executionId}, ` +
-          `error=${status.error}, rawResult=${JSON.stringify(result)}`,
+          `classified=${JSON.stringify(classified)}, rawResult=${JSON.stringify(result)}`,
         );
+
+        if (
+          shouldRetryWithFreshAgent(classified)
+          && resolution.reason === "resumed_successfully"
+          && !alreadyRetriedWithFreshAgent
+        ) {
+          alreadyRetriedWithFreshAgent = true;
+          console.warn(
+            `ExecuteCursor poisoned-handle recovery: execution=${executionId}, ` +
+            `disposing agent ${resolution.agentId} and creating fresh agent`,
+          );
+
+          try { resolution.agent.close(); } catch { /* best effort */ }
+
+          const freshAgent = agentMode === "cloud"
+            ? await createCloudAgent(createOptions as CreateCloudAgentOptions)
+            : await createAgent(createOptions as CreateAgentOptions);
+
+          const freshPrompt = buildPrompt({
+            resolution: {
+              ...resolution,
+              agent: freshAgent,
+              agentId: freshAgent.agentId,
+              isNew: true,
+              resumed: false,
+              reason: "created_after_resume_failure",
+              resumeFailureDetail: `poisoned-handle recovery: ${classified.message}`,
+            },
+            approvalDecisions,
+            sessionMemory,
+            instructions: blueprint.instructions,
+            userMessage: spec.message,
+            skills: skillMetadata,
+            subAgents: blueprint.subAgents,
+            workspaceDirs: blueprint.workspaceDirs,
+            workspaceFileRefs: spec.workspaceFileRefs ?? [],
+            attachmentPaths,
+            pendingApprovals: status.pendingApprovals.length > 0
+              ? status.pendingApprovals
+              : (execution.status?.pendingApprovals ?? []),
+            interactionMode,
+          });
+
+          console.log(
+            `ExecuteCursor retry with fresh agent: execution=${executionId}, ` +
+            `newAgentId=${freshAgent.agentId}`,
+          );
+
+          try {
+            if (resolution.isNew || !blueprint.sessionSpec.harnessStateId) {
+              blueprint.sessionSpec.harnessStateId = freshAgent.agentId;
+              if (blueprint.session.metadata) blueprint.session.metadata.slug = "";
+              await client.updateSession(blueprint.session);
+            }
+          } catch (updateErr) {
+            console.warn("Failed to update session with fresh agentId (non-fatal):", updateErr);
+          }
+
+          const retryRun = await freshAgent.send(freshPrompt, {
+            onDelta: ({ update }) => {
+              if (update.type === "turn-ended" && update.usage) {
+                usageAccumulator.addTurn(update.usage);
+              }
+              deltaEnricher.processDelta(update);
+              try { heartbeat(); } catch { /* swallow during retry */ }
+            },
+          });
+
+          streamErrorMessage = undefined;
+
+          for await (const retryEvent of retryRun.stream()) {
+            if (Context.current().cancellationSignal.aborted) break;
+            collectedEvents.push(retryEvent);
+            accumulator.processEvent(retryEvent);
+            if (retryEvent.type === "status") {
+              const retryStatusEvent = retryEvent as { status?: string; message?: string };
+              if (retryStatusEvent.status === "ERROR" && retryStatusEvent.message) {
+                streamErrorMessage = retryStatusEvent.message;
+              }
+            }
+            heartbeat();
+          }
+
+          const retryResult = await retryRun.wait();
+          console.log(
+            `ExecuteCursor retry run.wait(): execution=${executionId}, ` +
+            `retryResult=${JSON.stringify(retryResult)}`,
+          );
+
+          if (retryResult.status === "finished") {
+            status.phase = ExecutionPhase.EXECUTION_COMPLETED;
+            console.log(
+              `ExecuteCursor poisoned-handle recovery SUCCEEDED: execution=${executionId}`,
+            );
+            break;
+          }
+
+          if (retryResult.status === "cancelled") {
+            status.phase = ExecutionPhase.EXECUTION_CANCELLED;
+            break;
+          }
+
+          const retryRejection = getCapturedRejection(executionId);
+          if (retryRejection) clearCapturedRejection(executionId);
+
+          const retryClassified = synthesizeError({
+            sdkResultFields: retryResult.result ? String(retryResult.result) : undefined,
+            streamErrorMessage,
+            capturedRejection: retryRejection,
+            isResumedHandle: false,
+            fallbackContext: { model: validatedModel, mode: agentMode, agentId: freshAgent.agentId },
+          });
+
+          status.phase = ExecutionPhase.EXECUTION_FAILED;
+          status.error = formatClassifiedError(retryClassified);
+          console.error(
+            `ExecuteCursor poisoned-handle recovery FAILED: execution=${executionId}, ` +
+            `retryError=${status.error}`,
+          );
+          break;
+        }
+
+        status.phase = ExecutionPhase.EXECUTION_FAILED;
+        status.error = formatClassifiedError(classified);
         break;
       }
       case "cancelled":

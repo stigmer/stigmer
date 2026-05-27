@@ -109,13 +109,17 @@ export async function createStigmerRunner(
 
   // The Cursor SDK captures a reference to global.fetch at import time.
   // The fetch interceptor MUST be installed before any @cursor/sdk import.
-  const { installFetchInterceptor } = await import(
+  const { installFetchInterceptor, getExecutionContext } = await import(
     "./activities/execute-cursor/fetch-interceptor.js"
   );
   installFetchInterceptor({
     proxyEndpoint: config.proxyEndpoint ?? undefined,
     stigmerToken: config.stigmerToken ?? undefined,
   });
+  const { setExecutionContextRef } = await import(
+    "./activities/execute-cursor/rejection-capture.js"
+  );
+  setExecutionContextRef(getExecutionContext());
 
   const activities = await createAllActivities(config);
 
