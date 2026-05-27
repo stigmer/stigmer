@@ -105,6 +105,32 @@ export function computeFollowCenter(input: FollowCenterInput): FollowCenterResul
   };
 }
 
+/** Inputs for the follow-selection decision. */
+export interface FollowSelectionInput {
+  /** Whether the follow state machine is in "following" state. */
+  readonly isFollowing: boolean;
+  /** The currently active (running/waiting) task name, or null. */
+  readonly activeTaskName: string | null;
+  /** The currently selected task name in the graph, or null. */
+  readonly currentSelectedTask: string | null;
+}
+
+/**
+ * Pure function that determines whether follow-selection should update
+ * the selected task. Returns the task name to select, or `null` when
+ * no change is needed. Extracted for testability (DD-003).
+ *
+ * Selection should update when all three conditions hold:
+ * 1. Follow is active (`isFollowing`)
+ * 2. An active task exists (`activeTaskName`)
+ * 3. The active task differs from the current selection
+ */
+export function computeFollowSelection(input: FollowSelectionInput): string | null {
+  if (!input.isFollowing || !input.activeTaskName) return null;
+  if (input.activeTaskName === input.currentSelectedTask) return null;
+  return input.activeTaskName;
+}
+
 /**
  * Behavior hook implementing a follow-execution state machine for the
  * workflow execution graph viewport.
