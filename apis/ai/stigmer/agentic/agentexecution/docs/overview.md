@@ -13,5 +13,5 @@ spec:
   agent_id: "agt_01HGYYY..."
   message: "What is the status of my latest deployment?"
   execution_config:
-    model_name: "claude-sonnet-4-20250514"
+    model_name: "claude-sonnet-4-6"
 ```

@@ -11,7 +11,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "The model to use for this execution.\n Example: \"claude-sonnet-4-20250514\"",
+      "description": "The model to use for this execution.\n Example: \"claude-sonnet-4-6\"",
       "required": false
     },
     {

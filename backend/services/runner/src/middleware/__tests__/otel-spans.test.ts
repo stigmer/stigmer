@@ -14,7 +14,7 @@ function makeToolRequest(name = "mcp_tool"): ToolCallRequest {
 
 function makeModelRequest(): ModelCallRequest {
   return {
-    model: { model: "claude-sonnet-4-20250514" },
+    model: { model: "claude-sonnet-4-6" },
     messages: [],
     state: { messages: [] },
     runtime: {},

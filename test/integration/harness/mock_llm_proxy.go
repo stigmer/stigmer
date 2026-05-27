@@ -461,7 +461,7 @@ func AnthropicTextResponse(text string, inputTokens, outputTokens int) map[strin
 		"id":    fmt.Sprintf("msg_mock_%d", inputTokens),
 		"type":  "message",
 		"role":  "assistant",
-		"model": "claude-sonnet-4-20250514",
+		"model": "claude-sonnet-4-6",
 		"content": []map[string]any{
 			{"type": "text", "text": text},
 		},
@@ -479,7 +479,7 @@ func AnthropicToolUseResponse(toolID, toolName string, toolInput map[string]any,
 		"id":    fmt.Sprintf("msg_mock_%d", inputTokens),
 		"type":  "message",
 		"role":  "assistant",
-		"model": "claude-sonnet-4-20250514",
+		"model": "claude-sonnet-4-6",
 		"content": []map[string]any{
 			{"type": "tool_use", "id": toolID, "name": toolName, "input": toolInput},
 		},
@@ -524,7 +524,7 @@ func AnthropicThinkingTextResponse(thinking, text string, inputTokens, outputTok
 		"id":    fmt.Sprintf("msg_mock_%d", inputTokens),
 		"type":  "message",
 		"role":  "assistant",
-		"model": "claude-sonnet-4-20250514",
+		"model": "claude-sonnet-4-6",
 		"content": []map[string]any{
 			{"type": "thinking", "thinking": thinking},
 			{"type": "text", "text": text},

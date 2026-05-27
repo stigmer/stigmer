@@ -117,7 +117,7 @@ func TestCanary_LlmCallProxy(t *testing.T) {
 	defer deployer.Cleanup(ctx)
 
 	taskConfig, err := structpb.NewStruct(map[string]any{
-		"model":       "claude-sonnet-4-20250514",
+		"model":       "claude-sonnet-4-6",
 		"prompt":      "Reply with exactly one word: OK",
 		"max_tokens":  float64(10),
 		"timeout":     float64(60),

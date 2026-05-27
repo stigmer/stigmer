@@ -341,7 +341,7 @@ func (x *AgentExecutionSpec) GetActivityTaskQueue() string {
 type ExecutionConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The model to use for this execution.
-	// Example: "claude-sonnet-4-20250514"
+	// Example: "claude-sonnet-4-6"
 	ModelName string `protobuf:"bytes,1,opt,name=model_name,json=modelName,proto3" json:"model_name,omitempty"`
 	// Context management configuration for this execution.
 	// Controls automatic summarization behavior for long-running conversations.

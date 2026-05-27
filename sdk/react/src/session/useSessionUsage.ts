@@ -15,7 +15,7 @@ import { useFetch } from "../internal/useFetch";
  * Per-model cost breakdown.
  */
 export interface ModelCostEntry {
-  /** Model identifier (e.g. "claude-sonnet-4-20250514"). */
+  /** Model identifier (e.g. "claude-sonnet-4-6"). */
   readonly model: string;
   /** Provider name (e.g. "anthropic", "openai"). */
   readonly provider: string;

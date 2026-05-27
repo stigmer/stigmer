@@ -116,12 +116,12 @@ describe("V3ProtocolNormalizer", () => {
     });
 
     it("normalizes provider event with model", () => {
-      const result = normalize(makeProviderEvent("run-1", "anthropic", "claude-sonnet-4-20250514"));
+      const result = normalize(makeProviderEvent("run-1", "anthropic", "claude-sonnet-4-6"));
       expect(result).toHaveLength(1);
       expect(result[0]).toMatchObject({
         kind: "provider",
         provider: "anthropic",
-        model: "claude-sonnet-4-20250514",
+        model: "claude-sonnet-4-6",
       });
     });
 

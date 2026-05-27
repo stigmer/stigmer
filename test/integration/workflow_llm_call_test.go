@@ -50,7 +50,7 @@ func TestWorkflowLlmCall_StructuredOutput(t *testing.T) {
 	require.NoError(t, err)
 
 	taskConfig, err := structpb.NewStruct(map[string]any{
-		"model":           "claude-sonnet-4-20250514",
+		"model":           "claude-sonnet-4-6",
 		"system_prompt":   "You are a sentiment classifier. Respond ONLY with valid JSON matching the schema.",
 		"prompt":          "Classify the sentiment of: 'I absolutely love this product, it changed my life!'",
 		"response_schema": schema.AsMap(),
@@ -130,7 +130,7 @@ func TestWorkflowLlmCall_SimplePrompt(t *testing.T) {
 	defer deployer.Cleanup(ctx)
 
 	taskConfig, err := structpb.NewStruct(map[string]any{
-		"model":       "claude-sonnet-4-20250514",
+		"model":       "claude-sonnet-4-6",
 		"prompt":      "Reply with exactly one word: HELLO",
 		"max_tokens":  float64(10),
 		"timeout":     float64(60),

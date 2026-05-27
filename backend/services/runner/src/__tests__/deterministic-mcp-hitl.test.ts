@@ -78,7 +78,7 @@ describe("deterministic MCP tool-choice fixtures", () => {
       try {
         // First call consumes the tool_use entry — callLlmAction extracts empty text
         const firstResult = await callLlmAction(
-          { model: "claude-sonnet-4-20250514", prompt: "Use the echo tool", max_tokens: 200 },
+          { model: "claude-sonnet-4-6", prompt: "Use the echo tool", max_tokens: 200 },
           {},
           "exec-mcp-echo",
         );
@@ -89,7 +89,7 @@ describe("deterministic MCP tool-choice fixtures", () => {
 
         // Second call consumes the final text entry
         const secondResult = await callLlmAction(
-          { model: "claude-sonnet-4-20250514", prompt: "Tool result: hello-mcp-test", max_tokens: 200 },
+          { model: "claude-sonnet-4-6", prompt: "Tool result: hello-mcp-test", max_tokens: 200 },
           {},
           "exec-mcp-echo",
         );
@@ -125,7 +125,7 @@ describe("deterministic MCP tool-choice fixtures", () => {
       interceptor.install();
       try {
         const first = await callLlmAction(
-          { model: "claude-sonnet-4-20250514", prompt: "Use the fail tool", max_tokens: 200 },
+          { model: "claude-sonnet-4-6", prompt: "Use the fail tool", max_tokens: 200 },
           {},
           "exec-mcp-fail",
         );
@@ -133,7 +133,7 @@ describe("deterministic MCP tool-choice fixtures", () => {
         expect(first.input_tokens).toBe(115);
 
         const second = await callLlmAction(
-          { model: "claude-sonnet-4-20250514", prompt: "Tool error: test-error", max_tokens: 200 },
+          { model: "claude-sonnet-4-6", prompt: "Tool error: test-error", max_tokens: 200 },
           {},
           "exec-mcp-fail",
         );
@@ -190,7 +190,7 @@ describe("deterministic MCP tool-choice fixtures", () => {
       interceptor.install();
       try {
         const first = await callLlmAction(
-          { model: "claude-sonnet-4-20250514", prompt: "Use echo with env var", max_tokens: 200 },
+          { model: "claude-sonnet-4-6", prompt: "Use echo with env var", max_tokens: 200 },
           {},
           "exec-mcp-env",
         );
@@ -198,7 +198,7 @@ describe("deterministic MCP tool-choice fixtures", () => {
         expect(first.output_tokens).toBe(38);
 
         const second = await callLlmAction(
-          { model: "claude-sonnet-4-20250514", prompt: "Tool result: env-resolved", max_tokens: 200 },
+          { model: "claude-sonnet-4-6", prompt: "Tool result: env-resolved", max_tokens: 200 },
           {},
           "exec-mcp-env",
         );
@@ -261,7 +261,7 @@ describe("deterministic HITL approval flow fixtures", () => {
       try {
         // Turn 1: LLM decides to call a tool (requires approval)
         const preApproval = await callLlmAction(
-          { model: "claude-sonnet-4-20250514", prompt: "Call the echo tool", max_tokens: 200 },
+          { model: "claude-sonnet-4-6", prompt: "Call the echo tool", max_tokens: 200 },
           {},
           "exec-hitl-approve",
         );
@@ -271,7 +271,7 @@ describe("deterministic HITL approval flow fixtures", () => {
 
         // Turn 2: after approval + tool execution, LLM produces final text
         const postApproval = await callLlmAction(
-          { model: "claude-sonnet-4-20250514", prompt: "Tool result: hello-hitl", max_tokens: 200 },
+          { model: "claude-sonnet-4-6", prompt: "Tool result: hello-hitl", max_tokens: 200 },
           {},
           "exec-hitl-approve",
         );
@@ -312,7 +312,7 @@ describe("deterministic HITL approval flow fixtures", () => {
       interceptor.install();
       try {
         const first = await callLlmAction(
-          { model: "claude-sonnet-4-20250514", prompt: "Call the echo tool", max_tokens: 200 },
+          { model: "claude-sonnet-4-6", prompt: "Call the echo tool", max_tokens: 200 },
           {},
           "exec-hitl-auto",
         );
@@ -320,7 +320,7 @@ describe("deterministic HITL approval flow fixtures", () => {
         expect(first.provider).toBe("anthropic");
 
         const second = await callLlmAction(
-          { model: "claude-sonnet-4-20250514", prompt: "Tool result: auto-approved", max_tokens: 200 },
+          { model: "claude-sonnet-4-6", prompt: "Tool result: auto-approved", max_tokens: 200 },
           {},
           "exec-hitl-auto",
         );
