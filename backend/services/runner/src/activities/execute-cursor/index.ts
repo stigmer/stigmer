@@ -47,7 +47,6 @@ import { utcTimestamp, persistStatus, reportSetupProgress, slimStatus } from "..
 import { DeltaEnricher } from "./delta-enricher.js";
 import { TodoTracker } from "./todo-tracker.js";
 import { createCursorEventRecorder } from "./cursor-event-recorder.js";
-import { CursorSubAgentRouter } from "./subagent-router.js";
 import { resolveMcpServers, validateMcpServerEnv } from "./mcp-resolver.js";
 import { mergeApprovalPolicies } from "./approval-policy.js";
 import { backfillMcpServersIfNeeded } from "./connect-backfill.js";
@@ -408,7 +407,6 @@ async function executeCursorInner(
 
     const deltaEnricher = new DeltaEnricher();
     const todoTracker = new TodoTracker(status.todos);
-    const subAgentRouter = new CursorSubAgentRouter();
     const eventRecorder = createCursorEventRecorder(executionId);
 
     let platformStopSignaled = false;
@@ -458,22 +456,13 @@ async function executeCursorInner(
       collectedEvents.push(event);
       eventRecorder?.record(event, eventCount);
 
-      if (subAgentRouter.isSubAgentEvent(event)) {
-        subAgentRouter.routeEvent(event);
-      } else {
-        accumulator.processEvent(event);
-        todoTracker.processEvent(event);
+      accumulator.processEvent(event);
+      todoTracker.processEvent(event);
 
-        if (event.type === "tool_call" && event.name === "task") {
-          const toolEvent = event as Extract<SDKMessage, { type: "tool_call" }>;
-          const sub = accumulator.trackSubAgentExecution(toolEvent);
-          if (sub && toolEvent.status === "running") {
-            subAgentRouter.registerSubAgent(toolEvent.call_id, sub);
-          }
-          if (toolEvent.status === "completed" || toolEvent.status === "error") {
-            subAgentRouter.finalizeSubAgent(toolEvent.call_id);
-          }
-        }
+      if (event.type === "tool_call" && event.name === "task") {
+        accumulator.trackSubAgentExecution(
+          event as Extract<SDKMessage, { type: "tool_call" }>,
+        );
       }
 
       deltaEnricher.applyEnrichments(status.messages);
@@ -489,7 +478,7 @@ async function executeCursorInner(
         }
       }
 
-      const shouldPersist = eventCount % 20 === 0 || deltaEnricher.isDirty || todoTracker.isDirty || subAgentRouter.isDirty;
+      const shouldPersist = eventCount % 20 === 0 || deltaEnricher.isDirty || todoTracker.isDirty;
       if (usageAccumulator.hasTurns) {
         status.streamingUsage = create(StreamingUsageSummarySchema, usageAccumulator.snapshot());
       }
@@ -497,11 +486,9 @@ async function executeCursorInner(
         status.contextInfo = contextTracker.snapshot();
       }
       if (shouldPersist) {
-        subAgentRouter.syncToProto();
         const signal = await persistStatus(client, executionId, status);
         deltaEnricher.markPersisted();
         todoTracker.markPersisted();
-        subAgentRouter.markPersisted();
         heartbeat();
         if (signal === ExecutionControlSignal.STOP) {
           platformStopSignaled = true;
@@ -519,7 +506,6 @@ async function executeCursorInner(
 
     accumulator.finalize();
     deltaEnricher.finalize(status.messages);
-    subAgentRouter.syncToProto();
     status.subAgentExecutions = accumulator.subAgentExecutions;
     await eventRecorder?.flush();
     if (usageAccumulator.hasTurns) {

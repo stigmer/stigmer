@@ -267,6 +267,11 @@ function isTerminalToolStatus(status: ToolCallStatus): boolean {
  * Extract sub-agent name from task tool args, handling both the
  * legacy string format (`"generalPurpose"`) and the current SDK
  * object format (`{ kind: "generalPurpose", name?: "..." }`).
+ *
+ * Falls back to `description` (always populated by the SDK) before
+ * returning the generic `"task"`. The `kind` value `"unspecified"`
+ * is treated as absent since the Cursor SDK uses it as a default
+ * when the sub-agent type is not specified in the blueprint.
  */
 function extractSubagentName(args: unknown): string {
   if (args == null || typeof args !== "object") return "task";
@@ -277,8 +282,12 @@ function extractSubagentName(args: unknown): string {
   if (subagentType != null && typeof subagentType === "object") {
     const typed = subagentType as Record<string, unknown>;
     if (typeof typed.name === "string" && typed.name) return typed.name;
-    if (typeof typed.kind === "string" && typed.kind) return typed.kind;
+    if (typeof typed.kind === "string" && typed.kind && typed.kind !== "unspecified") {
+      return typed.kind;
+    }
   }
+
+  if (typeof obj.description === "string" && obj.description) return obj.description;
 
   return "task";
 }
@@ -289,6 +298,104 @@ function safeString(obj: unknown, key: string): string {
     return typeof val === "string" ? val : "";
   }
   return "";
+}
+
+/**
+ * Parse the task tool's completed result into AgentMessages.
+ *
+ * The Cursor SDK returns sub-agent work as a blob in the task tool's
+ * completed event (not as streaming events with a distinct agent_id).
+ * The result shape is:
+ *
+ *   { status: "success", value: { conversationSteps: ConversationStep[] } }
+ *
+ * where ConversationStep is a discriminated union:
+ *   - { type: "thinkingMessage", message: { text, thinkingDurationMs? } }
+ *   - { type: "assistantMessage", message: { text } }
+ *   - { type: "toolCall", message: { type, args, result?, ... } }
+ *
+ * This function defensively parses whatever steps are present and
+ * appends corresponding AgentMessage protos to the output array.
+ * Unknown step types are silently skipped for forward compatibility.
+ */
+export function extractConversationSteps(
+  result: unknown,
+  out: AgentMessage[],
+): void {
+  if (result == null || typeof result !== "object") return;
+  const r = result as Record<string, unknown>;
+
+  const value = r.value ?? r;
+  if (value == null || typeof value !== "object") return;
+  const v = value as Record<string, unknown>;
+
+  const steps = v.conversationSteps;
+  if (!Array.isArray(steps)) return;
+
+  for (const step of steps) {
+    if (step == null || typeof step !== "object") continue;
+    const s = step as Record<string, unknown>;
+    const type = s.type as string | undefined;
+
+    if (type === "thinkingMessage" || s.thinkingMessage != null) {
+      const msg = (type === "thinkingMessage" ? s.message : s.thinkingMessage) as Record<string, unknown> | undefined;
+      const text = typeof msg?.text === "string" ? msg.text : "";
+      if (text) {
+        out.push(create(AgentMessageSchema, {
+          type: MessageType.MESSAGE_THINKING,
+          content: text,
+          timestamp: utcTimestamp(),
+        }));
+      }
+    } else if (type === "assistantMessage" || s.assistantMessage != null) {
+      const msg = (type === "assistantMessage" ? s.message : s.assistantMessage) as Record<string, unknown> | undefined;
+      const text = typeof msg?.text === "string" ? msg.text : "";
+      if (text) {
+        out.push(create(AgentMessageSchema, {
+          type: MessageType.MESSAGE_AI,
+          content: text,
+          timestamp: utcTimestamp(),
+        }));
+      }
+    } else if (type === "toolCall") {
+      const msg = s.message as Record<string, unknown> | undefined;
+      if (msg) {
+        const toolName = typeof msg.type === "string" ? msg.type : "unknown";
+        const toolArgs = msg.args != null ? JSON.stringify(msg.args) : "";
+        let toolResult = "";
+        if (msg.result != null) {
+          const resultObj = msg.result as Record<string, unknown>;
+          if (resultObj.status === "success" && resultObj.value != null) {
+            toolResult = typeof resultObj.value === "string"
+              ? resultObj.value
+              : JSON.stringify(resultObj.value);
+          } else if (resultObj.status === "error") {
+            toolResult = typeof resultObj.error === "string"
+              ? resultObj.error
+              : JSON.stringify(resultObj);
+          } else {
+            toolResult = JSON.stringify(msg.result);
+          }
+        }
+
+        const aiMsg = create(AgentMessageSchema, {
+          type: MessageType.MESSAGE_AI,
+          content: "",
+          timestamp: utcTimestamp(),
+          toolCalls: [create(ToolCallSchema, {
+            id: `sub-${toolName}-${out.length}`,
+            name: toolName,
+            status: ToolCallStatus.TOOL_CALL_COMPLETED,
+            argsPreview: toolArgs,
+            result: toolResult,
+            startedAt: utcTimestamp(),
+            completedAt: utcTimestamp(),
+          })],
+        });
+        out.push(aiMsg);
+      }
+    }
+  }
 }
 
 /**
@@ -449,6 +556,7 @@ export class MessageAccumulator {
         existing.output = typeof event.result === "string"
           ? event.result
           : JSON.stringify(event.result);
+        extractConversationSteps(event.result, existing.messages);
       }
       if (event.status === "error") {
         existing.error = typeof event.result === "string"
