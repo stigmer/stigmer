@@ -129,7 +129,7 @@ describe("StructuredDataViewer", () => {
       expect(screen.getByText(/Items.*10 items/)).toBeTruthy();
     });
 
-    it("renders object array as collapsible JSON", () => {
+    it("renders object array as structured items with count", () => {
       render(
         <StructuredDataViewer
           data={{
@@ -140,7 +140,250 @@ describe("StructuredDataViewer", () => {
           }}
         />,
       );
-      expect(screen.getByText(/Errors.*2 items/)).toBeTruthy();
+      expect(screen.getByText(/Errors/)).toBeTruthy();
+      expect(screen.getByText(/2 items/)).toBeTruthy();
+      expect(screen.getByText("Item 1")).toBeTruthy();
+      expect(screen.getByText("Item 2")).toBeTruthy();
+    });
+
+    it("renders scalar fields inside object array items", () => {
+      render(
+        <StructuredDataViewer
+          data={{
+            cohorts: [
+              { name: "D1 New Users", size: 0, action_needed: false },
+            ],
+          }}
+        />,
+      );
+      expect(screen.getByText("Size")).toBeTruthy();
+      expect(screen.getByText("0")).toBeTruthy();
+      expect(screen.getByText("Action Needed")).toBeTruthy();
+      expect(screen.getByText("false")).toBeTruthy();
+    });
+
+    it("shows singular 'item' for single-element arrays", () => {
+      render(
+        <StructuredDataViewer
+          data={{
+            results: [{ status: "ok" }],
+          }}
+        />,
+      );
+      expect(screen.getByText(/1 item(?!s)/)).toBeTruthy();
+    });
+
+    it("renders mixed arrays (objects + scalars) as collapsible JSON", () => {
+      render(
+        <StructuredDataViewer
+          data={{
+            mixed: [{ key: "val" }, "plain string", 42],
+          }}
+        />,
+      );
+      expect(screen.getByText(/Mixed.*3 items/)).toBeTruthy();
+    });
+  });
+
+  describe("object array label heuristic", () => {
+    it("extracts name field as item subtitle", () => {
+      render(
+        <StructuredDataViewer
+          data={{
+            cohorts: [
+              { name: "D1 New Users", size: 10 },
+            ],
+          }}
+        />,
+      );
+      expect(screen.getByText("D1 New Users")).toBeTruthy();
+    });
+
+    it("extracts title field when name is absent", () => {
+      render(
+        <StructuredDataViewer
+          data={{
+            articles: [
+              { title: "Getting Started", body: "..." },
+            ],
+          }}
+        />,
+      );
+      expect(screen.getByText("Getting Started")).toBeTruthy();
+    });
+
+    it("extracts label field when name and title are absent", () => {
+      render(
+        <StructuredDataViewer
+          data={{
+            options: [
+              { label: "Option A", value: 1 },
+            ],
+          }}
+        />,
+      );
+      expect(screen.getByText("Option A")).toBeTruthy();
+    });
+
+    it("extracts id field as last resort", () => {
+      render(
+        <StructuredDataViewer
+          data={{
+            records: [
+              { id: "rec_123", status: "active" },
+            ],
+          }}
+        />,
+      );
+      expect(screen.getByText("rec_123")).toBeTruthy();
+    });
+
+    it("shows no subtitle when no label key is present", () => {
+      render(
+        <StructuredDataViewer
+          data={{
+            items: [
+              { path: "/a", message: "required" },
+            ],
+          }}
+        />,
+      );
+      expect(screen.getByText("Item 1")).toBeTruthy();
+      expect(screen.queryByText(/\u2014/)).toBeFalsy();
+    });
+
+    it("skips non-scalar label values", () => {
+      render(
+        <StructuredDataViewer
+          data={{
+            items: [
+              { name: { first: "John", last: "Doe" }, age: 30 },
+            ],
+          }}
+        />,
+      );
+      expect(screen.getByText("Item 1")).toBeTruthy();
+      expect(screen.queryByText(/\u2014/)).toBeFalsy();
+    });
+  });
+
+  describe("object array collapse behavior", () => {
+    it("starts items expanded when array has <= 3 items", () => {
+      render(
+        <StructuredDataViewer
+          data={{
+            errors: [
+              { path: "/a", message: "required" },
+              { path: "/b", message: "invalid" },
+            ],
+          }}
+        />,
+      );
+      expect(screen.getAllByText("Path")).toHaveLength(2);
+      expect(screen.getAllByText("Message")).toHaveLength(2);
+    });
+
+    it("starts items collapsed when array has > 3 items", () => {
+      render(
+        <StructuredDataViewer
+          data={{
+            cohorts: [
+              { name: "C1", size: 10 },
+              { name: "C2", size: 20 },
+              { name: "C3", size: 30 },
+              { name: "C4", size: 40 },
+            ],
+          }}
+        />,
+      );
+      expect(screen.getByText("Item 1")).toBeTruthy();
+      expect(screen.queryByText("10")).toBeFalsy();
+    });
+
+    it("expands collapsed item on click", () => {
+      render(
+        <StructuredDataViewer
+          data={{
+            cohorts: [
+              { name: "C1", size: 10 },
+              { name: "C2", size: 20 },
+              { name: "C3", size: 30 },
+              { name: "C4", size: 40 },
+            ],
+          }}
+        />,
+      );
+
+      expect(screen.queryByText("10")).toBeFalsy();
+
+      fireEvent.click(screen.getByText("Item 1"));
+
+      expect(screen.getByText("10")).toBeTruthy();
+    });
+
+    it("collapses outer section on header click", () => {
+      render(
+        <StructuredDataViewer
+          data={{
+            errors: [
+              { path: "/a", message: "required" },
+            ],
+          }}
+        />,
+      );
+
+      expect(screen.getByText("Item 1")).toBeTruthy();
+
+      fireEvent.click(screen.getByText(/Errors/));
+
+      expect(screen.queryByText("Item 1")).toBeFalsy();
+    });
+
+    it("handles empty objects in array gracefully", () => {
+      render(
+        <StructuredDataViewer
+          data={{
+            items: [{}, { name: "valid" }],
+          }}
+        />,
+      );
+      expect(screen.getByText(/empty/)).toBeTruthy();
+      expect(screen.getByText("valid")).toBeTruthy();
+    });
+  });
+
+  describe("object array depth limits", () => {
+    it("renders object array at depth 1 as structured items", () => {
+      render(
+        <StructuredDataViewer
+          data={{
+            wrapper: {
+              cohorts: [
+                { name: "C1", size: 10 },
+              ],
+            },
+          }}
+        />,
+      );
+      expect(screen.getByText("Item 1")).toBeTruthy();
+      expect(screen.getByText("C1")).toBeTruthy();
+    });
+
+    it("falls back to JSON for object arrays at depth >= MAX_RECURSIVE_DEPTH", () => {
+      render(
+        <StructuredDataViewer
+          data={{
+            level1: {
+              level2: {
+                deep_items: [
+                  { name: "deep", value: 1 },
+                ],
+              },
+            },
+          }}
+        />,
+      );
+      expect(screen.getByText(/Level2/)).toBeTruthy();
     });
   });
 
