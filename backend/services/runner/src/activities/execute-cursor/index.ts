@@ -70,6 +70,7 @@ import { getCapturedRejection, clearCapturedRejection } from "./rejection-captur
 import { synthesizeError, formatClassifiedError, shouldRetryWithFreshAgent } from "./error-classifier.js";
 import type { ClassifiedError } from "./error-classifier.js";
 import { createAgent, createCloudAgent } from "./session-lifecycle.js";
+import { startHeartbeat } from "../../shared/heartbeat.js";
 
 /**
  * Creates the activity functions bound to the runner config.
@@ -122,6 +123,7 @@ async function executeCursorInner(
   let session: import("@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb").Session | undefined;
   let userMessage: string | undefined;
   let pauseDetected = false;
+  let periodicHeartbeat: ReturnType<typeof startHeartbeat> | undefined;
 
   try {
     // Phase 1: Hydrate execution from DB
@@ -414,6 +416,15 @@ async function executeCursorInner(
     let streamErrorMessage: string | undefined;
     let alreadyRetriedWithFreshAgent = false;
 
+    // Periodic heartbeat keeps Temporal informed during silent SDK operations
+    // (e.g. long tool calls, MCP requests, model thinking). Without this,
+    // the 2-minute heartbeat timeout can cancel the activity and mislabel
+    // the execution as "paused by user".
+    periodicHeartbeat = startHeartbeat(30_000, () => ({
+      phase: "cursor_streaming",
+      execution: executionId,
+    }));
+
     const run = await resolution.agent.send(effectivePrompt, {
       onDelta: ({ update }) => {
         if (update.type === "turn-ended" && update.usage) {
@@ -504,6 +515,11 @@ async function executeCursorInner(
       }
     }
 
+    periodicHeartbeat.stop();
+    if (periodicHeartbeat.cancelled) {
+      pauseDetected = true;
+    }
+
     accumulator.finalize();
     deltaEnricher.finalize(status.messages);
     status.subAgentExecutions = accumulator.subAgentExecutions;
@@ -546,13 +562,9 @@ async function executeCursorInner(
     }
 
 
-    // Phase 11a: Handle pause (activity cancellation from orchestrator)
-    // Re-check cancellation signal — it may have arrived between the last
-    // stream event and now (e.g. during finalize/metrics), after the
-    // stream loop's per-event check.
-    if (Context.current().cancellationSignal.aborted) {
-      pauseDetected = true;
-    }
+    // Phase 11a: Handle pause or infrastructure cancellation.
+    // pauseDetected is only true if a heartbeat() call threw CancelledFailure,
+    // confirming the orchestrator explicitly requested a pause.
     if (pauseDetected) {
       status.phase = ExecutionPhase.EXECUTION_PAUSED;
       status.messages.push(create(AgentMessageSchema, {
@@ -564,6 +576,24 @@ async function executeCursorInner(
       await maybePeristSessionMemory(client, sessionId, session, status, userMessage);
       console.log(`ExecuteCursor paused: execution=${executionId}, events=${eventCount}`);
       throw new CancelledFailure("Activity paused by orchestrator");
+    }
+
+    // If cancellation arrived without pauseDetected (e.g. heartbeat timeout
+    // that slipped past the periodic heartbeat, or worker shutdown), report
+    // as failed rather than misleadingly labeling it as user-paused.
+    if (Context.current().cancellationSignal.aborted) {
+      status.phase = ExecutionPhase.EXECUTION_FAILED;
+      status.error = "Execution interrupted: agent was unresponsive (heartbeat timeout). Retry or resume.";
+      status.completedAt = utcTimestamp();
+      status.messages.push(create(AgentMessageSchema, {
+        type: MessageType.MESSAGE_SYSTEM,
+        content: "Execution interrupted: the agent was unresponsive for too long. You can retry or resume.",
+        timestamp: utcTimestamp(),
+      }));
+      await persistStatus(client, executionId, status);
+      await maybePeristSessionMemory(client, sessionId, session, status, userMessage);
+      console.log(`ExecuteCursor interrupted (infrastructure cancel): execution=${executionId}, events=${eventCount}`);
+      throw new CancelledFailure("Activity cancelled (heartbeat timeout, not user pause)");
     }
 
     // Phase 11b: Handle platform stop signal early exit
@@ -868,9 +898,32 @@ async function executeCursorInner(
     return slim;
 
   } catch (err) {
+    periodicHeartbeat?.stop();
+
     if (err instanceof CancelledFailure) {
-      console.log(`ExecuteCursor cancelled (pause) for execution ${executionId}`);
-      status.phase = ExecutionPhase.EXECUTION_PAUSED;
+      // pauseDetected means we received CancelledFailure from a heartbeat()
+      // call (either onDelta or periodic), which confirms the orchestrator
+      // explicitly paused the activity. Without it, the cancellation is
+      // likely from heartbeat timeout or worker shutdown.
+      if (pauseDetected) {
+        console.log(`ExecuteCursor cancelled (pause) for execution ${executionId}`);
+        status.phase = ExecutionPhase.EXECUTION_PAUSED;
+        status.messages.push(create(AgentMessageSchema, {
+          type: MessageType.MESSAGE_SYSTEM,
+          content: "Execution paused by user. Use resume to continue.",
+          timestamp: utcTimestamp(),
+        }));
+      } else {
+        console.log(`ExecuteCursor cancelled (infrastructure) for execution ${executionId}`);
+        status.phase = ExecutionPhase.EXECUTION_FAILED;
+        status.error = "Execution interrupted: agent was unresponsive (heartbeat timeout). Retry or resume.";
+        status.completedAt = utcTimestamp();
+        status.messages.push(create(AgentMessageSchema, {
+          type: MessageType.MESSAGE_SYSTEM,
+          content: "Execution interrupted: the agent was unresponsive for too long. You can retry or resume.",
+          timestamp: utcTimestamp(),
+        }));
+      }
       await persistStatus(client, executionId, status).catch(() => {});
       await maybePeristSessionMemory(client, sessionId, session, status, userMessage);
       throw err;
@@ -880,7 +933,7 @@ async function executeCursorInner(
     // treat the execution as paused rather than failed. The error was likely
     // caused by the cancellation (e.g. SDK stream teardown) and should not
     // overwrite the PAUSED state that the Pause RPC already set in the DB.
-    if (pauseDetected || Context.current().cancellationSignal.aborted) {
+    if (pauseDetected) {
       const errDetail = err instanceof Error ? err.message : String(err);
       console.log(
         `ExecuteCursor error during pause (treating as pause): execution=${executionId}, error=${errDetail}`,
@@ -894,6 +947,26 @@ async function executeCursorInner(
       await persistStatus(client, executionId, status).catch(() => {});
       await maybePeristSessionMemory(client, sessionId, session, status, userMessage);
       throw new CancelledFailure("Activity paused by orchestrator (error during pause)");
+    }
+
+    // Infrastructure cancellation (e.g. heartbeat timeout) with a
+    // non-CancelledFailure error — report as failed, not paused.
+    if (Context.current().cancellationSignal.aborted) {
+      const errDetail = err instanceof Error ? err.message : String(err);
+      console.log(
+        `ExecuteCursor error during infrastructure cancel: execution=${executionId}, error=${errDetail}`,
+      );
+      status.phase = ExecutionPhase.EXECUTION_FAILED;
+      status.error = `Execution interrupted: ${errDetail}`;
+      status.completedAt = utcTimestamp();
+      status.messages.push(create(AgentMessageSchema, {
+        type: MessageType.MESSAGE_SYSTEM,
+        content: "Execution interrupted: the agent was unresponsive for too long. You can retry or resume.",
+        timestamp: utcTimestamp(),
+      }));
+      await persistStatus(client, executionId, status).catch(() => {});
+      await maybePeristSessionMemory(client, sessionId, session, status, userMessage);
+      throw new CancelledFailure("Activity cancelled (infrastructure, not user pause)");
     }
 
     const errMsg = err instanceof Error ? err.message : String(err);
