@@ -39,6 +39,7 @@ import { buildEnhancedSystemPrompt } from "./prompt-builder.js";
 import { buildMiddlewareStack, createThinkTool } from "../../middleware/index.js";
 import type { GracefulStopMiddleware } from "../../middleware/index.js";
 import { getModelPricing, ensureLoaded as ensurePricingLoaded } from "../../shared/model-pricing.js";
+import { getDefaultModel } from "../../shared/model-registry.js";
 import {
   loadArtifactStorageConfig,
   createArtifactStorage,
@@ -135,7 +136,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
 
     // Step 3: Resolve model
     const modelName = execution.spec!.executionConfig?.modelName
-      || "claude-sonnet-4-20250514";
+      || await getDefaultModel();
 
     // Step 4: Create checkpointer
     const checkpointer = await createCheckpointer({

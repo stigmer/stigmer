@@ -15,6 +15,7 @@ interface RegistryModel {
   provider: string;
   costTier: string;
   harness: string;
+  featured: boolean;
 }
 
 let cache: { models: readonly RegistryModel[]; expiresAt: number } | null = null;
@@ -33,6 +34,7 @@ function parseRegistry(json: unknown): RegistryModel[] {
       provider: m.provider as string,
       costTier: (m.costTier as string) ?? "standard",
       harness: (m.harness as string) ?? "native",
+      featured: !!m.featured,
     }));
 }
 
@@ -139,6 +141,42 @@ export async function getEconomyModel(primaryModel: string): Promise<string> {
     );
   }
   return primaryModel;
+}
+
+/**
+ * Resolve the default agent execution model from the registry.
+ *
+ * Used when the user hasn't selected a model (no executionConfig.modelName).
+ * Returns the provider's API model identifier (e.g., "claude-sonnet-4-6"),
+ * not the Stigmer registry ID (e.g., "claude-sonnet-4.6").
+ *
+ * Resolution order:
+ * 1. Featured + standard + native (platform's curated default)
+ * 2. Any standard + native model
+ * 3. Hardcoded fallback (registry unavailable)
+ */
+const FALLBACK_DEFAULT_MODEL = "claude-sonnet-4-6";
+
+export async function getDefaultModel(): Promise<string> {
+  const registry = await getRegistry();
+  if (registry.length === 0) {
+    console.warn(
+      `Model registry empty — using fallback default model "${FALLBACK_DEFAULT_MODEL}"`,
+    );
+    return FALLBACK_DEFAULT_MODEL;
+  }
+
+  const featuredStandard = registry.find(
+    (m) => m.featured && m.costTier === "standard" && m.harness === "native",
+  );
+  if (featuredStandard) return featuredStandard.apiModelId ?? featuredStandard.id;
+
+  const anyStandard = registry.find(
+    (m) => m.costTier === "standard" && m.harness === "native",
+  );
+  if (anyStandard) return anyStandard.apiModelId ?? anyStandard.id;
+
+  return FALLBACK_DEFAULT_MODEL;
 }
 
 /**
