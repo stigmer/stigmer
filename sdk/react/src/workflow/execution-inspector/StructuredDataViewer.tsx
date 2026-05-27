@@ -22,9 +22,12 @@ const PROSE_CHAR_THRESHOLD = 120;
 /**
  * Maximum nesting depth at which the viewer recurses into nested
  * objects with `<dl>` sections. Beyond this depth, values fall back
- * to syntax-highlighted JSON via {@link CollapsibleJsonBlock}.
+ * to syntax-highlighted JSON via {@link CollapsibleJsonBlock} —
+ * unless the nested value contains only scalar leaves, in which case
+ * the structured view is used regardless of depth (see
+ * {@link isAllScalarEntries}).
  */
-const MAX_RECURSIVE_DEPTH = 2;
+const MAX_RECURSIVE_DEPTH = 5;
 
 /** Patterns that indicate a string value is an identifier or URL, not prose. */
 const ID_URL_PATTERN =
@@ -213,7 +216,19 @@ function ComplexEntry({
   if (typeof value === "object" && value !== null) {
     const entries = Object.entries(value as Record<string, unknown>);
 
-    if (depth + 1 >= MAX_RECURSIVE_DEPTH || entries.length === 0) {
+    if (entries.length === 0) {
+      return (
+        <CollapsibleJsonBlock
+          label={humanizeArgKey(label)}
+          content={formatJson(value)}
+        />
+      );
+    }
+
+    if (
+      depth + 1 >= MAX_RECURSIVE_DEPTH &&
+      !isAllScalarEntries(entries)
+    ) {
       return (
         <CollapsibleJsonBlock
           label={humanizeArgKey(label)}
@@ -294,11 +309,17 @@ function ArrayEntry({
     (item) => typeof item === "object" && item !== null && !Array.isArray(item),
   );
 
-  if (allObjects && depth < MAX_RECURSIVE_DEPTH) {
+  const objectItems = items as Record<string, unknown>[];
+
+  if (
+    allObjects &&
+    (depth < MAX_RECURSIVE_DEPTH ||
+      isAllScalarObjectArray(objectItems))
+  ) {
     return (
       <ObjectArraySection
         label={label}
-        items={items as Record<string, unknown>[]}
+        items={objectItems}
         depth={depth}
       />
     );
@@ -422,6 +443,36 @@ function extractItemLabel(item: Record<string, unknown>): string | null {
     if (isScalar(value)) return String(value);
   }
   return null;
+}
+
+// ---------------------------------------------------------------------------
+// Scalar-leaf bypass
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns `true` when every value in the entry list is a scalar
+ * (string, number, boolean) or nullish. Used to bypass the
+ * {@link MAX_RECURSIVE_DEPTH} gate for terminal objects that contain
+ * no further complex nesting — rendering them as a structured `<dl>`
+ * grid is always safe and more readable than a JSON block.
+ */
+function isAllScalarEntries(
+  entries: readonly [string, unknown][],
+): boolean {
+  return entries.every(
+    ([, value]) => isScalar(value) || value === null || value === undefined,
+  );
+}
+
+/**
+ * Returns `true` when every item in an object array contains only
+ * scalar (or nullish) values. When this holds, the array can be
+ * rendered as structured collapsible items regardless of depth.
+ */
+function isAllScalarObjectArray(
+  items: readonly Record<string, unknown>[],
+): boolean {
+  return items.every((item) => isAllScalarEntries(Object.entries(item)));
 }
 
 // ---------------------------------------------------------------------------
