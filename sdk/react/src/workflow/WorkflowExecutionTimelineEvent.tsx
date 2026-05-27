@@ -252,7 +252,9 @@ export const WorkflowExecutionTimelineEvent = memo(function WorkflowExecutionTim
       return (
         <EventRow icon={<ShieldIcon />} iconColor="text-warning" timestamp={timestamp}>
           <span className="font-medium text-warning">Approval requested</span>
-          <p className="mt-1 text-xs text-foreground">{p.value.prompt}</p>
+          {!showCard && p.value.prompt && (
+            <p className="mt-1 text-xs text-foreground">{p.value.prompt}</p>
+          )}
           {p.value.approvers.length > 0 && (
             <p className="text-xs text-muted-foreground">
               Approvers: {p.value.approvers.join(", ")}
@@ -266,6 +268,7 @@ export const WorkflowExecutionTimelineEvent = memo(function WorkflowExecutionTim
           {showCard && (
             <WorkflowTaskApprovalCard
               taskName={event.taskName}
+              prompt={p.value.prompt}
               outcomes={(p.value.outcomes ?? []).map((o) => ({
                 name: o.name,
                 label: o.label,
