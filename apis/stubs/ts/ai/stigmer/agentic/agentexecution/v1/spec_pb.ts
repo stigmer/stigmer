@@ -289,7 +289,7 @@ export const AgentExecutionSpecSchema: GenMessage<AgentExecutionSpec> = /*@__PUR
 export type ExecutionConfig = Message<"ai.stigmer.agentic.agentexecution.v1.ExecutionConfig"> & {
   /**
    * The model to use for this execution.
-   * Example: "claude-sonnet-4-20250514"
+   * Example: "claude-sonnet-4-6"
    *
    * @generated from field: string model_name = 1;
    */

@@ -76,9 +76,9 @@ When starting a new session:
 
 **Created**: 2026-05-25
 **Revised**: 2026-05-27
-**Current Phase**: Phase 5 COMPLETE → Sub-agent namespace fix VALIDATED E2E → Ready for Phase 6
-**Status**: Sub-agent namespace fix validated end-to-end (Session 15). Deprecated default model (`claude-sonnet-4-20250514`) updated to `claude-sonnet-4-6`. All provider-backed sub-agent integration tests pass. Offline proxy gap documented as separate infra issue.
-**Last Session**: 2026-05-27 (Session 15) -- Integration validation + model migration
+**Current Phase**: Phase 5 COMPLETE → Ready for Phase 6
+**Status**: Broader model migration complete (Session 16). All `claude-sonnet-4-20250514` references migrated to `claude-sonnet-4-6` across both repos (~105 files, ~105 occurrences). Proto stubs regenerated. Tests validated. Platform ready for June 15 retirement deadline.
+**Last Session**: 2026-05-27 (Session 16) -- Broader model ID migration
 **Latest Checkpoint**: `checkpoints/CP08_session15_integration_validation.md`
 
 ## Session Progress
@@ -239,6 +239,15 @@ When starting a new session:
 - **Namespace fix fully validated**: `SubAgentExecution.messages` populated (not empty), `SubAgentStatus_SUB_AGENT_COMPLETED`, all `AssertSubAgentExecution` proto field assertions pass
 - **Deferred**: Offline mock proxy routing for sub-agents (separate infra improvement)
 
+### Session 16 (2026-05-27)
+- **Broader model ID migration COMPLETE** — `claude-sonnet-4-20250514` → `claude-sonnet-4-6` across both repos
+- **stigmer (OSS)**: 66 files modified — context-tracker (added new entry, kept old for backward compat), CLI help strings (5 files), SDK examples (2 files), proto comment + codegen (regenerated ~10 stub files), unit tests (9 TS files), recorded response fixtures (14 JSON files), integration tests (9 Go files), documentation (8 files), CI workflow comment
+- **stigmer-cloud**: 47 files modified — Java source Javadoc (2 files), Java tests (6 files), SSE test fixtures (4 files), proto stubs regenerated via `make protos`
+- **Intentionally preserved**: `model-registry.json` entry (correct mapping for original model), `context-tracker.ts` old entry (backward compat), historical project notes (`_changelog/`, `_projects/`)
+- **Seedpack models.md**: Moved original Claude Sonnet 4 from "Legacy (Active)" to "Deprecated (retiring Jun 15, 2026)"
+- **Tests**: 172/172 relevant unit tests pass, all failures in full suite confirmed pre-existing (28 pre-existing failures unchanged)
+- **Verification**: Zero stray `claude-sonnet-4-20250514` references in non-historical source/test/doc files across both repos
+
 ## Migration Phases Overview
 
 | Phase | Name | Sessions | Status |
@@ -278,7 +287,7 @@ When starting a new session:
 7. ~~**FIX: SubAgentTracker namespace matching bug**~~ — DONE (Session 14, commit `46627caa6`): Registration gate + routing prefix aligned with real LangGraph namespace format
 8. ~~**Integration validation**~~ — DONE (Session 15): SubAgentTracker namespace fix validated E2E. Default model migrated to `claude-sonnet-4-6`.
 9. **Fix offline mock proxy routing for sub-agents** (deferred): Sub-agents in offline tests don't inherit the mock LLM proxy. Separate infra improvement.
-10. **Broader model migration**: Update all remaining `claude-sonnet-4-20250514` references across test fixtures and context-tracker (June 15 hard deadline)
+10. ~~**Broader model migration**~~ — DONE (Session 16): All `claude-sonnet-4-20250514` references migrated to `claude-sonnet-4-6` across both repos. Proto stubs regenerated. Tests validated.
 11. **Phase 6 (future)**: Custom Stigmer Stream Transformers — replace ad-hoc artifact/writeback/usage logic with native v3 stream transformers
 12. **Collect golden run corpus** (optional): Run offline tests with `V2_EVENT_RECORD_DIR` for future regression comparison
 

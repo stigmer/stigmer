@@ -252,7 +252,7 @@ message AgentExecutionSpec {
 // Configuration that can be applied at execution time.
 message ExecutionConfig {
   // The model to use for this execution.
-  // Example: "claude-sonnet-4-20250514"
+  // Example: "claude-sonnet-4-6"
   string model_name = 1;
 
   // Context management configuration for this execution.

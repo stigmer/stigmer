@@ -50,7 +50,7 @@ func TestOffline_Eval_PassFail(t *testing.T) {
 	require.NoError(t, err)
 
 	evalConfig, err := structpb.NewStruct(map[string]any{
-		"model":        "claude-sonnet-4-20250514",
+		"model":        "claude-sonnet-4-6",
 		"subject":      "${ $context.setSummary.summary }",
 		"rubric":       "Is this statement factually accurate?",
 		"scoring_mode": "EVAL_PASS_FAIL",
@@ -142,7 +142,7 @@ func TestOffline_Eval_NumericScore(t *testing.T) {
 	require.NoError(t, err)
 
 	evalConfig, err := structpb.NewStruct(map[string]any{
-		"model":        "claude-sonnet-4-20250514",
+		"model":        "claude-sonnet-4-6",
 		"subject":      "${ $context.setSubject.text }",
 		"rubric":       "Rate the clarity and accuracy on a scale from 0.0 to 1.0.",
 		"scoring_mode": "EVAL_NUMERIC_SCORE",
@@ -231,7 +231,7 @@ func TestOffline_Eval_WarnPolicy(t *testing.T) {
 	require.NoError(t, err)
 
 	evalConfig, err := structpb.NewStruct(map[string]any{
-		"model":        "claude-sonnet-4-20250514",
+		"model":        "claude-sonnet-4-6",
 		"subject":      "${ $context.setSubject.text }",
 		"rubric":       "Is this a well-formed English sentence?",
 		"scoring_mode": "EVAL_NUMERIC_SCORE",

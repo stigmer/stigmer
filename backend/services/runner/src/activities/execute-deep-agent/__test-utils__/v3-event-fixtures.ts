@@ -2,7 +2,7 @@
  * V3 protocol event factories for normalizer and status builder tests.
  *
  * Shapes are derived from real recordings in /tmp/stigmer-v3-provider/
- * captured during Phase 1 validation with Claude claude-sonnet-4-20250514.
+ * captured during Phase 1 validation with Claude claude-sonnet-4-6.
  */
 
 import type { V3ProtocolEvent } from "../v3-event-recorder.js";

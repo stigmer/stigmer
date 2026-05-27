@@ -13,7 +13,7 @@ public interface ExecutionConfigOrBuilder extends
   /**
    * <pre>
    * The model to use for this execution.
-   * Example: "claude-sonnet-4-20250514"
+   * Example: "claude-sonnet-4-6"
    * </pre>
    *
    * <code>string model_name = 1 [json_name = "modelName"];</code>
@@ -23,7 +23,7 @@ public interface ExecutionConfigOrBuilder extends
   /**
    * <pre>
    * The model to use for this execution.
-   * Example: "claude-sonnet-4-20250514"
+   * Example: "claude-sonnet-4-6"
    * </pre>
    *
    * <code>string model_name = 1 [json_name = "modelName"];</code>

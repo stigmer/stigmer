@@ -343,7 +343,7 @@ export function anthropicResponseBody(
     id: `msg_test_${Date.now()}`,
     type: "message",
     role: "assistant",
-    model: "claude-sonnet-4-20250514",
+    model: "claude-sonnet-4-6",
     content,
     stop_reason: options?.stopReason ?? (options?.toolUse ? "tool_use" : "end_turn"),
     usage: {

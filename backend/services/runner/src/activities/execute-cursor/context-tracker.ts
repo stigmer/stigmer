@@ -26,6 +26,7 @@ const DROP_RATIO_THRESHOLD = 0.30;
  * Used when the model registry doesn't provide contextWindowTokens.
  */
 const MODEL_CONTEXT_WINDOWS: Record<string, number> = {
+  "claude-sonnet-4-6": 200_000,
   "claude-sonnet-4-20250514": 200_000,
   "claude-opus-4-20250514": 200_000,
   "claude-3.5-sonnet": 200_000,

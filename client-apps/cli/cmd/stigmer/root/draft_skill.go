@@ -46,7 +46,7 @@ interactively. The generated skill will be saved to the output directory
   stigmer draft skill -m "Create a YAML validator skill" --output ./skills/yaml-validator/
 
   # Use a specific model
-  stigmer draft skill -m "Create a skill for X" --model claude-sonnet-4-20250514
+  stigmer draft skill -m "Create a skill for X" --model claude-sonnet-4-6
 
   # Run with a workspace (agent can inspect your code)
   stigmer draft skill --workspace . -m "Create a skill based on this project"
