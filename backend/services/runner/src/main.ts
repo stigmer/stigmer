@@ -299,8 +299,12 @@ async function runStaticMode(config: import("./config.js").Config): Promise<void
 
 /**
  * Compares the dist/.build-fingerprint against the current src/ hash.
- * Warns prominently if the runner binary is stale. Best-effort: failures
- * are swallowed so a missing fingerprint file never blocks startup.
+ * Exits the process if the runner binary is stale — silently running
+ * old code causes structured output failures, naming mismatches, and
+ * hours of wasted debugging time.
+ *
+ * If the fingerprint file is missing (first build, CI, integration
+ * tests using tsx), the check is skipped gracefully.
  */
 function checkBuildFreshness(): void {
   try {
@@ -324,16 +328,18 @@ function checkBuildFreshness(): void {
     const currentHash = hash.digest("hex").slice(0, 16);
 
     if (currentHash !== stored.hash) {
-      console.warn(
+      console.error(
         `\n` +
-        `!!! STALE RUNNER BUILD DETECTED !!!\n` +
+        `!!! STALE RUNNER BUILD — REFUSING TO START !!!\n` +
         `    dist/ was built at ${stored.builtAt} (hash ${stored.hash})\n` +
         `    src/ has changed since (current hash ${currentHash})\n` +
-        `    Run 'make build-runner' and restart the desktop app.\n`,
+        `\n` +
+        `    Run 'make build-runner' or 'make desktop-dev' to rebuild.\n`,
       );
+      process.exit(78);
     }
   } catch {
-    // Best-effort — never block startup
+    // Missing fingerprint (tsx, CI, first build) — allow startup
   }
 }
 
