@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { NavLink, useNavigate, useParams, useLocation } from "react-router-dom";
 import {
   Plus,
@@ -36,9 +36,20 @@ export function Sidebar() {
   const isSessionZone =
     location.pathname === "/" || location.pathname.startsWith("/sessions/");
 
-  const { entries, isLoading, error, refetch } = useRecentActivity();
+  const { entries, isLoading, error, refetch, prependOptimistic } = useRecentActivity();
+
+  const entriesRef = useRef(entries);
+  entriesRef.current = entries;
 
   useEffect(() => {
+    if (activeExecutionId && !entriesRef.current.some((e) => e.id === activeExecutionId)) {
+      prependOptimistic({
+        id: activeExecutionId,
+        type: "workflow_execution",
+        subject: "Loading\u2026",
+      });
+    }
+
     refetch();
     const activeId = activeSessionId ?? activeExecutionId;
     if (!activeId) return;
@@ -49,7 +60,7 @@ export function Sidebar() {
       clearTimeout(t1);
       clearTimeout(t2);
     };
-  }, [activeSessionId, activeExecutionId, refetch]);
+  }, [activeSessionId, activeExecutionId, refetch, prependOptimistic]);
 
   const groups = useMemo(
     () => groupRecentActivityByTime(entries),
