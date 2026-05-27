@@ -144,12 +144,13 @@ export function deriveTaskDetail(
     : undefined;
   const error = buildError(buckets, snapshotMeta);
   const retries = buildRetryHistory(buckets);
-  const agentCall = buildAgentCall(buckets);
-  const approval = buildApproval(buckets);
 
   const taskKind = derivedState?.taskKind ??
     buckets.taskKind ??
     WorkflowTaskKind.workflow_task_kind_unspecified;
+
+  const agentCall = buildAgentCall(buckets, taskKind, snapshotMeta);
+  const approval = buildApproval(buckets);
 
   const status = derivedState?.status ?? "pending";
   const displayName = kindToDisplayName(taskKindToString(taskKind));
@@ -426,25 +427,48 @@ function buildRetryHistory(buckets: EventBuckets): TaskDetailRetryHistory | null
   return { attempts, currentAttempt };
 }
 
-function buildAgentCall(buckets: EventBuckets): TaskDetailAgentCall | null {
-  if (!buckets.agentStarted) return null;
+function buildAgentCall(
+  buckets: EventBuckets,
+  taskKind: WorkflowTaskKind,
+  snapshotMeta: Record<string, unknown> | undefined,
+): TaskDetailAgentCall | null {
+  if (buckets.agentStarted) {
+    const childExecutionId =
+      buckets.agentStarted.childExecutionId ||
+      buckets.agentProgress?.childExecutionId ||
+      "";
 
-  const childExecutionId =
-    buckets.agentStarted.childExecutionId ||
-    buckets.agentProgress?.childExecutionId ||
-    "";
+    return {
+      childExecutionId,
+      agentSlug: buckets.agentStarted.agentSlug,
+      agentPhase: String(buckets.agentCompleted?.agentPhase ?? buckets.agentProgress?.agentPhase ?? ""),
+      messagesCount: buckets.agentProgress?.messagesCount ?? 0,
+      toolCallsCount: buckets.agentProgress?.toolCallsCount ?? 0,
+      tokensConsumed: buckets.agentCompleted?.tokensConsumed ?? buckets.agentProgress?.tokensConsumed ?? BIGINT_ZERO,
+      costMicros: buckets.agentCompleted?.costMicros ?? BIGINT_ZERO,
+      error: buckets.agentCompleted?.error ?? "",
+      currentToolName: buckets.agentProgress?.currentToolName ?? "",
+    };
+  }
 
-  return {
-    childExecutionId,
-    agentSlug: buckets.agentStarted.agentSlug,
-    agentPhase: String(buckets.agentCompleted?.agentPhase ?? buckets.agentProgress?.agentPhase ?? ""),
-    messagesCount: buckets.agentProgress?.messagesCount ?? 0,
-    toolCallsCount: buckets.agentProgress?.toolCallsCount ?? 0,
-    tokensConsumed: buckets.agentCompleted?.tokensConsumed ?? buckets.agentProgress?.tokensConsumed ?? BIGINT_ZERO,
-    costMicros: buckets.agentCompleted?.costMicros ?? BIGINT_ZERO,
-    error: buckets.agentCompleted?.error ?? "",
-    currentToolName: buckets.agentProgress?.currentToolName ?? "",
-  };
+  if (taskKind === WorkflowTaskKind.agent_call && snapshotMeta) {
+    const aexId = snapshotMeta.agent_execution_id;
+    if (typeof aexId === "string" && aexId) {
+      return {
+        childExecutionId: aexId,
+        agentSlug: typeof snapshotMeta.agent_slug === "string" ? snapshotMeta.agent_slug : "",
+        agentPhase: "",
+        messagesCount: 0,
+        toolCallsCount: typeof snapshotMeta.tool_call_count === "number" ? snapshotMeta.tool_call_count : 0,
+        tokensConsumed: BIGINT_ZERO,
+        costMicros: BIGINT_ZERO,
+        error: "",
+        currentToolName: "",
+      };
+    }
+  }
+
+  return null;
 }
 
 function buildApproval(buckets: EventBuckets): TaskDetailApproval | null {

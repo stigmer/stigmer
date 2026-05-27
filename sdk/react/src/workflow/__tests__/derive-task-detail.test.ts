@@ -517,6 +517,70 @@ describe("deriveTaskDetail", () => {
     expect(result!.agentCall).toBeNull();
   });
 
+  // 12b. Snapshot metadata fallback — when agent_call events are missing
+  // (e.g., transient emission failure) but the task snapshot metadata
+  // contains agent_execution_id, buildAgentCall() falls back to it.
+  it("builds agentCall from snapshot metadata when no agent events exist (fallback path)", () => {
+    const snapshot = makeSnapshot({
+      taskName: "my-task",
+      metadata: { agent_execution_id: "aex_01abc123", token_attribution: "total_only", tool_call_count: 7 } as any,
+    });
+    const derived = makeDerived({
+      status: "completed",
+      taskKind: 13 as any, // WorkflowTaskKind.agent_call
+    });
+    const events = [
+      makeEvent("my-task", 1, "2026-01-01T00:00:00Z", {
+        case: "taskStarted",
+        value: { taskKind: 13, attemptNumber: 1 },
+      }),
+      makeEvent("my-task", 2, "2026-01-01T00:01:00Z", {
+        case: "taskCompleted",
+        value: {
+          taskKind: 13,
+          durationMs: BigInt(60000),
+          costMicros: BigInt(5000),
+          tokensUsed: BigInt(10000),
+        },
+      }),
+    ];
+
+    const result = deriveTaskDetail("my-task", events, snapshot, derived);
+
+    expect(result!.agentCall).not.toBeNull();
+    expect(result!.agentCall!.childExecutionId).toBe("aex_01abc123");
+    expect(result!.agentCall!.toolCallsCount).toBe(7);
+  });
+
+  it("returns null agentCall for non-agent tasks even when snapshot has metadata", () => {
+    const snapshot = makeSnapshot({
+      taskName: "my-task",
+      metadata: { some_key: "some_value" } as any,
+    });
+    const derived = makeDerived({
+      status: "completed",
+      taskKind: 3 as any, // http_call
+    });
+    const events = [
+      makeEvent("my-task", 1, "2026-01-01T00:00:00Z", {
+        case: "taskStarted",
+        value: { taskKind: 3, attemptNumber: 1 },
+      }),
+      makeEvent("my-task", 2, "2026-01-01T00:01:00Z", {
+        case: "taskCompleted",
+        value: {
+          taskKind: 3,
+          durationMs: BigInt(500),
+          costMicros: BigInt(0),
+          tokensUsed: BigInt(0),
+        },
+      }),
+    ];
+
+    const result = deriveTaskDetail("my-task", events, snapshot, derived);
+    expect(result!.agentCall).toBeNull();
+  });
+
   // 13. Approval requested
   it("populates approval from approvalRequested event", () => {
     const derived = makeDerived({ status: "waiting_approval" });
