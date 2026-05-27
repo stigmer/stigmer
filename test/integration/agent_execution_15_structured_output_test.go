@@ -115,8 +115,10 @@ func TestAgentExecution_StructuredOutputPipeline(t *testing.T) {
 			// --- Empty final message: B1 ---
 
 			t.Run("EmptyFinalMessage", func(t *testing.T) {
-				// Agent uses tool then stops -> empty finalText -> extraction skipped.
-				// Targets: B1. When final turn is tool-only, structuredOutput may be nil.
+				// v3 native structured output is provider-level (run.output.structuredResponse),
+				// independent of final turn text content. Tool-only final turns still produce
+				// structured output because responseFormat is enforced at the model layer.
+				// Targets: B1 (resolved by v3 — no longer a failure mode).
 				schema := harness.SummaryScoreSchema(t)
 				exec := harness.CreateTestAgentExecution(t, ctx, clients, session.GetMetadata().GetId(),
 					"Use any available tool to check something, then stop immediately. "+
@@ -132,17 +134,12 @@ func TestAgentExecution_StructuredOutputPipeline(t *testing.T) {
 				require.NoError(t, err)
 				t.Log(harness.FormatStructuredOutputSummary(completed))
 
-				if h.Name == "cursor" {
-					// The Cursor path injects a strong JSON instruction into
-					// the prompt, so the agent typically responds with JSON
-					// even in tool-only scenarios. Structured output being
-					// populated is correct Cursor behavior, not an error.
-					so := completed.GetStatus().GetStructuredOutput()
-					if so != nil {
-						t.Logf("Cursor harness produced structured output in tool-only scenario (expected): %d fields", len(so.GetFields()))
-					}
+				if completed.GetStatus().GetPhase() == agentexecv1.ExecutionPhase_EXECUTION_FAILED {
+					t.Logf("execution failed (phase=%s, error=%q) — nil SO is acceptable",
+						completed.GetStatus().GetPhase(), completed.GetStatus().GetError())
 				} else {
-					harness.AssertStructuredOutputNil(t, completed)
+					harness.AssertStructuredOutputPopulated(t, completed)
+					harness.AssertStructuredOutputHasKeys(t, completed, "summary", "score")
 				}
 			})
 
