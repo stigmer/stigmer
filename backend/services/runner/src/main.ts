@@ -25,8 +25,10 @@ import { createStigmerRunner } from "./runner.js";
 import { createStigmerRunnerManager } from "./runner-manager.js";
 import type { StigmerRunnerManager } from "./runner-manager.js";
 
+import { handleUnhandledRejection, setExecutionContextRef } from "./activities/execute-cursor/rejection-capture.js";
+
 process.on("unhandledRejection", (reason) => {
-  console.error("Unhandled rejection in runner:", reason);
+  handleUnhandledRejection(reason);
 });
 
 process.on("uncaughtException", (err) => {

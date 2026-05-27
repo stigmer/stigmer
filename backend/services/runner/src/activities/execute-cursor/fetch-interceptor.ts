@@ -34,6 +34,10 @@ const originalFetch = globalThis.fetch;
 
 const executionContext = new AsyncLocalStorage<{ executionId: string }>();
 
+export function getExecutionContext(): AsyncLocalStorage<{ executionId: string }> {
+  return executionContext;
+}
+
 function isCursorRequest(url: string): boolean {
   try {
     const parsed = new URL(url);

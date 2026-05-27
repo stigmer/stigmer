@@ -130,13 +130,17 @@ export async function createStigmerRunnerManager(
   const config = mapManagerOptionsToConfig(options, tokenRef);
 
   // Install fetch interceptor before any @cursor/sdk imports
-  const { installFetchInterceptor, updateInterceptorToken } = await import(
+  const { installFetchInterceptor, updateInterceptorToken, getExecutionContext } = await import(
     "./activities/execute-cursor/fetch-interceptor.js"
   );
   installFetchInterceptor({
     proxyEndpoint: config.proxyEndpoint ?? undefined,
     stigmerToken: config.stigmerToken ?? undefined,
   });
+  const { setExecutionContextRef } = await import(
+    "./activities/execute-cursor/rejection-capture.js"
+  );
+  setExecutionContextRef(getExecutionContext());
 
   const activities = await createAllActivities(config);
   const payloadCodec = await createPayloadCodec(config);
