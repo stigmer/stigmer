@@ -77,8 +77,8 @@ When starting a new session:
 **Created**: 2026-05-25
 **Revised**: 2026-05-27
 **Current Phase**: Phase 3 COMPLETE + E2E VALIDATED → Phase 5 next (Phase 4 absorbed)
-**Status**: v3 structured output pipeline fully validated E2E with real Anthropic LLM. All 6 CP04-failing tests now pass. Workflow propagation (agent_call → task structured) confirmed 19/19. Offline regression check: 0 new regressions (9 pre-existing failures unchanged). Ready for Phase 5.
-**Last Session**: 2026-05-27 (Session 9) -- E2E structured output validation
+**Status**: v3 structured output pipeline fully validated E2E with real Anthropic LLM. All 6 CP04-failing tests now pass. Workflow propagation (agent_call → task structured) confirmed 19/19. Offline regression check: 0 new regressions (9 pre-existing failures unchanged). Stale EmptyFinalMessage test expectation fixed (Session 10). Ready for Phase 5.
+**Last Session**: 2026-05-27 (Session 10) -- Fix stale EmptyFinalMessage test assertion
 **Latest Checkpoint**: `checkpoints/CP04_v3_hypothesis_validation.md`
 
 ## Session Progress
@@ -171,6 +171,13 @@ When starting a new session:
   - `EmptyFinalMessage/native`: Test expected nil (stale from broken pipeline era), but v3 native SO now correctly populates — test expectation needs update
   - `WrongFieldType/native`: LangGraph `InvalidUpdateError` crash (deepagents UntrackedValue bug) — execution FAILED, nil SO is correct behavior
 
+### Session 10 (2026-05-27)
+- **Fix stale EmptyFinalMessage test** — updated assertion to reflect v3 native SO behavior
+- Removed harness-specific branching (`if h.Name == "cursor"`) — both harnesses use v3, behavior is unified
+- Replaced `AssertStructuredOutputNil` with `AssertStructuredOutputPopulated` + key assertions (phase-aware: tolerates nil on EXECUTION_FAILED)
+- `go vet -tags integration` passes cleanly, no new `gofmt` issues
+- Commit: `92cd663b3` — `test(integration): update EmptyFinalMessage assertion for v3 native structured output`
+
 ## Migration Phases Overview
 
 | Phase | Name | Sessions | Status |
@@ -202,7 +209,7 @@ When starting a new session:
 
 ## Next Steps
 1. **Start Phase 5**: Consume `run.subagents` to create subagent cards in `AgentExecutionStatus` — expose delegation tree, per-subagent tool calls, and nested outputs
-2. **Fix stale test expectation**: Update `EmptyFinalMessage/native` in `agent_execution_15_structured_output_test.go` — now that native SO works, this test should expect populated output (not nil)
+2. ~~**Fix stale test expectation**~~ — DONE (Session 10, commit `92cd663b3`)
 3. **Collect golden run corpus** (optional): Run offline tests with `V2_EVENT_RECORD_DIR` for future regression comparison
 
 ## Critical Reminders (from Deep Research + Validation)
