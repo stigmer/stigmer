@@ -327,7 +327,7 @@ function WorkflowExecutionGraphInner({
           nodesConnectable={false}
           nodesFocusable={true}
           elementsSelectable={true}
-          panOnDrag={draggable ? [1, 2] : true}
+          panOnDrag={true}
           zoomOnScroll={true}
           fitView={false}
           minZoom={0.2}

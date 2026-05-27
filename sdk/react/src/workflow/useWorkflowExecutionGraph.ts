@@ -206,7 +206,9 @@ export function useWorkflowExecutionGraph(
     if (!baseElements) return [];
     return baseElements.nodes.map((node) => {
       const nodeData = node.data as CanvasTaskNodeData;
-      if (nodeData.isSentinel) return node;
+      if (nodeData.isSentinel) {
+        return nodesDraggable ? { ...node, draggable: false } : node;
+      }
 
       const taskState = taskStates.get(nodeData.taskName);
       const executionState: NodeExecutionState = taskState

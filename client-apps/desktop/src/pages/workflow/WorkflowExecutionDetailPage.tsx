@@ -49,6 +49,7 @@ export default function WorkflowExecutionDetailPage() {
         org={org}
         onNavigateToAgentExecution={handleNavigateToAgentExecution}
         onNavigateToWorkflowEditor={handleNavigateToWorkflowEditor}
+        nodesDraggable
       />
     </div>
   );
