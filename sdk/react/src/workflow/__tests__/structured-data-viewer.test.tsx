@@ -111,9 +111,10 @@ describe("StructuredDataViewer", () => {
   });
 
   describe("arrays", () => {
-    it("renders empty array with message", () => {
+    it("renders empty array with zero count", () => {
       render(<StructuredDataViewer data={{ items: [] }} />);
-      expect(screen.getByText("Empty array")).toBeTruthy();
+      expect(screen.getByText("Items")).toBeTruthy();
+      expect(screen.getByText("(0 items)")).toBeTruthy();
     });
 
     it("renders short scalar array inline", () => {
