@@ -36,6 +36,7 @@ import {
   sanitizeArgsPreview,
   MAX_TOOL_RESULT_CHARS,
 } from "./status-builder-shared.js";
+import { SubAgentTracker } from "./subagent-tracker.js";
 
 export class V3StatusBuilder implements ExecutionStatusWriter {
   readonly executionId: string;
@@ -43,6 +44,7 @@ export class V3StatusBuilder implements ExecutionStatusWriter {
   private _forceNextUpdate = false;
   private approvalProvider: ApprovalPolicyProvider | null = null;
   private readonly usageAccumulator: UsageAccumulator;
+  private readonly subAgentTracker: SubAgentTracker;
 
   /** Progressive tool call arg accumulation keyed by callId. */
   private readonly toolArgBuffers = new Map<string, string>();
@@ -57,6 +59,7 @@ export class V3StatusBuilder implements ExecutionStatusWriter {
     }
 
     this.usageAccumulator = new UsageAccumulator();
+    this.subAgentTracker = new SubAgentTracker();
   }
 
   setApprovalProvider(provider: ApprovalPolicyProvider): void {
@@ -77,6 +80,34 @@ export class V3StatusBuilder implements ExecutionStatusWriter {
 
   processEvent(event: StigmerRunEvent): void {
     try {
+      // Sub-agent routing: detect "task" tool starts and route sub-agent events
+      if (event.kind === "tool_started" && event.name === "task" && !event.namespace) {
+        this.subAgentTracker.onTaskToolStarted(event.callId, event.input);
+        this.handleToolStarted(event.callId, event.name, event.input, event.namespace);
+        this._forceNextUpdate = true;
+        return;
+      }
+
+      if (event.kind === "tool_finished" && this.isTrackedTaskTool(event.callId)) {
+        this.subAgentTracker.onTaskToolFinished(event.callId, event.output);
+        this.handleToolFinished(event.callId, event.output);
+        this._forceNextUpdate = true;
+        return;
+      }
+
+      if (event.kind === "tool_error" && this.isTrackedTaskTool(event.callId)) {
+        this.subAgentTracker.onTaskToolError(event.callId, event.message);
+        this.handleToolError(event.callId, event.message);
+        this._forceNextUpdate = true;
+        return;
+      }
+
+      if (this.subAgentTracker.isSubAgentNamespace(event.namespace)) {
+        this.subAgentTracker.routeEvent(event);
+        return;
+      }
+
+      // Parent event routing (unchanged for non-sub-agent events)
       switch (event.kind) {
         case "message_start":
           this.handleMessageStart(event.runId, event.namespace);
@@ -418,5 +449,34 @@ export class V3StatusBuilder implements ExecutionStatusWriter {
     }
     this.usageAccumulator.accumulate(meta);
     this.state.proto.streamingUsage = this.usageAccumulator.toProto();
+  }
+
+  // ── Sub-Agent Integration ──────────────────────────────────────────
+
+  /**
+   * Check if a tool_call_id belongs to a tracked "task" tool invocation.
+   * Used to route tool_finished/tool_error events to both parent and tracker.
+   */
+  private isTrackedTaskTool(callId: string): boolean {
+    const tc = this.state.toolCalls.get(callId);
+    return tc?.name === "task";
+  }
+
+  /**
+   * Sync sub-agent executions into the proto for persistence.
+   * Called by the streaming orchestrator before each persist.
+   */
+  syncSubAgentExecutions(): void {
+    if (this.subAgentTracker.hasExecutions()) {
+      this.state.proto.subAgentExecutions = this.subAgentTracker.getExecutions();
+    }
+  }
+
+  /**
+   * Cancel all in-progress sub-agents (called on parent cancellation).
+   */
+  cancelSubAgents(): void {
+    this.subAgentTracker.cancelAll();
+    this.syncSubAgentExecutions();
   }
 }

@@ -92,6 +92,7 @@ export async function streamExecutionV3(
     for await (const event of run as AsyncIterable<V3ProtocolEvent>) {
       if (isCancelledFn?.()) {
         abortController.abort("Cancelled by platform");
+        statusBuilder.cancelSubAgents();
         return handlePause(
           statusBuilder, eventsProcessed,
           sideEffects.pendingPublishPromises,
@@ -116,6 +117,7 @@ export async function streamExecutionV3(
           statusBuilder.clearForceFlag();
         }
 
+        statusBuilder.syncSubAgentExecutions();
         const signal = await persistWithRetry(
           client,
           executionId,
@@ -164,6 +166,8 @@ export async function streamExecutionV3(
       "This may indicate a configuration error or v3 API incompatibility.",
     );
   }
+
+  statusBuilder.syncSubAgentExecutions();
 
   if (initialStatus.phase === ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL) {
     console.log(
