@@ -177,7 +177,7 @@ export const ExecutionInspector = memo(function ExecutionInspector({
         aria-label="Task execution details"
         className="min-h-0 flex-1"
       >
-        <div className="overflow-y-auto px-3 py-3">
+        <div className="h-full min-h-0 overflow-y-auto px-3 py-3">
           {effectiveTab === "summary" && <SummaryTab summary={detail.summary} />}
           {effectiveTab === "input" && <InputOutputTab data={detail.input} label="Input" />}
           {effectiveTab === "output" && <InputOutputTab data={detail.output} label="Output" />}
