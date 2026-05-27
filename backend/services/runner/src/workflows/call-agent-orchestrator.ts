@@ -129,6 +129,7 @@ export async function orchestrateAgentCall(
   const enrichedConfig = {
     ...input.config,
     __taskName: input.taskName,
+    __wfExecId: input.workflowExecutionId,
   };
 
   log.info("[CallAgent orchestrator] sending to activity", {

@@ -18,6 +18,9 @@
  * runner as a library.
  */
 
+import { createHash } from "node:crypto";
+import { readFileSync, readdirSync } from "node:fs";
+import { join, relative } from "node:path";
 import { createInterface } from "node:readline";
 import { loadConfig } from "./config.js";
 import { initTracing, initMetrics } from "./otel.js";
@@ -292,9 +295,66 @@ async function runStaticMode(config: import("./config.js").Config): Promise<void
   }
 }
 
+// ─── Build Fingerprint Check ─────────────────────────────────────────────────
+
+/**
+ * Compares the dist/.build-fingerprint against the current src/ hash.
+ * Warns prominently if the runner binary is stale. Best-effort: failures
+ * are swallowed so a missing fingerprint file never blocks startup.
+ */
+function checkBuildFreshness(): void {
+  try {
+    const runnerRoot = new URL("../", import.meta.url).pathname;
+    const fpPath = join(runnerRoot, "dist", ".build-fingerprint");
+
+    let stored: { hash: string; builtAt: string };
+    try {
+      stored = JSON.parse(readFileSync(fpPath, "utf-8"));
+    } catch {
+      return;
+    }
+
+    const srcDir = join(runnerRoot, "src");
+    const tsFiles = collectTsFiles(srcDir).sort();
+    const hash = createHash("sha256");
+    for (const file of tsFiles) {
+      hash.update(relative(runnerRoot, file));
+      hash.update(readFileSync(file));
+    }
+    const currentHash = hash.digest("hex").slice(0, 16);
+
+    if (currentHash !== stored.hash) {
+      console.warn(
+        `\n` +
+        `!!! STALE RUNNER BUILD DETECTED !!!\n` +
+        `    dist/ was built at ${stored.builtAt} (hash ${stored.hash})\n` +
+        `    src/ has changed since (current hash ${currentHash})\n` +
+        `    Run 'make build-runner' and restart the desktop app.\n`,
+      );
+    }
+  } catch {
+    // Best-effort — never block startup
+  }
+}
+
+function collectTsFiles(dir: string, files: string[] = []): string[] {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const fullPath = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (entry.name === "node_modules" || entry.name === "__tests__") continue;
+      collectTsFiles(fullPath, files);
+    } else if (entry.name.endsWith(".ts")) {
+      files.push(fullPath);
+    }
+  }
+  return files;
+}
+
 // ─── Entry Point ─────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
+  checkBuildFreshness();
+
   const config = loadConfig();
 
   // Set Cursor SDK base URL for proxy mode BEFORE any @cursor/sdk import.
