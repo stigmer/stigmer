@@ -131,6 +131,14 @@ export async function orchestrateAgentCall(
     __taskName: input.taskName,
   };
 
+  log.info("[CallAgent orchestrator] sending to activity", {
+    taskName: input.taskName,
+    hasOutput: enrichedConfig.output !== undefined,
+    hasOutputSchema: enrichedConfig.output?.schema !== undefined,
+    configKeys: Object.keys(enrichedConfig).join(","),
+    hasTaskName: !!enrichedConfig.__taskName,
+  });
+
   const activityPromise = agentProxy
     .CallAgent(enrichedConfig, input.runtimeEnv, input.parentWorkflowId)
     .then((result) => {
