@@ -25,6 +25,7 @@ import { ApprovalCard } from "./ApprovalCard";
 import { SummarizationCard } from "./SummarizationCard";
 import { PlanCompletionCard } from "./PlanCompletionCard";
 import type { SummarizationEventView } from "./useContextWindow";
+import { isInternalTool } from "./tool-categories";
 import { FilePathContext, type FilePathContextValue } from "./FilePathContext";
 import type { ResolvedPathAction } from "./file-path-resolver";
 import { SandboxContext, type SandboxContextValue } from "./SandboxContext";
@@ -267,16 +268,18 @@ export function buildThreadItems(
         msg.type === MessageType.MESSAGE_AI &&
         msg.toolCalls.length > 0
       ) {
-        const hasTaskTools = msg.toolCalls.some((tc) => tc.name === "task");
+        const needsSplit = msg.toolCalls.some(
+          (tc) => tc.name === "task" || isInternalTool(tc.name),
+        );
 
-        if (hasTaskTools) {
+        if (needsSplit) {
           const regularTools: ToolCall[] = [];
           const matchedSubAgents: SubAgentExecution[] = [];
           for (const tc of msg.toolCalls) {
             if (tc.name === "task") {
               const matched = subAgents.find((sa) => sa.id === tc.id);
               if (matched) matchedSubAgents.push(matched);
-            } else {
+            } else if (!isInternalTool(tc.name)) {
               regularTools.push(tc);
             }
           }
