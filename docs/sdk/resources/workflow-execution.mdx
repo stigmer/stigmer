@@ -69,7 +69,7 @@ WorkflowExecution workflowExecution = client.workflowExecutions().get("wex_01j5q
 | [`resume`](#resume) | Resume a paused workflow execution. | |
 | [`cancel`](#cancel) | Cancel a running workflow execution gracefully. | |
 | [`terminate`](#terminate) | Terminate a workflow execution immediately. | |
-| [`recover`](#recover) | Recover a failed workflow execution from the last checkpoint. | |
+| [`recover`](#recover) | Recover a failed workflow execution. | |
 | [`submitApproval`](#submitapproval) | Submit an approval decision for a child agent's tool execution. | |
 | [`submitWorkflowTaskApproval`](#submitworkflowtaskapproval) | Submit a human reviewer's decision for a workflow-level human_input task. | |
 | [`sendSignal`](#sendsignal) | Send a signal to a running workflow execution. | |
@@ -865,9 +865,9 @@ WorkflowExecution workflowExecution = client.workflowExecutions().terminate(Term
 
 ### recover
 
-Recover a failed workflow execution from the last checkpoint.
+Recover a failed workflow execution.
 
-Resumes execution from the last successful point. Completed work is preserved - successful tasks are NOT re-executed. This enables "retry and resume" semantics without duplicating side effects.
+Terminates the existing (possibly stuck) Temporal orchestrator workflow, recreates the ExecutionContext with freshly resolved environment variables, and starts a brand-new Temporal workflow for the same execution ID. The workflow engine re-executes all tasks from the beginning. Individual activities may implement their own idempotency (e.g., CallAgent session reuse), but there is no task-level checkpoint resume.
 
 <SDKTabs>
 <Tab value="TypeScript">
