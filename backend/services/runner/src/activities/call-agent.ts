@@ -194,6 +194,17 @@ export async function callAgentAction(
   const hasModel = !!resolved.config?.model;
   const hasOutputSchema = !!resolved.output?.schema;
 
+  console.log(
+    `[CallAgent] schema propagation diagnostic: ` +
+    `hasOutputSchema=${hasOutputSchema}, ` +
+    `hasModel=${hasModel}, ` +
+    `configKeys=[${Object.keys(resolved).join(",")}], ` +
+    `hasOutput=${resolved.output !== undefined}, ` +
+    `outputKeys=${resolved.output ? JSON.stringify(Object.keys(resolved.output)) : "N/A"}, ` +
+    `__taskName=${(resolved as any).__taskName ?? "MISSING"}, ` +
+    `wfExecId=${wfExecId ?? "MISSING"}`,
+  );
+
   const executionSpec = create(AgentExecutionSpecSchema, {
     sessionId,
     agentId,
