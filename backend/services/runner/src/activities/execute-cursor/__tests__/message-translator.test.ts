@@ -14,9 +14,10 @@ import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecu
 import {
   MessageType,
   ToolCallStatus,
+  SubAgentStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { SDKMessage } from "@cursor/sdk";
-import { MessageAccumulator } from "../message-translator.js";
+import { MessageAccumulator, extractConversationSteps } from "../message-translator.js";
 
 function toolCallEvent(
   callId: string,
@@ -244,6 +245,239 @@ describe("MessageAccumulator tool call status transitions", () => {
 
     expect(sub).toBeDefined();
     expect(sub!.name).toBe("explore");
+  });
+
+  it("sub-agent name extraction falls back to description when kind is 'unspecified'", () => {
+    const messages: AgentMessage[] = [];
+    const acc = new MessageAccumulator(messages);
+
+    const event = toolCallEvent("tc-sub4", "task", "running", "r1", {
+      args: { subagentType: { kind: "unspecified" }, description: "Research renewable energy", prompt: "Go" },
+    });
+    acc.processEvent(event);
+    const sub = acc.trackSubAgentExecution(event);
+
+    expect(sub).toBeDefined();
+    expect(sub!.name).toBe("Research renewable energy");
+  });
+
+  it("sub-agent name extraction falls back to description when subagentType is missing", () => {
+    const messages: AgentMessage[] = [];
+    const acc = new MessageAccumulator(messages);
+
+    const event = toolCallEvent("tc-sub5", "task", "running", "r1", {
+      args: { description: "Analyze codebase", prompt: "Go" },
+    });
+    acc.processEvent(event);
+    const sub = acc.trackSubAgentExecution(event);
+
+    expect(sub).toBeDefined();
+    expect(sub!.name).toBe("Analyze codebase");
+  });
+
+  it("sub-agent extracts conversationSteps from task completed result", () => {
+    const messages: AgentMessage[] = [];
+    const acc = new MessageAccumulator(messages);
+
+    const runningEvent = toolCallEvent("tc-sub6", "task", "running", "r1", {
+      args: { subagentType: { kind: "unspecified" }, description: "Research topic", prompt: "Summarize AI" },
+    });
+    acc.processEvent(runningEvent);
+    acc.trackSubAgentExecution(runningEvent);
+
+    const completedEvent = toolCallEvent("tc-sub6", "task", "completed", "r1", {
+      result: {
+        status: "success",
+        value: {
+          conversationSteps: [
+            { type: "thinkingMessage", message: { text: "Let me think about this..." } },
+            { type: "assistantMessage", message: { text: "Here is a summary of AI." } },
+          ],
+          agentId: "sub-agent-123",
+          durationMs: 5000,
+          isBackground: false,
+          backgroundReason: "unspecified",
+        },
+      },
+    });
+    acc.processEvent(completedEvent);
+    acc.trackSubAgentExecution(completedEvent);
+
+    const sub = acc.subAgentExecutions[0];
+    expect(sub.status).toBe(SubAgentStatus.SUB_AGENT_COMPLETED);
+    expect(sub.messages).toHaveLength(2);
+    expect(sub.messages[0].type).toBe(MessageType.MESSAGE_THINKING);
+    expect(sub.messages[0].content).toBe("Let me think about this...");
+    expect(sub.messages[1].type).toBe(MessageType.MESSAGE_AI);
+    expect(sub.messages[1].content).toBe("Here is a summary of AI.");
+  });
+
+  it("sub-agent extracts toolCall steps from conversationSteps", () => {
+    const messages: AgentMessage[] = [];
+    const acc = new MessageAccumulator(messages);
+
+    const runningEvent = toolCallEvent("tc-sub7", "task", "running", "r1", {
+      args: { description: "Use tools", prompt: "Run ls" },
+    });
+    acc.processEvent(runningEvent);
+    acc.trackSubAgentExecution(runningEvent);
+
+    const completedEvent = toolCallEvent("tc-sub7", "task", "completed", "r1", {
+      result: {
+        status: "success",
+        value: {
+          conversationSteps: [
+            {
+              type: "toolCall",
+              message: {
+                type: "shell",
+                args: { command: "ls -la" },
+                result: { status: "success", value: { stdout: "file.txt", stderr: "", exitCode: 0 } },
+              },
+            },
+            { type: "assistantMessage", message: { text: "I found file.txt." } },
+          ],
+          isBackground: false,
+          backgroundReason: "unspecified",
+        },
+      },
+    });
+    acc.processEvent(completedEvent);
+    acc.trackSubAgentExecution(completedEvent);
+
+    const sub = acc.subAgentExecutions[0];
+    expect(sub.messages).toHaveLength(2);
+
+    const toolMsg = sub.messages[0];
+    expect(toolMsg.type).toBe(MessageType.MESSAGE_AI);
+    expect(toolMsg.toolCalls).toHaveLength(1);
+    expect(toolMsg.toolCalls[0].name).toBe("shell");
+    expect(toolMsg.toolCalls[0].status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+
+    expect(sub.messages[1].type).toBe(MessageType.MESSAGE_AI);
+    expect(sub.messages[1].content).toBe("I found file.txt.");
+  });
+
+  it("sub-agent gracefully handles missing conversationSteps", () => {
+    const messages: AgentMessage[] = [];
+    const acc = new MessageAccumulator(messages);
+
+    const runningEvent = toolCallEvent("tc-sub8", "task", "running", "r1", {
+      args: { description: "Quick task", prompt: "Do it" },
+    });
+    acc.processEvent(runningEvent);
+    acc.trackSubAgentExecution(runningEvent);
+
+    const completedEvent = toolCallEvent("tc-sub8", "task", "completed", "r1", {
+      result: "Simple string result",
+    });
+    acc.processEvent(completedEvent);
+    acc.trackSubAgentExecution(completedEvent);
+
+    const sub = acc.subAgentExecutions[0];
+    expect(sub.status).toBe(SubAgentStatus.SUB_AGENT_COMPLETED);
+    expect(sub.output).toBe("Simple string result");
+    expect(sub.messages).toHaveLength(0);
+  });
+
+  describe("extractConversationSteps standalone", () => {
+    it("parses legacy format with thinkingMessage/assistantMessage keys (no type field)", () => {
+      const out: AgentMessage[] = [];
+      extractConversationSteps({
+        status: "success",
+        value: {
+          conversationSteps: [
+            { thinkingMessage: { text: "Hmm...", durationMs: 200 } },
+            { assistantMessage: { text: "Answer." } },
+          ],
+        },
+      }, out);
+
+      expect(out).toHaveLength(2);
+      expect(out[0].type).toBe(MessageType.MESSAGE_THINKING);
+      expect(out[0].content).toBe("Hmm...");
+      expect(out[1].type).toBe(MessageType.MESSAGE_AI);
+      expect(out[1].content).toBe("Answer.");
+    });
+
+    it("skips unknown step types for forward compatibility", () => {
+      const out: AgentMessage[] = [];
+      extractConversationSteps({
+        status: "success",
+        value: {
+          conversationSteps: [
+            { type: "futureStepType", data: {} },
+            { type: "assistantMessage", message: { text: "Still works." } },
+          ],
+        },
+      }, out);
+
+      expect(out).toHaveLength(1);
+      expect(out[0].content).toBe("Still works.");
+    });
+
+    it("handles null/undefined/non-object result gracefully", () => {
+      const out: AgentMessage[] = [];
+      extractConversationSteps(null, out);
+      extractConversationSteps(undefined, out);
+      extractConversationSteps("string", out);
+      extractConversationSteps(42, out);
+      expect(out).toHaveLength(0);
+    });
+
+    it("handles result without conversationSteps", () => {
+      const out: AgentMessage[] = [];
+      extractConversationSteps({ status: "success", value: {} }, out);
+      expect(out).toHaveLength(0);
+    });
+
+    it("handles empty conversationSteps array", () => {
+      const out: AgentMessage[] = [];
+      extractConversationSteps({
+        status: "success",
+        value: { conversationSteps: [] },
+      }, out);
+      expect(out).toHaveLength(0);
+    });
+
+    it("skips steps with empty text", () => {
+      const out: AgentMessage[] = [];
+      extractConversationSteps({
+        status: "success",
+        value: {
+          conversationSteps: [
+            { type: "thinkingMessage", message: { text: "" } },
+            { type: "assistantMessage", message: { text: "" } },
+            { type: "assistantMessage", message: { text: "Real content." } },
+          ],
+        },
+      }, out);
+
+      expect(out).toHaveLength(1);
+      expect(out[0].content).toBe("Real content.");
+    });
+
+    it("extracts tool error results correctly", () => {
+      const out: AgentMessage[] = [];
+      extractConversationSteps({
+        status: "success",
+        value: {
+          conversationSteps: [
+            {
+              type: "toolCall",
+              message: {
+                type: "shell",
+                args: { command: "bad-cmd" },
+                result: { status: "error", error: "command not found" },
+              },
+            },
+          ],
+        },
+      }, out);
+
+      expect(out).toHaveLength(1);
+      expect(out[0].toolCalls[0].result).toBe("command not found");
+    });
   });
 
   describe("todo tool suppression", () => {

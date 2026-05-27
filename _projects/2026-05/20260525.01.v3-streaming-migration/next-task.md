@@ -76,9 +76,9 @@ When starting a new session:
 
 **Created**: 2026-05-25
 **Revised**: 2026-05-27
-**Current Phase**: Cursor harness sub-agent/todo improvements COMPLETE → Ready for Phase 6
-**Status**: Cursor harness todo and sub-agent tracking implemented (Session 17). CursorSubAgentRouter for agent_id-based event routing, scoped todo tracking, two-layer todo tool suppression. Pending agent_id validation with live event recording before full E2E confirmation.
-**Last Session**: 2026-05-27 (Session 17) -- Cursor harness todo/sub-agent tracking
+**Current Phase**: Cursor sub-agent `conversationSteps` extraction COMPLETE → Ready for Phase 6
+**Status**: Session 18 disproved the `agent_id` routing hypothesis via empirical validation. Cursor SDK returns sub-agent work as a blob in the task tool's completed result (not streaming events). Replaced dead `CursorSubAgentRouter` with `conversationSteps` extraction in `trackSubAgentExecution`. Sub-agent naming fixed to use `description` fallback.
+**Last Session**: 2026-05-27 (Session 18) -- Cursor sub-agent `agent_id` validation + `conversationSteps` extraction
 **Latest Checkpoint**: `checkpoints/CP08_session15_integration_validation.md`
 
 ## Session Progress
@@ -259,6 +259,18 @@ When starting a new session:
 - **Tests**: 28 new tests (17 router, 5 message-translator, 6 thread-keys), all 188 affected tests pass, 0 regressions
 - **Pending**: E2E validation with live event recording to confirm `agent_id` routing hypothesis
 
+### Session 18 (2026-05-27)
+- **`agent_id` routing hypothesis DISPROVED** — empirical validation with `CURSOR_EVENT_RECORD_DIR`
+- Ran `TestAgentExecution_SubAgent_Delegation/cursor` twice with event recording: 431 and 603 events captured
+- **Finding: 1 distinct `agent_id` across all events** — Cursor SDK does NOT stream sub-agent internal events through parent `run.stream()`
+- Sub-agent work returned as a blob in the task tool's `completed` event: `result.value.conversationSteps` contains thinking + assistant + toolCall steps
+- **Removed `CursorSubAgentRouter`** (dead code): 148-line class + 274-line test file + all wiring in `index.ts` streaming loop
+- **New `extractConversationSteps()`**: Parses task tool completed result into `SubAgentExecution.messages` — handles `thinkingMessage`, `assistantMessage`, `toolCall` step types defensively
+- **Fixed `extractSubagentName()`**: Treats `kind: "unspecified"` as absent, falls back to `description` field (always populated by SDK)
+- **Simplified `index.ts` streaming loop**: Removed `isSubAgentEvent` branching, `registerSubAgent`/`finalizeSubAgent` calls, `syncToProto`/`markPersisted` — net -30 lines
+- 12 new unit tests (naming fallback, conversationSteps extraction, edge cases), all 77 execute-cursor tests pass
+- **Wrong assumption documented**: WA03 — Session 17 assumed sub-agent events carry distinct `agent_id`; reality is Cursor SDK streams only parent events with sub-agent results as blobs
+
 ## Migration Phases Overview
 
 | Phase | Name | Sessions | Status |
@@ -300,9 +312,11 @@ When starting a new session:
 9. **Fix offline mock proxy routing for sub-agents** (deferred): Sub-agents in offline tests don't inherit the mock LLM proxy. Separate infra improvement.
 10. ~~**Broader model migration**~~ — DONE (Session 16): All `claude-sonnet-4-20250514` references migrated to `claude-sonnet-4-6` across both repos. Proto stubs regenerated. Tests validated.
 11. ~~**Cursor harness todo/sub-agent tracking**~~ — DONE (Session 17): `CursorSubAgentRouter`, scoped `TodoTracker`, two-layer todo suppression, `subagentType` parsing fix, event recorder
-12. **Validate `agent_id` routing** (next): Run real Cursor execution with `CURSOR_EVENT_RECORD_DIR`, analyze `.cursor-events.jsonl`, confirm sub-agent events flow through parent stream with distinct `agent_id`
-13. **Phase 6 (future)**: Custom Stigmer Stream Transformers — replace ad-hoc artifact/writeback/usage logic with native v3 stream transformers
-14. **Collect golden run corpus** (optional): Run offline tests with `V2_EVENT_RECORD_DIR` for future regression comparison
+12. ~~**Validate `agent_id` routing**~~ — DONE (Session 18): Hypothesis disproved. Replaced `CursorSubAgentRouter` with `conversationSteps` extraction from task tool completed result. Sub-agent naming fixed.
+13. **E2E validation of `conversationSteps` extraction** (next): Re-run `TestAgentExecution_SubAgent_Delegation/cursor` to confirm `SubAgentExecution.messages` populated via blob extraction
+14. **Phase 6 (future)**: Custom Stigmer Stream Transformers — replace ad-hoc artifact/writeback/usage logic with native v3 stream transformers
+15. **Fix offline mock proxy routing for sub-agents** (deferred): Sub-agents in offline tests don't inherit the mock LLM proxy. Separate infra improvement.
+16. **Collect golden run corpus** (optional): Run offline tests with `V2_EVENT_RECORD_DIR` for future regression comparison
 
 ## Critical Reminders (from Deep Research + Validation)
 
