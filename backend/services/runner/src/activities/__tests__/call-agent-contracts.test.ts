@@ -322,6 +322,32 @@ describe("CallAgent server contract compliance", () => {
         /^aex-wf-wex_01kscvbb59yc4kjfqce4en8t6e-design_notification_campaigns-[0-9a-f]{8}$/,
       );
     });
+
+    it("prefers __wfExecId from config over runtimeEnv.__stigmer_execution_id", async () => {
+      await exerciseCallAgent({
+        __taskName: "analyze_player_data",
+        __wfExecId: "wex_from_config",
+      } as any, {
+        __stigmer_execution_id: "wex_from_env",
+        __stigmer_org_id: "tt-demo",
+      });
+      expect(capturedCreateExecution.metadata.name).toMatch(
+        /^aex-wf-wex_from_config-analyze_player_data-[0-9a-f]{8}$/,
+      );
+      expect(capturedApplySession.metadata.name).toBe("ses-wf-wex_from_config-analyze_player_data");
+    });
+
+    it("uses __wfExecId from config when runtimeEnv lacks __stigmer_execution_id", async () => {
+      await exerciseCallAgent({
+        __taskName: "analyze_player_data",
+        __wfExecId: "wex_config_only",
+      } as any, {
+        __stigmer_org_id: "tt-demo",
+      });
+      expect(capturedCreateExecution.metadata.name).toMatch(
+        /^aex-wf-wex_config_only-analyze_player_data-[0-9a-f]{8}$/,
+      );
+    });
   });
 
   describe("agent execution uniqueness (no ALREADY_EXISTS retry)", () => {

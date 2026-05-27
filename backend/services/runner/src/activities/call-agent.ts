@@ -98,7 +98,8 @@ export async function callAgentAction(
     throw new Error(`Agent '${resolved.agent}' resolved but has no metadata.id`);
   }
 
-  const wfExecId = runtimeEnv["__stigmer_execution_id"] as string | undefined;
+  const wfExecId = (resolved as unknown as Record<string, unknown>).__wfExecId as string | undefined
+    ?? runtimeEnv["__stigmer_execution_id"] as string | undefined;
   const taskName = (resolved as unknown as Record<string, unknown>).__taskName as string | undefined;
 
   let sessionName: string;
