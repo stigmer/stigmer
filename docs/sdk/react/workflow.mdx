@@ -3248,6 +3248,7 @@ Props for [`WorkflowExecutionViewer`](#workflowexecutionviewer).
     additionalActions: { type: "ReactNode", description: "Additional action elements to render in the header." },
     className: { type: "string", description: "Additional CSS class names for the root container." },
     executionId: { type: "string", description: "ID of the workflow execution to display.", required: true },
+    nodesDraggable: { type: "boolean", description: "Whether task nodes in the execution graph can be dragged to rearrange the layout for presentations. Drag positions are ephemeral and not persisted." },
     onNavigateToAgentExecution: { type: "(agentExecutionId: string) => void", description: "Callback when the user clicks a link to a child agent execution. Receives the AgentExecution ID. The host application is responsible for navigation — this keeps the component routing-agnostic (DD-004)." },
     onNavigateToWorkflowEditor: { type: "(yaml: string, workflowSlug: string) => void", description: "Callback when the user clicks \"Apply Fix\" in the repair card. Receives the suggested YAML and the workflow slug. The host application handles navigation to the workflow editor (DD-004)." },
     org: { type: "string", description: "Organization slug — needed for AI diagnosis authorization." },
