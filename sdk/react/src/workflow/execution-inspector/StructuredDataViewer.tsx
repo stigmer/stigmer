@@ -264,11 +264,11 @@ function ArrayEntry({
 }) {
   if (items.length === 0) {
     return (
-      <div className="space-y-1">
+      <div className="flex items-baseline gap-1.5">
         <span className="font-medium text-muted-foreground">
           {humanizeArgKey(label)}
         </span>
-        <p className="text-xs text-muted-foreground">Empty array</p>
+        <span className="text-muted-foreground-subtle">(0 items)</span>
       </div>
     );
   }
