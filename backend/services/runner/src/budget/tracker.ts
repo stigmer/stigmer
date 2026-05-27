@@ -148,11 +148,18 @@ export function extractCostFromOutput(output: unknown): TaskCostInfo {
   }
 
   const o = output as Record<string, unknown>;
+  const usage = (typeof o.usage === "object" && o.usage !== null)
+    ? o.usage as Record<string, unknown>
+    : undefined;
 
   return {
     costMicros: toSafeInt(o.__stigmer_cost_micros ?? o.cost_micros),
-    inputTokens: toSafeInt(o.__stigmer_input_tokens ?? o.input_tokens),
-    outputTokens: toSafeInt(o.__stigmer_output_tokens ?? o.output_tokens),
+    inputTokens: toSafeInt(
+      o.__stigmer_input_tokens ?? o.input_tokens ?? usage?.input_tokens,
+    ),
+    outputTokens: toSafeInt(
+      o.__stigmer_output_tokens ?? o.output_tokens ?? usage?.output_tokens,
+    ),
   };
 }
 

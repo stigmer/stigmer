@@ -28,7 +28,10 @@ describe("CallFunctionTaskBuilder", () => {
   });
 
   it("calls ctx.callFunction with the correct call type", async () => {
-    mockCallFunction.mockResolvedValue({ result: "hello", input_tokens: 10, output_tokens: 5 });
+    mockCallFunction.mockResolvedValue({
+      result: "hello", model: "gpt-4o-mini", provider: "openai",
+      input_tokens: 10, output_tokens: 5,
+    });
 
     const taskDef: CallFunctionTaskDef = {
       kind: "call:function",
@@ -45,17 +48,57 @@ describe("CallFunctionTaskBuilder", () => {
 
     const result = await executor(null, state, makeCtx());
 
-    expect(result).toEqual({ result: "hello", input_tokens: 10, output_tokens: 5 });
+    expect(result).toEqual({
+      text: "hello",
+      structured: undefined,
+      model: "gpt-4o-mini",
+      usage: { input_tokens: 10, output_tokens: 5 },
+    });
     expect(mockCallFunction).toHaveBeenCalledWith(
       "llm",
       expect.objectContaining({ model: "gpt-4o-mini", prompt: "Say hello" }),
       expect.any(Object),
-      expect.objectContaining({ workflowExecutionId: "test-workflow" }),
+      expect.objectContaining({ workflowExecutionId: undefined }),
     );
   });
 
+  it("normalizes llm_call with response_schema to .structured", async () => {
+    const parsed = { severity: "high", category: "billing" };
+    mockCallFunction.mockResolvedValue({
+      result: parsed, model: "gpt-4o-mini", provider: "openai",
+      input_tokens: 50, output_tokens: 20, __stigmer_cost_micros: 300,
+    });
+
+    const taskDef: CallFunctionTaskDef = {
+      kind: "call:function",
+      call: "llm",
+      with: {
+        model: "gpt-4o-mini",
+        prompt: "Classify this ticket",
+        response_schema: { type: "object", required: ["severity"] },
+      },
+    };
+
+    const builder = new CallFunctionTaskBuilder("classify", taskDef);
+    const executor = builder.build();
+    const state = createState();
+
+    const result = await executor(null, state, makeCtx());
+
+    expect(result).toEqual({
+      text: undefined,
+      structured: parsed,
+      model: "gpt-4o-mini",
+      usage: { input_tokens: 50, output_tokens: 20 },
+      __stigmer_cost_micros: 300,
+    });
+  });
+
   it("evaluates expressions in the with config", async () => {
-    mockCallFunction.mockResolvedValue({ result: "analyzed" });
+    mockCallFunction.mockResolvedValue({
+      result: "analyzed", model: "claude-sonnet-4-5", provider: "anthropic",
+      input_tokens: 100, output_tokens: 30,
+    });
 
     const taskDef: CallFunctionTaskDef = {
       kind: "call:function",
@@ -121,7 +164,27 @@ describe("CallFunctionTaskBuilder", () => {
     );
   });
 
-  it("passes workflowExecutionId from doc.document.name", async () => {
+  it("passes workflowExecutionId from state.env.__stigmer_execution_id", async () => {
+    mockCallFunction.mockResolvedValue({});
+
+    const taskDef: CallFunctionTaskDef = {
+      kind: "call:function",
+      call: "llm",
+      with: { model: "gpt-4o", prompt: "hi" },
+    };
+
+    const builder = new CallFunctionTaskBuilder("metaTest", taskDef);
+    const executor = builder.build();
+    const state = createState();
+    state.env.__stigmer_execution_id = "wex_01abc123";
+
+    await executor(null, state, makeCtx());
+
+    const calledMeta = mockCallFunction.mock.calls[0][3];
+    expect(calledMeta.workflowExecutionId).toBe("wex_01abc123");
+  });
+
+  it("leaves workflowExecutionId undefined when no execution ID in state", async () => {
     mockCallFunction.mockResolvedValue({});
 
     const taskDef: CallFunctionTaskDef = {
@@ -137,6 +200,6 @@ describe("CallFunctionTaskBuilder", () => {
     await executor(null, state, makeCtx());
 
     const calledMeta = mockCallFunction.mock.calls[0][3];
-    expect(calledMeta.workflowExecutionId).toBe("test-workflow");
+    expect(calledMeta.workflowExecutionId).toBeUndefined();
   });
 });
