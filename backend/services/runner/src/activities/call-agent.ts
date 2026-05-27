@@ -30,7 +30,7 @@ import { create, type JsonObject } from "@bufbuild/protobuf";
 import { AgentExecutionSpecSchema, ExecutionConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { Harness, ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionValueSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
 import type { ExecutionValue } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
@@ -125,6 +125,9 @@ export async function callAgentAction(
   );
 
   const harness = resolveHarness(resolved.harness);
+  const executionTarget = resolveExecutionTarget(
+    runtimeEnv["__stigmer_execution_target"] as number | undefined,
+  );
 
   const session = await client.applySession(
     create(SessionSchema, {
@@ -137,6 +140,7 @@ export async function callAgentAction(
       spec: create(SessionSpecSchema, {
         agentInstanceId: defaultInstanceId,
         harness,
+        executionTarget,
         subject: "Auto-created session",
       }),
     }),
@@ -272,6 +276,12 @@ function resolveHarness(harnessStr?: string): Harness {
     default:
       return Harness.NATIVE;
   }
+}
+
+function resolveExecutionTarget(target?: number): ExecutionTarget {
+  if (target === 1) return ExecutionTarget.LOCAL;
+  if (target === 2) return ExecutionTarget.CLOUD;
+  return ExecutionTarget.UNSPECIFIED;
 }
 
 export function createCallAgentActivities() {
