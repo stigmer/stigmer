@@ -201,6 +201,15 @@ func (i *WorkflowTaskInput) toProto() *workflowv1.WorkflowTask {
 	if i.TaskConfig != nil {
 		p.TaskConfig, _ = structpb.NewStruct(i.TaskConfig)
 	}
+	if i.Export != nil {
+		p.Export = i.Export.toProto()
+	}
+	if i.Flow != nil {
+		p.Flow = i.Flow.toProto()
+	}
+	for _, item := range i.Compensate {
+		p.Compensate = append(p.Compensate, item.toProto())
+	}
 	return p
 }
 

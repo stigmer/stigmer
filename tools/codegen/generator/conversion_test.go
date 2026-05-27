@@ -1240,4 +1240,58 @@ func TestEmitNestedToProto(t *testing.T) {
 			t.Error("InnerType_toProto not marked as emitted")
 		}
 	})
+
+	t.Run("message_and_array_fields_in_struct_type", func(t *testing.T) {
+		f := field("Task", "task", "task",
+			TypeSpec{Kind: "message", MessageType: "WorkflowTask"})
+		typeMap := map[string]*TypeSchema{
+			"WorkflowTask": {
+				Name: "WorkflowTask",
+				Fields: []*FieldSchema{
+					field("Name", "name", "name", TypeSpec{Kind: "string"}),
+					field("Kind", "kind", "kind", TypeSpec{Kind: "string"}),
+					field("TaskConfig", "taskConfig", "task_config", TypeSpec{Kind: "struct"}),
+					field("Export", "export", "export",
+						TypeSpec{Kind: "message", MessageType: "Export"}),
+					field("Flow", "flow", "flow",
+						TypeSpec{Kind: "message", MessageType: "FlowControl"}),
+					field("Compensate", "compensate", "compensate", TypeSpec{
+						Kind:        "array",
+						ElementType: &TypeSpec{Kind: "message", MessageType: "WorkflowTask"},
+					}),
+				},
+			},
+			"Export": {
+				Name: "Export",
+				Fields: []*FieldSchema{
+					field("As", "as", "as", TypeSpec{Kind: "string"}),
+				},
+			},
+			"FlowControl": {
+				Name: "FlowControl",
+				Fields: []*FieldSchema{
+					field("Then", "then", "then", TypeSpec{Kind: "string"}),
+				},
+			},
+		}
+		emitted := make(map[string]bool)
+		var buf bytes.Buffer
+		emitNestedToProto(&buf, f, "workflowv1", typeMap, emitted, "WorkflowSpec", make(map[string]bool))
+		got := buf.String()
+
+		mustContain(t, got, `func (i *WorkflowTaskInput) toProto() *workflowv1.WorkflowTask`)
+		mustContain(t, got, `p := &workflowv1.WorkflowTask{}`)
+		mustContain(t, got, `p.Name = i.Name`)
+		mustContain(t, got, `p.Kind = i.Kind`)
+		mustContain(t, got, `structpb.NewStruct(i.TaskConfig)`)
+		mustContain(t, got, `if i.Export != nil`)
+		mustContain(t, got, `p.Export = i.Export.toProto()`)
+		mustContain(t, got, `if i.Flow != nil`)
+		mustContain(t, got, `p.Flow = i.Flow.toProto()`)
+		mustContain(t, got, `for _, item := range i.Compensate`)
+		mustContain(t, got, `p.Compensate = append(p.Compensate, item.toProto())`)
+
+		mustContain(t, got, `func (i *ExportInput) toProto() *workflowv1.Export`)
+		mustContain(t, got, `func (i *FlowControlInput) toProto() *workflowv1.FlowControl`)
+	})
 }

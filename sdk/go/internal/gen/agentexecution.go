@@ -242,6 +242,9 @@ func (i *AgentExecutionInput) toProto() *agentexecutionv1.AgentExecution {
 func (i *ExecutionConfigInput) toProto() *agentexecutionv1.ExecutionConfig {
 	p := &agentexecutionv1.ExecutionConfig{}
 	p.ModelName = i.ModelName
+	if i.ContextManagement != nil {
+		p.ContextManagement = i.ContextManagement.toProto()
+	}
 	p.MaxToolRounds = i.MaxToolRounds
 	p.MaxToolResultChars = i.MaxToolResultChars
 	p.MaxCostUsd = i.MaxCostUsd
