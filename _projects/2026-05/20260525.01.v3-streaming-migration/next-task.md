@@ -76,10 +76,10 @@ When starting a new session:
 
 **Created**: 2026-05-25
 **Revised**: 2026-05-27
-**Current Phase**: Phase 5 COMPLETE → Sub-agent namespace fix DONE → Ready for Phase 6
-**Status**: Sub-agent namespace matching bug fixed (Session 14). Registration gate and routing prefix aligned with real deepagents/LangGraph namespace format. 16/16 unit tests pass, 0 regressions. Integration validation pending.
-**Last Session**: 2026-05-27 (Session 14) -- Fix SubAgentTracker namespace matching bug
-**Latest Checkpoint**: `checkpoints/CP07_session14_subagent_namespace_fix.md`
+**Current Phase**: Phase 5 COMPLETE → Sub-agent namespace fix VALIDATED E2E → Ready for Phase 6
+**Status**: Sub-agent namespace fix validated end-to-end (Session 15). Deprecated default model (`claude-sonnet-4-20250514`) updated to `claude-sonnet-4-6`. All provider-backed sub-agent integration tests pass. Offline proxy gap documented as separate infra issue.
+**Last Session**: 2026-05-27 (Session 15) -- Integration validation + model migration
+**Latest Checkpoint**: `checkpoints/CP08_session15_integration_validation.md`
 
 ## Session Progress
 
@@ -228,6 +228,17 @@ When starting a new session:
 - 16/16 SubAgentTracker tests pass, 17/17 V3StatusBuilder golden tests pass, 0 regressions in 428 execute-deep-agent tests
 - Runner dist rebuilt with fix
 
+### Session 15 (2026-05-27)
+- **Integration validation COMPLETE** + **Default model migration** (`claude-sonnet-4-20250514` → `claude-sonnet-4-6`)
+- **Offline test** (`TestOffline_SubAgent_Delegation`): SubAgentTracker registration confirmed working. Sub-agent failed with "Anthropic API key not found" — mock LLM proxy not routed to sub-agents (offline infra gap, not namespace fix)
+- **First provider run** (deprecated model): `EXECUTION_FAILED` — deepagents `createSubagentTransformer` threw "Subagent researcher failed" + `StreamToolsHandler` "Controller is already closed". Root cause: deprecated `claude-sonnet-4-20250514` causing sub-agent LLM failures
+- **Model update**: Changed default in `setup.ts` from `claude-sonnet-4-20250514` to `claude-sonnet-4-6` (Anthropic's recommended replacement, hard deadline June 15, 2026)
+- **Rerun with `claude-sonnet-4-6`**: Both tests PASS
+  - `TestAgentExecution_SubAgent_Delegation/native`: 53.0s, 408 events, 2 messages, sub-agent COMPLETED with messages populated
+  - `TestAgentExecution_SubAgent_McpAccess/native`: 13.1s, sub-agent with MCP tool access COMPLETED
+- **Namespace fix fully validated**: `SubAgentExecution.messages` populated (not empty), `SubAgentStatus_SUB_AGENT_COMPLETED`, all `AssertSubAgentExecution` proto field assertions pass
+- **Deferred**: Offline mock proxy routing for sub-agents (separate infra improvement)
+
 ## Migration Phases Overview
 
 | Phase | Name | Sessions | Status |
@@ -265,9 +276,11 @@ When starting a new session:
 5. ~~**E2E validation with real sub-agent execution**~~ — DONE (Session 13): Tests correctly fail — SubAgentTracker namespace matching bug exposed
 6. ~~**Harden integration test assertions**~~ — DONE (Session 13): Soft-asserts converted to hard-asserts with retry, AssertSubAgentExecution helper added, offline test hardened
 7. ~~**FIX: SubAgentTracker namespace matching bug**~~ — DONE (Session 14, commit `46627caa6`): Registration gate + routing prefix aligned with real LangGraph namespace format
-8. **Integration validation**: Run `TestOffline_SubAgent_Delegation` and `TestAgentExecution_SubAgent_Delegation` with the fixed runner dist to confirm sub-agent executions are populated end-to-end
-9. **Phase 6 (future)**: Custom Stigmer Stream Transformers — replace ad-hoc artifact/writeback/usage logic with native v3 stream transformers
-10. **Collect golden run corpus** (optional): Run offline tests with `V2_EVENT_RECORD_DIR` for future regression comparison
+8. ~~**Integration validation**~~ — DONE (Session 15): SubAgentTracker namespace fix validated E2E. Default model migrated to `claude-sonnet-4-6`.
+9. **Fix offline mock proxy routing for sub-agents** (deferred): Sub-agents in offline tests don't inherit the mock LLM proxy. Separate infra improvement.
+10. **Broader model migration**: Update all remaining `claude-sonnet-4-20250514` references across test fixtures and context-tracker (June 15 hard deadline)
+11. **Phase 6 (future)**: Custom Stigmer Stream Transformers — replace ad-hoc artifact/writeback/usage logic with native v3 stream transformers
+12. **Collect golden run corpus** (optional): Run offline tests with `V2_EVENT_RECORD_DIR` for future regression comparison
 
 ## Critical Reminders (from Deep Research + Validation)
 
