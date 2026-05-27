@@ -177,4 +177,29 @@ test.describe("Workflow execution inspector (T05)", () => {
       await execution.cleanup();
     }
   });
+
+  test("resize handle is present and accessible", async ({
+    page,
+    stigmerClient,
+    testWorkflow,
+  }) => {
+    const execution = await createTestWorkflowExecution(
+      stigmerClient,
+      testWorkflow.id,
+    );
+
+    try {
+      await navigateToExecution(page, execution.id);
+      await assertNoErrorBoundary(page);
+      await waitForPhaseBadge(page, "Completed", { timeout: 30_000 });
+
+      const separator = page.getByRole("separator", {
+        name: "Resize inspector panel",
+      });
+      await expect(separator).toBeVisible({ timeout: 5_000 });
+      await expect(separator).toHaveAttribute("aria-orientation", "vertical");
+    } finally {
+      await execution.cleanup();
+    }
+  });
 });
