@@ -76,10 +76,10 @@ When starting a new session:
 
 **Created**: 2026-05-25
 **Revised**: 2026-05-27
-**Current Phase**: Phase 3 COMPLETE + E2E VALIDATED → Phase 5 next (Phase 4 absorbed)
-**Status**: v3 structured output pipeline fully validated E2E with real Anthropic LLM. All 6 CP04-failing tests now pass. Workflow propagation (agent_call → task structured) confirmed 19/19. Offline regression check: 0 new regressions (9 pre-existing failures unchanged). Stale EmptyFinalMessage test expectation fixed (Session 10). Ready for Phase 5.
-**Last Session**: 2026-05-27 (Session 10) -- Fix stale EmptyFinalMessage test assertion
-**Latest Checkpoint**: `checkpoints/CP04_v3_hypothesis_validation.md`
+**Current Phase**: Phase 5 COMPLETE → Phase 6 next (Custom Stigmer Stream Transformers)
+**Status**: All core v3 streaming migration work complete (Phases 0-5). Error diagnostics and schema propagation tests added in Session 12. Ready for Phase 6 or deferred items.
+**Last Session**: 2026-05-27 (Session 12) -- Error diagnostics + schema propagation tests
+**Latest Checkpoint**: `checkpoints/CP05_session12_schema_propagation_and_error_diagnostics.md`
 
 ## Session Progress
 
@@ -178,6 +178,31 @@ When starting a new session:
 - `go vet -tags integration` passes cleanly, no new `gofmt` issues
 - Commit: `92cd663b3` — `test(integration): update EmptyFinalMessage assertion for v3 native structured output`
 
+### Session 11 (2026-05-27)
+- **Phase 5 COMPLETE** — SubAgentTracker implemented and integrated
+- New `subagent-tracker.ts`: SubAgentTracker class with lifecycle management, namespace routing (`tools:<callId>` prefix matching), per-sub-agent message/tool accumulation, subject extraction
+- V3StatusBuilder integration: routes "task" tool_started to both parent (tool call on AI message) and tracker (SubAgentExecution creation); sub-agent-namespaced events go exclusively to tracker
+- streaming-v3.ts: `syncSubAgentExecutions()` before each persist, `cancelSubAgents()` on parent cancellation
+- Discovery: confirmed namespace format from deepagents source — sub-agent events use `tools:<taskCallId>` as first namespace segment, unique per invocation
+- 14 new unit tests covering lifecycle, namespace routing, multiple concurrent sub-agents, parent timeline integrity, edge cases
+- 86/86 Phase 5 relevant tests pass, 0 regressions in existing 426 execute-deep-agent tests (5 pre-existing index.test.ts failures unchanged)
+- SDK's `SubAgentSection.tsx` and `MessageThread.buildThreadItems()` already handle this data — no SDK changes needed
+- Commit: `9a43b0e9b` — `feat(backend/runner): add sub-agent execution tracking to v3 streaming pipeline`
+
+### Session 12 (2026-05-27)
+- **Cursor SDK error diagnostics + poisoned-handle recovery** (`4346bf60e`)
+  - New `error-classifier.ts`: categorizes SDK errors (auth, rate-limit, network, agent-stale, model, unknown) with retryable flag
+  - New `rejection-capture.ts`: captures ConnectError from process unhandledRejection, correlates to active execution via AsyncLocalStorage
+  - Poisoned-handle recovery: when resumed agent handle fails with network/agent-stale, disposes and retries with fresh agent (one attempt)
+  - Three error sources synthesized in priority: SDK result > stream ERROR status > captured ConnectError
+- **Structured output schema propagation tests** (`89a3340ac`)
+  - 7 call-agent contract tests (schema → executionConfig.structuredOutputSchema propagation)
+  - 6 CallAgentTaskBuilder tests (schema preservation through expression resolution pipeline)
+  - Golden test #26 (daily-notification-plan pattern with embedded env expressions)
+  - Go integration test for workflow structured output schema propagation
+  - Covers the daily-notification-plan production bug where schema was intermittently missing
+- 91/91 affected tests pass, 0 regressions
+
 ## Migration Phases Overview
 
 | Phase | Name | Sessions | Status |
@@ -187,7 +212,7 @@ When starting a new session:
 | 2 | V3StatusBuilder + Protocol Normalizer | 1 | **COMPLETE** (Session 7) |
 | 3 | v3 Default + Structured Output Pipeline | 1 | **COMPLETE** (Session 8) |
 | ~~4~~ | ~~Full Streaming Parity~~ | — | **ABSORBED** into Phase 3 (v3 is default for all runs) |
-| 5 | Subagent UX Upgrade | 1-2 | Pending |
+| 5 | Subagent UX Upgrade | 1 | **COMPLETE** (Session 11) |
 | 6 | Custom Stigmer Stream Transformers | Future | Pending |
 
 ## Deferred Items (pick up independently)
@@ -208,9 +233,14 @@ When starting a new session:
 - Collect `.v2-events.json` files as development reference for Phase 2
 
 ## Next Steps
-1. **Start Phase 5**: Consume `run.subagents` to create subagent cards in `AgentExecutionStatus` — expose delegation tree, per-subagent tool calls, and nested outputs
+1. ~~**Start Phase 5**~~ — DONE (Session 11, commit `9a43b0e9b`)
 2. ~~**Fix stale test expectation**~~ — DONE (Session 10, commit `92cd663b3`)
-3. **Collect golden run corpus** (optional): Run offline tests with `V2_EVENT_RECORD_DIR` for future regression comparison
+3. ~~**Error diagnostics + poisoned-handle recovery**~~ — DONE (Session 12, commit `4346bf60e`)
+4. ~~**Structured output schema propagation tests**~~ — DONE (Session 12, commit `89a3340ac`)
+5. **E2E validation with real sub-agent execution**: Run `TestAgentExecution_SubAgent_Delegation` with provider to confirm SubAgentExecution protos flow to the server and back
+6. **Harden integration test assertions**: Convert soft-asserts in `agent_execution_05_subagent_test.go` to hard-asserts now that the runner populates the field
+7. **Phase 6 (future)**: Custom Stigmer Stream Transformers — replace ad-hoc artifact/writeback/usage logic with native v3 stream transformers
+8. **Collect golden run corpus** (optional): Run offline tests with `V2_EVENT_RECORD_DIR` for future regression comparison
 
 ## Critical Reminders (from Deep Research + Validation)
 
