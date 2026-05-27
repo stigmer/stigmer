@@ -76,9 +76,9 @@ When starting a new session:
 
 **Created**: 2026-05-25
 **Revised**: 2026-05-27
-**Current Phase**: Cursor sub-agent `conversationSteps` extraction COMPLETE → Ready for Phase 6
-**Status**: Session 18 disproved the `agent_id` routing hypothesis via empirical validation. Cursor SDK returns sub-agent work as a blob in the task tool's completed result (not streaming events). Replaced dead `CursorSubAgentRouter` with `conversationSteps` extraction in `trackSubAgentExecution`. Sub-agent naming fixed to use `description` fallback.
-**Last Session**: 2026-05-27 (Session 18) -- Cursor sub-agent `agent_id` validation + `conversationSteps` extraction
+**Current Phase**: `conversationSteps` E2E validated → Ready for Phase 6
+**Status**: Session 19 validated the full Cursor sub-agent pipeline E2E. `TestAgentExecution_SubAgent_Delegation/cursor` PASSED (60.69s) — `SubAgentExecution.messages` populated via `conversationSteps` blob extraction. Harness-aware assertions added to handle name mismatch between native (blueprint name) and cursor (LLM-determined description).
+**Last Session**: 2026-05-27 (Session 19) -- E2E validation of `conversationSteps` extraction + harness-aware test assertions
 **Latest Checkpoint**: `checkpoints/CP08_session15_integration_validation.md`
 
 ## Session Progress
@@ -271,6 +271,16 @@ When starting a new session:
 - 12 new unit tests (naming fallback, conversationSteps extraction, edge cases), all 77 execute-cursor tests pass
 - **Wrong assumption documented**: WA03 — Session 17 assumed sub-agent events carry distinct `agent_id`; reality is Cursor SDK streams only parent events with sub-agent results as blobs
 
+### Session 19 (2026-05-27)
+- **E2E validation of `conversationSteps` extraction COMPLETE** — `TestAgentExecution_SubAgent_Delegation/cursor` PASSED (60.69s)
+- Full pipeline confirmed: Cursor SDK task event → `trackSubAgentExecution()` → `extractConversationSteps()` → proto persistence → gRPC query → `SubAgentExecution.messages` populated
+- **Name mismatch gap discovered and fixed**: Cursor SDK passes `kind: "unspecified"` so `extractSubagentName()` falls back to LLM's Task tool `description` arg — never the blueprint name. `FindSubAgent(result, "researcher")` would always return nil for cursor.
+- **Solution: Harness-aware assertions (Option A)**: Native path keeps exact name match (`FindSubAgent`), cursor path uses positional access (`FindFirstSubAgent`) + structural assertions
+- New `FindFirstSubAgent` harness helper for non-deterministic sub-agent name scenarios
+- Applied same pattern to `TestAgentExecution_SubAgent_McpAccess` (had identical name-matching gap with "tooluser")
+- Native test: `ANTHROPIC_API_KEY` unavailable from Planton (infrastructure issue); changes backward-compatible (verified by `go vet -tags integration`)
+- Runner dist rebuilt: fingerprint `c63d29c036d29861`
+
 ## Migration Phases Overview
 
 | Phase | Name | Sessions | Status |
@@ -313,7 +323,7 @@ When starting a new session:
 10. ~~**Broader model migration**~~ — DONE (Session 16): All `claude-sonnet-4-20250514` references migrated to `claude-sonnet-4-6` across both repos. Proto stubs regenerated. Tests validated.
 11. ~~**Cursor harness todo/sub-agent tracking**~~ — DONE (Session 17): `CursorSubAgentRouter`, scoped `TodoTracker`, two-layer todo suppression, `subagentType` parsing fix, event recorder
 12. ~~**Validate `agent_id` routing**~~ — DONE (Session 18): Hypothesis disproved. Replaced `CursorSubAgentRouter` with `conversationSteps` extraction from task tool completed result. Sub-agent naming fixed.
-13. **E2E validation of `conversationSteps` extraction** (next): Re-run `TestAgentExecution_SubAgent_Delegation/cursor` to confirm `SubAgentExecution.messages` populated via blob extraction
+13. ~~**E2E validation of `conversationSteps` extraction**~~ — DONE (Session 19): `TestAgentExecution_SubAgent_Delegation/cursor` PASSED (60.69s). Harness-aware assertions added for name mismatch. `FindFirstSubAgent` helper added.
 14. **Phase 6 (future)**: Custom Stigmer Stream Transformers — replace ad-hoc artifact/writeback/usage logic with native v3 stream transformers
 15. **Fix offline mock proxy routing for sub-agents** (deferred): Sub-agents in offline tests don't inherit the mock LLM proxy. Separate infra improvement.
 16. **Collect golden run corpus** (optional): Run offline tests with `V2_EVENT_RECORD_DIR` for future regression comparison

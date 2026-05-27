@@ -70,14 +70,25 @@ func TestAgentExecution_SubAgent_Delegation(t *testing.T) {
 			require.Greater(t, len(subAgents), 0,
 				"sub-agent executions must be populated after successful delegation")
 
-			harness.AssertSubAgents(t, result, "researcher")
-
-			sa := harness.FindSubAgent(result, "researcher")
-			require.NotNil(t, sa, "sub-agent 'researcher' must be present in execution status")
+			// Native harness preserves the blueprint sub-agent name via LangGraph
+			// namespace metadata. Cursor harness derives the name from the LLM's
+			// Task tool description arg (the SDK passes kind: "unspecified"), so
+			// exact name matching is only possible on native.
+			var sa *agentexecv1.SubAgentExecution
+			if h.Name == "native" {
+				harness.AssertSubAgents(t, result, "researcher")
+				sa = harness.FindSubAgent(result, "researcher")
+				require.NotNil(t, sa, "sub-agent 'researcher' must be present in execution status")
+			} else {
+				sa = harness.FindFirstSubAgent(result)
+				require.NotNil(t, sa, "at least one sub-agent execution must be present")
+				assert.NotEmpty(t, sa.GetName(),
+					"sub-agent name must be non-empty (derived from Task tool description)")
+			}
 
 			harness.AssertSubAgentExecution(t, sa)
 			assert.Equal(t, agentexecv1.SubAgentStatus_SUB_AGENT_COMPLETED, sa.GetStatus(),
-				"researcher sub-agent should be COMPLETED when parent execution is COMPLETED")
+				"sub-agent should be COMPLETED when parent execution is COMPLETED")
 			assert.Greater(t, len(sa.GetMessages()), 0,
 				"completed sub-agent should have at least one message from its internal conversation")
 
@@ -228,14 +239,21 @@ func TestAgentExecution_SubAgent_McpAccess(t *testing.T) {
 			require.Greater(t, len(subAgents), 0,
 				"sub-agent executions must be populated after successful delegation")
 
-			harness.AssertSubAgents(t, result, "tooluser")
-
-			sa := harness.FindSubAgent(result, "tooluser")
-			require.NotNil(t, sa, "sub-agent 'tooluser' must be present in execution status")
+			var sa *agentexecv1.SubAgentExecution
+			if h.Name == "native" {
+				harness.AssertSubAgents(t, result, "tooluser")
+				sa = harness.FindSubAgent(result, "tooluser")
+				require.NotNil(t, sa, "sub-agent 'tooluser' must be present in execution status")
+			} else {
+				sa = harness.FindFirstSubAgent(result)
+				require.NotNil(t, sa, "at least one sub-agent execution must be present")
+				assert.NotEmpty(t, sa.GetName(),
+					"sub-agent name must be non-empty (derived from Task tool description)")
+			}
 
 			harness.AssertSubAgentExecution(t, sa)
 			assert.Equal(t, agentexecv1.SubAgentStatus_SUB_AGENT_COMPLETED, sa.GetStatus(),
-				"tooluser sub-agent should be COMPLETED when parent execution is COMPLETED")
+				"sub-agent should be COMPLETED when parent execution is COMPLETED")
 
 			harness.LogSubAgentExecutions(t, result)
 		})

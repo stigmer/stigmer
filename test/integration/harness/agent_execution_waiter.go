@@ -328,6 +328,17 @@ func FindSubAgent(exec *agentexecv1.AgentExecution, name string) *agentexecv1.Su
 	return nil
 }
 
+// FindFirstSubAgent returns the first SubAgentExecution, or nil if none exist.
+// Use when the sub-agent name is non-deterministic (e.g., Cursor harness where
+// the name is derived from the LLM's Task tool description, not the blueprint name).
+func FindFirstSubAgent(exec *agentexecv1.AgentExecution) *agentexecv1.SubAgentExecution {
+	sas := exec.GetStatus().GetSubAgentExecutions()
+	if len(sas) == 0 {
+		return nil
+	}
+	return sas[0]
+}
+
 // HasSubAgentDelegation returns true if at least one SubAgentExecution
 // is present on the execution status.
 func HasSubAgentDelegation(exec *agentexecv1.AgentExecution) bool {
