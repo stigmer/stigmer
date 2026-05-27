@@ -76,10 +76,10 @@ When starting a new session:
 
 **Created**: 2026-05-25
 **Revised**: 2026-05-27
-**Current Phase**: Phase 5 COMPLETE → Sub-agent namespace fix needed before Phase 6
-**Status**: Sub-agent test hardening complete (Session 13). E2E validation exposed SubAgentTracker namespace matching bug — tracker fails to detect real sub-agent events from deepagents runtime. Tests correctly fail. Runner fix required before tests can pass.
-**Last Session**: 2026-05-27 (Session 13) -- Sub-agent test hardening + E2E pipeline gap discovery
-**Latest Checkpoint**: `checkpoints/CP06_session13_subagent_test_hardening.md`
+**Current Phase**: Phase 5 COMPLETE → Sub-agent namespace fix DONE → Ready for Phase 6
+**Status**: Sub-agent namespace matching bug fixed (Session 14). Registration gate and routing prefix aligned with real deepagents/LangGraph namespace format. 16/16 unit tests pass, 0 regressions. Integration validation pending.
+**Last Session**: 2026-05-27 (Session 14) -- Fix SubAgentTracker namespace matching bug
+**Latest Checkpoint**: `checkpoints/CP07_session14_subagent_namespace_fix.md`
 
 ## Session Progress
 
@@ -217,6 +217,17 @@ When starting a new session:
   - Sub-agent events flow through parent pipeline (visible as parent messages) instead of being routed to `SubAgentExecution.messages`
   - Investigation confirmed across 6+ runs, both native and cursor harnesses, 3 infrastructure restarts
 
+### Session 14 (2026-05-27)
+- **SubAgentTracker namespace matching bug FIXED** — commit `46627caa6`
+- Root cause confirmed via source analysis of deepagents `createSubagentTransformer` + LangGraph `pregel/algo.js` + `pregel/stream.js`:
+  - Task tool-started arrives at depth 1 (`["tools:<pregelUuid>"]`), not depth 0 (empty)
+  - Child events use the Pregel task UUID as first segment, not the provider tool call ID
+- Fix: `namespaceDepth()` utility, registration gate accepts depth <= 1, routing prefix derived from actual event namespace, `isSubAgentNamespace()` requires depth >= 2
+- Updated test fixtures to use realistic namespace patterns (depth-1 for tool-started, depth-2 for child events)
+- Added edge case tests: depth-0 backward compat, depth-1 isolation (parent tools stay in parent pipeline)
+- 16/16 SubAgentTracker tests pass, 17/17 V3StatusBuilder golden tests pass, 0 regressions in 428 execute-deep-agent tests
+- Runner dist rebuilt with fix
+
 ## Migration Phases Overview
 
 | Phase | Name | Sessions | Status |
@@ -253,9 +264,10 @@ When starting a new session:
 4. ~~**Structured output schema propagation tests**~~ — DONE (Session 12, commit `89a3340ac`)
 5. ~~**E2E validation with real sub-agent execution**~~ — DONE (Session 13): Tests correctly fail — SubAgentTracker namespace matching bug exposed
 6. ~~**Harden integration test assertions**~~ — DONE (Session 13): Soft-asserts converted to hard-asserts with retry, AssertSubAgentExecution helper added, offline test hardened
-7. **FIX: SubAgentTracker namespace matching bug**: The tracker's `isSubAgentNamespace()` silently fails to match real deepagents event namespaces. Sub-agent events flow through the parent pipeline instead of being routed to `SubAgentExecution.messages`. Needs: enable V3 event recording, capture real sub-agent namespace format, fix pattern matching in `subagent-tracker.ts`
-8. **Phase 6 (future)**: Custom Stigmer Stream Transformers — replace ad-hoc artifact/writeback/usage logic with native v3 stream transformers
-9. **Collect golden run corpus** (optional): Run offline tests with `V2_EVENT_RECORD_DIR` for future regression comparison
+7. ~~**FIX: SubAgentTracker namespace matching bug**~~ — DONE (Session 14, commit `46627caa6`): Registration gate + routing prefix aligned with real LangGraph namespace format
+8. **Integration validation**: Run `TestOffline_SubAgent_Delegation` and `TestAgentExecution_SubAgent_Delegation` with the fixed runner dist to confirm sub-agent executions are populated end-to-end
+9. **Phase 6 (future)**: Custom Stigmer Stream Transformers — replace ad-hoc artifact/writeback/usage logic with native v3 stream transformers
+10. **Collect golden run corpus** (optional): Run offline tests with `V2_EVENT_RECORD_DIR` for future regression comparison
 
 ## Critical Reminders (from Deep Research + Validation)
 
