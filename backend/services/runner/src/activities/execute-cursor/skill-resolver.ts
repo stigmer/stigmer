@@ -37,6 +37,13 @@ export async function resolveSkills(
   skillRefs: ApiResourceReference[],
   options: SkillResolverOptions,
 ): Promise<SkillMetadata[]> {
+  console.log(
+    `[resolveSkills] sessionId=${options.sessionId}, ` +
+    `primaryWorkspaceDir=${options.primaryWorkspaceDir ?? "(undefined)"}, ` +
+    `skillRefCount=${skillRefs.length}, ` +
+    `refs=[${skillRefs.map(r => `${r.org || "(default)"}/${r.slug}`).join(", ")}]`,
+  );
+
   if (skillRefs.length === 0) return [];
 
   const platformDir = getPlatformDir(options.sessionId);
@@ -44,6 +51,9 @@ export async function resolveSkills(
   await mkdir(skillsDir, { recursive: true });
 
   await ensureStigmerSymlink(options.primaryWorkspaceDir, platformDir);
+  console.log(
+    `[resolveSkills] symlink created: ${join(options.primaryWorkspaceDir, STIGMER_LOCAL_STATE_DIR)} -> ${platformDir}`,
+  );
 
   const results: SkillMetadata[] = [];
 
@@ -51,13 +61,22 @@ export async function resolveSkills(
     try {
       const skill = await client.getSkillByReference(ref);
       const meta = await writeSkill(skill, skillsDir, options.primaryWorkspaceDir);
-      if (meta) results.push(meta);
+      if (meta) {
+        results.push(meta);
+        console.log(`[resolveSkills] wrote skill: ${meta.name} -> ${meta.path}`);
+      } else {
+        console.warn(`[resolveSkills] skill ${ref.org}/${ref.slug} fetched but had no skillMd content`);
+      }
     } catch (err) {
       console.warn(
-        `Failed to resolve skill ${ref.org}/${ref.slug}: ${err instanceof Error ? err.message : err}`,
+        `[resolveSkills] failed to resolve skill ${ref.org}/${ref.slug}: ${err instanceof Error ? err.message : err}`,
       );
     }
   }
+
+  console.log(
+    `[resolveSkills] completed: ${results.length}/${skillRefs.length} skills resolved`,
+  );
 
   return results;
 }

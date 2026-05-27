@@ -584,8 +584,30 @@ func convertAgentCallTask(cfg *tasksv1.AgentCallTaskConfig) map[string]interface
 		if cfg.Config.Temperature != 0 {
 			config["temperature"] = cfg.Config.Temperature
 		}
+		if cfg.Config.MaxCostMicros > 0 {
+			config["max_cost_micros"] = cfg.Config.MaxCostMicros
+		}
 		if len(config) > 0 {
 			with["config"] = config
+		}
+	}
+
+	if cfg.Output != nil {
+		output := map[string]interface{}{}
+		if cfg.Output.Schema != nil {
+			output["schema"] = cfg.Output.Schema.AsMap()
+		}
+		if cfg.Output.OnInvalid != tasksv1.OnInvalidOutputPolicy_ON_INVALID_POLICY_UNSPECIFIED {
+			output["on_invalid"] = cfg.Output.OnInvalid.String()
+		}
+		if cfg.Output.MaxRetries > 0 {
+			output["max_retries"] = cfg.Output.MaxRetries
+		}
+		if cfg.Output.FallbackTask != "" {
+			output["fallback_task"] = cfg.Output.FallbackTask
+		}
+		if len(output) > 0 {
+			with["output"] = output
 		}
 	}
 
