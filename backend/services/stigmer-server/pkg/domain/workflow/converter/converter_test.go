@@ -130,6 +130,86 @@ func TestProtoToYAML_AgentCall(t *testing.T) {
 	}
 }
 
+func TestProtoToYAML_AgentCallWithOutputContract(t *testing.T) {
+	schema, _ := structpb.NewStruct(map[string]interface{}{
+		"type":     "object",
+		"required": []interface{}{"severity", "category"},
+		"properties": map[string]interface{}{
+			"severity": map[string]interface{}{
+				"type": "string",
+				"enum": []interface{}{"low", "medium", "high", "critical"},
+			},
+			"category": map[string]interface{}{
+				"type": "string",
+			},
+		},
+	})
+
+	config, _ := structpb.NewStruct(map[string]interface{}{
+		"agent":   "triage-agent",
+		"message": "Analyze: ${ $context.fetch.body }",
+		"output": map[string]interface{}{
+			"schema":        schema.AsMap(),
+			"on_invalid":    "ON_INVALID_RETRY",
+			"max_retries":   float64(3),
+			"fallback_task": "human_review",
+		},
+		"config": map[string]interface{}{
+			"model":           "claude-sonnet-4",
+			"timeout":         float64(300),
+			"max_cost_micros": float64(500000),
+		},
+		"harness": "HARNESS_CURSOR",
+	})
+
+	spec := &workflowv1.WorkflowSpec{
+		Document: &workflowv1.WorkflowDocument{
+			Dsl:       "1.0.0",
+			Namespace: "test",
+			Name:      "agent-output-test",
+			Version:   "0.1.0",
+		},
+		Tasks: []*workflowv1.WorkflowTask{
+			{
+				Name:       "triage",
+				Kind:       workflowv1.WorkflowTaskKind_agent_call,
+				TaskConfig: config,
+				Export:     &workflowv1.Export{As: "${ .structured }"},
+			},
+		},
+	}
+
+	conv := NewConverter()
+	yaml, err := conv.ProtoToYAML(spec)
+	if err != nil {
+		t.Fatalf("ProtoToYAML failed: %v", err)
+	}
+
+	checks := []struct {
+		substr string
+		desc   string
+	}{
+		{"call: agent", "agent call type"},
+		{"agent: triage-agent", "agent slug"},
+		{"output:", "output contract block"},
+		{"schema:", "output schema"},
+		{"severity", "schema property name"},
+		{"on_invalid:", "on_invalid policy"},
+		{"ON_INVALID_RETRY", "on_invalid enum value"},
+		{"max_retries:", "max retries"},
+		{"fallback_task: human_review", "fallback task"},
+		{"export:", "export block"},
+		{"harness: cursor", "cursor harness"},
+		{"max_cost_micros:", "per-task budget cap"},
+	}
+
+	for _, c := range checks {
+		if !strings.Contains(yaml, c.substr) {
+			t.Errorf("YAML should contain %s (%q), got:\n%s", c.desc, c.substr, yaml)
+		}
+	}
+}
+
 func TestProtoToYAML_FlowControl(t *testing.T) {
 	config, _ := structpb.NewStruct(map[string]interface{}{
 		"variables": map[string]interface{}{"x": "1"},
