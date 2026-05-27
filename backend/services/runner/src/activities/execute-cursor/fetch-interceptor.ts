@@ -82,6 +82,22 @@ function extractPath(url: string): string {
   }
 }
 
+/**
+ * Paths that Cursor SDK calls for analytics, telemetry, or feature flags.
+ * Failures on these endpoints are non-critical and should not pollute logs.
+ */
+const NON_CRITICAL_PATHS = [
+  "/aiserver.v1.AnalyticsService/BootstrapStatsig",
+  "/aiserver.v1.AnalyticsService/LogStatsigExposure",
+  "/aiserver.v1.AnalyticsService/LogStatsigEvent",
+  "/analytics/",
+  "/telemetry/",
+];
+
+function isNonCriticalPath(path: string): boolean {
+  return NON_CRITICAL_PATHS.some(p => path.includes(p));
+}
+
 const interceptedFetch: typeof fetch = async (input, init) => {
   if (!interceptorConfig) {
     return originalFetch(input, init);
@@ -107,9 +123,15 @@ const interceptedFetch: typeof fetch = async (input, init) => {
     const response = await originalFetch(rewrittenUrl, rewrittenInit);
 
     if (!response.ok) {
-      console.warn(
-        `[proxy-interceptor] Cursor request failed: ${init?.method ?? "GET"} ${path} → proxy status=${response.status}`,
-      );
+      if (isNonCriticalPath(path)) {
+        console.debug(
+          `[proxy-interceptor] Non-critical Cursor request failed (expected): ${init?.method ?? "GET"} ${path} → proxy status=${response.status}`,
+        );
+      } else {
+        console.warn(
+          `[proxy-interceptor] Cursor request failed: ${init?.method ?? "GET"} ${path} → proxy status=${response.status}`,
+        );
+      }
     }
 
     return response;

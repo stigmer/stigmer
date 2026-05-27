@@ -181,7 +181,13 @@ export const ExecutionInspector = memo(function ExecutionInspector({
           {effectiveTab === "summary" && <SummaryTab summary={detail.summary} />}
           {effectiveTab === "input" && <InputOutputTab data={detail.input} label="Input" />}
           {effectiveTab === "output" && <InputOutputTab data={detail.output} label="Output" />}
-          {effectiveTab === "error" && detail.error && <ErrorTab error={detail.error} />}
+          {effectiveTab === "error" && detail.error && (
+            <ErrorTab
+              error={detail.error}
+              childExecutionId={detail.agentCall?.childExecutionId}
+              onNavigateToAgentExecution={onNavigateToAgentExecution}
+            />
+          )}
           {effectiveTab === "retries" && detail.retries && <RetriesTab retries={detail.retries} />}
           {effectiveTab === "agent" && detail.agentCall && (
             <AgentCallTab

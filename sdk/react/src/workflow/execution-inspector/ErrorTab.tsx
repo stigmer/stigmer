@@ -7,6 +7,8 @@ import { formatDuration } from "../format-utils";
 
 export interface ErrorTabProps {
   readonly error: TaskDetailError;
+  readonly childExecutionId?: string;
+  readonly onNavigateToAgentExecution?: (executionId: string) => void;
   readonly className?: string;
 }
 
@@ -29,7 +31,12 @@ function getCategoryLabel(category: string): string {
   return CATEGORY_LABELS[category] ?? category.replace(/_/g, " ");
 }
 
-export const ErrorTab = memo(function ErrorTab({ error, className }: ErrorTabProps) {
+export const ErrorTab = memo(function ErrorTab({
+  error,
+  childExecutionId,
+  onNavigateToAgentExecution,
+  className,
+}: ErrorTabProps) {
   const [showDetail, setShowDetail] = useState(false);
   const toggleDetail = useCallback(() => setShowDetail(v => !v), []);
   const hasDetail = !!error.detail;
@@ -84,6 +91,20 @@ export const ErrorTab = memo(function ErrorTab({ error, className }: ErrorTabPro
         <dt className="text-muted-foreground">Retryable</dt>
         <dd className="text-foreground">{error.willRetry ? "Yes" : "No"}</dd>
       </dl>
+
+      {onNavigateToAgentExecution && childExecutionId && (
+        <button
+          type="button"
+          onClick={() => onNavigateToAgentExecution(childExecutionId)}
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5",
+            "text-xs font-medium transition-colors",
+            "bg-background text-foreground hover:bg-accent",
+          )}
+        >
+          View Agent Execution
+        </button>
+      )}
     </div>
   );
 });

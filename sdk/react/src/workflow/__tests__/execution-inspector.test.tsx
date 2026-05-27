@@ -25,7 +25,13 @@ vi.mock("../execution-inspector/InputOutputTab", () => ({
 }));
 
 vi.mock("../execution-inspector/ErrorTab", () => ({
-  ErrorTab: () => <div data-testid="error-tab-content">Error content</div>,
+  ErrorTab: ({ childExecutionId, onNavigateToAgentExecution }: { childExecutionId?: string; onNavigateToAgentExecution?: (id: string) => void }) => (
+    <div data-testid="error-tab-content">
+      Error content
+      {childExecutionId && <span data-testid="error-tab-child-exec-id">{childExecutionId}</span>}
+      {onNavigateToAgentExecution && <span data-testid="error-tab-has-nav">nav</span>}
+    </div>
+  ),
 }));
 
 vi.mock("../execution-inspector/RetriesTab", () => ({
@@ -283,5 +289,44 @@ describe("ExecutionInspector", () => {
     render(<ExecutionInspector {...defaultProps} selectedTaskName="my-task" />);
 
     expect(screen.getByRole("tablist", { name: "Task execution details" })).toBeTruthy();
+  });
+
+  it("passes childExecutionId and onNavigateToAgentExecution to ErrorTab for failed agent_call tasks", () => {
+    const onNavigate = vi.fn();
+    const detail = makeDetail({
+      status: "failed",
+      error: {
+        message: "Cursor run failed",
+        attemptNumber: 1,
+        maxAttempts: 1,
+        willRetry: false,
+        durationMs: 47000,
+        category: null,
+        detail: null,
+      },
+      agentCall: {
+        childExecutionId: "aex_test_123",
+        agentSlug: "notification-analyst",
+        agentPhase: "",
+        messagesCount: 0,
+        toolCallsCount: 0,
+        tokensConsumed: BigInt(0),
+        costMicros: BigInt(0),
+        error: "Cursor run failed",
+        currentToolName: "",
+      },
+    });
+    mockedUseExecutionTaskDetail.mockReturnValue({ detail });
+
+    render(
+      <ExecutionInspector
+        {...defaultProps}
+        selectedTaskName="analyze_player_data"
+        onNavigateToAgentExecution={onNavigate}
+      />,
+    );
+
+    expect(screen.getByTestId("error-tab-child-exec-id")?.textContent).toBe("aex_test_123");
+    expect(screen.getByTestId("error-tab-has-nav")).toBeTruthy();
   });
 });

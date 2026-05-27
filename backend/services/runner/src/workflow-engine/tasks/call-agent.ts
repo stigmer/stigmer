@@ -23,6 +23,7 @@ import type {
   AgentCallResult,
   CallAgentMetadata,
 } from "../types.js";
+import { AgentCallError } from "../types.js";
 import { resolveConfigExpressions } from "../resolve.js";
 import { validateAgentCallOutput } from "./call-agent-output.js";
 
@@ -164,12 +165,15 @@ export class CallAgentTaskBuilder implements TaskBuilder {
     try {
       result = await ctx.callAgent(config, env, metadata);
     } catch (err) {
+      const errorChildExecId = err instanceof AgentCallError
+        ? err.childExecutionId
+        : "";
       if (ctx.emitEvents) {
         await ctx.emitEvents([{
           type: "agent_call_completed",
           taskName: this.taskName,
           occurredAt: new Date().toISOString(),
-          childExecutionId: "",
+          childExecutionId: errorChildExecId,
           durationMs: Date.now() - callStartMs,
           tokensConsumed: 0,
           costMicros: 0,
