@@ -985,4 +985,64 @@ describe("Golden Execution — Structured Output Pipeline", () => {
     expect(state.data.summary).toBe("Garden Design Makeover DAU remains stable at 7,175");
     expect(state.data.anomaly_count).toBe(1);
   });
+
+  it("#26 agent-call-structured-output-propagation — daily-notification-plan pattern with embedded env expressions", async () => {
+    const model = loadWorkflowFromYaml(loadGolden("26-agent-call-structured-output-propagation.yaml"));
+    const state = createState();
+    state.env = { NOTIFICATION_DATE: "2026-05-26" };
+
+    const mockCallAgent = vi.fn(async () => ({
+      structured: {
+        executive_summary: "Garden Design Makeover DAU stable at 7,185",
+        dau: 7185,
+        dau_trend_pct: 8.7,
+        cohorts: [
+          { name: "D1 New", size: 9, retention_trend: "Critical", action_needed: true },
+          { name: "D7 Lapsed", size: 19000, retention_trend: "Below benchmark", action_needed: true },
+        ],
+        anomalies: [
+          { metric: "Acquisition", severity: "critical", description: "Only 9 installs" },
+        ],
+        data_quality_notes: "Data lags 3 days",
+      },
+      agent_execution_id: "aex-daily-plan-test",
+    }));
+
+    const mockCallFunction = vi.fn(async () => ({
+      structured: { sufficient: true },
+    }));
+
+    const ctx = makeCtx({ callAgent: mockCallAgent, callFunction: mockCallFunction });
+
+    await executeDoTasks(model.do, null, state, model, evaluateExpressionBatch, ctx);
+
+    expect(mockCallAgent).toHaveBeenCalledOnce();
+    const [config, env, metadata] = mockCallAgent.mock.calls[0];
+
+    // Schema must survive expression resolution
+    expect(config.output).toBeDefined();
+    expect(config.output.schema).toBeDefined();
+    expect(config.output.schema.required).toEqual(["executive_summary", "cohorts", "anomalies"]);
+    expect(config.output.schema.properties.cohorts.items.required)
+      .toEqual(["name", "size", "action_needed"]);
+    expect(config.output.schema.properties.anomalies.items.properties.severity.enum)
+      .toEqual(["warning", "critical"]);
+    expect(config.output.on_invalid).toBe("ON_INVALID_FAIL");
+
+    // Embedded expression must be resolved
+    expect(config.message).toContain("Date: 2026-05-26");
+    expect(config.message).not.toContain("${ $env");
+
+    // Config and harness preserved
+    expect(config.config?.model).toBe("claude-sonnet-4");
+    expect(config.config?.timeout).toBe(300);
+    expect(config.harness).toBe("HARNESS_CURSOR");
+    expect(metadata.taskName).toBe("analyze_player_data");
+
+    // Structured output exported to context and consumed downstream
+    expect(state.context.analyze_player_data.dau).toBe(7185);
+    expect(state.context.analyze_player_data.executive_summary).toContain("7,185");
+    expect(state.data.final_dau).toBe(7185);
+    expect(state.data.anomaly_count).toBe(1);
+  });
 });

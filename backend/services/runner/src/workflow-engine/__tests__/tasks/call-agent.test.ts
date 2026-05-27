@@ -437,6 +437,215 @@ describe("CallAgentTaskBuilder — enrichResultWithCost", () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// Output Schema Propagation — verifies that output.schema survives the
+// expression resolution pipeline and reaches ctx.callAgent intact.
+// This is the exact failure mode from the daily-notification-plan production
+// bug where structuredOutputSchema was intermittently missing.
+// ---------------------------------------------------------------------------
+
+describe("CallAgentTaskBuilder — output.schema propagation", () => {
+  beforeEach(() => {
+    mockCallAgent = vi.fn();
+  });
+
+  const cohortSchema = {
+    type: "object",
+    required: ["executive_summary", "cohorts", "anomalies"],
+    properties: {
+      executive_summary: { type: "string" },
+      dau: { type: "number" },
+      dau_trend_pct: { type: "number" },
+      cohorts: {
+        type: "array",
+        items: {
+          type: "object",
+          required: ["name", "size", "action_needed"],
+          properties: {
+            name: { type: "string" },
+            size: { type: "number" },
+            retention_trend: { type: "string" },
+            action_needed: { type: "boolean" },
+          },
+        },
+      },
+      anomalies: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            metric: { type: "string" },
+            description: { type: "string" },
+            severity: { type: "string", enum: ["warning", "critical"] },
+          },
+        },
+      },
+      data_quality_notes: { type: "string" },
+    },
+  };
+
+  it("passes output.schema to ctx.callAgent when present", async () => {
+    mockCallAgent.mockResolvedValue({ structured: { executive_summary: "ok", cohorts: [], anomalies: [] } });
+
+    const taskDef: CallAgentTaskDef = {
+      kind: "call:agent",
+      call: "agent",
+      with: {
+        agent: "notification-analyst",
+        message: "Generate the daily cohort analysis report.",
+        output: { schema: cohortSchema, on_invalid: "ON_INVALID_FAIL" },
+        config: { model: "claude-sonnet-4", timeout: 300 },
+        harness: "HARNESS_CURSOR",
+      },
+    };
+
+    const builder = new CallAgentTaskBuilder("analyze_player_data", taskDef);
+    const executor = builder.build();
+    await executor({}, createState(), makeCtx());
+
+    const [config] = mockCallAgent.mock.calls[0];
+    expect(config.output).toBeDefined();
+    expect(config.output.schema).toBeDefined();
+    expect(config.output.schema.required).toEqual(["executive_summary", "cohorts", "anomalies"]);
+    expect(config.output.schema.properties.cohorts.type).toBe("array");
+    expect(config.output.on_invalid).toBe("ON_INVALID_FAIL");
+  });
+
+  it("preserves output.schema after embedded expression resolution in message", async () => {
+    mockCallAgent.mockResolvedValue({ structured: { executive_summary: "ok", cohorts: [], anomalies: [] } });
+
+    const taskDef: CallAgentTaskDef = {
+      kind: "call:agent",
+      call: "agent",
+      with: {
+        agent: "notification-analyst",
+        message:
+          "Generate the daily cohort analysis report for Garden Design Makeover.\n" +
+          "Date: ${ $env.NOTIFICATION_DATE }\n" +
+          "Data source: decor schema.",
+        output: { schema: cohortSchema, on_invalid: "ON_INVALID_FAIL" },
+        config: { model: "claude-sonnet-4" },
+      },
+    };
+
+    const builder = new CallAgentTaskBuilder("analyze_player_data", taskDef);
+    const executor = builder.build();
+    const state = createState();
+    state.env = { NOTIFICATION_DATE: "2026-05-26" };
+
+    await executor({}, state, makeCtx());
+
+    const [config] = mockCallAgent.mock.calls[0];
+    expect(config.message).toContain("Date: 2026-05-26");
+    expect(config.message).not.toContain("${ $env");
+    expect(config.output).toBeDefined();
+    expect(config.output.schema).toBeDefined();
+    expect(config.output.schema.required).toEqual(["executive_summary", "cohorts", "anomalies"]);
+  });
+
+  it("preserves output.schema when message has strict expression references", async () => {
+    mockCallAgent.mockResolvedValue({ structured: { executive_summary: "ok", cohorts: [], anomalies: [] } });
+
+    const taskDef: CallAgentTaskDef = {
+      kind: "call:agent",
+      call: "agent",
+      with: {
+        agent: "analyst",
+        message: "${ $context.previous_task.report }",
+        output: { schema: cohortSchema, on_invalid: "ON_INVALID_FAIL" },
+      },
+    };
+
+    const builder = new CallAgentTaskBuilder("analyze", taskDef);
+    const executor = builder.build();
+    const state = createState();
+    state.context = { previous_task: { report: "Analyze this data set carefully." } };
+
+    await executor({}, state, makeCtx());
+
+    const [config] = mockCallAgent.mock.calls[0];
+    expect(config.message).toBe("Analyze this data set carefully.");
+    expect(config.output).toBeDefined();
+    expect(config.output.schema.required).toEqual(["executive_summary", "cohorts", "anomalies"]);
+  });
+
+  it("preserves output.schema when env var in message resolves to empty", async () => {
+    mockCallAgent.mockResolvedValue({ structured: { executive_summary: "ok", cohorts: [], anomalies: [] } });
+
+    const taskDef: CallAgentTaskDef = {
+      kind: "call:agent",
+      call: "agent",
+      with: {
+        agent: "analyst",
+        message: "Date: ${ $env.OPTIONAL_DATE }\nProceed with analysis.",
+        output: { schema: cohortSchema, on_invalid: "ON_INVALID_FAIL" },
+      },
+    };
+
+    const builder = new CallAgentTaskBuilder("analyze", taskDef);
+    const executor = builder.build();
+    const state = createState();
+    state.env = {};
+
+    await executor({}, state, makeCtx());
+
+    const [config] = mockCallAgent.mock.calls[0];
+    expect(config.message).toBe("Date: \nProceed with analysis.");
+    expect(config.output).toBeDefined();
+    expect(config.output.schema.required).toEqual(["executive_summary", "cohorts", "anomalies"]);
+  });
+
+  it("preserves output.schema alongside config, harness, and env fields", async () => {
+    mockCallAgent.mockResolvedValue({ structured: { executive_summary: "ok", cohorts: [], anomalies: [] } });
+
+    const taskDef: CallAgentTaskDef = {
+      kind: "call:agent",
+      call: "agent",
+      with: {
+        agent: "notification-analyst",
+        message: "Analyze data.",
+        env: { POSTGRES_CONNECTION_URL: "${.secrets.PG_URL}" },
+        config: { model: "claude-sonnet-4", timeout: 300 },
+        output: { schema: cohortSchema, on_invalid: "ON_INVALID_FAIL" },
+        harness: "HARNESS_CURSOR",
+      },
+    };
+
+    const builder = new CallAgentTaskBuilder("analyze_player_data", taskDef);
+    const executor = builder.build();
+    await executor({}, createState(), makeCtx());
+
+    const [config] = mockCallAgent.mock.calls[0];
+    expect(config.agent).toBe("notification-analyst");
+    expect(config.config?.model).toBe("claude-sonnet-4");
+    expect(config.env?.POSTGRES_CONNECTION_URL).toBe("${.secrets.PG_URL}");
+    expect(config.harness).toBe("HARNESS_CURSOR");
+    expect(config.output).toBeDefined();
+    expect(config.output.schema.properties.anomalies.items.properties.severity.enum)
+      .toEqual(["warning", "critical"]);
+  });
+
+  it("passes undefined output when no output.schema is configured", async () => {
+    mockCallAgent.mockResolvedValue({ final_text: "done" });
+
+    const taskDef: CallAgentTaskDef = {
+      kind: "call:agent",
+      call: "agent",
+      with: {
+        agent: "simple-agent",
+        message: "Do something",
+      },
+    };
+
+    const builder = new CallAgentTaskBuilder("simpleTask", taskDef);
+    const executor = builder.build();
+    await executor({}, createState(), makeCtx());
+
+    const [config] = mockCallAgent.mock.calls[0];
+    expect(config.output).toBeUndefined();
+  });
+});
+
 describe("CallAgentTaskBuilder — ON_INVALID_FAIL", () => {
   beforeEach(() => {
     mockCallAgent = vi.fn();

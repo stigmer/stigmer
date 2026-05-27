@@ -1,0 +1,102 @@
+# Golden Test 26: Agent Call — Output Schema Propagation
+#
+# Mirrors the daily-notification-plan workflow pattern:
+# - Agent call with output.schema (cohort analysis schema)
+# - Embedded expression interpolation in message (${ $env.* })
+# - Cursor harness with model config
+# - Export of structured result to workflow context
+# - Downstream task consuming structured context
+#
+# This test targets the exact production failure mode where
+# output.schema was intermittently missing from the agent execution,
+# causing the structured output extraction pipeline to be skipped entirely.
+
+document:
+  dsl: '1.0.0'
+  namespace: tt-demo
+  name: structured-output-propagation
+  version: '1.0.0'
+
+do:
+  - analyze_player_data:
+      call: agent
+      with:
+        agent: "notification-analyst"
+        message: >-
+          Generate the daily cohort analysis report for Garden Design Makeover.
+
+          Date: ${ $env.NOTIFICATION_DATE }
+
+          Data source: decor schema in the analytics database.
+          Analyze DAU, cohort breakdown, retention, and anomalies.
+        config:
+          model: "claude-sonnet-4"
+          timeout: 300
+        output:
+          schema:
+            type: object
+            required:
+              - executive_summary
+              - cohorts
+              - anomalies
+            properties:
+              executive_summary:
+                type: string
+              dau:
+                type: number
+              dau_trend_pct:
+                type: number
+              cohorts:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - name
+                    - size
+                    - action_needed
+                  properties:
+                    name:
+                      type: string
+                    size:
+                      type: number
+                    retention_trend:
+                      type: string
+                    action_needed:
+                      type: boolean
+              anomalies:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    metric:
+                      type: string
+                    description:
+                      type: string
+                    severity:
+                      type: string
+                      enum:
+                        - warning
+                        - critical
+              data_quality_notes:
+                type: string
+          on_invalid: ON_INVALID_FAIL
+        harness: cursor
+      export:
+        as: "${ .structured }"
+
+  - check_data_quality:
+      call: llm
+      with:
+        model: "claude-haiku-4.5"
+        prompt: >-
+          DAU is ${ $context.analyze_player_data.dau }.
+          Summary: ${ $context.analyze_player_data.executive_summary }.
+          Is the data sufficient?
+      export:
+        as: "${ .structured }"
+
+  - compile_result:
+      set:
+        final_dau: "${ $context.analyze_player_data.dau }"
+        final_summary: "${ $context.analyze_player_data.executive_summary }"
+        anomaly_count: "${ $context.analyze_player_data.anomalies | length }"
