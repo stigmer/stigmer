@@ -243,6 +243,16 @@ function ComplexEntry({
 
 const INLINE_SCALAR_ARRAY_LIMIT = 5;
 
+/**
+ * Keys checked (in priority order) to extract a human-readable label
+ * from an object array item. The first key found with a scalar value
+ * is used as the item subtitle.
+ */
+const ITEM_LABEL_KEYS = ["name", "title", "label", "id"] as const;
+
+/** Above this count, individual items start collapsed to avoid viewport flood. */
+const AUTO_COLLAPSE_ITEM_THRESHOLD = 3;
+
 function ArrayEntry({
   label,
   items,
@@ -280,12 +290,138 @@ function ArrayEntry({
     );
   }
 
+  const allObjects = items.every(
+    (item) => typeof item === "object" && item !== null && !Array.isArray(item),
+  );
+
+  if (allObjects && depth < MAX_RECURSIVE_DEPTH) {
+    return (
+      <ObjectArraySection
+        label={label}
+        items={items as Record<string, unknown>[]}
+        depth={depth}
+      />
+    );
+  }
+
   return (
     <CollapsibleJsonBlock
       label={`${humanizeArgKey(label)} (${items.length} items)`}
       content={formatJson(items)}
     />
   );
+}
+
+// ---------------------------------------------------------------------------
+// Object array section (structured rendering for arrays of objects)
+// ---------------------------------------------------------------------------
+
+function ObjectArraySection({
+  label,
+  items,
+  depth,
+}: {
+  readonly label: string;
+  readonly items: readonly Record<string, unknown>[];
+  readonly depth: number;
+}) {
+  const [expanded, setExpanded] = useState(true);
+  const defaultItemExpanded = items.length <= AUTO_COLLAPSE_ITEM_THRESHOLD;
+
+  return (
+    <div className="space-y-1.5">
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="flex items-center gap-1 font-medium text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <ChevronIcon expanded={expanded} />
+        {humanizeArgKey(label)}{" "}
+        <span className="font-normal text-muted-foreground-subtle">
+          ({items.length} {items.length === 1 ? "item" : "items"})
+        </span>
+      </button>
+      {expanded && (
+        <div className="space-y-1.5 border-l-2 border-border pl-3">
+          {items.map((item, index) => (
+            <ObjectArrayItem
+              key={index}
+              item={item}
+              index={index}
+              depth={depth}
+              defaultExpanded={defaultItemExpanded}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ObjectArrayItem({
+  item,
+  index,
+  depth,
+  defaultExpanded,
+}: {
+  readonly item: Record<string, unknown>;
+  readonly index: number;
+  readonly depth: number;
+  readonly defaultExpanded: boolean;
+}) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
+  const entries = Object.entries(item);
+  const subtitle = extractItemLabel(item);
+
+  const itemLabel = subtitle
+    ? `Item ${index + 1} \u2014 ${subtitle}`
+    : `Item ${index + 1}`;
+
+  if (entries.length === 0) {
+    return (
+      <div className="text-muted-foreground">
+        {itemLabel}{" "}
+        <span className="font-normal text-muted-foreground-subtle">
+          (empty)
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-1">
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="flex items-center gap-1 text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <ChevronIcon expanded={expanded} />
+        <span className="font-medium">{`Item ${index + 1}`}</span>
+        {subtitle && (
+          <span className="font-normal text-muted-foreground-subtle">
+            &mdash; {subtitle}
+          </span>
+        )}
+      </button>
+      {expanded && (
+        <div className="border-l-2 border-border pl-3">
+          <ObjectEntries entries={entries} depth={depth + 1} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Scans an object for a well-known label key and returns its scalar
+ * value as a string, or `null` if none found.
+ */
+function extractItemLabel(item: Record<string, unknown>): string | null {
+  for (const key of ITEM_LABEL_KEYS) {
+    const value = item[key];
+    if (isScalar(value)) return String(value);
+  }
+  return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -308,28 +444,38 @@ function NestedSection({
         onClick={() => setExpanded((v) => !v)}
         className="flex items-center gap-1 font-medium text-muted-foreground transition-colors hover:text-foreground"
       >
-        <svg
-          width="8"
-          height="8"
-          viewBox="0 0 8 8"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className={cn(
-            "shrink-0 transition-transform duration-150",
-            expanded && "rotate-90",
-          )}
-          aria-hidden="true"
-        >
-          <path d="M2 1L6 4L2 7" />
-        </svg>
+        <ChevronIcon expanded={expanded} />
         {label}
       </button>
       {expanded && (
         <div className="border-l-2 border-border pl-3">{children}</div>
       )}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Shared chevron icon for collapsible sections
+// ---------------------------------------------------------------------------
+
+function ChevronIcon({ expanded }: { readonly expanded: boolean }) {
+  return (
+    <svg
+      width="8"
+      height="8"
+      viewBox="0 0 8 8"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={cn(
+        "shrink-0 transition-transform duration-150",
+        expanded && "rotate-90",
+      )}
+      aria-hidden="true"
+    >
+      <path d="M2 1L6 4L2 7" />
+    </svg>
   );
 }
