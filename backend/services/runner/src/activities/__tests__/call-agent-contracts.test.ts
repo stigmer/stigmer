@@ -330,4 +330,128 @@ describe("CallAgent server contract compliance", () => {
       expect(allCapturedExecutions).toHaveLength(1);
     });
   });
+
+  // -----------------------------------------------------------------------
+  // Output schema propagation — verifies that output.schema from the
+  // workflow task config is set as executionConfig.structuredOutputSchema
+  // on the created AgentExecution. This is the exact failure mode from
+  // the daily-notification-plan production bug.
+  // -----------------------------------------------------------------------
+
+  describe("output.schema → executionConfig.structuredOutputSchema propagation", () => {
+    const cohortSchema = {
+      type: "object",
+      required: ["executive_summary", "cohorts", "anomalies"],
+      properties: {
+        executive_summary: { type: "string" },
+        dau: { type: "number" },
+        cohorts: {
+          type: "array",
+          items: {
+            type: "object",
+            required: ["name", "size", "action_needed"],
+            properties: {
+              name: { type: "string" },
+              size: { type: "number" },
+              action_needed: { type: "boolean" },
+            },
+          },
+        },
+        anomalies: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              metric: { type: "string" },
+              severity: { type: "string", enum: ["warning", "critical"] },
+            },
+          },
+        },
+        data_quality_notes: { type: "string" },
+      },
+    };
+
+    it("sets structuredOutputSchema when output.schema is present", async () => {
+      await exerciseCallAgent({
+        output: { schema: cohortSchema, on_invalid: "ON_INVALID_FAIL" },
+        config: { model: "claude-sonnet-4" },
+      });
+      const execConfig = capturedCreateExecution.spec.executionConfig;
+      expect(execConfig).toBeDefined();
+      expect(execConfig.structuredOutputSchema).toBeDefined();
+      expect(execConfig.structuredOutputSchema.required).toEqual(
+        ["executive_summary", "cohorts", "anomalies"],
+      );
+      expect(execConfig.structuredOutputSchema.properties.cohorts.type).toBe("array");
+    });
+
+    it("sets both modelName and structuredOutputSchema when both are present", async () => {
+      await exerciseCallAgent({
+        output: { schema: cohortSchema },
+        config: { model: "claude-sonnet-4" },
+      });
+      const execConfig = capturedCreateExecution.spec.executionConfig;
+      expect(execConfig.modelName).toBe("claude-sonnet-4");
+      expect(execConfig.structuredOutputSchema).toBeDefined();
+      expect(execConfig.structuredOutputSchema.required).toContain("executive_summary");
+    });
+
+    it("preserves nested array/object schema structure through serialization", async () => {
+      await exerciseCallAgent({
+        output: { schema: cohortSchema },
+      });
+      const schema = capturedCreateExecution.spec.executionConfig.structuredOutputSchema;
+      expect(schema.properties.cohorts.items.required).toEqual(["name", "size", "action_needed"]);
+      expect(schema.properties.anomalies.items.properties.severity.enum)
+        .toEqual(["warning", "critical"]);
+    });
+
+    it("does not set structuredOutputSchema when output is absent", async () => {
+      await exerciseCallAgent({ config: { model: "claude-sonnet-4" } });
+      const execConfig = capturedCreateExecution.spec.executionConfig;
+      expect(execConfig).toBeDefined();
+      expect(execConfig.modelName).toBe("claude-sonnet-4");
+      expect(execConfig.structuredOutputSchema).toBeUndefined();
+    });
+
+    it("does not set executionConfig at all when neither model nor schema is present", async () => {
+      await exerciseCallAgent({});
+      expect(capturedCreateExecution.spec.executionConfig).toBeUndefined();
+    });
+
+    it("sets structuredOutputSchema even when model is absent", async () => {
+      await exerciseCallAgent({
+        output: { schema: { type: "object", properties: { summary: { type: "string" } } } },
+      });
+      const execConfig = capturedCreateExecution.spec.executionConfig;
+      expect(execConfig).toBeDefined();
+      expect(execConfig.structuredOutputSchema).toBeDefined();
+      expect(execConfig.structuredOutputSchema.properties.summary.type).toBe("string");
+    });
+
+    it("daily-notification-plan pattern: full schema with embedded expressions in message", async () => {
+      await exerciseCallAgent(
+        {
+          output: { schema: cohortSchema, on_invalid: "ON_INVALID_FAIL" },
+          config: { model: "claude-sonnet-4", timeout: 300 },
+          harness: "HARNESS_CURSOR",
+          __taskName: "analyze_player_data",
+        } as any,
+        {
+          __stigmer_execution_id: "wex_01test",
+          __stigmer_org_id: "tt-demo",
+        },
+      );
+
+      const exec = capturedCreateExecution;
+      expect(exec.spec.executionConfig).toBeDefined();
+      expect(exec.spec.executionConfig.modelName).toBe("claude-sonnet-4");
+      expect(exec.spec.executionConfig.structuredOutputSchema).toBeDefined();
+      expect(exec.spec.executionConfig.structuredOutputSchema.required)
+        .toEqual(["executive_summary", "cohorts", "anomalies"]);
+      expect(exec.metadata.name).toMatch(
+        /^aex-wf-wex_01test-analyze_player_data-[0-9a-f]{8}$/,
+      );
+    });
+  });
 });
