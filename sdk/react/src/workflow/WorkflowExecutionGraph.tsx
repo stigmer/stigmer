@@ -13,7 +13,7 @@ import {
   useReactFlow,
   ReactFlowProvider,
 } from "@xyflow/react";
-import type { Node, Viewport } from "@xyflow/react";
+import type { Node, NodeChange, Viewport } from "@xyflow/react";
 import { cn } from "@stigmer/theme";
 import { WorkflowNode } from "./WorkflowNode";
 import { CanvasTransitionEdge } from "./CanvasTransitionEdge";
@@ -63,6 +63,14 @@ export interface WorkflowExecutionGraphProps {
    * unoccluded area. Defaults to 0.
    */
   readonly panelOffsetPx?: number;
+  /**
+   * Whether task nodes can be dragged to rearrange the layout.
+   * Useful for presentations and demos where the auto-layout is too
+   * dense. Drag positions are ephemeral (in-memory only) and reset
+   * when the underlying graph structure changes.
+   * @default false
+   */
+  readonly nodesDraggable?: boolean;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -117,6 +125,7 @@ function WorkflowExecutionGraphInner({
   taskStates: externalTaskStates,
   onAutoSelectTask,
   panelOffsetPx = 0,
+  nodesDraggable: draggable = false,
   className,
 }: WorkflowExecutionGraphProps) {
   const graphState = useWorkflowExecutionGraph({
@@ -124,6 +133,7 @@ function WorkflowExecutionGraphInner({
     execution: externalExecution,
     taskStates: externalTaskStates,
     onAutoSelectTask,
+    nodesDraggable: draggable,
   });
   const {
     nodes,
@@ -140,6 +150,39 @@ function WorkflowExecutionGraphInner({
   const { fitView } = useReactFlow();
   const didFitGuardRef = useRef(false);
   const [didInitialFit, setDidInitialFit] = useState(false);
+
+  // ── Ephemeral drag positions ───────────────────────────────────────
+  // Resets when the execution changes (navigating to a different run).
+  const [dragPositions, setDragPositions] = useState<Record<string, { x: number; y: number }>>({});
+
+  useEffect(() => {
+    setDragPositions({});
+  }, [executionId]);
+
+  const hasDragOverrides = draggable && Object.keys(dragPositions).length > 0;
+
+  const handleNodesChange = useCallback(
+    (changes: NodeChange[]) => {
+      if (!draggable) return;
+      const posChanges = changes.filter(
+        (c): c is NodeChange & { type: "position"; position: { x: number; y: number } } =>
+          c.type === "position" && "position" in c && c.position != null,
+      );
+      if (posChanges.length === 0) return;
+      setDragPositions((prev) => {
+        const next = { ...prev };
+        for (const c of posChanges) {
+          next[c.id] = c.position;
+        }
+        return next;
+      });
+    },
+    [draggable],
+  );
+
+  const handleResetLayout = useCallback(() => {
+    setDragPositions({});
+  }, []);
 
   // Fit view on first render with nodes
   useEffect(() => {
@@ -198,14 +241,19 @@ function WorkflowExecutionGraphInner({
     [handleMoveStart],
   );
 
-  // Mark selected node
+  // Mark selected node + apply drag position overrides
   const nodesWithSelection = useMemo(
     () =>
-      nodes.map((n) => ({
-        ...n,
-        selected: (n.data as CanvasTaskNodeData).taskName === selectedTaskName,
-      })),
-    [nodes, selectedTaskName],
+      nodes.map((n) => {
+        const selected = (n.data as CanvasTaskNodeData).taskName === selectedTaskName;
+        const pos = dragPositions[n.id];
+        return pos
+          ? { ...n, selected, position: pos }
+          : selected !== n.selected
+            ? { ...n, selected }
+            : n;
+      }),
+    [nodes, selectedTaskName, dragPositions],
   );
 
   if (isLoading) {
@@ -251,6 +299,20 @@ function WorkflowExecutionGraphInner({
           />
         )}
 
+        {/* Reset layout pill — shown when nodes have been manually repositioned */}
+        {hasDragOverrides && (
+          <button
+            type="button"
+            onClick={handleResetLayout}
+            className={cn(
+              "absolute left-3 z-50 rounded-full border border-[var(--stgm-border,#e5e5e5)] bg-[var(--stgm-background,#fff)] px-3 py-1 text-xs text-[var(--stgm-foreground,#1a1a2e)] shadow-sm transition-colors hover:bg-[var(--stgm-muted,#f5f5f5)]",
+              versionMismatch ? "top-12" : "top-3",
+            )}
+          >
+            Reset layout
+          </button>
+        )}
+
         <ReactFlow
           nodes={nodesWithSelection}
           edges={edges}
@@ -260,11 +322,12 @@ function WorkflowExecutionGraphInner({
           onNodeClick={handleNodeClick}
           onPaneClick={handlePaneClick}
           onMoveStart={onMoveStart}
-          nodesDraggable={false}
+          onNodesChange={draggable ? handleNodesChange : undefined}
+          nodesDraggable={draggable}
           nodesConnectable={false}
           nodesFocusable={true}
           elementsSelectable={true}
-          panOnDrag={true}
+          panOnDrag={draggable ? [1, 2] : true}
           zoomOnScroll={true}
           fitView={false}
           minZoom={0.2}

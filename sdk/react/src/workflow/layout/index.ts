@@ -38,6 +38,7 @@ export type { UseElkLayoutEngineOptions } from "./useElkLayoutEngine";
 // ---------------------------------------------------------------------------
 
 export { applyDagreLayout } from "./apply-dagre-layout";
+export type { DagreLayoutConfig } from "../canvas-constants";
 
 // ---------------------------------------------------------------------------
 // Registry-aware node dimensions (canonical adapter from visual registry)

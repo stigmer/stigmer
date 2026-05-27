@@ -1,6 +1,8 @@
 import { describe, test, expect } from "vitest";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { applyDagreLayout } from "../layout";
+import type { DagreLayoutConfig } from "../canvas-constants";
+import { DAGRE_CONFIG, EXECUTION_DAGRE_CONFIG } from "../canvas-constants";
 import type { WorkflowGraphModel } from "../workflow-graph-model";
 import { START_NODE_ID, END_NODE_ID } from "../workflow-graph-model";
 import type { NodeExecutionState, CanvasTaskNodeData } from "../workflow-graph-conversions";
@@ -193,5 +195,114 @@ spec:
       (n) => (n.data as CanvasTaskNodeData).isSentinel && (n.data as CanvasTaskNodeData).taskName === "Start",
     );
     expect((startNode!.data as CanvasTaskNodeData).executionState).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// applyDagreLayout — custom config parameter
+// ---------------------------------------------------------------------------
+
+describe("applyDagreLayout with custom config", () => {
+  const graph: WorkflowGraphModel = {
+    document: { name: "test", dsl: "1.0.0", namespace: "default", version: "0.0.1" },
+    nodes: [
+      { id: START_NODE_ID, taskName: "Start", kind: WorkflowTaskKind.workflow_task_kind_unspecified, category: "start", config: {}, position: { x: 0, y: 0 } },
+      { id: "a", taskName: "a", kind: WorkflowTaskKind.agent_call, category: "ai", config: {}, position: { x: 0, y: 0 } },
+      { id: "b", taskName: "b", kind: WorkflowTaskKind.http_call, category: "invocation", config: {}, position: { x: 0, y: 0 } },
+      { id: END_NODE_ID, taskName: "End", kind: WorkflowTaskKind.workflow_task_kind_unspecified, category: "end", config: {}, position: { x: 0, y: 0 } },
+    ],
+    edges: [
+      { id: "e1", source: START_NODE_ID, target: "a" },
+      { id: "e2", source: START_NODE_ID, target: "b" },
+      { id: "e3", source: "a", target: END_NODE_ID },
+      { id: "e4", source: "b", target: END_NODE_ID },
+    ],
+  };
+
+  test("uses default DAGRE_CONFIG when no config is provided", () => {
+    const withDefault = applyDagreLayout(graph);
+    const withExplicit = applyDagreLayout(graph, DAGRE_CONFIG);
+    for (let i = 0; i < withDefault.nodes.length; i++) {
+      expect(withDefault.nodes[i].position).toEqual(withExplicit.nodes[i].position);
+    }
+  });
+
+  test("EXECUTION_DAGRE_CONFIG produces more spread-out positions", () => {
+    const standard = applyDagreLayout(graph, DAGRE_CONFIG);
+    const execution = applyDagreLayout(graph, EXECUTION_DAGRE_CONFIG);
+
+    const standardA = standard.nodes.find((n) => n.id === "a")!;
+    const standardB = standard.nodes.find((n) => n.id === "b")!;
+    const executionA = execution.nodes.find((n) => n.id === "a")!;
+    const executionB = execution.nodes.find((n) => n.id === "b")!;
+
+    const standardSpan = Math.abs(standardB.position.x - standardA.position.x);
+    const executionSpan = Math.abs(executionB.position.x - executionA.position.x);
+    expect(executionSpan).toBeGreaterThan(standardSpan);
+  });
+
+  test("custom config with larger ranksep increases vertical spacing", () => {
+    const wideConfig: DagreLayoutConfig = { rankdir: "TB", ranksep: 200, nodesep: 30 };
+    const standard = applyDagreLayout(graph, DAGRE_CONFIG);
+    const wide = applyDagreLayout(graph, wideConfig);
+
+    const standardStartY = standard.nodes.find((n) => n.id === START_NODE_ID)!.position.y;
+    const standardEndY = standard.nodes.find((n) => n.id === END_NODE_ID)!.position.y;
+    const wideStartY = wide.nodes.find((n) => n.id === START_NODE_ID)!.position.y;
+    const wideEndY = wide.nodes.find((n) => n.id === END_NODE_ID)!.position.y;
+
+    const standardHeight = standardEndY - standardStartY;
+    const wideHeight = wideEndY - wideStartY;
+    expect(wideHeight).toBeGreaterThan(standardHeight);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// toReactFlowElements — draggable flags on nodes
+// ---------------------------------------------------------------------------
+
+describe("toReactFlowElements draggable flags", () => {
+  const yaml = `
+apiVersion: agentic.stigmer.ai/v1
+kind: Workflow
+metadata:
+  name: test-wf
+  org: acme
+spec:
+  document:
+    dsl: "1.0.0"
+    name: test-wf
+    namespace: default
+    version: "0.0.1"
+  tasks:
+    - name: my_task
+      kind: agent_call
+`;
+
+  test("sentinel nodes have draggable: false", () => {
+    const graph = yamlToGraph(yaml);
+    const laidOut = applyDagreLayout(graph);
+    const elements = toReactFlowElements(laidOut);
+
+    const startNode = elements.nodes.find(
+      (n) => (n.data as CanvasTaskNodeData).isSentinel && (n.data as CanvasTaskNodeData).taskName === "Start",
+    );
+    const endNode = elements.nodes.find(
+      (n) => (n.data as CanvasTaskNodeData).isSentinel && (n.data as CanvasTaskNodeData).taskName === "End",
+    );
+
+    expect(startNode!.draggable).toBe(false);
+    expect(endNode!.draggable).toBe(false);
+  });
+
+  test("non-sentinel nodes have draggable: true from toReactFlowElements", () => {
+    const graph = yamlToGraph(yaml);
+    const laidOut = applyDagreLayout(graph);
+    const elements = toReactFlowElements(laidOut);
+
+    const taskNode = elements.nodes.find(
+      (n) => (n.data as CanvasTaskNodeData).taskName === "my_task",
+    );
+    expect(taskNode!.draggable).toBe(true);
   });
 });
