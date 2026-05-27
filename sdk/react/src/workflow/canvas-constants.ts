@@ -26,6 +26,24 @@ export const DAGRE_CONFIG = {
   nodesep: 30,
 } as const;
 
+/**
+ * More generous dagre spacing for execution graphs. Execution nodes carry
+ * status badges, duration chips, and fork-progress bars that need more
+ * vertical and horizontal clearance than bare editor/overview nodes.
+ */
+export const EXECUTION_DAGRE_CONFIG = {
+  rankdir: "TB" as const,
+  ranksep: 80,
+  nodesep: 50,
+} as const;
+
+/** Shape accepted by {@link applyDagreLayout} for custom spacing overrides. */
+export interface DagreLayoutConfig {
+  readonly rankdir: "TB" | "LR";
+  readonly ranksep: number;
+  readonly nodesep: number;
+}
+
 /** Default padding around the SVG viewBox in the read-only graph. */
 export const GRAPH_PADDING = 40;
 

@@ -44,6 +44,13 @@ export interface WorkflowExecutionViewerProps {
   readonly onNavigateToWorkflowEditor?: (yaml: string, workflowSlug: string) => void;
   /** Additional action elements to render in the header. */
   readonly additionalActions?: ReactNode;
+  /**
+   * Whether task nodes in the execution graph can be dragged to
+   * rearrange the layout for presentations. Drag positions are
+   * ephemeral and not persisted.
+   * @default false
+   */
+  readonly nodesDraggable?: boolean;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -73,6 +80,7 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
   onNavigateToAgentExecution,
   onNavigateToWorkflowEditor,
   additionalActions,
+  nodesDraggable,
   className,
 }: WorkflowExecutionViewerProps) {
   const {
@@ -329,6 +337,7 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
               onAutoSelectTask={setSelectedTaskName}
               followExecution={isRunning}
               panelOffsetPx={panelWidth}
+              nodesDraggable={nodesDraggable}
               className="h-full"
             />
           }

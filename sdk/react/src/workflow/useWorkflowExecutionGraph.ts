@@ -14,6 +14,7 @@ import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1
 import { yamlToGraph, toReactFlowElements } from "./workflow-graph-conversions";
 import type { CanvasTaskNodeData, NodeExecutionState } from "./workflow-graph-conversions";
 import { applyDagreLayout } from "./layout";
+import { EXECUTION_DAGRE_CONFIG } from "./canvas-constants";
 import type { DerivedTaskState } from "../internal/store/workflow-execution-event-store";
 import type { WorkflowGraphModel } from "./workflow-graph-model";
 import { deriveEdgeExecutionStates, deriveForkProgress } from "./execution";
@@ -46,6 +47,14 @@ export interface UseWorkflowExecutionGraphOptions {
    * `selectedTaskName` state and is invisible to sibling components.
    */
   readonly onAutoSelectTask?: (taskName: string) => void;
+
+  /**
+   * When `true`, non-sentinel nodes are marked `draggable: true` so
+   * the parent component can allow ephemeral drag repositioning.
+   * Sentinel nodes (Start/End) remain non-draggable regardless.
+   * @default false
+   */
+  readonly nodesDraggable?: boolean;
 }
 
 /** Return value of {@link useWorkflowExecutionGraph}. */
@@ -92,7 +101,7 @@ const TERMINAL_PHASES = new Set([3, 4, 5, 6]);
 export function useWorkflowExecutionGraph(
   options: UseWorkflowExecutionGraphOptions,
 ): UseWorkflowExecutionGraphReturn {
-  const { executionId, onAutoSelectTask } = options;
+  const { executionId, onAutoSelectTask, nodesDraggable = false } = options;
   const stigmer = useStigmer();
 
   const [selectedTaskName, setSelectedTaskName] = useState<string | null>(null);
@@ -168,7 +177,7 @@ export function useWorkflowExecutionGraph(
     try {
       const yaml = serializeWorkflowYaml(workflow);
       const graph = yamlToGraph(yaml);
-      const laidOut = applyDagreLayout(graph);
+      const laidOut = applyDagreLayout(graph, EXECUTION_DAGRE_CONFIG);
       return { elements: toReactFlowElements(laidOut), graphModel: laidOut };
     } catch {
       return null;
@@ -249,12 +258,12 @@ export function useWorkflowExecutionGraph(
           ...(agentActivity && { agentActivity }),
           ...(approvalToolName && { approvalToolName }),
         },
-        draggable: false,
+        draggable: nodesDraggable,
         connectable: false,
         deletable: false,
       };
     });
-  }, [baseElements, taskStates, pendingApprovals]);
+  }, [baseElements, taskStates, pendingApprovals, nodesDraggable]);
 
   // ── Merge execution state into edges (T06) ──────────────────────
 

@@ -53,7 +53,7 @@ test.describe("Workflow execution graph (T04)", () => {
     }
   });
 
-  test("graph is read-only (nodes are not draggable)", async ({
+  test("graph is read-only by default (nodes are not draggable)", async ({
     page,
     stigmerClient,
     testWorkflow,
