@@ -2,19 +2,17 @@
 
 import { useMemo } from "react";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { resolvedSubject } from "@stigmer/sdk";
-import { useSessionList } from "../session/useSessionList";
-import { useWorkflowExecutionList } from "../workflow/useWorkflowExecutionList";
+import type { RecentActivityEntry as ProtoEntry } from "@stigmer/protos/ai/stigmer/activity/v1/io_pb";
+import { useStigmer } from "../hooks";
+import { useActiveOrgSlug } from "../organization/OrgProvider";
+import { useFetch } from "../internal/useFetch";
 import type { RecentActivityEntry } from "./types";
 
 /** Options for {@link useRecentActivity}. */
 export interface UseRecentActivityOptions {
   /**
-   * Maximum entries per source. The hook fetches up to `pageSize`
-   * sessions and `pageSize` workflow executions, then merges and
-   * trims to `pageSize` total entries.
+   * Maximum entries to return. The server merges sessions and workflow
+   * executions into a single sorted list and returns at most `pageSize`.
    *
    * @default 30
    */
@@ -25,11 +23,11 @@ export interface UseRecentActivityOptions {
 export interface UseRecentActivityReturn {
   /** Merged entries sorted by `updatedAt` descending. */
   readonly entries: readonly RecentActivityEntry[];
-  /** `true` while either source is loading for the first time. */
+  /** `true` while the initial fetch is in flight. */
   readonly isLoading: boolean;
-  /** First non-null error from either source. */
+  /** First non-null error from the fetch. */
   readonly error: Error | null;
-  /** Re-fetch both sources. */
+  /** Re-fetch from the server. */
   readonly refetch: () => void;
 }
 
@@ -37,114 +35,45 @@ const DEFAULT_PAGE_SIZE = 30;
 const EPOCH = new Date(0);
 
 /**
- * Fetches recent agent sessions and workflow executions, merges them
- * into a single list sorted by most-recent-first, and exposes a
- * unified {@link RecentActivityEntry} array.
+ * Fetches recent activity via the unified `listRecentActivity` RPC,
+ * which returns a merged, time-sorted list of the caller's most
+ * recent sessions and workflow executions in a single call.
  *
- * Implementation uses client-side merge of two existing data hooks
- * (`useSessionList` and `useWorkflowExecutionList`), keeping the
- * backend contract unchanged. A dedicated `listRecentActivity` RPC
- * can replace this approach later without changing consumers.
+ * The server handles:
+ * - FGA authorization filtering (or org-scoped fast path)
+ * - Cross-collection merge-sort by `statusAudit.updatedAt`
+ * - Fallback to `specAudit.createdAt` for documents without status updates
+ * - Pagination / trimming to the requested page size
  */
 export function useRecentActivity(
   options?: UseRecentActivityOptions,
 ): UseRecentActivityReturn {
   const pageSize = options?.pageSize ?? DEFAULT_PAGE_SIZE;
+  const stigmer = useStigmer();
+  const org = useActiveOrgSlug();
 
-  const sessionResult = useSessionList({ pageSize });
-  const executionResult = useWorkflowExecutionList({ pageSize });
-
-  const entries = useMemo(
+  const { data, isLoading, error, refetch } = useFetch(
     () =>
-      mergeAndSort(
-        sessionResult.sessions,
-        executionResult.executions,
-        pageSize,
-      ),
-    [sessionResult.sessions, executionResult.executions, pageSize],
+      stigmer.activity
+        .listRecentActivity({ pageSize, org })
+        .then((resp) => resp.entries.map(normalizeEntry)),
+    [stigmer, pageSize, org],
+    [] as RecentActivityEntry[],
   );
 
-  const isLoading = sessionResult.isLoading || executionResult.isLoading;
-  const error = sessionResult.error ?? executionResult.error;
-
-  const refetch = useMemo(() => {
-    const sessionRefetch = sessionResult.refetch;
-    const executionRefetch = executionResult.refetch;
-    return () => {
-      sessionRefetch();
-      executionRefetch();
-    };
-  }, [sessionResult.refetch, executionResult.refetch]);
-
-  return { entries, isLoading, error, refetch };
+  return { entries: data, isLoading, error, refetch };
 }
 
-function mergeAndSort(
-  sessions: readonly Session[],
-  executions: readonly WorkflowExecution[],
-  limit: number,
-): readonly RecentActivityEntry[] {
-  const sessionEntries = sessions.map(normalizeSession);
-  const executionEntries = executions.map(normalizeExecution);
+function normalizeEntry(entry: ProtoEntry): RecentActivityEntry {
+  const updatedAt = entry.updatedAt
+    ? timestampDate(entry.updatedAt)
+    : EPOCH;
 
-  const merged = [...sessionEntries, ...executionEntries];
-  merged.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
-
-  return merged.slice(0, limit);
-}
-
-function normalizeSession(session: Session): RecentActivityEntry {
-  const id = session.metadata?.id ?? "";
-  const rawSubject = session.spec?.subject;
-  const subject = resolvedSubject(rawSubject) ?? "Untitled session";
-  const updatedAt = extractUpdatedAt(session.status?.audit);
-
-  return { id, type: "session", subject, updatedAt };
-}
-
-function normalizeExecution(
-  execution: WorkflowExecution,
-): RecentActivityEntry {
-  const id = execution.metadata?.id ?? "";
-  const subject = execution.metadata?.name || "Untitled execution";
-  const updatedAt = extractUpdatedAt(execution.status?.audit);
-  const status = execution.status?.phase !== undefined
-    ? phaseLabel(execution.status.phase)
-    : undefined;
-
-  return { id, type: "workflow_execution", subject, updatedAt, status };
-}
-
-/**
- * Extracts the most recent activity timestamp from a resource's audit trail.
- * Prefers `statusAudit.updatedAt` (bumped on every meaningful status change),
- * falls back to `specAudit.createdAt` for resources that have never been updated.
- */
-function extractUpdatedAt(
-  audit: { statusAudit?: { updatedAt?: unknown }; specAudit?: { createdAt?: unknown } } | undefined,
-): Date {
-  const statusTs = audit?.statusAudit?.updatedAt;
-  if (statusTs && typeof statusTs === "object" && "seconds" in statusTs) {
-    const d = timestampDate(statusTs as Parameters<typeof timestampDate>[0]);
-    if (d.getTime() > 0) return d;
-  }
-  const specTs = audit?.specAudit?.createdAt;
-  if (specTs && typeof specTs === "object" && "seconds" in specTs) {
-    const d = timestampDate(specTs as Parameters<typeof timestampDate>[0]);
-    if (d.getTime() > 0) return d;
-  }
-  return EPOCH;
-}
-
-function phaseLabel(phase: number): string {
-  switch (phase) {
-    case 1: return "pending";
-    case 2: return "running";
-    case 3: return "completed";
-    case 4: return "failed";
-    case 5: return "cancelled";
-    case 6: return "terminated";
-    case 7: return "paused";
-    default: return "unknown";
-  }
+  return {
+    id: entry.id,
+    type: entry.type === "session" ? "session" : "workflow_execution",
+    subject: entry.subject || (entry.type === "session" ? "Untitled session" : "Untitled execution"),
+    updatedAt: updatedAt.getTime() > 0 ? updatedAt : EPOCH,
+    status: entry.status || undefined,
+  };
 }

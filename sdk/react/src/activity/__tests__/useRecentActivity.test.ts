@@ -1,143 +1,133 @@
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { timestampFromDate } from "@bufbuild/protobuf/wkt";
+import { timestampFromDate, timestampDate } from "@bufbuild/protobuf/wkt";
+import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import {
-  SessionSchema,
-  SessionStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import {
-  ApiResourceMetadataSchema,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import {
-  ApiResourceAuditSchema,
-  ApiResourceAuditInfoSchema,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
-import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-
-/**
- * Tests for the `extractUpdatedAt` and merge-sort logic in useRecentActivity.
- *
- * Since the hook's normalization functions are not exported directly, we
- * re-implement the extraction logic here to verify the expected behavior.
- * This approach is acceptable for a pure-function test — the actual hook
- * wiring is tested via integration tests.
- */
+  RecentActivityEntrySchema,
+} from "@stigmer/protos/ai/stigmer/activity/v1/io_pb";
+import type { RecentActivityEntry as ProtoEntry } from "@stigmer/protos/ai/stigmer/activity/v1/io_pb";
+import { groupRecentActivityByTime } from "../group-activity";
+import type { RecentActivityEntry } from "../types";
 
 const EPOCH = new Date(0);
 
-function extractUpdatedAt(
-  audit: { statusAudit?: { updatedAt?: unknown }; specAudit?: { createdAt?: unknown } } | undefined,
-): Date {
-  const statusTs = audit?.statusAudit?.updatedAt;
-  if (statusTs && typeof statusTs === "object" && "seconds" in statusTs) {
-    const ts = statusTs as { seconds: bigint; nanos: number };
-    const ms = Number(ts.seconds) * 1000 + Math.floor(ts.nanos / 1_000_000);
-    if (ms > 0) return new Date(ms);
-  }
-  const specTs = audit?.specAudit?.createdAt;
-  if (specTs && typeof specTs === "object" && "seconds" in specTs) {
-    const ts = specTs as { seconds: bigint; nanos: number };
-    const ms = Number(ts.seconds) * 1000 + Math.floor(ts.nanos / 1_000_000);
-    if (ms > 0) return new Date(ms);
-  }
-  return EPOCH;
+function makeProtoEntry(
+  id: string,
+  type: "session" | "workflow_execution",
+  subject: string,
+  updatedAt: Date,
+  status?: string,
+): ProtoEntry {
+  const entry = create(RecentActivityEntrySchema);
+  entry.id = id;
+  entry.type = type;
+  entry.subject = subject;
+  entry.updatedAt = timestampFromDate(updatedAt);
+  entry.status = status ?? "";
+  return entry;
 }
 
-function makeAudit(specCreatedAt: Date, statusUpdatedAt?: Date) {
-  const specAuditInfo = create(ApiResourceAuditInfoSchema);
-  specAuditInfo.createdAt = timestampFromDate(specCreatedAt);
+function normalizeEntry(entry: ProtoEntry): RecentActivityEntry {
+  const updatedAt = entry.updatedAt
+    ? timestampDate(entry.updatedAt)
+    : EPOCH;
 
-  const statusAuditInfo = create(ApiResourceAuditInfoSchema);
-  statusAuditInfo.updatedAt = timestampFromDate(statusUpdatedAt ?? specCreatedAt);
-
-  const audit = create(ApiResourceAuditSchema);
-  audit.specAudit = specAuditInfo;
-  audit.statusAudit = statusAuditInfo;
-  return audit;
+  return {
+    id: entry.id,
+    type: entry.type === "session" ? "session" : "workflow_execution",
+    subject: entry.subject || (entry.type === "session" ? "Untitled session" : "Untitled execution"),
+    updatedAt: updatedAt.getTime() > 0 ? updatedAt : EPOCH,
+    status: entry.status || undefined,
+  };
 }
 
-function makeSession(id: string, specCreatedAt: Date, statusUpdatedAt?: Date): Session {
-  const session = create(SessionSchema);
-  const metadata = create(ApiResourceMetadataSchema);
-  metadata.id = id;
-  session.metadata = metadata;
-  const status = create(SessionStatusSchema);
-  status.audit = makeAudit(specCreatedAt, statusUpdatedAt);
-  session.status = status;
-  return session;
-}
+describe("normalizeEntry", () => {
+  it("converts proto RecentActivityEntry to local type", () => {
+    const ts = new Date("2026-05-27T12:00:00Z");
+    const proto = makeProtoEntry("wfx_123", "workflow_execution", "my-workflow", ts, "completed");
+    const result = normalizeEntry(proto);
 
-describe("extractUpdatedAt", () => {
-  it("prefers statusAudit.updatedAt over specAudit.createdAt", () => {
-    const specCreated = new Date("2026-01-01T00:00:00Z");
-    const statusUpdated = new Date("2026-05-27T12:00:00Z");
-    const audit = makeAudit(specCreated, statusUpdated);
-    const result = extractUpdatedAt(audit);
-    expect(result.getTime()).toBe(statusUpdated.getTime());
+    expect(result.id).toBe("wfx_123");
+    expect(result.type).toBe("workflow_execution");
+    expect(result.subject).toBe("my-workflow");
+    expect(result.updatedAt.getTime()).toBe(ts.getTime());
+    expect(result.status).toBe("completed");
   });
 
-  it("falls back to specAudit.createdAt when statusAudit.updatedAt is absent", () => {
-    const specCreated = new Date("2026-03-15T10:00:00Z");
-    const specAuditInfo = create(ApiResourceAuditInfoSchema);
-    specAuditInfo.createdAt = timestampFromDate(specCreated);
-    const audit = create(ApiResourceAuditSchema);
-    audit.specAudit = specAuditInfo;
-    // statusAudit left as default (no updatedAt)
-
-    const result = extractUpdatedAt(audit);
-    expect(result.getTime()).toBe(specCreated.getTime());
+  it("falls back to 'Untitled session' for empty session subject", () => {
+    const ts = new Date("2026-05-27T12:00:00Z");
+    const proto = makeProtoEntry("sess_1", "session", "", ts);
+    const result = normalizeEntry(proto);
+    expect(result.subject).toBe("Untitled session");
   });
 
-  it("returns EPOCH when audit is undefined", () => {
-    expect(extractUpdatedAt(undefined)).toEqual(EPOCH);
+  it("falls back to 'Untitled execution' for empty execution subject", () => {
+    const ts = new Date("2026-05-27T12:00:00Z");
+    const proto = makeProtoEntry("wfx_1", "workflow_execution", "", ts);
+    const result = normalizeEntry(proto);
+    expect(result.subject).toBe("Untitled execution");
   });
 
-  it("returns EPOCH when both timestamps are missing", () => {
-    const audit = create(ApiResourceAuditSchema);
-    const result = extractUpdatedAt(audit);
-    expect(result).toEqual(EPOCH);
+  it("uses EPOCH when updatedAt is missing", () => {
+    const entry = create(RecentActivityEntrySchema);
+    entry.id = "sess_2";
+    entry.type = "session";
+    entry.subject = "test";
+    const result = normalizeEntry(entry);
+    expect(result.updatedAt).toEqual(EPOCH);
+  });
+
+  it("session entries have undefined status", () => {
+    const ts = new Date("2026-05-27T12:00:00Z");
+    const proto = makeProtoEntry("sess_3", "session", "hello", ts);
+    const result = normalizeEntry(proto);
+    expect(result.status).toBeUndefined();
   });
 });
 
-describe("recents merge-sort ordering", () => {
-  it("sorts by statusAudit.updatedAt, not specAudit.createdAt", () => {
-    const oldCreated = new Date("2026-01-01T00:00:00Z");
-    const newCreated = new Date("2026-05-27T12:00:00Z");
-    const recentActivity = new Date("2026-05-27T14:00:00Z");
+describe("groupRecentActivityByTime (server-sorted input)", () => {
+  it("groups entries into Today bucket when all are recent", () => {
+    const now = new Date("2026-05-27T18:00:00Z");
+    const entries: RecentActivityEntry[] = [
+      { id: "a", type: "workflow_execution", subject: "wf-a", updatedAt: new Date("2026-05-27T12:00:00Z") },
+      { id: "b", type: "session", subject: "sess-b", updatedAt: new Date("2026-05-27T10:00:00Z") },
+      { id: "c", type: "workflow_execution", subject: "wf-c", updatedAt: new Date("2026-05-27T08:00:00Z") },
+    ];
 
-    // sessionA: created long ago but has recent activity
-    const sessionA = makeSession("a", oldCreated, recentActivity);
-    // sessionB: created recently but no activity since creation
-    const sessionB = makeSession("b", newCreated);
-
-    const entries = [sessionA, sessionB].map((s) => ({
-      id: s.metadata?.id ?? "",
-      updatedAt: extractUpdatedAt(s.status?.audit),
-    }));
-
-    entries.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
-
-    expect(entries[0].id).toBe("a");
-    expect(entries[1].id).toBe("b");
+    const groups = groupRecentActivityByTime(entries, now);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].label).toBe("Today");
+    expect(groups[0].entries).toHaveLength(3);
+    expect(groups[0].entries[0].id).toBe("a");
+    expect(groups[0].entries[1].id).toBe("b");
+    expect(groups[0].entries[2].id).toBe("c");
   });
 
-  it("old sessions without activity sort below new sessions", () => {
-    const veryOld = new Date("2025-01-01T00:00:00Z");
-    const recent = new Date("2026-05-27T10:00:00Z");
+  it("preserves server sort order within each bucket", () => {
+    const now = new Date("2026-05-27T18:00:00Z");
+    const entries: RecentActivityEntry[] = [
+      { id: "newest", type: "workflow_execution", subject: "wf", updatedAt: new Date("2026-05-27T14:00:00Z") },
+      { id: "middle", type: "session", subject: "sess", updatedAt: new Date("2026-05-27T10:00:00Z") },
+      { id: "oldest", type: "workflow_execution", subject: "wf2", updatedAt: new Date("2026-05-27T06:00:00Z") },
+    ];
 
-    // No independent statusAudit.updatedAt — uses specAudit.createdAt
-    const oldSession = makeSession("old", veryOld);
-    const newSession = makeSession("new", recent);
+    const groups = groupRecentActivityByTime(entries, now);
+    expect(groups[0].entries.map((e) => e.id)).toEqual(["newest", "middle", "oldest"]);
+  });
 
-    const entries = [oldSession, newSession].map((s) => ({
-      id: s.metadata?.id ?? "",
-      updatedAt: extractUpdatedAt(s.status?.audit),
-    }));
+  it("splits entries across Today and Yesterday", () => {
+    const now = new Date("2026-05-27T18:00:00Z");
+    const entries: RecentActivityEntry[] = [
+      { id: "today", type: "session", subject: "t", updatedAt: new Date("2026-05-27T16:00:00Z") },
+      { id: "yesterday", type: "workflow_execution", subject: "y", updatedAt: new Date("2026-05-25T12:00:00Z") },
+    ];
 
-    entries.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
-
-    expect(entries[0].id).toBe("new");
-    expect(entries[1].id).toBe("old");
+    const groups = groupRecentActivityByTime(entries, now);
+    expect(groups.length).toBeGreaterThanOrEqual(2);
+    expect(groups[0].label).toBe("Today");
+    expect(groups[0].entries[0].id).toBe("today");
+    const nonTodayGroup = groups.find((g) => g.label !== "Today");
+    expect(nonTodayGroup).toBeDefined();
+    expect(nonTodayGroup!.entries[0].id).toBe("yesterday");
   });
 });
