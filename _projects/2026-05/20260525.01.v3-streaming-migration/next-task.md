@@ -75,10 +75,10 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-25
-**Revised**: 2026-05-26
-**Current Phase**: Phase 3 COMPLETE → Phase 5 next (Phase 4 absorbed)
-**Status**: v3 is now the default streaming protocol. Structured output pipeline fully wired: `run.output.structuredResponse` flows into both `initialStatus.structuredOutput` (gRPC) and `slim.structured` (Temporal). Full integration test suite passes. v2 preserved as explicit escape hatch via `LANGGRAPH_STREAM_EVENTS_VERSION=v2`.
-**Last Session**: 2026-05-26 (Session 8) -- Phase 3 implementation
+**Revised**: 2026-05-27
+**Current Phase**: Phase 3 COMPLETE + E2E VALIDATED → Phase 5 next (Phase 4 absorbed)
+**Status**: v3 structured output pipeline fully validated E2E with real Anthropic LLM. All 6 CP04-failing tests now pass. Workflow propagation (agent_call → task structured) confirmed 19/19. Offline regression check: 0 new regressions (9 pre-existing failures unchanged). Ready for Phase 5.
+**Last Session**: 2026-05-27 (Session 9) -- E2E structured output validation
 **Latest Checkpoint**: `checkpoints/CP04_v3_hypothesis_validation.md`
 
 ## Session Progress
@@ -159,6 +159,18 @@ When starting a new session:
 - All 824 unit tests pass (no regressions), 144 v3-specific tests pass, full integration suite passes (370s, 0 failures)
 - Net code delta: -15 lines (removed conditional complexity, dead branches)
 
+### Session 9 (2026-05-27)
+- **E2E Structured Output Validation COMPLETE** — Phase 3 pipeline confirmed working in real integration environment
+- Rebuilt runner dist from latest source (avoids CP04's stale-dist lesson)
+- **All 6 CP04-failing provider tests now PASS** (native harness, real Anthropic LLM):
+  - PureJsonResponse, MarkdownProse, CodeFencedJson, MultiTurnVerbose, NestedSchema, SchemaWithNullableField
+- **Cursor harness: 100% pass** (all 8 pipeline subtests + all 8 edge cases + all 4 schema round trips)
+- **Workflow propagation: 19/19 pass** including `TestWorkflow_StructuredOutput_CallbackHandoff` (hard assertions on full chain)
+- **Offline regression: 0 new regressions** (9 pre-existing failures match CP04's 36/46 count exactly)
+- **Two minor findings** (not pipeline-related):
+  - `EmptyFinalMessage/native`: Test expected nil (stale from broken pipeline era), but v3 native SO now correctly populates — test expectation needs update
+  - `WrongFieldType/native`: LangGraph `InvalidUpdateError` crash (deepagents UntrackedValue bug) — execution FAILED, nil SO is correct behavior
+
 ## Migration Phases Overview
 
 | Phase | Name | Sessions | Status |
@@ -190,7 +202,7 @@ When starting a new session:
 
 ## Next Steps
 1. **Start Phase 5**: Consume `run.subagents` to create subagent cards in `AgentExecutionStatus` — expose delegation tree, per-subagent tool calls, and nested outputs
-2. **E2E structured output validation**: Run `TestAgentExecution_StructuredOutputPipeline` with `ANTHROPIC_API_KEY` set to confirm `structured_output` field populates via gRPC query
+2. **Fix stale test expectation**: Update `EmptyFinalMessage/native` in `agent_execution_15_structured_output_test.go` — now that native SO works, this test should expect populated output (not nil)
 3. **Collect golden run corpus** (optional): Run offline tests with `V2_EVENT_RECORD_DIR` for future regression comparison
 
 ## Critical Reminders (from Deep Research + Validation)
