@@ -1,6 +1,7 @@
 package harness
 
 import (
+	activityv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/activity/v1"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	agentexecv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	agentinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
@@ -25,6 +26,9 @@ import (
 // Clients holds typed gRPC clients for all services under test.
 // It is intentionally a thin wrapper — no logic, no lifecycle management.
 type Clients struct {
+	// Activity (cross-cutting recents query)
+	ActivityQuery activityv1.ActivityQueryControllerClient
+
 	// Workflow services
 	WorkflowCommand  workflowv1.WorkflowCommandControllerClient
 	WorkflowQuery    workflowv1.WorkflowQueryControllerClient
@@ -93,6 +97,8 @@ type Clients struct {
 // NewClients creates all typed gRPC clients from a single connection.
 func NewClients(conn grpc.ClientConnInterface) *Clients {
 	return &Clients{
+		ActivityQuery: activityv1.NewActivityQueryControllerClient(conn),
+
 		WorkflowCommand:  workflowv1.NewWorkflowCommandControllerClient(conn),
 		WorkflowQuery:    workflowv1.NewWorkflowQueryControllerClient(conn),
 		InstanceCommand:  workflowinstancev1.NewWorkflowInstanceCommandControllerClient(conn),

@@ -1,12 +1,12 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { RecentActivityEntry as ProtoEntry } from "@stigmer/protos/ai/stigmer/activity/v1/io_pb";
 import { useStigmer } from "../hooks";
 import { useActiveOrgSlug } from "../organization/OrgProvider";
 import { useFetch } from "../internal/useFetch";
-import type { RecentActivityEntry } from "./types";
+import type { RecentActivityEntry, RecentActivityType } from "./types";
 
 /** Options for {@link useRecentActivity}. */
 export interface UseRecentActivityOptions {
@@ -19,6 +19,13 @@ export interface UseRecentActivityOptions {
   readonly pageSize?: number;
 }
 
+/** Minimal fields required to synthesize an optimistic sidebar entry. */
+export interface OptimisticEntryInput {
+  readonly id: string;
+  readonly type: RecentActivityType;
+  readonly subject: string;
+}
+
 /** Return value of {@link useRecentActivity}. */
 export interface UseRecentActivityReturn {
   /** Merged entries sorted by `updatedAt` descending. */
@@ -29,6 +36,12 @@ export interface UseRecentActivityReturn {
   readonly error: Error | null;
   /** Re-fetch from the server. */
   readonly refetch: () => void;
+  /**
+   * Prepend an optimistic entry to the top of the recents list.
+   * The entry is automatically replaced by server data on the next
+   * successful refetch that includes its ID.
+   */
+  readonly prependOptimistic: (entry: OptimisticEntryInput) => void;
 }
 
 const DEFAULT_PAGE_SIZE = 30;
@@ -61,7 +74,39 @@ export function useRecentActivity(
     [] as RecentActivityEntry[],
   );
 
-  return { entries: data, isLoading, error, refetch };
+  const [optimistic, setOptimistic] = useState<RecentActivityEntry[]>([]);
+  const prevDataRef = useRef(data);
+
+  useEffect(() => {
+    if (data !== prevDataRef.current) {
+      prevDataRef.current = data;
+      if (optimistic.length > 0) {
+        setOptimistic([]);
+      }
+    }
+  }, [data, optimistic.length]);
+
+  const entries = useMemo(() => {
+    if (optimistic.length === 0) return data;
+    const serverIds = new Set(data.map((e) => e.id));
+    const pending = optimistic.filter((e) => !serverIds.has(e.id));
+    return pending.length > 0 ? [...pending, ...data] : data;
+  }, [data, optimistic]);
+
+  const prependOptimistic = useCallback((input: OptimisticEntryInput) => {
+    setOptimistic((prev) => {
+      if (prev.some((e) => e.id === input.id)) return prev;
+      const entry: RecentActivityEntry = {
+        id: input.id,
+        type: input.type,
+        subject: input.subject,
+        updatedAt: new Date(),
+      };
+      return [entry, ...prev];
+    });
+  }, []);
+
+  return { entries, isLoading, error, refetch, prependOptimistic };
 }
 
 function normalizeEntry(entry: ProtoEntry): RecentActivityEntry {

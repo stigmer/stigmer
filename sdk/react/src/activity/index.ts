@@ -8,6 +8,7 @@ export {
   useRecentActivity,
   type UseRecentActivityOptions,
   type UseRecentActivityReturn,
+  type OptimisticEntryInput,
 } from "./useRecentActivity";
 
 export { groupRecentActivityByTime } from "./group-activity";
