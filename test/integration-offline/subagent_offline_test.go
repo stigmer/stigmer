@@ -126,17 +126,23 @@ func TestOffline_SubAgent_Delegation(t *testing.T) {
 	assert.Equal(t, 0, mockLLM.Remaining(),
 		"all mock LLM entries should be consumed")
 
-	// Log subagent execution details if populated (Phase 3c will fill these)
 	subAgents := status.GetSubAgentExecutions()
-	if len(subAgents) > 0 {
-		for _, sa := range subAgents {
-			t.Logf("  sub-agent execution: name=%s, messages=%d",
-				sa.GetName(), len(sa.GetMessages()))
-		}
-	} else {
-		t.Log("sub_agent_executions not yet populated (expected — StatusBuilder Phase 3c)")
+	require.NotEmpty(t, subAgents,
+		"sub_agent_executions must be populated — mock LLM always delegates via task tool")
+
+	harness.AssertSubAgents(t, result, "researcher")
+
+	for _, sa := range subAgents {
+		harness.AssertSubAgentExecution(t, sa)
 	}
 
-	t.Logf("subagent delegation test passed: messages=%d, task_tool=%v, mock_consumed=%d",
-		len(messages), hasTaskToolCall, mockLLM.Consumed())
+	sa := harness.FindSubAgent(result, "researcher")
+	require.NotNil(t, sa, "sub-agent 'researcher' must be present")
+	assert.Equal(t, agentexecv1.SubAgentStatus_SUB_AGENT_COMPLETED, sa.GetStatus(),
+		"researcher sub-agent should be COMPLETED")
+
+	harness.LogSubAgentExecutions(t, result)
+
+	t.Logf("subagent delegation test passed: messages=%d, task_tool=%v, sub_agents=%d, mock_consumed=%d",
+		len(messages), hasTaskToolCall, len(subAgents), mockLLM.Consumed())
 }

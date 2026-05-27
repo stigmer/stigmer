@@ -76,10 +76,10 @@ When starting a new session:
 
 **Created**: 2026-05-25
 **Revised**: 2026-05-27
-**Current Phase**: Phase 5 COMPLETE → Phase 6 next (Custom Stigmer Stream Transformers)
-**Status**: All core v3 streaming migration work complete (Phases 0-5). Error diagnostics and schema propagation tests added in Session 12. Ready for Phase 6 or deferred items.
-**Last Session**: 2026-05-27 (Session 12) -- Error diagnostics + schema propagation tests
-**Latest Checkpoint**: `checkpoints/CP05_session12_schema_propagation_and_error_diagnostics.md`
+**Current Phase**: Phase 5 COMPLETE → Sub-agent namespace fix needed before Phase 6
+**Status**: Sub-agent test hardening complete (Session 13). E2E validation exposed SubAgentTracker namespace matching bug — tracker fails to detect real sub-agent events from deepagents runtime. Tests correctly fail. Runner fix required before tests can pass.
+**Last Session**: 2026-05-27 (Session 13) -- Sub-agent test hardening + E2E pipeline gap discovery
+**Latest Checkpoint**: `checkpoints/CP06_session13_subagent_test_hardening.md`
 
 ## Session Progress
 
@@ -203,6 +203,20 @@ When starting a new session:
   - Covers the daily-notification-plan production bug where schema was intermittently missing
 - 91/91 affected tests pass, 0 regressions
 
+### Session 13 (2026-05-27)
+- **Sub-agent test hardening COMPLETE** — all soft assertions converted to hard assertions
+- New `AssertSubAgentExecution` harness helper validates full proto field contract (id, name, subject, timestamps, status-dependent output/error)
+- New `FindSubAgent`, `HasSubAgentDelegation`, `LogSubAgentExecutions` harness helpers
+- `TestAgentExecution_SubAgent_Delegation`: retry loop (2 attempts) + hard assertions on researcher sub-agent COMPLETED status + messages
+- `TestAgentExecution_SubAgent_ParentCancelCascade`: require sub-agents exist + assert CANCELLED status (flagged `time.Sleep` as TODO)
+- `TestAgentExecution_SubAgent_McpAccess`: retry loop + hard assertions on tooluser sub-agent
+- `TestOffline_SubAgent_Delegation`: hardened from log-only to require sub-agent executions populated
+- **E2E pipeline gap discovered**: SubAgentTracker namespace matching fails against real deepagents events
+  - Runner dist is fresh (rebuilt today), Java service persistence is correct (verified)
+  - Root cause: `isSubAgentNamespace()` does not match the namespace format produced by real deepagents runtime
+  - Sub-agent events flow through parent pipeline (visible as parent messages) instead of being routed to `SubAgentExecution.messages`
+  - Investigation confirmed across 6+ runs, both native and cursor harnesses, 3 infrastructure restarts
+
 ## Migration Phases Overview
 
 | Phase | Name | Sessions | Status |
@@ -237,10 +251,11 @@ When starting a new session:
 2. ~~**Fix stale test expectation**~~ — DONE (Session 10, commit `92cd663b3`)
 3. ~~**Error diagnostics + poisoned-handle recovery**~~ — DONE (Session 12, commit `4346bf60e`)
 4. ~~**Structured output schema propagation tests**~~ — DONE (Session 12, commit `89a3340ac`)
-5. **E2E validation with real sub-agent execution**: Run `TestAgentExecution_SubAgent_Delegation` with provider to confirm SubAgentExecution protos flow to the server and back
-6. **Harden integration test assertions**: Convert soft-asserts in `agent_execution_05_subagent_test.go` to hard-asserts now that the runner populates the field
-7. **Phase 6 (future)**: Custom Stigmer Stream Transformers — replace ad-hoc artifact/writeback/usage logic with native v3 stream transformers
-8. **Collect golden run corpus** (optional): Run offline tests with `V2_EVENT_RECORD_DIR` for future regression comparison
+5. ~~**E2E validation with real sub-agent execution**~~ — DONE (Session 13): Tests correctly fail — SubAgentTracker namespace matching bug exposed
+6. ~~**Harden integration test assertions**~~ — DONE (Session 13): Soft-asserts converted to hard-asserts with retry, AssertSubAgentExecution helper added, offline test hardened
+7. **FIX: SubAgentTracker namespace matching bug**: The tracker's `isSubAgentNamespace()` silently fails to match real deepagents event namespaces. Sub-agent events flow through the parent pipeline instead of being routed to `SubAgentExecution.messages`. Needs: enable V3 event recording, capture real sub-agent namespace format, fix pattern matching in `subagent-tracker.ts`
+8. **Phase 6 (future)**: Custom Stigmer Stream Transformers — replace ad-hoc artifact/writeback/usage logic with native v3 stream transformers
+9. **Collect golden run corpus** (optional): Run offline tests with `V2_EVENT_RECORD_DIR` for future regression comparison
 
 ## Critical Reminders (from Deep Research + Validation)
 
