@@ -30,6 +30,7 @@ import { utcTimestamp } from "../../shared/status.js";
 import type { ExecutionStatusWriter } from "./execution-status-writer.js";
 import type { ApprovalPolicyProvider } from "./status-builder.js";
 import type { StigmerRunEvent, V3UsagePayload } from "./v3-events.js";
+import { namespaceDepth } from "./v3-events.js";
 import {
   UsageAccumulator,
   extractToolResultV3,
@@ -80,9 +81,12 @@ export class V3StatusBuilder implements ExecutionStatusWriter {
 
   processEvent(event: StigmerRunEvent): void {
     try {
-      // Sub-agent routing: detect "task" tool starts and route sub-agent events
-      if (event.kind === "tool_started" && event.name === "task" && !event.namespace) {
-        this.subAgentTracker.onTaskToolStarted(event.callId, event.input);
+      // Sub-agent routing: detect "task" tool starts at depth 0 (root) or depth 1
+      // (inside LangGraph tools-node). In real runtime, task tool-started arrives
+      // at depth 1 with namespace like "tools:<pregelTaskUuid>".
+      if (event.kind === "tool_started" && event.name === "task" && namespaceDepth(event.namespace) <= 1) {
+        const routingPrefix = event.namespace || `tools:${event.callId}`;
+        this.subAgentTracker.onTaskToolStarted(event.callId, event.input, routingPrefix);
         this.handleToolStarted(event.callId, event.name, event.input, event.namespace);
         this._forceNextUpdate = true;
         return;

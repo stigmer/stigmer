@@ -2,10 +2,13 @@
  * SubAgentTracker — tracks sub-agent lifecycle and routes namespace-scoped
  * events to per-sub-agent message lists.
  *
- * Correlation strategy (derived from deepagents createSubagentTransformer):
- *   - Parent calls "task" tool → tool_started at root namespace ("") with callId
- *   - Sub-agent events arrive with namespace starting with "tools:<callId>"
- *   - First segment match (before "|") correlates events to the correct sub-agent
+ * Correlation strategy (mirrors deepagents createSubagentTransformer):
+ *   - Parent calls "task" tool → tool_started at depth 0 or 1
+ *     (depth 1 in real runtime: namespace = ["tools:<pregelTaskUuid>"])
+ *   - The task tool-started event's namespace segment becomes the routing prefix
+ *   - Sub-agent child events arrive at depth >= 2, with the routing prefix as
+ *     their first segment (e.g. "tools:<pregelUuid>|model_request:<innerUuid>")
+ *   - First segment match (before "|") correlates child events to sub-agent
  *
  * The tracker owns the SubAgentExecution proto instances. V3StatusBuilder
  * delegates sub-agent-scoped events here instead of the parent message list.
@@ -55,10 +58,17 @@ export class SubAgentTracker {
   private readonly stateByPrefix = new Map<string, SubAgentState>();
 
   /**
-   * Called when a "task" tool_started event is observed at root namespace.
+   * Called when a "task" tool_started event is observed at depth 0 or 1.
    * Creates a new SubAgentExecution and begins tracking.
+   *
+   * @param callId - Provider tool call ID (e.g. "toolu_01HW...")
+   * @param args - Tool input arguments (subagent_type, description)
+   * @param routingPrefix - The namespace segment used to match child events.
+   *   At depth 1 this is the event's own namespace (the LangGraph tools-node
+   *   segment, e.g. "tools:<pregelUuid>"). At depth 0 (edge case / tests) the
+   *   caller provides a synthetic prefix like "tools:<callId>".
    */
-  onTaskToolStarted(callId: string, args: Record<string, unknown>): void {
+  onTaskToolStarted(callId: string, args: Record<string, unknown>, routingPrefix: string): void {
     if (this.stateByCallId.has(callId)) return;
 
     const name = safeString(args, "subagent_type") || "task";
@@ -73,12 +83,10 @@ export class SubAgentTracker {
       startedAt: utcTimestamp(),
     });
 
-    const namespacePrefix = `tools:${callId}`;
-
     const state: SubAgentState = {
       proto,
       callId,
-      namespacePrefix,
+      namespacePrefix: routingPrefix,
       messagesByRun: new Map(),
       currentAiMessage: new Map(),
       lastLlmRunId: new Map(),
@@ -88,7 +96,7 @@ export class SubAgentTracker {
 
     this.executions.push(proto);
     this.stateByCallId.set(callId, state);
-    this.stateByPrefix.set(namespacePrefix, state);
+    this.stateByPrefix.set(routingPrefix, state);
   }
 
   /**
@@ -135,11 +143,15 @@ export class SubAgentTracker {
 
   /**
    * Returns true if the given formatted namespace belongs to a tracked sub-agent.
-   * A namespace belongs to a sub-agent if its first segment matches
-   * "tools:<registeredCallId>".
+   *
+   * Only matches events at depth >= 2 (namespace contains a pipe separator).
+   * Depth-1 events share the same first segment as registered prefixes but are
+   * parent-level tool lifecycle events (handled separately by isTrackedTaskTool).
+   * Child events have the registered prefix as their first segment PLUS additional
+   * inner segments (e.g. "tools:<pregelUuid>|model_request:<innerUuid>").
    */
   isSubAgentNamespace(namespace: string): boolean {
-    if (!namespace) return false;
+    if (!namespace || !namespace.includes("|")) return false;
     const firstSegment = extractFirstSegment(namespace);
     return this.stateByPrefix.has(firstSegment);
   }

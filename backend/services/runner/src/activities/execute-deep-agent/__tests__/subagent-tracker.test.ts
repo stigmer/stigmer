@@ -30,13 +30,22 @@ function feedAll(sb: V3StatusBuilder, events: V3ProtocolEvent[]): void {
   }
 }
 
+/**
+ * Simulates the LangGraph tools-node Pregel segment for a given tool execution.
+ * In real runtime this is "tools:<pregelUuid>" where the UUID is a deterministic
+ * hash derived from the checkpoint state — distinct from the provider tool call ID.
+ */
+function toolsNodeSegment(callId: string): string {
+  return `tools:pregel_${callId}`;
+}
+
 function makeTaskToolStarted(callId: string, subagentType: string, description: string): V3ProtocolEvent {
   return makeProtocolEvent("tools", {
     event: "tool-started",
     tool_call_id: callId,
     tool_name: "task",
     input: { subagent_type: subagentType, description },
-  }, { namespace: [] });
+  }, { namespace: [toolsNodeSegment(callId)] });
 }
 
 function makeTaskToolFinished(callId: string, output: string): V3ProtocolEvent {
@@ -48,7 +57,7 @@ function makeTaskToolFinished(callId: string, output: string): V3ProtocolEvent {
       id: ["langchain_core", "messages", "ToolMessage"],
       kwargs: { status: "success", content: output, tool_call_id: callId, name: "task" },
     },
-  }, { namespace: [`tools:${callId}`] });
+  }, { namespace: [toolsNodeSegment(callId)] });
 }
 
 function makeTaskToolError(callId: string, message: string): V3ProtocolEvent {
@@ -56,13 +65,13 @@ function makeTaskToolError(callId: string, message: string): V3ProtocolEvent {
     event: "tool-error",
     tool_call_id: callId,
     message,
-  }, { namespace: [`tools:${callId}`] });
+  }, { namespace: [toolsNodeSegment(callId)] });
 }
 
 function makeSubAgentEvent(taskCallId: string, method: string, data: unknown, extraNs?: string): V3ProtocolEvent {
   const ns = extraNs
-    ? [`tools:${taskCallId}`, extraNs]
-    : [`tools:${taskCallId}`, "model_request"];
+    ? [toolsNodeSegment(taskCallId), extraNs]
+    : [toolsNodeSegment(taskCallId), "model_request"];
   return makeProtocolEvent(method, data, { namespace: ns, node: "model_request" });
 }
 
@@ -246,12 +255,12 @@ describe("SubAgentTracker (via V3StatusBuilder integration)", () => {
           tool_call_id: subToolCallId,
           tool_name: "grep",
           input: { pattern: "auth", path: "src/" },
-        }, { namespace: [`tools:${taskCallId}`, `tools:${subToolCallId}`] }),
+        }, { namespace: [toolsNodeSegment(taskCallId), `tools:${subToolCallId}`] }),
         makeProtocolEvent("tools", {
           event: "tool-finished",
           tool_call_id: subToolCallId,
           output: { lc: 1, type: "constructor", id: ["langchain_core", "messages", "ToolMessage"], kwargs: { content: "Found 3 matches", status: "success", tool_call_id: subToolCallId, name: "grep" } },
-        }, { namespace: [`tools:${taskCallId}`, `tools:${subToolCallId}`] }),
+        }, { namespace: [toolsNodeSegment(taskCallId), `tools:${subToolCallId}`] }),
       ]);
 
       sb.syncSubAgentExecutions();
@@ -396,6 +405,70 @@ describe("SubAgentTracker (via V3StatusBuilder integration)", () => {
 
       expect(sb.currentStatus.messages).toHaveLength(1);
       expect(sb.currentStatus.messages[0].content).toBe("Normal text.");
+    });
+
+    it("depth-0 task tool_started (empty namespace) uses callId-based prefix", () => {
+      const sb = makeBuilder();
+      const callId = "call_depth0";
+
+      feedAll(sb, [
+        makeProtocolEvent("tools", {
+          event: "tool-started",
+          tool_call_id: callId,
+          tool_name: "task",
+          input: { subagent_type: "researcher", description: "Depth-0 test" },
+        }, { namespace: [] }),
+        // Sub-agent child events use tools:<callId> as first segment (fallback prefix)
+        makeProtocolEvent("messages", {
+          event: "message-start", id: "msg_sub", run_id: "sub-run",
+        }, { namespace: [`tools:${callId}`, "model_request"], node: "model_request" }),
+        makeProtocolEvent("messages", {
+          event: "content-block-delta", index: 0,
+          delta: { type: "text-delta", text: "Depth-0 child event." },
+          run_id: "sub-run",
+        }, { namespace: [`tools:${callId}`, "model_request"], node: "model_request" }),
+        makeProtocolEvent("messages", {
+          event: "message-finish", reason: "end_turn", run_id: "sub-run",
+        }, { namespace: [`tools:${callId}`, "model_request"], node: "model_request" }),
+      ]);
+
+      sb.syncSubAgentExecutions();
+      const subs = sb.currentStatus.subAgentExecutions;
+      expect(subs).toHaveLength(1);
+      expect(subs[0].name).toBe("researcher");
+      expect(subs[0].messages).toHaveLength(1);
+      expect(subs[0].messages[0].content).toBe("Depth-0 child event.");
+    });
+
+    it("depth-1 events with registered prefix but no pipe stay in parent pipeline", () => {
+      const sb = makeBuilder();
+      const callId = "call_depth1_test";
+
+      feedAll(sb, [
+        makeTaskToolStarted(callId, "researcher", "Test isolation"),
+        // Parent continues with a new message after delegation
+        makeProtocolEvent("messages", {
+          event: "message-start", id: "msg_parent", run_id: "parent-run",
+        }, { namespace: [], node: "model_request" }),
+        makeProtocolEvent("messages", {
+          event: "content-block-delta", index: 0,
+          delta: { type: "text-delta", text: "Parent continues." },
+          run_id: "parent-run",
+        }, { namespace: [], node: "model_request" }),
+        makeProtocolEvent("messages", {
+          event: "message-finish", reason: "end_turn", run_id: "parent-run",
+        }, { namespace: [], node: "model_request" }),
+      ]);
+
+      sb.syncSubAgentExecutions();
+      // First message: AI message with task tool call (created by handleToolStarted)
+      // Second message: parent text that follows
+      expect(sb.currentStatus.messages).toHaveLength(2);
+      expect(sb.currentStatus.messages[0].toolCalls[0].name).toBe("task");
+      expect(sb.currentStatus.messages[1].content).toBe("Parent continues.");
+      // Sub-agent has no messages (only registered, no child events routed)
+      const sub = sb.currentStatus.subAgentExecutions[0];
+      expect(sub.messages).toHaveLength(0);
     });
   });
 });
