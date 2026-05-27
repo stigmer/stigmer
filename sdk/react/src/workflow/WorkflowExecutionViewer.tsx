@@ -22,6 +22,7 @@ import { ExecutionComparisonView } from "./execution-comparison/ExecutionCompari
 import { WorkflowExecutionApprovalCard } from "./WorkflowExecutionApprovalCard";
 import type { WorkflowPendingApproval } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ResizableSplit } from "../internal/ResizableSplit";
 
 /** Props for {@link WorkflowExecutionViewer}. */
 export interface WorkflowExecutionViewerProps {
@@ -179,6 +180,7 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
   const [showDiagnosis, setShowDiagnosis] = useState(false);
   const [showComparePicker, setShowComparePicker] = useState(false);
   const [compareTargetId, setCompareTargetId] = useState<string | null>(null);
+  const [panelWidth, setPanelWidth] = useState(384);
 
   const handleDiagnose = useCallback(() => {
     setShowDiagnosis(true);
@@ -311,69 +313,69 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
       )}
 
       <div className="flex min-h-0 flex-1 flex-col">
-        {/* Primary area: Execution graph + inspector stub */}
-        <div className="flex min-h-0 flex-1">
-          {/* Execution graph — primary view (T04), dedup: shares execution + taskStates */}
-          <WorkflowExecutionGraph
-            executionId={executionId}
-            execution={execution}
-            taskStates={effectiveTaskStates}
-            onTaskSelect={setSelectedTaskName}
-            onAutoSelectTask={setSelectedTaskName}
-            followExecution={isRunning}
-            className="flex-1"
-          />
-
-          {/* Right panel — runtime inspector or diagnosis */}
-          <aside
-            className={cn(
-              "flex shrink-0 flex-col overflow-hidden border-l border-[var(--stgm-border,#e5e5e5)]",
-              showDiagnosis
-                ? "w-[40%] min-w-[360px] max-w-[500px]"
-                : "w-80 lg:w-96",
-            )}
-          >
-            {showDiagnosis && org ? (
-              <WorkflowRepairCard
-                executionId={executionId}
-                org={org}
-                onApplyFix={onNavigateToWorkflowEditor ? handleApplyFix : undefined}
-                onClose={handleCloseDiagnosis}
-                className="h-full"
-              />
-            ) : (
-              <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                <ExecutionInspector
-                  selectedTaskName={selectedTaskName}
-                  events={events}
-                  taskStates={effectiveTaskStates}
-                  taskSnapshots={execution?.status?.tasks ?? undefined}
-                  onNavigateToAgentExecution={onNavigateToAgentExecution}
-                  pendingApprovals={execution?.status?.pendingApprovals}
-                  onSubmitApproval={actions.submitApproval}
-                  isSubmittingApproval={actions.isSubmitting}
-                  className="min-h-0 flex-1"
+        {/* Primary area: Execution graph + resizable inspector */}
+        <ResizableSplit
+          defaultSize={showDiagnosis ? 440 : 384}
+          minSize={280}
+          maxSize={800}
+          storageKey="stgm-wf-exec-inspector-width"
+          onResize={setPanelWidth}
+          primary={
+            <WorkflowExecutionGraph
+              executionId={executionId}
+              execution={execution}
+              taskStates={effectiveTaskStates}
+              onTaskSelect={setSelectedTaskName}
+              onAutoSelectTask={setSelectedTaskName}
+              followExecution={isRunning}
+              panelOffsetPx={panelWidth}
+              className="h-full"
+            />
+          }
+          secondary={
+            <aside className="flex h-full flex-col overflow-hidden">
+              {showDiagnosis && org ? (
+                <WorkflowRepairCard
+                  executionId={executionId}
+                  org={org}
+                  onApplyFix={onNavigateToWorkflowEditor ? handleApplyFix : undefined}
+                  onClose={handleCloseDiagnosis}
+                  className="h-full"
                 />
+              ) : (
+                <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                  <ExecutionInspector
+                    selectedTaskName={selectedTaskName}
+                    events={events}
+                    taskStates={effectiveTaskStates}
+                    taskSnapshots={execution?.status?.tasks ?? undefined}
+                    onNavigateToAgentExecution={onNavigateToAgentExecution}
+                    pendingApprovals={execution?.status?.pendingApprovals}
+                    onSubmitApproval={actions.submitApproval}
+                    isSubmittingApproval={actions.isSubmitting}
+                    className="min-h-0 flex-1"
+                  />
 
-                <div className="border-t border-[var(--stgm-border,#e5e5e5)]">
-                  <WorkflowExecutionCostPanel costSummary={costSummary} />
-                </div>
-
-                {artifacts.length > 0 && (
                   <div className="border-t border-[var(--stgm-border,#e5e5e5)]">
-                    <WorkflowExecutionArtifactPanel artifacts={artifacts} />
+                    <WorkflowExecutionCostPanel costSummary={costSummary} />
                   </div>
-                )}
 
-                {additionalActions && (
-                  <div className="border-t border-[var(--stgm-border,#e5e5e5)] px-3 py-2">
-                    {additionalActions}
-                  </div>
-                )}
-              </div>
-            )}
-          </aside>
-        </div>
+                  {artifacts.length > 0 && (
+                    <div className="border-t border-[var(--stgm-border,#e5e5e5)]">
+                      <WorkflowExecutionArtifactPanel artifacts={artifacts} />
+                    </div>
+                  )}
+
+                  {additionalActions && (
+                    <div className="border-t border-[var(--stgm-border,#e5e5e5)] px-3 py-2">
+                      {additionalActions}
+                    </div>
+                  )}
+                </div>
+              )}
+            </aside>
+          }
+        />
 
         {/* Bottom panel: Waterfall (default) + Event Log tabs */}
         <ExecutionBottomPanel
