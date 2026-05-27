@@ -37,6 +37,7 @@ export interface ExecutionMetadata {
   workflow_id?: string;
   workflow_instance_id?: string;
   org_id?: string;
+  execution_target?: number;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -9,6 +9,7 @@ import { getUserMessage } from "@stigmer/sdk";
 import { useStigmer } from "../hooks";
 import { useExecutionTarget } from "../execution-target-context";
 import { useRunnerAdapter } from "../runner-adapter";
+import { toProtoExecutionTarget } from "../session/execution-target";
 import { workflowUsesTriggerInput } from "./workflow-uses-trigger-input";
 import { useInstanceEnvKeys } from "./useInstanceEnvKeys";
 
@@ -226,6 +227,9 @@ export function useRunWorkflowFlow(
           },
           runtimeEnv:
             Object.keys(envInput).length > 0 ? envInput : undefined,
+          executionTarget: contextTarget
+            ? toProtoExecutionTarget(contextTarget)
+            : undefined,
         });
 
       const executionId = execution.metadata?.id;
