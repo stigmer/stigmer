@@ -317,6 +317,83 @@ func AssertSubAgents(t *testing.T, exec *agentexecv1.AgentExecution, expectedNam
 	}
 }
 
+// FindSubAgent returns the first SubAgentExecution with the given name,
+// or nil if not found.
+func FindSubAgent(exec *agentexecv1.AgentExecution, name string) *agentexecv1.SubAgentExecution {
+	for _, sa := range exec.GetStatus().GetSubAgentExecutions() {
+		if sa.GetName() == name {
+			return sa
+		}
+	}
+	return nil
+}
+
+// HasSubAgentDelegation returns true if at least one SubAgentExecution
+// is present on the execution status.
+func HasSubAgentDelegation(exec *agentexecv1.AgentExecution) bool {
+	return len(exec.GetStatus().GetSubAgentExecutions()) > 0
+}
+
+// AssertSubAgentExecution validates the full SubAgentExecution proto field
+// contract. Asserts structural fields that the runner must populate for every
+// sub-agent invocation: id, name, subject, timestamps, and status-dependent
+// output/error. Mirrors the ToolCall contract pattern from agent_execution_13.
+func AssertSubAgentExecution(t *testing.T, sa *agentexecv1.SubAgentExecution) {
+	t.Helper()
+
+	assert.NotEmpty(t, sa.GetId(),
+		"SubAgentExecution.id must be non-empty (tool call correlation key)")
+
+	assert.NotEmpty(t, sa.GetName(),
+		"SubAgentExecution.name must be non-empty (sub-agent type)")
+
+	assert.NotEmpty(t, sa.GetSubject(),
+		"SubAgentExecution.subject must be non-empty (display label from task tool description)")
+
+	assert.NotEmpty(t, sa.GetStartedAt(),
+		"SubAgentExecution.started_at must be non-empty (ISO 8601 timestamp)")
+
+	status := sa.GetStatus()
+	switch status {
+	case agentexecv1.SubAgentStatus_SUB_AGENT_COMPLETED:
+		assert.NotEmpty(t, sa.GetCompletedAt(),
+			"SubAgentExecution.completed_at must be populated when COMPLETED")
+		assert.NotEmpty(t, sa.GetOutput(),
+			"SubAgentExecution.output must be populated when COMPLETED")
+
+	case agentexecv1.SubAgentStatus_SUB_AGENT_FAILED:
+		assert.NotEmpty(t, sa.GetCompletedAt(),
+			"SubAgentExecution.completed_at must be populated when FAILED")
+		assert.NotEmpty(t, sa.GetError(),
+			"SubAgentExecution.error must be populated when FAILED")
+
+	case agentexecv1.SubAgentStatus_SUB_AGENT_CANCELLED:
+		assert.NotEmpty(t, sa.GetCompletedAt(),
+			"SubAgentExecution.completed_at must be populated when CANCELLED")
+
+	case agentexecv1.SubAgentStatus_SUB_AGENT_IN_PROGRESS,
+		agentexecv1.SubAgentStatus_SUB_AGENT_PENDING:
+		// Non-terminal states — timestamps and output are not yet expected.
+
+	default:
+		t.Errorf("SubAgentExecution.status has unexpected value: %s", status.String())
+	}
+}
+
+// LogSubAgentExecutions logs all sub-agent execution details for diagnostics.
+func LogSubAgentExecutions(t *testing.T, exec *agentexecv1.AgentExecution) {
+	t.Helper()
+	subAgents := exec.GetStatus().GetSubAgentExecutions()
+	t.Logf("DIAGNOSTIC: %d sub-agent execution(s)", len(subAgents))
+	for i, sa := range subAgents {
+		t.Logf("DIAGNOSTIC:   sa[%d] id=%s name=%s subject=%q status=%s messages=%d "+
+			"started=%s completed=%s output_len=%d error=%q",
+			i, sa.GetId(), sa.GetName(), sa.GetSubject(), sa.GetStatus().String(),
+			len(sa.GetMessages()), sa.GetStartedAt(), sa.GetCompletedAt(),
+			len(sa.GetOutput()), sa.GetError())
+	}
+}
+
 // AssertPendingApprovals verifies the number of pending approvals.
 func AssertPendingApprovals(t *testing.T, exec *agentexecv1.AgentExecution, expectedCount int) {
 	t.Helper()
