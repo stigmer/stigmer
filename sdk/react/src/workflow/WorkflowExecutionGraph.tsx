@@ -24,7 +24,7 @@ import { useWorkflowExecutionGraph } from "./useWorkflowExecutionGraph";
 import type { UseWorkflowExecutionGraphReturn } from "./useWorkflowExecutionGraph";
 import type { DerivedTaskState } from "../internal/store/workflow-execution-event-store";
 import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { useFollowExecution } from "./useFollowExecution";
+import { useFollowExecution, computeFollowSelection } from "./useFollowExecution";
 import { useActiveTaskName } from "./useActiveTaskName";
 import { useExecutionAnnouncements } from "./useExecutionAnnouncements";
 import { ExecutionActiveTaskIndicator } from "./ExecutionActiveTaskIndicator";
@@ -214,6 +214,20 @@ function WorkflowExecutionGraphInner({
     panelOffsetPx,
   });
 
+  // ── Follow-selection: auto-select the active task while following ──
+  // Couples node selection to the follow state machine so "Follow" means
+  // viewport centering + node highlighting + inspector display.
+  useEffect(() => {
+    const taskToSelect = computeFollowSelection({
+      isFollowing,
+      activeTaskName: activeTaskInfo?.taskName ?? null,
+      currentSelectedTask: selectedTaskName,
+    });
+    if (!taskToSelect) return;
+    setSelectedTaskName(taskToSelect);
+    onTaskSelect?.(taskToSelect);
+  }, [isFollowing, activeTaskInfo?.taskName, selectedTaskName, setSelectedTaskName, onTaskSelect]);
+
   // Screen reader announcements for task state changes
   const announcement = useExecutionAnnouncements(taskStates);
 
@@ -225,14 +239,16 @@ function WorkflowExecutionGraphInner({
       const next = name === selectedTaskName ? null : name;
       setSelectedTaskName(next);
       onTaskSelect?.(next);
+      if (isFollowing) disableFollow();
     },
-    [selectedTaskName, setSelectedTaskName, onTaskSelect],
+    [selectedTaskName, setSelectedTaskName, onTaskSelect, isFollowing, disableFollow],
   );
 
   const handlePaneClick = useCallback(() => {
     setSelectedTaskName(null);
     onTaskSelect?.(null);
-  }, [setSelectedTaskName, onTaskSelect]);
+    if (isFollowing) disableFollow();
+  }, [setSelectedTaskName, onTaskSelect, isFollowing, disableFollow]);
 
   const onMoveStart = useCallback(
     (event: MouseEvent | TouchEvent | null, viewport: Viewport) => {
