@@ -138,3 +138,16 @@ export type StigmerRunEvent =
 export function formatNamespace(ns: readonly string[]): string {
   return ns.length === 0 ? "" : ns.join("|");
 }
+
+/**
+ * Returns the depth (number of segments) of a formatted namespace string.
+ * Empty string → 0, single segment → 1, "a|b" → 2, etc.
+ */
+export function namespaceDepth(namespace: string): number {
+  if (!namespace) return 0;
+  let count = 1;
+  for (let i = 0; i < namespace.length; i++) {
+    if (namespace[i] === "|") count++;
+  }
+  return count;
+}
