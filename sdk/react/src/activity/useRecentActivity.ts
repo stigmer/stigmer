@@ -97,8 +97,7 @@ function normalizeSession(session: Session): RecentActivityEntry {
   const id = session.metadata?.id ?? "";
   const rawSubject = session.spec?.subject;
   const subject = resolvedSubject(rawSubject) ?? "Untitled session";
-  const ts = session.status?.audit?.specAudit?.createdAt;
-  const updatedAt = ts ? timestampDate(ts) : EPOCH;
+  const updatedAt = extractUpdatedAt(session.status?.audit);
 
   return { id, type: "session", subject, updatedAt };
 }
@@ -108,13 +107,33 @@ function normalizeExecution(
 ): RecentActivityEntry {
   const id = execution.metadata?.id ?? "";
   const subject = execution.metadata?.name || "Untitled execution";
-  const ts = execution.status?.audit?.specAudit?.createdAt;
-  const updatedAt = ts ? timestampDate(ts) : EPOCH;
+  const updatedAt = extractUpdatedAt(execution.status?.audit);
   const status = execution.status?.phase !== undefined
     ? phaseLabel(execution.status.phase)
     : undefined;
 
   return { id, type: "workflow_execution", subject, updatedAt, status };
+}
+
+/**
+ * Extracts the most recent activity timestamp from a resource's audit trail.
+ * Prefers `statusAudit.updatedAt` (bumped on every meaningful status change),
+ * falls back to `specAudit.createdAt` for resources that have never been updated.
+ */
+function extractUpdatedAt(
+  audit: { statusAudit?: { updatedAt?: unknown }; specAudit?: { createdAt?: unknown } } | undefined,
+): Date {
+  const statusTs = audit?.statusAudit?.updatedAt;
+  if (statusTs && typeof statusTs === "object" && "seconds" in statusTs) {
+    const d = timestampDate(statusTs as Parameters<typeof timestampDate>[0]);
+    if (d.getTime() > 0) return d;
+  }
+  const specTs = audit?.specAudit?.createdAt;
+  if (specTs && typeof specTs === "object" && "seconds" in specTs) {
+    const d = timestampDate(specTs as Parameters<typeof timestampDate>[0]);
+    if (d.getTime() > 0) return d;
+  }
+  return EPOCH;
 }
 
 function phaseLabel(phase: number): string {
