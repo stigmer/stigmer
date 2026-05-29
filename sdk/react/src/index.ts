@@ -100,6 +100,7 @@ export {
   PENDING_SUBJECT,
   resolvedSubject,
   SessionViewer,
+  NewSessionViewer,
   SessionInspector,
   useSessionInspector,
   buildVisibleTabs,
@@ -138,11 +139,14 @@ export type {
   SessionGroup,
   SearchResultGroup,
   SessionViewerProps,
+  NewSessionViewerProps,
   SessionInspectorProps,
   SessionInspectorTabId,
   UseSessionInspectorOptions,
   UseSessionInspectorReturn,
   SetupTabProps,
+  SetupTabWorkspaceActions,
+  SetupTabMutationCallbacks,
   SelectedThreadItem,
 } from "./session";
 

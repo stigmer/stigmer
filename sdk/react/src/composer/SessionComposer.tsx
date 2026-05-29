@@ -9,7 +9,6 @@ import { type ConfigureMenuItem } from "./ConfigureMenu";
 import type { HarnessOption } from "../models/harness";
 import type { InteractionModeOption } from "./InteractionModePicker";
 import { parseModelKey } from "../models/registry";
-import { ContextChip, type ChipItem } from "./ContextChip";
 import { WorkspaceEditor } from "../workspace/WorkspaceEditor";
 import { AgentPicker } from "../agent/AgentPicker";
 import { AgentEnvForm, type AgentEnvFormSubmitOptions } from "../agent/AgentEnvForm";
@@ -815,16 +814,6 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
     ],
   );
 
-  const handleAgentChipRemove = useCallback(() => {
-    onAgentRefChange?.(null);
-    onAgentResolutionChange?.(null);
-  }, [onAgentRefChange, onAgentResolutionChange]);
-
-  const handlePendingAgentChipRemove = useCallback(() => {
-    agentSetup.reset();
-    onAgentRefChange?.(null);
-    onAgentResolutionChange?.(null);
-  }, [agentSetup, onAgentRefChange, onAgentResolutionChange]);
 
   // ---------------------------------------------------------------------------
   // Initial agent: auto-resolve on mount when initialAgentRef is provided
@@ -949,137 +938,6 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
     },
     [canSend, composer.textareaProps],
   );
-
-  // ---------------------------------------------------------------------------
-  // Chips — aggregated from all context sources
-  // ---------------------------------------------------------------------------
-
-  const chips = useMemo(() => {
-    const items: ChipItem[] = [];
-
-    if (agentRef) {
-      const refStr = `${agentRef.org}/${agentRef.slug}`;
-      items.push({
-        key: `agent:${refStr}`,
-        label: displayNames.get(refStr) ?? agentRef.slug,
-        type: "agent",
-        onRemove: isDefaultAgent ? undefined : handleAgentChipRemove,
-      });
-    } else if (
-      agentSetup.state.status === "needsEnvVars" ||
-      agentSetup.state.status === "resolving" ||
-      agentSetup.state.status === "submitting"
-    ) {
-      const st = agentSetup.state;
-      const ref = st.agentRef;
-      const refStr = `${ref.org}/${ref.slug}`;
-      const name =
-        st.status !== "resolving"
-          ? st.agentName
-          : (displayNames.get(refStr) ?? ref.slug);
-
-      items.push({
-        key: `agent:${refStr}`,
-        label: name,
-        type: "agent",
-        onRemove: handlePendingAgentChipRemove,
-        status:
-          st.status === "resolving"
-            ? "loading"
-            : st.status === "submitting"
-              ? "submitting"
-              : "needsSetup",
-        onClick:
-          st.status === "needsEnvVars"
-            ? () => {
-                setConfigOpen(true);
-                setConfigActivePanel("agent");
-              }
-            : undefined,
-      });
-    }
-
-    if (showMcp) {
-      for (const [key, entry] of Object.entries(mcpSetup.entries)) {
-        const slug = key.slice(key.indexOf("/") + 1);
-        const name =
-          entry.status !== "loading"
-            ? (entry.mcpServer.metadata?.name ?? displayNames.get(key) ?? slug)
-            : (displayNames.get(key) ?? slug);
-
-        let detail: string | undefined;
-        if (
-          entry.status === "ready" &&
-          entry.discoveredTools.length > 0 &&
-          entry.enabledTools.length < entry.discoveredTools.length
-        ) {
-          detail = `${entry.enabledTools.length}/${entry.discoveredTools.length}`;
-        }
-
-        items.push({
-          key: `mcp:${key}`,
-          label: name,
-          type: "mcp",
-          onRemove: () => mcpSetup.removeServer(mcpRefFromKey(key)),
-          status: entry.status,
-          detail,
-          onClick:
-            entry.status === "needsSetup"
-              ? () => {
-                  configMcpInitialServerKeyRef.current = key;
-                  setConfigOpen(true);
-                  setConfigActivePanel("mcp");
-                }
-              : undefined,
-        });
-      }
-    }
-
-    if (skillRefs) {
-      for (const ref of skillRefs) {
-        const refStr = `${ref.org}/${ref.slug}`;
-        items.push({
-          key: `skill:${refStr}`,
-          label: displayNames.get(refStr) ?? ref.slug,
-          type: "skill",
-          onRemove: () => {
-            onSkillRefsChange?.(
-              skillRefs.filter((r) => `${r.org}/${r.slug}` !== refStr),
-            );
-          },
-        });
-      }
-    }
-
-    if (sessionVariables) {
-      for (const entry of sessionVariables.entries) {
-        const k = entry.key.trim();
-        if (k === "") continue;
-        items.push({
-          key: `secret:${entry.id}`,
-          label: k,
-          type: "secret",
-          onRemove: () => sessionVariables.removeEntry(entry.id),
-        });
-      }
-    }
-
-    return items;
-  }, [
-    agentRef,
-    isDefaultAgent,
-    agentSetup.state,
-    handleAgentChipRemove,
-    handlePendingAgentChipRemove,
-    workspace,
-    showMcp,
-    mcpSetup.entries,
-    mcpSetup.removeServer,
-    skillRefs,
-    sessionVariables,
-    displayNames,
-    onSkillRefsChange,
-  ]);
 
   const workspaceCount = workspace?.entries.length ?? 0;
   const mcpCount = showMcp ? Object.keys(mcpSetup.entries).length : 0;
@@ -1324,24 +1182,6 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
             aria-hidden="true"
             tabIndex={-1}
           />
-        )}
-
-        {/* Zone 2: Context chips */}
-        {chips.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 px-3 pb-2">
-            {chips.map((chip) => (
-              <ContextChip
-                key={chip.key}
-                label={chip.label}
-                type={chip.type}
-                onRemove={chip.onRemove}
-                disabled={isDisabled}
-                status={chip.status}
-                detail={chip.detail}
-                onClick={chip.onClick}
-              />
-            ))}
-          </div>
         )}
 
         {/* Zone 2.5: Attachment chips */}

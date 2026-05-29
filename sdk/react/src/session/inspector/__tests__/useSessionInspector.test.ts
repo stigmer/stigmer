@@ -120,12 +120,21 @@ describe("buildVisibleTabs", () => {
 // ---------------------------------------------------------------------------
 
 describe("useSessionInspector", () => {
-  it("defaults to plan tab", () => {
+  it("defaults to setup when no execution is active (phase=null)", () => {
     const { result } = renderHook(() => useSessionInspector(defaultOpts()));
-    expect(result.current.activeTab).toBe("plan");
+    expect(result.current.activeTab).toBe("setup");
   });
 
-  it("defaults to plan while running", () => {
+  it("defaults to setup when execution is terminal", () => {
+    const { result } = renderHook(() =>
+      useSessionInspector(
+        defaultOpts({ phase: ExecutionPhase.EXECUTION_COMPLETED }),
+      ),
+    );
+    expect(result.current.activeTab).toBe("setup");
+  });
+
+  it("defaults to plan while execution is running", () => {
     const { result } = renderHook(() =>
       useSessionInspector(
         defaultOpts({ phase: ExecutionPhase.EXECUTION_IN_PROGRESS }),
@@ -139,7 +148,7 @@ describe("useSessionInspector", () => {
       (props: UseSessionInspectorOptions) => useSessionInspector(props),
       { initialProps: defaultOpts() },
     );
-    expect(result.current.activeTab).toBe("plan");
+    expect(result.current.activeTab).toBe("setup");
 
     rerender(
       defaultOpts({ selectedItem: { kind: "tool-call", toolCallId: "tc-1" } }),
@@ -147,7 +156,7 @@ describe("useSessionInspector", () => {
     expect(result.current.activeTab).toBe("inspect");
   });
 
-  it("reverts to plan when selection is cleared and user did not pick a tab", () => {
+  it("reverts to setup when selection is cleared (phase=null) and user did not pick a tab", () => {
     const { result, rerender } = renderHook(
       (props: UseSessionInspectorOptions) => useSessionInspector(props),
       {
@@ -159,6 +168,27 @@ describe("useSessionInspector", () => {
     expect(result.current.activeTab).toBe("inspect");
 
     rerender(defaultOpts({ selectedItem: null }));
+    expect(result.current.activeTab).toBe("setup");
+  });
+
+  it("reverts to plan when selection is cleared while execution is running", () => {
+    const { result, rerender } = renderHook(
+      (props: UseSessionInspectorOptions) => useSessionInspector(props),
+      {
+        initialProps: defaultOpts({
+          phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+          selectedItem: { kind: "tool-call", toolCallId: "tc-1" },
+        }),
+      },
+    );
+    expect(result.current.activeTab).toBe("inspect");
+
+    rerender(
+      defaultOpts({
+        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+        selectedItem: null,
+      }),
+    );
     expect(result.current.activeTab).toBe("plan");
   });
 
@@ -187,7 +217,7 @@ describe("useSessionInspector", () => {
       (props: UseSessionInspectorOptions) => useSessionInspector(props),
       { initialProps: defaultOpts() },
     );
-    expect(result.current.activeTab).toBe("plan");
+    expect(result.current.activeTab).toBe("setup");
 
     rerender(
       defaultOpts({ hasWriteBacks: true, writeBackCount: 1 }),
@@ -195,7 +225,7 @@ describe("useSessionInspector", () => {
     expect(result.current.activeTab).toBe("changes");
   });
 
-  it("falls back to plan when active tab is removed from visible tabs", () => {
+  it("falls back to setup when active tab is removed from visible tabs (phase=null)", () => {
     const { result, rerender } = renderHook(
       (props: UseSessionInspectorOptions) => useSessionInspector(props),
       {
@@ -211,6 +241,25 @@ describe("useSessionInspector", () => {
     });
 
     rerender(defaultOpts({ selectedItem: null }));
+    // inspect tab removed, user pick was "inspect" which is no longer valid;
+    // fallback goes to deriveAutoTab(null, null) = "setup"
+    expect(result.current.activeTab).toBe("setup");
+  });
+
+  it("switches to setup when execution transitions to terminal phase", () => {
+    const { result, rerender } = renderHook(
+      (props: UseSessionInspectorOptions) => useSessionInspector(props),
+      {
+        initialProps: defaultOpts({
+          phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+        }),
+      },
+    );
     expect(result.current.activeTab).toBe("plan");
+
+    rerender(
+      defaultOpts({ phase: ExecutionPhase.EXECUTION_COMPLETED }),
+    );
+    expect(result.current.activeTab).toBe("setup");
   });
 });

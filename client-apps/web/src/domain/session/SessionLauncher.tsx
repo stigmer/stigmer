@@ -4,8 +4,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
-  SessionComposer,
-  useNewSessionFlow,
+  NewSessionViewer,
   useEditSessionPrep,
   useGitHubConnection,
   useWorkspaceSources,
@@ -13,7 +12,7 @@ import {
   parseDraftParams,
   useActiveOrgSlug,
 } from "@stigmer/react";
-import type { DraftResourceType, InteractionModeOption } from "@stigmer/react";
+import type { DraftResourceType } from "@stigmer/react";
 import type { ResourceRef } from "@stigmer/sdk";
 import { useSessionNavigation } from "@/domain/session/session-navigation";
 
@@ -45,8 +44,9 @@ const EDIT_PLACEHOLDERS: Record<DraftResourceType, string> = {
 };
 
 /**
- * Console-specific session launcher — thin shell that composes SDK hooks
- * with Console routing, org context, and draft-mode URL parameters.
+ * Console-specific session launcher — thin shell that composes the SDK
+ * `NewSessionViewer` with Console routing, org context, and draft-mode
+ * URL parameters.
  */
 export function SessionLauncher() {
   const rawSearchParams = useSearchParams();
@@ -92,16 +92,8 @@ export function SessionLauncher() {
   }, [liveDraftType]);
 
   // -------------------------------------------------------------------------
-  // SDK hooks
+  // Edit prep
   // -------------------------------------------------------------------------
-
-  const [interactionMode, setInteractionMode] = useState<InteractionModeOption>("agent");
-
-  const flow = useNewSessionFlow({
-    org,
-    onSessionCreated: navigateToSession,
-    onError: (msg) => toast.error(msg),
-  });
 
   const editPrep = useEditSessionPrep(draftType, editRef);
 
@@ -119,63 +111,27 @@ export function SessionLauncher() {
     ? isEditMode
       ? EDIT_PLACEHOLDERS[draftType]
       : DRAFT_PLACEHOLDERS[draftType]
-    : "Describe what you need help with\u2026";
+    : undefined;
 
   const heading = isEditMode
     ? "What would you like to change?"
     : draftType
       ? DRAFT_HEADINGS[draftType]
-      : "What would you like to work on?";
+      : undefined;
 
   return (
-    <div className="flex h-full flex-col items-center overflow-y-auto px-4">
-      <div className="my-auto w-full max-w-2xl space-y-6">
-        <h1 className="text-center text-lg font-medium text-foreground">
-          {heading}
-        </h1>
-
-        <SessionComposer
-          onSubmit={flow.submit}
-          isSubmitting={flow.isSubmitting}
-          org={org}
-          workspace={flow.workspace}
-          gitHubConnection={enableGitHub ? gitHubConnection : undefined}
-          enableGitHub={enableGitHub}
-          enableLocal={enableLocal}
-          agentRef={flow.agentRef}
-          onAgentRefChange={flow.setAgentRef}
-          onAgentResolutionChange={flow.setResolution}
-          initialAgentRef={initialAgentRef}
-          initialAttachments={editPrep.files}
-          mcpServerUsages={flow.mcpServerUsages}
-          onMcpServerUsagesChange={flow.setMcpServerUsages}
-          skillRefs={flow.skillRefs}
-          onSkillRefsChange={flow.setSkillRefs}
-          sessionVariables={flow.sessionVariables}
-          showHarnessSelector
-          harness={flow.harness}
-          onHarnessChange={flow.setHarness}
-          interactionMode={interactionMode}
-          onInteractionModeChange={setInteractionMode}
-          showInteractionModePicker
-          defaultModelId={flow.modelId}
-          onModelChange={flow.setModelId}
-          placeholder={placeholder}
-          initialRows={3}
-          autoFocus
-          ariaLabel="Start a new session"
-        />
-
-        {flow.submitError && (
-          <p className="text-xs text-destructive" role="alert">
-            {flow.submitError}
-          </p>
-        )}
-
-        <p className="text-center text-[0.65rem] text-muted-foreground">
-          Press Enter to send, Shift+Enter for a new line
-        </p>
-      </div>
-    </div>
+    <NewSessionViewer
+      org={org}
+      onSessionCreated={navigateToSession}
+      onError={(msg) => toast.error(msg)}
+      gitHubConnection={enableGitHub ? gitHubConnection : undefined}
+      enableGitHub={enableGitHub}
+      enableLocal={enableLocal}
+      initialAgentRef={initialAgentRef}
+      initialAttachments={editPrep.files}
+      heading={heading}
+      placeholder={placeholder}
+      className="h-full"
+    />
   );
 }

@@ -24,4 +24,8 @@ export { InspectTab } from "./InspectTab";
 export type { InspectTabProps } from "./InspectTab";
 
 export { SetupTab } from "./SetupTab";
-export type { SetupTabProps } from "./SetupTab";
+export type {
+  SetupTabProps,
+  SetupTabWorkspaceActions,
+  SetupTabMutationCallbacks,
+} from "./SetupTab";
