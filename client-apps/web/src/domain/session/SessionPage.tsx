@@ -11,12 +11,10 @@ import { useCallback, useRef, useState } from "react";
 import {
   useSessionPageFlow,
   useGitHubConnection,
-  useContextWindow,
   MessageThread,
   ThreadSkeleton,
   SessionComposer,
   ExecutionProgress,
-  ContextGauge,
   UsageWidget,
   ArtifactsWidget,
   WriteBacksWidget,
@@ -48,7 +46,6 @@ export function SessionPageInner({ id }: { id: string }) {
   const { conv } = flow;
   const [modelId, setModelId] = flow.model;
   const [interactionMode, setInteractionMode] = useState<InteractionModeOption>("agent");
-  const ctxWindow = useContextWindow(flow.displayExecution ?? null);
   const composerRef = useRef<SessionComposerHandle>(null);
   const [showSharePanel, setShowSharePanel] = useState(false);
 
@@ -98,7 +95,6 @@ export function SessionPageInner({ id }: { id: string }) {
             submittingApprovalIds={conv.submittingApprovalIds}
             workspaceEntries={conv.workspaceEntries}
             sandboxWorkspaceRoot={flow.sandboxWorkspaceRoot}
-            summarizationEvents={ctxWindow.summarizationEvents}
             onBuildFromPlan={handleBuildFromPlan}
             className="flex-1 lg:pr-[208px]"
           />
@@ -150,10 +146,6 @@ export function SessionPageInner({ id }: { id: string }) {
               <div className="rounded-lg border border-border bg-card p-3">
                 <ExecutionProgress execution={flow.displayExecution} />
               </div>
-              <ContextGauge
-                execution={flow.displayExecution}
-                className="rounded-lg border border-border bg-card p-3"
-              />
               <div className="rounded-lg border border-border bg-card p-3">
                 <UsageWidget executions={flow.allExecutions} />
               </div>

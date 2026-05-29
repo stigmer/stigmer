@@ -57,6 +57,12 @@ export interface UseSessionUsageReturn {
   readonly primaryProvider: string;
   /** `true` when usage data is available. */
   readonly hasUsage: boolean;
+  /**
+   * `true` when the displayed cost comes from runner-reported streaming data
+   * rather than settled billing records. The UI should show an "Estimated"
+   * badge when this is true.
+   */
+  readonly isEstimated: boolean;
 }
 
 const EMPTY: UseSessionUsageReturn = {
@@ -71,6 +77,7 @@ const EMPTY: UseSessionUsageReturn = {
   primaryModel: "",
   primaryProvider: "",
   hasUsage: false,
+  isEstimated: false,
 };
 
 function microsToUsd(micros: bigint): number {
@@ -110,6 +117,7 @@ function mapReport(report: GetSessionUsageReportOutput): UseSessionUsageReturn {
     primaryModel: agg.primaryModel,
     primaryProvider: agg.primaryProvider,
     hasUsage: llmCallCount > 0 || totalTokens > 0 || billableCost > 0,
+    isEstimated: false,
   };
 }
 
@@ -170,67 +178,22 @@ function aggregateStreamingUsage(
     primaryModel: model,
     primaryProvider: model ? "cursor" : "",
     hasUsage: true,
-  };
-}
-
-/**
- * Merge billing-authoritative data with live streaming data.
- *
- * Billing is the source of truth for settled costs (completed executions).
- * Streaming supplements it with live token/cost accrual from in-flight
- * executions whose billing records have not yet been written.
- */
-function mergeWithStreaming(
-  billing: UseSessionUsageReturn,
-  streaming: UseSessionUsageReturn,
-): UseSessionUsageReturn {
-  if (!streaming.hasUsage) return billing;
-
-  const billingTokens = billing.totalTokens;
-  const streamingTokens = streaming.totalTokens;
-
-  if (streamingTokens <= billingTokens) return billing;
-
-  const extraTokens = streamingTokens - billingTokens;
-  const extraCost = streaming.totalCostUsd - billing.totalCostUsd;
-
-  if (extraTokens <= 0 && extraCost <= 0) return billing;
-
-  const mergedBreakdown = [...billing.modelBreakdown];
-  for (const streamEntry of streaming.modelBreakdown) {
-    const existsInBilling = mergedBreakdown.some(
-      (b) => b.model === streamEntry.model && b.provider === streamEntry.provider,
-    );
-    if (!existsInBilling) {
-      mergedBreakdown.push(streamEntry);
-    }
-  }
-
-  return {
-    totalCostUsd: Math.max(billing.totalCostUsd, streaming.totalCostUsd),
-    totalTokens: Math.max(billingTokens, streamingTokens),
-    inputTokens: Math.max(billing.inputTokens, streaming.inputTokens),
-    outputTokens: Math.max(billing.outputTokens, streaming.outputTokens),
-    cacheReadTokens: Math.max(billing.cacheReadTokens, streaming.cacheReadTokens),
-    cacheCreationTokens: Math.max(billing.cacheCreationTokens, streaming.cacheCreationTokens),
-    llmCallCount: Math.max(billing.llmCallCount, streaming.llmCallCount),
-    modelBreakdown: mergedBreakdown,
-    primaryModel: billing.primaryModel || streaming.primaryModel,
-    primaryProvider: billing.primaryProvider || streaming.primaryProvider,
-    hasUsage: true,
+    isEstimated: true,
   };
 }
 
 /**
  * Usage hook for session-level cost and token aggregation.
  *
- * Merges two data sources:
- * - Server-side billing report (authoritative, from LlmCallUsageRecord)
- * - Streaming usage from execution status (live, DISPLAY_ONLY trust)
+ * Uses exactly ONE data source at a time to avoid displaying a cost total
+ * from one pipeline with a model breakdown from another:
  *
- * Billing takes precedence for settled costs. Streaming supplements with
- * live token/cost accrual from in-flight executions (especially Cursor
- * harness where billing records are written post-execution).
+ * - When the billing report covers all observed tokens (settled state),
+ *   it is shown as authoritative (`isEstimated: false`).
+ * - When streaming shows more tokens than billing (in-flight execution
+ *   whose billing records haven't been written yet), streaming is shown
+ *   with `isEstimated: true`.
+ * - The two sources are never mixed in the same display.
  *
  * @param executions - All executions for a session (completed + active).
  */
@@ -264,12 +227,14 @@ export function useSessionUsage(
   return useMemo(() => {
     const billingReport = report ? mapReport(report) : EMPTY;
 
-    if (billingReport.hasUsage && billingReport.llmCallCount > 0) {
-      return mergeWithStreaming(billingReport, streamingFallback);
+    if (streamingFallback.hasUsage && streamingFallback.totalTokens > billingReport.totalTokens) {
+      return streamingFallback;
     }
+
+    if (billingReport.hasUsage) return billingReport;
 
     if (streamingFallback.hasUsage) return streamingFallback;
 
-    return billingReport.hasUsage ? billingReport : EMPTY;
+    return EMPTY;
   }, [report, streamingFallback]);
 }

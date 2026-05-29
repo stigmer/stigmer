@@ -62,7 +62,6 @@ import { buildApprovalState } from "./approval-state.js";
 import { setInterceptorExecutionId, runWithExecutionContext } from "./fetch-interceptor.js";
 import { resolveModelId, ensureLoaded as ensurePricingLoaded } from "./model-pricing.js";
 import { UsageAccumulator } from "./usage-accumulator.js";
-import { ContextTracker } from "./context-tracker.js";
 import { StreamingUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
 import { buildSessionMemory, persistSessionMemory, estimateTokens } from "./session-memory.js";
 import { activityStarted, activityFinished } from "../../idle-watchdog.js";
@@ -394,7 +393,6 @@ async function executeCursorInner(
     await ensurePricingLoaded();
     const usageAccumulator = new UsageAccumulator(validatedModel);
 
-    const contextTracker = new ContextTracker(validatedModel);
     // Phase 10c: Start OTel turn span (coarse-grained — wraps entire agent.send + stream)
     const { startCursorTurnSpan } = await import("../../otel.js");
     const turnSpan = await startCursorTurnSpan({
@@ -429,7 +427,6 @@ async function executeCursorInner(
       onDelta: ({ update }) => {
         if (update.type === "turn-ended" && update.usage) {
           usageAccumulator.addTurn(update.usage);
-          contextTracker.recordTurn(update.usage.inputTokens ?? 0);
 
           if (!firstTurnAttributionLogged) {
             firstTurnAttributionLogged = true;
@@ -493,9 +490,6 @@ async function executeCursorInner(
       if (usageAccumulator.hasTurns) {
         status.streamingUsage = create(StreamingUsageSummarySchema, usageAccumulator.snapshot());
       }
-      if (contextTracker.hasData) {
-        status.contextInfo = contextTracker.snapshot();
-      }
       if (shouldPersist) {
         const signal = await persistStatus(client, executionId, status);
         deltaEnricher.markPersisted();
@@ -526,9 +520,6 @@ async function executeCursorInner(
     await eventRecorder?.flush();
     if (usageAccumulator.hasTurns) {
       status.streamingUsage = create(StreamingUsageSummarySchema, usageAccumulator.snapshot());
-    }
-    if (contextTracker.hasData) {
-      status.contextInfo = contextTracker.snapshot();
     }
     console.log(
       `ExecuteCursor stream ended: execution=${executionId}, events=${eventCount}, messages=${status.messages.length}, subAgents=${status.subAgentExecutions.length}`,
