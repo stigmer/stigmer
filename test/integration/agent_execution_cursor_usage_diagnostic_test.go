@@ -65,20 +65,11 @@ func TestAgentExecution_CursorUsage_FullPipeline(t *testing.T) {
 		usage.GetInputTokens(), usage.GetOutputTokens(),
 		usage.GetTurnCount(), usage.GetEstimatedCostUsd(), usage.GetModel())
 
-	// ─── Source 2: context_info (ContextTracker, inferred from inputTokens) ──
-	ctxInfo := result.GetStatus().GetContextInfo()
-	require.NotNil(t, ctxInfo, "context_info should be populated for cursor harness")
-
-	assert.Greater(t, ctxInfo.GetCurrentTokenCount(), int32(0),
-		"context current_token_count > 0")
-	assert.Greater(t, ctxInfo.GetContextWindowLimit(), int32(0),
-		"context_window_limit > 0")
-	assert.Greater(t, ctxInfo.GetUtilizationPercent(), float32(0),
-		"utilization_percent > 0")
-
-	t.Logf("CONTEXT_INFO: current=%d limit=%d utilization=%.1f%%",
-		ctxInfo.GetCurrentTokenCount(), ctxInfo.GetContextWindowLimit(),
-		ctxInfo.GetUtilizationPercent())
+	// ─── Source 2: context_info — removed ────────────────────────────────────
+	// ContextTracker was removed because Cursor SDK's inputTokens is a billing
+	// metric, not a context-window-size metric. contextInfo is no longer emitted.
+	assert.Nil(t, result.GetStatus().GetContextInfo(),
+		"context_info should NOT be populated (ContextTracker removed)")
 
 	// ─── Source 3: GetExecutionUsageReport (billing records) ─────────────────
 	time.Sleep(2 * time.Second)

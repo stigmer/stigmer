@@ -68,8 +68,8 @@ When starting a new session:
 ## Current State
 
 - **Status**: In Progress
-- **Last Session**: May 17, 2026 — Session 10: Ink Context Gauge + Summarization Indicator
-- **Active Task**: ContextGauge component implemented, tested, verified. Ready to commit.
+- **Last Session**: May 29, 2026 — Session 11: Fix Billing Display + Remove Context Gauge
+- **Active Task**: Billing fix and context gauge removal committed. Reconciliation workflow next.
 - **Branch**: `feat/bring-workflows-to-foreground`
 
 ## Session Progress (May 17, 2026 — Session 10: Ink Context Gauge + Summarization Indicator)
@@ -236,10 +236,36 @@ When starting a new session:
 - **Session 2** (`e090a92b7`): Server-reported deployment mode (getServerInfo RPC)
 - **Session 1** (`2ba7abaf9`): Web-desktop feature parity fixes
 
+## Session Progress (May 29, 2026 — Session 11: Fix Billing Display + Remove Context Gauge)
+
+### Deliverables (implemented)
+
+1. **Removed ContextGauge** from web, desktop, and Ink UIs (both harnesses). Deleted `context-tracker.ts`.
+2. **Fixed 6.3x cost overcharge** — `computeTurnCost` no longer double-counts cache tokens ($3.03 → ~$0.48)
+3. **Fixed model ID normalization** — `claude-haiku-4-5-20251001` now finds haiku pricing instead of expensive defaults
+4. **Single-source usage display** — replaced broken `mergeWithStreaming` `Math.max` logic; added `isEstimated` field
+5. **"Estimated" badge** in React (pill) and Ink ("(est.)") for live runner-reported costs
+6. **Summarization integration tests** — `ContextRetention` (3-turn fact recall) and `TokenGrowth` (4-turn growth + drop detection)
+7. **Updated integration test** — `contextInfo` assertion changed to expect nil
+
+### Key Findings
+
+- Cursor SDK's `inputTokens` INCLUDES cache tokens (Anthropic convention) — the old formula treated them as additive
+- Cursor harness is NOT proxy-metered: Connect RPC is relayed verbatim, only SSE is metered. Billing records come from runner `streamingUsage` via Java workflow.
+- Admin API supports `serviceAccountId` filter but requires Enterprise plan for per-org attribution
+- Token 4-tuple matching (model + input/output/cacheRead/cacheWrite + time window) is a viable reconciliation key
+
+### Design Decisions
+
+- Timestamp + token-tuple reconciliation chosen over per-org service accounts (deferred — needs Enterprise plan)
+- "Be gracious" rule: on collision, absorb as platform cost; never over-charge
+- ContextGauge components kept in code (just not composed) for future native harness wiring
+
 ## Next Steps
 
-1. Plan Phase 5: Admin API reconciliation (MEDIUM priority, depends on Cursor Analytics API maturity)
-2. Consider Phase 3b (manual trigger, transcript access) if user feedback warrants it
+1. **Reconciliation workflow** (Temporal): poll Cursor Admin API `/teams/filtered-usage-events` hourly, store in local ledger, match via token-tuple fingerprint → settle costs from `chargedCents`
+2. Wire DeepAgents summarization events → `status.contextInfo` → re-enable ContextGauge for native harness only
+3. Consider Phase 3b (manual trigger, transcript access) if user feedback warrants it
 3. ~~Consider adding CLI `--mode=plan` flag (independent, not blocking)~~ — **DONE** (Session 8)
 4. ~~Consider "Build from plan" UX flow (Plan → Agent transition button)~~ — **DONE** (Session 7)
 5. ~~Consider `stigmer resume --mode` flag (natural extension — currently mode only applies to `run`/`draft`)~~ — **DONE** (Session 9)
