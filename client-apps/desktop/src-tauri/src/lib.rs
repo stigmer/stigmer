@@ -2,6 +2,7 @@ mod auth;
 mod menu;
 mod runner;
 mod tray;
+mod workspace;
 
 use auth::{AuthCallbackPayload, param};
 use runner::RunnerState;
@@ -46,6 +47,7 @@ pub fn run() {
             runner::remove_workflow_execution,
             runner::update_runner_token,
             runner::runner_status,
+            workspace::list_workspace_files,
         ])
         .on_menu_event(|app, event| menu::handle_menu_event(app, &event))
         .setup(|app| {
