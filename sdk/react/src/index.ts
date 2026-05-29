@@ -305,6 +305,17 @@ export type {
   AttachmentChipListProps,
 } from "./attachment";
 
+// File Reference — workspace file-reference behavior hook and styled chip list
+export {
+  useFileReferences,
+  FileReferenceChipList,
+} from "./file-reference";
+export type {
+  UseFileReferencesReturn,
+  FileReferenceChipListProps,
+} from "./file-reference";
+export { FILE_REF_MIME } from "./internal/file-tree";
+
 // Composer — unified message input with model, workspace, and file attachments
 export {
   useComposer,

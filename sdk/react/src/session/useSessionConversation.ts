@@ -83,6 +83,15 @@ export interface SendFollowUpOptions {
    * - `"plan"`: read-only analysis, no file mutations.
    */
   readonly interactionMode?: "agent" | "plan";
+  /**
+   * Workspace-relative file paths the user wants the agent to focus on.
+   *
+   * Lightweight "attention" signals — no upload, no injection. The agent
+   * reads these files directly from the workspace filesystem.
+   *
+   * @see {@link CreateAgentExecutionInput.workspaceFileRefs}
+   */
+  readonly workspaceFileRefs?: string[];
 }
 
 /**
@@ -373,6 +382,7 @@ export function useSessionConversation(
           runtimeEnv: options?.runtimeEnv,
           attachments: options?.attachments,
           interactionMode: options?.interactionMode,
+          workspaceFileRefs: options?.workspaceFileRefs,
         });
         setPendingExecutionId(result.executionId);
         refetch();
