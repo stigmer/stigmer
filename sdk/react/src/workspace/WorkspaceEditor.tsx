@@ -7,6 +7,8 @@ import { GitHubRepoPicker } from "../github/GitHubRepoPicker";
 import { useScrollShadows } from "../internal/useScrollShadows";
 import { ScrollFade } from "../internal/ScrollFade";
 
+type ActivePanel = "github" | null;
+
 /** Props for {@link WorkspaceEditor}. */
 export interface WorkspaceEditorProps {
   /** Workspace state from {@link useWorkspaceEntries}. */
@@ -28,9 +30,16 @@ export interface WorkspaceEditorProps {
    * button that opens the system folder dialog. Desktop-only enhancement.
    */
   readonly onBrowseLocalFolder?: () => Promise<string | null>;
+  /**
+   * When set, the editor starts with this panel active instead of the
+   * default action-list view. Used to skip the intermediate menu when
+   * only one source type is available and entries are empty.
+   *
+   * Ignored when `workspace.entries.length > 0` (the entry list takes
+   * precedence as the default view in that case).
+   */
+  readonly initialPanel?: ActivePanel;
 }
-
-type ActivePanel = "github" | null;
 
 const TYPE_LABELS: Record<string, string> = {
   git: "GitHub",
@@ -75,11 +84,22 @@ export function WorkspaceEditor({
   enableGitHub = true,
   enableLocal = false,
   onBrowseLocalFolder,
+  initialPanel,
 }: WorkspaceEditorProps) {
-  const [activePanel, setActivePanel] = useState<ActivePanel>(null);
+  const resolvedInitial =
+    initialPanel && workspace.entries.length === 0 ? initialPanel : null;
+  const [activePanel, setActivePanel] = useState<ActivePanel>(resolvedInitial);
   const [manualUrl, setManualUrl] = useState("");
   const [manualBranch, setManualBranch] = useState("");
   const entryList = useScrollShadows();
+
+  useEffect(() => {
+    if (initialPanel && workspace.entries.length === 0) {
+      setActivePanel(initialPanel);
+    } else if (workspace.entries.length > 0) {
+      setActivePanel(null);
+    }
+  }, [initialPanel, workspace.entries.length]);
 
   const canBrowse = enableLocal;
 

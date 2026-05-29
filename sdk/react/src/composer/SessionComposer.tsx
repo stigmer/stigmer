@@ -940,6 +940,29 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   );
 
   const workspaceCount = workspace?.entries.length ?? 0;
+
+  // When only one source type is enabled and no entries exist yet, bypass
+  // the popover entirely (desktop) or auto-drill into the GitHub panel (web).
+  const workspaceDirectAction = useMemo(() => {
+    if (workspaceCount > 0) return undefined;
+    if (enableLocal && !enableGitHub && onBrowseLocalFolder) {
+      return async () => {
+        const path = await onBrowseLocalFolder();
+        if (path) workspace?.addLocalPath(path);
+      };
+    }
+    return undefined;
+  }, [workspaceCount, enableLocal, enableGitHub, onBrowseLocalFolder, workspace]);
+
+  const workspaceInitialPanel = useMemo(
+    () => {
+      if (workspaceCount > 0) return null;
+      if (enableGitHub && !enableLocal) return "github" as const;
+      return null;
+    },
+    [workspaceCount, enableGitHub, enableLocal],
+  );
+
   const mcpCount = showMcp ? Object.keys(mcpSetup.entries).length : 0;
   const skillCount = skillRefs?.length ?? 0;
   const sessionVarCount = sessionVariables?.entries.length ?? 0;
@@ -1261,6 +1284,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
           onSend={composer.submit}
           showWorkspace={showWorkspace}
           workspaceCount={workspaceCount}
+          onWorkspaceDirectAction={workspaceDirectAction}
           workspaceContent={
             workspace
               ? <WorkspaceEditor
@@ -1270,6 +1294,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
                     enableGitHub={enableGitHub}
                     enableLocal={enableLocal}
                     onBrowseLocalFolder={onBrowseLocalFolder}
+                    initialPanel={workspaceInitialPanel}
                   />
               : null
           }
