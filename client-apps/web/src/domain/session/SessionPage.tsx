@@ -4,12 +4,12 @@ import { useState } from "react";
 import {
   SessionViewer,
   useGitHubConnection,
+  useWorkspaceSources,
   useActiveOrgSlug,
   SharePanel,
   PermissionGate,
 } from "@stigmer/react";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { useDeploymentMode } from "@/domain/_shared/hooks/useDeploymentMode";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
 import { Button } from "@/domain/_shared/ui/button";
 import { ThreadSkeleton } from "@stigmer/react";
@@ -22,17 +22,17 @@ export default function SessionPage() {
 
 export function SessionPageInner({ id }: { id: string }) {
   const org = useActiveOrgSlug();
-  const deploymentMode = useDeploymentMode();
   const gitHubConnection = useGitHubConnection(org);
+  const { enableGitHub, enableLocal } = useWorkspaceSources();
 
   return (
-    <div className="flex h-full w-full flex-col pl-[220px]">
+    <div className="flex h-full w-full flex-col">
       <SessionViewer
         sessionId={id}
         org={org}
-        gitHubConnection={gitHubConnection}
-        enableGitHub
-        enableLocal={deploymentMode === "local"}
+        gitHubConnection={enableGitHub ? gitHubConnection : undefined}
+        enableGitHub={enableGitHub}
+        enableLocal={enableLocal}
         headerActions={
           <ShareActions sessionId={id} />
         }
@@ -79,7 +79,7 @@ function ShareActions({ sessionId }: { sessionId: string }) {
 
 export function SessionSkeleton() {
   return (
-    <div className="flex h-full w-full flex-col pl-[220px]">
+    <div className="flex h-full w-full flex-col">
       <ThreadSkeleton className="flex-1 px-0" />
     </div>
   );

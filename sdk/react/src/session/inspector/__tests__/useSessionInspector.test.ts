@@ -25,7 +25,7 @@ function defaultOpts(overrides?: Partial<UseSessionInspectorOptions>): UseSessio
 // ---------------------------------------------------------------------------
 
 describe("buildVisibleTabs", () => {
-  it("always includes Plan and Usage", () => {
+  it("always includes Plan, Usage, and Setup", () => {
     const tabs = buildVisibleTabs({
       hasWriteBacks: false,
       writeBackCount: 0,
@@ -37,6 +37,7 @@ describe("buildVisibleTabs", () => {
     const ids = tabs.map((t) => t.id);
     expect(ids).toContain("plan");
     expect(ids).toContain("usage");
+    expect(ids).toContain("setup");
     expect(ids).not.toContain("changes");
     expect(ids).not.toContain("artifacts");
     expect(ids).not.toContain("inspect");
@@ -81,6 +82,36 @@ describe("buildVisibleTabs", () => {
     });
     const inspectTab = tabs.find((t) => t.id === "inspect");
     expect(inspectTab).toBeDefined();
+  });
+
+  it("places Setup after Usage and before Inspect", () => {
+    const tabs = buildVisibleTabs({
+      hasWriteBacks: true,
+      writeBackCount: 2,
+      hasArtifacts: true,
+      artifactCount: 1,
+      hasUsage: true,
+      selectedItem: { kind: "tool-call", toolCallId: "tc-1" },
+    });
+    const ids = tabs.map((t) => t.id);
+    const usageIdx = ids.indexOf("usage");
+    const setupIdx = ids.indexOf("setup");
+    const inspectIdx = ids.indexOf("inspect");
+    expect(setupIdx).toBeGreaterThan(usageIdx);
+    expect(setupIdx).toBeLessThan(inspectIdx);
+  });
+
+  it("Setup is present even when no optional tabs exist", () => {
+    const tabs = buildVisibleTabs({
+      hasWriteBacks: false,
+      writeBackCount: 0,
+      hasArtifacts: false,
+      artifactCount: 0,
+      hasUsage: false,
+      selectedItem: null,
+    });
+    const ids = tabs.map((t) => t.id);
+    expect(ids).toEqual(["plan", "usage", "setup"]);
   });
 });
 

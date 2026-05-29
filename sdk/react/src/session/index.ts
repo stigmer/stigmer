@@ -100,12 +100,14 @@ export {
   SessionInspector,
   useSessionInspector,
   buildVisibleTabs,
+  SetupTab,
 } from "./inspector";
 export type {
   SessionInspectorProps,
   SessionInspectorTabId,
   UseSessionInspectorOptions,
   UseSessionInspectorReturn,
+  SetupTabProps,
 } from "./inspector";
 
 // Session utilities (re-exported from @stigmer/sdk)

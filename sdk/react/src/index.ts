@@ -62,12 +62,15 @@ export type {
 // Workspace — behavior hooks and styled components
 export {
   useWorkspaceEntries,
+  useWorkspaceSources,
   WorkspaceEditor,
   WorkspaceSummary,
 } from "./workspace";
 export type {
   WorkspaceEntry,
   UseWorkspaceEntriesReturn,
+  UseWorkspaceSourcesOptions,
+  UseWorkspaceSourcesReturn,
   WorkspaceEditorProps,
   WorkspaceSummaryProps,
 } from "./workspace";
@@ -100,6 +103,7 @@ export {
   SessionInspector,
   useSessionInspector,
   buildVisibleTabs,
+  SetupTab,
 } from "./session";
 export type {
   SharedSessionFields,
@@ -138,6 +142,7 @@ export type {
   SessionInspectorTabId,
   UseSessionInspectorOptions,
   UseSessionInspectorReturn,
+  SetupTabProps,
   SelectedThreadItem,
 } from "./session";
 

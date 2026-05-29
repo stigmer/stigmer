@@ -38,6 +38,7 @@ export interface VirtualizedThreadProps {
   readonly filePathCtx: FilePathContextValue;
   readonly sandboxCtx: SandboxContextValue;
   readonly onBuildFromPlan?: () => void;
+  readonly centerContent?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -95,6 +96,7 @@ export function VirtualizedThread({
   filePathCtx,
   sandboxCtx,
   onBuildFromPlan,
+  centerContent,
 }: VirtualizedThreadProps) {
   const virtuosoRef = useRef<VirtuosoHandle>(null);
   const scrollerRef = useRef<HTMLDivElement | null>(null);
@@ -146,7 +148,7 @@ export function VirtualizedThread({
           className="h-full"
           components={{ Scroller: ScrollerWithA11y }}
           itemContent={(index, item) => (
-            <div className="pb-4 pt-0 first:pt-6">
+            <div className={cn("pb-4 pt-0 first:pt-6", centerContent && "mx-auto w-full max-w-3xl px-4")}>
               <ThreadItemWrapper animate={index >= items.length - 2}>
                 <ThreadItemRenderer
                   item={item}

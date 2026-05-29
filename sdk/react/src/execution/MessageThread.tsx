@@ -138,6 +138,18 @@ export interface MessageThreadProps {
    * compatible — existing consumers see no change.
    */
   readonly onBuildFromPlan?: () => void;
+  /**
+   * Center thread content within a max-width reading column.
+   *
+   * When `true`, items are constrained to `max-w-3xl` (768 px) and
+   * horizontally centered. The scroll container stays full-width so
+   * the scrollbar remains at the viewport edge.
+   *
+   * Opt-in per DD-011 — existing consumers see no layout change.
+   *
+   * @default false
+   */
+  readonly centerContent?: boolean;
 }
 
 /**
@@ -437,6 +449,7 @@ export function MessageThread({
   summarizationEvents,
   virtualized = false,
   onBuildFromPlan,
+  centerContent = false,
 }: MessageThreadProps) {
   useRenderTracer("MessageThread", { executions, activeStreamExecution });
 
@@ -473,6 +486,7 @@ export function MessageThread({
             filePathCtx={filePathCtx}
             sandboxCtx={sandboxCtx}
             onBuildFromPlan={onBuildFromPlan}
+            centerContent={centerContent}
           />
         </Suspense>
       </div>
@@ -483,6 +497,7 @@ export function MessageThread({
     <NonVirtualizedThread
       items={items}
       className={className}
+      centerContent={centerContent}
       formatToolCallSummary={formatToolCallSummary}
       onApprovalSubmit={onApprovalSubmit}
       submittingApprovalIds={submittingApprovalIds}
@@ -500,6 +515,7 @@ export function MessageThread({
 interface NonVirtualizedThreadProps {
   readonly items: readonly ThreadItem[];
   readonly className?: string;
+  readonly centerContent?: boolean;
   readonly formatToolCallSummary?: (toolCalls: readonly ToolCall[]) => string;
   readonly onApprovalSubmit?: (
     toolCallId: string,
@@ -515,6 +531,7 @@ interface NonVirtualizedThreadProps {
 function NonVirtualizedThread({
   items,
   className,
+  centerContent,
   formatToolCallSummary,
   onApprovalSubmit,
   submittingApprovalIds,
@@ -545,7 +562,7 @@ function NonVirtualizedThread({
         <SandboxContext.Provider value={sandboxCtx}>
         <FilePathContext.Provider value={filePathCtx}>
         <DevProfiler id="MessageThread">
-          <div ref={contentRef} className="flex flex-col gap-4">
+          <div ref={contentRef} className={cn("flex flex-col gap-4", centerContent && "mx-auto w-full max-w-3xl px-4")}>
             {items.map((item) => (
               <ThreadItemWrapper key={item.key} animate>
                 <ThreadItemRenderer

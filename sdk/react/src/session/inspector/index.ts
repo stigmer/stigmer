@@ -22,3 +22,6 @@ export type { UsageTabProps } from "./UsageTab";
 
 export { InspectTab } from "./InspectTab";
 export type { InspectTabProps } from "./InspectTab";
+
+export { SetupTab } from "./SetupTab";
+export type { SetupTabProps } from "./SetupTab";
