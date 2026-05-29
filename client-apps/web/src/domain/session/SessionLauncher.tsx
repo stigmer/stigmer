@@ -7,6 +7,7 @@ import {
   NewSessionViewer,
   useEditSessionPrep,
   useGitHubConnection,
+  useGitHubTreeLister,
   useWorkspaceSources,
   CREATOR_AGENTS,
   parseDraftParams,
@@ -54,6 +55,7 @@ export function SessionLauncher() {
   const org = useActiveOrgSlug();
   const gitHubConnection = useGitHubConnection(org);
   const { enableGitHub, enableLocal } = useWorkspaceSources();
+  const workspaceFileLister = useGitHubTreeLister(gitHubConnection.token);
   const { navigateToSession } = useSessionNavigation();
 
   // -------------------------------------------------------------------------
@@ -127,6 +129,7 @@ export function SessionLauncher() {
       gitHubConnection={enableGitHub ? gitHubConnection : undefined}
       enableGitHub={enableGitHub}
       enableLocal={enableLocal}
+      workspaceFileLister={workspaceFileLister}
       initialAgentRef={initialAgentRef}
       initialAttachments={editPrep.files}
       heading={heading}

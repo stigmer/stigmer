@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Markdown from "react-markdown";
 import { cn } from "@stigmer/theme";
 import { MARKDOWN_COMPONENTS, REMARK_PLUGINS, stripFrontmatter } from "../internal/markdown-components";
+import { buildFileTree, FileTreeNode } from "../internal/file-tree";
 import { useSkillArtifact } from "./useSkillArtifact";
-import type { SkillFileEntry } from "./useSkillUpload";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -149,80 +149,6 @@ export function SkillFileBrowser({
 }
 
 // ---------------------------------------------------------------------------
-// File tree node
-// ---------------------------------------------------------------------------
-
-interface TreeNode {
-  name: string;
-  path: string;
-  children?: TreeNode[];
-}
-
-function FileTreeNode({
-  node,
-  selectedPath,
-  onSelect,
-  depth,
-}: {
-  readonly node: TreeNode;
-  readonly selectedPath: string;
-  readonly onSelect: (path: string) => void;
-  readonly depth: number;
-}) {
-  const [expanded, setExpanded] = useState(true);
-  const isFolder = !!node.children;
-  const isSelected = node.path === selectedPath;
-
-  const handleClick = useCallback(() => {
-    if (isFolder) {
-      setExpanded((prev) => !prev);
-    } else {
-      onSelect(node.path);
-    }
-  }, [isFolder, node.path, onSelect]);
-
-  return (
-    <li role="treeitem" aria-expanded={isFolder ? expanded : undefined}>
-      <button
-        type="button"
-        onClick={handleClick}
-        className={cn(
-          "flex w-full items-center gap-1.5 px-3 py-1 text-left text-xs transition-colors",
-          "hover:bg-muted",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
-          isSelected && !isFolder && "bg-muted text-foreground font-medium",
-          !isSelected && "text-muted-foreground",
-        )}
-        style={{ paddingLeft: `${12 + depth * 12}px` }}
-        aria-current={isSelected ? "true" : undefined}
-      >
-        {isFolder && (
-          <span className="text-[10px] text-muted-foreground-subtle">
-            {expanded ? "▼" : "▶"}
-          </span>
-        )}
-        <span className={cn("truncate", isFolder && "font-medium text-foreground")}>
-          {node.name}
-        </span>
-      </button>
-      {isFolder && expanded && node.children && (
-        <ul role="group">
-          {node.children.map((child) => (
-            <FileTreeNode
-              key={child.path}
-              node={child}
-              selectedPath={selectedPath}
-              onSelect={onSelect}
-              depth={depth + 1}
-            />
-          ))}
-        </ul>
-      )}
-    </li>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Content viewer
 // ---------------------------------------------------------------------------
 
@@ -250,40 +176,3 @@ function FileContentViewer({
   );
 }
 
-// ---------------------------------------------------------------------------
-// Tree building utility
-// ---------------------------------------------------------------------------
-
-function buildFileTree(files: SkillFileEntry[]): TreeNode[] {
-  const root: TreeNode[] = [];
-
-  const sorted = [...files].sort((a, b) => a.path.localeCompare(b.path));
-
-  for (const file of sorted) {
-    const parts = file.path.split("/");
-
-    if (parts.length === 1) {
-      root.push({ name: parts[0], path: file.path });
-    } else {
-      let currentLevel = root;
-      for (let i = 0; i < parts.length - 1; i++) {
-        const folderName = parts[i];
-        let folder = currentLevel.find(
-          (n) => n.name === folderName && n.children,
-        );
-        if (!folder) {
-          folder = {
-            name: folderName,
-            path: parts.slice(0, i + 1).join("/") + "/",
-            children: [],
-          };
-          currentLevel.push(folder);
-        }
-        currentLevel = folder.children!;
-      }
-      currentLevel.push({ name: parts[parts.length - 1], path: file.path });
-    }
-  }
-
-  return root;
-}

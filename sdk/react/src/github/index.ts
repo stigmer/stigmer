@@ -23,3 +23,6 @@ export {
   GitHubRepoPicker,
   type GitHubRepoPickerProps,
 } from "./GitHubRepoPicker";
+
+export { useGitHubTreeLister } from "./useGitHubTreeLister";
+export { parseGitUrl, type ParsedGitRepo } from "./parseGitUrl";

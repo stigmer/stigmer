@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   SessionViewer,
   useGitHubConnection,
+  useGitHubTreeLister,
   useWorkspaceSources,
   useActiveOrgSlug,
   SharePanel,
@@ -24,6 +25,7 @@ export function SessionPageInner({ id }: { id: string }) {
   const org = useActiveOrgSlug();
   const gitHubConnection = useGitHubConnection(org);
   const { enableGitHub, enableLocal } = useWorkspaceSources();
+  const workspaceFileLister = useGitHubTreeLister(gitHubConnection.token);
 
   return (
     <div className="flex h-full w-full flex-col">
@@ -33,6 +35,7 @@ export function SessionPageInner({ id }: { id: string }) {
         gitHubConnection={enableGitHub ? gitHubConnection : undefined}
         enableGitHub={enableGitHub}
         enableLocal={enableLocal}
+        workspaceFileLister={workspaceFileLister}
         headerActions={
           <ShareActions sessionId={id} />
         }

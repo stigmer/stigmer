@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { cn } from "@stigmer/theme";
 import type { ResourceRef } from "@stigmer/sdk";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection";
+import type { WorkspaceFileLister } from "../workspace/WorkspaceFileLister";
 import type { InteractionModeOption } from "../composer";
 import { SessionComposer } from "../composer";
 import { ResizableSplit } from "../internal/ResizableSplit";
@@ -35,6 +36,13 @@ export interface NewSessionViewerProps {
    * Desktop supplies this via Tauri's dialog plugin.
    */
   readonly onBrowseLocalFolder?: () => Promise<string | null>;
+
+  /**
+   * Platform-injected file lister for workspace entries. When provided,
+   * each entry in the Setup tab's workspace section renders an
+   * expandable file tree. (DD-004 capability injection, DD-011 opt-in.)
+   */
+  readonly workspaceFileLister?: WorkspaceFileLister;
 
   /** Agent to auto-select on mount (used for draft flows). */
   readonly initialAgentRef?: ResourceRef;
@@ -104,6 +112,7 @@ export function NewSessionViewer({
   enableGitHub = true,
   enableLocal = false,
   onBrowseLocalFolder,
+  workspaceFileLister,
   initialAgentRef,
   initialAttachments,
   heading = "What would you like to work on?",
@@ -166,6 +175,7 @@ export function NewSessionViewer({
         enableLocal,
         gitHubConnection,
         onBrowseLocalFolder,
+        workspaceFileLister,
       },
       mutations: {
         onRemoveAgent: flow.agentRef ? handleRemoveAgent : undefined,
@@ -177,7 +187,8 @@ export function NewSessionViewer({
       flow.agentRef, flow.mcpServerUsages, flow.skillRefs,
       flow.sessionVariables, flow.harness, flow.modelId,
       flow.workspace, enableGitHub, enableLocal, gitHubConnection,
-      onBrowseLocalFolder, handleRemoveAgent, handleRemoveMcp, handleRemoveSkill,
+      onBrowseLocalFolder, workspaceFileLister,
+      handleRemoveAgent, handleRemoveMcp, handleRemoveSkill,
     ],
   );
 

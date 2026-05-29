@@ -4,6 +4,7 @@ import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage, type ResourceRef } from "@stigmer/sdk";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection";
+import type { WorkspaceFileLister } from "../workspace/WorkspaceFileLister";
 import type { InteractionModeOption, SessionComposerHandle } from "../composer";
 import type { ApplyResourceResult } from "../library/useApplyResource";
 import { ResizableSplit } from "../internal/ResizableSplit";
@@ -52,6 +53,12 @@ export interface SessionViewerProps {
    * omit it (no native picker available).
    */
   readonly onBrowseLocalFolder?: () => Promise<string | null>;
+  /**
+   * Platform-injected file lister for workspace entries. When provided,
+   * each entry in the Setup tab's workspace section renders an
+   * expandable file tree. (DD-004 capability injection, DD-011 opt-in.)
+   */
+  readonly workspaceFileLister?: WorkspaceFileLister;
   /**
    * Slot for host-injected header actions (e.g., Share button with
    * PermissionGate). Rendered in the top-right corner of the viewer.
@@ -110,6 +117,7 @@ export function SessionViewer({
   enableGitHub = true,
   enableLocal = false,
   onBrowseLocalFolder,
+  workspaceFileLister,
   headerActions,
   onApplied,
   className,
@@ -193,6 +201,7 @@ export function SessionViewer({
               enableLocal={enableLocal}
               gitHubConnection={gitHubConnection}
               onBrowseLocalFolder={onBrowseLocalFolder}
+              workspaceFileLister={workspaceFileLister}
             />
           }
         />
@@ -306,6 +315,7 @@ interface InspectorPanelProps {
   readonly enableLocal: boolean;
   readonly gitHubConnection?: UseGitHubConnectionReturn;
   readonly onBrowseLocalFolder?: () => Promise<string | null>;
+  readonly workspaceFileLister?: WorkspaceFileLister;
 }
 
 function InspectorPanel({
@@ -317,6 +327,7 @@ function InspectorPanel({
   enableLocal,
   gitHubConnection,
   onBrowseLocalFolder,
+  workspaceFileLister,
 }: InspectorPanelProps) {
   const selectedItem = useSelectedThreadItem();
 
@@ -363,6 +374,7 @@ function InspectorPanel({
         enableLocal,
         gitHubConnection,
         onBrowseLocalFolder,
+        workspaceFileLister,
       },
       mutations: {
         onRemoveAgent: flow.isDefaultAgent ? undefined : handleRemoveAgent,
@@ -374,7 +386,7 @@ function InspectorPanel({
       flow.agentRef, flow.isDefaultAgent, flow.mcpServerUsages, flow.skillRefs,
       flow.sessionVariables, flow.harness, flow.executionTarget, flow.model,
       flow.workspace, enableGitHub, enableLocal, gitHubConnection, onBrowseLocalFolder,
-      handleRemoveAgent, handleRemoveMcp, handleRemoveSkill,
+      workspaceFileLister, handleRemoveAgent, handleRemoveMcp, handleRemoveSkill,
     ],
   );
 
