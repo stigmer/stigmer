@@ -12,6 +12,7 @@ import {
 import type { DraftResourceType } from "@stigmer/react";
 import type { ResourceRef } from "@stigmer/sdk";
 import { useNativeFolderPicker } from "../hooks/useNativeFolderPicker";
+import { useNativeWorkspaceFiles } from "../hooks/useNativeWorkspaceFiles";
 
 const DRAFT_PLACEHOLDERS: Record<DraftResourceType, string> = {
   agent:
@@ -46,6 +47,7 @@ export function SessionLauncher() {
   const org = useActiveOrgSlug();
   const browseLocalFolder = useNativeFolderPicker();
   const { enableGitHub, enableLocal } = useWorkspaceSources({ hasLocalPicker: true });
+  const workspaceFileLister = useNativeWorkspaceFiles();
 
   // -------------------------------------------------------------------------
   // Draft param capture
@@ -125,6 +127,7 @@ export function SessionLauncher() {
       enableGitHub={enableGitHub}
       enableLocal={enableLocal}
       onBrowseLocalFolder={browseLocalFolder}
+      workspaceFileLister={workspaceFileLister}
       initialAgentRef={initialAgentRef}
       initialAttachments={editPrep.files}
       heading={heading}
