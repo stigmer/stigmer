@@ -12,3 +12,8 @@ export type {
   RecentWorkspace,
   UseRecentWorkspacesReturn,
 } from "./useRecentWorkspaces";
+export { useWorkspaceSources } from "./useWorkspaceSources";
+export type {
+  UseWorkspaceSourcesOptions,
+  UseWorkspaceSourcesReturn,
+} from "./useWorkspaceSources";

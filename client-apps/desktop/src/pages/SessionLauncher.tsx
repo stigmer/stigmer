@@ -6,13 +6,13 @@ import {
   useNewSessionFlow,
   useEditSessionPrep,
   useActiveOrgSlug,
+  useWorkspaceSources,
   CREATOR_AGENTS,
   parseDraftParams,
 } from "@stigmer/react";
 import type { DraftResourceType, InteractionModeOption } from "@stigmer/react";
 import type { ResourceRef } from "@stigmer/sdk";
 import { useNativeFolderPicker } from "../hooks/useNativeFolderPicker";
-import { useDesktopGitHubConnection } from "../hooks/useDesktopGitHubConnection";
 
 const DRAFT_PLACEHOLDERS: Record<DraftResourceType, string> = {
   agent:
@@ -45,8 +45,8 @@ export function SessionLauncher() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const org = useActiveOrgSlug();
-  const gitHubConnection = useDesktopGitHubConnection(org);
   const browseLocalFolder = useNativeFolderPicker();
+  const { enableGitHub, enableLocal } = useWorkspaceSources({ hasLocalPicker: true });
 
   const draftParams = parseDraftParams(searchParams);
   const liveDraftType = draftParams?.draftType ?? null;
@@ -126,9 +126,8 @@ export function SessionLauncher() {
           isSubmitting={flow.isSubmitting}
           org={org}
           workspace={flow.workspace}
-          gitHubConnection={gitHubConnection}
-          enableGitHub
-          enableLocal
+          enableGitHub={enableGitHub}
+          enableLocal={enableLocal}
           onBrowseLocalFolder={browseLocalFolder}
           agentRef={flow.agentRef}
           onAgentRefChange={flow.setAgentRef}

@@ -8,13 +8,13 @@ import {
   useNewSessionFlow,
   useEditSessionPrep,
   useGitHubConnection,
+  useWorkspaceSources,
   CREATOR_AGENTS,
   parseDraftParams,
   useActiveOrgSlug,
 } from "@stigmer/react";
 import type { DraftResourceType, InteractionModeOption } from "@stigmer/react";
 import type { ResourceRef } from "@stigmer/sdk";
-import { useDeploymentMode } from "@/domain/_shared/hooks/useDeploymentMode";
 import { useSessionNavigation } from "@/domain/session/session-navigation";
 
 const DRAFT_PLACEHOLDERS: Record<DraftResourceType, string> = {
@@ -52,8 +52,8 @@ export function SessionLauncher() {
   const rawSearchParams = useSearchParams();
   const draftParams = parseDraftParams(rawSearchParams);
   const org = useActiveOrgSlug();
-  const deploymentMode = useDeploymentMode();
   const gitHubConnection = useGitHubConnection(org);
+  const { enableGitHub, enableLocal } = useWorkspaceSources();
   const { navigateToSession } = useSessionNavigation();
 
   // -------------------------------------------------------------------------
@@ -139,9 +139,9 @@ export function SessionLauncher() {
           isSubmitting={flow.isSubmitting}
           org={org}
           workspace={flow.workspace}
-          gitHubConnection={gitHubConnection}
-          enableGitHub
-          enableLocal={deploymentMode === "local"}
+          gitHubConnection={enableGitHub ? gitHubConnection : undefined}
+          enableGitHub={enableGitHub}
+          enableLocal={enableLocal}
           agentRef={flow.agentRef}
           onAgentRefChange={flow.setAgentRef}
           onAgentResolutionChange={flow.setResolution}
