@@ -35,16 +35,32 @@ Add timestamps and notes to track your progress.
 - Activity uses 4min StartToClose + 60s heartbeat (not 30s default) due to paginated external API + rate-limit throttle
 - 18 new files, 3 edited files, 5 test classes, 0 regressions
 
-## Task 2: Phase 2 - Matching + settlement (add reconciliation fields to LlmCallUsageRecord proto + regen, MatchAndSettle activity with confidence-scored matching + workspace/day aggregate fallback, wire UsageAggregationService and useSessionUsage isEstimated to settlement state)
+## Task 2: Phase 2 - Proxy-only Cursor billing + settlement scaffolding
 
-**Status**: ⏸️ TODO
+**Status**: 🚧 IN PROGRESS
 **Created**: 2026-05-29 12:13
 
 ### Subtasks
-- [ ] [Add specific steps as you work]
+- [x] Proto: Add UsageSettlementStatus enum, PROVIDER_SETTLED trust level, settlement_status + SettlementLink on LlmCallUsageRecord
+- [x] Proto: Add is_estimated to GetSessionUsageReportOutput and ExecutionUsageSummary
+- [x] Proto: Run make codegen + make protos (both repos)
+- [x] Handler: Change cursor records to PROXY_PROVIDER_REPORTED + BILLING_AUTHORITY + settlement_status=NOT_APPLICABLE
+- [x] Server: Derive is_estimated from settlement_status in UsageAggregationService + report handler
+- [x] SDK: useSessionUsage consumes server is_estimated flag (replaces token-count heuristic)
+- [x] Test: Update RecordLlmCallUsageHandlerTest assertions (PASSING)
+- [ ] **BLOCKED**: Build ConnectUsageExtractor to meter Connect RPC (api2.cursor.sh) traffic at proxy
+- [ ] **BLOCKED**: Remove recordCursorUsage (depends on Connect metering)
+- [ ] Run full integration test suite to verify no regressions
+- [ ] Add TS unit tests for useSessionUsage
+- [ ] Run make check subset in both repos
 
 ### Notes
-- [Add notes about this task here]
+- CRITICAL DISCOVERY: Cursor SDK uses Connect RPC (api2.cursor.sh) for agent loop, NOT SSE (api.cursor.com)
+- Proxy SSE metering (CursorUsageExtractor) only triggers for text/event-stream responses
+- Connect responses are binary protobuf in length-prefixed envelopes — need new extractor
+- recordCursorUsage removal was attempted and reverted because it broke billing (zero records)
+- Proto/display/handler changes are safe and non-breaking — can be committed independently
+- Integration test TestAgentExecution_CursorUsage_FullPipeline passes with recordCursorUsage present
 
 ## Task 3: Phase 3 - Monitoring + hardening (collision/unmatched/delta/poll-lag metrics, alerts, monthly aggregate-vs-invoice check, operational runbook)
 

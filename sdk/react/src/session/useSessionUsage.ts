@@ -117,7 +117,7 @@ function mapReport(report: GetSessionUsageReportOutput): UseSessionUsageReturn {
     primaryModel: agg.primaryModel,
     primaryProvider: agg.primaryProvider,
     hasUsage: llmCallCount > 0 || totalTokens > 0 || billableCost > 0,
-    isEstimated: false,
+    isEstimated: report.isEstimated ?? false,
   };
 }
 
@@ -227,12 +227,10 @@ export function useSessionUsage(
   return useMemo(() => {
     const billingReport = report ? mapReport(report) : EMPTY;
 
-    if (streamingFallback.hasUsage && streamingFallback.totalTokens > billingReport.totalTokens) {
-      return streamingFallback;
-    }
-
+    // Server report available and has data — use it (is_estimated flag is authoritative).
     if (billingReport.hasUsage) return billingReport;
 
+    // No billing report yet (in-flight execution) — fall back to streaming estimate.
     if (streamingFallback.hasUsage) return streamingFallback;
 
     return EMPTY;
