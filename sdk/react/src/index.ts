@@ -96,6 +96,10 @@ export {
   useSessionSearch,
   PENDING_SUBJECT,
   resolvedSubject,
+  SessionViewer,
+  SessionInspector,
+  useSessionInspector,
+  buildVisibleTabs,
 } from "./session";
 export type {
   SharedSessionFields,
@@ -129,6 +133,12 @@ export type {
   DraftParams,
   SessionGroup,
   SearchResultGroup,
+  SessionViewerProps,
+  SessionInspectorProps,
+  SessionInspectorTabId,
+  UseSessionInspectorOptions,
+  UseSessionInspectorReturn,
+  SelectedThreadItem,
 } from "./session";
 
 // Activity — unified recent activity (sessions + workflow executions)

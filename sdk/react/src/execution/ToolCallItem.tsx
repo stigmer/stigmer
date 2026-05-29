@@ -17,6 +17,7 @@ import {
   type ToolCategory,
 } from "./tool-categories";
 import { useSandboxNormalize } from "./SandboxContext";
+import { useThreadSelection } from "./useThreadSelection";
 
 /** Props for {@link ToolCallItem}. */
 export interface ToolCallItemProps {
@@ -80,6 +81,7 @@ export function ToolCallItem({
 
   const normalize = useSandboxNormalize();
   const approvalBadge = getApprovalBadge(toolCall);
+  const selection = useThreadSelection("tool-call", toolCall.id);
 
   // Completed/skipped Read items are non-expandable — the clickable
   // path in the row is the complete information. Failed reads remain
@@ -121,12 +123,34 @@ export function ToolCallItem({
           {duration}
         </span>
       )}
+
+      {selection && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            selection.select();
+          }}
+          className={cn(
+            "shrink-0 rounded p-0.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors",
+            selection.isSelected && "text-primary",
+          )}
+          aria-label="Inspect tool call"
+          aria-pressed={selection.isSelected}
+        >
+          <InspectIcon />
+        </button>
+      )}
     </>
   );
 
   if (isNonExpandableRead) {
     return (
-      <div className={cn("border-b border-border-muted last:border-b-0", className)}>
+      <div className={cn(
+        "border-b border-border-muted last:border-b-0",
+        selection?.isSelected && "ring-1 ring-primary/40 rounded-sm",
+        className,
+      )}>
         <div
           className="flex w-full items-center gap-2 px-2.5 py-1.5 text-xs"
         >
@@ -156,7 +180,11 @@ export function ToolCallItem({
       : primaryArg;
 
   return (
-    <div className={cn("border-b border-border-muted last:border-b-0", className)}>
+    <div className={cn(
+      "border-b border-border-muted last:border-b-0",
+      selection?.isSelected && "ring-1 ring-primary/40 rounded-sm",
+      className,
+    )}>
       <button
         type="button"
         aria-expanded={expanded}
@@ -428,6 +456,15 @@ function DotIcon() {
   return (
     <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor">
       <circle cx="4" cy="4" r="2.5" />
+    </svg>
+  );
+}
+
+function InspectIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="5.5" cy="5.5" r="3.5" />
+      <path d="M8 8L10.5 10.5" />
     </svg>
   );
 }

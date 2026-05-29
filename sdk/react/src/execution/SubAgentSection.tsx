@@ -14,6 +14,7 @@ import { formatDuration } from "./ToolCallDetail";
 import { MessageEntry } from "./MessageEntry";
 import { ToolCallGroup } from "./ToolCallGroup";
 import { isInternalTool } from "./tool-categories";
+import { useThreadSelection } from "./useThreadSelection";
 import {
   TodoList,
   TodoInProgressIcon,
@@ -82,8 +83,13 @@ export const SubAgentSection = memo(function SubAgentSection({
   const StatusIcon = statusInfo.icon;
   const isFailed = sub.status === SubAgentStatus.SUB_AGENT_FAILED;
   const threadItems = buildSubAgentThreadItems(sub.id, sub.messages);
+  const selection = useThreadSelection("sub-agent", sub.id);
 
   const displayLabel = sub.subject || sub.name;
+
+  const selectionClassName = selection?.isSelected
+    ? "ring-1 ring-primary/40"
+    : undefined;
 
   if (!collapsible) {
     return (
@@ -94,7 +100,7 @@ export const SubAgentSection = memo(function SubAgentSection({
         duration={duration}
         isFailed={isFailed}
         threadItems={threadItems}
-        className={className}
+        className={cn(selectionClassName, className)}
       />
     );
   }
@@ -107,7 +113,8 @@ export const SubAgentSection = memo(function SubAgentSection({
       duration={duration}
       isFailed={isFailed}
       threadItems={threadItems}
-      className={className}
+      selection={selection}
+      className={cn(selectionClassName, className)}
     />
   );
 });
@@ -123,6 +130,7 @@ interface CollapsibleCardProps {
   readonly duration: string | null;
   readonly isFailed: boolean;
   readonly threadItems: SubAgentThreadItem[];
+  readonly selection?: { readonly isSelected: boolean; readonly select: () => void } | null;
   readonly className?: string;
 }
 
@@ -133,6 +141,7 @@ function CollapsibleCard({
   duration,
   isFailed,
   threadItems,
+  selection,
   className,
 }: CollapsibleCardProps) {
   const [expanded, setExpanded] = useState(false);
@@ -197,6 +206,23 @@ function CollapsibleCard({
           <span className="shrink-0 tabular-nums text-muted-foreground">
             {duration}
           </span>
+        )}
+        {selection && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              selection.select();
+            }}
+            className={cn(
+              "shrink-0 rounded p-0.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors",
+              selection.isSelected && "text-primary",
+            )}
+            aria-label="Inspect sub-agent"
+            aria-pressed={selection.isSelected}
+          >
+            <SubAgentInspectIcon />
+          </button>
         )}
         <ChevronIcon expanded={expanded} />
       </button>
@@ -550,6 +576,15 @@ function BotIcon() {
       <path d="M8 2V6" />
       <circle cx="8" cy="1.5" r="1" />
       <path d="M0.5 9.5H2M14 9.5H15.5" />
+    </svg>
+  );
+}
+
+function SubAgentInspectIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="5.5" cy="5.5" r="3.5" />
+      <path d="M8 8L10.5 10.5" />
     </svg>
   );
 }

@@ -88,5 +88,25 @@ export type {
   UseSessionSearchReturn,
 } from "./useSessionSearch";
 
+// SessionViewer — full-featured session viewer organism
+export { SessionViewer } from "./SessionViewer";
+export type { SessionViewerProps } from "./SessionViewer";
+
+// Selection types (for platform builders using SessionInspector directly)
+export type { SelectedThreadItem } from "../internal/store/selection-store";
+
+// SessionInspector — tabbed right-side inspector panel
+export {
+  SessionInspector,
+  useSessionInspector,
+  buildVisibleTabs,
+} from "./inspector";
+export type {
+  SessionInspectorProps,
+  SessionInspectorTabId,
+  UseSessionInspectorOptions,
+  UseSessionInspectorReturn,
+} from "./inspector";
+
 // Session utilities (re-exported from @stigmer/sdk)
 export { PENDING_SUBJECT, resolvedSubject } from "@stigmer/sdk";
