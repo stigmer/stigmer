@@ -92,6 +92,10 @@ export type {
 export { SessionViewer } from "./SessionViewer";
 export type { SessionViewerProps } from "./SessionViewer";
 
+// NewSessionViewer — launcher organism with progressive Setup panel
+export { NewSessionViewer } from "./NewSessionViewer";
+export type { NewSessionViewerProps } from "./NewSessionViewer";
+
 // Selection types (for platform builders using SessionInspector directly)
 export type { SelectedThreadItem } from "../internal/store/selection-store";
 
@@ -108,6 +112,8 @@ export type {
   UseSessionInspectorOptions,
   UseSessionInspectorReturn,
   SetupTabProps,
+  SetupTabWorkspaceActions,
+  SetupTabMutationCallbacks,
 } from "./inspector";
 
 // Session utilities (re-exported from @stigmer/sdk)

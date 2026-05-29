@@ -40,9 +40,9 @@ export interface SessionInspectorProps {
   readonly onApplied?: (result: ApplyResourceResult) => void;
   /**
    * Session-level configuration for the Setup tab.
-   * When provided, the Setup facet renders a read-only summary of the
-   * agent, MCP servers, skills, session variables, harness, model,
-   * and execution target.
+   * Includes core config fields and optional interactive workspace
+   * actions / mutation callbacks. When mutation callbacks are absent,
+   * sections render read-only (DD-011 backward compatibility).
    */
   readonly sessionConfig?: SetupTabProps;
   /** Additional CSS classes. */

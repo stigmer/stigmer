@@ -33,14 +33,17 @@ export interface UseSessionInspectorReturn {
 /**
  * Compute the system-suggested tab from execution phase and selection.
  *
- * Mirrors `deriveAutoTab` in `ExecutionInspector.tsx` — Plan is the
- * default while running; switches to relevant facets on events.
+ * Priority:
+ * 1. Thread item selected -> "inspect"
+ * 2. No execution or terminal phase (idle / ready for follow-up) -> "setup"
+ * 3. Actively running -> "plan"
  */
 function deriveAutoTab(
   phase: ExecutionPhase | null,
   selectedItem: SelectedThreadItem | null,
 ): SessionInspectorTabId {
   if (selectedItem) return "inspect";
+  if (phase === null || isTerminalPhase(phase)) return "setup";
   return "plan";
 }
 
@@ -119,7 +122,7 @@ export function useSessionInspector(
       setActiveTab("inspect");
     }
     if (!selectedItem && activeTab === "inspect") {
-      setActiveTab("plan");
+      setActiveTab(deriveAutoTab(phase, null));
       userPickedTabRef.current = false;
     }
   }
@@ -149,7 +152,7 @@ export function useSessionInspector(
   // Ensure active tab is valid (the selected tab may have been removed)
   const effectiveTab = tabs.some((t) => t.id === activeTab)
     ? activeTab
-    : "plan";
+    : deriveAutoTab(phase, selectedItem);
 
   const onTabChange = useCallback((tabId: string) => {
     userPickedTabRef.current = true;

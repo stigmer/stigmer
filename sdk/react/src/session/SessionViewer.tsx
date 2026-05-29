@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import { cn } from "@stigmer/theme";
-import { getUserMessage } from "@stigmer/sdk";
+import { getUserMessage, type ResourceRef } from "@stigmer/sdk";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection";
 import type { InteractionModeOption, SessionComposerHandle } from "../composer";
 import type { ApplyResourceResult } from "../library/useApplyResource";
@@ -189,6 +189,10 @@ export function SessionViewer({
               org={org}
               selectionStore={selectionStore}
               onApplied={onApplied}
+              enableGitHub={enableGitHub}
+              enableLocal={enableLocal}
+              gitHubConnection={gitHubConnection}
+              onBrowseLocalFolder={onBrowseLocalFolder}
             />
           }
         />
@@ -298,10 +302,50 @@ interface InspectorPanelProps {
   readonly org: string;
   readonly selectionStore: SelectionStore;
   readonly onApplied?: (result: ApplyResourceResult) => void;
+  readonly enableGitHub: boolean;
+  readonly enableLocal: boolean;
+  readonly gitHubConnection?: UseGitHubConnectionReturn;
+  readonly onBrowseLocalFolder?: () => Promise<string | null>;
 }
 
-function InspectorPanel({ flow, org, selectionStore, onApplied }: InspectorPanelProps) {
+function InspectorPanel({
+  flow,
+  org,
+  selectionStore,
+  onApplied,
+  enableGitHub,
+  enableLocal,
+  gitHubConnection,
+  onBrowseLocalFolder,
+}: InspectorPanelProps) {
   const selectedItem = useSelectedThreadItem();
+
+  const handleRemoveAgent = useCallback(() => {
+    flow.setAgentRef(null);
+    flow.setResolution(null);
+  }, [flow.setAgentRef, flow.setResolution]);
+
+  const handleRemoveMcp = useCallback(
+    (ref: ResourceRef) => {
+      flow.setMcpServerUsages(
+        flow.mcpServerUsages.filter(
+          (u) => !(u.mcpServerRef.org === ref.org && u.mcpServerRef.slug === ref.slug),
+        ),
+      );
+    },
+    [flow.mcpServerUsages, flow.setMcpServerUsages],
+  );
+
+  const handleRemoveSkill = useCallback(
+    (ref: ResourceRef) => {
+      flow.setSkillRefs(
+        flow.skillRefs.filter(
+          (r) => !(r.org === ref.org && r.slug === ref.slug),
+        ),
+      );
+    },
+    [flow.skillRefs, flow.setSkillRefs],
+  );
 
   const sessionConfig = useMemo(
     () => ({
@@ -313,8 +357,25 @@ function InspectorPanel({ flow, org, selectionStore, onApplied }: InspectorPanel
       harness: flow.harness,
       executionTarget: flow.executionTarget,
       modelId: flow.model[0],
+      workspaceActions: {
+        workspace: flow.workspace,
+        enableGitHub,
+        enableLocal,
+        gitHubConnection,
+        onBrowseLocalFolder,
+      },
+      mutations: {
+        onRemoveAgent: flow.isDefaultAgent ? undefined : handleRemoveAgent,
+        onRemoveMcp: handleRemoveMcp,
+        onRemoveSkill: handleRemoveSkill,
+      },
     }),
-    [flow.agentRef, flow.isDefaultAgent, flow.mcpServerUsages, flow.skillRefs, flow.sessionVariables, flow.harness, flow.executionTarget, flow.model],
+    [
+      flow.agentRef, flow.isDefaultAgent, flow.mcpServerUsages, flow.skillRefs,
+      flow.sessionVariables, flow.harness, flow.executionTarget, flow.model,
+      flow.workspace, enableGitHub, enableLocal, gitHubConnection, onBrowseLocalFolder,
+      handleRemoveAgent, handleRemoveMcp, handleRemoveSkill,
+    ],
   );
 
   return (
