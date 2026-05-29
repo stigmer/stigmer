@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState, type ReactNode } from "react";
+import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection";
@@ -41,6 +41,18 @@ export interface SessionViewerProps {
    */
   readonly enableLocal?: boolean;
   /**
+   * Native folder picker callback for desktop environments.
+   *
+   * When provided alongside `enableLocal`, the composer renders a
+   * "Browse Folder" button that opens the system folder dialog.
+   * Without this callback `enableLocal` alone is not sufficient
+   * for the UI to render the local option.
+   *
+   * Desktop apps supply this via Tauri's dialog plugin. Web apps
+   * omit it (no native picker available).
+   */
+  readonly onBrowseLocalFolder?: () => Promise<string | null>;
+  /**
    * Slot for host-injected header actions (e.g., Share button with
    * PermissionGate). Rendered in the top-right corner of the viewer.
    * Keeps the SDK organism unopinionated about Console auth (DD-004).
@@ -72,11 +84,21 @@ export interface SessionViewerProps {
  *
  * @example
  * ```tsx
+ * // Web (cloud execution)
  * <SessionViewer
  *   sessionId={id}
  *   org={org}
  *   gitHubConnection={gitHubConnection}
- *   enableLocal={deploymentMode === "local"}
+ *   enableGitHub
+ *   headerActions={<ShareButton sessionId={id} />}
+ * />
+ *
+ * // Desktop (local execution with native picker)
+ * <SessionViewer
+ *   sessionId={id}
+ *   org={org}
+ *   enableLocal
+ *   onBrowseLocalFolder={browseLocalFolder}
  *   headerActions={<ShareButton sessionId={id} />}
  * />
  * ```
@@ -87,6 +109,7 @@ export function SessionViewer({
   gitHubConnection,
   enableGitHub = true,
   enableLocal = false,
+  onBrowseLocalFolder,
   headerActions,
   onApplied,
   className,
@@ -156,6 +179,7 @@ export function SessionViewer({
               gitHubConnection={gitHubConnection}
               enableGitHub={enableGitHub}
               enableLocal={enableLocal}
+              onBrowseLocalFolder={onBrowseLocalFolder}
               onBuildFromPlan={handleBuildFromPlan}
             />
           }
@@ -188,6 +212,7 @@ interface ConversationColumnProps {
   readonly gitHubConnection?: UseGitHubConnectionReturn;
   readonly enableGitHub: boolean;
   readonly enableLocal: boolean;
+  readonly onBrowseLocalFolder?: () => Promise<string | null>;
   readonly onBuildFromPlan: () => void;
 }
 
@@ -202,6 +227,7 @@ function ConversationColumn({
   gitHubConnection,
   enableGitHub,
   enableLocal,
+  onBrowseLocalFolder,
   onBuildFromPlan,
 }: ConversationColumnProps) {
   const { conv } = flow;
@@ -217,9 +243,10 @@ function ConversationColumn({
         workspaceEntries={conv.workspaceEntries}
         sandboxWorkspaceRoot={flow.sandboxWorkspaceRoot}
         onBuildFromPlan={onBuildFromPlan}
+        centerContent
         className="flex-1"
       />
-      <div>
+      <div className="mx-auto w-full max-w-3xl">
         {conv.streamError && (
           <StreamErrorBanner
             error={conv.streamError}
@@ -245,6 +272,7 @@ function ConversationColumn({
           gitHubConnection={gitHubConnection}
           enableGitHub={enableGitHub}
           enableLocal={enableLocal}
+          onBrowseLocalFolder={onBrowseLocalFolder}
           agentRef={flow.agentRef}
           onAgentRefChange={flow.setAgentRef}
           onAgentResolutionChange={flow.setResolution}
@@ -275,6 +303,20 @@ interface InspectorPanelProps {
 function InspectorPanel({ flow, org, selectionStore, onApplied }: InspectorPanelProps) {
   const selectedItem = useSelectedThreadItem();
 
+  const sessionConfig = useMemo(
+    () => ({
+      agentRef: flow.agentRef,
+      isDefaultAgent: flow.isDefaultAgent,
+      mcpServerUsages: flow.mcpServerUsages,
+      skillRefs: flow.skillRefs,
+      sessionVariables: flow.sessionVariables,
+      harness: flow.harness,
+      executionTarget: flow.executionTarget,
+      modelId: flow.model[0],
+    }),
+    [flow.agentRef, flow.isDefaultAgent, flow.mcpServerUsages, flow.skillRefs, flow.sessionVariables, flow.harness, flow.executionTarget, flow.model],
+  );
+
   return (
     <aside className="flex h-full flex-col overflow-hidden">
       <SessionInspector
@@ -283,6 +325,7 @@ function InspectorPanel({ flow, org, selectionStore, onApplied }: InspectorPanel
         org={org}
         selectedItem={selectedItem}
         onApplied={onApplied}
+        sessionConfig={sessionConfig}
         className="min-h-0 flex-1"
       />
     </aside>

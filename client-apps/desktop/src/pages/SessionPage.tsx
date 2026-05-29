@@ -3,12 +3,13 @@ import { useState } from "react";
 import {
   SessionViewer,
   useActiveOrgSlug,
+  useWorkspaceSources,
   SharePanel,
   PermissionGate,
   ThreadSkeleton,
 } from "@stigmer/react";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { useDesktopGitHubConnection } from "../hooks/useDesktopGitHubConnection";
+import { useNativeFolderPicker } from "../hooks/useNativeFolderPicker";
 
 export default function SessionPage() {
   const { id } = useParams<{ id: string }>();
@@ -18,16 +19,17 @@ export default function SessionPage() {
 
 function SessionPageInner({ id }: { id: string }) {
   const org = useActiveOrgSlug();
-  const gitHubConnection = useDesktopGitHubConnection(org);
+  const browseLocalFolder = useNativeFolderPicker();
+  const { enableGitHub, enableLocal } = useWorkspaceSources({ hasLocalPicker: true });
 
   return (
-    <div className="flex h-full w-full flex-col pl-[220px]">
+    <div className="flex h-full w-full flex-col">
       <SessionViewer
         sessionId={id}
         org={org}
-        gitHubConnection={gitHubConnection}
-        enableGitHub
-        enableLocal
+        enableGitHub={enableGitHub}
+        enableLocal={enableLocal}
+        onBrowseLocalFolder={browseLocalFolder}
         headerActions={
           <ShareActions sessionId={id} />
         }
@@ -70,7 +72,7 @@ function ShareActions({ sessionId }: { sessionId: string }) {
 
 function SessionSkeleton() {
   return (
-    <div className="flex h-full w-full flex-col pl-[220px]">
+    <div className="flex h-full w-full flex-col">
       <ThreadSkeleton className="flex-1 px-0" />
     </div>
   );

@@ -15,6 +15,7 @@ import { ChangesTab } from "./ChangesTab";
 import { ArtifactsTab } from "./ArtifactsTab";
 import { UsageTab } from "./UsageTab";
 import { InspectTab } from "./InspectTab";
+import { SetupTab, type SetupTabProps } from "./SetupTab";
 import type { SelectedThreadItem } from "../../internal/store/selection-store";
 import type { ApplyResourceResult } from "../../library/useApplyResource";
 
@@ -37,6 +38,13 @@ export interface SessionInspectorProps {
   readonly selectedItem: SelectedThreadItem | null;
   /** Called after a resource is applied from the Artifacts tab. */
   readonly onApplied?: (result: ApplyResourceResult) => void;
+  /**
+   * Session-level configuration for the Setup tab.
+   * When provided, the Setup facet renders a read-only summary of the
+   * agent, MCP servers, skills, session variables, harness, model,
+   * and execution target.
+   */
+  readonly sessionConfig?: SetupTabProps;
   /** Additional CSS classes. */
   readonly className?: string;
 }
@@ -64,6 +72,7 @@ export const SessionInspector = memo(function SessionInspector({
   org,
   selectedItem,
   onApplied,
+  sessionConfig,
   className,
 }: SessionInspectorProps) {
   const phase =
@@ -119,6 +128,9 @@ export const SessionInspector = memo(function SessionInspector({
           )}
           {activeTab === "usage" && (
             <UsageTab executions={allExecutions} />
+          )}
+          {activeTab === "setup" && sessionConfig && (
+            <SetupTab {...sessionConfig} />
           )}
           {activeTab === "inspect" && (
             <InspectTab selectedItem={selectedItem} />

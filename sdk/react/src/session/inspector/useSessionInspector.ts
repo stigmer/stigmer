@@ -11,6 +11,7 @@ export type SessionInspectorTabId =
   | "changes"
   | "artifacts"
   | "usage"
+  | "setup"
   | "inspect";
 
 export interface UseSessionInspectorOptions {
@@ -77,6 +78,8 @@ export function buildVisibleTabs(opts: {
   }
 
   tabs.push({ id: "usage", label: "Usage" });
+
+  tabs.push({ id: "setup", label: "Setup" });
 
   if (opts.selectedItem) {
     tabs.push({ id: "inspect", label: "Inspect" });
