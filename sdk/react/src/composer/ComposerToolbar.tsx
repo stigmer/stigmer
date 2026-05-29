@@ -40,6 +40,13 @@ export interface ComposerToolbarProps {
   readonly workspaceCount: number;
   /** Pre-built workspace editor content for the popover. */
   readonly workspaceContent: React.ReactNode;
+  /**
+   * When provided, clicking the workspace icon invokes this callback
+   * directly instead of opening the popover. Used when there is only
+   * one possible action (e.g. desktop with zero entries → native folder
+   * dialog) so the user skips the redundant intermediate menu.
+   */
+  readonly onWorkspaceDirectAction?: () => void;
 
   readonly showAttach: boolean;
   readonly attachmentCount: number;
@@ -81,6 +88,7 @@ export function ComposerToolbar({
   showWorkspace,
   workspaceCount,
   workspaceContent,
+  onWorkspaceDirectAction,
   configureItems,
   configOpen,
   onConfigOpenChange,
@@ -136,14 +144,36 @@ export function ComposerToolbar({
 
       <div className="flex shrink-0 items-center gap-1">
         {showWorkspace && (
-          <ContextPopover
-            icon={<WorkspaceIcon />}
-            label="Workspace"
-            count={workspaceCount}
-            disabled={disabled}
-          >
-            {workspaceContent}
-          </ContextPopover>
+          onWorkspaceDirectAction
+            ? <button
+                type="button"
+                disabled={disabled}
+                onClick={onWorkspaceDirectAction}
+                title="Workspace"
+                className={cn(
+                  "inline-flex h-8 w-8 items-center justify-center rounded-md text-xs transition-colors",
+                  "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
+                  "disabled:pointer-events-none disabled:opacity-50",
+                )}
+                aria-label="Workspace"
+              >
+                <span className="relative">
+                  <WorkspaceIcon />
+                  {workspaceCount > 0 && (
+                    <span className="absolute -right-1.5 -top-1.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-primary px-0.5 text-[0.5rem] font-medium leading-none text-primary-foreground">
+                      {workspaceCount}
+                    </span>
+                  )}
+                </span>
+              </button>
+            : <ContextPopover
+                icon={<WorkspaceIcon />}
+                label="Workspace"
+                count={workspaceCount}
+                disabled={disabled}
+              >
+                {workspaceContent}
+              </ContextPopover>
         )}
 
         {showAttach && (
