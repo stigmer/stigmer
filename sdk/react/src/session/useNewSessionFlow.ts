@@ -262,6 +262,7 @@ export function useNewSessionFlow(
           runtimeEnv: context?.runtimeEnv,
           attachments: context?.attachments,
           interactionMode: context?.interactionMode,
+          workspaceFileRefs: context?.workspaceFileRefs,
         };
 
         let sessionId: string;

@@ -117,6 +117,7 @@ export function WorkspaceEntryFiles({
               selectedPath={selectedPath}
               onSelect={setSelectedPath}
               depth={0}
+              enableDrag
             />
           ))}
         </ul>

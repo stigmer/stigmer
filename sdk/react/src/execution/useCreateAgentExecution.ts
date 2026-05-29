@@ -69,6 +69,14 @@ export interface CreateAgentExecutionInput {
    * The validated data is returned in `execution.status.structuredOutput`.
    */
   readonly structuredOutputSchema?: JsonObject;
+  /**
+   * Workspace-relative file paths the user wants the agent to focus on.
+   *
+   * These are lightweight "attention" signals — the agent reads the files
+   * directly from the workspace filesystem. No upload, no injection.
+   * Populated by the drag-to-reference feature in SessionComposer.
+   */
+  readonly workspaceFileRefs?: string[];
 }
 
 /** Resolved output of {@link UseCreateAgentExecutionReturn.create}. */
@@ -168,6 +176,7 @@ export function useCreateAgentExecution(): UseCreateAgentExecutionReturn {
           executionConfig,
           runtimeEnv: input.runtimeEnv,
           attachments: input.attachments,
+          workspaceFileRefs: input.workspaceFileRefs,
         });
 
         return {

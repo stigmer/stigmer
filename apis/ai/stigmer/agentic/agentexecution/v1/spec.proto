@@ -201,17 +201,21 @@ message AgentExecutionSpec {
 
   // Workspace-relative file paths the user wants the agent to focus on.
   //
-  // When users attach files that already exist inside the session's workspace,
-  // the CLI skips the upload/injection flow and records the workspace-relative
-  // path here instead. The agent accesses these files directly via the
-  // workspace filesystem -- no upload, no copy, no injection.
+  // When users reference files that exist inside the session's workspace,
+  // the client records the workspace-relative path here instead of uploading.
+  // The agent accesses these files directly via the workspace filesystem --
+  // no upload, no copy, no injection.
   //
   // This separates the "attention" signal ("look at this file") from the
   // "transport" mechanism (upload + inject) that regular attachments use.
   //
-  // Valid only when the session has a workspace entry with a local path source.
-  // For git workspaces or sessions without workspace entries, all files go
-  // through the regular attachment flow.
+  // Works for any workspace type with a resolvable filesystem post-provisioning
+  // (local-path workspaces, git-cloned workspaces, or any future source type).
+  // The runner resolves paths after workspace provisioning regardless of source.
+  //
+  // Populated by:
+  //   - CLI: detects --attach paths inside workspace roots automatically
+  //   - Web/Desktop: drag-to-reference from workspace file tree to composer
   //
   // Example CLI usage:
   //   stigmer run agent reviewer --workspace . --attach ./src/config.yaml -m "Review"
