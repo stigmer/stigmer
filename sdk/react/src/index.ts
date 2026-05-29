@@ -62,13 +62,20 @@ export type {
 // Workspace — behavior hooks and styled components
 export {
   useWorkspaceEntries,
+  useWorkspaceFiles,
   useWorkspaceSources,
   WorkspaceEditor,
+  WorkspaceEntryFiles,
   WorkspaceSummary,
 } from "./workspace";
 export type {
   WorkspaceEntry,
+  WorkspaceFileEntry,
+  WorkspaceFileLister,
   UseWorkspaceEntriesReturn,
+  UseWorkspaceFilesOptions,
+  UseWorkspaceFilesReturn,
+  WorkspaceEntryFilesProps,
   UseWorkspaceSourcesOptions,
   UseWorkspaceSourcesReturn,
   WorkspaceEditorProps,
@@ -419,11 +426,13 @@ export type {
   SkillFileBrowserProps,
 } from "./skill";
 
-// GitHub — OAuth connection, repo picker, and hooks
+// GitHub — OAuth connection, repo picker, tree lister, and hooks
 export {
   useGitHubConnection,
   useGitHubRepos,
   useGitHubSearch,
+  useGitHubTreeLister,
+  parseGitUrl,
   GitHubRepoPicker,
   GITHUB_CALLBACK_MESSAGE_TYPE,
 } from "./github";
@@ -437,6 +446,7 @@ export type {
   UseGitHubReposReturn,
   UseGitHubSearchReturn,
   GitHubRepoPickerProps,
+  ParsedGitRepo,
 } from "./github";
 
 // Agent — data hook, count hook, list hook, search hook, picker, detail view, env form, setup orchestration, env diffing, default agent, creation wizard, update

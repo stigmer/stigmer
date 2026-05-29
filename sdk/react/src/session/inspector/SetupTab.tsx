@@ -1,12 +1,15 @@
 "use client";
 
 import type { McpServerUsageInput, ResourceRef } from "@stigmer/sdk";
+import { useCallback, useState } from "react";
 import { cn } from "@stigmer/theme";
 import type { HarnessOption } from "../../models/harness";
 import { HARNESS_META } from "../../models/harness";
 import type { ExecutionTargetOption } from "../execution-target";
 import type { UseSessionVariablesReturn } from "../../execution/useSessionVariables";
-import type { UseWorkspaceEntriesReturn } from "../../workspace/useWorkspaceEntries";
+import type { UseWorkspaceEntriesReturn, WorkspaceEntry } from "../../workspace/useWorkspaceEntries";
+import type { WorkspaceFileLister } from "../../workspace/WorkspaceFileLister";
+import { WorkspaceEntryFiles } from "../../workspace/WorkspaceEntryFiles";
 import type { UseGitHubConnectionReturn } from "../../github/useGitHubConnection";
 
 // ---------------------------------------------------------------------------
@@ -26,6 +29,12 @@ export interface SetupTabWorkspaceActions {
   readonly gitHubConnection?: UseGitHubConnectionReturn;
   /** Native folder picker callback for desktop environments. */
   readonly onBrowseLocalFolder?: () => Promise<string | null>;
+  /**
+   * Platform-injected callback that lists files in a workspace entry.
+   * When provided, each workspace entry renders an expandable file tree.
+   * When absent, entries render as simple rows (DD-011 opt-in).
+   */
+  readonly workspaceFileLister?: WorkspaceFileLister;
 }
 
 /** Interactive mutation callbacks for config items in SetupTab. */
@@ -169,7 +178,13 @@ function RemoveButton({ onClick, label }: { onClick: () => void; label: string }
 // ---------------------------------------------------------------------------
 
 function WorkspaceSection({ actions }: { actions: SetupTabWorkspaceActions }) {
-  const { workspace, enableGitHub = true, enableLocal = false, onBrowseLocalFolder } = actions;
+  const {
+    workspace,
+    enableGitHub = true,
+    enableLocal = false,
+    onBrowseLocalFolder,
+    workspaceFileLister,
+  } = actions;
   const canBrowse = enableLocal && onBrowseLocalFolder;
 
   return (
@@ -182,37 +197,11 @@ function WorkspaceSection({ actions }: { actions: SetupTabWorkspaceActions }) {
       </SectionHeading>
 
       {workspace.entries.length > 0 && (
-        <div className="flex flex-col gap-1">
-          {workspace.entries.map((entry) => (
-            <div
-              key={entry.id}
-              className="flex items-center gap-2 rounded-md border border-border bg-muted-faint px-2.5 py-1.5 text-xs"
-            >
-              {entry.type === "git" ? (
-                <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[0.65rem] text-muted-foreground">
-                  GitHub
-                </span>
-              ) : (
-                <span className="shrink-0 text-muted-foreground">
-                  <FolderIcon />
-                </span>
-              )}
-              <span
-                className={cn(
-                  "min-w-0 flex-1 truncate text-foreground",
-                  entry.type === "local" && "[direction:rtl] text-left",
-                )}
-                title={entry.name}
-              >
-                <bdi>{entry.name}</bdi>
-              </span>
-              <RemoveButton
-                onClick={() => workspace.remove(entry.id)}
-                label={`Remove ${entry.name}`}
-              />
-            </div>
-          ))}
-        </div>
+        <WorkspaceEntryList
+          entries={workspace.entries}
+          onRemove={workspace.remove}
+          lister={workspaceFileLister}
+        />
       )}
 
       <div className="flex flex-col gap-0.5">
@@ -250,6 +239,92 @@ function WorkspaceSection({ actions }: { actions: SetupTabWorkspaceActions }) {
         <EmptyHint>No workspace attached.</EmptyHint>
       )}
     </section>
+  );
+}
+
+/**
+ * Accordion-style entry list. Only one entry can be expanded at a time
+ * to keep vertical space bounded. When no lister is provided, entries
+ * render as flat rows (no expand affordance).
+ */
+function WorkspaceEntryList({
+  entries,
+  onRemove,
+  lister,
+}: {
+  readonly entries: readonly WorkspaceEntry[];
+  readonly onRemove: (id: string) => void;
+  readonly lister: WorkspaceFileLister | undefined;
+}) {
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const toggleExpand = useCallback((id: string) => {
+    setExpandedId((prev) => (prev === id ? null : id));
+  }, []);
+
+  return (
+    <div className="flex flex-col gap-1">
+      {entries.map((entry) => {
+        const isExpandable = !!lister;
+        const isExpanded = expandedId === entry.id;
+
+        return (
+          <div key={entry.id} className="flex flex-col">
+            <div
+              className={cn(
+                "flex items-center gap-2 rounded-md border border-border bg-muted-faint px-2.5 py-1.5 text-xs",
+                isExpandable && "cursor-pointer hover:bg-muted transition-colors",
+              )}
+              onClick={isExpandable ? () => toggleExpand(entry.id) : undefined}
+              role={isExpandable ? "button" : undefined}
+              aria-expanded={isExpandable ? isExpanded : undefined}
+              tabIndex={isExpandable ? 0 : undefined}
+              onKeyDown={isExpandable ? (e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  toggleExpand(entry.id);
+                }
+              } : undefined}
+            >
+              {isExpandable && (
+                <span className="shrink-0 text-[10px] text-muted-foreground-subtle">
+                  {isExpanded ? "▼" : "▶"}
+                </span>
+              )}
+              {entry.type === "git" ? (
+                <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[0.65rem] text-muted-foreground">
+                  GitHub
+                </span>
+              ) : (
+                <span className="shrink-0 text-muted-foreground">
+                  <FolderIcon />
+                </span>
+              )}
+              <span
+                className={cn(
+                  "min-w-0 flex-1 truncate text-foreground",
+                  entry.type === "local" && "[direction:rtl] text-left",
+                )}
+                title={entry.name}
+              >
+                <bdi>{entry.name}</bdi>
+              </span>
+              <RemoveButton
+                onClick={() => onRemove(entry.id)}
+                label={`Remove ${entry.name}`}
+              />
+            </div>
+            {isExpandable && lister && (
+              <WorkspaceEntryFiles
+                entry={entry}
+                lister={lister}
+                isExpanded={isExpanded}
+              />
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
