@@ -181,14 +181,17 @@ func TestAgentExecution_Billing_NoCreditsBlocked(t *testing.T) {
 			testCtx, testCancel := harness.TestContext(t, 3*time.Minute)
 			defer testCancel()
 
-			agent := harness.CreateAgent(t, testCtx, clients, "test-no-credits-"+h.Name,
-				"You are a helpful assistant. Respond briefly.")
+			agent := harness.CreateAgentFull(t, testCtx, clients, "test-no-credits-"+h.Name,
+				"You are a helpful assistant. Respond briefly.",
+				nil, []harness.AgentCreateOption{harness.WithAgentOrg(noCreditsOrg)})
 
-			session := harness.CreateTestSession(t, testCtx, clients,
-				agent.GetStatus().GetDefaultInstanceId(), h.Harness)
+			session := harness.CreateTestSessionWithOrg(t, testCtx, clients,
+				agent.GetStatus().GetDefaultInstanceId(), h.Harness,
+				[]harness.SessionResourceOption{harness.WithSessionOrg(noCreditsOrg)})
 
-			exec := harness.CreateTestAgentExecution(t, testCtx, clients,
-				session.GetMetadata().GetId(), "Reply with exactly: hello")
+			exec := harness.CreateTestAgentExecutionWithOrg(t, testCtx, clients,
+				session.GetMetadata().GetId(), "Reply with exactly: hello",
+				[]harness.ExecutionResourceOption{harness.WithExecutionOrg(noCreditsOrg)})
 
 			waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
 			result, err := waiter.WaitForTerminal(testCtx, exec.GetMetadata().GetId(), 2*time.Minute)
