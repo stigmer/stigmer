@@ -378,6 +378,22 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int IS_ESTIMATED_FIELD_NUMBER = 8;
+  private boolean isEstimated_ = false;
+  /**
+   * <pre>
+   * Whether any record in this session is still estimated (not yet settled).
+   * False when all records are proxy-metered (BILLING_AUTHORITY) or reconciled.
+   * </pre>
+   *
+   * <code>bool is_estimated = 8 [json_name = "isEstimated"];</code>
+   * @return The isEstimated.
+   */
+  @java.lang.Override
+  public boolean getIsEstimated() {
+    return isEstimated_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -412,6 +428,9 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(lastExecutionAt_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 7, lastExecutionAt_);
+    }
+    if (isEstimated_ != false) {
+      output.writeBool(8, isEstimated_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -457,6 +476,10 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(lastExecutionAt_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(7, lastExecutionAt_);
     }
+    if (isEstimated_ != false) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBoolSize(8, isEstimated_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -489,6 +512,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getFirstExecutionAt())) return false;
     if (!getLastExecutionAt()
         .equals(other.getLastExecutionAt())) return false;
+    if (getIsEstimated()
+        != other.getIsEstimated()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -520,6 +545,9 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getFirstExecutionAt().hashCode();
     hash = (37 * hash) + LAST_EXECUTION_AT_FIELD_NUMBER;
     hash = (53 * hash) + getLastExecutionAt().hashCode();
+    hash = (37 * hash) + IS_ESTIMATED_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+        getIsEstimated());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -690,6 +718,7 @@ private static final long serialVersionUID = 0L;
       bitField0_ = (bitField0_ & ~0x00000010);
       firstExecutionAt_ = "";
       lastExecutionAt_ = "";
+      isEstimated_ = false;
       return this;
     }
 
@@ -763,6 +792,9 @@ private static final long serialVersionUID = 0L;
       }
       if (((from_bitField0_ & 0x00000040) != 0)) {
         result.lastExecutionAt_ = lastExecutionAt_;
+      }
+      if (((from_bitField0_ & 0x00000080) != 0)) {
+        result.isEstimated_ = isEstimated_;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -852,6 +884,9 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000040;
         onChanged();
       }
+      if (other.getIsEstimated() != false) {
+        setIsEstimated(other.getIsEstimated());
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -931,6 +966,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000040;
               break;
             } // case 58
+            case 64: {
+              isEstimated_ = input.readBool();
+              bitField0_ |= 0x00000080;
+              break;
+            } // case 64
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2045,6 +2085,53 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       lastExecutionAt_ = value;
       bitField0_ |= 0x00000040;
+      onChanged();
+      return this;
+    }
+
+    private boolean isEstimated_ ;
+    /**
+     * <pre>
+     * Whether any record in this session is still estimated (not yet settled).
+     * False when all records are proxy-metered (BILLING_AUTHORITY) or reconciled.
+     * </pre>
+     *
+     * <code>bool is_estimated = 8 [json_name = "isEstimated"];</code>
+     * @return The isEstimated.
+     */
+    @java.lang.Override
+    public boolean getIsEstimated() {
+      return isEstimated_;
+    }
+    /**
+     * <pre>
+     * Whether any record in this session is still estimated (not yet settled).
+     * False when all records are proxy-metered (BILLING_AUTHORITY) or reconciled.
+     * </pre>
+     *
+     * <code>bool is_estimated = 8 [json_name = "isEstimated"];</code>
+     * @param value The isEstimated to set.
+     * @return This builder for chaining.
+     */
+    public Builder setIsEstimated(boolean value) {
+
+      isEstimated_ = value;
+      bitField0_ |= 0x00000080;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Whether any record in this session is still estimated (not yet settled).
+     * False when all records are proxy-metered (BILLING_AUTHORITY) or reconciled.
+     * </pre>
+     *
+     * <code>bool is_estimated = 8 [json_name = "isEstimated"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearIsEstimated() {
+      bitField0_ = (bitField0_ & ~0x00000080);
+      isEstimated_ = false;
       onChanged();
       return this;
     }

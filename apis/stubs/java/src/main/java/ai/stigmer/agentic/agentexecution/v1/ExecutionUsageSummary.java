@@ -346,6 +346,21 @@ private static final long serialVersionUID = 0L;
     return result == null ? ai.stigmer.agentic.agentexecution.v1.ExecutionPhase.UNRECOGNIZED : result;
   }
 
+  public static final int IS_ESTIMATED_FIELD_NUMBER = 11;
+  private boolean isEstimated_ = false;
+  /**
+   * <pre>
+   * Whether this execution's cost is estimated (not yet proxy-metered or reconciled).
+   * </pre>
+   *
+   * <code>bool is_estimated = 11 [json_name = "isEstimated"];</code>
+   * @return The isEstimated.
+   */
+  @java.lang.Override
+  public boolean getIsEstimated() {
+    return isEstimated_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -389,6 +404,9 @@ private static final long serialVersionUID = 0L;
     }
     if (phase_ != ai.stigmer.agentic.agentexecution.v1.ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED.getNumber()) {
       output.writeEnum(10, phase_);
+    }
+    if (isEstimated_ != false) {
+      output.writeBool(11, isEstimated_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -435,6 +453,10 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(10, phase_);
     }
+    if (isEstimated_ != false) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBoolSize(11, isEstimated_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -469,6 +491,8 @@ private static final long serialVersionUID = 0L;
     if (getSubAgentCount()
         != other.getSubAgentCount()) return false;
     if (phase_ != other.phase_) return false;
+    if (getIsEstimated()
+        != other.getIsEstimated()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -504,6 +528,9 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getSubAgentCount();
     hash = (37 * hash) + PHASE_FIELD_NUMBER;
     hash = (53 * hash) + phase_;
+    hash = (37 * hash) + IS_ESTIMATED_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+        getIsEstimated());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -649,6 +676,7 @@ private static final long serialVersionUID = 0L;
       primaryModel_ = "";
       subAgentCount_ = 0;
       phase_ = 0;
+      isEstimated_ = false;
       return this;
     }
 
@@ -712,6 +740,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000200) != 0)) {
         result.phase_ = phase_;
       }
+      if (((from_bitField0_ & 0x00000400) != 0)) {
+        result.isEstimated_ = isEstimated_;
+      }
     }
 
     @java.lang.Override
@@ -763,6 +794,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.phase_ != 0) {
         setPhaseValue(other.getPhaseValue());
+      }
+      if (other.getIsEstimated() != false) {
+        setIsEstimated(other.getIsEstimated());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -840,6 +874,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000200;
               break;
             } // case 80
+            case 88: {
+              isEstimated_ = input.readBool();
+              bitField0_ |= 0x00000400;
+              break;
+            } // case 88
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1513,6 +1552,50 @@ private static final long serialVersionUID = 0L;
     public Builder clearPhase() {
       bitField0_ = (bitField0_ & ~0x00000200);
       phase_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private boolean isEstimated_ ;
+    /**
+     * <pre>
+     * Whether this execution's cost is estimated (not yet proxy-metered or reconciled).
+     * </pre>
+     *
+     * <code>bool is_estimated = 11 [json_name = "isEstimated"];</code>
+     * @return The isEstimated.
+     */
+    @java.lang.Override
+    public boolean getIsEstimated() {
+      return isEstimated_;
+    }
+    /**
+     * <pre>
+     * Whether this execution's cost is estimated (not yet proxy-metered or reconciled).
+     * </pre>
+     *
+     * <code>bool is_estimated = 11 [json_name = "isEstimated"];</code>
+     * @param value The isEstimated to set.
+     * @return This builder for chaining.
+     */
+    public Builder setIsEstimated(boolean value) {
+
+      isEstimated_ = value;
+      bitField0_ |= 0x00000400;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Whether this execution's cost is estimated (not yet proxy-metered or reconciled).
+     * </pre>
+     *
+     * <code>bool is_estimated = 11 [json_name = "isEstimated"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearIsEstimated() {
+      bitField0_ = (bitField0_ & ~0x00000400);
+      isEstimated_ = false;
       onChanged();
       return this;
     }

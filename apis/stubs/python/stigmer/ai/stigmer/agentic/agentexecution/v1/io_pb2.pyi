@@ -216,7 +216,7 @@ class GetSessionUsageReportInput(_message.Message):
     def __init__(self, session_id: _Optional[str] = ...) -> None: ...
 
 class GetSessionUsageReportOutput(_message.Message):
-    __slots__ = ("session_id", "execution_count", "total_usage", "executions", "model_breakdown", "first_execution_at", "last_execution_at")
+    __slots__ = ("session_id", "execution_count", "total_usage", "executions", "model_breakdown", "first_execution_at", "last_execution_at", "is_estimated")
     SESSION_ID_FIELD_NUMBER: _ClassVar[int]
     EXECUTION_COUNT_FIELD_NUMBER: _ClassVar[int]
     TOTAL_USAGE_FIELD_NUMBER: _ClassVar[int]
@@ -224,6 +224,7 @@ class GetSessionUsageReportOutput(_message.Message):
     MODEL_BREAKDOWN_FIELD_NUMBER: _ClassVar[int]
     FIRST_EXECUTION_AT_FIELD_NUMBER: _ClassVar[int]
     LAST_EXECUTION_AT_FIELD_NUMBER: _ClassVar[int]
+    IS_ESTIMATED_FIELD_NUMBER: _ClassVar[int]
     session_id: str
     execution_count: int
     total_usage: _usage_pb2.UsageReportAggregate
@@ -231,7 +232,8 @@ class GetSessionUsageReportOutput(_message.Message):
     model_breakdown: _containers.RepeatedCompositeFieldContainer[_usage_pb2.ModelUsage]
     first_execution_at: str
     last_execution_at: str
-    def __init__(self, session_id: _Optional[str] = ..., execution_count: _Optional[int] = ..., total_usage: _Optional[_Union[_usage_pb2.UsageReportAggregate, _Mapping]] = ..., executions: _Optional[_Iterable[_Union[ExecutionUsageSummary, _Mapping]]] = ..., model_breakdown: _Optional[_Iterable[_Union[_usage_pb2.ModelUsage, _Mapping]]] = ..., first_execution_at: _Optional[str] = ..., last_execution_at: _Optional[str] = ...) -> None: ...
+    is_estimated: bool
+    def __init__(self, session_id: _Optional[str] = ..., execution_count: _Optional[int] = ..., total_usage: _Optional[_Union[_usage_pb2.UsageReportAggregate, _Mapping]] = ..., executions: _Optional[_Iterable[_Union[ExecutionUsageSummary, _Mapping]]] = ..., model_breakdown: _Optional[_Iterable[_Union[_usage_pb2.ModelUsage, _Mapping]]] = ..., first_execution_at: _Optional[str] = ..., last_execution_at: _Optional[str] = ..., is_estimated: bool = ...) -> None: ...
 
 class GetAgentUsageReportInput(_message.Message):
     __slots__ = ("agent_id", "from_date", "to_date", "page_size", "page_token")
@@ -302,7 +304,7 @@ class GetOrgUsageReportOutput(_message.Message):
     def __init__(self, org_id: _Optional[str] = ..., total_agents: _Optional[int] = ..., total_sessions: _Optional[int] = ..., total_executions: _Optional[int] = ..., total_billable_cost_micros: _Optional[int] = ..., model_breakdown: _Optional[_Iterable[_Union[_usage_pb2.ModelUsage, _Mapping]]] = ..., top_agents_by_cost: _Optional[_Iterable[_Union[AgentUsageSummary, _Mapping]]] = ..., daily_costs: _Optional[_Iterable[_Union[DailyCostEntry, _Mapping]]] = ..., harness_breakdown: _Optional[_Iterable[_Union[HarnessCostSummary, _Mapping]]] = ...) -> None: ...
 
 class ExecutionUsageSummary(_message.Message):
-    __slots__ = ("execution_id", "started_at", "completed_at", "input_tokens", "output_tokens", "cache_read_input_tokens", "billable_cost_micros", "primary_model", "sub_agent_count", "phase")
+    __slots__ = ("execution_id", "started_at", "completed_at", "input_tokens", "output_tokens", "cache_read_input_tokens", "billable_cost_micros", "primary_model", "sub_agent_count", "phase", "is_estimated")
     EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
     STARTED_AT_FIELD_NUMBER: _ClassVar[int]
     COMPLETED_AT_FIELD_NUMBER: _ClassVar[int]
@@ -313,6 +315,7 @@ class ExecutionUsageSummary(_message.Message):
     PRIMARY_MODEL_FIELD_NUMBER: _ClassVar[int]
     SUB_AGENT_COUNT_FIELD_NUMBER: _ClassVar[int]
     PHASE_FIELD_NUMBER: _ClassVar[int]
+    IS_ESTIMATED_FIELD_NUMBER: _ClassVar[int]
     execution_id: str
     started_at: str
     completed_at: str
@@ -323,7 +326,8 @@ class ExecutionUsageSummary(_message.Message):
     primary_model: str
     sub_agent_count: int
     phase: _enum_pb2.ExecutionPhase
-    def __init__(self, execution_id: _Optional[str] = ..., started_at: _Optional[str] = ..., completed_at: _Optional[str] = ..., input_tokens: _Optional[int] = ..., output_tokens: _Optional[int] = ..., cache_read_input_tokens: _Optional[int] = ..., billable_cost_micros: _Optional[int] = ..., primary_model: _Optional[str] = ..., sub_agent_count: _Optional[int] = ..., phase: _Optional[_Union[_enum_pb2.ExecutionPhase, str]] = ...) -> None: ...
+    is_estimated: bool
+    def __init__(self, execution_id: _Optional[str] = ..., started_at: _Optional[str] = ..., completed_at: _Optional[str] = ..., input_tokens: _Optional[int] = ..., output_tokens: _Optional[int] = ..., cache_read_input_tokens: _Optional[int] = ..., billable_cost_micros: _Optional[int] = ..., primary_model: _Optional[str] = ..., sub_agent_count: _Optional[int] = ..., phase: _Optional[_Union[_enum_pb2.ExecutionPhase, str]] = ..., is_estimated: bool = ...) -> None: ...
 
 class SessionUsageSummary(_message.Message):
     __slots__ = ("session_id", "execution_count", "total_tokens", "billable_cost_micros", "first_execution_at", "last_execution_at")

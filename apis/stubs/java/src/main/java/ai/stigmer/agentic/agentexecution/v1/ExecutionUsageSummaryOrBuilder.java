@@ -158,4 +158,14 @@ public interface ExecutionUsageSummaryOrBuilder extends
    * @return The phase.
    */
   ai.stigmer.agentic.agentexecution.v1.ExecutionPhase getPhase();
+
+  /**
+   * <pre>
+   * Whether this execution's cost is estimated (not yet proxy-metered or reconciled).
+   * </pre>
+   *
+   * <code>bool is_estimated = 11 [json_name = "isEstimated"];</code>
+   * @return The isEstimated.
+   */
+  boolean getIsEstimated();
 }
