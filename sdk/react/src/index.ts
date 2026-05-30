@@ -152,7 +152,6 @@ export type {
   UseSessionInspectorOptions,
   UseSessionInspectorReturn,
   SetupTabProps,
-  SetupTabWorkspaceActions,
   SetupTabMutationCallbacks,
   SelectedThreadItem,
 } from "./session";

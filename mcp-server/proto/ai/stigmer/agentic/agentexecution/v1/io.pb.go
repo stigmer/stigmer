@@ -1928,8 +1928,9 @@ type GetSessionUsageReportOutput struct {
 	FirstExecutionAt string `protobuf:"bytes,6,opt,name=first_execution_at,json=firstExecutionAt,proto3" json:"first_execution_at,omitempty"`
 	// ISO 8601 timestamp of the most recent execution in this session.
 	LastExecutionAt string `protobuf:"bytes,7,opt,name=last_execution_at,json=lastExecutionAt,proto3" json:"last_execution_at,omitempty"`
-	// Whether any record in this session is still estimated (not yet settled).
-	// False when all records are proxy-metered (BILLING_AUTHORITY) or reconciled.
+	// Whether any record in this session is still estimated (not yet proxy-metered).
+	// True when execution is in-flight and only streaming usage data is available.
+	// False once proxy billing records have been written.
 	IsEstimated   bool `protobuf:"varint,8,opt,name=is_estimated,json=isEstimated,proto3" json:"is_estimated,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -2440,7 +2441,7 @@ type ExecutionUsageSummary struct {
 	SubAgentCount int32 `protobuf:"varint,9,opt,name=sub_agent_count,json=subAgentCount,proto3" json:"sub_agent_count,omitempty"`
 	// Terminal phase of this execution.
 	Phase ExecutionPhase `protobuf:"varint,10,opt,name=phase,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ExecutionPhase" json:"phase,omitempty"`
-	// Whether this execution's cost is estimated (not yet proxy-metered or reconciled).
+	// Whether this execution's cost is estimated (in-flight, no billing records yet).
 	IsEstimated   bool `protobuf:"varint,11,opt,name=is_estimated,json=isEstimated,proto3" json:"is_estimated,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

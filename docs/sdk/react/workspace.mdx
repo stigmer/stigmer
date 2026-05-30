@@ -61,6 +61,100 @@ workspace.addLocalPath("/Users/dev/projects/frontend");
 ```
 
 
+### useWorkspaceFiles
+
+Behavior hook that fetches and caches a file listing for a single
+workspace entry, converting it into a `TreeNode` hierarchy.
+
+- Calls the platform-injected `lister` when the entry changes.
+- Caches results per `entry.id` so tab switches and re-expands
+  are instant without re-fetching.
+- Returns an empty tree and skips the call when `lister` is
+  `undefined` (graceful degradation — DD-011 opt-in).
+- Memoizes the return value for referential stability (DD-010).
+
+**Signature**
+
+```tsx
+function useWorkspaceFiles(options: UseWorkspaceFilesOptions): UseWorkspaceFilesReturn
+```
+
+<TypeTable
+  type={{
+    options: { type: "UseWorkspaceFilesOptions", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UseWorkspaceFilesReturn`
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "Error from the lister, if any." },
+    isLoading: { type: "boolean", description: "`true` while the lister is being called." },
+    refresh: { type: "() => void", description: "Re-fetch the file listing for the current entry (cache-bust)." },
+    tree: { type: "readonly TreeNode[]", description: "Hierarchical tree built from the file listing, ready for `FileTreeNode`." },
+  }}
+/>
+
+```tsx
+const { tree, isLoading, error, refresh } = useWorkspaceFiles({
+  entry: selectedEntry,
+  lister: workspaceFileLister,
+});
+```
+
+
+### useWorkspaceSources
+
+Derives which workspace source options to present based on the
+app-level execution target.
+
+Reads `executionTarget` from `StigmerProvider` context and falls
+back to `deploymentMode` when no explicit target is set:
+
+- **Cloud execution** -> GitHub only (`enableGitHub: true`, `enableLocal: false`).
+- **Local execution with native picker** -> local folder only
+  (`enableGitHub: false`, `enableLocal: true`).
+- **Local execution without native picker** -> GitHub fallback
+  (`enableGitHub: true`, `enableLocal: true`) so the user is
+  never left with zero workspace sources.
+
+This hook centralises the policy so all consumer sites (launcher
+and session page, across desktop and web) stay in lockstep without
+duplicating conditional logic (DD-016).
+
+**Signature**
+
+```tsx
+function useWorkspaceSources(options?: UseWorkspaceSourcesOptions): UseWorkspaceSourcesReturn
+```
+
+<TypeTable
+  type={{
+    options: { type: "UseWorkspaceSourcesOptions", description: "" },
+  }}
+/>
+
+**Returns** — `UseWorkspaceSourcesReturn`
+
+<TypeTable
+  type={{
+    enableGitHub: { type: "boolean", description: "Whether to show the \"Connect GitHub\" action in the workspace editor." },
+    enableLocal: { type: "boolean", description: "Whether to show the \"Browse Folder\" action in the workspace editor." },
+  }}
+/>
+
+```tsx
+// Desktop app (has native folder picker via Tauri)
+const sources = useWorkspaceSources({ hasLocalPicker: true });
+// -> { enableGitHub: false, enableLocal: true }
+
+// Web app (cloud deployment, no native picker)
+const sources = useWorkspaceSources();
+// -> { enableGitHub: true, enableLocal: false }
+```
+
+
 ## Components
 
 ### WorkspaceEditor
@@ -87,6 +181,7 @@ All visual properties flow through `--stgm-*` tokens.
     enableGitHub: { type: "boolean", description: "Enable the \"Connect GitHub\" action. Default: true." },
     enableLocal: { type: "boolean", description: "Enable the \"Browse Folder\" action." },
     gitHubConnection: { type: "UseGitHubConnectionReturn", description: "GitHub connection state. When provided, enables the GitHub repo picker.", typeDescriptionLink: "/docs/sdk/react/github#usegithubconnectionreturn" },
+    initialPanel: { type: "ActivePanel", description: "When set, the editor starts with this panel active instead of the default action-list view. Used to skip the intermediate menu when only one source type is available and entries are empty.  Ignored when `workspace.entries.length > 0` (the entry list takes precedence as the default view in that case)." },
     onBrowseLocalFolder: { type: "() => Promise<string | null>", description: "Native folder picker callback for desktop environments.  When provided alongside `enableLocal`, renders a \"Browse Folder\" button that opens the system folder dialog. Desktop-only enhancement." },
     workspace: { type: "UseWorkspaceEntriesReturn", description: "Workspace state from useWorkspaceEntries.", required: true, typeDescriptionLink: "#useworkspaceentriesreturn" },
   }}
@@ -107,6 +202,28 @@ function SessionSetup({ org }: { org: string }) {
   );
 }
 ```
+
+
+### WorkspaceEntryFiles
+
+Inline expandable file tree for a single workspace entry.
+
+When `isExpanded` is `true`, calls the platform-injected lister and
+renders a scrollable tree using the shared `FileTreeNode` primitive.
+Renders loading skeletons, error states, empty states, and a
+search toolbar for filtering the file tree by name.
+
+All visual properties flow through `--stgm-*` tokens (DD-005).
+
+**Props** — `WorkspaceEntryFilesProps`
+
+<TypeTable
+  type={{
+    entry: { type: "WorkspaceEntry", description: "The workspace entry whose files to browse.", required: true, typeDescriptionLink: "#workspaceentry" },
+    isExpanded: { type: "boolean", description: "Whether the file tree panel is currently expanded.", required: true },
+    lister: { type: "WorkspaceFileLister", description: "Platform-injected file lister.", required: true, typeDescriptionLink: "#workspacefilelister" },
+  }}
+/>
 
 
 ### WorkspaceSummary
@@ -143,6 +260,29 @@ const { session } = useSession(sessionId);
 
 ## Types
 
+### UseWorkspaceFilesOptions
+
+Options for [`useWorkspaceFiles`](#useworkspacefiles).
+
+<TypeTable
+  type={{
+    entry: { type: "WorkspaceEntry | null", description: "The workspace entry to list files for (`null` when nothing is selected).", required: true },
+    lister: { type: "WorkspaceFileLister | undefined", description: "Platform-injected lister callback. `undefined` when the host app does not support file listing.", required: true },
+  }}
+/>
+
+
+### UseWorkspaceSourcesOptions
+
+Options for [`useWorkspaceSources`](#useworkspacesources).
+
+<TypeTable
+  type={{
+    hasLocalPicker: { type: "boolean", description: "Whether the host environment can open a native folder picker.  Desktop apps set this to `true` (they supply `onBrowseLocalFolder` via Tauri's dialog plugin). Web apps omit it or pass `false`.  When the effective execution target is `\"local\"` and no local picker is available, the hook keeps GitHub enabled as a fallback so the user always has at least one way to add a workspace." },
+  }}
+/>
+
+
 ### WorkspaceEntry
 
 A single workspace entry managed by [`useWorkspaceEntries`](#useworkspaceentries).
@@ -172,4 +312,37 @@ workspace.entries.map((entry) => (
   </div>
 ));
 ```
+
+
+### WorkspaceFileEntry
+
+A single file or directory entry returned by a [`WorkspaceFileLister`](#workspacefilelister).
+
+Matches the minimal contract consumed by `buildFileTree` — the tree
+builder uses `path` for hierarchy construction and the workspace UI
+uses `isDirectory` to annotate folder nodes.
+
+<TypeTable
+  type={{
+    isDirectory: { type: "boolean", description: "Whether this entry is a directory.", required: true },
+    path: { type: "string", description: "Relative path from the workspace root (e.g. \"src/index.ts\").", required: true },
+  }}
+/>
+
+
+### WorkspaceFileLister
+
+Platform-injected callback that lists files in a workspace entry.
+
+The SDK calls this when a user expands a workspace entry in the
+inspector. The callback receives the entry and returns its file
+listing. The SDK never knows *how* the listing was obtained —
+that's the platform's concern (DD-004 capability injection).
+
+Implementations:
+- **Web:** GitHub Trees API via the OAuth token
+- **Desktop:** Tauri `readDir` with gitignore filtering (Phase 3)
+
+Returns `null` when listing is not supported for this entry type
+(e.g., a local-path entry on web, or a git entry without a token).
 

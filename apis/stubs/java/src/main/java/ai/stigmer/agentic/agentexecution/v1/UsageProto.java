@@ -67,11 +67,6 @@ public final class UsageProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_agentexecution_v1_LlmCallUsageRecord_LabelsEntry_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_ai_stigmer_agentic_agentexecution_v1_SettlementLink_descriptor;
-  static final 
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_ai_stigmer_agentic_agentexecution_v1_SettlementLink_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_agentexecution_v1_UsageReportAggregate_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -164,7 +159,7 @@ public final class UsageProto extends com.google.protobuf.GeneratedFile {
       "e.protobuf.TimestampR\tdebitedAt\0222\n\025billi" +
       "ng_attempt_count\030\005 \001(\005R\023billingAttemptCo" +
       "unt\022,\n\022last_billing_error\030\006 \001(\tR\020lastBil" +
-      "lingError\"\266\016\n\022LlmCallUsageRecord\022&\n\017usag" +
+      "lingError\"\355\014\n\022LlmCallUsageRecord\022&\n\017usag" +
       "e_record_id\030\001 \001(\tR\rusageRecordId\022!\n\014exec" +
       "ution_id\030\002 \001(\tR\013executionId\022*\n\021root_exec" +
       "ution_id\030\003 \001(\tR\017rootExecutionId\022\032\n\010seque" +
@@ -203,112 +198,81 @@ public final class UsageProto extends com.google.protobuf.GeneratedFile {
       "kR\007billing\022\025\n\006org_id\030\007 \001(\tR\005orgId\022\035\n\nses" +
       "sion_id\030\010 \001(\tR\tsessionId\022\\\n\006labels\030Z \003(\013" +
       "2D.ai.stigmer.agentic.agentexecution.v1." +
-      "LlmCallUsageRecord.LabelsEntryR\006labels\022h" +
-      "\n\021settlement_status\030d \001(\0162;.ai.stigmer.a" +
-      "gentic.agentexecution.v1.UsageSettlement" +
-      "StatusR\020settlementStatus\022]\n\017settlement_l" +
-      "ink\030e \001(\01324.ai.stigmer.agentic.agentexec" +
-      "ution.v1.SettlementLinkR\016settlementLink\032" +
-      "9\n\013LabelsEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005valu" +
-      "e\030\002 \001(\tR\005value:\0028\001\"\326\004\n\016SettlementLink\0221\n" +
-      "\025cursor_usage_event_id\030\001 \001(\tR\022cursorUsag" +
-      "eEventId\0225\n\027cursor_usage_event_hash\030\002 \001(" +
-      "\tR\024cursorUsageEventHash\0222\n\025settled_charg" +
-      "ed_cents\030\003 \001(\001R\023settledChargedCents\022C\n\036s" +
-      "ettled_billable_amount_micros\030\004 \001(\003R\033set" +
-      "tledBillableAmountMicros\022)\n\020match_confid" +
-      "ence\030\005 \001(\001R\017matchConfidence\022\035\n\nmatch_typ" +
-      "e\030\006 \001(\tR\tmatchType\0229\n\nsettled_at\030\007 \001(\0132\032" +
-      ".google.protobuf.TimestampR\tsettledAt\022s\n" +
-      "\030original_metering_source\030\010 \001(\01629.ai.sti" +
-      "gmer.agentic.agentexecution.v1.UsageMete" +
-      "ringSourceR\026originalMeteringSource\022g\n\024or" +
-      "iginal_trust_level\030\t \001(\01625.ai.stigmer.ag" +
-      "entic.agentexecution.v1.UsageTrustLevelR" +
-      "\022originalTrustLevel\"\374\003\n\024UsageReportAggre" +
-      "gate\022!\n\014input_tokens\030\001 \001(\003R\013inputTokens\022" +
-      "#\n\routput_tokens\030\002 \001(\003R\014outputTokens\022!\n\014" +
-      "total_tokens\030\003 \001(\003R\013totalTokens\022=\n\033cache" +
-      "_creation_input_tokens\030\004 \001(\003R\030cacheCreat" +
-      "ionInputTokens\0225\n\027cache_read_input_token" +
-      "s\030\005 \001(\003R\024cacheReadInputTokens\022)\n\020reasoni" +
-      "ng_tokens\030\006 \001(\003R\017reasoningTokens\022$\n\016llm_" +
-      "call_count\030\n \001(\005R\014llmCallCount\0220\n\024billab" +
-      "le_cost_micros\030\024 \001(\003R\022billableCostMicros" +
-      "\0220\n\024provider_cost_micros\030\025 \001(\003R\022provider" +
-      "CostMicros\022#\n\rprimary_model\030\036 \001(\tR\014prima" +
-      "ryModel\022)\n\020primary_provider\030\037 \001(\tR\017prima" +
-      "ryProvider\"\377\002\n\nModelUsage\022\024\n\005model\030\001 \001(\t" +
-      "R\005model\022\032\n\010provider\030\002 \001(\tR\010provider\022!\n\014i" +
-      "nput_tokens\030\003 \001(\003R\013inputTokens\022#\n\routput" +
-      "_tokens\030\004 \001(\003R\014outputTokens\022=\n\033cache_cre" +
-      "ation_input_tokens\030\005 \001(\003R\030cacheCreationI" +
-      "nputTokens\0225\n\027cache_read_input_tokens\030\006 " +
-      "\001(\003R\024cacheReadInputTokens\022\035\n\ncall_count\030" +
-      "\007 \001(\005R\tcallCount\0220\n\024billable_cost_micros" +
-      "\030\010 \001(\003R\022billableCostMicros\0220\n\024provider_c" +
-      "ost_micros\030\t \001(\003R\022providerCostMicros\"\340\002\n" +
-      "\025StreamingUsageSummary\022!\n\014input_tokens\030\001" +
-      " \001(\003R\013inputTokens\022#\n\routput_tokens\030\002 \001(\003" +
-      "R\014outputTokens\022*\n\021cache_read_tokens\030\003 \001(" +
-      "\003R\017cacheReadTokens\022,\n\022cache_write_tokens" +
-      "\030\004 \001(\003R\020cacheWriteTokens\022!\n\014total_tokens" +
-      "\030\005 \001(\003R\013totalTokens\022\035\n\nturn_count\030\006 \001(\005R" +
-      "\tturnCount\022,\n\022estimated_cost_usd\030\007 \001(\001R\020" +
-      "estimatedCostUsd\022\024\n\005model\030\010 \001(\tR\005model\022\037" +
-      "\n\013observed_at\030\t \001(\tR\nobservedAt*\256\002\n\023Usag" +
-      "eMeteringSource\022%\n!USAGE_METERING_SOURCE" +
-      "_UNSPECIFIED\020\000\0221\n-USAGE_METERING_SOURCE_" +
-      "PROXY_PROVIDER_REPORTED\020\001\0226\n2USAGE_METER" +
-      "ING_SOURCE_RUNNER_PROVIDER_REPORTED_OSS\020" +
-      "\002\022#\n\037USAGE_METERING_SOURCE_ESTIMATED\020\003\0223" +
-      "\n/USAGE_METERING_SOURCE_PROVIDER_ADMIN_R" +
-      "ECONCILED\020\004\022+\n\'USAGE_METERING_SOURCE_MAN" +
-      "UAL_ADJUSTMENT\020\005*\320\001\n\017UsageTrustLevel\022!\n\035" +
-      "USAGE_TRUST_LEVEL_UNSPECIFIED\020\000\022\'\n#USAGE" +
-      "_TRUST_LEVEL_BILLING_AUTHORITY\020\001\022%\n!USAG" +
-      "E_TRUST_LEVEL_SERVER_OBSERVED\020\002\022\"\n\036USAGE" +
-      "_TRUST_LEVEL_DISPLAY_ONLY\020\003\022&\n\"USAGE_TRU" +
-      "ST_LEVEL_PROVIDER_SETTLED\020\004*\374\002\n\025UsageCom" +
-      "pletionStatus\022\'\n#USAGE_COMPLETION_STATUS" +
-      "_UNSPECIFIED\020\000\022$\n USAGE_COMPLETION_STATU" +
-      "S_COMPLETE\020\001\022.\n*USAGE_COMPLETION_STATUS_" +
-      "STREAM_INTERRUPTED\020\002\0225\n1USAGE_COMPLETION" +
-      "_STATUS_PROVIDER_ERROR_WITH_USAGE\020\003\0223\n/U" +
-      "SAGE_COMPLETION_STATUS_PROVIDER_ERROR_NO" +
-      "_USAGE\020\004\022*\n&USAGE_COMPLETION_STATUS_ESTI" +
-      "MATED_ONLY\020\005\022&\n\"USAGE_COMPLETION_STATUS_" +
-      "RECONCILED\020\006\022$\n USAGE_COMPLETION_STATUS_" +
-      "CONFLICT\020\007*\237\002\n\022BillingDebitStatus\022$\n BIL" +
-      "LING_DEBIT_STATUS_UNSPECIFIED\020\000\022\'\n#BILLI" +
-      "NG_DEBIT_STATUS_NOT_APPLICABLE\020\001\022 \n\034BILL" +
-      "ING_DEBIT_STATUS_PENDING\020\002\022 \n\034BILLING_DE" +
-      "BIT_STATUS_DEBITED\020\003\022)\n%BILLING_DEBIT_ST" +
-      "ATUS_FAILED_RETRYABLE\020\004\022(\n$BILLING_DEBIT" +
-      "_STATUS_FAILED_TERMINAL\020\005\022!\n\035BILLING_DEB" +
-      "IT_STATUS_CONFLICT\020\006*\217\002\n\025CostCalculation" +
-      "Status\022\'\n#COST_CALCULATION_STATUS_UNSPEC" +
-      "IFIED\020\000\022$\n COST_CALCULATION_STATUS_COMPU" +
-      "TED\020\001\022%\n!COST_CALCULATION_STATUS_ESTIMAT" +
-      "ED\020\002\022+\n\'COST_CALCULATION_STATUS_PRICE_NO" +
-      "T_FOUND\020\003\022&\n\"COST_CALCULATION_STATUS_REC" +
-      "ONCILED\020\004\022+\n\'COST_CALCULATION_STATUS_MAN" +
-      "UAL_ADJUSTED\020\005*\206\003\n\025UsageSettlementStatus" +
-      "\022\'\n#USAGE_SETTLEMENT_STATUS_UNSPECIFIED\020" +
-      "\000\022*\n&USAGE_SETTLEMENT_STATUS_NOT_APPLICA" +
-      "BLE\020\001\022%\n!USAGE_SETTLEMENT_STATUS_ESTIMAT" +
-      "ED\020\002\022\'\n#USAGE_SETTLEMENT_STATUS_RECONCIL" +
-      "ING\020\003\022#\n\037USAGE_SETTLEMENT_STATUS_SETTLED" +
-      "\020\004\022$\n USAGE_SETTLEMENT_STATUS_ADJUSTED\020\005" +
-      "\022.\n*USAGE_SETTLEMENT_STATUS_COLLISION_AB" +
-      "SORBED\020\006\022$\n USAGE_SETTLEMENT_STATUS_DISP" +
-      "UTED\020\007\022\'\n#USAGE_SETTLEMENT_STATUS_WRITTE" +
-      "N_OFF\020\010B\301\001B\nUsageProtoP\001\242\002\004ASAA\252\002$Ai.Sti" +
-      "gmer.Agentic.Agentexecution.V1\312\002$Ai\\Stig" +
-      "mer\\Agentic\\Agentexecution\\V1\342\0020Ai\\Stigm" +
-      "er\\Agentic\\Agentexecution\\V1\\GPBMetadata" +
-      "\352\002(Ai::Stigmer::Agentic::Agentexecution:" +
-      ":V1b\006proto3"
+      "LlmCallUsageRecord.LabelsEntryR\006labels\0329" +
+      "\n\013LabelsEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value" +
+      "\030\002 \001(\tR\005value:\0028\001\"\374\003\n\024UsageReportAggrega" +
+      "te\022!\n\014input_tokens\030\001 \001(\003R\013inputTokens\022#\n" +
+      "\routput_tokens\030\002 \001(\003R\014outputTokens\022!\n\014to" +
+      "tal_tokens\030\003 \001(\003R\013totalTokens\022=\n\033cache_c" +
+      "reation_input_tokens\030\004 \001(\003R\030cacheCreatio" +
+      "nInputTokens\0225\n\027cache_read_input_tokens\030" +
+      "\005 \001(\003R\024cacheReadInputTokens\022)\n\020reasoning" +
+      "_tokens\030\006 \001(\003R\017reasoningTokens\022$\n\016llm_ca" +
+      "ll_count\030\n \001(\005R\014llmCallCount\0220\n\024billable" +
+      "_cost_micros\030\024 \001(\003R\022billableCostMicros\0220" +
+      "\n\024provider_cost_micros\030\025 \001(\003R\022providerCo" +
+      "stMicros\022#\n\rprimary_model\030\036 \001(\tR\014primary" +
+      "Model\022)\n\020primary_provider\030\037 \001(\tR\017primary" +
+      "Provider\"\377\002\n\nModelUsage\022\024\n\005model\030\001 \001(\tR\005" +
+      "model\022\032\n\010provider\030\002 \001(\tR\010provider\022!\n\014inp" +
+      "ut_tokens\030\003 \001(\003R\013inputTokens\022#\n\routput_t" +
+      "okens\030\004 \001(\003R\014outputTokens\022=\n\033cache_creat" +
+      "ion_input_tokens\030\005 \001(\003R\030cacheCreationInp" +
+      "utTokens\0225\n\027cache_read_input_tokens\030\006 \001(" +
+      "\003R\024cacheReadInputTokens\022\035\n\ncall_count\030\007 " +
+      "\001(\005R\tcallCount\0220\n\024billable_cost_micros\030\010" +
+      " \001(\003R\022billableCostMicros\0220\n\024provider_cos" +
+      "t_micros\030\t \001(\003R\022providerCostMicros\"\340\002\n\025S" +
+      "treamingUsageSummary\022!\n\014input_tokens\030\001 \001" +
+      "(\003R\013inputTokens\022#\n\routput_tokens\030\002 \001(\003R\014" +
+      "outputTokens\022*\n\021cache_read_tokens\030\003 \001(\003R" +
+      "\017cacheReadTokens\022,\n\022cache_write_tokens\030\004" +
+      " \001(\003R\020cacheWriteTokens\022!\n\014total_tokens\030\005" +
+      " \001(\003R\013totalTokens\022\035\n\nturn_count\030\006 \001(\005R\tt" +
+      "urnCount\022,\n\022estimated_cost_usd\030\007 \001(\001R\020es" +
+      "timatedCostUsd\022\024\n\005model\030\010 \001(\tR\005model\022\037\n\013" +
+      "observed_at\030\t \001(\tR\nobservedAt*\256\002\n\023UsageM" +
+      "eteringSource\022%\n!USAGE_METERING_SOURCE_U" +
+      "NSPECIFIED\020\000\0221\n-USAGE_METERING_SOURCE_PR" +
+      "OXY_PROVIDER_REPORTED\020\001\0226\n2USAGE_METERIN" +
+      "G_SOURCE_RUNNER_PROVIDER_REPORTED_OSS\020\002\022" +
+      "#\n\037USAGE_METERING_SOURCE_ESTIMATED\020\003\0223\n/" +
+      "USAGE_METERING_SOURCE_PROVIDER_ADMIN_REC" +
+      "ONCILED\020\004\022+\n\'USAGE_METERING_SOURCE_MANUA" +
+      "L_ADJUSTMENT\020\005*\250\001\n\017UsageTrustLevel\022!\n\035US" +
+      "AGE_TRUST_LEVEL_UNSPECIFIED\020\000\022\'\n#USAGE_T" +
+      "RUST_LEVEL_BILLING_AUTHORITY\020\001\022%\n!USAGE_" +
+      "TRUST_LEVEL_SERVER_OBSERVED\020\002\022\"\n\036USAGE_T" +
+      "RUST_LEVEL_DISPLAY_ONLY\020\003*\374\002\n\025UsageCompl" +
+      "etionStatus\022\'\n#USAGE_COMPLETION_STATUS_U" +
+      "NSPECIFIED\020\000\022$\n USAGE_COMPLETION_STATUS_" +
+      "COMPLETE\020\001\022.\n*USAGE_COMPLETION_STATUS_ST" +
+      "REAM_INTERRUPTED\020\002\0225\n1USAGE_COMPLETION_S" +
+      "TATUS_PROVIDER_ERROR_WITH_USAGE\020\003\0223\n/USA" +
+      "GE_COMPLETION_STATUS_PROVIDER_ERROR_NO_U" +
+      "SAGE\020\004\022*\n&USAGE_COMPLETION_STATUS_ESTIMA" +
+      "TED_ONLY\020\005\022&\n\"USAGE_COMPLETION_STATUS_RE" +
+      "CONCILED\020\006\022$\n USAGE_COMPLETION_STATUS_CO" +
+      "NFLICT\020\007*\237\002\n\022BillingDebitStatus\022$\n BILLI" +
+      "NG_DEBIT_STATUS_UNSPECIFIED\020\000\022\'\n#BILLING" +
+      "_DEBIT_STATUS_NOT_APPLICABLE\020\001\022 \n\034BILLIN" +
+      "G_DEBIT_STATUS_PENDING\020\002\022 \n\034BILLING_DEBI" +
+      "T_STATUS_DEBITED\020\003\022)\n%BILLING_DEBIT_STAT" +
+      "US_FAILED_RETRYABLE\020\004\022(\n$BILLING_DEBIT_S" +
+      "TATUS_FAILED_TERMINAL\020\005\022!\n\035BILLING_DEBIT" +
+      "_STATUS_CONFLICT\020\006*\217\002\n\025CostCalculationSt" +
+      "atus\022\'\n#COST_CALCULATION_STATUS_UNSPECIF" +
+      "IED\020\000\022$\n COST_CALCULATION_STATUS_COMPUTE" +
+      "D\020\001\022%\n!COST_CALCULATION_STATUS_ESTIMATED" +
+      "\020\002\022+\n\'COST_CALCULATION_STATUS_PRICE_NOT_" +
+      "FOUND\020\003\022&\n\"COST_CALCULATION_STATUS_RECON" +
+      "CILED\020\004\022+\n\'COST_CALCULATION_STATUS_MANUA" +
+      "L_ADJUSTED\020\005B\301\001B\nUsageProtoP\001\242\002\004ASAA\252\002$A" +
+      "i.Stigmer.Agentic.Agentexecution.V1\312\002$Ai" +
+      "\\Stigmer\\Agentic\\Agentexecution\\V1\342\0020Ai\\" +
+      "Stigmer\\Agentic\\Agentexecution\\V1\\GPBMet" +
+      "adata\352\002(Ai::Stigmer::Agentic::Agentexecu" +
+      "tion::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -356,33 +320,27 @@ public final class UsageProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_agentexecution_v1_LlmCallUsageRecord_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_LlmCallUsageRecord_descriptor,
-        new java.lang.String[] { "UsageRecordId", "ExecutionId", "RootExecutionId", "Sequence", "IdempotencyKey", "CanonicalPayloadHash", "ObservedAt", "CreatedAt", "MeteringSource", "TrustLevel", "UsageStatus", "IsBillable", "Provider", "RequestedModel", "ResolvedModel", "Endpoint", "Streaming", "ServiceTier", "ProviderRequestId", "Harness", "HttpStatusCode", "FinishReason", "ErrorCode", "Tokens", "Cost", "ProxyTiming", "ProviderUsageJson", "Billing", "OrgId", "SessionId", "Labels", "SettlementStatus", "SettlementLink", });
+        new java.lang.String[] { "UsageRecordId", "ExecutionId", "RootExecutionId", "Sequence", "IdempotencyKey", "CanonicalPayloadHash", "ObservedAt", "CreatedAt", "MeteringSource", "TrustLevel", "UsageStatus", "IsBillable", "Provider", "RequestedModel", "ResolvedModel", "Endpoint", "Streaming", "ServiceTier", "ProviderRequestId", "Harness", "HttpStatusCode", "FinishReason", "ErrorCode", "Tokens", "Cost", "ProxyTiming", "ProviderUsageJson", "Billing", "OrgId", "SessionId", "Labels", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_LlmCallUsageRecord_LabelsEntry_descriptor =
       internal_static_ai_stigmer_agentic_agentexecution_v1_LlmCallUsageRecord_descriptor.getNestedType(0);
     internal_static_ai_stigmer_agentic_agentexecution_v1_LlmCallUsageRecord_LabelsEntry_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_LlmCallUsageRecord_LabelsEntry_descriptor,
         new java.lang.String[] { "Key", "Value", });
-    internal_static_ai_stigmer_agentic_agentexecution_v1_SettlementLink_descriptor =
-      getDescriptor().getMessageType(6);
-    internal_static_ai_stigmer_agentic_agentexecution_v1_SettlementLink_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-        internal_static_ai_stigmer_agentic_agentexecution_v1_SettlementLink_descriptor,
-        new java.lang.String[] { "CursorUsageEventId", "CursorUsageEventHash", "SettledChargedCents", "SettledBillableAmountMicros", "MatchConfidence", "MatchType", "SettledAt", "OriginalMeteringSource", "OriginalTrustLevel", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_UsageReportAggregate_descriptor =
-      getDescriptor().getMessageType(7);
+      getDescriptor().getMessageType(6);
     internal_static_ai_stigmer_agentic_agentexecution_v1_UsageReportAggregate_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_UsageReportAggregate_descriptor,
         new java.lang.String[] { "InputTokens", "OutputTokens", "TotalTokens", "CacheCreationInputTokens", "CacheReadInputTokens", "ReasoningTokens", "LlmCallCount", "BillableCostMicros", "ProviderCostMicros", "PrimaryModel", "PrimaryProvider", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_ModelUsage_descriptor =
-      getDescriptor().getMessageType(8);
+      getDescriptor().getMessageType(7);
     internal_static_ai_stigmer_agentic_agentexecution_v1_ModelUsage_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_ModelUsage_descriptor,
         new java.lang.String[] { "Model", "Provider", "InputTokens", "OutputTokens", "CacheCreationInputTokens", "CacheReadInputTokens", "CallCount", "BillableCostMicros", "ProviderCostMicros", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_StreamingUsageSummary_descriptor =
-      getDescriptor().getMessageType(9);
+      getDescriptor().getMessageType(8);
     internal_static_ai_stigmer_agentic_agentexecution_v1_StreamingUsageSummary_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_StreamingUsageSummary_descriptor,

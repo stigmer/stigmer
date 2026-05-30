@@ -97,9 +97,6 @@ const (
 	UsageTrustLevel_USAGE_TRUST_LEVEL_SERVER_OBSERVED UsageTrustLevel = 2
 	// Display-only: runner-reported, never used for billing.
 	UsageTrustLevel_USAGE_TRUST_LEVEL_DISPLAY_ONLY UsageTrustLevel = 3
-	// Trusted provider back-office settlement feed, reconciled after delay.
-	// Used when Cursor Admin API chargedCents is matched to a proxy-metered record.
-	UsageTrustLevel_USAGE_TRUST_LEVEL_PROVIDER_SETTLED UsageTrustLevel = 4
 )
 
 // Enum value maps for UsageTrustLevel.
@@ -109,14 +106,12 @@ var (
 		1: "USAGE_TRUST_LEVEL_BILLING_AUTHORITY",
 		2: "USAGE_TRUST_LEVEL_SERVER_OBSERVED",
 		3: "USAGE_TRUST_LEVEL_DISPLAY_ONLY",
-		4: "USAGE_TRUST_LEVEL_PROVIDER_SETTLED",
 	}
 	UsageTrustLevel_value = map[string]int32{
 		"USAGE_TRUST_LEVEL_UNSPECIFIED":       0,
 		"USAGE_TRUST_LEVEL_BILLING_AUTHORITY": 1,
 		"USAGE_TRUST_LEVEL_SERVER_OBSERVED":   2,
 		"USAGE_TRUST_LEVEL_DISPLAY_ONLY":      3,
-		"USAGE_TRUST_LEVEL_PROVIDER_SETTLED":  4,
 	}
 )
 
@@ -349,85 +344,6 @@ func (x CostCalculationStatus) Number() protoreflect.EnumNumber {
 // Deprecated: Use CostCalculationStatus.Descriptor instead.
 func (CostCalculationStatus) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDescGZIP(), []int{4}
-}
-
-// Settlement lifecycle for usage records that require reconciliation.
-// Proxy-metered records (both native and cursor) use NOT_APPLICABLE since
-// they are billed immediately at BILLING_AUTHORITY trust. Future reconciliation
-// against provider admin APIs may transition records through this state machine.
-type UsageSettlementStatus int32
-
-const (
-	UsageSettlementStatus_USAGE_SETTLEMENT_STATUS_UNSPECIFIED UsageSettlementStatus = 0
-	// Billing-authoritative record that bypasses settlement (proxy-metered).
-	UsageSettlementStatus_USAGE_SETTLEMENT_STATUS_NOT_APPLICABLE UsageSettlementStatus = 1
-	// Runner estimate written. Not billed. Shows "Estimated" in UI.
-	UsageSettlementStatus_USAGE_SETTLEMENT_STATUS_ESTIMATED UsageSettlementStatus = 2
-	// Settlement activity is processing this record. Transient state.
-	UsageSettlementStatus_USAGE_SETTLEMENT_STATUS_RECONCILING UsageSettlementStatus = 3
-	// Matched to a provider admin event. Authoritative cost applied.
-	UsageSettlementStatus_USAGE_SETTLEMENT_STATUS_SETTLED UsageSettlementStatus = 4
-	// Matched, but provider cost differs from proxy-computed cost. Adjustment applied.
-	UsageSettlementStatus_USAGE_SETTLEMENT_STATUS_ADJUSTED UsageSettlementStatus = 5
-	// Multiple records matched the same provider event. Platform absorbs cost.
-	UsageSettlementStatus_USAGE_SETTLEMENT_STATUS_COLLISION_ABSORBED UsageSettlementStatus = 6
-	// Settlement discrepancy exceeds threshold. Requires manual review.
-	UsageSettlementStatus_USAGE_SETTLEMENT_STATUS_DISPUTED UsageSettlementStatus = 7
-	// No provider match after expiry window. Original estimate preserved for display.
-	UsageSettlementStatus_USAGE_SETTLEMENT_STATUS_WRITTEN_OFF UsageSettlementStatus = 8
-)
-
-// Enum value maps for UsageSettlementStatus.
-var (
-	UsageSettlementStatus_name = map[int32]string{
-		0: "USAGE_SETTLEMENT_STATUS_UNSPECIFIED",
-		1: "USAGE_SETTLEMENT_STATUS_NOT_APPLICABLE",
-		2: "USAGE_SETTLEMENT_STATUS_ESTIMATED",
-		3: "USAGE_SETTLEMENT_STATUS_RECONCILING",
-		4: "USAGE_SETTLEMENT_STATUS_SETTLED",
-		5: "USAGE_SETTLEMENT_STATUS_ADJUSTED",
-		6: "USAGE_SETTLEMENT_STATUS_COLLISION_ABSORBED",
-		7: "USAGE_SETTLEMENT_STATUS_DISPUTED",
-		8: "USAGE_SETTLEMENT_STATUS_WRITTEN_OFF",
-	}
-	UsageSettlementStatus_value = map[string]int32{
-		"USAGE_SETTLEMENT_STATUS_UNSPECIFIED":        0,
-		"USAGE_SETTLEMENT_STATUS_NOT_APPLICABLE":     1,
-		"USAGE_SETTLEMENT_STATUS_ESTIMATED":          2,
-		"USAGE_SETTLEMENT_STATUS_RECONCILING":        3,
-		"USAGE_SETTLEMENT_STATUS_SETTLED":            4,
-		"USAGE_SETTLEMENT_STATUS_ADJUSTED":           5,
-		"USAGE_SETTLEMENT_STATUS_COLLISION_ABSORBED": 6,
-		"USAGE_SETTLEMENT_STATUS_DISPUTED":           7,
-		"USAGE_SETTLEMENT_STATUS_WRITTEN_OFF":        8,
-	}
-)
-
-func (x UsageSettlementStatus) Enum() *UsageSettlementStatus {
-	p := new(UsageSettlementStatus)
-	*p = x
-	return p
-}
-
-func (x UsageSettlementStatus) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (UsageSettlementStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_agentic_agentexecution_v1_usage_proto_enumTypes[5].Descriptor()
-}
-
-func (UsageSettlementStatus) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_agentic_agentexecution_v1_usage_proto_enumTypes[5]
-}
-
-func (x UsageSettlementStatus) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use UsageSettlementStatus.Descriptor instead.
-func (UsageSettlementStatus) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDescGZIP(), []int{5}
 }
 
 // Normalized token usage from a single LLM call.
@@ -1057,14 +973,9 @@ type LlmCallUsageRecord struct {
 	SessionId string `protobuf:"bytes,8,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	// ─── Labels ─────────────────────────────────────────────────────────────────
 	// Custom metadata for filtering (e.g., agent_path, node_path).
-	Labels map[string]string `protobuf:"bytes,90,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// ─── Settlement ───────────────────────────────────────────────────────────
-	// Settlement lifecycle state. Drives UX labels and future reconciliation.
-	SettlementStatus UsageSettlementStatus `protobuf:"varint,100,opt,name=settlement_status,json=settlementStatus,proto3,enum=ai.stigmer.agentic.agentexecution.v1.UsageSettlementStatus" json:"settlement_status,omitempty"`
-	// Link to the provider-side event used for settlement (populated by reconciliation).
-	SettlementLink *SettlementLink `protobuf:"bytes,101,opt,name=settlement_link,json=settlementLink,proto3" json:"settlement_link,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	Labels        map[string]string `protobuf:"bytes,90,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *LlmCallUsageRecord) Reset() {
@@ -1314,138 +1225,6 @@ func (x *LlmCallUsageRecord) GetLabels() map[string]string {
 	return nil
 }
 
-func (x *LlmCallUsageRecord) GetSettlementStatus() UsageSettlementStatus {
-	if x != nil {
-		return x.SettlementStatus
-	}
-	return UsageSettlementStatus_USAGE_SETTLEMENT_STATUS_UNSPECIFIED
-}
-
-func (x *LlmCallUsageRecord) GetSettlementLink() *SettlementLink {
-	if x != nil {
-		return x.SettlementLink
-	}
-	return nil
-}
-
-// Links a settled usage record to the provider-side event used for settlement.
-type SettlementLink struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// ID of the cursor_usage_event document that this record was settled against.
-	CursorUsageEventId string `protobuf:"bytes,1,opt,name=cursor_usage_event_id,json=cursorUsageEventId,proto3" json:"cursor_usage_event_id,omitempty"`
-	// SHA-256 content hash of the cursor_usage_event (for integrity).
-	CursorUsageEventHash string `protobuf:"bytes,2,opt,name=cursor_usage_event_hash,json=cursorUsageEventHash,proto3" json:"cursor_usage_event_hash,omitempty"`
-	// Authoritative cost from the provider, in cents (as reported by Admin API).
-	SettledChargedCents float64 `protobuf:"fixed64,3,opt,name=settled_charged_cents,json=settledChargedCents,proto3" json:"settled_charged_cents,omitempty"`
-	// Authoritative cost converted to micro-USD after billing policy rating.
-	SettledBillableAmountMicros int64 `protobuf:"varint,4,opt,name=settled_billable_amount_micros,json=settledBillableAmountMicros,proto3" json:"settled_billable_amount_micros,omitempty"`
-	// Confidence score of the match (0.0 - 1.0).
-	MatchConfidence float64 `protobuf:"fixed64,5,opt,name=match_confidence,json=matchConfidence,proto3" json:"match_confidence,omitempty"`
-	// What type of match produced this settlement (e.g., "aggregate_calibration").
-	MatchType string `protobuf:"bytes,6,opt,name=match_type,json=matchType,proto3" json:"match_type,omitempty"`
-	// When settlement occurred.
-	SettledAt *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=settled_at,json=settledAt,proto3" json:"settled_at,omitempty"`
-	// Original metering source before upgrade (for audit).
-	OriginalMeteringSource UsageMeteringSource `protobuf:"varint,8,opt,name=original_metering_source,json=originalMeteringSource,proto3,enum=ai.stigmer.agentic.agentexecution.v1.UsageMeteringSource" json:"original_metering_source,omitempty"`
-	// Original trust level before upgrade (for audit).
-	OriginalTrustLevel UsageTrustLevel `protobuf:"varint,9,opt,name=original_trust_level,json=originalTrustLevel,proto3,enum=ai.stigmer.agentic.agentexecution.v1.UsageTrustLevel" json:"original_trust_level,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
-}
-
-func (x *SettlementLink) Reset() {
-	*x = SettlementLink{}
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_usage_proto_msgTypes[6]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SettlementLink) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SettlementLink) ProtoMessage() {}
-
-func (x *SettlementLink) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_usage_proto_msgTypes[6]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SettlementLink.ProtoReflect.Descriptor instead.
-func (*SettlementLink) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *SettlementLink) GetCursorUsageEventId() string {
-	if x != nil {
-		return x.CursorUsageEventId
-	}
-	return ""
-}
-
-func (x *SettlementLink) GetCursorUsageEventHash() string {
-	if x != nil {
-		return x.CursorUsageEventHash
-	}
-	return ""
-}
-
-func (x *SettlementLink) GetSettledChargedCents() float64 {
-	if x != nil {
-		return x.SettledChargedCents
-	}
-	return 0
-}
-
-func (x *SettlementLink) GetSettledBillableAmountMicros() int64 {
-	if x != nil {
-		return x.SettledBillableAmountMicros
-	}
-	return 0
-}
-
-func (x *SettlementLink) GetMatchConfidence() float64 {
-	if x != nil {
-		return x.MatchConfidence
-	}
-	return 0
-}
-
-func (x *SettlementLink) GetMatchType() string {
-	if x != nil {
-		return x.MatchType
-	}
-	return ""
-}
-
-func (x *SettlementLink) GetSettledAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.SettledAt
-	}
-	return nil
-}
-
-func (x *SettlementLink) GetOriginalMeteringSource() UsageMeteringSource {
-	if x != nil {
-		return x.OriginalMeteringSource
-	}
-	return UsageMeteringSource_USAGE_METERING_SOURCE_UNSPECIFIED
-}
-
-func (x *SettlementLink) GetOriginalTrustLevel() UsageTrustLevel {
-	if x != nil {
-		return x.OriginalTrustLevel
-	}
-	return UsageTrustLevel_USAGE_TRUST_LEVEL_UNSPECIFIED
-}
-
 // Aggregated usage across a scope (execution, session, agent, or org).
 //
 // Used as the `total_usage` field in session and agent usage report responses.
@@ -1476,7 +1255,7 @@ type UsageReportAggregate struct {
 
 func (x *UsageReportAggregate) Reset() {
 	*x = UsageReportAggregate{}
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_usage_proto_msgTypes[7]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_usage_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1488,7 +1267,7 @@ func (x *UsageReportAggregate) String() string {
 func (*UsageReportAggregate) ProtoMessage() {}
 
 func (x *UsageReportAggregate) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_usage_proto_msgTypes[7]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_usage_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1501,7 +1280,7 @@ func (x *UsageReportAggregate) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UsageReportAggregate.ProtoReflect.Descriptor instead.
 func (*UsageReportAggregate) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDescGZIP(), []int{7}
+	return file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *UsageReportAggregate) GetInputTokens() int64 {
@@ -1607,7 +1386,7 @@ type ModelUsage struct {
 
 func (x *ModelUsage) Reset() {
 	*x = ModelUsage{}
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_usage_proto_msgTypes[8]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_usage_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1619,7 +1398,7 @@ func (x *ModelUsage) String() string {
 func (*ModelUsage) ProtoMessage() {}
 
 func (x *ModelUsage) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_usage_proto_msgTypes[8]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_usage_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1632,7 +1411,7 @@ func (x *ModelUsage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ModelUsage.ProtoReflect.Descriptor instead.
 func (*ModelUsage) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDescGZIP(), []int{8}
+	return file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ModelUsage) GetModel() string {
@@ -1727,7 +1506,7 @@ type StreamingUsageSummary struct {
 
 func (x *StreamingUsageSummary) Reset() {
 	*x = StreamingUsageSummary{}
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_usage_proto_msgTypes[9]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_usage_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1739,7 +1518,7 @@ func (x *StreamingUsageSummary) String() string {
 func (*StreamingUsageSummary) ProtoMessage() {}
 
 func (x *StreamingUsageSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_usage_proto_msgTypes[9]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_usage_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1752,7 +1531,7 @@ func (x *StreamingUsageSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamingUsageSummary.ProtoReflect.Descriptor instead.
 func (*StreamingUsageSummary) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDescGZIP(), []int{9}
+	return file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *StreamingUsageSummary) GetInputTokens() int64 {
@@ -1876,7 +1655,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDesc = "" +
 	"\n" +
 	"debited_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tdebitedAt\x122\n" +
 	"\x15billing_attempt_count\x18\x05 \x01(\x05R\x13billingAttemptCount\x12,\n" +
-	"\x12last_billing_error\x18\x06 \x01(\tR\x10lastBillingError\"\xb6\x0e\n" +
+	"\x12last_billing_error\x18\x06 \x01(\tR\x10lastBillingError\"\xed\f\n" +
 	"\x12LlmCallUsageRecord\x12&\n" +
 	"\x0fusage_record_id\x18\x01 \x01(\tR\rusageRecordId\x12!\n" +
 	"\fexecution_id\x18\x02 \x01(\tR\vexecutionId\x12*\n" +
@@ -1915,24 +1694,10 @@ const file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDesc = "" +
 	"\x06org_id\x18\a \x01(\tR\x05orgId\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\b \x01(\tR\tsessionId\x12\\\n" +
-	"\x06labels\x18Z \x03(\v2D.ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.LabelsEntryR\x06labels\x12h\n" +
-	"\x11settlement_status\x18d \x01(\x0e2;.ai.stigmer.agentic.agentexecution.v1.UsageSettlementStatusR\x10settlementStatus\x12]\n" +
-	"\x0fsettlement_link\x18e \x01(\v24.ai.stigmer.agentic.agentexecution.v1.SettlementLinkR\x0esettlementLink\x1a9\n" +
+	"\x06labels\x18Z \x03(\v2D.ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.LabelsEntryR\x06labels\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xd6\x04\n" +
-	"\x0eSettlementLink\x121\n" +
-	"\x15cursor_usage_event_id\x18\x01 \x01(\tR\x12cursorUsageEventId\x125\n" +
-	"\x17cursor_usage_event_hash\x18\x02 \x01(\tR\x14cursorUsageEventHash\x122\n" +
-	"\x15settled_charged_cents\x18\x03 \x01(\x01R\x13settledChargedCents\x12C\n" +
-	"\x1esettled_billable_amount_micros\x18\x04 \x01(\x03R\x1bsettledBillableAmountMicros\x12)\n" +
-	"\x10match_confidence\x18\x05 \x01(\x01R\x0fmatchConfidence\x12\x1d\n" +
-	"\n" +
-	"match_type\x18\x06 \x01(\tR\tmatchType\x129\n" +
-	"\n" +
-	"settled_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tsettledAt\x12s\n" +
-	"\x18original_metering_source\x18\b \x01(\x0e29.ai.stigmer.agentic.agentexecution.v1.UsageMeteringSourceR\x16originalMeteringSource\x12g\n" +
-	"\x14original_trust_level\x18\t \x01(\x0e25.ai.stigmer.agentic.agentexecution.v1.UsageTrustLevelR\x12originalTrustLevel\"\xfc\x03\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xfc\x03\n" +
 	"\x14UsageReportAggregate\x12!\n" +
 	"\finput_tokens\x18\x01 \x01(\x03R\vinputTokens\x12#\n" +
 	"\routput_tokens\x18\x02 \x01(\x03R\foutputTokens\x12!\n" +
@@ -1976,13 +1741,12 @@ const file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDesc = "" +
 	"2USAGE_METERING_SOURCE_RUNNER_PROVIDER_REPORTED_OSS\x10\x02\x12#\n" +
 	"\x1fUSAGE_METERING_SOURCE_ESTIMATED\x10\x03\x123\n" +
 	"/USAGE_METERING_SOURCE_PROVIDER_ADMIN_RECONCILED\x10\x04\x12+\n" +
-	"'USAGE_METERING_SOURCE_MANUAL_ADJUSTMENT\x10\x05*\xd0\x01\n" +
+	"'USAGE_METERING_SOURCE_MANUAL_ADJUSTMENT\x10\x05*\xa8\x01\n" +
 	"\x0fUsageTrustLevel\x12!\n" +
 	"\x1dUSAGE_TRUST_LEVEL_UNSPECIFIED\x10\x00\x12'\n" +
 	"#USAGE_TRUST_LEVEL_BILLING_AUTHORITY\x10\x01\x12%\n" +
 	"!USAGE_TRUST_LEVEL_SERVER_OBSERVED\x10\x02\x12\"\n" +
-	"\x1eUSAGE_TRUST_LEVEL_DISPLAY_ONLY\x10\x03\x12&\n" +
-	"\"USAGE_TRUST_LEVEL_PROVIDER_SETTLED\x10\x04*\xfc\x02\n" +
+	"\x1eUSAGE_TRUST_LEVEL_DISPLAY_ONLY\x10\x03*\xfc\x02\n" +
 	"\x15UsageCompletionStatus\x12'\n" +
 	"#USAGE_COMPLETION_STATUS_UNSPECIFIED\x10\x00\x12$\n" +
 	" USAGE_COMPLETION_STATUS_COMPLETE\x10\x01\x12.\n" +
@@ -2006,17 +1770,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDesc = "" +
 	"!COST_CALCULATION_STATUS_ESTIMATED\x10\x02\x12+\n" +
 	"'COST_CALCULATION_STATUS_PRICE_NOT_FOUND\x10\x03\x12&\n" +
 	"\"COST_CALCULATION_STATUS_RECONCILED\x10\x04\x12+\n" +
-	"'COST_CALCULATION_STATUS_MANUAL_ADJUSTED\x10\x05*\x86\x03\n" +
-	"\x15UsageSettlementStatus\x12'\n" +
-	"#USAGE_SETTLEMENT_STATUS_UNSPECIFIED\x10\x00\x12*\n" +
-	"&USAGE_SETTLEMENT_STATUS_NOT_APPLICABLE\x10\x01\x12%\n" +
-	"!USAGE_SETTLEMENT_STATUS_ESTIMATED\x10\x02\x12'\n" +
-	"#USAGE_SETTLEMENT_STATUS_RECONCILING\x10\x03\x12#\n" +
-	"\x1fUSAGE_SETTLEMENT_STATUS_SETTLED\x10\x04\x12$\n" +
-	" USAGE_SETTLEMENT_STATUS_ADJUSTED\x10\x05\x12.\n" +
-	"*USAGE_SETTLEMENT_STATUS_COLLISION_ABSORBED\x10\x06\x12$\n" +
-	" USAGE_SETTLEMENT_STATUS_DISPUTED\x10\a\x12'\n" +
-	"#USAGE_SETTLEMENT_STATUS_WRITTEN_OFF\x10\bB\xce\x02\n" +
+	"'COST_CALCULATION_STATUS_MANUAL_ADJUSTED\x10\x05B\xce\x02\n" +
 	"(com.ai.stigmer.agentic.agentexecution.v1B\n" +
 	"UsageProtoP\x01Zagithub.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
@@ -2032,61 +1786,54 @@ func file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDescGZIP() []byte 
 	return file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agentexecution_v1_usage_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
-var file_ai_stigmer_agentic_agentexecution_v1_usage_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_ai_stigmer_agentic_agentexecution_v1_usage_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
+var file_ai_stigmer_agentic_agentexecution_v1_usage_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_ai_stigmer_agentic_agentexecution_v1_usage_proto_goTypes = []any{
 	(UsageMeteringSource)(0),      // 0: ai.stigmer.agentic.agentexecution.v1.UsageMeteringSource
 	(UsageTrustLevel)(0),          // 1: ai.stigmer.agentic.agentexecution.v1.UsageTrustLevel
 	(UsageCompletionStatus)(0),    // 2: ai.stigmer.agentic.agentexecution.v1.UsageCompletionStatus
 	(BillingDebitStatus)(0),       // 3: ai.stigmer.agentic.agentexecution.v1.BillingDebitStatus
 	(CostCalculationStatus)(0),    // 4: ai.stigmer.agentic.agentexecution.v1.CostCalculationStatus
-	(UsageSettlementStatus)(0),    // 5: ai.stigmer.agentic.agentexecution.v1.UsageSettlementStatus
-	(*TokenUsage)(nil),            // 6: ai.stigmer.agentic.agentexecution.v1.TokenUsage
-	(*PricingSnapshot)(nil),       // 7: ai.stigmer.agentic.agentexecution.v1.PricingSnapshot
-	(*CostStamp)(nil),             // 8: ai.stigmer.agentic.agentexecution.v1.CostStamp
-	(*ProxyTiming)(nil),           // 9: ai.stigmer.agentic.agentexecution.v1.ProxyTiming
-	(*BillingLink)(nil),           // 10: ai.stigmer.agentic.agentexecution.v1.BillingLink
-	(*LlmCallUsageRecord)(nil),    // 11: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord
-	(*SettlementLink)(nil),        // 12: ai.stigmer.agentic.agentexecution.v1.SettlementLink
-	(*UsageReportAggregate)(nil),  // 13: ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate
-	(*ModelUsage)(nil),            // 14: ai.stigmer.agentic.agentexecution.v1.ModelUsage
-	(*StreamingUsageSummary)(nil), // 15: ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary
-	nil,                           // 16: ai.stigmer.agentic.agentexecution.v1.TokenUsage.ProviderTokenDetailsEntry
-	nil,                           // 17: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.LabelsEntry
-	(*timestamppb.Timestamp)(nil), // 18: google.protobuf.Timestamp
+	(*TokenUsage)(nil),            // 5: ai.stigmer.agentic.agentexecution.v1.TokenUsage
+	(*PricingSnapshot)(nil),       // 6: ai.stigmer.agentic.agentexecution.v1.PricingSnapshot
+	(*CostStamp)(nil),             // 7: ai.stigmer.agentic.agentexecution.v1.CostStamp
+	(*ProxyTiming)(nil),           // 8: ai.stigmer.agentic.agentexecution.v1.ProxyTiming
+	(*BillingLink)(nil),           // 9: ai.stigmer.agentic.agentexecution.v1.BillingLink
+	(*LlmCallUsageRecord)(nil),    // 10: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord
+	(*UsageReportAggregate)(nil),  // 11: ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate
+	(*ModelUsage)(nil),            // 12: ai.stigmer.agentic.agentexecution.v1.ModelUsage
+	(*StreamingUsageSummary)(nil), // 13: ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary
+	nil,                           // 14: ai.stigmer.agentic.agentexecution.v1.TokenUsage.ProviderTokenDetailsEntry
+	nil,                           // 15: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.LabelsEntry
+	(*timestamppb.Timestamp)(nil), // 16: google.protobuf.Timestamp
 }
 var file_ai_stigmer_agentic_agentexecution_v1_usage_proto_depIdxs = []int32{
-	16, // 0: ai.stigmer.agentic.agentexecution.v1.TokenUsage.provider_token_details:type_name -> ai.stigmer.agentic.agentexecution.v1.TokenUsage.ProviderTokenDetailsEntry
-	18, // 1: ai.stigmer.agentic.agentexecution.v1.PricingSnapshot.pricing_effective_at:type_name -> google.protobuf.Timestamp
+	14, // 0: ai.stigmer.agentic.agentexecution.v1.TokenUsage.provider_token_details:type_name -> ai.stigmer.agentic.agentexecution.v1.TokenUsage.ProviderTokenDetailsEntry
+	16, // 1: ai.stigmer.agentic.agentexecution.v1.PricingSnapshot.pricing_effective_at:type_name -> google.protobuf.Timestamp
 	4,  // 2: ai.stigmer.agentic.agentexecution.v1.CostStamp.calculation_status:type_name -> ai.stigmer.agentic.agentexecution.v1.CostCalculationStatus
-	7,  // 3: ai.stigmer.agentic.agentexecution.v1.CostStamp.pricing:type_name -> ai.stigmer.agentic.agentexecution.v1.PricingSnapshot
-	18, // 4: ai.stigmer.agentic.agentexecution.v1.ProxyTiming.proxy_received_at:type_name -> google.protobuf.Timestamp
-	18, // 5: ai.stigmer.agentic.agentexecution.v1.ProxyTiming.upstream_request_started_at:type_name -> google.protobuf.Timestamp
-	18, // 6: ai.stigmer.agentic.agentexecution.v1.ProxyTiming.first_response_byte_at:type_name -> google.protobuf.Timestamp
-	18, // 7: ai.stigmer.agentic.agentexecution.v1.ProxyTiming.last_response_byte_at:type_name -> google.protobuf.Timestamp
-	18, // 8: ai.stigmer.agentic.agentexecution.v1.ProxyTiming.proxy_completed_at:type_name -> google.protobuf.Timestamp
+	6,  // 3: ai.stigmer.agentic.agentexecution.v1.CostStamp.pricing:type_name -> ai.stigmer.agentic.agentexecution.v1.PricingSnapshot
+	16, // 4: ai.stigmer.agentic.agentexecution.v1.ProxyTiming.proxy_received_at:type_name -> google.protobuf.Timestamp
+	16, // 5: ai.stigmer.agentic.agentexecution.v1.ProxyTiming.upstream_request_started_at:type_name -> google.protobuf.Timestamp
+	16, // 6: ai.stigmer.agentic.agentexecution.v1.ProxyTiming.first_response_byte_at:type_name -> google.protobuf.Timestamp
+	16, // 7: ai.stigmer.agentic.agentexecution.v1.ProxyTiming.last_response_byte_at:type_name -> google.protobuf.Timestamp
+	16, // 8: ai.stigmer.agentic.agentexecution.v1.ProxyTiming.proxy_completed_at:type_name -> google.protobuf.Timestamp
 	3,  // 9: ai.stigmer.agentic.agentexecution.v1.BillingLink.debit_status:type_name -> ai.stigmer.agentic.agentexecution.v1.BillingDebitStatus
-	18, // 10: ai.stigmer.agentic.agentexecution.v1.BillingLink.debited_at:type_name -> google.protobuf.Timestamp
-	18, // 11: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.observed_at:type_name -> google.protobuf.Timestamp
-	18, // 12: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.created_at:type_name -> google.protobuf.Timestamp
+	16, // 10: ai.stigmer.agentic.agentexecution.v1.BillingLink.debited_at:type_name -> google.protobuf.Timestamp
+	16, // 11: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.observed_at:type_name -> google.protobuf.Timestamp
+	16, // 12: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.created_at:type_name -> google.protobuf.Timestamp
 	0,  // 13: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.metering_source:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageMeteringSource
 	1,  // 14: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.trust_level:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageTrustLevel
 	2,  // 15: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.usage_status:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageCompletionStatus
-	6,  // 16: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.tokens:type_name -> ai.stigmer.agentic.agentexecution.v1.TokenUsage
-	8,  // 17: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.cost:type_name -> ai.stigmer.agentic.agentexecution.v1.CostStamp
-	9,  // 18: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.proxy_timing:type_name -> ai.stigmer.agentic.agentexecution.v1.ProxyTiming
-	10, // 19: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.billing:type_name -> ai.stigmer.agentic.agentexecution.v1.BillingLink
-	17, // 20: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.labels:type_name -> ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.LabelsEntry
-	5,  // 21: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.settlement_status:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageSettlementStatus
-	12, // 22: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.settlement_link:type_name -> ai.stigmer.agentic.agentexecution.v1.SettlementLink
-	18, // 23: ai.stigmer.agentic.agentexecution.v1.SettlementLink.settled_at:type_name -> google.protobuf.Timestamp
-	0,  // 24: ai.stigmer.agentic.agentexecution.v1.SettlementLink.original_metering_source:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageMeteringSource
-	1,  // 25: ai.stigmer.agentic.agentexecution.v1.SettlementLink.original_trust_level:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageTrustLevel
-	26, // [26:26] is the sub-list for method output_type
-	26, // [26:26] is the sub-list for method input_type
-	26, // [26:26] is the sub-list for extension type_name
-	26, // [26:26] is the sub-list for extension extendee
-	0,  // [0:26] is the sub-list for field type_name
+	5,  // 16: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.tokens:type_name -> ai.stigmer.agentic.agentexecution.v1.TokenUsage
+	7,  // 17: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.cost:type_name -> ai.stigmer.agentic.agentexecution.v1.CostStamp
+	8,  // 18: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.proxy_timing:type_name -> ai.stigmer.agentic.agentexecution.v1.ProxyTiming
+	9,  // 19: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.billing:type_name -> ai.stigmer.agentic.agentexecution.v1.BillingLink
+	15, // 20: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.labels:type_name -> ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.LabelsEntry
+	21, // [21:21] is the sub-list for method output_type
+	21, // [21:21] is the sub-list for method input_type
+	21, // [21:21] is the sub-list for extension type_name
+	21, // [21:21] is the sub-list for extension extendee
+	0,  // [0:21] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_usage_proto_init() }
@@ -2099,8 +1846,8 @@ func file_ai_stigmer_agentic_agentexecution_v1_usage_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDesc), len(file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDesc)),
-			NumEnums:      6,
-			NumMessages:   12,
+			NumEnums:      5,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

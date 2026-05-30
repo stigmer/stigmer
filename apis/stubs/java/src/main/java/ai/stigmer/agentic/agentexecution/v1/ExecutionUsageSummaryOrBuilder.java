@@ -161,7 +161,7 @@ public interface ExecutionUsageSummaryOrBuilder extends
 
   /**
    * <pre>
-   * Whether this execution's cost is estimated (not yet proxy-metered or reconciled).
+   * Whether this execution's cost is estimated (in-flight, no billing records yet).
    * </pre>
    *
    * <code>bool is_estimated = 11 [json_name = "isEstimated"];</code>

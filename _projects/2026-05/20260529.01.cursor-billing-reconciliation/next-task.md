@@ -19,8 +19,30 @@
 
 ## Current Status
 
-**Last Updated**: 2026-05-30 14:00  
-**Current Focus**: Proxy billing complete. Reconciliation removed. Model extraction from request body implemented. Ready for codegen + deploy.
+**Last Updated**: 2026-05-30 14:15  
+**Current Focus**: Codegen fixed and validated. Stubs regenerated. Ready for integration test run + commit + deploy.
+
+## Session 5 Progress (2026-05-30 afternoon, wrap-up)
+
+### Codegen Pipeline Fix
+
+User ran `make codegen` and hit two TypeScript errors during `typedoc:json`:
+
+1. **`SetupTabWorkspaceActions` stale re-export** (pre-existing bug): Type was removed from `SetupTab.tsx` but barrel files (`session/index.ts`, `index.ts`) still re-exported it. Removed the stale references.
+
+2. **`isEstimated` not found on `GetSessionUsageReportOutput`**: Root cause was a build-ordering gap in the Makefile. `make codegen` runs `protos` (regenerates TS stubs with `isEstimated` in source) then `gen-sdk-docs` → `typedoc:json`, which resolves `@stigmer/protos` from `dist/` — but `dist/` was never rebuilt after stub regeneration. Added a `build-ts-stubs` step to the pipeline: `codegen: protos → build-ts-stubs → gen-sdk-docs → gen-narration`.
+
+### What was accomplished
+
+1. **Removed stale `SetupTabWorkspaceActions` export** from `sdk/react/src/session/index.ts` and `sdk/react/src/index.ts`
+2. **Added `build-ts-stubs` Makefile target** that rebuilds `@stigmer/protos` dist after stub regeneration
+3. **Verified**: React SDK lint (0 errors) + typecheck (clean) pass
+
+### What was NOT done
+
+- Full integration test suite run
+- Production deployment
+- TS unit tests for `useSessionUsage`
 
 ## Session 4 Progress (2026-05-30 afternoon)
 
@@ -49,70 +71,6 @@
 5. **Removed proto settlement scaffolding**: `UsageSettlementStatus` enum, `SettlementLink` message, `PROVIDER_SETTLED` trust level
 6. **Simplified `is_estimated`**: Now derived from whether billing records exist (empty = estimated)
 7. **Updated SDK hook comments**: Reflect proxy-authoritative billing model
-
-### What was NOT done
-
-- `make codegen` / `make protos` (stub regeneration deferred to user)
-- Full integration test suite run
-- Production deployment
-
-## Session 2 Progress (2026-05-29 afternoon)
-
-### Key Discovery (CRITICAL for next session)
-
-**The Cursor SDK uses Connect RPC (`api2.cursor.sh`) for the main agent loop, NOT the SSE `streamRun` endpoint (`api.cursor.com`).** The proxy's `CursorUsageExtractor` only meters SSE responses. Connect responses pass through as a binary passthrough without token extraction.
-
-This means:
-- `recordCursorUsage` (which reads `streaming_usage` from runner) is STILL needed for billing today
-- The proxy CAN meter Connect (it sees all bytes), but needs a new `ConnectUsageExtractor` that parses protobuf envelopes
-- The SSE metering path works for CLOUD mode Cursor executions (which use `api.cursor.com/v1/agents/.../stream`)
-- LOCAL/SANDBOX mode (default) uses Connect RPC — this is the majority of traffic
-
-### What was accomplished (code changes in place)
-
-1. **Proto scaffolding (DONE, committed to working tree)**:
-   - `UsageSettlementStatus` enum added to `usage.proto` (8 states)
-   - `USAGE_TRUST_LEVEL_PROVIDER_SETTLED = 4` added
-   - `settlement_status` (field 100) + `settlement_link` (field 101) on `LlmCallUsageRecord`
-   - `SettlementLink` message defined
-   - `is_estimated` field added to `GetSessionUsageReportOutput` (field 8) and `ExecutionUsageSummary` (field 11)
-   - `make codegen` (OSS) + `make protos` (cloud) run successfully
-
-2. **Handler trust label fix (DONE)**:
-   - `RecordLlmCallUsageHandler` now sets ALL records as `PROXY_PROVIDER_REPORTED` + `BILLING_AUTHORITY` + `settlement_status = NOT_APPLICABLE`
-   - Removed the cursor/native branch (all records are proxy-observed since `recordCursorUsage` was the only non-proxy writer)
-   - Handler test updated and passing
-
-3. **Server-side `is_estimated` derivation (DONE)**:
-   - `UsageAggregationService` has `isEstimated(records)` and `isSessionEstimated(executions)` methods
-   - `buildExecutionSummary` sets `is_estimated` per-execution
-   - `AgentExecutionGetSessionUsageReportHandler` sets `is_estimated` on session report
-   - Build passes
-
-4. **SDK display (DONE)**:
-   - `useSessionUsage.ts` consumes server `is_estimated` flag via `report.isEstimated`
-   - Removed the token-count heuristic (`streamingFallback.totalTokens > billingReport.totalTokens`)
-   - Simplified selection: billing report wins when it has data; streaming fallback for in-flight only
-
-5. **Handler unit test (DONE, PASSING)**:
-   - `RecordLlmCallUsageHandlerTest.cursorMeteringSource` updated to assert `PROXY_PROVIDER_REPORTED` + `BILLING_AUTHORITY`
-
-### What BROKE and why (integration test failure)
-
-`TestAgentExecution_CursorUsage_FullPipeline` FAILS because:
-- We removed `recordCursorUsage` (the runner fallback)
-- The proxy doesn't meter the Connect path
-- Result: zero billing records for Cursor executions
-
-**Resolution**: Reverted the `recordCursorUsage` removal. The remaining handler/proto/display changes are safe. The handler change is correct because `recordCursorUsage` goes through the same handler — relabeling it as `PROXY_PROVIDER_REPORTED`/`BILLING_AUTHORITY` is slightly aspirational but non-breaking (the billing math is unchanged).
-
-### What was reverted
-
-- `BillingActivities.java` — `recordCursorUsage` method restored
-- `BillingActivitiesImpl.java` — full implementation restored
-- `InvokeAgentExecutionWorkflowImpl.java` — call at `EXECUTION_COMPLETED` restored
-
----
 
 ## Session 3 Progress (2026-05-30 morning)
 
@@ -143,16 +101,30 @@ Built the full Connect RPC metering pipeline:
 
 5. **Defensive strategy:** `recordCursorUsage` kept as fallback — existing idempotency key deduplication means whichever writes first wins (proxy usually wins the race).
 
+## Session 2 Progress (2026-05-29 afternoon)
+
+### Key Discovery (CRITICAL for next session)
+
+**The Cursor SDK uses Connect RPC (`api2.cursor.sh`) for the main agent loop, NOT the SSE `streamRun` endpoint (`api.cursor.com`).** The proxy's `CursorUsageExtractor` only meters SSE responses. Connect responses pass through as a binary passthrough without token extraction.
+
+### What was accomplished (code changes in place)
+
+1. **Proto scaffolding (DONE, committed to working tree)**
+2. **Handler trust label fix (DONE)**
+3. **Server-side `is_estimated` derivation (DONE)**
+4. **SDK display (DONE)** — `useSessionUsage.ts` consumes server `is_estimated` flag
+5. **Handler unit test (DONE, PASSING)**
+
 ---
 
 ## Next Steps
 
-### Priority 1: Run codegen and validate
+### Priority 1: Commit and deploy
 
-- Run `make codegen` in stigmer OSS (regenerate stubs after proto removal)
-- Run `make protos` in stigmer-cloud (regenerate Java stubs)
+- All codegen issues resolved — `make codegen` should now pass cleanly
 - Run full integration test suite to verify no regressions
-- Commit and deploy
+- Commit all changes across both repos
+- Deploy to production
 
 ### Priority 2: Monitor Connect metering in production
 
@@ -172,11 +144,16 @@ Built the full Connect RPC metering pipeline:
 
 ## Files Modified (uncommitted, both repos)
 
-### stigmer (OSS)
-- `apis/ai/stigmer/agentic/agentexecution/v1/usage.proto` — settlement enum + fields
-- `apis/ai/stigmer/agentic/agentexecution/v1/io.proto` — `is_estimated` on reports
-- All generated stubs (Go, Java, Python, TS, Dart)
+### stigmer (OSS) — this session
+- `Makefile` — added `build-ts-stubs` step to codegen pipeline
+- `sdk/react/src/index.ts` — removed stale `SetupTabWorkspaceActions` re-export
+- `sdk/react/src/session/index.ts` — removed stale `SetupTabWorkspaceActions` re-export
+
+### stigmer (OSS) — previous sessions
+- `apis/ai/stigmer/agentic/agentexecution/v1/usage.proto` — settlement removal + simplified trust levels
+- All regenerated stubs (Go, Java, Python, TS)
 - `sdk/react/src/session/useSessionUsage.ts` — server `is_estimated` flag
+- Regenerated docs, typedoc output, codegen schemas
 
 ### stigmer-cloud
 - `RecordLlmCallUsageHandler.java` — all records as PROXY_PROVIDER_REPORTED + BILLING_AUTHORITY
@@ -189,10 +166,7 @@ Built the full Connect RPC metering pipeline:
 
 ## Blockers
 
-- None. All blockers resolved:
-  - ~~`STIGMER_CURSOR_ADMIN_API_KEY` not yet provisioned~~ **RESOLVED** — Admin API reconciliation removed (Enterprise-only feature, not available on Team plan)
-  - ~~Connect RPC metering not built~~ **RESOLVED** — ConnectCursorUsageExtractor built and tested
-  - ~~Model not extracted for Connect~~ **RESOLVED** — Extracted from request body (secure, tamper-proof)
+- None. All blockers resolved.
 
 ---
 
@@ -214,10 +188,9 @@ Built the full Connect RPC metering pipeline:
 
 ## Quick Commands
 
-- **"Continue with Connect metering"** — Start building the ConnectUsageExtractor
-- **"Show current status"** — Review what's done vs pending
 - **"Run the integration test"** — Verify current changes don't regress
-- **"Commit the proto + display changes"** — Ship the non-breaking scaffolding
+- **"Commit all changes"** — Ship the billing reconciliation work
+- **"Show current status"** — Review what's done vs pending
 
 ---
 

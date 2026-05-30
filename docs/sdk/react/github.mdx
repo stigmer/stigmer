@@ -225,6 +225,39 @@ function GitHubSearch({ token }: { token: string | null }) {
 ```
 
 
+### useGitHubTreeLister
+
+Creates a [`WorkspaceFileLister`](/docs/sdk/react/workspace#workspacefilelister) backed by the GitHub Trees API.
+
+Uses the existing client-side OAuth token (same one that powers
+`GitHubRepoPicker`) to call `GET /repos/{owner}/{repo}/git/trees/{branch}?recursive=1`.
+
+Returns `null` for:
+- Non-git workspace entries
+- Missing or empty token
+- Non-GitHub git URLs
+- Failed API responses (graceful degradation)
+
+**Signature**
+
+```tsx
+function useGitHubTreeLister(token: string | null): WorkspaceFileLister | undefined
+```
+
+<TypeTable
+  type={{
+    token: { type: "string | null", description: "", required: true },
+  }}
+/>
+
+```tsx
+const gitHubConnection = useGitHubConnection(org);
+const fileLister = useGitHubTreeLister(gitHubConnection.token);
+
+<SessionViewer workspaceFileLister={fileLister} />
+```
+
+
 ## Components
 
 ### GitHubRepoPicker
@@ -328,6 +361,37 @@ Minimal GitHub user profile for display.
     name: { type: "string | null", description: "Display name, or `null` when the user has not set one.", required: true },
   }}
 />
+
+
+### ParsedGitRepo
+
+Parsed owner and repository name from a GitHub URL.
+
+Returned by [`parseGitUrl`](#parsegiturl) when the URL is a valid GitHub
+repository reference.
+
+<TypeTable
+  type={{
+    owner: { type: "string", description: "", required: true },
+    repo: { type: "string", description: "", required: true },
+  }}
+/>
+
+
+### parseGitUrl
+
+Extract the owner and repository name from a GitHub URL.
+
+Supports both HTTPS and SSH-style URLs:
+- `https://github.com/acme/api`
+- `https://github.com/acme/api.git`
+- `git@github.com:acme/api.git`
+
+Returns `null` for non-GitHub or unparseable URLs.
+
+```tsx
+function parseGitUrl(url: string): ParsedGitRepo | null
+```
 
 
 ### UseGitHubConnectionConfig
