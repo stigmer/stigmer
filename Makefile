@@ -76,7 +76,7 @@ install-vale: ## Install Vale prose linter (auto-detects OS)
 
 # ─── Build ────────────────────────────────────
 
-.PHONY: build build-mcp-server build-java-protos build-java-sdk build-runner protos codegen gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-task-docs gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-task-docs-check
+.PHONY: build build-mcp-server build-java-protos build-java-sdk build-runner protos codegen build-ts-stubs gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-task-docs gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-task-docs-check
 build: libs-build build-web verify-desktop docs-build build-mcp-server build-java-sdk build-runner ## Build all project artifacts
 	@mkdir -p bin
 	cd client-apps/cli && go build -o ../../bin/stigmer .
@@ -216,7 +216,10 @@ gen-narration: ## Generate narration audio for demo scenarios
 preview-sync: ## Re-scan client-apps/web and update site/.scenar/ view registry
 	npx scenar preview sync --source client-apps/web --output site/.scenar
 
-codegen: protos gen-sdk-docs gen-narration ## Regenerate all derived code (stubs + SDK docs + narration)
+codegen: protos build-ts-stubs gen-sdk-docs gen-narration ## Regenerate all derived code (stubs + SDK docs + narration)
+
+build-ts-stubs: ## Rebuild @stigmer/protos dist after stub regeneration
+	npm run build -w @stigmer/protos
 
 # ─── Test ─────────────────────────────────────
 

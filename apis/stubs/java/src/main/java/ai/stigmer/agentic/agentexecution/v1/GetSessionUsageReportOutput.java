@@ -382,8 +382,9 @@ private static final long serialVersionUID = 0L;
   private boolean isEstimated_ = false;
   /**
    * <pre>
-   * Whether any record in this session is still estimated (not yet settled).
-   * False when all records are proxy-metered (BILLING_AUTHORITY) or reconciled.
+   * Whether any record in this session is still estimated (not yet proxy-metered).
+   * True when execution is in-flight and only streaming usage data is available.
+   * False once proxy billing records have been written.
    * </pre>
    *
    * <code>bool is_estimated = 8 [json_name = "isEstimated"];</code>
@@ -2092,8 +2093,9 @@ private static final long serialVersionUID = 0L;
     private boolean isEstimated_ ;
     /**
      * <pre>
-     * Whether any record in this session is still estimated (not yet settled).
-     * False when all records are proxy-metered (BILLING_AUTHORITY) or reconciled.
+     * Whether any record in this session is still estimated (not yet proxy-metered).
+     * True when execution is in-flight and only streaming usage data is available.
+     * False once proxy billing records have been written.
      * </pre>
      *
      * <code>bool is_estimated = 8 [json_name = "isEstimated"];</code>
@@ -2105,8 +2107,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whether any record in this session is still estimated (not yet settled).
-     * False when all records are proxy-metered (BILLING_AUTHORITY) or reconciled.
+     * Whether any record in this session is still estimated (not yet proxy-metered).
+     * True when execution is in-flight and only streaming usage data is available.
+     * False once proxy billing records have been written.
      * </pre>
      *
      * <code>bool is_estimated = 8 [json_name = "isEstimated"];</code>
@@ -2122,8 +2125,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whether any record in this session is still estimated (not yet settled).
-     * False when all records are proxy-metered (BILLING_AUTHORITY) or reconciled.
+     * Whether any record in this session is still estimated (not yet proxy-metered).
+     * True when execution is in-flight and only streaming usage data is available.
+     * False once proxy billing records have been written.
      * </pre>
      *
      * <code>bool is_estimated = 8 [json_name = "isEstimated"];</code>

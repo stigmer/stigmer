@@ -112,7 +112,6 @@ export type {
   UseSessionInspectorOptions,
   UseSessionInspectorReturn,
   SetupTabProps,
-  SetupTabWorkspaceActions,
   SetupTabMutationCallbacks,
 } from "./inspector";
 

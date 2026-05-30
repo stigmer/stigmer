@@ -155,7 +155,7 @@ export function WorkspaceEntryFiles({
                 onSelect={setSelectedPath}
                 depth={0}
                 enableDrag
-                maxInitialDepth={isFiltering ? Infinity : 2}
+                maxInitialDepth={isFiltering ? Infinity : 0}
               />
             ))}
           </ul>

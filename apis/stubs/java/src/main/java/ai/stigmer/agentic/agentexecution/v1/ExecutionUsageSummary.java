@@ -350,7 +350,7 @@ private static final long serialVersionUID = 0L;
   private boolean isEstimated_ = false;
   /**
    * <pre>
-   * Whether this execution's cost is estimated (not yet proxy-metered or reconciled).
+   * Whether this execution's cost is estimated (in-flight, no billing records yet).
    * </pre>
    *
    * <code>bool is_estimated = 11 [json_name = "isEstimated"];</code>
@@ -1559,7 +1559,7 @@ private static final long serialVersionUID = 0L;
     private boolean isEstimated_ ;
     /**
      * <pre>
-     * Whether this execution's cost is estimated (not yet proxy-metered or reconciled).
+     * Whether this execution's cost is estimated (in-flight, no billing records yet).
      * </pre>
      *
      * <code>bool is_estimated = 11 [json_name = "isEstimated"];</code>
@@ -1571,7 +1571,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whether this execution's cost is estimated (not yet proxy-metered or reconciled).
+     * Whether this execution's cost is estimated (in-flight, no billing records yet).
      * </pre>
      *
      * <code>bool is_estimated = 11 [json_name = "isEstimated"];</code>
@@ -1587,7 +1587,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whether this execution's cost is estimated (not yet proxy-metered or reconciled).
+     * Whether this execution's cost is estimated (in-flight, no billing records yet).
      * </pre>
      *
      * <code>bool is_estimated = 11 [json_name = "isEstimated"];</code>

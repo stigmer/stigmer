@@ -85,10 +85,17 @@
       "components": 22
     },
     {
+      "slug": "file-reference",
+      "title": "file-reference",
+      "description": "",
+      "hooks": 1,
+      "components": 1
+    },
+    {
       "slug": "github",
       "title": "GitHub",
       "description": "Hooks and components for OAuth connection, repository search, and picker.",
-      "hooks": 3,
+      "hooks": 4,
       "components": 1
     },
     {
@@ -186,8 +193,8 @@
       "slug": "session",
       "title": "Session",
       "description": "Hooks for session lifecycle, message history, conversation state, and usage tracking.",
-      "hooks": 15,
-      "components": 0
+      "hooks": 16,
+      "components": 3
     },
     {
       "slug": "settings",
@@ -235,8 +242,8 @@
       "slug": "workspace",
       "title": "Workspace",
       "description": "Hooks and components for file entries, folder browsing, and code editing.",
-      "hooks": 1,
-      "components": 2
+      "hooks": 3,
+      "components": 3
     }
   ]
 }

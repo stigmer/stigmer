@@ -1274,8 +1274,9 @@ export type GetSessionUsageReportOutput = Message<"ai.stigmer.agentic.agentexecu
   lastExecutionAt: string;
 
   /**
-   * Whether any record in this session is still estimated (not yet settled).
-   * False when all records are proxy-metered (BILLING_AUTHORITY) or reconciled.
+   * Whether any record in this session is still estimated (not yet proxy-metered).
+   * True when execution is in-flight and only streaming usage data is available.
+   * False once proxy billing records have been written.
    *
    * @generated from field: bool is_estimated = 8;
    */
@@ -1618,7 +1619,7 @@ export type ExecutionUsageSummary = Message<"ai.stigmer.agentic.agentexecution.v
   phase: ExecutionPhase;
 
   /**
-   * Whether this execution's cost is estimated (not yet proxy-metered or reconciled).
+   * Whether this execution's cost is estimated (in-flight, no billing records yet).
    *
    * @generated from field: bool is_estimated = 11;
    */

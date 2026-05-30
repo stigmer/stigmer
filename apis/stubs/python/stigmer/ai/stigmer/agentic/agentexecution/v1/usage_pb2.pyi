@@ -25,7 +25,6 @@ class UsageTrustLevel(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     USAGE_TRUST_LEVEL_BILLING_AUTHORITY: _ClassVar[UsageTrustLevel]
     USAGE_TRUST_LEVEL_SERVER_OBSERVED: _ClassVar[UsageTrustLevel]
     USAGE_TRUST_LEVEL_DISPLAY_ONLY: _ClassVar[UsageTrustLevel]
-    USAGE_TRUST_LEVEL_PROVIDER_SETTLED: _ClassVar[UsageTrustLevel]
 
 class UsageCompletionStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -56,18 +55,6 @@ class CostCalculationStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     COST_CALCULATION_STATUS_PRICE_NOT_FOUND: _ClassVar[CostCalculationStatus]
     COST_CALCULATION_STATUS_RECONCILED: _ClassVar[CostCalculationStatus]
     COST_CALCULATION_STATUS_MANUAL_ADJUSTED: _ClassVar[CostCalculationStatus]
-
-class UsageSettlementStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
-    __slots__ = ()
-    USAGE_SETTLEMENT_STATUS_UNSPECIFIED: _ClassVar[UsageSettlementStatus]
-    USAGE_SETTLEMENT_STATUS_NOT_APPLICABLE: _ClassVar[UsageSettlementStatus]
-    USAGE_SETTLEMENT_STATUS_ESTIMATED: _ClassVar[UsageSettlementStatus]
-    USAGE_SETTLEMENT_STATUS_RECONCILING: _ClassVar[UsageSettlementStatus]
-    USAGE_SETTLEMENT_STATUS_SETTLED: _ClassVar[UsageSettlementStatus]
-    USAGE_SETTLEMENT_STATUS_ADJUSTED: _ClassVar[UsageSettlementStatus]
-    USAGE_SETTLEMENT_STATUS_COLLISION_ABSORBED: _ClassVar[UsageSettlementStatus]
-    USAGE_SETTLEMENT_STATUS_DISPUTED: _ClassVar[UsageSettlementStatus]
-    USAGE_SETTLEMENT_STATUS_WRITTEN_OFF: _ClassVar[UsageSettlementStatus]
 USAGE_METERING_SOURCE_UNSPECIFIED: UsageMeteringSource
 USAGE_METERING_SOURCE_PROXY_PROVIDER_REPORTED: UsageMeteringSource
 USAGE_METERING_SOURCE_RUNNER_PROVIDER_REPORTED_OSS: UsageMeteringSource
@@ -78,7 +65,6 @@ USAGE_TRUST_LEVEL_UNSPECIFIED: UsageTrustLevel
 USAGE_TRUST_LEVEL_BILLING_AUTHORITY: UsageTrustLevel
 USAGE_TRUST_LEVEL_SERVER_OBSERVED: UsageTrustLevel
 USAGE_TRUST_LEVEL_DISPLAY_ONLY: UsageTrustLevel
-USAGE_TRUST_LEVEL_PROVIDER_SETTLED: UsageTrustLevel
 USAGE_COMPLETION_STATUS_UNSPECIFIED: UsageCompletionStatus
 USAGE_COMPLETION_STATUS_COMPLETE: UsageCompletionStatus
 USAGE_COMPLETION_STATUS_STREAM_INTERRUPTED: UsageCompletionStatus
@@ -100,15 +86,6 @@ COST_CALCULATION_STATUS_ESTIMATED: CostCalculationStatus
 COST_CALCULATION_STATUS_PRICE_NOT_FOUND: CostCalculationStatus
 COST_CALCULATION_STATUS_RECONCILED: CostCalculationStatus
 COST_CALCULATION_STATUS_MANUAL_ADJUSTED: CostCalculationStatus
-USAGE_SETTLEMENT_STATUS_UNSPECIFIED: UsageSettlementStatus
-USAGE_SETTLEMENT_STATUS_NOT_APPLICABLE: UsageSettlementStatus
-USAGE_SETTLEMENT_STATUS_ESTIMATED: UsageSettlementStatus
-USAGE_SETTLEMENT_STATUS_RECONCILING: UsageSettlementStatus
-USAGE_SETTLEMENT_STATUS_SETTLED: UsageSettlementStatus
-USAGE_SETTLEMENT_STATUS_ADJUSTED: UsageSettlementStatus
-USAGE_SETTLEMENT_STATUS_COLLISION_ABSORBED: UsageSettlementStatus
-USAGE_SETTLEMENT_STATUS_DISPUTED: UsageSettlementStatus
-USAGE_SETTLEMENT_STATUS_WRITTEN_OFF: UsageSettlementStatus
 
 class TokenUsage(_message.Message):
     __slots__ = ("input_tokens", "output_tokens", "total_tokens", "cache_creation_input_tokens", "cache_read_input_tokens", "reasoning_tokens", "tool_use_prompt_tokens", "audio_input_tokens", "audio_output_tokens", "provider_token_details")
@@ -222,7 +199,7 @@ class BillingLink(_message.Message):
     def __init__(self, debit_status: _Optional[_Union[BillingDebitStatus, str]] = ..., reservation_id: _Optional[str] = ..., billing_debit_id: _Optional[str] = ..., debited_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., billing_attempt_count: _Optional[int] = ..., last_billing_error: _Optional[str] = ...) -> None: ...
 
 class LlmCallUsageRecord(_message.Message):
-    __slots__ = ("usage_record_id", "execution_id", "root_execution_id", "sequence", "idempotency_key", "canonical_payload_hash", "observed_at", "created_at", "metering_source", "trust_level", "usage_status", "is_billable", "provider", "requested_model", "resolved_model", "endpoint", "streaming", "service_tier", "provider_request_id", "harness", "http_status_code", "finish_reason", "error_code", "tokens", "cost", "proxy_timing", "provider_usage_json", "billing", "org_id", "session_id", "labels", "settlement_status", "settlement_link")
+    __slots__ = ("usage_record_id", "execution_id", "root_execution_id", "sequence", "idempotency_key", "canonical_payload_hash", "observed_at", "created_at", "metering_source", "trust_level", "usage_status", "is_billable", "provider", "requested_model", "resolved_model", "endpoint", "streaming", "service_tier", "provider_request_id", "harness", "http_status_code", "finish_reason", "error_code", "tokens", "cost", "proxy_timing", "provider_usage_json", "billing", "org_id", "session_id", "labels")
     class LabelsEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -261,8 +238,6 @@ class LlmCallUsageRecord(_message.Message):
     ORG_ID_FIELD_NUMBER: _ClassVar[int]
     SESSION_ID_FIELD_NUMBER: _ClassVar[int]
     LABELS_FIELD_NUMBER: _ClassVar[int]
-    SETTLEMENT_STATUS_FIELD_NUMBER: _ClassVar[int]
-    SETTLEMENT_LINK_FIELD_NUMBER: _ClassVar[int]
     usage_record_id: str
     execution_id: str
     root_execution_id: str
@@ -294,31 +269,7 @@ class LlmCallUsageRecord(_message.Message):
     org_id: str
     session_id: str
     labels: _containers.ScalarMap[str, str]
-    settlement_status: UsageSettlementStatus
-    settlement_link: SettlementLink
-    def __init__(self, usage_record_id: _Optional[str] = ..., execution_id: _Optional[str] = ..., root_execution_id: _Optional[str] = ..., sequence: _Optional[int] = ..., idempotency_key: _Optional[str] = ..., canonical_payload_hash: _Optional[str] = ..., observed_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., metering_source: _Optional[_Union[UsageMeteringSource, str]] = ..., trust_level: _Optional[_Union[UsageTrustLevel, str]] = ..., usage_status: _Optional[_Union[UsageCompletionStatus, str]] = ..., is_billable: bool = ..., provider: _Optional[str] = ..., requested_model: _Optional[str] = ..., resolved_model: _Optional[str] = ..., endpoint: _Optional[str] = ..., streaming: bool = ..., service_tier: _Optional[str] = ..., provider_request_id: _Optional[str] = ..., harness: _Optional[str] = ..., http_status_code: _Optional[int] = ..., finish_reason: _Optional[str] = ..., error_code: _Optional[str] = ..., tokens: _Optional[_Union[TokenUsage, _Mapping]] = ..., cost: _Optional[_Union[CostStamp, _Mapping]] = ..., proxy_timing: _Optional[_Union[ProxyTiming, _Mapping]] = ..., provider_usage_json: _Optional[str] = ..., billing: _Optional[_Union[BillingLink, _Mapping]] = ..., org_id: _Optional[str] = ..., session_id: _Optional[str] = ..., labels: _Optional[_Mapping[str, str]] = ..., settlement_status: _Optional[_Union[UsageSettlementStatus, str]] = ..., settlement_link: _Optional[_Union[SettlementLink, _Mapping]] = ...) -> None: ...
-
-class SettlementLink(_message.Message):
-    __slots__ = ("cursor_usage_event_id", "cursor_usage_event_hash", "settled_charged_cents", "settled_billable_amount_micros", "match_confidence", "match_type", "settled_at", "original_metering_source", "original_trust_level")
-    CURSOR_USAGE_EVENT_ID_FIELD_NUMBER: _ClassVar[int]
-    CURSOR_USAGE_EVENT_HASH_FIELD_NUMBER: _ClassVar[int]
-    SETTLED_CHARGED_CENTS_FIELD_NUMBER: _ClassVar[int]
-    SETTLED_BILLABLE_AMOUNT_MICROS_FIELD_NUMBER: _ClassVar[int]
-    MATCH_CONFIDENCE_FIELD_NUMBER: _ClassVar[int]
-    MATCH_TYPE_FIELD_NUMBER: _ClassVar[int]
-    SETTLED_AT_FIELD_NUMBER: _ClassVar[int]
-    ORIGINAL_METERING_SOURCE_FIELD_NUMBER: _ClassVar[int]
-    ORIGINAL_TRUST_LEVEL_FIELD_NUMBER: _ClassVar[int]
-    cursor_usage_event_id: str
-    cursor_usage_event_hash: str
-    settled_charged_cents: float
-    settled_billable_amount_micros: int
-    match_confidence: float
-    match_type: str
-    settled_at: _timestamp_pb2.Timestamp
-    original_metering_source: UsageMeteringSource
-    original_trust_level: UsageTrustLevel
-    def __init__(self, cursor_usage_event_id: _Optional[str] = ..., cursor_usage_event_hash: _Optional[str] = ..., settled_charged_cents: _Optional[float] = ..., settled_billable_amount_micros: _Optional[int] = ..., match_confidence: _Optional[float] = ..., match_type: _Optional[str] = ..., settled_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., original_metering_source: _Optional[_Union[UsageMeteringSource, str]] = ..., original_trust_level: _Optional[_Union[UsageTrustLevel, str]] = ...) -> None: ...
+    def __init__(self, usage_record_id: _Optional[str] = ..., execution_id: _Optional[str] = ..., root_execution_id: _Optional[str] = ..., sequence: _Optional[int] = ..., idempotency_key: _Optional[str] = ..., canonical_payload_hash: _Optional[str] = ..., observed_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., metering_source: _Optional[_Union[UsageMeteringSource, str]] = ..., trust_level: _Optional[_Union[UsageTrustLevel, str]] = ..., usage_status: _Optional[_Union[UsageCompletionStatus, str]] = ..., is_billable: bool = ..., provider: _Optional[str] = ..., requested_model: _Optional[str] = ..., resolved_model: _Optional[str] = ..., endpoint: _Optional[str] = ..., streaming: bool = ..., service_tier: _Optional[str] = ..., provider_request_id: _Optional[str] = ..., harness: _Optional[str] = ..., http_status_code: _Optional[int] = ..., finish_reason: _Optional[str] = ..., error_code: _Optional[str] = ..., tokens: _Optional[_Union[TokenUsage, _Mapping]] = ..., cost: _Optional[_Union[CostStamp, _Mapping]] = ..., proxy_timing: _Optional[_Union[ProxyTiming, _Mapping]] = ..., provider_usage_json: _Optional[str] = ..., billing: _Optional[_Union[BillingLink, _Mapping]] = ..., org_id: _Optional[str] = ..., session_id: _Optional[str] = ..., labels: _Optional[_Mapping[str, str]] = ...) -> None: ...
 
 class UsageReportAggregate(_message.Message):
     __slots__ = ("input_tokens", "output_tokens", "total_tokens", "cache_creation_input_tokens", "cache_read_input_tokens", "reasoning_tokens", "llm_call_count", "billable_cost_micros", "provider_cost_micros", "primary_model", "primary_provider")

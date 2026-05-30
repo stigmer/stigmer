@@ -43,15 +43,6 @@ public enum UsageTrustLevel
    * <code>USAGE_TRUST_LEVEL_DISPLAY_ONLY = 3;</code>
    */
   USAGE_TRUST_LEVEL_DISPLAY_ONLY(3),
-  /**
-   * <pre>
-   * Trusted provider back-office settlement feed, reconciled after delay.
-   * Used when Cursor Admin API chargedCents is matched to a proxy-metered record.
-   * </pre>
-   *
-   * <code>USAGE_TRUST_LEVEL_PROVIDER_SETTLED = 4;</code>
-   */
-  USAGE_TRUST_LEVEL_PROVIDER_SETTLED(4),
   UNRECOGNIZED(-1),
   ;
 
@@ -92,15 +83,6 @@ public enum UsageTrustLevel
    * <code>USAGE_TRUST_LEVEL_DISPLAY_ONLY = 3;</code>
    */
   public static final int USAGE_TRUST_LEVEL_DISPLAY_ONLY_VALUE = 3;
-  /**
-   * <pre>
-   * Trusted provider back-office settlement feed, reconciled after delay.
-   * Used when Cursor Admin API chargedCents is matched to a proxy-metered record.
-   * </pre>
-   *
-   * <code>USAGE_TRUST_LEVEL_PROVIDER_SETTLED = 4;</code>
-   */
-  public static final int USAGE_TRUST_LEVEL_PROVIDER_SETTLED_VALUE = 4;
 
 
   public final int getNumber() {
@@ -131,7 +113,6 @@ public enum UsageTrustLevel
       case 1: return USAGE_TRUST_LEVEL_BILLING_AUTHORITY;
       case 2: return USAGE_TRUST_LEVEL_SERVER_OBSERVED;
       case 3: return USAGE_TRUST_LEVEL_DISPLAY_ONLY;
-      case 4: return USAGE_TRUST_LEVEL_PROVIDER_SETTLED;
       default: return null;
     }
   }
