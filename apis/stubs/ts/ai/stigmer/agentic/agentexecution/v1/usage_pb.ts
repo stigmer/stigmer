@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentexecution/v1/usage.proto.
  */
 export const file_ai_stigmer_agentic_agentexecution_v1_usage: GenFile = /*@__PURE__*/
-  fileDesc("CjBhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvdXNhZ2UucHJvdG8SJGFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MSKxAwoKVG9rZW5Vc2FnZRIUCgxpbnB1dF90b2tlbnMYASABKAMSFQoNb3V0cHV0X3Rva2VucxgCIAEoAxIUCgx0b3RhbF90b2tlbnMYAyABKAMSIwobY2FjaGVfY3JlYXRpb25faW5wdXRfdG9rZW5zGAQgASgDEh8KF2NhY2hlX3JlYWRfaW5wdXRfdG9rZW5zGAUgASgDEhgKEHJlYXNvbmluZ190b2tlbnMYBiABKAMSHgoWdG9vbF91c2VfcHJvbXB0X3Rva2VucxgHIAEoAxIaChJhdWRpb19pbnB1dF90b2tlbnMYCCABKAMSGwoTYXVkaW9fb3V0cHV0X3Rva2VucxgJIAEoAxJqChZwcm92aWRlcl90b2tlbl9kZXRhaWxzGBQgAygLMkouYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlRva2VuVXNhZ2UuUHJvdmlkZXJUb2tlbkRldGFpbHNFbnRyeRo7ChlQcm92aWRlclRva2VuRGV0YWlsc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoAzoCOAEijAMKD1ByaWNpbmdTbmFwc2hvdBIgChhwcmljaW5nX3JlZ2lzdHJ5X3ZlcnNpb24YASABKAkSOAoUcHJpY2luZ19lZmZlY3RpdmVfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhAKCGN1cnJlbmN5GAMgASgJEiYKHmlucHV0X3ByaWNlX21pY3Jvc19wZXJfbWlsbGlvbhgKIAEoAxInCh9vdXRwdXRfcHJpY2VfbWljcm9zX3Blcl9taWxsaW9uGAsgASgDEi8KJ2NhY2hlX2NyZWF0aW9uX3ByaWNlX21pY3Jvc19wZXJfbWlsbGlvbhgMIAEoAxIrCiNjYWNoZV9yZWFkX3ByaWNlX21pY3Jvc19wZXJfbWlsbGlvbhgNIAEoAxIqCiJyZWFzb25pbmdfcHJpY2VfbWljcm9zX3Blcl9taWxsaW9uGA4gASgDEh0KFW1hcmt1cF9wb2xpY3lfdmVyc2lvbhgeIAEoCRIRCgljb3N0X3RpZXIYHyABKAkihQIKCUNvc3RTdGFtcBIQCghjdXJyZW5jeRgBIAEoCRIcChRwcm92aWRlcl9jb3N0X21pY3JvcxgCIAEoAxInCh9jdXN0b21lcl9iaWxsYWJsZV9hbW91bnRfbWljcm9zGAMgASgDElcKEmNhbGN1bGF0aW9uX3N0YXR1cxgEIAEoDjI7LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Db3N0Q2FsY3VsYXRpb25TdGF0dXMSRgoHcHJpY2luZxgFIAEoCzI1LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5QcmljaW5nU25hcHNob3Qi1AMKC1Byb3h5VGltaW5nEjUKEXByb3h5X3JlY2VpdmVkX2F0GAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBI/Cht1cHN0cmVhbV9yZXF1ZXN0X3N0YXJ0ZWRfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjoKFmZpcnN0X3Jlc3BvbnNlX2J5dGVfYXQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjkKFWxhc3RfcmVzcG9uc2VfYnl0ZV9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASNgoScHJveHlfY29tcGxldGVkX2F0GAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIYChB1cHN0cmVhbV90dGZiX21zGAogASgDEhgKEHVwc3RyZWFtX3R0bGJfbXMYCyABKAMSGgoSc3RyZWFtX2R1cmF0aW9uX21zGAwgASgDEh8KF3Byb3h5X3RvdGFsX2R1cmF0aW9uX21zGA0gASgDEhUKDXJlcXVlc3RfYnl0ZXMYFCABKAMSFgoOcmVzcG9uc2VfYnl0ZXMYFSABKAMi+gEKC0JpbGxpbmdMaW5rEk4KDGRlYml0X3N0YXR1cxgBIAEoDjI4LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5CaWxsaW5nRGViaXRTdGF0dXMSFgoOcmVzZXJ2YXRpb25faWQYAiABKAkSGAoQYmlsbGluZ19kZWJpdF9pZBgDIAEoCRIuCgpkZWJpdGVkX2F0GAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIdChViaWxsaW5nX2F0dGVtcHRfY291bnQYBSABKAUSGgoSbGFzdF9iaWxsaW5nX2Vycm9yGAYgASgJItcJChJMbG1DYWxsVXNhZ2VSZWNvcmQSFwoPdXNhZ2VfcmVjb3JkX2lkGAEgASgJEhQKDGV4ZWN1dGlvbl9pZBgCIAEoCRIZChFyb290X2V4ZWN1dGlvbl9pZBgDIAEoCRIQCghzZXF1ZW5jZRgEIAEoBRIXCg9pZGVtcG90ZW5jeV9rZXkYBSABKAkSHgoWY2Fub25pY2FsX3BheWxvYWRfaGFzaBgGIAEoCRIvCgtvYnNlcnZlZF9hdBgKIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKY3JlYXRlZF9hdBgLIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASUgoPbWV0ZXJpbmdfc291cmNlGBQgASgOMjkuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlVzYWdlTWV0ZXJpbmdTb3VyY2USSgoLdHJ1c3RfbGV2ZWwYFSABKA4yNS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuVXNhZ2VUcnVzdExldmVsElEKDHVzYWdlX3N0YXR1cxgWIAEoDjI7LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Vc2FnZUNvbXBsZXRpb25TdGF0dXMSEwoLaXNfYmlsbGFibGUYFyABKAgSEAoIcHJvdmlkZXIYHiABKAkSFwoPcmVxdWVzdGVkX21vZGVsGB8gASgJEhYKDnJlc29sdmVkX21vZGVsGCAgASgJEhAKCGVuZHBvaW50GCEgASgJEhEKCXN0cmVhbWluZxgiIAEoCBIUCgxzZXJ2aWNlX3RpZXIYIyABKAkSGwoTcHJvdmlkZXJfcmVxdWVzdF9pZBgkIAEoCRIPCgdoYXJuZXNzGCUgASgJEhgKEGh0dHBfc3RhdHVzX2NvZGUYKCABKAUSFQoNZmluaXNoX3JlYXNvbhgpIAEoCRISCgplcnJvcl9jb2RlGCogASgJEkAKBnRva2VucxgyIAEoCzIwLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Ub2tlblVzYWdlEj0KBGNvc3QYMyABKAsyLy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQ29zdFN0YW1wEkcKDHByb3h5X3RpbWluZxg8IAEoCzIxLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Qcm94eVRpbWluZxIbChNwcm92aWRlcl91c2FnZV9qc29uGEYgASgJEkIKB2JpbGxpbmcYUCABKAsyMS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQmlsbGluZ0xpbmsSDgoGb3JnX2lkGAcgASgJEhIKCnNlc3Npb25faWQYCCABKAkSVAoGbGFiZWxzGFogAygLMkQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkxsbUNhbGxVc2FnZVJlY29yZC5MYWJlbHNFbnRyeRotCgtMYWJlbHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIr4CChRVc2FnZVJlcG9ydEFnZ3JlZ2F0ZRIUCgxpbnB1dF90b2tlbnMYASABKAMSFQoNb3V0cHV0X3Rva2VucxgCIAEoAxIUCgx0b3RhbF90b2tlbnMYAyABKAMSIwobY2FjaGVfY3JlYXRpb25faW5wdXRfdG9rZW5zGAQgASgDEh8KF2NhY2hlX3JlYWRfaW5wdXRfdG9rZW5zGAUgASgDEhgKEHJlYXNvbmluZ190b2tlbnMYBiABKAMSFgoObGxtX2NhbGxfY291bnQYCiABKAUSHAoUYmlsbGFibGVfY29zdF9taWNyb3MYFCABKAMSHAoUcHJvdmlkZXJfY29zdF9taWNyb3MYFSABKAMSFQoNcHJpbWFyeV9tb2RlbBgeIAEoCRIYChBwcmltYXJ5X3Byb3ZpZGVyGB8gASgJIvABCgpNb2RlbFVzYWdlEg0KBW1vZGVsGAEgASgJEhAKCHByb3ZpZGVyGAIgASgJEhQKDGlucHV0X3Rva2VucxgDIAEoAxIVCg1vdXRwdXRfdG9rZW5zGAQgASgDEiMKG2NhY2hlX2NyZWF0aW9uX2lucHV0X3Rva2VucxgFIAEoAxIfChdjYWNoZV9yZWFkX2lucHV0X3Rva2VucxgGIAEoAxISCgpjYWxsX2NvdW50GAcgASgFEhwKFGJpbGxhYmxlX2Nvc3RfbWljcm9zGAggASgDEhwKFHByb3ZpZGVyX2Nvc3RfbWljcm9zGAkgASgDIuUBChVTdHJlYW1pbmdVc2FnZVN1bW1hcnkSFAoMaW5wdXRfdG9rZW5zGAEgASgDEhUKDW91dHB1dF90b2tlbnMYAiABKAMSGQoRY2FjaGVfcmVhZF90b2tlbnMYAyABKAMSGgoSY2FjaGVfd3JpdGVfdG9rZW5zGAQgASgDEhQKDHRvdGFsX3Rva2VucxgFIAEoAxISCgp0dXJuX2NvdW50GAYgASgFEhoKEmVzdGltYXRlZF9jb3N0X3VzZBgHIAEoARINCgVtb2RlbBgIIAEoCRITCgtvYnNlcnZlZF9hdBgJIAEoCSquAgoTVXNhZ2VNZXRlcmluZ1NvdXJjZRIlCiFVU0FHRV9NRVRFUklOR19TT1VSQ0VfVU5TUEVDSUZJRUQQABIxCi1VU0FHRV9NRVRFUklOR19TT1VSQ0VfUFJPWFlfUFJPVklERVJfUkVQT1JURUQQARI2CjJVU0FHRV9NRVRFUklOR19TT1VSQ0VfUlVOTkVSX1BST1ZJREVSX1JFUE9SVEVEX09TUxACEiMKH1VTQUdFX01FVEVSSU5HX1NPVVJDRV9FU1RJTUFURUQQAxIzCi9VU0FHRV9NRVRFUklOR19TT1VSQ0VfUFJPVklERVJfQURNSU5fUkVDT05DSUxFRBAEEisKJ1VTQUdFX01FVEVSSU5HX1NPVVJDRV9NQU5VQUxfQURKVVNUTUVOVBAFKqgBCg9Vc2FnZVRydXN0TGV2ZWwSIQodVVNBR0VfVFJVU1RfTEVWRUxfVU5TUEVDSUZJRUQQABInCiNVU0FHRV9UUlVTVF9MRVZFTF9CSUxMSU5HX0FVVEhPUklUWRABEiUKIVVTQUdFX1RSVVNUX0xFVkVMX1NFUlZFUl9PQlNFUlZFRBACEiIKHlVTQUdFX1RSVVNUX0xFVkVMX0RJU1BMQVlfT05MWRADKvwCChVVc2FnZUNvbXBsZXRpb25TdGF0dXMSJwojVVNBR0VfQ09NUExFVElPTl9TVEFUVVNfVU5TUEVDSUZJRUQQABIkCiBVU0FHRV9DT01QTEVUSU9OX1NUQVRVU19DT01QTEVURRABEi4KKlVTQUdFX0NPTVBMRVRJT05fU1RBVFVTX1NUUkVBTV9JTlRFUlJVUFRFRBACEjUKMVVTQUdFX0NPTVBMRVRJT05fU1RBVFVTX1BST1ZJREVSX0VSUk9SX1dJVEhfVVNBR0UQAxIzCi9VU0FHRV9DT01QTEVUSU9OX1NUQVRVU19QUk9WSURFUl9FUlJPUl9OT19VU0FHRRAEEioKJlVTQUdFX0NPTVBMRVRJT05fU1RBVFVTX0VTVElNQVRFRF9PTkxZEAUSJgoiVVNBR0VfQ09NUExFVElPTl9TVEFUVVNfUkVDT05DSUxFRBAGEiQKIFVTQUdFX0NPTVBMRVRJT05fU1RBVFVTX0NPTkZMSUNUEAcqnwIKEkJpbGxpbmdEZWJpdFN0YXR1cxIkCiBCSUxMSU5HX0RFQklUX1NUQVRVU19VTlNQRUNJRklFRBAAEicKI0JJTExJTkdfREVCSVRfU1RBVFVTX05PVF9BUFBMSUNBQkxFEAESIAocQklMTElOR19ERUJJVF9TVEFUVVNfUEVORElORxACEiAKHEJJTExJTkdfREVCSVRfU1RBVFVTX0RFQklURUQQAxIpCiVCSUxMSU5HX0RFQklUX1NUQVRVU19GQUlMRURfUkVUUllBQkxFEAQSKAokQklMTElOR19ERUJJVF9TVEFUVVNfRkFJTEVEX1RFUk1JTkFMEAUSIQodQklMTElOR19ERUJJVF9TVEFUVVNfQ09ORkxJQ1QQBiqPAgoVQ29zdENhbGN1bGF0aW9uU3RhdHVzEicKI0NPU1RfQ0FMQ1VMQVRJT05fU1RBVFVTX1VOU1BFQ0lGSUVEEAASJAogQ09TVF9DQUxDVUxBVElPTl9TVEFUVVNfQ09NUFVURUQQARIlCiFDT1NUX0NBTENVTEFUSU9OX1NUQVRVU19FU1RJTUFURUQQAhIrCidDT1NUX0NBTENVTEFUSU9OX1NUQVRVU19QUklDRV9OT1RfRk9VTkQQAxImCiJDT1NUX0NBTENVTEFUSU9OX1NUQVRVU19SRUNPTkNJTEVEEAQSKwonQ09TVF9DQUxDVUxBVElPTl9TVEFUVVNfTUFOVUFMX0FESlVTVEVEEAViBnByb3RvMw", [file_google_protobuf_timestamp]);
+  fileDesc("CjBhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvdXNhZ2UucHJvdG8SJGFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MSKxAwoKVG9rZW5Vc2FnZRIUCgxpbnB1dF90b2tlbnMYASABKAMSFQoNb3V0cHV0X3Rva2VucxgCIAEoAxIUCgx0b3RhbF90b2tlbnMYAyABKAMSIwobY2FjaGVfY3JlYXRpb25faW5wdXRfdG9rZW5zGAQgASgDEh8KF2NhY2hlX3JlYWRfaW5wdXRfdG9rZW5zGAUgASgDEhgKEHJlYXNvbmluZ190b2tlbnMYBiABKAMSHgoWdG9vbF91c2VfcHJvbXB0X3Rva2VucxgHIAEoAxIaChJhdWRpb19pbnB1dF90b2tlbnMYCCABKAMSGwoTYXVkaW9fb3V0cHV0X3Rva2VucxgJIAEoAxJqChZwcm92aWRlcl90b2tlbl9kZXRhaWxzGBQgAygLMkouYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlRva2VuVXNhZ2UuUHJvdmlkZXJUb2tlbkRldGFpbHNFbnRyeRo7ChlQcm92aWRlclRva2VuRGV0YWlsc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoAzoCOAEijAMKD1ByaWNpbmdTbmFwc2hvdBIgChhwcmljaW5nX3JlZ2lzdHJ5X3ZlcnNpb24YASABKAkSOAoUcHJpY2luZ19lZmZlY3RpdmVfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhAKCGN1cnJlbmN5GAMgASgJEiYKHmlucHV0X3ByaWNlX21pY3Jvc19wZXJfbWlsbGlvbhgKIAEoAxInCh9vdXRwdXRfcHJpY2VfbWljcm9zX3Blcl9taWxsaW9uGAsgASgDEi8KJ2NhY2hlX2NyZWF0aW9uX3ByaWNlX21pY3Jvc19wZXJfbWlsbGlvbhgMIAEoAxIrCiNjYWNoZV9yZWFkX3ByaWNlX21pY3Jvc19wZXJfbWlsbGlvbhgNIAEoAxIqCiJyZWFzb25pbmdfcHJpY2VfbWljcm9zX3Blcl9taWxsaW9uGA4gASgDEh0KFW1hcmt1cF9wb2xpY3lfdmVyc2lvbhgeIAEoCRIRCgljb3N0X3RpZXIYHyABKAkihQIKCUNvc3RTdGFtcBIQCghjdXJyZW5jeRgBIAEoCRIcChRwcm92aWRlcl9jb3N0X21pY3JvcxgCIAEoAxInCh9jdXN0b21lcl9iaWxsYWJsZV9hbW91bnRfbWljcm9zGAMgASgDElcKEmNhbGN1bGF0aW9uX3N0YXR1cxgEIAEoDjI7LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Db3N0Q2FsY3VsYXRpb25TdGF0dXMSRgoHcHJpY2luZxgFIAEoCzI1LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5QcmljaW5nU25hcHNob3Qi1AMKC1Byb3h5VGltaW5nEjUKEXByb3h5X3JlY2VpdmVkX2F0GAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBI/Cht1cHN0cmVhbV9yZXF1ZXN0X3N0YXJ0ZWRfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjoKFmZpcnN0X3Jlc3BvbnNlX2J5dGVfYXQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjkKFWxhc3RfcmVzcG9uc2VfYnl0ZV9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASNgoScHJveHlfY29tcGxldGVkX2F0GAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIYChB1cHN0cmVhbV90dGZiX21zGAogASgDEhgKEHVwc3RyZWFtX3R0bGJfbXMYCyABKAMSGgoSc3RyZWFtX2R1cmF0aW9uX21zGAwgASgDEh8KF3Byb3h5X3RvdGFsX2R1cmF0aW9uX21zGA0gASgDEhUKDXJlcXVlc3RfYnl0ZXMYFCABKAMSFgoOcmVzcG9uc2VfYnl0ZXMYFSABKAMi+gEKC0JpbGxpbmdMaW5rEk4KDGRlYml0X3N0YXR1cxgBIAEoDjI4LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5CaWxsaW5nRGViaXRTdGF0dXMSFgoOcmVzZXJ2YXRpb25faWQYAiABKAkSGAoQYmlsbGluZ19kZWJpdF9pZBgDIAEoCRIuCgpkZWJpdGVkX2F0GAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIdChViaWxsaW5nX2F0dGVtcHRfY291bnQYBSABKAUSGgoSbGFzdF9iaWxsaW5nX2Vycm9yGAYgASgJIv4KChJMbG1DYWxsVXNhZ2VSZWNvcmQSFwoPdXNhZ2VfcmVjb3JkX2lkGAEgASgJEhQKDGV4ZWN1dGlvbl9pZBgCIAEoCRIZChFyb290X2V4ZWN1dGlvbl9pZBgDIAEoCRIQCghzZXF1ZW5jZRgEIAEoBRIXCg9pZGVtcG90ZW5jeV9rZXkYBSABKAkSHgoWY2Fub25pY2FsX3BheWxvYWRfaGFzaBgGIAEoCRIvCgtvYnNlcnZlZF9hdBgKIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKY3JlYXRlZF9hdBgLIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASUgoPbWV0ZXJpbmdfc291cmNlGBQgASgOMjkuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlVzYWdlTWV0ZXJpbmdTb3VyY2USSgoLdHJ1c3RfbGV2ZWwYFSABKA4yNS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuVXNhZ2VUcnVzdExldmVsElEKDHVzYWdlX3N0YXR1cxgWIAEoDjI7LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Vc2FnZUNvbXBsZXRpb25TdGF0dXMSEwoLaXNfYmlsbGFibGUYFyABKAgSEAoIcHJvdmlkZXIYHiABKAkSFwoPcmVxdWVzdGVkX21vZGVsGB8gASgJEhYKDnJlc29sdmVkX21vZGVsGCAgASgJEhAKCGVuZHBvaW50GCEgASgJEhEKCXN0cmVhbWluZxgiIAEoCBIUCgxzZXJ2aWNlX3RpZXIYIyABKAkSGwoTcHJvdmlkZXJfcmVxdWVzdF9pZBgkIAEoCRIPCgdoYXJuZXNzGCUgASgJEhgKEGh0dHBfc3RhdHVzX2NvZGUYKCABKAUSFQoNZmluaXNoX3JlYXNvbhgpIAEoCRISCgplcnJvcl9jb2RlGCogASgJEkAKBnRva2VucxgyIAEoCzIwLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Ub2tlblVzYWdlEj0KBGNvc3QYMyABKAsyLy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQ29zdFN0YW1wEkcKDHByb3h5X3RpbWluZxg8IAEoCzIxLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Qcm94eVRpbWluZxIbChNwcm92aWRlcl91c2FnZV9qc29uGEYgASgJEkIKB2JpbGxpbmcYUCABKAsyMS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQmlsbGluZ0xpbmsSDgoGb3JnX2lkGAcgASgJEhIKCnNlc3Npb25faWQYCCABKAkSVAoGbGFiZWxzGFogAygLMkQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkxsbUNhbGxVc2FnZVJlY29yZC5MYWJlbHNFbnRyeRJWChFzZXR0bGVtZW50X3N0YXR1cxhkIAEoDjI7LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Vc2FnZVNldHRsZW1lbnRTdGF0dXMSTQoPc2V0dGxlbWVudF9saW5rGGUgASgLMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlNldHRsZW1lbnRMaW5rGi0KC0xhYmVsc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEipwMKDlNldHRsZW1lbnRMaW5rEh0KFWN1cnNvcl91c2FnZV9ldmVudF9pZBgBIAEoCRIfChdjdXJzb3JfdXNhZ2VfZXZlbnRfaGFzaBgCIAEoCRIdChVzZXR0bGVkX2NoYXJnZWRfY2VudHMYAyABKAESJgoec2V0dGxlZF9iaWxsYWJsZV9hbW91bnRfbWljcm9zGAQgASgDEhgKEG1hdGNoX2NvbmZpZGVuY2UYBSABKAESEgoKbWF0Y2hfdHlwZRgGIAEoCRIuCgpzZXR0bGVkX2F0GAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBJbChhvcmlnaW5hbF9tZXRlcmluZ19zb3VyY2UYCCABKA4yOS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuVXNhZ2VNZXRlcmluZ1NvdXJjZRJTChRvcmlnaW5hbF90cnVzdF9sZXZlbBgJIAEoDjI1LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Vc2FnZVRydXN0TGV2ZWwivgIKFFVzYWdlUmVwb3J0QWdncmVnYXRlEhQKDGlucHV0X3Rva2VucxgBIAEoAxIVCg1vdXRwdXRfdG9rZW5zGAIgASgDEhQKDHRvdGFsX3Rva2VucxgDIAEoAxIjChtjYWNoZV9jcmVhdGlvbl9pbnB1dF90b2tlbnMYBCABKAMSHwoXY2FjaGVfcmVhZF9pbnB1dF90b2tlbnMYBSABKAMSGAoQcmVhc29uaW5nX3Rva2VucxgGIAEoAxIWCg5sbG1fY2FsbF9jb3VudBgKIAEoBRIcChRiaWxsYWJsZV9jb3N0X21pY3JvcxgUIAEoAxIcChRwcm92aWRlcl9jb3N0X21pY3JvcxgVIAEoAxIVCg1wcmltYXJ5X21vZGVsGB4gASgJEhgKEHByaW1hcnlfcHJvdmlkZXIYHyABKAki8AEKCk1vZGVsVXNhZ2USDQoFbW9kZWwYASABKAkSEAoIcHJvdmlkZXIYAiABKAkSFAoMaW5wdXRfdG9rZW5zGAMgASgDEhUKDW91dHB1dF90b2tlbnMYBCABKAMSIwobY2FjaGVfY3JlYXRpb25faW5wdXRfdG9rZW5zGAUgASgDEh8KF2NhY2hlX3JlYWRfaW5wdXRfdG9rZW5zGAYgASgDEhIKCmNhbGxfY291bnQYByABKAUSHAoUYmlsbGFibGVfY29zdF9taWNyb3MYCCABKAMSHAoUcHJvdmlkZXJfY29zdF9taWNyb3MYCSABKAMi5QEKFVN0cmVhbWluZ1VzYWdlU3VtbWFyeRIUCgxpbnB1dF90b2tlbnMYASABKAMSFQoNb3V0cHV0X3Rva2VucxgCIAEoAxIZChFjYWNoZV9yZWFkX3Rva2VucxgDIAEoAxIaChJjYWNoZV93cml0ZV90b2tlbnMYBCABKAMSFAoMdG90YWxfdG9rZW5zGAUgASgDEhIKCnR1cm5fY291bnQYBiABKAUSGgoSZXN0aW1hdGVkX2Nvc3RfdXNkGAcgASgBEg0KBW1vZGVsGAggASgJEhMKC29ic2VydmVkX2F0GAkgASgJKq4CChNVc2FnZU1ldGVyaW5nU291cmNlEiUKIVVTQUdFX01FVEVSSU5HX1NPVVJDRV9VTlNQRUNJRklFRBAAEjEKLVVTQUdFX01FVEVSSU5HX1NPVVJDRV9QUk9YWV9QUk9WSURFUl9SRVBPUlRFRBABEjYKMlVTQUdFX01FVEVSSU5HX1NPVVJDRV9SVU5ORVJfUFJPVklERVJfUkVQT1JURURfT1NTEAISIwofVVNBR0VfTUVURVJJTkdfU09VUkNFX0VTVElNQVRFRBADEjMKL1VTQUdFX01FVEVSSU5HX1NPVVJDRV9QUk9WSURFUl9BRE1JTl9SRUNPTkNJTEVEEAQSKwonVVNBR0VfTUVURVJJTkdfU09VUkNFX01BTlVBTF9BREpVU1RNRU5UEAUq0AEKD1VzYWdlVHJ1c3RMZXZlbBIhCh1VU0FHRV9UUlVTVF9MRVZFTF9VTlNQRUNJRklFRBAAEicKI1VTQUdFX1RSVVNUX0xFVkVMX0JJTExJTkdfQVVUSE9SSVRZEAESJQohVVNBR0VfVFJVU1RfTEVWRUxfU0VSVkVSX09CU0VSVkVEEAISIgoeVVNBR0VfVFJVU1RfTEVWRUxfRElTUExBWV9PTkxZEAMSJgoiVVNBR0VfVFJVU1RfTEVWRUxfUFJPVklERVJfU0VUVExFRBAEKvwCChVVc2FnZUNvbXBsZXRpb25TdGF0dXMSJwojVVNBR0VfQ09NUExFVElPTl9TVEFUVVNfVU5TUEVDSUZJRUQQABIkCiBVU0FHRV9DT01QTEVUSU9OX1NUQVRVU19DT01QTEVURRABEi4KKlVTQUdFX0NPTVBMRVRJT05fU1RBVFVTX1NUUkVBTV9JTlRFUlJVUFRFRBACEjUKMVVTQUdFX0NPTVBMRVRJT05fU1RBVFVTX1BST1ZJREVSX0VSUk9SX1dJVEhfVVNBR0UQAxIzCi9VU0FHRV9DT01QTEVUSU9OX1NUQVRVU19QUk9WSURFUl9FUlJPUl9OT19VU0FHRRAEEioKJlVTQUdFX0NPTVBMRVRJT05fU1RBVFVTX0VTVElNQVRFRF9PTkxZEAUSJgoiVVNBR0VfQ09NUExFVElPTl9TVEFUVVNfUkVDT05DSUxFRBAGEiQKIFVTQUdFX0NPTVBMRVRJT05fU1RBVFVTX0NPTkZMSUNUEAcqnwIKEkJpbGxpbmdEZWJpdFN0YXR1cxIkCiBCSUxMSU5HX0RFQklUX1NUQVRVU19VTlNQRUNJRklFRBAAEicKI0JJTExJTkdfREVCSVRfU1RBVFVTX05PVF9BUFBMSUNBQkxFEAESIAocQklMTElOR19ERUJJVF9TVEFUVVNfUEVORElORxACEiAKHEJJTExJTkdfREVCSVRfU1RBVFVTX0RFQklURUQQAxIpCiVCSUxMSU5HX0RFQklUX1NUQVRVU19GQUlMRURfUkVUUllBQkxFEAQSKAokQklMTElOR19ERUJJVF9TVEFUVVNfRkFJTEVEX1RFUk1JTkFMEAUSIQodQklMTElOR19ERUJJVF9TVEFUVVNfQ09ORkxJQ1QQBiqPAgoVQ29zdENhbGN1bGF0aW9uU3RhdHVzEicKI0NPU1RfQ0FMQ1VMQVRJT05fU1RBVFVTX1VOU1BFQ0lGSUVEEAASJAogQ09TVF9DQUxDVUxBVElPTl9TVEFUVVNfQ09NUFVURUQQARIlCiFDT1NUX0NBTENVTEFUSU9OX1NUQVRVU19FU1RJTUFURUQQAhIrCidDT1NUX0NBTENVTEFUSU9OX1NUQVRVU19QUklDRV9OT1RfRk9VTkQQAxImCiJDT1NUX0NBTENVTEFUSU9OX1NUQVRVU19SRUNPTkNJTEVEEAQSKwonQ09TVF9DQUxDVUxBVElPTl9TVEFUVVNfTUFOVUFMX0FESlVTVEVEEAUqhgMKFVVzYWdlU2V0dGxlbWVudFN0YXR1cxInCiNVU0FHRV9TRVRUTEVNRU5UX1NUQVRVU19VTlNQRUNJRklFRBAAEioKJlVTQUdFX1NFVFRMRU1FTlRfU1RBVFVTX05PVF9BUFBMSUNBQkxFEAESJQohVVNBR0VfU0VUVExFTUVOVF9TVEFUVVNfRVNUSU1BVEVEEAISJwojVVNBR0VfU0VUVExFTUVOVF9TVEFUVVNfUkVDT05DSUxJTkcQAxIjCh9VU0FHRV9TRVRUTEVNRU5UX1NUQVRVU19TRVRUTEVEEAQSJAogVVNBR0VfU0VUVExFTUVOVF9TVEFUVVNfQURKVVNURUQQBRIuCipVU0FHRV9TRVRUTEVNRU5UX1NUQVRVU19DT0xMSVNJT05fQUJTT1JCRUQQBhIkCiBVU0FHRV9TRVRUTEVNRU5UX1NUQVRVU19ESVNQVVRFRBAHEicKI1VTQUdFX1NFVFRMRU1FTlRfU1RBVFVTX1dSSVRURU5fT0ZGEAhiBnByb3RvMw", [file_google_protobuf_timestamp]);
 
 /**
  * Normalized token usage from a single LLM call.
@@ -577,6 +577,21 @@ export type LlmCallUsageRecord = Message<"ai.stigmer.agentic.agentexecution.v1.L
    * @generated from field: map<string, string> labels = 90;
    */
   labels: { [key: string]: string };
+
+  /**
+   * ─── Settlement ───────────────────────────────────────────────────────────
+   * Settlement lifecycle state. Drives UX labels and future reconciliation.
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.UsageSettlementStatus settlement_status = 100;
+   */
+  settlementStatus: UsageSettlementStatus;
+
+  /**
+   * Link to the provider-side event used for settlement (populated by reconciliation).
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.SettlementLink settlement_link = 101;
+   */
+  settlementLink?: SettlementLink;
 };
 
 /**
@@ -585,6 +600,83 @@ export type LlmCallUsageRecord = Message<"ai.stigmer.agentic.agentexecution.v1.L
  */
 export const LlmCallUsageRecordSchema: GenMessage<LlmCallUsageRecord> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agentexecution_v1_usage, 5);
+
+/**
+ * Links a settled usage record to the provider-side event used for settlement.
+ *
+ * @generated from message ai.stigmer.agentic.agentexecution.v1.SettlementLink
+ */
+export type SettlementLink = Message<"ai.stigmer.agentic.agentexecution.v1.SettlementLink"> & {
+  /**
+   * ID of the cursor_usage_event document that this record was settled against.
+   *
+   * @generated from field: string cursor_usage_event_id = 1;
+   */
+  cursorUsageEventId: string;
+
+  /**
+   * SHA-256 content hash of the cursor_usage_event (for integrity).
+   *
+   * @generated from field: string cursor_usage_event_hash = 2;
+   */
+  cursorUsageEventHash: string;
+
+  /**
+   * Authoritative cost from the provider, in cents (as reported by Admin API).
+   *
+   * @generated from field: double settled_charged_cents = 3;
+   */
+  settledChargedCents: number;
+
+  /**
+   * Authoritative cost converted to micro-USD after billing policy rating.
+   *
+   * @generated from field: int64 settled_billable_amount_micros = 4;
+   */
+  settledBillableAmountMicros: bigint;
+
+  /**
+   * Confidence score of the match (0.0 - 1.0).
+   *
+   * @generated from field: double match_confidence = 5;
+   */
+  matchConfidence: number;
+
+  /**
+   * What type of match produced this settlement (e.g., "aggregate_calibration").
+   *
+   * @generated from field: string match_type = 6;
+   */
+  matchType: string;
+
+  /**
+   * When settlement occurred.
+   *
+   * @generated from field: google.protobuf.Timestamp settled_at = 7;
+   */
+  settledAt?: Timestamp;
+
+  /**
+   * Original metering source before upgrade (for audit).
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.UsageMeteringSource original_metering_source = 8;
+   */
+  originalMeteringSource: UsageMeteringSource;
+
+  /**
+   * Original trust level before upgrade (for audit).
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.UsageTrustLevel original_trust_level = 9;
+   */
+  originalTrustLevel: UsageTrustLevel;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentexecution.v1.SettlementLink.
+ * Use `create(SettlementLinkSchema)` to create a new message.
+ */
+export const SettlementLinkSchema: GenMessage<SettlementLink> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_usage, 6);
 
 /**
  * Aggregated usage across a scope (execution, session, agent, or org).
@@ -667,7 +759,7 @@ export type UsageReportAggregate = Message<"ai.stigmer.agentic.agentexecution.v1
  * Use `create(UsageReportAggregateSchema)` to create a new message.
  */
 export const UsageReportAggregateSchema: GenMessage<UsageReportAggregate> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_usage, 6);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_usage, 7);
 
 /**
  * Per-model usage breakdown within a report scope.
@@ -739,7 +831,7 @@ export type ModelUsage = Message<"ai.stigmer.agentic.agentexecution.v1.ModelUsag
  * Use `create(ModelUsageSchema)` to create a new message.
  */
 export const ModelUsageSchema: GenMessage<ModelUsage> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_usage, 7);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_usage, 8);
 
 /**
  * Accumulated token usage from execution worker turn-ended events.
@@ -818,7 +910,7 @@ export type StreamingUsageSummary = Message<"ai.stigmer.agentic.agentexecution.v
  * Use `create(StreamingUsageSummarySchema)` to create a new message.
  */
 export const StreamingUsageSummarySchema: GenMessage<StreamingUsageSummary> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_usage, 8);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_usage, 9);
 
 /**
  * Identifies who wrote the usage record and under what conditions.
@@ -904,6 +996,14 @@ export enum UsageTrustLevel {
    * @generated from enum value: USAGE_TRUST_LEVEL_DISPLAY_ONLY = 3;
    */
   DISPLAY_ONLY = 3,
+
+  /**
+   * Trusted provider back-office settlement feed, reconciled after delay.
+   * Used when Cursor Admin API chargedCents is matched to a proxy-metered record.
+   *
+   * @generated from enum value: USAGE_TRUST_LEVEL_PROVIDER_SETTLED = 4;
+   */
+  PROVIDER_SETTLED = 4,
 }
 
 /**
@@ -1091,4 +1191,81 @@ export enum CostCalculationStatus {
  */
 export const CostCalculationStatusSchema: GenEnum<CostCalculationStatus> = /*@__PURE__*/
   enumDesc(file_ai_stigmer_agentic_agentexecution_v1_usage, 4);
+
+/**
+ * Settlement lifecycle for usage records that require reconciliation.
+ * Proxy-metered records (both native and cursor) use NOT_APPLICABLE since
+ * they are billed immediately at BILLING_AUTHORITY trust. Future reconciliation
+ * against provider admin APIs may transition records through this state machine.
+ *
+ * @generated from enum ai.stigmer.agentic.agentexecution.v1.UsageSettlementStatus
+ */
+export enum UsageSettlementStatus {
+  /**
+   * @generated from enum value: USAGE_SETTLEMENT_STATUS_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * Billing-authoritative record that bypasses settlement (proxy-metered).
+   *
+   * @generated from enum value: USAGE_SETTLEMENT_STATUS_NOT_APPLICABLE = 1;
+   */
+  NOT_APPLICABLE = 1,
+
+  /**
+   * Runner estimate written. Not billed. Shows "Estimated" in UI.
+   *
+   * @generated from enum value: USAGE_SETTLEMENT_STATUS_ESTIMATED = 2;
+   */
+  ESTIMATED = 2,
+
+  /**
+   * Settlement activity is processing this record. Transient state.
+   *
+   * @generated from enum value: USAGE_SETTLEMENT_STATUS_RECONCILING = 3;
+   */
+  RECONCILING = 3,
+
+  /**
+   * Matched to a provider admin event. Authoritative cost applied.
+   *
+   * @generated from enum value: USAGE_SETTLEMENT_STATUS_SETTLED = 4;
+   */
+  SETTLED = 4,
+
+  /**
+   * Matched, but provider cost differs from proxy-computed cost. Adjustment applied.
+   *
+   * @generated from enum value: USAGE_SETTLEMENT_STATUS_ADJUSTED = 5;
+   */
+  ADJUSTED = 5,
+
+  /**
+   * Multiple records matched the same provider event. Platform absorbs cost.
+   *
+   * @generated from enum value: USAGE_SETTLEMENT_STATUS_COLLISION_ABSORBED = 6;
+   */
+  COLLISION_ABSORBED = 6,
+
+  /**
+   * Settlement discrepancy exceeds threshold. Requires manual review.
+   *
+   * @generated from enum value: USAGE_SETTLEMENT_STATUS_DISPUTED = 7;
+   */
+  DISPUTED = 7,
+
+  /**
+   * No provider match after expiry window. Original estimate preserved for display.
+   *
+   * @generated from enum value: USAGE_SETTLEMENT_STATUS_WRITTEN_OFF = 8;
+   */
+  WRITTEN_OFF = 8,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.agentexecution.v1.UsageSettlementStatus.
+ */
+export const UsageSettlementStatusSchema: GenEnum<UsageSettlementStatus> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_usage, 5);
 

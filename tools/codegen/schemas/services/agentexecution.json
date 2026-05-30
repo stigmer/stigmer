@@ -979,6 +979,16 @@
           },
           "description": "ISO 8601 timestamp of the most recent execution in this session.",
           "required": false
+        },
+        {
+          "name": "IsEstimated",
+          "jsonName": "isEstimated",
+          "protoField": "is_estimated",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Whether any record in this session is still estimated (not yet settled).\n False when all records are proxy-metered (BILLING_AUTHORITY) or reconciled.",
+          "required": false
         }
       ]
     },

@@ -66,6 +66,7 @@ private static final long serialVersionUID = 0L;
     providerUsageJson_ = "";
     orgId_ = "";
     sessionId_ = "";
+    settlementStatus_ = 0;
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -1287,6 +1288,72 @@ java.lang.String defaultValue) {
     return map.get(key);
   }
 
+  public static final int SETTLEMENT_STATUS_FIELD_NUMBER = 100;
+  private int settlementStatus_ = 0;
+  /**
+   * <pre>
+   * ─── Settlement ───────────────────────────────────────────────────────────
+   * Settlement lifecycle state. Drives UX labels and future reconciliation.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.UsageSettlementStatus settlement_status = 100 [json_name = "settlementStatus"];</code>
+   * @return The enum numeric value on the wire for settlementStatus.
+   */
+  @java.lang.Override public int getSettlementStatusValue() {
+    return settlementStatus_;
+  }
+  /**
+   * <pre>
+   * ─── Settlement ───────────────────────────────────────────────────────────
+   * Settlement lifecycle state. Drives UX labels and future reconciliation.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.UsageSettlementStatus settlement_status = 100 [json_name = "settlementStatus"];</code>
+   * @return The settlementStatus.
+   */
+  @java.lang.Override public ai.stigmer.agentic.agentexecution.v1.UsageSettlementStatus getSettlementStatus() {
+    ai.stigmer.agentic.agentexecution.v1.UsageSettlementStatus result = ai.stigmer.agentic.agentexecution.v1.UsageSettlementStatus.forNumber(settlementStatus_);
+    return result == null ? ai.stigmer.agentic.agentexecution.v1.UsageSettlementStatus.UNRECOGNIZED : result;
+  }
+
+  public static final int SETTLEMENT_LINK_FIELD_NUMBER = 101;
+  private ai.stigmer.agentic.agentexecution.v1.SettlementLink settlementLink_;
+  /**
+   * <pre>
+   * Link to the provider-side event used for settlement (populated by reconciliation).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.SettlementLink settlement_link = 101 [json_name = "settlementLink"];</code>
+   * @return Whether the settlementLink field is set.
+   */
+  @java.lang.Override
+  public boolean hasSettlementLink() {
+    return ((bitField0_ & 0x00000040) != 0);
+  }
+  /**
+   * <pre>
+   * Link to the provider-side event used for settlement (populated by reconciliation).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.SettlementLink settlement_link = 101 [json_name = "settlementLink"];</code>
+   * @return The settlementLink.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agentexecution.v1.SettlementLink getSettlementLink() {
+    return settlementLink_ == null ? ai.stigmer.agentic.agentexecution.v1.SettlementLink.getDefaultInstance() : settlementLink_;
+  }
+  /**
+   * <pre>
+   * Link to the provider-side event used for settlement (populated by reconciliation).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.SettlementLink settlement_link = 101 [json_name = "settlementLink"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agentexecution.v1.SettlementLinkOrBuilder getSettlementLinkOrBuilder() {
+    return settlementLink_ == null ? ai.stigmer.agentic.agentexecution.v1.SettlementLink.getDefaultInstance() : settlementLink_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -1397,6 +1464,12 @@ java.lang.String defaultValue) {
         internalGetLabels(),
         LabelsDefaultEntryHolder.defaultEntry,
         90);
+    if (settlementStatus_ != ai.stigmer.agentic.agentexecution.v1.UsageSettlementStatus.USAGE_SETTLEMENT_STATUS_UNSPECIFIED.getNumber()) {
+      output.writeEnum(100, settlementStatus_);
+    }
+    if (((bitField0_ & 0x00000040) != 0)) {
+      output.writeMessage(101, getSettlementLink());
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -1519,6 +1592,14 @@ java.lang.String defaultValue) {
       size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(90, labels__);
     }
+    if (settlementStatus_ != ai.stigmer.agentic.agentexecution.v1.UsageSettlementStatus.USAGE_SETTLEMENT_STATUS_UNSPECIFIED.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(100, settlementStatus_);
+    }
+    if (((bitField0_ & 0x00000040) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(101, getSettlementLink());
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -1611,6 +1692,12 @@ java.lang.String defaultValue) {
         .equals(other.getSessionId())) return false;
     if (!internalGetLabels().equals(
         other.internalGetLabels())) return false;
+    if (settlementStatus_ != other.settlementStatus_) return false;
+    if (hasSettlementLink() != other.hasSettlementLink()) return false;
+    if (hasSettlementLink()) {
+      if (!getSettlementLink()
+          .equals(other.getSettlementLink())) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -1699,6 +1786,12 @@ java.lang.String defaultValue) {
     if (!internalGetLabels().getMap().isEmpty()) {
       hash = (37 * hash) + LABELS_FIELD_NUMBER;
       hash = (53 * hash) + internalGetLabels().hashCode();
+    }
+    hash = (37 * hash) + SETTLEMENT_STATUS_FIELD_NUMBER;
+    hash = (53 * hash) + settlementStatus_;
+    if (hasSettlementLink()) {
+      hash = (37 * hash) + SETTLEMENT_LINK_FIELD_NUMBER;
+      hash = (53 * hash) + getSettlementLink().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -1876,12 +1969,14 @@ java.lang.String defaultValue) {
         internalGetCostFieldBuilder();
         internalGetProxyTimingFieldBuilder();
         internalGetBillingFieldBuilder();
+        internalGetSettlementLinkFieldBuilder();
       }
     }
     @java.lang.Override
     public Builder clear() {
       super.clear();
       bitField0_ = 0;
+      bitField1_ = 0;
       usageRecordId_ = "";
       executionId_ = "";
       rootExecutionId_ = "";
@@ -1937,6 +2032,12 @@ java.lang.String defaultValue) {
       orgId_ = "";
       sessionId_ = "";
       internalGetMutableLabels().clear();
+      settlementStatus_ = 0;
+      settlementLink_ = null;
+      if (settlementLinkBuilder_ != null) {
+        settlementLinkBuilder_.dispose();
+        settlementLinkBuilder_ = null;
+      }
       return this;
     }
 
@@ -1964,6 +2065,7 @@ java.lang.String defaultValue) {
     public ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord buildPartial() {
       ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord result = new ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord(this);
       if (bitField0_ != 0) { buildPartial0(result); }
+      if (bitField1_ != 0) { buildPartial1(result); }
       onBuilt();
       return result;
     }
@@ -2082,6 +2184,21 @@ java.lang.String defaultValue) {
       if (((from_bitField0_ & 0x40000000) != 0)) {
         result.labels_ = internalGetLabels();
         result.labels_.makeImmutable();
+      }
+      if (((from_bitField0_ & 0x80000000) != 0)) {
+        result.settlementStatus_ = settlementStatus_;
+      }
+      result.bitField0_ |= to_bitField0_;
+    }
+
+    private void buildPartial1(ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord result) {
+      int from_bitField1_ = bitField1_;
+      int to_bitField0_ = 0;
+      if (((from_bitField1_ & 0x00000001) != 0)) {
+        result.settlementLink_ = settlementLinkBuilder_ == null
+            ? settlementLink_
+            : settlementLinkBuilder_.build();
+        to_bitField0_ |= 0x00000040;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -2225,6 +2342,12 @@ java.lang.String defaultValue) {
       internalGetMutableLabels().mergeFrom(
           other.internalGetLabels());
       bitField0_ |= 0x40000000;
+      if (other.settlementStatus_ != 0) {
+        setSettlementStatusValue(other.getSettlementStatusValue());
+      }
+      if (other.hasSettlementLink()) {
+        mergeSettlementLink(other.getSettlementLink());
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -2422,6 +2545,18 @@ java.lang.String defaultValue) {
               bitField0_ |= 0x40000000;
               break;
             } // case 722
+            case 800: {
+              settlementStatus_ = input.readEnum();
+              bitField0_ |= 0x80000000;
+              break;
+            } // case 800
+            case 810: {
+              input.readMessage(
+                  internalGetSettlementLinkFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField1_ |= 0x00000001;
+              break;
+            } // case 810
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2438,6 +2573,7 @@ java.lang.String defaultValue) {
       return this;
     }
     private int bitField0_;
+    private int bitField1_;
 
     private java.lang.Object usageRecordId_ = "";
     /**
@@ -5306,6 +5442,240 @@ java.lang.String defaultValue) {
           .putAll(values);
       bitField0_ |= 0x40000000;
       return this;
+    }
+
+    private int settlementStatus_ = 0;
+    /**
+     * <pre>
+     * ─── Settlement ───────────────────────────────────────────────────────────
+     * Settlement lifecycle state. Drives UX labels and future reconciliation.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageSettlementStatus settlement_status = 100 [json_name = "settlementStatus"];</code>
+     * @return The enum numeric value on the wire for settlementStatus.
+     */
+    @java.lang.Override public int getSettlementStatusValue() {
+      return settlementStatus_;
+    }
+    /**
+     * <pre>
+     * ─── Settlement ───────────────────────────────────────────────────────────
+     * Settlement lifecycle state. Drives UX labels and future reconciliation.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageSettlementStatus settlement_status = 100 [json_name = "settlementStatus"];</code>
+     * @param value The enum numeric value on the wire for settlementStatus to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setSettlementStatusValue(int value) {
+      settlementStatus_ = value;
+      bitField0_ |= 0x80000000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * ─── Settlement ───────────────────────────────────────────────────────────
+     * Settlement lifecycle state. Drives UX labels and future reconciliation.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageSettlementStatus settlement_status = 100 [json_name = "settlementStatus"];</code>
+     * @return The settlementStatus.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.agentexecution.v1.UsageSettlementStatus getSettlementStatus() {
+      ai.stigmer.agentic.agentexecution.v1.UsageSettlementStatus result = ai.stigmer.agentic.agentexecution.v1.UsageSettlementStatus.forNumber(settlementStatus_);
+      return result == null ? ai.stigmer.agentic.agentexecution.v1.UsageSettlementStatus.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * ─── Settlement ───────────────────────────────────────────────────────────
+     * Settlement lifecycle state. Drives UX labels and future reconciliation.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageSettlementStatus settlement_status = 100 [json_name = "settlementStatus"];</code>
+     * @param value The settlementStatus to set.
+     * @return This builder for chaining.
+     */
+    public Builder setSettlementStatus(ai.stigmer.agentic.agentexecution.v1.UsageSettlementStatus value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x80000000;
+      settlementStatus_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * ─── Settlement ───────────────────────────────────────────────────────────
+     * Settlement lifecycle state. Drives UX labels and future reconciliation.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageSettlementStatus settlement_status = 100 [json_name = "settlementStatus"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearSettlementStatus() {
+      bitField0_ = (bitField0_ & ~0x80000000);
+      settlementStatus_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private ai.stigmer.agentic.agentexecution.v1.SettlementLink settlementLink_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.agentexecution.v1.SettlementLink, ai.stigmer.agentic.agentexecution.v1.SettlementLink.Builder, ai.stigmer.agentic.agentexecution.v1.SettlementLinkOrBuilder> settlementLinkBuilder_;
+    /**
+     * <pre>
+     * Link to the provider-side event used for settlement (populated by reconciliation).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.SettlementLink settlement_link = 101 [json_name = "settlementLink"];</code>
+     * @return Whether the settlementLink field is set.
+     */
+    public boolean hasSettlementLink() {
+      return ((bitField1_ & 0x00000001) != 0);
+    }
+    /**
+     * <pre>
+     * Link to the provider-side event used for settlement (populated by reconciliation).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.SettlementLink settlement_link = 101 [json_name = "settlementLink"];</code>
+     * @return The settlementLink.
+     */
+    public ai.stigmer.agentic.agentexecution.v1.SettlementLink getSettlementLink() {
+      if (settlementLinkBuilder_ == null) {
+        return settlementLink_ == null ? ai.stigmer.agentic.agentexecution.v1.SettlementLink.getDefaultInstance() : settlementLink_;
+      } else {
+        return settlementLinkBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * Link to the provider-side event used for settlement (populated by reconciliation).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.SettlementLink settlement_link = 101 [json_name = "settlementLink"];</code>
+     */
+    public Builder setSettlementLink(ai.stigmer.agentic.agentexecution.v1.SettlementLink value) {
+      if (settlementLinkBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        settlementLink_ = value;
+      } else {
+        settlementLinkBuilder_.setMessage(value);
+      }
+      bitField1_ |= 0x00000001;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Link to the provider-side event used for settlement (populated by reconciliation).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.SettlementLink settlement_link = 101 [json_name = "settlementLink"];</code>
+     */
+    public Builder setSettlementLink(
+        ai.stigmer.agentic.agentexecution.v1.SettlementLink.Builder builderForValue) {
+      if (settlementLinkBuilder_ == null) {
+        settlementLink_ = builderForValue.build();
+      } else {
+        settlementLinkBuilder_.setMessage(builderForValue.build());
+      }
+      bitField1_ |= 0x00000001;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Link to the provider-side event used for settlement (populated by reconciliation).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.SettlementLink settlement_link = 101 [json_name = "settlementLink"];</code>
+     */
+    public Builder mergeSettlementLink(ai.stigmer.agentic.agentexecution.v1.SettlementLink value) {
+      if (settlementLinkBuilder_ == null) {
+        if (((bitField1_ & 0x00000001) != 0) &&
+          settlementLink_ != null &&
+          settlementLink_ != ai.stigmer.agentic.agentexecution.v1.SettlementLink.getDefaultInstance()) {
+          getSettlementLinkBuilder().mergeFrom(value);
+        } else {
+          settlementLink_ = value;
+        }
+      } else {
+        settlementLinkBuilder_.mergeFrom(value);
+      }
+      if (settlementLink_ != null) {
+        bitField1_ |= 0x00000001;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Link to the provider-side event used for settlement (populated by reconciliation).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.SettlementLink settlement_link = 101 [json_name = "settlementLink"];</code>
+     */
+    public Builder clearSettlementLink() {
+      bitField1_ = (bitField1_ & ~0x00000001);
+      settlementLink_ = null;
+      if (settlementLinkBuilder_ != null) {
+        settlementLinkBuilder_.dispose();
+        settlementLinkBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Link to the provider-side event used for settlement (populated by reconciliation).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.SettlementLink settlement_link = 101 [json_name = "settlementLink"];</code>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.SettlementLink.Builder getSettlementLinkBuilder() {
+      bitField1_ |= 0x00000001;
+      onChanged();
+      return internalGetSettlementLinkFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * Link to the provider-side event used for settlement (populated by reconciliation).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.SettlementLink settlement_link = 101 [json_name = "settlementLink"];</code>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.SettlementLinkOrBuilder getSettlementLinkOrBuilder() {
+      if (settlementLinkBuilder_ != null) {
+        return settlementLinkBuilder_.getMessageOrBuilder();
+      } else {
+        return settlementLink_ == null ?
+            ai.stigmer.agentic.agentexecution.v1.SettlementLink.getDefaultInstance() : settlementLink_;
+      }
+    }
+    /**
+     * <pre>
+     * Link to the provider-side event used for settlement (populated by reconciliation).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.SettlementLink settlement_link = 101 [json_name = "settlementLink"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.agentexecution.v1.SettlementLink, ai.stigmer.agentic.agentexecution.v1.SettlementLink.Builder, ai.stigmer.agentic.agentexecution.v1.SettlementLinkOrBuilder> 
+        internalGetSettlementLinkFieldBuilder() {
+      if (settlementLinkBuilder_ == null) {
+        settlementLinkBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.agentexecution.v1.SettlementLink, ai.stigmer.agentic.agentexecution.v1.SettlementLink.Builder, ai.stigmer.agentic.agentexecution.v1.SettlementLinkOrBuilder>(
+                getSettlementLink(),
+                getParentForChildren(),
+                isClean());
+        settlementLink_ = null;
+      }
+      return settlementLinkBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord)

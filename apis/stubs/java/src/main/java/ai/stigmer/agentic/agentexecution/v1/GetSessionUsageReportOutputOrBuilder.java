@@ -194,4 +194,15 @@ public interface GetSessionUsageReportOutputOrBuilder extends
    */
   com.google.protobuf.ByteString
       getLastExecutionAtBytes();
+
+  /**
+   * <pre>
+   * Whether any record in this session is still estimated (not yet settled).
+   * False when all records are proxy-metered (BILLING_AUTHORITY) or reconciled.
+   * </pre>
+   *
+   * <code>bool is_estimated = 8 [json_name = "isEstimated"];</code>
+   * @return The isEstimated.
+   */
+  boolean getIsEstimated();
 }
