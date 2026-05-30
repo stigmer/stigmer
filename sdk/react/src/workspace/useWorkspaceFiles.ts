@@ -99,7 +99,7 @@ export function useWorkspaceFiles({
           return;
         }
 
-        const built = buildFileTree(files);
+        const built = buildFileTree(files.filter((f) => !f.isDirectory));
         sharedCache.set(target.id, { files, tree: built });
         setTree(built);
         setIsLoading(false);

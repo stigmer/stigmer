@@ -96,6 +96,18 @@ describe("buildFileTree", () => {
     expect(src.children![1].children![0].name).toBe("helper.ts");
   });
 
+  it("creates duplicate nodes when directory entries are not pre-filtered", () => {
+    const tree = buildFileTree([
+      { path: "src" },
+      { path: "src/index.ts" },
+    ]);
+
+    const srcNodes = tree.filter((n) => n.name === "src");
+    expect(srcNodes).toHaveLength(2);
+    expect(srcNodes.some((n) => n.children === undefined)).toBe(true);
+    expect(srcNodes.some((n) => Array.isArray(n.children))).toBe(true);
+  });
+
   it("does not mutate the input array", () => {
     const input = [{ path: "b.ts" }, { path: "a.ts" }];
     const frozen = [...input];
