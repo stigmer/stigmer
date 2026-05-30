@@ -169,14 +169,6 @@ export function NewSessionViewer({
       harness: flow.harness,
       executionTarget: undefined,
       modelId: flow.modelId,
-      workspaceActions: {
-        workspace: flow.workspace,
-        enableGitHub,
-        enableLocal,
-        gitHubConnection,
-        onBrowseLocalFolder,
-        workspaceFileLister,
-      },
       mutations: {
         onRemoveAgent: flow.agentRef ? handleRemoveAgent : undefined,
         onRemoveMcp: handleRemoveMcp,
@@ -186,10 +178,22 @@ export function NewSessionViewer({
     [
       flow.agentRef, flow.mcpServerUsages, flow.skillRefs,
       flow.sessionVariables, flow.harness, flow.modelId,
-      flow.workspace, enableGitHub, enableLocal, gitHubConnection,
-      onBrowseLocalFolder, workspaceFileLister,
       handleRemoveAgent, handleRemoveMcp, handleRemoveSkill,
     ],
+  );
+
+  const workspaceConfig = useMemo(
+    () => ({
+      actions: {
+        workspace: flow.workspace,
+        enableGitHub,
+        enableLocal,
+        gitHubConnection,
+        onBrowseLocalFolder,
+        workspaceFileLister,
+      },
+    }),
+    [flow.workspace, enableGitHub, enableLocal, gitHubConnection, onBrowseLocalFolder, workspaceFileLister],
   );
 
   const composerNode = (
@@ -272,6 +276,7 @@ export function NewSessionViewer({
               org={org}
               selectedItem={null}
               sessionConfig={sessionConfig}
+              workspaceConfig={workspaceConfig}
               className="min-h-0 flex-1"
             />
           </aside>

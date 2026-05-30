@@ -25,7 +25,7 @@ function defaultOpts(overrides?: Partial<UseSessionInspectorOptions>): UseSessio
 // ---------------------------------------------------------------------------
 
 describe("buildVisibleTabs", () => {
-  it("always includes Plan, Usage, and Setup", () => {
+  it("always includes Workspace, Configure, Plan, and Usage", () => {
     const tabs = buildVisibleTabs({
       hasWriteBacks: false,
       writeBackCount: 0,
@@ -35,9 +35,10 @@ describe("buildVisibleTabs", () => {
       selectedItem: null,
     });
     const ids = tabs.map((t) => t.id);
+    expect(ids).toContain("workspace");
+    expect(ids).toContain("configure");
     expect(ids).toContain("plan");
     expect(ids).toContain("usage");
-    expect(ids).toContain("setup");
     expect(ids).not.toContain("changes");
     expect(ids).not.toContain("artifacts");
     expect(ids).not.toContain("inspect");
@@ -84,7 +85,7 @@ describe("buildVisibleTabs", () => {
     expect(inspectTab).toBeDefined();
   });
 
-  it("places Setup after Usage and before Inspect", () => {
+  it("orders tabs as Workspace, Configure, Plan, then Usage with Inspect last", () => {
     const tabs = buildVisibleTabs({
       hasWriteBacks: true,
       writeBackCount: 2,
@@ -94,14 +95,13 @@ describe("buildVisibleTabs", () => {
       selectedItem: { kind: "tool-call", toolCallId: "tc-1" },
     });
     const ids = tabs.map((t) => t.id);
-    const usageIdx = ids.indexOf("usage");
-    const setupIdx = ids.indexOf("setup");
-    const inspectIdx = ids.indexOf("inspect");
-    expect(setupIdx).toBeGreaterThan(usageIdx);
-    expect(setupIdx).toBeLessThan(inspectIdx);
+    expect(ids.indexOf("workspace")).toBeLessThan(ids.indexOf("configure"));
+    expect(ids.indexOf("configure")).toBeLessThan(ids.indexOf("plan"));
+    expect(ids.indexOf("plan")).toBeLessThan(ids.indexOf("usage"));
+    expect(ids.indexOf("usage")).toBeLessThan(ids.indexOf("inspect"));
   });
 
-  it("Setup is present even when no optional tabs exist", () => {
+  it("base tabs are present even when no optional tabs exist", () => {
     const tabs = buildVisibleTabs({
       hasWriteBacks: false,
       writeBackCount: 0,
@@ -111,7 +111,7 @@ describe("buildVisibleTabs", () => {
       selectedItem: null,
     });
     const ids = tabs.map((t) => t.id);
-    expect(ids).toEqual(["plan", "usage", "setup"]);
+    expect(ids).toEqual(["workspace", "configure", "plan", "usage"]);
   });
 });
 
@@ -120,18 +120,18 @@ describe("buildVisibleTabs", () => {
 // ---------------------------------------------------------------------------
 
 describe("useSessionInspector", () => {
-  it("defaults to setup when no execution is active (phase=null)", () => {
+  it("defaults to workspace when no execution is active (phase=null)", () => {
     const { result } = renderHook(() => useSessionInspector(defaultOpts()));
-    expect(result.current.activeTab).toBe("setup");
+    expect(result.current.activeTab).toBe("workspace");
   });
 
-  it("defaults to setup when execution is terminal", () => {
+  it("defaults to workspace when execution is terminal", () => {
     const { result } = renderHook(() =>
       useSessionInspector(
         defaultOpts({ phase: ExecutionPhase.EXECUTION_COMPLETED }),
       ),
     );
-    expect(result.current.activeTab).toBe("setup");
+    expect(result.current.activeTab).toBe("workspace");
   });
 
   it("defaults to plan while execution is running", () => {
@@ -148,7 +148,7 @@ describe("useSessionInspector", () => {
       (props: UseSessionInspectorOptions) => useSessionInspector(props),
       { initialProps: defaultOpts() },
     );
-    expect(result.current.activeTab).toBe("setup");
+    expect(result.current.activeTab).toBe("workspace");
 
     rerender(
       defaultOpts({ selectedItem: { kind: "tool-call", toolCallId: "tc-1" } }),
@@ -156,7 +156,7 @@ describe("useSessionInspector", () => {
     expect(result.current.activeTab).toBe("inspect");
   });
 
-  it("reverts to setup when selection is cleared (phase=null) and user did not pick a tab", () => {
+  it("reverts to workspace when selection is cleared (phase=null) and user did not pick a tab", () => {
     const { result, rerender } = renderHook(
       (props: UseSessionInspectorOptions) => useSessionInspector(props),
       {
@@ -168,7 +168,7 @@ describe("useSessionInspector", () => {
     expect(result.current.activeTab).toBe("inspect");
 
     rerender(defaultOpts({ selectedItem: null }));
-    expect(result.current.activeTab).toBe("setup");
+    expect(result.current.activeTab).toBe("workspace");
   });
 
   it("reverts to plan when selection is cleared while execution is running", () => {
@@ -217,7 +217,7 @@ describe("useSessionInspector", () => {
       (props: UseSessionInspectorOptions) => useSessionInspector(props),
       { initialProps: defaultOpts() },
     );
-    expect(result.current.activeTab).toBe("setup");
+    expect(result.current.activeTab).toBe("workspace");
 
     rerender(
       defaultOpts({ hasWriteBacks: true, writeBackCount: 1 }),
@@ -225,7 +225,7 @@ describe("useSessionInspector", () => {
     expect(result.current.activeTab).toBe("changes");
   });
 
-  it("falls back to setup when active tab is removed from visible tabs (phase=null)", () => {
+  it("falls back to workspace when active tab is removed from visible tabs (phase=null)", () => {
     const { result, rerender } = renderHook(
       (props: UseSessionInspectorOptions) => useSessionInspector(props),
       {
@@ -241,12 +241,10 @@ describe("useSessionInspector", () => {
     });
 
     rerender(defaultOpts({ selectedItem: null }));
-    // inspect tab removed, user pick was "inspect" which is no longer valid;
-    // fallback goes to deriveAutoTab(null, null) = "setup"
-    expect(result.current.activeTab).toBe("setup");
+    expect(result.current.activeTab).toBe("workspace");
   });
 
-  it("switches to setup when execution transitions to terminal phase", () => {
+  it("switches to workspace when execution transitions to terminal phase", () => {
     const { result, rerender } = renderHook(
       (props: UseSessionInspectorOptions) => useSessionInspector(props),
       {
@@ -260,6 +258,6 @@ describe("useSessionInspector", () => {
     rerender(
       defaultOpts({ phase: ExecutionPhase.EXECUTION_COMPLETED }),
     );
-    expect(result.current.activeTab).toBe("setup");
+    expect(result.current.activeTab).toBe("workspace");
   });
 });

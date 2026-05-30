@@ -34,6 +34,14 @@ interface CacheEntry {
 const EMPTY_TREE: readonly TreeNode[] = [];
 
 /**
+ * Module-level cache shared across all component instances. This ensures
+ * that switching between tabs (e.g., Workspace tab unmount/remount) doesn't
+ * re-fetch file listings that were already loaded. Entries are keyed by
+ * the workspace entry's stable ID.
+ */
+const sharedCache = new Map<string, CacheEntry>();
+
+/**
  * Behavior hook that fetches and caches a file listing for a single
  * workspace entry, converting it into a {@link TreeNode} hierarchy.
  *
@@ -60,7 +68,6 @@ export function useWorkspaceFiles({
   const [error, setError] = useState<Error | null>(null);
   const [tree, setTree] = useState<readonly TreeNode[]>(EMPTY_TREE);
 
-  const cacheRef = useRef<Map<string, CacheEntry>>(new Map());
   const fetchIdRef = useRef(0);
 
   const fetchFiles = useCallback(
@@ -68,7 +75,7 @@ export function useWorkspaceFiles({
       if (!lister) return;
 
       if (!bustCache) {
-        const cached = cacheRef.current.get(target.id);
+        const cached = sharedCache.get(target.id);
         if (cached) {
           setTree(cached.tree);
           setError(null);
@@ -93,7 +100,7 @@ export function useWorkspaceFiles({
         }
 
         const built = buildFileTree(files);
-        cacheRef.current.set(target.id, { files, tree: built });
+        sharedCache.set(target.id, { files, tree: built });
         setTree(built);
         setIsLoading(false);
       } catch (err) {

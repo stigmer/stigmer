@@ -1,41 +1,11 @@
 "use client";
 
 import type { McpServerUsageInput, ResourceRef } from "@stigmer/sdk";
-import { useCallback, useState } from "react";
 import { cn } from "@stigmer/theme";
 import type { HarnessOption } from "../../models/harness";
 import { HARNESS_META } from "../../models/harness";
 import type { ExecutionTargetOption } from "../execution-target";
 import type { UseSessionVariablesReturn } from "../../execution/useSessionVariables";
-import type { UseWorkspaceEntriesReturn, WorkspaceEntry } from "../../workspace/useWorkspaceEntries";
-import type { WorkspaceFileLister } from "../../workspace/WorkspaceFileLister";
-import { WorkspaceEntryFiles } from "../../workspace/WorkspaceEntryFiles";
-import type { UseGitHubConnectionReturn } from "../../github/useGitHubConnection";
-
-// ---------------------------------------------------------------------------
-// Workspace action callbacks — kept optional so the tab renders read-only
-// when callbacks are absent (DD-011 backward compatibility).
-// ---------------------------------------------------------------------------
-
-/** Interactive mutation callbacks for workspace actions in SetupTab. */
-export interface SetupTabWorkspaceActions {
-  /** Workspace state from {@link useWorkspaceEntries}. */
-  readonly workspace: UseWorkspaceEntriesReturn;
-  /** Whether to enable the GitHub repo source action. */
-  readonly enableGitHub?: boolean;
-  /** Whether to enable the local folder source action. */
-  readonly enableLocal?: boolean;
-  /** GitHub connection state for the repo picker drill-in. */
-  readonly gitHubConnection?: UseGitHubConnectionReturn;
-  /** Native folder picker callback for desktop environments. */
-  readonly onBrowseLocalFolder?: () => Promise<string | null>;
-  /**
-   * Platform-injected callback that lists files in a workspace entry.
-   * When provided, each workspace entry renders an expandable file tree.
-   * When absent, entries render as simple rows (DD-011 opt-in).
-   */
-  readonly workspaceFileLister?: WorkspaceFileLister;
-}
 
 /** Interactive mutation callbacks for config items in SetupTab. */
 export interface SetupTabMutationCallbacks {
@@ -58,12 +28,6 @@ export interface SetupTabProps {
   readonly executionTarget: ExecutionTargetOption | undefined;
   readonly modelId: string | undefined;
   /**
-   * Interactive workspace actions. When provided, the Workspace section
-   * renders add/remove affordances. When absent, workspace entries are
-   * not shown (backward compatible with the read-only Setup tab).
-   */
-  readonly workspaceActions?: SetupTabWorkspaceActions;
-  /**
    * Interactive mutation callbacks. When provided, items render remove
    * buttons. When absent, sections are read-only (DD-011).
    */
@@ -71,14 +35,14 @@ export interface SetupTabProps {
 }
 
 /**
- * Persistent session configuration panel — the canonical source of
- * truth for what agent, MCP servers, skills, workspace, and run
- * config are active.
+ * Persistent session configuration panel (Configure tab) — shows agent,
+ * MCP servers, skills, run config, and session variables.
  *
- * When mutation callbacks are provided via `mutations` and
- * `workspaceActions`, items render inline remove/reconfigure
- * affordances. When callbacks are absent, sections render read-only
- * (backward compatible, DD-011).
+ * Workspace management has moved to the dedicated Workspace tab.
+ *
+ * When mutation callbacks are provided via `mutations`, items render
+ * inline remove/reconfigure affordances. When callbacks are absent,
+ * sections render read-only (backward compatible, DD-011).
  *
  * All visual properties flow through `--stgm-*` tokens (DD-005).
  */
@@ -91,17 +55,12 @@ export function SetupTab({
   harness,
   executionTarget,
   modelId,
-  workspaceActions,
   mutations,
 }: SetupTabProps) {
   const hasSessionVars = sessionVariables != null && !sessionVariables.isEmpty;
 
   return (
     <div className="flex flex-col gap-5">
-      {workspaceActions && (
-        <WorkspaceSection actions={workspaceActions} />
-      )}
-
       <RunConfigSection
         harness={harness}
         executionTarget={executionTarget}
@@ -170,161 +129,6 @@ function RemoveButton({ onClick, label }: { onClick: () => void; label: string }
     >
       <XIcon />
     </button>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Workspace section
-// ---------------------------------------------------------------------------
-
-function WorkspaceSection({ actions }: { actions: SetupTabWorkspaceActions }) {
-  const {
-    workspace,
-    enableGitHub = true,
-    enableLocal = false,
-    onBrowseLocalFolder,
-    workspaceFileLister,
-  } = actions;
-  const canBrowse = enableLocal && onBrowseLocalFolder;
-
-  return (
-    <section className="flex flex-col gap-1.5">
-      <SectionHeading>
-        Workspace
-        {workspace.entries.length > 0 && (
-          <span className="ml-1 text-muted-foreground/60">({workspace.entries.length})</span>
-        )}
-      </SectionHeading>
-
-      {workspace.entries.length > 0 && (
-        <WorkspaceEntryList
-          entries={workspace.entries}
-          onRemove={workspace.remove}
-          lister={workspaceFileLister}
-        />
-      )}
-
-      <div className="flex flex-col gap-0.5">
-        {canBrowse && (
-          <button
-            type="button"
-            onClick={async () => {
-              const path = await onBrowseLocalFolder();
-              if (path) workspace.addLocalPath(path);
-            }}
-            className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-xs text-foreground transition-colors hover:bg-accent-hover"
-          >
-            <FolderIcon />
-            <span className="flex-1 text-left">Browse Folder</span>
-          </button>
-        )}
-        {enableGitHub && (
-          <button
-            type="button"
-            onClick={() => {
-              /* GitHub picker is handled via the composer's Configure menu.
-                 This button is a placeholder affordance that can be wired
-                 to a drill-in panel in the future. For now, it provides
-                 visual parity with the WorkspaceEditor. */
-            }}
-            className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-xs text-foreground transition-colors hover:bg-accent-hover"
-          >
-            <GitHubIcon />
-            <span className="flex-1 text-left">Connect GitHub</span>
-          </button>
-        )}
-      </div>
-
-      {workspace.entries.length === 0 && !canBrowse && !enableGitHub && (
-        <EmptyHint>No workspace attached.</EmptyHint>
-      )}
-    </section>
-  );
-}
-
-/**
- * Accordion-style entry list. Only one entry can be expanded at a time
- * to keep vertical space bounded. When no lister is provided, entries
- * render as flat rows (no expand affordance).
- */
-function WorkspaceEntryList({
-  entries,
-  onRemove,
-  lister,
-}: {
-  readonly entries: readonly WorkspaceEntry[];
-  readonly onRemove: (id: string) => void;
-  readonly lister: WorkspaceFileLister | undefined;
-}) {
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-
-  const toggleExpand = useCallback((id: string) => {
-    setExpandedId((prev) => (prev === id ? null : id));
-  }, []);
-
-  return (
-    <div className="flex flex-col gap-1">
-      {entries.map((entry) => {
-        const isExpandable = !!lister;
-        const isExpanded = expandedId === entry.id;
-
-        return (
-          <div key={entry.id} className="flex flex-col">
-            <div
-              className={cn(
-                "flex items-center gap-2 rounded-md border border-border bg-muted-faint px-2.5 py-1.5 text-xs",
-                isExpandable && "cursor-pointer hover:bg-muted transition-colors",
-              )}
-              onClick={isExpandable ? () => toggleExpand(entry.id) : undefined}
-              role={isExpandable ? "button" : undefined}
-              aria-expanded={isExpandable ? isExpanded : undefined}
-              tabIndex={isExpandable ? 0 : undefined}
-              onKeyDown={isExpandable ? (e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  toggleExpand(entry.id);
-                }
-              } : undefined}
-            >
-              {isExpandable && (
-                <span className="shrink-0 text-[10px] text-muted-foreground-subtle">
-                  {isExpanded ? "▼" : "▶"}
-                </span>
-              )}
-              {entry.type === "git" ? (
-                <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[0.65rem] text-muted-foreground">
-                  GitHub
-                </span>
-              ) : (
-                <span className="shrink-0 text-muted-foreground">
-                  <FolderIcon />
-                </span>
-              )}
-              <span
-                className={cn(
-                  "min-w-0 flex-1 truncate text-foreground",
-                  entry.type === "local" && "[direction:rtl] text-left",
-                )}
-                title={entry.name}
-              >
-                <bdi>{entry.name}</bdi>
-              </span>
-              <RemoveButton
-                onClick={() => onRemove(entry.id)}
-                label={`Remove ${entry.name}`}
-              />
-            </div>
-            {isExpandable && lister && (
-              <WorkspaceEntryFiles
-                entry={entry}
-                lister={lister}
-                isExpanded={isExpanded}
-              />
-            )}
-          </div>
-        );
-      })}
-    </div>
   );
 }
 
@@ -533,22 +337,6 @@ function XIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M4 4L10 10M10 4L4 10" />
-    </svg>
-  );
-}
-
-function FolderIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M1.5 3.5V11a1 1 0 001 1h9a1 1 0 001-1V5.5a1 1 0 00-1-1H7L5.5 3H2.5a1 1 0 00-1 .5z" />
-    </svg>
-  );
-}
-
-function GitHubIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-      <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
     </svg>
   );
 }

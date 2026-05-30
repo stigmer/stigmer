@@ -24,6 +24,15 @@ export interface FileTreeNodeProps {
    * where file referencing is not applicable (e.g., SkillFileBrowser).
    */
   readonly enableDrag?: boolean;
+  /**
+   * Maximum depth at which folders start collapsed instead of expanded.
+   * Folders at depth >= maxInitialDepth render collapsed by default,
+   * reducing DOM node count for large trees. Users can still expand
+   * them manually.
+   *
+   * When `undefined`, all folders start expanded (original behavior).
+   */
+  readonly maxInitialDepth?: number;
 }
 
 /**
@@ -42,8 +51,11 @@ export function FileTreeNode({
   onSelect,
   depth,
   enableDrag = false,
+  maxInitialDepth,
 }: FileTreeNodeProps) {
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(
+    maxInitialDepth === undefined ? true : depth < maxInitialDepth,
+  );
   const isFolder = !!node.children;
   const isSelected = node.path === selectedPath;
   const isDraggable = enableDrag && !isFolder;
@@ -101,6 +113,7 @@ export function FileTreeNode({
               onSelect={onSelect}
               depth={depth + 1}
               enableDrag={enableDrag}
+              maxInitialDepth={maxInitialDepth}
             />
           ))}
         </ul>

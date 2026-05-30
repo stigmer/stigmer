@@ -7,11 +7,12 @@ import { isTerminalPhase } from "../../execution/execution-phases";
 import type { SelectedThreadItem } from "../../internal/store/selection-store";
 
 export type SessionInspectorTabId =
+  | "workspace"
+  | "configure"
   | "plan"
   | "changes"
   | "artifacts"
   | "usage"
-  | "setup"
   | "inspect";
 
 export interface UseSessionInspectorOptions {
@@ -35,7 +36,7 @@ export interface UseSessionInspectorReturn {
  *
  * Priority:
  * 1. Thread item selected -> "inspect"
- * 2. No execution or terminal phase (idle / ready for follow-up) -> "setup"
+ * 2. No execution or terminal phase (idle / ready for follow-up) -> "workspace"
  * 3. Actively running -> "plan"
  */
 function deriveAutoTab(
@@ -43,16 +44,17 @@ function deriveAutoTab(
   selectedItem: SelectedThreadItem | null,
 ): SessionInspectorTabId {
   if (selectedItem) return "inspect";
-  if (phase === null || isTerminalPhase(phase)) return "setup";
+  if (phase === null || isTerminalPhase(phase)) return "workspace";
   return "plan";
 }
 
 /**
  * Build the contextual tab list with badges.
  *
- * Mirrors `buildVisibleTabs` in the workflow `ExecutionInspector`:
- * Plan + Usage are always present; Changes and Artifacts appear when
- * data exists; Inspect appears when a thread item is selected.
+ * Tab order follows the user's mental model — context before output:
+ * Workspace → Configure → Plan → Usage. Changes and Artifacts appear
+ * after Plan when data exists; Inspect appears last when a thread item
+ * is selected.
  */
 export function buildVisibleTabs(opts: {
   hasWriteBacks: boolean;
@@ -62,7 +64,11 @@ export function buildVisibleTabs(opts: {
   hasUsage: boolean;
   selectedItem: SelectedThreadItem | null;
 }): TabItem[] {
-  const tabs: TabItem[] = [{ id: "plan", label: "Plan" }];
+  const tabs: TabItem[] = [
+    { id: "workspace", label: "Workspace" },
+    { id: "configure", label: "Configure" },
+    { id: "plan", label: "Plan" },
+  ];
 
   if (opts.hasWriteBacks) {
     tabs.push({
@@ -81,8 +87,6 @@ export function buildVisibleTabs(opts: {
   }
 
   tabs.push({ id: "usage", label: "Usage" });
-
-  tabs.push({ id: "setup", label: "Setup" });
 
   if (opts.selectedItem) {
     tabs.push({ id: "inspect", label: "Inspect" });
