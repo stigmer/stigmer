@@ -400,7 +400,7 @@ enum ApiResourceKind {
     name: "Workflow"
     display_name: "Workflow"
     id_prefix: "wfl"
-    is_versioned: false
+    is_versioned: true
     not_search_indexed: false
     tier: open_source
     authorization: {

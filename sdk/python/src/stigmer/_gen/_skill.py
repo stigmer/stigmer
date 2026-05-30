@@ -113,6 +113,7 @@ class SkillInput:
     slug: str | None = None
     labels: dict[str, str] | None = None
     visibility: int = 0
+    version_message: str = ""
     skill_md: str = ""
     tag: str = ""
     description: str = ""
@@ -133,6 +134,10 @@ class SkillInput:
             metadata.labels.update(self.labels)
         if self.visibility:
             metadata.visibility = self.visibility
+        if self.version_message:
+            metadata.version.CopyFrom(metadata_pb2.ApiResourceMetadataVersion(
+                message=self.version_message,
+            ))
         return api_pb2.Skill(
             api_version="agentic.stigmer.ai/v1",
             kind="Skill",

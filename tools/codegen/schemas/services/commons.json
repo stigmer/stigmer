@@ -126,7 +126,7 @@
     },
     {
       "name": "ApiResourceMetadataVersion",
-      "description": "ApiResourceMetadataVersion contains version tracking information.",
+      "description": "ApiResourceMetadataVersion contains version tracking information.\n\n For versioned resources (is_versioned: true), this is populated by the\n backend on every spec-changing create/update:\n - id: content hash of the new version (SHA-256)\n - message: user-provided description of what changed\n - previous_version_id: hash of the prior version\n - tag: optional version tag assigned at apply time",
       "protoType": "ai.stigmer.commons.apiresource.ApiResourceMetadataVersion",
       "protoFile": "apis/ai/stigmer/commons/apiresource/metadata.proto",
       "fields": [
@@ -137,7 +137,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Unique identifier for this version.",
+          "description": "Unique identifier for this version.\n For versioned resources: SHA-256 content hash.",
           "required": false
         },
         {
@@ -147,7 +147,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Message describing what changed in this version.",
+          "description": "Message describing what changed in this version.\n Analogous to a git commit message.",
           "required": false
         },
         {
@@ -158,6 +158,16 @@
             "kind": "string"
           },
           "description": "Reference to the previous version ID.",
+          "required": false
+        },
+        {
+          "name": "Tag",
+          "jsonName": "tag",
+          "protoField": "tag",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Optional tag to assign to this version at creation time.\n Only applicable to versioned resources (Skills, Workflows).\n Examples: \"stable\", \"v1.0\", \"production\"\n\n @since Workflow Versioning",
           "required": false
         }
       ]

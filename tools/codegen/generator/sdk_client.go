@@ -83,6 +83,7 @@ type sdkResourceConfig struct {
 	apiVersion   string
 	idPrefix     string
 	resourceKind string
+	isVersioned  bool
 }
 
 // metaFieldNames are fields that always come from ApiResourceMetadata.
@@ -255,8 +256,20 @@ func deriveResourceConfig(schema *ServiceSchemaFile, schemaDir string) sdkResour
 
 	cfg.apiVersion = deriveApiVersion(schema.Package)
 	cfg.resourceKind = resolveResourceKind(schema)
+	cfg.isVersioned = isVersionedKind(cfg.resourceKind)
 
 	return cfg
+}
+
+// isVersionedKind returns true if the given kind name corresponds to a
+// versioned resource (is_versioned: true in ApiResourceKindMeta).
+func isVersionedKind(kindName string) bool {
+	for num, name := range apiResourceKindEnumNames {
+		if name == kindName {
+			return versionedKinds[num]
+		}
+	}
+	return false
 }
 
 // resolveResourceKind finds the ApiResourceKind enum value name that matches
@@ -740,6 +753,9 @@ func generateInputTypesV2(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkR
 	buf.WriteString("\tOrg        string\n")
 	buf.WriteString("\tLabels     map[string]string\n")
 	buf.WriteString("\tVisibility apiresource.ApiResourceVisibility\n")
+	if cfg.isVersioned {
+		buf.WriteString("\tVersionMessage string\n")
+	}
 	for _, f := range specFields {
 		goType := goTypeForField(f, typeMap, alias)
 		fmt.Fprintf(buf, "\t%s %s\n", f.Name, goType)
@@ -764,6 +780,13 @@ func generateInputTypesV2(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkR
 	buf.WriteString("\t\t},\n")
 	fmt.Fprintf(buf, "\t\tSpec: &%s.%s{},\n", alias, spec.Name)
 	buf.WriteString("\t}\n")
+	if cfg.isVersioned {
+		buf.WriteString("\tif i.VersionMessage != \"\" {\n")
+		buf.WriteString("\t\tresource.Metadata.Version = &apiresource.ApiResourceMetadataVersion{\n")
+		buf.WriteString("\t\t\tMessage: i.VersionMessage,\n")
+		buf.WriteString("\t\t}\n")
+		buf.WriteString("\t}\n")
+	}
 
 	for _, f := range specFields {
 		emitToProtoField(buf, f, alias, typeMap, spec.Name)

@@ -27,6 +27,7 @@ const (
 	WorkflowCommandController_UpdateVisibility_FullMethodName = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/updateVisibility"
 	WorkflowCommandController_Delete_FullMethodName           = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/delete"
 	WorkflowCommandController_ValidateSpec_FullMethodName     = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/validateSpec"
+	WorkflowCommandController_TagVersion_FullMethodName       = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/tagVersion"
 )
 
 // WorkflowCommandControllerClient is the client API for WorkflowCommandController service.
@@ -87,6 +88,19 @@ type WorkflowCommandControllerClient interface {
 	// of the validation pipeline while allowing any user who could create
 	// a workflow to also validate one.
 	ValidateSpec(ctx context.Context, in *Workflow, opts ...grpc.CallOption) (*serverless.ServerlessWorkflowValidation, error)
+	// Assign or move a tag to a specific workflow version.
+	//
+	// Tags are human-readable pointers to immutable versions. Calling this
+	// with an existing tag name moves it from the previous version to the
+	// specified version. Common tags: "stable", "production", "v2.0".
+	//
+	// @internal
+	// Authorization: Requires can_edit permission on the workflow resource.
+	// The handler validates that the version_hash exists in the workflow's
+	// audit history before assigning the tag.
+	//
+	// @since Workflow Versioning
+	TagVersion(ctx context.Context, in *TagWorkflowVersionInput, opts ...grpc.CallOption) (*Workflow, error)
 }
 
 type workflowCommandControllerClient struct {
@@ -157,6 +171,16 @@ func (c *workflowCommandControllerClient) ValidateSpec(ctx context.Context, in *
 	return out, nil
 }
 
+func (c *workflowCommandControllerClient) TagVersion(ctx context.Context, in *TagWorkflowVersionInput, opts ...grpc.CallOption) (*Workflow, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Workflow)
+	err := c.cc.Invoke(ctx, WorkflowCommandController_TagVersion_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // WorkflowCommandControllerServer is the server API for WorkflowCommandController service.
 // All implementations should embed UnimplementedWorkflowCommandControllerServer
 // for forward compatibility.
@@ -215,6 +239,19 @@ type WorkflowCommandControllerServer interface {
 	// of the validation pipeline while allowing any user who could create
 	// a workflow to also validate one.
 	ValidateSpec(context.Context, *Workflow) (*serverless.ServerlessWorkflowValidation, error)
+	// Assign or move a tag to a specific workflow version.
+	//
+	// Tags are human-readable pointers to immutable versions. Calling this
+	// with an existing tag name moves it from the previous version to the
+	// specified version. Common tags: "stable", "production", "v2.0".
+	//
+	// @internal
+	// Authorization: Requires can_edit permission on the workflow resource.
+	// The handler validates that the version_hash exists in the workflow's
+	// audit history before assigning the tag.
+	//
+	// @since Workflow Versioning
+	TagVersion(context.Context, *TagWorkflowVersionInput) (*Workflow, error)
 }
 
 // UnimplementedWorkflowCommandControllerServer should be embedded to have
@@ -241,6 +278,9 @@ func (UnimplementedWorkflowCommandControllerServer) Delete(context.Context, *Wor
 }
 func (UnimplementedWorkflowCommandControllerServer) ValidateSpec(context.Context, *Workflow) (*serverless.ServerlessWorkflowValidation, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ValidateSpec not implemented")
+}
+func (UnimplementedWorkflowCommandControllerServer) TagVersion(context.Context, *TagWorkflowVersionInput) (*Workflow, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method TagVersion not implemented")
 }
 func (UnimplementedWorkflowCommandControllerServer) testEmbeddedByValue() {}
 
@@ -370,6 +410,24 @@ func _WorkflowCommandController_ValidateSpec_Handler(srv interface{}, ctx contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WorkflowCommandController_TagVersion_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TagWorkflowVersionInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WorkflowCommandControllerServer).TagVersion(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WorkflowCommandController_TagVersion_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WorkflowCommandControllerServer).TagVersion(ctx, req.(*TagWorkflowVersionInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // WorkflowCommandController_ServiceDesc is the grpc.ServiceDesc for WorkflowCommandController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -400,6 +458,10 @@ var WorkflowCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "validateSpec",
 			Handler:    _WorkflowCommandController_ValidateSpec_Handler,
+		},
+		{
+			MethodName: "tagVersion",
+			Handler:    _WorkflowCommandController_TagVersion_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

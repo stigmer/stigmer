@@ -10,6 +10,8 @@ import type { WorkflowIdSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_workflow_v1_io } from "./io_pb.js";
 import type { ServerlessWorkflowValidationSchema } from "./serverless/validation_pb.js";
 import { file_ai_stigmer_agentic_workflow_v1_serverless_validation } from "./serverless/validation_pb.js";
+import type { TagWorkflowVersionInputSchema } from "./version_pb.js";
+import { file_ai_stigmer_agentic_workflow_v1_version } from "./version_pb.js";
 import type { UpdateVisibilityInputSchema } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb.js";
@@ -19,7 +21,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/workflow/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_workflow_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CixhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvY29tbWFuZC5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxMuIHChlXb3JrZmxvd0NvbW1hbmRDb250cm9sbGVyElsKBWFwcGx5EiguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93GiguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93EqoBCgZjcmVhdGUSKC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3caKC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3ciTMK4GEgIBxAeIgxtZXRhZGF0YS5vcmcqNHVuYXV0aG9yaXplZCB0byBjcmVhdGUgd29ya2Zsb3cgaW4gdGhpcyBvcmdhbml6YXRpb24SlAEKBnVwZGF0ZRIoLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdxooLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdyI2wrgYMggCEDIiC21ldGFkYXRhLmlkKh91bmF1dGhvcml6ZWQgdG8gdXBkYXRlIHdvcmtmbG93ErYBChB1cGRhdGVWaXNpYmlsaXR5EjUuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLlVwZGF0ZVZpc2liaWxpdHlJbnB1dBooLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdyJBwrgYPQgCEDIiC3Jlc291cmNlX2lkKip1bmF1dGhvcml6ZWQgdG8gdXBkYXRlIHdvcmtmbG93IHZpc2liaWxpdHkSkAEKBmRlbGV0ZRIqLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvd0lkGiguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93IjDCuBgsCAMQMiIFdmFsdWUqH3VuYXV0aG9yaXplZCB0byBkZWxldGUgd29ya2Zsb3cS0QEKDHZhbGlkYXRlU3BlYxIoLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdxpHLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5zZXJ2ZXJsZXNzLlNlcnZlcmxlc3NXb3JrZmxvd1ZhbGlkYXRpb24iTsK4GEoIBxAeIgxtZXRhZGF0YS5vcmcqNnVuYXV0aG9yaXplZCB0byB2YWxpZGF0ZSB3b3JrZmxvdyBpbiB0aGlzIG9yZ2FuaXphdGlvbhoEoP8rMmIGcHJvdG8z", [file_ai_stigmer_agentic_workflow_v1_api, file_ai_stigmer_agentic_workflow_v1_io, file_ai_stigmer_agentic_workflow_v1_serverless_validation, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CixhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvY29tbWFuZC5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxMpEJChlXb3JrZmxvd0NvbW1hbmRDb250cm9sbGVyElsKBWFwcGx5EiguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93GiguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93EqoBCgZjcmVhdGUSKC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3caKC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3ciTMK4GEgIBxAeIgxtZXRhZGF0YS5vcmcqNHVuYXV0aG9yaXplZCB0byBjcmVhdGUgd29ya2Zsb3cgaW4gdGhpcyBvcmdhbml6YXRpb24SlAEKBnVwZGF0ZRIoLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdxooLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdyI2wrgYMggCEDIiC21ldGFkYXRhLmlkKh91bmF1dGhvcml6ZWQgdG8gdXBkYXRlIHdvcmtmbG93ErYBChB1cGRhdGVWaXNpYmlsaXR5EjUuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLlVwZGF0ZVZpc2liaWxpdHlJbnB1dBooLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdyJBwrgYPQgCEDIiC3Jlc291cmNlX2lkKip1bmF1dGhvcml6ZWQgdG8gdXBkYXRlIHdvcmtmbG93IHZpc2liaWxpdHkSkAEKBmRlbGV0ZRIqLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvd0lkGiguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93IjDCuBgsCAMQMiIFdmFsdWUqH3VuYXV0aG9yaXplZCB0byBkZWxldGUgd29ya2Zsb3cS0QEKDHZhbGlkYXRlU3BlYxIoLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdxpHLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5zZXJ2ZXJsZXNzLlNlcnZlcmxlc3NXb3JrZmxvd1ZhbGlkYXRpb24iTsK4GEoIBxAeIgxtZXRhZGF0YS5vcmcqNnVuYXV0aG9yaXplZCB0byB2YWxpZGF0ZSB3b3JrZmxvdyBpbiB0aGlzIG9yZ2FuaXphdGlvbhKsAQoKdGFnVmVyc2lvbhI3LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5UYWdXb3JrZmxvd1ZlcnNpb25JbnB1dBooLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdyI7wrgYNwgCEDIiC3dvcmtmbG93X2lkKiR1bmF1dGhvcml6ZWQgdG8gdGFnIHdvcmtmbG93IHZlcnNpb24aBKD/KzJiBnByb3RvMw", [file_ai_stigmer_agentic_workflow_v1_api, file_ai_stigmer_agentic_workflow_v1_io, file_ai_stigmer_agentic_workflow_v1_serverless_validation, file_ai_stigmer_agentic_workflow_v1_version, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * WorkflowCommandController handles write operations for workflows.
@@ -125,6 +127,27 @@ export const WorkflowCommandController: GenService<{
     methodKind: "unary";
     input: typeof WorkflowSchema;
     output: typeof ServerlessWorkflowValidationSchema;
+  },
+  /**
+   * Assign or move a tag to a specific workflow version.
+   *
+   * Tags are human-readable pointers to immutable versions. Calling this
+   * with an existing tag name moves it from the previous version to the
+   * specified version. Common tags: "stable", "production", "v2.0".
+   *
+   * @internal
+   * Authorization: Requires can_edit permission on the workflow resource.
+   * The handler validates that the version_hash exists in the workflow's
+   * audit history before assigning the tag.
+   *
+   * @since Workflow Versioning
+   *
+   * @generated from rpc ai.stigmer.agentic.workflow.v1.WorkflowCommandController.tagVersion
+   */
+  tagVersion: {
+    methodKind: "unary";
+    input: typeof TagWorkflowVersionInputSchema;
+    output: typeof WorkflowSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ai_stigmer_agentic_workflow_v1_command, 0);

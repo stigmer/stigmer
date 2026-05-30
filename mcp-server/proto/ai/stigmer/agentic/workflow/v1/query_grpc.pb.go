@@ -22,6 +22,8 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	WorkflowQueryController_Get_FullMethodName            = "/ai.stigmer.agentic.workflow.v1.WorkflowQueryController/get"
 	WorkflowQueryController_GetByReference_FullMethodName = "/ai.stigmer.agentic.workflow.v1.WorkflowQueryController/getByReference"
+	WorkflowQueryController_ListVersions_FullMethodName   = "/ai.stigmer.agentic.workflow.v1.WorkflowQueryController/listVersions"
+	WorkflowQueryController_GetVersion_FullMethodName     = "/ai.stigmer.agentic.workflow.v1.WorkflowQueryController/getVersion"
 )
 
 // WorkflowQueryControllerClient is the client API for WorkflowQueryController service.
@@ -32,13 +34,39 @@ const (
 type WorkflowQueryControllerClient interface {
 	// Get a single workflow by ID.
 	Get(ctx context.Context, in *WorkflowId, opts ...grpc.CallOption) (*Workflow, error)
-	// Get a workflow by its organization-scoped reference (org/slug).
-	// Resolves a human-readable reference like "stigmer/deploy" to the full Workflow resource.
+	// Get a workflow by its organization-scoped reference (org/slug) with version support.
+	//
+	// Version resolution (via ApiResourceReference.version field):
+	// - Empty/"latest" → Returns the current version
+	// - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
+	// - SHA256 hash (64 hex chars) → Returns the exact immutable version
 	//
 	// @internal
 	// Custom authorization in handler — checks both direct resource access
 	// and organization-level visibility permissions.
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*Workflow, error)
+	// List version history for a workflow.
+	//
+	// Returns all historical versions ordered by applied_at (newest first).
+	// Each entry includes the version hash, applied timestamp, actor, tag,
+	// git provenance, and the validated CNCF YAML for historical access.
+	//
+	// @internal
+	// Authorization is handled in the handler after resolving the workflow.
+	// (Input uses org+slug, not workflow ID, so proto-level auth cannot work)
+	//
+	// @since Workflow Versioning
+	ListVersions(ctx context.Context, in *ListWorkflowVersionsInput, opts ...grpc.CallOption) (*ListWorkflowVersionsResponse, error)
+	// Get a specific historical version of a workflow by its content hash.
+	//
+	// Used by the runner (to hydrate execution from a pinned version) and
+	// the execution viewer (to render the graph for historical executions).
+	//
+	// @internal
+	// Authorization uses can_view on the workflow resource.
+	//
+	// @since Workflow Versioning
+	GetVersion(ctx context.Context, in *GetWorkflowVersionInput, opts ...grpc.CallOption) (*WorkflowVersionEntry, error)
 }
 
 type workflowQueryControllerClient struct {
@@ -69,6 +97,26 @@ func (c *workflowQueryControllerClient) GetByReference(ctx context.Context, in *
 	return out, nil
 }
 
+func (c *workflowQueryControllerClient) ListVersions(ctx context.Context, in *ListWorkflowVersionsInput, opts ...grpc.CallOption) (*ListWorkflowVersionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListWorkflowVersionsResponse)
+	err := c.cc.Invoke(ctx, WorkflowQueryController_ListVersions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *workflowQueryControllerClient) GetVersion(ctx context.Context, in *GetWorkflowVersionInput, opts ...grpc.CallOption) (*WorkflowVersionEntry, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WorkflowVersionEntry)
+	err := c.cc.Invoke(ctx, WorkflowQueryController_GetVersion_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // WorkflowQueryControllerServer is the server API for WorkflowQueryController service.
 // All implementations should embed UnimplementedWorkflowQueryControllerServer
 // for forward compatibility.
@@ -77,13 +125,39 @@ func (c *workflowQueryControllerClient) GetByReference(ctx context.Context, in *
 type WorkflowQueryControllerServer interface {
 	// Get a single workflow by ID.
 	Get(context.Context, *WorkflowId) (*Workflow, error)
-	// Get a workflow by its organization-scoped reference (org/slug).
-	// Resolves a human-readable reference like "stigmer/deploy" to the full Workflow resource.
+	// Get a workflow by its organization-scoped reference (org/slug) with version support.
+	//
+	// Version resolution (via ApiResourceReference.version field):
+	// - Empty/"latest" → Returns the current version
+	// - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
+	// - SHA256 hash (64 hex chars) → Returns the exact immutable version
 	//
 	// @internal
 	// Custom authorization in handler — checks both direct resource access
 	// and organization-level visibility permissions.
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*Workflow, error)
+	// List version history for a workflow.
+	//
+	// Returns all historical versions ordered by applied_at (newest first).
+	// Each entry includes the version hash, applied timestamp, actor, tag,
+	// git provenance, and the validated CNCF YAML for historical access.
+	//
+	// @internal
+	// Authorization is handled in the handler after resolving the workflow.
+	// (Input uses org+slug, not workflow ID, so proto-level auth cannot work)
+	//
+	// @since Workflow Versioning
+	ListVersions(context.Context, *ListWorkflowVersionsInput) (*ListWorkflowVersionsResponse, error)
+	// Get a specific historical version of a workflow by its content hash.
+	//
+	// Used by the runner (to hydrate execution from a pinned version) and
+	// the execution viewer (to render the graph for historical executions).
+	//
+	// @internal
+	// Authorization uses can_view on the workflow resource.
+	//
+	// @since Workflow Versioning
+	GetVersion(context.Context, *GetWorkflowVersionInput) (*WorkflowVersionEntry, error)
 }
 
 // UnimplementedWorkflowQueryControllerServer should be embedded to have
@@ -98,6 +172,12 @@ func (UnimplementedWorkflowQueryControllerServer) Get(context.Context, *Workflow
 }
 func (UnimplementedWorkflowQueryControllerServer) GetByReference(context.Context, *apiresource.ApiResourceReference) (*Workflow, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetByReference not implemented")
+}
+func (UnimplementedWorkflowQueryControllerServer) ListVersions(context.Context, *ListWorkflowVersionsInput) (*ListWorkflowVersionsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListVersions not implemented")
+}
+func (UnimplementedWorkflowQueryControllerServer) GetVersion(context.Context, *GetWorkflowVersionInput) (*WorkflowVersionEntry, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetVersion not implemented")
 }
 func (UnimplementedWorkflowQueryControllerServer) testEmbeddedByValue() {}
 
@@ -155,6 +235,42 @@ func _WorkflowQueryController_GetByReference_Handler(srv interface{}, ctx contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WorkflowQueryController_ListVersions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListWorkflowVersionsInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WorkflowQueryControllerServer).ListVersions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WorkflowQueryController_ListVersions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WorkflowQueryControllerServer).ListVersions(ctx, req.(*ListWorkflowVersionsInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WorkflowQueryController_GetVersion_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetWorkflowVersionInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WorkflowQueryControllerServer).GetVersion(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WorkflowQueryController_GetVersion_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WorkflowQueryControllerServer).GetVersion(ctx, req.(*GetWorkflowVersionInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // WorkflowQueryController_ServiceDesc is the grpc.ServiceDesc for WorkflowQueryController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -169,6 +285,14 @@ var WorkflowQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "getByReference",
 			Handler:    _WorkflowQueryController_GetByReference_Handler,
+		},
+		{
+			MethodName: "listVersions",
+			Handler:    _WorkflowQueryController_ListVersions_Handler,
+		},
+		{
+			MethodName: "getVersion",
+			Handler:    _WorkflowQueryController_GetVersion_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

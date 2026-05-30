@@ -75,14 +75,15 @@ public final class MetadataProto extends com.google.protobuf.GeneratedFile {
       "ionR\007version\0329\n\013LabelsEntry\022\020\n\003key\030\001 \001(\t" +
       "R\003key\022\024\n\005value\030\002 \001(\tR\005value:\0028\001\032>\n\020Annot" +
       "ationsEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030\002" +
-      " \001(\tR\005value:\0028\001\"v\n\032ApiResourceMetadataVe" +
-      "rsion\022\016\n\002id\030\001 \001(\tR\002id\022\030\n\007message\030\002 \001(\tR\007" +
-      "message\022.\n\023previous_version_id\030\003 \001(\tR\021pr" +
-      "eviousVersionIdB\253\001B\rMetadataProtoP\001\242\002\004AS" +
-      "CA\252\002\036Ai.Stigmer.Commons.Apiresource\312\002\036Ai" +
-      "\\Stigmer\\Commons\\Apiresource\342\002*Ai\\Stigme" +
-      "r\\Commons\\Apiresource\\GPBMetadata\352\002!Ai::" +
-      "Stigmer::Commons::Apiresourceb\006proto3"
+      " \001(\tR\005value:\0028\001\"\210\001\n\032ApiResourceMetadataV" +
+      "ersion\022\016\n\002id\030\001 \001(\tR\002id\022\030\n\007message\030\002 \001(\tR" +
+      "\007message\022.\n\023previous_version_id\030\003 \001(\tR\021p" +
+      "reviousVersionId\022\020\n\003tag\030\004 \001(\tR\003tagB\253\001B\rM" +
+      "etadataProtoP\001\242\002\004ASCA\252\002\036Ai.Stigmer.Commo" +
+      "ns.Apiresource\312\002\036Ai\\Stigmer\\Commons\\Apir" +
+      "esource\342\002*Ai\\Stigmer\\Commons\\Apiresource" +
+      "\\GPBMetadata\352\002!Ai::Stigmer::Commons::Api" +
+      "resourceb\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -113,7 +114,7 @@ public final class MetadataProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_commons_apiresource_ApiResourceMetadataVersion_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_commons_apiresource_ApiResourceMetadataVersion_descriptor,
-        new java.lang.String[] { "Id", "Message", "PreviousVersionId", });
+        new java.lang.String[] { "Id", "Message", "PreviousVersionId", "Tag", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.EnumProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();

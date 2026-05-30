@@ -76,10 +76,11 @@ func (c *WorkflowExecutionController) buildCreatePipeline() *pipeline.Pipeline[*
 		AddStep(steps.NewBuildNewStateStep[*workflowexecutionv1.WorkflowExecution]()).                                               // 6. Build new state
 		AddStep(steps.NewNormalizeReferencesStep[*workflowexecutionv1.WorkflowExecution]()).                                         // 7. Normalize cross-references
 		AddStep(newSetInitialPhaseStep()).                                                                                           // 8. Set phase to PENDING
-		AddStep(c.newCreateExecutionContextStep()).                                                                                  // 9. Create ExecutionContext with merged environment
-		AddStep(steps.NewPersistStep[*workflowexecutionv1.WorkflowExecution](c.store)).                                              // 10. Persist execution
-		AddStep(steps.NewIndexSearchStep[*workflowexecutionv1.WorkflowExecution](c.store, &extractor.WorkflowExecutionExtractor{})). // 11. Update search index
-		AddStep(c.newStartWorkflowStep()).                                                                                           // 12. Start Temporal workflow
+		AddStep(newPinWorkflowVersionStep(c.store)).                                                                                 // 9. Pin workflow version hash on execution
+		AddStep(c.newCreateExecutionContextStep()).                                                                                  // 10. Create ExecutionContext with merged environment
+		AddStep(steps.NewPersistStep[*workflowexecutionv1.WorkflowExecution](c.store)).                                              // 11. Persist execution
+		AddStep(steps.NewIndexSearchStep[*workflowexecutionv1.WorkflowExecution](c.store, &extractor.WorkflowExecutionExtractor{})). // 12. Update search index
+		AddStep(c.newStartWorkflowStep()).                                                                                           // 13. Start Temporal workflow
 		Build()
 }
 

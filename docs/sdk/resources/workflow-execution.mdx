@@ -1476,6 +1476,7 @@ WorkflowExecutionStatus contains all system-managed execution state and results.
     totalCostMicros: { type: "number", description: "Cumulative cost across all tasks in micro-USD (1 USD = 1,000,000 micros)." },
     totalInputTokens: { type: "number", description: "Cumulative input tokens consumed across all LLM and agent tasks." },
     totalOutputTokens: { type: "number", description: "Cumulative output tokens consumed across all LLM and agent tasks." },
+    workflowVersionHash: { type: "string", description: "SHA-256 hash identifying which workflow version was used for this execution." },
   }}
 />
 

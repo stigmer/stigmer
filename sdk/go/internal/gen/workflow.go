@@ -63,6 +63,11 @@ func (w *WorkflowClient) ValidateSpec(ctx context.Context, input *WorkflowInput)
 	return resp, wrapErr(err)
 }
 
+func (w *WorkflowClient) TagVersion(ctx context.Context, input *workflowv1.TagWorkflowVersionInput) (*workflowv1.Workflow, error) {
+	resp, err := w.command.TagVersion(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (w *WorkflowClient) Get(ctx context.Context, id string) (*workflowv1.Workflow, error) {
 	resp, err := w.query.Get(ctx, &workflowv1.WorkflowId{Value: id})
 	return resp, wrapErr(err)
@@ -71,6 +76,16 @@ func (w *WorkflowClient) Get(ctx context.Context, id string) (*workflowv1.Workfl
 func (w *WorkflowClient) GetByReference(ctx context.Context, ref ResourceRef) (*workflowv1.Workflow, error) {
 	ref.Kind = apiresourcekind.ApiResourceKind_workflow
 	resp, err := w.query.GetByReference(ctx, ref.toProto())
+	return resp, wrapErr(err)
+}
+
+func (w *WorkflowClient) ListVersions(ctx context.Context, input *workflowv1.ListWorkflowVersionsInput) (*workflowv1.ListWorkflowVersionsResponse, error) {
+	resp, err := w.query.ListVersions(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (w *WorkflowClient) GetVersion(ctx context.Context, input *workflowv1.GetWorkflowVersionInput) (*workflowv1.WorkflowVersionEntry, error) {
+	resp, err := w.query.GetVersion(ctx, input)
 	return resp, wrapErr(err)
 }
 
@@ -103,16 +118,17 @@ func (w *WorkflowClient) List(ctx context.Context, params *ListParams) (*ListRes
 
 // WorkflowInput holds the fields for creating/updating a Workflow.
 type WorkflowInput struct {
-	Name        string
-	Slug        string
-	Org         string
-	Labels      map[string]string
-	Visibility  apiresource.ApiResourceVisibility
-	Description string
-	Document    *WorkflowDocumentInput
-	Tasks       []*WorkflowTaskInput
-	Env         map[string]*EnvVarDeclarationInput
-	Budget      *WorkflowBudgetInput
+	Name           string
+	Slug           string
+	Org            string
+	Labels         map[string]string
+	Visibility     apiresource.ApiResourceVisibility
+	VersionMessage string
+	Description    string
+	Document       *WorkflowDocumentInput
+	Tasks          []*WorkflowTaskInput
+	Env            map[string]*EnvVarDeclarationInput
+	Budget         *WorkflowBudgetInput
 }
 
 // WorkflowDocumentInput is the SDK input type for WorkflowDocument.
@@ -164,6 +180,11 @@ func (i *WorkflowInput) toProto() *workflowv1.Workflow {
 			Visibility: i.Visibility,
 		},
 		Spec: &workflowv1.WorkflowSpec{},
+	}
+	if i.VersionMessage != "" {
+		resource.Metadata.Version = &apiresource.ApiResourceMetadataVersion{
+			Message: i.VersionMessage,
+		}
 	}
 	resource.Spec.Description = i.Description
 	if i.Document != nil {

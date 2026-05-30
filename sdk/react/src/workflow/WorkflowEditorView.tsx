@@ -267,6 +267,21 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
         </div>
 
         <div className="flex items-center gap-2">
+          {mode === "code" && (editor.isDirty || editor.versionMessage) && (
+            <input
+              type="text"
+              value={editor.versionMessage}
+              onChange={(e) => editor.setVersionMessage(e.target.value)}
+              placeholder="Version message (optional)"
+              disabled={editor.isSaving}
+              className={cn(
+                "h-7 w-48 rounded border border-[var(--stgm-border,#d4d4d8)] bg-[var(--stgm-background,#fff)] px-2 text-xs",
+                "text-[var(--stgm-foreground,#1a1a2e)] placeholder:text-[var(--stgm-muted-foreground,#a3a3a3)]",
+                "focus:border-[var(--stgm-primary,#6366f1)] focus:outline-none focus:ring-1 focus:ring-[var(--stgm-primary,#6366f1)]",
+                "disabled:opacity-40",
+              )}
+            />
+          )}
           {mode === "code" && (
             <button
               type="button"

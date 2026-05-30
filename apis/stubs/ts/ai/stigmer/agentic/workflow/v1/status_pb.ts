@@ -14,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/workflow/v1/status.proto.
  */
 export const file_ai_stigmer_agentic_workflow_v1_status: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvc3RhdHVzLnByb3RvEh5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEi3wEKDldvcmtmbG93U3RhdHVzEj8KBWF1ZGl0GGMgASgLMjAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXQSGwoTZGVmYXVsdF9pbnN0YW5jZV9pZBgBIAEoCRJvCh5zZXJ2ZXJsZXNzX3dvcmtmbG93X3ZhbGlkYXRpb24YAiABKAsyRy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuc2VydmVybGVzcy5TZXJ2ZXJsZXNzV29ya2Zsb3dWYWxpZGF0aW9uYgZwcm90bzM", [file_ai_stigmer_agentic_workflow_v1_serverless_validation, file_ai_stigmer_commons_apiresource_status]);
+  fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvc3RhdHVzLnByb3RvEh5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEi9QEKDldvcmtmbG93U3RhdHVzEj8KBWF1ZGl0GGMgASgLMjAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXQSGwoTZGVmYXVsdF9pbnN0YW5jZV9pZBgBIAEoCRJvCh5zZXJ2ZXJsZXNzX3dvcmtmbG93X3ZhbGlkYXRpb24YAiABKAsyRy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuc2VydmVybGVzcy5TZXJ2ZXJsZXNzV29ya2Zsb3dWYWxpZGF0aW9uEhQKDHZlcnNpb25faGFzaBgDIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_workflow_v1_serverless_validation, file_ai_stigmer_commons_apiresource_status]);
 
 /**
  * WorkflowStatus contains system-managed state for a Workflow resource.
@@ -52,6 +52,29 @@ export type WorkflowStatus = Message<"ai.stigmer.agentic.workflow.v1.WorkflowSta
    * @generated from field: ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation serverless_workflow_validation = 2;
    */
   serverlessWorkflowValidation?: ServerlessWorkflowValidation;
+
+  /**
+   * SHA-256 hash of the generated CNCF YAML for the current valid version.
+   *
+   * @internal
+   * Updated only when validation produces state=VALID and the generated YAML
+   * differs from the previous version's hash. Empty for workflows that have
+   * never passed validation.
+   *
+   * This is the content-addressed version identifier for the workflow definition.
+   * The hash is computed from the `serverless_workflow_validation.yaml` string,
+   * ensuring that "same YAML = same hash = same execution behavior."
+   *
+   * Consumers:
+   * - Execution create pipeline reads this to pin executions to a specific version
+   * - getByReference resolves ApiResourceReference.version against this and audit entries
+   * - UI displays this as the current version identifier
+   *
+   * @since Workflow Versioning
+   *
+   * @generated from field: string version_hash = 3;
+   */
+  versionHash: string;
 };
 
 /**

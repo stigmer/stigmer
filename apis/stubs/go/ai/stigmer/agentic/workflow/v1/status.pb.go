@@ -42,8 +42,26 @@ type WorkflowStatus struct {
 	// Workflow creation does NOT block on validation — the workflow is created immediately
 	// with status.state = PENDING, then validation runs in the background.
 	ServerlessWorkflowValidation *serverless.ServerlessWorkflowValidation `protobuf:"bytes,2,opt,name=serverless_workflow_validation,json=serverlessWorkflowValidation,proto3" json:"serverless_workflow_validation,omitempty"`
-	unknownFields                protoimpl.UnknownFields
-	sizeCache                    protoimpl.SizeCache
+	// SHA-256 hash of the generated CNCF YAML for the current valid version.
+	//
+	// @internal
+	// Updated only when validation produces state=VALID and the generated YAML
+	// differs from the previous version's hash. Empty for workflows that have
+	// never passed validation.
+	//
+	// This is the content-addressed version identifier for the workflow definition.
+	// The hash is computed from the `serverless_workflow_validation.yaml` string,
+	// ensuring that "same YAML = same hash = same execution behavior."
+	//
+	// Consumers:
+	// - Execution create pipeline reads this to pin executions to a specific version
+	// - getByReference resolves ApiResourceReference.version against this and audit entries
+	// - UI displays this as the current version identifier
+	//
+	// @since Workflow Versioning
+	VersionHash   string `protobuf:"bytes,3,opt,name=version_hash,json=versionHash,proto3" json:"version_hash,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *WorkflowStatus) Reset() {
@@ -97,15 +115,23 @@ func (x *WorkflowStatus) GetServerlessWorkflowValidation() *serverless.Serverles
 	return nil
 }
 
+func (x *WorkflowStatus) GetVersionHash() string {
+	if x != nil {
+		return x.VersionHash
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_workflow_v1_status_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_workflow_v1_status_proto_rawDesc = "" +
 	"\n" +
-	"+ai/stigmer/agentic/workflow/v1/status.proto\x12\x1eai.stigmer.agentic.workflow.v1\x1a:ai/stigmer/agentic/workflow/v1/serverless/validation.proto\x1a+ai/stigmer/commons/apiresource/status.proto\"\x98\x02\n" +
+	"+ai/stigmer/agentic/workflow/v1/status.proto\x12\x1eai.stigmer.agentic.workflow.v1\x1a:ai/stigmer/agentic/workflow/v1/serverless/validation.proto\x1a+ai/stigmer/commons/apiresource/status.proto\"\xbb\x02\n" +
 	"\x0eWorkflowStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12.\n" +
 	"\x13default_instance_id\x18\x01 \x01(\tR\x11defaultInstanceId\x12\x8d\x01\n" +
-	"\x1eserverless_workflow_validation\x18\x02 \x01(\v2G.ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidationR\x1cserverlessWorkflowValidationB\xa2\x02\n" +
+	"\x1eserverless_workflow_validation\x18\x02 \x01(\v2G.ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidationR\x1cserverlessWorkflowValidation\x12!\n" +
+	"\fversion_hash\x18\x03 \x01(\tR\vversionHashB\xa2\x02\n" +
 	"\"com.ai.stigmer.agentic.workflow.v1B\vStatusProtoP\x01ZRgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1;workflowv1\xa2\x02\x04ASAW\xaa\x02\x1eAi.Stigmer.Agentic.Workflow.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Workflow\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Workflow::V1b\x06proto3"
 
 var (

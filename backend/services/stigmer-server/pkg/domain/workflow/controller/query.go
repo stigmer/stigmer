@@ -2,12 +2,22 @@ package workflow
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"regexp"
+	"strings"
 
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	apiresourcekind "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
+	"github.com/stigmer/stigmer/backend/libs/go/store"
+	"google.golang.org/protobuf/proto"
 )
+
+var workflowHashPattern = regexp.MustCompile(`^[a-f0-9]{64}$`)
 
 // Get retrieves a workflow by ID using the pipeline framework
 func (c *WorkflowController) Get(ctx context.Context, workflowId *workflowv1.WorkflowId) (*workflowv1.Workflow, error) {
@@ -32,25 +42,113 @@ func (c *WorkflowController) buildGetPipeline() *pipeline.Pipeline[*workflowv1.W
 		Build()
 }
 
-// GetByReference retrieves a workflow by ApiResourceReference (slug-based lookup) using the pipeline framework
+// GetByReference retrieves a workflow by ApiResourceReference with version support.
+//
+// Version resolution:
+//   - Empty/"latest" → returns current head
+//   - If version matches current workflow's status.version_hash → returns current
+//   - 64-char hex string → queries audit by hash
+//   - Other string → queries audit by tag (newest with that tag)
 func (c *WorkflowController) GetByReference(ctx context.Context, ref *apiresource.ApiResourceReference) (*workflowv1.Workflow, error) {
-	reqCtx := pipeline.NewRequestContext(ctx, ref)
-
-	p := c.buildGetByReferencePipeline()
-
-	if err := p.Execute(reqCtx); err != nil {
-		return nil, err
+	if ref == nil {
+		return nil, grpclib.InvalidArgumentError("reference is required")
+	}
+	if ref.Slug == "" {
+		return nil, grpclib.InvalidArgumentError("slug is required in reference")
 	}
 
-	// Retrieve loaded workflow from context
-	workflow := reqCtx.Get(steps.TargetResourceKey).(*workflowv1.Workflow)
-	return workflow, nil
+	// Step 1: Find main workflow by slug
+	mainWorkflow, found, err := c.findMainWorkflowBySlug(ctx, ref.Slug, ref.Org)
+	if err != nil {
+		return nil, err
+	}
+	if !found {
+		return nil, grpclib.NotFoundError("workflow", ref.Slug)
+	}
+
+	// Step 2: Determine which version to return
+	version := strings.TrimSpace(ref.Version)
+
+	if version == "" || version == "latest" {
+		return mainWorkflow, nil
+	}
+
+	// Step 3: Check if version matches main workflow
+	if c.workflowMatchesVersion(mainWorkflow, version) {
+		return mainWorkflow, nil
+	}
+
+	// Step 4: Search audit records for the matching version
+	auditWorkflow, found, err := c.findAuditWorkflowByVersion(ctx, mainWorkflow.Metadata.Id, version)
+	if err != nil {
+		return nil, err
+	}
+	if !found {
+		return nil, grpclib.NotFoundError("workflow version", fmt.Sprintf("%s:%s", ref.Slug, version))
+	}
+
+	return auditWorkflow, nil
 }
 
-// buildGetByReferencePipeline constructs the pipeline for get-by-reference operations
-func (c *WorkflowController) buildGetByReferencePipeline() *pipeline.Pipeline[*apiresource.ApiResourceReference] {
-	return pipeline.NewPipeline[*apiresource.ApiResourceReference]("workflow-get-by-reference").
-		AddStep(steps.NewValidateProtoStep[*apiresource.ApiResourceReference]()). // 1. Validate input
-		AddStep(steps.NewLoadByReferenceStep[*workflowv1.Workflow](c.store)).     // 2. Load by slug
-		Build()
+func (c *WorkflowController) findMainWorkflowBySlug(ctx context.Context, slug, org string) (*workflowv1.Workflow, bool, error) {
+	resources, err := c.store.ListResources(ctx, apiresourcekind.ApiResourceKind_workflow)
+	if err != nil {
+		return nil, false, grpclib.InternalError(err, "failed to list workflows")
+	}
+
+	for _, data := range resources {
+		var wf workflowv1.Workflow
+		if err := proto.Unmarshal(data, &wf); err != nil {
+			continue
+		}
+		if wf.Metadata == nil {
+			continue
+		}
+		if wf.Metadata.Slug == slug {
+			if org != "" && wf.Metadata.Org != org {
+				continue
+			}
+			return &wf, true, nil
+		}
+	}
+
+	return nil, false, nil
 }
+
+func (c *WorkflowController) workflowMatchesVersion(wf *workflowv1.Workflow, version string) bool {
+	if wf.Status == nil {
+		return false
+	}
+	if workflowHashPattern.MatchString(version) {
+		return wf.Status.VersionHash == version
+	}
+	if wf.Metadata != nil && wf.Metadata.Version != nil && wf.Metadata.Version.Tag == version {
+		return true
+	}
+	return false
+}
+
+func (c *WorkflowController) findAuditWorkflowByVersion(ctx context.Context, workflowID, version string) (*workflowv1.Workflow, bool, error) {
+	var wf workflowv1.Workflow
+
+	if workflowHashPattern.MatchString(version) {
+		err := c.store.GetAuditByHash(ctx, apiresourcekind.ApiResourceKind_workflow, workflowID, version, &wf)
+		if err != nil {
+			if errors.Is(err, store.ErrAuditNotFound) {
+				return nil, false, nil
+			}
+			return nil, false, grpclib.InternalError(err, "failed to query workflow audit by hash")
+		}
+		return &wf, true, nil
+	}
+
+	err := c.store.GetAuditByTag(ctx, apiresourcekind.ApiResourceKind_workflow, workflowID, version, &wf)
+	if err != nil {
+		if errors.Is(err, store.ErrAuditNotFound) {
+			return nil, false, nil
+		}
+		return nil, false, grpclib.InternalError(err, "failed to query workflow audit by tag")
+	}
+	return &wf, true, nil
+}
+

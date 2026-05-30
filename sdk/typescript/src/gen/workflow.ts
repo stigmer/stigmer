@@ -15,10 +15,11 @@ import { type ServerlessWorkflowValidation } from "@stigmer/protos/ai/stigmer/ag
 import { WorkflowSpecSchema, WorkflowDocumentSchema, ExportSchema, FlowControlSchema, WorkflowTaskSchema, WorkflowBudgetSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/spec_pb";
 import { GetTaskKindRegistryRequestSchema, GetTaskKindRegistryResponseSchema, type GetTaskKindRegistryRequest, type GetTaskKindRegistryResponse } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/task_kind_descriptor_pb";
 import { TaskKindRegistryQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/task_kind_registry_query_pb";
+import { TagWorkflowVersionInputSchema, ListWorkflowVersionsInputSchema, ListWorkflowVersionsResponseSchema, GetWorkflowVersionInputSchema, WorkflowVersionEntrySchema, type TagWorkflowVersionInput, type ListWorkflowVersionsInput, type ListWorkflowVersionsResponse, type GetWorkflowVersionInput, type WorkflowVersionEntry } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/version_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceReferenceSchema, type UpdateVisibilityInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import { ApiResourceMetadataSchema, ApiResourceMetadataVersionSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { PageInfoSchema } from "@stigmer/protos/ai/stigmer/commons/rpc/pagination_pb";
 import { SearchRequestSchema } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 import { SearchService } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
@@ -73,6 +74,12 @@ export class WorkflowClient {
     } catch (e) { throw wrapError(e); }
   }
 
+  async tagVersion(input: TagWorkflowVersionInput): Promise<Workflow> {
+    try {
+      return await this.command.tagVersion(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
   async get(id: string): Promise<Workflow> {
     try {
       return await this.query.get(create(WorkflowIdSchema, { value: id }));
@@ -82,6 +89,18 @@ export class WorkflowClient {
   async getByReference(ref: ResourceRef): Promise<Workflow> {
     try {
       return await this.query.getByReference(create(ApiResourceReferenceSchema, { ...ref, kind: ApiResourceKind.workflow }));
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async listVersions(input: ListWorkflowVersionsInput): Promise<ListWorkflowVersionsResponse> {
+    try {
+      return await this.query.listVersions(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async getVersion(input: GetWorkflowVersionInput): Promise<WorkflowVersionEntry> {
+    try {
+      return await this.query.getVersion(input);
     } catch (e) { throw wrapError(e); }
   }
 
@@ -117,6 +136,7 @@ export interface WorkflowInput {
   org: string;
   labels?: Record<string, string>;
   visibility?: ApiResourceVisibility;
+  versionMessage?: string;
   description?: string;
   document: WorkflowDocumentInput;
   tasks?: WorkflowTaskInput[];
@@ -235,6 +255,7 @@ function buildWorkflowProto(input: WorkflowInput): Workflow {
       ...(input.slug && { slug: input.slug }),
       ...(input.labels && { labels: input.labels }),
       ...(input.visibility && { visibility: input.visibility }),
+      ...(input.versionMessage && { version: Object.assign(create(ApiResourceMetadataVersionSchema), { message: input.versionMessage }) }),
     }),
     spec: Object.assign(create(WorkflowSpecSchema), stripUndefined({
       description: input.description,

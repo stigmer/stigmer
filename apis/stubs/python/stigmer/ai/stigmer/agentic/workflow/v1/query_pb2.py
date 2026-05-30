@@ -24,12 +24,13 @@ _sym_db = _symbol_database.Default()
 
 from ai.stigmer.agentic.workflow.v1 import api_pb2 as ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_api__pb2
 from ai.stigmer.agentic.workflow.v1 import io_pb2 as ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_io__pb2
+from ai.stigmer.agentic.workflow.v1 import version_pb2 as ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_version__pb2
 from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2
 from ai.stigmer.commons.apiresource import rpc_service_options_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_rpc__service__options__pb2
 from ai.stigmer.commons.rpc import method_options_pb2 as ai_dot_stigmer_dot_commons_dot_rpc_dot_method__options__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n*ai/stigmer/agentic/workflow/v1/query.proto\x12\x1e\x61i.stigmer.agentic.workflow.v1\x1a(ai/stigmer/agentic/workflow/v1/api.proto\x1a\'ai/stigmer/agentic/workflow/v1/io.proto\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xa4\x02\n\x17WorkflowQueryController\x12\x8a\x01\n\x03get\x12*.ai.stigmer.agentic.workflow.v1.WorkflowId\x1a(.ai.stigmer.agentic.workflow.v1.Workflow\"-\xc2\xb8\x18)\x08\x01\x10\x32\"\x05value*\x1cunauthorized to get workflow\x12v\n\x0egetByReference\x12\x34.ai.stigmer.commons.apiresource.ApiResourceReference\x1a(.ai.stigmer.agentic.workflow.v1.Workflow\"\x04\xd0\xb8\x18\x01\x1a\x04\xa0\xff+2B\xcd\x01\n\"com.ai.stigmer.agentic.workflow.v1B\nQueryProtoP\x01\xa2\x02\x04\x41SAW\xaa\x02\x1e\x41i.Stigmer.Agentic.Workflow.V1\xca\x02\x1e\x41i\\Stigmer\\Agentic\\Workflow\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Workflow::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n*ai/stigmer/agentic/workflow/v1/query.proto\x12\x1e\x61i.stigmer.agentic.workflow.v1\x1a(ai/stigmer/agentic/workflow/v1/api.proto\x1a\'ai/stigmer/agentic/workflow/v1/io.proto\x1a,ai/stigmer/agentic/workflow/v1/version.proto\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xef\x04\n\x17WorkflowQueryController\x12\x8a\x01\n\x03get\x12*.ai.stigmer.agentic.workflow.v1.WorkflowId\x1a(.ai.stigmer.agentic.workflow.v1.Workflow\"-\xc2\xb8\x18)\x08\x01\x10\x32\"\x05value*\x1cunauthorized to get workflow\x12v\n\x0egetByReference\x12\x34.ai.stigmer.commons.apiresource.ApiResourceReference\x1a(.ai.stigmer.agentic.workflow.v1.Workflow\"\x04\xd0\xb8\x18\x01\x12\x8d\x01\n\x0clistVersions\x12\x39.ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsInput\x1a<.ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsResponse\"\x04\xd0\xb8\x18\x01\x12\xb8\x01\n\ngetVersion\x12\x37.ai.stigmer.agentic.workflow.v1.GetWorkflowVersionInput\x1a\x34.ai.stigmer.agentic.workflow.v1.WorkflowVersionEntry\";\xc2\xb8\x18\x37\x08\x01\x10\x32\"\x0bworkflow_id*$unauthorized to get workflow version\x1a\x04\xa0\xff+2B\xcd\x01\n\"com.ai.stigmer.agentic.workflow.v1B\nQueryProtoP\x01\xa2\x02\x04\x41SAW\xaa\x02\x1e\x41i.Stigmer.Agentic.Workflow.V1\xca\x02\x1e\x41i\\Stigmer\\Agentic\\Workflow\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Workflow::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -43,6 +44,10 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_WORKFLOWQUERYCONTROLLER'].methods_by_name['get']._serialized_options = b'\302\270\030)\010\001\0202\"\005value*\034unauthorized to get workflow'
   _globals['_WORKFLOWQUERYCONTROLLER'].methods_by_name['getByReference']._loaded_options = None
   _globals['_WORKFLOWQUERYCONTROLLER'].methods_by_name['getByReference']._serialized_options = b'\320\270\030\001'
-  _globals['_WORKFLOWQUERYCONTROLLER']._serialized_start=306
-  _globals['_WORKFLOWQUERYCONTROLLER']._serialized_end=598
+  _globals['_WORKFLOWQUERYCONTROLLER'].methods_by_name['listVersions']._loaded_options = None
+  _globals['_WORKFLOWQUERYCONTROLLER'].methods_by_name['listVersions']._serialized_options = b'\320\270\030\001'
+  _globals['_WORKFLOWQUERYCONTROLLER'].methods_by_name['getVersion']._loaded_options = None
+  _globals['_WORKFLOWQUERYCONTROLLER'].methods_by_name['getVersion']._serialized_options = b'\302\270\0307\010\001\0202\"\013workflow_id*$unauthorized to get workflow version'
+  _globals['_WORKFLOWQUERYCONTROLLER']._serialized_start=352
+  _globals['_WORKFLOWQUERYCONTROLLER']._serialized_end=975
 # @@protoc_insertion_point(module_scope)

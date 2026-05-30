@@ -67,13 +67,16 @@ Workflow workflow = client.workflows().get("wfl_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | Method | Description |
 |--------|-------------|
 | [`get`](#get) | Get a single workflow by ID. |
-| [`getByReference`](#getbyreference) | Get a workflow by its organization-scoped reference (org/slug). |
+| [`getByReference`](#getbyreference) | Get a workflow by its organization-scoped reference (org/slug) with version support. |
 | [`getTaskKindRegistry`](#gettaskkindregistry) | Retrieve the complete task kind registry. |
+| [`getVersion`](#getversion) | Get a specific historical version of a workflow by its content hash. |
+| [`listVersions`](#listversions) | List version history for a workflow. |
 | [`apply`](#apply) | Create or update a workflow. |
 | [`create`](#create) | Create a workflow. |
 | [`update`](#update) | Update an existing workflow. |
 | [`updateVisibility`](#updatevisibility) | Update the visibility of an existing workflow. |
 | [`delete`](#delete) | Delete a workflow. |
+| [`tagVersion`](#tagversion) | Assign or move a tag to a specific workflow version. |
 | [`validateSpec`](#validatespec) | Validate a workflow spec without persisting it. |
 
 ### get
@@ -113,7 +116,9 @@ Workflow workflow = client.workflows().get(id);
 
 ### getByReference
 
-Get a workflow by its organization-scoped reference (org/slug). Resolves a human-readable reference like "stigmer/deploy" to the full Workflow resource.
+Get a workflow by its organization-scoped reference (org/slug) with version support.
+
+Version resolution (via ApiResourceReference.version field): - Empty/"latest" → Returns the current version - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag - SHA256 hash (64 hex chars) → Returns the exact immutable version
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -196,6 +201,104 @@ GetTaskKindRegistryResponse getTaskKindRegistryResponse = client.workflows().get
 **Parameters**: [`GetTaskKindRegistryRequest`](#gettaskkindregistryrequest)
 
 **Returns**: [`GetTaskKindRegistryResponse`](#gettaskkindregistryresponse)
+
+### getVersion
+
+Get a specific historical version of a workflow by its content hash.
+
+Used by the runner (to hydrate execution from a pinned version) and the execution viewer (to render the graph for historical executions).
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const workflowVersionEntry = await stigmer.workflow.getVersion({
+  workflowId: "...",
+  versionHash: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+workflowVersionEntry, err := client.Workflow.GetVersion(ctx, &stigmer.GetWorkflowVersionInput{
+  WorkflowId:  "...",
+  VersionHash: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+workflow_version_entry = client.workflows.get_version(GetWorkflowVersionInput(
+    workflow_id="...",
+    version_hash="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+WorkflowVersionEntry workflowVersionEntry = client.workflows().getVersion(GetWorkflowVersionInput.builder()
+    .workflowId("...")
+    .versionHash("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`GetWorkflowVersionInput`](#getworkflowversioninput)
+
+**Returns**: [`WorkflowVersionEntry`](#workflowversionentry)
+
+### listVersions
+
+List version history for a workflow.
+
+Returns all historical versions ordered by applied_at (newest first). Each entry includes the version hash, applied timestamp, actor, tag, git provenance, and the validated CNCF YAML for historical access.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const listWorkflowVersionsResponse = await stigmer.workflow.listVersions({
+  org: "...",
+  slug: "...",
+  pageToken: "...",
+  pageSize: 0,
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+listWorkflowVersionsResponse, err := client.Workflow.ListVersions(ctx, &stigmer.ListWorkflowVersionsInput{
+  Org:       "...",
+  Slug:      "...",
+  PageToken: "...",
+  PageSize:  0,
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+list_workflow_versions_response = client.workflows.list_versions(ListWorkflowVersionsInput(
+    org="...",
+    slug="...",
+    page_token="...",
+    page_size=0,
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+ListWorkflowVersionsResponse listWorkflowVersionsResponse = client.workflows().listVersions(ListWorkflowVersionsInput.builder()
+    .org("...")
+    .slug("...")
+    .pageToken("...")
+    .pageSize(0)
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`ListWorkflowVersionsInput`](#listworkflowversionsinput)
+
+**Returns**: [`ListWorkflowVersionsResponse`](#listworkflowversionsresponse)
 
 ### apply
 
@@ -490,6 +593,55 @@ Workflow workflow = client.workflows().delete(id);
 
 **Returns**: [`Workflow`](#workflow)
 
+### tagVersion
+
+Assign or move a tag to a specific workflow version.
+
+Tags are human-readable pointers to immutable versions. Calling this with an existing tag name moves it from the previous version to the specified version. Common tags: "stable", "production", "v2.0".
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const workflow = await stigmer.workflow.tagVersion({
+  workflowId: "...",
+  versionHash: "...",
+  tag: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+workflow, err := client.Workflow.TagVersion(ctx, &stigmer.TagWorkflowVersionInput{
+  WorkflowId:  "...",
+  VersionHash: "...",
+  Tag:         "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+workflow = client.workflows.tag_version(TagWorkflowVersionInput(
+    workflow_id="...",
+    version_hash="...",
+    tag="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+Workflow workflow = client.workflows().tagVersion(TagWorkflowVersionInput.builder()
+    .workflowId("...")
+    .versionHash("...")
+    .tag("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`TagWorkflowVersionInput`](#tagworkflowversioninput)
+
+**Returns**: [`Workflow`](#workflow)
+
 ### validateSpec
 
 Validate a workflow spec without persisting it.
@@ -687,6 +839,18 @@ ServerlessWorkflowValidation contains the generated Serverless Workflow YAML and
   }}
 />
 
+### TagWorkflowVersionInput
+
+TagWorkflowVersionInput assigns or moves a tag to a specific workflow version.
+
+<TypeTable
+  type={{
+    workflowId: { type: "string", description: "ID of the workflow resource.", required: true },
+    versionHash: { type: "string", description: "SHA-256 hash of the version to tag." },
+    tag: { type: "string", description: "Tag to assign." },
+  }}
+/>
+
 ### ResourceRef
 
 Generic reference to any API resource by org and slug.
@@ -697,6 +861,59 @@ Generic reference to any API resource by org and slug.
     kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcekind" },
     slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
     version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
+  }}
+/>
+
+### ListWorkflowVersionsInput
+
+ListWorkflowVersionsInput requests the version history for a workflow.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization that owns the workflow.", required: true },
+    slug: { type: "string", description: "Workflow slug (unique within the organization).", required: true },
+    pageToken: { type: "string", description: "Opaque token for cursor-based pagination." },
+    pageSize: { type: "number", description: "Maximum number of versions to return per page." },
+  }}
+/>
+
+### ListWorkflowVersionsResponse
+
+ListWorkflowVersionsResponse contains a page of workflow version history.
+
+<TypeTable
+  type={{
+    versions: { type: "WorkflowVersionEntryInput[]", description: "Ordered list of versions (newest first)." },
+    nextPageToken: { type: "string", description: "Token for fetching the next page." },
+    totalCount: { type: "number", description: "Total number of versions across all pages." },
+  }}
+/>
+
+### GetWorkflowVersionInput
+
+GetWorkflowVersionInput requests a specific historical version of a workflow.
+
+<TypeTable
+  type={{
+    workflowId: { type: "string", description: "ID of the workflow resource.", required: true },
+    versionHash: { type: "string", description: "SHA-256 hash identifying the specific version to retrieve." },
+  }}
+/>
+
+### WorkflowVersionEntry
+
+WorkflowVersionEntry represents a single historical version of a workflow.
+
+<TypeTable
+  type={{
+    versionHash: { type: "string", description: "SHA-256 hash of the CNCF YAML — the immutable version identifier." },
+    appliedAt: { type: "string", description: "When this version was created (the apply/update timestamp)." },
+    appliedBy: { type: "ApiResourceAuditActorInput", description: "Who created this version (the actor who triggered the apply/update).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourceauditactor" },
+    tag: { type: "string", description: "Tag assigned to this version at apply time or via tagVersion." },
+    isCurrent: { type: "boolean", description: "Whether this is the currently active version of the workflow." },
+    message: { type: "string", description: "Human-readable message describing what changed in this version." },
+    validatedYaml: { type: "string", description: "The generated CNCF Serverless Workflow DSL 1.0.0 YAML for this version." },
+    gitProvenance: { type: "GitProvenanceInput", description: "Git provenance tracking where this version's definition originated." },
   }}
 />
 
@@ -737,6 +954,7 @@ WorkflowStatus contains system-managed state for a Workflow resource.
     audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, created_by, etc.).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourceaudit" },
     defaultInstanceId: { type: "string", description: "ID of the default workflow instance created automatically for this workflow." },
     serverlessWorkflowValidation: { type: "ServerlessWorkflowValidation", description: "Serverless Workflow YAML generation and validation state.", typeDescriptionLink: "#serverlessworkflowvalidation" },
+    versionHash: { type: "string", description: "SHA-256 hash of the generated CNCF YAML for the current valid version." },
   }}
 />
 

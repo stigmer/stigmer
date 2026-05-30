@@ -201,6 +201,37 @@ public final class WorkflowCommandControllerGrpc {
     return getValidateSpecMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.TagWorkflowVersionInput,
+      ai.stigmer.agentic.workflow.v1.Workflow> getTagVersionMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "tagVersion",
+      requestType = ai.stigmer.agentic.workflow.v1.TagWorkflowVersionInput.class,
+      responseType = ai.stigmer.agentic.workflow.v1.Workflow.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.TagWorkflowVersionInput,
+      ai.stigmer.agentic.workflow.v1.Workflow> getTagVersionMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.TagWorkflowVersionInput, ai.stigmer.agentic.workflow.v1.Workflow> getTagVersionMethod;
+    if ((getTagVersionMethod = WorkflowCommandControllerGrpc.getTagVersionMethod) == null) {
+      synchronized (WorkflowCommandControllerGrpc.class) {
+        if ((getTagVersionMethod = WorkflowCommandControllerGrpc.getTagVersionMethod) == null) {
+          WorkflowCommandControllerGrpc.getTagVersionMethod = getTagVersionMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.workflow.v1.TagWorkflowVersionInput, ai.stigmer.agentic.workflow.v1.Workflow>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "tagVersion"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.workflow.v1.TagWorkflowVersionInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.workflow.v1.Workflow.getDefaultInstance()))
+              .setSchemaDescriptor(new WorkflowCommandControllerMethodDescriptorSupplier("tagVersion"))
+              .build();
+        }
+      }
+    }
+    return getTagVersionMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -357,6 +388,24 @@ public final class WorkflowCommandControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getValidateSpecMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * Assign or move a tag to a specific workflow version.
+     * Tags are human-readable pointers to immutable versions. Calling this
+     * with an existing tag name moves it from the previous version to the
+     * specified version. Common tags: "stable", "production", "v2.0".
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the workflow resource.
+     * The handler validates that the version_hash exists in the workflow's
+     * audit history before assigning the tag.
+     * &#64;since Workflow Versioning
+     * </pre>
+     */
+    default void tagVersion(ai.stigmer.agentic.workflow.v1.TagWorkflowVersionInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.Workflow> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getTagVersionMethod(), responseObserver);
+    }
   }
 
   /**
@@ -488,6 +537,25 @@ public final class WorkflowCommandControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getValidateSpecMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * Assign or move a tag to a specific workflow version.
+     * Tags are human-readable pointers to immutable versions. Calling this
+     * with an existing tag name moves it from the previous version to the
+     * specified version. Common tags: "stable", "production", "v2.0".
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the workflow resource.
+     * The handler validates that the version_hash exists in the workflow's
+     * audit history before assigning the tag.
+     * &#64;since Workflow Versioning
+     * </pre>
+     */
+    public void tagVersion(ai.stigmer.agentic.workflow.v1.TagWorkflowVersionInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.Workflow> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getTagVersionMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -599,6 +667,24 @@ public final class WorkflowCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getValidateSpecMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Assign or move a tag to a specific workflow version.
+     * Tags are human-readable pointers to immutable versions. Calling this
+     * with an existing tag name moves it from the previous version to the
+     * specified version. Common tags: "stable", "production", "v2.0".
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the workflow resource.
+     * The handler validates that the version_hash exists in the workflow's
+     * audit history before assigning the tag.
+     * &#64;since Workflow Versioning
+     * </pre>
+     */
+    public ai.stigmer.agentic.workflow.v1.Workflow tagVersion(ai.stigmer.agentic.workflow.v1.TagWorkflowVersionInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getTagVersionMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -709,6 +795,24 @@ public final class WorkflowCommandControllerGrpc {
     public ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation validateSpec(ai.stigmer.agentic.workflow.v1.Workflow request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getValidateSpecMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Assign or move a tag to a specific workflow version.
+     * Tags are human-readable pointers to immutable versions. Calling this
+     * with an existing tag name moves it from the previous version to the
+     * specified version. Common tags: "stable", "production", "v2.0".
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the workflow resource.
+     * The handler validates that the version_hash exists in the workflow's
+     * audit history before assigning the tag.
+     * &#64;since Workflow Versioning
+     * </pre>
+     */
+    public ai.stigmer.agentic.workflow.v1.Workflow tagVersion(ai.stigmer.agentic.workflow.v1.TagWorkflowVersionInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getTagVersionMethod(), getCallOptions(), request);
     }
   }
 
@@ -827,6 +931,25 @@ public final class WorkflowCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getValidateSpecMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * Assign or move a tag to a specific workflow version.
+     * Tags are human-readable pointers to immutable versions. Calling this
+     * with an existing tag name moves it from the previous version to the
+     * specified version. Common tags: "stable", "production", "v2.0".
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the workflow resource.
+     * The handler validates that the version_hash exists in the workflow's
+     * audit history before assigning the tag.
+     * &#64;since Workflow Versioning
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflow.v1.Workflow> tagVersion(
+        ai.stigmer.agentic.workflow.v1.TagWorkflowVersionInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getTagVersionMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_APPLY = 0;
@@ -835,6 +958,7 @@ public final class WorkflowCommandControllerGrpc {
   private static final int METHODID_UPDATE_VISIBILITY = 3;
   private static final int METHODID_DELETE = 4;
   private static final int METHODID_VALIDATE_SPEC = 5;
+  private static final int METHODID_TAG_VERSION = 6;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -876,6 +1000,10 @@ public final class WorkflowCommandControllerGrpc {
         case METHODID_VALIDATE_SPEC:
           serviceImpl.validateSpec((ai.stigmer.agentic.workflow.v1.Workflow) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation>) responseObserver);
+          break;
+        case METHODID_TAG_VERSION:
+          serviceImpl.tagVersion((ai.stigmer.agentic.workflow.v1.TagWorkflowVersionInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.Workflow>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -937,6 +1065,13 @@ public final class WorkflowCommandControllerGrpc {
               ai.stigmer.agentic.workflow.v1.Workflow,
               ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation>(
                 service, METHODID_VALIDATE_SPEC)))
+        .addMethod(
+          getTagVersionMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.workflow.v1.TagWorkflowVersionInput,
+              ai.stigmer.agentic.workflow.v1.Workflow>(
+                service, METHODID_TAG_VERSION)))
         .build();
   }
 
@@ -991,6 +1126,7 @@ public final class WorkflowCommandControllerGrpc {
               .addMethod(getUpdateVisibilityMethod())
               .addMethod(getDeleteMethod())
               .addMethod(getValidateSpecMethod())
+              .addMethod(getTagVersionMethod())
               .build();
         }
       }
