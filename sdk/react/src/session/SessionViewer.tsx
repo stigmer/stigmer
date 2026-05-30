@@ -368,14 +368,6 @@ function InspectorPanel({
       harness: flow.harness,
       executionTarget: flow.executionTarget,
       modelId: flow.model[0],
-      workspaceActions: {
-        workspace: flow.workspace,
-        enableGitHub,
-        enableLocal,
-        gitHubConnection,
-        onBrowseLocalFolder,
-        workspaceFileLister,
-      },
       mutations: {
         onRemoveAgent: flow.isDefaultAgent ? undefined : handleRemoveAgent,
         onRemoveMcp: handleRemoveMcp,
@@ -385,9 +377,22 @@ function InspectorPanel({
     [
       flow.agentRef, flow.isDefaultAgent, flow.mcpServerUsages, flow.skillRefs,
       flow.sessionVariables, flow.harness, flow.executionTarget, flow.model,
-      flow.workspace, enableGitHub, enableLocal, gitHubConnection, onBrowseLocalFolder,
-      workspaceFileLister, handleRemoveAgent, handleRemoveMcp, handleRemoveSkill,
+      handleRemoveAgent, handleRemoveMcp, handleRemoveSkill,
     ],
+  );
+
+  const workspaceConfig = useMemo(
+    () => ({
+      actions: {
+        workspace: flow.workspace,
+        enableGitHub,
+        enableLocal,
+        gitHubConnection,
+        onBrowseLocalFolder,
+        workspaceFileLister,
+      },
+    }),
+    [flow.workspace, enableGitHub, enableLocal, gitHubConnection, onBrowseLocalFolder, workspaceFileLister],
   );
 
   return (
@@ -399,6 +404,7 @@ function InspectorPanel({
         selectedItem={selectedItem}
         onApplied={onApplied}
         sessionConfig={sessionConfig}
+        workspaceConfig={workspaceConfig}
         className="min-h-0 flex-1"
       />
     </aside>

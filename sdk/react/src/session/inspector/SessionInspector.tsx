@@ -16,6 +16,7 @@ import { ArtifactsTab } from "./ArtifactsTab";
 import { UsageTab } from "./UsageTab";
 import { InspectTab } from "./InspectTab";
 import { SetupTab, type SetupTabProps } from "./SetupTab";
+import { WorkspaceTab, type WorkspaceTabProps } from "./WorkspaceTab";
 import type { SelectedThreadItem } from "../../internal/store/selection-store";
 import type { ApplyResourceResult } from "../../library/useApplyResource";
 
@@ -39,12 +40,18 @@ export interface SessionInspectorProps {
   /** Called after a resource is applied from the Artifacts tab. */
   readonly onApplied?: (result: ApplyResourceResult) => void;
   /**
-   * Session-level configuration for the Setup tab.
-   * Includes core config fields and optional interactive workspace
-   * actions / mutation callbacks. When mutation callbacks are absent,
+   * Session-level configuration for the Configure tab.
+   * Includes core config fields and optional interactive
+   * mutation callbacks. When mutation callbacks are absent,
    * sections render read-only (DD-011 backward compatibility).
    */
   readonly sessionConfig?: SetupTabProps;
+  /**
+   * Workspace tab configuration. When provided, the Workspace tab
+   * renders interactive workspace actions (add/remove entries, file
+   * tree browsing). When absent, the tab shows an empty state.
+   */
+  readonly workspaceConfig?: WorkspaceTabProps;
   /** Additional CSS classes. */
   readonly className?: string;
 }
@@ -73,6 +80,7 @@ export const SessionInspector = memo(function SessionInspector({
   selectedItem,
   onApplied,
   sessionConfig,
+  workspaceConfig,
   className,
 }: SessionInspectorProps) {
   const phase =
@@ -113,6 +121,12 @@ export const SessionInspector = memo(function SessionInspector({
         className="min-h-0 flex-1"
       >
         <div className="h-full min-h-0 overflow-y-auto px-3 py-3">
+          {activeTab === "workspace" && workspaceConfig && (
+            <WorkspaceTab {...workspaceConfig} />
+          )}
+          {activeTab === "configure" && sessionConfig && (
+            <SetupTab {...sessionConfig} />
+          )}
           {activeTab === "plan" && (
             <PlanTab execution={displayExecution} />
           )}
@@ -128,9 +142,6 @@ export const SessionInspector = memo(function SessionInspector({
           )}
           {activeTab === "usage" && (
             <UsageTab executions={allExecutions} />
-          )}
-          {activeTab === "setup" && sessionConfig && (
-            <SetupTab {...sessionConfig} />
           )}
           {activeTab === "inspect" && (
             <InspectTab selectedItem={selectedItem} />
