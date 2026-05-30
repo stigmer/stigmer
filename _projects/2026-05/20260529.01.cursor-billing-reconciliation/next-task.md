@@ -19,8 +19,42 @@
 
 ## Current Status
 
-**Last Updated**: 2026-05-30 10:45  
-**Current Focus**: Connect RPC metering DONE. Proto scaffolding committed. Ready for production validation and then `recordCursorUsage` removal.
+**Last Updated**: 2026-05-30 14:00  
+**Current Focus**: Proxy billing complete. Reconciliation removed. Model extraction from request body implemented. Ready for codegen + deploy.
+
+## Session 4 Progress (2026-05-30 afternoon)
+
+### Architecture Decision: Remove Admin API Reconciliation
+
+**Discovery**: Cursor Admin API requires Enterprise plan (Stigmer is on Team plan). Key returns 401.
+
+**Decision**: Proxy metering is sufficient for customer billing. The Admin API would only provide margin visibility (what Cursor charges Stigmer), not billing accuracy (what Stigmer charges customers). Removed all reconciliation code.
+
+### Security Decision: Extract Model from Request Body (not headers)
+
+**Problem with headers**: The runner is open-source and can run on user machines. A modified runner could send `x-stigmer-resolved-model: haiku` while actually requesting opus — billing fraud.
+
+**Solution**: Parse the `AgentRunRequest` protobuf request body in the proxy. The proxy sees the exact same request it forwards to Cursor — this is tamper-proof.
+
+- Path: `AgentRunRequest.model_details (field 3) → ModelDetails.model_id (field 1)`
+- Provider inferred from model name prefix (claude → anthropic, gpt → openai)
+- Uses existing `ProtobufFieldScanner` infrastructure
+
+### What was accomplished
+
+1. **Proxy model extraction (DONE)**: `CursorProxyController.extractModelFromConnectRequest()` parses model from request body
+2. **Provider inference (DONE)**: `inferProviderFromModel()` resolves underlying provider from model name
+3. **Removed `recordCursorUsage`**: Deleted from BillingActivities interface, impl, and workflow
+4. **Removed Admin API reconciliation**: Deleted 19 source files + 5 tests + Mongock migration + config + secrets
+5. **Removed proto settlement scaffolding**: `UsageSettlementStatus` enum, `SettlementLink` message, `PROVIDER_SETTLED` trust level
+6. **Simplified `is_estimated`**: Now derived from whether billing records exist (empty = estimated)
+7. **Updated SDK hook comments**: Reflect proxy-authoritative billing model
+
+### What was NOT done
+
+- `make codegen` / `make protos` (stub regeneration deferred to user)
+- Full integration test suite run
+- Production deployment
 
 ## Session 2 Progress (2026-05-29 afternoon)
 
@@ -113,29 +147,26 @@ Built the full Connect RPC metering pipeline:
 
 ## Next Steps
 
-### Priority 1: Validate and ship
+### Priority 1: Run codegen and validate
 
-- Run the full integration test suite (`make test-integration`) to verify no regressions
-- Run `make check` subset in both repos
-- Commit Connect metering changes in stigmer-cloud
-- Deploy to staging and monitor Micrometer counters
+- Run `make codegen` in stigmer OSS (regenerate stubs after proto removal)
+- Run `make protos` in stigmer-cloud (regenerate Java stubs)
+- Run full integration test suite to verify no regressions
+- Commit and deploy
 
-### Priority 2: Finish remaining Phase 2 items
+### Priority 2: Monitor Connect metering in production
 
-- Add TS unit tests for `useSessionUsage`
-- Run `make check` subset in OSS repo
+- Deploy proxy changes and monitor Micrometer counters:
+  - `stigmer.proxy.cursor.connect.streams_metered`
+  - `stigmer.proxy.cursor.connect.zero_usage_streams`
+- Verify model extraction from request body is working (check billing records have correct model)
+- Monitor for any `"unknown"` model records (SSE path fallback)
 
-### Priority 3: Remove `recordCursorUsage` (after production validation)
+### Priority 3: Add unit tests for request-body model extraction
 
-- Monitor `stigmer.proxy.cursor.connect.streams_metered` vs `stigmer.proxy.cursor.connect.zero_usage_streams`
-- Once zero-usage rate is acceptable, remove `recordCursorUsage` from BillingActivitiesImpl
-- Remove the workflow call in InvokeAgentExecutionWorkflowImpl
-
-### Priority 4: Reconciliation (Slice B)
-
-- Compare proxy-billed totals vs Admin API `chargedCents`
-- Issue adjustment entries for drift (Token Fee, pricing delta)
-- Provision `STIGMER_CURSOR_ADMIN_API_KEY` as Planton secret for live verification
+- Test `extractModelFromConnectRequest` with various AgentRunRequest payloads
+- Test `inferProviderFromModel` with all model name variants
+- Add test for `useSessionUsage` TS hook
 
 ---
 
@@ -158,8 +189,10 @@ Built the full Connect RPC metering pipeline:
 
 ## Blockers
 
-- `STIGMER_CURSOR_ADMIN_API_KEY` not yet provisioned as Planton secret (live ingestion verification deferred)
-- ~~Connect RPC metering not built~~ **RESOLVED** — ConnectCursorUsageExtractor built and tested
+- None. All blockers resolved:
+  - ~~`STIGMER_CURSOR_ADMIN_API_KEY` not yet provisioned~~ **RESOLVED** — Admin API reconciliation removed (Enterprise-only feature, not available on Team plan)
+  - ~~Connect RPC metering not built~~ **RESOLVED** — ConnectCursorUsageExtractor built and tested
+  - ~~Model not extracted for Connect~~ **RESOLVED** — Extracted from request body (secure, tamper-proof)
 
 ---
 

@@ -188,11 +188,10 @@ function aggregateStreamingUsage(
  * Uses exactly ONE data source at a time to avoid displaying a cost total
  * from one pipeline with a model breakdown from another:
  *
- * - When the billing report covers all observed tokens (settled state),
- *   it is shown as authoritative (`isEstimated: false`).
- * - When streaming shows more tokens than billing (in-flight execution
- *   whose billing records haven't been written yet), streaming is shown
- *   with `isEstimated: true`.
+ * - When billing records exist (proxy-metered), the billing report is shown
+ *   as authoritative (`isEstimated: false`).
+ * - When execution is in-flight and only streaming data is available,
+ *   streaming is shown with `isEstimated: true`.
  * - The two sources are never mixed in the same display.
  *
  * @param executions - All executions for a session (completed + active).

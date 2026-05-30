@@ -32,9 +32,13 @@ interface ProxyConfig {
 let interceptorConfig: ProxyConfig | null = null;
 const originalFetch = globalThis.fetch;
 
-const executionContext = new AsyncLocalStorage<{ executionId: string }>();
+interface ExecutionContextStore {
+  executionId: string;
+}
 
-export function getExecutionContext(): AsyncLocalStorage<{ executionId: string }> {
+const executionContext = new AsyncLocalStorage<ExecutionContextStore>();
+
+export function getExecutionContext(): AsyncLocalStorage<ExecutionContextStore> {
   return executionContext;
 }
 

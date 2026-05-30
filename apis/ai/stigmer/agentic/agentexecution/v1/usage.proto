@@ -42,10 +42,6 @@ enum UsageTrustLevel {
 
   // Display-only: runner-reported, never used for billing.
   USAGE_TRUST_LEVEL_DISPLAY_ONLY = 3;
-
-  // Trusted provider back-office settlement feed, reconciled after delay.
-  // Used when Cursor Admin API chargedCents is matched to a proxy-metered record.
-  USAGE_TRUST_LEVEL_PROVIDER_SETTLED = 4;
 }
 
 // Status of provider-reported token usage extraction.
@@ -115,38 +111,6 @@ enum CostCalculationStatus {
 
   // Cost was manually adjusted.
   COST_CALCULATION_STATUS_MANUAL_ADJUSTED = 5;
-}
-
-// Settlement lifecycle for usage records that require reconciliation.
-// Proxy-metered records (both native and cursor) use NOT_APPLICABLE since
-// they are billed immediately at BILLING_AUTHORITY trust. Future reconciliation
-// against provider admin APIs may transition records through this state machine.
-enum UsageSettlementStatus {
-  USAGE_SETTLEMENT_STATUS_UNSPECIFIED = 0;
-
-  // Billing-authoritative record that bypasses settlement (proxy-metered).
-  USAGE_SETTLEMENT_STATUS_NOT_APPLICABLE = 1;
-
-  // Runner estimate written. Not billed. Shows "Estimated" in UI.
-  USAGE_SETTLEMENT_STATUS_ESTIMATED = 2;
-
-  // Settlement activity is processing this record. Transient state.
-  USAGE_SETTLEMENT_STATUS_RECONCILING = 3;
-
-  // Matched to a provider admin event. Authoritative cost applied.
-  USAGE_SETTLEMENT_STATUS_SETTLED = 4;
-
-  // Matched, but provider cost differs from proxy-computed cost. Adjustment applied.
-  USAGE_SETTLEMENT_STATUS_ADJUSTED = 5;
-
-  // Multiple records matched the same provider event. Platform absorbs cost.
-  USAGE_SETTLEMENT_STATUS_COLLISION_ABSORBED = 6;
-
-  // Settlement discrepancy exceeds threshold. Requires manual review.
-  USAGE_SETTLEMENT_STATUS_DISPUTED = 7;
-
-  // No provider match after expiry window. Original estimate preserved for display.
-  USAGE_SETTLEMENT_STATUS_WRITTEN_OFF = 8;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -399,43 +363,6 @@ message LlmCallUsageRecord {
   // ─── Labels ─────────────────────────────────────────────────────────────────
   // Custom metadata for filtering (e.g., agent_path, node_path).
   map<string, string> labels = 90;
-
-  // ─── Settlement ───────────────────────────────────────────────────────────
-  // Settlement lifecycle state. Drives UX labels and future reconciliation.
-  UsageSettlementStatus settlement_status = 100;
-
-  // Link to the provider-side event used for settlement (populated by reconciliation).
-  SettlementLink settlement_link = 101;
-}
-
-// Links a settled usage record to the provider-side event used for settlement.
-message SettlementLink {
-  // ID of the cursor_usage_event document that this record was settled against.
-  string cursor_usage_event_id = 1;
-
-  // SHA-256 content hash of the cursor_usage_event (for integrity).
-  string cursor_usage_event_hash = 2;
-
-  // Authoritative cost from the provider, in cents (as reported by Admin API).
-  double settled_charged_cents = 3;
-
-  // Authoritative cost converted to micro-USD after billing policy rating.
-  int64 settled_billable_amount_micros = 4;
-
-  // Confidence score of the match (0.0 - 1.0).
-  double match_confidence = 5;
-
-  // What type of match produced this settlement (e.g., "aggregate_calibration").
-  string match_type = 6;
-
-  // When settlement occurred.
-  google.protobuf.Timestamp settled_at = 7;
-
-  // Original metering source before upgrade (for audit).
-  UsageMeteringSource original_metering_source = 8;
-
-  // Original trust level before upgrade (for audit).
-  UsageTrustLevel original_trust_level = 9;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

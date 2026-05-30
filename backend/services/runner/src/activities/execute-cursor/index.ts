@@ -265,6 +265,7 @@ async function executeCursorInner(
         `ExecuteCursor model resolved: execution=${executionId}, requested="${requestedModel}", using="${validatedModel}"`,
       );
     }
+
     heartbeat();
 
     // Phase 7: Resolve Cursor Agent (create, resume, or graceful fallback)
@@ -866,9 +867,7 @@ async function executeCursorInner(
     // NOW persist — subscriber sees COMPLETED + structured_output atomically
     await persistStatus(client, executionId, status);
 
-    // Billing is handled by the Java workflow (billingActivities.recordCursorUsage)
-    // with operator auth after this activity returns. The runner's user token lacks
-    // can_execute_billing_ops, so runner-side billing always fails with permission_denied.
+    // Billing is handled by the proxy metering pipeline.
 
     // Phase 14: Build and persist session memory
     await maybePeristSessionMemory(client, sessionId, session, status, userMessage);
