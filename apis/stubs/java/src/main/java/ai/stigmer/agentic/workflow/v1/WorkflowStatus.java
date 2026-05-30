@@ -33,6 +33,7 @@ private static final long serialVersionUID = 0L;
   }
   private WorkflowStatus() {
     defaultInstanceId_ = "";
+    versionHash_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -204,6 +205,85 @@ private static final long serialVersionUID = 0L;
     return serverlessWorkflowValidation_ == null ? ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation.getDefaultInstance() : serverlessWorkflowValidation_;
   }
 
+  public static final int VERSION_HASH_FIELD_NUMBER = 3;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object versionHash_ = "";
+  /**
+   * <pre>
+   * SHA-256 hash of the generated CNCF YAML for the current valid version.
+   *
+   * &#64;internal
+   * Updated only when validation produces state=VALID and the generated YAML
+   * differs from the previous version's hash. Empty for workflows that have
+   * never passed validation.
+   *
+   * This is the content-addressed version identifier for the workflow definition.
+   * The hash is computed from the `serverless_workflow_validation.yaml` string,
+   * ensuring that "same YAML = same hash = same execution behavior."
+   *
+   * Consumers:
+   * - Execution create pipeline reads this to pin executions to a specific version
+   * - getByReference resolves ApiResourceReference.version against this and audit entries
+   * - UI displays this as the current version identifier
+   *
+   * &#64;since Workflow Versioning
+   * </pre>
+   *
+   * <code>string version_hash = 3 [json_name = "versionHash"];</code>
+   * @return The versionHash.
+   */
+  @java.lang.Override
+  public java.lang.String getVersionHash() {
+    java.lang.Object ref = versionHash_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      versionHash_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * SHA-256 hash of the generated CNCF YAML for the current valid version.
+   *
+   * &#64;internal
+   * Updated only when validation produces state=VALID and the generated YAML
+   * differs from the previous version's hash. Empty for workflows that have
+   * never passed validation.
+   *
+   * This is the content-addressed version identifier for the workflow definition.
+   * The hash is computed from the `serverless_workflow_validation.yaml` string,
+   * ensuring that "same YAML = same hash = same execution behavior."
+   *
+   * Consumers:
+   * - Execution create pipeline reads this to pin executions to a specific version
+   * - getByReference resolves ApiResourceReference.version against this and audit entries
+   * - UI displays this as the current version identifier
+   *
+   * &#64;since Workflow Versioning
+   * </pre>
+   *
+   * <code>string version_hash = 3 [json_name = "versionHash"];</code>
+   * @return The bytes for versionHash.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getVersionHashBytes() {
+    java.lang.Object ref = versionHash_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      versionHash_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -224,6 +304,9 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000002) != 0)) {
       output.writeMessage(2, getServerlessWorkflowValidation());
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(versionHash_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 3, versionHash_);
+    }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(99, getAudit());
     }
@@ -242,6 +325,9 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000002) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(2, getServerlessWorkflowValidation());
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(versionHash_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(3, versionHash_);
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
@@ -274,6 +360,8 @@ private static final long serialVersionUID = 0L;
       if (!getServerlessWorkflowValidation()
           .equals(other.getServerlessWorkflowValidation())) return false;
     }
+    if (!getVersionHash()
+        .equals(other.getVersionHash())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -295,6 +383,8 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + SERVERLESS_WORKFLOW_VALIDATION_FIELD_NUMBER;
       hash = (53 * hash) + getServerlessWorkflowValidation().hashCode();
     }
+    hash = (37 * hash) + VERSION_HASH_FIELD_NUMBER;
+    hash = (53 * hash) + getVersionHash().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -448,6 +538,7 @@ private static final long serialVersionUID = 0L;
         serverlessWorkflowValidationBuilder_.dispose();
         serverlessWorkflowValidationBuilder_ = null;
       }
+      versionHash_ = "";
       return this;
     }
 
@@ -497,6 +588,9 @@ private static final long serialVersionUID = 0L;
             : serverlessWorkflowValidationBuilder_.build();
         to_bitField0_ |= 0x00000002;
       }
+      if (((from_bitField0_ & 0x00000008) != 0)) {
+        result.versionHash_ = versionHash_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -522,6 +616,11 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasServerlessWorkflowValidation()) {
         mergeServerlessWorkflowValidation(other.getServerlessWorkflowValidation());
+      }
+      if (!other.getVersionHash().isEmpty()) {
+        versionHash_ = other.versionHash_;
+        bitField0_ |= 0x00000008;
+        onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -561,6 +660,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000004;
               break;
             } // case 18
+            case 26: {
+              versionHash_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000008;
+              break;
+            } // case 26
             case 794: {
               input.readMessage(
                   internalGetAuditFieldBuilder().getBuilder(),
@@ -1067,6 +1171,178 @@ private static final long serialVersionUID = 0L;
         serverlessWorkflowValidation_ = null;
       }
       return serverlessWorkflowValidationBuilder_;
+    }
+
+    private java.lang.Object versionHash_ = "";
+    /**
+     * <pre>
+     * SHA-256 hash of the generated CNCF YAML for the current valid version.
+     *
+     * &#64;internal
+     * Updated only when validation produces state=VALID and the generated YAML
+     * differs from the previous version's hash. Empty for workflows that have
+     * never passed validation.
+     *
+     * This is the content-addressed version identifier for the workflow definition.
+     * The hash is computed from the `serverless_workflow_validation.yaml` string,
+     * ensuring that "same YAML = same hash = same execution behavior."
+     *
+     * Consumers:
+     * - Execution create pipeline reads this to pin executions to a specific version
+     * - getByReference resolves ApiResourceReference.version against this and audit entries
+     * - UI displays this as the current version identifier
+     *
+     * &#64;since Workflow Versioning
+     * </pre>
+     *
+     * <code>string version_hash = 3 [json_name = "versionHash"];</code>
+     * @return The versionHash.
+     */
+    public java.lang.String getVersionHash() {
+      java.lang.Object ref = versionHash_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        versionHash_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * SHA-256 hash of the generated CNCF YAML for the current valid version.
+     *
+     * &#64;internal
+     * Updated only when validation produces state=VALID and the generated YAML
+     * differs from the previous version's hash. Empty for workflows that have
+     * never passed validation.
+     *
+     * This is the content-addressed version identifier for the workflow definition.
+     * The hash is computed from the `serverless_workflow_validation.yaml` string,
+     * ensuring that "same YAML = same hash = same execution behavior."
+     *
+     * Consumers:
+     * - Execution create pipeline reads this to pin executions to a specific version
+     * - getByReference resolves ApiResourceReference.version against this and audit entries
+     * - UI displays this as the current version identifier
+     *
+     * &#64;since Workflow Versioning
+     * </pre>
+     *
+     * <code>string version_hash = 3 [json_name = "versionHash"];</code>
+     * @return The bytes for versionHash.
+     */
+    public com.google.protobuf.ByteString
+        getVersionHashBytes() {
+      java.lang.Object ref = versionHash_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        versionHash_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * SHA-256 hash of the generated CNCF YAML for the current valid version.
+     *
+     * &#64;internal
+     * Updated only when validation produces state=VALID and the generated YAML
+     * differs from the previous version's hash. Empty for workflows that have
+     * never passed validation.
+     *
+     * This is the content-addressed version identifier for the workflow definition.
+     * The hash is computed from the `serverless_workflow_validation.yaml` string,
+     * ensuring that "same YAML = same hash = same execution behavior."
+     *
+     * Consumers:
+     * - Execution create pipeline reads this to pin executions to a specific version
+     * - getByReference resolves ApiResourceReference.version against this and audit entries
+     * - UI displays this as the current version identifier
+     *
+     * &#64;since Workflow Versioning
+     * </pre>
+     *
+     * <code>string version_hash = 3 [json_name = "versionHash"];</code>
+     * @param value The versionHash to set.
+     * @return This builder for chaining.
+     */
+    public Builder setVersionHash(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      versionHash_ = value;
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * SHA-256 hash of the generated CNCF YAML for the current valid version.
+     *
+     * &#64;internal
+     * Updated only when validation produces state=VALID and the generated YAML
+     * differs from the previous version's hash. Empty for workflows that have
+     * never passed validation.
+     *
+     * This is the content-addressed version identifier for the workflow definition.
+     * The hash is computed from the `serverless_workflow_validation.yaml` string,
+     * ensuring that "same YAML = same hash = same execution behavior."
+     *
+     * Consumers:
+     * - Execution create pipeline reads this to pin executions to a specific version
+     * - getByReference resolves ApiResourceReference.version against this and audit entries
+     * - UI displays this as the current version identifier
+     *
+     * &#64;since Workflow Versioning
+     * </pre>
+     *
+     * <code>string version_hash = 3 [json_name = "versionHash"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearVersionHash() {
+      versionHash_ = getDefaultInstance().getVersionHash();
+      bitField0_ = (bitField0_ & ~0x00000008);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * SHA-256 hash of the generated CNCF YAML for the current valid version.
+     *
+     * &#64;internal
+     * Updated only when validation produces state=VALID and the generated YAML
+     * differs from the previous version's hash. Empty for workflows that have
+     * never passed validation.
+     *
+     * This is the content-addressed version identifier for the workflow definition.
+     * The hash is computed from the `serverless_workflow_validation.yaml` string,
+     * ensuring that "same YAML = same hash = same execution behavior."
+     *
+     * Consumers:
+     * - Execution create pipeline reads this to pin executions to a specific version
+     * - getByReference resolves ApiResourceReference.version against this and audit entries
+     * - UI displays this as the current version identifier
+     *
+     * &#64;since Workflow Versioning
+     * </pre>
+     *
+     * <code>string version_hash = 3 [json_name = "versionHash"];</code>
+     * @param value The bytes for versionHash to set.
+     * @return This builder for chaining.
+     */
+    public Builder setVersionHashBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      versionHash_ = value;
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.workflow.v1.WorkflowStatus)

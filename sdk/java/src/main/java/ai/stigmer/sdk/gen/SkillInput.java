@@ -5,6 +5,7 @@ package ai.stigmer.sdk.gen;
 import ai.stigmer.agentic.skill.v1.Skill;
 import ai.stigmer.agentic.skill.v1.SkillSpec;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
+import ai.stigmer.commons.apiresource.ApiResourceMetadataVersion;
 import ai.stigmer.commons.apiresource.ApiResourceVisibility;
 
 /** Input for creating/updating a Skill. */
@@ -14,6 +15,7 @@ public final class SkillInput {
     private final String slug;
     private final java.util.Map<String, String> labels;
     private final ApiResourceVisibility visibility;
+    private final String versionMessage;
     private final String skillMd;
     private final String tag;
     private final String description;
@@ -24,6 +26,7 @@ public final class SkillInput {
         this.slug = builder.slug;
         this.labels = builder.labels;
         this.visibility = builder.visibility;
+        this.versionMessage = builder.versionMessage;
         this.skillMd = builder.skillMd;
         this.tag = builder.tag;
         this.description = builder.description;
@@ -52,6 +55,11 @@ public final class SkillInput {
         if (this.visibility != null) {
             metaBuilder.setVisibility(this.visibility);
         }
+        if (this.versionMessage != null && !this.versionMessage.isEmpty()) {
+            metaBuilder.setVersion(ApiResourceMetadataVersion.newBuilder()
+                .setMessage(this.versionMessage)
+                .build());
+        }
         return Skill.newBuilder()
             .setApiVersion("agentic.stigmer.ai/v1")
             .setKind("Skill")
@@ -68,6 +76,7 @@ public final class SkillInput {
         private String slug;
         private java.util.Map<String, String> labels;
         private ApiResourceVisibility visibility;
+        private String versionMessage;
         private String skillMd;
         private String tag;
         private String description;
@@ -79,6 +88,7 @@ public final class SkillInput {
         public Builder slug(String slug) { this.slug = slug; return this; }
         public Builder labels(java.util.Map<String, String> labels) { this.labels = labels; return this; }
         public Builder visibility(ApiResourceVisibility visibility) { this.visibility = visibility; return this; }
+        public Builder versionMessage(String versionMessage) { this.versionMessage = versionMessage; return this; }
         public Builder skillMd(String skillMd) { this.skillMd = skillMd; return this; }
         public Builder tag(String tag) { this.tag = tag; return this; }
         public Builder description(String description) { this.description = description; return this; }

@@ -84,6 +84,7 @@ func init() {
 	rootCmd.AddCommand(withGroup(root.NewSearchCommand(), "resource"))
 	rootCmd.AddCommand(withGroup(root.NewDraftCommand(), "resource"))
 	rootCmd.AddCommand(withGroup(root.NewConnectCommand(), "resource"))
+	rootCmd.AddCommand(withGroup(root.NewTagCommand(), "resource"))
 
 	// Artifact Commands
 	rootCmd.AddCommand(withGroup(root.NewPushCommand(), "artifact"))

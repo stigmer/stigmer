@@ -2252,6 +2252,16 @@
         },
         "description": "Cumulative output tokens consumed across all LLM and agent tasks.\n\n @internal\n Output tokens represent completion/generation tokens returned by the model.\n Updated alongside total_cost_micros from the budget tracker.\n\n @since Cost Data Pipeline",
         "required": false
+      },
+      {
+        "name": "WorkflowVersionHash",
+        "jsonName": "workflowVersionHash",
+        "protoField": "workflow_version_hash",
+        "type": {
+          "kind": "string"
+        },
+        "description": "SHA-256 hash identifying which workflow version was used for this execution.\n\n @internal\n Pinned at execution creation time from Workflow.status.version_hash.\n Immutable after creation — represents the exact workflow definition this\n execution ran (or will run, if still pending).\n\n Consumers:\n - Runner: fetches the version-specific CNCF YAML via getVersion() during\n   hydration, ensuring the execution runs the intended definition even if\n   the workflow has been updated since creation.\n - Execution viewer: fetches the version entry to render the correct graph\n   for historical executions, eliminating the version mismatch problem.\n\n Empty for executions created before workflow versioning was introduced.\n In that case, consumers fall back to fetching the current workflow\n definition (legacy behavior with mismatch warning).\n\n @since Workflow Versioning",
+        "required": false
       }
     ]
   },

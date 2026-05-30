@@ -4,13 +4,19 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { useStigmer } from "../hooks";
 import { parseWorkflowYaml } from "./serialize-workflow-yaml";
 
+/** Options for a single save invocation. */
+export interface WorkflowSaveOptions {
+  /** Optional version message describing what changed (stored as metadata.version.message). */
+  readonly versionMessage?: string;
+}
+
 /** Return value of {@link useWorkflowSave}. */
 export interface UseWorkflowSaveReturn {
   /**
    * Parse the YAML and call `workflow.apply()` on the server.
    * Returns `true` on success, `false` on failure (check `error`).
    */
-  readonly save: (yaml: string) => Promise<boolean>;
+  readonly save: (yaml: string, options?: WorkflowSaveOptions) => Promise<boolean>;
   /** `true` while a save request is in flight. */
   readonly isSaving: boolean;
   /** Error from the last failed save, or `null` on success. */
@@ -36,12 +42,15 @@ export function useWorkflowSave(org: string): UseWorkflowSaveReturn {
   orgRef.current = org;
 
   const save = useCallback(
-    async (yaml: string): Promise<boolean> => {
+    async (yaml: string, options?: WorkflowSaveOptions): Promise<boolean> => {
       setIsSaving(true);
       setError(null);
 
       try {
         const input = parseWorkflowYaml(yaml, orgRef.current);
+        if (options?.versionMessage) {
+          input.versionMessage = options.versionMessage;
+        }
         await stigmer.workflow.apply(input);
         return true;
       } catch (err) {

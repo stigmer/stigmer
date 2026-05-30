@@ -20,6 +20,8 @@ import { WorkflowExplainDialog } from "./WorkflowExplainDialog";
 import { serializeWorkflowYaml } from "./serialize-workflow-yaml";
 import { WorkflowExecutionHistory } from "./execution-history/WorkflowExecutionHistory";
 import { WorkflowInstanceList } from "./instance/WorkflowInstanceList";
+import { WorkflowVersionsTab } from "./WorkflowVersionsTab";
+import { useWorkflowVersions } from "./useWorkflowVersions";
 import { ErrorMessage } from "../error/ErrorMessage";
 import { VisibilityToggle } from "../library/VisibilityToggle";
 import { formatDurationSec } from "./format-utils";
@@ -36,6 +38,7 @@ import type { TabItem } from "../tabs/Tabs";
 const OVERVIEW_TAB: TabItem = { id: "overview", label: "Overview" };
 const INSTANCES_TAB: TabItem = { id: "instances", label: "Instances" };
 const EXECUTIONS_TAB: TabItem = { id: "executions", label: "Executions" };
+const VERSIONS_TAB: TabItem = { id: "versions", label: "Versions" };
 
 const DESCRIPTION_COLLAPSED_HEIGHT = "8rem";
 
@@ -177,6 +180,10 @@ export function WorkflowDetailView({
 }: WorkflowDetailViewProps) {
   const { workflow, isLoading, error, refetch } = useWorkflow(org, slug);
   const { update, isUpdating } = useUpdateWorkflow();
+  const { versions } = useWorkflowVersions(
+    isLoading ? null : org,
+    isLoading ? null : slug,
+  );
 
   const saveField = useCallback(
     async <K extends keyof WorkflowInput>(
@@ -198,9 +205,18 @@ export function WorkflowDetailView({
     [workflow, update, onResourceUpdated, refetch],
   );
 
+  const versionCount = versions.length;
   const builtInTabs = useMemo<readonly TabItem[]>(
-    () => [OVERVIEW_TAB, INSTANCES_TAB, EXECUTIONS_TAB],
-    [],
+    () => [
+      OVERVIEW_TAB,
+      INSTANCES_TAB,
+      EXECUTIONS_TAB,
+      {
+        ...VERSIONS_TAB,
+        ...(versionCount > 0 && { badge: versionCount }),
+      },
+    ],
+    [versionCount],
   );
 
   const {
@@ -299,6 +315,8 @@ export function WorkflowDetailView({
         onExecutionClick={onExecutionClick}
       />
     );
+  } else if (effectiveActiveTab === "versions") {
+    tabContent = <WorkflowVersionsTab workflow={workflow} />;
   } else {
     tabContent = (
       <OverviewTab

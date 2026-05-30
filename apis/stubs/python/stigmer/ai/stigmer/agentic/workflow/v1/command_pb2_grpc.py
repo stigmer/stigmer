@@ -5,6 +5,7 @@ import grpc
 from ai.stigmer.agentic.workflow.v1 import api_pb2 as ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_api__pb2
 from ai.stigmer.agentic.workflow.v1 import io_pb2 as ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_io__pb2
 from ai.stigmer.agentic.workflow.v1.serverless import validation_pb2 as ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_serverless_dot_validation__pb2
+from ai.stigmer.agentic.workflow.v1 import version_pb2 as ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_version__pb2
 from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2
 
 
@@ -47,6 +48,11 @@ class WorkflowCommandControllerStub(object):
                 '/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/validateSpec',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_api__pb2.Workflow.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_serverless_dot_validation__pb2.ServerlessWorkflowValidation.FromString,
+                _registered_method=True)
+        self.tagVersion = channel.unary_unary(
+                '/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/tagVersion',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_version__pb2.TagWorkflowVersionInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_api__pb2.Workflow.FromString,
                 _registered_method=True)
 
 
@@ -135,6 +141,24 @@ class WorkflowCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def tagVersion(self, request, context):
+        """Assign or move a tag to a specific workflow version.
+
+        Tags are human-readable pointers to immutable versions. Calling this
+        with an existing tag name moves it from the previous version to the
+        specified version. Common tags: "stable", "production", "v2.0".
+
+        @internal
+        Authorization: Requires can_edit permission on the workflow resource.
+        The handler validates that the version_hash exists in the workflow's
+        audit history before assigning the tag.
+
+        @since Workflow Versioning
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_WorkflowCommandControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -167,6 +191,11 @@ def add_WorkflowCommandControllerServicer_to_server(servicer, server):
                     servicer.validateSpec,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_api__pb2.Workflow.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_serverless_dot_validation__pb2.ServerlessWorkflowValidation.SerializeToString,
+            ),
+            'tagVersion': grpc.unary_unary_rpc_method_handler(
+                    servicer.tagVersion,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_version__pb2.TagWorkflowVersionInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_api__pb2.Workflow.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -332,6 +361,33 @@ class WorkflowCommandController(object):
             '/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/validateSpec',
             ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_api__pb2.Workflow.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_serverless_dot_validation__pb2.ServerlessWorkflowValidation.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def tagVersion(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/tagVersion',
+            ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_version__pb2.TagWorkflowVersionInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_api__pb2.Workflow.FromString,
             options,
             channel_credentials,
             insecure,

@@ -252,6 +252,10 @@ export class StigmerClient {
     return this.workflowQuery.get({ value: workflowId });
   }
 
+  async getWorkflowVersion(workflowId: string, versionHash: string) {
+    return this.workflowQuery.getVersion({ workflowId, versionHash });
+  }
+
   async getWorkflowInstance(instanceId: string): Promise<WorkflowInstance> {
     return this.workflowInstanceQuery.get({ value: instanceId });
   }

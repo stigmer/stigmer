@@ -14,6 +14,7 @@ from ai.stigmer.agentic.workflow.v1 import task_kind_registry_query_pb2_grpc
 from ai.stigmer.agentic.workflow.v1 import io_pb2
 from ai.stigmer.agentic.workflow.v1 import task_kind_descriptor_pb2
 from ai.stigmer.agentic.workflow.v1.serverless import validation_pb2
+from ai.stigmer.agentic.workflow.v1 import version_pb2
 from ai.stigmer.agentic.workflow.v1 import spec_pb2
 from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
@@ -72,6 +73,12 @@ class WorkflowClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def tag_version(self, input: version_pb2.TagWorkflowVersionInput) -> api_pb2.Workflow:
+        try:
+            return self._command.tagVersion(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def get(self, id: str) -> api_pb2.Workflow:
         try:
             return self._query.get(io_pb2.WorkflowId(value=id))
@@ -83,6 +90,18 @@ class WorkflowClient:
             proto = ref._to_proto()
             proto.kind = api_resource_kind_pb2.workflow
             return self._query.getByReference(proto)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def list_versions(self, input: version_pb2.ListWorkflowVersionsInput) -> version_pb2.ListWorkflowVersionsResponse:
+        try:
+            return self._query.listVersions(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def get_version(self, input: version_pb2.GetWorkflowVersionInput) -> version_pb2.WorkflowVersionEntry:
+        try:
+            return self._query.getVersion(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
@@ -126,6 +145,7 @@ class WorkflowInput:
     slug: str | None = None
     labels: dict[str, str] | None = None
     visibility: int = 0
+    version_message: str = ""
     description: str = ""
     tasks: list[WorkflowTaskInput] = field(default_factory=list)
     env: dict[str, EnvVarDeclarationInput] = field(default_factory=dict)
@@ -153,6 +173,10 @@ class WorkflowInput:
             metadata.labels.update(self.labels)
         if self.visibility:
             metadata.visibility = self.visibility
+        if self.version_message:
+            metadata.version.CopyFrom(metadata_pb2.ApiResourceMetadataVersion(
+                message=self.version_message,
+            ))
         return api_pb2.Workflow(
             api_version="agentic.stigmer.ai/v1",
             kind="Workflow",

@@ -19,6 +19,7 @@ export {
 export {
   useWorkflowSave,
   type UseWorkflowSaveReturn,
+  type WorkflowSaveOptions,
 } from "./useWorkflowSave";
 
 export {
@@ -728,6 +729,43 @@ export {
   ExecutionComparisonView,
   type ExecutionComparisonViewProps,
 } from "./execution-comparison";
+
+// DD-003: Workflow versioning — data hooks
+export {
+  useWorkflowVersions,
+  type UseWorkflowVersionsReturn,
+} from "./useWorkflowVersions";
+
+export {
+  useWorkflowVersion,
+  type UseWorkflowVersionReturn,
+} from "./useWorkflowVersion";
+
+export {
+  useWorkflowVersionDiff,
+  type UseWorkflowVersionDiffReturn,
+} from "./useWorkflowVersionDiff";
+
+// DD-003: Workflow versioning — styled components
+export {
+  WorkflowVersionBadge,
+  type WorkflowVersionBadgeProps,
+} from "./WorkflowVersionBadge";
+
+export {
+  WorkflowVersionTimeline,
+  type WorkflowVersionTimelineProps,
+} from "./WorkflowVersionTimeline";
+
+export {
+  WorkflowVersionDiffViewer,
+  type WorkflowVersionDiffViewerProps,
+} from "./WorkflowVersionDiffViewer";
+
+export {
+  WorkflowVersionsTab,
+  type WorkflowVersionsTabProps,
+} from "./WorkflowVersionsTab";
 
 // T15: Workflow Template Gallery
 export {

@@ -38,6 +38,10 @@ export interface UseWorkflowEditorReturn {
   readonly errorCount: number;
   /** Count of warning-level diagnostics. */
   readonly warningCount: number;
+  /** Current version message (optional description of what changed). */
+  readonly versionMessage: string;
+  /** Update the version message. */
+  readonly setVersionMessage: (value: string) => void;
 }
 
 /**
@@ -56,6 +60,7 @@ export function useWorkflowEditor(
   options: UseWorkflowEditorOptions,
 ): UseWorkflowEditorReturn {
   const [yaml, setYaml] = useState(initialYaml);
+  const [versionMessage, setVersionMessage] = useState("");
   const initialRef = useRef(initialYaml);
 
   const registry = useTaskKindRegistry();
@@ -66,12 +71,16 @@ export function useWorkflowEditor(
   const isDirty = yaml !== initialRef.current;
 
   const save = useCallback(async (): Promise<boolean> => {
-    const success = await applySave(yaml);
+    const saveOpts = versionMessage.trim()
+      ? { versionMessage: versionMessage.trim() }
+      : undefined;
+    const success = await applySave(yaml, saveOpts);
     if (success) {
       initialRef.current = yaml;
+      setVersionMessage("");
     }
     return success;
-  }, [applySave, yaml]);
+  }, [applySave, yaml, versionMessage]);
 
   const reset = useCallback(() => {
     setYaml(initialRef.current);
@@ -100,7 +109,9 @@ export function useWorkflowEditor(
       topology,
       errorCount,
       warningCount,
+      versionMessage,
+      setVersionMessage,
     }),
-    [yaml, setYaml, diagnostics, isDirty, isSaving, saveError, save, reset, topology, errorCount, warningCount],
+    [yaml, setYaml, diagnostics, isDirty, isSaving, saveError, save, reset, topology, errorCount, warningCount, versionMessage, setVersionMessage],
   );
 }

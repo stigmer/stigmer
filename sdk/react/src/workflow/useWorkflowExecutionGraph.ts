@@ -4,7 +4,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Node, Edge } from "@xyflow/react";
 import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import type { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import { create } from "@bufbuild/protobuf";
 import { isNotFound } from "@stigmer/sdk";
+import { GetWorkflowVersionInputSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/version_pb";
 import { useStigmer } from "../hooks";
 import { useFetch } from "../internal/useFetch";
 import { useWorkflowExecution } from "./useWorkflowExecution";
@@ -126,10 +128,11 @@ export function useWorkflowExecutionGraph(
 
   const phase = execution?.status?.phase;
 
-  // ── Workflow definition fetch (always needed for graph building) ──
+  // ── Workflow definition fetch (version-aware for graph building) ──
 
   const workflowId = execution?.spec?.workflowId || null;
   const workflowInstanceId = execution?.spec?.workflowInstanceId || null;
+  const versionHash = execution?.status?.workflowVersionHash || null;
 
   const instanceFetchFn = !workflowId && workflowInstanceId
     ? async () => {
@@ -150,10 +153,27 @@ export function useWorkflowExecutionGraph(
 
   const effectiveWorkflowId = workflowId || resolvedWorkflowId;
 
+  // Fetch workflow definition — use pinned version if available, otherwise live
   const workflowFetchFn = effectiveWorkflowId
     ? async () => {
+        // Path 1: Versioned execution — fetch the specific version entry
+        if (versionHash) {
+          try {
+            const versionEntry = await stigmer.workflow.getVersion(
+              create(GetWorkflowVersionInputSchema, { workflowId: effectiveWorkflowId, versionHash }),
+            );
+            if (versionEntry?.validatedYaml) {
+              return { yaml: versionEntry.validatedYaml, isVersionPinned: true };
+            }
+          } catch {
+            // Fall through to live workflow if version lookup fails
+          }
+        }
+
+        // Path 2: Legacy execution or version fetch failed — use live workflow
         try {
-          return await stigmer.workflow.get(effectiveWorkflowId);
+          const wf = await stigmer.workflow.get(effectiveWorkflowId);
+          return { yaml: serializeWorkflowYaml(wf), isVersionPinned: false };
         } catch (err) {
           if (isNotFound(err)) return null;
           throw err;
@@ -162,27 +182,28 @@ export function useWorkflowExecutionGraph(
     : null;
 
   const {
-    data: workflow,
+    data: workflowData,
     isLoading: isLoadingWorkflow,
     error: workflowError,
-  } = useFetch(workflowFetchFn, [effectiveWorkflowId, stigmer], null);
+  } = useFetch(workflowFetchFn, [effectiveWorkflowId, versionHash, stigmer], null);
 
   // ── Build graph model ────────────────────────────────────────────
+
+  const isVersionPinned = workflowData?.isVersionPinned ?? false;
 
   const graphBuild = useMemo<{
     elements: { nodes: Node[]; edges: Edge[] };
     graphModel: WorkflowGraphModel;
   } | null>(() => {
-    if (!workflow) return null;
+    if (!workflowData?.yaml) return null;
     try {
-      const yaml = serializeWorkflowYaml(workflow);
-      const graph = yamlToGraph(yaml);
+      const graph = yamlToGraph(workflowData.yaml);
       const laidOut = applyDagreLayout(graph, EXECUTION_DAGRE_CONFIG);
       return { elements: toReactFlowElements(laidOut), graphModel: laidOut };
     } catch {
       return null;
     }
-  }, [workflow]);
+  }, [workflowData]);
 
   const baseElements = graphBuild?.elements ?? null;
   const graphModel = graphBuild?.graphModel ?? null;
@@ -291,6 +312,12 @@ export function useWorkflowExecutionGraph(
   // ── Version mismatch detection ───────────────────────────────────
 
   const versionMismatch = useMemo<string | null>(() => {
+    // When the graph is rendered from the pinned version, no mismatch is possible
+    // — the graph is correct by construction.
+    if (isVersionPinned) return null;
+
+    // Legacy path: no version hash on execution, using live workflow.
+    // Fall back to task-name comparison to detect definition drift.
     if (!execution?.status?.tasks || !baseElements) return null;
 
     const executionTaskNames = new Set(
@@ -309,7 +336,7 @@ export function useWorkflowExecutionGraph(
       return "The workflow definition may have changed since this execution ran. The graph shows the current version.";
     }
     return null;
-  }, [execution?.status?.tasks, baseElements]);
+  }, [execution?.status?.tasks, baseElements, isVersionPinned]);
 
   // ── Loading / error aggregation ──────────────────────────────────
 

@@ -16,6 +16,7 @@ go_library(
         "list_by_workflow.go",
         "list_pending_approvals.go",
         "pause.go",
+        "pin_workflow_version_step.go",
         "recover.go",
         "recreate_execution_context_step.go",
         "resume.go",
