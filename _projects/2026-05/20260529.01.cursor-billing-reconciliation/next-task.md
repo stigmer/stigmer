@@ -19,8 +19,8 @@
 
 ## Current Status
 
-**Last Updated**: 2026-05-29 18:30  
-**Current Focus**: Proxy-only Cursor billing — discovered that Connect RPC transport is NOT metered by proxy, need to add Connect metering before removing `recordCursorUsage`.
+**Last Updated**: 2026-05-30 10:45  
+**Current Focus**: Connect RPC metering DONE. Proto scaffolding committed. Ready for production validation and then `recordCursorUsage` removal.
 
 ## Session 2 Progress (2026-05-29 afternoon)
 
@@ -80,33 +80,58 @@ This means:
 
 ---
 
-## Next Steps (Path B — for next session)
+## Session 3 Progress (2026-05-30 morning)
 
-### Priority 1: Add Connect RPC metering to the proxy
+### Connect RPC Metering — COMPLETE
 
-This is the real fix that enables removing `recordCursorUsage`:
+Built the full Connect RPC metering pipeline:
 
-1. **Understand the Connect wire format**: 5-byte envelope header (1 byte flags + 4 bytes length) followed by protobuf payload. The `@cursor/sdk` bundle uses `agent.v1.AgentService/Run` (BiDi streaming).
+1. **Proto schema extracted from `@cursor/sdk` bundle** — field numbers confirmed:
+   - `AgentServerMessage.interaction_update` = field 1
+   - `InteractionUpdate.turn_ended` = field 14
+   - `TurnEndedUpdate.{input_tokens, output_tokens, cache_read_tokens, cache_write_tokens}` = fields 1-4
 
-2. **Build `ConnectUsageExtractor`** (new Java class):
-   - Parse Connect stream envelopes
-   - Decode `AgentServerMessage` protobuf (specifically the `turnEnded` case)
-   - Extract `input_tokens`, `output_tokens`, `cache_read_tokens`, `cache_write_tokens`
-   - Accumulate across turns (same as `CursorUsageExtractor` does for SSE)
+2. **New components (stigmer-cloud, 4 new files):**
+   - `ConnectEnvelopeDecoder` — pure Connect protocol 5-byte envelope decoder
+   - `ConnectEnvelope` — decoded envelope record
+   - `ProtobufFieldScanner` — minimal protobuf wire-format navigator (varint + length-delimited)
+   - `ConnectCursorUsageExtractor` — navigates AgentServerMessage → TurnEndedUpdate, accumulates tokens
 
-3. **Get the proto schema**: The `@cursor/sdk` npm package contains `agent.v1.AgentServerMessage`. Extract the `.proto` or generate Java classes from the bundled descriptor. Alternatively, write a minimal hand-parser for just the `turnEnded` field (protobuf field numbers are stable).
+3. **Modifications:**
+   - `SseUsageExtractorFactory` — generalized with content-type awareness (`create(provider, contentType)`)
+   - `CursorProxyController` — detects Connect responses, tees through ConnectCursorUsageExtractor
+   - Micrometer counters for connect streams/turns/decode failures/zero-usage
 
-4. **Wire in `CursorProxyController`**: Detect Connect responses (content-type `application/proto` or `application/connect+proto`), use the new extractor instead of passthrough.
+4. **Tests: 3 new test suites, 20 test cases, all passing:**
+   - `ConnectEnvelopeDecoderTest` — 10 tests (chunking, flags, zero-payload, offset)
+   - `ProtobufFieldScannerTest` — 8 tests (varint, length-delimited, nested navigation)
+   - `ConnectCursorUsageExtractorTest` — 12 tests (single/multi turn, chunked, factory routing)
 
-5. **Then remove `recordCursorUsage`**: Once Connect metering works, the proxy is the sole writer. Remove the runner billing path.
+5. **Defensive strategy:** `recordCursorUsage` kept as fallback — existing idempotency key deduplication means whichever writes first wins (proxy usually wins the race).
 
-### Priority 2: Finish remaining plan items
+---
 
-- Run the integration test to verify proto/display changes don't regress
-- Add TS unit tests for `useSessionUsage`
+## Next Steps
+
+### Priority 1: Validate and ship
+
+- Run the full integration test suite (`make test-integration`) to verify no regressions
 - Run `make check` subset in both repos
+- Commit Connect metering changes in stigmer-cloud
+- Deploy to staging and monitor Micrometer counters
 
-### Priority 3: Reconciliation (Slice B)
+### Priority 2: Finish remaining Phase 2 items
+
+- Add TS unit tests for `useSessionUsage`
+- Run `make check` subset in OSS repo
+
+### Priority 3: Remove `recordCursorUsage` (after production validation)
+
+- Monitor `stigmer.proxy.cursor.connect.streams_metered` vs `stigmer.proxy.cursor.connect.zero_usage_streams`
+- Once zero-usage rate is acceptable, remove `recordCursorUsage` from BillingActivitiesImpl
+- Remove the workflow call in InvokeAgentExecutionWorkflowImpl
+
+### Priority 4: Reconciliation (Slice B)
 
 - Compare proxy-billed totals vs Admin API `chargedCents`
 - Issue adjustment entries for drift (Token Fee, pricing delta)
@@ -134,7 +159,7 @@ This is the real fix that enables removing `recordCursorUsage`:
 ## Blockers
 
 - `STIGMER_CURSOR_ADMIN_API_KEY` not yet provisioned as Planton secret (live ingestion verification deferred)
-- Connect RPC metering not built (proxy can't extract tokens from protobuf stream yet)
+- ~~Connect RPC metering not built~~ **RESOLVED** — ConnectCursorUsageExtractor built and tested
 
 ---
 

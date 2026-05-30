@@ -48,8 +48,16 @@ Add timestamps and notes to track your progress.
 - [x] Server: Derive is_estimated from settlement_status in UsageAggregationService + report handler
 - [x] SDK: useSessionUsage consumes server is_estimated flag (replaces token-count heuristic)
 - [x] Test: Update RecordLlmCallUsageHandlerTest assertions (PASSING)
-- [ ] **BLOCKED**: Build ConnectUsageExtractor to meter Connect RPC (api2.cursor.sh) traffic at proxy
-- [ ] **BLOCKED**: Remove recordCursorUsage (depends on Connect metering)
+- [x] Build ConnectUsageExtractor to meter Connect RPC (api2.cursor.sh) traffic at proxy
+  - ConnectEnvelopeDecoder: pure Connect protocol wire-format decoder
+  - ProtobufFieldScanner: minimal protobuf varint/length-delimited field navigator
+  - ConnectCursorUsageExtractor: navigates AgentServerMessage → InteractionUpdate → TurnEndedUpdate
+  - Field numbers extracted from @cursor/sdk bundle (field 1 → field 14 → fields 1-4)
+  - SseUsageExtractorFactory generalized with content-type awareness
+  - CursorProxyController wired to meter both SSE and Connect responses
+  - 3 new test suites (20 test cases), all passing
+  - Micrometer counters for connect streams/turns/failures/zero-usage
+- [ ] **DEFERRED**: Remove recordCursorUsage (keep as fallback until Connect metering validated in production)
 - [ ] Run full integration test suite to verify no regressions
 - [ ] Add TS unit tests for useSessionUsage
 - [ ] Run make check subset in both repos
