@@ -122,7 +122,13 @@ export function useFetch<T>(
       if (cached !== undefined) {
         setData(cached);
         hasDataRef.current = true;
+      } else {
+        setData(initialData);
+        hasDataRef.current = false;
       }
+    } else if (!cacheKey) {
+      setData(initialData);
+      hasDataRef.current = false;
     }
 
     const cancelled = { current: false };

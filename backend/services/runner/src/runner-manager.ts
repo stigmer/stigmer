@@ -29,6 +29,17 @@ import type { WorkerActivities } from "./worker.js";
 const SESSION_QUEUE_PREFIX = "session:";
 const WFEXEC_QUEUE_PREFIX = "wfexec:";
 
+/**
+ * Module-level registry of shutdown signals per task queue.
+ * Activities running in the same process can read this to determine
+ * whether their worker is being shut down (vs orchestrator pause).
+ */
+const _shutdownSignalRegistry = new Map<string, AbortSignal>();
+
+export function getShutdownSignalForQueue(taskQueue: string): AbortSignal | undefined {
+  return _shutdownSignalRegistry.get(taskQueue);
+}
+
 export interface RunnerManagerOptions {
   /** Temporal server address (e.g. "localhost:7233"). */
   readonly temporalAddress: string;
@@ -96,6 +107,7 @@ export interface StigmerRunnerManager {
 interface ManagedSession {
   worker: Worker;
   runPromise: Promise<void>;
+  shutdownController: AbortController;
 }
 
 /**
@@ -160,9 +172,14 @@ export async function createStigmerRunnerManager(
 
   const sessions = new Map<string, ManagedSession>();
   const workflowExecutions = new Map<string, ManagedSession>();
+  const shutdownSignals = new Map<string, AbortController>();
   let shuttingDown = false;
 
   async function createWorkerOnQueue(taskQueue: string): Promise<ManagedSession> {
+    const shutdownController = new AbortController();
+    shutdownSignals.set(taskQueue, shutdownController);
+    _shutdownSignalRegistry.set(taskQueue, shutdownController.signal);
+
     const worker = await Worker.create({
       connection,
       namespace: config.temporalNamespace,
@@ -184,7 +201,7 @@ export async function createStigmerRunnerManager(
       );
     });
 
-    return { worker, runPromise };
+    return { worker, runPromise, shutdownController };
   }
 
   return {
@@ -210,9 +227,13 @@ export async function createStigmerRunnerManager(
         return;
       }
 
+      const taskQueue = SESSION_QUEUE_PREFIX + sessionId;
+      session.shutdownController.abort();
       session.worker.shutdown();
       await session.runPromise;
       sessions.delete(sessionId);
+      shutdownSignals.delete(taskQueue);
+      _shutdownSignalRegistry.delete(taskQueue);
       console.log(
         `[runner-manager] Removed session ${sessionId} (active=${sessions.size})`,
       );
@@ -244,9 +265,13 @@ export async function createStigmerRunnerManager(
         return;
       }
 
+      const taskQueue = WFEXEC_QUEUE_PREFIX + executionId;
+      execution.shutdownController.abort();
       execution.worker.shutdown();
       await execution.runPromise;
       workflowExecutions.delete(executionId);
+      shutdownSignals.delete(taskQueue);
+      _shutdownSignalRegistry.delete(taskQueue);
       console.log(
         `[runner-manager] Removed workflow execution ${executionId} (active=${workflowExecutions.size})`,
       );
