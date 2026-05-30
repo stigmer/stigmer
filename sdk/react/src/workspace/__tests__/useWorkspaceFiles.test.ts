@@ -128,6 +128,38 @@ describe("useWorkspaceFiles", () => {
     expect(lister).toHaveBeenCalledTimes(2);
   });
 
+  it("filters directory entries to avoid duplicate folder nodes", async () => {
+    const filesWithDirs: WorkspaceFileEntry[] = [
+      { path: "src", isDirectory: true },
+      { path: "src/index.ts", isDirectory: false },
+      { path: "src/utils", isDirectory: true },
+      { path: "src/utils/helper.ts", isDirectory: false },
+      { path: "README.md", isDirectory: false },
+    ];
+    const dirLister: WorkspaceFileLister = vi
+      .fn()
+      .mockResolvedValue(filesWithDirs);
+
+    const entry = makeEntry({ id: "ws-dir-filter" });
+    const { result } = renderHook(() =>
+      useWorkspaceFiles({ entry, lister: dirLister }),
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    const topNames = result.current.tree.map((n) => n.name);
+    expect(topNames).toEqual(["README.md", "src"]);
+
+    const srcNode = result.current.tree.find((n) => n.name === "src");
+    expect(srcNode?.children).toBeDefined();
+    const srcChildNames = srcNode!.children!.map((n) => n.name);
+    expect(srcChildNames).toEqual(["index.ts", "utils"]);
+
+    const utilsNode = srcNode!.children!.find((n) => n.name === "utils");
+    expect(utilsNode?.children).toHaveLength(1);
+    expect(utilsNode!.children![0].name).toBe("helper.ts");
+  });
+
   it("handles non-Error throws from lister", async () => {
     const stringThrower: WorkspaceFileLister = vi
       .fn()
