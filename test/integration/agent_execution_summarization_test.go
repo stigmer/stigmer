@@ -161,16 +161,9 @@ func TestAgentExecution_Summarization_TokenGrowth(t *testing.T) {
 func lastAssistantMessage(exec *agentexecv1.AgentExecution) string {
 	msgs := exec.GetStatus().GetMessages()
 	for i := len(msgs) - 1; i >= 0; i-- {
-		if msgs[i].GetType() == agentexecv1.MessageType_MESSAGE_ASSISTANT {
+		if msgs[i].GetType() == agentexecv1.MessageType_MESSAGE_AI {
 			return msgs[i].GetContent()
 		}
 	}
 	return ""
-}
-
-func truncate(s string, maxLen int) string {
-	if len(s) <= maxLen {
-		return s
-	}
-	return s[:maxLen] + "..."
 }

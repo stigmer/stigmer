@@ -62,7 +62,8 @@ import { buildApprovalState } from "./approval-state.js";
 import { setInterceptorExecutionId, runWithExecutionContext } from "./fetch-interceptor.js";
 import { resolveModelId, ensureLoaded as ensurePricingLoaded } from "./model-pricing.js";
 import { UsageAccumulator } from "./usage-accumulator.js";
-import { StreamingUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
+import { StreamingUsageSummarySchema, UsageCompletionStatus, TokenUsageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
+import { RecordLlmCallUsageInputSchema } from "@stigmer/protos/ai/stigmer/billing/v1/io_pb";
 import { buildSessionMemory, persistSessionMemory, estimateTokens } from "./session-memory.js";
 import { activityStarted, activityFinished } from "../../idle-watchdog.js";
 import { getCapturedRejection, clearCapturedRejection } from "./rejection-capture.js";
@@ -867,7 +868,38 @@ async function executeCursorInner(
     // NOW persist — subscriber sees COMPLETED + structured_output atomically
     await persistStatus(client, executionId, status);
 
-    // Billing is handled by the proxy metering pipeline.
+    // Phase 13b: Emit billing records from runner-side usage accumulator.
+    // The Cursor SDK uses connect-node (Node.js native HTTP) which bypasses
+    // globalThis.fetch, so the proxy never sees the main agent run stream.
+    // Runner-side emission is the authoritative billing source for Cursor.
+    if (usageAccumulator.hasTurns) {
+      try {
+        const turns = usageAccumulator.turns();
+        for (const turn of turns) {
+          await client.recordLlmCallUsage(create(RecordLlmCallUsageInputSchema, {
+            executionId,
+            sequence: turn.sequence,
+            provider: "cursor",
+            resolvedModel: usageAccumulator.modelName || "default",
+            requestedModel: validatedModel,
+            tokens: create(TokenUsageSchema, {
+              inputTokens: BigInt(turn.inputTokens),
+              outputTokens: BigInt(turn.outputTokens),
+              cacheReadInputTokens: BigInt(turn.cacheReadTokens),
+              cacheCreationInputTokens: BigInt(turn.cacheWriteTokens),
+            }),
+            usageStatus: UsageCompletionStatus.COMPLETE,
+            streaming: true,
+            finishReason: "end_turn",
+            harness: "cursor",
+          }));
+        }
+      } catch (billingErr) {
+        console.warn(
+          `ExecuteCursor billing emission failed (non-fatal): execution=${executionId}, error=${billingErr}`,
+        );
+      }
+    }
 
     // Phase 14: Build and persist session memory
     await maybePeristSessionMemory(client, sessionId, session, status, userMessage);

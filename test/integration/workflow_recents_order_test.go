@@ -79,7 +79,7 @@ func TestWorkflowExecution_RecentsOrder_NewExecutionAppearsFirst(t *testing.T) {
 				{
 					Name:       "fastStep",
 					Kind:       workflowv1.WorkflowTaskKind_set_vars,
-					TaskConfig: mustStruct(map[string]any{"variables": map[string]any{"done": "true"}}),
+					TaskConfig: mustStruct(t, map[string]any{"variables": map[string]any{"done": "true"}}),
 				},
 			},
 		},
@@ -171,12 +171,4 @@ func blockingWorkflowForRecents(name string) (*workflowv1.Workflow, error) {
 			},
 		},
 	}, nil
-}
-
-func mustStruct(m map[string]any) *structpb.Struct {
-	s, err := structpb.NewStruct(m)
-	if err != nil {
-		panic(err)
-	}
-	return s
 }
