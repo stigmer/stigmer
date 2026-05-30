@@ -71,6 +71,7 @@ import { synthesizeError, formatClassifiedError, shouldRetryWithFreshAgent } fro
 import type { ClassifiedError } from "./error-classifier.js";
 import { createAgent, createCloudAgent } from "./session-lifecycle.js";
 import { startHeartbeat } from "../../shared/heartbeat.js";
+import { getShutdownSignalForQueue } from "../../runner-manager.js";
 
 /**
  * Creates the activity functions bound to the runner config.
@@ -123,6 +124,7 @@ async function executeCursorInner(
   let session: import("@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb").Session | undefined;
   let userMessage: string | undefined;
   let pauseDetected = false;
+  let workerShutdownDetected = false;
   let periodicHeartbeat: ReturnType<typeof startHeartbeat> | undefined;
 
   try {
@@ -420,10 +422,12 @@ async function executeCursorInner(
     // (e.g. long tool calls, MCP requests, model thinking). Without this,
     // the 2-minute heartbeat timeout can cancel the activity and mislabel
     // the execution as "paused by user".
+    const taskQueue = Context.current().info.taskQueue;
+    const shutdownSignal = getShutdownSignalForQueue(taskQueue);
     periodicHeartbeat = startHeartbeat(30_000, () => ({
       phase: "cursor_streaming",
       execution: executionId,
-    }));
+    }), { shutdownSignal });
 
     const run = await resolution.agent.send(effectivePrompt, {
       onDelta: ({ update }) => {
@@ -512,9 +516,13 @@ async function executeCursorInner(
     }
 
     periodicHeartbeat.stop();
-    if (periodicHeartbeat.cancelled) {
+    if (periodicHeartbeat.workerShutdown) {
+      pauseDetected = false;
+    } else if (periodicHeartbeat.cancelled) {
       pauseDetected = true;
     }
+
+    workerShutdownDetected = periodicHeartbeat.workerShutdown;
 
     accumulator.finalize();
     deltaEnricher.finalize(status.messages);
@@ -555,7 +563,26 @@ async function executeCursorInner(
     }
 
 
-    // Phase 11a: Handle pause or infrastructure cancellation.
+    // Phase 11a: Handle worker shutdown, pause, or infrastructure cancellation.
+
+    // Worker shutdown: the runner-manager aborted the shutdown signal before
+    // calling worker.shutdown(). This is NOT a user-initiated pause — it's
+    // an infrastructure event (e.g., premature removal from UI race).
+    if (workerShutdownDetected) {
+      status.phase = ExecutionPhase.EXECUTION_FAILED;
+      status.error = "Execution interrupted: runner worker was shut down. Retry or resume.";
+      status.completedAt = utcTimestamp();
+      status.messages.push(create(AgentMessageSchema, {
+        type: MessageType.MESSAGE_SYSTEM,
+        content: "Execution interrupted: the runner worker was shut down while the agent was still running. You can retry or resume.",
+        timestamp: utcTimestamp(),
+      }));
+      await persistStatus(client, executionId, status);
+      await maybePeristSessionMemory(client, sessionId, session, status, userMessage);
+      console.log(`ExecuteCursor interrupted (worker shutdown): execution=${executionId}, events=${eventCount}`);
+      throw new CancelledFailure("Activity cancelled (worker shutdown, not user pause)");
+    }
+
     // pauseDetected is only true if a heartbeat() call threw CancelledFailure,
     // confirming the orchestrator explicitly requested a pause.
     if (pauseDetected) {
@@ -923,11 +950,19 @@ async function executeCursorInner(
     periodicHeartbeat?.stop();
 
     if (err instanceof CancelledFailure) {
-      // pauseDetected means we received CancelledFailure from a heartbeat()
-      // call (either onDelta or periodic), which confirms the orchestrator
-      // explicitly paused the activity. Without it, the cancellation is
-      // likely from heartbeat timeout or worker shutdown.
-      if (pauseDetected) {
+      // workerShutdownDetected means the runner-manager signaled shutdown
+      // before the worker drained. This is infrastructure failure, not pause.
+      if (workerShutdownDetected) {
+        console.log(`ExecuteCursor cancelled (worker shutdown) for execution ${executionId}`);
+        status.phase = ExecutionPhase.EXECUTION_FAILED;
+        status.error = "Execution interrupted: runner worker was shut down. Retry or resume.";
+        status.completedAt = utcTimestamp();
+        status.messages.push(create(AgentMessageSchema, {
+          type: MessageType.MESSAGE_SYSTEM,
+          content: "Execution interrupted: the runner worker was shut down while the agent was still running. You can retry or resume.",
+          timestamp: utcTimestamp(),
+        }));
+      } else if (pauseDetected) {
         console.log(`ExecuteCursor cancelled (pause) for execution ${executionId}`);
         status.phase = ExecutionPhase.EXECUTION_PAUSED;
         status.messages.push(create(AgentMessageSchema, {
