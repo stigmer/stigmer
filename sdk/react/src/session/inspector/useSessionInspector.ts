@@ -52,7 +52,7 @@ function deriveAutoTab(
  * Build the contextual tab list with badges.
  *
  * Tab order follows the user's mental model — context before output:
- * Workspace → Configure → Plan → Usage. Changes and Artifacts appear
+ * Workspace → Config → Plan → Usage. Changes and Artifacts appear
  * after Plan when data exists; Inspect appears last when a thread item
  * is selected.
  */
@@ -66,7 +66,7 @@ export function buildVisibleTabs(opts: {
 }): TabItem[] {
   const tabs: TabItem[] = [
     { id: "workspace", label: "Workspace" },
-    { id: "configure", label: "Configure" },
+    { id: "configure", label: "Config" },
     { id: "plan", label: "Plan" },
   ];
 

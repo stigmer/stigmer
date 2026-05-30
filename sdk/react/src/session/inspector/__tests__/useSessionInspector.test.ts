@@ -25,7 +25,7 @@ function defaultOpts(overrides?: Partial<UseSessionInspectorOptions>): UseSessio
 // ---------------------------------------------------------------------------
 
 describe("buildVisibleTabs", () => {
-  it("always includes Workspace, Configure, Plan, and Usage", () => {
+  it("always includes Workspace, Config, Plan, and Usage", () => {
     const tabs = buildVisibleTabs({
       hasWriteBacks: false,
       writeBackCount: 0,
@@ -42,6 +42,9 @@ describe("buildVisibleTabs", () => {
     expect(ids).not.toContain("changes");
     expect(ids).not.toContain("artifacts");
     expect(ids).not.toContain("inspect");
+
+    const configTab = tabs.find((t) => t.id === "configure");
+    expect(configTab?.label).toBe("Config");
   });
 
   it("includes Changes with badge when write-backs exist", () => {
@@ -85,7 +88,7 @@ describe("buildVisibleTabs", () => {
     expect(inspectTab).toBeDefined();
   });
 
-  it("orders tabs as Workspace, Configure, Plan, then Usage with Inspect last", () => {
+  it("orders tabs as Workspace, Config, Plan, then Usage with Inspect last", () => {
     const tabs = buildVisibleTabs({
       hasWriteBacks: true,
       writeBackCount: 2,
