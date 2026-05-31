@@ -6,9 +6,10 @@
  * Provides methods to add/remove per-session Workers and
  * push token updates to the running runner process.
  *
- * When a `proxyEndpoint` is provided (cloud-edition server detected),
- * the runner routes LLM calls through the Stigmer proxy instead of
- * requiring direct provider API keys (ANTHROPIC_API_KEY, etc.).
+ * The runner always operates in proxy mode: LLM calls route through
+ * the Stigmer server's proxy (which injects platform API keys
+ * server-side). The proxy endpoint is derived from VITE_STIGMER_API_URL
+ * and gated on auth token presence — no async server-info call needed.
  */
 
 import { useCallback, useRef, useState } from "react";
@@ -33,15 +34,6 @@ interface RunnerStatus {
   activeWorkflowExecutions: string[];
 }
 
-export interface UseEmbeddedRunnerOptions {
-  /**
-   * When set, the runner routes LLM calls through this endpoint's proxy
-   * (`{endpoint}/v1/proxy/llm/{provider}`) using the stigmer token for
-   * authorization. Set when connected to a cloud-edition server.
-   */
-  proxyEndpoint?: string;
-}
-
 export interface UseEmbeddedRunnerResult {
   isRunning: boolean;
   activeSessions: string[];
@@ -54,7 +46,14 @@ export interface UseEmbeddedRunnerResult {
   error: string | null;
 }
 
-function getRunnerConfig(proxyEndpoint: string | undefined): RunnerConfig {
+function normalizeToUrl(endpoint: string): string {
+  if (endpoint.startsWith("http://") || endpoint.startsWith("https://")) {
+    return endpoint;
+  }
+  return endpoint.endsWith(":443") ? `https://${endpoint}` : `http://${endpoint}`;
+}
+
+function getRunnerConfig(): RunnerConfig {
   const stigmerEndpoint =
     import.meta.env.VITE_STIGMER_SIDECAR_ENDPOINT
     || localStorage.getItem("stigmer.serverEndpoint")
@@ -64,6 +63,16 @@ function getRunnerConfig(proxyEndpoint: string | undefined): RunnerConfig {
     || localStorage.getItem("stigmer.temporalAddress")
     || "localhost:7233";
   const stigmerToken = loadTokens()?.accessToken || undefined;
+
+  // Proxy endpoint must include a URL scheme (used raw by the runner's fetch
+  // interceptor for URL construction). Derive from VITE_STIGMER_API_URL which
+  // always includes the scheme. Token presence gates proxy mode: authenticated
+  // against a cloud-edition server implies the proxy is available.
+  const proxyEndpoint = stigmerToken
+    ? (import.meta.env.VITE_STIGMER_API_URL
+       || localStorage.getItem("stigmer.apiUrl")
+       || normalizeToUrl(stigmerEndpoint))
+    : undefined;
 
   return {
     nodeBinary: "node",
@@ -76,19 +85,12 @@ function getRunnerConfig(proxyEndpoint: string | undefined): RunnerConfig {
   };
 }
 
-export function useEmbeddedRunner(
-  options?: UseEmbeddedRunnerOptions,
-): UseEmbeddedRunnerResult {
+export function useEmbeddedRunner(): UseEmbeddedRunnerResult {
   const [isRunning, setIsRunning] = useState(false);
   const [activeSessions, setActiveSessions] = useState<string[]>([]);
   const [activeWorkflowExecutions, setActiveWorkflowExecutions] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const startingRef = useRef<Promise<void> | null>(null);
-
-  // Ref ensures ensureRunning() always reads the latest proxy endpoint
-  // at call time, even though the callback itself has a stable identity.
-  const proxyEndpointRef = useRef(options?.proxyEndpoint);
-  proxyEndpointRef.current = options?.proxyEndpoint;
 
   const ensureRunning = useCallback(async (): Promise<void> => {
     if (startingRef.current) {
@@ -105,7 +107,7 @@ export function useEmbeddedRunner(
     }
 
     const startPromise = (async () => {
-      const config = getRunnerConfig(proxyEndpointRef.current);
+      const config = getRunnerConfig();
       await invoke("start_runner", { config });
       setIsRunning(true);
       setError(null);

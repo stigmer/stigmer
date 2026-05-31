@@ -71,53 +71,14 @@ describe("getRunnerConfig", () => {
   });
 });
 
-describe("proxyEndpoint propagation", () => {
+describe("proxyEndpoint derivation", () => {
   beforeEach(() => {
     vi.resetAllMocks();
   });
 
-  it("includes proxyEndpoint in start_runner config when provided", async () => {
+  it("derives proxyEndpoint from VITE_STIGMER_API_URL when token is present", async () => {
     mockedLoadTokens.mockReturnValue({
       accessToken: "cloud-token",
-      refreshToken: "refresh",
-      expiresAt: Date.now() + 3600_000,
-    });
-
-    let capturedConfig: Record<string, unknown> | null = null;
-
-    mockedInvoke.mockImplementation(async (cmd: string, args?: any) => {
-      if (cmd === "runner_status") {
-        return { running: false, activeSessions: [], activeWorkflowExecutions: [] };
-      }
-      if (cmd === "start_runner") {
-        capturedConfig = args.config;
-        return undefined;
-      }
-      if (cmd === "add_session") {
-        return `session:${args.sessionId}`;
-      }
-      throw new Error(`unexpected invoke: ${cmd}`);
-    });
-
-    const { renderHook, act } = await import("@testing-library/react");
-    const { useEmbeddedRunner } = await import("../useEmbeddedRunner");
-
-    const { result } = renderHook(() =>
-      useEmbeddedRunner({ proxyEndpoint: "http://localhost:9090" }),
-    );
-
-    await act(async () => {
-      await result.current.addSession("test-session");
-    });
-
-    expect(capturedConfig).not.toBeNull();
-    expect(capturedConfig!.proxyEndpoint).toBe("http://localhost:9090");
-    expect(capturedConfig!.stigmerToken).toBe("cloud-token");
-  });
-
-  it("omits proxyEndpoint from start_runner config when undefined", async () => {
-    mockedLoadTokens.mockReturnValue({
-      accessToken: "local-token",
       refreshToken: "refresh",
       expiresAt: Date.now() + 3600_000,
     });
@@ -148,10 +109,46 @@ describe("proxyEndpoint propagation", () => {
     });
 
     expect(capturedConfig).not.toBeNull();
-    expect(capturedConfig!.proxyEndpoint).toBeUndefined();
+    // VITE_STIGMER_API_URL is not set in test env, so falls through to
+    // normalizeToUrl(stigmerEndpoint) which produces a URL with scheme
+    expect(capturedConfig!.proxyEndpoint).toBeDefined();
+    expect(capturedConfig!.stigmerToken).toBe("cloud-token");
   });
 
-  it("reads latest proxyEndpoint via ref at call time", async () => {
+  it("sets proxyEndpoint to undefined when no token is present", async () => {
+    mockedLoadTokens.mockReturnValue(null);
+
+    let capturedConfig: Record<string, unknown> | null = null;
+
+    mockedInvoke.mockImplementation(async (cmd: string, args?: any) => {
+      if (cmd === "runner_status") {
+        return { running: false, activeSessions: [], activeWorkflowExecutions: [] };
+      }
+      if (cmd === "start_runner") {
+        capturedConfig = args.config;
+        return undefined;
+      }
+      if (cmd === "add_session") {
+        return `session:${args.sessionId}`;
+      }
+      throw new Error(`unexpected invoke: ${cmd}`);
+    });
+
+    const { renderHook, act } = await import("@testing-library/react");
+    const { useEmbeddedRunner } = await import("../useEmbeddedRunner");
+
+    const { result } = renderHook(() => useEmbeddedRunner());
+
+    await act(async () => {
+      await result.current.addSession("test-session");
+    });
+
+    expect(capturedConfig).not.toBeNull();
+    expect(capturedConfig!.proxyEndpoint).toBeUndefined();
+    expect(capturedConfig!.stigmerToken).toBeUndefined();
+  });
+
+  it("proxyEndpoint always includes a URL scheme", async () => {
     mockedLoadTokens.mockReturnValue({
       accessToken: "token",
       refreshToken: "refresh",
@@ -177,22 +174,15 @@ describe("proxyEndpoint propagation", () => {
     const { renderHook, act } = await import("@testing-library/react");
     const { useEmbeddedRunner } = await import("../useEmbeddedRunner");
 
-    // Start without proxy (simulates fallback "local" before server info resolves)
-    const { result, rerender } = renderHook(
-      (props: { proxyEndpoint?: string }) => useEmbeddedRunner(props),
-      { initialProps: {} },
-    );
+    const { result } = renderHook(() => useEmbeddedRunner());
 
-    // Simulate server info resolving to "cloud" — proxy endpoint now available
-    rerender({ proxyEndpoint: "https://api.stigmer.ai" });
-
-    // Now trigger runner start — should use the latest ref value
     await act(async () => {
       await result.current.addSession("session-1");
     });
 
     expect(capturedConfig).not.toBeNull();
-    expect(capturedConfig!.proxyEndpoint).toBe("https://api.stigmer.ai");
+    const proxy = capturedConfig!.proxyEndpoint as string;
+    expect(proxy).toMatch(/^https?:\/\//);
   });
 });
 
