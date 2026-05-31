@@ -5,6 +5,7 @@ package wfexecrouting
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -22,6 +23,7 @@ func requireRunnerManager(t *testing.T, ctx context.Context) *harness.UnifiedRun
 		StigmerServiceAddress: testHarness.Service.GRPCAddress(),
 		TemporalAddress:       testHarness.Temporal.Address(),
 		LogDir:                testHarness.LogDir(),
+		CursorAPIKey:          os.Getenv("CURSOR_API_KEY"),
 	}, suiteLogger)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {

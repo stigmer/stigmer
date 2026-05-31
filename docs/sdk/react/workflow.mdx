@@ -853,8 +853,10 @@ function useWorkflowEditor(initialYaml: string, options: UseWorkflowEditorOption
     reset: { type: "() => void", description: "Reset the editor to the initial YAML (discards changes)." },
     save: { type: "() => Promise<boolean>", description: "Persist the current YAML to the server. Returns `true` on success." },
     saveError: { type: "Error | null", description: "Error from the last failed save, or `null` on success." },
+    setVersionMessage: { type: "(value: string) => void", description: "Update the version message." },
     setYaml: { type: "(value: string) => void", description: "Update the YAML content (called by the editor on change)." },
     topology: { type: "UseWorkflowTopologyReturn", description: "Topology data for the graph preview.", typeDescriptionLink: "#useworkflowtopologyreturn" },
+    versionMessage: { type: "string", description: "Current version message (optional description of what changed)." },
     warningCount: { type: "number", description: "Count of warning-level diagnostics." },
     yaml: { type: "string", description: "Current YAML content in the editor." },
   }}
@@ -1276,7 +1278,7 @@ function useWorkflowSave(org: string): UseWorkflowSaveReturn
   type={{
     error: { type: "Error | null", description: "Error from the last failed save, or `null` on success." },
     isSaving: { type: "boolean", description: "`true` while a save request is in flight." },
-    save: { type: "(yaml: string) => Promise<boolean>", description: "Parse the YAML and call `workflow.apply()` on the server. Returns `true` on success, `false` on failure (check `error`)." },
+    save: { type: "(yaml: string, options?: WorkflowSaveOptions) => Promise<boolean>", description: "Parse the YAML and call `workflow.apply()` on the server. Returns `true` on success, `false` on failure (check `error`)." },
   }}
 />
 
