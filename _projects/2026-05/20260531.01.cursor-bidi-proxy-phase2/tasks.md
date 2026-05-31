@@ -13,14 +13,14 @@ Update task status as you progress:
 
 ## Task 1: Implement CursorBidiProxyHandler + CursorBidiProxyServer
 
-**Status**: 🚧 IN PROGRESS
+**Status**: ✅ DONE
 **Created**: 2026-05-31
 
 Build a Netty-based HTTP/2 handler in the Java service that supports full-duplex BiDi streaming for Cursor's `AgentService/Run` Connect RPC endpoint.
 
 ### Subtasks
-- [ ] Create `CursorBidiProxyServer` — Spring `@Component` that starts a Netty `ServerBootstrap` on port 8082 with HTTP/2 (h2c for local, TLS for prod). Lifecycle-managed by Spring (start on app startup, shutdown gracefully).
-- [ ] Create `CursorBidiProxyHandler` — Netty `ChannelInboundHandler` that:
+- [x] Create `CursorBidiProxyServer` — Spring `@Component` that starts a Netty `ServerBootstrap` on port 8082 with HTTP/2 (h2c for local, TLS for prod). Lifecycle-managed by Spring (start on app startup, shutdown gracefully).
+- [x] Create `CursorBidiProxyHandler` — Netty `ChannelInboundHandler` that:
   - Accepts HTTP/2 connections from the runner
   - Validates auth by calling existing `ProxyAuthorizationService`
   - Opens an HTTP/2 connection to upstream (`api2.cursor.sh`)
@@ -28,8 +28,8 @@ Build a Netty-based HTTP/2 handler in the Java service that supports full-duplex
   - Tees upstream response frames through `ConnectEnvelopeDecoder` + `ConnectCursorUsageExtractor`
   - On stream completion, calls `ProxyUsageReporter.report()` with extracted usage
   - Extracts model from request body using existing `extractModelFromConnectRequest()`
-- [ ] Add Spring configuration property `stigmer.proxy.cursor.bidi.port` (default: 8082)
-- [ ] Wire into existing test infrastructure
+- [x] Add Spring configuration property `stigmer.proxy.cursor.bidi.port` (default: 8082)
+- [x] Wire into existing test infrastructure
 
 ### Key Files to Reuse (Zero Porting)
 - `ConnectEnvelopeDecoder` (10 unit tests)
