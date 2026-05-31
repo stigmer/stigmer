@@ -67,8 +67,8 @@ That's it! No complex structure - just focused work.
 ## Current Status
 
 **Last Updated**: 2026-05-31  
-**Last Session**: Task 5B routing fix implemented and verified — agent executes successfully through BiDi proxy.  
-**Current Focus**: Usage extraction (ConnectEnvelopeDecoder) not parsing Cursor's response format. Routing is done.
+**Last Session**: Session 6 — Root-caused the billing failure. Two issues identified and one fixed.  
+**Current Focus**: Runner must inject `x-stigmer-execution-id` header onto the Connect RPC HTTP/2 stream so the proxy can meter it.
 
 ## Session Progress (2026-05-31, session 4)
 
@@ -127,26 +127,53 @@ That's it! No complex structure - just focused work.
 - **Remaining issue**: `ProxyUsageReporter` emits no billing records — `ConnectEnvelopeDecoder`
   can't parse Cursor's response (sees JSON end-of-stream trailers as invalid envelope frames)
 
+## Session Progress (2026-05-31, session 6)
+
+- **Root-caused billing failure** — TWO issues discovered, not one:
+  1. **FIXED: Gzip decompression** — Cursor responds with `connect-content-encoding: gzip`,
+     meaning envelope payloads are gzip-compressed. `ConnectCursorUsageExtractor` was skipping
+     them. Added `GZIPInputStream` decompression. 6 new unit tests, all passing.
+  2. **NOT YET FIXED: Execution ID header missing** — The runner's Connect RPC client
+     (`connect-node`) uses native HTTP/2 and bypasses the fetch interceptor. No
+     `x-stigmer-execution-id` header is sent on the BiDi stream. The proxy sees
+     `scope.metered()=false` and skips billing entirely.
+- **Original assumption was wrong**: The problem was never "JSON end-of-stream trailers" —
+  it was HTTP-level compression (`connect-content-encoding: gzip`). The "invalid envelope"
+  warnings in earlier sessions were from OTHER non-agent RPCs (BootstrapStatsig with
+  `content-encoding: br`, TrackEvents, DashboardService) being routed through the BiDi proxy.
+- **Investigation method**: Added diagnostic logging, ran integration test, captured actual
+  bytes and HTTP headers on the wire. Evidence-driven, not speculation.
+- Key files modified:
+  - `ConnectCursorUsageExtractor.java`: Added `decompressGzip()` method, removed skip-on-compress
+  - `ConnectCursorUsageExtractorTest.java`: 6 new tests for gzip-compressed envelopes
+  - `ConnectEnvelopeDecoder.java`: Restored to original (diagnostic logging removed)
+  - `CursorBidiStreamHandler.java`: Diagnostic logging removed
+
 ## Context for Resume
 
-- Task 5B routing is DONE — traffic flows through the BiDi proxy end-to-end.
-- The `ConnectEnvelopeDecoder` issue is a separate concern from routing.
-- The decoder sees `{"code":...}` (Connect protocol end-of-stream JSON trailer) and fails
-  because it expects 5-byte envelope headers (flags + length prefix).
-- Fix needed: teach `ConnectEnvelopeDecoder` to detect and skip end-of-stream JSON messages.
-- Once decoder extracts usage, `ProxyUsageReporter` will emit billing records.
-- The auth fix (forward access token instead of replacing with raw API key) is critical —
-  Cursor's Connect RPC endpoint expects access tokens, not raw API keys.
-- `recordCursorUsage` is still deleted. Billing remains broken until decoder fix lands.
+- **Issue 1 (gzip) is FIXED** — unit tests pass, code committed in stigmer-cloud.
+- **Issue 2 (execution ID header) is the ONLY remaining blocker** for billing.
+- The proxy's `completeStream()` fires correctly (phase=RELAYING, scope=present),
+  but `scope.metered()` is `false` because `effectiveExecutionId` is null.
+- The fetch interceptor already sets `x-stigmer-execution-id` on REST calls (line 140
+  of `fetch-interceptor.ts`). The same must happen for the HTTP/2 Connect transport.
+- The `@cursor/sdk` creates its own internal Connect transport from `CURSOR_BACKEND_URL`.
+  The runner cannot inject interceptors into the SDK's transport directly.
+- **Recommended fix**: Intercept `http2.connect()` in the runner to inject
+  `x-stigmer-execution-id` as a default header on streams opened to the proxy endpoint.
+  This mirrors the fetch interceptor pattern but at the HTTP/2 layer.
+- Once the header reaches the proxy, `ProxyAuthorizationService.authorizeProxyScopes()`
+  will return `metered=true` and billing will flow.
 - No production users on cursor harness — safe to iterate.
 
 ## Next Steps
 
-1. **Fix ConnectEnvelopeDecoder** — handle Connect protocol end-of-stream JSON trailers
+1. **Inject `x-stigmer-execution-id` on HTTP/2 streams** — patch `http2.connect` in runner
+   to add the header when connecting to `CURSOR_BACKEND_URL` (proxy endpoint)
 2. Rerun `TestAgentExecution_CursorUsage_FullPipeline` — verify billing records appear
 3. Run `TestAgentExecution_Config_ModelOverride` — verify REST proxy still works
 4. Deploy stigmer-cloud to prod (merge PRs or trigger CI)
-5. Apply updated HTTPRoute to prod cluster (`kubectl apply`)
+5. Apply updated HTTPRoute to prod cluster
 6. Write final changelog entry
 
 ---
