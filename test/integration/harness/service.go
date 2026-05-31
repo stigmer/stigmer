@@ -221,7 +221,6 @@ func StartJavaService(ctx context.Context, cfg ServiceConfig, logger *slog.Logge
 	grpcAddr := fmt.Sprintf("127.0.0.1:%s", cfg.GRPCPort)
 	if err := waitForPortOrExit(ctx, grpcAddr, 120*time.Second, exitCh); err != nil {
 		_ = cmd.Process.Kill()
-		// Read last lines of log for diagnostics
 		logFile.Sync()
 		if logBytes, readErr := os.ReadFile(logPath); readErr == nil {
 			lines := string(logBytes)
@@ -234,8 +233,16 @@ func StartJavaService(ctx context.Context, cfg ServiceConfig, logger *slog.Logge
 		return nil, fmt.Errorf("java service gRPC port not ready: %w", err)
 	}
 
+	bidiAddr := fmt.Sprintf("127.0.0.1:%s", bidiPortStr)
+	if err := waitForPortOrExit(ctx, bidiAddr, 60*time.Second, exitCh); err != nil {
+		_ = cmd.Process.Kill()
+		logFile.Close()
+		return nil, fmt.Errorf("java service BiDi proxy port not ready: %w", err)
+	}
+
 	logger.Info("stigmer-service ready",
 		"grpc", grpcAddr,
+		"bidi_proxy", bidiAddr,
 		"log", logFile.Name(),
 	)
 
