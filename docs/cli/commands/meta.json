@@ -22,6 +22,7 @@
     "get",
     "list",
     "search",
+    "tag",
     "validate",
     "---Artifact Commands---",
     "download",
