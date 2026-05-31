@@ -122,18 +122,26 @@ Should port 8082 be exposed via ingress (api.stigmer.ai:8082)?
 
 ## Task 4: Wire released desktop app and remote runners
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-05-31
+**Completed**: 2026-05-31
 
 Ensure the CURSOR_BACKEND_URL is correctly resolved in all deployment scenarios, not just local dev.
 
+### Key Finding
+
+The path-routing approach from Task 2 ("NO new env var — use path-based routing via Caddy/Istio HTTPRoute") eliminated the need for any production code changes. All deployment scenarios are already wired correctly:
+
+- **Released desktop**: `useEmbeddedRunner.ts` → `STIGMER_PROXY_ENDPOINT = https://api.stigmer.ai` → runner sets `CURSOR_API_BASE_URL` → Connect RPC to `/aiserver.v1.AgentService/Run` → HTTPRoute sends to port 8082.
+- **Cloud runners (Daytona sandboxes)**: `DaytonaSandboxProvisioner.buildEnvVars()` → `STIGMER_PROXY_ENDPOINT = https://api.stigmer.ai` → same path routing.
+- **CLI daemon**: Direct mode (`MODE=local`, no proxy). By design, no changes needed.
+
 ### Subtasks
-- [ ] Desktop released builds (Tauri): ensure runner gets `CURSOR_BACKEND_URL` pointing to the remote Netty proxy
-  - Check `client-apps/desktop/src-tauri/src/runner.rs` line ~149 where `STIGMER_PROXY_ENDPOINT` is passed
-  - May need a separate env var or derive from STIGMER_PROXY_ENDPOINT (e.g., replace port with 8082)
-- [ ] CLI daemon mode: runner started via `stigmer daemon start` — ensure config passes correct endpoint
-- [ ] Cloud-deployed runners (pod-to-pod): `CURSOR_BACKEND_URL` should point to the service's internal DNS (e.g., `http://stigmer-service.stigmer-prod.svc:8082`)
-- [ ] Verify the `config.ts` logic correctly derives the BiDi proxy URL from the existing config
+- [x] Desktop released builds (Tauri): verified STIGMER_PROXY_ENDPOINT flows correctly through `useEmbeddedRunner.ts` → `runner.rs` → runner config. No new env var needed — path routing handles it.
+- [x] CLI daemon mode: confirmed runs in direct mode by design (no STIGMER_PROXY_ENDPOINT set). No changes needed.
+- [x] Cloud-deployed runners (pod-to-pod): verified `DaytonaSandboxProvisioner.buildEnvVars()` passes `STIGMER_PROXY_ENDPOINT = https://api.stigmer.ai` from kustomize overlay. Path routing handles backend port selection.
+- [x] Verify `config.ts` logic: confirmed `CURSOR_API_BASE_URL` derived from `STIGMER_PROXY_ENDPOINT` in `main.ts`; `effectiveApiKey` passed programmatically in `execute-cursor/index.ts`.
+- [x] Integration test harness: added `PathRoutingProxy` (h2c-capable Go reverse proxy) + `BiDiProxyPort` to `JavaService` so tests mirror production path-routing semantics.
 
 ### Deployment Scenarios
 | Scenario | CURSOR_BACKEND_URL |

@@ -67,8 +67,17 @@ That's it! No complex structure - just focused work.
 ## Current Status
 
 **Last Updated**: 2026-05-31  
-**Last Session**: Completed Task 3 (kustomize + HTTPRoute deployment for port 8082).  
-**Current Focus**: Task 4 — Wire released desktop app and remote runners
+**Last Session**: Completed Task 4 (verified production wiring, added PathRoutingProxy to test harness).  
+**Current Focus**: Task 5 — End-to-end validation with real Cursor API key
+
+## Session Progress (2026-05-31, session 3)
+
+- Completed Task 4: Verified all deployment scenarios are already wired correctly via path-routing
+- Key finding: NO production code changes needed — path-routing from Tasks 2/3 handled everything
+- Added `PathRoutingProxy` to integration test harness (mirrors Caddy/Istio path-based routing)
+- Added `BiDiProxyPort` to `JavaService` with dynamic port allocation
+- Updated `suite_test.go` and `e2e_provider_test.go` to use path-routing proxy
+- Verified auth flow: `effectiveApiKey` passed programmatically to SDK (no env var gap)
 
 ## Session Progress (2026-05-31, session 2)
 
@@ -90,17 +99,19 @@ That's it! No complex structure - just focused work.
 
 ## Context for Resume
 
-- Tasks 1, 2, 3 are DONE. The Netty handler is built, local dev is wired, and prod routing is deployed.
+- Tasks 1, 2, 3, 4 are DONE. The Netty handler is built, local dev is wired, prod routing is deployed, and all deployment scenarios verified.
 - HTTPRoute `stigmer-cursor-bidi-path-route` is live in `stigmer-prod` namespace (will 503 until next deploy)
 - The kustomize base change (port 8082) will take effect on the next CI deploy of stigmer-service
-- Task 4 is about ensuring CURSOR_BACKEND_URL resolves correctly in released desktop, CLI daemon, and cloud runners
+- Task 4 required no production code changes — path-routing eliminated the need
+- Integration test harness now has `PathRoutingProxy` for end-to-end testing through the BiDi proxy
+- Task 5 is about running actual Cursor API calls through the proxy and verifying billing records
 
 ## Next Steps
 
-1. Task 4: Ensure released desktop builds pass correct CURSOR_BACKEND_URL to runner
-2. Task 4: Verify CLI daemon mode config derives BiDi proxy URL
-3. Task 4: Verify cloud runner (pod-to-pod) uses internal service DNS
-4. Task 5: End-to-end validation with real Cursor API key
+1. Task 5: Run `TestAgentExecution_CursorUsage_FullPipeline` with real CURSOR_API_KEY
+2. Task 5: Verify MongoDB billing records have `metering_source: PROXY_OBSERVED`
+3. Task 5: Test with both `claude-sonnet-4` and `gpt-4o` models
+4. Task 6: Retire Phase 1 `recordCursorUsage` after prod validation
 
 ---
 

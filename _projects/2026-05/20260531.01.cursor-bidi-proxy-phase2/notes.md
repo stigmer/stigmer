@@ -140,4 +140,40 @@ A: YES, but NOT as a separate port. Use a supplementary HTTPRoute for `PathPrefi
 
 ---
 
+## Task 4 Finding: Path-Routing Eliminated Production Code Changes
+
+**Date**: 2026-05-31
+
+### Discovery
+
+The path-routing approach from Task 2 ("NO new env var — use Caddy/Istio HTTPRoute for path-based routing") made Task 4 essentially free for production code. All deployment scenarios are already wired correctly without any changes:
+
+| Scenario | How It Works |
+|----------|-------------|
+| Released desktop | `useEmbeddedRunner.ts` derives `proxyEndpoint = VITE_STIGMER_API_URL` (`https://api.stigmer.ai`). Runner sets `CURSOR_API_BASE_URL` to this. Connect RPC hits `/aiserver.v1.AgentService/Run`. HTTPRoute routes to port 8082. |
+| Cloud runners (Daytona) | `DaytonaSandboxProvisioner.buildEnvVars()` passes `STIGMER_PROXY_ENDPOINT = https://api.stigmer.ai` from kustomize overlay. Same path routing applies. |
+| CLI daemon | Direct mode (`MODE=local`, no `STIGMER_PROXY_ENDPOINT`). By design — local OSS doesn't proxy. |
+
+### Integration Test Harness Change
+
+The only actual code work was adding a `PathRoutingProxy` to the integration test harness. Tests previously pointed `ProxyEndpoint` directly at Tomcat (which can't handle BiDi streaming). The new proxy mirrors production routing:
+
+- `/aiserver.v1*` → Netty BiDi port (h2c HTTP/2)
+- Everything else → Tomcat HTTP port
+
+Files added/modified:
+- `test/integration/harness/path_routing_proxy.go` (new — lightweight Go reverse proxy with h2c support)
+- `test/integration/harness/service.go` (added `BiDiProxyPort` to `JavaService`, dynamic port allocation)
+- `test/integration/suite_test.go` (wire `PathRoutingProxy` as `ProxyEndpoint`)
+- `test/integration-session-routing/e2e_provider_test.go` (same)
+
+### Auth Flow Verification
+
+Confirmed the auth flow works end-to-end without env var gaps:
+1. `execute-cursor/index.ts` line 279 computes `effectiveApiKey` from `config.stigmerTokenRef?.current ?? config.stigmerToken ?? config.cursorApiKey`
+2. Line 295 passes it programmatically as `apiKey` to Cursor SDK's `createAgent`
+3. No dependency on `process.env.CURSOR_API_KEY` for the SDK — it's passed via options
+
+---
+
 *Add notes here as you discover things during implementation.*
