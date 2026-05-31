@@ -1,0 +1,48 @@
+# Golden Test 27: Approval Gate with String Switch (Single-Quoted Conditions)
+# Tests: human_input → switch on outcome string using YAML single quotes
+# Regression test for the jq single-quote bug (jq only supports double quotes,
+# but YAML authors naturally use single quotes inside double-quoted values).
+# CNCF DSL 1.0.0 FORMAT
+
+document:
+  dsl: '1.0.0'
+  namespace: golden-tests
+  name: approval-gate-string-switch
+  version: '1.0.0'
+  description: Tests human_input → switch routing with single-quoted string conditions
+
+do:
+  - initContext:
+      set:
+        plan_ready: true
+
+  - reviewGate:
+      call: human_input
+      with:
+        prompt: "Review and approve this plan"
+        outcomes:
+          - name: approve
+            label: "Approve Plan"
+          - name: reject
+            label: "Reject Plan"
+      export:
+        as: ${ . }
+
+  - routeDecision:
+      switch:
+        - approvedCase:
+            when: ${ $context.reviewGate.outcome == 'approve' }
+            then: handleApproved
+        - rejectedCase:
+            then: handleRejected
+
+  - handleApproved:
+      set:
+        decision: approved
+        approved_by: ${ $context.reviewGate.reviewer }
+      then: end
+
+  - handleRejected:
+      set:
+        decision: rejected
+      then: end

@@ -98,14 +98,23 @@ uri: "https://api.example.com/${.env.API_VERSION}/users/${$context.userId}"
 "${$context.price * 1.1}"
 "${$context.items | length}"
 
-# String concatenation
-"${$context.firstName + \" \" + $context.lastName}"
+# String comparison — single quotes recommended in YAML
+"${ $context.status == 'active' }"
+"${ $context.severity == 'critical' }"
 
-# Comparison (used in switch_case `when` fields)
+# String concatenation
+"${$context.firstName + ' ' + $context.lastName}"
+
+# Numeric and boolean comparison
 "${$context.score > 80}"
-"${$context.status == \"active\"}"
 "${$context.count >= 1 and $context.enabled == true}"
 ```
+
+> **YAML quoting tip**: Use single quotes (`'...'`) for string literals inside
+> expressions. The expression engine automatically converts them to double
+> quotes for jq. This is more ergonomic than escaping double quotes inside
+> YAML double-quoted values (`\"...\"`). Both forms work — use whichever
+> reads better in your context.
 
 ### Array and Object Operations
 
@@ -123,7 +132,7 @@ uri: "https://api.example.com/${.env.API_VERSION}/users/${$context.userId}"
 "${$context.orders | map(.id)}"
 
 # Check if field exists and is non-empty
-"${$context.token != null and $context.token != \"\"}"
+"${$context.token != null and $context.token != ''}"
 ```
 
 ### Merge Objects into Context
@@ -218,13 +227,13 @@ when: "${$context.user != null and $context.user.email != null}"
 ### Default value
 
 ```yaml
-"${$context.config.timeout // \"30\"}"   # use "30" if null
+"${$context.config.timeout // '30'}"   # use "30" if null
 ```
 
 ### Conditional string
 
 ```yaml
-"${if $context.isProd then \"production\" else \"staging\" end}"
+"${if $context.isProd then 'production' else 'staging' end}"
 ```
 
 ### Extract nested list
