@@ -367,15 +367,18 @@ async function main(): Promise<void> {
   // The SDK reads CURSOR_API_BASE_URL at module-load time as a top-level
   // constant, so it must be in process.env before activity code is imported.
   //
-  // Only CURSOR_API_BASE_URL is set here (Connect RPC transport).
+  // CURSOR_API_BASE_URL controls the connect-node HTTP/2 transport (Connect RPC).
+  // Set it to the proxy endpoint directly — the routing layer (Caddy locally,
+  // Istio HTTPRoute in production) path-routes /aiserver.v1.* to the Netty
+  // BiDi proxy on port 8082, which relays to api2.cursor.sh.
+  //
   // CURSOR_BACKEND_URL is intentionally left UNSET so that:
   //   - CloudApiClient defaults to https://api.cursor.com (REST: /v1/models)
   //   - Token exchange defaults to https://api2.cursor.sh (/auth/exchange)
   // Both use globalThis.fetch, which the fetch interceptor rewrites to route
   // through the proxy while preserving the correct upstream host.
   if (config.proxyEndpoint) {
-    const proxyBase = config.proxyEndpoint.replace(/\/+$/, "");
-    process.env.CURSOR_API_BASE_URL = `${proxyBase}/v1/proxy/cursor/api2.cursor.sh`;
+    process.env.CURSOR_API_BASE_URL = config.proxyEndpoint.replace(/\/+$/, "");
   }
 
   const runnerMode = process.env.STIGMER_RUNNER_MODE === "manager" ? "manager" : "static";

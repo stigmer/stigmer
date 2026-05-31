@@ -2,13 +2,22 @@
 #
 # Caddy on :9090 is the single entry point for the desktop frontend.
 # It routes:
+#   /aiserver.v1*      → Netty BiDi proxy on :8082 via h2c (Connect RPC streams)
 #   /v1/proxy/*        → Java embedded Tomcat on :8081 (REST endpoints)
 #   native gRPC        → Java gRPC on :8080 via h2c (CLI sidecar, grpcurl, etc.)
 #   gRPC-Web / other   → grpcwebproxy on :9091 (translates gRPC-Web to native gRPC on :8080)
 #
-# Requires: grpcwebproxy running on :9091 and Java stigmer-service on :8080/:8081.
+# Requires: grpcwebproxy running on :9091 and Java stigmer-service on :8080/:8081/:8082.
 
 :9090 {
+	handle /aiserver.v1* {
+		reverse_proxy localhost:8082 {
+			transport http {
+				versions h2c
+			}
+		}
+	}
+
 	handle /v1/proxy/* {
 		reverse_proxy localhost:8081
 	}
