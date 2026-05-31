@@ -69,6 +69,7 @@ go_test(
     srcs = [
         "execution_filter_test.go",
         "lifecycle_test.go",
+        "pin_workflow_version_step_test.go",
         "send_signal_test.go",
         "submit_workflow_task_approval_test.go",
         "update_status_test.go",
@@ -78,11 +79,13 @@ go_test(
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/agentexecution/v1:agentexecution",
         "//apis/stubs/go/ai/stigmer/agentic/workflow/v1:workflow",
+        "//apis/stubs/go/ai/stigmer/agentic/workflow/v1/serverless",
         "//apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1:workflowexecution",
         "//apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1:workflowinstance",
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
         "//backend/libs/go/grpc/interceptors/apiresource",
+        "//backend/libs/go/grpc/request/pipeline",
         "//backend/libs/go/store",
         "//backend/libs/go/store/sqlite",
         "@com_github_stigmer_stigmer_backend_libs_go//grpclib/pipeline",

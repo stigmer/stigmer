@@ -167,6 +167,10 @@ func (s *populateVersionHashStep) Execute(ctx *pipeline.RequestContext[*workflow
 // - status.version_hash (the content hash)
 // - metadata.version.message (user description)
 // - metadata.version.tag (optional tag)
+//
+// On failure: reverts the version hash from workflow state so the workflow
+// persists without version tracking. This maintains the invariant that
+// a set versionHash always has a resolvable audit entry.
 type saveVersionAuditStep struct {
 	store    store.Store
 	isCreate bool
@@ -207,13 +211,20 @@ func (s *saveVersionAuditStep) Execute(ctx *pipeline.RequestContext[*workflowv1.
 	}
 
 	if err := s.store.SaveAudit(ctx.Context(), kind, workflowID, wf, versionHash, tag); err != nil {
-		// Audit failure is non-fatal for backward compatibility.
-		// The main resource is already persisted; log and continue.
 		log.Error().
 			Err(err).
 			Str("workflow_id", workflowID).
 			Str("version_hash", truncateHash(versionHash)).
-			Msg("Failed to save workflow version audit — version history may be incomplete")
+			Msg("Failed to save workflow version audit — reverting version hash to maintain audit-resolvability invariant")
+
+		// Revert: clear version hash so the persisted workflow doesn't reference
+		// an audit entry that doesn't exist. The workflow is still created/updated
+		// successfully, but without version tracking for this apply.
+		wf.Status.VersionHash = ""
+		if wf.Metadata != nil && wf.Metadata.Version != nil {
+			wf.Metadata.Version.Id = ""
+		}
+		ctx.SetNewState(wf)
 		return nil
 	}
 

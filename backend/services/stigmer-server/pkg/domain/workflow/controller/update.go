@@ -48,8 +48,8 @@ func (c *WorkflowController) buildUpdatePipeline() *pipeline.Pipeline[*workflowv
 		AddStep(newComputeVersionHashStep()).                                                             // 8. Compute SHA-256 of CNCF YAML
 		AddStep(newCheckVersionChangedStep()).                                                            // 9. Compare hash with existing (skip audit if unchanged)
 		AddStep(newPopulateVersionHashStep(false)).                                                       // 10. Set status.version_hash + metadata.version (if changed)
-		AddStep(steps.NewPersistStep[*workflowv1.Workflow](c.store)).                                     // 11. Persist workflow
-		AddStep(newSaveVersionAuditStep(c.store, false)).                                                 // 12. Archive version to audit (if changed)
+		AddStep(newSaveVersionAuditStep(c.store, false)).                                                 // 11. Archive version (reverts hash on failure)
+		AddStep(steps.NewPersistStep[*workflowv1.Workflow](c.store)).                                     // 12. Persist workflow
 		AddStep(steps.NewIndexSearchStep[*workflowv1.Workflow](c.store, &extractor.WorkflowExtractor{})). // 13. Update search index
 		Build()
 }
