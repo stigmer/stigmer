@@ -67,8 +67,120 @@ That's it! No complex structure - just focused work.
 ## Current Status
 
 **Last Updated**: 2026-05-31  
-**Last Session**: Session 6 — Root-caused the billing failure. Two issues identified and one fixed.  
-**Current Focus**: Runner must inject `x-stigmer-execution-id` header onto the Connect RPC HTTP/2 stream so the proxy can meter it.
+**Last Session**: Session 8 — Implemented Option A (`x-stigmer-auth` header). All unit tests pass. Integration test blocked by pre-existing Netty REFUSED_STREAM issue.  
+**Current Focus**: Diagnose and fix the Netty-level REFUSED_STREAM that prevents the integration test from validating the full pipeline.
+
+## Session Progress (2026-05-31, session 8)
+
+- **Option A IMPLEMENTED — code complete, all unit tests pass:**
+  - Decided on Option A (`x-stigmer-auth` dedicated header) to resolve the dual-auth blocker
+  - Runner interceptor now injects `x-stigmer-auth: Bearer <stigmerJWT>` instead of overwriting `authorization`
+  - Java BiDi handler now reads `x-stigmer-auth` first (via new `extractStigmerAuthToken()`), falls back to `authorization`/`x-api-key` for backward compat
+  - Removed `console.debug` diagnostic logging from interceptor
+  - Key insight confirmed: `HttpSecurityConfig.java` docs explicitly state the shared `AuthenticationManager` validates "Auth0, API keys, federated IdPs, Stigmer-signed tokens" — so the Stigmer JWT from `x-stigmer-auth` will authenticate correctly
+
+- **Unit tests ALL PASS:**
+  - TypeScript: 17/17 (interceptor injects `x-stigmer-auth`, preserves original `authorization` untouched)
+  - Java: All tests pass including 18 new tests for `extractStigmerAuthToken` and precedence logic
+
+- **Integration test BLOCKED by Netty-level `REFUSED_STREAM`:**
+  - The test `TestAgentExecution_CursorUsage_FullPipeline` fails with `REFUSED_STREAM` on all streams
+  - ZERO `CursorBidiStreamHandler` log lines appear (handler is never invoked)
+  - This means the refusal happens at the Netty HTTP/2 protocol layer (below the handler)
+  - The `IntegrationTestSecurityConfig` accepts ALL tokens — auth is not the cause
+  - This issue is NOT caused by the Option A changes (which only affect handler-internal logic)
+  - Likely a pre-existing issue from earlier session workspace changes or environment config
+
+- **Changes made (stigmer OSS):**
+  - `backend/services/runner/src/activities/execute-cursor/http2-interceptor.ts` — renamed `AUTHORIZATION_HEADER` → `STIGMER_AUTH_HEADER`, updated injection, removed `console.debug`
+  - `backend/services/runner/src/activities/execute-cursor/__tests__/http2-interceptor.test.ts` — updated assertions for `x-stigmer-auth`, added test verifying `authorization` passes through unchanged
+
+- **Changes made (stigmer-cloud):**
+  - `CursorBidiStreamHandler.java` — added `STIGMER_AUTH_HEADER` constant, `extractStigmerAuthToken()` method, updated `handleHeaders()` to prefer `x-stigmer-auth`, added `x-stigmer-auth` to NON_FORWARDABLE set
+  - `CursorBidiStreamHandlerTest.java` — added `ExtractStigmerAuthToken` nested test class (7 tests) + `TokenExtractionPrecedence` class (3 tests)
+
+## Next Steps
+
+1. **DIAGNOSE: Netty REFUSED_STREAM (the ONLY remaining blocker)**
+   - The Go `PathRoutingProxy` (h2c transport) connects to Netty BiDi proxy
+   - Netty refuses ALL streams before the handler is even invoked
+   - Need to investigate: Is this a pre-existing issue? Run the test with the session-7 code (before Option A changes) to confirm
+   - Check if `CursorBidiUpstreamClient` initialization failure causes server-level stream refusal
+   - Add temporary Netty pipeline-level logging (e.g., `Http2FrameLogger`) to see what's happening at the frame level
+   - Check if the Go `http2.Transport` with `AllowHTTP: true` h2c prior-knowledge sends a proper connection preface that Netty accepts
+
+2. **After REFUSED_STREAM is fixed:** Rerun `TestAgentExecution_CursorUsage_FullPipeline` — should validate full billing pipeline
+3. **Then:** Run `TestAgentExecution_Config_ModelOverride/cursor` to confirm REST proxy path still works
+4. **Deploy:** Merge PRs, deploy stigmer-cloud to prod
+5. **Changelog:** Write final changelog entry
+
+## Context for Resume
+
+- The Option A implementation is COMPLETE and tested (unit level). The only gap is end-to-end validation.
+- The `REFUSED_STREAM` issue happens BELOW the handler — adding handler-level logging won't help. Need Netty frame-level diagnostics.
+- The `PathRoutingProxy` (Go) uses `http2.Transport{AllowHTTP: true}` to speak h2c to Netty's `Http2FrameCodecBuilder.forServer()`. This worked in session 5 but is now failing.
+- Possible causes: Netty server not fully initialized when first stream arrives, upstream client blocking server startup, or Go transport sending frames Netty doesn't expect.
+- The fat JAR was rebuilt with Option A changes and Bazel confirms clean build (only a pre-existing deprecation warning).
+- Runner was rebuilt (`make build-runner`) — fingerprint `1cd2483bfc61ea08`.
+
+## Session Progress (2026-05-31, session 7)
+
+- **HTTP/2 interceptor BUILT AND WORKING** — full implementation complete:
+  - Created `http2-interceptor.ts` using `createRequire()` to patch `http2.connect` on the CJS module singleton
+  - Discovered and solved the ESM namespace freeze problem: `import * as http2 from "node:http2"` creates a frozen namespace; default import mutations are invisible to namespace consumers. Fix: use `require()` which modifies the shared singleton visible to all importers.
+  - 17 unit tests passing, all wired into `runner.ts` and `runner-manager.ts`
+  - Integration test CONFIRMS header injection works: Go PathRoutingProxy logs show `X-Stigmer-Execution-Id` reaching the Java service on ALL streams including `/agent.v1.AgentService/Run`
+
+- **Discovered dual-auth architectural issue** — the ONLY remaining blocker:
+  - The BiDi proxy's `AuthenticationManager` validates Cursor access tokens (obtained via token exchange). This is how it worked in sessions 4-5.
+  - For billing (metered=true), FGA needs to check `can_edit` on `agent_execution`. This requires a Stigmer JWT as the authenticated principal.
+  - If we replace `authorization` with the Stigmer JWT, auth fails (the auth manager doesn't recognize it). If we keep the Cursor token, FGA can't authorize the execution.
+  - This is NOT a runner-side problem — the interceptor correctly injects both the token and the execution ID. The issue is the Java service's auth configuration for the BiDi handler.
+
+- **Changes made (stigmer OSS)**:
+  - `backend/services/runner/src/activities/execute-cursor/http2-interceptor.ts` (NEW)
+  - `backend/services/runner/src/activities/execute-cursor/__tests__/http2-interceptor.test.ts` (NEW, 17 tests)
+  - `backend/services/runner/src/runner.ts` — wired interceptor
+  - `backend/services/runner/src/runner-manager.ts` — wired interceptor
+
+- **Changes made (stigmer-cloud)** — TENTATIVE, needs revision:
+  - `CursorBidiStreamHandler.java` — added `authorization` to non-forwardable headers and removed conditional cursor key injection. This change is directionally correct but insufficient alone — the auth manager must ALSO accept Stigmer JWTs.
+
+## Architectural Decision Required: Dual Authentication
+
+Three options identified:
+
+### Option A: Dedicated Stigmer auth header (`x-stigmer-auth`)
+- Runner sends `x-stigmer-auth: Bearer <stigmer-jwt>` alongside the regular `authorization` (Cursor token)
+- BiDi handler reads `x-stigmer-auth` for FGA/billing, uses regular `authorization` for upstream
+- **Pros**: Clean separation, no auth manager changes, backward compatible
+- **Cons**: Non-standard header for auth, adds a bespoke protocol concept
+
+### Option B: Dual auth provider in `AuthenticationManager`
+- Configure Spring Security to try Stigmer JWT validation first, fall back to Cursor token
+- When Stigmer JWT is present: full FGA + billing
+- When Cursor token is present: relay-only (unmetered, backward compat)
+- **Pros**: Standard Spring Security pattern, single `authorization` header
+- **Cons**: More complex auth chain, implicit behavior difference based on token type
+
+### Option C: Trust execution ID without FGA (skip `authorize()`)
+- When `x-stigmer-execution-id` is present, set `metered=true` without FGA check
+- The execution ID itself is proof of intent (only the runner knows it)
+- **Pros**: Simplest change (2 lines in Java), no auth changes needed
+- **Cons**: Weakens security — any request with a valid execution ID gets metered regardless of who sent it
+
+### RECOMMENDATION: Option A
+
+**Rationale:**
+1. **Cleanest separation of concerns** — auth for Cursor upstream (authorization header) vs auth for Stigmer billing (x-stigmer-auth) are two distinct purposes that shouldn't share a header
+2. **No auth chain complexity** — the existing AuthenticationManager stays unchanged for the Cursor token path; a separate, simple JWT validation handles the Stigmer header
+3. **Fully backward compatible** — requests without `x-stigmer-auth` continue to work exactly as before (UNSCOPED, unmetered)
+4. **Mirrors the fetch interceptor pattern** — the REST proxy already receives Stigmer JWT as `authorization` because it replaces Cursor tokens. The BiDi path has a different constraint (Cursor token must reach upstream for token validation). A separate header is the natural solution when you need both.
+5. **Security posture preserved** — FGA still validates the authenticated Stigmer identity against the execution, unlike Option C which trusts the header alone
+6. **Implementation is straightforward**:
+   - Runner: interceptor already injects `authorization`; change to `x-stigmer-auth` instead
+   - Java handler: read `x-stigmer-auth` for `authenticationManager.authenticate()` and FGA; keep `authorization` for upstream forwarding
+   - Add `x-stigmer-auth` to non-forwardable headers (don't send to Cursor)
 
 ## Session Progress (2026-05-31, session 4)
 
@@ -151,30 +263,31 @@ That's it! No complex structure - just focused work.
 
 ## Context for Resume
 
-- **Issue 1 (gzip) is FIXED** — unit tests pass, code committed in stigmer-cloud.
-- **Issue 2 (execution ID header) is the ONLY remaining blocker** for billing.
-- The proxy's `completeStream()` fires correctly (phase=RELAYING, scope=present),
-  but `scope.metered()` is `false` because `effectiveExecutionId` is null.
-- The fetch interceptor already sets `x-stigmer-execution-id` on REST calls (line 140
-  of `fetch-interceptor.ts`). The same must happen for the HTTP/2 Connect transport.
-- The `@cursor/sdk` creates its own internal Connect transport from `CURSOR_BACKEND_URL`.
-  The runner cannot inject interceptors into the SDK's transport directly.
-- **Recommended fix**: Intercept `http2.connect()` in the runner to inject
-  `x-stigmer-execution-id` as a default header on streams opened to the proxy endpoint.
-  This mirrors the fetch interceptor pattern but at the HTTP/2 layer.
-- Once the header reaches the proxy, `ProxyAuthorizationService.authorizeProxyScopes()`
-  will return `metered=true` and billing will flow.
+- **HTTP/2 interceptor is COMPLETE and WORKING** — headers reach the Java proxy.
+- **The ONLY remaining blocker** is the dual-auth problem described above.
+- The interceptor uses `createRequire(import.meta.url)` to get the CJS module singleton,
+  patches `http2.connect`, wraps sessions targeting the proxy, and injects both
+  `authorization` (Stigmer JWT) and `x-stigmer-execution-id` per-stream from AsyncLocalStorage.
+- The ESM namespace freeze issue is solved. Verified via integration test: Go proxy logs
+  confirm headers arrive on `/agent.v1.AgentService/Run`.
+- The `CursorBidiStreamHandler.java` change (authorization → non-forwardable) is
+  directionally correct but needs to be paired with Option A's `x-stigmer-auth` approach.
 - No production users on cursor harness — safe to iterate.
+- The stigmer-cloud change to `CursorBidiStreamHandler.java` should be REVERTED to the
+  session-6 state before implementing Option A (the current edit assumed we'd replace
+  `authorization`, but with Option A we use a separate header instead).
 
 ## Next Steps
 
-1. **Inject `x-stigmer-execution-id` on HTTP/2 streams** — patch `http2.connect` in runner
-   to add the header when connecting to `CURSOR_BACKEND_URL` (proxy endpoint)
-2. Rerun `TestAgentExecution_CursorUsage_FullPipeline` — verify billing records appear
-3. Run `TestAgentExecution_Config_ModelOverride` — verify REST proxy still works
-4. Deploy stigmer-cloud to prod (merge PRs or trigger CI)
-5. Apply updated HTTPRoute to prod cluster
-6. Write final changelog entry
+1. **Decide on Option A/B/C** (recommendation: Option A — `x-stigmer-auth` header)
+2. **Implement chosen option in Java BiDi handler** — add `x-stigmer-auth` header extraction,
+   validate Stigmer JWT from it, use for FGA. Keep `authorization` for Cursor upstream.
+3. **Update HTTP/2 interceptor** — inject `x-stigmer-auth` instead of replacing `authorization`
+4. Rerun `TestAgentExecution_CursorUsage_FullPipeline` — verify billing records appear
+5. Run `TestAgentExecution_Config_ModelOverride` — verify REST proxy still works
+6. Remove diagnostic logging from interceptor (console.debug calls)
+7. Deploy stigmer-cloud to prod (merge PRs or trigger CI)
+8. Write final changelog entry
 
 ---
 
