@@ -406,8 +406,9 @@ launch-desktop: kill-desktop ## Start desktop app in dev mode (Tauri + Vite hot-
 	npm install -w desktop
 	$(MAKE) build-runner
 	client-apps/desktop/scripts/setup-runner-dev.sh
+	client-apps/desktop/scripts/gen-dev-certs.sh
 	@if command -v caddy >/dev/null 2>&1 && grep -q 'localhost:9090' client-apps/desktop/.env.development 2>/dev/null; then \
-		echo "Starting local dev proxy (:9090 → gRPC-Web :8080 + REST :8081)..."; \
+		echo "Starting local dev proxy (:9090 HTTP + :9093 HTTPS/H2)..."; \
 		grpcwebproxy --backend_addr=localhost:8080 --run_tls_server=false --allow_all_origins --server_http_debug_port=9091 --server_http_max_read_timeout=120s --server_http_max_write_timeout=120s & \
 		sleep 1; \
 		caddy start --config client-apps/desktop/scripts/Caddyfile.dev; \

@@ -147,6 +147,9 @@ pub async fn start_runner(
     cmd.env("WORKSPACE_ROOT_DIR", &workspace_dir);
     if let Some(proxy) = &config.proxy_endpoint {
         cmd.env("STIGMER_PROXY_ENDPOINT", proxy);
+        if proxy.starts_with("https://") {
+            cmd.env("NODE_TLS_REJECT_UNAUTHORIZED", "0");
+        }
     }
 
     cmd.stdin(std::process::Stdio::piped());
