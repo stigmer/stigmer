@@ -4,6 +4,7 @@ import (
 	"github.com/rs/zerolog/log"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
+	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
@@ -36,18 +37,19 @@ func (s *pinWorkflowVersionStep) Execute(ctx *pipeline.RequestContext[*workflowe
 	execution := ctx.NewState()
 
 	// Resolve which workflow_id to look up.
-	// Priority: spec.workflow_id > resolve from instance
+	// Priority: spec.workflow_id > input.spec.workflow_id > resolve from instance
 	workflowID := execution.GetSpec().GetWorkflowId()
 	if workflowID == "" {
-		// If workflow_id is not directly on the spec, check the original input.
-		// The createDefaultInstanceIfNeeded step may have populated workflow_instance_id
-		// but the workflow_id could be on the original input.
 		input := ctx.Input()
 		workflowID = input.GetSpec().GetWorkflowId()
 	}
 
 	if workflowID == "" {
-		log.Debug().Msg("No workflow_id available for version pinning — will resolve at hydration time")
+		workflowID = s.resolveWorkflowIDFromInstance(ctx)
+	}
+
+	if workflowID == "" {
+		log.Debug().Msg("No workflow_id resolvable for version pinning — will resolve at hydration time")
 		return nil
 	}
 
@@ -82,4 +84,36 @@ func (s *pinWorkflowVersionStep) Execute(ctx *pipeline.RequestContext[*workflowe
 		Msg("Pinned workflow version on execution")
 
 	return nil
+}
+
+// resolveWorkflowIDFromInstance attempts to resolve the workflow_id by loading the
+// workflow instance referenced in the execution spec. This mirrors the runner's
+// resolveWorkflowId pattern in hydrate-workflow-execution.ts.
+func (s *pinWorkflowVersionStep) resolveWorkflowIDFromInstance(ctx *pipeline.RequestContext[*workflowexecutionv1.WorkflowExecution]) string {
+	execution := ctx.NewState()
+	instanceID := execution.GetSpec().GetWorkflowInstanceId()
+	if instanceID == "" {
+		instanceID = ctx.Input().GetSpec().GetWorkflowInstanceId()
+	}
+	if instanceID == "" {
+		return ""
+	}
+
+	var instance workflowinstancev1.WorkflowInstance
+	if err := s.store.GetResource(ctx.Context(), apiresourcekind.ApiResourceKind_workflow_instance, instanceID, &instance); err != nil {
+		log.Debug().
+			Err(err).
+			Str("workflow_instance_id", instanceID).
+			Msg("Could not load workflow instance for version pin resolution")
+		return ""
+	}
+
+	workflowID := instance.GetSpec().GetWorkflowId()
+	if workflowID != "" {
+		log.Debug().
+			Str("workflow_instance_id", instanceID).
+			Str("workflow_id", workflowID).
+			Msg("Resolved workflow_id from instance for version pinning")
+	}
+	return workflowID
 }

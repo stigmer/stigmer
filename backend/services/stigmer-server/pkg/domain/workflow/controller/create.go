@@ -65,8 +65,8 @@ func (c *WorkflowController) buildCreatePipeline() *pipeline.Pipeline[*workflowv
 		AddStep(newPopulateServerlessValidationStep()).                                                   // 7. Populate serverless validation in workflow status
 		AddStep(newComputeVersionHashStep()).                                                             // 8. Compute SHA-256 of CNCF YAML
 		AddStep(newPopulateVersionHashStep(true)).                                                        // 9. Set status.version_hash + metadata.version chain
-		AddStep(steps.NewPersistStep[*workflowv1.Workflow](c.store)).                                     // 10. Persist workflow
-		AddStep(newSaveVersionAuditStep(c.store, true)).                                                  // 11. Archive version to audit history
+		AddStep(newSaveVersionAuditStep(c.store, true)).                                                  // 10. Archive version (reverts hash on failure)
+		AddStep(steps.NewPersistStep[*workflowv1.Workflow](c.store)).                                     // 11. Persist workflow
 		AddStep(newCreateDefaultInstanceStep(c.workflowInstanceClient)).                                  // 12. Create default instance
 		AddStep(newUpdateWorkflowStatusWithDefaultInstanceStep(c.store)).                                 // 13. Update status
 		AddStep(steps.NewIndexSearchStep[*workflowv1.Workflow](c.store, &extractor.WorkflowExtractor{})). // 14. Update search index

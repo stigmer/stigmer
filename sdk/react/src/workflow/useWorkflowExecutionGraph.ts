@@ -80,12 +80,38 @@ export interface UseWorkflowExecutionGraphReturn {
    * indicates the mismatch. `null` when no mismatch detected.
    */
   readonly versionMismatch: string | null;
+  /**
+   * `true` when the execution has a pinned version hash but the version
+   * lookup failed (NOT_FOUND, network error, empty YAML). The graph shows
+   * the current definition as a fallback but this is an imprecise view.
+   */
+  readonly versionResolutionFailed: boolean;
   /** Task states from the event stream (for the inspector). */
   readonly taskStates: ReadonlyMap<string, DerivedTaskState>;
 }
 
 const EMPTY_TASK_STATES: ReadonlyMap<string, DerivedTaskState> = new Map();
 const TERMINAL_PHASES = new Set([3, 4, 5, 6]);
+
+type WorkflowFetchResult = {
+  yaml: string;
+  isVersionPinned: boolean;
+  versionFetchFailed: boolean;
+} | null;
+
+async function fetchLiveWorkflowFallback(
+  stigmer: ReturnType<typeof useStigmer>,
+  workflowId: string,
+  versionFetchFailed: boolean,
+): Promise<WorkflowFetchResult> {
+  try {
+    const wf = await stigmer.workflow.get(workflowId);
+    return { yaml: serializeWorkflowYaml(wf), isVersionPinned: false, versionFetchFailed };
+  } catch (err) {
+    if (isNotFound(err)) return null;
+    throw err;
+  }
+}
 
 /**
  * Behavior hook that builds a complete read-only execution graph by:
@@ -163,21 +189,18 @@ export function useWorkflowExecutionGraph(
               create(GetWorkflowVersionInputSchema, { workflowId: effectiveWorkflowId, versionHash }),
             );
             if (versionEntry?.validatedYaml) {
-              return { yaml: versionEntry.validatedYaml, isVersionPinned: true };
+              return { yaml: versionEntry.validatedYaml, isVersionPinned: true, versionFetchFailed: false };
             }
+            // Version entry exists but YAML is empty — treat as degraded
+            return await fetchLiveWorkflowFallback(stigmer, effectiveWorkflowId, true);
           } catch {
-            // Fall through to live workflow if version lookup fails
+            // Version lookup failed — explicit fallback with signal
+            return await fetchLiveWorkflowFallback(stigmer, effectiveWorkflowId, true);
           }
         }
 
-        // Path 2: Legacy execution or version fetch failed — use live workflow
-        try {
-          const wf = await stigmer.workflow.get(effectiveWorkflowId);
-          return { yaml: serializeWorkflowYaml(wf), isVersionPinned: false };
-        } catch (err) {
-          if (isNotFound(err)) return null;
-          throw err;
-        }
+        // Path 2: Legacy execution or no hash — use live workflow
+        return await fetchLiveWorkflowFallback(stigmer, effectiveWorkflowId, false);
       }
     : null;
 
@@ -311,13 +334,18 @@ export function useWorkflowExecutionGraph(
 
   // ── Version mismatch detection ───────────────────────────────────
 
+  const versionFetchFailed = workflowData?.versionFetchFailed ?? false;
+
   const versionMismatch = useMemo<string | null>(() => {
-    // When the graph is rendered from the pinned version, no mismatch is possible
-    // — the graph is correct by construction.
+    // When the graph is rendered from the pinned version, no mismatch is possible.
     if (isVersionPinned) return null;
 
+    // When a pinned hash exists but version lookup failed, show a specific message.
+    if (versionFetchFailed && versionHash) {
+      return "Unable to load the pinned workflow version. Showing the current definition as a fallback.";
+    }
+
     // Legacy path: no version hash on execution, using live workflow.
-    // Fall back to task-name comparison to detect definition drift.
     if (!execution?.status?.tasks || !baseElements) return null;
 
     const executionTaskNames = new Set(
@@ -333,10 +361,10 @@ export function useWorkflowExecutionGraph(
     const inGraphNotExecution = [...graphTaskNames].filter((n) => !executionTaskNames.has(n));
 
     if (inExecutionNotGraph.length > 0 || inGraphNotExecution.length > 0) {
-      return "The workflow definition may have changed since this execution ran. The graph shows the current version.";
+      return "This execution predates version tracking. The workflow has since been modified.";
     }
     return null;
-  }, [execution?.status?.tasks, baseElements, isVersionPinned]);
+  }, [execution?.status?.tasks, baseElements, isVersionPinned, versionFetchFailed, versionHash]);
 
   // ── Loading / error aggregation ──────────────────────────────────
 
@@ -374,6 +402,7 @@ export function useWorkflowExecutionGraph(
     isLoading,
     error,
     versionMismatch,
+    versionResolutionFailed: versionFetchFailed,
     taskStates,
   };
 }
