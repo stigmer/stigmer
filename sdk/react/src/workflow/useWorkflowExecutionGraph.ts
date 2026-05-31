@@ -14,6 +14,7 @@ import { useWorkflowExecutionEventStream } from "./useWorkflowExecutionEventStre
 import { serializeWorkflowYaml } from "./serialize-workflow-yaml";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { yamlToGraph, toReactFlowElements } from "./workflow-graph-conversions";
+import { cncfYamlToGraph, isCncfWorkflowYaml } from "./cncf-yaml-to-graph";
 import type { CanvasTaskNodeData, NodeExecutionState } from "./workflow-graph-conversions";
 import { applyDagreLayout } from "./layout";
 import { EXECUTION_DAGRE_CONFIG } from "./canvas-constants";
@@ -220,7 +221,9 @@ export function useWorkflowExecutionGraph(
   } | null>(() => {
     if (!workflowData?.yaml) return null;
     try {
-      const graph = yamlToGraph(workflowData.yaml);
+      const graph = isCncfWorkflowYaml(workflowData.yaml)
+        ? cncfYamlToGraph(workflowData.yaml)
+        : yamlToGraph(workflowData.yaml);
       const laidOut = applyDagreLayout(graph, EXECUTION_DAGRE_CONFIG);
       return { elements: toReactFlowElements(laidOut), graphModel: laidOut };
     } catch {
