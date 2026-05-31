@@ -42,21 +42,76 @@ export function getExecutionContext(): AsyncLocalStorage<ExecutionContextStore> 
   return executionContext;
 }
 
+/**
+ * Connect RPC path prefixes used by the Cursor SDK. Requests with these
+ * prefixes are handled by connect-node (native HTTP/2) and should NOT be
+ * rewritten — they go directly to the proxy endpoint where path routing
+ * dispatches them to the BiDi proxy on port 8082.
+ */
+const CONNECT_RPC_PREFIXES = ["/agent.v1.", "/aiserver.v1."];
+
+function isConnectRpcPath(pathname: string): boolean {
+  return CONNECT_RPC_PREFIXES.some((p) => pathname.startsWith(p));
+}
+
+/**
+ * Checks whether the URL targets the proxy endpoint itself. When
+ * CURSOR_BACKEND_URL is set to proxyEndpoint, SDK REST calls (token
+ * exchange, CloudApiClient) target this host instead of Cursor domains.
+ */
+function isProxyEndpointHost(parsed: URL, proxyEndpoint: string): boolean {
+  try {
+    const proxy = new URL(proxyEndpoint);
+    return parsed.hostname === proxy.hostname && parsed.port === proxy.port;
+  } catch {
+    return false;
+  }
+}
+
 function isCursorRequest(url: string): boolean {
   try {
     const parsed = new URL(url);
-    return CURSOR_DOMAINS.some((d) => parsed.hostname === d || parsed.hostname.endsWith(`.${d}`));
+    if (CURSOR_DOMAINS.some((d) => parsed.hostname === d || parsed.hostname.endsWith(`.${d}`))) {
+      return true;
+    }
+    // When CURSOR_BACKEND_URL = proxyEndpoint, SDK REST calls (token exchange,
+    // CloudApiClient) target the proxy endpoint host via fetch. Intercept these
+    // so they get rewritten to /v1/proxy/cursor/{upstream} for CursorProxyController.
+    // Connect RPC paths are excluded — they go directly to path routing.
+    if (interceptorConfig && isProxyEndpointHost(parsed, interceptorConfig.proxyEndpoint)) {
+      return !isConnectRpcPath(parsed.pathname) && !parsed.pathname.startsWith("/v1/proxy/");
+    }
+    return false;
   } catch {
     return false;
   }
 }
 
 /**
+ * Determines the upstream Cursor host for a given REST path.
+ *
+ * - /auth/* → api2.cursor.sh (token exchange, served by this host)
+ * - everything else → api.cursor.com (CloudApiClient REST: /v1/models, agent CRUD)
+ */
+function resolveUpstreamHost(pathname: string): string {
+  if (pathname.startsWith("/auth/") || pathname === "/auth") {
+    return "api2.cursor.sh";
+  }
+  return "api.cursor.com";
+}
+
+/**
  * Rewrites a Cursor-bound URL to route through the Stigmer proxy.
  *
- * Example:
- *   https://api2.cursor.sh/aiserver.v1.AgentService/CreateAgent
- *   -> https://api.stigmer.ai/v1/proxy/cursor/api2.cursor.sh/aiserver.v1.AgentService/CreateAgent
+ * Two cases:
+ * 1. Direct Cursor-domain request (e.g. from CloudApiClient when CURSOR_BACKEND_URL unset):
+ *    https://api2.cursor.sh/auth/exchange_user_api_key
+ *    → https://api.stigmer.ai/v1/proxy/cursor/api2.cursor.sh/auth/exchange_user_api_key
+ *
+ * 2. Proxy-endpoint-targeted REST (when CURSOR_BACKEND_URL = proxyEndpoint):
+ *    http://localhost:9090/auth/exchange_user_api_key
+ *    → http://localhost:9090/v1/proxy/cursor/api2.cursor.sh/auth/exchange_user_api_key
+ *    The upstream host is inferred from the path since it's not in the URL.
  *
  * The proxy uses the embedded original hostname to route to the correct
  * upstream Cursor service.
@@ -64,6 +119,15 @@ function isCursorRequest(url: string): boolean {
 function rewriteUrl(originalUrl: string, proxyEndpoint: string): string {
   const parsed = new URL(originalUrl);
   const proxyBase = proxyEndpoint.replace(/\/+$/, "");
+
+  // Proxy-endpoint-targeted request: CURSOR_BACKEND_URL sent this here.
+  // The hostname IS the proxy, so infer the upstream from the path.
+  if (interceptorConfig && isProxyEndpointHost(parsed, proxyEndpoint)) {
+    const upstream = resolveUpstreamHost(parsed.pathname);
+    return `${proxyBase}/v1/proxy/cursor/${upstream}${parsed.pathname}${parsed.search}`;
+  }
+
+  // Direct Cursor-domain request: hostname IS the upstream.
   return `${proxyBase}/v1/proxy/cursor/${parsed.hostname}${parsed.pathname}${parsed.search}`;
 }
 

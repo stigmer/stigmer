@@ -67,8 +67,8 @@ That's it! No complex structure - just focused work.
 ## Current Status
 
 **Last Updated**: 2026-05-31  
-**Last Session**: Completed Task 5 (end-to-end validation with real Cursor API key — all tests PASS).  
-**Current Focus**: Project functionally complete. Task 6 (retire Phase 1) blocked on prod deploy.
+**Last Session**: Task 5B routing fix implemented and verified — agent executes successfully through BiDi proxy.  
+**Current Focus**: Usage extraction (ConnectEnvelopeDecoder) not parsing Cursor's response format. Routing is done.
 
 ## Session Progress (2026-05-31, session 4)
 
@@ -108,24 +108,46 @@ That's it! No complex structure - just focused work.
 - Verified: CursorBidiStreamHandler uses Spring Security BearerTokenAuthenticationToken — compatible
 - All unit tests passing (14/14)
 
+## Session Progress (2026-05-31, session 5)
+
+- **Task 5B ROUTING FIX — COMPLETE**: Traffic now reaches BiDi proxy, agent executes successfully
+- Root cause was NOT the fetch interceptor — it was `CURSOR_BACKEND_URL` (not set)
+- SDK's `connect-node` bypasses `globalThis.fetch` entirely (uses native HTTP/2)
+- SDK reads `CURSOR_BACKEND_URL` (not `CURSOR_API_BASE_URL`) for Connect RPC transport
+- SDK service path is `agent.v1.AgentService/Run` (not `aiserver.v1` as previously assumed)
+- Changes made across both repos:
+  - `main.ts`: Set `CURSOR_BACKEND_URL = proxyEndpoint` (also keep `CURSOR_API_BASE_URL`)
+  - `fetch-interceptor.ts`: Expanded to handle proxy-endpoint-targeted REST calls
+  - `Caddyfile.dev`: Added `/agent.v1*` route alongside `/aiserver.v1*`
+  - `path_routing_proxy.go`: TLS + h2c backend transport + `/agent.v1` prefix
+  - `unified_runner.go`: `NODE_TLS_REJECT_UNAUTHORIZED=0` for TLS proxy in tests
+  - `stigmer-cursor-bidi-path-route.yaml`: Added `/agent.v1` PathPrefix match
+  - `CursorBidiStreamHandler.java`: ByteBuf retain-before-async fix + forward access token
+- Test result: Agent executes through proxy, streaming_usage populated (input=10247, output=35)
+- **Remaining issue**: `ProxyUsageReporter` emits no billing records — `ConnectEnvelopeDecoder`
+  can't parse Cursor's response (sees JSON end-of-stream trailers as invalid envelope frames)
+
 ## Context for Resume
 
-- Tasks 1–5 are DONE. Task 6 (delete Phase 1) is DONE. Task 5B (routing fix) is the next critical task.
-- `recordCursorUsage` has been DELETED. Cursor billing is intentionally broken until Task 5B lands.
-- No production users on cursor harness — this is safe.
-- The BiDi proxy runs and is reachable on port 8082, but no traffic reaches it yet.
-- Root cause: fetch interceptor rewrites ALL paths to `/v1/proxy/cursor/{host}/{path}`,
-  which doesn't match PathRoutingProxy's `/aiserver.v1*` prefix → all traffic → Tomcat.
-- Fix: stop intercepting Connect RPC streams (let CURSOR_API_BASE_URL handle them
-  directly via HTTP/2), OR update routing rules to match the rewritten path.
+- Task 5B routing is DONE — traffic flows through the BiDi proxy end-to-end.
+- The `ConnectEnvelopeDecoder` issue is a separate concern from routing.
+- The decoder sees `{"code":...}` (Connect protocol end-of-stream JSON trailer) and fails
+  because it expects 5-byte envelope headers (flags + length prefix).
+- Fix needed: teach `ConnectEnvelopeDecoder` to detect and skip end-of-stream JSON messages.
+- Once decoder extracts usage, `ProxyUsageReporter` will emit billing records.
+- The auth fix (forward access token instead of replacing with raw API key) is critical —
+  Cursor's Connect RPC endpoint expects access tokens, not raw API keys.
+- `recordCursorUsage` is still deleted. Billing remains broken until decoder fix lands.
+- No production users on cursor harness — safe to iterate.
 
 ## Next Steps
 
-1. **Task 5B: Fix traffic routing to BiDi proxy** — the critical remaining work
-2. Choose routing approach (Option 1: don't rewrite Connect RPC in fetch interceptor)
-3. Verify `TestAgentExecution_CursorUsage_FullPipeline` passes with proxy-created billing records
+1. **Fix ConnectEnvelopeDecoder** — handle Connect protocol end-of-stream JSON trailers
+2. Rerun `TestAgentExecution_CursorUsage_FullPipeline` — verify billing records appear
+3. Run `TestAgentExecution_Config_ModelOverride` — verify REST proxy still works
 4. Deploy stigmer-cloud to prod (merge PRs or trigger CI)
-5. Write changelog entry
+5. Apply updated HTTPRoute to prod cluster (`kubectl apply`)
+6. Write final changelog entry
 
 ---
 

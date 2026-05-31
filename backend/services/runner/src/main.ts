@@ -363,22 +363,27 @@ async function main(): Promise<void> {
 
   const config = loadConfig();
 
-  // Set Cursor SDK base URL for proxy mode BEFORE any @cursor/sdk import.
-  // The SDK reads CURSOR_API_BASE_URL at module-load time as a top-level
-  // constant, so it must be in process.env before activity code is imported.
+  // Route ALL Cursor SDK traffic through the Stigmer proxy in proxy mode.
   //
-  // CURSOR_API_BASE_URL controls the connect-node HTTP/2 transport (Connect RPC).
-  // Set it to the proxy endpoint directly — the routing layer (Caddy locally,
-  // Istio HTTPRoute in production) path-routes /aiserver.v1.* to the Netty
-  // BiDi proxy on port 8082, which relays to api2.cursor.sh.
+  // CURSOR_BACKEND_URL controls:
+  //   1. connect-node Connect RPC transport (AgentService/Run BiDi stream)
+  //   2. Token exchange (fetch to ${baseUrl}/auth/exchange_user_api_key)
+  //   3. CloudApiClient REST (fetch to ${baseUrl}/v1/models, agent CRUD)
   //
-  // CURSOR_BACKEND_URL is intentionally left UNSET so that:
-  //   - CloudApiClient defaults to https://api.cursor.com (REST: /v1/models)
-  //   - Token exchange defaults to https://api2.cursor.sh (/auth/exchange)
-  // Both use globalThis.fetch, which the fetch interceptor rewrites to route
-  // through the proxy while preserving the correct upstream host.
+  // Setting it to proxyEndpoint makes connect-node send the BiDi stream to
+  // the proxy, where path routing (Caddy/Istio) dispatches /agent.v1* to the
+  // Netty BiDi proxy on port 8082.
+  //
+  // Side-effect: REST calls (#2, #3) also target proxyEndpoint via fetch.
+  // The fetch interceptor detects these (proxy-endpoint host, non-Connect path)
+  // and rewrites them to /v1/proxy/cursor/{upstream_host}{path} for Tomcat.
+  //
+  // CURSOR_API_BASE_URL is also set for completeness — older SDK versions
+  // may read it for token exchange instead of CURSOR_BACKEND_URL.
   if (config.proxyEndpoint) {
-    process.env.CURSOR_API_BASE_URL = config.proxyEndpoint.replace(/\/+$/, "");
+    const proxyBase = config.proxyEndpoint.replace(/\/+$/, "");
+    process.env.CURSOR_BACKEND_URL = proxyBase;
+    process.env.CURSOR_API_BASE_URL = proxyBase;
   }
 
   const runnerMode = process.env.STIGMER_RUNNER_MODE === "manager" ? "manager" : "static";
