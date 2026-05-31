@@ -149,6 +149,16 @@ export async function createStigmerRunnerManager(
     proxyEndpoint: config.proxyEndpoint ?? undefined,
     stigmerToken: config.stigmerToken ?? undefined,
   });
+
+  // HTTP/2 interceptor for Connect RPC auth + execution ID injection (BiDi billing)
+  const { installHttp2Interceptor } = await import(
+    "./activities/execute-cursor/http2-interceptor.js"
+  );
+  installHttp2Interceptor({
+    proxyEndpoint: config.proxyEndpoint ?? undefined,
+    stigmerToken: config.stigmerToken ?? undefined,
+  });
+
   const { setExecutionContextRef } = await import(
     "./activities/execute-cursor/rejection-capture.js"
   );

@@ -116,6 +116,19 @@ export async function createStigmerRunner(
     proxyEndpoint: config.proxyEndpoint ?? undefined,
     stigmerToken: config.stigmerToken ?? undefined,
   });
+
+  // The Cursor SDK's Connect RPC transport uses native HTTP/2, bypassing
+  // globalThis.fetch. This interceptor injects x-stigmer-execution-id and
+  // the Stigmer auth token on HTTP/2 streams so the BiDi proxy can
+  // authenticate and meter billing.
+  const { installHttp2Interceptor } = await import(
+    "./activities/execute-cursor/http2-interceptor.js"
+  );
+  installHttp2Interceptor({
+    proxyEndpoint: config.proxyEndpoint ?? undefined,
+    stigmerToken: config.stigmerToken ?? undefined,
+  });
+
   const { setExecutionContextRef } = await import(
     "./activities/execute-cursor/rejection-capture.js"
   );
