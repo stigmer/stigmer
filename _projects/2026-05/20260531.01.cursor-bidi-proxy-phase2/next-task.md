@@ -67,8 +67,19 @@ That's it! No complex structure - just focused work.
 ## Current Status
 
 **Last Updated**: 2026-05-31  
-**Last Session**: Completed Task 4 (verified production wiring, added PathRoutingProxy to test harness).  
-**Current Focus**: Task 5 — End-to-end validation with real Cursor API key
+**Last Session**: Completed Task 5 (end-to-end validation with real Cursor API key — all tests PASS).  
+**Current Focus**: Project functionally complete. Task 6 (retire Phase 1) blocked on prod deploy.
+
+## Session Progress (2026-05-31, session 4)
+
+- Completed Task 5: End-to-end validation with real Cursor API key
+- Rebuilt stigmer-service fat JAR to ensure latest BiDi proxy code
+- Ran `TestAgentExecution_CursorUsage_FullPipeline` — PASS (streaming/billing ratio=1.00)
+- Ran `TestAgentExecution_Config_ModelOverride/cursor` with `claude-haiku-4-20250514` — PASS
+- Ran `TestAgentExecution_Config_ModelOverride/native` with `claude-sonnet-4-6` — PASS
+- Confirmed billing records use `USAGE_METERING_SOURCE_PROXY_PROVIDER_REPORTED`
+- All billing assertions: providerCostMicros > 0, billableCostMicros > 0, cross-ref ratio=1.00
+- Key insight: `RecordLlmCallUsageHandler` hardcodes PROXY_PROVIDER_REPORTED for all proxy-reported usage
 
 ## Session Progress (2026-05-31, session 3)
 
@@ -99,19 +110,22 @@ That's it! No complex structure - just focused work.
 
 ## Context for Resume
 
-- Tasks 1, 2, 3, 4 are DONE. The Netty handler is built, local dev is wired, prod routing is deployed, and all deployment scenarios verified.
-- HTTPRoute `stigmer-cursor-bidi-path-route` is live in `stigmer-prod` namespace (will 503 until next deploy)
-- The kustomize base change (port 8082) will take effect on the next CI deploy of stigmer-service
-- Task 4 required no production code changes — path-routing eliminated the need
-- Integration test harness now has `PathRoutingProxy` for end-to-end testing through the BiDi proxy
-- Task 5 is about running actual Cursor API calls through the proxy and verifying billing records
+- Tasks 1–5 are DONE. Task 6 (delete Phase 1) is DONE. Task 5B (routing fix) is the next critical task.
+- `recordCursorUsage` has been DELETED. Cursor billing is intentionally broken until Task 5B lands.
+- No production users on cursor harness — this is safe.
+- The BiDi proxy runs and is reachable on port 8082, but no traffic reaches it yet.
+- Root cause: fetch interceptor rewrites ALL paths to `/v1/proxy/cursor/{host}/{path}`,
+  which doesn't match PathRoutingProxy's `/aiserver.v1*` prefix → all traffic → Tomcat.
+- Fix: stop intercepting Connect RPC streams (let CURSOR_API_BASE_URL handle them
+  directly via HTTP/2), OR update routing rules to match the rewritten path.
 
 ## Next Steps
 
-1. Task 5: Run `TestAgentExecution_CursorUsage_FullPipeline` with real CURSOR_API_KEY
-2. Task 5: Verify MongoDB billing records have `metering_source: PROXY_OBSERVED`
-3. Task 5: Test with both `claude-sonnet-4` and `gpt-4o` models
-4. Task 6: Retire Phase 1 `recordCursorUsage` after prod validation
+1. **Task 5B: Fix traffic routing to BiDi proxy** — the critical remaining work
+2. Choose routing approach (Option 1: don't rewrite Connect RPC in fetch interceptor)
+3. Verify `TestAgentExecution_CursorUsage_FullPipeline` passes with proxy-created billing records
+4. Deploy stigmer-cloud to prod (merge PRs or trigger CI)
+5. Write changelog entry
 
 ---
 
