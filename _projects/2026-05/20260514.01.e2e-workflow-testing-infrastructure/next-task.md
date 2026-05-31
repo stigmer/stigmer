@@ -68,8 +68,55 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-14 10:02
-**Current Task**: PROJECT COMPLETE. All 18 tasks (T02-T19) + OTel A1/A2/B + gap analysis coverage + seedpack workflow tests + test validation done.
-**Status**: Session 34 complete — ran full suite, fixed 10 failures (6 test + 1 converter bug + 1 harness path), all 278 tests pass.
+**Current Task**: Single-quoted jq expression fix + integration test gap closure (Session 35)
+**Status**: Fix implemented and tested at unit/golden level. 14 new integration tests added (not yet run in full suite). Pending runner rebuild + manual workflow re-run.
+
+## Session Progress (2026-05-31, Session 35 — Single-Quoted jq Fix & Test Gaps)
+
+### Accomplished
+
+- **Root cause**: jq-wasm rejects single-quoted string literals; approval gate `switch_case` conditions like `$context.team_lead_review.outcome == 'approve'` failed with syntax error
+- **Fix**: `normalizeSingleQuotedStrings()` lexer in TS expression engine, wired into `evaluateExpression()` pipeline
+- **Unit tests**: 143 tests pass (expression normalizer, switch task, golden #27 approval gate)
+- **Integration tests**: 14 new tests in 4 files — HITL→switch (4), string equality (5), expression errors (3), context chain (2)
+- **Docs**: Updated `expressions.md` to recommend single quotes in YAML
+
+### Key decisions
+
+- Runtime normalization over docs-only fix (single quotes are de facto standard in seedpack and user workflows)
+- Lexer state machine over regex (handles nested quotes, backslashes, comments safely)
+- Replay-safe via Temporal local activity (in-flight workflows unaffected)
+
+### Files changed (this session)
+
+- `backend/services/runner/src/workflow-engine/expression.ts`
+- `backend/services/runner/src/workflow-engine/__tests__/expression.test.ts`
+- `backend/services/runner/src/workflow-engine/__tests__/tasks/switch.test.ts`
+- `backend/services/runner/src/workflow-engine/__tests__/golden-execution.test.ts`
+- `backend/services/runner/test/golden/27-approval-gate-string-switch.yaml`
+- `test/integration/workflow_hitl_switch_test.go` (new)
+- `test/integration/workflow_switch_string_test.go` (new)
+- `test/integration/workflow_expression_errors_test.go` (new)
+- `test/integration/workflow_context_chain_test.go` (new)
+- `apis/ai/stigmer/agentic/workflow/docs/expressions.md`
+
+### Changelog
+
+`_changelog/2026-05/2026-05-31-144804-single-quoted-jq-expression-fix.md`
+
+### Next steps
+
+1. Rebuild runner (`npm run build` in `backend/services/runner`) and restart
+2. Re-run `daily-notification-plan` workflow to confirm approval gate routing
+3. Run `make test-integration` to validate 14 new integration tests in full suite
+
+### Quick Resume
+
+```
+@_projects/2026-05/20260514.01.e2e-workflow-testing-infrastructure/next-task.md
+```
+
+Checkpoint: `checkpoints/2026-05-31-session-35.md`
 
 ## Session Progress (2026-05-17, Session 34 — Integration Test Validation & Fixes)
 

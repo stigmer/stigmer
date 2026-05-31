@@ -1045,4 +1045,41 @@ describe("Golden Execution — Structured Output Pipeline", () => {
     expect(state.data.final_dau).toBe(7185);
     expect(state.data.anomaly_count).toBe(1);
   });
+
+  it("#27 approval-gate-string-switch — human_input → switch with single-quoted string condition (regression)", async () => {
+    const model = loadWorkflowFromYaml(loadGolden("27-approval-gate-string-switch.yaml"));
+
+    // Test approve path
+    {
+      const state = createState();
+      const mockAwaitHumanInput = vi.fn(async () => ({
+        outcome: "approve",
+        reviewer: "alice@test.com",
+      }));
+      const ctx = makeCtx({ awaitHumanInput: mockAwaitHumanInput });
+
+      await executeDoTasks(model.do, null, state, model, evaluateExpressionBatch, ctx);
+
+      expect(mockAwaitHumanInput).toHaveBeenCalledTimes(1);
+      expect(state.data.plan_ready).toBe(true);
+      expect(state.data.decision).toBe("approved");
+      expect(state.data.approved_by).toBe("alice@test.com");
+    }
+
+    // Test reject path
+    {
+      const state = createState();
+      const mockAwaitHumanInput = vi.fn(async () => ({
+        outcome: "reject",
+        reviewer: "bob@test.com",
+      }));
+      const ctx = makeCtx({ awaitHumanInput: mockAwaitHumanInput });
+
+      await executeDoTasks(model.do, null, state, model, evaluateExpressionBatch, ctx);
+
+      expect(mockAwaitHumanInput).toHaveBeenCalledTimes(1);
+      expect(state.data.plan_ready).toBe(true);
+      expect(state.data.decision).toBe("rejected");
+    }
+  });
 });

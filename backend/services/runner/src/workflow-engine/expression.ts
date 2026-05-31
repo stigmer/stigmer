@@ -11,8 +11,7 @@
  * - Recursive tree traversal for evaluating expressions in nested objects
  * - Conditional (if-statement) evaluation
  * - uuid() preprocessing (jq-wasm has no custom function support)
- *
- * The Go equivalent is `utils/runtime_expressions.go`.
+ * - Single-quote normalization (YAML ergonomic: `'approve'` → `"approve"`)
  *
  * NOTE: This module requires Node.js built-ins (crypto) and jq-wasm.
  * It must ONLY be imported from activity code running outside the
@@ -72,6 +71,142 @@ export async function interpolateString(
 }
 
 // ─────────────────────────────────────────────────────────────────────
+// Single-Quote Normalization
+// ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Converts single-quoted string literals in a jq expression to
+ * double-quoted literals with proper JSON/jq escaping.
+ *
+ * jq only supports double-quoted strings (JSON-style). Single quotes
+ * have zero valid meaning in jq syntax. However, YAML workflow authors
+ * naturally write `'approve'` inside double-quoted YAML values because
+ * escaping double quotes in YAML is awkward:
+ *
+ *   when: "${ $context.outcome == 'approve' }"   ← natural
+ *   when: "${ $context.outcome == \"approve\" }"  ← ugly
+ *
+ * This function bridges that gap using a jq-aware lexer with four
+ * states (CODE, IN_DOUBLE_QUOTE, IN_SINGLE_QUOTE, COMMENT) to ensure:
+ *
+ * - Single quotes inside double-quoted jq strings are NOT converted
+ *   (e.g., `"it's"` is valid jq and remains unchanged)
+ * - Characters inside single-quoted content are treated as literal
+ *   (shell-style: `\` is a literal backslash, not an escape prefix)
+ * - Double quotes inside single-quoted content are escaped (`\"`)
+ * - Unclosed single quotes pass through unchanged (let jq report the
+ *   actual syntax error rather than masking it)
+ * - jq `#` comments are left alone
+ *
+ * Must run BEFORE preprocessUuid so that `'uuid'` becomes `"uuid"`
+ * (a quoted string literal) and is not matched by the uuid
+ * word-boundary pattern.
+ */
+export function normalizeSingleQuotedStrings(expr: string): string {
+  if (!expr.includes("'")) return expr;
+
+  const out: string[] = [];
+  let i = 0;
+  const len = expr.length;
+
+  while (i < len) {
+    const ch = expr[i]!;
+
+    if (ch === "#") {
+      // COMMENT: copy everything until end of line
+      while (i < len && expr[i] !== "\n") {
+        out.push(expr[i]!);
+        i++;
+      }
+      continue;
+    }
+
+    if (ch === '"') {
+      // IN_DOUBLE_QUOTE: copy verbatim until unescaped closing "
+      out.push(ch);
+      i++;
+      while (i < len) {
+        const dqch = expr[i]!;
+        if (dqch === "\\") {
+          out.push(dqch);
+          i++;
+          if (i < len) {
+            out.push(expr[i]!);
+            i++;
+          }
+          continue;
+        }
+        out.push(dqch);
+        i++;
+        if (dqch === '"') break;
+      }
+      continue;
+    }
+
+    if (ch === "'") {
+      // IN_SINGLE_QUOTE: collect content until closing '
+      i++;
+      let content = "";
+      let closed = false;
+      while (i < len) {
+        if (expr[i] === "'") {
+          closed = true;
+          i++;
+          break;
+        }
+        content += expr[i];
+        i++;
+      }
+      if (!closed) {
+        // Unclosed single quote — pass through unchanged for jq to report
+        out.push("'");
+        out.push(content);
+      } else {
+        out.push(escapeForJqDoubleQuoted(content));
+      }
+      continue;
+    }
+
+    // CODE: pass through
+    out.push(ch);
+    i++;
+  }
+
+  return out.join("");
+}
+
+/**
+ * Encodes a raw string as a jq/JSON double-quoted literal. All
+ * characters are treated as literal (shell-style single-quote
+ * semantics): backslashes, double quotes, and control characters
+ * are escaped for jq compatibility.
+ */
+function escapeForJqDoubleQuoted(content: string): string {
+  let out = '"';
+  for (const ch of content) {
+    switch (ch) {
+      case '"': out += '\\"'; break;
+      case "\\": out += "\\\\"; break;
+      case "\n": out += "\\n"; break;
+      case "\r": out += "\\r"; break;
+      case "\t": out += "\\t"; break;
+      case "\b": out += "\\b"; break;
+      case "\f": out += "\\f"; break;
+      default: {
+        const code = ch.charCodeAt(0);
+        if (code < 0x20) {
+          out += "\\u" + code.toString(16).padStart(4, "0");
+        } else {
+          out += ch;
+        }
+        break;
+      }
+    }
+  }
+  return out + '"';
+}
+
+// ─────────────────────────────────────────────────────────────────────
 // UUID Preprocessing
 // ─────────────────────────────────────────────────────────────────────
 
@@ -101,7 +236,7 @@ export function preprocessUuid(expr: string): { expr: string; hadUuid: boolean }
  * state variables available as jq `$variable` bindings.
  *
  * The state variables map provides `$context`, `$data`, `$env`,
- * `$input`, `$output` — matching Go's `state.GetAsMap()`.
+ * `$input`, `$output` — matching the workflow state model.
  *
  * @param expr - Raw jq expression (already sanitized, no `${ }` wrapper)
  * @param input - The jq input value (`.` in jq)
@@ -112,7 +247,8 @@ export async function evaluateExpression(
   input: unknown,
   stateVars: Record<string, unknown>,
 ): Promise<unknown> {
-  const { expr: processedExpr } = preprocessUuid(expr);
+  const normalized = normalizeSingleQuotedStrings(expr);
+  const { expr: processedExpr } = preprocessUuid(normalized);
 
   const wrappedExpr = buildVariableBindingExpr(processedExpr, stateVars);
   const jqInput = buildJqInput(input, stateVars);
@@ -229,7 +365,7 @@ export async function evaluateString(
  * recursively; strings are checked for expressions; all other types
  * pass through unchanged.
  *
- * Matches Go's `utils.TraverseAndEvaluateObj` + `traverseAndEvaluate`.
+ * Originally ported from Go's `utils.TraverseAndEvaluateObj` (now deleted).
  *
  * IMPORTANT: Mutates the input object in place (maps and arrays).
  * Clone before calling if you need the original preserved.
@@ -274,7 +410,7 @@ export async function traverseAndEvaluate(
  * - The expression evaluates to "TRUE" (case-insensitive string)
  * - The expression evaluates to "1"
  *
- * Matches Go's `utils.CheckIfStatement`.
+ * Originally ported from Go's `utils.CheckIfStatement` (now deleted).
  */
 export async function checkIfStatement(
   ifExpr: string | undefined,

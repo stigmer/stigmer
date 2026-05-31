@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   isStrictExpr,
   sanitizeExpr,
+  normalizeSingleQuotedStrings,
   preprocessUuid,
   evaluateExpression,
   evaluateString,
@@ -607,5 +608,169 @@ describe("evaluateString — embedded expression support", () => {
       stateVars,
     );
     expect(result).toBe("Report for 2026-05-23.\nSummary: All good");
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// Single-Quote Normalization (Layer 0: pure function tests)
+// ─────────────────────────────────────────────────────────────────────
+
+describe("normalizeSingleQuotedStrings", () => {
+  it("converts a simple single-quoted string", () => {
+    expect(normalizeSingleQuotedStrings("$context.x == 'approve'"))
+      .toBe('$context.x == "approve"');
+  });
+
+  it("converts the production bug expression", () => {
+    expect(normalizeSingleQuotedStrings(
+      "$context.team_lead_review.outcome == 'approve'",
+    )).toBe('$context.team_lead_review.outcome == "approve"');
+  });
+
+  it("converts an empty single-quoted string", () => {
+    expect(normalizeSingleQuotedStrings("$context.x == ''"))
+      .toBe('$context.x == ""');
+  });
+
+  it("converts multiple single-quoted literals", () => {
+    expect(normalizeSingleQuotedStrings("'a' == 'b'"))
+      .toBe('"a" == "b"');
+  });
+
+  it("only converts singles, leaves doubles unchanged", () => {
+    expect(normalizeSingleQuotedStrings('$context.x == \'y\' and .z == "w"'))
+      .toBe('$context.x == "y" and .z == "w"');
+  });
+
+  it("escapes double quotes inside single-quoted strings", () => {
+    expect(normalizeSingleQuotedStrings("$context.x == 'he said \"hi\"'"))
+      .toBe('$context.x == "he said \\"hi\\""');
+  });
+
+  it("escapes backslashes inside single-quoted strings", () => {
+    expect(normalizeSingleQuotedStrings("$context.x == 'path\\to'"))
+      .toBe('$context.x == "path\\\\to"');
+  });
+
+  it("does not convert single quotes inside double-quoted strings", () => {
+    const expr = '"it\'s a test"';
+    expect(normalizeSingleQuotedStrings(expr)).toBe(expr);
+  });
+
+  it("is a no-op when no single quotes are present", () => {
+    expect(normalizeSingleQuotedStrings("$context.x > 5"))
+      .toBe("$context.x > 5");
+  });
+
+  it("converts strings with special characters", () => {
+    expect(normalizeSingleQuotedStrings("$context.x == 'in-progress'"))
+      .toBe('$context.x == "in-progress"');
+  });
+
+  it("passes through unclosed single quotes unchanged", () => {
+    const expr = "$context.x == 'broken";
+    expect(normalizeSingleQuotedStrings(expr)).toBe(expr);
+  });
+
+  it("handles jq comment lines without converting quotes", () => {
+    expect(normalizeSingleQuotedStrings("# it's a test"))
+      .toBe("# it's a test");
+  });
+
+  it("handles adjacent single-quoted strings", () => {
+    expect(normalizeSingleQuotedStrings("'hello' + ' ' + 'world'"))
+      .toBe('"hello" + " " + "world"');
+  });
+
+  it("handles strings with dots and versions", () => {
+    expect(normalizeSingleQuotedStrings("$context.ver == 'v1.2.3'"))
+      .toBe('$context.ver == "v1.2.3"');
+  });
+
+  it("handles expressions with no quotes at all", () => {
+    const expr = "$context.count > 5 and $data.valid == true";
+    expect(normalizeSingleQuotedStrings(expr)).toBe(expr);
+  });
+
+  it("handles escaped backslash inside double-quoted string followed by single", () => {
+    expect(normalizeSingleQuotedStrings('"escaped\\\\" + \'val\''))
+      .toBe('"escaped\\\\" + "val"');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// String Comparison via evaluateExpression (Layer 1: end-to-end jq-wasm)
+// ─────────────────────────────────────────────────────────────────────
+
+describe("evaluateExpression — single-quoted string comparisons", () => {
+  const stateVars = {
+    $context: {
+      outcome: "approve",
+      status: "in-progress",
+      team_lead_review: { outcome: "approve", reviewer: "alice" },
+    },
+    $data: {},
+    $env: {},
+    $input: null,
+    $output: null,
+  };
+
+  it("evaluates single-quoted string equality (true)", async () => {
+    const result = await evaluateExpression(
+      "$context.outcome == 'approve'", null, stateVars,
+    );
+    expect(result).toBe(true);
+  });
+
+  it("evaluates double-quoted string equality (true)", async () => {
+    const result = await evaluateExpression(
+      '$context.outcome == "approve"', null, stateVars,
+    );
+    expect(result).toBe(true);
+  });
+
+  it("evaluates single-quoted string equality (false)", async () => {
+    const result = await evaluateExpression(
+      "$context.outcome == 'reject'", null, stateVars,
+    );
+    expect(result).toBe(false);
+  });
+
+  it("evaluates special-char string comparison", async () => {
+    const result = await evaluateExpression(
+      "$context.status == 'in-progress'", null, stateVars,
+    );
+    expect(result).toBe(true);
+  });
+
+  it("evaluates nested context path with single-quoted comparison", async () => {
+    const result = await evaluateExpression(
+      "$context.team_lead_review.outcome == 'approve'", null, stateVars,
+    );
+    expect(result).toBe(true);
+  });
+
+  it("evaluates null-safe check with single-quoted string", async () => {
+    const result = await evaluateExpression(
+      "$context.outcome != null and $context.outcome == 'approve'",
+      null, stateVars,
+    );
+    expect(result).toBe(true);
+  });
+
+  it("evaluates jq if-then-else with single-quoted strings", async () => {
+    const result = await evaluateExpression(
+      'if $context.outcome == \'approve\' then "yes" else "no" end',
+      null, stateVars,
+    );
+    expect(result).toBe("yes");
+  });
+
+  it("evaluates mixed single and double quotes in one expression", async () => {
+    const result = await evaluateExpression(
+      '$context.outcome == \'approve\' and $context.status == "in-progress"',
+      null, stateVars,
+    );
+    expect(result).toBe(true);
   });
 });
