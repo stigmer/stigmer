@@ -67,8 +67,44 @@ That's it! No complex structure - just focused work.
 ## Current Status
 
 **Last Updated**: 2026-05-31  
-**Last Session**: Session 10 — Root-caused and fixed the Cursor SDK agent run error. Proxy was replacing client's valid Cursor access token with raw API key. Agent stream now completes successfully (~14s). Remaining issue: billing cost=0 because `ConnectEnvelopeDecoder` can't parse Cursor's response to extract model.  
-**Current Focus**: Fix `ConnectEnvelopeDecoder` / `ConnectCursorUsageExtractor` to correctly parse Cursor's streaming response (end-of-stream trailers) and extract model+usage for billing.
+**Last Session**: Session 11 — Fixed billing model extraction. Discovered Cursor auto-selects model server-side (no model in request), sends empty trailers (`{}`), and embeds actual model in `providerOptions.cursor.modelName` inside JSON strings within protobuf response envelopes. Added regex scanner for model extraction, gzip support for request model extractor, `composer-2.5-fast` to pricing registry. Integration test `TestAgentExecution_CursorUsage_FullPipeline` PASSES fully.  
+**Current Focus**: Deploy to production. All code is complete and tested.
+
+## Session Progress (2026-05-31, session 11)
+
+- **BILLING MODEL EXTRACTION — COMPLETE. Integration test PASSES fully.**
+  - Root cause was threefold: Cursor auto-selects model server-side (no `model_details` in request protobuf), sends empty `{}` end-of-stream trailers, and embeds actual model in `providerOptions.cursor.modelName` inside JSON within protobuf response envelopes.
+  - Wire-level investigation: Added INFO logging to `onEnvelope()` → 20 envelopes processed, trailer=`{}`. Hex-dumped first request envelope → `model_details` field 3 absent. ASCII-scanned all response envelopes → found `"modelName":"composer-2.5-fast"` in envelope #13.
+
+- **Changes made (stigmer-cloud):**
+  - `ConnectCursorUsageExtractor.java` — Added `scanForModelName()` regex scanner for `"modelName":"<value>"` in response payloads. Added `extractFromTrailer()` for Connect trailer metadata parsing. Uses extracted model in `finish()` instead of hardcoded "unknown".
+  - `ConnectModelExtractor.java` — Added gzip decompression for compressed request envelopes. Fixed pre-existing `onFirstEnvelope()` reentrancy bug (second envelope overwrite).
+  - `CursorModelResolver.java` — Added `"composer"` prefix → `"cursor"` provider mapping.
+  - `model-registry.json` — Added `composer-2.5-fast` pricing entry.
+  - `ConnectCursorUsageExtractorTest.java` — 10 new tests (trailer metadata, providerOptions scan, precedence).
+  - `ConnectModelExtractorTest.java` — 1 new test (gzip-compressed extraction), renamed existing test.
+
+- **Integration test result:**
+  - `STREAMING_USAGE: input=10247 output=24 turns=1 cost=$0.011097 model=default`
+  - `EXECUTION_REPORT: input=10247 output=24 calls=1 provider=5555 billable=6111 model=composer-2.5-fast`
+  - `CROSS_REF: streaming_total=10271 billing_total=10271 ratio=1.00`
+  - All assertions pass: `providerCostMicros > 0` ✓, `billableCostMicros > 0` ✓, ratio=1.00 ✓
+
+## Next Steps
+
+1. **Commit stigmer-cloud changes** — 7 files, 386 insertions
+2. **Create PRs** — stigmer-cloud PR for billing model extraction
+3. **Deploy** — Merge PRs, deploy stigmer-cloud to prod
+4. **Run REST proxy validation** — `TestAgentExecution_Config_ModelOverride/cursor` to confirm REST proxy still works
+5. **Complete project** — All tasks done, write final project completion notes
+
+## Context for Resume
+
+- The BiDi proxy billing pipeline is END-TO-END COMPLETE. Auth ✓, tokens ✓, model ✓, cost ✓.
+- `TestAgentExecution_CursorUsage_FullPipeline` PASSES fully. Do NOT revisit any prior issues.
+- The ONLY remaining work is deployment: commit, PR, merge, deploy.
+- All diagnostic logging has been removed from production code.
+- Fat JAR is rebuilt with all fixes.
 
 ## Session Progress (2026-05-31, session 10)
 
