@@ -516,13 +516,19 @@ async function executeCursorInner(
     }
 
     periodicHeartbeat.stop();
-    if (periodicHeartbeat.workerShutdown) {
+    // Check both the heartbeat flag AND the shutdown signal directly.
+    // Race condition: the heartbeat timer may detect Temporal's CancelledFailure
+    // (from worker.shutdown()) before the AbortSignal microtask propagates,
+    // causing it to set `cancelled` instead of `workerShutdown`. The direct
+    // signal check catches this case.
+    const isShutdown = periodicHeartbeat.workerShutdown || (shutdownSignal?.aborted ?? false);
+    if (isShutdown) {
       pauseDetected = false;
     } else if (periodicHeartbeat.cancelled) {
       pauseDetected = true;
     }
 
-    workerShutdownDetected = periodicHeartbeat.workerShutdown;
+    workerShutdownDetected = isShutdown;
 
     accumulator.finalize();
     deltaEnricher.finalize(status.messages);
