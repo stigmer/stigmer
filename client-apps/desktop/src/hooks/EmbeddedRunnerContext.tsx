@@ -4,6 +4,9 @@
  * Mounts at the app level to start the runner on first authenticated render.
  * Components throughout the tree can call addSession/removeSession via the
  * context without re-triggering the runner start.
+ *
+ * The runner's proxy endpoint is derived internally from the auth token and
+ * VITE_STIGMER_API_URL — no external configuration needed.
  */
 
 import { createContext, useContext, type ReactNode } from "react";
@@ -24,23 +27,13 @@ interface EmbeddedRunnerContext {
 const RunnerContext = createContext<EmbeddedRunnerContext | null>(null);
 
 export interface EmbeddedRunnerProviderProps {
-  /**
-   * LLM proxy endpoint for cloud-edition servers. When provided, the runner
-   * routes LLM calls through `{proxyEndpoint}/v1/proxy/llm/{provider}` using
-   * the stigmer token — no direct provider API keys needed.
-   *
-   * Derived from the server's reported deployment mode: set to the API URL
-   * when the server reports cloud edition, undefined for OSS/local.
-   */
-  proxyEndpoint: string | undefined;
   children: ReactNode;
 }
 
 export function EmbeddedRunnerProvider({
-  proxyEndpoint,
   children,
 }: EmbeddedRunnerProviderProps) {
-  const runner = useEmbeddedRunner({ proxyEndpoint });
+  const runner = useEmbeddedRunner();
   return (
     <RunnerContext.Provider value={runner}>{children}</RunnerContext.Provider>
   );
