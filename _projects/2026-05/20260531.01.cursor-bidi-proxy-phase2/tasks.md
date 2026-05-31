@@ -49,8 +49,9 @@ Build a Netty-based HTTP/2 handler in the Java service that supports full-duplex
 
 ## Task 2: Wire local dev environment (make desktop-dev)
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-05-31
+**Completed**: 2026-05-31 (commit ef0230182)
 
 Ensure the Netty BiDi proxy on port 8082 is reachable in local desktop dev mode and the runner routes `AgentService/Run` through it.
 
@@ -84,13 +85,14 @@ The runner uses `connect-node` (Node.js native HTTP/2 client), not `globalThis.f
 
 ## Task 3: Update Kustomize + Planton deployment for port 8082
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-05-31
+**Completed**: 2026-05-31
 
 Expose port 8082 in the Kubernetes service spec so the Netty BiDi proxy is reachable in production.
 
 ### Subtasks
-- [ ] Add port to `_kustomize/base/service.yaml`:
+- [x] Add port to `_kustomize/base/service.yaml`:
   ```yaml
   - name: cursor-bidi-proxy
     appProtocol: http2
@@ -99,9 +101,9 @@ Expose port 8082 in the Kubernetes service spec so the Netty BiDi proxy is reach
     containerPort: 8082
     isIngressPort: false  # Only reachable from within the cluster (runner → service)
   ```
-- [ ] Verify `_kustomize/overlays/prod/service.yaml` inherits the port (or add overlay if needed)
-- [ ] If ingress is needed (runners outside the cluster), set `isIngressPort: true` and add hostname routing
-- [ ] Verify Planton `KubernetesDeployment` CRD renders the port correctly into the k8s Service manifest
+- [x] Verify `_kustomize/overlays/prod/service.yaml` inherits the port (or add overlay if needed)
+- [x] If ingress is needed (runners outside the cluster), set `isIngressPort: true` and add hostname routing
+- [x] Verify Planton `KubernetesDeployment` CRD renders the port correctly into the k8s Service manifest
 
 ### Current Ports
 | Port | Protocol | Purpose |
