@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -255,7 +256,7 @@ func (m *UnifiedRunnerManager) RemoveWorkflowExecution(ctx context.Context, exec
 		return fmt.Errorf("send removeWorkflowExecution: %w", err)
 	}
 
-	resp, err := m.readResponse(ctx, 10*time.Second)
+	resp, err := m.readResponse(ctx, 60*time.Second)
 	if err != nil {
 		return fmt.Errorf("removeWorkflowExecution response: %w", err)
 	}
@@ -555,6 +556,9 @@ func buildUnifiedRunnerEnv(cfg UnifiedRunnerConfig, mode, taskQueue string) []st
 			fmt.Sprintf("STIGMER_PROXY_ENDPOINT=%s", cfg.ProxyEndpoint),
 			fmt.Sprintf("STIGMER_TOKEN=%s", runnerJWT),
 		)
+		if strings.HasPrefix(cfg.ProxyEndpoint, "https://") {
+			env = append(env, "NODE_TLS_REJECT_UNAUTHORIZED=0")
+		}
 		if cfg.LocalArtifactDir != "" {
 			env = append(env,
 				"ARTIFACT_STORAGE_TYPE=local",
