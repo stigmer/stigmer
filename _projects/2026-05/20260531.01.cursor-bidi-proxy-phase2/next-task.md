@@ -67,8 +67,64 @@ That's it! No complex structure - just focused work.
 ## Current Status
 
 **Last Updated**: 2026-05-31  
-**Last Session**: Session 8 — Implemented Option A (`x-stigmer-auth` header). All unit tests pass. Integration test blocked by pre-existing Netty REFUSED_STREAM issue.  
-**Current Focus**: Diagnose and fix the Netty-level REFUSED_STREAM that prevents the integration test from validating the full pipeline.
+**Last Session**: Session 9 — Diagnosed and fixed REFUSED_STREAM (two root causes: auth identity gap + port readiness race). Uncovered new issue: Cursor SDK agent run returns error through the proxy.  
+**Current Focus**: Investigate why the Cursor SDK `AgentService/Run` returns `status: error` when traffic flows through the BiDi proxy (upstream response, not proxy issue).
+
+## Session Progress (2026-05-31, session 9)
+
+- **REFUSED_STREAM ROOT-CAUSED AND FIXED — two independent issues found:**
+  1. **Auth identity mapping gap (PRIMARY)**: The test `IntegrationTestSecurityConfig.authenticationManager()` accepted all tokens but returned the raw `BearerTokenAuthenticationToken` unchanged. The BiDi handler passed this to `ProxyAuthorizationService.authorizeProxyScopes()`, which called `RequestCallerIdentityMapper.map()` — but the mapper couldn't extract an identity from a `BearerTokenAuthenticationToken` (it only knows `PlatformClientAuthenticationToken`, `FederatedAuthenticationToken`, `JwtAuthenticationToken`, `BearerTokenAuthentication`). Result: `user=""`, FGA denied `can_edit`, handler sent `RST_STREAM(REFUSED_STREAM)`.
+  2. **Port readiness race (SECONDARY)**: `service.go` waited for the gRPC port but not the BiDi port. The BiDi proxy starts at `SmartLifecycle` phase `DEFAULT_PHASE - 1` (near end of Spring lifecycle). In the failing rerun, requests arrived 17 seconds before the BiDi proxy bound its port.
+
+- **Both issues FIXED:**
+  - `IntegrationTestSecurityConfig.java` — `authenticationManager()` now takes `StigmerJwtVerifier`, verifies Stigmer JWTs, returns `PlatformClientAuthenticationToken` with the JWT `sub` claim. Falls back to accept-all for non-Stigmer tokens.
+  - `service.go` — Added `waitForPortOrExit(ctx, bidiAddr, 60s)` after gRPC port check. Service startup log now shows `bidi_proxy=` address.
+
+- **Verified: BiDi proxy now works end-to-end through the test harness:**
+  - Zero "authorization denied" messages in service log
+  - Upstream connection to `api2.cursor.sh` succeeds
+  - Data flows bidirectionally through the proxy
+  - `ConnectCursorUsageExtractor` processes envelopes (1 processed, no turn_ended events — because the upstream run errored)
+
+- **NEW ISSUE DISCOVERED: Cursor SDK agent run returns error:**
+  - After fixing both proxy issues, the Cursor SDK `AgentService/Run` stream now flows through the BiDi proxy correctly
+  - But the Cursor API returns an error — the SDK reports `status=ERROR` with no detail
+  - The run goes RUNNING → ERROR in ~2 seconds with zero messages
+  - REST proxy calls (token exchange, model list) return 200 — API key is valid
+  - `ConnectEnvelopeDecoder: invalid payload length 576941924` appears on response data — suggesting the upstream response contains non-envelope content (possibly a JSON error body)
+  - This error was previously masked: when auth denied the BiDi stream, the SDK likely retried via a direct connection path and succeeded
+  - Runner also reports `Failed to fetch model registry from API: 401` but continues with default pricing
+
+- **Changes made (stigmer OSS):**
+  - `test/integration/harness/service.go` — Added BiDi port readiness wait, updated "ready" log message
+
+- **Changes made (stigmer-cloud):**
+  - `IntegrationTestSecurityConfig.java` — Updated `authenticationManager()` to resolve Stigmer JWTs via `StigmerJwtVerifier`
+
+## Next Steps
+
+1. **INVESTIGATE: Cursor SDK agent run error (the ONLY remaining blocker)**
+   - The BiDi proxy is now correctly forwarding traffic — the error comes from the Cursor API upstream
+   - Add `Http2FrameLogger` to the upstream client pipeline to see the exact HTTP status code and response headers from `api2.cursor.sh`
+   - Check if the error is in the response STATUS (4xx/5xx) or in the response BODY (Connect RPC error envelope)
+   - Compare request headers sent by the proxy vs what the Cursor SDK sends directly — look for missing headers that Cursor requires
+   - Test with a direct connection (no proxy) to confirm the Cursor API works — if it also fails, the API key may be the issue
+   - Check the `rewriteHeaders()` logic — are all required headers (content-type, connect-protocol-version, te, etc.) being forwarded?
+
+2. **After SDK error is fixed:** Rerun `TestAgentExecution_CursorUsage_FullPipeline` — should validate full billing pipeline
+3. **Then:** Run `TestAgentExecution_Config_ModelOverride/cursor` to confirm REST proxy path still works
+4. **Deploy:** Merge PRs, deploy stigmer-cloud to prod
+5. **Changelog:** Write final changelog entry
+
+## Context for Resume
+
+- The REFUSED_STREAM is FULLY DIAGNOSED AND FIXED. Do NOT revisit it.
+- The BiDi proxy is now working correctly — auth succeeds, upstream connects, data relays bidirectionally.
+- The remaining issue is that the Cursor API itself returns an error when the agent stream goes through the proxy. The proxy is forwarding the error faithfully.
+- The `ConnectEnvelopeDecoder` sees `invalid payload length 576941924` — this is `0x22640E64` in hex, where `0x22` is `"` (double quote). This suggests the upstream response is JSON (not a Connect RPC envelope), which happens when the Cursor API returns an HTTP error response.
+- REST proxy calls (token exchange, /v1/models) return 200 — the API key works for REST but the agent stream fails.
+- The `rewriteHeaders()` method replaces auth with the Cursor API key and sets `:authority` to `api2.cursor.sh`. Other headers (content-type, connect-*, etc.) are passed through from the client.
+- The fat JAR was rebuilt with the auth fix and Bazel confirms clean build.
 
 ## Session Progress (2026-05-31, session 8)
 
