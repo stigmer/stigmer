@@ -83,10 +83,11 @@ export function loadConfig(): Config {
     ? requireEnv("STIGMER_TOKEN")
     : (process.env.STIGMER_TOKEN ?? null);
 
-  // In proxy mode, use STIGMER_TOKEN as the Cursor API key so that
-  // connect-node sends Authorization: Bearer ${STIGMER_TOKEN} to the proxy.
-  // The BiDi proxy (Netty :8082) validates this JWT and replaces it with the
-  // real CURSOR_API_KEY before forwarding to api2.cursor.sh.
+  // In proxy mode, pass STIGMER_TOKEN as the SDK's API key. The SDK exchanges
+  // it (via REST proxy → Tomcat → Cursor) for an access token. The HTTP/2
+  // interceptor injects x-stigmer-auth for BiDi proxy authentication while
+  // the SDK's authorization header (Cursor access token) passes through to
+  // api2.cursor.sh unchanged.
   const cursorApiKey = proxyActive
     ? (process.env.CURSOR_API_KEY ?? stigmerToken ?? "proxy-managed")
     : (process.env.CURSOR_API_KEY ?? "");

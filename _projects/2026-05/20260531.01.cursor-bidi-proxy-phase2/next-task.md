@@ -67,8 +67,58 @@ That's it! No complex structure - just focused work.
 ## Current Status
 
 **Last Updated**: 2026-05-31  
-**Last Session**: Session 9 — Diagnosed and fixed REFUSED_STREAM (two root causes: auth identity gap + port readiness race). Uncovered new issue: Cursor SDK agent run returns error through the proxy.  
-**Current Focus**: Investigate why the Cursor SDK `AgentService/Run` returns `status: error` when traffic flows through the BiDi proxy (upstream response, not proxy issue).
+**Last Session**: Session 10 — Root-caused and fixed the Cursor SDK agent run error. Proxy was replacing client's valid Cursor access token with raw API key. Agent stream now completes successfully (~14s). Remaining issue: billing cost=0 because `ConnectEnvelopeDecoder` can't parse Cursor's response to extract model.  
+**Current Focus**: Fix `ConnectEnvelopeDecoder` / `ConnectCursorUsageExtractor` to correctly parse Cursor's streaming response (end-of-stream trailers) and extract model+usage for billing.
+
+## Session Progress (2026-05-31, session 10)
+
+- **CURSOR SDK AGENT RUN ERROR — ROOT-CAUSED AND FIXED:**
+  - **Root cause**: `rewriteHeaders()` unconditionally stripped the client's `authorization` header (which contained a valid Cursor access token from token exchange) and replaced it with the raw Cursor API key from `cursorConfig.getApiKey()`. Cursor's streaming endpoint rejects raw API keys — it requires the access token obtained via token exchange.
+  - **Auth flow traced**: Runner → SDK exchanges Stigmer JWT for Cursor access token (via REST proxy) → SDK opens stream with `authorization: Bearer <access_token>` → HTTP/2 interceptor adds `x-stigmer-auth` (proxy auth) → BiDi proxy authenticates via `x-stigmer-auth` ✓ → BUT strips valid `authorization` and replaces with raw key → Cursor rejects
+  - **Fix**: When `x-stigmer-auth` is present (Option A path), forward the client's `authorization` to upstream as-is (it's the Cursor access token). Only replace with raw API key in the legacy path where `authorization` was used for proxy auth.
+
+- **Integration test CONFIRMS proxy works end-to-end:**
+  - Agent execution completes in ~14 seconds (was: 4-min timeout / instant error)
+  - `STREAMING_USAGE: input=10247 output=37 turns=1 cost=$0.012071 model=default`
+  - `CROSS_REF: streaming_total=10284 billing_total=10284 ratio=1.00`
+  - BiDi upstream connects to `api2.cursor.sh:443` successfully
+  - Zero "authorization denied" messages
+
+- **Remaining test failure — billing cost computation (pre-existing issue):**
+  - `EXECUTION_REPORT: input=10247 output=37 calls=1 provider=0 billable=0 model=unknown`
+  - `ConnectEnvelopeDecoder: invalid payload length 576941924` — still can't parse response
+  - `ConnectEnvelopeDecoder: invalid payload length 68682032` — flags byte issue
+  - The decoder can't handle Cursor's Connect RPC end-of-stream trailers
+  - Without model extraction, pricing fails → provider_cost=0 → billable_cost=0
+
+- **Changes made (stigmer OSS):**
+  - `backend/services/runner/src/config.ts` — Updated comment to reflect correct Option A auth flow
+
+- **Changes made (stigmer-cloud):**
+  - `CursorBidiStreamHandler.java` → `rewriteHeaders()` — Conditional auth forwarding: forward client's `authorization` when `x-stigmer-auth` present, replace with API key otherwise
+
+## Next Steps
+
+1. **FIX: ConnectEnvelopeDecoder response parsing (billing blocker)**
+   - The decoder sees `invalid payload length 576941924` (0x22 = `"` JSON) and `68682032` (0x04 flags)
+   - Cursor's Connect RPC response likely includes end-of-stream trailer frames (flags=0x02) containing JSON metadata with usage
+   - The decoder needs to handle: (a) trailers frame (flags != 0), (b) JSON metadata in the trailer
+   - The `ConnectCursorUsageExtractor` may need to extract usage from the trailer JSON, not just from data envelopes
+   - Reference: Connect streaming protocol spec — end-of-stream message has `flags & 0x02` set, body is JSON `{"metadata": {...}}`
+
+2. **After decoder fix:** Rerun `TestAgentExecution_CursorUsage_FullPipeline` — should pass fully
+3. **Then:** Run `TestAgentExecution_Config_ModelOverride/cursor` to confirm REST proxy path still works
+4. **Deploy:** Merge PRs, deploy stigmer-cloud to prod
+5. **Changelog:** Write final changelog entry
+
+## Context for Resume
+
+- The PROXY AUTH IS FULLY FIXED. Agent streams now complete successfully through the BiDi proxy. Do NOT revisit auth.
+- The ONLY remaining issue is billing cost extraction — the `ConnectEnvelopeDecoder` can't parse Cursor's response bytes.
+- The `ConnectCursorUsageExtractor.finish()` returns usage with tokens (from some path) but model="unknown" because it can't parse the response envelopes to find model/usage JSON.
+- The Connect streaming protocol end-of-stream frame has `flags & 0x02` set and contains JSON like `{"metadata": {"trailer-key": "value"}}`. The decoder should recognize this flag byte and parse the trailer JSON instead of treating it as a data envelope.
+- Token counts (10247/37) match between streaming and billing, suggesting the proxy IS seeing the data — it just can't decode the response format.
+- The fat JAR and runner are both rebuilt with the auth fix.
 
 ## Session Progress (2026-05-31, session 9)
 
