@@ -74,9 +74,13 @@ describe("getRunnerConfig", () => {
 describe("proxyEndpoint derivation", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    vi.unstubAllEnvs();
   });
 
-  it("derives proxyEndpoint from VITE_STIGMER_API_URL when token is present", async () => {
+  it("prefers VITE_STIGMER_RUNNER_PROXY_URL when set", async () => {
+    vi.stubEnv("VITE_STIGMER_RUNNER_PROXY_URL", "https://localhost:9093");
+    vi.stubEnv("VITE_STIGMER_API_URL", "http://localhost:9090");
+
     mockedLoadTokens.mockReturnValue({
       accessToken: "cloud-token",
       refreshToken: "refresh",
@@ -109,9 +113,46 @@ describe("proxyEndpoint derivation", () => {
     });
 
     expect(capturedConfig).not.toBeNull();
-    // VITE_STIGMER_API_URL is not set in test env, so falls through to
-    // normalizeToUrl(stigmerEndpoint) which produces a URL with scheme
-    expect(capturedConfig!.proxyEndpoint).toBeDefined();
+    expect(capturedConfig!.proxyEndpoint).toBe("https://localhost:9093");
+    expect(capturedConfig!.stigmerToken).toBe("cloud-token");
+  });
+
+  it("falls back to VITE_STIGMER_API_URL when runner proxy URL is not set", async () => {
+    vi.stubEnv("VITE_STIGMER_API_URL", "http://localhost:9090");
+
+    mockedLoadTokens.mockReturnValue({
+      accessToken: "cloud-token",
+      refreshToken: "refresh",
+      expiresAt: Date.now() + 3600_000,
+    });
+
+    let capturedConfig: Record<string, unknown> | null = null;
+
+    mockedInvoke.mockImplementation(async (cmd: string, args?: any) => {
+      if (cmd === "runner_status") {
+        return { running: false, activeSessions: [], activeWorkflowExecutions: [] };
+      }
+      if (cmd === "start_runner") {
+        capturedConfig = args.config;
+        return undefined;
+      }
+      if (cmd === "add_session") {
+        return `session:${args.sessionId}`;
+      }
+      throw new Error(`unexpected invoke: ${cmd}`);
+    });
+
+    const { renderHook, act } = await import("@testing-library/react");
+    const { useEmbeddedRunner } = await import("../useEmbeddedRunner");
+
+    const { result } = renderHook(() => useEmbeddedRunner());
+
+    await act(async () => {
+      await result.current.addSession("test-session");
+    });
+
+    expect(capturedConfig).not.toBeNull();
+    expect(capturedConfig!.proxyEndpoint).toBe("http://localhost:9090");
     expect(capturedConfig!.stigmerToken).toBe("cloud-token");
   });
 

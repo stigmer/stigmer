@@ -64,12 +64,16 @@ function getRunnerConfig(): RunnerConfig {
     || "localhost:7233";
   const stigmerToken = loadTokens()?.accessToken || undefined;
 
-  // Proxy endpoint must include a URL scheme (used raw by the runner's fetch
-  // interceptor for URL construction). Derive from VITE_STIGMER_API_URL which
-  // always includes the scheme. Token presence gates proxy mode: authenticated
-  // against a cloud-edition server implies the proxy is available.
+  // Proxy endpoint for the runner's Cursor SDK traffic. Must include a URL
+  // scheme and must be HTTPS so the SDK negotiates HTTP/2 via ALPN — required
+  // for the HTTP/2 interceptor that injects x-stigmer-auth headers.
+  //
+  // Precedence: dedicated runner proxy URL (TLS) > general API URL > fallback.
+  // Token presence gates proxy mode: authenticated against a cloud-edition
+  // server implies the proxy is available.
   const proxyEndpoint = stigmerToken
-    ? (import.meta.env.VITE_STIGMER_API_URL
+    ? (import.meta.env.VITE_STIGMER_RUNNER_PROXY_URL
+       || import.meta.env.VITE_STIGMER_API_URL
        || localStorage.getItem("stigmer.apiUrl")
        || normalizeToUrl(stigmerEndpoint))
     : undefined;

@@ -67,8 +67,46 @@ That's it! No complex structure - just focused work.
 ## Current Status
 
 **Last Updated**: 2026-05-31  
-**Last Session**: Session 11 — Fixed billing model extraction. Discovered Cursor auto-selects model server-side (no model in request), sends empty trailers (`{}`), and embeds actual model in `providerOptions.cursor.modelName` inside JSON strings within protobuf response envelopes. Added regex scanner for model extraction, gzip support for request model extractor, `composer-2.5-fast` to pricing registry. Integration test `TestAgentExecution_CursorUsage_FullPipeline` PASSES fully.  
-**Current Focus**: Deploy to production. All code is complete and tested.
+**Last Session**: Session 12 — Fixed desktop-dev REFUSED_STREAM error. Root-caused to HTTP/1.1 vs HTTP/2 gap: `make desktop-dev` used `http://localhost:9090` (plain HTTP), so Cursor SDK used HTTP/1.1, HTTP/2 interceptor never fired, `x-stigmer-auth` never injected, BiDi proxy refused unauthenticated streams. Fix: added TLS Caddy listener on :9093 with self-signed cert, dedicated `VITE_STIGMER_RUNNER_PROXY_URL` env var, `NODE_TLS_REJECT_UNAUTHORIZED=0` in runner subprocess. All desktop tests pass (24/24), Caddy config validates.  
+**Current Focus**: Deploy to production. Desktop-dev and integration test paths both work.
+
+## Session Progress (2026-05-31, session 12)
+
+- **DESKTOP-DEV REFUSED_STREAM — ROOT-CAUSED AND FIXED:**
+  - Root cause: Cursor SDK's connect-node transport uses HTTP/2 ONLY over TLS (ALPN). Desktop-dev used `http://localhost:9090` → SDK fell back to HTTP/1.1 → HTTP/2 interceptor (patches `http2.connect()`) never fired → `x-stigmer-auth` never injected → BiDi proxy couldn't authenticate → `REFUSED_STREAM`.
+  - The integration test passes because its `PathRoutingProxy` uses HTTPS with a self-signed cert (confirmed by the Go code comment: "TLS is required because the Cursor SDK's connect-node transport uses HTTP/2 only over TLS").
+  - Evidence: error log showed `proto: HTTP/1.1`, `Connection: keep-alive` (HTTP/1.1 semantics), zero `x-stigmer` headers in any request.
+
+- **Fix implemented (stigmer OSS, 8 files):**
+  - `gen-dev-certs.sh` (NEW) — Idempotent ECDSA P-256 cert generation for localhost
+  - `Caddyfile.dev` — Added HTTPS :9093 site block for runner HTTP/2 traffic
+  - `.env.development` — Added `VITE_STIGMER_RUNNER_PROXY_URL=https://localhost:9093`
+  - `useEmbeddedRunner.ts` — proxyEndpoint now prefers `VITE_STIGMER_RUNNER_PROXY_URL`
+  - `runner.rs` — Sets `NODE_TLS_REJECT_UNAUTHORIZED=0` when proxy is HTTPS
+  - `Makefile` — `launch-desktop` calls `gen-dev-certs.sh` before Caddy starts
+  - `.gitignore` — Excludes `client-apps/desktop/scripts/.certs/`
+  - `useEmbeddedRunner.test.ts` — New tests for env var precedence
+
+- **Verification:**
+  - All 24 desktop tests pass (including 2 new proxy endpoint tests)
+  - Caddy validates the updated config (`Valid configuration`)
+  - Cert generation is idempotent (second run skips)
+  - Generated cert files are properly gitignored
+
+## Next Steps
+
+1. **Commit stigmer-cloud changes** — 7 files, 386 insertions (billing model extraction)
+2. **Create PRs** — stigmer-cloud PR for billing model extraction
+3. **Deploy** — Merge PRs, deploy stigmer-cloud to prod
+4. **Verify desktop-dev end-to-end** — Run `make desktop-dev` and trigger an agent execution
+5. **Complete project** — All tasks done, write final project completion notes
+
+## Context for Resume
+
+- Desktop-dev TLS fix is committed to `feat/workflow-ux-overhaul` branch.
+- The architecture: :9090 (HTTP, frontend) + :9093 (HTTPS/H2, runner). Two ports, clear separation.
+- Integration test and desktop-dev now use the SAME pattern: TLS proxy → HTTP/2 → interceptor fires.
+- stigmer-cloud changes (billing model extraction from session 11) still need to be committed/PR'd.
 
 ## Session Progress (2026-05-31, session 11)
 
