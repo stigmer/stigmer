@@ -124,12 +124,24 @@ func TestMain(m *testing.M) {
 	// Start unified runner on the global task queue.
 	// It registers all activities: ExecuteCursor, ExecuteDeepAgent,
 	// workflow engine tasks, MCP activities.
+	//
+	// PathRoutingProxy mirrors production path-based routing (Caddy/Istio):
+	//   /aiserver.v1* -> Netty BiDi proxy (h2c)
+	//   everything else -> Tomcat HTTP
+	pathProxy, err := harness.NewPathRoutingProxy(svc.HTTPAddress(), svc.BiDiProxyAddress())
+	if err != nil {
+		suiteLogger.Error("failed to start path routing proxy", "error", err)
+		testHarness.Stop(ctx)
+		os.Exit(1)
+	}
+	defer pathProxy.Close()
+
 	unifiedCfg := harness.UnifiedRunnerConfig{
 		StigmerServiceAddress: svc.GRPCAddress(),
 		TemporalAddress:       testHarness.Temporal.Address(),
 		LogDir:                logDir,
 		CursorAPIKey:          cursorKey,
-		ProxyEndpoint:         svc.HTTPAddress(),
+		ProxyEndpoint:         pathProxy.Address(),
 	}
 	if testHarness.OTelEnabled() {
 		unifiedCfg.OTLPEndpoint = testHarness.Jaeger.OTLPAddress

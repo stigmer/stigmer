@@ -34,12 +34,13 @@ func FindServiceJar() string {
 
 // JavaService manages the stigmer-service fat JAR as a child process.
 type JavaService struct {
-	cmd      *exec.Cmd
-	GRPCPort string
-	HTTPPort string
-	logFile  *os.File
-	logPath  string
-	logger   *slog.Logger
+	cmd            *exec.Cmd
+	GRPCPort       string
+	HTTPPort       string
+	BiDiProxyPort  string
+	logFile        *os.File
+	logPath        string
+	logger         *slog.Logger
 }
 
 // LogPath returns the path to the service log file.
@@ -164,6 +165,12 @@ func StartJavaService(ctx context.Context, cfg ServiceConfig, logger *slog.Logge
 		cfg.HTTPPort = fmt.Sprintf("%d", p)
 	}
 
+	bidiPort, err := freePort()
+	if err != nil {
+		return nil, fmt.Errorf("allocate bidi proxy port: %w", err)
+	}
+	bidiPortStr := fmt.Sprintf("%d", bidiPort)
+
 	logDir := cfg.LogDir
 	if logDir == "" {
 		var mkErr error
@@ -185,7 +192,9 @@ func StartJavaService(ctx context.Context, cfg ServiceConfig, logger *slog.Logge
 	// Previously, CommandContext tied the JVM to a 5-minute TestMain deadline,
 	// which silently killed the process during long-running tests.
 	cmd := exec.Command("java", "-jar", cfg.JarPath)
-	cmd.Env = buildServiceEnv(cfg)
+	cmd.Env = append(buildServiceEnv(cfg),
+		fmt.Sprintf("STIGMER_PROXY_CURSOR_BIDI_PORT=%s", bidiPortStr),
+	)
 	cmd.Stdout = logFile
 	cmd.Stderr = logFile
 
@@ -193,6 +202,7 @@ func StartJavaService(ctx context.Context, cfg ServiceConfig, logger *slog.Logge
 		"jar", cfg.JarPath,
 		"grpc_port", cfg.GRPCPort,
 		"http_port", cfg.HTTPPort,
+		"bidi_proxy_port", bidiPortStr,
 		"mongo", fmt.Sprintf("%s:%s", cfg.MongoHost, cfg.MongoPort),
 		"temporal", cfg.TemporalAddress,
 	)
@@ -230,12 +240,13 @@ func StartJavaService(ctx context.Context, cfg ServiceConfig, logger *slog.Logge
 	)
 
 	return &JavaService{
-		cmd:      cmd,
-		GRPCPort: cfg.GRPCPort,
-		HTTPPort: cfg.HTTPPort,
-		logFile:  logFile,
-		logPath:  logPath,
-		logger:   logger,
+		cmd:           cmd,
+		GRPCPort:      cfg.GRPCPort,
+		HTTPPort:      cfg.HTTPPort,
+		BiDiProxyPort: bidiPortStr,
+		logFile:       logFile,
+		logPath:       logPath,
+		logger:        logger,
 	}, nil
 }
 
@@ -245,6 +256,10 @@ func (s *JavaService) GRPCAddress() string {
 
 func (s *JavaService) HTTPAddress() string {
 	return fmt.Sprintf("http://127.0.0.1:%s", s.HTTPPort)
+}
+
+func (s *JavaService) BiDiProxyAddress() string {
+	return fmt.Sprintf("http://127.0.0.1:%s", s.BiDiProxyPort)
 }
 
 func (s *JavaService) Stop() error {
