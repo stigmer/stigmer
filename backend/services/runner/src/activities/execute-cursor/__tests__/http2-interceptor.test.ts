@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { createRequire } from "node:module";
 import type http2Type from "node:http2";
-import { installHttp2Interceptor, uninstallHttp2Interceptor } from "../http2-interceptor.js";
+import { installHttp2Interceptor, uninstallHttp2Interceptor, updateHttp2InterceptorToken } from "../http2-interceptor.js";
 import { getExecutionContext } from "../fetch-interceptor.js";
 
 const require = createRequire(import.meta.url);
@@ -278,6 +278,50 @@ describe("http2-interceptor", () => {
       });
 
       expect(mock.calls[0].headers).not.toHaveProperty("x-stigmer-execution-id");
+    });
+  });
+
+  describe("updateHttp2InterceptorToken", () => {
+    let mock: ReturnType<typeof createMockConnect>;
+
+    beforeEach(() => {
+      mock = createMockConnect();
+      http2.connect = mock.mockConnect;
+      installHttp2Interceptor({ proxyEndpoint: PROXY_ENDPOINT, stigmerToken: STIGMER_TOKEN });
+    });
+
+    it("subsequent requests use the updated token", () => {
+      const session = http2.connect(PROXY_ENDPOINT);
+      session.request({ ":path": "/agent.v1.AgentService/Run" });
+
+      expect(mock.calls[0].headers).toHaveProperty("x-stigmer-auth", `Bearer ${STIGMER_TOKEN}`);
+
+      const refreshedToken = "refreshed-stigmer-jwt-token";
+      updateHttp2InterceptorToken(refreshedToken);
+
+      session.request({ ":path": "/agent.v1.AgentService/Run" });
+
+      expect(mock.calls[1].headers).toHaveProperty("x-stigmer-auth", `Bearer ${refreshedToken}`);
+    });
+
+    it("new sessions after token update use the updated token", () => {
+      updateHttp2InterceptorToken("new-token-value");
+
+      const session = http2.connect(PROXY_ENDPOINT);
+      session.request({ ":path": "/aiserver.v1.AnalyticsService/BootstrapStatsig" });
+
+      expect(mock.calls[0].headers).toHaveProperty("x-stigmer-auth", "Bearer new-token-value");
+    });
+
+    it("is a no-op when interceptor is not installed", () => {
+      uninstallHttp2Interceptor();
+      // Should not throw
+      updateHttp2InterceptorToken("orphan-token");
+
+      const session = http2.connect(PROXY_ENDPOINT);
+      session.request({ ":path": "/test" });
+
+      expect(mock.calls[0].headers).not.toHaveProperty("x-stigmer-auth");
     });
   });
 });
