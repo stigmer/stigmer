@@ -68,9 +68,19 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-06-01 14:37
-**Current Task**: T08 complete. Only T07 (Integration Tests) and T09 (Manual Verification) remain.
-**Status**: T01–T06 implemented, T08 documentation fixes committed. Two validation tasks remain (T07, T09).
-**Last Session**: 2026-06-01 — T08 (Proto + Documentation Fixes) completed.
+**Current Task**: T07 complete. Only T09 (Manual Verification) remains.
+**Status**: T01–T08 implemented and tested. One validation task remains (T09).
+**Last Session**: 2026-06-01 — T07 (Integration Tests) completed.
+
+## Session Progress (2026-06-01, Session 8)
+
+### T07 Completed: Recovery Task-Resume Integration Tests
+- Created `test/integration/workflow_execution_recover_task_resume_test.go` — 3 new integration tests
+- `TestRecover_SkipsCompletedTasks` (1.4s): verifies WORKFLOW_TASK_SKIPPED status, task_skipped events with recovery reason, Temporal child/orchestrator terminal
+- `TestRecover_EventSequenceContinuation` (1.2s): verifies post-recovery events have seq > pre-recovery high-water mark, monotonically increasing, no duplicates
+- `TestRecover_AgentCallTaskSkip` (14.3s): verifies agent_call tasks correctly handled through skip path (requires CURSOR_API_KEY)
+- All 3 tests pass against full service stack (Temporal + Java service + TS runner + Mongo + Redis + OpenFGA)
+- Validation: `go vet` clean, `gofmt` clean, `go build` clean
 
 ## Session Progress (2026-06-01, Session 7)
 
@@ -179,10 +189,9 @@ When starting a new session:
 
 Pick the next task:
 
-1. **T07** (Medium) — Integration Tests (all prerequisites met)
-2. **T09** (Small) — Manual Verification (MongoDB reset) — needs all code deployed locally
+1. **T09** (Small) — Manual Verification (MongoDB reset) — needs all code deployed locally
 
-All implementation and documentation tasks (T01–T08) are complete. Remaining tasks are validation only.
+All implementation, documentation, and integration test tasks (T01–T08) are complete. Only manual verification remains.
 
 ## Task Summary (9 tasks, ~1 week)
 
@@ -194,13 +203,13 @@ All implementation and documentation tasks (T01–T08) are complete. Remaining t
 | T04 | Fix Cursor Error Classification | Medium | **Done** ✅ |
 | T05 | React Event Store Reset | Small | **Done** ✅ |
 | T06 | Temporal Cleanup (Child Termination) | Small | **Done** ✅ |
-| T07 | Integration Tests | Medium | Ready (T03 done) |
+| T07 | Integration Tests | Medium | **Done** ✅ |
 | T08 | Proto + Documentation | Small | **Done** ✅ |
 | T09 | Manual Verification (MongoDB reset) | Small | Blocked (needs all code) |
 
 **Batch 1 (days 1-2):** ~~T01~~, ~~T04~~, ~~T05~~, ~~T06~~
 **Sequential core (days 2-4):** ~~T02~~, ~~T03~~
-**Validation (days 4-5):** T07, ~~T08~~, T09
+**Validation (days 4-5):** ~~T07~~, ~~T08~~, T09
 
 ## Quick Commands
 
