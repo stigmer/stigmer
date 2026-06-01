@@ -162,6 +162,18 @@ export function installHttp2Interceptor(opts: {
 }
 
 /**
+ * Update the auth token on the live interceptor config. Must be called
+ * whenever the Stigmer JWT is refreshed (e.g. via IPC updateToken) so
+ * that HTTP/2-intercepted streams use the current token instead of the
+ * one frozen at install time.
+ */
+export function updateHttp2InterceptorToken(token: string): void {
+  if (config) {
+    config = { ...config, stigmerToken: token };
+  }
+}
+
+/**
  * Remove the interceptor and restore the original http2.connect.
  * Primarily for testing.
  */

@@ -67,8 +67,44 @@ That's it! No complex structure - just focused work.
 ## Current Status
 
 **Last Updated**: 2026-06-01  
-**Last Session**: Session 13 — Fixed BiDi proxy auth failure in local dev. Root-caused: HTTP/2 interceptor gated `x-stigmer-auth` injection on execution context (`ctx?.executionId && config`), so SDK requests outside AsyncLocalStorage scope (bootstrap, analytics, reconnects) reached the proxy without auth credentials. Handler fell back to `authorization` (Cursor access token), which no provider could validate. Fix: decoupled auth from execution context — always inject `x-stigmer-auth` on proxy-bound connections, keep execution ID conditional. Also tightened `IntegrationTestSecurityConfig` to reject non-Stigmer tokens (production-faithful), and added diagnostic logging to BiDi handler auth failures.  
-**Current Focus**: Deploy to production. Rebuild runner + fat JAR, then `make desktop-dev` to verify zero auth failures.
+**Last Session**: Session 14 — Fixed persistent BiDi proxy auth failure caused by a fetch interceptor classification gap. BootstrapStatsig and analytics calls use `fetch` (HTTP/1.1), not Connect RPC (HTTP/2). The fetch interceptor exempted all `/aiserver.v1.*` paths assuming they go through HTTP/2. Neither interceptor injected `x-stigmer-auth`. Fix: added `needsProxyAuthOnly()` path in the fetch interceptor to inject auth on Connect-RPC-like paths arriving via fetch. Also added `updateHttp2InterceptorToken()` for token refresh and 14 new unit tests.  
+**Current Focus**: Manual `make desktop-dev` verification, then deploy to production.
+
+## Session Progress (2026-06-01, session 14)
+
+- **PERSISTENT BIDI AUTH FAILURE — ROOT-CAUSED AND FIXED:**
+  - Root cause: Cursor SDK sends some `/aiserver.v1.*` calls (BootstrapStatsig, analytics, telemetry) via `fetch` (HTTP/1.1), not via `connect-node` (HTTP/2). The fetch interceptor classified all `/aiserver.v1.*` paths as Connect RPC and exempted them. The HTTP/2 interceptor never sees fetch-based requests. Result: neither interceptor injected `x-stigmer-auth`.
+  - Evidence from error log: `"proto": "HTTP/1.1"`, `"Content-Type": ["application/json"]` — proving the request was fetch-based.
+  - Fix: Split `isCursorRequest` into `needsUrlRewrite()` (REST → CursorProxyController) and `needsProxyAuthOnly()` (Connect-RPC-via-fetch → BiDi proxy auth injection). Added `injectProxyAuth()` which adds `x-stigmer-auth` alongside existing `authorization` (matching HTTP/2 interceptor behavior).
+
+- **HTTP/2 interceptor token staleness — FIXED:**
+  - `updateToken()` in `runner-manager.ts` only updated the fetch interceptor's token. Added `updateHttp2InterceptorToken()` export and wired it into `updateToken()`.
+
+- **14 new unit tests added:**
+  - `fetch-interceptor.test.ts` (11 tests): Connect-RPC auth injection, header preservation, URL passthrough, execution context, REST rewriting, non-proxy passthrough
+  - `http2-interceptor.test.ts` (+3 tests): Token update on existing/new sessions, no-op safety
+
+- **All 62 interceptor tests pass. Zero regressions in 2149 runner unit tests.**
+
+- **Changes made (stigmer OSS, 5 files):**
+  - `fetch-interceptor.ts` — New `needsProxyAuthOnly()` + `injectProxyAuth()` + `fetchWithProxyAuth()` path
+  - `http2-interceptor.ts` — `updateHttp2InterceptorToken()` export
+  - `runner-manager.ts` — Wire HTTP/2 token update into `updateToken()`
+  - `__tests__/fetch-interceptor.test.ts` (NEW) — 11 unit tests
+  - `__tests__/http2-interceptor.test.ts` — 3 new token update tests
+
+## Next Steps
+
+1. **Verify local dev** — `make desktop-dev` + trigger agent execution, confirm zero auth failures in Java logs
+2. **Commit and create PRs** — BiDi proxy auth fix (runner-side only, no stigmer-cloud changes needed)
+3. **Deploy** — Merge and deploy to prod
+
+## Context for Resume
+
+- The fetch interceptor fix is COMPLETE and tested. All 62 unit tests pass.
+- No stigmer-cloud changes needed for this fix — the Java BiDi handler already handles `x-stigmer-auth` correctly.
+- The verify-local-dev step requires manual testing with `make desktop-dev`.
+- Changelog created: `_changelog/2026-06/2026-06-01-140033-fix-bidi-proxy-fetch-interceptor-gap.md`
 
 ## Session Progress (2026-06-01, session 13)
 

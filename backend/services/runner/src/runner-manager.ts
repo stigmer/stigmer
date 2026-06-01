@@ -151,7 +151,7 @@ export async function createStigmerRunnerManager(
   });
 
   // HTTP/2 interceptor for Connect RPC auth + execution ID injection (BiDi billing)
-  const { installHttp2Interceptor } = await import(
+  const { installHttp2Interceptor, updateHttp2InterceptorToken } = await import(
     "./activities/execute-cursor/http2-interceptor.js"
   );
   installHttp2Interceptor({
@@ -296,6 +296,7 @@ export async function createStigmerRunnerManager(
       if (token) {
         process.env.STIGMER_TOKEN = token;
         updateInterceptorToken(token);
+        updateHttp2InterceptorToken(token);
       } else {
         delete process.env.STIGMER_TOKEN;
       }

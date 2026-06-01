@@ -43,10 +43,12 @@ export function getExecutionContext(): AsyncLocalStorage<ExecutionContextStore> 
 }
 
 /**
- * Connect RPC path prefixes used by the Cursor SDK. Requests with these
- * prefixes are handled by connect-node (native HTTP/2) and should NOT be
- * rewritten — they go directly to the proxy endpoint where path routing
- * dispatches them to the BiDi proxy on port 8082.
+ * Connect RPC path prefixes used by the Cursor SDK. Most requests with
+ * these prefixes go through connect-node (native HTTP/2) and are handled
+ * by the HTTP/2 interceptor. However, some SDK calls to these paths use
+ * fetch (HTTP/1.1) instead — e.g. BootstrapStatsig, LogStatsigExposure.
+ * Those still need proxy auth injection even though they don't need URL
+ * rewriting.
  */
 const CONNECT_RPC_PREFIXES = ["/agent.v1.", "/aiserver.v1."];
 
@@ -68,20 +70,42 @@ function isProxyEndpointHost(parsed: URL, proxyEndpoint: string): boolean {
   }
 }
 
-function isCursorRequest(url: string): boolean {
+/**
+ * Determines whether a fetch request needs URL rewriting through the
+ * CursorProxyController (/v1/proxy/cursor/...). This applies to REST
+ * calls (token exchange, /v1/models, agent CRUD) but NOT to Connect
+ * RPC paths which are dispatched directly by path routing.
+ */
+function needsUrlRewrite(url: string): boolean {
   try {
     const parsed = new URL(url);
     if (CURSOR_DOMAINS.some((d) => parsed.hostname === d || parsed.hostname.endsWith(`.${d}`))) {
       return true;
     }
-    // When CURSOR_BACKEND_URL = proxyEndpoint, SDK REST calls (token exchange,
-    // CloudApiClient) target the proxy endpoint host via fetch. Intercept these
-    // so they get rewritten to /v1/proxy/cursor/{upstream} for CursorProxyController.
-    // Connect RPC paths are excluded — they go directly to path routing.
     if (interceptorConfig && isProxyEndpointHost(parsed, interceptorConfig.proxyEndpoint)) {
       return !isConnectRpcPath(parsed.pathname) && !parsed.pathname.startsWith("/v1/proxy/");
     }
     return false;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Determines whether a fetch request targets the proxy endpoint with a
+ * Connect-RPC-like path. The Cursor SDK sends some /aiserver.v1.* calls
+ * (BootstrapStatsig, analytics, telemetry) via fetch (HTTP/1.1) rather
+ * than connect-node (HTTP/2). These bypass the HTTP/2 interceptor, so
+ * this fetch interceptor must inject x-stigmer-auth to authenticate
+ * with the BiDi proxy. The URL is NOT rewritten — path routing delivers
+ * them to the BiDi proxy directly.
+ */
+function needsProxyAuthOnly(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    if (!interceptorConfig) return false;
+    if (!isProxyEndpointHost(parsed, interceptorConfig.proxyEndpoint)) return false;
+    return isConnectRpcPath(parsed.pathname);
   } catch {
     return false;
   }
@@ -131,9 +155,31 @@ function rewriteUrl(originalUrl: string, proxyEndpoint: string): string {
   return `${proxyBase}/v1/proxy/cursor/${parsed.hostname}${parsed.pathname}${parsed.search}`;
 }
 
+/**
+ * Replaces the authorization header with the Stigmer token. Used for
+ * REST calls routed through CursorProxyController, where the proxy
+ * itself authenticates with Cursor using the configured API key.
+ */
 function replaceAuth(init: RequestInit | undefined, config: ProxyConfig): RequestInit {
   const headers = new Headers(init?.headers);
   headers.set("authorization", `Bearer ${config.stigmerToken}`);
+  const ctx = executionContext.getStore();
+  const effectiveExecutionId = ctx?.executionId ?? config.executionId;
+  if (effectiveExecutionId) {
+    headers.set("x-stigmer-execution-id", effectiveExecutionId);
+  }
+  return { ...init, headers };
+}
+
+/**
+ * Injects x-stigmer-auth alongside the existing authorization header.
+ * Used for Connect-RPC-like paths that arrive via fetch — the BiDi
+ * proxy authenticates the runner via x-stigmer-auth and forwards the
+ * original authorization (Cursor access token) to upstream Cursor.
+ */
+function injectProxyAuth(init: RequestInit | undefined, config: ProxyConfig): RequestInit {
+  const headers = new Headers(init?.headers);
+  headers.set("x-stigmer-auth", `Bearer ${config.stigmerToken}`);
   const ctx = executionContext.getStore();
   const effectiveExecutionId = ctx?.executionId ?? config.executionId;
   if (effectiveExecutionId) {
@@ -179,12 +225,26 @@ const interceptedFetch: typeof fetch = async (input, init) => {
         ? input.url
         : String(input);
 
-  if (!isCursorRequest(url)) {
-    return originalFetch(input, init);
+  if (needsUrlRewrite(url)) {
+    return fetchWithUrlRewrite(url, init, interceptorConfig);
   }
 
-  const rewrittenUrl = rewriteUrl(url, interceptorConfig.proxyEndpoint);
-  const rewrittenInit = replaceAuth(init, interceptorConfig);
+  if (needsProxyAuthOnly(url)) {
+    return fetchWithProxyAuth(url, init, interceptorConfig);
+  }
+
+  return originalFetch(input, init);
+};
+
+/**
+ * REST path: rewrite URL to /v1/proxy/cursor/{upstream}{path} and
+ * replace auth with Stigmer token for CursorProxyController.
+ */
+async function fetchWithUrlRewrite(
+  url: string, init: RequestInit | undefined, config: ProxyConfig,
+): Promise<Response> {
+  const rewrittenUrl = rewriteUrl(url, config.proxyEndpoint);
+  const rewrittenInit = replaceAuth(init, config);
   const path = extractPath(url);
 
   try {
@@ -210,7 +270,36 @@ const interceptedFetch: typeof fetch = async (input, init) => {
     );
     throw err;
   }
-};
+}
+
+/**
+ * Connect-RPC-via-fetch path: inject x-stigmer-auth for BiDi proxy
+ * authentication without rewriting the URL or replacing authorization.
+ */
+async function fetchWithProxyAuth(
+  url: string, init: RequestInit | undefined, config: ProxyConfig,
+): Promise<Response> {
+  const augmentedInit = injectProxyAuth(init, config);
+  const path = extractPath(url);
+
+  try {
+    const response = await originalFetch(url, augmentedInit);
+
+    if (!response.ok && !isNonCriticalPath(path)) {
+      console.warn(
+        `[proxy-interceptor] BiDi fetch request failed: ${init?.method ?? "GET"} ${path} → proxy status=${response.status}`,
+      );
+    }
+
+    return response;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(
+      `[proxy-interceptor] BiDi fetch request error: ${init?.method ?? "GET"} ${path} → ${msg}`,
+    );
+    throw err;
+  }
+}
 
 /**
  * Install the global fetch interceptor. Call once at startup, BEFORE
