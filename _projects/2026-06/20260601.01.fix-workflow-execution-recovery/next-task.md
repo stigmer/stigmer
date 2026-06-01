@@ -68,9 +68,29 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-06-01 14:37
-**Current Task**: T06 complete. Next: pick from T04 (remaining Batch 1), or T07/T08 (validation).
-**Status**: T01, T02, T03, T05, and T06 implemented and committed. Batch 1 is nearly complete (only T04 remains). The full recovery chain is end-to-end active with proper Temporal cleanup.
-**Last Session**: 2026-06-01 — T06 (Terminate Child Workflow on Recovery) completed.
+**Current Task**: T04 complete. Batch 1 fully done. Next: pick from T07 (Integration Tests), T08 (Proto + Documentation), or T09 (Manual Verification).
+**Status**: T01, T02, T03, T04, T05, and T06 implemented and committed. All implementation tasks complete. Only validation tasks remain (T07, T08, T09).
+**Last Session**: 2026-06-01 — T04 (Fix Cursor Error Classification + Poisoned-Handle Persistence) completed.
+
+## Session Progress (2026-06-01, Session 6)
+
+### T04 Completed: Fix Cursor Error Classification + Poisoned-Handle Persistence
+- Refactored `synthesizeError` into two stages: `classifyFromSources` (unchanged cascade) + post-classification resumed-handle override
+- Override upgrades `unknown` to `agent-stale` when `isResumedHandle` is true — specific diagnoses (auth, rate-limit, network, model) are never overridden
+- Extracted `SynthesizeErrorOpts` interface for the shared parameter type
+- Updated module-level and function-level JSDoc to document the two-step classification model
+- Removed faulty `if (resolution.isNew || !blueprint.sessionSpec.harnessStateId)` guard from poisoned-handle recovery session persistence — fresh agentId is now always persisted
+- Extended test suite from 9 to 24 tests: bug-fix case, all source branches, resumed-handle override, source priority, complete `shouldRetryWithFreshAgent` coverage
+- All 24 tests pass, zero lint errors
+- Committed: `a38509ca3`
+
+### Design Decisions
+- **Extract-and-override over inline fix**: Matches existing helper extraction pattern (`matchesAny`, `classifyText`). The override is a principled statement about execution context, not a branch-specific patch.
+- **Override scoped to `unknown` only**: Specific diagnoses are real root causes. Only `unknown` (no source could identify the error) gets the stale-handle heuristic.
+- **Unconditional persistence over corrected conditional**: `resolution` is `const` and reflects pre-recovery state. Removing the guard is simpler and more correct than deriving a corrected check.
+
+### Observation (out of scope)
+- `MODEL_PATTERNS` contains `"model.*not available"` treated as literal substring by `matchesAny` (uses `includes()`, not regex). Pre-existing issue — should be addressed separately.
 
 ## Session Progress (2026-06-01, Session 5)
 
@@ -150,11 +170,11 @@ When starting a new session:
 
 Pick the next task:
 
-1. **T04** (Medium) — Fix Cursor Error Classification + Poisoned-Handle Persistence (last Batch 1 task)
-2. **T07** (Medium) — Integration Tests (all prerequisites met)
-3. **T08** (Small) — Proto + Documentation
+1. **T07** (Medium) — Integration Tests (all prerequisites met)
+2. **T08** (Small) — Proto + Documentation
+3. **T09** (Small) — Manual Verification (MongoDB reset) — needs all code deployed locally
 
-T04 completes Batch 1. T07 and T08 are validation tasks that can run after T04.
+All implementation tasks (T01–T06) are complete. Remaining tasks are validation only.
 
 ## Task Summary (9 tasks, ~1 week)
 
@@ -163,14 +183,14 @@ T04 completes Batch 1. T07 and T08 are validation tasks that can run after T04.
 | T01 | Event Sequence Continuation (TS Runner) | Small | **Done** ✅ |
 | T02 | Task-Level Resume in TS Engine | Large | **Done** ✅ |
 | T03 | Recovery Flag Propagation (Java + Go) | Small | **Done** ✅ |
-| T04 | Fix Cursor Error Classification | Medium | Ready |
+| T04 | Fix Cursor Error Classification | Medium | **Done** ✅ |
 | T05 | React Event Store Reset | Small | **Done** ✅ |
 | T06 | Temporal Cleanup (Child Termination) | Small | **Done** ✅ |
 | T07 | Integration Tests | Medium | Ready (T03 done) |
 | T08 | Proto + Documentation | Small | Ready (T02 done) |
 | T09 | Manual Verification (MongoDB reset) | Small | Blocked (needs all code) |
 
-**Batch 1 (days 1-2):** ~~T01~~, T04, ~~T05~~, ~~T06~~
+**Batch 1 (days 1-2):** ~~T01~~, ~~T04~~, ~~T05~~, ~~T06~~
 **Sequential core (days 2-4):** ~~T02~~, ~~T03~~
 **Validation (days 4-5):** T07, T08, T09
 
