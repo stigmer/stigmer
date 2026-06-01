@@ -599,13 +599,23 @@ func (s *TerminateTemporalWorkflowStep[T]) Execute(ctx *pipeline.RequestContext[
 // Terminate Existing Temporal Workflow Step (for Recover)
 // =============================================================================
 
-// TerminateExistingWorkflowStep terminates the existing Temporal orchestrator
-// workflow before starting a fresh one. The previous workflow may be stuck in a
-// Workflow-Task-Failed loop (caused by RECORD_MARKER replay bugs). Termination
-// is synchronous and prevents the old workflow's cleanup from interfering with
-// the new ExecutionContext.
+// TerminateExistingWorkflowStep terminates the existing Temporal workflow tree
+// (orchestrator + TS child) before starting a fresh one. Both workflows must be
+// terminated explicitly:
 //
-// Handles NOT_FOUND gracefully (workflow already completed/terminated).
+//   - Orchestrator: stigmer/workflow-execution/invoke/{executionId}
+//   - Child (TS runner): workflow-exec-{executionId}
+//
+// The child has ParentClosePolicy=REQUEST_CANCEL, which only sends a soft
+// cancellation request when the parent is terminated. Explicit child termination
+// provides a hard guarantee that the workflow ID is available for reuse when
+// StartFreshWorkflow spawns a new child.
+//
+// The previous orchestrator may be stuck in a Workflow-Task-Failed loop (caused
+// by RECORD_MARKER replay bugs). Termination is synchronous and prevents the
+// old workflow's cleanup from interfering with the new ExecutionContext.
+//
+// Handles NOT_FOUND gracefully on both workflows (already completed/terminated).
 type TerminateExistingWorkflowStep[T LifecycleInputWithReason] struct {
 	temporalClient client.Client
 }
@@ -631,12 +641,32 @@ func (s *TerminateExistingWorkflowStep[T]) Execute(ctx *pipeline.RequestContext[
 	execution := ctx.Get(LoadedExecutionKey).(*workflowexecutionv1.WorkflowExecution)
 	executionID := execution.GetMetadata().GetId()
 
-	workflowID := fmt.Sprintf("%s/%s", workflows.InvokeWorkflowExecutionWorkflowName, executionID)
+	orchestratorID := fmt.Sprintf("%s/%s", workflows.InvokeWorkflowExecutionWorkflowName, executionID)
+	if err := s.terminateWorkflow(ctx, executionID, orchestratorID, "orchestrator workflow"); err != nil {
+		return err
+	}
 
+	// ParentClosePolicy only sends REQUEST_CANCEL (soft); explicit termination
+	// provides a hard guarantee that the workflow ID is available for reuse when
+	// StartFreshWorkflow spawns a new child.
+	childID := "workflow-exec-" + executionID
+	if err := s.terminateWorkflow(ctx, executionID, childID, "child TS workflow"); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// terminateWorkflow terminates a single Temporal workflow, treating NOT_FOUND
+// as success (workflow already completed or was purged).
+func (s *TerminateExistingWorkflowStep[T]) terminateWorkflow(
+	ctx *pipeline.RequestContext[T],
+	executionID, workflowID, description string,
+) error {
 	log.Info().
 		Str("execution_id", executionID).
 		Str("workflow_id", workflowID).
-		Msg("Terminating existing Temporal workflow before recovery")
+		Msgf("Terminating %s before recovery", description)
 
 	err := s.temporalClient.TerminateWorkflow(ctx.Context(), workflowID, "",
 		"Recovery: terminating before fresh workflow start")
@@ -645,16 +675,16 @@ func (s *TerminateExistingWorkflowStep[T]) Execute(ctx *pipeline.RequestContext[
 			log.Info().
 				Str("execution_id", executionID).
 				Str("workflow_id", workflowID).
-				Msg("Temporal workflow already completed/terminated (NOT_FOUND). Proceeding with recovery.")
+				Msgf("%s already completed/terminated (NOT_FOUND). Proceeding.", description)
 			return nil
 		}
-		return grpclib.InternalError(err, "failed to terminate existing Temporal workflow")
+		return grpclib.InternalError(err, fmt.Sprintf("failed to terminate %s during recovery", description))
 	}
 
 	log.Info().
 		Str("execution_id", executionID).
 		Str("workflow_id", workflowID).
-		Msg("Successfully terminated existing Temporal workflow")
+		Msgf("Successfully terminated %s", description)
 
 	return nil
 }
