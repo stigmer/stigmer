@@ -323,6 +323,44 @@ func TestChildWorkflow_SuccessDeletesEC(t *testing.T) {
 	env.AssertExpectations(t)
 }
 
+// TestChildWorkflow_RecoveryModeAccepted verifies that the orchestrator
+// workflow completes successfully when the input carries RecoveryMode: true.
+// The orchestrator passes input to the child as-is (line 190 of
+// invoke_workflow_impl.go: ExecuteChildWorkflow(childCtx, ..., input)),
+// so structural correctness ensures the flag reaches the TS child.
+//
+// The Temporal test framework's mock layer intercepts child workflow calls
+// without executing the registered function body, so we verify acceptance
+// rather than capture the forwarded input.
+func TestChildWorkflow_RecoveryModeAccepted(t *testing.T) {
+	s := testsuite.WorkflowTestSuite{}
+	env := s.NewTestWorkflowEnvironment()
+
+	registerWfExecCommonMocks(env)
+
+	env.OnActivity(stubUpdateWfExecStatus, mock.Anything, mock.Anything).
+		Return(nil).Maybe()
+
+	env.OnWorkflow(stubChildWorkflow, mock.Anything, mock.Anything).
+		Return(nil)
+
+	input := &activities.InvokeWorkflowExecutionWorkflowInput{
+		ExecutionID:        "exec-recovery-1",
+		WorkflowInstanceID: "wi-1",
+		WorkflowID:         "wf-1",
+		OrgID:              "org-1",
+		RecoveryMode:       true,
+	}
+
+	env.ExecuteWorkflow((&InvokeWorkflowExecutionWorkflowImpl{}).Run, input)
+
+	require.True(t, env.IsWorkflowCompleted())
+	require.NoError(t, env.GetWorkflowError(),
+		"orchestrator must complete without error when RecoveryMode is true")
+
+	env.AssertExpectations(t)
+}
+
 func TestVersioning_V0FallsBackToActivity(t *testing.T) {
 	s := testsuite.WorkflowTestSuite{}
 	env := s.NewTestWorkflowEnvironment()

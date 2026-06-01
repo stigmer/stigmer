@@ -710,6 +710,7 @@ func (s *StartFreshWorkflowStep[T]) Execute(ctx *pipeline.RequestContext[T]) err
 		WorkflowInstanceID: execution.GetSpec().GetWorkflowInstanceId(),
 		WorkflowID:         execution.GetSpec().GetWorkflowId(),
 		OrgID:              execution.GetMetadata().GetOrg(),
+		RecoveryMode:       true,
 	}
 
 	if err := s.workflowCreator.Create(ctx.Context(), workflowInput, dispatch.TaskQueue); err != nil {
@@ -719,7 +720,7 @@ func (s *StartFreshWorkflowStep[T]) Execute(ctx *pipeline.RequestContext[T]) err
 	log.Info().
 		Str("execution_id", executionID).
 		Str("task_queue", dispatch.TaskQueue).
-		Msg("Started fresh Temporal workflow for recovered execution")
+		Msg("Started fresh Temporal workflow for recovered execution (recovery_mode=true)")
 
 	return nil
 }

@@ -10,11 +10,14 @@ import (
 )
 
 // Recover recovers a failed workflow execution by terminating the existing
-// (possibly stuck) Temporal orchestrator and starting a fresh one.
+// (possibly stuck) Temporal orchestrator and starting a fresh one with
+// recovery_mode enabled.
 //
-// The workflow engine re-executes all tasks from the beginning. Environment
-// variables are re-resolved from the current WorkflowInstance and Workflow
-// configuration, which is desirable for "fix the config, then recover" scenarios.
+// The workflow engine reads the previous run's completed task outputs from
+// status.tasks[], skips tasks that already completed, and resumes execution
+// from the first incomplete or failed task. Environment variables are
+// re-resolved from the current WorkflowInstance and Workflow configuration,
+// which is desirable for "fix the config, then recover" scenarios.
 //
 // Known limitation: runtime_env overrides provided at original execution time
 // are not preserved — they were stripped before persist.
