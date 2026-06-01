@@ -10,6 +10,11 @@
  * - run.wait().result (SDK-provided string, often bare/generic)
  * - SDKStatusMessage with status "ERROR" from the stream
  * - ConnectError captured from process unhandledRejection
+ *
+ * Execution context (isResumedHandle) is applied as a post-classification
+ * override: when no source can positively identify the error category and
+ * the agent was obtained via resume, the error is upgraded to "agent-stale"
+ * so that poisoned-handle recovery fires.
  */
 
 import type { CapturedRejection } from "./rejection-capture.js";
@@ -60,19 +65,27 @@ function classifyText(text: string): { category: ErrorCategory; retryable: boole
   return { category: "unknown", retryable: false };
 }
 
-/**
- * Synthesize a classified error from up to three sources.
- *
- * Priority: SDK result fields > stream ERROR message > captured ConnectError.
- * Falls back to a diagnostic message with model/mode/agentId context.
- */
-export function synthesizeError(opts: {
+interface SynthesizeErrorOpts {
   sdkResultFields: string | undefined;
   streamErrorMessage: string | undefined;
   capturedRejection: CapturedRejection | undefined;
   isResumedHandle: boolean;
   fallbackContext: { model: string; mode: string; agentId: string };
-}): ClassifiedError {
+}
+
+/**
+ * Synthesize a classified error from up to three sources, then apply
+ * execution context.
+ *
+ * Two-step process:
+ * 1. Classify from the best available source (SDK > stream > rejection > fallback).
+ * 2. Apply execution context: on resumed handles, "unknown" from any source
+ *    is upgraded to "agent-stale" so poisoned-handle recovery can fire.
+ *
+ * The override only applies to "unknown" — specific diagnoses (auth,
+ * rate-limit, network, model) are never overridden, even on resumed handles.
+ */
+export function synthesizeError(opts: SynthesizeErrorOpts): ClassifiedError {
   console.log(
     `[error-classifier] synthesizeError diagnostic: ` +
     `sdkResultFields=${JSON.stringify(opts.sdkResultFields)}, ` +
@@ -81,6 +94,23 @@ export function synthesizeError(opts: {
     `isResumedHandle=${opts.isResumedHandle}, ` +
     `model=${opts.fallbackContext.model}, mode=${opts.fallbackContext.mode}`,
   );
+
+  const classified = classifyFromSources(opts);
+
+  if (classified.category === "unknown" && opts.isResumedHandle) {
+    return { ...classified, category: "agent-stale", retryable: true };
+  }
+
+  return classified;
+}
+
+/**
+ * Classify from the best available error source.
+ *
+ * Priority: SDK result fields > stream ERROR message > captured ConnectError.
+ * Falls back to a diagnostic message with model/mode/agentId context.
+ */
+function classifyFromSources(opts: SynthesizeErrorOpts): ClassifiedError {
   if (opts.sdkResultFields) {
     const isBareGeneric = opts.sdkResultFields === "Cursor run failed";
     if (!isBareGeneric) {
@@ -105,7 +135,7 @@ export function synthesizeError(opts: {
   }
 
   if (opts.capturedRejection) {
-    const { category, retryable } = classifyText(
+    const { category } = classifyText(
       `${opts.capturedRejection.code} ${opts.capturedRejection.message}`,
     );
     return {
