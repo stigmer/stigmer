@@ -112,11 +112,12 @@ describe("http2-interceptor", () => {
       });
     });
 
-    it("does NOT inject headers when no execution context is active", () => {
+    it("injects x-stigmer-auth but NOT x-stigmer-execution-id when no execution context is active", () => {
       const session = http2.connect(PROXY_ENDPOINT);
       session.request({ ":method": "POST", ":path": "/agent.v1.AgentService/Run" });
 
       expect(mock.calls).toHaveLength(1);
+      expect(mock.calls[0].headers).toHaveProperty("x-stigmer-auth", `Bearer ${STIGMER_TOKEN}`);
       expect(mock.calls[0].headers).not.toHaveProperty("x-stigmer-execution-id");
     });
 
@@ -205,7 +206,7 @@ describe("http2-interceptor", () => {
       expect(mock.calls[1].headers).toMatchObject({ "x-stigmer-execution-id": "exec-second" });
     });
 
-    it("request outside any context on a proxy session has no execution ID header", async () => {
+    it("request outside any context on a proxy session has auth but no execution ID", async () => {
       const executionContext = getExecutionContext();
       const session = http2.connect(PROXY_ENDPOINT);
 
@@ -216,7 +217,9 @@ describe("http2-interceptor", () => {
       session.request({ ":path": "/second" });
 
       expect(mock.calls[0].headers).toHaveProperty("x-stigmer-execution-id", "exec-scoped");
+      expect(mock.calls[0].headers).toHaveProperty("x-stigmer-auth", `Bearer ${STIGMER_TOKEN}`);
       expect(mock.calls[1].headers).not.toHaveProperty("x-stigmer-execution-id");
+      expect(mock.calls[1].headers).toHaveProperty("x-stigmer-auth", `Bearer ${STIGMER_TOKEN}`);
     });
   });
 

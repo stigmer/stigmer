@@ -66,9 +66,49 @@ That's it! No complex structure - just focused work.
 
 ## Current Status
 
-**Last Updated**: 2026-05-31  
-**Last Session**: Session 12 — Fixed desktop-dev REFUSED_STREAM error. Root-caused to HTTP/1.1 vs HTTP/2 gap: `make desktop-dev` used `http://localhost:9090` (plain HTTP), so Cursor SDK used HTTP/1.1, HTTP/2 interceptor never fired, `x-stigmer-auth` never injected, BiDi proxy refused unauthenticated streams. Fix: added TLS Caddy listener on :9093 with self-signed cert, dedicated `VITE_STIGMER_RUNNER_PROXY_URL` env var, `NODE_TLS_REJECT_UNAUTHORIZED=0` in runner subprocess. All desktop tests pass (24/24), Caddy config validates.  
-**Current Focus**: Deploy to production. Desktop-dev and integration test paths both work.
+**Last Updated**: 2026-06-01  
+**Last Session**: Session 13 — Fixed BiDi proxy auth failure in local dev. Root-caused: HTTP/2 interceptor gated `x-stigmer-auth` injection on execution context (`ctx?.executionId && config`), so SDK requests outside AsyncLocalStorage scope (bootstrap, analytics, reconnects) reached the proxy without auth credentials. Handler fell back to `authorization` (Cursor access token), which no provider could validate. Fix: decoupled auth from execution context — always inject `x-stigmer-auth` on proxy-bound connections, keep execution ID conditional. Also tightened `IntegrationTestSecurityConfig` to reject non-Stigmer tokens (production-faithful), and added diagnostic logging to BiDi handler auth failures.  
+**Current Focus**: Deploy to production. Rebuild runner + fat JAR, then `make desktop-dev` to verify zero auth failures.
+
+## Session Progress (2026-06-01, session 13)
+
+- **BiDi PROXY AUTH FAILURE — ROOT-CAUSED AND FIXED:**
+  - Root cause: `http2-interceptor.ts` gated `x-stigmer-auth` injection on `ctx?.executionId && config`. SDK requests outside execution context (bootstrap RPCs, reconnects) reached the BiDi proxy without auth. Handler fell back to `authorization` header containing a Cursor access token (JWT signed by Cursor), which no provider in the `AuthenticationManager` chain could validate — "Another algorithm expected, or no matching key(s) found".
+  - Fix: `x-stigmer-auth` now always injected when `config` is set (proxy-bound connection). `x-stigmer-execution-id` remains conditional on execution context.
+  - This was a production-impacting bug — same code runs in released desktop apps and cloud runners.
+
+- **Integration test auth tightened (production-faithful):**
+  - `IntegrationTestSecurityConfig.authenticationManager()` no longer blindly accepts all tokens. When `StigmerJwtVerifier` is configured, non-Stigmer tokens are rejected with `OAuth2AuthenticationException` — same behavior production exhibits.
+  - Falls back to accept-all only when signing key is absent (backward compat).
+
+- **Diagnostic logging added to BiDi handler:**
+  - Auth failure logs now include request path, token source (`x-stigmer-auth` vs `authorization` fallback), and safe 12-char token prefix.
+
+- **All 34 interceptor tests pass (17×2 files via bazel symlink).**
+
+- **Changes made (stigmer OSS):**
+  - `http2-interceptor.ts` — Decoupled auth from execution context
+  - `http2-interceptor.test.ts` — Fixed assertions, added auth-without-context tests
+
+- **Changes made (stigmer-cloud):**
+  - `IntegrationTestSecurityConfig.java` — Production-faithful auth manager
+  - `CursorBidiStreamHandler.java` — Diagnostic auth failure logging
+
+## Next Steps
+
+1. **Rebuild runner** — `make build-runner` from stigmer repo
+2. **Rebuild fat JAR** — `bazel run //backend/services/stigmer-service:stigmer_service_app` from stigmer-cloud
+3. **Verify local dev** — `make desktop-dev` + trigger agent execution, confirm zero auth failures
+4. **Commit stigmer-cloud changes** — 2 files (test auth + handler logging)
+5. **Create PRs** — One per repo for BiDi proxy auth fix
+6. **Deploy** — Merge and deploy to prod
+
+## Context for Resume
+
+- The interceptor fix is COMPLETE and tested. Unit tests pass.
+- stigmer-cloud changes (test auth + handler logging) are ready for commit.
+- The verify-local-dev step requires manual testing.
+- Task 5B (traffic routing) from the original task list is effectively resolved by the interceptor fix.
 
 ## Session Progress (2026-05-31, session 12)
 
