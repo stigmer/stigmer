@@ -25,7 +25,7 @@ import (
 // Pipeline Steps:
 //  1. LoadExecutionById - Load execution from database
 //  2. ValidateRecoverable - Check phase is FAILED (not TERMINATED/CANCELLED)
-//  3. TerminateExistingWorkflow - Terminate stuck/running Temporal workflow
+//  3. TerminateExistingWorkflow - Terminate stuck/running Temporal orchestrator AND child workflow
 //  4. RecreateExecutionContext - Re-resolve env, create fresh EC
 //  5. StartFreshWorkflow - Start new Temporal orchestrator via WorkflowCreator
 //  6. UpdateExecutionPhase - Set phase to IN_PROGRESS, clear error/completed_at
