@@ -757,11 +757,9 @@ async function executeCursorInner(
           );
 
           try {
-            if (resolution.isNew || !blueprint.sessionSpec.harnessStateId) {
-              blueprint.sessionSpec.harnessStateId = freshAgent.agentId;
-              if (blueprint.session.metadata) blueprint.session.metadata.slug = "";
-              await client.updateSession(blueprint.session);
-            }
+            blueprint.sessionSpec.harnessStateId = freshAgent.agentId;
+            if (blueprint.session.metadata) blueprint.session.metadata.slug = "";
+            await client.updateSession(blueprint.session);
           } catch (updateErr) {
             console.warn("Failed to update session with fresh agentId (non-fatal):", updateErr);
           }
