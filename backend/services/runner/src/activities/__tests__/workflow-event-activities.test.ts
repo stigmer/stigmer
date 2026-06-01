@@ -1,14 +1,111 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import { toProtoEvent, resetSequenceCounter, emitWorkflowEvents } from "../workflow-event-activities.js";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { toProtoEvent, initSequenceFromEventLog, emitWorkflowEvents } from "../workflow-event-activities.js";
 import { WorkflowEventType } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import type { WorkflowEventDescriptor } from "../../workflow-engine/types.js";
 
+const mockGetEventLogHighWaterMark = vi.fn<(executionId: string) => Promise<bigint>>();
+
+vi.mock("../../client/stigmer-client.js", () => ({
+  StigmerClient: vi.fn().mockImplementation(() => ({
+    getEventLogHighWaterMark: (...args: unknown[]) => mockGetEventLogHighWaterMark(...(args as [string])),
+  })),
+}));
+
+vi.mock("../../config.js", () => ({
+  loadConfig: () => ({
+    stigmerBackendEndpoint: "http://localhost:7234",
+    stigmerToken: "test-token",
+  }),
+}));
+
 const NOW = "2026-05-22T00:00:00.000Z";
 
-describe("toProtoEvent", () => {
+describe("initSequenceFromEventLog", () => {
   beforeEach(() => {
-    resetSequenceCounter();
+    mockGetEventLogHighWaterMark.mockReset();
+  });
+
+  it("sets counter to 0 when executionId is empty", async () => {
+    await initSequenceFromEventLog("");
+
+    const evt = toProtoEvent({
+      type: "task_started",
+      taskName: "t",
+      occurredAt: NOW,
+      taskKind: "set",
+      attemptNumber: 1,
+    });
+    expect(evt.sequenceNumber).toBe(BigInt(1));
+    expect(mockGetEventLogHighWaterMark).not.toHaveBeenCalled();
+  });
+
+  it("sets counter to 0 when server returns no events", async () => {
+    mockGetEventLogHighWaterMark.mockResolvedValue(BigInt(0));
+
+    await initSequenceFromEventLog("wfx_test-1");
+
+    const evt = toProtoEvent({
+      type: "task_started",
+      taskName: "t",
+      occurredAt: NOW,
+      taskKind: "set",
+      attemptNumber: 1,
+    });
+    expect(evt.sequenceNumber).toBe(BigInt(1));
+  });
+
+  it("continues from high-water mark when events exist", async () => {
+    mockGetEventLogHighWaterMark.mockResolvedValue(BigInt(42));
+
+    await initSequenceFromEventLog("wfx_recovery-1");
+
+    const e1 = toProtoEvent({
+      type: "task_started",
+      taskName: "t",
+      occurredAt: NOW,
+      taskKind: "set",
+      attemptNumber: 1,
+    });
+    const e2 = toProtoEvent({
+      type: "task_completed",
+      taskName: "t",
+      occurredAt: NOW,
+      taskKind: "set",
+      durationMs: 100,
+      costMicros: 0,
+      tokensUsed: 0,
+    });
+
+    expect(e1.sequenceNumber).toBe(BigInt(43));
+    expect(e2.sequenceNumber).toBe(BigInt(44));
+  });
+
+  it("handles large sequence numbers", async () => {
+    mockGetEventLogHighWaterMark.mockResolvedValue(BigInt(999999));
+
+    await initSequenceFromEventLog("wfx_large-seq");
+
+    const evt = toProtoEvent({
+      type: "task_started",
+      taskName: "t",
+      occurredAt: NOW,
+      taskKind: "set",
+      attemptNumber: 1,
+    });
+    expect(evt.sequenceNumber).toBe(BigInt(1000000));
+  });
+
+  it("propagates server errors", async () => {
+    mockGetEventLogHighWaterMark.mockRejectedValue(new Error("server unavailable"));
+
+    await expect(initSequenceFromEventLog("wfx_error-1")).rejects.toThrow("server unavailable");
+  });
+});
+
+describe("toProtoEvent", () => {
+  beforeEach(async () => {
+    await initSequenceFromEventLog("");
   });
 
   describe("sequence numbering", () => {
@@ -30,7 +127,7 @@ describe("toProtoEvent", () => {
       expect(e3.sequenceNumber).toBe(BigInt(3));
     });
 
-    it("resets to 1 after resetSequenceCounter", () => {
+    it("resets to 1 after re-initializing with empty executionId", async () => {
       toProtoEvent({
         type: "task_started",
         taskName: "t",
@@ -39,7 +136,7 @@ describe("toProtoEvent", () => {
         attemptNumber: 1,
       });
 
-      resetSequenceCounter();
+      await initSequenceFromEventLog("");
 
       const evt = toProtoEvent({
         type: "task_started",

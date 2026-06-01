@@ -44,7 +44,7 @@ import type { UpdateStatusResponse } from "@stigmer/protos/ai/stigmer/agentic/ag
 import { WorkflowExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/command_pb";
 import { WorkflowExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/query_pb";
 import type { WorkflowExecution, WorkflowExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { WorkflowExecutionUpdateStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
+import { WorkflowExecutionUpdateStatusInputSchema, GetEventLogRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
 import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/query_pb";
@@ -246,6 +246,40 @@ export class StigmerClient {
 
   async getWorkflowExecution(executionId: string): Promise<WorkflowExecution> {
     return this.workflowExecutionQuery.get({ value: executionId });
+  }
+
+  /**
+   * Return the highest persisted event sequence_number for a workflow execution.
+   *
+   * Paginates through getEventLog with the maximum page size (500) and
+   * follows the cursor until has_more is false. The final page's
+   * latest_sequence is the global high-water mark.
+   *
+   * Returns 0 when no events have been persisted yet (new execution).
+   */
+  async getEventLogHighWaterMark(executionId: string): Promise<bigint> {
+    let afterSequence = BigInt(0);
+    let highWaterMark = BigInt(0);
+
+    for (;;) {
+      const resp = await this.workflowExecutionQuery.getEventLog(
+        create(GetEventLogRequestSchema, {
+          executionId,
+          afterSequence,
+          pageSize: 500,
+        }),
+      );
+
+      if (resp.latestSequence > highWaterMark) {
+        highWaterMark = resp.latestSequence;
+      }
+
+      if (!resp.hasMore) {
+        return highWaterMark;
+      }
+
+      afterSequence = resp.latestSequence;
+    }
   }
 
   async getWorkflow(workflowId: string): Promise<Workflow> {

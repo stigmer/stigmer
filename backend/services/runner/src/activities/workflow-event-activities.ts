@@ -144,8 +144,27 @@ function nextSequence(): bigint {
   return BigInt(sequenceCounter);
 }
 
-export async function resetSequenceCounter(): Promise<void> {
-  sequenceCounter = 0;
+/**
+ * Initialize the event sequence counter from the persisted high-water mark.
+ *
+ * On first run (no prior events), the counter stays at 0 and the first
+ * event gets sequence_number = 1 — identical to the original behavior.
+ *
+ * On recovery (events already persisted from a failed run), the counter
+ * is set to the highest persisted sequence_number so that new events
+ * continue from N+1, avoiding duplicate-key collisions in storage.
+ *
+ * When executionId is empty (direct executeServerlessWorkflow without a
+ * persisted execution), the counter resets to 0 as a safe fallback.
+ */
+export async function initSequenceFromEventLog(executionId: string): Promise<void> {
+  if (!executionId) {
+    sequenceCounter = 0;
+    return;
+  }
+  const client = buildClient();
+  const highWaterMark = await client.getEventLogHighWaterMark(executionId);
+  sequenceCounter = Number(highWaterMark);
 }
 
 /** @internal Exported for unit testing only. */
@@ -412,6 +431,6 @@ export async function emitWorkflowEvents(
 export function createWorkflowEventActivities() {
   return {
     EmitWorkflowEvents: emitWorkflowEvents,
-    ResetEventSequence: resetSequenceCounter,
+    ResetEventSequence: initSequenceFromEventLog,
   };
 }
