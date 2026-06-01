@@ -68,13 +68,68 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-06-01 14:37
-**Current Task**: T02 complete. Next: pick from T03, T04, T05, T06.
-**Status**: T01 and T02 implemented and committed. Plan approved and in progress.
-**Last Session**: 2026-06-01 — T02 (Task-Level Resume) completed.
+**Current Task**: T06 complete. Next: pick from T04 (remaining Batch 1), or T07/T08 (validation).
+**Status**: T01, T02, T03, T05, and T06 implemented and committed. Batch 1 is nearly complete (only T04 remains). The full recovery chain is end-to-end active with proper Temporal cleanup.
+**Last Session**: 2026-06-01 — T06 (Terminate Child Workflow on Recovery) completed.
 
-## Session Progress (2026-06-01, Session 2)
+## Session Progress (2026-06-01, Session 5)
 
-### T02 Completed: Task-Level Resume in TS Engine
+### T06 Completed: Terminate Child TS Workflow on Recovery
+- Restructured `TerminateExistingWorkflowStep` in both Go and Java with a private helper method
+- Go: `terminateWorkflow(ctx, executionID, workflowID, description)` encapsulates terminate+NOT_FOUND
+- Java: `terminateWorkflowIfExists(workflowId, description, executionId, reason)` returns null on success
+- Fixed early-return bug: orchestrator NOT_FOUND no longer skips child termination
+- Step now terminates both orchestrator (`stigmer/workflow-execution/invoke/{id}`) and child (`workflow-exec-{id}`)
+- Go: 8 unit tests with minimal `fakeTemporalClient` fake
+- Java: 6 `@Nested` tests with Mockito + ArgumentCaptor
+- Cleaned up stale `CTX_NEW_RUN_ID`/`CTX_RESET_EVENT_ID` references in Java test
+- Committed: Go `ca65a92d9`, Java `7061f539`
+
+### Design Decisions
+- **Helper extraction over naive append**: The existing Go code had `return nil` on NOT_FOUND (line 649), which would skip child termination. Required restructuring, not just appending code.
+- **Same step, not a new step**: The step's contract is "clear old Temporal state so recovery can proceed." Both orchestrator and child are part of that execution tree.
+- **Orchestrator first, then child**: Kills the parent (stops signals to child), then hard-terminates the child regardless of ParentClosePolicy timing.
+- **Follows `recreateExecutionContextStep` helper pattern**: That step already extracts `deleteStaleEC` and `resolveEnvironments` as private helpers. Same convention here.
+
+## Session Progress (2026-06-01, Session 4)
+
+### T05 Completed: React Event Store Reset on Recovery
+- Added `isRecoveryTransition()` pure function to detect terminal-to-active phase transitions
+- Added `prevPhaseRef` to track previous `executionPhase` across effect runs
+- On recovery (FAILED→IN_PROGRESS), `store.reset()` clears stale events before re-subscribing from sequence 0
+- Documented cleanup asymmetry with `useExecutionStream` (no reset in cleanup because `connectKey` reconnect is in deps)
+- 17 new tests: 10 pure function (full transition matrix) + 7 hook integration (recovery reset, normal completion, initial load, null id, reconnect)
+- All tests pass, lint clean, typecheck clean
+- Committed: `392ce77d0`
+
+### Architecture Decisions
+- **`useRef` over `useState`** for previous phase tracking: the transition drives an effect-time side effect (store mutation + gRPC subscription), not a rendered value. Distinct from the `useState` "adjust state during render" pattern used for tab switching in inspectors.
+- **No store reset in cleanup**: intentionally different from `useExecutionStream` because `connectKey` (reconnect) is in the deps array — resetting on cleanup would destroy events on reconnect.
+- **Post-reset replays full history**: subscribing from sequence 0 replays old + new events. `deriveTaskStates` processes in order, so last event per task wins (task_skipped overrides old completed, task_started overrides old failed).
+
+## Session Progress (2026-06-01, Session 3)
+
+### T03 Completed: Recovery Flag Propagation (Java + Go)
+- Added `RecoveryMode bool` to Go `InvokeWorkflowExecutionWorkflowInput` with `json:"recovery_mode,omitempty"` (matching `AutoApproveAll` pattern on agent execution input)
+- Set `RecoveryMode: true` in Go `StartFreshWorkflowStep` (recover pipeline)
+- Added `boolean recoveryMode` to Java `InvokeWorkflowExecutionWorkflowInput` record + overloaded `fromExecution()` factory (3-arg defaults false, 4-arg accepts explicit flag)
+- Called 4-arg factory with `true` in Java `StartNewWorkflowStep` (recover handler)
+- Updated doc comments in both Go `recover.go` and Java `WorkflowExecutionRecoverHandler` to describe task-level resume semantics
+- Fixed pre-existing constructor arity in `InvokeWorkflowExecutionWorkflowImplTest` (was 6 args for 7-field record)
+- Added Go test: `TestChildWorkflow_RecoveryModeAccepted`
+- Added Java tests: `StartNewWorkflowStepTests`, `WorkflowInputTests` (factory overload + Jackson serialization round-trip)
+- Go: all temporal workflow tests pass (10/10)
+- TS: all 60 recovery/engine tests pass (do-executor-recovery + recovery + workflow-event-activities)
+- Committed: Go `42bce319f`, Java `39377761`
+
+### Design Validation
+- Evaluated 4 alternative approaches (Temporal memo, auto-detect from event log, persist on proto, search attribute) — confirmed explicit-flag-on-workflow-input is architecturally correct
+- Verified full backward/forward compatibility matrix (old/new orchestrator × old/new runner)
+- Confirmed pattern precedent: `AutoApproveAll bool` on `InvokeAgentExecutionWorkflowInput`
+
+## Prior Sessions
+
+### T02 Completed (Session 2): Task-Level Resume in TS Engine
 - Created `recovery.ts` — `RecoveryContext` type, `RecoveryTaskData` serialization type, `buildRecoveryContext` builder (sandbox-safe)
 - Added `LoadRecoveryContext` activity — fetches execution status.tasks[], converts proto to plain objects for Temporal serialization boundary
 - Wired `recovery_mode` through `ExecuteFromExecutionInput` → `RunWorkflowEngineOptions` → `engine-core.ts`
@@ -82,37 +137,24 @@ When starting a new session:
 - Recovery context deactivated after first non-skipped task to prevent accidental late skipping
 - 23 new unit tests (8 recovery builder + 15 do-executor recovery), all 1370 runner tests pass
 
-### Critical Discoveries During T02
-- **task_completed events don't carry output** — output_summary field exists in proto but is never populated. Recovery reads from status.tasks[].output instead (64KB truncation limit, acceptable for >99% of workflows)
-- **T06 data race** — if T06 clears status.tasks[] before engine reads it, recovery data is lost. Recommendation: T06 should NOT clear status.tasks[] (engine's event emission naturally replaces stale entries)
-- **Version pinning safety** — hydration uses workflowVersionHash, guaranteeing identical YAML between failed and recovery runs
-
-### Files Created
-- `backend/services/runner/src/workflow-engine/recovery.ts`
-- `backend/services/runner/src/workflow-engine/__tests__/recovery.test.ts`
-- `backend/services/runner/src/workflow-engine/__tests__/do-executor-recovery.test.ts`
-
-### Files Modified
-- `backend/services/runner/src/activities/workflow-event-activities.ts`
-- `backend/services/runner/src/activities/__tests__/workflow-event-activities.test.ts`
-- `backend/services/runner/src/workflows/execute-from-execution.ts`
-- `backend/services/runner/src/workflows/engine-core.ts`
-- `backend/services/runner/src/workflow-engine/do-executor.ts`
-
 ### T01 Completed (Session 1): Event Sequence Continuation (TS Runner)
 - Replaced blind `resetSequenceCounter()` with `initSequenceFromEventLog(executionId)` that queries `getEventLog` for the persisted high-water mark
 - Committed: `dd1a4e8cb fix(backend/runner): continue event sequence from high-water mark on recovery`
+
+### Critical Discoveries (Sessions 1-2)
+- **task_completed events don't carry output** — output_summary field exists in proto but is never populated. Recovery reads from status.tasks[].output instead (64KB truncation limit, acceptable for >99% of workflows)
+- **T06 data race** — if T06 clears status.tasks[] before engine reads it, recovery data is lost. Recommendation: T06 should NOT clear status.tasks[] (engine's event emission naturally replaces stale entries)
+- **Version pinning safety** — hydration uses workflowVersionHash, guaranteeing identical YAML between failed and recovery runs
 
 ## Next Steps
 
 Pick the next task:
 
-1. **T03** (Small) — Recovery Flag Propagation (Java + Go) — wires recovery_mode from RecoverHandler to TS child. **Enables T02 at runtime.**
-2. **T04** (Medium) — Fix Cursor Error Classification + Poisoned-Handle Persistence
-3. **T05** (Small) — React Event Store Reset on FAILED→IN_PROGRESS transition
-4. **T06** (Small) — Temporal Cleanup + Status Reset (Java + Go) — **must NOT clear status.tasks[]** per T02 findings
+1. **T04** (Medium) — Fix Cursor Error Classification + Poisoned-Handle Persistence (last Batch 1 task)
+2. **T07** (Medium) — Integration Tests (all prerequisites met)
+3. **T08** (Small) — Proto + Documentation
 
-**Recommendation**: T03 next — it's small and activates the entire T01+T02 recovery chain end-to-end.
+T04 completes Batch 1. T07 and T08 are validation tasks that can run after T04.
 
 ## Task Summary (9 tasks, ~1 week)
 
@@ -120,16 +162,16 @@ Pick the next task:
 |------|-------------|--------|--------|
 | T01 | Event Sequence Continuation (TS Runner) | Small | **Done** ✅ |
 | T02 | Task-Level Resume in TS Engine | Large | **Done** ✅ |
-| T03 | Recovery Flag Propagation (Java + Go) | Small | Ready |
+| T03 | Recovery Flag Propagation (Java + Go) | Small | **Done** ✅ |
 | T04 | Fix Cursor Error Classification | Medium | Ready |
-| T05 | React Event Store Reset | Small | Ready |
-| T06 | Temporal Cleanup + Status Reset | Small | Ready (revised: don't clear status.tasks[]) |
-| T07 | Integration Tests | Medium | Blocked (needs T03) |
+| T05 | React Event Store Reset | Small | **Done** ✅ |
+| T06 | Temporal Cleanup (Child Termination) | Small | **Done** ✅ |
+| T07 | Integration Tests | Medium | Ready (T03 done) |
 | T08 | Proto + Documentation | Small | Ready (T02 done) |
 | T09 | Manual Verification (MongoDB reset) | Small | Blocked (needs all code) |
 
-**Batch 1 (days 1-2):** ~~T01~~, T04, T05, T06
-**Sequential core (days 2-4):** ~~T02~~, T03
+**Batch 1 (days 1-2):** ~~T01~~, T04, ~~T05~~, ~~T06~~
+**Sequential core (days 2-4):** ~~T02~~, ~~T03~~
 **Validation (days 4-5):** T07, T08, T09
 
 ## Quick Commands
