@@ -1,6 +1,6 @@
 "use client";
 
-import { type MouseEvent, useCallback, useEffect, useMemo, useRef } from "react";
+import { type MouseEvent, memo, useCallback, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Plus, LayoutDashboard, Library, MessageSquare, Workflow, PanelLeft } from "lucide-react";
@@ -225,7 +225,7 @@ function ActivityGroupList({
   );
 }
 
-function ActivityEntry({
+const ActivityEntry = memo(function ActivityEntry({
   entry,
   activeSessionId,
   activePath,
@@ -279,7 +279,7 @@ function ActivityEntry({
       </Tooltip>
     </li>
   );
-}
+});
 
 function RecentsSkeletons() {
   return (

@@ -72,6 +72,7 @@ export function useRecentActivity(
         .then((resp) => resp.entries.map(normalizeEntry)),
     [stigmer, pageSize, org],
     [] as RecentActivityEntry[],
+    { cacheKey: `recent-activity:${org}` },
   );
 
   const [optimistic, setOptimistic] = useState<RecentActivityEntry[]>([]);
