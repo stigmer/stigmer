@@ -88,16 +88,19 @@ function wrapSession(session: http2Type.ClientHttp2Session): http2Type.ClientHtt
     headers?: http2Type.OutgoingHttpHeaders,
     options?: http2Type.ClientSessionRequestOptions,
   ): http2Type.ClientHttp2Stream {
-    const ctx = getExecutionContext().getStore();
-    if (ctx?.executionId && config) {
-      const augmented = {
-        ...headers,
-        [STIGMER_AUTH_HEADER]: `Bearer ${config.stigmerToken}`,
-        [EXECUTION_ID_HEADER]: ctx.executionId,
-      };
-      return originalRequest(augmented, options);
+    if (!config) {
+      return originalRequest(headers, options);
     }
-    return originalRequest(headers, options);
+
+    const ctx = getExecutionContext().getStore();
+    const augmented: http2Type.OutgoingHttpHeaders = {
+      ...headers,
+      [STIGMER_AUTH_HEADER]: `Bearer ${config.stigmerToken}`,
+    };
+    if (ctx?.executionId) {
+      augmented[EXECUTION_ID_HEADER] = ctx.executionId;
+    }
+    return originalRequest(augmented, options);
   } as typeof session.request;
 
   return session;
