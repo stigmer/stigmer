@@ -142,7 +142,7 @@ export async function runWorkflowEngine(
 
   recordExecutionStartMetric(model.document.name);
 
-  await eventProxy.ResetEventSequence();
+  await eventProxy.ResetEventSequence(executionId);
 
   const taskStatusAccumulator = new TaskStatusAccumulator();
 
