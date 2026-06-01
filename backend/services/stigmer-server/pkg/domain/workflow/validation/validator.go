@@ -89,6 +89,11 @@ func (v *InProcessValidator) Validate(ctx context.Context, spec *workflowv1.Work
 		errors = append(errors, configErrors...)
 	}
 
+	// Step 2c: Model reference validation (harness-aware)
+	if modelErrors := ValidateModelReferences(spec); len(modelErrors) > 0 {
+		errors = append(errors, modelErrors...)
+	}
+
 	// Step 3: Budget warnings
 	if budgetWarnings := CheckBudgetWarnings(spec.Budget, spec.Tasks); len(budgetWarnings) > 0 {
 		warnings = append(warnings, budgetWarnings...)
