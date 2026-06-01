@@ -86,6 +86,22 @@ describe("computeFollowCenter", () => {
     // offsetX = (400 / 2) / 10.0 = 20
     expect(result.x).toBe(400 - 20);
   });
+
+  it("flex-sibling layout: no offset when panelOffsetPx is 0 (regression guard for ResizableSplit)", () => {
+    // When the inspector is a flex sibling (ResizableSplit), the ReactFlow
+    // container already has the correct reduced width. panelOffsetPx must
+    // be 0 to avoid double-compensating the viewport offset.
+    // See: 67887a131 (original fix), 148146715 (regression).
+    const atZoom1 = computeFollowCenter(defaultInput({ panelOffsetPx: 0, currentZoom: 1.0 }));
+    const atZoom2 = computeFollowCenter(defaultInput({ panelOffsetPx: 0, currentZoom: 2.0 }));
+    const atZoomLow = computeFollowCenter(defaultInput({ panelOffsetPx: 0, currentZoom: 0.5 }));
+
+    const expectedX = 300 + 200 / 2; // nodeX + nodeWidth/2
+
+    expect(atZoom1.x).toBe(expectedX);
+    expect(atZoom2.x).toBe(expectedX);
+    expect(atZoomLow.x).toBe(expectedX);
+  });
 });
 
 // ---------------------------------------------------------------------------

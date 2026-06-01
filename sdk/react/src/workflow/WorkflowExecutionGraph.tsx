@@ -57,10 +57,15 @@ export interface WorkflowExecutionGraphProps {
    */
   readonly onAutoSelectTask?: (taskName: string) => void;
   /**
-   * Pixel width of adjacent panels (inspector, sidebar) that occlude
-   * the right side of the graph viewport. The follow-execution camera
-   * offsets its center to keep the active node visually centered in the
-   * unoccluded area. Defaults to 0.
+   * Pixel width of a panel that **overlays** (absolutely positioned over)
+   * the graph viewport, occluding the right side. The follow-execution
+   * camera offsets its center to keep the active node visually centered
+   * in the unoccluded area. Defaults to 0.
+   *
+   * When the panel is a **flex sibling** (e.g., inside `ResizableSplit`),
+   * the ReactFlow container already has the correct reduced width and
+   * `setCenter`/`fitView` operate within those bounds — set this to 0
+   * (the default) to avoid double-compensating the viewport offset.
    */
   readonly panelOffsetPx?: number;
   /**
@@ -148,8 +153,9 @@ function WorkflowExecutionGraphInner({
   } = graphState;
 
   const { fitView } = useReactFlow();
-  const didFitGuardRef = useRef(false);
   const [didInitialFit, setDidInitialFit] = useState(false);
+  const isInitializedRef = useRef(false);
+  const didFitGuardRef = useRef(false);
 
   // ── Ephemeral drag positions ───────────────────────────────────────
   // Resets when the execution changes (navigating to a different run).
@@ -184,16 +190,28 @@ function WorkflowExecutionGraphInner({
     setDragPositions({});
   }, []);
 
-  // Fit view on first render with nodes
-  useEffect(() => {
-    if (nodes.length > 0 && !didFitGuardRef.current) {
-      didFitGuardRef.current = true;
-      setTimeout(() => {
-        fitView({ padding: 0.15, duration: getAnimationDuration(300) });
-        setDidInitialFit(true);
-      }, 50);
+  const performInitialFit = useCallback(() => {
+    if (didFitGuardRef.current) return;
+    didFitGuardRef.current = true;
+    fitView({ padding: 0.15, duration: getAnimationDuration(300) });
+    setDidInitialFit(true);
+  }, [fitView]);
+
+  // onInit fires when ReactFlow's container is measured and the
+  // viewport is ready — replacing the fragile 50ms setTimeout.
+  const handleInit = useCallback(() => {
+    isInitializedRef.current = true;
+    if (nodes.length > 0) {
+      performInitialFit();
     }
-  }, [nodes.length, fitView]);
+  }, [nodes.length, performInitialFit]);
+
+  // When nodes arrive after onInit (async data), fit once they're ready.
+  useEffect(() => {
+    if (isInitializedRef.current && nodes.length > 0) {
+      performInitialFit();
+    }
+  }, [nodes.length, performInitialFit]);
 
   // Derive active task name stably from taskStates (not from nodes array — DD-010)
   const activeTaskInfo = useActiveTaskName(taskStates);
@@ -335,6 +353,7 @@ function WorkflowExecutionGraphInner({
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           defaultEdgeOptions={defaultEdgeOptions}
+          onInit={handleInit}
           onNodeClick={handleNodeClick}
           onPaneClick={handlePaneClick}
           onMoveStart={onMoveStart}

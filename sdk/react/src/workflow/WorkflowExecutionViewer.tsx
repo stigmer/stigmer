@@ -188,7 +188,6 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
   const [showDiagnosis, setShowDiagnosis] = useState(false);
   const [showComparePicker, setShowComparePicker] = useState(false);
   const [compareTargetId, setCompareTargetId] = useState<string | null>(null);
-  const [panelWidth, setPanelWidth] = useState(384);
 
   const handleDiagnose = useCallback(() => {
     setShowDiagnosis(true);
@@ -327,7 +326,6 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
           minSize={280}
           maxSize={800}
           storageKey="stgm-wf-exec-inspector-width"
-          onResize={setPanelWidth}
           primary={
             <WorkflowExecutionGraph
               executionId={executionId}
@@ -336,7 +334,6 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
               onTaskSelect={setSelectedTaskName}
               onAutoSelectTask={setSelectedTaskName}
               followExecution={isRunning}
-              panelOffsetPx={panelWidth}
               nodesDraggable={nodesDraggable}
               className="h-full"
             />
