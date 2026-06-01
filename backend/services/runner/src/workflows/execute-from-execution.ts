@@ -54,6 +54,7 @@ export interface ExecuteFromExecutionInput {
   org_id: string;
   callback_token?: Uint8Array | null;
   invoker_identity_account_id?: string;
+  recovery_mode?: boolean;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -85,7 +86,10 @@ export async function executeFromExecution(
   });
 
   try {
-    return await runWorkflowEngine(materialized, { checkPause });
+    return await runWorkflowEngine(materialized, {
+      checkPause,
+      recoveryMode: input.recovery_mode ?? false,
+    });
   } catch (err) {
     if (isCancellation(err)) {
       log.info("Workflow cancelled while paused or executing", {

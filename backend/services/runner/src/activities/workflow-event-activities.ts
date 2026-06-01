@@ -43,6 +43,7 @@ import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1
 import type { JsonObject } from "@bufbuild/protobuf";
 import type { WorkflowEventDescriptor } from "../workflow-engine/types.js";
 import type { TaskStatusEntry } from "../workflow-engine/task-status-accumulator.js";
+import type { RecoveryTaskData } from "../workflow-engine/recovery.js";
 
 const TASK_STATUS_MAP: Record<TaskStatusEntry["status"], WorkflowTaskStatus> = {
   started: WorkflowTaskStatus.WORKFLOW_TASK_IN_PROGRESS,
@@ -428,9 +429,53 @@ export async function emitWorkflowEvents(
   }
 }
 
+const PROTO_STATUS_TO_STRING: Record<number, string> = {
+  [WorkflowTaskStatus.WORKFLOW_TASK_IN_PROGRESS]: "started",
+  [WorkflowTaskStatus.WORKFLOW_TASK_COMPLETED]: "completed",
+  [WorkflowTaskStatus.WORKFLOW_TASK_FAILED]: "failed",
+  [WorkflowTaskStatus.WORKFLOW_TASK_SKIPPED]: "skipped",
+  [WorkflowTaskStatus.WORKFLOW_TASK_WAITING_APPROVAL]: "waiting_approval",
+};
+
+/**
+ * Converts a proto Struct field to a plain JS object safe for Temporal
+ * serialization. Returns undefined when the field is not set.
+ */
+function structToPlain(value: JsonObject | undefined): unknown {
+  if (value === undefined) return undefined;
+  try {
+    return JSON.parse(JSON.stringify(value));
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Loads recovery context data from the previous run's status snapshot.
+ *
+ * Fetches the WorkflowExecution and extracts status.tasks[] as plain
+ * serializable objects. The workflow sandbox builds the RecoveryContext
+ * from this data via buildRecoveryContext().
+ *
+ * Unlike emitWorkflowEvents (best-effort), this activity propagates
+ * errors — recovery context loading is required for correctness.
+ */
+export async function loadRecoveryContext(executionId: string): Promise<RecoveryTaskData[]> {
+  const client = buildClient();
+  const execution = await client.getWorkflowExecution(executionId);
+  const tasks = execution.status?.tasks ?? [];
+
+  return tasks.map(t => ({
+    taskName: t.taskName,
+    status: PROTO_STATUS_TO_STRING[t.status] ?? "unknown",
+    output: structToPlain(t.output),
+  }));
+}
+
 export function createWorkflowEventActivities() {
   return {
     EmitWorkflowEvents: emitWorkflowEvents,
     ResetEventSequence: initSequenceFromEventLog,
+    LoadRecoveryContext: loadRecoveryContext,
   };
 }

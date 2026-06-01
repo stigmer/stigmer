@@ -40,6 +40,7 @@ import { executeHumanInputTask } from "./tasks/human-input.js";
 import { extractCostFromOutput } from "../budget/index.js";
 import { truncatePayload } from "./task-status-accumulator.js";
 import { extractRootErrorMessage, extractStructuredError } from "./error-utils.js";
+import type { RecoveryContext } from "./recovery.js";
 
 /**
  * Returns the task kind string used for event emission. For call:function
@@ -71,9 +72,11 @@ export async function executeDoTasks(
   doc: WorkflowModel,
   evaluateExpressions: ExpressionEvaluator,
   ctx?: TaskExecutionContext,
+  recoveryContext?: RecoveryContext,
 ): Promise<unknown> {
   const effectiveCtx: TaskExecutionContext = ctx ?? buildMinimalContext(evaluateExpressions, doc);
   let nextTargetName: string | null = null;
+  let activeRecovery = recoveryContext;
 
   for (let i = 0; i < tasks.length; i++) {
     if (effectiveCtx.checkPause) await effectiveCtx.checkPause();
@@ -91,6 +94,49 @@ export async function executeDoTasks(
     state.addData({
       task: { name: entry.key },
     });
+
+    if (activeRecovery?.completedTasks.has(entry.key)) {
+      const recovered = activeRecovery.completedTasks.get(entry.key)!;
+      const kind = eventTaskKind(entry);
+
+      effectiveCtx.taskStatusAccumulator?.taskSkipped(entry.key, "completed in prior run (recovery)");
+      if (effectiveCtx.emitEvents) {
+        await effectiveCtx.emitEvents([{
+          type: "task_skipped",
+          taskName: entry.key,
+          occurredAt: new Date().toISOString(),
+          taskKind: kind,
+          reason: "completed in prior run (recovery)",
+        }]);
+      }
+
+      await processTaskOutput(entry, recovered.output, state, effectiveCtx);
+      await processTaskExport(entry, recovered.output, state, effectiveCtx);
+
+      const switchDirective = extractFlowDirective(recovered.output);
+      if (switchDirective !== undefined) {
+        if (isTermination(switchDirective)) break;
+        if (isExplicitTarget(switchDirective)) {
+          nextTargetName = switchDirective;
+          continue;
+        }
+      }
+
+      const staticDirective = entry.task.then;
+      if (staticDirective !== undefined) {
+        if (isTermination(staticDirective)) break;
+        if (isExplicitTarget(staticDirective)) {
+          nextTargetName = staticDirective;
+          continue;
+        }
+      }
+
+      continue;
+    }
+
+    if (activeRecovery) {
+      activeRecovery = undefined;
+    }
 
     const shouldRun = await checkTaskCondition(entry, state, effectiveCtx);
     if (!shouldRun) {
