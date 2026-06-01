@@ -30,6 +30,8 @@ import { orchestrateRunWorkflow } from "./run-orchestrator.js";
 import { orchestrateHumanInput } from "./human-input-orchestrator.js";
 import { executeDoTasks } from "../workflow-engine/do-executor.js";
 import { createState } from "../workflow-engine/state.js";
+import { buildRecoveryContext } from "../workflow-engine/recovery.js";
+import type { RecoveryContext } from "../workflow-engine/recovery.js";
 import { TaskStatusAccumulator } from "../workflow-engine/task-status-accumulator.js";
 import type {
   ExpressionEvaluator,
@@ -109,6 +111,7 @@ const promoteProxy = proxyLocalActivities<PromoteActivities>({
 
 export interface RunWorkflowEngineOptions {
   readonly checkPause?: () => Promise<void>;
+  readonly recoveryMode?: boolean;
 }
 
 /**
@@ -143,6 +146,25 @@ export async function runWorkflowEngine(
   recordExecutionStartMetric(model.document.name);
 
   await eventProxy.ResetEventSequence(executionId);
+
+  let recoveryContext: RecoveryContext | undefined;
+  if (options?.recoveryMode && executionId) {
+    log.info("Recovery mode active — loading context", { executionId });
+    const rawTasks = await eventProxy.LoadRecoveryContext(executionId);
+    recoveryContext = buildRecoveryContext(rawTasks);
+    const truncatedCount = [...recoveryContext.completedTasks.values()]
+      .filter(t => t.isTruncated).length;
+    if (recoveryContext.completedTasks.size > 0) {
+      log.info("Recovery context loaded", {
+        completedTasks: recoveryContext.completedTasks.size,
+        truncatedOutputs: truncatedCount,
+      });
+    } else {
+      log.warn("Recovery mode active but no completed tasks found — executing all tasks", {
+        executionId,
+      });
+    }
+  }
 
   const taskStatusAccumulator = new TaskStatusAccumulator();
 
@@ -255,6 +277,7 @@ export async function runWorkflowEngine(
       model,
       evaluateExpressions,
       ctx,
+      recoveryContext,
     );
 
     if (model.output?.as !== undefined) {

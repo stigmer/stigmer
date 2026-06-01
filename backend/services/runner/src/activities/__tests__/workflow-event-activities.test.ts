@@ -1,14 +1,17 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { toProtoEvent, initSequenceFromEventLog, emitWorkflowEvents } from "../workflow-event-activities.js";
+import { toProtoEvent, initSequenceFromEventLog, emitWorkflowEvents, loadRecoveryContext } from "../workflow-event-activities.js";
 import { WorkflowEventType } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import { WorkflowTaskStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
 import type { WorkflowEventDescriptor } from "../../workflow-engine/types.js";
 
 const mockGetEventLogHighWaterMark = vi.fn<(executionId: string) => Promise<bigint>>();
+const mockGetWorkflowExecution = vi.fn<(executionId: string) => Promise<unknown>>();
 
 vi.mock("../../client/stigmer-client.js", () => ({
   StigmerClient: vi.fn().mockImplementation(() => ({
     getEventLogHighWaterMark: (...args: unknown[]) => mockGetEventLogHighWaterMark(...(args as [string])),
+    getWorkflowExecution: (...args: unknown[]) => mockGetWorkflowExecution(...(args as [string])),
   })),
 }));
 
@@ -574,5 +577,88 @@ describe("emitWorkflowEvents", () => {
       attemptNumber: 1,
     }];
     await expect(emitWorkflowEvents("", events)).resolves.toBeUndefined();
+  });
+});
+
+describe("loadRecoveryContext", () => {
+  beforeEach(() => {
+    mockGetWorkflowExecution.mockReset();
+  });
+
+  it("returns mapped task data from execution status", async () => {
+    mockGetWorkflowExecution.mockResolvedValue({
+      status: {
+        tasks: [
+          {
+            taskName: "step1",
+            status: WorkflowTaskStatus.WORKFLOW_TASK_COMPLETED,
+            output: { result: "ok" },
+          },
+          {
+            taskName: "step2",
+            status: WorkflowTaskStatus.WORKFLOW_TASK_FAILED,
+            output: undefined,
+          },
+        ],
+      },
+    });
+
+    const result = await loadRecoveryContext("wfx_test-1");
+
+    expect(result).toHaveLength(2);
+    expect(result[0]).toEqual({
+      taskName: "step1",
+      status: "completed",
+      output: { result: "ok" },
+    });
+    expect(result[1]).toEqual({
+      taskName: "step2",
+      status: "failed",
+      output: undefined,
+    });
+  });
+
+  it("returns empty array when execution has no status", async () => {
+    mockGetWorkflowExecution.mockResolvedValue({});
+
+    const result = await loadRecoveryContext("wfx_empty-1");
+    expect(result).toEqual([]);
+  });
+
+  it("returns empty array when status has no tasks", async () => {
+    mockGetWorkflowExecution.mockResolvedValue({
+      status: { tasks: [] },
+    });
+
+    const result = await loadRecoveryContext("wfx_no-tasks-1");
+    expect(result).toEqual([]);
+  });
+
+  it("maps all proto WorkflowTaskStatus values correctly", async () => {
+    mockGetWorkflowExecution.mockResolvedValue({
+      status: {
+        tasks: [
+          { taskName: "t1", status: WorkflowTaskStatus.WORKFLOW_TASK_IN_PROGRESS, output: undefined },
+          { taskName: "t2", status: WorkflowTaskStatus.WORKFLOW_TASK_COMPLETED, output: undefined },
+          { taskName: "t3", status: WorkflowTaskStatus.WORKFLOW_TASK_FAILED, output: undefined },
+          { taskName: "t4", status: WorkflowTaskStatus.WORKFLOW_TASK_SKIPPED, output: undefined },
+          { taskName: "t5", status: WorkflowTaskStatus.WORKFLOW_TASK_WAITING_APPROVAL, output: undefined },
+        ],
+      },
+    });
+
+    const result = await loadRecoveryContext("wfx_statuses-1");
+
+    expect(result[0].status).toBe("started");
+    expect(result[1].status).toBe("completed");
+    expect(result[2].status).toBe("failed");
+    expect(result[3].status).toBe("skipped");
+    expect(result[4].status).toBe("waiting_approval");
+  });
+
+  it("propagates server errors", async () => {
+    mockGetWorkflowExecution.mockRejectedValue(new Error("server unavailable"));
+
+    await expect(loadRecoveryContext("wfx_error-1")).rejects.toThrow("server unavailable");
   });
 });
