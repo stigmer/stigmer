@@ -68,9 +68,18 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-06-01 14:37
-**Current Task**: T04 complete. Batch 1 fully done. Next: pick from T07 (Integration Tests), T08 (Proto + Documentation), or T09 (Manual Verification).
-**Status**: T01, T02, T03, T04, T05, and T06 implemented and committed. All implementation tasks complete. Only validation tasks remain (T07, T08, T09).
-**Last Session**: 2026-06-01 — T04 (Fix Cursor Error Classification + Poisoned-Handle Persistence) completed.
+**Current Task**: T08 complete. Only T07 (Integration Tests) and T09 (Manual Verification) remain.
+**Status**: T01–T06 implemented, T08 documentation fixes committed. Two validation tasks remain (T07, T09).
+**Last Session**: 2026-06-01 — T08 (Proto + Documentation Fixes) completed.
+
+## Session Progress (2026-06-01, Session 7)
+
+### T08 Completed: Proto + Documentation Fixes
+- Fixed contradictory recovery docs in io.proto (was: "checkpoint/reset" — never implemented)
+- Rewrote 89-line recover RPC doc block in command.proto: corrected summary, behavior steps, state transitions table, and Recovery vs Restart comparison
+- Broadened event.proto TaskSkippedPayload and enum comment to cover recovery as second skip scenario
+- Replaced one-liner SDK JSDoc with multi-line doc describing task-level resume and @param reason
+- Validation: `buf lint` clean, `tsc --noEmit` clean, `npm run lint` 0 errors
 
 ## Session Progress (2026-06-01, Session 6)
 
@@ -171,10 +180,9 @@ When starting a new session:
 Pick the next task:
 
 1. **T07** (Medium) — Integration Tests (all prerequisites met)
-2. **T08** (Small) — Proto + Documentation
-3. **T09** (Small) — Manual Verification (MongoDB reset) — needs all code deployed locally
+2. **T09** (Small) — Manual Verification (MongoDB reset) — needs all code deployed locally
 
-All implementation tasks (T01–T06) are complete. Remaining tasks are validation only.
+All implementation and documentation tasks (T01–T08) are complete. Remaining tasks are validation only.
 
 ## Task Summary (9 tasks, ~1 week)
 
@@ -187,12 +195,12 @@ All implementation tasks (T01–T06) are complete. Remaining tasks are validatio
 | T05 | React Event Store Reset | Small | **Done** ✅ |
 | T06 | Temporal Cleanup (Child Termination) | Small | **Done** ✅ |
 | T07 | Integration Tests | Medium | Ready (T03 done) |
-| T08 | Proto + Documentation | Small | Ready (T02 done) |
+| T08 | Proto + Documentation | Small | **Done** ✅ |
 | T09 | Manual Verification (MongoDB reset) | Small | Blocked (needs all code) |
 
 **Batch 1 (days 1-2):** ~~T01~~, ~~T04~~, ~~T05~~, ~~T06~~
 **Sequential core (days 2-4):** ~~T02~~, ~~T03~~
-**Validation (days 4-5):** T07, T08, T09
+**Validation (days 4-5):** T07, ~~T08~~, T09
 
 ## Quick Commands
 
