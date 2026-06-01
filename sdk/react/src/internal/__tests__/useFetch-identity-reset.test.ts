@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { createElement } from "react";
@@ -231,5 +231,157 @@ describe("useFetch — cancelled fetch from previous identity", () => {
       await Promise.resolve();
     });
     expect(result.current.data).toBe("fresh-data-Y");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Tests: refetch() preserves stale data (no skeleton flash)
+//
+// These tests verify that imperative refetch() — triggered by the sidebar's
+// navigation effect and staggered timers — does NOT reset data or flash
+// isLoading. The stale-while-revalidate contract requires that existing
+// data remains visible during background refetches, with only isRefetching
+// signaling the in-flight state.
+// ---------------------------------------------------------------------------
+
+describe("useFetch — refetch preserves stale data (no skeleton flash)", () => {
+  it("keeps stale data visible during refetch (no cacheKey)", async () => {
+    let callCount = 0;
+    const fetchFn = vi.fn(async () => `data-${++callCount}`);
+
+    const { result } = renderHook(() =>
+      useFetch(fetchFn, [], "init"),
+    );
+
+    await flush();
+    expect(result.current.data).toBe("data-1");
+    expect(result.current.isLoading).toBe(false);
+
+    // Trigger refetch — stale data must stay visible
+    act(() => result.current.refetch());
+    expect(result.current.data).toBe("data-1");
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.isRefetching).toBe(true);
+
+    await flush();
+    expect(result.current.data).toBe("data-2");
+    expect(result.current.isRefetching).toBe(false);
+  });
+
+  it("keeps isLoading false across multiple consecutive refetches", async () => {
+    let callCount = 0;
+    const fetchFn = vi.fn(async () => `v${++callCount}`);
+
+    const { result } = renderHook(() =>
+      useFetch(fetchFn, [], "init"),
+    );
+
+    await flush();
+    expect(result.current.data).toBe("v1");
+
+    // Three rapid refetches — none should flash isLoading
+    for (let i = 0; i < 3; i++) {
+      act(() => result.current.refetch());
+      expect(result.current.isLoading).toBe(false);
+      expect(result.current.data).not.toBe("init");
+      await flush();
+    }
+    expect(result.current.data).toBe("v4");
+  });
+
+  it("correctly resets on identity dep change after refetch", async () => {
+    let currentId = "A";
+    const fetchFn = vi.fn(async () => `data-${currentId}`);
+
+    const { result, rerender } = renderHook(() =>
+      useFetch(fetchFn, [currentId], "init"),
+    );
+
+    await flush();
+    expect(result.current.data).toBe("data-A");
+
+    // Refetch — should preserve stale data
+    act(() => result.current.refetch());
+    expect(result.current.data).toBe("data-A");
+    expect(result.current.isLoading).toBe(false);
+    await flush();
+
+    // Identity dep change — should reset to initialData
+    currentId = "B";
+    rerender();
+    expect(result.current.data).toBe("init");
+    expect(result.current.isLoading).toBe(true);
+
+    await flush();
+    expect(result.current.data).toBe("data-B");
+    expect(result.current.isLoading).toBe(false);
+  });
+
+  it("preserves stale data during slow refetch", async () => {
+    let resolveFetch: ((v: string) => void) | null = null;
+    let callCount = 0;
+
+    const fetchFn = vi.fn(
+      () =>
+        new Promise<string>((resolve) => {
+          resolveFetch = resolve;
+        }),
+    );
+
+    const { result } = renderHook(() =>
+      useFetch(fetchFn, [], "init"),
+    );
+
+    // Resolve initial fetch
+    await act(async () => {
+      resolveFetch!("first");
+      await Promise.resolve();
+    });
+    expect(result.current.data).toBe("first");
+
+    // Trigger refetch — slow fetch starts, stale data stays
+    act(() => result.current.refetch());
+    expect(result.current.data).toBe("first");
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.isRefetching).toBe(true);
+
+    // Resolve the refetch
+    await act(async () => {
+      resolveFetch!("second");
+      await Promise.resolve();
+    });
+    expect(result.current.data).toBe("second");
+    expect(result.current.isRefetching).toBe(false);
+  });
+
+  it("does not flash skeleton during refetchInterval polling", async () => {
+    vi.useFakeTimers();
+
+    let callCount = 0;
+    const fetchFn = vi.fn(async () => `poll-${++callCount}`);
+
+    const { result } = renderHook(() =>
+      useFetch(fetchFn, [], "init", { refetchInterval: 1000 }),
+    );
+
+    await flush();
+    expect(result.current.data).toBe("poll-1");
+    expect(result.current.isLoading).toBe(false);
+
+    // Advance past poll interval — data should update without skeleton
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.data).toBe("poll-2");
+
+    // Another tick
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.data).toBe("poll-3");
+
+    vi.useRealTimers();
   });
 });
