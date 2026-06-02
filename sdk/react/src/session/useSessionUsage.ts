@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import {
@@ -9,7 +9,15 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import type { ModelUsage, StreamingUsageSummary } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
 import { useStigmer } from "../hooks";
+import { isTerminalPhase } from "../execution/execution-phases";
 import { useFetch } from "../internal/useFetch";
+
+/**
+ * Poll cadence for the session usage report while an execution is in flight.
+ * The proxy writes one authoritative billing record per turn, so polling lets
+ * the settled cost climb live during the run rather than only at completion.
+ */
+const ACTIVE_POLL_INTERVAL_MS = 2500;
 
 /**
  * Per-model cost breakdown.
@@ -206,17 +214,47 @@ export function useSessionUsage(
     [executions],
   );
 
-  const { data: report } = useFetch(
-    sessionId
-      ? () =>
-          stigmer.agentExecution.getSessionUsageReport(
-            create(GetSessionUsageReportInputSchema, { sessionId }),
-          )
-      : null,
+  // Any execution still in flight means more authoritative records are coming,
+  // so the report must be polled to stay current during the run.
+  const hasActiveExecution = useMemo(
+    () =>
+      executions.some((e) => {
+        const phase = e.status?.phase;
+        return phase !== undefined && !isTerminalPhase(phase);
+      }),
+    [executions],
+  );
+
+  // Stable fetch identity so the poll timer in useFetch is not torn down and
+  // recreated on every streaming re-render (which would prevent it firing).
+  const fetchReport = useCallback(
+    () =>
+      stigmer.agentExecution.getSessionUsageReport(
+        create(GetSessionUsageReportInputSchema, { sessionId: sessionId! }),
+      ),
+    [sessionId, stigmer],
+  );
+
+  const { data: report, refetch } = useFetch(
+    sessionId ? fetchReport : null,
     [sessionId, stigmer],
     null as GetSessionUsageReportOutput | null,
-    { cacheKey: sessionId ? `session-usage:${sessionId}` : undefined },
+    {
+      cacheKey: sessionId ? `session-usage:${sessionId}` : undefined,
+      refetchInterval: hasActiveExecution ? ACTIVE_POLL_INTERVAL_MS : false,
+    },
   );
+
+  // When the last execution settles, poll stops — do one final fetch so the
+  // authoritative total (incl. the final turn) replaces the live estimate
+  // promptly instead of waiting for a remount.
+  const wasActiveRef = useRef(hasActiveExecution);
+  useEffect(() => {
+    if (wasActiveRef.current && !hasActiveExecution) {
+      refetch();
+    }
+    wasActiveRef.current = hasActiveExecution;
+  }, [hasActiveExecution, refetch]);
 
   const streamingFallback = useMemo(
     () => aggregateStreamingUsage(executions),
@@ -226,10 +264,13 @@ export function useSessionUsage(
   return useMemo(() => {
     const billingReport = report ? mapReport(report) : EMPTY;
 
-    // Server report available and has data — use it (is_estimated flag is authoritative).
+    // Authoritative proxy-metered report wins as soon as any record exists.
+    // While an execution runs, per-turn records land continuously and polling
+    // keeps this total fresh, so it is never shadowed by a stale snapshot.
     if (billingReport.hasUsage) return billingReport;
 
-    // No billing report yet (in-flight execution) — fall back to streaming estimate.
+    // No billing record yet (e.g. before the first turn settles) — fall back
+    // to the runner's display-only streaming estimate.
     if (streamingFallback.hasUsage) return streamingFallback;
 
     return EMPTY;
