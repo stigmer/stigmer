@@ -941,7 +941,7 @@ function useWorkflowExecutionActions(executionId: string | null, options?: UseWo
     error: { type: "Error | null", description: "Error from the last failed action, or `null`." },
     isSubmitting: { type: "boolean", description: "`true` while any action is in flight." },
     pause: { type: "(reason?: string) => Promise<WorkflowExecution | null>", description: "Pause a running execution." },
-    recover: { type: "(reason?: string) => Promise<WorkflowExecution | null>", description: "Recover a failed execution from its last checkpoint." },
+    recover: { type: "(reason?: string) => Promise<WorkflowExecution | null>", description: "Recover a failed execution with task-level resume.  Terminates stale workflows, re-resolves environment variables (picks up any config fixes), and starts a fresh run in recovery mode. Completed tasks are skipped — their outputs are restored from the event log — and execution resumes from the first incomplete or failed task." },
     resume: { type: "() => Promise<WorkflowExecution | null>", description: "Resume a paused execution." },
     submitApproval: { type: "(toolCallId: string, action: ApprovalAction, comment?: string) => Promise<WorkflowExecution | null>", description: "Submit an approval decision for a child agent's tool execution." },
     submitTaskApproval: { type: "(taskName: string, outcome: string, formData?: Record<string, unknown>, comment?: string) => Promise<WorkflowExecution | null>", description: "Submit a reviewer's decision for a workflow-level human_input task.  Unlike `submitApproval` (which forwards agent tool approvals), this sends a Temporal signal to the workflow runner's human_input orchestrator, unblocking the task with the selected outcome." },
@@ -1053,6 +1053,16 @@ sequence number.
 
 For terminal executions: loads the full event log via paginated
 `getEventLog` calls.
+
+On recovery (terminal → active phase transition for the same
+execution), the store is reset so stale events from the failed run
+are cleared before the new subscription begins.
+
+When `executionId` changes to a different execution, the store is
+reset before subscribing — mirroring `useFetch`'s identity-change
+reset — so the previous run's append-only events neither render as
+stale progress nor cause the live subscription to resume from the
+wrong `afterSequence`.
 
 Pass `null` for `executionId` to skip (stable no-op).
 

@@ -623,10 +623,17 @@ export const TerminateWorkflowExecutionInputSchema: GenMessage<TerminateWorkflow
 /**
  * RecoverWorkflowExecutionInput requests recovery of a failed workflow execution.
  *
+ * Recovery preserves completed work: tasks that succeeded in the failed run are
+ * skipped (their outputs restored into workflow context), and execution resumes
+ * from the first incomplete or failed task.
+ *
  * @internal
- * Resumes execution from the last successful checkpoint, preserving all completed work.
- * Uses the workflow engine's reset functionality to continue without re-executing
- * successful steps.
+ * Terminates the existing Temporal orchestrator and child workflows, recreates
+ * the ExecutionContext with freshly resolved environment variables, and starts a
+ * new orchestrator with recoveryMode enabled. The workflow engine reads completed
+ * task outputs from the persisted event log, skips those tasks (emitting
+ * task_skipped events), and begins execution at the first non-completed task.
+ * Event sequence numbers continue from the high-water mark of the previous run.
  *
  * Preconditions:
  * - Execution must be in EXECUTION_FAILED phase
