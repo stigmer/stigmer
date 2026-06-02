@@ -33,6 +33,8 @@ function createMockConnect() {
       },
       close() {},
       destroy() {},
+      once() { return session; },
+      on() { return session; },
     } as unknown as http2Type.ClientHttp2Session;
     return session;
   }) as typeof http2.connect;

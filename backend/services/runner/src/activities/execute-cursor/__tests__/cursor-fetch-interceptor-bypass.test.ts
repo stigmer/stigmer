@@ -15,15 +15,15 @@ import { tmpdir } from "node:os";
 
 const CURSOR_API_KEY = process.env.CURSOR_API_KEY ?? "";
 
-describe("Fetch Interceptor vs Connect-Node Transport", () => {
+// Live smoke test: requires a real Cursor API key. Skipped when none is set
+// (e.g. local `make check` / CI without provider credentials).
+const describeWithCursorKey = CURSOR_API_KEY ? describe : describe.skip;
+
+describeWithCursorKey("Fetch Interceptor vs Connect-Node Transport", () => {
   let interceptCalled = false;
   const originalFetch = globalThis.fetch;
 
   beforeAll(() => {
-    if (!CURSOR_API_KEY) {
-      throw new Error("CURSOR_API_KEY not set");
-    }
-
     interceptCalled = false;
     globalThis.fetch = (async (input: any, init?: any) => {
       const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;

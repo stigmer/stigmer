@@ -22,11 +22,13 @@
           "model": "claude-sonnet-4-6",
           "content": [
             {
-              "type": "text",
-              "text": "{\"score\": 0.15, \"reasoning\": \"The text is nonsensical and does not address the rubric criteria. It contains random characters and lacks any coherent structure or meaning.\"}"
+              "type": "tool_use",
+              "id": "toolu_eval_warn_01",
+              "name": "extract",
+              "input": { "score": 0.15, "reasoning": "The text is nonsensical and does not address the rubric criteria. It contains random characters and lacks any coherent structure or meaning." }
             }
           ],
-          "stop_reason": "end_turn",
+          "stop_reason": "tool_use",
           "usage": { "input_tokens": 160, "output_tokens": 55 }
         }
       },

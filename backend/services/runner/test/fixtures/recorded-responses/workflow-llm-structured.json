@@ -22,11 +22,13 @@
           "model": "claude-sonnet-4-6",
           "content": [
             {
-              "type": "text",
-              "text": "{\"sentiment\": \"positive\", \"confidence\": 0.95}"
+              "type": "tool_use",
+              "id": "toolu_llm_struct_01",
+              "name": "extract",
+              "input": { "sentiment": "positive", "confidence": 0.95 }
             }
           ],
-          "stop_reason": "end_turn",
+          "stop_reason": "tool_use",
           "usage": { "input_tokens": 120, "output_tokens": 30 }
         }
       },
