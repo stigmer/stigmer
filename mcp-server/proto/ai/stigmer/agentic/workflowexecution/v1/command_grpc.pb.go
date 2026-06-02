@@ -588,27 +588,34 @@ type WorkflowExecutionCommandControllerClient interface {
 	Terminate(ctx context.Context, in *TerminateWorkflowExecutionInput, opts ...grpc.CallOption) (*WorkflowExecution, error)
 	// Recover a failed workflow execution.
 	//
-	// Terminates the existing (possibly stuck) Temporal orchestrator workflow,
-	// recreates the ExecutionContext with freshly resolved environment variables,
-	// and starts a brand-new Temporal workflow for the same execution ID. The
-	// workflow engine re-executes all tasks from the beginning. Individual
-	// activities may implement their own idempotency (e.g., CallAgent session
-	// reuse), but there is no task-level checkpoint resume.
+	// Terminates the existing (possibly stuck) Temporal orchestrator and child
+	// workflows, recreates the ExecutionContext with freshly resolved environment
+	// variables, and starts a new Temporal workflow with recovery mode enabled.
+	// The workflow engine reads completed task outputs from the persisted event
+	// log, skips those tasks, and resumes execution from the first incomplete or
+	// failed task — preserving all previously completed work.
 	//
 	// @internal
-	// Temporal Equivalent: Terminates the existing orchestrator workflow and
-	// starts a fresh one with the same workflow ID.
+	// Temporal Equivalent: Terminates the existing orchestrator and child
+	// workflows, starts a fresh orchestrator with the same workflow ID and
+	// recoveryMode: true in the workflow input.
 	//
 	// # Behavior
 	//
 	//  1. Validates execution is in FAILED phase (recoverable)
-	//  2. Terminates the existing Temporal orchestrator workflow (handles stuck
-	//     Workflow-Task-Failed loops and already-completed workflows gracefully)
+	//  2. Terminates the existing Temporal orchestrator workflow and its child
+	//     TS runner workflow (handles stuck Workflow-Task-Failed loops and
+	//     already-completed workflows gracefully)
 	//  3. Recreates the ExecutionContext with freshly resolved environment
 	//     variables from the current WorkflowInstance and Workflow configuration
-	//  4. Starts a fresh Temporal orchestrator workflow for the same execution
-	//  5. Execution transitions from FAILED to IN_PROGRESS phase
-	//  6. Returns updated WorkflowExecution with IN_PROGRESS phase
+	//  4. Starts a fresh Temporal orchestrator workflow with recoveryMode flag;
+	//     the engine loads completed task outputs from the event log, skips
+	//     those tasks (emitting task_skipped events), and resumes from the
+	//     first non-completed task
+	//  5. Event sequence continues from the persisted high-water mark (no
+	//     duplicate keys, no gaps)
+	//  6. Execution transitions from FAILED to IN_PROGRESS phase
+	//  7. Returns updated WorkflowExecution with IN_PROGRESS phase
 	//
 	// # Environment Resolution
 	//
@@ -630,7 +637,8 @@ type WorkflowExecutionCommandControllerClient interface {
 	// - status.phase: FAILED → IN_PROGRESS
 	// - status.completed_at: Cleared (execution is running again)
 	// - status.error: Cleared (no longer failed)
-	// - All tasks: Re-executed from the beginning (activities may be idempotent)
+	// - Completed tasks: Skipped (outputs restored from event log into $context)
+	// - Failed/pending tasks: Re-executed from the failure point
 	//
 	// # Recovery vs Restart
 	//
@@ -638,7 +646,9 @@ type WorkflowExecutionCommandControllerClient interface {
 	// |--------|---------|----------------------|
 	// | Execution ID | Same | New ID |
 	// | Environment | Re-resolved (current) | From request |
-	// | Task re-execution | All tasks re-run | All tasks run |
+	// | Completed tasks | Skipped (outputs preserved) | All tasks run fresh |
+	// | Failed task | Re-executed | All tasks run fresh |
+	// | Event history | Continues (appended) | Starts from 1 |
 	// | Use case | Fix config, then retry | Start fresh |
 	//
 	// # Idempotency
@@ -1514,27 +1524,34 @@ type WorkflowExecutionCommandControllerServer interface {
 	Terminate(context.Context, *TerminateWorkflowExecutionInput) (*WorkflowExecution, error)
 	// Recover a failed workflow execution.
 	//
-	// Terminates the existing (possibly stuck) Temporal orchestrator workflow,
-	// recreates the ExecutionContext with freshly resolved environment variables,
-	// and starts a brand-new Temporal workflow for the same execution ID. The
-	// workflow engine re-executes all tasks from the beginning. Individual
-	// activities may implement their own idempotency (e.g., CallAgent session
-	// reuse), but there is no task-level checkpoint resume.
+	// Terminates the existing (possibly stuck) Temporal orchestrator and child
+	// workflows, recreates the ExecutionContext with freshly resolved environment
+	// variables, and starts a new Temporal workflow with recovery mode enabled.
+	// The workflow engine reads completed task outputs from the persisted event
+	// log, skips those tasks, and resumes execution from the first incomplete or
+	// failed task — preserving all previously completed work.
 	//
 	// @internal
-	// Temporal Equivalent: Terminates the existing orchestrator workflow and
-	// starts a fresh one with the same workflow ID.
+	// Temporal Equivalent: Terminates the existing orchestrator and child
+	// workflows, starts a fresh orchestrator with the same workflow ID and
+	// recoveryMode: true in the workflow input.
 	//
 	// # Behavior
 	//
 	//  1. Validates execution is in FAILED phase (recoverable)
-	//  2. Terminates the existing Temporal orchestrator workflow (handles stuck
-	//     Workflow-Task-Failed loops and already-completed workflows gracefully)
+	//  2. Terminates the existing Temporal orchestrator workflow and its child
+	//     TS runner workflow (handles stuck Workflow-Task-Failed loops and
+	//     already-completed workflows gracefully)
 	//  3. Recreates the ExecutionContext with freshly resolved environment
 	//     variables from the current WorkflowInstance and Workflow configuration
-	//  4. Starts a fresh Temporal orchestrator workflow for the same execution
-	//  5. Execution transitions from FAILED to IN_PROGRESS phase
-	//  6. Returns updated WorkflowExecution with IN_PROGRESS phase
+	//  4. Starts a fresh Temporal orchestrator workflow with recoveryMode flag;
+	//     the engine loads completed task outputs from the event log, skips
+	//     those tasks (emitting task_skipped events), and resumes from the
+	//     first non-completed task
+	//  5. Event sequence continues from the persisted high-water mark (no
+	//     duplicate keys, no gaps)
+	//  6. Execution transitions from FAILED to IN_PROGRESS phase
+	//  7. Returns updated WorkflowExecution with IN_PROGRESS phase
 	//
 	// # Environment Resolution
 	//
@@ -1556,7 +1573,8 @@ type WorkflowExecutionCommandControllerServer interface {
 	// - status.phase: FAILED → IN_PROGRESS
 	// - status.completed_at: Cleared (execution is running again)
 	// - status.error: Cleared (no longer failed)
-	// - All tasks: Re-executed from the beginning (activities may be idempotent)
+	// - Completed tasks: Skipped (outputs restored from event log into $context)
+	// - Failed/pending tasks: Re-executed from the failure point
 	//
 	// # Recovery vs Restart
 	//
@@ -1564,7 +1582,9 @@ type WorkflowExecutionCommandControllerServer interface {
 	// |--------|---------|----------------------|
 	// | Execution ID | Same | New ID |
 	// | Environment | Re-resolved (current) | From request |
-	// | Task re-execution | All tasks re-run | All tasks run |
+	// | Completed tasks | Skipped (outputs preserved) | All tasks run fresh |
+	// | Failed task | Re-executed | All tasks run fresh |
+	// | Event history | Continues (appended) | Starts from 1 |
 	// | Use case | Fix config, then retry | Start fresh |
 	//
 	// # Idempotency

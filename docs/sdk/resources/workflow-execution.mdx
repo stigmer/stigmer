@@ -867,7 +867,7 @@ WorkflowExecution workflowExecution = client.workflowExecutions().terminate(Term
 
 Recover a failed workflow execution.
 
-Terminates the existing (possibly stuck) Temporal orchestrator workflow, recreates the ExecutionContext with freshly resolved environment variables, and starts a brand-new Temporal workflow for the same execution ID. The workflow engine re-executes all tasks from the beginning. Individual activities may implement their own idempotency (e.g., CallAgent session reuse), but there is no task-level checkpoint resume.
+Terminates the existing (possibly stuck) Temporal orchestrator and child workflows, recreates the ExecutionContext with freshly resolved environment variables, and starts a new Temporal workflow with recovery mode enabled. The workflow engine reads completed task outputs from the persisted event log, skips those tasks, and resumes execution from the first incomplete or failed task — preserving all previously completed work.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -1586,7 +1586,7 @@ WorkflowEventType categorizes execution events for filtering and dispatch.
 | `task_started` | A workflow task began execution. |
 | `task_completed` | A workflow task completed successfully. |
 | `task_failed` | A workflow task failed. |
-| `task_skipped` | A workflow task was skipped due to conditional logic. |
+| `task_skipped` | A workflow task was skipped (conditional logic or recovery). |
 | `task_retrying` | A workflow task is being retried after a failure. |
 | `agent_call_started` | A child AgentExecution was created for an agent_call task. |
 | `agent_call_progress` | Periodic progress summary for a running agent_call task. |

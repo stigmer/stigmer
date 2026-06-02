@@ -77,7 +77,7 @@ const (
 	// A workflow task failed.
 	// Payload: TaskFailedPayload.
 	WorkflowEventType_task_failed WorkflowEventType = 13
-	// A workflow task was skipped due to conditional logic.
+	// A workflow task was skipped (conditional logic or recovery).
 	// Payload: TaskSkippedPayload.
 	WorkflowEventType_task_skipped WorkflowEventType = 14
 	// A workflow task is being retried after a failure.
@@ -1401,8 +1401,14 @@ func (x *TaskFailedPayload) GetDurationMs() int64 {
 // Payload for task_skipped events.
 //
 // @internal
-// Emitted when a task transitions to WORKFLOW_TASK_SKIPPED due to
-// conditional logic (switch_case evaluated to a different branch).
+// Emitted when a task transitions to WORKFLOW_TASK_SKIPPED. Two scenarios:
+//
+//  1. Conditional logic — switch_case evaluated to a different branch, or a
+//     task-level condition evaluated to false.
+//  2. Recovery — the task completed successfully in a prior run and is being
+//     skipped during recovery mode (outputs restored from the event log).
+//
+// The `reason` field distinguishes the cause for UI rendering and debugging.
 //
 // @since T06
 type TaskSkippedPayload struct {
@@ -1410,7 +1416,7 @@ type TaskSkippedPayload struct {
 	// Task kind that was skipped.
 	TaskKind v1.WorkflowTaskKind `protobuf:"varint,1,opt,name=task_kind,json=taskKind,proto3,enum=ai.stigmer.agentic.workflow.v1.WorkflowTaskKind" json:"task_kind,omitempty"`
 	// Reason the task was skipped (e.g., "condition evaluated to false",
-	// "branch not selected").
+	// "completed in prior run (recovery)").
 	Reason        string `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

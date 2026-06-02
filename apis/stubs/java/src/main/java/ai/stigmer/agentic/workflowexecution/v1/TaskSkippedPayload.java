@@ -10,8 +10,14 @@ package ai.stigmer.agentic.workflowexecution.v1;
  * Payload for task_skipped events.
  *
  * &#64;internal
- * Emitted when a task transitions to WORKFLOW_TASK_SKIPPED due to
- * conditional logic (switch_case evaluated to a different branch).
+ * Emitted when a task transitions to WORKFLOW_TASK_SKIPPED. Two scenarios:
+ *
+ * 1. Conditional logic — switch_case evaluated to a different branch, or a
+ * task-level condition evaluated to false.
+ * 2. Recovery — the task completed successfully in a prior run and is being
+ * skipped during recovery mode (outputs restored from the event log).
+ *
+ * The `reason` field distinguishes the cause for UI rendering and debugging.
  *
  * &#64;since T06
  * </pre>
@@ -92,7 +98,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Reason the task was skipped (e.g., "condition evaluated to false",
-   * "branch not selected").
+   * "completed in prior run (recovery)").
    * </pre>
    *
    * <code>string reason = 2 [json_name = "reason"];</code>
@@ -114,7 +120,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Reason the task was skipped (e.g., "condition evaluated to false",
-   * "branch not selected").
+   * "completed in prior run (recovery)").
    * </pre>
    *
    * <code>string reason = 2 [json_name = "reason"];</code>
@@ -306,8 +312,14 @@ private static final long serialVersionUID = 0L;
    * Payload for task_skipped events.
    *
    * &#64;internal
-   * Emitted when a task transitions to WORKFLOW_TASK_SKIPPED due to
-   * conditional logic (switch_case evaluated to a different branch).
+   * Emitted when a task transitions to WORKFLOW_TASK_SKIPPED. Two scenarios:
+   *
+   * 1. Conditional logic — switch_case evaluated to a different branch, or a
+   * task-level condition evaluated to false.
+   * 2. Recovery — the task completed successfully in a prior run and is being
+   * skipped during recovery mode (outputs restored from the event log).
+   *
+   * The `reason` field distinguishes the cause for UI rendering and debugging.
    *
    * &#64;since T06
    * </pre>
@@ -537,7 +549,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reason the task was skipped (e.g., "condition evaluated to false",
-     * "branch not selected").
+     * "completed in prior run (recovery)").
      * </pre>
      *
      * <code>string reason = 2 [json_name = "reason"];</code>
@@ -558,7 +570,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reason the task was skipped (e.g., "condition evaluated to false",
-     * "branch not selected").
+     * "completed in prior run (recovery)").
      * </pre>
      *
      * <code>string reason = 2 [json_name = "reason"];</code>
@@ -580,7 +592,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reason the task was skipped (e.g., "condition evaluated to false",
-     * "branch not selected").
+     * "completed in prior run (recovery)").
      * </pre>
      *
      * <code>string reason = 2 [json_name = "reason"];</code>
@@ -598,7 +610,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reason the task was skipped (e.g., "condition evaluated to false",
-     * "branch not selected").
+     * "completed in prior run (recovery)").
      * </pre>
      *
      * <code>string reason = 2 [json_name = "reason"];</code>
@@ -613,7 +625,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reason the task was skipped (e.g., "condition evaluated to false",
-     * "branch not selected").
+     * "completed in prior run (recovery)").
      * </pre>
      *
      * <code>string reason = 2 [json_name = "reason"];</code>

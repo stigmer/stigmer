@@ -32,7 +32,7 @@ public interface TaskSkippedPayloadOrBuilder extends
   /**
    * <pre>
    * Reason the task was skipped (e.g., "condition evaluated to false",
-   * "branch not selected").
+   * "completed in prior run (recovery)").
    * </pre>
    *
    * <code>string reason = 2 [json_name = "reason"];</code>
@@ -42,7 +42,7 @@ public interface TaskSkippedPayloadOrBuilder extends
   /**
    * <pre>
    * Reason the task was skipped (e.g., "condition evaluated to false",
-   * "branch not selected").
+   * "completed in prior run (recovery)").
    * </pre>
    *
    * <code>string reason = 2 [json_name = "reason"];</code>
