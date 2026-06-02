@@ -60,6 +60,7 @@ import { extractAgentRationale, getGitBranch, getGitHeadSha } from "./continuati
 import { writeHooksToWorkspace } from "./workspace-setup.js";
 import { buildApprovalState } from "./approval-state.js";
 import { setInterceptorExecutionId, runWithExecutionContext } from "./fetch-interceptor.js";
+import { closeProxySessions } from "./http2-interceptor.js";
 import { resolveModelId, ensureLoaded as ensurePricingLoaded } from "./model-pricing.js";
 import { UsageAccumulator } from "./usage-accumulator.js";
 import { StreamingUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
@@ -103,6 +104,10 @@ async function executeCursor(
   threadId: string,
 ): Promise<unknown> {
   console.log(`ExecuteCursor started: execution=${executionId}, threadId=${threadId || "(new)"}`);
+
+  // Ensure fresh HTTP/2 transport — prevents a degraded session from a
+  // prior workflow task from poisoning this execution's agent stream.
+  closeProxySessions();
 
   setInterceptorExecutionId(executionId);
   return runWithExecutionContext(executionId, () => executeCursorInner(config, client, executionId, threadId));
@@ -307,7 +312,7 @@ async function executeCursorInner(
           mcpServers: mcpConfig,
         };
 
-    const resolution: AgentResolution = await resolveAgent(
+    let resolution: AgentResolution = await resolveAgent(
       threadId,
       createOptions,
       agentMode,
@@ -648,6 +653,7 @@ async function executeCursorInner(
       }));
       await persistStatus(client, executionId, status);
       await maybePeristSessionMemory(client, sessionId, session, status, userMessage);
+      try { resolution.agent.close(); } catch { /* best effort */ }
       console.log(`ExecuteCursor completed (platform stop): execution=${executionId}`);
       return slimStatus(status);
     }
@@ -718,6 +724,8 @@ async function executeCursorInner(
           capturedRejection,
           isResumedHandle: resolution.reason === "resumed_successfully",
           fallbackContext: { model: validatedModel, mode: agentMode, agentId: resolution.agentId },
+          durationMs: (result as unknown as Record<string, unknown>).durationMs as number | undefined,
+          messageCount: status.messages.length,
         });
 
         console.error(
@@ -844,6 +852,72 @@ async function executeCursorInner(
           break;
         }
 
+        // Transport-timeout retry: fresh agent got 0 messages (degraded h2 session).
+        // Reset proxy sessions and try once with a new connection.
+        if (
+          classified.category === "network"
+          && classified.retryable
+          && resolution.reason !== "resumed_successfully"
+          && !alreadyRetriedWithFreshAgent
+        ) {
+          alreadyRetriedWithFreshAgent = true;
+          console.warn(
+            `ExecuteCursor transport-timeout recovery: execution=${executionId}, ` +
+            `resetting proxy sessions and retrying with fresh agent`,
+          );
+
+          try { resolution.agent.close(); } catch { /* best effort */ }
+          closeProxySessions();
+
+          const freshAgent = agentMode === "cloud"
+            ? await createCloudAgent(createOptions as CreateCloudAgentOptions)
+            : await createAgent(createOptions as CreateAgentOptions);
+
+          try {
+            blueprint.sessionSpec.harnessStateId = freshAgent.agentId;
+            if (blueprint.session.metadata) blueprint.session.metadata.slug = "";
+            await client.updateSession(blueprint.session);
+          } catch (updateErr) {
+            console.warn("Failed to update session with fresh agentId (non-fatal):", updateErr);
+          }
+
+          const retryRun = await freshAgent.send(effectivePrompt, {
+            onDelta: ({ update }) => {
+              if (update.type === "turn-ended" && update.usage) {
+                usageAccumulator.addTurn(update.usage);
+              }
+              deltaEnricher.processDelta(update);
+              try { heartbeat(); } catch { /* swallow during retry */ }
+            },
+          });
+
+          streamErrorMessage = undefined;
+
+          for await (const retryEvent of retryRun.stream()) {
+            if (Context.current().cancellationSignal.aborted) break;
+            collectedEvents.push(retryEvent);
+            accumulator.processEvent(retryEvent);
+            if (retryEvent.type === "status") {
+              const retryStatusEvent = retryEvent as { status?: string; message?: string };
+              if (retryStatusEvent.status === "ERROR" && retryStatusEvent.message) {
+                streamErrorMessage = retryStatusEvent.message;
+              }
+            }
+            heartbeat();
+          }
+
+          const retryResult = await retryRun.wait();
+          if (retryResult.status === "finished") {
+            status.phase = ExecutionPhase.EXECUTION_COMPLETED;
+            resolution = { ...resolution, agent: freshAgent, agentId: freshAgent.agentId, isNew: true };
+            break;
+          }
+
+          status.phase = ExecutionPhase.EXECUTION_FAILED;
+          status.error = `Transport recovery failed: ${formatClassifiedError(classified)}`;
+          break;
+        }
+
         status.phase = ExecutionPhase.EXECUTION_FAILED;
         status.error = formatClassifiedError(classified);
         break;
@@ -922,6 +996,9 @@ async function executeCursorInner(
       `hasStructuredOutput=${structuredOutput !== undefined}` +
         (status.error ? `, error=${status.error}` : ""),
     );
+
+    // Release SDK executor lease to prevent cache buildup across workflow tasks
+    try { resolution.agent.close(); } catch { /* best effort */ }
 
     const slim = slimStatus(status) as Record<string, unknown>;
     if (finalText !== undefined) {
