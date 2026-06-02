@@ -13,9 +13,9 @@ import (
 
 // RecordedLLMEntry represents a single request/response pair in a fixture file.
 type RecordedLLMEntry struct {
-	Index    int                    `json:"index"`
-	Request  map[string]any         `json:"request"`
-	Response RecordedLLMResponse    `json:"response"`
+	Index    int                 `json:"index"`
+	Request  map[string]any      `json:"request"`
+	Response RecordedLLMResponse `json:"response"`
 }
 
 // RecordedLLMResponse is the HTTP response portion of a recorded entry.

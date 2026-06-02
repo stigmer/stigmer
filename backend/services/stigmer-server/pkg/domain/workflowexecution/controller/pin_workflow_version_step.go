@@ -15,9 +15,9 @@ import (
 //
 // This ensures the execution is permanently tied to the workflow definition
 // that was active at creation time, solving two problems:
-// 1. The runner executes the correct version even if the workflow is updated
-//    between execution creation and runner hydration
-// 2. The execution viewer renders the correct graph for historical executions
+//  1. The runner executes the correct version even if the workflow is updated
+//     between execution creation and runner hydration
+//  2. The execution viewer renders the correct graph for historical executions
 //
 // If the workflow has no version_hash (pre-versioning workflows), the field is
 // left empty and the runner falls back to fetching the live workflow.

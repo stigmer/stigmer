@@ -1109,31 +1109,31 @@ func emitNestedToProto(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap 
 				fmt.Fprintf(buf, "\t\tif t, err := time.Parse(time.RFC3339, i.%s); err == nil {\n", field.Name)
 				fmt.Fprintf(buf, "\t\t\tp.%s = timestamppb.New(t)\n", pf)
 				buf.WriteString("\t\t}\n\t}\n")
-		} else if field.Type.Kind == "message" {
-			if field.OneofGroup != "" {
-				continue
-			}
-			if field.Type.MessageType == "ApiResourceReference" {
-				fmt.Fprintf(buf, "\tif i.%s.Org != \"\" || i.%s.Slug != \"\" {\n", field.Name, field.Name)
-				if field.ReferenceKind != 0 {
-					enumName := apiResourceKindEnumNames[field.ReferenceKind]
-					fmt.Fprintf(buf, "\t\tref := i.%s.toProto()\n", field.Name)
-					fmt.Fprintf(buf, "\t\tref.Kind = apiresourcekind.ApiResourceKind_%s\n", enumName)
-					fmt.Fprintf(buf, "\t\tp.%s = ref\n", pf)
-				} else {
-					fmt.Fprintf(buf, "\t\tp.%s = i.%s.toProto()\n", pf, field.Name)
+			} else if field.Type.Kind == "message" {
+				if field.OneofGroup != "" {
+					continue
 				}
+				if field.Type.MessageType == "ApiResourceReference" {
+					fmt.Fprintf(buf, "\tif i.%s.Org != \"\" || i.%s.Slug != \"\" {\n", field.Name, field.Name)
+					if field.ReferenceKind != 0 {
+						enumName := apiResourceKindEnumNames[field.ReferenceKind]
+						fmt.Fprintf(buf, "\t\tref := i.%s.toProto()\n", field.Name)
+						fmt.Fprintf(buf, "\t\tref.Kind = apiresourcekind.ApiResourceKind_%s\n", enumName)
+						fmt.Fprintf(buf, "\t\tp.%s = ref\n", pf)
+					} else {
+						fmt.Fprintf(buf, "\t\tp.%s = i.%s.toProto()\n", pf, field.Name)
+					}
+					buf.WriteString("\t}\n")
+				} else {
+					fmt.Fprintf(buf, "\tif i.%s != nil {\n", field.Name)
+					fmt.Fprintf(buf, "\t\tp.%s = i.%s.toProto()\n", pf, field.Name)
+					buf.WriteString("\t}\n")
+				}
+			} else if field.Type.Kind == "array" && field.Type.ElementType != nil && field.Type.ElementType.Kind == "message" {
+				fmt.Fprintf(buf, "\tfor _, item := range i.%s {\n", field.Name)
+				fmt.Fprintf(buf, "\t\tp.%s = append(p.%s, item.toProto())\n", pf, pf)
 				buf.WriteString("\t}\n")
 			} else {
-				fmt.Fprintf(buf, "\tif i.%s != nil {\n", field.Name)
-				fmt.Fprintf(buf, "\t\tp.%s = i.%s.toProto()\n", pf, field.Name)
-				buf.WriteString("\t}\n")
-			}
-		} else if field.Type.Kind == "array" && field.Type.ElementType != nil && field.Type.ElementType.Kind == "message" {
-			fmt.Fprintf(buf, "\tfor _, item := range i.%s {\n", field.Name)
-			fmt.Fprintf(buf, "\t\tp.%s = append(p.%s, item.toProto())\n", pf, pf)
-			buf.WriteString("\t}\n")
-		} else {
 				fmt.Fprintf(buf, "\tp.%s = i.%s\n", pf, field.Name)
 			}
 		}

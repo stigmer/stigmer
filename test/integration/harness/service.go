@@ -34,13 +34,13 @@ func FindServiceJar() string {
 
 // JavaService manages the stigmer-service fat JAR as a child process.
 type JavaService struct {
-	cmd            *exec.Cmd
-	GRPCPort       string
-	HTTPPort       string
-	BiDiProxyPort  string
-	logFile        *os.File
-	logPath        string
-	logger         *slog.Logger
+	cmd           *exec.Cmd
+	GRPCPort      string
+	HTTPPort      string
+	BiDiProxyPort string
+	logFile       *os.File
+	logPath       string
+	logger        *slog.Logger
 }
 
 // LogPath returns the path to the service log file.

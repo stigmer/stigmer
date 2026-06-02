@@ -17,7 +17,8 @@ import (
 // at the agent execution level across both harnesses (native + cursor).
 //
 // These tests exercise the fundamental contract:
-//   schema on execution → agent completes → status.structured_output populated.
+//
+//	schema on execution → agent completes → status.structured_output populated.
 //
 // Philosophy: These tests DISCOVER issues in the pipeline, not fix them.
 // Each test documents which failure modes from the plan it targets (A1-A3, B1-B9, D1-D5, E1-E5).

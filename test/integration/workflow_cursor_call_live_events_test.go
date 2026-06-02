@@ -401,10 +401,10 @@ func TestWorkflowAgentCall_TaskSnapshotMetadata_AgentExecutionId(t *testing.T) {
 	requireAgentCallPrereqs(t)
 
 	type subtest struct {
-		name       string
-		harness    string
-		skipFunc   func(t *testing.T)
-		taskName   string
+		name     string
+		harness  string
+		skipFunc func(t *testing.T)
+		taskName string
 	}
 
 	subtests := []subtest{

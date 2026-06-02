@@ -151,4 +151,3 @@ func (c *WorkflowController) findAuditWorkflowByVersion(ctx context.Context, wor
 	}
 	return &wf, true, nil
 }
-
