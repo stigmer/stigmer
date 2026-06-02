@@ -1,6 +1,7 @@
 package workflowexecution
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -9,7 +10,7 @@ import (
 
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
-	"github.com/stigmer/stigmer/backend/libs/go/grpclib/pipeline"
+	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 )
 
 func TestBuildNewStateWithStatus_PendingApprovals_GuardedUpdate(t *testing.T) {
@@ -133,7 +134,7 @@ func executeMerge(
 	t.Helper()
 
 	step := &BuildNewStateWithStatusStep{}
-	ctx := pipeline.NewRequestContext(input)
+	ctx := pipeline.NewRequestContext(context.Background(), input)
 	ctx.Set("existingExecution", proto.Clone(existing))
 
 	err := step.Execute(ctx)

@@ -1,7 +1,5 @@
 "use client";
 
-import "@xyflow/react/dist/style.css";
-
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ReactFlow,

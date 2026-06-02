@@ -1,7 +1,5 @@
 "use client";
 
-import "@xyflow/react/dist/style.css";
-
 import { memo, useEffect, useMemo, useRef } from "react";
 import {
   ReactFlow,
@@ -49,7 +47,7 @@ const defaultEdgeOptions = {
 /**
  * Read-only React Flow graph preview for the code-mode editor side panel.
  *
- * Accepts YAML directly (unlike {@link WorkflowOverviewGraph} which requires
+ * Accepts YAML directly (unlike `WorkflowOverviewGraph` which requires
  * a `Workflow` proto). Uses the unified `WorkflowNode` / `CanvasTransitionEdge`
  * rendering system in `"overview"` mode for DD-001 consistency.
  */

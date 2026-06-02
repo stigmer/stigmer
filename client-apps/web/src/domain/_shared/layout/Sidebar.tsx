@@ -41,7 +41,9 @@ export function Sidebar() {
   const isLibraryActive = !isSessionZone && pathname.startsWith("/library");
 
   const entriesRef = useRef(entries);
-  entriesRef.current = entries;
+  useEffect(() => {
+    entriesRef.current = entries;
+  });
 
   useEffect(() => {
     if (activeExecutionId && !entriesRef.current.some((e) => e.id === activeExecutionId)) {

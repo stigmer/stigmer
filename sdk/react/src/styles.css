@@ -7,6 +7,12 @@
 @import "tailwindcss/utilities.css" layer(stgm);
 @import "@stigmer/theme/tokens.css" layer(stgm);
 
+/* React Flow base styles for workflow graphs. Imported centrally (rather than
+   as a per-component side effect) so the headless @stigmer/react entry stays
+   loadable under Node/tsx — e.g. the @stigmer/ink terminal CLI — which cannot
+   resolve `.css` imports. */
+@import "@xyflow/react/dist/style.css";
+
 @custom-variant dark (&:is([data-stgm-color-mode="dark"] *));
 
 @theme inline {
