@@ -151,4 +151,35 @@ public interface GetCreditLedgerInputOrBuilder extends
    * <code>.google.protobuf.Timestamp end_time = 5 [json_name = "endTime"];</code>
    */
   com.google.protobuf.TimestampOrBuilder getEndTimeOrBuilder();
+
+  /**
+   * <pre>
+   * Selects a server-resolved slice of the ledger. When set to
+   * ledger_view_statement, the server returns only customer-facing
+   * money-movement entry types and excludes internal mechanics (per-call
+   * usage debits, reservation holds/releases). Defaults to the full ledger.
+   *
+   * When both view and type_filter are provided, the effective filter is
+   * their intersection — type_filter narrows within the view's set.
+   * </pre>
+   *
+   * <code>.ai.stigmer.billing.v1.LedgerView view = 6 [json_name = "view"];</code>
+   * @return The enum numeric value on the wire for view.
+   */
+  int getViewValue();
+  /**
+   * <pre>
+   * Selects a server-resolved slice of the ledger. When set to
+   * ledger_view_statement, the server returns only customer-facing
+   * money-movement entry types and excludes internal mechanics (per-call
+   * usage debits, reservation holds/releases). Defaults to the full ledger.
+   *
+   * When both view and type_filter are provided, the effective filter is
+   * their intersection — type_filter narrows within the view's set.
+   * </pre>
+   *
+   * <code>.ai.stigmer.billing.v1.LedgerView view = 6 [json_name = "view"];</code>
+   * @return The view.
+   */
+  ai.stigmer.billing.v1.LedgerView getView();
 }

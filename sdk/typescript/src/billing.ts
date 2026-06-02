@@ -19,7 +19,7 @@ import {
   type CustomerModelPricingResponse,
 } from "@stigmer/protos/ai/stigmer/billing/v1/io_pb";
 import type { BillingAccount, CreditBalance } from "@stigmer/protos/ai/stigmer/billing/v1/billing_account_pb";
-import type { LedgerEntryType } from "@stigmer/protos/ai/stigmer/billing/v1/enum_pb";
+import type { LedgerEntryType, LedgerView } from "@stigmer/protos/ai/stigmer/billing/v1/enum_pb";
 import { PageInfoSchema } from "@stigmer/protos/ai/stigmer/commons/rpc/pagination_pb";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { wrapError } from "./gen/errors";
@@ -50,9 +50,16 @@ export interface SetAutoRechargeConfigParams {
 /** Parameters for querying the credit ledger. */
 export interface GetCreditLedgerParams {
   readonly orgId: string;
-  /** Pagination: `{ num, size }` where `num` is 1-based page number. */
+  /** Pagination: `{ num, size }` where `num` is the 0-based page number. */
   readonly page?: { readonly num: number; readonly size: number };
   readonly typeFilter?: LedgerEntryType[];
+  /**
+   * Server-resolved ledger slice. When set to `LedgerView.statement`, the
+   * server returns only customer-facing money-movement entry types and
+   * excludes internal mechanics (per-call usage debits, reservation
+   * holds/releases). Defaults to the full ledger.
+   */
+  readonly view?: LedgerView;
 }
 
 /** Parameters for querying the billing usage report. */
@@ -136,6 +143,7 @@ export class BillingClient {
             }),
           }),
           ...(params.typeFilter?.length && { typeFilter: params.typeFilter }),
+          ...(params.view !== undefined && { view: params.view }),
         }),
       );
     } catch (e) {

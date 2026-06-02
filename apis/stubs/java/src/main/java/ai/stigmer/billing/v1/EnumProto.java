@@ -44,32 +44,34 @@ public final class EnumProto extends com.google.protobuf.GeneratedFile {
       "it\020\006\022\024\n\020adjustment_debit\020\007\022\023\n\017refund_rev" +
       "ersal\020\010\022\020\n\014dispute_hold\020\t\022\023\n\017dispute_rel" +
       "ease\020\n\022\020\n\014expiry_debit\020\013\022\030\n\024auto_recharg" +
-      "e_credit\020\014*d\n\017CreditGrantKind\022!\n\035credit_" +
-      "grant_kind_unspecified\020\000\022\r\n\tpurchased\020\001\022" +
-      "\017\n\013promotional\020\002\022\016\n\nadjustment\020\003*\225\001\n\024Bil" +
-      "lingAccountStatus\022&\n\"billing_account_sta" +
-      "tus_unspecified\020\000\022\032\n\026billing_account_act" +
-      "ive\020\001\022\035\n\031billing_account_suspended\020\002\022\032\n\026" +
-      "billing_account_closed\020\003*\236\001\n\021Reservation" +
-      "Status\022\"\n\036reservation_status_unspecified" +
-      "\020\000\022\026\n\022reservation_active\020\001\022\031\n\025reservatio" +
-      "n_finalized\020\002\022\027\n\023reservation_expired\020\003\022\031" +
-      "\n\025reservation_cancelled\020\004*\207\001\n\026ExecutionB" +
-      "illingSignal\022(\n$execution_billing_signal" +
-      "_unspecified\020\000\022\026\n\022continue_execution\020\001\022\027" +
-      "\n\023low_balance_warning\020\002\022\022\n\016stop_executio" +
-      "n\020\003*\263\001\n\024CreditPurchaseStatus\022&\n\"credit_p" +
-      "urchase_status_unspecified\020\000\022\033\n\027credit_p" +
-      "urchase_pending\020\001\022\035\n\031credit_purchase_com" +
-      "pleted\020\002\022\032\n\026credit_purchase_failed\020\003\022\033\n\027" +
-      "credit_purchase_expired\020\004*\227\001\n\027AutoRechar" +
-      "geEventStatus\022*\n&auto_recharge_event_sta" +
-      "tus_unspecified\020\000\022\031\n\025auto_recharge_pendi" +
-      "ng\020\001\022\033\n\027auto_recharge_succeeded\020\002\022\030\n\024aut" +
-      "o_recharge_failed\020\003B\202\001B\tEnumProtoP\001\242\002\003AS" +
-      "B\252\002\025Ai.Stigmer.Billing.V1\312\002\025Ai\\Stigmer\\B" +
-      "illing\\V1\342\002!Ai\\Stigmer\\Billing\\V1\\GPBMet" +
-      "adata\352\002\030Ai::Stigmer::Billing::V1b\006proto3"
+      "e_credit\020\014*D\n\nLedgerView\022\033\n\027ledger_view_" +
+      "unspecified\020\000\022\031\n\025ledger_view_statement\020\001" +
+      "*d\n\017CreditGrantKind\022!\n\035credit_grant_kind" +
+      "_unspecified\020\000\022\r\n\tpurchased\020\001\022\017\n\013promoti" +
+      "onal\020\002\022\016\n\nadjustment\020\003*\225\001\n\024BillingAccoun" +
+      "tStatus\022&\n\"billing_account_status_unspec" +
+      "ified\020\000\022\032\n\026billing_account_active\020\001\022\035\n\031b" +
+      "illing_account_suspended\020\002\022\032\n\026billing_ac" +
+      "count_closed\020\003*\236\001\n\021ReservationStatus\022\"\n\036" +
+      "reservation_status_unspecified\020\000\022\026\n\022rese" +
+      "rvation_active\020\001\022\031\n\025reservation_finalize" +
+      "d\020\002\022\027\n\023reservation_expired\020\003\022\031\n\025reservat" +
+      "ion_cancelled\020\004*\207\001\n\026ExecutionBillingSign" +
+      "al\022(\n$execution_billing_signal_unspecifi" +
+      "ed\020\000\022\026\n\022continue_execution\020\001\022\027\n\023low_bala" +
+      "nce_warning\020\002\022\022\n\016stop_execution\020\003*\263\001\n\024Cr" +
+      "editPurchaseStatus\022&\n\"credit_purchase_st" +
+      "atus_unspecified\020\000\022\033\n\027credit_purchase_pe" +
+      "nding\020\001\022\035\n\031credit_purchase_completed\020\002\022\032" +
+      "\n\026credit_purchase_failed\020\003\022\033\n\027credit_pur" +
+      "chase_expired\020\004*\227\001\n\027AutoRechargeEventSta" +
+      "tus\022*\n&auto_recharge_event_status_unspec" +
+      "ified\020\000\022\031\n\025auto_recharge_pending\020\001\022\033\n\027au" +
+      "to_recharge_succeeded\020\002\022\030\n\024auto_recharge" +
+      "_failed\020\003B\202\001B\tEnumProtoP\001\242\002\003ASB\252\002\025Ai.Sti" +
+      "gmer.Billing.V1\312\002\025Ai\\Stigmer\\Billing\\V1\342" +
+      "\002!Ai\\Stigmer\\Billing\\V1\\GPBMetadata\352\002\030Ai" +
+      "::Stigmer::Billing::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

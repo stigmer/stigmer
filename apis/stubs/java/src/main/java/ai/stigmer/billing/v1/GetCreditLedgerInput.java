@@ -34,6 +34,7 @@ private static final long serialVersionUID = 0L;
   private GetCreditLedgerInput() {
     orgId_ = "";
     typeFilter_ = emptyIntList();
+    view_ = 0;
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -287,6 +288,44 @@ private static final long serialVersionUID = 0L;
     return endTime_ == null ? com.google.protobuf.Timestamp.getDefaultInstance() : endTime_;
   }
 
+  public static final int VIEW_FIELD_NUMBER = 6;
+  private int view_ = 0;
+  /**
+   * <pre>
+   * Selects a server-resolved slice of the ledger. When set to
+   * ledger_view_statement, the server returns only customer-facing
+   * money-movement entry types and excludes internal mechanics (per-call
+   * usage debits, reservation holds/releases). Defaults to the full ledger.
+   *
+   * When both view and type_filter are provided, the effective filter is
+   * their intersection — type_filter narrows within the view's set.
+   * </pre>
+   *
+   * <code>.ai.stigmer.billing.v1.LedgerView view = 6 [json_name = "view"];</code>
+   * @return The enum numeric value on the wire for view.
+   */
+  @java.lang.Override public int getViewValue() {
+    return view_;
+  }
+  /**
+   * <pre>
+   * Selects a server-resolved slice of the ledger. When set to
+   * ledger_view_statement, the server returns only customer-facing
+   * money-movement entry types and excludes internal mechanics (per-call
+   * usage debits, reservation holds/releases). Defaults to the full ledger.
+   *
+   * When both view and type_filter are provided, the effective filter is
+   * their intersection — type_filter narrows within the view's set.
+   * </pre>
+   *
+   * <code>.ai.stigmer.billing.v1.LedgerView view = 6 [json_name = "view"];</code>
+   * @return The view.
+   */
+  @java.lang.Override public ai.stigmer.billing.v1.LedgerView getView() {
+    ai.stigmer.billing.v1.LedgerView result = ai.stigmer.billing.v1.LedgerView.forNumber(view_);
+    return result == null ? ai.stigmer.billing.v1.LedgerView.UNRECOGNIZED : result;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -320,6 +359,9 @@ private static final long serialVersionUID = 0L;
     }
     if (((bitField0_ & 0x00000004) != 0)) {
       output.writeMessage(5, getEndTime());
+    }
+    if (view_ != ai.stigmer.billing.v1.LedgerView.ledger_view_unspecified.getNumber()) {
+      output.writeEnum(6, view_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -357,6 +399,10 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(5, getEndTime());
     }
+    if (view_ != ai.stigmer.billing.v1.LedgerView.ledger_view_unspecified.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(6, view_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -390,6 +436,7 @@ private static final long serialVersionUID = 0L;
       if (!getEndTime()
           .equals(other.getEndTime())) return false;
     }
+    if (view_ != other.view_) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -419,6 +466,8 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + END_TIME_FIELD_NUMBER;
       hash = (53 * hash) + getEndTime().hashCode();
     }
+    hash = (37 * hash) + VIEW_FIELD_NUMBER;
+    hash = (53 * hash) + view_;
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -579,6 +628,7 @@ private static final long serialVersionUID = 0L;
         endTimeBuilder_.dispose();
         endTimeBuilder_ = null;
       }
+      view_ = 0;
       return this;
     }
 
@@ -638,6 +688,9 @@ private static final long serialVersionUID = 0L;
             : endTimeBuilder_.build();
         to_bitField0_ |= 0x00000004;
       }
+      if (((from_bitField0_ & 0x00000020) != 0)) {
+        result.view_ = view_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -677,6 +730,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasEndTime()) {
         mergeEndTime(other.getEndTime());
+      }
+      if (other.view_ != 0) {
+        setViewValue(other.getViewValue());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -746,6 +802,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000010;
               break;
             } // case 42
+            case 48: {
+              view_ = input.readEnum();
+              bitField0_ |= 0x00000020;
+              break;
+            } // case 48
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1490,6 +1551,108 @@ private static final long serialVersionUID = 0L;
         endTime_ = null;
       }
       return endTimeBuilder_;
+    }
+
+    private int view_ = 0;
+    /**
+     * <pre>
+     * Selects a server-resolved slice of the ledger. When set to
+     * ledger_view_statement, the server returns only customer-facing
+     * money-movement entry types and excludes internal mechanics (per-call
+     * usage debits, reservation holds/releases). Defaults to the full ledger.
+     *
+     * When both view and type_filter are provided, the effective filter is
+     * their intersection — type_filter narrows within the view's set.
+     * </pre>
+     *
+     * <code>.ai.stigmer.billing.v1.LedgerView view = 6 [json_name = "view"];</code>
+     * @return The enum numeric value on the wire for view.
+     */
+    @java.lang.Override public int getViewValue() {
+      return view_;
+    }
+    /**
+     * <pre>
+     * Selects a server-resolved slice of the ledger. When set to
+     * ledger_view_statement, the server returns only customer-facing
+     * money-movement entry types and excludes internal mechanics (per-call
+     * usage debits, reservation holds/releases). Defaults to the full ledger.
+     *
+     * When both view and type_filter are provided, the effective filter is
+     * their intersection — type_filter narrows within the view's set.
+     * </pre>
+     *
+     * <code>.ai.stigmer.billing.v1.LedgerView view = 6 [json_name = "view"];</code>
+     * @param value The enum numeric value on the wire for view to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setViewValue(int value) {
+      view_ = value;
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Selects a server-resolved slice of the ledger. When set to
+     * ledger_view_statement, the server returns only customer-facing
+     * money-movement entry types and excludes internal mechanics (per-call
+     * usage debits, reservation holds/releases). Defaults to the full ledger.
+     *
+     * When both view and type_filter are provided, the effective filter is
+     * their intersection — type_filter narrows within the view's set.
+     * </pre>
+     *
+     * <code>.ai.stigmer.billing.v1.LedgerView view = 6 [json_name = "view"];</code>
+     * @return The view.
+     */
+    @java.lang.Override
+    public ai.stigmer.billing.v1.LedgerView getView() {
+      ai.stigmer.billing.v1.LedgerView result = ai.stigmer.billing.v1.LedgerView.forNumber(view_);
+      return result == null ? ai.stigmer.billing.v1.LedgerView.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * Selects a server-resolved slice of the ledger. When set to
+     * ledger_view_statement, the server returns only customer-facing
+     * money-movement entry types and excludes internal mechanics (per-call
+     * usage debits, reservation holds/releases). Defaults to the full ledger.
+     *
+     * When both view and type_filter are provided, the effective filter is
+     * their intersection — type_filter narrows within the view's set.
+     * </pre>
+     *
+     * <code>.ai.stigmer.billing.v1.LedgerView view = 6 [json_name = "view"];</code>
+     * @param value The view to set.
+     * @return This builder for chaining.
+     */
+    public Builder setView(ai.stigmer.billing.v1.LedgerView value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x00000020;
+      view_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Selects a server-resolved slice of the ledger. When set to
+     * ledger_view_statement, the server returns only customer-facing
+     * money-movement entry types and excludes internal mechanics (per-call
+     * usage debits, reservation holds/releases). Defaults to the full ledger.
+     *
+     * When both view and type_filter are provided, the effective filter is
+     * their intersection — type_filter narrows within the view's set.
+     * </pre>
+     *
+     * <code>.ai.stigmer.billing.v1.LedgerView view = 6 [json_name = "view"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearView() {
+      bitField0_ = (bitField0_ & ~0x00000020);
+      view_ = 0;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.billing.v1.GetCreditLedgerInput)
