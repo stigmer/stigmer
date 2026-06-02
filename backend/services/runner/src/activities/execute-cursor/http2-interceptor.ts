@@ -52,6 +52,10 @@ interface Http2InterceptorConfig {
 let config: Http2InterceptorConfig | null = null;
 let originalConnect: typeof http2.connect = http2.connect;
 
+// Tracks all wrapped proxy sessions for inter-activity lifecycle management.
+// Sessions are added on wrap and auto-removed on close.
+const proxySessions = new Set<http2Type.ClientHttp2Session>();
+
 /**
  * Parses an authority (URL or host:port string) into hostname + port
  * for comparison against the configured proxy endpoint.
@@ -82,6 +86,9 @@ function isProxyAuthority(authority: string | URL): boolean {
  * at request() time (per-stream) is the correct approach.
  */
 function wrapSession(session: http2Type.ClientHttp2Session): http2Type.ClientHttp2Session {
+  proxySessions.add(session);
+  session.once("close", () => proxySessions.delete(session));
+
   const originalRequest = session.request.bind(session);
 
   session.request = function patchedRequest(
@@ -180,4 +187,22 @@ export function updateHttp2InterceptorToken(token: string): void {
 export function uninstallHttp2Interceptor(): void {
   config = null;
   http2.connect = originalConnect;
+  proxySessions.clear();
+}
+
+/**
+ * Close all tracked HTTP/2 sessions to the proxy endpoint, forcing
+ * the SDK to establish a fresh connection on next use.
+ *
+ * Call between sequential workflow task activities to prevent a
+ * degraded session from one task poisoning the next. No-op when
+ * no sessions are tracked (e.g., first activity in a workflow).
+ */
+export function closeProxySessions(): void {
+  for (const session of proxySessions) {
+    if (!session.closed && !session.destroyed) {
+      session.close();
+    }
+  }
+  proxySessions.clear();
 }

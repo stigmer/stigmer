@@ -45,7 +45,7 @@ const RATE_LIMIT_PATTERNS = [
 const NETWORK_PATTERNS = [
   "unavailable", "deadline_exceeded", "503", "504",
   "timeout", "econnrefused", "econnreset", "enotfound",
-  "network error", "fetch failed",
+  "network error", "fetch failed", "refused_stream",
 ];
 const MODEL_PATTERNS = [
   "invalid model", "model not found", "model.*not available",
@@ -71,6 +71,10 @@ interface SynthesizeErrorOpts {
   capturedRejection: CapturedRejection | undefined;
   isResumedHandle: boolean;
   fallbackContext: { model: string; mode: string; agentId: string };
+  /** Duration of the SDK run in ms — used for transport timeout heuristic. */
+  durationMs?: number;
+  /** Number of messages received from the stream (0 = no response at all). */
+  messageCount?: number;
 }
 
 /**
@@ -143,6 +147,25 @@ function classifyFromSources(opts: SynthesizeErrorOpts): ClassifiedError {
       message: `[${opts.capturedRejection.code}] ${opts.capturedRejection.message}`,
       retryable: category !== "auth",
       source: "rejection",
+    };
+  }
+
+  // Transport timeout heuristic: SDK returned error with 0 messages and
+  // duration ~30s (default SDK timeout). This indicates the proxy connection
+  // was degraded and the agent stream could not be established at all.
+  if (
+    opts.messageCount === 0
+    && opts.durationMs != null
+    && opts.durationMs >= 25000
+    && opts.durationMs <= 35000
+    && !opts.isResumedHandle
+  ) {
+    const { model, mode, agentId } = opts.fallbackContext;
+    return {
+      category: "network",
+      message: `Transport timeout (${opts.durationMs}ms, 0 messages received). Model=${model}, mode=${mode}, agentId=${agentId}`,
+      retryable: true,
+      source: "fallback",
     };
   }
 
