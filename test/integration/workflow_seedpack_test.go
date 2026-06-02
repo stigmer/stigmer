@@ -50,7 +50,7 @@ func plainEnv(kvs ...string) map[string]*executionctxv1.ExecutionValue {
 func TestSeedpackWorkflow_ContentReviewPipeline(t *testing.T) {
 	requireSeedpackPrereqs(t)
 	if os.Getenv("ANTHROPIC_API_KEY") == "" {
-		t.Skip("ANTHROPIC_API_KEY not set — content-review-pipeline uses claude-sonnet-4-5")
+		t.Skip("ANTHROPIC_API_KEY not set — content-review-pipeline uses claude-sonnet-4.5")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
@@ -259,7 +259,7 @@ func TestSeedpackWorkflow_ResearchAndSummarize(t *testing.T) {
 	hasAnthropic := os.Getenv("ANTHROPIC_API_KEY") != ""
 	hasOpenAI := os.Getenv("OPENAI_API_KEY") != ""
 	if !hasAnthropic || !hasOpenAI {
-		t.Skip("both ANTHROPIC_API_KEY and OPENAI_API_KEY required — research-and-summarize uses claude-sonnet-4-5 and gpt-4o-mini")
+		t.Skip("both ANTHROPIC_API_KEY and OPENAI_API_KEY required — research-and-summarize uses claude-sonnet-4.5 and gpt-4o-mini")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
