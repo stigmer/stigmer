@@ -55,7 +55,7 @@ func TestOffline_TaskIO_PopulatesInputOutputTokens(t *testing.T) {
 	require.NoError(t, err)
 
 	llmConfig, err := structpb.NewStruct(map[string]any{
-		"model":       "claude-sonnet-4-6",
+		"model":       "claude-sonnet-4.6",
 		"prompt":      "Say hello",
 		"max_tokens":  float64(100),
 		"timeout":     float64(60),
