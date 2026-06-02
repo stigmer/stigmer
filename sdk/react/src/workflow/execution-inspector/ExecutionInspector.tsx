@@ -17,6 +17,7 @@ import { AgentCallTab } from "./AgentCallTab";
 import { EventLogTab } from "./EventLogTab";
 import { WorkflowExecutionApprovalCard } from "../WorkflowExecutionApprovalCard";
 import { WorkflowTaskApprovalCard } from "../WorkflowTaskApprovalCard";
+import { WorkflowTaskApprovalSummary } from "../WorkflowTaskApprovalSummary";
 
 /** Props for {@link ExecutionInspector}. */
 export interface ExecutionInspectorProps {
@@ -224,15 +225,27 @@ export const ExecutionInspector = memo(function ExecutionInspector({
               ))}
             </div>
           )}
-          {effectiveTab === "approval" && detail.approval && onSubmitTaskApproval && (
-            <WorkflowTaskApprovalCard
-              taskName={detail.taskName}
-              prompt={detail.approval.prompt}
-              outcomes={detail.approval.outcomes}
-              formSchema={detail.approval.formSchema ?? undefined}
-              onSubmit={onSubmitTaskApproval}
-              isSubmitting={isSubmittingTaskApproval ?? false}
-            />
+          {effectiveTab === "approval" && detail.approval && (
+            detail.status === "waiting_approval" && onSubmitTaskApproval ? (
+              // Gate still awaiting a decision — collect one.
+              <WorkflowTaskApprovalCard
+                taskName={detail.taskName}
+                prompt={detail.approval.prompt}
+                outcomes={detail.approval.outcomes}
+                formSchema={detail.approval.formSchema ?? undefined}
+                onSubmit={onSubmitTaskApproval}
+                isSubmitting={isSubmittingTaskApproval ?? false}
+              />
+            ) : (
+              // Gate resolved — present the captured decision read-only so a
+              // settled gate is never offered for a second decision.
+              <WorkflowTaskApprovalSummary
+                taskName={detail.taskName}
+                prompt={detail.approval.prompt}
+                outcomes={detail.approval.outcomes}
+                decision={detail.approval.decision}
+              />
+            )
           )}
           {effectiveTab === "events" && <EventLogTab events={detail.eventLog} />}
         </div>
