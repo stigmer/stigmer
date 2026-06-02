@@ -185,18 +185,20 @@ class GetCreditBalanceInput(_message.Message):
     def __init__(self, org_id: _Optional[str] = ...) -> None: ...
 
 class GetCreditLedgerInput(_message.Message):
-    __slots__ = ("org_id", "page", "type_filter", "start_time", "end_time")
+    __slots__ = ("org_id", "page", "type_filter", "start_time", "end_time", "view")
     ORG_ID_FIELD_NUMBER: _ClassVar[int]
     PAGE_FIELD_NUMBER: _ClassVar[int]
     TYPE_FILTER_FIELD_NUMBER: _ClassVar[int]
     START_TIME_FIELD_NUMBER: _ClassVar[int]
     END_TIME_FIELD_NUMBER: _ClassVar[int]
+    VIEW_FIELD_NUMBER: _ClassVar[int]
     org_id: str
     page: _pagination_pb2.PageInfo
     type_filter: _containers.RepeatedScalarFieldContainer[_enum_pb2.LedgerEntryType]
     start_time: _timestamp_pb2.Timestamp
     end_time: _timestamp_pb2.Timestamp
-    def __init__(self, org_id: _Optional[str] = ..., page: _Optional[_Union[_pagination_pb2.PageInfo, _Mapping]] = ..., type_filter: _Optional[_Iterable[_Union[_enum_pb2.LedgerEntryType, str]]] = ..., start_time: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., end_time: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+    view: _enum_pb2.LedgerView
+    def __init__(self, org_id: _Optional[str] = ..., page: _Optional[_Union[_pagination_pb2.PageInfo, _Mapping]] = ..., type_filter: _Optional[_Iterable[_Union[_enum_pb2.LedgerEntryType, str]]] = ..., start_time: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., end_time: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., view: _Optional[_Union[_enum_pb2.LedgerView, str]] = ...) -> None: ...
 
 class CreditLedgerResponse(_message.Message):
     __slots__ = ("entries", "total_pages")
