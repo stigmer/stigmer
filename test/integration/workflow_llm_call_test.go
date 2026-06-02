@@ -12,6 +12,7 @@ import (
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/test/integration/harness"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -49,7 +50,7 @@ func TestWorkflowLlmCall_StructuredOutput(t *testing.T) {
 	require.NoError(t, err)
 
 	taskConfig, err := structpb.NewStruct(map[string]any{
-		"model":           "claude-sonnet-4-20250514",
+		"model":           "claude-sonnet-4.6",
 		"system_prompt":   "You are a sentiment classifier. Respond ONLY with valid JSON matching the schema.",
 		"prompt":          "Classify the sentiment of: 'I absolutely love this product, it changed my life!'",
 		"response_schema": schema.AsMap(),
@@ -99,10 +100,20 @@ func TestWorkflowLlmCall_StructuredOutput(t *testing.T) {
 	harness.AssertPhase(t, result, workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED)
 	harness.AssertTaskStatus(t, result, "classifySentiment",
 		workflowexecutionv1.WorkflowTaskStatus_WORKFLOW_TASK_COMPLETED)
+	harness.AssertTaskHasInput(t, result, "classifySentiment")
+	harness.AssertTaskTokens(t, result, "classifySentiment")
 
-	t.Logf("execution completed: id=%s, tasks=%d",
+	assert.Greater(t, result.GetStatus().GetTotalCostMicros(), int64(0),
+		"execution should report non-zero total cost")
+	assert.Greater(t, result.GetStatus().GetTotalInputTokens(), int64(0),
+		"execution should report non-zero total input tokens")
+
+	t.Logf("execution completed: id=%s, tasks=%d, cost=%d micros, tokens(in=%d, out=%d)",
 		result.GetMetadata().GetId(),
-		len(result.GetStatus().GetTasks()))
+		len(result.GetStatus().GetTasks()),
+		result.GetStatus().GetTotalCostMicros(),
+		result.GetStatus().GetTotalInputTokens(),
+		result.GetStatus().GetTotalOutputTokens())
 }
 
 // TestWorkflowLlmCall_SimplePrompt exercises a plain-text llm_call with no
@@ -119,7 +130,7 @@ func TestWorkflowLlmCall_SimplePrompt(t *testing.T) {
 	defer deployer.Cleanup(ctx)
 
 	taskConfig, err := structpb.NewStruct(map[string]any{
-		"model":       "claude-sonnet-4-20250514",
+		"model":       "claude-sonnet-4.6",
 		"prompt":      "Reply with exactly one word: HELLO",
 		"max_tokens":  float64(10),
 		"timeout":     float64(60),
@@ -164,8 +175,15 @@ func TestWorkflowLlmCall_SimplePrompt(t *testing.T) {
 	harness.AssertPhase(t, result, workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED)
 	harness.AssertTaskStatus(t, result, "sayHello",
 		workflowexecutionv1.WorkflowTaskStatus_WORKFLOW_TASK_COMPLETED)
+	harness.AssertTaskHasInput(t, result, "sayHello")
+	harness.AssertTaskTokens(t, result, "sayHello")
 
-	t.Logf("execution completed: id=%s", result.GetMetadata().GetId())
+	assert.Greater(t, result.GetStatus().GetTotalCostMicros(), int64(0),
+		"execution should report non-zero total cost")
+
+	t.Logf("execution completed: id=%s, cost=%d micros",
+		result.GetMetadata().GetId(),
+		result.GetStatus().GetTotalCostMicros())
 }
 
 // TestWorkflowLlmCall_OpenAI_StructuredOutput is identical to the Anthropic

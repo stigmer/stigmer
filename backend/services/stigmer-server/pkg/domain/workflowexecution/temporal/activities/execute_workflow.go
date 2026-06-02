@@ -33,6 +33,10 @@ type InvokeWorkflowExecutionWorkflowInput struct {
 	OrgID                    string `json:"org_id,omitempty"`
 	CallbackToken            []byte `json:"callback_token,omitempty"`
 	InvokerIdentityAccountID string `json:"invoker_identity_account_id,omitempty"`
+	// RecoveryMode signals the TS workflow engine to skip completed tasks and
+	// resume from the first incomplete/failed task. Set to true only by the
+	// recover pipeline; normal executions omit this field (defaults to false).
+	RecoveryMode bool `json:"recovery_mode,omitempty"`
 }
 
 // Legacy activity stub retained for version 0 deterministic replay.

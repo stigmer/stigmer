@@ -685,8 +685,14 @@ export const TaskFailedPayloadSchema: GenMessage<TaskFailedPayload> = /*@__PURE_
  * Payload for task_skipped events.
  *
  * @internal
- * Emitted when a task transitions to WORKFLOW_TASK_SKIPPED due to
- * conditional logic (switch_case evaluated to a different branch).
+ * Emitted when a task transitions to WORKFLOW_TASK_SKIPPED. Two scenarios:
+ *
+ * 1. Conditional logic — switch_case evaluated to a different branch, or a
+ *    task-level condition evaluated to false.
+ * 2. Recovery — the task completed successfully in a prior run and is being
+ *    skipped during recovery mode (outputs restored from the event log).
+ *
+ * The `reason` field distinguishes the cause for UI rendering and debugging.
  *
  * @since T06
  *
@@ -702,7 +708,7 @@ export type TaskSkippedPayload = Message<"ai.stigmer.agentic.workflowexecution.v
 
   /**
    * Reason the task was skipped (e.g., "condition evaluated to false",
-   * "branch not selected").
+   * "completed in prior run (recovery)").
    *
    * @generated from field: string reason = 2;
    */
@@ -1427,7 +1433,7 @@ export enum WorkflowEventType {
   task_failed = 13,
 
   /**
-   * A workflow task was skipped due to conditional logic.
+   * A workflow task was skipped (conditional logic or recovery).
    * Payload: TaskSkippedPayload.
    *
    * @generated from enum value: task_skipped = 14;

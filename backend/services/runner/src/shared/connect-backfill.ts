@@ -65,6 +65,7 @@ export async function backfillMcpServersIfNeeded(
   envVars: Record<string, string>,
   org: string,
   onHeartbeat?: () => void,
+  secretKeys?: ReadonlySet<string>,
 ): Promise<ResolvedMcpServer[]> {
   const serversNeedingBackfill = currentServers.filter(needsBackfill);
 
@@ -88,7 +89,7 @@ export async function backfillMcpServersIfNeeded(
       const serverId = fullServer.metadata?.id;
       if (!serverId) continue;
 
-      const runtimeEnv = extractRuntimeEnvForServer(fullServer, envVars);
+      const runtimeEnv = extractRuntimeEnvForServer(fullServer, envVars, secretKeys);
 
       console.log(
         `[connect-backfill] Triggering connect for "${server.slug}" (${serverId})`,
@@ -136,18 +137,24 @@ export async function backfillMcpServersIfNeeded(
  * Extract the MCP server's required env vars from the execution
  * environment. Returns only the keys declared in spec.env that are
  * present in the merged environment.
+ *
+ * isSecret is derived from the MCP server's env declaration first,
+ * then from the execution-level secretKeys set, defaulting to false.
  */
 export function extractRuntimeEnvForServer(
   server: { spec?: { env?: Record<string, unknown> } },
   mergedEnv: Record<string, string>,
-): Record<string, string> | undefined {
+  secretKeys?: ReadonlySet<string>,
+): Record<string, { value: string; isSecret: boolean }> | undefined {
   const envDecls = server.spec?.env;
   if (!envDecls || Object.keys(envDecls).length === 0) return undefined;
 
-  const runtime: Record<string, string> = {};
+  const runtime: Record<string, { value: string; isSecret: boolean }> = {};
   for (const key of Object.keys(envDecls)) {
     if (key in mergedEnv) {
-      runtime[key] = mergedEnv[key];
+      const decl = envDecls[key] as { isSecret?: boolean } | undefined;
+      const isSecret = decl?.isSecret ?? secretKeys?.has(key) ?? false;
+      runtime[key] = { value: mergedEnv[key], isSecret };
     }
   }
 

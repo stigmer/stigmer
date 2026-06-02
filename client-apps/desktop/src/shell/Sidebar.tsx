@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import { NavLink, useNavigate, useParams, useLocation } from "react-router-dom";
 import {
   Plus,
@@ -14,7 +14,7 @@ import {
   useRecentActivity,
   groupRecentActivityByTime,
 } from "@stigmer/react";
-import type { RecentActivityGroup } from "@stigmer/react";
+import type { RecentActivityGroup, RecentActivityEntry } from "@stigmer/react";
 import { ScrollArea } from "../ui/scroll-area";
 import { UserMenu } from "./UserMenu";
 import { useSidebarOpen } from "./use-layout-state";
@@ -29,14 +29,30 @@ export function Sidebar() {
     ? params.id ?? null
     : null;
 
+  const activeExecutionId = location.pathname.startsWith("/executions/")
+    ? params.id ?? null
+    : null;
+
   const isSessionZone =
     location.pathname === "/" || location.pathname.startsWith("/sessions/");
 
-  const { entries, isLoading, error, refetch } = useRecentActivity();
+  const { entries, isLoading, error, refetch, prependOptimistic } = useRecentActivity();
+
+  const entriesRef = useRef(entries);
+  entriesRef.current = entries;
 
   useEffect(() => {
+    if (activeExecutionId && !entriesRef.current.some((e) => e.id === activeExecutionId)) {
+      prependOptimistic({
+        id: activeExecutionId,
+        type: "workflow_execution",
+        subject: "Loading\u2026",
+      });
+    }
+
     refetch();
-    if (!activeSessionId) return;
+    const activeId = activeSessionId ?? activeExecutionId;
+    if (!activeId) return;
 
     const t1 = setTimeout(refetch, 8_000);
     const t2 = setTimeout(refetch, 18_000);
@@ -44,7 +60,7 @@ export function Sidebar() {
       clearTimeout(t1);
       clearTimeout(t2);
     };
-  }, [activeSessionId, refetch]);
+  }, [activeSessionId, activeExecutionId, refetch, prependOptimistic]);
 
   const groups = useMemo(
     () => groupRecentActivityByTime(entries),
@@ -183,40 +199,60 @@ function ActivityGroupList({
             {group.label}
           </p>
           <ul className="space-y-0.5" role="list">
-            {group.entries.map((entry) => {
-              const isSession = entry.type === "session";
-              const isActive = isSession
-                ? entry.id === activeSessionId
-                : activePath === `/executions/${entry.id}`;
-              const targetPath = isSession
-                ? `/sessions/${entry.id}`
-                : `/executions/${entry.id}`;
-              const TypeIcon = isSession ? MessageSquare : Workflow;
-
-              return (
-                <li key={entry.id}>
-                  <button
-                    onClick={() => onNavigate(targetPath)}
-                    aria-current={isActive ? "page" : undefined}
-                    className={cn(
-                      "flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition-colors",
-                      isActive
-                        ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
-                        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                    )}
-                  >
-                    <TypeIcon className="mt-0.5 size-3 shrink-0 opacity-50" aria-hidden="true" />
-                    <span className="line-clamp-2">{entry.subject}</span>
-                  </button>
-                </li>
-              );
-            })}
+            {group.entries.map((entry) => (
+              <ActivityEntry
+                key={entry.id}
+                entry={entry}
+                activeSessionId={activeSessionId}
+                activePath={activePath}
+                onNavigate={onNavigate}
+              />
+            ))}
           </ul>
         </div>
       ))}
     </div>
   );
 }
+
+const ActivityEntry = memo(function ActivityEntry({
+  entry,
+  activeSessionId,
+  activePath,
+  onNavigate,
+}: {
+  entry: RecentActivityEntry;
+  activeSessionId: string | null;
+  activePath: string;
+  onNavigate: (path: string) => void;
+}) {
+  const isSession = entry.type === "session";
+  const isActive = isSession
+    ? entry.id === activeSessionId
+    : activePath === `/executions/${entry.id}`;
+  const targetPath = isSession
+    ? `/sessions/${entry.id}`
+    : `/executions/${entry.id}`;
+  const TypeIcon = isSession ? MessageSquare : Workflow;
+
+  return (
+    <li>
+      <button
+        onClick={() => onNavigate(targetPath)}
+        aria-current={isActive ? "page" : undefined}
+        className={cn(
+          "flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition-colors",
+          isActive
+            ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+            : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+        )}
+      >
+        <TypeIcon className="mt-0.5 size-3 shrink-0 opacity-50" aria-hidden="true" />
+        <span className="line-clamp-2">{entry.subject}</span>
+      </button>
+    </li>
+  );
+});
 
 function RecentsSkeletons() {
   return (

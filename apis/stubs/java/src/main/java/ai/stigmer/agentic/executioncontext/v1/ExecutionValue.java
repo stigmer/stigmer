@@ -58,14 +58,16 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object value_ = "";
   /**
    * <pre>
-   * String content of this entry.
+   * String content of this entry. Empty strings are valid — optional
+   * workflow env vars may be provided with no value, and the workflow
+   * engine resolves them to "" in expression interpolation.
    *
    * &#64;internal
    * If is_secret=true: encrypted at rest and redacted in logs.
    * If is_secret=false: stored as plaintext.
    * </pre>
    *
-   * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
+   * <code>string value = 1 [json_name = "value"];</code>
    * @return The value.
    */
   @java.lang.Override
@@ -83,14 +85,16 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * String content of this entry.
+   * String content of this entry. Empty strings are valid — optional
+   * workflow env vars may be provided with no value, and the workflow
+   * engine resolves them to "" in expression interpolation.
    *
    * &#64;internal
    * If is_secret=true: encrypted at rest and redacted in logs.
    * If is_secret=false: stored as plaintext.
    * </pre>
    *
-   * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
+   * <code>string value = 1 [json_name = "value"];</code>
    * @return The bytes for value.
    */
   @java.lang.Override
@@ -453,14 +457,16 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object value_ = "";
     /**
      * <pre>
-     * String content of this entry.
+     * String content of this entry. Empty strings are valid — optional
+     * workflow env vars may be provided with no value, and the workflow
+     * engine resolves them to "" in expression interpolation.
      *
      * &#64;internal
      * If is_secret=true: encrypted at rest and redacted in logs.
      * If is_secret=false: stored as plaintext.
      * </pre>
      *
-     * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
+     * <code>string value = 1 [json_name = "value"];</code>
      * @return The value.
      */
     public java.lang.String getValue() {
@@ -477,14 +483,16 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * String content of this entry.
+     * String content of this entry. Empty strings are valid — optional
+     * workflow env vars may be provided with no value, and the workflow
+     * engine resolves them to "" in expression interpolation.
      *
      * &#64;internal
      * If is_secret=true: encrypted at rest and redacted in logs.
      * If is_secret=false: stored as plaintext.
      * </pre>
      *
-     * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
+     * <code>string value = 1 [json_name = "value"];</code>
      * @return The bytes for value.
      */
     public com.google.protobuf.ByteString
@@ -502,14 +510,16 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * String content of this entry.
+     * String content of this entry. Empty strings are valid — optional
+     * workflow env vars may be provided with no value, and the workflow
+     * engine resolves them to "" in expression interpolation.
      *
      * &#64;internal
      * If is_secret=true: encrypted at rest and redacted in logs.
      * If is_secret=false: stored as plaintext.
      * </pre>
      *
-     * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
+     * <code>string value = 1 [json_name = "value"];</code>
      * @param value The value to set.
      * @return This builder for chaining.
      */
@@ -523,14 +533,16 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * String content of this entry.
+     * String content of this entry. Empty strings are valid — optional
+     * workflow env vars may be provided with no value, and the workflow
+     * engine resolves them to "" in expression interpolation.
      *
      * &#64;internal
      * If is_secret=true: encrypted at rest and redacted in logs.
      * If is_secret=false: stored as plaintext.
      * </pre>
      *
-     * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
+     * <code>string value = 1 [json_name = "value"];</code>
      * @return This builder for chaining.
      */
     public Builder clearValue() {
@@ -541,14 +553,16 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * String content of this entry.
+     * String content of this entry. Empty strings are valid — optional
+     * workflow env vars may be provided with no value, and the workflow
+     * engine resolves them to "" in expression interpolation.
      *
      * &#64;internal
      * If is_secret=true: encrypted at rest and redacted in logs.
      * If is_secret=false: stored as plaintext.
      * </pre>
      *
-     * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
+     * <code>string value = 1 [json_name = "value"];</code>
      * @param value The bytes for value to set.
      * @return This builder for chaining.
      */

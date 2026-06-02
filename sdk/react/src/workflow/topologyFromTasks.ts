@@ -3,47 +3,9 @@ import type { WorkflowTask } from "@stigmer/protos/ai/stigmer/agentic/workflow/v
 import type {
   TopologyNode,
   TopologyEdge,
-  TopologyNodeCategory,
   UseWorkflowTopologyReturn,
 } from "./useWorkflowTopology";
-
-const AI_KINDS = new Set([
-  WorkflowTaskKind.agent_call,
-  WorkflowTaskKind.llm_call,
-  WorkflowTaskKind.eval,
-]);
-
-const CONTROL_FLOW_KINDS = new Set([
-  WorkflowTaskKind.switch_case,
-  WorkflowTaskKind.for_each,
-  WorkflowTaskKind.fork,
-  WorkflowTaskKind.try_catch,
-]);
-
-const INVOCATION_KINDS = new Set([
-  WorkflowTaskKind.http_call,
-  WorkflowTaskKind.grpc_call,
-  WorkflowTaskKind.activity_call,
-  WorkflowTaskKind.run_workflow,
-]);
-
-const DATA_KINDS = new Set([
-  WorkflowTaskKind.set_vars,
-  WorkflowTaskKind.transform,
-]);
-
-const GOVERNANCE_KINDS = new Set([
-  WorkflowTaskKind.human_input,
-  WorkflowTaskKind.validate,
-]);
-
-const EVENT_KINDS = new Set([
-  WorkflowTaskKind.listen,
-  WorkflowTaskKind.wait,
-  WorkflowTaskKind.emit_event,
-  WorkflowTaskKind.notification,
-  WorkflowTaskKind.raise_error,
-]);
+import { categorizeKind } from "./kind-metadata";
 
 const NODE_WIDTH = 180;
 const NODE_HEIGHT = 40;
@@ -81,11 +43,12 @@ export function topologyFromTasks(
   });
 
   for (const task of tasks) {
+    const kindStr = kindToString(task.kind);
     nodes.push({
       id: task.name,
       label: task.name,
-      kind: kindToString(task.kind),
-      category: categorizeKind(task.kind),
+      kind: kindStr,
+      category: categorizeKind(kindStr),
       x: 0,
       y: 0,
       width: NODE_WIDTH,
@@ -161,16 +124,6 @@ export function topologyFromTasks(
   }
 
   return { nodes, edges };
-}
-
-function categorizeKind(kind: WorkflowTaskKind): TopologyNodeCategory {
-  if (AI_KINDS.has(kind)) return "ai";
-  if (CONTROL_FLOW_KINDS.has(kind)) return "control_flow";
-  if (INVOCATION_KINDS.has(kind)) return "invocation";
-  if (DATA_KINDS.has(kind)) return "data";
-  if (GOVERNANCE_KINDS.has(kind)) return "governance";
-  if (EVENT_KINDS.has(kind)) return "event";
-  return "unspecified";
 }
 
 function kindToString(kind: WorkflowTaskKind): string {

@@ -144,7 +144,7 @@ public enum ExecutionBillingSignal
   }
   public static com.google.protobuf.Descriptors.EnumDescriptor
       getDescriptor() {
-    return ai.stigmer.billing.v1.EnumProto.getDescriptor().getEnumType(4);
+    return ai.stigmer.billing.v1.EnumProto.getDescriptor().getEnumType(5);
   }
 
   private static final ExecutionBillingSignal[] VALUES = values();

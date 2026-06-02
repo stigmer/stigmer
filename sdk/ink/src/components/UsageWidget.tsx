@@ -25,7 +25,8 @@ export function UsageWidget({ executions }: UsageWidgetProps) {
   return (
     <Box paddingLeft={1} gap={1}>
       <Text dimColor>
-        {formatCost(usage.totalCostUsd)} · {formatTokenCount(usage.totalTokens)}{" "}
+        {formatCost(usage.totalCostUsd)}
+        {usage.isEstimated ? " (est.)" : ""} · {formatTokenCount(usage.totalTokens)}{" "}
         tokens · {usage.llmCallCount}{" "}
         {usage.llmCallCount === 1 ? "call" : "calls"}
         {usage.primaryModel ? ` · ${usage.primaryModel}` : ""}

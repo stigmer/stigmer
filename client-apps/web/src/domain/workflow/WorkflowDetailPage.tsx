@@ -7,6 +7,7 @@ import {
   WorkflowDetailView,
   WorkflowEditorView,
   WorkflowRunDialog,
+  CreateWorkflowInstanceDialog,
   useWorkflow,
   useWorkflowYaml,
   useWorkflowInstances,
@@ -15,6 +16,7 @@ import {
   useDeleteResource,
   useExportResource,
   useUpdateVisibility,
+  useElkLayoutEngine,
   PermissionGate,
   SharePanel,
   ConfirmDialog,
@@ -24,6 +26,9 @@ import {
 } from "@stigmer/react";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
+
+const elkWorkerFactory = () =>
+  new Worker(new URL("elkjs/lib/elk-worker.min.js", import.meta.url));
 
 interface WorkflowDetailPageInnerProps {
   readonly org: string;
@@ -35,9 +40,11 @@ export function WorkflowDetailPageInner({
   slug,
 }: WorkflowDetailPageInnerProps) {
   const router = useRouter();
+  const elkEngine = useElkLayoutEngine({ workerFactory: elkWorkerFactory });
   const { setLabel } = useBreadcrumbOverride();
   const [resourceId, setResourceId] = useState<string | null>(null);
   const [resourceName, setResourceName] = useState<string>("Workflow");
+  const [activeTab, setActiveTab] = useState<string>("overview");
   const { copyId, copyQualifiedSlug } = useCopyResource();
   const { confirmState, confirm, handleConfirm, handleCancel } =
     useConfirmAction();
@@ -50,6 +57,8 @@ export function WorkflowDetailPageInner({
   const { workflow } = useWorkflow(org, slug);
   const { instances } = useWorkflowInstances(workflow?.metadata?.id);
   const [showRunDialog, setShowRunDialog] = useState(false);
+  const [showCreateInstanceDialog, setShowCreateInstanceDialog] = useState(false);
+  const [instancesRefreshKey, setInstancesRefreshKey] = useState(0);
   const { copyYaml, copyJson, downloadYaml } = useExportResource({
     kind: "Workflow",
     resource: workflow,
@@ -102,6 +111,17 @@ export function WorkflowDetailPageInner({
   const handleSaveError = useCallback((error: Error) => {
     toast.error(error.message);
   }, []);
+
+  const handleOpenInEditor = useCallback((_taskName: string) => {
+    setActiveTab("editor");
+  }, []);
+
+  const handleViewLatestRun = useCallback(
+    (executionId: string) => {
+      router.push(`/executions/${executionId}`);
+    },
+    [router],
+  );
 
   const handleDelete = useCallback(async () => {
     const confirmed = await confirm({
@@ -190,6 +210,7 @@ export function WorkflowDetailPageInner({
                   <WorkflowEditorView
                     initialYaml={initialYaml}
                     org={org}
+                    layoutEngine={elkEngine}
                     onSaveSuccess={handleSaveSuccess}
                     onSaveError={handleSaveError}
                   />
@@ -198,7 +219,7 @@ export function WorkflowDetailPageInner({
             },
           ]
         : [],
-    [initialYaml, org, handleSaveSuccess, handleSaveError],
+    [initialYaml, org, elkEngine, handleSaveSuccess, handleSaveError],
   );
 
   return (
@@ -214,7 +235,13 @@ export function WorkflowDetailPageInner({
           primaryAction={primaryAction}
           actions={actions}
           additionalTabs={additionalTabs}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
           onExecutionClick={(id) => router.push(`/executions/${id}`)}
+          onCreateInstanceClick={() => setShowCreateInstanceDialog(true)}
+          onOpenInEditor={handleOpenInEditor}
+          onViewLatestRun={handleViewLatestRun}
+          instancesRefreshKey={instancesRefreshKey}
         />
         {showSharePanel && resourceId && (
           <PermissionGate
@@ -244,8 +271,21 @@ export function WorkflowDetailPageInner({
           org={org}
           workflow={workflow}
           instances={instances}
+          defaultInstanceId={workflow.status?.defaultInstanceId}
           onSuccess={handleRunSuccess}
           onError={handleRunError}
+        />
+      )}
+      {workflow?.metadata?.id && (
+        <CreateWorkflowInstanceDialog
+          open={showCreateInstanceDialog}
+          onOpenChange={setShowCreateInstanceDialog}
+          org={org}
+          workflowId={workflow.metadata.id}
+          onCreated={() => {
+            toast.success("Instance created");
+            setInstancesRefreshKey((k) => k + 1);
+          }}
         />
       )}
     </>

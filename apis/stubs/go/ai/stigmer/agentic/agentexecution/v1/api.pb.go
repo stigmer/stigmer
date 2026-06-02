@@ -11,6 +11,7 @@ import (
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	structpb "google.golang.org/protobuf/types/known/structpb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -246,8 +247,22 @@ type AgentExecutionStatus struct {
 	SetupProgress *SetupProgress `protobuf:"bytes,18,opt,name=setup_progress,json=setupProgress,proto3" json:"setup_progress,omitempty"`
 	// Streaming usage summary, updated progressively during execution.
 	StreamingUsage *StreamingUsageSummary `protobuf:"bytes,20,opt,name=streaming_usage,json=streamingUsage,proto3" json:"streaming_usage,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Structured output extracted from the agent's final response.
+	//
+	// Populated when ExecutionConfig.structured_output_schema was set and the
+	// runner successfully extracted schema-conforming data. Only meaningful
+	// when phase is EXECUTION_COMPLETED.
+	//
+	// For native harness: populated from LangGraph graphState.structuredResponse
+	// (ToolStrategy enforcement). For Cursor harness: populated from 3-tier
+	// extraction (JSON.parse → fence extraction → extraction LLM fallback).
+	//
+	// Consumers: frontend architect/refine hooks read this instead of parsing
+	// YAML from messages. Workflow callback path reads structured_output from
+	// the Temporal activity result (separate channel, same data).
+	StructuredOutput *structpb.Struct `protobuf:"bytes,21,opt,name=structured_output,json=structuredOutput,proto3" json:"structured_output,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *AgentExecutionStatus) Reset() {
@@ -392,6 +407,13 @@ func (x *AgentExecutionStatus) GetStreamingUsage() *StreamingUsageSummary {
 	return nil
 }
 
+func (x *AgentExecutionStatus) GetStructuredOutput() *structpb.Struct {
+	if x != nil {
+		return x.StructuredOutput
+	}
+	return nil
+}
+
 // Setup progress reported during the EXECUTION_PENDING phase.
 //
 // @internal
@@ -449,7 +471,7 @@ var File_ai_stigmer_agentic_agentexecution_v1_api_proto protoreflect.FileDescrip
 
 const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\n" +
-	".ai/stigmer/agentic/agentexecution/v1/api.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a3ai/stigmer/agentic/agentexecution/v1/approval.proto\x1a3ai/stigmer/agentic/agentexecution/v1/artifact.proto\x1a2ai/stigmer/agentic/agentexecution/v1/context.proto\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a2ai/stigmer/agentic/agentexecution/v1/message.proto\x1a/ai/stigmer/agentic/agentexecution/v1/spec.proto\x1a3ai/stigmer/agentic/agentexecution/v1/subagent.proto\x1a/ai/stigmer/agentic/agentexecution/v1/todo.proto\x1a0ai/stigmer/agentic/agentexecution/v1/usage.proto\x1a4ai/stigmer/agentic/agentexecution/v1/writeback.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\"\xf5\x02\n" +
+	".ai/stigmer/agentic/agentexecution/v1/api.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a3ai/stigmer/agentic/agentexecution/v1/approval.proto\x1a3ai/stigmer/agentic/agentexecution/v1/artifact.proto\x1a2ai/stigmer/agentic/agentexecution/v1/context.proto\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a2ai/stigmer/agentic/agentexecution/v1/message.proto\x1a/ai/stigmer/agentic/agentexecution/v1/spec.proto\x1a3ai/stigmer/agentic/agentexecution/v1/subagent.proto\x1a/ai/stigmer/agentic/agentexecution/v1/todo.proto\x1a0ai/stigmer/agentic/agentexecution/v1/usage.proto\x1a4ai/stigmer/agentic/agentexecution/v1/writeback.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xf5\x02\n" +
 	"\x0eAgentExecution\x12=\n" +
 	"\vapi_version\x18\x01 \x01(\tB\x1c\xbaH\x19r\x17\n" +
 	"\x15agentic.stigmer.ai/v1R\n" +
@@ -458,8 +480,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\x0eAgentExecutionR\x04kind\x12W\n" +
 	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\bmetadata\x12L\n" +
 	"\x04spec\x18\x04 \x01(\v28.ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpecR\x04spec\x12R\n" +
-	"\x06status\x18\x05 \x01(\v2:.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatusR\x06status\"\xe1\n" +
-	"\n" +
+	"\x06status\x18\x05 \x01(\v2:.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatusR\x06status\"\xa7\v\n" +
 	"\x14AgentExecutionStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12N\n" +
 	"\bmessages\x18\x01 \x03(\v22.ai.stigmer.agentic.agentexecution.v1.AgentMessageR\bmessages\x12T\n" +
@@ -478,7 +499,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\tartifacts\x18\x0f \x03(\v27.ai.stigmer.agentic.agentexecution.v1.ExecutionArtifactR\tartifacts\x12l\n" +
 	"\x15workspace_write_backs\x18\x11 \x03(\v28.ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBackR\x13workspaceWriteBacks\x12Z\n" +
 	"\x0esetup_progress\x18\x12 \x01(\v23.ai.stigmer.agentic.agentexecution.v1.SetupProgressR\rsetupProgress\x12d\n" +
-	"\x0fstreaming_usage\x18\x14 \x01(\v2;.ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummaryR\x0estreamingUsage\x1ah\n" +
+	"\x0fstreaming_usage\x18\x14 \x01(\v2;.ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummaryR\x0estreamingUsage\x12D\n" +
+	"\x11structured_output\x18\x15 \x01(\v2\x17.google.protobuf.StructR\x10structuredOutput\x1ah\n" +
 	"\n" +
 	"TodosEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12D\n" +
@@ -517,7 +539,8 @@ var file_ai_stigmer_agentic_agentexecution_v1_api_proto_goTypes = []any{
 	(*ExecutionArtifact)(nil),               // 13: ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact
 	(*WorkspaceWriteBack)(nil),              // 14: ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack
 	(*StreamingUsageSummary)(nil),           // 15: ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary
-	(*TodoItem)(nil),                        // 16: ai.stigmer.agentic.agentexecution.v1.TodoItem
+	(*structpb.Struct)(nil),                 // 16: google.protobuf.Struct
+	(*TodoItem)(nil),                        // 17: ai.stigmer.agentic.agentexecution.v1.TodoItem
 }
 var file_ai_stigmer_agentic_agentexecution_v1_api_proto_depIdxs = []int32{
 	4,  // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecution.metadata:type_name -> ai.stigmer.commons.apiresource.ApiResourceMetadata
@@ -535,12 +558,13 @@ var file_ai_stigmer_agentic_agentexecution_v1_api_proto_depIdxs = []int32{
 	14, // 12: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.workspace_write_backs:type_name -> ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack
 	2,  // 13: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.setup_progress:type_name -> ai.stigmer.agentic.agentexecution.v1.SetupProgress
 	15, // 14: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.streaming_usage:type_name -> ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary
-	16, // 15: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry.value:type_name -> ai.stigmer.agentic.agentexecution.v1.TodoItem
-	16, // [16:16] is the sub-list for method output_type
-	16, // [16:16] is the sub-list for method input_type
-	16, // [16:16] is the sub-list for extension type_name
-	16, // [16:16] is the sub-list for extension extendee
-	0,  // [0:16] is the sub-list for field type_name
+	16, // 15: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.structured_output:type_name -> google.protobuf.Struct
+	17, // 16: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry.value:type_name -> ai.stigmer.agentic.agentexecution.v1.TodoItem
+	17, // [17:17] is the sub-list for method output_type
+	17, // [17:17] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_api_proto_init() }

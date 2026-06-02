@@ -26,9 +26,9 @@ func TestBuildExecutionConfig(t *testing.T) {
 		},
 		{
 			name:      "model only sets ModelName",
-			model:     "claude-sonnet-4-20250514",
+			model:     "claude-sonnet-4-6",
 			mode:      "",
-			wantModel: "claude-sonnet-4-20250514",
+			wantModel: "claude-sonnet-4-6",
 			wantMode:  agentexecutionv1.InteractionMode_INTERACTION_MODE_UNSPECIFIED,
 		},
 		{

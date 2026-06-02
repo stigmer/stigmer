@@ -84,7 +84,7 @@ func registerAgentExecFlags(cmd *cobra.Command, f *agentExecFlags) {
 		"load secrets from file (can be repeated, all values encrypted)")
 
 	cmd.Flags().StringVar(&f.Model, "model", "",
-		"LLM model to use (e.g., claude-sonnet-4-20250514)")
+		"LLM model to use (e.g., claude-sonnet-4-6)")
 
 	cmd.Flags().BoolVar(&f.AutoApproveAll, "auto-approve", false,
 		"automatically approve all tool executions without prompting (bypasses approval policies)")

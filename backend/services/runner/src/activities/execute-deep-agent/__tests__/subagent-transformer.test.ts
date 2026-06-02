@@ -112,7 +112,7 @@ describe("createBuiltinSubagents", () => {
     }
   });
 
-  it("built-in subagents have empty tool arrays (use StateBackend built-ins)", () => {
+  it("built-in subagents have empty tool arrays (use FilesystemBackend built-ins)", () => {
     const result = createBuiltinSubagents(true);
     for (const sa of result) {
       expect(sa.tools).toEqual([]);
@@ -137,7 +137,7 @@ describe("transformSingleSubagent", () => {
     parentMcpServerToolMap: new Map<string, StructuredTool[]>(),
     parentMcpUsages: [] as McpServerUsage[],
     parentHasNativeThinking: true,
-    parentModelName: "claude-sonnet-4-20250514",
+    parentModelName: "claude-sonnet-4-6",
   };
 
   beforeEach(() => {
@@ -145,7 +145,7 @@ describe("transformSingleSubagent", () => {
       ok: true,
       json: () => Promise.resolve({
         models: [
-          { id: "claude-sonnet-4-20250514", provider: "anthropic" },
+          { id: "claude-sonnet-4-6", provider: "anthropic" },
           { id: "claude-haiku-4.5", provider: "anthropic" },
           { id: "gpt-4o-mini", provider: "openai" },
         ],
@@ -349,7 +349,8 @@ describe("filterMcpToolsForSubagent", () => {
 describe("compileSubagents", () => {
   it("returns empty array for empty input", async () => {
     const result = await compileSubagents([], {
-      parentModelName: "claude-sonnet-4-20250514",
+      parentModelName: "claude-sonnet-4-6",
+      workspaceRootDir: "/workspace",
     });
     expect(result).toEqual([]);
   });
@@ -363,7 +364,8 @@ describe("compileSubagents", () => {
     }];
 
     const result = await compileSubagents(specs, {
-      parentModelName: "claude-sonnet-4-20250514",
+      parentModelName: "claude-sonnet-4-6",
+      workspaceRootDir: "/workspace",
     });
 
     expect(result).toHaveLength(1);
@@ -382,7 +384,8 @@ describe("compileSubagents", () => {
     ];
 
     const result = await compileSubagents(specs, {
-      parentModelName: "claude-sonnet-4-20250514",
+      parentModelName: "claude-sonnet-4-6",
+      workspaceRootDir: "/workspace",
     });
 
     expect(result.length).toBeGreaterThan(0);
@@ -401,7 +404,8 @@ describe("compileSubagents", () => {
     }];
 
     const result = await compileSubagents(specs, {
-      parentModelName: "claude-sonnet-4-20250514",
+      parentModelName: "claude-sonnet-4-6",
+      workspaceRootDir: "/workspace",
     });
 
     expect(result).toHaveLength(1);
@@ -426,7 +430,7 @@ describe("transformAndCompileSubagents", () => {
     workspaceBackend: mockWorkspaceBackend(),
     approvalPolicies: new Map(),
     autoApproveAll: false,
-    parentModelName: "claude-sonnet-4-20250514",
+    parentModelName: "claude-sonnet-4-6",
     parentHasNativeThinking: true,
     costCap: undefined,
   };
@@ -436,7 +440,7 @@ describe("transformAndCompileSubagents", () => {
       ok: true,
       json: () => Promise.resolve({
         models: [
-          { id: "claude-sonnet-4-20250514", provider: "anthropic" },
+          { id: "claude-sonnet-4-6", provider: "anthropic" },
           { id: "claude-haiku-4.5", provider: "anthropic" },
         ],
       }),
@@ -614,7 +618,7 @@ describe("subagent-transformer edge cases", () => {
       ok: true,
       json: () => Promise.resolve({
         models: [
-          { id: "claude-sonnet-4-20250514", provider: "anthropic" },
+          { id: "claude-sonnet-4-6", provider: "anthropic" },
           { id: "claude-haiku-4.5", provider: "anthropic" },
         ],
       }),
@@ -632,7 +636,7 @@ describe("subagent-transformer edge cases", () => {
       parentMcpServerToolMap: new Map(),
       parentMcpUsages: [],
       parentHasNativeThinking: true,
-      parentModelName: "claude-sonnet-4-20250514",
+      parentModelName: "claude-sonnet-4-6",
     });
 
     expect(result).not.toBeNull();
@@ -657,7 +661,7 @@ describe("subagent-transformer edge cases", () => {
       workspaceBackend: mockWorkspaceBackend({ rootDir: "" }),
       approvalPolicies: new Map(),
       autoApproveAll: false,
-      parentModelName: "claude-sonnet-4-20250514",
+      parentModelName: "claude-sonnet-4-6",
       parentHasNativeThinking: true,
       costCap: undefined,
     } as Parameters<typeof transformAndCompileSubagents>[0]);
@@ -681,7 +685,7 @@ describe("subagent-transformer edge cases", () => {
       workspaceBackend: mockWorkspaceBackend(),
       approvalPolicies: new Map(),
       autoApproveAll: false,
-      parentModelName: "claude-sonnet-4-20250514",
+      parentModelName: "claude-sonnet-4-6",
       parentHasNativeThinking: true,
       costCap: undefined,
     } as Parameters<typeof transformAndCompileSubagents>[0]);

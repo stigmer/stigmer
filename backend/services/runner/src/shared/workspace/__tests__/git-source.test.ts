@@ -305,4 +305,147 @@ describe("provisionGit", () => {
     expect(result.gitMetadata!.branch).toBe("");
     expect(result.gitMetadata!.baseCommit).toBe("");
   });
+
+  // ── Credential configuration ─────────────────────────────────────
+
+  it("configures git credentials when configureCredentials=true and token is present", async () => {
+    const backend = mockWorkspaceBackend();
+    (backend.execute as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce("")           // clone
+      .mockResolvedValueOnce("main\n")     // branch
+      .mockResolvedValueOnce("abc123\n")   // HEAD sha
+      .mockResolvedValueOnce("")           // git remote set-url
+      .mockResolvedValueOnce("")           // git config credential.helper
+      .mockResolvedValue("");              // excludes
+
+    const result = await provisionGit(makeOptions({
+      backend,
+      envVars: { GITHUB_TOKEN: "ghp_testtoken" },
+      configureCredentials: true,
+    }));
+
+    expect(result.gitMetadata!.gitCredentialsConfigured).toBe(true);
+
+    const calls = (backend.execute as ReturnType<typeof vi.fn>).mock.calls;
+    const setUrlCall = calls.find((args: unknown[]) =>
+      (args[0] as string).includes("git remote set-url"),
+    );
+    expect(setUrlCall).toBeDefined();
+    expect(setUrlCall![0]).toContain("https://github.com/org/repo.git");
+    expect(setUrlCall![0]).not.toContain("ghp_testtoken");
+
+    const configCall = calls.find((args: unknown[]) =>
+      (args[0] as string).includes("credential.helper"),
+    );
+    expect(configCall).toBeDefined();
+    expect(configCall![0]).toContain("store --file=");
+    expect(configCall![0]).toContain(".git-credentials");
+
+    expect(backend.writeFile).toHaveBeenCalledWith(
+      expect.stringContaining(".git-credentials"),
+      expect.stringContaining("x-access-token:ghp_testtoken@github.com"),
+    );
+  });
+
+  it("does not configure credentials when configureCredentials is false", async () => {
+    const backend = mockWorkspaceBackend();
+    (backend.execute as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce("")
+      .mockResolvedValueOnce("main\n")
+      .mockResolvedValueOnce("abc\n")
+      .mockResolvedValue("");
+
+    const result = await provisionGit(makeOptions({
+      backend,
+      envVars: { GITHUB_TOKEN: "ghp_testtoken" },
+      configureCredentials: false,
+    }));
+
+    expect(result.gitMetadata!.gitCredentialsConfigured).toBe(false);
+
+    const calls = (backend.execute as ReturnType<typeof vi.fn>).mock.calls;
+    const hasCredentialConfig = calls.some((args: unknown[]) =>
+      (args[0] as string).includes("credential.helper"),
+    );
+    expect(hasCredentialConfig).toBe(false);
+  });
+
+  it("does not configure credentials when no GITHUB_TOKEN", async () => {
+    const backend = mockWorkspaceBackend();
+    (backend.execute as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce("")
+      .mockResolvedValueOnce("main\n")
+      .mockResolvedValueOnce("abc\n")
+      .mockResolvedValue("");
+
+    const result = await provisionGit(makeOptions({
+      backend,
+      envVars: {},
+      configureCredentials: true,
+    }));
+
+    expect(result.gitMetadata!.gitCredentialsConfigured).toBe(false);
+  });
+
+  it("does not configure credentials for non-GitHub URLs", async () => {
+    const backend = mockWorkspaceBackend();
+    (backend.execute as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce("")
+      .mockResolvedValueOnce("main\n")
+      .mockResolvedValueOnce("abc\n")
+      .mockResolvedValue("");
+
+    const result = await provisionGit(makeOptions({
+      backend,
+      url: "https://gitlab.com/org/repo.git",
+      envVars: { GITHUB_TOKEN: "ghp_testtoken" },
+      configureCredentials: true,
+    }));
+
+    expect(result.gitMetadata!.gitCredentialsConfigured).toBe(false);
+  });
+
+  it("configures credentials on existing repo reuse", async () => {
+    const backend = mockWorkspaceBackend({
+      exists: vi.fn().mockResolvedValue(true),
+    });
+    (backend.execute as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce("main\n")     // branch
+      .mockResolvedValueOnce("abc123\n")   // HEAD sha
+      .mockResolvedValueOnce("")           // git remote set-url
+      .mockResolvedValueOnce("")           // git config credential.helper
+      .mockResolvedValue("");
+
+    const result = await provisionGit(makeOptions({
+      backend,
+      envVars: { GITHUB_TOKEN: "ghp_reuse" },
+      configureCredentials: true,
+    }));
+
+    expect(result.gitMetadata!.gitCredentialsConfigured).toBe(true);
+    expect(result.workspaceDescription).toContain("existing repo detected");
+  });
+
+  it("handles credential setup failure gracefully", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const backend = mockWorkspaceBackend();
+    (backend.execute as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce("")           // clone
+      .mockResolvedValueOnce("main\n")     // branch
+      .mockResolvedValueOnce("abc\n")      // HEAD sha
+      .mockRejectedValueOnce(new Error("permission denied")) // remote set-url fails
+      .mockResolvedValue("");              // excludes
+
+    const result = await provisionGit(makeOptions({
+      backend,
+      envVars: { GITHUB_TOKEN: "ghp_fail" },
+      configureCredentials: true,
+    }));
+
+    expect(result.gitMetadata!.gitCredentialsConfigured).toBe(false);
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining("[git] Failed to clean remote URL"),
+    );
+    warnSpy.mockRestore();
+  });
 });

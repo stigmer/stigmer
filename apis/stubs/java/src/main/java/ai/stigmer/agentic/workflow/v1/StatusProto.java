@@ -44,19 +44,20 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
       "proto\022\036ai.stigmer.agentic.workflow.v1\032:a" +
       "i/stigmer/agentic/workflow/v1/serverless" +
       "/validation.proto\032+ai/stigmer/commons/ap" +
-      "iresource/status.proto\"\230\002\n\016WorkflowStatu" +
+      "iresource/status.proto\"\273\002\n\016WorkflowStatu" +
       "s\022F\n\005audit\030c \001(\01320.ai.stigmer.commons.ap" +
       "iresource.ApiResourceAuditR\005audit\022.\n\023def" +
       "ault_instance_id\030\001 \001(\tR\021defaultInstanceI" +
       "d\022\215\001\n\036serverless_workflow_validation\030\002 \001" +
       "(\0132G.ai.stigmer.agentic.workflow.v1.serv" +
       "erless.ServerlessWorkflowValidationR\034ser" +
-      "verlessWorkflowValidationB\252\001B\013StatusProt" +
-      "oP\001\242\002\004ASAW\252\002\036Ai.Stigmer.Agentic.Workflow" +
-      ".V1\312\002\036Ai\\Stigmer\\Agentic\\Workflow\\V1\342\002*A" +
-      "i\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadat" +
-      "a\352\002\"Ai::Stigmer::Agentic::Workflow::V1b\006" +
-      "proto3"
+      "verlessWorkflowValidation\022!\n\014version_has" +
+      "h\030\003 \001(\tR\013versionHashB\252\001B\013StatusProtoP\001\242\002" +
+      "\004ASAW\252\002\036Ai.Stigmer.Agentic.Workflow.V1\312\002" +
+      "\036Ai\\Stigmer\\Agentic\\Workflow\\V1\342\002*Ai\\Sti" +
+      "gmer\\Agentic\\Workflow\\V1\\GPBMetadata\352\002\"A" +
+      "i::Stigmer::Agentic::Workflow::V1b\006proto" +
+      "3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -69,7 +70,7 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_workflow_v1_WorkflowStatus_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_workflow_v1_WorkflowStatus_descriptor,
-        new java.lang.String[] { "Audit", "DefaultInstanceId", "ServerlessWorkflowValidation", });
+        new java.lang.String[] { "Audit", "DefaultInstanceId", "ServerlessWorkflowValidation", "VersionHash", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.workflow.v1.serverless.ValidationProto.getDescriptor();
     ai.stigmer.commons.apiresource.StatusProto.getDescriptor();

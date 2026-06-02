@@ -18,6 +18,9 @@
  * runner as a library.
  */
 
+import { createHash } from "node:crypto";
+import { readFileSync, readdirSync } from "node:fs";
+import { join, relative } from "node:path";
 import { createInterface } from "node:readline";
 import { loadConfig } from "./config.js";
 import { initTracing, initMetrics } from "./otel.js";
@@ -25,8 +28,10 @@ import { createStigmerRunner } from "./runner.js";
 import { createStigmerRunnerManager } from "./runner-manager.js";
 import type { StigmerRunnerManager } from "./runner-manager.js";
 
+import { handleUnhandledRejection, setExecutionContextRef } from "./activities/execute-cursor/rejection-capture.js";
+
 process.on("unhandledRejection", (reason) => {
-  console.error("Unhandled rejection in runner:", reason);
+  handleUnhandledRejection(reason);
 });
 
 process.on("uncaughtException", (err) => {
@@ -130,9 +135,7 @@ function sendIpc(msg: IpcResponse): void {
 
 // ─── Manager Mode ────────────────────────────────────────────────────────────
 
-async function runManagerMode(): Promise<void> {
-  const config = loadConfig();
-
+async function runManagerMode(config: import("./config.js").Config): Promise<void> {
   // In manager mode, redirect console.log to stderr so stdout is reserved for IPC
   const originalLog = console.log;
   console.log = (...args: unknown[]) => {
@@ -248,9 +251,7 @@ async function runManagerMode(): Promise<void> {
 
 // ─── Static Mode ─────────────────────────────────────────────────────────────
 
-async function runStaticMode(): Promise<void> {
-  const config = loadConfig();
-
+async function runStaticMode(config: import("./config.js").Config): Promise<void> {
   const otelShutdown = await initTracing("stigmer-runner");
   const metricsShutdown = await initMetrics("stigmer-runner");
 
@@ -294,13 +295,108 @@ async function runStaticMode(): Promise<void> {
   }
 }
 
+// ─── Build Fingerprint Check ─────────────────────────────────────────────────
+
+/**
+ * Compares the dist/.build-fingerprint against the current src/ hash.
+ * Exits the process if the runner binary is stale — silently running
+ * old code causes structured output failures, naming mismatches, and
+ * hours of wasted debugging time.
+ *
+ * If the fingerprint file is missing (first build, CI, integration
+ * tests using tsx), the check is skipped gracefully.
+ */
+function checkBuildFreshness(): void {
+  try {
+    const runnerRoot = new URL("../", import.meta.url).pathname;
+    const fpPath = join(runnerRoot, "dist", ".build-fingerprint");
+
+    let stored: { hash: string; builtAt: string };
+    try {
+      stored = JSON.parse(readFileSync(fpPath, "utf-8"));
+    } catch {
+      return;
+    }
+
+    const srcDir = join(runnerRoot, "src");
+    const tsFiles = collectTsFiles(srcDir).sort();
+    const hash = createHash("sha256");
+    for (const file of tsFiles) {
+      hash.update(relative(runnerRoot, file));
+      hash.update(readFileSync(file));
+    }
+    const currentHash = hash.digest("hex").slice(0, 16);
+
+    if (currentHash !== stored.hash) {
+      console.error(
+        `\n` +
+        `!!! STALE RUNNER BUILD — REFUSING TO START !!!\n` +
+        `    dist/ was built at ${stored.builtAt} (hash ${stored.hash})\n` +
+        `    src/ has changed since (current hash ${currentHash})\n` +
+        `\n` +
+        `    Run 'make build-runner' or 'make desktop-dev' to rebuild.\n`,
+      );
+      process.exit(78);
+    }
+  } catch {
+    // Missing fingerprint (tsx, CI, first build) — allow startup
+  }
+}
+
+function collectTsFiles(dir: string, files: string[] = []): string[] {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const fullPath = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (entry.name === "node_modules" || entry.name === "__tests__") continue;
+      collectTsFiles(fullPath, files);
+    } else if (entry.name.endsWith(".ts")) {
+      files.push(fullPath);
+    }
+  }
+  return files;
+}
+
 // ─── Entry Point ─────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
-  if (process.env.STIGMER_RUNNER_MODE === "manager") {
-    await runManagerMode();
+  checkBuildFreshness();
+
+  const config = loadConfig();
+
+  // Route ALL Cursor SDK traffic through the Stigmer proxy in proxy mode.
+  //
+  // CURSOR_BACKEND_URL controls:
+  //   1. connect-node Connect RPC transport (AgentService/Run BiDi stream)
+  //   2. Token exchange (fetch to ${baseUrl}/auth/exchange_user_api_key)
+  //   3. CloudApiClient REST (fetch to ${baseUrl}/v1/models, agent CRUD)
+  //
+  // Setting it to proxyEndpoint makes connect-node send the BiDi stream to
+  // the proxy, where path routing (Caddy/Istio) dispatches /agent.v1* to the
+  // Netty BiDi proxy on port 8082.
+  //
+  // Side-effect: REST calls (#2, #3) also target proxyEndpoint via fetch.
+  // The fetch interceptor detects these (proxy-endpoint host, non-Connect path)
+  // and rewrites them to /v1/proxy/cursor/{upstream_host}{path} for Tomcat.
+  //
+  // CURSOR_API_BASE_URL is also set for completeness — older SDK versions
+  // may read it for token exchange instead of CURSOR_BACKEND_URL.
+  if (config.proxyEndpoint) {
+    const proxyBase = config.proxyEndpoint.replace(/\/+$/, "");
+    process.env.CURSOR_BACKEND_URL = proxyBase;
+    process.env.CURSOR_API_BASE_URL = proxyBase;
+  }
+
+  const runnerMode = process.env.STIGMER_RUNNER_MODE === "manager" ? "manager" : "static";
+  console.warn(
+    `[runner] mode=${runnerMode}, proxy=${config.proxyEndpoint ?? "none"}, ` +
+    `hasToken=${!!config.stigmerToken}, workspace=${config.workspaceRootDir}, ` +
+    `taskQueue=${config.taskQueue}`,
+  );
+
+  if (runnerMode === "manager") {
+    await runManagerMode(config);
   } else {
-    await runStaticMode();
+    await runStaticMode(config);
   }
 }
 

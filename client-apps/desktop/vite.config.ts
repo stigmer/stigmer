@@ -9,6 +9,15 @@ export default defineConfig({
 
   clearScreen: false,
 
+  optimizeDeps: {
+    exclude: [
+      "@stigmer/react",
+      "@stigmer/sdk",
+      "@stigmer/protos",
+      "@stigmer/theme",
+    ],
+  },
+
   server: {
     port: 5173,
     strictPort: true,

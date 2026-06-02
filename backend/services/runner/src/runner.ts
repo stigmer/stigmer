@@ -109,13 +109,30 @@ export async function createStigmerRunner(
 
   // The Cursor SDK captures a reference to global.fetch at import time.
   // The fetch interceptor MUST be installed before any @cursor/sdk import.
-  const { installFetchInterceptor } = await import(
+  const { installFetchInterceptor, getExecutionContext } = await import(
     "./activities/execute-cursor/fetch-interceptor.js"
   );
   installFetchInterceptor({
     proxyEndpoint: config.proxyEndpoint ?? undefined,
     stigmerToken: config.stigmerToken ?? undefined,
   });
+
+  // The Cursor SDK's Connect RPC transport uses native HTTP/2, bypassing
+  // globalThis.fetch. This interceptor injects x-stigmer-execution-id and
+  // the Stigmer auth token on HTTP/2 streams so the BiDi proxy can
+  // authenticate and meter billing.
+  const { installHttp2Interceptor } = await import(
+    "./activities/execute-cursor/http2-interceptor.js"
+  );
+  installHttp2Interceptor({
+    proxyEndpoint: config.proxyEndpoint ?? undefined,
+    stigmerToken: config.stigmerToken ?? undefined,
+  });
+
+  const { setExecutionContextRef } = await import(
+    "./activities/execute-cursor/rejection-capture.js"
+  );
+  setExecutionContextRef(getExecutionContext());
 
   const activities = await createAllActivities(config);
 
@@ -215,6 +232,7 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
     { createRunCommandActivities },
     { createHydrateWorkflowActivities },
     { createWorkflowEventActivities },
+    { createPromoteTaskOutputActivities },
   ] = await Promise.all([
     import("./activities/execute-cursor/index.js"),
     import("./activities/execute-deep-agent/index.js"),
@@ -231,6 +249,7 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
     import("./activities/run-command.js"),
     import("./activities/hydrate-workflow-execution.js"),
     import("./activities/workflow-event-activities.js"),
+    import("./activities/promote-task-output.js"),
   ]);
 
   return {
@@ -249,6 +268,7 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
     ...createRunCommandActivities(),
     ...createHydrateWorkflowActivities(config),
     ...createWorkflowEventActivities(),
+    ...createPromoteTaskOutputActivities(),
   };
 }
 

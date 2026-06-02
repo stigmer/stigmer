@@ -13,7 +13,7 @@ import { SkillSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/spe
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceReferenceSchema, type UpdateVisibilityInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import { ApiResourceMetadataSchema, ApiResourceMetadataVersionSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { PageInfoSchema } from "@stigmer/protos/ai/stigmer/commons/rpc/pagination_pb";
 import { SearchRequestSchema } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 import { SearchService } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
@@ -104,6 +104,7 @@ export interface SkillInput {
   org: string;
   labels?: Record<string, string>;
   visibility?: ApiResourceVisibility;
+  versionMessage?: string;
   skillMd?: string;
   tag?: string;
   description?: string;
@@ -119,6 +120,7 @@ function buildSkillProto(input: SkillInput): Skill {
       ...(input.slug && { slug: input.slug }),
       ...(input.labels && { labels: input.labels }),
       ...(input.visibility && { visibility: input.visibility }),
+      ...(input.versionMessage && { version: Object.assign(create(ApiResourceMetadataVersionSchema), { message: input.versionMessage }) }),
     }),
     spec: Object.assign(create(SkillSpecSchema), stripUndefined({
       skillMd: input.skillMd,

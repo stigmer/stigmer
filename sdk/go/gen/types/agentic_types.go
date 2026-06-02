@@ -763,7 +763,7 @@ func (c *Attachment) FromProto(s *structpb.Struct) error {
 
 // Configuration that can be applied at execution time.
 type ExecutionConfig struct {
-	// The model to use for this execution.  Example: "claude-sonnet-4-20250514"
+	// The model to use for this execution.  Example: "claude-sonnet-4-6"
 	ModelName string `json:"modelName,omitempty"`
 	// Context management configuration for this execution.  Controls automatic summarization behavior for long-running conversations.  When not specified, defaults are derived from the Model Registry.
 	ContextManagement *ContextManagementConfig `json:"contextManagement,omitempty"`

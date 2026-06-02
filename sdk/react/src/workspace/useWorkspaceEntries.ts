@@ -72,7 +72,18 @@ function deriveNameFromGitUrl(url: string): string {
 }
 
 function deriveNameFromPath(path: string): string {
-  return path.replace(/[/\\]+$/, "") || path;
+  const cleaned = path.replace(/[/\\]+$/, "");
+  if (!cleaned) return path;
+
+  const segments = cleaned.split(/[/\\]/);
+  const last = segments[segments.length - 1];
+
+  if (segments.length >= 2) {
+    const parent = segments[segments.length - 2];
+    return `${parent}/${last}`;
+  }
+
+  return last || path;
 }
 
 /**

@@ -16,6 +16,20 @@ import {
 import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
 
+/** Options for {@link useWorkflowExecutionActions}. */
+export interface UseWorkflowExecutionActionsOptions {
+  /**
+   * Called after any lifecycle action (cancel, terminate, pause, resume,
+   * recover) succeeds. Receives the updated execution returned by the
+   * server. Useful for triggering a refetch of execution data so the UI
+   * reflects the new phase.
+   *
+   * Not called for approval submissions — those are background operations
+   * whose effects arrive via the event stream.
+   */
+  readonly onSuccess?: (execution: WorkflowExecution) => void;
+}
+
 /** Return value of {@link useWorkflowExecutionActions}. */
 export interface UseWorkflowExecutionActionsReturn {
   /** Cancel a running execution gracefully. */
@@ -26,7 +40,17 @@ export interface UseWorkflowExecutionActionsReturn {
   readonly pause: (reason?: string) => Promise<WorkflowExecution | null>;
   /** Resume a paused execution. */
   readonly resume: () => Promise<WorkflowExecution | null>;
-  /** Recover a failed execution from its last checkpoint. */
+  /**
+   * Recover a failed execution with task-level resume.
+   *
+   * Terminates stale workflows, re-resolves environment variables (picks up
+   * any config fixes), and starts a fresh run in recovery mode. Completed
+   * tasks are skipped — their outputs are restored from the event log —
+   * and execution resumes from the first incomplete or failed task.
+   *
+   * @param reason - Optional audit trail message explaining why recovery
+   *   was triggered (e.g., "Rotated API key").
+   */
   readonly recover: (reason?: string) => Promise<WorkflowExecution | null>;
   /** Submit an approval decision for a child agent's tool execution. */
   readonly submitApproval: (
@@ -51,6 +75,8 @@ export interface UseWorkflowExecutionActionsReturn {
   readonly isSubmitting: boolean;
   /** Error from the last failed action, or `null`. */
   readonly error: Error | null;
+  /** Reset `error` to `null`. */
+  readonly clearError: () => void;
 }
 
 /**
@@ -64,7 +90,9 @@ export interface UseWorkflowExecutionActionsReturn {
  *
  * @example
  * ```tsx
- * const actions = useWorkflowExecutionActions(executionId);
+ * const actions = useWorkflowExecutionActions(executionId, {
+ *   onSuccess: () => refetchExecution(),
+ * });
  *
  * <button onClick={() => actions.cancel("No longer needed")} disabled={actions.isSubmitting}>
  *   Cancel
@@ -73,6 +101,7 @@ export interface UseWorkflowExecutionActionsReturn {
  */
 export function useWorkflowExecutionActions(
   executionId: string | null,
+  options?: UseWorkflowExecutionActionsOptions,
 ): UseWorkflowExecutionActionsReturn {
   const stigmer = useStigmer();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -82,14 +111,22 @@ export function useWorkflowExecutionActions(
   executionIdRef.current = executionId;
   const stigmerRef = useRef(stigmer);
   stigmerRef.current = stigmer;
+  const onSuccessRef = useRef(options?.onSuccess);
+  onSuccessRef.current = options?.onSuccess;
+
+  const clearError = useCallback(() => setError(null), []);
 
   const wrap = useCallback(
-    async (fn: () => Promise<WorkflowExecution>): Promise<WorkflowExecution | null> => {
+    async (
+      fn: () => Promise<WorkflowExecution>,
+      fireOnSuccess = true,
+    ): Promise<WorkflowExecution | null> => {
       if (!executionIdRef.current) return null;
       setIsSubmitting(true);
       setError(null);
       try {
         const result = await fn();
+        if (fireOnSuccess) onSuccessRef.current?.(result);
         return result;
       } catch (err) {
         setError(toError(err));
@@ -167,32 +204,36 @@ export function useWorkflowExecutionActions(
 
   const submitApproval = useCallback(
     (toolCallId: string, action: ApprovalAction, comment?: string) =>
-      wrap(() =>
-        stigmerRef.current.workflowExecution.submitApproval(
-          create(SubmitWorkflowApprovalInputSchema, {
-            executionId: executionIdRef.current!,
-            toolCallId,
-            action,
-            comment: comment ?? "",
-          }),
-        ),
+      wrap(
+        () =>
+          stigmerRef.current.workflowExecution.submitApproval(
+            create(SubmitWorkflowApprovalInputSchema, {
+              executionId: executionIdRef.current!,
+              toolCallId,
+              action,
+              comment: comment ?? "",
+            }),
+          ),
+        false,
       ),
     [wrap],
   );
 
   const submitTaskApproval = useCallback(
     (taskName: string, outcome: string, formData?: Record<string, unknown>, comment?: string) =>
-      wrap(() =>
-        stigmerRef.current.workflowExecution.submitWorkflowTaskApproval(
-          create(SubmitWorkflowTaskApprovalInputSchema, {
-            executionId: executionIdRef.current!,
-            taskName,
-            outcome,
-            formData: formData as JsonObject | undefined,
-            reviewer: "",
-            comment: comment ?? "",
-          }),
-        ),
+      wrap(
+        () =>
+          stigmerRef.current.workflowExecution.submitWorkflowTaskApproval(
+            create(SubmitWorkflowTaskApprovalInputSchema, {
+              executionId: executionIdRef.current!,
+              taskName,
+              outcome,
+              formData: formData as JsonObject | undefined,
+              reviewer: "",
+              comment: comment ?? "",
+            }),
+          ),
+        false,
       ),
     [wrap],
   );
@@ -207,5 +248,6 @@ export function useWorkflowExecutionActions(
     submitTaskApproval,
     isSubmitting,
     error,
+    clearError,
   };
 }

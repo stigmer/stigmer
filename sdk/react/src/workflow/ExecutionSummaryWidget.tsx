@@ -4,6 +4,7 @@ import { memo, useMemo } from "react";
 import type { ExecutionSummary } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
+import { formatDurationSec } from "./format-utils";
 
 export interface ExecutionSummaryWidgetProps {
   readonly summary: ExecutionSummary | null;
@@ -55,11 +56,6 @@ const STAT_CARDS: readonly StatCardDef[] = [
   },
 ];
 
-function formatDuration(seconds: number): string {
-  if (seconds < 60) return `${Math.round(seconds)}s`;
-  if (seconds < 3600) return `${Math.round(seconds / 60)}m`;
-  return `${(seconds / 3600).toFixed(1)}h`;
-}
 
 /**
  * Dashboard widget showing aggregate execution KPIs.
@@ -146,7 +142,7 @@ export const ExecutionSummaryWidget = memo(function ExecutionSummaryWidget({
             <span>
               Avg duration:{" "}
               <span className="font-medium text-foreground">
-                {formatDuration(avgSeconds)}
+                {formatDurationSec(avgSeconds)}
               </span>
             </span>
           )}

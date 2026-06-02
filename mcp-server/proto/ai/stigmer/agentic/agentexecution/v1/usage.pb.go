@@ -489,6 +489,11 @@ type PricingSnapshot struct {
 	CacheCreationPriceMicrosPerMillion int64 `protobuf:"varint,12,opt,name=cache_creation_price_micros_per_million,json=cacheCreationPriceMicrosPerMillion,proto3" json:"cache_creation_price_micros_per_million,omitempty"`
 	CacheReadPriceMicrosPerMillion     int64 `protobuf:"varint,13,opt,name=cache_read_price_micros_per_million,json=cacheReadPriceMicrosPerMillion,proto3" json:"cache_read_price_micros_per_million,omitempty"`
 	ReasoningPriceMicrosPerMillion     int64 `protobuf:"varint,14,opt,name=reasoning_price_micros_per_million,json=reasoningPriceMicrosPerMillion,proto3" json:"reasoning_price_micros_per_million,omitempty"`
+	// Cursor Token Rate applied to every billable token on non-Auto Cursor
+	// Teams requests (micro-USD per million tokens). Charged by Cursor on top
+	// of model API pricing; folded into provider_cost_micros for cursor-harness
+	// calls. Zero for native harness and for exempt cursor models (Auto/Composer).
+	CursorTokenRateMicrosPerMillion int64 `protobuf:"varint,15,opt,name=cursor_token_rate_micros_per_million,json=cursorTokenRateMicrosPerMillion,proto3" json:"cursor_token_rate_micros_per_million,omitempty"`
 	// Customer billing policy applied.
 	MarkupPolicyVersion string `protobuf:"bytes,30,opt,name=markup_policy_version,json=markupPolicyVersion,proto3" json:"markup_policy_version,omitempty"`
 	CostTier            string `protobuf:"bytes,31,opt,name=cost_tier,json=costTier,proto3" json:"cost_tier,omitempty"`
@@ -582,6 +587,13 @@ func (x *PricingSnapshot) GetReasoningPriceMicrosPerMillion() int64 {
 	return 0
 }
 
+func (x *PricingSnapshot) GetCursorTokenRateMicrosPerMillion() int64 {
+	if x != nil {
+		return x.CursorTokenRateMicrosPerMillion
+	}
+	return 0
+}
+
 func (x *PricingSnapshot) GetMarkupPolicyVersion() string {
 	if x != nil {
 		return x.MarkupPolicyVersion
@@ -602,15 +614,21 @@ type CostStamp struct {
 	// Currency (always "USD").
 	Currency string `protobuf:"bytes,1,opt,name=currency,proto3" json:"currency,omitempty"`
 	// Raw provider cost computed server-side from pricing registry.
+	// For cursor-harness calls this includes the Cursor Token Rate fee
+	// (see cursor_platform_fee_micros for the explicit sub-component).
 	ProviderCostMicros int64 `protobuf:"varint,2,opt,name=provider_cost_micros,json=providerCostMicros,proto3" json:"provider_cost_micros,omitempty"`
 	// Amount debited from customer credits (after markup policy).
 	CustomerBillableAmountMicros int64 `protobuf:"varint,3,opt,name=customer_billable_amount_micros,json=customerBillableAmountMicros,proto3" json:"customer_billable_amount_micros,omitempty"`
 	// How cost was computed.
 	CalculationStatus CostCalculationStatus `protobuf:"varint,4,opt,name=calculation_status,json=calculationStatus,proto3,enum=ai.stigmer.agentic.agentexecution.v1.CostCalculationStatus" json:"calculation_status,omitempty"`
 	// Full pricing snapshot for historical reproducibility.
-	Pricing       *PricingSnapshot `protobuf:"bytes,5,opt,name=pricing,proto3" json:"pricing,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Pricing *PricingSnapshot `protobuf:"bytes,5,opt,name=pricing,proto3" json:"pricing,omitempty"`
+	// Cursor Token Rate fee charged by Cursor on top of model API pricing,
+	// already included in provider_cost_micros. Surfaced explicitly for audit
+	// and per-call transparency. Zero for native harness and exempt cursor models.
+	CursorPlatformFeeMicros int64 `protobuf:"varint,6,opt,name=cursor_platform_fee_micros,json=cursorPlatformFeeMicros,proto3" json:"cursor_platform_fee_micros,omitempty"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *CostStamp) Reset() {
@@ -676,6 +694,13 @@ func (x *CostStamp) GetPricing() *PricingSnapshot {
 		return x.Pricing
 	}
 	return nil
+}
+
+func (x *CostStamp) GetCursorPlatformFeeMicros() int64 {
+	if x != nil {
+		return x.CursorPlatformFeeMicros
+	}
+	return 0
 }
 
 // Proxy-observed timing for a single LLM call.
@@ -1616,7 +1641,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDesc = "" +
 	"\x16provider_token_details\x18\x14 \x03(\v2J.ai.stigmer.agentic.agentexecution.v1.TokenUsage.ProviderTokenDetailsEntryR\x14providerTokenDetails\x1aG\n" +
 	"\x19ProviderTokenDetailsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\x03R\x05value:\x028\x01\"\xfe\x04\n" +
+	"\x05value\x18\x02 \x01(\x03R\x05value:\x028\x01\"\xcd\x05\n" +
 	"\x0fPricingSnapshot\x128\n" +
 	"\x18pricing_registry_version\x18\x01 \x01(\tR\x16pricingRegistryVersion\x12L\n" +
 	"\x14pricing_effective_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x12pricingEffectiveAt\x12\x1a\n" +
@@ -1626,15 +1651,17 @@ const file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDesc = "" +
 	"\x1foutput_price_micros_per_million\x18\v \x01(\x03R\x1boutputPriceMicrosPerMillion\x12S\n" +
 	"'cache_creation_price_micros_per_million\x18\f \x01(\x03R\"cacheCreationPriceMicrosPerMillion\x12K\n" +
 	"#cache_read_price_micros_per_million\x18\r \x01(\x03R\x1ecacheReadPriceMicrosPerMillion\x12J\n" +
-	"\"reasoning_price_micros_per_million\x18\x0e \x01(\x03R\x1ereasoningPriceMicrosPerMillion\x122\n" +
+	"\"reasoning_price_micros_per_million\x18\x0e \x01(\x03R\x1ereasoningPriceMicrosPerMillion\x12M\n" +
+	"$cursor_token_rate_micros_per_million\x18\x0f \x01(\x03R\x1fcursorTokenRateMicrosPerMillion\x122\n" +
 	"\x15markup_policy_version\x18\x1e \x01(\tR\x13markupPolicyVersion\x12\x1b\n" +
-	"\tcost_tier\x18\x1f \x01(\tR\bcostTier\"\xdd\x02\n" +
+	"\tcost_tier\x18\x1f \x01(\tR\bcostTier\"\x9a\x03\n" +
 	"\tCostStamp\x12\x1a\n" +
 	"\bcurrency\x18\x01 \x01(\tR\bcurrency\x120\n" +
 	"\x14provider_cost_micros\x18\x02 \x01(\x03R\x12providerCostMicros\x12E\n" +
 	"\x1fcustomer_billable_amount_micros\x18\x03 \x01(\x03R\x1ccustomerBillableAmountMicros\x12j\n" +
 	"\x12calculation_status\x18\x04 \x01(\x0e2;.ai.stigmer.agentic.agentexecution.v1.CostCalculationStatusR\x11calculationStatus\x12O\n" +
-	"\apricing\x18\x05 \x01(\v25.ai.stigmer.agentic.agentexecution.v1.PricingSnapshotR\apricing\"\x9f\x05\n" +
+	"\apricing\x18\x05 \x01(\v25.ai.stigmer.agentic.agentexecution.v1.PricingSnapshotR\apricing\x12;\n" +
+	"\x1acursor_platform_fee_micros\x18\x06 \x01(\x03R\x17cursorPlatformFeeMicros\"\x9f\x05\n" +
 	"\vProxyTiming\x12F\n" +
 	"\x11proxy_received_at\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x0fproxyReceivedAt\x12Y\n" +
 	"\x1bupstream_request_started_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x18upstreamRequestStartedAt\x12O\n" +

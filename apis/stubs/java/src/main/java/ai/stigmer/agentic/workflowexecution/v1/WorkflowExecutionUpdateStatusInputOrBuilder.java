@@ -190,4 +190,27 @@ public interface WorkflowExecutionUpdateStatusInputOrBuilder extends
    */
   ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEventOrBuilder getEventsOrBuilder(
       int index);
+
+  /**
+   * <pre>
+   * When true, status.pending_approvals will be merged into the existing
+   * execution (replacing the stored list). When false (default), existing
+   * pending_approvals are preserved unchanged.
+   *
+   * &#64;internal
+   * This prevents a race condition where concurrent event emissions
+   * (which don't include pending_approvals) inadvertently clear active
+   * approval gates set by call-agent-status.
+   *
+   * Only call-agent-status.ts sets this to true — both when populating
+   * approvals from a child_approval_required signal and when clearing them
+   * after the child agent completes.
+   *
+   * &#64;since Agent Call Live Experience
+   * </pre>
+   *
+   * <code>bool update_pending_approvals = 11 [json_name = "updatePendingApprovals"];</code>
+   * @return The updatePendingApprovals.
+   */
+  boolean getUpdatePendingApprovals();
 }

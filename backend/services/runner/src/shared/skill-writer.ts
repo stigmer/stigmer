@@ -15,12 +15,11 @@
  * resolves them correctly regardless of mount strategy.
  */
 
-import { Readable } from "node:stream";
-import { createInflateRaw } from "node:zlib";
 import type { WorkspaceBackend } from "./workspace/types.js";
 import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import type { StigmerClient } from "../client/stigmer-client.js";
+import { extractZipFileEntries } from "./zip-extract.js";
 
 const SKILLS_RELATIVE_BASE = ".stigmer/skills";
 const SCRIPT_EXTENSIONS = new Set([".sh", ".py", ".js", ".ts", ".rb", ".pl"]);
@@ -156,23 +155,14 @@ export async function checkSkillIntegrity(
 
 // ─── ZIP extraction ──────────────────────────────────────────────────────
 
-/**
- * Extract a ZIP archive into the specified workspace directory.
- *
- * Uses a minimal, dependency-free ZIP parser that handles the local file
- * header format. Supports both stored (method 0) and deflated (method 8) entries.
- */
 async function extractZipToWorkspace(
   zipBytes: Uint8Array,
   targetDir: string,
   backend: WorkspaceBackend,
 ): Promise<void> {
-  const entries = parseZipEntries(zipBytes);
+  const entries = await extractZipFileEntries(zipBytes);
   for (const entry of entries) {
-    if (entry.isDirectory) continue;
-    const targetPath = `${targetDir}/${entry.name}`;
-    const content = await decompressEntry(entry);
-    await backend.writeFile(targetPath, content);
+    await backend.writeFile(`${targetDir}/${entry.path}`, entry.content);
   }
 }
 
@@ -182,145 +172,10 @@ async function extractZipToWorkspaceExcluding(
   targetDir: string,
   backend: WorkspaceBackend,
 ): Promise<void> {
-  const entries = parseZipEntries(zipBytes);
+  const entries = await extractZipFileEntries(zipBytes, { exclude: [excludeName] });
   for (const entry of entries) {
-    if (entry.isDirectory) continue;
-    if (entry.name === excludeName || entry.name.endsWith(`/${excludeName}`)) continue;
-    const targetPath = `${targetDir}/${entry.name}`;
-    const content = await decompressEntry(entry);
-    await backend.writeFile(targetPath, content);
+    await backend.writeFile(`${targetDir}/${entry.path}`, entry.content);
   }
-}
-
-interface ZipEntry {
-  name: string;
-  isDirectory: boolean;
-  compressedData: Uint8Array;
-  compressionMethod: number;
-  uncompressedSize: number;
-}
-
-function parseZipEntries(data: Uint8Array): ZipEntry[] {
-  const entries: ZipEntry[] = [];
-  const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
-  let offset = 0;
-
-  while (offset < data.length - 4) {
-    const signature = view.getUint32(offset, true);
-    if (signature !== 0x04034b50) break; // Local file header signature
-
-    const generalFlags = view.getUint16(offset + 6, true);
-    const hasDataDescriptor = (generalFlags & 0x08) !== 0;
-    const compressionMethod = view.getUint16(offset + 8, true);
-    let compressedSize = view.getUint32(offset + 18, true);
-    let uncompressedSize = view.getUint32(offset + 22, true);
-    const fileNameLength = view.getUint16(offset + 26, true);
-    const extraFieldLength = view.getUint16(offset + 28, true);
-
-    const fileNameStart = offset + 30;
-    const fileName = new TextDecoder().decode(
-      data.subarray(fileNameStart, fileNameStart + fileNameLength),
-    );
-
-    const dataStart = fileNameStart + fileNameLength + extraFieldLength;
-
-    if (hasDataDescriptor && compressedSize === 0) {
-      const sizes = findDataDescriptor(data, view, dataStart, compressionMethod);
-      compressedSize = sizes.compressedSize;
-      uncompressedSize = sizes.uncompressedSize;
-    }
-
-    const compressedData = data.subarray(dataStart, dataStart + compressedSize);
-
-    entries.push({
-      name: fileName,
-      isDirectory: fileName.endsWith("/"),
-      compressedData,
-      compressionMethod,
-      uncompressedSize,
-    });
-
-    let nextOffset = dataStart + compressedSize;
-    if (hasDataDescriptor) {
-      // Skip past the data descriptor (optional 4-byte signature + 3×4 bytes)
-      if (nextOffset + 4 <= data.length && view.getUint32(nextOffset, true) === 0x08074b50) {
-        nextOffset += 16; // signature(4) + crc(4) + compressedSize(4) + uncompressedSize(4)
-      } else {
-        nextOffset += 12; // crc(4) + compressedSize(4) + uncompressedSize(4)
-      }
-    }
-    offset = nextOffset;
-  }
-
-  return entries;
-}
-
-/**
- * Scan forward from dataStart to find the data descriptor that contains
- * the actual compressed and uncompressed sizes. Looks for either the
- * optional signature 0x08074b50 or falls back to scanning the central
- * directory for the matching entry.
- */
-function findDataDescriptor(
-  data: Uint8Array,
-  view: DataView,
-  dataStart: number,
-  compressionMethod: number,
-): { compressedSize: number; uncompressedSize: number } {
-  // Strategy: scan for the data descriptor signature or the next local
-  // file header / central directory header, then read sizes from the
-  // data descriptor preceding it.
-  for (let pos = dataStart; pos < data.length - 16; pos++) {
-    const sig = view.getUint32(pos, true);
-    if (sig === 0x08074b50) {
-      return {
-        compressedSize: view.getUint32(pos + 8, true),
-        uncompressedSize: view.getUint32(pos + 12, true),
-      };
-    }
-    // Next local file header or central directory — data descriptor is right before
-    if (sig === 0x04034b50 || sig === 0x02014b50) {
-      // Data descriptor without signature: 12 bytes before this header
-      const descStart = pos - 12;
-      if (descStart >= dataStart) {
-        return {
-          compressedSize: view.getUint32(descStart + 4, true),
-          uncompressedSize: view.getUint32(descStart + 8, true),
-        };
-      }
-      break;
-    }
-  }
-  // Fallback: treat everything from dataStart to the next header as compressed data
-  for (let pos = dataStart; pos < data.length - 4; pos++) {
-    const sig = view.getUint32(pos, true);
-    if (sig === 0x04034b50 || sig === 0x02014b50 || sig === 0x08074b50) {
-      const compressedSize = sig === 0x08074b50
-        ? view.getUint32(pos + 8, true)
-        : pos - dataStart;
-      return { compressedSize, uncompressedSize: 0 };
-    }
-  }
-  return { compressedSize: data.length - dataStart, uncompressedSize: 0 };
-}
-
-async function decompressEntry(entry: ZipEntry): Promise<string> {
-  if (entry.compressionMethod === 0) {
-    return new TextDecoder().decode(entry.compressedData);
-  }
-
-  if (entry.compressionMethod === 8) {
-    return new Promise<string>((resolve, reject) => {
-      const inflate = createInflateRaw();
-      const chunks: Buffer[] = [];
-      inflate.on("data", (chunk: Buffer) => chunks.push(chunk));
-      inflate.on("end", () => resolve(Buffer.concat(chunks).toString("utf-8")));
-      inflate.on("error", reject);
-      inflate.end(Buffer.from(entry.compressedData));
-    });
-  }
-
-  throw new Error(`Unsupported ZIP compression method: ${entry.compressionMethod}`);
 }
 
 async function makeScriptsExecutable(

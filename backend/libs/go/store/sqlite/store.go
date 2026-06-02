@@ -1203,6 +1203,59 @@ func (s *Store) DeleteAuditByResourceId(ctx context.Context, kind apiresourcekin
 	return result.RowsAffected()
 }
 
+// CountAuditEntries returns the number of audit records for a resource.
+// Returns 0 (not an error) when no audit records exist.
+func (s *Store) CountAuditEntries(ctx context.Context, kind apiresourcekind.ApiResourceKind, resourceId string) (int, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.db == nil {
+		return 0, fmt.Errorf("store is closed")
+	}
+
+	var count int
+	// Query uses idx_audit_resource index
+	err := s.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM resource_audit 
+		 WHERE kind = ? AND resource_id = ?`,
+		kind.String(), resourceId).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("count audit entries: %w", err)
+	}
+
+	return count, nil
+}
+
+// GetLatestAuditHash returns the version hash of the most recent audit record
+// for a resource. Returns store.ErrAuditNotFound if no audit record exists.
+func (s *Store) GetLatestAuditHash(ctx context.Context, kind apiresourcekind.ApiResourceKind, resourceId string) (string, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.db == nil {
+		return "", fmt.Errorf("store is closed")
+	}
+
+	var versionHash string
+	// Query uses idx_audit_resource index and returns most recent by archived_at
+	// Use id DESC as tiebreaker when timestamps are equal (sub-second inserts)
+	err := s.db.QueryRowContext(ctx,
+		`SELECT version_hash FROM resource_audit 
+		 WHERE kind = ? AND resource_id = ?
+		 ORDER BY archived_at DESC, id DESC
+		 LIMIT 1`,
+		kind.String(), resourceId).Scan(&versionHash)
+
+	if err == sql.ErrNoRows {
+		return "", fmt.Errorf("%w: %s/%s", store.ErrAuditNotFound, kind.String(), resourceId)
+	}
+	if err != nil {
+		return "", fmt.Errorf("query latest audit hash: %w", err)
+	}
+
+	return versionHash, nil
+}
+
 // =============================================================================
 // Search Index Operations (Full-Text Search)
 // =============================================================================

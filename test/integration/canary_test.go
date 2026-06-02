@@ -9,10 +9,10 @@ import (
 	"time"
 
 	agentexecv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/test/integration/harness"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -117,7 +117,7 @@ func TestCanary_LlmCallProxy(t *testing.T) {
 	defer deployer.Cleanup(ctx)
 
 	taskConfig, err := structpb.NewStruct(map[string]any{
-		"model":       "claude-sonnet-4-20250514",
+		"model":       "claude-sonnet-4.6",
 		"prompt":      "Reply with exactly one word: OK",
 		"max_tokens":  float64(10),
 		"timeout":     float64(60),

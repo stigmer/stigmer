@@ -33,6 +33,8 @@ import type {
   TaskExecutionContext,
   HumanInputResult,
 } from "../types.js";
+import { resolveEmbeddedExpressions } from "../resolve.js";
+import { isStrictExpr } from "../expression-utils.js";
 
 const SIGNAL_PREFIX = "human_input_";
 const DEFAULT_TIMEOUT_SECONDS = 0;
@@ -55,6 +57,10 @@ export async function executeHumanInputTask(
   const timeoutSeconds = config.timeout ?? DEFAULT_TIMEOUT_SECONDS;
   const onTimeout = config.onTimeout ?? DEFAULT_ON_TIMEOUT;
 
+  const resolvedPrompt = await resolvePromptExpressions(
+    config.prompt, state, ctx,
+  );
+
   const approvalRequestedAt = Date.now();
 
   ctx.taskStatusAccumulator?.taskWaitingApproval(taskName);
@@ -64,7 +70,7 @@ export async function executeHumanInputTask(
       type: "approval_requested",
       taskName,
       occurredAt: new Date().toISOString(),
-      prompt: config.prompt,
+      prompt: resolvedPrompt,
       approvers: config.approvers ?? [],
       timeoutSeconds,
       outcomes: (config.outcomes ?? []).map((o) => ({
@@ -108,4 +114,34 @@ function validateConfig(config: HumanInputConfig, taskName: string): void {
   if (!config.prompt) {
     throw new Error(`human_input task '${taskName}': 'prompt' is required`);
   }
+}
+
+/**
+ * Resolves `${ ... }` expressions in the prompt string against the
+ * current workflow state. Handles both strict (whole-value) and embedded
+ * (inline fragment) expression patterns.
+ */
+async function resolvePromptExpressions(
+  prompt: string,
+  state: WorkflowState,
+  ctx: TaskExecutionContext,
+): Promise<string> {
+  const stateVars = state.getAsMap();
+
+  // Strict expression: entire prompt is a single expression
+  if (isStrictExpr(prompt)) {
+    const expr = prompt.slice(3, -2);
+    const results = await ctx.evaluateExpressions(
+      { __prompt__: expr }, null, stateVars,
+    );
+    const resolved = results.__prompt__;
+    return typeof resolved === "string" ? resolved : JSON.stringify(resolved ?? "");
+  }
+
+  // Embedded expressions: inline `${ ... }` fragments within the prompt text
+  const wrapper = { prompt };
+  await resolveEmbeddedExpressions(
+    wrapper, null, stateVars, ctx.evaluateExpressions,
+  );
+  return wrapper.prompt;
 }

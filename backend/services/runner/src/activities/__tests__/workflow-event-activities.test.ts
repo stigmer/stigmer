@@ -1,14 +1,114 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import { toProtoEvent, resetSequenceCounter, emitWorkflowEvents } from "../workflow-event-activities.js";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { toProtoEvent, initSequenceFromEventLog, emitWorkflowEvents, loadRecoveryContext } from "../workflow-event-activities.js";
 import { WorkflowEventType } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import { WorkflowTaskStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
 import type { WorkflowEventDescriptor } from "../../workflow-engine/types.js";
+
+const mockGetEventLogHighWaterMark = vi.fn<(executionId: string) => Promise<bigint>>();
+const mockGetWorkflowExecution = vi.fn<(executionId: string) => Promise<unknown>>();
+
+vi.mock("../../client/stigmer-client.js", () => ({
+  StigmerClient: vi.fn().mockImplementation(() => ({
+    getEventLogHighWaterMark: (...args: unknown[]) => mockGetEventLogHighWaterMark(...(args as [string])),
+    getWorkflowExecution: (...args: unknown[]) => mockGetWorkflowExecution(...(args as [string])),
+  })),
+}));
+
+vi.mock("../../config.js", () => ({
+  loadConfig: () => ({
+    stigmerBackendEndpoint: "http://localhost:7234",
+    stigmerToken: "test-token",
+  }),
+}));
 
 const NOW = "2026-05-22T00:00:00.000Z";
 
-describe("toProtoEvent", () => {
+describe("initSequenceFromEventLog", () => {
   beforeEach(() => {
-    resetSequenceCounter();
+    mockGetEventLogHighWaterMark.mockReset();
+  });
+
+  it("sets counter to 0 when executionId is empty", async () => {
+    await initSequenceFromEventLog("");
+
+    const evt = toProtoEvent({
+      type: "task_started",
+      taskName: "t",
+      occurredAt: NOW,
+      taskKind: "set",
+      attemptNumber: 1,
+    });
+    expect(evt.sequenceNumber).toBe(BigInt(1));
+    expect(mockGetEventLogHighWaterMark).not.toHaveBeenCalled();
+  });
+
+  it("sets counter to 0 when server returns no events", async () => {
+    mockGetEventLogHighWaterMark.mockResolvedValue(BigInt(0));
+
+    await initSequenceFromEventLog("wfx_test-1");
+
+    const evt = toProtoEvent({
+      type: "task_started",
+      taskName: "t",
+      occurredAt: NOW,
+      taskKind: "set",
+      attemptNumber: 1,
+    });
+    expect(evt.sequenceNumber).toBe(BigInt(1));
+  });
+
+  it("continues from high-water mark when events exist", async () => {
+    mockGetEventLogHighWaterMark.mockResolvedValue(BigInt(42));
+
+    await initSequenceFromEventLog("wfx_recovery-1");
+
+    const e1 = toProtoEvent({
+      type: "task_started",
+      taskName: "t",
+      occurredAt: NOW,
+      taskKind: "set",
+      attemptNumber: 1,
+    });
+    const e2 = toProtoEvent({
+      type: "task_completed",
+      taskName: "t",
+      occurredAt: NOW,
+      taskKind: "set",
+      durationMs: 100,
+      costMicros: 0,
+      tokensUsed: 0,
+    });
+
+    expect(e1.sequenceNumber).toBe(BigInt(43));
+    expect(e2.sequenceNumber).toBe(BigInt(44));
+  });
+
+  it("handles large sequence numbers", async () => {
+    mockGetEventLogHighWaterMark.mockResolvedValue(BigInt(999999));
+
+    await initSequenceFromEventLog("wfx_large-seq");
+
+    const evt = toProtoEvent({
+      type: "task_started",
+      taskName: "t",
+      occurredAt: NOW,
+      taskKind: "set",
+      attemptNumber: 1,
+    });
+    expect(evt.sequenceNumber).toBe(BigInt(1000000));
+  });
+
+  it("propagates server errors", async () => {
+    mockGetEventLogHighWaterMark.mockRejectedValue(new Error("server unavailable"));
+
+    await expect(initSequenceFromEventLog("wfx_error-1")).rejects.toThrow("server unavailable");
+  });
+});
+
+describe("toProtoEvent", () => {
+  beforeEach(async () => {
+    await initSequenceFromEventLog("");
   });
 
   describe("sequence numbering", () => {
@@ -30,7 +130,7 @@ describe("toProtoEvent", () => {
       expect(e3.sequenceNumber).toBe(BigInt(3));
     });
 
-    it("resets to 1 after resetSequenceCounter", () => {
+    it("resets to 1 after re-initializing with empty executionId", async () => {
       toProtoEvent({
         type: "task_started",
         taskName: "t",
@@ -39,7 +139,7 @@ describe("toProtoEvent", () => {
         attemptNumber: 1,
       });
 
-      resetSequenceCounter();
+      await initSequenceFromEventLog("");
 
       const evt = toProtoEvent({
         type: "task_started",
@@ -219,6 +319,18 @@ describe("toProtoEvent", () => {
       if (evt.payload.case !== "taskStarted") throw new Error("unexpected");
       expect(evt.payload.value.taskKind).toBe(WorkflowTaskKind.activity_call);
     });
+
+    it("maps call:function:cursor to proto agent_call (13)", () => {
+      const desc: WorkflowEventDescriptor = {
+        type: "task_started",
+        taskName: "cursor_agent",
+        occurredAt: "2024-01-01T00:00:00.000Z",
+        taskKind: "call:function:cursor",
+        attemptNumber: 1,
+      };
+      const proto = toProtoEvent(desc);
+      expect(proto.payload.value?.taskKind).toBe(WorkflowTaskKind.agent_call);
+    });
   });
 
   describe("task_completed", () => {
@@ -275,6 +387,38 @@ describe("toProtoEvent", () => {
       expect(evt.eventType).toBe(WorkflowEventType.task_skipped);
       if (evt.payload.case !== "taskSkipped") throw new Error("unexpected");
       expect(evt.payload.value.reason).toBe("condition evaluated to false");
+    });
+  });
+
+  describe("task_retrying", () => {
+    it("converts with attempt and delay fields", () => {
+      const evt = toProtoEvent({
+        type: "task_retrying",
+        occurredAt: NOW,
+        failedAttempt: 1,
+        nextAttempt: 2,
+        delayMs: 2000,
+      });
+
+      expect(evt.eventType).toBe(WorkflowEventType.task_retrying);
+      expect(evt.payload.case).toBe("taskRetrying");
+      if (evt.payload.case !== "taskRetrying") throw new Error("unexpected");
+      expect(evt.payload.value.failedAttempt).toBe(1);
+      expect(evt.payload.value.nextAttempt).toBe(2);
+      expect(evt.payload.value.delayMs).toBe(BigInt(2000));
+    });
+
+    it("handles zero delay (immediate retry)", () => {
+      const evt = toProtoEvent({
+        type: "task_retrying",
+        occurredAt: NOW,
+        failedAttempt: 2,
+        nextAttempt: 3,
+        delayMs: 0,
+      });
+
+      if (evt.payload.case !== "taskRetrying") throw new Error("unexpected");
+      expect(evt.payload.value.delayMs).toBe(BigInt(0));
     });
   });
 
@@ -433,5 +577,88 @@ describe("emitWorkflowEvents", () => {
       attemptNumber: 1,
     }];
     await expect(emitWorkflowEvents("", events)).resolves.toBeUndefined();
+  });
+});
+
+describe("loadRecoveryContext", () => {
+  beforeEach(() => {
+    mockGetWorkflowExecution.mockReset();
+  });
+
+  it("returns mapped task data from execution status", async () => {
+    mockGetWorkflowExecution.mockResolvedValue({
+      status: {
+        tasks: [
+          {
+            taskName: "step1",
+            status: WorkflowTaskStatus.WORKFLOW_TASK_COMPLETED,
+            output: { result: "ok" },
+          },
+          {
+            taskName: "step2",
+            status: WorkflowTaskStatus.WORKFLOW_TASK_FAILED,
+            output: undefined,
+          },
+        ],
+      },
+    });
+
+    const result = await loadRecoveryContext("wfx_test-1");
+
+    expect(result).toHaveLength(2);
+    expect(result[0]).toEqual({
+      taskName: "step1",
+      status: "completed",
+      output: { result: "ok" },
+    });
+    expect(result[1]).toEqual({
+      taskName: "step2",
+      status: "failed",
+      output: undefined,
+    });
+  });
+
+  it("returns empty array when execution has no status", async () => {
+    mockGetWorkflowExecution.mockResolvedValue({});
+
+    const result = await loadRecoveryContext("wfx_empty-1");
+    expect(result).toEqual([]);
+  });
+
+  it("returns empty array when status has no tasks", async () => {
+    mockGetWorkflowExecution.mockResolvedValue({
+      status: { tasks: [] },
+    });
+
+    const result = await loadRecoveryContext("wfx_no-tasks-1");
+    expect(result).toEqual([]);
+  });
+
+  it("maps all proto WorkflowTaskStatus values correctly", async () => {
+    mockGetWorkflowExecution.mockResolvedValue({
+      status: {
+        tasks: [
+          { taskName: "t1", status: WorkflowTaskStatus.WORKFLOW_TASK_IN_PROGRESS, output: undefined },
+          { taskName: "t2", status: WorkflowTaskStatus.WORKFLOW_TASK_COMPLETED, output: undefined },
+          { taskName: "t3", status: WorkflowTaskStatus.WORKFLOW_TASK_FAILED, output: undefined },
+          { taskName: "t4", status: WorkflowTaskStatus.WORKFLOW_TASK_SKIPPED, output: undefined },
+          { taskName: "t5", status: WorkflowTaskStatus.WORKFLOW_TASK_WAITING_APPROVAL, output: undefined },
+        ],
+      },
+    });
+
+    const result = await loadRecoveryContext("wfx_statuses-1");
+
+    expect(result[0].status).toBe("started");
+    expect(result[1].status).toBe("completed");
+    expect(result[2].status).toBe("failed");
+    expect(result[3].status).toBe("skipped");
+    expect(result[4].status).toBe("waiting_approval");
+  });
+
+  it("propagates server errors", async () => {
+    mockGetWorkflowExecution.mockRejectedValue(new Error("server unavailable"));
+
+    await expect(loadRecoveryContext("wfx_error-1")).rejects.toThrow("server unavailable");
   });
 });

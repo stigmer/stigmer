@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import type { JsonObject } from "@bufbuild/protobuf";
 import type { AttachmentInput, EnvVarInput } from "@stigmer/sdk";
 import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { useStigmer } from "../hooks";
@@ -58,6 +59,24 @@ export interface CreateAgentExecutionInput {
    * Maps to `ExecutionConfig.interaction_mode` in the proto.
    */
   readonly interactionMode?: "agent" | "plan";
+  /**
+   * JSON Schema that the agent's final output must conform to.
+   *
+   * When set, the runner enforces structured output:
+   * - Native harness: ToolStrategy adds an extract tool; agent must call it
+   * - Cursor harness: prompt injection + 3-tier extraction fallback
+   *
+   * The validated data is returned in `execution.status.structuredOutput`.
+   */
+  readonly structuredOutputSchema?: JsonObject;
+  /**
+   * Workspace-relative file paths the user wants the agent to focus on.
+   *
+   * These are lightweight "attention" signals — the agent reads the files
+   * directly from the workspace filesystem. No upload, no injection.
+   * Populated by the drag-to-reference feature in SessionComposer.
+   */
+  readonly workspaceFileRefs?: string[];
 }
 
 /** Resolved output of {@link UseCreateAgentExecutionReturn.create}. */
@@ -135,12 +154,15 @@ export function useCreateAgentExecution(): UseCreateAgentExecutionReturn {
       setError(null);
 
       try {
-        const hasConfig = input.modelName || input.interactionMode;
+        const hasConfig = input.modelName || input.interactionMode || input.structuredOutputSchema;
         const executionConfig = hasConfig
           ? {
               ...(input.modelName ? { modelName: input.modelName } : {}),
               ...(input.interactionMode
                 ? { interactionMode: INTERACTION_MODE_MAP[input.interactionMode] ?? InteractionMode.UNSPECIFIED }
+                : {}),
+              ...(input.structuredOutputSchema
+                ? { structuredOutputSchema: input.structuredOutputSchema }
                 : {}),
             }
           : undefined;
@@ -154,6 +176,7 @@ export function useCreateAgentExecution(): UseCreateAgentExecutionReturn {
           executionConfig,
           runtimeEnv: input.runtimeEnv,
           attachments: input.attachments,
+          workspaceFileRefs: input.workspaceFileRefs,
         });
 
         return {

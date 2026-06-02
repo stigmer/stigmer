@@ -20,6 +20,11 @@ export interface WorkflowRunDialogProps {
   /** Available workflow instances for the instance selector. */
   readonly instances: readonly WorkflowInstance[];
   /**
+   * The platform-managed default instance ID (from workflow.status.defaultInstanceId).
+   * Passed through to the form's instance picker to control visibility threshold.
+   */
+  readonly defaultInstanceId?: string;
+  /**
    * Called after the execution is created successfully.
    * Receives the execution ID — use for navigation.
    */
@@ -61,6 +66,7 @@ export function WorkflowRunDialog({
   org,
   workflow,
   instances,
+  defaultInstanceId,
   onSuccess,
   onError,
 }: WorkflowRunDialogProps) {
@@ -156,6 +162,10 @@ export function WorkflowRunDialog({
             instances={instances}
             selectedInstanceId={flow.selectedInstanceId}
             onInstanceChange={flow.setSelectedInstanceId}
+            defaultInstanceId={defaultInstanceId}
+            instanceEnvKeys={flow.instanceEnvKeys}
+            showTriggerMessage={flow.showTriggerMessage}
+            onShowTriggerMessageChange={flow.setShowTriggerMessage}
             errors={flow.fieldErrors}
             disabled={flow.isSubmitting}
           />

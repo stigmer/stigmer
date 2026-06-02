@@ -143,7 +143,7 @@ public enum BillingAccountStatus
   }
   public static com.google.protobuf.Descriptors.EnumDescriptor
       getDescriptor() {
-    return ai.stigmer.billing.v1.EnumProto.getDescriptor().getEnumType(2);
+    return ai.stigmer.billing.v1.EnumProto.getDescriptor().getEnumType(3);
   }
 
   private static final BillingAccountStatus[] VALUES = values();

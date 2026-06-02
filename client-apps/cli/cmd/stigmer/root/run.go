@@ -108,7 +108,7 @@ OUTPUT MODES:
 
 EXECUTION OPTIONS:
 
-  --model MODEL:    LLM model to use (e.g., claude-sonnet-4-20250514)
+  --model MODEL:    LLM model to use (e.g., claude-sonnet-4-6)
   --auto-approve:   Automatically approve all tool executions without prompting
 
 OTHER OPTIONS:

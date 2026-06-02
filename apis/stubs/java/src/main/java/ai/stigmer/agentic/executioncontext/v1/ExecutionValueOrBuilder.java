@@ -12,27 +12,31 @@ public interface ExecutionValueOrBuilder extends
 
   /**
    * <pre>
-   * String content of this entry.
+   * String content of this entry. Empty strings are valid — optional
+   * workflow env vars may be provided with no value, and the workflow
+   * engine resolves them to "" in expression interpolation.
    *
    * &#64;internal
    * If is_secret=true: encrypted at rest and redacted in logs.
    * If is_secret=false: stored as plaintext.
    * </pre>
    *
-   * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
+   * <code>string value = 1 [json_name = "value"];</code>
    * @return The value.
    */
   java.lang.String getValue();
   /**
    * <pre>
-   * String content of this entry.
+   * String content of this entry. Empty strings are valid — optional
+   * workflow env vars may be provided with no value, and the workflow
+   * engine resolves them to "" in expression interpolation.
    *
    * &#64;internal
    * If is_secret=true: encrypted at rest and redacted in logs.
    * If is_secret=false: stored as plaintext.
    * </pre>
    *
-   * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
+   * <code>string value = 1 [json_name = "value"];</code>
    * @return The bytes for value.
    */
   com.google.protobuf.ByteString

@@ -47,6 +47,14 @@ export {
 } from "./iam-role";
 export { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
+// Activity client (unified recents)
+export {
+  ActivityClient,
+  type ListRecentActivityParams,
+  type ListRecentActivityResponse,
+} from "./activity";
+export type { RecentActivityEntry as RecentActivityEntryProto } from "./activity";
+
 // Billing client
 export {
   BillingClient,

@@ -29,7 +29,7 @@ import type {
   TaskExecutionContext,
   ExpressionEvaluator,
 } from "./types.js";
-import { isTermination, isExplicitTarget } from "./types.js";
+import { isTermination, isExplicitTarget, AgentCallError } from "./types.js";
 import { createTaskBuilder, DO_TASK_KIND, FOR_TASK_KIND, FORK_TASK_KIND, TRY_TASK_KIND, LISTEN_TASK_KIND, HUMAN_INPUT_TASK_KIND } from "./task-factory.js";
 import { extractFlowDirective } from "./tasks/switch.js";
 import { executeForTask } from "./tasks/for.js";
@@ -37,6 +37,10 @@ import { executeForkTask } from "./tasks/fork.js";
 import { executeTryTask } from "./tasks/try.js";
 import { executeListenTask } from "./tasks/listen.js";
 import { executeHumanInputTask } from "./tasks/human-input.js";
+import { extractCostFromOutput } from "../budget/index.js";
+import { truncatePayload } from "./task-status-accumulator.js";
+import { extractRootErrorMessage, extractStructuredError } from "./error-utils.js";
+import type { RecoveryContext } from "./recovery.js";
 
 /**
  * Returns the task kind string used for event emission. For call:function
@@ -68,9 +72,11 @@ export async function executeDoTasks(
   doc: WorkflowModel,
   evaluateExpressions: ExpressionEvaluator,
   ctx?: TaskExecutionContext,
+  recoveryContext?: RecoveryContext,
 ): Promise<unknown> {
   const effectiveCtx: TaskExecutionContext = ctx ?? buildMinimalContext(evaluateExpressions, doc);
   let nextTargetName: string | null = null;
+  let activeRecovery = recoveryContext;
 
   for (let i = 0; i < tasks.length; i++) {
     if (effectiveCtx.checkPause) await effectiveCtx.checkPause();
@@ -89,6 +95,49 @@ export async function executeDoTasks(
       task: { name: entry.key },
     });
 
+    if (activeRecovery?.completedTasks.has(entry.key)) {
+      const recovered = activeRecovery.completedTasks.get(entry.key)!;
+      const kind = eventTaskKind(entry);
+
+      effectiveCtx.taskStatusAccumulator?.taskSkipped(entry.key, "completed in prior run (recovery)");
+      if (effectiveCtx.emitEvents) {
+        await effectiveCtx.emitEvents([{
+          type: "task_skipped",
+          taskName: entry.key,
+          occurredAt: new Date().toISOString(),
+          taskKind: kind,
+          reason: "completed in prior run (recovery)",
+        }]);
+      }
+
+      await processTaskOutput(entry, recovered.output, state, effectiveCtx);
+      await processTaskExport(entry, recovered.output, state, effectiveCtx);
+
+      const switchDirective = extractFlowDirective(recovered.output);
+      if (switchDirective !== undefined) {
+        if (isTermination(switchDirective)) break;
+        if (isExplicitTarget(switchDirective)) {
+          nextTargetName = switchDirective;
+          continue;
+        }
+      }
+
+      const staticDirective = entry.task.then;
+      if (staticDirective !== undefined) {
+        if (isTermination(staticDirective)) break;
+        if (isExplicitTarget(staticDirective)) {
+          nextTargetName = staticDirective;
+          continue;
+        }
+      }
+
+      continue;
+    }
+
+    if (activeRecovery) {
+      activeRecovery = undefined;
+    }
+
     const shouldRun = await checkTaskCondition(entry, state, effectiveCtx);
     if (!shouldRun) {
       effectiveCtx.taskStatusAccumulator?.taskSkipped(entry.key, "condition evaluated to false");
@@ -106,13 +155,14 @@ export async function executeDoTasks(
 
     const kind = eventTaskKind(entry);
     effectiveCtx.taskStatusAccumulator?.taskStarted(entry.key, kind);
+    const attemptNumber = effectiveCtx.taskStatusAccumulator?.getAttempt(entry.key) ?? 1;
     if (effectiveCtx.emitEvents) {
       await effectiveCtx.emitEvents([{
         type: "task_started",
         taskName: entry.key,
         occurredAt: new Date().toISOString(),
         taskKind: kind,
-        attemptNumber: 1,
+        attemptNumber,
       }]);
     }
 
@@ -120,10 +170,25 @@ export async function executeDoTasks(
     let taskOutput: unknown;
     try {
       const effectiveInput = await resolveTaskInput(entry, input, state, effectiveCtx);
+      effectiveCtx.taskStatusAccumulator?.taskStartedWithInput(entry.key, kind, truncatePayload(effectiveInput));
       taskOutput = await runSingleTask(entry, effectiveInput, state, doc, effectiveCtx);
     } catch (taskErr) {
-      const errorMsg = taskErr instanceof Error ? taskErr.message : String(taskErr);
-      effectiveCtx.taskStatusAccumulator?.taskFailed(entry.key, errorMsg);
+      const taskDurationMs = Date.now() - taskStartMs;
+      const errorMsg = extractRootErrorMessage(taskErr);
+      const structuredError = extractStructuredError(taskErr);
+      effectiveCtx.taskStatusAccumulator?.taskFailed(
+        entry.key,
+        errorMsg,
+        structuredError ?? undefined,
+        taskDurationMs,
+      );
+      const willRetry = effectiveCtx.retryContext != null
+        && attemptNumber < effectiveCtx.retryContext.maxAttempts;
+      if (kind === "call:agent" && taskErr instanceof AgentCallError && taskErr.childExecutionId) {
+        effectiveCtx.taskStatusAccumulator?.setTaskMetadata(entry.key, {
+          agent_execution_id: taskErr.childExecutionId,
+        });
+      }
       if (effectiveCtx.emitEvents) {
         await effectiveCtx.emitEvents([{
           type: "task_failed",
@@ -131,26 +196,65 @@ export async function executeDoTasks(
           occurredAt: new Date().toISOString(),
           taskKind: kind,
           error: errorMsg,
-          attemptNumber: 1,
-          willRetry: false,
-          durationMs: Date.now() - taskStartMs,
+          attemptNumber,
+          willRetry,
+          durationMs: taskDurationMs,
         }]);
       }
       throw taskErr;
     }
 
     const taskDurationMs = Date.now() - taskStartMs;
-    effectiveCtx.taskStatusAccumulator?.taskCompleted(entry.key, taskDurationMs);
+
+    // T07: Promote large outputs to artifact store before truncation.
+    // If promote is unavailable or the output is small, this is a no-op.
+    let promotedOutput = taskOutput;
+    let promotionArtifactIds: string[] = [];
+    const promotionEvents: Array<{ type: "artifact_created"; artifactId: string; displayName: string; contentType: string; sizeBytes: number; occurredAt: string }> = [];
+    if (effectiveCtx.promoteTaskOutput) {
+      try {
+        const promotion = await effectiveCtx.promoteTaskOutput(
+          taskOutput,
+          state.env?.__stigmer_execution_id as string ?? "",
+          entry.key,
+        );
+        promotedOutput = promotion.output;
+        promotionArtifactIds = promotion.artifactIds;
+        promotionEvents.push(...promotion.artifactCreatedEvents);
+      } catch {
+        // Promotion is best-effort; fall through with original output.
+      }
+    }
+
+    const costInfo = extractCostFromOutput(taskOutput);
+    effectiveCtx.taskStatusAccumulator?.taskCompletedWithResult(
+      entry.key, taskDurationMs, truncatePayload(promotedOutput), costInfo,
+    );
     if (effectiveCtx.emitEvents) {
-      await effectiveCtx.emitEvents([{
+      const events: Parameters<typeof effectiveCtx.emitEvents>[0] = [{
         type: "task_completed",
         taskName: entry.key,
         occurredAt: new Date().toISOString(),
         taskKind: kind,
         durationMs: taskDurationMs,
-        costMicros: 0,
-        tokensUsed: 0,
-      }]);
+        costMicros: costInfo.costMicros,
+        tokensUsed: costInfo.inputTokens + costInfo.outputTokens,
+      }];
+      for (const evt of promotionEvents) {
+        events.push(evt as unknown as (typeof events)[number]);
+      }
+      await effectiveCtx.emitEvents(events);
+    }
+
+    if (kind === "call:agent" && taskOutput && typeof taskOutput === "object") {
+      const agentResult = taskOutput as Record<string, unknown>;
+      const meta: Record<string, unknown> = { token_attribution: "total_only" };
+      if (agentResult.agent_execution_id) meta.agent_execution_id = agentResult.agent_execution_id;
+      if (agentResult.usage_summary && typeof agentResult.usage_summary === "object") {
+        const usage = agentResult.usage_summary as Record<string, unknown>;
+        if (usage.tool_call_count) meta.tool_call_count = usage.tool_call_count;
+      }
+      effectiveCtx.taskStatusAccumulator?.setTaskMetadata(entry.key, meta);
     }
 
     await processTaskOutput(entry, taskOutput, state, effectiveCtx);

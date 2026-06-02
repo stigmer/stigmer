@@ -33,6 +33,8 @@ public interface CostStampOrBuilder extends
   /**
    * <pre>
    * Raw provider cost computed server-side from pricing registry.
+   * For cursor-harness calls this includes the Cursor Token Rate fee
+   * (see cursor_platform_fee_micros for the explicit sub-component).
    * </pre>
    *
    * <code>int64 provider_cost_micros = 2 [json_name = "providerCostMicros"];</code>
@@ -95,4 +97,16 @@ public interface CostStampOrBuilder extends
    * <code>.ai.stigmer.agentic.agentexecution.v1.PricingSnapshot pricing = 5 [json_name = "pricing"];</code>
    */
   ai.stigmer.agentic.agentexecution.v1.PricingSnapshotOrBuilder getPricingOrBuilder();
+
+  /**
+   * <pre>
+   * Cursor Token Rate fee charged by Cursor on top of model API pricing,
+   * already included in provider_cost_micros. Surfaced explicitly for audit
+   * and per-call transparency. Zero for native harness and exempt cursor models.
+   * </pre>
+   *
+   * <code>int64 cursor_platform_fee_micros = 6 [json_name = "cursorPlatformFeeMicros"];</code>
+   * @return The cursorPlatformFeeMicros.
+   */
+  long getCursorPlatformFeeMicros();
 }

@@ -48,3 +48,5 @@ export {
   resolveSystemEnvVarValues,
   resolveDeclaredSystemEnvVars,
 } from "./systemEnvVars";
+export { EnvironmentPicker } from "./EnvironmentPicker";
+export type { EnvironmentPickerProps } from "./EnvironmentPicker";

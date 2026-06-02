@@ -116,6 +116,67 @@ func (LedgerEntryType) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_billing_v1_enum_proto_rawDescGZIP(), []int{0}
 }
 
+// LedgerView selects which slice of the credit ledger a query returns.
+//
+// The classification of which entry types are customer-facing money events
+// versus internal accounting mechanics is a domain concern owned by the
+// server. Clients express intent via this view; the server resolves it to
+// the concrete set of LedgerEntryType values. This keeps every surface
+// (web, desktop, CLI, SDK) consistent and ensures a newly added entry type
+// is classified in exactly one place.
+type LedgerView int32
+
+const (
+	// Default. Returns the full ledger across all entry types (back-compat
+	// for existing and administrative callers).
+	LedgerView_ledger_view_unspecified LedgerView = 0
+	// Customer-facing account statement: funding and money-movement events
+	// only (purchases, auto-recharge, promotional credits, refunds, admin
+	// adjustments, expirations, and disputes). Excludes routine internal
+	// mechanics — per-call usage debits and execution reservation
+	// holds/releases — which are surfaced as consumption analytics elsewhere.
+	LedgerView_ledger_view_statement LedgerView = 1
+)
+
+// Enum value maps for LedgerView.
+var (
+	LedgerView_name = map[int32]string{
+		0: "ledger_view_unspecified",
+		1: "ledger_view_statement",
+	}
+	LedgerView_value = map[string]int32{
+		"ledger_view_unspecified": 0,
+		"ledger_view_statement":   1,
+	}
+)
+
+func (x LedgerView) Enum() *LedgerView {
+	p := new(LedgerView)
+	*p = x
+	return p
+}
+
+func (x LedgerView) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (LedgerView) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_billing_v1_enum_proto_enumTypes[1].Descriptor()
+}
+
+func (LedgerView) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_billing_v1_enum_proto_enumTypes[1]
+}
+
+func (x LedgerView) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use LedgerView.Descriptor instead.
+func (LedgerView) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_billing_v1_enum_proto_rawDescGZIP(), []int{1}
+}
+
 // CreditGrantKind classifies how credits were acquired.
 //
 // Determines burn order (promotional consumed first) and expiry rules.
@@ -158,11 +219,11 @@ func (x CreditGrantKind) String() string {
 }
 
 func (CreditGrantKind) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_billing_v1_enum_proto_enumTypes[1].Descriptor()
+	return file_ai_stigmer_billing_v1_enum_proto_enumTypes[2].Descriptor()
 }
 
 func (CreditGrantKind) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_billing_v1_enum_proto_enumTypes[1]
+	return &file_ai_stigmer_billing_v1_enum_proto_enumTypes[2]
 }
 
 func (x CreditGrantKind) Number() protoreflect.EnumNumber {
@@ -171,7 +232,7 @@ func (x CreditGrantKind) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use CreditGrantKind.Descriptor instead.
 func (CreditGrantKind) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_billing_v1_enum_proto_rawDescGZIP(), []int{1}
+	return file_ai_stigmer_billing_v1_enum_proto_rawDescGZIP(), []int{2}
 }
 
 // BillingAccountStatus tracks the lifecycle state of an org's billing account.
@@ -214,11 +275,11 @@ func (x BillingAccountStatus) String() string {
 }
 
 func (BillingAccountStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_billing_v1_enum_proto_enumTypes[2].Descriptor()
+	return file_ai_stigmer_billing_v1_enum_proto_enumTypes[3].Descriptor()
 }
 
 func (BillingAccountStatus) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_billing_v1_enum_proto_enumTypes[2]
+	return &file_ai_stigmer_billing_v1_enum_proto_enumTypes[3]
 }
 
 func (x BillingAccountStatus) Number() protoreflect.EnumNumber {
@@ -227,7 +288,7 @@ func (x BillingAccountStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use BillingAccountStatus.Descriptor instead.
 func (BillingAccountStatus) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_billing_v1_enum_proto_rawDescGZIP(), []int{2}
+	return file_ai_stigmer_billing_v1_enum_proto_rawDescGZIP(), []int{3}
 }
 
 // ReservationStatus tracks the lifecycle of an execution credit reservation.
@@ -274,11 +335,11 @@ func (x ReservationStatus) String() string {
 }
 
 func (ReservationStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_billing_v1_enum_proto_enumTypes[3].Descriptor()
+	return file_ai_stigmer_billing_v1_enum_proto_enumTypes[4].Descriptor()
 }
 
 func (ReservationStatus) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_billing_v1_enum_proto_enumTypes[3]
+	return &file_ai_stigmer_billing_v1_enum_proto_enumTypes[4]
 }
 
 func (x ReservationStatus) Number() protoreflect.EnumNumber {
@@ -287,7 +348,7 @@ func (x ReservationStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ReservationStatus.Descriptor instead.
 func (ReservationStatus) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_billing_v1_enum_proto_rawDescGZIP(), []int{3}
+	return file_ai_stigmer_billing_v1_enum_proto_rawDescGZIP(), []int{4}
 }
 
 // ExecutionBillingSignal is returned after each usage debit to direct
@@ -331,11 +392,11 @@ func (x ExecutionBillingSignal) String() string {
 }
 
 func (ExecutionBillingSignal) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_billing_v1_enum_proto_enumTypes[4].Descriptor()
+	return file_ai_stigmer_billing_v1_enum_proto_enumTypes[5].Descriptor()
 }
 
 func (ExecutionBillingSignal) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_billing_v1_enum_proto_enumTypes[4]
+	return &file_ai_stigmer_billing_v1_enum_proto_enumTypes[5]
 }
 
 func (x ExecutionBillingSignal) Number() protoreflect.EnumNumber {
@@ -344,7 +405,7 @@ func (x ExecutionBillingSignal) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ExecutionBillingSignal.Descriptor instead.
 func (ExecutionBillingSignal) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_billing_v1_enum_proto_rawDescGZIP(), []int{4}
+	return file_ai_stigmer_billing_v1_enum_proto_rawDescGZIP(), []int{5}
 }
 
 // CreditPurchaseStatus tracks the lifecycle of a credit pack purchase.
@@ -395,11 +456,11 @@ func (x CreditPurchaseStatus) String() string {
 }
 
 func (CreditPurchaseStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_billing_v1_enum_proto_enumTypes[5].Descriptor()
+	return file_ai_stigmer_billing_v1_enum_proto_enumTypes[6].Descriptor()
 }
 
 func (CreditPurchaseStatus) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_billing_v1_enum_proto_enumTypes[5]
+	return &file_ai_stigmer_billing_v1_enum_proto_enumTypes[6]
 }
 
 func (x CreditPurchaseStatus) Number() protoreflect.EnumNumber {
@@ -408,7 +469,7 @@ func (x CreditPurchaseStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use CreditPurchaseStatus.Descriptor instead.
 func (CreditPurchaseStatus) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_billing_v1_enum_proto_rawDescGZIP(), []int{5}
+	return file_ai_stigmer_billing_v1_enum_proto_rawDescGZIP(), []int{6}
 }
 
 // AutoRechargeEventStatus tracks the lifecycle of an automatic recharge attempt.
@@ -457,11 +518,11 @@ func (x AutoRechargeEventStatus) String() string {
 }
 
 func (AutoRechargeEventStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_billing_v1_enum_proto_enumTypes[6].Descriptor()
+	return file_ai_stigmer_billing_v1_enum_proto_enumTypes[7].Descriptor()
 }
 
 func (AutoRechargeEventStatus) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_billing_v1_enum_proto_enumTypes[6]
+	return &file_ai_stigmer_billing_v1_enum_proto_enumTypes[7]
 }
 
 func (x AutoRechargeEventStatus) Number() protoreflect.EnumNumber {
@@ -470,7 +531,7 @@ func (x AutoRechargeEventStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use AutoRechargeEventStatus.Descriptor instead.
 func (AutoRechargeEventStatus) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_billing_v1_enum_proto_rawDescGZIP(), []int{6}
+	return file_ai_stigmer_billing_v1_enum_proto_rawDescGZIP(), []int{7}
 }
 
 var File_ai_stigmer_billing_v1_enum_proto protoreflect.FileDescriptor
@@ -492,7 +553,11 @@ const file_ai_stigmer_billing_v1_enum_proto_rawDesc = "" +
 	"\x0fdispute_release\x10\n" +
 	"\x12\x10\n" +
 	"\fexpiry_debit\x10\v\x12\x18\n" +
-	"\x14auto_recharge_credit\x10\f*d\n" +
+	"\x14auto_recharge_credit\x10\f*D\n" +
+	"\n" +
+	"LedgerView\x12\x1b\n" +
+	"\x17ledger_view_unspecified\x10\x00\x12\x19\n" +
+	"\x15ledger_view_statement\x10\x01*d\n" +
 	"\x0fCreditGrantKind\x12!\n" +
 	"\x1dcredit_grant_kind_unspecified\x10\x00\x12\r\n" +
 	"\tpurchased\x10\x01\x12\x0f\n" +
@@ -540,15 +605,16 @@ func file_ai_stigmer_billing_v1_enum_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_billing_v1_enum_proto_rawDescData
 }
 
-var file_ai_stigmer_billing_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 7)
+var file_ai_stigmer_billing_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 8)
 var file_ai_stigmer_billing_v1_enum_proto_goTypes = []any{
 	(LedgerEntryType)(0),         // 0: ai.stigmer.billing.v1.LedgerEntryType
-	(CreditGrantKind)(0),         // 1: ai.stigmer.billing.v1.CreditGrantKind
-	(BillingAccountStatus)(0),    // 2: ai.stigmer.billing.v1.BillingAccountStatus
-	(ReservationStatus)(0),       // 3: ai.stigmer.billing.v1.ReservationStatus
-	(ExecutionBillingSignal)(0),  // 4: ai.stigmer.billing.v1.ExecutionBillingSignal
-	(CreditPurchaseStatus)(0),    // 5: ai.stigmer.billing.v1.CreditPurchaseStatus
-	(AutoRechargeEventStatus)(0), // 6: ai.stigmer.billing.v1.AutoRechargeEventStatus
+	(LedgerView)(0),              // 1: ai.stigmer.billing.v1.LedgerView
+	(CreditGrantKind)(0),         // 2: ai.stigmer.billing.v1.CreditGrantKind
+	(BillingAccountStatus)(0),    // 3: ai.stigmer.billing.v1.BillingAccountStatus
+	(ReservationStatus)(0),       // 4: ai.stigmer.billing.v1.ReservationStatus
+	(ExecutionBillingSignal)(0),  // 5: ai.stigmer.billing.v1.ExecutionBillingSignal
+	(CreditPurchaseStatus)(0),    // 6: ai.stigmer.billing.v1.CreditPurchaseStatus
+	(AutoRechargeEventStatus)(0), // 7: ai.stigmer.billing.v1.AutoRechargeEventStatus
 }
 var file_ai_stigmer_billing_v1_enum_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -568,7 +634,7 @@ func file_ai_stigmer_billing_v1_enum_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_billing_v1_enum_proto_rawDesc), len(file_ai_stigmer_billing_v1_enum_proto_rawDesc)),
-			NumEnums:      7,
+			NumEnums:      8,
 			NumMessages:   0,
 			NumExtensions: 0,
 			NumServices:   0,

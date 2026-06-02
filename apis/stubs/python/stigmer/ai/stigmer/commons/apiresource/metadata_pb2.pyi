@@ -45,11 +45,13 @@ class ApiResourceMetadata(_message.Message):
     def __init__(self, name: _Optional[str] = ..., slug: _Optional[str] = ..., id: _Optional[str] = ..., org: _Optional[str] = ..., visibility: _Optional[_Union[_enum_pb2.ApiResourceVisibility, str]] = ..., labels: _Optional[_Mapping[str, str]] = ..., annotations: _Optional[_Mapping[str, str]] = ..., tags: _Optional[_Iterable[str]] = ..., version: _Optional[_Union[ApiResourceMetadataVersion, _Mapping]] = ...) -> None: ...
 
 class ApiResourceMetadataVersion(_message.Message):
-    __slots__ = ("id", "message", "previous_version_id")
+    __slots__ = ("id", "message", "previous_version_id", "tag")
     ID_FIELD_NUMBER: _ClassVar[int]
     MESSAGE_FIELD_NUMBER: _ClassVar[int]
     PREVIOUS_VERSION_ID_FIELD_NUMBER: _ClassVar[int]
+    TAG_FIELD_NUMBER: _ClassVar[int]
     id: str
     message: str
     previous_version_id: str
-    def __init__(self, id: _Optional[str] = ..., message: _Optional[str] = ..., previous_version_id: _Optional[str] = ...) -> None: ...
+    tag: str
+    def __init__(self, id: _Optional[str] = ..., message: _Optional[str] = ..., previous_version_id: _Optional[str] = ..., tag: _Optional[str] = ...) -> None: ...

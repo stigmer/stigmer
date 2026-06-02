@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -32,6 +33,12 @@ type UnifiedRunnerConfig struct {
 
 	// StigmerToken is an auth token passed to the runner as STIGMER_TOKEN.
 	StigmerToken string
+
+	// LocalArtifactDir, when non-empty, sets ARTIFACT_STORAGE_TYPE=local
+	// with LOCAL_ARTIFACT_PATH pointing to this directory. Use this in
+	// offline mode where ProxyEndpoint is a MockLLMProxy that does not
+	// handle artifact presign endpoints.
+	LocalArtifactDir string
 }
 
 // --- IPC Protocol Types (mirrors main.ts) ---
@@ -249,7 +256,7 @@ func (m *UnifiedRunnerManager) RemoveWorkflowExecution(ctx context.Context, exec
 		return fmt.Errorf("send removeWorkflowExecution: %w", err)
 	}
 
-	resp, err := m.readResponse(ctx, 10*time.Second)
+	resp, err := m.readResponse(ctx, 60*time.Second)
 	if err != nil {
 		return fmt.Errorf("removeWorkflowExecution response: %w", err)
 	}
@@ -548,14 +555,28 @@ func buildUnifiedRunnerEnv(cfg UnifiedRunnerConfig, mode, taskQueue string) []st
 		env = append(env,
 			fmt.Sprintf("STIGMER_PROXY_ENDPOINT=%s", cfg.ProxyEndpoint),
 			fmt.Sprintf("STIGMER_TOKEN=%s", runnerJWT),
-			"ARTIFACT_STORAGE_TYPE=proxy",
 		)
+		if strings.HasPrefix(cfg.ProxyEndpoint, "https://") {
+			env = append(env, "NODE_TLS_REJECT_UNAUTHORIZED=0")
+		}
+		if cfg.LocalArtifactDir != "" {
+			env = append(env,
+				"ARTIFACT_STORAGE_TYPE=local",
+				fmt.Sprintf("LOCAL_ARTIFACT_PATH=%s", cfg.LocalArtifactDir),
+			)
+		} else {
+			env = append(env, "ARTIFACT_STORAGE_TYPE=proxy")
+		}
 	} else if cfg.CursorAPIKey != "" {
 		env = append(env, fmt.Sprintf("CURSOR_API_KEY=%s", cfg.CursorAPIKey))
 	}
 
 	if cfg.OTLPEndpoint != "" {
 		env = append(env, fmt.Sprintf("OTEL_EXPORTER_OTLP_ENDPOINT=%s", cfg.OTLPEndpoint))
+	}
+
+	if os.Getenv("ANTHROPIC_API_KEY") == "" && os.Getenv("CURSOR_API_KEY") == "" {
+		env = append(env, "STIGMER_LLM_REQUEST_TIMEOUT_MS=5000")
 	}
 
 	return env

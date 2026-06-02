@@ -4,21 +4,30 @@ import { cn } from "@stigmer/theme";
 import {
   WorkflowEditorView,
   WorkflowArchitectDialog,
+  WorkflowTemplateGallery,
   STARTER_WORKFLOW_YAML,
+  WORKFLOW_TEMPLATES,
   useActiveOrgSlug,
   useBreadcrumbOverride,
+  useElkLayoutEngine,
   toast,
+  type WorkflowTemplate,
 } from "@stigmer/react";
 import { useRequestFullViewport } from "../library/full-viewport-layout";
 
-type PagePhase = "picking" | "editor" | "generating";
+const elkWorkerFactory = () =>
+  new Worker(new URL("elkjs/lib/elk-worker.min.js", import.meta.url));
+
+type PagePhase = "picking" | "templates" | "editor" | "generating";
 
 export default function WorkflowNewPage() {
   const org = useActiveOrgSlug();
   const navigate = useNavigate();
+  const elkEngine = useElkLayoutEngine({ workerFactory: elkWorkerFactory });
   const { setLabel } = useBreadcrumbOverride();
 
   const [phase, setPhase] = useState<PagePhase>("picking");
+  const [initialYaml, setInitialYaml] = useState(STARTER_WORKFLOW_YAML);
 
   useRequestFullViewport(phase === "editor");
 
@@ -35,6 +44,14 @@ export default function WorkflowNewPage() {
   const handleSaveError = useCallback((error: Error) => {
     toast.error(error.message);
   }, []);
+
+  const handleTemplateSelect = useCallback(
+    (template: WorkflowTemplate) => {
+      setInitialYaml(template.data.yaml ?? STARTER_WORKFLOW_YAML);
+      setPhase("editor");
+    },
+    [],
+  );
 
   const handleGenerateSuccess = useCallback(
     (genOrg: string, slug: string) => {
@@ -68,14 +85,44 @@ export default function WorkflowNewPage() {
         </div>
         <div className="min-h-0 flex-1">
           <WorkflowEditorView
-            initialYaml={STARTER_WORKFLOW_YAML}
+            initialYaml={initialYaml}
             org={org}
             defaultMode="visual"
+            layoutEngine={elkEngine}
             onSaveSuccess={handleSaveSuccess}
             onSaveError={handleSaveError}
             className="h-full"
           />
         </div>
+      </div>
+    );
+  }
+
+  if (phase === "templates") {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setPhase("picking")}
+            aria-label="Back to creation options"
+            className={cn(
+              "inline-flex items-center justify-center rounded-md p-1.5",
+              "text-muted-foreground transition-colors",
+              "hover:bg-accent hover:text-accent-foreground",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            )}
+          >
+            <BackArrowIcon />
+          </button>
+          <h2 className="text-base font-semibold text-foreground">
+            Choose a template
+          </h2>
+        </div>
+        <WorkflowTemplateGallery
+          templates={WORKFLOW_TEMPLATES}
+          onSelect={handleTemplateSelect}
+        />
       </div>
     );
   }
@@ -92,12 +139,22 @@ export default function WorkflowNewPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <OptionCard
+            title="Start from template"
+            description="Browse pre-built workflow patterns and customize them."
+            icon={<TemplateIcon />}
+            onClick={() => setPhase("templates")}
+            badge={`${WORKFLOW_TEMPLATES.length} available`}
+          />
           <OptionCard
             title="Visual Editor"
             description="Design your workflow visually with drag-and-drop tasks and connections."
             icon={<CanvasIcon />}
-            onClick={() => setPhase("editor")}
+            onClick={() => {
+              setInitialYaml(STARTER_WORKFLOW_YAML);
+              setPhase("editor");
+            }}
           />
           <OptionCard
             title="Generate with AI"
@@ -126,11 +183,13 @@ function OptionCard({
   description,
   icon,
   onClick,
+  badge,
 }: {
   readonly title: string;
   readonly description: string;
   readonly icon: React.ReactNode;
   readonly onClick: () => void;
+  readonly badge?: string;
 }) {
   return (
     <button
@@ -149,11 +208,16 @@ function OptionCard({
         <span className="text-sm font-medium text-foreground">{title}</span>
         <span className="text-xs text-muted-foreground">{description}</span>
       </div>
+      {badge && (
+        <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+          {badge}
+        </span>
+      )}
     </button>
   );
 }
 
-function CanvasIcon() {
+function TemplateIcon() {
   return (
     <svg
       className="size-8"
@@ -170,6 +234,28 @@ function CanvasIcon() {
       <rect width="7" height="7" x="14" y="3" rx="1" />
       <rect width="7" height="7" x="14" y="14" rx="1" />
       <rect width="7" height="7" x="3" y="14" rx="1" />
+    </svg>
+  );
+}
+
+function CanvasIcon() {
+  return (
+    <svg
+      className="size-8"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+      <polyline points="14 2 14 8 20 8" />
+      <line x1="16" x2="8" y1="13" y2="13" />
+      <line x1="16" x2="8" y1="17" y2="17" />
+      <line x1="10" x2="8" y1="9" y2="9" />
     </svg>
   );
 }

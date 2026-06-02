@@ -225,7 +225,7 @@ func TestWorkflowEval_PassFail(t *testing.T) {
 	require.NoError(t, err)
 
 	evalConfig, err := structpb.NewStruct(map[string]any{
-		"model":        "claude-sonnet-4-20250514",
+		"model":        "claude-sonnet-4.6",
 		"subject":      "${ $context.setSummary.summary }",
 		"rubric":       "Is this statement factually accurate? It should be a correct astronomical fact.",
 		"scoring_mode": "EVAL_PASS_FAIL",
@@ -309,7 +309,7 @@ func TestWorkflowEval_NumericScore(t *testing.T) {
 	require.NoError(t, err)
 
 	evalConfig, err := structpb.NewStruct(map[string]any{
-		"model":        "claude-sonnet-4-20250514",
+		"model":        "claude-sonnet-4.6",
 		"subject":      "${ $context.setSubject.text }",
 		"rubric":       "Rate the clarity and accuracy of this definition on a scale from 0.0 to 1.0.",
 		"scoring_mode": "EVAL_NUMERIC_SCORE",
@@ -388,7 +388,7 @@ func TestWorkflowEval_WarnPolicy(t *testing.T) {
 	require.NoError(t, err)
 
 	evalConfig, err := structpb.NewStruct(map[string]any{
-		"model":        "claude-sonnet-4-20250514",
+		"model":        "claude-sonnet-4.6",
 		"subject":      "${ $context.setSubject.text }",
 		"rubric":       "Is this a well-formed, grammatically correct English sentence with clear meaning?",
 		"scoring_mode": "EVAL_NUMERIC_SCORE",

@@ -149,7 +149,7 @@ public enum AutoRechargeEventStatus
   }
   public static com.google.protobuf.Descriptors.EnumDescriptor
       getDescriptor() {
-    return ai.stigmer.billing.v1.EnumProto.getDescriptor().getEnumType(6);
+    return ai.stigmer.billing.v1.EnumProto.getDescriptor().getEnumType(7);
   }
 
   private static final AutoRechargeEventStatus[] VALUES = values();

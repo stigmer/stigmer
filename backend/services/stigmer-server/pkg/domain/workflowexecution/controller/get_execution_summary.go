@@ -12,10 +12,12 @@ import (
 )
 
 // GetExecutionSummary returns aggregated execution statistics for the requested
-// organization and time window. For OSS (single-user local), org filtering is
-// a no-op — all executions are aggregated.
+// organization and time window, optionally scoped to a single workflow.
+// For OSS (single-user local), org filtering is a no-op — all executions are
+// aggregated.
 //
 // @since T14 (Dashboard Integration)
+// @since T12 (Overview Page Redesign) — added workflow_id filter, total_count, success_rate
 func (c *WorkflowExecutionController) GetExecutionSummary(
 	ctx context.Context,
 	req *workflowexecutionv1.GetExecutionSummaryRequest,
@@ -26,9 +28,13 @@ func (c *WorkflowExecutionController) GetExecutionSummary(
 	}
 
 	cutoff := resolveTimeCutoff(req.GetTimeWindow())
+	workflowFilter := req.GetWorkflowId()
 
 	phaseCounts := make(map[int32]int32)
 	var activeCount int32
+	var totalCount int32
+	var completedCount int32
+	var failedCount int32
 	var completedDurations []time.Duration
 	failureCounts := make(map[string]int32)    // workflow slug → failure count
 	workflowNames := make(map[string]string)   // workflow slug → name
@@ -50,11 +56,25 @@ func (c *WorkflowExecutionController) GetExecutionSummary(
 			continue
 		}
 
+		if workflowFilter != "" &&
+			exec.GetSpec().GetWorkflowId() != workflowFilter &&
+			exec.GetSpec().GetWorkflowInstanceId() != workflowFilter {
+			continue
+		}
+
 		phase := exec.GetStatus().GetPhase()
 		phaseCounts[int32(phase)]++
+		totalCount++
 
 		if isActivePhase(phase) {
 			activeCount++
+		}
+
+		if phase == workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED {
+			completedCount++
+		}
+		if phase == workflowexecutionv1.ExecutionPhase_EXECUTION_FAILED {
+			failedCount++
 		}
 
 		slug := extractWorkflowSlug(exec)
@@ -84,6 +104,11 @@ func (c *WorkflowExecutionController) GetExecutionSummary(
 		}
 	}
 
+	successRate := float64(-1)
+	if terminal := completedCount + failedCount; terminal > 0 {
+		successRate = float64(completedCount) / float64(terminal)
+	}
+
 	summary := &workflowexecutionv1.ExecutionSummary{
 		ActiveCount: activeCount,
 		PhaseCounts: phaseCounts,
@@ -92,6 +117,8 @@ func (c *WorkflowExecutionController) GetExecutionSummary(
 			TotalInputTokens:  totalInputTokens,
 			TotalOutputTokens: totalOutputTokens,
 		},
+		TotalCount:  totalCount,
+		SuccessRate: successRate,
 	}
 
 	if len(completedDurations) > 0 {

@@ -8,6 +8,8 @@ import type { WorkflowSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_workflow_v1_api } from "./api_pb.js";
 import type { WorkflowIdSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_workflow_v1_io } from "./io_pb.js";
+import type { GetWorkflowVersionInputSchema, ListWorkflowVersionsInputSchema, ListWorkflowVersionsResponseSchema, WorkflowVersionEntrySchema } from "./version_pb.js";
+import { file_ai_stigmer_agentic_workflow_v1_version } from "./version_pb.js";
 import type { ApiResourceReferenceSchema } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb.js";
@@ -17,7 +19,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/workflow/v1/query.proto.
  */
 export const file_ai_stigmer_agentic_workflow_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvcXVlcnkucHJvdG8SHmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MTKkAgoXV29ya2Zsb3dRdWVyeUNvbnRyb2xsZXISigEKA2dldBIqLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvd0lkGiguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93Ii3CuBgpCAEQMiIFdmFsdWUqHHVuYXV0aG9yaXplZCB0byBnZXQgd29ya2Zsb3cSdgoOZ2V0QnlSZWZlcmVuY2USNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2UaKC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3ciBNC4GAEaBKD/KzJiBnByb3RvMw", [file_ai_stigmer_agentic_workflow_v1_api, file_ai_stigmer_agentic_workflow_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvcXVlcnkucHJvdG8SHmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MTLvBAoXV29ya2Zsb3dRdWVyeUNvbnRyb2xsZXISigEKA2dldBIqLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvd0lkGiguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93Ii3CuBgpCAEQMiIFdmFsdWUqHHVuYXV0aG9yaXplZCB0byBnZXQgd29ya2Zsb3cSdgoOZ2V0QnlSZWZlcmVuY2USNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2UaKC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3ciBNC4GAESjQEKDGxpc3RWZXJzaW9ucxI5LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5MaXN0V29ya2Zsb3dWZXJzaW9uc0lucHV0GjwuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLkxpc3RXb3JrZmxvd1ZlcnNpb25zUmVzcG9uc2UiBNC4GAESuAEKCmdldFZlcnNpb24SNy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuR2V0V29ya2Zsb3dWZXJzaW9uSW5wdXQaNC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3dWZXJzaW9uRW50cnkiO8K4GDcIARAyIgt3b3JrZmxvd19pZCokdW5hdXRob3JpemVkIHRvIGdldCB3b3JrZmxvdyB2ZXJzaW9uGgSg/ysyYgZwcm90bzM", [file_ai_stigmer_agentic_workflow_v1_api, file_ai_stigmer_agentic_workflow_v1_io, file_ai_stigmer_agentic_workflow_v1_version, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * WorkflowQueryController handles read operations for workflows.
@@ -36,8 +38,12 @@ export const WorkflowQueryController: GenService<{
     output: typeof WorkflowSchema;
   },
   /**
-   * Get a workflow by its organization-scoped reference (org/slug).
-   * Resolves a human-readable reference like "stigmer/deploy" to the full Workflow resource.
+   * Get a workflow by its organization-scoped reference (org/slug) with version support.
+   *
+   * Version resolution (via ApiResourceReference.version field):
+   * - Empty/"latest" → Returns the current version
+   * - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
+   * - SHA256 hash (64 hex chars) → Returns the exact immutable version
    *
    * @internal
    * Custom authorization in handler — checks both direct resource access
@@ -49,6 +55,44 @@ export const WorkflowQueryController: GenService<{
     methodKind: "unary";
     input: typeof ApiResourceReferenceSchema;
     output: typeof WorkflowSchema;
+  },
+  /**
+   * List version history for a workflow.
+   *
+   * Returns all historical versions ordered by applied_at (newest first).
+   * Each entry includes the version hash, applied timestamp, actor, tag,
+   * git provenance, and the validated CNCF YAML for historical access.
+   *
+   * @internal
+   * Authorization is handled in the handler after resolving the workflow.
+   * (Input uses org+slug, not workflow ID, so proto-level auth cannot work)
+   *
+   * @since Workflow Versioning
+   *
+   * @generated from rpc ai.stigmer.agentic.workflow.v1.WorkflowQueryController.listVersions
+   */
+  listVersions: {
+    methodKind: "unary";
+    input: typeof ListWorkflowVersionsInputSchema;
+    output: typeof ListWorkflowVersionsResponseSchema;
+  },
+  /**
+   * Get a specific historical version of a workflow by its content hash.
+   *
+   * Used by the runner (to hydrate execution from a pinned version) and
+   * the execution viewer (to render the graph for historical executions).
+   *
+   * @internal
+   * Authorization uses can_view on the workflow resource.
+   *
+   * @since Workflow Versioning
+   *
+   * @generated from rpc ai.stigmer.agentic.workflow.v1.WorkflowQueryController.getVersion
+   */
+  getVersion: {
+    methodKind: "unary";
+    input: typeof GetWorkflowVersionInputSchema;
+    output: typeof WorkflowVersionEntrySchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ai_stigmer_agentic_workflow_v1_query, 0);

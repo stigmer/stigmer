@@ -5,12 +5,12 @@
  * Each call to {@link addTurn} sums token counts and computes a running
  * estimated cost from the cursor-runner's local pricing table.
  *
- * The snapshot is written to {@code AgentExecutionStatus.runner_usage}
+ * The snapshot is written to {@code AgentExecutionStatus.streaming_usage}
  * on every heartbeat, giving the UI real-time streaming visibility.
  *
- * Trust level: DISPLAY_ONLY. This data is runner-reported and must NOT
- * be used for billing. Billing-authoritative usage comes from the
- * server-side proxy or future Cursor Admin API reconciliation.
+ * This data is display-only. The authoritative billing source is the
+ * BiDi proxy (CursorBidiStreamHandler) which will record usage from the
+ * wire via ProxyUsageReporter once traffic routing (Task 5B) is complete.
  */
 
 import { getCursorModelPricing, computeTurnCost } from "./model-pricing.js";

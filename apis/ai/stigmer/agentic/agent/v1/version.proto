@@ -1,0 +1,120 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.agent.v1;
+
+import "ai/stigmer/agentic/agent/v1/spec.proto";
+import "ai/stigmer/commons/apiresource/status.proto";
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// AGENT VERSIONING — DESIGN ONLY (NOT YET IMPLEMENTED)
+//
+// This file defines the proto contract for Agent versioning, following the
+// identical pattern established by Workflow versioning and Skill versioning.
+//
+// Implementation phases:
+// 1. Workflow versioning ships first (validates the pattern)
+// 2. Agent versioning follows using the same infrastructure
+//
+// Key differences from Workflow versioning:
+// - Hash input: canonical protojson of AgentSpec (no Struct fields, so deterministic)
+// - No intermediate YAML: agents don't have a "generated artifact" like CNCF YAML,
+//   so the version stores the full AgentSpec proto snapshot directly
+// - Runner impact: agent hydration in execute-deep-agent/setup.ts resolves skills
+//   and MCP servers from the live agent spec — versioning pins this resolution
+//
+// Prerequisites before implementation:
+// - Mark agent kind_meta is_versioned: true in api_resource_kind.proto
+// - Add version_hash to AgentStatus
+// - Add agent_version_hash to AgentExecutionStatus (or resolved_context)
+// - Wire SaveAudit into agent create/update pipeline (Go + Java)
+// - Update agent runner to resolve versioned spec
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// AgentVersionEntry represents a single historical version of an agent.
+//
+// Each apply/update that changes the agent spec creates a new immutable
+// version entry. The version is identified by its content hash (SHA-256 of
+// the canonical protojson representation of AgentSpec).
+//
+// @internal
+// NOT YET IMPLEMENTED — design placeholder for the agent versioning phase.
+//
+// @since Agent Versioning (future)
+message AgentVersionEntry {
+  // SHA-256 hash of the canonical protojson of AgentSpec.
+  string version_hash = 1;
+
+  // When this version was created.
+  google.protobuf.Timestamp applied_at = 2;
+
+  // Who created this version.
+  ai.stigmer.commons.apiresource.ApiResourceAuditActor applied_by = 3;
+
+  // Tag assigned to this version.
+  string tag = 4;
+
+  // Whether this is the currently active version.
+  bool is_current = 5;
+
+  // Human-readable message describing what changed.
+  string message = 6;
+
+  // Full agent spec snapshot for this version.
+  // Unlike workflows (which store YAML), agents store the typed proto spec
+  // directly since AgentSpec has no Struct fields and is self-describing.
+  AgentSpec spec_snapshot = 7;
+
+  // Git provenance tracking.
+  GitProvenance git_provenance = 8;
+}
+
+// GitProvenance tracks the git origin of an agent version.
+//
+// @since Agent Versioning (future)
+message GitProvenance {
+  string remote_url = 1;
+  string ref = 2;
+  string commit = 3;
+  string subdir = 4;
+}
+
+// ListAgentVersionsInput requests the version history for an agent.
+//
+// @since Agent Versioning (future)
+message ListAgentVersionsInput {
+  string org = 1 [(buf.validate.field).required = true];
+  string slug = 2 [(buf.validate.field).required = true];
+  string page_token = 3;
+  int32 page_size = 4;
+}
+
+// ListAgentVersionsResponse contains a page of agent version history.
+//
+// @since Agent Versioning (future)
+message ListAgentVersionsResponse {
+  repeated AgentVersionEntry versions = 1;
+  string next_page_token = 2;
+  int32 total_count = 3;
+}
+
+// GetAgentVersionInput requests a specific historical version.
+//
+// @since Agent Versioning (future)
+message GetAgentVersionInput {
+  string agent_id = 1 [(buf.validate.field).required = true];
+  string version_hash = 2 [(buf.validate.field).string.pattern = "^[a-f0-9]{64}$"];
+}
+
+// TagAgentVersionInput assigns or moves a tag to a specific agent version.
+//
+// @since Agent Versioning (future)
+message TagAgentVersionInput {
+  string agent_id = 1 [(buf.validate.field).required = true];
+  string version_hash = 2 [(buf.validate.field).string.pattern = "^[a-f0-9]{64}$"];
+  string tag = 3 [(buf.validate.field).string = {
+    min_len: 1
+    pattern: "^[a-zA-Z0-9._-]+$"
+  }];
+}

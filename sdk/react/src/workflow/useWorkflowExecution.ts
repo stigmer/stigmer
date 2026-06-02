@@ -79,18 +79,20 @@ export function useWorkflowExecution(
 
   useEffect(() => {
     const phase = execution?.status?.phase;
+    const fetchedId = execution?.metadata?.id;
     if (
       adapter &&
       contextTarget === "local" &&
       executionId &&
       phase != null &&
       TERMINAL_EXECUTION_PHASES.has(phase) &&
+      fetchedId === executionId &&
       terminatedRef.current !== executionId
     ) {
       terminatedRef.current = executionId;
       adapter.onWorkflowExecutionTerminated(executionId).catch(() => {});
     }
-  }, [execution?.status?.phase, executionId, adapter, contextTarget]);
+  }, [execution?.status?.phase, execution?.metadata?.id, executionId, adapter, contextTarget]);
 
   useEffect(() => {
     terminatedRef.current = null;

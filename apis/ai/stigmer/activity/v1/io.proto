@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package ai.stigmer.activity.v1;
+
+import "google/protobuf/timestamp.proto";
+
+// RecentActivityEntry is a lightweight summary of either an agent session
+// or a workflow execution, used for the sidebar "recents" list.
+//
+// This is a projection — not the full resource. Clients that need the
+// complete resource should call the specific get() RPC for the resource kind.
+message RecentActivityEntry {
+  // Resource ID (session ID or workflow execution ID).
+  string id = 1;
+
+  // Discriminator: "session" or "workflow_execution".
+  string type = 2;
+
+  // Human-readable label for display.
+  // For sessions: the conversation subject.
+  // For workflow executions: the execution name.
+  string subject = 3;
+
+  // When this entry was last meaningfully updated.
+  // Used for interleaved sort (newest first).
+  google.protobuf.Timestamp updated_at = 4;
+
+  // Execution phase label for workflow executions (e.g., "completed", "failed").
+  // Empty for sessions.
+  string status = 5;
+}
+
+// ListRecentActivityRequest specifies parameters for the unified recents query.
+message ListRecentActivityRequest {
+  // Maximum entries to return. Defaults to 30.
+  int32 page_size = 1;
+
+  // Organization slug to scope the query.
+  //
+  // When provided, the handler attempts an org-scoped fast path: if the
+  // caller is a member of this organization, it queries MongoDB directly
+  // with `metadata.org = org` instead of enumerating per-resource FGA
+  // tuples. This turns an O(n) FGA reverse-index scan into a single
+  // membership check + indexed MongoDB query.
+  //
+  // When empty, falls back to per-resource FGA enumeration (slower but
+  // works regardless of org context).
+  string org = 2;
+}
+
+// ListRecentActivityResponse contains merged, sorted recent activity.
+message ListRecentActivityResponse {
+  // Entries sorted by updated_at descending, interleaving sessions
+  // and workflow executions.
+  repeated RecentActivityEntry entries = 1;
+}

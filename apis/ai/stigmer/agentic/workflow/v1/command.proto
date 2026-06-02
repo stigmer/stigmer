@@ -5,6 +5,7 @@ package ai.stigmer.agentic.workflow.v1;
 import "ai/stigmer/agentic/workflow/v1/api.proto";
 import "ai/stigmer/agentic/workflow/v1/io.proto";
 import "ai/stigmer/agentic/workflow/v1/serverless/validation.proto";
+import "ai/stigmer/agentic/workflow/v1/version.proto";
 import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
 import "ai/stigmer/commons/rpc/method_options.proto";
@@ -93,5 +94,24 @@ service WorkflowCommandController {
     option (ai.stigmer.commons.rpc.config).permission = can_create_workflow;
     option (ai.stigmer.commons.rpc.config).field_path = "metadata.org";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to validate workflow in this organization";
+  }
+
+  // Assign or move a tag to a specific workflow version.
+  //
+  // Tags are human-readable pointers to immutable versions. Calling this
+  // with an existing tag name moves it from the previous version to the
+  // specified version. Common tags: "stable", "production", "v2.0".
+  //
+  // @internal
+  // Authorization: Requires can_edit permission on the workflow resource.
+  // The handler validates that the version_hash exists in the workflow's
+  // audit history before assigning the tag.
+  //
+  // @since Workflow Versioning
+  rpc tagVersion(TagWorkflowVersionInput) returns (Workflow) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = workflow;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "workflow_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to tag workflow version";
   }
 }

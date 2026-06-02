@@ -15,6 +15,7 @@ import {
   extractWorkflowYaml,
   type ExtractedWorkflowYaml,
 } from "./extract-workflow-yaml";
+import { WORKFLOW_ARCHITECT_RESPONSE_SCHEMA } from "./architect-response-schema";
 
 /**
  * Lifecycle phases for the Workflow Architect generate flow.
@@ -170,16 +171,38 @@ export function useWorkflowArchitectFlow(
     if (isTerminal && !prevTerminalRef.current) {
       prevTerminalRef.current = true;
 
-      const result = extractWorkflowYaml(stream.execution);
-      if (result) {
-        setExtracted(result);
-        setPhase("complete");
+      // Primary: read from structured output (deterministic)
+      const structuredOutput = stream.execution?.status?.structuredOutput as
+        | Record<string, unknown>
+        | undefined;
+
+      if (structuredOutput) {
+        const action = structuredOutput.action as string | undefined;
+        const yaml = structuredOutput.yaml as string | undefined;
+        const explanation = structuredOutput.explanation as string | undefined;
+
+        if (action === "generated_yaml" && yaml) {
+          setExtracted({ yaml, explanation: explanation ?? "" });
+          setPhase("complete");
+        } else {
+          setPhase("extraction-failed");
+          setError(
+            explanation ?? "The agent did not produce a workflow definition.",
+          );
+        }
       } else {
-        setPhase("extraction-failed");
-        setError(
-          "The agent completed but did not produce a YAML workflow definition. " +
-            "Try again with a more specific prompt.",
-        );
+        // Fallback: regex extraction (backward compat / extraction failure)
+        const result = extractWorkflowYaml(stream.execution);
+        if (result) {
+          setExtracted(result);
+          setPhase("complete");
+        } else {
+          setPhase("extraction-failed");
+          setError(
+            "The agent completed but did not produce a YAML workflow definition. " +
+              "Try again with a more specific prompt.",
+          );
+        }
       }
     }
   }, [phase, stream.phase, stream.execution]);
@@ -221,6 +244,7 @@ export function useWorkflowArchitectFlow(
         org: orgRef.current,
         sessionId: newSessionId,
         message: trimmed,
+        structuredOutputSchema: WORKFLOW_ARCHITECT_RESPONSE_SCHEMA,
       });
       setExecutionId(newExecutionId);
       setPhase("streaming");

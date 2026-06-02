@@ -557,6 +557,38 @@ All visual properties flow through `--stgm-*` design tokens.
 ```
 
 
+### EnvironmentPicker
+
+Multi-select component for binding Environment resources to an instance.
+
+Displays available environments as a dropdown and shows selected environments
+as an ordered list with position numbers indicating merge priority.
+Later entries override earlier ones when keys conflict.
+
+Uses `useEnvironmentList(org)` for data. Arrow buttons provide accessible
+reordering without requiring drag-and-drop libraries.
+
+**Props** — `EnvironmentPickerProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    disabled: { type: "boolean", description: "Disable all interactions." },
+    onChange: { type: "(refs: ResourceRef[]) => void", description: "Called when the selection changes.", required: true },
+    org: { type: "string", description: "Organization slug to list environments from.", required: true },
+    value: { type: "readonly ResourceRef[]", description: "Currently selected environment references, in merge order.", required: true },
+  }}
+/>
+
+```tsx
+<EnvironmentPicker
+  org="acme"
+  value={environmentRefs}
+  onChange={setEnvironmentRefs}
+/>
+```
+
+
 ### EnvironmentVariableEditor
 
 Self-contained component that displays and manages all variables for

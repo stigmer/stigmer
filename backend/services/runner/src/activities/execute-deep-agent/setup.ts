@@ -8,11 +8,12 @@
  * the streaming phase needs.
  */
 
-import { createDeepAgent, StateBackend } from "deepagents";
+import { createDeepAgent, FilesystemBackend } from "deepagents";
 import { ChatAnthropic } from "@langchain/anthropic";
 import { ChatOpenAI } from "@langchain/openai";
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import type { BaseCheckpointSaver } from "@langchain/langgraph-checkpoint";
+import { z } from "zod";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AgentGraph = any;
 
@@ -38,6 +39,7 @@ import { buildEnhancedSystemPrompt } from "./prompt-builder.js";
 import { buildMiddlewareStack, createThinkTool } from "../../middleware/index.js";
 import type { GracefulStopMiddleware } from "../../middleware/index.js";
 import { getModelPricing, ensureLoaded as ensurePricingLoaded } from "../../shared/model-pricing.js";
+import { getDefaultModel } from "../../shared/model-registry.js";
 import {
   loadArtifactStorageConfig,
   createArtifactStorage,
@@ -85,6 +87,8 @@ export interface SetupResult {
   readonly approvalPolicies: ReadonlyMap<string, MergedToolPolicy>;
   readonly toolServerMap: ReadonlyMap<string, string>;
   readonly autoApproveAll: boolean;
+  readonly hasStructuredOutput: boolean;
+  readonly streamVersion: "v2" | "v3";
 }
 
 export interface SetupDependencies {
@@ -132,7 +136,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
 
     // Step 3: Resolve model
     const modelName = execution.spec!.executionConfig?.modelName
-      || "claude-sonnet-4-20250514";
+      || await getDefaultModel();
 
     // Step 4: Create checkpointer
     const checkpointer = await createCheckpointer({
@@ -178,6 +182,8 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
         mcpServerUsages,
         envResult.mergedEnvVars,
         sessionOrg,
+        undefined,
+        envResult.secretKeys,
       );
       resolvedMcpServers = { resolvedServers: backfilledServers };
 
@@ -341,23 +347,35 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
         parentModelName: modelName,
         parentHasNativeThinking: _modelHasNativeThinking(modelName),
         costCap: costCapMiddleware ?? undefined,
+        modelFactory: (m: string) => constructModel(m, config, executionId),
       });
     }
 
     // Step 12: Create the agent graph with middleware
     await reportSetupProgress(client, executionId, "Creating agent…");
+
+    const outputSchema = execution.spec!.executionConfig?.structuredOutputSchema;
+    let responseFormat: z.ZodType | undefined;
+    if (outputSchema) {
+      responseFormat = jsonSchemaToZod(outputSchema as unknown as Record<string, unknown>);
+    }
+
     const agentGraph = await createDeepAgent({
       model,
       checkpointer: checkpointer as any,
-      backend: new StateBackend(),
+      backend: new FilesystemBackend({ rootDir: workspaceBackend.rootDir }),
       systemPrompt,
       tools,
       middleware: middleware as any,
       subagents: compiledSubagents ?? undefined,
+      ...(responseFormat ? { responseFormat } : {}),
     } as Parameters<typeof createDeepAgent>[0]);
 
     // Step 11: Prepare invocation input and config
-    const userMessage = execution.spec!.message;
+    let userMessage = execution.spec!.message;
+    if (outputSchema) {
+      userMessage += `\n\n---\nIMPORTANT: When your analysis is complete, provide your findings as structured output matching the required schema. The system will capture your structured response automatically.`;
+    }
     const langgraphInput = {
       messages: [{ role: "user", content: userMessage }],
     };
@@ -366,10 +384,13 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       configurable: { thread_id: threadId },
     };
 
+    const streamVersion: "v2" | "v3" =
+      process.env.LANGGRAPH_STREAM_EVENTS_VERSION === "v2" ? "v2" : "v3";
+
     console.log(
       `[setup] Complete: model=${modelName}, ` +
       `tools=${tools.length}, middleware=${middleware.length}, ` +
-      `thread_id=${threadId}`,
+      `thread_id=${threadId}, streamVersion=${streamVersion}`,
     );
 
     return {
@@ -390,6 +411,8 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       approvalPolicies,
       toolServerMap,
       autoApproveAll,
+      hasStructuredOutput: !!outputSchema,
+      streamVersion,
     };
   } catch (err) {
     if (mcpConnection) {
@@ -440,10 +463,13 @@ function buildAnthropicModel(
     ? (config.stigmerToken ?? "proxy-managed")
     : (process.env.ANTHROPIC_API_KEY ?? "");
 
+  const requestTimeoutMs = parseInt(process.env.STIGMER_LLM_REQUEST_TIMEOUT_MS ?? "0") || undefined;
+
   return new ChatAnthropic({
     model,
     apiKey,
     temperature: 0,
+    ...(requestTimeoutMs ? { maxRetries: 0, timeout: requestTimeoutMs } : {}),
     ...(baseUrl || headers
       ? {
           clientOptions: {
@@ -465,10 +491,13 @@ function buildOpenAIModel(
     ? (config.stigmerToken ?? "proxy-managed")
     : (process.env.OPENAI_API_KEY ?? "");
 
+  const requestTimeoutMs = parseInt(process.env.STIGMER_LLM_REQUEST_TIMEOUT_MS ?? "0") || undefined;
+
   return new ChatOpenAI({
     model,
     apiKey,
     temperature: 0,
+    ...(requestTimeoutMs ? { maxRetries: 0, timeout: requestTimeoutMs } : {}),
     ...(baseUrl || headers
       ? {
           configuration: {
@@ -506,6 +535,7 @@ async function provisionWorkspace(
     workspaceBackend,
     mergedEnvVars,
     config.mode === "local",
+    config.mode !== "local",
   );
 
   // If single entry changed root dir, create a new backend with the same platformDir
@@ -521,6 +551,9 @@ async function provisionWorkspace(
 
   return { workspaceBackend, provisionResults };
 }
+
+// Shared JSON Schema → Zod converter (consolidated from 3 duplicate copies).
+import { jsonSchemaToZod } from "../../shared/json-schema-to-zod.js";
 
 /**
  * Heuristic check for native extended thinking support.

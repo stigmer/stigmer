@@ -62,3 +62,20 @@ export function computeTurnCost(
     + cacheReadTokens * pricing.cacheReadPricePerMillion
   ) / 1_000_000;
 }
+
+/**
+ * Compute cost in micro-USD for a workflow LLM call.
+ *
+ * Uses the cloud-fetched pricing registry (via `ensureLoaded`).
+ * Falls back to DEFAULT_PRICING for unknown models so that cost
+ * is always estimated rather than silently reported as zero.
+ */
+export function computeLlmCostMicros(
+  modelId: string,
+  inputTokens: number,
+  outputTokens: number,
+): number {
+  const pricing = getModelPricing(modelId);
+  const costUsd = computeTurnCost(pricing, inputTokens, outputTokens, 0, 0);
+  return Math.round(costUsd * 1_000_000);
+}

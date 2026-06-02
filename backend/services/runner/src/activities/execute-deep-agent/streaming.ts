@@ -24,6 +24,12 @@ import {
 
 import { StatusBuilder, type StreamEvent, type ApprovalPolicyProvider } from "./status-builder.js";
 import {
+  handlePause,
+  handleStop,
+  handleRecursionLimit,
+  isGraphRecursionError,
+} from "./streaming-terminal.js";
+import {
   StreamingUpdateScheduler,
   type StreamingConfig,
 } from "./streaming-scheduler.js";
@@ -33,6 +39,8 @@ import type { StigmerClient } from "../../client/stigmer-client.js";
 import type { GracefulStopMiddleware } from "../../middleware/index.js";
 import type { InlinePublisher } from "./inline-publisher.js";
 import type { WriteBackCoordinator } from "./writeback-coordinator.js";
+import { createV2EventRecorder } from "./event-recorder.js";
+import { streamExecutionV3 } from "./streaming-v3.js";
 
 const DEFAULT_STALL_TIMEOUT_MS = 120_000;
 
@@ -64,6 +72,8 @@ export interface StreamDependencies {
   readonly writebackCoordinator?: WriteBackCoordinator;
   /** Approval policy provider for StatusBuilder tool-call phase tracking. */
   readonly approvalProvider?: ApprovalPolicyProvider;
+  /** Streaming protocol version. Defaults to "v2" if unset. */
+  readonly streamVersion?: "v2" | "v3";
 }
 
 export interface StreamResult {
@@ -71,13 +81,26 @@ export interface StreamResult {
   readonly terminalStatus?: unknown;
   readonly pendingPublishPromises: readonly Promise<void>[];
   readonly pendingWritebackPromises: readonly Promise<void>[];
+  /** v3 only: the final state from run.output (includes structuredResponse if present). */
+  readonly runOutput?: Record<string, unknown>;
 }
 
 /**
  * Run the streaming loop: consume streamEvents, map to proto via
  * StatusBuilder, persist on schedule, and handle terminal conditions.
+ *
+ * Routes to v3 when deps.streamVersion === "v3".
  */
 export async function streamExecution(
+  deps: StreamDependencies,
+): Promise<StreamResult> {
+  if (deps.streamVersion === "v3") {
+    return streamExecutionV3(deps);
+  }
+  return streamExecutionV2(deps);
+}
+
+async function streamExecutionV2(
   deps: StreamDependencies,
 ): Promise<StreamResult> {
   const {
@@ -103,6 +126,7 @@ export async function streamExecution(
     statusBuilder.setApprovalProvider(approvalProvider);
   }
   const scheduler = new StreamingUpdateScheduler(streamingConfig);
+  const recorder = createV2EventRecorder(executionId, process.env.V2_EVENT_RECORD_DIR);
 
   let eventsProcessed = 0;
   let lastEventTime = performance.now();
@@ -125,6 +149,7 @@ export async function streamExecution(
       }
 
       lastEventTime = performance.now();
+      recorder?.record(event, eventsProcessed);
       statusBuilder.processEvent(event);
       eventsProcessed++;
 
@@ -183,6 +208,8 @@ export async function streamExecution(
     throw err;
   }
 
+  await recorder?.flush();
+
   if (eventsProcessed === 0) {
     throw new Error(
       "Stream completed without processing any events. " +
@@ -211,81 +238,7 @@ export async function streamExecution(
   return { eventsProcessed, pendingPublishPromises, pendingWritebackPromises };
 }
 
-// ── Terminal State Handlers ──────────────────────────────────────────
-
-function handlePause(
-  sb: StatusBuilder,
-  eventsProcessed: number,
-  pendingPublishPromises: Promise<void>[],
-  pendingWritebackPromises: Promise<void>[],
-): StreamResult {
-  const status = sb.currentStatus;
-  status.phase = ExecutionPhase.EXECUTION_PAUSED;
-  status.messages.push(create(AgentMessageSchema, {
-    type: MessageType.MESSAGE_SYSTEM,
-    content: "Execution paused by user. Use resume to continue from this checkpoint.",
-    timestamp: utcTimestamp(),
-  }));
-
-  return {
-    eventsProcessed,
-    terminalStatus: slimStatus(status),
-    pendingPublishPromises,
-    pendingWritebackPromises,
-  };
-}
-
-function handleStop(
-  sb: StatusBuilder,
-  eventsProcessed: number,
-  pendingPublishPromises: Promise<void>[],
-  pendingWritebackPromises: Promise<void>[],
-): StreamResult {
-  const status = sb.currentStatus;
-  status.phase = ExecutionPhase.EXECUTION_COMPLETED;
-  status.completedAt = utcTimestamp();
-  status.messages.push(create(AgentMessageSchema, {
-    type: MessageType.MESSAGE_SYSTEM,
-    content: "Execution stopped by the platform.",
-    timestamp: utcTimestamp(),
-  }));
-
-  return {
-    eventsProcessed,
-    terminalStatus: slimStatus(status),
-    pendingPublishPromises,
-    pendingWritebackPromises,
-  };
-}
-
-function handleRecursionLimit(
-  sb: StatusBuilder,
-  eventsProcessed: number,
-  pendingPublishPromises: Promise<void>[],
-  pendingWritebackPromises: Promise<void>[],
-): StreamResult {
-  const status = sb.currentStatus;
-  status.phase = ExecutionPhase.EXECUTION_TERMINATED;
-  status.completedAt = utcTimestamp();
-  status.error =
-    `Agent reached the tool-call limit after processing ${eventsProcessed} events. ` +
-    `Send another message to continue.`;
-  status.messages.push(create(AgentMessageSchema, {
-    type: MessageType.MESSAGE_SYSTEM,
-    content:
-      "The agent reached the tool-call limit for this message. " +
-      "Work completed so far has been saved. " +
-      "Send another message to continue where the agent left off.",
-    timestamp: utcTimestamp(),
-  }));
-
-  return {
-    eventsProcessed,
-    terminalStatus: slimStatus(status),
-    pendingPublishPromises,
-    pendingWritebackPromises,
-  };
-}
+// Terminal state handlers imported from streaming-terminal.ts
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
@@ -340,15 +293,6 @@ function extractFilePathFromToolEnd(event: StreamEvent): string | null {
   if (typeof input.file === "string") return input.file;
 
   return null;
-}
-
-function isGraphRecursionError(err: unknown): boolean {
-  if (err instanceof Error) {
-    return err.constructor.name === "GraphRecursionError" ||
-      err.message.includes("GraphRecursionError") ||
-      err.message.includes("Recursion limit");
-  }
-  return false;
 }
 
 export class StallTimeoutError extends Error {

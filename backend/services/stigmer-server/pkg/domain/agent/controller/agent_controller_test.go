@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
@@ -428,7 +429,10 @@ func TestAgentController_MergeMcpServerEnvSpecs(t *testing.T) {
 		}
 	})
 
-	t.Run("missing MCP server is skipped gracefully", func(t *testing.T) {
+	t.Run("missing MCP server is rejected", func(t *testing.T) {
+		// The ValidateReferences pipeline step (which runs before
+		// MergeMcpServerEnvSpecs) strictly rejects references to MCP servers
+		// that do not exist, so Create fails with FAILED_PRECONDITION.
 		agent := &agentv1.Agent{
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "Agent",
@@ -451,14 +455,12 @@ func TestAgentController_MergeMcpServerEnvSpecs(t *testing.T) {
 			},
 		}
 
-		created, err := controller.Create(contextWithAgentKind(), agent)
-		if err != nil {
-			t.Fatalf("Create should succeed even with missing MCP server, got: %v", err)
+		_, err := controller.Create(contextWithAgentKind(), agent)
+		if err == nil {
+			t.Fatal("Create should fail when referencing a non-existent MCP server")
 		}
-
-		envDecls := created.GetSpec().GetEnv()
-		if len(envDecls) != 0 {
-			t.Errorf("Expected empty env, got %d entries", len(envDecls))
+		if !strings.Contains(err.Error(), "does-not-exist") {
+			t.Errorf("expected error to mention the missing MCP server slug, got: %v", err)
 		}
 	})
 

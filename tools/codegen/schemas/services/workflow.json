@@ -55,6 +55,14 @@
           "outputType": "ServerlessWorkflowValidation",
           "outputFullType": "ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation",
           "description": "Validate a workflow spec without persisting it.\n\n Runs the same two-layer validation pipeline used by create/update:\n   Layer 1: Proto field constraints (buf validate / protovalidate)\n   Layer 2: Temporal-based structural validation (Go activity: proto → YAML → Zigflow)\n\n Returns ServerlessWorkflowValidation with:\n   - VALID: Workflow structure passed all checks\n   - INVALID: User error (bad structure, missing fields, unknown task kinds)\n   - FAILED: System error (Temporal unavailable, converter crash)\n\n This RPC does NOT persist, authorize, or create instances. It is a\n pure validation endpoint suitable for iterative authoring workflows\n where the caller needs fast feedback before committing.\n\n @internal\n Authorization: Uses the same permission as create — caller must have\n can_create_workflow in the org. This prevents unauthenticated abuse\n of the validation pipeline while allowing any user who could create\n a workflow to also validate one."
+        },
+        {
+          "name": "TagVersion",
+          "inputType": "TagWorkflowVersionInput",
+          "inputFullType": "ai.stigmer.agentic.workflow.v1.TagWorkflowVersionInput",
+          "outputType": "Workflow",
+          "outputFullType": "ai.stigmer.agentic.workflow.v1.Workflow",
+          "description": "Assign or move a tag to a specific workflow version.\n\n Tags are human-readable pointers to immutable versions. Calling this\n with an existing tag name moves it from the previous version to the\n specified version. Common tags: \"stable\", \"production\", \"v2.0\".\n\n @internal\n Authorization: Requires can_edit permission on the workflow resource.\n The handler validates that the version_hash exists in the workflow's\n audit history before assigning the tag.\n\n @since Workflow Versioning"
         }
       ]
     },
@@ -77,7 +85,23 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
           "outputType": "Workflow",
           "outputFullType": "ai.stigmer.agentic.workflow.v1.Workflow",
-          "description": "Get a workflow by its organization-scoped reference (org/slug).\n Resolves a human-readable reference like \"stigmer/deploy\" to the full Workflow resource.\n\n @internal\n Custom authorization in handler — checks both direct resource access\n and organization-level visibility permissions."
+          "description": "Get a workflow by its organization-scoped reference (org/slug) with version support.\n\n Version resolution (via ApiResourceReference.version field):\n - Empty/\"latest\" → Returns the current version\n - Tag name (e.g., \"stable\", \"v1.0\") → Resolves to the version with this tag\n - SHA256 hash (64 hex chars) → Returns the exact immutable version\n\n @internal\n Custom authorization in handler — checks both direct resource access\n and organization-level visibility permissions."
+        },
+        {
+          "name": "ListVersions",
+          "inputType": "ListWorkflowVersionsInput",
+          "inputFullType": "ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsInput",
+          "outputType": "ListWorkflowVersionsResponse",
+          "outputFullType": "ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsResponse",
+          "description": "List version history for a workflow.\n\n Returns all historical versions ordered by applied_at (newest first).\n Each entry includes the version hash, applied timestamp, actor, tag,\n git provenance, and the validated CNCF YAML for historical access.\n\n @internal\n Authorization is handled in the handler after resolving the workflow.\n (Input uses org+slug, not workflow ID, so proto-level auth cannot work)\n\n @since Workflow Versioning"
+        },
+        {
+          "name": "GetVersion",
+          "inputType": "GetWorkflowVersionInput",
+          "inputFullType": "ai.stigmer.agentic.workflow.v1.GetWorkflowVersionInput",
+          "outputType": "WorkflowVersionEntry",
+          "outputFullType": "ai.stigmer.agentic.workflow.v1.WorkflowVersionEntry",
+          "description": "Get a specific historical version of a workflow by its content hash.\n\n Used by the runner (to hydrate execution from a pinned version) and\n the execution viewer (to render the graph for historical executions).\n\n @internal\n Authorization uses can_view on the workflow resource.\n\n @since Workflow Versioning"
         }
       ]
     },
@@ -218,6 +242,54 @@
       ]
     },
     {
+      "name": "TagWorkflowVersionInput",
+      "description": "TagWorkflowVersionInput assigns or moves a tag to a specific workflow version.\n\n Tags are mutable pointers — calling tagVersion with an existing tag name\n moves it from the previous version to the specified version. A version can\n have at most one tag (set at apply time or via this RPC).\n\n @since Workflow Versioning",
+      "protoType": "ai.stigmer.agentic.workflow.v1.TagWorkflowVersionInput",
+      "protoFile": "apis/ai/stigmer/agentic/workflow/v1/version.proto",
+      "fields": [
+        {
+          "name": "WorkflowId",
+          "jsonName": "workflowId",
+          "protoField": "workflow_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the workflow resource.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "VersionHash",
+          "jsonName": "versionHash",
+          "protoField": "version_hash",
+          "type": {
+            "kind": "string"
+          },
+          "description": "SHA-256 hash of the version to tag.",
+          "required": false,
+          "validation": {
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        {
+          "name": "Tag",
+          "jsonName": "tag",
+          "protoField": "tag",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Tag to assign. Must be a non-empty alphanumeric string with dots, hyphens,\n or underscores (same pattern as Skill tags).",
+          "required": false,
+          "validation": {
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9._-]+$"
+          }
+        }
+      ]
+    },
+    {
       "name": "ApiResourceReference",
       "description": "Generic reference to any API resource by org and slug.\n Used across resources to reference other resources (e.g., Environment, Agent, Skill).\n Canonical format: \"org/slug\" (e.g., \"stigmer/web-search\", \"acme/my-agent\").",
       "protoType": "ai.stigmer.commons.apiresource.ApiResourceReference",
@@ -301,6 +373,226 @@
           "validation": {
             "pattern": "^$|^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$"
           }
+        }
+      ]
+    },
+    {
+      "name": "ListWorkflowVersionsInput",
+      "description": "ListWorkflowVersionsInput requests the version history for a workflow.\n\n Returns all historical versions ordered by applied_at (newest first).\n Used by the Console, SDK, and CLI to render version timelines and\n enable version comparison.\n\n @since Workflow Versioning",
+      "protoType": "ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsInput",
+      "protoFile": "apis/ai/stigmer/agentic/workflow/v1/version.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization that owns the workflow.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Slug",
+          "jsonName": "slug",
+          "protoField": "slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Workflow slug (unique within the organization).",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "PageToken",
+          "jsonName": "pageToken",
+          "protoField": "page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Opaque token for cursor-based pagination.\n Empty string or omitted for the first page.",
+          "required": false
+        },
+        {
+          "name": "PageSize",
+          "jsonName": "pageSize",
+          "protoField": "page_size",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Maximum number of versions to return per page.\n Server may return fewer. Default is 50, max is 100.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ListWorkflowVersionsResponse",
+      "description": "ListWorkflowVersionsResponse contains a page of workflow version history.\n\n @since Workflow Versioning",
+      "protoType": "ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsResponse",
+      "protoFile": "apis/ai/stigmer/agentic/workflow/v1/version.proto",
+      "fields": [
+        {
+          "name": "Versions",
+          "jsonName": "versions",
+          "protoField": "versions",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "WorkflowVersionEntry"
+            }
+          },
+          "description": "Ordered list of versions (newest first).",
+          "required": false
+        },
+        {
+          "name": "NextPageToken",
+          "jsonName": "nextPageToken",
+          "protoField": "next_page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Token for fetching the next page. Empty when no more pages exist.",
+          "required": false
+        },
+        {
+          "name": "TotalCount",
+          "jsonName": "totalCount",
+          "protoField": "total_count",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Total number of versions across all pages.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "GetWorkflowVersionInput",
+      "description": "GetWorkflowVersionInput requests a specific historical version of a workflow.\n\n Used by the runner (to hydrate execution from a pinned version) and the\n execution viewer (to render the graph for historical executions).\n\n @since Workflow Versioning",
+      "protoType": "ai.stigmer.agentic.workflow.v1.GetWorkflowVersionInput",
+      "protoFile": "apis/ai/stigmer/agentic/workflow/v1/version.proto",
+      "fields": [
+        {
+          "name": "WorkflowId",
+          "jsonName": "workflowId",
+          "protoField": "workflow_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the workflow resource.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "VersionHash",
+          "jsonName": "versionHash",
+          "protoField": "version_hash",
+          "type": {
+            "kind": "string"
+          },
+          "description": "SHA-256 hash identifying the specific version to retrieve.",
+          "required": false,
+          "validation": {
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      ]
+    },
+    {
+      "name": "WorkflowVersionEntry",
+      "description": "WorkflowVersionEntry represents a single historical version of a workflow.\n\n Each apply/update that changes the generated CNCF YAML (and passes validation)\n creates a new immutable version entry. The version is identified by its content\n hash (SHA-256 of the validated YAML).\n\n @internal\n Stored in the resource_audit table (OSS SQLite) or workflow_audit collection\n (Cloud MongoDB). Entries are immutable after creation — a version's content\n never changes, only its tag can be reassigned via tagVersion.\n\n @since Workflow Versioning",
+      "protoType": "ai.stigmer.agentic.workflow.v1.WorkflowVersionEntry",
+      "protoFile": "apis/ai/stigmer/agentic/workflow/v1/version.proto",
+      "fields": [
+        {
+          "name": "VersionHash",
+          "jsonName": "versionHash",
+          "protoField": "version_hash",
+          "type": {
+            "kind": "string"
+          },
+          "description": "SHA-256 hash of the CNCF YAML — the immutable version identifier.",
+          "required": false
+        },
+        {
+          "name": "AppliedAt",
+          "jsonName": "appliedAt",
+          "protoField": "applied_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "When this version was created (the apply/update timestamp).",
+          "required": false
+        },
+        {
+          "name": "AppliedBy",
+          "jsonName": "appliedBy",
+          "protoField": "applied_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Who created this version (the actor who triggered the apply/update).",
+          "required": false
+        },
+        {
+          "name": "Tag",
+          "jsonName": "tag",
+          "protoField": "tag",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Tag assigned to this version at apply time or via tagVersion.\n May be empty if the version was applied without a tag.\n Examples: \"stable\", \"v1.0\", \"production\"\n\n @internal\n Tags are mutable pointers — calling tagVersion moves a tag to a different\n version. When resolving by tag, the system returns the most recent audit\n entry with that tag (ordered by applied_at DESC).",
+          "required": false
+        },
+        {
+          "name": "IsCurrent",
+          "jsonName": "isCurrent",
+          "protoField": "is_current",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Whether this is the currently active version of the workflow.",
+          "required": false
+        },
+        {
+          "name": "Message",
+          "jsonName": "message",
+          "protoField": "message",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable message describing what changed in this version.\n Analogous to a git commit message.",
+          "required": false
+        },
+        {
+          "name": "ValidatedYaml",
+          "jsonName": "validatedYaml",
+          "protoField": "validated_yaml",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The generated CNCF Serverless Workflow DSL 1.0.0 YAML for this version.\n\n @internal\n Used by the runner (to execute the workflow) and the execution viewer\n (to render the graph for historical executions). This is the exact YAML\n that was validated at the time this version was created.",
+          "required": false
+        },
+        {
+          "name": "GitProvenance",
+          "jsonName": "gitProvenance",
+          "protoField": "git_provenance",
+          "type": {
+            "kind": "message",
+            "messageType": "GitProvenance"
+          },
+          "description": "Git provenance tracking where this version's definition originated.\n Absent when applied from a non-git directory or via the web editor.\n\n @internal\n Populated by CLI during apply when the working directory is within a\n git repository. Provides traceability and enables \"view on GitHub\" links.",
+          "required": false
         }
       ]
     },
@@ -762,6 +1054,16 @@
           "messageType": "ServerlessWorkflowValidation"
         },
         "description": "Serverless Workflow YAML generation and validation state.\n Contains the generated CNCF Serverless Workflow DSL 1.0.0 YAML and validation results.\n Check this field to determine whether a workflow is valid before executing it.\n\n @internal\n Populated asynchronously after workflow creation via a Temporal workflow.\n Workflow creation does NOT block on validation — the workflow is created immediately\n with status.state = PENDING, then validation runs in the background.",
+        "required": false
+      },
+      {
+        "name": "VersionHash",
+        "jsonName": "versionHash",
+        "protoField": "version_hash",
+        "type": {
+          "kind": "string"
+        },
+        "description": "SHA-256 hash of the generated CNCF YAML for the current valid version.\n\n @internal\n Updated only when validation produces state=VALID and the generated YAML\n differs from the previous version's hash. Empty for workflows that have\n never passed validation.\n\n This is the content-addressed version identifier for the workflow definition.\n The hash is computed from the `serverless_workflow_validation.yaml` string,\n ensuring that \"same YAML = same hash = same execution behavior.\"\n\n Consumers:\n - Execution create pipeline reads this to pin executions to a specific version\n - getByReference resolves ApiResourceReference.version against this and audit entries\n - UI displays this as the current version identifier\n\n @since Workflow Versioning",
         "required": false
       }
     ]

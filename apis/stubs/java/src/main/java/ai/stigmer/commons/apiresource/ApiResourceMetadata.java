@@ -81,8 +81,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Human-readable name of the resource.
-   * Max 63 characters. Validation is skipped when the field is empty (e.g.,
-   * server-generated responses or partial messages).
+   * Validation is skipped when the field is empty (e.g., server-generated
+   * responses or partial messages).
    * </pre>
    *
    * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -104,8 +104,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Human-readable name of the resource.
-   * Max 63 characters. Validation is skipped when the field is empty (e.g.,
-   * server-generated responses or partial messages).
+   * Validation is skipped when the field is empty (e.g., server-generated
+   * responses or partial messages).
    * </pre>
    *
    * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -133,9 +133,9 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * URL-friendly identifier, unique within the organization.
    * Combined with org, forms the canonical reference: "org/slug".
-   * Format: 2-63 lowercase alphanumeric characters and hyphens; must start
-   * with a letter and end with a letter or digit. When empty, the server
-   * derives the slug from the name.
+   * Format: lowercase alphanumeric characters and hyphens (min 2 chars);
+   * must start with a letter and end with a letter or digit. When empty,
+   * the server derives the slug from the name.
    * </pre>
    *
    * <code>string slug = 2 [json_name = "slug", (.buf.validate.field) = { ... }</code>
@@ -158,9 +158,9 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * URL-friendly identifier, unique within the organization.
    * Combined with org, forms the canonical reference: "org/slug".
-   * Format: 2-63 lowercase alphanumeric characters and hyphens; must start
-   * with a letter and end with a letter or digit. When empty, the server
-   * derives the slug from the name.
+   * Format: lowercase alphanumeric characters and hyphens (min 2 chars);
+   * must start with a letter and end with a letter or digit. When empty,
+   * the server derives the slug from the name.
    * </pre>
    *
    * <code>string slug = 2 [json_name = "slug", (.buf.validate.field) = { ... }</code>
@@ -1178,8 +1178,8 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Human-readable name of the resource.
-     * Max 63 characters. Validation is skipped when the field is empty (e.g.,
-     * server-generated responses or partial messages).
+     * Validation is skipped when the field is empty (e.g., server-generated
+     * responses or partial messages).
      * </pre>
      *
      * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -1200,8 +1200,8 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Human-readable name of the resource.
-     * Max 63 characters. Validation is skipped when the field is empty (e.g.,
-     * server-generated responses or partial messages).
+     * Validation is skipped when the field is empty (e.g., server-generated
+     * responses or partial messages).
      * </pre>
      *
      * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -1223,8 +1223,8 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Human-readable name of the resource.
-     * Max 63 characters. Validation is skipped when the field is empty (e.g.,
-     * server-generated responses or partial messages).
+     * Validation is skipped when the field is empty (e.g., server-generated
+     * responses or partial messages).
      * </pre>
      *
      * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -1242,8 +1242,8 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Human-readable name of the resource.
-     * Max 63 characters. Validation is skipped when the field is empty (e.g.,
-     * server-generated responses or partial messages).
+     * Validation is skipped when the field is empty (e.g., server-generated
+     * responses or partial messages).
      * </pre>
      *
      * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -1258,8 +1258,8 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Human-readable name of the resource.
-     * Max 63 characters. Validation is skipped when the field is empty (e.g.,
-     * server-generated responses or partial messages).
+     * Validation is skipped when the field is empty (e.g., server-generated
+     * responses or partial messages).
      * </pre>
      *
      * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -1281,9 +1281,9 @@ java.lang.String defaultValue) {
      * <pre>
      * URL-friendly identifier, unique within the organization.
      * Combined with org, forms the canonical reference: "org/slug".
-     * Format: 2-63 lowercase alphanumeric characters and hyphens; must start
-     * with a letter and end with a letter or digit. When empty, the server
-     * derives the slug from the name.
+     * Format: lowercase alphanumeric characters and hyphens (min 2 chars);
+     * must start with a letter and end with a letter or digit. When empty,
+     * the server derives the slug from the name.
      * </pre>
      *
      * <code>string slug = 2 [json_name = "slug", (.buf.validate.field) = { ... }</code>
@@ -1305,9 +1305,9 @@ java.lang.String defaultValue) {
      * <pre>
      * URL-friendly identifier, unique within the organization.
      * Combined with org, forms the canonical reference: "org/slug".
-     * Format: 2-63 lowercase alphanumeric characters and hyphens; must start
-     * with a letter and end with a letter or digit. When empty, the server
-     * derives the slug from the name.
+     * Format: lowercase alphanumeric characters and hyphens (min 2 chars);
+     * must start with a letter and end with a letter or digit. When empty,
+     * the server derives the slug from the name.
      * </pre>
      *
      * <code>string slug = 2 [json_name = "slug", (.buf.validate.field) = { ... }</code>
@@ -1330,9 +1330,9 @@ java.lang.String defaultValue) {
      * <pre>
      * URL-friendly identifier, unique within the organization.
      * Combined with org, forms the canonical reference: "org/slug".
-     * Format: 2-63 lowercase alphanumeric characters and hyphens; must start
-     * with a letter and end with a letter or digit. When empty, the server
-     * derives the slug from the name.
+     * Format: lowercase alphanumeric characters and hyphens (min 2 chars);
+     * must start with a letter and end with a letter or digit. When empty,
+     * the server derives the slug from the name.
      * </pre>
      *
      * <code>string slug = 2 [json_name = "slug", (.buf.validate.field) = { ... }</code>
@@ -1351,9 +1351,9 @@ java.lang.String defaultValue) {
      * <pre>
      * URL-friendly identifier, unique within the organization.
      * Combined with org, forms the canonical reference: "org/slug".
-     * Format: 2-63 lowercase alphanumeric characters and hyphens; must start
-     * with a letter and end with a letter or digit. When empty, the server
-     * derives the slug from the name.
+     * Format: lowercase alphanumeric characters and hyphens (min 2 chars);
+     * must start with a letter and end with a letter or digit. When empty,
+     * the server derives the slug from the name.
      * </pre>
      *
      * <code>string slug = 2 [json_name = "slug", (.buf.validate.field) = { ... }</code>
@@ -1369,9 +1369,9 @@ java.lang.String defaultValue) {
      * <pre>
      * URL-friendly identifier, unique within the organization.
      * Combined with org, forms the canonical reference: "org/slug".
-     * Format: 2-63 lowercase alphanumeric characters and hyphens; must start
-     * with a letter and end with a letter or digit. When empty, the server
-     * derives the slug from the name.
+     * Format: lowercase alphanumeric characters and hyphens (min 2 chars);
+     * must start with a letter and end with a letter or digit. When empty,
+     * the server derives the slug from the name.
      * </pre>
      *
      * <code>string slug = 2 [json_name = "slug", (.buf.validate.field) = { ... }</code>

@@ -13,11 +13,8 @@
           "type": {
             "kind": "string"
           },
-          "description": "Human-readable name of the resource.\n Max 63 characters. Validation is skipped when the field is empty (e.g.,\n server-generated responses or partial messages).",
-          "required": false,
-          "validation": {
-            "maxLength": 63
-          }
+          "description": "Human-readable name of the resource.\n Validation is skipped when the field is empty (e.g., server-generated\n responses or partial messages).",
+          "required": false
         },
         {
           "name": "Slug",
@@ -26,11 +23,10 @@
           "type": {
             "kind": "string"
           },
-          "description": "URL-friendly identifier, unique within the organization.\n Combined with org, forms the canonical reference: \"org/slug\".\n Format: 2-63 lowercase alphanumeric characters and hyphens; must start\n with a letter and end with a letter or digit. When empty, the server\n derives the slug from the name.",
+          "description": "URL-friendly identifier, unique within the organization.\n Combined with org, forms the canonical reference: \"org/slug\".\n Format: lowercase alphanumeric characters and hyphens (min 2 chars);\n must start with a letter and end with a letter or digit. When empty,\n the server derives the slug from the name.",
           "required": false,
           "validation": {
             "minLength": 2,
-            "maxLength": 63,
             "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$"
           }
         },
@@ -130,7 +126,7 @@
     },
     {
       "name": "ApiResourceMetadataVersion",
-      "description": "ApiResourceMetadataVersion contains version tracking information.",
+      "description": "ApiResourceMetadataVersion contains version tracking information.\n\n For versioned resources (is_versioned: true), this is populated by the\n backend on every spec-changing create/update:\n - id: content hash of the new version (SHA-256)\n - message: user-provided description of what changed\n - previous_version_id: hash of the prior version\n - tag: optional version tag assigned at apply time",
       "protoType": "ai.stigmer.commons.apiresource.ApiResourceMetadataVersion",
       "protoFile": "apis/ai/stigmer/commons/apiresource/metadata.proto",
       "fields": [
@@ -141,7 +137,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Unique identifier for this version.",
+          "description": "Unique identifier for this version.\n For versioned resources: SHA-256 content hash.",
           "required": false
         },
         {
@@ -151,7 +147,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Message describing what changed in this version.",
+          "description": "Message describing what changed in this version.\n Analogous to a git commit message.",
           "required": false
         },
         {
@@ -162,6 +158,16 @@
             "kind": "string"
           },
           "description": "Reference to the previous version ID.",
+          "required": false
+        },
+        {
+          "name": "Tag",
+          "jsonName": "tag",
+          "protoField": "tag",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Optional tag to assign to this version at creation time.\n Only applicable to versioned resources (Skills, Workflows).\n Examples: \"stable\", \"v1.0\", \"production\"\n\n @since Workflow Versioning",
           "required": false
         }
       ]

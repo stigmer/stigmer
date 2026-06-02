@@ -4,9 +4,9 @@ import { useState } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import type { CreditLedgerEntry } from "@stigmer/protos/ai/stigmer/billing/v1/credit_pb";
+import { LedgerView } from "@stigmer/protos/ai/stigmer/billing/v1/enum_pb";
 import {
   formatLedgerAmount,
-  formatCreditBalance,
   formatLedgerDate,
   ledgerEntryLabel,
   isCredit,
@@ -40,7 +40,15 @@ export function CreditLedgerTable({
   className,
 }: CreditLedgerTableProps) {
   const [pageNum, setPageNum] = useState(1);
-  const options: UseCreditLedgerOptions = { pageNum, pageSize: 10 };
+  // Request the server-resolved account statement: funding and money-movement
+  // events only. Routine internal mechanics (per-call usage debits, reservation
+  // holds/releases) are classified out server-side; consumption is surfaced in
+  // the usage report instead.
+  const options: UseCreditLedgerOptions = {
+    pageNum,
+    pageSize: 10,
+    view: LedgerView.statement,
+  };
   const { ledger, isLoading, error } = useCreditLedger(orgId, options);
 
   if (isLoading) {
@@ -110,7 +118,7 @@ function LedgerHeader() {
   return (
     <div
       role="row"
-      className="grid grid-cols-[1fr_auto_auto] gap-x-4 border-b border-border px-3.5 py-2 text-[0.65rem] font-medium uppercase tracking-wider text-muted-foreground sm:grid-cols-[auto_1fr_auto_auto]"
+      className="grid grid-cols-[1fr_auto] gap-x-4 border-b border-border px-3.5 py-2 text-[0.65rem] font-medium uppercase tracking-wider text-muted-foreground sm:grid-cols-[auto_1fr_auto]"
     >
       <span role="columnheader" className="hidden sm:block">
         Date
@@ -118,9 +126,6 @@ function LedgerHeader() {
       <span role="columnheader">Type</span>
       <span role="columnheader" className="text-right">
         Amount
-      </span>
-      <span role="columnheader" className="text-right">
-        Balance
       </span>
     </div>
   );
@@ -138,7 +143,7 @@ function LedgerRow({ entry }: { entry: CreditLedgerEntry }) {
   return (
     <div
       role="row"
-      className="grid grid-cols-[1fr_auto_auto] items-center gap-x-4 border-b border-border-muted px-3.5 py-2.5 last:border-b-0 sm:grid-cols-[auto_1fr_auto_auto]"
+      className="grid grid-cols-[1fr_auto] items-center gap-x-4 border-b border-border-muted px-3.5 py-2.5 last:border-b-0 sm:grid-cols-[auto_1fr_auto]"
     >
       <span
         role="cell"
@@ -186,13 +191,6 @@ function LedgerRow({ entry }: { entry: CreditLedgerEntry }) {
         )}
       >
         {formatLedgerAmount(entry.amountMicros)}
-      </span>
-
-      <span
-        role="cell"
-        className="text-right text-xs tabular-nums text-muted-foreground"
-      >
-        {formatCreditBalance(entry.balanceAfterMicros)}
       </span>
     </div>
   );
@@ -252,8 +250,8 @@ function EmptyLedger() {
         No transactions yet
       </p>
       <p className="mt-1 max-w-xs text-xs text-muted-foreground">
-        Credit purchases and usage charges will appear here as your
-        organization runs agent executions.
+        Credit purchases, auto-recharges, and refunds will appear here as
+        your organization funds its account.
       </p>
     </div>
   );

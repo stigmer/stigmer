@@ -15,6 +15,7 @@ import "ai/stigmer/agentic/agentexecution/v1/writeback.proto";
 import "ai/stigmer/commons/apiresource/metadata.proto";
 import "ai/stigmer/commons/apiresource/status.proto";
 import "buf/validate/validate.proto";
+import "google/protobuf/struct.proto";
 
 // AgentExecution represents a single agent execution instance (conversational).
 // Follows the standard pattern: spec contains user inputs, status contains execution results.
@@ -240,6 +241,28 @@ message AgentExecutionStatus {
 
   // Streaming usage summary, updated progressively during execution.
   StreamingUsageSummary streaming_usage = 20;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Structured Output (Deterministic Agent Responses)
+  //
+  // Schema-conforming data extracted from the agent's final response.
+  // Replaces regex-based parsing for architect/refine/diagnose flows.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Structured output extracted from the agent's final response.
+  //
+  // Populated when ExecutionConfig.structured_output_schema was set and the
+  // runner successfully extracted schema-conforming data. Only meaningful
+  // when phase is EXECUTION_COMPLETED.
+  //
+  // For native harness: populated from LangGraph graphState.structuredResponse
+  // (ToolStrategy enforcement). For Cursor harness: populated from 3-tier
+  // extraction (JSON.parse → fence extraction → extraction LLM fallback).
+  //
+  // Consumers: frontend architect/refine hooks read this instead of parsing
+  // YAML from messages. Workflow callback path reads structured_output from
+  // the Temporal activity result (separate channel, same data).
+  google.protobuf.Struct structured_output = 21;
 }
 
 // Setup progress reported during the EXECUTION_PENDING phase.

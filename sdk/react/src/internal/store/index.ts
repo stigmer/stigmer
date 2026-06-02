@@ -13,6 +13,9 @@ export {
   type DerivedCostSummary,
 } from "./workflow-execution-event-store";
 
+export { SelectionStore } from "./selection-store";
+export type { SelectedThreadItem } from "./selection-store";
+
 // ---------------------------------------------------------------------------
 // Context
 // ---------------------------------------------------------------------------

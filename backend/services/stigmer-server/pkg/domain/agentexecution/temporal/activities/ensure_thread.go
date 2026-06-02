@@ -35,7 +35,7 @@ func NewEnsureThreadActivityStub(ctx workflow.Context, taskQueue string) EnsureT
 	options := workflow.ActivityOptions{
 		TaskQueue:              taskQueue,        // Route to Python worker (from memo)
 		StartToCloseTimeout:    30 * time.Second, // Fast operation
-		ScheduleToStartTimeout: 1 * time.Minute,  // Max wait for worker to pick up task
+		ScheduleToStartTimeout: 5 * time.Minute,  // Max wait for worker to pick up task (matches Java cloud)
 		RetryPolicy: &temporal.RetryPolicy{
 			MaximumAttempts:    3, // Retry up to 3 times (idempotent operation)
 			InitialInterval:    5 * time.Second,

@@ -77,6 +77,68 @@ public final class WorkflowQueryControllerGrpc {
     return getGetByReferenceMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsInput,
+      ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsResponse> getListVersionsMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "listVersions",
+      requestType = ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsInput.class,
+      responseType = ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsInput,
+      ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsResponse> getListVersionsMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsInput, ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsResponse> getListVersionsMethod;
+    if ((getListVersionsMethod = WorkflowQueryControllerGrpc.getListVersionsMethod) == null) {
+      synchronized (WorkflowQueryControllerGrpc.class) {
+        if ((getListVersionsMethod = WorkflowQueryControllerGrpc.getListVersionsMethod) == null) {
+          WorkflowQueryControllerGrpc.getListVersionsMethod = getListVersionsMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsInput, ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "listVersions"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new WorkflowQueryControllerMethodDescriptorSupplier("listVersions"))
+              .build();
+        }
+      }
+    }
+    return getListVersionsMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.GetWorkflowVersionInput,
+      ai.stigmer.agentic.workflow.v1.WorkflowVersionEntry> getGetVersionMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "getVersion",
+      requestType = ai.stigmer.agentic.workflow.v1.GetWorkflowVersionInput.class,
+      responseType = ai.stigmer.agentic.workflow.v1.WorkflowVersionEntry.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.GetWorkflowVersionInput,
+      ai.stigmer.agentic.workflow.v1.WorkflowVersionEntry> getGetVersionMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.GetWorkflowVersionInput, ai.stigmer.agentic.workflow.v1.WorkflowVersionEntry> getGetVersionMethod;
+    if ((getGetVersionMethod = WorkflowQueryControllerGrpc.getGetVersionMethod) == null) {
+      synchronized (WorkflowQueryControllerGrpc.class) {
+        if ((getGetVersionMethod = WorkflowQueryControllerGrpc.getGetVersionMethod) == null) {
+          WorkflowQueryControllerGrpc.getGetVersionMethod = getGetVersionMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.workflow.v1.GetWorkflowVersionInput, ai.stigmer.agentic.workflow.v1.WorkflowVersionEntry>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getVersion"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.workflow.v1.GetWorkflowVersionInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.workflow.v1.WorkflowVersionEntry.getDefaultInstance()))
+              .setSchemaDescriptor(new WorkflowQueryControllerMethodDescriptorSupplier("getVersion"))
+              .build();
+        }
+      }
+    }
+    return getGetVersionMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -155,8 +217,11 @@ public final class WorkflowQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get a workflow by its organization-scoped reference (org/slug).
-     * Resolves a human-readable reference like "stigmer/deploy" to the full Workflow resource.
+     * Get a workflow by its organization-scoped reference (org/slug) with version support.
+     * Version resolution (via ApiResourceReference.version field):
+     * - Empty/"latest" → Returns the current version
+     * - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
+     * - SHA256 hash (64 hex chars) → Returns the exact immutable version
      * &#64;internal
      * Custom authorization in handler — checks both direct resource access
      * and organization-level visibility permissions.
@@ -165,6 +230,38 @@ public final class WorkflowQueryControllerGrpc {
     default void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.Workflow> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetByReferenceMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * List version history for a workflow.
+     * Returns all historical versions ordered by applied_at (newest first).
+     * Each entry includes the version hash, applied timestamp, actor, tag,
+     * git provenance, and the validated CNCF YAML for historical access.
+     * &#64;internal
+     * Authorization is handled in the handler after resolving the workflow.
+     * (Input uses org+slug, not workflow ID, so proto-level auth cannot work)
+     * &#64;since Workflow Versioning
+     * </pre>
+     */
+    default void listVersions(ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListVersionsMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Get a specific historical version of a workflow by its content hash.
+     * Used by the runner (to hydrate execution from a pinned version) and
+     * the execution viewer (to render the graph for historical executions).
+     * &#64;internal
+     * Authorization uses can_view on the workflow resource.
+     * &#64;since Workflow Versioning
+     * </pre>
+     */
+    default void getVersion(ai.stigmer.agentic.workflow.v1.GetWorkflowVersionInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.WorkflowVersionEntry> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetVersionMethod(), responseObserver);
     }
   }
 
@@ -214,8 +311,11 @@ public final class WorkflowQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get a workflow by its organization-scoped reference (org/slug).
-     * Resolves a human-readable reference like "stigmer/deploy" to the full Workflow resource.
+     * Get a workflow by its organization-scoped reference (org/slug) with version support.
+     * Version resolution (via ApiResourceReference.version field):
+     * - Empty/"latest" → Returns the current version
+     * - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
+     * - SHA256 hash (64 hex chars) → Returns the exact immutable version
      * &#64;internal
      * Custom authorization in handler — checks both direct resource access
      * and organization-level visibility permissions.
@@ -225,6 +325,40 @@ public final class WorkflowQueryControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.Workflow> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getGetByReferenceMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * List version history for a workflow.
+     * Returns all historical versions ordered by applied_at (newest first).
+     * Each entry includes the version hash, applied timestamp, actor, tag,
+     * git provenance, and the validated CNCF YAML for historical access.
+     * &#64;internal
+     * Authorization is handled in the handler after resolving the workflow.
+     * (Input uses org+slug, not workflow ID, so proto-level auth cannot work)
+     * &#64;since Workflow Versioning
+     * </pre>
+     */
+    public void listVersions(ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getListVersionsMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Get a specific historical version of a workflow by its content hash.
+     * Used by the runner (to hydrate execution from a pinned version) and
+     * the execution viewer (to render the graph for historical executions).
+     * &#64;internal
+     * Authorization uses can_view on the workflow resource.
+     * &#64;since Workflow Versioning
+     * </pre>
+     */
+    public void getVersion(ai.stigmer.agentic.workflow.v1.GetWorkflowVersionInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.WorkflowVersionEntry> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getGetVersionMethod(), getCallOptions()), request, responseObserver);
     }
   }
 
@@ -259,8 +393,11 @@ public final class WorkflowQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get a workflow by its organization-scoped reference (org/slug).
-     * Resolves a human-readable reference like "stigmer/deploy" to the full Workflow resource.
+     * Get a workflow by its organization-scoped reference (org/slug) with version support.
+     * Version resolution (via ApiResourceReference.version field):
+     * - Empty/"latest" → Returns the current version
+     * - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
+     * - SHA256 hash (64 hex chars) → Returns the exact immutable version
      * &#64;internal
      * Custom authorization in handler — checks both direct resource access
      * and organization-level visibility permissions.
@@ -269,6 +406,38 @@ public final class WorkflowQueryControllerGrpc {
     public ai.stigmer.agentic.workflow.v1.Workflow getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getGetByReferenceMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * List version history for a workflow.
+     * Returns all historical versions ordered by applied_at (newest first).
+     * Each entry includes the version hash, applied timestamp, actor, tag,
+     * git provenance, and the validated CNCF YAML for historical access.
+     * &#64;internal
+     * Authorization is handled in the handler after resolving the workflow.
+     * (Input uses org+slug, not workflow ID, so proto-level auth cannot work)
+     * &#64;since Workflow Versioning
+     * </pre>
+     */
+    public ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsResponse listVersions(ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getListVersionsMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Get a specific historical version of a workflow by its content hash.
+     * Used by the runner (to hydrate execution from a pinned version) and
+     * the execution viewer (to render the graph for historical executions).
+     * &#64;internal
+     * Authorization uses can_view on the workflow resource.
+     * &#64;since Workflow Versioning
+     * </pre>
+     */
+    public ai.stigmer.agentic.workflow.v1.WorkflowVersionEntry getVersion(ai.stigmer.agentic.workflow.v1.GetWorkflowVersionInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getGetVersionMethod(), getCallOptions(), request);
     }
   }
 
@@ -303,8 +472,11 @@ public final class WorkflowQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get a workflow by its organization-scoped reference (org/slug).
-     * Resolves a human-readable reference like "stigmer/deploy" to the full Workflow resource.
+     * Get a workflow by its organization-scoped reference (org/slug) with version support.
+     * Version resolution (via ApiResourceReference.version field):
+     * - Empty/"latest" → Returns the current version
+     * - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
+     * - SHA256 hash (64 hex chars) → Returns the exact immutable version
      * &#64;internal
      * Custom authorization in handler — checks both direct resource access
      * and organization-level visibility permissions.
@@ -313,6 +485,38 @@ public final class WorkflowQueryControllerGrpc {
     public ai.stigmer.agentic.workflow.v1.Workflow getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getGetByReferenceMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * List version history for a workflow.
+     * Returns all historical versions ordered by applied_at (newest first).
+     * Each entry includes the version hash, applied timestamp, actor, tag,
+     * git provenance, and the validated CNCF YAML for historical access.
+     * &#64;internal
+     * Authorization is handled in the handler after resolving the workflow.
+     * (Input uses org+slug, not workflow ID, so proto-level auth cannot work)
+     * &#64;since Workflow Versioning
+     * </pre>
+     */
+    public ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsResponse listVersions(ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getListVersionsMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Get a specific historical version of a workflow by its content hash.
+     * Used by the runner (to hydrate execution from a pinned version) and
+     * the execution viewer (to render the graph for historical executions).
+     * &#64;internal
+     * Authorization uses can_view on the workflow resource.
+     * &#64;since Workflow Versioning
+     * </pre>
+     */
+    public ai.stigmer.agentic.workflow.v1.WorkflowVersionEntry getVersion(ai.stigmer.agentic.workflow.v1.GetWorkflowVersionInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getGetVersionMethod(), getCallOptions(), request);
     }
   }
 
@@ -348,8 +552,11 @@ public final class WorkflowQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get a workflow by its organization-scoped reference (org/slug).
-     * Resolves a human-readable reference like "stigmer/deploy" to the full Workflow resource.
+     * Get a workflow by its organization-scoped reference (org/slug) with version support.
+     * Version resolution (via ApiResourceReference.version field):
+     * - Empty/"latest" → Returns the current version
+     * - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
+     * - SHA256 hash (64 hex chars) → Returns the exact immutable version
      * &#64;internal
      * Custom authorization in handler — checks both direct resource access
      * and organization-level visibility permissions.
@@ -360,10 +567,46 @@ public final class WorkflowQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getGetByReferenceMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * List version history for a workflow.
+     * Returns all historical versions ordered by applied_at (newest first).
+     * Each entry includes the version hash, applied timestamp, actor, tag,
+     * git provenance, and the validated CNCF YAML for historical access.
+     * &#64;internal
+     * Authorization is handled in the handler after resolving the workflow.
+     * (Input uses org+slug, not workflow ID, so proto-level auth cannot work)
+     * &#64;since Workflow Versioning
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsResponse> listVersions(
+        ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getListVersionsMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * Get a specific historical version of a workflow by its content hash.
+     * Used by the runner (to hydrate execution from a pinned version) and
+     * the execution viewer (to render the graph for historical executions).
+     * &#64;internal
+     * Authorization uses can_view on the workflow resource.
+     * &#64;since Workflow Versioning
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflow.v1.WorkflowVersionEntry> getVersion(
+        ai.stigmer.agentic.workflow.v1.GetWorkflowVersionInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getGetVersionMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_GET = 0;
   private static final int METHODID_GET_BY_REFERENCE = 1;
+  private static final int METHODID_LIST_VERSIONS = 2;
+  private static final int METHODID_GET_VERSION = 3;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -389,6 +632,14 @@ public final class WorkflowQueryControllerGrpc {
         case METHODID_GET_BY_REFERENCE:
           serviceImpl.getByReference((ai.stigmer.commons.apiresource.ApiResourceReference) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.Workflow>) responseObserver);
+          break;
+        case METHODID_LIST_VERSIONS:
+          serviceImpl.listVersions((ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsResponse>) responseObserver);
+          break;
+        case METHODID_GET_VERSION:
+          serviceImpl.getVersion((ai.stigmer.agentic.workflow.v1.GetWorkflowVersionInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.WorkflowVersionEntry>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -422,6 +673,20 @@ public final class WorkflowQueryControllerGrpc {
               ai.stigmer.commons.apiresource.ApiResourceReference,
               ai.stigmer.agentic.workflow.v1.Workflow>(
                 service, METHODID_GET_BY_REFERENCE)))
+        .addMethod(
+          getListVersionsMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsInput,
+              ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsResponse>(
+                service, METHODID_LIST_VERSIONS)))
+        .addMethod(
+          getGetVersionMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.workflow.v1.GetWorkflowVersionInput,
+              ai.stigmer.agentic.workflow.v1.WorkflowVersionEntry>(
+                service, METHODID_GET_VERSION)))
         .build();
   }
 
@@ -472,6 +737,8 @@ public final class WorkflowQueryControllerGrpc {
               .setSchemaDescriptor(new WorkflowQueryControllerFileDescriptorSupplier())
               .addMethod(getGetMethod())
               .addMethod(getGetByReferenceMethod())
+              .addMethod(getListVersionsMethod())
+              .addMethod(getGetVersionMethod())
               .build();
         }
       }

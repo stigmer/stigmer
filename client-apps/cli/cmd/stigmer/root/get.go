@@ -26,6 +26,8 @@ import (
 // NewGetCommand creates the unified get command.
 func NewGetCommand() *cobra.Command {
 	var outputFormat string
+	var versionFlag string
+	var versionHistory bool
 
 	cmd := &cobra.Command{
 		Use:   "get <type> <slug-or-id>",
@@ -44,21 +46,20 @@ The type can be specified using any alias:
 The reference can be:
   - Resource ID (e.g., agt_abc123, aex_xyz789)
   - Slug (e.g., my-agent) - not for executions
-  - Org/slug (e.g., stigmer/my-agent) - not for executions`,
-		Example: `  # Get organization by slug
-  stigmer get organization default
+  - Org/slug (e.g., stigmer/my-agent) - not for executions
 
-  # Get agent by slug
-  stigmer get agent my-agent
+For versioned resources (workflows, skills), use --version to fetch a
+specific historical version or --version-history to show the version
+timeline.`,
+		Example: `  # Get workflow by slug
+  stigmer get workflow my-wf
 
-  # Get workflow by ID
-  stigmer get workflow wfl_abc123
+  # Get a specific historical version of a workflow
+  stigmer get workflow my-org/my-wf --version abc123def456
+  stigmer get workflow my-org/my-wf --version stable
 
-  # Get execution by ID (shows artifacts)
-  stigmer get execution aex_01abc123
-
-  # Get with org/slug reference
-  stigmer get agent stigmer/my-agent
+  # Show version history for a workflow
+  stigmer get workflow my-org/my-wf --version-history
 
   # Output as YAML or JSON
   stigmer get agent my-agent --output yaml
@@ -66,26 +67,32 @@ The reference can be:
 		Args: cobra.ExactArgs(2),
 		Run: func(cmd *cobra.Command, args []string) {
 			err := executeGet(getOptions{
-				TypeArg:      args[0],
-				Reference:    args[1],
-				OrgOverride:  GetOrgFlag(cmd),
-				OutputFormat: outputFormat,
+				TypeArg:        args[0],
+				Reference:      args[1],
+				OrgOverride:    GetOrgFlag(cmd),
+				OutputFormat:   outputFormat,
+				Version:        versionFlag,
+				VersionHistory: versionHistory,
 			})
 			clierr.Handle(err)
 		},
 	}
 
 	cmd.Flags().StringVarP(&outputFormat, "output", "o", "table", "output format: table, yaml, json")
+	cmd.Flags().StringVar(&versionFlag, "version", "", "get a specific version by hash or tag (versioned resources only)")
+	cmd.Flags().BoolVar(&versionHistory, "version-history", false, "show version history timeline (versioned resources only)")
 
 	return cmd
 }
 
 // getOptions contains options for the get command.
 type getOptions struct {
-	TypeArg      string
-	Reference    string
-	OrgOverride  string
-	OutputFormat string
+	TypeArg        string
+	Reference      string
+	OrgOverride    string
+	OutputFormat   string
+	Version        string
+	VersionHistory bool
 }
 
 // isGetExecutionType checks if the type arg refers to executions.
@@ -153,29 +160,29 @@ func executeGet(opts getOptions) error {
 	defer client.Close()
 
 	// Step 4: Route to appropriate handler
-	return routeGet(info, opts.Reference, orgID, opts.OutputFormat, client)
+	return routeGet(info, opts, orgID, client)
 }
 
 // routeGet routes to the appropriate get handler based on kind.
-func routeGet(info *types.TypeInfo, ref, orgID, format string, client *stigmer.Client) error {
+func routeGet(info *types.TypeInfo, opts getOptions, orgID string, client *stigmer.Client) error {
 	switch info.ProtoKind {
 	case apiresourcekind.ApiResourceKind_agent:
-		return getAgent(ref, orgID, format, client)
+		return getAgent(opts.Reference, orgID, opts.OutputFormat, client)
 
 	case apiresourcekind.ApiResourceKind_workflow:
-		return getWorkflow(ref, orgID, format, client)
+		return getWorkflow(opts, orgID, client)
 
 	case apiresourcekind.ApiResourceKind_mcp_server:
-		return getMcpServer(ref, orgID, format, client)
+		return getMcpServer(opts.Reference, orgID, opts.OutputFormat, client)
 
 	case apiresourcekind.ApiResourceKind_project:
-		return getProject(ref, orgID, format, client)
+		return getProject(opts.Reference, orgID, opts.OutputFormat, client)
 
 	case apiresourcekind.ApiResourceKind_skill:
-		return getSkill(ref, orgID, format, client)
+		return getSkill(opts.Reference, orgID, opts.OutputFormat, client)
 
 	case apiresourcekind.ApiResourceKind_api_key:
-		return getApiKey(ref, format, client)
+		return getApiKey(opts.Reference, opts.OutputFormat, client)
 
 	default:
 		return fmt.Errorf("get not implemented for %s", info.DisplayName)
@@ -192,14 +199,37 @@ func getAgent(ref, orgID, format string, client *stigmer.Client) error {
 	return nil
 }
 
-// getWorkflow retrieves a workflow.
-func getWorkflow(ref, orgID, format string, client *stigmer.Client) error {
+// getWorkflow retrieves a workflow, with optional version resolution.
+func getWorkflow(opts getOptions, orgID string, client *stigmer.Client) error {
+	ref := opts.Reference
+
+	// Parse org/slug from the reference for version operations.
+	org, slug := parseOrgSlug(ref, orgID)
+
+	if opts.VersionHistory {
+		return workflow.RunVersionsList(client, org, slug, 50)
+	}
+
+	if opts.Version != "" {
+		return workflow.RunVersionsGet(client, org, slug, opts.Version)
+	}
+
 	result, err := workflow.GetFromBackend(client, orgID, ref)
 	if err != nil {
 		return err
 	}
-	workflow.DisplayGetResult(result, format)
+	workflow.DisplayGetResult(result, opts.OutputFormat)
 	return nil
+}
+
+// parseOrgSlug splits a reference into org and slug components.
+// If the reference contains a slash, it's treated as "org/slug".
+// Otherwise, the slug is the reference and org comes from the flag/config.
+func parseOrgSlug(ref, orgID string) (string, string) {
+	if idx := strings.Index(ref, "/"); idx > 0 {
+		return ref[:idx], ref[idx+1:]
+	}
+	return orgID, ref
 }
 
 // getMcpServer retrieves an MCP server.

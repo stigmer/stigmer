@@ -25,7 +25,7 @@ func StreamingExecution() {
 		AgentId: "agent-id",
 		Message: "Review the latest changes in the auth module",
 		ExecutionConfig: &stigmer.ExecutionConfigInput{
-			ModelName:     "claude-sonnet-4-20250514",
+			ModelName:     "claude-sonnet-4-6",
 			MaxToolRounds: 25,
 			MaxCostUsd:    2.00,
 		},

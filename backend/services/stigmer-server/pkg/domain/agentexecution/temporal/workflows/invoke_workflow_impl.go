@@ -33,7 +33,9 @@ import (
 //
 // Both flows share the same HITL approval loop (approvalGateResolved signal)
 // and pause/resume pattern (CancellationScope).
-type InvokeAgentExecutionWorkflowImpl struct{}
+type InvokeAgentExecutionWorkflowImpl struct {
+	lastActivityResult activities.RunnerActivityResult
+}
 
 // Run implements InvokeAgentExecutionWorkflow.Run
 func (w *InvokeAgentExecutionWorkflowImpl) Run(ctx workflow.Context, input *InvokeAgentExecutionWorkflowInput) error {
@@ -51,12 +53,31 @@ func (w *InvokeAgentExecutionWorkflowImpl) Run(ctx workflow.Context, input *Invo
 			"token_length", len(callbackToken))
 	}
 
+	// Notify parent workflow that child execution has started (enables live subscription).
+	// Uses SignalExternalWorkflow — non-blocking, fire-and-forget.
+	if input.ParentWorkflowID != "" {
+		signalCtx, signalCancel := workflow.WithCancel(ctx)
+		workflow.Go(signalCtx, func(gCtx workflow.Context) {
+			defer signalCancel()
+			payload := struct {
+				ExecutionID string `json:"executionId"`
+			}{ExecutionID: executionID}
+			err := workflow.SignalExternalWorkflow(gCtx, input.ParentWorkflowID, "", "child_execution_started", payload).Get(gCtx, nil)
+			if err != nil {
+				logger.Warn("Failed to signal parent execution started (non-fatal)",
+					"parent_workflow_id", input.ParentWorkflowID,
+					"error", err)
+			}
+		})
+	}
+
 	// Dispatch by harness
 	var flowErr error
+	var lastActivityResult activities.RunnerActivityResult
 	if sessionv1.Harness(input.Harness) == sessionv1.Harness_HARNESS_CURSOR {
-		flowErr = w.executeCursorFlow(ctx, input)
+		lastActivityResult, flowErr = w.executeCursorFlowWithResult(ctx, input)
 	} else {
-		flowErr = w.executeDeepAgentFlow(ctx, input)
+		lastActivityResult, flowErr = w.executeDeepAgentFlowWithResult(ctx, input)
 	}
 	if err := flowErr; err != nil {
 		// Cancellation path: workflow was cancelled externally (user cancel, namespace timeout).
@@ -89,15 +110,15 @@ func (w *InvokeAgentExecutionWorkflowImpl) Run(ctx workflow.Context, input *Invo
 
 	// Complete external activity with success (if token provided)
 	if len(callbackToken) > 0 {
-		// Load the current execution from DB so the external workflow receives
-		// the completion-time state (not a stale creation-time snapshot).
 		execution, err := w.loadExecution(ctx, executionID)
 		if err != nil {
 			logger.Error("Failed to load execution for callback result", "error", err.Error())
 			return err
 		}
 
-		if err := w.completeExternalActivity(ctx, callbackToken, execution, nil); err != nil {
+		callbackResult := w.buildCallbackResult(lastActivityResult, execution)
+
+		if err := w.completeExternalActivity(ctx, callbackToken, callbackResult, nil); err != nil {
 			logger.Error("Failed to complete external activity with success", "error", err.Error())
 			return err
 		}
@@ -179,7 +200,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeDeepAgentFlow(ctx workflow.Con
 	pauseCh := workflow.GetSignalChannel(ctx, SignalPause)
 	resumeCh := workflow.GetSignalChannel(ctx, SignalResume)
 
-	var finalStatus *agentexecutionv1.AgentExecutionStatus
+	var finalResult activities.RunnerActivityResult
 	pauseCycle := 0
 
 	for {
@@ -201,7 +222,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeDeepAgentFlow(ctx workflow.Con
 		})
 
 		// Execute the agent with HITL approval loop (uses cancellable context)
-		finalStatus, err = w.executeDeepAgentWithHitl(
+		finalResult, err = w.executeDeepAgentWithHitl(
 			activityCtx, activityTaskQueue, executionID, threadID,
 		)
 
@@ -249,24 +270,30 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeDeepAgentFlow(ctx workflow.Con
 		break
 	}
 
+	w.lastActivityResult = finalResult
+	finalPhase := activities.GetPhaseFromResult(finalResult)
 	logger.Info("Deep agent execution completed - final slim status received",
 		"execution_id", executionID,
-		"phase", finalStatus.GetPhase().String(),
-		"pending_approvals", len(finalStatus.GetPendingApprovals()),
+		"phase", finalPhase.String(),
 		"pause_cycles", pauseCycle)
 
-	// Defense-in-depth: persist FAILED status as a fallback. The primary path
-	// is Python's gRPC update_status call, but if that failed (transient network
-	// issue, server down), the error would be silently lost.
-	if finalStatus.GetPhase() == agentexecutionv1.ExecutionPhase_EXECUTION_FAILED {
-		logger.Warn("Activity returned EXECUTION_FAILED -- persisting as fallback",
+	// Defense-in-depth: persist FAILED status as a fallback.
+	if finalPhase == agentexecutionv1.ExecutionPhase_EXECUTION_FAILED {
+		finalError := activities.GetErrorFromResult(finalResult)
+		logger.Warn("Activity returned EXECUTION_FAILED -- propagating to parent workflow",
 			"execution_id", executionID,
-			"error", finalStatus.GetError())
+			"error", finalError)
 
-		if err := w.persistFinalStatus(ctx, executionID, finalStatus); err != nil {
+		failedStatus := &agentexecutionv1.AgentExecutionStatus{
+			Phase: agentexecutionv1.ExecutionPhase_EXECUTION_FAILED,
+			Error: finalError,
+		}
+		if err := w.persistFinalStatus(ctx, executionID, failedStatus); err != nil {
 			logger.Error("Failed to persist fallback FAILED status",
 				"execution_id", executionID, "error", err.Error())
 		}
+
+		return fmt.Errorf("agent execution failed: %s", finalError)
 	}
 
 	return nil
@@ -280,57 +307,49 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeDeepAgentWithHitl(
 	activityTaskQueue string,
 	executionID string,
 	threadID string,
-) (*agentexecutionv1.AgentExecutionStatus, error) {
+) (activities.RunnerActivityResult, error) {
 	logger := workflow.GetLogger(ctx)
 
 	executeDeepAgentActivity := activities.NewExecuteDeepAgentActivityStub(ctx, activityTaskQueue)
 
-	finalStatus, err := executeDeepAgentActivity.ExecuteDeepAgent(executionID, threadID)
+	finalResult, err := executeDeepAgentActivity.ExecuteDeepAgent(executionID, threadID)
 	if err != nil {
 		return nil, err
 	}
 
-	if finalStatus == nil {
+	if finalResult == nil {
 		logger.Error("ExecuteDeepAgent returned NULL status", "execution_id", executionID)
 		return nil, fmt.Errorf("activity returned null status - this should never happen")
 	}
 
+	finalPhase := activities.GetPhaseFromResult(finalResult)
 	logger.Info("Activity returned slim status",
 		"execution_id", executionID,
-		"phase", finalStatus.GetPhase().String(),
-		"phase_value", int32(finalStatus.GetPhase()))
+		"phase", finalPhase.String(),
+		"phase_value", int32(finalPhase))
 
-	// HITL Approval Loop (DB-Driven Resume)
-	//
-	// When Python returns EXECUTION_WAITING_FOR_APPROVAL, the workflow persists
-	// the status, loads the execution from DB to get the authoritative
-	// pending_approvals (computed by ComputePendingApprovals on every
-	// UpdateStatus write), then waits for a single approvalGateResolved signal.
-	//
-	// All blocking operations use the provided ctx so that cancellation (from the
-	// pause/resume outer loop) propagates through.
 	approvalCycle := 0
-	for finalStatus.GetPhase() == agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL {
+	for finalPhase == agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL {
 		approvalCycle++
 		if approvalCycle > MaxApprovalCycles {
 			logger.Error("Max approval cycles reached", "execution_id", executionID, "cycles", approvalCycle)
 			return nil, fmt.Errorf("max approval cycles (%d) reached - possible infinite loop", MaxApprovalCycles)
 		}
 
-		if err := w.persistFinalStatus(ctx, executionID, finalStatus); err != nil {
+		waitingStatus := &agentexecutionv1.AgentExecutionStatus{
+			Phase: agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL,
+		}
+		if err := w.persistFinalStatus(ctx, executionID, waitingStatus); err != nil {
 			logger.Warn("Failed to persist WAITING_FOR_APPROVAL status before signal wait (non-fatal)",
 				"execution_id", executionID, "error", err.Error())
 		}
 
-		// Read pending_approvals from DB — the single source of truth.
-		// ComputePendingApprovals runs on every UpdateStatus write, so
-		// the DB always has the authoritative count.
 		dbExecution, loadErr := w.loadExecution(ctx, executionID)
 		pendingCount := 0
 		if loadErr != nil {
 			logger.Warn("Failed to load execution from DB for pending count (non-fatal, will wait for signal)",
 				"execution_id", executionID, "error", loadErr.Error())
-			pendingCount = 1 // assume pending to avoid skipping the signal wait
+			pendingCount = 1
 		} else {
 			pendingCount = len(dbExecution.GetStatus().GetPendingApprovals())
 		}
@@ -342,7 +361,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeDeepAgentWithHitl(
 
 		if pendingCount == 0 {
 			logger.Warn("pending_approvals is empty but phase is WAITING_FOR_APPROVAL — "+
-				"re-invoking Python immediately to resolve inconsistency",
+				"re-invoking immediately to resolve inconsistency",
 				"execution_id", executionID,
 				"cycle", approvalCycle)
 		} else {
@@ -358,24 +377,25 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeDeepAgentWithHitl(
 			"execution_id", executionID,
 			"cycle", approvalCycle)
 
-		finalStatus, err = executeDeepAgentActivity.ExecuteDeepAgent(executionID, threadID)
+		finalResult, err = executeDeepAgentActivity.ExecuteDeepAgent(executionID, threadID)
 		if err != nil {
 			return nil, err
 		}
 
-		if finalStatus == nil {
+		if finalResult == nil {
 			logger.Error("ExecuteDeepAgent returned NULL status after approval", "execution_id", executionID)
 			return nil, fmt.Errorf("activity returned null status after approval - this should never happen")
 		}
 
+		finalPhase = activities.GetPhaseFromResult(finalResult)
 		logger.Info("Activity returned slim status after approval",
 			"execution_id", executionID,
-			"phase", finalStatus.GetPhase().String(),
-			"phase_value", int32(finalStatus.GetPhase()),
+			"phase", finalPhase.String(),
+			"phase_value", int32(finalPhase),
 			"cycle", approvalCycle)
 	}
 
-	return finalStatus, nil
+	return finalResult, nil
 }
 
 // executeCursorFlow executes a Cursor harness agent. Structurally identical to
@@ -410,7 +430,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeCursorFlow(ctx workflow.Contex
 	pauseCh := workflow.GetSignalChannel(ctx, SignalPause)
 	resumeCh := workflow.GetSignalChannel(ctx, SignalResume)
 
-	var finalStatus *agentexecutionv1.AgentExecutionStatus
+	var finalResult activities.RunnerActivityResult
 	pauseCycle := 0
 
 	for {
@@ -427,7 +447,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeCursorFlow(ctx workflow.Contex
 			cancelActivity()
 		})
 
-		result, err := w.executeCursorWithHitl(activityCtx, activityTaskQueue, executionID, sessionID)
+		cursorResult, err := w.executeCursorWithHitl(activityCtx, activityTaskQueue, executionID, sessionID)
 
 		if err != nil && pauseRequested {
 			pauseCycle++
@@ -458,22 +478,32 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeCursorFlow(ctx workflow.Contex
 			return w.wrapActivityError("ExecuteCursor", err)
 		}
 
-		finalStatus = result
+		finalResult = cursorResult
 		break
 	}
 
+	w.lastActivityResult = finalResult
+	finalPhase := activities.GetPhaseFromResult(finalResult)
 	logger.Info("Cursor execution completed",
 		"execution_id", executionID,
-		"phase", finalStatus.GetPhase().String(),
+		"phase", finalPhase.String(),
 		"pause_cycles", pauseCycle)
 
-	if finalStatus.GetPhase() == agentexecutionv1.ExecutionPhase_EXECUTION_FAILED {
-		logger.Warn("Activity returned EXECUTION_FAILED -- persisting as fallback",
-			"execution_id", executionID, "error", finalStatus.GetError())
-		if err := w.persistFinalStatus(ctx, executionID, finalStatus); err != nil {
+	if finalPhase == agentexecutionv1.ExecutionPhase_EXECUTION_FAILED {
+		finalError := activities.GetErrorFromResult(finalResult)
+		logger.Warn("Activity returned EXECUTION_FAILED -- propagating to parent workflow",
+			"execution_id", executionID, "error", finalError)
+
+		failedStatus := &agentexecutionv1.AgentExecutionStatus{
+			Phase: agentexecutionv1.ExecutionPhase_EXECUTION_FAILED,
+			Error: finalError,
+		}
+		if err := w.persistFinalStatus(ctx, executionID, failedStatus); err != nil {
 			logger.Error("Failed to persist fallback FAILED status",
 				"execution_id", executionID, "error", err.Error())
 		}
+
+		return fmt.Errorf("agent execution failed: %s", finalError)
 	}
 
 	return nil
@@ -488,11 +518,9 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeCursorWithHitl(
 	activityTaskQueue string,
 	executionID string,
 	sessionID string,
-) (*agentexecutionv1.AgentExecutionStatus, error) {
+) (activities.RunnerActivityResult, error) {
 	logger := workflow.GetLogger(ctx)
 
-	// Read harness_state_id (Cursor agentId) from session — empty on first execution,
-	// populated by the activity after Agent.create().
 	harnessStateID, err := w.readHarnessStateId(ctx, sessionID)
 	if err != nil {
 		logger.Warn("Failed to read session harness_state_id (non-fatal, using empty)",
@@ -502,27 +530,31 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeCursorWithHitl(
 
 	executeCursorActivity := activities.NewExecuteCursorActivityStub(ctx, activityTaskQueue)
 
-	finalStatus, err := executeCursorActivity.ExecuteCursor(executionID, harnessStateID)
+	finalResult, err := executeCursorActivity.ExecuteCursor(executionID, harnessStateID)
 	if err != nil {
 		return nil, err
 	}
 
-	if finalStatus == nil {
+	if finalResult == nil {
 		return nil, fmt.Errorf("cursor activity returned null status - this should never happen")
 	}
 
+	finalPhase := activities.GetPhaseFromResult(finalResult)
 	logger.Info("Cursor activity returned slim status",
 		"execution_id", executionID,
-		"phase", finalStatus.GetPhase().String())
+		"phase", finalPhase.String())
 
 	approvalCycle := 0
-	for finalStatus.GetPhase() == agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL {
+	for finalPhase == agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL {
 		approvalCycle++
 		if approvalCycle > MaxApprovalCycles {
 			return nil, fmt.Errorf("max approval cycles (%d) reached - possible infinite loop", MaxApprovalCycles)
 		}
 
-		if err := w.persistFinalStatus(ctx, executionID, finalStatus); err != nil {
+		waitingStatus := &agentexecutionv1.AgentExecutionStatus{
+			Phase: agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL,
+		}
+		if err := w.persistFinalStatus(ctx, executionID, waitingStatus); err != nil {
 			logger.Warn("Failed to persist WAITING_FOR_APPROVAL status (non-fatal)",
 				"execution_id", executionID, "error", err.Error())
 		}
@@ -550,7 +582,6 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeCursorWithHitl(
 				"execution_id", executionID, "cycle", approvalCycle)
 		}
 
-		// Re-read harness_state_id — the first ExecuteCursor call stored the Cursor agentId
 		harnessStateID, err = w.readHarnessStateId(ctx, sessionID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read session harness_state_id for reinvocation: %w", err)
@@ -559,22 +590,87 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeCursorWithHitl(
 		logger.Info("Re-invoking Cursor after approval", "execution_id", executionID,
 			"cycle", approvalCycle, "harness_state_id", harnessStateID)
 
-		finalStatus, err = executeCursorActivity.ExecuteCursor(executionID, harnessStateID)
+		finalResult, err = executeCursorActivity.ExecuteCursor(executionID, harnessStateID)
 		if err != nil {
 			return nil, err
 		}
 
-		if finalStatus == nil {
+		if finalResult == nil {
 			return nil, fmt.Errorf("cursor activity returned null status after approval - this should never happen")
 		}
 
+		finalPhase = activities.GetPhaseFromResult(finalResult)
 		logger.Info("Cursor activity returned slim status after approval",
 			"execution_id", executionID,
-			"phase", finalStatus.GetPhase().String(),
+			"phase", finalPhase.String(),
 			"cycle", approvalCycle)
 	}
 
-	return finalStatus, nil
+	return finalResult, nil
+}
+
+// executeDeepAgentFlowWithResult wraps executeDeepAgentFlow to also return
+// the last activity result for callback result construction. The flow
+// stores its result on w.lastActivityResult.
+func (w *InvokeAgentExecutionWorkflowImpl) executeDeepAgentFlowWithResult(ctx workflow.Context, input *InvokeAgentExecutionWorkflowInput) (activities.RunnerActivityResult, error) {
+	err := w.executeDeepAgentFlow(ctx, input)
+	return w.lastActivityResult, err
+}
+
+// executeCursorFlowWithResult wraps executeCursorFlow to also return
+// the last activity result for callback result construction. The flow
+// stores its result on w.lastActivityResult.
+func (w *InvokeAgentExecutionWorkflowImpl) executeCursorFlowWithResult(ctx workflow.Context, input *InvokeAgentExecutionWorkflowInput) (activities.RunnerActivityResult, error) {
+	err := w.executeCursorFlow(ctx, input)
+	return w.lastActivityResult, err
+}
+
+// buildCallbackResult constructs the result passed back to the parent
+// workflow via async activity completion. Combines runner-extracted
+// structured data with execution metadata.
+func (w *InvokeAgentExecutionWorkflowImpl) buildCallbackResult(
+	activityResult activities.RunnerActivityResult,
+	execution *agentexecutionv1.AgentExecution,
+) map[string]interface{} {
+	result := map[string]interface{}{
+		"agent_execution_id": execution.GetMetadata().GetId(),
+	}
+
+	// Pass through runner-extracted structured data.
+	// The runner's slimStatus() returns proto-JSON with camelCase keys,
+	// so the field is "structuredOutput" (camelCase). Also check
+	// "structured_output" (snake_case) and "structured" for resilience.
+	if activityResult != nil {
+		if structured, ok := activityResult["structuredOutput"]; ok {
+			result["structured"] = structured
+		} else if structured, ok := activityResult["structured_output"]; ok {
+			result["structured"] = structured
+		} else if structured, ok := activityResult["structured"]; ok {
+			result["structured"] = structured
+		}
+		if finalText, ok := activityResult["final_text"]; ok {
+			result["final_text"] = finalText
+		}
+	}
+
+	// Fallback: if structured output wasn't in the activity result,
+	// read from the persisted execution status (populated via updateStatus gRPC).
+	if _, hasStructured := result["structured"]; !hasStructured {
+		if so := execution.GetStatus().GetStructuredOutput(); so != nil {
+			result["structured"] = so.AsMap()
+		}
+	}
+
+	// Add usage summary from the execution status
+	streamingUsage := execution.GetStatus().GetStreamingUsage()
+	if streamingUsage != nil {
+		result["usage_summary"] = map[string]interface{}{
+			"total_tokens":       streamingUsage.GetTotalTokens(),
+			"estimated_cost_usd": streamingUsage.GetEstimatedCostUsd(),
+		}
+	}
+
+	return result
 }
 
 // readHarnessStateId reads the harness_state_id from a session via local activity.

@@ -76,10 +76,12 @@ func (c *WorkflowExecutionController) buildCreatePipeline() *pipeline.Pipeline[*
 		AddStep(steps.NewBuildNewStateStep[*workflowexecutionv1.WorkflowExecution]()).                                               // 6. Build new state
 		AddStep(steps.NewNormalizeReferencesStep[*workflowexecutionv1.WorkflowExecution]()).                                         // 7. Normalize cross-references
 		AddStep(newSetInitialPhaseStep()).                                                                                           // 8. Set phase to PENDING
-		AddStep(c.newCreateExecutionContextStep()).                                                                                  // 9. Create ExecutionContext with merged environment
-		AddStep(steps.NewPersistStep[*workflowexecutionv1.WorkflowExecution](c.store)).                                              // 10. Persist execution
-		AddStep(steps.NewIndexSearchStep[*workflowexecutionv1.WorkflowExecution](c.store, &extractor.WorkflowExecutionExtractor{})). // 11. Update search index
-		AddStep(c.newStartWorkflowStep()).                                                                                           // 12. Start Temporal workflow
+		AddStep(newNormalizeWorkflowRefStep(c.store)).                                                                               // 9. Ensure spec.workflow_id is populated from the instance
+		AddStep(newPinWorkflowVersionStep(c.store)).                                                                                 // 10. Pin workflow version hash on execution
+		AddStep(c.newCreateExecutionContextStep()).                                                                                  // 11. Create ExecutionContext with merged environment
+		AddStep(steps.NewPersistStep[*workflowexecutionv1.WorkflowExecution](c.store)).                                              // 12. Persist execution
+		AddStep(steps.NewIndexSearchStep[*workflowexecutionv1.WorkflowExecution](c.store, &extractor.WorkflowExecutionExtractor{})). // 13. Update search index
+		AddStep(c.newStartWorkflowStep()).                                                                                           // 14. Start Temporal workflow
 		Build()
 }
 

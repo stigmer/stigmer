@@ -95,6 +95,8 @@ describe("WorkflowArchitectDialog", () => {
     render(<WorkflowArchitectDialog {...defaultProps} />);
 
     expect(screen.getByText("Generated Workflow")).toBeTruthy();
+    // The raw YAML lives behind a collapsible "View YAML" toggle; expand it first.
+    fireEvent.click(screen.getByText("▸ View YAML"));
     expect(screen.getByText(/name: my-workflow/)).toBeTruthy();
     expect(screen.getByText("Create Workflow")).toBeTruthy();
     expect(screen.getByText("Try Again")).toBeTruthy();

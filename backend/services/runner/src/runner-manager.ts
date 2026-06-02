@@ -29,6 +29,17 @@ import type { WorkerActivities } from "./worker.js";
 const SESSION_QUEUE_PREFIX = "session:";
 const WFEXEC_QUEUE_PREFIX = "wfexec:";
 
+/**
+ * Module-level registry of shutdown signals per task queue.
+ * Activities running in the same process can read this to determine
+ * whether their worker is being shut down (vs orchestrator pause).
+ */
+const _shutdownSignalRegistry = new Map<string, AbortSignal>();
+
+export function getShutdownSignalForQueue(taskQueue: string): AbortSignal | undefined {
+  return _shutdownSignalRegistry.get(taskQueue);
+}
+
 export interface RunnerManagerOptions {
   /** Temporal server address (e.g. "localhost:7233"). */
   readonly temporalAddress: string;
@@ -96,6 +107,7 @@ export interface StigmerRunnerManager {
 interface ManagedSession {
   worker: Worker;
   runPromise: Promise<void>;
+  shutdownController: AbortController;
 }
 
 /**
@@ -130,13 +142,27 @@ export async function createStigmerRunnerManager(
   const config = mapManagerOptionsToConfig(options, tokenRef);
 
   // Install fetch interceptor before any @cursor/sdk imports
-  const { installFetchInterceptor } = await import(
+  const { installFetchInterceptor, updateInterceptorToken, getExecutionContext } = await import(
     "./activities/execute-cursor/fetch-interceptor.js"
   );
   installFetchInterceptor({
     proxyEndpoint: config.proxyEndpoint ?? undefined,
     stigmerToken: config.stigmerToken ?? undefined,
   });
+
+  // HTTP/2 interceptor for Connect RPC auth + execution ID injection (BiDi billing)
+  const { installHttp2Interceptor, updateHttp2InterceptorToken } = await import(
+    "./activities/execute-cursor/http2-interceptor.js"
+  );
+  installHttp2Interceptor({
+    proxyEndpoint: config.proxyEndpoint ?? undefined,
+    stigmerToken: config.stigmerToken ?? undefined,
+  });
+
+  const { setExecutionContextRef } = await import(
+    "./activities/execute-cursor/rejection-capture.js"
+  );
+  setExecutionContextRef(getExecutionContext());
 
   const activities = await createAllActivities(config);
   const payloadCodec = await createPayloadCodec(config);
@@ -156,9 +182,14 @@ export async function createStigmerRunnerManager(
 
   const sessions = new Map<string, ManagedSession>();
   const workflowExecutions = new Map<string, ManagedSession>();
+  const shutdownSignals = new Map<string, AbortController>();
   let shuttingDown = false;
 
   async function createWorkerOnQueue(taskQueue: string): Promise<ManagedSession> {
+    const shutdownController = new AbortController();
+    shutdownSignals.set(taskQueue, shutdownController);
+    _shutdownSignalRegistry.set(taskQueue, shutdownController.signal);
+
     const worker = await Worker.create({
       connection,
       namespace: config.temporalNamespace,
@@ -180,7 +211,7 @@ export async function createStigmerRunnerManager(
       );
     });
 
-    return { worker, runPromise };
+    return { worker, runPromise, shutdownController };
   }
 
   return {
@@ -206,9 +237,13 @@ export async function createStigmerRunnerManager(
         return;
       }
 
+      const taskQueue = SESSION_QUEUE_PREFIX + sessionId;
+      session.shutdownController.abort();
       session.worker.shutdown();
       await session.runPromise;
       sessions.delete(sessionId);
+      shutdownSignals.delete(taskQueue);
+      _shutdownSignalRegistry.delete(taskQueue);
       console.log(
         `[runner-manager] Removed session ${sessionId} (active=${sessions.size})`,
       );
@@ -240,9 +275,13 @@ export async function createStigmerRunnerManager(
         return;
       }
 
+      const taskQueue = WFEXEC_QUEUE_PREFIX + executionId;
+      execution.shutdownController.abort();
       execution.worker.shutdown();
       await execution.runPromise;
       workflowExecutions.delete(executionId);
+      shutdownSignals.delete(taskQueue);
+      _shutdownSignalRegistry.delete(taskQueue);
       console.log(
         `[runner-manager] Removed workflow execution ${executionId} (active=${workflowExecutions.size})`,
       );
@@ -254,9 +293,10 @@ export async function createStigmerRunnerManager(
 
     updateToken(token: string | null): void {
       tokenRef.current = token;
-      // Also update env so activities calling loadConfig() at runtime pick it up
       if (token) {
         process.env.STIGMER_TOKEN = token;
+        updateInterceptorToken(token);
+        updateHttp2InterceptorToken(token);
       } else {
         delete process.env.STIGMER_TOKEN;
       }
@@ -357,6 +397,7 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
     { createRunCommandActivities },
     { createHydrateWorkflowActivities },
     { createWorkflowEventActivities },
+    { createPromoteTaskOutputActivities },
   ] = await Promise.all([
     import("./activities/execute-cursor/index.js"),
     import("./activities/execute-deep-agent/index.js"),
@@ -373,6 +414,7 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
     import("./activities/run-command.js"),
     import("./activities/hydrate-workflow-execution.js"),
     import("./activities/workflow-event-activities.js"),
+    import("./activities/promote-task-output.js"),
   ]);
 
   return {
@@ -391,6 +433,7 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
     ...createRunCommandActivities(),
     ...createHydrateWorkflowActivities(config),
     ...createWorkflowEventActivities(),
+    ...createPromoteTaskOutputActivities(),
   };
 }
 

@@ -45,7 +45,11 @@ func (c *WorkflowController) buildUpdatePipeline() *pipeline.Pipeline[*workflowv
 		AddStep(steps.NewBuildUpdateStateStep[*workflowv1.Workflow]()).                                   // 5. Build updated state (merge spec, preserve status, update audit)
 		AddStep(steps.NewNormalizeReferencesStep[*workflowv1.Workflow]()).                                // 6. Normalize cross-references
 		AddStep(newPopulateServerlessValidationStepForUpdate()).                                          // 7. Refresh serverless validation YAML on update
-		AddStep(steps.NewPersistStep[*workflowv1.Workflow](c.store)).                                     // 8. Persist workflow
-		AddStep(steps.NewIndexSearchStep[*workflowv1.Workflow](c.store, &extractor.WorkflowExtractor{})). // 9. Update search index
+		AddStep(newComputeVersionHashStep()).                                                             // 8. Compute SHA-256 of CNCF YAML
+		AddStep(newCheckVersionChangedStep()).                                                            // 9. Compare hash with existing (skip audit if unchanged)
+		AddStep(newPopulateVersionHashStep(false)).                                                       // 10. Set status.version_hash + metadata.version (if changed)
+		AddStep(newSaveVersionAuditStep(c.store, false)).                                                 // 11. Archive version (reverts hash on failure)
+		AddStep(steps.NewPersistStep[*workflowv1.Workflow](c.store)).                                     // 12. Persist workflow
+		AddStep(steps.NewIndexSearchStep[*workflowv1.Workflow](c.store, &extractor.WorkflowExtractor{})). // 13. Update search index
 		Build()
 }

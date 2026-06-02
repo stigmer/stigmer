@@ -118,7 +118,7 @@ export function resolveProxyBaseUrl(
  */
 export function buildProxyHeaders(
   token: string,
-  options?: { executionId?: string; mcpServerId?: string },
+  options?: { executionId?: string; mcpServerId?: string; workflowExecutionId?: string },
 ): Record<string, string> {
   const headers: Record<string, string> = {
     Authorization: `Bearer ${token}`,
@@ -129,6 +129,9 @@ export function buildProxyHeaders(
   }
   if (options?.mcpServerId) {
     headers["X-Stigmer-Mcp-Server-Id"] = options.mcpServerId;
+  }
+  if (options?.workflowExecutionId) {
+    headers["X-Stigmer-Workflow-Execution-Id"] = options.workflowExecutionId;
   }
 
   return headers;

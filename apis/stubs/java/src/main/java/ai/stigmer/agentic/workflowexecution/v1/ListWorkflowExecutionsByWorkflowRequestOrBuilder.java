@@ -68,4 +68,72 @@ public interface ListWorkflowExecutionsByWorkflowRequestOrBuilder extends
    */
   com.google.protobuf.ByteString
       getPageTokenBytes();
+
+  /**
+   * <pre>
+   * Structured filter criteria for advanced filtering.
+   *
+   * &#64;since T13 (Execution History)
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria filter = 4 [json_name = "filter"];</code>
+   * @return Whether the filter field is set.
+   */
+  boolean hasFilter();
+  /**
+   * <pre>
+   * Structured filter criteria for advanced filtering.
+   *
+   * &#64;since T13 (Execution History)
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria filter = 4 [json_name = "filter"];</code>
+   * @return The filter.
+   */
+  ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria getFilter();
+  /**
+   * <pre>
+   * Structured filter criteria for advanced filtering.
+   *
+   * &#64;since T13 (Execution History)
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria filter = 4 [json_name = "filter"];</code>
+   */
+  ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteriaOrBuilder getFilterOrBuilder();
+
+  /**
+   * <pre>
+   * Sort field. When unspecified, defaults to started_at descending.
+   *
+   * &#64;since T13 (Execution History)
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField sort_field = 5 [json_name = "sortField"];</code>
+   * @return The enum numeric value on the wire for sortField.
+   */
+  int getSortFieldValue();
+  /**
+   * <pre>
+   * Sort field. When unspecified, defaults to started_at descending.
+   *
+   * &#64;since T13 (Execution History)
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField sort_field = 5 [json_name = "sortField"];</code>
+   * @return The sortField.
+   */
+  ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField getSortField();
+
+  /**
+   * <pre>
+   * When true, sorts in ascending order. Default (false) is descending.
+   *
+   * &#64;since T13 (Execution History)
+   * </pre>
+   *
+   * <code>bool sort_ascending = 6 [json_name = "sortAscending"];</code>
+   * @return The sortAscending.
+   */
+  boolean getSortAscending();
 }

@@ -1,6 +1,7 @@
 from ai.stigmer.agentic.workflow.v1 import api_pb2 as _api_pb2
 from ai.stigmer.agentic.workflow.v1 import io_pb2 as _io_pb2
 from ai.stigmer.agentic.workflow.v1.serverless import validation_pb2 as _validation_pb2
+from ai.stigmer.agentic.workflow.v1 import version_pb2 as _version_pb2
 from ai.stigmer.commons.apiresource import io_pb2 as _io_pb2_1
 from ai.stigmer.commons.apiresource import rpc_service_options_pb2 as _rpc_service_options_pb2
 from ai.stigmer.commons.rpc import method_options_pb2 as _method_options_pb2

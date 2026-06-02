@@ -38,6 +38,10 @@ vi.mock("@temporalio/workflow", () => ({
     constructor(msg: string) { super(msg); }
     static nonRetryable(msg: string, type?: string) { return new ApplicationFailure(msg); }
   },
+  ActivityFailure: class ActivityFailure extends Error {
+    cause?: unknown;
+    constructor(msg: string) { super(msg); }
+  },
   CancelledFailure: class CancelledFailure extends Error { constructor(msg: string) { super(msg); } },
   CancellationScope: { current: vi.fn() },
   isCancellation: vi.fn(() => false),

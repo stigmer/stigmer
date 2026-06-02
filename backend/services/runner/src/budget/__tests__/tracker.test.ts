@@ -266,4 +266,28 @@ describe("extractCostFromOutput", () => {
     expect(cost.inputTokens).toBe(0);
     expect(cost.outputTokens).toBe(0);
   });
+
+  it("extracts tokens from nested usage object (normalized llm_call output)", () => {
+    const output = {
+      text: "hello",
+      model: "gpt-4o",
+      __stigmer_cost_micros: 150,
+      usage: { input_tokens: 400, output_tokens: 80 },
+    };
+    const cost = extractCostFromOutput(output);
+    expect(cost.costMicros).toBe(150);
+    expect(cost.inputTokens).toBe(400);
+    expect(cost.outputTokens).toBe(80);
+  });
+
+  it("prefers top-level tokens over nested usage", () => {
+    const output = {
+      input_tokens: 100,
+      output_tokens: 50,
+      usage: { input_tokens: 999, output_tokens: 999 },
+    };
+    const cost = extractCostFromOutput(output);
+    expect(cost.inputTokens).toBe(100);
+    expect(cost.outputTokens).toBe(50);
+  });
 });

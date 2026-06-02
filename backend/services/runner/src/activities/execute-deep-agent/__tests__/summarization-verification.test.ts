@@ -199,7 +199,7 @@ describe("summarization state checkpoint serialization", () => {
 describe("middleware stack ordering in createDeepAgent", () => {
   it("includes SummarizationMiddleware in the default stack", () => {
     const agent = createDeepAgent({
-      model: "anthropic:claude-sonnet-4-20250514",
+      model: "anthropic:claude-sonnet-4-6",
       backend: new StateBackend(),
       tools: [],
     });
@@ -219,7 +219,7 @@ describe("middleware stack ordering in createDeepAgent", () => {
     };
 
     const agent = createDeepAgent({
-      model: "anthropic:claude-sonnet-4-20250514",
+      model: "anthropic:claude-sonnet-4-6",
       backend: new StateBackend(),
       tools: [],
       middleware: [stigmerMiddleware] as any,
@@ -268,7 +268,7 @@ describe("middleware stack ordering in createDeepAgent", () => {
 
     // Construction succeeds with custom middleware after defaults
     const agent = createDeepAgent({
-      model: "anthropic:claude-sonnet-4-20250514",
+      model: "anthropic:claude-sonnet-4-6",
       backend: new StateBackend(),
       tools: [],
       middleware: [recordingMiddleware] as any,
@@ -290,7 +290,7 @@ describe("middleware stack ordering in createDeepAgent", () => {
     const backend = new StateBackend();
 
     const agent = createDeepAgent({
-      model: "anthropic:claude-sonnet-4-20250514",
+      model: "anthropic:claude-sonnet-4-6",
       backend,
       tools: [],
     });

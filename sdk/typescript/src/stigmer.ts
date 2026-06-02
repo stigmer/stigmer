@@ -1,3 +1,4 @@
+import { ActivityClient } from "./activity";
 import { BillingClient } from "./billing";
 import { GeneratedClient } from "./gen/client";
 import { GitHubClient } from "./github";
@@ -70,6 +71,7 @@ export class Stigmer extends GeneratedClient {
    */
   readonly defaultExecutionTarget: ExecutionTarget | undefined;
 
+  readonly activity: ActivityClient;
   readonly billing: BillingClient;
   readonly platform: PlatformClient;
   readonly search: SearchClient;
@@ -90,6 +92,7 @@ export class Stigmer extends GeneratedClient {
       ? () => config.apiKey!
       : config.getAccessToken ?? (() => null);
 
+    this.activity = new ActivityClient(transport);
     this.billing = new BillingClient(transport);
     this.platform = new PlatformClient(transport);
     this.search = new SearchClient(transport);

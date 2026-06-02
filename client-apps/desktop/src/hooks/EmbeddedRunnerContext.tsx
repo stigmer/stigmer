@@ -4,6 +4,9 @@
  * Mounts at the app level to start the runner on first authenticated render.
  * Components throughout the tree can call addSession/removeSession via the
  * context without re-triggering the runner start.
+ *
+ * The runner's proxy endpoint is derived internally from the auth token and
+ * VITE_STIGMER_API_URL — no external configuration needed.
  */
 
 import { createContext, useContext, type ReactNode } from "react";
@@ -23,7 +26,13 @@ interface EmbeddedRunnerContext {
 
 const RunnerContext = createContext<EmbeddedRunnerContext | null>(null);
 
-export function EmbeddedRunnerProvider({ children }: { children: ReactNode }) {
+export interface EmbeddedRunnerProviderProps {
+  children: ReactNode;
+}
+
+export function EmbeddedRunnerProvider({
+  children,
+}: EmbeddedRunnerProviderProps) {
   const runner = useEmbeddedRunner();
   return (
     <RunnerContext.Provider value={runner}>{children}</RunnerContext.Provider>

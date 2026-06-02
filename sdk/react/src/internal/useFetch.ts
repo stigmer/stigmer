@@ -102,6 +102,12 @@ export function useFetch<T>(
   const cacheRef = useRef(cache);
   cacheRef.current = cache;
 
+  // Track previous identity deps so the effect can distinguish an
+  // identity change (e.g. executionId A→B) from a plain refetch().
+  // Identity changes reset data to prevent stale cross-identity leaks;
+  // refetches preserve stale data for stale-while-revalidate rendering.
+  const prevIdentityDepsRef = useRef<DependencyList>(deps);
+
   const refetch = useCallback(() => setFetchKey((k) => k + 1), []);
 
   useEffect(() => {
@@ -111,17 +117,31 @@ export function useFetch<T>(
       isFetchingRef.current = false;
       setError(null);
       hasDataRef.current = false;
+      prevIdentityDepsRef.current = deps;
       return;
     }
 
-    // On dep change (without remount), check cache for the new key so
-    // we can show cached data immediately rather than stale data from
-    // a different identity (e.g. session A's data while session B loads).
-    if (cacheKey && cacheRef.current) {
-      const cached = cacheRef.current.get<T>(cacheKey);
-      if (cached !== undefined) {
-        setData(cached);
-        hasDataRef.current = true;
+    const identityChanged =
+      deps.length !== prevIdentityDepsRef.current.length ||
+      deps.some((d, i) => !Object.is(d, prevIdentityDepsRef.current[i]));
+    prevIdentityDepsRef.current = deps;
+
+    // On identity dep change, reset data so stale data from a different
+    // identity (e.g. session A's data while session B loads) is not shown.
+    // On plain refetch(), skip the reset — stale data stays visible.
+    if (identityChanged) {
+      if (cacheKey && cacheRef.current) {
+        const cached = cacheRef.current.get<T>(cacheKey);
+        if (cached !== undefined) {
+          setData(cached);
+          hasDataRef.current = true;
+        } else {
+          setData(initialData);
+          hasDataRef.current = false;
+        }
+      } else if (!cacheKey) {
+        setData(initialData);
+        hasDataRef.current = false;
       }
     }
 

@@ -9,6 +9,23 @@ import {
 import { useStigmer } from "../hooks";
 import { useFetch } from "../internal/useFetch";
 
+/**
+ * Client-side execution filter criteria.
+ *
+ * Placeholder until backend proto adds `ExecutionFilterCriteria`.
+ */
+export interface ExecutionFilterCriteria {
+  readonly phases?: readonly number[];
+  readonly workflowId?: string;
+}
+
+/**
+ * Client-side execution sort field.
+ *
+ * Placeholder re-export matching the local type in execution-history.
+ */
+export type ExecutionSortField = "startTime" | "endTime" | "duration" | "status" | "cost" | "tokens";
+
 /** Options for {@link useWorkflowExecutionList}. */
 export interface UseWorkflowExecutionListOptions {
   /** Maximum executions per page. @default 20 */
@@ -20,6 +37,25 @@ export interface UseWorkflowExecutionListOptions {
    * When omitted, lists all executions across all workflows.
    */
   readonly workflowId?: string | null;
+  /**
+   * Server-side filter criteria. When set, the backend filters
+   * before returning results, reducing transfer size.
+   *
+   * @since T13 (Execution History)
+   */
+  readonly filter?: Partial<ExecutionFilterCriteria>;
+  /**
+   * Server-side sort field.
+   *
+   * @since T13 (Execution History)
+   */
+  readonly sortField?: ExecutionSortField;
+  /**
+   * When true, sorts ascending. Defaults to false (descending).
+   *
+   * @since T13 (Execution History)
+   */
+  readonly sortAscending?: boolean;
 }
 
 /** Return value of {@link useWorkflowExecutionList}. */
@@ -74,15 +110,10 @@ export function useWorkflowExecutionList(
   const pageSize = options?.pageSize ?? 20;
   const pageToken = options?.pageToken ?? "";
   const workflowId = options?.workflowId ?? null;
-
   const fetchFn = async () => {
     if (workflowId) {
       const resp = await stigmer.workflowExecution.listByWorkflow(
-        create(ListWorkflowExecutionsByWorkflowRequestSchema, {
-          workflowId,
-          pageSize,
-          pageToken,
-        }),
+        create(ListWorkflowExecutionsByWorkflowRequestSchema, { workflowId, pageSize, pageToken }),
       );
       return {
         executions: [...resp.entries],
@@ -91,10 +122,7 @@ export function useWorkflowExecutionList(
     }
 
     const resp = await stigmer.workflowExecution.list(
-      create(ListWorkflowExecutionsRequestSchema, {
-        pageSize,
-        pageToken,
-      }),
+      create(ListWorkflowExecutionsRequestSchema, { pageSize, pageToken }),
     );
     return {
       executions: [...resp.entries],
@@ -108,7 +136,11 @@ export function useWorkflowExecutionList(
     isRefetching,
     error,
     refetch,
-  } = useFetch<ExecutionListData>(fetchFn, [stigmer, workflowId, pageSize, pageToken], INITIAL_DATA);
+  } = useFetch<ExecutionListData>(
+    fetchFn,
+    [stigmer, workflowId, pageSize, pageToken],
+    INITIAL_DATA,
+  );
 
   return {
     executions: data.executions,

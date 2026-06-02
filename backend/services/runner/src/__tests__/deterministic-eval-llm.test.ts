@@ -36,7 +36,7 @@ describe("callEvalAction — deterministic replay", () => {
 
     it("returns pass=true with reasoning for a correct statement", async () => {
       const config: EvalConfig = {
-        model: "claude-sonnet-4-20250514",
+        model: "claude-sonnet-4-6",
         subject: "The Earth orbits the Sun in approximately 365.25 days.",
         rubric: "Evaluate whether the statement is factually correct.",
         scoring_mode: "EVAL_PASS_FAIL",
@@ -46,7 +46,7 @@ describe("callEvalAction — deterministic replay", () => {
 
       expect(result.pass).toBe(true);
       expect(result.reasoning).toContain("factually correct");
-      expect(result.model_used).toBe("claude-sonnet-4-20250514");
+      expect(result.model_used).toBe("claude-sonnet-4-6");
       expect(result.subject).toBe(config.subject);
       expect(interceptor.allConsumed).toBe(true);
     });
@@ -66,7 +66,7 @@ describe("callEvalAction — deterministic replay", () => {
 
     it("returns numeric score and applies threshold (score >= 0.5 passes)", async () => {
       const config: EvalConfig = {
-        model: "claude-sonnet-4-20250514",
+        model: "claude-sonnet-4-6",
         subject: "Machine learning is a subset of AI that enables systems to learn from data.",
         rubric: "Rate the accuracy and clarity of this definition.",
         scoring_mode: "EVAL_NUMERIC_SCORE",
@@ -78,7 +78,7 @@ describe("callEvalAction — deterministic replay", () => {
       expect(result.pass).toBe(true);
       expect(result.score).toBe(0.85);
       expect(result.reasoning).toContain("clear and accurate");
-      expect(result.model_used).toBe("claude-sonnet-4-20250514");
+      expect(result.model_used).toBe("claude-sonnet-4-6");
       expect(interceptor.allConsumed).toBe(true);
     });
 
@@ -88,7 +88,7 @@ describe("callEvalAction — deterministic replay", () => {
       interceptor.install();
 
       const config: EvalConfig = {
-        model: "claude-sonnet-4-20250514",
+        model: "claude-sonnet-4-6",
         subject: "Machine learning is a subset of AI that enables systems to learn from data.",
         rubric: "Rate the accuracy and clarity of this definition.",
         scoring_mode: "EVAL_NUMERIC_SCORE",
@@ -116,7 +116,7 @@ describe("callEvalAction — deterministic replay", () => {
 
     it("allows workflow to continue when on_fail=EVAL_FAIL_WARN", async () => {
       const config: EvalConfig = {
-        model: "claude-sonnet-4-20250514",
+        model: "claude-sonnet-4-6",
         subject: "asdf jkl; random gibberish xyz",
         rubric: "Evaluate whether this is a coherent technical explanation.",
         scoring_mode: "EVAL_NUMERIC_SCORE",
@@ -139,7 +139,7 @@ describe("callEvalAction — deterministic replay", () => {
       interceptor.install();
 
       const config: EvalConfig = {
-        model: "claude-sonnet-4-20250514",
+        model: "claude-sonnet-4-6",
         subject: "asdf jkl; random gibberish xyz",
         rubric: "Evaluate whether this is a coherent technical explanation.",
         scoring_mode: "EVAL_NUMERIC_SCORE",
@@ -171,7 +171,7 @@ describe("callLlmAction — deterministic replay", () => {
 
     it("parses JSON response when response_schema is provided", async () => {
       const config: LlmCallConfig = {
-        model: "claude-sonnet-4-20250514",
+        model: "claude-sonnet-4-6",
         prompt: "Analyze the sentiment of: 'I love this product!'",
         response_schema: { type: "object" },
       };
@@ -180,7 +180,7 @@ describe("callLlmAction — deterministic replay", () => {
 
       expect(result.result).toEqual({ sentiment: "positive", confidence: 0.95 });
       expect(result.provider).toBe("anthropic");
-      expect(result.model).toBe("claude-sonnet-4-20250514");
+      expect(result.model).toBe("claude-sonnet-4-6");
       expect(result.input_tokens).toBe(120);
       expect(result.output_tokens).toBe(30);
       expect(result.parse_error).toBeUndefined();
@@ -202,7 +202,7 @@ describe("callLlmAction — deterministic replay", () => {
 
     it("returns plain text when no response_schema is set", async () => {
       const config: LlmCallConfig = {
-        model: "claude-sonnet-4-20250514",
+        model: "claude-sonnet-4-6",
         prompt: "Say HELLO",
       };
 
@@ -210,7 +210,7 @@ describe("callLlmAction — deterministic replay", () => {
 
       expect(result.result).toBe("HELLO");
       expect(result.provider).toBe("anthropic");
-      expect(result.model).toBe("claude-sonnet-4-20250514");
+      expect(result.model).toBe("claude-sonnet-4-6");
       expect(result.input_tokens).toBe(50);
       expect(result.output_tokens).toBe(5);
       expect(result.parse_error).toBeUndefined();

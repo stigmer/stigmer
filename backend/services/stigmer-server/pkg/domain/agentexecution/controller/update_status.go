@@ -264,6 +264,13 @@ func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*agen
 		updated.Status.SetupProgress = nil
 	}
 
+	// Merge structured_output (replace with latest from request).
+	// Populated by the runner on COMPLETED when ExecutionConfig had
+	// structured_output_schema. Immutable after first population.
+	if requestStatus.StructuredOutput != nil {
+		updated.Status.StructuredOutput = requestStatus.StructuredOutput
+	}
+
 	log.Debug().
 		Str("execution_id", input.ExecutionId).
 		Str("phase", updated.Status.Phase.String()).
@@ -275,6 +282,7 @@ func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*agen
 		Bool("has_resolved_context", updated.Status.ResolvedContext != nil).
 		Bool("has_setup_progress", updated.Status.SetupProgress != nil).
 		Bool("has_streaming_usage", updated.Status.StreamingUsage != nil).
+		Bool("has_structured_output", updated.Status.StructuredOutput != nil).
 		Msg("Merged status fields")
 
 	// Store merged execution in context for persist step

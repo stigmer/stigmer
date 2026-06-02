@@ -1,10 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createHash } from "node:crypto";
+import { writeFile, mkdir } from "node:fs/promises";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 import { create } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { InlinePublisher } from "../inline-publisher.js";
 import { StatusBuilder } from "../status-builder.js";
+import { LocalWorkspaceBackend } from "../../../shared/workspace/local-backend.js";
 import type { ArtifactStorage } from "../../../shared/artifact-storage.js";
 import type { WorkspaceBackend } from "../../../shared/workspace/types.js";
 
@@ -63,7 +67,7 @@ describe("InlinePublisher", () => {
     publisher = new InlinePublisher({
       workspaceBackend: backend,
       artifactStorage: storage,
-      statusBuilder: sb,
+      statusWriter: sb,
       executionId: "exec-123",
     });
   });
@@ -125,7 +129,7 @@ describe("InlinePublisher", () => {
     const pub = new InlinePublisher({
       workspaceBackend: failBackend,
       artifactStorage: storage,
-      statusBuilder: sb,
+      statusWriter: sb,
       executionId: "exec-err",
     });
 
@@ -165,7 +169,7 @@ describe("InlinePublisher", () => {
     const pub = new InlinePublisher({
       workspaceBackend: jsonBackend,
       artifactStorage: storage,
-      statusBuilder: sb,
+      statusWriter: sb,
       executionId: "exec-ct",
     });
 
@@ -176,5 +180,61 @@ describe("InlinePublisher", () => {
       expect.any(Buffer),
       "application/json",
     );
+  });
+});
+
+describe("InlinePublisher with LocalWorkspaceBackend (disk-backed)", () => {
+  it("publishes files written to the real filesystem", async () => {
+    const dir = join(tmpdir(), `stigmer-publisher-test-${Date.now()}`);
+    await mkdir(join(dir, "src"), { recursive: true });
+    await writeFile(join(dir, "src/app.ts"), "export const x = 42;", "utf-8");
+
+    const sb = new StatusBuilder("exec-disk", create(AgentExecutionStatusSchema, {}));
+    const storage = mockArtifactStorage();
+    const backend = new LocalWorkspaceBackend(dir);
+
+    const publisher = new InlinePublisher({
+      workspaceBackend: backend,
+      artifactStorage: storage,
+      statusWriter: sb,
+      executionId: "exec-disk",
+    });
+
+    await publisher.publish("src/app.ts");
+
+    expect(sb.currentStatus.artifacts).toHaveLength(1);
+    const artifact = sb.currentStatus.artifacts[0];
+    expect(artifact.name).toBe("app.ts");
+    expect(artifact.sandboxPath).toBe("src/app.ts");
+    expect(artifact.kind).toBe(ExecutionArtifactKind.FILE);
+    expect(artifact.contentHash).toBe(sha256("export const x = 42;"));
+    expect(Number(artifact.sizeBytes)).toBe(20);
+    expect(storage.uploadedKeys).toEqual(["artifacts/exec-disk/app.ts"]);
+  });
+
+  it("fails gracefully when file does not exist on disk", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const dir = join(tmpdir(), `stigmer-publisher-test-${Date.now()}`);
+    await mkdir(dir, { recursive: true });
+
+    const sb = new StatusBuilder("exec-miss", create(AgentExecutionStatusSchema, {}));
+    const storage = mockArtifactStorage();
+    const backend = new LocalWorkspaceBackend(dir);
+
+    const publisher = new InlinePublisher({
+      workspaceBackend: backend,
+      artifactStorage: storage,
+      statusWriter: sb,
+      executionId: "exec-miss",
+    });
+
+    await publisher.publish("nonexistent.ts");
+
+    expect(sb.currentStatus.artifacts).toHaveLength(0);
+    expect(storage.uploadedKeys).toHaveLength(0);
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining("[InlinePublisher]"),
+    );
+    warnSpy.mockRestore();
   });
 });

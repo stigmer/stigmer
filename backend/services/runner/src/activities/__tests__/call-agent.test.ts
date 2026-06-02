@@ -24,7 +24,7 @@ vi.mock("@temporalio/activity", () => ({
 vi.mock("../../client/stigmer-client.js", () => ({
   StigmerClient: vi.fn().mockImplementation(() => ({
     getAgentByReference: (...args: unknown[]) => mockGetAgentByReference(...args),
-    createSession: (...args: unknown[]) => mockCreateSession(...args),
+    applySession: (...args: unknown[]) => mockCreateSession(...args),
     createAgentExecution: (...args: unknown[]) => mockCreateAgentExecution(...args),
   })),
 }));
@@ -190,6 +190,20 @@ describe("callAgentAction", () => {
       expect(session.metadata.org).toBe("test-org");
       expect(session.metadata.name).toMatch(/^wf-my-agent-\d+$/);
       expect(session.spec.agentInstanceId).toBe("ain_default456");
+    });
+
+    it("creates session with 'Auto-created session' sentinel subject", async () => {
+      await expect(
+        callAgentAction(
+          { agent: "my-agent", message: "Hello" },
+          { __stigmer_org_id: "test-org" },
+          "wfl_parent",
+        ),
+      ).rejects.toThrow("CompleteAsyncError");
+
+      expect(mockCreateSession).toHaveBeenCalledOnce();
+      const session = mockCreateSession.mock.calls[0][0];
+      expect(session.spec.subject).toBe("Auto-created session");
     });
 
     it("creates agent execution with correct envelope and spec", async () => {

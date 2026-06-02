@@ -9,14 +9,15 @@ description: Hooks for recent activity feeds and session history.
 
 ### useRecentActivity
 
-Fetches recent agent sessions and workflow executions, merges them
-into a single list sorted by most-recent-first, and exposes a
-unified [`RecentActivityEntry`](#recentactivityentry) array.
+Fetches recent activity via the unified `listRecentActivity` RPC,
+which returns a merged, time-sorted list of the caller's most
+recent sessions and workflow executions in a single call.
 
-Implementation uses client-side merge of two existing data hooks
-(`useSessionList` and `useWorkflowExecutionList`), keeping the
-backend contract unchanged. A dedicated `listRecentActivity` RPC
-can replace this approach later without changing consumers.
+The server handles:
+- FGA authorization filtering (or org-scoped fast path)
+- Cross-collection merge-sort by `statusAudit.updatedAt`
+- Fallback to `specAudit.createdAt` for documents without status updates
+- Pagination / trimming to the requested page size
 
 **Signature**
 
@@ -35,9 +36,10 @@ function useRecentActivity(options?: UseRecentActivityOptions): UseRecentActivit
 <TypeTable
   type={{
     entries: { type: "readonly RecentActivityEntry[]", description: "Merged entries sorted by `updatedAt` descending." },
-    error: { type: "Error | null", description: "First non-null error from either source." },
-    isLoading: { type: "boolean", description: "`true` while either source is loading for the first time." },
-    refetch: { type: "() => void", description: "Re-fetch both sources." },
+    error: { type: "Error | null", description: "First non-null error from the fetch." },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight." },
+    prependOptimistic: { type: "(entry: OptimisticEntryInput) => void", description: "Prepend an optimistic entry to the top of the recents list. The entry is automatically replaced by server data on the next successful refetch that includes its ID." },
+    refetch: { type: "() => void", description: "Re-fetch from the server." },
   }}
 />
 
@@ -69,7 +71,7 @@ recents section.
     status: { type: "string", description: "Execution phase for workflow executions (e.g. \"COMPLETED\", \"FAILED\"). `undefined` for sessions." },
     subject: { type: "string", description: "Human-readable label: session subject or workflow execution name.", required: true },
     type: { type: "RecentActivityType", description: "Discriminator — determines which viewer to open on click.", required: true, typeDescriptionLink: "#recentactivitytype" },
-    updatedAt: { type: "Date", description: "Last meaningful update timestamp, used for interleaved sort. For sessions: `status.audit.specAudit.createdAt`. For workflow executions: `status.audit.specAudit.createdAt`.", required: true },
+    updatedAt: { type: "Date", description: "Last meaningful update timestamp, used for interleaved sort. Derived from `status.audit.statusAudit.updatedAt` (bumped on every meaningful status change), with fallback to `specAudit.createdAt` for resources that have never been independently updated.", required: true },
   }}
 />
 
@@ -97,7 +99,7 @@ Options for [`useRecentActivity`](#userecentactivity).
 
 <TypeTable
   type={{
-    pageSize: { type: "number", description: "Maximum entries per source. The hook fetches up to `pageSize` sessions and `pageSize` workflow executions, then merges and trims to `pageSize` total entries." },
+    pageSize: { type: "number", description: "Maximum entries to return. The server merges sessions and workflow executions into a single sorted list and returns at most `pageSize`." },
   }}
 />
 

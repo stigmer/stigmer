@@ -73,6 +73,24 @@ const TERMINAL_PHASES = new Set<ExecutionPhase>([
 ]);
 
 /**
+ * Pure function that detects a terminal-to-active phase transition —
+ * the signal that a recovery has begun and the event store should be
+ * reset to clear stale events from the previous run.
+ *
+ * Returns `false` when either phase is `undefined` (initial load or
+ * unresolved execution), preventing false resets on first render.
+ *
+ * Extracted for testability (DD-003).
+ */
+export function isRecoveryTransition(
+  prevPhase: ExecutionPhase | undefined,
+  nextPhase: ExecutionPhase | undefined,
+): boolean {
+  if (prevPhase === undefined || nextPhase === undefined) return false;
+  return TERMINAL_PHASES.has(prevPhase) && !TERMINAL_PHASES.has(nextPhase);
+}
+
+/**
  * Behavior hook that manages a live event stream subscription for a
  * workflow execution, or batch-loads events for completed executions.
  *
@@ -86,6 +104,16 @@ const TERMINAL_PHASES = new Set<ExecutionPhase>([
  *
  * For terminal executions: loads the full event log via paginated
  * `getEventLog` calls.
+ *
+ * On recovery (terminal → active phase transition for the same
+ * execution), the store is reset so stale events from the failed run
+ * are cleared before the new subscription begins.
+ *
+ * When `executionId` changes to a different execution, the store is
+ * reset before subscribing — mirroring `useFetch`'s identity-change
+ * reset — so the previous run's append-only events neither render as
+ * stale progress nor cause the live subscription to resume from the
+ * wrong `afterSequence`.
  *
  * Pass `null` for `executionId` to skip (stable no-op).
  */
@@ -113,15 +141,61 @@ export function useWorkflowExecutionEventStream(
   const storeRef = useRef(store);
   storeRef.current = store;
 
+  // Track previous phase to detect recovery (terminal → active).
+  // useRef (not useState) because the transition drives an effect-time
+  // side effect (store reset + gRPC subscription), not a rendered value.
+  const prevPhaseRef = useRef<ExecutionPhase | undefined>(undefined);
+
+  // Track the execution the store is currently populated for, so we can
+  // detect a switch to a different execution (vs. a reconnect or phase
+  // change for the same one). Same role as useFetch's prevIdentityDepsRef.
+  const prevExecutionIdRef = useRef<string | null>(null);
+
   useEffect(() => {
     if (!executionId) {
       store.reset();
+      prevPhaseRef.current = undefined;
+      prevExecutionIdRef.current = null;
       return;
     }
 
     const abortController = new AbortController();
     const currentStore = storeRef.current;
     const isTerminal = executionPhase !== undefined && TERMINAL_PHASES.has(executionPhase);
+
+    // Execution switch (A → B): the store is append-only and holds the
+    // previous run's events. Clear it before subscribing so we neither
+    // render B with A's progress nor resume B's live stream from A's
+    // afterSequence (which would silently drop B's earlier events).
+    // This is distinct from reconnect (connectKey) and recovery (phase
+    // transition), both of which must preserve/replay events for the
+    // SAME execution. Resetting prevPhaseRef here prevents the A→B phase
+    // delta from being misread as a recovery transition below.
+    const isExecutionSwitch =
+      prevExecutionIdRef.current !== null &&
+      prevExecutionIdRef.current !== executionId;
+    if (isExecutionSwitch) {
+      currentStore.reset();
+      prevPhaseRef.current = undefined;
+    }
+    prevExecutionIdRef.current = executionId;
+
+    // When an execution transitions from a terminal phase back to an
+    // active phase (recovery), clear the store so stale events from the
+    // failed run don't produce contradictory UI (header says "running"
+    // while task badges still show "failed"). After reset,
+    // getLatestSequence() returns 0 and the subscription replays the
+    // full event history — including task_skipped events from the
+    // recovery engine that correctly represent the new run's state.
+    //
+    // Note: unlike useExecutionStream, this hook does NOT reset in the
+    // cleanup function. connectKey (reconnect) is in the deps array —
+    // resetting on cleanup would destroy events on reconnect. The store
+    // is only reset here (recovery) and when executionId becomes null.
+    if (isRecoveryTransition(prevPhaseRef.current, executionPhase)) {
+      currentStore.reset();
+    }
+    prevPhaseRef.current = executionPhase;
 
     if (isTerminal) {
       // Batch-load all events for completed executions

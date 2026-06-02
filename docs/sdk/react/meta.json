@@ -35,6 +35,7 @@
     "error",
     "platform-client",
     "user",
-    "activity"
+    "activity",
+    "file-reference"
   ]
 }

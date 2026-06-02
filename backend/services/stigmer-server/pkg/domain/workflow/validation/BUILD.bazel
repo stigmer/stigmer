@@ -5,11 +5,15 @@ go_library(
     srcs = [
         "budget_warnings.go",
         "crossref.go",
+        "expression_warnings.go",
+        "model_validation.go",
         "validator.go",
     ],
+    embedsrcs = ["data/model-registry.json"],
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/validation",
     visibility = ["//visibility:public"],
     deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/session/v1:session",
         "//apis/stubs/go/ai/stigmer/agentic/workflow/v1:workflow",
         "//apis/stubs/go/ai/stigmer/agentic/workflow/v1/serverless",
         "//apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks",
@@ -24,6 +28,7 @@ go_test(
     name = "validation_test",
     srcs = [
         "crossref_test.go",
+        "model_validation_test.go",
         "validator_test.go",
     ],
     embed = [":validation"],

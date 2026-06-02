@@ -2,12 +2,17 @@ import { describe, it, expect } from "vitest";
 import {
   isStrictExpr,
   sanitizeExpr,
+  normalizeSingleQuotedStrings,
   preprocessUuid,
   evaluateExpression,
   evaluateString,
   traverseAndEvaluate,
   checkIfStatement,
   evaluateExpressionBatch,
+  extractEmbeddedExpressions,
+  hasEmbeddedExpressions,
+  interpolateString,
+  stringifyInterpolatedValue,
 } from "../expression.js";
 
 // ─────────────────────────────────────────────────────────────────────
@@ -373,5 +378,399 @@ describe("evaluateExpressionBatch", () => {
   it("returns empty map for empty input", async () => {
     const results = await evaluateExpressionBatch({}, {}, {});
     expect(results).toEqual({});
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// Embedded Expression Extraction (brace-depth tracking)
+// ─────────────────────────────────────────────────────────────────────
+
+describe("extractEmbeddedExpressions", () => {
+  it("extracts a single embedded expression", () => {
+    const results = extractEmbeddedExpressions("Hello ${ .name }!");
+    expect(results).toHaveLength(1);
+    expect(results[0].expr).toBe(".name");
+    expect(results[0].start).toBe(6);
+    expect(results[0].end).toBe(16);
+  });
+
+  it("extracts multiple embedded expressions", () => {
+    const results = extractEmbeddedExpressions(
+      "PR #${ $context.pr } in ${ $context.repo }.",
+    );
+    expect(results).toHaveLength(2);
+    expect(results[0].expr).toBe("$context.pr");
+    expect(results[1].expr).toBe("$context.repo");
+  });
+
+  it("handles nested braces in jq object construction", () => {
+    const results = extractEmbeddedExpressions(
+      "Result: ${ { key: .value } }",
+    );
+    expect(results).toHaveLength(1);
+    expect(results[0].expr).toBe("{ key: .value }");
+  });
+
+  it("returns empty array for strict expressions", () => {
+    expect(extractEmbeddedExpressions("${ .name }")).toEqual([]);
+  });
+
+  it("returns empty array for strings without expressions", () => {
+    expect(extractEmbeddedExpressions("plain text")).toEqual([]);
+    expect(extractEmbeddedExpressions("")).toEqual([]);
+  });
+
+  it("skips runtime placeholders (no space after ${)", () => {
+    const results = extractEmbeddedExpressions(
+      "Bearer ${.secrets.TOKEN} and ${ .name }",
+    );
+    expect(results).toHaveLength(1);
+    expect(results[0].expr).toBe(".name");
+  });
+
+  it("handles expression at the start of the string", () => {
+    const results = extractEmbeddedExpressions("${ .greeting } world");
+    expect(results).toHaveLength(1);
+    expect(results[0].expr).toBe(".greeting");
+  });
+
+  it("handles expression at the end of the string", () => {
+    const results = extractEmbeddedExpressions("Hello ${ .name }");
+    expect(results).toHaveLength(1);
+    expect(results[0].expr).toBe(".name");
+  });
+
+  it("handles multi-line strings with expressions", () => {
+    const multiline = "Generate report.\nDate: ${ $env.DATE }\nSource: database";
+    const results = extractEmbeddedExpressions(multiline);
+    expect(results).toHaveLength(1);
+    expect(results[0].expr).toBe("$env.DATE");
+  });
+
+  it("handles unclosed brace gracefully (skips it)", () => {
+    const results = extractEmbeddedExpressions("broken ${ .unclosed");
+    expect(results).toEqual([]);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// hasEmbeddedExpressions
+// ─────────────────────────────────────────────────────────────────────
+
+describe("hasEmbeddedExpressions", () => {
+  it("returns true for strings with embedded expressions", () => {
+    expect(hasEmbeddedExpressions("Hello ${ .name }!")).toBe(true);
+  });
+
+  it("returns false for strict expressions", () => {
+    expect(hasEmbeddedExpressions("${ .name }")).toBe(false);
+  });
+
+  it("returns false for plain strings", () => {
+    expect(hasEmbeddedExpressions("plain text")).toBe(false);
+  });
+
+  it("returns false for runtime placeholders", () => {
+    expect(hasEmbeddedExpressions("${.secrets.KEY}")).toBe(false);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// stringifyInterpolatedValue
+// ─────────────────────────────────────────────────────────────────────
+
+describe("stringifyInterpolatedValue", () => {
+  it("converts null to empty string", () => {
+    expect(stringifyInterpolatedValue(null)).toBe("");
+  });
+
+  it("converts undefined to empty string", () => {
+    expect(stringifyInterpolatedValue(undefined)).toBe("");
+  });
+
+  it("returns strings directly", () => {
+    expect(stringifyInterpolatedValue("hello")).toBe("hello");
+  });
+
+  it("JSON-stringifies numbers", () => {
+    expect(stringifyInterpolatedValue(42)).toBe("42");
+  });
+
+  it("JSON-stringifies booleans", () => {
+    expect(stringifyInterpolatedValue(true)).toBe("true");
+  });
+
+  it("JSON-stringifies objects", () => {
+    expect(stringifyInterpolatedValue({ a: 1 })).toBe('{"a":1}');
+  });
+
+  it("JSON-stringifies arrays", () => {
+    expect(stringifyInterpolatedValue([1, 2])).toBe("[1,2]");
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// interpolateString
+// ─────────────────────────────────────────────────────────────────────
+
+describe("interpolateString", () => {
+  it("resolves a single embedded expression", async () => {
+    const result = await interpolateString(
+      "Hello ${ .name }!",
+      { name: "Alice" },
+      {},
+    );
+    expect(result).toBe("Hello Alice!");
+  });
+
+  it("resolves multiple embedded expressions", async () => {
+    const stateVars = {
+      $context: { task: { count: 3 } },
+      $env: { REGION: "us-east" },
+    };
+    const result = await interpolateString(
+      "Found ${ $context.task.count } items in ${ $env.REGION }.",
+      null,
+      stateVars,
+    );
+    expect(result).toBe("Found 3 items in us-east.");
+  });
+
+  it("converts null expression results to empty string", async () => {
+    const stateVars = { $env: {} };
+    const result = await interpolateString(
+      "Date: ${ $env.MISSING_VAR }",
+      null,
+      stateVars,
+    );
+    expect(result).toBe("Date: ");
+  });
+
+  it("JSON-stringifies object results in embedded context", async () => {
+    const stateVars = { $context: { data: { key: "val" } } };
+    const result = await interpolateString(
+      "Data: ${ $context.data }",
+      null,
+      stateVars,
+    );
+    expect(result).toBe('Data: {"key":"val"}');
+  });
+
+  it("returns string unchanged when no expressions present", async () => {
+    const result = await interpolateString("no expressions here", {}, {});
+    expect(result).toBe("no expressions here");
+  });
+
+  it("preserves runtime placeholders (different syntax)", async () => {
+    const result = await interpolateString(
+      "token=${.secrets.KEY} and ${ .name }",
+      { name: "test" },
+      {},
+    );
+    expect(result).toBe("token=${.secrets.KEY} and test");
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// evaluateString — updated behavior with embedded expressions
+// ─────────────────────────────────────────────────────────────────────
+
+describe("evaluateString — embedded expression support", () => {
+  it("still evaluates strict expressions and returns non-string types", async () => {
+    const result = await evaluateString("${ .count }", { count: 42 }, {});
+    expect(result).toBe(42);
+    expect(typeof result).toBe("number");
+  });
+
+  it("interpolates embedded expressions and returns a string", async () => {
+    const result = await evaluateString(
+      "Count is ${ .count }",
+      { count: 42 },
+      {},
+    );
+    expect(result).toBe("Count is 42");
+    expect(typeof result).toBe("string");
+  });
+
+  it("returns plain strings as-is", async () => {
+    const result = await evaluateString("plain text", {}, {});
+    expect(result).toBe("plain text");
+  });
+
+  it("handles multi-line template with $env and $context", async () => {
+    const stateVars = {
+      $env: { DATE: "2026-05-23" },
+      $context: { task: { summary: "All good" } },
+    };
+    const result = await evaluateString(
+      "Report for ${ $env.DATE }.\nSummary: ${ $context.task.summary }",
+      null,
+      stateVars,
+    );
+    expect(result).toBe("Report for 2026-05-23.\nSummary: All good");
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// Single-Quote Normalization (Layer 0: pure function tests)
+// ─────────────────────────────────────────────────────────────────────
+
+describe("normalizeSingleQuotedStrings", () => {
+  it("converts a simple single-quoted string", () => {
+    expect(normalizeSingleQuotedStrings("$context.x == 'approve'"))
+      .toBe('$context.x == "approve"');
+  });
+
+  it("converts the production bug expression", () => {
+    expect(normalizeSingleQuotedStrings(
+      "$context.team_lead_review.outcome == 'approve'",
+    )).toBe('$context.team_lead_review.outcome == "approve"');
+  });
+
+  it("converts an empty single-quoted string", () => {
+    expect(normalizeSingleQuotedStrings("$context.x == ''"))
+      .toBe('$context.x == ""');
+  });
+
+  it("converts multiple single-quoted literals", () => {
+    expect(normalizeSingleQuotedStrings("'a' == 'b'"))
+      .toBe('"a" == "b"');
+  });
+
+  it("only converts singles, leaves doubles unchanged", () => {
+    expect(normalizeSingleQuotedStrings('$context.x == \'y\' and .z == "w"'))
+      .toBe('$context.x == "y" and .z == "w"');
+  });
+
+  it("escapes double quotes inside single-quoted strings", () => {
+    expect(normalizeSingleQuotedStrings("$context.x == 'he said \"hi\"'"))
+      .toBe('$context.x == "he said \\"hi\\""');
+  });
+
+  it("escapes backslashes inside single-quoted strings", () => {
+    expect(normalizeSingleQuotedStrings("$context.x == 'path\\to'"))
+      .toBe('$context.x == "path\\\\to"');
+  });
+
+  it("does not convert single quotes inside double-quoted strings", () => {
+    const expr = '"it\'s a test"';
+    expect(normalizeSingleQuotedStrings(expr)).toBe(expr);
+  });
+
+  it("is a no-op when no single quotes are present", () => {
+    expect(normalizeSingleQuotedStrings("$context.x > 5"))
+      .toBe("$context.x > 5");
+  });
+
+  it("converts strings with special characters", () => {
+    expect(normalizeSingleQuotedStrings("$context.x == 'in-progress'"))
+      .toBe('$context.x == "in-progress"');
+  });
+
+  it("passes through unclosed single quotes unchanged", () => {
+    const expr = "$context.x == 'broken";
+    expect(normalizeSingleQuotedStrings(expr)).toBe(expr);
+  });
+
+  it("handles jq comment lines without converting quotes", () => {
+    expect(normalizeSingleQuotedStrings("# it's a test"))
+      .toBe("# it's a test");
+  });
+
+  it("handles adjacent single-quoted strings", () => {
+    expect(normalizeSingleQuotedStrings("'hello' + ' ' + 'world'"))
+      .toBe('"hello" + " " + "world"');
+  });
+
+  it("handles strings with dots and versions", () => {
+    expect(normalizeSingleQuotedStrings("$context.ver == 'v1.2.3'"))
+      .toBe('$context.ver == "v1.2.3"');
+  });
+
+  it("handles expressions with no quotes at all", () => {
+    const expr = "$context.count > 5 and $data.valid == true";
+    expect(normalizeSingleQuotedStrings(expr)).toBe(expr);
+  });
+
+  it("handles escaped backslash inside double-quoted string followed by single", () => {
+    expect(normalizeSingleQuotedStrings('"escaped\\\\" + \'val\''))
+      .toBe('"escaped\\\\" + "val"');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// String Comparison via evaluateExpression (Layer 1: end-to-end jq-wasm)
+// ─────────────────────────────────────────────────────────────────────
+
+describe("evaluateExpression — single-quoted string comparisons", () => {
+  const stateVars = {
+    $context: {
+      outcome: "approve",
+      status: "in-progress",
+      team_lead_review: { outcome: "approve", reviewer: "alice" },
+    },
+    $data: {},
+    $env: {},
+    $input: null,
+    $output: null,
+  };
+
+  it("evaluates single-quoted string equality (true)", async () => {
+    const result = await evaluateExpression(
+      "$context.outcome == 'approve'", null, stateVars,
+    );
+    expect(result).toBe(true);
+  });
+
+  it("evaluates double-quoted string equality (true)", async () => {
+    const result = await evaluateExpression(
+      '$context.outcome == "approve"', null, stateVars,
+    );
+    expect(result).toBe(true);
+  });
+
+  it("evaluates single-quoted string equality (false)", async () => {
+    const result = await evaluateExpression(
+      "$context.outcome == 'reject'", null, stateVars,
+    );
+    expect(result).toBe(false);
+  });
+
+  it("evaluates special-char string comparison", async () => {
+    const result = await evaluateExpression(
+      "$context.status == 'in-progress'", null, stateVars,
+    );
+    expect(result).toBe(true);
+  });
+
+  it("evaluates nested context path with single-quoted comparison", async () => {
+    const result = await evaluateExpression(
+      "$context.team_lead_review.outcome == 'approve'", null, stateVars,
+    );
+    expect(result).toBe(true);
+  });
+
+  it("evaluates null-safe check with single-quoted string", async () => {
+    const result = await evaluateExpression(
+      "$context.outcome != null and $context.outcome == 'approve'",
+      null, stateVars,
+    );
+    expect(result).toBe(true);
+  });
+
+  it("evaluates jq if-then-else with single-quoted strings", async () => {
+    const result = await evaluateExpression(
+      'if $context.outcome == \'approve\' then "yes" else "no" end',
+      null, stateVars,
+    );
+    expect(result).toBe("yes");
+  });
+
+  it("evaluates mixed single and double quotes in one expression", async () => {
+    const result = await evaluateExpression(
+      '$context.outcome == \'approve\' and $context.status == "in-progress"',
+      null, stateVars,
+    );
+    expect(result).toBe(true);
   });
 });

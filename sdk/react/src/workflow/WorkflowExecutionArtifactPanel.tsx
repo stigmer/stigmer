@@ -4,6 +4,7 @@ import { memo, useCallback, useState } from "react";
 import type { Artifact } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/api_pb";
 import { cn } from "@stigmer/theme";
 import { useStigmer } from "../hooks";
+import { formatBytes } from "./format-utils";
 
 /** Props for {@link WorkflowExecutionArtifactPanel}. */
 export interface WorkflowExecutionArtifactPanelProps {
@@ -104,9 +105,3 @@ function FileIcon() {
   );
 }
 
-function formatBytes(bytes: bigint): string {
-  const n = Number(bytes);
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
-}

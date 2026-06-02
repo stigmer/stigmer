@@ -248,6 +248,24 @@ private static final long serialVersionUID = 0L;
     return reasoningPriceMicrosPerMillion_;
   }
 
+  public static final int CURSOR_TOKEN_RATE_MICROS_PER_MILLION_FIELD_NUMBER = 15;
+  private long cursorTokenRateMicrosPerMillion_ = 0L;
+  /**
+   * <pre>
+   * Cursor Token Rate applied to every billable token on non-Auto Cursor
+   * Teams requests (micro-USD per million tokens). Charged by Cursor on top
+   * of model API pricing; folded into provider_cost_micros for cursor-harness
+   * calls. Zero for native harness and for exempt cursor models (Auto/Composer).
+   * </pre>
+   *
+   * <code>int64 cursor_token_rate_micros_per_million = 15 [json_name = "cursorTokenRateMicrosPerMillion"];</code>
+   * @return The cursorTokenRateMicrosPerMillion.
+   */
+  @java.lang.Override
+  public long getCursorTokenRateMicrosPerMillion() {
+    return cursorTokenRateMicrosPerMillion_;
+  }
+
   public static final int MARKUP_POLICY_VERSION_FIELD_NUMBER = 30;
   @SuppressWarnings("serial")
   private volatile java.lang.Object markupPolicyVersion_ = "";
@@ -372,6 +390,9 @@ private static final long serialVersionUID = 0L;
     if (reasoningPriceMicrosPerMillion_ != 0L) {
       output.writeInt64(14, reasoningPriceMicrosPerMillion_);
     }
+    if (cursorTokenRateMicrosPerMillion_ != 0L) {
+      output.writeInt64(15, cursorTokenRateMicrosPerMillion_);
+    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(markupPolicyVersion_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 30, markupPolicyVersion_);
     }
@@ -417,6 +438,10 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeInt64Size(14, reasoningPriceMicrosPerMillion_);
     }
+    if (cursorTokenRateMicrosPerMillion_ != 0L) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeInt64Size(15, cursorTokenRateMicrosPerMillion_);
+    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(markupPolicyVersion_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(30, markupPolicyVersion_);
     }
@@ -457,6 +482,8 @@ private static final long serialVersionUID = 0L;
         != other.getCacheReadPriceMicrosPerMillion()) return false;
     if (getReasoningPriceMicrosPerMillion()
         != other.getReasoningPriceMicrosPerMillion()) return false;
+    if (getCursorTokenRateMicrosPerMillion()
+        != other.getCursorTokenRateMicrosPerMillion()) return false;
     if (!getMarkupPolicyVersion()
         .equals(other.getMarkupPolicyVersion())) return false;
     if (!getCostTier()
@@ -495,6 +522,9 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + REASONING_PRICE_MICROS_PER_MILLION_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
         getReasoningPriceMicrosPerMillion());
+    hash = (37 * hash) + CURSOR_TOKEN_RATE_MICROS_PER_MILLION_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+        getCursorTokenRateMicrosPerMillion());
     hash = (37 * hash) + MARKUP_POLICY_VERSION_FIELD_NUMBER;
     hash = (53 * hash) + getMarkupPolicyVersion().hashCode();
     hash = (37 * hash) + COST_TIER_FIELD_NUMBER;
@@ -652,6 +682,7 @@ private static final long serialVersionUID = 0L;
       cacheCreationPriceMicrosPerMillion_ = 0L;
       cacheReadPriceMicrosPerMillion_ = 0L;
       reasoningPriceMicrosPerMillion_ = 0L;
+      cursorTokenRateMicrosPerMillion_ = 0L;
       markupPolicyVersion_ = "";
       costTier_ = "";
       return this;
@@ -716,9 +747,12 @@ private static final long serialVersionUID = 0L;
         result.reasoningPriceMicrosPerMillion_ = reasoningPriceMicrosPerMillion_;
       }
       if (((from_bitField0_ & 0x00000100) != 0)) {
-        result.markupPolicyVersion_ = markupPolicyVersion_;
+        result.cursorTokenRateMicrosPerMillion_ = cursorTokenRateMicrosPerMillion_;
       }
       if (((from_bitField0_ & 0x00000200) != 0)) {
+        result.markupPolicyVersion_ = markupPolicyVersion_;
+      }
+      if (((from_bitField0_ & 0x00000400) != 0)) {
         result.costTier_ = costTier_;
       }
       result.bitField0_ |= to_bitField0_;
@@ -764,14 +798,17 @@ private static final long serialVersionUID = 0L;
       if (other.getReasoningPriceMicrosPerMillion() != 0L) {
         setReasoningPriceMicrosPerMillion(other.getReasoningPriceMicrosPerMillion());
       }
+      if (other.getCursorTokenRateMicrosPerMillion() != 0L) {
+        setCursorTokenRateMicrosPerMillion(other.getCursorTokenRateMicrosPerMillion());
+      }
       if (!other.getMarkupPolicyVersion().isEmpty()) {
         markupPolicyVersion_ = other.markupPolicyVersion_;
-        bitField0_ |= 0x00000100;
+        bitField0_ |= 0x00000200;
         onChanged();
       }
       if (!other.getCostTier().isEmpty()) {
         costTier_ = other.costTier_;
-        bitField0_ |= 0x00000200;
+        bitField0_ |= 0x00000400;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -842,14 +879,19 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000080;
               break;
             } // case 112
+            case 120: {
+              cursorTokenRateMicrosPerMillion_ = input.readInt64();
+              bitField0_ |= 0x00000100;
+              break;
+            } // case 120
             case 242: {
               markupPolicyVersion_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000100;
+              bitField0_ |= 0x00000200;
               break;
             } // case 242
             case 250: {
               costTier_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000200;
+              bitField0_ |= 0x00000400;
               break;
             } // case 250
             default: {
@@ -1382,6 +1424,59 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
+    private long cursorTokenRateMicrosPerMillion_ ;
+    /**
+     * <pre>
+     * Cursor Token Rate applied to every billable token on non-Auto Cursor
+     * Teams requests (micro-USD per million tokens). Charged by Cursor on top
+     * of model API pricing; folded into provider_cost_micros for cursor-harness
+     * calls. Zero for native harness and for exempt cursor models (Auto/Composer).
+     * </pre>
+     *
+     * <code>int64 cursor_token_rate_micros_per_million = 15 [json_name = "cursorTokenRateMicrosPerMillion"];</code>
+     * @return The cursorTokenRateMicrosPerMillion.
+     */
+    @java.lang.Override
+    public long getCursorTokenRateMicrosPerMillion() {
+      return cursorTokenRateMicrosPerMillion_;
+    }
+    /**
+     * <pre>
+     * Cursor Token Rate applied to every billable token on non-Auto Cursor
+     * Teams requests (micro-USD per million tokens). Charged by Cursor on top
+     * of model API pricing; folded into provider_cost_micros for cursor-harness
+     * calls. Zero for native harness and for exempt cursor models (Auto/Composer).
+     * </pre>
+     *
+     * <code>int64 cursor_token_rate_micros_per_million = 15 [json_name = "cursorTokenRateMicrosPerMillion"];</code>
+     * @param value The cursorTokenRateMicrosPerMillion to set.
+     * @return This builder for chaining.
+     */
+    public Builder setCursorTokenRateMicrosPerMillion(long value) {
+
+      cursorTokenRateMicrosPerMillion_ = value;
+      bitField0_ |= 0x00000100;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Cursor Token Rate applied to every billable token on non-Auto Cursor
+     * Teams requests (micro-USD per million tokens). Charged by Cursor on top
+     * of model API pricing; folded into provider_cost_micros for cursor-harness
+     * calls. Zero for native harness and for exempt cursor models (Auto/Composer).
+     * </pre>
+     *
+     * <code>int64 cursor_token_rate_micros_per_million = 15 [json_name = "cursorTokenRateMicrosPerMillion"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearCursorTokenRateMicrosPerMillion() {
+      bitField0_ = (bitField0_ & ~0x00000100);
+      cursorTokenRateMicrosPerMillion_ = 0L;
+      onChanged();
+      return this;
+    }
+
     private java.lang.Object markupPolicyVersion_ = "";
     /**
      * <pre>
@@ -1437,7 +1532,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       markupPolicyVersion_ = value;
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000200;
       onChanged();
       return this;
     }
@@ -1451,7 +1546,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearMarkupPolicyVersion() {
       markupPolicyVersion_ = getDefaultInstance().getMarkupPolicyVersion();
-      bitField0_ = (bitField0_ & ~0x00000100);
+      bitField0_ = (bitField0_ & ~0x00000200);
       onChanged();
       return this;
     }
@@ -1469,7 +1564,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       markupPolicyVersion_ = value;
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000200;
       onChanged();
       return this;
     }
@@ -1517,7 +1612,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       costTier_ = value;
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000400;
       onChanged();
       return this;
     }
@@ -1527,7 +1622,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearCostTier() {
       costTier_ = getDefaultInstance().getCostTier();
-      bitField0_ = (bitField0_ & ~0x00000200);
+      bitField0_ = (bitField0_ & ~0x00000400);
       onChanged();
       return this;
     }
@@ -1541,7 +1636,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       costTier_ = value;
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000400;
       onChanged();
       return this;
     }

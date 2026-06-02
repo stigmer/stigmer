@@ -1,6 +1,7 @@
 package root
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -106,14 +107,20 @@ func executeDeclarativeApply(detectResult *project.DetectResult, opts projectApp
 
 	// Phase 5a: Push skill directories first (agents may reference these skills)
 	var members []*apiresource.ApiResourceReference
+	var pushedSkills []pushedSkillInfo
 	for _, skillDir := range skillDirs {
-		ref, err := pushSkillDirectory(skillDir, client, orgID)
+		ps, err := pushSkillDirectory(skillDir, client, orgID)
 		if err != nil {
 			return errors.Wrapf(err, "failed to push skill from %s", skillDir)
 		}
-		if ref != nil {
-			members = append(members, ref)
+		if ps != nil {
+			members = append(members, ps.ref)
+			pushedSkills = append(pushedSkills, *ps)
 		}
+	}
+
+	if opts.PublicSkills && len(pushedSkills) > 0 {
+		setSkillsVisibilityPublic(client, pushedSkills)
 	}
 
 	// Phase 5b: Apply each YAML resource and collect references
@@ -310,8 +317,15 @@ func isSkillDirectory(dir string) bool {
 	return artifact.HasSkillFile(dir)
 }
 
-// pushSkillDirectory pushes a skill directory and returns an ApiResourceReference.
-func pushSkillDirectory(dir string, client *stigmer.Client, orgID string) (*apiresource.ApiResourceReference, error) {
+// pushedSkillInfo holds the reference and resource ID for a pushed skill,
+// so the caller can perform post-push operations like visibility updates.
+type pushedSkillInfo struct {
+	ref *apiresource.ApiResourceReference
+	id  string
+}
+
+// pushSkillDirectory pushes a skill directory and returns the reference and resource ID.
+func pushSkillDirectory(dir string, client *stigmer.Client, orgID string) (*pushedSkillInfo, error) {
 	climsg.Info("Pushing skill from %s...", filepath.Base(dir))
 
 	result, err := skill.Push(skill.PushOptions{
@@ -324,11 +338,31 @@ func pushSkillDirectory(dir string, client *stigmer.Client, orgID string) (*apir
 		return nil, err
 	}
 
-	return &apiresource.ApiResourceReference{
-		Org:  orgID,
-		Kind: apiresourcekind.ApiResourceKind_skill,
-		Slug: result.Slug,
+	return &pushedSkillInfo{
+		ref: &apiresource.ApiResourceReference{
+			Org:  orgID,
+			Kind: apiresourcekind.ApiResourceKind_skill,
+			Slug: result.Slug,
+		},
+		id: result.ID,
 	}, nil
+}
+
+// setSkillsVisibilityPublic updates the visibility of pushed skills to public.
+// Used by seedpack bootstrap to make platform skills discoverable.
+func setSkillsVisibilityPublic(client *stigmer.Client, skills []pushedSkillInfo) {
+	for _, ps := range skills {
+		_, err := client.Skill.UpdateVisibility(context.Background(),
+			&apiresource.UpdateVisibilityInput{
+				ResourceId: ps.id,
+				Visibility: apiresource.ApiResourceVisibility_visibility_public,
+			})
+		if err != nil {
+			climsg.Warning("Failed to set public visibility for skill %s: %v", ps.ref.Slug, err)
+			continue
+		}
+		climsg.Info("Set skill %s to public", ps.ref.Slug)
+	}
 }
 
 // detectResourceItems detects the resource kind in each file and builds

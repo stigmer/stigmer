@@ -769,6 +769,9 @@ func generateTSInputTypes(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkR
 	buf.WriteString("  org: string;\n")
 	buf.WriteString("  labels?: Record<string, string>;\n")
 	buf.WriteString("  visibility?: ApiResourceVisibility;\n")
+	if cfg.isVersioned {
+		buf.WriteString("  versionMessage?: string;\n")
+	}
 	for _, f := range specFields {
 		tsType := tsTypeForField(f, typeMap, imports, schema.Package)
 		optional := "?"
@@ -1065,6 +1068,10 @@ func generateTSBuildProto(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkR
 		buf.WriteString("      ...(input.slug && { slug: input.slug }),\n")
 		buf.WriteString("      ...(input.labels && { labels: input.labels }),\n")
 		buf.WriteString("      ...(input.visibility && { visibility: input.visibility }),\n")
+		if cfg.isVersioned {
+			imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb", "ApiResourceMetadataVersionSchema")
+			buf.WriteString("      ...(input.versionMessage && { version: Object.assign(create(ApiResourceMetadataVersionSchema), { message: input.versionMessage }) }),\n")
+		}
 		fmt.Fprintf(buf, "    }),\n")
 		fmt.Fprintf(buf, "    spec,\n")
 		fmt.Fprintf(buf, "  }) as %s;\n", cfg.protoResType)
@@ -1078,6 +1085,10 @@ func generateTSBuildProto(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkR
 		buf.WriteString("      ...(input.slug && { slug: input.slug }),\n")
 		buf.WriteString("      ...(input.labels && { labels: input.labels }),\n")
 		buf.WriteString("      ...(input.visibility && { visibility: input.visibility }),\n")
+		if cfg.isVersioned {
+			imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb", "ApiResourceMetadataVersionSchema")
+			buf.WriteString("      ...(input.versionMessage && { version: Object.assign(create(ApiResourceMetadataVersionSchema), { message: input.versionMessage }) }),\n")
+		}
 		fmt.Fprintf(buf, "    }),\n")
 		fmt.Fprintf(buf, "    spec: Object.assign(create(%sSchema), stripUndefined({\n", spec.Name)
 

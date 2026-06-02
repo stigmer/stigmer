@@ -8,11 +8,13 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class WorkflowStatus(_message.Message):
-    __slots__ = ("audit", "default_instance_id", "serverless_workflow_validation")
+    __slots__ = ("audit", "default_instance_id", "serverless_workflow_validation", "version_hash")
     AUDIT_FIELD_NUMBER: _ClassVar[int]
     DEFAULT_INSTANCE_ID_FIELD_NUMBER: _ClassVar[int]
     SERVERLESS_WORKFLOW_VALIDATION_FIELD_NUMBER: _ClassVar[int]
+    VERSION_HASH_FIELD_NUMBER: _ClassVar[int]
     audit: _status_pb2.ApiResourceAudit
     default_instance_id: str
     serverless_workflow_validation: _validation_pb2.ServerlessWorkflowValidation
-    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., default_instance_id: _Optional[str] = ..., serverless_workflow_validation: _Optional[_Union[_validation_pb2.ServerlessWorkflowValidation, _Mapping]] = ...) -> None: ...
+    version_hash: str
+    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., default_instance_id: _Optional[str] = ..., serverless_workflow_validation: _Optional[_Union[_validation_pb2.ServerlessWorkflowValidation, _Mapping]] = ..., version_hash: _Optional[str] = ...) -> None: ...

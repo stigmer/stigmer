@@ -128,7 +128,7 @@ public enum WorkflowEventType
   task_failed(13),
   /**
    * <pre>
-   * A workflow task was skipped due to conditional logic.
+   * A workflow task was skipped (conditional logic or recovery).
    * Payload: TaskSkippedPayload.
    * </pre>
    *
@@ -339,7 +339,7 @@ public enum WorkflowEventType
   public static final int task_failed_VALUE = 13;
   /**
    * <pre>
-   * A workflow task was skipped due to conditional logic.
+   * A workflow task was skipped (conditional logic or recovery).
    * Payload: TaskSkippedPayload.
    * </pre>
    *

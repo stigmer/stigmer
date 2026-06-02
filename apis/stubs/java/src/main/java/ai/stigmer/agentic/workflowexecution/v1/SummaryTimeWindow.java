@@ -130,7 +130,7 @@ public enum SummaryTimeWindow
   }
   public static com.google.protobuf.Descriptors.EnumDescriptor
       getDescriptor() {
-    return ai.stigmer.agentic.workflowexecution.v1.IoProto.getDescriptor().getEnumType(0);
+    return ai.stigmer.agentic.workflowexecution.v1.IoProto.getDescriptor().getEnumType(1);
   }
 
   private static final SummaryTimeWindow[] VALUES = values();

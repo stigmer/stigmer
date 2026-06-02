@@ -918,6 +918,7 @@ All visual properties flow through `--stgm-*` tokens.
 <TypeTable
   type={{
     activeStreamExecution: { type: "AgentExecution | null", description: "The currently streaming execution. Appended after `executions` to form a continuous thread. Pass `null` or `undefined` when no execution is actively streaming." },
+    centerContent: { type: "boolean", description: "Center thread content within a max-width reading column.  When `true`, items are constrained to `max-w-3xl` (768 px) and horizontally centered. The scroll container stays full-width so the scrollbar remains at the viewport edge.  Opt-in per DD-011 — existing consumers see no layout change." },
     className: { type: "string", description: "Additional CSS class names for the root container." },
     executions: { type: "readonly AgentExecution[]", description: "Completed executions in chronological order.", required: true },
     formatToolCallSummary: { type: "(toolCalls: readonly ToolCall[]) => string", description: "Custom formatter for tool call summary labels. Passed through to each ToolCallGroup." },
@@ -1379,6 +1380,8 @@ Input for `UseCreateAgentExecutionReturn.create`.
     org: { type: "string", description: "Organization slug that owns the session.", required: true },
     runtimeEnv: { type: "Record<string, EnvVarInput>", description: "Execution-scoped secrets and configuration (Execution Flow).  Values are injected into the agent sandbox for this execution only and deleted when the execution completes. They take the highest merge priority, overriding both Environment values and agent defaults.  Use this for B2B integrations where per-call credentials are injected at runtime, or for one-off secrets that should not persist.  For persistent credentials that are reused across executions, use the Environment Flow instead (store secrets in an Environment resource and bind them via an AgentInstance)." },
     sessionId: { type: "string", description: "Session to create the execution within.", required: true },
+    structuredOutputSchema: { type: "JsonObject", description: "JSON Schema that the agent's final output must conform to.  When set, the runner enforces structured output: - Native harness: ToolStrategy adds an extract tool; agent must call it - Cursor harness: prompt injection + 3-tier extraction fallback  The validated data is returned in `execution.status.structuredOutput`." },
+    workspaceFileRefs: { type: "string[]", description: "Workspace-relative file paths the user wants the agent to focus on.  These are lightweight \"attention\" signals — the agent reads the files directly from the workspace filesystem. No upload, no injection. Populated by the drag-to-reference feature in SessionComposer." },
   }}
 />
 

@@ -13,6 +13,7 @@ public interface ApiResourceMetadataVersionOrBuilder extends
   /**
    * <pre>
    * Unique identifier for this version.
+   * For versioned resources: SHA-256 content hash.
    * </pre>
    *
    * <code>string id = 1 [json_name = "id"];</code>
@@ -22,6 +23,7 @@ public interface ApiResourceMetadataVersionOrBuilder extends
   /**
    * <pre>
    * Unique identifier for this version.
+   * For versioned resources: SHA-256 content hash.
    * </pre>
    *
    * <code>string id = 1 [json_name = "id"];</code>
@@ -33,6 +35,7 @@ public interface ApiResourceMetadataVersionOrBuilder extends
   /**
    * <pre>
    * Message describing what changed in this version.
+   * Analogous to a git commit message.
    * </pre>
    *
    * <code>string message = 2 [json_name = "message"];</code>
@@ -42,6 +45,7 @@ public interface ApiResourceMetadataVersionOrBuilder extends
   /**
    * <pre>
    * Message describing what changed in this version.
+   * Analogous to a git commit message.
    * </pre>
    *
    * <code>string message = 2 [json_name = "message"];</code>
@@ -69,4 +73,32 @@ public interface ApiResourceMetadataVersionOrBuilder extends
    */
   com.google.protobuf.ByteString
       getPreviousVersionIdBytes();
+
+  /**
+   * <pre>
+   * Optional tag to assign to this version at creation time.
+   * Only applicable to versioned resources (Skills, Workflows).
+   * Examples: "stable", "v1.0", "production"
+   *
+   * &#64;since Workflow Versioning
+   * </pre>
+   *
+   * <code>string tag = 4 [json_name = "tag"];</code>
+   * @return The tag.
+   */
+  java.lang.String getTag();
+  /**
+   * <pre>
+   * Optional tag to assign to this version at creation time.
+   * Only applicable to versioned resources (Skills, Workflows).
+   * Examples: "stable", "v1.0", "production"
+   *
+   * &#64;since Workflow Versioning
+   * </pre>
+   *
+   * <code>string tag = 4 [json_name = "tag"];</code>
+   * @return The bytes for tag.
+   */
+  com.google.protobuf.ByteString
+      getTagBytes();
 }

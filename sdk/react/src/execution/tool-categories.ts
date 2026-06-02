@@ -21,6 +21,7 @@ export type ToolCategory =
   | "list"
   | "think"
   | "sub-agent"
+  | "internal"
   | "mcp"
   | "unknown";
 
@@ -74,6 +75,10 @@ const TOOL_DISPLAY_MAP: ReadonlyMap<string, ToolDisplayEntry> = new Map([
   ["think",           { category: "think",     label: "Thinking",  primaryField: "thought" }],
 
   ["task",            { category: "sub-agent", label: "Sub-agent", primaryField: "description", fallbackFields: ["prompt"] }],
+
+  ["updateTodos",     { category: "internal",  label: "Todos",     primaryField: "todos" }],
+  ["TodoWrite",       { category: "internal",  label: "Todos",     primaryField: "todos" }],
+  ["write_todos",     { category: "internal",  label: "Todos",     primaryField: "todos" }],
 ]);
 
 /**
@@ -87,6 +92,17 @@ const TOOL_DISPLAY_MAP: ReadonlyMap<string, ToolDisplayEntry> = new Map([
  * Falls back to `"unknown"` only when the tool is neither
  * built-in nor MCP-originated.
  */
+/**
+ * Returns true if the tool is an internal state management tool that
+ * should not be displayed in the message thread. Internal tools are
+ * rendered through dedicated UX surfaces (e.g. TodoList sidebar)
+ * rather than as expandable tool call items.
+ */
+export function isInternalTool(toolName: string): boolean {
+  const entry = TOOL_DISPLAY_MAP.get(toolName);
+  return entry?.category === "internal";
+}
+
 export function resolveToolCategory(
   toolName: string,
   mcpServerSlug?: string,

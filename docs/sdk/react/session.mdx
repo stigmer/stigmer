@@ -502,6 +502,39 @@ const { executions } = useSessionExecutions(sessionId ?? null);
 ```
 
 
+### useSessionInspector
+
+Behavior hook for SessionInspector tab state management.
+
+Uses the "adjust state during render" pattern from the workflow
+`ExecutionInspector`: shadow `prevPhase`/`prevSelected` state,
+`userPickedTabRef` for sticky manual picks, and `deriveAutoTab`
+for system suggestions. Keeps the user's tab pick sticky until
+a meaningful state change resets it.
+
+**Signature**
+
+```tsx
+function useSessionInspector(opts: UseSessionInspectorOptions): UseSessionInspectorReturn
+```
+
+<TypeTable
+  type={{
+    opts: { type: "UseSessionInspectorOptions", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UseSessionInspectorReturn`
+
+<TypeTable
+  type={{
+    activeTab: { type: "SessionInspectorTabId", description: "", typeDescriptionLink: "#sessioninspectortabid" },
+    onTabChange: { type: "(tabId: string) => void", description: "" },
+    tabs: { type: "readonly TabItem[]", description: "" },
+  }}
+/>
+
+
 ### useSessionList
 
 Data hook that fetches a paginated list of `Session` entries.
@@ -696,9 +729,14 @@ function SessionSidebar() {
 
 Usage hook for session-level cost and token aggregation.
 
-Calls `getSessionUsageReport` to fetch real usage data from the
-billing domain. Returns zeros while loading or when no session is
-available.
+Uses exactly ONE data source at a time to avoid displaying a cost total
+from one pipeline with a model breakdown from another:
+
+- When billing records exist (proxy-metered), the billing report is shown
+  as authoritative (`isEstimated: false`).
+- When execution is in-flight and only streaming data is available,
+  streaming is shown with `isEstimated: true`.
+- The two sources are never mixed in the same display.
 
 **Signature**
 
@@ -708,7 +746,7 @@ function useSessionUsage(executions: readonly AgentExecution[]): UseSessionUsage
 
 <TypeTable
   type={{
-    executions: { type: "readonly AgentExecution[]", description: "All executions for a session (used to derive session ID).", required: true },
+    executions: { type: "readonly AgentExecution[]", description: "All executions for a session (completed + active).", required: true },
   }}
 />
 
@@ -720,6 +758,7 @@ function useSessionUsage(executions: readonly AgentExecution[]): UseSessionUsage
     cacheReadTokens: { type: "number", description: "Total tokens served from cache across all models." },
     hasUsage: { type: "boolean", description: "`true` when usage data is available." },
     inputTokens: { type: "number", description: "Total input tokens across all models." },
+    isEstimated: { type: "boolean", description: "`true` when the displayed cost comes from runner-reported streaming data rather than settled billing records. The UI should show an \"Estimated\" badge when this is true." },
     llmCallCount: { type: "number", description: "Total number of LLM calls in this session." },
     modelBreakdown: { type: "readonly ModelCostEntry[]", description: "Per-model cost and token breakdown." },
     outputTokens: { type: "number", description: "Total output tokens across all models." },
@@ -832,7 +871,169 @@ function RenameSession({ session }: { session: Session }) {
 ```
 
 
+## Components
+
+### NewSessionViewer
+
+Full-featured new-session launcher organism — the pre-session analog
+of `SessionViewer`.
+
+Owns `useNewSessionFlow` internally and composes:
+- **Centered composer** (primary pane): `SessionComposer` with all
+  context pickers (agent, workspace, MCP servers, skills)
+- **SessionInspector** (secondary pane): progressively revealed when
+  context is attached (workspace/agent/MCP/skills/vars non-empty),
+  showing only the Setup tab with interactive workspace actions.
+
+Framework-agnostic — no Next.js, no Tauri, no routing deps. Host
+apps inject platform-specific values via props (DD-004/DD-016).
+
+**Props** — `NewSessionViewerProps`
+
+<TypeTable
+  type={{
+    autoFocus: { type: "boolean", description: "Auto-focus the textarea on mount." },
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    enableGitHub: { type: "boolean", description: "Whether to enable GitHub workspace sources." },
+    enableLocal: { type: "boolean", description: "Whether to enable local workspace sources." },
+    footerContent: { type: "ReactNode", description: "Slot for host-injected actions rendered below the composer (e.g., submit error messages). Keeps the SDK organism unopinionated about Console-specific error rendering (DD-004)." },
+    gitHubConnection: { type: "UseGitHubConnectionReturn", description: "GitHub connection state for the workspace repo picker. Platform-specific — web passes `useGitHubConnection(org)`, desktop omits it.", typeDescriptionLink: "/docs/sdk/react/github#usegithubconnectionreturn" },
+    heading: { type: "string", description: "Heading text above the composer." },
+    initialAgentRef: { type: "ResourceRef", description: "Agent to auto-select on mount (used for draft flows)." },
+    initialAttachments: { type: "File[]", description: "Files to auto-attach on mount (used for edit flows)." },
+    initialRows: { type: "number", description: "Initial number of visible textarea rows." },
+    onBrowseLocalFolder: { type: "() => Promise<string | null>", description: "Native folder picker callback for desktop environments. Desktop supplies this via Tauri's dialog plugin." },
+    onError: { type: "(message: string) => void", description: "Called on error (for toast notifications or other UI feedback)." },
+    onSessionCreated: { type: "(sessionId: string) => void", description: "Called after the session and first execution are created.", required: true },
+    org: { type: "string", description: "Organization slug. Required for session creation.", required: true },
+    placeholder: { type: "string", description: "Placeholder for the composer textarea." },
+    workspaceFileLister: { type: "WorkspaceFileLister", description: "Platform-injected file lister for workspace entries. When provided, each entry in the Setup tab's workspace section renders an expandable file tree. (DD-004 capability injection, DD-011 opt-in.)", typeDescriptionLink: "/docs/sdk/react/workspace#workspacefilelister" },
+  }}
+/>
+
+```tsx
+// Desktop
+<NewSessionViewer
+  org={org}
+  onSessionCreated={(id) => navigate(`/sessions/${id}`)}
+  onError={(msg) => toast.error(msg)}
+  enableLocal
+  onBrowseLocalFolder={browseLocalFolder}
+/>
+
+// Web
+<NewSessionViewer
+  org={org}
+  onSessionCreated={navigateToSession}
+  onError={(msg) => toast.error(msg)}
+  enableGitHub
+  gitHubConnection={gitHubConnection}
+/>
+```
+
+
+### SessionViewer
+
+Full-featured agent session viewer — the graph-less analog of
+`WorkflowExecutionViewer`.
+
+Owns `useSessionPageFlow` internally and composes:
+- **Conversation column** (primary): `MessageThread` + error
+  banners + `SessionComposer`
+- **SessionInspector** (secondary): tabbed panel with Plan,
+  Changes, Artifacts, Usage, and Inspect facets
+
+Connected via `ResizableSplit` with persisted width.
+
+Thread selection is provided via `ThreadSelectionContext` (Phase 2
+opt-in) for render-isolated per-item selection.
+
+Framework-agnostic — no Next.js, no Tauri, no routing deps. Host
+apps inject platform-specific values via props (DD-004/DD-016).
+
+**Props** — `SessionViewerProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS classes for the root container." },
+    enableGitHub: { type: "boolean", description: "Whether to enable GitHub workspace features in the composer." },
+    enableLocal: { type: "boolean", description: "Whether to enable local workspace features in the composer. Web passes `deploymentMode === \"local\"`, desktop passes `true`." },
+    gitHubConnection: { type: "UseGitHubConnectionReturn", description: "GitHub connection state. Platform-specific — web passes `useGitHubConnection(org)`, desktop passes `useDesktopGitHubConnection(org)`.", typeDescriptionLink: "/docs/sdk/react/github#usegithubconnectionreturn" },
+    headerActions: { type: "ReactNode", description: "Slot for host-injected header actions (e.g., Share button with PermissionGate). Rendered in the top-right corner of the viewer. Keeps the SDK organism unopinionated about Console auth (DD-004)." },
+    onApplied: { type: "(result: ApplyResourceResult) => void", description: "Called after a resource is applied from the Artifacts tab." },
+    onBrowseLocalFolder: { type: "() => Promise<string | null>", description: "Native folder picker callback for desktop environments.  When provided alongside `enableLocal`, the composer renders a \"Browse Folder\" button that opens the system folder dialog. Without this callback `enableLocal` alone is not sufficient for the UI to render the local option.  Desktop apps supply this via Tauri's dialog plugin. Web apps omit it (no native picker available)." },
+    org: { type: "string", description: "Organization slug.", required: true },
+    sessionId: { type: "string", description: "Session ID to load and display.", required: true },
+    workspaceFileLister: { type: "WorkspaceFileLister", description: "Platform-injected file lister for workspace entries. When provided, each entry in the Setup tab's workspace section renders an expandable file tree. (DD-004 capability injection, DD-011 opt-in.)", typeDescriptionLink: "/docs/sdk/react/workspace#workspacefilelister" },
+  }}
+/>
+
+```tsx
+// Web (cloud execution)
+<SessionViewer
+  sessionId={id}
+  org={org}
+  gitHubConnection={gitHubConnection}
+  enableGitHub
+  headerActions={<ShareButton sessionId={id} />}
+/>
+
+// Desktop (local execution with native picker)
+<SessionViewer
+  sessionId={id}
+  org={org}
+  enableLocal
+  onBrowseLocalFolder={browseLocalFolder}
+  headerActions={<ShareButton sessionId={id} />}
+/>
+```
+
+
+### SetupTab
+
+Persistent session configuration panel (Configure tab) — shows agent,
+MCP servers, skills, run config, and session variables.
+
+Workspace management has moved to the dedicated Workspace tab.
+
+When mutation callbacks are provided via `mutations`, items render
+inline remove/reconfigure affordances. When callbacks are absent,
+sections render read-only (backward compatible, DD-011).
+
+All visual properties flow through `--stgm-*` tokens (DD-005).
+
+**Props** — `SetupTabProps`
+
+<TypeTable
+  type={{
+    agentRef: { type: "ResourceRef | null", description: "", required: true },
+    executionTarget: { type: "ExecutionTargetOption | undefined", description: "", required: true },
+    harness: { type: "HarnessOption", description: "", required: true, typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
+    isDefaultAgent: { type: "boolean", description: "", required: true },
+    mcpServerUsages: { type: "readonly McpServerUsageInput[]", description: "", required: true },
+    modelId: { type: "string | undefined", description: "", required: true },
+    mutations: { type: "SetupTabMutationCallbacks", description: "Interactive mutation callbacks. When provided, items render remove buttons. When absent, sections are read-only (DD-011).", typeDescriptionLink: "#setuptabmutationcallbacks" },
+    sessionVariables: { type: "UseSessionVariablesReturn | null", description: "", required: true },
+    skillRefs: { type: "readonly ResourceRef[]", description: "", required: true },
+  }}
+/>
+
+
 ## Types
+
+### buildVisibleTabs
+
+Build the contextual tab list with badges.
+
+Tab order follows the user's mental model — context before output:
+Workspace → Config → Plan → Usage. Changes and Artifacts appear
+after Plan when data exists; Inspect appears last when a thread item
+is selected.
+
+```tsx
+function buildVisibleTabs(opts: { artifactCount: number; hasArtifacts: boolean; hasUsage: boolean; hasWriteBacks: boolean; selectedItem: SelectedThreadItem | null; writeBackCount: number }): TabItem[]
+```
+
 
 ### CreateSessionInput
 
@@ -947,7 +1148,7 @@ Per-model cost breakdown.
     callCount: { type: "number", description: "Number of LLM calls made to this model.", required: true },
     estimatedCostUsd: { type: "number", description: "Estimated cost in USD for this model's usage.", required: true },
     inputTokens: { type: "number", description: "Total input tokens consumed by this model.", required: true },
-    model: { type: "string", description: "Model identifier (e.g. \"claude-sonnet-4-20250514\").", required: true },
+    model: { type: "string", description: "Model identifier (e.g. \"claude-sonnet-4-6\").", required: true },
     outputTokens: { type: "number", description: "Total output tokens generated by this model.", required: true },
     provider: { type: "string", description: "Provider name (e.g. \"anthropic\", \"openai\").", required: true },
   }}
@@ -1015,6 +1216,7 @@ values are scoped to the single execution and deleted on completion.
     runtimeEnv: { type: "Record<string, EnvVarInput>", description: "Execution-scoped secrets and configuration (Execution Flow).  Values are injected into the agent sandbox for this execution only and deleted when the execution completes. They override both Environment values and agent defaults." },
     skillRefs: { type: "ResourceRef[]", description: "Skill references to enable for this execution." },
     workspaceEntries: { type: "WorkspaceEntryInput[]", description: "Workspace entries to attach to the execution." },
+    workspaceFileRefs: { type: "string[]", description: "Workspace-relative file paths the user wants the agent to focus on.  Lightweight \"attention\" signals — no upload, no injection. The agent reads these files directly from the workspace filesystem." },
   }}
 />
 
@@ -1051,6 +1253,46 @@ A time-based group of sessions produced by [`groupSessionsByTime`](#groupsession
 />
 
 
+### SessionInspector
+
+Tabbed right-side inspector panel for agent sessions.
+
+Displays an always-visible run-status header (phase badge) above
+contextual tabs: Plan, Changes, Artifacts, Usage, and Inspect
+(when a thread item is selected).
+
+Mirrors the `ExecutionInspector` architecture from the workflow
+view — same `Tabs` primitive, same tab-FSM behavior hook, same
+contextual visibility pattern.
+
+`React.memo`'d to prevent re-renders from parent layout changes
+that don't affect inspector data.
+
+All visual properties flow through `--stgm-*` tokens. Zero
+Console/Next/Tauri dependencies (DD-004).
+
+
+### SessionInspectorProps
+
+Props for [`SessionInspector`](#sessioninspector).
+
+<TypeTable
+  type={{
+    allExecutions: { type: "readonly AgentExecution[]", description: "All executions in the session (completed + active stream). Drives aggregation hooks for Changes, Artifacts, and Usage.", required: true },
+    className: { type: "string", description: "Additional CSS classes." },
+    displayExecution: { type: "AgentExecution | null", description: "The most relevant execution — the active streaming execution, or the last completed one. Drives the run-status header and the Plan facet.", required: true },
+    onApplied: { type: "(result: ApplyResourceResult) => void", description: "Called after a resource is applied from the Artifacts tab." },
+    org: { type: "string", description: "Organization slug for artifact Apply CTA.", required: true },
+    selectedItem: { type: "SelectedThreadItem | null", description: "Currently selected thread item, or null.", required: true },
+    sessionConfig: { type: "SetupTabProps", description: "Session-level configuration for the Configure tab. Includes core config fields and optional interactive mutation callbacks. When mutation callbacks are absent, sections render read-only (DD-011 backward compatibility).", typeDescriptionLink: "#setuptabprops" },
+    workspaceConfig: { type: "WorkspaceTabProps", description: "Workspace tab configuration. When provided, the Workspace tab renders interactive workspace actions (add/remove entries, file tree browsing). When absent, the tab shows an empty state." },
+  }}
+/>
+
+
+### SessionInspectorTabId
+
+
 ### SessionWriteBackEntry
 
 A single write-back entry enriched with the execution context that
@@ -1063,6 +1305,19 @@ for traceability in the UI (e.g., tooltip or detail view).
   type={{
     executionId: { type: "string", description: "ID of the execution that produced this write-back.", required: true },
     writeBack: { type: "WorkspaceWriteBack", description: "The proto write-back record containing branch, PR URL, and commit details.", required: true },
+  }}
+/>
+
+
+### SetupTabMutationCallbacks
+
+Interactive mutation callbacks for config items in SetupTab.
+
+<TypeTable
+  type={{
+    onRemoveAgent: { type: "() => void", description: "Remove the current agent. Absent = non-removable (e.g. default agent)." },
+    onRemoveMcp: { type: "(ref: ResourceRef) => void", description: "Remove an MCP server by its org/slug ref." },
+    onRemoveSkill: { type: "(ref: ResourceRef) => void", description: "Remove a skill by its org/slug ref." },
   }}
 />
 
@@ -1112,6 +1367,21 @@ Options for [`usePersistedModel`](#usepersistedmodel).
 ### UsePersistedModelReturn
 
 Return value of [`usePersistedModel`](#usepersistedmodel).
+
+
+### UseSessionInspectorOptions
+
+<TypeTable
+  type={{
+    artifactCount: { type: "number", description: "", required: true },
+    hasArtifacts: { type: "boolean", description: "", required: true },
+    hasUsage: { type: "boolean", description: "", required: true },
+    hasWriteBacks: { type: "boolean", description: "", required: true },
+    phase: { type: "ExecutionPhase | null", description: "", required: true },
+    selectedItem: { type: "SelectedThreadItem | null", description: "", required: true },
+    writeBackCount: { type: "number", description: "", required: true },
+  }}
+/>
 
 
 ### UseSessionListOptions

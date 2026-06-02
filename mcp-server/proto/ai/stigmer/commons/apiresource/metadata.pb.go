@@ -27,14 +27,14 @@ const (
 type ApiResourceMetadata struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Human-readable name of the resource.
-	// Max 63 characters. Validation is skipped when the field is empty (e.g.,
-	// server-generated responses or partial messages).
+	// Validation is skipped when the field is empty (e.g., server-generated
+	// responses or partial messages).
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// URL-friendly identifier, unique within the organization.
 	// Combined with org, forms the canonical reference: "org/slug".
-	// Format: 2-63 lowercase alphanumeric characters and hyphens; must start
-	// with a letter and end with a letter or digit. When empty, the server
-	// derives the slug from the name.
+	// Format: lowercase alphanumeric characters and hyphens (min 2 chars);
+	// must start with a letter and end with a letter or digit. When empty,
+	// the server derives the slug from the name.
 	Slug string `protobuf:"bytes,2,opt,name=slug,proto3" json:"slug,omitempty"`
 	// System-generated unique identifier.
 	Id string `protobuf:"bytes,3,opt,name=id,proto3" json:"id,omitempty"`
@@ -154,16 +154,31 @@ func (x *ApiResourceMetadata) GetVersion() *ApiResourceMetadataVersion {
 }
 
 // ApiResourceMetadataVersion contains version tracking information.
+//
+// For versioned resources (is_versioned: true), this is populated by the
+// backend on every spec-changing create/update:
+// - id: content hash of the new version (SHA-256)
+// - message: user-provided description of what changed
+// - previous_version_id: hash of the prior version
+// - tag: optional version tag assigned at apply time
 type ApiResourceMetadataVersion struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Unique identifier for this version.
+	// For versioned resources: SHA-256 content hash.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// Message describing what changed in this version.
+	// Analogous to a git commit message.
 	Message string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
 	// Reference to the previous version ID.
 	PreviousVersionId string `protobuf:"bytes,3,opt,name=previous_version_id,json=previousVersionId,proto3" json:"previous_version_id,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// Optional tag to assign to this version at creation time.
+	// Only applicable to versioned resources (Skills, Workflows).
+	// Examples: "stable", "v1.0", "production"
+	//
+	// @since Workflow Versioning
+	Tag           string `protobuf:"bytes,4,opt,name=tag,proto3" json:"tag,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ApiResourceMetadataVersion) Reset() {
@@ -217,15 +232,21 @@ func (x *ApiResourceMetadataVersion) GetPreviousVersionId() string {
 	return ""
 }
 
+func (x *ApiResourceMetadataVersion) GetTag() string {
+	if x != nil {
+		return x.Tag
+	}
+	return ""
+}
+
 var File_ai_stigmer_commons_apiresource_metadata_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_commons_apiresource_metadata_proto_rawDesc = "" +
 	"\n" +
-	"-ai/stigmer/commons/apiresource/metadata.proto\x12\x1eai.stigmer.commons.apiresource\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a\x1bbuf/validate/validate.proto\"\x9b\x05\n" +
-	"\x13ApiResourceMetadata\x12\x1e\n" +
-	"\x04name\x18\x01 \x01(\tB\n" +
-	"\xbaH\a\xd8\x01\x01r\x02\x18?R\x04name\x12;\n" +
-	"\x04slug\x18\x02 \x01(\tB'\xbaH$\xd8\x01\x01r\x1f\x10\x02\x18?2\x19^[a-z][a-z0-9-]*[a-z0-9]$R\x04slug\x12\x0e\n" +
+	"-ai/stigmer/commons/apiresource/metadata.proto\x12\x1eai.stigmer.commons.apiresource\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a\x1bbuf/validate/validate.proto\"\x95\x05\n" +
+	"\x13ApiResourceMetadata\x12\x1a\n" +
+	"\x04name\x18\x01 \x01(\tB\x06\xbaH\x03\xd8\x01\x01R\x04name\x129\n" +
+	"\x04slug\x18\x02 \x01(\tB%\xbaH\"\xd8\x01\x01r\x1d\x10\x022\x19^[a-z][a-z0-9-]*[a-z0-9]$R\x04slug\x12\x0e\n" +
 	"\x02id\x18\x03 \x01(\tR\x02id\x12\x10\n" +
 	"\x03org\x18\x04 \x01(\tR\x03org\x12_\n" +
 	"\n" +
@@ -240,11 +261,12 @@ const file_ai_stigmer_commons_apiresource_metadata_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a>\n" +
 	"\x10AnnotationsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"v\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x88\x01\n" +
 	"\x1aApiResourceMetadataVersion\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12.\n" +
-	"\x13previous_version_id\x18\x03 \x01(\tR\x11previousVersionIdB\x9b\x02\n" +
+	"\x13previous_version_id\x18\x03 \x01(\tR\x11previousVersionId\x12\x10\n" +
+	"\x03tag\x18\x04 \x01(\tR\x03tagB\x9b\x02\n" +
 	"\"com.ai.stigmer.commons.apiresourceB\rMetadataProtoP\x01ZJgithub.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource\xa2\x02\x04ASCA\xaa\x02\x1eAi.Stigmer.Commons.Apiresource\xca\x02\x1eAi\\Stigmer\\Commons\\Apiresource\xe2\x02*Ai\\Stigmer\\Commons\\Apiresource\\GPBMetadata\xea\x02!Ai::Stigmer::Commons::Apiresourceb\x06proto3"
 
 var (

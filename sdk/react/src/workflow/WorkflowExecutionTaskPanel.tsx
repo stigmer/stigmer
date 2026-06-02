@@ -4,6 +4,7 @@ import { memo } from "react";
 import { cn } from "@stigmer/theme";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import type { DerivedTaskState } from "../internal/store/workflow-execution-event-store";
+import { formatDuration } from "./format-utils";
 
 /** Props for {@link WorkflowExecutionTaskPanel}. */
 export interface WorkflowExecutionTaskPanelProps {
@@ -126,10 +127,3 @@ export const WorkflowExecutionTaskPanel = memo(function WorkflowExecutionTaskPan
   );
 });
 
-function formatDuration(ms: number): string {
-  if (ms < 1000) return `${ms}ms`;
-  const s = ms / 1000;
-  if (s < 60) return `${s.toFixed(1)}s`;
-  const m = Math.floor(s / 60);
-  return `${m}m`;
-}

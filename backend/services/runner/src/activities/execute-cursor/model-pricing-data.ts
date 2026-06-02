@@ -56,7 +56,7 @@ function getApiUrl(): string {
 }
 
 function getAuthToken(): string | undefined {
-  return process.env.STIGMER_AUTH_TOKEN;
+  return process.env.STIGMER_TOKEN ?? process.env.STIGMER_AUTH_TOKEN;
 }
 
 function parsePricingTable(json: unknown): CursorModelPricing[] {

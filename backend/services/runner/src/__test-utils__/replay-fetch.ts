@@ -74,6 +74,131 @@ function isLlmApiUrl(url: string): boolean {
   return llmPatterns.some((p) => url.includes(p));
 }
 
+// ─── Streaming (SSE) Synthesis ─────────────────────────────────────────────
+//
+// The runner's `call-llm` activity invokes LangChain's `model.stream()` for
+// plain (non-structured) completions so the proxy's SSE usage extractors can
+// meter the request. A streaming request expects a `text/event-stream`
+// response, not a single JSON body. Recorded fixtures store the *logical*
+// (non-streaming) provider response; when the captured request was a streaming
+// one we re-emit that body as the equivalent SSE event sequence so the
+// LangChain client parses content and token usage exactly as it would against
+// a live provider. Structured-output requests use `invoke()` (non-streaming)
+// and keep the JSON body unchanged.
+
+function sseEvent(event: string, data: unknown): string {
+  return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+}
+
+function requestIsStreaming(init?: RequestInit): boolean {
+  if (!init?.body) return false;
+  try {
+    const raw = typeof init.body === "string" ? init.body : new TextDecoder().decode(init.body as ArrayBuffer);
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    return parsed.stream === true;
+  } catch {
+    return false;
+  }
+}
+
+function toAnthropicSSE(body: Record<string, unknown>): string {
+  const usage = (body.usage as Record<string, number> | undefined) ?? {};
+  const content = Array.isArray(body.content) ? (body.content as Array<Record<string, unknown>>) : [];
+  const parts: string[] = [];
+
+  parts.push(sseEvent("message_start", {
+    type: "message_start",
+    message: {
+      id: body.id ?? "msg_replay",
+      type: "message",
+      role: "assistant",
+      model: body.model ?? "claude-sonnet-4-6",
+      content: [],
+      stop_reason: null,
+      stop_sequence: null,
+      usage: { input_tokens: usage.input_tokens ?? 0, output_tokens: 0 },
+    },
+  }));
+
+  content.forEach((block, index) => {
+    if (block.type === "text") {
+      parts.push(sseEvent("content_block_start", {
+        type: "content_block_start", index, content_block: { type: "text", text: "" },
+      }));
+      parts.push(sseEvent("content_block_delta", {
+        type: "content_block_delta", index, delta: { type: "text_delta", text: String(block.text ?? "") },
+      }));
+      parts.push(sseEvent("content_block_stop", { type: "content_block_stop", index }));
+    } else if (block.type === "tool_use") {
+      parts.push(sseEvent("content_block_start", {
+        type: "content_block_start", index,
+        content_block: { type: "tool_use", id: block.id, name: block.name, input: {} },
+      }));
+      parts.push(sseEvent("content_block_delta", {
+        type: "content_block_delta", index,
+        delta: { type: "input_json_delta", partial_json: JSON.stringify(block.input ?? {}) },
+      }));
+      parts.push(sseEvent("content_block_stop", { type: "content_block_stop", index }));
+    }
+  });
+
+  parts.push(sseEvent("message_delta", {
+    type: "message_delta",
+    delta: { stop_reason: body.stop_reason ?? "end_turn", stop_sequence: null },
+    usage: { output_tokens: usage.output_tokens ?? 0 },
+  }));
+  parts.push(sseEvent("message_stop", { type: "message_stop" }));
+
+  return parts.join("");
+}
+
+function toOpenAISSE(body: Record<string, unknown>): string {
+  const choices = Array.isArray(body.choices) ? (body.choices as Array<Record<string, unknown>>) : [];
+  const choice = choices[0] ?? {};
+  const message = (choice.message as Record<string, unknown> | undefined) ?? {};
+  const text = typeof message.content === "string" ? message.content : "";
+  const parts: string[] = [];
+
+  parts.push(`data: ${JSON.stringify({
+    id: body.id ?? "chatcmpl-replay",
+    object: "chat.completion.chunk",
+    model: body.model ?? "gpt-4o",
+    choices: [{ index: 0, delta: { role: "assistant", content: text }, finish_reason: null }],
+  })}\n\n`);
+  parts.push(`data: ${JSON.stringify({
+    id: body.id ?? "chatcmpl-replay",
+    object: "chat.completion.chunk",
+    model: body.model ?? "gpt-4o",
+    choices: [{ index: 0, delta: {}, finish_reason: choice.finish_reason ?? "stop" }],
+    usage: body.usage ?? null,
+  })}\n\n`);
+  parts.push("data: [DONE]\n\n");
+
+  return parts.join("");
+}
+
+function synthesizeStreamingResponse(
+  responseBody: unknown,
+  responseInit: { status: number; statusText: string; headers: Record<string, string> },
+): Response | null {
+  if (!responseBody || typeof responseBody !== "object") return null;
+  const body = responseBody as Record<string, unknown>;
+
+  let sse: string | null = null;
+  if (body.type === "message" || Array.isArray(body.content)) {
+    sse = toAnthropicSSE(body);
+  } else if (body.object === "chat.completion" || Array.isArray(body.choices)) {
+    sse = toOpenAISSE(body);
+  }
+  if (sse === null) return null;
+
+  return new Response(sse, {
+    status: responseInit.status,
+    statusText: responseInit.statusText,
+    headers: new Headers({ ...responseInit.headers, "content-type": "text/event-stream" }),
+  });
+}
+
 // ─── Interceptor ─────────────────────────────────────────────────────────
 
 export class ReplayFetchInterceptor {
@@ -232,6 +357,15 @@ export class ReplayFetchInterceptor {
     const entry = this.entries[this.replayIndex++];
     const { response } = entry;
 
+    if (response.status === 200 && requestIsStreaming(init)) {
+      const streamed = synthesizeStreamingResponse(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+      });
+      if (streamed) return streamed;
+    }
+
     return new Response(JSON.stringify(response.body), {
       status: response.status,
       statusText: response.statusText,
@@ -343,7 +477,7 @@ export function anthropicResponseBody(
     id: `msg_test_${Date.now()}`,
     type: "message",
     role: "assistant",
-    model: "claude-sonnet-4-20250514",
+    model: "claude-sonnet-4-6",
     content,
     stop_reason: options?.stopReason ?? (options?.toolUse ? "tool_use" : "end_turn"),
     usage: {

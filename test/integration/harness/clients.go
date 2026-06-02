@@ -1,9 +1,11 @@
 package harness
 
 import (
+	activityv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/activity/v1"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	agentexecv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	agentinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
+	executionctxv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
@@ -24,6 +26,9 @@ import (
 // Clients holds typed gRPC clients for all services under test.
 // It is intentionally a thin wrapper — no logic, no lifecycle management.
 type Clients struct {
+	// Activity (cross-cutting recents query)
+	ActivityQuery activityv1.ActivityQueryControllerClient
+
 	// Workflow services
 	WorkflowCommand  workflowv1.WorkflowCommandControllerClient
 	WorkflowQuery    workflowv1.WorkflowQueryControllerClient
@@ -39,6 +44,9 @@ type Clients struct {
 	AgentInstanceQuery    agentinstancev1.AgentInstanceQueryControllerClient
 	AgentExecutionCommand agentexecv1.AgentExecutionCommandControllerClient
 	AgentExecutionQuery   agentexecv1.AgentExecutionQueryControllerClient
+
+	// ExecutionContext services
+	ExecutionContextQuery executionctxv1.ExecutionContextQueryControllerClient
 
 	// Session services
 	SessionCommand sessionv1.SessionCommandControllerClient
@@ -89,6 +97,8 @@ type Clients struct {
 // NewClients creates all typed gRPC clients from a single connection.
 func NewClients(conn grpc.ClientConnInterface) *Clients {
 	return &Clients{
+		ActivityQuery: activityv1.NewActivityQueryControllerClient(conn),
+
 		WorkflowCommand:  workflowv1.NewWorkflowCommandControllerClient(conn),
 		WorkflowQuery:    workflowv1.NewWorkflowQueryControllerClient(conn),
 		InstanceCommand:  workflowinstancev1.NewWorkflowInstanceCommandControllerClient(conn),
@@ -102,6 +112,8 @@ func NewClients(conn grpc.ClientConnInterface) *Clients {
 		AgentInstanceQuery:    agentinstancev1.NewAgentInstanceQueryControllerClient(conn),
 		AgentExecutionCommand: agentexecv1.NewAgentExecutionCommandControllerClient(conn),
 		AgentExecutionQuery:   agentexecv1.NewAgentExecutionQueryControllerClient(conn),
+
+		ExecutionContextQuery: executionctxv1.NewExecutionContextQueryControllerClient(conn),
 
 		SessionCommand: sessionv1.NewSessionCommandControllerClient(conn),
 		SessionQuery:   sessionv1.NewSessionQueryControllerClient(conn),
