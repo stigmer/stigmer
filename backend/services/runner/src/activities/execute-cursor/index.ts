@@ -69,6 +69,7 @@ import { getCapturedRejection, clearCapturedRejection } from "./rejection-captur
 import { synthesizeError, formatClassifiedError, shouldRetryWithFreshAgent } from "./error-classifier.js";
 import type { ClassifiedError } from "./error-classifier.js";
 import { createAgent, createCloudAgent } from "./session-lifecycle.js";
+import { setMaxListeners } from "node:events";
 import { startHeartbeat } from "../../shared/heartbeat.js";
 import { getShutdownSignalForQueue } from "../../runner-manager.js";
 
@@ -427,6 +428,21 @@ async function executeCursorInner(
       phase: "cursor_streaming",
       execution: executionId,
     }), { shutdownSignal });
+
+    // The Cursor SDK registers abort listeners on the cancellation signal for
+    // each concurrent tool call (fetch, MCP, shell). With 10+ parallel tools,
+    // Node's default limit of 10 triggers MaxListenersExceededWarning. This is
+    // a diagnostic warning, not a functional error — reproduction tests confirm
+    // zero tool call loss — but it pollutes logs and creates false alarm fatigue.
+    // Raise the limit on the Temporal cancellation signal used throughout this
+    // activity. 25 covers observed peaks (~12 concurrent tools + heartbeat +
+    // shutdown signal + SDK internals) with headroom.
+    try {
+      setMaxListeners(25, Context.current().cancellationSignal);
+    } catch {
+      // Fallback: if the Temporal signal doesn't support setMaxListeners
+      // (e.g. older SDK), the warning is harmless — ignore.
+    }
 
     const run = await resolution.agent.send(effectivePrompt, {
       onDelta: ({ update }) => {
