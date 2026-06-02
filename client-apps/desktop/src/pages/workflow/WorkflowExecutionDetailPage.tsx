@@ -44,7 +44,13 @@ export default function WorkflowExecutionDetailPage() {
           </div>
         </div>
       )}
+      {/* key={id} remounts the viewer on execution switch so all
+          per-execution state (streamed events, selected task, comparison,
+          graph fit/follow) resets cleanly — the DD-014 pattern used by the
+          session viewer. FetchCacheProvider + useFetch cacheKey keep
+          metadata instant on revisits, so the remount does not flash. */}
       <WorkflowExecutionViewer
+        key={id}
         executionId={id}
         org={org}
         onNavigateToAgentExecution={handleNavigateToAgentExecution}

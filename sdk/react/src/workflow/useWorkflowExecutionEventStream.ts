@@ -109,6 +109,12 @@ export function isRecoveryTransition(
  * execution), the store is reset so stale events from the failed run
  * are cleared before the new subscription begins.
  *
+ * When `executionId` changes to a different execution, the store is
+ * reset before subscribing — mirroring `useFetch`'s identity-change
+ * reset — so the previous run's append-only events neither render as
+ * stale progress nor cause the live subscription to resume from the
+ * wrong `afterSequence`.
+ *
  * Pass `null` for `executionId` to skip (stable no-op).
  */
 export function useWorkflowExecutionEventStream(
@@ -140,16 +146,39 @@ export function useWorkflowExecutionEventStream(
   // side effect (store reset + gRPC subscription), not a rendered value.
   const prevPhaseRef = useRef<ExecutionPhase | undefined>(undefined);
 
+  // Track the execution the store is currently populated for, so we can
+  // detect a switch to a different execution (vs. a reconnect or phase
+  // change for the same one). Same role as useFetch's prevIdentityDepsRef.
+  const prevExecutionIdRef = useRef<string | null>(null);
+
   useEffect(() => {
     if (!executionId) {
       store.reset();
       prevPhaseRef.current = undefined;
+      prevExecutionIdRef.current = null;
       return;
     }
 
     const abortController = new AbortController();
     const currentStore = storeRef.current;
     const isTerminal = executionPhase !== undefined && TERMINAL_PHASES.has(executionPhase);
+
+    // Execution switch (A → B): the store is append-only and holds the
+    // previous run's events. Clear it before subscribing so we neither
+    // render B with A's progress nor resume B's live stream from A's
+    // afterSequence (which would silently drop B's earlier events).
+    // This is distinct from reconnect (connectKey) and recovery (phase
+    // transition), both of which must preserve/replay events for the
+    // SAME execution. Resetting prevPhaseRef here prevents the A→B phase
+    // delta from being misread as a recovery transition below.
+    const isExecutionSwitch =
+      prevExecutionIdRef.current !== null &&
+      prevExecutionIdRef.current !== executionId;
+    if (isExecutionSwitch) {
+      currentStore.reset();
+      prevPhaseRef.current = undefined;
+    }
+    prevExecutionIdRef.current = executionId;
 
     // When an execution transitions from a terminal phase back to an
     // active phase (recovery), clear the store so stale events from the

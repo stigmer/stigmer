@@ -2,7 +2,14 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { createElement } from "react";
+import { create } from "@bufbuild/protobuf";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import {
+  WorkflowExecutionEventSchema,
+  WorkflowEventType,
+  TaskStartedPayloadSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
+import type { WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
 import { StigmerContext } from "../../context";
 import { WorkflowExecutionEventStore } from "../../internal/store";
 import {
@@ -52,6 +59,23 @@ function createWrapper(client: any) {
   return function Wrapper({ children }: { children: ReactNode }) {
     return createElement(StigmerContext.Provider, { value: client }, children);
   };
+}
+
+function makeTaskStartedEvent(
+  seq: number,
+  taskName: string,
+): WorkflowExecutionEvent {
+  return create(WorkflowExecutionEventSchema, {
+    eventId: `evt-${seq}`,
+    sequenceNumber: BigInt(seq),
+    occurredAt: "2026-06-02T00:00:00Z",
+    taskName,
+    eventType: WorkflowEventType.task_started,
+    payload: {
+      case: "taskStarted",
+      value: create(TaskStartedPayloadSchema, { taskKind: 1, attemptNumber: 1 }),
+    },
+  });
 }
 
 beforeEach(() => {
@@ -289,5 +313,107 @@ describe("useWorkflowExecutionEventStream", () => {
 
     expect(resetSpy).not.toHaveBeenCalled();
     expect(subscribeEvents).toHaveBeenCalledTimes(2);
+  });
+
+  it("resets the store when switching to a different execution (terminal A → live B)", async () => {
+    const store = new WorkflowExecutionEventStore();
+    const getEventLog = vi.fn(async () => ({
+      events: [
+        makeTaskStartedEvent(1, "task-a"),
+        makeTaskStartedEvent(2, "task-b"),
+        makeTaskStartedEvent(3, "task-c"),
+      ],
+      hasMore: false,
+      latestSequence: BigInt(3),
+    }));
+    const subscribeEvents = vi.fn(async function* () {});
+    const client = makeMockClient({ getEventLog, subscribeEvents });
+
+    let execId = "wex-001";
+    let phase = PHASE.COMPLETED as ExecutionPhase;
+
+    const { result, rerender } = renderHook(
+      () =>
+        useWorkflowExecutionEventStream(execId, {
+          executionPhase: phase,
+          store,
+        }),
+      { wrapper: createWrapper(client) },
+    );
+
+    await flush();
+
+    // Execution A's events are loaded.
+    expect(result.current.events).toHaveLength(3);
+
+    const resetSpy = vi.spyOn(store, "reset");
+
+    // Switch to a different, still-running execution.
+    execId = "wex-002";
+    phase = PHASE.IN_PROGRESS;
+    rerender();
+    await flush();
+
+    // Store reset exactly once (the switch) — NOT twice, which would mean
+    // the terminal→active phase delta was mis-read as a recovery.
+    expect(resetSpy).toHaveBeenCalledTimes(1);
+    // A's events are gone.
+    expect(result.current.events).toHaveLength(0);
+    // B's live subscription starts from sequence 0 — it does NOT resume
+    // from A's latest sequence, which would silently drop B's early events.
+    expect(subscribeEvents).toHaveBeenCalledTimes(1);
+    const subscribeCall = (subscribeEvents.mock.calls as unknown[][])[0]?.[0] as
+      | { afterSequence: bigint }
+      | undefined;
+    expect(subscribeCall?.afterSequence).toBe(BigInt(0));
+  });
+
+  it("shows the new execution's events when switching between two terminal executions", async () => {
+    const store = new WorkflowExecutionEventStore();
+    // Both executions share sequence numbers (1..n). Without a reset on
+    // switch, the append-only store's sequence-dedup would drop B's events
+    // (seq <= A's max) and keep showing A's — the reported bug.
+    const getEventLog = vi.fn(async (req: { executionId: string }) => {
+      const taskName = req.executionId === "wex-001" ? "alpha" : "beta";
+      return {
+        events: [makeTaskStartedEvent(1, taskName)],
+        hasMore: false,
+        latestSequence: BigInt(1),
+      };
+    });
+    const client = makeMockClient({ getEventLog });
+
+    let execId = "wex-001";
+
+    const { result, rerender } = renderHook(
+      () =>
+        useWorkflowExecutionEventStream(execId, {
+          executionPhase: PHASE.COMPLETED,
+          store,
+        }),
+      { wrapper: createWrapper(client) },
+    );
+
+    await flush();
+
+    expect(result.current.events).toHaveLength(1);
+    expect(result.current.events[0]?.taskName).toBe("alpha");
+
+    // Switch to a second completed execution.
+    execId = "wex-002";
+    rerender();
+    await flush();
+
+    // B re-batch-loads from sequence 0 for its own id and the view shows
+    // B's events, not A's stale ones.
+    expect(getEventLog).toHaveBeenCalledTimes(2);
+    const secondCall = (getEventLog.mock.calls as unknown[][])[1]?.[0] as {
+      executionId: string;
+      afterSequence: bigint;
+    };
+    expect(secondCall.executionId).toBe("wex-002");
+    expect(secondCall.afterSequence).toBe(BigInt(0));
+    expect(result.current.events).toHaveLength(1);
+    expect(result.current.events[0]?.taskName).toBe("beta");
   });
 });
