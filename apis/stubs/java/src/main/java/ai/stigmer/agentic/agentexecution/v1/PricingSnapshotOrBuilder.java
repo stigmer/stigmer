@@ -113,6 +113,19 @@ public interface PricingSnapshotOrBuilder extends
 
   /**
    * <pre>
+   * Cursor Token Rate applied to every billable token on non-Auto Cursor
+   * Teams requests (micro-USD per million tokens). Charged by Cursor on top
+   * of model API pricing; folded into provider_cost_micros for cursor-harness
+   * calls. Zero for native harness and for exempt cursor models (Auto/Composer).
+   * </pre>
+   *
+   * <code>int64 cursor_token_rate_micros_per_million = 15 [json_name = "cursorTokenRateMicrosPerMillion"];</code>
+   * @return The cursorTokenRateMicrosPerMillion.
+   */
+  long getCursorTokenRateMicrosPerMillion();
+
+  /**
+   * <pre>
    * Customer billing policy applied.
    * </pre>
    *

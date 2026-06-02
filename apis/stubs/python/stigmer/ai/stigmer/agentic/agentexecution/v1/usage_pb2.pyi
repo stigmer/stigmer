@@ -119,7 +119,7 @@ class TokenUsage(_message.Message):
     def __init__(self, input_tokens: _Optional[int] = ..., output_tokens: _Optional[int] = ..., total_tokens: _Optional[int] = ..., cache_creation_input_tokens: _Optional[int] = ..., cache_read_input_tokens: _Optional[int] = ..., reasoning_tokens: _Optional[int] = ..., tool_use_prompt_tokens: _Optional[int] = ..., audio_input_tokens: _Optional[int] = ..., audio_output_tokens: _Optional[int] = ..., provider_token_details: _Optional[_Mapping[str, int]] = ...) -> None: ...
 
 class PricingSnapshot(_message.Message):
-    __slots__ = ("pricing_registry_version", "pricing_effective_at", "currency", "input_price_micros_per_million", "output_price_micros_per_million", "cache_creation_price_micros_per_million", "cache_read_price_micros_per_million", "reasoning_price_micros_per_million", "markup_policy_version", "cost_tier")
+    __slots__ = ("pricing_registry_version", "pricing_effective_at", "currency", "input_price_micros_per_million", "output_price_micros_per_million", "cache_creation_price_micros_per_million", "cache_read_price_micros_per_million", "reasoning_price_micros_per_million", "cursor_token_rate_micros_per_million", "markup_policy_version", "cost_tier")
     PRICING_REGISTRY_VERSION_FIELD_NUMBER: _ClassVar[int]
     PRICING_EFFECTIVE_AT_FIELD_NUMBER: _ClassVar[int]
     CURRENCY_FIELD_NUMBER: _ClassVar[int]
@@ -128,6 +128,7 @@ class PricingSnapshot(_message.Message):
     CACHE_CREATION_PRICE_MICROS_PER_MILLION_FIELD_NUMBER: _ClassVar[int]
     CACHE_READ_PRICE_MICROS_PER_MILLION_FIELD_NUMBER: _ClassVar[int]
     REASONING_PRICE_MICROS_PER_MILLION_FIELD_NUMBER: _ClassVar[int]
+    CURSOR_TOKEN_RATE_MICROS_PER_MILLION_FIELD_NUMBER: _ClassVar[int]
     MARKUP_POLICY_VERSION_FIELD_NUMBER: _ClassVar[int]
     COST_TIER_FIELD_NUMBER: _ClassVar[int]
     pricing_registry_version: str
@@ -138,23 +139,26 @@ class PricingSnapshot(_message.Message):
     cache_creation_price_micros_per_million: int
     cache_read_price_micros_per_million: int
     reasoning_price_micros_per_million: int
+    cursor_token_rate_micros_per_million: int
     markup_policy_version: str
     cost_tier: str
-    def __init__(self, pricing_registry_version: _Optional[str] = ..., pricing_effective_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., currency: _Optional[str] = ..., input_price_micros_per_million: _Optional[int] = ..., output_price_micros_per_million: _Optional[int] = ..., cache_creation_price_micros_per_million: _Optional[int] = ..., cache_read_price_micros_per_million: _Optional[int] = ..., reasoning_price_micros_per_million: _Optional[int] = ..., markup_policy_version: _Optional[str] = ..., cost_tier: _Optional[str] = ...) -> None: ...
+    def __init__(self, pricing_registry_version: _Optional[str] = ..., pricing_effective_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., currency: _Optional[str] = ..., input_price_micros_per_million: _Optional[int] = ..., output_price_micros_per_million: _Optional[int] = ..., cache_creation_price_micros_per_million: _Optional[int] = ..., cache_read_price_micros_per_million: _Optional[int] = ..., reasoning_price_micros_per_million: _Optional[int] = ..., cursor_token_rate_micros_per_million: _Optional[int] = ..., markup_policy_version: _Optional[str] = ..., cost_tier: _Optional[str] = ...) -> None: ...
 
 class CostStamp(_message.Message):
-    __slots__ = ("currency", "provider_cost_micros", "customer_billable_amount_micros", "calculation_status", "pricing")
+    __slots__ = ("currency", "provider_cost_micros", "customer_billable_amount_micros", "calculation_status", "pricing", "cursor_platform_fee_micros")
     CURRENCY_FIELD_NUMBER: _ClassVar[int]
     PROVIDER_COST_MICROS_FIELD_NUMBER: _ClassVar[int]
     CUSTOMER_BILLABLE_AMOUNT_MICROS_FIELD_NUMBER: _ClassVar[int]
     CALCULATION_STATUS_FIELD_NUMBER: _ClassVar[int]
     PRICING_FIELD_NUMBER: _ClassVar[int]
+    CURSOR_PLATFORM_FEE_MICROS_FIELD_NUMBER: _ClassVar[int]
     currency: str
     provider_cost_micros: int
     customer_billable_amount_micros: int
     calculation_status: CostCalculationStatus
     pricing: PricingSnapshot
-    def __init__(self, currency: _Optional[str] = ..., provider_cost_micros: _Optional[int] = ..., customer_billable_amount_micros: _Optional[int] = ..., calculation_status: _Optional[_Union[CostCalculationStatus, str]] = ..., pricing: _Optional[_Union[PricingSnapshot, _Mapping]] = ...) -> None: ...
+    cursor_platform_fee_micros: int
+    def __init__(self, currency: _Optional[str] = ..., provider_cost_micros: _Optional[int] = ..., customer_billable_amount_micros: _Optional[int] = ..., calculation_status: _Optional[_Union[CostCalculationStatus, str]] = ..., pricing: _Optional[_Union[PricingSnapshot, _Mapping]] = ..., cursor_platform_fee_micros: _Optional[int] = ...) -> None: ...
 
 class ProxyTiming(_message.Message):
     __slots__ = ("proxy_received_at", "upstream_request_started_at", "first_response_byte_at", "last_response_byte_at", "proxy_completed_at", "upstream_ttfb_ms", "upstream_ttlb_ms", "stream_duration_ms", "proxy_total_duration_ms", "request_bytes", "response_bytes")
