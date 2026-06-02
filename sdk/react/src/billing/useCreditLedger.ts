@@ -3,7 +3,10 @@
 import type {
   CreditLedgerResponse,
 } from "@stigmer/protos/ai/stigmer/billing/v1/io_pb";
-import type { LedgerEntryType } from "@stigmer/protos/ai/stigmer/billing/v1/enum_pb";
+import type {
+  LedgerEntryType,
+  LedgerView,
+} from "@stigmer/protos/ai/stigmer/billing/v1/enum_pb";
 import { useStigmer } from "../hooks";
 import { useFetch } from "../internal/useFetch";
 
@@ -29,6 +32,13 @@ export interface UseCreditLedgerOptions {
   readonly pageSize?: number;
   /** Filter to specific ledger entry types. Empty means all types. */
   readonly typeFilter?: LedgerEntryType[];
+  /**
+   * Server-resolved ledger slice. When set to `LedgerView.statement`, the
+   * server returns only customer-facing money-movement entry types and
+   * excludes internal mechanics (per-call usage debits, reservation
+   * holds/releases). Defaults to the full ledger.
+   */
+  readonly view?: LedgerView;
 }
 
 /**
@@ -58,7 +68,7 @@ export function useCreditLedger(
   options: UseCreditLedgerOptions = {},
 ): UseCreditLedgerReturn {
   const stigmer = useStigmer();
-  const { pageNum = 1, pageSize = 20, typeFilter } = options;
+  const { pageNum = 1, pageSize = 20, typeFilter, view } = options;
 
   const typeFilterKey = typeFilter?.join(",") ?? "";
 
@@ -67,11 +77,14 @@ export function useCreditLedger(
       ? () =>
           stigmer.billing.getCreditLedger({
             orgId,
-            page: { num: pageNum, size: pageSize },
+            // The SDK page number is 0-based (matches the proto/backend); the
+            // hook's pageNum is 1-based for ergonomic UI controls.
+            page: { num: pageNum - 1, size: pageSize },
             typeFilter,
+            view,
           })
       : null,
-    [orgId, pageNum, pageSize, typeFilterKey, stigmer],
+    [orgId, pageNum, pageSize, typeFilterKey, view, stigmer],
     null as CreditLedgerResponse | null,
   );
 

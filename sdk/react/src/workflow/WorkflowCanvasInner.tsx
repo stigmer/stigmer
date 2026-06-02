@@ -1,7 +1,5 @@
 "use client";
 
-import "@xyflow/react/dist/style.css";
-
 import { useMemo } from "react";
 import {
   ReactFlow,
@@ -20,7 +18,7 @@ import type {
   OnConnect,
   IsValidConnection,
 } from "@xyflow/react";
-import { CanvasTaskNode } from "./CanvasTaskNode";
+import { WorkflowNode } from "./WorkflowNode";
 import { CanvasTransitionEdge } from "./CanvasTransitionEdge";
 import { CATEGORY_COLORS } from "./canvas-constants";
 import type { CanvasTaskNodeData } from "./workflow-graph-conversions";
@@ -43,11 +41,12 @@ interface WorkflowCanvasInnerProps {
   onNodeContextMenu?: (event: React.MouseEvent, node: Node) => void;
   onEdgeContextMenu?: (event: React.MouseEvent, edge: Edge) => void;
   onPaneContextMenu?: (event: React.MouseEvent | MouseEvent) => void;
+  onSelectionContextMenu?: (event: React.MouseEvent, nodes: Node[]) => void;
   nodeErrors?: ReadonlyMap<string, readonly string[]>;
 }
 
 const nodeTypes = {
-  [CANVAS_TASK_NODE_TYPE]: CanvasTaskNode,
+  [CANVAS_TASK_NODE_TYPE]: WorkflowNode,
 } as const;
 
 const edgeTypes = {
@@ -85,6 +84,7 @@ export function WorkflowCanvasInner({
   onNodeContextMenu,
   onEdgeContextMenu,
   onPaneContextMenu,
+  onSelectionContextMenu,
   nodeErrors,
 }: WorkflowCanvasInnerProps) {
   const enrichedNodes = useMemo(() => {
@@ -125,6 +125,7 @@ export function WorkflowCanvasInner({
       onNodeContextMenu={onNodeContextMenu}
       onEdgeContextMenu={onEdgeContextMenu}
       onPaneContextMenu={onPaneContextMenu}
+      onSelectionContextMenu={onSelectionContextMenu}
       nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}
       defaultEdgeOptions={defaultEdgeOptions}

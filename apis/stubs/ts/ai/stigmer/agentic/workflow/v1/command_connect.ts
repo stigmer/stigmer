@@ -8,6 +8,7 @@ import { MethodKind } from "@bufbuild/protobuf";
 import { UpdateVisibilityInput } from "../../../commons/apiresource/io_pbjs";
 import { WorkflowId } from "./io_pbjs";
 import { ServerlessWorkflowValidation } from "./serverless/validation_pbjs";
+import { TagWorkflowVersionInput } from "./version_pbjs";
 
 /**
  * WorkflowCommandController handles write operations for workflows.
@@ -120,6 +121,28 @@ export const WorkflowCommandController = {
       name: "validateSpec",
       I: Workflow,
       O: ServerlessWorkflowValidation,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Assign or move a tag to a specific workflow version.
+     *
+     * Tags are human-readable pointers to immutable versions. Calling this
+     * with an existing tag name moves it from the previous version to the
+     * specified version. Common tags: "stable", "production", "v2.0".
+     *
+     * @internal
+     * Authorization: Requires can_edit permission on the workflow resource.
+     * The handler validates that the version_hash exists in the workflow's
+     * audit history before assigning the tag.
+     *
+     * @since Workflow Versioning
+     *
+     * @generated from rpc ai.stigmer.agentic.workflow.v1.WorkflowCommandController.tagVersion
+     */
+    tagVersion: {
+      name: "tagVersion",
+      I: TagWorkflowVersionInput,
+      O: Workflow,
       kind: MethodKind.Unary,
     },
   }

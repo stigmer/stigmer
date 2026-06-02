@@ -118,6 +118,7 @@ export class WorkspaceProvisioner {
           envVars: mergedEnv,
           isLocalMode,
           targetSubdir: options?.targetSubdir,
+          configureCredentials: options?.configureCredentials,
         });
       }
 

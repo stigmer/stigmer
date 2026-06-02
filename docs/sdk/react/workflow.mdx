@@ -7,6 +7,84 @@ description: Hooks and components for workflow definitions, instances, execution
 
 ## Hooks
 
+### useCreateWorkflowInstance
+
+Mutation hook that creates a new WorkflowInstance resource.
+
+Wraps `stigmer.workflowInstance.create()` with loading/error state.
+The caller is responsible for refreshing the instance list after
+a successful create (e.g., via `refetch` from `useWorkflowInstances`).
+
+**Signature**
+
+```tsx
+function useCreateWorkflowInstance(): UseCreateWorkflowInstanceReturn
+```
+
+**Returns** — `UseCreateWorkflowInstanceReturn`
+
+<TypeTable
+  type={{
+    clearError: { type: "() => void", description: "Reset `error` to `null`." },
+    create: { type: "(input: WorkflowInstanceInput) => Promise<WorkflowInstance>", description: "Submit a WorkflowInstanceInput to create a new WorkflowInstance. Resolves with the server-created resource." },
+    error: { type: "Error | null", description: "Error from the last failed create, or `null` when healthy." },
+    isCreating: { type: "boolean", description: "`true` while the create request is in flight." },
+  }}
+/>
+
+```tsx
+const { create, isCreating, error } = useCreateWorkflowInstance();
+
+const handleSubmit = async () => {
+  const instance = await create({
+    name: "prod-deploy",
+    org: "my-org",
+    workflowId: workflow.metadata.id,
+    environmentRefs: [{ org: "my-org", slug: "aws-prod" }],
+  });
+  // instance created — refetch list
+};
+```
+
+
+### useDeleteWorkflowInstance
+
+Mutation hook that deletes a WorkflowInstance resource.
+
+Wraps `stigmer.workflowInstance.delete()` with loading/error state.
+The caller is responsible for handling post-delete UI updates
+(e.g., refreshing the instance list, closing a detail panel).
+
+Deletion cascades to all WorkflowExecution resources that belong
+to the instance. The confirmation UI should warn the user about this.
+
+**Signature**
+
+```tsx
+function useDeleteWorkflowInstance(): UseDeleteWorkflowInstanceReturn
+```
+
+**Returns** — `UseDeleteWorkflowInstanceReturn`
+
+<TypeTable
+  type={{
+    clearError: { type: "() => void", description: "Reset `error` to `null`." },
+    deleteInstance: { type: "(id: string) => Promise<WorkflowInstance>", description: "Delete a workflow instance by ID. Returns the deleted resource.  WARNING: Deleting an instance cascades — all executions belonging to this instance are permanently removed." },
+    error: { type: "Error | null", description: "Error from the last failed delete, or `null` when healthy." },
+    isDeleting: { type: "boolean", description: "`true` while the delete request is in flight." },
+  }}
+/>
+
+```tsx
+const { deleteInstance, isDeleting } = useDeleteWorkflowInstance();
+
+const handleDelete = async () => {
+  await deleteInstance(instance.metadata.id);
+  refetch(); // refresh list after deletion
+};
+```
+
+
 ### useDiagnoseExecutionFlow
 
 Behavior hook that orchestrates agent-powered workflow execution
@@ -65,6 +143,84 @@ const flow = useDiagnoseExecutionFlow({
 });
 
 <WorkflowRepairCard flow={flow} onApplyFix={...} onClose={...} />
+```
+
+
+### useElkLayoutEngine
+
+Behavior hook (DD-003 layer 2) that asynchronously creates an ELK layout
+engine and manages its lifecycle.
+
+Returns the engine once ready, or `null` while loading / if `elkjs` is
+not installed. The caller can pass the return value directly to
+`WorkflowCanvasEditor`'s `layoutEngine` prop — `null` is safe and causes
+the canvas to use the default dagre engine.
+
+The engine (and its Web Worker, if any) is terminated on unmount.
+
+**Signature**
+
+```tsx
+function useElkLayoutEngine(options?: UseElkLayoutEngineOptions): LayoutEngine | null
+```
+
+<TypeTable
+  type={{
+    options: { type: "UseElkLayoutEngineOptions", description: "" },
+  }}
+/>
+
+```tsx
+const workerFactory = () =>
+  new Worker(new URL("elkjs/lib/elk-worker.min.js", import.meta.url));
+
+function MyEditor({ yaml }: { yaml: string }) {
+  const elkEngine = useElkLayoutEngine({ workerFactory });
+  return <WorkflowCanvasEditor yaml={yaml} layoutEngine={elkEngine} />;
+}
+```
+
+
+### useExecutionHistoryData
+
+Behavior hook that composes [`useWorkflowExecutionList`](#useworkflowexecutionlist) with the
+[`deriveExecutionRows`](#deriveexecutionrows) derivation pipeline and optional client-side
+filters.
+
+Returns pre-computed [`ExecutionRow`](#executionrow) objects ready for rendering
+by [`ExecutionHistoryTable`](#executionhistorytable).
+
+**Signature**
+
+```tsx
+function useExecutionHistoryData(options?: UseExecutionHistoryDataOptions): UseExecutionHistoryDataReturn
+```
+
+<TypeTable
+  type={{
+    options: { type: "UseExecutionHistoryDataOptions", description: "" },
+  }}
+/>
+
+**Returns** — `UseExecutionHistoryDataReturn`
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight." },
+    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight and stale data is shown." },
+    refetch: { type: "() => void", description: "Discard cached data and re-fetch from the server." },
+    rows: { type: "readonly ExecutionRow[]", description: "Derived, optionally filtered execution rows for the current page." },
+    totalPages: { type: "number", description: "Total pages from the server (does not account for client-side filtering)." },
+  }}
+/>
+
+```tsx
+const { rows, isLoading, error, refetch } = useExecutionHistoryData({
+  workflowId: "wf_onboarding",
+  pageSize: 20,
+  clientFilters: { phases: [ExecutionPhase.EXECUTION_FAILED] },
+});
 ```
 
 
@@ -245,15 +401,20 @@ function useRunWorkflowFlow(options: UseRunWorkflowFlowOptions): UseRunWorkflowF
     envDeclarations: { type: "Record<string, EnvVarDeclaration>", description: "Declared environment variables from the workflow spec." },
     error: { type: "string | null", description: "Error from the last failed submission, or `null`." },
     fieldErrors: { type: "RunWorkflowFieldErrors", description: "Field-level validation errors (empty when valid).", typeDescriptionLink: "#runworkflowfielderrors" },
+    instanceEnvKeys: { type: "Set<string>", description: "Set of env var keys already provided by the selected instance's bound environments. Empty when no instance is selected or its environments haven't loaded yet." },
+    isLoadingInstanceEnvKeys: { type: "boolean", description: "`true` while instance environment keys are being resolved." },
     isSubmitting: { type: "boolean", description: "`true` while the create execution RPC is in flight." },
     reset: { type: "() => void", description: "Reset all form state to initial values." },
     runtimeEnv: { type: "Record<string, string>", description: "Current runtime environment variable overrides (keyed by var name)." },
     selectedInstanceId: { type: "string | null", description: "Selected instance ID, or `null` for server-resolved default." },
     setEnvVar: { type: "(key: string, value: string) => void", description: "Update a single env var value." },
     setSelectedInstanceId: { type: "(id: string | null) => void", description: "Update the selected instance." },
+    setShowTriggerMessage: { type: "(show: boolean) => void", description: "Toggle visibility of the trigger message field (escape hatch)." },
     setTriggerMessage: { type: "(value: string) => void", description: "Update the trigger message." },
+    showTriggerMessage: { type: "boolean", description: "Whether the trigger message field should be visible in the form. Defaults to `usesTriggerInput`; can be toggled by the user via the escape-hatch \"Add trigger input\" link." },
     submit: { type: "() => Promise<void>", description: "Validate, then create the workflow execution." },
     triggerMessage: { type: "string", description: "Current trigger message value." },
+    usesTriggerInput: { type: "boolean", description: "Whether the workflow references `$input` / trigger_message in its tasks. When `false`, the trigger message field is irrelevant for this workflow." },
     validate: { type: "() => boolean", description: "Validate form fields. Returns `true` if valid." },
   }}
 />
@@ -332,6 +493,44 @@ function WorkflowEditor({ taskKind }: { taskKind: string }) {
   const schema = getJsonSchema(taskKind);
   // Pass schema to Monaco for autocomplete + validation
 }
+```
+
+
+### useUpdateWorkflowInstance
+
+Mutation hook that updates an existing WorkflowInstance resource.
+
+Wraps `stigmer.workflowInstance.update()` with loading/error state.
+The caller is responsible for refreshing the instance after a successful
+update (e.g., via `refetch` from `useWorkflowInstances` or `useWorkflowInstance`).
+
+**Signature**
+
+```tsx
+function useUpdateWorkflowInstance(): UseUpdateWorkflowInstanceReturn
+```
+
+**Returns** — `UseUpdateWorkflowInstanceReturn`
+
+<TypeTable
+  type={{
+    clearError: { type: "() => void", description: "Clear the error state." },
+    error: { type: "Error | null", description: "Error from the last failed update, or `null` when healthy." },
+    isUpdating: { type: "boolean", description: "`true` while the update RPC is in flight." },
+    update: { type: "(input: WorkflowInstanceInput) => Promise<WorkflowInstance>", description: "Update an existing workflow instance with a full input. Returns the updated resource." },
+  }}
+/>
+
+```tsx
+const { update, isUpdating } = useUpdateWorkflowInstance();
+
+const handleSave = async () => {
+  await update({
+    ...instanceToInput(instance),
+    environmentRefs: newRefs,
+  });
+  refetch();
+};
 ```
 
 
@@ -460,13 +659,14 @@ is derived from the model after each mutation.
 **Signature**
 
 ```tsx
-function useWorkflowCanvas(yaml: string | null, containerRef: RefObject<HTMLDivElement | null>): UseWorkflowCanvasReturn
+function useWorkflowCanvas(yaml: string | null, containerRef: RefObject<HTMLDivElement | null>, options?: UseWorkflowCanvasOptions): UseWorkflowCanvasReturn
 ```
 
 <TypeTable
   type={{
     yaml: { type: "string | null", description: "The workflow YAML to initialize from. Changes trigger re-parse.", required: true },
     containerRef: { type: "RefObject<HTMLDivElement | null>", description: "Ref to the canvas container for keyboard shortcut scoping.", required: true },
+    options: { type: "UseWorkflowCanvasOptions", description: "Optional configuration including a custom layout engine." },
   }}
 />
 
@@ -474,17 +674,28 @@ function useWorkflowCanvas(yaml: string | null, containerRef: RefObject<HTMLDivE
 
 <TypeTable
   type={{
+    addCatchHandler: { type: "(tryCatchNodeId: string, errorType: string) => void", description: "" },
+    addForkBranch: { type: "(forkNodeId: string, branchName: string) => void", description: "" },
     addNodeAtPosition: { type: "(kindString: string, position: { x: number; y: number }) => void", description: "" },
     addSuccessorTask: { type: "(sourceNodeId: string, kindString: string) => void", description: "" },
+    addSwitchCase: { type: "(switchNodeId: string, caseName: string, condition: string) => void", description: "" },
     autoLayout: { type: "() => void", description: "" },
     canRedo: { type: "boolean", description: "" },
     canUndo: { type: "boolean", description: "" },
     clearSelection: { type: "() => void", description: "" },
+    copySelection: { type: "() => void", description: "" },
+    cutSelection: { type: "() => void", description: "" },
+    deleteSelection: { type: "() => void", description: "" },
+    disableSelection: { type: "() => void", description: "" },
     duplicateNode: { type: "(nodeId: string) => void", description: "" },
+    duplicateSelection: { type: "() => void", description: "" },
     edges: { type: "Edge[]", description: "" },
     error: { type: "string | null", description: "" },
+    getGraphModel: { type: "() => WorkflowGraphModel", description: "" },
     getNodeDescriptor: { type: "(nodeId: string) => TaskKindDescriptor | undefined", description: "" },
+    getSelectedNodeIds: { type: "() => ReadonlySet<string>", description: "" },
     graph: { type: "WorkflowGraphModel | null", description: "" },
+    hasClipboard: { type: "boolean", description: "" },
     insertTaskOnEdge: { type: "(edgeId: string, kindString: string) => void", description: "" },
     isDirty: { type: "boolean", description: "" },
     isValidConnection: { type: "IsValidConnection", description: "" },
@@ -497,19 +708,31 @@ function useWorkflowCanvas(yaml: string | null, containerRef: RefObject<HTMLDivE
     onEdgesDelete: { type: "(deleted: Edge[]) => void", description: "" },
     onNodesChange: { type: "OnNodesChange", description: "" },
     onNodesDelete: { type: "(deleted: Node[]) => void", description: "" },
+    pasteAtCenter: { type: "() => void", description: "" },
     redo: { type: "() => void", description: "" },
     removeBranchEdges: { type: "(nodeId: string, handleId: string) => void", description: "" },
+    removeCatchBlock: { type: "(tryCatchNodeId: string) => void", description: "" },
+    removeForkBranch: { type: "(forkNodeId: string, branchName: string) => void", description: "" },
+    removeSwitchCase: { type: "(switchNodeId: string, caseName: string) => void", description: "" },
+    renameForkBranch: { type: "(forkNodeId: string, oldName: string, newName: string) => void", description: "" },
     renameNode: { type: "(nodeId: string, newName: string) => void", description: "" },
+    reorderForkBranches: { type: "(forkNodeId: string, newOrder: readonly string[]) => void", description: "" },
+    reorderSwitchCases: { type: "(switchNodeId: string, newOrder: readonly string[]) => void", description: "" },
     selectAll: { type: "() => void", description: "" },
     selectEdge: { type: "(id: string) => void", description: "" },
     selection: { type: "CanvasSelection | null", description: "" },
     selectNode: { type: "(id: string) => void", description: "" },
     serializeToYaml: { type: "() => string | null", description: "" },
+    setForkCompete: { type: "(forkNodeId: string, compete: boolean) => void", description: "" },
+    toggleNodeDisabled: { type: "(nodeId: string) => void", description: "" },
     undo: { type: "() => void", description: "" },
     updateBranchRouting: { type: "(nodeId: string, handleId: string, targetTask: string | undefined) => void", description: "" },
+    updateCatchConfig: { type: "(tryCatchNodeId: string, updates: { as?: string; compensate?: boolean }) => void", description: "" },
+    updateForEachConfig: { type: "(forEachNodeId: string, updates: Partial<{ batch_size: number; each: string; in: string; max_parallelism: number; on_error: string }>) => void", description: "" },
     updateNodeExport: { type: "(nodeId: string, exportAs: string | undefined) => void", description: "" },
     updateNodeField: { type: "(nodeId: string, fieldPath: string, value: unknown) => void", description: "" },
     updateNodeFlow: { type: "(nodeId: string, thenTarget: string | undefined) => void", description: "" },
+    wrapInTryCatch: { type: "(nodeId: string) => void", description: "" },
   }}
 />
 
@@ -557,7 +780,8 @@ const { count, isLoading } = useWorkflowCount("acme");
 
 ### useWorkflowDashboardSummary
 
-Data hook that fetches aggregated execution statistics for an organization.
+Data hook that fetches aggregated execution statistics for an organization,
+optionally scoped to a single workflow.
 
 Returns phase counts, cost totals, average duration, top failing workflows,
 and per-workflow cost breakdowns — scoped to a configurable time window.
@@ -587,9 +811,13 @@ function useWorkflowDashboardSummary(options: UseWorkflowDashboardSummaryOptions
 />
 
 ```tsx
-const { summary, isLoading } = useWorkflowDashboardSummary({
+// Org-level dashboard summary
+const { summary } = useWorkflowDashboardSummary({ org: "acme" });
+
+// Per-workflow overview summary
+const { summary } = useWorkflowDashboardSummary({
   org: "acme",
-  timeWindow: SummaryTimeWindow.SUMMARY_TIME_WINDOW_LAST_7D,
+  workflowId: "wf-abc123",
 });
 ```
 
@@ -625,8 +853,10 @@ function useWorkflowEditor(initialYaml: string, options: UseWorkflowEditorOption
     reset: { type: "() => void", description: "Reset the editor to the initial YAML (discards changes)." },
     save: { type: "() => Promise<boolean>", description: "Persist the current YAML to the server. Returns `true` on success." },
     saveError: { type: "Error | null", description: "Error from the last failed save, or `null` on success." },
+    setVersionMessage: { type: "(value: string) => void", description: "Update the version message." },
     setYaml: { type: "(value: string) => void", description: "Update the YAML content (called by the editor on change)." },
     topology: { type: "UseWorkflowTopologyReturn", description: "Topology data for the graph preview.", typeDescriptionLink: "#useworkflowtopologyreturn" },
+    versionMessage: { type: "string", description: "Current version message (optional description of what changed)." },
     warningCount: { type: "number", description: "Count of warning-level diagnostics." },
     yaml: { type: "string", description: "Current YAML content in the editor." },
   }}
@@ -692,12 +922,13 @@ no-ops that return `null`).
 **Signature**
 
 ```tsx
-function useWorkflowExecutionActions(executionId: string | null): UseWorkflowExecutionActionsReturn
+function useWorkflowExecutionActions(executionId: string | null, options?: UseWorkflowExecutionActionsOptions): UseWorkflowExecutionActionsReturn
 ```
 
 <TypeTable
   type={{
     executionId: { type: "string | null", description: "", required: true },
+    options: { type: "UseWorkflowExecutionActionsOptions", description: "" },
   }}
 />
 
@@ -706,10 +937,11 @@ function useWorkflowExecutionActions(executionId: string | null): UseWorkflowExe
 <TypeTable
   type={{
     cancel: { type: "(reason?: string) => Promise<WorkflowExecution | null>", description: "Cancel a running execution gracefully." },
+    clearError: { type: "() => void", description: "Reset `error` to `null`." },
     error: { type: "Error | null", description: "Error from the last failed action, or `null`." },
     isSubmitting: { type: "boolean", description: "`true` while any action is in flight." },
     pause: { type: "(reason?: string) => Promise<WorkflowExecution | null>", description: "Pause a running execution." },
-    recover: { type: "(reason?: string) => Promise<WorkflowExecution | null>", description: "Recover a failed execution from its last checkpoint." },
+    recover: { type: "(reason?: string) => Promise<WorkflowExecution | null>", description: "Recover a failed execution with task-level resume.  Terminates stale workflows, re-resolves environment variables (picks up any config fixes), and starts a fresh run in recovery mode. Completed tasks are skipped — their outputs are restored from the event log — and execution resumes from the first incomplete or failed task." },
     resume: { type: "() => Promise<WorkflowExecution | null>", description: "Resume a paused execution." },
     submitApproval: { type: "(toolCallId: string, action: ApprovalAction, comment?: string) => Promise<WorkflowExecution | null>", description: "Submit an approval decision for a child agent's tool execution." },
     submitTaskApproval: { type: "(taskName: string, outcome: string, formData?: Record<string, unknown>, comment?: string) => Promise<WorkflowExecution | null>", description: "Submit a reviewer's decision for a workflow-level human_input task.  Unlike `submitApproval` (which forwards agent tool approvals), this sends a Temporal signal to the workflow runner's human_input orchestrator, unblocking the task with the selected outcome." },
@@ -718,7 +950,9 @@ function useWorkflowExecutionActions(executionId: string | null): UseWorkflowExe
 />
 
 ```tsx
-const actions = useWorkflowExecutionActions(executionId);
+const actions = useWorkflowExecutionActions(executionId, {
+  onSuccess: () => refetchExecution(),
+});
 
 <button onClick={() => actions.cancel("No longer needed")} disabled={actions.isSubmitting}>
   Cancel
@@ -820,6 +1054,16 @@ sequence number.
 For terminal executions: loads the full event log via paginated
 `getEventLog` calls.
 
+On recovery (terminal → active phase transition for the same
+execution), the store is reset so stale events from the failed run
+are cleared before the new subscription begins.
+
+When `executionId` changes to a different execution, the store is
+reset before subscribing — mirroring `useFetch`'s identity-change
+reset — so the previous run's append-only events neither render as
+stale progress nor cause the live subscription to resume from the
+wrong `afterSequence`.
+
 Pass `null` for `executionId` to skip (stable no-op).
 
 **Signature**
@@ -894,6 +1138,42 @@ const { executions } = useWorkflowExecutionList({
   workflowId: workflow.metadata?.id,
   pageSize: 10,
 });
+```
+
+
+### useWorkflowInstance
+
+Data hook that fetches a single WorkflowInstance by ID.
+
+Wraps `stigmer.workflowInstance.get()` with loading and error state.
+Pass `null` or `undefined` as `instanceId` to skip fetching (stable no-op).
+
+**Signature**
+
+```tsx
+function useWorkflowInstance(instanceId: string | null | undefined): UseWorkflowInstanceReturn
+```
+
+<TypeTable
+  type={{
+    instanceId: { type: "string | null | undefined", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UseWorkflowInstanceReturn`
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
+    instance: { type: "WorkflowInstance | null", description: "The fetched WorkflowInstance, or `null` while loading or on error." },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight." },
+    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight and stale data is shown." },
+    refetch: { type: "() => void", description: "Discard cached data and re-fetch the instance from the server." },
+  }}
+/>
+
+```tsx
+const { instance, isLoading } = useWorkflowInstance(selectedInstanceId);
 ```
 
 
@@ -1008,7 +1288,7 @@ function useWorkflowSave(org: string): UseWorkflowSaveReturn
   type={{
     error: { type: "Error | null", description: "Error from the last failed save, or `null` on success." },
     isSaving: { type: "boolean", description: "`true` while a save request is in flight." },
-    save: { type: "(yaml: string) => Promise<boolean>", description: "Parse the YAML and call `workflow.apply()` on the server. Returns `true` on success, `false` on failure (check `error`)." },
+    save: { type: "(yaml: string, options?: WorkflowSaveOptions) => Promise<boolean>", description: "Parse the YAML and call `workflow.apply()` on the server. Returns `true` on success, `false` on failure (check `error`)." },
   }}
 />
 
@@ -1117,6 +1397,28 @@ function useWorkflowYaml(org: string | null, slug: string | null): UseWorkflowYa
 
 ## Components
 
+### CreateWorkflowInstanceDialog
+
+Modal dialog for creating a new WorkflowInstance.
+
+Collects: name (required), description, environment bindings (ordered),
+and visibility. Submits via `useCreateWorkflowInstance`.
+
+Uses native `<dialog>` element for proper focus trapping and escape handling.
+
+**Props** — `CreateWorkflowInstanceDialogProps`
+
+<TypeTable
+  type={{
+    onCreated: { type: "(instance: WorkflowInstance) => void", description: "Called after the instance is successfully created." },
+    onOpenChange: { type: "(open: boolean) => void", description: "Called when the dialog should open or close.", required: true },
+    open: { type: "boolean", description: "Whether the dialog is open.", required: true },
+    org: { type: "string", description: "Organization slug.", required: true },
+    workflowId: { type: "string", description: "Workflow ID to bind the new instance to.", required: true },
+  }}
+/>
+
+
 ### WorkflowArchitectDialog
 
 Three-phase dialog for generating a workflow via the Workflow Architect agent.
@@ -1182,11 +1484,18 @@ All visual properties flow through `--stgm-*` design tokens.
     className: { type: "string", description: "Additional CSS classes for the root container." },
     defaultTab: { type: "string", description: "Default active tab ID when in uncontrolled mode." },
     editable: { type: "boolean", description: "When `true`, description and environment variables become click-to-edit. Each field saves independently via `stigmer.workflow.update()`." },
+    instancesRefreshKey: { type: "number", description: "Increment this value to trigger a refetch of the instance list. Useful after externally creating or deleting an instance." },
     isVisibilityPending: { type: "boolean", description: "`true` while a visibility update RPC is in flight." },
+    onCreateInstanceClick: { type: "() => void", description: "Called when the user clicks \"Create Instance\" in the Instances tab. Opens the create instance dialog." },
     onExecutionClick: { type: "(executionId: string) => void", description: "Called when a user clicks an execution row in the Executions tab. Receives the execution ID — use for navigation to the execution viewer." },
+    onInstanceClick: { type: "(instance: WorkflowInstance) => void", description: "Called when the user clicks an instance row in the Instances tab." },
+    onInstanceDeleteClick: { type: "(instance: WorkflowInstance) => void", description: "Called when the user clicks \"Delete\" on a specific instance." },
+    onInstanceRunClick: { type: "(instance: WorkflowInstance) => void", description: "Called when the user clicks \"Run\" on a specific instance." },
+    onOpenInEditor: { type: "(taskName: string) => void", description: "Called when the user clicks \"Open in editor\" from the overview graph node popover. Receives the task name. Wire this to switch to the editor tab and optionally select the node." },
     onResourceLoad: { type: "(meta: { id: string; name: string }) => void", description: "Called once when the workflow resource has been fetched successfully. Provides the resource display name for breadcrumbs, document titles, etc." },
     onResourceUpdated: { type: "(workflow: Workflow) => void", description: "Called after a successful inline field save with the updated workflow." },
     onTabChange: { type: "(tabId: string) => void", description: "Controlled tab change handler." },
+    onViewLatestRun: { type: "(executionId: string) => void", description: "Called when the user clicks \"View latest run\" in the overview quick actions. Receives the execution ID of the most recent execution." },
     onVisibilityChange: { type: "(v: ApiResourceVisibility) => void", description: "Called when the user toggles visibility via the inline control. When provided, the header renders an interactive VisibilityToggle instead of a read-only badge." },
     org: { type: "string", description: "Organization slug that owns the workflow.", required: true },
     primaryAction: { type: "DetailAction", description: "Primary action rendered as a visible button in the header area.", typeDescriptionLink: "/docs/sdk/react/resource-detail#detailaction" },
@@ -1197,6 +1506,69 @@ All visual properties flow through `--stgm-*` design tokens.
 ```tsx
 <WorkflowDetailView org="acme" slug="onboard-user" />
 ```
+
+
+### WorkflowInstanceDetailPanel
+
+Expandable detail panel for a single WorkflowInstance.
+
+Shows metadata, description (inline-editable), environment bindings (editable),
+visibility control, share panel (FGA-gated), and a delete action with cascade warning.
+
+**Props** — `WorkflowInstanceDetailPanelProps`
+
+<TypeTable
+  type={{
+    instance: { type: "WorkflowInstance", description: "The instance to display.", required: true, typeDescriptionLink: "/docs/sdk/resources/workflow-instance" },
+    onClose: { type: "() => void", description: "Called when the panel should close.", required: true },
+    onDeleted: { type: "() => void", description: "Called after successful deletion." },
+    onExecutionClick: { type: "(executionId: string) => void", description: "Called when the user clicks an execution in the recent list." },
+    onRunClick: { type: "(instance: WorkflowInstance) => void", description: "Called when the user clicks \"Run\" for this instance." },
+    onUpdated: { type: "() => void", description: "Called when instance data changes (for parent refetch)." },
+    org: { type: "string", description: "Organization slug.", required: true },
+  }}
+/>
+
+
+### WorkflowInstanceEmptyState
+
+Empty state shown in the Instances tab when no user-created instances exist.
+
+Communicates the value proposition of workflow instances without
+mentioning the platform-managed default instance (implementation detail).
+
+**Props** — `WorkflowInstanceEmptyStateProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names." },
+    onCreateClick: { type: "() => void", description: "Called when the user clicks \"Create Instance\"." },
+  }}
+/>
+
+
+### WorkflowInstanceList
+
+Enhanced workflow instance list with environment badges, visibility controls,
+and action buttons. Filters out the platform-managed default instance.
+
+This is an SDK component (DD-001) — embeddable by platform builders.
+
+**Props** — `WorkflowInstanceListProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names." },
+    defaultInstanceId: { type: "string", description: "The default instance ID (from workflow.status.defaultInstanceId) — filtered out of the list." },
+    onCreateClick: { type: "() => void", description: "Called when the user wants to create a new instance." },
+    onDeleteClick: { type: "(instance: WorkflowInstance) => void", description: "Called when the user clicks \"Delete\" on an instance." },
+    onInstanceClick: { type: "(instance: WorkflowInstance) => void", description: "Called when the user clicks an instance row." },
+    onRunClick: { type: "(instance: WorkflowInstance) => void", description: "Called when the user clicks \"Run\" on an instance." },
+    org: { type: "string", description: "Organization slug (needed for environment resolution and create flow).", required: true },
+    refreshKey: { type: "number", description: "Increment this value to trigger a refetch of the instance list. Useful after creating or deleting an instance externally." },
+    workflowId: { type: "string", description: "Workflow resource ID to list instances for.", required: true },
+  }}
+/>
 
 
 ### WorkflowRefinePanel
@@ -1221,6 +1593,7 @@ Zero console dependencies (DD-004).
   type={{
     className: { type: "string", description: "Additional CSS class names." },
     currentYaml: { type: "string", description: "Current workflow YAML from the editor.", required: true },
+    initialInstruction: { type: "string", description: "When provided, auto-sends this instruction on mount (e.g. from \"Fix with AI\"). Consumed once — subsequent renders with the same value are ignored." },
     onAccept: { type: "(yaml: string) => void", description: "Called when the user accepts a refinement. Receives the updated YAML.", required: true },
     onClose: { type: "() => void", description: "Called when the panel should close.", required: true },
     org: { type: "string", description: "Organization slug for refinement context.", required: true },
@@ -1274,6 +1647,7 @@ handling, and backdrop. Styled via `--stgm-*` design tokens.
 
 <TypeTable
   type={{
+    defaultInstanceId: { type: "string", description: "The platform-managed default instance ID (from workflow.status.defaultInstanceId). Passed through to the form's instance picker to control visibility threshold." },
     instances: { type: "readonly WorkflowInstance[]", description: "Available workflow instances for the instance selector.", required: true },
     onError: { type: "(message: string) => void", description: "Called when submission fails. Receives a human-readable message. Use for toast notifications." },
     onOpenChange: { type: "(open: boolean) => void", description: "Called when the dialog should close (cancel, backdrop click, Escape).", required: true },
@@ -1301,9 +1675,12 @@ handling, and backdrop. Styled via `--stgm-*` design tokens.
 
 Form fields for running a workflow execution.
 
-Renders a trigger message textarea, auto-generated environment
-variable fields from the workflow's `spec.env` declarations, and
-an instance selector (hidden when 0-1 instances exist).
+Renders auto-generated environment variable fields from the workflow's
+`spec.env` declarations, an instance selector (hidden when 0-1 instances
+exist), and a conditionally-visible trigger message textarea.
+
+Field ordering prioritizes required inputs (env vars) over optional
+contextual fields (trigger message), following progressive disclosure.
 
 This component is presentational — it does not manage state or
 submit. Pair with [`useRunWorkflowFlow`](#userunworkflowflow) for the full
@@ -1317,15 +1694,19 @@ dependencies — safe for platform builder embedding.
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS classes for the root container." },
+    defaultInstanceId: { type: "string", description: "The platform-managed default instance ID (from workflow.status.defaultInstanceId). When provided, the picker shows whenever user-created instances exist (>= 1), and labels the default option clearly." },
     disabled: { type: "boolean", description: "When `true`, all fields are disabled (during submission)." },
     envDeclarations: { type: "Record<string, EnvVarDeclaration>", description: "Declared environment variables from the workflow spec.", required: true },
     errors: { type: "RunWorkflowFieldErrors", description: "Field-level validation errors keyed by field name.", required: true, typeDescriptionLink: "#runworkflowfielderrors" },
+    instanceEnvKeys: { type: "Set<string>", description: "Set of env var keys already provided by the selected instance's bound environments. Fields for these keys are shown as optional overrides rather than required inputs." },
     instances: { type: "readonly WorkflowInstance[]", description: "Available workflow instances for the selector.", required: true },
     onEnvVarChange: { type: "(key: string, value: string) => void", description: "Called when a single env var value changes.", required: true },
     onInstanceChange: { type: "(id: string | null) => void", description: "Called when the selected instance changes.", required: true },
+    onShowTriggerMessageChange: { type: "(show: boolean) => void", description: "Called when the user toggles trigger message visibility.", required: true },
     onTriggerMessageChange: { type: "(value: string) => void", description: "Called when the trigger message changes.", required: true },
     runtimeEnv: { type: "Record<string, string>", description: "Current runtime env var overrides (keyed by variable name).", required: true },
     selectedInstanceId: { type: "string | null", description: "Currently selected instance ID, or `null` for server-resolved default.", required: true },
+    showTriggerMessage: { type: "boolean", description: "Whether to show the trigger message field. When `false`, a subtle \"Add trigger input\" toggle is rendered instead.", required: true },
     triggerMessage: { type: "string", description: "Current trigger message value.", required: true },
   }}
 />
@@ -1342,10 +1723,80 @@ const flow = useRunWorkflowFlow({ ... });
   instances={instances}
   selectedInstanceId={flow.selectedInstanceId}
   onInstanceChange={flow.setSelectedInstanceId}
+  showTriggerMessage={flow.showTriggerMessage}
+  onShowTriggerMessageChange={flow.setShowTriggerMessage}
   errors={flow.fieldErrors}
   disabled={flow.isSubmitting}
 />
 ```
+
+
+### WorkflowTemplateCard
+
+Enhanced template card for workflow templates.
+
+Shows the template name, description, category badge, pattern badges,
+task count, and env var count. Click selects the template; an optional
+preview button opens the graph preview dialog.
+
+**Props** — `WorkflowTemplateCardProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "" },
+    onPreview: { type: "(template: WorkflowTemplate) => void", description: "" },
+    onSelect: { type: "(template: WorkflowTemplate) => void", description: "", required: true },
+    template: { type: "WorkflowTemplate", description: "", required: true, typeDescriptionLink: "#workflowtemplate" },
+  }}
+/>
+
+
+### WorkflowTemplateGallery
+
+Searchable, filterable gallery of workflow templates.
+
+Composes the headless `useTemplateFilter` hook with workflow-specific
+`WorkflowTemplateCard` components. Includes an integrated preview
+dialog — clicking the eye icon on a card opens a graph preview
+before committing to the template.
+
+Keyboard navigation follows the same pattern as the generic
+`TemplateGallery`: Tab between search/tabs/cards, Arrow keys
+navigate tabs, Enter/Space activates.
+
+**Props** — `WorkflowTemplateGalleryProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "" },
+    emptyContent: { type: "ReactNode", description: "" },
+    onSelect: { type: "(template: WorkflowTemplate) => void", description: "", required: true },
+    templates: { type: "readonly WorkflowTemplate[]", description: "", required: true },
+  }}
+/>
+
+
+### WorkflowTemplatePreview
+
+Preview dialog for a workflow template.
+
+Shows the template's metadata, pattern badges, and a read-only
+graph preview rendered via the YAML → graph pipeline. Uses a
+native `<dialog>` element for modal semantics.
+
+The graph preview is lazy — it only parses and lays out the YAML
+when the dialog opens, not while browsing cards.
+
+**Props** — `WorkflowTemplatePreviewProps`
+
+<TypeTable
+  type={{
+    onClose: { type: "() => void", description: "", required: true },
+    onSelect: { type: "(template: WorkflowTemplate) => void", description: "", required: true },
+    open: { type: "boolean", description: "", required: true },
+    template: { type: "WorkflowTemplate | null", description: "", required: true },
+  }}
+/>
 
 
 ## Types
@@ -1443,15 +1894,27 @@ Props for [`CanvasContextMenu`](#canvascontextmenu).
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the popup." },
+    hasClipboard: { type: "boolean", description: "Whether the internal clipboard has content available to paste." },
     onAddTaskAfter: { type: "(nodeId: string) => void", description: "Called to trigger the \"add task after\" flow (opens TaskPicker)." },
     onAddTaskAtPosition: { type: "() => void", description: "Called to trigger the \"add task at position\" flow (opens TaskPicker)." },
     onAutoLayout: { type: "() => void", description: "Called to trigger auto-layout." },
+    onCopyNode: { type: "(nodeId: string) => void", description: "Called to copy a single node to clipboard." },
+    onCopySelection: { type: "() => void", description: "Called to copy the current selection (multi-select)." },
     onDeleteEdge: { type: "(edgeId: string) => void", description: "Called to delete an edge." },
     onDeleteNode: { type: "(nodeId: string) => void", description: "Called to delete a node." },
+    onDeleteSelection: { type: "() => void", description: "Called to delete the current selection (multi-select)." },
+    onDisableSelection: { type: "() => void", description: "Called to disable/enable the current selection (multi-select)." },
     onDuplicateNode: { type: "(nodeId: string) => void", description: "Called to duplicate a node." },
+    onDuplicateSelection: { type: "() => void", description: "Called to duplicate the current selection (multi-select)." },
+    onFitView: { type: "() => void", description: "Called to zoom/fit the canvas." },
     onInsertTaskOnEdge: { type: "(edgeId: string) => void", description: "Called to trigger the \"insert task on edge\" flow (opens TaskPicker)." },
     onOpenChange: { type: "(open: boolean) => void", description: "Called when the menu open state changes (e.g. clicking outside, pressing Escape).", required: true },
+    onPaste: { type: "() => void", description: "Called to paste from clipboard at current position." },
+    onRenameNode: { type: "(nodeId: string) => void", description: "Called to rename a node (triggers inline rename in inspector)." },
     onSelectAll: { type: "() => void", description: "Called to select all non-sentinel nodes." },
+    onToggleDisabled: { type: "(nodeId: string) => void", description: "Called to toggle disabled state on a node." },
+    onViewYaml: { type: "(nodeId: string) => void", description: "Called to view a node's YAML representation." },
+    onWrapInTryCatch: { type: "(nodeId: string) => void", description: "Called to wrap a node in try/catch." },
     open: { type: "boolean", description: "Whether the context menu is open.", required: true },
     position: { type: "{ x: number; y: number } | null", description: "Screen-coordinate position where the menu should appear.", required: true },
     target: { type: "CanvasContextMenuTarget | null", description: "What was right-clicked — determines which menu items are shown.", required: true },
@@ -1510,6 +1973,60 @@ Uses pure CSS for rendering -- no recharts dependency needed.
 />
 
 
+### deriveExecutionRow
+
+Derives a UI-ready [`ExecutionRow`](#executionrow) from a raw `WorkflowExecution`.
+
+Pure function with zero side effects. Computes duration, identifies
+the failed/current task, counts retries, and normalizes bigint fields.
+
+```tsx
+function deriveExecutionRow(exec: WorkflowExecution): ExecutionRow
+```
+
+
+### deriveExecutionRows
+
+Batch-derives execution rows from a list of raw executions.
+Preserves input order.
+
+```tsx
+function deriveExecutionRows(executions: readonly WorkflowExecution[]): ExecutionRow[]
+```
+
+
+### deriveFailureAnalysis
+
+Groups failed executions by their failing task name.
+
+Pure function. Only considers executions in FAILED phase. Within each
+execution, finds the first FAILED task and groups by its name. Executions
+with no identifiable failed task are grouped under `"(unknown)"`.
+
+Returns groups sorted by failure count descending, with instances
+within each group sorted by failure time descending (most recent first).
+
+```tsx
+function deriveFailureAnalysis(executions: readonly WorkflowExecution[]): FailureGroup[]
+```
+
+
+### deriveTemplateMeta
+
+Derive display metadata from a workflow template's YAML string.
+
+This is a pure function with no React or SDK dependencies — it parses
+the YAML, walks the task list, and returns counts, kinds, and detected
+structural patterns. Used by the gallery card and preview dialog.
+
+If the YAML fails to parse, returns a safe zero-value result so the
+gallery card still renders (graceful degradation).
+
+```tsx
+function deriveTemplateMeta(yaml: string): WorkflowTemplateMeta
+```
+
+
 ### DiagnosePhase
 
 Lifecycle phases for the workflow execution diagnosis flow.
@@ -1526,6 +2043,128 @@ Lifecycle phases for the workflow execution diagnosis flow.
 ### END_NODE_ID
 
 Sentinel node ID for explicit workflow termination.
+
+
+### ExecutionClientFilters
+
+<TypeTable
+  type={{
+    failedTaskName: { type: "string", description: "" },
+    hasRetries: { type: "boolean", description: "" },
+    maxCostMicros: { type: "bigint", description: "" },
+    maxDurationMs: { type: "number", description: "" },
+    minCostMicros: { type: "bigint", description: "" },
+    minDurationMs: { type: "number", description: "" },
+    phases: { type: "readonly ExecutionPhase[]", description: "" },
+  }}
+/>
+
+
+### ExecutionFilterBar
+
+Horizontal filter bar for the execution history table.
+
+Renders phase chips, duration presets, cost presets, a "has retries"
+toggle, and a clear-all button. Each filter maps to an
+[`ExecutionClientFilters`](#executionclientfilters) field.
+
+Fully controlled: the parent owns the filter state.
+
+```tsx
+const [filters, setFilters] = useState<ExecutionClientFilters>({});
+<ExecutionFilterBar filters={filters} onFiltersChange={setFilters} />
+```
+
+
+### ExecutionFilterBarProps
+
+Props for [`ExecutionFilterBar`](#executionfilterbar).
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS classes for the root container." },
+    filters: { type: "ExecutionClientFilters", description: "Current active filters (controlled).", required: true, typeDescriptionLink: "#executionclientfilters" },
+    onFiltersChange: { type: "(filters: ExecutionClientFilters) => void", description: "Called when any filter changes.", required: true },
+  }}
+/>
+
+
+### ExecutionHistorySortDirection
+
+
+### ExecutionHistorySortField
+
+
+### ExecutionHistoryTable
+
+Data-dense execution history table with sortable columns, keyboard
+navigation, and responsive column visibility.
+
+Columns are defined statically and use existing formatters from
+`format-utils.ts` and `WorkflowExecutionPhaseBadge`. Sort state
+is managed internally with configurable defaults.
+
+This component renders only the table. Filtering, pagination, and
+health metrics are composed by the parent `WorkflowExecutionHistory`.
+
+```tsx
+<ExecutionHistoryTable
+  rows={derivedRows}
+  onRowClick={(id) => navigate(`/executions/${id}`)}
+/>
+```
+
+
+### ExecutionHistoryTableProps
+
+Props for [`ExecutionHistoryTable`](#executionhistorytable).
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS classes for the root container." },
+    defaultSortDirection: { type: "SortDirection", description: "Initial sort direction.", typeDescriptionLink: "/docs/sdk/react/resource-workbench#sortdirection" },
+    defaultSortField: { type: "ExecutionSortField", description: "Initial sort field." },
+    error: { type: "Error | null", description: "Error from the last failed fetch." },
+    isLoading: { type: "boolean", description: "`true` while data is being fetched for the first time." },
+    onRowClick: { type: "(executionId: string) => void", description: "Called when a row is clicked. Receives the execution ID." },
+    rows: { type: "readonly ExecutionRow[]", description: "Derived execution rows to display.", required: true },
+    visibleColumns: { type: "readonly string[]", description: "Column IDs to display. When omitted, uses each column's `defaultVisible` setting." },
+  }}
+/>
+
+
+### ExecutionRow
+
+A flattened, UI-ready row derived from a `WorkflowExecution`.
+
+All computed fields (duration, failed task, retry count) are derived
+from the execution's status data — no additional API calls needed.
+This type is the contract between the derivation layer and the table
+component; it intentionally avoids protobuf types so the table can
+be tested and rendered without proto dependencies.
+
+<TypeTable
+  type={{
+    _source: { type: "WorkflowExecution", description: "Reference to the original execution for downstream consumers that need the full object.", required: true, typeDescriptionLink: "/docs/sdk/resources/workflow-execution" },
+    completedAt: { type: "Date | null", description: "", required: true },
+    completedTaskCount: { type: "number", description: "", required: true },
+    costMicros: { type: "bigint", description: "", required: true },
+    currentTaskName: { type: "string | null", description: "Name of the first task in IN_PROGRESS status, or `null` if none.", required: true },
+    durationMs: { type: "number | null", description: "Milliseconds between started_at and completed_at. `null` when not yet completed or timestamps missing.", required: true },
+    error: { type: "string | null", description: "", required: true },
+    failedTaskName: { type: "string | null", description: "Name of the first task in FAILED status, or `null` if none.", required: true },
+    hasHumanWait: { type: "boolean", description: "`true` when any task is in WAITING_APPROVAL status.", required: true },
+    id: { type: "string", description: "", required: true },
+    inputTokens: { type: "bigint", description: "", required: true },
+    name: { type: "string", description: "", required: true },
+    outputTokens: { type: "bigint", description: "", required: true },
+    phase: { type: "ExecutionPhase", description: "", required: true },
+    retryCount: { type: "number", description: "Number of retry attempts across all tasks (derived from task metadata).", required: true },
+    startedAt: { type: "Date | null", description: "", required: true },
+    taskCount: { type: "number", description: "", required: true },
+    totalTokens: { type: "bigint", description: "", required: true },
+  }}
+/>
 
 
 ### ExecutionSummaryWidget
@@ -1620,6 +2259,80 @@ All visuals use `--stgm-*` tokens. No hardcoded colors.
 />
 
 
+### FailureAnalysisPanel
+
+Collapsible panel showing failures grouped by failing task name.
+
+Derives failure groups from the provided execution list using
+[`deriveFailureAnalysis`](#derivefailureanalysis). Each group shows the task name,
+failure count, latest error, and expandable individual failure links.
+
+Renders nothing when there are no failures (no empty state).
+
+```tsx
+<FailureAnalysisPanel
+  executions={allExecutions}
+  onExecutionClick={(id) => navigate(`/executions/${id}`)}
+/>
+```
+
+
+### FailureAnalysisPanelProps
+
+Props for [`FailureAnalysisPanel`](#failureanalysispanel).
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS classes for the root container." },
+    executions: { type: "readonly WorkflowExecution[]", description: "Raw executions to analyze. Only FAILED executions are considered.", required: true },
+    initialVisibleGroups: { type: "number", description: "Maximum number of failure groups to show initially." },
+    onExecutionClick: { type: "(executionId: string) => void", description: "Called when the user clicks a failed execution link." },
+  }}
+/>
+
+
+### FailureGroup
+
+A group of failures sharing the same failing task name.
+
+Sorted by `count` descending so the most frequent failures
+appear first in the failure analysis panel.
+
+<TypeTable
+  type={{
+    count: { type: "number", description: "Number of executions where this task failed.", required: true },
+    instances: { type: "readonly FailureInstance[]", description: "Individual failed execution references (most recent first).", required: true },
+    latestError: { type: "string", description: "Most recent error message from this task.", required: true },
+    latestFailedAt: { type: "Date | null", description: "Timestamp of the most recent failure.", required: true },
+    taskName: { type: "string", description: "The task name that failed across multiple executions.", required: true },
+  }}
+/>
+
+
+### FailureInstance
+
+A single failed execution reference within a [`FailureGroup`](#failuregroup).
+
+<TypeTable
+  type={{
+    error: { type: "string", description: "", required: true },
+    executionId: { type: "string", description: "", required: true },
+    executionName: { type: "string", description: "", required: true },
+    failedAt: { type: "Date | null", description: "", required: true },
+  }}
+/>
+
+
+### filterExecutionRows
+
+Applies client-side filters to execution rows.
+Returns a new array containing only rows that match all criteria.
+
+```tsx
+function filterExecutionRows(rows: readonly ExecutionRow[], filters: ExecutionClientFilters): ExecutionRow[]
+```
+
+
 ### graphToWorkflowInput
 
 Converts a graph model into a `WorkflowInput` suitable for
@@ -1646,6 +2359,36 @@ function graphToYaml(graph: WorkflowGraphModel): string
 ```
 
 
+### HealthMetricsStrip
+
+Compact horizontal strip of key operational health metrics.
+
+Designed for the execution history page context where vertical space
+is at a premium. Displays 6 metrics in a single row with dividers:
+Total, Success Rate, Avg Duration, Total Cost, Active, Tokens.
+
+Data comes from the existing `ExecutionSummary` proto — no new APIs
+needed. Loading state shows a skeleton strip.
+
+```tsx
+const { summary, isLoading } = useWorkflowDashboardSummary({ org });
+<HealthMetricsStrip summary={summary} isLoading={isLoading} />
+```
+
+
+### HealthMetricsStripProps
+
+Props for [`HealthMetricsStrip`](#healthmetricsstrip).
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS classes for the root container." },
+    isLoading: { type: "boolean", description: "Whether the summary is still loading." },
+    summary: { type: "ExecutionSummary | null", description: "Aggregated summary from `useWorkflowDashboardSummary`. `null` while loading.", required: true },
+  }}
+/>
+
+
 ### parseWorkflowYaml
 
 Parses a Stigmer Workflow YAML string into a `WorkflowInput` suitable
@@ -1657,6 +2400,11 @@ including tasks, env declarations, budget, and flow control.
 ```tsx
 function parseWorkflowYaml(content: string, org: string): WorkflowInput
 ```
+
+
+### PATTERN_LABELS
+
+Human-readable labels for pattern badges.
 
 
 ### PendingApprovalsWidget
@@ -1717,6 +2465,16 @@ const yaml = serializeWorkflowYaml(workflow);
 // Edit yaml...
 const input = parseWorkflowYaml(yaml, "acme");
 await stigmer.workflow.apply(input);
+```
+
+
+### sortExecutionRows
+
+Sorts execution rows by a given field and direction.
+Returns a new array (does not mutate the input).
+
+```tsx
+function sortExecutionRows(rows: readonly ExecutionRow[], field: ExecutionSortField, direction: SortDirection): ExecutionRow[]
 ```
 
 
@@ -1888,6 +2646,8 @@ Props for [`TaskPickerPopover`](#taskpickerpopover).
     align: { type: "\"center\" | \"end\" | \"start\"", description: "Alignment along the anchor edge." },
     anchorRef: { type: "RefObject<HTMLElement | null>", description: "Ref to the element the popover should anchor to.", required: true },
     className: { type: "string", description: "Additional CSS class names for the popup container." },
+    graph: { type: "WorkflowGraphModel | null", description: "Current graph model used for compatibility filtering." },
+    insertionContext: { type: "InsertionContext | null", description: "Context for contextual header/suggestions/compatibility checks." },
     onOpenChange: { type: "(open: boolean) => void", description: "Called when the popover requests open/close state changes.", required: true },
     onSelectKind: { type: "(kindString: string) => void", description: "Called when the user selects a task kind from the list.", required: true },
     open: { type: "boolean", description: "Whether the popover is currently visible.", required: true },
@@ -1945,6 +2705,33 @@ Options for [`useDiagnoseExecutionFlow`](#usediagnoseexecutionflow).
 />
 
 
+### UseElkLayoutEngineOptions
+
+Options for [`useElkLayoutEngine`](#useelklayoutengine).
+
+<TypeTable
+  type={{
+    enabled: { type: "boolean", description: "When `false`, skip engine creation entirely and return `null`. Useful for conditional activation (e.g., feature flags)." },
+    layoutOptions: { type: "Record<string, string>", description: "Additional ELK layout options to merge with workflow defaults." },
+    workerFactory: { type: "() => Worker", description: "Factory function that creates a Web Worker for off-main-thread layout.  When provided, ELK uses the lightweight ~5KB API stub on the main thread and delegates the ~1.5MB WASM computation to the worker.  When omitted, ELK loads the full bundled WASM on the main thread (async but blocking during computation)." },
+  }}
+/>
+
+
+### UseExecutionHistoryDataOptions
+
+Options for [`useExecutionHistoryData`](#useexecutionhistorydata).
+
+<TypeTable
+  type={{
+    clientFilters: { type: "ExecutionClientFilters", description: "Client-side filters applied post-fetch to the loaded page. These are a stopgap until server-side filters are wired (Phase 2).", typeDescriptionLink: "#executionclientfilters" },
+    pageSize: { type: "number", description: "Maximum executions per page." },
+    pageToken: { type: "string", description: "Opaque cursor for paginated fetching." },
+    workflowId: { type: "string | null", description: "When set, scopes the list to executions of this workflow. When omitted, lists all executions across all workflows." },
+  }}
+/>
+
+
 ### UsePendingApprovalsOptions
 
 <TypeTable
@@ -1997,6 +2784,17 @@ Options for [`useWorkflowArchitectFlow`](#useworkflowarchitectflow).
 />
 
 
+### UseWorkflowCanvasOptions
+
+Options for [`useWorkflowCanvas`](#useworkflowcanvas).
+
+<TypeTable
+  type={{
+    layoutEngine: { type: "LayoutEngine | null", description: "Layout engine for the \"Auto Layout\" action. When provided, this engine is used instead of the default dagre engine. Pass the result of useElkLayoutEngine for ELK-powered layout. When `null` or `undefined`, dagre is used as the default." },
+  }}
+/>
+
+
 ### UseWorkflowCountOptions
 
 Options for [`useWorkflowCount`](#useworkflowcount).
@@ -2016,6 +2814,7 @@ Options for [`useWorkflowCount`](#useworkflowcount).
     org: { type: "string | null | undefined", description: "Organization slug. When empty, the hook does not fetch.", required: true },
     refetchInterval: { type: "number | false", description: "Refetch interval in milliseconds. `0` or `false` disables." },
     timeWindow: { type: "SummaryTimeWindow", description: "Time window for aggregation." },
+    workflowId: { type: "string", description: "When set, scopes the summary to executions of this workflow only. When omitted, aggregates across all workflows in the organization." },
   }}
 />
 
@@ -2064,8 +2863,11 @@ Options for [`useWorkflowExecutionList`](#useworkflowexecutionlist).
 
 <TypeTable
   type={{
+    filter: { type: "Partial<ExecutionFilterCriteria>", description: "Server-side filter criteria. When set, the backend filters before returning results, reducing transfer size." },
     pageSize: { type: "number", description: "Maximum executions per page." },
     pageToken: { type: "string", description: "Opaque page token for cursor-based pagination." },
+    sortAscending: { type: "boolean", description: "When true, sorts ascending. Defaults to false (descending)." },
+    sortField: { type: "ExecutionSortField", description: "Server-side sort field." },
     workflowId: { type: "string | null", description: "Workflow or WorkflowInstance ID to scope executions. When omitted, lists all executions across all workflows." },
   }}
 />
@@ -2083,6 +2885,11 @@ Options for [`useWorkflowList`](#useworkflowlist).
     scope: { type: "ResourceListScope", description: "Controls which workflows are visible.  - `\"org\"` — only workflows owned by the given organization. - `\"all\"` — includes public/platform workflows." },
   }}
 />
+
+
+### WORKFLOW_CATEGORY_LABELS
+
+Human-readable labels for workflow template categories.
 
 
 ### WorkflowCanvasEditor
@@ -2103,6 +2910,7 @@ Props for [`WorkflowCanvasEditor`](#workflowcanvaseditor).
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
     isSaving: { type: "boolean", description: "Whether a save is currently in progress." },
+    layoutEngine: { type: "LayoutEngine | null", description: "Layout engine for the \"Auto Layout\" action. Pass the result of useElkLayoutEngine for ELK-powered layout. When omitted, dagre is used as the default." },
     loadingFallback: { type: "ReactNode", description: "Fallback to show while the canvas loads (DD-013 lazy loading)." },
     nodeErrors: { type: "ReadonlyMap<string, readonly string[]>", description: "Map of nodeId -> error messages for validation badge rendering." },
     onDirtyChange: { type: "(dirty: boolean) => void", description: "Called when the canvas dirty state changes." },
@@ -2113,6 +2921,27 @@ Props for [`WorkflowCanvasEditor`](#workflowcanvaseditor).
     showInspector: { type: "boolean", description: "Whether to show the inspector panel. Defaults to true." },
     showPalette: { type: "boolean", description: "Whether to show the task palette sidebar. Defaults to true." },
     yaml: { type: "string | null", description: "The workflow YAML string to render on the canvas.", required: true },
+  }}
+/>
+
+
+### WorkflowCodePreviewGraph
+
+Read-only React Flow graph preview for the code-mode editor side panel.
+
+Accepts YAML directly (unlike `WorkflowOverviewGraph` which requires
+a `Workflow` proto). Uses the unified `WorkflowNode` / `CanvasTransitionEdge`
+rendering system in `"overview"` mode for DD-001 consistency.
+
+
+### WorkflowCodePreviewGraphProps
+
+Props for [`WorkflowCodePreviewGraph`](#workflowcodepreviewgraph).
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    yaml: { type: "string | null", description: "Workflow YAML to visualize.", required: true },
   }}
 />
 
@@ -2186,6 +3015,7 @@ Props for [`WorkflowEditorView`](#workfloweditorview).
     className: { type: "string", description: "Additional CSS class names for the root container." },
     defaultMode: { type: "WorkflowEditorMode", description: "Initial editor mode. Defaults to `\"code\"`.", typeDescriptionLink: "#workfloweditormode" },
     initialYaml: { type: "string", description: "The initial YAML content to load into the editor.", required: true },
+    layoutEngine: { type: "LayoutEngine | null", description: "Layout engine for the visual canvas \"Auto Layout\" action. Pass the result of useElkLayoutEngine for ELK-powered layout. When omitted, dagre is used as the default." },
     onSaveError: { type: "(error: Error) => void", description: "Called when a save fails." },
     onSaveSuccess: { type: "() => void", description: "Called after a successful save." },
     org: { type: "string", description: "Organization slug for the save path.", required: true },
@@ -2260,14 +3090,6 @@ Props for [`WorkflowExecutionCostPanel`](#workflowexecutioncostpanel).
 
 ### WorkflowExecutionHeader
 
-Header bar for the workflow execution viewer showing phase badge,
-execution name, duration, cost summary, and lifecycle action buttons.
-
-Action buttons are contextual:
-- Running: Pause, Cancel
-- Paused: Resume, Cancel
-- Failed: Recover
-
 
 ### WorkflowExecutionHeaderProps
 
@@ -2280,8 +3102,49 @@ Props for [`WorkflowExecutionHeader`](#workflowexecutionheader).
     costSummary: { type: "DerivedCostSummary", description: "", required: true },
     execution: { type: "WorkflowExecution", description: "", required: true, typeDescriptionLink: "/docs/sdk/resources/workflow-execution" },
     isDiagnosing: { type: "boolean", description: "Whether the diagnosis panel is currently active." },
+    onCompare: { type: "() => void", description: "Called when the user clicks \"Compare with...\" on a terminal execution." },
     onDiagnose: { type: "() => void", description: "Called when the user clicks \"Diagnose with AI\" on a failed execution." },
     streamState: { type: "WorkflowEventStreamState", description: "", required: true },
+  }}
+/>
+
+
+### WorkflowExecutionHistory
+
+Composed execution history view assembling health metrics, a filter
+bar, a sortable data table, and a failure analysis panel.
+
+Self-contained: fetches data internally via `useWorkflowExecutionList`
+and `useWorkflowDashboardSummary`. Zero Console dependencies.
+
+Layout:
+```
+HealthMetricsStrip
+ExecutionFilterBar
+ExecutionHistoryTable
+FailureAnalysisPanel (collapsible)
+```
+
+```tsx
+<WorkflowExecutionHistory
+  org="acme"
+  workflowId={workflow.metadata?.id}
+  onExecutionClick={(id) => navigate(`/executions/${id}`)}
+/>
+```
+
+
+### WorkflowExecutionHistoryProps
+
+Props for [`WorkflowExecutionHistory`](#workflowexecutionhistory).
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS classes for the root container." },
+    onExecutionClick: { type: "(executionId: string) => void", description: "Called when the user clicks an execution row." },
+    org: { type: "string", description: "Organization slug for scoping dashboard summary data.", required: true },
+    pageSize: { type: "number", description: "Maximum executions per page." },
+    workflowId: { type: "string", description: "When set, scopes to a single workflow's executions. When omitted, shows all executions across all workflows." },
   }}
 />
 
@@ -2397,6 +3260,7 @@ Props for [`WorkflowExecutionViewer`](#workflowexecutionviewer).
     additionalActions: { type: "ReactNode", description: "Additional action elements to render in the header." },
     className: { type: "string", description: "Additional CSS class names for the root container." },
     executionId: { type: "string", description: "ID of the workflow execution to display.", required: true },
+    nodesDraggable: { type: "boolean", description: "Whether task nodes in the execution graph can be dragged to rearrange the layout for presentations. Drag positions are ephemeral and not persisted." },
     onNavigateToAgentExecution: { type: "(agentExecutionId: string) => void", description: "Callback when the user clicks a link to a child agent execution. Receives the AgentExecution ID. The host application is responsible for navigation — this keeps the component routing-agnostic (DD-004)." },
     onNavigateToWorkflowEditor: { type: "(yaml: string, workflowSlug: string) => void", description: "Callback when the user clicks \"Apply Fix\" in the repair card. Receives the suggested YAML and the workflow slug. The host application handles navigation to the workflow editor (DD-004)." },
     org: { type: "string", description: "Organization slug — needed for AI diagnosis authorization." },
@@ -2506,12 +3370,11 @@ Sentinel nodes (`__start__`, `__end__`) use `WorkflowTaskKind` value 0
 
 Inspector panel for the visual canvas editor.
 
-Renders a right sidebar with context-sensitive sections based on the
-selected element: node inspector (Identity, Configuration, Export, Flow),
-edge inspector (label, source/target), or sentinel summary.
+Thin wrapper that bridges the callback-based prop API from
+`WorkflowCanvasEditor` into the tabbed `InspectorShell` architecture.
 
-Controlled component: receives selection + graph from the canvas hook
-and calls mutation methods for all edits (AD-T15-B3-004).
+The shell renders a tabbed inspector with a consistent header, actions
+menu, and per-tab content (Configure, Data, Runtime, Advanced, Docs).
 
 
 ### WorkflowInspectorPanelProps
@@ -2522,19 +3385,42 @@ Props for [`WorkflowInspectorPanel`](#workflowinspectorpanel).
   type={{
     className: { type: "string", description: "Additional CSS class names." },
     descriptor: { type: "TaskKindDescriptor | undefined", description: "Descriptor for the selected node's task kind.", required: true },
+    emptyState: { type: "ReactNode", description: "Content to render when nothing is selected (workflow summary)." },
     graph: { type: "WorkflowGraphModel | null", description: "The current graph model for node/edge lookups.", required: true },
     onDeleteEdge: { type: "(edgeId: string) => void", description: "Called to delete an edge." },
     onDeleteNode: { type: "(nodeId: string) => void", description: "Called to delete a node (task)." },
+    onDuplicateNode: { type: "(nodeId: string) => void", description: "Called to duplicate a node." },
     onMigrateBranchHandle: { type: "(nodeId: string, oldHandleId: string, newHandleId: string) => void", description: "Called when a branch handle is renamed (case/outcome rename)." },
     onRemoveBranchEdges: { type: "(nodeId: string, handleId: string) => void", description: "Called to remove all edges from a specific branch handle." },
+    onRemoveCatchBlock: { type: "(tryCatchNodeId: string) => void", description: "Called to remove catch block." },
+    onRemoveForkBranch: { type: "(forkNodeId: string, branchName: string) => void", description: "Called to remove a fork branch." },
+    onRemoveSwitchCase: { type: "(switchNodeId: string, caseName: string) => void", description: "Called to remove a switch case." },
+    onRenameForkBranch: { type: "(forkNodeId: string, oldName: string, newName: string) => void", description: "Called to rename a fork branch." },
     onRenameNode: { type: "(nodeId: string, newName: string) => void", description: "Called when a node is renamed.", required: true },
+    onReorderForkBranches: { type: "(forkNodeId: string, newOrder: readonly string[]) => void", description: "Called to reorder fork branches." },
+    onReorderSwitchCases: { type: "(switchNodeId: string, newOrder: readonly string[]) => void", description: "Called to reorder switch cases." },
+    onSetForkCompete: { type: "(forkNodeId: string, compete: boolean) => void", description: "Called to toggle fork compete (race) mode." },
+    onToggleDisabled: { type: "(nodeId: string) => void", description: "Called to toggle disabled state on a node." },
     onUpdateBranchRouting: { type: "(nodeId: string, handleId: string, targetTask: string | undefined) => void", description: "Called to create/update/remove an edge for a specific branch handle." },
+    onUpdateCatchConfig: { type: "(tryCatchNodeId: string, updates: { as?: string; compensate?: boolean }) => void", description: "Called to update catch configuration." },
     onUpdateExport: { type: "(nodeId: string, exportAs: string | undefined) => void", description: "Called when a node's export.as changes.", required: true },
     onUpdateField: { type: "(nodeId: string, fieldPath: string, value: unknown) => void", description: "Called when a config field value changes.", required: true },
     onUpdateFlow: { type: "(nodeId: string, thenTarget: string | undefined) => void", description: "Called when a node's flow.then changes.", required: true },
+    onUpdateForEachConfig: { type: "(forEachNodeId: string, updates: Partial<{ batch_size: number; each: string; in: string; max_parallelism: number; on_error: string }>) => void", description: "Called to update for_each configuration." },
+    onViewYaml: { type: "(nodeId: string) => void", description: "Called to open the View YAML dialog for a node." },
+    onWrapInTryCatch: { type: "(nodeId: string) => void", description: "Called to wrap a node in a try/catch container." },
     selection: { type: "CanvasSelection | null", description: "Currently selected element on the canvas.", required: true },
+    validationErrors: { type: "ReadonlyMap<string, readonly string[]>", description: "Validation errors keyed by node ID." },
   }}
 />
+
+
+### WorkflowPattern
+
+A structural workflow pattern detected in a template's YAML.
+
+Pattern badges help users visually identify what a template
+demonstrates without reading the full YAML.
 
 
 ### WorkflowTaskList
@@ -2589,28 +3475,49 @@ Props for [`WorkflowTaskPalette`](#workflowtaskpalette).
 />
 
 
-### WorkflowTopologyGraph
+### WorkflowTemplate
 
-Read-only SVG DAG renderer for workflow topology.
-
-Uses dagre for layered layout computation and renders nodes as
-rounded rectangles with category-based coloring. Edges are drawn
-as SVG paths with arrowhead markers.
-
-Supports mouse wheel zoom, drag-to-pan, and a visible control
-toolbar with zoom in/out and fit-to-view reset buttons.
-All colors flow through `--stgm-*` tokens with sensible fallbacks.
+Workflow template = generic ResourceTemplate with workflow-specific data.
 
 
-### WorkflowTopologyGraphProps
+### WorkflowTemplateCategory
 
-Props for [`WorkflowTopologyGraph`](#workflowtopologygraph).
+Workflow-specific template categories for the gallery filter tabs.
+
+These extend the shared `TemplateCategory` type with workflow-specific
+use-case domains. The gallery renders them as filterable tabs alongside
+the generic categories.
+
+
+### WorkflowTemplateData
+
+The data payload carried by a workflow template.
+
+Unlike agent templates (which carry form fields for a wizard),
+workflow templates carry the full YAML string. Selecting a template
+opens the editor with this YAML as `initialYaml`.
 
 <TypeTable
   type={{
-    className: { type: "string", description: "Additional CSS class names for the root container." },
-    showControls: { type: "boolean", description: "Whether to show zoom/pan controls." },
-    topology: { type: "UseWorkflowTopologyReturn", description: "Topology data from useWorkflowTopology.", required: true, typeDescriptionLink: "#useworkflowtopologyreturn" },
+    yaml: { type: "string", description: "Full workflow YAML including apiVersion/kind/metadata/spec envelope.", required: true },
+  }}
+/>
+
+
+### WorkflowTemplateMeta
+
+Metadata derived from a workflow template's YAML content.
+
+Computed once at render time by `deriveTemplateMeta()` and displayed
+on template cards and preview dialogs.
+
+<TypeTable
+  type={{
+    envVarCount: { type: "number", description: "Number of environment variable declarations.", required: true },
+    hasBudget: { type: "boolean", description: "Whether the template declares a budget.", required: true },
+    patterns: { type: "readonly WorkflowPattern[]", description: "Structural patterns detected in the template.", required: true },
+    taskCount: { type: "number", description: "Number of top-level tasks (excludes nested tasks inside fork/try_catch/for_each).", required: true },
+    taskKinds: { type: "readonly string[]", description: "Unique task kind strings used in the template.", required: true },
   }}
 />
 

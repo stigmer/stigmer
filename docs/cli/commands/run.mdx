@@ -58,7 +58,7 @@ stigmer run my-agent -m "Summarize the Q4 earnings report"
 | `--json`            | `bool`        |         | stream execution events as newline-delimited JSON (for scripting/CI)                     |
 | `--message`, `-m`   | `string`      |         | initial message/prompt for execution                                                     |
 | `--mode`            | `string`      |         | interaction mode: "agent" (default, full access) or "plan" (read-only analysis)          |
-| `--model`           | `string`      |         | LLM model to use (e.g., claude-sonnet-4-20250514)                                        |
+| `--model`           | `string`      |         | LLM model to use (e.g., claude-sonnet-4-6)                                               |
 | `--secret`          | `stringArray` |         | secret environment variable (KEY=VALUE, can be repeated, encrypted)                      |
 | `--secret-file`     | `stringArray` |         | load secrets from file (can be repeated, all values encrypted)                           |
 | `--verbose`, `-v`   | `bool`        |         | show execution IDs and phase transitions in the TUI transcript                           |
@@ -151,7 +151,7 @@ stigmer run my-agent --detach -m "Generate weekly report"
 
 | Flag                | Purpose                                                                             |
 | ------------------- | ----------------------------------------------------------------------------------- |
-| `--model`           | Override the LLM model (e.g., `claude-sonnet-4-20250514`)                           |
+| `--model`           | Override the LLM model (e.g., `claude-sonnet-4-6`)                                  |
 | `--auto-approve`    | Approve all tool executions without prompting (bypasses approval policies)          |
 | `--approve-default` | Auto-resolve approval prompts in non-interactive mode (`approve`, `skip`, `reject`) |
 | `--verbose`, `-v`   | Show execution IDs and phase transitions in the TUI transcript                      |

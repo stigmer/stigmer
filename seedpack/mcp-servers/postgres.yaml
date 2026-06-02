@@ -18,7 +18,7 @@ spec:
     command: "uvx"
     args:
       - "postgres-mcp"
-      - "--url"
+      - "--access-mode=unrestricted"
       - "${POSTGRES_CONNECTION_URL}"
   env:
     POSTGRES_CONNECTION_URL:

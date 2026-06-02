@@ -254,4 +254,30 @@ public interface ExecutionSummaryOrBuilder extends
    */
   ai.stigmer.agentic.workflowexecution.v1.WorkflowCostBreakdownOrBuilder getCostByWorkflowOrBuilder(
       int index);
+
+  /**
+   * <pre>
+   * Total number of executions in the time window (sum of all phase_counts values).
+   *
+   * &#64;since T12 (Overview Page Redesign)
+   * </pre>
+   *
+   * <code>int32 total_count = 7 [json_name = "totalCount"];</code>
+   * @return The totalCount.
+   */
+  int getTotalCount();
+
+  /**
+   * <pre>
+   * Success rate as a ratio (0.0 to 1.0).
+   * Computed as completed / (completed + failed). Returns -1.0 when no
+   * completed or failed executions exist in the time window.
+   *
+   * &#64;since T12 (Overview Page Redesign)
+   * </pre>
+   *
+   * <code>double success_rate = 8 [json_name = "successRate"];</code>
+   * @return The successRate.
+   */
+  double getSuccessRate();
 }

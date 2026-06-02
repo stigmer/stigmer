@@ -59,6 +59,7 @@ private static final long serialVersionUID = 0L;
     completedAt_ = "";
     temporalWorkflowId_ = "";
     pendingApprovals_ = java.util.Collections.emptyList();
+    workflowVersionHash_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -699,11 +700,15 @@ private static final long serialVersionUID = 0L;
    * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
    * requests at the workflow level for UI visibility.
    *
-   * Full-Replace Protocol:
-   * The workflow-runner always sends the complete set of pending approvals
-   * via UpdateStatus. The server replaces the stored list unconditionally:
+   * Guarded Update Protocol:
+   * This field is only modified when UpdateStatusInput.update_pending_approvals
+   * is explicitly set to true. Normal event emissions (which don't concern
+   * approvals) leave this field untouched, preventing race conditions between
+   * concurrent status writers.
+   *
+   * Only call-agent-status manages this field:
    * - Non-empty list: child agent(s) need approval
-   * - Empty list: all approvals resolved, clear the field
+   * - Empty list + update_pending_approvals=true: all approvals resolved
    *
    * Parallel Agents:
    * When multiple child agents run in parallel, entries from different children
@@ -726,11 +731,15 @@ private static final long serialVersionUID = 0L;
    * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
    * requests at the workflow level for UI visibility.
    *
-   * Full-Replace Protocol:
-   * The workflow-runner always sends the complete set of pending approvals
-   * via UpdateStatus. The server replaces the stored list unconditionally:
+   * Guarded Update Protocol:
+   * This field is only modified when UpdateStatusInput.update_pending_approvals
+   * is explicitly set to true. Normal event emissions (which don't concern
+   * approvals) leave this field untouched, preventing race conditions between
+   * concurrent status writers.
+   *
+   * Only call-agent-status manages this field:
    * - Non-empty list: child agent(s) need approval
-   * - Empty list: all approvals resolved, clear the field
+   * - Empty list + update_pending_approvals=true: all approvals resolved
    *
    * Parallel Agents:
    * When multiple child agents run in parallel, entries from different children
@@ -754,11 +763,15 @@ private static final long serialVersionUID = 0L;
    * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
    * requests at the workflow level for UI visibility.
    *
-   * Full-Replace Protocol:
-   * The workflow-runner always sends the complete set of pending approvals
-   * via UpdateStatus. The server replaces the stored list unconditionally:
+   * Guarded Update Protocol:
+   * This field is only modified when UpdateStatusInput.update_pending_approvals
+   * is explicitly set to true. Normal event emissions (which don't concern
+   * approvals) leave this field untouched, preventing race conditions between
+   * concurrent status writers.
+   *
+   * Only call-agent-status manages this field:
    * - Non-empty list: child agent(s) need approval
-   * - Empty list: all approvals resolved, clear the field
+   * - Empty list + update_pending_approvals=true: all approvals resolved
    *
    * Parallel Agents:
    * When multiple child agents run in parallel, entries from different children
@@ -781,11 +794,15 @@ private static final long serialVersionUID = 0L;
    * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
    * requests at the workflow level for UI visibility.
    *
-   * Full-Replace Protocol:
-   * The workflow-runner always sends the complete set of pending approvals
-   * via UpdateStatus. The server replaces the stored list unconditionally:
+   * Guarded Update Protocol:
+   * This field is only modified when UpdateStatusInput.update_pending_approvals
+   * is explicitly set to true. Normal event emissions (which don't concern
+   * approvals) leave this field untouched, preventing race conditions between
+   * concurrent status writers.
+   *
+   * Only call-agent-status manages this field:
    * - Non-empty list: child agent(s) need approval
-   * - Empty list: all approvals resolved, clear the field
+   * - Empty list + update_pending_approvals=true: all approvals resolved
    *
    * Parallel Agents:
    * When multiple child agents run in parallel, entries from different children
@@ -808,11 +825,15 @@ private static final long serialVersionUID = 0L;
    * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
    * requests at the workflow level for UI visibility.
    *
-   * Full-Replace Protocol:
-   * The workflow-runner always sends the complete set of pending approvals
-   * via UpdateStatus. The server replaces the stored list unconditionally:
+   * Guarded Update Protocol:
+   * This field is only modified when UpdateStatusInput.update_pending_approvals
+   * is explicitly set to true. Normal event emissions (which don't concern
+   * approvals) leave this field untouched, preventing race conditions between
+   * concurrent status writers.
+   *
+   * Only call-agent-status manages this field:
    * - Non-empty list: child agent(s) need approval
-   * - Empty list: all approvals resolved, clear the field
+   * - Empty list + update_pending_approvals=true: all approvals resolved
    *
    * Parallel Agents:
    * When multiple child agents run in parallel, entries from different children
@@ -895,6 +916,89 @@ private static final long serialVersionUID = 0L;
     return totalOutputTokens_;
   }
 
+  public static final int WORKFLOW_VERSION_HASH_FIELD_NUMBER = 13;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object workflowVersionHash_ = "";
+  /**
+   * <pre>
+   * SHA-256 hash identifying which workflow version was used for this execution.
+   *
+   * &#64;internal
+   * Pinned at execution creation time from Workflow.status.version_hash.
+   * Immutable after creation — represents the exact workflow definition this
+   * execution ran (or will run, if still pending).
+   *
+   * Consumers:
+   * - Runner: fetches the version-specific CNCF YAML via getVersion() during
+   * hydration, ensuring the execution runs the intended definition even if
+   * the workflow has been updated since creation.
+   * - Execution viewer: fetches the version entry to render the correct graph
+   * for historical executions, eliminating the version mismatch problem.
+   *
+   * Empty for executions created before workflow versioning was introduced.
+   * In that case, consumers fall back to fetching the current workflow
+   * definition (legacy behavior with mismatch warning).
+   *
+   * &#64;since Workflow Versioning
+   * </pre>
+   *
+   * <code>string workflow_version_hash = 13 [json_name = "workflowVersionHash"];</code>
+   * @return The workflowVersionHash.
+   */
+  @java.lang.Override
+  public java.lang.String getWorkflowVersionHash() {
+    java.lang.Object ref = workflowVersionHash_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      workflowVersionHash_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * SHA-256 hash identifying which workflow version was used for this execution.
+   *
+   * &#64;internal
+   * Pinned at execution creation time from Workflow.status.version_hash.
+   * Immutable after creation — represents the exact workflow definition this
+   * execution ran (or will run, if still pending).
+   *
+   * Consumers:
+   * - Runner: fetches the version-specific CNCF YAML via getVersion() during
+   * hydration, ensuring the execution runs the intended definition even if
+   * the workflow has been updated since creation.
+   * - Execution viewer: fetches the version entry to render the correct graph
+   * for historical executions, eliminating the version mismatch problem.
+   *
+   * Empty for executions created before workflow versioning was introduced.
+   * In that case, consumers fall back to fetching the current workflow
+   * definition (legacy behavior with mismatch warning).
+   *
+   * &#64;since Workflow Versioning
+   * </pre>
+   *
+   * <code>string workflow_version_hash = 13 [json_name = "workflowVersionHash"];</code>
+   * @return The bytes for workflowVersionHash.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getWorkflowVersionHashBytes() {
+    java.lang.Object ref = workflowVersionHash_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      workflowVersionHash_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -941,6 +1045,9 @@ private static final long serialVersionUID = 0L;
     }
     if (totalOutputTokens_ != 0L) {
       output.writeInt64(12, totalOutputTokens_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(workflowVersionHash_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 13, workflowVersionHash_);
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(99, getAudit());
@@ -1004,6 +1111,9 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeInt64Size(12, totalOutputTokens_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(workflowVersionHash_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(13, workflowVersionHash_);
+    }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(99, getAudit());
@@ -1052,6 +1162,8 @@ private static final long serialVersionUID = 0L;
         != other.getTotalInputTokens()) return false;
     if (getTotalOutputTokens()
         != other.getTotalOutputTokens()) return false;
+    if (!getWorkflowVersionHash()
+        .equals(other.getWorkflowVersionHash())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -1098,6 +1210,8 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + TOTAL_OUTPUT_TOKENS_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
         getTotalOutputTokens());
+    hash = (37 * hash) + WORKFLOW_VERSION_HASH_FIELD_NUMBER;
+    hash = (53 * hash) + getWorkflowVersionHash().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1294,6 +1408,7 @@ private static final long serialVersionUID = 0L;
       totalCostMicros_ = 0L;
       totalInputTokens_ = 0L;
       totalOutputTokens_ = 0L;
+      workflowVersionHash_ = "";
       return this;
     }
 
@@ -1385,6 +1500,9 @@ private static final long serialVersionUID = 0L;
       }
       if (((from_bitField0_ & 0x00000800) != 0)) {
         result.totalOutputTokens_ = totalOutputTokens_;
+      }
+      if (((from_bitField0_ & 0x00001000) != 0)) {
+        result.workflowVersionHash_ = workflowVersionHash_;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -1491,6 +1609,11 @@ private static final long serialVersionUID = 0L;
       if (other.getTotalOutputTokens() != 0L) {
         setTotalOutputTokens(other.getTotalOutputTokens());
       }
+      if (!other.getWorkflowVersionHash().isEmpty()) {
+        workflowVersionHash_ = other.workflowVersionHash_;
+        bitField0_ |= 0x00001000;
+        onChanged();
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -1590,6 +1713,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000800;
               break;
             } // case 96
+            case 106: {
+              workflowVersionHash_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00001000;
+              break;
+            } // case 106
             case 794: {
               input.readMessage(
                   internalGetAuditFieldBuilder().getBuilder(),
@@ -3486,11 +3614,15 @@ private static final long serialVersionUID = 0L;
      * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
      * requests at the workflow level for UI visibility.
      *
-     * Full-Replace Protocol:
-     * The workflow-runner always sends the complete set of pending approvals
-     * via UpdateStatus. The server replaces the stored list unconditionally:
+     * Guarded Update Protocol:
+     * This field is only modified when UpdateStatusInput.update_pending_approvals
+     * is explicitly set to true. Normal event emissions (which don't concern
+     * approvals) leave this field untouched, preventing race conditions between
+     * concurrent status writers.
+     *
+     * Only call-agent-status manages this field:
      * - Non-empty list: child agent(s) need approval
-     * - Empty list: all approvals resolved, clear the field
+     * - Empty list + update_pending_approvals=true: all approvals resolved
      *
      * Parallel Agents:
      * When multiple child agents run in parallel, entries from different children
@@ -3516,11 +3648,15 @@ private static final long serialVersionUID = 0L;
      * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
      * requests at the workflow level for UI visibility.
      *
-     * Full-Replace Protocol:
-     * The workflow-runner always sends the complete set of pending approvals
-     * via UpdateStatus. The server replaces the stored list unconditionally:
+     * Guarded Update Protocol:
+     * This field is only modified when UpdateStatusInput.update_pending_approvals
+     * is explicitly set to true. Normal event emissions (which don't concern
+     * approvals) leave this field untouched, preventing race conditions between
+     * concurrent status writers.
+     *
+     * Only call-agent-status manages this field:
      * - Non-empty list: child agent(s) need approval
-     * - Empty list: all approvals resolved, clear the field
+     * - Empty list + update_pending_approvals=true: all approvals resolved
      *
      * Parallel Agents:
      * When multiple child agents run in parallel, entries from different children
@@ -3546,11 +3682,15 @@ private static final long serialVersionUID = 0L;
      * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
      * requests at the workflow level for UI visibility.
      *
-     * Full-Replace Protocol:
-     * The workflow-runner always sends the complete set of pending approvals
-     * via UpdateStatus. The server replaces the stored list unconditionally:
+     * Guarded Update Protocol:
+     * This field is only modified when UpdateStatusInput.update_pending_approvals
+     * is explicitly set to true. Normal event emissions (which don't concern
+     * approvals) leave this field untouched, preventing race conditions between
+     * concurrent status writers.
+     *
+     * Only call-agent-status manages this field:
      * - Non-empty list: child agent(s) need approval
-     * - Empty list: all approvals resolved, clear the field
+     * - Empty list + update_pending_approvals=true: all approvals resolved
      *
      * Parallel Agents:
      * When multiple child agents run in parallel, entries from different children
@@ -3576,11 +3716,15 @@ private static final long serialVersionUID = 0L;
      * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
      * requests at the workflow level for UI visibility.
      *
-     * Full-Replace Protocol:
-     * The workflow-runner always sends the complete set of pending approvals
-     * via UpdateStatus. The server replaces the stored list unconditionally:
+     * Guarded Update Protocol:
+     * This field is only modified when UpdateStatusInput.update_pending_approvals
+     * is explicitly set to true. Normal event emissions (which don't concern
+     * approvals) leave this field untouched, preventing race conditions between
+     * concurrent status writers.
+     *
+     * Only call-agent-status manages this field:
      * - Non-empty list: child agent(s) need approval
-     * - Empty list: all approvals resolved, clear the field
+     * - Empty list + update_pending_approvals=true: all approvals resolved
      *
      * Parallel Agents:
      * When multiple child agents run in parallel, entries from different children
@@ -3613,11 +3757,15 @@ private static final long serialVersionUID = 0L;
      * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
      * requests at the workflow level for UI visibility.
      *
-     * Full-Replace Protocol:
-     * The workflow-runner always sends the complete set of pending approvals
-     * via UpdateStatus. The server replaces the stored list unconditionally:
+     * Guarded Update Protocol:
+     * This field is only modified when UpdateStatusInput.update_pending_approvals
+     * is explicitly set to true. Normal event emissions (which don't concern
+     * approvals) leave this field untouched, preventing race conditions between
+     * concurrent status writers.
+     *
+     * Only call-agent-status manages this field:
      * - Non-empty list: child agent(s) need approval
-     * - Empty list: all approvals resolved, clear the field
+     * - Empty list + update_pending_approvals=true: all approvals resolved
      *
      * Parallel Agents:
      * When multiple child agents run in parallel, entries from different children
@@ -3647,11 +3795,15 @@ private static final long serialVersionUID = 0L;
      * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
      * requests at the workflow level for UI visibility.
      *
-     * Full-Replace Protocol:
-     * The workflow-runner always sends the complete set of pending approvals
-     * via UpdateStatus. The server replaces the stored list unconditionally:
+     * Guarded Update Protocol:
+     * This field is only modified when UpdateStatusInput.update_pending_approvals
+     * is explicitly set to true. Normal event emissions (which don't concern
+     * approvals) leave this field untouched, preventing race conditions between
+     * concurrent status writers.
+     *
+     * Only call-agent-status manages this field:
      * - Non-empty list: child agent(s) need approval
-     * - Empty list: all approvals resolved, clear the field
+     * - Empty list + update_pending_approvals=true: all approvals resolved
      *
      * Parallel Agents:
      * When multiple child agents run in parallel, entries from different children
@@ -3683,11 +3835,15 @@ private static final long serialVersionUID = 0L;
      * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
      * requests at the workflow level for UI visibility.
      *
-     * Full-Replace Protocol:
-     * The workflow-runner always sends the complete set of pending approvals
-     * via UpdateStatus. The server replaces the stored list unconditionally:
+     * Guarded Update Protocol:
+     * This field is only modified when UpdateStatusInput.update_pending_approvals
+     * is explicitly set to true. Normal event emissions (which don't concern
+     * approvals) leave this field untouched, preventing race conditions between
+     * concurrent status writers.
+     *
+     * Only call-agent-status manages this field:
      * - Non-empty list: child agent(s) need approval
-     * - Empty list: all approvals resolved, clear the field
+     * - Empty list + update_pending_approvals=true: all approvals resolved
      *
      * Parallel Agents:
      * When multiple child agents run in parallel, entries from different children
@@ -3720,11 +3876,15 @@ private static final long serialVersionUID = 0L;
      * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
      * requests at the workflow level for UI visibility.
      *
-     * Full-Replace Protocol:
-     * The workflow-runner always sends the complete set of pending approvals
-     * via UpdateStatus. The server replaces the stored list unconditionally:
+     * Guarded Update Protocol:
+     * This field is only modified when UpdateStatusInput.update_pending_approvals
+     * is explicitly set to true. Normal event emissions (which don't concern
+     * approvals) leave this field untouched, preventing race conditions between
+     * concurrent status writers.
+     *
+     * Only call-agent-status manages this field:
      * - Non-empty list: child agent(s) need approval
-     * - Empty list: all approvals resolved, clear the field
+     * - Empty list + update_pending_approvals=true: all approvals resolved
      *
      * Parallel Agents:
      * When multiple child agents run in parallel, entries from different children
@@ -3754,11 +3914,15 @@ private static final long serialVersionUID = 0L;
      * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
      * requests at the workflow level for UI visibility.
      *
-     * Full-Replace Protocol:
-     * The workflow-runner always sends the complete set of pending approvals
-     * via UpdateStatus. The server replaces the stored list unconditionally:
+     * Guarded Update Protocol:
+     * This field is only modified when UpdateStatusInput.update_pending_approvals
+     * is explicitly set to true. Normal event emissions (which don't concern
+     * approvals) leave this field untouched, preventing race conditions between
+     * concurrent status writers.
+     *
+     * Only call-agent-status manages this field:
      * - Non-empty list: child agent(s) need approval
-     * - Empty list: all approvals resolved, clear the field
+     * - Empty list + update_pending_approvals=true: all approvals resolved
      *
      * Parallel Agents:
      * When multiple child agents run in parallel, entries from different children
@@ -3788,11 +3952,15 @@ private static final long serialVersionUID = 0L;
      * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
      * requests at the workflow level for UI visibility.
      *
-     * Full-Replace Protocol:
-     * The workflow-runner always sends the complete set of pending approvals
-     * via UpdateStatus. The server replaces the stored list unconditionally:
+     * Guarded Update Protocol:
+     * This field is only modified when UpdateStatusInput.update_pending_approvals
+     * is explicitly set to true. Normal event emissions (which don't concern
+     * approvals) leave this field untouched, preventing race conditions between
+     * concurrent status writers.
+     *
+     * Only call-agent-status manages this field:
      * - Non-empty list: child agent(s) need approval
-     * - Empty list: all approvals resolved, clear the field
+     * - Empty list + update_pending_approvals=true: all approvals resolved
      *
      * Parallel Agents:
      * When multiple child agents run in parallel, entries from different children
@@ -3823,11 +3991,15 @@ private static final long serialVersionUID = 0L;
      * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
      * requests at the workflow level for UI visibility.
      *
-     * Full-Replace Protocol:
-     * The workflow-runner always sends the complete set of pending approvals
-     * via UpdateStatus. The server replaces the stored list unconditionally:
+     * Guarded Update Protocol:
+     * This field is only modified when UpdateStatusInput.update_pending_approvals
+     * is explicitly set to true. Normal event emissions (which don't concern
+     * approvals) leave this field untouched, preventing race conditions between
+     * concurrent status writers.
+     *
+     * Only call-agent-status manages this field:
      * - Non-empty list: child agent(s) need approval
-     * - Empty list: all approvals resolved, clear the field
+     * - Empty list + update_pending_approvals=true: all approvals resolved
      *
      * Parallel Agents:
      * When multiple child agents run in parallel, entries from different children
@@ -3856,11 +4028,15 @@ private static final long serialVersionUID = 0L;
      * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
      * requests at the workflow level for UI visibility.
      *
-     * Full-Replace Protocol:
-     * The workflow-runner always sends the complete set of pending approvals
-     * via UpdateStatus. The server replaces the stored list unconditionally:
+     * Guarded Update Protocol:
+     * This field is only modified when UpdateStatusInput.update_pending_approvals
+     * is explicitly set to true. Normal event emissions (which don't concern
+     * approvals) leave this field untouched, preventing race conditions between
+     * concurrent status writers.
+     *
+     * Only call-agent-status manages this field:
      * - Non-empty list: child agent(s) need approval
-     * - Empty list: all approvals resolved, clear the field
+     * - Empty list + update_pending_approvals=true: all approvals resolved
      *
      * Parallel Agents:
      * When multiple child agents run in parallel, entries from different children
@@ -3889,11 +4065,15 @@ private static final long serialVersionUID = 0L;
      * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
      * requests at the workflow level for UI visibility.
      *
-     * Full-Replace Protocol:
-     * The workflow-runner always sends the complete set of pending approvals
-     * via UpdateStatus. The server replaces the stored list unconditionally:
+     * Guarded Update Protocol:
+     * This field is only modified when UpdateStatusInput.update_pending_approvals
+     * is explicitly set to true. Normal event emissions (which don't concern
+     * approvals) leave this field untouched, preventing race conditions between
+     * concurrent status writers.
+     *
+     * Only call-agent-status manages this field:
      * - Non-empty list: child agent(s) need approval
-     * - Empty list: all approvals resolved, clear the field
+     * - Empty list + update_pending_approvals=true: all approvals resolved
      *
      * Parallel Agents:
      * When multiple child agents run in parallel, entries from different children
@@ -3916,11 +4096,15 @@ private static final long serialVersionUID = 0L;
      * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
      * requests at the workflow level for UI visibility.
      *
-     * Full-Replace Protocol:
-     * The workflow-runner always sends the complete set of pending approvals
-     * via UpdateStatus. The server replaces the stored list unconditionally:
+     * Guarded Update Protocol:
+     * This field is only modified when UpdateStatusInput.update_pending_approvals
+     * is explicitly set to true. Normal event emissions (which don't concern
+     * approvals) leave this field untouched, preventing race conditions between
+     * concurrent status writers.
+     *
+     * Only call-agent-status manages this field:
      * - Non-empty list: child agent(s) need approval
-     * - Empty list: all approvals resolved, clear the field
+     * - Empty list + update_pending_approvals=true: all approvals resolved
      *
      * Parallel Agents:
      * When multiple child agents run in parallel, entries from different children
@@ -3946,11 +4130,15 @@ private static final long serialVersionUID = 0L;
      * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
      * requests at the workflow level for UI visibility.
      *
-     * Full-Replace Protocol:
-     * The workflow-runner always sends the complete set of pending approvals
-     * via UpdateStatus. The server replaces the stored list unconditionally:
+     * Guarded Update Protocol:
+     * This field is only modified when UpdateStatusInput.update_pending_approvals
+     * is explicitly set to true. Normal event emissions (which don't concern
+     * approvals) leave this field untouched, preventing race conditions between
+     * concurrent status writers.
+     *
+     * Only call-agent-status manages this field:
      * - Non-empty list: child agent(s) need approval
-     * - Empty list: all approvals resolved, clear the field
+     * - Empty list + update_pending_approvals=true: all approvals resolved
      *
      * Parallel Agents:
      * When multiple child agents run in parallel, entries from different children
@@ -3977,11 +4165,15 @@ private static final long serialVersionUID = 0L;
      * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
      * requests at the workflow level for UI visibility.
      *
-     * Full-Replace Protocol:
-     * The workflow-runner always sends the complete set of pending approvals
-     * via UpdateStatus. The server replaces the stored list unconditionally:
+     * Guarded Update Protocol:
+     * This field is only modified when UpdateStatusInput.update_pending_approvals
+     * is explicitly set to true. Normal event emissions (which don't concern
+     * approvals) leave this field untouched, preventing race conditions between
+     * concurrent status writers.
+     *
+     * Only call-agent-status manages this field:
      * - Non-empty list: child agent(s) need approval
-     * - Empty list: all approvals resolved, clear the field
+     * - Empty list + update_pending_approvals=true: all approvals resolved
      *
      * Parallel Agents:
      * When multiple child agents run in parallel, entries from different children
@@ -4004,11 +4196,15 @@ private static final long serialVersionUID = 0L;
      * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
      * requests at the workflow level for UI visibility.
      *
-     * Full-Replace Protocol:
-     * The workflow-runner always sends the complete set of pending approvals
-     * via UpdateStatus. The server replaces the stored list unconditionally:
+     * Guarded Update Protocol:
+     * This field is only modified when UpdateStatusInput.update_pending_approvals
+     * is explicitly set to true. Normal event emissions (which don't concern
+     * approvals) leave this field untouched, preventing race conditions between
+     * concurrent status writers.
+     *
+     * Only call-agent-status manages this field:
      * - Non-empty list: child agent(s) need approval
-     * - Empty list: all approvals resolved, clear the field
+     * - Empty list + update_pending_approvals=true: all approvals resolved
      *
      * Parallel Agents:
      * When multiple child agents run in parallel, entries from different children
@@ -4032,11 +4228,15 @@ private static final long serialVersionUID = 0L;
      * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
      * requests at the workflow level for UI visibility.
      *
-     * Full-Replace Protocol:
-     * The workflow-runner always sends the complete set of pending approvals
-     * via UpdateStatus. The server replaces the stored list unconditionally:
+     * Guarded Update Protocol:
+     * This field is only modified when UpdateStatusInput.update_pending_approvals
+     * is explicitly set to true. Normal event emissions (which don't concern
+     * approvals) leave this field untouched, preventing race conditions between
+     * concurrent status writers.
+     *
+     * Only call-agent-status manages this field:
      * - Non-empty list: child agent(s) need approval
-     * - Empty list: all approvals resolved, clear the field
+     * - Empty list + update_pending_approvals=true: all approvals resolved
      *
      * Parallel Agents:
      * When multiple child agents run in parallel, entries from different children
@@ -4259,6 +4459,188 @@ private static final long serialVersionUID = 0L;
     public Builder clearTotalOutputTokens() {
       bitField0_ = (bitField0_ & ~0x00000800);
       totalOutputTokens_ = 0L;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object workflowVersionHash_ = "";
+    /**
+     * <pre>
+     * SHA-256 hash identifying which workflow version was used for this execution.
+     *
+     * &#64;internal
+     * Pinned at execution creation time from Workflow.status.version_hash.
+     * Immutable after creation — represents the exact workflow definition this
+     * execution ran (or will run, if still pending).
+     *
+     * Consumers:
+     * - Runner: fetches the version-specific CNCF YAML via getVersion() during
+     * hydration, ensuring the execution runs the intended definition even if
+     * the workflow has been updated since creation.
+     * - Execution viewer: fetches the version entry to render the correct graph
+     * for historical executions, eliminating the version mismatch problem.
+     *
+     * Empty for executions created before workflow versioning was introduced.
+     * In that case, consumers fall back to fetching the current workflow
+     * definition (legacy behavior with mismatch warning).
+     *
+     * &#64;since Workflow Versioning
+     * </pre>
+     *
+     * <code>string workflow_version_hash = 13 [json_name = "workflowVersionHash"];</code>
+     * @return The workflowVersionHash.
+     */
+    public java.lang.String getWorkflowVersionHash() {
+      java.lang.Object ref = workflowVersionHash_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        workflowVersionHash_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * SHA-256 hash identifying which workflow version was used for this execution.
+     *
+     * &#64;internal
+     * Pinned at execution creation time from Workflow.status.version_hash.
+     * Immutable after creation — represents the exact workflow definition this
+     * execution ran (or will run, if still pending).
+     *
+     * Consumers:
+     * - Runner: fetches the version-specific CNCF YAML via getVersion() during
+     * hydration, ensuring the execution runs the intended definition even if
+     * the workflow has been updated since creation.
+     * - Execution viewer: fetches the version entry to render the correct graph
+     * for historical executions, eliminating the version mismatch problem.
+     *
+     * Empty for executions created before workflow versioning was introduced.
+     * In that case, consumers fall back to fetching the current workflow
+     * definition (legacy behavior with mismatch warning).
+     *
+     * &#64;since Workflow Versioning
+     * </pre>
+     *
+     * <code>string workflow_version_hash = 13 [json_name = "workflowVersionHash"];</code>
+     * @return The bytes for workflowVersionHash.
+     */
+    public com.google.protobuf.ByteString
+        getWorkflowVersionHashBytes() {
+      java.lang.Object ref = workflowVersionHash_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        workflowVersionHash_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * SHA-256 hash identifying which workflow version was used for this execution.
+     *
+     * &#64;internal
+     * Pinned at execution creation time from Workflow.status.version_hash.
+     * Immutable after creation — represents the exact workflow definition this
+     * execution ran (or will run, if still pending).
+     *
+     * Consumers:
+     * - Runner: fetches the version-specific CNCF YAML via getVersion() during
+     * hydration, ensuring the execution runs the intended definition even if
+     * the workflow has been updated since creation.
+     * - Execution viewer: fetches the version entry to render the correct graph
+     * for historical executions, eliminating the version mismatch problem.
+     *
+     * Empty for executions created before workflow versioning was introduced.
+     * In that case, consumers fall back to fetching the current workflow
+     * definition (legacy behavior with mismatch warning).
+     *
+     * &#64;since Workflow Versioning
+     * </pre>
+     *
+     * <code>string workflow_version_hash = 13 [json_name = "workflowVersionHash"];</code>
+     * @param value The workflowVersionHash to set.
+     * @return This builder for chaining.
+     */
+    public Builder setWorkflowVersionHash(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      workflowVersionHash_ = value;
+      bitField0_ |= 0x00001000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * SHA-256 hash identifying which workflow version was used for this execution.
+     *
+     * &#64;internal
+     * Pinned at execution creation time from Workflow.status.version_hash.
+     * Immutable after creation — represents the exact workflow definition this
+     * execution ran (or will run, if still pending).
+     *
+     * Consumers:
+     * - Runner: fetches the version-specific CNCF YAML via getVersion() during
+     * hydration, ensuring the execution runs the intended definition even if
+     * the workflow has been updated since creation.
+     * - Execution viewer: fetches the version entry to render the correct graph
+     * for historical executions, eliminating the version mismatch problem.
+     *
+     * Empty for executions created before workflow versioning was introduced.
+     * In that case, consumers fall back to fetching the current workflow
+     * definition (legacy behavior with mismatch warning).
+     *
+     * &#64;since Workflow Versioning
+     * </pre>
+     *
+     * <code>string workflow_version_hash = 13 [json_name = "workflowVersionHash"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearWorkflowVersionHash() {
+      workflowVersionHash_ = getDefaultInstance().getWorkflowVersionHash();
+      bitField0_ = (bitField0_ & ~0x00001000);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * SHA-256 hash identifying which workflow version was used for this execution.
+     *
+     * &#64;internal
+     * Pinned at execution creation time from Workflow.status.version_hash.
+     * Immutable after creation — represents the exact workflow definition this
+     * execution ran (or will run, if still pending).
+     *
+     * Consumers:
+     * - Runner: fetches the version-specific CNCF YAML via getVersion() during
+     * hydration, ensuring the execution runs the intended definition even if
+     * the workflow has been updated since creation.
+     * - Execution viewer: fetches the version entry to render the correct graph
+     * for historical executions, eliminating the version mismatch problem.
+     *
+     * Empty for executions created before workflow versioning was introduced.
+     * In that case, consumers fall back to fetching the current workflow
+     * definition (legacy behavior with mismatch warning).
+     *
+     * &#64;since Workflow Versioning
+     * </pre>
+     *
+     * <code>string workflow_version_hash = 13 [json_name = "workflowVersionHash"];</code>
+     * @param value The bytes for workflowVersionHash to set.
+     * @return This builder for chaining.
+     */
+    public Builder setWorkflowVersionHashBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      workflowVersionHash_ = value;
+      bitField0_ |= 0x00001000;
       onChanged();
       return this;
     }

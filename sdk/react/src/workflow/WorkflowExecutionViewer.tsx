@@ -1,20 +1,28 @@
 "use client";
 
-import { memo, useCallback, useMemo, useState, type ReactNode } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { cn } from "@stigmer/theme";
-import { WorkflowTaskStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import { WorkflowTaskStatus, ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { useWorkflowExecution } from "./useWorkflowExecution";
 import { useWorkflowExecutionEventStream } from "./useWorkflowExecutionEventStream";
 import { useWorkflowExecutionArtifacts } from "./useWorkflowExecutionArtifacts";
 import { useWorkflowExecutionActions } from "./useWorkflowExecutionActions";
 import { WorkflowExecutionHeader } from "./WorkflowExecutionHeader";
-import { WorkflowExecutionTimeline } from "./WorkflowExecutionTimeline";
-import { WorkflowExecutionTaskPanel } from "./WorkflowExecutionTaskPanel";
+import { WorkflowExecutionTimeline, type WorkflowExecutionTimelineProps } from "./WorkflowExecutionTimeline";
+import { WaterfallTimeline } from "./waterfall";
 import { WorkflowExecutionCostPanel } from "./WorkflowExecutionCostPanel";
 import { WorkflowExecutionArtifactPanel } from "./WorkflowExecutionArtifactPanel";
 import { WorkflowRepairCard } from "./WorkflowRepairCard";
+import { WorkflowExecutionGraph } from "./WorkflowExecutionGraph";
 import type { DerivedTaskState } from "../internal/store/workflow-execution-event-store";
+import { ExecutionInspector } from "./execution-inspector";
+import { ExecutionComparisonPicker } from "./execution-comparison/ExecutionComparisonPicker";
+import { ExecutionComparisonView } from "./execution-comparison/ExecutionComparisonView";
+import { WorkflowExecutionApprovalCard } from "./WorkflowExecutionApprovalCard";
+import type { WorkflowPendingApproval } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ResizableSplit } from "../internal/ResizableSplit";
 
 /** Props for {@link WorkflowExecutionViewer}. */
 export interface WorkflowExecutionViewerProps {
@@ -36,6 +44,13 @@ export interface WorkflowExecutionViewerProps {
   readonly onNavigateToWorkflowEditor?: (yaml: string, workflowSlug: string) => void;
   /** Additional action elements to render in the header. */
   readonly additionalActions?: ReactNode;
+  /**
+   * Whether task nodes in the execution graph can be dragged to
+   * rearrange the layout for presentations. Drag positions are
+   * ephemeral and not persisted.
+   * @default false
+   */
+  readonly nodesDraggable?: boolean;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -65,6 +80,7 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
   onNavigateToAgentExecution,
   onNavigateToWorkflowEditor,
   additionalActions,
+  nodesDraggable,
   className,
 }: WorkflowExecutionViewerProps) {
   const {
@@ -75,6 +91,7 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
   } = useWorkflowExecution(executionId);
 
   const phase = execution?.status?.phase;
+  const isRunning = phase === ExecutionPhase.EXECUTION_PENDING || phase === ExecutionPhase.EXECUTION_IN_PROGRESS;
 
   const {
     events,
@@ -137,6 +154,10 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
         attemptNumber: 1,
         error: t.error ?? "",
         childExecutionId: "",
+        agentSlug: "",
+        currentToolName: "",
+        messagesCount: 0,
+        toolCallsCount: 0,
       });
     }
     return map;
@@ -145,15 +166,28 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
   const effectiveTaskStates = fallbackTaskStates ?? taskStates;
   const effectiveTotalTasks = fallbackTaskStates ? fallbackTaskStates.size : totalTasks;
 
+  const executionDurationMs = useMemo(() => {
+    const startedAt = execution?.status?.startedAt;
+    const completedAt = execution?.status?.completedAt;
+    if (startedAt && completedAt) {
+      return new Date(completedAt).getTime() - new Date(startedAt).getTime();
+    }
+    return undefined;
+  }, [execution?.status?.startedAt, execution?.status?.completedAt]);
+
   const {
     artifacts,
     isLoading: isLoadingArtifacts,
   } = useWorkflowExecutionArtifacts(executionId);
 
-  const actions = useWorkflowExecutionActions(executionId);
+  const actions = useWorkflowExecutionActions(executionId, {
+    onSuccess: refetchExecution,
+  });
 
   const [selectedTaskName, setSelectedTaskName] = useState<string | null>(null);
   const [showDiagnosis, setShowDiagnosis] = useState(false);
+  const [showComparePicker, setShowComparePicker] = useState(false);
+  const [compareTargetId, setCompareTargetId] = useState<string | null>(null);
 
   const handleDiagnose = useCallback(() => {
     setShowDiagnosis(true);
@@ -161,6 +195,23 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
 
   const handleCloseDiagnosis = useCallback(() => {
     setShowDiagnosis(false);
+  }, []);
+
+  const handleOpenComparePicker = useCallback(() => {
+    setShowComparePicker(true);
+  }, []);
+
+  const handleCloseComparePicker = useCallback(() => {
+    setShowComparePicker(false);
+  }, []);
+
+  const handleCompareConfirm = useCallback((compareId: string) => {
+    setCompareTargetId(compareId);
+    setShowComparePicker(false);
+  }, []);
+
+  const handleExitComparison = useCallback(() => {
+    setCompareTargetId(null);
   }, []);
 
   const handleApplyFix = useCallback(
@@ -216,8 +267,44 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
         actions={actions}
         onDiagnose={org ? handleDiagnose : undefined}
         isDiagnosing={showDiagnosis}
+        onCompare={handleOpenComparePicker}
       />
 
+      {/* Comparison picker dialog */}
+      <ExecutionComparisonPicker
+        open={showComparePicker}
+        workflowId={execution.spec?.workflowId ?? execution.spec?.workflowInstanceId ?? ""}
+        baseExecutionId={executionId}
+        basePhase={phase ?? 0}
+        onConfirm={handleCompareConfirm}
+        onClose={handleCloseComparePicker}
+      />
+
+      {/* Action error banner (lifecycle actions: cancel, pause, recover, etc.) */}
+      {actions.error && (
+        <div className="flex items-center gap-2 border-b border-destructive/20 bg-destructive/5 px-4 py-2">
+          <p className="flex-1 text-xs text-destructive">{actions.error.message}</p>
+          <button
+            type="button"
+            onClick={actions.clearError}
+            className="shrink-0 rounded border border-destructive/30 px-2 py-1 text-xs text-destructive hover:bg-destructive/10"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* Comparison view (replaces normal content when active) */}
+      {compareTargetId ? (
+        <div className="min-h-0 flex-1 overflow-y-auto p-4">
+          <ExecutionComparisonView
+            baseExecutionId={executionId}
+            compareExecutionId={compareTargetId}
+            onBack={handleExitComparison}
+          />
+        </div>
+      ) : (
+      <>
       {/* Stream error banner */}
       {streamError && (
         <div className="flex items-center gap-2 border-b border-destructive/20 bg-destructive/5 px-4 py-2">
@@ -232,63 +319,90 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
         </div>
       )}
 
-      <div className="flex min-h-0 flex-1">
-        {/* Main area: Event timeline */}
-        <WorkflowExecutionTimeline
+      <div className="flex min-h-0 flex-1 flex-col">
+        {/* Primary area: Execution graph + resizable inspector */}
+        <ResizableSplit
+          defaultSize={showDiagnosis ? 440 : 384}
+          minSize={280}
+          maxSize={800}
+          storageKey="stgm-wf-exec-inspector-width"
+          primary={
+            <WorkflowExecutionGraph
+              executionId={executionId}
+              execution={execution}
+              taskStates={effectiveTaskStates}
+              onTaskSelect={setSelectedTaskName}
+              onAutoSelectTask={setSelectedTaskName}
+              followExecution={isRunning}
+              nodesDraggable={nodesDraggable}
+              className="h-full"
+            />
+          }
+          secondary={
+            <aside className="flex h-full flex-col overflow-hidden">
+              {showDiagnosis && org ? (
+                <WorkflowRepairCard
+                  executionId={executionId}
+                  org={org}
+                  onApplyFix={onNavigateToWorkflowEditor ? handleApplyFix : undefined}
+                  onClose={handleCloseDiagnosis}
+                  className="h-full"
+                />
+              ) : (
+                <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                  <ExecutionInspector
+                    selectedTaskName={selectedTaskName}
+                    events={events}
+                    taskStates={effectiveTaskStates}
+                    taskSnapshots={execution?.status?.tasks ?? undefined}
+                    onNavigateToAgentExecution={onNavigateToAgentExecution}
+                    pendingApprovals={execution?.status?.pendingApprovals}
+                    onSubmitApproval={actions.submitApproval}
+                    isSubmittingApproval={actions.isSubmitting}
+                    onSubmitTaskApproval={actions.submitTaskApproval}
+                    isSubmittingTaskApproval={actions.isSubmitting}
+                    className="min-h-0 flex-1"
+                  />
+
+                  <div className="border-t border-[var(--stgm-border,#e5e5e5)]">
+                    <WorkflowExecutionCostPanel costSummary={costSummary} />
+                  </div>
+
+                  {artifacts.length > 0 && (
+                    <div className="border-t border-[var(--stgm-border,#e5e5e5)]">
+                      <WorkflowExecutionArtifactPanel artifacts={artifacts} />
+                    </div>
+                  )}
+
+                  {additionalActions && (
+                    <div className="border-t border-[var(--stgm-border,#e5e5e5)] px-3 py-2">
+                      {additionalActions}
+                    </div>
+                  )}
+                </div>
+              )}
+            </aside>
+          }
+        />
+
+        {/* Bottom panel: Waterfall (default) + Event Log tabs */}
+        <ExecutionBottomPanel
           events={events}
           streamState={streamState}
+          executionStartIso={execution.status?.startedAt ?? ""}
+          executionDurationMs={executionDurationMs}
+          selectedTaskName={selectedTaskName}
+          onTaskSelect={setSelectedTaskName}
           onNavigateToAgentExecution={onNavigateToAgentExecution}
           taskStates={effectiveTaskStates}
           onSubmitTaskApproval={actions.submitTaskApproval}
           isSubmittingApproval={actions.isSubmitting}
-          className="flex-1 border-r border-border"
+          pendingApprovals={execution?.status?.pendingApprovals}
+          onSubmitApproval={actions.submitApproval}
         />
-
-        {/* Right panel — expands when diagnosis is active (AD-B5-001) */}
-        <aside
-          className={cn(
-            "flex shrink-0 flex-col overflow-hidden border-l border-border",
-            showDiagnosis
-              ? "w-[40%] min-w-[360px] max-w-[500px]"
-              : "w-64 overflow-y-auto",
-          )}
-        >
-          {showDiagnosis && org ? (
-            <WorkflowRepairCard
-              executionId={executionId}
-              org={org}
-              onApplyFix={onNavigateToWorkflowEditor ? handleApplyFix : undefined}
-              onClose={handleCloseDiagnosis}
-              className="h-full"
-            />
-          ) : (
-            <>
-              <WorkflowExecutionTaskPanel
-                taskStates={effectiveTaskStates}
-                totalTasks={effectiveTotalTasks}
-                selectedTaskName={selectedTaskName}
-                onSelectTask={setSelectedTaskName}
-              />
-
-              <div className="border-t border-border">
-                <WorkflowExecutionCostPanel costSummary={costSummary} />
-              </div>
-
-              {artifacts.length > 0 && (
-                <div className="border-t border-border">
-                  <WorkflowExecutionArtifactPanel artifacts={artifacts} />
-                </div>
-              )}
-
-              {additionalActions && (
-                <div className="border-t border-border px-3 py-2">
-                  {additionalActions}
-                </div>
-              )}
-            </>
-          )}
-        </aside>
       </div>
+      </>
+      )}
     </div>
   );
 });
@@ -307,5 +421,172 @@ function LoadingSkeleton() {
         ))}
       </div>
     </div>
+  );
+}
+
+
+
+// ---------------------------------------------------------------------------
+// Tabbed bottom panel: Waterfall + Event Log + Approvals
+// ---------------------------------------------------------------------------
+
+type BottomTab = "waterfall" | "events" | "approvals";
+
+function ExecutionBottomPanel({
+  events,
+  streamState,
+  executionStartIso,
+  executionDurationMs,
+  selectedTaskName,
+  onTaskSelect,
+  onNavigateToAgentExecution,
+  taskStates,
+  onSubmitTaskApproval,
+  isSubmittingApproval,
+  pendingApprovals,
+  onSubmitApproval,
+}: {
+  events: WorkflowExecutionTimelineProps["events"];
+  streamState: WorkflowExecutionTimelineProps["streamState"];
+  executionStartIso: string;
+  executionDurationMs?: number;
+  selectedTaskName: string | null;
+  onTaskSelect: (taskName: string) => void;
+  onNavigateToAgentExecution?: (id: string) => void;
+  taskStates: ReadonlyMap<string, DerivedTaskState>;
+  onSubmitTaskApproval: WorkflowExecutionTimelineProps["onSubmitTaskApproval"];
+  isSubmittingApproval: boolean;
+  pendingApprovals?: readonly WorkflowPendingApproval[];
+  onSubmitApproval?: (toolCallId: string, action: ApprovalAction, comment?: string) => Promise<unknown>;
+}) {
+  const [collapsed, setCollapsed] = useState(false);
+  const [activeTab, setActiveTab] = useState<BottomTab>("waterfall");
+  const prevApprovalCountRef = useRef(0);
+
+  const approvalCount = pendingApprovals?.length ?? 0;
+  const hasApprovals = approvalCount > 0;
+
+  // Auto-switch to Approvals tab when new approvals arrive
+  useEffect(() => {
+    if (approvalCount > prevApprovalCountRef.current && approvalCount > 0) {
+      setActiveTab("approvals");
+      setCollapsed(false);
+    }
+    if (approvalCount === 0 && activeTab === "approvals") {
+      setActiveTab("waterfall");
+    }
+    prevApprovalCountRef.current = approvalCount;
+  }, [approvalCount, activeTab]);
+
+  return (
+    <div className="border-t border-[var(--stgm-border,#e5e5e5)]">
+      {/* Tab bar */}
+      <div className="flex items-center gap-0 border-b border-[var(--stgm-border,#e5e5e5)]">
+        <button
+          type="button"
+          onClick={() => setCollapsed(!collapsed)}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-[var(--stgm-muted-foreground,#737373)] hover:bg-[var(--stgm-muted,#f5f5f5)]"
+          aria-label={collapsed ? "Expand bottom panel" : "Collapse bottom panel"}
+        >
+          <svg
+            width="10"
+            height="10"
+            viewBox="0 0 10 10"
+            className={cn("transition-transform", !collapsed && "rotate-180")}
+            aria-hidden="true"
+          >
+            <path d="M2 4L5 7L8 4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+
+        <TabButton
+          label="Waterfall"
+          isActive={activeTab === "waterfall"}
+          onClick={() => { setActiveTab("waterfall"); setCollapsed(false); }}
+        />
+        <TabButton
+          label={`Events (${events.length})`}
+          isActive={activeTab === "events"}
+          onClick={() => { setActiveTab("events"); setCollapsed(false); }}
+        />
+        {hasApprovals && (
+          <TabButton
+            label={`Approvals (${approvalCount})`}
+            isActive={activeTab === "approvals"}
+            onClick={() => { setActiveTab("approvals"); setCollapsed(false); }}
+          />
+        )}
+      </div>
+
+      {/* Panel content */}
+      {!collapsed && (
+        <div className="h-52">
+          {activeTab === "waterfall" && (
+            <WaterfallTimeline
+              events={events}
+              streamState={streamState}
+              executionStartIso={executionStartIso}
+              executionDurationMs={executionDurationMs}
+              selectedTaskName={selectedTaskName}
+              onTaskSelect={onTaskSelect}
+              className="h-full"
+            />
+          )}
+          {activeTab === "events" && (
+            <WorkflowExecutionTimeline
+              events={events}
+              streamState={streamState}
+              onNavigateToAgentExecution={onNavigateToAgentExecution}
+              taskStates={taskStates}
+              onSubmitTaskApproval={onSubmitTaskApproval}
+              isSubmittingApproval={isSubmittingApproval}
+              className="h-full"
+            />
+          )}
+          {activeTab === "approvals" && pendingApprovals && onSubmitApproval && (
+            <div className="h-full overflow-y-auto px-4 py-3">
+              <div className="space-y-3">
+                {pendingApprovals.map((pa) => (
+                  <WorkflowExecutionApprovalCard
+                    key={pa.approval?.toolCallId ?? pa.childAgentExecutionId}
+                    prompt={pa.approval?.message || `Tool "${pa.approval?.toolName}" requires approval`}
+                    toolCallId={pa.approval?.toolCallId ?? ""}
+                    approvers={[]}
+                    timeoutSeconds={0}
+                    onSubmitApproval={onSubmitApproval}
+                    isSubmitting={isSubmittingApproval}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TabButton({
+  label,
+  isActive,
+  onClick,
+}: {
+  readonly label: string;
+  readonly isActive: boolean;
+  readonly onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "px-3 py-1.5 text-xs font-medium transition-colors",
+        isActive
+          ? "border-b-2 border-[var(--stgm-primary,#3b82f6)] text-[var(--stgm-foreground,#171717)]"
+          : "text-[var(--stgm-muted-foreground,#737373)] hover:text-[var(--stgm-foreground,#171717)]",
+      )}
+    >
+      {label}
+    </button>
   );
 }

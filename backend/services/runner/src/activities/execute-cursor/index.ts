@@ -27,7 +27,7 @@
  */
 
 import { heartbeat, Context, CancelledFailure } from "@temporalio/activity";
-import { create } from "@bufbuild/protobuf";
+import { create, type JsonObject } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
@@ -46,7 +46,8 @@ import { MessageAccumulator, extractDeniedToolCalls } from "./message-translator
 import { utcTimestamp, persistStatus, reportSetupProgress, slimStatus } from "../../shared/status.js";
 import { DeltaEnricher } from "./delta-enricher.js";
 import { TodoTracker } from "./todo-tracker.js";
-import { resolveMcpServers } from "./mcp-resolver.js";
+import { createCursorEventRecorder } from "./cursor-event-recorder.js";
+import { resolveMcpServers, validateMcpServerEnv } from "./mcp-resolver.js";
 import { mergeApprovalPolicies } from "./approval-policy.js";
 import { backfillMcpServersIfNeeded } from "./connect-backfill.js";
 import { resolveExecutionEnv } from "./env-resolver.js";
@@ -58,17 +59,20 @@ import { buildContinuationPrompt, buildHitlContinuationPrompt } from "./continua
 import { extractAgentRationale, getGitBranch, getGitHeadSha } from "./continuation-prompt.js";
 import { writeHooksToWorkspace } from "./workspace-setup.js";
 import { buildApprovalState } from "./approval-state.js";
-import { setInterceptorExecutionId } from "./fetch-interceptor.js";
+import { setInterceptorExecutionId, runWithExecutionContext } from "./fetch-interceptor.js";
+import { closeProxySessions } from "./http2-interceptor.js";
 import { resolveModelId, ensureLoaded as ensurePricingLoaded } from "./model-pricing.js";
 import { UsageAccumulator } from "./usage-accumulator.js";
-import type { TurnRecord } from "./usage-accumulator.js";
-import { ContextTracker } from "./context-tracker.js";
-import { RecordLlmCallUsageInputSchema } from "@stigmer/protos/ai/stigmer/billing/v1/io_pb";
-import { TokenUsageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
-import { UsageCompletionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
 import { StreamingUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
 import { buildSessionMemory, persistSessionMemory, estimateTokens } from "./session-memory.js";
 import { activityStarted, activityFinished } from "../../idle-watchdog.js";
+import { getCapturedRejection, clearCapturedRejection } from "./rejection-capture.js";
+import { synthesizeError, formatClassifiedError, shouldRetryWithFreshAgent } from "./error-classifier.js";
+import type { ClassifiedError } from "./error-classifier.js";
+import { createAgent, createCloudAgent } from "./session-lifecycle.js";
+import { setMaxListeners } from "node:events";
+import { startHeartbeat } from "../../shared/heartbeat.js";
+import { getShutdownSignalForQueue } from "../../runner-manager.js";
 
 /**
  * Creates the activity functions bound to the runner config.
@@ -101,7 +105,20 @@ async function executeCursor(
 ): Promise<unknown> {
   console.log(`ExecuteCursor started: execution=${executionId}, threadId=${threadId || "(new)"}`);
 
+  // Ensure fresh HTTP/2 transport — prevents a degraded session from a
+  // prior workflow task from poisoning this execution's agent stream.
+  closeProxySessions();
+
   setInterceptorExecutionId(executionId);
+  return runWithExecutionContext(executionId, () => executeCursorInner(config, client, executionId, threadId));
+}
+
+async function executeCursorInner(
+  config: Config,
+  client: StigmerClient,
+  executionId: string,
+  threadId: string,
+): Promise<unknown> {
 
   const status = create(AgentExecutionStatusSchema, {
     phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
@@ -112,6 +129,8 @@ async function executeCursor(
   let session: import("@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb").Session | undefined;
   let userMessage: string | undefined;
   let pauseDetected = false;
+  let workerShutdownDetected = false;
+  let periodicHeartbeat: ReturnType<typeof startHeartbeat> | undefined;
 
   try {
     // Phase 1: Hydrate execution from DB
@@ -128,7 +147,7 @@ async function executeCursor(
 
     // Phase 2b: Resolve execution environment (MCP server credentials)
     await reportSetupProgress(client, executionId, "Resolving environment");
-    const { envVars } = await resolveExecutionEnv(client, executionId);
+    const { envVars, secretKeys } = await resolveExecutionEnv(client, executionId);
     heartbeat();
 
     // Set OTel baggage so downstream calls carry execution context.
@@ -198,7 +217,7 @@ async function executeCursor(
     const sessionOrg = session.metadata?.org ?? "";
     mcpResolution = await backfillMcpServersIfNeeded(
       client, mcpResolution, blueprint.mergedMcpServerUsages, envVars, sessionOrg,
-      heartbeat,
+      heartbeat, secretKeys,
     );
     const mcpConfig = mcpResolution.cursorConfig;
 
@@ -211,6 +230,19 @@ async function executeCursor(
       execution.spec?.autoApproveAll ?? false,
     );
     heartbeat();
+
+    // Phase 4c: Validate MCP server env health (diagnostic, non-blocking)
+    const mcpWarnings = validateMcpServerEnv(
+      mcpResolution.resolvedServers,
+      blueprint.mergedMcpServerUsages,
+      envVars,
+    );
+    if (mcpWarnings.length > 0) {
+      console.warn(
+        `ExecuteCursor MCP pre-flight warnings: execution=${executionId}\n` +
+        mcpWarnings.map((w) => `  - ${w}`).join("\n"),
+      );
+    }
 
     // Phase 5: Resolve skills (merged from agent + session)
     await reportSetupProgress(client, executionId, "Resolving skills");
@@ -230,6 +262,9 @@ async function executeCursor(
     );
     const attachmentPaths = attachmentResults.map((a) => a.relativePath);
 
+    // Phase 5c: Ensure model pricing registry is populated before validation
+    await ensurePricingLoaded();
+
     // Phase 6: Validate model selection
     const requestedModel = spec.executionConfig?.modelName || "default";
     const validatedModel = resolveModelId(requestedModel);
@@ -238,28 +273,46 @@ async function executeCursor(
         `ExecuteCursor model resolved: execution=${executionId}, requested="${requestedModel}", using="${validatedModel}"`,
       );
     }
+
     heartbeat();
 
     // Phase 7: Resolve Cursor Agent (create, resume, or graceful fallback)
     await reportSetupProgress(client, executionId, "Initializing Cursor agent");
 
+    // In proxy mode, use the stigmer token as the API key — the proxy
+    // validates it and injects the real Cursor API key server-side.
+    // In direct mode, use the user's own CURSOR_API_KEY.
+    const effectiveApiKey = config.proxyEndpoint
+      ? (config.stigmerTokenRef?.current ?? config.stigmerToken ?? config.cursorApiKey)
+      : config.cursorApiKey;
+
+    if (!effectiveApiKey || effectiveApiKey === "proxy-managed") {
+      const source = config.proxyEndpoint ? "proxy (STIGMER_TOKEN)" : "direct (CURSOR_API_KEY)";
+      throw new Error(
+        `No Cursor API credential available. Mode=${source}, ` +
+        `proxyEndpoint=${config.proxyEndpoint ?? "unset"}, ` +
+        `hasStigmerToken=${!!config.stigmerToken}, ` +
+        `hasTokenRef=${!!config.stigmerTokenRef?.current}`,
+      );
+    }
+
     const createOptions: CreateAgentOptions | CreateCloudAgentOptions = agentMode === "cloud"
       ? {
-          apiKey: config.cursorApiKey,
+          apiKey: effectiveApiKey,
           model: validatedModel || undefined,
           repos: blueprint.cloudRepos,
           sessionId,
           mcpServers: mcpConfig,
         }
       : {
-          apiKey: config.cursorApiKey,
+          apiKey: effectiveApiKey,
           model: validatedModel,
           workspaceDirs: blueprint.workspaceDirs,
           sessionId,
           mcpServers: mcpConfig,
         };
 
-    const resolution: AgentResolution = await resolveAgent(
+    let resolution: AgentResolution = await resolveAgent(
       threadId,
       createOptions,
       agentMode,
@@ -287,6 +340,12 @@ async function executeCursor(
         if (blueprint.sessionSpec.cursorMode === CursorMode.UNSPECIFIED) {
           blueprint.sessionSpec.cursorMode = cursorMode;
         }
+        // Clear slug to avoid re-validation of potentially invalid
+        // server-generated slugs. BuildUpdateStateStep preserves the
+        // existing slug from the database record.
+        if (blueprint.session.metadata) {
+          blueprint.session.metadata.slug = "";
+        }
         await client.updateSession(blueprint.session);
         console.log(
           `Stored Cursor agentId=${resolution.agentId} as harness_state_id, ` +
@@ -296,6 +355,10 @@ async function executeCursor(
         console.warn("Failed to persist harness_state_id/cursorMode on session (non-fatal):", err);
       }
     }
+
+    // Phase 9b: Detect structured output schema from execution config
+    const structuredOutputSchema = spec.executionConfig?.structuredOutputSchema as
+      Record<string, unknown> | undefined;
 
     // Phase 10: Build the prompt
     const sessionMemory = session?.status?.sessionMemory;
@@ -319,9 +382,16 @@ async function executeCursor(
       interactionMode,
     });
 
-    // Phase 10a: Log Stigmer preamble size for context trimming diagnostics
-    const promptChars = prompt.length;
-    const promptEstimatedTokens = estimateTokens(prompt);
+    // Phase 10a: Inject structured output instruction for Cursor harness
+    let effectivePrompt = prompt;
+    if (structuredOutputSchema) {
+      const schemaStr = JSON.stringify(structuredOutputSchema, null, 2);
+      effectivePrompt += `\n\n---\nCRITICAL OUTPUT REQUIREMENT:\nYour final response MUST be a single valid JSON object (no markdown, no commentary, no code fences) that matches this schema:\n${schemaStr}\n\nRespond with ONLY the JSON object. Nothing else.`;
+    }
+
+    // Phase 10a2: Log Stigmer preamble size for context trimming diagnostics
+    const promptChars = effectivePrompt.length;
+    const promptEstimatedTokens = estimateTokens(effectivePrompt);
     console.log(
       `ExecuteCursor prompt built: execution=${executionId}, ` +
       `chars=${promptChars}, estimatedTokens=${promptEstimatedTokens}, ` +
@@ -332,7 +402,6 @@ async function executeCursor(
     await ensurePricingLoaded();
     const usageAccumulator = new UsageAccumulator(validatedModel);
 
-    const contextTracker = new ContextTracker(validatedModel);
     // Phase 10c: Start OTel turn span (coarse-grained — wraps entire agent.send + stream)
     const { startCursorTurnSpan } = await import("../../otel.js");
     const turnSpan = await startCursorTurnSpan({
@@ -347,15 +416,43 @@ async function executeCursor(
 
     const deltaEnricher = new DeltaEnricher();
     const todoTracker = new TodoTracker(status.todos);
+    const eventRecorder = createCursorEventRecorder(executionId);
 
     let platformStopSignaled = false;
     let firstTurnAttributionLogged = false;
+    let streamErrorMessage: string | undefined;
+    let alreadyRetriedWithFreshAgent = false;
 
-    const run = await resolution.agent.send(prompt, {
+    // Periodic heartbeat keeps Temporal informed during silent SDK operations
+    // (e.g. long tool calls, MCP requests, model thinking). Without this,
+    // the 2-minute heartbeat timeout can cancel the activity and mislabel
+    // the execution as "paused by user".
+    const taskQueue = Context.current().info.taskQueue;
+    const shutdownSignal = getShutdownSignalForQueue(taskQueue);
+    periodicHeartbeat = startHeartbeat(30_000, () => ({
+      phase: "cursor_streaming",
+      execution: executionId,
+    }), { shutdownSignal });
+
+    // The Cursor SDK registers abort listeners on the cancellation signal for
+    // each concurrent tool call (fetch, MCP, shell). With 10+ parallel tools,
+    // Node's default limit of 10 triggers MaxListenersExceededWarning. This is
+    // a diagnostic warning, not a functional error — reproduction tests confirm
+    // zero tool call loss — but it pollutes logs and creates false alarm fatigue.
+    // Raise the limit on the Temporal cancellation signal used throughout this
+    // activity. 25 covers observed peaks (~12 concurrent tools + heartbeat +
+    // shutdown signal + SDK internals) with headroom.
+    try {
+      setMaxListeners(25, Context.current().cancellationSignal);
+    } catch {
+      // Fallback: if the Temporal signal doesn't support setMaxListeners
+      // (e.g. older SDK), the warning is harmless — ignore.
+    }
+
+    const run = await resolution.agent.send(effectivePrompt, {
       onDelta: ({ update }) => {
         if (update.type === "turn-ended" && update.usage) {
           usageAccumulator.addTurn(update.usage);
-          contextTracker.recordTurn(update.usage.inputTokens ?? 0);
 
           if (!firstTurnAttributionLogged) {
             firstTurnAttributionLogged = true;
@@ -391,8 +488,17 @@ async function executeCursor(
       }
 
       collectedEvents.push(event);
+      eventRecorder?.record(event, eventCount);
+
       accumulator.processEvent(event);
       todoTracker.processEvent(event);
+
+      if (event.type === "tool_call" && event.name === "task") {
+        accumulator.trackSubAgentExecution(
+          event as Extract<SDKMessage, { type: "tool_call" }>,
+        );
+      }
+
       deltaEnricher.applyEnrichments(status.messages);
       eventCount++;
 
@@ -400,14 +506,15 @@ async function executeCursor(
         console.log(
           `ExecuteCursor stream status: execution=${executionId}, status=${JSON.stringify(event)}`,
         );
+        const statusEvent = event as { status?: string; message?: string };
+        if (statusEvent.status === "ERROR" && statusEvent.message) {
+          streamErrorMessage = statusEvent.message;
+        }
       }
 
       const shouldPersist = eventCount % 20 === 0 || deltaEnricher.isDirty || todoTracker.isDirty;
       if (usageAccumulator.hasTurns) {
         status.streamingUsage = create(StreamingUsageSummarySchema, usageAccumulator.snapshot());
-      }
-      if (contextTracker.hasData) {
-        status.contextInfo = contextTracker.snapshot();
       }
       if (shouldPersist) {
         const signal = await persistStatus(client, executionId, status);
@@ -428,18 +535,38 @@ async function executeCursor(
       }
     }
 
+    periodicHeartbeat.stop();
+    // Check both the heartbeat flag AND the shutdown signal directly.
+    // Race condition: the heartbeat timer may detect Temporal's CancelledFailure
+    // (from worker.shutdown()) before the AbortSignal microtask propagates,
+    // causing it to set `cancelled` instead of `workerShutdown`. The direct
+    // signal check catches this case.
+    const isShutdown = periodicHeartbeat.workerShutdown || (shutdownSignal?.aborted ?? false);
+    if (isShutdown) {
+      pauseDetected = false;
+    } else if (periodicHeartbeat.cancelled) {
+      pauseDetected = true;
+    }
+
+    workerShutdownDetected = isShutdown;
+
     accumulator.finalize();
     deltaEnricher.finalize(status.messages);
     status.subAgentExecutions = accumulator.subAgentExecutions;
+    await eventRecorder?.flush();
     if (usageAccumulator.hasTurns) {
       status.streamingUsage = create(StreamingUsageSummarySchema, usageAccumulator.snapshot());
-    }
-    if (contextTracker.hasData) {
-      status.contextInfo = contextTracker.snapshot();
     }
     console.log(
       `ExecuteCursor stream ended: execution=${executionId}, events=${eventCount}, messages=${status.messages.length}, subAgents=${status.subAgentExecutions.length}`,
     );
+
+    // Persist immediately after finalize so the UI sees correct tool
+    // call statuses before run.wait() / structured output extraction.
+    // This is unconditional (not throttled) because finalize is a
+    // once-per-execution correctness boundary.
+    await persistStatus(client, executionId, status);
+    heartbeat();
 
     // End OTel turn span with accumulated token usage
     const usageSnapshot = usageAccumulator.snapshot();
@@ -462,13 +589,28 @@ async function executeCursor(
     }
 
 
-    // Phase 11a: Handle pause (activity cancellation from orchestrator)
-    // Re-check cancellation signal — it may have arrived between the last
-    // stream event and now (e.g. during finalize/metrics), after the
-    // stream loop's per-event check.
-    if (Context.current().cancellationSignal.aborted) {
-      pauseDetected = true;
+    // Phase 11a: Handle worker shutdown, pause, or infrastructure cancellation.
+
+    // Worker shutdown: the runner-manager aborted the shutdown signal before
+    // calling worker.shutdown(). This is NOT a user-initiated pause — it's
+    // an infrastructure event (e.g., premature removal from UI race).
+    if (workerShutdownDetected) {
+      status.phase = ExecutionPhase.EXECUTION_FAILED;
+      status.error = "Execution interrupted: runner worker was shut down. Retry or resume.";
+      status.completedAt = utcTimestamp();
+      status.messages.push(create(AgentMessageSchema, {
+        type: MessageType.MESSAGE_SYSTEM,
+        content: "Execution interrupted: the runner worker was shut down while the agent was still running. You can retry or resume.",
+        timestamp: utcTimestamp(),
+      }));
+      await persistStatus(client, executionId, status);
+      await maybePeristSessionMemory(client, sessionId, session, status, userMessage);
+      console.log(`ExecuteCursor interrupted (worker shutdown): execution=${executionId}, events=${eventCount}`);
+      throw new CancelledFailure("Activity cancelled (worker shutdown, not user pause)");
     }
+
+    // pauseDetected is only true if a heartbeat() call threw CancelledFailure,
+    // confirming the orchestrator explicitly requested a pause.
     if (pauseDetected) {
       status.phase = ExecutionPhase.EXECUTION_PAUSED;
       status.messages.push(create(AgentMessageSchema, {
@@ -482,6 +624,24 @@ async function executeCursor(
       throw new CancelledFailure("Activity paused by orchestrator");
     }
 
+    // If cancellation arrived without pauseDetected (e.g. heartbeat timeout
+    // that slipped past the periodic heartbeat, or worker shutdown), report
+    // as failed rather than misleadingly labeling it as user-paused.
+    if (Context.current().cancellationSignal.aborted) {
+      status.phase = ExecutionPhase.EXECUTION_FAILED;
+      status.error = "Execution interrupted: agent was unresponsive (heartbeat timeout). Retry or resume.";
+      status.completedAt = utcTimestamp();
+      status.messages.push(create(AgentMessageSchema, {
+        type: MessageType.MESSAGE_SYSTEM,
+        content: "Execution interrupted: the agent was unresponsive for too long. You can retry or resume.",
+        timestamp: utcTimestamp(),
+      }));
+      await persistStatus(client, executionId, status);
+      await maybePeristSessionMemory(client, sessionId, session, status, userMessage);
+      console.log(`ExecuteCursor interrupted (infrastructure cancel): execution=${executionId}, events=${eventCount}`);
+      throw new CancelledFailure("Activity cancelled (heartbeat timeout, not user pause)");
+    }
+
     // Phase 11b: Handle platform stop signal early exit
     if (platformStopSignaled) {
       status.phase = ExecutionPhase.EXECUTION_COMPLETED;
@@ -492,8 +652,8 @@ async function executeCursor(
         timestamp: utcTimestamp(),
       }));
       await persistStatus(client, executionId, status);
-      await emitBillingRecords(client, executionId, usageAccumulator);
       await maybePeristSessionMemory(client, sessionId, session, status, userMessage);
+      try { resolution.agent.close(); } catch { /* best effort */ }
       console.log(`ExecuteCursor completed (platform stop): execution=${executionId}`);
       return slimStatus(status);
     }
@@ -547,13 +707,221 @@ async function executeCursor(
       case "finished":
         status.phase = ExecutionPhase.EXECUTION_COMPLETED;
         break;
-      case "error":
-        status.phase = ExecutionPhase.EXECUTION_FAILED;
-        status.error = result.result ?? "Cursor run failed";
+      case "error": {
+        const resultAny = result as unknown as Record<string, unknown>;
+        const sdkError = result.result
+          ?? resultAny.error
+          ?? resultAny.message
+          ?? resultAny.reason;
+        const sdkErrorStr = sdkError ? String(sdkError) : undefined;
+
+        const capturedRejection = getCapturedRejection(executionId);
+        if (capturedRejection) clearCapturedRejection(executionId);
+
+        const classified = synthesizeError({
+          sdkResultFields: sdkErrorStr,
+          streamErrorMessage,
+          capturedRejection,
+          isResumedHandle: resolution.reason === "resumed_successfully",
+          fallbackContext: { model: validatedModel, mode: agentMode, agentId: resolution.agentId },
+          durationMs: (result as unknown as Record<string, unknown>).durationMs as number | undefined,
+          messageCount: status.messages.length,
+        });
+
         console.error(
-          `ExecuteCursor agent error: execution=${executionId}, error=${status.error}`,
+          `ExecuteCursor agent error: execution=${executionId}, ` +
+          `classified=${JSON.stringify(classified)}, rawResult=${JSON.stringify(result)}`,
         );
+
+        if (
+          shouldRetryWithFreshAgent(classified)
+          && resolution.reason === "resumed_successfully"
+          && !alreadyRetriedWithFreshAgent
+        ) {
+          alreadyRetriedWithFreshAgent = true;
+          console.warn(
+            `ExecuteCursor poisoned-handle recovery: execution=${executionId}, ` +
+            `disposing agent ${resolution.agentId} and creating fresh agent`,
+          );
+
+          try { resolution.agent.close(); } catch { /* best effort */ }
+
+          const freshAgent = agentMode === "cloud"
+            ? await createCloudAgent(createOptions as CreateCloudAgentOptions)
+            : await createAgent(createOptions as CreateAgentOptions);
+
+          const freshPrompt = buildPrompt({
+            resolution: {
+              ...resolution,
+              agent: freshAgent,
+              agentId: freshAgent.agentId,
+              isNew: true,
+              resumed: false,
+              reason: "created_after_resume_failure",
+              resumeFailureDetail: `poisoned-handle recovery: ${classified.message}`,
+            },
+            approvalDecisions,
+            sessionMemory,
+            instructions: blueprint.instructions,
+            userMessage: spec.message,
+            skills: skillMetadata,
+            subAgents: blueprint.subAgents,
+            workspaceDirs: blueprint.workspaceDirs,
+            workspaceFileRefs: spec.workspaceFileRefs ?? [],
+            attachmentPaths,
+            pendingApprovals: status.pendingApprovals.length > 0
+              ? status.pendingApprovals
+              : (execution.status?.pendingApprovals ?? []),
+            interactionMode,
+          });
+
+          console.log(
+            `ExecuteCursor retry with fresh agent: execution=${executionId}, ` +
+            `newAgentId=${freshAgent.agentId}`,
+          );
+
+          try {
+            blueprint.sessionSpec.harnessStateId = freshAgent.agentId;
+            if (blueprint.session.metadata) blueprint.session.metadata.slug = "";
+            await client.updateSession(blueprint.session);
+          } catch (updateErr) {
+            console.warn("Failed to update session with fresh agentId (non-fatal):", updateErr);
+          }
+
+          const retryRun = await freshAgent.send(freshPrompt, {
+            onDelta: ({ update }) => {
+              if (update.type === "turn-ended" && update.usage) {
+                usageAccumulator.addTurn(update.usage);
+              }
+              deltaEnricher.processDelta(update);
+              try { heartbeat(); } catch { /* swallow during retry */ }
+            },
+          });
+
+          streamErrorMessage = undefined;
+
+          for await (const retryEvent of retryRun.stream()) {
+            if (Context.current().cancellationSignal.aborted) break;
+            collectedEvents.push(retryEvent);
+            accumulator.processEvent(retryEvent);
+            if (retryEvent.type === "status") {
+              const retryStatusEvent = retryEvent as { status?: string; message?: string };
+              if (retryStatusEvent.status === "ERROR" && retryStatusEvent.message) {
+                streamErrorMessage = retryStatusEvent.message;
+              }
+            }
+            heartbeat();
+          }
+
+          const retryResult = await retryRun.wait();
+          console.log(
+            `ExecuteCursor retry run.wait(): execution=${executionId}, ` +
+            `retryResult=${JSON.stringify(retryResult)}`,
+          );
+
+          if (retryResult.status === "finished") {
+            status.phase = ExecutionPhase.EXECUTION_COMPLETED;
+            console.log(
+              `ExecuteCursor poisoned-handle recovery SUCCEEDED: execution=${executionId}`,
+            );
+            break;
+          }
+
+          if (retryResult.status === "cancelled") {
+            status.phase = ExecutionPhase.EXECUTION_CANCELLED;
+            break;
+          }
+
+          const retryRejection = getCapturedRejection(executionId);
+          if (retryRejection) clearCapturedRejection(executionId);
+
+          const retryClassified = synthesizeError({
+            sdkResultFields: retryResult.result ? String(retryResult.result) : undefined,
+            streamErrorMessage,
+            capturedRejection: retryRejection,
+            isResumedHandle: false,
+            fallbackContext: { model: validatedModel, mode: agentMode, agentId: freshAgent.agentId },
+          });
+
+          status.phase = ExecutionPhase.EXECUTION_FAILED;
+          status.error = formatClassifiedError(retryClassified);
+          console.error(
+            `ExecuteCursor poisoned-handle recovery FAILED: execution=${executionId}, ` +
+            `retryError=${status.error}`,
+          );
+          break;
+        }
+
+        // Transport-timeout retry: fresh agent got 0 messages (degraded h2 session).
+        // Reset proxy sessions and try once with a new connection.
+        if (
+          classified.category === "network"
+          && classified.retryable
+          && resolution.reason !== "resumed_successfully"
+          && !alreadyRetriedWithFreshAgent
+        ) {
+          alreadyRetriedWithFreshAgent = true;
+          console.warn(
+            `ExecuteCursor transport-timeout recovery: execution=${executionId}, ` +
+            `resetting proxy sessions and retrying with fresh agent`,
+          );
+
+          try { resolution.agent.close(); } catch { /* best effort */ }
+          closeProxySessions();
+
+          const freshAgent = agentMode === "cloud"
+            ? await createCloudAgent(createOptions as CreateCloudAgentOptions)
+            : await createAgent(createOptions as CreateAgentOptions);
+
+          try {
+            blueprint.sessionSpec.harnessStateId = freshAgent.agentId;
+            if (blueprint.session.metadata) blueprint.session.metadata.slug = "";
+            await client.updateSession(blueprint.session);
+          } catch (updateErr) {
+            console.warn("Failed to update session with fresh agentId (non-fatal):", updateErr);
+          }
+
+          const retryRun = await freshAgent.send(effectivePrompt, {
+            onDelta: ({ update }) => {
+              if (update.type === "turn-ended" && update.usage) {
+                usageAccumulator.addTurn(update.usage);
+              }
+              deltaEnricher.processDelta(update);
+              try { heartbeat(); } catch { /* swallow during retry */ }
+            },
+          });
+
+          streamErrorMessage = undefined;
+
+          for await (const retryEvent of retryRun.stream()) {
+            if (Context.current().cancellationSignal.aborted) break;
+            collectedEvents.push(retryEvent);
+            accumulator.processEvent(retryEvent);
+            if (retryEvent.type === "status") {
+              const retryStatusEvent = retryEvent as { status?: string; message?: string };
+              if (retryStatusEvent.status === "ERROR" && retryStatusEvent.message) {
+                streamErrorMessage = retryStatusEvent.message;
+              }
+            }
+            heartbeat();
+          }
+
+          const retryResult = await retryRun.wait();
+          if (retryResult.status === "finished") {
+            status.phase = ExecutionPhase.EXECUTION_COMPLETED;
+            resolution = { ...resolution, agent: freshAgent, agentId: freshAgent.agentId, isNew: true };
+            break;
+          }
+
+          status.phase = ExecutionPhase.EXECUTION_FAILED;
+          status.error = `Transport recovery failed: ${formatClassifiedError(classified)}`;
+          break;
+        }
+
+        status.phase = ExecutionPhase.EXECUTION_FAILED;
+        status.error = formatClassifiedError(classified);
         break;
+      }
       case "cancelled":
         status.phase = ExecutionPhase.EXECUTION_CANCELLED;
         break;
@@ -561,25 +929,121 @@ async function executeCursor(
         status.phase = ExecutionPhase.EXECUTION_COMPLETED;
     }
 
-    await persistStatus(client, executionId, status);
+    // Extract structured output BEFORE persisting, so the subscriber sees
+    // COMPLETED + structured_output atomically.
+    let structuredOutput: unknown = undefined;
+    let finalText: string | undefined;
 
-    // Phase 13b: Emit billing records for cursor usage
-    await emitBillingRecords(client, executionId, usageAccumulator, sdkResolvedModel);
+    if (status.phase === ExecutionPhase.EXECUTION_COMPLETED) {
+      const lastAiMsg = [...status.messages]
+        .reverse()
+        .find(m => m.type === MessageType.MESSAGE_AI);
+      finalText = lastAiMsg?.content;
+
+      if (structuredOutputSchema && finalText) {
+        const { extractJsonFromText } = await import("../../shared/extract-json.js");
+
+        // Tier 1 + 1.5: JSON.parse, code-fence extraction, heuristic brace match
+        structuredOutput = extractJsonFromText(finalText);
+        if (structuredOutput !== undefined) {
+          console.log(
+            `ExecuteCursor structured output extracted (text): execution=${executionId}, ` +
+            `finalTextLength=${finalText.length}`,
+          );
+        }
+
+        if (structuredOutput === undefined) {
+          // Tier 2: LLM extraction with withStructuredOutput — deterministic,
+          // uses function-calling to guarantee schema-conformant output
+          console.log(
+            `ExecuteCursor text extraction failed, trying LLM extraction: execution=${executionId}, ` +
+            `finalTextLength=${finalText.length}`,
+          );
+          try {
+            structuredOutput = await extractStructuredOutput(
+              finalText, structuredOutputSchema, config, requestedModel,
+            );
+            if (structuredOutput !== undefined) {
+              console.log(
+                `ExecuteCursor structured output extracted (LLM): execution=${executionId}`,
+              );
+            }
+          } catch (extractErr) {
+            const errMsg = extractErr instanceof Error ? extractErr.message : String(extractErr);
+            console.error(
+              `ExecuteCursor structured output extraction FAILED: execution=${executionId}, ` +
+              `requestedModel=${requestedModel}, ` +
+              `finalTextLength=${finalText.length}, ` +
+              `error=${errMsg}`,
+            );
+          }
+        }
+      }
+
+      if (structuredOutput !== undefined) {
+        status.structuredOutput = structuredOutput as JsonObject;
+      }
+    }
+
+    // NOW persist — subscriber sees COMPLETED + structured_output atomically
+    await persistStatus(client, executionId, status);
 
     // Phase 14: Build and persist session memory
     await maybePeristSessionMemory(client, sessionId, session, status, userMessage);
 
     console.log(
-      `ExecuteCursor completed: execution=${executionId}, phase=${ExecutionPhase[status.phase]}` +
+      `ExecuteCursor completed: execution=${executionId}, phase=${ExecutionPhase[status.phase]}, ` +
+      `hasStructuredOutput=${structuredOutput !== undefined}` +
         (status.error ? `, error=${status.error}` : ""),
     );
 
-    return slimStatus(status);
+    // Release SDK executor lease to prevent cache buildup across workflow tasks
+    try { resolution.agent.close(); } catch { /* best effort */ }
+
+    const slim = slimStatus(status) as Record<string, unknown>;
+    if (finalText !== undefined) {
+      slim.final_text = finalText;
+    }
+    if (structuredOutput !== undefined) {
+      slim.structured = structuredOutput;
+    }
+    return slim;
 
   } catch (err) {
+    periodicHeartbeat?.stop();
+
     if (err instanceof CancelledFailure) {
-      console.log(`ExecuteCursor cancelled (pause) for execution ${executionId}`);
-      status.phase = ExecutionPhase.EXECUTION_PAUSED;
+      // workerShutdownDetected means the runner-manager signaled shutdown
+      // before the worker drained. This is infrastructure failure, not pause.
+      if (workerShutdownDetected) {
+        console.log(`ExecuteCursor cancelled (worker shutdown) for execution ${executionId}`);
+        status.phase = ExecutionPhase.EXECUTION_FAILED;
+        status.error = "Execution interrupted: runner worker was shut down. Retry or resume.";
+        status.completedAt = utcTimestamp();
+        status.messages.push(create(AgentMessageSchema, {
+          type: MessageType.MESSAGE_SYSTEM,
+          content: "Execution interrupted: the runner worker was shut down while the agent was still running. You can retry or resume.",
+          timestamp: utcTimestamp(),
+        }));
+      } else if (pauseDetected) {
+        console.log(`ExecuteCursor cancelled (pause) for execution ${executionId}`);
+        status.phase = ExecutionPhase.EXECUTION_PAUSED;
+        status.messages.push(create(AgentMessageSchema, {
+          type: MessageType.MESSAGE_SYSTEM,
+          content: "Execution paused by user. Use resume to continue.",
+          timestamp: utcTimestamp(),
+        }));
+      } else {
+        console.log(`ExecuteCursor cancelled (infrastructure) for execution ${executionId}`);
+        status.phase = ExecutionPhase.EXECUTION_FAILED;
+        status.error = "Execution interrupted: agent was unresponsive (heartbeat timeout). Retry or resume.";
+        status.completedAt = utcTimestamp();
+        status.messages.push(create(AgentMessageSchema, {
+          type: MessageType.MESSAGE_SYSTEM,
+          content: "Execution interrupted: the agent was unresponsive for too long. You can retry or resume.",
+          timestamp: utcTimestamp(),
+        }));
+      }
       await persistStatus(client, executionId, status).catch(() => {});
       await maybePeristSessionMemory(client, sessionId, session, status, userMessage);
       throw err;
@@ -589,7 +1053,7 @@ async function executeCursor(
     // treat the execution as paused rather than failed. The error was likely
     // caused by the cancellation (e.g. SDK stream teardown) and should not
     // overwrite the PAUSED state that the Pause RPC already set in the DB.
-    if (pauseDetected || Context.current().cancellationSignal.aborted) {
+    if (pauseDetected) {
       const errDetail = err instanceof Error ? err.message : String(err);
       console.log(
         `ExecuteCursor error during pause (treating as pause): execution=${executionId}, error=${errDetail}`,
@@ -603,6 +1067,26 @@ async function executeCursor(
       await persistStatus(client, executionId, status).catch(() => {});
       await maybePeristSessionMemory(client, sessionId, session, status, userMessage);
       throw new CancelledFailure("Activity paused by orchestrator (error during pause)");
+    }
+
+    // Infrastructure cancellation (e.g. heartbeat timeout) with a
+    // non-CancelledFailure error — report as failed, not paused.
+    if (Context.current().cancellationSignal.aborted) {
+      const errDetail = err instanceof Error ? err.message : String(err);
+      console.log(
+        `ExecuteCursor error during infrastructure cancel: execution=${executionId}, error=${errDetail}`,
+      );
+      status.phase = ExecutionPhase.EXECUTION_FAILED;
+      status.error = `Execution interrupted: ${errDetail}`;
+      status.completedAt = utcTimestamp();
+      status.messages.push(create(AgentMessageSchema, {
+        type: MessageType.MESSAGE_SYSTEM,
+        content: "Execution interrupted: the agent was unresponsive for too long. You can retry or resume.",
+        timestamp: utcTimestamp(),
+      }));
+      await persistStatus(client, executionId, status).catch(() => {});
+      await maybePeristSessionMemory(client, sessionId, session, status, userMessage);
+      throw new CancelledFailure("Activity cancelled (infrastructure, not user pause)");
     }
 
     const errMsg = err instanceof Error ? err.message : String(err);
@@ -636,6 +1120,75 @@ async function executeCursor(
     return slimStatus(status);
   }
 }
+
+// ---------------------------------------------------------------------------
+// Structured Output Extraction (Cursor Harness Tier 2)
+// ---------------------------------------------------------------------------
+
+/**
+ * Extract structured data from an agent's free-text response using an
+ * economy-tier LLM with withStructuredOutput (function-calling).
+ * Guarantees schema-conformant JSON output via the API's tool-use mechanism.
+ *
+ * Provider-aware: resolves the economy model via the registry, infers its
+ * provider (anthropic / openai), and constructs the correct LangChain client
+ * with the matching proxy endpoint. Follows the same pattern as
+ * call-llm.ts constructModel().
+ */
+async function extractStructuredOutput(
+  agentResponse: string,
+  schema: Record<string, unknown>,
+  config: Config,
+  primaryModel: string,
+): Promise<unknown | null> {
+  const { ChatOpenAI } = await import("@langchain/openai");
+  const { ChatAnthropic } = await import("@langchain/anthropic");
+  const { inferProvider, resolveProxyBaseUrl, buildProxyHeaders } = await import("../../shared/llm-proxy.js");
+  const { getEconomyModel } = await import("../../shared/model-registry.js");
+
+  const extractionModel = await getEconomyModel(primaryModel);
+  const provider = inferProvider(extractionModel);
+
+  const proxyEndpoint = config.proxyEndpoint ?? config.stigmerBackendEndpoint;
+  const baseUrl = resolveProxyBaseUrl(proxyEndpoint, provider);
+  const headers = config.stigmerToken
+    ? buildProxyHeaders(config.stigmerToken, {})
+    : {};
+
+  const apiKey = provider === "openai"
+    ? (config.stigmerToken ?? process.env.OPENAI_API_KEY ?? "proxy-managed")
+    : (config.stigmerToken ?? process.env.ANTHROPIC_API_KEY ?? "proxy-managed");
+
+  const llm = provider === "openai"
+    ? new ChatOpenAI({
+        model: extractionModel,
+        apiKey,
+        temperature: 0,
+        maxTokens: 4096,
+        configuration: { baseURL: baseUrl, defaultHeaders: headers },
+      })
+    : new ChatAnthropic({
+        model: extractionModel,
+        apiKey,
+        temperature: 0,
+        maxTokens: 4096,
+        clientOptions: { baseURL: baseUrl, defaultHeaders: headers },
+      });
+
+  const zodSchema = jsonSchemaToZod(schema);
+  const structured = llm.withStructuredOutput(zodSchema);
+
+  const result = await structured.invoke([
+    { role: "system", content: "Extract the structured data from the agent's response. Return only the data that matches the schema." },
+    { role: "user", content: agentResponse },
+  ]);
+
+  return result ?? null;
+}
+
+// Re-export for use within this module; shared implementation eliminates
+// the three duplicate converters that previously drifted independently.
+import { jsonSchemaToZod } from "../../shared/json-schema-to-zod.js";
 
 // ---------------------------------------------------------------------------
 // Prompt selection
@@ -796,82 +1349,6 @@ async function maybePeristSessionMemory(
   }
 }
 
-/**
- * Emit per-turn billing records via the recordLlmCallUsage RPC.
- *
- * Each turn produces one billing record with sequence = turn number.
- * The billing handler computes cost server-side from the model registry.
- * Best-effort: failures are logged and swallowed — billing gaps are
- * preferable to failing the execution.
- */
-export interface BillingRecordParams {
-  executionId: string;
-  turn: TurnRecord;
-  requestedModel: string;
-  sdkResolvedModel?: string;
-}
-
-export function buildTurnBillingInput(params: BillingRecordParams) {
-  const { executionId, turn, requestedModel, sdkResolvedModel } = params;
-  const resolvedModel = sdkResolvedModel || requestedModel;
-  return create(RecordLlmCallUsageInputSchema, {
-    executionId,
-    sequence: turn.sequence,
-    provider: "cursor",
-    resolvedModel,
-    requestedModel,
-    tokens: create(TokenUsageSchema, {
-      inputTokens: BigInt(turn.inputTokens),
-      outputTokens: BigInt(turn.outputTokens),
-      cacheCreationInputTokens: BigInt(turn.cacheWriteTokens),
-      cacheReadInputTokens: BigInt(turn.cacheReadTokens),
-    }),
-    usageStatus: UsageCompletionStatus.COMPLETE,
-    streaming: true,
-    harness: "cursor",
-  });
-}
-
-async function emitBillingRecords(
-  client: StigmerClient,
-  executionId: string,
-  usage: UsageAccumulator,
-  sdkResolvedModel?: string,
-): Promise<void> {
-  const turns = usage.turns();
-  if (turns.length === 0) return;
-
-  const requestedModel = usage.modelName;
-  const resolvedModel = sdkResolvedModel || requestedModel;
-  let emitted = 0;
-
-  for (const turn of turns) {
-    try {
-      const input = buildTurnBillingInput({
-        executionId,
-        turn,
-        requestedModel,
-        sdkResolvedModel,
-      });
-      await client.recordLlmCallUsage(input);
-      emitted++;
-    } catch (err) {
-      console.warn(
-        `Failed to emit billing record (non-fatal): execution=${executionId}, seq=${turn.sequence}`,
-        err instanceof Error ? err.message : err,
-      );
-    }
-  }
-
-  if (emitted > 0) {
-    const modelInfo = resolvedModel !== requestedModel
-      ? `requested=${requestedModel}, resolved=${resolvedModel}`
-      : `model=${requestedModel}`;
-    console.log(
-      `Emitted ${emitted}/${turns.length} billing records: execution=${executionId}, ${modelInfo}`,
-    );
-  }
-}
 
 /**
  * Find a tool call by ID in the execution's messages.

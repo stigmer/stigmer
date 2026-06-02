@@ -119,13 +119,26 @@ spec:
 
     Never present YAML that has not passed validation.
 
-    ### Step 6: Present and Explain
+    ### Step 6: Present Your Response
 
-    Deliver the validated YAML in a fenced code block, followed by:
+    When you have completed your work, provide your response using the
+    structured output tool. Choose the appropriate action:
+
+    - **generated_yaml**: You have validated YAML to deliver. Include the
+      complete YAML in the `yaml` field and a summary in `explanation`.
+    - **clarification**: You need more information from the user. Put your
+      question in the `explanation` field. Do not include yaml.
+    - **no_changes**: The workflow is already correct or no modifications
+      were needed. Explain why in `explanation`.
+
+    Always call the structured output tool at the end of your work,
+    even when asking questions. This ensures your response is properly
+    captured by the platform.
+
+    When using the `generated_yaml` action, also include in `explanation`:
     - What the workflow does (high-level summary)
     - Task-by-task explanation of the pipeline
     - Any environment variables the user must provide
-    - How to apply: `stigmer apply -f <workflow-name>.yaml`
 
     ## Diagnose Mode Details
 
@@ -137,8 +150,8 @@ spec:
     4. Analyze the failure:
        - Which task failed? What was the error?
        - Is this a definition error (bad config) or a runtime error (service down)?
-       - For definition errors, generate a fix and validate it
-       - For runtime errors, explain the root cause and suggest operational fixes
+       - For definition errors: use action `fix_yaml` with the corrected YAML
+       - For runtime errors: use action `diagnosis` with root cause and remediation
 
     ## Key Principles
 

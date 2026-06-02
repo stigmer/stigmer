@@ -39,6 +39,7 @@ private static final long serialVersionUID = 0L;
     phase_ = 0;
     tags_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
+    sortField_ = 0;
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -59,6 +60,7 @@ private static final long serialVersionUID = 0L;
             ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsRequest.class, ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsRequest.Builder.class);
   }
 
+  private int bitField0_;
   public static final int PAGE_SIZE_FIELD_NUMBER = 1;
   private int pageSize_ = 0;
   /**
@@ -231,6 +233,106 @@ private static final long serialVersionUID = 0L;
     return tags_.getByteString(index);
   }
 
+  public static final int FILTER_FIELD_NUMBER = 5;
+  private ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria filter_;
+  /**
+   * <pre>
+   * Structured filter criteria for advanced filtering.
+   *
+   * When set, applies AND-conjunction with the existing `phase` and `tags` fields.
+   * If both `phase` and `filter.phases` are set, `filter.phases` takes precedence.
+   *
+   * &#64;since T13 (Execution History)
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria filter = 5 [json_name = "filter"];</code>
+   * @return Whether the filter field is set.
+   */
+  @java.lang.Override
+  public boolean hasFilter() {
+    return ((bitField0_ & 0x00000001) != 0);
+  }
+  /**
+   * <pre>
+   * Structured filter criteria for advanced filtering.
+   *
+   * When set, applies AND-conjunction with the existing `phase` and `tags` fields.
+   * If both `phase` and `filter.phases` are set, `filter.phases` takes precedence.
+   *
+   * &#64;since T13 (Execution History)
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria filter = 5 [json_name = "filter"];</code>
+   * @return The filter.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria getFilter() {
+    return filter_ == null ? ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria.getDefaultInstance() : filter_;
+  }
+  /**
+   * <pre>
+   * Structured filter criteria for advanced filtering.
+   *
+   * When set, applies AND-conjunction with the existing `phase` and `tags` fields.
+   * If both `phase` and `filter.phases` are set, `filter.phases` takes precedence.
+   *
+   * &#64;since T13 (Execution History)
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria filter = 5 [json_name = "filter"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteriaOrBuilder getFilterOrBuilder() {
+    return filter_ == null ? ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria.getDefaultInstance() : filter_;
+  }
+
+  public static final int SORT_FIELD_FIELD_NUMBER = 6;
+  private int sortField_ = 0;
+  /**
+   * <pre>
+   * Sort field. When unspecified, defaults to started_at descending.
+   *
+   * &#64;since T13 (Execution History)
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField sort_field = 6 [json_name = "sortField"];</code>
+   * @return The enum numeric value on the wire for sortField.
+   */
+  @java.lang.Override public int getSortFieldValue() {
+    return sortField_;
+  }
+  /**
+   * <pre>
+   * Sort field. When unspecified, defaults to started_at descending.
+   *
+   * &#64;since T13 (Execution History)
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField sort_field = 6 [json_name = "sortField"];</code>
+   * @return The sortField.
+   */
+  @java.lang.Override public ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField getSortField() {
+    ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField result = ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField.forNumber(sortField_);
+    return result == null ? ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField.UNRECOGNIZED : result;
+  }
+
+  public static final int SORT_ASCENDING_FIELD_NUMBER = 7;
+  private boolean sortAscending_ = false;
+  /**
+   * <pre>
+   * When true, sorts in ascending order. Default (false) is descending.
+   *
+   * &#64;since T13 (Execution History)
+   * </pre>
+   *
+   * <code>bool sort_ascending = 7 [json_name = "sortAscending"];</code>
+   * @return The sortAscending.
+   */
+  @java.lang.Override
+  public boolean getSortAscending() {
+    return sortAscending_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -256,6 +358,15 @@ private static final long serialVersionUID = 0L;
     }
     for (int i = 0; i < tags_.size(); i++) {
       com.google.protobuf.GeneratedMessage.writeString(output, 4, tags_.getRaw(i));
+    }
+    if (((bitField0_ & 0x00000001) != 0)) {
+      output.writeMessage(5, getFilter());
+    }
+    if (sortField_ != ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField.EXECUTION_SORT_FIELD_UNSPECIFIED.getNumber()) {
+      output.writeEnum(6, sortField_);
+    }
+    if (sortAscending_ != false) {
+      output.writeBool(7, sortAscending_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -285,6 +396,18 @@ private static final long serialVersionUID = 0L;
       size += dataSize;
       size += 1 * getTagsList().size();
     }
+    if (((bitField0_ & 0x00000001) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(5, getFilter());
+    }
+    if (sortField_ != ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField.EXECUTION_SORT_FIELD_UNSPECIFIED.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(6, sortField_);
+    }
+    if (sortAscending_ != false) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBoolSize(7, sortAscending_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -307,6 +430,14 @@ private static final long serialVersionUID = 0L;
     if (phase_ != other.phase_) return false;
     if (!getTagsList()
         .equals(other.getTagsList())) return false;
+    if (hasFilter() != other.hasFilter()) return false;
+    if (hasFilter()) {
+      if (!getFilter()
+          .equals(other.getFilter())) return false;
+    }
+    if (sortField_ != other.sortField_) return false;
+    if (getSortAscending()
+        != other.getSortAscending()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -328,6 +459,15 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + TAGS_FIELD_NUMBER;
       hash = (53 * hash) + getTagsList().hashCode();
     }
+    if (hasFilter()) {
+      hash = (37 * hash) + FILTER_FIELD_NUMBER;
+      hash = (53 * hash) + getFilter().hashCode();
+    }
+    hash = (37 * hash) + SORT_FIELD_FIELD_NUMBER;
+    hash = (53 * hash) + sortField_;
+    hash = (37 * hash) + SORT_ASCENDING_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+        getSortAscending());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -454,13 +594,19 @@ private static final long serialVersionUID = 0L;
 
     // Construct using ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsRequest.newBuilder()
     private Builder() {
-
+      maybeForceBuilderInitialization();
     }
 
     private Builder(
         com.google.protobuf.GeneratedMessage.BuilderParent parent) {
       super(parent);
-
+      maybeForceBuilderInitialization();
+    }
+    private void maybeForceBuilderInitialization() {
+      if (com.google.protobuf.GeneratedMessage
+              .alwaysUseFieldBuilders) {
+        internalGetFilterFieldBuilder();
+      }
     }
     @java.lang.Override
     public Builder clear() {
@@ -471,6 +617,13 @@ private static final long serialVersionUID = 0L;
       phase_ = 0;
       tags_ =
           com.google.protobuf.LazyStringArrayList.emptyList();
+      filter_ = null;
+      if (filterBuilder_ != null) {
+        filterBuilder_.dispose();
+        filterBuilder_ = null;
+      }
+      sortField_ = 0;
+      sortAscending_ = false;
       return this;
     }
 
@@ -517,6 +670,20 @@ private static final long serialVersionUID = 0L;
         tags_.makeImmutable();
         result.tags_ = tags_;
       }
+      int to_bitField0_ = 0;
+      if (((from_bitField0_ & 0x00000010) != 0)) {
+        result.filter_ = filterBuilder_ == null
+            ? filter_
+            : filterBuilder_.build();
+        to_bitField0_ |= 0x00000001;
+      }
+      if (((from_bitField0_ & 0x00000020) != 0)) {
+        result.sortField_ = sortField_;
+      }
+      if (((from_bitField0_ & 0x00000040) != 0)) {
+        result.sortAscending_ = sortAscending_;
+      }
+      result.bitField0_ |= to_bitField0_;
     }
 
     @java.lang.Override
@@ -551,6 +718,15 @@ private static final long serialVersionUID = 0L;
           tags_.addAll(other.tags_);
         }
         onChanged();
+      }
+      if (other.hasFilter()) {
+        mergeFilter(other.getFilter());
+      }
+      if (other.sortField_ != 0) {
+        setSortFieldValue(other.getSortFieldValue());
+      }
+      if (other.getSortAscending() != false) {
+        setSortAscending(other.getSortAscending());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -598,6 +774,23 @@ private static final long serialVersionUID = 0L;
               tags_.add(input.readStringRequireUtf8());
               break;
             } // case 34
+            case 42: {
+              input.readMessage(
+                  internalGetFilterFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00000010;
+              break;
+            } // case 42
+            case 48: {
+              sortField_ = input.readEnum();
+              bitField0_ |= 0x00000020;
+              break;
+            } // case 48
+            case 56: {
+              sortAscending_ = input.readBool();
+              bitField0_ |= 0x00000040;
+              break;
+            } // case 56
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1041,6 +1234,340 @@ private static final long serialVersionUID = 0L;
       ensureTagsIsMutable();
       tags_.add(value);
       bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+
+    private ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria filter_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria, ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria.Builder, ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteriaOrBuilder> filterBuilder_;
+    /**
+     * <pre>
+     * Structured filter criteria for advanced filtering.
+     *
+     * When set, applies AND-conjunction with the existing `phase` and `tags` fields.
+     * If both `phase` and `filter.phases` are set, `filter.phases` takes precedence.
+     *
+     * &#64;since T13 (Execution History)
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria filter = 5 [json_name = "filter"];</code>
+     * @return Whether the filter field is set.
+     */
+    public boolean hasFilter() {
+      return ((bitField0_ & 0x00000010) != 0);
+    }
+    /**
+     * <pre>
+     * Structured filter criteria for advanced filtering.
+     *
+     * When set, applies AND-conjunction with the existing `phase` and `tags` fields.
+     * If both `phase` and `filter.phases` are set, `filter.phases` takes precedence.
+     *
+     * &#64;since T13 (Execution History)
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria filter = 5 [json_name = "filter"];</code>
+     * @return The filter.
+     */
+    public ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria getFilter() {
+      if (filterBuilder_ == null) {
+        return filter_ == null ? ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria.getDefaultInstance() : filter_;
+      } else {
+        return filterBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * Structured filter criteria for advanced filtering.
+     *
+     * When set, applies AND-conjunction with the existing `phase` and `tags` fields.
+     * If both `phase` and `filter.phases` are set, `filter.phases` takes precedence.
+     *
+     * &#64;since T13 (Execution History)
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria filter = 5 [json_name = "filter"];</code>
+     */
+    public Builder setFilter(ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria value) {
+      if (filterBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        filter_ = value;
+      } else {
+        filterBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00000010;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Structured filter criteria for advanced filtering.
+     *
+     * When set, applies AND-conjunction with the existing `phase` and `tags` fields.
+     * If both `phase` and `filter.phases` are set, `filter.phases` takes precedence.
+     *
+     * &#64;since T13 (Execution History)
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria filter = 5 [json_name = "filter"];</code>
+     */
+    public Builder setFilter(
+        ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria.Builder builderForValue) {
+      if (filterBuilder_ == null) {
+        filter_ = builderForValue.build();
+      } else {
+        filterBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00000010;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Structured filter criteria for advanced filtering.
+     *
+     * When set, applies AND-conjunction with the existing `phase` and `tags` fields.
+     * If both `phase` and `filter.phases` are set, `filter.phases` takes precedence.
+     *
+     * &#64;since T13 (Execution History)
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria filter = 5 [json_name = "filter"];</code>
+     */
+    public Builder mergeFilter(ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria value) {
+      if (filterBuilder_ == null) {
+        if (((bitField0_ & 0x00000010) != 0) &&
+          filter_ != null &&
+          filter_ != ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria.getDefaultInstance()) {
+          getFilterBuilder().mergeFrom(value);
+        } else {
+          filter_ = value;
+        }
+      } else {
+        filterBuilder_.mergeFrom(value);
+      }
+      if (filter_ != null) {
+        bitField0_ |= 0x00000010;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Structured filter criteria for advanced filtering.
+     *
+     * When set, applies AND-conjunction with the existing `phase` and `tags` fields.
+     * If both `phase` and `filter.phases` are set, `filter.phases` takes precedence.
+     *
+     * &#64;since T13 (Execution History)
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria filter = 5 [json_name = "filter"];</code>
+     */
+    public Builder clearFilter() {
+      bitField0_ = (bitField0_ & ~0x00000010);
+      filter_ = null;
+      if (filterBuilder_ != null) {
+        filterBuilder_.dispose();
+        filterBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Structured filter criteria for advanced filtering.
+     *
+     * When set, applies AND-conjunction with the existing `phase` and `tags` fields.
+     * If both `phase` and `filter.phases` are set, `filter.phases` takes precedence.
+     *
+     * &#64;since T13 (Execution History)
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria filter = 5 [json_name = "filter"];</code>
+     */
+    public ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria.Builder getFilterBuilder() {
+      bitField0_ |= 0x00000010;
+      onChanged();
+      return internalGetFilterFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * Structured filter criteria for advanced filtering.
+     *
+     * When set, applies AND-conjunction with the existing `phase` and `tags` fields.
+     * If both `phase` and `filter.phases` are set, `filter.phases` takes precedence.
+     *
+     * &#64;since T13 (Execution History)
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria filter = 5 [json_name = "filter"];</code>
+     */
+    public ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteriaOrBuilder getFilterOrBuilder() {
+      if (filterBuilder_ != null) {
+        return filterBuilder_.getMessageOrBuilder();
+      } else {
+        return filter_ == null ?
+            ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria.getDefaultInstance() : filter_;
+      }
+    }
+    /**
+     * <pre>
+     * Structured filter criteria for advanced filtering.
+     *
+     * When set, applies AND-conjunction with the existing `phase` and `tags` fields.
+     * If both `phase` and `filter.phases` are set, `filter.phases` takes precedence.
+     *
+     * &#64;since T13 (Execution History)
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria filter = 5 [json_name = "filter"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria, ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria.Builder, ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteriaOrBuilder> 
+        internalGetFilterFieldBuilder() {
+      if (filterBuilder_ == null) {
+        filterBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria, ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria.Builder, ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteriaOrBuilder>(
+                getFilter(),
+                getParentForChildren(),
+                isClean());
+        filter_ = null;
+      }
+      return filterBuilder_;
+    }
+
+    private int sortField_ = 0;
+    /**
+     * <pre>
+     * Sort field. When unspecified, defaults to started_at descending.
+     *
+     * &#64;since T13 (Execution History)
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField sort_field = 6 [json_name = "sortField"];</code>
+     * @return The enum numeric value on the wire for sortField.
+     */
+    @java.lang.Override public int getSortFieldValue() {
+      return sortField_;
+    }
+    /**
+     * <pre>
+     * Sort field. When unspecified, defaults to started_at descending.
+     *
+     * &#64;since T13 (Execution History)
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField sort_field = 6 [json_name = "sortField"];</code>
+     * @param value The enum numeric value on the wire for sortField to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setSortFieldValue(int value) {
+      sortField_ = value;
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Sort field. When unspecified, defaults to started_at descending.
+     *
+     * &#64;since T13 (Execution History)
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField sort_field = 6 [json_name = "sortField"];</code>
+     * @return The sortField.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField getSortField() {
+      ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField result = ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField.forNumber(sortField_);
+      return result == null ? ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * Sort field. When unspecified, defaults to started_at descending.
+     *
+     * &#64;since T13 (Execution History)
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField sort_field = 6 [json_name = "sortField"];</code>
+     * @param value The sortField to set.
+     * @return This builder for chaining.
+     */
+    public Builder setSortField(ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x00000020;
+      sortField_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Sort field. When unspecified, defaults to started_at descending.
+     *
+     * &#64;since T13 (Execution History)
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField sort_field = 6 [json_name = "sortField"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearSortField() {
+      bitField0_ = (bitField0_ & ~0x00000020);
+      sortField_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private boolean sortAscending_ ;
+    /**
+     * <pre>
+     * When true, sorts in ascending order. Default (false) is descending.
+     *
+     * &#64;since T13 (Execution History)
+     * </pre>
+     *
+     * <code>bool sort_ascending = 7 [json_name = "sortAscending"];</code>
+     * @return The sortAscending.
+     */
+    @java.lang.Override
+    public boolean getSortAscending() {
+      return sortAscending_;
+    }
+    /**
+     * <pre>
+     * When true, sorts in ascending order. Default (false) is descending.
+     *
+     * &#64;since T13 (Execution History)
+     * </pre>
+     *
+     * <code>bool sort_ascending = 7 [json_name = "sortAscending"];</code>
+     * @param value The sortAscending to set.
+     * @return This builder for chaining.
+     */
+    public Builder setSortAscending(boolean value) {
+
+      sortAscending_ = value;
+      bitField0_ |= 0x00000040;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * When true, sorts in ascending order. Default (false) is descending.
+     *
+     * &#64;since T13 (Execution History)
+     * </pre>
+     *
+     * <code>bool sort_ascending = 7 [json_name = "sortAscending"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearSortAscending() {
+      bitField0_ = (bitField0_ & ~0x00000040);
+      sortAscending_ = false;
       onChanged();
       return this;
     }

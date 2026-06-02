@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import {
   useWorkflowArchitectFlow,
   type ArchitectPhase,
 } from "./useWorkflowArchitectFlow";
 import { MessageThread } from "../execution/MessageThread";
+import { WorkflowDiffGraph } from "./WorkflowDiffGraph";
 
 /** Props for {@link WorkflowArchitectDialog}. */
 export interface WorkflowArchitectDialogProps {
@@ -331,6 +332,7 @@ function ResultPhase({
   readonly onClose: () => void;
 }) {
   const isApplying = flow.phase === "applying";
+  const [showYaml, setShowYaml] = useState(false);
 
   return (
     <>
@@ -367,11 +369,29 @@ function ResultPhase({
         {flow.extractedYaml && (
           <div>
             <h4 className="mb-1 text-xs font-medium text-muted-foreground">
-              Generated YAML
+              Workflow Structure
             </h4>
-            <pre className="max-h-80 overflow-auto rounded-md border border-border bg-muted p-3 text-xs leading-relaxed text-foreground">
-              {flow.extractedYaml}
-            </pre>
+            <div className="h-[280px] overflow-hidden rounded-md border border-border">
+              <WorkflowDiffGraph
+                beforeYaml=""
+                afterYaml={flow.extractedYaml}
+              />
+            </div>
+
+            <div className="mt-3">
+              <button
+                type="button"
+                onClick={() => setShowYaml((v) => !v)}
+                className="text-xs font-medium text-muted-foreground hover:text-foreground"
+              >
+                {showYaml ? "▾ Hide YAML" : "▸ View YAML"}
+              </button>
+              {showYaml && (
+                <pre className="mt-1 max-h-60 overflow-auto rounded-md border border-border bg-muted p-3 text-xs leading-relaxed text-foreground">
+                  {flow.extractedYaml}
+                </pre>
+              )}
+            </div>
           </div>
         )}
       </div>

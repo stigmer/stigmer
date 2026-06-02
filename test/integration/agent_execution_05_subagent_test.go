@@ -9,6 +9,7 @@ import (
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	agentexecv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/test/integration/harness"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -37,26 +38,61 @@ func TestAgentExecution_SubAgent_Delegation(t *testing.T) {
 			session := harness.CreateTestSession(t, ctx, clients,
 				agent.GetStatus().GetDefaultInstanceId(), h.Harness)
 
-			exec := harness.CreateTestAgentExecution(t, ctx, clients,
-				session.GetMetadata().GetId(),
-				"Please delegate to the researcher to give a brief summary about renewable energy.")
-
 			waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
-			result, err := waiter.WaitForPhase(ctx, exec.GetMetadata().GetId(),
-				agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 4*time.Minute)
-			require.NoError(t, err, "execution should complete")
-			harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
+
+			const maxAttempts = 2
+			var result *agentexecv1.AgentExecution
+			for attempt := 1; attempt <= maxAttempts; attempt++ {
+				exec := harness.CreateTestAgentExecution(t, ctx, clients,
+					session.GetMetadata().GetId(),
+					"Please delegate to the researcher to give a brief summary about renewable energy.")
+
+				var err error
+				result, err = waiter.WaitForPhase(ctx, exec.GetMetadata().GetId(),
+					agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 4*time.Minute)
+				if err != nil {
+					harness.LogExecutionMessages(t, ctx, clients, exec.GetMetadata().GetId())
+				}
+				require.NoError(t, err, "execution should complete (attempt %d)", attempt)
+				harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
+
+				if harness.HasSubAgentDelegation(result) {
+					break
+				}
+				if attempt < maxAttempts {
+					t.Logf("delegation retry: LLM answered directly on attempt %d, retrying with fresh execution", attempt)
+					harness.LogExecutionMessages(t, ctx, clients, exec.GetMetadata().GetId())
+					continue
+				}
+			}
 
 			subAgents := result.GetStatus().GetSubAgentExecutions()
-			if len(subAgents) > 0 {
-				t.Logf("sub-agent executions found: %d", len(subAgents))
-				for _, sa := range subAgents {
-					t.Logf("  sub-agent: name=%s, status=%s, messages=%d",
-						sa.GetName(), sa.GetStatus().String(), len(sa.GetMessages()))
-				}
+			require.Greater(t, len(subAgents), 0,
+				"sub-agent executions must be populated after successful delegation")
+
+			// Native harness preserves the blueprint sub-agent name via LangGraph
+			// namespace metadata. Cursor harness derives the name from the LLM's
+			// Task tool description arg (the SDK passes kind: "unspecified"), so
+			// exact name matching is only possible on native.
+			var sa *agentexecv1.SubAgentExecution
+			if h.Name == "native" {
+				harness.AssertSubAgents(t, result, "researcher")
+				sa = harness.FindSubAgent(result, "researcher")
+				require.NotNil(t, sa, "sub-agent 'researcher' must be present in execution status")
 			} else {
-				t.Log("no sub-agent executions recorded (agent may have answered directly)")
+				sa = harness.FindFirstSubAgent(result)
+				require.NotNil(t, sa, "at least one sub-agent execution must be present")
+				assert.NotEmpty(t, sa.GetName(),
+					"sub-agent name must be non-empty (derived from Task tool description)")
 			}
+
+			harness.AssertSubAgentExecution(t, sa)
+			assert.Equal(t, agentexecv1.SubAgentStatus_SUB_AGENT_COMPLETED, sa.GetStatus(),
+				"sub-agent should be COMPLETED when parent execution is COMPLETED")
+			assert.Greater(t, len(sa.GetMessages()), 0,
+				"completed sub-agent should have at least one message from its internal conversation")
+
+			harness.LogSubAgentExecutions(t, result)
 		})
 	}
 }
@@ -96,10 +132,11 @@ func TestAgentExecution_SubAgent_ParentCancelCascade(t *testing.T) {
 				agentexecv1.ExecutionPhase_EXECUTION_IN_PROGRESS, 2*time.Minute)
 			require.NoError(t, err)
 
-			// Give some time for sub-agent to start
+			// TODO: Replace time.Sleep with a polling approach that waits for
+			// len(GetSubAgentExecutions()) > 0 on intermediate status. Requires
+			// a harness enhancement (e.g., WaitForSubAgentPresence).
 			time.Sleep(5 * time.Second)
 
-			// Cancel the parent
 			_, err = clients.AgentExecutionCommand.Cancel(ctx, &agentexecv1.CancelAgentExecutionInput{
 				Id: exec.GetMetadata().GetId(),
 			})
@@ -110,12 +147,20 @@ func TestAgentExecution_SubAgent_ParentCancelCascade(t *testing.T) {
 			require.NoError(t, err, "execution should reach CANCELLED")
 			harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_CANCELLED)
 
-			// If sub-agents were active, they should be cancelled too
-			for _, sa := range result.GetStatus().GetSubAgentExecutions() {
-				if sa.GetStatus() == agentexecv1.SubAgentStatus_SUB_AGENT_IN_PROGRESS {
-					t.Errorf("sub-agent %q still IN_PROGRESS after parent cancellation", sa.GetName())
-				}
+			subAgents := result.GetStatus().GetSubAgentExecutions()
+			require.Greater(t, len(subAgents), 0,
+				"sub-agent executions must be present — the LLM was instructed to delegate "+
+					"and the execution ran long enough for the task tool to fire")
+
+			for _, sa := range subAgents {
+				harness.AssertSubAgentExecution(t, sa)
+				assert.NotEqual(t, agentexecv1.SubAgentStatus_SUB_AGENT_IN_PROGRESS, sa.GetStatus(),
+					"sub-agent %q must not be IN_PROGRESS after parent cancellation", sa.GetName())
+				assert.Equal(t, agentexecv1.SubAgentStatus_SUB_AGENT_CANCELLED, sa.GetStatus(),
+					"sub-agent %q should be CANCELLED when parent is cancelled", sa.GetName())
 			}
+
+			harness.LogSubAgentExecutions(t, result)
 		})
 	}
 }
@@ -161,25 +206,56 @@ func TestAgentExecution_SubAgent_McpAccess(t *testing.T) {
 			session := harness.CreateTestSession(t, ctx, clients,
 				agent.GetStatus().GetDefaultInstanceId(), h.Harness)
 
-			exec := harness.CreateTestAgentExecution(t, ctx, clients,
-				session.GetMetadata().GetId(),
-				"Delegate to the tooluser sub-agent and ask it to echo 'mcp-access-test'.",
-				harness.WithAutoApproveAll(true))
-
 			waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
-			result, err := waiter.WaitForPhase(ctx, exec.GetMetadata().GetId(),
-				agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 4*time.Minute)
-			require.NoError(t, err, "execution should complete")
-			harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
 
-			subAgents := result.GetStatus().GetSubAgentExecutions()
-			if len(subAgents) > 0 {
-				t.Logf("sub-agent MCP access test: %d sub-agent executions", len(subAgents))
-			} else {
-				t.Log("no sub-agent executions recorded (agent may have handled directly)")
+			const maxAttempts = 2
+			var result *agentexecv1.AgentExecution
+			for attempt := 1; attempt <= maxAttempts; attempt++ {
+				exec := harness.CreateTestAgentExecution(t, ctx, clients,
+					session.GetMetadata().GetId(),
+					"Delegate to the tooluser sub-agent and ask it to echo 'mcp-access-test'.",
+					harness.WithAutoApproveAll(true))
+
+				var err error
+				result, err = waiter.WaitForPhase(ctx, exec.GetMetadata().GetId(),
+					agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 4*time.Minute)
+				if err != nil {
+					harness.LogExecutionMessages(t, ctx, clients, exec.GetMetadata().GetId())
+				}
+				require.NoError(t, err, "execution should complete (attempt %d)", attempt)
+				harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
+
+				if harness.HasSubAgentDelegation(result) {
+					break
+				}
+				if attempt < maxAttempts {
+					t.Logf("delegation retry: LLM handled MCP directly on attempt %d, retrying", attempt)
+					harness.LogExecutionMessages(t, ctx, clients, exec.GetMetadata().GetId())
+					continue
+				}
 			}
 
-			t.Logf("sub-agent MCP access test completed: id=%s", result.GetMetadata().GetId())
+			subAgents := result.GetStatus().GetSubAgentExecutions()
+			require.Greater(t, len(subAgents), 0,
+				"sub-agent executions must be populated after successful delegation")
+
+			var sa *agentexecv1.SubAgentExecution
+			if h.Name == "native" {
+				harness.AssertSubAgents(t, result, "tooluser")
+				sa = harness.FindSubAgent(result, "tooluser")
+				require.NotNil(t, sa, "sub-agent 'tooluser' must be present in execution status")
+			} else {
+				sa = harness.FindFirstSubAgent(result)
+				require.NotNil(t, sa, "at least one sub-agent execution must be present")
+				assert.NotEmpty(t, sa.GetName(),
+					"sub-agent name must be non-empty (derived from Task tool description)")
+			}
+
+			harness.AssertSubAgentExecution(t, sa)
+			assert.Equal(t, agentexecv1.SubAgentStatus_SUB_AGENT_COMPLETED, sa.GetStatus(),
+				"sub-agent should be COMPLETED when parent execution is COMPLETED")
+
+			harness.LogSubAgentExecutions(t, result)
 		})
 	}
 }

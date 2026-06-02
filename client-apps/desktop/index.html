@@ -44,6 +44,19 @@
         }).observe(document.documentElement, {childList:true,subtree:true});
       })();
     </script>
+    <script>
+      // Only catch synchronous module-evaluation errors (fatal).
+      // Async rejections (API errors etc.) are non-fatal and handled by React.
+      window.addEventListener("error", function(e) {
+        if (e.filename && e.filename.indexOf("/src/") !== -1) {
+          var r = document.getElementById("root");
+          if (r && !r.hasChildNodes()) {
+            r.style.cssText = "padding:2rem;color:#f87171;font-family:monospace;white-space:pre-wrap;background:#09090b;min-height:100vh;";
+            r.textContent = "[module error] " + e.message + "\n\n" + (e.filename || "") + ":" + (e.lineno || "") + "\n\n" + (e.error && e.error.stack ? e.error.stack : "");
+          }
+        }
+      });
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

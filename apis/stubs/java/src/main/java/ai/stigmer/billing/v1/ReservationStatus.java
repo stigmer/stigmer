@@ -160,7 +160,7 @@ public enum ReservationStatus
   }
   public static com.google.protobuf.Descriptors.EnumDescriptor
       getDescriptor() {
-    return ai.stigmer.billing.v1.EnumProto.getDescriptor().getEnumType(3);
+    return ai.stigmer.billing.v1.EnumProto.getDescriptor().getEnumType(4);
   }
 
   private static final ReservationStatus[] VALUES = values();

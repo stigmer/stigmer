@@ -83,7 +83,7 @@ func TestAgentExecution_Config_ModelOverride(t *testing.T) {
 
 			// Each harness resolves model names differently.
 			// Native runner uses the Anthropic SDK directly; Cursor has its own registry.
-			modelName := "claude-sonnet-4-20250514"
+			modelName := "claude-sonnet-4.6"
 			if h.Name == "cursor" {
 				modelName = "claude-haiku-4-20250514"
 			}

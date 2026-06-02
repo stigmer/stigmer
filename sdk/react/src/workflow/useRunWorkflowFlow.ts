@@ -9,6 +9,9 @@ import { getUserMessage } from "@stigmer/sdk";
 import { useStigmer } from "../hooks";
 import { useExecutionTarget } from "../execution-target-context";
 import { useRunnerAdapter } from "../runner-adapter";
+import { toProtoExecutionTarget } from "../session/execution-target";
+import { workflowUsesTriggerInput } from "./workflow-uses-trigger-input";
+import { useInstanceEnvKeys } from "./useInstanceEnvKeys";
 
 /** Field-level validation errors keyed by field name. */
 export type RunWorkflowFieldErrors = Record<string, string>;
@@ -52,6 +55,32 @@ export interface UseRunWorkflowFlowReturn {
 
   /** Declared environment variables from the workflow spec. */
   readonly envDeclarations: Record<string, EnvVarDeclaration>;
+
+  /**
+   * Set of env var keys already provided by the selected instance's
+   * bound environments. Empty when no instance is selected or its
+   * environments haven't loaded yet.
+   */
+  readonly instanceEnvKeys: Set<string>;
+
+  /** `true` while instance environment keys are being resolved. */
+  readonly isLoadingInstanceEnvKeys: boolean;
+
+  /**
+   * Whether the workflow references `$input` / trigger_message in its tasks.
+   * When `false`, the trigger message field is irrelevant for this workflow.
+   */
+  readonly usesTriggerInput: boolean;
+
+  /**
+   * Whether the trigger message field should be visible in the form.
+   * Defaults to `usesTriggerInput`; can be toggled by the user via
+   * the escape-hatch "Add trigger input" link.
+   */
+  readonly showTriggerMessage: boolean;
+
+  /** Toggle visibility of the trigger message field (escape hatch). */
+  readonly setShowTriggerMessage: (show: boolean) => void;
 
   /** Field-level validation errors (empty when valid). */
   readonly fieldErrors: RunWorkflowFieldErrors;
@@ -104,11 +133,17 @@ export function useRunWorkflowFlow(
   const contextTarget = useExecutionTarget();
   const adapter = useRunnerAdapter();
 
+  const usesTriggerInput = useMemo(
+    () => workflowUsesTriggerInput(workflow),
+    [workflow],
+  );
+
   const [triggerMessage, setTriggerMessage] = useState("");
   const [runtimeEnv, setRuntimeEnv] = useState<Record<string, string>>({});
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(
     null,
   );
+  const [showTriggerMessage, setShowTriggerMessage] = useState(usesTriggerInput);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<RunWorkflowFieldErrors>({});
@@ -125,6 +160,17 @@ export function useRunWorkflowFlow(
     [workflow.spec?.env],
   );
 
+  const selectedInstance = useMemo(
+    () =>
+      selectedInstanceId
+        ? instances.find((i) => i.metadata?.id === selectedInstanceId) ?? null
+        : null,
+    [instances, selectedInstanceId],
+  );
+
+  const { instanceEnvKeys, isLoading: isLoadingInstanceEnvKeys } =
+    useInstanceEnvKeys(selectedInstance, org);
+
   const setEnvVar = useCallback((key: string, value: string) => {
     setRuntimeEnv((prev) => ({ ...prev, [key]: value }));
     setFieldErrors((prev) => {
@@ -138,13 +184,13 @@ export function useRunWorkflowFlow(
   const validate = useCallback((): boolean => {
     const errors: RunWorkflowFieldErrors = {};
     for (const [key, decl] of Object.entries(envDeclarations)) {
-      if (!decl.optional && !runtimeEnv[key]?.trim()) {
+      if (!decl.optional && !runtimeEnv[key]?.trim() && !instanceEnvKeys.has(key)) {
         errors[key] = `${key} is required`;
       }
     }
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
-  }, [envDeclarations, runtimeEnv]);
+  }, [envDeclarations, runtimeEnv, instanceEnvKeys]);
 
   const submit = useCallback(async () => {
     if (isSubmitting) return;
@@ -181,6 +227,9 @@ export function useRunWorkflowFlow(
           },
           runtimeEnv:
             Object.keys(envInput).length > 0 ? envInput : undefined,
+          executionTarget: contextTarget
+            ? toProtoExecutionTarget(contextTarget)
+            : undefined,
         });
 
       const executionId = execution.metadata?.id;
@@ -222,9 +271,10 @@ export function useRunWorkflowFlow(
     setTriggerMessage("");
     setRuntimeEnv({});
     setSelectedInstanceId(null);
+    setShowTriggerMessage(usesTriggerInput);
     setError(null);
     setFieldErrors({});
-  }, []);
+  }, [usesTriggerInput]);
 
   return {
     triggerMessage,
@@ -234,6 +284,11 @@ export function useRunWorkflowFlow(
     selectedInstanceId,
     setSelectedInstanceId,
     envDeclarations,
+    instanceEnvKeys,
+    isLoadingInstanceEnvKeys,
+    usesTriggerInput,
+    showTriggerMessage,
+    setShowTriggerMessage,
     fieldErrors,
     isSubmitting,
     error,

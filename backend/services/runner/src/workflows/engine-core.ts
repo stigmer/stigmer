@@ -23,12 +23,15 @@ import type { createCallGrpcActivities } from "../activities/call-grpc.js";
 import type { createCallFunctionActivities } from "../activities/call-function.js";
 import type { createRunCommandActivities } from "../activities/run-command.js";
 import type { createWorkflowEventActivities } from "../activities/workflow-event-activities.js";
+import type { createPromoteTaskOutputActivities } from "../activities/promote-task-output.js";
 import { orchestrateAgentCall } from "./call-agent-orchestrator.js";
 import { orchestrateListenTask } from "./listen-orchestrator.js";
 import { orchestrateRunWorkflow } from "./run-orchestrator.js";
 import { orchestrateHumanInput } from "./human-input-orchestrator.js";
 import { executeDoTasks } from "../workflow-engine/do-executor.js";
 import { createState } from "../workflow-engine/state.js";
+import { buildRecoveryContext } from "../workflow-engine/recovery.js";
+import type { RecoveryContext } from "../workflow-engine/recovery.js";
 import { TaskStatusAccumulator } from "../workflow-engine/task-status-accumulator.js";
 import type {
   ExpressionEvaluator,
@@ -58,6 +61,7 @@ type GrpcActivities = ReturnType<typeof createCallGrpcActivities>;
 type FunctionActivities = ReturnType<typeof createCallFunctionActivities>;
 type RunActivities = ReturnType<typeof createRunCommandActivities>;
 type EventActivities = ReturnType<typeof createWorkflowEventActivities>;
+type PromoteActivities = ReturnType<typeof createPromoteTaskOutputActivities>;
 
 const evalProxy = proxyLocalActivities<EvalActivities>({
   startToCloseTimeout: "10s",
@@ -93,12 +97,21 @@ const eventProxy = proxyLocalActivities<EventActivities>({
   },
 });
 
+const promoteProxy = proxyLocalActivities<PromoteActivities>({
+  startToCloseTimeout: "30s",
+  retry: {
+    maximumAttempts: 2,
+    initialInterval: "1s",
+  },
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Engine Core
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface RunWorkflowEngineOptions {
   readonly checkPause?: () => Promise<void>;
+  readonly recoveryMode?: boolean;
 }
 
 /**
@@ -132,7 +145,26 @@ export async function runWorkflowEngine(
 
   recordExecutionStartMetric(model.document.name);
 
-  await eventProxy.ResetEventSequence();
+  await eventProxy.ResetEventSequence(executionId);
+
+  let recoveryContext: RecoveryContext | undefined;
+  if (options?.recoveryMode && executionId) {
+    log.info("Recovery mode active — loading context", { executionId });
+    const rawTasks = await eventProxy.LoadRecoveryContext(executionId);
+    recoveryContext = buildRecoveryContext(rawTasks);
+    const truncatedCount = [...recoveryContext.completedTasks.values()]
+      .filter(t => t.isTruncated).length;
+    if (recoveryContext.completedTasks.size > 0) {
+      log.info("Recovery context loaded", {
+        completedTasks: recoveryContext.completedTasks.size,
+        truncatedOutputs: truncatedCount,
+      });
+    } else {
+      log.warn("Recovery mode active but no completed tasks found — executing all tasks", {
+        executionId,
+      });
+    }
+  }
 
   const taskStatusAccumulator = new TaskStatusAccumulator();
 
@@ -211,6 +243,8 @@ export async function runWorkflowEngine(
         taskName: agentMeta.taskName,
         workflowExecutionId: agentMeta.workflowExecutionId || executionId,
       }),
+    promoteTaskOutput: (taskOutput: unknown, wexId: string, taskName: string) =>
+      promoteProxy.PromoteTaskOutput(taskOutput, wexId || executionId, taskName),
   };
 
   const state = createState();
@@ -220,6 +254,7 @@ export async function runWorkflowEngine(
     __stigmer_org_id: metadata?.org_id ?? "",
     __stigmer_workflow_id: metadata?.workflow_id ?? "",
     __stigmer_activity_task_queue: workflowInfo().taskQueue,
+    __stigmer_execution_target: metadata?.execution_target ?? 0,
   };
   state.input = workflow_input;
 
@@ -242,6 +277,7 @@ export async function runWorkflowEngine(
       model,
       evaluateExpressions,
       ctx,
+      recoveryContext,
     );
 
     if (model.output?.as !== undefined) {
@@ -255,17 +291,26 @@ export async function runWorkflowEngine(
     const durationMs = Date.now() - executionStartMs;
     recordExecutionEndMetric(model.document.name, true, durationMs);
 
+    const allTasks = taskStatusAccumulator.toArray();
+    const totalCostMicros = allTasks.reduce((sum, t) => sum + (t.costMicros ?? 0), 0);
+    const totalInputTokens = allTasks.reduce((sum, t) => sum + (t.inputTokens ?? 0), 0);
+    const totalOutputTokens = allTasks.reduce((sum, t) => sum + (t.outputTokens ?? 0), 0);
+
     await emitEvents([{
       type: "execution_completed",
       occurredAt: nowIso(),
       durationMs,
-      totalCostMicros: 0,
-      totalTokens: 0,
+      totalCostMicros,
+      totalTokens: totalInputTokens + totalOutputTokens,
+      totalInputTokens,
+      totalOutputTokens,
     }]);
 
     log.info("Serverless workflow execution completed", {
       workflowName: model.document.name,
       durationMs,
+      totalCostMicros,
+      totalTokens: totalInputTokens + totalOutputTokens,
     });
 
     return state.output;
@@ -274,12 +319,14 @@ export async function runWorkflowEngine(
     recordExecutionEndMetric(model.document.name, false, durationMs);
 
     const errorMessage = extractErrorMessage(err);
+    const allTasks = taskStatusAccumulator.toArray();
+    const failedTask = allTasks.find(t => t.status === "failed");
 
     await emitEvents([{
       type: "execution_failed",
       occurredAt: nowIso(),
       error: errorMessage,
-      failedTaskName: "",
+      failedTaskName: failedTask?.taskName ?? "",
       durationMs,
     }]);
 

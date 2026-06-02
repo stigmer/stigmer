@@ -116,7 +116,7 @@ stigmer draft agent [flags]
 | `--json`            | `bool`        |         | stream execution events as newline-delimited JSON (for scripting/CI)                         |
 | `--message`, `-m`   | `string`      |         | initial message/prompt for execution                                                         |
 | `--mode`            | `string`      |         | interaction mode: "agent" (default, full access) or "plan" (read-only analysis)              |
-| `--model`           | `string`      |         | LLM model to use (e.g., claude-sonnet-4-20250514)                                            |
+| `--model`           | `string`      |         | LLM model to use (e.g., claude-sonnet-4-6)                                                   |
 | `--output`, `-o`    | `string`      |         | directory to save generated artifacts (default: current directory when no workspace is used) |
 | `--secret`          | `stringArray` |         | secret environment variable (KEY=VALUE, can be repeated, encrypted)                          |
 | `--secret-file`     | `stringArray` |         | load secrets from file (can be repeated, all values encrypted)                               |
@@ -134,7 +134,7 @@ stigmer draft agent --attach ./proto-schemas/ -m "Create an agent that validates
 stigmer draft agent -m "Create a code review agent" --output ./agents/
 
 # Use a specific model
-stigmer draft agent -m "Create an agent for X" --model claude-sonnet-4-20250514
+stigmer draft agent -m "Create an agent for X" --model claude-sonnet-4-6
 
 # Run with a workspace (agent can inspect your code)
 stigmer draft agent --workspace . -m "Create an agent based on this project"
@@ -183,7 +183,7 @@ stigmer draft mcp-server [flags]
 | `--json`            | `bool`        |         | stream execution events as newline-delimited JSON (for scripting/CI)                         |
 | `--message`, `-m`   | `string`      |         | initial message/prompt for execution                                                         |
 | `--mode`            | `string`      |         | interaction mode: "agent" (default, full access) or "plan" (read-only analysis)              |
-| `--model`           | `string`      |         | LLM model to use (e.g., claude-sonnet-4-20250514)                                            |
+| `--model`           | `string`      |         | LLM model to use (e.g., claude-sonnet-4-6)                                                   |
 | `--output`, `-o`    | `string`      |         | directory to save generated artifacts (default: current directory when no workspace is used) |
 | `--secret`          | `stringArray` |         | secret environment variable (KEY=VALUE, can be repeated, encrypted)                          |
 | `--secret-file`     | `stringArray` |         | load secrets from file (can be repeated, all values encrypted)                               |
@@ -201,7 +201,7 @@ stigmer draft mcp-server --attach ./docs/ -m "Create an MCP server for our inter
 stigmer draft mcp-server -m "Create a Slack MCP server" --output ./mcp-servers/
 
 # Use a specific model
-stigmer draft mcp-server -m "Create an MCP server for X" --model claude-sonnet-4-20250514
+stigmer draft mcp-server -m "Create an MCP server for X" --model claude-sonnet-4-6
 
 # Run with a workspace (agent can inspect your code)
 stigmer draft mcp-server --workspace . -m "Create an MCP server based on this project"
@@ -247,7 +247,7 @@ stigmer draft skill [flags]
 | `--json`            | `bool`        |         | stream execution events as newline-delimited JSON (for scripting/CI)                         |
 | `--message`, `-m`   | `string`      |         | initial message/prompt for execution                                                         |
 | `--mode`            | `string`      |         | interaction mode: "agent" (default, full access) or "plan" (read-only analysis)              |
-| `--model`           | `string`      |         | LLM model to use (e.g., claude-sonnet-4-20250514)                                            |
+| `--model`           | `string`      |         | LLM model to use (e.g., claude-sonnet-4-6)                                                   |
 | `--output`, `-o`    | `string`      |         | directory to save generated artifacts (default: current directory when no workspace is used) |
 | `--secret`          | `stringArray` |         | secret environment variable (KEY=VALUE, can be repeated, encrypted)                          |
 | `--secret-file`     | `stringArray` |         | load secrets from file (can be repeated, all values encrypted)                               |
@@ -268,7 +268,7 @@ stigmer draft skill --attach ./requirements.md --attach ./examples/ -m "Build sk
 stigmer draft skill -m "Create a YAML validator skill" --output ./skills/yaml-validator/
 
 # Use a specific model
-stigmer draft skill -m "Create a skill for X" --model claude-sonnet-4-20250514
+stigmer draft skill -m "Create a skill for X" --model claude-sonnet-4-6
 
 # Run with a workspace (agent can inspect your code)
 stigmer draft skill --workspace . -m "Create a skill based on this project"

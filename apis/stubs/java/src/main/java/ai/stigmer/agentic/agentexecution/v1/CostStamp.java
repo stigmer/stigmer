@@ -107,6 +107,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Raw provider cost computed server-side from pricing registry.
+   * For cursor-harness calls this includes the Cursor Token Rate fee
+   * (see cursor_platform_fee_micros for the explicit sub-component).
    * </pre>
    *
    * <code>int64 provider_cost_micros = 2 [json_name = "providerCostMicros"];</code>
@@ -196,6 +198,23 @@ private static final long serialVersionUID = 0L;
     return pricing_ == null ? ai.stigmer.agentic.agentexecution.v1.PricingSnapshot.getDefaultInstance() : pricing_;
   }
 
+  public static final int CURSOR_PLATFORM_FEE_MICROS_FIELD_NUMBER = 6;
+  private long cursorPlatformFeeMicros_ = 0L;
+  /**
+   * <pre>
+   * Cursor Token Rate fee charged by Cursor on top of model API pricing,
+   * already included in provider_cost_micros. Surfaced explicitly for audit
+   * and per-call transparency. Zero for native harness and exempt cursor models.
+   * </pre>
+   *
+   * <code>int64 cursor_platform_fee_micros = 6 [json_name = "cursorPlatformFeeMicros"];</code>
+   * @return The cursorPlatformFeeMicros.
+   */
+  @java.lang.Override
+  public long getCursorPlatformFeeMicros() {
+    return cursorPlatformFeeMicros_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -225,6 +244,9 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(5, getPricing());
     }
+    if (cursorPlatformFeeMicros_ != 0L) {
+      output.writeInt64(6, cursorPlatformFeeMicros_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -253,6 +275,10 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(5, getPricing());
     }
+    if (cursorPlatformFeeMicros_ != 0L) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeInt64Size(6, cursorPlatformFeeMicros_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -280,6 +306,8 @@ private static final long serialVersionUID = 0L;
       if (!getPricing()
           .equals(other.getPricing())) return false;
     }
+    if (getCursorPlatformFeeMicros()
+        != other.getCursorPlatformFeeMicros()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -305,6 +333,9 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + PRICING_FIELD_NUMBER;
       hash = (53 * hash) + getPricing().hashCode();
     }
+    hash = (37 * hash) + CURSOR_PLATFORM_FEE_MICROS_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+        getCursorPlatformFeeMicros());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -455,6 +486,7 @@ private static final long serialVersionUID = 0L;
         pricingBuilder_.dispose();
         pricingBuilder_ = null;
       }
+      cursorPlatformFeeMicros_ = 0L;
       return this;
     }
 
@@ -507,6 +539,9 @@ private static final long serialVersionUID = 0L;
             : pricingBuilder_.build();
         to_bitField0_ |= 0x00000001;
       }
+      if (((from_bitField0_ & 0x00000020) != 0)) {
+        result.cursorPlatformFeeMicros_ = cursorPlatformFeeMicros_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -538,6 +573,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasPricing()) {
         mergePricing(other.getPricing());
+      }
+      if (other.getCursorPlatformFeeMicros() != 0L) {
+        setCursorPlatformFeeMicros(other.getCursorPlatformFeeMicros());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -592,6 +630,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000010;
               break;
             } // case 42
+            case 48: {
+              cursorPlatformFeeMicros_ = input.readInt64();
+              bitField0_ |= 0x00000020;
+              break;
+            } // case 48
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -705,6 +748,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Raw provider cost computed server-side from pricing registry.
+     * For cursor-harness calls this includes the Cursor Token Rate fee
+     * (see cursor_platform_fee_micros for the explicit sub-component).
      * </pre>
      *
      * <code>int64 provider_cost_micros = 2 [json_name = "providerCostMicros"];</code>
@@ -717,6 +762,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Raw provider cost computed server-side from pricing registry.
+     * For cursor-harness calls this includes the Cursor Token Rate fee
+     * (see cursor_platform_fee_micros for the explicit sub-component).
      * </pre>
      *
      * <code>int64 provider_cost_micros = 2 [json_name = "providerCostMicros"];</code>
@@ -733,6 +780,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Raw provider cost computed server-side from pricing registry.
+     * For cursor-harness calls this includes the Cursor Token Rate fee
+     * (see cursor_platform_fee_micros for the explicit sub-component).
      * </pre>
      *
      * <code>int64 provider_cost_micros = 2 [json_name = "providerCostMicros"];</code>
@@ -1016,6 +1065,56 @@ private static final long serialVersionUID = 0L;
         pricing_ = null;
       }
       return pricingBuilder_;
+    }
+
+    private long cursorPlatformFeeMicros_ ;
+    /**
+     * <pre>
+     * Cursor Token Rate fee charged by Cursor on top of model API pricing,
+     * already included in provider_cost_micros. Surfaced explicitly for audit
+     * and per-call transparency. Zero for native harness and exempt cursor models.
+     * </pre>
+     *
+     * <code>int64 cursor_platform_fee_micros = 6 [json_name = "cursorPlatformFeeMicros"];</code>
+     * @return The cursorPlatformFeeMicros.
+     */
+    @java.lang.Override
+    public long getCursorPlatformFeeMicros() {
+      return cursorPlatformFeeMicros_;
+    }
+    /**
+     * <pre>
+     * Cursor Token Rate fee charged by Cursor on top of model API pricing,
+     * already included in provider_cost_micros. Surfaced explicitly for audit
+     * and per-call transparency. Zero for native harness and exempt cursor models.
+     * </pre>
+     *
+     * <code>int64 cursor_platform_fee_micros = 6 [json_name = "cursorPlatformFeeMicros"];</code>
+     * @param value The cursorPlatformFeeMicros to set.
+     * @return This builder for chaining.
+     */
+    public Builder setCursorPlatformFeeMicros(long value) {
+
+      cursorPlatformFeeMicros_ = value;
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Cursor Token Rate fee charged by Cursor on top of model API pricing,
+     * already included in provider_cost_micros. Surfaced explicitly for audit
+     * and per-call transparency. Zero for native harness and exempt cursor models.
+     * </pre>
+     *
+     * <code>int64 cursor_platform_fee_micros = 6 [json_name = "cursorPlatformFeeMicros"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearCursorPlatformFeeMicros() {
+      bitField0_ = (bitField0_ & ~0x00000020);
+      cursorPlatformFeeMicros_ = 0L;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agentexecution.v1.CostStamp)

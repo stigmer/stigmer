@@ -24,11 +24,12 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && node scripts/build-fingerprint.js",
     "start": "tsx src/main.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "check-deps": "bash scripts/check-langchain-deps.sh",
     "clean": "rm -rf dist"
   },
   "files": [

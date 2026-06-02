@@ -1928,8 +1928,12 @@ type GetSessionUsageReportOutput struct {
 	FirstExecutionAt string `protobuf:"bytes,6,opt,name=first_execution_at,json=firstExecutionAt,proto3" json:"first_execution_at,omitempty"`
 	// ISO 8601 timestamp of the most recent execution in this session.
 	LastExecutionAt string `protobuf:"bytes,7,opt,name=last_execution_at,json=lastExecutionAt,proto3" json:"last_execution_at,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Whether any record in this session is still estimated (not yet proxy-metered).
+	// True when execution is in-flight and only streaming usage data is available.
+	// False once proxy billing records have been written.
+	IsEstimated   bool `protobuf:"varint,8,opt,name=is_estimated,json=isEstimated,proto3" json:"is_estimated,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetSessionUsageReportOutput) Reset() {
@@ -2009,6 +2013,13 @@ func (x *GetSessionUsageReportOutput) GetLastExecutionAt() string {
 		return x.LastExecutionAt
 	}
 	return ""
+}
+
+func (x *GetSessionUsageReportOutput) GetIsEstimated() bool {
+	if x != nil {
+		return x.IsEstimated
+	}
+	return false
 }
 
 // GetAgentUsageReportInput requests a usage report for a specific agent.
@@ -2429,7 +2440,9 @@ type ExecutionUsageSummary struct {
 	// Number of sub-agent invocations in this execution.
 	SubAgentCount int32 `protobuf:"varint,9,opt,name=sub_agent_count,json=subAgentCount,proto3" json:"sub_agent_count,omitempty"`
 	// Terminal phase of this execution.
-	Phase         ExecutionPhase `protobuf:"varint,10,opt,name=phase,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ExecutionPhase" json:"phase,omitempty"`
+	Phase ExecutionPhase `protobuf:"varint,10,opt,name=phase,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ExecutionPhase" json:"phase,omitempty"`
+	// Whether this execution's cost is estimated (in-flight, no billing records yet).
+	IsEstimated   bool `protobuf:"varint,11,opt,name=is_estimated,json=isEstimated,proto3" json:"is_estimated,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2532,6 +2545,13 @@ func (x *ExecutionUsageSummary) GetPhase() ExecutionPhase {
 		return x.Phase
 	}
 	return ExecutionPhase_EXECUTION_PHASE_UNSPECIFIED
+}
+
+func (x *ExecutionUsageSummary) GetIsEstimated() bool {
+	if x != nil {
+		return x.IsEstimated
+	}
+	return false
 }
 
 // Lightweight view of a session's usage within an agent report.
@@ -3160,7 +3180,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDesc = "" +
 	"\x0fmodel_breakdown\x18\x02 \x03(\v20.ai.stigmer.agentic.agentexecution.v1.ModelUsageR\x0emodelBreakdown\"D\n" +
 	"\x1aGetSessionUsageReportInput\x12&\n" +
 	"\n" +
-	"session_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\tsessionId\"\xd4\x03\n" +
+	"session_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\tsessionId\"\xf7\x03\n" +
 	"\x1bGetSessionUsageReportOutput\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12'\n" +
@@ -3172,7 +3192,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDesc = "" +
 	"executions\x12Y\n" +
 	"\x0fmodel_breakdown\x18\x05 \x03(\v20.ai.stigmer.agentic.agentexecution.v1.ModelUsageR\x0emodelBreakdown\x12,\n" +
 	"\x12first_execution_at\x18\x06 \x01(\tR\x10firstExecutionAt\x12*\n" +
-	"\x11last_execution_at\x18\a \x01(\tR\x0flastExecutionAt\"\xb0\x01\n" +
+	"\x11last_execution_at\x18\a \x01(\tR\x0flastExecutionAt\x12!\n" +
+	"\fis_estimated\x18\b \x01(\bR\visEstimated\"\xb0\x01\n" +
 	"\x18GetAgentUsageReportInput\x12\"\n" +
 	"\bagent_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\aagentId\x12\x1b\n" +
 	"\tfrom_date\x18\x02 \x01(\tR\bfromDate\x12\x17\n" +
@@ -3206,7 +3227,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDesc = "" +
 	"\x12top_agents_by_cost\x18\a \x03(\v27.ai.stigmer.agentic.agentexecution.v1.AgentUsageSummaryR\x0ftopAgentsByCost\x12U\n" +
 	"\vdaily_costs\x18\b \x03(\v24.ai.stigmer.agentic.agentexecution.v1.DailyCostEntryR\n" +
 	"dailyCosts\x12e\n" +
-	"\x11harness_breakdown\x18\t \x03(\v28.ai.stigmer.agentic.agentexecution.v1.HarnessCostSummaryR\x10harnessBreakdown\"\xc6\x03\n" +
+	"\x11harness_breakdown\x18\t \x03(\v28.ai.stigmer.agentic.agentexecution.v1.HarnessCostSummaryR\x10harnessBreakdown\"\xe9\x03\n" +
 	"\x15ExecutionUsageSummary\x12!\n" +
 	"\fexecution_id\x18\x01 \x01(\tR\vexecutionId\x12\x1d\n" +
 	"\n" +
@@ -3219,7 +3240,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDesc = "" +
 	"\rprimary_model\x18\b \x01(\tR\fprimaryModel\x12&\n" +
 	"\x0fsub_agent_count\x18\t \x01(\x05R\rsubAgentCount\x12J\n" +
 	"\x05phase\x18\n" +
-	" \x01(\x0e24.ai.stigmer.agentic.agentexecution.v1.ExecutionPhaseR\x05phase\"\x8c\x02\n" +
+	" \x01(\x0e24.ai.stigmer.agentic.agentexecution.v1.ExecutionPhaseR\x05phase\x12!\n" +
+	"\fis_estimated\x18\v \x01(\bR\visEstimated\"\x8c\x02\n" +
 	"\x13SessionUsageSummary\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12'\n" +

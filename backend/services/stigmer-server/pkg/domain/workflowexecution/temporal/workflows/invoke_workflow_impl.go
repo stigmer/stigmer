@@ -303,6 +303,15 @@ func (w *InvokeWorkflowExecutionWorkflowImpl) updateStatusToRunning(ctx workflow
 }
 
 // updateStatusOnFailure updates the execution status to FAILED when a system error occurs.
+//
+// Uses a regular activity (not local) on the stigmer workflow queue for version >= 1.
+// Local activities produce RECORD_MARKER events that trigger a Temporal SDK state machine
+// bug when executed in the same workflow task as a child workflow failure event. Regular
+// activities produce standard ActivityTaskScheduled/Completed events that replay safely.
+//
+// This mirrors the fix already applied to:
+//   - Java workflow orchestrator (InvokeWorkflowExecutionWorkflowImpl.java, remote stubs)
+//   - Go agent orchestrator (agentexecution/temporal/workflows/invoke_workflow_impl.go)
 func (w *InvokeWorkflowExecutionWorkflowImpl) updateStatusOnFailure(ctx workflow.Context, executionID string, originalErr error) error {
 	logger := workflow.GetLogger(ctx)
 
@@ -313,15 +322,29 @@ func (w *InvokeWorkflowExecutionWorkflowImpl) updateStatusOnFailure(ctx workflow
 		Error: fmt.Sprintf("Workflow execution failed: %s", originalErr.Error()),
 	}
 
-	localCtx := workflow.WithLocalActivityOptions(ctx, workflow.LocalActivityOptions{
-		ScheduleToCloseTimeout: 30 * time.Second,
-		RetryPolicy: &temporal.RetryPolicy{
-			MaximumAttempts: 3,
-			InitialInterval: 2 * time.Second,
-		},
-	})
+	v := workflow.GetVersion(ctx, "remote-cleanup-stubs", workflow.DefaultVersion, 1)
 
-	err := workflow.ExecuteLocalActivity(localCtx, activities.UpdateWorkflowExecutionStatusActivityName, executionID, failedStatus).Get(localCtx, nil)
+	var err error
+	if v >= 1 {
+		actCtx := workflow.WithActivityOptions(ctx, workflow.ActivityOptions{
+			ScheduleToCloseTimeout: 30 * time.Second,
+			RetryPolicy: &temporal.RetryPolicy{
+				MaximumAttempts: 3,
+				InitialInterval: 2 * time.Second,
+			},
+		})
+		err = workflow.ExecuteActivity(actCtx, activities.UpdateWorkflowExecutionStatusActivityName, executionID, failedStatus).Get(actCtx, nil)
+	} else {
+		localCtx := workflow.WithLocalActivityOptions(ctx, workflow.LocalActivityOptions{
+			ScheduleToCloseTimeout: 30 * time.Second,
+			RetryPolicy: &temporal.RetryPolicy{
+				MaximumAttempts: 3,
+				InitialInterval: 2 * time.Second,
+			},
+		})
+		err = workflow.ExecuteLocalActivity(localCtx, activities.UpdateWorkflowExecutionStatusActivityName, executionID, failedStatus).Get(localCtx, nil)
+	}
+
 	if err != nil {
 		logger.Error("Failed to update execution status", "error", err.Error())
 		return err
@@ -346,6 +369,7 @@ func (w *InvokeWorkflowExecutionWorkflowImpl) handleCancellation(ctx workflow.Co
 }
 
 // updateStatusOnCancellation updates the execution status to CANCELLED.
+// Uses remote activity (v1) to avoid RECORD_MARKER replay bugs on the cancel path.
 // Best-effort: logs on error but never propagates.
 func (w *InvokeWorkflowExecutionWorkflowImpl) updateStatusOnCancellation(ctx workflow.Context, executionID string) {
 	logger := workflow.GetLogger(ctx)
@@ -355,15 +379,29 @@ func (w *InvokeWorkflowExecutionWorkflowImpl) updateStatusOnCancellation(ctx wor
 		Error: "Workflow execution cancelled",
 	}
 
-	localCtx := workflow.WithLocalActivityOptions(ctx, workflow.LocalActivityOptions{
-		ScheduleToCloseTimeout: 30 * time.Second,
-		RetryPolicy: &temporal.RetryPolicy{
-			MaximumAttempts: 3,
-			InitialInterval: 2 * time.Second,
-		},
-	})
+	v := workflow.GetVersion(ctx, "remote-cleanup-stubs", workflow.DefaultVersion, 1)
 
-	err := workflow.ExecuteLocalActivity(localCtx, activities.UpdateWorkflowExecutionStatusActivityName, executionID, cancelledStatus).Get(localCtx, nil)
+	var err error
+	if v >= 1 {
+		actCtx := workflow.WithActivityOptions(ctx, workflow.ActivityOptions{
+			ScheduleToCloseTimeout: 30 * time.Second,
+			RetryPolicy: &temporal.RetryPolicy{
+				MaximumAttempts: 3,
+				InitialInterval: 2 * time.Second,
+			},
+		})
+		err = workflow.ExecuteActivity(actCtx, activities.UpdateWorkflowExecutionStatusActivityName, executionID, cancelledStatus).Get(actCtx, nil)
+	} else {
+		localCtx := workflow.WithLocalActivityOptions(ctx, workflow.LocalActivityOptions{
+			ScheduleToCloseTimeout: 30 * time.Second,
+			RetryPolicy: &temporal.RetryPolicy{
+				MaximumAttempts: 3,
+				InitialInterval: 2 * time.Second,
+			},
+		})
+		err = workflow.ExecuteLocalActivity(localCtx, activities.UpdateWorkflowExecutionStatusActivityName, executionID, cancelledStatus).Get(localCtx, nil)
+	}
+
 	if err != nil {
 		logger.Warn("Failed to update execution status to CANCELLED",
 			"execution_id", executionID, "error", err.Error())
@@ -378,25 +416,41 @@ func (w *InvokeWorkflowExecutionWorkflowImpl) updateStatusOnCancellation(ctx wor
 // (including secrets) and must be cleaned up when the workflow finishes.
 //
 // Uses workflow.NewDisconnectedContext so cleanup runs even if the workflow was
-// cancelled. Errors are logged but never propagated -- cleanup is best-effort
-// with TTL-based backup for orphaned contexts.
+// cancelled. Uses remote activity (v1) on failure/cancel paths to avoid
+// RECORD_MARKER replay bugs. Errors are logged but never propagated -- cleanup
+// is best-effort with TTL-based backup for orphaned contexts.
 func (w *InvokeWorkflowExecutionWorkflowImpl) deleteExecutionContext(ctx workflow.Context, executionID string) {
 	logger := workflow.GetLogger(ctx)
 
 	cleanupCtx, cancel := workflow.NewDisconnectedContext(ctx)
 	defer cancel()
 
-	localCtx := workflow.WithLocalActivityOptions(cleanupCtx, workflow.LocalActivityOptions{
-		ScheduleToCloseTimeout: 30 * time.Second,
-		RetryPolicy: &temporal.RetryPolicy{
-			MaximumAttempts: 3,
-			InitialInterval: 2 * time.Second,
-		},
-	})
+	v := workflow.GetVersion(cleanupCtx, "remote-cleanup-stubs", workflow.DefaultVersion, 1)
 
-	err := workflow.ExecuteLocalActivity(localCtx,
-		ecactivities.DeleteExecutionContextActivityName, executionID,
-	).Get(localCtx, nil)
+	var err error
+	if v >= 1 {
+		actCtx := workflow.WithActivityOptions(cleanupCtx, workflow.ActivityOptions{
+			ScheduleToCloseTimeout: 30 * time.Second,
+			RetryPolicy: &temporal.RetryPolicy{
+				MaximumAttempts: 3,
+				InitialInterval: 2 * time.Second,
+			},
+		})
+		err = workflow.ExecuteActivity(actCtx,
+			ecactivities.DeleteExecutionContextActivityName, executionID,
+		).Get(actCtx, nil)
+	} else {
+		localCtx := workflow.WithLocalActivityOptions(cleanupCtx, workflow.LocalActivityOptions{
+			ScheduleToCloseTimeout: 30 * time.Second,
+			RetryPolicy: &temporal.RetryPolicy{
+				MaximumAttempts: 3,
+				InitialInterval: 2 * time.Second,
+			},
+		})
+		err = workflow.ExecuteLocalActivity(localCtx,
+			ecactivities.DeleteExecutionContextActivityName, executionID,
+		).Get(localCtx, nil)
+	}
 
 	if err != nil {
 		logger.Warn("ExecutionContext cleanup failed (will rely on TTL backup)",

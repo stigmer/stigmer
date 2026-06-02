@@ -8,55 +8,65 @@ import (
 	"go.temporal.io/sdk/workflow"
 )
 
+// RunnerActivityResult wraps the slim AgentExecutionStatus returned by TS
+// runner activities with additional fields for structured output extraction.
+//
+// The TS runner returns a plain JSON object containing the proto-JSON fields
+// of AgentExecutionStatus (phase, error, pendingApprovals, etc.) plus
+// optional non-proto fields (structured_output, final_text) that carry
+// extracted structured data from the agent's response.
+//
+// Using map[string]interface{} preserves all fields — proto and non-proto —
+// across the Temporal data converter boundary.
+type RunnerActivityResult = map[string]interface{}
+
+// GetPhaseFromResult extracts the execution phase from a runner activity result.
+// Returns UNSPECIFIED if the phase field is missing or unparseable.
+func GetPhaseFromResult(result RunnerActivityResult) agentexecutionv1.ExecutionPhase {
+	if result == nil {
+		return agentexecutionv1.ExecutionPhase_EXECUTION_PHASE_UNSPECIFIED
+	}
+
+	phaseVal, ok := result["phase"]
+	if !ok {
+		return agentexecutionv1.ExecutionPhase_EXECUTION_PHASE_UNSPECIFIED
+	}
+
+	// Protobuf JSON serialization uses string enum names
+	if phaseStr, ok := phaseVal.(string); ok {
+		if enumVal, ok := agentexecutionv1.ExecutionPhase_value[phaseStr]; ok {
+			return agentexecutionv1.ExecutionPhase(enumVal)
+		}
+	}
+
+	// Fallback: numeric enum value
+	if phaseNum, ok := phaseVal.(float64); ok {
+		return agentexecutionv1.ExecutionPhase(int32(phaseNum))
+	}
+
+	return agentexecutionv1.ExecutionPhase_EXECUTION_PHASE_UNSPECIFIED
+}
+
+// GetErrorFromResult extracts the error string from a runner activity result.
+func GetErrorFromResult(result RunnerActivityResult) string {
+	if result == nil {
+		return ""
+	}
+	if errVal, ok := result["error"]; ok {
+		if errStr, ok := errVal.(string); ok {
+			return errStr
+		}
+	}
+	return ""
+}
+
 // ExecuteDeepAgentActivity is the interface for executing native deep agents.
 //
-// This activity is implemented in TypeScript (unified runner) and:
-// 1. Fetches AgentExecution from database via gRPC get(executionID)
-// 2. Fetches Agent configuration via gRPC chain resolution
-// 3. Creates a deep agent at runtime using createDeepAgent()
-// 4. Invokes agent with thread_id for state persistence
-// 5. Sends progressive status updates to DB via gRPC during execution
-// 6. Returns a slim status summary to the workflow
-//
-// Slim-Payload Pattern (Input + Output):
-// Input:  The activity receives only an executionID (not the full AgentExecution
-//
-//	proto) and hydrates it from the database.
-//
-// Output: The activity returns a slim AgentExecutionStatus containing only
-//
-//	workflow-critical fields: phase, pending_approvals, error, usage,
-//	started_at, and completed_at.  Heavy fields (messages, tool_calls,
-//	sub_agent_executions, todos, artifacts, context_info) are omitted
-//	because they are already persisted to the database via progressive
-//	gRPC updates during execution.
-//
-// This keeps both input and output payloads well under Temporal's ~2 MB limit.
-//
-// Unified Runner Architecture:
-// Both ExecuteCursor and ExecuteDeepAgent are registered on the same activity
-// task queue (global: agent_execution_runner, or per-session: session:{id}).
-// Temporal routes by activity name — no queue suffix is needed. The workflow
-// dispatches to the correct activity based on session.spec.harness.
-//
-// Deep agents support thread-based state persistence via LangGraph.
+// Returns RunnerActivityResult (map[string]interface{}) to preserve both
+// proto fields (phase, pendingApprovals) and non-proto fields
+// (structured_output, final_text) from the TS runner.
 type ExecuteDeepAgentActivity interface {
-	// ExecuteDeepAgent executes a native deep agent and returns a slim status summary.
-	//
-	// The returned AgentExecutionStatus contains only workflow-critical fields
-	// (phase, pending_approvals, error, usage, timestamps).  Heavy fields like
-	// messages and tool_calls are already in the database from progressive gRPC
-	// updates sent during execution and are intentionally omitted to stay under
-	// Temporal's payload size limit.
-	//
-	// HITL approval decisions are read from the database by the activity
-	// (DB-driven resume). No decisions are passed via Temporal arguments.
-	//
-	// executionID: The AgentExecution ID to fetch and execute
-	// threadID: The LangGraph thread ID for conversation state persistence
-	//
-	// Returns: Slim execution status (phase, pending_approvals, error, usage).
-	ExecuteDeepAgent(executionID string, threadID string) (*agentexecutionv1.AgentExecutionStatus, error)
+	ExecuteDeepAgent(executionID string, threadID string) (RunnerActivityResult, error)
 }
 
 // ExecuteDeepAgentActivityName is the activity name used for Temporal registration.
@@ -68,7 +78,7 @@ func NewExecuteDeepAgentActivityStub(ctx workflow.Context, taskQueue string) Exe
 	options := workflow.ActivityOptions{
 		TaskQueue:              taskQueue,
 		StartToCloseTimeout:    24 * time.Hour,
-		ScheduleToStartTimeout: 1 * time.Minute,
+		ScheduleToStartTimeout: 5 * time.Minute,
 		HeartbeatTimeout:       2 * time.Minute,
 		RetryPolicy: &temporal.RetryPolicy{
 			MaximumAttempts:    1,
@@ -86,8 +96,8 @@ type executeDeepAgentActivityStub struct {
 	ctx workflow.Context
 }
 
-func (s *executeDeepAgentActivityStub) ExecuteDeepAgent(executionID string, threadID string) (*agentexecutionv1.AgentExecutionStatus, error) {
-	var result *agentexecutionv1.AgentExecutionStatus
+func (s *executeDeepAgentActivityStub) ExecuteDeepAgent(executionID string, threadID string) (RunnerActivityResult, error) {
+	var result RunnerActivityResult
 	err := workflow.ExecuteActivity(s.ctx, ExecuteDeepAgentActivityName, executionID, threadID).Get(s.ctx, &result)
 	return result, err
 }

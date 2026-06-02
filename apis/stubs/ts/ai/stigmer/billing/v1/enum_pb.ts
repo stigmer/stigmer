@@ -9,7 +9,7 @@ import { enumDesc, fileDesc } from "@bufbuild/protobuf/codegenv1";
  * Describes the file ai/stigmer/billing/v1/enum.proto.
  */
 export const file_ai_stigmer_billing_v1_enum: GenFile = /*@__PURE__*/
-  fileDesc("CiBhaS9zdGlnbWVyL2JpbGxpbmcvdjEvZW51bS5wcm90bxIVYWkuc3RpZ21lci5iaWxsaW5nLnYxKrYCCg9MZWRnZXJFbnRyeVR5cGUSIQodbGVkZ2VyX2VudHJ5X3R5cGVfdW5zcGVjaWZpZWQQABITCg9wdXJjaGFzZV9jcmVkaXQQARIWChJwcm9tb3Rpb25hbF9jcmVkaXQQAhIPCgt1c2FnZV9kZWJpdBADEhQKEHJlc2VydmF0aW9uX2hvbGQQBBIXChNyZXNlcnZhdGlvbl9yZWxlYXNlEAUSFQoRYWRqdXN0bWVudF9jcmVkaXQQBhIUChBhZGp1c3RtZW50X2RlYml0EAcSEwoPcmVmdW5kX3JldmVyc2FsEAgSEAoMZGlzcHV0ZV9ob2xkEAkSEwoPZGlzcHV0ZV9yZWxlYXNlEAoSEAoMZXhwaXJ5X2RlYml0EAsSGAoUYXV0b19yZWNoYXJnZV9jcmVkaXQQDCpkCg9DcmVkaXRHcmFudEtpbmQSIQodY3JlZGl0X2dyYW50X2tpbmRfdW5zcGVjaWZpZWQQABINCglwdXJjaGFzZWQQARIPCgtwcm9tb3Rpb25hbBACEg4KCmFkanVzdG1lbnQQAyqVAQoUQmlsbGluZ0FjY291bnRTdGF0dXMSJgoiYmlsbGluZ19hY2NvdW50X3N0YXR1c191bnNwZWNpZmllZBAAEhoKFmJpbGxpbmdfYWNjb3VudF9hY3RpdmUQARIdChliaWxsaW5nX2FjY291bnRfc3VzcGVuZGVkEAISGgoWYmlsbGluZ19hY2NvdW50X2Nsb3NlZBADKp4BChFSZXNlcnZhdGlvblN0YXR1cxIiCh5yZXNlcnZhdGlvbl9zdGF0dXNfdW5zcGVjaWZpZWQQABIWChJyZXNlcnZhdGlvbl9hY3RpdmUQARIZChVyZXNlcnZhdGlvbl9maW5hbGl6ZWQQAhIXChNyZXNlcnZhdGlvbl9leHBpcmVkEAMSGQoVcmVzZXJ2YXRpb25fY2FuY2VsbGVkEAQqhwEKFkV4ZWN1dGlvbkJpbGxpbmdTaWduYWwSKAokZXhlY3V0aW9uX2JpbGxpbmdfc2lnbmFsX3Vuc3BlY2lmaWVkEAASFgoSY29udGludWVfZXhlY3V0aW9uEAESFwoTbG93X2JhbGFuY2Vfd2FybmluZxACEhIKDnN0b3BfZXhlY3V0aW9uEAMqswEKFENyZWRpdFB1cmNoYXNlU3RhdHVzEiYKImNyZWRpdF9wdXJjaGFzZV9zdGF0dXNfdW5zcGVjaWZpZWQQABIbChdjcmVkaXRfcHVyY2hhc2VfcGVuZGluZxABEh0KGWNyZWRpdF9wdXJjaGFzZV9jb21wbGV0ZWQQAhIaChZjcmVkaXRfcHVyY2hhc2VfZmFpbGVkEAMSGwoXY3JlZGl0X3B1cmNoYXNlX2V4cGlyZWQQBCqXAQoXQXV0b1JlY2hhcmdlRXZlbnRTdGF0dXMSKgomYXV0b19yZWNoYXJnZV9ldmVudF9zdGF0dXNfdW5zcGVjaWZpZWQQABIZChVhdXRvX3JlY2hhcmdlX3BlbmRpbmcQARIbChdhdXRvX3JlY2hhcmdlX3N1Y2NlZWRlZBACEhgKFGF1dG9fcmVjaGFyZ2VfZmFpbGVkEANiBnByb3RvMw");
+  fileDesc("CiBhaS9zdGlnbWVyL2JpbGxpbmcvdjEvZW51bS5wcm90bxIVYWkuc3RpZ21lci5iaWxsaW5nLnYxKrYCCg9MZWRnZXJFbnRyeVR5cGUSIQodbGVkZ2VyX2VudHJ5X3R5cGVfdW5zcGVjaWZpZWQQABITCg9wdXJjaGFzZV9jcmVkaXQQARIWChJwcm9tb3Rpb25hbF9jcmVkaXQQAhIPCgt1c2FnZV9kZWJpdBADEhQKEHJlc2VydmF0aW9uX2hvbGQQBBIXChNyZXNlcnZhdGlvbl9yZWxlYXNlEAUSFQoRYWRqdXN0bWVudF9jcmVkaXQQBhIUChBhZGp1c3RtZW50X2RlYml0EAcSEwoPcmVmdW5kX3JldmVyc2FsEAgSEAoMZGlzcHV0ZV9ob2xkEAkSEwoPZGlzcHV0ZV9yZWxlYXNlEAoSEAoMZXhwaXJ5X2RlYml0EAsSGAoUYXV0b19yZWNoYXJnZV9jcmVkaXQQDCpECgpMZWRnZXJWaWV3EhsKF2xlZGdlcl92aWV3X3Vuc3BlY2lmaWVkEAASGQoVbGVkZ2VyX3ZpZXdfc3RhdGVtZW50EAEqZAoPQ3JlZGl0R3JhbnRLaW5kEiEKHWNyZWRpdF9ncmFudF9raW5kX3Vuc3BlY2lmaWVkEAASDQoJcHVyY2hhc2VkEAESDwoLcHJvbW90aW9uYWwQAhIOCgphZGp1c3RtZW50EAMqlQEKFEJpbGxpbmdBY2NvdW50U3RhdHVzEiYKImJpbGxpbmdfYWNjb3VudF9zdGF0dXNfdW5zcGVjaWZpZWQQABIaChZiaWxsaW5nX2FjY291bnRfYWN0aXZlEAESHQoZYmlsbGluZ19hY2NvdW50X3N1c3BlbmRlZBACEhoKFmJpbGxpbmdfYWNjb3VudF9jbG9zZWQQAyqeAQoRUmVzZXJ2YXRpb25TdGF0dXMSIgoecmVzZXJ2YXRpb25fc3RhdHVzX3Vuc3BlY2lmaWVkEAASFgoScmVzZXJ2YXRpb25fYWN0aXZlEAESGQoVcmVzZXJ2YXRpb25fZmluYWxpemVkEAISFwoTcmVzZXJ2YXRpb25fZXhwaXJlZBADEhkKFXJlc2VydmF0aW9uX2NhbmNlbGxlZBAEKocBChZFeGVjdXRpb25CaWxsaW5nU2lnbmFsEigKJGV4ZWN1dGlvbl9iaWxsaW5nX3NpZ25hbF91bnNwZWNpZmllZBAAEhYKEmNvbnRpbnVlX2V4ZWN1dGlvbhABEhcKE2xvd19iYWxhbmNlX3dhcm5pbmcQAhISCg5zdG9wX2V4ZWN1dGlvbhADKrMBChRDcmVkaXRQdXJjaGFzZVN0YXR1cxImCiJjcmVkaXRfcHVyY2hhc2Vfc3RhdHVzX3Vuc3BlY2lmaWVkEAASGwoXY3JlZGl0X3B1cmNoYXNlX3BlbmRpbmcQARIdChljcmVkaXRfcHVyY2hhc2VfY29tcGxldGVkEAISGgoWY3JlZGl0X3B1cmNoYXNlX2ZhaWxlZBADEhsKF2NyZWRpdF9wdXJjaGFzZV9leHBpcmVkEAQqlwEKF0F1dG9SZWNoYXJnZUV2ZW50U3RhdHVzEioKJmF1dG9fcmVjaGFyZ2VfZXZlbnRfc3RhdHVzX3Vuc3BlY2lmaWVkEAASGQoVYXV0b19yZWNoYXJnZV9wZW5kaW5nEAESGwoXYXV0b19yZWNoYXJnZV9zdWNjZWVkZWQQAhIYChRhdXRvX3JlY2hhcmdlX2ZhaWxlZBADYgZwcm90bzM");
 
 /**
  * LedgerEntryType classifies each row in the credit ledger.
@@ -117,6 +117,45 @@ export const LedgerEntryTypeSchema: GenEnum<LedgerEntryType> = /*@__PURE__*/
   enumDesc(file_ai_stigmer_billing_v1_enum, 0);
 
 /**
+ * LedgerView selects which slice of the credit ledger a query returns.
+ *
+ * The classification of which entry types are customer-facing money events
+ * versus internal accounting mechanics is a domain concern owned by the
+ * server. Clients express intent via this view; the server resolves it to
+ * the concrete set of LedgerEntryType values. This keeps every surface
+ * (web, desktop, CLI, SDK) consistent and ensures a newly added entry type
+ * is classified in exactly one place.
+ *
+ * @generated from enum ai.stigmer.billing.v1.LedgerView
+ */
+export enum LedgerView {
+  /**
+   * Default. Returns the full ledger across all entry types (back-compat
+   * for existing and administrative callers).
+   *
+   * @generated from enum value: ledger_view_unspecified = 0;
+   */
+  unspecified = 0,
+
+  /**
+   * Customer-facing account statement: funding and money-movement events
+   * only (purchases, auto-recharge, promotional credits, refunds, admin
+   * adjustments, expirations, and disputes). Excludes routine internal
+   * mechanics — per-call usage debits and execution reservation
+   * holds/releases — which are surfaced as consumption analytics elsewhere.
+   *
+   * @generated from enum value: ledger_view_statement = 1;
+   */
+  statement = 1,
+}
+
+/**
+ * Describes the enum ai.stigmer.billing.v1.LedgerView.
+ */
+export const LedgerViewSchema: GenEnum<LedgerView> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_billing_v1_enum, 1);
+
+/**
  * CreditGrantKind classifies how credits were acquired.
  *
  * Determines burn order (promotional consumed first) and expiry rules.
@@ -155,7 +194,7 @@ export enum CreditGrantKind {
  * Describes the enum ai.stigmer.billing.v1.CreditGrantKind.
  */
 export const CreditGrantKindSchema: GenEnum<CreditGrantKind> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_billing_v1_enum, 1);
+  enumDesc(file_ai_stigmer_billing_v1_enum, 2);
 
 /**
  * BillingAccountStatus tracks the lifecycle state of an org's billing account.
@@ -194,7 +233,7 @@ export enum BillingAccountStatus {
  * Describes the enum ai.stigmer.billing.v1.BillingAccountStatus.
  */
 export const BillingAccountStatusSchema: GenEnum<BillingAccountStatus> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_billing_v1_enum, 2);
+  enumDesc(file_ai_stigmer_billing_v1_enum, 3);
 
 /**
  * ReservationStatus tracks the lifecycle of an execution credit reservation.
@@ -240,7 +279,7 @@ export enum ReservationStatus {
  * Describes the enum ai.stigmer.billing.v1.ReservationStatus.
  */
 export const ReservationStatusSchema: GenEnum<ReservationStatus> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_billing_v1_enum, 3);
+  enumDesc(file_ai_stigmer_billing_v1_enum, 4);
 
 /**
  * ExecutionBillingSignal is returned after each usage debit to direct
@@ -280,7 +319,7 @@ export enum ExecutionBillingSignal {
  * Describes the enum ai.stigmer.billing.v1.ExecutionBillingSignal.
  */
 export const ExecutionBillingSignalSchema: GenEnum<ExecutionBillingSignal> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_billing_v1_enum, 4);
+  enumDesc(file_ai_stigmer_billing_v1_enum, 5);
 
 /**
  * CreditPurchaseStatus tracks the lifecycle of a credit pack purchase.
@@ -330,7 +369,7 @@ export enum CreditPurchaseStatus {
  * Describes the enum ai.stigmer.billing.v1.CreditPurchaseStatus.
  */
 export const CreditPurchaseStatusSchema: GenEnum<CreditPurchaseStatus> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_billing_v1_enum, 5);
+  enumDesc(file_ai_stigmer_billing_v1_enum, 6);
 
 /**
  * AutoRechargeEventStatus tracks the lifecycle of an automatic recharge attempt.
@@ -375,5 +414,5 @@ export enum AutoRechargeEventStatus {
  * Describes the enum ai.stigmer.billing.v1.AutoRechargeEventStatus.
  */
 export const AutoRechargeEventStatusSchema: GenEnum<AutoRechargeEventStatus> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_billing_v1_enum, 6);
+  enumDesc(file_ai_stigmer_billing_v1_enum, 7);
 

@@ -70,7 +70,7 @@
           "inputFullType": "ai.stigmer.agentic.workflowexecution.v1.CancelWorkflowExecutionInput",
           "outputType": "WorkflowExecution",
           "outputFullType": "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution",
-          "description": "Cancel a running workflow execution gracefully.\n\n Sends a cancellation signal to the workflow. The workflow code can handle\n the cancellation signal to perform cleanup (e.g., compensation logic,\n resource cleanup, notifications) before transitioning to the CANCELLED phase.\n\n @internal\n Temporal Equivalent: `temporal workflow cancel --workflow-id \u003cid\u003e`\n\n Behavior\n\n 1. Validates execution exists and is in a cancellable phase\n 2. Sends cancellation signal to Temporal workflow\n 3. Workflow code receives the signal and can perform cleanup\n 4. Execution transitions to EXECUTION_CANCELLED phase\n 5. Returns updated WorkflowExecution with new phase\n\n Preconditions\n\n - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase\n - Cannot cancel already-terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)\n\n State Transitions\n\n - status.phase: PENDING/IN_PROGRESS → CANCELLED\n - status.completed_at: Set to current timestamp\n - In-progress tasks: May complete cleanup or be interrupted\n\n Idempotency\n\n Cancelling an already-cancelled execution succeeds as a no-op.\n The call returns the current execution state without side effects.\n This ensures safe retry of cancel requests.\n\n Error Cases\n\n - NOT_FOUND: Execution with given ID doesn't exist\n - PERMISSION_DENIED: User lacks can_edit permission on the execution\n - FAILED_PRECONDITION: Execution is in a terminal phase (COMPLETED, FAILED, TERMINATED)\n - INVALID_ARGUMENT: ID is empty or malformed\n\n Example Request\n\n {\n   \"id\": \"wfx_abc123xyz456\",\n   \"reason\": \"Customer requested cancellation - order no longer needed\"\n }\n\n Example Response\n\n {\n   \"api_version\": \"agentic.stigmer.ai/v1\",\n   \"kind\": \"WorkflowExecution\",\n   \"metadata\": { \"id\": \"wfx_abc123xyz456\" },\n   \"status\": {\n     \"phase\": 5,  // EXECUTION_CANCELLED\n     \"completed_at\": \"2026-02-07T18:30:00Z\"\n   }\n }"
+          "description": "Cancel a running workflow execution gracefully.\n\n Sends a cancellation signal to the workflow. The workflow code can handle\n the cancellation signal to perform cleanup (e.g., compensation logic,\n resource cleanup, notifications) before transitioning to the CANCELLED phase.\n\n @internal\n Temporal Equivalent: `temporal workflow cancel --workflow-id \u003cid\u003e`\n\n Behavior\n\n 1. Validates execution exists and is in a cancellable phase\n 2. Sends cancellation signal to Temporal workflow\n 3. Workflow code receives the signal and can perform cleanup\n 4. Execution transitions to EXECUTION_CANCELLED phase\n 5. Returns updated WorkflowExecution with new phase\n\n Preconditions\n\n - Execution must be in EXECUTION_PENDING, EXECUTION_IN_PROGRESS, or EXECUTION_PAUSED phase\n - Cannot cancel already-terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)\n\n State Transitions\n\n - status.phase: PENDING/IN_PROGRESS/PAUSED → CANCELLED\n - status.completed_at: Set to current timestamp\n - In-progress tasks: May complete cleanup or be interrupted\n\n Idempotency\n\n Cancelling an already-cancelled execution succeeds as a no-op.\n The call returns the current execution state without side effects.\n This ensures safe retry of cancel requests.\n\n Error Cases\n\n - NOT_FOUND: Execution with given ID doesn't exist\n - PERMISSION_DENIED: User lacks can_edit permission on the execution\n - FAILED_PRECONDITION: Execution is in a terminal phase (COMPLETED, FAILED, TERMINATED)\n - INVALID_ARGUMENT: ID is empty or malformed\n\n Example Request\n\n {\n   \"id\": \"wfx_abc123xyz456\",\n   \"reason\": \"Customer requested cancellation - order no longer needed\"\n }\n\n Example Response\n\n {\n   \"api_version\": \"agentic.stigmer.ai/v1\",\n   \"kind\": \"WorkflowExecution\",\n   \"metadata\": { \"id\": \"wfx_abc123xyz456\" },\n   \"status\": {\n     \"phase\": 5,  // EXECUTION_CANCELLED\n     \"completed_at\": \"2026-02-07T18:30:00Z\"\n   }\n }"
         },
         {
           "name": "Terminate",
@@ -78,7 +78,7 @@
           "inputFullType": "ai.stigmer.agentic.workflowexecution.v1.TerminateWorkflowExecutionInput",
           "outputType": "WorkflowExecution",
           "outputFullType": "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution",
-          "description": "Terminate a workflow execution immediately.\n\n Force-stops the workflow without allowing cleanup. Unlike cancel,\n the workflow code cannot respond to termination - it is stopped immediately.\n Use this for stuck or unresponsive workflows that don't respond to cancellation.\n\n @internal\n Temporal Equivalent: `temporal workflow terminate --workflow-id \u003cid\u003e`\n\n Behavior\n\n 1. Validates execution exists and is in a terminable phase\n 2. Force-kills workflow via Temporal (no signal sent to workflow)\n 3. Execution transitions to EXECUTION_TERMINATED phase immediately\n 4. No cleanup callbacks or defer blocks are executed\n 5. Returns updated WorkflowExecution with TERMINATED phase\n\n Preconditions\n\n - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase\n - Cannot terminate already-terminal executions\n\n State Transitions\n\n - status.phase: PENDING/IN_PROGRESS → TERMINATED\n - status.completed_at: Set to current timestamp\n - status.error: May contain termination reason\n - In-progress tasks: Stopped abruptly (no cleanup)\n\n Terminated vs Cancelled\n\n | Aspect | cancel | terminate |\n |--------|--------|-----------|\n | Signal to workflow | Yes (can handle) | No |\n | Cleanup opportunity | Yes | No |\n | Use case | Normal stop | Stuck workflows |\n | Can recover? | No | No |\n\n Idempotency\n\n Terminating an already-terminated execution succeeds as a no-op.\n The call returns the current execution state without side effects.\n\n Error Cases\n\n - NOT_FOUND: Execution with given ID doesn't exist\n - PERMISSION_DENIED: User lacks can_edit permission on the execution\n - FAILED_PRECONDITION: Execution is in a terminal phase\n - INVALID_ARGUMENT: ID is empty or malformed\n\n Example Request\n\n {\n   \"id\": \"wfx_abc123xyz456\",\n   \"reason\": \"Workflow stuck for 2 hours, not responding to cancel\"\n }\n\n Example Response\n\n {\n   \"api_version\": \"agentic.stigmer.ai/v1\",\n   \"kind\": \"WorkflowExecution\",\n   \"metadata\": { \"id\": \"wfx_abc123xyz456\" },\n   \"status\": {\n     \"phase\": 6,  // EXECUTION_TERMINATED\n     \"completed_at\": \"2026-02-07T18:35:00Z\",\n     \"error\": \"Terminated by operator: Workflow stuck for 2 hours\"\n   }\n }"
+          "description": "Terminate a workflow execution immediately.\n\n Force-stops the workflow without allowing cleanup. Unlike cancel,\n the workflow code cannot respond to termination - it is stopped immediately.\n Use this for stuck or unresponsive workflows that don't respond to cancellation.\n\n @internal\n Temporal Equivalent: `temporal workflow terminate --workflow-id \u003cid\u003e`\n\n Behavior\n\n 1. Validates execution exists and is in a terminable phase\n 2. Force-kills workflow via Temporal (no signal sent to workflow)\n 3. Execution transitions to EXECUTION_TERMINATED phase immediately\n 4. No cleanup callbacks or defer blocks are executed\n 5. Returns updated WorkflowExecution with TERMINATED phase\n\n Preconditions\n\n - Execution must be in EXECUTION_PENDING, EXECUTION_IN_PROGRESS, or EXECUTION_PAUSED phase\n - Cannot terminate already-terminal executions\n\n State Transitions\n\n - status.phase: PENDING/IN_PROGRESS/PAUSED → TERMINATED\n - status.completed_at: Set to current timestamp\n - status.error: May contain termination reason\n - In-progress tasks: Stopped abruptly (no cleanup)\n\n Terminated vs Cancelled\n\n | Aspect | cancel | terminate |\n |--------|--------|-----------|\n | Signal to workflow | Yes (can handle) | No |\n | Cleanup opportunity | Yes | No |\n | Use case | Normal stop | Stuck workflows |\n | Can recover? | No | No |\n\n Idempotency\n\n Terminating an already-terminated execution succeeds as a no-op.\n The call returns the current execution state without side effects.\n\n Error Cases\n\n - NOT_FOUND: Execution with given ID doesn't exist\n - PERMISSION_DENIED: User lacks can_edit permission on the execution\n - FAILED_PRECONDITION: Execution is in a terminal phase\n - INVALID_ARGUMENT: ID is empty or malformed\n\n Example Request\n\n {\n   \"id\": \"wfx_abc123xyz456\",\n   \"reason\": \"Workflow stuck for 2 hours, not responding to cancel\"\n }\n\n Example Response\n\n {\n   \"api_version\": \"agentic.stigmer.ai/v1\",\n   \"kind\": \"WorkflowExecution\",\n   \"metadata\": { \"id\": \"wfx_abc123xyz456\" },\n   \"status\": {\n     \"phase\": 6,  // EXECUTION_TERMINATED\n     \"completed_at\": \"2026-02-07T18:35:00Z\",\n     \"error\": \"Terminated by operator: Workflow stuck for 2 hours\"\n   }\n }"
         },
         {
           "name": "Recover",
@@ -86,7 +86,7 @@
           "inputFullType": "ai.stigmer.agentic.workflowexecution.v1.RecoverWorkflowExecutionInput",
           "outputType": "WorkflowExecution",
           "outputFullType": "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution",
-          "description": "Recover a failed workflow execution from the last checkpoint.\n\n Resumes execution from the last successful point. Completed work is\n preserved - successful tasks are NOT re-executed. This enables\n \"retry and resume\" semantics without duplicating side effects.\n\n @internal\n Temporal Equivalent: `temporal workflow reset --workflow-id \u003cid\u003e --type LastWorkflowTask`\n\n Behavior\n\n 1. Validates execution is in FAILED phase (recoverable)\n 2. Identifies the last successful checkpoint in workflow history\n 3. Creates new Temporal run from that checkpoint via ResetWorkflow\n 4. Execution transitions from FAILED to IN_PROGRESS phase\n 5. Workflow continues from where it failed\n 6. Returns updated WorkflowExecution with IN_PROGRESS phase\n\n Preconditions\n\n - Execution must be in EXECUTION_FAILED phase\n - TERMINATED executions cannot be recovered (intentional hard stop)\n - CANCELLED executions cannot be recovered (intentional user action)\n - COMPLETED executions don't need recovery\n\n State Transitions\n\n - status.phase: FAILED → IN_PROGRESS\n - status.completed_at: Cleared (execution is running again)\n - status.error: Cleared (no longer failed)\n - Completed tasks: Preserved (not re-executed)\n - Failed tasks: Reset to pending, will be retried\n\n Recovery vs Restart\n\n | Aspect | recover | Create new execution |\n |--------|---------|----------------------|\n | Completed work | Preserved | Lost (re-executed) |\n | Side effects | Not duplicated | May duplicate |\n | Execution ID | Same | New ID |\n | Use case | Resume after fix | Start fresh |\n\n Idempotency\n\n If recovery already succeeded (execution is now IN_PROGRESS from a\n previous recover call), the call succeeds as a no-op and returns\n the current execution state.\n\n Error Cases\n\n - NOT_FOUND: Execution with given ID doesn't exist\n - PERMISSION_DENIED: User lacks can_edit permission on the execution\n - FAILED_PRECONDITION:\n   - Execution is not in FAILED phase\n   - Execution is TERMINATED (cannot recover)\n   - Execution is CANCELLED (cannot recover)\n - INVALID_ARGUMENT: ID is empty or malformed\n\n Example Request\n\n {\n   \"id\": \"wfx_abc123xyz456\",\n   \"reason\": \"Stripe API recovered, resuming payment processing\"\n }\n\n Example Response\n\n {\n   \"api_version\": \"agentic.stigmer.ai/v1\",\n   \"kind\": \"WorkflowExecution\",\n   \"metadata\": { \"id\": \"wfx_abc123xyz456\" },\n   \"status\": {\n     \"phase\": 2,  // EXECUTION_IN_PROGRESS\n     \"started_at\": \"2026-02-07T10:00:00Z\",\n     \"tasks\": [\n       { \"task_id\": \"task-1\", \"status\": 3 },  // COMPLETED (preserved)\n       { \"task_id\": \"task-2\", \"status\": 2 }   // IN_PROGRESS (resumed)\n     ]\n   }\n }"
+          "description": "Recover a failed workflow execution.\n\n Terminates the existing (possibly stuck) Temporal orchestrator and child\n workflows, recreates the ExecutionContext with freshly resolved environment\n variables, and starts a new Temporal workflow with recovery mode enabled.\n The workflow engine reads completed task outputs from the persisted event\n log, skips those tasks, and resumes execution from the first incomplete or\n failed task — preserving all previously completed work.\n\n @internal\n Temporal Equivalent: Terminates the existing orchestrator and child\n workflows, starts a fresh orchestrator with the same workflow ID and\n recoveryMode: true in the workflow input.\n\n Behavior\n\n 1. Validates execution is in FAILED phase (recoverable)\n 2. Terminates the existing Temporal orchestrator workflow and its child\n    TS runner workflow (handles stuck Workflow-Task-Failed loops and\n    already-completed workflows gracefully)\n 3. Recreates the ExecutionContext with freshly resolved environment\n    variables from the current WorkflowInstance and Workflow configuration\n 4. Starts a fresh Temporal orchestrator workflow with recoveryMode flag;\n    the engine loads completed task outputs from the event log, skips\n    those tasks (emitting task_skipped events), and resumes from the\n    first non-completed task\n 5. Event sequence continues from the persisted high-water mark (no\n    duplicate keys, no gaps)\n 6. Execution transitions from FAILED to IN_PROGRESS phase\n 7. Returns updated WorkflowExecution with IN_PROGRESS phase\n\n Environment Resolution\n\n Environment variables are re-resolved from the current WorkflowInstance\n environment_refs and Workflow env declarations. This is desirable: if the\n user fixed an environment value (e.g., rotated an API key), recovery picks\n up the fix. Runtime env overrides (runtime_env) provided at original\n execution time are not preserved — they were stripped before persist.\n\n Preconditions\n\n - Execution must be in EXECUTION_FAILED phase\n - TERMINATED executions cannot be recovered (intentional hard stop)\n - CANCELLED executions cannot be recovered (intentional user action)\n - COMPLETED executions don't need recovery\n\n State Transitions\n\n - status.phase: FAILED → IN_PROGRESS\n - status.completed_at: Cleared (execution is running again)\n - status.error: Cleared (no longer failed)\n - Completed tasks: Skipped (outputs restored from event log into $context)\n - Failed/pending tasks: Re-executed from the failure point\n\n Recovery vs Restart\n\n | Aspect | recover | Create new execution |\n |--------|---------|----------------------|\n | Execution ID | Same | New ID |\n | Environment | Re-resolved (current) | From request |\n | Completed tasks | Skipped (outputs preserved) | All tasks run fresh |\n | Failed task | Re-executed | All tasks run fresh |\n | Event history | Continues (appended) | Starts from 1 |\n | Use case | Fix config, then retry | Start fresh |\n\n Idempotency\n\n If recovery already succeeded (execution is now IN_PROGRESS from a\n previous recover call), the call succeeds as a no-op and returns\n the current execution state.\n\n Error Cases\n\n - NOT_FOUND: Execution with given ID doesn't exist\n - PERMISSION_DENIED: User lacks can_edit permission on the execution\n - FAILED_PRECONDITION:\n   - Execution is not in FAILED phase\n   - Execution is TERMINATED (cannot recover)\n   - Execution is CANCELLED (cannot recover)\n - INVALID_ARGUMENT: ID is empty or malformed\n\n Example Request\n\n {\n   \"id\": \"wfx_abc123xyz456\",\n   \"reason\": \"Fixed API key in environment, retrying\"\n }\n\n Example Response\n\n {\n   \"api_version\": \"agentic.stigmer.ai/v1\",\n   \"kind\": \"WorkflowExecution\",\n   \"metadata\": { \"id\": \"wfx_abc123xyz456\" },\n   \"status\": {\n     \"phase\": 2,  // EXECUTION_IN_PROGRESS\n     \"started_at\": \"2026-02-07T10:00:00Z\"\n   }\n }"
         },
         {
           "name": "Pause",
@@ -226,6 +226,16 @@
             }
           },
           "description": "Execution events to append to the event log alongside this status update.\n\n @internal\n Append-only: events are added to the persistent event log, never replaced.\n This contrasts with status.tasks which uses full-replace protocol.\n\n The workflow-runner appends events atomically with each status update,\n ensuring the event log stays consistent with the status snapshot.\n Events must have monotonically increasing sequence_numbers — the handler\n rejects batches where any event's sequence_number is \u003c= the current\n highest persisted sequence for this execution.\n\n Empty list means no new events (backward compatible — existing runners\n that do not yet emit events continue to work without changes).\n\n @since T06 (Execution Event Stream Model)",
+          "required": false
+        },
+        {
+          "name": "UpdatePendingApprovals",
+          "jsonName": "updatePendingApprovals",
+          "protoField": "update_pending_approvals",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "When true, status.pending_approvals will be merged into the existing\n execution (replacing the stored list). When false (default), existing\n pending_approvals are preserved unchanged.\n\n @internal\n This prevents a race condition where concurrent event emissions\n (which don't include pending_approvals) inadvertently clear active\n approval gates set by call-agent-status.\n\n Only call-agent-status.ts sets this to true — both when populating\n approvals from a child_approval_required signal and when clearing them\n after the child agent completes.\n\n @since Agent Call Live Experience",
           "required": false
         }
       ]
@@ -485,7 +495,7 @@
     },
     {
       "name": "RecoverWorkflowExecutionInput",
-      "description": "RecoverWorkflowExecutionInput requests recovery of a failed workflow execution.\n\n @internal\n Resumes execution from the last successful checkpoint, preserving all completed work.\n Uses the workflow engine's reset functionality to continue without re-executing\n successful steps.\n\n Preconditions:\n - Execution must be in EXECUTION_FAILED phase\n - TERMINATED and CANCELLED executions cannot be recovered\n - User must have can_edit permission\n\n Idempotent: if recovery is already in progress, returns current state as a no-op.",
+      "description": "RecoverWorkflowExecutionInput requests recovery of a failed workflow execution.\n\n Recovery preserves completed work: tasks that succeeded in the failed run are\n skipped (their outputs restored into workflow context), and execution resumes\n from the first incomplete or failed task.\n\n @internal\n Terminates the existing Temporal orchestrator and child workflows, recreates\n the ExecutionContext with freshly resolved environment variables, and starts a\n new orchestrator with recoveryMode enabled. The workflow engine reads completed\n task outputs from the persisted event log, skips those tasks (emitting\n task_skipped events), and begins execution at the first non-completed task.\n Event sequence numbers continue from the high-water mark of the previous run.\n\n Preconditions:\n - Execution must be in EXECUTION_FAILED phase\n - TERMINATED and CANCELLED executions cannot be recovered\n - User must have can_edit permission\n\n Idempotent: if recovery is already in progress, returns current state as a no-op.",
       "protoType": "ai.stigmer.agentic.workflowexecution.v1.RecoverWorkflowExecutionInput",
       "protoFile": "apis/ai/stigmer/agentic/workflowexecution/v1/io.proto",
       "fields": [
@@ -624,6 +634,44 @@
           },
           "description": "Filter by resource tags (AND logic).\n\n @internal\n Limits results to executions that have ALL specified tags.\n Tag format: \"key:value\" or \"key\" (for boolean tags).",
           "required": false
+        },
+        {
+          "name": "Filter",
+          "jsonName": "filter",
+          "protoField": "filter",
+          "type": {
+            "kind": "message",
+            "messageType": "ExecutionFilterCriteria"
+          },
+          "description": "Structured filter criteria for advanced filtering.\n\n When set, applies AND-conjunction with the existing `phase` and `tags` fields.\n If both `phase` and `filter.phases` are set, `filter.phases` takes precedence.\n\n @since T13 (Execution History)",
+          "required": false
+        },
+        {
+          "name": "SortField",
+          "jsonName": "sortField",
+          "protoField": "sort_field",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField",
+            "enumValues": [
+              "EXECUTION_SORT_FIELD_STARTED_AT",
+              "EXECUTION_SORT_FIELD_DURATION",
+              "EXECUTION_SORT_FIELD_COST",
+              "EXECUTION_SORT_FIELD_STATUS"
+            ]
+          },
+          "description": "Sort field. When unspecified, defaults to started_at descending.\n\n @since T13 (Execution History)",
+          "required": false
+        },
+        {
+          "name": "SortAscending",
+          "jsonName": "sortAscending",
+          "protoField": "sort_ascending",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "When true, sorts in ascending order. Default (false) is descending.\n\n @since T13 (Execution History)",
+          "required": false
         }
       ]
     },
@@ -696,6 +744,44 @@
             "kind": "string"
           },
           "description": "Opaque pagination token from a previous response.",
+          "required": false
+        },
+        {
+          "name": "Filter",
+          "jsonName": "filter",
+          "protoField": "filter",
+          "type": {
+            "kind": "message",
+            "messageType": "ExecutionFilterCriteria"
+          },
+          "description": "Structured filter criteria for advanced filtering.\n\n @since T13 (Execution History)",
+          "required": false
+        },
+        {
+          "name": "SortField",
+          "jsonName": "sortField",
+          "protoField": "sort_field",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField",
+            "enumValues": [
+              "EXECUTION_SORT_FIELD_STARTED_AT",
+              "EXECUTION_SORT_FIELD_DURATION",
+              "EXECUTION_SORT_FIELD_COST",
+              "EXECUTION_SORT_FIELD_STATUS"
+            ]
+          },
+          "description": "Sort field. When unspecified, defaults to started_at descending.\n\n @since T13 (Execution History)",
+          "required": false
+        },
+        {
+          "name": "SortAscending",
+          "jsonName": "sortAscending",
+          "protoField": "sort_ascending",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "When true, sorts in ascending order. Default (false) is descending.\n\n @since T13 (Execution History)",
           "required": false
         }
       ]
@@ -1261,7 +1347,7 @@
     },
     {
       "name": "GetExecutionSummaryRequest",
-      "description": "GetExecutionSummaryRequest fetches aggregated execution statistics for an organization.\n\n @since T14 (Dashboard Integration)",
+      "description": "GetExecutionSummaryRequest fetches aggregated execution statistics for an organization,\n optionally scoped to a single workflow.\n\n @since T14 (Dashboard Integration)",
       "protoType": "ai.stigmer.agentic.workflowexecution.v1.GetExecutionSummaryRequest",
       "protoFile": "apis/ai/stigmer/agentic/workflowexecution/v1/io.proto",
       "fields": [
@@ -1293,6 +1379,16 @@
             ]
           },
           "description": "Time window for aggregation.\n\n Defaults to LAST_7D when unspecified.",
+          "required": false
+        },
+        {
+          "name": "WorkflowId",
+          "jsonName": "workflowId",
+          "protoField": "workflow_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "When set, scopes the summary to executions of this workflow only.\n When empty, aggregates across all workflows in the organization.\n\n @since T12 (Overview Page Redesign)",
           "required": false
         }
       ]
@@ -1377,6 +1473,26 @@
             }
           },
           "description": "Per-workflow cost breakdown, ranked by total_cost descending.\n\n Capped at 10 entries.",
+          "required": false
+        },
+        {
+          "name": "TotalCount",
+          "jsonName": "totalCount",
+          "protoField": "total_count",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Total number of executions in the time window (sum of all phase_counts values).\n\n @since T12 (Overview Page Redesign)",
+          "required": false
+        },
+        {
+          "name": "SuccessRate",
+          "jsonName": "successRate",
+          "protoField": "success_rate",
+          "type": {
+            "kind": "double"
+          },
+          "description": "Success rate as a ratio (0.0 to 1.0).\n Computed as completed / (completed + failed). Returns -1.0 when no\n completed or failed executions exist in the time window.\n\n @since T12 (Overview Page Redesign)",
           "required": false
         }
       ]
@@ -1490,7 +1606,7 @@
     },
     {
       "name": "ExecutionPhase",
-      "description": "ExecutionPhase defines the lifecycle phase of a workflow execution.\n\n @internal\n Phase Transitions:\n\n Normal flow:\n EXECUTION_PENDING → EXECUTION_IN_PROGRESS → EXECUTION_COMPLETED\n\n Failure flow:\n EXECUTION_PENDING → EXECUTION_IN_PROGRESS → EXECUTION_FAILED\n\n Cancellation flow:\n EXECUTION_PENDING → EXECUTION_CANCELLED\n EXECUTION_IN_PROGRESS → EXECUTION_CANCELLED\n\n Termination flow (force stop):\n EXECUTION_PENDING → EXECUTION_TERMINATED\n EXECUTION_IN_PROGRESS → EXECUTION_TERMINATED\n\n Pause/Resume flow:\n EXECUTION_PENDING → EXECUTION_PAUSED → EXECUTION_IN_PROGRESS\n EXECUTION_IN_PROGRESS → EXECUTION_PAUSED → EXECUTION_IN_PROGRESS\n\n Terminal States: COMPLETED, FAILED, CANCELLED, TERMINATED\n Non-Terminal States: PAUSED (can be resumed)\n\n Once a workflow reaches a terminal state, it cannot transition to another phase.",
+      "description": "ExecutionPhase defines the lifecycle phase of a workflow execution.\n\n @internal\n Phase Transitions:\n\n Normal flow:\n EXECUTION_PENDING → EXECUTION_IN_PROGRESS → EXECUTION_COMPLETED\n\n Failure flow:\n EXECUTION_PENDING → EXECUTION_IN_PROGRESS → EXECUTION_FAILED\n\n Cancellation flow:\n EXECUTION_PENDING → EXECUTION_CANCELLED\n EXECUTION_IN_PROGRESS → EXECUTION_CANCELLED\n EXECUTION_PAUSED → EXECUTION_CANCELLED\n\n Termination flow (force stop):\n EXECUTION_PENDING → EXECUTION_TERMINATED\n EXECUTION_IN_PROGRESS → EXECUTION_TERMINATED\n EXECUTION_PAUSED → EXECUTION_TERMINATED\n\n Pause/Resume flow:\n EXECUTION_PENDING → EXECUTION_PAUSED → EXECUTION_IN_PROGRESS\n EXECUTION_IN_PROGRESS → EXECUTION_PAUSED → EXECUTION_IN_PROGRESS\n\n Terminal States: COMPLETED, FAILED, CANCELLED, TERMINATED\n Non-Terminal States: PAUSED (can be resumed)\n\n Once a workflow reaches a terminal state, it cannot transition to another phase.",
       "protoType": "ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase",
       "values": [
         {
@@ -1527,6 +1643,33 @@
           "name": "EXECUTION_PAUSED",
           "number": 7,
           "description": "Execution was paused by user and can be resumed.\n\n @internal\n NOT a terminal state - execution can be resumed via the resume RPC.\n\n When this phase is reached:\n - Running activities are gracefully cancelled\n - Checkpoints are saved (LangGraph thread_id preserved)\n - No completed_at timestamp (execution is not finished)\n\n Resume behavior:\n - Workflow re-invokes activity with same thread_id\n - Activity loads from LangGraph checkpoint\n - Execution continues from where it was paused"
+        }
+      ]
+    },
+    {
+      "name": "ExecutionSortField",
+      "description": "ExecutionSortField defines the column to sort execution lists by.\n\n @since T13 (Execution History)",
+      "protoType": "ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField",
+      "values": [
+        {
+          "name": "EXECUTION_SORT_FIELD_STARTED_AT",
+          "number": 1,
+          "description": "Sort by execution start time."
+        },
+        {
+          "name": "EXECUTION_SORT_FIELD_DURATION",
+          "number": 2,
+          "description": "Sort by execution duration (completed_at - started_at).\n\n Executions without both timestamps sort last."
+        },
+        {
+          "name": "EXECUTION_SORT_FIELD_COST",
+          "number": 3,
+          "description": "Sort by total cost (status.total_cost_micros)."
+        },
+        {
+          "name": "EXECUTION_SORT_FIELD_STATUS",
+          "number": 4,
+          "description": "Sort by execution phase enum value."
         }
       ]
     },
@@ -1588,7 +1731,7 @@
         {
           "name": "task_skipped",
           "number": 14,
-          "description": "A workflow task was skipped due to conditional logic.\n Payload: TaskSkippedPayload."
+          "description": "A workflow task was skipped (conditional logic or recovery).\n Payload: TaskSkippedPayload."
         },
         {
           "name": "task_retrying",
@@ -2077,7 +2220,7 @@
             "messageType": "WorkflowPendingApproval"
           }
         },
-        "description": "Pending approvals from child agent tool executions.\n\n @internal\n Populated when workflow tasks invoke agents that enter\n EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval\n requests at the workflow level for UI visibility.\n\n Full-Replace Protocol:\n The workflow-runner always sends the complete set of pending approvals\n via UpdateStatus. The server replaces the stored list unconditionally:\n - Non-empty list: child agent(s) need approval\n - Empty list: all approvals resolved, clear the field\n\n Parallel Agents:\n When multiple child agents run in parallel, entries from different children\n accumulate in this list. Each entry's child_agent_execution_id distinguishes\n the source.",
+        "description": "Pending approvals from child agent tool executions.\n\n @internal\n Populated when workflow tasks invoke agents that enter\n EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval\n requests at the workflow level for UI visibility.\n\n Guarded Update Protocol:\n This field is only modified when UpdateStatusInput.update_pending_approvals\n is explicitly set to true. Normal event emissions (which don't concern\n approvals) leave this field untouched, preventing race conditions between\n concurrent status writers.\n\n Only call-agent-status manages this field:\n - Non-empty list: child agent(s) need approval\n - Empty list + update_pending_approvals=true: all approvals resolved\n\n Parallel Agents:\n When multiple child agents run in parallel, entries from different children\n accumulate in this list. Each entry's child_agent_execution_id distinguishes\n the source.",
         "required": false
       },
       {
@@ -2108,6 +2251,16 @@
           "kind": "int64"
         },
         "description": "Cumulative output tokens consumed across all LLM and agent tasks.\n\n @internal\n Output tokens represent completion/generation tokens returned by the model.\n Updated alongside total_cost_micros from the budget tracker.\n\n @since Cost Data Pipeline",
+        "required": false
+      },
+      {
+        "name": "WorkflowVersionHash",
+        "jsonName": "workflowVersionHash",
+        "protoField": "workflow_version_hash",
+        "type": {
+          "kind": "string"
+        },
+        "description": "SHA-256 hash identifying which workflow version was used for this execution.\n\n @internal\n Pinned at execution creation time from Workflow.status.version_hash.\n Immutable after creation — represents the exact workflow definition this\n execution ran (or will run, if still pending).\n\n Consumers:\n - Runner: fetches the version-specific CNCF YAML via getVersion() during\n   hydration, ensuring the execution runs the intended definition even if\n   the workflow has been updated since creation.\n - Execution viewer: fetches the version entry to render the correct graph\n   for historical executions, eliminating the version mismatch problem.\n\n Empty for executions created before workflow versioning was introduced.\n In that case, consumers fall back to fetching the current workflow\n definition (legacy behavior with mismatch warning).\n\n @since Workflow Versioning",
         "required": false
       }
     ]

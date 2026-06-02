@@ -9,13 +9,14 @@ import { file_ai_stigmer_agentic_agentexecution_v1_enum } from "./enum_pb.js";
 import type { ExecutionValue } from "../../executioncontext/v1/spec_pb.js";
 import { file_ai_stigmer_agentic_executioncontext_v1_spec } from "../../executioncontext/v1/spec_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
-import type { Message } from "@bufbuild/protobuf";
+import { file_google_protobuf_struct } from "@bufbuild/protobuf/wkt";
+import type { JsonObject, Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ai/stigmer/agentic/agentexecution/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_agentexecution_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("Ci9haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvc3BlYy5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxIr4EChJBZ2VudEV4ZWN1dGlvblNwZWMSEgoKc2Vzc2lvbl9pZBgBIAEoCRIQCghhZ2VudF9pZBgCIAEoCRIYCgdtZXNzYWdlGAMgASgJQge6SARyAhABEk8KEGV4ZWN1dGlvbl9jb25maWcYBCABKAsyNS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRXhlY3V0aW9uQ29uZmlnEl0KC3J1bnRpbWVfZW52GAUgAygLMkguYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFnZW50RXhlY3V0aW9uU3BlYy5SdW50aW1lRW52RW50cnkSFgoOY2FsbGJhY2tfdG9rZW4YBiABKAwSGAoQYXV0b19hcHByb3ZlX2FsbBgHIAEoCBIaChJwYXJlbnRfd29ya2Zsb3dfaWQYCCABKAkSRQoLYXR0YWNobWVudHMYCSADKAsyMC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQXR0YWNobWVudBIbChN3b3Jrc3BhY2VfZmlsZV9yZWZzGAogAygJEhsKE2FjdGl2aXR5X3Rhc2tfcXVldWUYCyABKAkaaQoPUnVudGltZUVudkVudHJ5EgsKA2tleRgBIAEoCRJFCgV2YWx1ZRgCIAEoCzI2LmFpLnN0aWdtZXIuYWdlbnRpYy5leGVjdXRpb25jb250ZXh0LnYxLkV4ZWN1dGlvblZhbHVlOgI4ASKpAgoPRXhlY3V0aW9uQ29uZmlnEhIKCm1vZGVsX25hbWUYASABKAkSWQoSY29udGV4dF9tYW5hZ2VtZW50GAIgASgLMj0uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkNvbnRleHRNYW5hZ2VtZW50Q29uZmlnEhcKD21heF90b29sX3JvdW5kcxgDIAEoBRIdChVtYXhfdG9vbF9yZXN1bHRfY2hhcnMYBCABKAUSFAoMbWF4X2Nvc3RfdXNkGAUgASgBElkKEGludGVyYWN0aW9uX21vZGUYBiABKA4yNS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuSW50ZXJhY3Rpb25Nb2RlQgi6SAWCAQIQASKKAQoXQ29udGV4dE1hbmFnZW1lbnRDb25maWcSHQoVZGlzYWJsZV9zdW1tYXJpemF0aW9uGAEgASgIEikKGGN1c3RvbV90cmlnZ2VyX3RocmVzaG9sZBgCIAEoBUIHukgEGgIoABIlChRjdXN0b21fdGFyZ2V0X3Rva2VucxgDIAEoBUIHukgEGgIoACKUAQoKQXR0YWNobWVudBIZCghmaWxlbmFtZRgBIAEoCUIHukgEcgIQARIcCgtzdG9yYWdlX2tleRgCIAEoCUIHukgEcgIQARISCgptb3VudF9wYXRoGAMgASgJEhQKDGNvbnRlbnRfdHlwZRgEIAEoCRIPCgdleHRyYWN0GAUgASgIEhIKCmxvY2FsX3BhdGgYBiABKAliBnByb3RvMw", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_executioncontext_v1_spec, file_buf_validate_validate]);
+  fileDesc("Ci9haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvc3BlYy5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxIr4EChJBZ2VudEV4ZWN1dGlvblNwZWMSEgoKc2Vzc2lvbl9pZBgBIAEoCRIQCghhZ2VudF9pZBgCIAEoCRIYCgdtZXNzYWdlGAMgASgJQge6SARyAhABEk8KEGV4ZWN1dGlvbl9jb25maWcYBCABKAsyNS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRXhlY3V0aW9uQ29uZmlnEl0KC3J1bnRpbWVfZW52GAUgAygLMkguYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFnZW50RXhlY3V0aW9uU3BlYy5SdW50aW1lRW52RW50cnkSFgoOY2FsbGJhY2tfdG9rZW4YBiABKAwSGAoQYXV0b19hcHByb3ZlX2FsbBgHIAEoCBIaChJwYXJlbnRfd29ya2Zsb3dfaWQYCCABKAkSRQoLYXR0YWNobWVudHMYCSADKAsyMC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQXR0YWNobWVudBIbChN3b3Jrc3BhY2VfZmlsZV9yZWZzGAogAygJEhsKE2FjdGl2aXR5X3Rhc2tfcXVldWUYCyABKAkaaQoPUnVudGltZUVudkVudHJ5EgsKA2tleRgBIAEoCRJFCgV2YWx1ZRgCIAEoCzI2LmFpLnN0aWdtZXIuYWdlbnRpYy5leGVjdXRpb25jb250ZXh0LnYxLkV4ZWN1dGlvblZhbHVlOgI4ASLkAgoPRXhlY3V0aW9uQ29uZmlnEhIKCm1vZGVsX25hbWUYASABKAkSWQoSY29udGV4dF9tYW5hZ2VtZW50GAIgASgLMj0uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkNvbnRleHRNYW5hZ2VtZW50Q29uZmlnEhcKD21heF90b29sX3JvdW5kcxgDIAEoBRIdChVtYXhfdG9vbF9yZXN1bHRfY2hhcnMYBCABKAUSFAoMbWF4X2Nvc3RfdXNkGAUgASgBElkKEGludGVyYWN0aW9uX21vZGUYBiABKA4yNS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuSW50ZXJhY3Rpb25Nb2RlQgi6SAWCAQIQARI5ChhzdHJ1Y3R1cmVkX291dHB1dF9zY2hlbWEYByABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0IooBChdDb250ZXh0TWFuYWdlbWVudENvbmZpZxIdChVkaXNhYmxlX3N1bW1hcml6YXRpb24YASABKAgSKQoYY3VzdG9tX3RyaWdnZXJfdGhyZXNob2xkGAIgASgFQge6SAQaAigAEiUKFGN1c3RvbV90YXJnZXRfdG9rZW5zGAMgASgFQge6SAQaAigAIpQBCgpBdHRhY2htZW50EhkKCGZpbGVuYW1lGAEgASgJQge6SARyAhABEhwKC3N0b3JhZ2Vfa2V5GAIgASgJQge6SARyAhABEhIKCm1vdW50X3BhdGgYAyABKAkSFAoMY29udGVudF90eXBlGAQgASgJEg8KB2V4dHJhY3QYBSABKAgSEgoKbG9jYWxfcGF0aBgGIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_executioncontext_v1_spec, file_buf_validate_validate, file_google_protobuf_struct]);
 
 /**
  * AgentExecutionSpec contains only user-provided inputs for triggering an execution.
@@ -224,17 +225,21 @@ export type AgentExecutionSpec = Message<"ai.stigmer.agentic.agentexecution.v1.A
   /**
    * Workspace-relative file paths the user wants the agent to focus on.
    *
-   * When users attach files that already exist inside the session's workspace,
-   * the CLI skips the upload/injection flow and records the workspace-relative
-   * path here instead. The agent accesses these files directly via the
-   * workspace filesystem -- no upload, no copy, no injection.
+   * When users reference files that exist inside the session's workspace,
+   * the client records the workspace-relative path here instead of uploading.
+   * The agent accesses these files directly via the workspace filesystem --
+   * no upload, no copy, no injection.
    *
    * This separates the "attention" signal ("look at this file") from the
    * "transport" mechanism (upload + inject) that regular attachments use.
    *
-   * Valid only when the session has a workspace entry with a local path source.
-   * For git workspaces or sessions without workspace entries, all files go
-   * through the regular attachment flow.
+   * Works for any workspace type with a resolvable filesystem post-provisioning
+   * (local-path workspaces, git-cloned workspaces, or any future source type).
+   * The runner resolves paths after workspace provisioning regardless of source.
+   *
+   * Populated by:
+   *   - CLI: detects --attach paths inside workspace roots automatically
+   *   - Web/Desktop: drag-to-reference from workspace file tree to composer
    *
    * Example CLI usage:
    *   stigmer run agent reviewer --workspace . --attach ./src/config.yaml -m "Review"
@@ -288,7 +293,7 @@ export const AgentExecutionSpecSchema: GenMessage<AgentExecutionSpec> = /*@__PUR
 export type ExecutionConfig = Message<"ai.stigmer.agentic.agentexecution.v1.ExecutionConfig"> & {
   /**
    * The model to use for this execution.
-   * Example: "claude-sonnet-4-20250514"
+   * Example: "claude-sonnet-4-6"
    *
    * @generated from field: string model_name = 1;
    */
@@ -395,6 +400,20 @@ export type ExecutionConfig = Message<"ai.stigmer.agentic.agentexecution.v1.Exec
    * @generated from field: ai.stigmer.agentic.agentexecution.v1.InteractionMode interaction_mode = 6;
    */
   interactionMode: InteractionMode;
+
+  /**
+   * JSON Schema that the agent's output must conform to.
+   *
+   * When set, the runner enforces structured output:
+   * - Native harness: uses deepagents responseFormat/ToolStrategy
+   * - Cursor harness: prompt instruction + extraction fallback
+   *
+   * The validated structured data is returned in the activity result
+   * and passed back to the parent workflow as `structured`.
+   *
+   * @generated from field: google.protobuf.Struct structured_output_schema = 7;
+   */
+  structuredOutputSchema?: JsonObject;
 };
 
 /**

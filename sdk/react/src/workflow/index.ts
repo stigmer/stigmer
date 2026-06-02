@@ -19,6 +19,7 @@ export {
 export {
   useWorkflowSave,
   type UseWorkflowSaveReturn,
+  type WorkflowSaveOptions,
 } from "./useWorkflowSave";
 
 export {
@@ -85,6 +86,7 @@ export {
 
 export {
   useWorkflowExecutionActions,
+  type UseWorkflowExecutionActionsOptions,
   type UseWorkflowExecutionActionsReturn,
 } from "./useWorkflowExecutionActions";
 
@@ -109,9 +111,9 @@ export {
 } from "./WorkflowYamlEditor";
 
 export {
-  WorkflowTopologyGraph,
-  type WorkflowTopologyGraphProps,
-} from "./WorkflowTopologyGraph";
+  WorkflowCodePreviewGraph,
+  type WorkflowCodePreviewGraphProps,
+} from "./WorkflowCodePreviewGraph";
 
 export {
   useWorkflowEditor,
@@ -132,6 +134,15 @@ export {
   type UseRunWorkflowFlowReturn,
   type RunWorkflowFieldErrors,
 } from "./useRunWorkflowFlow";
+
+// T11: Run workflow — instance env key resolution
+export {
+  useInstanceEnvKeys,
+  type UseInstanceEnvKeysReturn,
+} from "./useInstanceEnvKeys";
+
+// T11: Run workflow — trigger input detection
+export { workflowUsesTriggerInput } from "./workflow-uses-trigger-input";
 
 // T11: Run workflow — styled components
 export {
@@ -156,11 +167,6 @@ export {
 } from "./WorkflowTaskList";
 
 export { topologyFromTasks } from "./topologyFromTasks";
-
-export {
-  WorkflowTopologyPreview,
-  type WorkflowTopologyPreviewProps,
-} from "./WorkflowTopologyPreview";
 
 export {
   WorkflowDetailView,
@@ -208,6 +214,11 @@ export {
   type WorkflowTaskApprovalCardProps,
   type TaskOutcome,
 } from "./WorkflowTaskApprovalCard";
+
+export {
+  WorkflowTaskApprovalSummary,
+  type WorkflowTaskApprovalSummaryProps,
+} from "./WorkflowTaskApprovalSummary";
 
 // T14: Dashboard — data hooks
 export {
@@ -266,6 +277,7 @@ export {
 export {
   useWorkflowCanvas,
   type CanvasSelection,
+  type UseWorkflowCanvasOptions,
   type UseWorkflowCanvasReturn,
 } from "./useWorkflowCanvas";
 
@@ -296,6 +308,31 @@ export {
   WorkflowInspectorPanel,
   type WorkflowInspectorPanelProps,
 } from "./WorkflowInspectorPanel";
+
+// T10: Inspector module — tabbed shell, forms, summary, types
+export {
+  InspectorShell,
+  type InspectorShellProps,
+  InspectorHeader,
+  type InspectorHeaderProps,
+  useInspectorTabs,
+  type UseInspectorTabsInput,
+  type UseInspectorTabsReturn,
+  WorkflowSummaryPanel,
+  type WorkflowSummaryPanelProps,
+  AgentCallForm,
+  type AgentCallFormProps,
+  HttpCallForm,
+  type HttpCallFormProps,
+  ExecutionInspectorAdapter,
+  type ExecutionInspectorAdapterProps,
+  taskToYaml,
+  type InspectorMutations,
+  type InspectorNodeIdentity,
+  type InspectorMode,
+  type DesignTabId,
+  type InspectorTabDefinition,
+} from "./inspector";
 
 export {
   TaskConfigForm,
@@ -394,3 +431,361 @@ export {
   useResolveAgentExecutionSession,
   type UseResolveAgentExecutionSessionReturn,
 } from "./useResolveAgentExecutionSession";
+
+// T01: Canonical kind metadata (replaces triplicated categorizeKind)
+export { categorizeKind, kindToDisplayName } from "./kind-metadata";
+
+// T01: Task type visual registry
+export {
+  getVisualSpec,
+  VISUAL_REGISTRY,
+  type VisualClass,
+  type PortPattern,
+  type TaskTypeVisualSpec,
+} from "./task-type-visual-registry";
+
+// T03: Layout pipeline
+export type {
+  LayoutEngine,
+  LayoutInput,
+  LayoutResult,
+  LayoutScope,
+  LayoutOptions,
+  NodeDimensions,
+  Position2D,
+  NodePortAssignment,
+  PortDefinition,
+  PortSide,
+  ElkLayoutEngineOptions,
+  UseWorkflowLayoutOptions,
+  UseWorkflowLayoutReturn,
+  UseElkLayoutEngineOptions,
+} from "./layout";
+export {
+  createDagreLayoutEngine,
+  createElkLayoutEngine,
+  useWorkflowLayout,
+  useElkLayoutEngine,
+  applyDagreLayout,
+  registryNodeDimensions,
+  preprocessForElk,
+  ELK_WORKFLOW_DEFAULTS,
+  computePortAssignments,
+  computeNodePorts,
+  postprocessElkResult,
+} from "./layout";
+
+// T04: Execution graph — mode context
+export {
+  WorkflowGraphModeProvider,
+  useWorkflowGraphMode,
+  type WorkflowGraphMode,
+  type WorkflowGraphModeProviderProps,
+} from "./WorkflowGraphModeContext";
+
+// T04: Execution graph — types
+export type {
+  NodeExecutionStatus,
+  NodeExecutionState,
+} from "./workflow-graph-conversions";
+
+// T06: Branch and parallel execution highlighting — pure derivation functions
+export {
+  deriveEdgeExecutionStates,
+  deriveForkProgress,
+  type EdgeExecutionState,
+  type ForkProgress,
+} from "./execution";
+
+// T04: Execution graph — behavior hook
+export {
+  useWorkflowExecutionGraph,
+  type UseWorkflowExecutionGraphOptions,
+  type UseWorkflowExecutionGraphReturn,
+} from "./useWorkflowExecutionGraph";
+
+// T04: Execution graph — styled component
+export {
+  WorkflowExecutionGraph,
+  type WorkflowExecutionGraphProps,
+} from "./WorkflowExecutionGraph";
+
+// T16: Execution visibility and accessibility
+export {
+  useFollowExecution,
+  type FollowState,
+  type UseFollowExecutionOptions,
+  type UseFollowExecutionReturn,
+} from "./useFollowExecution";
+export {
+  useActiveTaskName,
+  type ActiveTaskInfo,
+} from "./useActiveTaskName";
+export {
+  ExecutionActiveTaskIndicator,
+  type ExecutionActiveTaskIndicatorProps,
+} from "./ExecutionActiveTaskIndicator";
+export { useExecutionAnnouncements } from "./useExecutionAnnouncements";
+export { getAnimationDuration, prefersReducedMotion } from "./motion-preference";
+
+// T05: Shared formatting utilities
+export {
+  formatDuration,
+  formatDurationSec,
+  formatMicroUsd,
+  formatTokenCount,
+  formatBytes,
+  formatTimestamp,
+  formatMetaChips,
+} from "./format-utils";
+
+// T05: Runtime inspector — behavior hook + types
+export {
+  useExecutionTaskDetail,
+  type UseExecutionTaskDetailReturn,
+  type TaskDetail,
+  type TaskDetailSummary,
+  type TaskDetailIO,
+  type TaskDetailError,
+  type TaskDetailRetryHistory,
+  type TaskDetailRetryAttempt,
+  type TaskDetailAgentCall,
+  type TaskDetailApproval,
+  type TaskDetailApprovalDecision,
+} from "./execution-inspector";
+
+// T05: Runtime inspector — styled component
+export {
+  ExecutionInspector,
+  type ExecutionInspectorProps,
+} from "./execution-inspector";
+
+// T07: Waterfall timeline — pure derivation + behavior hook
+export {
+  deriveWaterfallEntries,
+  deriveWaterfallScale,
+  type WaterfallEntry,
+  type WaterfallAttempt,
+  type WaterfallSpan,
+  type WaterfallScale,
+  useWaterfallEntries,
+  type UseWaterfallEntriesOptions,
+  type UseWaterfallEntriesReturn,
+} from "./execution";
+
+// T07: Waterfall timeline — styled components
+export {
+  WaterfallTimeline,
+  type WaterfallTimelineProps,
+} from "./waterfall";
+
+// T11: Shortcut registry
+export {
+  getAllShortcuts,
+  getShortcut,
+  getShortcutHint,
+  isMacPlatform,
+  type ShortcutDefinition,
+  type ShortcutScope,
+} from "./shortcut-registry";
+
+// T11: Internal clipboard
+export {
+  serializeSelection,
+  pasteClipboard,
+  type ClipboardEntry,
+  type PasteResult,
+} from "./clipboard";
+
+// T11: View YAML dialog
+export {
+  ViewYamlDialog,
+  type ViewYamlDialogProps,
+} from "./ViewYamlDialog";
+
+// T13: Execution history — derivation, hooks, and components
+export {
+  deriveExecutionRow,
+  deriveExecutionRows,
+  sortExecutionRows,
+  filterExecutionRows,
+  deriveFailureAnalysis,
+  useExecutionHistoryData,
+  ExecutionHistoryTable,
+  ExecutionFilterBar,
+  HealthMetricsStrip,
+  FailureAnalysisPanel,
+  WorkflowExecutionHistory,
+  type ExecutionRow,
+  type ExecutionSortField as ExecutionHistorySortField,
+  type SortDirection as ExecutionHistorySortDirection,
+  type ExecutionClientFilters,
+  type FailureGroup,
+  type FailureInstance,
+  type UseExecutionHistoryDataOptions,
+  type UseExecutionHistoryDataReturn,
+  type ExecutionHistoryTableProps,
+  type ExecutionFilterBarProps,
+  type HealthMetricsStripProps,
+  type FailureAnalysisPanelProps,
+  type WorkflowExecutionHistoryProps,
+} from "./execution-history";
+
+// T12: Overview page redesign — behavior hook
+export {
+  useWorkflowOverviewGraph,
+  type UseWorkflowOverviewGraphOptions,
+  type UseWorkflowOverviewGraphReturn,
+} from "./useWorkflowOverviewGraph";
+
+// T12: Overview page redesign — styled components
+export {
+  WorkflowOverviewGraph,
+  type WorkflowOverviewGraphProps,
+} from "./WorkflowOverviewGraph";
+
+export {
+  WorkflowGraphFullscreenDialog,
+  type WorkflowGraphFullscreenDialogProps,
+} from "./WorkflowGraphFullscreenDialog";
+
+export {
+  WorkflowNodePopover,
+  type WorkflowNodePopoverProps,
+} from "./WorkflowNodePopover";
+
+export {
+  WorkflowOverviewSummary,
+  type WorkflowOverviewSummaryProps,
+} from "./WorkflowOverviewSummary";
+
+// T14: Visual diff engine — types and pure functions
+export type {
+  NodeDiffStatus,
+  EdgeDiffStatus,
+  NodeDiffEntry,
+  EdgeDiffEntry,
+  GraphDiff,
+} from "./diff";
+export { computeGraphDiff, buildDiffGraph, jsonEqual } from "./diff";
+export { DiffSummaryBar, type DiffSummaryBarProps } from "./diff";
+
+// T14: Visual diff graph — behavior hook
+export {
+  useWorkflowDiffGraph,
+  type UseWorkflowDiffGraphOptions,
+  type UseWorkflowDiffGraphReturn,
+} from "./useWorkflowDiffGraph";
+
+// T14: Visual diff graph — styled component
+export {
+  WorkflowDiffGraph,
+  type WorkflowDiffGraphProps,
+} from "./WorkflowDiffGraph";
+
+// T14: Explain workflow — behavior hook
+export {
+  useExplainWorkflowFlow,
+  type ExplainPhase,
+  type UseExplainWorkflowFlowOptions,
+  type UseExplainWorkflowFlowReturn,
+} from "./useExplainWorkflowFlow";
+
+// T14: Explain workflow — styled component
+export {
+  WorkflowExplainDialog,
+  type WorkflowExplainDialogProps,
+} from "./WorkflowExplainDialog";
+
+// Workflow Instance management hooks
+export {
+  useWorkflowInstance,
+  type UseWorkflowInstanceReturn,
+  useCreateWorkflowInstance,
+  type UseCreateWorkflowInstanceReturn,
+  useUpdateWorkflowInstance,
+  type UseUpdateWorkflowInstanceReturn,
+  useDeleteWorkflowInstance,
+  type UseDeleteWorkflowInstanceReturn,
+  WorkflowInstanceEmptyState,
+  type WorkflowInstanceEmptyStateProps,
+  WorkflowInstanceList,
+  type WorkflowInstanceListProps,
+  CreateWorkflowInstanceDialog,
+  type CreateWorkflowInstanceDialogProps,
+  WorkflowInstanceDetailPanel,
+  type WorkflowInstanceDetailPanelProps,
+} from "./instance";
+
+// Execution Comparison — run-vs-run comparison
+export {
+  type TaskComparison,
+  type ExecutionComparison,
+  deriveExecutionComparison,
+  useExecutionComparison,
+  type UseExecutionComparisonOptions,
+  type UseExecutionComparisonReturn,
+  ExecutionComparisonPicker,
+  type ExecutionComparisonPickerProps,
+  ComparisonSummaryCards,
+  type ComparisonSummaryCardsProps,
+  TaskComparisonTable,
+  type TaskComparisonTableProps,
+  ExecutionComparisonView,
+  type ExecutionComparisonViewProps,
+} from "./execution-comparison";
+
+// DD-003: Workflow versioning — data hooks
+export {
+  useWorkflowVersions,
+  type UseWorkflowVersionsReturn,
+} from "./useWorkflowVersions";
+
+export {
+  useWorkflowVersion,
+  type UseWorkflowVersionReturn,
+} from "./useWorkflowVersion";
+
+export {
+  useWorkflowVersionDiff,
+  type UseWorkflowVersionDiffReturn,
+} from "./useWorkflowVersionDiff";
+
+// DD-003: Workflow versioning — styled components
+export {
+  WorkflowVersionBadge,
+  type WorkflowVersionBadgeProps,
+} from "./WorkflowVersionBadge";
+
+export {
+  WorkflowVersionTimeline,
+  type WorkflowVersionTimelineProps,
+} from "./WorkflowVersionTimeline";
+
+export {
+  WorkflowVersionDiffViewer,
+  type WorkflowVersionDiffViewerProps,
+} from "./WorkflowVersionDiffViewer";
+
+export {
+  WorkflowVersionsTab,
+  type WorkflowVersionsTabProps,
+} from "./WorkflowVersionsTab";
+
+// T15: Workflow Template Gallery
+export {
+  type WorkflowTemplateData,
+  type WorkflowTemplateCategory,
+  type WorkflowTemplateMeta,
+  type WorkflowPattern,
+  type WorkflowTemplate,
+  PATTERN_LABELS,
+  WORKFLOW_CATEGORY_LABELS,
+  deriveTemplateMeta,
+  WorkflowTemplateCard,
+  type WorkflowTemplateCardProps,
+  WorkflowTemplatePreview,
+  type WorkflowTemplatePreviewProps,
+  WorkflowTemplateGallery,
+  type WorkflowTemplateGalleryProps,
+} from "./templates";

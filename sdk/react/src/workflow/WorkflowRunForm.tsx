@@ -26,6 +26,27 @@ export interface WorkflowRunFormProps {
   readonly selectedInstanceId: string | null;
   /** Called when the selected instance changes. */
   readonly onInstanceChange: (id: string | null) => void;
+  /**
+   * The platform-managed default instance ID (from workflow.status.defaultInstanceId).
+   * When provided, the picker shows whenever user-created instances exist (>= 1),
+   * and labels the default option clearly.
+   */
+  readonly defaultInstanceId?: string;
+
+  /**
+   * Set of env var keys already provided by the selected instance's
+   * bound environments. Fields for these keys are shown as optional
+   * overrides rather than required inputs.
+   */
+  readonly instanceEnvKeys?: Set<string>;
+
+  /**
+   * Whether to show the trigger message field.
+   * When `false`, a subtle "Add trigger input" toggle is rendered instead.
+   */
+  readonly showTriggerMessage: boolean;
+  /** Called when the user toggles trigger message visibility. */
+  readonly onShowTriggerMessageChange: (show: boolean) => void;
 
   /** Field-level validation errors keyed by field name. */
   readonly errors: RunWorkflowFieldErrors;
@@ -46,9 +67,12 @@ const INPUT_CLASSES = cn(
 /**
  * Form fields for running a workflow execution.
  *
- * Renders a trigger message textarea, auto-generated environment
- * variable fields from the workflow's `spec.env` declarations, and
- * an instance selector (hidden when 0-1 instances exist).
+ * Renders auto-generated environment variable fields from the workflow's
+ * `spec.env` declarations, an instance selector (hidden when 0-1 instances
+ * exist), and a conditionally-visible trigger message textarea.
+ *
+ * Field ordering prioritizes required inputs (env vars) over optional
+ * contextual fields (trigger message), following progressive disclosure.
  *
  * This component is presentational — it does not manage state or
  * submit. Pair with {@link useRunWorkflowFlow} for the full
@@ -70,6 +94,8 @@ const INPUT_CLASSES = cn(
  *   instances={instances}
  *   selectedInstanceId={flow.selectedInstanceId}
  *   onInstanceChange={flow.setSelectedInstanceId}
+ *   showTriggerMessage={flow.showTriggerMessage}
+ *   onShowTriggerMessageChange={flow.setShowTriggerMessage}
  *   errors={flow.fieldErrors}
  *   disabled={flow.isSubmitting}
  * />
@@ -84,37 +110,26 @@ export function WorkflowRunForm({
   instances,
   selectedInstanceId,
   onInstanceChange,
+  defaultInstanceId,
+  instanceEnvKeys,
+  showTriggerMessage,
+  onShowTriggerMessageChange,
   errors,
   disabled,
   className,
 }: WorkflowRunFormProps) {
   const formId = useId();
   const envEntries = Object.entries(envDeclarations);
-  const showInstanceSelector = instances.length > 1;
+  const userInstances = defaultInstanceId
+    ? instances.filter((i) => i.metadata?.id !== defaultInstanceId)
+    : instances;
+  const showInstanceSelector = defaultInstanceId
+    ? userInstances.length >= 1
+    : instances.length > 1;
 
   return (
     <div className={cn("flex flex-col gap-4", className)}>
-      {/* Trigger message */}
-      <FieldGroup>
-        <FieldLabel htmlFor={`${formId}-trigger`}>Input Message</FieldLabel>
-        <textarea
-          id={`${formId}-trigger`}
-          value={triggerMessage}
-          onChange={(e) => onTriggerMessageChange(e.target.value)}
-          placeholder="Optional message or JSON payload to trigger the workflow"
-          disabled={disabled}
-          rows={3}
-          className={cn(INPUT_CLASSES, "resize-y")}
-        />
-        <FieldHint>
-          Accessible in the workflow as{" "}
-          <code className="text-[0.7rem]">
-            {"{{workflow.input.trigger_message}}"}
-          </code>
-        </FieldHint>
-      </FieldGroup>
-
-      {/* Instance selector (only when multiple instances exist) */}
+      {/* Instance selector — shown first so env var state reacts to selection */}
       {showInstanceSelector && (
         <FieldGroup>
           <FieldLabel htmlFor={`${formId}-instance`}>Instance</FieldLabel>
@@ -127,12 +142,16 @@ export function WorkflowRunForm({
             disabled={disabled}
             className={INPUT_CLASSES}
           >
-            <option value="">Default instance (auto)</option>
-            {instances.map((inst) => (
-              <option key={inst.metadata?.id} value={inst.metadata?.id ?? ""}>
-                {inst.metadata?.name || inst.metadata?.slug || inst.metadata?.id}
-              </option>
-            ))}
+            <option value="">Default (no specific configuration)</option>
+            {userInstances.map((inst) => {
+              const envCount = inst.spec?.environmentRefs?.length ?? 0;
+              const envSuffix = envCount > 0 ? ` (${envCount} env${envCount > 1 ? "s" : ""})` : "";
+              return (
+                <option key={inst.metadata?.id} value={inst.metadata?.id ?? ""}>
+                  {inst.metadata?.name || inst.metadata?.slug || inst.metadata?.id}{envSuffix}
+                </option>
+              );
+            })}
           </select>
         </FieldGroup>
       )}
@@ -146,11 +165,13 @@ export function WorkflowRunForm({
           {envEntries.map(([key, decl]) => {
             const fieldId = `${formId}-env-${key}`;
             const fieldError = errors[key];
+            const satisfiedByInstance = instanceEnvKeys?.has(key) ?? false;
+            const isRequired = !decl.optional && !satisfiedByInstance;
             return (
               <FieldGroup key={key}>
                 <FieldLabel htmlFor={fieldId}>
                   <code className="text-xs">{key}</code>
-                  {!decl.optional && (
+                  {isRequired && (
                     <span
                       className="ml-1 text-destructive"
                       aria-label="required"
@@ -165,14 +186,18 @@ export function WorkflowRunForm({
                   value={runtimeEnv[key] ?? ""}
                   onChange={(e) => onEnvVarChange(key, e.target.value)}
                   placeholder={
-                    decl.optional ? "Optional" : "Required"
+                    satisfiedByInstance
+                      ? "Provided by instance"
+                      : decl.optional
+                        ? "Optional"
+                        : "Required"
                   }
                   disabled={disabled}
                   aria-invalid={!!fieldError}
                   aria-describedby={
                     fieldError
                       ? `${fieldId}-error`
-                      : decl.description
+                      : decl.description || satisfiedByInstance
                         ? `${fieldId}-desc`
                         : undefined
                   }
@@ -181,7 +206,16 @@ export function WorkflowRunForm({
                     fieldError && "border-destructive focus-visible:ring-destructive",
                   )}
                 />
-                {decl.description && !fieldError && (
+                {satisfiedByInstance && !fieldError && (
+                  <FieldHint id={`${fieldId}-desc`}>
+                    Provided by instance environment.{" "}
+                    {decl.description
+                      ? `${decl.description} `
+                      : ""}
+                    Enter a value to override.
+                  </FieldHint>
+                )}
+                {!satisfiedByInstance && decl.description && !fieldError && (
                   <FieldHint id={`${fieldId}-desc`}>
                     {decl.description}
                   </FieldHint>
@@ -199,6 +233,43 @@ export function WorkflowRunForm({
             );
           })}
         </div>
+      )}
+
+      {/* Trigger message — shown last, only when relevant or toggled open */}
+      {showTriggerMessage ? (
+        <FieldGroup>
+          <FieldLabel htmlFor={`${formId}-trigger`}>
+            Trigger Input
+          </FieldLabel>
+          <textarea
+            id={`${formId}-trigger`}
+            value={triggerMessage}
+            onChange={(e) => onTriggerMessageChange(e.target.value)}
+            placeholder="Optional message or JSON payload to trigger the workflow"
+            disabled={disabled}
+            rows={3}
+            className={cn(INPUT_CLASSES, "resize-y")}
+          />
+          <FieldHint>
+            Accessible in the workflow as{" "}
+            <code className="text-[0.7rem]">
+              {"${ $input }"}
+            </code>
+          </FieldHint>
+        </FieldGroup>
+      ) : (
+        <button
+          type="button"
+          onClick={() => onShowTriggerMessageChange(true)}
+          disabled={disabled}
+          className={cn(
+            "self-start text-[0.7rem] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline",
+            "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:rounded-sm",
+            "disabled:pointer-events-none disabled:opacity-50",
+          )}
+        >
+          + Add trigger input
+        </button>
       )}
     </div>
   );

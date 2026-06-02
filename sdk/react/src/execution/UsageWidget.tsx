@@ -64,8 +64,15 @@ export function UsageWidget({ executions, className }: UsageWidgetProps) {
       role="region"
       aria-label="Session cost summary"
     >
-      <div className="text-sm font-medium tabular-nums text-foreground">
-        {formatCost(usage.totalCostUsd)}
+      <div className="flex items-baseline gap-1.5">
+        <span className="text-sm font-medium tabular-nums text-foreground">
+          {formatCost(usage.totalCostUsd)}
+        </span>
+        {usage.isEstimated && (
+          <span className="rounded bg-muted px-1 py-0.5 text-[10px] font-medium leading-none text-muted-foreground">
+            Estimated
+          </span>
+        )}
       </div>
 
       {multiModel ? (

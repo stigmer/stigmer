@@ -83,6 +83,7 @@ type sdkResourceConfig struct {
 	apiVersion   string
 	idPrefix     string
 	resourceKind string
+	isVersioned  bool
 }
 
 // metaFieldNames are fields that always come from ApiResourceMetadata.
@@ -255,8 +256,20 @@ func deriveResourceConfig(schema *ServiceSchemaFile, schemaDir string) sdkResour
 
 	cfg.apiVersion = deriveApiVersion(schema.Package)
 	cfg.resourceKind = resolveResourceKind(schema)
+	cfg.isVersioned = isVersionedKind(cfg.resourceKind)
 
 	return cfg
+}
+
+// isVersionedKind returns true if the given kind name corresponds to a
+// versioned resource (is_versioned: true in ApiResourceKindMeta).
+func isVersionedKind(kindName string) bool {
+	for num, name := range apiResourceKindEnumNames {
+		if name == kindName {
+			return versionedKinds[num]
+		}
+	}
+	return false
 }
 
 // resolveResourceKind finds the ApiResourceKind enum value name that matches
@@ -740,6 +753,9 @@ func generateInputTypesV2(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkR
 	buf.WriteString("\tOrg        string\n")
 	buf.WriteString("\tLabels     map[string]string\n")
 	buf.WriteString("\tVisibility apiresource.ApiResourceVisibility\n")
+	if cfg.isVersioned {
+		buf.WriteString("\tVersionMessage string\n")
+	}
 	for _, f := range specFields {
 		goType := goTypeForField(f, typeMap, alias)
 		fmt.Fprintf(buf, "\t%s %s\n", f.Name, goType)
@@ -764,6 +780,13 @@ func generateInputTypesV2(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkR
 	buf.WriteString("\t\t},\n")
 	fmt.Fprintf(buf, "\t\tSpec: &%s.%s{},\n", alias, spec.Name)
 	buf.WriteString("\t}\n")
+	if cfg.isVersioned {
+		buf.WriteString("\tif i.VersionMessage != \"\" {\n")
+		buf.WriteString("\t\tresource.Metadata.Version = &apiresource.ApiResourceMetadataVersion{\n")
+		buf.WriteString("\t\t\tMessage: i.VersionMessage,\n")
+		buf.WriteString("\t\t}\n")
+		buf.WriteString("\t}\n")
+	}
 
 	for _, f := range specFields {
 		emitToProtoField(buf, f, alias, typeMap, spec.Name)
@@ -1062,7 +1085,11 @@ func emitNestedToProto(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap 
 			needsImperative = true
 			break
 		}
-		if field.Type.Kind == "message" && field.Type.MessageType == "ApiResourceReference" {
+		if field.Type.Kind == "message" && field.OneofGroup == "" {
+			needsImperative = true
+			break
+		}
+		if field.Type.Kind == "array" && field.Type.ElementType != nil && field.Type.ElementType.Kind == "message" {
 			needsImperative = true
 			break
 		}
@@ -1083,6 +1110,9 @@ func emitNestedToProto(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap 
 				fmt.Fprintf(buf, "\t\t\tp.%s = timestamppb.New(t)\n", pf)
 				buf.WriteString("\t\t}\n\t}\n")
 			} else if field.Type.Kind == "message" {
+				if field.OneofGroup != "" {
+					continue
+				}
 				if field.Type.MessageType == "ApiResourceReference" {
 					fmt.Fprintf(buf, "\tif i.%s.Org != \"\" || i.%s.Slug != \"\" {\n", field.Name, field.Name)
 					if field.ReferenceKind != 0 {
@@ -1094,9 +1124,15 @@ func emitNestedToProto(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap 
 						fmt.Fprintf(buf, "\t\tp.%s = i.%s.toProto()\n", pf, field.Name)
 					}
 					buf.WriteString("\t}\n")
+				} else {
+					fmt.Fprintf(buf, "\tif i.%s != nil {\n", field.Name)
+					fmt.Fprintf(buf, "\t\tp.%s = i.%s.toProto()\n", pf, field.Name)
+					buf.WriteString("\t}\n")
 				}
 			} else if field.Type.Kind == "array" && field.Type.ElementType != nil && field.Type.ElementType.Kind == "message" {
-				continue
+				fmt.Fprintf(buf, "\tfor _, item := range i.%s {\n", field.Name)
+				fmt.Fprintf(buf, "\t\tp.%s = append(p.%s, item.toProto())\n", pf, pf)
+				buf.WriteString("\t}\n")
 			} else {
 				fmt.Fprintf(buf, "\tp.%s = i.%s\n", pf, field.Name)
 			}
@@ -1107,12 +1143,11 @@ func emitNestedToProto(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap 
 		fmt.Fprintf(buf, "\treturn &%s.%s{\n", protoAlias, msgName)
 		for _, field := range ts.Fields {
 			pf := goProtoFieldName(field.ProtoField)
+			if field.OneofGroup != "" {
+				continue
+			}
 			if field.Type.Kind == "message" {
-				if field.Type.MessageType == "ApiResourceReference" {
-					fmt.Fprintf(buf, "\t\t%s: i.%s.toProto(),\n", pf, field.Name)
-				} else {
-					continue
-				}
+				fmt.Fprintf(buf, "\t\t%s: i.%s.toProto(),\n", pf, field.Name)
 			} else if field.Type.Kind == "array" && field.Type.ElementType != nil && field.Type.ElementType.Kind == "message" {
 				continue
 			} else {

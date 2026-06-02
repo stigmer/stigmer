@@ -11,11 +11,8 @@
       "type": {
         "kind": "string"
       },
-      "description": "String content of this entry.\n\n @internal\n If is_secret=true: encrypted at rest and redacted in logs.\n If is_secret=false: stored as plaintext.",
-      "required": false,
-      "validation": {
-        "minLength": 1
-      }
+      "description": "String content of this entry. Empty strings are valid — optional\n workflow env vars may be provided with no value, and the workflow\n engine resolves them to \"\" in expression interpolation.\n\n @internal\n If is_secret=true: encrypted at rest and redacted in logs.\n If is_secret=false: stored as plaintext.",
+      "required": false
     },
     {
       "name": "IsSecret",

@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "criteria": {
+      "description": "Evaluation criteria for multi_criteria mode. Required when scoring_mode is EVAL_MULTI_CRITERIA; ignored otherwise. Each criterion is scored independently, and the overall score is the weighted average (uniform if all weights are equal or zero).",
+      "items": {
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "fallback_task": {
+      "description": "Target task to branch to when on_fail is EVAL_FAIL_BRANCH. Must reference a valid task name in the same workflow. Only meaningful when on_fail is EVAL_FAIL_BRANCH; ignored otherwise.",
+      "type": "string"
+    },
+    "max_cost_micros": {
+      "description": "Per-task cost cap in micro-USD (1 USD = 1,000,000 micros). When set, the runtime terminates this eval call if its cost exceeds this limit, independent of the workflow-level budget. Optional — when 0, no per-task cost limit is enforced.",
+      "type": "integer"
+    },
+    "model": {
+      "description": "LLM model used as the judge. Resolved via the Stigmer model registry. Examples: \"gpt-4o\", \"claude-sonnet-4-5\"",
+      "maxLength": 127,
+      "minLength": 1,
+      "type": "string"
+    },
+    "on_fail": {
+      "description": "Policy applied when the subject fails evaluation. Default: EVAL_FAIL_RAISE (task fails with evaluation error).",
+      "enum": [
+        "EVAL_FAIL_RAISE",
+        "EVAL_FAIL_BRANCH",
+        "EVAL_FAIL_WARN"
+      ],
+      "type": "string"
+    },
+    "rubric": {
+      "description": "Evaluation criteria in natural language. Tells the judge LLM what to assess and what \"good\" looks like. For pass_fail: describe what constitutes a pass. For numeric_score: describe the scoring scale. For multi_criteria: provide overall context (per-criterion detail goes in criteria field).",
+      "minLength": 1,
+      "type": "string"
+    },
+    "scoring_mode": {
+      "description": "How the judge scores the subject. Default: EVAL_PASS_FAIL.",
+      "enum": [
+        "EVAL_PASS_FAIL",
+        "EVAL_NUMERIC_SCORE",
+        "EVAL_MULTI_CRITERIA"
+      ],
+      "type": "string"
+    },
+    "subject": {
+      "description": "Expression selecting the data to evaluate. Supports ${ } expression interpolation. Example: \"${ $context.summarize.text }\" to evaluate a summary task's output.",
+      "minLength": 1,
+      "type": "string"
+    },
+    "system_prompt": {
+      "description": "Optional custom system prompt override for the judge LLM. When set, replaces the auto-generated judge system prompt entirely. Use only when the default judge prompt template does not fit your needs. When empty, the runtime constructs a judge-appropriate system prompt from the rubric, scoring_mode, and criteria.",
+      "type": "string"
+    },
+    "threshold": {
+      "description": "Pass threshold for numeric_score and multi_criteria modes. The subject passes if score \u003e= threshold. Ignored for pass_fail mode (the judge's binary decision is used directly). Valid range: 0.0 to 1.0. Default: 0.5.",
+      "maximum": 1,
+      "type": "number"
+    }
+  },
+  "required": [
+    "model",
+    "subject",
+    "rubric"
+  ],
+  "title": "EvalTaskConfig",
+  "type": "object"
+}

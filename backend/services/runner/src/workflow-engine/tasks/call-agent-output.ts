@@ -23,8 +23,8 @@ export interface ValidationResult {
 
 /**
  * Validates an agent call result against a JSON Schema.
- * Checks the `structured` field of the result — if absent,
- * attempts to parse `final_text` as JSON.
+ * Reads from `result.structured` — the agent domain owns extraction
+ * and this function only validates the already-extracted data.
  */
 export function validateAgentCallOutput(
   result: AgentCallResult,
@@ -35,7 +35,7 @@ export function validateAgentCallOutput(
   if (data === undefined) {
     return {
       valid: false,
-      errors: ["Agent did not return structured output or parseable JSON in final_text"],
+      errors: ["Agent did not return structured output"],
     };
   }
 
@@ -46,15 +46,6 @@ function extractValidationTarget(result: AgentCallResult): unknown | undefined {
   if (result.structured !== undefined && result.structured !== null) {
     return result.structured;
   }
-
-  if (typeof result.final_text === "string" && result.final_text.trim()) {
-    try {
-      return JSON.parse(result.final_text);
-    } catch {
-      return undefined;
-    }
-  }
-
   return undefined;
 }
 

@@ -1,0 +1,211 @@
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+
+const PROXY_ENDPOINT = "https://proxy.example.com:9093";
+const STIGMER_TOKEN = "test-stigmer-jwt-token";
+
+interface CapturedCall {
+  url: string;
+  init?: RequestInit;
+}
+
+/**
+ * The fetch interceptor captures globalThis.fetch at module load time as
+ * `originalFetch`. To test it properly, we must install a mock fetch
+ * BEFORE the module loads, then dynamically import it. This ensures the
+ * interceptor delegates to our mock instead of the real network fetch.
+ */
+describe("fetch-interceptor", () => {
+  const realFetch = globalThis.fetch;
+  let calls: CapturedCall[];
+  let installFetchInterceptor: typeof import("../fetch-interceptor.js").installFetchInterceptor;
+  let uninstallFetchInterceptor: typeof import("../fetch-interceptor.js").uninstallFetchInterceptor;
+  let getExecutionContext: typeof import("../fetch-interceptor.js").getExecutionContext;
+
+  beforeEach(async () => {
+    calls = [];
+    const mockResponse = new Response(JSON.stringify({ ok: true }), { status: 200 });
+
+    globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
+      const url = typeof input === "string"
+        ? input
+        : input instanceof URL
+          ? input.toString()
+          : (input as Request).url;
+      calls.push({ url, init });
+      return mockResponse.clone();
+    }) as typeof fetch;
+
+    // Bust the module cache so originalFetch captures our mock
+    vi.resetModules();
+    const mod = await import("../fetch-interceptor.js");
+    installFetchInterceptor = mod.installFetchInterceptor;
+    uninstallFetchInterceptor = mod.uninstallFetchInterceptor;
+    getExecutionContext = mod.getExecutionContext;
+  });
+
+  afterEach(() => {
+    uninstallFetchInterceptor();
+    globalThis.fetch = realFetch;
+  });
+
+  describe("Connect-RPC paths via fetch (BiDi proxy auth injection)", () => {
+    beforeEach(() => {
+      installFetchInterceptor({ proxyEndpoint: PROXY_ENDPOINT, stigmerToken: STIGMER_TOKEN });
+    });
+
+    it("injects x-stigmer-auth on /aiserver.v1 path targeting proxy endpoint", async () => {
+      await globalThis.fetch(
+        `${PROXY_ENDPOINT}/aiserver.v1.AnalyticsService/BootstrapStatsig`,
+        {
+          method: "POST",
+          headers: {
+            "authorization": "Bearer cursor-access-token",
+            "content-type": "application/json",
+          },
+        },
+      );
+
+      expect(calls).toHaveLength(1);
+      const headers = new Headers(calls[0].init?.headers);
+      expect(headers.get("x-stigmer-auth")).toBe(`Bearer ${STIGMER_TOKEN}`);
+    });
+
+    it("preserves the original authorization header (Cursor access token)", async () => {
+      await globalThis.fetch(
+        `${PROXY_ENDPOINT}/aiserver.v1.AnalyticsService/BootstrapStatsig`,
+        {
+          method: "POST",
+          headers: { "authorization": "Bearer cursor-access-token" },
+        },
+      );
+
+      expect(calls).toHaveLength(1);
+      const headers = new Headers(calls[0].init?.headers);
+      expect(headers.get("authorization")).toBe("Bearer cursor-access-token");
+      expect(headers.get("x-stigmer-auth")).toBe(`Bearer ${STIGMER_TOKEN}`);
+    });
+
+    it("does NOT rewrite the URL for Connect-RPC paths", async () => {
+      const originalUrl = `${PROXY_ENDPOINT}/aiserver.v1.AnalyticsService/BootstrapStatsig`;
+
+      await globalThis.fetch(originalUrl, { method: "POST" });
+
+      expect(calls).toHaveLength(1);
+      expect(calls[0].url).toBe(originalUrl);
+    });
+
+    it("injects x-stigmer-auth on /agent.v1 path targeting proxy endpoint", async () => {
+      await globalThis.fetch(
+        `${PROXY_ENDPOINT}/agent.v1.AgentService/Run`,
+        {
+          method: "POST",
+          headers: { "authorization": "Bearer cursor-token" },
+        },
+      );
+
+      expect(calls).toHaveLength(1);
+      const headers = new Headers(calls[0].init?.headers);
+      expect(headers.get("x-stigmer-auth")).toBe(`Bearer ${STIGMER_TOKEN}`);
+      expect(headers.get("authorization")).toBe("Bearer cursor-token");
+    });
+
+    it("injects x-stigmer-execution-id when execution context is active", async () => {
+      const executionContext = getExecutionContext();
+      await executionContext.run({ executionId: "exec-test-123" }, async () => {
+        await globalThis.fetch(
+          `${PROXY_ENDPOINT}/aiserver.v1.AnalyticsService/LogStatsigEvent`,
+          { method: "POST" },
+        );
+      });
+
+      expect(calls).toHaveLength(1);
+      const headers = new Headers(calls[0].init?.headers);
+      expect(headers.get("x-stigmer-execution-id")).toBe("exec-test-123");
+      expect(headers.get("x-stigmer-auth")).toBe(`Bearer ${STIGMER_TOKEN}`);
+    });
+
+    it("does NOT inject x-stigmer-execution-id when no execution context", async () => {
+      await globalThis.fetch(
+        `${PROXY_ENDPOINT}/aiserver.v1.AnalyticsService/BootstrapStatsig`,
+        { method: "POST" },
+      );
+
+      expect(calls).toHaveLength(1);
+      const headers = new Headers(calls[0].init?.headers);
+      expect(headers.get("x-stigmer-execution-id")).toBeNull();
+      expect(headers.get("x-stigmer-auth")).toBe(`Bearer ${STIGMER_TOKEN}`);
+    });
+  });
+
+  describe("REST path URL rewriting (existing behavior)", () => {
+    beforeEach(() => {
+      installFetchInterceptor({ proxyEndpoint: PROXY_ENDPOINT, stigmerToken: STIGMER_TOKEN });
+    });
+
+    it("rewrites Cursor-domain REST URLs and replaces auth", async () => {
+      await globalThis.fetch(
+        "https://api2.cursor.sh/auth/exchange_user_api_key",
+        {
+          method: "POST",
+          headers: { "authorization": "Bearer original-key" },
+        },
+      );
+
+      expect(calls).toHaveLength(1);
+      expect(calls[0].url).toBe(
+        `${PROXY_ENDPOINT}/v1/proxy/cursor/api2.cursor.sh/auth/exchange_user_api_key`,
+      );
+      const headers = new Headers(calls[0].init?.headers);
+      expect(headers.get("authorization")).toBe(`Bearer ${STIGMER_TOKEN}`);
+      expect(headers.get("x-stigmer-auth")).toBeNull();
+    });
+
+    it("rewrites proxy-endpoint REST paths (non-Connect-RPC)", async () => {
+      await globalThis.fetch(
+        `${PROXY_ENDPOINT}/auth/exchange_user_api_key`,
+        { method: "POST" },
+      );
+
+      expect(calls).toHaveLength(1);
+      expect(calls[0].url).toContain("/v1/proxy/cursor/api2.cursor.sh/auth/");
+    });
+  });
+
+  describe("passthrough (no interception)", () => {
+    beforeEach(() => {
+      installFetchInterceptor({ proxyEndpoint: PROXY_ENDPOINT, stigmerToken: STIGMER_TOKEN });
+    });
+
+    it("does NOT intercept Connect-RPC paths on non-proxy hosts", async () => {
+      const url = "https://other-host.example.com/aiserver.v1.AnalyticsService/BootstrapStatsig";
+
+      await globalThis.fetch(url, {
+        method: "POST",
+        headers: { "authorization": "Bearer some-token" },
+      });
+
+      expect(calls).toHaveLength(1);
+      expect(calls[0].url).toBe(url);
+      const headers = new Headers(calls[0].init?.headers);
+      expect(headers.get("x-stigmer-auth")).toBeNull();
+    });
+
+    it("does NOT intercept already-rewritten /v1/proxy/ paths", async () => {
+      const url = `${PROXY_ENDPOINT}/v1/proxy/cursor/api.cursor.com/v1/models`;
+
+      await globalThis.fetch(url, { method: "GET" });
+
+      expect(calls).toHaveLength(1);
+      expect(calls[0].url).toBe(url);
+    });
+
+    it("does NOT intercept non-Cursor, non-proxy requests", async () => {
+      const url = "https://api.openai.com/v1/chat/completions";
+
+      await globalThis.fetch(url, { method: "POST" });
+
+      expect(calls).toHaveLength(1);
+      expect(calls[0].url).toBe(url);
+    });
+  });
+});

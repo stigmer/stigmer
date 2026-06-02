@@ -94,6 +94,13 @@ func WithWorkspaceEntries(entries []*sessionv1.WorkspaceEntry) SessionOption {
 	}
 }
 
+// WithSubject sets an explicit subject on the session spec.
+func WithSubject(subject string) SessionOption {
+	return func(s *sessionv1.SessionSpec) {
+		s.Subject = subject
+	}
+}
+
 // WithExecutionTarget sets the execution target on the session spec.
 func WithExecutionTarget(target sessionv1.ExecutionTarget) SessionOption {
 	return func(s *sessionv1.SessionSpec) {
@@ -101,9 +108,30 @@ func WithExecutionTarget(target sessionv1.ExecutionTarget) SessionOption {
 	}
 }
 
+// SessionResourceOption applies to the full Session resource (metadata + spec).
+type SessionResourceOption func(*sessionv1.Session)
+
+// WithSessionOrg overrides the org on the session metadata (defaults to TestOrg).
+func WithSessionOrg(org string) SessionResourceOption {
+	return func(s *sessionv1.Session) {
+		s.Metadata.Org = org
+	}
+}
+
 // CreateTestSession creates a session for agent execution tests with the
 // specified harness. The session is deleted on test cleanup.
 func CreateTestSession(t *testing.T, ctx context.Context, clients *Clients, agentInstanceID string, harness sessionv1.Harness, opts ...SessionOption) *sessionv1.Session {
+	t.Helper()
+	return createTestSessionInternal(t, ctx, clients, agentInstanceID, harness, opts, nil)
+}
+
+// CreateTestSessionWithOrg creates a session under a specific org.
+func CreateTestSessionWithOrg(t *testing.T, ctx context.Context, clients *Clients, agentInstanceID string, harness sessionv1.Harness, resOpts []SessionResourceOption, opts ...SessionOption) *sessionv1.Session {
+	t.Helper()
+	return createTestSessionInternal(t, ctx, clients, agentInstanceID, harness, opts, resOpts)
+}
+
+func createTestSessionInternal(t *testing.T, ctx context.Context, clients *Clients, agentInstanceID string, harness sessionv1.Harness, opts []SessionOption, resOpts []SessionResourceOption) *sessionv1.Session {
 	t.Helper()
 
 	session := &sessionv1.Session{
@@ -121,6 +149,9 @@ func CreateTestSession(t *testing.T, ctx context.Context, clients *Clients, agen
 	}
 	for _, opt := range opts {
 		opt(session.Spec)
+	}
+	for _, opt := range resOpts {
+		opt(session)
 	}
 
 	created, err := clients.SessionCommand.Create(ctx, session)
@@ -142,9 +173,30 @@ func CreateTestSession(t *testing.T, ctx context.Context, clients *Clients, agen
 	return created
 }
 
+// ExecutionResourceOption applies to the full AgentExecution resource.
+type ExecutionResourceOption func(*agentexecv1.AgentExecution)
+
+// WithExecutionOrg overrides the org on the execution metadata (defaults to TestOrg).
+func WithExecutionOrg(org string) ExecutionResourceOption {
+	return func(e *agentexecv1.AgentExecution) {
+		e.Metadata.Org = org
+	}
+}
+
 // CreateTestAgentExecution creates an agent execution in the specified session.
 // The execution is not cleaned up automatically — it is owned by the session.
 func CreateTestAgentExecution(t *testing.T, ctx context.Context, clients *Clients, sessionID, message string, opts ...AgentExecutionOption) *agentexecv1.AgentExecution {
+	t.Helper()
+	return createTestAgentExecutionInternal(t, ctx, clients, sessionID, message, opts, nil)
+}
+
+// CreateTestAgentExecutionWithOrg creates an execution under a specific org.
+func CreateTestAgentExecutionWithOrg(t *testing.T, ctx context.Context, clients *Clients, sessionID, message string, resOpts []ExecutionResourceOption, opts ...AgentExecutionOption) *agentexecv1.AgentExecution {
+	t.Helper()
+	return createTestAgentExecutionInternal(t, ctx, clients, sessionID, message, opts, resOpts)
+}
+
+func createTestAgentExecutionInternal(t *testing.T, ctx context.Context, clients *Clients, sessionID, message string, opts []AgentExecutionOption, resOpts []ExecutionResourceOption) *agentexecv1.AgentExecution {
 	t.Helper()
 
 	spec := &agentexecv1.AgentExecutionSpec{
@@ -163,6 +215,9 @@ func CreateTestAgentExecution(t *testing.T, ctx context.Context, clients *Client
 			Org:  TestOrg,
 		},
 		Spec: spec,
+	}
+	for _, opt := range resOpts {
+		opt(exec)
 	}
 
 	created, err := clients.AgentExecutionCommand.Create(ctx, exec)

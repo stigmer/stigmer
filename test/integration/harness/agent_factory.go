@@ -65,6 +65,13 @@ func WithSubAgent(subAgent *agentv1.SubAgent) AgentOption {
 // Use these alongside AgentOption in CreateAgent.
 type AgentCreateOption func(*agentv1.Agent)
 
+// WithAgentOrg overrides the org on the agent metadata (defaults to TestOrg).
+func WithAgentOrg(org string) AgentCreateOption {
+	return func(a *agentv1.Agent) {
+		a.Metadata.Org = org
+	}
+}
+
 // WithDefaultAgentLabel marks the agent as the platform default by setting the
 // stigmer.ai/default-agent label and public visibility. The server resolves
 // this agent when an execution is created without session_id or agent_id.

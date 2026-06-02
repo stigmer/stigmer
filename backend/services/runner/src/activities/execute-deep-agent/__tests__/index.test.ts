@@ -2,6 +2,19 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createDeepAgentActivities } from "../index.js";
 import type { Config } from "../../../config.js";
 
+// The activity reads the Temporal activity context (cancellation signal,
+// heartbeat) via `Context.current()`. Outside a worker there is no live
+// context, so provide a minimal stand-in.
+vi.mock("@temporalio/activity", () => ({
+  Context: {
+    current: () => ({
+      cancellationSignal: { aborted: false },
+      heartbeat: vi.fn(),
+    }),
+  },
+  CancelledFailure: class CancelledFailure extends Error {},
+}));
+
 vi.mock("../../../idle-watchdog.js", () => ({
   activityStarted: vi.fn(),
   activityFinished: vi.fn(),

@@ -3,6 +3,7 @@
 import { memo, useMemo } from "react";
 import { cn } from "@stigmer/theme";
 import type { DerivedCostSummary } from "../internal/store/workflow-execution-event-store";
+import { formatMicroUsd, formatTokenCount } from "./format-utils";
 
 /** Props for {@link WorkflowExecutionCostPanel}. */
 export interface WorkflowExecutionCostPanelProps {
@@ -61,8 +62,8 @@ export const WorkflowExecutionCostPanel = memo(function WorkflowExecutionCostPan
       {hasTokens && (
         <BudgetGauge
           label="Tokens"
-          consumed={formatTokens(costSummary.tokensConsumed)}
-          limit={tokenLimit ? formatTokens(tokenLimit) : undefined}
+          consumed={formatTokenCount(costSummary.tokensConsumed)}
+          limit={tokenLimit ? formatTokenCount(tokenLimit) : undefined}
           percentage={tokenLimit && tokenLimit > BZ
             ? Number((costSummary.tokensConsumed * BigInt(100)) / tokenLimit)
             : undefined}
@@ -117,15 +118,3 @@ function BudgetGauge({
   );
 }
 
-function formatMicroUsd(micros: bigint): string {
-  const val = Number(micros) / 1_000_000;
-  if (val < 0.01) return `$${val.toFixed(4)}`;
-  return `$${val.toFixed(2)}`;
-}
-
-function formatTokens(tokens: bigint): string {
-  const n = Number(tokens);
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-  return n.toLocaleString();
-}

@@ -4,11 +4,16 @@ package ai.stigmer.sdk.gen;
 
 import ai.stigmer.agentic.workflow.v1.GetTaskKindRegistryRequest;
 import ai.stigmer.agentic.workflow.v1.GetTaskKindRegistryResponse;
+import ai.stigmer.agentic.workflow.v1.GetWorkflowVersionInput;
+import ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsInput;
+import ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsResponse;
+import ai.stigmer.agentic.workflow.v1.TagWorkflowVersionInput;
 import ai.stigmer.agentic.workflow.v1.TaskKindRegistryQueryControllerGrpc;
 import ai.stigmer.agentic.workflow.v1.Workflow;
 import ai.stigmer.agentic.workflow.v1.WorkflowCommandControllerGrpc;
 import ai.stigmer.agentic.workflow.v1.WorkflowId;
 import ai.stigmer.agentic.workflow.v1.WorkflowQueryControllerGrpc;
+import ai.stigmer.agentic.workflow.v1.WorkflowVersionEntry;
 import ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation;
 import ai.stigmer.commons.apiresource.UpdateVisibilityInput;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
@@ -69,6 +74,12 @@ public final class WorkflowClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
+    public Workflow tagVersion(TagWorkflowVersionInput input) {
+        try {
+            return command.tagVersion(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
     public Workflow get(String id) {
         try {
             return query.get(WorkflowId.newBuilder().setValue(id).build());
@@ -78,6 +89,18 @@ public final class WorkflowClient {
     public Workflow getByReference(ResourceRef ref) {
         try {
             return query.getByReference(ref.toProto().toBuilder().setKind(ApiResourceKind.workflow).build());
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public ListWorkflowVersionsResponse listVersions(ListWorkflowVersionsInput input) {
+        try {
+            return query.listVersions(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public WorkflowVersionEntry getVersion(GetWorkflowVersionInput input) {
+        try {
+            return query.getVersion(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

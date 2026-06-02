@@ -258,6 +258,15 @@ message GetCreditLedgerInput {
 
   // Filter to entries on or before this timestamp.
   google.protobuf.Timestamp end_time = 5;
+
+  // Selects a server-resolved slice of the ledger. When set to
+  // ledger_view_statement, the server returns only customer-facing
+  // money-movement entry types and excludes internal mechanics (per-call
+  // usage debits, reservation holds/releases). Defaults to the full ledger.
+  //
+  // When both view and type_filter are provided, the effective filter is
+  // their intersection — type_filter narrows within the view's set.
+  LedgerView view = 6;
 }
 
 // CreditLedgerResponse is a paginated list of ledger entries.

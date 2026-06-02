@@ -26,7 +26,7 @@ from ai.stigmer.agentic.workflow.v1.serverless import validation_pb2 as ai_dot_s
 from ai.stigmer.commons.apiresource import status_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_status__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n+ai/stigmer/agentic/workflow/v1/status.proto\x12\x1e\x61i.stigmer.agentic.workflow.v1\x1a:ai/stigmer/agentic/workflow/v1/serverless/validation.proto\x1a+ai/stigmer/commons/apiresource/status.proto\"\x98\x02\n\x0eWorkflowStatus\x12\x46\n\x05\x61udit\x18\x63 \x01(\x0b\x32\x30.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05\x61udit\x12.\n\x13\x64\x65\x66\x61ult_instance_id\x18\x01 \x01(\tR\x11\x64\x65\x66\x61ultInstanceId\x12\x8d\x01\n\x1eserverless_workflow_validation\x18\x02 \x01(\x0b\x32G.ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidationR\x1cserverlessWorkflowValidationB\xce\x01\n\"com.ai.stigmer.agentic.workflow.v1B\x0bStatusProtoP\x01\xa2\x02\x04\x41SAW\xaa\x02\x1e\x41i.Stigmer.Agentic.Workflow.V1\xca\x02\x1e\x41i\\Stigmer\\Agentic\\Workflow\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Workflow::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n+ai/stigmer/agentic/workflow/v1/status.proto\x12\x1e\x61i.stigmer.agentic.workflow.v1\x1a:ai/stigmer/agentic/workflow/v1/serverless/validation.proto\x1a+ai/stigmer/commons/apiresource/status.proto\"\xbb\x02\n\x0eWorkflowStatus\x12\x46\n\x05\x61udit\x18\x63 \x01(\x0b\x32\x30.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05\x61udit\x12.\n\x13\x64\x65\x66\x61ult_instance_id\x18\x01 \x01(\tR\x11\x64\x65\x66\x61ultInstanceId\x12\x8d\x01\n\x1eserverless_workflow_validation\x18\x02 \x01(\x0b\x32G.ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidationR\x1cserverlessWorkflowValidation\x12!\n\x0cversion_hash\x18\x03 \x01(\tR\x0bversionHashB\xce\x01\n\"com.ai.stigmer.agentic.workflow.v1B\x0bStatusProtoP\x01\xa2\x02\x04\x41SAW\xaa\x02\x1e\x41i.Stigmer.Agentic.Workflow.V1\xca\x02\x1e\x41i\\Stigmer\\Agentic\\Workflow\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Workflow::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -35,5 +35,5 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n\"com.ai.stigmer.agentic.workflow.v1B\013StatusProtoP\001\242\002\004ASAW\252\002\036Ai.Stigmer.Agentic.Workflow.V1\312\002\036Ai\\Stigmer\\Agentic\\Workflow\\V1\342\002*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata\352\002\"Ai::Stigmer::Agentic::Workflow::V1'
   _globals['_WORKFLOWSTATUS']._serialized_start=185
-  _globals['_WORKFLOWSTATUS']._serialized_end=465
+  _globals['_WORKFLOWSTATUS']._serialized_end=500
 # @@protoc_insertion_point(module_scope)

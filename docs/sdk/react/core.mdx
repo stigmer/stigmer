@@ -304,6 +304,13 @@ Configuration for `FetchCache`.
 />
 
 
+### FILE_REF_MIME
+
+MIME type used to transfer workspace file-reference data during
+drag-and-drop. The payload is `JSON.stringify({ path })` where
+`path` is the workspace-relative file path.
+
+
 ### isResourceAvailable
 
 Check whether a resource kind is available in the given deployment mode.
@@ -366,6 +373,15 @@ Each environment provides its own implementation:
 - CLI: wraps the daemon runner
 - Customer self-hosted: wraps their own runner management API
 - Cloud: no adapter needed (server handles provisioning)
+
+
+### SelectedThreadItem
+
+Discriminated union for a selected thread item.
+
+Mirrors the `ThreadItem.kind` from `MessageThread` but carries
+only the identifying key — not the full data. The `InspectTab`
+derives display detail from the execution snapshot separately.
 
 
 ### StigmerContext

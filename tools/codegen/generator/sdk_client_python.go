@@ -935,6 +935,9 @@ func generatePythonInputAndProto(buf *bytes.Buffer, schema *ServiceSchemaFile, c
 	buf.WriteString("    slug: str | None = None\n")
 	buf.WriteString("    labels: dict[str, str] | None = None\n")
 	buf.WriteString("    visibility: int = 0\n")
+	if cfg.isVersioned {
+		buf.WriteString("    version_message: str = \"\"\n")
+	}
 	emitPyFields(buf, optionalFields, imports)
 
 	// _to_proto method inside the class
@@ -1015,6 +1018,12 @@ func emitPyMainToProto(buf *bytes.Buffer, cfg sdkResourceConfig, spec *TaskConfi
 	buf.WriteString("            metadata.labels.update(self.labels)\n")
 	buf.WriteString("        if self.visibility:\n")
 	buf.WriteString("            metadata.visibility = self.visibility\n")
+	if cfg.isVersioned {
+		buf.WriteString("        if self.version_message:\n")
+		buf.WriteString("            metadata.version.CopyFrom(metadata_pb2.ApiResourceMetadataVersion(\n")
+		buf.WriteString("                message=self.version_message,\n")
+		buf.WriteString("            ))\n")
+	}
 	fmt.Fprintf(buf, "        return api_pb2.%s(\n", cfg.protoResType)
 	fmt.Fprintf(buf, "            api_version=%q,\n", cfg.apiVersion)
 	fmt.Fprintf(buf, "            kind=%q,\n", cfg.protoResType)

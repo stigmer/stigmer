@@ -25,6 +25,7 @@ import { ApprovalCard } from "./ApprovalCard";
 import { SummarizationCard } from "./SummarizationCard";
 import { PlanCompletionCard } from "./PlanCompletionCard";
 import type { SummarizationEventView } from "./useContextWindow";
+import { isInternalTool } from "./tool-categories";
 import { FilePathContext, type FilePathContextValue } from "./FilePathContext";
 import type { ResolvedPathAction } from "./file-path-resolver";
 import { SandboxContext, type SandboxContextValue } from "./SandboxContext";
@@ -137,6 +138,18 @@ export interface MessageThreadProps {
    * compatible — existing consumers see no change.
    */
   readonly onBuildFromPlan?: () => void;
+  /**
+   * Center thread content within a max-width reading column.
+   *
+   * When `true`, items are constrained to `max-w-3xl` (768 px) and
+   * horizontally centered. The scroll container stays full-width so
+   * the scrollbar remains at the viewport edge.
+   *
+   * Opt-in per DD-011 — existing consumers see no layout change.
+   *
+   * @default false
+   */
+  readonly centerContent?: boolean;
 }
 
 /**
@@ -267,16 +280,18 @@ export function buildThreadItems(
         msg.type === MessageType.MESSAGE_AI &&
         msg.toolCalls.length > 0
       ) {
-        const hasTaskTools = msg.toolCalls.some((tc) => tc.name === "task");
+        const needsSplit = msg.toolCalls.some(
+          (tc) => tc.name === "task" || isInternalTool(tc.name),
+        );
 
-        if (hasTaskTools) {
+        if (needsSplit) {
           const regularTools: ToolCall[] = [];
           const matchedSubAgents: SubAgentExecution[] = [];
           for (const tc of msg.toolCalls) {
             if (tc.name === "task") {
               const matched = subAgents.find((sa) => sa.id === tc.id);
               if (matched) matchedSubAgents.push(matched);
-            } else {
+            } else if (!isInternalTool(tc.name)) {
               regularTools.push(tc);
             }
           }
@@ -434,6 +449,7 @@ export function MessageThread({
   summarizationEvents,
   virtualized = false,
   onBuildFromPlan,
+  centerContent = false,
 }: MessageThreadProps) {
   useRenderTracer("MessageThread", { executions, activeStreamExecution });
 
@@ -470,6 +486,7 @@ export function MessageThread({
             filePathCtx={filePathCtx}
             sandboxCtx={sandboxCtx}
             onBuildFromPlan={onBuildFromPlan}
+            centerContent={centerContent}
           />
         </Suspense>
       </div>
@@ -480,6 +497,7 @@ export function MessageThread({
     <NonVirtualizedThread
       items={items}
       className={className}
+      centerContent={centerContent}
       formatToolCallSummary={formatToolCallSummary}
       onApprovalSubmit={onApprovalSubmit}
       submittingApprovalIds={submittingApprovalIds}
@@ -497,6 +515,7 @@ export function MessageThread({
 interface NonVirtualizedThreadProps {
   readonly items: readonly ThreadItem[];
   readonly className?: string;
+  readonly centerContent?: boolean;
   readonly formatToolCallSummary?: (toolCalls: readonly ToolCall[]) => string;
   readonly onApprovalSubmit?: (
     toolCallId: string,
@@ -512,6 +531,7 @@ interface NonVirtualizedThreadProps {
 function NonVirtualizedThread({
   items,
   className,
+  centerContent,
   formatToolCallSummary,
   onApprovalSubmit,
   submittingApprovalIds,
@@ -542,7 +562,7 @@ function NonVirtualizedThread({
         <SandboxContext.Provider value={sandboxCtx}>
         <FilePathContext.Provider value={filePathCtx}>
         <DevProfiler id="MessageThread">
-          <div ref={contentRef} className="flex flex-col gap-4">
+          <div ref={contentRef} className={cn("flex flex-col gap-4", centerContent && "mx-auto w-full max-w-3xl px-4")}>
             {items.map((item) => (
               <ThreadItemWrapper key={item.key} animate>
                 <ThreadItemRenderer

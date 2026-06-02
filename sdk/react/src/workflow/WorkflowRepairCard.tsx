@@ -5,6 +5,7 @@ import { cn } from "@stigmer/theme";
 import { useDiagnoseExecutionFlow, type DiagnosePhase } from "./useDiagnoseExecutionFlow";
 import { MessageThread } from "../execution/MessageThread";
 import { computeUnifiedDiff, type DiffLine } from "./workflow-yaml-diff";
+import { WorkflowDiffGraph } from "./WorkflowDiffGraph";
 
 /** Props for {@link WorkflowRepairCard}. */
 export interface WorkflowRepairCardProps {
@@ -275,6 +276,7 @@ function ResultStrip({
   readonly onApplyFix?: () => void;
   readonly onDiscard: () => void;
 }) {
+  const [showYamlDiff, setShowYamlDiff] = useState(false);
   const diffLines = beforeYaml
     ? computeUnifiedDiff(beforeYaml, extractedYaml)
     : null;
@@ -294,13 +296,33 @@ function ResultStrip({
         </div>
       )}
 
-      {/* Diff preview */}
+      {/* Visual graph diff */}
+      {hasChanges && beforeYaml && (
+        <div className="mb-3">
+          <div className="h-[200px] overflow-hidden rounded-md border border-border">
+            <WorkflowDiffGraph
+              beforeYaml={beforeYaml}
+              afterYaml={extractedYaml}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Collapsible YAML diff toggle */}
       {hasChanges && diffLines && (
         <div className="mb-3">
-          <h4 className="mb-1 text-[0.65rem] font-medium uppercase tracking-wider text-muted-foreground">
-            Diff
-          </h4>
-          <DiffPreview lines={diffLines} />
+          <button
+            type="button"
+            onClick={() => setShowYamlDiff((v) => !v)}
+            className="text-[0.65rem] font-medium text-muted-foreground hover:text-foreground"
+          >
+            {showYamlDiff ? "▾ Hide YAML diff" : "▸ View YAML diff"}
+          </button>
+          {showYamlDiff && (
+            <div className="mt-1">
+              <DiffPreview lines={diffLines} />
+            </div>
+          )}
         </div>
       )}
 

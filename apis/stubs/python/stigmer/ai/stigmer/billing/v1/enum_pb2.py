@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n ai/stigmer/billing/v1/enum.proto\x12\x15\x61i.stigmer.billing.v1*\xb6\x02\n\x0fLedgerEntryType\x12!\n\x1dledger_entry_type_unspecified\x10\x00\x12\x13\n\x0fpurchase_credit\x10\x01\x12\x16\n\x12promotional_credit\x10\x02\x12\x0f\n\x0busage_debit\x10\x03\x12\x14\n\x10reservation_hold\x10\x04\x12\x17\n\x13reservation_release\x10\x05\x12\x15\n\x11\x61\x64justment_credit\x10\x06\x12\x14\n\x10\x61\x64justment_debit\x10\x07\x12\x13\n\x0frefund_reversal\x10\x08\x12\x10\n\x0c\x64ispute_hold\x10\t\x12\x13\n\x0f\x64ispute_release\x10\n\x12\x10\n\x0c\x65xpiry_debit\x10\x0b\x12\x18\n\x14\x61uto_recharge_credit\x10\x0c*d\n\x0f\x43reditGrantKind\x12!\n\x1d\x63redit_grant_kind_unspecified\x10\x00\x12\r\n\tpurchased\x10\x01\x12\x0f\n\x0bpromotional\x10\x02\x12\x0e\n\nadjustment\x10\x03*\x95\x01\n\x14\x42illingAccountStatus\x12&\n\"billing_account_status_unspecified\x10\x00\x12\x1a\n\x16\x62illing_account_active\x10\x01\x12\x1d\n\x19\x62illing_account_suspended\x10\x02\x12\x1a\n\x16\x62illing_account_closed\x10\x03*\x9e\x01\n\x11ReservationStatus\x12\"\n\x1ereservation_status_unspecified\x10\x00\x12\x16\n\x12reservation_active\x10\x01\x12\x19\n\x15reservation_finalized\x10\x02\x12\x17\n\x13reservation_expired\x10\x03\x12\x19\n\x15reservation_cancelled\x10\x04*\x87\x01\n\x16\x45xecutionBillingSignal\x12(\n$execution_billing_signal_unspecified\x10\x00\x12\x16\n\x12\x63ontinue_execution\x10\x01\x12\x17\n\x13low_balance_warning\x10\x02\x12\x12\n\x0estop_execution\x10\x03*\xb3\x01\n\x14\x43reditPurchaseStatus\x12&\n\"credit_purchase_status_unspecified\x10\x00\x12\x1b\n\x17\x63redit_purchase_pending\x10\x01\x12\x1d\n\x19\x63redit_purchase_completed\x10\x02\x12\x1a\n\x16\x63redit_purchase_failed\x10\x03\x12\x1b\n\x17\x63redit_purchase_expired\x10\x04*\x97\x01\n\x17\x41utoRechargeEventStatus\x12*\n&auto_recharge_event_status_unspecified\x10\x00\x12\x19\n\x15\x61uto_recharge_pending\x10\x01\x12\x1b\n\x17\x61uto_recharge_succeeded\x10\x02\x12\x18\n\x14\x61uto_recharge_failed\x10\x03\x42\x9d\x01\n\x19\x63om.ai.stigmer.billing.v1B\tEnumProtoP\x01\xa2\x02\x03\x41SB\xaa\x02\x15\x41i.Stigmer.Billing.V1\xca\x02\x15\x41i\\Stigmer\\Billing\\V1\xe2\x02!Ai\\Stigmer\\Billing\\V1\\GPBMetadata\xea\x02\x18\x41i::Stigmer::Billing::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n ai/stigmer/billing/v1/enum.proto\x12\x15\x61i.stigmer.billing.v1*\xb6\x02\n\x0fLedgerEntryType\x12!\n\x1dledger_entry_type_unspecified\x10\x00\x12\x13\n\x0fpurchase_credit\x10\x01\x12\x16\n\x12promotional_credit\x10\x02\x12\x0f\n\x0busage_debit\x10\x03\x12\x14\n\x10reservation_hold\x10\x04\x12\x17\n\x13reservation_release\x10\x05\x12\x15\n\x11\x61\x64justment_credit\x10\x06\x12\x14\n\x10\x61\x64justment_debit\x10\x07\x12\x13\n\x0frefund_reversal\x10\x08\x12\x10\n\x0c\x64ispute_hold\x10\t\x12\x13\n\x0f\x64ispute_release\x10\n\x12\x10\n\x0c\x65xpiry_debit\x10\x0b\x12\x18\n\x14\x61uto_recharge_credit\x10\x0c*D\n\nLedgerView\x12\x1b\n\x17ledger_view_unspecified\x10\x00\x12\x19\n\x15ledger_view_statement\x10\x01*d\n\x0f\x43reditGrantKind\x12!\n\x1d\x63redit_grant_kind_unspecified\x10\x00\x12\r\n\tpurchased\x10\x01\x12\x0f\n\x0bpromotional\x10\x02\x12\x0e\n\nadjustment\x10\x03*\x95\x01\n\x14\x42illingAccountStatus\x12&\n\"billing_account_status_unspecified\x10\x00\x12\x1a\n\x16\x62illing_account_active\x10\x01\x12\x1d\n\x19\x62illing_account_suspended\x10\x02\x12\x1a\n\x16\x62illing_account_closed\x10\x03*\x9e\x01\n\x11ReservationStatus\x12\"\n\x1ereservation_status_unspecified\x10\x00\x12\x16\n\x12reservation_active\x10\x01\x12\x19\n\x15reservation_finalized\x10\x02\x12\x17\n\x13reservation_expired\x10\x03\x12\x19\n\x15reservation_cancelled\x10\x04*\x87\x01\n\x16\x45xecutionBillingSignal\x12(\n$execution_billing_signal_unspecified\x10\x00\x12\x16\n\x12\x63ontinue_execution\x10\x01\x12\x17\n\x13low_balance_warning\x10\x02\x12\x12\n\x0estop_execution\x10\x03*\xb3\x01\n\x14\x43reditPurchaseStatus\x12&\n\"credit_purchase_status_unspecified\x10\x00\x12\x1b\n\x17\x63redit_purchase_pending\x10\x01\x12\x1d\n\x19\x63redit_purchase_completed\x10\x02\x12\x1a\n\x16\x63redit_purchase_failed\x10\x03\x12\x1b\n\x17\x63redit_purchase_expired\x10\x04*\x97\x01\n\x17\x41utoRechargeEventStatus\x12*\n&auto_recharge_event_status_unspecified\x10\x00\x12\x19\n\x15\x61uto_recharge_pending\x10\x01\x12\x1b\n\x17\x61uto_recharge_succeeded\x10\x02\x12\x18\n\x14\x61uto_recharge_failed\x10\x03\x42\x9d\x01\n\x19\x63om.ai.stigmer.billing.v1B\tEnumProtoP\x01\xa2\x02\x03\x41SB\xaa\x02\x15\x41i.Stigmer.Billing.V1\xca\x02\x15\x41i\\Stigmer\\Billing\\V1\xe2\x02!Ai\\Stigmer\\Billing\\V1\\GPBMetadata\xea\x02\x18\x41i::Stigmer::Billing::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -34,16 +34,18 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._serialized_options = b'\n\031com.ai.stigmer.billing.v1B\tEnumProtoP\001\242\002\003ASB\252\002\025Ai.Stigmer.Billing.V1\312\002\025Ai\\Stigmer\\Billing\\V1\342\002!Ai\\Stigmer\\Billing\\V1\\GPBMetadata\352\002\030Ai::Stigmer::Billing::V1'
   _globals['_LEDGERENTRYTYPE']._serialized_start=60
   _globals['_LEDGERENTRYTYPE']._serialized_end=370
-  _globals['_CREDITGRANTKIND']._serialized_start=372
-  _globals['_CREDITGRANTKIND']._serialized_end=472
-  _globals['_BILLINGACCOUNTSTATUS']._serialized_start=475
-  _globals['_BILLINGACCOUNTSTATUS']._serialized_end=624
-  _globals['_RESERVATIONSTATUS']._serialized_start=627
-  _globals['_RESERVATIONSTATUS']._serialized_end=785
-  _globals['_EXECUTIONBILLINGSIGNAL']._serialized_start=788
-  _globals['_EXECUTIONBILLINGSIGNAL']._serialized_end=923
-  _globals['_CREDITPURCHASESTATUS']._serialized_start=926
-  _globals['_CREDITPURCHASESTATUS']._serialized_end=1105
-  _globals['_AUTORECHARGEEVENTSTATUS']._serialized_start=1108
-  _globals['_AUTORECHARGEEVENTSTATUS']._serialized_end=1259
+  _globals['_LEDGERVIEW']._serialized_start=372
+  _globals['_LEDGERVIEW']._serialized_end=440
+  _globals['_CREDITGRANTKIND']._serialized_start=442
+  _globals['_CREDITGRANTKIND']._serialized_end=542
+  _globals['_BILLINGACCOUNTSTATUS']._serialized_start=545
+  _globals['_BILLINGACCOUNTSTATUS']._serialized_end=694
+  _globals['_RESERVATIONSTATUS']._serialized_start=697
+  _globals['_RESERVATIONSTATUS']._serialized_end=855
+  _globals['_EXECUTIONBILLINGSIGNAL']._serialized_start=858
+  _globals['_EXECUTIONBILLINGSIGNAL']._serialized_end=993
+  _globals['_CREDITPURCHASESTATUS']._serialized_start=996
+  _globals['_CREDITPURCHASESTATUS']._serialized_end=1175
+  _globals['_AUTORECHARGEEVENTSTATUS']._serialized_start=1178
+  _globals['_AUTORECHARGEEVENTSTATUS']._serialized_end=1329
 # @@protoc_insertion_point(module_scope)

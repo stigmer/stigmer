@@ -11,7 +11,6 @@ import type {
   Connection,
   IsValidConnection,
 } from "@xyflow/react";
-import dagre from "@dagrejs/dagre";
 import type { JsonObject } from "@bufbuild/protobuf";
 import type { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import type { WorkflowGraphModel, WorkflowGraphNode } from "./workflow-graph-model";
@@ -26,10 +25,7 @@ import {
 import { TASK_KIND_DRAG_MIME } from "./WorkflowTaskPalette";
 import {
   DAGRE_CONFIG,
-  CANVAS_NODE_WIDTH,
   CANVAS_NODE_HEIGHT,
-  SENTINEL_NODE_WIDTH,
-  SENTINEL_NODE_HEIGHT,
 } from "./canvas-constants";
 import type { GraphCommand } from "./graph-commands";
 import {
@@ -38,11 +34,26 @@ import {
   AddEdgeCommand,
   DeleteEdgeCommand,
   CompoundCommand,
+  MoveNodesCommand,
   UpdateNodeFieldCommand,
   RenameNodeCommand,
   UpdateNodeMetaCommand,
   MigrateBranchHandleCommand,
   DuplicateNodeCommand,
+  AddSwitchCaseCommand,
+  AddParallelBranchCommand,
+  AddCatchHandlerCommand,
+  RemoveSwitchCaseCommand,
+  ReorderSwitchCasesCommand,
+  RemoveForkBranchCommand,
+  ReorderForkBranchesCommand,
+  RenameForkBranchCommand,
+  SetForkCompeteCommand,
+  UpdateCatchConfigCommand,
+  RemoveCatchBlockCommand,
+  UpdateForEachConfigCommand,
+  ToggleNodeDisabledCommand,
+  WrapInTryCatchCommand,
   generateEdgeId,
   generateTaskName,
   createTaskNode,
@@ -52,11 +63,26 @@ import { graphToYaml } from "./workflow-graph-conversions";
 import { useTaskKindRegistry } from "./useTaskKindRegistry";
 import type { TaskKindDescriptor } from "./types";
 import { useGraphHistory } from "./useGraphHistory";
+import { useWorkflowLayout, applyDagreLayout, registryNodeDimensions } from "./layout";
+import type { LayoutEngine } from "./layout";
+import { serializeSelection, pasteClipboard } from "./clipboard";
+import type { ClipboardEntry } from "./clipboard";
 
 /** Selection state for the canvas inspector. */
 export interface CanvasSelection {
   readonly type: "node" | "edge";
   readonly id: string;
+}
+
+/** Options for {@link useWorkflowCanvas}. */
+export interface UseWorkflowCanvasOptions {
+  /**
+   * Layout engine for the "Auto Layout" action.
+   * When provided, this engine is used instead of the default dagre engine.
+   * Pass the result of {@link useElkLayoutEngine} for ELK-powered layout.
+   * When `null` or `undefined`, dagre is used as the default.
+   */
+  readonly layoutEngine?: LayoutEngine | null;
 }
 
 /** Return value of {@link useWorkflowCanvas}. */
@@ -104,7 +130,30 @@ export interface UseWorkflowCanvasReturn {
   readonly addSuccessorTask: (sourceNodeId: string, kindString: string) => void;
   readonly duplicateNode: (nodeId: string) => void;
   readonly addNodeAtPosition: (kindString: string, position: { x: number; y: number }) => void;
+  readonly addSwitchCase: (switchNodeId: string, caseName: string, condition: string) => void;
+  readonly addForkBranch: (forkNodeId: string, branchName: string) => void;
+  readonly addCatchHandler: (tryCatchNodeId: string, errorType: string) => void;
+  readonly removeSwitchCase: (switchNodeId: string, caseName: string) => void;
+  readonly reorderSwitchCases: (switchNodeId: string, newOrder: readonly string[]) => void;
+  readonly removeForkBranch: (forkNodeId: string, branchName: string) => void;
+  readonly reorderForkBranches: (forkNodeId: string, newOrder: readonly string[]) => void;
+  readonly renameForkBranch: (forkNodeId: string, oldName: string, newName: string) => void;
+  readonly setForkCompete: (forkNodeId: string, compete: boolean) => void;
+  readonly updateCatchConfig: (tryCatchNodeId: string, updates: { as?: string; compensate?: boolean }) => void;
+  readonly removeCatchBlock: (tryCatchNodeId: string) => void;
+  readonly updateForEachConfig: (forEachNodeId: string, updates: Partial<{ each: string; in: string; max_parallelism: number; batch_size: number; on_error: string }>) => void;
+  readonly getGraphModel: () => WorkflowGraphModel;
   readonly selectAll: () => void;
+  readonly toggleNodeDisabled: (nodeId: string) => void;
+  readonly wrapInTryCatch: (nodeId: string) => void;
+  readonly copySelection: () => void;
+  readonly pasteAtCenter: () => void;
+  readonly cutSelection: () => void;
+  readonly hasClipboard: boolean;
+  readonly duplicateSelection: () => void;
+  readonly disableSelection: () => void;
+  readonly deleteSelection: () => void;
+  readonly getSelectedNodeIds: () => ReadonlySet<string>;
 }
 
 /**
@@ -117,12 +166,14 @@ export interface UseWorkflowCanvasReturn {
  *
  * @param yaml - The workflow YAML to initialize from. Changes trigger re-parse.
  * @param containerRef - Ref to the canvas container for keyboard shortcut scoping.
+ * @param options - Optional configuration including a custom layout engine.
  *
  * @since T15 (Visual Canvas Editor)
  */
 export function useWorkflowCanvas(
   yaml: string | null,
   containerRef: RefObject<HTMLDivElement | null>,
+  options?: UseWorkflowCanvasOptions,
 ): UseWorkflowCanvasReturn {
   const [error, setError] = useState<string | null>(null);
   const [selection, setSelection] = useState<CanvasSelection | null>(null);
@@ -347,11 +398,9 @@ export function useWorkflowCanvas(
         };
         const next = dispatch(new AddNodeCommand(node, autoEdge));
 
-        requestAnimationFrame(() => {
-          const laidOut = applyDagreLayout(next);
-          history.reset(laidOut);
-          syncFromModel(laidOut);
-        });
+        // AD-T03-006: removed rAF→dagre→history.reset() pattern.
+        // The node is already positioned at the drop coordinates.
+        // Users trigger auto-layout explicitly when they want a clean graph.
       } else if (taskNodes.length === 0) {
         const autoEdge = {
           id: generateEdgeId(),
@@ -605,14 +654,6 @@ export function useWorkflowCanvas(
       );
 
       setSelection({ type: "node", id: taskName });
-
-      requestAnimationFrame(() => {
-        if (next.nodes.length > 0) {
-          const laidOut = applyDagreLayout(next);
-          history.reset(laidOut);
-          syncFromModel(laidOut);
-        }
-      });
     },
     [history, dispatch, syncFromModel],
   );
@@ -640,28 +681,49 @@ export function useWorkflowCanvas(
       };
 
       const node = createTaskNode(taskName, kind, kindString, category, position);
-      const edge = {
-        id: generateEdgeId(),
-        source: sourceNodeId,
-        target: taskName,
-      };
 
-      const next = dispatch(
-        new CompoundCommand(`Add ${kindString} after "${sourceNode.taskName}"`, [
-          new AddNodeCommand(node, null),
-          new AddEdgeCommand(edge),
-        ]),
+      const existingEdgeToEnd = model.edges.find(
+        (edge) => edge.source === sourceNodeId && edge.target === END_NODE_ID,
+      );
+
+      const commands: GraphCommand[] = [new AddNodeCommand(node, null)];
+
+      if (existingEdgeToEnd) {
+        // splice before end: source -> new -> __end__
+        commands.unshift(new DeleteEdgeCommand(existingEdgeToEnd.id));
+        commands.push(
+          new AddEdgeCommand({
+            id: generateEdgeId(),
+            source: sourceNodeId,
+            target: taskName,
+            ...(existingEdgeToEnd.sourceHandle && {
+              sourceHandle: existingEdgeToEnd.sourceHandle,
+            }),
+          }),
+        );
+        commands.push(
+          new AddEdgeCommand({
+            id: generateEdgeId(),
+            source: taskName,
+            target: END_NODE_ID,
+          }),
+        );
+      } else {
+        // standard append
+        commands.push(
+          new AddEdgeCommand({
+            id: generateEdgeId(),
+            source: sourceNodeId,
+            target: taskName,
+          }),
+        );
+      }
+
+      dispatch(
+        new CompoundCommand(`Add ${kindString} after "${sourceNode.taskName}"`, commands),
       );
 
       setSelection({ type: "node", id: taskName });
-
-      requestAnimationFrame(() => {
-        if (next.nodes.length > 0) {
-          const laidOut = applyDagreLayout(next);
-          history.reset(laidOut);
-          syncFromModel(laidOut);
-        }
-      });
     },
     [history, dispatch, syncFromModel],
   );
@@ -689,6 +751,41 @@ export function useWorkflowCanvas(
   );
 
   // ---------------------------------------------------------------------------
+  // Toggle node disabled (T10: Inspector actions)
+  // ---------------------------------------------------------------------------
+
+  const toggleNodeDisabled = useCallback(
+    (nodeId: string) => {
+      const model = history.currentModel;
+      if (!model) return;
+      const node = model.nodes.find((n) => n.id === nodeId);
+      if (!node || isSentinelNode(nodeId)) return;
+      dispatch(new ToggleNodeDisabledCommand(nodeId, node.taskName));
+    },
+    [history.currentModel, dispatch],
+  );
+
+  // ---------------------------------------------------------------------------
+  // Wrap in try/catch (T10: Inspector actions)
+  // ---------------------------------------------------------------------------
+
+  const wrapInTryCatch = useCallback(
+    (nodeId: string) => {
+      const model = history.currentModel;
+      if (!model) return;
+      const node = model.nodes.find((n) => n.id === nodeId);
+      if (!node || isSentinelNode(nodeId)) return;
+
+      const existingNames = new Set(model.nodes.map((n) => n.taskName));
+      const tryCatchName = generateTaskName("try_catch", existingNames);
+
+      dispatch(new WrapInTryCatchCommand(nodeId, node.taskName, tryCatchName));
+      setSelection({ type: "node", id: tryCatchName });
+    },
+    [history.currentModel, dispatch],
+  );
+
+  // ---------------------------------------------------------------------------
   // Add node at position (AD-T05: pane context menu "Add Task")
   // ---------------------------------------------------------------------------
 
@@ -708,6 +805,100 @@ export function useWorkflowCanvas(
     },
     [history.currentModel, dispatch],
   );
+
+  // ---------------------------------------------------------------------------
+  // Branch-specific insertion (T08)
+  // ---------------------------------------------------------------------------
+
+  const addSwitchCase = useCallback(
+    (switchNodeId: string, caseName: string, condition: string) => {
+      dispatch(new AddSwitchCaseCommand(switchNodeId, caseName, condition));
+    },
+    [dispatch],
+  );
+
+  const addForkBranch = useCallback(
+    (forkNodeId: string, branchName: string) => {
+      dispatch(new AddParallelBranchCommand(forkNodeId, branchName));
+    },
+    [dispatch],
+  );
+
+  const addCatchHandler = useCallback(
+    (tryCatchNodeId: string, errorType: string) => {
+      dispatch(new AddCatchHandlerCommand(tryCatchNodeId, errorType));
+    },
+    [dispatch],
+  );
+
+  // ---------------------------------------------------------------------------
+  // Branch management (T09)
+  // ---------------------------------------------------------------------------
+
+  const removeSwitchCase = useCallback(
+    (switchNodeId: string, caseName: string) => {
+      dispatch(new RemoveSwitchCaseCommand(switchNodeId, caseName));
+    },
+    [dispatch],
+  );
+
+  const reorderSwitchCases = useCallback(
+    (switchNodeId: string, newOrder: readonly string[]) => {
+      dispatch(new ReorderSwitchCasesCommand(switchNodeId, newOrder));
+    },
+    [dispatch],
+  );
+
+  const removeForkBranch = useCallback(
+    (forkNodeId: string, branchName: string) => {
+      dispatch(new RemoveForkBranchCommand(forkNodeId, branchName));
+    },
+    [dispatch],
+  );
+
+  const reorderForkBranches = useCallback(
+    (forkNodeId: string, newOrder: readonly string[]) => {
+      dispatch(new ReorderForkBranchesCommand(forkNodeId, newOrder));
+    },
+    [dispatch],
+  );
+
+  const renameForkBranch = useCallback(
+    (forkNodeId: string, oldName: string, newName: string) => {
+      dispatch(new RenameForkBranchCommand(forkNodeId, oldName, newName));
+    },
+    [dispatch],
+  );
+
+  const setForkCompete = useCallback(
+    (forkNodeId: string, compete: boolean) => {
+      dispatch(new SetForkCompeteCommand(forkNodeId, compete));
+    },
+    [dispatch],
+  );
+
+  const updateCatchConfig = useCallback(
+    (tryCatchNodeId: string, updates: { as?: string; compensate?: boolean }) => {
+      dispatch(new UpdateCatchConfigCommand(tryCatchNodeId, updates));
+    },
+    [dispatch],
+  );
+
+  const removeCatchBlock = useCallback(
+    (tryCatchNodeId: string) => {
+      dispatch(new RemoveCatchBlockCommand(tryCatchNodeId));
+    },
+    [dispatch],
+  );
+
+  const updateForEachConfig = useCallback(
+    (forEachNodeId: string, updates: Partial<{ each: string; in: string; max_parallelism: number; batch_size: number; on_error: string }>) => {
+      dispatch(new UpdateForEachConfigCommand(forEachNodeId, updates));
+    },
+    [dispatch],
+  );
+
+  const getGraphModel = useCallback(() => history.currentModel, [history.currentModel]);
 
   // ---------------------------------------------------------------------------
   // Select all (AD-T05: pane context menu "Select All")
@@ -743,16 +934,150 @@ export function useWorkflowCanvas(
   }, []);
 
   // ---------------------------------------------------------------------------
-  // Auto-layout
+  // Auto-layout (AD-T03-002: dispatches MoveNodesCommand for undo support)
   // ---------------------------------------------------------------------------
 
-  const autoLayout = useCallback(() => {
+  const { layoutGraph, isLayouting } = useWorkflowLayout({
+    engine: options?.layoutEngine ?? undefined,
+    getNodeDimensions: registryNodeDimensions,
+  });
+
+  const autoLayout = useCallback(async () => {
     const model = history.currentModel;
     if (!model || model.nodes.length === 0) return;
-    const laidOut = applyDagreLayout(model);
-    history.reset(laidOut);
-    syncFromModel(laidOut);
-  }, [history, syncFromModel]);
+
+    const oldPositions = model.nodes.map((n) => ({
+      id: n.id,
+      x: n.position.x,
+      y: n.position.y,
+    }));
+
+    const result = await layoutGraph(model, { type: "whole-graph" });
+    if (!result) return;
+
+    const newPositions = model.nodes.map((n) => {
+      const pos = result.positions.get(n.id);
+      return {
+        id: n.id,
+        x: pos?.x ?? n.position.x,
+        y: pos?.y ?? n.position.y,
+      };
+    });
+
+    const hasChanges = newPositions.some((np) => {
+      const op = oldPositions.find((o) => o.id === np.id);
+      return op && (Math.abs(op.x - np.x) > 0.5 || Math.abs(op.y - np.y) > 0.5);
+    });
+
+    if (hasChanges) {
+      dispatch(new MoveNodesCommand(oldPositions, newPositions));
+    }
+  }, [history, dispatch, layoutGraph]);
+
+  // ---------------------------------------------------------------------------
+  // Clipboard (T11: internal copy/paste)
+  // ---------------------------------------------------------------------------
+
+  const clipboardRef = useRef<ClipboardEntry | null>(null);
+  const [hasClipboard, setHasClipboard] = useState(false);
+
+  const getSelectedNodeIds = useCallback((): ReadonlySet<string> => {
+    const selected = new Set<string>();
+    for (const n of nodes) {
+      if (n.selected && !isSentinelNode(n.id)) {
+        selected.add(n.id);
+      }
+    }
+    if (selected.size === 0 && selection?.type === "node" && !isSentinelNode(selection.id)) {
+      selected.add(selection.id);
+    }
+    return selected;
+  }, [nodes, selection]);
+
+  const copySelection = useCallback(() => {
+    const model = history.currentModel;
+    if (!model) return;
+    const selectedIds = getSelectedNodeIds();
+    if (selectedIds.size === 0) return;
+    const entry = serializeSelection(model, selectedIds);
+    if (entry) {
+      clipboardRef.current = entry;
+      setHasClipboard(true);
+    }
+  }, [history.currentModel, getSelectedNodeIds]);
+
+  const pasteAtCenter = useCallback(() => {
+    const entry = clipboardRef.current;
+    const model = history.currentModel;
+    if (!entry || !model) return;
+    const result = pasteClipboard(entry, model);
+    if (!result) return;
+    dispatch(result.command);
+    if (result.newNodeIds.length > 0) {
+      setSelection({ type: "node", id: result.newNodeIds[0] });
+    }
+  }, [history.currentModel, dispatch]);
+
+  const cutSelection = useCallback(() => {
+    copySelection();
+    const selectedIds = getSelectedNodeIds();
+    if (selectedIds.size === 0) return;
+    const toDelete = nodes.filter((n) => selectedIds.has(n.id));
+    if (toDelete.length > 0) {
+      onNodesDelete(toDelete);
+    }
+  }, [copySelection, getSelectedNodeIds, nodes, onNodesDelete]);
+
+  // ---------------------------------------------------------------------------
+  // Batch operations for multi-selection (T11)
+  // ---------------------------------------------------------------------------
+
+  const duplicateSelection = useCallback(() => {
+    const model = history.currentModel;
+    if (!model) return;
+    const selectedIds = getSelectedNodeIds();
+    if (selectedIds.size === 0) return;
+
+    const existingNames = new Set(model.nodes.map((n) => n.taskName));
+    const commands: GraphCommand[] = [];
+    for (const nodeId of selectedIds) {
+      const sourceNode = model.nodes.find((n) => n.id === nodeId);
+      if (!sourceNode) continue;
+      const kindStr = taskKindToString(sourceNode.kind);
+      const newName = generateTaskName(kindStr, existingNames);
+      existingNames.add(newName);
+      commands.push(new DuplicateNodeCommand(nodeId, newName));
+    }
+    if (commands.length > 0) {
+      dispatch(new CompoundCommand(`Duplicate ${commands.length} tasks`, commands));
+    }
+  }, [history.currentModel, getSelectedNodeIds, dispatch]);
+
+  const disableSelection = useCallback(() => {
+    const model = history.currentModel;
+    if (!model) return;
+    const selectedIds = getSelectedNodeIds();
+    if (selectedIds.size === 0) return;
+
+    const commands: GraphCommand[] = [];
+    for (const nodeId of selectedIds) {
+      const node = model.nodes.find((n) => n.id === nodeId);
+      if (!node) continue;
+      commands.push(new ToggleNodeDisabledCommand(nodeId, node.taskName));
+    }
+    if (commands.length > 0) {
+      dispatch(new CompoundCommand(`Toggle disabled on ${commands.length} tasks`, commands));
+    }
+  }, [history.currentModel, getSelectedNodeIds, dispatch]);
+
+  const deleteSelection = useCallback(() => {
+    const selectedIds = getSelectedNodeIds();
+    if (selectedIds.size === 0) return;
+    const toDelete = nodes.filter((n) => selectedIds.has(n.id));
+    if (toDelete.length > 0) {
+      onNodesDelete(toDelete);
+    }
+  }, [getSelectedNodeIds, nodes, onNodesDelete]);
 
   // ---------------------------------------------------------------------------
   // Undo / Redo (delegates to history, then syncs RF)
@@ -821,7 +1146,30 @@ export function useWorkflowCanvas(
       addSuccessorTask,
       duplicateNode,
       addNodeAtPosition,
+      addSwitchCase,
+      addForkBranch,
+      addCatchHandler,
+      removeSwitchCase,
+      reorderSwitchCases,
+      removeForkBranch,
+      reorderForkBranches,
+      renameForkBranch,
+      setForkCompete,
+      updateCatchConfig,
+      removeCatchBlock,
+      updateForEachConfig,
+      getGraphModel,
       selectAll,
+      toggleNodeDisabled,
+      wrapInTryCatch,
+      copySelection,
+      pasteAtCenter,
+      cutSelection,
+      hasClipboard,
+      duplicateSelection,
+      disableSelection,
+      deleteSelection,
+      getSelectedNodeIds,
     }),
     [
       nodes, edges, onNodesChange, onEdgesChange, onConnect,
@@ -832,51 +1180,19 @@ export function useWorkflowCanvas(
       getNodeDescriptor, serializeToYaml,
       updateBranchRouting, migrateBranchHandle, removeBranchEdges,
       insertTaskOnEdge, addSuccessorTask,
-      duplicateNode, addNodeAtPosition, selectAll,
+      duplicateNode, addNodeAtPosition,
+      addSwitchCase, addForkBranch, addCatchHandler,
+      removeSwitchCase, reorderSwitchCases,
+      removeForkBranch, reorderForkBranches, renameForkBranch, setForkCompete,
+      updateCatchConfig, removeCatchBlock, updateForEachConfig,
+      getGraphModel,
+      selectAll, toggleNodeDisabled, wrapInTryCatch,
+      copySelection, pasteAtCenter, cutSelection, hasClipboard,
+      duplicateSelection, disableSelection, deleteSelection, getSelectedNodeIds,
     ],
   );
 }
 
 // ---------------------------------------------------------------------------
-// Dagre layout
+// Synchronous dagre layout — delegated to shared utility (T04 extraction)
 // ---------------------------------------------------------------------------
-
-function applyDagreLayout(graph: WorkflowGraphModel): WorkflowGraphModel {
-  const g = new dagre.graphlib.Graph();
-  g.setGraph({
-    rankdir: DAGRE_CONFIG.rankdir,
-    ranksep: DAGRE_CONFIG.ranksep,
-    nodesep: DAGRE_CONFIG.nodesep,
-  });
-  g.setDefaultEdgeLabel(() => ({}));
-
-  for (const node of graph.nodes) {
-    const isSentinel = node.id === START_NODE_ID || node.id === END_NODE_ID;
-    g.setNode(node.id, {
-      width: isSentinel ? SENTINEL_NODE_WIDTH : CANVAS_NODE_WIDTH,
-      height: isSentinel ? SENTINEL_NODE_HEIGHT : CANVAS_NODE_HEIGHT,
-    });
-  }
-
-  for (const edge of graph.edges) {
-    g.setEdge(edge.source, edge.target);
-  }
-
-  dagre.layout(g);
-
-  const layoutNodes: WorkflowGraphNode[] = graph.nodes.map((node) => {
-    const dagreNode = g.node(node.id);
-    const isSentinel = node.id === START_NODE_ID || node.id === END_NODE_ID;
-    const w = isSentinel ? SENTINEL_NODE_WIDTH : CANVAS_NODE_WIDTH;
-    const h = isSentinel ? SENTINEL_NODE_HEIGHT : CANVAS_NODE_HEIGHT;
-    return {
-      ...node,
-      position: {
-        x: (dagreNode?.x ?? 0) - w / 2,
-        y: (dagreNode?.y ?? 0) - h / 2,
-      },
-    };
-  });
-
-  return { ...graph, nodes: layoutNodes };
-}

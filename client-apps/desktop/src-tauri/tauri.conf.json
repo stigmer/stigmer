@@ -38,8 +38,8 @@
       "icons/icon.ico",
       "icons/icon.png"
     ],
-    "externalBin": [
-      "binaries/stigmer-cli"
+    "resources": [
+      "resources/runner"
     ]
   },
   "plugins": {

@@ -7,7 +7,8 @@ package ai.stigmer.agentic.workflowexecution.v1;
 
 /**
  * <pre>
- * GetExecutionSummaryRequest fetches aggregated execution statistics for an organization.
+ * GetExecutionSummaryRequest fetches aggregated execution statistics for an organization,
+ * optionally scoped to a single workflow.
  *
  * &#64;since T14 (Dashboard Integration)
  * </pre>
@@ -36,6 +37,7 @@ private static final long serialVersionUID = 0L;
   private GetExecutionSummaryRequest() {
     org_ = "";
     timeWindow_ = 0;
+    workflowId_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -133,6 +135,59 @@ private static final long serialVersionUID = 0L;
     return result == null ? ai.stigmer.agentic.workflowexecution.v1.SummaryTimeWindow.UNRECOGNIZED : result;
   }
 
+  public static final int WORKFLOW_ID_FIELD_NUMBER = 3;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object workflowId_ = "";
+  /**
+   * <pre>
+   * When set, scopes the summary to executions of this workflow only.
+   * When empty, aggregates across all workflows in the organization.
+   *
+   * &#64;since T12 (Overview Page Redesign)
+   * </pre>
+   *
+   * <code>string workflow_id = 3 [json_name = "workflowId"];</code>
+   * @return The workflowId.
+   */
+  @java.lang.Override
+  public java.lang.String getWorkflowId() {
+    java.lang.Object ref = workflowId_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      workflowId_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * When set, scopes the summary to executions of this workflow only.
+   * When empty, aggregates across all workflows in the organization.
+   *
+   * &#64;since T12 (Overview Page Redesign)
+   * </pre>
+   *
+   * <code>string workflow_id = 3 [json_name = "workflowId"];</code>
+   * @return The bytes for workflowId.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getWorkflowIdBytes() {
+    java.lang.Object ref = workflowId_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      workflowId_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -153,6 +208,9 @@ private static final long serialVersionUID = 0L;
     if (timeWindow_ != ai.stigmer.agentic.workflowexecution.v1.SummaryTimeWindow.SUMMARY_TIME_WINDOW_UNSPECIFIED.getNumber()) {
       output.writeEnum(2, timeWindow_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(workflowId_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 3, workflowId_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -168,6 +226,9 @@ private static final long serialVersionUID = 0L;
     if (timeWindow_ != ai.stigmer.agentic.workflowexecution.v1.SummaryTimeWindow.SUMMARY_TIME_WINDOW_UNSPECIFIED.getNumber()) {
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(2, timeWindow_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(workflowId_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(3, workflowId_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -187,6 +248,8 @@ private static final long serialVersionUID = 0L;
     if (!getOrg()
         .equals(other.getOrg())) return false;
     if (timeWindow_ != other.timeWindow_) return false;
+    if (!getWorkflowId()
+        .equals(other.getWorkflowId())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -202,6 +265,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getOrg().hashCode();
     hash = (37 * hash) + TIME_WINDOW_FIELD_NUMBER;
     hash = (53 * hash) + timeWindow_;
+    hash = (37 * hash) + WORKFLOW_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getWorkflowId().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -301,7 +366,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * GetExecutionSummaryRequest fetches aggregated execution statistics for an organization.
+   * GetExecutionSummaryRequest fetches aggregated execution statistics for an organization,
+   * optionally scoped to a single workflow.
    *
    * &#64;since T14 (Dashboard Integration)
    * </pre>
@@ -341,6 +407,7 @@ private static final long serialVersionUID = 0L;
       bitField0_ = 0;
       org_ = "";
       timeWindow_ = 0;
+      workflowId_ = "";
       return this;
     }
 
@@ -380,6 +447,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000002) != 0)) {
         result.timeWindow_ = timeWindow_;
       }
+      if (((from_bitField0_ & 0x00000004) != 0)) {
+        result.workflowId_ = workflowId_;
+      }
     }
 
     @java.lang.Override
@@ -401,6 +471,11 @@ private static final long serialVersionUID = 0L;
       }
       if (other.timeWindow_ != 0) {
         setTimeWindowValue(other.getTimeWindowValue());
+      }
+      if (!other.getWorkflowId().isEmpty()) {
+        workflowId_ = other.workflowId_;
+        bitField0_ |= 0x00000004;
+        onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -438,6 +513,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000002;
               break;
             } // case 16
+            case 26: {
+              workflowId_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000004;
+              break;
+            } // case 26
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -625,6 +705,113 @@ private static final long serialVersionUID = 0L;
     public Builder clearTimeWindow() {
       bitField0_ = (bitField0_ & ~0x00000002);
       timeWindow_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object workflowId_ = "";
+    /**
+     * <pre>
+     * When set, scopes the summary to executions of this workflow only.
+     * When empty, aggregates across all workflows in the organization.
+     *
+     * &#64;since T12 (Overview Page Redesign)
+     * </pre>
+     *
+     * <code>string workflow_id = 3 [json_name = "workflowId"];</code>
+     * @return The workflowId.
+     */
+    public java.lang.String getWorkflowId() {
+      java.lang.Object ref = workflowId_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        workflowId_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * When set, scopes the summary to executions of this workflow only.
+     * When empty, aggregates across all workflows in the organization.
+     *
+     * &#64;since T12 (Overview Page Redesign)
+     * </pre>
+     *
+     * <code>string workflow_id = 3 [json_name = "workflowId"];</code>
+     * @return The bytes for workflowId.
+     */
+    public com.google.protobuf.ByteString
+        getWorkflowIdBytes() {
+      java.lang.Object ref = workflowId_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        workflowId_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * When set, scopes the summary to executions of this workflow only.
+     * When empty, aggregates across all workflows in the organization.
+     *
+     * &#64;since T12 (Overview Page Redesign)
+     * </pre>
+     *
+     * <code>string workflow_id = 3 [json_name = "workflowId"];</code>
+     * @param value The workflowId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setWorkflowId(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      workflowId_ = value;
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * When set, scopes the summary to executions of this workflow only.
+     * When empty, aggregates across all workflows in the organization.
+     *
+     * &#64;since T12 (Overview Page Redesign)
+     * </pre>
+     *
+     * <code>string workflow_id = 3 [json_name = "workflowId"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearWorkflowId() {
+      workflowId_ = getDefaultInstance().getWorkflowId();
+      bitField0_ = (bitField0_ & ~0x00000004);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * When set, scopes the summary to executions of this workflow only.
+     * When empty, aggregates across all workflows in the organization.
+     *
+     * &#64;since T12 (Overview Page Redesign)
+     * </pre>
+     *
+     * <code>string workflow_id = 3 [json_name = "workflowId"];</code>
+     * @param value The bytes for workflowId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setWorkflowIdBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      workflowId_ = value;
+      bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }

@@ -116,26 +116,6 @@ func TestOrganizationController_Create(t *testing.T) {
 		}
 	})
 
-	t.Run("validation error - slug too long", func(t *testing.T) {
-		org := &organizationv1.Organization{
-			ApiVersion: "tenancy.stigmer.ai/v1",
-			Kind:       "Organization",
-			Metadata: &apiresource.ApiResourceMetadata{
-				Name: "Long Name Org",
-				Slug: "this-slug-is-way-too-long-and-exceeds-the-sixty-three-character-maximum-allowed",
-				Org:  "default",
-			},
-			Spec: &organizationv1.OrganizationSpec{
-				Description: "Test",
-			},
-		}
-
-		_, err := controller.Create(contextWithOrganizationKind(), org)
-		if err == nil {
-			t.Error("Expected error for slug exceeding 63 characters")
-		}
-	})
-
 	t.Run("validation error - slug with uppercase", func(t *testing.T) {
 		org := &organizationv1.Organization{
 			ApiVersion: "tenancy.stigmer.ai/v1",

@@ -472,11 +472,15 @@ public interface WorkflowExecutionStatusOrBuilder extends
    * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
    * requests at the workflow level for UI visibility.
    *
-   * Full-Replace Protocol:
-   * The workflow-runner always sends the complete set of pending approvals
-   * via UpdateStatus. The server replaces the stored list unconditionally:
+   * Guarded Update Protocol:
+   * This field is only modified when UpdateStatusInput.update_pending_approvals
+   * is explicitly set to true. Normal event emissions (which don't concern
+   * approvals) leave this field untouched, preventing race conditions between
+   * concurrent status writers.
+   *
+   * Only call-agent-status manages this field:
    * - Non-empty list: child agent(s) need approval
-   * - Empty list: all approvals resolved, clear the field
+   * - Empty list + update_pending_approvals=true: all approvals resolved
    *
    * Parallel Agents:
    * When multiple child agents run in parallel, entries from different children
@@ -497,11 +501,15 @@ public interface WorkflowExecutionStatusOrBuilder extends
    * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
    * requests at the workflow level for UI visibility.
    *
-   * Full-Replace Protocol:
-   * The workflow-runner always sends the complete set of pending approvals
-   * via UpdateStatus. The server replaces the stored list unconditionally:
+   * Guarded Update Protocol:
+   * This field is only modified when UpdateStatusInput.update_pending_approvals
+   * is explicitly set to true. Normal event emissions (which don't concern
+   * approvals) leave this field untouched, preventing race conditions between
+   * concurrent status writers.
+   *
+   * Only call-agent-status manages this field:
    * - Non-empty list: child agent(s) need approval
-   * - Empty list: all approvals resolved, clear the field
+   * - Empty list + update_pending_approvals=true: all approvals resolved
    *
    * Parallel Agents:
    * When multiple child agents run in parallel, entries from different children
@@ -521,11 +529,15 @@ public interface WorkflowExecutionStatusOrBuilder extends
    * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
    * requests at the workflow level for UI visibility.
    *
-   * Full-Replace Protocol:
-   * The workflow-runner always sends the complete set of pending approvals
-   * via UpdateStatus. The server replaces the stored list unconditionally:
+   * Guarded Update Protocol:
+   * This field is only modified when UpdateStatusInput.update_pending_approvals
+   * is explicitly set to true. Normal event emissions (which don't concern
+   * approvals) leave this field untouched, preventing race conditions between
+   * concurrent status writers.
+   *
+   * Only call-agent-status manages this field:
    * - Non-empty list: child agent(s) need approval
-   * - Empty list: all approvals resolved, clear the field
+   * - Empty list + update_pending_approvals=true: all approvals resolved
    *
    * Parallel Agents:
    * When multiple child agents run in parallel, entries from different children
@@ -545,11 +557,15 @@ public interface WorkflowExecutionStatusOrBuilder extends
    * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
    * requests at the workflow level for UI visibility.
    *
-   * Full-Replace Protocol:
-   * The workflow-runner always sends the complete set of pending approvals
-   * via UpdateStatus. The server replaces the stored list unconditionally:
+   * Guarded Update Protocol:
+   * This field is only modified when UpdateStatusInput.update_pending_approvals
+   * is explicitly set to true. Normal event emissions (which don't concern
+   * approvals) leave this field untouched, preventing race conditions between
+   * concurrent status writers.
+   *
+   * Only call-agent-status manages this field:
    * - Non-empty list: child agent(s) need approval
-   * - Empty list: all approvals resolved, clear the field
+   * - Empty list + update_pending_approvals=true: all approvals resolved
    *
    * Parallel Agents:
    * When multiple child agents run in parallel, entries from different children
@@ -570,11 +586,15 @@ public interface WorkflowExecutionStatusOrBuilder extends
    * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
    * requests at the workflow level for UI visibility.
    *
-   * Full-Replace Protocol:
-   * The workflow-runner always sends the complete set of pending approvals
-   * via UpdateStatus. The server replaces the stored list unconditionally:
+   * Guarded Update Protocol:
+   * This field is only modified when UpdateStatusInput.update_pending_approvals
+   * is explicitly set to true. Normal event emissions (which don't concern
+   * approvals) leave this field untouched, preventing race conditions between
+   * concurrent status writers.
+   *
+   * Only call-agent-status manages this field:
    * - Non-empty list: child agent(s) need approval
-   * - Empty list: all approvals resolved, clear the field
+   * - Empty list + update_pending_approvals=true: all approvals resolved
    *
    * Parallel Agents:
    * When multiple child agents run in parallel, entries from different children
@@ -638,4 +658,60 @@ public interface WorkflowExecutionStatusOrBuilder extends
    * @return The totalOutputTokens.
    */
   long getTotalOutputTokens();
+
+  /**
+   * <pre>
+   * SHA-256 hash identifying which workflow version was used for this execution.
+   *
+   * &#64;internal
+   * Pinned at execution creation time from Workflow.status.version_hash.
+   * Immutable after creation — represents the exact workflow definition this
+   * execution ran (or will run, if still pending).
+   *
+   * Consumers:
+   * - Runner: fetches the version-specific CNCF YAML via getVersion() during
+   * hydration, ensuring the execution runs the intended definition even if
+   * the workflow has been updated since creation.
+   * - Execution viewer: fetches the version entry to render the correct graph
+   * for historical executions, eliminating the version mismatch problem.
+   *
+   * Empty for executions created before workflow versioning was introduced.
+   * In that case, consumers fall back to fetching the current workflow
+   * definition (legacy behavior with mismatch warning).
+   *
+   * &#64;since Workflow Versioning
+   * </pre>
+   *
+   * <code>string workflow_version_hash = 13 [json_name = "workflowVersionHash"];</code>
+   * @return The workflowVersionHash.
+   */
+  java.lang.String getWorkflowVersionHash();
+  /**
+   * <pre>
+   * SHA-256 hash identifying which workflow version was used for this execution.
+   *
+   * &#64;internal
+   * Pinned at execution creation time from Workflow.status.version_hash.
+   * Immutable after creation — represents the exact workflow definition this
+   * execution ran (or will run, if still pending).
+   *
+   * Consumers:
+   * - Runner: fetches the version-specific CNCF YAML via getVersion() during
+   * hydration, ensuring the execution runs the intended definition even if
+   * the workflow has been updated since creation.
+   * - Execution viewer: fetches the version entry to render the correct graph
+   * for historical executions, eliminating the version mismatch problem.
+   *
+   * Empty for executions created before workflow versioning was introduced.
+   * In that case, consumers fall back to fetching the current workflow
+   * definition (legacy behavior with mismatch warning).
+   *
+   * &#64;since Workflow Versioning
+   * </pre>
+   *
+   * <code>string workflow_version_hash = 13 [json_name = "workflowVersionHash"];</code>
+   * @return The bytes for workflowVersionHash.
+   */
+  com.google.protobuf.ByteString
+      getWorkflowVersionHashBytes();
 }

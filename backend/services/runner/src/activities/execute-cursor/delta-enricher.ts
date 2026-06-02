@@ -27,7 +27,7 @@
  */
 
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { ToolCallStreamingSource } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ToolCallStatus, ToolCallStreamingSource } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { InteractionUpdate } from "@cursor/sdk";
 import { utcTimestamp } from "./message-translator.js";
 
@@ -124,8 +124,15 @@ export class DeltaEnricher {
   }
 
   /**
-   * Finalize any remaining streaming state on tool calls.
+   * Finalize streaming state and reconcile tool call statuses.
+   *
    * Called after the stream loop ends (alongside accumulator.finalize()).
+   * Two passes:
+   *   1. Clear `isStreaming` on all tool calls (existing behavior).
+   *   2. Reconciliation sweep: any tool call still RUNNING with evidence
+   *      of completion (completedAt set or result non-empty) is promoted
+   *      to COMPLETED. This is the catch-all safety net — when the stream
+   *      ends, no tool call should remain in a non-terminal status.
    */
   finalize(messages: AgentMessage[]): void {
     for (const msg of messages) {
@@ -133,6 +140,17 @@ export class DeltaEnricher {
         if (tc.isStreaming) {
           tc.isStreaming = false;
           tc.streamingSource = ToolCallStreamingSource.UNSPECIFIED;
+        }
+
+        if (tc.status === ToolCallStatus.TOOL_CALL_RUNNING && (tc.completedAt || tc.result)) {
+          tc.status = ToolCallStatus.TOOL_CALL_COMPLETED;
+          if (!tc.completedAt) {
+            tc.completedAt = utcTimestamp();
+          }
+          console.log(
+            `DeltaEnricher finalize reconciliation: promoted tool call ` +
+            `${tc.id} (${tc.name}) from RUNNING to COMPLETED`,
+          );
         }
       }
     }
@@ -218,6 +236,14 @@ export class DeltaEnricher {
       }
       if (timing.completedAt && !tc.completedAt) {
         tc.completedAt = timing.completedAt;
+        applied = true;
+      }
+      // Promote status when the delta channel reports completion but
+      // the stream channel has not yet delivered the status update.
+      // Only promotes RUNNING -> COMPLETED; never overwrites terminal
+      // states (FAILED, SKIPPED) that carry richer semantics.
+      if (timing.completedAt && tc.status === ToolCallStatus.TOOL_CALL_RUNNING) {
+        tc.status = ToolCallStatus.TOOL_CALL_COMPLETED;
         applied = true;
       }
 

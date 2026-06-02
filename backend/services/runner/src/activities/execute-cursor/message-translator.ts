@@ -43,6 +43,8 @@ import { utcTimestamp } from "../../shared/status.js";
 
 export { utcTimestamp };
 
+const SUPPRESSED_TOOL_NAMES = new Set(["TodoWrite", "updateTodos"]);
+
 /**
  * Details extracted from an MCP tool call event's args.
  *
@@ -261,12 +263,139 @@ function isTerminalToolStatus(status: ToolCallStatus): boolean {
   );
 }
 
+/**
+ * Extract sub-agent name from task tool args, handling both the
+ * legacy string format (`"generalPurpose"`) and the current SDK
+ * object format (`{ kind: "generalPurpose", name?: "..." }`).
+ *
+ * Falls back to `description` (always populated by the SDK) before
+ * returning the generic `"task"`. The `kind` value `"unspecified"`
+ * is treated as absent since the Cursor SDK uses it as a default
+ * when the sub-agent type is not specified in the blueprint.
+ */
+function extractSubagentName(args: unknown): string {
+  if (args == null || typeof args !== "object") return "task";
+  const obj = args as Record<string, unknown>;
+
+  const subagentType = obj.subagentType ?? obj.subagent_type;
+  if (typeof subagentType === "string" && subagentType) return subagentType;
+  if (subagentType != null && typeof subagentType === "object") {
+    const typed = subagentType as Record<string, unknown>;
+    if (typeof typed.name === "string" && typed.name) return typed.name;
+    if (typeof typed.kind === "string" && typed.kind && typed.kind !== "unspecified") {
+      return typed.kind;
+    }
+  }
+
+  if (typeof obj.description === "string" && obj.description) return obj.description;
+
+  return "task";
+}
+
 function safeString(obj: unknown, key: string): string {
   if (obj != null && typeof obj === "object" && key in obj) {
     const val = (obj as Record<string, unknown>)[key];
     return typeof val === "string" ? val : "";
   }
   return "";
+}
+
+/**
+ * Parse the task tool's completed result into AgentMessages.
+ *
+ * The Cursor SDK returns sub-agent work as a blob in the task tool's
+ * completed event (not as streaming events with a distinct agent_id).
+ * The result shape is:
+ *
+ *   { status: "success", value: { conversationSteps: ConversationStep[] } }
+ *
+ * where ConversationStep is a discriminated union:
+ *   - { type: "thinkingMessage", message: { text, thinkingDurationMs? } }
+ *   - { type: "assistantMessage", message: { text } }
+ *   - { type: "toolCall", message: { type, args, result?, ... } }
+ *
+ * This function defensively parses whatever steps are present and
+ * appends corresponding AgentMessage protos to the output array.
+ * Unknown step types are silently skipped for forward compatibility.
+ */
+export function extractConversationSteps(
+  result: unknown,
+  out: AgentMessage[],
+): void {
+  if (result == null || typeof result !== "object") return;
+  const r = result as Record<string, unknown>;
+
+  const value = r.value ?? r;
+  if (value == null || typeof value !== "object") return;
+  const v = value as Record<string, unknown>;
+
+  const steps = v.conversationSteps;
+  if (!Array.isArray(steps)) return;
+
+  for (const step of steps) {
+    if (step == null || typeof step !== "object") continue;
+    const s = step as Record<string, unknown>;
+    const type = s.type as string | undefined;
+
+    if (type === "thinkingMessage" || s.thinkingMessage != null) {
+      const msg = (type === "thinkingMessage" ? s.message : s.thinkingMessage) as Record<string, unknown> | undefined;
+      const text = typeof msg?.text === "string" ? msg.text : "";
+      if (text) {
+        out.push(create(AgentMessageSchema, {
+          type: MessageType.MESSAGE_THINKING,
+          content: text,
+          timestamp: utcTimestamp(),
+        }));
+      }
+    } else if (type === "assistantMessage" || s.assistantMessage != null) {
+      const msg = (type === "assistantMessage" ? s.message : s.assistantMessage) as Record<string, unknown> | undefined;
+      const text = typeof msg?.text === "string" ? msg.text : "";
+      if (text) {
+        out.push(create(AgentMessageSchema, {
+          type: MessageType.MESSAGE_AI,
+          content: text,
+          timestamp: utcTimestamp(),
+        }));
+      }
+    } else if (type === "toolCall") {
+      const msg = s.message as Record<string, unknown> | undefined;
+      if (msg) {
+        const toolName = typeof msg.type === "string" ? msg.type : "unknown";
+        const toolArgs = msg.args != null ? JSON.stringify(msg.args) : "";
+        let toolResult = "";
+        if (msg.result != null) {
+          const resultObj = msg.result as Record<string, unknown>;
+          if (resultObj.status === "success" && resultObj.value != null) {
+            toolResult = typeof resultObj.value === "string"
+              ? resultObj.value
+              : JSON.stringify(resultObj.value);
+          } else if (resultObj.status === "error") {
+            toolResult = typeof resultObj.error === "string"
+              ? resultObj.error
+              : JSON.stringify(resultObj);
+          } else {
+            toolResult = JSON.stringify(msg.result);
+          }
+        }
+
+        const aiMsg = create(AgentMessageSchema, {
+          type: MessageType.MESSAGE_AI,
+          content: "",
+          timestamp: utcTimestamp(),
+          toolCalls: [create(ToolCallSchema, {
+            id: `sub-${toolName}-${out.length}`,
+            name: toolName,
+            status: ToolCallStatus.TOOL_CALL_COMPLETED,
+            argsPreview: toolArgs,
+            result: toolResult,
+            startedAt: utcTimestamp(),
+            completedAt: utcTimestamp(),
+          })],
+        });
+        out.push(aiMsg);
+      }
+    }
+  }
 }
 
 /**
@@ -293,6 +422,13 @@ export interface MessageAccumulatorOptions {
  * toolCalls array — matching the Python agent-runner's StatusBuilder
  * pattern and the UI's MessageThread expectations.
  *
+ * Tool call lifecycle is tracked via a `toolCallIndex` map (keyed by
+ * call_id), mirroring the native harness's `ExecutionState.toolCalls`.
+ * This ensures completion events always find the correct ToolCall proto
+ * regardless of which AI message it was originally attached to — the
+ * index stores the same object reference that lives in the message's
+ * `toolCalls[]` array, so mutations propagate directly to the proto.
+ *
  * Task (sub-agent) tool calls additionally produce SubAgentExecution
  * protos, accessible via the subAgentExecutions getter.
  */
@@ -303,6 +439,7 @@ export class MessageAccumulator {
   private readonly _subAgentExecutions: SubAgentExecution[] = [];
   private readonly subAgentMap = new Map<string, SubAgentExecution>();
   private readonly mergedPolicies?: Map<string, MergedToolPolicy>;
+  private readonly toolCallIndex = new Map<string, ToolCall>();
 
   constructor(messages: AgentMessage[], options?: MessageAccumulatorOptions) {
     this.messages = messages;
@@ -347,14 +484,17 @@ export class MessageAccumulator {
   private attachToolCallToLastAi(
     event: Extract<SDKMessage, { type: "tool_call" }>,
   ): void {
-    const aiMsg = this.findOrCreateLastAiMessage();
+    if (SUPPRESSED_TOOL_NAMES.has(event.name)) return;
+
     const status = mapToolCallStatus(event.status);
 
     if (event.status === "running") {
+      const aiMsg = this.findOrCreateLastAiMessage();
       const tc = buildToolCallProto(event, this.mergedPolicies);
       aiMsg.toolCalls.push(tc);
+      this.toolCallIndex.set(event.call_id, tc);
     } else {
-      const existing = aiMsg.toolCalls.find((tc) => tc.id === event.call_id);
+      const existing = this.toolCallIndex.get(event.call_id);
       if (existing) {
         existing.status = status;
         if (isTerminalToolStatus(status)) {
@@ -379,13 +519,11 @@ export class MessageAccumulator {
             : JSON.stringify(event.args);
         }
       } else {
+        const aiMsg = this.findOrCreateLastAiMessage();
         const tc = buildToolCallProto(event, this.mergedPolicies);
         aiMsg.toolCalls.push(tc);
+        this.toolCallIndex.set(event.call_id, tc);
       }
-    }
-
-    if (event.name === "task") {
-      this.trackSubAgentExecution(event);
     }
   }
 
@@ -404,9 +542,9 @@ export class MessageAccumulator {
     return msg;
   }
 
-  private trackSubAgentExecution(
+  trackSubAgentExecution(
     event: Extract<SDKMessage, { type: "tool_call" }>,
-  ): void {
+  ): SubAgentExecution | undefined {
     const existing = this.subAgentMap.get(event.call_id);
 
     if (existing) {
@@ -418,20 +556,19 @@ export class MessageAccumulator {
         existing.output = typeof event.result === "string"
           ? event.result
           : JSON.stringify(event.result);
+        extractConversationSteps(event.result, existing.messages);
       }
       if (event.status === "error") {
         existing.error = typeof event.result === "string"
           ? event.result
           : "Sub-agent failed";
       }
-      return;
+      return existing;
     }
 
     const sub = create(SubAgentExecutionSchema, {
       id: event.call_id,
-      name: safeString(event.args, "subagentType")
-        || safeString(event.args, "subagent_type")
-        || "task",
+      name: extractSubagentName(event.args),
       subject: safeString(event.args, "description"),
       input: safeString(event.args, "prompt"),
       status: mapSubAgentStatus(event.status),
@@ -439,6 +576,7 @@ export class MessageAccumulator {
     });
     this._subAgentExecutions.push(sub);
     this.subAgentMap.set(event.call_id, sub);
+    return sub;
   }
 
   private accumulateAssistant(

@@ -30,7 +30,7 @@ func applyOrganizations(cliBin, seedpackDir string, verbose bool) error {
 // The --org flag overrides stigmer.yaml's metadata.org, allowing the seedpack
 // org to be controlled externally without modifying the embedded YAML.
 func applyProject(cliBin, seedpackDir, org string, verbose bool) error {
-	return runApply(cliBin, []string{"apply", "--config", seedpackDir, "--org", org}, verbose)
+	return runApply(cliBin, []string{"apply", "--config", seedpackDir, "--org", org, "--public-skills"}, verbose)
 }
 
 // runApply executes `stigmer apply` as a subprocess with the recursion guard

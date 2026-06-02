@@ -61,6 +61,7 @@ func (c *AgentController) buildCreatePipeline() *pipeline.Pipeline[*agentv1.Agen
 		AddStep(steps.NewCheckDuplicateStep[*agentv1.Agent](c.store)).                           // 3. Check duplicate
 		AddStep(steps.NewBuildNewStateStep[*agentv1.Agent]()).                                   // 4. Build new state
 		AddStep(steps.NewNormalizeReferencesStep[*agentv1.Agent]()).                             // 5. Normalize cross-references
+		AddStep(steps.NewValidateReferencesStep[*agentv1.Agent](c.store)).                       // 5b. Validate referenced resources exist
 		AddStep(newMergeMcpServerEnvSpecsStep(c.store)).                                         // 6. Merge MCP server env_specs
 		AddStep(steps.NewPersistStep[*agentv1.Agent](c.store)).                                  // 7. Persist agent
 		AddStep(newCreateDefaultInstanceStep(c.agentInstanceClient)).                            // 6. Create default instance
@@ -96,16 +97,13 @@ func (s *createDefaultInstanceStep) Name() string {
 }
 
 func (s *createDefaultInstanceStep) Execute(ctx *pipeline.RequestContext[*agentv1.Agent]) error {
-	// Skip if no agentInstanceClient (e.g., in tests)
 	if s.agentInstanceClient == nil {
-		log.Debug().Msg("Skipping CreateDefaultInstance: agentInstanceClient is nil (likely in test mode)")
+		log.Debug().Msg("Skipping CreateDefaultInstance: agentInstanceClient is nil")
 		return nil
 	}
 
 	agent := ctx.NewState()
 	agentID := agent.GetMetadata().GetId()
-	// Use agent's name (matching Java implementation)
-	// Java: String agentSlug = agent.getMetadata().getName();
 	agentSlug := agent.GetMetadata().GetName()
 	agentOrg := agent.GetMetadata().GetOrg()
 
@@ -115,41 +113,35 @@ func (s *createDefaultInstanceStep) Execute(ctx *pipeline.RequestContext[*agentv
 		Str("org", agentOrg).
 		Msg("Creating default instance for agent")
 
-	// 1. Build default instance request
 	defaultInstanceName := agentSlug + "-default"
-
-	metadataBuilder := &apiresource.ApiResourceMetadata{
-		Name: defaultInstanceName,
-		Org:  agentOrg, // All resources belong to an org
-	}
 
 	instanceRequest := &agentinstancev1.AgentInstance{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "AgentInstance",
-		Metadata:   metadataBuilder,
+		Metadata: &apiresource.ApiResourceMetadata{
+			Name: defaultInstanceName,
+			Org:  agentOrg,
+		},
 		Spec: &agentinstancev1.AgentInstanceSpec{
 			AgentId:     agentID,
 			Description: "Default instance (auto-created, no custom configuration)",
 		},
 	}
 
-	// 2. Create instance via downstream client (in-process, system credentials)
-	// This calls AgentInstanceCommandController.Create() in-process
-	// All persistence and validation handled by instance handler
-	createdInstance, err := s.agentInstanceClient.CreateAsSystem(ctx.Context(), instanceRequest)
+	// Use Apply (not Create) for idempotency. If an orphaned instance with
+	// this slug exists from a prior agent deletion that didn't cascade,
+	// Apply recovers it by updating the agent_id to point to the new agent.
+	applied, err := s.agentInstanceClient.ApplyAsSystem(ctx.Context(), instanceRequest)
 	if err != nil {
-		return fmt.Errorf("failed to create default instance: %w", err)
+		return fmt.Errorf("failed to apply default instance: %w", err)
 	}
 
 	log.Info().
-		Str("instance_id", createdInstance.GetMetadata().GetId()).
+		Str("instance_id", applied.GetMetadata().GetId()).
 		Str("agent_id", agentID).
-		Msg("Successfully created default instance for agent")
+		Msg("Successfully applied default instance for agent")
 
-	defaultInstanceID := createdInstance.GetMetadata().GetId()
-
-	// 3. Store instance ID in context for next step
-	ctx.Set(DefaultInstanceIDKey, defaultInstanceID)
+	ctx.Set(DefaultInstanceIDKey, applied.GetMetadata().GetId())
 
 	return nil
 }

@@ -44,7 +44,7 @@ interactively. The generated agent YAML will be saved to the output directory
   stigmer draft agent -m "Create a code review agent" --output ./agents/
 
   # Use a specific model
-  stigmer draft agent -m "Create an agent for X" --model claude-sonnet-4-20250514
+  stigmer draft agent -m "Create an agent for X" --model claude-sonnet-4-6
 
   # Run with a workspace (agent can inspect your code)
   stigmer draft agent --workspace . -m "Create an agent based on this project"

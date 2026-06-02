@@ -17,6 +17,8 @@
  *   Output: Record<string, unknown>
  */
 
+import { ApplicationFailure } from "@temporalio/activity";
+
 import { evaluateExpressionBatch } from "../workflow-engine/expression.js";
 
 export function createEvaluateExpressionsActivities() {
@@ -26,7 +28,20 @@ export function createEvaluateExpressionsActivities() {
       input: unknown,
       stateVars: Record<string, unknown>,
     ): Promise<Record<string, unknown>> => {
-      return evaluateExpressionBatch(expressions, input, stateVars);
+      try {
+        return await evaluateExpressionBatch(expressions, input, stateVars);
+      } catch (err) {
+        // jq expression evaluation is deterministic and side-effect free:
+        // a failure (parse/compile/syntax/runtime error) is a property of the
+        // expression + input and will never succeed on retry. Surface it as a
+        // non-retryable failure so the workflow reaches a terminal FAILED phase
+        // instead of being retried forever by the local-activity retry policy.
+        const message = err instanceof Error ? err.message : String(err);
+        throw ApplicationFailure.nonRetryable(
+          `Expression evaluation failed: ${message}`,
+          "EXPRESSION_EVALUATION_FAILED",
+        );
+      }
     },
   };
 }

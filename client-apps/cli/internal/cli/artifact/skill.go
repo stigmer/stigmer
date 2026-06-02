@@ -95,6 +95,7 @@ type SkillArtifactOptions struct {
 
 // SkillArtifactResult contains the result of uploading a skill artifact.
 type SkillArtifactResult struct {
+	ID           string
 	SkillName    string
 	Slug         string
 	VersionHash  string
@@ -232,6 +233,7 @@ func PushSkill(opts *SkillArtifactOptions) (*SkillArtifactResult, error) {
 	}
 
 	return &SkillArtifactResult{
+		ID:           response.Metadata.Id,
 		SkillName:    skillName,
 		Slug:         response.Metadata.Slug,
 		VersionHash:  response.Status.VersionHash,
@@ -358,6 +360,7 @@ func PushSkillFromGit(opts *SkillFromGitOptions) (*SkillArtifactResult, error) {
 	}
 
 	return &SkillArtifactResult{
+		ID:           response.Metadata.Id,
 		SkillName:    skillName,
 		Slug:         response.Metadata.Slug,
 		VersionHash:  response.Status.VersionHash,

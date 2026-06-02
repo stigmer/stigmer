@@ -26,25 +26,36 @@ var File_ai_stigmer_agentic_workflow_v1_query_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_workflow_v1_query_proto_rawDesc = "" +
 	"\n" +
-	"*ai/stigmer/agentic/workflow/v1/query.proto\x12\x1eai.stigmer.agentic.workflow.v1\x1a(ai/stigmer/agentic/workflow/v1/api.proto\x1a'ai/stigmer/agentic/workflow/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xa4\x02\n" +
+	"*ai/stigmer/agentic/workflow/v1/query.proto\x12\x1eai.stigmer.agentic.workflow.v1\x1a(ai/stigmer/agentic/workflow/v1/api.proto\x1a'ai/stigmer/agentic/workflow/v1/io.proto\x1a,ai/stigmer/agentic/workflow/v1/version.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xef\x04\n" +
 	"\x17WorkflowQueryController\x12\x8a\x01\n" +
 	"\x03get\x12*.ai.stigmer.agentic.workflow.v1.WorkflowId\x1a(.ai.stigmer.agentic.workflow.v1.Workflow\"-¸\x18)\b\x01\x102\"\x05value*\x1cunauthorized to get workflow\x12v\n" +
-	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a(.ai.stigmer.agentic.workflow.v1.Workflow\"\x04и\x18\x01\x1a\x04\xa0\xff+2B\xa4\x02\n" +
+	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a(.ai.stigmer.agentic.workflow.v1.Workflow\"\x04и\x18\x01\x12\x8d\x01\n" +
+	"\flistVersions\x129.ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsInput\x1a<.ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsResponse\"\x04и\x18\x01\x12\xb8\x01\n" +
+	"\n" +
+	"getVersion\x127.ai.stigmer.agentic.workflow.v1.GetWorkflowVersionInput\x1a4.ai.stigmer.agentic.workflow.v1.WorkflowVersionEntry\";¸\x187\b\x01\x102\"\vworkflow_id*$unauthorized to get workflow version\x1a\x04\xa0\xff+2B\xa4\x02\n" +
 	"\"com.ai.stigmer.agentic.workflow.v1B\n" +
 	"QueryProtoP\x01ZUgithub.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/workflow/v1;workflowv1\xa2\x02\x04ASAW\xaa\x02\x1eAi.Stigmer.Agentic.Workflow.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Workflow\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Workflow::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_workflow_v1_query_proto_goTypes = []any{
 	(*WorkflowId)(nil),                       // 0: ai.stigmer.agentic.workflow.v1.WorkflowId
 	(*apiresource.ApiResourceReference)(nil), // 1: ai.stigmer.commons.apiresource.ApiResourceReference
-	(*Workflow)(nil),                         // 2: ai.stigmer.agentic.workflow.v1.Workflow
+	(*ListWorkflowVersionsInput)(nil),        // 2: ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsInput
+	(*GetWorkflowVersionInput)(nil),          // 3: ai.stigmer.agentic.workflow.v1.GetWorkflowVersionInput
+	(*Workflow)(nil),                         // 4: ai.stigmer.agentic.workflow.v1.Workflow
+	(*ListWorkflowVersionsResponse)(nil),     // 5: ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsResponse
+	(*WorkflowVersionEntry)(nil),             // 6: ai.stigmer.agentic.workflow.v1.WorkflowVersionEntry
 }
 var file_ai_stigmer_agentic_workflow_v1_query_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.agentic.workflow.v1.WorkflowQueryController.get:input_type -> ai.stigmer.agentic.workflow.v1.WorkflowId
 	1, // 1: ai.stigmer.agentic.workflow.v1.WorkflowQueryController.getByReference:input_type -> ai.stigmer.commons.apiresource.ApiResourceReference
-	2, // 2: ai.stigmer.agentic.workflow.v1.WorkflowQueryController.get:output_type -> ai.stigmer.agentic.workflow.v1.Workflow
-	2, // 3: ai.stigmer.agentic.workflow.v1.WorkflowQueryController.getByReference:output_type -> ai.stigmer.agentic.workflow.v1.Workflow
-	2, // [2:4] is the sub-list for method output_type
-	0, // [0:2] is the sub-list for method input_type
+	2, // 2: ai.stigmer.agentic.workflow.v1.WorkflowQueryController.listVersions:input_type -> ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsInput
+	3, // 3: ai.stigmer.agentic.workflow.v1.WorkflowQueryController.getVersion:input_type -> ai.stigmer.agentic.workflow.v1.GetWorkflowVersionInput
+	4, // 4: ai.stigmer.agentic.workflow.v1.WorkflowQueryController.get:output_type -> ai.stigmer.agentic.workflow.v1.Workflow
+	4, // 5: ai.stigmer.agentic.workflow.v1.WorkflowQueryController.getByReference:output_type -> ai.stigmer.agentic.workflow.v1.Workflow
+	5, // 6: ai.stigmer.agentic.workflow.v1.WorkflowQueryController.listVersions:output_type -> ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsResponse
+	6, // 7: ai.stigmer.agentic.workflow.v1.WorkflowQueryController.getVersion:output_type -> ai.stigmer.agentic.workflow.v1.WorkflowVersionEntry
+	4, // [4:8] is the sub-list for method output_type
+	0, // [0:4] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -57,6 +68,7 @@ func file_ai_stigmer_agentic_workflow_v1_query_proto_init() {
 	}
 	file_ai_stigmer_agentic_workflow_v1_api_proto_init()
 	file_ai_stigmer_agentic_workflow_v1_io_proto_init()
+	file_ai_stigmer_agentic_workflow_v1_version_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

@@ -32,10 +32,12 @@ function makeExecution(id = "wex-001") {
 }
 
 const mockCreate = vi.fn();
+const mockGetByReference = vi.fn();
 
 function makeMockClient(): Stigmer {
   return {
     workflowExecution: { create: mockCreate },
+    environment: { getByReference: mockGetByReference },
   } as unknown as Stigmer;
 }
 
@@ -342,6 +344,140 @@ describe("useRunWorkflowFlow", () => {
       const input = mockCreate.mock.calls[0][0];
       expect(input.workflowInstanceId).toBe("wfi-456");
       expect(input.workflowId).toBeUndefined();
+    });
+
+    it("skips validation for required env vars satisfied by instance environments", async () => {
+      mockGetByReference.mockResolvedValue({
+        spec: { data: { DB_URL: { value: "postgres://...", isSecret: true } } },
+      });
+
+      const instance = {
+        metadata: { id: "wfi-789", name: "prod", slug: "prod", org: "test-org" },
+        spec: {
+          workflowId: "wf-123",
+          environmentRefs: [{ org: "test-org", slug: "prod-env" }],
+        },
+      } as any;
+
+      const opts = defaultOptions({
+        workflow: makeWorkflow({
+          spec: {
+            env: {
+              DB_URL: { optional: false, isSecret: true },
+            },
+          },
+        }),
+        instances: [instance],
+      });
+
+      const { result } = renderWithClient(opts);
+
+      act(() => {
+        result.current.setSelectedInstanceId("wfi-789");
+      });
+
+      await waitFor(() => {
+        expect(result.current.instanceEnvKeys.has("DB_URL")).toBe(true);
+      });
+
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      expect(mockCreate).toHaveBeenCalled();
+      expect(result.current.fieldErrors).toEqual({});
+    });
+  });
+
+  // =========================================================================
+  // Trigger input detection and visibility
+  // =========================================================================
+
+  describe("trigger input visibility", () => {
+    it("sets usesTriggerInput=false when no task references $input", () => {
+      const opts = defaultOptions({
+        workflow: makeWorkflow({
+          spec: {
+            env: { KEY: { optional: false, isSecret: false } },
+            tasks: [
+              {
+                name: "run",
+                kind: 1,
+                taskConfig: { agent: "analyst", message: "${ $env.KEY }" },
+              },
+            ],
+          },
+        }),
+      });
+      const { result } = renderWithClient(opts);
+
+      expect(result.current.usesTriggerInput).toBe(false);
+      expect(result.current.showTriggerMessage).toBe(false);
+    });
+
+    it("sets usesTriggerInput=true when a task references $input", () => {
+      const opts = defaultOptions({
+        workflow: makeWorkflow({
+          spec: {
+            tasks: [
+              {
+                name: "route",
+                kind: 1,
+                taskConfig: { when: "${ $input.score > 80 }" },
+              },
+            ],
+          },
+        }),
+      });
+      const { result } = renderWithClient(opts);
+
+      expect(result.current.usesTriggerInput).toBe(true);
+      expect(result.current.showTriggerMessage).toBe(true);
+    });
+
+    it("allows toggling showTriggerMessage via escape hatch", () => {
+      const opts = defaultOptions();
+      const { result } = renderWithClient(opts);
+
+      expect(result.current.showTriggerMessage).toBe(false);
+
+      act(() => {
+        result.current.setShowTriggerMessage(true);
+      });
+
+      expect(result.current.showTriggerMessage).toBe(true);
+    });
+
+    it("resets showTriggerMessage to usesTriggerInput on reset()", () => {
+      const opts = defaultOptions();
+      const { result } = renderWithClient(opts);
+
+      act(() => {
+        result.current.setShowTriggerMessage(true);
+      });
+      expect(result.current.showTriggerMessage).toBe(true);
+
+      act(() => {
+        result.current.reset();
+      });
+      expect(result.current.showTriggerMessage).toBe(false);
+    });
+
+    it("still sends triggerMessage when field was toggled open and filled", async () => {
+      const opts = defaultOptions();
+      const { result } = renderWithClient(opts);
+
+      act(() => {
+        result.current.setShowTriggerMessage(true);
+        result.current.setTriggerMessage('{"intent": "test"}');
+      });
+
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      const input = mockCreate.mock.calls[0][0];
+      expect(input.triggerMessage).toBe('{"intent": "test"}');
     });
   });
 });

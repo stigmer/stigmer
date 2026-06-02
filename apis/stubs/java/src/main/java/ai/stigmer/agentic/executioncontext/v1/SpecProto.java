@@ -59,15 +59,14 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "t.v1.ExecutionContextSpec.DataEntryR\004dat" +
       "a\032o\n\tDataEntry\022\020\n\003key\030\001 \001(\tR\003key\022L\n\005valu" +
       "e\030\002 \001(\01326.ai.stigmer.agentic.executionco" +
-      "ntext.v1.ExecutionValueR\005value:\0028\001\"L\n\016Ex" +
-      "ecutionValue\022\035\n\005value\030\001 \001(\tB\007\272H\004r\002\020\001R\005va" +
-      "lue\022\033\n\tis_secret\030\002 \001(\010R\010isSecretB\310\001B\tSpe" +
-      "cProtoP\001\242\002\004ASAE\252\002&Ai.Stigmer.Agentic.Exe" +
-      "cutioncontext.V1\312\002&Ai\\Stigmer\\Agentic\\Ex" +
-      "ecutioncontext\\V1\342\0022Ai\\Stigmer\\Agentic\\E" +
-      "xecutioncontext\\V1\\GPBMetadata\352\002*Ai::Sti" +
-      "gmer::Agentic::Executioncontext::V1b\006pro" +
-      "to3"
+      "ntext.v1.ExecutionValueR\005value:\0028\001\"C\n\016Ex" +
+      "ecutionValue\022\024\n\005value\030\001 \001(\tR\005value\022\033\n\tis" +
+      "_secret\030\002 \001(\010R\010isSecretB\310\001B\tSpecProtoP\001\242" +
+      "\002\004ASAE\252\002&Ai.Stigmer.Agentic.Executioncon" +
+      "text.V1\312\002&Ai\\Stigmer\\Agentic\\Executionco" +
+      "ntext\\V1\342\0022Ai\\Stigmer\\Agentic\\Executionc" +
+      "ontext\\V1\\GPBMetadata\352\002*Ai::Stigmer::Age" +
+      "ntic::Executioncontext::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

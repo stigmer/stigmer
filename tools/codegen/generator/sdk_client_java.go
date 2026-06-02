@@ -1225,6 +1225,9 @@ func generateJavaInputClass(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 	imports.add(protoPackage + "." + spec.Name)
 	imports.add("ai.stigmer.commons.apiresource.ApiResourceMetadata")
 	imports.add("ai.stigmer.commons.apiresource.ApiResourceVisibility")
+	if cfg.isVersioned {
+		imports.add("ai.stigmer.commons.apiresource.ApiResourceMetadataVersion")
+	}
 
 	var specFields []*FieldSchema
 	for _, f := range spec.Fields {
@@ -1304,6 +1307,9 @@ func generateJavaInputClass(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 	body.WriteString("    private final String slug;\n")
 	body.WriteString("    private final java.util.Map<String, String> labels;\n")
 	body.WriteString("    private final ApiResourceVisibility visibility;\n")
+	if cfg.isVersioned {
+		body.WriteString("    private final String versionMessage;\n")
+	}
 	for _, f := range specFields {
 		jType := javaTypeForField(f, typeMap)
 		fmt.Fprintf(&body, "    private final %s %s;\n", jType, javaCamel(f.ProtoField))
@@ -1316,6 +1322,9 @@ func generateJavaInputClass(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 	body.WriteString("        this.slug = builder.slug;\n")
 	body.WriteString("        this.labels = builder.labels;\n")
 	body.WriteString("        this.visibility = builder.visibility;\n")
+	if cfg.isVersioned {
+		body.WriteString("        this.versionMessage = builder.versionMessage;\n")
+	}
 	for _, f := range specFields {
 		fieldName := javaCamel(f.ProtoField)
 		fmt.Fprintf(&body, "        this.%s = builder.%s;\n", fieldName, fieldName)
@@ -1332,6 +1341,9 @@ func generateJavaInputClass(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 	body.WriteString("        private String slug;\n")
 	body.WriteString("        private java.util.Map<String, String> labels;\n")
 	body.WriteString("        private ApiResourceVisibility visibility;\n")
+	if cfg.isVersioned {
+		body.WriteString("        private String versionMessage;\n")
+	}
 	for _, f := range specFields {
 		jType := javaTypeForField(f, typeMap)
 		fmt.Fprintf(&body, "        private %s %s;\n", jType, javaCamel(f.ProtoField))
@@ -1342,6 +1354,9 @@ func generateJavaInputClass(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 	body.WriteString("        public Builder slug(String slug) { this.slug = slug; return this; }\n")
 	body.WriteString("        public Builder labels(java.util.Map<String, String> labels) { this.labels = labels; return this; }\n")
 	body.WriteString("        public Builder visibility(ApiResourceVisibility visibility) { this.visibility = visibility; return this; }\n")
+	if cfg.isVersioned {
+		body.WriteString("        public Builder versionMessage(String versionMessage) { this.versionMessage = versionMessage; return this; }\n")
+	}
 	for _, f := range specFields {
 		jType := javaTypeForField(f, typeMap)
 		fieldName := javaCamel(f.ProtoField)
@@ -1478,6 +1493,13 @@ func emitJavaToProto(buf *bytes.Buffer, cfg sdkResourceConfig, spec *TaskConfigS
 	buf.WriteString("        if (this.visibility != null) {\n")
 	buf.WriteString("            metaBuilder.setVisibility(this.visibility);\n")
 	buf.WriteString("        }\n")
+	if cfg.isVersioned {
+		buf.WriteString("        if (this.versionMessage != null && !this.versionMessage.isEmpty()) {\n")
+		buf.WriteString("            metaBuilder.setVersion(ApiResourceMetadataVersion.newBuilder()\n")
+		buf.WriteString("                .setMessage(this.versionMessage)\n")
+		buf.WriteString("                .build());\n")
+		buf.WriteString("        }\n")
+	}
 	fmt.Fprintf(buf, "        return %s.newBuilder()\n", resType)
 	fmt.Fprintf(buf, "            .setApiVersion(%q)\n", cfg.apiVersion)
 	fmt.Fprintf(buf, "            .setKind(%q)\n", cfg.protoResType)

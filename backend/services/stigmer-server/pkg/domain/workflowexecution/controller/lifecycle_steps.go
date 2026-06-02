@@ -10,11 +10,10 @@ import (
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
+	wftemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal"
+	wfactivities "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/activities"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows"
-	commonpb "go.temporal.io/api/common/v1"
-	"go.temporal.io/api/enums/v1"
 	"go.temporal.io/api/serviceerror"
-	"go.temporal.io/api/workflowservice/v1"
 	"go.temporal.io/sdk/client"
 	"google.golang.org/protobuf/proto"
 )
@@ -136,11 +135,12 @@ func (s *ValidateCancellableStep[T]) Execute(ctx *pipeline.RequestContext[T]) er
 		return nil
 	}
 
-	// Can only cancel PENDING or IN_PROGRESS
+	// Can only cancel PENDING, IN_PROGRESS, or PAUSED
 	if phase != workflowexecutionv1.ExecutionPhase_EXECUTION_PENDING &&
-		phase != workflowexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS {
+		phase != workflowexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS &&
+		phase != workflowexecutionv1.ExecutionPhase_EXECUTION_PAUSED {
 		return grpclib.FailedPreconditionError(
-			"cannot cancel execution in phase %s; only PENDING or IN_PROGRESS can be cancelled",
+			"cannot cancel execution in phase %s; only PENDING, IN_PROGRESS, or PAUSED can be cancelled",
 			phase.String(),
 		)
 	}
@@ -179,11 +179,12 @@ func (s *ValidateTerminableStep[T]) Execute(ctx *pipeline.RequestContext[T]) err
 		return nil
 	}
 
-	// Can only terminate PENDING or IN_PROGRESS
+	// Can only terminate PENDING, IN_PROGRESS, or PAUSED
 	if phase != workflowexecutionv1.ExecutionPhase_EXECUTION_PENDING &&
-		phase != workflowexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS {
+		phase != workflowexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS &&
+		phase != workflowexecutionv1.ExecutionPhase_EXECUTION_PAUSED {
 		return grpclib.FailedPreconditionError(
-			"cannot terminate execution in phase %s; only PENDING or IN_PROGRESS can be terminated",
+			"cannot terminate execution in phase %s; only PENDING, IN_PROGRESS, or PAUSED can be terminated",
 			phase.String(),
 		)
 	}
@@ -595,31 +596,40 @@ func (s *TerminateTemporalWorkflowStep[T]) Execute(ctx *pipeline.RequestContext[
 }
 
 // =============================================================================
-// Reset Temporal Workflow Step (for Recover)
+// Terminate Existing Temporal Workflow Step (for Recover)
 // =============================================================================
 
-// ResetTemporalWorkflowStep resets a failed workflow to its last checkpoint
-type ResetTemporalWorkflowStep[T LifecycleInputWithReason] struct {
+// TerminateExistingWorkflowStep terminates the existing Temporal workflow tree
+// (orchestrator + TS child) before starting a fresh one. Both workflows must be
+// terminated explicitly:
+//
+//   - Orchestrator: stigmer/workflow-execution/invoke/{executionId}
+//   - Child (TS runner): workflow-exec-{executionId}
+//
+// The child has ParentClosePolicy=REQUEST_CANCEL, which only sends a soft
+// cancellation request when the parent is terminated. Explicit child termination
+// provides a hard guarantee that the workflow ID is available for reuse when
+// StartFreshWorkflow spawns a new child.
+//
+// The previous orchestrator may be stuck in a Workflow-Task-Failed loop (caused
+// by RECORD_MARKER replay bugs). Termination is synchronous and prevents the
+// old workflow's cleanup from interfering with the new ExecutionContext.
+//
+// Handles NOT_FOUND gracefully on both workflows (already completed/terminated).
+type TerminateExistingWorkflowStep[T LifecycleInputWithReason] struct {
 	temporalClient client.Client
-	namespace      string
 }
 
-// NewResetTemporalWorkflowStep creates a new ResetTemporalWorkflowStep
-func NewResetTemporalWorkflowStep[T LifecycleInputWithReason](tc client.Client, namespace string) *ResetTemporalWorkflowStep[T] {
-	return &ResetTemporalWorkflowStep[T]{
-		temporalClient: tc,
-		namespace:      namespace,
-	}
+// NewTerminateExistingWorkflowStep creates a new TerminateExistingWorkflowStep
+func NewTerminateExistingWorkflowStep[T LifecycleInputWithReason](tc client.Client) *TerminateExistingWorkflowStep[T] {
+	return &TerminateExistingWorkflowStep[T]{temporalClient: tc}
 }
 
-// Name returns the step name
-func (s *ResetTemporalWorkflowStep[T]) Name() string {
-	return "ResetTemporalWorkflow"
+func (s *TerminateExistingWorkflowStep[T]) Name() string {
+	return "TerminateExistingWorkflow"
 }
 
-// Execute resets the workflow in Temporal
-func (s *ResetTemporalWorkflowStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
-	// Skip if already in target state
+func (s *TerminateExistingWorkflowStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 	if ctx.Get("alreadyInTargetState") == true {
 		return nil
 	}
@@ -628,82 +638,119 @@ func (s *ResetTemporalWorkflowStep[T]) Execute(ctx *pipeline.RequestContext[T]) 
 		return grpclib.FailedPreconditionError("Temporal is not available")
 	}
 
-	input := ctx.NewState()
 	execution := ctx.Get(LoadedExecutionKey).(*workflowexecutionv1.WorkflowExecution)
 	executionID := execution.GetMetadata().GetId()
-	reason := input.GetReason()
 
-	if reason == "" {
-		reason = "Recovered by user"
+	orchestratorID := fmt.Sprintf("%s/%s", workflows.InvokeWorkflowExecutionWorkflowName, executionID)
+	if err := s.terminateWorkflow(ctx, executionID, orchestratorID, "orchestrator workflow"); err != nil {
+		return err
 	}
 
-	// Build Temporal workflow ID
-	workflowID := fmt.Sprintf("%s/%s", workflows.InvokeWorkflowExecutionWorkflowName, executionID)
+	// ParentClosePolicy only sends REQUEST_CANCEL (soft); explicit termination
+	// provides a hard guarantee that the workflow ID is available for reuse when
+	// StartFreshWorkflow spawns a new child.
+	childID := "workflow-exec-" + executionID
+	if err := s.terminateWorkflow(ctx, executionID, childID, "child TS workflow"); err != nil {
+		return err
+	}
 
+	return nil
+}
+
+// terminateWorkflow terminates a single Temporal workflow, treating NOT_FOUND
+// as success (workflow already completed or was purged).
+func (s *TerminateExistingWorkflowStep[T]) terminateWorkflow(
+	ctx *pipeline.RequestContext[T],
+	executionID, workflowID, description string,
+) error {
 	log.Info().
 		Str("execution_id", executionID).
 		Str("workflow_id", workflowID).
-		Str("reason", reason).
-		Msg("Resetting Temporal workflow")
+		Msgf("Terminating %s before recovery", description)
 
-	// Get the workflow service for lower-level operations
-	workflowService := s.temporalClient.WorkflowService()
-
-	// 1. Get workflow history to find reset point
-	historyResp, err := workflowService.GetWorkflowExecutionHistory(ctx.Context(), &workflowservice.GetWorkflowExecutionHistoryRequest{
-		Namespace: s.namespace,
-		Execution: &commonpb.WorkflowExecution{
-			WorkflowId: workflowID,
-		},
-	})
+	err := s.temporalClient.TerminateWorkflow(ctx.Context(), workflowID, "",
+		"Recovery: terminating before fresh workflow start")
 	if err != nil {
 		if _, ok := err.(*serviceerror.NotFound); ok {
-			return grpclib.NotFoundError("temporal_workflow", workflowID)
+			log.Info().
+				Str("execution_id", executionID).
+				Str("workflow_id", workflowID).
+				Msgf("%s already completed/terminated (NOT_FOUND). Proceeding.", description)
+			return nil
 		}
-		return grpclib.InternalError(err, "failed to get workflow history")
-	}
-
-	// 2. Find the last WorkflowTaskCompleted event (reset point)
-	var resetEventId int64 = 0
-	for _, event := range historyResp.History.Events {
-		if event.EventType == enums.EVENT_TYPE_WORKFLOW_TASK_COMPLETED {
-			resetEventId = event.EventId
-		}
-	}
-
-	if resetEventId == 0 {
-		return grpclib.FailedPreconditionError(
-			"no reset point found in workflow history; workflow may not have started executing",
-		)
-	}
-
-	log.Debug().
-		Str("execution_id", executionID).
-		Str("workflow_id", workflowID).
-		Int64("reset_event_id", resetEventId).
-		Msg("Found reset point in workflow history")
-
-	// 3. Reset the workflow
-	_, err = workflowService.ResetWorkflowExecution(ctx.Context(), &workflowservice.ResetWorkflowExecutionRequest{
-		Namespace: s.namespace,
-		WorkflowExecution: &commonpb.WorkflowExecution{
-			WorkflowId: workflowID,
-		},
-		WorkflowTaskFinishEventId: resetEventId,
-		Reason:                    reason,
-	})
-	if err != nil {
-		if _, ok := err.(*serviceerror.NotFound); ok {
-			return grpclib.NotFoundError("temporal_workflow", workflowID)
-		}
-		return grpclib.InternalError(err, "failed to reset workflow")
+		return grpclib.InternalError(err, fmt.Sprintf("failed to terminate %s during recovery", description))
 	}
 
 	log.Info().
 		Str("execution_id", executionID).
 		Str("workflow_id", workflowID).
-		Int64("reset_event_id", resetEventId).
-		Msg("Temporal workflow reset successfully")
+		Msgf("Successfully terminated %s", description)
+
+	return nil
+}
+
+// =============================================================================
+// Start Fresh Temporal Workflow Step (for Recover)
+// =============================================================================
+
+// StartFreshWorkflowStep starts a brand-new Temporal orchestrator workflow for
+// the recovered execution. Reuses InvokeWorkflowExecutionWorkflowCreator — the
+// same path used by the original create pipeline. Temporal allows workflow ID
+// reuse after the previous run was terminated (ALLOW_DUPLICATE policy).
+type StartFreshWorkflowStep[T LifecycleInput] struct {
+	workflowCreator *workflows.InvokeWorkflowExecutionWorkflowCreator
+	temporalConfig  *wftemporal.Config
+}
+
+// NewStartFreshWorkflowStep creates a new StartFreshWorkflowStep
+func NewStartFreshWorkflowStep[T LifecycleInput](
+	creator *workflows.InvokeWorkflowExecutionWorkflowCreator,
+	config *wftemporal.Config,
+) *StartFreshWorkflowStep[T] {
+	return &StartFreshWorkflowStep[T]{
+		workflowCreator: creator,
+		temporalConfig:  config,
+	}
+}
+
+func (s *StartFreshWorkflowStep[T]) Name() string {
+	return "StartFreshWorkflow"
+}
+
+func (s *StartFreshWorkflowStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
+	if ctx.Get("alreadyInTargetState") == true {
+		return nil
+	}
+
+	if s.workflowCreator == nil {
+		return grpclib.FailedPreconditionError("Temporal is not available (workflow creator not set)")
+	}
+
+	execution := ctx.Get(LoadedExecutionKey).(*workflowexecutionv1.WorkflowExecution)
+	executionID := execution.GetMetadata().GetId()
+
+	dispatch := wftemporal.ResolveWorkflowTaskQueue(
+		executionID,
+		execution.GetSpec().GetExecutionTarget(),
+		s.temporalConfig,
+	)
+
+	workflowInput := &wfactivities.InvokeWorkflowExecutionWorkflowInput{
+		ExecutionID:        executionID,
+		WorkflowInstanceID: execution.GetSpec().GetWorkflowInstanceId(),
+		WorkflowID:         execution.GetSpec().GetWorkflowId(),
+		OrgID:              execution.GetMetadata().GetOrg(),
+		RecoveryMode:       true,
+	}
+
+	if err := s.workflowCreator.Create(ctx.Context(), workflowInput, dispatch.TaskQueue); err != nil {
+		return grpclib.InternalError(err, "failed to start fresh Temporal workflow for recovered execution")
+	}
+
+	log.Info().
+		Str("execution_id", executionID).
+		Str("task_queue", dispatch.TaskQueue).
+		Msg("Started fresh Temporal workflow for recovered execution (recovery_mode=true)")
 
 	return nil
 }

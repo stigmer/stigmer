@@ -9,7 +9,6 @@ import { type ConfigureMenuItem } from "./ConfigureMenu";
 import type { HarnessOption } from "../models/harness";
 import type { InteractionModeOption } from "./InteractionModePicker";
 import { parseModelKey } from "../models/registry";
-import { ContextChip, type ChipItem } from "./ContextChip";
 import { WorkspaceEditor } from "../workspace/WorkspaceEditor";
 import { AgentPicker } from "../agent/AgentPicker";
 import { AgentEnvForm, type AgentEnvFormSubmitOptions } from "../agent/AgentEnvForm";
@@ -25,6 +24,9 @@ import type { UseWorkspaceEntriesReturn } from "../workspace/useWorkspaceEntries
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection";
 import { useAttachments } from "../attachment/useAttachments";
 import { AttachmentChipList } from "../attachment/AttachmentChipList";
+import { useFileReferences } from "../file-reference/useFileReferences";
+import { FileReferenceChipList } from "../file-reference/FileReferenceChipList";
+import { FILE_REF_MIME } from "../internal/file-tree";
 import { useSessionEnvPool } from "../environment/useSessionEnvPool";
 import { usePersonalEnvironment } from "../environment/usePersonalEnvironment";
 import { useStigmer } from "../hooks";
@@ -111,6 +113,16 @@ export interface SessionComposerSubmitContext {
    * Pass to execution creation as `execution_config.interaction_mode`.
    */
   readonly interactionMode?: InteractionModeOption;
+  /**
+   * Workspace-relative file paths the user referenced via drag-to-reference.
+   *
+   * These are lightweight "attention" signals — the agent reads the files
+   * directly from the workspace filesystem. No upload, no injection.
+   *
+   * `undefined` when no file references are present.
+   * Pass to execution creation as `workspaceFileRefs`.
+   */
+  readonly workspaceFileRefs?: string[];
 }
 
 /** Props for {@link SessionComposer}. */
@@ -302,6 +314,17 @@ export interface SessionComposerProps {
   readonly enableAttachments?: boolean;
 
   /**
+   * Enable workspace file-reference support via drag-to-reference.
+   *
+   * When `true`, dragging a file from the workspace tree into the
+   * composer creates a file-reference chip (no upload). Referenced
+   * paths are included in `context.workspaceFileRefs` on submit.
+   *
+   * @default true
+   */
+  readonly enableFileReferences?: boolean;
+
+  /**
    * Called when a file is rejected (e.g., exceeds the 10 MB limit).
    * Consumers can use this for toast notifications.
    */
@@ -440,6 +463,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   onSkillRefsChange,
   sessionVariables,
   enableAttachments = true,
+  enableFileReferences = true,
   onAttachmentValidationError,
   initialAttachments,
   placeholder = "Reply\u2026",
@@ -549,8 +573,10 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
       ? { onValidationError: onAttachmentValidationError }
       : undefined,
   );
+  const fileRefs = useFileReferences();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [isDragOverFileRef, setIsDragOverFileRef] = useState(false);
 
   const handleFileInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -564,12 +590,21 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
 
   const handleDragOver = useCallback(
     (e: DragEvent) => {
+      const hasFileRef = e.dataTransfer.types.includes(FILE_REF_MIME);
+      if (hasFileRef && enableFileReferences && !isDisabled) {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragOverFileRef(true);
+        setIsDragOver(true);
+        return;
+      }
       if (!enableAttachments || isDisabled) return;
       e.preventDefault();
       e.stopPropagation();
+      setIsDragOverFileRef(false);
       setIsDragOver(true);
     },
-    [enableAttachments, isDisabled],
+    [enableAttachments, enableFileReferences, isDisabled],
   );
 
   const handleDragLeave = useCallback(
@@ -577,6 +612,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
       e.preventDefault();
       e.stopPropagation();
       setIsDragOver(false);
+      setIsDragOverFileRef(false);
     },
     [],
   );
@@ -586,12 +622,27 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
       e.preventDefault();
       e.stopPropagation();
       setIsDragOver(false);
-      if (!enableAttachments || isDisabled) return;
+      setIsDragOverFileRef(false);
+
+      if (isDisabled) return;
+
+      const fileRefData = e.dataTransfer.getData(FILE_REF_MIME);
+      if (fileRefData && enableFileReferences) {
+        try {
+          const { path } = JSON.parse(fileRefData) as { path: string };
+          if (path) fileRefs.add(path);
+        } catch {
+          // Malformed payload — ignore silently
+        }
+        return;
+      }
+
+      if (!enableAttachments) return;
       if (e.dataTransfer.files.length > 0) {
         attachments.addFiles(e.dataTransfer.files);
       }
     },
-    [enableAttachments, isDisabled, attachments],
+    [enableAttachments, enableFileReferences, isDisabled, attachments, fileRefs],
   );
 
   // ---------------------------------------------------------------------------
@@ -649,13 +700,15 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
         showInteractionModePicker && interactionMode
           ? interactionMode
           : undefined;
+      const hasFileRefs = enableFileReferences && fileRefs.hasRefs;
 
       const context: SessionComposerSubmitContext | undefined =
-        hasEnv || hasAttachments || effectiveMode
+        hasEnv || hasAttachments || effectiveMode || hasFileRefs
           ? {
               runtimeEnv: hasEnv ? env : undefined,
               attachments: hasAttachments ? attachmentInputs : undefined,
               interactionMode: effectiveMode,
+              workspaceFileRefs: hasFileRefs ? [...fileRefs.refs] : undefined,
             }
           : undefined;
 
@@ -666,6 +719,9 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
 
       if (enableAttachments) {
         attachments.clear();
+      }
+      if (enableFileReferences) {
+        fileRefs.clear();
       }
     },
     [onSubmit, modelId, stigmer, agentSetup.state, mcpSetup.pendingRuntimeEnv, sessionVariables, enableAttachments, attachments, personalEnv, showInteractionModePicker, interactionMode],
@@ -815,16 +871,6 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
     ],
   );
 
-  const handleAgentChipRemove = useCallback(() => {
-    onAgentRefChange?.(null);
-    onAgentResolutionChange?.(null);
-  }, [onAgentRefChange, onAgentResolutionChange]);
-
-  const handlePendingAgentChipRemove = useCallback(() => {
-    agentSetup.reset();
-    onAgentRefChange?.(null);
-    onAgentResolutionChange?.(null);
-  }, [agentSetup, onAgentRefChange, onAgentResolutionChange]);
 
   // ---------------------------------------------------------------------------
   // Initial agent: auto-resolve on mount when initialAgentRef is provided
@@ -950,138 +996,30 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
     [canSend, composer.textareaProps],
   );
 
-  // ---------------------------------------------------------------------------
-  // Chips — aggregated from all context sources
-  // ---------------------------------------------------------------------------
-
-  const chips = useMemo(() => {
-    const items: ChipItem[] = [];
-
-    if (agentRef) {
-      const refStr = `${agentRef.org}/${agentRef.slug}`;
-      items.push({
-        key: `agent:${refStr}`,
-        label: displayNames.get(refStr) ?? agentRef.slug,
-        type: "agent",
-        onRemove: isDefaultAgent ? undefined : handleAgentChipRemove,
-      });
-    } else if (
-      agentSetup.state.status === "needsEnvVars" ||
-      agentSetup.state.status === "resolving" ||
-      agentSetup.state.status === "submitting"
-    ) {
-      const st = agentSetup.state;
-      const ref = st.agentRef;
-      const refStr = `${ref.org}/${ref.slug}`;
-      const name =
-        st.status !== "resolving"
-          ? st.agentName
-          : (displayNames.get(refStr) ?? ref.slug);
-
-      items.push({
-        key: `agent:${refStr}`,
-        label: name,
-        type: "agent",
-        onRemove: handlePendingAgentChipRemove,
-        status:
-          st.status === "resolving"
-            ? "loading"
-            : st.status === "submitting"
-              ? "submitting"
-              : "needsSetup",
-        onClick:
-          st.status === "needsEnvVars"
-            ? () => {
-                setConfigOpen(true);
-                setConfigActivePanel("agent");
-              }
-            : undefined,
-      });
-    }
-
-    if (showMcp) {
-      for (const [key, entry] of Object.entries(mcpSetup.entries)) {
-        const slug = key.slice(key.indexOf("/") + 1);
-        const name =
-          entry.status !== "loading"
-            ? (entry.mcpServer.metadata?.name ?? displayNames.get(key) ?? slug)
-            : (displayNames.get(key) ?? slug);
-
-        let detail: string | undefined;
-        if (
-          entry.status === "ready" &&
-          entry.discoveredTools.length > 0 &&
-          entry.enabledTools.length < entry.discoveredTools.length
-        ) {
-          detail = `${entry.enabledTools.length}/${entry.discoveredTools.length}`;
-        }
-
-        items.push({
-          key: `mcp:${key}`,
-          label: name,
-          type: "mcp",
-          onRemove: () => mcpSetup.removeServer(mcpRefFromKey(key)),
-          status: entry.status,
-          detail,
-          onClick:
-            entry.status === "needsSetup"
-              ? () => {
-                  configMcpInitialServerKeyRef.current = key;
-                  setConfigOpen(true);
-                  setConfigActivePanel("mcp");
-                }
-              : undefined,
-        });
-      }
-    }
-
-    if (skillRefs) {
-      for (const ref of skillRefs) {
-        const refStr = `${ref.org}/${ref.slug}`;
-        items.push({
-          key: `skill:${refStr}`,
-          label: displayNames.get(refStr) ?? ref.slug,
-          type: "skill",
-          onRemove: () => {
-            onSkillRefsChange?.(
-              skillRefs.filter((r) => `${r.org}/${r.slug}` !== refStr),
-            );
-          },
-        });
-      }
-    }
-
-    if (sessionVariables) {
-      for (const entry of sessionVariables.entries) {
-        const k = entry.key.trim();
-        if (k === "") continue;
-        items.push({
-          key: `secret:${entry.id}`,
-          label: k,
-          type: "secret",
-          onRemove: () => sessionVariables.removeEntry(entry.id),
-        });
-      }
-    }
-
-    return items;
-  }, [
-    agentRef,
-    isDefaultAgent,
-    agentSetup.state,
-    handleAgentChipRemove,
-    handlePendingAgentChipRemove,
-    workspace,
-    showMcp,
-    mcpSetup.entries,
-    mcpSetup.removeServer,
-    skillRefs,
-    sessionVariables,
-    displayNames,
-    onSkillRefsChange,
-  ]);
-
   const workspaceCount = workspace?.entries.length ?? 0;
+
+  // When only one source type is enabled and no entries exist yet, bypass
+  // the popover entirely (desktop) or auto-drill into the GitHub panel (web).
+  const workspaceDirectAction = useMemo(() => {
+    if (workspaceCount > 0) return undefined;
+    if (enableLocal && !enableGitHub && onBrowseLocalFolder) {
+      return async () => {
+        const path = await onBrowseLocalFolder();
+        if (path) workspace?.addLocalPath(path);
+      };
+    }
+    return undefined;
+  }, [workspaceCount, enableLocal, enableGitHub, onBrowseLocalFolder, workspace]);
+
+  const workspaceInitialPanel = useMemo(
+    () => {
+      if (workspaceCount > 0) return null;
+      if (enableGitHub && !enableLocal) return "github" as const;
+      return null;
+    },
+    [workspaceCount, enableGitHub, enableLocal],
+  );
+
   const mcpCount = showMcp ? Object.keys(mcpSetup.entries).length : 0;
   const skillCount = skillRefs?.length ?? 0;
   const sessionVarCount = sessionVariables?.entries.length ?? 0;
@@ -1307,7 +1245,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
           {isDragOver && (
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-t-xl bg-primary-subtle">
               <span className="text-xs font-medium text-primary">
-                Drop files to attach
+                {isDragOverFileRef ? "Reference workspace file" : "Drop files to attach"}
               </span>
             </div>
           )}
@@ -1326,34 +1264,26 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
           />
         )}
 
-        {/* Zone 2: Context chips */}
-        {chips.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 px-3 pb-2">
-            {chips.map((chip) => (
-              <ContextChip
-                key={chip.key}
-                label={chip.label}
-                type={chip.type}
-                onRemove={chip.onRemove}
+        {/* Zone 2.5: Attachment and file-reference chips */}
+        {(showAttach && attachments.hasEntries) || (enableFileReferences && fileRefs.hasRefs) ? (
+          <div className="space-y-1.5 px-3 pb-2">
+            {showAttach && attachments.hasEntries && (
+              <AttachmentChipList
+                entries={attachments.entries}
+                onRemove={attachments.removeEntry}
+                onRetry={attachments.retryEntry}
                 disabled={isDisabled}
-                status={chip.status}
-                detail={chip.detail}
-                onClick={chip.onClick}
               />
-            ))}
+            )}
+            {enableFileReferences && fileRefs.hasRefs && (
+              <FileReferenceChipList
+                refs={fileRefs.refs}
+                onRemove={fileRefs.remove}
+                disabled={isDisabled}
+              />
+            )}
           </div>
-        )}
-
-        {/* Zone 2.5: Attachment chips */}
-        {showAttach && attachments.hasEntries && (
-          <AttachmentChipList
-            entries={attachments.entries}
-            onRemove={attachments.removeEntry}
-            onRetry={attachments.retryEntry}
-            disabled={isDisabled}
-            className="px-3 pb-2"
-          />
-        )}
+        ) : null}
 
         {/* Zone 2.7: Agent setup warning */}
         {showAgent &&
@@ -1421,6 +1351,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
           onSend={composer.submit}
           showWorkspace={showWorkspace}
           workspaceCount={workspaceCount}
+          onWorkspaceDirectAction={workspaceDirectAction}
           workspaceContent={
             workspace
               ? <WorkspaceEditor
@@ -1430,6 +1361,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
                     enableGitHub={enableGitHub}
                     enableLocal={enableLocal}
                     onBrowseLocalFolder={onBrowseLocalFolder}
+                    initialPanel={workspaceInitialPanel}
                   />
               : null
           }

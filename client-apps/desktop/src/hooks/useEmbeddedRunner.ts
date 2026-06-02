@@ -5,6 +5,11 @@
  * addSession/addWorkflowExecution call, not at mount time.
  * Provides methods to add/remove per-session Workers and
  * push token updates to the running runner process.
+ *
+ * The runner always operates in proxy mode: LLM calls route through
+ * the Stigmer server's proxy (which injects platform API keys
+ * server-side). The proxy endpoint is derived from VITE_STIGMER_API_URL
+ * and gated on auth token presence — no async server-info call needed.
  */
 
 import { useCallback, useRef, useState } from "react";
@@ -41,6 +46,13 @@ export interface UseEmbeddedRunnerResult {
   error: string | null;
 }
 
+function normalizeToUrl(endpoint: string): string {
+  if (endpoint.startsWith("http://") || endpoint.startsWith("https://")) {
+    return endpoint;
+  }
+  return endpoint.endsWith(":443") ? `https://${endpoint}` : `http://${endpoint}`;
+}
+
 function getRunnerConfig(): RunnerConfig {
   const stigmerEndpoint =
     import.meta.env.VITE_STIGMER_SIDECAR_ENDPOINT
@@ -52,6 +64,20 @@ function getRunnerConfig(): RunnerConfig {
     || "localhost:7233";
   const stigmerToken = loadTokens()?.accessToken || undefined;
 
+  // Proxy endpoint for the runner's Cursor SDK traffic. Must include a URL
+  // scheme and must be HTTPS so the SDK negotiates HTTP/2 via ALPN — required
+  // for the HTTP/2 interceptor that injects x-stigmer-auth headers.
+  //
+  // Precedence: dedicated runner proxy URL (TLS) > general API URL > fallback.
+  // Token presence gates proxy mode: authenticated against a cloud-edition
+  // server implies the proxy is available.
+  const proxyEndpoint = stigmerToken
+    ? (import.meta.env.VITE_STIGMER_RUNNER_PROXY_URL
+       || import.meta.env.VITE_STIGMER_API_URL
+       || localStorage.getItem("stigmer.apiUrl")
+       || normalizeToUrl(stigmerEndpoint))
+    : undefined;
+
   return {
     nodeBinary: "node",
     runnerEntry: "resources/runner/dist/main.js",
@@ -59,6 +85,7 @@ function getRunnerConfig(): RunnerConfig {
     stigmerEndpoint,
     temporalNamespace: "default",
     stigmerToken,
+    proxyEndpoint,
   };
 }
 

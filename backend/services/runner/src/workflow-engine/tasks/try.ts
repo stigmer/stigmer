@@ -72,8 +72,13 @@ export async function executeTryTask(
   const executeDoTasks = await getExecuteDoTasks();
   const catchConfig = taskDef.catch;
 
+  const retryAttemptLimit = catchConfig?.retry?.limit?.attempt?.count;
+  const tryCtx = ctx && catchConfig?.retry
+    ? { ...ctx, retryContext: { maxAttempts: retryAttemptLimit != null ? retryAttemptLimit + 1 : Infinity } }
+    : ctx;
+
   const executeTryBlock = () =>
-    executeDoTasks(taskDef.try, input, state, doc, evaluateExpressions, ctx);
+    executeDoTasks(taskDef.try, input, state, doc, evaluateExpressions, tryCtx);
 
   try {
     return await executeTryBlock();
@@ -161,6 +166,16 @@ async function executeRetryLoop(
     attempt++;
     const delay = computeRetryDelay(attempt, retryConfig, elapsedMs);
     if (delay === null) break;
+
+    if (ctx?.emitEvents) {
+      await ctx.emitEvents([{
+        type: "task_retrying",
+        occurredAt: new Date().toISOString(),
+        failedAttempt: attempt - 1,
+        nextAttempt: attempt,
+        delayMs: delay,
+      }]);
+    }
 
     if (delay > 0 && ctx) {
       await ctx.sleep(delay);

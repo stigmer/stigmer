@@ -6,6 +6,8 @@ import type { ReactNode } from "react";
 export interface SectionProps {
   readonly title: string;
   readonly count?: number;
+  /** Arbitrary action elements rendered in the header row (e.g. expand, share). */
+  readonly headerActions?: ReactNode;
   readonly onEdit?: () => void;
   readonly children: ReactNode;
   readonly className?: string;
@@ -22,6 +24,7 @@ export interface SectionProps {
 export function Section({
   title,
   count,
+  headerActions,
   onEdit,
   children,
   className,
@@ -37,20 +40,25 @@ export function Section({
             {count}
           </span>
         )}
-        {onEdit && (
-          <button
-            type="button"
-            onClick={onEdit}
-            aria-label={`Edit ${title.toLowerCase()}`}
-            className={cn(
-              "ml-auto inline-flex size-6 items-center justify-center rounded-md text-muted-foreground",
-              "hover:bg-accent-hover hover:text-foreground",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              "transition-colors",
+        {(headerActions || onEdit) && (
+          <div className="ml-auto flex items-center gap-1">
+            {headerActions}
+            {onEdit && (
+              <button
+                type="button"
+                onClick={onEdit}
+                aria-label={`Edit ${title.toLowerCase()}`}
+                className={cn(
+                  "inline-flex size-6 items-center justify-center rounded-md text-muted-foreground",
+                  "hover:bg-accent-hover hover:text-foreground",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "transition-colors",
+                )}
+              >
+                <PencilIcon className="size-3.5" />
+              </button>
             )}
-          >
-            <PencilIcon className="size-3.5" />
-          </button>
+          </div>
         )}
       </div>
       <div className="overflow-hidden rounded-lg border border-border">

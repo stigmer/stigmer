@@ -6,7 +6,6 @@ import { MessageThread } from "../components/MessageThread.js";
 import { TodoList } from "../components/TodoList.js";
 import { FollowUpInput } from "../components/FollowUpInput.js";
 import { UsageWidget } from "../components/UsageWidget.js";
-import { ContextGauge } from "../components/ContextGauge.js";
 import { ExecutionProgress } from "../components/ExecutionProgress.js";
 
 /** Interaction mode type used for follow-up executions. */
@@ -166,8 +165,6 @@ export function SessionView({ sessionId, org, mode }: SessionViewProps) {
       )}
 
       <UsageWidget executions={allExecutions} />
-
-      <ContextGauge execution={conv.activeStreamExecution ?? null} />
 
       {conv.canSendFollowUp && (
         <Box paddingLeft={1}>

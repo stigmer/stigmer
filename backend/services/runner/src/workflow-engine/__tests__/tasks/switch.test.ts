@@ -167,6 +167,100 @@ describe("SwitchTaskBuilder", () => {
     const output2 = await executor(null, state2, makeCtx());
     expect(extractFlowDirective(output2)).toBe("regularUser");
   });
+
+  it("matches single-quoted string condition — the approval gate pattern", async () => {
+    const taskDef: SwitchTaskDef = {
+      kind: "switch",
+      switch: [
+        { name: "approved", when: "${ $context.review.outcome == 'approve' }", then: "handleApproved" },
+        { name: "rejected", then: "handleRejected" },
+      ],
+    };
+    const builder = new SwitchTaskBuilder("approvalGate", taskDef);
+    const executor = builder.build();
+    const state = createState();
+    state.context = { review: { outcome: "approve", reviewer: "alice" } };
+
+    const output = await executor(null, state, makeCtx());
+    expect(extractFlowDirective(output)).toBe("handleApproved");
+  });
+
+  it("matches double-quoted string condition (baseline parity)", async () => {
+    const taskDef: SwitchTaskDef = {
+      kind: "switch",
+      switch: [
+        { name: "approved", when: '${ $context.review.outcome == "approve" }', then: "handleApproved" },
+        { name: "rejected", then: "handleRejected" },
+      ],
+    };
+    const builder = new SwitchTaskBuilder("approvalGate", taskDef);
+    const executor = builder.build();
+    const state = createState();
+    state.context = { review: { outcome: "approve" } };
+
+    const output = await executor(null, state, makeCtx());
+    expect(extractFlowDirective(output)).toBe("handleApproved");
+  });
+
+  it("falls through to default when single-quoted condition does not match", async () => {
+    const taskDef: SwitchTaskDef = {
+      kind: "switch",
+      switch: [
+        { name: "approved", when: "${ $context.review.outcome == 'approve' }", then: "handleApproved" },
+        { name: "rejected", then: "handleRejected" },
+      ],
+    };
+    const builder = new SwitchTaskBuilder("approvalGate", taskDef);
+    const executor = builder.build();
+    const state = createState();
+    state.context = { review: { outcome: "reject" } };
+
+    const output = await executor(null, state, makeCtx());
+    expect(extractFlowDirective(output)).toBe("handleRejected");
+  });
+
+  it("routes 3-way string switch correctly", async () => {
+    const taskDef: SwitchTaskDef = {
+      kind: "switch",
+      switch: [
+        { name: "approve", when: "${ $context.gate.outcome == 'approve' }", then: "approved" },
+        { name: "escalate", when: "${ $context.gate.outcome == 'escalate' }", then: "escalated" },
+        { name: "reject", when: "${ $context.gate.outcome == 'reject' }", then: "rejected" },
+        { name: "default", then: "unknown" },
+      ],
+    };
+    const builder = new SwitchTaskBuilder("threeWay", taskDef);
+    const executor = builder.build();
+
+    for (const [outcome, expected] of [
+      ["approve", "approved"],
+      ["escalate", "escalated"],
+      ["reject", "rejected"],
+      ["other", "unknown"],
+    ]) {
+      const state = createState();
+      state.context = { gate: { outcome } };
+      const output = await executor(null, state, makeCtx());
+      expect(extractFlowDirective(output)).toBe(expected);
+    }
+  });
+
+  it("accesses deeply nested context in single-quoted condition", async () => {
+    const taskDef: SwitchTaskDef = {
+      kind: "switch",
+      switch: [
+        { name: "critical", when: "${ $context.classify.result.severity == 'critical' }", then: "escalate" },
+        { name: "default", then: "log" },
+      ],
+    };
+    const builder = new SwitchTaskBuilder("severity", taskDef);
+    const executor = builder.build();
+    const state = createState();
+    state.context = { classify: { result: { severity: "critical" } } };
+
+    const output = await executor(null, state, makeCtx());
+    expect(extractFlowDirective(output)).toBe("escalate");
+  });
 });
 
 describe("extractFlowDirective", () => {

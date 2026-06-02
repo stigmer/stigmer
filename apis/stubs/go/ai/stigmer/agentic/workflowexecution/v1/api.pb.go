@@ -358,11 +358,15 @@ type WorkflowExecutionStatus struct {
 	// EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
 	// requests at the workflow level for UI visibility.
 	//
-	// Full-Replace Protocol:
-	// The workflow-runner always sends the complete set of pending approvals
-	// via UpdateStatus. The server replaces the stored list unconditionally:
+	// Guarded Update Protocol:
+	// This field is only modified when UpdateStatusInput.update_pending_approvals
+	// is explicitly set to true. Normal event emissions (which don't concern
+	// approvals) leave this field untouched, preventing race conditions between
+	// concurrent status writers.
+	//
+	// Only call-agent-status manages this field:
 	// - Non-empty list: child agent(s) need approval
-	// - Empty list: all approvals resolved, clear the field
+	// - Empty list + update_pending_approvals=true: all approvals resolved
 	//
 	// Parallel Agents:
 	// When multiple child agents run in parallel, entries from different children
@@ -397,8 +401,28 @@ type WorkflowExecutionStatus struct {
 	//
 	// @since Cost Data Pipeline
 	TotalOutputTokens int64 `protobuf:"varint,12,opt,name=total_output_tokens,json=totalOutputTokens,proto3" json:"total_output_tokens,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// SHA-256 hash identifying which workflow version was used for this execution.
+	//
+	// @internal
+	// Pinned at execution creation time from Workflow.status.version_hash.
+	// Immutable after creation — represents the exact workflow definition this
+	// execution ran (or will run, if still pending).
+	//
+	// Consumers:
+	//   - Runner: fetches the version-specific CNCF YAML via getVersion() during
+	//     hydration, ensuring the execution runs the intended definition even if
+	//     the workflow has been updated since creation.
+	//   - Execution viewer: fetches the version entry to render the correct graph
+	//     for historical executions, eliminating the version mismatch problem.
+	//
+	// Empty for executions created before workflow versioning was introduced.
+	// In that case, consumers fall back to fetching the current workflow
+	// definition (legacy behavior with mismatch warning).
+	//
+	// @since Workflow Versioning
+	WorkflowVersionHash string `protobuf:"bytes,13,opt,name=workflow_version_hash,json=workflowVersionHash,proto3" json:"workflow_version_hash,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *WorkflowExecutionStatus) Reset() {
@@ -513,6 +537,13 @@ func (x *WorkflowExecutionStatus) GetTotalOutputTokens() int64 {
 		return x.TotalOutputTokens
 	}
 	return 0
+}
+
+func (x *WorkflowExecutionStatus) GetWorkflowVersionHash() string {
+	if x != nil {
+		return x.WorkflowVersionHash
+	}
+	return ""
 }
 
 // WorkflowPendingApproval pairs approval details with routing information for workflow-level forwarding.
@@ -878,7 +909,7 @@ const file_ai_stigmer_agentic_workflowexecution_v1_api_proto_rawDesc = "" +
 	"\x11WorkflowExecutionR\x04kind\x12W\n" +
 	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\bmetadata\x12R\n" +
 	"\x04spec\x18\x04 \x01(\v2>.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpecR\x04spec\x12X\n" +
-	"\x06status\x18\x05 \x01(\v2@.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatusR\x06status\"\xbb\x05\n" +
+	"\x06status\x18\x05 \x01(\v2@.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatusR\x06status\"\xef\x05\n" +
 	"\x17WorkflowExecutionStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12W\n" +
 	"\x05phase\x18\x01 \x01(\x0e27.ai.stigmer.agentic.workflowexecution.v1.ExecutionPhaseB\b\xbaH\x05\x82\x01\x02\x10\x01R\x05phase\x12K\n" +
@@ -893,7 +924,8 @@ const file_ai_stigmer_agentic_workflowexecution_v1_api_proto_rawDesc = "" +
 	"\x11total_cost_micros\x18\n" +
 	" \x01(\x03R\x0ftotalCostMicros\x12,\n" +
 	"\x12total_input_tokens\x18\v \x01(\x03R\x10totalInputTokens\x12.\n" +
-	"\x13total_output_tokens\x18\f \x01(\x03R\x11totalOutputTokens\"\xa5\x01\n" +
+	"\x13total_output_tokens\x18\f \x01(\x03R\x11totalOutputTokens\x122\n" +
+	"\x15workflow_version_hash\x18\r \x01(\tR\x13workflowVersionHash\"\xa5\x01\n" +
 	"\x17WorkflowPendingApproval\x12Q\n" +
 	"\bapproval\x18\x01 \x01(\v25.ai.stigmer.agentic.agentexecution.v1.PendingApprovalR\bapproval\x127\n" +
 	"\x18child_agent_execution_id\x18\x02 \x01(\tR\x15childAgentExecutionId\"\xfe\x04\n" +

@@ -46,6 +46,27 @@ enum LedgerEntryType {
   auto_recharge_credit = 12;
 }
 
+// LedgerView selects which slice of the credit ledger a query returns.
+//
+// The classification of which entry types are customer-facing money events
+// versus internal accounting mechanics is a domain concern owned by the
+// server. Clients express intent via this view; the server resolves it to
+// the concrete set of LedgerEntryType values. This keeps every surface
+// (web, desktop, CLI, SDK) consistent and ensures a newly added entry type
+// is classified in exactly one place.
+enum LedgerView {
+  // Default. Returns the full ledger across all entry types (back-compat
+  // for existing and administrative callers).
+  ledger_view_unspecified = 0;
+
+  // Customer-facing account statement: funding and money-movement events
+  // only (purchases, auto-recharge, promotional credits, refunds, admin
+  // adjustments, expirations, and disputes). Excludes routine internal
+  // mechanics — per-call usage debits and execution reservation
+  // holds/releases — which are surfaced as consumption analytics elsewhere.
+  ledger_view_statement = 1;
+}
+
 // CreditGrantKind classifies how credits were acquired.
 //
 // Determines burn order (promotional consumed first) and expiry rules.

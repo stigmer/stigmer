@@ -19,7 +19,8 @@ import type {
   WorkflowGraphEnvVar,
 } from "./workflow-graph-model";
 import { START_NODE_ID, END_NODE_ID } from "./workflow-graph-model";
-import { CANVAS_NODE_WIDTH, CANVAS_NODE_HEIGHT, SENTINEL_NODE_WIDTH, SENTINEL_NODE_HEIGHT } from "./canvas-constants";
+import { categorizeKind, kindToDisplayName } from "./kind-metadata";
+import { getVisualSpec, type VisualClass } from "./task-type-visual-registry";
 
 // ---------------------------------------------------------------------------
 // React Flow node/edge type identifiers
@@ -29,25 +30,11 @@ export const CANVAS_TASK_NODE_TYPE = "canvasTask" as const;
 export const CANVAS_TRANSITION_EDGE_TYPE = "canvasTransition" as const;
 
 // ---------------------------------------------------------------------------
-// Category classification (mirrors useWorkflowTopology)
+// Re-export categorizeKind from the canonical module for backward compatibility.
+// Callers that previously imported from this file continue to work.
 // ---------------------------------------------------------------------------
 
-const AI_KINDS = new Set(["agent_call", "llm_call", "eval"]);
-const CONTROL_FLOW_KINDS = new Set(["switch_case", "for_each", "fork", "try_catch"]);
-const INVOCATION_KINDS = new Set(["http_call", "grpc_call", "activity_call", "run_workflow"]);
-const DATA_KINDS = new Set(["set_vars", "transform"]);
-const GOVERNANCE_KINDS = new Set(["human_input", "validate"]);
-const EVENT_KINDS = new Set(["listen", "wait", "emit_event", "notification", "raise_error"]);
-
-export function categorizeKind(kind: string): TopologyNodeCategory {
-  if (AI_KINDS.has(kind)) return "ai";
-  if (CONTROL_FLOW_KINDS.has(kind)) return "control_flow";
-  if (INVOCATION_KINDS.has(kind)) return "invocation";
-  if (DATA_KINDS.has(kind)) return "data";
-  if (GOVERNANCE_KINDS.has(kind)) return "governance";
-  if (EVENT_KINDS.has(kind)) return "event";
-  return "unspecified";
-}
+export { categorizeKind } from "./kind-metadata";
 
 // ---------------------------------------------------------------------------
 // Enum maps (reuse the same logic as serialize-workflow-yaml.ts)
@@ -454,21 +441,61 @@ export function graphToWorkflowInput(
 // toReactFlowElements
 // ---------------------------------------------------------------------------
 
+/**
+ * Execution status for a single node in the execution graph.
+ * Derived from `DerivedTaskState` in the event store, plus a synthetic
+ * `"not_reached"` value for nodes the execution has not touched.
+ */
+export type NodeExecutionStatus =
+  | "not_reached"
+  | "pending"
+  | "running"
+  | "completed"
+  | "failed"
+  | "skipped"
+  | "retrying"
+  | "waiting_approval";
+
+/** Per-node execution state attached to canvas nodes in execution mode. */
+export interface NodeExecutionState {
+  readonly status: NodeExecutionStatus;
+  readonly durationMs?: number;
+  readonly costMicros?: bigint;
+  readonly attemptNumber?: number;
+  readonly error?: string;
+}
+
 /** Data payload attached to canvas task nodes. */
 export interface CanvasTaskNodeData extends Record<string, unknown> {
   taskName: string;
   kind: WorkflowTaskKind;
   kindString: string;
   category: TopologyNodeCategory;
+  visualClass: VisualClass;
+  displayName: string;
+  ariaShapeLabel: string;
   config: JsonObject;
   exportAs?: string;
   isSentinel: boolean;
   errorCount?: number;
+  executionState?: NodeExecutionState;
+  /** Fork branch completion progress (T06). Present only for fork nodes in execution mode. */
+  forkProgress?: { readonly completed: number; readonly total: number; readonly compete: boolean };
+  /** Tool name awaiting approval. Present when status is waiting_approval and a tool name is known. */
+  approvalToolName?: string;
+  /** Live agent activity summary. Present on running agent_call nodes when progress events arrive. */
+  agentActivity?: { readonly agentSlug: string; readonly currentToolName: string; readonly messagesCount: number; readonly toolCallsCount: number };
+  /** Diff state (T14). Present only in diff mode. */
+  diffState?: { readonly status: import("./diff/types").NodeDiffStatus; readonly changedFields?: readonly string[] };
 }
 
 /** Data payload attached to canvas transition edges. */
 export interface CanvasTransitionEdgeData extends Record<string, unknown> {
   label?: string;
+  /** Edge execution state (T06). Present only in execution mode. */
+  executionState?: import("./execution").EdgeExecutionState;
+  /** Edge diff state (T14). Present only in diff mode. */
+  diffState?: import("./diff/types").EdgeDiffStatus;
 }
 
 /**
@@ -484,6 +511,8 @@ export function toReactFlowElements(graph: WorkflowGraphModel): {
 } {
   const nodes: Node[] = graph.nodes.map((node) => {
     const isSentinel = node.id === START_NODE_ID || node.id === END_NODE_ID;
+    const kindString = taskKindToString(node.kind);
+    const visualSpec = getVisualSpec(isSentinel ? node.id : kindString);
     return {
       id: node.id,
       type: CANVAS_TASK_NODE_TYPE,
@@ -491,14 +520,17 @@ export function toReactFlowElements(graph: WorkflowGraphModel): {
       data: {
         taskName: node.taskName,
         kind: node.kind,
-        kindString: taskKindToString(node.kind),
+        kindString,
         category: node.category,
+        visualClass: visualSpec.visualClass,
+        displayName: isSentinel ? node.taskName : kindToDisplayName(kindString),
+        ariaShapeLabel: visualSpec.ariaShapeLabel,
         config: node.config,
         exportAs: node.export?.as,
         isSentinel,
-      },
-      width: isSentinel ? SENTINEL_NODE_WIDTH : CANVAS_NODE_WIDTH,
-      height: isSentinel ? SENTINEL_NODE_HEIGHT : CANVAS_NODE_HEIGHT,
+      } satisfies Omit<CanvasTaskNodeData, "errorCount">,
+      width: visualSpec.defaultWidth,
+      height: visualSpec.defaultHeight,
       draggable: !isSentinel,
       selectable: !isSentinel,
       deletable: !isSentinel,

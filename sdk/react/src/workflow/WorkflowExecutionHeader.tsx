@@ -7,6 +7,7 @@ import { cn } from "@stigmer/theme";
 import { WorkflowExecutionPhaseBadge } from "./WorkflowExecutionPhaseBadge";
 import type { UseWorkflowExecutionActionsReturn } from "./useWorkflowExecutionActions";
 import type { WorkflowEventStreamState, DerivedCostSummary } from "../internal/store/workflow-execution-event-store";
+import { formatDuration, formatMicroUsd } from "./format-utils";
 
 /** Props for {@link WorkflowExecutionHeader}. */
 export interface WorkflowExecutionHeaderProps {
@@ -18,6 +19,8 @@ export interface WorkflowExecutionHeaderProps {
   readonly onDiagnose?: () => void;
   /** Whether the diagnosis panel is currently active. */
   readonly isDiagnosing?: boolean;
+  /** Called when the user clicks "Compare with..." on a terminal execution. */
+  readonly onCompare?: () => void;
   readonly className?: string;
 }
 
@@ -35,6 +38,13 @@ const RUNNING_PHASES = new Set<ExecutionPhase>([
  * - Paused: Resume, Cancel
  * - Failed: Recover
  */
+const TERMINAL_PHASES = new Set<ExecutionPhase>([
+  ExecutionPhase.EXECUTION_COMPLETED,
+  ExecutionPhase.EXECUTION_FAILED,
+  ExecutionPhase.EXECUTION_CANCELLED,
+  ExecutionPhase.EXECUTION_TERMINATED,
+]);
+
 export const WorkflowExecutionHeader = memo(function WorkflowExecutionHeader({
   execution,
   streamState,
@@ -42,6 +52,7 @@ export const WorkflowExecutionHeader = memo(function WorkflowExecutionHeader({
   actions,
   onDiagnose,
   isDiagnosing,
+  onCompare,
   className,
 }: WorkflowExecutionHeaderProps) {
   const phase = execution.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
@@ -93,6 +104,14 @@ export const WorkflowExecutionHeader = memo(function WorkflowExecutionHeader({
       )}
 
       <div className="flex shrink-0 items-center gap-1.5">
+        {onCompare && TERMINAL_PHASES.has(phase) && (
+          <ActionButton
+            label="Compare with…"
+            onClick={onCompare}
+            disabled={false}
+          />
+        )}
+
         {isRunning && (
           <>
             <ActionButton
@@ -175,20 +194,3 @@ function ActionButton({
   );
 }
 
-function formatDuration(ms: number): string {
-  if (ms < 1000) return `${ms}ms`;
-  const s = Math.floor(ms / 1000);
-  if (s < 60) return `${s}s`;
-  const m = Math.floor(s / 60);
-  const rem = s % 60;
-  if (m < 60) return rem > 0 ? `${m}m ${rem}s` : `${m}m`;
-  const h = Math.floor(m / 60);
-  const remM = m % 60;
-  return remM > 0 ? `${h}h ${remM}m` : `${h}h`;
-}
-
-function formatMicroUsd(micros: bigint): string {
-  const cents = Number(micros) / 10_000;
-  if (cents < 1) return `$${(Number(micros) / 1_000_000).toFixed(4)}`;
-  return `$${(Number(micros) / 1_000_000).toFixed(2)}`;
-}

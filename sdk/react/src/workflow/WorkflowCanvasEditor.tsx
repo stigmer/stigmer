@@ -5,14 +5,17 @@ import type { ReactNode } from "react";
 import { cn } from "@stigmer/theme";
 import { ReactFlowProvider } from "@xyflow/react";
 import { useWorkflowCanvas } from "./useWorkflowCanvas";
+import type { LayoutEngine } from "./layout";
 import { WorkflowTaskPalette } from "./WorkflowTaskPalette";
 import { WorkflowInspectorPanel } from "./WorkflowInspectorPanel";
+import { WorkflowSummaryPanel } from "./inspector/WorkflowSummaryPanel";
 import { CanvasActionsContext } from "./CanvasActionsContext";
 import type { CanvasActions } from "./CanvasActionsContext";
 import { CanvasContextMenu } from "./CanvasContextMenu";
 import type { CanvasContextMenuTarget } from "./CanvasContextMenu";
 import { TaskPickerPopover } from "./TaskPickerPopover";
 import { useCanvasKeyboardShortcuts } from "./useCanvasKeyboardShortcuts";
+import { ViewYamlDialog } from "./ViewYamlDialog";
 
 /** Props for {@link WorkflowCanvasEditor}. */
 export interface WorkflowCanvasEditorProps {
@@ -40,6 +43,12 @@ export interface WorkflowCanvasEditorProps {
   readonly className?: string;
   /** Fallback to show while the canvas loads (DD-013 lazy loading). */
   readonly loadingFallback?: ReactNode;
+  /**
+   * Layout engine for the "Auto Layout" action.
+   * Pass the result of {@link useElkLayoutEngine} for ELK-powered layout.
+   * When omitted, dagre is used as the default.
+   */
+  readonly layoutEngine?: LayoutEngine | null;
 }
 
 const LazyCanvasInner = lazy(() =>
@@ -69,9 +78,10 @@ const WorkflowCanvasEditorInner = memo(function WorkflowCanvasEditorInner({
   nodeErrors,
   className,
   loadingFallback,
+  layoutEngine,
 }: WorkflowCanvasEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const canvas = useWorkflowCanvas(yaml, containerRef);
+  const canvas = useWorkflowCanvas(yaml, containerRef, { layoutEngine: layoutEngine ?? undefined });
   const [paletteCollapsed, setPaletteCollapsed] = useState(false);
   const togglePalette = useCallback(() => setPaletteCollapsed((p) => !p), []);
 
@@ -142,6 +152,9 @@ const WorkflowCanvasEditorInner = memo(function WorkflowCanvasEditorInner({
     clearSelection: canvas.clearSelection,
     onRequestTaskPicker: handleRequestTaskPicker,
     onDismiss: handleKeyboardDismiss,
+    copySelection: canvas.copySelection,
+    pasteAtCenter: canvas.pasteAtCenter,
+    cutSelection: canvas.cutSelection,
   });
 
   useEffect(() => {
@@ -282,6 +295,91 @@ const WorkflowCanvasEditorInner = memo(function WorkflowCanvasEditorInner({
     setContextMenu(null);
   }, [canvas.autoLayout]);
 
+  const handleContextMenuToggleDisabled = useCallback(
+    (nodeId: string) => {
+      canvas.toggleNodeDisabled(nodeId);
+      setContextMenu(null);
+    },
+    [canvas.toggleNodeDisabled],
+  );
+
+  const handleContextMenuWrapInTryCatch = useCallback(
+    (nodeId: string) => {
+      canvas.wrapInTryCatch(nodeId);
+      setContextMenu(null);
+    },
+    [canvas.wrapInTryCatch],
+  );
+
+  const handleContextMenuCopyNode = useCallback(
+    (nodeId: string) => {
+      canvas.selectNode(nodeId);
+      canvas.copySelection();
+      setContextMenu(null);
+    },
+    [canvas.selectNode, canvas.copySelection],
+  );
+
+  const handleContextMenuRenameNode = useCallback(
+    (nodeId: string) => {
+      canvas.selectNode(nodeId);
+      setContextMenu(null);
+    },
+    [canvas.selectNode],
+  );
+
+  const [viewYamlNodeId, setViewYamlNodeId] = useState<string | null>(null);
+
+  const handleContextMenuViewYaml = useCallback(
+    (nodeId: string) => {
+      setViewYamlNodeId(nodeId);
+      setContextMenu(null);
+    },
+    [],
+  );
+
+  const handleContextMenuPaste = useCallback(() => {
+    canvas.pasteAtCenter();
+    setContextMenu(null);
+  }, [canvas.pasteAtCenter]);
+
+  const handleContextMenuFitView = useCallback(() => {
+    setContextMenu(null);
+  }, []);
+
+  const handleContextMenuCopySelection = useCallback(() => {
+    canvas.copySelection();
+    setContextMenu(null);
+  }, [canvas.copySelection]);
+
+  const handleContextMenuDuplicateSelection = useCallback(() => {
+    canvas.duplicateSelection();
+    setContextMenu(null);
+  }, [canvas.duplicateSelection]);
+
+  const handleContextMenuDisableSelection = useCallback(() => {
+    canvas.disableSelection();
+    setContextMenu(null);
+  }, [canvas.disableSelection]);
+
+  const handleContextMenuDeleteSelection = useCallback(() => {
+    canvas.deleteSelection();
+    setContextMenu(null);
+  }, [canvas.deleteSelection]);
+
+  const handleSelectionContextMenu = useCallback(
+    (event: React.MouseEvent, selectedNodes: { id: string }[]) => {
+      event.preventDefault();
+      const nonSentinels = selectedNodes.filter((n) => n.id !== "__start__" && n.id !== "__end__");
+      if (nonSentinels.length === 0) return;
+      setContextMenu({
+        target: { type: "selection", count: nonSentinels.length },
+        position: { x: event.clientX, y: event.clientY },
+      });
+    },
+    [],
+  );
+
   // ---------------------------------------------------------------------------
   // Pending picker handlers (two-step menu-to-picker flow, AD-T05)
   // ---------------------------------------------------------------------------
@@ -327,6 +425,35 @@ const WorkflowCanvasEditorInner = memo(function WorkflowCanvasEditorInner({
     [pendingPicker, canvas.addSuccessorTask, canvas.insertTaskOnEdge, canvas.addNodeAtPosition],
   );
 
+  const pendingInsertionContext = useMemo(() => {
+    if (!pendingPicker) return null;
+    if (pendingPicker.purpose === "add-after-node" && pendingPicker.sourceId) {
+      const graphModel = canvas.getGraphModel();
+      const sourceNode = graphModel.nodes.find((n) => n.id === pendingPicker.sourceId);
+      return {
+        mode: "append-after" as const,
+        sourceNodeId: pendingPicker.sourceId,
+        sourceDisplayName: sourceNode?.taskName ?? pendingPicker.sourceId,
+      };
+    }
+    if (pendingPicker.purpose === "insert-on-edge" && pendingPicker.sourceId) {
+      const graphModel = canvas.getGraphModel();
+      const edge = graphModel.edges.find((e) => e.id === pendingPicker.sourceId);
+      if (!edge) return null;
+      const sourceNode = graphModel.nodes.find((n) => n.id === edge.source);
+      const targetNode = graphModel.nodes.find((n) => n.id === edge.target);
+      return {
+        mode: "edge-splice" as const,
+        edgeId: edge.id,
+        sourceNodeId: edge.source,
+        targetNodeId: edge.target,
+        sourceDisplayName: sourceNode?.taskName ?? edge.source,
+        targetDisplayName: targetNode?.taskName ?? edge.target,
+      };
+    }
+    return { mode: "add-at-position" as const };
+  }, [pendingPicker, canvas]);
+
   const handleSave = useCallback(() => {
     if (!onSave) return;
     const yamlStr = canvas.serializeToYaml();
@@ -360,8 +487,39 @@ const WorkflowCanvasEditorInner = memo(function WorkflowCanvasEditorInner({
       deleteNode: handleDeleteNode,
       addSuccessorTask: canvas.addSuccessorTask,
       duplicateNode: handleDuplicateNode,
+      addSwitchCase: canvas.addSwitchCase,
+      addForkBranch: canvas.addForkBranch,
+      addCatchHandler: canvas.addCatchHandler,
+      removeSwitchCase: canvas.removeSwitchCase,
+      reorderSwitchCases: canvas.reorderSwitchCases,
+      removeForkBranch: canvas.removeForkBranch,
+      reorderForkBranches: canvas.reorderForkBranches,
+      renameForkBranch: canvas.renameForkBranch,
+      setForkCompete: canvas.setForkCompete,
+      updateCatchConfig: canvas.updateCatchConfig,
+      removeCatchBlock: canvas.removeCatchBlock,
+      updateForEachConfig: canvas.updateForEachConfig,
+      getGraphModel: canvas.getGraphModel,
     }),
-    [canvas.insertTaskOnEdge, handleDeleteNode, canvas.addSuccessorTask, handleDuplicateNode],
+    [
+      canvas.insertTaskOnEdge,
+      handleDeleteNode,
+      canvas.addSuccessorTask,
+      handleDuplicateNode,
+      canvas.addSwitchCase,
+      canvas.addForkBranch,
+      canvas.addCatchHandler,
+      canvas.removeSwitchCase,
+      canvas.reorderSwitchCases,
+      canvas.removeForkBranch,
+      canvas.reorderForkBranches,
+      canvas.renameForkBranch,
+      canvas.setForkCompete,
+      canvas.updateCatchConfig,
+      canvas.removeCatchBlock,
+      canvas.updateForEachConfig,
+      canvas.getGraphModel,
+    ],
   );
 
   const descriptor = canvas.selection?.type === "node"
@@ -454,6 +612,7 @@ const WorkflowCanvasEditorInner = memo(function WorkflowCanvasEditorInner({
               onNodeContextMenu={handleNodeContextMenu}
               onEdgeContextMenu={handleEdgeContextMenu}
               onPaneContextMenu={handlePaneContextMenu}
+              onSelectionContextMenu={handleSelectionContextMenu}
               nodeErrors={nodeErrors}
             />
           </Suspense>
@@ -479,11 +638,23 @@ const WorkflowCanvasEditorInner = memo(function WorkflowCanvasEditorInner({
           onDeleteNode={handleContextMenuDeleteNode}
           onDuplicateNode={handleContextMenuDuplicateNode}
           onAddTaskAfter={handleContextMenuAddTaskAfter}
+          onToggleDisabled={handleContextMenuToggleDisabled}
+          onWrapInTryCatch={handleContextMenuWrapInTryCatch}
+          onCopyNode={handleContextMenuCopyNode}
+          onRenameNode={handleContextMenuRenameNode}
+          onViewYaml={handleContextMenuViewYaml}
           onDeleteEdge={handleContextMenuDeleteEdge}
           onInsertTaskOnEdge={handleContextMenuInsertTaskOnEdge}
           onAddTaskAtPosition={handleContextMenuAddTaskAtPosition}
           onSelectAll={handleContextMenuSelectAll}
           onAutoLayout={handleContextMenuAutoLayout}
+          onPaste={handleContextMenuPaste}
+          hasClipboard={canvas.hasClipboard}
+          onFitView={handleContextMenuFitView}
+          onCopySelection={handleContextMenuCopySelection}
+          onDuplicateSelection={handleContextMenuDuplicateSelection}
+          onDisableSelection={handleContextMenuDisableSelection}
+          onDeleteSelection={handleContextMenuDeleteSelection}
         />
 
         <TaskPickerPopover
@@ -491,7 +662,15 @@ const WorkflowCanvasEditorInner = memo(function WorkflowCanvasEditorInner({
           onOpenChange={handlePendingPickerOpenChange}
           onSelectKind={handlePendingPickerSelectKind}
           anchorRef={pendingPickerVirtualAnchor}
+          insertionContext={pendingInsertionContext}
+          graph={canvas.getGraphModel()}
           side="bottom"
+        />
+
+        <ViewYamlDialog
+          nodeId={viewYamlNodeId}
+          graph={canvas.graph}
+          onClose={() => setViewYamlNodeId(null)}
         />
       </div>
 
@@ -507,9 +686,15 @@ const WorkflowCanvasEditorInner = memo(function WorkflowCanvasEditorInner({
             onUpdateFlow={canvas.updateNodeFlow}
             onDeleteEdge={handleDeleteEdge}
             onDeleteNode={handleDeleteNode}
+            onDuplicateNode={handleDuplicateNode}
+            onToggleDisabled={canvas.toggleNodeDisabled}
+            onWrapInTryCatch={canvas.wrapInTryCatch}
             onUpdateBranchRouting={canvas.updateBranchRouting}
             onMigrateBranchHandle={canvas.migrateBranchHandle}
             onRemoveBranchEdges={canvas.removeBranchEdges}
+            onViewYaml={handleContextMenuViewYaml}
+            validationErrors={nodeErrors}
+            emptyState={canvas.graph ? <WorkflowSummaryPanel graph={canvas.graph} validationErrors={nodeErrors} /> : undefined}
           />
         </div>
       )}

@@ -9,7 +9,7 @@ import {
 describe("inferProvider", () => {
   describe("Anthropic models", () => {
     it.each([
-      "claude-sonnet-4-20250514",
+      "claude-sonnet-4-6",
       "claude-opus-4",
       "claude-haiku-4.5",
       "claude-3.5-sonnet",

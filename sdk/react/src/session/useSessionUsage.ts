@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import {
@@ -9,13 +9,21 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import type { ModelUsage, StreamingUsageSummary } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
 import { useStigmer } from "../hooks";
+import { isTerminalPhase } from "../execution/execution-phases";
 import { useFetch } from "../internal/useFetch";
+
+/**
+ * Poll cadence for the session usage report while an execution is in flight.
+ * The proxy writes one authoritative billing record per turn, so polling lets
+ * the settled cost climb live during the run rather than only at completion.
+ */
+const ACTIVE_POLL_INTERVAL_MS = 2500;
 
 /**
  * Per-model cost breakdown.
  */
 export interface ModelCostEntry {
-  /** Model identifier (e.g. "claude-sonnet-4-20250514"). */
+  /** Model identifier (e.g. "claude-sonnet-4-6"). */
   readonly model: string;
   /** Provider name (e.g. "anthropic", "openai"). */
   readonly provider: string;
@@ -57,6 +65,12 @@ export interface UseSessionUsageReturn {
   readonly primaryProvider: string;
   /** `true` when usage data is available. */
   readonly hasUsage: boolean;
+  /**
+   * `true` when the displayed cost comes from runner-reported streaming data
+   * rather than settled billing records. The UI should show an "Estimated"
+   * badge when this is true.
+   */
+  readonly isEstimated: boolean;
 }
 
 const EMPTY: UseSessionUsageReturn = {
@@ -71,6 +85,7 @@ const EMPTY: UseSessionUsageReturn = {
   primaryModel: "",
   primaryProvider: "",
   hasUsage: false,
+  isEstimated: false,
 };
 
 function microsToUsd(micros: bigint): number {
@@ -94,18 +109,23 @@ function mapReport(report: GetSessionUsageReportOutput): UseSessionUsageReturn {
   const agg = report.totalUsage;
   if (!agg) return EMPTY;
 
+  const llmCallCount = agg.llmCallCount;
+  const totalTokens = Number(agg.totalTokens);
+  const billableCost = microsToUsd(agg.billableCostMicros);
+
   return {
-    totalCostUsd: microsToUsd(agg.billableCostMicros),
-    totalTokens: Number(agg.totalTokens),
+    totalCostUsd: billableCost,
+    totalTokens,
     inputTokens: Number(agg.inputTokens),
     outputTokens: Number(agg.outputTokens),
     cacheReadTokens: Number(agg.cacheReadInputTokens),
     cacheCreationTokens: Number(agg.cacheCreationInputTokens),
-    llmCallCount: agg.llmCallCount,
+    llmCallCount,
     modelBreakdown: report.modelBreakdown.map(mapModelUsage),
     primaryModel: agg.primaryModel,
     primaryProvider: agg.primaryProvider,
-    hasUsage: true,
+    hasUsage: llmCallCount > 0 || totalTokens > 0 || billableCost > 0,
+    isEstimated: report.isEstimated ?? false,
   };
 }
 
@@ -166,17 +186,23 @@ function aggregateStreamingUsage(
     primaryModel: model,
     primaryProvider: model ? "cursor" : "",
     hasUsage: true,
+    isEstimated: true,
   };
 }
 
 /**
  * Usage hook for session-level cost and token aggregation.
  *
- * Calls `getSessionUsageReport` to fetch real usage data from the
- * billing domain. Returns zeros while loading or when no session is
- * available.
+ * Uses exactly ONE data source at a time to avoid displaying a cost total
+ * from one pipeline with a model breakdown from another:
  *
- * @param executions - All executions for a session (used to derive session ID).
+ * - When billing records exist (proxy-metered), the billing report is shown
+ *   as authoritative (`isEstimated: false`).
+ * - When execution is in-flight and only streaming data is available,
+ *   streaming is shown with `isEstimated: true`.
+ * - The two sources are never mixed in the same display.
+ *
+ * @param executions - All executions for a session (completed + active).
  */
 export function useSessionUsage(
   executions: readonly AgentExecution[],
@@ -188,17 +214,47 @@ export function useSessionUsage(
     [executions],
   );
 
-  const { data: report } = useFetch(
-    sessionId
-      ? () =>
-          stigmer.agentExecution.getSessionUsageReport(
-            create(GetSessionUsageReportInputSchema, { sessionId }),
-          )
-      : null,
+  // Any execution still in flight means more authoritative records are coming,
+  // so the report must be polled to stay current during the run.
+  const hasActiveExecution = useMemo(
+    () =>
+      executions.some((e) => {
+        const phase = e.status?.phase;
+        return phase !== undefined && !isTerminalPhase(phase);
+      }),
+    [executions],
+  );
+
+  // Stable fetch identity so the poll timer in useFetch is not torn down and
+  // recreated on every streaming re-render (which would prevent it firing).
+  const fetchReport = useCallback(
+    () =>
+      stigmer.agentExecution.getSessionUsageReport(
+        create(GetSessionUsageReportInputSchema, { sessionId: sessionId! }),
+      ),
+    [sessionId, stigmer],
+  );
+
+  const { data: report, refetch } = useFetch(
+    sessionId ? fetchReport : null,
     [sessionId, stigmer],
     null as GetSessionUsageReportOutput | null,
-    { cacheKey: sessionId ? `session-usage:${sessionId}` : undefined },
+    {
+      cacheKey: sessionId ? `session-usage:${sessionId}` : undefined,
+      refetchInterval: hasActiveExecution ? ACTIVE_POLL_INTERVAL_MS : false,
+    },
   );
+
+  // When the last execution settles, poll stops — do one final fetch so the
+  // authoritative total (incl. the final turn) replaces the live estimate
+  // promptly instead of waiting for a remount.
+  const wasActiveRef = useRef(hasActiveExecution);
+  useEffect(() => {
+    if (wasActiveRef.current && !hasActiveExecution) {
+      refetch();
+    }
+    wasActiveRef.current = hasActiveExecution;
+  }, [hasActiveExecution, refetch]);
 
   const streamingFallback = useMemo(
     () => aggregateStreamingUsage(executions),
@@ -206,10 +262,17 @@ export function useSessionUsage(
   );
 
   return useMemo(() => {
-    if (report) {
-      const mapped = mapReport(report);
-      if (mapped.hasUsage) return mapped;
-    }
-    return streamingFallback;
+    const billingReport = report ? mapReport(report) : EMPTY;
+
+    // Authoritative proxy-metered report wins as soon as any record exists.
+    // While an execution runs, per-turn records land continuously and polling
+    // keeps this total fresh, so it is never shadowed by a stale snapshot.
+    if (billingReport.hasUsage) return billingReport;
+
+    // No billing record yet (e.g. before the first turn settles) — fall back
+    // to the runner's display-only streaming estimate.
+    if (streamingFallback.hasUsage) return streamingFallback;
+
+    return EMPTY;
   }, [report, streamingFallback]);
 }

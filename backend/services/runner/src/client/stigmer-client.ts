@@ -19,6 +19,9 @@ import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v
 import { AgentInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/query_pb";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
+import { ArtifactCommandController } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/command_pb";
+import type { Artifact } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/api_pb";
+import type { CreateArtifactInput } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/io_pb";
 import { SkillQueryController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/query_pb";
 import { BillingCommandController } from "@stigmer/protos/ai/stigmer/billing/v1/command_pb";
 import type { RecordLlmCallUsageInput, RecordLlmCallUsageResponse } from "@stigmer/protos/ai/stigmer/billing/v1/io_pb";
@@ -35,12 +38,13 @@ import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/ap
 import type { GetArtifactResponse } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
 import { create } from "@bufbuild/protobuf";
 import { ConnectInputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
+import { ExecutionValueSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
 import { AgentExecutionUpdateStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import type { UpdateStatusResponse } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import { WorkflowExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/command_pb";
 import { WorkflowExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/query_pb";
 import type { WorkflowExecution, WorkflowExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { WorkflowExecutionUpdateStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
+import { WorkflowExecutionUpdateStatusInputSchema, GetEventLogRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
 import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/query_pb";
@@ -76,6 +80,7 @@ export class StigmerClient {
   private readonly mcpServerCommand: Client<typeof McpServerCommandController>;
   private readonly skillQuery: Client<typeof SkillQueryController>;
   private readonly billingCommand: Client<typeof BillingCommandController>;
+  private readonly artifactCommand: Client<typeof ArtifactCommandController>;
   readonly workflowExecutionCommand: Client<typeof WorkflowExecutionCommandController>;
   private readonly workflowExecutionQuery: Client<typeof WorkflowExecutionQueryController>;
   private readonly workflowQuery: Client<typeof WorkflowQueryController>;
@@ -110,6 +115,7 @@ export class StigmerClient {
     this.mcpServerCommand = createClient(McpServerCommandController, this.transport);
     this.skillQuery = createClient(SkillQueryController, this.transport);
     this.billingCommand = createClient(BillingCommandController, this.transport);
+    this.artifactCommand = createClient(ArtifactCommandController, this.transport);
     this.workflowExecutionCommand = createClient(WorkflowExecutionCommandController, this.transport);
     this.workflowExecutionQuery = createClient(WorkflowExecutionQueryController, this.transport);
     this.workflowQuery = createClient(WorkflowQueryController, this.transport);
@@ -168,15 +174,18 @@ export class StigmerClient {
   async connectMcpServer(
     mcpServerId: string,
     org: string,
-    runtimeEnv?: Record<string, string>,
+    runtimeEnv?: Record<string, { value: string; isSecret: boolean }>,
   ): Promise<McpServer> {
     const input = create(ConnectInputSchema, {
       mcpServerId,
       org,
     });
     if (runtimeEnv) {
-      for (const [key, value] of Object.entries(runtimeEnv)) {
-        input.runtimeEnv[key] = { value } as any;
+      for (const [key, entry] of Object.entries(runtimeEnv)) {
+        input.runtimeEnv[key] = create(ExecutionValueSchema, {
+          value: entry.value,
+          isSecret: entry.isSecret,
+        });
       }
     }
     return this.mcpServerCommand.connect(input);
@@ -194,6 +203,10 @@ export class StigmerClient {
     return this.skillQuery.getArtifact({ artifactStorageKey });
   }
 
+  async createArtifact(input: CreateArtifactInput): Promise<Artifact> {
+    return this.artifactCommand.create(input);
+  }
+
   async recordLlmCallUsage(input: RecordLlmCallUsageInput): Promise<RecordLlmCallUsageResponse> {
     return this.billingCommand.recordLlmCallUsage(input);
   }
@@ -208,6 +221,11 @@ export class StigmerClient {
     return this.sessionCommand.create(session);
   }
 
+  async applySession(session: Session): Promise<Session> {
+    assertCreateRequirements(session, "Session", "applySession");
+    return this.sessionCommand.apply(session);
+  }
+
   async createAgentExecution(execution: AgentExecution): Promise<AgentExecution> {
     assertCreateRequirements(execution, "AgentExecution", "createAgentExecution");
     return this.executionCommand.create(execution);
@@ -216,10 +234,12 @@ export class StigmerClient {
   async updateWorkflowExecutionStatus(
     executionId: string,
     status: WorkflowExecutionStatus,
+    options?: { updatePendingApprovals?: boolean },
   ): Promise<WorkflowExecution> {
     const input = create(WorkflowExecutionUpdateStatusInputSchema, {
       executionId,
       status,
+      updatePendingApprovals: options?.updatePendingApprovals ?? false,
     });
     return this.workflowExecutionCommand.updateStatus(input);
   }
@@ -228,8 +248,46 @@ export class StigmerClient {
     return this.workflowExecutionQuery.get({ value: executionId });
   }
 
+  /**
+   * Return the highest persisted event sequence_number for a workflow execution.
+   *
+   * Paginates through getEventLog with the maximum page size (500) and
+   * follows the cursor until has_more is false. The final page's
+   * latest_sequence is the global high-water mark.
+   *
+   * Returns 0 when no events have been persisted yet (new execution).
+   */
+  async getEventLogHighWaterMark(executionId: string): Promise<bigint> {
+    let afterSequence = BigInt(0);
+    let highWaterMark = BigInt(0);
+
+    for (;;) {
+      const resp = await this.workflowExecutionQuery.getEventLog(
+        create(GetEventLogRequestSchema, {
+          executionId,
+          afterSequence,
+          pageSize: 500,
+        }),
+      );
+
+      if (resp.latestSequence > highWaterMark) {
+        highWaterMark = resp.latestSequence;
+      }
+
+      if (!resp.hasMore) {
+        return highWaterMark;
+      }
+
+      afterSequence = resp.latestSequence;
+    }
+  }
+
   async getWorkflow(workflowId: string): Promise<Workflow> {
     return this.workflowQuery.get({ value: workflowId });
+  }
+
+  async getWorkflowVersion(workflowId: string, versionHash: string) {
+    return this.workflowQuery.getVersion({ workflowId, versionHash });
   }
 
   async getWorkflowInstance(instanceId: string): Promise<WorkflowInstance> {

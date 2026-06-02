@@ -28,9 +28,14 @@ func TestOffline_Eval_PassFail(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
 
+	// Eval calls the LLM with response_schema, which routes through
+	// withStructuredOutput() (Anthropic forced tool-calling). The real API
+	// returns a tool_use block (tool name "extract") whose input is the
+	// structured judge result — not a plain text block.
 	entries := []harness.RecordedLLMEntry{
-		harness.BuildLLMEntry(0, harness.AnthropicTextResponse(
-			`{"pass": true, "reasoning": "The statement is factually accurate."}`,
+		harness.BuildLLMEntry(0, harness.AnthropicToolUseResponse(
+			"toolu_eval_passfail", "extract",
+			map[string]any{"pass": true, "reasoning": "The statement is factually accurate."},
 			200, 60,
 		)),
 	}
@@ -50,7 +55,7 @@ func TestOffline_Eval_PassFail(t *testing.T) {
 	require.NoError(t, err)
 
 	evalConfig, err := structpb.NewStruct(map[string]any{
-		"model":        "claude-sonnet-4-20250514",
+		"model":        "claude-sonnet-4.6",
 		"subject":      "${ $context.setSummary.summary }",
 		"rubric":       "Is this statement factually accurate?",
 		"scoring_mode": "EVAL_PASS_FAIL",
@@ -121,8 +126,9 @@ func TestOffline_Eval_NumericScore(t *testing.T) {
 	defer cancel()
 
 	entries := []harness.RecordedLLMEntry{
-		harness.BuildLLMEntry(0, harness.AnthropicTextResponse(
-			`{"score": 0.85, "reasoning": "The definition is clear and accurate."}`,
+		harness.BuildLLMEntry(0, harness.AnthropicToolUseResponse(
+			"toolu_eval_numeric", "extract",
+			map[string]any{"score": 0.85, "reasoning": "The definition is clear and accurate."},
 			200, 55,
 		)),
 	}
@@ -142,7 +148,7 @@ func TestOffline_Eval_NumericScore(t *testing.T) {
 	require.NoError(t, err)
 
 	evalConfig, err := structpb.NewStruct(map[string]any{
-		"model":        "claude-sonnet-4-20250514",
+		"model":        "claude-sonnet-4.6",
 		"subject":      "${ $context.setSubject.text }",
 		"rubric":       "Rate the clarity and accuracy on a scale from 0.0 to 1.0.",
 		"scoring_mode": "EVAL_NUMERIC_SCORE",
@@ -209,9 +215,12 @@ func TestOffline_Eval_WarnPolicy(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
 
+	// Numeric-score eval: judge returns a low score (below the 0.9 threshold),
+	// so the eval fails and EVAL_FAIL_WARN lets the workflow continue.
 	entries := []harness.RecordedLLMEntry{
-		harness.BuildLLMEntry(0, harness.AnthropicTextResponse(
-			`{"pass": false, "reasoning": "The text is not a well-formed sentence."}`,
+		harness.BuildLLMEntry(0, harness.AnthropicToolUseResponse(
+			"toolu_eval_warn", "extract",
+			map[string]any{"score": 0.2, "reasoning": "The text is not a well-formed sentence."},
 			200, 60,
 		)),
 	}
@@ -231,7 +240,7 @@ func TestOffline_Eval_WarnPolicy(t *testing.T) {
 	require.NoError(t, err)
 
 	evalConfig, err := structpb.NewStruct(map[string]any{
-		"model":        "claude-sonnet-4-20250514",
+		"model":        "claude-sonnet-4.6",
 		"subject":      "${ $context.setSubject.text }",
 		"rubric":       "Is this a well-formed English sentence?",
 		"scoring_mode": "EVAL_NUMERIC_SCORE",

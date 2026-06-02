@@ -1,32 +1,16 @@
 import { useParams } from "react-router-dom";
+import { useState } from "react";
 import {
-  AlertTriangle,
-  Loader2,
-  RotateCcw,
-  WifiOff,
-} from "lucide-react";
-import { useCallback, useRef, useState } from "react";
-import {
-  useSessionPageFlow,
+  SessionViewer,
   useActiveOrgSlug,
-  useContextWindow,
-  MessageThread,
-  ThreadSkeleton,
-  SessionComposer,
-  ExecutionProgress,
-  ContextGauge,
-  UsageWidget,
-  ArtifactsWidget,
-  WriteBacksWidget,
-  SecretFlowErrorGuide,
-  isSecretFlowError,
+  useWorkspaceSources,
   SharePanel,
   PermissionGate,
+  ThreadSkeleton,
 } from "@stigmer/react";
-import type { InteractionModeOption, SessionComposerHandle } from "@stigmer/react";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { getUserMessage } from "@stigmer/sdk";
-import { useDesktopGitHubConnection } from "../hooks/useDesktopGitHubConnection";
+import { useNativeFolderPicker } from "../hooks/useNativeFolderPicker";
+import { useNativeWorkspaceFiles } from "../hooks/useNativeWorkspaceFiles";
 
 export default function SessionPage() {
   const { id } = useParams<{ id: string }>();
@@ -36,204 +20,63 @@ export default function SessionPage() {
 
 function SessionPageInner({ id }: { id: string }) {
   const org = useActiveOrgSlug();
-  const gitHubConnection = useDesktopGitHubConnection(org);
-
-  const flow = useSessionPageFlow({ sessionId: id, org });
-  const { conv } = flow;
-  const [modelId, setModelId] = flow.model;
-  const [interactionMode, setInteractionMode] = useState<InteractionModeOption>("agent");
-  const ctxWindow = useContextWindow(flow.displayExecution ?? null);
-  const composerRef = useRef<SessionComposerHandle>(null);
-  const [showSharePanel, setShowSharePanel] = useState(false);
-
-  const handleBuildFromPlan = useCallback(() => {
-    setInteractionMode("agent");
-    composerRef.current?.setMessage("Implement the plan above");
-    composerRef.current?.focus();
-  }, []);
-
-  if (conv.isLoading) return <SessionSkeleton />;
-  if (conv.loadError) return <SessionError error={conv.loadError} />;
-  if (!conv.session && !conv.isLoading) return <SessionStarting />;
+  const browseLocalFolder = useNativeFolderPicker();
+  const { enableGitHub, enableLocal } = useWorkspaceSources({ hasLocalPicker: true });
+  const workspaceFileLister = useNativeWorkspaceFiles();
 
   return (
-    <div className="relative flex h-full w-full flex-col pl-[220px]">
-      {/* Share button — cloud-only, owner sees it */}
-      <PermissionGate resource={{ kind: "session", id }} relation="can_grant_access">
-        <div className="absolute top-2 right-6 z-10">
-          <button
-            type="button"
-            onClick={() => setShowSharePanel((v) => !v)}
-            aria-label="Share session"
-            aria-expanded={showSharePanel}
-            className="rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent-hover"
-          >
-            Share
-          </button>
-          {showSharePanel && (
-            <div className="absolute right-0 top-full mt-1 w-80 rounded-lg border border-border bg-popover shadow-lg">
-              <SharePanel
-                resource={{ kind: "session", id, resourceKind: ApiResourceKind.session }}
-                resourceKindString="session"
-                resourceKind={ApiResourceKind.session}
-                onClose={() => setShowSharePanel(false)}
-              />
-            </div>
-          )}
-        </div>
-      </PermissionGate>
-      <div className="flex min-h-0 flex-1 gap-3">
-        <div className="flex min-w-0 flex-1 flex-col">
-          <MessageThread
-            executions={conv.completedExecutions}
-            activeStreamExecution={conv.activeStreamExecution}
-            pendingUserMessage={conv.pendingUserMessage}
-            onApprovalSubmit={conv.submitApproval}
-            submittingApprovalIds={conv.submittingApprovalIds}
-            workspaceEntries={conv.workspaceEntries}
-            sandboxWorkspaceRoot={flow.sandboxWorkspaceRoot}
-            summarizationEvents={ctxWindow.summarizationEvents}
-            onBuildFromPlan={handleBuildFromPlan}
-            className="flex-1 lg:pr-[208px]"
-          />
-          <div className="lg:mr-[208px]">
-            {conv.streamError && (
-              <StreamErrorBanner
-                error={conv.streamError}
-                onReconnect={conv.reconnectStream}
-              />
-            )}
-            {(conv.sendError || conv.approvalError) && (
-              <SendErrorBanner error={(conv.sendError ?? conv.approvalError)!} />
-            )}
-            <SessionComposer
-              ref={composerRef}
-              onSubmit={flow.handleSubmit}
-              isSubmitting={conv.isSending}
-              disabled={!conv.canSendFollowUp}
-              org={org}
-              harness={flow.harness}
-              defaultModelId={modelId}
-              onModelChange={setModelId}
-              interactionMode={interactionMode}
-              onInteractionModeChange={setInteractionMode}
-              showInteractionModePicker
-              workspace={flow.workspace}
-              gitHubConnection={gitHubConnection}
-              enableGitHub
-              enableLocal
-              agentRef={flow.agentRef}
-              onAgentRefChange={flow.setAgentRef}
-              onAgentResolutionChange={flow.setResolution}
-              isDefaultAgent={flow.isDefaultAgent}
-              mcpServerUsages={flow.mcpServerUsages}
-              onMcpServerUsagesChange={flow.setMcpServerUsages}
-              skillRefs={flow.skillRefs}
-              onSkillRefsChange={flow.setSkillRefs}
-              sessionVariables={flow.sessionVariables}
-              className="px-4 py-3"
-            />
-          </div>
-        </div>
-        <aside
-          className="hidden w-80 shrink-0 flex-col gap-3 overflow-y-auto py-4 pr-6 lg:flex"
-          aria-label="Execution details"
-        >
-          {flow.displayExecution && (
-            <>
-              <div className="rounded-lg border border-border bg-card p-3">
-                <ExecutionProgress execution={flow.displayExecution} />
-              </div>
-              <ContextGauge
-                execution={flow.displayExecution}
-                className="rounded-lg border border-border bg-card p-3"
-              />
-              <div className="rounded-lg border border-border bg-card p-3">
-                <UsageWidget executions={flow.allExecutions} />
-              </div>
-            </>
-          )}
-          <WriteBacksWidget executions={flow.allExecutions} />
-          <ArtifactsWidget executions={flow.allExecutions} org={org} />
-        </aside>
-      </div>
+    <div className="flex h-full w-full flex-col">
+      <SessionViewer
+        sessionId={id}
+        org={org}
+        enableGitHub={enableGitHub}
+        enableLocal={enableLocal}
+        onBrowseLocalFolder={browseLocalFolder}
+        workspaceFileLister={workspaceFileLister}
+        headerActions={
+          <ShareActions sessionId={id} />
+        }
+      />
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Share actions — kept in the client app (DD-004: no Console auth in SDK)
+// ---------------------------------------------------------------------------
+
+function ShareActions({ sessionId }: { sessionId: string }) {
+  const [showSharePanel, setShowSharePanel] = useState(false);
+
+  return (
+    <PermissionGate resource={{ kind: "session", id: sessionId }} relation="can_grant_access">
+      <button
+        type="button"
+        onClick={() => setShowSharePanel((v) => !v)}
+        aria-label="Share session"
+        aria-expanded={showSharePanel}
+        className="rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent-hover"
+      >
+        Share
+      </button>
+      {showSharePanel && (
+        <div className="absolute right-0 top-full mt-1 w-80 rounded-lg border border-border bg-popover shadow-lg">
+          <SharePanel
+            resource={{ kind: "session", id: sessionId, resourceKind: ApiResourceKind.session }}
+            resourceKindString="session"
+            resourceKind={ApiResourceKind.session}
+            onClose={() => setShowSharePanel(false)}
+          />
+        </div>
+      )}
+    </PermissionGate>
   );
 }
 
 function SessionSkeleton() {
   return (
-    <div className="flex h-full w-full flex-col pl-[220px]">
+    <div className="flex h-full w-full flex-col">
       <ThreadSkeleton className="flex-1 px-0" />
-    </div>
-  );
-}
-
-function SessionError({ error }: { error: Error }) {
-  return (
-    <div className="flex min-h-[60vh] flex-col items-center justify-center px-4">
-      <div className="w-full max-w-sm space-y-6 text-center">
-        <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-destructive-subtle">
-          <AlertTriangle className="size-6 text-destructive" />
-        </div>
-        <div className="space-y-2">
-          <h1 className="text-lg font-semibold">Failed to load session</h1>
-          <p className="text-sm text-muted-foreground">{getUserMessage(error)}</p>
-        </div>
-        <button
-          onClick={() => window.location.reload()}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-medium hover:bg-muted"
-        >
-          <RotateCcw className="size-3.5" />
-          Try again
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function SessionStarting() {
-  return (
-    <div className="flex h-full items-center justify-center">
-      <div className="space-y-2 text-center">
-        <Loader2 className="mx-auto size-5 animate-spin text-muted-foreground" />
-        <p className="text-sm text-muted-foreground">Starting session…</p>
-      </div>
-    </div>
-  );
-}
-
-function SendErrorBanner({ error }: { error: Error }) {
-  if (isSecretFlowError(error)) {
-    return <SecretFlowErrorGuide error={error} className="mx-4 my-2" />;
-  }
-  return (
-    <div role="alert" className="border-t border-border px-4 py-2 text-xs text-destructive">
-      {getUserMessage(error)}
-    </div>
-  );
-}
-
-function StreamErrorBanner({
-  error,
-  onReconnect,
-}: {
-  error: Error;
-  onReconnect: () => void;
-}) {
-  return (
-    <div role="alert" className="flex items-center gap-3 border-t border-border bg-muted px-4 py-2.5">
-      <WifiOff className="size-4 shrink-0 text-destructive" />
-      <p className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
-        {getUserMessage(error)}
-      </p>
-      <button
-        onClick={onReconnect}
-        className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs font-medium hover:bg-card"
-      >
-        <RotateCcw className="size-3" />
-        Reconnect
-      </button>
     </div>
   );
 }

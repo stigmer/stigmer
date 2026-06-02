@@ -15,8 +15,9 @@ export interface RecentActivityEntry {
   readonly subject: string;
   /**
    * Last meaningful update timestamp, used for interleaved sort.
-   * For sessions: `status.audit.specAudit.createdAt`.
-   * For workflow executions: `status.audit.specAudit.createdAt`.
+   * Derived from `status.audit.statusAudit.updatedAt` (bumped on every
+   * meaningful status change), with fallback to `specAudit.createdAt`
+   * for resources that have never been independently updated.
    */
   readonly updatedAt: Date;
   /**

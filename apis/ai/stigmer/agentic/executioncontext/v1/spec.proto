@@ -22,12 +22,14 @@ message ExecutionContextSpec {
 
 // A single runtime configuration or secret value.
 message ExecutionValue {
-  // String content of this entry.
+  // String content of this entry. Empty strings are valid — optional
+  // workflow env vars may be provided with no value, and the workflow
+  // engine resolves them to "" in expression interpolation.
   //
   // @internal
   // If is_secret=true: encrypted at rest and redacted in logs.
   // If is_secret=false: stored as plaintext.
-  string value = 1 [(buf.validate.field).string.min_len = 1];
+  string value = 1;
 
   // Whether this value should be treated as a secret.
   //

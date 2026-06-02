@@ -9,25 +9,20 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// List retrieves all workflow executions
+// List retrieves workflow executions with optional filtering and sorting.
 //
 // This is a simplified implementation for Stigmer OSS.
 // In production Cloud, this would:
 // - Use IAM Policy to filter by authorized resource IDs
-// - Support pagination
-// - Support filtering by workflow_instance_id, phase, etc.
+// - Support cursor-based pagination
 //
 // For OSS (local single-user environment):
 // - Returns all executions from SQLite
+// - Supports structured filter criteria (T13)
+// - Supports sort field and direction (T13)
 // - No authorization filtering (single user)
 // - No pagination (acceptable for local usage)
-//
-// Note: Compared to Stigmer Cloud, OSS excludes:
-// - IAM Policy authorization filtering (no multi-tenant auth)
-// - Pagination (not needed for local usage)
-// - Advanced filtering (can be added later if needed)
 func (c *WorkflowExecutionController) List(ctx context.Context, req *workflowexecutionv1.ListWorkflowExecutionsRequest) (*workflowexecutionv1.WorkflowExecutionList, error) {
-	// List all workflow executions from store
 	data, err := c.store.ListResources(ctx, apiresourcekind.ApiResourceKind_workflow_execution)
 	if err != nil {
 		return nil, grpclib.InternalError(err, "failed to list workflow executions")
@@ -37,10 +32,30 @@ func (c *WorkflowExecutionController) List(ctx context.Context, req *workflowexe
 	for _, d := range data {
 		execution := &workflowexecutionv1.WorkflowExecution{}
 		if err := proto.Unmarshal(d, execution); err != nil {
-			continue // Skip invalid entries
+			continue
 		}
 		executions = append(executions, execution)
 	}
 
-	return &workflowexecutionv1.WorkflowExecutionList{Entries: executions}, nil
+	// Apply legacy phase filter (backward compat — superseded by filter.phases).
+	if req.GetFilter() == nil || len(req.GetFilter().GetPhases()) == 0 {
+		executions = applyLegacyPhaseFilter(executions, req.GetPhase())
+	}
+
+	// Apply structured filter criteria (T13).
+	executions = applyFilterCriteria(executions, req.GetFilter())
+
+	// Apply sort (default: started_at descending).
+	sortField := req.GetSortField()
+	ascending := req.GetSortAscending()
+	if sortField == workflowexecutionv1.ExecutionSortField_EXECUTION_SORT_FIELD_UNSPECIFIED {
+		sortField = workflowexecutionv1.ExecutionSortField_EXECUTION_SORT_FIELD_STARTED_AT
+		ascending = false
+	}
+	applySortField(executions, sortField, ascending)
+
+	return &workflowexecutionv1.WorkflowExecutionList{
+		Entries:    executions,
+		TotalPages: 1,
+	}, nil
 }

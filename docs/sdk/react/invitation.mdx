@@ -326,8 +326,14 @@ success, and error — with appropriate UX for each.
 
 The component is auth-agnostic: it delegates authentication
 decisions to the host application via `isAuthenticated` and
-`onAuthRequired` props. Platform builders who render this
-component only for authenticated users can ignore both props.
+`onAuthRequired` props. The button always reads "Accept Invitation"
+regardless of auth state — `isAuthenticated` only controls whether
+clicking redeems directly or triggers the auth flow first.
+
+When `autoAccept` is `true` and the user is authenticated, the
+component automatically triggers redemption on mount. This enables
+a seamless post-OIDC-redirect flow where the user doesn't need
+to click "Accept Invitation" a second time.
 
 All visual properties flow through `--stgm-*` design tokens.
 
@@ -335,10 +341,11 @@ All visual properties flow through `--stgm-*` design tokens.
 
 <TypeTable
   type={{
+    autoAccept: { type: "boolean", description: "When `true`, automatically triggers invitation redemption on mount (requires `isAuthenticated` to also be `true`).  Used by host applications to complete the acceptance flow after an OIDC redirect — the user clicked \"Accept Invitation\" before the redirect, so no second click should be required." },
     className: { type: "string", description: "Additional CSS class names for the root container." },
-    isAuthenticated: { type: "boolean", description: "Whether the current user is authenticated.  When `false`, the component shows a \"Sign in to accept\" CTA instead of the accept button. When `true` or omitted, the accept button calls `redeem` directly." },
+    isAuthenticated: { type: "boolean", description: "Whether the current user is authenticated.  Controls the button's click behavior, not its label. Both states show \"Accept Invitation\". When `false`, clicking fires onAuthRequired to initiate the auth flow. When `true` or omitted, clicking redeems the invitation directly." },
     onAccepted: { type: "(invitation: Invitation) => void", description: "Fired after the invitation is successfully redeemed.  The returned Invitation contains the organization and role information needed for post-redemption navigation (e.g. redirecting to the org dashboard)." },
-    onAuthRequired: { type: "() => void", description: "Fired when an unauthenticated user clicks \"Sign in to accept\".  The host application controls what \"sign in\" means — this callback typically triggers a redirect to the login page with a return URL back to the invite page." },
+    onAuthRequired: { type: "() => void", description: "Fired when an unauthenticated user clicks \"Accept Invitation\".  The host application controls what happens next — this callback typically triggers a redirect to the OIDC provider with a return URL back to the invite page." },
     token: { type: "string", description: "The invitation token from the invite URL.", required: true },
   }}
 />
@@ -352,8 +359,9 @@ All visual properties flow through `--stgm-*` design tokens.
 <InvitationRedemption
   token={tokenFromUrl}
   isAuthenticated={!!currentUser}
+  autoAccept={shouldAutoAccept}
   onAccepted={(inv) => router.push(`/org/${inv.metadata?.org}`)}
-  onAuthRequired={() => router.push(`/login?return=/invite/${token}`)}
+  onAuthRequired={() => redirectToLogin()}
 />
 ```
 

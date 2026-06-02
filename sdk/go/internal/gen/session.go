@@ -149,9 +149,12 @@ func (i *SessionInput) toProto() *sessionv1.Session {
 }
 
 func (i *WorkspaceEntryInput) toProto() *sessionv1.WorkspaceEntry {
-	return &sessionv1.WorkspaceEntry{
-		Name: i.Name,
+	p := &sessionv1.WorkspaceEntry{}
+	p.Name = i.Name
+	if i.Source != nil {
+		p.Source = i.Source.toProto()
 	}
+	return p
 }
 
 func (i *WorkspaceSourceInput) toProto() *sessionv1.WorkspaceSource {

@@ -93,14 +93,15 @@ func (s *SkillClient) List(ctx context.Context, params *ListParams) (*ListResult
 
 // SkillInput holds the fields for creating/updating a Skill.
 type SkillInput struct {
-	Name        string
-	Slug        string
-	Org         string
-	Labels      map[string]string
-	Visibility  apiresource.ApiResourceVisibility
-	SkillMd     string
-	Tag         string
-	Description string
+	Name           string
+	Slug           string
+	Org            string
+	Labels         map[string]string
+	Visibility     apiresource.ApiResourceVisibility
+	VersionMessage string
+	SkillMd        string
+	Tag            string
+	Description    string
 }
 
 func (i *SkillInput) toProto() *skillv1.Skill {
@@ -115,6 +116,11 @@ func (i *SkillInput) toProto() *skillv1.Skill {
 			Visibility: i.Visibility,
 		},
 		Spec: &skillv1.SkillSpec{},
+	}
+	if i.VersionMessage != "" {
+		resource.Metadata.Version = &apiresource.ApiResourceMetadataVersion{
+			Message: i.VersionMessage,
+		}
 	}
 	resource.Spec.SkillMd = i.SkillMd
 	resource.Spec.Tag = i.Tag

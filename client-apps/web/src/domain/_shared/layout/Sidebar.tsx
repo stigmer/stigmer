@@ -1,6 +1,6 @@
 "use client";
 
-import { type MouseEvent, useCallback, useEffect, useMemo } from "react";
+import { type MouseEvent, memo, useCallback, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Plus, LayoutDashboard, Library, MessageSquare, Workflow, PanelLeft } from "lucide-react";
@@ -29,16 +29,35 @@ function isPlainClick(e: MouseEvent): boolean {
 export function Sidebar() {
   const sidebar = useSidebarOpen();
   const pathname = usePathname();
-  const { entries, isLoading, error, refetch } = useRecentActivity();
+  const { entries, isLoading, error, refetch, prependOptimistic } = useRecentActivity();
   const { activeSessionId, isSessionZone, navigateToSession, navigateToHome } =
     useSessionNavigation();
 
+  const activeExecutionId = pathname.startsWith("/executions/")
+    ? pathname.split("/")[2] ?? null
+    : null;
+
   const isDashboardActive = !isSessionZone && pathname.startsWith("/dashboard");
   const isLibraryActive = !isSessionZone && pathname.startsWith("/library");
+
+  const entriesRef = useRef(entries);
   useEffect(() => {
+    entriesRef.current = entries;
+  });
+
+  useEffect(() => {
+    if (activeExecutionId && !entriesRef.current.some((e) => e.id === activeExecutionId)) {
+      prependOptimistic({
+        id: activeExecutionId,
+        type: "workflow_execution",
+        subject: "Loading\u2026",
+      });
+    }
+
     refetch();
 
-    if (!activeSessionId) return;
+    const activeId = activeSessionId ?? activeExecutionId;
+    if (!activeId) return;
 
     // LLM subject generation runs async after session creation and
     // typically completes within 5-15 seconds. Two staggered refetches
@@ -49,7 +68,7 @@ export function Sidebar() {
       clearTimeout(t1);
       clearTimeout(t2);
     };
-  }, [activeSessionId, refetch]);
+  }, [activeSessionId, activeExecutionId, refetch, prependOptimistic]);
 
   const groups = useMemo(
     () => groupRecentActivityByTime(entries),
@@ -208,7 +227,7 @@ function ActivityGroupList({
   );
 }
 
-function ActivityEntry({
+const ActivityEntry = memo(function ActivityEntry({
   entry,
   activeSessionId,
   activePath,
@@ -262,7 +281,7 @@ function ActivityEntry({
       </Tooltip>
     </li>
   );
-}
+});
 
 function RecentsSkeletons() {
   return (

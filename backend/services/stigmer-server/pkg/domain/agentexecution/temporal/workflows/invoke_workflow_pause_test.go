@@ -17,8 +17,19 @@ import (
 // workflow.ExecuteActivity calls can be matched and mocked.
 func stubEnsureThread(_ string, _ string) (string, error) { return "", nil }
 func stubGenerateSessionSubject(_ string) error           { return nil }
-func stubExecuteDeepAgent(_ string, _ string) (*agentexecutionv1.AgentExecutionStatus, error) {
+func stubExecuteDeepAgent(_ string, _ string) (activities.RunnerActivityResult, error) {
 	return nil, nil
+}
+
+// runnerResult builds the slim activity result the runner returns. The runner
+// emits proto-JSON (string enum names), and the workflow reads it back as a
+// map[string]interface{} (RunnerActivityResult) across the data converter.
+func runnerResult(phase agentexecutionv1.ExecutionPhase, errMsg string) activities.RunnerActivityResult {
+	r := activities.RunnerActivityResult{"phase": phase.String()}
+	if errMsg != "" {
+		r["error"] = errMsg
+	}
+	return r
 }
 func stubUpdateExecutionStatus(_ string, _ *agentexecutionv1.AgentExecutionStatus) error {
 	return nil
@@ -89,11 +100,9 @@ func TestPauseSignalCancelsActivityAndWaitsForResume(t *testing.T) {
 	// After resume, the second invocation runs the mock and completes.
 	resumeCallCount := 0
 	env.OnActivity(stubExecuteDeepAgent, mock.Anything, mock.Anything).
-		Return(func(eid string, tid string) (*agentexecutionv1.AgentExecutionStatus, error) {
+		Return(func(eid string, tid string) (activities.RunnerActivityResult, error) {
 			resumeCallCount++
-			return &agentexecutionv1.AgentExecutionStatus{
-				Phase: agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
-			}, nil
+			return runnerResult(agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED, ""), nil
 		})
 
 	env.RegisterDelayedCallback(func() {
@@ -126,9 +135,7 @@ func TestNormalCompletionWithoutPause(t *testing.T) {
 	registerCommonMocks(env, threadID)
 
 	env.OnActivity(stubExecuteDeepAgent, mock.Anything, mock.Anything).
-		Return(&agentexecutionv1.AgentExecutionStatus{
-			Phase: agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
-		}, nil)
+		Return(runnerResult(agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED, ""), nil)
 
 	input := &InvokeAgentExecutionWorkflowInput{
 		ExecutionID: executionID,
@@ -163,16 +170,12 @@ func TestHitlApprovalLoopWithoutPause(t *testing.T) {
 
 	callCount := 0
 	env.OnActivity(stubExecuteDeepAgent, mock.Anything, mock.Anything).
-		Return(func(eid string, tid string) (*agentexecutionv1.AgentExecutionStatus, error) {
+		Return(func(eid string, tid string) (activities.RunnerActivityResult, error) {
 			callCount++
 			if callCount == 1 {
-				return &agentexecutionv1.AgentExecutionStatus{
-					Phase: agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL,
-				}, nil
+				return runnerResult(agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL, ""), nil
 			}
-			return &agentexecutionv1.AgentExecutionStatus{
-				Phase: agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
-			}, nil
+			return runnerResult(agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED, ""), nil
 		})
 
 	// Send approval signal
@@ -206,11 +209,9 @@ func TestMultiplePauseResumeCycles(t *testing.T) {
 	// final (non-cancelled) invocation runs.
 	resumeCallCount := 0
 	env.OnActivity(stubExecuteDeepAgent, mock.Anything, mock.Anything).
-		Return(func(eid string, tid string) (*agentexecutionv1.AgentExecutionStatus, error) {
+		Return(func(eid string, tid string) (activities.RunnerActivityResult, error) {
 			resumeCallCount++
-			return &agentexecutionv1.AgentExecutionStatus{
-				Phase: agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
-			}, nil
+			return runnerResult(agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED, ""), nil
 		})
 
 	env.RegisterDelayedCallback(func() {
@@ -248,10 +249,7 @@ func TestFailedActivityPropagatesError(t *testing.T) {
 	registerCommonMocks(env, threadID)
 
 	env.OnActivity(stubExecuteDeepAgent, mock.Anything, mock.Anything).
-		Return(&agentexecutionv1.AgentExecutionStatus{
-			Phase: agentexecutionv1.ExecutionPhase_EXECUTION_FAILED,
-			Error: "something went wrong",
-		}, nil)
+		Return(runnerResult(agentexecutionv1.ExecutionPhase_EXECUTION_FAILED, "something went wrong"), nil)
 
 	input := &InvokeAgentExecutionWorkflowInput{
 		ExecutionID: executionID,
@@ -262,8 +260,8 @@ func TestFailedActivityPropagatesError(t *testing.T) {
 	env.ExecuteWorkflow((&InvokeAgentExecutionWorkflowImpl{}).Run, input)
 
 	require.True(t, env.IsWorkflowCompleted())
-	// FAILED status doesn't cause a workflow error — the workflow completes
-	// normally and the Go/Java workflow relies on the FAILED phase being
-	// persisted via defense-in-depth.
-	require.NoError(t, env.GetWorkflowError())
+	// An EXECUTION_FAILED activity result is propagated as a workflow error
+	// (see executeDeepAgentFlow), which Run wraps as an application error.
+	// The FAILED phase is also persisted via defense-in-depth.
+	require.Error(t, env.GetWorkflowError())
 }

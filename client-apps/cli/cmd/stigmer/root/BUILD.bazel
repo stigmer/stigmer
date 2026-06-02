@@ -80,6 +80,7 @@ go_library(
         "setup_cmd.go",
         "status_cmd.go",
         "status_health.go",
+        "tag.go",
         "up.go",
         "up_bootstrap.go",
         "up_start.go",

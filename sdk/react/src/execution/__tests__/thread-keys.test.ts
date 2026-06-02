@@ -507,4 +507,108 @@ describe("buildThreadItems key generation", () => {
       expect(pendingSetup!.key).toBe(inProgressSetup!.key);
     });
   });
+
+  describe("internal tool filtering", () => {
+    it("filters updateTodos tool calls from tool groups", () => {
+      const tc = makeToolCall("updateTodos", "tc-todo");
+      const exec = makeExecution({
+        id: "exec-todo",
+        messages: [
+          makeMessage(MessageType.MESSAGE_AI, "Planning...", { toolCalls: [tc] }),
+        ],
+      });
+
+      const items = buildThreadItems([exec], null, null, false, undefined);
+      const toolGroups = items.filter((i) => i.kind === "tool-group");
+      expect(toolGroups).toHaveLength(0);
+    });
+
+    it("filters TodoWrite tool calls from tool groups", () => {
+      const tc = makeToolCall("TodoWrite", "tc-tw");
+      const exec = makeExecution({
+        id: "exec-tw",
+        messages: [
+          makeMessage(MessageType.MESSAGE_AI, "Planning...", { toolCalls: [tc] }),
+        ],
+      });
+
+      const items = buildThreadItems([exec], null, null, false, undefined);
+      const toolGroups = items.filter((i) => i.kind === "tool-group");
+      expect(toolGroups).toHaveLength(0);
+    });
+
+    it("filters write_todos tool calls from tool groups", () => {
+      const tc = makeToolCall("write_todos", "tc-wt");
+      const exec = makeExecution({
+        id: "exec-wt",
+        messages: [
+          makeMessage(MessageType.MESSAGE_AI, "Planning...", { toolCalls: [tc] }),
+        ],
+      });
+
+      const items = buildThreadItems([exec], null, null, false, undefined);
+      const toolGroups = items.filter((i) => i.kind === "tool-group");
+      expect(toolGroups).toHaveLength(0);
+    });
+
+    it("preserves non-internal tools alongside filtered internal tools", () => {
+      const shellTc = makeToolCall("Shell", "tc-shell");
+      const todoTc = makeToolCall("updateTodos", "tc-todo");
+      const exec = makeExecution({
+        id: "exec-mixed",
+        messages: [
+          makeMessage(MessageType.MESSAGE_AI, "Working...", {
+            toolCalls: [shellTc, todoTc],
+          }),
+        ],
+      });
+
+      const items = buildThreadItems([exec], null, null, false, undefined);
+      const toolGroups = items.filter((i) => i.kind === "tool-group");
+      expect(toolGroups).toHaveLength(1);
+      expect(toolGroups[0].kind === "tool-group" && toolGroups[0].toolCalls).toHaveLength(1);
+      expect(toolGroups[0].kind === "tool-group" && toolGroups[0].toolCalls[0].name).toBe("Shell");
+    });
+
+    it("empty AI message with only internal tools produces no items", () => {
+      const todoTc = makeToolCall("updateTodos", "tc-todo");
+      const exec = makeExecution({
+        id: "exec-empty",
+        messages: [
+          makeMessage(MessageType.MESSAGE_AI, "  ", { toolCalls: [todoTc] }),
+        ],
+      });
+
+      const items = buildThreadItems([exec], null, null, false, undefined);
+      const messageItems = items.filter((i) => i.kind === "message");
+      const toolGroups = items.filter((i) => i.kind === "tool-group");
+      expect(messageItems).toHaveLength(0);
+      expect(toolGroups).toHaveLength(0);
+    });
+
+    it("filters internal tools alongside task tool splitting", () => {
+      const taskTc = makeToolCall("task", "tc-task");
+      const todoTc = makeToolCall("updateTodos", "tc-todo");
+      const shellTc = makeToolCall("Shell", "tc-shell");
+      const sa = makeSubAgent("tc-task");
+      const exec = makeExecution({
+        id: "exec-mixed-task",
+        messages: [
+          makeMessage(MessageType.MESSAGE_AI, "Delegating...", {
+            toolCalls: [taskTc, todoTc, shellTc],
+          }),
+        ],
+        subAgents: [sa],
+      });
+
+      const items = buildThreadItems([exec], null, null, false, undefined);
+      const toolGroups = items.filter((i) => i.kind === "tool-group");
+      const subAgentItems = items.filter((i) => i.kind === "sub-agent");
+
+      expect(subAgentItems).toHaveLength(1);
+      expect(toolGroups).toHaveLength(1);
+      expect(toolGroups[0].kind === "tool-group" && toolGroups[0].toolCalls).toHaveLength(1);
+      expect(toolGroups[0].kind === "tool-group" && toolGroups[0].toolCalls[0].name).toBe("Shell");
+    });
+  });
 });

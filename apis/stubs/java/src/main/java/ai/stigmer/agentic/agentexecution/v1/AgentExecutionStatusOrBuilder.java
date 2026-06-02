@@ -861,4 +861,67 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue);
    * <code>.ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary streaming_usage = 20 [json_name = "streamingUsage"];</code>
    */
   ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummaryOrBuilder getStreamingUsageOrBuilder();
+
+  /**
+   * <pre>
+   * Structured output extracted from the agent's final response.
+   *
+   * Populated when ExecutionConfig.structured_output_schema was set and the
+   * runner successfully extracted schema-conforming data. Only meaningful
+   * when phase is EXECUTION_COMPLETED.
+   *
+   * For native harness: populated from LangGraph graphState.structuredResponse
+   * (ToolStrategy enforcement). For Cursor harness: populated from 3-tier
+   * extraction (JSON.parse → fence extraction → extraction LLM fallback).
+   *
+   * Consumers: frontend architect/refine hooks read this instead of parsing
+   * YAML from messages. Workflow callback path reads structured_output from
+   * the Temporal activity result (separate channel, same data).
+   * </pre>
+   *
+   * <code>.google.protobuf.Struct structured_output = 21 [json_name = "structuredOutput"];</code>
+   * @return Whether the structuredOutput field is set.
+   */
+  boolean hasStructuredOutput();
+  /**
+   * <pre>
+   * Structured output extracted from the agent's final response.
+   *
+   * Populated when ExecutionConfig.structured_output_schema was set and the
+   * runner successfully extracted schema-conforming data. Only meaningful
+   * when phase is EXECUTION_COMPLETED.
+   *
+   * For native harness: populated from LangGraph graphState.structuredResponse
+   * (ToolStrategy enforcement). For Cursor harness: populated from 3-tier
+   * extraction (JSON.parse → fence extraction → extraction LLM fallback).
+   *
+   * Consumers: frontend architect/refine hooks read this instead of parsing
+   * YAML from messages. Workflow callback path reads structured_output from
+   * the Temporal activity result (separate channel, same data).
+   * </pre>
+   *
+   * <code>.google.protobuf.Struct structured_output = 21 [json_name = "structuredOutput"];</code>
+   * @return The structuredOutput.
+   */
+  com.google.protobuf.Struct getStructuredOutput();
+  /**
+   * <pre>
+   * Structured output extracted from the agent's final response.
+   *
+   * Populated when ExecutionConfig.structured_output_schema was set and the
+   * runner successfully extracted schema-conforming data. Only meaningful
+   * when phase is EXECUTION_COMPLETED.
+   *
+   * For native harness: populated from LangGraph graphState.structuredResponse
+   * (ToolStrategy enforcement). For Cursor harness: populated from 3-tier
+   * extraction (JSON.parse → fence extraction → extraction LLM fallback).
+   *
+   * Consumers: frontend architect/refine hooks read this instead of parsing
+   * YAML from messages. Workflow callback path reads structured_output from
+   * the Temporal activity result (separate channel, same data).
+   * </pre>
+   *
+   * <code>.google.protobuf.Struct structured_output = 21 [json_name = "structuredOutput"];</code>
+   */
+  com.google.protobuf.StructOrBuilder getStructuredOutputOrBuilder();
 }

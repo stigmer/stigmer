@@ -20,6 +20,11 @@ class LedgerEntryType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     expiry_debit: _ClassVar[LedgerEntryType]
     auto_recharge_credit: _ClassVar[LedgerEntryType]
 
+class LedgerView(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    ledger_view_unspecified: _ClassVar[LedgerView]
+    ledger_view_statement: _ClassVar[LedgerView]
+
 class CreditGrantKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     credit_grant_kind_unspecified: _ClassVar[CreditGrantKind]
@@ -76,6 +81,8 @@ dispute_hold: LedgerEntryType
 dispute_release: LedgerEntryType
 expiry_debit: LedgerEntryType
 auto_recharge_credit: LedgerEntryType
+ledger_view_unspecified: LedgerView
+ledger_view_statement: LedgerView
 credit_grant_kind_unspecified: CreditGrantKind
 purchased: CreditGrantKind
 promotional: CreditGrantKind

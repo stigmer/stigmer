@@ -1,7 +1,9 @@
 "use client";
 
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import Markdown from "react-markdown";
 import { cn } from "@stigmer/theme";
+import { MARKDOWN_COMPONENTS, REMARK_PLUGINS } from "../internal/markdown-components";
 
 /** Outcome descriptor for UI rendering. */
 export interface TaskOutcome {
@@ -13,6 +15,12 @@ export interface TaskOutcome {
 export interface WorkflowTaskApprovalCardProps {
   /** Name of the human_input task awaiting a decision. */
   readonly taskName: string;
+  /**
+   * Resolved prompt text from the workflow's human_input task config.
+   * Rendered as markdown above the decision form to give the reviewer
+   * context about what they are approving.
+   */
+  readonly prompt?: string;
   /**
    * Configured outcomes from the workflow definition.
    * Each entry renders as a button with the label as text.
@@ -69,6 +77,7 @@ const DEFAULT_OUTCOMES: readonly TaskOutcome[] = [
  * ```tsx
  * <WorkflowTaskApprovalCard
  *   taskName="daily_approval"
+ *   prompt="Review today's notification plan.\n\n**DAU**: 7,297 (down 15%)"
  *   outcomes={[{ name: "approve", label: "Approve Plan" }, { name: "reject", label: "Reject" }]}
  *   formSchema={{ type: "object", properties: { feedback: { type: "string" } } }}
  *   onSubmit={actions.submitTaskApproval}
@@ -78,6 +87,7 @@ const DEFAULT_OUTCOMES: readonly TaskOutcome[] = [
  */
 export const WorkflowTaskApprovalCard = memo(function WorkflowTaskApprovalCard({
   taskName,
+  prompt,
   outcomes: outcomesProp,
   formSchema,
   onSubmit,
@@ -129,6 +139,16 @@ export const WorkflowTaskApprovalCard = memo(function WorkflowTaskApprovalCard({
         className,
       )}
     >
+      {prompt && (
+        <div className="mb-3 max-h-80 overflow-y-auto rounded border border-border bg-background p-3">
+          <div className="stgm-prose">
+            <Markdown components={MARKDOWN_COMPONENTS} remarkPlugins={REMARK_PLUGINS}>
+              {prompt}
+            </Markdown>
+          </div>
+        </div>
+      )}
+
       {formFields.length > 0 && (
         <div className="mb-3 space-y-2">
           {formFields.map((field) => (

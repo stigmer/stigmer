@@ -4,9 +4,11 @@ import { memo, useCallback, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { useWorkflowEditor } from "./useWorkflowEditor";
 import { WorkflowYamlEditor } from "./WorkflowYamlEditor";
-import { WorkflowTopologyGraph } from "./WorkflowTopologyGraph";
+import { WorkflowCodePreviewGraph } from "./WorkflowCodePreviewGraph";
 import { WorkflowCanvasEditor } from "./WorkflowCanvasEditor";
+import type { LayoutEngine } from "./layout";
 import { WorkflowRefinePanel } from "./WorkflowRefinePanel";
+import { WorkflowExplainDialog } from "./WorkflowExplainDialog";
 import { yamlToGraph } from "./workflow-graph-conversions";
 
 /** Props for {@link WorkflowEditorView}. */
@@ -23,6 +25,12 @@ export interface WorkflowEditorViewProps {
   readonly defaultMode?: WorkflowEditorMode;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
+  /**
+   * Layout engine for the visual canvas "Auto Layout" action.
+   * Pass the result of {@link useElkLayoutEngine} for ELK-powered layout.
+   * When omitted, dagre is used as the default.
+   */
+  readonly layoutEngine?: LayoutEngine | null;
 }
 
 /**
@@ -59,6 +67,7 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
   onSaveError,
   defaultMode = "code",
   className,
+  layoutEngine,
 }: WorkflowEditorViewProps) {
   const editor = useWorkflowEditor(initialYaml, { org });
   const [isFullPage, setIsFullPage] = useState(false);
@@ -66,6 +75,8 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
   const [showModeWarning, setShowModeWarning] = useState(false);
   const [canvasIsSaving, setCanvasIsSaving] = useState(false);
   const [showRefinePanel, setShowRefinePanel] = useState(false);
+  const [pendingFixInstruction, setPendingFixInstruction] = useState<string | undefined>(undefined);
+  const [showExplainDialog, setShowExplainDialog] = useState(false);
 
   // Track canvas dirty state separately for mode switch prompts
   const [canvasDirty, setCanvasDirty] = useState(false);
@@ -146,7 +157,25 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
 
   const toggleRefinePanel = useCallback(() => {
     setShowRefinePanel((prev) => !prev);
+    setPendingFixInstruction(undefined);
   }, []);
+
+  const handleFixWithAI = useCallback(() => {
+    const errorDiags = editor.diagnostics.filter((d) => d.severity === "error");
+    if (errorDiags.length === 0) return;
+
+    const lines = errorDiags.map((d, i) => `${i + 1}. ${d.message}`);
+    const instruction = [
+      "Fix the following validation errors in this workflow:",
+      "",
+      ...lines,
+      "",
+      "Please fix these issues and return the corrected workflow.",
+    ].join("\n");
+
+    setPendingFixInstruction(instruction);
+    setShowRefinePanel(true);
+  }, [editor.diagnostics]);
 
   const handleRefineAccept = useCallback(
     (updatedYaml: string) => {
@@ -218,12 +247,41 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
             errorCount={editor.errorCount}
             warningCount={editor.warningCount}
           />
+          {editor.errorCount > 0 && (
+            <button
+              type="button"
+              onClick={handleFixWithAI}
+              className={cn(
+                "inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors",
+                "text-muted-foreground hover:bg-muted hover:text-foreground",
+              )}
+              aria-label="Fix validation errors with AI"
+            >
+              <FixSparklesIcon />
+              Fix with AI
+            </button>
+          )}
           {(editor.isDirty || canvasDirty) && (
             <span className="text-xs text-muted-foreground">Unsaved changes</span>
           )}
         </div>
 
         <div className="flex items-center gap-2">
+          {mode === "code" && (editor.isDirty || editor.versionMessage) && (
+            <input
+              type="text"
+              value={editor.versionMessage}
+              onChange={(e) => editor.setVersionMessage(e.target.value)}
+              placeholder="Version message (optional)"
+              disabled={editor.isSaving}
+              className={cn(
+                "h-7 w-48 rounded border border-[var(--stgm-border,#d4d4d8)] bg-[var(--stgm-background,#fff)] px-2 text-xs",
+                "text-[var(--stgm-foreground,#1a1a2e)] placeholder:text-[var(--stgm-muted-foreground,#a3a3a3)]",
+                "focus:border-[var(--stgm-primary,#6366f1)] focus:outline-none focus:ring-1 focus:ring-[var(--stgm-primary,#6366f1)]",
+                "disabled:opacity-40",
+              )}
+            />
+          )}
           {mode === "code" && (
             <button
               type="button"
@@ -254,6 +312,18 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
           )}
           <button
             type="button"
+            onClick={() => setShowExplainDialog(true)}
+            className={cn(
+              "inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors",
+              "text-muted-foreground hover:bg-muted hover:text-foreground",
+            )}
+            aria-label="Explain this workflow"
+          >
+            <ExplainIcon />
+            Explain
+          </button>
+          <button
+            type="button"
             onClick={toggleFullPage}
             className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
             aria-label={isFullPage ? "Exit full page" : "Full page"}
@@ -280,6 +350,14 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
         <DirtyPromptDialog onDiscard={confirmDiscardAndSwitchToCode} onCancel={cancelSwitchToCode} />
       )}
 
+      {/* Explain dialog */}
+      <WorkflowExplainDialog
+        open={showExplainDialog}
+        onOpenChange={setShowExplainDialog}
+        org={org}
+        currentYaml={editor.yaml}
+      />
+
       {/* Main content area */}
       <div className="flex min-h-0 flex-1">
         {mode === "code" ? (
@@ -299,11 +377,12 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
                   currentYaml={editor.yaml}
                   onAccept={handleRefineAccept}
                   onClose={toggleRefinePanel}
+                  initialInstruction={pendingFixInstruction}
                   className="h-full"
                 />
               ) : (
-                <WorkflowTopologyGraph
-                  topology={editor.topology}
+                <WorkflowCodePreviewGraph
+                  yaml={editor.yaml}
                   className="h-full"
                 />
               )}
@@ -317,6 +396,7 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
               isSaving={canvasIsSaving}
               onDirtyChange={setCanvasDirty}
               nodeErrors={nodeErrors}
+              layoutEngine={layoutEngine}
               className={showRefinePanel ? "w-[60%]" : "flex-1"}
             />
             {showRefinePanel && (
@@ -326,6 +406,7 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
                   currentYaml={editor.yaml}
                   onAccept={handleRefineAccept}
                   onClose={toggleRefinePanel}
+                  initialInstruction={pendingFixInstruction}
                   className="h-full"
                 />
               </div>
@@ -436,7 +517,7 @@ function DirtyPromptDialog({
           <button
             type="button"
             onClick={onDiscard}
-            className="rounded bg-[var(--stgm-destructive,#ef4444)] px-2.5 py-1 text-xs font-medium text-white hover:opacity-90"
+            className="rounded bg-[var(--stgm-destructive,#ef4444)] px-2.5 py-1 text-xs font-medium text-[var(--stgm-destructive-foreground,#fff)] hover:opacity-90"
           >
             Discard &amp; Switch
           </button>
@@ -502,6 +583,44 @@ function CheckCircleIcon() {
 }
 
 function RefineSparklesIcon() {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M8 2l1.5 4.5L14 8l-4.5 1.5L8 14l-1.5-4.5L2 8l4.5-1.5z" />
+    </svg>
+  );
+}
+
+function ExplainIcon() {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="8" cy="8" r="6.5" />
+      <path d="M6.5 6a1.5 1.5 0 1 1 1.5 1.5V9" />
+      <circle cx="8" cy="11.5" r="0.5" fill="currentColor" />
+    </svg>
+  );
+}
+
+function FixSparklesIcon() {
   return (
     <svg
       width="12"

@@ -29,12 +29,19 @@ func requireRunnerManagerWithCursor(t *testing.T, ctx context.Context) *harness.
 	t.Helper()
 	requireCursorKey(t)
 
+	svc := testHarness.Service
+	pathProxy, err := harness.NewPathRoutingProxy(svc.HTTPAddress(), svc.BiDiProxyAddress())
+	if err != nil {
+		t.Fatalf("failed to start path routing proxy: %v", err)
+	}
+	t.Cleanup(func() { pathProxy.Close() })
+
 	mgr, err := harness.StartUnifiedRunnerManager(ctx, harness.UnifiedRunnerConfig{
-		StigmerServiceAddress: testHarness.Service.GRPCAddress(),
+		StigmerServiceAddress: svc.GRPCAddress(),
 		TemporalAddress:       testHarness.Temporal.Address(),
 		LogDir:                testHarness.LogDir(),
 		CursorAPIKey:          cursorKey,
-		ProxyEndpoint:         testHarness.Service.HTTPAddress(),
+		ProxyEndpoint:         pathProxy.Address(),
 	}, suiteLogger)
 	if err != nil {
 		t.Fatalf("failed to start unified runner manager with cursor key: %v", err)

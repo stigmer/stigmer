@@ -10,7 +10,7 @@
  */
 
 import { Context, CancelledFailure } from "@temporalio/activity";
-import { create } from "@bufbuild/protobuf";
+import { create, type JsonObject } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { ExecutionPhase, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
@@ -86,14 +86,14 @@ export function createDeepAgentActivities(config: Config) {
         const inlinePublisher = new InlinePublisher({
           workspaceBackend: setup.workspaceBackend,
           artifactStorage: setup.artifactStorage,
-          statusBuilder,
+          statusWriter: statusBuilder,
           executionId,
         });
 
         const workspaceEntries = setup.session.spec?.workspaceEntries ?? [];
         const writebackCoordinator = setup.provisionResults.length > 0
           ? new WriteBackCoordinator({
-              statusBuilder,
+              statusWriter: statusBuilder,
               executionId,
               provisionResults: setup.provisionResults,
               workspaceEntries: workspaceEntries as any,
@@ -121,6 +121,7 @@ export function createDeepAgentActivities(config: Config) {
             toolServerMap: setup.toolServerMap,
             autoApproveAll: setup.autoApproveAll,
           },
+          streamVersion: setup.streamVersion,
         });
 
         await processPostStream({
@@ -192,6 +193,51 @@ export function createDeepAgentActivities(config: Config) {
 
         initialStatus.phase = ExecutionPhase.EXECUTION_COMPLETED;
         initialStatus.completedAt = utcTimestamp();
+
+        let structuredOutput: JsonObject | undefined;
+        let finalText: string | undefined;
+
+        const lastAiMsg = [...initialStatus.messages]
+          .reverse()
+          .find(m => m.type === MessageType.MESSAGE_AI);
+        if (lastAiMsg) {
+          finalText = lastAiMsg.content;
+        }
+
+        if (setup.hasStructuredOutput) {
+          // Primary source: deepagents' structuredResponse surfaced via the v3
+          // run.output. This is the reliable path when the graph populates it.
+          const sr = result.runOutput?.structuredResponse;
+          if (sr != null && typeof sr === "object" && !Array.isArray(sr)) {
+            structuredOutput = sr as JsonObject;
+          } else if (sr !== undefined) {
+            console.warn(
+              `[ExecuteDeepAgent] structuredResponse is not a plain object ` +
+              `for execution ${executionId}: type=${typeof sr}`,
+            );
+          }
+
+          // Fallback: extract JSON from the agent's final text message. The v3
+          // streaming path does not surface deepagents' structuredResponse
+          // (hasStructuredResponse=false), so we recover structured output by
+          // parsing the agent's final response (JSON / code-fence / last-brace).
+          if (structuredOutput === undefined && finalText) {
+            const { extractJsonFromText } = await import("../../shared/extract-json.js");
+            const extracted = extractJsonFromText(finalText);
+            if (extracted != null && typeof extracted === "object" && !Array.isArray(extracted)) {
+              structuredOutput = extracted as JsonObject;
+              console.log(
+                `[ExecuteDeepAgent] structured output extracted from final text ` +
+                `for execution ${executionId}: finalTextLength=${finalText.length}`,
+              );
+            }
+          }
+
+          if (structuredOutput !== undefined) {
+            initialStatus.structuredOutput = structuredOutput;
+          }
+        }
+
         await persistStatus(client, executionId, initialStatus);
 
         console.log(
@@ -199,10 +245,18 @@ export function createDeepAgentActivities(config: Config) {
           `events=${result.eventsProcessed}, ` +
           `messages=${initialStatus.messages.length}, ` +
           `artifacts=${initialStatus.artifacts.length}, ` +
-          `writebacks=${initialStatus.workspaceWriteBacks.length}`,
+          `writebacks=${initialStatus.workspaceWriteBacks.length}, ` +
+          `hasStructuredOutput=${structuredOutput !== undefined}`,
         );
 
-        return slimStatus(initialStatus);
+        const slim = slimStatus(initialStatus) as Record<string, unknown>;
+        if (finalText !== undefined) {
+          slim.final_text = finalText;
+        }
+        if (structuredOutput !== undefined) {
+          slim.structured = structuredOutput;
+        }
+        return slim;
 
       } catch (err: unknown) {
         if (err instanceof CancelledFailure) {
@@ -266,3 +320,4 @@ async function cleanup(setup: SetupResult | null): Promise<void> {
     }
   }
 }
+

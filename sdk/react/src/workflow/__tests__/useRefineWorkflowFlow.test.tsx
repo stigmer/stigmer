@@ -392,4 +392,87 @@ describe("useRefineWorkflowFlow", () => {
 
     expect(mockCreateExecution).toHaveBeenCalledTimes(callCountBefore);
   });
+
+  it("passes structuredOutputSchema when creating execution", async () => {
+    const opts = defaultOptions();
+    const { result } = renderHook(() => useRefineWorkflowFlow(opts));
+
+    await act(async () => {
+      await result.current.sendInstruction("Refine the error handling step");
+    });
+
+    expect(mockCreateExecution).toHaveBeenCalledWith(
+      expect.objectContaining({
+        structuredOutputSchema: expect.objectContaining({
+          type: "object",
+          required: ["action", "explanation"],
+        }),
+      }),
+    );
+  });
+
+  it("reads YAML from structuredOutput on terminal phase", async () => {
+    const opts = defaultOptions();
+    const { result, rerender } = renderHook(() => useRefineWorkflowFlow(opts));
+
+    await act(async () => {
+      await result.current.sendInstruction("Refine the error handling step");
+    });
+
+    const yamlContent = "apiVersion: v1\nname: from-structured";
+    (useExecutionStream as ReturnType<typeof vi.fn>).mockReturnValue(
+      defaultStreamReturn({
+        phase: 4,
+        execution: {
+          status: {
+            messages: [{ type: 2, content: "Done" }],
+            phase: 4,
+            structuredOutput: {
+              action: "generated_yaml",
+              yaml: yamlContent,
+              explanation: "Added retry to step 1.",
+            },
+          },
+        },
+        isStreaming: false,
+      }),
+    );
+    rerender();
+
+    await waitFor(() => {
+      expect(result.current.phase).toBe("complete");
+    });
+    expect(result.current.extractedYaml).toBe(yamlContent);
+  });
+
+  it("structured output clarification action → ready", async () => {
+    const opts = defaultOptions();
+    const { result, rerender } = renderHook(() => useRefineWorkflowFlow(opts));
+
+    await act(async () => {
+      await result.current.sendInstruction("Refine the error handling step");
+    });
+
+    (useExecutionStream as ReturnType<typeof vi.fn>).mockReturnValue(
+      defaultStreamReturn({
+        phase: 4,
+        execution: {
+          status: {
+            messages: [{ type: 2, content: "Need more info" }],
+            phase: 4,
+            structuredOutput: {
+              action: "clarification",
+              explanation: "Which step should have retry?",
+            },
+          },
+        },
+        isStreaming: false,
+      }),
+    );
+    rerender();
+
+    await waitFor(() => {
+      expect(result.current.phase).toBe("ready");
+    });
+  });
 });

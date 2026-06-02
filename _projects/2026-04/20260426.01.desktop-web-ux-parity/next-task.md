@@ -68,8 +68,23 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-26 12:05
-**Current Task**: PROJECT COMPLETE
-**Status**: T01 Done, T02 Done, T03 Done — all tasks complete, both apps at full parity
+**Current Task**: Follow-up — Workspace file listing parity (Phase 3 complete)
+**Status**: Core project complete; Phase 3 desktop workspace file browsing shipped 2026-05-29
+
+## Session Progress (2026-05-29 — Workspace File Listing Phase 3)
+
+- Implemented desktop `workspaceFileLister` via Rust `list_workspace_files` + `useNativeWorkspaceFiles()`
+- Achieved DD-016 parity: `SessionPage` and `SessionLauncher` now pass `workspaceFileLister` (matches web wiring)
+- Design: custom Tauri command + `ignore` crate — no `tauri-plugin-fs` or shell plugin
+- Tests: 9 Rust + 6 JS unit tests; `make verify-desktop` clean (7 pre-existing lint warnings)
+- Checkpoint: `checkpoints/2026-05-29-session-workspace-files-phase-3.md`
+- Changelog: `_changelog/2026-05/2026-05-29-165713-desktop-workspace-file-listing-phase-3.md`
+
+## Next Steps (post Phase 3)
+
+1. **Manual smoke test** — desktop app: attach local folder, expand workspace entry, confirm file tree
+2. **Phase 4** — drag-to-reference from tree to composer (`_cursor/phase-4-workspace-file-references.md`)
+3. **Truncation UX** — optional indicator when listing hits 10K cap
 
 ## Session Progress (2026-04-27, Session 16 — Runners Page UX Redesign)
 

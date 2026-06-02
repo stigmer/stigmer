@@ -62,12 +62,22 @@ export type {
 // Workspace — behavior hooks and styled components
 export {
   useWorkspaceEntries,
+  useWorkspaceFiles,
+  useWorkspaceSources,
   WorkspaceEditor,
+  WorkspaceEntryFiles,
   WorkspaceSummary,
 } from "./workspace";
 export type {
   WorkspaceEntry,
+  WorkspaceFileEntry,
+  WorkspaceFileLister,
   UseWorkspaceEntriesReturn,
+  UseWorkspaceFilesOptions,
+  UseWorkspaceFilesReturn,
+  WorkspaceEntryFilesProps,
+  UseWorkspaceSourcesOptions,
+  UseWorkspaceSourcesReturn,
   WorkspaceEditorProps,
   WorkspaceSummaryProps,
 } from "./workspace";
@@ -96,6 +106,12 @@ export {
   useSessionSearch,
   PENDING_SUBJECT,
   resolvedSubject,
+  SessionViewer,
+  NewSessionViewer,
+  SessionInspector,
+  useSessionInspector,
+  buildVisibleTabs,
+  SetupTab,
 } from "./session";
 export type {
   SharedSessionFields,
@@ -129,6 +145,15 @@ export type {
   DraftParams,
   SessionGroup,
   SearchResultGroup,
+  SessionViewerProps,
+  NewSessionViewerProps,
+  SessionInspectorProps,
+  SessionInspectorTabId,
+  UseSessionInspectorOptions,
+  UseSessionInspectorReturn,
+  SetupTabProps,
+  SetupTabMutationCallbacks,
+  SelectedThreadItem,
 } from "./session";
 
 // Activity — unified recent activity (sessions + workflow executions)
@@ -279,6 +304,17 @@ export type {
   AttachmentChipListProps,
 } from "./attachment";
 
+// File Reference — workspace file-reference behavior hook and styled chip list
+export {
+  useFileReferences,
+  FileReferenceChipList,
+} from "./file-reference";
+export type {
+  UseFileReferencesReturn,
+  FileReferenceChipListProps,
+} from "./file-reference";
+export { FILE_REF_MIME } from "./internal/file-tree";
+
 // Composer — unified message input with model, workspace, and file attachments
 export {
   useComposer,
@@ -400,11 +436,13 @@ export type {
   SkillFileBrowserProps,
 } from "./skill";
 
-// GitHub — OAuth connection, repo picker, and hooks
+// GitHub — OAuth connection, repo picker, tree lister, and hooks
 export {
   useGitHubConnection,
   useGitHubRepos,
   useGitHubSearch,
+  useGitHubTreeLister,
+  parseGitUrl,
   GitHubRepoPicker,
   GITHUB_CALLBACK_MESSAGE_TYPE,
 } from "./github";
@@ -418,6 +456,7 @@ export type {
   UseGitHubReposReturn,
   UseGitHubSearchReturn,
   GitHubRepoPickerProps,
+  ParsedGitRepo,
 } from "./github";
 
 // Agent — data hook, count hook, list hook, search hook, picker, detail view, env form, setup orchestration, env diffing, default agent, creation wizard, update
@@ -485,6 +524,7 @@ export {
   buildSystemEnvVars,
   resolveSystemEnvVarValues,
   resolveDeclaredSystemEnvVars,
+  EnvironmentPicker,
 } from "./environment";
 export type {
   UseEnvironmentReturn,
@@ -506,6 +546,7 @@ export type {
   EnvVarFormSubmitOptions,
   SessionEnvPoolInput,
   UseSessionEnvPoolReturn,
+  EnvironmentPickerProps,
 } from "./environment";
 
 // Identity Account — gate hook for ensuring the caller's identity account exists before app render
@@ -936,6 +977,7 @@ export {
   TEMPLATE_CATEGORY_LABELS,
   AGENT_TEMPLATES,
   MCP_SERVER_TEMPLATES,
+  WORKFLOW_TEMPLATES,
 } from "./resource-creation";
 export type {
   EnvVarEntry,
@@ -1103,7 +1145,7 @@ export {
   useWorkflowValidation,
   useWorkflowTopology,
   WorkflowYamlEditor,
-  WorkflowTopologyGraph,
+  WorkflowCodePreviewGraph,
   useWorkflowEditor,
   WorkflowEditorView,
   useRunWorkflowFlow,
@@ -1142,6 +1184,35 @@ export {
   useDiagnoseExecutionFlow,
   WorkflowRepairCard,
   STARTER_WORKFLOW_YAML,
+  useElkLayoutEngine,
+  // T13: Execution history
+  deriveExecutionRow,
+  deriveExecutionRows,
+  sortExecutionRows,
+  filterExecutionRows,
+  deriveFailureAnalysis,
+  useExecutionHistoryData,
+  ExecutionHistoryTable,
+  ExecutionFilterBar,
+  HealthMetricsStrip,
+  FailureAnalysisPanel,
+  WorkflowExecutionHistory,
+  // Workflow Instance management
+  useWorkflowInstance,
+  useCreateWorkflowInstance,
+  useUpdateWorkflowInstance,
+  useDeleteWorkflowInstance,
+  WorkflowInstanceEmptyState,
+  WorkflowInstanceList,
+  CreateWorkflowInstanceDialog,
+  WorkflowInstanceDetailPanel,
+  // T15: Workflow Template Gallery
+  PATTERN_LABELS,
+  WORKFLOW_CATEGORY_LABELS,
+  deriveTemplateMeta,
+  WorkflowTemplateCard,
+  WorkflowTemplatePreview,
+  WorkflowTemplateGallery,
 } from "./workflow";
 export type {
   TaskKindDescriptor,
@@ -1184,7 +1255,7 @@ export type {
   TopologyEdge,
   TopologyNodeCategory,
   WorkflowYamlEditorProps,
-  WorkflowTopologyGraphProps,
+  WorkflowCodePreviewGraphProps,
   UseWorkflowEditorOptions,
   UseWorkflowEditorReturn,
   WorkflowEditorViewProps,
@@ -1209,6 +1280,7 @@ export type {
   WorkflowGraphEnvVar,
   WorkflowGraphBudget,
   CanvasSelection,
+  UseWorkflowCanvasOptions,
   UseWorkflowCanvasReturn,
   WorkflowCanvasEditorProps,
   WorkflowTaskPaletteProps,
@@ -1237,6 +1309,39 @@ export type {
   UseDiagnoseExecutionFlowOptions,
   UseDiagnoseExecutionFlowReturn,
   WorkflowRepairCardProps,
+  UseElkLayoutEngineOptions,
+  // T13: Execution history types
+  ExecutionRow,
+  ExecutionHistorySortField,
+  ExecutionHistorySortDirection,
+  ExecutionClientFilters,
+  FailureGroup,
+  FailureInstance,
+  UseExecutionHistoryDataOptions,
+  UseExecutionHistoryDataReturn,
+  ExecutionHistoryTableProps,
+  ExecutionFilterBarProps,
+  HealthMetricsStripProps,
+  FailureAnalysisPanelProps,
+  WorkflowExecutionHistoryProps,
+  // Workflow Instance management types
+  UseWorkflowInstanceReturn,
+  UseCreateWorkflowInstanceReturn,
+  UseUpdateWorkflowInstanceReturn,
+  UseDeleteWorkflowInstanceReturn,
+  WorkflowInstanceEmptyStateProps,
+  WorkflowInstanceListProps,
+  CreateWorkflowInstanceDialogProps,
+  WorkflowInstanceDetailPanelProps,
+  // T15: Workflow Template Gallery types
+  WorkflowTemplateData,
+  WorkflowTemplateCategory,
+  WorkflowTemplateMeta,
+  WorkflowPattern,
+  WorkflowTemplate,
+  WorkflowTemplateCardProps,
+  WorkflowTemplatePreviewProps,
+  WorkflowTemplateGalleryProps,
 } from "./workflow";
 
 // ─── Dashboard (Unified Platform) ──────────────────────────────────────────

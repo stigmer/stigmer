@@ -76,7 +76,7 @@ install-vale: ## Install Vale prose linter (auto-detects OS)
 
 # ─── Build ────────────────────────────────────
 
-.PHONY: build build-mcp-server build-java-protos build-java-sdk build-runner protos codegen gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-task-docs gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-task-docs-check
+.PHONY: build build-mcp-server build-java-protos build-java-sdk build-runner protos codegen build-ts-stubs gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-task-docs gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-task-docs-check
 build: libs-build build-web verify-desktop docs-build build-mcp-server build-java-sdk build-runner ## Build all project artifacts
 	@mkdir -p bin
 	cd client-apps/cli && go build -o ../../bin/stigmer .
@@ -216,7 +216,10 @@ gen-narration: ## Generate narration audio for demo scenarios
 preview-sync: ## Re-scan client-apps/web and update site/.scenar/ view registry
 	npx scenar preview sync --source client-apps/web --output site/.scenar
 
-codegen: protos gen-sdk-docs gen-narration ## Regenerate all derived code (stubs + SDK docs + narration)
+codegen: protos build-ts-stubs gen-sdk-docs gen-narration ## Regenerate all derived code (stubs + SDK docs + narration)
+
+build-ts-stubs: ## Rebuild @stigmer/protos dist after stub regeneration
+	npm run build -w @stigmer/protos
 
 # ─── Test ─────────────────────────────────────
 
@@ -335,7 +338,7 @@ tidy: ## Run go mod tidy on all Go modules
 # ─── Lint & Check ────────────────────────────
 
 .PHONY: fix lint lint-web typecheck-web verify-web run-web build-web clean-web clean-build-web \
-       lint-desktop typecheck-desktop verify-desktop launch-desktop build-desktop clean-build-desktop release-desktop-local \
+       lint-desktop typecheck-desktop verify-desktop kill-desktop launch-desktop build-desktop clean-build-desktop release-desktop-local \
        build-cli install-cli release-cli-local \
        lint-docs lint-docs-audit format-docs format-docs-check check-links libs-build web-build validate-demos tsdoc-check test-demos \
        test-web test-desktop test-e2e check check-all
@@ -389,12 +392,23 @@ test-web: ## Run web console component tests (Vitest)
 
 # ─── Client Apps: Desktop (Tauri v2 + Vite + React) ──
 
-launch-desktop: ## Start desktop app in dev mode (Tauri + Vite hot-reload)
-	client-apps/desktop/scripts/setup-sidecar-dev.sh
+kill-desktop: ## Kill any running Stigmer desktop dev processes
+	@-pkill -f "runner/dist/main" 2>/dev/null || true
+	@-pkill -f "target/debug/stigmer" 2>/dev/null || true
+	@-pkill -x stigmer 2>/dev/null || true
+	@-pkill -f "cargo-tauri.*dev" 2>/dev/null || true
+	@-lsof -ti :5173 | xargs kill 2>/dev/null || true
+	@-caddy stop 2>/dev/null || true
+	@-pkill -f "grpcwebproxy.*9091" 2>/dev/null || true
+
+launch-desktop: kill-desktop ## Start desktop app in dev mode (Tauri + Vite hot-reload)
+	rm -rf client-apps/desktop/node_modules/.vite
+	npm install -w desktop
+	$(MAKE) build-runner
+	client-apps/desktop/scripts/setup-runner-dev.sh
+	client-apps/desktop/scripts/gen-dev-certs.sh
 	@if command -v caddy >/dev/null 2>&1 && grep -q 'localhost:9090' client-apps/desktop/.env.development 2>/dev/null; then \
-		echo "Starting local dev proxy (:9090 → gRPC-Web :8080 + REST :8081)..."; \
-		-pkill -f "grpcwebproxy.*9091" 2>/dev/null || true; \
-		caddy stop 2>/dev/null || true; \
+		echo "Starting local dev proxy (:9090 HTTP + :9093 HTTPS/H2)..."; \
 		grpcwebproxy --backend_addr=localhost:8080 --run_tls_server=false --allow_all_origins --server_http_debug_port=9091 --server_http_max_read_timeout=120s --server_http_max_write_timeout=120s & \
 		sleep 1; \
 		caddy start --config client-apps/desktop/scripts/Caddyfile.dev; \
@@ -429,7 +443,8 @@ test-desktop: ## Run desktop app component tests (Vitest)
 	npm run test -w desktop
 
 release-desktop-local: ## Debug build + install to /Applications
-	client-apps/desktop/scripts/setup-sidecar-dev.sh
+	$(MAKE) build-runner
+	client-apps/desktop/scripts/setup-runner-dev.sh
 	cd client-apps/desktop && \
 		cp src-tauri/tauri.conf.json src-tauri/tauri.conf.json.bak && \
 		python3 -c "import json; f=open('src-tauri/tauri.conf.json','r+'); c=json.load(f); c.get('bundle',{}).pop('createUpdaterArtifacts',None); f.seek(0); json.dump(c,f,indent=2); f.truncate()" && \
@@ -489,7 +504,7 @@ test-e2e-smoke: ## Run Playwright smoke tests against a deployed instance (set S
 test-e2e-all: ## Run all Playwright E2E tests (smoke + functional)
 	cd test/e2e && npm ci && npx playwright install --with-deps chromium && npx playwright test
 
-check: tidy fix lint lint-docs format-docs-check tsdoc-check gen-sdk-docs gen-sdk-docs-check check-links build test test-web test-desktop validate-demos ## Run full CI gate locally
+check: tidy fix lint lint-docs format-docs-check tsdoc-check gen-sdk-docs gen-sdk-docs-check check-links build test test-web test-desktop validate-demos check-deps ## Run full CI gate locally
 
 check-all: check test-demos ## Full CI gate including Playwright demo e2e (slow)
 
@@ -535,6 +550,10 @@ check-links: ## Check for broken links in documentation
 	@lychee --config .lychee.toml --root-dir . docs/
 
 # ─── Dependencies ─────────────────────────────
+
+.PHONY: check-deps
+check-deps: ## Verify runner LangChain dependency hygiene (no duplicate @langchain/core)
+	@cd $(RUNNER_DIR) && npm run check-deps
 
 
 

@@ -16,14 +16,21 @@ import { Context, CancelledFailure } from "@temporalio/activity";
 export interface HeartbeatHandle {
   stop(): void;
   readonly cancelled: boolean;
+  readonly workerShutdown: boolean;
+}
+
+export interface HeartbeatOptions {
+  shutdownSignal?: AbortSignal;
 }
 
 export function startHeartbeat(
   intervalMs: number,
   getDetails?: () => Record<string, unknown>,
+  options?: HeartbeatOptions,
 ): HeartbeatHandle {
   let stopped = false;
   let wasCancelled = false;
+  let wasWorkerShutdown = false;
 
   const timer = setInterval(() => {
     if (stopped) return;
@@ -31,7 +38,11 @@ export function startHeartbeat(
       Context.current().heartbeat(getDetails?.());
     } catch (err) {
       if (err instanceof CancelledFailure) {
-        wasCancelled = true;
+        if (options?.shutdownSignal?.aborted) {
+          wasWorkerShutdown = true;
+        } else {
+          wasCancelled = true;
+        }
         stopped = true;
         clearInterval(timer);
       }
@@ -45,6 +56,9 @@ export function startHeartbeat(
     },
     get cancelled() {
       return wasCancelled;
+    },
+    get workerShutdown() {
+      return wasWorkerShutdown;
     },
   };
 }

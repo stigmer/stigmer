@@ -420,6 +420,14 @@ export interface TaskExecutionContext {
   readonly callAgent: CallAgentFn;
 
   /**
+   * Promote a large task output to the Artifact store (T07). When the
+   * serialized output exceeds 256KB, the activity calls
+   * ArtifactCommandController.create() and returns an artifact reference.
+   * Returns the original output unchanged if below threshold.
+   */
+  readonly promoteTaskOutput?: PromoteTaskOutputFn;
+
+  /**
    * Emit workflow execution events to the server. Events are sent as
    * a batch via a local activity call to `updateWorkflowExecutionStatus`.
    * Best-effort — failures are logged but do not block the workflow.
@@ -447,6 +455,22 @@ export interface TaskExecutionContext {
    * receives a complete snapshot of task statuses with each update.
    */
   readonly taskStatusAccumulator?: TaskStatusAccumulator;
+
+  /**
+   * Set by try.ts when the current execution is inside a try block
+   * with catch.retry configured. Allows the do-executor to emit
+   * accurate `willRetry` on task_failed events.
+   */
+  readonly retryContext?: RetryContextInfo;
+}
+
+/**
+ * Communicates retry intent from a try/catch block to the do-executor
+ * so task_failed events can report `willRetry` accurately.
+ */
+export interface RetryContextInfo {
+  /** Total attempts allowed (first attempt + retry count). Infinity when only duration-limited. */
+  readonly maxAttempts: number;
 }
 
 /**
@@ -692,10 +716,13 @@ export type WorkflowEventDescriptor =
   | TaskCompletedEvent
   | TaskFailedEvent
   | TaskSkippedEvent
+  | TaskRetryingEvent
   | ApprovalRequestedEvent
   | ApprovalResolvedEvent
   | AgentCallStartedEvent
-  | AgentCallCompletedEvent;
+  | AgentCallProgressEvent
+  | AgentCallCompletedEvent
+  | ArtifactCreatedEvent;
 
 interface EventBase {
   readonly taskName?: string;
@@ -714,6 +741,8 @@ export interface ExecutionCompletedEvent extends EventBase {
   readonly durationMs: number;
   readonly totalCostMicros: number;
   readonly totalTokens: number;
+  readonly totalInputTokens?: number;
+  readonly totalOutputTokens?: number;
 }
 
 export interface ExecutionFailedEvent extends EventBase {
@@ -752,6 +781,13 @@ export interface TaskSkippedEvent extends EventBase {
   readonly reason: string;
 }
 
+export interface TaskRetryingEvent extends EventBase {
+  readonly type: "task_retrying";
+  readonly failedAttempt: number;
+  readonly nextAttempt: number;
+  readonly delayMs: number;
+}
+
 export interface ApprovalRequestedEvent extends EventBase {
   readonly type: "approval_requested";
   readonly prompt: string;
@@ -777,6 +813,17 @@ export interface AgentCallStartedEvent extends EventBase {
   readonly messageSummary: string;
 }
 
+export interface AgentCallProgressEvent extends EventBase {
+  readonly type: "agent_call_progress";
+  readonly childExecutionId: string;
+  readonly agentSlug: string;
+  readonly agentPhase: number;
+  readonly currentToolName: string;
+  readonly tokensConsumed: number;
+  readonly messagesCount: number;
+  readonly toolCallsCount: number;
+}
+
 export interface AgentCallCompletedEvent extends EventBase {
   readonly type: "agent_call_completed";
   readonly childExecutionId: string;
@@ -786,7 +833,59 @@ export interface AgentCallCompletedEvent extends EventBase {
   readonly error: string;
 }
 
+export interface ArtifactCreatedEvent extends EventBase {
+  readonly type: "artifact_created";
+  readonly artifactId: string;
+  readonly displayName: string;
+  readonly contentType: string;
+  readonly sizeBytes: number;
+}
+
 export type EmitEventsFn = (events: WorkflowEventDescriptor[]) => Promise<void>;
+
+// ─────────────────────────────────────────────────────────────────────
+// Error types
+// ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Typed error for agent call failures that preserves the child
+ * AgentExecution ID across the error propagation chain.
+ *
+ * The orchestrator throws this when the CallAgent activity fails,
+ * carrying the child execution ID that was captured via the
+ * `child_execution_started` signal. Downstream consumers
+ * (CallAgentTaskBuilder, do-executor) extract the ID to:
+ *   - Emit `agent_call_completed` events with the correct child ref
+ *   - Set task metadata so the execution inspector can link to it
+ */
+export class AgentCallError extends Error {
+  readonly childExecutionId: string;
+
+  constructor(message: string, childExecutionId: string) {
+    super(message);
+    this.name = "AgentCallError";
+    this.childExecutionId = childExecutionId;
+  }
+}
+
+export interface PromoteTaskOutputResult {
+  output: unknown;
+  artifactIds: string[];
+  artifactCreatedEvents: Array<{
+    type: "artifact_created";
+    artifactId: string;
+    displayName: string;
+    contentType: string;
+    sizeBytes: number;
+    occurredAt: string;
+  }>;
+}
+
+export type PromoteTaskOutputFn = (
+  taskOutput: unknown,
+  workflowExecutionId: string,
+  taskName: string,
+) => Promise<PromoteTaskOutputResult>;
 
 // ─────────────────────────────────────────────────────────────────────
 // WorkflowState (forward declaration — implemented in state.ts)

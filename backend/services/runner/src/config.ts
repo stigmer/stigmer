@@ -34,6 +34,16 @@ export interface Config {
   readonly temporalNamespace: string;
   readonly stigmerBackendEndpoint: string;
   readonly stigmerToken: string | null;
+  /**
+   * Bearer credential for the Cursor SDK's Connect RPC transport.
+   *
+   * - Direct mode: the real Cursor API key (authenticates with Cursor directly).
+   * - Proxy mode: the STIGMER_TOKEN JWT (authenticates with our BiDi proxy,
+   *   which validates it and injects the real Cursor key upstream).
+   *
+   * Named after the CURSOR_API_KEY env var the SDK reads, though in proxy mode
+   * the credential authenticates with the proxy endpoint, not with Cursor.
+   */
   readonly cursorApiKey: string;
   readonly workspaceRootDir: string;
   readonly mode: "local" | "cloud";
@@ -73,8 +83,13 @@ export function loadConfig(): Config {
     ? requireEnv("STIGMER_TOKEN")
     : (process.env.STIGMER_TOKEN ?? null);
 
+  // In proxy mode, pass STIGMER_TOKEN as the SDK's API key. The SDK exchanges
+  // it (via REST proxy → Tomcat → Cursor) for an access token. The HTTP/2
+  // interceptor injects x-stigmer-auth for BiDi proxy authentication while
+  // the SDK's authorization header (Cursor access token) passes through to
+  // api2.cursor.sh unchanged.
   const cursorApiKey = proxyActive
-    ? (process.env.CURSOR_API_KEY ?? "proxy-managed")
+    ? (process.env.CURSOR_API_KEY ?? stigmerToken ?? "proxy-managed")
     : (process.env.CURSOR_API_KEY ?? "");
 
   const workspaceRootDir = resolveWorkspaceRootDir();

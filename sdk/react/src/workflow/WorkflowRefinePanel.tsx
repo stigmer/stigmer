@@ -5,6 +5,7 @@ import { cn } from "@stigmer/theme";
 import { useRefineWorkflowFlow, type RefinePhase } from "./useRefineWorkflowFlow";
 import { MessageThread } from "../execution/MessageThread";
 import { computeUnifiedDiff, type DiffLine } from "./workflow-yaml-diff";
+import { WorkflowDiffGraph } from "./WorkflowDiffGraph";
 
 /** Props for {@link WorkflowRefinePanel}. */
 export interface WorkflowRefinePanelProps {
@@ -16,6 +17,11 @@ export interface WorkflowRefinePanelProps {
   readonly onAccept: (yaml: string) => void;
   /** Called when the panel should close. */
   readonly onClose: () => void;
+  /**
+   * When provided, auto-sends this instruction on mount (e.g. from "Fix with AI").
+   * Consumed once — subsequent renders with the same value are ignored.
+   */
+  readonly initialInstruction?: string;
   /** Additional CSS class names. */
   readonly className?: string;
 }
@@ -47,10 +53,12 @@ export function WorkflowRefinePanel({
   currentYaml,
   onAccept,
   onClose,
+  initialInstruction,
   className,
 }: WorkflowRefinePanelProps) {
   const [instruction, setInstruction] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const didAutoSendRef = useRef(false);
 
   const flow = useRefineWorkflowFlow({
     org,
@@ -59,6 +67,14 @@ export function WorkflowRefinePanel({
       /* Error is displayed inline via flow.error */
     },
   });
+
+  // Auto-send initial instruction (e.g. from "Fix with AI")
+  const { sendInstruction: flowSendInstruction, phase } = flow;
+  if (initialInstruction && !didAutoSendRef.current && phase === "idle") {
+    didAutoSendRef.current = true;
+    // Schedule the send after the current render cycle
+    Promise.resolve().then(() => flowSendInstruction(initialInstruction));
+  }
 
   const composerEnabled = COMPOSER_ENABLED_PHASES.has(flow.phase);
   const hasConversation =
@@ -254,6 +270,7 @@ function ResultStrip({
   readonly onAccept: () => void;
   readonly onDiscard: () => void;
 }) {
+  const [showYamlDiff, setShowYamlDiff] = useState(false);
   const diffLines = computeUnifiedDiff(beforeYaml, extractedYaml);
   const hasChanges = diffLines.some((l) => l.type !== "equal");
 
@@ -274,13 +291,33 @@ function ResultStrip({
         </div>
       )}
 
-      {/* Diff preview */}
+      {/* Visual graph diff */}
       {hasChanges && (
         <div className="mb-3">
-          <h4 className="mb-1 text-[0.65rem] font-medium uppercase tracking-wider text-muted-foreground">
-            Diff
-          </h4>
-          <DiffPreview lines={diffLines} />
+          <div className="h-[200px] overflow-hidden rounded-md border border-border">
+            <WorkflowDiffGraph
+              beforeYaml={beforeYaml}
+              afterYaml={extractedYaml}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Collapsible YAML diff toggle */}
+      {hasChanges && (
+        <div className="mb-3">
+          <button
+            type="button"
+            onClick={() => setShowYamlDiff((v) => !v)}
+            className="text-[0.65rem] font-medium text-muted-foreground hover:text-foreground"
+          >
+            {showYamlDiff ? "▾ Hide YAML diff" : "▸ View YAML diff"}
+          </button>
+          {showYamlDiff && (
+            <div className="mt-1">
+              <DiffPreview lines={diffLines} />
+            </div>
+          )}
         </div>
       )}
 

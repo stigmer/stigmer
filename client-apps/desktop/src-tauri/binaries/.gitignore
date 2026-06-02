@@ -1,5 +1,0 @@
-# Sidecar binaries are platform-specific symlinks or copies.
-# Created by scripts/setup-sidecar-dev.sh for development.
-# Production binaries are injected by CI.
-*
-!.gitignore

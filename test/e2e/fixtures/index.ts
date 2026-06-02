@@ -5,6 +5,7 @@ import {
   createTestAgent,
   createTestWorkflow,
   createTestWaitWorkflow,
+  createMultiKindTestWorkflow,
   type TestAgentResult,
   type TestWorkflowResult,
 } from "./seed-helpers";
@@ -17,6 +18,7 @@ type TestFixtures = {
   testAgent: TestAgentResult;
   testWorkflow: TestWorkflowResult;
   testWaitWorkflow: TestWorkflowResult;
+  testMultiKindWorkflow: TestWorkflowResult;
 };
 
 export const test = base.extend<TestFixtures, WorkerFixtures>({
@@ -46,6 +48,12 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
 
   testWaitWorkflow: async ({ stigmerClient }, use) => {
     const result = await createTestWaitWorkflow(stigmerClient);
+    await use(result);
+    await result.cleanup();
+  },
+
+  testMultiKindWorkflow: async ({ stigmerClient }, use) => {
+    const result = await createMultiKindTestWorkflow(stigmerClient);
     await use(result);
     await result.cleanup();
   },

@@ -74,14 +74,14 @@ curl https://api.anthropic.com/v1/models/claude-opus-4-6 \
 | Claude Opus 4.5   | `claude-opus-4-5`   | `claude-opus-4-5-20251101`    | Active |
 | Claude Opus 4.1   | `claude-opus-4-1`   | `claude-opus-4-1-20250805`    | Active |
 | Claude Sonnet 4.5 | `claude-sonnet-4-5` | `claude-sonnet-4-5-20250929`  | Active |
-| Claude Sonnet 4   | `claude-sonnet-4-0` | `claude-sonnet-4-20250514`    | Active |
 | Claude Opus 4     | `claude-opus-4-0`   | `claude-opus-4-20250514`      | Active |
 
 ## Deprecated Models (retiring soon)
 
-| Friendly Name     | Alias (use this)    | Full ID                       | Status     | Retires      |
-|-------------------|---------------------|-------------------------------|------------|--------------|
-| Claude Haiku 3    | —                   | `claude-3-haiku-20240307`     | Deprecated | Apr 19, 2026 |
+| Friendly Name     | Alias (use this)    | Full ID                       | Status     | Retires       |
+|-------------------|---------------------|-------------------------------|------------|---------------|
+| Claude Sonnet 4   | `claude-sonnet-4-0` | `claude-sonnet-4-20250514`    | Deprecated | Jun 15, 2026  |
+| Claude Haiku 3    | —                   | `claude-3-haiku-20240307`     | Deprecated | Apr 19, 2026  |
 
 ## Retired Models (no longer available)
 

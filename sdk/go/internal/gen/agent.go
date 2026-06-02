@@ -189,6 +189,9 @@ func (i *McpServerUsageInput) toProto() *agentv1.McpServerUsage {
 		p.McpServerRef = ref
 	}
 	p.EnabledTools = i.EnabledTools
+	for _, item := range i.ToolApprovalOverrides {
+		p.ToolApprovalOverrides = append(p.ToolApprovalOverrides, item.toProto())
+	}
 	return p
 }
 
@@ -201,12 +204,18 @@ func (i *ToolApprovalOverrideInput) toProto() *agentv1.ToolApprovalOverride {
 }
 
 func (i *SubAgentInput) toProto() *agentv1.SubAgent {
-	return &agentv1.SubAgent{
-		Name:          i.Name,
-		Description:   i.Description,
-		Instructions:  i.Instructions,
-		ModelOverride: i.ModelOverride,
+	p := &agentv1.SubAgent{}
+	p.Name = i.Name
+	p.Description = i.Description
+	p.Instructions = i.Instructions
+	for _, item := range i.McpAccess {
+		p.McpAccess = append(p.McpAccess, item.toProto())
 	}
+	for _, item := range i.SkillRefs {
+		p.SkillRefs = append(p.SkillRefs, item.toProto())
+	}
+	p.ModelOverride = i.ModelOverride
+	return p
 }
 
 func (i *McpAccessInput) toProto() *agentv1.McpAccess {

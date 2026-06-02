@@ -23,12 +23,13 @@ describe("validateAgentCallOutput", () => {
       expect(validation.errors).toHaveLength(0);
     });
 
-    it("parses final_text as JSON when structured is absent", () => {
+    it("returns invalid when only final_text is present (no fallback parsing)", () => {
       const result: AgentCallResult = {
         final_text: '{"severity": "low", "category": "style"}',
       };
       const validation = validateAgentCallOutput(result, objectSchema);
-      expect(validation.valid).toBe(true);
+      expect(validation.valid).toBe(false);
+      expect(validation.errors[0]).toContain("did not return structured output");
     });
   });
 

@@ -1103,7 +1103,15 @@ type GetCreditLedgerInput struct {
 	// Filter to entries on or after this timestamp.
 	StartTime *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
 	// Filter to entries on or before this timestamp.
-	EndTime       *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
+	EndTime *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
+	// Selects a server-resolved slice of the ledger. When set to
+	// ledger_view_statement, the server returns only customer-facing
+	// money-movement entry types and excludes internal mechanics (per-call
+	// usage debits, reservation holds/releases). Defaults to the full ledger.
+	//
+	// When both view and type_filter are provided, the effective filter is
+	// their intersection — type_filter narrows within the view's set.
+	View          LedgerView `protobuf:"varint,6,opt,name=view,proto3,enum=ai.stigmer.billing.v1.LedgerView" json:"view,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1171,6 +1179,13 @@ func (x *GetCreditLedgerInput) GetEndTime() *timestamppb.Timestamp {
 		return x.EndTime
 	}
 	return nil
+}
+
+func (x *GetCreditLedgerInput) GetView() LedgerView {
+	if x != nil {
+		return x.View
+	}
+	return LedgerView_ledger_view_unspecified
 }
 
 // CreditLedgerResponse is a paginated list of ledger entries.
@@ -1770,7 +1785,7 @@ const file_ai_stigmer_billing_v1_io_proto_rawDesc = "" +
 	"\x16GetBillingAccountInput\x12\x1d\n" +
 	"\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\"6\n" +
 	"\x15GetCreditBalanceInput\x12\x1d\n" +
-	"\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\"\xa6\x02\n" +
+	"\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\"\xdd\x02\n" +
 	"\x14GetCreditLedgerInput\x12\x1d\n" +
 	"\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\x124\n" +
 	"\x04page\x18\x02 \x01(\v2 .ai.stigmer.commons.rpc.PageInfoR\x04page\x12G\n" +
@@ -1778,7 +1793,8 @@ const file_ai_stigmer_billing_v1_io_proto_rawDesc = "" +
 	"typeFilter\x129\n" +
 	"\n" +
 	"start_time\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tstartTime\x125\n" +
-	"\bend_time\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\aendTime\"{\n" +
+	"\bend_time\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\aendTime\x125\n" +
+	"\x04view\x18\x06 \x01(\x0e2!.ai.stigmer.billing.v1.LedgerViewR\x04view\"{\n" +
 	"\x14CreditLedgerResponse\x12B\n" +
 	"\aentries\x18\x01 \x03(\v2(.ai.stigmer.billing.v1.CreditLedgerEntryR\aentries\x12\x1f\n" +
 	"\vtotal_pages\x18\x02 \x01(\x05R\n" +
@@ -1864,7 +1880,8 @@ var file_ai_stigmer_billing_v1_io_proto_goTypes = []any{
 	(*rpc.PageInfo)(nil),                        // 26: ai.stigmer.commons.rpc.PageInfo
 	(LedgerEntryType)(0),                        // 27: ai.stigmer.billing.v1.LedgerEntryType
 	(*timestamppb.Timestamp)(nil),               // 28: google.protobuf.Timestamp
-	(*CreditLedgerEntry)(nil),                   // 29: ai.stigmer.billing.v1.CreditLedgerEntry
+	(LedgerView)(0),                             // 29: ai.stigmer.billing.v1.LedgerView
+	(*CreditLedgerEntry)(nil),                   // 30: ai.stigmer.billing.v1.CreditLedgerEntry
 }
 var file_ai_stigmer_billing_v1_io_proto_depIdxs = []int32{
 	23, // 0: ai.stigmer.billing.v1.RecordLlmCallUsageInput.tokens:type_name -> ai.stigmer.agentic.agentexecution.v1.TokenUsage
@@ -1874,16 +1891,17 @@ var file_ai_stigmer_billing_v1_io_proto_depIdxs = []int32{
 	27, // 4: ai.stigmer.billing.v1.GetCreditLedgerInput.type_filter:type_name -> ai.stigmer.billing.v1.LedgerEntryType
 	28, // 5: ai.stigmer.billing.v1.GetCreditLedgerInput.start_time:type_name -> google.protobuf.Timestamp
 	28, // 6: ai.stigmer.billing.v1.GetCreditLedgerInput.end_time:type_name -> google.protobuf.Timestamp
-	29, // 7: ai.stigmer.billing.v1.CreditLedgerResponse.entries:type_name -> ai.stigmer.billing.v1.CreditLedgerEntry
-	28, // 8: ai.stigmer.billing.v1.GetBillingUsageReportInput.start_time:type_name -> google.protobuf.Timestamp
-	28, // 9: ai.stigmer.billing.v1.GetBillingUsageReportInput.end_time:type_name -> google.protobuf.Timestamp
-	19, // 10: ai.stigmer.billing.v1.BillingUsageReportResponse.model_breakdown:type_name -> ai.stigmer.billing.v1.ModelBillingBreakdown
-	22, // 11: ai.stigmer.billing.v1.CustomerModelPricingResponse.entries:type_name -> ai.stigmer.billing.v1.CustomerModelPricingEntry
-	12, // [12:12] is the sub-list for method output_type
-	12, // [12:12] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	29, // 7: ai.stigmer.billing.v1.GetCreditLedgerInput.view:type_name -> ai.stigmer.billing.v1.LedgerView
+	30, // 8: ai.stigmer.billing.v1.CreditLedgerResponse.entries:type_name -> ai.stigmer.billing.v1.CreditLedgerEntry
+	28, // 9: ai.stigmer.billing.v1.GetBillingUsageReportInput.start_time:type_name -> google.protobuf.Timestamp
+	28, // 10: ai.stigmer.billing.v1.GetBillingUsageReportInput.end_time:type_name -> google.protobuf.Timestamp
+	19, // 11: ai.stigmer.billing.v1.BillingUsageReportResponse.model_breakdown:type_name -> ai.stigmer.billing.v1.ModelBillingBreakdown
+	22, // 12: ai.stigmer.billing.v1.CustomerModelPricingResponse.entries:type_name -> ai.stigmer.billing.v1.CustomerModelPricingEntry
+	13, // [13:13] is the sub-list for method output_type
+	13, // [13:13] is the sub-list for method input_type
+	13, // [13:13] is the sub-list for extension type_name
+	13, // [13:13] is the sub-list for extension extendee
+	0,  // [0:13] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_billing_v1_io_proto_init() }

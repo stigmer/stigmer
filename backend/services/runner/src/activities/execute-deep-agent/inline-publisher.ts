@@ -20,13 +20,13 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ArtifactStorage } from "../../shared/artifact-storage.js";
 import type { WorkspaceBackend } from "../../shared/workspace/types.js";
-import type { StatusBuilder } from "./status-builder.js";
+import type { ExecutionStatusWriter } from "./execution-status-writer.js";
 import { utcTimestamp } from "../../shared/status.js";
 
 export class InlinePublisher {
   private readonly workspaceBackend: WorkspaceBackend;
   private readonly artifactStorage: ArtifactStorage;
-  private readonly statusBuilder: StatusBuilder;
+  private readonly statusWriter: ExecutionStatusWriter;
   private readonly executionId: string;
 
   /** Tracks (sandboxPath -> contentHash) for deduplication. */
@@ -35,12 +35,12 @@ export class InlinePublisher {
   constructor(opts: {
     workspaceBackend: WorkspaceBackend;
     artifactStorage: ArtifactStorage;
-    statusBuilder: StatusBuilder;
+    statusWriter: ExecutionStatusWriter;
     executionId: string;
   }) {
     this.workspaceBackend = opts.workspaceBackend;
     this.artifactStorage = opts.artifactStorage;
-    this.statusBuilder = opts.statusBuilder;
+    this.statusWriter = opts.statusWriter;
     this.executionId = opts.executionId;
   }
 
@@ -82,7 +82,7 @@ export class InlinePublisher {
         contentHash,
       });
 
-      this.statusBuilder.addArtifact(artifact);
+      this.statusWriter.addArtifact(artifact);
       this.published.set(sandboxPath, contentHash);
 
       console.log(

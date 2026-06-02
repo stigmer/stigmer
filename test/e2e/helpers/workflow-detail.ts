@@ -29,13 +29,23 @@ export async function openRunDialog(page: Page): Promise<void> {
 /**
  * Fill fields in the Run dialog. Only fills trigger message for test workflows
  * (which have no required env vars).
+ *
+ * If the trigger message field is hidden (workflow doesn't reference $input),
+ * this will click the "Add trigger input" toggle to reveal it first.
  */
 export async function fillRunDialog(
   page: Page,
   opts?: { triggerMessage?: string },
 ): Promise<void> {
   if (opts?.triggerMessage) {
-    await page.getByLabel("Input Message").fill(opts.triggerMessage);
+    const triggerField = page.getByLabel("Trigger Input");
+    if (!(await triggerField.isVisible())) {
+      await page
+        .getByRole("button", { name: "+ Add trigger input" })
+        .click();
+      await expect(triggerField).toBeVisible();
+    }
+    await triggerField.fill(opts.triggerMessage);
   }
 }
 

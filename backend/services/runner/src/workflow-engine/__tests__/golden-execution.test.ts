@@ -398,7 +398,11 @@ describe("Golden Execution — Tier 1d: Advanced Tasks", () => {
     const [config, _env, metadata] = mockCallAgent.mock.calls[0];
 
     expect(config.agent).toBe("code-reviewer");
-    expect(config.message).toContain("Review the following code changes");
+    expect(config.message).toContain("Review the following code changes from PR #7");
+    expect(config.message).toContain("in repository acme/app");
+    expect(config.message).toContain("--- a/main.ts");
+    expect(config.message).not.toContain("${ $context");
+    expect(config.message).not.toContain("${ $input");
     expect(config.env).toEqual({ GITHUB_TOKEN: "${.secrets.GITHUB_TOKEN}" });
     expect(config.config?.model).toBe("claude-3-5-sonnet");
     expect(config.config?.timeout).toBe(300);
@@ -602,5 +606,480 @@ describe("Golden Execution — Tier 1d: Advanced Tasks", () => {
 
     expect(mockCallFunction).toHaveBeenCalledTimes(2);
     expect(state.data.notifications_sent).toBe(true);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// Structured Output Pipeline Regression Tests
+// ─────────────────────────────────────────────────────────────────────
+
+describe("Golden Execution — Structured Output Pipeline", () => {
+  it("agent_call with output.schema — structured output flows to downstream tasks via $context", async () => {
+    const yaml = [
+      "document:",
+      "  dsl: '1.0.0'",
+      "  name: structured-output-pipeline",
+      "  version: '1.0.0'",
+      "do:",
+      "  - analyze:",
+      "      call: agent",
+      "      with:",
+      '        agent: "analyst"',
+      '        message: "Analyze player data"',
+      "        output:",
+      "          schema:",
+      "            type: object",
+      "            required:",
+      "              - executive_summary",
+      "              - cohorts",
+      "            properties:",
+      "              executive_summary:",
+      "                type: string",
+      "              dau:",
+      "                type: number",
+      "              cohorts:",
+      "                type: array",
+      "                items:",
+      "                  type: object",
+      "                  required:",
+      "                    - name",
+      "                    - size",
+      "                  properties:",
+      "                    name:",
+      "                      type: string",
+      "                    size:",
+      "                      type: number",
+      "          on_invalid: ON_INVALID_FAIL",
+      "      export:",
+      '        as: "${ .structured }"',
+      "  - downstream:",
+      "      set:",
+      "        report_dau: ${ $context.analyze.dau }",
+      "        cohort_count: ${ $context.analyze.cohorts | length }",
+      "        first_cohort: ${ $context.analyze.cohorts[0].name }",
+    ].join("\n");
+
+    const model = loadWorkflowFromYaml(yaml);
+    const state = createState();
+
+    const mockCallAgent = vi.fn(async () => ({
+      structured: {
+        executive_summary: "DAU stable at 7175",
+        dau: 7175,
+        cohorts: [
+          { name: "D1 New Players", size: 10 },
+          { name: "D3 Drop-offs", size: 3589 },
+        ],
+      },
+      agent_execution_id: "aex-pipeline-test",
+    }));
+    const ctx = makeCtx({ callAgent: mockCallAgent });
+
+    await executeDoTasks(model.do, null, state, model, evaluateExpressionBatch, ctx);
+
+    expect(mockCallAgent).toHaveBeenCalledOnce();
+    expect(state.context.analyze.dau).toBe(7175);
+    expect(state.context.analyze.executive_summary).toBe("DAU stable at 7175");
+    expect(state.context.analyze.cohorts).toHaveLength(2);
+    expect(state.data.report_dau).toBe(7175);
+    expect(state.data.cohort_count).toBe(2);
+    expect(state.data.first_cohort).toBe("D1 New Players");
+  });
+
+  it("agent_call with output.schema — ON_INVALID_FAIL rejects missing structured output", async () => {
+    const yaml = [
+      "document:",
+      "  dsl: '1.0.0'",
+      "  name: structured-output-fail",
+      "  version: '1.0.0'",
+      "do:",
+      "  - analyze:",
+      "      call: agent",
+      "      with:",
+      '        agent: "analyst"',
+      '        message: "Analyze data"',
+      "        output:",
+      "          schema:",
+      "            type: object",
+      "            required:",
+      "              - executive_summary",
+      "            properties:",
+      "              executive_summary:",
+      "                type: string",
+      "          on_invalid: ON_INVALID_FAIL",
+      "      export:",
+      '        as: "${ .structured }"',
+    ].join("\n");
+
+    const model = loadWorkflowFromYaml(yaml);
+    const state = createState();
+
+    const mockCallAgent = vi.fn(async () => ({
+      final_text: "Here is the analysis...",
+      agent_execution_id: "aex-no-structured",
+    }));
+    const ctx = makeCtx({ callAgent: mockCallAgent });
+
+    await expect(
+      executeDoTasks(model.do, null, state, model, evaluateExpressionBatch, ctx),
+    ).rejects.toThrow(/Agent output validation failed.*Agent did not return structured output/);
+  });
+
+  // ─────────────────────────────────────────────────────────────────
+  // Regression: Production Callback Result Formats
+  //
+  // In production, the CallAgent activity uses async completion.
+  // The Java/Go backend completes the activity with a callback result.
+  // These tests simulate the exact result formats each backend produces
+  // to verify the workflow engine handles them correctly.
+  // ─────────────────────────────────────────────────────────────────
+
+  it("REGRESSION: Go buildCallbackResult omits structured output due to snake_case key mismatch", async () => {
+    // Go's buildCallbackResult() looks for activityResult["structured_output"]
+    // (snake_case) but the runner's slimStatus() returns "structuredOutput"
+    // (camelCase via proto-JSON). The key is never found, so the callback
+    // result has only agent_execution_id — no "structured" field.
+    //
+    // This is the EXACT format returned by the Go InvokeAgentExecutionWorkflow:
+    //   { agent_execution_id: "aex_xxx" }
+    //
+    // Expected: validation fails because result.structured is undefined.
+    const yaml = [
+      "document:",
+      "  dsl: '1.0.0'",
+      "  name: go-callback-regression",
+      "  version: '1.0.0'",
+      "do:",
+      "  - analyze:",
+      "      call: agent",
+      "      with:",
+      '        agent: "analyst"',
+      '        message: "Analyze data"',
+      "        output:",
+      "          schema:",
+      "            type: object",
+      "            required:",
+      "              - executive_summary",
+      "            properties:",
+      "              executive_summary:",
+      "                type: string",
+      "          on_invalid: ON_INVALID_FAIL",
+      "      export:",
+      '        as: "${ .structured }"',
+    ].join("\n");
+
+    const model = loadWorkflowFromYaml(yaml);
+    const state = createState();
+
+    const mockCallAgent = vi.fn(async () => ({
+      agent_execution_id: "aex-go-regression",
+      // NOTE: no "structured" field — this is what Go's buildCallbackResult
+      // produces because it looks for "structured_output" (snake_case) but
+      // the runner returns "structuredOutput" (camelCase).
+    }));
+    const ctx = makeCtx({ callAgent: mockCallAgent });
+
+    await expect(
+      executeDoTasks(model.do, null, state, model, evaluateExpressionBatch, ctx),
+    ).rejects.toThrow(/Agent output validation failed.*Agent did not return structured output/);
+  });
+
+  it("REGRESSION: Java buildCallbackResultJson includes structured output correctly", async () => {
+    // Java's buildCallbackResultJson() reads structuredOutput from the
+    // proto via finalStatus.hasStructuredOutput() and serializes it as
+    // the "structured" field in the callback JSON.
+    //
+    // When the local Java v3 code handles the workflow, the callback
+    // result is: { agent_execution_id: "aex_xxx", structured: {...} }
+    //
+    // Expected: validation passes, downstream reads structured data.
+    const yaml = [
+      "document:",
+      "  dsl: '1.0.0'",
+      "  name: java-callback-success",
+      "  version: '1.0.0'",
+      "do:",
+      "  - analyze:",
+      "      call: agent",
+      "      with:",
+      '        agent: "analyst"',
+      '        message: "Analyze data"',
+      "        output:",
+      "          schema:",
+      "            type: object",
+      "            required:",
+      "              - executive_summary",
+      "              - dau",
+      "            properties:",
+      "              executive_summary:",
+      "                type: string",
+      "              dau:",
+      "                type: number",
+      "          on_invalid: ON_INVALID_FAIL",
+      "      export:",
+      '        as: "${ .structured }"',
+      "  - downstream:",
+      "      set:",
+      "        report_dau: ${ $context.analyze.dau }",
+      "        summary: ${ $context.analyze.executive_summary }",
+    ].join("\n");
+
+    const model = loadWorkflowFromYaml(yaml);
+    const state = createState();
+
+    const mockCallAgent = vi.fn(async () => ({
+      agent_execution_id: "aex-java-success",
+      structured: {
+        executive_summary: "DAU stable at 7175",
+        dau: 7175,
+      },
+    }));
+    const ctx = makeCtx({ callAgent: mockCallAgent });
+
+    await executeDoTasks(model.do, null, state, model, evaluateExpressionBatch, ctx);
+
+    expect(state.context.analyze.dau).toBe(7175);
+    expect(state.context.analyze.executive_summary).toBe("DAU stable at 7175");
+    expect(state.data.report_dau).toBe(7175);
+    expect(state.data.summary).toBe("DAU stable at 7175");
+  });
+
+  it("REGRESSION: old Java code sends plain string — no structured output", async () => {
+    // Before the v3 fix, Java's executeCursorFlow() completed the async
+    // activity with a plain string like:
+    //   "Agent execution completed - execution_id: aex_xxx, phase: EXECUTION_COMPLETED"
+    //
+    // The TS orchestrator's JSON.parse fails, so activityResult = {}.
+    // At the workflow engine level, callAgent returns {} (empty object).
+    //
+    // Expected: validation fails because result.structured is undefined.
+    const yaml = [
+      "document:",
+      "  dsl: '1.0.0'",
+      "  name: old-java-regression",
+      "  version: '1.0.0'",
+      "do:",
+      "  - analyze:",
+      "      call: agent",
+      "      with:",
+      '        agent: "analyst"',
+      '        message: "Analyze data"',
+      "        output:",
+      "          schema:",
+      "            type: object",
+      "            required:",
+      "              - executive_summary",
+      "            properties:",
+      "              executive_summary:",
+      "                type: string",
+      "          on_invalid: ON_INVALID_FAIL",
+      "      export:",
+      '        as: "${ .structured }"',
+    ].join("\n");
+
+    const model = loadWorkflowFromYaml(yaml);
+    const state = createState();
+
+    const mockCallAgent = vi.fn(async () => ({
+      // Empty object — what the orchestrator produces when JSON.parse
+      // fails on the plain string from old Java code
+    }));
+    const ctx = makeCtx({ callAgent: mockCallAgent });
+
+    await expect(
+      executeDoTasks(model.do, null, state, model, evaluateExpressionBatch, ctx),
+    ).rejects.toThrow(/Agent output validation failed.*Agent did not return structured output/);
+  });
+
+  it("agent_call with output.schema — schema with optional fields validates correctly", async () => {
+    const yaml = [
+      "document:",
+      "  dsl: '1.0.0'",
+      "  name: structured-optional-fields",
+      "  version: '1.0.0'",
+      "do:",
+      "  - analyze:",
+      "      call: agent",
+      "      with:",
+      '        agent: "analyst"',
+      '        message: "Analyze data"',
+      "        output:",
+      "          schema:",
+      "            type: object",
+      "            required:",
+      "              - executive_summary",
+      "              - cohorts",
+      "              - anomalies",
+      "            properties:",
+      "              executive_summary:",
+      "                type: string",
+      "              dau:",
+      "                type: number",
+      "              dau_trend_pct:",
+      "                type: number",
+      "              cohorts:",
+      "                type: array",
+      "                items:",
+      "                  type: object",
+      "                  required:",
+      "                    - name",
+      "                    - size",
+      "                    - action_needed",
+      "                  properties:",
+      "                    name:",
+      "                      type: string",
+      "                    size:",
+      "                      type: number",
+      "                    retention_trend:",
+      "                      type: string",
+      "                    action_needed:",
+      "                      type: boolean",
+      "              anomalies:",
+      "                type: array",
+      "                items:",
+      "                  type: object",
+      "                  properties:",
+      "                    metric:",
+      "                      type: string",
+      "                    description:",
+      "                      type: string",
+      "                    severity:",
+      "                      type: string",
+      "              data_quality_notes:",
+      "                type: string",
+      "          on_invalid: ON_INVALID_FAIL",
+      "      export:",
+      '        as: "${ .structured }"',
+      "  - report:",
+      "      set:",
+      "        summary: ${ $context.analyze.executive_summary }",
+      "        anomaly_count: ${ $context.analyze.anomalies | length }",
+    ].join("\n");
+
+    const model = loadWorkflowFromYaml(yaml);
+    const state = createState();
+
+    const mockCallAgent = vi.fn(async () => ({
+      structured: {
+        executive_summary: "Garden Design Makeover DAU remains stable at 7,175",
+        dau: 7175,
+        dau_trend_pct: 3.4,
+        cohorts: [
+          { name: "D1 New Players", size: 10, retention_trend: "Very low", action_needed: true },
+          { name: "D3 Drop-offs", size: 3589, retention_trend: "Large cohort", action_needed: true },
+        ],
+        anomalies: [
+          { metric: "New User Acquisition", severity: "warning", description: "Only 10 new players" },
+        ],
+        data_quality_notes: "Event data lags 3 days behind current date",
+      },
+      agent_execution_id: "aex-full-schema",
+    }));
+    const ctx = makeCtx({ callAgent: mockCallAgent });
+
+    await executeDoTasks(model.do, null, state, model, evaluateExpressionBatch, ctx);
+
+    expect(state.context.analyze.dau).toBe(7175);
+    expect(state.context.analyze.cohorts).toHaveLength(2);
+    expect(state.context.analyze.anomalies).toHaveLength(1);
+    expect(state.data.summary).toBe("Garden Design Makeover DAU remains stable at 7,175");
+    expect(state.data.anomaly_count).toBe(1);
+  });
+
+  it("#26 agent-call-structured-output-propagation — daily-notification-plan pattern with embedded env expressions", async () => {
+    const model = loadWorkflowFromYaml(loadGolden("26-agent-call-structured-output-propagation.yaml"));
+    const state = createState();
+    state.env = { NOTIFICATION_DATE: "2026-05-26" };
+
+    const mockCallAgent = vi.fn(async () => ({
+      structured: {
+        executive_summary: "Garden Design Makeover DAU stable at 7,185",
+        dau: 7185,
+        dau_trend_pct: 8.7,
+        cohorts: [
+          { name: "D1 New", size: 9, retention_trend: "Critical", action_needed: true },
+          { name: "D7 Lapsed", size: 19000, retention_trend: "Below benchmark", action_needed: true },
+        ],
+        anomalies: [
+          { metric: "Acquisition", severity: "critical", description: "Only 9 installs" },
+        ],
+        data_quality_notes: "Data lags 3 days",
+      },
+      agent_execution_id: "aex-daily-plan-test",
+    }));
+
+    const mockCallFunction = vi.fn(async () => ({
+      structured: { sufficient: true },
+    }));
+
+    const ctx = makeCtx({ callAgent: mockCallAgent, callFunction: mockCallFunction });
+
+    await executeDoTasks(model.do, null, state, model, evaluateExpressionBatch, ctx);
+
+    expect(mockCallAgent).toHaveBeenCalledOnce();
+    const [config, env, metadata] = mockCallAgent.mock.calls[0];
+
+    // Schema must survive expression resolution
+    expect(config.output).toBeDefined();
+    expect(config.output.schema).toBeDefined();
+    expect(config.output.schema.required).toEqual(["executive_summary", "cohorts", "anomalies"]);
+    expect(config.output.schema.properties.cohorts.items.required)
+      .toEqual(["name", "size", "action_needed"]);
+    expect(config.output.schema.properties.anomalies.items.properties.severity.enum)
+      .toEqual(["warning", "critical"]);
+    expect(config.output.on_invalid).toBe("ON_INVALID_FAIL");
+
+    // Embedded expression must be resolved
+    expect(config.message).toContain("Date: 2026-05-26");
+    expect(config.message).not.toContain("${ $env");
+
+    // Config and harness preserved
+    expect(config.config?.model).toBe("claude-sonnet-4");
+    expect(config.config?.timeout).toBe(300);
+    expect(config.harness).toBe("HARNESS_CURSOR");
+    expect(metadata.taskName).toBe("analyze_player_data");
+
+    // Structured output exported to context and consumed downstream
+    expect(state.context.analyze_player_data.dau).toBe(7185);
+    expect(state.context.analyze_player_data.executive_summary).toContain("7,185");
+    expect(state.data.final_dau).toBe(7185);
+    expect(state.data.anomaly_count).toBe(1);
+  });
+
+  it("#27 approval-gate-string-switch — human_input → switch with single-quoted string condition (regression)", async () => {
+    const model = loadWorkflowFromYaml(loadGolden("27-approval-gate-string-switch.yaml"));
+
+    // Test approve path
+    {
+      const state = createState();
+      const mockAwaitHumanInput = vi.fn(async () => ({
+        outcome: "approve",
+        reviewer: "alice@test.com",
+      }));
+      const ctx = makeCtx({ awaitHumanInput: mockAwaitHumanInput });
+
+      await executeDoTasks(model.do, null, state, model, evaluateExpressionBatch, ctx);
+
+      expect(mockAwaitHumanInput).toHaveBeenCalledTimes(1);
+      expect(state.data.plan_ready).toBe(true);
+      expect(state.data.decision).toBe("approved");
+      expect(state.data.approved_by).toBe("alice@test.com");
+    }
+
+    // Test reject path
+    {
+      const state = createState();
+      const mockAwaitHumanInput = vi.fn(async () => ({
+        outcome: "reject",
+        reviewer: "bob@test.com",
+      }));
+      const ctx = makeCtx({ awaitHumanInput: mockAwaitHumanInput });
+
+      await executeDoTasks(model.do, null, state, model, evaluateExpressionBatch, ctx);
+
+      expect(mockAwaitHumanInput).toHaveBeenCalledTimes(1);
+      expect(state.data.plan_ready).toBe(true);
+      expect(state.data.decision).toBe("rejected");
+    }
   });
 });

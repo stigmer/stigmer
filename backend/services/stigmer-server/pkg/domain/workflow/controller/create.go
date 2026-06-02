@@ -63,10 +63,13 @@ func (c *WorkflowController) buildCreatePipeline() *pipeline.Pipeline[*workflowv
 		AddStep(steps.NewBuildNewStateStep[*workflowv1.Workflow]()).                                      // 5. Build new state
 		AddStep(steps.NewNormalizeReferencesStep[*workflowv1.Workflow]()).                                // 6. Normalize cross-references
 		AddStep(newPopulateServerlessValidationStep()).                                                   // 7. Populate serverless validation in workflow status
-		AddStep(steps.NewPersistStep[*workflowv1.Workflow](c.store)).                                     // 8. Persist workflow
-		AddStep(newCreateDefaultInstanceStep(c.workflowInstanceClient)).                                  // 9. Create default instance
-		AddStep(newUpdateWorkflowStatusWithDefaultInstanceStep(c.store)).                                 // 10. Update status
-		AddStep(steps.NewIndexSearchStep[*workflowv1.Workflow](c.store, &extractor.WorkflowExtractor{})). // 11. Update search index
+		AddStep(newComputeVersionHashStep()).                                                             // 8. Compute SHA-256 of CNCF YAML
+		AddStep(newPopulateVersionHashStep(true)).                                                        // 9. Set status.version_hash + metadata.version chain
+		AddStep(newSaveVersionAuditStep(c.store, true)).                                                  // 10. Archive version (reverts hash on failure)
+		AddStep(steps.NewPersistStep[*workflowv1.Workflow](c.store)).                                     // 11. Persist workflow
+		AddStep(newCreateDefaultInstanceStep(c.workflowInstanceClient)).                                  // 12. Create default instance
+		AddStep(newUpdateWorkflowStatusWithDefaultInstanceStep(c.store)).                                 // 13. Update status
+		AddStep(steps.NewIndexSearchStep[*workflowv1.Workflow](c.store, &extractor.WorkflowExtractor{})). // 14. Update search index
 		Build()
 }
 

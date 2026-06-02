@@ -415,6 +415,42 @@ private static final long serialVersionUID = 0L;
     return costByWorkflow_.get(index);
   }
 
+  public static final int TOTAL_COUNT_FIELD_NUMBER = 7;
+  private int totalCount_ = 0;
+  /**
+   * <pre>
+   * Total number of executions in the time window (sum of all phase_counts values).
+   *
+   * &#64;since T12 (Overview Page Redesign)
+   * </pre>
+   *
+   * <code>int32 total_count = 7 [json_name = "totalCount"];</code>
+   * @return The totalCount.
+   */
+  @java.lang.Override
+  public int getTotalCount() {
+    return totalCount_;
+  }
+
+  public static final int SUCCESS_RATE_FIELD_NUMBER = 8;
+  private double successRate_ = 0D;
+  /**
+   * <pre>
+   * Success rate as a ratio (0.0 to 1.0).
+   * Computed as completed / (completed + failed). Returns -1.0 when no
+   * completed or failed executions exist in the time window.
+   *
+   * &#64;since T12 (Overview Page Redesign)
+   * </pre>
+   *
+   * <code>double success_rate = 8 [json_name = "successRate"];</code>
+   * @return The successRate.
+   */
+  @java.lang.Override
+  public double getSuccessRate() {
+    return successRate_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -449,6 +485,12 @@ private static final long serialVersionUID = 0L;
     }
     for (int i = 0; i < costByWorkflow_.size(); i++) {
       output.writeMessage(6, costByWorkflow_.get(i));
+    }
+    if (totalCount_ != 0) {
+      output.writeInt32(7, totalCount_);
+    }
+    if (java.lang.Double.doubleToRawLongBits(successRate_) != 0) {
+      output.writeDouble(8, successRate_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -499,6 +541,14 @@ private static final long serialVersionUID = 0L;
           }
           size += 1 * count;
         }
+    if (totalCount_ != 0) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeInt32Size(7, totalCount_);
+    }
+    if (java.lang.Double.doubleToRawLongBits(successRate_) != 0) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeDoubleSize(8, successRate_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -532,6 +582,11 @@ private static final long serialVersionUID = 0L;
         .equals(other.getTopFailingWorkflowsList())) return false;
     if (!getCostByWorkflowList()
         .equals(other.getCostByWorkflowList())) return false;
+    if (getTotalCount()
+        != other.getTotalCount()) return false;
+    if (java.lang.Double.doubleToLongBits(getSuccessRate())
+        != java.lang.Double.doubleToLongBits(
+            other.getSuccessRate())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -565,6 +620,11 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + COST_BY_WORKFLOW_FIELD_NUMBER;
       hash = (53 * hash) + getCostByWorkflowList().hashCode();
     }
+    hash = (37 * hash) + TOTAL_COUNT_FIELD_NUMBER;
+    hash = (53 * hash) + getTotalCount();
+    hash = (37 * hash) + SUCCESS_RATE_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+        java.lang.Double.doubleToLongBits(getSuccessRate()));
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -761,6 +821,8 @@ private static final long serialVersionUID = 0L;
         costByWorkflowBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000020);
+      totalCount_ = 0;
+      successRate_ = 0D;
       return this;
     }
 
@@ -835,6 +897,12 @@ private static final long serialVersionUID = 0L;
             ? avgDuration_
             : avgDurationBuilder_.build();
         to_bitField0_ |= 0x00000002;
+      }
+      if (((from_bitField0_ & 0x00000040) != 0)) {
+        result.totalCount_ = totalCount_;
+      }
+      if (((from_bitField0_ & 0x00000080) != 0)) {
+        result.successRate_ = successRate_;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -914,6 +982,12 @@ private static final long serialVersionUID = 0L;
             costByWorkflowBuilder_.addAllMessages(other.costByWorkflow_);
           }
         }
+      }
+      if (other.getTotalCount() != 0) {
+        setTotalCount(other.getTotalCount());
+      }
+      if (java.lang.Double.doubleToRawLongBits(other.getSuccessRate()) != 0) {
+        setSuccessRate(other.getSuccessRate());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -995,6 +1069,16 @@ private static final long serialVersionUID = 0L;
               }
               break;
             } // case 50
+            case 56: {
+              totalCount_ = input.readInt32();
+              bitField0_ |= 0x00000040;
+              break;
+            } // case 56
+            case 65: {
+              successRate_ = input.readDouble();
+              bitField0_ |= 0x00000080;
+              break;
+            } // case 65
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2256,6 +2340,112 @@ private static final long serialVersionUID = 0L;
         costByWorkflow_ = null;
       }
       return costByWorkflowBuilder_;
+    }
+
+    private int totalCount_ ;
+    /**
+     * <pre>
+     * Total number of executions in the time window (sum of all phase_counts values).
+     *
+     * &#64;since T12 (Overview Page Redesign)
+     * </pre>
+     *
+     * <code>int32 total_count = 7 [json_name = "totalCount"];</code>
+     * @return The totalCount.
+     */
+    @java.lang.Override
+    public int getTotalCount() {
+      return totalCount_;
+    }
+    /**
+     * <pre>
+     * Total number of executions in the time window (sum of all phase_counts values).
+     *
+     * &#64;since T12 (Overview Page Redesign)
+     * </pre>
+     *
+     * <code>int32 total_count = 7 [json_name = "totalCount"];</code>
+     * @param value The totalCount to set.
+     * @return This builder for chaining.
+     */
+    public Builder setTotalCount(int value) {
+
+      totalCount_ = value;
+      bitField0_ |= 0x00000040;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Total number of executions in the time window (sum of all phase_counts values).
+     *
+     * &#64;since T12 (Overview Page Redesign)
+     * </pre>
+     *
+     * <code>int32 total_count = 7 [json_name = "totalCount"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearTotalCount() {
+      bitField0_ = (bitField0_ & ~0x00000040);
+      totalCount_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private double successRate_ ;
+    /**
+     * <pre>
+     * Success rate as a ratio (0.0 to 1.0).
+     * Computed as completed / (completed + failed). Returns -1.0 when no
+     * completed or failed executions exist in the time window.
+     *
+     * &#64;since T12 (Overview Page Redesign)
+     * </pre>
+     *
+     * <code>double success_rate = 8 [json_name = "successRate"];</code>
+     * @return The successRate.
+     */
+    @java.lang.Override
+    public double getSuccessRate() {
+      return successRate_;
+    }
+    /**
+     * <pre>
+     * Success rate as a ratio (0.0 to 1.0).
+     * Computed as completed / (completed + failed). Returns -1.0 when no
+     * completed or failed executions exist in the time window.
+     *
+     * &#64;since T12 (Overview Page Redesign)
+     * </pre>
+     *
+     * <code>double success_rate = 8 [json_name = "successRate"];</code>
+     * @param value The successRate to set.
+     * @return This builder for chaining.
+     */
+    public Builder setSuccessRate(double value) {
+
+      successRate_ = value;
+      bitField0_ |= 0x00000080;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Success rate as a ratio (0.0 to 1.0).
+     * Computed as completed / (completed + failed). Returns -1.0 when no
+     * completed or failed executions exist in the time window.
+     *
+     * &#64;since T12 (Overview Page Redesign)
+     * </pre>
+     *
+     * <code>double success_rate = 8 [json_name = "successRate"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearSuccessRate() {
+      bitField0_ = (bitField0_ & ~0x00000080);
+      successRate_ = 0D;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.workflowexecution.v1.ExecutionSummary)

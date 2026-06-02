@@ -9,22 +9,18 @@ import "buf/validate/validate.proto";
 // Every resource belongs to an organization and has a visibility setting.
 message ApiResourceMetadata {
   // Human-readable name of the resource.
-  // Max 63 characters. Validation is skipped when the field is empty (e.g.,
-  // server-generated responses or partial messages).
-  string name = 1 [
-    (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE,
-    (buf.validate.field).string.max_len = 63
-  ];
+  // Validation is skipped when the field is empty (e.g., server-generated
+  // responses or partial messages).
+  string name = 1 [(buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
 
   // URL-friendly identifier, unique within the organization.
   // Combined with org, forms the canonical reference: "org/slug".
-  // Format: 2-63 lowercase alphanumeric characters and hyphens; must start
-  // with a letter and end with a letter or digit. When empty, the server
-  // derives the slug from the name.
+  // Format: lowercase alphanumeric characters and hyphens (min 2 chars);
+  // must start with a letter and end with a letter or digit. When empty,
+  // the server derives the slug from the name.
   string slug = 2 [
     (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE,
     (buf.validate.field).string.min_len = 2,
-    (buf.validate.field).string.max_len = 63,
     (buf.validate.field).string.pattern = "^[a-z][a-z0-9-]*[a-z0-9]$"
   ];
 
@@ -57,13 +53,29 @@ message ApiResourceMetadata {
 }
 
 // ApiResourceMetadataVersion contains version tracking information.
+//
+// For versioned resources (is_versioned: true), this is populated by the
+// backend on every spec-changing create/update:
+// - id: content hash of the new version (SHA-256)
+// - message: user-provided description of what changed
+// - previous_version_id: hash of the prior version
+// - tag: optional version tag assigned at apply time
 message ApiResourceMetadataVersion {
   // Unique identifier for this version.
+  // For versioned resources: SHA-256 content hash.
   string id = 1;
 
   // Message describing what changed in this version.
+  // Analogous to a git commit message.
   string message = 2;
 
   // Reference to the previous version ID.
   string previous_version_id = 3;
+
+  // Optional tag to assign to this version at creation time.
+  // Only applicable to versioned resources (Skills, Workflows).
+  // Examples: "stable", "v1.0", "production"
+  //
+  // @since Workflow Versioning
+  string tag = 4;
 }

@@ -10,6 +10,7 @@ go_library(
         "get.go",
         "loader.go",
         "validator.go",
+        "versions.go",
     ],
     importpath = "github.com/stigmer/stigmer/client-apps/cli/internal/cli/workflow",
     visibility = ["//client-apps/cli:__subpackages__"],

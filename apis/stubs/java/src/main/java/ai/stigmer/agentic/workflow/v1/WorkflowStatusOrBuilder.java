@@ -110,4 +110,56 @@ public interface WorkflowStatusOrBuilder extends
    * <code>.ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation serverless_workflow_validation = 2 [json_name = "serverlessWorkflowValidation"];</code>
    */
   ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidationOrBuilder getServerlessWorkflowValidationOrBuilder();
+
+  /**
+   * <pre>
+   * SHA-256 hash of the generated CNCF YAML for the current valid version.
+   *
+   * &#64;internal
+   * Updated only when validation produces state=VALID and the generated YAML
+   * differs from the previous version's hash. Empty for workflows that have
+   * never passed validation.
+   *
+   * This is the content-addressed version identifier for the workflow definition.
+   * The hash is computed from the `serverless_workflow_validation.yaml` string,
+   * ensuring that "same YAML = same hash = same execution behavior."
+   *
+   * Consumers:
+   * - Execution create pipeline reads this to pin executions to a specific version
+   * - getByReference resolves ApiResourceReference.version against this and audit entries
+   * - UI displays this as the current version identifier
+   *
+   * &#64;since Workflow Versioning
+   * </pre>
+   *
+   * <code>string version_hash = 3 [json_name = "versionHash"];</code>
+   * @return The versionHash.
+   */
+  java.lang.String getVersionHash();
+  /**
+   * <pre>
+   * SHA-256 hash of the generated CNCF YAML for the current valid version.
+   *
+   * &#64;internal
+   * Updated only when validation produces state=VALID and the generated YAML
+   * differs from the previous version's hash. Empty for workflows that have
+   * never passed validation.
+   *
+   * This is the content-addressed version identifier for the workflow definition.
+   * The hash is computed from the `serverless_workflow_validation.yaml` string,
+   * ensuring that "same YAML = same hash = same execution behavior."
+   *
+   * Consumers:
+   * - Execution create pipeline reads this to pin executions to a specific version
+   * - getByReference resolves ApiResourceReference.version against this and audit entries
+   * - UI displays this as the current version identifier
+   *
+   * &#64;since Workflow Versioning
+   * </pre>
+   *
+   * <code>string version_hash = 3 [json_name = "versionHash"];</code>
+   * @return The bytes for versionHash.
+   */
+  com.google.protobuf.ByteString
+      getVersionHashBytes();
 }

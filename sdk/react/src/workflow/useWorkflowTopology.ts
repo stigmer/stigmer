@@ -40,12 +40,7 @@ export interface UseWorkflowTopologyReturn {
   readonly edges: readonly TopologyEdge[];
 }
 
-const AI_KINDS = new Set(["agent_call", "llm_call", "eval"]);
-const CONTROL_FLOW_KINDS = new Set(["switch_case", "for_each", "fork", "try_catch"]);
-const INVOCATION_KINDS = new Set(["http_call", "grpc_call", "activity_call", "run_workflow"]);
-const DATA_KINDS = new Set(["set_vars", "transform"]);
-const GOVERNANCE_KINDS = new Set(["human_input", "validate"]);
-const EVENT_KINDS = new Set(["listen", "wait", "emit_event", "notification", "raise_error"]);
+import { categorizeKind } from "./kind-metadata";
 
 const NODE_WIDTH = 180;
 const NODE_HEIGHT = 40;
@@ -218,12 +213,3 @@ function computeTopology(yaml: string): UseWorkflowTopologyReturn {
   return { nodes, edges };
 }
 
-function categorizeKind(kind: string): TopologyNodeCategory {
-  if (AI_KINDS.has(kind)) return "ai";
-  if (CONTROL_FLOW_KINDS.has(kind)) return "control_flow";
-  if (INVOCATION_KINDS.has(kind)) return "invocation";
-  if (DATA_KINDS.has(kind)) return "data";
-  if (GOVERNANCE_KINDS.has(kind)) return "governance";
-  if (EVENT_KINDS.has(kind)) return "event";
-  return "unspecified";
-}

@@ -82,6 +82,24 @@ message ListWorkflowExecutionsRequest {
   // Limits results to executions that have ALL specified tags.
   // Tag format: "key:value" or "key" (for boolean tags).
   repeated string tags = 4;
+
+  // Structured filter criteria for advanced filtering.
+  //
+  // When set, applies AND-conjunction with the existing `phase` and `tags` fields.
+  // If both `phase` and `filter.phases` are set, `filter.phases` takes precedence.
+  //
+  // @since T13 (Execution History)
+  ExecutionFilterCriteria filter = 5;
+
+  // Sort field. When unspecified, defaults to started_at descending.
+  //
+  // @since T13 (Execution History)
+  ExecutionSortField sort_field = 6;
+
+  // When true, sorts in ascending order. Default (false) is descending.
+  //
+  // @since T13 (Execution History)
+  bool sort_ascending = 7;
 }
 
 // ListWorkflowExecutionsByWorkflowRequest lists executions for a specific workflow.
@@ -104,6 +122,21 @@ message ListWorkflowExecutionsByWorkflowRequest {
 
   // Opaque pagination token from a previous response.
   string page_token = 3;
+
+  // Structured filter criteria for advanced filtering.
+  //
+  // @since T13 (Execution History)
+  ExecutionFilterCriteria filter = 4;
+
+  // Sort field. When unspecified, defaults to started_at descending.
+  //
+  // @since T13 (Execution History)
+  ExecutionSortField sort_field = 5;
+
+  // When true, sorts in ascending order. Default (false) is descending.
+  //
+  // @since T13 (Execution History)
+  bool sort_ascending = 6;
 }
 
 // Input for the updateStatus RPC.
@@ -141,6 +174,22 @@ message WorkflowExecutionUpdateStatusInput {
   //
   // @since T06 (Execution Event Stream Model)
   repeated WorkflowExecutionEvent events = 10;
+
+  // When true, status.pending_approvals will be merged into the existing
+  // execution (replacing the stored list). When false (default), existing
+  // pending_approvals are preserved unchanged.
+  //
+  // @internal
+  // This prevents a race condition where concurrent event emissions
+  // (which don't include pending_approvals) inadvertently clear active
+  // approval gates set by call-agent-status.
+  //
+  // Only call-agent-status.ts sets this to true — both when populating
+  // approvals from a child_approval_required signal and when clearing them
+  // after the child agent completes.
+  //
+  // @since Agent Call Live Experience
+  bool update_pending_approvals = 11;
 }
 
 // Input for the submitApproval RPC.
@@ -299,10 +348,17 @@ message TerminateWorkflowExecutionInput {
 
 // RecoverWorkflowExecutionInput requests recovery of a failed workflow execution.
 //
+// Recovery preserves completed work: tasks that succeeded in the failed run are
+// skipped (their outputs restored into workflow context), and execution resumes
+// from the first incomplete or failed task.
+//
 // @internal
-// Resumes execution from the last successful checkpoint, preserving all completed work.
-// Uses the workflow engine's reset functionality to continue without re-executing
-// successful steps.
+// Terminates the existing Temporal orchestrator and child workflows, recreates
+// the ExecutionContext with freshly resolved environment variables, and starts a
+// new orchestrator with recoveryMode enabled. The workflow engine reads completed
+// task outputs from the persisted event log, skips those tasks (emitting
+// task_skipped events), and begins execution at the first non-completed task.
+// Event sequence numbers continue from the high-water mark of the previous run.
 //
 // Preconditions:
 // - Execution must be in EXECUTION_FAILED phase
@@ -518,6 +574,76 @@ message SubscribeEventsRequest {
 }
 
 // ---------------------------------------------------------------------------
+// Execution list filter and sort types
+// ---------------------------------------------------------------------------
+
+// ExecutionFilterCriteria defines structured filter conditions for listing
+// workflow executions. All specified conditions are combined with AND logic.
+//
+// @since T13 (Execution History)
+message ExecutionFilterCriteria {
+  // Filter by execution phases. Empty means all phases.
+  //
+  // Supersedes the top-level `phase` field on ListWorkflowExecutionsRequest
+  // when both are set.
+  repeated ExecutionPhase phases = 1;
+
+  // Include only executions started at or after this timestamp.
+  google.protobuf.Timestamp started_after = 2;
+
+  // Include only executions started at or before this timestamp.
+  google.protobuf.Timestamp started_before = 3;
+
+  // Minimum execution duration (completed executions only).
+  //
+  // Executions still in progress or without timestamps are excluded
+  // when this filter is set.
+  google.protobuf.Duration min_duration = 4;
+
+  // Maximum execution duration (completed executions only).
+  google.protobuf.Duration max_duration = 5;
+
+  // Minimum cost in micro-USD.
+  int64 min_cost_micros = 6;
+
+  // Maximum cost in micro-USD.
+  int64 max_cost_micros = 7;
+
+  // Filter to executions containing a failed task with this exact name.
+  //
+  // Matches against any task in status.tasks where
+  // task.status == WORKFLOW_TASK_FAILED AND task.task_name == this value.
+  string failed_task_name = 8;
+
+  // When true, include only executions that contain at least one retried task.
+  //
+  // A task is considered retried when its metadata contains a retry_count > 0.
+  bool has_retries = 9;
+}
+
+// ExecutionSortField defines the column to sort execution lists by.
+//
+// @since T13 (Execution History)
+enum ExecutionSortField {
+  // Default: sort by started_at descending.
+  EXECUTION_SORT_FIELD_UNSPECIFIED = 0;
+
+  // Sort by execution start time.
+  EXECUTION_SORT_FIELD_STARTED_AT = 1;
+
+  // Sort by execution duration (completed_at - started_at).
+  //
+  // Executions without both timestamps sort last.
+  EXECUTION_SORT_FIELD_DURATION = 2;
+
+  // Sort by total cost (status.total_cost_micros).
+  EXECUTION_SORT_FIELD_COST = 3;
+
+  // Sort by execution phase enum value.
+  EXECUTION_SORT_FIELD_STATUS = 4;
+}
+
+// ---------------------------------------------------------------------------
 // Dashboard aggregation messages
 // ---------------------------------------------------------------------------
 
@@ -532,7 +658,8 @@ enum SummaryTimeWindow {
   SUMMARY_TIME_WINDOW_ALL_TIME = 4;
 }
 
-// GetExecutionSummaryRequest fetches aggregated execution statistics for an organization.
+// GetExecutionSummaryRequest fetches aggregated execution statistics for an organization,
+// optionally scoped to a single workflow.
 //
 // @since T14 (Dashboard Integration)
 message GetExecutionSummaryRequest {
@@ -543,6 +670,12 @@ message GetExecutionSummaryRequest {
   //
   // Defaults to LAST_7D when unspecified.
   SummaryTimeWindow time_window = 2;
+
+  // When set, scopes the summary to executions of this workflow only.
+  // When empty, aggregates across all workflows in the organization.
+  //
+  // @since T12 (Overview Page Redesign)
+  string workflow_id = 3;
 }
 
 // ExecutionSummary contains aggregated statistics for workflow executions.
@@ -577,6 +710,18 @@ message ExecutionSummary {
   //
   // Capped at 10 entries.
   repeated WorkflowCostBreakdown cost_by_workflow = 6;
+
+  // Total number of executions in the time window (sum of all phase_counts values).
+  //
+  // @since T12 (Overview Page Redesign)
+  int32 total_count = 7;
+
+  // Success rate as a ratio (0.0 to 1.0).
+  // Computed as completed / (completed + failed). Returns -1.0 when no
+  // completed or failed executions exist in the time window.
+  //
+  // @since T12 (Overview Page Redesign)
+  double success_rate = 8;
 }
 
 // WorkflowCostSummary aggregates token and dollar costs.

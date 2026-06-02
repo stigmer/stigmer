@@ -51,17 +51,18 @@ export async function hydrateWorkflowExecution(
 ): Promise<ExecuteServerlessWorkflowInput> {
   const { execution_id, workflow_instance_id, workflow_id, org_id } = input;
 
-  // 1. Fetch WorkflowExecution for trigger_message
+  // 1. Fetch WorkflowExecution for trigger_message and version hash
   const workflowExecution = await fetchWorkflowExecution(client, execution_id);
   const triggerMessage = workflowExecution.spec?.triggerMessage ?? "";
+  const versionHash = workflowExecution.status?.workflowVersionHash;
 
   // 2. Resolve workflow ID — prefer direct workflow_id, fall back to instance lookup
   const resolvedWorkflowId = await resolveWorkflowId(
     client, workflow_id, workflow_instance_id,
   );
 
-  // 3. Fetch Workflow and extract pre-validated YAML
-  const yaml = await fetchAndValidateWorkflowYaml(client, resolvedWorkflowId);
+  // 3. Fetch workflow YAML — use pinned version if available, otherwise live workflow
+  const yaml = await fetchWorkflowYaml(client, resolvedWorkflowId, versionHash);
 
   // 4. Parse YAML into WorkflowModel
   const model = parseWorkflowYaml(yaml, resolvedWorkflowId);
@@ -140,7 +141,48 @@ async function resolveWorkflowId(
   }
 }
 
-async function fetchAndValidateWorkflowYaml(
+/**
+ * Fetches the CNCF YAML for a workflow, using version pinning when available.
+ *
+ * Resolution strategy:
+ * 1. If versionHash is provided, fetch the specific version entry's YAML
+ * 2. If version fetch fails or versionHash is absent, fall back to live workflow
+ *
+ * This ensures backward compatibility with pre-versioning executions while
+ * providing correctness for versioned executions.
+ */
+async function fetchWorkflowYaml(
+  client: StigmerClient,
+  workflowId: string,
+  versionHash: string | undefined,
+): Promise<string> {
+  // Path 1: Versioned execution — fetch YAML from the pinned version entry
+  if (versionHash) {
+    try {
+      const versionEntry = await client.getWorkflowVersion(workflowId, versionHash);
+      if (versionEntry?.validatedYaml) {
+        console.log(
+          `[hydrate] Resolved workflow YAML from pinned version: hash=${versionHash.slice(0, 12)}...`,
+        );
+        return versionEntry.validatedYaml;
+      }
+    } catch (err: unknown) {
+      // Version entry not found — fall through to live workflow fetch.
+      // This handles the edge case of data migration (execution created after
+      // versioning enabled, but audit entry not yet backfilled).
+      console.warn(
+        `[hydrate] Failed to fetch workflow version ${versionHash.slice(0, 12)}... ` +
+        `— falling back to live workflow fetch`,
+        err,
+      );
+    }
+  }
+
+  // Path 2: Legacy execution or version fetch failed — use live workflow
+  return fetchAndValidateWorkflowYamlLive(client, workflowId);
+}
+
+async function fetchAndValidateWorkflowYamlLive(
   client: StigmerClient,
   workflowId: string,
 ): Promise<string> {

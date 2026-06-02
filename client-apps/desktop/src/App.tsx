@@ -33,7 +33,12 @@ function useServerDeploymentMode(client: Stigmer): DeploymentMode {
     let cancelled = false;
     client.platform.getServerInfo().then(
       (info) => { if (!cancelled) setMode(info.deploymentMode); },
-      () => { /* keep URL-based fallback for older servers */ },
+      (err) => {
+        console.warn(
+          "[stigmer] getServerInfo failed, using URL-based fallback:",
+          err instanceof Error ? err.message : err,
+        );
+      },
     );
     return () => { cancelled = true; };
   }, [client]);

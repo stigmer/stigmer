@@ -45,7 +45,7 @@ directory (default: current directory).`,
   stigmer draft mcp-server -m "Create a Slack MCP server" --output ./mcp-servers/
 
   # Use a specific model
-  stigmer draft mcp-server -m "Create an MCP server for X" --model claude-sonnet-4-20250514
+  stigmer draft mcp-server -m "Create an MCP server for X" --model claude-sonnet-4-6
 
   # Run with a workspace (agent can inspect your code)
   stigmer draft mcp-server --workspace . -m "Create an MCP server based on this project"

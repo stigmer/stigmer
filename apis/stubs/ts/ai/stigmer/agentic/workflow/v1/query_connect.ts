@@ -7,6 +7,7 @@ import { WorkflowId } from "./io_pbjs";
 import { Workflow } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { ApiResourceReference } from "../../../commons/apiresource/io_pbjs";
+import { GetWorkflowVersionInput, ListWorkflowVersionsInput, ListWorkflowVersionsResponse, WorkflowVersionEntry } from "./version_pbjs";
 
 /**
  * WorkflowQueryController handles read operations for workflows.
@@ -28,8 +29,12 @@ export const WorkflowQueryController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Get a workflow by its organization-scoped reference (org/slug).
-     * Resolves a human-readable reference like "stigmer/deploy" to the full Workflow resource.
+     * Get a workflow by its organization-scoped reference (org/slug) with version support.
+     *
+     * Version resolution (via ApiResourceReference.version field):
+     * - Empty/"latest" → Returns the current version
+     * - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
+     * - SHA256 hash (64 hex chars) → Returns the exact immutable version
      *
      * @internal
      * Custom authorization in handler — checks both direct resource access
@@ -41,6 +46,46 @@ export const WorkflowQueryController = {
       name: "getByReference",
       I: ApiResourceReference,
       O: Workflow,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * List version history for a workflow.
+     *
+     * Returns all historical versions ordered by applied_at (newest first).
+     * Each entry includes the version hash, applied timestamp, actor, tag,
+     * git provenance, and the validated CNCF YAML for historical access.
+     *
+     * @internal
+     * Authorization is handled in the handler after resolving the workflow.
+     * (Input uses org+slug, not workflow ID, so proto-level auth cannot work)
+     *
+     * @since Workflow Versioning
+     *
+     * @generated from rpc ai.stigmer.agentic.workflow.v1.WorkflowQueryController.listVersions
+     */
+    listVersions: {
+      name: "listVersions",
+      I: ListWorkflowVersionsInput,
+      O: ListWorkflowVersionsResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Get a specific historical version of a workflow by its content hash.
+     *
+     * Used by the runner (to hydrate execution from a pinned version) and
+     * the execution viewer (to render the graph for historical executions).
+     *
+     * @internal
+     * Authorization uses can_view on the workflow resource.
+     *
+     * @since Workflow Versioning
+     *
+     * @generated from rpc ai.stigmer.agentic.workflow.v1.WorkflowQueryController.getVersion
+     */
+    getVersion: {
+      name: "getVersion",
+      I: GetWorkflowVersionInput,
+      O: WorkflowVersionEntry,
       kind: MethodKind.Unary,
     },
   }

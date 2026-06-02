@@ -8,6 +8,13 @@ package ai.stigmer.commons.apiresource;
 /**
  * <pre>
  * ApiResourceMetadataVersion contains version tracking information.
+ *
+ * For versioned resources (is_versioned: true), this is populated by the
+ * backend on every spec-changing create/update:
+ * - id: content hash of the new version (SHA-256)
+ * - message: user-provided description of what changed
+ * - previous_version_id: hash of the prior version
+ * - tag: optional version tag assigned at apply time
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.commons.apiresource.ApiResourceMetadataVersion}
@@ -35,6 +42,7 @@ private static final long serialVersionUID = 0L;
     id_ = "";
     message_ = "";
     previousVersionId_ = "";
+    tag_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -61,6 +69,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Unique identifier for this version.
+   * For versioned resources: SHA-256 content hash.
    * </pre>
    *
    * <code>string id = 1 [json_name = "id"];</code>
@@ -82,6 +91,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Unique identifier for this version.
+   * For versioned resources: SHA-256 content hash.
    * </pre>
    *
    * <code>string id = 1 [json_name = "id"];</code>
@@ -108,6 +118,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Message describing what changed in this version.
+   * Analogous to a git commit message.
    * </pre>
    *
    * <code>string message = 2 [json_name = "message"];</code>
@@ -129,6 +140,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Message describing what changed in this version.
+   * Analogous to a git commit message.
    * </pre>
    *
    * <code>string message = 2 [json_name = "message"];</code>
@@ -196,6 +208,61 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int TAG_FIELD_NUMBER = 4;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object tag_ = "";
+  /**
+   * <pre>
+   * Optional tag to assign to this version at creation time.
+   * Only applicable to versioned resources (Skills, Workflows).
+   * Examples: "stable", "v1.0", "production"
+   *
+   * &#64;since Workflow Versioning
+   * </pre>
+   *
+   * <code>string tag = 4 [json_name = "tag"];</code>
+   * @return The tag.
+   */
+  @java.lang.Override
+  public java.lang.String getTag() {
+    java.lang.Object ref = tag_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      tag_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Optional tag to assign to this version at creation time.
+   * Only applicable to versioned resources (Skills, Workflows).
+   * Examples: "stable", "v1.0", "production"
+   *
+   * &#64;since Workflow Versioning
+   * </pre>
+   *
+   * <code>string tag = 4 [json_name = "tag"];</code>
+   * @return The bytes for tag.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getTagBytes() {
+    java.lang.Object ref = tag_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      tag_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -219,6 +286,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(previousVersionId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 3, previousVersionId_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(tag_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 4, tag_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -236,6 +306,9 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(previousVersionId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(3, previousVersionId_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(tag_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(4, tag_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -258,6 +331,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getMessage())) return false;
     if (!getPreviousVersionId()
         .equals(other.getPreviousVersionId())) return false;
+    if (!getTag()
+        .equals(other.getTag())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -275,6 +350,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getMessage().hashCode();
     hash = (37 * hash) + PREVIOUS_VERSION_ID_FIELD_NUMBER;
     hash = (53 * hash) + getPreviousVersionId().hashCode();
+    hash = (37 * hash) + TAG_FIELD_NUMBER;
+    hash = (53 * hash) + getTag().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -375,6 +452,13 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ApiResourceMetadataVersion contains version tracking information.
+   *
+   * For versioned resources (is_versioned: true), this is populated by the
+   * backend on every spec-changing create/update:
+   * - id: content hash of the new version (SHA-256)
+   * - message: user-provided description of what changed
+   * - previous_version_id: hash of the prior version
+   * - tag: optional version tag assigned at apply time
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.commons.apiresource.ApiResourceMetadataVersion}
@@ -413,6 +497,7 @@ private static final long serialVersionUID = 0L;
       id_ = "";
       message_ = "";
       previousVersionId_ = "";
+      tag_ = "";
       return this;
     }
 
@@ -455,6 +540,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000004) != 0)) {
         result.previousVersionId_ = previousVersionId_;
       }
+      if (((from_bitField0_ & 0x00000008) != 0)) {
+        result.tag_ = tag_;
+      }
     }
 
     @java.lang.Override
@@ -482,6 +570,11 @@ private static final long serialVersionUID = 0L;
       if (!other.getPreviousVersionId().isEmpty()) {
         previousVersionId_ = other.previousVersionId_;
         bitField0_ |= 0x00000004;
+        onChanged();
+      }
+      if (!other.getTag().isEmpty()) {
+        tag_ = other.tag_;
+        bitField0_ |= 0x00000008;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -525,6 +618,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000004;
               break;
             } // case 26
+            case 34: {
+              tag_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000008;
+              break;
+            } // case 34
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -546,6 +644,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Unique identifier for this version.
+     * For versioned resources: SHA-256 content hash.
      * </pre>
      *
      * <code>string id = 1 [json_name = "id"];</code>
@@ -566,6 +665,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Unique identifier for this version.
+     * For versioned resources: SHA-256 content hash.
      * </pre>
      *
      * <code>string id = 1 [json_name = "id"];</code>
@@ -587,6 +687,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Unique identifier for this version.
+     * For versioned resources: SHA-256 content hash.
      * </pre>
      *
      * <code>string id = 1 [json_name = "id"];</code>
@@ -604,6 +705,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Unique identifier for this version.
+     * For versioned resources: SHA-256 content hash.
      * </pre>
      *
      * <code>string id = 1 [json_name = "id"];</code>
@@ -618,6 +720,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Unique identifier for this version.
+     * For versioned resources: SHA-256 content hash.
      * </pre>
      *
      * <code>string id = 1 [json_name = "id"];</code>
@@ -638,6 +741,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Message describing what changed in this version.
+     * Analogous to a git commit message.
      * </pre>
      *
      * <code>string message = 2 [json_name = "message"];</code>
@@ -658,6 +762,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Message describing what changed in this version.
+     * Analogous to a git commit message.
      * </pre>
      *
      * <code>string message = 2 [json_name = "message"];</code>
@@ -679,6 +784,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Message describing what changed in this version.
+     * Analogous to a git commit message.
      * </pre>
      *
      * <code>string message = 2 [json_name = "message"];</code>
@@ -696,6 +802,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Message describing what changed in this version.
+     * Analogous to a git commit message.
      * </pre>
      *
      * <code>string message = 2 [json_name = "message"];</code>
@@ -710,6 +817,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Message describing what changed in this version.
+     * Analogous to a git commit message.
      * </pre>
      *
      * <code>string message = 2 [json_name = "message"];</code>
@@ -814,6 +922,118 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       previousVersionId_ = value;
       bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object tag_ = "";
+    /**
+     * <pre>
+     * Optional tag to assign to this version at creation time.
+     * Only applicable to versioned resources (Skills, Workflows).
+     * Examples: "stable", "v1.0", "production"
+     *
+     * &#64;since Workflow Versioning
+     * </pre>
+     *
+     * <code>string tag = 4 [json_name = "tag"];</code>
+     * @return The tag.
+     */
+    public java.lang.String getTag() {
+      java.lang.Object ref = tag_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        tag_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Optional tag to assign to this version at creation time.
+     * Only applicable to versioned resources (Skills, Workflows).
+     * Examples: "stable", "v1.0", "production"
+     *
+     * &#64;since Workflow Versioning
+     * </pre>
+     *
+     * <code>string tag = 4 [json_name = "tag"];</code>
+     * @return The bytes for tag.
+     */
+    public com.google.protobuf.ByteString
+        getTagBytes() {
+      java.lang.Object ref = tag_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        tag_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Optional tag to assign to this version at creation time.
+     * Only applicable to versioned resources (Skills, Workflows).
+     * Examples: "stable", "v1.0", "production"
+     *
+     * &#64;since Workflow Versioning
+     * </pre>
+     *
+     * <code>string tag = 4 [json_name = "tag"];</code>
+     * @param value The tag to set.
+     * @return This builder for chaining.
+     */
+    public Builder setTag(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      tag_ = value;
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Optional tag to assign to this version at creation time.
+     * Only applicable to versioned resources (Skills, Workflows).
+     * Examples: "stable", "v1.0", "production"
+     *
+     * &#64;since Workflow Versioning
+     * </pre>
+     *
+     * <code>string tag = 4 [json_name = "tag"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearTag() {
+      tag_ = getDefaultInstance().getTag();
+      bitField0_ = (bitField0_ & ~0x00000008);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Optional tag to assign to this version at creation time.
+     * Only applicable to versioned resources (Skills, Workflows).
+     * Examples: "stable", "v1.0", "production"
+     *
+     * &#64;since Workflow Versioning
+     * </pre>
+     *
+     * <code>string tag = 4 [json_name = "tag"];</code>
+     * @param value The bytes for tag to set.
+     * @return This builder for chaining.
+     */
+    public Builder setTagBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      tag_ = value;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }

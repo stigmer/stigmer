@@ -11,14 +11,20 @@ import type { WorkflowInput } from "@stigmer/sdk";
 import { useWorkflow } from "./useWorkflow";
 import { useUpdateWorkflow } from "./useUpdateWorkflow";
 import { workflowToInput } from "./internal/workflowToInput";
-import { useWorkflowInstances } from "./useWorkflowInstances";
 import { useWorkflowExecutionList } from "./useWorkflowExecutionList";
-import { WorkflowTopologyPreview } from "./WorkflowTopologyPreview";
-import { WorkflowExecutionPhaseBadge } from "./WorkflowExecutionPhaseBadge";
+import { useWorkflowDashboardSummary } from "./useWorkflowDashboardSummary";
+import { WorkflowOverviewGraph } from "./WorkflowOverviewGraph";
+import { WorkflowGraphFullscreenDialog } from "./WorkflowGraphFullscreenDialog";
+import { WorkflowOverviewSummary } from "./WorkflowOverviewSummary";
+import { WorkflowExplainDialog } from "./WorkflowExplainDialog";
+import { serializeWorkflowYaml } from "./serialize-workflow-yaml";
+import { WorkflowExecutionHistory } from "./execution-history/WorkflowExecutionHistory";
+import { WorkflowInstanceList } from "./instance/WorkflowInstanceList";
+import { WorkflowVersionsTab } from "./WorkflowVersionsTab";
+import { useWorkflowVersions } from "./useWorkflowVersions";
 import { ErrorMessage } from "../error/ErrorMessage";
 import { VisibilityToggle } from "../library/VisibilityToggle";
-import { InstanceVisibilitySelector } from "../library/InstanceVisibilitySelector";
-import { useUpdateVisibility } from "../library/useUpdateVisibility";
+import { formatDurationSec } from "./format-utils";
 import { PermissionGate } from "../iam-policy/PermissionGate";
 import { ResourceDetailShell } from "../resource-detail/ResourceDetailShell";
 import { Section } from "../resource-detail/Section";
@@ -32,6 +38,7 @@ import type { TabItem } from "../tabs/Tabs";
 const OVERVIEW_TAB: TabItem = { id: "overview", label: "Overview" };
 const INSTANCES_TAB: TabItem = { id: "instances", label: "Instances" };
 const EXECUTIONS_TAB: TabItem = { id: "executions", label: "Executions" };
+const VERSIONS_TAB: TabItem = { id: "versions", label: "Versions" };
 
 const DESCRIPTION_COLLAPSED_HEIGHT = "8rem";
 
@@ -78,6 +85,28 @@ export interface WorkflowDetailViewProps {
    */
   readonly onExecutionClick?: (executionId: string) => void;
   /**
+   * Called when the user clicks "Create Instance" in the Instances tab.
+   * Opens the create instance dialog.
+   */
+  readonly onCreateInstanceClick?: () => void;
+  /**
+   * Called when the user clicks an instance row in the Instances tab.
+   */
+  readonly onInstanceClick?: (instance: WorkflowInstance) => void;
+  /**
+   * Called when the user clicks "Run" on a specific instance.
+   */
+  readonly onInstanceRunClick?: (instance: WorkflowInstance) => void;
+  /**
+   * Called when the user clicks "Delete" on a specific instance.
+   */
+  readonly onInstanceDeleteClick?: (instance: WorkflowInstance) => void;
+  /**
+   * Increment this value to trigger a refetch of the instance list.
+   * Useful after externally creating or deleting an instance.
+   */
+  readonly instancesRefreshKey?: number;
+  /**
    * When `true`, description and environment variables become click-to-edit.
    * Each field saves independently via `stigmer.workflow.update()`.
    * @default false
@@ -87,6 +116,21 @@ export interface WorkflowDetailViewProps {
    * Called after a successful inline field save with the updated workflow.
    */
   readonly onResourceUpdated?: (workflow: Workflow) => void;
+  /**
+   * Called when the user clicks "Open in editor" from the overview graph
+   * node popover. Receives the task name. Wire this to switch to the
+   * editor tab and optionally select the node.
+   *
+   * @since T12 (Overview Page Redesign)
+   */
+  readonly onOpenInEditor?: (taskName: string) => void;
+  /**
+   * Called when the user clicks "View latest run" in the overview quick
+   * actions. Receives the execution ID of the most recent execution.
+   *
+   * @since T12 (Overview Page Redesign)
+   */
+  readonly onViewLatestRun?: (executionId: string) => void;
   /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
@@ -123,12 +167,23 @@ export function WorkflowDetailView({
   onTabChange,
   defaultTab,
   onExecutionClick,
+  onCreateInstanceClick,
+  onInstanceClick,
+  onInstanceRunClick,
+  onInstanceDeleteClick,
+  instancesRefreshKey,
   editable = false,
   onResourceUpdated,
+  onOpenInEditor,
+  onViewLatestRun,
   className,
 }: WorkflowDetailViewProps) {
   const { workflow, isLoading, error, refetch } = useWorkflow(org, slug);
   const { update, isUpdating } = useUpdateWorkflow();
+  const { versions } = useWorkflowVersions(
+    isLoading ? null : org,
+    isLoading ? null : slug,
+  );
 
   const saveField = useCallback(
     async <K extends keyof WorkflowInput>(
@@ -150,9 +205,18 @@ export function WorkflowDetailView({
     [workflow, update, onResourceUpdated, refetch],
   );
 
+  const versionCount = versions.length;
   const builtInTabs = useMemo<readonly TabItem[]>(
-    () => [OVERVIEW_TAB, INSTANCES_TAB, EXECUTIONS_TAB],
-    [],
+    () => [
+      OVERVIEW_TAB,
+      INSTANCES_TAB,
+      EXECUTIONS_TAB,
+      {
+        ...VERSIONS_TAB,
+        ...(versionCount > 0 && { badge: versionCount }),
+      },
+    ],
+    [versionCount],
   );
 
   const {
@@ -231,16 +295,39 @@ export function WorkflowDetailView({
   if (activeAdditionalTab) {
     tabContent = activeAdditionalTab.content;
   } else if (effectiveActiveTab === "instances") {
-    tabContent = <InstancesTab workflowId={meta?.id} />;
+    tabContent = (
+      <WorkflowInstanceList
+        workflowId={meta?.id ?? ""}
+        defaultInstanceId={workflow?.status?.defaultInstanceId}
+        org={org}
+        onCreateClick={onCreateInstanceClick}
+        onInstanceClick={onInstanceClick}
+        onRunClick={onInstanceRunClick}
+        onDeleteClick={onInstanceDeleteClick}
+        refreshKey={instancesRefreshKey}
+      />
+    );
   } else if (effectiveActiveTab === "executions") {
-    tabContent = <ExecutionsTab workflowId={meta?.id} onExecutionClick={onExecutionClick} />;
+    tabContent = (
+      <WorkflowExecutionHistory
+        org={org}
+        workflowId={meta?.id}
+        onExecutionClick={onExecutionClick}
+      />
+    );
+  } else if (effectiveActiveTab === "versions") {
+    tabContent = <WorkflowVersionsTab workflow={workflow} />;
   } else {
     tabContent = (
       <OverviewTab
         workflow={workflow}
+        org={org}
         editable={editable}
         isSaving={isUpdating}
         saveField={saveField}
+        onOpenInEditor={onOpenInEditor}
+        onViewLatestRun={onViewLatestRun}
+        onExecutionClick={onExecutionClick}
       />
     );
   }
@@ -269,17 +356,25 @@ export function WorkflowDetailView({
 
 function OverviewTab({
   workflow,
+  org,
   editable,
   isSaving,
   saveField,
+  onOpenInEditor,
+  onViewLatestRun,
+  onExecutionClick,
 }: {
   readonly workflow: Workflow;
+  readonly org: string;
   readonly editable?: boolean;
   readonly isSaving?: boolean;
   readonly saveField?: <K extends keyof WorkflowInput>(
     field: K,
     value: WorkflowInput[K],
   ) => Promise<boolean>;
+  readonly onOpenInEditor?: (taskName: string) => void;
+  readonly onViewLatestRun?: (executionId: string) => void;
+  readonly onExecutionClick?: (executionId: string) => void;
 }) {
   const spec = workflow.spec;
   const doc = spec?.document;
@@ -290,6 +385,28 @@ function OverviewTab({
   const showEnv = editable || envEntries.length > 0;
 
   const [envEditing, setEnvEditing] = useState(false);
+  const [showExplain, setShowExplain] = useState(false);
+  const [graphExpanded, setGraphExpanded] = useState(false);
+
+  const workflowYaml = useMemo(() => {
+    try {
+      return serializeWorkflowYaml(workflow);
+    } catch {
+      return "";
+    }
+  }, [workflow]);
+
+  const workflowId = workflow.metadata?.id;
+  const { summary, isLoading: summaryLoading } = useWorkflowDashboardSummary({
+    org,
+    workflowId: workflowId || undefined,
+  });
+
+  const { executions } = useWorkflowExecutionList({
+    workflowId,
+    pageSize: 1,
+  });
+  const latestExecId = executions[0]?.metadata?.id;
 
   const handleEnvSave = useCallback(
     async (rows: KeyValueRow[]) => {
@@ -324,6 +441,81 @@ function OverviewTab({
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Summary stat cards */}
+      <WorkflowOverviewSummary
+        summary={summary}
+        isLoading={summaryLoading}
+      />
+
+      {/* Interactive workflow graph */}
+      {(spec?.tasks?.length ?? 0) > 0 && (
+        <>
+          <Section
+            title="Task Flow"
+            count={spec?.tasks?.length}
+            headerActions={
+              <ExpandButton onClick={() => setGraphExpanded(true)} />
+            }
+          >
+            <div className="h-[28rem]">
+              <WorkflowOverviewGraph
+                workflow={workflow}
+                onOpenInEditor={onOpenInEditor}
+                className="h-full w-full rounded-sm bg-[var(--stgm-muted-subtle,#fafafa)]"
+              />
+            </div>
+          </Section>
+          <WorkflowGraphFullscreenDialog
+            workflow={workflow}
+            open={graphExpanded}
+            onClose={() => setGraphExpanded(false)}
+            onOpenInEditor={onOpenInEditor}
+          />
+        </>
+      )}
+
+      {/* Quick action links */}
+      <div className="flex flex-wrap items-center gap-3">
+        {onOpenInEditor && (
+          <QuickActionButton
+            label="Edit workflow"
+            onClick={() => onOpenInEditor("")}
+            icon={<EditIcon />}
+          />
+        )}
+        {latestExecId && onViewLatestRun && (
+          <QuickActionButton
+            label="View latest run"
+            onClick={() => onViewLatestRun(latestExecId)}
+            icon={<PlayIcon />}
+          />
+        )}
+        {latestExecId && !onViewLatestRun && onExecutionClick && (
+          <QuickActionButton
+            label="View latest run"
+            onClick={() => onExecutionClick(latestExecId)}
+            icon={<PlayIcon />}
+          />
+        )}
+        {workflowYaml && (
+          <QuickActionButton
+            label="What does this workflow do?"
+            onClick={() => setShowExplain(true)}
+            icon={<ExplainQuestionIcon />}
+          />
+        )}
+      </div>
+
+      {/* Explain dialog */}
+      {workflowYaml && (
+        <WorkflowExplainDialog
+          open={showExplain}
+          onOpenChange={setShowExplain}
+          org={org}
+          currentYaml={workflowYaml}
+        />
+      )}
+
       {showDescription && (
         <Section title="Description">
           {editable ? (
@@ -360,7 +552,7 @@ function OverviewTab({
             {budget.maxDurationSeconds > 0 && (
               <MetadataRow
                 label="Max Duration"
-                value={formatDuration(budget.maxDurationSeconds)}
+                value={formatDurationSec(budget.maxDurationSeconds)}
               />
             )}
           </div>
@@ -409,10 +601,6 @@ function OverviewTab({
         </Section>
       )}
 
-      <Section title="Task Flow" count={spec?.tasks?.length}>
-        <WorkflowTopologyPreview tasks={spec?.tasks ?? []} />
-      </Section>
-
       {doc && (
         <Section title="Document">
           <div className="flex flex-wrap gap-x-6 gap-y-1 px-4 py-2.5 text-xs text-muted-foreground">
@@ -423,6 +611,93 @@ function OverviewTab({
         </Section>
       )}
     </div>
+  );
+}
+
+function QuickActionButton({
+  label,
+  onClick,
+  icon,
+}: {
+  readonly label: string;
+  readonly onClick: () => void;
+  readonly icon: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
+        "border border-[var(--stgm-border,#d4d4d8)] bg-[var(--stgm-background,#fff)]",
+        "text-[var(--stgm-foreground,#1a1a2e)]",
+        "hover:bg-[var(--stgm-accent,#f5f5f5)]",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--stgm-ring,#6366f1)]",
+        "transition-colors",
+      )}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
+
+function EditIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M11.5 1.5l3 3L5 14H2v-3L11.5 1.5z" />
+    </svg>
+  );
+}
+
+function PlayIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polygon points="5,3 13,8 5,13" />
+    </svg>
+  );
+}
+
+function ExplainQuestionIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="8" cy="8" r="6.5" />
+      <path d="M6.5 6a1.5 1.5 0 1 1 1.5 1.5V9" />
+      <circle cx="8" cy="11.5" r="0.5" fill="currentColor" />
+    </svg>
+  );
+}
+
+function ExpandButton({ onClick }: { readonly onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label="Expand task flow"
+      className={cn(
+        "inline-flex size-6 items-center justify-center rounded-md text-muted-foreground",
+        "hover:bg-accent-hover hover:text-foreground",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "transition-colors",
+      )}
+    >
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 16 16"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <polyline points="10,2 14,2 14,6" />
+        <polyline points="6,14 2,14 2,10" />
+        <line x1="14" y1="2" x2="9.5" y2="6.5" />
+        <line x1="2" y1="14" x2="6.5" y2="9.5" />
+      </svg>
+    </button>
   );
 }
 
@@ -461,185 +736,6 @@ function DescriptionContent({ text }: { readonly text: string }) {
           {expanded ? "Show less" : "Show more"}
         </button>
       )}
-    </div>
-  );
-}
-
-function InstancesTab({ workflowId }: { readonly workflowId?: string }) {
-  const { instances, isLoading, error } = useWorkflowInstances(workflowId);
-
-  if (isLoading) {
-    return <TabLoadingSkeleton />;
-  }
-
-  if (error) {
-    return (
-      <div className="py-8 text-center text-sm text-destructive">
-        Failed to load instances
-      </div>
-    );
-  }
-
-  if (instances.length === 0) {
-    return (
-      <div className="py-8 text-center text-sm text-muted-foreground">
-        No instances found. A default instance is created automatically with each workflow.
-      </div>
-    );
-  }
-
-  return (
-    <div className="overflow-hidden rounded-lg border border-border">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-border bg-muted/50">
-            <th className="px-4 py-2 text-left font-medium text-muted-foreground">Name</th>
-            <th className="px-4 py-2 text-left font-medium text-muted-foreground">Visibility</th>
-            <th className="px-4 py-2 text-left font-medium text-muted-foreground">ID</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border">
-          {instances.map((inst) => (
-            <InstanceRow key={inst.metadata?.id} instance={inst} />
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-const VISIBILITY_LABELS: Record<number, string> = {
-  [ApiResourceVisibility.visibility_private]: "Private",
-  [ApiResourceVisibility.visibility_org]: "Organization",
-  [ApiResourceVisibility.visibility_public]: "Public",
-};
-
-function InstanceRow({ instance }: { readonly instance: WorkflowInstance }) {
-  const meta = instance.metadata;
-  const id = meta?.id ?? "";
-  const { updateVisibility, isPending } = useUpdateVisibility("workflowInstance", id || null);
-
-  return (
-    <tr className="hover:bg-muted/30 transition-colors">
-      <td className="px-4 py-2.5 font-medium text-foreground">
-        {meta?.name || meta?.slug || "—"}
-      </td>
-      <td className="px-4 py-2.5">
-        {id ? (
-          <PermissionGate
-            resource={{ kind: "workflow_instance", id }}
-            relation="can_edit"
-            fallback={
-              <span className="text-xs text-muted-foreground">
-                {VISIBILITY_LABELS[meta?.visibility ?? 0] ?? "Private"}
-              </span>
-            }
-          >
-            <InstanceVisibilitySelector
-              visibility={meta?.visibility ?? ApiResourceVisibility.visibility_private}
-              onVisibilityChange={updateVisibility}
-              isPending={isPending}
-            />
-          </PermissionGate>
-        ) : (
-          <span className="text-xs text-muted-foreground">—</span>
-        )}
-      </td>
-      <td className="px-4 py-2.5">
-        <code className="text-xs text-muted-foreground">
-          {id || "—"}
-        </code>
-      </td>
-    </tr>
-  );
-}
-
-function ExecutionsTab({
-  workflowId,
-  onExecutionClick,
-}: {
-  readonly workflowId?: string;
-  readonly onExecutionClick?: (executionId: string) => void;
-}) {
-  const { executions, isLoading, error } = useWorkflowExecutionList({
-    workflowId,
-    pageSize: 10,
-  });
-
-  if (isLoading) {
-    return <TabLoadingSkeleton />;
-  }
-
-  if (error) {
-    return (
-      <div className="py-8 text-center text-sm text-destructive">
-        Failed to load executions
-      </div>
-    );
-  }
-
-  if (executions.length === 0) {
-    return (
-      <div className="py-8 text-center text-sm text-muted-foreground">
-        No executions yet
-      </div>
-    );
-  }
-
-  return (
-    <div className="overflow-hidden rounded-lg border border-border">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-border bg-muted/50">
-            <th className="px-4 py-2 text-left font-medium text-muted-foreground">Name</th>
-            <th className="px-4 py-2 text-left font-medium text-muted-foreground">Phase</th>
-            <th className="px-4 py-2 text-left font-medium text-muted-foreground">Started</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border">
-          {executions.map((exec) => {
-            const execId = exec.metadata?.id;
-            const startedAt = exec.status?.audit?.specAudit?.createdAt;
-            const clickable = !!onExecutionClick && !!execId;
-            return (
-              <tr
-                key={execId}
-                onClick={clickable ? () => onExecutionClick(execId!) : undefined}
-                role={clickable ? "link" : undefined}
-                tabIndex={clickable ? 0 : undefined}
-                onKeyDown={
-                  clickable
-                    ? (e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          onExecutionClick(execId!);
-                        }
-                      }
-                    : undefined
-                }
-                className={cn(
-                  "transition-colors hover:bg-muted/30",
-                  clickable && "cursor-pointer",
-                )}
-              >
-                <td className="px-4 py-2.5 font-medium text-foreground">
-                  {exec.metadata?.name || exec.metadata?.slug || "—"}
-                </td>
-                <td className="px-4 py-2.5">
-                  {exec.status?.phase != null ? (
-                    <WorkflowExecutionPhaseBadge phase={exec.status.phase} />
-                  ) : (
-                    <span className="text-xs text-muted-foreground">—</span>
-                  )}
-                </td>
-                <td className="px-4 py-2.5 text-xs text-muted-foreground">
-                  {startedAt ? timestampDate(startedAt).toLocaleString() : "—"}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
     </div>
   );
 }
@@ -708,13 +804,6 @@ function hasBudget(budget: {
   );
 }
 
-function formatDuration(seconds: number): string {
-  if (seconds < 60) return `${seconds}s`;
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
-  const hours = Math.floor(seconds / 3600);
-  const mins = Math.floor((seconds % 3600) / 60);
-  return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
-}
 
 // ---------------------------------------------------------------------------
 // Loading & empty states

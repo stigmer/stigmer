@@ -9,7 +9,7 @@
 #   - agent_call: full pipeline through Java + Python agent-runner (~$0.01/test)
 #   - session-routing Tier 3: full E2E via Cursor SDK
 #
-# Cost: under $0.10 per full run with claude-sonnet-4-20250514.
+# Cost: under $0.10 per full run with claude-sonnet-4-6.
 #
 # Secrets: ANTHROPIC_API_KEY and CURSOR_API_KEY from "provider-integration".
 # =============================================================================

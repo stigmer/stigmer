@@ -4,6 +4,7 @@ import grpc
 
 from ai.stigmer.agentic.workflow.v1 import api_pb2 as ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_api__pb2
 from ai.stigmer.agentic.workflow.v1 import io_pb2 as ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_io__pb2
+from ai.stigmer.agentic.workflow.v1 import version_pb2 as ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_version__pb2
 from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2
 
 
@@ -27,6 +28,16 @@ class WorkflowQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_api__pb2.Workflow.FromString,
                 _registered_method=True)
+        self.listVersions = channel.unary_unary(
+                '/ai.stigmer.agentic.workflow.v1.WorkflowQueryController/listVersions',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_version__pb2.ListWorkflowVersionsInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_version__pb2.ListWorkflowVersionsResponse.FromString,
+                _registered_method=True)
+        self.getVersion = channel.unary_unary(
+                '/ai.stigmer.agentic.workflow.v1.WorkflowQueryController/getVersion',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_version__pb2.GetWorkflowVersionInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_version__pb2.WorkflowVersionEntry.FromString,
+                _registered_method=True)
 
 
 class WorkflowQueryControllerServicer(object):
@@ -41,12 +52,48 @@ class WorkflowQueryControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def getByReference(self, request, context):
-        """Get a workflow by its organization-scoped reference (org/slug).
-        Resolves a human-readable reference like "stigmer/deploy" to the full Workflow resource.
+        """Get a workflow by its organization-scoped reference (org/slug) with version support.
+
+        Version resolution (via ApiResourceReference.version field):
+        - Empty/"latest" → Returns the current version
+        - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
+        - SHA256 hash (64 hex chars) → Returns the exact immutable version
 
         @internal
         Custom authorization in handler — checks both direct resource access
         and organization-level visibility permissions.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def listVersions(self, request, context):
+        """List version history for a workflow.
+
+        Returns all historical versions ordered by applied_at (newest first).
+        Each entry includes the version hash, applied timestamp, actor, tag,
+        git provenance, and the validated CNCF YAML for historical access.
+
+        @internal
+        Authorization is handled in the handler after resolving the workflow.
+        (Input uses org+slug, not workflow ID, so proto-level auth cannot work)
+
+        @since Workflow Versioning
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def getVersion(self, request, context):
+        """Get a specific historical version of a workflow by its content hash.
+
+        Used by the runner (to hydrate execution from a pinned version) and
+        the execution viewer (to render the graph for historical executions).
+
+        @internal
+        Authorization uses can_view on the workflow resource.
+
+        @since Workflow Versioning
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -64,6 +111,16 @@ def add_WorkflowQueryControllerServicer_to_server(servicer, server):
                     servicer.getByReference,
                     request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_api__pb2.Workflow.SerializeToString,
+            ),
+            'listVersions': grpc.unary_unary_rpc_method_handler(
+                    servicer.listVersions,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_version__pb2.ListWorkflowVersionsInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_version__pb2.ListWorkflowVersionsResponse.SerializeToString,
+            ),
+            'getVersion': grpc.unary_unary_rpc_method_handler(
+                    servicer.getVersion,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_version__pb2.GetWorkflowVersionInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_version__pb2.WorkflowVersionEntry.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -121,6 +178,60 @@ class WorkflowQueryController(object):
             '/ai.stigmer.agentic.workflow.v1.WorkflowQueryController/getByReference',
             ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_api__pb2.Workflow.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def listVersions(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.workflow.v1.WorkflowQueryController/listVersions',
+            ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_version__pb2.ListWorkflowVersionsInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_version__pb2.ListWorkflowVersionsResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def getVersion(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.workflow.v1.WorkflowQueryController/getVersion',
+            ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_version__pb2.GetWorkflowVersionInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_version__pb2.WorkflowVersionEntry.FromString,
             options,
             channel_credentials,
             insecure,

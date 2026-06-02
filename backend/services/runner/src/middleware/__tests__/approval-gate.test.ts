@@ -87,6 +87,8 @@ describe("ApprovalGateMiddleware", () => {
 
     expect(mockedInterrupt).toHaveBeenCalledWith({
       tool_call_id: "call_abc123",
+      tool_name: "dangerous_tool",
+      mcp_server_slug: "my-server",
       message: "Execute dangerous tool: prod",
     });
     expect(result).toBeInstanceOf(ToolMessage);
@@ -187,6 +189,8 @@ describe("ApprovalGateMiddleware", () => {
 
       expect(mockedInterrupt).toHaveBeenCalledWith({
         tool_call_id: "call_abc123",
+        tool_name: "write",
+        mcp_server_slug: "",
         message: "Write file: /home/code/main.ts",
       });
     });

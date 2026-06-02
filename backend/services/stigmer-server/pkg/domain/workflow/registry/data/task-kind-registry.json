@@ -54,7 +54,7 @@
       "yamlExamples": [
         "- initialize:\n    set:\n      variables:\n        status: \"pending\"\n        timestamp: \"${ now() }\"\n        request_id: \"${ $context.input.id }\"\n"
       ],
-      "documentationUrl": "/docs/workflow/tasks/set-vars",
+      "documentationUrl": "/docs/guides/workflow-tasks/set-vars",
       "isAiNative": false,
       "requiresExternalService": false
     },
@@ -187,7 +187,7 @@
       "yamlExamples": [
         "- fetch_data:\n    call: http\n    with:\n      method: \"GET\"\n      endpoint:\n        uri: \"https://api.example.com/tickets/${ $context.ticket_id }\"\n      headers:\n        Authorization: \"Bearer ${ .secrets.API_TOKEN }\"\n    export:\n      as: \"${ . }\"\n"
       ],
-      "documentationUrl": "/docs/workflow/tasks/http-call",
+      "documentationUrl": "/docs/guides/workflow-tasks/http-call",
       "isAiNative": false,
       "requiresExternalService": true
     },
@@ -274,7 +274,7 @@
       "yamlExamples": [
         "- call_service:\n    call: grpc\n    with:\n      service: \"user.UserService\"\n      method: \"GetUser\"\n      request:\n        user_id: \"${ $context.user_id }\"\n    export:\n      as: \"${ . }\"\n"
       ],
-      "documentationUrl": "/docs/workflow/tasks/grpc-call",
+      "documentationUrl": "/docs/guides/workflow-tasks/grpc-call",
       "isAiNative": false,
       "requiresExternalService": true
     },
@@ -342,7 +342,7 @@
       "yamlExamples": [
         "- process_payment:\n    call: activity\n    with:\n      activity: \"ProcessPayment\"\n      input:\n        amount: \"${ $context.order.total }\"\n        currency: \"USD\"\n    export:\n      as: \"${ . }\"\n"
       ],
-      "documentationUrl": "/docs/workflow/tasks/activity-call",
+      "documentationUrl": "/docs/guides/workflow-tasks/activity-call",
       "isAiNative": false,
       "requiresExternalService": false
     },
@@ -397,7 +397,7 @@
       "yamlExamples": [
         "- route_by_severity:\n    switch:\n      cases:\n        - name: critical\n          when: \"${ $context.triage.severity == 'critical' }\"\n          then: escalate\n        - name: high\n          when: \"${ $context.triage.severity == 'high' }\"\n          then: notify_team\n        - name: default\n          then: log_and_close\n"
       ],
-      "documentationUrl": "/docs/workflow/tasks/switch-case",
+      "documentationUrl": "/docs/guides/workflow-tasks/switch-case",
       "isAiNative": false,
       "requiresExternalService": false
     },
@@ -448,6 +448,35 @@
           "validationHints": [
             "min_items: 1"
           ]
+        },
+        {
+          "name": "max_parallelism",
+          "displayName": "Max Parallelism",
+          "description": "Maximum number of iterations to execute concurrently. 0 (default): sequential execution — iterations run one at a time in input order. This preserves pre-T17 behavior. 1: effectively sequential (one at a time, but uses the parallel execution path — useful for testing). N \u003e 1: up to N iterations run concurrently using Temporal workflow goroutines with a semaphore-based concurrency limiter. Results are always reassembled in original input order regardless of completion order.",
+          "type": "int32",
+          "required": false,
+          "fieldNumber": 4
+        },
+        {
+          "name": "batch_size",
+          "displayName": "Batch Size",
+          "description": "Number of items to process in each batch before moving to the next. 0 (default): no batching — all items are available for parallel execution (up to max_parallelism concurrent). N \u003e 0: items are chunked into groups of N. Each chunk is fully processed before the next chunk begins. Within each chunk, up to max_parallelism iterations run concurrently. Only meaningful when max_parallelism \u003e 0; ignored in sequential mode.",
+          "type": "int32",
+          "required": false,
+          "fieldNumber": 5
+        },
+        {
+          "name": "on_error",
+          "displayName": "On Error",
+          "description": "Policy for handling individual iteration failures. Default: FOR_EACH_FAIL_FAST (stop on first error). Only meaningful when max_parallelism \u003e 0; in sequential mode, any failure stops the loop regardless of this setting (pre-T17 behavior).",
+          "type": "enum",
+          "required": false,
+          "enumValues": [
+            "FOR_EACH_FAIL_FAST",
+            "FOR_EACH_CONTINUE",
+            "FOR_EACH_SKIP"
+          ],
+          "fieldNumber": 6
         }
       ],
       "fieldGroups": [
@@ -460,6 +489,10 @@
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
         "properties": {
+          "batch_size": {
+            "description": "Number of items to process in each batch before moving to the next. 0 (default): no batching — all items are available for parallel execution (up to max_parallelism concurrent). N \u003e 0: items are chunked into groups of N. Each chunk is fully processed before the next chunk begins. Within each chunk, up to max_parallelism iterations run concurrently. Only meaningful when max_parallelism \u003e 0; ignored in sequential mode.",
+            "type": "integer"
+          },
           "do": {
             "description": "Tasks to execute for each iteration. Loop variables available: ${ $data.item }, ${ $data.index }",
             "items": {
@@ -477,6 +510,19 @@
             "description": "Expression evaluating to the collection to iterate over. Example: \"${ $data.items }\" or \"${ [1, 2, 3] }\"",
             "minLength": 1,
             "type": "string"
+          },
+          "max_parallelism": {
+            "description": "Maximum number of iterations to execute concurrently. 0 (default): sequential execution — iterations run one at a time in input order. This preserves pre-T17 behavior. 1: effectively sequential (one at a time, but uses the parallel execution path — useful for testing). N \u003e 1: up to N iterations run concurrently using Temporal workflow goroutines with a semaphore-based concurrency limiter. Results are always reassembled in original input order regardless of completion order.",
+            "type": "integer"
+          },
+          "on_error": {
+            "description": "Policy for handling individual iteration failures. Default: FOR_EACH_FAIL_FAST (stop on first error). Only meaningful when max_parallelism \u003e 0; in sequential mode, any failure stops the loop regardless of this setting (pre-T17 behavior).",
+            "enum": [
+              "FOR_EACH_FAIL_FAST",
+              "FOR_EACH_CONTINUE",
+              "FOR_EACH_SKIP"
+            ],
+            "type": "string"
           }
         },
         "required": [
@@ -493,7 +539,7 @@
       "yamlExamples": [
         "- process_items:\n    for:\n      each: item\n      in: \"${ $context.items }\"\n      do:\n        - classify_item:\n            call: llm\n            with:\n              model: \"gpt-4o-mini\"\n              prompt: \"Classify: ${ $item.description }\"\n"
       ],
-      "documentationUrl": "/docs/workflow/tasks/for-each",
+      "documentationUrl": "/docs/guides/workflow-tasks/for-each",
       "isAiNative": false,
       "requiresExternalService": false
     },
@@ -561,7 +607,7 @@
       "yamlExamples": [
         "- parallel_enrichment:\n    fork:\n      branches:\n        - name: fetch_profile\n          do:\n            - get_profile:\n                call: http\n                with:\n                  method: \"GET\"\n                  endpoint:\n                    uri: \"https://api.example.com/users/${ $context.user_id }\"\n        - name: fetch_history\n          do:\n            - get_history:\n                call: http\n                with:\n                  method: \"GET\"\n                  endpoint:\n                    uri: \"https://api.example.com/history/${ $context.user_id }\"\n      compete: false\n"
       ],
-      "documentationUrl": "/docs/workflow/tasks/fork",
+      "documentationUrl": "/docs/guides/workflow-tasks/fork",
       "isAiNative": false,
       "requiresExternalService": false
     },
@@ -630,7 +676,7 @@
       "yamlExamples": [
         "- safe_api_call:\n    try:\n      - risky_call:\n          call: http\n          with:\n            method: \"POST\"\n            endpoint:\n              uri: \"https://api.unreliable.com/submit\"\n    catch:\n      as: error\n      do:\n        - log_failure:\n            set:\n              variables:\n                error_message: \"${ $error.message }\"\n"
       ],
-      "documentationUrl": "/docs/workflow/tasks/try-catch",
+      "documentationUrl": "/docs/guides/workflow-tasks/try-catch",
       "isAiNative": false,
       "requiresExternalService": false
     },
@@ -684,7 +730,7 @@
       "yamlExamples": [
         "- wait_for_approval:\n    listen:\n      to:\n        mode: \"one\"\n        signals:\n          - id: \"approval_signal\"\n            type: \"signal\"\n    export:\n      as: \"${ . }\"\n"
       ],
-      "documentationUrl": "/docs/workflow/tasks/listen",
+      "documentationUrl": "/docs/guides/workflow-tasks/listen",
       "isAiNative": false,
       "requiresExternalService": false
     },
@@ -744,7 +790,7 @@
       "yamlExamples": [
         "- cooldown:\n    wait:\n      seconds: 30\n"
       ],
-      "documentationUrl": "/docs/workflow/tasks/wait",
+      "documentationUrl": "/docs/guides/workflow-tasks/wait",
       "isAiNative": false,
       "requiresExternalService": false
     },
@@ -820,7 +866,7 @@
       "yamlExamples": [
         "- fail_invalid:\n    raise:\n      error: \"ValidationError\"\n      message: \"Required field missing: ${ $context.missing_field }\"\n"
       ],
-      "documentationUrl": "/docs/workflow/tasks/raise-error",
+      "documentationUrl": "/docs/guides/workflow-tasks/raise-error",
       "isAiNative": false,
       "requiresExternalService": false
     },
@@ -888,7 +934,7 @@
       "yamlExamples": [
         "- run_enrichment:\n    run:\n      workflow: \"data-enrichment\"\n      input:\n        user_id: \"${ $context.user.id }\"\n        source: \"parent_workflow\"\n    export:\n      as: \"${ . }\"\n"
       ],
-      "documentationUrl": "/docs/workflow/tasks/run-workflow",
+      "documentationUrl": "/docs/guides/workflow-tasks/run-workflow",
       "isAiNative": false,
       "requiresExternalService": false
     },
@@ -952,7 +998,7 @@
           "description": "Execution configuration for the agent invocation. Optional - defaults are applied if not specified.",
           "type": "message",
           "required": false,
-          "groupId": "runtime",
+          "groupId": "budget",
           "fieldNumber": 5,
           "elementType": "AgentExecutionConfig"
         },
@@ -965,6 +1011,18 @@
           "groupId": "output",
           "fieldNumber": 6,
           "elementType": "AgentCallOutputContract"
+        },
+        {
+          "name": "harness",
+          "displayName": "Harness",
+          "description": "Execution harness for the agent invocation. Determines which execution engine processes the agent call: - HARNESS_UNSPECIFIED / HARNESS_NATIVE: Stigmer native engine (Python/LangGraph) - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor) The workflow-runner creates a Session with this harness before creating the AgentExecution. The harness is a session-level concern — it determines tool availability, state management, model access, and billing tier. When unspecified, defaults to HARNESS_NATIVE for backward compatibility. YAML Example: - code_review: call: agent with: agent: \"code-reviewer\" harness: cursor message: \"Review this PR\"",
+          "type": "enum",
+          "required": false,
+          "enumValues": [
+            "HARNESS_NATIVE",
+            "HARNESS_CURSOR"
+          ],
+          "fieldNumber": 7
         }
       ],
       "fieldGroups": [
@@ -975,6 +1033,11 @@
         {
           "id": "runtime",
           "displayName": "Runtime Settings"
+        },
+        {
+          "id": "budget",
+          "displayName": "Budget Limits",
+          "description": "Cost controls for this agent call. Set max_cost_micros on the config field."
         },
         {
           "id": "output",
@@ -1001,6 +1064,14 @@
             },
             "description": "Runtime environment variables to pass to the agent. Values can be literal strings or JQ expressions that reference workflow context or secrets. Example: {\"GITHUB_TOKEN\": \"${ .secrets.GH_TOKEN }\"} Optional.",
             "type": "object"
+          },
+          "harness": {
+            "description": "Execution harness for the agent invocation. Determines which execution engine processes the agent call: - HARNESS_UNSPECIFIED / HARNESS_NATIVE: Stigmer native engine (Python/LangGraph) - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor) The workflow-runner creates a Session with this harness before creating the AgentExecution. The harness is a session-level concern — it determines tool availability, state management, model access, and billing tier. When unspecified, defaults to HARNESS_NATIVE for backward compatibility. YAML Example: - code_review: call: agent with: agent: \"code-reviewer\" harness: cursor message: \"Review this PR\"",
+            "enum": [
+              "HARNESS_NATIVE",
+              "HARNESS_CURSOR"
+            ],
+            "type": "string"
           },
           "message": {
             "description": "Instructions/prompt to send to the agent. Supports interpolation of workflow variables using JQ expressions. Example: \"Analyze this code: ${ $context.fetchCode.body }\" Required field.",
@@ -1061,7 +1132,7 @@
       "yamlExamples": [
         "- triage_ticket:\n    call: agent\n    with:\n      agent: \"support-triage\"\n      message: \"${ .ticket.description }\"\n      output:\n        schema:\n          type: object\n          required: [severity, category]\n          properties:\n            severity:\n              type: string\n              enum: [low, medium, high, critical]\n            category:\n              type: string\n        on_invalid: ON_INVALID_RETRY\n        max_retries: 2\n    export:\n      as: \"${ .structured }\"\n"
       ],
-      "documentationUrl": "/docs/workflow/tasks/agent-call",
+      "documentationUrl": "/docs/guides/workflow-tasks/agent-call",
       "isAiNative": true,
       "requiresExternalService": true
     },
@@ -1192,6 +1263,24 @@
           "required": false,
           "groupId": "output",
           "fieldNumber": 10
+        },
+        {
+          "name": "max_cost_micros",
+          "displayName": "Max Cost Micros",
+          "description": "Per-task cost cap in micro-USD (1 USD = 1,000,000 micros). When set, the runtime terminates this specific LLM call if its cost exceeds this limit, independent of the workflow-level budget. The runtime checks both: per-task limit first, then workflow remaining budget. Optional — when 0, no per-task cost limit is enforced.",
+          "type": "int32",
+          "required": false,
+          "groupId": "budget",
+          "fieldNumber": 11
+        },
+        {
+          "name": "max_total_tokens",
+          "displayName": "Max Total Tokens",
+          "description": "Per-task token cap (input + output tokens combined). When set, the runtime terminates this specific LLM call if total tokens exceed this limit. Complements max_tokens (field 6), which limits only the output token count as a generation parameter. Optional — when 0, no per-task total token limit is enforced.",
+          "type": "int32",
+          "required": false,
+          "groupId": "budget",
+          "fieldNumber": 12
         }
       ],
       "fieldGroups": [
@@ -1206,6 +1295,10 @@
         {
           "id": "tuning",
           "displayName": "Model Tuning"
+        },
+        {
+          "id": "budget",
+          "displayName": "Budget Limits"
         }
       ],
       "configJsonSchema": {
@@ -1216,6 +1309,10 @@
             "description": "Target task to branch to when schema validation cannot be resolved. Used in two scenarios: 1. on_invalid is ON_INVALID_RETRY and all retries are exhausted 2. on_invalid is ON_INVALID_FALLBACK (immediate branch, no retry) Must reference a valid task name in the same workflow. When empty and retries are exhausted, the task fails.",
             "type": "string"
           },
+          "max_cost_micros": {
+            "description": "Per-task cost cap in micro-USD (1 USD = 1,000,000 micros). When set, the runtime terminates this specific LLM call if its cost exceeds this limit, independent of the workflow-level budget. The runtime checks both: per-task limit first, then workflow remaining budget. Optional — when 0, no per-task cost limit is enforced.",
+            "type": "integer"
+          },
           "max_retries": {
             "description": "Maximum schema-validation retry attempts when on_invalid is ON_INVALID_RETRY. Each retry re-prompts the LLM with the validation errors and expected schema, giving it an opportunity to self-correct. Only meaningful when on_invalid is ON_INVALID_RETRY; ignored otherwise. Default: 1. Valid range: 1-5.",
             "maximum": 5,
@@ -1225,6 +1322,10 @@
           "max_tokens": {
             "description": "Maximum tokens in the LLM response. Optional — uses the provider's default when not set.",
             "minimum": 1,
+            "type": "integer"
+          },
+          "max_total_tokens": {
+            "description": "Per-task token cap (input + output tokens combined). When set, the runtime terminates this specific LLM call if total tokens exceed this limit. Complements max_tokens (field 6), which limits only the output token count as a generation parameter. Optional — when 0, no per-task total token limit is enforced.",
             "type": "integer"
           },
           "model": {
@@ -1292,7 +1393,7 @@
         "- classify_severity:\n    call: llm\n    with:\n      model: \"gpt-4o-mini\"\n      system_prompt: \"You are a support ticket classifier.\"\n      prompt: \"Classify this ticket: ${ $context.ticket.description }\"\n      response_schema:\n        type: object\n        required: [severity, category]\n        properties:\n          severity:\n            type: string\n            enum: [low, medium, high, critical]\n          category:\n            type: string\n      on_invalid: ON_INVALID_RETRY\n      max_retries: 2\n    export:\n      as: \"${ . }\"\n",
         "- summarize:\n    call: llm\n    with:\n      model: \"claude-sonnet-4-5\"\n      prompt: \"Summarize in 2 sentences: ${ $context.document.text }\"\n      temperature: 0.3\n      max_tokens: 200\n    export:\n      as: \"${ . }\"\n"
       ],
-      "documentationUrl": "/docs/workflow/tasks/llm-call",
+      "documentationUrl": "/docs/guides/workflow-tasks/llm-call",
       "isAiNative": true,
       "requiresExternalService": true
     },
@@ -1389,7 +1490,7 @@
         "- build_api_payload:\n    transform:\n      engine: jq\n      expression: '{name: .customer.full_name, severity: .triage.severity, summary: .agent_analysis.structured.summary}'\n      input: \"${ $context }\"\n    export:\n      as: \"${ . }\"\n",
         "- render_message:\n    transform:\n      engine: template\n      expression: \"Ticket {{ .ticket_id }} classified as {{ .severity }}\"\n      input: \"${ $context.build_api_payload }\"\n    export:\n      as: \"${ . }\"\n"
       ],
-      "documentationUrl": "/docs/workflow/tasks/transform",
+      "documentationUrl": "/docs/guides/workflow-tasks/transform",
       "isAiNative": false,
       "requiresExternalService": false
     },
@@ -1581,7 +1682,7 @@
       "yamlExamples": [
         "- manager_approval:\n    human_input:\n      prompt: \"Approve escalation for ${ $context.triage.severity } incident?\"\n      form_schema:\n        type: object\n        properties:\n          notes:\n            type: string\n            description: \"Optional notes for the engineering team\"\n          priority_override:\n            type: string\n            enum: [P1, P2, P3]\n      outcomes:\n        - name: approve\n          label: \"Approve Escalation\"\n        - name: deny\n          label: \"Reject\"\n          then: re_classify\n      approvers:\n        - \"team:engineering-leads\"\n      timeout: 86400\n      on_timeout: HUMAN_INPUT_TIMEOUT_ESCALATE\n      notification_channels:\n        - \"slack:#incident-approvals\"\n    export:\n      as: \"${ . }\"\n"
       ],
-      "documentationUrl": "/docs/workflow/tasks/human-input",
+      "documentationUrl": "/docs/guides/workflow-tasks/human-input",
       "isAiNative": false,
       "requiresExternalService": false
     },
@@ -1743,7 +1844,7 @@
       "yamlExamples": [
         "- check_triage_quality:\n    validate:\n      input: \"${ $context.triage }\"\n      schema:\n        type: object\n        required: [severity, category, customer_impact]\n        properties:\n          severity:\n            type: string\n            enum: [low, medium, high, critical]\n          category:\n            type: string\n            minLength: 1\n          customer_impact:\n            type: boolean\n      rules:\n        - name: critical_needs_rationale\n          expression: \"${ .severity != 'critical' || (.rationale != null \u0026\u0026 .rationale != '') }\"\n          message: \"Critical severity requires a rationale\"\n      on_fail: VALIDATION_FAIL_BRANCH\n      fallback_task: human_review\n    export:\n      as: \"${ . }\"\n"
       ],
-      "documentationUrl": "/docs/workflow/tasks/validate",
+      "documentationUrl": "/docs/guides/workflow-tasks/validate",
       "isAiNative": false,
       "requiresExternalService": false
     },
@@ -1827,7 +1928,7 @@
       "yamlExamples": [
         "- notify_classified:\n    emit_event:\n      event:\n        type: \"stigmer.workflow.ticket.classified\"\n        subject: \"${ $context.ticket.id }\"\n        data:\n          ticket_id: \"${ $context.ticket.id }\"\n          severity: \"${ $context.triage.severity }\"\n          category: \"${ $context.triage.category }\"\n    export:\n      as: \"${ . }\"\n"
       ],
-      "documentationUrl": "/docs/workflow/tasks/emit-event",
+      "documentationUrl": "/docs/guides/workflow-tasks/emit-event",
       "isAiNative": false,
       "requiresExternalService": false
     },
@@ -1994,9 +2095,278 @@
       "yamlExamples": [
         "- alert_slack:\n    notification:\n      channel: \"slack\"\n      recipients:\n        - \"#incident-response\"\n        - \"@oncall-lead\"\n      subject: \"P${ $context.triage.severity } Incident: ${ $context.ticket.title }\"\n      body: |\n        *Severity*: ${ $context.triage.severity }\n        *Category*: ${ $context.triage.category }\n        *Summary*: ${ $context.agent_analysis.structured.summary }\n      metadata:\n        thread_ts: \"${ $context.slack_thread_id }\"\n    export:\n      as: \"${ . }\"\n"
       ],
-      "documentationUrl": "/docs/workflow/tasks/notification",
+      "documentationUrl": "/docs/guides/workflow-tasks/notification",
       "isAiNative": false,
       "requiresExternalService": true
+    },
+    {
+      "kind": "eval",
+      "displayName": "Evaluate (LLM Judge)",
+      "description": "Assess semantic quality, correctness, safety, or completeness of content using an LLM judge.",
+      "category": "ai",
+      "icon": "scale",
+      "configProtoType": "ai.stigmer.agentic.workflow.v1.tasks.EvalTaskConfig",
+      "fields": [
+        {
+          "name": "model",
+          "displayName": "Model",
+          "description": "LLM model used as the judge. Resolved via the Stigmer model registry. Examples: \"gpt-4o\", \"claude-sonnet-4-5\"",
+          "type": "string",
+          "required": true,
+          "groupId": "core",
+          "fieldNumber": 1,
+          "validationHints": [
+            "required",
+            "min_length: 1",
+            "max_length: 127"
+          ]
+        },
+        {
+          "name": "subject",
+          "displayName": "Subject",
+          "description": "Expression selecting the data to evaluate. Supports ${ } expression interpolation. Example: \"${ $context.summarize.text }\" to evaluate a summary task's output.",
+          "type": "string",
+          "required": true,
+          "isExpression": true,
+          "groupId": "core",
+          "fieldNumber": 2,
+          "validationHints": [
+            "required",
+            "min_length: 1"
+          ]
+        },
+        {
+          "name": "rubric",
+          "displayName": "Rubric",
+          "description": "Evaluation criteria in natural language. Tells the judge LLM what to assess and what \"good\" looks like. For pass_fail: describe what constitutes a pass. For numeric_score: describe the scoring scale. For multi_criteria: provide overall context (per-criterion detail goes in criteria field).",
+          "type": "string",
+          "required": true,
+          "groupId": "core",
+          "fieldNumber": 3,
+          "validationHints": [
+            "required",
+            "min_length: 1"
+          ]
+        },
+        {
+          "name": "scoring_mode",
+          "displayName": "Scoring Mode",
+          "description": "How the judge scores the subject. Default: EVAL_PASS_FAIL.",
+          "type": "enum",
+          "required": false,
+          "enumValues": [
+            "EVAL_PASS_FAIL",
+            "EVAL_NUMERIC_SCORE",
+            "EVAL_MULTI_CRITERIA"
+          ],
+          "groupId": "scoring",
+          "fieldNumber": 4
+        },
+        {
+          "name": "threshold",
+          "displayName": "Threshold",
+          "description": "Pass threshold for numeric_score and multi_criteria modes. The subject passes if score \u003e= threshold. Ignored for pass_fail mode (the judge's binary decision is used directly). Valid range: 0.0 to 1.0. Default: 0.5.",
+          "type": "float",
+          "required": false,
+          "groupId": "scoring",
+          "fieldNumber": 5,
+          "validationHints": [
+            "max: 1"
+          ]
+        },
+        {
+          "name": "on_fail",
+          "displayName": "On Fail",
+          "description": "Policy applied when the subject fails evaluation. Default: EVAL_FAIL_RAISE (task fails with evaluation error).",
+          "type": "enum",
+          "required": false,
+          "enumValues": [
+            "EVAL_FAIL_RAISE",
+            "EVAL_FAIL_BRANCH",
+            "EVAL_FAIL_WARN"
+          ],
+          "groupId": "policy",
+          "fieldNumber": 6
+        },
+        {
+          "name": "fallback_task",
+          "displayName": "Fallback Task",
+          "description": "Target task to branch to when on_fail is EVAL_FAIL_BRANCH. Must reference a valid task name in the same workflow. Only meaningful when on_fail is EVAL_FAIL_BRANCH; ignored otherwise.",
+          "type": "string",
+          "required": false,
+          "groupId": "policy",
+          "fieldNumber": 7
+        },
+        {
+          "name": "system_prompt",
+          "displayName": "System Prompt",
+          "description": "Optional custom system prompt override for the judge LLM. When set, replaces the auto-generated judge system prompt entirely. Use only when the default judge prompt template does not fit your needs. When empty, the runtime constructs a judge-appropriate system prompt from the rubric, scoring_mode, and criteria.",
+          "type": "string",
+          "required": false,
+          "isExpression": true,
+          "groupId": "advanced",
+          "fieldNumber": 8
+        },
+        {
+          "name": "criteria",
+          "displayName": "Criteria",
+          "description": "Evaluation criteria for multi_criteria mode. Required when scoring_mode is EVAL_MULTI_CRITERIA; ignored otherwise. Each criterion is scored independently, and the overall score is the weighted average (uniform if all weights are equal or zero).",
+          "type": "repeated",
+          "required": false,
+          "groupId": "scoring",
+          "fieldNumber": 9,
+          "elementType": "EvalCriterion"
+        },
+        {
+          "name": "max_cost_micros",
+          "displayName": "Max Cost Micros",
+          "description": "Per-task cost cap in micro-USD (1 USD = 1,000,000 micros). When set, the runtime terminates this eval call if its cost exceeds this limit, independent of the workflow-level budget. Optional — when 0, no per-task cost limit is enforced.",
+          "type": "int32",
+          "required": false,
+          "groupId": "advanced",
+          "fieldNumber": 10
+        }
+      ],
+      "fieldGroups": [
+        {
+          "id": "core",
+          "displayName": "Evaluation Setup"
+        },
+        {
+          "id": "scoring",
+          "displayName": "Scoring"
+        },
+        {
+          "id": "policy",
+          "displayName": "Failure Policy"
+        },
+        {
+          "id": "advanced",
+          "displayName": "Advanced"
+        }
+      ],
+      "configJsonSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "criteria": {
+            "description": "Evaluation criteria for multi_criteria mode. Required when scoring_mode is EVAL_MULTI_CRITERIA; ignored otherwise. Each criterion is scored independently, and the overall score is the weighted average (uniform if all weights are equal or zero).",
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "fallback_task": {
+            "description": "Target task to branch to when on_fail is EVAL_FAIL_BRANCH. Must reference a valid task name in the same workflow. Only meaningful when on_fail is EVAL_FAIL_BRANCH; ignored otherwise.",
+            "type": "string"
+          },
+          "max_cost_micros": {
+            "description": "Per-task cost cap in micro-USD (1 USD = 1,000,000 micros). When set, the runtime terminates this eval call if its cost exceeds this limit, independent of the workflow-level budget. Optional — when 0, no per-task cost limit is enforced.",
+            "type": "integer"
+          },
+          "model": {
+            "description": "LLM model used as the judge. Resolved via the Stigmer model registry. Examples: \"gpt-4o\", \"claude-sonnet-4-5\"",
+            "maxLength": 127,
+            "minLength": 1,
+            "type": "string"
+          },
+          "on_fail": {
+            "description": "Policy applied when the subject fails evaluation. Default: EVAL_FAIL_RAISE (task fails with evaluation error).",
+            "enum": [
+              "EVAL_FAIL_RAISE",
+              "EVAL_FAIL_BRANCH",
+              "EVAL_FAIL_WARN"
+            ],
+            "type": "string"
+          },
+          "rubric": {
+            "description": "Evaluation criteria in natural language. Tells the judge LLM what to assess and what \"good\" looks like. For pass_fail: describe what constitutes a pass. For numeric_score: describe the scoring scale. For multi_criteria: provide overall context (per-criterion detail goes in criteria field).",
+            "minLength": 1,
+            "type": "string"
+          },
+          "scoring_mode": {
+            "description": "How the judge scores the subject. Default: EVAL_PASS_FAIL.",
+            "enum": [
+              "EVAL_PASS_FAIL",
+              "EVAL_NUMERIC_SCORE",
+              "EVAL_MULTI_CRITERIA"
+            ],
+            "type": "string"
+          },
+          "subject": {
+            "description": "Expression selecting the data to evaluate. Supports ${ } expression interpolation. Example: \"${ $context.summarize.text }\" to evaluate a summary task's output.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "system_prompt": {
+            "description": "Optional custom system prompt override for the judge LLM. When set, replaces the auto-generated judge system prompt entirely. Use only when the default judge prompt template does not fit your needs. When empty, the runtime constructs a judge-appropriate system prompt from the rubric, scoring_mode, and criteria.",
+            "type": "string"
+          },
+          "threshold": {
+            "description": "Pass threshold for numeric_score and multi_criteria modes. The subject passes if score \u003e= threshold. Ignored for pass_fail mode (the judge's binary decision is used directly). Valid range: 0.0 to 1.0. Default: 0.5.",
+            "maximum": 1,
+            "type": "number"
+          }
+        },
+        "required": [
+          "model",
+          "subject",
+          "rubric"
+        ],
+        "title": "EvalTaskConfig",
+        "type": "object"
+      },
+      "outputJsonSchema": {
+        "description": "Evaluation result with pass/fail, score, and judge reasoning.",
+        "properties": {
+          "criteria": {
+            "description": "Per-criterion scores and reasoning. Present only for multi_criteria mode.",
+            "items": {
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "reasoning": {
+                  "type": "string"
+                },
+                "score": {
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "model_used": {
+            "description": "The LLM model that served as judge.",
+            "type": "string"
+          },
+          "pass": {
+            "description": "Whether the subject passed evaluation.",
+            "type": "boolean"
+          },
+          "reasoning": {
+            "description": "The judge's explanation of its assessment.",
+            "type": "string"
+          },
+          "score": {
+            "description": "Numeric score (0.0-1.0). Present for numeric_score and multi_criteria modes.",
+            "type": "number"
+          },
+          "subject": {
+            "description": "The original subject data that was evaluated."
+          }
+        },
+        "type": "object"
+      },
+      "yamlExamples": [
+        "- check_summary_quality:\n    call: eval\n    with:\n      model: \"gpt-4o\"\n      subject: \"${ $context.summarize.text }\"\n      rubric: |\n        Evaluate whether this summary accurately captures the key points\n        of the source document without hallucinations or omissions.\n      scoring_mode: EVAL_PASS_FAIL\n      on_fail: EVAL_FAIL_BRANCH\n      fallback_task: regenerate_summary\n    export:\n      as: \"${ . }\"\n",
+        "- score_translation:\n    call: eval\n    with:\n      model: \"gpt-4o\"\n      subject: \"${ $context.translate.text }\"\n      rubric: |\n        Rate the quality of this translation on accuracy, fluency,\n        and preservation of meaning.\n      scoring_mode: EVAL_NUMERIC_SCORE\n      threshold: 0.7\n      on_fail: EVAL_FAIL_WARN\n    export:\n      as: \"${ . }\"\n",
+        "- evaluate_response:\n    call: eval\n    with:\n      model: \"gpt-4o\"\n      subject: \"${ $context.agent_response }\"\n      rubric: \"Evaluate this customer support response.\"\n      scoring_mode: EVAL_MULTI_CRITERIA\n      threshold: 0.75\n      criteria:\n        - name: accuracy\n          description: \"Is the information factually correct?\"\n          weight: 3.0\n        - name: helpfulness\n          description: \"Does it address the customer's actual question?\"\n          weight: 2.0\n        - name: tone\n          description: \"Is the tone professional and empathetic?\"\n          weight: 1.0\n      on_fail: EVAL_FAIL_RAISE\n    export:\n      as: \"${ . }\"\n"
+      ],
+      "documentationUrl": "/docs/guides/workflow-tasks/eval",
+      "isAiNative": true,
+      "requiresExternalService": false
     }
   ]
 }
