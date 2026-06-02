@@ -347,6 +347,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
         parentModelName: modelName,
         parentHasNativeThinking: _modelHasNativeThinking(modelName),
         costCap: costCapMiddleware ?? undefined,
+        modelFactory: (m: string) => constructModel(m, config, executionId),
       });
     }
 
