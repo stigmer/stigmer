@@ -24,13 +24,12 @@ import { tmpdir } from "node:os";
 
 const CURSOR_API_KEY = process.env.CURSOR_API_KEY ?? "";
 
-describe("SDK routing with CURSOR_BACKEND_URL unset", () => {
+// Live smoke test: requires a real Cursor API key. Skipped when none is set
+// (e.g. local `make check` / CI without provider credentials).
+const describeWithCursorKey = CURSOR_API_KEY ? describe : describe.skip;
+
+describeWithCursorKey("SDK routing with CURSOR_BACKEND_URL unset", () => {
   beforeAll(() => {
-    if (!CURSOR_API_KEY) {
-      throw new Error(
-        "CURSOR_API_KEY not set. Run with: CURSOR_API_KEY=<key> npm run test -- --run cursor-baseurl",
-      );
-    }
     // Ensure CURSOR_BACKEND_URL is unset — the SDK should use its built-in
     // defaults for REST calls (model validation → api.cursor.com, token
     // exchange → api2.cursor.sh).

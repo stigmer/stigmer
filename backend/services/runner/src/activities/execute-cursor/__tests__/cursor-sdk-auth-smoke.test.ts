@@ -10,7 +10,7 @@
  * Or via the test script: npm run test:cursor-auth
  */
 
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect } from "vitest";
 import { Agent } from "@cursor/sdk";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
@@ -18,14 +18,11 @@ import { tmpdir } from "node:os";
 
 const CURSOR_API_KEY = process.env.CURSOR_API_KEY ?? "";
 
-describe("Cursor SDK Authentication Smoke Test", () => {
-  beforeAll(() => {
-    if (!CURSOR_API_KEY) {
-      throw new Error(
-        "CURSOR_API_KEY not set. Run with: CURSOR_API_KEY=<key> npm run test -- --run cursor-sdk-auth",
-      );
-    }
-  });
+// Live smoke test: requires a real Cursor API key. Skipped when none is set
+// (e.g. local `make check` / CI without provider credentials).
+const describeWithCursorKey = CURSOR_API_KEY ? describe : describe.skip;
+
+describeWithCursorKey("Cursor SDK Authentication Smoke Test", () => {
 
   it("Agent.create() succeeds with a valid API key", async () => {
     const stateRoot = join(tmpdir(), `cursor-auth-test-${Date.now()}`);
