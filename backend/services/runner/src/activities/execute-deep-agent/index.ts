@@ -197,24 +197,45 @@ export function createDeepAgentActivities(config: Config) {
         let structuredOutput: JsonObject | undefined;
         let finalText: string | undefined;
 
-        if (setup.hasStructuredOutput && result.runOutput) {
-          const sr = result.runOutput.structuredResponse;
+        const lastAiMsg = [...initialStatus.messages]
+          .reverse()
+          .find(m => m.type === MessageType.MESSAGE_AI);
+        if (lastAiMsg) {
+          finalText = lastAiMsg.content;
+        }
+
+        if (setup.hasStructuredOutput) {
+          // Primary source: deepagents' structuredResponse surfaced via the v3
+          // run.output. This is the reliable path when the graph populates it.
+          const sr = result.runOutput?.structuredResponse;
           if (sr != null && typeof sr === "object" && !Array.isArray(sr)) {
             structuredOutput = sr as JsonObject;
-            initialStatus.structuredOutput = structuredOutput;
           } else if (sr !== undefined) {
             console.warn(
               `[ExecuteDeepAgent] structuredResponse is not a plain object ` +
               `for execution ${executionId}: type=${typeof sr}`,
             );
           }
-        }
 
-        const lastAiMsg = [...initialStatus.messages]
-          .reverse()
-          .find(m => m.type === MessageType.MESSAGE_AI);
-        if (lastAiMsg) {
-          finalText = lastAiMsg.content;
+          // Fallback: extract JSON from the agent's final text message. The v3
+          // streaming path does not surface deepagents' structuredResponse
+          // (hasStructuredResponse=false), so we recover structured output by
+          // parsing the agent's final response (JSON / code-fence / last-brace).
+          if (structuredOutput === undefined && finalText) {
+            const { extractJsonFromText } = await import("../../shared/extract-json.js");
+            const extracted = extractJsonFromText(finalText);
+            if (extracted != null && typeof extracted === "object" && !Array.isArray(extracted)) {
+              structuredOutput = extracted as JsonObject;
+              console.log(
+                `[ExecuteDeepAgent] structured output extracted from final text ` +
+                `for execution ${executionId}: finalTextLength=${finalText.length}`,
+              );
+            }
+          }
+
+          if (structuredOutput !== undefined) {
+            initialStatus.structuredOutput = structuredOutput;
+          }
         }
 
         await persistStatus(client, executionId, initialStatus);
