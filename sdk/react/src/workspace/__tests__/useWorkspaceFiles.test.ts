@@ -1,12 +1,18 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook, act, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { renderHook, act, waitFor, cleanup } from "@testing-library/react";
 import { useWorkspaceFiles } from "../useWorkspaceFiles";
 import type { WorkspaceEntry } from "../useWorkspaceEntries";
 import type { WorkspaceFileEntry, WorkspaceFileLister } from "../WorkspaceFileLister";
 
+// useWorkspaceFiles keeps a module-level cache keyed by entry.id that persists
+// across tests. Give each makeEntry() call a unique default id so tests stay
+// isolated; callers that need a stable id across rerenders capture the returned
+// entry once and reuse it.
+let entryIdCounter = 0;
+
 function makeEntry(overrides?: Partial<WorkspaceEntry>): WorkspaceEntry {
   return {
-    id: "ws-1",
+    id: `ws-${++entryIdCounter}`,
     name: "acme/api",
     type: "git",
     gitUrl: "https://github.com/acme/api",
@@ -27,6 +33,11 @@ describe("useWorkspaceFiles", () => {
   beforeEach(() => {
     lister = vi.fn().mockResolvedValue(SAMPLE_FILES);
   });
+
+  // Unmount rendered hooks between tests so pending async lister promises
+  // don't trigger React scheduler work after the jsdom environment is torn
+  // down (which surfaces as "window is not defined").
+  afterEach(cleanup);
 
   it("returns empty tree and does not call lister when lister is undefined", () => {
     const { result } = renderHook(() =>

@@ -92,7 +92,6 @@ go_test(
         "//backend/libs/go/store",
         "//backend/libs/go/store/sqlite",
         "//backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows",
-        "@com_github_stigmer_stigmer_backend_libs_go//grpclib/pipeline",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
         "@io_temporal_go_api//serviceerror",

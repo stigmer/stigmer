@@ -78,6 +78,12 @@ func (m *mockStore) ListAuditHistory(_ context.Context, _ apiresourcekind.ApiRes
 func (m *mockStore) DeleteAuditByResourceId(_ context.Context, _ apiresourcekind.ApiResourceKind, _ string) (int64, error) {
 	return 0, nil
 }
+func (m *mockStore) CountAuditEntries(_ context.Context, _ apiresourcekind.ApiResourceKind, _ string) (int, error) {
+	return 0, nil
+}
+func (m *mockStore) GetLatestAuditHash(_ context.Context, _ apiresourcekind.ApiResourceKind, _ string) (string, error) {
+	return "", store.ErrAuditNotFound
+}
 func (m *mockStore) AppendWorkflowExecutionEvents(_ context.Context, _ string, _ []*store.WorkflowExecutionEventRecord) (int, error) {
 	return 0, nil
 }

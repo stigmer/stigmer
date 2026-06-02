@@ -243,6 +243,27 @@ type Store interface {
 	// Returns: number of audit records deleted
 	DeleteAuditByResourceId(ctx context.Context, kind apiresourcekind.ApiResourceKind, resourceId string) (int64, error)
 
+	// CountAuditEntries returns the number of audit records for a resource.
+	// Returns 0 (not an error) when no audit records exist.
+	//
+	// Parameters:
+	//   - kind: resource kind enum
+	//   - resourceId: ID of the parent resource
+	//
+	// Returns: count of audit records
+	CountAuditEntries(ctx context.Context, kind apiresourcekind.ApiResourceKind, resourceId string) (int, error)
+
+	// GetLatestAuditHash returns the version hash of the most recent audit record
+	// for a resource (by archived_at, with id as tiebreaker).
+	// Returns ErrAuditNotFound if no audit record exists.
+	//
+	// Parameters:
+	//   - kind: resource kind enum
+	//   - resourceId: ID of the parent resource
+	//
+	// Returns: version hash of the latest audit record
+	GetLatestAuditHash(ctx context.Context, kind apiresourcekind.ApiResourceKind, resourceId string) (string, error)
+
 	// ===========================================================================
 	// Workflow Execution Event Operations
 	// ===========================================================================
