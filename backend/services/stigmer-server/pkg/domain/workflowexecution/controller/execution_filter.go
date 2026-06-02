@@ -218,4 +218,3 @@ func applyLegacyPhaseFilter(
 	}
 	return result
 }
-

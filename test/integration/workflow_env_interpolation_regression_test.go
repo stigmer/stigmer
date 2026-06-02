@@ -387,7 +387,7 @@ func buildEnvInterpolationWorkflow(
 				Name:      fmt.Sprintf("integration-test-%s", name),
 				Version:   "1.0.0",
 			},
-			Env:  envDecls,
+			Env: envDecls,
 			Tasks: []*workflowv1.WorkflowTask{
 				{
 					Name:       "callAgent",

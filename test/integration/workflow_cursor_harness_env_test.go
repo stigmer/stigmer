@@ -25,12 +25,12 @@ import (
 //
 // This reproduces the production bug where the daily-notification-plan workflow
 // failed with "Cursor run failed" because:
-// 1. The workflow declares POSTGRES_CONNECTION_URL as is_secret
-// 2. The agent declares it in spec.env (enabling intersection forwarding)
-// 3. But if the secret is not provisioned in the credential store, the child
-//    execution's ExecutionContext is empty
-// 4. The MCP server starts without credentials and fails
-// 5. The Cursor SDK returns status: "error" with no explanation
+//  1. The workflow declares POSTGRES_CONNECTION_URL as is_secret
+//  2. The agent declares it in spec.env (enabling intersection forwarding)
+//  3. But if the secret is not provisioned in the credential store, the child
+//     execution's ExecutionContext is empty
+//  4. The MCP server starts without credentials and fails
+//  5. The Cursor SDK returns status: "error" with no explanation
 //
 // After the fix, the runner should:
 // - Log MCP pre-flight warnings about empty env vars

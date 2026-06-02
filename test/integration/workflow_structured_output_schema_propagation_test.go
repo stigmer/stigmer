@@ -275,8 +275,8 @@ func dailyNotificationPlanSchema(t *testing.T) *structpb.Struct {
 		"required": []any{"executive_summary", "cohorts", "anomalies"},
 		"properties": map[string]any{
 			"executive_summary": map[string]any{"type": "string"},
-			"dau":              map[string]any{"type": "number"},
-			"dau_trend_pct":    map[string]any{"type": "number"},
+			"dau":               map[string]any{"type": "number"},
+			"dau_trend_pct":     map[string]any{"type": "number"},
 			"cohorts": map[string]any{
 				"type": "array",
 				"items": map[string]any{

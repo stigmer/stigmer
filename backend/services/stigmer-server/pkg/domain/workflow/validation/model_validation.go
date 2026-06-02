@@ -7,9 +7,9 @@ import (
 	"sort"
 	"strings"
 
+	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	tasksv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
-	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/converter"
 )
 
@@ -61,10 +61,10 @@ func init() {
 }
 
 const (
-	maxModelSuggestions    = 3
-	maxModelEditDistance   = 5
-	harnessNameNative     = "native"
-	harnessNameCursor     = "cursor"
+	maxModelSuggestions  = 3
+	maxModelEditDistance = 5
+	harnessNameNative    = "native"
+	harnessNameCursor    = "cursor"
 )
 
 // ValidateModelReferences checks that model IDs specified in workflow tasks

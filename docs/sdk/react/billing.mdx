@@ -653,6 +653,7 @@ Options for [`useCreditLedger`](#usecreditledger).
     pageNum: { type: "number", description: "1-based page number. Defaults to 1." },
     pageSize: { type: "number", description: "Page size. Defaults to 20." },
     typeFilter: { type: "LedgerEntryType[]", description: "Filter to specific ledger entry types. Empty means all types." },
+    view: { type: "LedgerView", description: "Server-resolved ledger slice. When set to `LedgerView.statement`, the server returns only customer-facing money-movement entry types and excludes internal mechanics (per-call usage debits, reservation holds/releases). Defaults to the full ledger." },
   }}
 />
 
