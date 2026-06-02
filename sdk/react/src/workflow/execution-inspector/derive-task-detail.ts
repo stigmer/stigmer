@@ -99,11 +99,30 @@ export interface TaskDetailApproval {
   readonly decision: TaskDetailApprovalDecision | null;
 }
 
+/**
+ * A resolved human_input decision, sourced from the canonical task-output
+ * record (the runner stores the reviewer's full response as the task
+ * output) and enriched with timing from the `approval_resolved` event.
+ *
+ * `outcome` is the empty string during the brief window after a decision
+ * is signalled but before the status snapshot reflects the task output —
+ * consumers render a "finalizing" affordance in that state.
+ */
 export interface TaskDetailApprovalDecision {
-  readonly action: string;
-  readonly resolvedBy: string;
+  /** Chosen outcome identifier (e.g. "approve", "pause_campaigns"). */
+  readonly outcome: string;
+  /** Reviewer who made the decision. */
+  readonly reviewer: string;
+  /** ISO-8601 timestamp the decision was recorded, or `null`. */
+  readonly respondedAt: string | null;
+  /** Free-text comment the reviewer attached, or the empty string. */
   readonly comment: string;
+  /** Structured form answers submitted with the decision, or `null`. */
+  readonly formData: JsonObject | null;
+  /** How long the gate was pending, in milliseconds (from the event). */
   readonly waitDurationMs: number;
+  /** `true` when a timeout policy resolved the gate without a human. */
+  readonly autoResolved: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -150,7 +169,7 @@ export function deriveTaskDetail(
     WorkflowTaskKind.workflow_task_kind_unspecified;
 
   const agentCall = buildAgentCall(buckets, taskKind, snapshotMeta);
-  const approval = buildApproval(buckets);
+  const approval = buildApproval(buckets, taskSnapshot?.output);
 
   const status = derivedState?.status ?? "pending";
   const displayName = kindToDisplayName(taskKindToString(taskKind));
@@ -471,11 +490,34 @@ function buildAgentCall(
   return null;
 }
 
-function buildApproval(buckets: EventBuckets): TaskDetailApproval | null {
+function buildApproval(
+  buckets: EventBuckets,
+  taskOutput: JsonObject | undefined,
+): TaskDetailApproval | null {
   if (!buckets.approvalRequested) return null;
 
   const req = buckets.approvalRequested;
   const res = buckets.approvalResolved;
+
+  // The human_input task's output IS the canonical decision record: the
+  // runner persists the reviewer's full response ({ outcome, reviewer,
+  // responded_at, comment, form_data, auto_resolved }) as the task output,
+  // a google.protobuf.Struct, so every field survives. Prefer it, and fall
+  // back to the lightweight approval_resolved event for fields the output
+  // snapshot has not captured yet (the brief window after a decision is
+  // signalled but before the status snapshot refreshes).
+  const outputOutcome = readSnapshotString(taskOutput, "outcome");
+  const hasDecision = res !== null || outputOutcome !== "";
+  if (!hasDecision) {
+    return {
+      prompt: req.prompt,
+      approvers: req.approvers,
+      outcomes: req.outcomes,
+      formSchema: req.formSchema,
+      timeoutSeconds: req.timeoutSeconds,
+      decision: null,
+    };
+  }
 
   return {
     prompt: req.prompt,
@@ -483,13 +525,28 @@ function buildApproval(buckets: EventBuckets): TaskDetailApproval | null {
     outcomes: req.outcomes,
     formSchema: req.formSchema,
     timeoutSeconds: req.timeoutSeconds,
-    decision: res
-      ? {
-          action: String(res.action),
-          resolvedBy: res.resolvedBy,
-          comment: res.comment,
-          waitDurationMs: res.waitDurationMs,
-        }
-      : null,
+    decision: {
+      outcome: outputOutcome,
+      reviewer: readSnapshotString(taskOutput, "reviewer") || (res?.resolvedBy ?? ""),
+      respondedAt: readSnapshotString(taskOutput, "responded_at") || null,
+      comment: readSnapshotString(taskOutput, "comment") || (res?.comment ?? ""),
+      formData: readSnapshotObject(taskOutput, "form_data"),
+      waitDurationMs: res?.waitDurationMs ?? 0,
+      autoResolved: taskOutput?.["auto_resolved"] === true,
+    },
   };
+}
+
+/** Reads a string field from a task-output Struct, or `""` when absent. */
+function readSnapshotString(obj: JsonObject | undefined, key: string): string {
+  const value = obj?.[key];
+  return typeof value === "string" ? value : "";
+}
+
+/** Reads a nested object field from a task-output Struct, or `null`. */
+function readSnapshotObject(obj: JsonObject | undefined, key: string): JsonObject | null {
+  const value = obj?.[key];
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? (value as JsonObject)
+    : null;
 }

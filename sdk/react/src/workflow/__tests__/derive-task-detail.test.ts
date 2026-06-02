@@ -615,9 +615,10 @@ describe("deriveTaskDetail", () => {
     expect(result!.approval!.decision).toBeNull();
   });
 
-  // 14. Approval resolved
-  it("populates approval decision from approvalRequested + approvalResolved", () => {
-    const derived = makeDerived({ status: "completed" });
+  // 14. Approval resolved — event-only (the brief "finalizing" window before
+  // the task-output snapshot reflects the decision)
+  it("populates approval decision from the event when the task output is not yet available", () => {
+    const derived = makeDerived({ status: "running" });
     const events = [
       makeEvent("my-task", 1, "2026-01-01T00:00:00Z", {
         case: "approvalRequested",
@@ -634,7 +635,7 @@ describe("deriveTaskDetail", () => {
         value: {
           action: 1,
           resolvedBy: "admin",
-          comment: "Looks good",
+          comment: "from event",
           waitDurationMs: BigInt(30000),
         },
       }),
@@ -644,10 +645,118 @@ describe("deriveTaskDetail", () => {
 
     expect(result!.approval).not.toBeNull();
     expect(result!.approval!.decision).not.toBeNull();
-    expect(result!.approval!.decision!.action).toBe("1");
-    expect(result!.approval!.decision!.resolvedBy).toBe("admin");
-    expect(result!.approval!.decision!.comment).toBe("Looks good");
+    // No task output snapshot yet: outcome is empty (consumers show a
+    // "finalizing" affordance), reviewer/comment come from the event.
+    expect(result!.approval!.decision!.outcome).toBe("");
+    expect(result!.approval!.decision!.reviewer).toBe("admin");
+    expect(result!.approval!.decision!.comment).toBe("from event");
     expect(result!.approval!.decision!.waitDurationMs).toBe(30000);
+    expect(result!.approval!.decision!.formData).toBeNull();
+    expect(result!.approval!.decision!.autoResolved).toBe(false);
+  });
+
+  // 14b. Approval resolved — sourced from the canonical task-output record
+  it("sources the approval decision from the task-output snapshot", () => {
+    const derived = makeDerived({ status: "completed" });
+    const events = [
+      makeEvent("my-task", 1, "2026-01-01T00:00:00Z", {
+        case: "approvalRequested",
+        value: {
+          prompt: "Deploy?",
+          approvers: ["admin"],
+          timeoutSeconds: 60,
+          outcomes: [{ name: "approve", label: "Approve Plan" }],
+          formSchema: null,
+        },
+      }),
+    ];
+    const snapshot = makeSnapshot({
+      output: {
+        outcome: "approve",
+        reviewer: "alice",
+        responded_at: "2026-01-01T00:00:45Z",
+        comment: "ship it",
+        form_data: { feedback: "great plan" },
+      } as unknown as WorkflowTask["output"],
+    });
+
+    const result = deriveTaskDetail("my-task", events, snapshot, derived);
+
+    expect(result!.approval!.decision).not.toBeNull();
+    expect(result!.approval!.decision!.outcome).toBe("approve");
+    expect(result!.approval!.decision!.reviewer).toBe("alice");
+    expect(result!.approval!.decision!.respondedAt).toBe("2026-01-01T00:00:45Z");
+    expect(result!.approval!.decision!.comment).toBe("ship it");
+    expect(result!.approval!.decision!.formData).toEqual({ feedback: "great plan" });
+  });
+
+  // 14c. Snapshot wins over event for overlapping fields
+  it("prefers the task-output snapshot over the event for overlapping fields", () => {
+    const derived = makeDerived({ status: "completed" });
+    const events = [
+      makeEvent("my-task", 1, "2026-01-01T00:00:00Z", {
+        case: "approvalRequested",
+        value: {
+          prompt: "Deploy?",
+          approvers: [],
+          timeoutSeconds: 0,
+          outcomes: [],
+          formSchema: null,
+        },
+      }),
+      makeEvent("my-task", 2, "2026-01-01T00:00:30Z", {
+        case: "approvalResolved",
+        value: {
+          action: 1,
+          resolvedBy: "bot",
+          comment: "from event",
+          waitDurationMs: BigInt(12000),
+        },
+      }),
+    ];
+    const snapshot = makeSnapshot({
+      output: {
+        outcome: "approve",
+        reviewer: "alice",
+        comment: "from snapshot",
+      } as unknown as WorkflowTask["output"],
+    });
+
+    const result = deriveTaskDetail("my-task", events, snapshot, derived);
+
+    expect(result!.approval!.decision!.outcome).toBe("approve");
+    expect(result!.approval!.decision!.reviewer).toBe("alice"); // snapshot wins
+    expect(result!.approval!.decision!.comment).toBe("from snapshot"); // snapshot wins
+    expect(result!.approval!.decision!.waitDurationMs).toBe(12000); // event fills the gap
+  });
+
+  // 14d. Auto-resolved + ignores internal routing keys
+  it("reads auto_resolved and ignores internal keys in the task output", () => {
+    const derived = makeDerived({ status: "completed" });
+    const events = [
+      makeEvent("my-task", 1, "2026-01-01T00:00:00Z", {
+        case: "approvalRequested",
+        value: {
+          prompt: "Deploy?",
+          approvers: [],
+          timeoutSeconds: 0,
+          outcomes: [],
+          formSchema: null,
+        },
+      }),
+    ];
+    const snapshot = makeSnapshot({
+      output: {
+        outcome: "approve",
+        auto_resolved: true,
+        __flow_directive__: "gatherMore",
+      } as unknown as WorkflowTask["output"],
+    });
+
+    const result = deriveTaskDetail("my-task", events, snapshot, derived);
+
+    expect(result!.approval!.decision!.outcome).toBe("approve");
+    expect(result!.approval!.decision!.autoResolved).toBe(true);
   });
 
   it("returns null approval when no approvalRequested event exists", () => {

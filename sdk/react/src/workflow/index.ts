@@ -215,6 +215,11 @@ export {
   type TaskOutcome,
 } from "./WorkflowTaskApprovalCard";
 
+export {
+  WorkflowTaskApprovalSummary,
+  type WorkflowTaskApprovalSummaryProps,
+} from "./WorkflowTaskApprovalSummary";
+
 // T14: Dashboard — data hooks
 export {
   useWorkflowDashboardSummary,
