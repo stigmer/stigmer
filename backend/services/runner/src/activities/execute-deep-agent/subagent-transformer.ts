@@ -19,6 +19,7 @@ import { createDeepAgent, FilesystemBackend } from "deepagents";
 import type { CompiledSubAgent } from "deepagents";
 import type { StructuredTool } from "@langchain/core/tools";
 import type { RunnableConfig } from "@langchain/core/runnables";
+import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 
 import type { SubAgent, McpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 
@@ -135,6 +136,13 @@ export interface SubagentTransformOptions {
   readonly parentModelName: string;
   readonly parentHasNativeThinking: boolean;
   readonly costCap?: CostCapMiddleware;
+  /**
+   * Builds a configured chat-model instance for a given model name. When
+   * provided, sub-agents are compiled with the same proxy-aware model client
+   * as the parent (base URL, auth headers, API key). When absent (unit tests),
+   * the model name string is passed to deepagents directly.
+   */
+  readonly modelFactory?: (modelName: string) => BaseChatModel;
 }
 
 // =========================================================================
@@ -398,6 +406,7 @@ export async function compileSubagents(
     readonly costCap?: CostCapMiddleware;
     readonly parentModelName: string;
     readonly workspaceRootDir: string;
+    readonly modelFactory?: (modelName: string) => BaseChatModel;
   },
 ): Promise<CompiledSubAgent[]> {
   if (transformed.length === 0) return [];
@@ -411,7 +420,12 @@ export async function compileSubagents(
         costCap: opts.costCap,
       });
 
-      const model = spec.model ?? opts.parentModelName;
+      const modelName = spec.model ?? opts.parentModelName;
+      // Use a configured model instance (proxy base URL + auth) when a
+      // factory is supplied so sub-agent LLM calls route through the same
+      // proxy as the parent. Falling back to the bare name lets deepagents
+      // construct a default client (unit tests / no-proxy paths).
+      const model = opts.modelFactory ? opts.modelFactory(modelName) : modelName;
 
       const agentGraph = await createDeepAgent({
         model,
@@ -437,7 +451,7 @@ export async function compileSubagents(
 
       console.log(
         `[subagent-transformer] Compiled sub-agent '${spec.name}' ` +
-        `(model=${model}, tools=${spec.tools.length})`,
+        `(model=${modelName}, tools=${spec.tools.length})`,
       );
     } catch (err) {
       console.error(
@@ -478,6 +492,7 @@ export async function transformAndCompileSubagents(
     parentModelName,
     parentHasNativeThinking,
     costCap,
+    modelFactory,
   } = options;
 
   if (subAgents.length === 0 && !workspaceBackend.rootDir) {
@@ -589,6 +604,7 @@ export async function transformAndCompileSubagents(
     costCap,
     parentModelName,
     workspaceRootDir: workspaceBackend.rootDir,
+    modelFactory,
   });
 
   if (compiled.length === 0) {

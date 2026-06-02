@@ -124,10 +124,20 @@ async function streamAndCollect(
       content += messageChunk.content;
     }
 
+    // Usage is split across stream chunks: Anthropic reports input_tokens in
+    // the message_start chunk and the (cumulative) output_tokens in the
+    // message_delta chunk — which also carries input_tokens: 0. Take the max
+    // per field so a later zero never clobbers an earlier non-zero count, and
+    // so cumulative output totals are preserved. (OpenAI reports both in a
+    // single final chunk, where max is equivalent.)
     const usage = (messageChunk as unknown as { usage_metadata?: { input_tokens?: number; output_tokens?: number } }).usage_metadata;
     if (usage) {
-      inputTokens = usage.input_tokens ?? inputTokens;
-      outputTokens = usage.output_tokens ?? outputTokens;
+      if (typeof usage.input_tokens === "number") {
+        inputTokens = Math.max(inputTokens, usage.input_tokens);
+      }
+      if (typeof usage.output_tokens === "number") {
+        outputTokens = Math.max(outputTokens, usage.output_tokens);
+      }
     }
   }
 

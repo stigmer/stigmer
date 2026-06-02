@@ -31,7 +31,7 @@ spec:
     - name: draft_content
       kind: llm_call
       task_config:
-        model: "claude-sonnet-4-5"
+        model: "claude-sonnet-4.5"
         system_prompt: >
           You are a professional content writer. Write clear, engaging content
           that follows the provided guidelines. Output well-structured prose
@@ -83,7 +83,7 @@ spec:
     - name: revise_content
       kind: llm_call
       task_config:
-        model: "claude-sonnet-4-5"
+        model: "claude-sonnet-4.5"
         system_prompt: >
           You are a professional content writer. Revise the draft based on
           the reviewer's feedback. Preserve what works, fix what doesn't.

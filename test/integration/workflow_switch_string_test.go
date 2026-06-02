@@ -558,6 +558,10 @@ spec:
 
 	workflow, err := harness.ParseWorkflowYAML(yamlContent)
 	require.NoError(t, err)
+	// The YAML metadata omits org (as real CLI fixtures do); the org is
+	// supplied by the apply context. Set it so authorization can derive the
+	// resource-id, matching how the programmatic and seedpack tests apply.
+	workflow.Metadata.Org = harness.TestOrg
 
 	_, execution, err := deployer.DeployAndExecute(ctx, workflow, "switch from YAML test")
 	require.NoError(t, err)

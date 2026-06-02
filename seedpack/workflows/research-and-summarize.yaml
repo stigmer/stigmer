@@ -34,7 +34,7 @@ spec:
     - name: initial_analysis
       kind: llm_call
       task_config:
-        model: "claude-sonnet-4-5"
+        model: "claude-sonnet-4.5"
         system_prompt: >
           You are a research analyst. Analyze the provided source material
           thoroughly. Identify key themes, claims, evidence, and gaps.
@@ -62,7 +62,7 @@ spec:
               - name: summarize
                 kind: llm_call
                 task_config:
-                  model: "claude-sonnet-4-5"
+                  model: "claude-sonnet-4.5"
                   system_prompt: >
                     You are an executive briefing writer. Distill analysis
                     into a concise, actionable summary for decision-makers.
