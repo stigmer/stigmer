@@ -35,6 +35,24 @@ type Config struct {
 	// Authorization: Bearer token.
 	HTTPAuthEnabled bool
 
+	// OAuthEnabled turns on RFC 9728 OAuth discovery on the HTTP transport:
+	// a /.well-known/oauth-protected-resource document and a WWW-Authenticate
+	// challenge on unauthenticated requests. Defaults to false.
+	OAuthEnabled bool
+
+	// OAuthResource is the canonical resource identifier advertised in the
+	// protected-resource metadata (e.g. "https://mcp.stigmer.ai"). Required
+	// when OAuthEnabled is true.
+	OAuthResource string
+
+	// OAuthAuthorizationServers lists the OAuth issuer identifiers (RFC 8414)
+	// advertised to clients. At least one is required when OAuthEnabled is true.
+	OAuthAuthorizationServers []string
+
+	// OAuthScopesSupported optionally advertises the scope values clients may
+	// request. May be empty.
+	OAuthScopesSupported []string
+
 	// LogFormat selects the structured log encoding: "text" or "json".
 	LogFormat string
 
@@ -66,13 +84,17 @@ func DefaultConfig() (*Config, error) {
 // fromInternal maps an internal config to the public representation.
 func fromInternal(ic *config.Config) *Config {
 	return &Config{
-		StigmerServerAddress: ic.StigmerServerAddress,
-		APIKey:               ic.APIKey,
-		Transport:            string(ic.Transport),
-		HTTPPort:             ic.HTTPPort,
-		HTTPAuthEnabled:      ic.HTTPAuthEnabled,
-		LogFormat:            string(ic.LogFormat),
-		LogLevel:             logLevelString(ic.LogLevel),
+		StigmerServerAddress:      ic.StigmerServerAddress,
+		APIKey:                    ic.APIKey,
+		Transport:                 string(ic.Transport),
+		HTTPPort:                  ic.HTTPPort,
+		HTTPAuthEnabled:           ic.HTTPAuthEnabled,
+		OAuthEnabled:              ic.OAuth.Enabled,
+		OAuthResource:             ic.OAuth.Resource,
+		OAuthAuthorizationServers: ic.OAuth.AuthorizationServers,
+		OAuthScopesSupported:      ic.OAuth.ScopesSupported,
+		LogFormat:                 string(ic.LogFormat),
+		LogLevel:                  logLevelString(ic.LogLevel),
 	}
 }
 
@@ -90,8 +112,14 @@ func (c *Config) toInternal() (*config.Config, error) {
 		Transport:            config.Transport(strings.ToLower(c.Transport)),
 		HTTPPort:             c.HTTPPort,
 		HTTPAuthEnabled:      c.HTTPAuthEnabled,
-		LogFormat:            config.LogFormat(strings.ToLower(c.LogFormat)),
-		LogLevel:             logLevel,
+		OAuth: config.OAuthMetadata{
+			Enabled:              c.OAuthEnabled,
+			Resource:             c.OAuthResource,
+			AuthorizationServers: c.OAuthAuthorizationServers,
+			ScopesSupported:      c.OAuthScopesSupported,
+		},
+		LogFormat: config.LogFormat(strings.ToLower(c.LogFormat)),
+		LogLevel:  logLevel,
 	}
 
 	if err := ic.Validate(); err != nil {
