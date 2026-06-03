@@ -14,6 +14,10 @@ func clearEnv(t *testing.T) {
 		"STIGMER_MCP_TRANSPORT",
 		"STIGMER_MCP_HTTP_PORT",
 		"STIGMER_MCP_HTTP_AUTH_ENABLED",
+		"STIGMER_MCP_OAUTH_ENABLED",
+		"STIGMER_MCP_OAUTH_RESOURCE",
+		"STIGMER_MCP_OAUTH_AUTHORIZATION_SERVERS",
+		"STIGMER_MCP_OAUTH_SCOPES_SUPPORTED",
 		"STIGMER_MCP_LOG_FORMAT",
 		"STIGMER_MCP_LOG_LEVEL",
 	} {
@@ -84,6 +88,38 @@ func TestDefaultConfig_defaults(t *testing.T) {
 	}
 }
 
+func TestDefaultConfig_propagatesOAuth(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("STIGMER_MCP_TRANSPORT", "http")
+	t.Setenv("STIGMER_MCP_OAUTH_ENABLED", "true")
+	t.Setenv("STIGMER_MCP_OAUTH_RESOURCE", "https://mcp.stigmer.ai")
+	t.Setenv("STIGMER_MCP_OAUTH_AUTHORIZATION_SERVERS", "https://stigmer-prod.us.auth0.com/")
+
+	cfg, err := DefaultConfig()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if !cfg.OAuthEnabled {
+		t.Error("OAuthEnabled = false, want true (env var dropped in public Config)")
+	}
+	if cfg.OAuthResource != "https://mcp.stigmer.ai" {
+		t.Errorf("OAuthResource = %q, want %q", cfg.OAuthResource, "https://mcp.stigmer.ai")
+	}
+	if len(cfg.OAuthAuthorizationServers) != 1 {
+		t.Fatalf("OAuthAuthorizationServers = %v, want one issuer", cfg.OAuthAuthorizationServers)
+	}
+
+	// And it must survive the toInternal() conversion the server runs on.
+	ic, err := cfg.toInternal()
+	if err != nil {
+		t.Fatalf("toInternal() error: %v", err)
+	}
+	if !ic.OAuth.Enabled {
+		t.Error("ic.OAuth.Enabled = false after full DefaultConfig→toInternal path, want true")
+	}
+}
+
 func TestDefaultConfig_validationError(t *testing.T) {
 	clearEnv(t)
 	t.Setenv("STIGMER_MCP_TRANSPORT", "websocket")
@@ -96,13 +132,17 @@ func TestDefaultConfig_validationError(t *testing.T) {
 
 func TestConfig_toInternal_roundTrip(t *testing.T) {
 	cfg := &Config{
-		StigmerServerAddress: "api.stigmer.ai:443",
-		APIKey:               "my-key",
-		Transport:            "stdio",
-		HTTPPort:             "9090",
-		HTTPAuthEnabled:      false,
-		LogFormat:            "json",
-		LogLevel:             "warn",
+		StigmerServerAddress:      "api.stigmer.ai:443",
+		APIKey:                    "my-key",
+		Transport:                 "stdio",
+		HTTPPort:                  "9090",
+		HTTPAuthEnabled:           false,
+		OAuthEnabled:              true,
+		OAuthResource:             "https://mcp.stigmer.ai",
+		OAuthAuthorizationServers: []string{"https://stigmer-prod.us.auth0.com/"},
+		OAuthScopesSupported:      []string{"openid", "profile"},
+		LogFormat:                 "json",
+		LogLevel:                  "warn",
 	}
 
 	ic, err := cfg.toInternal()
@@ -110,7 +150,33 @@ func TestConfig_toInternal_roundTrip(t *testing.T) {
 		t.Fatalf("toInternal() error: %v", err)
 	}
 
+	// The internal config the server actually runs on must carry OAuth — a
+	// regression guard for the public-Config round-trip silently dropping it
+	// (which left RFC 9728 discovery disabled in prod despite env vars).
+	if !ic.OAuth.Enabled {
+		t.Error("ic.OAuth.Enabled = false, want true after toInternal()")
+	}
+	if ic.OAuth.Resource != "https://mcp.stigmer.ai" {
+		t.Errorf("ic.OAuth.Resource = %q, want %q", ic.OAuth.Resource, "https://mcp.stigmer.ai")
+	}
+	if len(ic.OAuth.AuthorizationServers) != 1 || ic.OAuth.AuthorizationServers[0] != "https://stigmer-prod.us.auth0.com/" {
+		t.Errorf("ic.OAuth.AuthorizationServers = %v, want [https://stigmer-prod.us.auth0.com/]", ic.OAuth.AuthorizationServers)
+	}
+
 	got := fromInternal(ic)
+
+	if got.OAuthEnabled != cfg.OAuthEnabled {
+		t.Errorf("OAuthEnabled = %v, want %v", got.OAuthEnabled, cfg.OAuthEnabled)
+	}
+	if got.OAuthResource != cfg.OAuthResource {
+		t.Errorf("OAuthResource = %q, want %q", got.OAuthResource, cfg.OAuthResource)
+	}
+	if len(got.OAuthAuthorizationServers) != len(cfg.OAuthAuthorizationServers) {
+		t.Errorf("OAuthAuthorizationServers = %v, want %v", got.OAuthAuthorizationServers, cfg.OAuthAuthorizationServers)
+	}
+	if len(got.OAuthScopesSupported) != len(cfg.OAuthScopesSupported) {
+		t.Errorf("OAuthScopesSupported = %v, want %v", got.OAuthScopesSupported, cfg.OAuthScopesSupported)
+	}
 
 	if got.StigmerServerAddress != cfg.StigmerServerAddress {
 		t.Errorf("StigmerServerAddress = %q, want %q", got.StigmerServerAddress, cfg.StigmerServerAddress)
