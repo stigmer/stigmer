@@ -1,0 +1,46 @@
+apiVersion: kubernetes.project-planton.org/v1
+kind: KubernetesDeployment
+metadata:
+  name: stigmer-mcp
+  org: stigmer
+  labels:
+    project-planton.org/provisioner: pulumi
+    pulumi.project-planton.org/organization: stigmer
+    pulumi.project-planton.org/project: stigmer
+spec:
+  container:
+    app:
+      image:
+        repo: ghcr.io/stigmer/stigmer/mcp-server
+        #tag: <comes-from-ci-git-commit-sha>
+      env:
+        variables:
+          - name: STIGMER_MCP_TRANSPORT
+            value: http
+          - name: STIGMER_MCP_HTTP_PORT
+            value: "8080"
+          - name: STIGMER_MCP_HTTP_AUTH_ENABLED
+            value: "true"
+          - name: STIGMER_MCP_LOG_FORMAT
+            value: json
+          - name: STIGMER_MCP_LOG_LEVEL
+            value: info
+      resources:
+        limits:
+          cpu: 200m
+          memory: 128Mi
+        requests:
+          cpu: 20m
+          memory: 32Mi
+      ports:
+        - name: http-api
+          appProtocol: http
+          networkProtocol: TCP
+          servicePort: 80
+          containerPort: 8080
+          isIngressPort: true
+  availability:
+    minReplicas: 1
+    horizontalPodAutoscaling:
+      isEnabled: false
+  version: main

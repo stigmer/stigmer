@@ -11,15 +11,11 @@ metadata:
 spec:
   description: "Built-in MCP server that exposes Stigmer resources (agents, skills, workflows, MCP servers) to MCP clients via the Model Context Protocol."
   icon_url: "https://raw.githubusercontent.com/stigmer/stigmer/main/site/public/favicon.svg"
-  stdio:
-    command: "go"
-    args:
-      - "run"
-      - "github.com/stigmer/stigmer/mcp-server/cmd/mcp-server-stigmer@latest"
+  http:
+    url: "https://mcp.stigmer.ai"
+    headers:
+      Authorization: "Bearer ${STIGMER_API_KEY}"
   env:
-    STIGMER_SERVER_ADDRESS:
-      is_secret: false
-      description: "gRPC address of the stigmer-server (e.g., localhost:9090 or api.stigmer.ai:443)"
     STIGMER_API_KEY:
       is_secret: true
-      description: "API key for authenticating with stigmer-server (optional for local unauthenticated backends)"
+      description: "Stigmer API key (stk_…) or an access token issued by your organization's identity provider. Forwarded unchanged to stigmer-server, which validates it."

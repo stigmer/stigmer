@@ -103,6 +103,37 @@ stigmer mcp-server --transport http --port 9090
 stigmer mcp-server --server-address my-server.example.com:7234
 ```
 
+### Hosted remote server (mcp.stigmer.ai)
+
+Stigmer Cloud runs this server as a hosted MCP endpoint so you do not have to
+run it locally:
+
+```
+https://mcp.stigmer.ai
+```
+
+It is auth-agnostic — it forwards your `Authorization: Bearer <token>` header
+unchanged to `stigmer-server`, which validates it. `<token>` can be a Stigmer
+API key (`stk_…`, created with `stigmer apikey create`) or an access token from
+your organization's identity provider. Point any MCP client that supports remote
+HTTP servers with custom headers at the endpoint:
+
+```json
+{
+  "mcpServers": {
+    "stigmer": {
+      "url": "https://mcp.stigmer.ai",
+      "headers": { "Authorization": "Bearer stk_your_api_key" }
+    }
+  }
+}
+```
+
+Because the endpoint uses Bearer-token passthrough (not a single-issuer OAuth
+flow, so bring-your-own-IdP orgs keep working), Claude Desktop's OAuth-based
+"Add custom connector" GUI is not supported — use a client that accepts a
+manually-supplied header, or run the server locally over STDIO.
+
 ## Global Flags
 
 | Flag            | Type     | Default | Description                                                     |

@@ -1,0 +1,77 @@
+apiVersion: kubernetes.project-planton.org/v1
+kind: KubernetesDeployment
+metadata:
+  name: stigmer-mcp
+  env: prod
+  labels:
+    pulumi.project-planton.org/stack.name: prod.KubernetesDeployment.stigmer-mcp
+spec:
+  namespace:
+    value: stigmer-prod
+  container:
+    app:
+      resources:
+        limits:
+          cpu: 500m
+          memory: 256Mi
+        requests:
+          cpu: 20m
+          memory: 32Mi
+      env:
+        # NOTE: kustomize replaces this list wholesale when patching the base
+        # (the KubernetesDeployment CRD has no merge-key schema), so the full
+        # runtime env is repeated here, not just the prod-specific additions.
+        variables:
+          - name: STIGMER_MCP_TRANSPORT
+            value: http
+          - name: STIGMER_MCP_HTTP_PORT
+            value: "8080"
+          # Require an Authorization: Bearer token on every request.
+          - name: STIGMER_MCP_HTTP_AUTH_ENABLED
+            value: "true"
+          - name: STIGMER_MCP_LOG_FORMAT
+            value: json
+          - name: STIGMER_MCP_LOG_LEVEL
+            value: info
+          # gRPC dial target for stigmer-server (internal Kubernetes service,
+          # plain gRPC). The MCP server is auth-agnostic: it forwards each
+          # request's Authorization: Bearer token unchanged to stigmer-server,
+          # which validates it (Auth0 JWTs, federated org-IdP JWTs, or stk_ API
+          # keys). No issuer is assumed here, so bring-your-own-IdP works.
+          - name: STIGMER_SERVER_ADDRESS
+            value: $variables-group/stigmer-api/prod.kube-endpoint
+      # Health probes for zero-downtime deployments (HTTP /health).
+      readinessProbe:
+        httpGet:
+          path: /health
+          portNumber: 8080
+        initialDelaySeconds: 5
+        periodSeconds: 10
+        timeoutSeconds: 3
+        failureThreshold: 3
+      livenessProbe:
+        httpGet:
+          path: /health
+          portNumber: 8080
+        initialDelaySeconds: 10
+        periodSeconds: 30
+        timeoutSeconds: 5
+        failureThreshold: 3
+      startupProbe:
+        httpGet:
+          path: /health
+          portNumber: 8080
+        initialDelaySeconds: 0
+        periodSeconds: 2
+        timeoutSeconds: 3
+        failureThreshold: 30
+  availability:
+    deploymentStrategy:
+      maxUnavailable: "0"
+      maxSurge: "1"
+    podDisruptionBudget:
+      enabled: true
+      minAvailable: "1"
+  ingress:
+    enabled: true
+    hostname: mcp.stigmer.ai
