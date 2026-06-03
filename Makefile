@@ -76,7 +76,7 @@ install-vale: ## Install Vale prose linter (auto-detects OS)
 
 # ─── Build ────────────────────────────────────
 
-.PHONY: build build-mcp-server build-java-protos build-java-sdk build-runner protos codegen build-ts-stubs gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-task-docs gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-task-docs-check
+.PHONY: build build-mcp-server build-java-protos build-java-sdk build-runner protos codegen build-ts-stubs gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-task-docs gen-task-registry gen-task-registry-check gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-task-docs-check
 build: libs-build build-web verify-desktop docs-build build-mcp-server build-java-sdk build-runner ## Build all project artifacts
 	@mkdir -p bin
 	cd client-apps/cli && go build -o ../../bin/stigmer .
@@ -106,7 +106,7 @@ protos: ## Generate protocol buffer stubs and SDK client code
 	$(MAKE) -C sdk/python codegen
 	$(MAKE) -C sdk/java codegen
 
-gen-sdk-docs: gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-cli-docs gen-task-docs ## Generate all SDK reference docs
+gen-sdk-docs: gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-cli-docs gen-task-docs gen-task-registry ## Generate all SDK reference docs
 
 gen-proto-sdk-docs: ## Generate SDK resource docs from proto schemas
 	go run ./tools/codegen/generator --comprehensive --target=sdk-docs \
@@ -118,6 +118,34 @@ gen-task-docs: ## Generate per-task reference docs from schemas
 		--meta-dir apis/ai/stigmer/agentic/workflow/v1/tasks/meta
 	npx prettier --write --prose-wrap always docs/guides/workflow-tasks/*.mdx
 
+gen-task-registry: ## Generate task-kind-registry.json + JSON Schemas and sync into the backend embed
+	go run ./tools/codegen/generator --comprehensive --target=task-registry \
+		--schema-dir tools/codegen/schemas --output-dir tools/codegen/output \
+		--meta-dir apis/ai/stigmer/agentic/workflow/v1/tasks/meta
+	rm -rf backend/services/stigmer-server/pkg/domain/workflow/registry/data
+	mkdir -p backend/services/stigmer-server/pkg/domain/workflow/registry/data
+	cp tools/codegen/output/task-kind-registry.json \
+		backend/services/stigmer-server/pkg/domain/workflow/registry/data/task-kind-registry.json
+	cp -R tools/codegen/output/json-schemas \
+		backend/services/stigmer-server/pkg/domain/workflow/registry/data/json-schemas
+
+gen-task-registry-check: ## Verify the task kind registry is up to date and synced (CI)
+	@go run ./tools/codegen/generator --comprehensive --target=task-registry \
+		--schema-dir tools/codegen/schemas --output-dir tools/codegen/output \
+		--meta-dir apis/ai/stigmer/agentic/workflow/v1/tasks/meta && \
+	if ! diff -q tools/codegen/output/task-kind-registry.json \
+		backend/services/stigmer-server/pkg/domain/workflow/registry/data/task-kind-registry.json > /dev/null 2>&1; then \
+		echo "error: task kind registry is stale or unsynced — run 'make gen-task-registry'"; exit 1; \
+	fi; \
+	if ! diff -rq tools/codegen/output/json-schemas \
+		backend/services/stigmer-server/pkg/domain/workflow/registry/data/json-schemas > /dev/null 2>&1; then \
+		echo "error: task kind JSON Schemas are unsynced with the backend embed — run 'make gen-task-registry'"; exit 1; \
+	fi; \
+	if ! git diff --quiet tools/codegen/output/task-kind-registry.json tools/codegen/output/json-schemas/; then \
+		echo "error: task kind registry is stale — run 'make gen-task-registry'"; exit 1; \
+	fi; \
+	echo "✓ Task kind registry is up to date"
+
 gen-react-sdk-docs: ## Generate React SDK reference docs from TypeDoc
 	cd sdk/react && npm run typedoc:json
 	cd site && yarn generate-react-sdk-docs
@@ -126,7 +154,7 @@ gen-ink-sdk-docs: ## Generate Ink SDK reference docs from TypeDoc
 	cd sdk/ink && npm run typedoc:json
 	cd site && yarn generate-ink-sdk-docs
 
-gen-sdk-docs-check: gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-cli-docs-check gen-task-docs-check ## Verify all SDK docs are up to date (CI)
+gen-sdk-docs-check: gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-cli-docs-check gen-task-docs-check gen-task-registry-check ## Verify all SDK docs are up to date (CI)
 
 gen-proto-sdk-docs-check: ## Verify proto SDK docs are up to date (CI)
 	@tmpdir=$$(mktemp -d) && \

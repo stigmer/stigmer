@@ -6,6 +6,10 @@
       "description": "Target task to branch to when schema validation cannot be resolved. Used in two scenarios: 1. on_invalid is ON_INVALID_RETRY and all retries are exhausted 2. on_invalid is ON_INVALID_FALLBACK (immediate branch, no retry) Must reference a valid task name in the same workflow. When empty and retries are exhausted, the task fails.",
       "type": "string"
     },
+    "max_cost_micros": {
+      "description": "Per-task cost cap in micro-USD (1 USD = 1,000,000 micros). When set, the runtime terminates this specific LLM call if its cost exceeds this limit, independent of the workflow-level budget. The runtime checks both: per-task limit first, then workflow remaining budget. Optional — when 0, no per-task cost limit is enforced.",
+      "type": "integer"
+    },
     "max_retries": {
       "description": "Maximum schema-validation retry attempts when on_invalid is ON_INVALID_RETRY. Each retry re-prompts the LLM with the validation errors and expected schema, giving it an opportunity to self-correct. Only meaningful when on_invalid is ON_INVALID_RETRY; ignored otherwise. Default: 1. Valid range: 1-5.",
       "maximum": 5,
@@ -15,6 +19,10 @@
     "max_tokens": {
       "description": "Maximum tokens in the LLM response. Optional — uses the provider's default when not set.",
       "minimum": 1,
+      "type": "integer"
+    },
+    "max_total_tokens": {
+      "description": "Per-task token cap (input + output tokens combined). When set, the runtime terminates this specific LLM call if total tokens exceed this limit. Complements max_tokens (field 6), which limits only the output token count as a generation parameter. Optional — when 0, no per-task total token limit is enforced.",
       "type": "integer"
     },
     "model": {
