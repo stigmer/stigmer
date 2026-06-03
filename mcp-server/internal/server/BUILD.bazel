@@ -17,7 +17,9 @@ go_library(
         "//mcp-server/internal/domains/skills",
         "//mcp-server/internal/domains/workflowexecutions",
         "//mcp-server/internal/domains/workflows",
+        "@com_github_modelcontextprotocol_go_sdk//auth",
         "@com_github_modelcontextprotocol_go_sdk//mcp",
+        "@com_github_modelcontextprotocol_go_sdk//oauthex",
     ],
 )
 
@@ -25,5 +27,8 @@ go_test(
     name = "server_test",
     srcs = ["http_test.go"],
     embed = [":server"],
-    deps = ["//mcp-server/internal/auth"],
+    deps = [
+        "//mcp-server/internal/auth",
+        "//mcp-server/internal/config",
+    ],
 )

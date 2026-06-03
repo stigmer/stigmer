@@ -58,6 +58,10 @@ Configuration precedence: CLI flags > environment variables >
 | `STIGMER_MCP_TRANSPORT` | `stdio` | Transport mode |
 | `STIGMER_MCP_HTTP_PORT` | `8080` | HTTP listen port |
 | `STIGMER_MCP_HTTP_AUTH_ENABLED` | `true` | Enable HTTP authentication |
+| `STIGMER_MCP_OAUTH_ENABLED` | `false` | Advertise OAuth discovery (RFC 9728) for OAuth-only clients |
+| `STIGMER_MCP_OAUTH_RESOURCE` | _(none)_ | Canonical resource URI (e.g. `https://mcp.stigmer.ai`); required when OAuth enabled |
+| `STIGMER_MCP_OAUTH_AUTHORIZATION_SERVERS` | _(none)_ | Comma-separated authorization-server issuer URLs; required when OAuth enabled |
+| `STIGMER_MCP_OAUTH_SCOPES_SUPPORTED` | _(none)_ | Comma-separated scopes to advertise (optional) |
 | `STIGMER_MCP_LOG_FORMAT` | `text` | Log format (`text` or `json`) |
 | `STIGMER_MCP_LOG_LEVEL` | `info` | Minimum log level |
 
@@ -92,11 +96,14 @@ run it locally:
 https://mcp.stigmer.ai
 ```
 
-It is auth-agnostic — it forwards your `Authorization: Bearer <token>` header
-unchanged to `stigmer-server`, which validates it. `<token>` can be a Stigmer
-API key (`stk_…`, created with `stigmer apikey create`) or an access token from
-your organization's identity provider. Point any MCP client that supports remote
-HTTP servers with custom headers at the endpoint:
+It supports two authentication styles that work side by side:
+
+**Manual header (any client, any identity provider).** The server forwards your
+`Authorization: Bearer <token>` header unchanged to `stigmer-server`, which
+validates it. `<token>` can be a Stigmer API key (`stk_…`, created with
+`stigmer apikey create`) or an access token from your organization's identity
+provider. Point any MCP client that supports remote HTTP servers with custom
+headers at the endpoint:
 
 ```json
 {
@@ -109,10 +116,18 @@ HTTP servers with custom headers at the endpoint:
 }
 ```
 
-Because the endpoint uses Bearer-token passthrough (not a single-issuer OAuth
-flow, so bring-your-own-IdP orgs keep working), Claude Desktop's OAuth-based
-"Add custom connector" GUI is not supported — use a client that accepts a
-manually-supplied header, or run the server locally over STDIO.
+**OAuth connector (Claude Desktop, claude.ai, and other OAuth-only clients).**
+The endpoint also implements OAuth 2.0 discovery (RFC 9728): it advertises an
+authorization server so clients that only support an "Add custom connector" GUI
+can sign in without a manually-supplied header. Paste `https://mcp.stigmer.ai`
+into the connector dialog and complete the browser sign-in — the client
+registers itself and obtains a token automatically.
+
+This OAuth path signs you in through Stigmer's primary identity provider
+(Auth0). If your organization brings its own identity provider, use the manual
+header above (or run the server locally over STDIO) until per-org OAuth
+discovery is available. The two styles are independent: enabling OAuth discovery
+does not change the manual-header behavior.
 
 {/* AUTO_GLOBAL_FLAGS */}
 

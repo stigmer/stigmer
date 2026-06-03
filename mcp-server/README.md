@@ -180,6 +180,10 @@ VS Code uses `"servers"` instead of `"mcpServers"` as the top-level key:
 | `STIGMER_MCP_TRANSPORT` | `stdio` | Transport mode: `stdio`, `http`, or `both`. |
 | `STIGMER_MCP_HTTP_PORT` | `8080` | TCP port for the HTTP transport. |
 | `STIGMER_MCP_HTTP_AUTH_ENABLED` | `true` | Require `Authorization: Bearer <token>` on HTTP requests. |
+| `STIGMER_MCP_OAUTH_ENABLED` | `false` | Advertise OAuth 2.0 discovery (RFC 9728) so OAuth-only clients can self-onboard. Additive; does not change Bearer passthrough. |
+| `STIGMER_MCP_OAUTH_RESOURCE` | *(none)* | Canonical resource identifier (e.g. `https://mcp.stigmer.ai`). Required when OAuth is enabled. |
+| `STIGMER_MCP_OAUTH_AUTHORIZATION_SERVERS` | *(none)* | Comma-separated OAuth authorization-server issuer URLs (RFC 8414). Required when OAuth is enabled. |
+| `STIGMER_MCP_OAUTH_SCOPES_SUPPORTED` | *(none)* | Comma-separated scope values to advertise. Optional. |
 | `STIGMER_MCP_LOG_FORMAT` | `text` | Log encoding: `text` or `json`. Logs are written to stderr. |
 | `STIGMER_MCP_LOG_LEVEL` | `info` | Minimum log severity: `debug`, `info`, `warn`, or `error`. |
 
@@ -430,8 +434,8 @@ terminates TLS), and forwards every request to the in-cluster `stigmer-server`.
 
 ### Authentication is provider-agnostic
 
-The server does **not** assume any particular identity provider. It takes the
-`Authorization: Bearer <token>` header and forwards it unchanged to
+The server does **not** validate or assume any particular identity provider. It
+takes the `Authorization: Bearer <token>` header and forwards it unchanged to
 `stigmer-server`, which validates it. A valid `<token>` is any of:
 
 - a Stigmer API key (`stk_…`) created with `stigmer apikey create`,
@@ -439,8 +443,35 @@ The server does **not** assume any particular identity provider. It takes the
   console uses), or
 - a Stigmer-issued platform-client token.
 
-This is why there is no built-in OAuth flow: a single hardwired authorization
-server would only work for one IdP and would break bring-your-own-IdP orgs.
+This Bearer passthrough is the universal path: it works for every identity
+provider and every API key, and is unaffected by the OAuth discovery described
+below.
+
+### OAuth discovery (RFC 9728), for OAuth-only clients
+
+Some MCP clients — notably Claude Desktop's and claude.ai's "Add custom
+connector" GUI — cannot accept a manually-supplied header; they require the
+MCP authorization flow. When `STIGMER_MCP_OAUTH_ENABLED=true` (set in the
+hosted `prod` overlay), the server adds, **without** changing passthrough:
+
+- a `GET /.well-known/oauth-protected-resource` document
+  (`STIGMER_MCP_OAUTH_RESOURCE` + `STIGMER_MCP_OAUTH_AUTHORIZATION_SERVERS`)
+  advertising the authorization server, and
+- a `WWW-Authenticate: Bearer …, resource_metadata="…"` challenge on requests
+  that arrive without a token.
+
+The server still does not run an OAuth server or validate tokens — it only
+points clients at the configured authorization server (the hosted deployment
+uses Stigmer's primary Auth0 tenant) and continues to forward whatever Bearer
+token the client ultimately presents. Clients that send a header directly never
+trigger the challenge.
+
+**Bring-your-own-IdP limitation (v1):** the advertised authorization server is
+a single issuer. Users in orgs that federate their own IdP should keep using a
+manual header (or local STDIO); per-org OAuth discovery is future work. The OSS
+binary keeps these issuer values in configuration only, so it remains
+issuer-agnostic — the Auth0 values live in the cloud `prod` overlay, never in
+code.
 
 ### Connecting a client
 
@@ -462,11 +493,13 @@ The hosted endpoint is also published as the built-in marketplace entry,
 [`seedpack/mcp-servers/stigmer.yaml`](../seedpack/mcp-servers/stigmer.yaml),
 so Stigmer agents can connect to it via `mcp_server_usages`.
 
-> **Claude Desktop note:** Claude Desktop's "Add custom connector" GUI expects a
-> full OAuth 2.0 handshake from the remote server. Because this server uses
-> Bearer-token passthrough (not a single-issuer OAuth flow), use a client that
-> supports a manually-supplied `Authorization` header. Native OAuth-GUI support
-> would require an issuer-agnostic OAuth layer and is intentionally out of scope.
+> **Claude Desktop / claude.ai note:** the "Add custom connector" GUI uses the
+> MCP OAuth flow. With OAuth discovery enabled on the hosted endpoint (see
+> [OAuth discovery](#oauth-discovery-rfc-9728-for-oauth-only-clients)), paste
+> `https://mcp.stigmer.ai` into the connector dialog and complete the browser
+> sign-in — the client self-registers and obtains a token. Sign-in goes through
+> Stigmer's primary IdP (Auth0); bring-your-own-IdP orgs should use a manual
+> header or local STDIO for now.
 
 ### Deployment
 

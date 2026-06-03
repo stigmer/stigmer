@@ -16,6 +16,10 @@ func clearEnv(t *testing.T) {
 		"STIGMER_MCP_TRANSPORT",
 		"STIGMER_MCP_HTTP_PORT",
 		"STIGMER_MCP_HTTP_AUTH_ENABLED",
+		"STIGMER_MCP_OAUTH_ENABLED",
+		"STIGMER_MCP_OAUTH_RESOURCE",
+		"STIGMER_MCP_OAUTH_AUTHORIZATION_SERVERS",
+		"STIGMER_MCP_OAUTH_SCOPES_SUPPORTED",
 		"STIGMER_MCP_LOG_FORMAT",
 		"STIGMER_MCP_LOG_LEVEL",
 	} {
@@ -361,5 +365,87 @@ func TestValidate_addressWithoutPort(t *testing.T) {
 	}
 	if err := c.Validate(); err != nil {
 		t.Errorf("portless address should pass validation (with warning): %v", err)
+	}
+}
+
+func TestLoadFromEnv_oauthDisabledByDefault(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("STIGMER_API_KEY", "test-key")
+
+	cfg, err := LoadFromEnv()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.OAuth.Enabled {
+		t.Error("OAuth.Enabled = true, want false by default")
+	}
+}
+
+func TestLoadFromEnv_oauthEnabled(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("STIGMER_API_KEY", "test-key")
+	t.Setenv("STIGMER_MCP_OAUTH_ENABLED", "true")
+	t.Setenv("STIGMER_MCP_OAUTH_RESOURCE", "https://mcp.stigmer.ai")
+	t.Setenv("STIGMER_MCP_OAUTH_AUTHORIZATION_SERVERS", "https://stigmer-prod.us.auth0.com/ , https://alt.example.com/")
+	t.Setenv("STIGMER_MCP_OAUTH_SCOPES_SUPPORTED", "openid,profile")
+
+	cfg, err := LoadFromEnv()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !cfg.OAuth.Enabled {
+		t.Fatal("OAuth.Enabled = false, want true")
+	}
+	if cfg.OAuth.Resource != "https://mcp.stigmer.ai" {
+		t.Errorf("OAuth.Resource = %q, want https://mcp.stigmer.ai", cfg.OAuth.Resource)
+	}
+	// splitList must trim surrounding whitespace and preserve order.
+	wantServers := []string{"https://stigmer-prod.us.auth0.com/", "https://alt.example.com/"}
+	if len(cfg.OAuth.AuthorizationServers) != len(wantServers) {
+		t.Fatalf("AuthorizationServers = %v, want %v", cfg.OAuth.AuthorizationServers, wantServers)
+	}
+	for i, w := range wantServers {
+		if cfg.OAuth.AuthorizationServers[i] != w {
+			t.Errorf("AuthorizationServers[%d] = %q, want %q", i, cfg.OAuth.AuthorizationServers[i], w)
+		}
+	}
+	if len(cfg.OAuth.ScopesSupported) != 2 {
+		t.Errorf("ScopesSupported = %v, want [openid profile]", cfg.OAuth.ScopesSupported)
+	}
+}
+
+func TestLoadFromEnv_oauthEnabledMissingResource(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("STIGMER_API_KEY", "test-key")
+	t.Setenv("STIGMER_MCP_OAUTH_ENABLED", "true")
+	t.Setenv("STIGMER_MCP_OAUTH_AUTHORIZATION_SERVERS", "https://stigmer-prod.us.auth0.com/")
+
+	if _, err := LoadFromEnv(); err == nil {
+		t.Fatal("expected error when OAuth enabled without a resource, got nil")
+	}
+}
+
+func TestLoadFromEnv_oauthEnabledMissingAuthorizationServers(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("STIGMER_API_KEY", "test-key")
+	t.Setenv("STIGMER_MCP_OAUTH_ENABLED", "true")
+	t.Setenv("STIGMER_MCP_OAUTH_RESOURCE", "https://mcp.stigmer.ai")
+
+	if _, err := LoadFromEnv(); err == nil {
+		t.Fatal("expected error when OAuth enabled without authorization servers, got nil")
+	}
+}
+
+func TestLoadFromEnv_oauthAnyNonTrueDisables(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("STIGMER_API_KEY", "test-key")
+	t.Setenv("STIGMER_MCP_OAUTH_ENABLED", "yes")
+
+	cfg, err := LoadFromEnv()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.OAuth.Enabled {
+		t.Error(`OAuth.Enabled = true for value "yes", want false (only "true" enables)`)
 	}
 }

@@ -29,6 +29,20 @@ spec:
           # Require an Authorization: Bearer token on every request.
           - name: STIGMER_MCP_HTTP_AUTH_ENABLED
             value: "true"
+          # OAuth 2.0 discovery (RFC 9728). This is purely additive: it lets
+          # OAuth-only MCP clients (e.g. Claude Desktop's connector GUI) discover
+          # the authorization server via /.well-known/oauth-protected-resource and
+          # a WWW-Authenticate challenge. Clients that supply a Bearer header
+          # directly (stk_ API keys, BYO-IdP tokens) never hit this path, so
+          # passthrough is unchanged. The advertised issuer is the public Stigmer
+          # Auth0 tenant; the resource identifier matches the ingress hostname and
+          # the Auth0 API (resource server) registered for this server.
+          - name: STIGMER_MCP_OAUTH_ENABLED
+            value: "true"
+          - name: STIGMER_MCP_OAUTH_RESOURCE
+            value: https://mcp.stigmer.ai
+          - name: STIGMER_MCP_OAUTH_AUTHORIZATION_SERVERS
+            value: https://stigmer-prod.us.auth0.com/
           - name: STIGMER_MCP_LOG_FORMAT
             value: json
           - name: STIGMER_MCP_LOG_LEVEL
