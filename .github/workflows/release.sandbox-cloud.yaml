@@ -1,23 +1,72 @@
 name: release.sandbox-cloud
 
 # Builds the cloud sandbox image (unified TypeScript runner) used by
-# Daytona in cloud mode. Triggers on main when the runner code, proto
-# stubs, or Dockerfile change. No semver tags — latest + commit SHA.
+# Daytona in cloud mode.
+#
+# Triggers:
+#   - push to main: rebuild when runner code, proto stubs, or Dockerfile
+#     change (path gate evaluated in the detect-changes job, not via the
+#     event-level `paths:` filter — that filter is unreliable on very large
+#     pushes/merges and silently skipped the v2.0.0 merge).
+#   - push of a v* tag: always rebuild so every release ships a matching
+#     cloud sandbox image.
+#   - workflow_dispatch: manual rebuild/redeploy.
+#
+# Image is tagged with latest + commit SHA (no semver tags).
 on:
   push:
     branches:
       - main
-    paths:
-      - 'backend/services/runner/src/**'
-      - 'backend/services/runner/package.json'
-      - 'backend/services/runner/package-lock.json'
-      - 'backend/services/runner/tsconfig*.json'
-      - 'backend/services/runner/Dockerfile.sandbox'
-      - 'apis/stubs/ts/**'
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 jobs:
+  # Reliable change detection. Event-level `paths:` filtering is skipped by
+  # GitHub on oversized pushes (the v2.0.0 merge changed 1,348 files / ~347K
+  # lines and never triggered this workflow). dorny/paths-filter queries the
+  # API for the real changed-file set, so it works regardless of push size.
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      should_build: ${{ steps.decide.outputs.should_build }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Detect runner-relevant changes
+        id: filter
+        # Only meaningful for main-branch pushes; tag pushes and manual
+        # dispatch always build (handled in the decision step below).
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            runner:
+              - 'backend/services/runner/src/**'
+              - 'backend/services/runner/package.json'
+              - 'backend/services/runner/package-lock.json'
+              - 'backend/services/runner/tsconfig*.json'
+              - 'backend/services/runner/Dockerfile.sandbox'
+              - 'apis/stubs/ts/**'
+
+      - name: Decide whether to build
+        id: decide
+        run: |
+          # Always build on tag pushes (releases) and manual dispatch.
+          # On main pushes, build only when runner-relevant paths changed.
+          if [ "${{ github.event_name }}" != "push" ] || [ "${{ github.ref_type }}" = "tag" ]; then
+            echo "should_build=true" >> "$GITHUB_OUTPUT"
+          elif [ "${{ steps.filter.outputs.runner }}" = "true" ]; then
+            echo "should_build=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_build=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "Build decision: $(cat "$GITHUB_OUTPUT" | grep should_build)"
+
   build-and-push:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.should_build == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
