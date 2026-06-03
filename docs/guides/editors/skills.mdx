@@ -1,0 +1,172 @@
+---
+title: Use Stigmer skills in your AI editor
+description:
+  How assistants pick up Skills, where to download Stigmer's creator Skills from
+  the Seedpack and add them to Claude Code, Cursor, or Claude Desktop, and how
+  to write and push your own domain Skills.
+---
+
+A Skill is a folder of markdown — a `SKILL.md` file plus optional reference
+files — that teaches an AI assistant how to do something well. In Stigmer,
+Skills show up in two places, and both matter when you work from an editor:
+
+- **Domain Skills** are the knowledge your Agents use at run time — your product
+  details, your metrics definitions, your playbooks.
+- **Creator Skills** teach the assistant in _your editor_ how to author Stigmer
+  resources correctly — valid Agent, Workflow, and MCP server definitions.
+
+This guide covers how editors pick up Skills, the creator Skills Stigmer ships,
+and how to maintain your own.
+
+## How editors pick up Skills
+
+How a Skill becomes available depends on the assistant you use:
+
+| Assistant                        | How Skills are added                                                            |
+| -------------------------------- | ------------------------------------------------------------------------------- |
+| **Claude Code / Cursor**         | Loaded automatically from a `.claude/skills/` folder in the repository you open |
+| **Claude Desktop (Cowork/Code)** | Loaded automatically from `.claude/skills/` in a folder you connect             |
+| **Claude Desktop (Chat)**        | Uploaded as a ZIP under **Customize → Skills**, then toggled on                 |
+
+For editors that load Skills from a folder, drop each one in `.claude/skills/`:
+
+```
+your-repo/
+└── .claude/
+    └── skills/
+        ├── agent-creator/
+        │   └── SKILL.md
+        ├── workflow-creator/
+        │   └── SKILL.md
+        └── mcp-server-creator/
+            └── SKILL.md
+```
+
+<Callout type="info">
+  In Claude Code, Cursor, and Claude Desktop's Cowork or Code modes, opening or
+  connecting the folder makes the Skills live immediately. In Claude Desktop's
+  Chat mode there is no folder — add each Skill as a ZIP under **Customize →
+  Skills** (see [Get the creator Skills](#get-the-creator-skills) below).
+</Callout>
+
+## Stigmer's creator Skills
+
+When these Skills are available, you can author Stigmer resources by describing
+what you want — the assistant handles the YAML, the schema, and the validation
+rules:
+
+| Skill                | What it lets you do                                      |
+| -------------------- | -------------------------------------------------------- |
+| `agent-creator`      | Create and edit Agent definitions                        |
+| `workflow-creator`   | Design, refine, and diagnose Workflows                   |
+| `mcp-server-creator` | Define MCP servers that connect Agents to external tools |
+| `skill-creator`      | Author, refine, and package new Skills                   |
+
+For example, with the creator Skills available you can ask:
+
+```
+Create a workflow that runs the analyst agent, then the strategist agent,
+then pauses for my approval.
+```
+
+The assistant writes a valid Workflow definition, validates it, and tells you
+the command to push it. You never have to learn the YAML format yourself.
+
+<Callout type="info">
+  Pair the creator Skills with the [Stigmer MCP
+  connector](/docs/guides/editors/connect-mcp) so the assistant can also
+  validate against your live Organization and create resources directly.
+</Callout>
+
+## Get the creator Skills
+
+The creator Skills are part of the open-source Stigmer **Seedpack**. Download a
+Skill's folder from GitHub (or browse all of them in the
+[Seedpack skills directory](https://github.com/stigmer/stigmer/tree/main/seedpack/skills)):
+
+- [`agent-creator`](https://github.com/stigmer/stigmer/tree/main/seedpack/skills/agent-creator)
+- [`workflow-creator`](https://github.com/stigmer/stigmer/tree/main/seedpack/skills/workflow-creator)
+- [`mcp-server-creator`](https://github.com/stigmer/stigmer/tree/main/seedpack/skills/mcp-server-creator)
+- [`skill-creator`](https://github.com/stigmer/stigmer/tree/main/seedpack/skills/skill-creator)
+
+How you install them depends on your assistant:
+
+- **Claude Code / Cursor / Claude Desktop (Cowork or Code):** copy each Skill
+  folder into `.claude/skills/` in the repository (or connected folder) you work
+  in. They load automatically.
+- **Claude Desktop (Chat):** zip each Skill folder (the ZIP's root must be the
+  Skill folder, containing its `SKILL.md`), then upload it under **Customize →
+  Skills** and toggle it on. This requires **Code execution and file creation**
+  to be enabled in **Settings → Capabilities**.
+
+<Callout type="info">
+  These Skills are also published in the Stigmer marketplace — browse them in
+  the web app under **Library → Skills**.
+</Callout>
+
+## Write and maintain your own domain Skills
+
+Domain Skills are how your Agents get smarter over time. A Skill is just
+markdown, so you edit it like any other file — or ask your assistant to edit it
+for you.
+
+<Steps>
+<Step>
+
+## Create the Skill folder
+
+A Skill is a directory with a `SKILL.md` at its root. Frontmatter declares the
+name and a description that tells the assistant when to use it:
+
+```markdown
+---
+name: return-policy
+description: Use when answering questions about returns, refunds, or exchanges.
+---
+
+# Return policy
+
+Defective items can be returned at any time...
+```
+
+Add `references/` files for longer material the assistant can pull in on demand.
+
+</Step>
+<Step>
+
+## Push it to Stigmer
+
+Once the Skill is ready, push it to your Organization's library with the CLI:
+
+```bash
+stigmer push skill ./skills/return-policy
+```
+
+Run it from the repository root and point it at the Skill folder, or run
+`stigmer push skill` from inside the folder itself. Agents that reference the
+Skill use the new version on their next run.
+
+</Step>
+</Steps>
+
+<Callout type="info">
+  You can also create and edit domain Skills entirely from the web app — see
+  [Your first Skill](/docs/getting-started/first-skill).
+</Callout>
+
+## Going deeper
+
+<Cards>
+  <Card
+    href="/docs/guides/editors/connect-mcp"
+    title="Connect Stigmer to your editor"
+  >
+    Wire up the MCP connector so your assistant can reach your Organization.
+  </Card>
+  <Card href="/docs/concepts/skills" title="Skills concept">
+    How Skills are structured, versioned, and injected into Agent runs.
+  </Card>
+  <Card href="/docs/cli/commands/push" title="stigmer push reference">
+    Push Skills from a local folder or directly from a git repository.
+  </Card>
+</Cards>

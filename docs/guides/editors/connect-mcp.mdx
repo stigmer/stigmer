@@ -1,0 +1,165 @@
+---
+title: Connect Stigmer to your AI editor
+description:
+  Add the Stigmer MCP connector to Claude Code, Cursor, or Claude Desktop so
+  your AI assistant can look up, validate, and create Stigmer resources for you.
+---
+
+Stigmer runs a hosted MCP server at `https://mcp.stigmer.ai`. Connecting it to
+your AI editor lets the assistant you already use — Claude Code, Cursor, or
+Claude Desktop — search your Agents, validate Workflows, and create resources on
+your behalf. You describe what you want in plain language; the assistant does
+the work through the connector.
+
+<Callout type="info">
+  This guide uses the hosted endpoint, which is the right choice if you use
+  Stigmer Cloud (`app.stigmer.ai`). If you run Stigmer locally, see the
+  [`stigmer mcp-server`](/docs/cli/commands/mcp-server) reference for the local
+  STDIO option.
+</Callout>
+
+## Two ways to connect
+
+- **OAuth (Claude Desktop):** sign in through the browser — no API key to
+  manage. This is the simplest path.
+- **API-key header (Claude Code, Cursor):** pass a Stigmer API key in the
+  `Authorization` header.
+
+<Steps>
+<Step>
+
+## (Header method only) Get your API key
+
+Skip this step if you are using Claude Desktop — it signs in through the
+browser. For Claude Code or Cursor, the connector authenticates with a Stigmer
+API key:
+
+1. Open [`app.stigmer.ai`](https://app.stigmer.ai) and go to **Settings → API
+   Keys**.
+2. Click **New API key**, give it a name (for example, `my-editor`), and create
+   it.
+3. Copy the key and keep it somewhere safe. It is shown **only once** and starts
+   with `stk_`.
+
+<Callout type="warn">
+  Treat your API key like a password. Never commit it to a repository or share
+  it in plain text.
+</Callout>
+
+</Step>
+<Step>
+
+## Add the connector
+
+Pick your editor below. For the header methods, replace `stk_your_api_key` with
+the key you just created.
+
+<Tabs items={["Claude Desktop", "Claude Code", "Cursor"]}>
+<Tab value="Claude Desktop">
+
+Claude Desktop signs in through the browser — no API key to paste.
+
+1. Open **Settings → Connectors**.
+2. Click **Add custom connector**.
+3. Enter `https://mcp.stigmer.ai` as the URL and confirm.
+4. Complete the browser sign-in when prompted.
+
+Claude Desktop registers itself and obtains a token automatically through
+Stigmer's OAuth flow.
+
+<Callout type="info">
+  The OAuth flow signs you in through Stigmer's primary identity provider. If
+  your organization brings its own identity provider, use the API-key header
+  method (as shown in the Claude Code or Cursor tabs) instead.
+</Callout>
+
+</Tab>
+<Tab value="Claude Code">
+
+Run this in your terminal (not inside the Claude Code prompt):
+
+```bash
+claude mcp add --transport http stigmer https://mcp.stigmer.ai \
+  --header "Authorization: Bearer stk_your_api_key"
+```
+
+The connector is now registered. Start Claude Code in any directory and it can
+reach Stigmer.
+
+<Callout type="info">
+  On Claude Code 2.1.1+ you can also use the JSON form:
+
+```bash
+claude mcp add-json stigmer '{"type":"http","url":"https://mcp.stigmer.ai","headers":{"Authorization":"Bearer stk_your_api_key"}}'
+```
+
+</Callout>
+
+</Tab>
+<Tab value="Cursor">
+
+Add Stigmer to your MCP configuration. Create or edit `.cursor/mcp.json` in your
+repository (or `~/.cursor/mcp.json` for all repositories):
+
+```json
+{
+  "mcpServers": {
+    "stigmer": {
+      "url": "https://mcp.stigmer.ai",
+      "headers": { "Authorization": "Bearer stk_your_api_key" }
+    }
+  }
+}
+```
+
+Reload Cursor. The Stigmer connector appears in **Settings → MCP**.
+
+</Tab>
+</Tabs>
+
+</Step>
+<Step>
+
+## Verify the connection
+
+Ask your assistant to do something that requires Stigmer. For example:
+
+```
+List the agents in my Stigmer organization.
+```
+
+If the connector is wired up correctly, the assistant calls Stigmer and returns
+your resources. In Claude Code you can also run `/mcp` to confirm `stigmer` is
+connected.
+
+</Step>
+</Steps>
+
+## What you can do now
+
+With the connector in place, your assistant can work with Stigmer directly:
+
+- **Look up resources** — list Agents, inspect a Workflow, or read a Skill.
+- **Validate before you push** — check Workflow YAML for errors as you write it.
+- **Create resources** — author Agents and MCP servers from a description.
+
+To teach your assistant _how_ to author Stigmer resources correctly, pair the
+connector with Stigmer's creator Skills — see
+[Use Stigmer skills in your AI editor](/docs/guides/editors/skills).
+
+## Going deeper
+
+<Cards>
+  <Card
+    href="/docs/guides/editors/skills"
+    title="Use Stigmer skills in your editor"
+  >
+    Let your assistant author Agents, Workflows, and Skills the right way.
+  </Card>
+  <Card
+    href="/docs/cli/commands/mcp-server"
+    title="stigmer mcp-server reference"
+  >
+    Transport modes, environment variables, and the local STDIO option.
+  </Card>
+</Cards>
