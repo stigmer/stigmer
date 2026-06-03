@@ -34,7 +34,7 @@ import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agente
 import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { ExecutionControlSignal, ExecutionPhase, InteractionMode, MessageType, ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { SDKMessage } from "@cursor/sdk";
+import type { SDKMessage, Run, ConversationTurn } from "@cursor/sdk";
 
 import type { Config } from "../../config.js";
 import { StigmerClient } from "../../client/stigmer-client.js";
@@ -131,6 +131,9 @@ async function executeCursorInner(
   let pauseDetected = false;
   let workerShutdownDetected = false;
   let periodicHeartbeat: ReturnType<typeof startHeartbeat> | undefined;
+  // Carries model/mode/agentId out to the outer catch so a thrown CursorSdkError
+  // can be classified with the same context as the run.wait() error path.
+  let errorContext = { model: "default", mode: "local", agentId: "" };
 
   try {
     // Phase 1: Hydrate execution from DB
@@ -324,6 +327,8 @@ async function executeCursorInner(
       `agentId=${resolution.agentId}, resumed=${resolution.resumed}` +
       (resolution.resumeFailureDetail ? `, failureDetail=${resolution.resumeFailureDetail}` : ""),
     );
+
+    errorContext = { model: validatedModel, mode: agentMode, agentId: resolution.agentId };
 
     // Phase 8: Write hooks for HITL with policy-aware state
     const approvalState = buildApprovalState(
@@ -715,6 +720,12 @@ async function executeCursorInner(
           ?? resultAny.reason;
         const sdkErrorStr = sdkError ? String(sdkError) : undefined;
 
+        // The SDK frequently resolves run.wait() to a bare { status: "error" }
+        // while the real reason (e.g. the original grpc-status 12 routing
+        // failure) lives on the failing conversation turn. Capture it here so
+        // the classified error is actionable instead of "no detail from SDK".
+        const conversationErrorText = await introspectConversation(run, executionId);
+
         const capturedRejection = getCapturedRejection(executionId);
         if (capturedRejection) clearCapturedRejection(executionId);
 
@@ -722,6 +733,7 @@ async function executeCursorInner(
           sdkResultFields: sdkErrorStr,
           streamErrorMessage,
           capturedRejection,
+          conversationErrorText,
           isResumedHandle: resolution.reason === "resumed_successfully",
           fallbackContext: { model: validatedModel, mode: agentMode, agentId: resolution.agentId },
           durationMs: (result as unknown as Record<string, unknown>).durationMs as number | undefined,
@@ -835,10 +847,13 @@ async function executeCursorInner(
           const retryRejection = getCapturedRejection(executionId);
           if (retryRejection) clearCapturedRejection(executionId);
 
+          const retryConversationErrorText = await introspectConversation(retryRun, executionId);
+
           const retryClassified = synthesizeError({
             sdkResultFields: retryResult.result ? String(retryResult.result) : undefined,
             streamErrorMessage,
             capturedRejection: retryRejection,
+            conversationErrorText: retryConversationErrorText,
             isResumedHandle: false,
             fallbackContext: { model: validatedModel, mode: agentMode, agentId: freshAgent.agentId },
           });
@@ -1089,6 +1104,49 @@ async function executeCursorInner(
       throw new CancelledFailure("Activity cancelled (infrastructure, not user pause)");
     }
 
+    // A thrown CursorSdkError carries structured fields (code/status/endpoint/
+    // requestId) that the generic format below would flatten to a bare message.
+    // Route it through the same classifier as the run.wait() error path so the
+    // failure category and full diagnostics are preserved.
+    const { CursorSdkError } = await import("@cursor/sdk");
+    if (err instanceof CursorSdkError) {
+      const sdkErrorJson = err.toJSON();
+      console.error(
+        `ExecuteCursor SDK error: execution=${executionId}, sdkError=${JSON.stringify(sdkErrorJson)}`,
+      );
+      const classified = synthesizeError({
+        sdkError: { code: err.code, status: err.status, message: err.message },
+        sdkResultFields: undefined,
+        streamErrorMessage: undefined,
+        capturedRejection: getCapturedRejection(executionId),
+        isResumedHandle: false,
+        fallbackContext: errorContext,
+      });
+      clearCapturedRejection(executionId);
+      status.phase = ExecutionPhase.EXECUTION_FAILED;
+      status.error = formatClassifiedError(classified);
+      status.completedAt = utcTimestamp();
+      status.messages.push(
+        create(AgentMessageSchema, {
+          type: MessageType.MESSAGE_SYSTEM,
+          content: "Internal system error occurred. Please contact support if this issue persists.",
+          timestamp: utcTimestamp(),
+        }),
+        create(AgentMessageSchema, {
+          type: MessageType.MESSAGE_SYSTEM,
+          content: `Error details: ${status.error}`,
+          timestamp: utcTimestamp(),
+        }),
+      );
+      try {
+        await persistStatus(client, executionId, status);
+      } catch (persistErr) {
+        console.error("Failed to persist error status (best-effort):", persistErr);
+      }
+      await maybePeristSessionMemory(client, sessionId, session, status, userMessage);
+      return slimStatus(status);
+    }
+
     const errMsg = err instanceof Error ? err.message : String(err);
     const errType = err instanceof Error ? err.constructor.name : "Unknown";
     console.error(`ExecuteCursor failed: execution=${executionId}, [${errType}] ${errMsg}`);
@@ -1314,6 +1372,85 @@ export function buildPrompt(input: BuildPromptInput): string {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/**
+ * Best-effort: read the failing run's conversation to recover the real error
+ * reason the SDK swallowed in run.wait(). Logs the (bounded) raw turns for deep
+ * diagnostics and returns a concise error string for the classifier.
+ *
+ * Strictly non-fatal — any failure (unsupported operation, transport error)
+ * returns undefined and never propagates into the execution's error path.
+ */
+async function introspectConversation(
+  run: Run,
+  executionId: string,
+): Promise<string | undefined> {
+  try {
+    if (!run.supports("conversation")) {
+      console.log(
+        `ExecuteCursor conversation introspection unsupported: execution=${executionId}, ` +
+        `reason=${run.unsupportedReason("conversation") ?? "n/a"}`,
+      );
+      return undefined;
+    }
+    const turns = await run.conversation();
+    const raw = JSON.stringify(turns);
+    const bounded = raw.length > 8000 ? `${raw.slice(0, 8000)}…(truncated ${raw.length} chars)` : raw;
+    console.error(
+      `ExecuteCursor conversation introspection: execution=${executionId}, ` +
+      `turns=${turns.length}, raw=${bounded}`,
+    );
+    return extractConversationErrorText(turns);
+  } catch (introspectErr) {
+    console.warn(
+      `ExecuteCursor conversation introspection failed (non-fatal): execution=${executionId}, ` +
+      `error=${introspectErr instanceof Error ? introspectErr.message : String(introspectErr)}`,
+    );
+    return undefined;
+  }
+}
+
+/**
+ * Walk the last conversation turn and collect human-meaningful error text
+ * (error-status payloads and `text`/`message`/`reason` strings). Schema-agnostic
+ * by design so it tolerates SDK conversation-shape changes. Returns undefined
+ * when nothing useful is found.
+ */
+function extractConversationErrorText(turns: ConversationTurn[]): string | undefined {
+  if (!turns || turns.length === 0) return undefined;
+  const collected: string[] = [];
+
+  const visit = (node: unknown, depth: number): void => {
+    if (node == null || depth > 6 || typeof node !== "object") return;
+    if (Array.isArray(node)) {
+      for (const item of node) visit(item, depth + 1);
+      return;
+    }
+    const obj = node as Record<string, unknown>;
+    if (obj.status === "error" && obj.error != null) {
+      collected.push(
+        typeof obj.error === "string" ? obj.error : JSON.stringify(obj.error),
+      );
+    }
+    for (const [key, value] of Object.entries(obj)) {
+      if (
+        (key === "text" || key === "message" || key === "reason")
+        && typeof value === "string"
+        && value.trim().length > 0
+      ) {
+        collected.push(value.trim());
+      } else if (typeof value === "object" && value != null) {
+        visit(value, depth + 1);
+      }
+    }
+  };
+
+  visit(turns[turns.length - 1], 0);
+  if (collected.length === 0) return undefined;
+
+  const joined = [...new Set(collected)].join(" | ");
+  return joined.length > 600 ? `${joined.slice(0, 600)}…` : joined;
+}
 
 /**
  * Build and persist session memory if the execution is in a terminal phase.
