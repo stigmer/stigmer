@@ -120,6 +120,13 @@ type ServiceConfig struct {
 	// Required when Security is SecurityModeProduction.
 	Auth0Audience string
 
+	// Auth0McpAudience optionally sets an additional accepted audience
+	// (security.authentication.mcp-audience / AUTH0_MCP_AUDIENCE). Used to
+	// exercise the hosted MCP server's audience (mcp.stigmer.ai), for which
+	// Auth0 mints tokens scoped to the MCP resource rather than the primary
+	// API audience. Empty leaves the default (no additional audience).
+	Auth0McpAudience string
+
 	// Auth0TokenURL overrides the OAuth2 token endpoint that MachineAccountJwtProvider
 	// uses for client_credentials grants. When set, the Java service calls this URL
 	// instead of constructing https://<auth0Domain>/oauth/token.
@@ -392,6 +399,9 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 			"AUTH0_CLIENT_SECRET=test-client-secret",
 			fmt.Sprintf("AUTH0_API_AUDIENCE=%s", auth0Audience),
 		)
+		if cfg.Auth0McpAudience != "" {
+			env = append(env, fmt.Sprintf("AUTH0_MCP_AUDIENCE=%s", cfg.Auth0McpAudience))
+		}
 		if cfg.Auth0TokenURL != "" {
 			env = append(env, fmt.Sprintf("AUTH0_TOKEN_URL=%s", cfg.Auth0TokenURL))
 		}

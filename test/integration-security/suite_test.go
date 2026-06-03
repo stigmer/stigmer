@@ -24,6 +24,11 @@ const (
 	bootstrapEmail             = "security-bootstrap@stigmer.ai"
 
 	testAudience = "https://api.stigmer.test"
+
+	// testMcpAudience is the additional audience the hosted MCP server's tokens
+	// carry. Auth0 mints these via the RFC 8707 resource parameter, so they are
+	// scoped to the MCP resource rather than the primary API audience.
+	testMcpAudience = "https://mcp.stigmer.test"
 )
 
 var (
@@ -152,17 +157,18 @@ func TestMain(m *testing.M) {
 	logDir := testHarness.LogDir()
 
 	svcCfg := harness.ServiceConfig{
-		JarPath:         jarPath,
-		MongoHost:       testHarness.Mongo.Host,
-		MongoPort:       testHarness.Mongo.Port,
-		RedisHost:       testHarness.Redis.Host,
-		RedisPort:       testHarness.Redis.Port,
-		TemporalAddress: testHarness.Temporal.Address(),
-		LogDir:          logDir,
-		Security:        harness.SecurityModeProduction,
-		Auth0IssuerURL:  mockAuth0.Issuer,
-		Auth0Audience:   testAudience,
-		Auth0TokenURL:   mockAuth0.URL + "/oauth/token",
+		JarPath:          jarPath,
+		MongoHost:        testHarness.Mongo.Host,
+		MongoPort:        testHarness.Mongo.Port,
+		RedisHost:        testHarness.Redis.Host,
+		RedisPort:        testHarness.Redis.Port,
+		TemporalAddress:  testHarness.Temporal.Address(),
+		LogDir:           logDir,
+		Security:         harness.SecurityModeProduction,
+		Auth0IssuerURL:   mockAuth0.Issuer,
+		Auth0Audience:    testAudience,
+		Auth0McpAudience: testMcpAudience,
+		Auth0TokenURL:    mockAuth0.URL + "/oauth/token",
 	}
 
 	if testHarness.OpenFGA != nil {

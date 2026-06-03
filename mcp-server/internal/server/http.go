@@ -9,9 +9,16 @@ import (
 	"strings"
 	"time"
 
+	mcpauth "github.com/modelcontextprotocol/go-sdk/auth"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/modelcontextprotocol/go-sdk/oauthex"
 	"github.com/stigmer/stigmer/mcp-server/internal/auth"
+	"github.com/stigmer/stigmer/mcp-server/internal/config"
 )
+
+// protectedResourceMetadataPath is the well-known location (RFC 9728 §3.1) at
+// which the OAuth 2.0 Protected Resource Metadata document is served.
+const protectedResourceMetadataPath = "/.well-known/oauth-protected-resource"
 
 const shutdownGracePeriod = 5 * time.Second
 
@@ -39,9 +46,17 @@ func (s *Server) ServeHTTP(ctx context.Context) error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", healthHandler)
 
+	// When OAuth discovery is enabled, advertise the authorization server via
+	// RFC 9728 Protected Resource Metadata. Registered without a method
+	// constraint so the SDK handler can answer CORS preflight (OPTIONS) as well
+	// as GET. This route is unauthenticated by design — the metadata is public.
+	if s.config.OAuth.Enabled {
+		mux.Handle(protectedResourceMetadataPath, protectedResourceMetadataHandler(s.config.OAuth))
+	}
+
 	var handler http.Handler = mcpHandler
 	if s.config.HTTPAuthEnabled {
-		handler = authMiddleware(handler)
+		handler = authMiddleware(handler, s.config.OAuth)
 	}
 	mux.Handle("/", handler)
 
@@ -76,16 +91,54 @@ func (s *Server) ServeHTTP(ctx context.Context) error {
 // authMiddleware extracts an Authorization: Bearer token from the HTTP request
 // and injects it into the context via auth.WithAPIKey. Requests without a
 // valid token are rejected with 401 Unauthorized.
-func authMiddleware(next http.Handler) http.Handler {
+//
+// The middleware never validates the token — it only checks for presence and
+// forwards it unchanged to stigmer-server, which performs validation. When OAuth
+// discovery is enabled, the 401 carries a WWW-Authenticate challenge (RFC 9728
+// §5.1) so that OAuth-capable clients can locate the authorization server.
+// Clients that supply a Bearer header proceed straight to passthrough and never
+// see the challenge.
+func authMiddleware(next http.Handler, oauth config.OAuthMetadata) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token := extractBearerToken(r)
 		if token == "" {
+			if oauth.Enabled {
+				w.Header().Set("WWW-Authenticate", bearerChallenge(oauth))
+			}
 			http.Error(w, "missing or malformed Authorization: Bearer header", http.StatusUnauthorized)
 			return
 		}
 		ctx := auth.WithAPIKey(r.Context(), token)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+// protectedResourceMetadataHandler serves the OAuth 2.0 Protected Resource
+// Metadata document (RFC 9728) describing this MCP server and the authorization
+// server(s) clients should use. The SDK handler adds the CORS headers required
+// for browser-based client discovery.
+func protectedResourceMetadataHandler(oauth config.OAuthMetadata) http.Handler {
+	return mcpauth.ProtectedResourceMetadataHandler(&oauthex.ProtectedResourceMetadata{
+		Resource:               oauth.Resource,
+		AuthorizationServers:   oauth.AuthorizationServers,
+		ScopesSupported:        oauth.ScopesSupported,
+		BearerMethodsSupported: []string{"header"},
+		ResourceName:           "Stigmer MCP Server",
+	})
+}
+
+// bearerChallenge builds the WWW-Authenticate header value pointing OAuth
+// clients at this server's protected-resource-metadata document (RFC 9728 §5.1).
+func bearerChallenge(oauth config.OAuthMetadata) string {
+	metadataURL := strings.TrimRight(oauth.Resource, "/") + protectedResourceMetadataPath
+	params := []string{
+		`realm="stigmer"`,
+		fmt.Sprintf("resource_metadata=%q", metadataURL),
+	}
+	if len(oauth.ScopesSupported) > 0 {
+		params = append(params, fmt.Sprintf("scope=%q", strings.Join(oauth.ScopesSupported, " ")))
+	}
+	return "Bearer " + strings.Join(params, ", ")
 }
 
 // extractBearerToken parses the "Authorization: Bearer <token>" header.
