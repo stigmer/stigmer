@@ -4,6 +4,7 @@ package integration
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
@@ -498,7 +499,13 @@ func runCursorModeComparison(t *testing.T, scenario, prompt, modelName string) (
 
 func requireCursorRunner(t *testing.T) {
 	t.Helper()
-	if testHarness.CursorRunner == nil {
-		t.Skip("cursor-runner not available — cannot run cursor mode benchmark")
+	// The suite runs cursor work through the unified runner (single task
+	// queue), not the legacy stub CursorRunner field. Gate on the unified
+	// runner + Cursor API key, matching requireCursorCallProviderPrereqs.
+	if testHarness.UnifiedRunner == nil {
+		t.Skip("unified runner not available — cannot run cursor mode benchmark")
+	}
+	if os.Getenv("CURSOR_API_KEY") == "" {
+		t.Skip("CURSOR_API_KEY not set — cannot run cursor mode benchmark")
 	}
 }
