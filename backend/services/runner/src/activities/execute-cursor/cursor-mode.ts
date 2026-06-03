@@ -1,44 +1,34 @@
 /**
  * Cursor mode determination for sessions using HARNESS_CURSOR.
  *
- * CursorMode is immutable per session — determined once on the first
- * execution based on workspace entries and the feature flag, then
- * persisted in SessionSpec.cursor_mode for all subsequent executions.
+ * Cloud Cursor agents are DISABLED platform-wide right now, so every session
+ * — including git-backed ones — runs as a LOCAL Cursor agent.
  *
- * Mode selection rules (when feature flag is enabled):
- *   - All workspace entries are GitRepoSource -> CLOUD
- *   - Any workspace entry is LocalPathSource  -> LOCAL
- *   - No workspace entries                    -> LOCAL (fallback)
- *   - Feature flag disabled                   -> LOCAL (forced)
+ * Why cloud is disabled: Cursor cloud agents clone repositories via Cursor's
+ * own GitHub App connection and accept no per-request git credential. Stigmer
+ * collects the user's git credentials but has no way to hand them to Cursor's
+ * cloud clone, so git-backed cloud sessions fail for user repos. Until that
+ * credential story is resolved, Stigmer provisions the workspace itself
+ * (including git clones, using the user's GITHUB_TOKEN) and runs a local
+ * Cursor agent against it.
  */
 
 import { CursorMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 
 /**
- * Determine the CursorMode for a new session based on its workspace entries
- * and whether cloud mode is enabled.
+ * Determine the CursorMode for a session.
  *
- * Only called on the first execution when cursor_mode is UNSPECIFIED.
- * The result is persisted on SessionSpec and never re-evaluated.
+ * Always returns LOCAL while cloud Cursor agents are disabled (see the
+ * file-level note). The parameters are retained so the previous
+ * workspace/flag-based mode-selection logic (preserved in git history) can be
+ * restored when cloud is re-enabled.
  */
 export function determineCursorMode(
-  workspaceEntries: WorkspaceEntry[],
-  cloudModeEnabled: boolean,
+  _workspaceEntries: WorkspaceEntry[],
+  _cloudModeEnabled: boolean,
 ): CursorMode {
-  if (!cloudModeEnabled) {
-    return CursorMode.LOCAL;
-  }
-
-  if (workspaceEntries.length === 0) {
-    return CursorMode.LOCAL;
-  }
-
-  const allGitRepo = workspaceEntries.every(
-    (entry) => entry.source?.source.case === "gitRepo",
-  );
-
-  return allGitRepo ? CursorMode.CLOUD : CursorMode.LOCAL;
+  return CursorMode.LOCAL;
 }
 
 /**

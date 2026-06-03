@@ -59,6 +59,7 @@ import { buildContinuationPrompt, buildHitlContinuationPrompt } from "./continua
 import { extractAgentRationale, getGitBranch, getGitHeadSha } from "./continuation-prompt.js";
 import { writeHooksToWorkspace } from "./workspace-setup.js";
 import { buildApprovalState } from "./approval-state.js";
+import { provisionCursorWorkspace } from "./workspace-provision.js";
 import { setInterceptorExecutionId, runWithExecutionContext } from "./fetch-interceptor.js";
 import { closeProxySessions } from "./http2-interceptor.js";
 import { resolveModelId, ensureLoaded as ensurePricingLoaded } from "./model-pricing.js";
@@ -153,6 +154,18 @@ async function executeCursorInner(
     const { envVars, secretKeys } = await resolveExecutionEnv(client, executionId);
     heartbeat();
 
+    // Phase 2c: Provision the workspace (clone git repos / mount local paths)
+    // so the LOCAL Cursor agent operates on the actual repo. Cursor previously
+    // relied on cloud agents to clone git-repo workspace entries; with cloud
+    // disabled the runner must provision the workspace itself, mirroring the
+    // native harness. Git provisioning is idempotent across multi-turn and
+    // HITL reinvocations.
+    await reportSetupProgress(client, executionId, "Provisioning workspace");
+    blueprint.workspaceDirs = await provisionCursorWorkspace(
+      config, session, envVars, sessionId ?? "",
+    );
+    heartbeat();
+
     // Set OTel baggage so downstream calls carry execution context.
     try {
       const { setBaggage, BAGGAGE_EXECUTION_ID, BAGGAGE_SESSION_ID, BAGGAGE_ORG_ID } = await import("../../otel.js");
@@ -165,14 +178,14 @@ async function executeCursorInner(
       // Tracing not initialized — silently skip.
     }
 
-    // Determine cursor mode: use persisted value on subsequent executions,
-    // compute from workspace entries on first execution.
-    const cursorMode = blueprint.sessionSpec.cursorMode !== CursorMode.UNSPECIFIED
-      ? blueprint.sessionSpec.cursorMode
-      : determineCursorMode(
-          blueprint.sessionSpec.workspaceEntries,
-          config.cloudModeEnabled,
-        );
+    // Cloud Cursor agents are disabled platform-wide (see determineCursorMode),
+    // so every session runs LOCAL. We intentionally ignore any persisted
+    // cursor_mode here so a session can never route to the cloud path while
+    // it is disabled — even one that was created when cloud was enabled.
+    const cursorMode = determineCursorMode(
+      blueprint.sessionSpec.workspaceEntries,
+      config.cloudModeEnabled,
+    );
     const agentMode = isCloudMode(cursorMode) ? "cloud" as const : "local" as const;
 
     heartbeat();
