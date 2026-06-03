@@ -6,10 +6,12 @@
  * 2. Prefix status.error with a human-readable category
  * 3. Surface isRetryable for future workflow-level retry decisions
  *
- * Error detail can come from three sources (in priority order):
+ * Error detail can come from several sources (in priority order):
+ * - A thrown CursorSdkError's structured fields (highest fidelity)
  * - run.wait().result (SDK-provided string, often bare/generic)
  * - SDKStatusMessage with status "ERROR" from the stream
  * - ConnectError captured from process unhandledRejection
+ * - Text extracted from the failing run.conversation() turn
  *
  * Execution context (isResumedHandle) is applied as a post-classification
  * override: when no source can positively identify the error category and
@@ -31,7 +33,18 @@ export interface ClassifiedError {
   category: ErrorCategory;
   message: string;
   retryable: boolean;
-  source: "sdk" | "stream" | "rejection" | "fallback";
+  source: "sdk" | "stream" | "rejection" | "conversation" | "fallback";
+}
+
+/**
+ * Structured fields lifted from a thrown CursorSdkError (errors.d.ts:
+ * { code, status, isRetryable, cause, endpoint, requestId, operation }).
+ * Only the fields used for classification are retained.
+ */
+export interface SdkErrorFields {
+  code?: string;
+  status?: number;
+  message?: string;
 }
 
 const AUTH_PATTERNS = [
@@ -66,9 +79,13 @@ function classifyText(text: string): { category: ErrorCategory; retryable: boole
 }
 
 interface SynthesizeErrorOpts {
+  /** Structured fields from a thrown CursorSdkError — highest-fidelity source. */
+  sdkError?: SdkErrorFields;
   sdkResultFields: string | undefined;
   streamErrorMessage: string | undefined;
   capturedRejection: CapturedRejection | undefined;
+  /** Text extracted from the failing run.conversation() turn, if any. */
+  conversationErrorText?: string;
   isResumedHandle: boolean;
   fallbackContext: { model: string; mode: string; agentId: string };
   /** Duration of the SDK run in ms — used for transport timeout heuristic. */
@@ -92,9 +109,11 @@ interface SynthesizeErrorOpts {
 export function synthesizeError(opts: SynthesizeErrorOpts): ClassifiedError {
   console.log(
     `[error-classifier] synthesizeError diagnostic: ` +
+    `sdkError=${JSON.stringify(opts.sdkError)}, ` +
     `sdkResultFields=${JSON.stringify(opts.sdkResultFields)}, ` +
     `streamErrorMessage=${JSON.stringify(opts.streamErrorMessage)}, ` +
     `hasCapturedRejection=${!!opts.capturedRejection}, ` +
+    `conversationErrorText=${JSON.stringify(opts.conversationErrorText)}, ` +
     `isResumedHandle=${opts.isResumedHandle}, ` +
     `model=${opts.fallbackContext.model}, mode=${opts.fallbackContext.mode}`,
   );
@@ -111,10 +130,29 @@ export function synthesizeError(opts: SynthesizeErrorOpts): ClassifiedError {
 /**
  * Classify from the best available error source.
  *
- * Priority: SDK result fields > stream ERROR message > captured ConnectError.
+ * Priority: thrown CursorSdkError > SDK result fields > stream ERROR message >
+ * captured ConnectError > conversation error turn > transport-timeout heuristic.
  * Falls back to a diagnostic message with model/mode/agentId context.
  */
 function classifyFromSources(opts: SynthesizeErrorOpts): ClassifiedError {
+  if (opts.sdkError) {
+    const { code, status, message } = opts.sdkError;
+    // Classify across all structured fields so a code/status alone (no message
+    // text) still resolves a category.
+    const text = [code, status != null ? String(status) : undefined, message]
+      .filter((v): v is string => typeof v === "string" && v.length > 0)
+      .join(" ");
+    if (text.trim().length > 0) {
+      const { category, retryable } = classifyText(text);
+      return {
+        category,
+        message: message ?? text,
+        retryable,
+        source: "sdk",
+      };
+    }
+  }
+
   if (opts.sdkResultFields) {
     const isBareGeneric = opts.sdkResultFields === "Cursor run failed";
     if (!isBareGeneric) {
@@ -147,6 +185,19 @@ function classifyFromSources(opts: SynthesizeErrorOpts): ClassifiedError {
       message: `[${opts.capturedRejection.code}] ${opts.capturedRejection.message}`,
       retryable: category !== "auth",
       source: "rejection",
+    };
+  }
+
+  // The SDK frequently swallows the real reason in run.wait() but retains it on
+  // the failing conversation turn. Surface that text even when it does not match
+  // a known pattern — a specific message beats the generic fallback.
+  if (opts.conversationErrorText) {
+    const { category, retryable } = classifyText(opts.conversationErrorText);
+    return {
+      category,
+      message: opts.conversationErrorText,
+      retryable,
+      source: "conversation",
     };
   }
 
