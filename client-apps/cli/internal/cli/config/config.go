@@ -478,8 +478,10 @@ func (c *LocalBackendConfig) ResolveSandboxImage() string {
 		return c.Execution.SandboxImage
 	}
 
-	// 3. Default
-	return "ghcr.io/stigmer/agent-sandbox-basic:latest"
+	// 3. Default — the unified runner sandbox image (built and published by
+	// the release.sandbox-cloud workflow). The legacy agent-sandbox-basic
+	// image was retired in the unified-runner migration.
+	return "ghcr.io/stigmer/runner:latest"
 }
 
 // ResolveSandboxAutoPull resolves the auto-pull setting with cascading config
