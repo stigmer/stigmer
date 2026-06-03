@@ -37,10 +37,17 @@ spec:
           # passthrough is unchanged. The advertised issuer is the public Stigmer
           # Auth0 tenant; the resource identifier matches the ingress hostname and
           # the Auth0 API (resource server) registered for this server.
+          #
+          # The resource carries a trailing slash. OAuth MCP clients send the
+          # RFC 8707 `resource` as the canonical origin URI, which normalizes an
+          # empty path to `/`, and Auth0 matches `resource` to API identifiers by
+          # exact string. So this advertised resource, the Auth0 API (resource
+          # server) identifier, and the cloud `mcp-audience` are all the
+          # trailing-slash form (mirrors the primary `https://api.stigmer.com/`).
           - name: STIGMER_MCP_OAUTH_ENABLED
             value: "true"
           - name: STIGMER_MCP_OAUTH_RESOURCE
-            value: https://mcp.stigmer.ai
+            value: https://mcp.stigmer.ai/
           - name: STIGMER_MCP_OAUTH_AUTHORIZATION_SERVERS
             value: https://stigmer-prod.us.auth0.com/
           - name: STIGMER_MCP_LOG_FORMAT
