@@ -1,0 +1,10 @@
+apiVersion: kubernetes.project-planton.org/v1
+kind: KubernetesDeployment
+metadata:
+  name: stigmer-mcp
+  env: local
+  labels:
+    pulumi.project-planton.org/stack.name: local.KubernetesDeployment.stigmer-mcp
+spec:
+  namespace:
+    value: stigmer-local-mcp

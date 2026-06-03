@@ -417,6 +417,76 @@ cloud load balancer) in front of the MCP server.
 
 ---
 
+## Hosted Remote Server
+
+Stigmer Cloud runs this server as a hosted, network-reachable MCP endpoint at:
+
+```
+https://mcp.stigmer.ai
+```
+
+It runs in `http` transport mode behind the Planton-managed ingress (which
+terminates TLS), and forwards every request to the in-cluster `stigmer-server`.
+
+### Authentication is provider-agnostic
+
+The server does **not** assume any particular identity provider. It takes the
+`Authorization: Bearer <token>` header and forwards it unchanged to
+`stigmer-server`, which validates it. A valid `<token>` is any of:
+
+- a Stigmer API key (`stk_…`) created with `stigmer apikey create`,
+- an access token issued by your organization's own IdP (the same token the web
+  console uses), or
+- a Stigmer-issued platform-client token.
+
+This is why there is no built-in OAuth flow: a single hardwired authorization
+server would only work for one IdP and would break bring-your-own-IdP orgs.
+
+### Connecting a client
+
+Any MCP client that lets you set a request header works:
+
+```jsonc
+// Clients that support remote HTTP MCP servers with custom headers
+{
+  "mcpServers": {
+    "stigmer": {
+      "url": "https://mcp.stigmer.ai",
+      "headers": { "Authorization": "Bearer stk_your_api_key" }
+    }
+  }
+}
+```
+
+The hosted endpoint is also published as the built-in marketplace entry,
+[`seedpack/mcp-servers/stigmer.yaml`](../seedpack/mcp-servers/stigmer.yaml),
+so Stigmer agents can connect to it via `mcp_server_usages`.
+
+> **Claude Desktop note:** Claude Desktop's "Add custom connector" GUI expects a
+> full OAuth 2.0 handshake from the remote server. Because this server uses
+> Bearer-token passthrough (not a single-issuer OAuth flow), use a client that
+> supports a manually-supplied `Authorization` header. Native OAuth-GUI support
+> would require an issuer-agnostic OAuth layer and is intentionally out of scope.
+
+### Deployment
+
+The hosted service follows the same split-repo pattern as `stigmer-web`:
+
+- **Runtime manifests (this repo):**
+  [`mcp-server/_kustomize/`](_kustomize/) — `KubernetesDeployment` base plus
+  `local` and `prod` overlays. The `prod` overlay sets `STIGMER_MCP_TRANSPORT=http`,
+  points `STIGMER_SERVER_ADDRESS` at the internal `stigmer-server` service, and
+  exposes `mcp.stigmer.ai` via ingress with `/health` probes.
+- **Service registration (stigmer-cloud):**
+  `_ops/planton/service-hub/services/stigmer-mcp.yaml` — a Planton `Service` that
+  builds `mcp-server/Dockerfile` via the platform pipeline into
+  `ghcr.io/stigmer/stigmer/mcp-server` and deploys the kustomize overlay.
+
+Register/update with `make apply-services` in `stigmer-cloud` (or
+`planton apply -f stigmer-mcp.yaml`).
+
+---
+
 ## Development
 
 ### Build and test
