@@ -19,7 +19,7 @@ import (
 func GetTaskKindRegistryTool() *mcp.Tool {
 	return &mcp.Tool{
 		Name:        "get_task_kind_registry",
-		Description: "Get the complete workflow task kind registry with all 19 task kind descriptors, field schemas, JSON Schemas, categories, examples, and output shapes.",
+		Description: "Get the complete workflow task kind registry with all 20 task kind descriptors, field schemas, JSON Schemas, categories, examples, and output shapes.",
 	}
 }
 
@@ -56,7 +56,7 @@ func GetTaskKindRegistryHandler(serverAddress string) func(context.Context, *mcp
 
 // GetTaskKindInput defines the parameters for the "get_task_kind" tool.
 type GetTaskKindInput struct {
-	Kind string `json:"kind" jsonschema:"Task kind name (e.g. llm_call, human_input, agent_call, switch_case, transform, validate, notification, emit_event, http_call, grpc_call, set, for, fork, try, raise, run, call_activity, listen, wait)."`
+	Kind string `json:"kind" jsonschema:"Task kind name (one of: set_vars, http_call, grpc_call, activity_call, switch_case, for_each, fork, try_catch, listen, wait, raise_error, run_workflow, agent_call, llm_call, transform, human_input, validate, emit_event, notification, eval)."`
 }
 
 // GetTaskKindTool returns the MCP tool definition for registration.
