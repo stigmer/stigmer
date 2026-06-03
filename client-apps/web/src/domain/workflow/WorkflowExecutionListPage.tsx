@@ -1,12 +1,12 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { Activity } from "lucide-react";
 import { WorkflowExecutionPhaseBadge, useWorkflowExecutionList } from "@stigmer/react";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
+import { useExecutionNavigation } from "@/domain/workflow/execution-navigation";
 
 export function WorkflowExecutionListPage() {
-  const router = useRouter();
+  const { navigateToExecution } = useExecutionNavigation();
   const { executions, isLoading, error } = useWorkflowExecutionList({
     pageSize: 50,
   });
@@ -73,12 +73,12 @@ export function WorkflowExecutionListPage() {
                     className="cursor-pointer transition-colors hover:bg-muted/30"
                     onClick={() => {
                       if (exec.metadata?.id) {
-                        router.push(`/executions/${exec.metadata.id}`);
+                        navigateToExecution(exec.metadata.id);
                       }
                     }}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && exec.metadata?.id) {
-                        router.push(`/executions/${exec.metadata.id}`);
+                        navigateToExecution(exec.metadata.id);
                       }
                     }}
                   >

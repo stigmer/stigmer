@@ -61,7 +61,7 @@ export function WorkflowExecutionDetailPage({
   );
 
   return (
-    <div className="-mx-6 -my-8 flex h-[calc(100vh-var(--header-height,64px))] flex-col">
+    <div className="relative flex h-full w-full flex-col">
       {isResolving && (
         <div className="pointer-events-none absolute inset-x-0 top-4 z-50 flex justify-center">
           <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm text-muted-foreground shadow-md">

@@ -26,6 +26,7 @@ import {
 } from "@stigmer/react";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
+import { useExecutionNavigation } from "@/domain/workflow/execution-navigation";
 
 const elkWorkerFactory = () =>
   new Worker(new URL("elkjs/lib/elk-worker.min.js", import.meta.url));
@@ -40,6 +41,7 @@ export function WorkflowDetailPageInner({
   slug,
 }: WorkflowDetailPageInnerProps) {
   const router = useRouter();
+  const { navigateToExecution } = useExecutionNavigation();
   const elkEngine = useElkLayoutEngine({ workerFactory: elkWorkerFactory });
   const { setLabel } = useBreadcrumbOverride();
   const [resourceId, setResourceId] = useState<string | null>(null);
@@ -83,9 +85,9 @@ export function WorkflowDetailPageInner({
   const handleRunSuccess = useCallback(
     (executionId: string) => {
       toast.success("Workflow execution started");
-      router.push(`/executions/${executionId}`);
+      navigateToExecution(executionId);
     },
-    [router],
+    [navigateToExecution],
   );
 
   const handleRunError = useCallback((message: string) => {
@@ -118,9 +120,9 @@ export function WorkflowDetailPageInner({
 
   const handleViewLatestRun = useCallback(
     (executionId: string) => {
-      router.push(`/executions/${executionId}`);
+      navigateToExecution(executionId);
     },
-    [router],
+    [navigateToExecution],
   );
 
   const handleDelete = useCallback(async () => {
@@ -237,7 +239,7 @@ export function WorkflowDetailPageInner({
           additionalTabs={additionalTabs}
           activeTab={activeTab}
           onTabChange={setActiveTab}
-          onExecutionClick={(id) => router.push(`/executions/${id}`)}
+          onExecutionClick={(id) => navigateToExecution(id)}
           onCreateInstanceClick={() => setShowCreateInstanceDialog(true)}
           onOpenInEditor={handleOpenInEditor}
           onViewLatestRun={handleViewLatestRun}
