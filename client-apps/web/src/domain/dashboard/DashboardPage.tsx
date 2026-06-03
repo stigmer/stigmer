@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback } from "react";
-import { useRouter } from "next/navigation";
 import {
   useOrg,
   OperationalDashboard,
@@ -10,28 +9,29 @@ import {
   useWorkflowDashboardSummary,
   type DashboardFailedRun,
 } from "@stigmer/react";
+import { useExecutionNavigation } from "@/domain/workflow/execution-navigation";
 
 export function DashboardPage() {
   const { activeOrg } = useOrg();
   const org = activeOrg?.metadata?.slug ?? "";
   const orgId = activeOrg?.metadata?.id;
-  const router = useRouter();
+  const { navigateToExecution } = useExecutionNavigation();
 
   const { summary: workflowSummary, isLoading: workflowSummaryLoading } =
     useWorkflowDashboardSummary({ org, refetchInterval: 60_000 });
 
   const handleApprovalClick = useCallback(
     (executionId: string) => {
-      router.push(`/executions/${executionId}`);
+      navigateToExecution(executionId);
     },
-    [router],
+    [navigateToExecution],
   );
 
   const handleFailedRunClick = useCallback(
     (id: string, _type: DashboardFailedRun["type"]) => {
-      router.push(`/executions/${id}`);
+      navigateToExecution(id);
     },
-    [router],
+    [navigateToExecution],
   );
 
   return (

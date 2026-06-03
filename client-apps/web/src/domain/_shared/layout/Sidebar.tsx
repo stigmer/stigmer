@@ -18,6 +18,7 @@ import {
 } from "@/domain/_shared/ui/tooltip";
 import { OrgSwitcher } from "@stigmer/react";
 import { useSessionNavigation } from "@/domain/session/session-navigation";
+import { useExecutionNavigation } from "@/domain/workflow/execution-navigation";
 import { UserMenu } from "./UserMenu";
 import { useSidebarOpen } from "./use-layout-state";
 
@@ -32,13 +33,13 @@ export function Sidebar() {
   const { entries, isLoading, error, refetch, prependOptimistic } = useRecentActivity();
   const { activeSessionId, isSessionZone, navigateToSession, navigateToHome } =
     useSessionNavigation();
+  const { activeExecutionId, isExecutionZone, navigateToExecution } =
+    useExecutionNavigation();
 
-  const activeExecutionId = pathname.startsWith("/executions/")
-    ? pathname.split("/")[2] ?? null
-    : null;
-
-  const isDashboardActive = !isSessionZone && pathname.startsWith("/dashboard");
-  const isLibraryActive = !isSessionZone && pathname.startsWith("/library");
+  const isDashboardActive =
+    !isSessionZone && !isExecutionZone && pathname.startsWith("/dashboard");
+  const isLibraryActive =
+    !isSessionZone && !isExecutionZone && pathname.startsWith("/library");
 
   const entriesRef = useRef(entries);
   useEffect(() => {
@@ -175,8 +176,9 @@ export function Sidebar() {
             <ActivityGroupList
               groups={groups}
               activeSessionId={activeSessionId}
-              activePath={pathname}
+              activeExecutionId={activeExecutionId}
               onNavigateSession={navigateToSession}
+              onNavigateExecution={navigateToExecution}
             />
           )}
         </div>
@@ -193,13 +195,15 @@ export function Sidebar() {
 function ActivityGroupList({
   groups,
   activeSessionId,
-  activePath,
+  activeExecutionId,
   onNavigateSession,
+  onNavigateExecution,
 }: {
   groups: readonly RecentActivityGroup[];
   activeSessionId: string | null;
-  activePath: string;
+  activeExecutionId: string | null;
   onNavigateSession: (id: string) => void;
+  onNavigateExecution: (id: string) => void;
 }) {
   return (
     <TooltipProvider>
@@ -215,8 +219,9 @@ function ActivityGroupList({
                   key={entry.id}
                   entry={entry}
                   activeSessionId={activeSessionId}
-                  activePath={activePath}
+                  activeExecutionId={activeExecutionId}
                   onNavigateSession={onNavigateSession}
+                  onNavigateExecution={onNavigateExecution}
                 />
               ))}
             </ul>
@@ -230,18 +235,20 @@ function ActivityGroupList({
 const ActivityEntry = memo(function ActivityEntry({
   entry,
   activeSessionId,
-  activePath,
+  activeExecutionId,
   onNavigateSession,
+  onNavigateExecution,
 }: {
   entry: RecentActivityEntry;
   activeSessionId: string | null;
-  activePath: string;
+  activeExecutionId: string | null;
   onNavigateSession: (id: string) => void;
+  onNavigateExecution: (id: string) => void;
 }) {
   const isSession = entry.type === "session";
   const isActive = isSession
     ? entry.id === activeSessionId
-    : activePath === `/executions/${entry.id}`;
+    : entry.id === activeExecutionId;
   const href = isSession ? `/sessions/${entry.id}` : `/executions/${entry.id}`;
   const TypeIcon = isSession ? MessageSquare : Workflow;
 
@@ -258,7 +265,7 @@ const ActivityEntry = memo(function ActivityEntry({
                   if (isSession) {
                     onNavigateSession(entry.id);
                   } else {
-                    window.location.href = href;
+                    onNavigateExecution(entry.id);
                   }
                 }
               }}

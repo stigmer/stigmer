@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter, Nunito, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import { Providers } from "@/providers/Providers";
 import { AppShell } from "@/domain/_shared/layout/AppShell";
+import { AppNavigationProvider } from "@/domain/_shared/navigation/app-navigation";
 import { SessionNavigationProvider } from "@/domain/session/session-navigation";
 import "./globals.css";
 
@@ -74,11 +75,13 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} ${nunito.variable} ${ibmPlexSans.variable} ${ibmPlexMono.variable} antialiased`}
       >
         <Providers>
-          <SessionNavigationProvider>
-            <AppShell>
-              {children}
-            </AppShell>
-          </SessionNavigationProvider>
+          <AppNavigationProvider>
+            <SessionNavigationProvider>
+              <AppShell>
+                {children}
+              </AppShell>
+            </SessionNavigationProvider>
+          </AppNavigationProvider>
         </Providers>
       </body>
     </html>

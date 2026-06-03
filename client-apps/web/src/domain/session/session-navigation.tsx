@@ -9,7 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { usePathname } from "next/navigation";
+import { useAppNavigation } from "@/domain/_shared/navigation/app-navigation";
 
 // ---------------------------------------------------------------------------
 // Context shape
@@ -47,7 +47,8 @@ function sessionIdFromPath(pathname: string): string | null {
   return pathname.match(SESSION_PATH_RE)?.[1] ?? null;
 }
 
-function isSessionZonePath(pathname: string): boolean {
+/** True for the session zone: the home screen or a specific session view. */
+export function isSessionZonePath(pathname: string): boolean {
   return pathname === "/" || SESSION_PATH_RE.test(pathname);
 }
 
@@ -56,128 +57,55 @@ function isSessionZonePath(pathname: string): boolean {
 // ---------------------------------------------------------------------------
 
 /**
- * Client-side session router that bypasses Next.js routing for session
- * navigation.
+ * Session zone navigation, derived from the app-level navigation source of
+ * truth (`useAppNavigation`).
  *
- * In static-export mode, Next.js cannot soft-navigate to dynamic routes
- * that were not pre-rendered. This provider manages session switching
- * entirely via React state + `history.pushState`, keeping the entire
- * React tree (providers, sidebar, SDK client) mounted across transitions.
+ * Session switching is a thin layer over the shared `currentPath` + `navigate`
+ * primitive: the zone flags and active session id are pure derivations of the
+ * current path, and `navigateToSession` / `navigateToHome` delegate to the
+ * shared `navigate`. The only session-specific state owned here is
+ * `lastSessionZonePath`, which powers "Back to Sessions" from the management
+ * zone.
  *
- * Non-session routes (e.g. `/library`) continue to use Next.js routing.
- * When Next.js navigates to such a route (via `<Link>`), the provider
- * detects the pathname change and exits the session zone automatically.
+ * Non-session routes (e.g. `/library`) continue to use Next.js routing; the
+ * shared provider adopts those navigations into `currentPath`, and this layer
+ * simply observes that the path left the session zone.
  */
 export function SessionNavigationProvider({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(() => {
-    if (typeof window === "undefined") return null;
-    return sessionIdFromPath(window.location.pathname);
-  });
+  const { currentPath, navigate } = useAppNavigation();
 
-  const [isSessionZone, setIsSessionZone] = useState(() => {
-    if (typeof window === "undefined") return true;
-    return isSessionZonePath(window.location.pathname);
-  });
+  const isSessionZone = isSessionZonePath(currentPath);
+  const activeSessionId = isSessionZone ? sessionIdFromPath(currentPath) : null;
 
-  // The true session-zone pathname, updated by both pushState (in-zone
-  // navigation) and Next.js routing (zone re-entry). `prevPathname` from
-  // usePathname() only reflects Next.js navigations and misses pushState
-  // updates, so we track it separately to capture the accurate path when
-  // the user leaves the session zone. This is state (not a ref) because
-  // the render-time pathname sync block reads it, and the react-hooks/refs
-  // lint rule prohibits ref access during render.
-  const [currentSessionZonePath, setCurrentSessionZonePath] = useState(() => {
-    if (typeof window === "undefined") return "/";
-    const p = window.location.pathname;
-    return isSessionZonePath(p) ? p : "/";
-  });
-
-  // Snapshot of the last session-zone pathname, captured when the user
-  // leaves the zone. "Back to Sessions" uses this to return the user to
-  // where they were rather than always landing on `/`.
-  const [lastSessionZonePath, setLastSessionZonePath] = useState<string | null>(null);
-
-  // Track Next.js router navigations (e.g. <Link> to /library) that
-  // bypass pushState. When the Next.js pathname leaves the session
-  // zone we clear the session state so AppShell renders {children}.
-  // When it re-enters (e.g. <Link href="/"> from error/not-found)
-  // we restore the session zone so AppShell renders SessionZoneContent.
-  // Adjusting state during render avoids cascading effect re-renders.
-  const nextPathname = usePathname();
-  const [prevPathname, setPrevPathname] = useState(nextPathname);
-  if (nextPathname !== prevPathname) {
-    setPrevPathname(nextPathname);
-    if (!isSessionZonePath(nextPathname)) {
-      if (isSessionZone) {
-        setLastSessionZonePath(currentSessionZonePath);
-      }
-      setIsSessionZone(false);
-      setActiveSessionId(null);
-    } else if (!isSessionZone) {
-      setCurrentSessionZonePath(nextPathname);
-      setIsSessionZone(true);
-      setActiveSessionId(sessionIdFromPath(nextPathname));
+  // Snapshot of the last session-zone pathname, captured when the user leaves
+  // the zone. "Back to Sessions" uses this to return the user to where they
+  // were rather than always landing on `/`.
+  const [lastSessionZonePath, setLastSessionZonePath] = useState<string | null>(
+    null,
+  );
+  const prevPathRef = useRef(currentPath);
+  useEffect(() => {
+    const prev = prevPathRef.current;
+    if (isSessionZonePath(prev) && !isSessionZonePath(currentPath)) {
+      setLastSessionZonePath(prev);
     }
-  }
+    prevPathRef.current = currentPath;
+  }, [currentPath]);
 
-  // Avoid re-creating callbacks when state changes.
-  const sessionIdRef = useRef(activeSessionId);
-  useEffect(() => {
-    sessionIdRef.current = activeSessionId;
-  }, [activeSessionId]);
-
-  const isSessionZoneRef = useRef(isSessionZone);
-  useEffect(() => {
-    isSessionZoneRef.current = isSessionZone;
-  }, [isSessionZone]);
-
-  const currentSessionZonePathRef = useRef(currentSessionZonePath);
-  useEffect(() => {
-    currentSessionZonePathRef.current = currentSessionZonePath;
-  }, [currentSessionZonePath]);
-
-  const navigateToSession = useCallback((id: string) => {
-    const path = `/sessions/${id}`;
-    if (sessionIdRef.current !== id) {
-      setActiveSessionId(id);
-      setIsSessionZone(true);
-      setCurrentSessionZonePath(path);
-      window.history.pushState(null, "", path);
-    }
-  }, []);
+  const navigateToSession = useCallback(
+    (id: string) => {
+      navigate(`/sessions/${id}`);
+    },
+    [navigate],
+  );
 
   const navigateToHome = useCallback(() => {
-    if (sessionIdRef.current !== null || !isSessionZoneRef.current) {
-      setActiveSessionId(null);
-      setIsSessionZone(true);
-      setCurrentSessionZonePath("/");
-      window.history.pushState(null, "", "/");
-    }
-  }, []);
-
-  // Sync state when the user navigates with browser back/forward buttons.
-  useEffect(() => {
-    function handlePopState() {
-      const pathname = window.location.pathname;
-      const enteringSessionZone = isSessionZonePath(pathname);
-
-      if (isSessionZoneRef.current && !enteringSessionZone) {
-        setLastSessionZonePath(currentSessionZonePathRef.current);
-      }
-
-      if (enteringSessionZone) {
-        setCurrentSessionZonePath(pathname);
-      }
-      setActiveSessionId(sessionIdFromPath(pathname));
-      setIsSessionZone(enteringSessionZone);
-    }
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, []);
+    navigate("/");
+  }, [navigate]);
 
   const value = useMemo<SessionNavigationValue>(
     () => ({
@@ -187,7 +115,13 @@ export function SessionNavigationProvider({
       navigateToSession,
       navigateToHome,
     }),
-    [activeSessionId, isSessionZone, lastSessionZonePath, navigateToSession, navigateToHome],
+    [
+      activeSessionId,
+      isSessionZone,
+      lastSessionZonePath,
+      navigateToSession,
+      navigateToHome,
+    ],
   );
 
   return (

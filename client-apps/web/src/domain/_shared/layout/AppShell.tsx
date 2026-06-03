@@ -4,11 +4,13 @@ import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { PanelLeft } from "lucide-react";
 import { cn } from "@stigmer/theme";
-import { FetchCacheProvider } from "@stigmer/react";
+import { FetchCacheProvider, useResolveAgentExecutionSession } from "@stigmer/react";
 import { Button } from "@/domain/_shared/ui/button";
 import { useSessionNavigation } from "@/domain/session/session-navigation";
+import { useExecutionNavigation } from "@/domain/workflow/execution-navigation";
 import { SessionLauncher } from "@/domain/session/SessionLauncher";
 import { SessionPageInner } from "@/domain/session/SessionPage";
+import { WorkflowExecutionDetailPage } from "@/domain/workflow/WorkflowExecutionDetailPage";
 import { DesktopAppBanner, useDesktopBannerState } from "./DesktopAppBanner";
 import { ManagementSidebar } from "./ManagementSidebar";
 import { Sidebar } from "./Sidebar";
@@ -18,6 +20,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const sidebar = useSidebarOpen();
   const pathname = usePathname();
   const { activeSessionId, isSessionZone } = useSessionNavigation();
+  const { activeExecutionId, isExecutionZone } = useExecutionNavigation();
   const desktopBanner = useDesktopBannerState();
 
   const isManagementZone = pathname.startsWith("/settings");
@@ -109,6 +112,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="min-w-0 flex-1 overflow-y-auto">
             {isManagementZone ? (
               children
+            ) : isExecutionZone && activeExecutionId ? (
+              <ExecutionZoneContent
+                executionId={activeExecutionId}
+                key={activeExecutionId}
+              />
             ) : isSessionZone ? (
               <SessionZoneContent activeSessionId={activeSessionId} />
             ) : (
@@ -119,6 +127,38 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
     </FetchCacheProvider>
   );
+}
+
+/**
+ * Renders the execution zone for a `/executions/<id>` path.
+ *
+ * Auto-detects the execution type from the id prefix:
+ * - `wex_*` (workflow execution) → renders the workflow execution viewer.
+ * - `aex_*` (agent execution) → resolves the parent session and hands off to
+ *   the session zone via `navigateToSession`, rendering nothing meanwhile.
+ *
+ * The `/executions/[id]` route is a no-op placeholder (like `/sessions/[id]`)
+ * that only exists so static export emits an nginx fallback for deep links and
+ * hard reloads; this zone owns all execution rendering, so switching
+ * executions via in-app navigation never reloads the page.
+ */
+function ExecutionZoneContent({ executionId }: { executionId: string }) {
+  const { navigateToSession } = useSessionNavigation();
+
+  const isAgentExecution = executionId.startsWith("aex_");
+  const { sessionId } = useResolveAgentExecutionSession(
+    isAgentExecution ? executionId : null,
+  );
+
+  useEffect(() => {
+    if (sessionId) {
+      navigateToSession(sessionId);
+    }
+  }, [sessionId, navigateToSession]);
+
+  if (isAgentExecution) return null;
+
+  return <WorkflowExecutionDetailPage executionId={executionId} />;
 }
 
 /**
