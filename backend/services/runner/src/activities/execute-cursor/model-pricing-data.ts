@@ -11,6 +11,14 @@
  * - STIGMER_AUTH_TOKEN: Bearer token for authentication (required)
  */
 
+/** Per-million rates for a speed/mode variant (e.g. "fast") of a base model. */
+export interface CursorVariantPricing {
+  readonly inputPricePerMillion: number;
+  readonly outputPricePerMillion: number;
+  readonly cacheWritePricePerMillion: number;
+  readonly cacheReadPricePerMillion: number;
+}
+
 export interface CursorModelPricing {
   readonly model: string;
   readonly displayName: string;
@@ -19,6 +27,15 @@ export interface CursorModelPricing {
   readonly outputPricePerMillion: number;
   readonly cacheWritePricePerMillion: number;
   readonly cacheReadPricePerMillion: number;
+  /** Speed-mode price overrides keyed by variant (e.g. "fast"); optional. */
+  readonly speedVariants?: Readonly<Record<string, CursorVariantPricing>>;
+}
+
+interface RegistryVariantEntry {
+  inputPricePerMillion: number;
+  outputPricePerMillion: number;
+  cacheWritePricePerMillion: number;
+  cacheReadPricePerMillion: number;
 }
 
 interface RegistryEntry {
@@ -33,6 +50,7 @@ interface RegistryEntry {
     cacheWritePricePerMillion: number;
     cacheReadPricePerMillion: number;
   };
+  pricingVariants?: Record<string, RegistryVariantEntry>;
 }
 
 const DEFAULT_API_URL = "https://api.stigmer.ai";
@@ -74,7 +92,25 @@ function parsePricingTable(json: unknown): CursorModelPricing[] {
       outputPricePerMillion: m.pricing!.outputPricePerMillion,
       cacheWritePricePerMillion: m.pricing!.cacheWritePricePerMillion,
       cacheReadPricePerMillion: m.pricing!.cacheReadPricePerMillion,
+      speedVariants: parseVariants(m.pricingVariants),
     }));
+}
+
+function parseVariants(
+  variants: Record<string, RegistryVariantEntry> | undefined,
+): Record<string, CursorVariantPricing> | undefined {
+  if (!variants || typeof variants !== "object") return undefined;
+  const out: Record<string, CursorVariantPricing> = {};
+  for (const [key, v] of Object.entries(variants)) {
+    if (!v || typeof v !== "object") continue;
+    out[key] = {
+      inputPricePerMillion: v.inputPricePerMillion,
+      outputPricePerMillion: v.outputPricePerMillion,
+      cacheWritePricePerMillion: v.cacheWritePricePerMillion,
+      cacheReadPricePerMillion: v.cacheReadPricePerMillion,
+    };
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
 }
 
 async function fetchFromApi(): Promise<readonly CursorModelPricing[]> {

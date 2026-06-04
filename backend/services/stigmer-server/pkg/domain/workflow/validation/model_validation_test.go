@@ -74,7 +74,7 @@ func TestValidateModelReferences_ValidCursorModels(t *testing.T) {
 	spec := &workflowv1.WorkflowSpec{
 		Tasks: []*workflowv1.WorkflowTask{
 			makeAgentCallTask("analyze", "cursor", "claude-opus-4-6"),
-			makeAgentCallTask("design", "cursor", "composer-2.5-fast"),
+			makeAgentCallTask("design", "cursor", "composer-2.5"),
 			makeAgentCallTask("review", "cursor", "gpt-5.3-codex"),
 		},
 	}
