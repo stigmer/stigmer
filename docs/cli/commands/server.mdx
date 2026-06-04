@@ -40,17 +40,17 @@ stigmer server --no-web
 
 ## Options
 
-| Flag                  | Type     | Default | Description                                                                         |
-| --------------------- | -------- | ------- | ----------------------------------------------------------------------------------- |
-| `--execution-mode`    | `string` |         | Agent execution mode: local, sandbox, or auto (default: local)                      |
-| `--json`              | `bool`   |         | output result as JSON                                                               |
-| `--no-web`            | `bool`   |         | Disable the embedded web console                                                    |
-| `--open`              | `bool`   |         | Open the web console in your browser after startup                                  |
-| `--quiet`, `-q`       | `bool`   |         | suppress output, print status line only                                             |
-| `--sandbox-auto-pull` | `bool`   | `true`  | Auto-pull sandbox image if missing                                                  |
-| `--sandbox-cleanup`   | `bool`   | `true`  | Cleanup sandbox containers after execution                                          |
-| `--sandbox-image`     | `string` |         | Docker image for sandbox mode (default: ghcr.io/stigmer/agent-sandbox-basic:latest) |
-| `--sandbox-ttl`       | `int`    | `3600`  | Sandbox container reuse TTL in seconds                                              |
+| Flag                  | Type     | Default | Description                                                            |
+| --------------------- | -------- | ------- | ---------------------------------------------------------------------- |
+| `--execution-mode`    | `string` |         | Agent execution mode: local, sandbox, or auto (default: local)         |
+| `--json`              | `bool`   |         | output result as JSON                                                  |
+| `--no-web`            | `bool`   |         | Disable the embedded web console                                       |
+| `--open`              | `bool`   |         | Open the web console in your browser after startup                     |
+| `--quiet`, `-q`       | `bool`   |         | suppress output, print status line only                                |
+| `--sandbox-auto-pull` | `bool`   | `true`  | Auto-pull sandbox image if missing                                     |
+| `--sandbox-cleanup`   | `bool`   | `true`  | Cleanup sandbox containers after execution                             |
+| `--sandbox-image`     | `string` |         | Docker image for sandbox mode (default: ghcr.io/stigmer/runner:latest) |
+| `--sandbox-ttl`       | `int`    | `3600`  | Sandbox container reuse TTL in seconds                                 |
 
 ### Execution modes
 
@@ -74,12 +74,12 @@ stigmer server --execution-mode sandbox --sandbox-image my-custom:latest
 
 When using sandbox execution mode, these options control container behavior:
 
-| Flag                  | Default                                      | Purpose                                 |
-| --------------------- | -------------------------------------------- | --------------------------------------- |
-| `--sandbox-image`     | `ghcr.io/stigmer/agent-sandbox-basic:latest` | Docker image for sandbox containers     |
-| `--sandbox-auto-pull` | `true`                                       | Pull the image automatically if missing |
-| `--sandbox-cleanup`   | `true`                                       | Remove containers after execution       |
-| `--sandbox-ttl`       | `3600`                                       | Container reuse TTL in seconds          |
+| Flag                  | Default                         | Purpose                                 |
+| --------------------- | ------------------------------- | --------------------------------------- |
+| `--sandbox-image`     | `ghcr.io/stigmer/runner:latest` | Docker image for sandbox containers     |
+| `--sandbox-auto-pull` | `true`                          | Pull the image automatically if missing |
+| `--sandbox-cleanup`   | `true`                          | Remove containers after execution       |
+| `--sandbox-ttl`       | `3600`                          | Container reuse TTL in seconds          |
 
 ## Examples
 
