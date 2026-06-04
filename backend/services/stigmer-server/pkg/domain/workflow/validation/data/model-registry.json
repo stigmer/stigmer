@@ -22,7 +22,7 @@
     {"id": "llama3.2:3b", "harness": "native"},
     {"id": "mistral:7b", "harness": "native"},
     {"id": "default", "harness": "cursor"},
-    {"id": "composer-2.5-fast", "harness": "cursor"},
+    {"id": "composer-2.5", "harness": "cursor"},
     {"id": "composer-2", "harness": "cursor"},
     {"id": "composer-1.5", "harness": "cursor"},
     {"id": "claude-opus-4-7", "harness": "cursor"},

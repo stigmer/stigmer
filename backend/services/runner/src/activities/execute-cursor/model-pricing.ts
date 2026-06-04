@@ -20,6 +20,44 @@ function normalizeModelId(model: string): string {
   return model.replace(/-\d{8}(?:v\d+)?$/, "");
 }
 
+/**
+ * Speed-mode suffixes Cursor appends to a base model id (longest first).
+ * Only speed variants change the per-token price; effort suffixes do not.
+ */
+const SPEED_SUFFIXES = ["-high-fast", "-medium-fast", "-low-fast", "-fast"];
+
+/**
+ * If `model` carries a speed suffix, return the base id; otherwise null.
+ * e.g. "composer-2.5-fast" -> "composer-2.5".
+ */
+function stripSpeedSuffix(model: string): string | null {
+  for (const suffix of SPEED_SUFFIXES) {
+    if (model.endsWith(suffix)) return model.slice(0, -suffix.length);
+  }
+  return null;
+}
+
+/**
+ * Return a copy of a base pricing entry with its "fast" variant rates applied,
+ * preserving the original (wire) model id. Returns null when the base declares
+ * no fast variant.
+ */
+function applyFastVariant(
+  base: CursorModelPricing,
+  wireModel: string,
+): CursorModelPricing | null {
+  const fast = base.speedVariants?.fast;
+  if (!fast) return null;
+  return {
+    ...base,
+    model: wireModel,
+    inputPricePerMillion: fast.inputPricePerMillion,
+    outputPricePerMillion: fast.outputPricePerMillion,
+    cacheWritePricePerMillion: fast.cacheWritePricePerMillion,
+    cacheReadPricePerMillion: fast.cacheReadPricePerMillion,
+  };
+}
+
 let pricingByModel: Map<string, CursorModelPricing> | null = null;
 let initPromise: Promise<void> | null = null;
 
@@ -77,6 +115,17 @@ export function getCursorModelPricing(model: string): CursorModelPricing {
   const map = getMap();
   const exact = map.get(model);
   if (exact) return exact;
+
+  // Speed variant (e.g. "composer-2.5-fast"): resolve the base entry and apply
+  // its fast-tier rates so the display estimate matches the authoritative bill.
+  const speedBase = stripSpeedSuffix(model);
+  if (speedBase) {
+    const baseEntry = map.get(speedBase) ?? map.get(normalizeModelId(speedBase));
+    if (baseEntry) {
+      const fast = applyFastVariant(baseEntry, model);
+      if (fast) return fast;
+    }
+  }
 
   const normalized = normalizeModelId(model);
   if (normalized !== model) {
