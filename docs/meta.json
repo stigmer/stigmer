@@ -1,9 +1,9 @@
 {
   "pages": [
     "getting-started",
+    "concepts",
     "guides",
     "sdk",
-    "cli",
-    "concepts"
+    "cli"
   ]
 }

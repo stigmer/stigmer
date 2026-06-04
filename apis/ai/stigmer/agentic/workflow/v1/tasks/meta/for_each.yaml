@@ -5,7 +5,7 @@ category: control_flow
 icon: "repeat"
 is_ai_native: false
 requires_external_service: false
-documentation_url: "/docs/guides/workflow-tasks/for-each"
+documentation_url: "/docs/guides/workflows/task-types/for-each"
 
 output_schema:
   type: array

@@ -1,0 +1,53 @@
+---
+title: Workflows
+description:
+  Author, run, and operate Stigmer Workflows — declarative pipelines that
+  orchestrate AI tasks, tool calls, branching, loops, and human approvals.
+---
+
+A Workflow is a declarative pipeline that orchestrates a sequence of tasks — LLM
+calls, Agent invocations, HTTP and gRPC requests, branching, loops, and
+human-in-the-loop approvals — into a single repeatable automation. Workflows are
+defined in YAML and run on Stigmer's Temporal-backed Workflow Runner.
+
+If you're new to the underlying model, start with the
+[Workflows concept page](/docs/concepts/workflows). For a hands-on introduction,
+follow the [Workflow Quick Start](/docs/getting-started/first-workflow).
+
+## Guides in this section
+
+{/* vale off */}
+
+<Cards>
+  <Card href="/docs/guides/workflows/authoring" title="Workflow Authoring">
+    Write Workflow YAML from scratch — the resource envelope, task definitions,
+    data flow, branching, loops, error handling, and validation.
+  </Card>
+  <Card href="/docs/guides/workflows/task-types" title="Task Types">
+    The catalog of all 20 task types, grouped by category, with guidance on when
+    to use each and a field-level reference for every task.
+  </Card>
+  <Card href="/docs/guides/workflows/patterns" title="Workflow Patterns">
+    Production-ready, copy-pasteable patterns — research pipelines, content
+    review loops, ticket triage, agent guards, and budget gates.
+  </Card>
+  <Card href="/docs/guides/workflows/execution" title="Workflow Execution">
+    Create, monitor, approve, signal, cancel, and recover workflow executions
+    using the SDK and CLI.
+  </Card>
+</Cards>
+
+{/* vale on */}
+
+## The Workflow journey
+
+These guides follow the lifecycle of a Workflow:
+
+1. **Author** the Workflow YAML — see
+   [Workflow Authoring](/docs/guides/workflows/authoring).
+2. **Compose tasks** from the available task types — see
+   [Task Types](/docs/guides/workflows/task-types).
+3. **Apply proven patterns** for common automations — see
+   [Workflow Patterns](/docs/guides/workflows/patterns).
+4. **Run and operate** executions in production — see
+   [Workflow Execution](/docs/guides/workflows/execution).

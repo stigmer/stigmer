@@ -114,9 +114,9 @@ gen-proto-sdk-docs: ## Generate SDK resource docs from proto schemas
 
 gen-task-docs: ## Generate per-task reference docs from schemas
 	go run ./tools/codegen/generator --comprehensive --target=task-docs \
-		--schema-dir tools/codegen/schemas --output-dir docs/guides/workflow-tasks \
+		--schema-dir tools/codegen/schemas --output-dir docs/guides/workflows/task-types \
 		--meta-dir apis/ai/stigmer/agentic/workflow/v1/tasks/meta
-	npx prettier --write --prose-wrap always docs/guides/workflow-tasks/*.mdx
+	npx prettier --write --prose-wrap always docs/guides/workflows/task-types/*.mdx
 
 gen-task-registry: ## Generate task-kind-registry.json + JSON Schemas and sync into the backend embed
 	go run ./tools/codegen/generator --comprehensive --target=task-registry \
@@ -174,11 +174,11 @@ gen-proto-sdk-docs-check: ## Verify proto SDK docs are up to date (CI)
 
 gen-task-docs-check: ## Verify task docs are up to date (CI)
 	@go run ./tools/codegen/generator --comprehensive --target=task-docs \
-		--schema-dir tools/codegen/schemas --output-dir docs/guides/workflow-tasks \
+		--schema-dir tools/codegen/schemas --output-dir docs/guides/workflows/task-types \
 		--meta-dir apis/ai/stigmer/agentic/workflow/v1/tasks/meta && \
-	npx prettier --write --prose-wrap always docs/guides/workflow-tasks/*.mdx > /dev/null 2>&1; \
-	if ! git diff --quiet docs/guides/workflow-tasks/; then \
-		git checkout -- docs/guides/workflow-tasks/; \
+	npx prettier --write --prose-wrap always docs/guides/workflows/task-types/*.mdx > /dev/null 2>&1; \
+	if ! git diff --quiet docs/guides/workflows/task-types/; then \
+		git checkout -- docs/guides/workflows/task-types/; \
 		echo "error: task docs are stale — run 'make gen-task-docs'"; exit 1; \
 	fi; \
 	echo "✓ Task docs are up to date"

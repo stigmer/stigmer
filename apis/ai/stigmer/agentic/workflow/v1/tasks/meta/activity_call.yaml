@@ -5,7 +5,7 @@ category: invocation
 icon: "cog"
 is_ai_native: false
 requires_external_service: false
-documentation_url: "/docs/guides/workflow-tasks/activity-call"
+documentation_url: "/docs/guides/workflows/task-types/activity-call"
 
 output_schema:
   type: object
