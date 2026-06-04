@@ -169,6 +169,11 @@ func TestMain(m *testing.M) {
 		Auth0Audience:    testAudience,
 		Auth0McpAudience: testMcpAudience,
 		Auth0TokenURL:    mockAuth0.URL + "/oauth/token",
+		// Configure a previous signing key so the JWT key-rotation overlap is
+		// exercised end-to-end (see jwt_keyrotation_test.go). The primary key
+		// keeps minting; tokens signed with the previous key must still verify.
+		PreviousJWTSigningKey:   harness.StigmerPreviousJWTSigningKeyBase64,
+		PreviousJWTSigningKeyID: "stigmer-signing-key-0",
 	}
 
 	if testHarness.OpenFGA != nil {
