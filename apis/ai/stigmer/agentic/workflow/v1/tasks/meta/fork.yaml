@@ -5,7 +5,7 @@ category: control_flow
 icon: "git-fork"
 is_ai_native: false
 requires_external_service: false
-documentation_url: "/docs/guides/workflow-tasks/fork"
+documentation_url: "/docs/guides/workflows/task-types/fork"
 
 output_schema:
   type: object

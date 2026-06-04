@@ -9,7 +9,7 @@ Every step in a Workflow is a **task** defined by its `kind`. The `kind`
 determines the shape of `task_config` and what the task does at runtime. This
 page introduces all 20 task types grouped by category. For general task
 structure (`name`, `export`, `flow`), see the
-[Authoring Guide](/docs/guides/workflows#defining-tasks).
+[Authoring Guide](/docs/guides/workflows/authoring#defining-tasks).
 
 ## AI tasks
 
@@ -18,7 +18,7 @@ natural language understanding, generation, or evaluation.
 
 ### llm_call
 
-[Full reference ->](/docs/guides/workflow-tasks/llm-call)
+[Full reference ->](/docs/guides/workflows/task-types/llm-call)
 
 Direct LLM call for generation, classification, extraction, or scoring. Use
 `llm_call` when you need a single LLM response with no tool access — it is
@@ -54,7 +54,7 @@ responses, `.structured` when `response_schema` is set.
 
 ### agent_call
 
-[Full reference ->](/docs/guides/workflow-tasks/agent-call)
+[Full reference ->](/docs/guides/workflows/task-types/agent-call)
 
 Invoke a deployed Agent as a workflow step. Use `agent_call` when the step needs
 tool access, multi-turn reasoning, or the Agent's Skills and MCP servers.
@@ -85,7 +85,7 @@ when you need tool access, Skills, or multi-turn autonomy.
 
 ### eval
 
-[Full reference ->](/docs/guides/workflow-tasks/eval)
+[Full reference ->](/docs/guides/workflows/task-types/eval)
 
 LLM-as-judge evaluation. Scores task output against criteria using an LLM
 evaluator. Use `eval` for quality gates, grading pipelines, and automated
@@ -124,7 +124,7 @@ error handling.
 
 ### switch_case
 
-[Full reference ->](/docs/guides/workflow-tasks/switch-case)
+[Full reference ->](/docs/guides/workflows/task-types/switch-case)
 
 Branch conditionally based on expressions:
 
@@ -148,7 +148,7 @@ Cases are evaluated in order. The first matching `when` wins. A case without
 
 ### for_each
 
-[Full reference ->](/docs/guides/workflow-tasks/for-each)
+[Full reference ->](/docs/guides/workflows/task-types/for-each)
 
 Iterate over a collection:
 
@@ -175,7 +175,7 @@ Iterate over a collection:
 
 ### fork
 
-[Full reference ->](/docs/guides/workflow-tasks/fork)
+[Full reference ->](/docs/guides/workflows/task-types/fork)
 
 Execute branches in parallel:
 
@@ -206,7 +206,7 @@ wait for all, `true` = first-to-finish wins).
 
 ### try_catch
 
-[Full reference ->](/docs/guides/workflow-tasks/try-catch)
+[Full reference ->](/docs/guides/workflows/task-types/try-catch)
 
 Handle errors with try/catch and optional compensation:
 
@@ -242,7 +242,7 @@ Handle errors with try/catch and optional compensation:
 
 ### wait
 
-[Full reference ->](/docs/guides/workflow-tasks/wait)
+[Full reference ->](/docs/guides/workflows/task-types/wait)
 
 Pause execution for a duration or until a timestamp:
 
@@ -258,7 +258,7 @@ timestamp).
 
 ### raise_error
 
-[Full reference ->](/docs/guides/workflow-tasks/raise-error)
+[Full reference ->](/docs/guides/workflows/task-types/raise-error)
 
 Explicitly fail the workflow or trigger an enclosing `try_catch`:
 
@@ -271,7 +271,7 @@ Explicitly fail the workflow or trigger an enclosing `try_catch`:
 
 ### run_workflow
 
-[Full reference ->](/docs/guides/workflow-tasks/run-workflow)
+[Full reference ->](/docs/guides/workflows/task-types/run-workflow)
 
 Execute a child workflow as a sub-step:
 
@@ -291,7 +291,7 @@ services or LLMs.
 
 ### set_vars
 
-[Full reference ->](/docs/guides/workflow-tasks/set-vars)
+[Full reference ->](/docs/guides/workflows/task-types/set-vars)
 
 Set variables in the workflow context:
 
@@ -312,7 +312,7 @@ intermediate state.
 
 ### transform
 
-[Full reference ->](/docs/guides/workflow-tasks/transform)
+[Full reference ->](/docs/guides/workflows/task-types/transform)
 
 Deterministic data transformation using JQ, JSONata, or template engines:
 
@@ -342,7 +342,7 @@ simple variable assignment.
 
 ### validate
 
-[Full reference ->](/docs/guides/workflow-tasks/validate)
+[Full reference ->](/docs/guides/workflows/task-types/validate)
 
 Schema and business-rule validation checkpoint:
 
@@ -368,7 +368,7 @@ expressions), `on_fail` (`VALIDATION_FAIL_RAISE`, `VALIDATION_FAIL_WARN`,
 
 ### human_input
 
-[Full reference ->](/docs/guides/workflow-tasks/human-input)
+[Full reference ->](/docs/guides/workflows/task-types/human-input)
 
 Workflow-level approval gate that pauses execution for human review:
 
@@ -400,7 +400,7 @@ input), `outcomes` (each with `name`, `label`, optional `then`), `timeout`
 **Output**: `{ outcome, reviewer, form_data, decided_at }`.
 
 For full coverage of human-in-the-loop patterns, see the
-[Authoring Guide](/docs/guides/workflows#human-in-the-loop).
+[Authoring Guide](/docs/guides/workflows/authoring#human-in-the-loop).
 
 ## External invocation tasks
 
@@ -408,7 +408,7 @@ These tasks call external services.
 
 ### http_call
 
-[Full reference ->](/docs/guides/workflow-tasks/http-call)
+[Full reference ->](/docs/guides/workflows/task-types/http-call)
 
 Make an HTTP request:
 
@@ -431,7 +431,7 @@ Make an HTTP request:
 
 ### grpc_call
 
-[Full reference ->](/docs/guides/workflow-tasks/grpc-call)
+[Full reference ->](/docs/guides/workflows/task-types/grpc-call)
 
 Make a gRPC request:
 
@@ -449,7 +449,7 @@ Make a gRPC request:
 
 ### activity_call
 
-[Full reference ->](/docs/guides/workflow-tasks/activity-call)
+[Full reference ->](/docs/guides/workflows/task-types/activity-call)
 
 Execute a Temporal activity:
 
@@ -471,7 +471,7 @@ events, and notifying humans.
 
 ### listen
 
-[Full reference ->](/docs/guides/workflow-tasks/listen)
+[Full reference ->](/docs/guides/workflows/task-types/listen)
 
 Wait for external signals:
 
@@ -493,7 +493,7 @@ Send signals to a running execution with the `sendSignal` API or CLI.
 
 ### emit_event
 
-[Full reference ->](/docs/guides/workflow-tasks/emit-event)
+[Full reference ->](/docs/guides/workflows/task-types/emit-event)
 
 Emit a CloudEvents-formatted event:
 
@@ -513,7 +513,7 @@ Emit a CloudEvents-formatted event:
 
 ### notification
 
-[Full reference ->](/docs/guides/workflow-tasks/notification)
+[Full reference ->](/docs/guides/workflows/task-types/notification)
 
 Send a notification to humans through a channel (Slack, email, etc.):
 
@@ -539,12 +539,12 @@ event routing.
   <Card
     title="Authoring Guide"
     description="Learn the full YAML syntax for writing workflows."
-    href="/docs/guides/workflows"
+    href="/docs/guides/workflows/authoring"
   />
   <Card
     title="Workflow Patterns"
     description="Production-ready patterns using these task types."
-    href="/docs/guides/workflow-patterns"
+    href="/docs/guides/workflows/patterns"
   />
   <Card
     title="API Reference"

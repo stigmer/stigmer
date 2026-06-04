@@ -1,4 +1,4 @@
 {
   "title": "Guides",
-  "pages": ["editors", "integrations", "authentication", "workflows", "workflow-tasks", "workflow-patterns", "workflow-execution"]
+  "pages": ["editors", "integrations", "authentication", "workflows"]
 }
