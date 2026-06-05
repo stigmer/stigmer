@@ -24,7 +24,7 @@ help: ## Show available targets
 
 VALE_VERSION ?= 3.9.5
 
-.PHONY: setup install-vale
+.PHONY: setup bootstrap-runner install-vale
 setup: ## Install all dependencies (one-time)
 	@for mod in $(GO_MODULES); do \
 		echo "go mod download  $$mod"; \
@@ -43,6 +43,9 @@ setup: ## Install all dependencies (one-time)
 	@$(MAKE) install-vale
 	@command -v lychee >/dev/null 2>&1 || { echo "error: lychee not found — brew install lychee"; exit 1; }
 	@vale sync && echo "vale packages synced"
+	@echo ""
+	@echo "--- runner (TypeScript) ---"
+	@$(MAKE) bootstrap-runner
 
 install-vale: ## Install Vale prose linter (auto-detects OS)
 	@if command -v vale >/dev/null 2>&1; then \
@@ -94,7 +97,24 @@ build-java-protos: ## Install Java proto stubs to local Maven repo
 build-java-sdk: build-java-protos ## Compile Java SDK
 	$(MAKE) -C sdk/java build
 
-build-runner: ## Compile unified runner (TypeScript)
+# Root workspace deps — reinstall only when the root manifest changes.
+# Provides the hoisted toolchain (e.g. typescript) used to build proto stubs.
+node_modules: package.json
+	@echo "npm install  (root workspace deps)"
+	@npm install
+	@touch node_modules
+
+# The runner is NOT an npm workspace (see root package.json), so its deps
+# install independently. Reinstall only when the runner manifest changes.
+$(RUNNER_DIR)/node_modules: $(RUNNER_DIR)/package.json
+	@echo "npm install  $(RUNNER_DIR)"
+	@cd $(RUNNER_DIR) && npm install
+	@touch $(RUNNER_DIR)/node_modules
+
+bootstrap-runner: node_modules build-ts-stubs $(RUNNER_DIR)/node_modules ## One-shot prep for the TS runner (proto stubs + deps)
+	@echo "runner ready: @stigmer/protos dist built + $(RUNNER_DIR) deps installed"
+
+build-runner: build-ts-stubs $(RUNNER_DIR)/node_modules ## Compile unified runner (TypeScript)
 	@echo "build    $(RUNNER_DIR)"
 	@cd $(RUNNER_DIR) && npm run build
 
@@ -246,7 +266,7 @@ preview-sync: ## Re-scan client-apps/web and update site/.scenar/ view registry
 
 codegen: protos build-ts-stubs gen-sdk-docs gen-narration ## Regenerate all derived code (stubs + SDK docs + narration)
 
-build-ts-stubs: ## Rebuild @stigmer/protos dist after stub regeneration
+build-ts-stubs: node_modules ## Rebuild @stigmer/protos dist after stub regeneration
 	npm run build -w @stigmer/protos
 
 # ─── Test ─────────────────────────────────────
