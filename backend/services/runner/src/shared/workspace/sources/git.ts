@@ -55,12 +55,8 @@ export async function provisionGit(options: GitProvisionOptions): Promise<Provis
     consumedKeys.push("GITHUB_TOKEN");
   }
 
-  const branchArgs = branch ? ["-b", branch] : [];
-
   try {
-    await backend.execute(
-      `git clone ${branchArgs.map(a => `'${a}'`).join(" ")} '${cloneUrl}' '${cloneDir}'`,
-    );
+    await cloneInPlace(backend, cloneDir, cloneUrl, branch);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     const sanitized = githubToken
@@ -128,6 +124,59 @@ async function reuseExistingRepo(
   };
 }
 
+/**
+ * Clone a repository into a directory that may already be non-empty.
+ *
+ * `git clone` refuses to write into a non-empty target, but cloud workspace
+ * mounts are not guaranteed empty — a freshly provisioned ext4 PersistentVolume
+ * ships a `lost+found` directory at its root. We therefore reproduce clone
+ * semantics in place: init the repo, add the (token-injected) origin remote,
+ * fetch all branches, and check out the requested branch (or the remote's
+ * default branch when none is requested). The result is identical to a clone —
+ * a working tree on a tracking branch — but tolerant of pre-existing content.
+ */
+async function cloneInPlace(
+  backend: WorkspaceBackend,
+  cloneDir: string,
+  cloneUrl: string,
+  branch: string | undefined,
+): Promise<void> {
+  await backend.execute(`git init -q '${cloneDir}'`);
+
+  const exec = (cmd: string) => backend.execute(cmd, { cwd: cloneDir });
+  await exec(`git remote add origin '${cloneUrl}'`);
+  await exec("git fetch --quiet origin");
+
+  const targetBranch = branch && branch.length > 0
+    ? branch
+    : await resolveDefaultBranch(backend, cloneDir);
+
+  // No target branch means the remote has no branches (empty repository).
+  // Leave the initialized repo as-is, matching `git clone` of an empty repo.
+  if (!targetBranch) return;
+
+  await exec(`git checkout '${targetBranch}'`);
+}
+
+/**
+ * Resolve the remote's default branch after a fetch. Returns an empty string
+ * when the remote exposes no default (e.g. an empty repository), so the caller
+ * can skip checkout gracefully.
+ */
+async function resolveDefaultBranch(
+  backend: WorkspaceBackend,
+  cloneDir: string,
+): Promise<string> {
+  const exec = (cmd: string) => backend.execute(cmd, { cwd: cloneDir });
+  try {
+    await exec("git remote set-head origin --auto");
+    const ref = (await exec("git symbolic-ref --short refs/remotes/origin/HEAD")).trim();
+    return ref.replace(/^origin\//, "");
+  } catch {
+    return "";
+  }
+}
+
 async function extractGitMetadata(
   cloneDir: string,
   url: string,
@@ -154,6 +203,14 @@ async function extractGitMetadata(
   };
 }
 
+/**
+ * Working-tree entries the agent should never see as untracked changes:
+ * - `.stigmer` — platform-managed namespace (skills, inputs, attachments)
+ * - `lost+found` — present at the root of a freshly provisioned ext4
+ *   PersistentVolume, which is where single-entry sessions clone in place
+ */
+const GIT_EXCLUDE_ENTRIES = [".stigmer", "lost+found"];
+
 async function addGitExcludes(backend: WorkspaceBackend, targetSubdir?: string): Promise<void> {
   const excludePath = targetSubdir
     ? join(targetSubdir, ".git/info/exclude")
@@ -161,8 +218,12 @@ async function addGitExcludes(backend: WorkspaceBackend, targetSubdir?: string):
 
   try {
     const current = await backend.readFile(excludePath);
-    if (!current.includes(".stigmer")) {
-      await backend.writeFile(excludePath, current.trimEnd() + "\n.stigmer\n");
+    const missing = GIT_EXCLUDE_ENTRIES.filter((entry) => !current.includes(entry));
+    if (missing.length > 0) {
+      await backend.writeFile(
+        excludePath,
+        current.trimEnd() + "\n" + missing.join("\n") + "\n",
+      );
     }
   } catch {
     // .git/info/exclude might not exist — non-fatal

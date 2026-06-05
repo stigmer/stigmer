@@ -45,11 +45,11 @@ function git(cwd: string, args: string[]): void {
   });
 }
 
-/** Creates a bare-minimum git repo on branch `main` with a marker file. */
-function seedSourceRepo(): string {
+/** Creates a bare-minimum git repo on the given branch with a marker file. */
+function seedSourceRepo(branch = "main", content = MARKER_CONTENT): string {
   const repo = mkdtempSync(join(tmpRoot, "src-repo-"));
-  git(repo, ["init", "-b", "main"]);
-  writeFileSync(join(repo, MARKER_FILE), MARKER_CONTENT);
+  git(repo, ["init", "-b", branch]);
+  writeFileSync(join(repo, MARKER_FILE), content);
   git(repo, ["add", "."]);
   git(repo, ["commit", "-m", "seed"]);
   return repo;
@@ -70,6 +70,30 @@ function gitRepoSession(url: string, branch = "main"): Session {
     }),
   });
   return { spec: { workspaceEntries: [entry] } } as unknown as Session;
+}
+
+/** Single git-repo entry with no branch set (proto default ""). */
+function gitRepoSessionNoBranch(url: string): Session {
+  const entry: WorkspaceEntry = create(WorkspaceEntrySchema, {
+    name: "repo",
+    source: create(WorkspaceSourceSchema, {
+      source: { case: "gitRepo", value: create(GitRepoSourceSchema, { url }) },
+    }),
+  });
+  return { spec: { workspaceEntries: [entry] } } as unknown as Session;
+}
+
+/** Multiple git-repo entries (multi-repo workspace). */
+function multiGitRepoSession(repos: { name: string; url: string }[]): Session {
+  const entries = repos.map(({ name, url }) =>
+    create(WorkspaceEntrySchema, {
+      name,
+      source: create(WorkspaceSourceSchema, {
+        source: { case: "gitRepo", value: create(GitRepoSourceSchema, { url, branch: "main" }) },
+      }),
+    }),
+  );
+  return { spec: { workspaceEntries: entries } } as unknown as Session;
 }
 
 function localPathSession(path: string): Session {
@@ -127,6 +151,102 @@ describe("provisionCursorWorkspace", () => {
     expect(readFileSync(clonedFile, "utf-8")).toBe(MARKER_CONTENT);
     // The clone must be a real git repo (so the agent can run git in it).
     expect(existsSync(join(dirs[0], ".git"))).toBe(true);
+  }, GIT_TEST_TIMEOUT_MS);
+
+  it("clones into a workspace root that already contains lost+found (PVC simulation)", async () => {
+    // A freshly provisioned ext4 PersistentVolume ships a `lost+found` directory
+    // at its mount root, making `/workspace` non-empty before the first clone.
+    const source = seedSourceRepo();
+    const workspaceRoot = join(tmpRoot, "pvc-workspace");
+    mkdirSync(join(workspaceRoot, "lost+found"), { recursive: true });
+    writeFileSync(join(workspaceRoot, "lost+found", "stray"), "fsck-artifact");
+
+    const dirs = await provisionCursorWorkspace(
+      makeConfig(workspaceRoot),
+      gitRepoSession(source),
+      {},
+      "test-session-lostfound",
+    );
+
+    expect(dirs).toHaveLength(1);
+    expect(dirs[0]).toBe(workspaceRoot);
+
+    // The clone must have succeeded despite the non-empty root.
+    const clonedFile = join(workspaceRoot, MARKER_FILE);
+    expect(existsSync(clonedFile)).toBe(true);
+    expect(readFileSync(clonedFile, "utf-8")).toBe(MARKER_CONTENT);
+    expect(existsSync(join(workspaceRoot, ".git"))).toBe(true);
+
+    // The PVC artifact must be preserved and git-excluded so the agent never
+    // sees it as an untracked change.
+    expect(existsSync(join(workspaceRoot, "lost+found", "stray"))).toBe(true);
+    const exclude = readFileSync(join(workspaceRoot, ".git", "info", "exclude"), "utf-8");
+    expect(exclude).toContain("lost+found");
+
+    // git itself must agree the working tree is clean (no lost+found noise).
+    const status = execFileSync("git", ["status", "--porcelain"], {
+      cwd: workspaceRoot,
+      encoding: "utf-8",
+    });
+    expect(status.trim()).toBe("");
+  }, GIT_TEST_TIMEOUT_MS);
+
+  it("resolves the default branch when the session entry omits a branch", async () => {
+    const source = seedSourceRepo("trunk");
+    const workspaceRoot = join(tmpRoot, "default-branch-workspace");
+    mkdirSync(workspaceRoot, { recursive: true });
+
+    const dirs = await provisionCursorWorkspace(
+      makeConfig(workspaceRoot),
+      gitRepoSessionNoBranch(source),
+      {},
+      "test-session-default-branch",
+    );
+
+    expect(dirs).toHaveLength(1);
+    expect(existsSync(join(workspaceRoot, MARKER_FILE))).toBe(true);
+
+    const branch = execFileSync("git", ["rev-parse", "--abbrev-ref", "HEAD"], {
+      cwd: workspaceRoot,
+      encoding: "utf-8",
+    }).trim();
+    expect(branch).toBe("trunk");
+  }, GIT_TEST_TIMEOUT_MS);
+
+  it("clones multiple git-repo entries into per-entry subdirectories", async () => {
+    const frontend = seedSourceRepo("main", "frontend-marker");
+    const backend = seedSourceRepo("main", "backend-marker");
+    const workspaceRoot = join(tmpRoot, "multi-workspace");
+    // The PVC root carries lost+found even in multi-entry mode; the root is not
+    // a worktree here, so it must be left untouched.
+    mkdirSync(join(workspaceRoot, "lost+found"), { recursive: true });
+
+    const dirs = await provisionCursorWorkspace(
+      makeConfig(workspaceRoot),
+      multiGitRepoSession([
+        { name: "frontend", url: frontend },
+        { name: "backend", url: backend },
+      ]),
+      {},
+      "test-session-multi",
+    );
+
+    expect(dirs).toHaveLength(2);
+    expect(new Set(dirs).size).toBe(2);
+
+    const frontendDir = join(workspaceRoot, "frontend");
+    const backendDir = join(workspaceRoot, "backend");
+    expect(dirs).toContain(frontendDir);
+    expect(dirs).toContain(backendDir);
+
+    expect(readFileSync(join(frontendDir, MARKER_FILE), "utf-8")).toBe("frontend-marker");
+    expect(readFileSync(join(backendDir, MARKER_FILE), "utf-8")).toBe("backend-marker");
+    expect(existsSync(join(frontendDir, ".git"))).toBe(true);
+    expect(existsSync(join(backendDir, ".git"))).toBe(true);
+
+    // The root lost+found is preserved and is not a git repo itself.
+    expect(existsSync(join(workspaceRoot, "lost+found"))).toBe(true);
+    expect(existsSync(join(workspaceRoot, ".git"))).toBe(false);
   }, GIT_TEST_TIMEOUT_MS);
 
   it("falls back to the workspace root when there are no workspace entries", async () => {
