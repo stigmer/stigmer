@@ -60,7 +60,7 @@ spec:
           # which validates it (Auth0 JWTs, federated org-IdP JWTs, or stk_ API
           # keys). No issuer is assumed here, so bring-your-own-IdP works.
           - name: STIGMER_SERVER_ADDRESS
-            value: $variables-group/stigmer-api/prod.kube-endpoint
+            value: $var/@prod/stigmer-api/kube-endpoint
       # Health probes for zero-downtime deployments (HTTP /health).
       readinessProbe:
         httpGet:

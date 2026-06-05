@@ -20,15 +20,15 @@ spec:
       env:
         variables:
           - name: NEXT_PUBLIC_API_URL
-            value: $variables-group/stigmer-web-config/prod.api-url
+            value: $var/@prod/stigmer-web-config/api-url
           - name: NEXT_PUBLIC_AUTH_MODE
-            value: $variables-group/stigmer-web-config/prod.auth-mode
+            value: $var/@prod/stigmer-web-config/auth-mode
           - name: NEXT_PUBLIC_OIDC_ISSUER
-            value: $variables-group/stigmer-web-config/prod.oidc-issuer
+            value: $var/@prod/stigmer-web-config/oidc-issuer
           - name: NEXT_PUBLIC_OIDC_CLIENT_ID
-            value: $variables-group/stigmer-web-config/prod.oidc-client-id
+            value: $var/@prod/stigmer-web-config/oidc-client-id
           - name: NEXT_PUBLIC_OIDC_AUDIENCE
-            value: $variables-group/stigmer-web-config/prod.oidc-audience
+            value: $var/@prod/stigmer-web-config/oidc-audience
   ingress:
     enabled: true
     hostname: app.stigmer.ai
