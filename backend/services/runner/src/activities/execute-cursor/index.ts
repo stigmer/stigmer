@@ -398,6 +398,7 @@ async function executeCursorInner(
         ? status.pendingApprovals
         : (execution.status?.pendingApprovals ?? []),
       interactionMode,
+      trustNativeResume: config.trustNativeResume,
     });
 
     // Phase 10a: Inject structured output instruction for Cursor harness
@@ -798,6 +799,7 @@ async function executeCursorInner(
               ? status.pendingApprovals
               : (execution.status?.pendingApprovals ?? []),
             interactionMode,
+            trustNativeResume: config.trustNativeResume,
           });
 
           console.log(
@@ -1278,6 +1280,12 @@ export interface BuildPromptInput {
   attachmentPaths: string[];
   pendingApprovals: import("@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb").PendingApproval[];
   interactionMode?: InteractionMode;
+  /**
+   * When true, a successfully-resumed local agent is trusted to carry its own
+   * conversation context (the raw user message is sent), bypassing the
+   * SessionMemory continuation prompt. Default false. See Config.trustNativeResume.
+   */
+  trustNativeResume?: boolean;
 }
 
 /**
@@ -1314,6 +1322,7 @@ export function buildPrompt(input: BuildPromptInput): string {
     attachmentPaths,
     pendingApprovals,
     interactionMode,
+    trustNativeResume,
   } = input;
 
   const isHitlReinvocation = approvalDecisions !== undefined && approvalDecisions.size > 0;
@@ -1351,6 +1360,15 @@ export function buildPrompt(input: BuildPromptInput): string {
         interactionMode,
       });
     }
+    return userMessage;
+  }
+
+  // Local mode: when explicitly opted in, trust the SDK's native local
+  // Agent.resume() to restore the conversation context for a successfully
+  // resumed agent — send the raw user message, no continuation prompt. Only
+  // applies to "resumed_successfully": a fresh agent created after a resume
+  // failure has no native context to trust, so it still needs continuation.
+  if (trustNativeResume && resolution.reason === "resumed_successfully") {
     return userMessage;
   }
 

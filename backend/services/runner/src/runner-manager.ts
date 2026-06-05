@@ -76,6 +76,13 @@ export interface RunnerManagerOptions {
 
   /** Enable Cursor cloud mode. @default false */
   readonly cloudModeEnabled?: boolean;
+
+  /**
+   * Trust the Cursor SDK's native local Agent.resume() to restore conversation
+   * context on subsequent turns (send the raw user message) instead of
+   * rebuilding a continuation prompt from SessionMemory. @default false
+   */
+  readonly trustNativeResume?: boolean;
 }
 
 export interface StigmerRunnerManager {
@@ -372,6 +379,7 @@ function mapManagerOptionsToConfig(
     maxConcurrentActivities: options.maxConcurrentActivitiesPerSession ?? 5,
     idleTimeoutSeconds: null,
     cloudModeEnabled: options.cloudModeEnabled ?? false,
+    trustNativeResume: options.trustNativeResume ?? false,
     checkpointerType:
       options.checkpointerType ?? (proxyActive ? "http" : "memory"),
     checkpointerProxyEndpoint:

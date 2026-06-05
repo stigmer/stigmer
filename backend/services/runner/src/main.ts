@@ -157,6 +157,7 @@ async function runManagerMode(config: import("./config.js").Config): Promise<voi
       checkpointerType: config.checkpointerType,
       checkpointerProxyEndpoint: config.checkpointerProxyEndpoint ?? undefined,
       cloudModeEnabled: config.cloudModeEnabled,
+      trustNativeResume: config.trustNativeResume,
     });
   } catch (err) {
     sendIpc({
@@ -269,6 +270,7 @@ async function runStaticMode(config: import("./config.js").Config): Promise<void
     checkpointerType: config.checkpointerType,
     checkpointerProxyEndpoint: config.checkpointerProxyEndpoint ?? undefined,
     cloudModeEnabled: config.cloudModeEnabled,
+    trustNativeResume: config.trustNativeResume,
   });
 
   let shutdownRequested = false;
