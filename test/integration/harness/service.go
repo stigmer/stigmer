@@ -160,6 +160,17 @@ type ServiceConfig struct {
 	// Only meaningful when PreviousJWTSigningKey is set; defaults to
 	// "stigmer-signing-key-0" on the service side when empty.
 	PreviousJWTSigningKeyID string
+
+	// JWTAudience, when set, is passed to the Java service as
+	// STIGMER_JWT_AUDIENCE — the environment audience stamped on minted tokens
+	// and checked at verification. A token whose aud names another environment
+	// is rejected on its claims rather than only on a signature mismatch.
+	JWTAudience string
+
+	// RequireAudience, when true, passes STIGMER_JWT_REQUIRE_AUDIENCE=true so a
+	// token with a missing or non-matching aud is rejected (strict). When false
+	// (default), verification is lenient: tokens with no aud are still accepted.
+	RequireAudience bool
 }
 
 // StartJavaService launches the stigmer-service fat JAR as a child process
@@ -399,6 +410,16 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 				fmt.Sprintf("STIGMER_JWT_SIGNING_KEY_PREVIOUS_ID=%s", cfg.PreviousJWTSigningKeyID),
 			)
 		}
+	}
+
+	// Optional environment audience for the JWT audience-binding tests. When set,
+	// minted tokens are stamped with it and tokens naming another audience are
+	// rejected. RequireAudience flips lenient (no-aud accepted) to strict.
+	if cfg.JWTAudience != "" {
+		env = append(env,
+			fmt.Sprintf("STIGMER_JWT_AUDIENCE=%s", cfg.JWTAudience),
+			fmt.Sprintf("STIGMER_JWT_REQUIRE_AUDIENCE=%t", cfg.RequireAudience),
+		)
 	}
 
 	if productionSecurity {

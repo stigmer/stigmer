@@ -174,6 +174,12 @@ func TestMain(m *testing.M) {
 		// keeps minting; tokens signed with the previous key must still verify.
 		PreviousJWTSigningKey:   harness.StigmerPreviousJWTSigningKeyBase64,
 		PreviousJWTSigningKeyID: "stigmer-signing-key-0",
+		// Configure an environment audience so the JWT audience-binding behavior
+		// is exercised end-to-end (see jwt_audience_test.go). Lenient mode keeps
+		// existing no-aud tokens (e.g. the key-rotation tests) verifying, while a
+		// token stamped with another environment's audience is rejected.
+		JWTAudience:     harness.StigmerJWTAudience,
+		RequireAudience: false,
 	}
 
 	if testHarness.OpenFGA != nil {
