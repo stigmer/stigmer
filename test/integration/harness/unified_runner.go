@@ -39,6 +39,12 @@ type UnifiedRunnerConfig struct {
 	// offline mode where ProxyEndpoint is a MockLLMProxy that does not
 	// handle artifact presign endpoints.
 	LocalArtifactDir string
+
+	// TrustNativeResume, when true, sets CURSOR_TRUST_NATIVE_RESUME=true so
+	// the runner trusts the Cursor SDK's native local Agent.resume() to restore
+	// conversation context (raw user message) instead of injecting the
+	// SessionMemory continuation prompt. Used by the native-resume probe test.
+	TrustNativeResume bool
 }
 
 // --- IPC Protocol Types (mirrors main.ts) ---
@@ -368,15 +374,29 @@ func (m *UnifiedRunnerManager) readResponse(ctx context.Context, timeout time.Du
 // UnifiedRunnerStatic manages the unified runner in static mode, polling
 // a single task queue. Used to simulate a sandbox runner for cloud tests.
 type UnifiedRunnerStatic struct {
-	cmd     *exec.Cmd
-	logFile *os.File
-	logPath string
-	logger  *slog.Logger
+	cmd       *exec.Cmd
+	logFile   *os.File
+	logPath   string
+	logger    *slog.Logger
+	cfg       UnifiedRunnerConfig
+	taskQueue string
 }
 
 // LogPath returns the path to the runner's log file.
 func (r *UnifiedRunnerStatic) LogPath() string {
 	return r.logPath
+}
+
+// Cfg returns the configuration this runner was started with. Useful for
+// tests that stop the shared runner and start an equivalent (or modified)
+// one on the same queue, then restore the original on cleanup.
+func (r *UnifiedRunnerStatic) Cfg() UnifiedRunnerConfig {
+	return r.cfg
+}
+
+// TaskQueue returns the queue this runner polls.
+func (r *UnifiedRunnerStatic) TaskQueue() string {
+	return r.taskQueue
 }
 
 // StartUnifiedRunnerStatic starts the unified runner in static mode, polling
@@ -449,10 +469,12 @@ func StartUnifiedRunnerStatic(ctx context.Context, cfg UnifiedRunnerConfig, task
 
 	logger.Info("unified-runner-static started", "pid", cmd.Process.Pid, "task_queue", taskQueue)
 	return &UnifiedRunnerStatic{
-		cmd:     cmd,
-		logFile: logFile,
-		logPath: logPath,
-		logger:  logger,
+		cmd:       cmd,
+		logFile:   logFile,
+		logPath:   logPath,
+		logger:    logger,
+		cfg:       cfg,
+		taskQueue: taskQueue,
 	}, nil
 }
 
@@ -541,6 +563,10 @@ func buildUnifiedRunnerEnv(cfg UnifiedRunnerConfig, mode, taskQueue string) []st
 		env = append(env, "STIGMER_RUNNER_MODE=manager")
 	} else if taskQueue != "" {
 		env = append(env, fmt.Sprintf("STIGMER_TASK_QUEUE=%s", taskQueue))
+	}
+
+	if cfg.TrustNativeResume {
+		env = append(env, "CURSOR_TRUST_NATIVE_RESUME=true")
 	}
 
 	if cfg.StigmerToken != "" {

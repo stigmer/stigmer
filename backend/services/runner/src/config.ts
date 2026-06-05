@@ -54,6 +54,17 @@ export interface Config {
   readonly checkpointerType: "memory" | "http";
   readonly checkpointerProxyEndpoint: string | null;
   readonly primaryModel: string;
+  /**
+   * When true, local subsequent turns trust the Cursor SDK's native
+   * Agent.resume() to restore conversation context (send the raw user
+   * message) instead of rebuilding a continuation prompt from SessionMemory.
+   *
+   * Default false: the production path still injects the continuation prompt
+   * because local SDK context loading has historically been unreliable. This
+   * flag exists to validate whether native local resume works once the SDK's
+   * SQLite state is persisted, and is the switch the eventual migration flips.
+   */
+  readonly trustNativeResume: boolean;
   /** Shared mutable token reference for dynamic token updates (manager mode). */
   readonly stigmerTokenRef?: { current: string | null };
 }
@@ -125,6 +136,7 @@ export function loadConfig(): Config {
     checkpointerType,
     checkpointerProxyEndpoint,
     primaryModel,
+    trustNativeResume: process.env.CURSOR_TRUST_NATIVE_RESUME === "true",
   };
 }
 
