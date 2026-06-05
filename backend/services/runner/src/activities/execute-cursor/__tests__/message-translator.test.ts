@@ -17,7 +17,12 @@ import {
   SubAgentStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { SDKMessage } from "@cursor/sdk";
-import { MessageAccumulator, extractConversationSteps } from "../message-translator.js";
+import {
+  MessageAccumulator,
+  extractConversationSteps,
+  cancelInProgressSubAgentProtos,
+} from "../message-translator.js";
+import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 
 function toolCallEvent(
   callId: string,
@@ -217,6 +222,95 @@ describe("MessageAccumulator tool call status transitions", () => {
     expect(acc.subAgentExecutions).toHaveLength(1);
     expect(acc.subAgentExecutions[0].id).toBe("tc-sub");
     expect(acc.subAgentExecutions[0].output).toBe("Done");
+  });
+
+  it("sub-agent is IN_PROGRESS on the task running event (live-visibility precondition)", () => {
+    const acc = new MessageAccumulator([]);
+
+    const runningEvent = toolCallEvent("tc-live", "task", "running", "r1", {
+      args: { description: "Research topic", prompt: "Go" },
+    });
+    const sub = acc.trackSubAgentExecution(runningEvent);
+
+    expect(sub).toBeDefined();
+    expect(sub!.status).toBe(SubAgentStatus.SUB_AGENT_IN_PROGRESS);
+    expect(acc.subAgentExecutions[0].status).toBe(SubAgentStatus.SUB_AGENT_IN_PROGRESS);
+  });
+
+  it("subAgentDirty starts false and is set when a sub-agent is created", () => {
+    const acc = new MessageAccumulator([]);
+    expect(acc.subAgentDirty).toBe(false);
+
+    acc.trackSubAgentExecution(
+      toolCallEvent("tc-dirty1", "task", "running", "r1", {
+        args: { description: "Research", prompt: "Go" },
+      }),
+    );
+
+    expect(acc.subAgentDirty).toBe(true);
+  });
+
+  it("markSubAgentPersisted clears the dirty flag, and an update re-marks it", () => {
+    const acc = new MessageAccumulator([]);
+
+    acc.trackSubAgentExecution(
+      toolCallEvent("tc-dirty2", "task", "running", "r1", {
+        args: { description: "Research", prompt: "Go" },
+      }),
+    );
+    expect(acc.subAgentDirty).toBe(true);
+
+    acc.markSubAgentPersisted();
+    expect(acc.subAgentDirty).toBe(false);
+
+    // The completion transition (IN_PROGRESS -> COMPLETED) must re-mark dirty
+    // so the terminal sub-agent state is persisted to the live stream.
+    acc.trackSubAgentExecution(
+      toolCallEvent("tc-dirty2", "task", "completed", "r1", { result: "Done" }),
+    );
+    expect(acc.subAgentDirty).toBe(true);
+    expect(acc.subAgentExecutions[0].status).toBe(SubAgentStatus.SUB_AGENT_COMPLETED);
+  });
+
+  it("cancelInProgressSubAgents transitions IN_PROGRESS to CANCELLED and leaves terminal states untouched", () => {
+    const acc = new MessageAccumulator([]);
+
+    // Running sub-agent (should be cancelled).
+    acc.trackSubAgentExecution(
+      toolCallEvent("tc-run", "task", "running", "r1", {
+        args: { description: "Long report", prompt: "Go" },
+      }),
+    );
+    // Completed sub-agent (must stay COMPLETED).
+    acc.trackSubAgentExecution(
+      toolCallEvent("tc-done", "task", "running", "r1", {
+        args: { description: "Quick lookup", prompt: "Go" },
+      }),
+    );
+    acc.trackSubAgentExecution(
+      toolCallEvent("tc-done", "task", "completed", "r1", { result: "Found it" }),
+    );
+
+    acc.markSubAgentPersisted();
+    expect(acc.subAgentDirty).toBe(false);
+
+    acc.cancelInProgressSubAgents();
+
+    const running = acc.subAgentExecutions.find((s) => s.id === "tc-run")!;
+    const done = acc.subAgentExecutions.find((s) => s.id === "tc-done")!;
+
+    expect(running.status).toBe(SubAgentStatus.SUB_AGENT_CANCELLED);
+    expect(running.completedAt).not.toBe("");
+    expect(done.status).toBe(SubAgentStatus.SUB_AGENT_COMPLETED);
+    // The transition must mark dirty so the cancellation is persisted.
+    expect(acc.subAgentDirty).toBe(true);
+  });
+
+  it("cancelInProgressSubAgents is a no-op when there are no running sub-agents", () => {
+    const acc = new MessageAccumulator([]);
+    acc.cancelInProgressSubAgents();
+    expect(acc.subAgentExecutions).toHaveLength(0);
+    expect(acc.subAgentDirty).toBe(false);
   });
 
   it("sub-agent name extraction handles object subagentType", () => {
@@ -520,6 +614,44 @@ describe("MessageAccumulator tool call status transitions", () => {
       const aiMsg = messages.find(m => m.type === MessageType.MESSAGE_AI);
       expect(aiMsg?.toolCalls).toHaveLength(1);
       expect(aiMsg?.toolCalls[0].name).toBe("Shell");
+    });
+  });
+
+  describe("cancelInProgressSubAgentProtos standalone", () => {
+    it("cancels IN_PROGRESS/PENDING protos in place and reports whether anything changed", () => {
+      const running = create(SubAgentExecutionSchema, {
+        id: "a",
+        status: SubAgentStatus.SUB_AGENT_IN_PROGRESS,
+      });
+      const pending = create(SubAgentExecutionSchema, {
+        id: "b",
+        status: SubAgentStatus.SUB_AGENT_PENDING,
+      });
+      const completed = create(SubAgentExecutionSchema, {
+        id: "c",
+        status: SubAgentStatus.SUB_AGENT_COMPLETED,
+        completedAt: "2026-01-01T00:00:00Z",
+      });
+
+      const list = [running, pending, completed];
+      const changed = cancelInProgressSubAgentProtos(list);
+
+      expect(changed).toBe(true);
+      expect(running.status).toBe(SubAgentStatus.SUB_AGENT_CANCELLED);
+      expect(running.completedAt).not.toBe("");
+      expect(pending.status).toBe(SubAgentStatus.SUB_AGENT_CANCELLED);
+      // Terminal sub-agents are untouched.
+      expect(completed.status).toBe(SubAgentStatus.SUB_AGENT_COMPLETED);
+      expect(completed.completedAt).toBe("2026-01-01T00:00:00Z");
+    });
+
+    it("returns false when there is nothing to cancel", () => {
+      const completed = create(SubAgentExecutionSchema, {
+        id: "c",
+        status: SubAgentStatus.SUB_AGENT_COMPLETED,
+      });
+      expect(cancelInProgressSubAgentProtos([completed])).toBe(false);
+      expect(cancelInProgressSubAgentProtos([])).toBe(false);
     });
   });
 });

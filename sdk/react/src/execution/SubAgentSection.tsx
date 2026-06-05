@@ -194,6 +194,11 @@ function CollapsibleCard({
           <BotIcon />
         </span>
         <span className="min-w-0 flex-1 truncate">{displayLabel}</span>
+        {isRunning && (
+          <span className="shrink-0 text-muted-foreground" aria-hidden="true">
+            <SpinnerIcon />
+          </span>
+        )}
         <span
           className={cn(
             "shrink-0 rounded px-1 py-0.5 text-[10px] font-medium leading-none",

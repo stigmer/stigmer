@@ -75,6 +75,12 @@ export function buildEnhancedPrompt(options: EnhancedPromptOptions): string {
   }
 
   const safeDirs = sanitizeWorkspaceDirs(options.workspaceDirs);
+  // Encourage Cursor's built-in `explore` sub-agent for codebase work whenever
+  // there is a workspace to explore — the headless agent otherwise rarely
+  // delegates exploration the way the Cursor IDE does.
+  if (safeDirs.length > 0) {
+    sections.push(formatExplorationGuidance());
+  }
   if (safeDirs.length > 1) {
     sections.push(formatWorkspaceContext(safeDirs));
   }
@@ -174,11 +180,13 @@ export function formatSkillsSection(skills: SkillMetadata[]): string {
 }
 
 export function formatSubAgentsSection(subAgents: SubAgent[]): string {
+  let anyAdvisoryMcp = false;
   const entries = subAgents.map((sa) => {
     const parts = [`- **${sa.name}**: ${sa.description}`];
     if (sa.mcpAccess.length > 0) {
+      anyAdvisoryMcp = true;
       const servers = sa.mcpAccess.map((a) => a.mcpServer).join(", ");
-      parts.push(`  MCP access: ${servers}`);
+      parts.push(`  MCP access (advisory): ${servers}`);
     }
     if (sa.modelOverride) {
       parts.push(`  Model: ${sa.modelOverride}`);
@@ -186,18 +194,55 @@ export function formatSubAgentsSection(subAgents: SubAgent[]): string {
     return parts.join("\n");
   });
 
-  return [
+  const lines = [
     "<sub_agent_delegation>",
-    "You can delegate tasks to specialized sub-agents using the Task tool.",
+    "You can delegate tasks to these specialized sub-agents using the Task tool",
+    "(pass the sub-agent's name as the subagent type). They are registered and",
+    "run independently, each with its own fresh context.",
+    "",
     "Available sub-agents:",
     "",
     ...entries,
     "",
     "Delegation rules:",
-    "- Use sub-agents for tasks that match their specialization",
-    "- Provide clear, detailed task descriptions since sub-agents don't share your conversation context",
-    "- Sub-agents run independently and return results when done",
-    "</sub_agent_delegation>",
+    "- Delegate a task to the sub-agent whose specialization matches it.",
+    "- Give a clear, self-contained task description — sub-agents do not share your conversation context.",
+    "- Sub-agents run independently and return their results when done.",
+  ];
+
+  if (anyAdvisoryMcp) {
+    lines.push(
+      "- \"MCP access (advisory)\" lists the tools a sub-agent is intended to use; " +
+        "sub-agents inherit this agent's tool access, so treat it as guidance, not a hard limit.",
+    );
+  }
+
+  lines.push("</sub_agent_delegation>");
+  return lines.join("\n");
+}
+
+/**
+ * Guidance encouraging the agent to use Cursor's built-in `explore` sub-agent
+ * (via the Task tool) for codebase investigation, rather than reading many
+ * files inline. Included only when the agent has a workspace to explore.
+ *
+ * This mirrors how the Cursor IDE aggressively delegates exploration, which the
+ * headless agent otherwise rarely does. Kept concise to limit token overhead
+ * and paired with a "do not over-delegate" guard to avoid trivial spawns.
+ */
+export function formatExplorationGuidance(): string {
+  return [
+    "<codebase_exploration>",
+    "For non-trivial investigation of this codebase, prefer delegating to the",
+    "built-in `explore` sub-agent via the Task tool instead of reading many",
+    "files yourself. Launch one explore task per distinct area you need to",
+    "understand — they run in parallel, return focused findings, and keep your",
+    "main context clean.",
+    "",
+    "Use explore for: locating where functionality lives, tracing how a feature",
+    "works across files, or surveying unfamiliar areas. Do NOT delegate trivial",
+    "single-file reads or small edits you can do directly.",
+    "</codebase_exploration>",
   ].join("\n");
 }
 

@@ -3,6 +3,9 @@
 package integration
 
 import (
+	"context"
+	"errors"
+	"io"
 	"testing"
 	"time"
 
@@ -97,6 +100,138 @@ func TestAgentExecution_SubAgent_Delegation(t *testing.T) {
 	}
 }
 
+// collectSubscribeSnapshots subscribes to an agent execution and returns every
+// AgentExecution snapshot delivered until a terminal phase (or the stream
+// ends / times out). This mirrors the live data path the web console uses
+// (useExecutionStream), so the captured snapshots are exactly what the UI
+// would render in real time.
+func collectSubscribeSnapshots(
+	t *testing.T,
+	ctx context.Context,
+	queryClient agentexecv1.AgentExecutionQueryControllerClient,
+	executionID string,
+	timeout time.Duration,
+) []*agentexecv1.AgentExecution {
+	t.Helper()
+
+	streamCtx, streamCancel := context.WithTimeout(ctx, timeout)
+	defer streamCancel()
+
+	stream, err := queryClient.Subscribe(streamCtx,
+		&agentexecv1.AgentExecutionId{Value: executionID})
+	require.NoError(t, err, "subscribe should succeed for execution %s", executionID)
+
+	var snapshots []*agentexecv1.AgentExecution
+	for {
+		snap, recvErr := stream.Recv()
+		if recvErr != nil {
+			if !errors.Is(recvErr, io.EOF) && streamCtx.Err() == nil {
+				t.Logf("subscribe stream error for %s: %v", executionID, recvErr)
+			}
+			return snapshots
+		}
+		snapshots = append(snapshots, snap)
+		if isTerminalPhase(snap.GetStatus().GetPhase()) {
+			return snapshots
+		}
+	}
+}
+
+// TestAgentExecution_SubAgent_VisibleWhileRunning asserts the live-visibility
+// contract for sub-agent delegation: while the parent agent is still running,
+// the streamed status must surface the sub-agent — including its IN_PROGRESS
+// state — not only after the whole execution finalizes.
+//
+// This reproduces the cursor-harness defect where sub_agent_executions were
+// only written to status after the stream loop ended (execute-cursor/index.ts),
+// so the web console showed no activity for the entire duration a Cursor
+// sub-agent ran. The native harness already syncs sub-agents on every persist.
+//
+// Discriminator: the test asserts at least one streamed snapshot contains a
+// sub-agent in SUB_AGENT_IN_PROGRESS. With the bug, the sub-agent is written
+// only at finalize — by which point it is already COMPLETED — so an IN_PROGRESS
+// snapshot is never observed. This holds regardless of the execution-phase
+// timing at finalize, because the discriminator is the sub-agent's own status.
+func TestAgentExecution_SubAgent_VisibleWhileRunning(t *testing.T) {
+	require.NotNil(t, grpcConn)
+
+	for _, h := range harness.Harnesses {
+		t.Run(h.Name, func(t *testing.T) {
+			h.Skip(t, testHarness)
+
+			ctx, cancel := harness.TestContext(t, 6*time.Minute)
+			defer cancel()
+
+			clients := harness.NewClients(grpcConn)
+			harness.RequireServiceHealthy(t, ctx, clients)
+
+			agent := harness.CreateAgent(t, ctx, clients, "test-subagent-live-"+h.Name,
+				"You are a project manager. When asked to research a topic, delegate to the researcher sub-agent using the task tool.",
+				harness.WithSubAgent(&agentv1.SubAgent{
+					Name:        "researcher",
+					Description: "Researches topics and provides detailed summaries",
+					Instructions: "You are a researcher. When given a topic, provide a thorough, " +
+						"multi-paragraph summary. Be detailed and take your time.",
+				}),
+			)
+
+			session := harness.CreateTestSession(t, ctx, clients,
+				agent.GetStatus().GetDefaultInstanceId(), h.Harness)
+
+			const maxAttempts = 2
+			var delegated, sawInProgress bool
+			for attempt := 1; attempt <= maxAttempts; attempt++ {
+				exec := harness.CreateTestAgentExecution(t, ctx, clients,
+					session.GetMetadata().GetId(),
+					"Please delegate to the researcher to give a thorough summary about renewable energy.")
+
+				snapshots := collectSubscribeSnapshots(t, ctx, clients.AgentExecutionQuery,
+					exec.GetMetadata().GetId(), 5*time.Minute)
+				require.NotEmpty(t, snapshots,
+					"subscribe must deliver at least one snapshot for execution %s",
+					exec.GetMetadata().GetId())
+
+				final := snapshots[len(snapshots)-1]
+				delegated = len(final.GetStatus().GetSubAgentExecutions()) > 0
+
+				firstSubIdx := -1
+				sawInProgress = false
+				for i, snap := range snapshots {
+					subs := snap.GetStatus().GetSubAgentExecutions()
+					if firstSubIdx == -1 && len(subs) > 0 {
+						firstSubIdx = i
+					}
+					for _, sa := range subs {
+						if sa.GetStatus() == agentexecv1.SubAgentStatus_SUB_AGENT_IN_PROGRESS {
+							sawInProgress = true
+						}
+					}
+				}
+
+				t.Logf("attempt %d: harness=%s snapshots=%d delegated=%v sawInProgress=%v firstSubIdx=%d (terminal at %d)",
+					attempt, h.Name, len(snapshots), delegated, sawInProgress, firstSubIdx, len(snapshots)-1)
+
+				if delegated {
+					break
+				}
+				if attempt < maxAttempts {
+					t.Logf("delegation retry: LLM answered directly on attempt %d, retrying with fresh execution", attempt)
+					harness.LogExecutionMessages(t, ctx, clients, exec.GetMetadata().GetId())
+				}
+			}
+
+			require.True(t, delegated,
+				"sub-agent delegation must occur for this test to be meaningful "+
+					"(LLM answered directly on every attempt)")
+
+			assert.True(t, sawInProgress,
+				"at least one streamed snapshot must show a sub-agent in SUB_AGENT_IN_PROGRESS — "+
+					"the live UI must reflect sub-agent activity while the parent is still running, "+
+					"not only after the execution finalizes")
+		})
+	}
+}
+
 func TestAgentExecution_SubAgent_ParentCancelCascade(t *testing.T) {
 	require.NotNil(t, grpcConn)
 
@@ -132,10 +267,15 @@ func TestAgentExecution_SubAgent_ParentCancelCascade(t *testing.T) {
 				agentexecv1.ExecutionPhase_EXECUTION_IN_PROGRESS, 2*time.Minute)
 			require.NoError(t, err)
 
-			// TODO: Replace time.Sleep with a polling approach that waits for
-			// len(GetSubAgentExecutions()) > 0 on intermediate status. Requires
-			// a harness enhancement (e.g., WaitForSubAgentPresence).
-			time.Sleep(5 * time.Second)
+			// Deterministically wait for the sub-agent to surface in the
+			// persisted status before cancelling, so the cancel lands while
+			// the sub-agent is live. This depends on mid-stream sub-agent
+			// persistence (the live-visibility contract) holding for both
+			// harnesses; a sleep would race against delegation timing.
+			if _, err := waiter.WaitForSubAgentPresence(ctx, exec.GetMetadata().GetId(), 2*time.Minute); err != nil {
+				harness.LogExecutionMessages(t, ctx, clients, exec.GetMetadata().GetId())
+				require.NoError(t, err, "sub-agent must appear in status before cancellation")
+			}
 
 			_, err = clients.AgentExecutionCommand.Cancel(ctx, &agentexecv1.CancelAgentExecutionInput{
 				Id: exec.GetMetadata().GetId(),

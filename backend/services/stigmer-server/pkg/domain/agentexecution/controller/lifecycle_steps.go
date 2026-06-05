@@ -751,7 +751,16 @@ func (s *UpdateExecutionPhaseStep[T]) Execute(ctx *pipeline.RequestContext[T]) e
 	// Note: PAUSED is NOT terminal, so we don't set completed_at for it
 	if s.targetPhase == agentexecutionv1.ExecutionPhase_EXECUTION_CANCELLED ||
 		s.targetPhase == agentexecutionv1.ExecutionPhase_EXECUTION_TERMINATED {
-		execution.Status.CompletedAt = time.Now().Format(time.RFC3339)
+		now := time.Now().Format(time.RFC3339)
+		execution.Status.CompletedAt = now
+
+		// Cascade the terminal transition to in-flight sub-agents. A cancelled
+		// or terminated parent leaves no live delegation, so any IN_PROGRESS or
+		// PENDING sub-agent must move to CANCELLED — otherwise the final
+		// snapshot shows a permanent "Running" zombie sub-agent. This is the
+		// authoritative place to do it: the runner's own cancellation persist
+		// is best-effort and can be lost to the cancellation race.
+		cancelInProgressSubAgents(execution.GetStatus().GetSubAgentExecutions(), now)
 	}
 
 	// Clear completed_at for recovery (back to IN_PROGRESS) or resume from PAUSED
@@ -883,4 +892,24 @@ func (s *LifecycleBroadcastStep[T]) Execute(ctx *pipeline.RequestContext[T]) err
 func GetTemporalNamespace() string {
 	// This would typically come from config, but for now use default
 	return "default"
+}
+
+// cancelInProgressSubAgents transitions any non-terminal sub-agent (IN_PROGRESS
+// or PENDING) to CANCELLED with a completion timestamp, in place. Used when a
+// parent execution reaches a terminal cancellation/termination phase so no
+// sub-agent is left permanently "Running". completedAt is only set when empty,
+// preserving any timestamp the runner already recorded.
+func cancelInProgressSubAgents(subAgents []*agentexecutionv1.SubAgentExecution, completedAt string) {
+	for _, sa := range subAgents {
+		if sa == nil {
+			continue
+		}
+		if sa.GetStatus() == agentexecutionv1.SubAgentStatus_SUB_AGENT_IN_PROGRESS ||
+			sa.GetStatus() == agentexecutionv1.SubAgentStatus_SUB_AGENT_PENDING {
+			sa.Status = agentexecutionv1.SubAgentStatus_SUB_AGENT_CANCELLED
+			if sa.GetCompletedAt() == "" {
+				sa.CompletedAt = completedAt
+			}
+		}
+	}
 }

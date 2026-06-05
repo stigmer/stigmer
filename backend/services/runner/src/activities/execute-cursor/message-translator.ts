@@ -432,6 +432,32 @@ export interface MessageAccumulatorOptions {
  * Task (sub-agent) tool calls additionally produce SubAgentExecution
  * protos, accessible via the subAgentExecutions getter.
  */
+/**
+ * Transition any non-terminal sub-agent (IN_PROGRESS or PENDING) in the given
+ * proto array to CANCELLED with a completion timestamp, in place.
+ *
+ * Operates directly on the status array (not the accumulator) because the
+ * Cursor cancellation exception unwinds out of the streaming loop into the
+ * activity's catch block, where the MessageAccumulator is out of scope. Returns
+ * true if any sub-agent changed.
+ */
+export function cancelInProgressSubAgentProtos(
+  subAgents: SubAgentExecution[],
+): boolean {
+  let changed = false;
+  for (const sub of subAgents) {
+    if (
+      sub.status === SubAgentStatus.SUB_AGENT_IN_PROGRESS ||
+      sub.status === SubAgentStatus.SUB_AGENT_PENDING
+    ) {
+      sub.status = SubAgentStatus.SUB_AGENT_CANCELLED;
+      sub.completedAt = utcTimestamp();
+      changed = true;
+    }
+  }
+  return changed;
+}
+
 export class MessageAccumulator {
   private readonly messages: AgentMessage[];
   private activeAiByRunId = new Map<string, AgentMessage>();
@@ -440,6 +466,7 @@ export class MessageAccumulator {
   private readonly subAgentMap = new Map<string, SubAgentExecution>();
   private readonly mergedPolicies?: Map<string, MergedToolPolicy>;
   private readonly toolCallIndex = new Map<string, ToolCall>();
+  private _subAgentDirty = false;
 
   constructor(messages: AgentMessage[], options?: MessageAccumulatorOptions) {
     this.messages = messages;
@@ -448,6 +475,36 @@ export class MessageAccumulator {
 
   get subAgentExecutions(): SubAgentExecution[] {
     return this._subAgentExecutions;
+  }
+
+  /**
+   * True when a sub-agent execution has been created or updated since the last
+   * markSubAgentPersisted(). The streaming loop uses this to trigger a persist
+   * promptly when delegation begins (the "task" running event), so the live UI
+   * surfaces the sub-agent's IN_PROGRESS state instead of showing no activity
+   * until the parent finalizes.
+   */
+  get subAgentDirty(): boolean {
+    return this._subAgentDirty;
+  }
+
+  /** Clears the sub-agent dirty flag after the latest status has been persisted. */
+  markSubAgentPersisted(): void {
+    this._subAgentDirty = false;
+  }
+
+  /**
+   * Transition any non-terminal sub-agent (IN_PROGRESS or PENDING) to CANCELLED.
+   *
+   * Called when the parent run is aborted (pause / cancel / worker shutdown):
+   * the Cursor SDK run stops, so a delegated sub-agent is no longer executing.
+   * Without this, the final snapshot would show a permanent "Running" zombie
+   * sub-agent. Mirrors the native harness's cancelSubAgents().
+   */
+  cancelInProgressSubAgents(): void {
+    if (cancelInProgressSubAgentProtos(this._subAgentExecutions)) {
+      this._subAgentDirty = true;
+    }
   }
 
   processEvent(event: SDKMessage): void {
@@ -563,6 +620,7 @@ export class MessageAccumulator {
           ? event.result
           : "Sub-agent failed";
       }
+      this._subAgentDirty = true;
       return existing;
     }
 
@@ -576,6 +634,7 @@ export class MessageAccumulator {
     });
     this._subAgentExecutions.push(sub);
     this.subAgentMap.set(event.call_id, sub);
+    this._subAgentDirty = true;
     return sub;
   }
 

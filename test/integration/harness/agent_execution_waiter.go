@@ -118,6 +118,67 @@ func (w *AgentExecutionWaiter) WaitForTerminal(ctx context.Context, executionID 
 		executionID, timeout)
 }
 
+// WaitForSubAgentPresence polls the persisted execution status until at least
+// one sub-agent execution is present, the execution reaches a terminal phase, or
+// the timeout elapses. It returns the snapshot at the moment a sub-agent first
+// appears.
+//
+// This deterministically waits for delegation to surface in the persisted status
+// — the same status a late Subscribe snapshot or a UI reconnect reads — and
+// replaces sleep-based waits. If the execution reaches a terminal phase before
+// any sub-agent appears, it returns the terminal snapshot together with an error
+// so callers can distinguish "no delegation happened" from "delegation appeared
+// only after the parent finished".
+func (w *AgentExecutionWaiter) WaitForSubAgentPresence(ctx context.Context, executionID string, timeout time.Duration) (*agentexecv1.AgentExecution, error) {
+	if timeout == 0 {
+		timeout = defaultTimeout
+	}
+
+	deadline := time.Now().Add(timeout)
+	interval := defaultPollInterval
+
+	var last *agentexecv1.AgentExecution
+	for time.Now().Before(deadline) {
+		exec, err := w.client.Get(ctx, &agentexecv1.AgentExecutionId{Value: executionID})
+		if err != nil {
+			w.logger.Debug("agent execution poll error (will retry)", "execution_id", executionID, "error", err)
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(interval):
+			}
+			interval = nextInterval(interval)
+			continue
+		}
+
+		last = exec
+		if len(exec.GetStatus().GetSubAgentExecutions()) > 0 {
+			return exec, nil
+		}
+
+		if isAgentTerminalPhase(exec.GetStatus().GetPhase()) {
+			return exec, fmt.Errorf(
+				"agent execution %s reached terminal phase %s without any sub-agent execution appearing",
+				executionID, exec.GetStatus().GetPhase().String())
+		}
+
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(interval):
+		}
+		interval = nextInterval(interval)
+	}
+
+	lastPhase := "UNKNOWN"
+	if last != nil {
+		lastPhase = last.GetStatus().GetPhase().String()
+	}
+	return last, fmt.Errorf(
+		"timed out waiting for a sub-agent execution to appear on %s after %v (last phase=%s)",
+		executionID, timeout, lastPhase)
+}
+
 func isAgentTerminalPhase(phase agentexecv1.ExecutionPhase) bool {
 	switch phase {
 	case agentexecv1.ExecutionPhase_EXECUTION_COMPLETED,
