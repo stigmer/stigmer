@@ -26,37 +26,33 @@ var File_ai_stigmer_agentic_session_v1_command_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_command_proto_rawDesc = "" +
 	"\n" +
-	"+ai/stigmer/agentic/session/v1/command.proto\x12\x1dai.stigmer.agentic.session.v1\x1a'ai/stigmer/agentic/session/v1/api.proto\x1a&ai/stigmer/agentic/session/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xbc\a\n" +
+	"+ai/stigmer/agentic/session/v1/command.proto\x12\x1dai.stigmer.agentic.session.v1\x1a'ai/stigmer/agentic/session/v1/api.proto\x1a&ai/stigmer/agentic/session/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\x8c\x06\n" +
 	"\x18SessionCommandController\x12W\n" +
 	"\x05apply\x12&.ai.stigmer.agentic.session.v1.Session\x1a&.ai.stigmer.agentic.session.v1.Session\x12\xa5\x01\n" +
 	"\x06create\x12&.ai.stigmer.agentic.session.v1.Session\x1a&.ai.stigmer.agentic.session.v1.Session\"K¸\x18G\b\b\x10\x1e\"\fmetadata.org*3unauthorized to create session in this organization\x12\x8f\x01\n" +
 	"\x06update\x12&.ai.stigmer.agentic.session.v1.Session\x1a&.ai.stigmer.agentic.session.v1.Session\"5¸\x181\b\x02\x10*\"\vmetadata.id*\x1eunauthorized to update session\x12\xa9\x01\n" +
-	"\rupdateSubject\x12:.ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest\x1a&.ai.stigmer.agentic.session.v1.Session\"4¸\x180\b\x02\x10*\"\x02id*&unauthorized to update session subject\x12\xad\x01\n" +
-	"\x13updateSessionMemory\x129.ai.stigmer.agentic.session.v1.UpdateSessionMemoryRequest\x1a&.ai.stigmer.agentic.session.v1.Session\"3¸\x18/\b\x02\x10*\"\x02id*%unauthorized to update session memory\x12\xaa\x01\n" +
+	"\rupdateSubject\x12:.ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest\x1a&.ai.stigmer.agentic.session.v1.Session\"4¸\x180\b\x02\x10*\"\x02id*&unauthorized to update session subject\x12\xaa\x01\n" +
 	"\x06delete\x12(.ai.stigmer.agentic.session.v1.SessionId\x1a&.ai.stigmer.agentic.session.v1.Session\"N¸\x18J\b\x1a\x10\x1f*;unauthorized to delete session — operator access required2\astigmer\x1a\x04\xa0\xff+*B\x9c\x02\n" +
 	"!com.ai.stigmer.agentic.session.v1B\fCommandProtoP\x01ZPgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_session_v1_command_proto_goTypes = []any{
 	(*Session)(nil),                     // 0: ai.stigmer.agentic.session.v1.Session
 	(*UpdateSessionSubjectRequest)(nil), // 1: ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest
-	(*UpdateSessionMemoryRequest)(nil),  // 2: ai.stigmer.agentic.session.v1.UpdateSessionMemoryRequest
-	(*SessionId)(nil),                   // 3: ai.stigmer.agentic.session.v1.SessionId
+	(*SessionId)(nil),                   // 2: ai.stigmer.agentic.session.v1.SessionId
 }
 var file_ai_stigmer_agentic_session_v1_command_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.agentic.session.v1.SessionCommandController.apply:input_type -> ai.stigmer.agentic.session.v1.Session
 	0, // 1: ai.stigmer.agentic.session.v1.SessionCommandController.create:input_type -> ai.stigmer.agentic.session.v1.Session
 	0, // 2: ai.stigmer.agentic.session.v1.SessionCommandController.update:input_type -> ai.stigmer.agentic.session.v1.Session
 	1, // 3: ai.stigmer.agentic.session.v1.SessionCommandController.updateSubject:input_type -> ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest
-	2, // 4: ai.stigmer.agentic.session.v1.SessionCommandController.updateSessionMemory:input_type -> ai.stigmer.agentic.session.v1.UpdateSessionMemoryRequest
-	3, // 5: ai.stigmer.agentic.session.v1.SessionCommandController.delete:input_type -> ai.stigmer.agentic.session.v1.SessionId
-	0, // 6: ai.stigmer.agentic.session.v1.SessionCommandController.apply:output_type -> ai.stigmer.agentic.session.v1.Session
-	0, // 7: ai.stigmer.agentic.session.v1.SessionCommandController.create:output_type -> ai.stigmer.agentic.session.v1.Session
-	0, // 8: ai.stigmer.agentic.session.v1.SessionCommandController.update:output_type -> ai.stigmer.agentic.session.v1.Session
-	0, // 9: ai.stigmer.agentic.session.v1.SessionCommandController.updateSubject:output_type -> ai.stigmer.agentic.session.v1.Session
-	0, // 10: ai.stigmer.agentic.session.v1.SessionCommandController.updateSessionMemory:output_type -> ai.stigmer.agentic.session.v1.Session
-	0, // 11: ai.stigmer.agentic.session.v1.SessionCommandController.delete:output_type -> ai.stigmer.agentic.session.v1.Session
-	6, // [6:12] is the sub-list for method output_type
-	0, // [0:6] is the sub-list for method input_type
+	2, // 4: ai.stigmer.agentic.session.v1.SessionCommandController.delete:input_type -> ai.stigmer.agentic.session.v1.SessionId
+	0, // 5: ai.stigmer.agentic.session.v1.SessionCommandController.apply:output_type -> ai.stigmer.agentic.session.v1.Session
+	0, // 6: ai.stigmer.agentic.session.v1.SessionCommandController.create:output_type -> ai.stigmer.agentic.session.v1.Session
+	0, // 7: ai.stigmer.agentic.session.v1.SessionCommandController.update:output_type -> ai.stigmer.agentic.session.v1.Session
+	0, // 8: ai.stigmer.agentic.session.v1.SessionCommandController.updateSubject:output_type -> ai.stigmer.agentic.session.v1.Session
+	0, // 9: ai.stigmer.agentic.session.v1.SessionCommandController.delete:output_type -> ai.stigmer.agentic.session.v1.Session
+	5, // [5:10] is the sub-list for method output_type
+	0, // [0:5] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name

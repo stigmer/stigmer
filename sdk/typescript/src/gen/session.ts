@@ -9,7 +9,7 @@ import { ToolApprovalOverrideSchema, McpServerUsageSchema } from "@stigmer/proto
 import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { Harness, CursorMode, ExecutionTarget, GitWriteBackMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { SessionIdSchema, UpdateSessionSubjectRequestSchema, UpdateSessionMemoryRequestSchema, ListSessionsRequestSchema, SessionListSchema, ListSessionsByAgentRequestSchema, type UpdateSessionSubjectRequest, type UpdateSessionMemoryRequest, type ListSessionsRequest, type SessionList, type ListSessionsByAgentRequest } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+import { SessionIdSchema, UpdateSessionSubjectRequestSchema, ListSessionsRequestSchema, SessionListSchema, ListSessionsByAgentRequestSchema, type UpdateSessionSubjectRequest, type ListSessionsRequest, type SessionList, type ListSessionsByAgentRequest } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { GitRepoSourceSchema, LocalPathSourceSchema, WorkspaceSourceSchema, WorkspaceEntrySchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
@@ -48,12 +48,6 @@ export class SessionClient {
   async updateSubject(input: UpdateSessionSubjectRequest): Promise<Session> {
     try {
       return await this.command.updateSubject(input);
-    } catch (e) { throw wrapError(e); }
-  }
-
-  async updateSessionMemory(input: UpdateSessionMemoryRequest): Promise<Session> {
-    try {
-      return await this.command.updateSessionMemory(input);
     } catch (e) { throw wrapError(e); }
   }
 

@@ -109,28 +109,28 @@ public interface SessionOrBuilder extends
 
   /**
    * <pre>
-   * System-managed session state and audit information.
+   * System-managed audit information (created_at, updated_at, created_by, etc.).
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.session.v1.SessionStatus status = 5 [json_name = "status"];</code>
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
    * @return Whether the status field is set.
    */
   boolean hasStatus();
   /**
    * <pre>
-   * System-managed session state and audit information.
+   * System-managed audit information (created_at, updated_at, created_by, etc.).
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.session.v1.SessionStatus status = 5 [json_name = "status"];</code>
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
    * @return The status.
    */
-  ai.stigmer.agentic.session.v1.SessionStatus getStatus();
+  ai.stigmer.commons.apiresource.ApiResourceAuditStatus getStatus();
   /**
    * <pre>
-   * System-managed session state and audit information.
+   * System-managed audit information (created_at, updated_at, created_by, etc.).
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.session.v1.SessionStatus status = 5 [json_name = "status"];</code>
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
    */
-  ai.stigmer.agentic.session.v1.SessionStatusOrBuilder getStatusOrBuilder();
+  ai.stigmer.commons.apiresource.ApiResourceAuditStatusOrBuilder getStatusOrBuilder();
 }

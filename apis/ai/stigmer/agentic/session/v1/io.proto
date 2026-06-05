@@ -3,7 +3,6 @@ syntax = "proto3";
 package ai.stigmer.agentic.session.v1;
 
 import "ai/stigmer/agentic/session/v1/api.proto";
-import "ai/stigmer/agentic/session/v1/memory.proto";
 import "buf/validate/validate.proto";
 
 // SessionId wraps a session identifier.
@@ -61,21 +60,4 @@ message UpdateSessionSubjectRequest {
 
   // New subject value. Empty string clears the subject.
   string subject = 2;
-}
-
-// UpdateSessionMemoryRequest persists durable session memory after each
-// completed execution turn.
-//
-// @internal
-// Field-level update that atomically modifies only the status.session_memory
-// field, avoiding the lost-update race condition that occurs when the
-// cursor-runner performs full-session updates concurrently with subject
-// generation and other parallel activities.
-message UpdateSessionMemoryRequest {
-  // Session ID to update.
-  string id = 1 [(buf.validate.field).required = true];
-
-  // The session memory to persist. Replaces the entire existing memory
-  // (not a merge — the runner builds the complete memory each time).
-  SessionMemory session_memory = 2;
 }

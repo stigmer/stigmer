@@ -23,7 +23,6 @@ export function mockStigmerClient(overrides: MockMethods = {}): StigmerClient {
     getExecutionContextByExecutionId: vi.fn().mockResolvedValue({}),
     getSession: vi.fn().mockResolvedValue({}),
     updateSession: vi.fn().mockResolvedValue({}),
-    updateSessionMemory: vi.fn().mockResolvedValue({}),
     getAgent: vi.fn().mockResolvedValue({}),
     getAgentInstance: vi.fn().mockResolvedValue({}),
     getMcpServer: vi.fn().mockResolvedValue({}),

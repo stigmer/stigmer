@@ -22,14 +22,13 @@ _runtime_version.ValidateProtobufRuntimeVersion(
 _sym_db = _symbol_database.Default()
 
 
-from ai.stigmer.agentic.session.v1 import memory_pb2 as ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_memory__pb2
 from ai.stigmer.agentic.session.v1 import spec_pb2 as ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_spec__pb2
 from ai.stigmer.commons.apiresource import metadata_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_metadata__pb2
 from ai.stigmer.commons.apiresource import status_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_status__pb2
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\'ai/stigmer/agentic/session/v1/api.proto\x12\x1d\x61i.stigmer.agentic.session.v1\x1a*ai/stigmer/agentic/session/v1/memory.proto\x1a(ai/stigmer/agentic/session/v1/spec.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1b\x62uf/validate/validate.proto\"\xcb\x02\n\x07Session\x12=\n\x0b\x61pi_version\x18\x01 \x01(\tB\x1c\xbaH\x19r\x17\n\x15\x61gentic.stigmer.ai/v1R\napiVersion\x12\"\n\x04kind\x18\x02 \x01(\tB\x0e\xbaH\x0br\t\n\x07SessionR\x04kind\x12W\n\x08metadata\x18\x03 \x01(\x0b\x32\x33.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\x08metadata\x12>\n\x04spec\x18\x04 \x01(\x0b\x32*.ai.stigmer.agentic.session.v1.SessionSpecR\x04spec\x12\x44\n\x06status\x18\x05 \x01(\x0b\x32,.ai.stigmer.agentic.session.v1.SessionStatusR\x06status\"\xac\x01\n\rSessionStatus\x12S\n\x0esession_memory\x18\x01 \x01(\x0b\x32,.ai.stigmer.agentic.session.v1.SessionMemoryR\rsessionMemory\x12\x46\n\x05\x61udit\x18\x63 \x01(\x0b\x32\x30.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05\x61uditB\xc6\x01\n!com.ai.stigmer.agentic.session.v1B\x08\x41piProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1d\x41i.Stigmer.Agentic.Session.V1\xca\x02\x1d\x41i\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\'ai/stigmer/agentic/session/v1/api.proto\x12\x1d\x61i.stigmer.agentic.session.v1\x1a(ai/stigmer/agentic/session/v1/spec.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1b\x62uf/validate/validate.proto\"\xd5\x02\n\x07Session\x12=\n\x0b\x61pi_version\x18\x01 \x01(\tB\x1c\xbaH\x19r\x17\n\x15\x61gentic.stigmer.ai/v1R\napiVersion\x12\"\n\x04kind\x18\x02 \x01(\tB\x0e\xbaH\x0br\t\n\x07SessionR\x04kind\x12W\n\x08metadata\x18\x03 \x01(\x0b\x32\x33.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\x08metadata\x12>\n\x04spec\x18\x04 \x01(\x0b\x32*.ai.stigmer.agentic.session.v1.SessionSpecR\x04spec\x12N\n\x06status\x18\x05 \x01(\x0b\x32\x36.ai.stigmer.commons.apiresource.ApiResourceAuditStatusR\x06statusB\xc6\x01\n!com.ai.stigmer.agentic.session.v1B\x08\x41piProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1d\x41i.Stigmer.Agentic.Session.V1\xca\x02\x1d\x41i\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -43,8 +42,6 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_SESSION'].fields_by_name['kind']._serialized_options = b'\272H\013r\t\n\007Session'
   _globals['_SESSION'].fields_by_name['metadata']._loaded_options = None
   _globals['_SESSION'].fields_by_name['metadata']._serialized_options = b'\272H\003\310\001\001'
-  _globals['_SESSION']._serialized_start=282
-  _globals['_SESSION']._serialized_end=613
-  _globals['_SESSIONSTATUS']._serialized_start=616
-  _globals['_SESSIONSTATUS']._serialized_end=788
+  _globals['_SESSION']._serialized_start=238
+  _globals['_SESSION']._serialized_end=579
 # @@protoc_insertion_point(module_scope)

@@ -31,11 +31,6 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_session_v1_Session_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_ai_stigmer_agentic_session_v1_SessionStatus_descriptor;
-  static final 
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_ai_stigmer_agentic_session_v1_SessionStatus_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -46,35 +41,28 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
   static {
     java.lang.String[] descriptorData = {
       "\n\'ai/stigmer/agentic/session/v1/api.prot" +
-      "o\022\035ai.stigmer.agentic.session.v1\032*ai/sti" +
-      "gmer/agentic/session/v1/memory.proto\032(ai" +
-      "/stigmer/agentic/session/v1/spec.proto\032-" +
-      "ai/stigmer/commons/apiresource/metadata." +
-      "proto\032+ai/stigmer/commons/apiresource/st" +
-      "atus.proto\032\033buf/validate/validate.proto\"" +
-      "\313\002\n\007Session\022=\n\013api_version\030\001 \001(\tB\034\272H\031r\027\n" +
-      "\025agentic.stigmer.ai/v1R\napiVersion\022\"\n\004ki" +
-      "nd\030\002 \001(\tB\016\272H\013r\t\n\007SessionR\004kind\022W\n\010metada" +
-      "ta\030\003 \001(\01323.ai.stigmer.commons.apiresourc" +
-      "e.ApiResourceMetadataB\006\272H\003\310\001\001R\010metadata\022" +
-      ">\n\004spec\030\004 \001(\0132*.ai.stigmer.agentic.sessi" +
-      "on.v1.SessionSpecR\004spec\022D\n\006status\030\005 \001(\0132" +
-      ",.ai.stigmer.agentic.session.v1.SessionS" +
-      "tatusR\006status\"\254\001\n\rSessionStatus\022S\n\016sessi" +
-      "on_memory\030\001 \001(\0132,.ai.stigmer.agentic.ses" +
-      "sion.v1.SessionMemoryR\rsessionMemory\022F\n\005" +
-      "audit\030c \001(\01320.ai.stigmer.commons.apireso" +
-      "urce.ApiResourceAuditR\005auditB\243\001B\010ApiProt" +
-      "oP\001\242\002\004ASAS\252\002\035Ai.Stigmer.Agentic.Session." +
-      "V1\312\002\035Ai\\Stigmer\\Agentic\\Session\\V1\342\002)Ai\\" +
-      "Stigmer\\Agentic\\Session\\V1\\GPBMetadata\352\002" +
-      "!Ai::Stigmer::Agentic::Session::V1b\006prot" +
-      "o3"
+      "o\022\035ai.stigmer.agentic.session.v1\032(ai/sti" +
+      "gmer/agentic/session/v1/spec.proto\032-ai/s" +
+      "tigmer/commons/apiresource/metadata.prot" +
+      "o\032+ai/stigmer/commons/apiresource/status" +
+      ".proto\032\033buf/validate/validate.proto\"\325\002\n\007" +
+      "Session\022=\n\013api_version\030\001 \001(\tB\034\272H\031r\027\n\025age" +
+      "ntic.stigmer.ai/v1R\napiVersion\022\"\n\004kind\030\002" +
+      " \001(\tB\016\272H\013r\t\n\007SessionR\004kind\022W\n\010metadata\030\003" +
+      " \001(\01323.ai.stigmer.commons.apiresource.Ap" +
+      "iResourceMetadataB\006\272H\003\310\001\001R\010metadata\022>\n\004s" +
+      "pec\030\004 \001(\0132*.ai.stigmer.agentic.session.v" +
+      "1.SessionSpecR\004spec\022N\n\006status\030\005 \001(\01326.ai" +
+      ".stigmer.commons.apiresource.ApiResource" +
+      "AuditStatusR\006statusB\243\001B\010ApiProtoP\001\242\002\004ASA" +
+      "S\252\002\035Ai.Stigmer.Agentic.Session.V1\312\002\035Ai\\S" +
+      "tigmer\\Agentic\\Session\\V1\342\002)Ai\\Stigmer\\A" +
+      "gentic\\Session\\V1\\GPBMetadata\352\002!Ai::Stig" +
+      "mer::Agentic::Session::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
-          ai.stigmer.agentic.session.v1.MemoryProto.getDescriptor(),
           ai.stigmer.agentic.session.v1.SpecProto.getDescriptor(),
           ai.stigmer.commons.apiresource.MetadataProto.getDescriptor(),
           ai.stigmer.commons.apiresource.StatusProto.getDescriptor(),
@@ -86,14 +74,7 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_Session_descriptor,
         new java.lang.String[] { "ApiVersion", "Kind", "Metadata", "Spec", "Status", });
-    internal_static_ai_stigmer_agentic_session_v1_SessionStatus_descriptor =
-      getDescriptor().getMessageType(1);
-    internal_static_ai_stigmer_agentic_session_v1_SessionStatus_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-        internal_static_ai_stigmer_agentic_session_v1_SessionStatus_descriptor,
-        new java.lang.String[] { "SessionMemory", "Audit", });
     descriptor.resolveAllFeaturesImmutable();
-    ai.stigmer.agentic.session.v1.MemoryProto.getDescriptor();
     ai.stigmer.agentic.session.v1.SpecProto.getDescriptor();
     ai.stigmer.commons.apiresource.MetadataProto.getDescriptor();
     ai.stigmer.commons.apiresource.StatusProto.getDescriptor();

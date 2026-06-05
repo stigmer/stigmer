@@ -20,25 +20,27 @@
  * They must be passed again on every resume call.
  *
  * Platform store keying (local only): The Cursor SDK defaults to
- * process.cwd() for its internal state root lookup. In Daytona sandboxes,
+ * process.cwd() for its internal state root lookup. In cloud sandboxes,
  * process.cwd() is the runner's app directory, not the workspace — causing
  * Agent.resume() to fail with "Agent not found". We pass explicit
  * platform.workspaceRef and platform.stateRoot derived from the Stigmer
  * sessionId to ensure deterministic store lookup regardless of process.cwd().
  *
- * Durability model: When Agent.resume() fails (agent expired, deleted, or
- * Cursor service error), this module creates a fresh agent instead of
- * propagating the error. The caller receives a reason discriminant that
- * triggers injection of a continuation prompt built from persisted
- * SessionMemory — making the conversation durable across agent evictions.
+ * Durability model: the SDK's local SQLite store (agent records, runs,
+ * checkpoints) is the source of truth for conversation continuation. It is
+ * persisted under the durable workspace volume (see resolvePlatformOptions)
+ * so Agent.resume() survives pod restart, reschedule, and snapshot restore.
+ * When resume nonetheless fails (store lost, corrupted, or agent unknown),
+ * this module creates a fresh agent and the caller starts a new turn from
+ * the user message plus re-injected instructions — there is no separate
+ * continuation store.
  */
 
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { homedir } from "node:os";
 
 import { Agent } from "@cursor/sdk";
-import type { SDKAgent, CursorAgentPlatformOptions } from "@cursor/sdk";
+import type { SDKAgent, CursorAgentPlatformOptions, AgentDefinition } from "@cursor/sdk";
 import type { CursorMcpServerConfig } from "./mcp-resolver.js";
 
 // ---------------------------------------------------------------------------
@@ -56,15 +58,27 @@ export interface CreateAgentOptions {
   model: string;
   workspaceDirs: string[];
   sessionId: string;
+  /** Durable workspace volume root; the SDK state store lives under it. */
+  workspaceRootDir: string;
   mcpServers?: Record<string, CursorMcpServerConfig>;
+  /**
+   * Custom sub-agents registered with the Cursor SDK so the parent can delegate
+   * to them by name via the Task tool. Not persisted across resume, so it must
+   * be re-supplied on every create/resume (mirrors mcpServers).
+   */
+  agents?: Record<string, AgentDefinition>;
 }
 
 export interface ResumeAgentOptions {
   apiKey: string;
   agentId: string;
   sessionId: string;
+  /** Durable workspace volume root; the SDK state store lives under it. */
+  workspaceRootDir: string;
   model?: string;
   mcpServers?: Record<string, CursorMcpServerConfig>;
+  /** Custom sub-agents — see {@link CreateAgentOptions.agents}. */
+  agents?: Record<string, AgentDefinition>;
 }
 
 // ---------------------------------------------------------------------------
@@ -82,6 +96,8 @@ export interface CreateCloudAgentOptions {
   repos: CloudRepo[];
   sessionId: string;
   mcpServers?: Record<string, CursorMcpServerConfig>;
+  /** Custom sub-agents — see {@link CreateAgentOptions.agents}. */
+  agents?: Record<string, AgentDefinition>;
 }
 
 export interface ResumeCloudAgentOptions {
@@ -89,6 +105,8 @@ export interface ResumeCloudAgentOptions {
   agentId: string;
   model?: string;
   mcpServers?: Record<string, CursorMcpServerConfig>;
+  /** Custom sub-agents — see {@link CreateAgentOptions.agents}. */
+  agents?: Record<string, AgentDefinition>;
 }
 
 // ---------------------------------------------------------------------------
@@ -99,9 +117,9 @@ export interface ResumeCloudAgentOptions {
  * Discriminated reason explaining how the agent was resolved.
  *
  * Drives prompt selection in execute-cursor.ts:
- * - created_first_execution: first turn, no prior memory
- * - resumed_successfully: subsequent turn, agent alive
- * - created_after_resume_failure: agent died, fallback with continuation
+ * - created_first_execution: first turn, fresh agent
+ * - resumed_successfully: subsequent turn, agent alive (native context)
+ * - created_after_resume_failure: agent unknown/lost, fresh agent (no prior context)
  */
 export type AgentResolutionReason =
   | "created_first_execution"
@@ -129,18 +147,43 @@ export interface AgentResolution {
 // ---------------------------------------------------------------------------
 
 /**
- * Compute deterministic platform options from a Stigmer sessionId.
+ * Compute deterministic platform options for a Stigmer session.
  *
  * workspaceRef is a synthetic identifier (not a filesystem path) that
  * ensures the SDK's platform cache key is stable across activity
  * invocations regardless of process.cwd().
  *
- * stateRoot is a session-isolated directory under ~/.stigmer/ where
- * the SDK persists SQLite stores (agent records, runs, checkpoints).
- * Created eagerly to prevent ENOENT on first SDK write.
+ * stateRoot is a session-isolated directory under the durable workspace
+ * volume ({workspaceRootDir}/.stigmer/cursor-sdk-state/{sessionId}) where
+ * the SDK persists its SQLite stores (agent records, runs, checkpoints).
+ * Placing it on the workspace volume (rather than $HOME) makes native
+ * Agent.resume() survive pod restart/reschedule and snapshot restore, and
+ * keys it by sessionId so sessions sharing one volume (e.g. the child agent
+ * executions of a workflow sandbox) never collide. Created eagerly to
+ * prevent ENOENT on first SDK write.
+ *
+ * Both inputs are required and must be non-empty: the stateRoot is keyed by
+ * sessionId, so an empty sessionId would collapse every session sharing the
+ * volume onto the same store and corrupt their conversation state.
  */
-export function resolvePlatformOptions(sessionId: string): CursorAgentPlatformOptions {
-  const stateRoot = join(homedir(), CURSOR_SDK_STATE_DIR, sessionId);
+export function resolvePlatformOptions(
+  sessionId: string,
+  workspaceRootDir: string,
+): CursorAgentPlatformOptions {
+  if (!sessionId) {
+    throw new Error(
+      "resolvePlatformOptions: sessionId is required but was empty. The Cursor SDK " +
+      "state store is keyed by sessionId; an empty value would collide across sessions " +
+      "sharing a workspace volume (e.g. a workflow sandbox's child agent executions).",
+    );
+  }
+  if (!workspaceRootDir) {
+    throw new Error(
+      "resolvePlatformOptions: workspaceRootDir is required but was empty. The Cursor " +
+      "SDK state store must live on the durable workspace volume to survive restarts.",
+    );
+  }
+  const stateRoot = join(workspaceRootDir, CURSOR_SDK_STATE_DIR, sessionId);
   mkdirSync(stateRoot, { recursive: true });
   return {
     workspaceRef: `stigmer-session:${sessionId}`,
@@ -158,7 +201,7 @@ export async function createAgent(options: CreateAgentOptions): Promise<SDKAgent
     ? options.workspaceDirs[0]
     : options.workspaceDirs;
 
-  const platform = resolvePlatformOptions(options.sessionId);
+  const platform = resolvePlatformOptions(options.sessionId, options.workspaceRootDir);
   console.log(
     `createAgent: sessionId=${options.sessionId}, workspaceRef=${platform.workspaceRef}, ` +
     `stateRoot=${platform.stateRoot}, process.cwd=${process.cwd()}`,
@@ -169,6 +212,7 @@ export async function createAgent(options: CreateAgentOptions): Promise<SDKAgent
     model: { id: options.model },
     local: { cwd },
     mcpServers: options.mcpServers as Record<string, any>,
+    agents: options.agents,
     platform,
   });
 }
@@ -180,7 +224,7 @@ export async function createAgent(options: CreateAgentOptions): Promise<SDKAgent
  * propagate or fall back to a fresh agent with continuation context.
  */
 export async function resumeAgent(options: ResumeAgentOptions): Promise<SDKAgent> {
-  const platform = resolvePlatformOptions(options.sessionId);
+  const platform = resolvePlatformOptions(options.sessionId, options.workspaceRootDir);
   console.log(
     `resumeAgent: agentId=${options.agentId}, sessionId=${options.sessionId}, ` +
     `workspaceRef=${platform.workspaceRef}, stateRoot=${platform.stateRoot}, ` +
@@ -191,6 +235,7 @@ export async function resumeAgent(options: ResumeAgentOptions): Promise<SDKAgent
     apiKey: options.apiKey,
     model: options.model ? { id: options.model } : undefined,
     mcpServers: options.mcpServers as Record<string, any>,
+    agents: options.agents,
     platform,
   });
 }
@@ -218,6 +263,7 @@ export async function createCloudAgent(options: CreateCloudAgentOptions): Promis
     model: options.model ? { id: options.model } : undefined,
     cloud: { repos: options.repos },
     mcpServers: options.mcpServers as Record<string, any>,
+    agents: options.agents,
   });
 }
 
@@ -237,6 +283,7 @@ export async function resumeCloudAgent(options: ResumeCloudAgentOptions): Promis
     apiKey: options.apiKey,
     model: options.model ? { id: options.model } : undefined,
     mcpServers: options.mcpServers as Record<string, any>,
+    agents: options.agents,
   });
 }
 
@@ -257,8 +304,8 @@ export async function resumeCloudAgent(options: ResumeCloudAgentOptions): Promis
  *   2. On success: return { resumed: true, reason: "resumed_successfully" }.
  *   3. On failure: log warning, create a fresh agent, return
  *      { resumed: false, reason: "created_after_resume_failure" }.
- *      The caller injects a continuation prompt from SessionMemory so
- *      the fresh agent inherits conversational context.
+ *      The fresh agent has no prior conversation context; the caller
+ *      starts a new turn from the user message and re-injected instructions.
  *
  * When harnessStateId is empty (first execution):
  *   Create a new agent; return { reason: "created_first_execution" }.
@@ -279,13 +326,16 @@ export async function resolveAgent(
             agentId: harnessStateId,
             model: options.model,
             mcpServers: options.mcpServers,
+            agents: options.agents,
           })
         : await resumeAgent({
             apiKey: options.apiKey,
             agentId: harnessStateId,
             sessionId: (options as CreateAgentOptions).sessionId,
+            workspaceRootDir: (options as CreateAgentOptions).workspaceRootDir,
             model: options.model,
             mcpServers: options.mcpServers,
+            agents: options.agents,
           });
 
       return {
@@ -300,7 +350,7 @@ export async function resolveAgent(
       const detail = err instanceof Error ? err.message : String(err);
       console.warn(
         `resolveAgent: resume failed for ${mode} agent "${harnessStateId}", ` +
-        `creating fresh agent with continuation context. ` +
+        `creating fresh agent (no prior context). ` +
         `sessionId=${options.sessionId}, error: ${detail}`,
       );
 

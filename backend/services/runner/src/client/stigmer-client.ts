@@ -29,7 +29,6 @@ import type { AgentExecution, AgentExecutionStatus } from "@stigmer/protos/ai/st
 import type { ExecutionContext } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { ExecutionContextExecutionIdInputSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/io_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import type { SessionMemory } from "@stigmer/protos/ai/stigmer/agentic/session/v1/memory_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
@@ -149,10 +148,6 @@ export class StigmerClient {
 
   async updateSession(session: Session): Promise<Session> {
     return this.sessionCommand.update(session);
-  }
-
-  async updateSessionMemory(sessionId: string, memory: SessionMemory): Promise<Session> {
-    return this.sessionCommand.updateSessionMemory({ id: sessionId, sessionMemory: memory });
   }
 
   async getAgent(agentId: string): Promise<Agent> {

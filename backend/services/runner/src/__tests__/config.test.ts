@@ -138,19 +138,4 @@ describe("loadConfig", () => {
 
     expect(config.cloudModeEnabled).toBe(true);
   });
-
-  it("defaults trustNativeResume to false", () => {
-    process.env.CURSOR_API_KEY = "test-key";
-    const config = loadConfig();
-
-    expect(config.trustNativeResume).toBe(false);
-  });
-
-  it("reads trustNativeResume flag", () => {
-    process.env.CURSOR_TRUST_NATIVE_RESUME = "true";
-    process.env.CURSOR_API_KEY = "test-key";
-    const config = loadConfig();
-
-    expect(config.trustNativeResume).toBe(true);
-  });
 });

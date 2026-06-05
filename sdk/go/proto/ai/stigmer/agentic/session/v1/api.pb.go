@@ -35,8 +35,8 @@ type Session struct {
 	Metadata *apiresource.ApiResourceMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	// Session-specific configuration.
 	Spec *SessionSpec `protobuf:"bytes,4,opt,name=spec,proto3" json:"spec,omitempty"`
-	// System-managed session state and audit information.
-	Status        *SessionStatus `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
+	// System-managed audit information (created_at, updated_at, created_by, etc.).
+	Status        *apiresource.ApiResourceAuditStatus `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -99,81 +99,9 @@ func (x *Session) GetSpec() *SessionSpec {
 	return nil
 }
 
-func (x *Session) GetStatus() *SessionStatus {
+func (x *Session) GetStatus() *apiresource.ApiResourceAuditStatus {
 	if x != nil {
 		return x.Status
-	}
-	return nil
-}
-
-// SessionStatus contains system-managed runtime state for a session.
-//
-// This follows the same pattern as AgentExecutionStatus: domain-specific
-// status fields alongside the standard audit at field 99.
-//
-// Previously Session.status was ApiResourceAuditStatus (audit-only). The
-// introduction of session memory required a proper status message. The
-// wire format is backward-compatible: ApiResourceAuditStatus.audit was at
-// field 99, and SessionStatus.audit is at the same field number, so
-// existing MongoDB documents deserialize correctly.
-type SessionStatus struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Durable session memory for continuation across agent evictions.
-	//
-	// Updated after each completed execution turn by the runner. When a
-	// fresh agent is created (because the previous one expired or the local
-	// store lookup failed), the continuation prompt is built from this
-	// memory.
-	//
-	// Empty until the first execution completes. Never cleared — only
-	// overwritten with newer state.
-	SessionMemory *SessionMemory `protobuf:"bytes,1,opt,name=session_memory,json=sessionMemory,proto3" json:"session_memory,omitempty"`
-	// Standard audit information (created_at, updated_at, created_by, etc.)
-	Audit         *apiresource.ApiResourceAudit `protobuf:"bytes,99,opt,name=audit,proto3" json:"audit,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SessionStatus) Reset() {
-	*x = SessionStatus{}
-	mi := &file_ai_stigmer_agentic_session_v1_api_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SessionStatus) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SessionStatus) ProtoMessage() {}
-
-func (x *SessionStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_session_v1_api_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SessionStatus.ProtoReflect.Descriptor instead.
-func (*SessionStatus) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_session_v1_api_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *SessionStatus) GetSessionMemory() *SessionMemory {
-	if x != nil {
-		return x.SessionMemory
-	}
-	return nil
-}
-
-func (x *SessionStatus) GetAudit() *apiresource.ApiResourceAudit {
-	if x != nil {
-		return x.Audit
 	}
 	return nil
 }
@@ -182,7 +110,7 @@ var File_ai_stigmer_agentic_session_v1_api_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_api_proto_rawDesc = "" +
 	"\n" +
-	"'ai/stigmer/agentic/session/v1/api.proto\x12\x1dai.stigmer.agentic.session.v1\x1a*ai/stigmer/agentic/session/v1/memory.proto\x1a(ai/stigmer/agentic/session/v1/spec.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\"\xcb\x02\n" +
+	"'ai/stigmer/agentic/session/v1/api.proto\x12\x1dai.stigmer.agentic.session.v1\x1a(ai/stigmer/agentic/session/v1/spec.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\"\xd5\x02\n" +
 	"\aSession\x12=\n" +
 	"\vapi_version\x18\x01 \x01(\tB\x1c\xbaH\x19r\x17\n" +
 	"\x15agentic.stigmer.ai/v1R\n" +
@@ -190,11 +118,8 @@ const file_ai_stigmer_agentic_session_v1_api_proto_rawDesc = "" +
 	"\x04kind\x18\x02 \x01(\tB\x0e\xbaH\vr\t\n" +
 	"\aSessionR\x04kind\x12W\n" +
 	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\bmetadata\x12>\n" +
-	"\x04spec\x18\x04 \x01(\v2*.ai.stigmer.agentic.session.v1.SessionSpecR\x04spec\x12D\n" +
-	"\x06status\x18\x05 \x01(\v2,.ai.stigmer.agentic.session.v1.SessionStatusR\x06status\"\xac\x01\n" +
-	"\rSessionStatus\x12S\n" +
-	"\x0esession_memory\x18\x01 \x01(\v2,.ai.stigmer.agentic.session.v1.SessionMemoryR\rsessionMemory\x12F\n" +
-	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05auditB\x97\x02\n" +
+	"\x04spec\x18\x04 \x01(\v2*.ai.stigmer.agentic.session.v1.SessionSpecR\x04spec\x12N\n" +
+	"\x06status\x18\x05 \x01(\v26.ai.stigmer.commons.apiresource.ApiResourceAuditStatusR\x06statusB\x97\x02\n" +
 	"!com.ai.stigmer.agentic.session.v1B\bApiProtoP\x01ZOgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
 
 var (
@@ -209,26 +134,22 @@ func file_ai_stigmer_agentic_session_v1_api_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_session_v1_api_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_session_v1_api_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_ai_stigmer_agentic_session_v1_api_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_ai_stigmer_agentic_session_v1_api_proto_goTypes = []any{
-	(*Session)(nil),                         // 0: ai.stigmer.agentic.session.v1.Session
-	(*SessionStatus)(nil),                   // 1: ai.stigmer.agentic.session.v1.SessionStatus
-	(*apiresource.ApiResourceMetadata)(nil), // 2: ai.stigmer.commons.apiresource.ApiResourceMetadata
-	(*SessionSpec)(nil),                     // 3: ai.stigmer.agentic.session.v1.SessionSpec
-	(*SessionMemory)(nil),                   // 4: ai.stigmer.agentic.session.v1.SessionMemory
-	(*apiresource.ApiResourceAudit)(nil),    // 5: ai.stigmer.commons.apiresource.ApiResourceAudit
+	(*Session)(nil),                            // 0: ai.stigmer.agentic.session.v1.Session
+	(*apiresource.ApiResourceMetadata)(nil),    // 1: ai.stigmer.commons.apiresource.ApiResourceMetadata
+	(*SessionSpec)(nil),                        // 2: ai.stigmer.agentic.session.v1.SessionSpec
+	(*apiresource.ApiResourceAuditStatus)(nil), // 3: ai.stigmer.commons.apiresource.ApiResourceAuditStatus
 }
 var file_ai_stigmer_agentic_session_v1_api_proto_depIdxs = []int32{
-	2, // 0: ai.stigmer.agentic.session.v1.Session.metadata:type_name -> ai.stigmer.commons.apiresource.ApiResourceMetadata
-	3, // 1: ai.stigmer.agentic.session.v1.Session.spec:type_name -> ai.stigmer.agentic.session.v1.SessionSpec
-	1, // 2: ai.stigmer.agentic.session.v1.Session.status:type_name -> ai.stigmer.agentic.session.v1.SessionStatus
-	4, // 3: ai.stigmer.agentic.session.v1.SessionStatus.session_memory:type_name -> ai.stigmer.agentic.session.v1.SessionMemory
-	5, // 4: ai.stigmer.agentic.session.v1.SessionStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
-	5, // [5:5] is the sub-list for method output_type
-	5, // [5:5] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	1, // 0: ai.stigmer.agentic.session.v1.Session.metadata:type_name -> ai.stigmer.commons.apiresource.ApiResourceMetadata
+	2, // 1: ai.stigmer.agentic.session.v1.Session.spec:type_name -> ai.stigmer.agentic.session.v1.SessionSpec
+	3, // 2: ai.stigmer.agentic.session.v1.Session.status:type_name -> ai.stigmer.commons.apiresource.ApiResourceAuditStatus
+	3, // [3:3] is the sub-list for method output_type
+	3, // [3:3] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_session_v1_api_proto_init() }
@@ -236,7 +157,6 @@ func file_ai_stigmer_agentic_session_v1_api_proto_init() {
 	if File_ai_stigmer_agentic_session_v1_api_proto != nil {
 		return
 	}
-	file_ai_stigmer_agentic_session_v1_memory_proto_init()
 	file_ai_stigmer_agentic_session_v1_spec_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -244,7 +164,7 @@ func file_ai_stigmer_agentic_session_v1_api_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_session_v1_api_proto_rawDesc), len(file_ai_stigmer_agentic_session_v1_api_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   1,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -39,12 +39,14 @@ type UnifiedRunnerConfig struct {
 	// offline mode where ProxyEndpoint is a MockLLMProxy that does not
 	// handle artifact presign endpoints.
 	LocalArtifactDir string
+}
 
-	// TrustNativeResume, when true, sets CURSOR_TRUST_NATIVE_RESUME=true so
-	// the runner trusts the Cursor SDK's native local Agent.resume() to restore
-	// conversation context (raw user message) instead of injecting the
-	// SessionMemory continuation prompt. Used by the native-resume probe test.
-	TrustNativeResume bool
+// UnifiedRunnerWorkspaceDir returns the WORKSPACE_ROOT_DIR the integration
+// runner uses. The Cursor SDK persists its local SQLite state under
+// {WorkspaceDir}/.stigmer/cursor-sdk-state/{sessionId}; tests that inspect or
+// manipulate that state must derive the path from here.
+func UnifiedRunnerWorkspaceDir() string {
+	return filepath.Join(os.TempDir(), "stigmer-test-runner-workspace")
 }
 
 // --- IPC Protocol Types (mirrors main.ts) ---
@@ -535,8 +537,7 @@ func resolveRunnerCommand(runnerDir string) (bin string, entrypoint string, err 
 }
 
 func buildUnifiedRunnerEnv(cfg UnifiedRunnerConfig, mode, taskQueue string) []string {
-	workspaceDir := os.TempDir()
-	wsDir := filepath.Join(workspaceDir, "stigmer-test-runner-workspace")
+	wsDir := UnifiedRunnerWorkspaceDir()
 	_ = os.MkdirAll(wsDir, 0o755)
 
 	env := os.Environ()
@@ -563,10 +564,6 @@ func buildUnifiedRunnerEnv(cfg UnifiedRunnerConfig, mode, taskQueue string) []st
 		env = append(env, "STIGMER_RUNNER_MODE=manager")
 	} else if taskQueue != "" {
 		env = append(env, fmt.Sprintf("STIGMER_TASK_QUEUE=%s", taskQueue))
-	}
-
-	if cfg.TrustNativeResume {
-		env = append(env, "CURSOR_TRUST_NATIVE_RESUME=true")
 	}
 
 	if cfg.StigmerToken != "" {

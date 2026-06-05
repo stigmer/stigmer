@@ -18,12 +18,12 @@
  * This is identical to the LangGraph flow from the workflow's perspective.
  *
  * Durable Continuation Model:
- * When Agent.resume() fails (agent expired or evicted), resolveAgent()
- * gracefully creates a fresh agent. The prompt selection logic detects
- * the resolution reason and injects a continuation prompt built from
- * persisted SessionMemory, making the conversation durable across
- * agent evictions. Local mode always uses continuation prompts on
- * subsequent executions because local SDK context loading is unreliable.
+ * Conversation continuity is carried by the Cursor SDK's native local agent
+ * state, whose SQLite store is persisted on the durable workspace volume
+ * (see resolvePlatformOptions) so Agent.resume() survives pod restart,
+ * reschedule, and snapshot restore. When resume fails (store lost/corrupted
+ * or agent unknown), resolveAgent() creates a fresh agent and the next turn
+ * starts from the user message plus re-injected instructions.
  */
 
 import { heartbeat, Context, CancelledFailure } from "@temporalio/activity";
@@ -42,7 +42,7 @@ import { resolveAgent } from "./session-lifecycle.js";
 import type { AgentResolution, CreateAgentOptions, CreateCloudAgentOptions } from "./session-lifecycle.js";
 import { CursorMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { determineCursorMode, isCloudMode } from "./cursor-mode.js";
-import { MessageAccumulator, extractDeniedToolCalls } from "./message-translator.js";
+import { MessageAccumulator, extractDeniedToolCalls, cancelInProgressSubAgentProtos } from "./message-translator.js";
 import { utcTimestamp, persistStatus, reportSetupProgress, slimStatus } from "../../shared/status.js";
 import { DeltaEnricher } from "./delta-enricher.js";
 import { TodoTracker } from "./todo-tracker.js";
@@ -52,11 +52,11 @@ import { mergeApprovalPolicies } from "./approval-policy.js";
 import { backfillMcpServersIfNeeded } from "./connect-backfill.js";
 import { resolveExecutionEnv } from "./env-resolver.js";
 import { resolveBlueprint } from "./blueprint-resolver.js";
+import { buildCursorSubAgentDefinitions } from "./subagent-config.js";
 import { resolveSkills } from "./skill-resolver.js";
 import { resolveAttachments } from "./attachment-resolver.js";
 import { buildEnhancedPrompt, buildReinvocationPrompt } from "./prompt-builder.js";
-import { buildContinuationPrompt, buildHitlContinuationPrompt } from "./continuation-prompt.js";
-import { extractAgentRationale, getGitBranch, getGitHeadSha } from "./continuation-prompt.js";
+import { extractAgentRationale, getGitBranch, getGitHeadSha } from "./hitl-diagnostics.js";
 import { writeHooksToWorkspace } from "./workspace-setup.js";
 import { buildApprovalState } from "./approval-state.js";
 import { provisionCursorWorkspace } from "./workspace-provision.js";
@@ -65,7 +65,6 @@ import { closeProxySessions } from "./http2-interceptor.js";
 import { resolveModelId, ensureLoaded as ensurePricingLoaded } from "./model-pricing.js";
 import { UsageAccumulator } from "./usage-accumulator.js";
 import { StreamingUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
-import { buildSessionMemory, persistSessionMemory, estimateTokens } from "./session-memory.js";
 import { activityStarted, activityFinished } from "../../idle-watchdog.js";
 import { getCapturedRejection, clearCapturedRejection } from "./rejection-capture.js";
 import { synthesizeError, formatClassifiedError, shouldRetryWithFreshAgent } from "./error-classifier.js";
@@ -128,7 +127,6 @@ async function executeCursorInner(
 
   let sessionId: string | undefined;
   let session: import("@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb").Session | undefined;
-  let userMessage: string | undefined;
   let pauseDetected = false;
   let workerShutdownDetected = false;
   let periodicHeartbeat: ReturnType<typeof startHeartbeat> | undefined;
@@ -142,7 +140,6 @@ async function executeCursorInner(
     const execution = await client.getExecution(executionId);
     const spec = execution.spec!;
     sessionId = spec.sessionId;
-    userMessage = spec.message;
 
     // Phase 2: Load session and resolve full agent blueprint
     await reportSetupProgress(client, executionId, "Resolving agent blueprint");
@@ -312,6 +309,17 @@ async function executeCursorInner(
       );
     }
 
+    // Register blueprint sub-agents with the Cursor SDK so the parent can
+    // delegate to them by name via the Task tool. Re-supplied on every
+    // create/resume (the SDK does not persist agent config across resume).
+    const cursorSubAgents = buildCursorSubAgentDefinitions(blueprint.subAgents);
+    if (cursorSubAgents) {
+      console.log(
+        `ExecuteCursor registering ${Object.keys(cursorSubAgents).length} custom sub-agent(s): ` +
+        `execution=${executionId}, names=${Object.keys(cursorSubAgents).join(", ")}`,
+      );
+    }
+
     const createOptions: CreateAgentOptions | CreateCloudAgentOptions = agentMode === "cloud"
       ? {
           apiKey: effectiveApiKey,
@@ -319,13 +327,16 @@ async function executeCursorInner(
           repos: blueprint.cloudRepos,
           sessionId,
           mcpServers: mcpConfig,
+          agents: cursorSubAgents,
         }
       : {
           apiKey: effectiveApiKey,
           model: validatedModel,
           workspaceDirs: blueprint.workspaceDirs,
           sessionId,
+          workspaceRootDir: config.workspaceRootDir,
           mcpServers: mcpConfig,
+          agents: cursorSubAgents,
         };
 
     let resolution: AgentResolution = await resolveAgent(
@@ -379,14 +390,12 @@ async function executeCursorInner(
       Record<string, unknown> | undefined;
 
     // Phase 10: Build the prompt
-    const sessionMemory = session?.status?.sessionMemory;
     const interactionMode = spec.executionConfig?.interactionMode
       ?? InteractionMode.UNSPECIFIED;
 
     const prompt = buildPrompt({
       resolution,
       approvalDecisions,
-      sessionMemory,
       instructions: blueprint.instructions,
       userMessage: spec.message,
       skills: skillMetadata,
@@ -398,7 +407,6 @@ async function executeCursorInner(
         ? status.pendingApprovals
         : (execution.status?.pendingApprovals ?? []),
       interactionMode,
-      trustNativeResume: config.trustNativeResume,
     });
 
     // Phase 10a: Inject structured output instruction for Cursor harness
@@ -410,7 +418,7 @@ async function executeCursorInner(
 
     // Phase 10a2: Log Stigmer preamble size for context trimming diagnostics
     const promptChars = effectivePrompt.length;
-    const promptEstimatedTokens = estimateTokens(effectivePrompt);
+    const promptEstimatedTokens = Math.ceil(promptChars / 4);
     console.log(
       `ExecuteCursor prompt built: execution=${executionId}, ` +
       `chars=${promptChars}, estimatedTokens=${promptEstimatedTokens}, ` +
@@ -531,14 +539,23 @@ async function executeCursorInner(
         }
       }
 
-      const shouldPersist = eventCount % 20 === 0 || deltaEnricher.isDirty || todoTracker.isDirty;
+      const shouldPersist = eventCount % 20 === 0 || deltaEnricher.isDirty ||
+        todoTracker.isDirty || accumulator.subAgentDirty;
       if (usageAccumulator.hasTurns) {
         status.streamingUsage = create(StreamingUsageSummarySchema, usageAccumulator.snapshot());
       }
       if (shouldPersist) {
+        // Sync sub-agent executions into status before every persist so the
+        // live UI reflects delegation (including the IN_PROGRESS state) while
+        // the parent is still running — matching the native harness, which
+        // calls syncSubAgentExecutions() on each persist. Without this, the
+        // accumulator tracked sub-agents in memory but they only reached the
+        // status (and the subscriber stream) after the loop ended.
+        status.subAgentExecutions = accumulator.subAgentExecutions;
         const signal = await persistStatus(client, executionId, status);
         deltaEnricher.markPersisted();
         todoTracker.markPersisted();
+        accumulator.markSubAgentPersisted();
         heartbeat();
         if (signal === ExecutionControlSignal.STOP) {
           platformStopSignaled = true;
@@ -571,6 +588,13 @@ async function executeCursorInner(
 
     accumulator.finalize();
     deltaEnricher.finalize(status.messages);
+    // A pause / cancel / worker shutdown aborts the Cursor SDK run, so any
+    // sub-agent the parent had delegated is no longer executing. Mark it
+    // CANCELLED rather than leaving a permanent IN_PROGRESS "zombie" in the
+    // final snapshot (parity with the native harness's cancelSubAgents()).
+    if (pauseDetected || workerShutdownDetected || Context.current().cancellationSignal.aborted) {
+      accumulator.cancelInProgressSubAgents();
+    }
     status.subAgentExecutions = accumulator.subAgentExecutions;
     await eventRecorder?.flush();
     if (usageAccumulator.hasTurns) {
@@ -622,9 +646,7 @@ async function executeCursorInner(
         content: "Execution interrupted: the runner worker was shut down while the agent was still running. You can retry or resume.",
         timestamp: utcTimestamp(),
       }));
-      await persistStatus(client, executionId, status);
-      await maybePeristSessionMemory(client, sessionId, session, status, userMessage);
-      console.log(`ExecuteCursor interrupted (worker shutdown): execution=${executionId}, events=${eventCount}`);
+      await persistStatus(client, executionId, status);      console.log(`ExecuteCursor interrupted (worker shutdown): execution=${executionId}, events=${eventCount}`);
       throw new CancelledFailure("Activity cancelled (worker shutdown, not user pause)");
     }
 
@@ -637,9 +659,7 @@ async function executeCursorInner(
         content: "Execution paused by user. Use resume to continue.",
         timestamp: utcTimestamp(),
       }));
-      await persistStatus(client, executionId, status);
-      await maybePeristSessionMemory(client, sessionId, session, status, userMessage);
-      console.log(`ExecuteCursor paused: execution=${executionId}, events=${eventCount}`);
+      await persistStatus(client, executionId, status);      console.log(`ExecuteCursor paused: execution=${executionId}, events=${eventCount}`);
       throw new CancelledFailure("Activity paused by orchestrator");
     }
 
@@ -655,9 +675,7 @@ async function executeCursorInner(
         content: "Execution interrupted: the agent was unresponsive for too long. You can retry or resume.",
         timestamp: utcTimestamp(),
       }));
-      await persistStatus(client, executionId, status);
-      await maybePeristSessionMemory(client, sessionId, session, status, userMessage);
-      console.log(`ExecuteCursor interrupted (infrastructure cancel): execution=${executionId}, events=${eventCount}`);
+      await persistStatus(client, executionId, status);      console.log(`ExecuteCursor interrupted (infrastructure cancel): execution=${executionId}, events=${eventCount}`);
       throw new CancelledFailure("Activity cancelled (heartbeat timeout, not user pause)");
     }
 
@@ -670,9 +688,7 @@ async function executeCursorInner(
         content: "Execution stopped by the platform.",
         timestamp: utcTimestamp(),
       }));
-      await persistStatus(client, executionId, status);
-      await maybePeristSessionMemory(client, sessionId, session, status, userMessage);
-      try { resolution.agent.close(); } catch { /* best effort */ }
+      await persistStatus(client, executionId, status);      try { resolution.agent.close(); } catch { /* best effort */ }
       console.log(`ExecuteCursor completed (platform stop): execution=${executionId}`);
       return slimStatus(status);
     }
@@ -787,7 +803,6 @@ async function executeCursorInner(
               resumeFailureDetail: `poisoned-handle recovery: ${classified.message}`,
             },
             approvalDecisions,
-            sessionMemory,
             instructions: blueprint.instructions,
             userMessage: spec.message,
             skills: skillMetadata,
@@ -799,7 +814,6 @@ async function executeCursorInner(
               ? status.pendingApprovals
               : (execution.status?.pendingApprovals ?? []),
             interactionMode,
-            trustNativeResume: config.trustNativeResume,
           });
 
           console.log(
@@ -1018,9 +1032,6 @@ async function executeCursorInner(
     // NOW persist — subscriber sees COMPLETED + structured_output atomically
     await persistStatus(client, executionId, status);
 
-    // Phase 14: Build and persist session memory
-    await maybePeristSessionMemory(client, sessionId, session, status, userMessage);
-
     console.log(
       `ExecuteCursor completed: execution=${executionId}, phase=${ExecutionPhase[status.phase]}, ` +
       `hasStructuredOutput=${structuredOutput !== undefined}` +
@@ -1074,9 +1085,10 @@ async function executeCursorInner(
           timestamp: utcTimestamp(),
         }));
       }
-      await persistStatus(client, executionId, status).catch(() => {});
-      await maybePeristSessionMemory(client, sessionId, session, status, userMessage);
-      throw err;
+      // The aborted Cursor run leaves no live sub-agent — mark any in-flight
+      // delegation CANCELLED so the final snapshot has no zombie sub-agent.
+      cancelInProgressSubAgentProtos(status.subAgentExecutions);
+      await persistStatus(client, executionId, status).catch(() => {});      throw err;
     }
 
     // If a non-CancelledFailure error occurs while a pause is in progress,
@@ -1094,9 +1106,8 @@ async function executeCursorInner(
         content: "Execution paused by user. Use resume to continue.",
         timestamp: utcTimestamp(),
       }));
-      await persistStatus(client, executionId, status).catch(() => {});
-      await maybePeristSessionMemory(client, sessionId, session, status, userMessage);
-      throw new CancelledFailure("Activity paused by orchestrator (error during pause)");
+      cancelInProgressSubAgentProtos(status.subAgentExecutions);
+      await persistStatus(client, executionId, status).catch(() => {});      throw new CancelledFailure("Activity paused by orchestrator (error during pause)");
     }
 
     // Infrastructure cancellation (e.g. heartbeat timeout) with a
@@ -1114,9 +1125,8 @@ async function executeCursorInner(
         content: "Execution interrupted: the agent was unresponsive for too long. You can retry or resume.",
         timestamp: utcTimestamp(),
       }));
-      await persistStatus(client, executionId, status).catch(() => {});
-      await maybePeristSessionMemory(client, sessionId, session, status, userMessage);
-      throw new CancelledFailure("Activity cancelled (infrastructure, not user pause)");
+      cancelInProgressSubAgentProtos(status.subAgentExecutions);
+      await persistStatus(client, executionId, status).catch(() => {});      throw new CancelledFailure("Activity cancelled (infrastructure, not user pause)");
     }
 
     // A thrown CursorSdkError carries structured fields (code/status/endpoint/
@@ -1157,9 +1167,7 @@ async function executeCursorInner(
         await persistStatus(client, executionId, status);
       } catch (persistErr) {
         console.error("Failed to persist error status (best-effort):", persistErr);
-      }
-      await maybePeristSessionMemory(client, sessionId, session, status, userMessage);
-      return slimStatus(status);
+      }      return slimStatus(status);
     }
 
     const errMsg = err instanceof Error ? err.message : String(err);
@@ -1187,8 +1195,6 @@ async function executeCursorInner(
     } catch (persistErr) {
       console.error("Failed to persist error status (best-effort):", persistErr);
     }
-
-    await maybePeristSessionMemory(client, sessionId, session, status, userMessage);
 
     return slimStatus(status);
   }
@@ -1270,7 +1276,6 @@ import { jsonSchemaToZod } from "../../shared/json-schema-to-zod.js";
 export interface BuildPromptInput {
   resolution: AgentResolution;
   approvalDecisions: Map<string, ApprovalAction> | undefined;
-  sessionMemory: import("@stigmer/protos/ai/stigmer/agentic/session/v1/memory_pb").SessionMemory | undefined;
   instructions: string;
   userMessage: string;
   skills: import("./prompt-builder.js").SkillMetadata[];
@@ -1280,39 +1285,28 @@ export interface BuildPromptInput {
   attachmentPaths: string[];
   pendingApprovals: import("@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb").PendingApproval[];
   interactionMode?: InteractionMode;
-  /**
-   * When true, a successfully-resumed local agent is trusted to carry its own
-   * conversation context (the raw user message is sent), bypassing the
-   * SessionMemory continuation prompt. Default false. See Config.trustNativeResume.
-   */
-  trustNativeResume?: boolean;
 }
 
 /**
- * Select and build the appropriate prompt based on resolution mode,
- * resolution reason, HITL state, and available session memory.
+ * Select and build the appropriate prompt based on resolution reason and
+ * HITL state.
  *
- * Decision matrix:
+ * Conversation continuation is carried entirely by the Cursor SDK's native
+ * agent state (the local SQLite store persisted on the durable workspace
+ * volume, or cloud server-side state) — there is no separate continuation
+ * store. The prompt therefore depends only on how the agent was resolved:
  *
- * HITL reinvocations (both modes):
- * 1. HITL + session memory -> buildHitlContinuationPrompt
- * 2. HITL + no memory     -> buildReinvocationPrompt (legacy)
- *
- * Cloud mode:
- * 3. Cloud + resumed / first execution -> raw userMessage (trust native context)
- * 4. Cloud + resume failure + memory   -> buildContinuationPrompt (agent expired)
- * 5. Cloud + resume failure, no memory -> raw userMessage (best effort)
- *
- * Local mode:
- * 6. Local + first execution           -> buildEnhancedPrompt
- * 7. Local + subsequent + memory       -> buildContinuationPrompt
- * 8. Local + subsequent, no memory     -> buildEnhancedPrompt (fallback)
+ * 1. HITL reinvocation        -> buildReinvocationPrompt (approval decisions;
+ *                                 the resumed agent's native context carries
+ *                                 the prior conversation)
+ * 2. resumed_successfully      -> raw userMessage (native context carries it)
+ * 3. first execution / fresh   -> buildEnhancedPrompt (full instructions +
+ *    agent after resume failure   skills; no prior conversation to inherit)
  */
 export function buildPrompt(input: BuildPromptInput): string {
   const {
     resolution,
     approvalDecisions,
-    sessionMemory,
     instructions,
     userMessage,
     skills,
@@ -1320,74 +1314,25 @@ export function buildPrompt(input: BuildPromptInput): string {
     workspaceDirs,
     workspaceFileRefs,
     attachmentPaths,
-    pendingApprovals,
     interactionMode,
-    trustNativeResume,
   } = input;
 
   const isHitlReinvocation = approvalDecisions !== undefined && approvalDecisions.size > 0;
 
-  // HITL takes precedence regardless of mode
-  if (isHitlReinvocation && sessionMemory) {
-    return buildHitlContinuationPrompt({
-      instructions,
-      skills,
-      subAgents,
-      workspaceDirs,
-      sessionMemory,
-      pendingApprovals,
-      approvalDecisions,
-    });
-  }
-
+  // HITL reinvocation: the agent is resumed, so its native context carries the
+  // prior conversation; the reinvocation prompt conveys the approval decisions.
   if (isHitlReinvocation) {
     return buildReinvocationPrompt(approvalDecisions);
   }
 
-  // Cloud mode: trust native Cursor context for live agents.
-  // Only inject continuation prompt when the agent expired (fallback).
-  if (resolution.mode === "cloud") {
-    if (resolution.reason === "created_after_resume_failure" && sessionMemory) {
-      return buildContinuationPrompt({
-        instructions,
-        skills,
-        subAgents,
-        workspaceDirs,
-        workspaceFileRefs,
-        attachmentPaths,
-        sessionMemory,
-        userMessage,
-        interactionMode,
-      });
-    }
+  // A successfully resumed agent carries its own conversation context via the
+  // SDK's native store — send the raw user message with no preamble.
+  if (resolution.reason === "resumed_successfully") {
     return userMessage;
   }
 
-  // Local mode: when explicitly opted in, trust the SDK's native local
-  // Agent.resume() to restore the conversation context for a successfully
-  // resumed agent — send the raw user message, no continuation prompt. Only
-  // applies to "resumed_successfully": a fresh agent created after a resume
-  // failure has no native context to trust, so it still needs continuation.
-  if (trustNativeResume && resolution.reason === "resumed_successfully") {
-    return userMessage;
-  }
-
-  // Local mode: always use continuation prompt on subsequent executions
-  // because local SDK context loading is unreliable.
-  if (resolution.reason !== "created_first_execution" && sessionMemory) {
-    return buildContinuationPrompt({
-      instructions,
-      skills,
-      subAgents,
-      workspaceDirs,
-      workspaceFileRefs,
-      attachmentPaths,
-      sessionMemory,
-      userMessage,
-      interactionMode,
-    });
-  }
-
+  // First execution, or a fresh agent created after a resume failure: there is
+  // no prior conversation to inherit, so start a new turn with full context.
   return buildEnhancedPrompt({
     instructions,
     userMessage,
@@ -1482,41 +1427,6 @@ function extractConversationErrorText(turns: ConversationTurn[]): string | undef
   const joined = [...new Set(collected)].join(" | ");
   return joined.length > 600 ? `${joined.slice(0, 600)}…` : joined;
 }
-
-/**
- * Build and persist session memory if the execution is in a terminal phase.
- *
- * Skips WAITING_FOR_APPROVAL (that is a pause, not a completion) and
- * cases where session/spec are not yet available (very early failures).
- * Best-effort: errors are logged and swallowed.
- */
-async function maybePeristSessionMemory(
-  client: StigmerClient,
-  sessionId: string | undefined,
-  session: import("@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb").Session | undefined,
-  status: AgentExecutionStatus,
-  userMessage: string | undefined,
-): Promise<void> {
-  if (!sessionId) return;
-  if (status.phase === ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL) return;
-
-  try {
-    const previousMemory = session?.status?.sessionMemory;
-    const memory = buildSessionMemory({
-      previousMemory,
-      messages: status.messages,
-      todos: status.todos,
-      userMessage: userMessage ?? "",
-    });
-    await persistSessionMemory(client, sessionId, memory);
-  } catch (err) {
-    console.warn(
-      "Failed to build/persist session memory (non-fatal):",
-      err instanceof Error ? err.message : err,
-    );
-  }
-}
-
 
 /**
  * Find a tool call by ID in the execution's messages.

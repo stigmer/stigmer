@@ -76,7 +76,6 @@ Generated: 2026-04-24T08:32:20.521Z
 | QuickstartTour | src/components/docs/demos/scenarios/quickstart-tour/index | component | _none_ |
 | RegisterIdpPlayback | src/components/docs/demos/scenarios/register-idp-playback/index | component | _none_ |
 | RunnerListDetail | src/components/docs/demos/scenarios/runner-list-detail/index | component | _none_ |
-| SessionMemoryPlayback | src/components/docs/demos/scenarios/session-memory-playback/index | component | _none_ |
 | SkillCreationTour | src/components/docs/demos/scenarios/skill-creation-tour/index | component | _none_ |
 | SkillDetail | src/components/docs/demos/scenarios/skill-detail/index | component | _none_ |
 | SsoLoginPlayback | src/components/docs/demos/scenarios/sso-login-playback/index | component | _none_ |

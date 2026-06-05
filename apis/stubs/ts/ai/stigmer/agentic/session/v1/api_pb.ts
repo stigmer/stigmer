@@ -4,13 +4,11 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
-import type { SessionMemory } from "./memory_pb.js";
-import { file_ai_stigmer_agentic_session_v1_memory } from "./memory_pb.js";
 import type { SessionSpec } from "./spec_pb.js";
 import { file_ai_stigmer_agentic_session_v1_spec } from "./spec_pb.js";
 import type { ApiResourceMetadata } from "../../../commons/apiresource/metadata_pb.js";
 import { file_ai_stigmer_commons_apiresource_metadata } from "../../../commons/apiresource/metadata_pb.js";
-import type { ApiResourceAudit } from "../../../commons/apiresource/status_pb.js";
+import type { ApiResourceAuditStatus } from "../../../commons/apiresource/status_pb.js";
 import { file_ai_stigmer_commons_apiresource_status } from "../../../commons/apiresource/status_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
 import type { Message } from "@bufbuild/protobuf";
@@ -19,7 +17,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/session/v1/api.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_api: GenFile = /*@__PURE__*/
-  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9hcGkucHJvdG8SHWFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxIqECCgdTZXNzaW9uEjEKC2FwaV92ZXJzaW9uGAEgASgJQhy6SBlyFwoVYWdlbnRpYy5zdGlnbWVyLmFpL3YxEhwKBGtpbmQYAiABKAlCDrpIC3IJCgdTZXNzaW9uEk0KCG1ldGFkYXRhGAMgASgLMjMuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlTWV0YWRhdGFCBrpIA8gBARI4CgRzcGVjGAQgASgLMiouYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvblNwZWMSPAoGc3RhdHVzGAUgASgLMiwuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvblN0YXR1cyKWAQoNU2Vzc2lvblN0YXR1cxJECg5zZXNzaW9uX21lbW9yeRgBIAEoCzIsLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25NZW1vcnkSPwoFYXVkaXQYYyABKAsyMC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VBdWRpdGIGcHJvdG8z", [file_ai_stigmer_agentic_session_v1_memory, file_ai_stigmer_agentic_session_v1_spec, file_ai_stigmer_commons_apiresource_metadata, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate]);
+  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9hcGkucHJvdG8SHWFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxIqsCCgdTZXNzaW9uEjEKC2FwaV92ZXJzaW9uGAEgASgJQhy6SBlyFwoVYWdlbnRpYy5zdGlnbWVyLmFpL3YxEhwKBGtpbmQYAiABKAlCDrpIC3IJCgdTZXNzaW9uEk0KCG1ldGFkYXRhGAMgASgLMjMuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlTWV0YWRhdGFCBrpIA8gBARI4CgRzcGVjGAQgASgLMiouYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvblNwZWMSRgoGc3RhdHVzGAUgASgLMjYuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXRTdGF0dXNiBnByb3RvMw", [file_ai_stigmer_agentic_session_v1_spec, file_ai_stigmer_commons_apiresource_metadata, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate]);
 
 /**
  * Session represents a multi-turn conversation thread with an agent.
@@ -57,11 +55,11 @@ export type Session = Message<"ai.stigmer.agentic.session.v1.Session"> & {
   spec?: SessionSpec;
 
   /**
-   * System-managed session state and audit information.
+   * System-managed audit information (created_at, updated_at, created_by, etc.).
    *
-   * @generated from field: ai.stigmer.agentic.session.v1.SessionStatus status = 5;
+   * @generated from field: ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5;
    */
-  status?: SessionStatus;
+  status?: ApiResourceAuditStatus;
 };
 
 /**
@@ -70,49 +68,4 @@ export type Session = Message<"ai.stigmer.agentic.session.v1.Session"> & {
  */
 export const SessionSchema: GenMessage<Session> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_session_v1_api, 0);
-
-/**
- * SessionStatus contains system-managed runtime state for a session.
- *
- * This follows the same pattern as AgentExecutionStatus: domain-specific
- * status fields alongside the standard audit at field 99.
- *
- * Previously Session.status was ApiResourceAuditStatus (audit-only). The
- * introduction of session memory required a proper status message. The
- * wire format is backward-compatible: ApiResourceAuditStatus.audit was at
- * field 99, and SessionStatus.audit is at the same field number, so
- * existing MongoDB documents deserialize correctly.
- *
- * @generated from message ai.stigmer.agentic.session.v1.SessionStatus
- */
-export type SessionStatus = Message<"ai.stigmer.agentic.session.v1.SessionStatus"> & {
-  /**
-   * Durable session memory for continuation across agent evictions.
-   *
-   * Updated after each completed execution turn by the runner. When a
-   * fresh agent is created (because the previous one expired or the local
-   * store lookup failed), the continuation prompt is built from this
-   * memory.
-   *
-   * Empty until the first execution completes. Never cleared — only
-   * overwritten with newer state.
-   *
-   * @generated from field: ai.stigmer.agentic.session.v1.SessionMemory session_memory = 1;
-   */
-  sessionMemory?: SessionMemory;
-
-  /**
-   * Standard audit information (created_at, updated_at, created_by, etc.)
-   *
-   * @generated from field: ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
-   */
-  audit?: ApiResourceAudit;
-};
-
-/**
- * Describes the message ai.stigmer.agentic.session.v1.SessionStatus.
- * Use `create(SessionStatusSchema)` to create a new message.
- */
-export const SessionStatusSchema: GenMessage<SessionStatus> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_session_v1_api, 1);
 

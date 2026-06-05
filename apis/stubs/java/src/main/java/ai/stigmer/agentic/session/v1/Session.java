@@ -229,13 +229,13 @@ private static final long serialVersionUID = 0L;
   }
 
   public static final int STATUS_FIELD_NUMBER = 5;
-  private ai.stigmer.agentic.session.v1.SessionStatus status_;
+  private ai.stigmer.commons.apiresource.ApiResourceAuditStatus status_;
   /**
    * <pre>
-   * System-managed session state and audit information.
+   * System-managed audit information (created_at, updated_at, created_by, etc.).
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.session.v1.SessionStatus status = 5 [json_name = "status"];</code>
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
    * @return Whether the status field is set.
    */
   @java.lang.Override
@@ -244,26 +244,26 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * System-managed session state and audit information.
+   * System-managed audit information (created_at, updated_at, created_by, etc.).
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.session.v1.SessionStatus status = 5 [json_name = "status"];</code>
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
    * @return The status.
    */
   @java.lang.Override
-  public ai.stigmer.agentic.session.v1.SessionStatus getStatus() {
-    return status_ == null ? ai.stigmer.agentic.session.v1.SessionStatus.getDefaultInstance() : status_;
+  public ai.stigmer.commons.apiresource.ApiResourceAuditStatus getStatus() {
+    return status_ == null ? ai.stigmer.commons.apiresource.ApiResourceAuditStatus.getDefaultInstance() : status_;
   }
   /**
    * <pre>
-   * System-managed session state and audit information.
+   * System-managed audit information (created_at, updated_at, created_by, etc.).
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.session.v1.SessionStatus status = 5 [json_name = "status"];</code>
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
    */
   @java.lang.Override
-  public ai.stigmer.agentic.session.v1.SessionStatusOrBuilder getStatusOrBuilder() {
-    return status_ == null ? ai.stigmer.agentic.session.v1.SessionStatus.getDefaultInstance() : status_;
+  public ai.stigmer.commons.apiresource.ApiResourceAuditStatusOrBuilder getStatusOrBuilder() {
+    return status_ == null ? ai.stigmer.commons.apiresource.ApiResourceAuditStatus.getDefaultInstance() : status_;
   }
 
   private byte memoizedIsInitialized = -1;
@@ -1216,15 +1216,15 @@ private static final long serialVersionUID = 0L;
       return specBuilder_;
     }
 
-    private ai.stigmer.agentic.session.v1.SessionStatus status_;
+    private ai.stigmer.commons.apiresource.ApiResourceAuditStatus status_;
     private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.session.v1.SessionStatus, ai.stigmer.agentic.session.v1.SessionStatus.Builder, ai.stigmer.agentic.session.v1.SessionStatusOrBuilder> statusBuilder_;
+        ai.stigmer.commons.apiresource.ApiResourceAuditStatus, ai.stigmer.commons.apiresource.ApiResourceAuditStatus.Builder, ai.stigmer.commons.apiresource.ApiResourceAuditStatusOrBuilder> statusBuilder_;
     /**
      * <pre>
-     * System-managed session state and audit information.
+     * System-managed audit information (created_at, updated_at, created_by, etc.).
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.session.v1.SessionStatus status = 5 [json_name = "status"];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
      * @return Whether the status field is set.
      */
     public boolean hasStatus() {
@@ -1232,27 +1232,27 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed session state and audit information.
+     * System-managed audit information (created_at, updated_at, created_by, etc.).
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.session.v1.SessionStatus status = 5 [json_name = "status"];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
      * @return The status.
      */
-    public ai.stigmer.agentic.session.v1.SessionStatus getStatus() {
+    public ai.stigmer.commons.apiresource.ApiResourceAuditStatus getStatus() {
       if (statusBuilder_ == null) {
-        return status_ == null ? ai.stigmer.agentic.session.v1.SessionStatus.getDefaultInstance() : status_;
+        return status_ == null ? ai.stigmer.commons.apiresource.ApiResourceAuditStatus.getDefaultInstance() : status_;
       } else {
         return statusBuilder_.getMessage();
       }
     }
     /**
      * <pre>
-     * System-managed session state and audit information.
+     * System-managed audit information (created_at, updated_at, created_by, etc.).
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.session.v1.SessionStatus status = 5 [json_name = "status"];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
      */
-    public Builder setStatus(ai.stigmer.agentic.session.v1.SessionStatus value) {
+    public Builder setStatus(ai.stigmer.commons.apiresource.ApiResourceAuditStatus value) {
       if (statusBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
@@ -1267,13 +1267,13 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed session state and audit information.
+     * System-managed audit information (created_at, updated_at, created_by, etc.).
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.session.v1.SessionStatus status = 5 [json_name = "status"];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
      */
     public Builder setStatus(
-        ai.stigmer.agentic.session.v1.SessionStatus.Builder builderForValue) {
+        ai.stigmer.commons.apiresource.ApiResourceAuditStatus.Builder builderForValue) {
       if (statusBuilder_ == null) {
         status_ = builderForValue.build();
       } else {
@@ -1285,16 +1285,16 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed session state and audit information.
+     * System-managed audit information (created_at, updated_at, created_by, etc.).
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.session.v1.SessionStatus status = 5 [json_name = "status"];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
      */
-    public Builder mergeStatus(ai.stigmer.agentic.session.v1.SessionStatus value) {
+    public Builder mergeStatus(ai.stigmer.commons.apiresource.ApiResourceAuditStatus value) {
       if (statusBuilder_ == null) {
         if (((bitField0_ & 0x00000010) != 0) &&
           status_ != null &&
-          status_ != ai.stigmer.agentic.session.v1.SessionStatus.getDefaultInstance()) {
+          status_ != ai.stigmer.commons.apiresource.ApiResourceAuditStatus.getDefaultInstance()) {
           getStatusBuilder().mergeFrom(value);
         } else {
           status_ = value;
@@ -1310,10 +1310,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed session state and audit information.
+     * System-managed audit information (created_at, updated_at, created_by, etc.).
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.session.v1.SessionStatus status = 5 [json_name = "status"];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
      */
     public Builder clearStatus() {
       bitField0_ = (bitField0_ & ~0x00000010);
@@ -1327,44 +1327,44 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed session state and audit information.
+     * System-managed audit information (created_at, updated_at, created_by, etc.).
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.session.v1.SessionStatus status = 5 [json_name = "status"];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
      */
-    public ai.stigmer.agentic.session.v1.SessionStatus.Builder getStatusBuilder() {
+    public ai.stigmer.commons.apiresource.ApiResourceAuditStatus.Builder getStatusBuilder() {
       bitField0_ |= 0x00000010;
       onChanged();
       return internalGetStatusFieldBuilder().getBuilder();
     }
     /**
      * <pre>
-     * System-managed session state and audit information.
+     * System-managed audit information (created_at, updated_at, created_by, etc.).
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.session.v1.SessionStatus status = 5 [json_name = "status"];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
      */
-    public ai.stigmer.agentic.session.v1.SessionStatusOrBuilder getStatusOrBuilder() {
+    public ai.stigmer.commons.apiresource.ApiResourceAuditStatusOrBuilder getStatusOrBuilder() {
       if (statusBuilder_ != null) {
         return statusBuilder_.getMessageOrBuilder();
       } else {
         return status_ == null ?
-            ai.stigmer.agentic.session.v1.SessionStatus.getDefaultInstance() : status_;
+            ai.stigmer.commons.apiresource.ApiResourceAuditStatus.getDefaultInstance() : status_;
       }
     }
     /**
      * <pre>
-     * System-managed session state and audit information.
+     * System-managed audit information (created_at, updated_at, created_by, etc.).
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.session.v1.SessionStatus status = 5 [json_name = "status"];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
      */
     private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.session.v1.SessionStatus, ai.stigmer.agentic.session.v1.SessionStatus.Builder, ai.stigmer.agentic.session.v1.SessionStatusOrBuilder> 
+        ai.stigmer.commons.apiresource.ApiResourceAuditStatus, ai.stigmer.commons.apiresource.ApiResourceAuditStatus.Builder, ai.stigmer.commons.apiresource.ApiResourceAuditStatusOrBuilder> 
         internalGetStatusFieldBuilder() {
       if (statusBuilder_ == null) {
         statusBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-            ai.stigmer.agentic.session.v1.SessionStatus, ai.stigmer.agentic.session.v1.SessionStatus.Builder, ai.stigmer.agentic.session.v1.SessionStatusOrBuilder>(
+            ai.stigmer.commons.apiresource.ApiResourceAuditStatus, ai.stigmer.commons.apiresource.ApiResourceAuditStatus.Builder, ai.stigmer.commons.apiresource.ApiResourceAuditStatusOrBuilder>(
                 getStatus(),
                 getParentForChildren(),
                 isClean());

@@ -2,7 +2,6 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.session.v1;
 
-import "ai/stigmer/agentic/session/v1/memory.proto";
 import "ai/stigmer/agentic/session/v1/spec.proto";
 import "ai/stigmer/commons/apiresource/metadata.proto";
 import "ai/stigmer/commons/apiresource/status.proto";
@@ -23,32 +22,6 @@ message Session {
   // Session-specific configuration.
   SessionSpec spec = 4;
 
-  // System-managed session state and audit information.
-  SessionStatus status = 5;
-}
-
-// SessionStatus contains system-managed runtime state for a session.
-//
-// This follows the same pattern as AgentExecutionStatus: domain-specific
-// status fields alongside the standard audit at field 99.
-//
-// Previously Session.status was ApiResourceAuditStatus (audit-only). The
-// introduction of session memory required a proper status message. The
-// wire format is backward-compatible: ApiResourceAuditStatus.audit was at
-// field 99, and SessionStatus.audit is at the same field number, so
-// existing MongoDB documents deserialize correctly.
-message SessionStatus {
-  // Durable session memory for continuation across agent evictions.
-  //
-  // Updated after each completed execution turn by the runner. When a
-  // fresh agent is created (because the previous one expired or the local
-  // store lookup failed), the continuation prompt is built from this
-  // memory.
-  //
-  // Empty until the first execution completes. Never cleared — only
-  // overwritten with newer state.
-  SessionMemory session_memory = 1;
-
-  // Standard audit information (created_at, updated_at, created_by, etc.)
-  ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
+  // System-managed audit information (created_at, updated_at, created_by, etc.).
+  ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5;
 }

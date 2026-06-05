@@ -5,7 +5,6 @@ export { McpServerCreationTour as DemoMcpServerCreationTour } from "./demos/scen
 export { ConnectPlayback as DemoConnectPlayback } from "./demos/scenarios/connect-playback";
 export { ApiKeySetup as DemoApiKeySetup } from "./demos/scenarios/api-key-setup";
 export { ApprovalFlowPlayback as DemoApprovalFlowPlayback } from "./demos/scenarios/approval-flow-playback";
-export { SessionMemoryPlayback as DemoSessionMemoryPlayback } from "./demos/scenarios/session-memory-playback";
 export { SkillDetail as DemoSkillDetail } from "./demos/scenarios/skill-detail";
 export { ToolCallsPlayback as DemoToolCallsPlayback } from "./demos/scenarios/tool-calls-playback";
 export { AuthenticationFlowPlayback as DemoAuthenticationFlowPlayback } from "./demos/scenarios/authentication-flow-playback";

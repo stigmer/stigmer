@@ -18,22 +18,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestCursorNativeResume_SurvivesRestart answers the question behind the whole
-// session-memory effort: does the Cursor SDK's native LOCAL Agent.resume()
-// restore conversation context across a runner (pod) restart, when the SDK's
-// SQLite state is present?
+// TestCursorNativeResume_SurvivesRestart verifies that the Cursor SDK's native
+// LOCAL Agent.resume() restores conversation context across a runner (pod)
+// restart, when the SDK's SQLite state is present. Native resume is now the
+// platform's only continuation mechanism (SessionMemory was removed), so a
+// successfully-resumed local agent receives the raw user message — the only way
+// it can recall a turn-1 secret is if the SDK rehydrated the conversation from
+// its persisted SQLite store.
 //
-// The production runner never trusts local resume — it always rebuilds a
-// continuation prompt from SessionMemory (the "hack"). To test native resume
-// honestly, this test runs a dedicated runner with CURSOR_TRUST_NATIVE_RESUME
-// = true, which makes a successfully-resumed local agent receive the raw user
-// message (no SessionMemory injection). The only way the agent can then recall
-// a turn-1 secret is if the SDK rehydrated the conversation from its SQLite
-// store.
-//
-// Faithful pod-restart simulation: the runner is a subprocess that inherits the
-// machine $HOME, so the SDK's SQLite state (under ~/.stigmer/cursor-sdk-state/
-// {sessionId}) survives a Stop()/Start(). Restarting the process discards the
+// Faithful pod-restart simulation: the SDK's SQLite state lives under the
+// workspace volume ({WORKSPACE_ROOT_DIR}/.stigmer/cursor-sdk-state/{sessionId}),
+// which survives a runner Stop()/Start(). Restarting the process discards the
 // in-memory executor cache and forces Agent.resume() to rehydrate from disk —
 // exactly what a new pod must do.
 //
@@ -130,14 +125,13 @@ func TestCursorNativeResume_SurvivesRestart(t *testing.T) {
 	recalled := strings.Contains(strings.ToUpper(finalText), nonce)
 	assert.True(t, recalled,
 		"RESULT: native local Agent.resume() did %s restore conversation context "+
-			"across a runner restart (nonce %q %s in the turn-2 reply). This is the "+
-			"core question under test — a false here means relocating SQLite to a "+
-			"persistent volume is necessary but NOT sufficient, and the SessionMemory "+
-			"continuation must stay.",
+			"across a runner restart (nonce %q %s in the turn-2 reply). Native resume "+
+			"is the only continuation mechanism; a false here means the relocated "+
+			"SQLite state did not survive the restart.",
 		boolWord(recalled, "", "NOT"), nonce, boolWord(recalled, "appeared", "did not appear"))
 
 	if recalled {
-		t.Logf("RESULT: native local resume SURVIVED the restart — context was restored from persisted SQLite without SessionMemory injection.")
+		t.Logf("RESULT: native local resume SURVIVED the restart — context was restored from the persisted SQLite store on the workspace volume.")
 	}
 }
 
@@ -148,13 +142,10 @@ func TestCursorNativeResume_SurvivesRestart(t *testing.T) {
 // and the runner falls back to a freshly-created agent
 // (reason=created_after_resume_failure).
 //
-// Note on the assertion: we deliberately assert on the resume OUTCOME (the
-// fallback reason in the runner log), NOT on "the agent fails to recall the
-// nonce". Once resume fails, the runner's existing fallback rebuilds a
-// continuation prompt from SessionMemory, which DOES still carry the nonce — so
-// a "no recall" assertion would be confounded by the hack we are trying to
-// isolate. The resume-outcome assertion is the sound proof that native resume
-// depends on the local SQLite store.
+// We assert on the resume OUTCOME (the fallback reason in the runner log). The
+// fresh agent has no prior context (SessionMemory was removed), so this is the
+// sound proof that conversation continuity depends entirely on the persisted
+// local SQLite store.
 //
 // Requires CURSOR_API_KEY (skips otherwise).
 func TestCursorNativeResume_FailsWithoutState(t *testing.T) {
@@ -212,19 +203,106 @@ func TestCursorNativeResume_FailsWithoutState(t *testing.T) {
 	t.Logf("RESULT: with the SQLite store deleted, native resume failed and the runner fell back to a fresh agent — confirming native local resume depends on the persisted local SQLite store.")
 }
 
+// TestCursorNativeResume_MultipleSessionsOneSandbox covers the workflow-sandbox
+// cardinality: one runner/sandbox (one shared workspace volume) hosts MANY agent
+// executions, each its own session, because a workflow runs its nested child
+// agent calls on the same runner. The Cursor SDK stateRoot is keyed by sessionId
+// under the shared volume, so the two sessions must (a) write DISTINCT state
+// dirs (no collision) and (b) each resume independently from its own SQLite
+// after a restart — recalling its OWN secret, never the other's.
+//
+// This is the multi-session analogue of SurvivesRestart and the direct guard for
+// the "1 sandbox : N sessions" relocation invariant.
+//
+// Requires CURSOR_API_KEY (skips otherwise).
+func TestCursorNativeResume_MultipleSessionsOneSandbox(t *testing.T) {
+	requireCursorCallProviderPrereqs(t)
+
+	ctx, cancel := harness.TestContext(t, 15*time.Minute)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	harness.RequireServiceHealthy(t, ctx, clients)
+
+	// One probe runner == one sandbox shared by both sessions.
+	probe := newResumeProbe(t, ctx)
+	waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
+
+	agent := createTestAgentForCursor(t, ctx, clients,
+		"test-cursor-multisession-agent",
+		"You are a precise assistant with perfect memory of this conversation. "+
+			"When asked to remember something, remember it exactly. When later "+
+			"asked to recall it, reply with only the requested value.",
+	)
+
+	newSession := func() string {
+		s := harness.CreateTestSession(t, ctx, clients,
+			agent.GetStatus().GetDefaultInstanceId(),
+			sessionv1.Harness_HARNESS_CURSOR,
+		)
+		return s.GetMetadata().GetId()
+	}
+
+	sessionA := newSession()
+	sessionB := newSession()
+	require.NotEqual(t, sessionA, sessionB)
+	nonceA := "ALPHA-" + strings.ToUpper(uuid.New().String()[:8])
+	nonceB := "BETA-" + strings.ToUpper(uuid.New().String()[:8])
+	t.Logf("multi-session probe: A=%s nonceA=%s | B=%s nonceB=%s", sessionA, nonceA, sessionB, nonceB)
+
+	runTurn := func(sessionID, message string) *agentexecv1.AgentExecution {
+		exec := harness.CreateTestAgentExecution(t, ctx, clients, sessionID, message)
+		res, err := waiter.WaitForPhase(ctx, exec.GetMetadata().GetId(),
+			agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 4*time.Minute)
+		if err != nil {
+			harness.LogExecutionMessages(t, ctx, clients, exec.GetMetadata().GetId())
+		}
+		require.NoError(t, err, "turn should complete for session %s", sessionID)
+		require.NotNil(t, res)
+		return res
+	}
+
+	// --- Turn 1 on each session, in the same sandbox ---
+	runTurn(sessionA, "Remember this exact secret token for later: "+nonceA+"\nReply with only: ACK")
+	runTurn(sessionB, "Remember this exact secret token for later: "+nonceB+"\nReply with only: ACK")
+
+	// Isolation: two distinct, non-colliding state dirs under the shared volume.
+	dirA := cursorStateDir(t, sessionA)
+	dirB := cursorStateDir(t, sessionB)
+	require.DirExists(t, dirA, "session A SQLite state should exist under the shared workspace volume")
+	require.DirExists(t, dirB, "session B SQLite state should exist under the shared workspace volume")
+	require.NotEqual(t, dirA, dirB, "the two sessions must use distinct, sessionId-keyed state dirs (no collision)")
+
+	// --- Restart the shared runner (pod restart) with both stores intact ---
+	probe.restart(t, ctx)
+
+	// --- Turn 2 on each: each must resume its OWN context, never the other's ---
+	res2A := runTurn(sessionA, "What was the secret token I asked you to remember earlier? Reply with ONLY the token.")
+	res2B := runTurn(sessionB, "What was the secret token I asked you to remember earlier? Reply with ONLY the token.")
+
+	textA := strings.ToUpper(lastAIMessageText(res2A))
+	textB := strings.ToUpper(lastAIMessageText(res2B))
+	t.Logf("turn 2 replies: A=%q B=%q", textA, textB)
+
+	assert.Contains(t, textA, nonceA, "session A must recall its own nonce after restart")
+	assert.NotContains(t, textA, nonceB, "session A must NOT leak session B's nonce (state isolation)")
+	assert.Contains(t, textB, nonceB, "session B must recall its own nonce after restart")
+	assert.NotContains(t, textB, nonceA, "session B must NOT leak session A's nonce (state isolation)")
+}
+
 // --- helpers -------------------------------------------------------------
 
-// resumeProbe owns a dedicated, flag-enabled runner on the shared queue for the
-// duration of a test, and restores the suite's shared runner on cleanup.
+// resumeProbe owns a dedicated runner on the shared queue for the duration of a
+// test (so the test can read that runner's log and restart it), and restores the
+// suite's shared runner on cleanup.
 type resumeProbe struct {
 	queue   string
 	baseCfg harness.UnifiedRunnerConfig
-	flagCfg harness.UnifiedRunnerConfig
 	runner  *harness.UnifiedRunnerStatic
 }
 
-// newResumeProbe stops the suite's shared runner and starts a flag-enabled one
-// on the same queue. A cleanup restores the shared (flagless) runner.
+// newResumeProbe stops the suite's shared runner and starts a dedicated one on
+// the same queue. A cleanup restores the shared runner.
 func newResumeProbe(t *testing.T, ctx context.Context) *resumeProbe {
 	t.Helper()
 	require.NotNil(t, testHarness.UnifiedRunner, "shared unified runner must be available")
@@ -234,8 +312,6 @@ func newResumeProbe(t *testing.T, ctx context.Context) *resumeProbe {
 		queue:   shared.TaskQueue(),
 		baseCfg: shared.Cfg(),
 	}
-	p.flagCfg = p.baseCfg
-	p.flagCfg.TrustNativeResume = true
 
 	require.NoError(t, shared.Stop(), "stop shared runner")
 	testHarness.UnifiedRunner = nil
@@ -244,7 +320,7 @@ func newResumeProbe(t *testing.T, ctx context.Context) *resumeProbe {
 		if p.runner != nil {
 			_ = p.runner.Stop()
 		}
-		// Restore the suite's shared runner (flag off) so later tests are unaffected.
+		// Restore the suite's shared runner so later tests are unaffected.
 		restoreCtx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 		defer cancel()
 		restored, err := harness.StartUnifiedRunnerStatic(restoreCtx, p.baseCfg, p.queue, suiteLogger)
@@ -255,38 +331,40 @@ func newResumeProbe(t *testing.T, ctx context.Context) *resumeProbe {
 		testHarness.UnifiedRunner = restored
 	})
 
-	p.runner = startFlaggedRunner(t, ctx, p.flagCfg, p.queue)
+	p.runner = startProbeRunner(t, ctx, p.baseCfg, p.queue)
 	return p
 }
 
-// restart stops and re-starts the flagged runner on the same queue, leaving
-// $HOME (and thus the SDK SQLite state) intact — the pod-restart simulation.
+// restart stops and re-starts the probe runner on the same queue, leaving the
+// workspace volume (and thus the SDK SQLite state) intact — the pod-restart
+// simulation.
 func (p *resumeProbe) restart(t *testing.T, ctx context.Context) {
 	t.Helper()
-	require.NoError(t, p.runner.Stop(), "stop flagged runner for restart")
-	p.runner = startFlaggedRunner(t, ctx, p.flagCfg, p.queue)
+	require.NoError(t, p.runner.Stop(), "stop probe runner for restart")
+	p.runner = startProbeRunner(t, ctx, p.baseCfg, p.queue)
 }
 
 func (p *resumeProbe) logPath() string { return p.runner.LogPath() }
 
-func startFlaggedRunner(t *testing.T, ctx context.Context, cfg harness.UnifiedRunnerConfig, queue string) *harness.UnifiedRunnerStatic {
+func startProbeRunner(t *testing.T, ctx context.Context, cfg harness.UnifiedRunnerConfig, queue string) *harness.UnifiedRunnerStatic {
 	t.Helper()
 	startCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 	r, err := harness.StartUnifiedRunnerStatic(startCtx, cfg, queue, suiteLogger)
-	require.NoError(t, err, "start flagged unified runner on queue %s", queue)
+	require.NoError(t, err, "start probe unified runner on queue %s", queue)
 	return r
 }
 
 // cursorStateDir returns the directory where the Cursor SDK persists a
-// session's local SQLite stores: $HOME/.stigmer/cursor-sdk-state/{sessionId}.
-// The runner subprocess inherits the test process's HOME, so this resolves to
-// the same path the runner writes to.
+// session's local SQLite stores:
+// {WORKSPACE_ROOT_DIR}/.stigmer/cursor-sdk-state/{sessionId}.
+// The store now lives on the (durable) workspace volume rather than $HOME, so
+// it survives pod restart/reschedule and snapshot restore. The integration
+// runner's workspace root is fixed, so this resolves to the same path the
+// runner writes to.
 func cursorStateDir(t *testing.T, sessionID string) string {
 	t.Helper()
-	home, err := os.UserHomeDir()
-	require.NoError(t, err, "resolve user home dir")
-	return filepath.Join(home, ".stigmer", "cursor-sdk-state", sessionID)
+	return filepath.Join(harness.UnifiedRunnerWorkspaceDir(), ".stigmer", "cursor-sdk-state", sessionID)
 }
 
 // assertRunnerLogHasResolution asserts the runner log contains the

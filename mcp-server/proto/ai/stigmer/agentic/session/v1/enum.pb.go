@@ -256,17 +256,16 @@ const (
 	CursorMode_CURSOR_MODE_UNSPECIFIED CursorMode = 0
 	// Local Cursor agent created with a local cwd configuration.
 	//
-	// Works with any workspace source (git or local path). Stigmer owns
-	// the durable conversation layer — always sends continuation prompts
-	// because Cursor local agents do not reliably retain context across
-	// Agent.send() calls.
+	// Works with any workspace source (git or local path). Conversation
+	// state is carried by the Cursor SDK's native local store, which the
+	// runner persists on the durable workspace volume so Agent.resume()
+	// survives pod restart and snapshot restore.
 	CursorMode_CURSOR_MODE_LOCAL CursorMode = 1
 	// Cloud Cursor agent created with a cloud repos configuration.
 	//
 	// Requires all workspace entries to be GitRepoSource (HTTPS URLs).
-	// Cursor natively manages conversation state for cloud agents, but
-	// Stigmer persists session memory as backup because cloud agents can
-	// expire. Feature-flagged — requires STIGMER_CURSOR_CLOUD_MODE_ENABLED.
+	// Cursor natively manages conversation state for cloud agents.
+	// Feature-flagged — requires STIGMER_CURSOR_CLOUD_MODE_ENABLED.
 	CursorMode_CURSOR_MODE_CLOUD CursorMode = 2
 )
 
