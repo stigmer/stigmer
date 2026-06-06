@@ -5,6 +5,7 @@ package wfexecrouting
 import (
 	"context"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -42,6 +43,18 @@ import (
 //   - Workflow execution → reaches EXECUTION_FAILED
 func TestWfExecDispatch_RemoveDuringExecuteCursor(t *testing.T) {
 	require.NotNil(t, testHarness.Service, "java service must be running")
+
+	// Worker-shutdown interruption can only be exercised when ExecuteCursor is
+	// actively streaming, which requires a live Cursor API key. Offline, the
+	// agent execution phase briefly flips to IN_PROGRESS on dispatch and then
+	// ExecuteCursor fails immediately on the missing credential — that race
+	// slips past the in-body IN_PROGRESS guard below and the recorded error is
+	// the credential failure, not "worker was shut down". Gate on the key up
+	// front (matching requireCursorCallProviderPrereqs in the main suite) so the
+	// offline run skips deterministically instead of flaking.
+	if os.Getenv("CURSOR_API_KEY") == "" {
+		t.Skip("CURSOR_API_KEY not set — worker-shutdown interruption requires a live Cursor stream (offline ExecuteCursor fails on missing credential before removal)")
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 	defer cancel()
