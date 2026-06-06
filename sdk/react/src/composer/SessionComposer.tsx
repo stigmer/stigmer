@@ -283,6 +283,25 @@ export interface SessionComposerProps {
   readonly initialAgentRef?: ResourceRef;
 
   /**
+   * Pre-bind the session to a specific, already-existing
+   * {@link AgentInstance} when the composer mounts.
+   *
+   * Requires `initialAgentRef` (the agent the instance deploys). When
+   * both are provided, the composer resolves the agent directly to this
+   * instance — skipping the environment-collection flow entirely, since
+   * the chosen instance already binds its own environment(s). The
+   * resulting resolution is `{ mode: "saved", instanceId }`, so the
+   * session is created against this exact configured deployment.
+   *
+   * This is the agent analog of running a specific WorkflowInstance: it
+   * powers the "Start session" action on an instance in the Agent detail
+   * page's Instances tab.
+   *
+   * One-time: consumed on mount; subsequent changes are ignored.
+   */
+  readonly initialInstanceId?: string;
+
+  /**
    * When `true`, the agent chip renders without an X (remove) button.
    *
    * Used on the session page to indicate the session's default agent,
@@ -482,6 +501,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   onAgentRefChange,
   onAgentResolutionChange,
   initialAgentRef,
+  initialInstanceId,
   isDefaultAgent = false,
   mcpServerUsages,
   onMcpServerUsagesChange,
@@ -881,6 +901,29 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
     ],
   );
 
+  const handleAgentSelectToInstance = useCallback(
+    async (ref: ResourceRef, instanceId: string) => {
+      try {
+        const result = await agentSetup.resolveToInstance(ref, instanceId);
+        onAgentRefChange?.(result.agentRef);
+        onAgentResolutionChange?.(result.resolution);
+        handleDisplayNameResolved(
+          `${result.agentRef.org}/${result.agentRef.slug}`,
+          result.agentName,
+        );
+        setConfigOpen(false);
+      } catch {
+        // Error is captured by agentSetup.state.error — displayed inline.
+      }
+    },
+    [
+      agentSetup,
+      onAgentRefChange,
+      onAgentResolutionChange,
+      handleDisplayNameResolved,
+    ],
+  );
+
   const handleEnvFormSubmit = useCallback(
     async (
       values: Record<string, EnvVarInput>,
@@ -915,6 +958,9 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   const handleAgentSelectRef = useRef(handleAgentSelect);
   handleAgentSelectRef.current = handleAgentSelect;
 
+  const handleAgentSelectToInstanceRef = useRef(handleAgentSelectToInstance);
+  handleAgentSelectToInstanceRef.current = handleAgentSelectToInstance;
+
   const initialAgentHandled = useRef(false);
 
   useEffect(() => {
@@ -925,7 +971,13 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
     let cancelled = false;
     initialAgentHandled.current = true;
 
-    handleAgentSelectRef.current(initialAgentRef).catch(() => {
+    // When an explicit instance is provided, bind directly to it
+    // (skips env collection); otherwise run the full resolution flow.
+    const run = initialInstanceId
+      ? handleAgentSelectToInstanceRef.current(initialAgentRef, initialInstanceId)
+      : handleAgentSelectRef.current(initialAgentRef);
+
+    run.catch(() => {
       if (!cancelled) {
         initialAgentHandled.current = false;
       }
@@ -934,7 +986,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
     return () => {
       cancelled = true;
     };
-  }, [initialAgentRef, showAgent, org]);
+  }, [initialAgentRef, initialInstanceId, showAgent, org]);
 
   // ---------------------------------------------------------------------------
   // Initial agent: auto-open Configure > Agent when env vars are needed

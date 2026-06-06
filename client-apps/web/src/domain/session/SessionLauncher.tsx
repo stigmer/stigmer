@@ -79,19 +79,42 @@ export function SessionLauncher() {
   const editRef = capturedEditRef ?? null;
   const isEditMode = editRef !== null;
 
+  // -------------------------------------------------------------------------
+  // Explicit agent + instance capture ("Start session" from a specific agent
+  // instance). Captured once so the URL can be cleaned without losing intent.
+  // -------------------------------------------------------------------------
+
+  const liveAgentParam = rawSearchParams.get("agent");
+  const liveInstanceParam = rawSearchParams.get("instance");
+
+  const [capturedAgentRef, setCapturedAgentRef] = useState<ResourceRef | undefined>(
+    () => parseAgentParam(liveAgentParam),
+  );
+  const [capturedInstanceId, setCapturedInstanceId] = useState<string | undefined>(
+    () => liveInstanceParam ?? undefined,
+  );
+
+  if (capturedAgentRef === undefined && liveAgentParam) {
+    setCapturedAgentRef(parseAgentParam(liveAgentParam));
+    setCapturedInstanceId(liveInstanceParam ?? undefined);
+  }
+
   const [initialAgentRef, setInitialAgentRef] = useState<ResourceRef | undefined>(
-    () => (draftType ? CREATOR_AGENTS[draftType] : undefined),
+    () => (draftType ? CREATOR_AGENTS[draftType] : capturedAgentRef),
   );
 
   if (initialAgentRef === undefined && draftType) {
     setInitialAgentRef(CREATOR_AGENTS[draftType]);
   }
+  if (initialAgentRef === undefined && capturedAgentRef) {
+    setInitialAgentRef(capturedAgentRef);
+  }
 
   useEffect(() => {
-    if (liveDraftType) {
+    if (liveDraftType || liveAgentParam) {
       window.history.replaceState({}, "", "/");
     }
-  }, [liveDraftType]);
+  }, [liveDraftType, liveAgentParam]);
 
   // -------------------------------------------------------------------------
   // Edit prep
@@ -131,10 +154,25 @@ export function SessionLauncher() {
       enableLocal={enableLocal}
       workspaceFileLister={workspaceFileLister}
       initialAgentRef={initialAgentRef}
+      initialInstanceId={capturedInstanceId}
       initialAttachments={editPrep.files}
       heading={heading}
       placeholder={placeholder}
       className="h-full"
     />
   );
+}
+
+/**
+ * Parse an `agent` query param of the form `org/slug` into a
+ * {@link ResourceRef}. Returns `undefined` when absent or malformed.
+ */
+function parseAgentParam(value: string | null): ResourceRef | undefined {
+  if (!value) return undefined;
+  const slashIndex = value.indexOf("/");
+  if (slashIndex <= 0 || slashIndex === value.length - 1) return undefined;
+  return {
+    org: value.slice(0, slashIndex),
+    slug: value.slice(slashIndex + 1),
+  };
 }

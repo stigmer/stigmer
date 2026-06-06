@@ -46,6 +46,15 @@ export interface NewSessionViewerProps {
 
   /** Agent to auto-select on mount (used for draft flows). */
   readonly initialAgentRef?: ResourceRef;
+  /**
+   * Pre-bind the new session to a specific {@link AgentInstance} on mount.
+   *
+   * Requires `initialAgentRef`. When both are set, the session is created
+   * against this exact configured deployment (the env-collection flow is
+   * skipped because the instance already binds its environment). Powers the
+   * "Start session" action on the Agent detail page's Instances tab.
+   */
+  readonly initialInstanceId?: string;
   /** Files to auto-attach on mount (used for edit flows). */
   readonly initialAttachments?: File[];
 
@@ -114,6 +123,7 @@ export function NewSessionViewer({
   onBrowseLocalFolder,
   workspaceFileLister,
   initialAgentRef,
+  initialInstanceId,
   initialAttachments,
   heading = "What would you like to work on?",
   placeholder = "Describe what you need help with\u2026",
@@ -220,6 +230,7 @@ export function NewSessionViewer({
           onAgentRefChange={flow.setAgentRef}
           onAgentResolutionChange={flow.setResolution}
           initialAgentRef={initialAgentRef}
+          initialInstanceId={initialInstanceId}
           initialAttachments={initialAttachments}
           mcpServerUsages={flow.mcpServerUsages}
           onMcpServerUsagesChange={flow.setMcpServerUsages}

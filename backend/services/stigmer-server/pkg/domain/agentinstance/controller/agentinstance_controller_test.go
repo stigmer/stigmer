@@ -361,3 +361,70 @@ func TestAgentInstanceController_Delete(t *testing.T) {
 		}
 	})
 }
+
+func TestAgentInstanceController_UpdateVisibility(t *testing.T) {
+	controller, store := setupTestController(t)
+	defer store.Close()
+
+	t.Run("successful visibility update preserves spec", func(t *testing.T) {
+		// Create a private instance first.
+		instance := &agentinstancev1.AgentInstance{
+			ApiVersion: "agentic.stigmer.ai/v1",
+			Kind:       "AgentInstance",
+			Metadata: &apiresource.ApiResourceMetadata{
+				Name:       "Visibility Test Instance",
+				Org:        "test-org",
+				Visibility: apiresource.ApiResourceVisibility_visibility_private,
+			},
+			Spec: &agentinstancev1.AgentInstanceSpec{
+				AgentId:     "vis-agent-id",
+				Description: "Visibility test description",
+			},
+		}
+
+		created, err := controller.Create(contextWithAgentInstanceKind(), instance)
+		if err != nil {
+			t.Fatalf("Create failed: %v", err)
+		}
+
+		// Promote to organization visibility.
+		updated, err := controller.UpdateVisibility(contextWithAgentInstanceKind(), &apiresource.UpdateVisibilityInput{
+			ResourceId: created.Metadata.Id,
+			Visibility: apiresource.ApiResourceVisibility_visibility_org,
+		})
+		if err != nil {
+			t.Fatalf("UpdateVisibility failed: %v", err)
+		}
+
+		if updated.Metadata.Visibility != apiresource.ApiResourceVisibility_visibility_org {
+			t.Errorf("Expected visibility 'org', got '%v'", updated.Metadata.Visibility)
+		}
+
+		// Spec must be untouched by a targeted visibility update.
+		if updated.Spec.AgentId != "vis-agent-id" {
+			t.Errorf("Expected agent_id preserved 'vis-agent-id', got '%s'", updated.Spec.AgentId)
+		}
+		if updated.Spec.Description != "Visibility test description" {
+			t.Errorf("Expected description preserved, got '%s'", updated.Spec.Description)
+		}
+
+		// Verify persistence: a fresh get reflects the new visibility.
+		retrieved, err := controller.Get(contextWithAgentInstanceKind(), &agentinstancev1.AgentInstanceId{Value: created.Metadata.Id})
+		if err != nil {
+			t.Fatalf("Get after UpdateVisibility failed: %v", err)
+		}
+		if retrieved.Metadata.Visibility != apiresource.ApiResourceVisibility_visibility_org {
+			t.Errorf("Expected persisted visibility 'org', got '%v'", retrieved.Metadata.Visibility)
+		}
+	})
+
+	t.Run("update visibility of non-existent instance", func(t *testing.T) {
+		_, err := controller.UpdateVisibility(contextWithAgentInstanceKind(), &apiresource.UpdateVisibilityInput{
+			ResourceId: "non-existent-id",
+			Visibility: apiresource.ApiResourceVisibility_visibility_org,
+		})
+		if err == nil {
+			t.Error("Expected error when updating visibility of non-existent instance")
+		}
+	})
+}

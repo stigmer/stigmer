@@ -931,19 +931,33 @@ export type {
   DateRangePreset,
 } from "./usage";
 
-// Agent Instance — data hooks, list hook, personal convenience hook, and behavior hook
+// Agent Instance — data hooks, mutation hooks, management components, and behavior hook
 export {
   useAgentInstance,
   useAgentInstanceList,
+  useAgentInstances,
   usePersonalAgentInstance,
   useCreateAgentInstance,
+  useUpdateAgentInstance,
+  useDeleteAgentInstance,
+  AgentInstanceList,
+  AgentInstanceEmptyState,
+  CreateAgentInstanceDialog,
+  AgentInstanceDetailPanel,
 } from "./agent-instance";
 export type {
   UseAgentInstanceReturn,
   UseAgentInstanceListReturn,
+  UseAgentInstancesReturn,
   GetOrCreatePersonalInstanceInput,
   UsePersonalAgentInstanceReturn,
   UseCreateAgentInstanceReturn,
+  UseUpdateAgentInstanceReturn,
+  UseDeleteAgentInstanceReturn,
+  AgentInstanceListProps,
+  AgentInstanceEmptyStateProps,
+  CreateAgentInstanceDialogProps,
+  AgentInstanceDetailPanelProps,
 } from "./agent-instance";
 
 // Tabs — accessible tabbed panel primitive

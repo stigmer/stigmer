@@ -9,6 +9,7 @@ import type {
 } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
+import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { useAgent } from "./useAgent";
 import { useUpdateAgent } from "./useUpdateAgent";
@@ -29,10 +30,12 @@ import { InlineEditImage } from "../inline-edit/InlineEditImage";
 import { InlineEditKeyValue } from "../inline-edit/InlineEditKeyValue";
 import { InlineEditResourceList } from "../inline-edit/InlineEditResourceList";
 import type { KeyValueRow, ResourceRefRow } from "../inline-edit/types";
+import { AgentInstanceList } from "../agent-instance/AgentInstanceList";
 
 const INSTRUCTIONS_COLLAPSED_HEIGHT = "12rem";
 
 const OVERVIEW_TAB: TabItem = { id: "overview", label: "Overview" };
+const INSTANCES_TAB: TabItem = { id: "instances", label: "Instances" };
 const DEPENDENCIES_TAB: TabItem = { id: "dependencies", label: "Dependencies" };
 
 /** Props for {@link AgentDetailView}. */
@@ -128,6 +131,30 @@ export interface AgentDetailViewProps {
    * Consumers can use this to refresh breadcrumbs, sync URL state, etc.
    */
   readonly onResourceUpdated?: (agent: import("@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb").Agent) => void;
+  /**
+   * Called when the user clicks "Create Instance" in the Instances tab.
+   * Opens the create instance dialog.
+   */
+  readonly onCreateInstanceClick?: () => void;
+  /**
+   * Called when the user clicks an instance row in the Instances tab.
+   * Typically opens an instance detail panel.
+   */
+  readonly onInstanceClick?: (instance: AgentInstance) => void;
+  /**
+   * Called when the user clicks "Start session" on a specific instance.
+   * The session is created pre-bound to the chosen instance's environment.
+   */
+  readonly onInstanceStartSessionClick?: (instance: AgentInstance) => void;
+  /**
+   * Called when the user clicks "Delete" on a specific instance.
+   */
+  readonly onInstanceDeleteClick?: (instance: AgentInstance) => void;
+  /**
+   * Increment this value to trigger a refetch of the instance list.
+   * Useful after externally creating or deleting an instance.
+   */
+  readonly instancesRefreshKey?: number;
   /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
@@ -188,6 +215,11 @@ export function AgentDetailView({
   defaultTab,
   editable = false,
   onResourceUpdated,
+  onCreateInstanceClick,
+  onInstanceClick,
+  onInstanceStartSessionClick,
+  onInstanceDeleteClick,
+  instancesRefreshKey,
   className,
 }: AgentDetailViewProps) {
   const { agent, isLoading, error, refetch } = useAgent(org, slug);
@@ -220,7 +252,10 @@ export function AgentDetailView({
   });
 
   const builtInTabs = useMemo<readonly TabItem[]>(
-    () => (noDeps ? [OVERVIEW_TAB] : [OVERVIEW_TAB, DEPENDENCIES_TAB]),
+    () =>
+      noDeps
+        ? [OVERVIEW_TAB, INSTANCES_TAB]
+        : [OVERVIEW_TAB, INSTANCES_TAB, DEPENDENCIES_TAB],
     [noDeps],
   );
 
@@ -315,6 +350,19 @@ export function AgentDetailView({
   let tabContent: React.ReactNode;
   if (activeAdditionalTab) {
     tabContent = activeAdditionalTab.content;
+  } else if (effectiveActiveTab === "instances") {
+    tabContent = (
+      <AgentInstanceList
+        agentId={meta?.id ?? ""}
+        defaultInstanceId={agent.status?.defaultInstanceId}
+        org={org}
+        onCreateClick={onCreateInstanceClick}
+        onInstanceClick={onInstanceClick}
+        onStartSessionClick={onInstanceStartSessionClick}
+        onDeleteClick={onInstanceDeleteClick}
+        refreshKey={instancesRefreshKey}
+      />
+    );
   } else if (effectiveActiveTab === "dependencies" && tree) {
     tabContent = (
       <DependencyGraph

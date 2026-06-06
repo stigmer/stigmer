@@ -75,23 +75,47 @@ export function SessionLauncher() {
   const editRef = capturedEditRef ?? null;
   const isEditMode = editRef !== null;
 
-  const [initialAgentRef, setInitialAgentRef] = useState<ResourceRef | undefined>(
-    () => (draftType ? CREATOR_AGENTS[draftType] : undefined),
+  // -------------------------------------------------------------------------
+  // Explicit agent + instance capture ("Start session" from a specific agent
+  // instance). Captured once so the URL can be cleaned without losing intent.
+  // -------------------------------------------------------------------------
+
+  const liveAgentParam = searchParams.get("agent");
+  const liveInstanceParam = searchParams.get("instance");
+
+  const [capturedAgentRef, setCapturedAgentRef] = useState<ResourceRef | undefined>(
+    () => parseAgentParam(liveAgentParam),
   );
-  const initialAgentCaptured = useRef(draftType !== null);
+  const [capturedInstanceId, setCapturedInstanceId] = useState<string | undefined>(
+    () => liveInstanceParam ?? undefined,
+  );
+  const agentParamCaptured = useRef(liveAgentParam !== null);
 
   useEffect(() => {
-    if (!initialAgentCaptured.current && draftType) {
-      initialAgentCaptured.current = true;
-      setInitialAgentRef(CREATOR_AGENTS[draftType]);
+    if (!agentParamCaptured.current && liveAgentParam) {
+      agentParamCaptured.current = true;
+      setCapturedAgentRef(parseAgentParam(liveAgentParam));
+      setCapturedInstanceId(liveInstanceParam ?? undefined);
     }
-  }, [draftType]);
+  }, [liveAgentParam, liveInstanceParam]);
+
+  const [initialAgentRef, setInitialAgentRef] = useState<ResourceRef | undefined>(
+    () => (draftType ? CREATOR_AGENTS[draftType] : parseAgentParam(liveAgentParam)),
+  );
+  const initialAgentCaptured = useRef(draftType !== null || liveAgentParam !== null);
 
   useEffect(() => {
-    if (liveDraftType) {
+    if (!initialAgentCaptured.current && (draftType || capturedAgentRef)) {
+      initialAgentCaptured.current = true;
+      setInitialAgentRef(draftType ? CREATOR_AGENTS[draftType] : capturedAgentRef);
+    }
+  }, [draftType, capturedAgentRef]);
+
+  useEffect(() => {
+    if (liveDraftType || liveAgentParam) {
       setSearchParams({}, { replace: true });
     }
-  }, [liveDraftType, setSearchParams]);
+  }, [liveDraftType, liveAgentParam, setSearchParams]);
 
   // -------------------------------------------------------------------------
   // Edit prep
@@ -129,10 +153,25 @@ export function SessionLauncher() {
       onBrowseLocalFolder={browseLocalFolder}
       workspaceFileLister={workspaceFileLister}
       initialAgentRef={initialAgentRef}
+      initialInstanceId={capturedInstanceId}
       initialAttachments={editPrep.files}
       heading={heading}
       placeholder={placeholder}
       className="h-full"
     />
   );
+}
+
+/**
+ * Parse an `agent` query param of the form `org/slug` into a
+ * {@link ResourceRef}. Returns `undefined` when absent or malformed.
+ */
+function parseAgentParam(value: string | null): ResourceRef | undefined {
+  if (!value) return undefined;
+  const slashIndex = value.indexOf("/");
+  if (slashIndex <= 0 || slashIndex === value.length - 1) return undefined;
+  return {
+    org: value.slice(0, slashIndex),
+    slug: value.slice(slashIndex + 1),
+  };
 }

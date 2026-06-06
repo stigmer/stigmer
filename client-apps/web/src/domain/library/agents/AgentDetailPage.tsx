@@ -2,10 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import {
   AgentDetailView,
+  CreateAgentInstanceDialog,
   useAgent,
   useUpdateVisibility,
+  useDeleteAgentInstance,
   useCopyResource,
   useConfirmAction,
   useDeleteResource,
@@ -14,8 +17,10 @@ import {
   useBreadcrumbOverride,
   type DetailAction,
 } from "@stigmer/react";
+import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import { useLibraryNavigation } from "@/domain/library/library-navigation";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
+import { getAgentSessionUrl } from "@/domain/session/draft-session";
 
 interface AgentDetailPageInnerProps {
   readonly org: string;
@@ -31,6 +36,7 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
   const { copyId, copyQualifiedSlug } = useCopyResource();
   const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
   const { deleteResource, isDeleting } = useDeleteResource("agent", resourceId, resourceName);
+  const { deleteInstance } = useDeleteAgentInstance();
   const { agent } = useAgent(org, slug);
   const { copyYaml, copyJson, downloadYaml } = useExportResource({
     kind: "Agent",
@@ -41,6 +47,9 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
     "agent",
     resourceId,
   );
+
+  const [showCreateInstanceDialog, setShowCreateInstanceDialog] = useState(false);
+  const [instancesRefreshKey, setInstancesRefreshKey] = useState(0);
 
   useEffect(() => () => setLabel(null), [setLabel]);
 
@@ -69,6 +78,48 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
       }
     }
   }, [confirm, deleteResource, router, resourceName]);
+
+  const primaryAction: DetailAction = useMemo(
+    () => ({
+      id: "start-session",
+      label: "Start session",
+      onAction: () => router.push(getAgentSessionUrl(org, slug)),
+    }),
+    [router, org, slug],
+  );
+
+  const handleInstanceStartSession = useCallback(
+    (instance: AgentInstance) => {
+      const instanceId = instance.metadata?.id;
+      router.push(getAgentSessionUrl(org, slug, instanceId));
+    },
+    [router, org, slug],
+  );
+
+  const handleInstanceDelete = useCallback(
+    async (instance: AgentInstance) => {
+      const name = instance.metadata?.name || instance.metadata?.slug || "this instance";
+      const confirmed = await confirm({
+        title: `Delete ${name}?`,
+        description:
+          "This permanently removes the instance and its environment bindings. " +
+          "Sessions already started against it are preserved. This action cannot be undone.",
+        confirmLabel: "Delete",
+        variant: "destructive",
+      });
+      if (!confirmed) return;
+      const id = instance.metadata?.id;
+      if (!id) return;
+      try {
+        await deleteInstance(id);
+        toast.success("Instance deleted");
+        setInstancesRefreshKey((k) => k + 1);
+      } catch {
+        toast.error("Failed to delete instance");
+      }
+    },
+    [confirm, deleteInstance],
+  );
 
   const actions: DetailAction[] = useMemo(
     () => [
@@ -133,13 +184,30 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
         onVisibilityChange={updateVisibility}
         isVisibilityPending={isPending}
         editable
+        primaryAction={primaryAction}
         actions={actions}
+        onCreateInstanceClick={() => setShowCreateInstanceDialog(true)}
+        onInstanceStartSessionClick={handleInstanceStartSession}
+        onInstanceDeleteClick={handleInstanceDelete}
+        instancesRefreshKey={instancesRefreshKey}
       />
       <ConfirmDialog
         state={confirmState}
         onConfirm={handleConfirm}
         onCancel={handleCancel}
       />
+      {resourceId && (
+        <CreateAgentInstanceDialog
+          open={showCreateInstanceDialog}
+          onOpenChange={setShowCreateInstanceDialog}
+          org={org}
+          agentId={resourceId}
+          onCreated={() => {
+            toast.success("Instance created");
+            setInstancesRefreshKey((k) => k + 1);
+          }}
+        />
+      )}
     </>
   );
 }

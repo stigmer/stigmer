@@ -130,6 +130,30 @@ export interface UseAgentSetupReturn {
     options?: SubmitEnvVarsOptions,
   ) => Promise<AgentSetupReadyResult>;
 
+  /**
+   * Resolve the agent directly to a specific, already-existing
+   * {@link AgentInstance} — bypassing the env-collection flow.
+   *
+   * Used by instance-management surfaces (e.g. "Start session" on a
+   * specific instance) where the user has explicitly chosen which
+   * configured deployment to run against. Because an AgentInstance
+   * already binds its own environment(s), there is nothing to collect:
+   * the chosen instance *is* the resolved `"saved"` resolution.
+   *
+   * This transitions the state machine straight to `"ready"` with
+   * `{ mode: "saved", instanceId }`. No agent fetch and no instance
+   * lookup are performed — the caller owns the instance identity.
+   *
+   * @param ref - Reference to the agent the instance deploys.
+   * @param instanceId - ID of the agent instance to bind the session to.
+   * @param agentName - Optional display name; falls back to `ref.slug`.
+   */
+  readonly resolveToInstance: (
+    ref: ResourceRef,
+    instanceId: string,
+    agentName?: string,
+  ) => Promise<AgentSetupReadyResult>;
+
   /** Clear the error without changing the current phase. */
   readonly clearError: () => void;
 
@@ -334,6 +358,29 @@ export function useAgentSetup(
   );
 
   // -------------------------------------------------------------------------
+  // resolveToInstance — bind directly to an explicitly chosen instance
+  // -------------------------------------------------------------------------
+
+  const resolveToInstance = useCallback(
+    async (
+      ref: ResourceRef,
+      instanceId: string,
+      agentName?: string,
+    ): Promise<AgentSetupReadyResult> => {
+      const resolution: AgentResolution = { mode: "saved", instanceId };
+      const name = agentName ?? ref.slug;
+      dispatch({
+        type: "RESOLVE_READY",
+        agentRef: ref,
+        agentName: name,
+        resolution,
+      });
+      return { status: "ready", agentRef: ref, agentName: name, resolution };
+    },
+    [],
+  );
+
+  // -------------------------------------------------------------------------
   // Pool re-evaluation — auto-resolve needsEnvVars when pool changes
   // -------------------------------------------------------------------------
 
@@ -432,5 +479,5 @@ export function useAgentSetup(
     [org, stigmer, personalEnv, state],
   );
 
-  return { state, resolveAgent, submitEnvVars, clearError, reset };
+  return { state, resolveAgent, submitEnvVars, resolveToInstance, clearError, reset };
 }
