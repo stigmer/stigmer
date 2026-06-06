@@ -319,6 +319,85 @@ func TestFGAModel_AgentExecutionSessionInheritance(t *testing.T) {
 	})
 }
 
+// TestFGAModel_WorkflowExecutionRunPrivacy verifies that workflow executions
+// are private to their triggerer (owner) by default, that an instance's own
+// org-visibility (viewer) does NOT leak run history, and that org-wide run
+// observability is granted only via the dedicated, opt-in execution_viewer
+// relation on the instance.
+func TestFGAModel_WorkflowExecutionRunPrivacy(t *testing.T) {
+	fga := requireFGA(t)
+	ctx := context.Background()
+
+	owner := "identity_account:wfx-owner"       // the triggerer of the execution
+	member := "identity_account:wfx-org-member" // a teammate in the same org
+	stranger := "identity_account:wfx-stranger"
+	org := "organization:wfx-org"
+	instance := "workflow_instance:wfx-instance-1"
+	execution := "workflow_execution:wfx-exec-1"
+
+	// member is in the org; owner triggered the execution. The execution links
+	// to its instance and org (mirrors what the create pipeline writes).
+	err := fga.WriteTuples(ctx, []harness.RelationshipTuple{
+		{User: member, Relation: "member", Object: org},
+		{User: org, Relation: "organization", Object: instance},
+		{User: org, Relation: "organization", Object: execution},
+		{User: instance, Relation: "workflow_instance", Object: execution},
+		{User: owner, Relation: "owner", Object: execution},
+	})
+	require.NoError(t, err)
+
+	// Triggerer (owner) can always view and edit their own run.
+	t.Run("owner_can_view_run", func(t *testing.T) {
+		assert.True(t, fgaCheck(t, fga, owner, "can_view", execution))
+	})
+	t.Run("owner_can_edit_run", func(t *testing.T) {
+		assert.True(t, fgaCheck(t, fga, owner, "can_edit", execution))
+	})
+
+	// Before any opt-in, an org member cannot see another user's run.
+	t.Run("member_cannot_view_run_by_default", func(t *testing.T) {
+		assert.False(t, fgaCheck(t, fga, member, "can_view", execution))
+	})
+	t.Run("stranger_cannot_view_run", func(t *testing.T) {
+		assert.False(t, fgaCheck(t, fga, stranger, "can_view", execution))
+	})
+
+	// Making the INSTANCE org-visible (viewer) lets members see/run the
+	// instance, but must NOT leak run history — this is the decoupling guard.
+	err = fga.WriteTuples(ctx, []harness.RelationshipTuple{
+		{User: org + "#member", Relation: "viewer", Object: instance},
+	})
+	require.NoError(t, err)
+
+	t.Run("member_can_view_instance_after_org_visibility", func(t *testing.T) {
+		assert.True(t, fgaCheck(t, fga, member, "can_view", instance))
+	})
+	t.Run("instance_org_visibility_does_not_leak_run", func(t *testing.T) {
+		assert.False(t, fgaCheck(t, fga, member, "can_view", execution),
+			"org-visible instance must NOT grant can_view on its executions")
+	})
+
+	// Explicit opt-in: granting execution_viewer on the instance makes its
+	// executions viewable by org members (inherited, zero per-execution tuples).
+	err = fga.WriteTuples(ctx, []harness.RelationshipTuple{
+		{User: org + "#member", Relation: "execution_viewer", Object: instance},
+	})
+	require.NoError(t, err)
+
+	t.Run("member_can_view_run_after_opt_in", func(t *testing.T) {
+		assert.True(t, fgaCheck(t, fga, member, "can_view", execution),
+			"execution_viewer opt-in should grant org members can_view on runs")
+	})
+	// Observability is read-only: it never confers edit on someone else's run.
+	t.Run("member_cannot_edit_run_after_opt_in", func(t *testing.T) {
+		assert.False(t, fgaCheck(t, fga, member, "can_edit", execution))
+	})
+	// A user outside the org is unaffected by the opt-in.
+	t.Run("stranger_still_cannot_view_run_after_opt_in", func(t *testing.T) {
+		assert.False(t, fgaCheck(t, fga, stranger, "can_view", execution))
+	})
+}
+
 // TestFGAModel_PublicVisibilityCondition verifies that the conditional
 // allow_public wildcard grants viewer access only when context includes
 // {"allow": true}.
