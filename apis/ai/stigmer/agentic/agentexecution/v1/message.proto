@@ -176,4 +176,21 @@ message ToolCall {
   //
   // Example: '{"repository": "acme/repo", "force": true}'
   string args_preview = 18;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Tool Classification
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Harness-agnostic category of this tool, set by the runner so clients render
+  // the tool identically regardless of which engine produced it. The native and
+  // Cursor harnesses use different tool-name conventions; tool_kind erases that
+  // difference at the source.
+  //
+  // TOOL_KIND_UNSPECIFIED means unclassified — either the execution predates this
+  // field or the tool has no known kind. Clients fall back to a name-based
+  // lookup in that case. See ToolKind.
+  //
+  // Field 20: field 6 is a historical gap and 19 (streaming_source) is the prior
+  // maximum, so this is appended at 20.
+  ToolKind tool_kind = 20;
 }

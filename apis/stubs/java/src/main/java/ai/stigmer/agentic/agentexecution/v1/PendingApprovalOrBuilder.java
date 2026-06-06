@@ -348,4 +348,31 @@ public interface PendingApprovalOrBuilder extends
    */
   com.google.protobuf.ByteString
       getHeadShaAtDenyBytes();
+
+  /**
+   * <pre>
+   * Harness-agnostic category of the tool, copied from ToolCall.tool_kind by the
+   * server-side projection (exactly as mcp_server_slug above is). Lets approval
+   * surfaces — including workflow-parent approvals, where the originating
+   * ToolCall is not co-located with the approval — classify and render the tool
+   * without a client-side lookup. See ToolKind.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ToolKind tool_kind = 13 [json_name = "toolKind"];</code>
+   * @return The enum numeric value on the wire for toolKind.
+   */
+  int getToolKindValue();
+  /**
+   * <pre>
+   * Harness-agnostic category of the tool, copied from ToolCall.tool_kind by the
+   * server-side projection (exactly as mcp_server_slug above is). Lets approval
+   * surfaces — including workflow-parent approvals, where the originating
+   * ToolCall is not co-located with the approval — classify and render the tool
+   * without a client-side lookup. See ToolKind.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ToolKind tool_kind = 13 [json_name = "toolKind"];</code>
+   * @return The toolKind.
+   */
+  ai.stigmer.agentic.agentexecution.v1.ToolKind getToolKind();
 }

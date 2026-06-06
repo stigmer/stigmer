@@ -1,15 +1,15 @@
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { JsonObject } from "@bufbuild/protobuf";
+import { ToolKind, resolveToolKind, resolveToolKindByName } from "@stigmer/sdk";
 
 /**
  * Discriminated tool categories for type-aware rendering.
  *
- * Mirrors the CLI's `toolDisplayMap` in
- * `client-apps/cli/pkg/toolrender/render.go`.
- *
- * `"mcp"` covers tools originating from an MCP server whose
- * names are dynamic and cannot be statically listed in
- * {@link TOOL_DISPLAY_MAP}.
+ * This is the presentation taxonomy. Classification (name -> kind) lives in
+ * `@stigmer/sdk`'s `resolveToolKind` (single source of truth, shared with the
+ * runner and Go CLI); this file maps each {@link ToolKind} to its presentation
+ * metadata (label, primary argument). `"mcp"` covers tools originating from an
+ * MCP server, whose names are dynamic.
  */
 export type ToolCategory =
   | "shell"
@@ -19,6 +19,8 @@ export type ToolCategory =
   | "delete"
   | "search"
   | "list"
+  | "fetch"
+  | "web-search"
   | "think"
   | "sub-agent"
   | "internal"
@@ -37,77 +39,45 @@ export interface ToolCategoryInfo {
   readonly fallbackArgFields: readonly string[];
 }
 
-interface ToolDisplayEntry {
+interface KindDisplayEntry {
   readonly category: ToolCategory;
   readonly label: string;
   readonly primaryField: string;
   readonly fallbackFields?: readonly string[];
 }
 
-const TOOL_DISPLAY_MAP: ReadonlyMap<string, ToolDisplayEntry> = new Map([
-  ["shell",           { category: "shell",     label: "Shell",     primaryField: "command" }],
-  ["bash",            { category: "shell",     label: "Shell",     primaryField: "command" }],
-  ["execute",         { category: "shell",     label: "Execute",   primaryField: "command" }],
-  ["execute_command", { category: "shell",     label: "Shell",     primaryField: "command" }],
-  ["run_command",     { category: "shell",     label: "Shell",     primaryField: "command" }],
-  ["terminal",        { category: "shell",     label: "Shell",     primaryField: "command" }],
-
-  ["read",            { category: "read",      label: "Read",      primaryField: "path",    fallbackFields: ["file_path", "file"] }],
-  ["read_file",       { category: "read",      label: "Read",      primaryField: "path",    fallbackFields: ["file_path", "file"] }],
-
-  ["write",           { category: "write",     label: "Write",     primaryField: "path",    fallbackFields: ["file_path", "file", "filename"] }],
-  ["write_file",      { category: "write",     label: "Write",     primaryField: "path",    fallbackFields: ["file_path", "file", "filename"] }],
-  ["create_file",     { category: "write",     label: "Create",    primaryField: "path",    fallbackFields: ["file_path", "file", "filename"] }],
-  ["overwrite_file",  { category: "write",     label: "Write",     primaryField: "path",    fallbackFields: ["file_path", "file", "filename"] }],
-
-  ["edit",            { category: "edit",      label: "Edit",      primaryField: "path",    fallbackFields: ["file_path", "file", "filename"] }],
-  ["edit_file",       { category: "edit",      label: "Edit",      primaryField: "path",    fallbackFields: ["file_path", "file", "filename"] }],
-
-  ["delete_file",     { category: "delete",    label: "Delete",    primaryField: "path",    fallbackFields: ["file_path", "file", "filename"] }],
-  ["remove_file",     { category: "delete",    label: "Delete",    primaryField: "path",    fallbackFields: ["file_path", "file", "filename"] }],
-
-  ["glob",            { category: "search",    label: "Find",      primaryField: "pattern" }],
-  ["grep",            { category: "search",    label: "Search",    primaryField: "pattern" }],
-
-  ["list_directory",  { category: "list",      label: "List",      primaryField: "path" }],
-  ["ls",              { category: "list",      label: "List",      primaryField: "path" }],
-
-  ["think",           { category: "think",     label: "Thinking",  primaryField: "thought" }],
-
-  ["task",            { category: "sub-agent", label: "Sub-agent", primaryField: "description", fallbackFields: ["prompt"] }],
-
-  ["updateTodos",     { category: "internal",  label: "Todos",     primaryField: "todos" }],
-  ["TodoWrite",       { category: "internal",  label: "Todos",     primaryField: "todos" }],
-  ["write_todos",     { category: "internal",  label: "Todos",     primaryField: "todos" }],
-]);
+// Presentation metadata per ToolKind. Classification (name -> kind) is owned by
+// @stigmer/sdk; this table only describes how each kind is shown. MCP and
+// unknown are resolved dynamically (label derived from the tool name).
+const KIND_DISPLAY: Partial<Record<ToolKind, KindDisplayEntry>> = {
+  [ToolKind.FILE_READ]:   { category: "read",      label: "Read",      primaryField: "path", fallbackFields: ["file_path", "file"] },
+  [ToolKind.FILE_WRITE]:  { category: "write",     label: "Write",     primaryField: "path", fallbackFields: ["file_path", "file", "filename"] },
+  [ToolKind.FILE_EDIT]:   { category: "edit",      label: "Edit",      primaryField: "path", fallbackFields: ["file_path", "file", "filename"] },
+  [ToolKind.FILE_DELETE]: { category: "delete",    label: "Delete",    primaryField: "path", fallbackFields: ["file_path", "file", "filename"] },
+  [ToolKind.SHELL]:       { category: "shell",     label: "Shell",     primaryField: "command" },
+  [ToolKind.SEARCH]:      { category: "search",    label: "Search",    primaryField: "pattern", fallbackFields: ["query", "q"] },
+  [ToolKind.LIST]:        { category: "list",      label: "List",      primaryField: "path" },
+  [ToolKind.FETCH]:       { category: "fetch",     label: "Fetch",     primaryField: "url", fallbackFields: ["uri"] },
+  [ToolKind.WEB_SEARCH]:  { category: "web-search", label: "Web Search", primaryField: "query", fallbackFields: ["q", "search_term"] },
+  [ToolKind.THINK]:       { category: "think",     label: "Thinking",  primaryField: "thought" },
+  [ToolKind.SUBAGENT]:    { category: "sub-agent", label: "Sub-agent", primaryField: "description", fallbackFields: ["prompt"] },
+  [ToolKind.TODO]:        { category: "internal",  label: "Todos",     primaryField: "todos" },
+};
 
 /**
- * Resolves a tool name to its category metadata for type-aware
- * rendering.
- *
- * When `mcpServerSlug` is provided and the tool name is not a
- * known built-in, the tool is categorised as `"mcp"` with a
- * human-readable label derived from the raw tool name.
- *
- * Falls back to `"unknown"` only when the tool is neither
- * built-in nor MCP-originated.
- */
-/**
- * Returns true if the tool is an internal state management tool that
- * should not be displayed in the message thread. Internal tools are
- * rendered through dedicated UX surfaces (e.g. TodoList sidebar)
- * rather than as expandable tool call items.
+ * Returns true if the tool is an internal state-management tool that should not
+ * appear in the message thread (todos are rendered through a dedicated surface).
  */
 export function isInternalTool(toolName: string): boolean {
-  const entry = TOOL_DISPLAY_MAP.get(toolName);
-  return entry?.category === "internal";
+  return resolveToolKindByName(toolName) === ToolKind.TODO;
 }
 
-export function resolveToolCategory(
+/** Maps a {@link ToolKind} to its presentation metadata. */
+export function toolKindToCategoryInfo(
+  kind: ToolKind,
   toolName: string,
-  mcpServerSlug?: string,
 ): ToolCategoryInfo {
-  const entry = TOOL_DISPLAY_MAP.get(toolName);
+  const entry = KIND_DISPLAY[kind];
   if (entry) {
     return {
       category: entry.category,
@@ -117,7 +87,7 @@ export function resolveToolCategory(
     };
   }
 
-  if (mcpServerSlug) {
+  if (kind === ToolKind.MCP) {
     return {
       category: "mcp",
       label: humanizeToolName(toolName),
@@ -128,10 +98,54 @@ export function resolveToolCategory(
 
   return {
     category: "unknown",
-    label: toolName,
+    label: humanizeToolName(toolName),
     primaryArgField: "",
     fallbackArgFields: [],
   };
+}
+
+/**
+ * Resolves a tool's presentation category from its name + MCP slug.
+ *
+ * Classification is delegated to `@stigmer/sdk`'s name-based resolver (the same
+ * table the runner and Go CLI use), then mapped to presentation metadata. When
+ * the caller has the full {@link ToolCall}, prefer {@link resolveToolCategoryFromCall},
+ * which also honours the wire `tool_kind` for forward compatibility.
+ */
+export function resolveToolCategory(
+  toolName: string,
+  mcpServerSlug?: string,
+): ToolCategoryInfo {
+  return toolKindToCategoryInfo(
+    resolveToolKindByName(toolName, mcpServerSlug),
+    toolName,
+  );
+}
+
+/**
+ * Like {@link resolveToolCategory} but uses the wire `tool_kind` when present,
+ * falling back to name-based resolution for legacy executions.
+ */
+export function resolveToolCategoryFromCall(toolCall: ToolCall): ToolCategoryInfo {
+  return toolKindToCategoryInfo(resolveToolKind(toolCall), toolCall.name);
+}
+
+/**
+ * Resolves presentation metadata from an explicit wire {@link ToolKind} plus the
+ * tool name and MCP slug. Used by surfaces that carry a denormalized `tool_kind`
+ * but not a full {@link ToolCall} — notably `PendingApproval`. Falls back to
+ * name-based resolution when the kind is unset (legacy executions).
+ */
+export function resolveToolCategoryFromKind(
+  toolKind: ToolKind,
+  toolName: string,
+  mcpServerSlug?: string,
+): ToolCategoryInfo {
+  const kind =
+    toolKind !== ToolKind.UNSPECIFIED
+      ? toolKind
+      : resolveToolKindByName(toolName, mcpServerSlug);
+  return toolKindToCategoryInfo(kind, toolName);
 }
 
 /**
@@ -188,7 +202,7 @@ function extractArgValue(
  * Returns `null` when the tool has no recognised arguments.
  */
 export function extractPrimaryArg(toolCall: ToolCall): string | null {
-  const info = resolveToolCategory(toolCall.name, toolCall.mcpServerSlug);
+  const info = resolveToolCategoryFromCall(toolCall);
   const result = extractArgValue(
     toolCall.args,
     info.primaryArgField,

@@ -218,7 +218,19 @@ type ToolCall struct {
 	// and by CLI/UI for inline argument visibility.
 	//
 	// Example: '{"repository": "acme/repo", "force": true}'
-	ArgsPreview   string `protobuf:"bytes,18,opt,name=args_preview,json=argsPreview,proto3" json:"args_preview,omitempty"`
+	ArgsPreview string `protobuf:"bytes,18,opt,name=args_preview,json=argsPreview,proto3" json:"args_preview,omitempty"`
+	// Harness-agnostic category of this tool, set by the runner so clients render
+	// the tool identically regardless of which engine produced it. The native and
+	// Cursor harnesses use different tool-name conventions; tool_kind erases that
+	// difference at the source.
+	//
+	// TOOL_KIND_UNSPECIFIED means unclassified — either the execution predates this
+	// field or the tool has no known kind. Clients fall back to a name-based
+	// lookup in that case. See ToolKind.
+	//
+	// Field 20: field 6 is a historical gap and 19 (streaming_source) is the prior
+	// maximum, so this is appended at 20.
+	ToolKind      ToolKind `protobuf:"varint,20,opt,name=tool_kind,json=toolKind,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ToolKind" json:"tool_kind,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -379,6 +391,13 @@ func (x *ToolCall) GetArgsPreview() string {
 	return ""
 }
 
+func (x *ToolCall) GetToolKind() ToolKind {
+	if x != nil {
+		return x.ToolKind
+	}
+	return ToolKind_TOOL_KIND_UNSPECIFIED
+}
+
 var File_ai_stigmer_agentic_agentexecution_v1_message_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentexecution_v1_message_proto_rawDesc = "" +
@@ -391,7 +410,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_message_proto_rawDesc = "" +
 	"\n" +
 	"tool_calls\x18\x04 \x03(\v2..ai.stigmer.agentic.agentexecution.v1.ToolCallR\ttoolCalls\x123\n" +
 	"\bmetadata\x18\x05 \x01(\v2\x17.google.protobuf.StructR\bmetadata\x12!\n" +
-	"\fis_streaming\x18\x06 \x01(\bR\visStreaming\"\xb7\x06\n" +
+	"\fis_streaming\x18\x06 \x01(\bR\visStreaming\"\x84\a\n" +
 	"\bToolCall\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12+\n" +
@@ -413,7 +432,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_message_proto_rawDesc = "" +
 	"\fis_streaming\x18\x10 \x01(\bR\visStreaming\x12h\n" +
 	"\x10streaming_source\x18\x13 \x01(\x0e2=.ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSourceR\x0fstreamingSource\x12&\n" +
 	"\x0fmcp_server_slug\x18\x11 \x01(\tR\rmcpServerSlug\x12!\n" +
-	"\fargs_preview\x18\x12 \x01(\tR\vargsPreviewB\xcd\x02\n" +
+	"\fargs_preview\x18\x12 \x01(\tR\vargsPreview\x12K\n" +
+	"\ttool_kind\x18\x14 \x01(\x0e2..ai.stigmer.agentic.agentexecution.v1.ToolKindR\btoolKindB\xcd\x02\n" +
 	"(com.ai.stigmer.agentic.agentexecution.v1B\fMessageProtoP\x01Z^github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
 var (
@@ -437,6 +457,7 @@ var file_ai_stigmer_agentic_agentexecution_v1_message_proto_goTypes = []any{
 	(ToolCallStatus)(0),          // 4: ai.stigmer.agentic.agentexecution.v1.ToolCallStatus
 	(ApprovalAction)(0),          // 5: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
 	(ToolCallStreamingSource)(0), // 6: ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource
+	(ToolKind)(0),                // 7: ai.stigmer.agentic.agentexecution.v1.ToolKind
 }
 var file_ai_stigmer_agentic_agentexecution_v1_message_proto_depIdxs = []int32{
 	2, // 0: ai.stigmer.agentic.agentexecution.v1.AgentMessage.type:type_name -> ai.stigmer.agentic.agentexecution.v1.MessageType
@@ -446,11 +467,12 @@ var file_ai_stigmer_agentic_agentexecution_v1_message_proto_depIdxs = []int32{
 	4, // 4: ai.stigmer.agentic.agentexecution.v1.ToolCall.status:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCallStatus
 	5, // 5: ai.stigmer.agentic.agentexecution.v1.ToolCall.approval_action:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalAction
 	6, // 6: ai.stigmer.agentic.agentexecution.v1.ToolCall.streaming_source:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource
-	7, // [7:7] is the sub-list for method output_type
-	7, // [7:7] is the sub-list for method input_type
-	7, // [7:7] is the sub-list for extension type_name
-	7, // [7:7] is the sub-list for extension extendee
-	0, // [0:7] is the sub-list for field type_name
+	7, // 7: ai.stigmer.agentic.agentexecution.v1.ToolCall.tool_kind:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolKind
+	8, // [8:8] is the sub-list for method output_type
+	8, // [8:8] is the sub-list for method input_type
+	8, // [8:8] is the sub-list for extension type_name
+	8, // [8:8] is the sub-list for extension extendee
+	0, // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_message_proto_init() }

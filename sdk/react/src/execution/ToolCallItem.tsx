@@ -11,11 +11,8 @@ import { cn } from "@stigmer/theme";
 import { ToolCallDetail, formatDuration } from "./ToolCallDetail";
 import { SubAgentSection } from "./SubAgentSection";
 import { FilePathLink } from "./FilePathLink";
-import {
-  resolveToolCategory,
-  extractPrimaryArg,
-  type ToolCategory,
-} from "./tool-categories";
+import { type ToolCategory } from "./tool-categories";
+import { useToolPresentation } from "./tool-presenter";
 import { useSandboxNormalize } from "./SandboxContext";
 import { useThreadSelection } from "./useThreadSelection";
 
@@ -71,13 +68,12 @@ export function ToolCallItem({
   const duration = formatDuration(toolCall.startedAt, toolCall.completedAt);
   const isSubAgent = subAgentExecution != null;
 
-  const categoryInfo = resolveToolCategory(toolCall.name, toolCall.mcpServerSlug);
-  const CategoryIcon = CATEGORY_ICON[categoryInfo.category];
-  const primaryArg = extractPrimaryArg(toolCall);
+  const { category, label, primaryArg, resultSummary } = useToolPresentation(toolCall);
+  const CategoryIcon = CATEGORY_ICON[category];
 
   const displayLabel = isSubAgent
-    ? subAgentExecution.subject || subAgentExecution.name || categoryInfo.label
-    : categoryInfo.label;
+    ? subAgentExecution.subject || subAgentExecution.name || label
+    : label;
 
   const normalize = useSandboxNormalize();
   const approvalBadge = getApprovalBadge(toolCall);
@@ -88,7 +84,7 @@ export function ToolCallItem({
   // expandable to show the error.
   const isNonExpandableRead =
     !isSubAgent &&
-    categoryInfo.category === "read" &&
+    category === "read" &&
     (toolCall.status === ToolCallStatus.TOOL_CALL_COMPLETED ||
       toolCall.status === ToolCallStatus.TOOL_CALL_SKIPPED);
 
@@ -175,7 +171,7 @@ export function ToolCallItem({
 
   const displaySubtitle = isSubAgent
     ? null
-    : categoryInfo.category === "shell" && primaryArg
+    : category === "shell" && primaryArg
       ? normalize(primaryArg)
       : primaryArg;
 
@@ -206,6 +202,11 @@ export function ToolCallItem({
           {displaySubtitle && (
             <span className="min-w-0 truncate text-muted-foreground font-mono">
               {displaySubtitle}
+            </span>
+          )}
+          {!isSubAgent && resultSummary && (
+            <span className="shrink-0 tabular-nums text-muted-foreground">
+              {resultSummary}
             </span>
           )}
         </span>
@@ -300,12 +301,24 @@ export const CATEGORY_ICON: Record<ToolCategory, () => React.JSX.Element> = {
   delete: TrashIcon,
   search: SearchIcon,
   list: FolderIcon,
+  fetch: GlobeIcon,
+  "web-search": GlobeIcon,
   think: BrainIcon,
   "sub-agent": BotIcon,
   internal: WrenchIcon,
   mcp: McpPlugIcon,
   unknown: WrenchIcon,
 };
+
+function GlobeIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="6" cy="6" r="4.5" />
+      <path d="M1.5 6H10.5" />
+      <path d="M6 1.5C7.5 3 7.5 9 6 10.5C4.5 9 4.5 3 6 1.5Z" />
+    </svg>
+  );
+}
 
 function TerminalIcon() {
   return (

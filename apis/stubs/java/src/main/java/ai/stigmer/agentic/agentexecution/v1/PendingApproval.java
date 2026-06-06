@@ -62,6 +62,7 @@ private static final long serialVersionUID = 0L;
     agentRationale_ = "";
     branchAtDeny_ = "";
     headShaAtDeny_ = "";
+    toolKind_ = 0;
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -723,6 +724,40 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int TOOL_KIND_FIELD_NUMBER = 13;
+  private int toolKind_ = 0;
+  /**
+   * <pre>
+   * Harness-agnostic category of the tool, copied from ToolCall.tool_kind by the
+   * server-side projection (exactly as mcp_server_slug above is). Lets approval
+   * surfaces — including workflow-parent approvals, where the originating
+   * ToolCall is not co-located with the approval — classify and render the tool
+   * without a client-side lookup. See ToolKind.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ToolKind tool_kind = 13 [json_name = "toolKind"];</code>
+   * @return The enum numeric value on the wire for toolKind.
+   */
+  @java.lang.Override public int getToolKindValue() {
+    return toolKind_;
+  }
+  /**
+   * <pre>
+   * Harness-agnostic category of the tool, copied from ToolCall.tool_kind by the
+   * server-side projection (exactly as mcp_server_slug above is). Lets approval
+   * surfaces — including workflow-parent approvals, where the originating
+   * ToolCall is not co-located with the approval — classify and render the tool
+   * without a client-side lookup. See ToolKind.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ToolKind tool_kind = 13 [json_name = "toolKind"];</code>
+   * @return The toolKind.
+   */
+  @java.lang.Override public ai.stigmer.agentic.agentexecution.v1.ToolKind getToolKind() {
+    ai.stigmer.agentic.agentexecution.v1.ToolKind result = ai.stigmer.agentic.agentexecution.v1.ToolKind.forNumber(toolKind_);
+    return result == null ? ai.stigmer.agentic.agentexecution.v1.ToolKind.UNRECOGNIZED : result;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -773,6 +808,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(headShaAtDeny_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 12, headShaAtDeny_);
     }
+    if (toolKind_ != ai.stigmer.agentic.agentexecution.v1.ToolKind.TOOL_KIND_UNSPECIFIED.getNumber()) {
+      output.writeEnum(13, toolKind_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -819,6 +857,10 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(headShaAtDeny_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(12, headShaAtDeny_);
     }
+    if (toolKind_ != ai.stigmer.agentic.agentexecution.v1.ToolKind.TOOL_KIND_UNSPECIFIED.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(13, toolKind_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -858,6 +900,7 @@ private static final long serialVersionUID = 0L;
         .equals(other.getBranchAtDeny())) return false;
     if (!getHeadShaAtDeny()
         .equals(other.getHeadShaAtDeny())) return false;
+    if (toolKind_ != other.toolKind_) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -894,6 +937,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getBranchAtDeny().hashCode();
     hash = (37 * hash) + HEAD_SHA_AT_DENY_FIELD_NUMBER;
     hash = (53 * hash) + getHeadShaAtDeny().hashCode();
+    hash = (37 * hash) + TOOL_KIND_FIELD_NUMBER;
+    hash = (53 * hash) + toolKind_;
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1060,6 +1105,7 @@ private static final long serialVersionUID = 0L;
       agentRationale_ = "";
       branchAtDeny_ = "";
       headShaAtDeny_ = "";
+      toolKind_ = 0;
       return this;
     }
 
@@ -1128,6 +1174,9 @@ private static final long serialVersionUID = 0L;
       }
       if (((from_bitField0_ & 0x00000800) != 0)) {
         result.headShaAtDeny_ = headShaAtDeny_;
+      }
+      if (((from_bitField0_ & 0x00001000) != 0)) {
+        result.toolKind_ = toolKind_;
       }
     }
 
@@ -1200,6 +1249,9 @@ private static final long serialVersionUID = 0L;
         headShaAtDeny_ = other.headShaAtDeny_;
         bitField0_ |= 0x00000800;
         onChanged();
+      }
+      if (other.toolKind_ != 0) {
+        setToolKindValue(other.getToolKindValue());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1287,6 +1339,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000800;
               break;
             } // case 98
+            case 104: {
+              toolKind_ = input.readEnum();
+              bitField0_ |= 0x00001000;
+              break;
+            } // case 104
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2630,6 +2687,98 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       headShaAtDeny_ = value;
       bitField0_ |= 0x00000800;
+      onChanged();
+      return this;
+    }
+
+    private int toolKind_ = 0;
+    /**
+     * <pre>
+     * Harness-agnostic category of the tool, copied from ToolCall.tool_kind by the
+     * server-side projection (exactly as mcp_server_slug above is). Lets approval
+     * surfaces — including workflow-parent approvals, where the originating
+     * ToolCall is not co-located with the approval — classify and render the tool
+     * without a client-side lookup. See ToolKind.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ToolKind tool_kind = 13 [json_name = "toolKind"];</code>
+     * @return The enum numeric value on the wire for toolKind.
+     */
+    @java.lang.Override public int getToolKindValue() {
+      return toolKind_;
+    }
+    /**
+     * <pre>
+     * Harness-agnostic category of the tool, copied from ToolCall.tool_kind by the
+     * server-side projection (exactly as mcp_server_slug above is). Lets approval
+     * surfaces — including workflow-parent approvals, where the originating
+     * ToolCall is not co-located with the approval — classify and render the tool
+     * without a client-side lookup. See ToolKind.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ToolKind tool_kind = 13 [json_name = "toolKind"];</code>
+     * @param value The enum numeric value on the wire for toolKind to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setToolKindValue(int value) {
+      toolKind_ = value;
+      bitField0_ |= 0x00001000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Harness-agnostic category of the tool, copied from ToolCall.tool_kind by the
+     * server-side projection (exactly as mcp_server_slug above is). Lets approval
+     * surfaces — including workflow-parent approvals, where the originating
+     * ToolCall is not co-located with the approval — classify and render the tool
+     * without a client-side lookup. See ToolKind.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ToolKind tool_kind = 13 [json_name = "toolKind"];</code>
+     * @return The toolKind.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.agentexecution.v1.ToolKind getToolKind() {
+      ai.stigmer.agentic.agentexecution.v1.ToolKind result = ai.stigmer.agentic.agentexecution.v1.ToolKind.forNumber(toolKind_);
+      return result == null ? ai.stigmer.agentic.agentexecution.v1.ToolKind.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * Harness-agnostic category of the tool, copied from ToolCall.tool_kind by the
+     * server-side projection (exactly as mcp_server_slug above is). Lets approval
+     * surfaces — including workflow-parent approvals, where the originating
+     * ToolCall is not co-located with the approval — classify and render the tool
+     * without a client-side lookup. See ToolKind.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ToolKind tool_kind = 13 [json_name = "toolKind"];</code>
+     * @param value The toolKind to set.
+     * @return This builder for chaining.
+     */
+    public Builder setToolKind(ai.stigmer.agentic.agentexecution.v1.ToolKind value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x00001000;
+      toolKind_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Harness-agnostic category of the tool, copied from ToolCall.tool_kind by the
+     * server-side projection (exactly as mcp_server_slug above is). Lets approval
+     * surfaces — including workflow-parent approvals, where the originating
+     * ToolCall is not co-located with the approval — classify and render the tool
+     * without a client-side lookup. See ToolKind.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ToolKind tool_kind = 13 [json_name = "toolKind"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearToolKind() {
+      bitField0_ = (bitField0_ & ~0x00001000);
+      toolKind_ = 0;
       onChanged();
       return this;
     }

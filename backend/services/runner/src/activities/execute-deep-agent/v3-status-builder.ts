@@ -25,6 +25,7 @@ import {
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { type MergedToolPolicy, resolveApprovalMessage as resolveApprovalMsg } from "../../shared/approval-policy.js";
+import { classifyTool } from "../../shared/tool-kind.js";
 import { ExecutionState } from "./execution-state.js";
 import { utcTimestamp } from "../../shared/status.js";
 import type { ExecutionStatusWriter } from "./execution-status-writer.js";
@@ -267,6 +268,9 @@ export class V3StatusBuilder implements ExecutionStatusWriter {
     if (approvalReq.serverSlug) {
       tc.mcpServerSlug = approvalReq.serverSlug;
     }
+
+    // Classify after mcpServerSlug is set so MCP tools resolve correctly.
+    tc.toolKind = classifyTool(tc.name, tc.mcpServerSlug);
 
     if (approvalReq.requiresApproval) {
       tc.requiresApproval = true;

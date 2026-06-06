@@ -10,7 +10,7 @@ import {
 import { cn } from "@stigmer/theme";
 import { useRenderTracer } from "../internal/dev";
 import { ToolCallItem } from "./ToolCallItem";
-import { resolveToolCategory, extractPrimaryArg } from "./tool-categories";
+import { resolveToolCategoryFromCall, extractPrimaryArg } from "./tool-categories";
 
 /** Props for {@link ToolCallGroup}. */
 export interface ToolCallGroupProps {
@@ -91,7 +91,7 @@ function defaultFormatSummary(
 ): string {
   if (toolCalls.length === 1) {
     const tc = toolCalls[0];
-    const cat = resolveToolCategory(tc.name, tc.mcpServerSlug);
+    const cat = resolveToolCategoryFromCall(tc);
     const primary = extractPrimaryArg(tc);
     if (primary) {
       const truncated =

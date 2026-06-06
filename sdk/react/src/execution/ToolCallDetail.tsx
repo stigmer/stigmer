@@ -1,17 +1,14 @@
 "use client";
 
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { ToolResultView } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
-import { resolveToolCategory } from "./tool-categories";
 import { McpToolDetail } from "./McpToolDetail";
-import { useSandboxNormalize } from "./SandboxContext";
 import { ToolArgsView } from "./ToolArgsView";
-import {
-  CollapsibleCode,
-  CollapsiblePre,
-  formatResult,
-} from "./tool-rendering-primitives";
+import { ResultView } from "./ResultView";
+import { useToolPresentation } from "./tool-presenter";
+import type { ToolCategory } from "./tool-categories";
+import { CollapsiblePre } from "./tool-rendering-primitives";
 
 /** Props for {@link ToolCallDetail}. */
 export interface ToolCallDetailProps {
@@ -22,25 +19,20 @@ export interface ToolCallDetailProps {
 }
 
 /**
- * Renders the detail panel for a single tool call with
- * category-specific visual treatments.
+ * Renders the detail panel for a single tool call with category-specific
+ * treatments.
  *
- * Arguments are rendered through the shared {@link ToolArgsView}
- * dispatch (same component used by {@link ApprovalCard}), ensuring
- * visual parity between pre-execution approval previews and
- * post-execution detail views. Result/output sections are layered
- * on top by this component.
+ * Arguments render through the shared {@link ToolArgsView} (same component used
+ * by {@link ApprovalCard}); results render through {@link ResultView}, driven by
+ * `@stigmer/sdk`'s `normalizeToolResult` — so an edit shows a diff, a shell shows
+ * a terminal with an exit badge, a search shows a match list, and unknown tools
+ * degrade to readable JSON instead of a raw dump.
  *
- * - **Shell tools**: terminal-style command + output
- * - **File tools (read/write/edit/delete)**: file path + content + result
- * - **Search tools (grep/glob)**: pattern + results
- * - **Think**: muted italic thought block
- * - **MCP tools**: structured args + parsed result via {@link McpToolDetail}
- * - **Unknown tools**: generic args + result JSON rendering
+ * Composition varies by category to avoid redundancy: an edit shows only the
+ * diff (which already names the file and quantifies the change); a write shows
+ * its input content; a read shows just the path.
  *
- * Used inside {@link ToolCallItem} when expanded, but also
- * independently importable by platform builders who compose
- * their own tool call UI.
+ * Importable on its own by platform builders composing custom tool UIs.
  *
  * @example
  * ```tsx
@@ -48,147 +40,83 @@ export interface ToolCallDetailProps {
  * ```
  */
 export function ToolCallDetail({ toolCall, className }: ToolCallDetailProps) {
-  const category = resolveToolCategory(toolCall.name, toolCall.mcpServerSlug);
-  const isFailed = toolCall.status === ToolCallStatus.TOOL_CALL_FAILED;
+  const { category, result } = useToolPresentation(toolCall);
 
   return (
     <div className={cn("space-y-2 text-xs", className)}>
-      <CategoryRenderer toolCall={toolCall} categoryName={category.category} />
-
-      {isFailed && toolCall.error && (
-        <div className="space-y-1">
-          <span className="font-medium text-destructive">Error</span>
-          <pre className="whitespace-pre-wrap break-words rounded-md border border-destructive/20 bg-destructive-subtle p-2 font-mono text-destructive">
-            {toolCall.error}
-          </pre>
-        </div>
-      )}
+      <CategoryDetail toolCall={toolCall} category={category} result={result} />
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Category-specific renderers
+// Category composition
 //
-// Each renderer composes:
-//   MetadataRow (duration, slug) + ToolArgsView (shared args) + result section
-//
-// Think and MCP have fully custom rendering that doesn't fit the
-// MetadataRow + ToolArgsView + Result pattern.
+// Each category composes from three parts: MetadataRow (duration, slug),
+// ToolArgsView (the input), and ResultView (the effect). The combination is
+// chosen to be informative without duplication.
 // ---------------------------------------------------------------------------
 
-function CategoryRenderer({
+function CategoryDetail({
   toolCall,
-  categoryName,
+  category,
+  result,
 }: {
   toolCall: ToolCall;
-  categoryName: string;
+  category: ToolCategory;
+  result: ToolResultView;
 }) {
-  switch (categoryName) {
-    case "shell":
-      return <ShellToolDetail toolCall={toolCall} />;
-    case "read":
-      return <FileToolDetail toolCall={toolCall} mode="read" />;
-    case "write":
-      return <FileToolDetail toolCall={toolCall} mode="write" />;
-    case "edit":
-      return <FileToolDetail toolCall={toolCall} mode="edit" />;
-    case "delete":
-      return <FileToolDetail toolCall={toolCall} mode="delete" />;
-    case "search":
-    case "list":
-      return <SearchToolDetail toolCall={toolCall} />;
+  const args = <ArgsSection toolCall={toolCall} />;
+
+  switch (category) {
     case "think":
       return <ThinkToolDetail toolCall={toolCall} />;
+
     case "mcp":
       return <McpToolDetail toolCall={toolCall} />;
+
+    case "edit":
+      // The diff already names the file and quantifies the change, so it stands
+      // alone — showing the new content as an argument would duplicate it.
+      return (
+        <>
+          <MetadataRow toolCall={toolCall} />
+          <ResultView view={result} />
+        </>
+      );
+
+    case "read":
+    case "write":
+    case "delete":
+      // The input is the point (path, or path + written content). Only surface a
+      // result body when it carries new information — i.e. an error.
+      return (
+        <>
+          <MetadataRow toolCall={toolCall} />
+          {args}
+          {result.type === "error" && <ResultView view={result} />}
+        </>
+      );
+
     default:
-      return <GenericToolDetail toolCall={toolCall} />;
+      // shell, search, list, fetch, web-search, unknown: input + effect.
+      return (
+        <>
+          <MetadataRow toolCall={toolCall} />
+          {args}
+          <ResultView view={result} />
+        </>
+      );
   }
 }
 
-function ShellToolDetail({ toolCall }: { toolCall: ToolCall }) {
-  const duration = formatDuration(toolCall.startedAt, toolCall.completedAt);
-  const normalize = useSandboxNormalize();
-
+function ArgsSection({ toolCall }: { toolCall: ToolCall }) {
   return (
-    <>
-      <MetadataRow toolCall={toolCall} duration={duration} />
-
-      <ToolArgsView
-        toolName={toolCall.name}
-        args={toolCall.args as Record<string, unknown> | null}
-        mcpServerSlug={toolCall.mcpServerSlug}
-      />
-
-      {toolCall.result && (
-        <div className="space-y-1">
-          <span className="font-medium text-muted-foreground">Output</span>
-          <div className="rounded-md border border-border bg-[var(--stgm-terminal-bg,#1a1a2e)] p-2.5">
-            <CollapsiblePre
-              content={normalize(toolCall.result)}
-              className="text-[var(--stgm-terminal-fg,#e0e0e0)]"
-            />
-          </div>
-        </div>
-      )}
-    </>
-  );
-}
-
-/**
- * For **read**: metadata + path only (content is noise for the user).
- * For **write/edit/delete**: metadata + path + content (via ToolArgsView) + result.
- */
-function FileToolDetail({
-  toolCall,
-  mode,
-}: {
-  toolCall: ToolCall;
-  mode: "read" | "write" | "edit" | "delete";
-}) {
-  const duration = formatDuration(toolCall.startedAt, toolCall.completedAt);
-
-  return (
-    <>
-      <MetadataRow toolCall={toolCall} duration={duration} />
-
-      <ToolArgsView
-        toolName={toolCall.name}
-        args={toolCall.args as Record<string, unknown> | null}
-        mcpServerSlug={toolCall.mcpServerSlug}
-      />
-
-      {mode !== "read" && toolCall.result && (
-        <CollapsibleCode
-          label="Result"
-          content={formatResult(toolCall.result)}
-        />
-      )}
-    </>
-  );
-}
-
-function SearchToolDetail({ toolCall }: { toolCall: ToolCall }) {
-  const duration = formatDuration(toolCall.startedAt, toolCall.completedAt);
-
-  return (
-    <>
-      <MetadataRow toolCall={toolCall} duration={duration} />
-
-      <ToolArgsView
-        toolName={toolCall.name}
-        args={toolCall.args as Record<string, unknown> | null}
-        mcpServerSlug={toolCall.mcpServerSlug}
-      />
-
-      {toolCall.result && (
-        <CollapsibleCode
-          label="Results"
-          content={formatResult(toolCall.result)}
-        />
-      )}
-    </>
+    <ToolArgsView
+      toolName={toolCall.name}
+      args={toolCall.args as Record<string, unknown> | null}
+      mcpServerSlug={toolCall.mcpServerSlug}
+    />
   );
 }
 
@@ -208,40 +136,12 @@ function ThinkToolDetail({ toolCall }: { toolCall: ToolCall }) {
   );
 }
 
-function GenericToolDetail({ toolCall }: { toolCall: ToolCall }) {
-  const duration = formatDuration(toolCall.startedAt, toolCall.completedAt);
-
-  return (
-    <>
-      <MetadataRow toolCall={toolCall} duration={duration} />
-
-      <ToolArgsView
-        toolName={toolCall.name}
-        args={toolCall.args as Record<string, unknown> | null}
-        mcpServerSlug={toolCall.mcpServerSlug}
-      />
-
-      {toolCall.result && (
-        <CollapsibleCode
-          label="Result"
-          content={formatResult(toolCall.result)}
-        />
-      )}
-    </>
-  );
-}
-
 // ---------------------------------------------------------------------------
 // Shared sub-components
 // ---------------------------------------------------------------------------
 
-function MetadataRow({
-  toolCall,
-  duration,
-}: {
-  toolCall: ToolCall;
-  duration: string | null;
-}) {
+function MetadataRow({ toolCall }: { toolCall: ToolCall }) {
+  const duration = formatDuration(toolCall.startedAt, toolCall.completedAt);
   const hasMetadata = toolCall.mcpServerSlug || duration;
   if (!hasMetadata) return null;
 
@@ -262,9 +162,8 @@ function MetadataRow({
 // ---------------------------------------------------------------------------
 
 /**
- * Returns a human-readable duration string from two ISO 8601
- * timestamps. Returns `null` when either timestamp is empty or
- * invalid.
+ * Returns a human-readable duration string from two ISO 8601 timestamps, or
+ * `null` when either timestamp is empty or invalid.
  */
 export function formatDuration(
   startedAt: string,

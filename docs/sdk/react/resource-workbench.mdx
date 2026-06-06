@@ -299,7 +299,7 @@ Renders one of three states:
     hidden: { type: "boolean", description: "When `true`, renders nothing — no image, no initial avatar. Used for resource types like skills that don't support icons." },
     iconUrl: { type: "string", description: "Icon URL from the resource's spec. Empty string means no icon." },
     name: { type: "string", description: "Display name used for the initial fallback.", required: true },
-    size: { type: "\"sm\" | \"md\"", description: "Size variant." },
+    size: { type: "\"md\" | \"sm\"", description: "Size variant." },
     slug: { type: "string", description: "Slug used to derive a deterministic background color.", required: true },
   }}
 />
@@ -588,7 +588,7 @@ they appear in the filter UI.
     label: { type: "string", description: "Human-readable label shown in the filter picker and chips.", required: true },
     operators: { type: "readonly FilterOperator[]", description: "Allowed operators. Defaults to `[\"eq\"]` for selects, `[\"contains\"]` for text, and `[\"gte\", \"lte\"]` for dates." },
     options: { type: "readonly FilterOption[]", description: "Available options for `select` and `multi-select` types. Ignored for `text` and `date`." },
-    type: { type: "\"select\" | \"text\" | \"date\" | \"multi-select\"", description: "Filter input type.", required: true },
+    type: { type: "\"text\" | \"select\" | \"date\" | \"multi-select\"", description: "Filter input type.", required: true },
   }}
 />
 

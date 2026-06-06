@@ -177,6 +177,17 @@ export {
 
 // Session utilities (hand-written)
 export { PENDING_SUBJECT, resolvedSubject } from "./session";
+
+// Tool-call view model (framework-agnostic; shared by @stigmer/react and @stigmer/ink)
+export {
+  ToolKind,
+  resolveToolKind,
+  resolveToolKindByName,
+  normalizeToolResult,
+  type ToolResultView,
+  type ToolSearchMatch,
+  type ToolContentBlock,
+} from "./execution/tool-view";
 export { SkillClient, type SkillInput } from "./gen/skill";
 export {
   WorkflowClient,

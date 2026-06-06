@@ -28,6 +28,7 @@ import {
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { utcTimestamp } from "../../shared/status.js";
+import { classifyTool } from "../../shared/tool-kind.js";
 import { extractToolResultV3, MAX_TOOL_RESULT_CHARS } from "./status-builder-shared.js";
 import type { StigmerRunEvent, V3UsagePayload } from "./v3-events.js";
 
@@ -283,6 +284,7 @@ export class SubAgentTracker {
       name,
       status: ToolCallStatus.TOOL_CALL_RUNNING,
       startedAt: utcTimestamp(),
+      toolKind: classifyTool(name),
     });
 
     if (Object.keys(input).length > 0) {

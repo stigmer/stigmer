@@ -185,7 +185,7 @@ public enum ApprovalAction
   }
   public static com.google.protobuf.Descriptors.EnumDescriptor
       getDescriptor() {
-    return ai.stigmer.agentic.agentexecution.v1.EnumProto.getDescriptor().getEnumType(9);
+    return ai.stigmer.agentic.agentexecution.v1.EnumProto.getDescriptor().getEnumType(10);
   }
 
   private static final ApprovalAction[] VALUES = values();

@@ -9,7 +9,7 @@ import { enumDesc, fileDesc } from "@bufbuild/protobuf/codegenv1";
  * Describes the file ai/stigmer/agentic/agentexecution/v1/enum.proto.
  */
 export const file_ai_stigmer_agentic_agentexecution_v1_enum: GenFile = /*@__PURE__*/
-  fileDesc("Ci9haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvZW51bS5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxKv8BCg5FeGVjdXRpb25QaGFzZRIfChtFWEVDVVRJT05fUEhBU0VfVU5TUEVDSUZJRUQQABIVChFFWEVDVVRJT05fUEVORElORxABEhkKFUVYRUNVVElPTl9JTl9QUk9HUkVTUxACEhcKE0VYRUNVVElPTl9DT01QTEVURUQQAxIUChBFWEVDVVRJT05fRkFJTEVEEAQSFwoTRVhFQ1VUSU9OX0NBTkNFTExFRBAFEhgKFEVYRUNVVElPTl9URVJNSU5BVEVEEAgSIgoeRVhFQ1VUSU9OX1dBSVRJTkdfRk9SX0FQUFJPVkFMEAYSFAoQRVhFQ1VUSU9OX1BBVVNFRBAHKooBCgtNZXNzYWdlVHlwZRIcChhNRVNTQUdFX1RZUEVfVU5TUEVDSUZJRUQQABIRCg1NRVNTQUdFX0hVTUFOEAESDgoKTUVTU0FHRV9BSRACEhAKDE1FU1NBR0VfVE9PTBADEhIKDk1FU1NBR0VfU1lTVEVNEAQSFAoQTUVTU0FHRV9USElOS0lORxAFKsYBCg5Ub29sQ2FsbFN0YXR1cxIgChxUT09MX0NBTExfU1RBVFVTX1VOU1BFQ0lGSUVEEAASFQoRVE9PTF9DQUxMX1BFTkRJTkcQARIVChFUT09MX0NBTExfUlVOTklORxACEhcKE1RPT0xfQ0FMTF9DT01QTEVURUQQAxIUChBUT09MX0NBTExfRkFJTEVEEAQSHgoaVE9PTF9DQUxMX1dBSVRJTkdfQVBQUk9WQUwQBRIVChFUT09MX0NBTExfU0tJUFBFRBAGKnkKClRvZG9TdGF0dXMSGwoXVE9ET19TVEFUVVNfVU5TUEVDSUZJRUQQABIQCgxUT0RPX1BFTkRJTkcQARIUChBUT0RPX0lOX1BST0dSRVNTEAISEgoOVE9ET19DT01QTEVURUQQAxISCg5UT0RPX0NBTkNFTExFRBAEKqwBCg5TdWJBZ2VudFN0YXR1cxIgChxTVUJfQUdFTlRfU1RBVFVTX1VOU1BFQ0lGSUVEEAASFQoRU1VCX0FHRU5UX1BFTkRJTkcQARIZChVTVUJfQUdFTlRfSU5fUFJPR1JFU1MQAhIXChNTVUJfQUdFTlRfQ09NUExFVEVEEAMSFAoQU1VCX0FHRU5UX0ZBSUxFRBAEEhcKE1NVQl9BR0VOVF9DQU5DRUxMRUQQBSqJAQoVRXhlY3V0aW9uQXJ0aWZhY3RLaW5kEicKI0VYRUNVVElPTl9BUlRJRkFDVF9LSU5EX1VOU1BFQ0lGSUVEEAASIAocRVhFQ1VUSU9OX0FSVElGQUNUX0tJTkRfRklMRRABEiUKIUVYRUNVVElPTl9BUlRJRkFDVF9LSU5EX0RJUkVDVE9SWRACKl8KE1N1bW1hcml6YXRpb25Tb3VyY2USJAogU1VNTUFSSVpBVElPTl9TT1VSQ0VfVU5TUEVDSUZJRUQQABIPCgtncmFwaF9zdGFydBABEhEKDW1pZF9leGVjdXRpb24QAiqSAQoXVG9vbENhbGxTdHJlYW1pbmdTb3VyY2USKgomVE9PTF9DQUxMX1NUUkVBTUlOR19TT1VSQ0VfVU5TUEVDSUZJRUQQABIkCiBUT09MX0NBTExfU1RSRUFNSU5HX1NPVVJDRV9JTlBVVBABEiUKIVRPT0xfQ0FMTF9TVFJFQU1JTkdfU09VUkNFX09VVFBVVBACKosBChZFeGVjdXRpb25Db250cm9sU2lnbmFsEigKJEVYRUNVVElPTl9DT05UUk9MX1NJR05BTF9VTlNQRUNJRklFRBAAEiEKHUVYRUNVVElPTl9DT05UUk9MX1NJR05BTF9TVE9QEAESJAogRVhFQ1VUSU9OX0NPTlRST0xfU0lHTkFMX1dBUk5JTkcQAiqEAQoOQXBwcm92YWxBY3Rpb24SHwobQVBQUk9WQUxfQUNUSU9OX1VOU1BFQ0lGSUVEEAASGwoXQVBQUk9WQUxfQUNUSU9OX0FQUFJPVkUQARIYChRBUFBST1ZBTF9BQ1RJT05fU0tJUBACEhoKFkFQUFJPVkFMX0FDVElPTl9SRUpFQ1QQAypqCg9JbnRlcmFjdGlvbk1vZGUSIAocSU5URVJBQ1RJT05fTU9ERV9VTlNQRUNJRklFRBAAEhoKFklOVEVSQUNUSU9OX01PREVfQUdFTlQQARIZChVJTlRFUkFDVElPTl9NT0RFX1BMQU4QAmIGcHJvdG8z");
+  fileDesc("Ci9haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvZW51bS5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxKv8BCg5FeGVjdXRpb25QaGFzZRIfChtFWEVDVVRJT05fUEhBU0VfVU5TUEVDSUZJRUQQABIVChFFWEVDVVRJT05fUEVORElORxABEhkKFUVYRUNVVElPTl9JTl9QUk9HUkVTUxACEhcKE0VYRUNVVElPTl9DT01QTEVURUQQAxIUChBFWEVDVVRJT05fRkFJTEVEEAQSFwoTRVhFQ1VUSU9OX0NBTkNFTExFRBAFEhgKFEVYRUNVVElPTl9URVJNSU5BVEVEEAgSIgoeRVhFQ1VUSU9OX1dBSVRJTkdfRk9SX0FQUFJPVkFMEAYSFAoQRVhFQ1VUSU9OX1BBVVNFRBAHKooBCgtNZXNzYWdlVHlwZRIcChhNRVNTQUdFX1RZUEVfVU5TUEVDSUZJRUQQABIRCg1NRVNTQUdFX0hVTUFOEAESDgoKTUVTU0FHRV9BSRACEhAKDE1FU1NBR0VfVE9PTBADEhIKDk1FU1NBR0VfU1lTVEVNEAQSFAoQTUVTU0FHRV9USElOS0lORxAFKsYBCg5Ub29sQ2FsbFN0YXR1cxIgChxUT09MX0NBTExfU1RBVFVTX1VOU1BFQ0lGSUVEEAASFQoRVE9PTF9DQUxMX1BFTkRJTkcQARIVChFUT09MX0NBTExfUlVOTklORxACEhcKE1RPT0xfQ0FMTF9DT01QTEVURUQQAxIUChBUT09MX0NBTExfRkFJTEVEEAQSHgoaVE9PTF9DQUxMX1dBSVRJTkdfQVBQUk9WQUwQBRIVChFUT09MX0NBTExfU0tJUFBFRBAGKs4CCghUb29sS2luZBIZChVUT09MX0tJTkRfVU5TUEVDSUZJRUQQABIXChNUT09MX0tJTkRfRklMRV9SRUFEEAESGAoUVE9PTF9LSU5EX0ZJTEVfV1JJVEUQAhIXChNUT09MX0tJTkRfRklMRV9FRElUEAMSGQoVVE9PTF9LSU5EX0ZJTEVfREVMRVRFEAQSEwoPVE9PTF9LSU5EX1NIRUxMEAUSFAoQVE9PTF9LSU5EX1NFQVJDSBAGEhIKDlRPT0xfS0lORF9MSVNUEAcSEwoPVE9PTF9LSU5EX0ZFVENIEAgSGAoUVE9PTF9LSU5EX1dFQl9TRUFSQ0gQCRITCg9UT09MX0tJTkRfVEhJTksQChISCg5UT09MX0tJTkRfVE9ETxALEhYKElRPT0xfS0lORF9TVUJBR0VOVBAMEhEKDVRPT0xfS0lORF9NQ1AQDSp5CgpUb2RvU3RhdHVzEhsKF1RPRE9fU1RBVFVTX1VOU1BFQ0lGSUVEEAASEAoMVE9ET19QRU5ESU5HEAESFAoQVE9ET19JTl9QUk9HUkVTUxACEhIKDlRPRE9fQ09NUExFVEVEEAMSEgoOVE9ET19DQU5DRUxMRUQQBCqsAQoOU3ViQWdlbnRTdGF0dXMSIAocU1VCX0FHRU5UX1NUQVRVU19VTlNQRUNJRklFRBAAEhUKEVNVQl9BR0VOVF9QRU5ESU5HEAESGQoVU1VCX0FHRU5UX0lOX1BST0dSRVNTEAISFwoTU1VCX0FHRU5UX0NPTVBMRVRFRBADEhQKEFNVQl9BR0VOVF9GQUlMRUQQBBIXChNTVUJfQUdFTlRfQ0FOQ0VMTEVEEAUqiQEKFUV4ZWN1dGlvbkFydGlmYWN0S2luZBInCiNFWEVDVVRJT05fQVJUSUZBQ1RfS0lORF9VTlNQRUNJRklFRBAAEiAKHEVYRUNVVElPTl9BUlRJRkFDVF9LSU5EX0ZJTEUQARIlCiFFWEVDVVRJT05fQVJUSUZBQ1RfS0lORF9ESVJFQ1RPUlkQAipfChNTdW1tYXJpemF0aW9uU291cmNlEiQKIFNVTU1BUklaQVRJT05fU09VUkNFX1VOU1BFQ0lGSUVEEAASDwoLZ3JhcGhfc3RhcnQQARIRCg1taWRfZXhlY3V0aW9uEAIqkgEKF1Rvb2xDYWxsU3RyZWFtaW5nU291cmNlEioKJlRPT0xfQ0FMTF9TVFJFQU1JTkdfU09VUkNFX1VOU1BFQ0lGSUVEEAASJAogVE9PTF9DQUxMX1NUUkVBTUlOR19TT1VSQ0VfSU5QVVQQARIlCiFUT09MX0NBTExfU1RSRUFNSU5HX1NPVVJDRV9PVVRQVVQQAiqLAQoWRXhlY3V0aW9uQ29udHJvbFNpZ25hbBIoCiRFWEVDVVRJT05fQ09OVFJPTF9TSUdOQUxfVU5TUEVDSUZJRUQQABIhCh1FWEVDVVRJT05fQ09OVFJPTF9TSUdOQUxfU1RPUBABEiQKIEVYRUNVVElPTl9DT05UUk9MX1NJR05BTF9XQVJOSU5HEAIqhAEKDkFwcHJvdmFsQWN0aW9uEh8KG0FQUFJPVkFMX0FDVElPTl9VTlNQRUNJRklFRBAAEhsKF0FQUFJPVkFMX0FDVElPTl9BUFBST1ZFEAESGAoUQVBQUk9WQUxfQUNUSU9OX1NLSVAQAhIaChZBUFBST1ZBTF9BQ1RJT05fUkVKRUNUEAMqagoPSW50ZXJhY3Rpb25Nb2RlEiAKHElOVEVSQUNUSU9OX01PREVfVU5TUEVDSUZJRUQQABIaChZJTlRFUkFDVElPTl9NT0RFX0FHRU5UEAESGQoVSU5URVJBQ1RJT05fTU9ERV9QTEFOEAJiBnByb3RvMw");
 
 /**
  * ExecutionPhase defines the lifecycle phase of an agent execution.
@@ -345,6 +345,140 @@ export const ToolCallStatusSchema: GenEnum<ToolCallStatus> = /*@__PURE__*/
   enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 2);
 
 /**
+ * ToolKind is the harness-agnostic category of a tool call.
+ *
+ * Both execution harnesses emit tool calls with engine-specific names — the
+ * native (deepagents) harness uses snake_case (edit_file, execute, grep), while
+ * the Cursor harness uses PascalCase (StrReplace, Shell, Grep). ToolKind
+ * normalizes that identity once, in the runner, so every client (web, desktop,
+ * CLI, Ink) renders a tool the same way regardless of which harness produced it.
+ *
+ * This is identity, not presentation: it answers "what kind of tool is this?"
+ * and is deliberately distinct from ToolCallStreamingSource, which describes an
+ * orthogonal streaming capability. Result formatting is a client concern and is
+ * intentionally not encoded here.
+ *
+ * TOOL_KIND_UNSPECIFIED means the runner did not classify the tool — either the
+ * execution predates this field, or the tool does not fit a known kind. Clients
+ * fall back to a tool-name lookup in that case, so legacy executions still
+ * render correctly.
+ *
+ * @generated from enum ai.stigmer.agentic.agentexecution.v1.ToolKind
+ */
+export enum ToolKind {
+  /**
+   * Not classified. Legacy executions (persisted before this field existed) and
+   * tools with no known kind. Clients fall back to a name-based resolver.
+   *
+   * @generated from enum value: TOOL_KIND_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * Read a file's contents. Native: read, read_file. Cursor: Read.
+   *
+   * @generated from enum value: TOOL_KIND_FILE_READ = 1;
+   */
+  FILE_READ = 1,
+
+  /**
+   * Create or overwrite an entire file. Native: write_file, create_file.
+   * Cursor: Write.
+   *
+   * @generated from enum value: TOOL_KIND_FILE_WRITE = 2;
+   */
+  FILE_WRITE = 2,
+
+  /**
+   * Modify part of an existing file. Native: edit_file, str_replace_editor.
+   * Cursor: StrReplace, EditNotebook.
+   *
+   * @generated from enum value: TOOL_KIND_FILE_EDIT = 3;
+   */
+  FILE_EDIT = 3,
+
+  /**
+   * Delete a file. Native: delete_file, remove_file. Cursor: Delete.
+   *
+   * @generated from enum value: TOOL_KIND_FILE_DELETE = 4;
+   */
+  FILE_DELETE = 4,
+
+  /**
+   * Execute a shell command. Native: execute, shell. Cursor: Shell.
+   *
+   * @generated from enum value: TOOL_KIND_SHELL = 5;
+   */
+  SHELL = 5,
+
+  /**
+   * Search file contents or names. Native: grep, glob. Cursor: Grep, Glob,
+   * SemanticSearch.
+   *
+   * @generated from enum value: TOOL_KIND_SEARCH = 6;
+   */
+  SEARCH = 6,
+
+  /**
+   * List a directory. Native: ls, list_directory.
+   *
+   * @generated from enum value: TOOL_KIND_LIST = 7;
+   */
+  LIST = 7,
+
+  /**
+   * Fetch the contents of a URL. Cursor: WebFetch.
+   *
+   * @generated from enum value: TOOL_KIND_FETCH = 8;
+   */
+  FETCH = 8,
+
+  /**
+   * Search the web. Cursor: WebSearch.
+   *
+   * @generated from enum value: TOOL_KIND_WEB_SEARCH = 9;
+   */
+  WEB_SEARCH = 9,
+
+  /**
+   * Record model reasoning via a think tool. Native: think.
+   *
+   * @generated from enum value: TOOL_KIND_THINK = 10;
+   */
+  THINK = 10,
+
+  /**
+   * Manage the agent's todo list. Native: write_todos. Cursor: TodoWrite.
+   * Typically rendered through a dedicated todo surface, not the tool thread.
+   *
+   * @generated from enum value: TOOL_KIND_TODO = 11;
+   */
+  TODO = 11,
+
+  /**
+   * Delegate work to a sub-agent. Native/Cursor: task/Task. Rendered as a
+   * nested thread, not via the standard tool result view.
+   *
+   * @generated from enum value: TOOL_KIND_SUBAGENT = 12;
+   */
+  SUBAGENT = 12,
+
+  /**
+   * A tool provided by an MCP server. The server is identified by
+   * ToolCall.mcp_server_slug; the tool's bare name is in ToolCall.name.
+   *
+   * @generated from enum value: TOOL_KIND_MCP = 13;
+   */
+  MCP = 13,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.agentexecution.v1.ToolKind.
+ */
+export const ToolKindSchema: GenEnum<ToolKind> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 3);
+
+/**
  * TodoStatus defines the status of a todo item.
  *
  * @generated from enum ai.stigmer.agentic.agentexecution.v1.TodoStatus
@@ -390,7 +524,7 @@ export enum TodoStatus {
  * Describes the enum ai.stigmer.agentic.agentexecution.v1.TodoStatus.
  */
 export const TodoStatusSchema: GenEnum<TodoStatus> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 3);
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 4);
 
 /**
  * SubAgentStatus defines the status of a sub-agent execution.
@@ -471,7 +605,7 @@ export enum SubAgentStatus {
  * Describes the enum ai.stigmer.agentic.agentexecution.v1.SubAgentStatus.
  */
 export const SubAgentStatusSchema: GenEnum<SubAgentStatus> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 4);
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 5);
 
 /**
  * ExecutionArtifactKind defines the type of artifact published by an agent.
@@ -508,7 +642,7 @@ export enum ExecutionArtifactKind {
  * Describes the enum ai.stigmer.agentic.agentexecution.v1.ExecutionArtifactKind.
  */
 export const ExecutionArtifactKindSchema: GenEnum<ExecutionArtifactKind> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 5);
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 6);
 
 /**
  * SummarizationSource identifies what triggered a context summarization event.
@@ -549,7 +683,7 @@ export enum SummarizationSource {
  * Describes the enum ai.stigmer.agentic.agentexecution.v1.SummarizationSource.
  */
 export const SummarizationSourceSchema: GenEnum<SummarizationSource> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 6);
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 7);
 
 /**
  * ToolCallStreamingSource identifies what is currently being streamed on a
@@ -608,7 +742,7 @@ export enum ToolCallStreamingSource {
  * Describes the enum ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource.
  */
 export const ToolCallStreamingSourceSchema: GenEnum<ToolCallStreamingSource> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 7);
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 8);
 
 /**
  * ExecutionControlSignal is a platform-to-runner directive returned by the
@@ -651,7 +785,7 @@ export enum ExecutionControlSignal {
  * Describes the enum ai.stigmer.agentic.agentexecution.v1.ExecutionControlSignal.
  */
 export const ExecutionControlSignalSchema: GenEnum<ExecutionControlSignal> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 8);
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 9);
 
 /**
  * ApprovalAction represents the user's decision on an approval request.
@@ -718,7 +852,7 @@ export enum ApprovalAction {
  * Describes the enum ai.stigmer.agentic.agentexecution.v1.ApprovalAction.
  */
 export const ApprovalActionSchema: GenEnum<ApprovalAction> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 9);
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 10);
 
 /**
  * InteractionMode controls the agent's behavioral posture for an execution.
@@ -777,5 +911,5 @@ export enum InteractionMode {
  * Describes the enum ai.stigmer.agentic.agentexecution.v1.InteractionMode.
  */
 export const InteractionModeSchema: GenEnum<InteractionMode> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 10);
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 11);
 

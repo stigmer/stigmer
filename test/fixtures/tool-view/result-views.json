@@ -1,0 +1,133 @@
+{
+  "comment": "ToolCall projection -> expected ToolResultView. Only deterministic facts are asserted across languages (type, path, exitCode, count, mcpServerSlug, and linesAdded/linesRemoved when present in source data). See test/fixtures/tool-view/README.md.",
+  "cases": [
+    {
+      "name": "native_edit_success",
+      "harness": "native",
+      "toolName": "edit_file",
+      "mcpServerSlug": "",
+      "args": { "file_path": "/workspace/x.md", "old_string": "Hello", "new_string": "Hello world\nNew line" },
+      "result": "Successfully replaced 1 occurrence in '/workspace/x.md'",
+      "expected": { "type": "diff", "path": "/workspace/x.md" }
+    },
+    {
+      "name": "cursor_edit_envelope",
+      "harness": "cursor",
+      "toolName": "StrReplace",
+      "mcpServerSlug": "",
+      "args": { "path": "/workspace/mahatma-gandhi.md", "old_string": "", "new_string": "line\n" },
+      "result": "{\"status\":\"success\",\"value\":{\"linesAdded\":40,\"linesRemoved\":0,\"diffString\":\"@@ -1 +1,40 @@\\n+...\"}}",
+      "expected": { "type": "diff", "path": "/workspace/mahatma-gandhi.md", "linesAdded": 40, "linesRemoved": 0 }
+    },
+    {
+      "name": "native_write_confirmation",
+      "harness": "native",
+      "toolName": "write_file",
+      "mcpServerSlug": "",
+      "args": { "file_path": "/workspace/new.txt", "contents": "alpha\nbeta\n" },
+      "result": "Successfully wrote to '/workspace/new.txt'",
+      "expected": { "type": "file", "path": "/workspace/new.txt" }
+    },
+    {
+      "name": "native_read",
+      "harness": "native",
+      "toolName": "read_file",
+      "mcpServerSlug": "",
+      "args": { "file_path": "/workspace/main.go" },
+      "result": "     1\tpackage main\n     2\t",
+      "expected": { "type": "file", "path": "/workspace/main.go" }
+    },
+    {
+      "name": "native_shell_success",
+      "harness": "native",
+      "toolName": "execute",
+      "mcpServerSlug": "",
+      "args": { "command": "ls -la" },
+      "result": "total 8\ndrwxr-xr-x  2 user user 4096 .\n[Command succeeded]",
+      "expected": { "type": "terminal", "exitCode": 0 }
+    },
+    {
+      "name": "native_shell_failure",
+      "harness": "native",
+      "toolName": "execute",
+      "mcpServerSlug": "",
+      "args": { "command": "false" },
+      "result": "some stderr output\n[Command failed with exit code 1]",
+      "expected": { "type": "terminal", "exitCode": 1 }
+    },
+    {
+      "name": "cursor_shell_string",
+      "harness": "cursor",
+      "toolName": "Shell",
+      "mcpServerSlug": "",
+      "args": { "command": "echo hi" },
+      "result": "hi\n",
+      "expected": { "type": "terminal" }
+    },
+    {
+      "name": "native_grep_matches",
+      "harness": "native",
+      "toolName": "grep",
+      "mcpServerSlug": "",
+      "args": { "pattern": "TODO" },
+      "result": "\n/workspace/a.go:\n  12: // TODO: fix\n/workspace/b.go:\n  7: // TODO: later",
+      "expected": { "type": "search", "count": 2 }
+    },
+    {
+      "name": "native_ls_entries",
+      "harness": "native",
+      "toolName": "ls",
+      "mcpServerSlug": "",
+      "args": { "path": "/workspace" },
+      "result": "a.go\nb.go\nREADME.md",
+      "expected": { "type": "list", "count": 3 }
+    },
+    {
+      "name": "mcp_content_blocks",
+      "harness": "native",
+      "toolName": "search_services",
+      "mcpServerSlug": "planton",
+      "args": { "query": "billing" },
+      "result": "{\"content\":[{\"type\":\"text\",\"text\":\"two services found\"}]}",
+      "expected": { "type": "contentBlocks", "mcpServerSlug": "planton" }
+    },
+    {
+      "name": "think_text",
+      "harness": "native",
+      "toolName": "think",
+      "mcpServerSlug": "",
+      "args": { "thought": "I should read the config first." },
+      "result": "ok",
+      "expected": { "type": "text" }
+    },
+    {
+      "name": "unknown_json_object",
+      "harness": "cursor",
+      "toolName": "ReadLints",
+      "mcpServerSlug": "",
+      "args": {},
+      "result": "{\"diagnostics\":[],\"count\":0}",
+      "expected": { "type": "json" }
+    },
+    {
+      "name": "unknown_plain_text",
+      "harness": "native",
+      "toolName": "some_unknown_tool",
+      "mcpServerSlug": "",
+      "args": {},
+      "result": "just some text",
+      "expected": { "type": "text" }
+    },
+    {
+      "name": "failed_tool_error",
+      "harness": "native",
+      "toolName": "execute",
+      "mcpServerSlug": "",
+      "args": { "command": "boom" },
+      "result": "",
+      "error": "command not found: boom",
+      "status": "TOOL_CALL_FAILED",
+      "expected": { "type": "error" }
+    }
+  ]
+}

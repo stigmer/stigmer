@@ -428,6 +428,27 @@ await submitApproval(executionId, toolCallId, ApprovalAction.APPROVAL_ACTION_APP
 ```
 
 
+### useToolPresentation
+
+Resolves the complete, render-ready presentation for a tool call.
+
+Headless and memoized: the returned object is referentially stable across
+renders for the same `toolCall`, so it is safe to depend on in `React.memo`
+leaves of the streaming thread.
+
+**Signature**
+
+```tsx
+function useToolPresentation(toolCall: ToolCall): ToolPresentation
+```
+
+<TypeTable
+  type={{
+    toolCall: { type: "ToolCall", description: "", required: true },
+  }}
+/>
+
+
 ### useWorkspaceWriteBacks
 
 Pure derivation hook that extracts workspace write-back data from an
@@ -945,6 +966,25 @@ const stream = useExecutionStream(activeId);
 ```
 
 
+### ResultView
+
+Renders a `ToolResultView` with a type-appropriate treatment.
+
+This is the presentation half of the tool-result pipeline: `@stigmer/sdk`'s
+`normalizeToolResult` turns an opaque result string into a typed view, and
+this component renders it. Importable on its own by platform builders who
+compose custom tool UIs.
+
+**Props** — `ResultViewProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    view: { type: "ToolResultView", description: "The normalized result view to render.", required: true },
+  }}
+/>
+
+
 ### SessionVariablesInput
 
 Compact key-value editor for session-scoped environment variables.
@@ -1076,25 +1116,20 @@ const args = JSON.parse(pendingApproval.argsPreview);
 
 ### ToolCallDetail
 
-Renders the detail panel for a single tool call with
-category-specific visual treatments.
+Renders the detail panel for a single tool call with category-specific
+treatments.
 
-Arguments are rendered through the shared [`ToolArgsView`](#toolargsview)
-dispatch (same component used by [`ApprovalCard`](#approvalcard)), ensuring
-visual parity between pre-execution approval previews and
-post-execution detail views. Result/output sections are layered
-on top by this component.
+Arguments render through the shared [`ToolArgsView`](#toolargsview) (same component used
+by [`ApprovalCard`](#approvalcard)); results render through [`ResultView`](#resultview), driven by
+`@stigmer/sdk`'s `normalizeToolResult` — so an edit shows a diff, a shell shows
+a terminal with an exit badge, a search shows a match list, and unknown tools
+degrade to readable JSON instead of a raw dump.
 
-- **Shell tools**: terminal-style command + output
-- **File tools (read/write/edit/delete)**: file path + content + result
-- **Search tools (grep/glob)**: pattern + results
-- **Think**: muted italic thought block
-- **MCP tools**: structured args + parsed result via [`McpToolDetail`](#mcptooldetail)
-- **Unknown tools**: generic args + result JSON rendering
+Composition varies by category to avoid redundancy: an edit shows only the
+diff (which already names the file and quantifies the change); a write shows
+its input content; a read shows just the path.
 
-Used inside [`ToolCallItem`](#toolcallitem) when expanded, but also
-independently importable by platform builders who compose
-their own tool call UI.
+Importable on its own by platform builders composing custom tool UIs.
 
 **Props** — `ToolCallDetailProps`
 
@@ -1374,6 +1409,7 @@ Input for `UseCreateAgentExecutionReturn.create`.
   type={{
     agentId: { type: "string", description: "Explicit agent ID. When omitted, uses the session's agent instance." },
     attachments: { type: "AttachmentInput[]", description: "Pre-uploaded file attachments injected into the agent sandbox.  Each entry must include a `storageKey` obtained from `agentExecution.uploadAttachment()`. The agent can read attached files from their mount paths (default `/inputs/{filename}`)." },
+    autoApproveAll: { type: "boolean", description: "Auto-approve every tool call for this execution.  When `true`, the human-in-the-loop approval gate is bypassed and no tool waits for approval. When `false` (default), mutating/destructive tools require approval per the configured policies. Maps to `AgentExecutionSpec.auto_approve_all` in the proto." },
     interactionMode: { type: "\"agent\" | \"plan\"", description: "Interaction mode for this execution.  - `\"agent\"` (default): full tool access. - `\"plan\"`: read-only analysis, no file mutations.  Maps to `ExecutionConfig.interaction_mode` in the proto." },
     message: { type: "string", description: "User message that initiates the execution.", required: true },
     modelName: { type: "string", description: "Override the default model for this execution." },
@@ -1492,9 +1528,8 @@ function formatCost(usd: number): string
 
 ### formatDuration
 
-Returns a human-readable duration string from two ISO 8601
-timestamps. Returns `null` when either timestamp is empty or
-invalid.
+Returns a human-readable duration string from two ISO 8601 timestamps, or
+`null` when either timestamp is empty or invalid.
 
 ```tsx
 function formatDuration(startedAt: string, completedAt: string): string | null
@@ -1566,6 +1601,15 @@ function getFileExtension(fileName: string): string | null
 getFileExtension("agent.yaml");      // "yaml"
 getFileExtension("README.md");       // "md"
 getFileExtension("Makefile");        // null
+```
+
+
+### getToolPresenter
+
+Returns the registered presenter for a kind, if any.
+
+```tsx
+function getToolPresenter(kind: ToolKind): ToolPresenter | undefined
 ```
 
 
@@ -1746,6 +1790,33 @@ Props for [`PlanCompletionCard`](#plancompletioncard).
 />
 
 
+### registerToolPresenter
+
+Registers a custom presenter for a `ToolKind`, overriding the default
+label and/or summary. Call once at app startup. This is the extension point
+for platform builders embedding the execution UI who want product-specific
+wording without forking the components.
+
+Returns a disposer that unregisters the presenter, restoring the previous one
+for that kind (or the default). Most apps register once at startup and ignore
+it; tests and dynamic hosts use it to avoid leaking global state.
+
+```tsx
+function registerToolPresenter(kind: ToolKind, presenter: ToolPresenter): () => void
+```
+
+```tsx
+import { registerToolPresenter, ToolKind } from "@stigmer/react";
+
+const dispose = registerToolPresenter(ToolKind.SHELL, {
+  label: () => "Run command",
+  summary: (_tc, result) =>
+    result.type === "terminal" && result.exitCode ? `failed (${result.exitCode})` : null,
+});
+// later: dispose();
+```
+
+
 ### ResolvedPathAction
 
 Resolved action for a file path. Consumed by [`FilePathLink`](#filepathlink)
@@ -1782,6 +1853,42 @@ Resolution strategy (mirrors the CLI's `buildHyperlinkedPath`):
 
 ```tsx
 function resolvePathAction(path: string, workspaceEntries: readonly WorkspaceEntry[]): ResolvedPathAction
+```
+
+
+### resolveToolCategory
+
+Resolves a tool's presentation category from its name + MCP slug.
+
+Classification is delegated to `@stigmer/sdk`'s name-based resolver (the same
+table the runner and Go CLI use), then mapped to presentation metadata. When
+the caller has the full `ToolCall`, prefer [`resolveToolCategoryFromCall`](#resolvetoolcategoryfromcall),
+which also honours the wire `tool_kind` for forward compatibility.
+
+```tsx
+function resolveToolCategory(toolName: string, mcpServerSlug?: string): ToolCategoryInfo
+```
+
+
+### resolveToolCategoryFromCall
+
+Like [`resolveToolCategory`](#resolvetoolcategory) but uses the wire `tool_kind` when present,
+falling back to name-based resolution for legacy executions.
+
+```tsx
+function resolveToolCategoryFromCall(toolCall: ToolCall): ToolCategoryInfo
+```
+
+
+### resolveToolCategoryFromKind
+
+Resolves presentation metadata from an explicit wire `ToolKind` plus the
+tool name and MCP slug. Used by surfaces that carry a denormalized `tool_kind`
+but not a full `ToolCall` — notably `PendingApproval`. Falls back to
+name-based resolution when the kind is unset (legacy executions).
+
+```tsx
+function resolveToolCategoryFromKind(toolKind: ToolKind, toolName: string, mcpServerSlug?: string): ToolCategoryInfo
 ```
 
 
@@ -1975,6 +2082,17 @@ Normalized view of a single summarization event for rendering.
 />
 
 
+### summarizeResultView
+
+Returns a compact one-line summary fragment for a result view, suitable for a
+collapsed tool row (e.g. "+40 -0", "exit 1", "2 matches"). Returns null when
+there is nothing useful to summarize.
+
+```tsx
+function summarizeResultView(view: ToolResultView): string | null
+```
+
+
 ### todoCompletionSummary
 
 Builds a compact completion summary string (e.g. "3/5 completed").
@@ -2021,6 +2139,43 @@ Props for [`ToolCallGroup`](#toolcallgroup).
     formatSummary: { type: "(toolCalls: readonly ToolCall[]) => string", description: "Custom summary formatter. Receives the tool calls and returns a display string. When omitted, the component uses a default that shows the tool name for single calls and a count for multiple." },
     subAgentExecutions: { type: "readonly SubAgentExecution[]", description: "Sub-agent executions from the parent `AgentExecutionStatus`. When provided, tool calls whose `id` matches a `SubAgentExecution.id` are rendered with a nested sub-agent thread instead of a standard detail panel." },
     toolCalls: { type: "readonly ToolCall[]", description: "Tool calls in this group, ordered by invocation time.", required: true },
+  }}
+/>
+
+
+### toolKindToCategoryInfo
+
+Maps a `ToolKind` to its presentation metadata.
+
+```tsx
+function toolKindToCategoryInfo(kind: ToolKind, toolName: string): ToolCategoryInfo
+```
+
+
+### ToolPresentation
+
+The fully-resolved presentation for a tool call, returned by [`useToolPresentation`](#usetoolpresentation).
+
+<TypeTable
+  type={{
+    category: { type: "ToolCategory", description: "Presentation category (1:1 with kind).", required: true },
+    kind: { type: "ToolKind", description: "Harness-agnostic kind (wire field, with name fallback).", required: true },
+    label: { type: "string", description: "Display label, e.g. \"Edit\", \"Shell\".", required: true },
+    primaryArg: { type: "string | null", description: "Primary argument (path, command, pattern...), or null.", required: true },
+    result: { type: "ToolResultView", description: "Normalized result view for rendering with ResultView.", required: true },
+    resultSummary: { type: "string | null", description: "One-line result summary suffix for the collapsed row (e.g. \"+40 -0\").", required: true },
+  }}
+/>
+
+
+### ToolPresenter
+
+Optional per-kind overrides for label and summary.
+
+<TypeTable
+  type={{
+    label: { type: "(toolCall: ToolCall) => string", description: "Overrides the display label (e.g. \"Shell\" -> \"Run command\")." },
+    summary: { type: "(toolCall: ToolCall, result: ToolResultView) => string | null", description: "Overrides the one-line result summary suffix." },
   }}
 />
 

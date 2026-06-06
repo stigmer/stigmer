@@ -58,7 +58,7 @@ public final class MessageProto extends com.google.protobuf.GeneratedFile {
       "xecution.v1.ToolCallR\ttoolCalls\0223\n\010metad" +
       "ata\030\005 \001(\0132\027.google.protobuf.StructR\010meta" +
       "data\022!\n\014is_streaming\030\006 \001(\010R\013isStreaming\"" +
-      "\267\006\n\010ToolCall\022\016\n\002id\030\001 \001(\tR\002id\022\022\n\004name\030\002 \001" +
+      "\204\007\n\010ToolCall\022\016\n\002id\030\001 \001(\tR\002id\022\022\n\004name\030\002 \001" +
       "(\tR\004name\022+\n\004args\030\003 \001(\0132\027.google.protobuf" +
       ".StructR\004args\022\026\n\006result\030\004 \001(\tR\006result\022V\n" +
       "\006status\030\005 \001(\01624.ai.stigmer.agentic.agent" +
@@ -78,12 +78,14 @@ public final class MessageProto extends com.google.protobuf.GeneratedFile {
       "mer.agentic.agentexecution.v1.ToolCallSt" +
       "reamingSourceR\017streamingSource\022&\n\017mcp_se" +
       "rver_slug\030\021 \001(\tR\rmcpServerSlug\022!\n\014args_p" +
-      "review\030\022 \001(\tR\013argsPreviewB\303\001B\014MessagePro" +
-      "toP\001\242\002\004ASAA\252\002$Ai.Stigmer.Agentic.Agentex" +
-      "ecution.V1\312\002$Ai\\Stigmer\\Agentic\\Agentexe" +
-      "cution\\V1\342\0020Ai\\Stigmer\\Agentic\\Agentexec" +
-      "ution\\V1\\GPBMetadata\352\002(Ai::Stigmer::Agen" +
-      "tic::Agentexecution::V1b\006proto3"
+      "review\030\022 \001(\tR\013argsPreview\022K\n\ttool_kind\030\024" +
+      " \001(\0162..ai.stigmer.agentic.agentexecution" +
+      ".v1.ToolKindR\010toolKindB\303\001B\014MessageProtoP" +
+      "\001\242\002\004ASAA\252\002$Ai.Stigmer.Agentic.Agentexecu" +
+      "tion.V1\312\002$Ai\\Stigmer\\Agentic\\Agentexecut" +
+      "ion\\V1\342\0020Ai\\Stigmer\\Agentic\\Agentexecuti" +
+      "on\\V1\\GPBMetadata\352\002(Ai::Stigmer::Agentic" +
+      "::Agentexecution::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -103,7 +105,7 @@ public final class MessageProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_agentexecution_v1_ToolCall_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_ToolCall_descriptor,
-        new java.lang.String[] { "Id", "Name", "Args", "Result", "Status", "StartedAt", "CompletedAt", "Error", "RequiresApproval", "ApprovalMessage", "ApprovalRequestedAt", "ApprovalDecidedAt", "ApprovedBy", "ApprovalAction", "IsStreaming", "StreamingSource", "McpServerSlug", "ArgsPreview", });
+        new java.lang.String[] { "Id", "Name", "Args", "Result", "Status", "StartedAt", "CompletedAt", "Error", "RequiresApproval", "ApprovalMessage", "ApprovalRequestedAt", "ApprovalDecidedAt", "ApprovedBy", "ApprovalAction", "IsStreaming", "StreamingSource", "McpServerSlug", "ArgsPreview", "ToolKind", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.agentexecution.v1.EnumProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();

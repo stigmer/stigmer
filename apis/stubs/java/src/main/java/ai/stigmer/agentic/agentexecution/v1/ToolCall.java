@@ -47,6 +47,7 @@ private static final long serialVersionUID = 0L;
     streamingSource_ = 0;
     mcpServerSlug_ = "";
     argsPreview_ = "";
+    toolKind_ = 0;
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -881,6 +882,52 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int TOOL_KIND_FIELD_NUMBER = 20;
+  private int toolKind_ = 0;
+  /**
+   * <pre>
+   * Harness-agnostic category of this tool, set by the runner so clients render
+   * the tool identically regardless of which engine produced it. The native and
+   * Cursor harnesses use different tool-name conventions; tool_kind erases that
+   * difference at the source.
+   *
+   * TOOL_KIND_UNSPECIFIED means unclassified — either the execution predates this
+   * field or the tool has no known kind. Clients fall back to a name-based
+   * lookup in that case. See ToolKind.
+   *
+   * Field 20: field 6 is a historical gap and 19 (streaming_source) is the prior
+   * maximum, so this is appended at 20.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ToolKind tool_kind = 20 [json_name = "toolKind"];</code>
+   * @return The enum numeric value on the wire for toolKind.
+   */
+  @java.lang.Override public int getToolKindValue() {
+    return toolKind_;
+  }
+  /**
+   * <pre>
+   * Harness-agnostic category of this tool, set by the runner so clients render
+   * the tool identically regardless of which engine produced it. The native and
+   * Cursor harnesses use different tool-name conventions; tool_kind erases that
+   * difference at the source.
+   *
+   * TOOL_KIND_UNSPECIFIED means unclassified — either the execution predates this
+   * field or the tool has no known kind. Clients fall back to a name-based
+   * lookup in that case. See ToolKind.
+   *
+   * Field 20: field 6 is a historical gap and 19 (streaming_source) is the prior
+   * maximum, so this is appended at 20.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ToolKind tool_kind = 20 [json_name = "toolKind"];</code>
+   * @return The toolKind.
+   */
+  @java.lang.Override public ai.stigmer.agentic.agentexecution.v1.ToolKind getToolKind() {
+    ai.stigmer.agentic.agentexecution.v1.ToolKind result = ai.stigmer.agentic.agentexecution.v1.ToolKind.forNumber(toolKind_);
+    return result == null ? ai.stigmer.agentic.agentexecution.v1.ToolKind.UNRECOGNIZED : result;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -948,6 +995,9 @@ private static final long serialVersionUID = 0L;
     }
     if (streamingSource_ != ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource.TOOL_CALL_STREAMING_SOURCE_UNSPECIFIED.getNumber()) {
       output.writeEnum(19, streamingSource_);
+    }
+    if (toolKind_ != ai.stigmer.agentic.agentexecution.v1.ToolKind.TOOL_KIND_UNSPECIFIED.getNumber()) {
+      output.writeEnum(20, toolKind_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -1018,6 +1068,10 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(19, streamingSource_);
     }
+    if (toolKind_ != ai.stigmer.agentic.agentexecution.v1.ToolKind.TOOL_KIND_UNSPECIFIED.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(20, toolKind_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -1069,6 +1123,7 @@ private static final long serialVersionUID = 0L;
         .equals(other.getMcpServerSlug())) return false;
     if (!getArgsPreview()
         .equals(other.getArgsPreview())) return false;
+    if (toolKind_ != other.toolKind_) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -1120,6 +1175,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getMcpServerSlug().hashCode();
     hash = (37 * hash) + ARGS_PREVIEW_FIELD_NUMBER;
     hash = (53 * hash) + getArgsPreview().hashCode();
+    hash = (37 * hash) + TOOL_KIND_FIELD_NUMBER;
+    hash = (53 * hash) + toolKind_;
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1283,6 +1340,7 @@ private static final long serialVersionUID = 0L;
       streamingSource_ = 0;
       mcpServerSlug_ = "";
       argsPreview_ = "";
+      toolKind_ = 0;
       return this;
     }
 
@@ -1373,6 +1431,9 @@ private static final long serialVersionUID = 0L;
       }
       if (((from_bitField0_ & 0x00020000) != 0)) {
         result.argsPreview_ = argsPreview_;
+      }
+      if (((from_bitField0_ & 0x00040000) != 0)) {
+        result.toolKind_ = toolKind_;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -1466,6 +1527,9 @@ private static final long serialVersionUID = 0L;
         argsPreview_ = other.argsPreview_;
         bitField0_ |= 0x00020000;
         onChanged();
+      }
+      if (other.toolKind_ != 0) {
+        setToolKindValue(other.getToolKindValue());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1585,6 +1649,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00008000;
               break;
             } // case 152
+            case 160: {
+              toolKind_ = input.readEnum();
+              bitField0_ |= 0x00040000;
+              break;
+            } // case 160
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -3428,6 +3497,128 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       argsPreview_ = value;
       bitField0_ |= 0x00020000;
+      onChanged();
+      return this;
+    }
+
+    private int toolKind_ = 0;
+    /**
+     * <pre>
+     * Harness-agnostic category of this tool, set by the runner so clients render
+     * the tool identically regardless of which engine produced it. The native and
+     * Cursor harnesses use different tool-name conventions; tool_kind erases that
+     * difference at the source.
+     *
+     * TOOL_KIND_UNSPECIFIED means unclassified — either the execution predates this
+     * field or the tool has no known kind. Clients fall back to a name-based
+     * lookup in that case. See ToolKind.
+     *
+     * Field 20: field 6 is a historical gap and 19 (streaming_source) is the prior
+     * maximum, so this is appended at 20.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ToolKind tool_kind = 20 [json_name = "toolKind"];</code>
+     * @return The enum numeric value on the wire for toolKind.
+     */
+    @java.lang.Override public int getToolKindValue() {
+      return toolKind_;
+    }
+    /**
+     * <pre>
+     * Harness-agnostic category of this tool, set by the runner so clients render
+     * the tool identically regardless of which engine produced it. The native and
+     * Cursor harnesses use different tool-name conventions; tool_kind erases that
+     * difference at the source.
+     *
+     * TOOL_KIND_UNSPECIFIED means unclassified — either the execution predates this
+     * field or the tool has no known kind. Clients fall back to a name-based
+     * lookup in that case. See ToolKind.
+     *
+     * Field 20: field 6 is a historical gap and 19 (streaming_source) is the prior
+     * maximum, so this is appended at 20.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ToolKind tool_kind = 20 [json_name = "toolKind"];</code>
+     * @param value The enum numeric value on the wire for toolKind to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setToolKindValue(int value) {
+      toolKind_ = value;
+      bitField0_ |= 0x00040000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Harness-agnostic category of this tool, set by the runner so clients render
+     * the tool identically regardless of which engine produced it. The native and
+     * Cursor harnesses use different tool-name conventions; tool_kind erases that
+     * difference at the source.
+     *
+     * TOOL_KIND_UNSPECIFIED means unclassified — either the execution predates this
+     * field or the tool has no known kind. Clients fall back to a name-based
+     * lookup in that case. See ToolKind.
+     *
+     * Field 20: field 6 is a historical gap and 19 (streaming_source) is the prior
+     * maximum, so this is appended at 20.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ToolKind tool_kind = 20 [json_name = "toolKind"];</code>
+     * @return The toolKind.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.agentexecution.v1.ToolKind getToolKind() {
+      ai.stigmer.agentic.agentexecution.v1.ToolKind result = ai.stigmer.agentic.agentexecution.v1.ToolKind.forNumber(toolKind_);
+      return result == null ? ai.stigmer.agentic.agentexecution.v1.ToolKind.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * Harness-agnostic category of this tool, set by the runner so clients render
+     * the tool identically regardless of which engine produced it. The native and
+     * Cursor harnesses use different tool-name conventions; tool_kind erases that
+     * difference at the source.
+     *
+     * TOOL_KIND_UNSPECIFIED means unclassified — either the execution predates this
+     * field or the tool has no known kind. Clients fall back to a name-based
+     * lookup in that case. See ToolKind.
+     *
+     * Field 20: field 6 is a historical gap and 19 (streaming_source) is the prior
+     * maximum, so this is appended at 20.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ToolKind tool_kind = 20 [json_name = "toolKind"];</code>
+     * @param value The toolKind to set.
+     * @return This builder for chaining.
+     */
+    public Builder setToolKind(ai.stigmer.agentic.agentexecution.v1.ToolKind value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x00040000;
+      toolKind_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Harness-agnostic category of this tool, set by the runner so clients render
+     * the tool identically regardless of which engine produced it. The native and
+     * Cursor harnesses use different tool-name conventions; tool_kind erases that
+     * difference at the source.
+     *
+     * TOOL_KIND_UNSPECIFIED means unclassified — either the execution predates this
+     * field or the tool has no known kind. Clients fall back to a name-based
+     * lookup in that case. See ToolKind.
+     *
+     * Field 20: field 6 is a historical gap and 19 (streaming_source) is the prior
+     * maximum, so this is appended at 20.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ToolKind tool_kind = 20 [json_name = "toolKind"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearToolKind() {
+      bitField0_ = (bitField0_ & ~0x00040000);
+      toolKind_ = 0;
       onChanged();
       return this;
     }

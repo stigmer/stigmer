@@ -217,6 +217,74 @@ enum ToolCallStatus {
   TOOL_CALL_SKIPPED = 6;
 }
 
+// ToolKind is the harness-agnostic category of a tool call.
+//
+// Both execution harnesses emit tool calls with engine-specific names — the
+// native (deepagents) harness uses snake_case (edit_file, execute, grep), while
+// the Cursor harness uses PascalCase (StrReplace, Shell, Grep). ToolKind
+// normalizes that identity once, in the runner, so every client (web, desktop,
+// CLI, Ink) renders a tool the same way regardless of which harness produced it.
+//
+// This is identity, not presentation: it answers "what kind of tool is this?"
+// and is deliberately distinct from ToolCallStreamingSource, which describes an
+// orthogonal streaming capability. Result formatting is a client concern and is
+// intentionally not encoded here.
+//
+// TOOL_KIND_UNSPECIFIED means the runner did not classify the tool — either the
+// execution predates this field, or the tool does not fit a known kind. Clients
+// fall back to a tool-name lookup in that case, so legacy executions still
+// render correctly.
+enum ToolKind {
+  // Not classified. Legacy executions (persisted before this field existed) and
+  // tools with no known kind. Clients fall back to a name-based resolver.
+  TOOL_KIND_UNSPECIFIED = 0;
+
+  // Read a file's contents. Native: read, read_file. Cursor: Read.
+  TOOL_KIND_FILE_READ = 1;
+
+  // Create or overwrite an entire file. Native: write_file, create_file.
+  // Cursor: Write.
+  TOOL_KIND_FILE_WRITE = 2;
+
+  // Modify part of an existing file. Native: edit_file, str_replace_editor.
+  // Cursor: StrReplace, EditNotebook.
+  TOOL_KIND_FILE_EDIT = 3;
+
+  // Delete a file. Native: delete_file, remove_file. Cursor: Delete.
+  TOOL_KIND_FILE_DELETE = 4;
+
+  // Execute a shell command. Native: execute, shell. Cursor: Shell.
+  TOOL_KIND_SHELL = 5;
+
+  // Search file contents or names. Native: grep, glob. Cursor: Grep, Glob,
+  // SemanticSearch.
+  TOOL_KIND_SEARCH = 6;
+
+  // List a directory. Native: ls, list_directory.
+  TOOL_KIND_LIST = 7;
+
+  // Fetch the contents of a URL. Cursor: WebFetch.
+  TOOL_KIND_FETCH = 8;
+
+  // Search the web. Cursor: WebSearch.
+  TOOL_KIND_WEB_SEARCH = 9;
+
+  // Record model reasoning via a think tool. Native: think.
+  TOOL_KIND_THINK = 10;
+
+  // Manage the agent's todo list. Native: write_todos. Cursor: TodoWrite.
+  // Typically rendered through a dedicated todo surface, not the tool thread.
+  TOOL_KIND_TODO = 11;
+
+  // Delegate work to a sub-agent. Native/Cursor: task/Task. Rendered as a
+  // nested thread, not via the standard tool result view.
+  TOOL_KIND_SUBAGENT = 12;
+
+  // A tool provided by an MCP server. The server is identified by
+  // ToolCall.mcp_server_slug; the tool's bare name is in ToolCall.name.
+  TOOL_KIND_MCP = 13;
+}
+
 // TodoStatus defines the status of a todo item.
 enum TodoStatus {
   // Default value, not a valid todo status.

@@ -373,6 +373,126 @@ func (ToolCallStatus) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{2}
 }
 
+// ToolKind is the harness-agnostic category of a tool call.
+//
+// Both execution harnesses emit tool calls with engine-specific names — the
+// native (deepagents) harness uses snake_case (edit_file, execute, grep), while
+// the Cursor harness uses PascalCase (StrReplace, Shell, Grep). ToolKind
+// normalizes that identity once, in the runner, so every client (web, desktop,
+// CLI, Ink) renders a tool the same way regardless of which harness produced it.
+//
+// This is identity, not presentation: it answers "what kind of tool is this?"
+// and is deliberately distinct from ToolCallStreamingSource, which describes an
+// orthogonal streaming capability. Result formatting is a client concern and is
+// intentionally not encoded here.
+//
+// TOOL_KIND_UNSPECIFIED means the runner did not classify the tool — either the
+// execution predates this field, or the tool does not fit a known kind. Clients
+// fall back to a tool-name lookup in that case, so legacy executions still
+// render correctly.
+type ToolKind int32
+
+const (
+	// Not classified. Legacy executions (persisted before this field existed) and
+	// tools with no known kind. Clients fall back to a name-based resolver.
+	ToolKind_TOOL_KIND_UNSPECIFIED ToolKind = 0
+	// Read a file's contents. Native: read, read_file. Cursor: Read.
+	ToolKind_TOOL_KIND_FILE_READ ToolKind = 1
+	// Create or overwrite an entire file. Native: write_file, create_file.
+	// Cursor: Write.
+	ToolKind_TOOL_KIND_FILE_WRITE ToolKind = 2
+	// Modify part of an existing file. Native: edit_file, str_replace_editor.
+	// Cursor: StrReplace, EditNotebook.
+	ToolKind_TOOL_KIND_FILE_EDIT ToolKind = 3
+	// Delete a file. Native: delete_file, remove_file. Cursor: Delete.
+	ToolKind_TOOL_KIND_FILE_DELETE ToolKind = 4
+	// Execute a shell command. Native: execute, shell. Cursor: Shell.
+	ToolKind_TOOL_KIND_SHELL ToolKind = 5
+	// Search file contents or names. Native: grep, glob. Cursor: Grep, Glob,
+	// SemanticSearch.
+	ToolKind_TOOL_KIND_SEARCH ToolKind = 6
+	// List a directory. Native: ls, list_directory.
+	ToolKind_TOOL_KIND_LIST ToolKind = 7
+	// Fetch the contents of a URL. Cursor: WebFetch.
+	ToolKind_TOOL_KIND_FETCH ToolKind = 8
+	// Search the web. Cursor: WebSearch.
+	ToolKind_TOOL_KIND_WEB_SEARCH ToolKind = 9
+	// Record model reasoning via a think tool. Native: think.
+	ToolKind_TOOL_KIND_THINK ToolKind = 10
+	// Manage the agent's todo list. Native: write_todos. Cursor: TodoWrite.
+	// Typically rendered through a dedicated todo surface, not the tool thread.
+	ToolKind_TOOL_KIND_TODO ToolKind = 11
+	// Delegate work to a sub-agent. Native/Cursor: task/Task. Rendered as a
+	// nested thread, not via the standard tool result view.
+	ToolKind_TOOL_KIND_SUBAGENT ToolKind = 12
+	// A tool provided by an MCP server. The server is identified by
+	// ToolCall.mcp_server_slug; the tool's bare name is in ToolCall.name.
+	ToolKind_TOOL_KIND_MCP ToolKind = 13
+)
+
+// Enum value maps for ToolKind.
+var (
+	ToolKind_name = map[int32]string{
+		0:  "TOOL_KIND_UNSPECIFIED",
+		1:  "TOOL_KIND_FILE_READ",
+		2:  "TOOL_KIND_FILE_WRITE",
+		3:  "TOOL_KIND_FILE_EDIT",
+		4:  "TOOL_KIND_FILE_DELETE",
+		5:  "TOOL_KIND_SHELL",
+		6:  "TOOL_KIND_SEARCH",
+		7:  "TOOL_KIND_LIST",
+		8:  "TOOL_KIND_FETCH",
+		9:  "TOOL_KIND_WEB_SEARCH",
+		10: "TOOL_KIND_THINK",
+		11: "TOOL_KIND_TODO",
+		12: "TOOL_KIND_SUBAGENT",
+		13: "TOOL_KIND_MCP",
+	}
+	ToolKind_value = map[string]int32{
+		"TOOL_KIND_UNSPECIFIED": 0,
+		"TOOL_KIND_FILE_READ":   1,
+		"TOOL_KIND_FILE_WRITE":  2,
+		"TOOL_KIND_FILE_EDIT":   3,
+		"TOOL_KIND_FILE_DELETE": 4,
+		"TOOL_KIND_SHELL":       5,
+		"TOOL_KIND_SEARCH":      6,
+		"TOOL_KIND_LIST":        7,
+		"TOOL_KIND_FETCH":       8,
+		"TOOL_KIND_WEB_SEARCH":  9,
+		"TOOL_KIND_THINK":       10,
+		"TOOL_KIND_TODO":        11,
+		"TOOL_KIND_SUBAGENT":    12,
+		"TOOL_KIND_MCP":         13,
+	}
+)
+
+func (x ToolKind) Enum() *ToolKind {
+	p := new(ToolKind)
+	*p = x
+	return p
+}
+
+func (x ToolKind) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ToolKind) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[3].Descriptor()
+}
+
+func (ToolKind) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[3]
+}
+
+func (x ToolKind) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ToolKind.Descriptor instead.
+func (ToolKind) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{3}
+}
+
 // TodoStatus defines the status of a todo item.
 type TodoStatus int32
 
@@ -418,11 +538,11 @@ func (x TodoStatus) String() string {
 }
 
 func (TodoStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[3].Descriptor()
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[4].Descriptor()
 }
 
 func (TodoStatus) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[3]
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[4]
 }
 
 func (x TodoStatus) Number() protoreflect.EnumNumber {
@@ -431,7 +551,7 @@ func (x TodoStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use TodoStatus.Descriptor instead.
 func (TodoStatus) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{3}
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{4}
 }
 
 // SubAgentStatus defines the status of a sub-agent execution.
@@ -509,11 +629,11 @@ func (x SubAgentStatus) String() string {
 }
 
 func (SubAgentStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[4].Descriptor()
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[5].Descriptor()
 }
 
 func (SubAgentStatus) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[4]
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[5]
 }
 
 func (x SubAgentStatus) Number() protoreflect.EnumNumber {
@@ -522,7 +642,7 @@ func (x SubAgentStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use SubAgentStatus.Descriptor instead.
 func (SubAgentStatus) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{4}
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{5}
 }
 
 // ExecutionArtifactKind defines the type of artifact published by an agent.
@@ -565,11 +685,11 @@ func (x ExecutionArtifactKind) String() string {
 }
 
 func (ExecutionArtifactKind) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[5].Descriptor()
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[6].Descriptor()
 }
 
 func (ExecutionArtifactKind) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[5]
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[6]
 }
 
 func (x ExecutionArtifactKind) Number() protoreflect.EnumNumber {
@@ -578,7 +698,7 @@ func (x ExecutionArtifactKind) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ExecutionArtifactKind.Descriptor instead.
 func (ExecutionArtifactKind) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{5}
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{6}
 }
 
 // SummarizationSource identifies what triggered a context summarization event.
@@ -625,11 +745,11 @@ func (x SummarizationSource) String() string {
 }
 
 func (SummarizationSource) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[6].Descriptor()
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[7].Descriptor()
 }
 
 func (SummarizationSource) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[6]
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[7]
 }
 
 func (x SummarizationSource) Number() protoreflect.EnumNumber {
@@ -638,7 +758,7 @@ func (x SummarizationSource) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use SummarizationSource.Descriptor instead.
 func (SummarizationSource) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{6}
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{7}
 }
 
 // ToolCallStreamingSource identifies what is currently being streamed on a
@@ -704,11 +824,11 @@ func (x ToolCallStreamingSource) String() string {
 }
 
 func (ToolCallStreamingSource) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[7].Descriptor()
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[8].Descriptor()
 }
 
 func (ToolCallStreamingSource) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[7]
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[8]
 }
 
 func (x ToolCallStreamingSource) Number() protoreflect.EnumNumber {
@@ -717,7 +837,7 @@ func (x ToolCallStreamingSource) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ToolCallStreamingSource.Descriptor instead.
 func (ToolCallStreamingSource) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{7}
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{8}
 }
 
 // ExecutionControlSignal is a platform-to-runner directive returned by the
@@ -766,11 +886,11 @@ func (x ExecutionControlSignal) String() string {
 }
 
 func (ExecutionControlSignal) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[8].Descriptor()
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[9].Descriptor()
 }
 
 func (ExecutionControlSignal) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[8]
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[9]
 }
 
 func (x ExecutionControlSignal) Number() protoreflect.EnumNumber {
@@ -779,7 +899,7 @@ func (x ExecutionControlSignal) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ExecutionControlSignal.Descriptor instead.
 func (ExecutionControlSignal) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{8}
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{9}
 }
 
 // ApprovalAction represents the user's decision on an approval request.
@@ -849,11 +969,11 @@ func (x ApprovalAction) String() string {
 }
 
 func (ApprovalAction) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[9].Descriptor()
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[10].Descriptor()
 }
 
 func (ApprovalAction) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[9]
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[10]
 }
 
 func (x ApprovalAction) Number() protoreflect.EnumNumber {
@@ -862,7 +982,7 @@ func (x ApprovalAction) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ApprovalAction.Descriptor instead.
 func (ApprovalAction) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{9}
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{10}
 }
 
 // InteractionMode controls the agent's behavioral posture for an execution.
@@ -927,11 +1047,11 @@ func (x InteractionMode) String() string {
 }
 
 func (InteractionMode) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[10].Descriptor()
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[11].Descriptor()
 }
 
 func (InteractionMode) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[10]
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[11]
 }
 
 func (x InteractionMode) Number() protoreflect.EnumNumber {
@@ -940,7 +1060,7 @@ func (x InteractionMode) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use InteractionMode.Descriptor instead.
 func (InteractionMode) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{10}
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{11}
 }
 
 var File_ai_stigmer_agentic_agentexecution_v1_enum_proto protoreflect.FileDescriptor
@@ -973,7 +1093,23 @@ const file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc = "" +
 	"\x13TOOL_CALL_COMPLETED\x10\x03\x12\x14\n" +
 	"\x10TOOL_CALL_FAILED\x10\x04\x12\x1e\n" +
 	"\x1aTOOL_CALL_WAITING_APPROVAL\x10\x05\x12\x15\n" +
-	"\x11TOOL_CALL_SKIPPED\x10\x06*y\n" +
+	"\x11TOOL_CALL_SKIPPED\x10\x06*\xce\x02\n" +
+	"\bToolKind\x12\x19\n" +
+	"\x15TOOL_KIND_UNSPECIFIED\x10\x00\x12\x17\n" +
+	"\x13TOOL_KIND_FILE_READ\x10\x01\x12\x18\n" +
+	"\x14TOOL_KIND_FILE_WRITE\x10\x02\x12\x17\n" +
+	"\x13TOOL_KIND_FILE_EDIT\x10\x03\x12\x19\n" +
+	"\x15TOOL_KIND_FILE_DELETE\x10\x04\x12\x13\n" +
+	"\x0fTOOL_KIND_SHELL\x10\x05\x12\x14\n" +
+	"\x10TOOL_KIND_SEARCH\x10\x06\x12\x12\n" +
+	"\x0eTOOL_KIND_LIST\x10\a\x12\x13\n" +
+	"\x0fTOOL_KIND_FETCH\x10\b\x12\x18\n" +
+	"\x14TOOL_KIND_WEB_SEARCH\x10\t\x12\x13\n" +
+	"\x0fTOOL_KIND_THINK\x10\n" +
+	"\x12\x12\n" +
+	"\x0eTOOL_KIND_TODO\x10\v\x12\x16\n" +
+	"\x12TOOL_KIND_SUBAGENT\x10\f\x12\x11\n" +
+	"\rTOOL_KIND_MCP\x10\r*y\n" +
 	"\n" +
 	"TodoStatus\x12\x1b\n" +
 	"\x17TODO_STATUS_UNSPECIFIED\x10\x00\x12\x10\n" +
@@ -1027,19 +1163,20 @@ func file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 11)
+var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 12)
 var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_goTypes = []any{
 	(ExecutionPhase)(0),          // 0: ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
 	(MessageType)(0),             // 1: ai.stigmer.agentic.agentexecution.v1.MessageType
 	(ToolCallStatus)(0),          // 2: ai.stigmer.agentic.agentexecution.v1.ToolCallStatus
-	(TodoStatus)(0),              // 3: ai.stigmer.agentic.agentexecution.v1.TodoStatus
-	(SubAgentStatus)(0),          // 4: ai.stigmer.agentic.agentexecution.v1.SubAgentStatus
-	(ExecutionArtifactKind)(0),   // 5: ai.stigmer.agentic.agentexecution.v1.ExecutionArtifactKind
-	(SummarizationSource)(0),     // 6: ai.stigmer.agentic.agentexecution.v1.SummarizationSource
-	(ToolCallStreamingSource)(0), // 7: ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource
-	(ExecutionControlSignal)(0),  // 8: ai.stigmer.agentic.agentexecution.v1.ExecutionControlSignal
-	(ApprovalAction)(0),          // 9: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
-	(InteractionMode)(0),         // 10: ai.stigmer.agentic.agentexecution.v1.InteractionMode
+	(ToolKind)(0),                // 3: ai.stigmer.agentic.agentexecution.v1.ToolKind
+	(TodoStatus)(0),              // 4: ai.stigmer.agentic.agentexecution.v1.TodoStatus
+	(SubAgentStatus)(0),          // 5: ai.stigmer.agentic.agentexecution.v1.SubAgentStatus
+	(ExecutionArtifactKind)(0),   // 6: ai.stigmer.agentic.agentexecution.v1.ExecutionArtifactKind
+	(SummarizationSource)(0),     // 7: ai.stigmer.agentic.agentexecution.v1.SummarizationSource
+	(ToolCallStreamingSource)(0), // 8: ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource
+	(ExecutionControlSignal)(0),  // 9: ai.stigmer.agentic.agentexecution.v1.ExecutionControlSignal
+	(ApprovalAction)(0),          // 10: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
+	(InteractionMode)(0),         // 11: ai.stigmer.agentic.agentexecution.v1.InteractionMode
 }
 var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -1059,7 +1196,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_enum_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc), len(file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc)),
-			NumEnums:      11,
+			NumEnums:      12,
 			NumMessages:   0,
 			NumExtensions: 0,
 			NumServices:   0,

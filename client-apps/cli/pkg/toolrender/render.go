@@ -64,6 +64,14 @@ type ToolCallInfo struct {
 	// renderer shows "server/tool" in the header for disambiguation.
 	// Populated from proto ToolCall.mcp_server_slug (Phase 2).
 	ServerName string
+
+	// Kind is the harness-agnostic tool classification from proto
+	// ToolCall.tool_kind. When set, it drives display for tools whose names
+	// are not in toolDisplayMap (notably Cursor's PascalCase names), so the
+	// CLI renders them with the right label and primary argument instead of
+	// the generic unknown fallback. Empty for legacy executions, where the
+	// renderer falls back to name-based classification.
+	Kind ToolKind
 }
 
 // previewStyle controls how (or whether) a result preview line is rendered
@@ -179,6 +187,39 @@ var toolDisplayMap = map[string]toolDisplayInfo{
 	"task": {label: "Sub-agent", primaryField: "description", fallbackFields: []string{"prompt"}},
 }
 
+// kindDisplayMap provides presentation metadata per ToolKind. It is the
+// fallback used by resolveDisplayInfo when a tool name is not in toolDisplayMap
+// — chiefly the Cursor harness's PascalCase names (StrReplace, Shell, Grep...),
+// which resolve to a kind via the shared classifier. Classification lives in
+// toolkind.go (the single source of truth); this map is presentation only.
+var kindDisplayMap = map[ToolKind]toolDisplayInfo{
+	ToolKindFileRead:   {label: "Read", primaryField: "path", fallbackFields: []string{"file_path", "file"}, preview: previewFileContent},
+	ToolKindFileWrite:  {label: "Write", primaryField: "path", fallbackFields: []string{"file_path", "file", "filename"}, preview: previewFileContent, contentSource: contentSourceInput, contentArgField: "contents", contentArgFallbacks: []string{"content", "file_content"}},
+	ToolKindFileEdit:   {label: "Edit", primaryField: "path", fallbackFields: []string{"file_path", "file", "filename"}, preview: previewFileContent, contentSource: contentSourceInput, contentArgField: "new_string", contentArgFallbacks: []string{"new_text", "replacement", "content"}},
+	ToolKindFileDelete: {label: "Delete", primaryField: "path", fallbackFields: []string{"file_path", "file", "filename"}, dangerous: true},
+	ToolKindShell:      {label: "Shell", primaryField: "command", preview: previewFileContent},
+	ToolKindSearch:     {label: "Search", primaryField: "pattern", fallbackFields: []string{"query", "q"}, preview: previewDiscovery},
+	ToolKindList:       {label: "List", primaryField: "path", preview: previewDiscovery},
+	ToolKindFetch:      {label: "Fetch", primaryField: "url", fallbackFields: []string{"uri"}},
+	ToolKindWebSearch:  {label: "Web Search", primaryField: "query", fallbackFields: []string{"q", "search_term"}},
+	ToolKindThink:      {label: "Thinking", preview: previewFileContent, contentSource: contentSourceInput, contentArgField: "thought"},
+	ToolKindSubagent:   {label: "Sub-agent", primaryField: "description", fallbackFields: []string{"prompt"}},
+}
+
+// resolveDisplayInfo returns the presentation metadata for a tool call, trying
+// the name map first (preserves existing native labels) and falling back to the
+// harness-agnostic kind. The bool is false only for genuinely unknown tools.
+func resolveDisplayInfo(tc ToolCallInfo) (toolDisplayInfo, bool) {
+	if info, ok := toolDisplayMap[tc.Name]; ok {
+		return info, true
+	}
+	kind := ResolveToolKind(tc.Kind, tc.Name, tc.ServerName)
+	if info, ok := kindDisplayMap[kind]; ok {
+		return info, true
+	}
+	return toolDisplayInfo{}, false
+}
+
 // Styles for tool call rendering.
 var (
 	labelStyle  = lipgloss.NewStyle().Bold(true)
@@ -189,15 +230,18 @@ var (
 // IsShellTool reports whether toolName represents a shell/command execution
 // tool. Derived from toolDisplayMap entries whose primaryField is "command".
 func IsShellTool(toolName string) bool {
-	info, ok := toolDisplayMap[toolName]
-	return ok && info.primaryField == "command"
+	if info, ok := toolDisplayMap[toolName]; ok {
+		return info.primaryField == "command"
+	}
+	// Cover harness names not in the legacy map (e.g. Cursor's "Shell").
+	return ClassifyToolByName(toolName, "") == ToolKindShell
 }
 
 // HasPrimaryArg reports whether the tool call's args contain the primary
 // display argument (or any of its fallback names) for the tool's type.
 // Returns false when the tool is unknown or the args are nil/empty.
 func HasPrimaryArg(tc ToolCallInfo) bool {
-	info, ok := toolDisplayMap[tc.Name]
+	info, ok := resolveDisplayInfo(tc)
 	if !ok {
 		return extractFirstArg(tc.Args) != ""
 	}
@@ -220,7 +264,7 @@ func HasPrimaryArg(tc ToolCallInfo) bool {
 //
 // This function never panics — nil or empty input produces reasonable output.
 func Render(tc ToolCallInfo) string {
-	info, known := toolDisplayMap[tc.Name]
+	info, known := resolveDisplayInfo(tc)
 	if !known {
 		return renderUnknown(tc)
 	}
@@ -271,7 +315,7 @@ func StateBadge(state string) string {
 //	"  Shell: ls -la /tmp ||"
 //	"  * custom_tool: some_value ..."
 func RenderWithBadge(tc ToolCallInfo, badge string) string {
-	info, known := toolDisplayMap[tc.Name]
+	info, known := resolveDisplayInfo(tc)
 
 	var header string
 	if known {

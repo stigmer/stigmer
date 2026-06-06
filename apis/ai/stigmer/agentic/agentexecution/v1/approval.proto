@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.agentexecution.v1;
 
+import "ai/stigmer/agentic/agentexecution/v1/enum.proto";
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Human-in-the-Loop (HITL) Approval Types
 //
@@ -130,6 +132,13 @@ message PendingApproval {
   // Example: "a1b2c3d4e5f6..."
   // Empty when the workspace is not git-backed.
   string head_sha_at_deny = 12;
+
+  // Harness-agnostic category of the tool, copied from ToolCall.tool_kind by the
+  // server-side projection (exactly as mcp_server_slug above is). Lets approval
+  // surfaces — including workflow-parent approvals, where the originating
+  // ToolCall is not co-located with the approval — classify and render the tool
+  // without a client-side lookup. See ToolKind.
+  ToolKind tool_kind = 13;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

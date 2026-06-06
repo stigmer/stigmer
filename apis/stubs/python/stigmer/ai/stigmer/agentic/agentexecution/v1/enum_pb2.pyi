@@ -35,6 +35,23 @@ class ToolCallStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     TOOL_CALL_WAITING_APPROVAL: _ClassVar[ToolCallStatus]
     TOOL_CALL_SKIPPED: _ClassVar[ToolCallStatus]
 
+class ToolKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    TOOL_KIND_UNSPECIFIED: _ClassVar[ToolKind]
+    TOOL_KIND_FILE_READ: _ClassVar[ToolKind]
+    TOOL_KIND_FILE_WRITE: _ClassVar[ToolKind]
+    TOOL_KIND_FILE_EDIT: _ClassVar[ToolKind]
+    TOOL_KIND_FILE_DELETE: _ClassVar[ToolKind]
+    TOOL_KIND_SHELL: _ClassVar[ToolKind]
+    TOOL_KIND_SEARCH: _ClassVar[ToolKind]
+    TOOL_KIND_LIST: _ClassVar[ToolKind]
+    TOOL_KIND_FETCH: _ClassVar[ToolKind]
+    TOOL_KIND_WEB_SEARCH: _ClassVar[ToolKind]
+    TOOL_KIND_THINK: _ClassVar[ToolKind]
+    TOOL_KIND_TODO: _ClassVar[ToolKind]
+    TOOL_KIND_SUBAGENT: _ClassVar[ToolKind]
+    TOOL_KIND_MCP: _ClassVar[ToolKind]
+
 class TodoStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     TODO_STATUS_UNSPECIFIED: _ClassVar[TodoStatus]
@@ -110,6 +127,20 @@ TOOL_CALL_COMPLETED: ToolCallStatus
 TOOL_CALL_FAILED: ToolCallStatus
 TOOL_CALL_WAITING_APPROVAL: ToolCallStatus
 TOOL_CALL_SKIPPED: ToolCallStatus
+TOOL_KIND_UNSPECIFIED: ToolKind
+TOOL_KIND_FILE_READ: ToolKind
+TOOL_KIND_FILE_WRITE: ToolKind
+TOOL_KIND_FILE_EDIT: ToolKind
+TOOL_KIND_FILE_DELETE: ToolKind
+TOOL_KIND_SHELL: ToolKind
+TOOL_KIND_SEARCH: ToolKind
+TOOL_KIND_LIST: ToolKind
+TOOL_KIND_FETCH: ToolKind
+TOOL_KIND_WEB_SEARCH: ToolKind
+TOOL_KIND_THINK: ToolKind
+TOOL_KIND_TODO: ToolKind
+TOOL_KIND_SUBAGENT: ToolKind
+TOOL_KIND_MCP: ToolKind
 TODO_STATUS_UNSPECIFIED: TodoStatus
 TODO_PENDING: TodoStatus
 TODO_IN_PROGRESS: TodoStatus

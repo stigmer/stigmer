@@ -292,3 +292,23 @@ func TestComputePendingApprovals(t *testing.T) {
 		})
 	}
 }
+
+// TestProjectToolCallCopiesToolKind verifies the harness-agnostic tool_kind is
+// denormalized onto the pending-approval projection (alongside mcp_server_slug),
+// so approval surfaces classify the tool without re-deriving it from the name.
+func TestProjectToolCallCopiesToolKind(t *testing.T) {
+	tc := makeToolCall("tc1", "StrReplace", agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL, true, agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED)
+	tc.ToolKind = agentexecutionv1.ToolKind_TOOL_KIND_FILE_EDIT
+	tc.McpServerSlug = "github"
+
+	got := ComputePendingApprovals([]*agentexecutionv1.AgentMessage{makeAIMessage(tc)}, nil)
+	if len(got) != 1 {
+		t.Fatalf("got %d pending approvals, want 1", len(got))
+	}
+	if got[0].GetToolKind() != agentexecutionv1.ToolKind_TOOL_KIND_FILE_EDIT {
+		t.Errorf("ToolKind = %v, want TOOL_KIND_FILE_EDIT", got[0].GetToolKind())
+	}
+	if got[0].GetMcpServerSlug() != "github" {
+		t.Errorf("McpServerSlug = %q, want %q", got[0].GetMcpServerSlug(), "github")
+	}
+}

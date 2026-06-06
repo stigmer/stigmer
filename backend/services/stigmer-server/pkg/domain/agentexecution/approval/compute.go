@@ -79,5 +79,8 @@ func projectToolCall(tc *agentexecutionv1.ToolCall, fromSubAgent bool, subAgentN
 		FromSubAgent:  fromSubAgent,
 		SubAgentName:  subAgentName,
 		McpServerSlug: tc.GetMcpServerSlug(),
+		// Denormalized for approval surfaces (like McpServerSlug above) so the
+		// approval UI classifies the tool without re-deriving it from the name.
+		ToolKind: tc.GetToolKind(),
 	}
 }

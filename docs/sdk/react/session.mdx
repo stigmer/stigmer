@@ -1210,6 +1210,7 @@ values are scoped to the single execution and deleted on completion.
   type={{
     agentInstanceId: { type: "string", description: "Override the session's agent instance for this and all future executions. When provided, the session is updated before the execution is created." },
     attachments: { type: "AttachmentInput[]", description: "Pre-uploaded file attachments for this execution.  Each entry must include a `storageKey` from `agentExecution.uploadAttachment()`. Forwarded directly to execution creation." },
+    autoApproveAll: { type: "boolean", description: "Auto-approve every tool call for this execution (bypass the HITL gate)." },
     interactionMode: { type: "\"agent\" | \"plan\"", description: "Interaction mode for this execution.  - `\"agent\"` (default): full tool access. - `\"plan\"`: read-only analysis, no file mutations." },
     mcpServerUsages: { type: "McpServerUsageInput[]", description: "MCP server configurations to include for tool access." },
     modelName: { type: "string", description: "LLM model name to use for this execution. Overrides the session default." },

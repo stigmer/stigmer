@@ -1,0 +1,66 @@
+{
+  "comment": "name (+ optional mcpServerSlug) -> toolKind. Built-in names win over a non-empty slug, matching the legacy resolver. See test/fixtures/tool-view/README.md.",
+  "cases": [
+    { "name": "read", "mcpServerSlug": "", "toolKind": "TOOL_KIND_FILE_READ" },
+    { "name": "read_file", "mcpServerSlug": "", "toolKind": "TOOL_KIND_FILE_READ" },
+    { "name": "Read", "mcpServerSlug": "", "toolKind": "TOOL_KIND_FILE_READ" },
+
+    { "name": "write", "mcpServerSlug": "", "toolKind": "TOOL_KIND_FILE_WRITE" },
+    { "name": "write_file", "mcpServerSlug": "", "toolKind": "TOOL_KIND_FILE_WRITE" },
+    { "name": "create_file", "mcpServerSlug": "", "toolKind": "TOOL_KIND_FILE_WRITE" },
+    { "name": "overwrite_file", "mcpServerSlug": "", "toolKind": "TOOL_KIND_FILE_WRITE" },
+    { "name": "Write", "mcpServerSlug": "", "toolKind": "TOOL_KIND_FILE_WRITE" },
+
+    { "name": "edit", "mcpServerSlug": "", "toolKind": "TOOL_KIND_FILE_EDIT" },
+    { "name": "edit_file", "mcpServerSlug": "", "toolKind": "TOOL_KIND_FILE_EDIT" },
+    { "name": "str_replace_editor", "mcpServerSlug": "", "toolKind": "TOOL_KIND_FILE_EDIT" },
+    { "name": "StrReplace", "mcpServerSlug": "", "toolKind": "TOOL_KIND_FILE_EDIT" },
+    { "name": "EditNotebook", "mcpServerSlug": "", "toolKind": "TOOL_KIND_FILE_EDIT" },
+
+    { "name": "delete", "mcpServerSlug": "", "toolKind": "TOOL_KIND_FILE_DELETE" },
+    { "name": "delete_file", "mcpServerSlug": "", "toolKind": "TOOL_KIND_FILE_DELETE" },
+    { "name": "remove_file", "mcpServerSlug": "", "toolKind": "TOOL_KIND_FILE_DELETE" },
+    { "name": "Delete", "mcpServerSlug": "", "toolKind": "TOOL_KIND_FILE_DELETE" },
+
+    { "name": "shell", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SHELL" },
+    { "name": "bash", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SHELL" },
+    { "name": "execute", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SHELL" },
+    { "name": "execute_command", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SHELL" },
+    { "name": "run_command", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SHELL" },
+    { "name": "terminal", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SHELL" },
+    { "name": "Shell", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SHELL" },
+
+    { "name": "grep", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SEARCH" },
+    { "name": "glob", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SEARCH" },
+    { "name": "search", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SEARCH" },
+    { "name": "ripgrep", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SEARCH" },
+    { "name": "find_files", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SEARCH" },
+    { "name": "Grep", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SEARCH" },
+    { "name": "Glob", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SEARCH" },
+    { "name": "SemanticSearch", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SEARCH" },
+
+    { "name": "ls", "mcpServerSlug": "", "toolKind": "TOOL_KIND_LIST" },
+    { "name": "list_directory", "mcpServerSlug": "", "toolKind": "TOOL_KIND_LIST" },
+
+    { "name": "WebFetch", "mcpServerSlug": "", "toolKind": "TOOL_KIND_FETCH" },
+    { "name": "WebSearch", "mcpServerSlug": "", "toolKind": "TOOL_KIND_WEB_SEARCH" },
+
+    { "name": "think", "mcpServerSlug": "", "toolKind": "TOOL_KIND_THINK" },
+
+    { "name": "write_todos", "mcpServerSlug": "", "toolKind": "TOOL_KIND_TODO" },
+    { "name": "updateTodos", "mcpServerSlug": "", "toolKind": "TOOL_KIND_TODO" },
+    { "name": "TodoWrite", "mcpServerSlug": "", "toolKind": "TOOL_KIND_TODO" },
+
+    { "name": "task", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SUBAGENT" },
+    { "name": "Task", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SUBAGENT" },
+
+    { "name": "search_services", "mcpServerSlug": "planton", "toolKind": "TOOL_KIND_MCP" },
+    { "name": "apply_mcp_server", "mcpServerSlug": "planton", "toolKind": "TOOL_KIND_MCP" },
+    { "name": "create_issue", "mcpServerSlug": "github", "toolKind": "TOOL_KIND_MCP" },
+
+    { "name": "read", "mcpServerSlug": "planton", "toolKind": "TOOL_KIND_FILE_READ", "note": "built-in name wins over a non-empty slug, matching the legacy resolver" },
+
+    { "name": "ReadLints", "mcpServerSlug": "", "toolKind": "TOOL_KIND_UNSPECIFIED" },
+    { "name": "some_unknown_tool", "mcpServerSlug": "", "toolKind": "TOOL_KIND_UNSPECIFIED" }
+  ]
+}

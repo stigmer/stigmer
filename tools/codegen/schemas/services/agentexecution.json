@@ -1583,6 +1583,78 @@
       ]
     },
     {
+      "name": "ToolKind",
+      "description": "ToolKind is the harness-agnostic category of a tool call.\n\n Both execution harnesses emit tool calls with engine-specific names — the\n native (deepagents) harness uses snake_case (edit_file, execute, grep), while\n the Cursor harness uses PascalCase (StrReplace, Shell, Grep). ToolKind\n normalizes that identity once, in the runner, so every client (web, desktop,\n CLI, Ink) renders a tool the same way regardless of which harness produced it.\n\n This is identity, not presentation: it answers \"what kind of tool is this?\"\n and is deliberately distinct from ToolCallStreamingSource, which describes an\n orthogonal streaming capability. Result formatting is a client concern and is\n intentionally not encoded here.\n\n TOOL_KIND_UNSPECIFIED means the runner did not classify the tool — either the\n execution predates this field, or the tool does not fit a known kind. Clients\n fall back to a tool-name lookup in that case, so legacy executions still\n render correctly.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.ToolKind",
+      "values": [
+        {
+          "name": "TOOL_KIND_FILE_READ",
+          "number": 1,
+          "description": "Read a file's contents. Native: read, read_file. Cursor: Read."
+        },
+        {
+          "name": "TOOL_KIND_FILE_WRITE",
+          "number": 2,
+          "description": "Create or overwrite an entire file. Native: write_file, create_file.\n Cursor: Write."
+        },
+        {
+          "name": "TOOL_KIND_FILE_EDIT",
+          "number": 3,
+          "description": "Modify part of an existing file. Native: edit_file, str_replace_editor.\n Cursor: StrReplace, EditNotebook."
+        },
+        {
+          "name": "TOOL_KIND_FILE_DELETE",
+          "number": 4,
+          "description": "Delete a file. Native: delete_file, remove_file. Cursor: Delete."
+        },
+        {
+          "name": "TOOL_KIND_SHELL",
+          "number": 5,
+          "description": "Execute a shell command. Native: execute, shell. Cursor: Shell."
+        },
+        {
+          "name": "TOOL_KIND_SEARCH",
+          "number": 6,
+          "description": "Search file contents or names. Native: grep, glob. Cursor: Grep, Glob,\n SemanticSearch."
+        },
+        {
+          "name": "TOOL_KIND_LIST",
+          "number": 7,
+          "description": "List a directory. Native: ls, list_directory."
+        },
+        {
+          "name": "TOOL_KIND_FETCH",
+          "number": 8,
+          "description": "Fetch the contents of a URL. Cursor: WebFetch."
+        },
+        {
+          "name": "TOOL_KIND_WEB_SEARCH",
+          "number": 9,
+          "description": "Search the web. Cursor: WebSearch."
+        },
+        {
+          "name": "TOOL_KIND_THINK",
+          "number": 10,
+          "description": "Record model reasoning via a think tool. Native: think."
+        },
+        {
+          "name": "TOOL_KIND_TODO",
+          "number": 11,
+          "description": "Manage the agent's todo list. Native: write_todos. Cursor: TodoWrite.\n Typically rendered through a dedicated todo surface, not the tool thread."
+        },
+        {
+          "name": "TOOL_KIND_SUBAGENT",
+          "number": 12,
+          "description": "Delegate work to a sub-agent. Native/Cursor: task/Task. Rendered as a\n nested thread, not via the standard tool result view."
+        },
+        {
+          "name": "TOOL_KIND_MCP",
+          "number": 13,
+          "description": "A tool provided by an MCP server. The server is identified by\n ToolCall.mcp_server_slug; the tool's bare name is in ToolCall.name."
+        }
+      ]
+    },
+    {
       "name": "SubAgentStatus",
       "description": "SubAgentStatus defines the status of a sub-agent execution.\n\n Status Transitions:\n\n Normal flow:\n SUB_AGENT_PENDING → SUB_AGENT_IN_PROGRESS → SUB_AGENT_COMPLETED\n\n Failure flow:\n SUB_AGENT_IN_PROGRESS → SUB_AGENT_FAILED\n\n Cancellation flow (parent cancelled while sub-agent active):\n SUB_AGENT_IN_PROGRESS → SUB_AGENT_CANCELLED\n\n Terminal States:\n - SUB_AGENT_COMPLETED: Sub-agent finished successfully\n - SUB_AGENT_FAILED: Sub-agent encountered an error\n - SUB_AGENT_CANCELLED: Parent execution was cancelled while sub-agent was active",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.SubAgentStatus",
@@ -2561,6 +2633,32 @@
           },
           "description": "Git HEAD SHA at the time the tool was denied.\n\n Diagnostic metadata only — same purpose as branch_at_deny. Allows\n the reinvocation agent to compare against current HEAD to understand\n whether commits have landed since the tool was proposed.\n\n Example: \"a1b2c3d4e5f6...\"\n Empty when the workspace is not git-backed.",
           "required": false
+        },
+        {
+          "name": "ToolKind",
+          "jsonName": "toolKind",
+          "protoField": "tool_kind",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.ToolKind",
+            "enumValues": [
+              "TOOL_KIND_FILE_READ",
+              "TOOL_KIND_FILE_WRITE",
+              "TOOL_KIND_FILE_EDIT",
+              "TOOL_KIND_FILE_DELETE",
+              "TOOL_KIND_SHELL",
+              "TOOL_KIND_SEARCH",
+              "TOOL_KIND_LIST",
+              "TOOL_KIND_FETCH",
+              "TOOL_KIND_WEB_SEARCH",
+              "TOOL_KIND_THINK",
+              "TOOL_KIND_TODO",
+              "TOOL_KIND_SUBAGENT",
+              "TOOL_KIND_MCP"
+            ]
+          },
+          "description": "Harness-agnostic category of the tool, copied from ToolCall.tool_kind by the\n server-side projection (exactly as mcp_server_slug above is). Lets approval\n surfaces — including workflow-parent approvals, where the originating\n ToolCall is not co-located with the approval — classify and render the tool\n without a client-side lookup. See ToolKind.",
+          "required": false
         }
       ]
     },
@@ -3293,6 +3391,32 @@
             "kind": "string"
           },
           "description": "Sanitized preview of tool arguments for UI display.\n Sensitive values (passwords, tokens, keys) are redacted.\n Populated at tool call creation time by the agent-runner.\n Used by the server-side ComputePendingApprovals projection\n and by CLI/UI for inline argument visibility.\n\n Example: '{\"repository\": \"acme/repo\", \"force\": true}'",
+          "required": false
+        },
+        {
+          "name": "ToolKind",
+          "jsonName": "toolKind",
+          "protoField": "tool_kind",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.ToolKind",
+            "enumValues": [
+              "TOOL_KIND_FILE_READ",
+              "TOOL_KIND_FILE_WRITE",
+              "TOOL_KIND_FILE_EDIT",
+              "TOOL_KIND_FILE_DELETE",
+              "TOOL_KIND_SHELL",
+              "TOOL_KIND_SEARCH",
+              "TOOL_KIND_LIST",
+              "TOOL_KIND_FETCH",
+              "TOOL_KIND_WEB_SEARCH",
+              "TOOL_KIND_THINK",
+              "TOOL_KIND_TODO",
+              "TOOL_KIND_SUBAGENT",
+              "TOOL_KIND_MCP"
+            ]
+          },
+          "description": "Harness-agnostic category of this tool, set by the runner so clients render\n the tool identically regardless of which engine produced it. The native and\n Cursor harnesses use different tool-name conventions; tool_kind erases that\n difference at the source.\n\n TOOL_KIND_UNSPECIFIED means unclassified — either the execution predates this\n field or the tool has no known kind. Clients fall back to a name-based\n lookup in that case. See ToolKind.\n\n Field 20: field 6 is a historical gap and 19 (streaming_source) is the prior\n maximum, so this is appended at 20.",
           "required": false
         }
       ]

@@ -456,4 +456,43 @@ public interface ToolCallOrBuilder extends
    */
   com.google.protobuf.ByteString
       getArgsPreviewBytes();
+
+  /**
+   * <pre>
+   * Harness-agnostic category of this tool, set by the runner so clients render
+   * the tool identically regardless of which engine produced it. The native and
+   * Cursor harnesses use different tool-name conventions; tool_kind erases that
+   * difference at the source.
+   *
+   * TOOL_KIND_UNSPECIFIED means unclassified — either the execution predates this
+   * field or the tool has no known kind. Clients fall back to a name-based
+   * lookup in that case. See ToolKind.
+   *
+   * Field 20: field 6 is a historical gap and 19 (streaming_source) is the prior
+   * maximum, so this is appended at 20.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ToolKind tool_kind = 20 [json_name = "toolKind"];</code>
+   * @return The enum numeric value on the wire for toolKind.
+   */
+  int getToolKindValue();
+  /**
+   * <pre>
+   * Harness-agnostic category of this tool, set by the runner so clients render
+   * the tool identically regardless of which engine produced it. The native and
+   * Cursor harnesses use different tool-name conventions; tool_kind erases that
+   * difference at the source.
+   *
+   * TOOL_KIND_UNSPECIFIED means unclassified — either the execution predates this
+   * field or the tool has no known kind. Clients fall back to a name-based
+   * lookup in that case. See ToolKind.
+   *
+   * Field 20: field 6 is a historical gap and 19 (streaming_source) is the prior
+   * maximum, so this is appended at 20.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ToolKind tool_kind = 20 [json_name = "toolKind"];</code>
+   * @return The toolKind.
+   */
+  ai.stigmer.agentic.agentexecution.v1.ToolKind getToolKind();
 }

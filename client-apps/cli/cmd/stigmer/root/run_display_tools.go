@@ -23,6 +23,7 @@ func convertToolCall(tc *agentexecutionv1.ToolCall) toolrender.ToolCallInfo {
 		IsStreaming:     tc.IsStreaming,
 		StreamingSource: mapStreamingSource(tc.StreamingSource),
 		ServerName:      extractMcpServerSlug(tc),
+		Kind:            mapToolKind(tc.ToolKind),
 	}
 
 	// Convert proto Struct args to map
@@ -54,6 +55,17 @@ func mapStreamingSource(src agentexecutionv1.ToolCallStreamingSource) string {
 // originates from an MCP server.
 func extractMcpServerSlug(tc *agentexecutionv1.ToolCall) string {
 	return tc.GetMcpServerSlug()
+}
+
+// mapToolKind converts the proto ToolKind enum to the toolrender package's
+// proto-decoupled ToolKind (the enum value name). UNSPECIFIED maps to the empty
+// kind, so the renderer falls back to name-based classification for legacy
+// executions persisted before tool_kind existed.
+func mapToolKind(kind agentexecutionv1.ToolKind) toolrender.ToolKind {
+	if kind == agentexecutionv1.ToolKind_TOOL_KIND_UNSPECIFIED {
+		return ""
+	}
+	return toolrender.ToolKind(agentexecutionv1.ToolKind_name[int32(kind)])
 }
 
 // mapToolCallStatus converts a proto ToolCallStatus to a display string.

@@ -137,7 +137,7 @@ public enum ExecutionArtifactKind
   }
   public static com.google.protobuf.Descriptors.EnumDescriptor
       getDescriptor() {
-    return ai.stigmer.agentic.agentexecution.v1.EnumProto.getDescriptor().getEnumType(5);
+    return ai.stigmer.agentic.agentexecution.v1.EnumProto.getDescriptor().getEnumType(6);
   }
 
   private static final ExecutionArtifactKind[] VALUES = values();

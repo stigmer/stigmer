@@ -79,6 +79,16 @@ export type {
 export { ToolArgsView } from "./ToolArgsView";
 export type { ToolArgsViewProps } from "./ToolArgsView";
 
+export { ResultView, summarizeResultView } from "./ResultView";
+export type { ResultViewProps } from "./ResultView";
+
+export {
+  useToolPresentation,
+  registerToolPresenter,
+  getToolPresenter,
+} from "./tool-presenter";
+export type { ToolPresentation, ToolPresenter } from "./tool-presenter";
+
 export {
   CollapsibleCode,
   CollapsiblePre,
@@ -150,6 +160,9 @@ export type { WriteBacksWidgetProps } from "./WriteBacksWidget";
 
 export {
   resolveToolCategory,
+  resolveToolCategoryFromCall,
+  resolveToolCategoryFromKind,
+  toolKindToCategoryInfo,
   extractPrimaryArg,
   extractPrimaryArgFromPreview,
   humanizeToolName,

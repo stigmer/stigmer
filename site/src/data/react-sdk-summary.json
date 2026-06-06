@@ -81,8 +81,8 @@
       "slug": "execution",
       "title": "Execution",
       "description": "Hooks and components for real-time streaming, tool calls, approvals, messages, and artifacts.",
-      "hooks": 8,
-      "components": 22
+      "hooks": 9,
+      "components": 23
     },
     {
       "slug": "file-reference",

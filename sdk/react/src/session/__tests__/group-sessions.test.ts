@@ -1,11 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
+import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import {
-  SessionSchema,
-  SessionStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import {
+  ApiResourceAuditStatusSchema,
   ApiResourceAuditSchema,
   ApiResourceAuditInfoSchema,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
@@ -20,7 +18,7 @@ function makeSession(date: Date | null) {
     auditInfo.createdAt = timestampFromDate(date);
     const audit = create(ApiResourceAuditSchema);
     audit.specAudit = auditInfo;
-    const status = create(SessionStatusSchema);
+    const status = create(ApiResourceAuditStatusSchema);
     status.audit = audit;
     session.status = status;
   }

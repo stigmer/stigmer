@@ -40,6 +40,7 @@ import type { SDKMessage } from "@cursor/sdk";
 import type { MergedToolPolicy } from "./approval-policy.js";
 import { lookupMcpToolPolicy, resolveApprovalMessage, builtInRequiresApproval, getBuiltInApprovalMessage } from "./approval-policy.js";
 import { utcTimestamp } from "../../shared/status.js";
+import { classifyTool } from "../../shared/tool-kind.js";
 
 export { utcTimestamp };
 
@@ -183,6 +184,7 @@ export function buildToolCallProto(
       ? (typeof event.result === "string" ? event.result : "Tool call failed")
       : "",
     mcpServerSlug,
+    toolKind: classifyTool(actualName, mcpServerSlug),
   });
 
   if (event.args != null) {
@@ -400,6 +402,7 @@ export function extractConversationSteps(
             result: toolResult,
             startedAt: utcTimestamp(),
             completedAt: utcTimestamp(),
+            toolKind: classifyTool(toolName),
           })],
         });
         out.push(aiMsg);

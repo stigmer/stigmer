@@ -16,6 +16,7 @@ import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/a
 import { ExecutionPhase, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { activityStarted, activityFinished } from "../../idle-watchdog.js";
 import { persistStatus, slimStatus, utcTimestamp } from "../../shared/status.js";
+import { classifyTool } from "../../shared/tool-kind.js";
 import type { Config } from "../../config.js";
 import { StigmerClient } from "../../client/stigmer-client.js";
 import { performSetup, type SetupResult } from "./setup.js";
@@ -182,6 +183,7 @@ export function createDeepAgentActivities(config: Config) {
                 approvalRequestedAt: utcTimestamp(),
                 mcpServerSlug: intr.mcpServerSlug,
                 startedAt: utcTimestamp(),
+                toolKind: classifyTool(intr.toolName, intr.mcpServerSlug),
               }));
             }
             initialStatus.messages.push(aiMsg);

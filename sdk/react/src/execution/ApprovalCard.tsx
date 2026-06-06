@@ -5,7 +5,7 @@ import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentex
 import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
 import {
-  resolveToolCategory,
+  resolveToolCategoryFromKind,
   extractPrimaryArgFromPreview,
 } from "./tool-categories";
 import { CATEGORY_ICON } from "./ToolCallItem";
@@ -74,7 +74,10 @@ export const ApprovalCard = memo(function ApprovalCard({
     }
   }, [isSubmitting]);
 
-  const categoryInfo = resolveToolCategory(
+  // Prefer the denormalized wire tool_kind (populated by the server-side
+  // PendingApproval projection); fall back to the name for legacy executions.
+  const categoryInfo = resolveToolCategoryFromKind(
+    pendingApproval.toolKind,
     pendingApproval.toolName,
     pendingApproval.mcpServerSlug,
   );
