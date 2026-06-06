@@ -30,45 +30,78 @@ export interface MergedToolPolicy {
   approvalMessage: string;
 }
 
-const BUILT_IN_REQUIRE_APPROVAL = new Set([
-  "Shell",
-  "Delete",
-]);
-
-const BUILT_IN_ALLOW = new Set([
-  "Read",
-  "Grep",
-  "Glob",
-  "SemanticSearch",
-  "WebSearch",
-  "WebFetch",
-  "Write",
-  "StrReplace",
-  "EditNotebook",
-  "Task",
-  "SwitchMode",
-  "AskQuestion",
-  "GenerateImage",
-  "ReadLints",
+/**
+ * Built-in (non-MCP) Cursor tools that mutate the workspace or execute
+ * commands. These require approval when auto_approve_all is false, mirroring
+ * the native harness's DANGEROUS_PLATFORM_TOOLS (write/edit/create/delete/
+ * execute/shell). Each value is an approval-message template resolved against
+ * the tool args (see resolveApprovalMessage); its placeholder names the same
+ * field the grant matcher keys on (path/command/target_notebook).
+ */
+const BUILT_IN_GATED = new Map<string, string>([
+  ["Write", "Write file: {{args.path}}"],
+  ["StrReplace", "Edit file: {{args.path}}"],
+  ["EditNotebook", "Edit notebook: {{args.target_notebook}}"],
+  ["Shell", "Run command: {{args.command}}"],
+  ["Delete", "Delete: {{args.path}}"],
 ]);
 
 /**
- * Check whether a built-in Cursor tool requires user approval.
+ * Top-level tool-argument fields, in priority order, that identify the specific
+ * resource a built-in tool acts on. Used to render approval messages and to key
+ * HITL approval grants (see approval-state.ts). Authored here once and injected
+ * into the generated preToolUse hook script so the runner and the hook always
+ * agree on which field to match.
+ */
+export const SALIENT_ARG_FIELDS = ["path", "command", "target_notebook"] as const;
+
+/**
+ * Check whether a built-in (non-MCP) Cursor tool requires user approval.
  *
- * Built-in tools are not governed by MCP server policies — they use a
- * local allow-list maintained in the cursor-runner.
+ * Only the explicitly gated, mutating/destructive tools require approval;
+ * everything else (read-only built-ins, and — at the hook layer — auto-approved
+ * MCP tools) is allowed. This "gate the dangerous set, allow the rest" model
+ * mirrors the native harness's resolveToolApproval, which also defaults
+ * unlisted tools to no-approval. It is deliberately fail-OPEN for unknown
+ * tools: the merged MCP policy map carries only the tools that REQUIRE
+ * approval, so a fail-closed default would wrongly deny every auto-approved
+ * MCP tool, which the hook cannot distinguish from an unknown built-in by name.
  */
 export function builtInRequiresApproval(toolName: string): boolean {
-  if (BUILT_IN_REQUIRE_APPROVAL.has(toolName)) return true;
-  if (BUILT_IN_ALLOW.has(toolName)) return false;
-  return true;
+  return BUILT_IN_GATED.has(toolName);
 }
 
 /**
- * Returns the set of built-in tool names that are always allowed.
+ * Returns the built-in tool names that require approval (the gated set the
+ * preToolUse hook denies unless auto-approved or granted on reinvocation).
  */
-export function getBuiltInAllowList(): string[] {
-  return [...BUILT_IN_ALLOW];
+export function getBuiltInGatedList(): string[] {
+  return [...BUILT_IN_GATED.keys()];
+}
+
+/**
+ * Approval-message template for a gated built-in tool, or undefined when the
+ * tool is not a known gated built-in. Callers resolve the placeholders against
+ * the tool args via resolveApprovalMessage.
+ */
+export function getBuiltInApprovalMessage(toolName: string): string | undefined {
+  return BUILT_IN_GATED.get(toolName);
+}
+
+/**
+ * Extract the canonical "salient" argument value that identifies the resource a
+ * built-in tool acts on (the file path, the shell command, …). Returns "" when
+ * no salient field is present. Kept in lockstep with SALIENT_ARG_FIELDS and the
+ * generated hook script so grant matching at deny-time and reinvoke-time never
+ * drift.
+ */
+export function extractArgKey(args: Record<string, unknown> | undefined): string {
+  if (!args) return "";
+  for (const field of SALIENT_ARG_FIELDS) {
+    const v = args[field];
+    if (typeof v === "string" && v.length > 0) return v;
+  }
+  return "";
 }
 
 /**

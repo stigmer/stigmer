@@ -17,6 +17,7 @@
 
 import { resolve } from "node:path";
 import type { SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import { ApprovalAction, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 /**
@@ -104,35 +105,62 @@ export function buildEnhancedPrompt(options: EnhancedPromptOptions): string {
 
 /**
  * Build the reinvocation prompt after approval decisions.
- * Only contains approval instructions, no blueprint (it persists in context).
+ *
+ * Only contains approval instructions, no blueprint (it persists in the resumed
+ * agent's native context). The actions are described in human-meaningful terms
+ * (the resolved approval message, e.g. "Write file: foo.txt") — NOT the opaque
+ * tool-call ids, which mean nothing to the model. A resumed agent re-issues the
+ * approved tool with a fresh id; the approval gate (see approval-state.ts grants)
+ * is what actually lets the re-attempt through.
  */
 export function buildReinvocationPrompt(
+  pendingApprovals: PendingApproval[],
   approvalDecisions: Map<string, ApprovalAction>,
 ): string {
   const approved: string[] = [];
   const skipped: string[] = [];
 
-  for (const [toolCallId, action] of approvalDecisions) {
+  for (const pa of pendingApprovals) {
+    const action = approvalDecisions.get(pa.toolCallId);
     if (action === ApprovalAction.APPROVE) {
-      approved.push(toolCallId);
+      approved.push(describeApproval(pa));
     } else if (action === ApprovalAction.SKIP) {
-      skipped.push(toolCallId);
+      skipped.push(describeApproval(pa));
     }
   }
 
   const parts: string[] = [];
   if (approved.length) {
     parts.push(
-      `The user has approved the following tool calls. Please execute them now: ${approved.join(", ")}.`,
+      "The user reviewed the following action(s) you proposed and APPROVED them. " +
+        "Carry them out now:\n" +
+        approved.map((a) => `- ${a}`).join("\n"),
     );
   }
   if (skipped.length) {
     parts.push(
-      `The user has skipped the following tool calls. Do not execute them and continue without them: ${skipped.join(", ")}.`,
+      "The user SKIPPED the following action(s). Do not perform them; continue " +
+        "with the rest of the task without them:\n" +
+        skipped.map((a) => `- ${a}`).join("\n"),
     );
   }
 
   return parts.join("\n\n");
+}
+
+/**
+ * Render a pending approval as a short human-readable action description for the
+ * reinvocation prompt. Prefers the already-resolved approval message; falls back
+ * to the tool name plus a bounded args preview.
+ */
+function describeApproval(pa: PendingApproval): string {
+  if (pa.message) return pa.message;
+  const name = pa.mcpServerSlug ? `${pa.mcpServerSlug}/${pa.toolName}` : pa.toolName;
+  if (!pa.argsPreview) return name;
+  const preview = pa.argsPreview.length > 200
+    ? `${pa.argsPreview.slice(0, 200)}…`
+    : pa.argsPreview;
+  return `${name} (${preview})`;
 }
 
 /**

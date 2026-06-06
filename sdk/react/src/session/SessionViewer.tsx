@@ -127,6 +127,7 @@ export function SessionViewer({
 
   const [modelId, setModelId] = flow.model;
   const [interactionMode, setInteractionMode] = useState<InteractionModeOption>("agent");
+  const [autoApproveAll, setAutoApproveAll] = useState(false);
   const composerRef = useRef<SessionComposerHandle>(null);
 
   const selectionStoreRef = useRef<SelectionStore | null>(null);
@@ -182,6 +183,8 @@ export function SessionViewer({
               setModelId={setModelId}
               interactionMode={interactionMode}
               setInteractionMode={setInteractionMode}
+              autoApproveAll={autoApproveAll}
+              setAutoApproveAll={setAutoApproveAll}
               composerRef={composerRef}
               org={org}
               gitHubConnection={gitHubConnection}
@@ -220,6 +223,8 @@ interface ConversationColumnProps {
   readonly setModelId: (id: string) => void;
   readonly interactionMode: InteractionModeOption;
   readonly setInteractionMode: (mode: InteractionModeOption) => void;
+  readonly autoApproveAll: boolean;
+  readonly setAutoApproveAll: (value: boolean) => void;
   readonly composerRef: React.RefObject<SessionComposerHandle | null>;
   readonly org: string;
   readonly gitHubConnection?: UseGitHubConnectionReturn;
@@ -235,6 +240,8 @@ function ConversationColumn({
   setModelId,
   interactionMode,
   setInteractionMode,
+  autoApproveAll,
+  setAutoApproveAll,
   composerRef,
   org,
   gitHubConnection,
@@ -281,6 +288,9 @@ function ConversationColumn({
           interactionMode={interactionMode}
           onInteractionModeChange={setInteractionMode}
           showInteractionModePicker
+          autoApproveAll={autoApproveAll}
+          onAutoApproveAllChange={setAutoApproveAll}
+          showAutoApproveToggle
           workspace={flow.workspace}
           gitHubConnection={gitHubConnection}
           enableGitHub={enableGitHub}

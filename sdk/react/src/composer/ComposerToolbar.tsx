@@ -7,6 +7,7 @@ import { ModelSelector } from "../models/ModelSelector";
 import { HarnessSelector } from "../models/HarnessSelector";
 import type { HarnessOption } from "../models/harness";
 import { InteractionModePicker, type InteractionModeOption } from "./InteractionModePicker";
+import { AutoApproveToggle } from "./AutoApproveToggle";
 import {
   PaperclipIcon,
   WorkspaceIcon,
@@ -29,6 +30,10 @@ export interface ComposerToolbarProps {
   readonly showInteractionModePicker: boolean;
   readonly interactionMode?: InteractionModeOption;
   readonly onInteractionModeChange: (mode: InteractionModeOption) => void;
+
+  readonly showAutoApproveToggle: boolean;
+  readonly autoApproveAll: boolean;
+  readonly onAutoApproveAllChange: (autoApproveAll: boolean) => void;
 
   readonly showModelSelector: boolean;
   readonly modelId?: string;
@@ -101,6 +106,9 @@ export function ComposerToolbar({
   showInteractionModePicker,
   interactionMode,
   onInteractionModeChange,
+  showAutoApproveToggle,
+  autoApproveAll,
+  onAutoApproveAllChange,
   showModelSelector,
   modelId,
   onModelChange,
@@ -112,6 +120,13 @@ export function ComposerToolbar({
       {/* ---- Left group: Primary state (Mode + Model) ---- */}
 
       <div className="flex min-w-0 items-center gap-1.5">
+        {showAutoApproveToggle && (
+          <AutoApproveToggle
+            value={autoApproveAll}
+            onValueChange={onAutoApproveAllChange}
+            disabled={disabled}
+          />
+        )}
         {showInteractionModePicker && (
           <InteractionModePicker
             value={interactionMode ?? "agent"}

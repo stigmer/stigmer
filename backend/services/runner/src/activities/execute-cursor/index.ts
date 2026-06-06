@@ -58,7 +58,7 @@ import { resolveAttachments } from "./attachment-resolver.js";
 import { buildEnhancedPrompt, buildReinvocationPrompt } from "./prompt-builder.js";
 import { extractAgentRationale, getGitBranch, getGitHeadSha } from "./hitl-diagnostics.js";
 import { writeHooksToWorkspace } from "./workspace-setup.js";
-import { buildApprovalState } from "./approval-state.js";
+import { buildApprovalState, buildApprovalGrants } from "./approval-state.js";
 import { provisionCursorWorkspace } from "./workspace-provision.js";
 import { setInterceptorExecutionId, runWithExecutionContext } from "./fetch-interceptor.js";
 import { closeProxySessions } from "./http2-interceptor.js";
@@ -354,11 +354,16 @@ async function executeCursorInner(
 
     errorContext = { model: validatedModel, mode: agentMode, agentId: resolution.agentId };
 
-    // Phase 8: Write hooks for HITL with policy-aware state
+    // Phase 8: Write hooks for HITL with policy-aware state. On reinvocation,
+    // turn the user's approvals into tool-identity grants so the resumed agent's
+    // re-attempt (which carries a fresh tool-call id) is allowed through.
+    const approvalGrants = approvalDecisions
+      ? buildApprovalGrants(execution.status?.pendingApprovals ?? [], approvalDecisions)
+      : undefined;
     const approvalState = buildApprovalState(
       mergedPolicies,
       execution.spec?.autoApproveAll ?? false,
-      approvalDecisions,
+      approvalGrants,
     );
     await writeHooksToWorkspace(primaryWorkspaceDir, approvalState);
 
@@ -1322,7 +1327,7 @@ export function buildPrompt(input: BuildPromptInput): string {
   // HITL reinvocation: the agent is resumed, so its native context carries the
   // prior conversation; the reinvocation prompt conveys the approval decisions.
   if (isHitlReinvocation) {
-    return buildReinvocationPrompt(approvalDecisions);
+    return buildReinvocationPrompt(input.pendingApprovals, approvalDecisions);
   }
 
   // A successfully resumed agent carries its own conversation context via the

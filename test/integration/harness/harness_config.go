@@ -65,13 +65,22 @@ func RequireCursorPrereqs(t *testing.T, th *TestHarness) {
 	}
 }
 
-// SkipCursorForHITLGate skips cursor harness subtests that require the runner to
-// block on WAITING_FOR_APPROVAL. The cursor harness auto-executes MCP tools in
-// integration tests without surfacing the approval gate.
+// SkipCursorForHITLGate skips the MCP-tool HITL subtests for the cursor harness.
+//
+// The cursor harness now enforces the approval gate (the preToolUse hook loads
+// once "project" setting sources are enabled, and built-in mutating tools are
+// gated). The built-in approval loop is covered end-to-end by
+// TestCursorHarness_HITL_WriteGate_Approve.
+//
+// These MCP-tool subtests remain skipped pending live confirmation that Cursor's
+// preToolUse hook surfaces MCP tool calls by their real name (so the policy
+// lookup matches) and reports a denied MCP tool as a tool_call "error" event the
+// runner can turn into a pending approval. Until that is verified against the
+// live Cursor SDK, gating MCP tools specifically is unconfirmed.
 func SkipCursorForHITLGate(t *testing.T, h HarnessConfig) {
 	t.Helper()
 	if h.Harness == sessionv1.Harness_HARNESS_CURSOR {
-		t.Skip("cursor harness does not block MCP tools on approval gate in integration tests")
+		t.Skip("cursor harness MCP-tool approval gate pending live preToolUse verification (built-in gate covered by TestCursorHarness_HITL_WriteGate_Approve)")
 	}
 }
 

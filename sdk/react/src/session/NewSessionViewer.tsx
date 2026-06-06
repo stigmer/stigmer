@@ -124,6 +124,7 @@ export function NewSessionViewer({
 }: NewSessionViewerProps) {
   const flow = useNewSessionFlow({ org, onSessionCreated, onError });
   const [interactionMode, setInteractionMode] = useState<InteractionModeOption>("agent");
+  const [autoApproveAll, setAutoApproveAll] = useState(false);
 
   const hasContext =
     flow.workspace.hasEntries ||
@@ -231,6 +232,9 @@ export function NewSessionViewer({
           interactionMode={interactionMode}
           onInteractionModeChange={setInteractionMode}
           showInteractionModePicker
+          autoApproveAll={autoApproveAll}
+          onAutoApproveAllChange={setAutoApproveAll}
+          showAutoApproveToggle
           defaultModelId={flow.modelId}
           onModelChange={flow.setModelId}
           placeholder={placeholder}

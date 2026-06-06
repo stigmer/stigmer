@@ -283,6 +283,7 @@ export function useSessionPageFlow(
         runtimeEnv: context?.runtimeEnv,
         attachments: context?.attachments,
         interactionMode: context?.interactionMode,
+        autoApproveAll: context?.autoApproveAll,
         workspaceFileRefs: context?.workspaceFileRefs,
       });
 

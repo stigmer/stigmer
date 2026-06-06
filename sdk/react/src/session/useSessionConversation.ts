@@ -84,6 +84,12 @@ export interface SendFollowUpOptions {
    */
   readonly interactionMode?: "agent" | "plan";
   /**
+   * Auto-approve every tool call for this execution (bypass the HITL gate).
+   *
+   * @see {@link CreateAgentExecutionInput.autoApproveAll}
+   */
+  readonly autoApproveAll?: boolean;
+  /**
    * Workspace-relative file paths the user wants the agent to focus on.
    *
    * Lightweight "attention" signals — no upload, no injection. The agent
@@ -382,6 +388,7 @@ export function useSessionConversation(
           runtimeEnv: options?.runtimeEnv,
           attachments: options?.attachments,
           interactionMode: options?.interactionMode,
+          autoApproveAll: options?.autoApproveAll,
           workspaceFileRefs: options?.workspaceFileRefs,
         });
         setPendingExecutionId(result.executionId);

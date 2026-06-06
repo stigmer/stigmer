@@ -49,6 +49,26 @@ import type { CursorMcpServerConfig } from "./mcp-resolver.js";
 
 const CURSOR_SDK_STATE_DIR = ".stigmer/cursor-sdk-state";
 
+/**
+ * Cursor SDK setting sources loaded for LOCAL agents.
+ *
+ * The Stigmer HITL approval gate is a `.cursor/hooks.json` preToolUse hook
+ * written into the workspace (see workspace-setup.ts). The Cursor SDK only
+ * loads workspace ("project") hooks when the "project" setting source is
+ * enabled — internally `includeProjectHooks = settingSources.includes("project")`
+ * (and the hooks subsystem itself is only constructed when a project/user
+ * source is present). The SDK default is `[]` ("inline config only"), which
+ * silently drops the hook and disables the entire approval gate. We must opt
+ * in to "project" so the hook loads and tool calls are actually gated.
+ *
+ * Side effect: this also loads other workspace `.cursor/*` config (rules,
+ * mcp.json, commands). For runner-provisioned workspaces that is inert; for
+ * sessions running on a user's own repo their project config is now honored.
+ *
+ * Cloud agents always load project settings server-side, so this is local-only.
+ */
+const LOCAL_SETTING_SOURCES = ["project"] as const;
+
 // ---------------------------------------------------------------------------
 // Public types — local mode
 // ---------------------------------------------------------------------------
@@ -210,7 +230,7 @@ export async function createAgent(options: CreateAgentOptions): Promise<SDKAgent
   return Agent.create({
     apiKey: options.apiKey,
     model: { id: options.model },
-    local: { cwd },
+    local: { cwd, settingSources: [...LOCAL_SETTING_SOURCES] },
     mcpServers: options.mcpServers as Record<string, any>,
     agents: options.agents,
     platform,
@@ -234,6 +254,9 @@ export async function resumeAgent(options: ResumeAgentOptions): Promise<SDKAgent
   return Agent.resume(options.agentId, {
     apiKey: options.apiKey,
     model: options.model ? { id: options.model } : undefined,
+    // settingSources are not persisted across resume, so the "project" source
+    // (which loads the HITL approval hook) must be re-supplied every turn.
+    local: { settingSources: [...LOCAL_SETTING_SOURCES] },
     mcpServers: options.mcpServers as Record<string, any>,
     agents: options.agents,
     platform,

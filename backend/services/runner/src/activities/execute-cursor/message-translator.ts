@@ -38,7 +38,7 @@ import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agent
 import { MessageType, ToolCallStatus, SubAgentStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { SDKMessage } from "@cursor/sdk";
 import type { MergedToolPolicy } from "./approval-policy.js";
-import { lookupMcpToolPolicy, resolveApprovalMessage, builtInRequiresApproval } from "./approval-policy.js";
+import { lookupMcpToolPolicy, resolveApprovalMessage, builtInRequiresApproval, getBuiltInApprovalMessage } from "./approval-policy.js";
 import { utcTimestamp } from "../../shared/status.js";
 
 export { utcTimestamp };
@@ -215,7 +215,17 @@ export function buildToolCallProto(
       }
     }
   } else if (mergedPolicies && !mcpDetails) {
-    toolCall.requiresApproval = builtInRequiresApproval(actualName);
+    const requires = builtInRequiresApproval(actualName);
+    toolCall.requiresApproval = requires;
+    if (requires) {
+      const template = getBuiltInApprovalMessage(actualName);
+      if (template) {
+        toolCall.approvalMessage = resolveApprovalMessage(template, actualName, argsObj ?? {});
+        if (status === ToolCallStatus.TOOL_CALL_FAILED) {
+          toolCall.approvalRequestedAt = utcTimestamp();
+        }
+      }
+    }
   }
 
   return toolCall;
@@ -737,6 +747,16 @@ export function extractDeniedToolCalls(
             actualName,
             mcpDetails.innerArgs,
           );
+        }
+      } else if (!mcpDetails) {
+        // Built-in (non-MCP) tool: resolve the native-style message template so
+        // the approval card shows "Write file: foo.txt" rather than a generic line.
+        const template = getBuiltInApprovalMessage(actualName);
+        if (template) {
+          const builtInArgs = (typeof e.args === "object" && e.args !== null)
+            ? e.args as Record<string, unknown>
+            : {};
+          approvalMessage = resolveApprovalMessage(template, actualName, builtInArgs);
         }
       }
 

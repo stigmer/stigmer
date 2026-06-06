@@ -8,7 +8,9 @@
  */
 
 import { describe, it, expect } from "vitest";
+import { create } from "@bufbuild/protobuf";
 import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 
 import { buildPrompt } from "../index.js";
 import type { BuildPromptInput } from "../index.js";
@@ -83,7 +85,7 @@ describe("buildPrompt", () => {
     expect(prompt).toContain(USER_MESSAGE);
   });
 
-  it("uses the reinvocation prompt for a HITL reinvocation (resumed agent carries the conversation)", () => {
+  it("uses the reinvocation prompt for a HITL reinvocation (human-meaningful, no opaque ids)", () => {
     const approvalDecisions = new Map<string, ApprovalAction>([
       ["tool-call-1", ApprovalAction.APPROVE],
     ]);
@@ -91,10 +93,19 @@ describe("buildPrompt", () => {
       input({
         resolution: resolution("local", "resumed_successfully"),
         approvalDecisions,
+        pendingApprovals: [
+          create(PendingApprovalSchema, {
+            toolCallId: "tool-call-1",
+            toolName: "Write",
+            message: "Write file: gated.txt",
+          }),
+        ],
       }),
     );
     expect(prompt).not.toBe(USER_MESSAGE);
-    expect(prompt).toContain("approved");
-    expect(prompt).toContain("tool-call-1");
+    expect(prompt).toContain("APPROVED");
+    expect(prompt).toContain("Write file: gated.txt");
+    // The opaque tool-call id must not leak into the prompt.
+    expect(prompt).not.toContain("tool-call-1");
   });
 });

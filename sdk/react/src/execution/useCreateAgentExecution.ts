@@ -60,6 +60,15 @@ export interface CreateAgentExecutionInput {
    */
   readonly interactionMode?: "agent" | "plan";
   /**
+   * Auto-approve every tool call for this execution.
+   *
+   * When `true`, the human-in-the-loop approval gate is bypassed and no tool
+   * waits for approval. When `false` (default), mutating/destructive tools
+   * require approval per the configured policies. Maps to
+   * `AgentExecutionSpec.auto_approve_all` in the proto.
+   */
+  readonly autoApproveAll?: boolean;
+  /**
    * JSON Schema that the agent's final output must conform to.
    *
    * When set, the runner enforces structured output:
@@ -174,6 +183,7 @@ export function useCreateAgentExecution(): UseCreateAgentExecutionReturn {
           agentId: input.agentId,
           message: input.message,
           executionConfig,
+          autoApproveAll: input.autoApproveAll,
           runtimeEnv: input.runtimeEnv,
           attachments: input.attachments,
           workspaceFileRefs: input.workspaceFileRefs,
