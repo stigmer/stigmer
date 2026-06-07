@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { createRequire } from "node:module";
 import type http2Type from "node:http2";
-import { installHttp2Interceptor, uninstallHttp2Interceptor, updateHttp2InterceptorToken } from "../http2-interceptor.js";
+import { installHttp2Interceptor, uninstallHttp2Interceptor, updateHttp2InterceptorToken, assertHttp2ConnectPatched } from "../http2-interceptor.js";
 import { getExecutionContext } from "../fetch-interceptor.js";
 
 const require = createRequire(import.meta.url);
@@ -324,6 +324,37 @@ describe("http2-interceptor", () => {
       session.request({ ":path": "/test" });
 
       expect(mock.calls[0].headers).not.toHaveProperty("x-stigmer-auth");
+    });
+  });
+
+  describe("assertHttp2ConnectPatched", () => {
+    // The node:http2 ESM namespace is a one-time, process-global snapshot taken
+    // at the module's FIRST `import` (see header comment in http2-interceptor.ts
+    // and CASE A/B in the probe). That makes the positive "configured + in-sync"
+    // path impossible to assert deterministically inside a shared test process
+    // — it is guaranteed by load order (interceptor installed before connect-node
+    // imports node:http2) and exercised by the boot guard in the runner
+    // factories. Here we cover the two deterministic contracts: it is a no-op
+    // when unconfigured (no import, so it never freezes the facade), and it
+    // throws when the frozen facade is out of sync with the patched connect.
+
+    it("resolves without throwing (and without importing node:http2) when unconfigured", async () => {
+      uninstallHttp2Interceptor();
+      await expect(assertHttp2ConnectPatched()).resolves.toBeUndefined();
+    });
+
+    it("throws when the ESM facade is out of sync with the patched connect (load-order regression)", async () => {
+      // Freeze the ESM facade to the pre-patch connect, simulating connect-node
+      // importing node:http2 before installHttp2Interceptor() ran.
+      await import("node:http2");
+
+      const mock = createMockConnect();
+      http2.connect = mock.mockConnect;
+      installHttp2Interceptor({ proxyEndpoint: PROXY_ENDPOINT, stigmerToken: STIGMER_TOKEN });
+
+      await expect(assertHttp2ConnectPatched()).rejects.toThrow(
+        /node:http2 ESM facade is unpatched/,
+      );
     });
   });
 });

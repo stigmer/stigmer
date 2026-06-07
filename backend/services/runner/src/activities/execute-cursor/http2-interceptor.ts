@@ -6,11 +6,21 @@
  * This means the fetch interceptor (fetch-interceptor.ts) cannot inject
  * the `x-stigmer-execution-id` header on BiDi streams.
  *
- * CHALLENGE: connect-node uses `import * as http2 from "node:http2"` which
- * creates an ESM namespace. Patching `http2.connect` via a default ESM import
- * does NOT propagate to namespace imports — this is a Node.js ESM interop
- * limitation for built-in modules. The fix is to patch via `require()`
- * (CJS), which modifies the actual module singleton visible to all importers.
+ * CHALLENGE: connect-node uses `import * as http2 from "node:http2"`. Node
+ * builds that ESM namespace by snapshotting the builtin's CJS exports at the
+ * FIRST `import` of the module, then freezes the namespace bindings. Patching
+ * `http2.connect` via `require()` mutates the shared CJS singleton, and that
+ * mutation is only visible to ESM namespace imports performed AFTER the patch.
+ * If connect-node imports `node:http2` first, its namespace is already frozen
+ * to the original `connect` and our later patch is invisible to it.
+ *
+ * LOAD ORDER IS THEREFORE LOAD-BEARING: this interceptor MUST be installed
+ * before the first connect-node import in the process. The runner enforces this
+ * by (a) keeping connect-node out of the pre-install static module graph
+ * (bootstrap.ts loads StigmerClient via dynamic import) and (b) installing this
+ * interceptor before resolving Temporal coordinates / importing the SDK in the
+ * runner factories. assertHttp2ConnectPatched() verifies the ESM-facade view at
+ * boot so any future regression fails loudly instead of silently 401-ing.
  *
  * This module patches `http2.connect()` to wrap returned sessions. The
  * wrapped session's `request()` method reads the execution ID from the
@@ -158,14 +168,49 @@ export function installHttp2Interceptor(opts: {
     return session;
   } as typeof http2.connect;
 
-  // Verify the patch took effect on the module singleton
-  const verify = require("node:http2");
-  const patchVisible = verify.connect === http2.connect && verify.connect.name === "patchedConnect";
-
   console.log(
     `[http2-interceptor] Installed: Connect RPC streams to ${parsed.hostname}:${parsed.port} ` +
-      `will carry x-stigmer-auth + x-stigmer-execution-id (patch verified: ${patchVisible})`,
+      `will carry x-stigmer-auth + x-stigmer-execution-id`,
   );
+}
+
+/**
+ * Verify the patch is visible to ESM namespace importers of `node:http2`
+ * (i.e. @connectrpc/connect-node). Call once at boot, immediately after
+ * {@link installHttp2Interceptor}.
+ *
+ * Unlike the CJS `require("node:http2")` singleton, the ESM namespace produced
+ * by `import * as http2 from "node:http2"` is snapshotted at the module's first
+ * import and frozen. If connect-node imported `node:http2` before the patch was
+ * applied, this namespace still exposes the ORIGINAL `connect`, so BiDi streams
+ * would silently omit `x-stigmer-auth` and hit HTTP 401. Importing the module
+ * here and comparing `ns.connect` against our patched `http2.connect` is the
+ * only honest check — comparing two `require()` views is tautological because
+ * they are the same object.
+ *
+ * No-op when the interceptor is not configured (no proxy/token), since there is
+ * nothing to patch in that case.
+ *
+ * @throws if the interceptor is configured but the ESM facade is unpatched —
+ * a load-order regression that must fail loudly at boot, not at request time.
+ */
+export async function assertHttp2ConnectPatched(): Promise<void> {
+  if (!config) {
+    return;
+  }
+
+  const ns = await import("node:http2");
+  if (ns.connect !== http2.connect) {
+    throw new Error(
+      "[http2-interceptor] node:http2 ESM facade is unpatched: connect-node imported " +
+        "node:http2 before installHttp2Interceptor() ran, so its frozen namespace still " +
+        "holds the original http2.connect. BiDi streams would omit x-stigmer-auth and 401. " +
+        "Fix the load order: keep @connectrpc/connect-node out of the pre-install static " +
+        "module graph (load StigmerClient via dynamic import) and install this interceptor " +
+        "before resolving Temporal coordinates / importing @cursor/sdk. See bootstrap.ts " +
+        "and the runner factories.",
+    );
+  }
 }
 
 /**

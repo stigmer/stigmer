@@ -163,10 +163,41 @@ export async function createStigmerRunnerManager(
   const tokenRef = { current: options.stigmerToken ?? null };
   const baseConfig = mapManagerOptionsToConfig(options, tokenRef);
 
-  // Resolve Temporal coordinates before opening any connection. An explicit
-  // address wins; otherwise a token triggers control-plane discovery; otherwise
-  // localhost. Must happen before createAllActivities so runtime activities that
-  // dial Temporal (e.g. emit-event) see the resolved address too.
+  // Install the Cursor SDK interceptors BEFORE resolving Temporal coordinates.
+  // Coordinate discovery dials the control plane via StigmerClient, which loads
+  // @connectrpc/connect-node and snapshots the node:http2 ESM facade on first
+  // import. The HTTP/2 interceptor patches http2.connect and only propagates to
+  // that facade if it runs first, so install MUST precede any connect-node load
+  // (discovery here, and the SDK later). The interceptors depend only on
+  // proxyEndpoint/stigmerToken (already in baseConfig), not resolved coordinates.
+
+  // Install fetch interceptor before any @cursor/sdk imports
+  const { installFetchInterceptor, updateInterceptorToken, getExecutionContext } = await import(
+    "./activities/execute-cursor/fetch-interceptor.js"
+  );
+  installFetchInterceptor({
+    proxyEndpoint: baseConfig.proxyEndpoint ?? undefined,
+    stigmerToken: baseConfig.stigmerToken ?? undefined,
+  });
+
+  // HTTP/2 interceptor for Connect RPC auth + execution ID injection (BiDi billing)
+  const { installHttp2Interceptor, updateHttp2InterceptorToken, assertHttp2ConnectPatched } = await import(
+    "./activities/execute-cursor/http2-interceptor.js"
+  );
+  installHttp2Interceptor({
+    proxyEndpoint: baseConfig.proxyEndpoint ?? undefined,
+    stigmerToken: baseConfig.stigmerToken ?? undefined,
+  });
+  // Fail loudly at boot if a load-order regression left the node:http2 ESM
+  // facade unpatched (otherwise BiDi streams would silently 401). No-op when
+  // the interceptor is unconfigured (no proxy/token).
+  await assertHttp2ConnectPatched();
+
+  // Resolve Temporal coordinates after the http2 patch is in place (discovery
+  // dials the control plane through connect-node). An explicit address wins;
+  // otherwise a token triggers control-plane discovery; otherwise localhost.
+  // Must happen before createAllActivities so runtime activities that dial
+  // Temporal (e.g. emit-event) see the resolved address too.
   const coordinates = await resolveTemporalCoordinates({
     explicitAddress: options.temporalAddress,
     explicitNamespace: options.temporalNamespace,
@@ -178,24 +209,6 @@ export async function createStigmerRunnerManager(
     temporalAddress: coordinates.temporalAddress,
     temporalNamespace: coordinates.temporalNamespace,
   };
-
-  // Install fetch interceptor before any @cursor/sdk imports
-  const { installFetchInterceptor, updateInterceptorToken, getExecutionContext } = await import(
-    "./activities/execute-cursor/fetch-interceptor.js"
-  );
-  installFetchInterceptor({
-    proxyEndpoint: config.proxyEndpoint ?? undefined,
-    stigmerToken: config.stigmerToken ?? undefined,
-  });
-
-  // HTTP/2 interceptor for Connect RPC auth + execution ID injection (BiDi billing)
-  const { installHttp2Interceptor, updateHttp2InterceptorToken } = await import(
-    "./activities/execute-cursor/http2-interceptor.js"
-  );
-  installHttp2Interceptor({
-    proxyEndpoint: config.proxyEndpoint ?? undefined,
-    stigmerToken: config.stigmerToken ?? undefined,
-  });
 
   const { setExecutionContextRef } = await import(
     "./activities/execute-cursor/rejection-capture.js"

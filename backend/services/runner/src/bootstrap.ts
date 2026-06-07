@@ -21,7 +21,17 @@
  * later in a far more confusing way.
  */
 
-import { StigmerClient } from "./client/stigmer-client.js";
+// StigmerClient is intentionally NOT statically imported here. It transitively
+// pulls in @connectrpc/connect-node, which does `import * as http2 from
+// "node:http2"` and snapshots the http2 ESM facade on first import. The Cursor
+// SDK HTTP/2 auth interceptor (http2-interceptor.ts) patches `http2.connect`
+// via require() and only propagates to that facade if it runs BEFORE the
+// snapshot. A static import here would drag connect-node into the runner's
+// pre-install module graph (this module is statically imported by runner.ts /
+// runner-manager.ts), freezing the facade to the unpatched connect and silently
+// breaking BiDi auth. Loading the client dynamically keeps connect-node out of
+// the pre-install graph, consistent with the runner's dynamic-import-for-order
+// convention. See assertHttp2ConnectPatched() for the boot-time guard.
 import type { RunnerBootstrapConfig } from "./client/stigmer-client.js";
 
 const LOCAL_TEMPORAL_ADDRESS = "localhost:7233";
@@ -41,14 +51,20 @@ export interface ResolveTemporalOptions {
 /**
  * A minimal discovery client seam, so the resolver can be unit-tested without a
  * live control plane. Defaults to a real {@link StigmerClient}.
+ *
+ * Async because the default factory loads StigmerClient via dynamic import to
+ * keep @connectrpc/connect-node out of the pre-install module graph (see the
+ * note on the omitted static import at the top of this file).
  */
 export type BootstrapClientFactory = (
   endpoint: string,
   token: string,
-) => { getRunnerBootstrapConfig(): Promise<RunnerBootstrapConfig> };
+) => Promise<{ getRunnerBootstrapConfig(): Promise<RunnerBootstrapConfig> }>;
 
-const defaultClientFactory: BootstrapClientFactory = (endpoint, token) =>
-  new StigmerClient({ endpoint, token });
+const defaultClientFactory: BootstrapClientFactory = async (endpoint, token) => {
+  const { StigmerClient } = await import("./client/stigmer-client.js");
+  return new StigmerClient({ endpoint, token });
+};
 
 export async function resolveTemporalCoordinates(
   options: ResolveTemporalOptions,
@@ -71,7 +87,8 @@ export async function resolveTemporalCoordinates(
 
   let discovered: RunnerBootstrapConfig;
   try {
-    discovered = await clientFactory(options.stigmerEndpoint, token).getRunnerBootstrapConfig();
+    const client = await clientFactory(options.stigmerEndpoint, token);
+    discovered = await client.getRunnerBootstrapConfig();
   } catch (err) {
     const reason = err instanceof Error ? err.message : String(err);
     throw new Error(

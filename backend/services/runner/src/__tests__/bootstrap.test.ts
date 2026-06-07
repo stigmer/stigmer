@@ -11,7 +11,7 @@ import type { BootstrapClientFactory } from "../bootstrap.js";
  */
 
 /** A factory whose client fails the test if discovery is ever attempted. */
-const failIfCalled: BootstrapClientFactory = () => ({
+const failIfCalled: BootstrapClientFactory = async () => ({
   getRunnerBootstrapConfig: () => {
     throw new Error("discovery must not be attempted in this scenario");
   },
@@ -52,7 +52,7 @@ describe("resolveTemporalCoordinates", () => {
       temporalAddress: "stigmer-temporal.example:7233",
       temporalNamespace: "tenant-ns",
     });
-    const factory: BootstrapClientFactory = (endpoint, token) => {
+    const factory: BootstrapClientFactory = async (endpoint, token) => {
       expect(endpoint).toBe("https://api.stigmer.ai");
       expect(token).toBe("tok_abc");
       return { getRunnerBootstrapConfig };
@@ -71,7 +71,7 @@ describe("resolveTemporalCoordinates", () => {
   });
 
   it("discovered namespace wins, defaulting to 'default' when blank", async () => {
-    const factory: BootstrapClientFactory = () => ({
+    const factory: BootstrapClientFactory = async () => ({
       getRunnerBootstrapConfig: () =>
         Promise.resolve({ temporalAddress: "t:7233", temporalNamespace: "" }),
     });
@@ -85,7 +85,7 @@ describe("resolveTemporalCoordinates", () => {
   });
 
   it("throws an actionable error when discovery fails (e.g. server too old)", async () => {
-    const factory: BootstrapClientFactory = () => ({
+    const factory: BootstrapClientFactory = async () => ({
       getRunnerBootstrapConfig: () =>
         Promise.reject(new Error("unimplemented")),
     });
@@ -99,7 +99,7 @@ describe("resolveTemporalCoordinates", () => {
   });
 
   it("throws when discovery returns an empty address (no silent localhost fallback)", async () => {
-    const factory: BootstrapClientFactory = () => ({
+    const factory: BootstrapClientFactory = async () => ({
       getRunnerBootstrapConfig: () =>
         Promise.resolve({ temporalAddress: "  ", temporalNamespace: "default" }),
     });
@@ -123,7 +123,7 @@ describe("resolveTemporalCoordinates", () => {
         token: "tok",
         stigmerEndpoint: "https://api.stigmer.ai",
       },
-      () => ({ getRunnerBootstrapConfig }),
+      async () => ({ getRunnerBootstrapConfig }),
     );
 
     expect(getRunnerBootstrapConfig).toHaveBeenCalledOnce();

@@ -131,10 +131,45 @@ export async function createStigmerRunner(
 
   const baseConfig = mapOptionsToConfig(options);
 
-  // Resolve Temporal coordinates before any activity import or worker connect.
-  // Explicit address wins; otherwise a token triggers control-plane discovery;
-  // otherwise localhost. Activities that dial Temporal at runtime (e.g.
-  // emit-event) read config.temporalAddress, so this must precede their creation.
+  // Install the Cursor SDK interceptors BEFORE resolving Temporal coordinates.
+  // Coordinate discovery dials the control plane via StigmerClient, which loads
+  // @connectrpc/connect-node and snapshots the node:http2 ESM facade on first
+  // import. The HTTP/2 interceptor patches http2.connect and only propagates to
+  // that facade if it runs first, so install MUST precede any connect-node load
+  // (discovery here, and the SDK later). The interceptors depend only on
+  // proxyEndpoint/stigmerToken (already in baseConfig), not resolved coordinates.
+
+  // The Cursor SDK captures a reference to global.fetch at import time.
+  // The fetch interceptor MUST be installed before any @cursor/sdk import.
+  const { installFetchInterceptor, getExecutionContext } = await import(
+    "./activities/execute-cursor/fetch-interceptor.js"
+  );
+  installFetchInterceptor({
+    proxyEndpoint: baseConfig.proxyEndpoint ?? undefined,
+    stigmerToken: baseConfig.stigmerToken ?? undefined,
+  });
+
+  // The Cursor SDK's Connect RPC transport uses native HTTP/2, bypassing
+  // globalThis.fetch. This interceptor injects x-stigmer-execution-id and
+  // the Stigmer auth token on HTTP/2 streams so the BiDi proxy can
+  // authenticate and meter billing.
+  const { installHttp2Interceptor, assertHttp2ConnectPatched } = await import(
+    "./activities/execute-cursor/http2-interceptor.js"
+  );
+  installHttp2Interceptor({
+    proxyEndpoint: baseConfig.proxyEndpoint ?? undefined,
+    stigmerToken: baseConfig.stigmerToken ?? undefined,
+  });
+  // Fail loudly at boot if a load-order regression left the node:http2 ESM
+  // facade unpatched (otherwise BiDi streams would silently 401). No-op when
+  // the interceptor is unconfigured (no proxy/token).
+  await assertHttp2ConnectPatched();
+
+  // Resolve Temporal coordinates after the http2 patch is in place (discovery
+  // dials the control plane through connect-node). Explicit address wins;
+  // otherwise a token triggers control-plane discovery; otherwise localhost.
+  // Activities that dial Temporal at runtime (e.g. emit-event) read
+  // config.temporalAddress, so this must precede their creation.
   const coordinates = await resolveTemporalCoordinates({
     explicitAddress: options.temporalAddress,
     explicitNamespace: options.temporalNamespace,
@@ -146,28 +181,6 @@ export async function createStigmerRunner(
     temporalAddress: coordinates.temporalAddress,
     temporalNamespace: coordinates.temporalNamespace,
   };
-
-  // The Cursor SDK captures a reference to global.fetch at import time.
-  // The fetch interceptor MUST be installed before any @cursor/sdk import.
-  const { installFetchInterceptor, getExecutionContext } = await import(
-    "./activities/execute-cursor/fetch-interceptor.js"
-  );
-  installFetchInterceptor({
-    proxyEndpoint: config.proxyEndpoint ?? undefined,
-    stigmerToken: config.stigmerToken ?? undefined,
-  });
-
-  // The Cursor SDK's Connect RPC transport uses native HTTP/2, bypassing
-  // globalThis.fetch. This interceptor injects x-stigmer-execution-id and
-  // the Stigmer auth token on HTTP/2 streams so the BiDi proxy can
-  // authenticate and meter billing.
-  const { installHttp2Interceptor } = await import(
-    "./activities/execute-cursor/http2-interceptor.js"
-  );
-  installHttp2Interceptor({
-    proxyEndpoint: config.proxyEndpoint ?? undefined,
-    stigmerToken: config.stigmerToken ?? undefined,
-  });
 
   const { setExecutionContextRef } = await import(
     "./activities/execute-cursor/rejection-capture.js"
