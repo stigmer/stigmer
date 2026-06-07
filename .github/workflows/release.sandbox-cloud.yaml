@@ -1,7 +1,12 @@
 name: release.sandbox-cloud
 
-# Builds the cloud sandbox image (unified TypeScript runner) used by
-# Daytona in cloud mode.
+# Builds and publishes the cloud sandbox runner image. stigmer-service launches
+# sandboxes from it (Kubernetes in prod, Daytona in local/rollback).
+#
+# This pipeline is a pure artifact publisher: build -> push (latest + main-<sha>)
+# -> smoke-test -> on pass, move the blessed :prod tag. stigmer-service follows
+# :prod and resolves it to an immutable @sha256 digest at sandbox-create time, so
+# there is no Planton variable, no CLI, and no redeploy in this path.
 #
 # Triggers:
 #   - push to main: rebuild when runner code, proto stubs, or Dockerfile
@@ -10,9 +15,9 @@ name: release.sandbox-cloud
 #     pushes/merges and silently skipped the v2.0.0 merge).
 #   - push of a v* tag: always rebuild so every release ships a matching
 #     cloud sandbox image.
-#   - workflow_dispatch: manual rebuild/redeploy.
+#   - workflow_dispatch: manual rebuild/re-bless.
 #
-# Image is tagged with latest + commit SHA (no semver tags).
+# Image is tagged with latest + commit SHA + (on smoke pass) prod. No semver tags.
 on:
   push:
     branches:
@@ -113,34 +118,14 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install Planton CLI
-        env:
-          PLANTON_CLI_VERSION: v0.0.25-cli.20260426.1
-          PLANTON_API_KEY: ${{ secrets.PLANTON_API_KEY }}
-        run: |
-          curl -fsSLo /usr/local/bin/planton \
-            "https://downloads.planton.ai/cli/${PLANTON_CLI_VERSION}/planton-${PLANTON_CLI_VERSION}-linux-amd64"
-          chmod +x /usr/local/bin/planton
-          planton --version
-          planton context set --org stigmer
-
-      - name: Update Planton sandbox image variable
-        env:
-          PLANTON_API_KEY: ${{ secrets.PLANTON_API_KEY }}
-        run: |
-          IMAGE="ghcr.io/${{ github.repository_owner }}/runner:main-${{ steps.tags.outputs.short_sha }}"
-          # config-manager standalone env-scoped Variable (slug: sandbox-ci-sandbox-image, env: prod).
-          # Resolved at deploy as $var/@prod/sandbox-ci-sandbox-image.
-          planton variable set sandbox-ci-sandbox-image --env prod "${IMAGE}"
-
-      - name: Redeploy stigmer-service to pick up new image variable
-        env:
-          PLANTON_API_KEY: ${{ secrets.PLANTON_API_KEY }}
-        run: planton service run-pipeline --service stigmer-service --branch main
-
-      - name: Warm Daytona image cache
-        continue-on-error: true
-        timeout-minutes: 5
+      - name: Smoke-test runner image
+        # Gate before blessing :prod. Boot a sandbox from the freshly built SHA image:
+        # if the image is broken/unpullable or the runner crashes on boot (the
+        # 2026-04 stale-image failure mode), creation fails and :prod is never moved.
+        # The smoke runs on Daytona (that is where CI has credentials); it validates
+        # "the runner boots", not k8s-specific concerns (PVC/gVisor). A deeper
+        # worker-level assertion is a future enhancement (see design-decision 003).
+        timeout-minutes: 8
         env:
           DAYTONA_API_KEY: ${{ secrets.DAYTONA_API_KEY }}
           IMAGE: ghcr.io/${{ github.repository_owner }}/runner:main-${{ steps.tags.outputs.short_sha }}
@@ -151,23 +136,31 @@ jobs:
           from daytona_sdk import Daytona, DaytonaConfig, CreateSandboxFromImageParams
 
           d = Daytona(DaytonaConfig(api_key=os.environ["DAYTONA_API_KEY"]))
+          image = os.environ["IMAGE"]
 
-          print(f"Creating sandbox from {os.environ['IMAGE']} to warm cache …")
+          print(f"Smoke-testing {image} …")
           t0 = time.monotonic()
-          sandbox = d.create(CreateSandboxFromImageParams(image=os.environ["IMAGE"]))
-          elapsed = time.monotonic() - t0
-          print(f"Sandbox {sandbox.id} ready in {elapsed:.1f}s — image layers cached")
+          sandbox = d.create(CreateSandboxFromImageParams(image=image))
+          print(f"Sandbox {sandbox.id} booted in {time.monotonic() - t0:.1f}s")
 
           d.delete(sandbox)
-          print("Sandbox deleted — cache-warming complete")
+          print("Smoke test passed — sandbox booted from the image and was cleaned up")
           PYEOF
+
+      - name: Promote tested image to :prod
+        # stigmer-service follows :prod and resolves it to an immutable @sha256 digest
+        # at sandbox-create time (SandboxImageResolver). Only a smoke-tested image
+        # reaches this tag. No Planton, no variable, no redeploy.
+        run: |
+          docker buildx imagetools create \
+            --tag ghcr.io/${{ github.repository_owner }}/runner:prod \
+            ghcr.io/${{ github.repository_owner }}/runner:main-${{ steps.tags.outputs.short_sha }}
 
       - name: Summary
         run: |
           echo "## Cloud Sandbox Image Published" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Image:** \`ghcr.io/${{ github.repository_owner }}/runner\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Tags:** \`latest\`, \`main-${{ steps.tags.outputs.short_sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Tags:** \`latest\`, \`main-${{ steps.tags.outputs.short_sha }}\`, \`prod\`" >> $GITHUB_STEP_SUMMARY
           echo "**Architecture:** linux/amd64" >> $GITHUB_STEP_SUMMARY
-          echo "**Planton variable:** updated \`sandbox-ci-sandbox-image\` (env prod)" >> $GITHUB_STEP_SUMMARY
-          echo "**Daytona cache warm:** attempted with SHA tag (continue-on-error)" >> $GITHUB_STEP_SUMMARY
+          echo "**Blessed tag:** \`:prod\` moved after smoke test; stigmer-service resolves it to a digest at sandbox-create (no redeploy)" >> $GITHUB_STEP_SUMMARY
