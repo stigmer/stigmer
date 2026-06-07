@@ -78,6 +78,7 @@ go_test(
     name = "controller_test",
     srcs = [
         "agentexecution_controller_test.go",
+        "lifecycle_cancel_cascade_test.go",
         "submit_approval_contract_test.go",
         "usage_aggregation_test.go",
     ],
@@ -87,8 +88,11 @@ go_test(
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
         "//backend/libs/go/grpc/interceptors/apiresource",
+        "//backend/libs/go/grpc/request/pipeline",
         "//backend/libs/go/store",
         "//backend/libs/go/store/sqlite",
         "//backend/services/stigmer-server/pkg/domain/agentexecution/approval",
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
     ],
 )

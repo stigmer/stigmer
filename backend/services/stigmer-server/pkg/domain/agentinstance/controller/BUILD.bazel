@@ -12,6 +12,7 @@ go_library(
         "get_by_reference.go",
         "list.go",
         "update.go",
+        "update_visibility.go",
     ],
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentinstance/controller",
     visibility = ["//visibility:public"],

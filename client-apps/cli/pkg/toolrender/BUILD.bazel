@@ -14,6 +14,8 @@ go_library(
         "render_expandable.go",
         "render_expanded.go",
         "render_known.go",
+        "toolkind.go",
+        "toolresult.go",
     ],
     importpath = "github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender",
     visibility = ["//visibility:public"],
@@ -41,6 +43,7 @@ go_test(
         "render_expandable_test.go",
         "render_expanded_test.go",
         "render_test.go",
+        "toolkind_fixtures_test.go",
     ],
     embed = [":toolrender"],
     deps = [
