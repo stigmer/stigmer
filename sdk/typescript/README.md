@@ -228,9 +228,17 @@ const adapter: RunnerAdapter = {
 };
 ```
 
+If your runner backend already exposes `addSession` / `removeSession` / `addWorkflowExecution` / `removeWorkflowExecution` (a `RunnerWorkerHost`) — the in-process `createStigmerRunnerManager`, the desktop's embedded-runner context, or your own API — skip the hand-wiring and let `createRunnerAdapter` build the adapter:
+
+```typescript
+import { createRunnerAdapter } from "@stigmer/sdk";
+
+const adapter = createRunnerAdapter(myRunnerHost);
+```
+
 A Session has no terminal phase, so its worker is tied to whether the session is **open**: attach on `onSessionOpened`, detach on `onSessionClosed` (and keep both idempotent — `onSessionOpened` may fire again on re-open). A Workflow Execution runs to a terminal phase, so its worker is tied to create/terminate.
 
-This package exports the **type only** — there is no runtime helper that calls these methods for you. In a non-React host you wire the adapter to your own open/close and create/terminate code paths. In React apps, `@stigmer/react` does this wiring automatically: pass `executionTarget` and `runnerAdapter` to `StigmerProvider` and the SDK hooks invoke the adapter at the right lifecycle points.
+The SDK does not invoke these methods on its own in a non-React host — you wire the adapter to your own open/close and create/terminate code paths. In React apps, `@stigmer/react` does this wiring automatically: pass `executionTarget` and `runnerAdapter` to `StigmerProvider` and the SDK hooks invoke the adapter at the right lifecycle points.
 
 See the [`@stigmer/react` local execution docs](../react/README.md#local-execution) and the [runner embedding guide](https://stigmer.ai/docs/guides/runners/embedding) for the full desktop (local) and web (cloud) walkthrough.
 

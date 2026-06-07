@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { RunnerAdapter } from "@stigmer/react";
+import { createRunnerAdapter, type RunnerAdapter } from "@stigmer/react";
 import { useRunner } from "./EmbeddedRunnerContext";
 
 /**
@@ -13,21 +13,12 @@ import { useRunner } from "./EmbeddedRunnerContext";
 export function useTauriRunnerAdapter(): RunnerAdapter {
   const { addSession, removeSession, addWorkflowExecution, removeWorkflowExecution } = useRunner();
 
-  return useMemo<RunnerAdapter>(
-    () => ({
-      onSessionOpened: async (id) => {
-        await addSession(id);
-      },
-      onSessionClosed: async (id) => {
-        await removeSession(id);
-      },
-      onWorkflowExecutionCreated: async (id) => {
-        await addWorkflowExecution(id);
-      },
-      onWorkflowExecutionTerminated: async (id) => {
-        await removeWorkflowExecution(id);
-      },
-    }),
+  // Memoize on the four context callbacks (each useCallback-stable) so the
+  // adapter reference stays stable across renders — StigmerProvider treats it
+  // as a dependency.
+  return useMemo(
+    () =>
+      createRunnerAdapter({ addSession, removeSession, addWorkflowExecution, removeWorkflowExecution }),
     [addSession, removeSession, addWorkflowExecution, removeWorkflowExecution],
   );
 }

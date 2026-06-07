@@ -130,6 +130,18 @@ re-exported from `@stigmer/react` alongside the `useRunnerAdapter` hook. A Java
 mirror exists too: `ai.stigmer.sdk.RunnerAdapter`, wired through
 `StigmerClient.builder().runnerAdapter(...)`.
 
+Most TypeScript embedders do not write that object by hand. If you already have
+a runner backend with `addSession` / `removeSession` / `addWorkflowExecution` /
+`removeWorkflowExecution` methods — the in-process manager (below), the
+desktop's embedded-runner context, or your own runner API — pass it to
+`createRunnerAdapter` and it wires the lifecycle mapping for you:
+
+```typescript
+import { createRunnerAdapter } from "@stigmer/sdk";
+
+const runnerAdapter = createRunnerAdapter(myRunnerHost);
+```
+
 <Callout>
   In React, the session worker lifecycle is wired at the
   `useSessionConversation` layer (which `SessionViewer` and `useSessionPageFlow`
@@ -165,9 +177,10 @@ await manager.removeSession("ses_abc123");
 await manager.shutdown();
 ```
 
-Your `RunnerAdapter` then delegates to this manager: `onSessionOpened` calls
-`manager.addSession`, `onSessionClosed` calls `manager.removeSession`, and so
-on.
+The manager already exposes `addSession` / `removeSession` /
+`addWorkflowExecution` / `removeWorkflowExecution`, so it is a
+`RunnerWorkerHost` — pass it straight to `createRunnerAdapter(manager)` to get
+your `RunnerAdapter`, no hand-wiring needed.
 
 `createStigmerRunner` (static, single task queue) also exists. It suits a fixed
 worker rather than a dynamic embedder. Like the manager, it accepts an

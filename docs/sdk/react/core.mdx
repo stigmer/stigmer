@@ -271,6 +271,20 @@ pattern and avoid circular imports.
 Defaults to `"light"` so components outside a provider render safely.
 
 
+### createRunnerAdapter
+
+Build a `RunnerAdapter` that delegates to a [`RunnerWorkerHost`](#runnerworkerhost),
+collapsing the per-embedder boilerplate of wiring lifecycle events to worker
+management into a single call.
+
+The adapter does not add its own state: idempotency and deduplication are the
+host's responsibility (the SDK calls `onSessionOpened` on every open).
+
+```tsx
+function createRunnerAdapter(host: RunnerWorkerHost): RunnerAdapter
+```
+
+
 ### DeploymentMode
 
 Deployment mode of the Stigmer backend the client is connected to.
@@ -380,6 +394,19 @@ Each environment provides its own implementation:
 - CLI: wraps the daemon runner
 - Customer self-hosted: wraps their own runner management API
 - Cloud: no adapter needed (server handles provisioning)
+
+
+### RunnerWorkerHost
+
+A runner backend that can start and stop per-session and per-execution
+workers. This is the worker-lifecycle slice of a runner host — the only
+capability `createRunnerAdapter` needs — not the full process surface
+(start/status/token/shutdown).
+
+Several backends already satisfy this shape structurally: the in-process
+`StigmerRunnerManager` (`@stigmer/runner`), the desktop's embedded-runner
+context (Tauri IPC), and any custom runner-management API. Pass one to
+`createRunnerAdapter` to get a wired `RunnerAdapter`.
 
 
 ### SelectedThreadItem
