@@ -283,8 +283,10 @@ Press Enter or Space to toggle expansion when `isFocused` is true.
 
 ### ToolCallItem
 
-Renders a single tool call with a status indicator, name, and
-optional expanded args/result preview.
+Renders a single tool call with a status indicator, label, and an optional
+expanded result. Labels and results come from the shared `@stigmer/sdk` view
+model, so a terminal session shows the same semantics (diffs, exit codes,
+match counts) as the web console.
 
 **Props** — `ToolCallItemProps`
 

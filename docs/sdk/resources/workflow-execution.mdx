@@ -1498,6 +1498,7 @@ A pending approval request for a tool call that requires user consent before exe
     agentRationale: { type: "string", description: "Why the agent wanted to execute this tool." },
     branchAtDeny: { type: "string", description: "Git branch name at the time the tool was denied." },
     headShaAtDeny: { type: "string", description: "Git HEAD SHA at the time the tool was denied." },
+    toolKind: { type: "ToolKind", description: "Harness-agnostic category of the tool, copied from ToolCall.tool_kind by the server-side projection (exactly as mcp_server_slug above is).", typeDescriptionLink: "#toolkind" },
   }}
 />
 
@@ -1544,6 +1545,7 @@ ApprovalAction represents the user's decision on an approval request.
 | `APPROVAL_ACTION_APPROVE` | Execute the tool normally. |
 | `APPROVAL_ACTION_SKIP` | Skip tool execution, continue without it. |
 | `APPROVAL_ACTION_REJECT` | Reject tool execution, fail the entire execution. |
+| `APPROVAL_ACTION_APPROVE_ALL` | Approve this tool call AND auto-approve every subsequent tool call for the rest of this execution ("approve and don't ask again"). |
 
 ### ExecutionPhase
 
@@ -1608,6 +1610,26 @@ SummaryTimeWindow controls the time range for aggregated dashboard queries.
 | `SUMMARY_TIME_WINDOW_LAST_7D` |  |
 | `SUMMARY_TIME_WINDOW_LAST_30D` |  |
 | `SUMMARY_TIME_WINDOW_ALL_TIME` |  |
+
+### ToolKind
+
+ToolKind is the harness-agnostic category of a tool call.
+
+| Value | Description |
+|-------|-------------|
+| `TOOL_KIND_FILE_READ` | Read a file's contents. |
+| `TOOL_KIND_FILE_WRITE` | Create or overwrite an entire file. |
+| `TOOL_KIND_FILE_EDIT` | Modify part of an existing file. |
+| `TOOL_KIND_FILE_DELETE` | Delete a file. |
+| `TOOL_KIND_SHELL` | Execute a shell command. |
+| `TOOL_KIND_SEARCH` | Search file contents or names. |
+| `TOOL_KIND_LIST` | List a directory. |
+| `TOOL_KIND_FETCH` | Fetch the contents of a URL. |
+| `TOOL_KIND_WEB_SEARCH` | Search the web. |
+| `TOOL_KIND_THINK` | Record model reasoning via a think tool. |
+| `TOOL_KIND_TODO` | Manage the agent's todo list. |
+| `TOOL_KIND_SUBAGENT` | Delegate work to a sub-agent. |
+| `TOOL_KIND_MCP` | A tool provided by an MCP server. |
 
 ### WorkflowTaskType
 

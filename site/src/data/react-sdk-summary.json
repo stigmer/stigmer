@@ -18,8 +18,8 @@
       "slug": "agent-instance",
       "title": "Agent Instance",
       "description": "Hooks for deployed agent instances bound to an environment.",
-      "hooks": 4,
-      "components": 0
+      "hooks": 7,
+      "components": 4
     },
     {
       "slug": "api-key",

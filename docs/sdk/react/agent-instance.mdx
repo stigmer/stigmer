@@ -103,6 +103,49 @@ const { agentInstances, isLoading } = useAgentInstanceList("acme", {
 ```
 
 
+### useAgentInstances
+
+Data hook that fetches all instances for a specific agent.
+
+Wraps `stigmer.agentInstance.getByAgent()` with loading and error
+state management. Used on the Agent detail page "Instances" tab to
+show environment-bound deployments of the agent blueprint.
+
+Pass `null` as `agentId` to skip fetching (stable no-op).
+
+Note: the `getByAgent` RPC returns an `AgentInstanceList` whose
+entries live under `items` (unlike WorkflowInstance, which uses
+`entries`).
+
+**Signature**
+
+```tsx
+function useAgentInstances(agentId: string | null | undefined): UseAgentInstancesReturn
+```
+
+<TypeTable
+  type={{
+    agentId: { type: "string | null | undefined", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UseAgentInstancesReturn`
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
+    instances: { type: "readonly AgentInstance[]", description: "Instances for the given agent, or empty array while loading." },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
+    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight and stale data is shown." },
+    refetch: { type: "() => void", description: "Discard cached data and re-fetch instances from the server." },
+  }}
+/>
+
+```tsx
+const { instances, isLoading } = useAgentInstances(agent.metadata?.id);
+```
+
+
 ### useCreateAgentInstance
 
 Behavior hook that wraps `agentInstance.create()` with
@@ -152,6 +195,46 @@ const instance = await create({
     { org: "acme", slug: "prod-credentials" },
   ],
 });
+```
+
+
+### useDeleteAgentInstance
+
+Mutation hook that deletes an AgentInstance resource.
+
+Wraps `stigmer.agentInstance.delete()` with loading/error state.
+The caller is responsible for handling post-delete UI updates
+(e.g., refreshing the instance list, closing a detail panel).
+
+Unlike WorkflowInstance, deletion does **not** cascade to runtime
+resources: sessions previously started against the instance and
+their execution history remain intact. The confirmation UI copy
+should reflect this.
+
+**Signature**
+
+```tsx
+function useDeleteAgentInstance(): UseDeleteAgentInstanceReturn
+```
+
+**Returns** — `UseDeleteAgentInstanceReturn`
+
+<TypeTable
+  type={{
+    clearError: { type: "() => void", description: "Reset `error` to `null`." },
+    deleteInstance: { type: "(id: string) => Promise<AgentInstance>", description: "Delete an agent instance by ID. Returns the deleted resource.  Deleting an instance removes its configuration and environment bindings. Sessions already started against it (and their execution history) are preserved — deletion does not cascade to sessions." },
+    error: { type: "Error | null", description: "Error from the last failed delete, or `null` when healthy." },
+    isDeleting: { type: "boolean", description: "`true` while the delete request is in flight." },
+  }}
+/>
+
+```tsx
+const { deleteInstance, isDeleting } = useDeleteAgentInstance();
+
+const handleDelete = async () => {
+  await deleteInstance(instance.metadata.id);
+  refetch(); // refresh list after deletion
+};
 ```
 
 
@@ -219,6 +302,140 @@ const instance = await getOrCreate({
   personalEnvironmentRef: { org: "acme", slug: "env-personal-a1b2c3d4" },
 });
 ```
+
+
+### useUpdateAgentInstance
+
+Mutation hook that updates an existing AgentInstance resource.
+
+Wraps `stigmer.agentInstance.update()` with loading/error state.
+The caller is responsible for refreshing the instance after a
+successful update (e.g., via `refetch` from `useAgentInstances` or
+`useAgentInstance`).
+
+**Signature**
+
+```tsx
+function useUpdateAgentInstance(): UseUpdateAgentInstanceReturn
+```
+
+**Returns** — `UseUpdateAgentInstanceReturn`
+
+<TypeTable
+  type={{
+    clearError: { type: "() => void", description: "Clear the error state." },
+    error: { type: "Error | null", description: "Error from the last failed update, or `null` when healthy." },
+    isUpdating: { type: "boolean", description: "`true` while the update RPC is in flight." },
+    update: { type: "(input: AgentInstanceInput) => Promise<AgentInstance>", description: "Update an existing agent instance with a full input. Returns the updated resource." },
+  }}
+/>
+
+```tsx
+const { update, isUpdating } = useUpdateAgentInstance();
+
+const handleSave = async () => {
+  await update({
+    ...agentInstanceToInput(instance),
+    environmentRefs: newRefs,
+  });
+  refetch();
+};
+```
+
+
+## Components
+
+### AgentInstanceDetailPanel
+
+Expandable detail panel for a single AgentInstance.
+
+Shows metadata, description, environment bindings (editable), visibility
+control, share panel (FGA-gated), and a delete action. The agent analog
+of `WorkflowInstanceDetailPanel`; deletion does not cascade to sessions,
+so the delete copy reflects that.
+
+**Props** — `AgentInstanceDetailPanelProps`
+
+<TypeTable
+  type={{
+    instance: { type: "AgentInstance", description: "The instance to display.", required: true, typeDescriptionLink: "/docs/sdk/resources/agent-instance" },
+    onClose: { type: "() => void", description: "Called when the panel should close.", required: true },
+    onDeleted: { type: "() => void", description: "Called after successful deletion." },
+    onStartSessionClick: { type: "(instance: AgentInstance) => void", description: "Called when the user clicks \"Start session\" for this instance." },
+    onUpdated: { type: "() => void", description: "Called when instance data changes (for parent refetch)." },
+    org: { type: "string", description: "Organization slug.", required: true },
+  }}
+/>
+
+
+### AgentInstanceEmptyState
+
+Empty state shown in the Instances tab when no user-created instances exist.
+
+Communicates the value proposition of agent instances without mentioning
+the platform-managed default instance (an implementation detail). For
+agents, an instance is a reusable, environment-bound deployment you can
+start sessions against — and share with your team.
+
+**Props** — `AgentInstanceEmptyStateProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names." },
+    onCreateClick: { type: "() => void", description: "Called when the user clicks \"Create Instance\"." },
+  }}
+/>
+
+
+### AgentInstanceList
+
+Agent instance list with environment badges, visibility controls, and
+action buttons. Filters out the platform-managed default instance and
+marks auto-managed personal instances with a badge.
+
+The agent analog of `WorkflowInstanceList`: because agents run through
+Sessions, the primary row verb is **Start session** (bound to the chosen
+instance) rather than "Run".
+
+This is an SDK component (DD-001) — embeddable by platform builders.
+
+**Props** — `AgentInstanceListProps`
+
+<TypeTable
+  type={{
+    agentId: { type: "string", description: "Agent resource ID to list instances for.", required: true },
+    className: { type: "string", description: "Additional CSS class names." },
+    defaultInstanceId: { type: "string", description: "The default instance ID (from agent.status.defaultInstanceId) — filtered out of the list." },
+    onCreateClick: { type: "() => void", description: "Called when the user wants to create a new instance." },
+    onDeleteClick: { type: "(instance: AgentInstance) => void", description: "Called when the user clicks \"Delete\" on an instance." },
+    onInstanceClick: { type: "(instance: AgentInstance) => void", description: "Called when the user clicks an instance row (opens detail)." },
+    onStartSessionClick: { type: "(instance: AgentInstance) => void", description: "Called when the user clicks \"Start session\" on an instance." },
+    org: { type: "string", description: "Organization slug (needed for environment resolution and create flow).", required: true },
+    refreshKey: { type: "number", description: "Increment this value to trigger a refetch of the instance list. Useful after creating or deleting an instance externally." },
+  }}
+/>
+
+
+### CreateAgentInstanceDialog
+
+Modal dialog for creating a new AgentInstance.
+
+Collects: name (required), description, environment bindings (ordered),
+and visibility. Submits via `useCreateAgentInstance`.
+
+Uses native `<dialog>` element for proper focus trapping and escape handling.
+
+**Props** — `CreateAgentInstanceDialogProps`
+
+<TypeTable
+  type={{
+    agentId: { type: "string", description: "Agent ID to bind the new instance to.", required: true },
+    onCreated: { type: "(instance: AgentInstance) => void", description: "Called after the instance is successfully created." },
+    onOpenChange: { type: "(open: boolean) => void", description: "Called when the dialog should open or close.", required: true },
+    open: { type: "boolean", description: "Whether the dialog is open.", required: true },
+    org: { type: "string", description: "Organization slug.", required: true },
+  }}
+/>
 
 
 ## Types

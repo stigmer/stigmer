@@ -901,6 +901,7 @@ apps inject platform-specific values via props (DD-004/DD-016).
     heading: { type: "string", description: "Heading text above the composer." },
     initialAgentRef: { type: "ResourceRef", description: "Agent to auto-select on mount (used for draft flows)." },
     initialAttachments: { type: "File[]", description: "Files to auto-attach on mount (used for edit flows)." },
+    initialInstanceId: { type: "string", description: "Pre-bind the new session to a specific `AgentInstance` on mount.  Requires `initialAgentRef`. When both are set, the session is created against this exact configured deployment (the env-collection flow is skipped because the instance already binds its environment). Powers the \"Start session\" action on the Agent detail page's Instances tab." },
     initialRows: { type: "number", description: "Initial number of visible textarea rows." },
     onBrowseLocalFolder: { type: "() => Promise<string | null>", description: "Native folder picker callback for desktop environments. Desktop supplies this via Tauri's dialog plugin." },
     onError: { type: "(message: string) => void", description: "Called on error (for toast notifications or other UI feedback)." },

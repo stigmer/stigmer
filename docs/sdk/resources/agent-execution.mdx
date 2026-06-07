@@ -1703,6 +1703,7 @@ A pending approval request for a tool call that requires user consent before exe
     agentRationale: { type: "string", description: "Why the agent wanted to execute this tool." },
     branchAtDeny: { type: "string", description: "Git branch name at the time the tool was denied." },
     headShaAtDeny: { type: "string", description: "Git HEAD SHA at the time the tool was denied." },
+    toolKind: { type: "ToolKind", description: "Harness-agnostic category of the tool, copied from ToolCall.tool_kind by the server-side projection (exactly as mcp_server_slug above is).", typeDescriptionLink: "#toolkind" },
   }}
 />
 
@@ -1827,6 +1828,7 @@ Represents a tool call made by the agent during execution.
     streamingSource: { type: "ToolCallStreamingSource", description: "Identifies what is currently being streamed.", typeDescriptionLink: "#toolcallstreamingsource" },
     mcpServerSlug: { type: "string", description: "Slug of the MCP server that provides this tool." },
     argsPreview: { type: "string", description: "Sanitized preview of tool arguments for UI display." },
+    toolKind: { type: "ToolKind", description: "Harness-agnostic category of this tool, set by the runner so clients render the tool identically regardless of which engine produced it.", typeDescriptionLink: "#toolkind" },
   }}
 />
 
@@ -1866,6 +1868,7 @@ ApprovalAction represents the user's decision on an approval request.
 | `APPROVAL_ACTION_APPROVE` | Execute the tool normally. |
 | `APPROVAL_ACTION_SKIP` | Skip tool execution, continue without it. |
 | `APPROVAL_ACTION_REJECT` | Reject tool execution, fail the entire execution. |
+| `APPROVAL_ACTION_APPROVE_ALL` | Approve this tool call AND auto-approve every subsequent tool call for the rest of this execution ("approve and don't ask again"). |
 
 ### ExecutionPhase
 
@@ -1913,6 +1916,26 @@ ExecutionArtifactKind defines the type of artifact published by an agent.
 |-------|-------------|
 | `EXECUTION_ARTIFACT_KIND_FILE` | A single file published by the agent. |
 | `EXECUTION_ARTIFACT_KIND_DIRECTORY` | A directory published by the agent, archived as a ZIP file for download. |
+
+### ToolKind
+
+ToolKind is the harness-agnostic category of a tool call.
+
+| Value | Description |
+|-------|-------------|
+| `TOOL_KIND_FILE_READ` | Read a file's contents. |
+| `TOOL_KIND_FILE_WRITE` | Create or overwrite an entire file. |
+| `TOOL_KIND_FILE_EDIT` | Modify part of an existing file. |
+| `TOOL_KIND_FILE_DELETE` | Delete a file. |
+| `TOOL_KIND_SHELL` | Execute a shell command. |
+| `TOOL_KIND_SEARCH` | Search file contents or names. |
+| `TOOL_KIND_LIST` | List a directory. |
+| `TOOL_KIND_FETCH` | Fetch the contents of a URL. |
+| `TOOL_KIND_WEB_SEARCH` | Search the web. |
+| `TOOL_KIND_THINK` | Record model reasoning via a think tool. |
+| `TOOL_KIND_TODO` | Manage the agent's todo list. |
+| `TOOL_KIND_SUBAGENT` | Delegate work to a sub-agent. |
+| `TOOL_KIND_MCP` | A tool provided by an MCP server. |
 
 ### SubAgentStatus
 
