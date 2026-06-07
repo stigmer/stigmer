@@ -68,6 +68,25 @@ export interface StigmerRunnerOptions {
 
   /** Enable Cursor cloud mode for workspace-less execution. @default false */
   readonly cloudModeEnabled?: boolean;
+
+  /**
+   * Workspace/filesystem execution location — where the agent actually runs.
+   *
+   * - "local": the agent operates on the host filesystem (local-path workspace
+   *   entries are valid; the desktop app and CLI daemon use this).
+   * - "cloud": the agent runs in a server-provisioned sandbox (git-only).
+   *
+   * This is intentionally distinct from {@link proxyEndpoint}, which controls
+   * credential/artifact *transport*. The desktop runner is the canonical case
+   * where the two diverge: it executes locally while routing Cursor traffic and
+   * artifacts through the proxy.
+   *
+   * When unset, the location is derived from {@link proxyEndpoint} for backward
+   * compatibility (proxy ⇒ "cloud", otherwise "local"). Set this explicitly to
+   * express local execution with proxy transport — the same decoupling
+   * {@link createStigmerRunnerManager} provides via its own `executionMode`.
+   */
+  readonly executionMode?: "local" | "cloud";
 }
 
 /** Handle returned by {@link createStigmerRunner}. */
@@ -180,9 +199,14 @@ function validateOptions(options: StigmerRunnerOptions): void {
   }
 }
 
-function mapOptionsToConfig(options: StigmerRunnerOptions): Config {
+export function mapOptionsToConfig(options: StigmerRunnerOptions): Config {
   const proxyActive = !!options.proxyEndpoint;
-  const mode = proxyActive ? "cloud" as const : "local" as const;
+
+  // Execution location is independent of proxy transport. An explicit
+  // `executionMode` always wins; otherwise fall back to the proxy-derived
+  // default for backward compatibility. Setting `executionMode: "local"` with a
+  // proxy is the desktop case (local-path workspaces + proxied Cursor traffic).
+  const mode = options.executionMode ?? (proxyActive ? "cloud" : "local");
 
   return {
     taskQueue: options.taskQueue,

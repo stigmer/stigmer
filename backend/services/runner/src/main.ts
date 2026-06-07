@@ -183,6 +183,10 @@ async function runStaticMode(config: import("./config.js").Config): Promise<void
     checkpointerType: config.checkpointerType,
     checkpointerProxyEndpoint: config.checkpointerProxyEndpoint ?? undefined,
     cloudModeEnabled: config.cloudModeEnabled,
+    // Honor the operator's MODE env (resolved into config.mode) instead of
+    // re-deriving execution location from the proxy. This keeps static mode
+    // consistent with manager mode, which already passes config.mode.
+    executionMode: config.mode,
   });
 
   let shutdownRequested = false;

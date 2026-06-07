@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { mapOptionsToConfig } from "../runner.js";
 import type { StigmerRunnerOptions, StigmerRunner } from "../runner.js";
 
 /**
@@ -77,6 +78,7 @@ describe("StigmerRunnerOptions type contract", () => {
       checkpointerType: "http",
       checkpointerProxyEndpoint: "https://cp.stigmer.ai",
       cloudModeEnabled: true,
+      executionMode: "local",
     };
 
     expect(options.temporalNamespace).toBe("prod");
@@ -84,6 +86,7 @@ describe("StigmerRunnerOptions type contract", () => {
     expect(options.proxyEndpoint).toBe("https://proxy.stigmer.ai");
     expect(options.checkpointerType).toBe("http");
     expect(options.cloudModeEnabled).toBe(true);
+    expect(options.executionMode).toBe("local");
   });
 
   it("optional fields are truly optional at the type level", () => {
@@ -103,6 +106,58 @@ describe("StigmerRunnerOptions type contract", () => {
     expect(options.checkpointerType).toBeUndefined();
     expect(options.checkpointerProxyEndpoint).toBeUndefined();
     expect(options.cloudModeEnabled).toBeUndefined();
+    expect(options.executionMode).toBeUndefined();
+  });
+});
+
+/**
+ * The static factory maps its options into a runner {@link Config}. These tests
+ * lock the invariant that execution location (`mode`) is decoupled from
+ * credential transport (`proxyEndpoint`): an explicit `executionMode` always
+ * wins, and only when it is unset does `mode` fall back to the proxy-derived
+ * default for backward compatibility. This mirrors `mapManagerOptionsToConfig`.
+ */
+describe("mapOptionsToConfig — execution mode", () => {
+  const base: StigmerRunnerOptions = {
+    taskQueue: "session:test-123",
+    temporalAddress: "localhost:7233",
+    stigmerEndpoint: "http://localhost:7234",
+  };
+
+  it("defaults mode to local with no proxy and no executionMode", () => {
+    const config = mapOptionsToConfig(base);
+    expect(config.mode).toBe("local");
+  });
+
+  it("derives cloud from a proxy when executionMode is unset (backward compatible)", () => {
+    const config = mapOptionsToConfig({
+      ...base,
+      proxyEndpoint: "https://proxy.example.com",
+      stigmerToken: "tok",
+    });
+    expect(config.mode).toBe("cloud");
+    // Proxy transport still engages independently of execution location.
+    expect(config.proxyEndpoint).toBe("https://proxy.example.com");
+    expect(config.cursorApiKey).toBe("proxy-managed");
+    expect(config.checkpointerType).toBe("http");
+  });
+
+  it("honors explicit local executionMode even with a proxy (the desktop case)", () => {
+    const config = mapOptionsToConfig({
+      ...base,
+      executionMode: "local",
+      proxyEndpoint: "https://proxy.example.com",
+      stigmerToken: "tok",
+    });
+    expect(config.mode).toBe("local");
+    // Transport still routes through the proxy despite local execution.
+    expect(config.proxyEndpoint).toBe("https://proxy.example.com");
+    expect(config.cursorApiKey).toBe("proxy-managed");
+  });
+
+  it("honors explicit cloud executionMode without a proxy", () => {
+    const config = mapOptionsToConfig({ ...base, executionMode: "cloud" });
+    expect(config.mode).toBe("cloud");
   });
 });
 

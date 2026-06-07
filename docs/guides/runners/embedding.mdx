@@ -160,17 +160,13 @@ Your `RunnerAdapter` then delegates to this manager: `onSessionCreated` calls
 `manager.addSession`, `onSessionTerminated` calls `manager.removeSession`, and
 so on.
 
-`createStigmerRunner` (static, single task queue) also exists, but it suits a
-fixed worker rather than a dynamic embedder.
-
-<Callout type="warn">
-  The static `createStigmerRunner` factory derives its execution location from
-  whether a proxy is set — proxy implies cloud, otherwise local — and exposes no
-  way to request local execution with proxy transport. If you need that
-  combination (the desktop case), use the manager factory or the standalone
-  `stigmer-runner` binary instead. A dedicated `executionMode` option for the
-  static factory is a tracked improvement.
-</Callout>
+`createStigmerRunner` (static, single task queue) also exists. It suits a fixed
+worker rather than a dynamic embedder. Like the manager, it accepts an
+`executionMode` option (`"local"` or `"cloud"`) that sets execution location
+independently of proxy transport, so you can run local execution with proxy
+transport — the desktop case. When you omit `executionMode`, the static factory
+derives the location from the proxy: a proxy implies `"cloud"`, otherwise
+`"local"`.
 
 ### Subprocess (manager-mode IPC)
 
