@@ -143,3 +143,10 @@ client-apps/desktop/scripts/.certs/
 _cursor/
 _aacursor/
 *.bak
+
+# Internal planning/history migrated to the private stigmer-cloud repo (do not re-add)
+_changelog/
+_investigations/
+_projects/
+_roles/
+.cursor/plans/
