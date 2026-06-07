@@ -57,19 +57,19 @@ processes for each Harness.
 
 ## Three execution modes
 
-Runners operate in one of three modes. The mode determines where agent commands
+Runners operate in one of three modes. The mode determines where Agent commands
 run and who manages the infrastructure.
 
-|                   | Local                                    | Sandbox                                      | Cloud (auto)                                        |
-| ----------------- | ---------------------------------------- | -------------------------------------------- | --------------------------------------------------- |
-| **Who starts it** | You — via `stigmer up`                   | You — via `stigmer up --runtime docker`      | The platform — automatically                        |
-| **Where it runs** | Your machine (laptop, server, CI)        | Docker container on your machine             | Stigmer-managed infrastructure                      |
-| **Isolation**     | None — full host access                  | Container-level                              | Platform-managed                                    |
-| **Lifecycle**     | Persistent — stays until you stop it     | Persistent — stays until you stop it         | Ephemeral — created per execution, cleaned up after |
-| **Good for**      | Development, on-premises, data-sensitive | Untrusted workloads, consistent environments | Zero-setup production, burst capacity               |
+|                   | Local                                    | Sandbox                                  | Cloud (auto)                                        |
+| ----------------- | ---------------------------------------- | ---------------------------------------- | --------------------------------------------------- |
+| **Who starts it** | You — via `stigmer up`                   | You — via `stigmer up --runtime docker`  | The platform — automatically                        |
+| **Where it runs** | Your machine (laptop, server, CI)        | Docker container on your machine         | Stigmer-managed infrastructure                      |
+| **Isolation**     | None — full host access                  | Container-level                          | Platform-managed                                    |
+| **Lifecycle**     | Persistent — stays until you stop it     | Persistent — stays until you stop it     | Ephemeral — created per execution, cleaned up after |
+| **Good for**      | Development, on-premises, data-sensitive | Untrusted workloads, consistent runtimes | Zero-setup production, burst capacity               |
 
-**Local** is the default. Start a runner with `stigmer up` and agent commands
-execute directly on the host machine. The agent has full access to the local
+**Local** is the default. Start a runner with `stigmer up` and Agent commands
+execute directly on the host machine. The Agent has full access to the local
 file system. See the [local mode guide](/docs/guides/runners/local-mode) for
 details.
 
@@ -159,6 +159,14 @@ and an action menu for stop and delete operations.
 You understand what runners are and how they fit the platform. The next step
 depends on what you want to do:
 
+- **Embed the runner in your app** — The
+  [embedding guide](/docs/guides/runners/embedding) covers hosting the runner in
+  a desktop or web app: local versus cloud execution, the `RunnerAdapter`, and
+  the configuration each kind of integrator passes.
+- **Drive the manager-mode protocol** — The
+  [manager-mode IPC protocol reference](/docs/guides/runners/ipc-protocol)
+  specifies the subprocess command and response contract and its versioned
+  handshake.
 - **Set up a runner sidecar** — The
   [sidecar setup guide](/docs/guides/runners/sidecar-setup) covers bundling the
   CLI in your app, spawning runner processes, deep links, and the SDK runner
@@ -173,7 +181,7 @@ depends on what you want to do:
   explains automatic provisioning when no local runner is available.
 - **Use the Cursor harness** — The
   [Cursor harness guide](/docs/guides/runners/cursor-harness) covers setting up
-  the Cursor execution engine for coding-focused agent capabilities.
+  the Cursor execution engine for coding-focused capabilities.
 - **Build with runner hooks** — The
   [React SDK runner reference](/docs/sdk/react/runner) documents
   `useRunnerList`, `RunnerListPanel`, `RunnerPicker`, and the launch, stop, and
