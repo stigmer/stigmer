@@ -59,7 +59,7 @@ definitions, API names, and examples follow below.
 | **Skill**         | domain knowledge      | Skill ("domain knowledge")       | Skill               | Skill, `skill_refs`                    | Skill          |
 | **MCP Server**    | tools                 | MCP server ("tool connection")   | MCP Server          | McpServer, `mcp_server_usages`         | MCP server     |
 | **Session**       | conversation          | Session ("conversation")         | Session             | Session, `kind: Session`               | Session        |
-| **Runner**        | compute               | runner ("where your Agent runs") | Runner              | Runner, `kind: Runner`                 | runner         |
+| **Runner**        | compute               | runner ("where your Agent runs") | Runner              | Runner                                 | runner         |
 | **Workflow**      | multi-step automation | Workflow                         | Workflow            | Workflow, `kind: Workflow`             | Workflow       |
 | **Harness**       | execution engine      | harness ("execution engine")     | Harness             | Harness, `SessionSpec.harness`         | harness        |
 | **Approval flow** | approval flow         | approval flow                    | approval flow, HITL | `ToolApprovalPolicy`, `submitApproval` | HITL, approval |
@@ -249,30 +249,34 @@ A process that connects to Stigmer and executes your Agents.
 - **User-facing alternative**: "compute" on the sales site. In quickstart
   guides, use "runner" with a gloss: "a runner (the process that runs your
   Agent)." In concepts and reference, "Runner" stands alone.
-- **Capitalize**: Yes, when referring to the Stigmer resource. Lowercase
-  "runner" when used generically ("start a runner").
-- **API surface**: `kind: Runner`, prefix `rnr`. proto: `runner/v1/api.proto`,
-  `runner/v1/spec.proto`, `runner/v1/enum.proto`. CLI: `stigmer up` /
-  `stigmer down`.
-- **Key fields**: `status.phase` (Pending, Ready, Busy, Stopped, Failed),
-  `status.task_queue` (immutable routing address), `status.connection_info`
-  (host name, OS, architecture, runner version), `status.current_executions`.
+- **Capitalize**: Yes, when referring to the Stigmer concept. Lowercase "runner"
+  when used generically ("start a runner").
+- **Not an API resource**: A Runner is a runtime process, not a declarative
+  resource---there is no `kind: Runner`, no `apiVersion`, and no
+  `stigmer apply`. You start one with `stigmer up` (and stop it with
+  `stigmer down`); it self-registers and heartbeats. The control plane tracks
+  its live status, surfaced in the web console. (The Runner API resource that
+  once existed was removed from the OSS repo.)
+- **Lifecycle**: A runner moves through phases---Pending, Ready, Busy, Stopped,
+  Failed---driven by heartbeats. The control plane tracks each runner's status
+  (phase, current execution count, machine info); none of this is applied or
+  edited by the user. See the [Runners concept page](/docs/concepts/runners).
 - **Two types**: Local runners (user-started via CLI, persistent) and cloud
   runners (platform-provisioned, ephemeral, labeled
   `stigmer.ai/system-managed: "true"`).
-- **Related terms**: Sessions bind to a runner via `SessionSpec.runner_id`.
-  Executions record which runner handled them via
-  `AgentExecutionStatus.runner_id`. Do not confuse with "Agent Runner" (the
-  Python Temporal worker binary---architecture docs only).
+- **Related terms**: Sessions find a runner one of three ways---automatic
+  provisioning, explicit selection from the runner picker, or Session binding (a
+  Session reuses the runner that ran its first execution). Do not confuse with
+  "Agent Runner" (the Python Temporal worker binary---architecture docs only).
 
 **Good examples**:
 
-| Context    | Copy                                                                                                                                      |
-| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Sales site | "Run Agents on your machine or let the platform handle it."                                                                               |
-| Quickstart | "Start a runner---the process that runs your Agent on your machine."                                                                      |
-| Concepts   | "A Runner is the process that picks up executions, calls the LLM, runs tools, and reports results back to the server."                    |
-| Reference  | "`Runner`---a Node-like resource with thin spec and rich status. Phases: PENDING, READY, BUSY, STOPPED, FAILED. Routes via `task_queue`." |
+| Context    | Copy                                                                                                                                       |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Sales site | "Run Agents on your machine or let the platform handle it."                                                                                |
+| Quickstart | "Start a runner---the process that runs your Agent on your machine."                                                                       |
+| Concepts   | "A Runner is the process that picks up executions, calls the LLM, runs tools, and reports results back to the server."                     |
+| Reference  | "`Runner`---a self-registering process the server tracks with a thin spec and rich status. Phases: PENDING, READY, BUSY, STOPPED, FAILED." |
 
 **Bad examples**:
 
