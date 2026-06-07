@@ -94,12 +94,19 @@ your UI code never manages runner processes directly.
 
 ```typescript
 interface RunnerAdapter {
-  onSessionCreated(sessionId: string): Promise<void>;
-  onSessionTerminated(sessionId: string): Promise<void>;
+  onSessionOpened(sessionId: string): Promise<void>;
+  onSessionClosed(sessionId: string): Promise<void>;
   onWorkflowExecutionCreated(executionId: string): Promise<void>;
   onWorkflowExecutionTerminated(executionId: string): Promise<void>;
 }
 ```
+
+Sessions and workflow executions have different lifecycles, and the method names
+reflect that. A Session is a long-lived, multi-turn conversation with no
+terminal phase, so its worker is tied to whether the session is **open** (in
+use): the SDK calls `onSessionOpened` when a session is opened and
+`onSessionClosed` when it is closed. A Workflow Execution runs to a terminal
+phase, so its worker is tied to **creation and completion**.
 
 In React, pass the adapter and the target to `StigmerProvider`:
 
@@ -123,13 +130,15 @@ re-exported from `@stigmer/react` alongside the `useRunnerAdapter` hook. A Java
 mirror exists too: `ai.stigmer.sdk.RunnerAdapter`, wired through
 `StigmerClient.builder().runnerAdapter(...)`.
 
-<Callout type="warn">
-  The SDK calls `onSessionCreated`, `onWorkflowExecutionCreated`, and
-  `onWorkflowExecutionTerminated`, but **no React hook calls
-  `onSessionTerminated` today**. Session workers are not torn down automatically
-  when a Session ends — only Workflow Execution workers are. Implement
-  `onSessionTerminated` for completeness, but do not rely on the SDK to invoke
-  it yet.
+<Callout>
+  In React, the session worker lifecycle is wired at the
+  `useSessionConversation` layer (which `SessionViewer` and `useSessionPageFlow`
+  build on, and which the Ink/terminal SDK uses directly): the SDK calls
+  `onSessionOpened` when a session view opens and `onSessionClosed` when it
+  closes. Because `onSessionOpened` runs on every open, re-opening an existing
+  session re-attaches its worker — so follow-ups always have a poller. Implement
+  both methods idempotently; the reference desktop adapter maps them to
+  `addSession` / `removeSession`, which are already idempotent.
 </Callout>
 
 ## Host the runner: In-process or subprocess
@@ -156,9 +165,9 @@ await manager.removeSession("ses_abc123");
 await manager.shutdown();
 ```
 
-Your `RunnerAdapter` then delegates to this manager: `onSessionCreated` calls
-`manager.addSession`, `onSessionTerminated` calls `manager.removeSession`, and
-so on.
+Your `RunnerAdapter` then delegates to this manager: `onSessionOpened` calls
+`manager.addSession`, `onSessionClosed` calls `manager.removeSession`, and so
+on.
 
 `createStigmerRunner` (static, single task queue) also exists. It suits a fixed
 worker rather than a dynamic embedder. Like the manager, it accepts an
@@ -190,12 +199,12 @@ sequenceDiagram
   participant API as Stigmer API
   participant Adapter as RunnerAdapter
   participant Runner as Embedded runner
-  App->>SDK: Create a Session (local target)
-  SDK->>API: session.create (executionTarget local)
+  App->>SDK: Open a Session (local target)
+  SDK->>API: session.create / session.get (executionTarget local)
   API-->>SDK: sessionId
-  SDK->>Adapter: onSessionCreated(sessionId)
+  SDK->>Adapter: onSessionOpened(sessionId)
   Adapter->>Runner: addSession(sessionId)
-  Note over Runner: Worker polls session:sessionId
+  Note over Runner: Worker polls session:sessionId while open
 ```
 
 For cloud execution, there is no adapter and no local runner — the server

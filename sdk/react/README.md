@@ -238,22 +238,23 @@ Cloud consumers omit `runnerAdapter` entirely.
 
 ```ts
 interface RunnerAdapter {
-  onSessionCreated(sessionId: string): Promise<void>;
-  onSessionTerminated(sessionId: string): Promise<void>;
+  onSessionOpened(sessionId: string): Promise<void>;
+  onSessionClosed(sessionId: string): Promise<void>;
   onWorkflowExecutionCreated(executionId: string): Promise<void>;
   onWorkflowExecutionTerminated(executionId: string): Promise<void>;
 }
 ```
 
-SDK hooks call these methods at the matching lifecycle points — but only when a `runnerAdapter` is provided **and** the resolved execution target is `"local"`. Adapter errors propagate to the caller: a rejected `onSessionCreated` rejects the `useCreateSession` `create()` call, so your UI can surface a runner-start failure instead of failing silently.
+SDK hooks call these methods at the matching lifecycle points — but only when a `runnerAdapter` is provided **and** the resolved execution target is `"local"`. A Session is a long-lived, multi-turn conversation with **no terminal phase**, so its worker is tied to whether the session is open: it is attached while the session view is open and detached when it closes. A Workflow Execution runs to a terminal phase, so its worker is tied to creation and completion.
 
 | Method | Invoked by | When |
 |--------|------------|------|
-| `onSessionCreated` | `useCreateSession` | After a local session is created. |
+| `onSessionOpened` | `useSessionConversation` (and the new-session flow's eager attach) | While a local session is open — re-attaching on every open, so follow-ups always have a poller. |
+| `onSessionClosed` | `useSessionConversation` | When the session view closes (unmount or session change). |
 | `onWorkflowExecutionCreated` | `useRunWorkflowFlow` | After a local workflow execution is created. |
 | `onWorkflowExecutionTerminated` | `useWorkflowExecution` | When the execution reaches a terminal phase. |
 
-> **`onSessionTerminated` is not yet invoked automatically.** It is part of the interface, and the desktop adapter implements it, but no hook calls it today. A Session is a long-lived, multi-turn conversation with no terminal phase, so the right trigger for tearing down its runner is a deliberate worker-lifecycle design rather than a phase check. Implement the method, but do not rely on the SDK calling it yet.
+> Implement `onSessionOpened` / `onSessionClosed` **idempotently** — `onSessionOpened` can be called again for an already-open session (e.g. on re-open), and the reference desktop adapter maps them to `addSession` / `removeSession`, which already de-duplicate. Adapter errors are swallowed for the session view so a transient runner hiccup never crashes an open conversation.
 
 Desktop integrators can model their adapter on the reference Tauri implementation. See the [runner embedding guide](https://stigmer.ai/docs/guides/runners/embedding) for the full desktop (local) and web (cloud) walkthrough.
 

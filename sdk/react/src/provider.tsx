@@ -56,9 +56,11 @@ export interface StigmerProviderProps {
   /**
    * Runner adapter for local execution lifecycle management.
    *
-   * When `executionTarget` is `"local"`, SDK hooks automatically call
-   * the adapter after session/execution creation and on terminal phase
-   * detection. Cloud consumers omit this prop entirely.
+   * When `executionTarget` is `"local"`, SDK hooks automatically drive
+   * the adapter at the right lifecycle points: sessions on open/close
+   * (the session view attaches a worker while open and detaches on close)
+   * and workflow executions on create/terminal. Cloud consumers omit this
+   * prop entirely.
    *
    * Desktop apps provide a Tauri-based adapter; self-hosted customers
    * provide their own implementation of the {@link RunnerAdapter}

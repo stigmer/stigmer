@@ -12,7 +12,6 @@ import { toError } from "../internal/toError";
 import { toProtoHarness, type HarnessOption } from "../models/harness";
 import { toProtoExecutionTarget, type ExecutionTargetOption } from "./execution-target";
 import { useExecutionTarget } from "../execution-target-context";
-import { useRunnerAdapter } from "../runner-adapter";
 
 /** Shared fields present in both variants of {@link CreateSessionInput}. */
 export interface SharedSessionFields {
@@ -130,7 +129,6 @@ export interface UseCreateSessionReturn {
 export function useCreateSession(): UseCreateSessionReturn {
   const stigmer = useStigmer();
   const contextTarget = useExecutionTarget();
-  const adapter = useRunnerAdapter();
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
@@ -183,10 +181,9 @@ export function useCreateSession(): UseCreateSessionReturn {
 
         const sessionId = session.metadata!.id;
 
-        if (adapter && resolvedTarget === "local") {
-          await adapter.onSessionCreated(sessionId);
-        }
-
+        // Worker lifecycle is owned by the session view (useSessionConversation
+        // attaches on open / detaches on close). The new-session flow attaches
+        // eagerly for the first execution; creation alone needs no worker.
         return { sessionId };
       } catch (err) {
         setError(toError(err));
@@ -195,7 +192,7 @@ export function useCreateSession(): UseCreateSessionReturn {
         setIsCreating(false);
       }
     },
-    [stigmer, contextTarget, adapter],
+    [stigmer, contextTarget],
   );
 
   return { create, isCreating, error, clearError };

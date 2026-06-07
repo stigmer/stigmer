@@ -5,6 +5,8 @@ import { DEFAULT_MODEL_ID, DEFAULT_CURSOR_MODEL_ID, parseRegistryJson } from "..
 import { ModelRegistryContext } from "../../models/ModelRegistryContext";
 import type { ModelRegistryState } from "../../models/ModelRegistryContext";
 import { ExecutionTargetContext } from "../../execution-target-context";
+import { RunnerAdapterContext } from "../../runner-adapter";
+import type { RunnerAdapter } from "../../runner-adapter";
 import type { UseCreateSessionReturn } from "../useCreateSession";
 
 const mockCreateSession = vi.fn<UseCreateSessionReturn["create"]>();
@@ -72,16 +74,35 @@ const TEST_MODELS = parseRegistryJson({
   ],
 });
 
-function createWrapper(executionTarget?: "local" | "cloud") {
+function createWrapper(
+  executionTarget?: "local" | "cloud",
+  adapter: RunnerAdapter | null = null,
+) {
   const state: ModelRegistryState = { models: TEST_MODELS, isLoading: false, error: null, refetch: () => {} };
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
       <ExecutionTargetContext.Provider value={executionTarget}>
-        <ModelRegistryContext.Provider value={state}>
-          {children}
-        </ModelRegistryContext.Provider>
+        <RunnerAdapterContext.Provider value={adapter}>
+          <ModelRegistryContext.Provider value={state}>
+            {children}
+          </ModelRegistryContext.Provider>
+        </RunnerAdapterContext.Provider>
       </ExecutionTargetContext.Provider>
     );
+  };
+}
+
+function createMockAdapter(): RunnerAdapter & {
+  onSessionOpened: ReturnType<typeof vi.fn>;
+  onSessionClosed: ReturnType<typeof vi.fn>;
+  onWorkflowExecutionCreated: ReturnType<typeof vi.fn>;
+  onWorkflowExecutionTerminated: ReturnType<typeof vi.fn>;
+} {
+  return {
+    onSessionOpened: vi.fn().mockResolvedValue(undefined),
+    onSessionClosed: vi.fn().mockResolvedValue(undefined),
+    onWorkflowExecutionCreated: vi.fn().mockResolvedValue(undefined),
+    onWorkflowExecutionTerminated: vi.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -389,6 +410,61 @@ describe("useNewSessionFlow", () => {
       expect(mockCreateSession).toHaveBeenCalledOnce();
       const sessionInput = mockCreateSession.mock.calls[0][0];
       expect(sessionInput.executionTarget).toBe("local");
+    });
+  });
+
+  describe("submit — local runner worker (eager attach)", () => {
+    it("attaches the worker before creating the first execution", async () => {
+      const adapter = createMockAdapter();
+      const opts = defaultOptions();
+      const { result } = renderHook(() => useNewSessionFlow(opts), {
+        wrapper: createWrapper("local", adapter),
+      });
+
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+
+      expect(adapter.onSessionOpened).toHaveBeenCalledTimes(1);
+      expect(adapter.onSessionOpened).toHaveBeenCalledWith("sess-new");
+      expect(adapter.onSessionClosed).not.toHaveBeenCalled();
+
+      // The worker must be polling before the first execution exists.
+      const openedOrder = adapter.onSessionOpened.mock.invocationCallOrder[0];
+      const execOrder = mockCreateExecution.mock.invocationCallOrder[0];
+      expect(openedOrder).toBeLessThan(execOrder);
+    });
+
+    it("does not attach a worker when the target is cloud", async () => {
+      const adapter = createMockAdapter();
+      const opts = defaultOptions();
+      const { result } = renderHook(() => useNewSessionFlow(opts), {
+        wrapper: createWrapper("cloud", adapter),
+      });
+
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+
+      expect(adapter.onSessionOpened).not.toHaveBeenCalled();
+    });
+
+    it("detaches the worker when the first execution fails (no leak)", async () => {
+      const adapter = createMockAdapter();
+      mockCreateExecution.mockRejectedValueOnce(new Error("execution boom"));
+      const opts = defaultOptions();
+      const { result } = renderHook(() => useNewSessionFlow(opts), {
+        wrapper: createWrapper("local", adapter),
+      });
+
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+
+      expect(adapter.onSessionOpened).toHaveBeenCalledWith("sess-new");
+      expect(adapter.onSessionClosed).toHaveBeenCalledWith("sess-new");
+      expect(result.current.submitError).not.toBeNull();
+      expect(opts.onError).toHaveBeenCalled();
     });
   });
 

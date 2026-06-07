@@ -11,19 +11,19 @@ class RunnerAdapterTest {
 
     /** Mock adapter that records all lifecycle calls. */
     static class MockRunnerAdapter implements RunnerAdapter {
-        final List<String> sessionsCreated = new ArrayList<>();
-        final List<String> sessionsTerminated = new ArrayList<>();
+        final List<String> sessionsOpened = new ArrayList<>();
+        final List<String> sessionsClosed = new ArrayList<>();
         final List<String> executionsCreated = new ArrayList<>();
         final List<String> executionsTerminated = new ArrayList<>();
 
         @Override
-        public void onSessionCreated(String sessionId) {
-            sessionsCreated.add(sessionId);
+        public void onSessionOpened(String sessionId) {
+            sessionsOpened.add(sessionId);
         }
 
         @Override
-        public void onSessionTerminated(String sessionId) {
-            sessionsTerminated.add(sessionId);
+        public void onSessionClosed(String sessionId) {
+            sessionsClosed.add(sessionId);
         }
 
         @Override
@@ -41,14 +41,14 @@ class RunnerAdapterTest {
     void mockAdapter_recordsCalls() throws Exception {
         MockRunnerAdapter adapter = new MockRunnerAdapter();
 
-        adapter.onSessionCreated("ses-1");
-        adapter.onSessionCreated("ses-2");
-        adapter.onSessionTerminated("ses-1");
+        adapter.onSessionOpened("ses-1");
+        adapter.onSessionOpened("ses-2");
+        adapter.onSessionClosed("ses-1");
         adapter.onWorkflowExecutionCreated("wfexec-1");
         adapter.onWorkflowExecutionTerminated("wfexec-1");
 
-        assertEquals(List.of("ses-1", "ses-2"), adapter.sessionsCreated);
-        assertEquals(List.of("ses-1"), adapter.sessionsTerminated);
+        assertEquals(List.of("ses-1", "ses-2"), adapter.sessionsOpened);
+        assertEquals(List.of("ses-1"), adapter.sessionsClosed);
         assertEquals(List.of("wfexec-1"), adapter.executionsCreated);
         assertEquals(List.of("wfexec-1"), adapter.executionsTerminated);
     }
@@ -75,9 +75,9 @@ class RunnerAdapterTest {
     void interface_isImplementable() {
         RunnerAdapter adapter = new RunnerAdapter() {
             @Override
-            public void onSessionCreated(String sessionId) {}
+            public void onSessionOpened(String sessionId) {}
             @Override
-            public void onSessionTerminated(String sessionId) {}
+            public void onSessionClosed(String sessionId) {}
             @Override
             public void onWorkflowExecutionCreated(String executionId) {}
             @Override
@@ -85,8 +85,8 @@ class RunnerAdapterTest {
         };
 
         assertDoesNotThrow(() -> {
-            adapter.onSessionCreated("test");
-            adapter.onSessionTerminated("test");
+            adapter.onSessionOpened("test");
+            adapter.onSessionClosed("test");
             adapter.onWorkflowExecutionCreated("test");
             adapter.onWorkflowExecutionTerminated("test");
         });

@@ -8,7 +8,6 @@
     "agent",
     "agent-instance",
     "workflow",
-    "runner",
     "mcp-server",
     "skill",
     "library",

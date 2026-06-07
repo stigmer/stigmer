@@ -15,10 +15,10 @@ export function useTauriRunnerAdapter(): RunnerAdapter {
 
   return useMemo<RunnerAdapter>(
     () => ({
-      onSessionCreated: async (id) => {
+      onSessionOpened: async (id) => {
         await addSession(id);
       },
-      onSessionTerminated: async (id) => {
+      onSessionClosed: async (id) => {
         await removeSession(id);
       },
       onWorkflowExecutionCreated: async (id) => {

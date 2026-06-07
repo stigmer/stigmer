@@ -140,7 +140,6 @@ Props for [`SessionComposer`](#sessioncomposer).
   type={{
     agentRef: { type: "ResourceRef | null", description: "Currently selected agent reference, or null if none. When `onAgentRefChange` is provided, an agent trigger appears in the toolbar (single-select)." },
     ariaLabel: { type: "string", description: "ARIA label for the composer region." },
-    autoApproveAll: { type: "boolean", description: "Whether tool calls are auto-approved for the next message.  When `onAutoApproveAllChange` is provided, renders an auto-approve toggle in the toolbar. Defaults to `false` (approvals required) when omitted." },
     autoFocus: { type: "boolean", description: "Auto-focus the textarea on mount." },
     className: { type: "string", description: "Additional CSS class names for the root container." },
     defaultModelId: { type: "string", description: "Initial model ID for the model selector." },
@@ -162,7 +161,6 @@ Props for [`SessionComposer`](#sessioncomposer).
     onAgentRefChange: { type: "(ref: ResourceRef | null) => void", description: "Called when the agent selection changes. Providing this enables the agent trigger." },
     onAgentResolutionChange: { type: "(resolution: AgentResolution | null) => void", description: "Called when the agent setup flow resolves how the agent should be used for session creation.  The AgentResolution discriminated union tells the caller which session creation path to use: - `\"saved\"` — use `agentInstanceId` - `\"oneTime\"` — use `agentRef` + pass `runtimeEnv` to execution - `\"direct\"` — use `agentRef` (no secrets needed)  Set to `null` when the agent is deselected." },
     onAttachmentValidationError: { type: "(message: string) => void", description: "Called when a file is rejected (e.g., exceeds the 10 MB limit). Consumers can use this for toast notifications." },
-    onAutoApproveAllChange: { type: "(autoApproveAll: boolean) => void", description: "Called when the user toggles auto-approve.  Providing this callback enables the auto-approve toggle in the toolbar." },
     onBrowseLocalFolder: { type: "() => Promise<string | null>", description: "Native folder picker callback passed through to WorkspaceEditor. When provided, clicking \"Local Folder\" opens a native dialog instead of the inline text input. See WorkspaceEditorProps.onBrowseLocalFolder." },
     onHarnessChange: { type: "(harness: HarnessOption) => void", description: "Called when the user switches the harness.  Providing this callback enables the harness selector in the toolbar." },
     onInteractionModeChange: { type: "(mode: InteractionModeOption) => void", description: "Called when the user switches the interaction mode.  Providing this callback enables the mode picker in the toolbar." },
@@ -173,7 +171,6 @@ Props for [`SessionComposer`](#sessioncomposer).
     org: { type: "string", description: "Organization slug for agent, MCP server, and skill searches. Required when agent, MCP, or skill pickers are enabled." },
     placeholder: { type: "string", description: "Placeholder text for the textarea." },
     sessionVariables: { type: "UseSessionVariablesReturn", description: "Session variables state managed by useSessionVariables. When provided, renders a \"Session Variables\" trigger in the toolbar that opens a key-value editor for environment variables.  Variables are ephemeral by default (single execution). Individual entries can be marked `saveForFuture: true` to persist them to the user's personal environment. The consumer should call `sessionVariables.clear()` after submission.", typeDescriptionLink: "/docs/sdk/react/execution#usesessionvariablesreturn" },
-    showAutoApproveToggle: { type: "boolean", description: "Show the auto-approve toggle in the toolbar." },
     showHarnessSelector: { type: "boolean", description: "Show the harness selector in the toolbar." },
     showInteractionModePicker: { type: "boolean", description: "Show the interaction mode picker in the toolbar." },
     showModelSelector: { type: "boolean", description: "Show the model selector." },
@@ -195,7 +192,6 @@ creation without needing to understand the individual sources.
 <TypeTable
   type={{
     attachments: { type: "AttachmentInput[]", description: "Pre-uploaded file attachments for the execution.  Each entry contains a `storageKey` obtained from `agentExecution.uploadAttachment()`. Only successfully uploaded attachments are included. Pass directly to execution creation as `attachments`.  `undefined` when no files were attached." },
-    autoApproveAll: { type: "boolean", description: "Whether the user opted to auto-approve all tool calls for this execution.  `undefined` when no auto-approve toggle is shown (defaults to gated). Pass to execution creation as `auto_approve_all`." },
     interactionMode: { type: "InteractionModeOption", description: "Interaction mode selected by the user for this execution.  - `\"agent\"` (default): full tool access — read, write, create, delete. - `\"plan\"`: read-only analysis — read, search, list only.  `undefined` when no mode picker is shown (defaults to `\"agent\"`). Pass to execution creation as `execution_config.interaction_mode`.", typeDescriptionLink: "#interactionmodeoption" },
     runtimeEnv: { type: "Record<string, EnvVarInput>", description: "Aggregated one-time environment variables from all setup flows.  Merged from (in precedence order, last-write-wins): 1. Agent one-time env vars (when agent resolution mode is `\"oneTime\"`) 2. MCP server one-time env vars (collected with `saveForFuture: false`) 3. Manual session variables (from SessionVariablesInput)  `undefined` when no runtime env vars were collected from any source. Pass directly to execution creation as `runtimeEnv`." },
     workspaceFileRefs: { type: "string[]", description: "Workspace-relative file paths the user referenced via drag-to-reference.  These are lightweight \"attention\" signals — the agent reads the files directly from the workspace filesystem. No upload, no injection.  `undefined` when no file references are present. Pass to execution creation as `workspaceFileRefs`." },

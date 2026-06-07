@@ -4,10 +4,16 @@ package ai.stigmer.sdk;
  * Adapter interface that abstracts runner lifecycle management from SDK
  * consumers.
  *
- * <p>When {@code executionTarget} is LOCAL, the SDK client automatically
- * calls the adapter at the appropriate lifecycle points after session or
- * workflow execution creation. The consumer never manages runner processes
+ * <p>When {@code executionTarget} is LOCAL, a consumer drives the adapter at
+ * the appropriate lifecycle points so it never manages runner processes
  * directly — the adapter handles it transparently.
+ *
+ * <p>Sessions and workflow executions have different lifecycles. A session is
+ * a long-lived, multi-turn conversation with no terminal phase, so its worker
+ * is tied to whether the session is open (in use): {@code onSessionOpened}
+ * when the session is opened, {@code onSessionClosed} when it is closed. A
+ * workflow execution runs to a terminal phase, so its worker is tied to
+ * creation and completion.
  *
  * <p>Each environment provides its own implementation:
  * <ul>
@@ -20,7 +26,7 @@ package ai.stigmer.sdk;
  * <pre>{@code
  * RunnerAdapter adapter = new RunnerAdapter() {
  *     @Override
- *     public void onSessionCreated(String sessionId) {
+ *     public void onSessionOpened(String sessionId) {
  *         myRunner.addSession(sessionId);
  *     }
  *     // ... other methods
@@ -29,29 +35,31 @@ package ai.stigmer.sdk;
  * try (StigmerClient client = StigmerClient.builder("sk_live_...")
  *         .runnerAdapter(adapter)
  *         .build()) {
- *     // adapter called automatically on session/execution create
+ *     // adapter drives the runner lifecycle for local sessions/executions
  * }
  * }</pre>
  */
 public interface RunnerAdapter {
 
     /**
-     * Called after a session is created with executionTarget=LOCAL.
-     * The adapter should ensure a runner worker is active for the given session.
+     * Called when a local session is opened (engaged).
+     * The adapter should ensure a runner worker is polling the session's task
+     * queue. Must be idempotent: it may be called again for an already-open
+     * session (e.g. on re-open).
      *
      * @param sessionId the server-assigned session identifier
      * @throws Exception if the runner cannot be started
      */
-    void onSessionCreated(String sessionId) throws Exception;
+    void onSessionOpened(String sessionId) throws Exception;
 
     /**
-     * Called when a session reaches a terminal phase.
-     * The adapter should clean up any runner resources allocated for the session.
+     * Called when a local session is closed (no longer in use).
+     * The adapter should tear down the session's runner worker.
      *
-     * @param sessionId the session identifier to terminate
+     * @param sessionId the session identifier to close
      * @throws Exception if cleanup fails
      */
-    void onSessionTerminated(String sessionId) throws Exception;
+    void onSessionClosed(String sessionId) throws Exception;
 
     /**
      * Called after a workflow execution is created with executionTarget=LOCAL.

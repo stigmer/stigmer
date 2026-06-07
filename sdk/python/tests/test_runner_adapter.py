@@ -12,16 +12,16 @@ class MockRunnerAdapter:
     """Mock adapter that records all lifecycle calls."""
 
     def __init__(self) -> None:
-        self.sessions_created: list[str] = []
-        self.sessions_terminated: list[str] = []
+        self.sessions_opened: list[str] = []
+        self.sessions_closed: list[str] = []
         self.executions_created: list[str] = []
         self.executions_terminated: list[str] = []
 
-    async def on_session_created(self, session_id: str) -> None:
-        self.sessions_created.append(session_id)
+    async def on_session_opened(self, session_id: str) -> None:
+        self.sessions_opened.append(session_id)
 
-    async def on_session_terminated(self, session_id: str) -> None:
-        self.sessions_terminated.append(session_id)
+    async def on_session_closed(self, session_id: str) -> None:
+        self.sessions_closed.append(session_id)
 
     async def on_workflow_execution_created(self, execution_id: str) -> None:
         self.executions_created.append(execution_id)
@@ -39,7 +39,7 @@ class TestRunnerAdapterProtocol:
 
     def test_incomplete_impl_does_not_satisfy_protocol(self) -> None:
         class IncompleteAdapter:
-            async def on_session_created(self, session_id: str) -> None: ...
+            async def on_session_opened(self, session_id: str) -> None: ...
 
         adapter = IncompleteAdapter()
         assert not isinstance(adapter, RunnerAdapterProtocol)
@@ -89,12 +89,12 @@ class TestMockRunnerAdapterBehavior:
     async def test_records_session_lifecycle(self) -> None:
         adapter = MockRunnerAdapter()
 
-        await adapter.on_session_created("ses-1")
-        await adapter.on_session_created("ses-2")
-        await adapter.on_session_terminated("ses-1")
+        await adapter.on_session_opened("ses-1")
+        await adapter.on_session_opened("ses-2")
+        await adapter.on_session_closed("ses-1")
 
-        assert adapter.sessions_created == ["ses-1", "ses-2"]
-        assert adapter.sessions_terminated == ["ses-1"]
+        assert adapter.sessions_opened == ["ses-1", "ses-2"]
+        assert adapter.sessions_closed == ["ses-1"]
 
     async def test_records_execution_lifecycle(self) -> None:
         adapter = MockRunnerAdapter()
