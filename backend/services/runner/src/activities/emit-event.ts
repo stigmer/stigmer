@@ -15,6 +15,7 @@
  */
 
 import { randomUUID } from "node:crypto";
+import { loadConfig } from "../config.js";
 import { resolveRuntimePlaceholders } from "../workflow-engine/resolve.js";
 
 export interface WebhookDeliveryTarget {
@@ -126,8 +127,14 @@ async function deliverSignal(
   try {
     const { Connection, Client } = await import("@temporalio/client");
 
-    const temporalAddress = process.env.TEMPORAL_ADDRESS || "localhost:7233";
-    const temporalNamespace = process.env.TEMPORAL_NAMESPACE || "default";
+    // Resolve Temporal coordinates through the central config layer rather than
+    // reading env directly: signal delivery must dial the SAME cluster/namespace
+    // the worker connected with. config.ts is the single source of truth for the
+    // canonical TEMPORAL_SERVICE_ADDRESS / TEMPORAL_NAMESPACE resolution — reading
+    // env here would diverge (and previously dialed localhost via a stale name).
+    const config = loadConfig();
+    const temporalAddress = config.temporalAddress;
+    const temporalNamespace = config.temporalNamespace;
 
     const connection = await Connection.connect({ address: temporalAddress });
     const client = new Client({ connection, namespace: temporalNamespace });
