@@ -265,6 +265,20 @@ describe("loadArtifactStorageConfig", () => {
     expect(cfg.proxyEndpoint).toBe("https://proxy.example.com");
   });
 
+  it("uses proxy in local mode when a proxy endpoint is set (desktop case)", () => {
+    // The desktop runner executes locally yet proxies its artifacts: storage
+    // follows transport (proxyEndpoint), not execution location (mode).
+    const cfg = loadArtifactStorageConfig({
+      ...baseConfig,
+      mode: "local",
+      proxyEndpoint: "https://localhost:9090",
+      stigmerToken: "tok",
+    });
+    expect(cfg.type).toBe("proxy");
+    expect(cfg.proxyEndpoint).toBe("https://localhost:9090");
+    expect(cfg.proxyAuthToken).toBe("tok");
+  });
+
   it("respects ARTIFACT_STORAGE_TYPE override", () => {
     process.env.ARTIFACT_STORAGE_TYPE = "proxy";
     const cfg = loadArtifactStorageConfig({

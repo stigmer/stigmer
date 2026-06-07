@@ -227,6 +227,82 @@ describe("proxyEndpoint derivation", () => {
   });
 });
 
+describe("temporalAddress + control-plane endpoint", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    vi.unstubAllEnvs();
+  });
+
+  async function captureConfig(): Promise<Record<string, unknown>> {
+    mockedLoadTokens.mockReturnValue({
+      accessToken: "cloud-token",
+      refreshToken: "refresh",
+      expiresAt: Date.now() + 3600_000,
+    });
+
+    let captured: Record<string, unknown> | null = null;
+    mockedInvoke.mockImplementation(async (cmd: string, args?: any) => {
+      if (cmd === "runner_status") {
+        return { running: false, activeSessions: [], activeWorkflowExecutions: [] };
+      }
+      if (cmd === "start_runner") {
+        captured = args.config;
+        return undefined;
+      }
+      if (cmd === "add_session") {
+        return `session:${args.sessionId}`;
+      }
+      throw new Error(`unexpected invoke: ${cmd}`);
+    });
+
+    const { renderHook, act } = await import("@testing-library/react");
+    const { useEmbeddedRunner } = await import("../useEmbeddedRunner");
+    const { result } = renderHook(() => useEmbeddedRunner());
+    await act(async () => {
+      await result.current.addSession("test-session");
+    });
+    expect(captured).not.toBeNull();
+    return captured!;
+  }
+
+  it("omits temporalAddress by default so the runner self-discovers it", async () => {
+    vi.stubEnv("VITE_STIGMER_TEMPORAL_ADDRESS", "");
+    vi.stubEnv("VITE_STIGMER_API_URL", "https://api.stigmer.ai");
+
+    const config = await captureConfig();
+
+    expect(config.temporalAddress).toBeUndefined();
+  });
+
+  it("honors an explicit VITE_STIGMER_TEMPORAL_ADDRESS override", async () => {
+    vi.stubEnv("VITE_STIGMER_TEMPORAL_ADDRESS", "temporal.dev:7233");
+    vi.stubEnv("VITE_STIGMER_API_URL", "https://api.stigmer.ai");
+
+    const config = await captureConfig();
+
+    expect(config.temporalAddress).toBe("temporal.dev:7233");
+  });
+
+  it("derives the control-plane endpoint from VITE_STIGMER_API_URL when no sidecar is set", async () => {
+    // The production case: no sidecar var, so the runner must point at the cloud
+    // API (not localhost) for both control-plane traffic and Temporal discovery.
+    vi.stubEnv("VITE_STIGMER_API_URL", "https://api.stigmer.ai");
+
+    const config = await captureConfig();
+
+    expect(config.stigmerEndpoint).toBe("https://api.stigmer.ai");
+  });
+
+  it("prefers the sidecar endpoint over the API URL when both are set (local dev)", async () => {
+    vi.stubEnv("VITE_STIGMER_SIDECAR_ENDPOINT", "localhost:9090");
+    vi.stubEnv("VITE_STIGMER_API_URL", "https://api.stigmer.ai");
+
+    const config = await captureConfig();
+
+    expect(config.stigmerEndpoint).toBe("localhost:9090");
+  });
+});
+
 describe("updateRunnerToken", () => {
   beforeEach(() => {
     vi.resetAllMocks();

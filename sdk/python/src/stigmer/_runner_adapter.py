@@ -1,8 +1,14 @@
 """RunnerAdapter protocol for local execution lifecycle management.
 
-When ``execution_target`` is ``"local"``, the SDK client automatically
-calls adapter methods after session/execution creation and on terminal
-phase detection. Cloud consumers do not provide an adapter.
+When ``execution_target`` is ``"local"``, a consumer drives the adapter at
+the appropriate lifecycle points. Cloud consumers do not provide an adapter.
+
+Sessions and workflow executions have different lifecycles. A session is a
+long-lived, multi-turn conversation with no terminal phase, so its worker is
+tied to whether the session is open (in use): ``on_session_opened`` when the
+session is opened, ``on_session_closed`` when it is closed. A workflow
+execution runs to a terminal phase, so its worker is tied to creation and
+completion.
 
 Each environment provides its own implementation:
 
@@ -13,10 +19,10 @@ Each environment provides its own implementation:
 Usage::
 
     class MyRunnerAdapter:
-        async def on_session_created(self, session_id: str) -> None:
+        async def on_session_opened(self, session_id: str) -> None:
             await start_worker(session_id)
 
-        async def on_session_terminated(self, session_id: str) -> None:
+        async def on_session_closed(self, session_id: str) -> None:
             await stop_worker(session_id)
 
         async def on_workflow_execution_created(self, execution_id: str) -> None:
@@ -43,12 +49,20 @@ class RunnerAdapter(Protocol):
     management, HTTP calls to runner APIs, etc.).
     """
 
-    async def on_session_created(self, session_id: str) -> None:
-        """Called after a session is created with execution_target=LOCAL."""
+    async def on_session_opened(self, session_id: str) -> None:
+        """Called when a local session is opened (engaged).
+
+        The adapter should ensure a runner worker is polling the session's
+        task queue. Must be idempotent: it may be called again for an
+        already-open session (e.g. on re-open).
+        """
         ...
 
-    async def on_session_terminated(self, session_id: str) -> None:
-        """Called when a session reaches a terminal phase."""
+    async def on_session_closed(self, session_id: str) -> None:
+        """Called when a local session is closed (no longer in use).
+
+        The adapter should tear down the session's runner worker.
+        """
         ...
 
     async def on_workflow_execution_created(self, execution_id: str) -> None:

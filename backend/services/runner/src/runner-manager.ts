@@ -25,6 +25,7 @@ import {
 import type { PayloadCodec } from "@temporalio/common";
 import type { Config } from "./config.js";
 import type { WorkerActivities } from "./worker.js";
+import { resolveTemporalCoordinates } from "./bootstrap.js";
 
 const SESSION_QUEUE_PREFIX = "session:";
 const WFEXEC_QUEUE_PREFIX = "wfexec:";
@@ -41,8 +42,13 @@ export function getShutdownSignalForQueue(taskQueue: string): AbortSignal | unde
 }
 
 export interface RunnerManagerOptions {
-  /** Temporal server address (e.g. "localhost:7233"). */
-  readonly temporalAddress: string;
+  /**
+   * Temporal server address (e.g. "localhost:7233"). Optional: when omitted, the
+   * runner self-discovers it during boot from the control plane using
+   * {@link stigmerToken} (see bootstrap.ts). Provide it explicitly to bypass
+   * discovery — an explicit value always wins.
+   */
+  readonly temporalAddress?: string;
 
   /** Stigmer server endpoint for status updates, artifacts, and blueprints. */
   readonly stigmerEndpoint: string;
@@ -76,6 +82,22 @@ export interface RunnerManagerOptions {
 
   /** Enable Cursor cloud mode. @default false */
   readonly cloudModeEnabled?: boolean;
+
+  /**
+   * Workspace/filesystem execution location — where the agent actually runs.
+   *
+   * - "local": the agent operates on the host filesystem (local-path workspace
+   *   entries are valid; the desktop app and CLI daemon use this).
+   * - "cloud": the agent runs in a server-provisioned sandbox (git-only).
+   *
+   * This is intentionally distinct from {@link proxyEndpoint}, which controls
+   * credential/artifact *transport*. The desktop runner is the canonical case
+   * where the two diverge: it executes locally while routing Cursor traffic and
+   * artifacts through the proxy. Defaults to "local".
+   *
+   * @default "local"
+   */
+  readonly executionMode?: "local" | "cloud";
 }
 
 export interface StigmerRunnerManager {
@@ -139,7 +161,23 @@ export async function createStigmerRunnerManager(
   validateManagerOptions(options);
 
   const tokenRef = { current: options.stigmerToken ?? null };
-  const config = mapManagerOptionsToConfig(options, tokenRef);
+  const baseConfig = mapManagerOptionsToConfig(options, tokenRef);
+
+  // Resolve Temporal coordinates before opening any connection. An explicit
+  // address wins; otherwise a token triggers control-plane discovery; otherwise
+  // localhost. Must happen before createAllActivities so runtime activities that
+  // dial Temporal (e.g. emit-event) see the resolved address too.
+  const coordinates = await resolveTemporalCoordinates({
+    explicitAddress: options.temporalAddress,
+    explicitNamespace: options.temporalNamespace,
+    token: options.stigmerToken,
+    stigmerEndpoint: baseConfig.stigmerBackendEndpoint,
+  });
+  const config: Config = {
+    ...baseConfig,
+    temporalAddress: coordinates.temporalAddress,
+    temporalNamespace: coordinates.temporalNamespace,
+  };
 
   // Install fetch interceptor before any @cursor/sdk imports
   const { installFetchInterceptor, updateInterceptorToken, getExecutionContext } = await import(
@@ -337,28 +375,33 @@ export async function createStigmerRunnerManager(
 }
 
 function validateManagerOptions(options: RunnerManagerOptions): void {
-  if (!options.temporalAddress) {
-    throw new Error(
-      "RunnerManagerOptions.temporalAddress is required — specify the Temporal server address",
-    );
-  }
   if (!options.stigmerEndpoint) {
     throw new Error(
       "RunnerManagerOptions.stigmerEndpoint is required — specify the Stigmer server endpoint",
     );
   }
+  // temporalAddress is intentionally NOT required: when omitted, the runner
+  // discovers it from the control plane (token-only embedding). If neither an
+  // explicit address nor a token is present, discovery falls back to localhost.
 }
 
-function mapManagerOptionsToConfig(
+export function mapManagerOptionsToConfig(
   options: RunnerManagerOptions,
   tokenRef?: { current: string | null },
 ): Config {
   const proxyActive = !!options.proxyEndpoint;
-  const mode = proxyActive ? ("cloud" as const) : ("local" as const);
+
+  // Execution location is independent of proxy transport. Do NOT derive `mode`
+  // from `proxyActive`: the desktop runner executes LOCALLY (local-path
+  // workspaces must work) while still routing Cursor traffic through the proxy.
+  // Coupling the two here is exactly what previously broke local-path sessions.
+  const mode = options.executionMode ?? ("local" as const);
 
   return {
     taskQueue: "manager", // not used for Workers — each Worker gets its own
-    temporalAddress: options.temporalAddress,
+    // May be empty here; createStigmerRunnerManager resolves it via
+    // resolveTemporalCoordinates before any Temporal connection is opened.
+    temporalAddress: options.temporalAddress ?? "",
     temporalNamespace: options.temporalNamespace ?? "default",
     stigmerBackendEndpoint: normalizeEndpoint(options.stigmerEndpoint),
     stigmerToken: options.stigmerToken ?? null,

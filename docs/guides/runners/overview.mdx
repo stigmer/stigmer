@@ -1,0 +1,49 @@
+---
+title: Runner guides
+description:
+  Embed the Stigmer runner in your own application and drive it over the
+  manager-mode IPC protocol. Covers the local-versus-cloud decision and the
+  configuration each deployment needs.
+---
+
+The runner is the process that executes your Agents and Workflows. These guides
+are for platform builders who **embed** the runner in their own application — a
+desktop app that runs Sessions on the user's machine, or a backend that hosts
+runners for local execution.
+
+If you are new to what a Runner is and how it fits the platform, start with the
+[Runners concept page](/docs/concepts/runners). If you only want to _run_ Agents
+rather than embed the runner, you do not need these guides: use `stigmer up`, or
+let Stigmer Cloud provision a runner for you.
+
+## Guides in this section
+
+<Cards>
+  <Card href="/docs/guides/runners/embedding" title="Embed the runner">
+    Host the runner in a desktop or web app. Covers the local-versus-cloud
+    decision, the RunnerAdapter, in-process versus subprocess hosting, and the
+    configuration each audience passes.
+  </Card>
+  <Card
+    href="/docs/guides/runners/ipc-protocol"
+    title="Manager-mode IPC protocol"
+  >
+    The line-delimited JSON contract for driving the runner as a subprocess:
+    commands, responses, lifecycle, and the versioned handshake.
+  </Card>
+  <Card
+    href="/docs/guides/runners/cursor-harness"
+    title="Set up the Cursor harness"
+  >
+    Run Agent Sessions on the Cursor execution engine: the API key for a local
+    runner, the platform-managed key on Stigmer Cloud, and selecting the harness
+    per Session.
+  </Card>
+</Cards>
+
+## Who these guides are for
+
+These guides assume you are comfortable with Node.js and the Stigmer SDK. They
+build on the concepts in the [Runners concept page](/docs/concepts/runners), so
+read that first if the runner lifecycle, execution modes, or how Sessions find
+runners are unfamiliar.

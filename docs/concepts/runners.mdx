@@ -57,31 +57,28 @@ processes for each Harness.
 
 ## Three execution modes
 
-Runners operate in one of three modes. The mode determines where agent commands
+Runners operate in one of three modes. The mode determines where Agent commands
 run and who manages the infrastructure.
 
-|                   | Local                                    | Sandbox                                      | Cloud (auto)                                        |
-| ----------------- | ---------------------------------------- | -------------------------------------------- | --------------------------------------------------- |
-| **Who starts it** | You — via `stigmer up`                   | You — via `stigmer up --runtime docker`      | The platform — automatically                        |
-| **Where it runs** | Your machine (laptop, server, CI)        | Docker container on your machine             | Stigmer-managed infrastructure                      |
-| **Isolation**     | None — full host access                  | Container-level                              | Platform-managed                                    |
-| **Lifecycle**     | Persistent — stays until you stop it     | Persistent — stays until you stop it         | Ephemeral — created per execution, cleaned up after |
-| **Good for**      | Development, on-premises, data-sensitive | Untrusted workloads, consistent environments | Zero-setup production, burst capacity               |
+|                   | Local                                    | Sandbox                                         | Cloud (auto)                                        |
+| ----------------- | ---------------------------------------- | ----------------------------------------------- | --------------------------------------------------- |
+| **Who starts it** | You — via `stigmer up`                   | You — via `stigmer up --execution-mode sandbox` | The platform — automatically                        |
+| **Where it runs** | Your machine (laptop, server, CI)        | Docker container on your machine                | Stigmer-managed infrastructure                      |
+| **Isolation**     | None — full host access                  | Container-level                                 | Platform-managed                                    |
+| **Lifecycle**     | Persistent — stays until you stop it     | Persistent — stays until you stop it            | Ephemeral — created per execution, cleaned up after |
+| **Good for**      | Development, on-premises, data-sensitive | Untrusted workloads, consistent runtimes        | Zero-setup production, burst capacity               |
 
-**Local** is the default. Start a runner with `stigmer up` and agent commands
-execute directly on the host machine. The agent has full access to the local
-file system. See the [local mode guide](/docs/guides/runners/local-mode) for
-details.
+**Local** is the default. Start a runner with `stigmer up` and Agent commands
+execute directly on the host machine. The Agent has full access to the local
+file system.
 
-**Sandbox** adds isolation. Start a runner with `stigmer up --runtime docker` or
-set the execution mode to `sandbox`. Agent commands run inside a Docker
-container, keeping untrusted operations away from the host. See the
-[sandbox mode guide](/docs/guides/runners/sandbox-mode) for details.
+**Sandbox** adds isolation. Start a runner with
+`stigmer up --execution-mode sandbox`. Agent commands run inside a Docker
+container, keeping untrusted operations away from the host.
 
 **Cloud (auto)** requires no setup. When a Session needs compute and no runner
 is specified, the platform provisions an ephemeral runner on demand. Cloud
 runners are labeled `stigmer.ai/system-managed` and cleaned up automatically.
-See the [cloud mode guide](/docs/guides/runners/cloud-mode) for details.
 
 ## Runner lifecycle
 
@@ -159,25 +156,17 @@ and an action menu for stop and delete operations.
 You understand what runners are and how they fit the platform. The next step
 depends on what you want to do:
 
-- **Set up a runner sidecar** — The
-  [sidecar setup guide](/docs/guides/runners/sidecar-setup) covers bundling the
-  CLI in your app, spawning runner processes, deep links, and the SDK runner
-  API.
-- **Start a local runner** — The
-  [local mode guide](/docs/guides/runners/local-mode) covers `stigmer up`,
-  naming, backend configuration, and running multiple runners.
-- **Run in a sandbox** — The
-  [sandbox mode guide](/docs/guides/runners/sandbox-mode) covers Docker
-  isolation at the runner and command level.
-- **Use cloud mode** — The [cloud mode guide](/docs/guides/runners/cloud-mode)
-  explains automatic provisioning when no local runner is available.
+- **Embed the runner in your app** — The
+  [embedding guide](/docs/guides/runners/embedding) covers hosting the runner in
+  a desktop or web app: local versus cloud execution, the `RunnerAdapter`, and
+  the configuration each kind of integrator passes.
+- **Drive the manager-mode protocol** — The
+  [manager-mode IPC protocol reference](/docs/guides/runners/ipc-protocol)
+  specifies the subprocess command and response contract and its versioned
+  handshake.
 - **Use the Cursor harness** — The
   [Cursor harness guide](/docs/guides/runners/cursor-harness) covers setting up
-  the Cursor execution engine for coding-focused agent capabilities.
-- **Build with runner hooks** — The
-  [React SDK runner reference](/docs/sdk/react/runner) documents
-  `useRunnerList`, `RunnerListPanel`, `RunnerPicker`, and the launch, stop, and
-  delete hooks.
+  the Cursor execution engine for coding-focused capabilities.
 
 The next concept page covers [Harnesses](/docs/concepts/harnesses) — the
 execution engines that power your Agent's Sessions. After that,

@@ -77,8 +77,9 @@ class StigmerClient(GeneratedClient):
                 sandboxes. ``None`` lets the server decide.
             runner_adapter: Runner adapter for local execution lifecycle
                 management. When ``execution_target`` is ``"local"``, the
-                SDK calls adapter methods after session/execution creation
-                and on terminal phase detection. Cloud consumers omit this.
+                adapter is driven at the appropriate lifecycle points:
+                sessions on open/close, workflow executions on
+                create/terminal. Cloud consumers omit this.
         """
         if not api_key:
             raise ValueError("stigmer: API key is required")

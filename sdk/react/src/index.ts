@@ -4,6 +4,9 @@ export { StigmerContext } from "./context";
 
 // Runner adapter
 export { type RunnerAdapter, useRunnerAdapter } from "./runner-adapter";
+// Construction helper lives in @stigmer/sdk (framework-agnostic); re-exported
+// here so React embedders import it alongside the adapter interface.
+export { type RunnerWorkerHost, createRunnerAdapter } from "@stigmer/sdk";
 
 // Fetch cache
 export { FetchCacheProvider } from "./internal/FetchCacheProvider";

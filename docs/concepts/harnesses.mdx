@@ -72,8 +72,9 @@ The Harness you choose depends on what your Agent needs to do.
 | **Model availability**  | All supported providers                                              | Cursor-served models only                                  |
 | **Tool capabilities**   | MCP servers you configure                                            | MCP servers + Cursor's built-in coding tools               |
 | **Checkpoints**         | Full Stigmer pause/resume                                            | Cursor-managed state                                       |
-| **Platform commission** | 20% over provider rates                                              | 10% over provider rates                                    |
-| **Per-call overhead**   | Minimal (your prompt only)                                           | ~10k tokens of system context per call                     |
+| **Platform commission** | 10% over provider rates                                              | 10% over provider rates                                    |
+| **Cursor Token Rate**   | None                                                                 | Small per-token fee on non-Auto models                     |
+| **Per-call context**    | Your prompt only                                                     | Adds Cursor system + tooling context                       |
 | **Prompt caching**      | Full control (explicit breakpoints)                                  | Automatic and opaque                                       |
 | **Latency**             | Lower (direct API)                                                   | Higher (agent startup + tooling)                           |
 | **Best for**            | General-purpose agents, custom model selection, production workloads | Developer-facing agents, coding tasks, Cursor model access |
@@ -143,18 +144,23 @@ a Cursor-served model implicitly sets the Harness to Cursor for that Session.
 
 ## Cost considerations
 
-The harnesses have different cost profiles beyond the commission percentage.
-Native benefits from Anthropic prompt caching (up to 78% savings on repeated
-prefixes), while cursor carries a fixed ~10k token overhead per call from its
-agent tooling.
+Both harnesses apply the same 10% platform commission, so cost differences come
+from three places: the Cursor Token Rate, per-call context, and prompt caching.
 
-For multi-turn sessions, native's cost advantage compounds with each turn as the
-cached prefix is reused. For coding tasks that require cursor's built-in tools,
-the overhead is justified by the capability it provides.
+- **Cursor Token Rate** — most Cursor models add a small per-token fee (Cursor's
+  own charge, folded into the price before commission). Native models never
+  carry it, so the same underlying model is cheaper on native.
+- **Per-call context** — Cursor's runtime sends its own system and tooling
+  context with each call; native sends only your prompt.
+- **Prompt caching** — native exposes explicit cache breakpoints, so a Session's
+  stable prefix is re-read at about one-tenth the input rate (about 90% off
+  those tokens) and the advantage compounds across turns. Cursor caches
+  automatically but opaquely.
 
-See the [cost optimization guide](/docs/guides/runners/cost-optimization) for a
-detailed decision matrix, caching economics, and practical tips for reducing
-spend.
+For multi-turn Sessions, native's caching control usually wins on cost. For
+coding tasks that need Cursor's built-in tools, the extra context and token rate
+buy capability that native does not have. For a full rundown of cost levers, see
+[Optimizing your costs](/docs/concepts/billing#optimizing-your-costs).
 
 ## What's next
 

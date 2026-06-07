@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "harness",
@@ -107,5 +107,15 @@ go_library(
         "@org_mongodb_go_mongo_driver_v2//bson",
         "@org_mongodb_go_mongo_driver_v2//mongo",
         "@org_mongodb_go_mongo_driver_v2//mongo/options",
+    ],
+)
+
+go_test(
+    name = "harness_test",
+    srcs = ["ipc_fixtures_test.go"],
+    embed = [":harness"],
+    deps = [
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
     ],
 )

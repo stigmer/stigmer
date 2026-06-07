@@ -9,14 +9,14 @@ import type { RunnerAdapter } from "../runner-adapter";
 import { useCreateSession } from "../session/useCreateSession";
 
 function createMockAdapter(): RunnerAdapter & {
-  onSessionCreated: ReturnType<typeof vi.fn>;
-  onSessionTerminated: ReturnType<typeof vi.fn>;
+  onSessionOpened: ReturnType<typeof vi.fn>;
+  onSessionClosed: ReturnType<typeof vi.fn>;
   onWorkflowExecutionCreated: ReturnType<typeof vi.fn>;
   onWorkflowExecutionTerminated: ReturnType<typeof vi.fn>;
 } {
   return {
-    onSessionCreated: vi.fn().mockResolvedValue(undefined),
-    onSessionTerminated: vi.fn().mockResolvedValue(undefined),
+    onSessionOpened: vi.fn().mockResolvedValue(undefined),
+    onSessionClosed: vi.fn().mockResolvedValue(undefined),
     onWorkflowExecutionCreated: vi.fn().mockResolvedValue(undefined),
     onWorkflowExecutionTerminated: vi.fn().mockResolvedValue(undefined),
   };
@@ -81,8 +81,11 @@ describe("RunnerAdapter", () => {
     });
   });
 
-  describe("useCreateSession + adapter integration", () => {
-    it("calls adapter.onSessionCreated when target is local", async () => {
+  describe("useCreateSession is a pure resource-creation hook", () => {
+    // The worker lifecycle moved to the session view (useSessionConversation
+    // attaches on open / detaches on close) and the new-session flow's eager
+    // attach. Creating a session must NOT touch the adapter on its own.
+    it("does not drive the adapter even when target is local", async () => {
       const adapter = createMockAdapter();
       const client = createMockStigmer();
 
@@ -90,114 +93,18 @@ describe("RunnerAdapter", () => {
         wrapper: wrapperWithAdapter(client, adapter, "local"),
       });
 
+      let created: { sessionId: string } | undefined;
       await act(async () => {
-        await result.current.create({
+        created = await result.current.create({
           org: "acme",
           agentInstanceId: "ain-123",
         });
       });
 
-      expect(adapter.onSessionCreated).toHaveBeenCalledTimes(1);
-      expect(adapter.onSessionCreated).toHaveBeenCalledWith("ses-new-1");
-    });
-
-    it("does NOT call adapter when target is cloud", async () => {
-      const adapter = createMockAdapter();
-      const client = createMockStigmer();
-
-      const { result } = renderHook(() => useCreateSession(), {
-        wrapper: wrapperWithAdapter(client, adapter, "cloud"),
-      });
-
-      await act(async () => {
-        await result.current.create({
-          org: "acme",
-          agentInstanceId: "ain-123",
-        });
-      });
-
-      expect(adapter.onSessionCreated).not.toHaveBeenCalled();
-    });
-
-    it("does NOT call adapter when target is unspecified", async () => {
-      const adapter = createMockAdapter();
-      const client = createMockStigmer();
-
-      const { result } = renderHook(() => useCreateSession(), {
-        wrapper: wrapperWithAdapter(client, adapter, undefined),
-      });
-
-      await act(async () => {
-        await result.current.create({
-          org: "acme",
-          agentInstanceId: "ain-123",
-        });
-      });
-
-      expect(adapter.onSessionCreated).not.toHaveBeenCalled();
-    });
-
-    it("does NOT call adapter when adapter is null", async () => {
-      const client = createMockStigmer();
-
-      const { result } = renderHook(() => useCreateSession(), {
-        wrapper: wrapperWithAdapter(client, null, "local"),
-      });
-
-      await act(async () => {
-        await result.current.create({
-          org: "acme",
-          agentInstanceId: "ain-123",
-        });
-      });
-
-      // No error — adapter call is simply skipped
+      expect(created?.sessionId).toBe("ses-new-1");
+      expect(adapter.onSessionOpened).not.toHaveBeenCalled();
+      expect(adapter.onSessionClosed).not.toHaveBeenCalled();
       expect(result.current.error).toBeNull();
-    });
-
-    it("propagates adapter errors to the caller", async () => {
-      const adapter = createMockAdapter();
-      adapter.onSessionCreated.mockRejectedValue(new Error("Runner failed to start"));
-      const client = createMockStigmer();
-
-      const { result } = renderHook(() => useCreateSession(), {
-        wrapper: wrapperWithAdapter(client, adapter, "local"),
-      });
-
-      let caughtError: Error | undefined;
-      await act(async () => {
-        try {
-          await result.current.create({
-            org: "acme",
-            agentInstanceId: "ain-123",
-          });
-        } catch (err) {
-          caughtError = err as Error;
-        }
-      });
-
-      expect(caughtError).toBeTruthy();
-      expect(caughtError!.message).toBe("Runner failed to start");
-    });
-
-    it("uses per-call executionTarget over context for adapter guard", async () => {
-      const adapter = createMockAdapter();
-      const client = createMockStigmer();
-
-      // Context is "cloud" but per-call is "local"
-      const { result } = renderHook(() => useCreateSession(), {
-        wrapper: wrapperWithAdapter(client, adapter, "cloud"),
-      });
-
-      await act(async () => {
-        await result.current.create({
-          org: "acme",
-          agentInstanceId: "ain-123",
-          executionTarget: "local",
-        });
-      });
-
-      expect(adapter.onSessionCreated).toHaveBeenCalledTimes(1);
     });
   });
 });

@@ -3,6 +3,7 @@ syntax = "proto3";
 package ai.stigmer.platform.v1;
 
 import "ai/stigmer/commons/rpc/method_options.proto";
+import "buf/validate/validate.proto";
 
 option java_outer_classname = "ServerInfoProto";
 
@@ -24,11 +25,15 @@ enum ServerEdition {
   cloud = 2;
 }
 
-// Unauthenticated query service for server identity and capabilities.
+// Query service for server identity, capabilities, and runner bootstrap.
 //
 // Clients call getServerInfo on startup to learn the server edition
 // and version, replacing URL-based guessing. The RPC is public
 // (no authentication required) so it can be called before login.
+//
+// Embedded runners call getRunnerBootstrapConfig during boot to discover
+// the Temporal coordinates they need to join the execution backbone, so
+// integrators never hardcode infrastructure addresses.
 service PlatformQueryController {
   // Returns the server edition and version.
   //
@@ -37,6 +42,26 @@ service PlatformQueryController {
   // to StigmerProvider as the deploymentMode prop.
   rpc getServerInfo(GetServerInfoInput) returns (GetServerInfoOutput) {
     option (ai.stigmer.commons.rpc.is_public) = true;
+  }
+
+  // Returns the Temporal coordinates an embedded runner should connect to.
+  //
+  // An embedded runner (a desktop or web app hosting the runner for local
+  // execution) needs the Temporal frontend address and namespace to poll for
+  // work, but those are infrastructure details it should not have to know.
+  // This RPC lets the runner self-bootstrap: it presents the token it already
+  // holds and the control plane returns the coordinates for the environment
+  // that token belongs to. The contract for a cloud embedder collapses to a
+  // single endpoint plus a token.
+  //
+  // Authenticated (not public): the response reveals an infrastructure
+  // coordinate, so any valid token is required, but no specific FGA permission
+  // is — every authenticated caller in an environment shares one Temporal
+  // cluster, and task queues are per-session/execution and gated separately by
+  // control-plane session access.
+  rpc getRunnerBootstrapConfig(GetRunnerBootstrapConfigInput)
+      returns (GetRunnerBootstrapConfigOutput) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 }
 
@@ -50,4 +75,22 @@ message GetServerInfoOutput {
 
   // Semantic version of the server binary (e.g., "0.5.1").
   string version = 2;
+}
+
+// Empty request — the caller is identified by its bearer token, and the
+// coordinates are the same for every runner in the environment.
+message GetRunnerBootstrapConfigInput {}
+
+// Temporal coordinates an embedded runner connects to.
+//
+// The address is the one reachable by the caller: in OSS it is the server's
+// own co-located Temporal (single host); in Cloud it is the external Temporal
+// ingress, which differs from the internal address the control plane itself
+// dials. The namespace is shared across both.
+message GetRunnerBootstrapConfigOutput {
+  // Temporal frontend address (host:port) the runner should dial.
+  string temporal_address = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Temporal namespace the runner should use.
+  string temporal_namespace = 2 [(buf.validate.field).string.min_len = 1];
 }

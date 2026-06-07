@@ -5,13 +5,14 @@
 import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv1";
 import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import { file_ai_stigmer_commons_rpc_method_options } from "../../commons/rpc/method_options_pb.js";
+import { file_buf_validate_validate } from "../../../../buf/validate/validate_pb.js";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ai/stigmer/platform/v1/server_info.proto.
  */
 export const file_ai_stigmer_platform_v1_server_info: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL3BsYXRmb3JtL3YxL3NlcnZlcl9pbmZvLnByb3RvEhZhaS5zdGlnbWVyLnBsYXRmb3JtLnYxIhQKEkdldFNlcnZlckluZm9JbnB1dCJeChNHZXRTZXJ2ZXJJbmZvT3V0cHV0EjYKB2VkaXRpb24YASABKA4yJS5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLlNlcnZlckVkaXRpb24SDwoHdmVyc2lvbhgCIAEoCSpDCg1TZXJ2ZXJFZGl0aW9uEh4KGnNlcnZlcl9lZGl0aW9uX3Vuc3BlY2lmaWVkEAASBwoDb3NzEAESCQoFY2xvdWQQAjKJAQoXUGxhdGZvcm1RdWVyeUNvbnRyb2xsZXISbgoNZ2V0U2VydmVySW5mbxIqLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuR2V0U2VydmVySW5mb0lucHV0GisuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRTZXJ2ZXJJbmZvT3V0cHV0IgTIuBgBQhFCD1NlcnZlckluZm9Qcm90b2IGcHJvdG8z", [file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CihhaS9zdGlnbWVyL3BsYXRmb3JtL3YxL3NlcnZlcl9pbmZvLnByb3RvEhZhaS5zdGlnbWVyLnBsYXRmb3JtLnYxIhQKEkdldFNlcnZlckluZm9JbnB1dCJeChNHZXRTZXJ2ZXJJbmZvT3V0cHV0EjYKB2VkaXRpb24YASABKA4yJS5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLlNlcnZlckVkaXRpb24SDwoHdmVyc2lvbhgCIAEoCSIfCh1HZXRSdW5uZXJCb290c3RyYXBDb25maWdJbnB1dCJoCh5HZXRSdW5uZXJCb290c3RyYXBDb25maWdPdXRwdXQSIQoQdGVtcG9yYWxfYWRkcmVzcxgBIAEoCUIHukgEcgIQARIjChJ0ZW1wb3JhbF9uYW1lc3BhY2UYAiABKAlCB7pIBHICEAEqQwoNU2VydmVyRWRpdGlvbhIeChpzZXJ2ZXJfZWRpdGlvbl91bnNwZWNpZmllZBAAEgcKA29zcxABEgkKBWNsb3VkEAIymwIKF1BsYXRmb3JtUXVlcnlDb250cm9sbGVyEm4KDWdldFNlcnZlckluZm8SKi5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldFNlcnZlckluZm9JbnB1dBorLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuR2V0U2VydmVySW5mb091dHB1dCIEyLgYARKPAQoYZ2V0UnVubmVyQm9vdHN0cmFwQ29uZmlnEjUuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRSdW5uZXJCb290c3RyYXBDb25maWdJbnB1dBo2LmFpLnN0aWdtZXIucGxhdGZvcm0udjEuR2V0UnVubmVyQm9vdHN0cmFwQ29uZmlnT3V0cHV0IgTQuBgBQhFCD1NlcnZlckluZm9Qcm90b2IGcHJvdG8z", [file_ai_stigmer_commons_rpc_method_options, file_buf_validate_validate]);
 
 /**
  * Empty request — no parameters needed.
@@ -57,6 +58,55 @@ export const GetServerInfoOutputSchema: GenMessage<GetServerInfoOutput> = /*@__P
   messageDesc(file_ai_stigmer_platform_v1_server_info, 1);
 
 /**
+ * Empty request — the caller is identified by its bearer token, and the
+ * coordinates are the same for every runner in the environment.
+ *
+ * @generated from message ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput
+ */
+export type GetRunnerBootstrapConfigInput = Message<"ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput"> & {
+};
+
+/**
+ * Describes the message ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput.
+ * Use `create(GetRunnerBootstrapConfigInputSchema)` to create a new message.
+ */
+export const GetRunnerBootstrapConfigInputSchema: GenMessage<GetRunnerBootstrapConfigInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_platform_v1_server_info, 2);
+
+/**
+ * Temporal coordinates an embedded runner connects to.
+ *
+ * The address is the one reachable by the caller: in OSS it is the server's
+ * own co-located Temporal (single host); in Cloud it is the external Temporal
+ * ingress, which differs from the internal address the control plane itself
+ * dials. The namespace is shared across both.
+ *
+ * @generated from message ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput
+ */
+export type GetRunnerBootstrapConfigOutput = Message<"ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput"> & {
+  /**
+   * Temporal frontend address (host:port) the runner should dial.
+   *
+   * @generated from field: string temporal_address = 1;
+   */
+  temporalAddress: string;
+
+  /**
+   * Temporal namespace the runner should use.
+   *
+   * @generated from field: string temporal_namespace = 2;
+   */
+  temporalNamespace: string;
+};
+
+/**
+ * Describes the message ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput.
+ * Use `create(GetRunnerBootstrapConfigOutputSchema)` to create a new message.
+ */
+export const GetRunnerBootstrapConfigOutputSchema: GenMessage<GetRunnerBootstrapConfigOutput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_platform_v1_server_info, 3);
+
+/**
  * Edition of the Stigmer server binary.
  *
  * Indicates whether the server is the open-source Go edition
@@ -96,11 +146,15 @@ export const ServerEditionSchema: GenEnum<ServerEdition> = /*@__PURE__*/
   enumDesc(file_ai_stigmer_platform_v1_server_info, 0);
 
 /**
- * Unauthenticated query service for server identity and capabilities.
+ * Query service for server identity, capabilities, and runner bootstrap.
  *
  * Clients call getServerInfo on startup to learn the server edition
  * and version, replacing URL-based guessing. The RPC is public
  * (no authentication required) so it can be called before login.
+ *
+ * Embedded runners call getRunnerBootstrapConfig during boot to discover
+ * the Temporal coordinates they need to join the execution backbone, so
+ * integrators never hardcode infrastructure addresses.
  *
  * @generated from service ai.stigmer.platform.v1.PlatformQueryController
  */
@@ -118,6 +172,30 @@ export const PlatformQueryController: GenService<{
     methodKind: "unary";
     input: typeof GetServerInfoInputSchema;
     output: typeof GetServerInfoOutputSchema;
+  },
+  /**
+   * Returns the Temporal coordinates an embedded runner should connect to.
+   *
+   * An embedded runner (a desktop or web app hosting the runner for local
+   * execution) needs the Temporal frontend address and namespace to poll for
+   * work, but those are infrastructure details it should not have to know.
+   * This RPC lets the runner self-bootstrap: it presents the token it already
+   * holds and the control plane returns the coordinates for the environment
+   * that token belongs to. The contract for a cloud embedder collapses to a
+   * single endpoint plus a token.
+   *
+   * Authenticated (not public): the response reveals an infrastructure
+   * coordinate, so any valid token is required, but no specific FGA permission
+   * is — every authenticated caller in an environment shares one Temporal
+   * cluster, and task queues are per-session/execution and gated separately by
+   * control-plane session access.
+   *
+   * @generated from rpc ai.stigmer.platform.v1.PlatformQueryController.getRunnerBootstrapConfig
+   */
+  getRunnerBootstrapConfig: {
+    methodKind: "unary";
+    input: typeof GetRunnerBootstrapConfigInputSchema;
+    output: typeof GetRunnerBootstrapConfigOutputSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ai_stigmer_platform_v1_server_info, 0);

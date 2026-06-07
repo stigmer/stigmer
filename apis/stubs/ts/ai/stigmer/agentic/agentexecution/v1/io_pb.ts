@@ -270,7 +270,7 @@ export type SubmitApprovalInput = Message<"ai.stigmer.agentic.agentexecution.v1.
   toolCallId: string;
 
   /**
-   * User's decision: APPROVE, SKIP, or REJECT.
+   * User's decision: APPROVE, SKIP, REJECT, or APPROVE_ALL.
    * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
    *
    * @generated from field: ai.stigmer.agentic.agentexecution.v1.ApprovalAction action = 3;

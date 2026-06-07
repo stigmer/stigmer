@@ -1,5 +1,34 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { emitEventAction, type EmitEventConfig } from "../../../activities/emit-event.js";
+
+// ─── Temporal signal-delivery mocks ──────────────────────────────────────────
+// deliverSignal dynamically imports @temporalio/client and resolves the cluster
+// coordinates through loadConfig(). We mock both so the signal path is testable
+// without a live Temporal server, and so we can assert which address it dials.
+const mockConnect = vi.fn(async (_opts: { address: string }) => ({}));
+const mockSignal = vi.fn(async () => undefined);
+const mockGetHandle = vi.fn((_id: string) => ({ signal: mockSignal }));
+const mockClientCtor = vi.fn((_opts: { connection: unknown; namespace: string }) => ({
+  workflow: { getHandle: mockGetHandle },
+}));
+
+vi.mock("@temporalio/client", () => ({
+  Connection: { connect: (opts: { address: string }) => mockConnect(opts) },
+  Client: vi.fn().mockImplementation((opts: { connection: unknown; namespace: string }) =>
+    mockClientCtor(opts),
+  ),
+}));
+
+// Mutable so each test can vary what config.ts resolves. Mirrors the real
+// resolution where temporalAddress comes from TEMPORAL_SERVICE_ADDRESS.
+let mockTemporalAddress = "localhost:7233";
+let mockTemporalNamespace = "default";
+vi.mock("../../../config.js", () => ({
+  loadConfig: () => ({
+    temporalAddress: mockTemporalAddress,
+    temporalNamespace: mockTemporalNamespace,
+  }),
+}));
 
 describe("emitEventAction", () => {
   describe("envelope construction", () => {
@@ -228,6 +257,66 @@ describe("emitEventAction", () => {
 
       expect(fetchSpy).toHaveBeenCalledTimes(2);
       expect(result.delivery_errors).toBeUndefined();
+    });
+  });
+
+  describe("signal delivery (Temporal coordinates from config)", () => {
+    beforeEach(() => {
+      mockConnect.mockClear();
+      mockSignal.mockClear();
+      mockGetHandle.mockClear();
+      mockClientCtor.mockClear();
+      mockSignal.mockResolvedValue(undefined);
+      mockTemporalAddress = "localhost:7233";
+      mockTemporalNamespace = "default";
+    });
+
+    it("dials the Temporal address resolved by config, not a hardcoded localhost", async () => {
+      // Regression for F1: deliverSignal previously read process.env.TEMPORAL_ADDRESS
+      // and fell back to localhost — diverging from the canonical
+      // TEMPORAL_SERVICE_ADDRESS the worker uses. It now goes through loadConfig().
+      mockTemporalAddress = "stigmer-temporal-frontend:7233";
+      mockTemporalNamespace = "stigmer-prod";
+
+      const config: EmitEventConfig = {
+        event: { type: "approval.granted" },
+        delivery: [
+          { signal: { workflow_id: "wf-abc", signal_name: "approvalResolved" } },
+        ],
+      };
+
+      const result = await emitEventAction(config, "exec-1");
+
+      expect(mockConnect).toHaveBeenCalledWith({ address: "stigmer-temporal-frontend:7233" });
+      expect(mockClientCtor).toHaveBeenCalledWith(
+        expect.objectContaining({ namespace: "stigmer-prod" }),
+      );
+      expect(mockGetHandle).toHaveBeenCalledWith("wf-abc");
+      expect(mockSignal).toHaveBeenCalledTimes(1);
+      const [signalName, envelope] = mockSignal.mock.calls[0] as unknown as [
+        string,
+        Record<string, unknown>,
+      ];
+      expect(signalName).toBe("approvalResolved");
+      expect(envelope.type).toBe("approval.granted");
+      expect(result.delivery_errors).toBeUndefined();
+    });
+
+    it("keeps signal delivery best-effort: failures are collected, not thrown", async () => {
+      mockSignal.mockRejectedValueOnce(new Error("temporal unavailable"));
+
+      const config: EmitEventConfig = {
+        event: { type: "test" },
+        delivery: [
+          { signal: { workflow_id: "wf-down", signal_name: "ping" } },
+        ],
+      };
+
+      const result = await emitEventAction(config, "exec-1");
+
+      expect(result.delivery_errors).toHaveLength(1);
+      expect((result.delivery_errors as any)[0].target).toBe("signal:wf-down/ping");
+      expect((result.delivery_errors as any)[0].error).toContain("temporal unavailable");
     });
   });
 });

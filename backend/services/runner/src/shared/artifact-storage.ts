@@ -154,11 +154,16 @@ export interface ArtifactStorageConfig {
 }
 
 export function loadArtifactStorageConfig(config: Config): ArtifactStorageConfig {
+  // Storage follows transport, not execution location: if a proxy endpoint is
+  // configured, push artifacts through it (the proxy brokers R2). This holds for
+  // both cloud runners and the local desktop runner — the latter executes
+  // locally (mode === "local") yet still uploads via the proxy. An explicit
+  // ARTIFACT_STORAGE_TYPE always wins.
   const envType = process.env.ARTIFACT_STORAGE_TYPE;
   const type: ArtifactStorageType =
     envType === "proxy" ? "proxy" :
     envType === "local" ? "local" :
-    config.mode === "cloud" ? "proxy" : "local";
+    config.proxyEndpoint ? "proxy" : "local";
 
   return {
     type,

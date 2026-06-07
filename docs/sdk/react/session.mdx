@@ -374,6 +374,12 @@ both [`MessageThread`](/docs/sdk/react/execution#messagethread) and [`SessionCom
 Platform builders get the complete conversation loop without
 reimplementing orchestration logic.
 
+For local execution, this hook also owns the session's runner worker
+lifecycle: while the session is open it keeps a worker polling the
+session task queue, and it tears the worker down on close. This is a
+no-op unless a `runnerAdapter` is configured and the session runs
+locally, so it is safe in every environment.
+
 **Signature**
 
 ```tsx
@@ -620,6 +626,7 @@ function useSessionPageFlow(options: UseSessionPageFlowOptions): UseSessionPageF
   type={{
     agentRef: { type: "ResourceRef | null", description: "Currently selected agent reference (derived from session, or overridden by user)." },
     allExecutions: { type: "readonly AgentExecution[]", description: "All executions for widget display (completed + active stream)." },
+    autoApproveAll: { type: "boolean", description: "Session-scoped \"auto-approve tool calls\" preference.  `false` by default. Flipped to `true` when the user chooses \"Approve & don't ask again\" at an approval gate (see submitApproval), and carried into every subsequent follow-up via handleSubmit. Held in memory only — reset on reload / new session, never persisted server-side." },
     conv: { type: "UseSessionConversationReturn", description: "Full conversation state from `useSessionConversation`.", typeDescriptionLink: "#usesessionconversationreturn" },
     displayExecution: { type: "AgentExecution | null", description: "The most relevant execution for sidebar display — the active streaming execution, or the last completed one." },
     executionTarget: { type: "ExecutionTargetOption | undefined", description: "Where session activities execute (read-only, derived from session spec).  `\"local\"` when the client's embedded runner handles activities, `\"cloud\"` when the server provisions a sandbox, or `undefined` when the server decides (UNSPECIFIED)." },
@@ -632,10 +639,12 @@ function useSessionPageFlow(options: UseSessionPageFlowOptions): UseSessionPageF
     sandboxWorkspaceRoot: { type: "string | undefined", description: "Sandbox workspace root for file path normalization, or `undefined` when the session has no git-repo workspace entries." },
     sessionVariables: { type: "UseSessionVariablesReturn", description: "Session variables (per-execution secrets) manager.", typeDescriptionLink: "/docs/sdk/react/execution#usesessionvariablesreturn" },
     setAgentRef: { type: "(ref: ResourceRef | null) => void", description: "Update the agent reference for future follow-ups." },
+    setAutoApproveAll: { type: "(value: boolean) => void", description: "Toggle the session-scoped auto-approve preference. The reversible \"Turn off\" control in the UI calls this with `false`." },
     setMcpServerUsages: { type: "(usages: McpServerUsageInput[]) => void", description: "Update MCP server configurations." },
     setResolution: { type: "(r: AgentResolution | null) => void", description: "Update the agent resolution." },
     setSkillRefs: { type: "(refs: ResourceRef[]) => void", description: "Update skill references." },
     skillRefs: { type: "ResourceRef[]", description: "Active skill references for follow-ups." },
+    submitApproval: { type: "(toolCallId: string, action: ApprovalAction, comment?: string) => Promise<void>", description: "Submit an approval decision for a pending tool call.  Wraps UseSessionConversationReturn.submitApproval: when the action is `APPROVAL_ACTION_APPROVE_ALL`, it also flips the session-scoped autoApproveAll preference so future follow-ups skip the gate. The server independently auto-approves the rest of the current execution." },
     workspace: { type: "UseWorkspaceEntriesReturn", description: "Workspace entries manager (synced from session on load).", typeDescriptionLink: "/docs/sdk/react/workspace#useworkspaceentriesreturn" },
   }}
 />

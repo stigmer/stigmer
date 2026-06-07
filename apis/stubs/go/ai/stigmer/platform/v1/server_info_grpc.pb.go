@@ -19,18 +19,23 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	PlatformQueryController_GetServerInfo_FullMethodName = "/ai.stigmer.platform.v1.PlatformQueryController/getServerInfo"
+	PlatformQueryController_GetServerInfo_FullMethodName            = "/ai.stigmer.platform.v1.PlatformQueryController/getServerInfo"
+	PlatformQueryController_GetRunnerBootstrapConfig_FullMethodName = "/ai.stigmer.platform.v1.PlatformQueryController/getRunnerBootstrapConfig"
 )
 
 // PlatformQueryControllerClient is the client API for PlatformQueryController service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// Unauthenticated query service for server identity and capabilities.
+// Query service for server identity, capabilities, and runner bootstrap.
 //
 // Clients call getServerInfo on startup to learn the server edition
 // and version, replacing URL-based guessing. The RPC is public
 // (no authentication required) so it can be called before login.
+//
+// Embedded runners call getRunnerBootstrapConfig during boot to discover
+// the Temporal coordinates they need to join the execution backbone, so
+// integrators never hardcode infrastructure addresses.
 type PlatformQueryControllerClient interface {
 	// Returns the server edition and version.
 	//
@@ -38,6 +43,22 @@ type PlatformQueryControllerClient interface {
 	// Clients should call this once on startup and pass the result
 	// to StigmerProvider as the deploymentMode prop.
 	GetServerInfo(ctx context.Context, in *GetServerInfoInput, opts ...grpc.CallOption) (*GetServerInfoOutput, error)
+	// Returns the Temporal coordinates an embedded runner should connect to.
+	//
+	// An embedded runner (a desktop or web app hosting the runner for local
+	// execution) needs the Temporal frontend address and namespace to poll for
+	// work, but those are infrastructure details it should not have to know.
+	// This RPC lets the runner self-bootstrap: it presents the token it already
+	// holds and the control plane returns the coordinates for the environment
+	// that token belongs to. The contract for a cloud embedder collapses to a
+	// single endpoint plus a token.
+	//
+	// Authenticated (not public): the response reveals an infrastructure
+	// coordinate, so any valid token is required, but no specific FGA permission
+	// is — every authenticated caller in an environment shares one Temporal
+	// cluster, and task queues are per-session/execution and gated separately by
+	// control-plane session access.
+	GetRunnerBootstrapConfig(ctx context.Context, in *GetRunnerBootstrapConfigInput, opts ...grpc.CallOption) (*GetRunnerBootstrapConfigOutput, error)
 }
 
 type platformQueryControllerClient struct {
@@ -58,15 +79,29 @@ func (c *platformQueryControllerClient) GetServerInfo(ctx context.Context, in *G
 	return out, nil
 }
 
+func (c *platformQueryControllerClient) GetRunnerBootstrapConfig(ctx context.Context, in *GetRunnerBootstrapConfigInput, opts ...grpc.CallOption) (*GetRunnerBootstrapConfigOutput, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetRunnerBootstrapConfigOutput)
+	err := c.cc.Invoke(ctx, PlatformQueryController_GetRunnerBootstrapConfig_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PlatformQueryControllerServer is the server API for PlatformQueryController service.
 // All implementations should embed UnimplementedPlatformQueryControllerServer
 // for forward compatibility.
 //
-// Unauthenticated query service for server identity and capabilities.
+// Query service for server identity, capabilities, and runner bootstrap.
 //
 // Clients call getServerInfo on startup to learn the server edition
 // and version, replacing URL-based guessing. The RPC is public
 // (no authentication required) so it can be called before login.
+//
+// Embedded runners call getRunnerBootstrapConfig during boot to discover
+// the Temporal coordinates they need to join the execution backbone, so
+// integrators never hardcode infrastructure addresses.
 type PlatformQueryControllerServer interface {
 	// Returns the server edition and version.
 	//
@@ -74,6 +109,22 @@ type PlatformQueryControllerServer interface {
 	// Clients should call this once on startup and pass the result
 	// to StigmerProvider as the deploymentMode prop.
 	GetServerInfo(context.Context, *GetServerInfoInput) (*GetServerInfoOutput, error)
+	// Returns the Temporal coordinates an embedded runner should connect to.
+	//
+	// An embedded runner (a desktop or web app hosting the runner for local
+	// execution) needs the Temporal frontend address and namespace to poll for
+	// work, but those are infrastructure details it should not have to know.
+	// This RPC lets the runner self-bootstrap: it presents the token it already
+	// holds and the control plane returns the coordinates for the environment
+	// that token belongs to. The contract for a cloud embedder collapses to a
+	// single endpoint plus a token.
+	//
+	// Authenticated (not public): the response reveals an infrastructure
+	// coordinate, so any valid token is required, but no specific FGA permission
+	// is — every authenticated caller in an environment shares one Temporal
+	// cluster, and task queues are per-session/execution and gated separately by
+	// control-plane session access.
+	GetRunnerBootstrapConfig(context.Context, *GetRunnerBootstrapConfigInput) (*GetRunnerBootstrapConfigOutput, error)
 }
 
 // UnimplementedPlatformQueryControllerServer should be embedded to have
@@ -85,6 +136,9 @@ type UnimplementedPlatformQueryControllerServer struct{}
 
 func (UnimplementedPlatformQueryControllerServer) GetServerInfo(context.Context, *GetServerInfoInput) (*GetServerInfoOutput, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetServerInfo not implemented")
+}
+func (UnimplementedPlatformQueryControllerServer) GetRunnerBootstrapConfig(context.Context, *GetRunnerBootstrapConfigInput) (*GetRunnerBootstrapConfigOutput, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetRunnerBootstrapConfig not implemented")
 }
 func (UnimplementedPlatformQueryControllerServer) testEmbeddedByValue() {}
 
@@ -124,6 +178,24 @@ func _PlatformQueryController_GetServerInfo_Handler(srv interface{}, ctx context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PlatformQueryController_GetRunnerBootstrapConfig_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetRunnerBootstrapConfigInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PlatformQueryControllerServer).GetRunnerBootstrapConfig(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PlatformQueryController_GetRunnerBootstrapConfig_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PlatformQueryControllerServer).GetRunnerBootstrapConfig(ctx, req.(*GetRunnerBootstrapConfigInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PlatformQueryController_ServiceDesc is the grpc.ServiceDesc for PlatformQueryController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -134,6 +206,10 @@ var PlatformQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "getServerInfo",
 			Handler:    _PlatformQueryController_GetServerInfo_Handler,
+		},
+		{
+			MethodName: "getRunnerBootstrapConfig",
+			Handler:    _PlatformQueryController_GetRunnerBootstrapConfig_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

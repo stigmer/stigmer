@@ -4150,6 +4150,7 @@ dependencies = [
  "ignore",
  "serde",
  "serde_json",
+ "stigmer-runner-host",
  "tauri",
  "tauri-build",
  "tauri-plugin-deep-link",
@@ -4164,6 +4165,17 @@ dependencies = [
  "tempfile",
  "tokio",
  "url",
+]
+
+[[package]]
+name = "stigmer-runner-host"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "tauri",
+ "thiserror 2.0.18",
+ "tokio",
 ]
 
 [[package]]

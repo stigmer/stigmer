@@ -4,10 +4,16 @@ import "context"
 
 // RunnerAdapter abstracts the runner lifecycle from SDK consumers.
 //
-// When ExecutionTarget is LOCAL, the SDK client automatically calls
-// the adapter at the appropriate lifecycle points after session or
-// workflow execution creation. The consumer never manages runner
-// processes directly — the adapter handles it transparently.
+// When ExecutionTarget is LOCAL, a consumer drives the adapter at the
+// appropriate lifecycle points so it never manages runner processes
+// directly — the adapter handles it transparently.
+//
+// Sessions and workflow executions have different lifecycles. A session is
+// a long-lived, multi-turn conversation with no terminal phase, so its
+// worker is tied to whether the session is open (in use): OnSessionOpened
+// when the session is opened, OnSessionClosed when it is closed. A workflow
+// execution runs to a terminal phase, so its worker is tied to creation and
+// completion.
 //
 // Each environment provides its own implementation:
 //   - Desktop app: wraps the embedded Tauri runner process
@@ -15,15 +21,15 @@ import "context"
 //   - Customer self-hosted: wraps their own runner management API
 //   - Cloud: no adapter needed (server handles provisioning)
 type RunnerAdapter interface {
-	// OnSessionCreated is called after a session is created with
-	// ExecutionTarget=LOCAL. The adapter should ensure a runner worker
-	// is active for the given session.
-	OnSessionCreated(ctx context.Context, sessionID string) error
+	// OnSessionOpened is called when a local session is opened (engaged).
+	// The adapter should ensure a runner worker is polling the session's
+	// task queue. It must be idempotent: it may be called again for an
+	// already-open session (e.g. on re-open).
+	OnSessionOpened(ctx context.Context, sessionID string) error
 
-	// OnSessionTerminated is called when a session reaches a terminal
-	// phase. The adapter should clean up any runner resources allocated
-	// for the session.
-	OnSessionTerminated(ctx context.Context, sessionID string) error
+	// OnSessionClosed is called when a local session is closed (no longer
+	// in use). The adapter should tear down the session's runner worker.
+	OnSessionClosed(ctx context.Context, sessionID string) error
 
 	// OnWorkflowExecutionCreated is called after a workflow execution
 	// is created with ExecutionTarget=LOCAL. The adapter should ensure

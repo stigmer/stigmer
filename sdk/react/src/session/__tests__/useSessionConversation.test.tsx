@@ -12,6 +12,9 @@ import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
+import { ExecutionTargetContext } from "../../execution-target-context";
+import { RunnerAdapterContext } from "../../runner-adapter";
+import type { RunnerAdapter } from "../../runner-adapter";
 import { useSessionConversation } from "../useSessionConversation";
 
 function makeSession(id: string): Session {
@@ -354,5 +357,91 @@ describe("useSessionConversation", () => {
         executionConfig: expect.objectContaining({ modelName: "default" }),
       }),
     );
+  });
+});
+
+describe("useSessionConversation — local runner worker lifecycle", () => {
+  let methods: MockMethods;
+  let mockStigmer: Stigmer;
+  let stream: ReturnType<typeof createControllableStream<AgentExecution>>;
+
+  function createMockAdapter(): RunnerAdapter & {
+    onSessionOpened: ReturnType<typeof vi.fn>;
+    onSessionClosed: ReturnType<typeof vi.fn>;
+    onWorkflowExecutionCreated: ReturnType<typeof vi.fn>;
+    onWorkflowExecutionTerminated: ReturnType<typeof vi.fn>;
+  } {
+    return {
+      onSessionOpened: vi.fn().mockResolvedValue(undefined),
+      onSessionClosed: vi.fn().mockResolvedValue(undefined),
+      onWorkflowExecutionCreated: vi.fn().mockResolvedValue(undefined),
+      onWorkflowExecutionTerminated: vi.fn().mockResolvedValue(undefined),
+    };
+  }
+
+  function localWrapper(client: Stigmer, adapter: RunnerAdapter) {
+    return function Wrapper({ children }: { children: ReactNode }) {
+      return (
+        <ExecutionTargetContext.Provider value="local">
+          <RunnerAdapterContext.Provider value={adapter}>
+            <StigmerContext.Provider value={client}>
+              {children}
+            </StigmerContext.Provider>
+          </RunnerAdapterContext.Provider>
+        </ExecutionTargetContext.Provider>
+      );
+    };
+  }
+
+  beforeEach(() => {
+    stream = createControllableStream<AgentExecution>();
+    methods = {
+      sessionGet: vi.fn().mockResolvedValue(makeSession("session-1")),
+      listBySession: vi.fn().mockResolvedValue({ entries: [] }),
+      executionCreate: vi.fn(),
+      subscribe: vi.fn().mockReturnValue(stream.generator),
+      submitApproval: vi.fn().mockResolvedValue({}),
+    };
+    mockStigmer = createMockStigmer(methods);
+  });
+
+  it("attaches the worker once when a local session opens and detaches on close", async () => {
+    const adapter = createMockAdapter();
+    const { unmount } = renderHook(
+      () => useSessionConversation("session-1", "org"),
+      { wrapper: localWrapper(mockStigmer, adapter) },
+    );
+
+    // The session loads asynchronously; the worker attaches once loaded.
+    await waitFor(() => {
+      expect(adapter.onSessionOpened).toHaveBeenCalledWith("session-1");
+    });
+    expect(adapter.onSessionOpened).toHaveBeenCalledTimes(1);
+    expect(adapter.onSessionClosed).not.toHaveBeenCalled();
+
+    unmount();
+
+    expect(adapter.onSessionClosed).toHaveBeenCalledTimes(1);
+    expect(adapter.onSessionClosed).toHaveBeenCalledWith("session-1");
+  });
+
+  it("does not attach when no adapter is configured", async () => {
+    // No adapter in the tree → no-op. Just verify the conversation still loads.
+    const { result } = renderHook(
+      () => useSessionConversation("session-1", "org"),
+      {
+        wrapper: function Wrapper({ children }: { children: ReactNode }) {
+          return (
+            <StigmerContext.Provider value={mockStigmer}>
+              {children}
+            </StigmerContext.Provider>
+          );
+        },
+      },
+    );
+
+    await waitFor(() => {
+      expect(result.current.session).not.toBeNull();
+    });
   });
 });

@@ -12,11 +12,24 @@ var Version = "dev"
 // PlatformController implements the PlatformQueryController gRPC service.
 type PlatformController struct {
 	platformv1.UnimplementedPlatformQueryControllerServer
+
+	// Temporal coordinates this server runs against, published to embedded
+	// runners via GetRunnerBootstrapConfig. In OSS the server and its runners
+	// are co-located, so the address the server itself dials is the one runners
+	// should dial too — no internal/external split (unlike Stigmer Cloud).
+	temporalHostPort  string
+	temporalNamespace string
 }
 
 // NewPlatformController creates a new PlatformController.
-func NewPlatformController() *PlatformController {
-	return &PlatformController{}
+//
+// temporalHostPort and temporalNamespace are the coordinates returned by
+// GetRunnerBootstrapConfig so embedded runners can self-bootstrap.
+func NewPlatformController(temporalHostPort, temporalNamespace string) *PlatformController {
+	return &PlatformController{
+		temporalHostPort:  temporalHostPort,
+		temporalNamespace: temporalNamespace,
+	}
 }
 
 // GetServerInfo returns the server edition and build version.

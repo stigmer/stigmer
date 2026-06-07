@@ -1,0 +1,341 @@
+---
+title: Embed the runner
+description:
+  Host the Stigmer runner in your own desktop or web app. Choose between local
+  and cloud execution, wire a RunnerAdapter, and pass only the configuration
+  your deployment needs.
+---
+
+The runner is the process that executes your Agents and Workflows. Most
+integrators never touch it: on Stigmer Cloud, the platform provisions a runner
+for every execution. You **embed** the runner only when you want executions to
+run somewhere you control — on a user's own machine (a desktop app) or on your
+own infrastructure.
+
+This guide shows you when to embed, what configuration each kind of integrator
+passes, and how the SDK connects to a runner you host.
+
+## Pick your path
+
+Two questions decide everything that follows:
+
+1. **Where should executions run?** On Stigmer-managed compute (**cloud**) or on
+   compute you control (**local**)?
+2. **Are you on Stigmer Cloud or running Stigmer yourself?**
+
+<Callout type="info">
+  If you only need cloud execution, you do not embed the runner at all. Pass
+  your Stigmer token to the SDK and call the API. The platform provisions and
+  configures the runner for you, and you can stop reading here. The rest of this
+  guide is about hosting a runner yourself for local execution.
+</Callout>
+
+## What each integrator passes
+
+The runner reads its configuration from the process it runs in. What you must
+supply depends on your deployment. The table below is the minimal surface for
+each audience; the full list lives in the runner README
+(`backend/services/runner/README.md`), under its configuration reference.
+
+| Your situation                                   | Stigmer token        | Backend endpoint      | Temporal address        | Cursor key                |
+| ------------------------------------------------ | -------------------- | --------------------- | ----------------------- | ------------------------- |
+| **Cloud, cloud execution** (no embedding)        | Pass to the SDK only | Platform-managed      | Platform-managed        | Platform-managed          |
+| **Cloud, embedded local execution** (desktop)    | Required             | Required (your Cloud) | Discovered (token)      | Not needed (proxied)      |
+| **Self-managed (OSS or self-hosted full stack)** | Optional             | Defaults to localhost | Discovered or localhost | Required (Cursor harness) |
+
+How to read each row:
+
+- **Cloud, cloud execution.** You give the SDK a Stigmer token and nothing else.
+  The platform runs a system-managed runner and injects its Temporal, proxy, and
+  backend configuration server-side. You never see Temporal.
+- **Cloud, embedded local execution.** When you host the runner yourself but run
+  against Stigmer Cloud, you supply `STIGMER_TOKEN` plus the Cloud
+  `STIGMER_BACKEND_ENDPOINT`. You do **not** supply `TEMPORAL_SERVICE_ADDRESS`:
+  the runner discovers it from the control plane at boot using your token (see
+  [Temporal self-discovery](#temporal-self-discovery)). Setting the token also
+  activates **proxy mode**: the runner routes its model traffic and artifact
+  uploads through the Stigmer proxy, which injects the real Cursor key, so you
+  do not pass `CURSOR_API_KEY`.
+- **Self-managed.** You run your own Temporal and Stigmer Server. In the default
+  `MODE=local`, `TEMPORAL_SERVICE_ADDRESS` defaults to `localhost:7233` and
+  `STIGMER_BACKEND_ENDPOINT` to `http://localhost:7234`. `STIGMER_TOKEN` is
+  optional because a local server has no auth, and you pass `CURSOR_API_KEY`
+  directly for the Cursor harness. A **managed self-hosted** deployment, where
+  you run the full Stigmer stack on your own infrastructure with Stigmer
+  support, uses this same surface — point the endpoints at your hosts instead of
+  localhost.
+
+## Temporal self-discovery
+
+The runner needs a Temporal frontend address to poll for work, but that is an
+infrastructure detail an integrator should not have to know. So the runner
+**self-discovers** it at boot. You give it a token and a backend endpoint; it
+asks the control plane where Temporal is. The resolution order is:
+
+1. **Explicit wins.** If you set `TEMPORAL_SERVICE_ADDRESS` (or pass
+   `temporalAddress`), the runner uses it verbatim — useful for local
+   development.
+2. **Otherwise discover.** If no address is set but a token is present, the
+   runner calls the control plane (`getRunnerBootstrapConfig`) over the same
+   authenticated connection it already uses, and connects to the Temporal
+   address it returns. On Stigmer Cloud this is the external Temporal ingress
+   for your environment.
+3. **Otherwise localhost.** A tokenless local runner falls back to
+   `localhost:7233`.
+
+If discovery is attempted and fails (bad token, unreachable endpoint, or a
+server too old to support it), the runner fails fast with an actionable error
+rather than silently falling back — so a misconfiguration surfaces at startup,
+not as a confusing failure later.
+
+<Callout type="info">
+  This is what makes a cloud embedder's contract "token only": one endpoint plus
+  one token. You no longer pass `TEMPORAL_SERVICE_ADDRESS` for cloud embedding.
+</Callout>
+
+## Local versus cloud execution
+
+The execution target decides who provides the runner. The SDK exposes it as
+`executionTarget`, with two values:
+
+- **`"local"`** — your embedded runner handles the work. The SDK calls a
+  `RunnerAdapter` (below) to start and stop workers on the runner you host. The
+  desktop app uses this: it runs Sessions on the user's own machine.
+- **`"cloud"`** — the server provisions compute. You supply no runner and no
+  adapter. The web console uses this.
+
+When you leave `executionTarget` unset, the server resolves it from your
+deployment: cloud on Stigmer Cloud, local in an OSS deployment.
+
+## The RunnerAdapter
+
+When `executionTarget` is `"local"`, the SDK needs a way to tell your runner
+about new work. That is the `RunnerAdapter` — a small interface you implement
+once and pass to the SDK. The SDK calls it at the right lifecycle points, so
+your UI code never manages runner processes directly.
+
+```typescript
+interface RunnerAdapter {
+  onSessionOpened(sessionId: string): Promise<void>;
+  onSessionClosed(sessionId: string): Promise<void>;
+  onWorkflowExecutionCreated(executionId: string): Promise<void>;
+  onWorkflowExecutionTerminated(executionId: string): Promise<void>;
+}
+```
+
+Sessions and workflow executions have different lifecycles, and the method names
+reflect that. A Session is a long-lived, multi-turn conversation with no
+terminal phase, so its worker is tied to whether the session is **open** (in
+use): the SDK calls `onSessionOpened` when a session is opened and
+`onSessionClosed` when it is closed. A Workflow Execution runs to a terminal
+phase, so its worker is tied to **creation and completion**.
+
+In React, pass the adapter and the target to `StigmerProvider`:
+
+```tsx
+import { StigmerProvider } from "@stigmer/react";
+
+<StigmerProvider
+  client={stigmer}
+  executionTarget="local"
+  runnerAdapter={myRunnerAdapter}
+>
+  {/* your app */}
+</StigmerProvider>;
+```
+
+For cloud execution you provide neither prop. The SDK skips all adapter calls
+when no adapter is configured, so the same components work in both apps.
+
+The interface type ships from `@stigmer/sdk` (framework-agnostic) and is
+re-exported from `@stigmer/react` alongside the `useRunnerAdapter` hook. A Java
+mirror exists too: `ai.stigmer.sdk.RunnerAdapter`, wired through
+`StigmerClient.builder().runnerAdapter(...)`.
+
+Most TypeScript embedders do not write that object by hand. If you already have
+a runner backend with `addSession` / `removeSession` / `addWorkflowExecution` /
+`removeWorkflowExecution` methods — the in-process manager (below), the
+desktop's embedded-runner context, or your own runner API — pass it to
+`createRunnerAdapter` and it wires the lifecycle mapping for you:
+
+```typescript
+import { createRunnerAdapter } from "@stigmer/sdk";
+
+const runnerAdapter = createRunnerAdapter(myRunnerHost);
+```
+
+<Callout>
+  In React, the session worker lifecycle is wired at the
+  `useSessionConversation` layer (which `SessionViewer` and `useSessionPageFlow`
+  build on, and which the Ink/terminal SDK uses directly): the SDK calls
+  `onSessionOpened` when a session view opens and `onSessionClosed` when it
+  closes. Because `onSessionOpened` runs on every open, re-opening an existing
+  session re-attaches its worker — so follow-ups always have a poller. Implement
+  both methods idempotently; the reference desktop adapter maps them to
+  `addSession` / `removeSession`, which are already idempotent.
+</Callout>
+
+## Host the runner: In-process or subprocess
+
+You can host the runner two ways. Both come from the `@stigmer/runner` package.
+
+### In-process (library)
+
+Import a factory and run the runner inside your own Node process. Use
+`createStigmerRunnerManager` for the dynamic, per-Session topology an embedder
+needs:
+
+```typescript
+import { createStigmerRunnerManager } from "@stigmer/runner";
+
+const manager = await createStigmerRunnerManager({
+  temporalAddress: "localhost:7233",
+  stigmerEndpoint: "http://localhost:7234",
+});
+
+await manager.addSession("ses_abc123");
+// ... later
+await manager.removeSession("ses_abc123");
+await manager.shutdown();
+```
+
+The manager already exposes `addSession` / `removeSession` /
+`addWorkflowExecution` / `removeWorkflowExecution`, so it is a
+`RunnerWorkerHost` — pass it straight to `createRunnerAdapter(manager)` to get
+your `RunnerAdapter`, no hand-wiring needed.
+
+`createStigmerRunner` (static, single task queue) also exists. It suits a fixed
+worker rather than a dynamic embedder. Like the manager, it accepts an
+`executionMode` option (`"local"` or `"cloud"`) that sets execution location
+independently of proxy transport, so you can run local execution with proxy
+transport — the desktop case. When you omit `executionMode`, the static factory
+derives the location from the proxy: a proxy implies `"cloud"`, otherwise
+`"local"`.
+
+### Subprocess (manager-mode IPC)
+
+Spawn the runner binary as a child process with `STIGMER_RUNNER_MODE=manager`
+and drive it over its stdin/stdout JSON protocol. This keeps the runner in its
+own process, isolated from your host. It is how the desktop app embeds the
+runner.
+
+The command and response contract is documented in full in the
+[manager-mode IPC protocol reference](/docs/guides/runners/ipc-protocol).
+
+#### Use the official Rust host crate
+
+If your host is Rust (for example, a Tauri app), do not hand-roll the subprocess
+driver. Use the
+[`stigmer-runner-host`](https://github.com/stigmer/stigmer/tree/main/crates/stigmer-runner-host)
+crate. It spawns the runner, performs the versioned `ready` handshake, and
+exposes the full lifecycle as an async API:
+
+```rust
+use stigmer_runner_host::{RunnerHost, RunnerConfig};
+
+let host = RunnerHost::new();
+host.start(RunnerConfig {
+    node_binary: "node".into(),
+    runner_entry: "resources/runner/dist/main.js".into(),
+    // Token-only: leave the address unset and the runner discovers it from the
+    // control plane. Pass Some("host:7233") to pin it for local development.
+    temporal_address: None,
+    stigmer_endpoint: "https://api.stigmer.ai".into(),
+    temporal_namespace: None,
+    stigmer_token: Some("stigmer_token".into()),
+    cursor_api_key: None,
+    workspace_root_dir: None,
+    proxy_endpoint: Some("https://api.stigmer.ai".into()),
+})
+.await?;
+
+host.add_session("ses_abc123").await?;
+// ... later
+host.stop().await?;
+```
+
+The core has no Tauri dependency. Enable the `tauri` feature for the desktop
+binding (`RunnerState` plus the `#[tauri::command]` surface). This is the
+supported way to embed the runner in a Rust app, and the Stigmer desktop app
+uses it.
+
+### How the two paths run
+
+For local execution, the SDK routes new work through your adapter to the runner
+you host:
+
+```mermaid
+sequenceDiagram
+  participant App as Your app
+  participant SDK as SDK hooks
+  participant API as Stigmer API
+  participant Adapter as RunnerAdapter
+  participant Runner as Embedded runner
+  App->>SDK: Open a Session (local target)
+  SDK->>API: session.create / session.get (executionTarget local)
+  API-->>SDK: sessionId
+  SDK->>Adapter: onSessionOpened(sessionId)
+  Adapter->>Runner: addSession(sessionId)
+  Note over Runner: Worker polls session:sessionId while open
+```
+
+For cloud execution, there is no adapter and no local runner — the server
+provisions compute:
+
+```mermaid
+sequenceDiagram
+  participant App as Your app
+  participant SDK as SDK hooks
+  participant API as Stigmer API
+  participant Cloud as Cloud runner
+  App->>SDK: Create a Session (default target)
+  SDK->>API: session.create (no executionTarget)
+  Note over API: Server resolves target to cloud
+  API->>Cloud: Provision and route the execution
+  Note over App,SDK: No adapter, no local runner
+```
+
+## Worked example: The desktop app
+
+The Stigmer desktop app is the reference embedder for local execution. It uses
+the subprocess path:
+
+- [`client-apps/desktop/src-tauri/src/runner.rs`](https://github.com/stigmer/stigmer/blob/main/client-apps/desktop/src-tauri/src/runner.rs)
+  is a thin binding that re-exports the
+  [`stigmer-runner-host`](https://github.com/stigmer/stigmer/tree/main/crates/stigmer-runner-host)
+  crate, which spawns the bundled runner with `STIGMER_RUNNER_MODE=manager` and
+  drives the IPC protocol from Rust.
+- [`client-apps/desktop/src/hooks/useEmbeddedRunner.ts`](https://github.com/stigmer/stigmer/blob/main/client-apps/desktop/src/hooks/useEmbeddedRunner.ts)
+  manages the runner process lifecycle and exposes `addSession`,
+  `removeSession`, and friends over Tauri.
+- [`client-apps/desktop/src/hooks/useTauriRunnerAdapter.ts`](https://github.com/stigmer/stigmer/blob/main/client-apps/desktop/src/hooks/useTauriRunnerAdapter.ts)
+  is the `RunnerAdapter` that bridges the SDK to those Tauri commands.
+
+The desktop runner executes locally yet runs in proxy mode against Stigmer
+Cloud, which is exactly the "cloud, embedded local execution" row above.
+
+## Three settings people confuse
+
+Local execution involves four independent settings. Keep them distinct:
+
+| Setting           | What it controls                                 | Desktop         | Web                |
+| ----------------- | ------------------------------------------------ | --------------- | ------------------ |
+| `deploymentMode`  | Which backend edition and features are available | From the server | From the server    |
+| `executionTarget` | Who provides the runner                          | `local`         | `cloud` (resolved) |
+| `MODE`            | Where the Agent's filesystem lives               | `local`         | Server-managed     |
+| Run mode          | The runner's process topology                    | `manager`       | Server-managed     |
+
+In particular, "local execution" (`executionTarget`) is not the same as "an OSS
+deployment" (`deploymentMode`). The desktop app runs local execution against
+Stigmer Cloud.
+
+## What's next
+
+- **Drive the subprocess** — the
+  [manager-mode IPC protocol reference](/docs/guides/runners/ipc-protocol) is
+  the full command and response contract for the subprocess path.
+- **Configure the runner** — the runner README
+  (`backend/services/runner/README.md`) documents every configuration value, run
+  mode, and credential mode.
+- **Understand the model** — the [Runners concept page](/docs/concepts/runners)
+  explains the runner lifecycle, execution modes, and how Sessions find runners.

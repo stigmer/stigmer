@@ -27,6 +27,8 @@ import { initTracing, initMetrics } from "./otel.js";
 import { createStigmerRunner } from "./runner.js";
 import { createStigmerRunnerManager } from "./runner-manager.js";
 import type { StigmerRunnerManager } from "./runner-manager.js";
+import { buildReadyMessage } from "./ipc-protocol.js";
+import type { IpcCommand, IpcResponse } from "./ipc-protocol.js";
 
 import { handleUnhandledRejection, setExecutionContextRef } from "./activities/execute-cursor/rejection-capture.js";
 
@@ -37,95 +39,6 @@ process.on("unhandledRejection", (reason) => {
 process.on("uncaughtException", (err) => {
   console.error("Uncaught exception in runner:", err);
 });
-
-// ─── IPC Protocol Types ─────────────────────────────────────────────────────
-
-interface IpcAddSession {
-  type: "addSession";
-  sessionId: string;
-}
-
-interface IpcRemoveSession {
-  type: "removeSession";
-  sessionId: string;
-}
-
-interface IpcAddWorkflowExecution {
-  type: "addWorkflowExecution";
-  executionId: string;
-}
-
-interface IpcRemoveWorkflowExecution {
-  type: "removeWorkflowExecution";
-  executionId: string;
-}
-
-interface IpcUpdateToken {
-  type: "updateToken";
-  token: string | null;
-}
-
-interface IpcShutdown {
-  type: "shutdown";
-}
-
-type IpcCommand =
-  | IpcAddSession
-  | IpcRemoveSession
-  | IpcAddWorkflowExecution
-  | IpcRemoveWorkflowExecution
-  | IpcUpdateToken
-  | IpcShutdown;
-
-interface IpcReady {
-  type: "ready";
-}
-
-interface IpcSessionAdded {
-  type: "sessionAdded";
-  sessionId: string;
-  taskQueue: string;
-}
-
-interface IpcSessionRemoved {
-  type: "sessionRemoved";
-  sessionId: string;
-}
-
-interface IpcWorkflowExecutionAdded {
-  type: "workflowExecutionAdded";
-  executionId: string;
-  taskQueue: string;
-}
-
-interface IpcWorkflowExecutionRemoved {
-  type: "workflowExecutionRemoved";
-  executionId: string;
-}
-
-interface IpcError {
-  type: "error";
-  message: string;
-  fatal: boolean;
-}
-
-interface IpcTokenUpdated {
-  type: "tokenUpdated";
-}
-
-interface IpcShutdownComplete {
-  type: "shutdownComplete";
-}
-
-type IpcResponse =
-  | IpcReady
-  | IpcSessionAdded
-  | IpcSessionRemoved
-  | IpcWorkflowExecutionAdded
-  | IpcWorkflowExecutionRemoved
-  | IpcTokenUpdated
-  | IpcError
-  | IpcShutdownComplete;
 
 // ─── IPC Helpers ─────────────────────────────────────────────────────────────
 
@@ -157,6 +70,7 @@ async function runManagerMode(config: import("./config.js").Config): Promise<voi
       checkpointerType: config.checkpointerType,
       checkpointerProxyEndpoint: config.checkpointerProxyEndpoint ?? undefined,
       cloudModeEnabled: config.cloudModeEnabled,
+      executionMode: config.mode,
     });
   } catch (err) {
     sendIpc({
@@ -167,7 +81,7 @@ async function runManagerMode(config: import("./config.js").Config): Promise<voi
     process.exit(1);
   }
 
-  sendIpc({ type: "ready" });
+  sendIpc(buildReadyMessage());
 
   const rl = createInterface({ input: process.stdin });
 
@@ -269,6 +183,10 @@ async function runStaticMode(config: import("./config.js").Config): Promise<void
     checkpointerType: config.checkpointerType,
     checkpointerProxyEndpoint: config.checkpointerProxyEndpoint ?? undefined,
     cloudModeEnabled: config.cloudModeEnabled,
+    // Honor the operator's MODE env (resolved into config.mode) instead of
+    // re-deriving execution location from the proxy. This keeps static mode
+    // consistent with manager mode, which already passes config.mode.
+    executionMode: config.mode,
   });
 
   let shutdownRequested = false;

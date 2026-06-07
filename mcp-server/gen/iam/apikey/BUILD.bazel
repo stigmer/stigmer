@@ -1,0 +1,14 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "apikey",
+    srcs = ["api_key_gen.go"],
+    importpath = "github.com/stigmer/stigmer/mcp-server/gen/iam/apikey",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//mcp-server/internal/convert",
+        "//mcp-server/proto/ai/stigmer/commons/apiresource",
+        "//mcp-server/proto/ai/stigmer/iam/apikey/v1:apikey",
+        "@org_golang_google_protobuf//types/known/timestamppb",
+    ],
+)

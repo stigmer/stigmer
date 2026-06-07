@@ -374,7 +374,7 @@ func Run() error {
 	log.Info().Msg("Registered GitHubService controller")
 
 	// Create and register Platform controller (server info / edition detection)
-	platController := platformcontroller.NewPlatformController()
+	platController := platformcontroller.NewPlatformController(cfg.TemporalHostPort, cfg.TemporalNamespace)
 	platformv1.RegisterPlatformQueryControllerServer(grpcServer, platController)
 
 	log.Info().Msg("Registered PlatformQueryController")

@@ -20,23 +20,23 @@ import (
 // recordingAdapter is a thread-safe mock RunnerAdapter that records all calls.
 type recordingAdapter struct {
 	mu                   sync.Mutex
-	sessionsCreated      []string
-	sessionsTerminated   []string
+	sessionsOpened       []string
+	sessionsClosed       []string
 	executionsCreated    []string
 	executionsTerminated []string
 }
 
-func (r *recordingAdapter) OnSessionCreated(_ context.Context, sessionID string) error {
+func (r *recordingAdapter) OnSessionOpened(_ context.Context, sessionID string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.sessionsCreated = append(r.sessionsCreated, sessionID)
+	r.sessionsOpened = append(r.sessionsOpened, sessionID)
 	return nil
 }
 
-func (r *recordingAdapter) OnSessionTerminated(_ context.Context, sessionID string) error {
+func (r *recordingAdapter) OnSessionClosed(_ context.Context, sessionID string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.sessionsTerminated = append(r.sessionsTerminated, sessionID)
+	r.sessionsClosed = append(r.sessionsClosed, sessionID)
 	return nil
 }
 
@@ -54,11 +54,11 @@ func (r *recordingAdapter) OnWorkflowExecutionTerminated(_ context.Context, exec
 	return nil
 }
 
-func (r *recordingAdapter) getSessionsCreated() []string {
+func (r *recordingAdapter) getSessionsOpened() []string {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	out := make([]string, len(r.sessionsCreated))
-	copy(out, r.sessionsCreated)
+	out := make([]string, len(r.sessionsOpened))
+	copy(out, r.sessionsOpened)
 	return out
 }
 
@@ -136,17 +136,17 @@ func TestRunnerAdapter_SessionLifecycle(t *testing.T) {
 		client.Session.Delete(cleanCtx, sessionID)
 	})
 
-	// Consumer calls the adapter after successful creation
-	// (This is what the React SDK does automatically via useCreateSession;
+	// Consumer calls the adapter when the session is opened
+	// (This is what the React SDK does automatically via useSessionConversation;
 	// in Go, the consumer invokes it explicitly until auto-wiring is added.)
 	require.NotNil(t, client.RunnerAdapter)
-	err = client.RunnerAdapter.OnSessionCreated(ctx, sessionID)
-	require.NoError(t, err, "adapter.OnSessionCreated must succeed")
+	err = client.RunnerAdapter.OnSessionOpened(ctx, sessionID)
+	require.NoError(t, err, "adapter.OnSessionOpened must succeed")
 
 	// Verify the adapter recorded the call
-	created := adapter.getSessionsCreated()
-	require.Len(t, created, 1)
-	assert.Equal(t, sessionID, created[0])
+	opened := adapter.getSessionsOpened()
+	require.Len(t, opened, 1)
+	assert.Equal(t, sessionID, opened[0])
 }
 
 // TestRunnerAdapter_WorkflowExecutionLifecycle verifies the full
@@ -320,17 +320,17 @@ func TestRunnerAdapter_Idempotent(t *testing.T) {
 
 	// Call the same session ID multiple times
 	for i := 0; i < 3; i++ {
-		err = client.RunnerAdapter.OnSessionCreated(ctx, "idempotent-session-id")
+		err = client.RunnerAdapter.OnSessionOpened(ctx, "idempotent-session-id")
 		require.NoError(t, err)
 	}
 
 	// All calls should be recorded — adapter must handle duplicates internally
-	created := adapter.getSessionsCreated()
-	assert.Len(t, created, 3, "adapter records all calls; real adapters handle deduplication internally")
+	opened := adapter.getSessionsOpened()
+	assert.Len(t, opened, 3, "adapter records all calls; real adapters handle deduplication internally")
 
-	// Terminate the same session multiple times
+	// Close the same session multiple times
 	for i := 0; i < 2; i++ {
-		err = client.RunnerAdapter.OnSessionTerminated(ctx, "idempotent-session-id")
+		err = client.RunnerAdapter.OnSessionClosed(ctx, "idempotent-session-id")
 		require.NoError(t, err)
 	}
 }

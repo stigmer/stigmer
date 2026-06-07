@@ -32,23 +32,23 @@ describe("useTauriRunnerAdapter", () => {
     const { result } = renderHook(() => useTauriRunnerAdapter());
     const adapter = result.current;
 
-    expect(adapter.onSessionCreated).toBeInstanceOf(Function);
-    expect(adapter.onSessionTerminated).toBeInstanceOf(Function);
+    expect(adapter.onSessionOpened).toBeInstanceOf(Function);
+    expect(adapter.onSessionClosed).toBeInstanceOf(Function);
     expect(adapter.onWorkflowExecutionCreated).toBeInstanceOf(Function);
     expect(adapter.onWorkflowExecutionTerminated).toBeInstanceOf(Function);
   });
 
-  it("onSessionCreated delegates to addSession", async () => {
+  it("onSessionOpened delegates to addSession", async () => {
     const { result } = renderHook(() => useTauriRunnerAdapter());
-    await result.current.onSessionCreated("ses-123");
+    await result.current.onSessionOpened("ses-123");
 
     expect(mockAddSession).toHaveBeenCalledTimes(1);
     expect(mockAddSession).toHaveBeenCalledWith("ses-123");
   });
 
-  it("onSessionTerminated delegates to removeSession", async () => {
+  it("onSessionClosed delegates to removeSession", async () => {
     const { result } = renderHook(() => useTauriRunnerAdapter());
-    await result.current.onSessionTerminated("ses-123");
+    await result.current.onSessionClosed("ses-123");
 
     expect(mockRemoveSession).toHaveBeenCalledTimes(1);
     expect(mockRemoveSession).toHaveBeenCalledWith("ses-123");

@@ -10,19 +10,19 @@ import (
 
 // mockRunnerAdapter records all calls for verification.
 type mockRunnerAdapter struct {
-	sessionsCreated      []string
-	sessionsTerminated   []string
+	sessionsOpened       []string
+	sessionsClosed       []string
 	executionsCreated    []string
 	executionsTerminated []string
 }
 
-func (m *mockRunnerAdapter) OnSessionCreated(_ context.Context, sessionID string) error {
-	m.sessionsCreated = append(m.sessionsCreated, sessionID)
+func (m *mockRunnerAdapter) OnSessionOpened(_ context.Context, sessionID string) error {
+	m.sessionsOpened = append(m.sessionsOpened, sessionID)
 	return nil
 }
 
-func (m *mockRunnerAdapter) OnSessionTerminated(_ context.Context, sessionID string) error {
-	m.sessionsTerminated = append(m.sessionsTerminated, sessionID)
+func (m *mockRunnerAdapter) OnSessionClosed(_ context.Context, sessionID string) error {
+	m.sessionsClosed = append(m.sessionsClosed, sessionID)
 	return nil
 }
 
@@ -49,13 +49,13 @@ func TestRunnerAdapter_MockRecordsCalls(t *testing.T) {
 	ctx := context.Background()
 	adapter := &mockRunnerAdapter{}
 
-	err := adapter.OnSessionCreated(ctx, "ses-1")
+	err := adapter.OnSessionOpened(ctx, "ses-1")
 	require.NoError(t, err)
 
-	err = adapter.OnSessionCreated(ctx, "ses-2")
+	err = adapter.OnSessionOpened(ctx, "ses-2")
 	require.NoError(t, err)
 
-	err = adapter.OnSessionTerminated(ctx, "ses-1")
+	err = adapter.OnSessionClosed(ctx, "ses-1")
 	require.NoError(t, err)
 
 	err = adapter.OnWorkflowExecutionCreated(ctx, "wfexec-1")
@@ -64,8 +64,8 @@ func TestRunnerAdapter_MockRecordsCalls(t *testing.T) {
 	err = adapter.OnWorkflowExecutionTerminated(ctx, "wfexec-1")
 	require.NoError(t, err)
 
-	assert.Equal(t, []string{"ses-1", "ses-2"}, adapter.sessionsCreated)
-	assert.Equal(t, []string{"ses-1"}, adapter.sessionsTerminated)
+	assert.Equal(t, []string{"ses-1", "ses-2"}, adapter.sessionsOpened)
+	assert.Equal(t, []string{"ses-1"}, adapter.sessionsClosed)
 	assert.Equal(t, []string{"wfexec-1"}, adapter.executionsCreated)
 	assert.Equal(t, []string{"wfexec-1"}, adapter.executionsTerminated)
 }

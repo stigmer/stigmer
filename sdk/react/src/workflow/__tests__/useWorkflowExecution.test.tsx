@@ -48,8 +48,8 @@ function makeMockAdapter(): RunnerAdapter & { calls: string[][] } {
   const calls: string[][] = [];
   return {
     calls,
-    onSessionCreated: vi.fn(async (id: string) => { calls.push(["onSessionCreated", id]); }),
-    onSessionTerminated: vi.fn(async (id: string) => { calls.push(["onSessionTerminated", id]); }),
+    onSessionOpened: vi.fn(async (id: string) => { calls.push(["onSessionOpened", id]); }),
+    onSessionClosed: vi.fn(async (id: string) => { calls.push(["onSessionClosed", id]); }),
     onWorkflowExecutionCreated: vi.fn(async (id: string) => { calls.push(["onWorkflowExecutionCreated", id]); }),
     onWorkflowExecutionTerminated: vi.fn(async (id: string) => { calls.push(["onWorkflowExecutionTerminated", id]); }),
   };

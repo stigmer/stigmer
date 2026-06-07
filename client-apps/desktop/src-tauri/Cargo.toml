@@ -28,6 +28,9 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tokio = { version = "1", features = ["io-util", "process", "sync"] }
 url = "2"
+# Embedded-runner IPC driver, vendored in-repo. The `tauri` feature provides the
+# #[tauri::command] surface that `runner.rs` re-exports.
+stigmer-runner-host = { path = "../../../crates/stigmer-runner-host", features = ["tauri"] }
 
 [dev-dependencies]
 tempfile = "3"

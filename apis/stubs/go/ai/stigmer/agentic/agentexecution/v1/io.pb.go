@@ -508,7 +508,7 @@ type SubmitApprovalInput struct {
 	// Must match status.pending_approval.tool_call_id exactly.
 	// Format: Tool call ID from agent runtime (e.g., "call_abc123")
 	ToolCallId string `protobuf:"bytes,2,opt,name=tool_call_id,json=toolCallId,proto3" json:"tool_call_id,omitempty"`
-	// User's decision: APPROVE, SKIP, or REJECT.
+	// User's decision: APPROVE, SKIP, REJECT, or APPROVE_ALL.
 	// APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
 	Action ApprovalAction `protobuf:"varint,3,opt,name=action,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ApprovalAction" json:"action,omitempty"`
 	// Optional reason/comment for the decision.

@@ -3,15 +3,19 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { GetServerInfoInput, GetServerInfoOutput } from "./server_info_pbjs";
+import { GetRunnerBootstrapConfigInput, GetRunnerBootstrapConfigOutput, GetServerInfoInput, GetServerInfoOutput } from "./server_info_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
- * Unauthenticated query service for server identity and capabilities.
+ * Query service for server identity, capabilities, and runner bootstrap.
  *
  * Clients call getServerInfo on startup to learn the server edition
  * and version, replacing URL-based guessing. The RPC is public
  * (no authentication required) so it can be called before login.
+ *
+ * Embedded runners call getRunnerBootstrapConfig during boot to discover
+ * the Temporal coordinates they need to join the execution backbone, so
+ * integrators never hardcode infrastructure addresses.
  *
  * @generated from service ai.stigmer.platform.v1.PlatformQueryController
  */
@@ -31,6 +35,31 @@ export const PlatformQueryController = {
       name: "getServerInfo",
       I: GetServerInfoInput,
       O: GetServerInfoOutput,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Returns the Temporal coordinates an embedded runner should connect to.
+     *
+     * An embedded runner (a desktop or web app hosting the runner for local
+     * execution) needs the Temporal frontend address and namespace to poll for
+     * work, but those are infrastructure details it should not have to know.
+     * This RPC lets the runner self-bootstrap: it presents the token it already
+     * holds and the control plane returns the coordinates for the environment
+     * that token belongs to. The contract for a cloud embedder collapses to a
+     * single endpoint plus a token.
+     *
+     * Authenticated (not public): the response reveals an infrastructure
+     * coordinate, so any valid token is required, but no specific FGA permission
+     * is — every authenticated caller in an environment shares one Temporal
+     * cluster, and task queues are per-session/execution and gated separately by
+     * control-plane session access.
+     *
+     * @generated from rpc ai.stigmer.platform.v1.PlatformQueryController.getRunnerBootstrapConfig
+     */
+    getRunnerBootstrapConfig: {
+      name: "getRunnerBootstrapConfig",
+      I: GetRunnerBootstrapConfigInput,
+      O: GetRunnerBootstrapConfigOutput,
       kind: MethodKind.Unary,
     },
   }

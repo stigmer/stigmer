@@ -52,34 +52,118 @@ see current rates on the [pricing page](https://stigmer.ai/pricing) or via the
 
 ### Platform commission
 
-Stigmer applies a flat percentage commission on top of provider rates. The
-commission depends on which execution harness you use:
+Stigmer applies a flat **10% commission** on top of provider rates — the same on
+both execution harnesses:
 
 | Harness | Commission | What you pay         |
 | ------- | ---------- | -------------------- |
-| Native  | 20%        | Provider rate × 1.20 |
+| Native  | 10%        | Provider rate × 1.10 |
 | Cursor  | 10%        | Provider rate × 1.10 |
 
-**Native** carries a higher commission because Stigmer provides the full
-operational stack: LLM proxy, cache-aware metering, cost caps, and execution
-lifecycle management. **Cursor** carries a lower commission because Cursor
-handles the LLM call — Stigmer provides orchestration and billing on top.
+The commission covers the operational stack Stigmer runs around every call: the
+LLM proxy, cache-aware metering, cost caps, and execution lifecycle management.
+For example, if a model's provider input rate is $3.00 per million tokens, you
+pay $3.30 per million input tokens on either harness.
 
-For example, if a model's provider input rate is $3.00 per million tokens:
+### Cursor Token Rate
 
-- Native harness: you pay $3.60 / million input tokens
-- Cursor harness: you pay $3.30 / million input tokens
+Cursor-harness models can carry one cost the native harness does not: the
+**Cursor Token Rate**. On Cursor Teams plans, Cursor charges a small per-token
+fee on top of the underlying model price for non-Auto requests. Stigmer pays
+that fee and folds it into the model's cost base _before_ the 10% commission, so
+the price you see already includes it:
+
+```
+billable_per_token = (provider_rate + cursor_token_rate) × 1.10
+```
+
+The Cursor Token Rate is zero for the native harness and for exempt Cursor
+models (Auto and the Composer pool), which are priced as `provider_rate × 1.10`.
+For a Cursor model that does carry the rate, the same underlying model costs
+slightly more on Cursor than on native — that difference is Cursor's fee, not a
+higher Stigmer commission.
 
 Rates on the [pricing page](https://stigmer.ai/pricing) and the
-`getCustomerModelPricing` API include the commission — you always see the final
-price you pay. The commission is versioned and only affects future usage —
-historical charges are immutable.
+`getCustomerModelPricing` API already include the commission and any Cursor
+Token Rate — you always see the final price you pay. Pricing is versioned and
+only affects future usage; historical charges are immutable.
 
 <Callout type="info">
-  Want to reduce costs? See the [cost optimization
-  guide](/docs/guides/cost-optimization) for recommendations on harness
-  selection, prompt caching, and session management.
+  Want to spend less? See [Optimizing your costs](#optimizing-your-costs) below
+  — a practical rundown of harness choice, prompt caching, model selection, and
+  budget guardrails.
 </Callout>
+
+## Optimizing your costs
+
+Most of what you spend is provider token cost; Stigmer's commission is a flat
+10% on top. The biggest savings come from sending fewer tokens, reusing cached
+ones, and matching the model and harness to the job. The levers below are
+ordered by impact.
+
+### Reuse the prompt with caching
+
+Anthropic models bill cached prefix tokens at a fraction of the normal rate: a
+**cache read costs about one-tenth of the input rate**, and a **cache write
+about 1.25× input**. Re-reading a stable prefix (system instructions, Skills,
+earlier turns) therefore costs about **90% less** than sending it fresh, and the
+advantage compounds as a Session grows.
+
+- **Native** gives you explicit control: the harness sets cache breakpoints on
+  the stable prefix, and every follow-up turn re-reads it.
+- **Cursor** caches automatically and opaquely — you benefit without configuring
+  anything, but with less control over what is cached.
+
+Keep the stable part of your prompt (instructions, Skills) first and the
+variable part (the user's message) last, so the cacheable prefix stays constant
+across turns.
+
+### Pick the harness for the job
+
+Commission is identical on both harnesses, so harness choice is about
+**capability and the Cursor Token Rate**, not commission:
+
+| If you need…                                | Prefer | Why                                                            |
+| ------------------------------------------- | ------ | -------------------------------------------------------------- |
+| The lowest cost on a given model            | Native | No Cursor Token Rate; direct provider pricing × 1.10           |
+| The widest model catalog or a cheaper model | Native | All supported providers; downgrade the model for simple tasks  |
+| Built-in coding tools (edit, shell, search) | Cursor | The tooling is worth the added per-call context and token rate |
+
+Reach for Cursor when you want its coding tooling — not as a default, since a
+Cursor model that carries the token rate is cheaper to run on native. See
+[Harnesses](/docs/concepts/harnesses) for the full capability comparison.
+
+### Match the model to the task
+
+Within a harness, model choice is usually the largest single lever — premium
+models can cost an order of magnitude more per token than economy ones. Use a
+small, cheap model for routine work (classification, short replies, summaries)
+and reserve premium models for genuinely hard reasoning. The
+[pricing page](https://stigmer.ai/pricing) and `getCustomerModelPricing` list
+the current per-token rate for every model.
+
+### Manage Session and turn length
+
+A Session resends its accumulated context on every turn, so cost grows with
+conversation length:
+
+- Start a fresh Session for an unrelated task instead of extending a long one.
+- Attach only the Skills and tools a Session needs — every attached Skill is
+  tokens on every turn.
+- Lean on caching so the growing prefix is re-read cheaply rather than re-billed
+  at full rate.
+
+### Set budget guardrails
+
+Stigmer caps spend automatically so a runaway Agent cannot drain your balance:
+
+- Each execution **reserves** budget up front and stops when the balance is
+  exhausted — see [Execution billing lifecycle](#execution-billing-lifecycle).
+- `low_balance_warning` then `stop_execution` signals tell the Agent to wrap up
+  as the balance runs down — see
+  [Low balance and stop behavior](#low-balance-and-stop-behavior).
+- [Automatic recharge](#automatic-recharge) with a **monthly cap** keeps you
+  topped up without unbounded spend.
 
 ## Execution billing lifecycle
 

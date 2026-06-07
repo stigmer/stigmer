@@ -24,6 +24,7 @@ import { useSubmitApproval } from "../execution/useSubmitApproval";
 import { useSession } from "./useSession";
 import { useSessionExecutions } from "./useSessionExecutions";
 import { useUpdateSession } from "./useUpdateSession";
+import { useLocalSessionWorker } from "./useLocalSessionWorker";
 import {
   specWorkspaceToInput,
   specMcpUsagesToInput,
@@ -197,6 +198,12 @@ export interface UseSessionConversationReturn {
  * Platform builders get the complete conversation loop without
  * reimplementing orchestration logic.
  *
+ * For local execution, this hook also owns the session's runner worker
+ * lifecycle: while the session is open it keeps a worker polling the
+ * session task queue, and it tears the worker down on close. This is a
+ * no-op unless a `runnerAdapter` is configured and the session runs
+ * locally, so it is safe in every environment.
+ *
  * @param sessionId - Session to display and converse in. Pass `null` to skip.
  * @param org - Organization slug for creating follow-up executions.
  *
@@ -256,6 +263,10 @@ export function useSessionConversation(
     error: approvalError,
     clearError: clearApprovalError,
   } = useSubmitApproval();
+
+  // Local execution: attach the session's runner worker while it is open and
+  // detach it on close. No-op for cloud sessions or when no adapter is set.
+  useLocalSessionWorker(sessionId, session);
 
   const [pendingExecutionId, setPendingExecutionId] = useState<string | null>(
     null,

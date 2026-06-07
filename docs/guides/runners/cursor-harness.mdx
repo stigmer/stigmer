@@ -1,0 +1,145 @@
+---
+title: Set up the Cursor harness
+description:
+  Run Agent Sessions on the Cursor execution engine. Configure the Cursor API
+  key for a local runner, use the platform-managed key on Stigmer Cloud, and
+  select the Cursor harness when you create a Session.
+---
+
+A [Harness](/docs/concepts/harnesses) is the engine that runs an Agent's turns.
+Stigmer ships two: the **native** harness (Python and LangGraph) and the
+**Cursor** harness, which runs Agent activities on the
+[Cursor SDK](https://docs.cursor.com/sdk). The Cursor harness gives your Agents
+Cursor-served models and built-in coding tools — file editing, shell execution,
+and code-aware reasoning.
+
+This guide shows you how to make the Cursor harness available to a
+[Runner](/docs/concepts/runners) and how to select it for a Session. If you are
+deciding _whether_ to use it, read the
+[Harnesses concept page](/docs/concepts/harnesses) first — it compares the two
+engines on models, cost, and capabilities.
+
+## How the Cursor harness runs
+
+A single runner hosts workers for both harnesses. Native executions poll the
+runner's base task queue; Cursor executions poll a dedicated queue. You do not
+run a separate process for Cursor — when a runner has a Cursor credential, it
+starts the Cursor worker alongside the native one.
+
+What you supply depends on where the runner runs:
+
+| Your setup                              | Cursor credential                                  |
+| --------------------------------------- | -------------------------------------------------- |
+| **Local runner** (OSS or self-hosted)   | You provide `CURSOR_API_KEY` directly              |
+| **Stigmer Cloud** (managed runner)      | Platform-managed — the proxy injects the real key  |
+| **Embedded local runner against Cloud** | Platform-managed — proxy mode injects the real key |
+
+## Set up a local runner (direct mode)
+
+When you run your own runner, you authenticate to Cursor directly with an API
+key.
+
+<Steps>
+<Step>
+
+## Get a Cursor API key
+
+Create an API key from your [Cursor dashboard](https://docs.cursor.com/sdk).
+Keep it somewhere safe — treat it like a password.
+
+</Step>
+<Step>
+
+## Start the runner with the key
+
+Export `CURSOR_API_KEY`, then start the local stack. The runner reads the key
+and starts the Cursor worker automatically:
+
+```bash
+export CURSOR_API_KEY="your_cursor_api_key"
+stigmer up
+```
+
+`stigmer up` passes the key through to the embedded runner. With no key set, the
+runner starts the native worker only — Cursor Sessions have nowhere to run.
+
+</Step>
+</Steps>
+
+<Callout type="info">
+  `CURSOR_API_KEY` is only needed in **direct mode** — a runner you operate
+  yourself. On Stigmer Cloud you never handle a Cursor key; see below.
+</Callout>
+
+## Use Stigmer Cloud (proxy mode)
+
+On Stigmer Cloud you do not manage a Cursor key. The platform routes Cursor SDK
+traffic through the Stigmer proxy, which validates your `STIGMER_TOKEN` and
+injects the real Cursor credential upstream. Cloud runners start the Cursor
+worker for you — the harness is available out of the box.
+
+This is also how an **embedded local runner** running against Stigmer Cloud
+works: it executes on the user's machine yet routes Cursor traffic through the
+proxy, so it does not pass `CURSOR_API_KEY` either. See the
+[embedding guide](/docs/guides/runners/embedding) for that deployment.
+
+## Select the Cursor harness for a Session
+
+The harness is a Session-level choice, fixed for the life of the conversation.
+Set it when you create the Session:
+
+<Tabs items={["TypeScript", "Go"]}>
+<Tab value="TypeScript">
+
+```typescript
+const session = await client.session.create({
+  spec: {
+    subject: "Refactor auth module",
+    agentInstanceId: "ain-abc123",
+    harness: "HARNESS_CURSOR",
+  },
+});
+```
+
+</Tab>
+<Tab value="Go">
+
+```go
+session, err := client.Session.Create(ctx, &sessionv1.CreateInput{
+    Spec: &sessionv1.SessionSpec{
+        Subject:         "Refactor auth module",
+        AgentInstanceId: "ain-abc123",
+        Harness:         sessionv1.Harness_HARNESS_CURSOR,
+    },
+})
+```
+
+</Tab>
+</Tabs>
+
+In the web console, the model picker lists models from both harnesses. Selecting
+a Cursor-served model sets the harness to Cursor for that Session.
+
+<Callout type="warn">
+  A Session's harness is immutable after its first execution. If you select
+  Cursor, the runner that serves the Session must have the Cursor worker running
+  — a local runner started without `CURSOR_API_KEY` cannot pick up Cursor
+  executions.
+</Callout>
+
+## Cursor cloud mode
+
+By default, the Cursor harness runs against a Workspace — a git repo or local
+path on the runner. To run it in Cursor's cloud mode, which needs no Workspace,
+set `STIGMER_CURSOR_CLOUD_MODE_ENABLED=true` on the runner.
+
+## What's next
+
+- **Compare the harnesses** — the
+  [Harnesses concept page](/docs/concepts/harnesses) covers model availability,
+  checkpoints, cost, and when to choose Cursor over native.
+- **Configure the runner** — the runner README
+  (`backend/services/runner/README.md`) documents `CURSOR_API_KEY`, proxy mode,
+  and every other runner setting.
+- **Understand runners** — the [Runners concept page](/docs/concepts/runners)
+  explains the runner lifecycle and the three execution modes.

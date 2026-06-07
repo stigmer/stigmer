@@ -15,6 +15,7 @@ import { useCreateSession } from "./useCreateSession";
 import { useCreateAgentExecution } from "../execution/useCreateAgentExecution";
 import type { ExecutionTargetOption } from "./execution-target";
 import { useExecutionTarget } from "../execution-target-context";
+import { useRunnerAdapter } from "../runner-adapter";
 
 const DEFAULT_AGENT_TIMEOUT_MS = 10_000;
 
@@ -160,6 +161,7 @@ export function useNewSessionFlow(
   const { org, onSessionCreated, onError } = options;
   const contextTarget = useExecutionTarget();
   const executionTarget = options.executionTarget ?? contextTarget;
+  const adapter = useRunnerAdapter();
 
   const [harness, setHarnessRaw] = useState<HarnessOption>(() => {
     if (typeof window === "undefined") return DEFAULT_HARNESS;
@@ -306,7 +308,26 @@ export function useNewSessionFlow(
           }));
         }
 
-        await createExecution({ ...executionFields, sessionId });
+        // Local execution: attach the session's runner worker before creating
+        // the first execution. The session view (useSessionConversation) owns
+        // the steady-state lifecycle, but it is not mounted yet — navigation
+        // happens after onSessionCreated below — so without this eager attach
+        // the first execution would have no poller until the view mounts.
+        if (adapter && executionTarget === "local") {
+          await adapter.onSessionOpened(sessionId);
+        }
+
+        try {
+          await createExecution({ ...executionFields, sessionId });
+        } catch (err) {
+          // The first execution failed and the session view will not mount,
+          // so detach the worker we just attached to avoid leaking it.
+          if (adapter && executionTarget === "local") {
+            adapter.onSessionClosed(sessionId).catch(() => {});
+          }
+          throw err;
+        }
+
         sessionVariables.clear();
         onSessionCreated(sessionId);
       } catch (err) {
@@ -322,6 +343,7 @@ export function useNewSessionFlow(
       org,
       harness,
       executionTarget,
+      adapter,
       validModelId,
       workspace,
       mcpServerUsages,
