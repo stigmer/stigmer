@@ -37,7 +37,10 @@ impl Default for RunnerState {
 pub struct RunnerConfigInput {
     pub node_binary: String,
     pub runner_entry: String,
-    pub temporal_address: String,
+    /// Optional: omit for token-only embedding, where the runner self-discovers
+    /// the Temporal address from the control plane using `stigmerToken`.
+    #[serde(default)]
+    pub temporal_address: Option<String>,
     pub stigmer_endpoint: String,
     #[serde(default)]
     pub temporal_namespace: Option<String>,

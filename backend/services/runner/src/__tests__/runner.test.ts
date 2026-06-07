@@ -31,15 +31,6 @@ describe("StigmerRunnerOptions validation", () => {
     );
   });
 
-  it("rejects missing temporalAddress", async () => {
-    const createStigmerRunner = await importFactory();
-    const options = { ...VALID_OPTIONS, temporalAddress: "" };
-
-    await expect(createStigmerRunner(options)).rejects.toThrow(
-      "temporalAddress is required",
-    );
-  });
-
   it("rejects missing stigmerEndpoint", async () => {
     const createStigmerRunner = await importFactory();
     const options = { ...VALID_OPTIONS, stigmerEndpoint: "" };

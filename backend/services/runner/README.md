@@ -104,7 +104,7 @@ The transport setting drives two credential modes:
 
 | Component | When | Purpose |
 |-----------|------|---------|
-| Temporal | Always | The runner is a Temporal Worker. It needs a reachable Temporal frontend (`TEMPORAL_SERVICE_ADDRESS`) and a namespace (`TEMPORAL_NAMESPACE`). |
+| Temporal | Always | The runner is a Temporal Worker. It needs a reachable Temporal frontend and a namespace. You may set these explicitly (`TEMPORAL_SERVICE_ADDRESS`, `TEMPORAL_NAMESPACE`), but when a token is present the runner self-discovers them from the control plane at boot — see the env reference below. |
 | Stigmer backend | Always | The control plane (`STIGMER_BACKEND_ENDPOINT`) for status updates, blueprints, and (local) artifact serving. |
 | Stigmer proxy + token | Proxy/cloud only | The proxy (`STIGMER_PROXY_ENDPOINT`) brokers Cursor credentials and artifact storage; `STIGMER_TOKEN` authenticates to it. |
 
@@ -137,7 +137,7 @@ All configuration is environment-driven. Names and defaults below are verified a
 | `STIGMER_RUNNER_MODE` | All | No | `static` | Selects the run mode. Set to `manager` for dynamic per-session/per-execution Workers; any other value (or unset) means static mode. |
 | `MODE` | All | No | `local` | Execution location: `local` (host filesystem, local-path workspaces) or `cloud` (server-provisioned sandbox, git-only). Independent of `STIGMER_PROXY_ENDPOINT`. |
 | `STIGMER_TASK_QUEUE` | Static mode | No | `stigmer_runner` | Temporal task queue the static Worker polls. (Legacy alias: `TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE`.) Unused in manager mode, where each Worker derives its own queue. |
-| `TEMPORAL_SERVICE_ADDRESS` | All | In cloud mode | `localhost:7233` (local) | Address of the Temporal frontend. Required when `MODE=cloud`; defaults to localhost in local mode. |
+| `TEMPORAL_SERVICE_ADDRESS` | All | No | _(discovered)_ | Address of the Temporal frontend. **Resolution order:** an explicit value always wins; otherwise, if `STIGMER_TOKEN` is set, the runner discovers it from the control plane at boot (`getRunnerBootstrapConfig`); otherwise it falls back to `localhost:7233`. Discovery failure aborts startup with an actionable error (no silent fallback). |
 | `TEMPORAL_NAMESPACE` | All | No | `default` | Temporal namespace. |
 | `STIGMER_BACKEND_ENDPOINT` | All | In cloud mode | `http://localhost:7234` (local) | Stigmer backend endpoint for status, blueprints, and local artifact serving. A bare `host:port` is normalized to `http://` (or `https://` for port `443`). |
 | `STIGMER_TOKEN` | Cloud or proxy mode | Yes (cloud/proxy) | _(none)_ | Auth token for the Stigmer backend / proxy. Required when `MODE=cloud` or `STIGMER_PROXY_ENDPOINT` is set; optional in local/direct mode. |

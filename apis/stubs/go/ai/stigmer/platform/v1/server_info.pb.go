@@ -7,6 +7,7 @@
 package platformv1
 
 import (
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -173,21 +174,124 @@ func (x *GetServerInfoOutput) GetVersion() string {
 	return ""
 }
 
+// Empty request — the caller is identified by its bearer token, and the
+// coordinates are the same for every runner in the environment.
+type GetRunnerBootstrapConfigInput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetRunnerBootstrapConfigInput) Reset() {
+	*x = GetRunnerBootstrapConfigInput{}
+	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetRunnerBootstrapConfigInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetRunnerBootstrapConfigInput) ProtoMessage() {}
+
+func (x *GetRunnerBootstrapConfigInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetRunnerBootstrapConfigInput.ProtoReflect.Descriptor instead.
+func (*GetRunnerBootstrapConfigInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_platform_v1_server_info_proto_rawDescGZIP(), []int{2}
+}
+
+// Temporal coordinates an embedded runner connects to.
+//
+// The address is the one reachable by the caller: in OSS it is the server's
+// own co-located Temporal (single host); in Cloud it is the external Temporal
+// ingress, which differs from the internal address the control plane itself
+// dials. The namespace is shared across both.
+type GetRunnerBootstrapConfigOutput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Temporal frontend address (host:port) the runner should dial.
+	TemporalAddress string `protobuf:"bytes,1,opt,name=temporal_address,json=temporalAddress,proto3" json:"temporal_address,omitempty"`
+	// Temporal namespace the runner should use.
+	TemporalNamespace string `protobuf:"bytes,2,opt,name=temporal_namespace,json=temporalNamespace,proto3" json:"temporal_namespace,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *GetRunnerBootstrapConfigOutput) Reset() {
+	*x = GetRunnerBootstrapConfigOutput{}
+	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetRunnerBootstrapConfigOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetRunnerBootstrapConfigOutput) ProtoMessage() {}
+
+func (x *GetRunnerBootstrapConfigOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetRunnerBootstrapConfigOutput.ProtoReflect.Descriptor instead.
+func (*GetRunnerBootstrapConfigOutput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_platform_v1_server_info_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *GetRunnerBootstrapConfigOutput) GetTemporalAddress() string {
+	if x != nil {
+		return x.TemporalAddress
+	}
+	return ""
+}
+
+func (x *GetRunnerBootstrapConfigOutput) GetTemporalNamespace() string {
+	if x != nil {
+		return x.TemporalNamespace
+	}
+	return ""
+}
+
 var File_ai_stigmer_platform_v1_server_info_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_platform_v1_server_info_proto_rawDesc = "" +
 	"\n" +
-	"(ai/stigmer/platform/v1/server_info.proto\x12\x16ai.stigmer.platform.v1\x1a+ai/stigmer/commons/rpc/method_options.proto\"\x14\n" +
+	"(ai/stigmer/platform/v1/server_info.proto\x12\x16ai.stigmer.platform.v1\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a\x1bbuf/validate/validate.proto\"\x14\n" +
 	"\x12GetServerInfoInput\"p\n" +
 	"\x13GetServerInfoOutput\x12?\n" +
 	"\aedition\x18\x01 \x01(\x0e2%.ai.stigmer.platform.v1.ServerEditionR\aedition\x12\x18\n" +
-	"\aversion\x18\x02 \x01(\tR\aversion*C\n" +
+	"\aversion\x18\x02 \x01(\tR\aversion\"\x1f\n" +
+	"\x1dGetRunnerBootstrapConfigInput\"\x8c\x01\n" +
+	"\x1eGetRunnerBootstrapConfigOutput\x122\n" +
+	"\x10temporal_address\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x0ftemporalAddress\x126\n" +
+	"\x12temporal_namespace\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x11temporalNamespace*C\n" +
 	"\rServerEdition\x12\x1e\n" +
 	"\x1aserver_edition_unspecified\x10\x00\x12\a\n" +
 	"\x03oss\x10\x01\x12\t\n" +
-	"\x05cloud\x10\x022\x89\x01\n" +
+	"\x05cloud\x10\x022\x9b\x02\n" +
 	"\x17PlatformQueryController\x12n\n" +
-	"\rgetServerInfo\x12*.ai.stigmer.platform.v1.GetServerInfoInput\x1a+.ai.stigmer.platform.v1.GetServerInfoOutput\"\x04ȸ\x18\x01B\xf4\x01\n" +
+	"\rgetServerInfo\x12*.ai.stigmer.platform.v1.GetServerInfoInput\x1a+.ai.stigmer.platform.v1.GetServerInfoOutput\"\x04ȸ\x18\x01\x12\x8f\x01\n" +
+	"\x18getRunnerBootstrapConfig\x125.ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput\x1a6.ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput\"\x04и\x18\x01B\xf4\x01\n" +
 	"\x1acom.ai.stigmer.platform.v1B\x0fServerInfoProtoP\x01ZJgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/platform/v1;platformv1\xa2\x02\x03ASP\xaa\x02\x16Ai.Stigmer.Platform.V1\xca\x02\x16Ai\\Stigmer\\Platform\\V1\xe2\x02\"Ai\\Stigmer\\Platform\\V1\\GPBMetadata\xea\x02\x19Ai::Stigmer::Platform::V1b\x06proto3"
 
 var (
@@ -203,18 +307,22 @@ func file_ai_stigmer_platform_v1_server_info_proto_rawDescGZIP() []byte {
 }
 
 var file_ai_stigmer_platform_v1_server_info_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_ai_stigmer_platform_v1_server_info_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_ai_stigmer_platform_v1_server_info_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_ai_stigmer_platform_v1_server_info_proto_goTypes = []any{
-	(ServerEdition)(0),          // 0: ai.stigmer.platform.v1.ServerEdition
-	(*GetServerInfoInput)(nil),  // 1: ai.stigmer.platform.v1.GetServerInfoInput
-	(*GetServerInfoOutput)(nil), // 2: ai.stigmer.platform.v1.GetServerInfoOutput
+	(ServerEdition)(0),                     // 0: ai.stigmer.platform.v1.ServerEdition
+	(*GetServerInfoInput)(nil),             // 1: ai.stigmer.platform.v1.GetServerInfoInput
+	(*GetServerInfoOutput)(nil),            // 2: ai.stigmer.platform.v1.GetServerInfoOutput
+	(*GetRunnerBootstrapConfigInput)(nil),  // 3: ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput
+	(*GetRunnerBootstrapConfigOutput)(nil), // 4: ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput
 }
 var file_ai_stigmer_platform_v1_server_info_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.platform.v1.GetServerInfoOutput.edition:type_name -> ai.stigmer.platform.v1.ServerEdition
 	1, // 1: ai.stigmer.platform.v1.PlatformQueryController.getServerInfo:input_type -> ai.stigmer.platform.v1.GetServerInfoInput
-	2, // 2: ai.stigmer.platform.v1.PlatformQueryController.getServerInfo:output_type -> ai.stigmer.platform.v1.GetServerInfoOutput
-	2, // [2:3] is the sub-list for method output_type
-	1, // [1:2] is the sub-list for method input_type
+	3, // 2: ai.stigmer.platform.v1.PlatformQueryController.getRunnerBootstrapConfig:input_type -> ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput
+	2, // 3: ai.stigmer.platform.v1.PlatformQueryController.getServerInfo:output_type -> ai.stigmer.platform.v1.GetServerInfoOutput
+	4, // 4: ai.stigmer.platform.v1.PlatformQueryController.getRunnerBootstrapConfig:output_type -> ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput
+	3, // [3:5] is the sub-list for method output_type
+	1, // [1:3] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
 	1, // [1:1] is the sub-list for extension extendee
 	0, // [0:1] is the sub-list for field type_name
@@ -231,7 +339,7 @@ func file_ai_stigmer_platform_v1_server_info_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_platform_v1_server_info_proto_rawDesc), len(file_ai_stigmer_platform_v1_server_info_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   2,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

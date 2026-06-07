@@ -10,6 +10,11 @@
  * the Stigmer server's proxy (which injects platform API keys
  * server-side). The proxy endpoint is derived from VITE_STIGMER_API_URL
  * and gated on auth token presence — no async server-info call needed.
+ *
+ * The Temporal address is NOT configured here. The embedded runner
+ * self-discovers it from the control plane during boot using the auth token
+ * (token-only embedding), so the desktop only needs to point at the Stigmer
+ * backend. Set VITE_STIGMER_TEMPORAL_ADDRESS to pin it for local development.
  */
 
 import { useCallback, useRef, useState } from "react";
@@ -19,7 +24,8 @@ import { loadTokens } from "../auth/token-store";
 interface RunnerConfig {
   nodeBinary: string;
   runnerEntry: string;
-  temporalAddress: string;
+  /** Optional: omitted by default so the runner self-discovers it via the token. */
+  temporalAddress?: string;
   stigmerEndpoint: string;
   temporalNamespace?: string;
   stigmerToken?: string;
@@ -54,14 +60,22 @@ function normalizeToUrl(endpoint: string): string {
 }
 
 function getRunnerConfig(): RunnerConfig {
+  // The runner's control-plane endpoint. In local dev this is the grpcwebproxy
+  // sidecar; in production it is the Stigmer Cloud API. Falling back to
+  // VITE_STIGMER_API_URL (not localhost) is what lets the production desktop —
+  // which sets no sidecar — point the runner at the cloud control plane, which
+  // is also the server the runner queries to self-discover Temporal.
   const stigmerEndpoint =
     import.meta.env.VITE_STIGMER_SIDECAR_ENDPOINT
+    || import.meta.env.VITE_STIGMER_API_URL
     || localStorage.getItem("stigmer.serverEndpoint")
     || "http://localhost:7234";
+  // Optional override only. Left undefined by default so the runner discovers
+  // the Temporal address from the control plane using the auth token.
   const temporalAddress =
     import.meta.env.VITE_STIGMER_TEMPORAL_ADDRESS
     || localStorage.getItem("stigmer.temporalAddress")
-    || "localhost:7233";
+    || undefined;
   const stigmerToken = loadTokens()?.accessToken || undefined;
 
   // Proxy endpoint for the runner's Cursor SDK traffic. Must include a URL
@@ -81,9 +95,9 @@ function getRunnerConfig(): RunnerConfig {
   return {
     nodeBinary: "node",
     runnerEntry: "resources/runner/dist/main.js",
-    temporalAddress,
+    // Omitted unless explicitly overridden — the runner self-discovers it.
+    ...(temporalAddress ? { temporalAddress } : {}),
     stigmerEndpoint,
-    temporalNamespace: "default",
     stigmerToken,
     proxyEndpoint,
   };

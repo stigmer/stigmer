@@ -22,7 +22,10 @@ describe("loadConfig", () => {
 
     expect(config.mode).toBe("local");
     expect(config.taskQueue).toBe("stigmer_runner");
-    expect(config.temporalAddress).toBe("localhost:7233");
+    // temporalAddress is left empty by loadConfig now — it is resolved later by
+    // the factory (resolveTemporalCoordinates), which falls back to localhost
+    // for a tokenless local runner. loadConfig no longer hardcodes the default.
+    expect(config.temporalAddress).toBe("");
     expect(config.temporalNamespace).toBe("default");
     expect(config.stigmerBackendEndpoint).toBe("http://localhost:7234");
     expect(config.stigmerToken).toBeNull();
@@ -47,12 +50,18 @@ describe("loadConfig", () => {
     expect(config.taskQueue).toBe("custom-queue");
   });
 
-  it("requires TEMPORAL_SERVICE_ADDRESS in cloud mode", () => {
+  it("no longer requires TEMPORAL_SERVICE_ADDRESS up front in cloud mode", () => {
+    // Token-only embedding: the address is discovered from the control plane at
+    // boot, so loadConfig must NOT fail when it is absent. It is left empty for
+    // the factory to resolve (or throw with an actionable error if discovery
+    // fails). The token + backend endpoint remain required in cloud mode.
     process.env.MODE = "cloud";
     process.env.STIGMER_TOKEN = "token";
     process.env.STIGMER_BACKEND_ENDPOINT = "https://api.example.com";
 
-    expect(() => loadConfig()).toThrow("TEMPORAL_SERVICE_ADDRESS");
+    const config = loadConfig();
+    expect(config.temporalAddress).toBe("");
+    expect(config.stigmerToken).toBe("token");
   });
 
   it("requires STIGMER_TOKEN in cloud mode", () => {

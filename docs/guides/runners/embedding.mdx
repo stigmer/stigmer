@@ -37,11 +37,11 @@ supply depends on your deployment. The table below is the minimal surface for
 each audience; the full list lives in the runner README
 (`backend/services/runner/README.md`), under its configuration reference.
 
-| Your situation                                   | Stigmer token        | Backend endpoint      | Temporal address      | Cursor key                |
-| ------------------------------------------------ | -------------------- | --------------------- | --------------------- | ------------------------- |
-| **Cloud, cloud execution** (no embedding)        | Pass to the SDK only | Platform-managed      | Platform-managed      | Platform-managed          |
-| **Cloud, embedded local execution** (desktop)    | Required             | Required (your Cloud) | Required (your Cloud) | Not needed (proxied)      |
-| **Self-managed (OSS or self-hosted full stack)** | Optional             | Defaults to localhost | Defaults to localhost | Required (Cursor harness) |
+| Your situation                                   | Stigmer token        | Backend endpoint      | Temporal address        | Cursor key                |
+| ------------------------------------------------ | -------------------- | --------------------- | ----------------------- | ------------------------- |
+| **Cloud, cloud execution** (no embedding)        | Pass to the SDK only | Platform-managed      | Platform-managed        | Platform-managed          |
+| **Cloud, embedded local execution** (desktop)    | Required             | Required (your Cloud) | Discovered (token)      | Not needed (proxied)      |
+| **Self-managed (OSS or self-hosted full stack)** | Optional             | Defaults to localhost | Discovered or localhost | Required (Cursor harness) |
 
 How to read each row:
 
@@ -50,7 +50,9 @@ How to read each row:
   backend configuration server-side. You never see Temporal.
 - **Cloud, embedded local execution.** When you host the runner yourself but run
   against Stigmer Cloud, you supply `STIGMER_TOKEN` plus the Cloud
-  `STIGMER_BACKEND_ENDPOINT` and `TEMPORAL_SERVICE_ADDRESS`. Setting the token
+  `STIGMER_BACKEND_ENDPOINT`. You do **not** supply `TEMPORAL_SERVICE_ADDRESS`:
+  the runner discovers it from the control plane at boot using your token (see
+  [Temporal self-discovery](#temporal-self-discovery)). Setting the token also
   activates **proxy mode**: the runner routes its model traffic and artifact
   uploads through the Stigmer proxy, which injects the real Cursor key, so you
   do not pass `CURSOR_API_KEY`.
@@ -63,12 +65,32 @@ How to read each row:
   support, uses this same surface — point the endpoints at your hosts instead of
   localhost.
 
-<Callout type="warn">
-  Today, a cloud integrator who embeds the runner still passes
-  `TEMPORAL_SERVICE_ADDRESS` and `STIGMER_BACKEND_ENDPOINT`. The runner does not
-  yet derive them from the Stigmer token, so "token only" applies to cloud
-  _execution_, not cloud _embedding_. Deriving these from the token for
-  embedders is a tracked improvement.
+## Temporal self-discovery
+
+The runner needs a Temporal frontend address to poll for work, but that is an
+infrastructure detail an integrator should not have to know. So the runner
+**self-discovers** it at boot. You give it a token and a backend endpoint; it
+asks the control plane where Temporal is. The resolution order is:
+
+1. **Explicit wins.** If you set `TEMPORAL_SERVICE_ADDRESS` (or pass
+   `temporalAddress`), the runner uses it verbatim — useful for local
+   development.
+2. **Otherwise discover.** If no address is set but a token is present, the
+   runner calls the control plane (`getRunnerBootstrapConfig`) over the same
+   authenticated connection it already uses, and connects to the Temporal
+   address it returns. On Stigmer Cloud this is the external Temporal ingress
+   for your environment.
+3. **Otherwise localhost.** A tokenless local runner falls back to
+   `localhost:7233`.
+
+If discovery is attempted and fails (bad token, unreachable endpoint, or a
+server too old to support it), the runner fails fast with an actionable error
+rather than silently falling back — so a misconfiguration surfaces at startup,
+not as a confusing failure later.
+
+<Callout type="info">
+  This is what makes a cloud embedder's contract "token only": one endpoint plus
+  one token. You no longer pass `TEMPORAL_SERVICE_ADDRESS` for cloud embedding.
 </Callout>
 
 ## Local versus cloud execution
@@ -215,13 +237,15 @@ let host = RunnerHost::new();
 host.start(RunnerConfig {
     node_binary: "node".into(),
     runner_entry: "resources/runner/dist/main.js".into(),
-    temporal_address: "localhost:7233".into(),
-    stigmer_endpoint: "http://localhost:7234".into(),
+    // Token-only: leave the address unset and the runner discovers it from the
+    // control plane. Pass Some("host:7233") to pin it for local development.
+    temporal_address: None,
+    stigmer_endpoint: "https://api.stigmer.ai".into(),
     temporal_namespace: None,
-    stigmer_token: None,
+    stigmer_token: Some("stigmer_token".into()),
     cursor_api_key: None,
     workspace_root_dir: None,
-    proxy_endpoint: None,
+    proxy_endpoint: Some("https://api.stigmer.ai".into()),
 })
 .await?;
 

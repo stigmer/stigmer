@@ -74,9 +74,12 @@ export function loadConfig(): Config {
     ?? process.env.TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE
     ?? "stigmer_runner";
 
-  const temporalAddress = mode === "local"
-    ? (process.env.TEMPORAL_SERVICE_ADDRESS ?? "localhost:7233")
-    : requireEnv("TEMPORAL_SERVICE_ADDRESS");
+  // Temporal address is no longer required up front. When unset, the runner
+  // self-discovers it from the control plane during boot (see bootstrap.ts):
+  // an explicit value always wins, a token triggers discovery, and a tokenless
+  // local runner falls back to localhost. An empty string here means "resolve
+  // later" — the factory fills it in before connecting to Temporal.
+  const temporalAddress = process.env.TEMPORAL_SERVICE_ADDRESS ?? "";
 
   const temporalNamespace = process.env.TEMPORAL_NAMESPACE ?? "default";
 

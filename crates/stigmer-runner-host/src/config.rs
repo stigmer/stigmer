@@ -13,7 +13,10 @@ use serde::Deserialize;
 pub struct RunnerConfig {
     pub node_binary: String,
     pub runner_entry: String,
-    pub temporal_address: String,
+    /// Temporal frontend address. `None` enables token-only embedding: the runner
+    /// self-discovers the address from the control plane during boot using
+    /// `stigmer_token`. Provide it to bypass discovery — an explicit value wins.
+    pub temporal_address: Option<String>,
     pub stigmer_endpoint: String,
     pub temporal_namespace: Option<String>,
     pub stigmer_token: Option<String>,

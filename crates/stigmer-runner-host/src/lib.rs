@@ -9,6 +9,10 @@
 //! Enable the `tauri` feature for the desktop binding — a `RunnerState` plus the
 //! `#[tauri::command]` surface in [`tauri`].
 //!
+//! Token-only cloud embedding: pass a token and a backend endpoint and leave
+//! `temporal_address: None` — the runner self-discovers Temporal during boot.
+//! Provide `temporal_address: Some(..)` to bypass discovery (local development).
+//!
 //! ```no_run
 //! # async fn demo() -> Result<(), stigmer_runner_host::RunnerHostError> {
 //! use stigmer_runner_host::{RunnerHost, RunnerConfig};
@@ -17,13 +21,13 @@
 //! host.start(RunnerConfig {
 //!     node_binary: "node".into(),
 //!     runner_entry: "resources/runner/dist/main.js".into(),
-//!     temporal_address: "localhost:7233".into(),
-//!     stigmer_endpoint: "http://localhost:7234".into(),
+//!     temporal_address: None, // discovered from the control plane via the token
+//!     stigmer_endpoint: "https://api.stigmer.ai".into(),
 //!     temporal_namespace: None,
-//!     stigmer_token: None,
+//!     stigmer_token: Some("stigmer_token".into()),
 //!     cursor_api_key: None,
 //!     workspace_root_dir: None,
-//!     proxy_endpoint: None,
+//!     proxy_endpoint: Some("https://api.stigmer.ai".into()),
 //! })
 //! .await?;
 //! host.add_session("ses_abc123").await?;

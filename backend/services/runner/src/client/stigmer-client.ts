@@ -48,7 +48,14 @@ import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/work
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/query_pb";
 import type { WorkflowInstance } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
+import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import { assertCreateRequirements, assertReferenceRequirements } from "./server-contracts.js";
+
+/** Temporal coordinates an embedded runner connects to. */
+export interface RunnerBootstrapConfig {
+  temporalAddress: string;
+  temporalNamespace: string;
+}
 
 /**
  * A shared mutable token reference. When provided, the interceptor
@@ -84,6 +91,7 @@ export class StigmerClient {
   private readonly workflowExecutionQuery: Client<typeof WorkflowExecutionQueryController>;
   private readonly workflowQuery: Client<typeof WorkflowQueryController>;
   private readonly workflowInstanceQuery: Client<typeof WorkflowInstanceQueryController>;
+  private readonly platformQuery: Client<typeof PlatformQueryController>;
 
   private readonly tokenRef: TokenRef | null;
 
@@ -119,6 +127,23 @@ export class StigmerClient {
     this.workflowExecutionQuery = createClient(WorkflowExecutionQueryController, this.transport);
     this.workflowQuery = createClient(WorkflowQueryController, this.transport);
     this.workflowInstanceQuery = createClient(WorkflowInstanceQueryController, this.transport);
+    this.platformQuery = createClient(PlatformQueryController, this.transport);
+  }
+
+  /**
+   * Discover the Temporal coordinates this runner should connect to.
+   *
+   * Lets an embedded runner self-bootstrap from a token alone: the control
+   * plane returns the Temporal frontend address and namespace for the
+   * environment the token belongs to, so integrators never hardcode
+   * infrastructure addresses.
+   */
+  async getRunnerBootstrapConfig(): Promise<RunnerBootstrapConfig> {
+    const res = await this.platformQuery.getRunnerBootstrapConfig({});
+    return {
+      temporalAddress: res.temporalAddress,
+      temporalNamespace: res.temporalNamespace,
+    };
   }
 
   async getExecution(executionId: string): Promise<AgentExecution> {

@@ -88,29 +88,7 @@ impl RunnerHost {
 
         let mut cmd = Command::new(&config.node_binary);
         cmd.arg(&config.runner_entry);
-        cmd.env("STIGMER_RUNNER_MODE", "manager");
-        cmd.env("TEMPORAL_SERVICE_ADDRESS", &config.temporal_address);
-        cmd.env("STIGMER_BACKEND_ENDPOINT", &config.stigmer_endpoint);
-        if let Some(ns) = &config.temporal_namespace {
-            cmd.env("TEMPORAL_NAMESPACE", ns);
-        }
-        if let Some(token) = &config.stigmer_token {
-            cmd.env("STIGMER_TOKEN", token);
-        }
-        if let Some(key) = &config.cursor_api_key {
-            cmd.env("CURSOR_API_KEY", key);
-        }
-        if let Some(dir) = &config.workspace_root_dir {
-            cmd.env("WORKSPACE_ROOT_DIR", dir);
-        }
-        if let Some(proxy) = &config.proxy_endpoint {
-            cmd.env("STIGMER_PROXY_ENDPOINT", proxy);
-            // The runner's Cursor SDK negotiates HTTP/2 over TLS; a self-signed local proxy
-            // would otherwise fail the TLS handshake.
-            if proxy.starts_with("https://") {
-                cmd.env("NODE_TLS_REJECT_UNAUTHORIZED", "0");
-            }
-        }
+        cmd.envs(build_env(&config));
 
         cmd.stdin(std::process::Stdio::piped());
         cmd.stdout(std::process::Stdio::piped());
@@ -309,6 +287,49 @@ fn negotiate_ready(line: &str) -> Result<u32, RunnerHostError> {
     }
 }
 
+/// Build the environment the runner subprocess inherits from a [`RunnerConfig`].
+///
+/// Pure and total (no process, no I/O) so the env mapping is unit-testable. The
+/// runner always runs in manager mode here. `TEMPORAL_SERVICE_ADDRESS` is set
+/// only when the host provides an address: omitting it is the token-only
+/// embedding path, where the runner self-discovers Temporal from the control
+/// plane using `STIGMER_TOKEN`.
+fn build_env(config: &RunnerConfig) -> Vec<(String, String)> {
+    let mut env: Vec<(String, String)> = vec![
+        ("STIGMER_RUNNER_MODE".to_string(), "manager".to_string()),
+        (
+            "STIGMER_BACKEND_ENDPOINT".to_string(),
+            config.stigmer_endpoint.clone(),
+        ),
+    ];
+
+    if let Some(addr) = &config.temporal_address {
+        env.push(("TEMPORAL_SERVICE_ADDRESS".to_string(), addr.clone()));
+    }
+    if let Some(ns) = &config.temporal_namespace {
+        env.push(("TEMPORAL_NAMESPACE".to_string(), ns.clone()));
+    }
+    if let Some(token) = &config.stigmer_token {
+        env.push(("STIGMER_TOKEN".to_string(), token.clone()));
+    }
+    if let Some(key) = &config.cursor_api_key {
+        env.push(("CURSOR_API_KEY".to_string(), key.clone()));
+    }
+    if let Some(dir) = &config.workspace_root_dir {
+        env.push(("WORKSPACE_ROOT_DIR".to_string(), dir.clone()));
+    }
+    if let Some(proxy) = &config.proxy_endpoint {
+        env.push(("STIGMER_PROXY_ENDPOINT".to_string(), proxy.clone()));
+        // The runner's Cursor SDK negotiates HTTP/2 over TLS; a self-signed local
+        // proxy would otherwise fail the TLS handshake.
+        if proxy.starts_with("https://") {
+            env.push(("NODE_TLS_REJECT_UNAUTHORIZED".to_string(), "0".to_string()));
+        }
+    }
+
+    env
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -354,5 +375,65 @@ mod tests {
             negotiate_ready(r#"{"type":"sessionAdded","sessionId":"s","taskQueue":"q"}"#)
                 .unwrap_err();
         assert!(matches!(err, RunnerHostError::UnexpectedFirstMessage(_)));
+    }
+
+    fn env_value<'a>(env: &'a [(String, String)], key: &str) -> Option<&'a str> {
+        env.iter()
+            .find(|(k, _)| k == key)
+            .map(|(_, v)| v.as_str())
+    }
+
+    fn minimal_config() -> RunnerConfig {
+        RunnerConfig {
+            node_binary: "node".to_string(),
+            runner_entry: "main.js".to_string(),
+            temporal_address: None,
+            stigmer_endpoint: "https://api.stigmer.ai".to_string(),
+            temporal_namespace: None,
+            stigmer_token: Some("tok".to_string()),
+            cursor_api_key: None,
+            workspace_root_dir: None,
+            proxy_endpoint: None,
+        }
+    }
+
+    #[test]
+    fn build_env_omits_temporal_address_for_token_only_embedding() {
+        // The whole point of token-only embedding: when the host gives no address,
+        // the runner must NOT receive TEMPORAL_SERVICE_ADDRESS so it self-discovers.
+        let env = build_env(&minimal_config());
+
+        assert_eq!(env_value(&env, "TEMPORAL_SERVICE_ADDRESS"), None);
+        assert_eq!(env_value(&env, "STIGMER_RUNNER_MODE"), Some("manager"));
+        assert_eq!(
+            env_value(&env, "STIGMER_BACKEND_ENDPOINT"),
+            Some("https://api.stigmer.ai")
+        );
+        assert_eq!(env_value(&env, "STIGMER_TOKEN"), Some("tok"));
+    }
+
+    #[test]
+    fn build_env_sets_temporal_address_when_provided() {
+        let mut config = minimal_config();
+        config.temporal_address = Some("temporal.example:7233".to_string());
+
+        let env = build_env(&config);
+
+        assert_eq!(
+            env_value(&env, "TEMPORAL_SERVICE_ADDRESS"),
+            Some("temporal.example:7233")
+        );
+    }
+
+    #[test]
+    fn build_env_relaxes_tls_only_for_https_proxy() {
+        let mut config = minimal_config();
+        config.proxy_endpoint = Some("https://localhost:9093".to_string());
+        let env = build_env(&config);
+        assert_eq!(env_value(&env, "NODE_TLS_REJECT_UNAUTHORIZED"), Some("0"));
+
+        config.proxy_endpoint = Some("http://proxy:8080".to_string());
+        let env = build_env(&config);
+        assert_eq!(env_value(&env, "NODE_TLS_REJECT_UNAUTHORIZED"), None);
     }
 }
