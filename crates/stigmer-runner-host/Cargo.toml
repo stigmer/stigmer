@@ -1,0 +1,26 @@
+[package]
+name = "stigmer-runner-host"
+version = "0.1.0"
+edition = "2021"
+description = "Embed the Stigmer runner as a manager-mode subprocess over its stdin/stdout JSON IPC."
+authors = ["Stigmer <oss@stigmer.ai>"]
+license = "Apache-2.0"
+repository = "https://github.com/stigmer/stigmer"
+# Vendored in-repo (path dependency from the desktop app) until an external consumer
+# needs it from crates.io. See _projects T06 / design-decisions/001.
+publish = false
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+# `rt` (for tokio::spawn) and `time` (for tokio::time::timeout) are REQUIRED here even
+# though the desktop app omits them: the desktop only compiles because `tauri` pulls them
+# in via Cargo feature unification. A standalone, Tauri-free build gets no such gift.
+tokio = { version = "1", features = ["io-util", "process", "sync", "rt", "time"] }
+tauri = { version = "2", optional = true }
+
+[features]
+# The Tauri binding (RunnerState + #[tauri::command] surface). Off by default so the core
+# driver stays framework-agnostic for non-Tauri hosts (CLIs, daemons, test harnesses).
+tauri = ["dep:tauri"]

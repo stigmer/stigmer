@@ -1,7 +1,7 @@
 // Canonical machine-readable definition of the manager-mode IPC contract.
-// The runner emits these messages; the Rust desktop host (runner.rs) and the Go
-// integration harness (unified_runner.go) hand-mirror them. Full spec and the rule
-// for keeping all definitions in sync: docs/ipc-protocol.md.
+// The runner emits these messages; the Rust host crate (crates/stigmer-runner-host/src/
+// protocol.rs) and the Go integration harness (unified_runner.go) hand-mirror them. Full
+// spec and the rule for keeping all definitions in sync: docs/ipc-protocol.md.
 
 // Integer protocol version advertised in the `ready` handshake. Bump ONLY on a
 // breaking change (removed/renamed message, changed field type, changed lifecycle

@@ -389,7 +389,7 @@ tidy: ## Run go mod tidy on all Go modules
        lint-desktop typecheck-desktop verify-desktop kill-desktop launch-desktop build-desktop clean-build-desktop release-desktop-local \
        build-cli install-cli release-cli-local \
        lint-docs lint-docs-audit format-docs format-docs-check check-links libs-build web-build validate-demos tsdoc-check test-demos \
-       test-web test-desktop test-e2e check check-all
+       test-web test-desktop test-runner-host test-e2e check check-all
 fix: ## Auto-fix linting and formatting issues
 	@gofmt -s -w .
 	-npm run lint:fix -w @stigmer/react
@@ -490,6 +490,9 @@ verify-desktop: lint-desktop typecheck-desktop ## Lint + typecheck desktop (TS +
 test-desktop: ## Run desktop app component tests (Vitest)
 	npm run test -w desktop
 
+test-runner-host: ## Test the stigmer-runner-host crate (+ prove the core builds without Tauri)
+	cd crates/stigmer-runner-host && cargo build && cargo test
+
 release-desktop-local: ## Debug build + install to /Applications
 	$(MAKE) build-runner
 	client-apps/desktop/scripts/setup-runner-dev.sh
@@ -552,7 +555,7 @@ test-e2e-smoke: ## Run Playwright smoke tests against a deployed instance (set S
 test-e2e-all: ## Run all Playwright E2E tests (smoke + functional)
 	cd test/e2e && npm ci && npx playwright install --with-deps chromium && npx playwright test
 
-check: tidy fix lint lint-docs format-docs-check tsdoc-check gen-sdk-docs gen-sdk-docs-check check-links build test test-web test-desktop validate-demos check-deps ## Run full CI gate locally
+check: tidy fix lint lint-docs format-docs-check tsdoc-check gen-sdk-docs gen-sdk-docs-check check-links build test test-web test-desktop test-runner-host validate-demos check-deps ## Run full CI gate locally
 
 check-all: check test-demos ## Full CI gate including Playwright demo e2e (slow)
 

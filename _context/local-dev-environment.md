@@ -116,6 +116,8 @@ The runner connects to the same production Temporal cluster as the Java service.
 
 When code changes are made in `backend/services/runner/`, the next `make desktop-dev` rebuilds the runner automatically. If the Tauri app is restarted without `make desktop-dev`, the runner binary may be stale.
 
+The Rust side that spawns and drives this subprocess lives in the in-repo `stigmer-runner-host` crate (`crates/stigmer-runner-host/`); the desktop depends on it via a path dependency, so `make desktop-dev` builds it transitively — no separate step. Run its tests with `make test-runner-host`.
+
 ---
 
 ## Prerequisites

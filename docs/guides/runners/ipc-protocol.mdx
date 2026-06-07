@@ -367,9 +367,10 @@ rather than failing. See [Protocol version](#protocol-version).
 Two hosts in the Stigmer repository implement the protocol and are useful as
 worked examples. They differ in how they treat responses:
 
-- **Desktop app (Rust)** —
-  [`client-apps/desktop/src-tauri/src/runner.rs`](https://github.com/stigmer/stigmer/blob/main/client-apps/desktop/src-tauri/src/runner.rs).
-  Blocks on the `ready` handshake, then drives commands **fire-and-forget**: it
+- **Rust host crate** —
+  [`crates/stigmer-runner-host`](https://github.com/stigmer/stigmer/blob/main/crates/stigmer-runner-host).
+  The packaged, reusable driver (`RunnerHost`); the desktop app consumes it. It
+  blocks on the `ready` handshake, then drives commands **fire-and-forget**: it
   writes a command to stdin and tracks state locally rather than correlating
   each response. A background reader logs responses and acts only on a fatal
   `error`.
@@ -392,7 +393,7 @@ defined in four places that must change together:
 | --------------------------------------------- | ------------------------------------------------------------------ |
 | `backend/services/runner/src/ipc-protocol.ts` | Canonical machine-readable definition (the runner emits from here) |
 | This page                                     | Canonical human-readable contract                                  |
-| `client-apps/desktop/src-tauri/src/runner.rs` | Hand-maintained Rust mirror (desktop host)                         |
+| `crates/stigmer-runner-host/src/protocol.rs`  | Hand-maintained Rust mirror (host crate; desktop consumes it)      |
 | `test/integration/harness/unified_runner.go`  | Hand-maintained Go mirror (test harness)                           |
 
 When you change the protocol, update all four and bump `IPC_PROTOCOL_VERSION` in
