@@ -46,6 +46,13 @@ export interface Config {
    */
   readonly cursorApiKey: string;
   readonly workspaceRootDir: string;
+  /**
+   * Execution location: where the agent runs and whose filesystem it sees.
+   * "local" allows local-path workspaces (host filesystem); "cloud" runs in a
+   * server-provisioned sandbox (git-only). Independent of {@link proxyEndpoint},
+   * which controls credential/artifact transport — the desktop runner executes
+   * locally yet still proxies its Cursor traffic.
+   */
   readonly mode: "local" | "cloud";
   readonly proxyEndpoint: string | null;
   readonly maxConcurrentActivities: number;

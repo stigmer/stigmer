@@ -49,7 +49,9 @@ func UnifiedRunnerWorkspaceDir() string {
 	return filepath.Join(os.TempDir(), "stigmer-test-runner-workspace")
 }
 
-// --- IPC Protocol Types (mirrors main.ts) ---
+// --- IPC Protocol Types ---
+// Hand-maintained Go mirror of the runner's IPC contract. Canonical spec and the rule for
+// keeping mirrors in sync: backend/services/runner/docs/ipc-protocol.md.
 
 type ipcCommand struct {
 	Type        string  `json:"type"`
@@ -59,12 +61,13 @@ type ipcCommand struct {
 }
 
 type ipcResponse struct {
-	Type        string `json:"type"`
-	SessionID   string `json:"sessionId,omitempty"`
-	ExecutionID string `json:"executionId,omitempty"`
-	TaskQueue   string `json:"taskQueue,omitempty"`
-	Message     string `json:"message,omitempty"`
-	Fatal       bool   `json:"fatal,omitempty"`
+	Type            string `json:"type"`
+	SessionID       string `json:"sessionId,omitempty"`
+	ExecutionID     string `json:"executionId,omitempty"`
+	TaskQueue       string `json:"taskQueue,omitempty"`
+	Message         string `json:"message,omitempty"`
+	Fatal           bool   `json:"fatal,omitempty"`
+	ProtocolVersion int    `json:"protocolVersion,omitempty"`
 }
 
 // --- UnifiedRunnerManager (IPC manager mode) ---
@@ -72,18 +75,25 @@ type ipcResponse struct {
 // UnifiedRunnerManager manages the unified runner process in IPC manager mode,
 // communicating via newline-delimited JSON on stdin/stdout.
 type UnifiedRunnerManager struct {
-	cmd     *exec.Cmd
-	stdin   io.WriteCloser
-	scanner *bufio.Scanner
-	logFile *os.File
-	logPath string
-	logger  *slog.Logger
-	mu      sync.Mutex
+	cmd             *exec.Cmd
+	stdin           io.WriteCloser
+	scanner         *bufio.Scanner
+	logFile         *os.File
+	logPath         string
+	logger          *slog.Logger
+	mu              sync.Mutex
+	protocolVersion int
 }
 
 // LogPath returns the path to the runner's stderr log file.
 func (m *UnifiedRunnerManager) LogPath() string {
 	return m.logPath
+}
+
+// ProtocolVersion returns the IPC protocol version the runner advertised in its `ready`
+// handshake. A pre-versioned runner that omits the field reports 0.
+func (m *UnifiedRunnerManager) ProtocolVersion() int {
+	return m.protocolVersion
 }
 
 // StartUnifiedRunnerManager starts the unified runner in IPC manager mode
@@ -178,8 +188,9 @@ func StartUnifiedRunnerManager(ctx context.Context, cfg UnifiedRunnerConfig, log
 		logFile.Close()
 		return nil, fmt.Errorf("unexpected first IPC response: %s", resp.Type)
 	}
+	mgr.protocolVersion = resp.ProtocolVersion
 
-	logger.Info("unified-runner-manager ready", "pid", cmd.Process.Pid)
+	logger.Info("unified-runner-manager ready", "pid", cmd.Process.Pid, "protocol_version", resp.ProtocolVersion)
 	return mgr, nil
 }
 

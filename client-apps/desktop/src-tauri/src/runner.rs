@@ -13,6 +13,8 @@ use tokio::process::{Child, Command};
 use tokio::sync::Mutex;
 
 // ─── IPC Protocol Types ─────────────────────────────────────────────────────
+// Hand-maintained Rust mirror of the runner's IPC contract. Canonical spec and the rule
+// for keeping mirrors in sync: backend/services/runner/docs/ipc-protocol.md.
 
 #[derive(Serialize)]
 #[serde(tag = "type", rename_all = "camelCase")]
@@ -33,7 +35,13 @@ enum IpcCommand {
 #[serde(tag = "type", rename_all = "camelCase")]
 #[allow(dead_code)]
 enum IpcResponse {
-    Ready,
+    #[serde(rename_all = "camelCase")]
+    Ready {
+        // Optional so an older runner that omits the field still deserializes (treated as
+        // version 1). See docs/ipc-protocol.md "Protocol version".
+        #[serde(default)]
+        protocol_version: Option<u32>,
+    },
     #[serde(rename_all = "camelCase")]
     SessionAdded {
         session_id: String,
@@ -184,7 +192,9 @@ pub async fn start_runner(
         serde_json::from_str(line.trim()).map_err(|e| format!("Invalid ready message: {e}"))?;
 
     match response {
-        IpcResponse::Ready => {}
+        IpcResponse::Ready { protocol_version } => {
+            eprintln!("[runner-ipc] ready (protocolVersion={protocol_version:?})");
+        }
         IpcResponse::Error { message, .. } => {
             let _ = child.kill().await;
             return Err(format!("Runner failed to start: {message}"));
@@ -404,4 +414,34 @@ pub struct RunnerStatusResponse {
     pub running: bool,
     pub active_sessions: Vec<String>,
     pub active_workflow_executions: Vec<String>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Backward-compatibility contract: the host must parse `ready` whether or not the runner
+    // sends protocolVersion. An older runner omits it. See docs/ipc-protocol.md.
+    #[test]
+    fn ready_parses_with_protocol_version() {
+        let resp: IpcResponse =
+            serde_json::from_str(r#"{"type":"ready","protocolVersion":1}"#).unwrap();
+        match resp {
+            IpcResponse::Ready { protocol_version } => {
+                assert_eq!(protocol_version, Some(1), "should read the advertised version");
+            }
+            other => panic!("expected Ready, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn ready_parses_without_protocol_version() {
+        let resp: IpcResponse = serde_json::from_str(r#"{"type":"ready"}"#).unwrap();
+        match resp {
+            IpcResponse::Ready { protocol_version } => {
+                assert_eq!(protocol_version, None, "absent field must default to None");
+            }
+            other => panic!("expected Ready, got {other:?}"),
+        }
+    }
 }

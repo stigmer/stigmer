@@ -76,6 +76,22 @@ export interface RunnerManagerOptions {
 
   /** Enable Cursor cloud mode. @default false */
   readonly cloudModeEnabled?: boolean;
+
+  /**
+   * Workspace/filesystem execution location — where the agent actually runs.
+   *
+   * - "local": the agent operates on the host filesystem (local-path workspace
+   *   entries are valid; the desktop app and CLI daemon use this).
+   * - "cloud": the agent runs in a server-provisioned sandbox (git-only).
+   *
+   * This is intentionally distinct from {@link proxyEndpoint}, which controls
+   * credential/artifact *transport*. The desktop runner is the canonical case
+   * where the two diverge: it executes locally while routing Cursor traffic and
+   * artifacts through the proxy. Defaults to "local".
+   *
+   * @default "local"
+   */
+  readonly executionMode?: "local" | "cloud";
 }
 
 export interface StigmerRunnerManager {
@@ -349,12 +365,17 @@ function validateManagerOptions(options: RunnerManagerOptions): void {
   }
 }
 
-function mapManagerOptionsToConfig(
+export function mapManagerOptionsToConfig(
   options: RunnerManagerOptions,
   tokenRef?: { current: string | null },
 ): Config {
   const proxyActive = !!options.proxyEndpoint;
-  const mode = proxyActive ? ("cloud" as const) : ("local" as const);
+
+  // Execution location is independent of proxy transport. Do NOT derive `mode`
+  // from `proxyActive`: the desktop runner executes LOCALLY (local-path
+  // workspaces must work) while still routing Cursor traffic through the proxy.
+  // Coupling the two here is exactly what previously broke local-path sessions.
+  const mode = options.executionMode ?? ("local" as const);
 
   return {
     taskQueue: "manager", // not used for Workers — each Worker gets its own
