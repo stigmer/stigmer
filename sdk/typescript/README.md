@@ -182,10 +182,55 @@ interface StigmerConfig {
   getAccessToken?: () => string | null | Promise<string | null>;  // Dynamic token provider
   onUnauthenticated?: () => void;     // Called once on UNAUTHENTICATED (code 16)
   transport?: "grpc-web" | "connect"; // Default: "grpc-web"
+  executionTarget?: "local" | "cloud"; // Default execution target — see "Local Execution"
 }
 ```
 
 Exactly one of `apiKey` or `getAccessToken` must be provided.
+
+## Local Execution
+
+Agent and workflow execution runs in the cloud by default — the Stigmer server provisions a sandbox with a runner. To run execution on the client (a desktop app, CLI, or self-hosted deployment), set the execution target.
+
+### Selecting the target
+
+```typescript
+// App-level default for every session and workflow execution
+const stigmer = new Stigmer({
+  baseUrl: "https://api.stigmer.ai",
+  getAccessToken: () => authStore.getToken(),
+  executionTarget: "local", // "local" | "cloud"; omit to let the server decide
+});
+
+// A per-call executionTarget takes precedence over the app-level default
+const session = await stigmer.session.create({
+  name: "review",
+  org: "my-org",
+  agentInstanceId: "inst-abc",
+  executionTarget: "cloud",
+});
+```
+
+`workflowExecution.create()` accepts the same per-call `executionTarget`.
+
+### `RunnerAdapter`
+
+For local execution, the client owns the runner lifecycle. `@stigmer/sdk` exports the `RunnerAdapter` type so non-React hosts (Node scripts, custom frameworks) can implement it:
+
+```typescript
+import type { RunnerAdapter } from "@stigmer/sdk";
+
+const adapter: RunnerAdapter = {
+  onSessionCreated: async (sessionId) => { /* start a worker for this session */ },
+  onSessionTerminated: async (sessionId) => { /* stop it */ },
+  onWorkflowExecutionCreated: async (executionId) => { /* start a worker */ },
+  onWorkflowExecutionTerminated: async (executionId) => { /* stop it */ },
+};
+```
+
+This package exports the **type only** — there is no runtime helper that calls these methods for you. In a non-React host you wire the adapter to your own create and terminate code paths. In React apps, `@stigmer/react` does this wiring automatically: pass `executionTarget` and `runnerAdapter` to `StigmerProvider` and the SDK hooks invoke the adapter at the right lifecycle points.
+
+See the [`@stigmer/react` local execution docs](../react/README.md#local-execution) and the [runner embedding guide](https://stigmer.ai/docs/guides/runners/embedding) for the full desktop (local) and web (cloud) walkthrough.
 
 ## Code Generation
 

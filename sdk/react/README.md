@@ -58,6 +58,8 @@ Three things are required:
 | `client` | `Stigmer` | Yes | A configured `@stigmer/sdk` client instance. |
 | `colorMode` | `"light" \| "dark" \| "system"` | No | Controls light/dark appearance. Defaults to `"light"`. |
 | `deploymentMode` | `"local" \| "cloud"` | No | Backend deployment mode. Defaults to `"cloud"`. |
+| `executionTarget` | `"local" \| "cloud"` | No | Default execution target for sessions and workflow executions created in this provider. Omit to let the server decide. See [Local Execution](#local-execution). |
+| `runnerAdapter` | `RunnerAdapter` | No | Runner lifecycle adapter, required when `executionTarget` is `"local"`. Omit for cloud. See [Local Execution](#local-execution). |
 | `preset` | `ThemePresetId` | No | Built-in theme preset to apply. Omit for the default Stigmer palette. |
 | `className` | `string` | No | Additional CSS classes on the scoping container. |
 
@@ -196,12 +198,71 @@ Returns `"light"` or `"dark"` — never `"system"`. The provider resolves `"syst
 
 This means you can mount `<StigmerProvider>` inside a sidebar, modal, or any section of your page and Stigmer's styles stay contained.
 
+## Local Execution
+
+By default, agent and workflow execution runs in the cloud — the Stigmer server provisions a sandbox with a runner. Desktop apps, CLIs, and self-hosted deployments can instead run execution on the client. Two provider props control this.
+
+### `executionTarget`
+
+Sets where sessions and workflow executions created within the provider run:
+
+| Value | Behavior |
+|-------|----------|
+| `"local"` | The client provides the runner — a desktop app, CLI, or customer-managed runner process. |
+| `"cloud"` | The server provisions a cloud sandbox automatically. |
+| `undefined` (default) | The server decides based on deployment context — local for OSS/self-hosted, cloud for managed. |
+
+This is an app-level setting: every session and workflow execution created in the provider tree inherits it. For one-off overrides, `@stigmer/sdk` accepts a per-call `executionTarget` on `session.create()` and `workflowExecution.create()`, which takes precedence over the provider value.
+
+### `runnerAdapter`
+
+When `executionTarget` is `"local"`, the SDK must start and stop the client's runner at the right moments. It does this through a `RunnerAdapter` you supply — the SDK never manages runner processes directly.
+
+```tsx
+import { StigmerProvider } from "@stigmer/react";
+import { useTauriRunnerAdapter } from "./useTauriRunnerAdapter";
+
+function App() {
+  const adapter = useTauriRunnerAdapter();
+  return (
+    <StigmerProvider client={client} executionTarget="local" runnerAdapter={adapter}>
+      <YourApp />
+    </StigmerProvider>
+  );
+}
+```
+
+Cloud consumers omit `runnerAdapter` entirely.
+
+#### The `RunnerAdapter` interface
+
+```ts
+interface RunnerAdapter {
+  onSessionCreated(sessionId: string): Promise<void>;
+  onSessionTerminated(sessionId: string): Promise<void>;
+  onWorkflowExecutionCreated(executionId: string): Promise<void>;
+  onWorkflowExecutionTerminated(executionId: string): Promise<void>;
+}
+```
+
+SDK hooks call these methods at the matching lifecycle points — but only when a `runnerAdapter` is provided **and** the resolved execution target is `"local"`. Adapter errors propagate to the caller: a rejected `onSessionCreated` rejects the `useCreateSession` `create()` call, so your UI can surface a runner-start failure instead of failing silently.
+
+| Method | Invoked by | When |
+|--------|------------|------|
+| `onSessionCreated` | `useCreateSession` | After a local session is created. |
+| `onWorkflowExecutionCreated` | `useRunWorkflowFlow` | After a local workflow execution is created. |
+| `onWorkflowExecutionTerminated` | `useWorkflowExecution` | When the execution reaches a terminal phase. |
+
+> **`onSessionTerminated` is not yet invoked automatically.** It is part of the interface, and the desktop adapter implements it, but no hook calls it today. A Session is a long-lived, multi-turn conversation with no terminal phase, so the right trigger for tearing down its runner is a deliberate worker-lifecycle design rather than a phase check. Implement the method, but do not rely on the SDK calling it yet.
+
+Desktop integrators can model their adapter on the reference Tauri implementation. See the [runner embedding guide](https://stigmer.ai/docs/guides/runners/embedding) for the full desktop (local) and web (cloud) walkthrough.
+
 ## Exports
 
 | Import path | Content |
 |-------------|---------|
-| `@stigmer/react` | `StigmerProvider`, `StigmerContext`, `useStigmer`, `useColorMode`, `ColorModeContext` |
-| `@stigmer/react` (types) | `StigmerProviderProps`, `ColorMode`, `ResolvedColorMode` |
+| `@stigmer/react` | `StigmerProvider`, `StigmerContext`, `useStigmer`, `useColorMode`, `ColorModeContext`, `useRunnerAdapter` |
+| `@stigmer/react` (types) | `StigmerProviderProps`, `ColorMode`, `ResolvedColorMode`, `RunnerAdapter` |
 | `@stigmer/react/styles.css` | Compiled stylesheet (import once at app root) |
 
 ## License
