@@ -19,5 +19,7 @@ exclude_path = ["docs/_archive"]
 
 fallback_extensions = ["mdx"]
 no_progress = true
-scheme = ["https", "http"]
+# No `scheme` restriction: validate internal/relative links (which have no URL
+# scheme) in addition to http(s). Restricting to ["https","http"] silently skips
+# every internal /docs/ and relative link, which let dangling links ship.
 accept = ["100..=199", "200..=299", "403", "415"]

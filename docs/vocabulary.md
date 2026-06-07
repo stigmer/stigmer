@@ -4,8 +4,7 @@ This is the single source of truth for all Stigmer terminology. Every
 customer-facing artifact---sales site, documentation, README, tooltips, error
 messages, conference talks---draws its terms and definitions from this document.
 
-**status**: draft, pending review **Created**: 2026-03-31 **Depends on**:
-[Positioning document](../_projects/2026-03/20260331.01.content-strategy/design-decisions/positioning.md)
+**status**: draft, pending review **Created**: 2026-03-31
 
 ## How to use this guide
 
@@ -254,7 +253,7 @@ A process that connects to Stigmer and executes your Agents.
   "runner" when used generically ("start a runner").
 - **API surface**: `kind: Runner`, prefix `rnr`. proto: `runner/v1/api.proto`,
   `runner/v1/spec.proto`, `runner/v1/enum.proto`. CLI: `stigmer up` /
-  `stigmer up runner`, `stigmer down runner`.
+  `stigmer down`.
 - **Key fields**: `status.phase` (Pending, Ready, Busy, Stopped, Failed),
   `status.task_queue` (immutable routing address), `status.connection_info`
   (host name, OS, architecture, runner version), `status.current_executions`.

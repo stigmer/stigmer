@@ -1,4 +1,4 @@
 {
   "title": "Runners",
-  "pages": ["overview", "embedding", "ipc-protocol"]
+  "pages": ["overview", "embedding", "ipc-protocol", "cursor-harness"]
 }

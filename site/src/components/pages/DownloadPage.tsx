@@ -225,7 +225,7 @@ function DownloadPage() {
                 <ul className="space-y-4">
                   <li>
                     <Link
-                      href="/docs/guides/runners/sidecar-setup"
+                      href="/docs/getting-started/quickstart"
                       className="group flex items-start gap-3"
                     >
                       <Icon
@@ -235,18 +235,18 @@ function DownloadPage() {
                       />
                       <div>
                         <span className="text-sm font-medium text-foreground group-hover:underline">
-                          Set up the sidecar
+                          Get started
                         </span>
                         <p className="text-sm text-muted-foreground mt-0.5">
-                          Bundle the CLI in your app, spawn runners, and manage
-                          deep links.
+                          Create your first agent and run a session from the
+                          desktop app.
                         </p>
                       </div>
                     </Link>
                   </li>
                   <li>
                     <Link
-                      href="/docs/guides/runners/local-mode"
+                      href="/docs/concepts/runners"
                       className="group flex items-start gap-3"
                     >
                       <Icon
@@ -256,14 +256,11 @@ function DownloadPage() {
                       />
                       <div>
                         <span className="text-sm font-medium text-foreground group-hover:underline">
-                          Run from the CLI
+                          How execution works
                         </span>
                         <p className="text-sm text-muted-foreground mt-0.5">
-                          Use{" "}
-                          <code className="text-xs font-mono px-1 py-0.5 rounded bg-muted">
-                            stigmer up runner
-                          </code>{" "}
-                          for local or Docker-based runners.
+                          Learn how the desktop runner executes your agents on
+                          your machine.
                         </p>
                       </div>
                     </Link>

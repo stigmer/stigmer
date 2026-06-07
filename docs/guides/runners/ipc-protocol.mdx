@@ -368,7 +368,7 @@ Two hosts in the Stigmer repository implement the protocol and are useful as
 worked examples. They differ in how they treat responses:
 
 - **Rust host crate** —
-  [`crates/stigmer-runner-host`](https://github.com/stigmer/stigmer/blob/main/crates/stigmer-runner-host).
+  [`crates/stigmer-runner-host`](https://github.com/stigmer/stigmer/tree/main/crates/stigmer-runner-host).
   The packaged, reusable driver (`RunnerHost`); the desktop app consumes it. It
   blocks on the `ready` handshake, then drives commands **fire-and-forget**: it
   writes a command to stdin and tracks state locally rather than correlating

@@ -204,7 +204,7 @@ The command and response contract is documented in full in the
 
 If your host is Rust (for example, a Tauri app), do not hand-roll the subprocess
 driver. Use the
-[`stigmer-runner-host`](https://github.com/stigmer/stigmer/blob/main/crates/stigmer-runner-host)
+[`stigmer-runner-host`](https://github.com/stigmer/stigmer/tree/main/crates/stigmer-runner-host)
 crate. It spawns the runner, performs the versioned `ready` handshake, and
 exposes the full lifecycle as an async API:
 
@@ -278,7 +278,7 @@ the subprocess path:
 
 - [`client-apps/desktop/src-tauri/src/runner.rs`](https://github.com/stigmer/stigmer/blob/main/client-apps/desktop/src-tauri/src/runner.rs)
   is a thin binding that re-exports the
-  [`stigmer-runner-host`](https://github.com/stigmer/stigmer/blob/main/crates/stigmer-runner-host)
+  [`stigmer-runner-host`](https://github.com/stigmer/stigmer/tree/main/crates/stigmer-runner-host)
   crate, which spawns the bundled runner with `STIGMER_RUNNER_MODE=manager` and
   drives the IPC protocol from Rust.
 - [`client-apps/desktop/src/hooks/useEmbeddedRunner.ts`](https://github.com/stigmer/stigmer/blob/main/client-apps/desktop/src/hooks/useEmbeddedRunner.ts)
@@ -304,17 +304,6 @@ Local execution involves four independent settings. Keep them distinct:
 In particular, "local execution" (`executionTarget`) is not the same as "an OSS
 deployment" (`deploymentMode`). The desktop app runs local execution against
 Stigmer Cloud.
-
-## Related console UI
-
-This guide covers hosting the runner in code. The runner fleet that appears in
-the Stigmer Console — the list, picker, and detail views — is documented in the
-[React SDK runner reference](/docs/sdk/react/runner).
-
-A separate, lighter integration model lets your app delegate to an already
-installed Stigmer CLI or desktop app through `stigmer://` deep links, rather
-than hosting the runner yourself. That model uses different SDK hooks
-(`useLaunchLocalRunner`, `useRunnerCredential`) and is not covered here.
 
 ## What's next
 
