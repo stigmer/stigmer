@@ -13,6 +13,18 @@ When triggered, create a Git commit with an appropriate commit message following
 
 **Action Rule** - Executes git commit operations
 
+## Important: Planning & History Live in stigmer-cloud
+
+This repo (`stigmer`, OSS) **no longer tracks** `_changelog/`, `_projects/`, `_roles/`, `_investigations/`, or `.cursor/plans/`. Those internal planning and history artifacts were migrated to the private `stigmer-cloud` repo and are git-ignored here.
+
+When committing OSS code changes, remember the corresponding artifacts go to the **cloud** repo, not here:
+
+- **Changelog** for this work -> create it in `stigmer-cloud` via `@create-stigmer-cloud-changelog` (it writes into the cloud `_changelog/`, tagged `**Repo**: stigmer (OSS)`).
+- **Project/session docs** (`next-task.md`, checkpoints) -> update in `stigmer-cloud` via `@wrap-up-stigmer-cloud-project-session`.
+- **Plans** -> live under `stigmer-cloud/.cursor/plans/`.
+
+This commit rule itself only commits **code/docs that remain tracked in the OSS repo**. Never re-add the migrated folders here (they are in `.gitignore`).
+
 ## When to Use
 
 - When user explicitly asks to commit changes
