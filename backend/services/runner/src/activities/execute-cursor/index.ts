@@ -49,6 +49,7 @@ import { TodoTracker } from "./todo-tracker.js";
 import { createCursorEventRecorder } from "./cursor-event-recorder.js";
 import { resolveMcpServers, validateMcpServerEnv } from "./mcp-resolver.js";
 import { mergeApprovalPolicies } from "./approval-policy.js";
+import { hasApproveAllDecision } from "../../shared/approval-policy.js";
 import { backfillMcpServersIfNeeded } from "./connect-backfill.js";
 import { resolveExecutionEnv } from "./env-resolver.js";
 import { resolveBlueprint } from "./blueprint-resolver.js";
@@ -234,13 +235,22 @@ async function executeCursorInner(
     );
     const mcpConfig = mcpResolution.cursorConfig;
 
-    // Phase 4b: Merge approval policies from all layers
+    // Phase 4b: Merge approval policies from all layers.
+    //
+    // Effective auto-approve is true when EITHER the execution was pre-armed via
+    // spec.auto_approve_all OR a user chose APPROVE_ALL ("approve and don't ask
+    // again") at some gate earlier in this run. The shared hasApproveAllDecision
+    // helper (used by the native harness too) keeps this contract defined once.
+    // When true, the merged policy map is empty and the hook state file disables
+    // gating for the rest of the run.
+    const effectiveAutoApproveAll =
+      (execution.spec?.autoApproveAll ?? false) || hasApproveAllDecision(execution);
     const agentOverrides = blueprint.mergedMcpServerUsages
       .flatMap((u) => u.toolApprovalOverrides ?? []);
     const mergedPolicies = mergeApprovalPolicies(
       mcpResolution.resolvedServers,
       agentOverrides,
-      execution.spec?.autoApproveAll ?? false,
+      effectiveAutoApproveAll,
     );
     heartbeat();
 
@@ -362,7 +372,7 @@ async function executeCursorInner(
       : undefined;
     const approvalState = buildApprovalState(
       mergedPolicies,
-      execution.spec?.autoApproveAll ?? false,
+      effectiveAutoApproveAll,
       approvalGrants,
     );
     await writeHooksToWorkspace(primaryWorkspaceDir, approvalState);

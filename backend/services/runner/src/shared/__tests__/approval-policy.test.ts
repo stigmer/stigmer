@@ -11,9 +11,42 @@ import {
   mergeApprovalPolicies,
   lookupMcpToolPolicy,
   resolveApprovalMessage,
+  hasApproveAllDecision,
 } from "../approval-policy.js";
 import type { ResolvedMcpServer } from "../mcp-resolver.js";
 import type { ToolApprovalOverride } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+
+/**
+ * Builds a minimal AgentExecution shaped just enough for
+ * hasApproveAllDecision, which only reads tool-call approval actions on
+ * root and sub-agent messages.
+ */
+function makeExecution(opts: {
+  rootActions?: ApprovalAction[];
+  subAgentActions?: ApprovalAction[];
+  hasStatus?: boolean;
+}): AgentExecution {
+  const hasStatus = opts.hasStatus ?? true;
+  if (!hasStatus) {
+    return { status: undefined } as unknown as AgentExecution;
+  }
+  return {
+    status: {
+      messages: [
+        { toolCalls: (opts.rootActions ?? []).map(a => ({ approvalAction: a })) },
+      ],
+      subAgentExecutions: [
+        {
+          messages: [
+            { toolCalls: (opts.subAgentActions ?? []).map(a => ({ approvalAction: a })) },
+          ],
+        },
+      ],
+    },
+  } as unknown as AgentExecution;
+}
 
 function makeServer(
   slug: string,
@@ -122,6 +155,35 @@ describe("mergeApprovalPolicies", () => {
     expect(result.size).toBe(2);
     expect(result.has("github/push")).toBe(true);
     expect(result.has("database/drop_table")).toBe(true);
+  });
+});
+
+describe("hasApproveAllDecision", () => {
+  it("returns false when there is no status", () => {
+    expect(hasApproveAllDecision(makeExecution({ hasStatus: false }))).toBe(false);
+  });
+
+  it("returns false when no tool call carries APPROVE_ALL", () => {
+    const exec = makeExecution({
+      rootActions: [ApprovalAction.APPROVE, ApprovalAction.SKIP],
+      subAgentActions: [ApprovalAction.REJECT],
+    });
+    expect(hasApproveAllDecision(exec)).toBe(false);
+  });
+
+  it("detects APPROVE_ALL on a root message tool call", () => {
+    const exec = makeExecution({
+      rootActions: [ApprovalAction.APPROVE, ApprovalAction.APPROVE_ALL],
+    });
+    expect(hasApproveAllDecision(exec)).toBe(true);
+  });
+
+  it("detects APPROVE_ALL on a sub-agent message tool call", () => {
+    const exec = makeExecution({
+      rootActions: [ApprovalAction.APPROVE],
+      subAgentActions: [ApprovalAction.APPROVE_ALL],
+    });
+    expect(hasApproveAllDecision(exec)).toBe(true);
   });
 });
 

@@ -28,6 +28,12 @@ const OPTIONS: readonly ActionOption[] = [
     shortcut: "y",
   },
   {
+    label: "Approve & don't ask again",
+    action: ApprovalAction.APPROVE_ALL,
+    color: "green",
+    shortcut: "a",
+  },
+  {
     label: "Reject",
     action: ApprovalAction.REJECT,
     color: "red",
@@ -45,9 +51,10 @@ const OPTIONS: readonly ActionOption[] = [
  * HITL approval prompt for tool call authorization.
  *
  * Displays the tool name and args preview, then presents
- * Approve/Reject/Skip options navigable via arrow keys or
- * shortcut keys (y/n/s). Press Enter to confirm the highlighted
- * selection.
+ * Approve/Approve-all/Reject/Skip options navigable via arrow keys
+ * or shortcut keys (y/a/n/s). Press Enter to confirm the highlighted
+ * selection. "Approve & don't ask again" (a) maps to APPROVE_ALL, which
+ * stops gating the rest of the run.
  */
 export function ApprovalPrompt({
   pendingApproval,

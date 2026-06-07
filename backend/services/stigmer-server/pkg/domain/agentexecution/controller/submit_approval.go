@@ -31,13 +31,18 @@ const (
 //
 //   - Execution must be in EXECUTION_WAITING_FOR_APPROVAL or EXECUTION_IN_PROGRESS phase
 //   - tool_call_id must reference a ToolCall with status TOOL_CALL_WAITING_APPROVAL
-//   - action must be APPROVE, SKIP, or REJECT (not UNSPECIFIED)
+//   - action must be APPROVE, SKIP, REJECT, or APPROVE_ALL (not UNSPECIFIED)
 //
 // ## Behavior by Action
 //
 //   - APPROVE: Tool executes normally, execution resumes to IN_PROGRESS
 //   - SKIP: Tool returns skip message to LLM, execution continues to IN_PROGRESS
 //   - REJECT: Execution fails with rejection error, phase becomes FAILED
+//   - APPROVE_ALL: Like APPROVE for the clicked tool, but also resolves the rest
+//     of the current gate — every other tool call still WAITING_APPROVAL (root
+//     and sub-agents) is set to APPROVE. pending_approvals becomes empty, so the
+//     gate resolves in one action. The runner then treats the rest of the
+//     execution as auto-approved (see ApprovalAction doc in enum.proto).
 //
 // ## Immediate State Transitions (in this handler)
 //
@@ -295,6 +300,19 @@ func (s *recordApprovalDecisionStep) Execute(ctx *pipeline.RequestContext[*agent
 			tc.ApprovalAction = action
 			tc.ApprovalDecidedAt = now
 
+			// APPROVE_ALL ("approve and don't ask again") resolves the entire
+			// current gate in one decision: every other tool call still waiting
+			// for approval (root and sub-agents) is auto-approved. The clicked
+			// tool keeps APPROVE_ALL as its recorded action — that single entry
+			// marks where the user opted into trusting the rest of the run; the
+			// co-pending tools carry a plain APPROVE so the audit trail stays
+			// honest (every executed tool shows an explicit decision). The runner
+			// detects the APPROVE_ALL decision in history and skips the gate for
+			// all subsequent tool calls in this execution.
+			if action == agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE_ALL {
+				bulkApproveCoPendingToolCalls(updated, toolCallId, now)
+			}
+
 			if updated.Status == nil {
 				updated.Status = &agentexecutionv1.AgentExecutionStatus{}
 			}
@@ -521,6 +539,44 @@ func (s *buildApprovalResponseStep) Execute(ctx *pipeline.RequestContext[*agente
 	// immediately; further updates arrive via the Subscribe stream as Python resumes.
 
 	return nil
+}
+
+// bulkApproveCoPendingToolCalls implements the gate-resolving half of an
+// APPROVE_ALL decision. It scans the same surface as findToolCallInExecution
+// (root messages and sub-agent messages) and sets every tool call still
+// WAITING_APPROVAL with no recorded decision to APPROVE.
+//
+// The tool the user clicked (clickedToolCallID) is skipped here — its action is
+// already set to APPROVE_ALL by the caller. Recording APPROVE on the co-pending
+// tools (rather than APPROVE_ALL) keeps the audit trail unambiguous: exactly one
+// tool carries APPROVE_ALL, marking the user's escalation point.
+func bulkApproveCoPendingToolCalls(execution *agentexecutionv1.AgentExecution, clickedToolCallID, decidedAt string) {
+	approveIfWaiting := func(tc *agentexecutionv1.ToolCall) {
+		if tc.GetId() == clickedToolCallID {
+			return
+		}
+		if tc.GetStatus() != agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL {
+			return
+		}
+		if tc.GetApprovalAction() != agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED {
+			return
+		}
+		tc.ApprovalAction = agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE
+		tc.ApprovalDecidedAt = decidedAt
+	}
+
+	for _, msg := range execution.GetStatus().GetMessages() {
+		for _, tc := range msg.GetToolCalls() {
+			approveIfWaiting(tc)
+		}
+	}
+	for _, sa := range execution.GetStatus().GetSubAgentExecutions() {
+		for _, msg := range sa.GetMessages() {
+			for _, tc := range msg.GetToolCalls() {
+				approveIfWaiting(tc)
+			}
+		}
+	}
 }
 
 // findToolCallInExecution searches for a ToolCall by ID in messages (root and

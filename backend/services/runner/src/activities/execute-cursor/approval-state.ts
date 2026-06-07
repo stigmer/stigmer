@@ -91,7 +91,13 @@ export function buildApprovalGrants(
 ): ApprovalGrant[] {
   const grants: ApprovalGrant[] = [];
   for (const pa of pendingApprovals) {
-    if (decisions.get(pa.toolCallId) !== ApprovalAction.APPROVE) continue;
+    // Both APPROVE and APPROVE_ALL allow the adjudicated tool through on the
+    // resumed turn. APPROVE_ALL additionally flips autoApproveAll for the whole
+    // run (handled by the caller via hasApproveAllDecision), but we still emit a
+    // grant here so the clicked tool is allowed regardless of how the hook reads
+    // the state file.
+    const decision = decisions.get(pa.toolCallId);
+    if (decision !== ApprovalAction.APPROVE && decision !== ApprovalAction.APPROVE_ALL) continue;
 
     const argKey = pa.mcpServerSlug ? "" : extractArgKey(parseArgs(pa.argsPreview));
     grants.push({

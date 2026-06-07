@@ -13,7 +13,38 @@
 
 import type { ToolApprovalPolicy } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import type { ToolApprovalOverride } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ResolvedMcpServer } from "./mcp-resolver.js";
+
+/**
+ * Returns true if any tool call in the execution history (root or sub-agent)
+ * carries an APPROVE_ALL decision.
+ *
+ * This is the runner-side realization of the APPROVE_ALL contract (see the
+ * ApprovalAction doc in enum.proto): once a user has chosen "approve and don't
+ * ask again" at any gate, the rest of THIS execution runs un-gated — exactly as
+ * if spec.auto_approve_all were true. Both harnesses (native deepagents and
+ * cursor) call this so the behavior is defined in exactly one place.
+ */
+export function hasApproveAllDecision(execution: AgentExecution): boolean {
+  const status = execution.status;
+  if (!status) return false;
+
+  for (const message of status.messages) {
+    for (const tc of message.toolCalls) {
+      if (tc.approvalAction === ApprovalAction.APPROVE_ALL) return true;
+    }
+  }
+  for (const sa of status.subAgentExecutions) {
+    for (const message of sa.messages) {
+      for (const tc of message.toolCalls) {
+        if (tc.approvalAction === ApprovalAction.APPROVE_ALL) return true;
+      }
+    }
+  }
+  return false;
+}
 
 export interface MergedToolPolicy {
   toolName: string;

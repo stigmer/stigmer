@@ -343,7 +343,7 @@ func TruncateContent(content string, maxLines, maxWidth int) string {
 // green for approved, red for rejected, dim for skipped/unknown.
 func approvalBullet(action string) string {
 	switch action {
-	case "approve":
+	case "approve", "approve-all":
 		return bulletStyle.Render("●")
 	case "reject":
 		return rejectBulletStyle.Render("●")
@@ -375,7 +375,7 @@ func renderApprovalHeader(tc ToolCallInfo, info toolDisplayInfo, action string, 
 // write to config.go", "User skipped write to config.go").
 func buildApprovalConnector(action string, approvedText string, tc ToolCallInfo) string {
 	switch action {
-	case "approve":
+	case "approve", "approve-all":
 		return dimStyle.Render("└ " + approvedText)
 	case "reject":
 		info, known := toolDisplayMap[tc.Name]
@@ -442,7 +442,7 @@ func approvalVerb(label string) string {
 // user can see what was proposed. Shell-approve is excluded because the
 // output streams separately. Delete has no content body.
 func shouldShowApprovalPreview(action string, label string) bool {
-	if isShellLabel(label) && action == "approve" {
+	if isShellLabel(label) && (action == "approve" || action == "approve-all") {
 		return false
 	}
 	if label == "Delete" {

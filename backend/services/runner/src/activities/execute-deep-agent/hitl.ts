@@ -21,8 +21,14 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 
+// APPROVE_ALL resumes the interrupted tool exactly like APPROVE. Its
+// "auto-approve the rest of the run" effect is realized in setup.ts (the
+// approval gate is disabled for the whole execution once any APPROVE_ALL
+// decision exists), not here — this map only resolves the currently
+// interrupted tool calls.
 const ACTION_MAP: ReadonlyMap<ApprovalAction, string> = new Map([
   [ApprovalAction.APPROVE, "approve"],
+  [ApprovalAction.APPROVE_ALL, "approve"],
   [ApprovalAction.SKIP, "skip"],
   [ApprovalAction.REJECT, "reject"],
 ]);
@@ -200,6 +206,7 @@ export function reconcileToolCallStatuses(
 
     switch (decision.action) {
       case ApprovalAction.APPROVE:
+      case ApprovalAction.APPROVE_ALL:
         tc.status = ToolCallStatus.TOOL_CALL_RUNNING;
         break;
       case ApprovalAction.SKIP:

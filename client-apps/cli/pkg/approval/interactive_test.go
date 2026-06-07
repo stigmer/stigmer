@@ -32,6 +32,11 @@ func TestAction_String(t *testing.T) {
 			expected: "Reject",
 		},
 		{
+			name:     "ActionApproveAll",
+			action:   ActionApproveAll,
+			expected: "Approve & don't ask again",
+		},
+		{
 			name:     "ActionUnspecified",
 			action:   ActionUnspecified,
 			expected: "Unspecified",

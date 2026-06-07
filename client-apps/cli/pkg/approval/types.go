@@ -16,6 +16,12 @@ const (
 
 	// ActionReject fails the execution immediately with rejection error.
 	ActionReject
+
+	// ActionApproveAll approves this tool call and stops gating the rest of the
+	// run ("approve and don't ask again"). The control plane auto-approves every
+	// co-pending tool call and the runner skips the gate for the remainder of
+	// this execution, so the CLI receives no further prompts for it.
+	ActionApproveAll
 )
 
 // String returns the human-readable action name.
@@ -27,6 +33,8 @@ func (a Action) String() string {
 		return "Skip"
 	case ActionReject:
 		return "Reject"
+	case ActionApproveAll:
+		return "Approve & don't ask again"
 	default:
 		return "Unspecified"
 	}

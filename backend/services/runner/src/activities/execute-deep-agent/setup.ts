@@ -47,6 +47,7 @@ import {
 } from "../../shared/artifact-storage.js";
 import {
   mergeApprovalPolicies,
+  hasApproveAllDecision,
   type MergedToolPolicy,
 } from "../../shared/approval-policy.js";
 import {
@@ -274,7 +275,15 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
     }
 
     // Step 10b: Resolve approval policies
-    const autoApproveAll = execution.spec!.autoApproveAll ?? false;
+    //
+    // Effective auto-approve is true when EITHER the execution was pre-armed via
+    // spec.auto_approve_all (CLI --auto-approve, API, CI/CD) OR a user chose
+    // APPROVE_ALL ("approve and don't ask again") at some gate earlier in this
+    // run. In both cases the gate is disabled for the rest of the execution, and
+    // the value propagates to mergeApprovalPolicies and (below) to sub-agents so
+    // they inherit it. See the ApprovalAction doc in enum.proto.
+    const autoApproveAll =
+      (execution.spec!.autoApproveAll ?? false) || hasApproveAllDecision(execution);
     const agentOverrides = agent.spec!.mcpServerUsages?.flatMap(
       u => u.toolApprovalOverrides ?? [],
     ) ?? [];

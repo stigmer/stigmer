@@ -282,7 +282,8 @@
             "enumValues": [
               "APPROVAL_ACTION_APPROVE",
               "APPROVAL_ACTION_SKIP",
-              "APPROVAL_ACTION_REJECT"
+              "APPROVAL_ACTION_REJECT",
+              "APPROVAL_ACTION_APPROVE_ALL"
             ]
           },
           "description": "Approval decision: APPROVE, SKIP, or REJECT.\n\n @internal\n APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.",
@@ -1601,6 +1602,11 @@
           "name": "APPROVAL_ACTION_REJECT",
           "number": 3,
           "description": "Reject tool execution, fail the entire execution.\n Execution phase transitions to FAILED.\n Error message includes rejection reason from user's comment."
+        },
+        {
+          "name": "APPROVAL_ACTION_APPROVE_ALL",
+          "number": 4,
+          "description": "Approve this tool call AND auto-approve every subsequent tool call for\n the rest of this execution (\"approve and don't ask again\").\n\n This is the gate-time analog of AgentExecutionSpec.auto_approve_all: it\n lets a human escalate from per-call approval to \"trust the rest of this\n run\" at the moment of friction, instead of pre-arming a bypass before the\n agent has done anything.\n\n ## Canonical contract (every layer derives its behavior from this)\n\n 1. Control plane (SubmitApproval handler): record APPROVE_ALL on the\n    clicked tool call, and resolve the rest of the *current* approval gate\n    by setting every other tool call still in TOOL_CALL_WAITING_APPROVAL\n    (action UNSPECIFIED) — including sub-agent tool calls — to\n    APPROVAL_ACTION_APPROVE. pending_approvals is recomputed to empty, so\n    the standard \"gate fully resolved\" path sends the approvalGateResolved\n    signal. This keeps the audit trail honest: every tool that runs carries\n    an explicit approval_action.\n\n 2. Runner (native + cursor harness): on reinvocation, the presence of ANY\n    APPROVE_ALL decision in the persisted execution history means the\n    execution is auto-approved for the remainder of the run. New tool calls\n    (and sub-agent tool calls) skip the approval gate entirely, exactly as\n    if spec.auto_approve_all were true. The interrupted tool itself resumes\n    as an approval.\n\n ## Scope\n\n APPROVE_ALL covers the rest of THIS execution. It is NOT persisted to the\n session or the agent; a subsequent execution starts gated again unless the\n caller sets it anew (interactive clients may carry a session-scoped\n preference forward in-memory, but that is a client concern, not a\n server-persisted state).\n\n ## Audit\n\n Because this bypasses all remaining approval checks for the execution,\n executions containing an APPROVE_ALL decision should be auditable. The\n decision is recorded on ToolCall.approval_action like any other."
         }
       ]
     },

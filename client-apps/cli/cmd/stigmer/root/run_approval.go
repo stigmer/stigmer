@@ -26,6 +26,8 @@ func mapApprovalAction(action approval.Action) agentexecutionv1.ApprovalAction {
 		return agentexecutionv1.ApprovalAction_APPROVAL_ACTION_SKIP
 	case approval.ActionReject:
 		return agentexecutionv1.ApprovalAction_APPROVAL_ACTION_REJECT
+	case approval.ActionApproveAll:
+		return agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE_ALL
 	default:
 		return agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED
 	}
@@ -112,6 +114,8 @@ func displayApprovalSubmitted(action approval.Action) {
 	switch action {
 	case approval.ActionApprove:
 		climsg.Success("Tool execution approved")
+	case approval.ActionApproveAll:
+		climsg.Success("Tool execution approved — remaining tool calls in this run will be auto-approved")
 	case approval.ActionSkip:
 		climsg.Warning("Tool execution skipped")
 	case approval.ActionReject:

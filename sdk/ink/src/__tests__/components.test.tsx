@@ -1,14 +1,16 @@
 import React from "react";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render } from "ink-testing-library";
 import { Text, Box } from "ink";
 import { create } from "@bufbuild/protobuf";
 import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { MessageType, ExecutionPhase, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { MessageType, ExecutionPhase, ToolCallStatus, ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import { MessageEntry } from "../components/MessageEntry.js";
 import { ExecutionProgress } from "../components/ExecutionProgress.js";
 import { ToolCallItem } from "../components/ToolCallItem.js";
+import { ApprovalPrompt } from "../components/ApprovalPrompt.js";
 
 describe("MessageEntry", () => {
   it("renders a human message with 'You' prefix", () => {
@@ -120,7 +122,7 @@ describe("ToolCallItem", () => {
 
     const { lastFrame } = render(<ToolCallItem toolCall={tc} />);
     const output = lastFrame() ?? "";
-    expect(output).toContain("read_file");
+    expect(output).toContain("Read");
     expect(output).toContain("✓");
   });
 
@@ -132,7 +134,7 @@ describe("ToolCallItem", () => {
 
     const { lastFrame } = render(<ToolCallItem toolCall={tc} />);
     const output = lastFrame() ?? "";
-    expect(output).toContain("write_file");
+    expect(output).toContain("Write");
     expect(output).toContain("running");
   });
 
@@ -158,5 +160,50 @@ describe("ToolCallItem", () => {
     const { lastFrame } = render(<ToolCallItem toolCall={tc} />);
     const output = lastFrame() ?? "";
     expect(output).toContain("github/list_resources");
+  });
+});
+
+describe("ApprovalPrompt", () => {
+  it("offers Approve, Approve & don't ask again, Reject, and Skip", () => {
+    const pending = create(PendingApprovalSchema);
+    pending.toolCallId = "tc-1";
+    pending.toolName = "write_file";
+
+    const { lastFrame } = render(
+      <ApprovalPrompt pendingApproval={pending} onSubmit={() => {}} />,
+    );
+    const output = lastFrame() ?? "";
+    expect(output).toContain("[y] Approve");
+    expect(output).toContain("[a] Approve & don't ask again");
+    expect(output).toContain("[n] Reject");
+    expect(output).toContain("[s] Skip");
+  });
+
+  it("submits APPROVE_ALL when the 'a' shortcut is pressed", () => {
+    const pending = create(PendingApprovalSchema);
+    pending.toolCallId = "tc-1";
+    pending.toolName = "write_file";
+    const onSubmit = vi.fn();
+
+    const { stdin } = render(
+      <ApprovalPrompt pendingApproval={pending} onSubmit={onSubmit} />,
+    );
+    stdin.write("a");
+
+    expect(onSubmit).toHaveBeenCalledWith(ApprovalAction.APPROVE_ALL);
+  });
+
+  it("submits APPROVE when the 'y' shortcut is pressed", () => {
+    const pending = create(PendingApprovalSchema);
+    pending.toolCallId = "tc-1";
+    pending.toolName = "write_file";
+    const onSubmit = vi.fn();
+
+    const { stdin } = render(
+      <ApprovalPrompt pendingApproval={pending} onSubmit={onSubmit} />,
+    );
+    stdin.write("y");
+
+    expect(onSubmit).toHaveBeenCalledWith(ApprovalAction.APPROVE);
   });
 });

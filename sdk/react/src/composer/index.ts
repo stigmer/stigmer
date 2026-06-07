@@ -13,6 +13,3 @@ export type {
   InteractionModePickerProps,
   InteractionModeOption,
 } from "./InteractionModePicker";
-
-export { AutoApproveToggle } from "./AutoApproveToggle";
-export type { AutoApproveToggleProps } from "./AutoApproveToggle";

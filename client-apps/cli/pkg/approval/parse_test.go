@@ -12,6 +12,9 @@ func TestParseAction_ValidValues(t *testing.T) {
 		{"approve", ActionApprove},
 		{"skip", ActionSkip},
 		{"reject", ActionReject},
+		{"approve-all", ActionApproveAll},
+		{"approve_all", ActionApproveAll},
+		{"approveall", ActionApproveAll},
 	}
 
 	for _, tt := range tests {
@@ -39,6 +42,8 @@ func TestParseAction_CaseInsensitive(t *testing.T) {
 		{"Skip", ActionSkip},
 		{"REJECT", ActionReject},
 		{"Reject", ActionReject},
+		{"APPROVE-ALL", ActionApproveAll},
+		{"Approve-All", ActionApproveAll},
 	}
 
 	for _, tt := range tests {
@@ -110,7 +115,7 @@ func TestParseAction_ErrorMessage(t *testing.T) {
 		t.Fatal("expected error for invalid input")
 	}
 
-	expected := `invalid approval action "invalid": must be one of: approve, skip, reject`
+	expected := `invalid approval action "invalid": must be one of: approve, skip, reject, approve-all`
 	if err.Error() != expected {
 		t.Errorf("error message = %q, want %q", err.Error(), expected)
 	}

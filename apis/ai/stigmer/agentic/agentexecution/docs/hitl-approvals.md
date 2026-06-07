@@ -143,17 +143,20 @@ stigmer agent execution reject aex_abc123 \
   --comment "Wrong repository — this looks like a mistake"
 ```
 
-### Three Possible Decisions
+### Four Possible Decisions
 
 | Decision | `ApprovalAction` | Effect on ToolCall | Effect on Execution |
 |---|---|---|---|
 | Approve | `APPROVAL_ACTION_APPROVE` | `TOOL_CALL_RUNNING` → `TOOL_CALL_COMPLETED` | Phase returns to `EXECUTION_IN_PROGRESS` |
 | Skip | `APPROVAL_ACTION_SKIP` | `TOOL_CALL_SKIPPED` (terminal) | Phase returns to `EXECUTION_IN_PROGRESS`. LLM receives: "Tool was skipped by user." |
 | Reject | `APPROVAL_ACTION_REJECT` | Stays in `TOOL_CALL_WAITING_APPROVAL` | Phase transitions to `EXECUTION_FAILED` |
+| Approve all | `APPROVAL_ACTION_APPROVE_ALL` | `TOOL_CALL_RUNNING` → `TOOL_CALL_COMPLETED`; every co-pending tool resolves to APPROVE | Phase returns to `EXECUTION_IN_PROGRESS`; the rest of this execution runs un-gated |
 
 **On Skip:** The LLM receives a message: `"Tool '{name}' was skipped by user. Please proceed without this operation."` This allows the agent to adapt its plan and continue execution without the skipped tool's result.
 
 **On Reject:** The entire execution fails immediately. The rejection error message (from the optional `comment`) is stored in `status.error`.
+
+**On Approve all ("approve and don't ask again"):** The clicked tool is approved, and every other tool call currently in `TOOL_CALL_WAITING_APPROVAL` is resolved to APPROVE so the gate clears in one action. For the remainder of this execution, new tool calls (including sub-agent tool calls) skip the approval gate entirely — the gate-time equivalent of `auto_approve_all`. The scope is the current execution only; it is not persisted to the session or agent. Interactive clients may carry a session-scoped preference forward in-memory (reset on reload), but the server persists no such state.
 
 ---
 
@@ -166,7 +169,9 @@ Every approval decision is recorded in the `ToolCall` fields:
 | `approval_requested_at` | When approval was requested |
 | `approval_decided_at` | When the decision was submitted |
 | `approved_by` | User ID who made the decision (from authentication context) |
-| `approval_action` | The action taken (APPROVE, SKIP, REJECT) |
+| `approval_action` | The action taken (APPROVE, SKIP, REJECT, APPROVE_ALL) |
+
+When a user chooses **Approve all**, the co-pending tool calls that are auto-resolved carry `approval_action = APPROVAL_ACTION_APPROVE`, while the tool the user actually clicked carries `APPROVAL_ACTION_APPROVE_ALL`. This keeps the trail honest: every executed tool shows an explicit decision, and the single APPROVE_ALL entry marks where the user opted into trusting the rest of the run.
 
 This provides a complete audit trail: who approved or rejected what tool call, when, and on which execution.
 

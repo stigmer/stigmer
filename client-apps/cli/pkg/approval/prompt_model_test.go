@@ -26,8 +26,8 @@ func TestPromptModel_InitialState(t *testing.T) {
 	if m.sessionExit {
 		t.Error("expected not sessionExit initially")
 	}
-	if len(m.choices) != 3 {
-		t.Errorf("expected 3 choices, got %d", len(m.choices))
+	if len(m.choices) != 4 {
+		t.Errorf("expected 4 choices, got %d", len(m.choices))
 	}
 	if !m.askComment {
 		t.Error("expected askComment to be true when created with true")
@@ -105,13 +105,31 @@ func TestPromptModel_NavigateUp_AtTop_StaysAtTop(t *testing.T) {
 
 func TestPromptModel_NavigateDown_AtBottom_StaysAtBottom(t *testing.T) {
 	m := newPromptModel(true)
-	m.cursor = 2
+	m.cursor = 3 // last choice (Reject)
 
 	updated, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyDown})
 	result := updated.(promptModel)
 
-	if result.cursor != 2 {
-		t.Errorf("expected cursor to stay at 2, got %d", result.cursor)
+	if result.cursor != 3 {
+		t.Errorf("expected cursor to stay at 3, got %d", result.cursor)
+	}
+}
+
+func TestPromptModel_SelectApproveAll(t *testing.T) {
+	m := newPromptModel(true)
+	m.cursor = 1 // Approve & don't ask again
+
+	updated, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
+	result := updated.(promptModel)
+
+	if result.decision == nil {
+		t.Fatal("expected decision to be set")
+	}
+	if result.decision.Action != ActionApproveAll {
+		t.Errorf("expected ActionApproveAll, got %v", result.decision.Action)
+	}
+	if result.phase != phaseSelect {
+		t.Errorf("expected to remain in phaseSelect after ApproveAll, got %v", result.phase)
 	}
 }
 
@@ -139,7 +157,7 @@ func TestPromptModel_SelectApprove(t *testing.T) {
 
 func TestPromptModel_SelectSkip(t *testing.T) {
 	m := newPromptModel(true)
-	m.cursor = 1 // Skip
+	m.cursor = 2 // Skip
 
 	updated, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 	result := updated.(promptModel)
@@ -154,7 +172,7 @@ func TestPromptModel_SelectSkip(t *testing.T) {
 
 func TestPromptModel_SelectReject_WithComment_TransitionsToComment(t *testing.T) {
 	m := newPromptModel(true) // askComment = true
-	m.cursor = 2              // Reject
+	m.cursor = 3              // Reject
 
 	updated, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 	result := updated.(promptModel)
@@ -172,7 +190,7 @@ func TestPromptModel_SelectReject_WithComment_TransitionsToComment(t *testing.T)
 
 func TestPromptModel_SelectReject_WithoutComment_QuitsImmediately(t *testing.T) {
 	m := newPromptModel(false) // askComment = false
-	m.cursor = 2               // Reject
+	m.cursor = 3               // Reject
 
 	updated, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 	result := updated.(promptModel)

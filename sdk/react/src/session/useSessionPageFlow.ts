@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { McpServerUsageInput, ResourceRef } from "@stigmer/sdk";
+import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { AgentResolution } from "../agent";
 import { useDefaultAgent } from "../agent";
 import { useStigmer } from "../hooks";
@@ -86,6 +87,31 @@ export interface UseSessionPageFlowReturn {
   readonly workspace: UseWorkspaceEntriesReturn;
   /** Session variables (per-execution secrets) manager. */
   readonly sessionVariables: UseSessionVariablesReturn;
+
+  /**
+   * Session-scoped "auto-approve tool calls" preference.
+   *
+   * `false` by default. Flipped to `true` when the user chooses
+   * "Approve & don't ask again" at an approval gate (see {@link submitApproval}),
+   * and carried into every subsequent follow-up via {@link handleSubmit}. Held in
+   * memory only — reset on reload / new session, never persisted server-side.
+   */
+  readonly autoApproveAll: boolean;
+  /**
+   * Toggle the session-scoped auto-approve preference. The reversible "Turn off"
+   * control in the UI calls this with `false`.
+   */
+  readonly setAutoApproveAll: (value: boolean) => void;
+
+  /**
+   * Submit an approval decision for a pending tool call.
+   *
+   * Wraps {@link UseSessionConversationReturn.submitApproval}: when the action is
+   * `APPROVAL_ACTION_APPROVE_ALL`, it also flips the session-scoped
+   * {@link autoApproveAll} preference so future follow-ups skip the gate. The
+   * server independently auto-approves the rest of the current execution.
+   */
+  readonly submitApproval: UseSessionConversationReturn["submitApproval"];
 
   /**
    * Submit a follow-up message. Handles agent override resolution
@@ -186,6 +212,24 @@ export function useSessionPageFlow(
   const [skillRefs, setSkillRefs] = useState<ResourceRef[]>([]);
   const initialSyncDone = useRef(false);
 
+  // Session-scoped auto-approve, set at the approval gate (not pre-armed in the
+  // composer). Lives only in memory for the life of this page — reset on reload.
+  const [autoApproveAll, setAutoApproveAll] = useState(false);
+
+  const submitApproval = useCallback<UseSessionConversationReturn["submitApproval"]>(
+    async (toolCallId, action, comment) => {
+      // "Approve & don't ask again": remember the choice for the rest of this
+      // live session so future follow-ups carry auto_approve_all. The control
+      // plane separately resolves the current execution's remaining gates and
+      // the runner skips the gate for the rest of that run.
+      if (action === ApprovalAction.APPROVE_ALL) {
+        setAutoApproveAll(true);
+      }
+      await conv.submitApproval(toolCallId, action, comment);
+    },
+    [conv.submitApproval],
+  );
+
   // -------------------------------------------------------------------------
   // Agent — derive from session, allow mid-session changes
   // -------------------------------------------------------------------------
@@ -283,13 +327,15 @@ export function useSessionPageFlow(
         runtimeEnv: context?.runtimeEnv,
         attachments: context?.attachments,
         interactionMode: context?.interactionMode,
-        autoApproveAll: context?.autoApproveAll,
+        // Sourced from the session-scoped preference set at the approval gate,
+        // not from the composer (the pre-arm toggle was removed).
+        autoApproveAll: autoApproveAll || undefined,
         workspaceFileRefs: context?.workspaceFileRefs,
       });
 
       sessionVariables.clear();
     },
-    [conv.sendFollowUp, modelId, workspace, mcpServerUsages, skillRefs, sessionVariables.clear, resolution, agentRef, sessionInstanceId, stigmer],
+    [conv.sendFollowUp, modelId, workspace, mcpServerUsages, skillRefs, sessionVariables.clear, resolution, agentRef, sessionInstanceId, stigmer, autoApproveAll],
   );
 
   // -------------------------------------------------------------------------
@@ -334,6 +380,9 @@ export function useSessionPageFlow(
     setSkillRefs,
     workspace,
     sessionVariables,
+    autoApproveAll,
+    setAutoApproveAll,
+    submitApproval,
     handleSubmit,
     displayExecution,
     allExecutions,

@@ -109,7 +109,7 @@ message SubmitApprovalInput {
   // Format: Tool call ID from agent runtime (e.g., "call_abc123")
   string tool_call_id = 2 [(buf.validate.field).string.min_len = 1];
 
-  // User's decision: APPROVE, SKIP, or REJECT.
+  // User's decision: APPROVE, SKIP, REJECT, or APPROVE_ALL.
   // APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
   ApprovalAction action = 3 [(buf.validate.field).enum = {
     defined_only: true

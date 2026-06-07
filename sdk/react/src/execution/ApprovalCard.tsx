@@ -185,6 +185,18 @@ export const ApprovalCard = memo(function ApprovalCard({
             variant="approve"
             cursorTarget="approve-button"
           />
+          {/* Subordinate escalation: approve this call and stop asking for the
+              rest of the run. Kept visually quieter than the primary Approve so
+              it never competes with the per-call decision the user is making. */}
+          <ActionButton
+            label="Approve & don't ask again"
+            action={ApprovalAction.APPROVE_ALL}
+            activeAction={activeAction}
+            isSubmitting={isSubmitting}
+            onClick={handleAction}
+            variant="approveAll"
+            cursorTarget="approve-all-button"
+          />
           <ActionButton
             label="Skip"
             action={ApprovalAction.SKIP}
@@ -225,7 +237,7 @@ function ActionButton({
   activeAction: ApprovalAction | null;
   isSubmitting: boolean;
   onClick: (action: ApprovalAction) => void;
-  variant: "approve" | "skip" | "reject";
+  variant: "approve" | "approveAll" | "skip" | "reject";
   cursorTarget?: string;
 }) {
   const isActive = activeAction === action;
@@ -235,6 +247,10 @@ function ActionButton({
     approve: cn(
       "bg-success text-success-foreground hover:bg-success/90",
       "disabled:bg-success/50 disabled:text-success-foreground/70",
+    ),
+    approveAll: cn(
+      "text-success hover:bg-success/10",
+      "disabled:text-success/50",
     ),
     skip: cn(
       "border border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground",

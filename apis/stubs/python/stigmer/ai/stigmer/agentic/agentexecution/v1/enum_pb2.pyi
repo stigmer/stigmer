@@ -99,6 +99,7 @@ class ApprovalAction(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     APPROVAL_ACTION_APPROVE: _ClassVar[ApprovalAction]
     APPROVAL_ACTION_SKIP: _ClassVar[ApprovalAction]
     APPROVAL_ACTION_REJECT: _ClassVar[ApprovalAction]
+    APPROVAL_ACTION_APPROVE_ALL: _ClassVar[ApprovalAction]
 
 class InteractionMode(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -168,6 +169,7 @@ APPROVAL_ACTION_UNSPECIFIED: ApprovalAction
 APPROVAL_ACTION_APPROVE: ApprovalAction
 APPROVAL_ACTION_SKIP: ApprovalAction
 APPROVAL_ACTION_REJECT: ApprovalAction
+APPROVAL_ACTION_APPROVE_ALL: ApprovalAction
 INTERACTION_MODE_UNSPECIFIED: InteractionMode
 INTERACTION_MODE_AGENT: InteractionMode
 INTERACTION_MODE_PLAN: InteractionMode

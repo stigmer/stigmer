@@ -13,8 +13,8 @@ import (
 )
 
 // menuLines is the fixed number of terminal rows the prompt menu occupies:
-// 3 option lines + 1 hint line.
-const menuLines = 4
+// 4 option lines + 1 hint line.
+const menuLines = 5
 
 // inlineChoices maps cursor index to action and display label.
 var inlineChoices = []struct {
@@ -22,6 +22,7 @@ var inlineChoices = []struct {
 	label  string
 }{
 	{ActionApprove, "Approve"},
+	{ActionApproveAll, "Approve & don't ask again"},
 	{ActionSkip, "Skip"},
 	{ActionReject, "Reject"},
 }
@@ -111,8 +112,10 @@ func (p *InlinePrompter) PromptWithLineCount(ctx context.Context, opts Options) 
 		case keyOne:
 			return &Decision{Action: ActionApprove}, menuLines, nil
 		case keyTwo:
-			return &Decision{Action: ActionSkip}, menuLines, nil
+			return &Decision{Action: ActionApproveAll}, menuLines, nil
 		case keyThree:
+			return &Decision{Action: ActionSkip}, menuLines, nil
+		case keyFour:
 			return &Decision{Action: ActionReject}, menuLines, nil
 		case keyEsc, keyCtrlC:
 			return nil, menuLines, ErrSessionExit
@@ -173,8 +176,10 @@ func (p *InlinePrompter) PromptKeyOnly(ctx context.Context, opts Options, onSele
 		case keyOne:
 			return &Decision{Action: ActionApprove}, nil
 		case keyTwo:
-			return &Decision{Action: ActionSkip}, nil
+			return &Decision{Action: ActionApproveAll}, nil
 		case keyThree:
+			return &Decision{Action: ActionSkip}, nil
+		case keyFour:
 			return &Decision{Action: ActionReject}, nil
 		case keyEsc, keyCtrlC:
 			return nil, ErrSessionExit
@@ -212,7 +217,7 @@ func RenderMenu(selected int, forView bool) string {
 		}
 		b.WriteString(lineEnd)
 	}
-	b.WriteString(hintStyle.Render("  ↑↓/1-3 select · esc/ctrl+c exit"))
+	b.WriteString(hintStyle.Render("  ↑↓/1-4 select · esc/ctrl+c exit"))
 	return b.String()
 }
 

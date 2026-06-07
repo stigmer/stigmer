@@ -127,7 +127,6 @@ export function SessionViewer({
 
   const [modelId, setModelId] = flow.model;
   const [interactionMode, setInteractionMode] = useState<InteractionModeOption>("agent");
-  const [autoApproveAll, setAutoApproveAll] = useState(false);
   const composerRef = useRef<SessionComposerHandle>(null);
 
   const selectionStoreRef = useRef<SelectionStore | null>(null);
@@ -183,8 +182,6 @@ export function SessionViewer({
               setModelId={setModelId}
               interactionMode={interactionMode}
               setInteractionMode={setInteractionMode}
-              autoApproveAll={autoApproveAll}
-              setAutoApproveAll={setAutoApproveAll}
               composerRef={composerRef}
               org={org}
               gitHubConnection={gitHubConnection}
@@ -223,8 +220,6 @@ interface ConversationColumnProps {
   readonly setModelId: (id: string) => void;
   readonly interactionMode: InteractionModeOption;
   readonly setInteractionMode: (mode: InteractionModeOption) => void;
-  readonly autoApproveAll: boolean;
-  readonly setAutoApproveAll: (value: boolean) => void;
   readonly composerRef: React.RefObject<SessionComposerHandle | null>;
   readonly org: string;
   readonly gitHubConnection?: UseGitHubConnectionReturn;
@@ -240,8 +235,6 @@ function ConversationColumn({
   setModelId,
   interactionMode,
   setInteractionMode,
-  autoApproveAll,
-  setAutoApproveAll,
   composerRef,
   org,
   gitHubConnection,
@@ -258,7 +251,7 @@ function ConversationColumn({
         executions={conv.completedExecutions}
         activeStreamExecution={conv.activeStreamExecution}
         pendingUserMessage={conv.pendingUserMessage}
-        onApprovalSubmit={conv.submitApproval}
+        onApprovalSubmit={flow.submitApproval}
         submittingApprovalIds={conv.submittingApprovalIds}
         workspaceEntries={conv.workspaceEntries}
         sandboxWorkspaceRoot={flow.sandboxWorkspaceRoot}
@@ -276,6 +269,9 @@ function ConversationColumn({
         {(conv.sendError || conv.approvalError) && (
           <SendErrorBanner error={(conv.sendError ?? conv.approvalError)!} />
         )}
+        {flow.autoApproveAll && (
+          <AutoApproveIndicator onTurnOff={() => flow.setAutoApproveAll(false)} />
+        )}
         <SessionComposer
           ref={composerRef}
           onSubmit={flow.handleSubmit}
@@ -288,9 +284,6 @@ function ConversationColumn({
           interactionMode={interactionMode}
           onInteractionModeChange={setInteractionMode}
           showInteractionModePicker
-          autoApproveAll={autoApproveAll}
-          onAutoApproveAllChange={setAutoApproveAll}
-          showAutoApproveToggle
           workspace={flow.workspace}
           gitHubConnection={gitHubConnection}
           enableGitHub={enableGitHub}
@@ -459,6 +452,33 @@ function SessionStarting() {
   );
 }
 
+/**
+ * Low-weight, always-visible indicator shown while the session-scoped
+ * auto-approve preference is active. The "Turn off" control reverts the
+ * preference in one click — the safety affordance for "Approve & don't ask
+ * again". Nothing about approvals appears until the user opts in at a gate.
+ */
+function AutoApproveIndicator({ onTurnOff }: { onTurnOff: () => void }) {
+  return (
+    <div
+      role="status"
+      className="flex items-center gap-2 border-t border-border-muted px-4 py-1.5 text-xs text-muted-foreground"
+    >
+      <ShieldCheckIcon />
+      <span className="min-w-0 flex-1 truncate">
+        Auto-approving tool calls for this session
+      </span>
+      <button
+        type="button"
+        onClick={onTurnOff}
+        className="shrink-0 rounded font-medium text-foreground underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        Turn off
+      </button>
+    </div>
+  );
+}
+
 function SendErrorBanner({ error }: { error: Error }) {
   if (isSecretFlowError(error)) {
     return <SecretFlowErrorGuide error={error} className="mx-4 my-2" />;
@@ -511,6 +531,15 @@ function LoaderIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" className="mx-auto animate-spin text-muted-foreground">
       <path d="M10 2a8 8 0 0 1 0 16" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function ShieldCheckIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-success" aria-hidden="true">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+      <path d="m9 12 2 2 4-4" />
     </svg>
   );
 }

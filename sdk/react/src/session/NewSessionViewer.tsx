@@ -47,7 +47,7 @@ export interface NewSessionViewerProps {
   /** Agent to auto-select on mount (used for draft flows). */
   readonly initialAgentRef?: ResourceRef;
   /**
-   * Pre-bind the new session to a specific {@link AgentInstance} on mount.
+   * Pre-bind the new session to a specific `AgentInstance` on mount.
    *
    * Requires `initialAgentRef`. When both are set, the session is created
    * against this exact configured deployment (the env-collection flow is
@@ -134,7 +134,6 @@ export function NewSessionViewer({
 }: NewSessionViewerProps) {
   const flow = useNewSessionFlow({ org, onSessionCreated, onError });
   const [interactionMode, setInteractionMode] = useState<InteractionModeOption>("agent");
-  const [autoApproveAll, setAutoApproveAll] = useState(false);
 
   const hasContext =
     flow.workspace.hasEntries ||
@@ -243,9 +242,6 @@ export function NewSessionViewer({
           interactionMode={interactionMode}
           onInteractionModeChange={setInteractionMode}
           showInteractionModePicker
-          autoApproveAll={autoApproveAll}
-          onAutoApproveAllChange={setAutoApproveAll}
-          showAutoApproveToggle
           defaultModelId={flow.modelId}
           onModelChange={flow.setModelId}
           placeholder={placeholder}

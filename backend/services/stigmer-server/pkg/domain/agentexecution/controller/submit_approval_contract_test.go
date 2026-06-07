@@ -292,6 +292,94 @@ func TestAllApprovalsResolvedClearsPendingApprovals(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// APPROVE_ALL: bulk-approve co-pending tool calls
+//
+// These tests verify the contract implemented by bulkApproveCoPendingToolCalls:
+// a single APPROVE_ALL decision resolves every other co-pending tool call in
+// the gate (root and sub-agents) to APPROVE, producing a complete audit trail
+// and an empty pending_approvals list.
+// ---------------------------------------------------------------------------
+
+// TestApproveAllResolvesAllCoPendingToolCalls verifies the multi-tool gate
+// case: clicking APPROVE_ALL on one tool call bulk-approves the rest.
+func TestApproveAllResolvesAllCoPendingToolCalls(t *testing.T) {
+	clicked := makeApprovalToolCall("call_001", "delete_file")
+	other := makeApprovalToolCall("call_002", "write_file")
+	subTC := makeApprovalToolCall("call_sub", "run_tests")
+
+	exec := makeExecutionWithMessages(
+		[]*agentexecutionv1.AgentMessage{makeAIMessageWithToolCalls(clicked, other)},
+		[]*agentexecutionv1.SubAgentExecution{{
+			Name:     "code-reviewer",
+			Messages: []*agentexecutionv1.AgentMessage{makeAIMessageWithToolCalls(subTC)},
+		}},
+	)
+
+	if len(exec.Status.PendingApprovals) != 3 {
+		t.Fatalf("precondition: want 3 pending approvals, got %d", len(exec.Status.PendingApprovals))
+	}
+
+	now := time.Now().UTC().Format(time.RFC3339)
+
+	// Record APPROVE_ALL on the clicked tool call, then bulk-approve the rest.
+	found := findToolCallInExecution(exec, "call_001")
+	found.ApprovalAction = agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE_ALL
+	found.ApprovalDecidedAt = now
+	bulkApproveCoPendingToolCalls(exec, "call_001", now)
+
+	// The clicked tool keeps APPROVE_ALL (audit trail of the user's choice).
+	if found.GetApprovalAction() != agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE_ALL {
+		t.Errorf("clicked tool call should retain APPROVE_ALL, got %v", found.GetApprovalAction())
+	}
+
+	// Co-pending tool calls (root + sub-agent) are now APPROVE.
+	for _, id := range []string{"call_002", "call_sub"} {
+		tc := findToolCallInExecution(exec, id)
+		if tc.GetApprovalAction() != agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE {
+			t.Errorf("co-pending %q should be APPROVE, got %v", id, tc.GetApprovalAction())
+		}
+		if tc.GetApprovalDecidedAt() == "" {
+			t.Errorf("co-pending %q should have approval_decided_at set", id)
+		}
+	}
+
+	// The gate is fully resolved.
+	exec.Status.PendingApprovals = approval.ComputePendingApprovals(
+		exec.Status.GetMessages(),
+		exec.Status.GetSubAgentExecutions(),
+	)
+	if len(exec.Status.PendingApprovals) != 0 {
+		t.Errorf("after APPROVE_ALL: want 0 pending, got %d", len(exec.Status.PendingApprovals))
+	}
+}
+
+// TestApproveAllDoesNotOverwriteAlreadyDecidedToolCalls verifies that
+// bulk-approve only touches still-pending UNSPECIFIED tool calls and never
+// clobbers a tool call that was already decided (e.g. a prior REJECT).
+func TestApproveAllDoesNotOverwriteAlreadyDecidedToolCalls(t *testing.T) {
+	clicked := makeApprovalToolCall("call_001", "delete_file")
+	alreadyRejected := makeApprovalToolCall("call_002", "drop_table")
+	alreadyRejected.ApprovalAction = agentexecutionv1.ApprovalAction_APPROVAL_ACTION_REJECT
+	alreadyRejected.ApprovalDecidedAt = time.Now().UTC().Format(time.RFC3339)
+
+	exec := makeExecutionWithMessages(
+		[]*agentexecutionv1.AgentMessage{makeAIMessageWithToolCalls(clicked, alreadyRejected)},
+		nil,
+	)
+
+	now := time.Now().UTC().Format(time.RFC3339)
+	clicked.ApprovalAction = agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE_ALL
+	clicked.ApprovalDecidedAt = now
+	bulkApproveCoPendingToolCalls(exec, "call_001", now)
+
+	// The previously-rejected tool call must stay REJECT.
+	rejected := findToolCallInExecution(exec, "call_002")
+	if rejected.GetApprovalAction() != agentexecutionv1.ApprovalAction_APPROVAL_ACTION_REJECT {
+		t.Errorf("already-decided tool call should remain REJECT, got %v", rejected.GetApprovalAction())
+	}
+}
+
+// ---------------------------------------------------------------------------
 // T03: Approval gate resolution logic
 //
 // These tests verify the conditions under which the signalWorkflowStep

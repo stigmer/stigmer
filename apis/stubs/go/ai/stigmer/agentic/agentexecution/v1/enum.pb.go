@@ -940,6 +940,46 @@ const (
 	// Execution phase transitions to FAILED.
 	// Error message includes rejection reason from user's comment.
 	ApprovalAction_APPROVAL_ACTION_REJECT ApprovalAction = 3
+	// Approve this tool call AND auto-approve every subsequent tool call for
+	// the rest of this execution ("approve and don't ask again").
+	//
+	// This is the gate-time analog of AgentExecutionSpec.auto_approve_all: it
+	// lets a human escalate from per-call approval to "trust the rest of this
+	// run" at the moment of friction, instead of pre-arming a bypass before the
+	// agent has done anything.
+	//
+	// ## Canonical contract (every layer derives its behavior from this)
+	//
+	//  1. Control plane (SubmitApproval handler): record APPROVE_ALL on the
+	//     clicked tool call, and resolve the rest of the *current* approval gate
+	//     by setting every other tool call still in TOOL_CALL_WAITING_APPROVAL
+	//     (action UNSPECIFIED) — including sub-agent tool calls — to
+	//     APPROVAL_ACTION_APPROVE. pending_approvals is recomputed to empty, so
+	//     the standard "gate fully resolved" path sends the approvalGateResolved
+	//     signal. This keeps the audit trail honest: every tool that runs carries
+	//     an explicit approval_action.
+	//
+	//  2. Runner (native + cursor harness): on reinvocation, the presence of ANY
+	//     APPROVE_ALL decision in the persisted execution history means the
+	//     execution is auto-approved for the remainder of the run. New tool calls
+	//     (and sub-agent tool calls) skip the approval gate entirely, exactly as
+	//     if spec.auto_approve_all were true. The interrupted tool itself resumes
+	//     as an approval.
+	//
+	// ## Scope
+	//
+	// APPROVE_ALL covers the rest of THIS execution. It is NOT persisted to the
+	// session or the agent; a subsequent execution starts gated again unless the
+	// caller sets it anew (interactive clients may carry a session-scoped
+	// preference forward in-memory, but that is a client concern, not a
+	// server-persisted state).
+	//
+	// ## Audit
+	//
+	// Because this bypasses all remaining approval checks for the execution,
+	// executions containing an APPROVE_ALL decision should be auditable. The
+	// decision is recorded on ToolCall.approval_action like any other.
+	ApprovalAction_APPROVAL_ACTION_APPROVE_ALL ApprovalAction = 4
 )
 
 // Enum value maps for ApprovalAction.
@@ -949,12 +989,14 @@ var (
 		1: "APPROVAL_ACTION_APPROVE",
 		2: "APPROVAL_ACTION_SKIP",
 		3: "APPROVAL_ACTION_REJECT",
+		4: "APPROVAL_ACTION_APPROVE_ALL",
 	}
 	ApprovalAction_value = map[string]int32{
 		"APPROVAL_ACTION_UNSPECIFIED": 0,
 		"APPROVAL_ACTION_APPROVE":     1,
 		"APPROVAL_ACTION_SKIP":        2,
 		"APPROVAL_ACTION_REJECT":      3,
+		"APPROVAL_ACTION_APPROVE_ALL": 4,
 	}
 )
 
@@ -1139,12 +1181,13 @@ const file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc = "" +
 	"\x16ExecutionControlSignal\x12(\n" +
 	"$EXECUTION_CONTROL_SIGNAL_UNSPECIFIED\x10\x00\x12!\n" +
 	"\x1dEXECUTION_CONTROL_SIGNAL_STOP\x10\x01\x12$\n" +
-	" EXECUTION_CONTROL_SIGNAL_WARNING\x10\x02*\x84\x01\n" +
+	" EXECUTION_CONTROL_SIGNAL_WARNING\x10\x02*\xa5\x01\n" +
 	"\x0eApprovalAction\x12\x1f\n" +
 	"\x1bAPPROVAL_ACTION_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17APPROVAL_ACTION_APPROVE\x10\x01\x12\x18\n" +
 	"\x14APPROVAL_ACTION_SKIP\x10\x02\x12\x1a\n" +
-	"\x16APPROVAL_ACTION_REJECT\x10\x03*j\n" +
+	"\x16APPROVAL_ACTION_REJECT\x10\x03\x12\x1f\n" +
+	"\x1bAPPROVAL_ACTION_APPROVE_ALL\x10\x04*j\n" +
 	"\x0fInteractionMode\x12 \n" +
 	"\x1cINTERACTION_MODE_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16INTERACTION_MODE_AGENT\x10\x01\x12\x19\n" +

@@ -114,13 +114,6 @@ export interface SessionComposerSubmitContext {
    */
   readonly interactionMode?: InteractionModeOption;
   /**
-   * Whether the user opted to auto-approve all tool calls for this execution.
-   *
-   * `undefined` when no auto-approve toggle is shown (defaults to gated).
-   * Pass to execution creation as `auto_approve_all`.
-   */
-  readonly autoApproveAll?: boolean;
-  /**
    * Workspace-relative file paths the user referenced via drag-to-reference.
    *
    * These are lightweight "attention" signals — the agent reads the files
@@ -182,22 +175,6 @@ export interface SessionComposerProps {
   readonly onInteractionModeChange?: (mode: InteractionModeOption) => void;
   /** Show the interaction mode picker in the toolbar. @default false */
   readonly showInteractionModePicker?: boolean;
-
-  /**
-   * Whether tool calls are auto-approved for the next message.
-   *
-   * When `onAutoApproveAllChange` is provided, renders an auto-approve toggle
-   * in the toolbar. Defaults to `false` (approvals required) when omitted.
-   */
-  readonly autoApproveAll?: boolean;
-  /**
-   * Called when the user toggles auto-approve.
-   *
-   * Providing this callback enables the auto-approve toggle in the toolbar.
-   */
-  readonly onAutoApproveAllChange?: (autoApproveAll: boolean) => void;
-  /** Show the auto-approve toggle in the toolbar. @default false */
-  readonly showAutoApproveToggle?: boolean;
 
   /** Initial model ID for the model selector. */
   readonly defaultModelId?: string;
@@ -284,7 +261,7 @@ export interface SessionComposerProps {
 
   /**
    * Pre-bind the session to a specific, already-existing
-   * {@link AgentInstance} when the composer mounts.
+   * `AgentInstance` when the composer mounts.
    *
    * Requires `initialAgentRef` (the agent the instance deploys). When
    * both are provided, the composer resolves the agent directly to this
@@ -485,9 +462,6 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   interactionMode,
   onInteractionModeChange,
   showInteractionModePicker = false,
-  autoApproveAll,
-  onAutoApproveAllChange,
-  showAutoApproveToggle = false,
   defaultModelId,
   onModelChange,
   showModelSelector = true,
@@ -746,8 +720,6 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
         showInteractionModePicker && interactionMode
           ? interactionMode
           : undefined;
-      const effectiveAutoApprove =
-        showAutoApproveToggle && autoApproveAll ? true : undefined;
       const hasFileRefs = enableFileReferences && fileRefs.hasRefs;
 
       const context: SessionComposerSubmitContext | undefined =
@@ -756,7 +728,6 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
               runtimeEnv: hasEnv ? env : undefined,
               attachments: hasAttachments ? attachmentInputs : undefined,
               interactionMode: effectiveMode,
-              autoApproveAll: effectiveAutoApprove,
               workspaceFileRefs: hasFileRefs ? [...fileRefs.refs] : undefined,
             }
           : undefined;
@@ -773,7 +744,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
         fileRefs.clear();
       }
     },
-    [onSubmit, modelId, stigmer, agentSetup.state, mcpSetup.pendingRuntimeEnv, sessionVariables, enableAttachments, attachments, personalEnv, showInteractionModePicker, interactionMode, showAutoApproveToggle, autoApproveAll],
+    [onSubmit, modelId, stigmer, agentSetup.state, mcpSetup.pendingRuntimeEnv, sessionVariables, enableAttachments, attachments, personalEnv, showInteractionModePicker, interactionMode],
   );
 
   const composer = useComposer({
@@ -806,13 +777,6 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
       onInteractionModeChange?.(mode);
     },
     [onInteractionModeChange],
-  );
-
-  const handleAutoApproveAllChange = useCallback(
-    (value: boolean) => {
-      onAutoApproveAllChange?.(value);
-    },
-    [onAutoApproveAllChange],
   );
 
   const handleDisplayNameResolved = useCallback(
@@ -1468,9 +1432,6 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
           showInteractionModePicker={showInteractionModePicker}
           interactionMode={interactionMode}
           onInteractionModeChange={handleInteractionModeChange}
-          showAutoApproveToggle={showAutoApproveToggle}
-          autoApproveAll={autoApproveAll ?? false}
-          onAutoApproveAllChange={handleAutoApproveAllChange}
           showModelSelector={showModelSelector}
           modelId={modelId}
           onModelChange={handleModelChange}

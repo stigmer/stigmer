@@ -81,18 +81,19 @@ public final class EnumProto extends com.google.protobuf.GeneratedFile {
       "onControlSignal\022(\n$EXECUTION_CONTROL_SIG" +
       "NAL_UNSPECIFIED\020\000\022!\n\035EXECUTION_CONTROL_S" +
       "IGNAL_STOP\020\001\022$\n EXECUTION_CONTROL_SIGNAL" +
-      "_WARNING\020\002*\204\001\n\016ApprovalAction\022\037\n\033APPROVA" +
+      "_WARNING\020\002*\245\001\n\016ApprovalAction\022\037\n\033APPROVA" +
       "L_ACTION_UNSPECIFIED\020\000\022\033\n\027APPROVAL_ACTIO" +
       "N_APPROVE\020\001\022\030\n\024APPROVAL_ACTION_SKIP\020\002\022\032\n" +
-      "\026APPROVAL_ACTION_REJECT\020\003*j\n\017Interaction" +
-      "Mode\022 \n\034INTERACTION_MODE_UNSPECIFIED\020\000\022\032" +
-      "\n\026INTERACTION_MODE_AGENT\020\001\022\031\n\025INTERACTIO" +
-      "N_MODE_PLAN\020\002B\300\001B\tEnumProtoP\001\242\002\004ASAA\252\002$A" +
-      "i.Stigmer.Agentic.Agentexecution.V1\312\002$Ai" +
-      "\\Stigmer\\Agentic\\Agentexecution\\V1\342\0020Ai\\" +
-      "Stigmer\\Agentic\\Agentexecution\\V1\\GPBMet" +
-      "adata\352\002(Ai::Stigmer::Agentic::Agentexecu" +
-      "tion::V1b\006proto3"
+      "\026APPROVAL_ACTION_REJECT\020\003\022\037\n\033APPROVAL_AC" +
+      "TION_APPROVE_ALL\020\004*j\n\017InteractionMode\022 \n" +
+      "\034INTERACTION_MODE_UNSPECIFIED\020\000\022\032\n\026INTER" +
+      "ACTION_MODE_AGENT\020\001\022\031\n\025INTERACTION_MODE_" +
+      "PLAN\020\002B\300\001B\tEnumProtoP\001\242\002\004ASAA\252\002$Ai.Stigm" +
+      "er.Agentic.Agentexecution.V1\312\002$Ai\\Stigme" +
+      "r\\Agentic\\Agentexecution\\V1\342\0020Ai\\Stigmer" +
+      "\\Agentic\\Agentexecution\\V1\\GPBMetadata\352\002" +
+      "(Ai::Stigmer::Agentic::Agentexecution::V" +
+      "1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

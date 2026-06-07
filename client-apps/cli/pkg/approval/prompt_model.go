@@ -27,6 +27,7 @@ type promptChoice struct {
 // defaultChoices are the approval actions presented to the user.
 var defaultChoices = []promptChoice{
 	{action: ActionApprove, label: "Approve", desc: "Execute the tool"},
+	{action: ActionApproveAll, label: "Approve & don't ask again", desc: "Approve and stop gating the rest of this run"},
 	{action: ActionSkip, label: "Skip", desc: "Continue without executing"},
 	{action: ActionReject, label: "Reject", desc: "Fail the execution"},
 }

@@ -70,6 +70,11 @@ func TestMapApprovalAction_AllCases(t *testing.T) {
 			expected: agentexecutionv1.ApprovalAction_APPROVAL_ACTION_REJECT,
 		},
 		{
+			name:     "ActionApproveAll maps to APPROVAL_ACTION_APPROVE_ALL",
+			input:    approval.ActionApproveAll,
+			expected: agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE_ALL,
+		},
+		{
 			name:     "ActionUnspecified maps to APPROVAL_ACTION_UNSPECIFIED",
 			input:    approval.ActionUnspecified,
 			expected: agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED,
@@ -108,6 +113,11 @@ func TestMapApprovalAction_EnumValuesMatch(t *testing.T) {
 	// ActionReject (3) should map to APPROVAL_ACTION_REJECT (3)
 	if mapApprovalAction(approval.ActionReject) != agentexecutionv1.ApprovalAction_APPROVAL_ACTION_REJECT {
 		t.Error("ActionReject should map to APPROVAL_ACTION_REJECT")
+	}
+
+	// ActionApproveAll (4) should map to APPROVAL_ACTION_APPROVE_ALL (4)
+	if mapApprovalAction(approval.ActionApproveAll) != agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE_ALL {
+		t.Error("ActionApproveAll should map to APPROVAL_ACTION_APPROVE_ALL")
 	}
 }
 

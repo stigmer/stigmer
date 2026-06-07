@@ -19,6 +19,7 @@ const (
 	keyOne
 	keyTwo
 	keyThree
+	keyFour
 	keyUnknown
 )
 
@@ -172,6 +173,8 @@ func decodeSingleByte(b byte) keyCode {
 		return keyTwo
 	case b == '3':
 		return keyThree
+	case b == '4':
+		return keyFour
 	default:
 		return keyUnknown
 	}

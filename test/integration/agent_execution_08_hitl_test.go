@@ -181,6 +181,73 @@ func TestAgentExecution_HITL_Reject(t *testing.T) {
 	}
 }
 
+// TestAgentExecution_HITL_ApproveAll proves the APPROVE_ALL contract end-to-end:
+// a single "approve and don't ask again" decision at the first gate resolves the
+// current gate AND lets the rest of the run proceed un-gated. The agent is asked
+// to call the approval-gated echo tool twice; with a normal APPROVE the run would
+// gate a second time, so reaching COMPLETED after one APPROVE_ALL submission is
+// the proof that subsequent tool calls were auto-approved.
+func TestAgentExecution_HITL_ApproveAll(t *testing.T) {
+	require.NotNil(t, grpcConn)
+
+	for _, h := range harness.Harnesses {
+		t.Run(h.Name, func(t *testing.T) {
+			requireHITLPrereqs(t, h)
+			harness.SkipCursorForHITLGate(t, h)
+
+			ctx, cancel := harness.TestContext(t, 5*time.Minute)
+			defer cancel()
+
+			clients := harness.NewClients(grpcConn)
+			harness.RequireServiceHealthy(t, ctx, clients)
+
+			mcpServer := harness.CreateStdioMcpServer(t, ctx, clients, mcpTestServerBinary)
+			harness.ConnectMcpServer(t, ctx, clients, mcpServer.GetMetadata().GetId())
+
+			agent := harness.CreateAgent(t, ctx, clients, "test-hitl-approveall-"+h.Name,
+				"You MUST call the echo tool exactly twice, once with input 'first' and once with input 'second', then stop. Never respond with text only.",
+				harness.WithMcpServerUsageAndApproval(
+					mcpServer.GetMetadata().GetSlug(),
+					[]*agentv1.ToolApprovalOverride{
+						{ToolName: "echo", RequiresApproval: true, Message: "Execute echo tool"},
+					},
+					"echo",
+				),
+			)
+
+			session := harness.CreateTestSession(t, ctx, clients,
+				agent.GetStatus().GetDefaultInstanceId(), h.Harness)
+
+			waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
+
+			exec, waiting := waiter.WaitForApprovalWithRetry(t, ctx, clients,
+				session.GetMetadata().GetId(),
+				"Call the echo tool with input 'first', then call it again with input 'second'. You must use the tool both times.",
+				2*time.Minute,
+				harness.WithAutoApproveAll(false))
+
+			harness.AssertAgentPhase(t, waiting, agentexecv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL)
+
+			// Submit APPROVE_ALL on the first pending approval — exactly once.
+			approval := waiting.GetStatus().GetPendingApprovals()[0]
+			t.Logf("submitting APPROVE_ALL for tool=%s, id=%s", approval.GetToolName(), approval.GetToolCallId())
+			_, err := clients.AgentExecutionCommand.SubmitApproval(ctx, &agentexecv1.SubmitApprovalInput{
+				AgentExecutionId: exec.GetMetadata().GetId(),
+				ToolCallId:       approval.GetToolCallId(),
+				Action:           agentexecv1.ApprovalAction_APPROVAL_ACTION_APPROVE_ALL,
+			})
+			require.NoError(t, err, "APPROVE_ALL submission should succeed")
+
+			// The run must complete without surfacing any further approval gate.
+			// If the runner re-gated the second echo call, this would time out.
+			result, err := waiter.WaitForPhase(ctx, exec.GetMetadata().GetId(),
+				agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 3*time.Minute)
+			require.NoError(t, err, "execution should complete un-gated after APPROVE_ALL")
+			harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
+		})
+	}
+}
+
 func TestAgentExecution_HITL_AutoApproveAll(t *testing.T) {
 	require.NotNil(t, grpcConn)
 

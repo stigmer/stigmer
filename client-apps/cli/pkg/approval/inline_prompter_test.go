@@ -32,18 +32,25 @@ func TestRenderMenu_DefaultSelection(t *testing.T) {
 
 func TestRenderMenu_SecondSelection(t *testing.T) {
 	menu := RenderMenu(1, false)
-	if !strings.Contains(menu, "▸ Skip") {
-		t.Error("expected '▸ Skip' indicator for second selection")
+	if !strings.Contains(menu, "▸ Approve & don't ask again") {
+		t.Error("expected '▸ Approve & don't ask again' indicator for second selection")
 	}
-	if strings.Contains(menu, "▸ Approve") {
-		t.Error("first item should not have selection indicator")
+	if strings.Contains(menu, "▸ Skip") {
+		t.Error("only second item should have selection indicator")
 	}
 }
 
 func TestRenderMenu_ThirdSelection(t *testing.T) {
 	menu := RenderMenu(2, false)
+	if !strings.Contains(menu, "▸ Skip") {
+		t.Error("expected '▸ Skip' indicator for third selection")
+	}
+}
+
+func TestRenderMenu_FourthSelection(t *testing.T) {
+	menu := RenderMenu(3, false)
 	if !strings.Contains(menu, "▸ Reject") {
-		t.Error("expected '▸ Reject' indicator for third selection")
+		t.Error("expected '▸ Reject' indicator for fourth selection")
 	}
 }
 
@@ -58,7 +65,7 @@ func TestRenderMenu_ContainsHint(t *testing.T) {
 
 func TestRenderMenu_ContainsAllLabels(t *testing.T) {
 	menu := RenderMenu(0, false)
-	for _, label := range []string{"Approve", "Skip", "Reject"} {
+	for _, label := range []string{"Approve", "Approve & don't ask again", "Skip", "Reject"} {
 		if !strings.Contains(menu, label) {
 			t.Errorf("menu missing label %q", label)
 		}
@@ -68,8 +75,8 @@ func TestRenderMenu_ContainsAllLabels(t *testing.T) {
 func TestRenderMenu_LineCount(t *testing.T) {
 	menu := RenderMenu(0, false)
 	lines := strings.Split(menu, "\r\n")
-	// 3 choice lines end with \r\n; the hint line has no trailing \r\n,
-	// so Split produces 4 segments (3 choices + remainder with hint).
+	// 4 choice lines end with \r\n; the hint line has no trailing \r\n,
+	// so Split produces 5 segments (4 choices + remainder with hint).
 	if len(lines) != menuLines {
 		t.Errorf("renderMenu produced %d segments, want %d", len(lines), menuLines)
 	}
@@ -90,6 +97,7 @@ func TestDecodeSingleByte(t *testing.T) {
 		{'1', keyOne},
 		{'2', keyTwo},
 		{'3', keyThree},
+		{'4', keyFour},
 		{'a', keyUnknown},
 		{'q', keyUnknown},
 		{0, keyUnknown},
@@ -164,6 +172,7 @@ func TestReadKey_NumberKeys(t *testing.T) {
 		{'1', keyOne},
 		{'2', keyTwo},
 		{'3', keyThree},
+		{'4', keyFour},
 	} {
 		t.Run(fmt.Sprintf("key_%c", tt.b), func(t *testing.T) {
 			kr := newTestKeyReader([]byte{tt.b})
@@ -484,8 +493,8 @@ func TestRenderMenuForView_ContainsHint(t *testing.T) {
 
 func TestRenderMenuForView_SelectedMarker(t *testing.T) {
 	menu := RenderMenu(1, true)
-	if !strings.Contains(menu, "▸ Skip") {
-		t.Errorf("expected selection marker on Skip, got %q", menu)
+	if !strings.Contains(menu, "▸ Approve & don't ask again") {
+		t.Errorf("expected selection marker on Approve & don't ask again, got %q", menu)
 	}
 }
 
@@ -502,8 +511,8 @@ func TestRenderMenuForView_LineCount(t *testing.T) {
 // =============================================================================
 
 func TestMenuLinesConstant(t *testing.T) {
-	if menuLines != 4 {
-		t.Errorf("menuLines = %d, want 4", menuLines)
+	if menuLines != 5 {
+		t.Errorf("menuLines = %d, want 5", menuLines)
 	}
 }
 
@@ -512,14 +521,15 @@ func TestMenuLinesConstant(t *testing.T) {
 // =============================================================================
 
 func TestInlineChoices_Order(t *testing.T) {
-	if len(inlineChoices) != 3 {
-		t.Fatalf("expected 3 choices, got %d", len(inlineChoices))
+	if len(inlineChoices) != 4 {
+		t.Fatalf("expected 4 choices, got %d", len(inlineChoices))
 	}
 	expected := []struct {
 		action Action
 		label  string
 	}{
 		{ActionApprove, "Approve"},
+		{ActionApproveAll, "Approve & don't ask again"},
 		{ActionSkip, "Skip"},
 		{ActionReject, "Reject"},
 	}
