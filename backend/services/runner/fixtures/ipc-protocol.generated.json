@@ -1,0 +1,70 @@
+{
+  "ipcProtocolVersion": 1,
+  "commands": {
+    "addSession": {
+      "type": "addSession",
+      "sessionId": "ses_example"
+    },
+    "removeSession": {
+      "type": "removeSession",
+      "sessionId": "ses_example"
+    },
+    "addWorkflowExecution": {
+      "type": "addWorkflowExecution",
+      "executionId": "wfe_example"
+    },
+    "removeWorkflowExecution": {
+      "type": "removeWorkflowExecution",
+      "executionId": "wfe_example"
+    },
+    "updateTokenSet": {
+      "type": "updateToken",
+      "token": "tok_example"
+    },
+    "updateTokenCleared": {
+      "type": "updateToken",
+      "token": null
+    },
+    "shutdown": {
+      "type": "shutdown"
+    }
+  },
+  "responses": {
+    "ready": {
+      "type": "ready",
+      "protocolVersion": 1
+    },
+    "readyLegacy": {
+      "type": "ready"
+    },
+    "sessionAdded": {
+      "type": "sessionAdded",
+      "sessionId": "ses_example",
+      "taskQueue": "session:ses_example"
+    },
+    "sessionRemoved": {
+      "type": "sessionRemoved",
+      "sessionId": "ses_example"
+    },
+    "workflowExecutionAdded": {
+      "type": "workflowExecutionAdded",
+      "executionId": "wfe_example",
+      "taskQueue": "wfexec:wfe_example"
+    },
+    "workflowExecutionRemoved": {
+      "type": "workflowExecutionRemoved",
+      "executionId": "wfe_example"
+    },
+    "tokenUpdated": {
+      "type": "tokenUpdated"
+    },
+    "error": {
+      "type": "error",
+      "message": "boom",
+      "fatal": true
+    },
+    "shutdownComplete": {
+      "type": "shutdownComplete"
+    }
+  }
+}

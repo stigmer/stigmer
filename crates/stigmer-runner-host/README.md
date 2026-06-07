@@ -57,3 +57,7 @@ it, so equal or lower runner versions are accepted.
 This crate is a hand-maintained mirror of
 `backend/services/runner/src/ipc-protocol.ts`. The canonical contract is the
 [manager-mode IPC protocol reference](https://stigmer.ai/docs/guides/runners/ipc-protocol).
+The mirror is kept honest by golden fixtures generated from that file: the conformance
+tests in `src/protocol.rs` assert against the vendored
+`fixtures/ipc-protocol.generated.json`, so a contract change that is not mirrored here
+fails `cargo test`. Regenerate the fixtures with `make gen-ipc-fixtures` from the repo root.

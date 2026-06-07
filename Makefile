@@ -79,7 +79,7 @@ install-vale: ## Install Vale prose linter (auto-detects OS)
 
 # ─── Build ────────────────────────────────────
 
-.PHONY: build build-mcp-server build-java-protos build-java-sdk build-runner protos codegen build-ts-stubs gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-task-docs gen-task-registry gen-task-registry-check gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-task-docs-check
+.PHONY: build build-mcp-server build-java-protos build-java-sdk build-runner protos codegen build-ts-stubs gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-task-docs gen-task-registry gen-task-registry-check gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-task-docs-check gen-ipc-fixtures gen-ipc-fixtures-check
 build: libs-build build-web verify-desktop docs-build build-mcp-server build-java-sdk build-runner ## Build all project artifacts
 	@mkdir -p bin
 	cd client-apps/cli && go build -o ../../bin/stigmer .
@@ -264,7 +264,13 @@ gen-narration: ## Generate narration audio for demo scenarios
 preview-sync: ## Re-scan client-apps/web and update site/.scenar/ view registry
 	npx scenar preview sync --source client-apps/web --output site/.scenar
 
-codegen: protos build-ts-stubs gen-sdk-docs gen-narration ## Regenerate all derived code (stubs + SDK docs + narration)
+codegen: protos build-ts-stubs gen-sdk-docs gen-narration gen-ipc-fixtures ## Regenerate all derived code (stubs + SDK docs + narration + IPC fixtures)
+
+gen-ipc-fixtures: $(RUNNER_DIR)/node_modules ## Regenerate golden IPC fixtures from ipc-protocol.ts (runner artifact + crate copy)
+	@cd $(RUNNER_DIR) && npm run gen:ipc-fixtures
+
+gen-ipc-fixtures-check: $(RUNNER_DIR)/node_modules ## Verify golden IPC fixtures are fresh (CI) — fails if the contract changed without regenerating
+	@cd $(RUNNER_DIR) && npm run gen:ipc-fixtures -- --check
 
 build-ts-stubs: node_modules ## Rebuild @stigmer/protos dist after stub regeneration
 	npm run build -w @stigmer/protos
@@ -555,7 +561,7 @@ test-e2e-smoke: ## Run Playwright smoke tests against a deployed instance (set S
 test-e2e-all: ## Run all Playwright E2E tests (smoke + functional)
 	cd test/e2e && npm ci && npx playwright install --with-deps chromium && npx playwright test
 
-check: tidy fix lint lint-docs format-docs-check tsdoc-check gen-sdk-docs gen-sdk-docs-check check-links build test test-web test-desktop test-runner-host validate-demos check-deps ## Run full CI gate locally
+check: tidy fix lint lint-docs format-docs-check tsdoc-check gen-sdk-docs gen-sdk-docs-check gen-ipc-fixtures-check check-links build test test-web test-desktop test-runner-host validate-demos check-deps ## Run full CI gate locally
 
 check-all: check test-demos ## Full CI gate including Playwright demo e2e (slow)
 

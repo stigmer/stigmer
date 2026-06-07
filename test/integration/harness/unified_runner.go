@@ -50,8 +50,10 @@ func UnifiedRunnerWorkspaceDir() string {
 }
 
 // --- IPC Protocol Types ---
-// Hand-maintained Go mirror of the runner's IPC contract. Canonical spec and the rule for
-// keeping mirrors in sync: backend/services/runner/docs/ipc-protocol.md.
+// Hand-maintained Go mirror of the runner's IPC contract, kept honest by ipc_fixtures_test.go,
+// which asserts these types against the golden fixtures generated from the canonical
+// backend/services/runner/src/ipc-protocol.ts. Canonical spec and the rule for keeping mirrors
+// in sync: backend/services/runner/docs/ipc-protocol.md.
 
 type ipcCommand struct {
 	Type        string  `json:"type"`

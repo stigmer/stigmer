@@ -1,7 +1,9 @@
 //! Manager-mode IPC message types — the Rust mirror of the runner's contract.
 //!
-//! Hand-maintained mirror of `backend/services/runner/src/ipc-protocol.ts`. The canonical
-//! human contract and the rule for keeping mirrors in sync live at
+//! Hand-maintained mirror of `backend/services/runner/src/ipc-protocol.ts`, kept honest by
+//! the `tests` module below, which asserts every message against the golden fixtures
+//! generated from that file (vendored at `../fixtures/ipc-protocol.generated.json`). The
+//! canonical human contract and the rule for keeping mirrors in sync live at
 //! <https://stigmer.ai/docs/guides/runners/ipc-protocol>. The wire-level `camelCase`
 //! rename below is the protocol's on-the-wire shape (the runner emits camelCase), not a
 //! JS-host concern — so it belongs here in the core, unlike the Tauri-only shapes that
@@ -68,6 +70,17 @@ pub enum IpcResponse {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::Value;
+
+    // The golden wire fixtures, generated from backend/services/runner/src/ipc-protocol.ts
+    // and vendored here so this crate stays self-contained. Embedding (rather than reading
+    // at runtime) means a deleted/renamed fixture is a compile error, and the bytes travel
+    // with `cargo publish`. Keep it fresh with `make gen-ipc-fixtures`.
+    const FIXTURES: &str = include_str!("../fixtures/ipc-protocol.generated.json");
+
+    fn fixtures() -> Value {
+        serde_json::from_str(FIXTURES).expect("golden IPC fixtures must be valid JSON")
+    }
 
     // Backward-compatibility contract: the host must parse `ready` whether or not the
     // runner sends protocolVersion. An older runner omits it. See the IPC spec.
@@ -99,64 +112,107 @@ mod tests {
         assert_eq!(IPC_PROTOCOL_VERSION, 1, "bump only on a breaking IPC change");
     }
 
-    // Commands must serialize to the exact documented JSON: a `type` tag plus camelCase
-    // fields. These assertions are the wire contract the runner deserializes against.
+    // The version this crate speaks must equal the version the canonical contract stamps.
     #[test]
-    fn commands_serialize_to_documented_json() {
-        let cases = [
+    fn protocol_version_matches_fixtures() {
+        assert_eq!(
+            fixtures()["ipcProtocolVersion"].as_u64(),
+            Some(IPC_PROTOCOL_VERSION as u64),
+            "crate IPC_PROTOCOL_VERSION drifted from the golden fixtures — regenerate or reconcile",
+        );
+    }
+
+    // Every command this host emits must serialize to the exact golden wire shape. Comparing
+    // parsed `Value`s (not strings) keeps the assertion independent of serde's key order.
+    #[test]
+    fn commands_match_golden_fixtures() {
+        let commands = &fixtures()["commands"];
+        let cases: [(&str, IpcCommand); 7] = [
             (
-                IpcCommand::AddSession { session_id: "ses_1".into() },
-                r#"{"type":"addSession","sessionId":"ses_1"}"#,
+                "addSession",
+                IpcCommand::AddSession { session_id: "ses_example".into() },
             ),
             (
-                IpcCommand::RemoveSession { session_id: "ses_1".into() },
-                r#"{"type":"removeSession","sessionId":"ses_1"}"#,
+                "removeSession",
+                IpcCommand::RemoveSession { session_id: "ses_example".into() },
             ),
             (
-                IpcCommand::AddWorkflowExecution { execution_id: "wfe_1".into() },
-                r#"{"type":"addWorkflowExecution","executionId":"wfe_1"}"#,
+                "addWorkflowExecution",
+                IpcCommand::AddWorkflowExecution { execution_id: "wfe_example".into() },
             ),
             (
-                IpcCommand::RemoveWorkflowExecution { execution_id: "wfe_1".into() },
-                r#"{"type":"removeWorkflowExecution","executionId":"wfe_1"}"#,
+                "removeWorkflowExecution",
+                IpcCommand::RemoveWorkflowExecution { execution_id: "wfe_example".into() },
             ),
             (
-                IpcCommand::UpdateToken { token: Some("tok".into()) },
-                r#"{"type":"updateToken","token":"tok"}"#,
+                "updateTokenSet",
+                IpcCommand::UpdateToken { token: Some("tok_example".into()) },
             ),
             (
+                "updateTokenCleared",
                 IpcCommand::UpdateToken { token: None },
-                r#"{"type":"updateToken","token":null}"#,
             ),
-            (IpcCommand::Shutdown, r#"{"type":"shutdown"}"#),
+            ("shutdown", IpcCommand::Shutdown),
         ];
-        for (command, expected) in cases {
-            assert_eq!(serde_json::to_string(&command).unwrap(), expected);
+        for (name, command) in cases {
+            let serialized = serde_json::to_value(&command).unwrap();
+            assert_eq!(
+                &serialized, &commands[name],
+                "command `{name}` drifted from the golden fixture",
+            );
         }
     }
 
-    // Representative responses round-trip from the documented wire JSON into typed values.
+    // Every response the runner emits must deserialize from the golden wire shape into the
+    // expected typed variant — including the legacy `ready` that omits protocolVersion.
     #[test]
-    fn responses_deserialize_from_documented_json() {
-        match serde_json::from_str(r#"{"type":"sessionAdded","sessionId":"ses_1","taskQueue":"q"}"#)
-            .unwrap()
-        {
+    fn responses_match_golden_fixtures() {
+        let r = &fixtures()["responses"];
+        let from = |key: &str| -> IpcResponse {
+            serde_json::from_value(r[key].clone())
+                .unwrap_or_else(|e| panic!("response `{key}` failed to deserialize: {e}"))
+        };
+
+        assert!(matches!(
+            from("ready"),
+            IpcResponse::Ready { protocol_version: Some(1) }
+        ));
+        assert!(matches!(
+            from("readyLegacy"),
+            IpcResponse::Ready { protocol_version: None }
+        ));
+        match from("sessionAdded") {
             IpcResponse::SessionAdded { session_id, task_queue } => {
-                assert_eq!(session_id, "ses_1");
-                assert_eq!(task_queue, "q");
+                assert_eq!(session_id, "ses_example");
+                assert_eq!(task_queue, "session:ses_example");
             }
             other => panic!("expected SessionAdded, got {other:?}"),
         }
-        match serde_json::from_str(r#"{"type":"error","message":"boom","fatal":true}"#).unwrap() {
+        match from("sessionRemoved") {
+            IpcResponse::SessionRemoved { session_id } => assert_eq!(session_id, "ses_example"),
+            other => panic!("expected SessionRemoved, got {other:?}"),
+        }
+        match from("workflowExecutionAdded") {
+            IpcResponse::WorkflowExecutionAdded { execution_id, task_queue } => {
+                assert_eq!(execution_id, "wfe_example");
+                assert_eq!(task_queue, "wfexec:wfe_example");
+            }
+            other => panic!("expected WorkflowExecutionAdded, got {other:?}"),
+        }
+        match from("workflowExecutionRemoved") {
+            IpcResponse::WorkflowExecutionRemoved { execution_id } => {
+                assert_eq!(execution_id, "wfe_example")
+            }
+            other => panic!("expected WorkflowExecutionRemoved, got {other:?}"),
+        }
+        assert!(matches!(from("tokenUpdated"), IpcResponse::TokenUpdated));
+        match from("error") {
             IpcResponse::Error { message, fatal } => {
                 assert_eq!(message, "boom");
                 assert!(fatal);
             }
             other => panic!("expected Error, got {other:?}"),
         }
-        assert!(matches!(
-            serde_json::from_str(r#"{"type":"shutdownComplete"}"#).unwrap(),
-            IpcResponse::ShutdownComplete
-        ));
+        assert!(matches!(from("shutdownComplete"), IpcResponse::ShutdownComplete));
     }
 }

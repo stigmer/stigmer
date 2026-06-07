@@ -386,8 +386,7 @@ state itself.
 
 ## Keeping implementations in sync
 
-There is no code generation binding the definitions of this protocol. It is
-defined in four places that must change together:
+The protocol is defined in four places that must change together:
 
 | Definition                                    | Role                                                               |
 | --------------------------------------------- | ------------------------------------------------------------------ |
@@ -396,6 +395,27 @@ defined in four places that must change together:
 | `crates/stigmer-runner-host/src/protocol.rs`  | Hand-maintained Rust mirror (host crate; desktop consumes it)      |
 | `test/integration/harness/unified_runner.go`  | Hand-maintained Go mirror (test harness)                           |
 
-When you change the protocol, update all four and bump `IPC_PROTOCOL_VERSION` in
-`backend/services/runner/src/ipc-protocol.ts` if the change is breaking. The Go
-and Rust structs carry a comment pointing back to this page.
+Golden fixtures bind the two code mirrors to the canonical TypeScript so drift
+fails a test instead of slipping through:
+
+- `make gen-ipc-fixtures` serializes one representative instance of every
+  message to `backend/services/runner/fixtures/ipc-protocol.generated.json`
+  (with a copy vendored into the Rust crate). The samples are type-checked
+  against the `ipc-protocol.ts` interfaces, so a renamed or retyped field fails
+  to compile.
+- The Rust crate and the Go harness each run a conformance test that asserts
+  their types serialize to, and parse from, those exact fixtures.
+- `make check` runs `gen-ipc-fixtures-check`, which fails if the committed
+  fixtures are stale, plus the TypeScript and Rust tests. The Go test runs with
+  the integration suite.
+
+When you change the protocol:
+
+1. Edit `ipc-protocol.ts` and update the matching sample in
+   `ipc-protocol-fixtures.ts`.
+2. Run `make gen-ipc-fixtures` and commit the regenerated fixtures.
+3. Update the Rust and Go mirrors until their conformance tests pass.
+4. Update this page.
+5. Bump `IPC_PROTOCOL_VERSION` if the change is breaking.
+
+The Go and Rust structs carry a comment pointing back to this page.

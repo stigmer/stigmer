@@ -25,6 +25,7 @@
   },
   "scripts": {
     "build": "rm -rf dist && tsc -p tsconfig.build.json && node scripts/build-fingerprint.js",
+    "gen:ipc-fixtures": "tsx scripts/generate-ipc-fixtures.ts",
     "start": "tsx src/main.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
