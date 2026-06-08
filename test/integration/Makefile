@@ -45,6 +45,19 @@ RERUN_FLAGS = \
 	--rerun-fails-max-failures=5 \
 	--rerun-fails-run-root-test
 
+# ─── Planton Secret Fetch ────────────────────
+# Fetch a Planton secret's value for use as an API key. Secrets are
+# environment-scoped to `prod` (slugs: anthropic, cursor). The CLI renders a
+# decorated box even with `-o plain`, so we extract the value from the "Value"
+# line (stripping any ANSI). On failure (not logged in / not found) stdout has
+# no "Value" line, so the result is empty — which callers treat as "fetch
+# failed". Replaces the obsolete `planton service secrets get-value
+# --group/--name` syntax, which silently captured the CLI error text as the key.
+#   Usage in a recipe: KEY=$$($(call planton_get_secret,<slug>))
+define planton_get_secret
+planton secret get $(1) --env prod --org stigmer 2>/dev/null | awk '{ gsub(/\033\[[0-9;]*m/, "") } /^[[:space:]]*Value[[:space:]]+/ { sub(/^[[:space:]]*Value[[:space:]]+/, ""); gsub(/[[:space:]]+$$/, ""); print; exit }'
+endef
+
 .PHONY: ensure-service-jar
 ensure-service-jar:
 	@if [ -f "$(STIGMER_SERVICE_JAR)" ]; then \
@@ -92,7 +105,7 @@ test-providers: ensure-service-jar ## Run provider-backed integration tests (aut
 	if [ -z "$$ANTHROPIC_KEY" ]; then \
 		if command -v planton >/dev/null 2>&1; then \
 			echo "Fetching ANTHROPIC_API_KEY from Planton..."; \
-			ANTHROPIC_KEY=$$(planton service secrets get-value --org stigmer --group anthropic --name prod.api-key 2>&1); \
+			ANTHROPIC_KEY=$$($(call planton_get_secret,anthropic)); \
 			if [ -z "$$ANTHROPIC_KEY" ]; then \
 				echo "error: planton returned empty value for anthropic/prod.api-key"; \
 				exit 1; \
@@ -107,7 +120,7 @@ test-providers: ensure-service-jar ## Run provider-backed integration tests (aut
 	CURSOR_KEY=$${CURSOR_API_KEY:-}; \
 	if [ -z "$$CURSOR_KEY" ] && command -v planton >/dev/null 2>&1; then \
 		echo "Fetching CURSOR_API_KEY from Planton..."; \
-		CURSOR_KEY=$$(planton service secrets get-value --org stigmer --group cursor --name prod.api-key 2>&1 || true); \
+		CURSOR_KEY=$$($(call planton_get_secret,cursor) || true); \
 		if [ -n "$$CURSOR_KEY" ]; then echo "CURSOR_API_KEY fetched"; else echo "CURSOR_API_KEY not available — cursor tests will be skipped"; fi; \
 	fi; \
 	ANTHROPIC_API_KEY=$$ANTHROPIC_KEY \
@@ -135,7 +148,7 @@ test-canary: ensure-service-jar ## Run canary tests (live provider health checks
 	if [ -z "$$ANTHROPIC_KEY" ]; then \
 		if command -v planton >/dev/null 2>&1; then \
 			echo "Fetching ANTHROPIC_API_KEY from Planton..."; \
-			ANTHROPIC_KEY=$$(planton service secrets get-value --org stigmer --group anthropic --name prod.api-key 2>&1); \
+			ANTHROPIC_KEY=$$($(call planton_get_secret,anthropic)); \
 			if [ -z "$$ANTHROPIC_KEY" ]; then \
 				echo "error: planton returned empty value for anthropic/prod.api-key"; \
 				exit 1; \
@@ -150,7 +163,7 @@ test-canary: ensure-service-jar ## Run canary tests (live provider health checks
 	CURSOR_KEY=$${CURSOR_API_KEY:-}; \
 	if [ -z "$$CURSOR_KEY" ] && command -v planton >/dev/null 2>&1; then \
 		echo "Fetching CURSOR_API_KEY from Planton..."; \
-		CURSOR_KEY=$$(planton service secrets get-value --org stigmer --group cursor --name prod.api-key 2>&1 || true); \
+		CURSOR_KEY=$$($(call planton_get_secret,cursor) || true); \
 		if [ -n "$$CURSOR_KEY" ]; then echo "CURSOR_API_KEY fetched"; else echo "CURSOR_API_KEY not available — cursor canary will be skipped"; fi; \
 	fi; \
 	ANTHROPIC_API_KEY=$$ANTHROPIC_KEY \
@@ -176,7 +189,7 @@ test-workflow-architect: ensure-service-jar ## Run Workflow Architect agent E2E 
 	if [ -z "$$ANTHROPIC_KEY" ]; then \
 		if command -v planton >/dev/null 2>&1; then \
 			echo "Fetching ANTHROPIC_API_KEY from Planton..."; \
-			ANTHROPIC_KEY=$$(planton service secrets get-value --org stigmer --group anthropic --name prod.api-key 2>&1); \
+			ANTHROPIC_KEY=$$($(call planton_get_secret,anthropic)); \
 			if [ -z "$$ANTHROPIC_KEY" ]; then \
 				echo "error: planton returned empty value for anthropic/prod.api-key"; \
 				exit 1; \
@@ -189,7 +202,7 @@ test-workflow-architect: ensure-service-jar ## Run Workflow Architect agent E2E 
 	CURSOR_KEY=$${CURSOR_API_KEY:-}; \
 	if [ -z "$$CURSOR_KEY" ] && command -v planton >/dev/null 2>&1; then \
 		echo "Fetching CURSOR_API_KEY from Planton..."; \
-		CURSOR_KEY=$$(planton service secrets get-value --org stigmer --group cursor --name prod.api-key 2>&1 || true); \
+		CURSOR_KEY=$$($(call planton_get_secret,cursor) || true); \
 		if [ -n "$$CURSOR_KEY" ]; then echo "CURSOR_API_KEY fetched"; else echo "CURSOR_API_KEY not available — cursor subtests will be skipped"; fi; \
 	fi; \
 	ANTHROPIC_API_KEY=$$ANTHROPIC_KEY \
@@ -217,7 +230,7 @@ test-agent: ensure-service-jar ## Run agent execution integration tests (auto-fe
 	if [ -z "$$ANTHROPIC_KEY" ]; then \
 		if command -v planton >/dev/null 2>&1; then \
 			echo "Fetching ANTHROPIC_API_KEY from Planton..."; \
-			ANTHROPIC_KEY=$$(planton service secrets get-value --org stigmer --group anthropic --name prod.api-key 2>&1); \
+			ANTHROPIC_KEY=$$($(call planton_get_secret,anthropic)); \
 			if [ -z "$$ANTHROPIC_KEY" ]; then \
 				echo "error: planton returned empty value for anthropic/prod.api-key"; \
 				exit 1; \
@@ -230,7 +243,7 @@ test-agent: ensure-service-jar ## Run agent execution integration tests (auto-fe
 	CURSOR_KEY=$${CURSOR_API_KEY:-}; \
 	if [ -z "$$CURSOR_KEY" ] && command -v planton >/dev/null 2>&1; then \
 		echo "Fetching CURSOR_API_KEY from Planton..."; \
-		CURSOR_KEY=$$(planton service secrets get-value --org stigmer --group cursor --name prod.api-key 2>&1 || true); \
+		CURSOR_KEY=$$($(call planton_get_secret,cursor) || true); \
 		if [ -n "$$CURSOR_KEY" ]; then echo "CURSOR_API_KEY fetched"; else echo "CURSOR_API_KEY not available — cursor subtests will be skipped"; fi; \
 	fi; \
 	ANTHROPIC_API_KEY=$$ANTHROPIC_KEY \
@@ -266,7 +279,7 @@ test-subset: ensure-service-jar ## Run a subset of integration tests: make test-
 	if [ -z "$$ANTHROPIC_KEY" ]; then \
 		if command -v planton >/dev/null 2>&1; then \
 			echo "Fetching ANTHROPIC_API_KEY from Planton..."; \
-			ANTHROPIC_KEY=$$(planton service secrets get-value --org stigmer --group anthropic --name prod.api-key 2>&1); \
+			ANTHROPIC_KEY=$$($(call planton_get_secret,anthropic)); \
 			if [ -z "$$ANTHROPIC_KEY" ]; then \
 				echo "error: planton returned empty value for anthropic/prod.api-key"; \
 				exit 1; \
@@ -279,7 +292,7 @@ test-subset: ensure-service-jar ## Run a subset of integration tests: make test-
 	CURSOR_KEY=$${CURSOR_API_KEY:-}; \
 	if [ -z "$$CURSOR_KEY" ] && command -v planton >/dev/null 2>&1; then \
 		echo "Fetching CURSOR_API_KEY from Planton..."; \
-		CURSOR_KEY=$$(planton service secrets get-value --org stigmer --group cursor --name prod.api-key 2>&1 || true); \
+		CURSOR_KEY=$$($(call planton_get_secret,cursor) || true); \
 		if [ -n "$$CURSOR_KEY" ]; then echo "CURSOR_API_KEY fetched"; else echo "CURSOR_API_KEY not available — cursor subtests will be skipped"; fi; \
 	fi; \
 	echo "Running tests matching: $(TEST_RUN)"; \
@@ -357,7 +370,7 @@ benchmark-cost: ensure-service-jar ## Run cost benchmarks comparing Native vs Cu
 	if [ -z "$$ANTHROPIC_KEY" ]; then \
 		if command -v planton >/dev/null 2>&1; then \
 			echo "Fetching ANTHROPIC_API_KEY from Planton..."; \
-			ANTHROPIC_KEY=$$(planton service secrets get-value --org stigmer --group anthropic --name prod.api-key 2>&1); \
+			ANTHROPIC_KEY=$$($(call planton_get_secret,anthropic)); \
 			if [ -z "$$ANTHROPIC_KEY" ]; then \
 				echo "error: planton returned empty value for anthropic/prod.api-key"; \
 				exit 1; \
@@ -371,7 +384,7 @@ benchmark-cost: ensure-service-jar ## Run cost benchmarks comparing Native vs Cu
 	if [ -z "$$CURSOR_KEY" ]; then \
 		if command -v planton >/dev/null 2>&1; then \
 			echo "Fetching CURSOR_API_KEY from Planton..."; \
-			CURSOR_KEY=$$(planton service secrets get-value --org stigmer --group cursor --name prod.api-key 2>&1); \
+			CURSOR_KEY=$$($(call planton_get_secret,cursor)); \
 			if [ -z "$$CURSOR_KEY" ]; then \
 				echo "error: CURSOR_API_KEY required for cost benchmarks (native vs cursor comparison)"; \
 				exit 1; \
@@ -410,7 +423,7 @@ benchmark-cursor-modes: ensure-service-jar ## Compare Cursor local vs cloud runt
 	if [ -z "$$CURSOR_KEY" ]; then \
 		if command -v planton >/dev/null 2>&1; then \
 			echo "Fetching CURSOR_API_KEY from Planton..."; \
-			CURSOR_KEY=$$(planton service secrets get-value --org stigmer --group cursor --name prod.api-key 2>&1); \
+			CURSOR_KEY=$$($(call planton_get_secret,cursor)); \
 			if [ -z "$$CURSOR_KEY" ]; then \
 				echo "error: CURSOR_API_KEY required for cursor mode benchmarks"; \
 				exit 1; \
