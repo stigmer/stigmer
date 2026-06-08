@@ -100,6 +100,14 @@ jobs:
         shell: bash
     strategy:
       fail-fast: false
+      # Serialize the matrix so the per-platform jobs do not race on the shared
+      # latest.json updater manifest. tauri-action uploads latest.json via a
+      # read-modify-write (fetch existing asset, merge this platform, re-upload),
+      # so parallel jobs both 404 on the delete-then-upload flow and risk lost
+      # updates that silently drop platforms. Running one platform at a time
+      # lets each job merge into the previous job's manifest. See
+      # tauri-apps/tauri-action#1270.
+      max-parallel: 1
       matrix:
         include:
           - platform: macos-latest
@@ -237,6 +245,7 @@ jobs:
           releaseDraft: false
           prerelease: false
           includeUpdaterJson: true
+          retryAttempts: 3
           args: ${{ matrix.tauri_args }}
 
       - name: Build only (workflow dispatch)
