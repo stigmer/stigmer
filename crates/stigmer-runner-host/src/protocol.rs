@@ -22,14 +22,24 @@ pub const IPC_PROTOCOL_VERSION: u32 = 1;
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum IpcCommand {
     #[serde(rename_all = "camelCase")]
-    AddSession { session_id: String },
+    AddSession {
+        session_id: String,
+    },
     #[serde(rename_all = "camelCase")]
-    RemoveSession { session_id: String },
+    RemoveSession {
+        session_id: String,
+    },
     #[serde(rename_all = "camelCase")]
-    AddWorkflowExecution { execution_id: String },
+    AddWorkflowExecution {
+        execution_id: String,
+    },
     #[serde(rename_all = "camelCase")]
-    RemoveWorkflowExecution { execution_id: String },
-    UpdateToken { token: Option<String> },
+    RemoveWorkflowExecution {
+        execution_id: String,
+    },
+    UpdateToken {
+        token: Option<String>,
+    },
     Shutdown,
 }
 
@@ -54,16 +64,23 @@ pub enum IpcResponse {
         task_queue: String,
     },
     #[serde(rename_all = "camelCase")]
-    SessionRemoved { session_id: String },
+    SessionRemoved {
+        session_id: String,
+    },
     #[serde(rename_all = "camelCase")]
     WorkflowExecutionAdded {
         execution_id: String,
         task_queue: String,
     },
     #[serde(rename_all = "camelCase")]
-    WorkflowExecutionRemoved { execution_id: String },
+    WorkflowExecutionRemoved {
+        execution_id: String,
+    },
     TokenUpdated,
-    Error { message: String, fatal: bool },
+    Error {
+        message: String,
+        fatal: bool,
+    },
     ShutdownComplete,
 }
 
@@ -90,7 +107,11 @@ mod tests {
             serde_json::from_str(r#"{"type":"ready","protocolVersion":1}"#).unwrap();
         match resp {
             IpcResponse::Ready { protocol_version } => {
-                assert_eq!(protocol_version, Some(1), "should read the advertised version");
+                assert_eq!(
+                    protocol_version,
+                    Some(1),
+                    "should read the advertised version"
+                );
             }
             other => panic!("expected Ready, got {other:?}"),
         }
@@ -109,7 +130,10 @@ mod tests {
 
     #[test]
     fn protocol_version_is_one() {
-        assert_eq!(IPC_PROTOCOL_VERSION, 1, "bump only on a breaking IPC change");
+        assert_eq!(
+            IPC_PROTOCOL_VERSION, 1,
+            "bump only on a breaking IPC change"
+        );
     }
 
     // The version this crate speaks must equal the version the canonical contract stamps.
@@ -130,23 +154,33 @@ mod tests {
         let cases: [(&str, IpcCommand); 7] = [
             (
                 "addSession",
-                IpcCommand::AddSession { session_id: "ses_example".into() },
+                IpcCommand::AddSession {
+                    session_id: "ses_example".into(),
+                },
             ),
             (
                 "removeSession",
-                IpcCommand::RemoveSession { session_id: "ses_example".into() },
+                IpcCommand::RemoveSession {
+                    session_id: "ses_example".into(),
+                },
             ),
             (
                 "addWorkflowExecution",
-                IpcCommand::AddWorkflowExecution { execution_id: "wfe_example".into() },
+                IpcCommand::AddWorkflowExecution {
+                    execution_id: "wfe_example".into(),
+                },
             ),
             (
                 "removeWorkflowExecution",
-                IpcCommand::RemoveWorkflowExecution { execution_id: "wfe_example".into() },
+                IpcCommand::RemoveWorkflowExecution {
+                    execution_id: "wfe_example".into(),
+                },
             ),
             (
                 "updateTokenSet",
-                IpcCommand::UpdateToken { token: Some("tok_example".into()) },
+                IpcCommand::UpdateToken {
+                    token: Some("tok_example".into()),
+                },
             ),
             (
                 "updateTokenCleared",
@@ -175,14 +209,21 @@ mod tests {
 
         assert!(matches!(
             from("ready"),
-            IpcResponse::Ready { protocol_version: Some(1) }
+            IpcResponse::Ready {
+                protocol_version: Some(1)
+            }
         ));
         assert!(matches!(
             from("readyLegacy"),
-            IpcResponse::Ready { protocol_version: None }
+            IpcResponse::Ready {
+                protocol_version: None
+            }
         ));
         match from("sessionAdded") {
-            IpcResponse::SessionAdded { session_id, task_queue } => {
+            IpcResponse::SessionAdded {
+                session_id,
+                task_queue,
+            } => {
                 assert_eq!(session_id, "ses_example");
                 assert_eq!(task_queue, "session:ses_example");
             }
@@ -193,7 +234,10 @@ mod tests {
             other => panic!("expected SessionRemoved, got {other:?}"),
         }
         match from("workflowExecutionAdded") {
-            IpcResponse::WorkflowExecutionAdded { execution_id, task_queue } => {
+            IpcResponse::WorkflowExecutionAdded {
+                execution_id,
+                task_queue,
+            } => {
                 assert_eq!(execution_id, "wfe_example");
                 assert_eq!(task_queue, "wfexec:wfe_example");
             }
@@ -213,6 +257,9 @@ mod tests {
             }
             other => panic!("expected Error, got {other:?}"),
         }
-        assert!(matches!(from("shutdownComplete"), IpcResponse::ShutdownComplete));
+        assert!(matches!(
+            from("shutdownComplete"),
+            IpcResponse::ShutdownComplete
+        ));
     }
 }

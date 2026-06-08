@@ -95,8 +95,14 @@ impl RunnerHost {
         cmd.stderr(std::process::Stdio::piped());
 
         let mut child = cmd.spawn().map_err(RunnerHostError::Spawn)?;
-        let stdin = child.stdin.take().ok_or_else(|| RunnerHostError::pipe("stdin"))?;
-        let stdout = child.stdout.take().ok_or_else(|| RunnerHostError::pipe("stdout"))?;
+        let stdin = child
+            .stdin
+            .take()
+            .ok_or_else(|| RunnerHostError::pipe("stdin"))?;
+        let stdout = child
+            .stdout
+            .take()
+            .ok_or_else(|| RunnerHostError::pipe("stdout"))?;
 
         if let Some(stderr) = child.stderr.take() {
             let log = self.log.clone();
@@ -283,7 +289,9 @@ fn negotiate_ready(line: &str) -> Result<u32, RunnerHostError> {
             Ok(runner)
         }
         IpcResponse::Error { message, .. } => Err(RunnerHostError::RunnerStartup { message }),
-        other => Err(RunnerHostError::UnexpectedFirstMessage(format!("{other:?}"))),
+        other => Err(RunnerHostError::UnexpectedFirstMessage(format!(
+            "{other:?}"
+        ))),
     }
 }
 
@@ -371,16 +379,13 @@ mod tests {
 
     #[test]
     fn non_ready_first_message_is_unexpected() {
-        let err =
-            negotiate_ready(r#"{"type":"sessionAdded","sessionId":"s","taskQueue":"q"}"#)
-                .unwrap_err();
+        let err = negotiate_ready(r#"{"type":"sessionAdded","sessionId":"s","taskQueue":"q"}"#)
+            .unwrap_err();
         assert!(matches!(err, RunnerHostError::UnexpectedFirstMessage(_)));
     }
 
     fn env_value<'a>(env: &'a [(String, String)], key: &str) -> Option<&'a str> {
-        env.iter()
-            .find(|(k, _)| k == key)
-            .map(|(_, v)| v.as_str())
+        env.iter().find(|(k, _)| k == key).map(|(_, v)| v.as_str())
     }
 
     fn minimal_config() -> RunnerConfig {

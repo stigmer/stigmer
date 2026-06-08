@@ -1,0 +1,139 @@
+# =============================================================================
+# Publish the @stigmer/runner npm package
+# =============================================================================
+# Joins the platform's v* lockstep release train: a `v*` tag publishes the
+# runner at the same version as @stigmer/protos and the SDKs, with its
+# @stigmer/protos dependency pinned to that exact version (the runner's analogue
+# of how release.maven / release.python-sdk pin the protos package).
+#
+# The runner is deliberately NOT an npm workspace (see root package.json), so it
+# is built via `make build-runner` rather than the workspace publish-libs.mjs
+# path — which keeps that script a clean workspace-only iterator.
+#
+# Ordering: @stigmer/protos@<version> is published by release.npm-libs on the
+# same tag, in parallel. We wait for it to appear before publishing so a
+# consumer of @stigmer/runner never resolves a missing protos dependency
+# (mirrors the wait-for-@stigmer/ink guard in release.cli).
+# =============================================================================
+
+name: release.runner
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g., 1.0.0 or 1.0.0-rc.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  determine-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      npm_tag: ${{ steps.version.outputs.npm_tag }}
+    steps:
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            VERSION="${{ github.ref_name }}"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="v${{ github.event.inputs.version }}"
+          fi
+          VERSION_NO_V="${VERSION#v}"
+          # Pre-release versions (e.g. 1.2.0-rc.0) publish under the npm "next"
+          # dist-tag so they never become the default `npm install` target.
+          if [[ "$VERSION_NO_V" == *-* ]]; then
+            NPM_TAG="next"
+          else
+            NPM_TAG="latest"
+          fi
+          echo "version=$VERSION_NO_V" >> $GITHUB_OUTPUT
+          echo "npm_tag=$NPM_TAG" >> $GITHUB_OUTPUT
+          echo "Publishing @stigmer/runner@$VERSION_NO_V (dist-tag: $NPM_TAG)"
+
+  publish:
+    needs: determine-version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate TypeScript proto stubs
+        run: make -C apis ts-stubs
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Builds @stigmer/protos dist, installs the runner's own deps, and compiles
+      # the runner to dist/. Runs while @stigmer/protos is still the local file:
+      # link so tsc resolves types against the in-repo stubs.
+      - name: Build runner
+        run: make build-runner
+
+      # Stamp the release version and pin @stigmer/protos from the local file:
+      # link to the exact published version, so the published manifest is
+      # self-contained. The committed package.json is only mutated in this
+      # ephemeral CI checkout.
+      - name: Stamp version and pin protos dependency
+        working-directory: backend/services/runner
+        env:
+          VERSION: ${{ needs.determine-version.outputs.version }}
+        run: |
+          node -e "
+            const fs = require('node:fs');
+            const path = 'package.json';
+            const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
+            pkg.version = process.env.VERSION;
+            pkg.dependencies['@stigmer/protos'] = process.env.VERSION;
+            fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + '\n');
+            console.log('stamped @stigmer/runner@' + pkg.version + ' (protos: ' + pkg.dependencies['@stigmer/protos'] + ')');
+          "
+
+      - name: Verify published file list
+        working-directory: backend/services/runner
+        run: npm pack --dry-run
+
+      - name: Wait for @stigmer/protos on npm
+        env:
+          VERSION: ${{ needs.determine-version.outputs.version }}
+        run: |
+          echo "Waiting for @stigmer/protos@$VERSION on npm (published by release.npm-libs)..."
+          for i in $(seq 1 60); do
+            if npm view "@stigmer/protos@$VERSION" version >/dev/null 2>&1; then
+              echo "Found @stigmer/protos@$VERSION"
+              exit 0
+            fi
+            echo "Attempt $i/60: not yet available, waiting 10s..."
+            sleep 10
+          done
+          echo "ERROR: @stigmer/protos@$VERSION not found on npm after 10 minutes."
+          echo "@stigmer/runner pins it as a dependency; publishing now would leave consumers unresolvable."
+          exit 1
+
+      - name: Publish to npm
+        working-directory: backend/services/runner
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public --tag "${{ needs.determine-version.outputs.npm_tag }}"
