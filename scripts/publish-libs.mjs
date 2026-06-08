@@ -11,11 +11,17 @@
  *   node scripts/publish-libs.mjs --version 0.5.0              # build + publish at version
  *   node scripts/publish-libs.mjs --version 0.5.0 --dry-run    # dry-run
  *   node scripts/publish-libs.mjs --version 0.5.0 --skip-build # publish pre-built dist/
+ *   node scripts/publish-libs.mjs --version 0.5.0-dev.20260608 --tag dev  # dev channel
  *   NPM_TOKEN=npm_xxx node scripts/publish-libs.mjs --version 0.5.0  # CI with token
  *
- * --version is required. It stamps the version into every dist/package.json
- * and determines the npm dist-tag: pre-release versions (e.g. 0.5.0-rc.1)
- * publish under the "next" tag; stable versions publish under "latest".
+ * --version is required. It stamps the version into every dist/package.json.
+ *
+ * The npm dist-tag is chosen as follows:
+ *   - If --tag is passed explicitly, that tag is used verbatim. This is how the
+ *     dev-publishing pipeline routes throwaway builds to a dedicated `dev` tag,
+ *     keeping them off both `latest` (stable) and `next` (release candidates).
+ *   - Otherwise it is inferred from the version: pre-release versions
+ *     (e.g. 0.5.0-rc.1) publish under "next"; stable versions under "latest".
  */
 
 import { execSync } from "node:child_process";
@@ -58,8 +64,13 @@ function parseArgs() {
     process.exit(1);
   }
 
+  const tag = args.includes("--tag")
+    ? args[args.indexOf("--tag") + 1]
+    : undefined;
+
   return {
     version,
+    tag,
     dryRun: args.includes("--dry-run"),
     skipBuild: args.includes("--skip-build"),
   };
@@ -196,8 +207,8 @@ function teardownNpmrc(created) {
 }
 
 async function main() {
-  const { version, dryRun, skipBuild } = parseArgs();
-  const tag = isPrerelease(version) ? "next" : "latest";
+  const { version, tag: explicitTag, dryRun, skipBuild } = parseArgs();
+  const tag = explicitTag ?? (isPrerelease(version) ? "next" : "latest");
 
   console.log(`\n  version: ${version}`);
   console.log(`  tag:     ${tag}`);

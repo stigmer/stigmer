@@ -1,0 +1,511 @@
+name: release.dev
+
+# =============================================================================
+# Dev-publishing pipeline (manual / on-demand).
+#
+# Publishes throwaway "dev" builds of the Stigmer dependencies so two developers
+# can iterate across repos fast: one publishes a dev build, the other bumps a
+# version reference and tries it within minutes.
+#
+# Design (see .github/workflows/docs/dev-publishing.md):
+#   - This is a SEPARATE pipeline from the production release.* workflows. Those
+#     stay pristine and only ever publish immutable, signed, lockstep `v*`
+#     releases. This one is dispatch-only and routes to each ecosystem's NATIVE
+#     EPHEMERAL dev channel so nothing pollutes a production release index:
+#       * Maven  -> `X.Y.Z-SNAPSHOT` to the Sonatype Central snapshot repo
+#                   (mutable, auto-expired; reuses MAVEN_CENTRAL_* creds).
+#       * npm    -> `X.Y.Z-dev.<stamp>` under the `dev` dist-tag on public npm
+#                   (never touches `latest`/`next`).
+#       * PyPI   -> `X.Y.Z.dev<N>` to TestPyPI (the purpose-built throwaway PyPI).
+#       * Docker -> `ghcr.io/stigmer/mcp-server-stigmer:dev-<sha>` on GHCR.
+#   - Consumers configure each channel ONCE; thereafter switching a dev<->prod
+#     dependency is only a version-string change (see the consumer doc).
+#   - Go SDK and the Rust crate have no dev publish step: their native dev
+#     mechanism is a git ref (`go get ...@<branch>` / a Cargo git dependency).
+#     The job summary documents the exact coordinates.
+#
+# Trigger: workflow_dispatch only. The file must exist on the default branch for
+# GitHub to expose the dispatch, but it can then run against ANY branch/ref
+# (publish dev builds straight off your feature branch).
+# =============================================================================
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_version:
+        description: 'Base semver to derive the dev build from, e.g. 3.0.1 (default: next patch after the latest v* tag)'
+        required: false
+        type: string
+      targets:
+        description: 'Comma-separated targets to publish: maven, npm, python, mcp (or "all")'
+        required: false
+        default: 'all'
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Derive one dev "base" version and the per-ecosystem coordinates from it.
+  # Mirrors the lockstep mental model of the production release train: one base
+  # drives every artifact, just with an ecosystem-appropriate dev suffix.
+  # ---------------------------------------------------------------------------
+  determine-version:
+    runs-on: ubuntu-latest
+    outputs:
+      targets: ${{ steps.v.outputs.targets }}
+      base: ${{ steps.v.outputs.base }}
+      maven_version: ${{ steps.v.outputs.maven_version }}
+      npm_version: ${{ steps.v.outputs.npm_version }}
+      py_version: ${{ steps.v.outputs.py_version }}
+      docker_tag: ${{ steps.v.outputs.docker_tag }}
+      short_sha: ${{ steps.v.outputs.short_sha }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Derive dev versions
+        id: v
+        run: |
+          set -euo pipefail
+
+          # Normalize the target list. "all" expands to every publishable channel.
+          TARGETS="${{ github.event.inputs.targets }}"
+          [ -z "$TARGETS" ] && TARGETS="all"
+          if [ "$TARGETS" = "all" ]; then
+            TARGETS="maven,npm,python,mcp"
+          fi
+
+          # Base semver: explicit input wins; otherwise bump the patch of the
+          # latest v* tag. A dev build always targets the NEXT unreleased version
+          # so it sorts below the eventual real release.
+          BASE="${{ github.event.inputs.base_version }}"
+          if [ -z "$BASE" ]; then
+            LATEST_TAG=$(git tag -l "v*" | sort -V | tail -n1)
+            [ -z "$LATEST_TAG" ] && LATEST_TAG="v0.0.0"
+            V="${LATEST_TAG#v}"
+            MAJOR=$(echo "$V" | cut -d. -f1)
+            MINOR=$(echo "$V" | cut -d. -f2)
+            PATCH=$(echo "$V" | cut -d. -f3)
+            BASE="${MAJOR}.${MINOR}.$((PATCH + 1))"
+          fi
+
+          # Reject a base that collides with an existing release tag: a dev build
+          # must never share a coordinate with a real release (cf. the published
+          # @stigmer/protos shadowing a workspace stub, issue #156).
+          if git rev-parse "v${BASE}" >/dev/null 2>&1; then
+            echo "ERROR: v${BASE} already exists as a release tag. Pass a higher base_version." >&2
+            exit 1
+          fi
+
+          STAMP=$(date -u +%Y%m%d%H%M%S)   # monotonic; keeps each npm dev build unique
+          EPOCH=$(date -u +%s)             # PEP 440 .devN must be an integer
+          SHORT_SHA=$(git rev-parse --short HEAD)
+
+          {
+            echo "targets=$TARGETS"
+            echo "base=$BASE"
+            echo "maven_version=${BASE}-SNAPSHOT"
+            echo "npm_version=${BASE}-dev.${STAMP}"
+            echo "py_version=${BASE}.dev${EPOCH}"
+            echo "docker_tag=dev-${SHORT_SHA}"
+            echo "short_sha=${SHORT_SHA}"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "Dev build base: $BASE (targets: $TARGETS)"
+          echo "  maven  : ${BASE}-SNAPSHOT"
+          echo "  npm    : ${BASE}-dev.${STAMP} (tag: dev)"
+          echo "  python : ${BASE}.dev${EPOCH} (TestPyPI)"
+          echo "  docker : dev-${SHORT_SHA}"
+
+  # ---------------------------------------------------------------------------
+  # Java: deploy `X.Y.Z-SNAPSHOT` to the Central snapshot repo.
+  # No GPG, no `-P release`: plain `mvn deploy` uses the default
+  # maven-deploy-plugin, which routes a -SNAPSHOT to <snapshotRepository>.
+  # ---------------------------------------------------------------------------
+  publish-maven:
+    needs: determine-version
+    if: contains(needs.determine-version.outputs.targets, 'maven')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          server-id: central
+          server-username: MAVEN_CENTRAL_USERNAME
+          server-password: MAVEN_CENTRAL_PASSWORD
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Deploy protos SNAPSHOT
+        working-directory: apis/stubs/java
+        env:
+          MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+        run: |
+          VERSION="${{ needs.determine-version.outputs.maven_version }}"
+          mvn --batch-mode versions:set -DnewVersion="$VERSION" -DgenerateBackupPoms=false
+          # `deploy` runs through `install`, so the SNAPSHOT is also placed in the
+          # local ~/.m2 for the SDK build below to resolve.
+          mvn --batch-mode deploy -DskipTests
+          echo "Deployed ai.stigmer:stigmer-java-protos:$VERSION"
+
+      - name: Generate SDK client code
+        run: make -C sdk/java codegen
+
+      - name: Deploy SDK SNAPSHOT
+        working-directory: sdk/java
+        env:
+          MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+        run: |
+          VERSION="${{ needs.determine-version.outputs.maven_version }}"
+          mvn --batch-mode versions:set -DnewVersion="$VERSION" -DgenerateBackupPoms=false
+          mvn --batch-mode versions:set-property -Dproperty=stigmer-protos.version -DnewVersion="$VERSION" -DgenerateBackupPoms=false
+          mvn --batch-mode deploy -DskipTests
+          echo "Deployed ai.stigmer:stigmer-java:$VERSION (protos: $VERSION)"
+
+  # ---------------------------------------------------------------------------
+  # npm: publish all @stigmer/* libs under the `dev` dist-tag.
+  # publish-libs.mjs handles build + dist/package.json stamping; --tag dev keeps
+  # these off `latest` and `next`.
+  # ---------------------------------------------------------------------------
+  publish-npm:
+    needs: determine-version
+    if: contains(needs.determine-version.outputs.targets, 'npm')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate TypeScript proto stubs
+        run: make -C apis ts-stubs
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Publish @stigmer/* to npm (dev tag)
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: node scripts/publish-libs.mjs --version ${{ needs.determine-version.outputs.npm_version }} --tag dev
+
+  # @stigmer/runner is a non-workspace npm package built via `make build-runner`.
+  # It pins @stigmer/protos to the exact dev version, so it must run after the
+  # libs job has put that version on npm. Mirrors the production publish-runner.
+  publish-npm-runner:
+    needs: [determine-version, publish-npm]
+    if: contains(needs.determine-version.outputs.targets, 'npm')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate TypeScript proto stubs
+        run: make -C apis ts-stubs
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build runner
+        run: make build-runner
+
+      - name: Stamp version and pin protos dependency
+        working-directory: backend/services/runner
+        env:
+          VERSION: ${{ needs.determine-version.outputs.npm_version }}
+        run: |
+          node -e "
+            const fs = require('node:fs');
+            const path = 'package.json';
+            const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
+            pkg.version = process.env.VERSION;
+            pkg.dependencies['@stigmer/protos'] = process.env.VERSION;
+            fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + '\n');
+            console.log('stamped @stigmer/runner@' + pkg.version + ' (protos: ' + pkg.dependencies['@stigmer/protos'] + ')');
+          "
+
+      - name: Wait for @stigmer/protos on npm
+        env:
+          VERSION: ${{ needs.determine-version.outputs.npm_version }}
+        run: |
+          echo "Confirming @stigmer/protos@$VERSION is queryable on npm..."
+          for i in $(seq 1 30); do
+            if npm view "@stigmer/protos@$VERSION" version >/dev/null 2>&1; then
+              echo "Found @stigmer/protos@$VERSION"
+              exit 0
+            fi
+            echo "Attempt $i/30: not yet visible, waiting 10s..."
+            sleep 10
+          done
+          echo "ERROR: @stigmer/protos@$VERSION not visible on npm after 5 minutes." >&2
+          exit 1
+
+      - name: Publish runner to npm (dev tag)
+        working-directory: backend/services/runner
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public --tag dev
+
+  # ---------------------------------------------------------------------------
+  # Python: publish dev releases to TestPyPI (keeps prod PyPI clean).
+  # Auth is OIDC trusted publishing, matching release.python-sdk; a Trusted
+  # Publisher for test.pypi.org must be configured for both projects.
+  # ---------------------------------------------------------------------------
+  publish-python-protos:
+    needs: determine-version
+    if: contains(needs.determine-version.outputs.targets, 'python')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate Python proto stubs
+        run: make -C apis python-stubs
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Set version
+        working-directory: apis/stubs/python/stigmer
+        run: |
+          VERSION="${{ needs.determine-version.outputs.py_version }}"
+          python -c "
+          import re, pathlib
+          p = pathlib.Path('pyproject.toml')
+          text = p.read_text()
+          text = re.sub(r'version\s*=\s*\"[^\"]*\"', 'version = \"$VERSION\"', text, count=1)
+          p.write_text(text)
+          "
+          echo "Set stigmer-protos version to $VERSION"
+
+      - name: Build package
+        working-directory: apis/stubs/python/stigmer
+        run: |
+          pip install build
+          python -m build
+
+      - name: Publish to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: apis/stubs/python/stigmer/dist/
+          repository-url: https://test.pypi.org/legacy/
+
+  publish-python-sdk:
+    needs: [determine-version, publish-python-protos]
+    if: contains(needs.determine-version.outputs.targets, 'python')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Generate SDK client code
+        run: make -C sdk/python codegen
+
+      - name: Set version and pin protos dependency
+        working-directory: sdk/python
+        run: |
+          VERSION="${{ needs.determine-version.outputs.py_version }}"
+          python -c "
+          import re, pathlib
+          p = pathlib.Path('pyproject.toml')
+          text = p.read_text()
+          text = re.sub(r'version\s*=\s*\"[^\"]*\"', 'version = \"$VERSION\"', text, count=1)
+          text = re.sub(r'\"stigmer-protos[^\"]*\"', '\"stigmer-protos==$VERSION\"', text)
+          p.write_text(text)
+          "
+          echo "Set stigmer version to $VERSION (protos dependency: $VERSION)"
+
+      - name: Build package
+        working-directory: sdk/python
+        run: |
+          pip install build
+          python -m build
+
+      - name: Publish to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: sdk/python/dist/
+          repository-url: https://test.pypi.org/legacy/
+
+  # ---------------------------------------------------------------------------
+  # MCP server: build + push a dev Docker image to GHCR (mutable, deletable).
+  # Tags both an immutable-per-commit `dev-<sha>` and a moving `dev` pointer.
+  # ---------------------------------------------------------------------------
+  publish-mcp:
+    needs: determine-version
+    if: contains(needs.determine-version.outputs.targets, 'mcp')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push dev image
+        env:
+          DOCKER_TAG: ${{ needs.determine-version.outputs.docker_tag }}
+        run: |
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --file mcp-server/Dockerfile \
+            --build-arg BUILD_VERSION=$DOCKER_TAG \
+            --tag ghcr.io/stigmer/mcp-server-stigmer:$DOCKER_TAG \
+            --tag ghcr.io/stigmer/mcp-server-stigmer:dev \
+            --push \
+            .
+          echo "Pushed ghcr.io/stigmer/mcp-server-stigmer:$DOCKER_TAG (and :dev)"
+
+  # ---------------------------------------------------------------------------
+  # Print the exact consumer coordinates for every target that ran. This is the
+  # copy-paste block the other developer uses to upgrade their references.
+  # ---------------------------------------------------------------------------
+  summary:
+    needs: [determine-version, publish-maven, publish-npm, publish-npm-runner, publish-python-protos, publish-python-sdk, publish-mcp]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Write dev build summary
+        env:
+          TARGETS: ${{ needs.determine-version.outputs.targets }}
+          BASE: ${{ needs.determine-version.outputs.base }}
+          MAVEN_VERSION: ${{ needs.determine-version.outputs.maven_version }}
+          NPM_VERSION: ${{ needs.determine-version.outputs.npm_version }}
+          PY_VERSION: ${{ needs.determine-version.outputs.py_version }}
+          DOCKER_TAG: ${{ needs.determine-version.outputs.docker_tag }}
+          SHORT_SHA: ${{ needs.determine-version.outputs.short_sha }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          {
+            echo "# Stigmer dev build published"
+            echo ""
+            echo "Base: \`$BASE\` · ref: \`$REF_NAME\` · commit: \`$SHORT_SHA\` · targets: \`$TARGETS\`"
+            echo ""
+            echo "Setup is one-time (see \`.github/workflows/docs/dev-publishing.md\`); afterwards, switching dev<->prod is only a version-string change."
+            echo ""
+
+            if [[ "$TARGETS" == *maven* ]]; then
+              echo "## Maven (Java SDK)"
+              echo '```xml'
+              echo "<dependency>"
+              echo "  <groupId>ai.stigmer</groupId>"
+              echo "  <artifactId>stigmer-java</artifactId>"
+              echo "  <version>$MAVEN_VERSION</version>"
+              echo "</dependency>"
+              echo '```'
+              echo "Run \`mvn -U ...\` to force-refresh the SNAPSHOT."
+              echo ""
+            fi
+
+            if [[ "$TARGETS" == *npm* ]]; then
+              echo "## npm (React / TS SDK)"
+              echo '```bash'
+              echo "npm install @stigmer/react@dev   # or pin exactly: @stigmer/react@$NPM_VERSION"
+              echo '```'
+              echo "The \`dev\` dist-tag always resolves to the newest dev build."
+              echo ""
+            fi
+
+            if [[ "$TARGETS" == *python* ]]; then
+              echo "## Python SDK (TestPyPI)"
+              echo '```bash'
+              echo "pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ --pre 'stigmer==$PY_VERSION'"
+              echo '```'
+              echo ""
+            fi
+
+            if [[ "$TARGETS" == *mcp* ]]; then
+              echo "## MCP server (Docker)"
+              echo '```bash'
+              echo "docker pull ghcr.io/stigmer/mcp-server-stigmer:$DOCKER_TAG"
+              echo '```'
+              echo ""
+            fi
+
+            echo "## Go SDK / Rust crate (no publish needed — use a git ref)"
+            echo '```bash'
+            echo "# Go:"
+            echo "go get github.com/stigmer/stigmer/sdk/go@$REF_NAME"
+            echo "# Rust (Cargo.toml):"
+            echo "# stigmer-runner-host = { git = \"https://github.com/stigmer/stigmer\", branch = \"$REF_NAME\" }"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

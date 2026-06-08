@@ -721,6 +721,42 @@ release: ## Tag and push a release (usage: make release [bump=patch|minor|major]
 	@echo "  - stigmer + stigmer-protos PyPI  (release.python-sdk.yaml)"
 	@echo "  - MCP server binaries + Docker   (release.mcp-server.yaml)"
 
+# ─── Dev Publishing ───────────────────────────
+# Publish throwaway "dev" builds to each ecosystem's native ephemeral channel so
+# two developers can iterate across repos fast. See
+# .github/workflows/docs/dev-publishing.md for the consumer side.
+
+.PHONY: publish-dev
+publish-dev: ## Publish dev builds via the release.dev workflow (usage: make publish-dev [targets=all] [base=X.Y.Z])
+	@command -v gh >/dev/null 2>&1 || { echo "error: gh CLI not found — install from https://cli.github.com"; exit 1; }
+	@set -e; \
+	BRANCH=$$(git rev-parse --abbrev-ref HEAD); \
+	TARGETS="$(or $(targets),all)"; \
+	echo "Dispatching release.dev on branch '$$BRANCH' (targets: $$TARGETS, base: $(or $(base),auto))"; \
+	gh workflow run release.dev.yaml --ref "$$BRANCH" -f targets="$$TARGETS" $(if $(base),-f base_version="$(base)",); \
+	echo ""; \
+	echo "Dispatched. Follow the run with:"; \
+	echo "  gh run watch \$$(gh run list --workflow=release.dev.yaml --branch \"$$BRANCH\" --limit 1 --json databaseId --jq '.[0].databaseId')"
+
+.PHONY: publish-dev-maven-local
+publish-dev-maven-local: ## Deploy a Java SDK SNAPSHOT straight from your machine (needs ~/.m2 'central' server creds)
+	@set -e; \
+	BASE="$(base)"; \
+	if [ -z "$$BASE" ]; then \
+		LATEST=$$(git tag -l "v*" | sort -V | tail -n1); [ -z "$$LATEST" ] && LATEST="v0.0.0"; \
+		V=$${LATEST#v}; \
+		BASE="$$(echo $$V | cut -d. -f1).$$(echo $$V | cut -d. -f2).$$(( $$(echo $$V | cut -d. -f3) + 1 ))"; \
+	fi; \
+	VERSION="$$BASE-SNAPSHOT"; \
+	echo "Deploying Maven SNAPSHOT $$VERSION to the Central snapshot repo..."; \
+	( cd apis/stubs/java && mvn -B versions:set -DnewVersion="$$VERSION" -DgenerateBackupPoms=false && mvn -B deploy -DskipTests ); \
+	make -C sdk/java codegen; \
+	( cd sdk/java && mvn -B versions:set -DnewVersion="$$VERSION" -DgenerateBackupPoms=false && mvn -B versions:set-property -Dproperty=stigmer-protos.version -DnewVersion="$$VERSION" -DgenerateBackupPoms=false && mvn -B deploy -DskipTests ); \
+	echo ""; \
+	echo "Deployed ai.stigmer:stigmer-java:$$VERSION (protos: $$VERSION)"; \
+	echo "NOTE: pom.xml versions were edited in your working tree. Revert with:"; \
+	echo "  git checkout -- apis/stubs/java/pom.xml sdk/java/pom.xml"
+
 # ─── Clean ────────────────────────────────────
 
 .PHONY: clean

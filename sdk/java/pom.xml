@@ -42,6 +42,30 @@
         <url>https://github.com/stigmer/stigmer</url>
     </scm>
 
+    <!--
+      Snapshot deployment target for the dev-publishing channel (see
+      .github/workflows/release.dev.yaml and .github/workflows/docs/dev-publishing.md).
+
+      A `-SNAPSHOT` version deployed with plain `mvn deploy` (no `-P release`)
+      goes here via the default maven-deploy-plugin. SNAPSHOTs are mutable and
+      auto-expired by the Central Portal, so dev builds can be republished
+      endlessly without polluting the immutable Maven Central release index.
+
+      The `<id>central</id>` matches the server id configured by setup-java
+      (and a developer's ~/.m2/settings.xml), so the same MAVEN_CENTRAL_*
+      credentials authenticate both release and snapshot publishing.
+
+      Releases continue to publish to Maven Central via the
+      central-publishing-maven-plugin in the `release` profile below.
+    -->
+    <distributionManagement>
+        <snapshotRepository>
+            <id>central</id>
+            <name>Central Portal Snapshots</name>
+            <url>https://central.sonatype.com/repository/maven-snapshots/</url>
+        </snapshotRepository>
+    </distributionManagement>
+
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>17</maven.compiler.release>
