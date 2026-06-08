@@ -596,6 +596,19 @@ if (result.detected) {
 ```
 
 
+### findPlanArtifact
+
+Finds the plan artifact on a completed execution, or `undefined` when none
+was published (older executions, or a plan that failed to upload).
+
+Returns the latest `plan.md` if more than one is present — the runner
+replaces rather than appends, so this is defensive.
+
+```tsx
+function findPlanArtifact(execution: AgentExecution | null | undefined): ExecutionArtifact | undefined
+```
+
+
 ### ImportFormat
 
 Detected format of the imported file content.
@@ -615,6 +628,21 @@ they confirm the apply operation.
     slug: { type: "string", description: "The resource slug from `metadata.slug`, if present." },
   }}
 />
+
+
+### isPlanArtifact
+
+Returns `true` when an artifact is the published plan: a FILE artifact named
+`plan.md`.
+
+Detection is by convention — the same lightweight, content-free approach used
+for skill packages ([`isSkillPackage`](#isskillpackage)) — so the UI never needs an extra
+RPC to know a plan exists. The plan's text is fetched on demand via
+[`useArtifactContent`](/docs/sdk/react/execution#useartifactcontent) only when the user expands the Plan card.
+
+```tsx
+function isPlanArtifact(artifact: ExecutionArtifact): boolean
+```
 
 
 ### isSkillPackage

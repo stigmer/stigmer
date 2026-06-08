@@ -101,9 +101,10 @@ through error handling, not UI redirects.
 HITL approval prompt for tool call authorization.
 
 Displays the tool name and args preview, then presents
-Approve/Reject/Skip options navigable via arrow keys or
-shortcut keys (y/n/s). Press Enter to confirm the highlighted
-selection.
+Approve/Approve-all/Reject/Skip options navigable via arrow keys
+or shortcut keys (y/a/n/s). Press Enter to confirm the highlighted
+selection. "Approve & don't ask again" (a) maps to APPROVE_ALL, which
+stops gating the rest of the run.
 
 **Props** — `ApprovalPromptProps`
 

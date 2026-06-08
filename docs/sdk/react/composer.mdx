@@ -124,9 +124,7 @@ pre-fill and focus the input.
 const composerRef = useRef<SessionComposerHandle>(null);
 
 function handleBuildFromPlan() {
-  composerRef.current?.setMessage(
-    "Implement the plan above (saved as plan.md). Follow it step by step and make the changes it describes.",
-  );
+  composerRef.current?.setMessage("Implement the plan above");
   composerRef.current?.focus();
 }
 
