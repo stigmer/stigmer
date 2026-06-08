@@ -225,10 +225,18 @@ The command and response contract is documented in full in the
 #### Use the official Rust host crate
 
 If your host is Rust (for example, a Tauri app), do not hand-roll the subprocess
-driver. Use the
-[`stigmer-runner-host`](https://github.com/stigmer/stigmer/tree/main/crates/stigmer-runner-host)
-crate. It spawns the runner, performs the versioned `ready` handshake, and
-exposes the full lifecycle as an async API:
+driver. Use the published
+[`stigmer-runner-host`](https://crates.io/crates/stigmer-runner-host) crate. Add
+it to your `Cargo.toml` like any other dependency — no monorepo clone or
+machine-specific path dependency required:
+
+```toml
+[dependencies]
+stigmer-runner-host = { version = "3", features = ["tauri"] }
+```
+
+It spawns the runner, performs the versioned `ready` handshake, and exposes the
+full lifecycle as an async API:
 
 ```rust
 use stigmer_runner_host::{RunnerHost, RunnerConfig};
@@ -258,6 +266,47 @@ The core has no Tauri dependency. Enable the `tauri` feature for the desktop
 binding (`RunnerState` plus the `#[tauri::command]` surface). This is the
 supported way to embed the runner in a Rust app, and the Stigmer desktop app
 uses it.
+
+### Stage the runner in a packaged app
+
+The Rust crate _drives_ the runner, but it does not contain it: the subprocess
+path launches the runner's compiled JavaScript with `node`. Those files must
+travel **inside** your installable app, because the end user's machine has no
+Stigmer checkout. Get them from npm rather than cloning the monorepo:
+
+1. **Add the package.** `npm install @stigmer/runner`. The package ships the
+   runner's `dist/` and the runtime dependencies the subprocess needs.
+2. **Copy it into your app's resources at build time.** Stage the installed
+   package (its `dist/` and resolved `node_modules`) into a resources folder,
+   then have your packager bundle that folder into the installer. In Tauri,
+   declare it under `bundle.resources` in `tauri.conf.json`:
+
+   ```json
+   {
+     "bundle": {
+       "resources": ["resources/runner"]
+     }
+   }
+   ```
+
+3. **Point the host at the bundled entry.** Set `runner_entry` (the Rust snippet
+   above) to the staged path — `resources/runner/dist/main.js` — resolved
+   relative to the app's resource directory at runtime.
+
+<Callout type="info">
+  The Stigmer desktop app symlinks `resources/runner` to the in-repo runner
+  (`backend/services/runner`) because it lives inside the monorepo. An external
+  embedder fills the same folder from the published `@stigmer/runner` package
+  instead — the Tauri `bundle.resources` config is identical either way.
+</Callout>
+
+<Callout type="warn">
+  **`node` must be resolvable.** The subprocess runner is launched with `node`.
+  A GUI app started from the dock or Start menu does **not** inherit the user's
+  shell `PATH`, so a bare `node` command can fail to resolve even when Node is
+  installed. Resolve an absolute path to `node` at startup (or bundle a Node
+  runtime with the app) rather than relying on `PATH`.
+</Callout>
 
 ### How the two paths run
 
