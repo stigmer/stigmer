@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { resolveTemporalCoordinates } from "../bootstrap.js";
+import { resolveRunnerBootstrap, refreshRunnerAccessToken } from "../bootstrap.js";
 import type { BootstrapClientFactory } from "../bootstrap.js";
 
 /**
@@ -17,9 +17,9 @@ const failIfCalled: BootstrapClientFactory = async () => ({
   },
 });
 
-describe("resolveTemporalCoordinates", () => {
+describe("resolveRunnerBootstrap", () => {
   it("uses an explicit address verbatim and never discovers", async () => {
-    const coords = await resolveTemporalCoordinates(
+    const coords = await resolveRunnerBootstrap(
       {
         explicitAddress: "temporal.prod:7233",
         explicitNamespace: "prod",
@@ -36,7 +36,7 @@ describe("resolveTemporalCoordinates", () => {
   });
 
   it("falls back to localhost when neither an address nor a token is present", async () => {
-    const coords = await resolveTemporalCoordinates(
+    const coords = await resolveRunnerBootstrap(
       { stigmerEndpoint: "http://localhost:7234" },
       failIfCalled,
     );
@@ -58,7 +58,7 @@ describe("resolveTemporalCoordinates", () => {
       return { getRunnerBootstrapConfig };
     };
 
-    const coords = await resolveTemporalCoordinates(
+    const coords = await resolveRunnerBootstrap(
       { token: "tok_abc", stigmerEndpoint: "https://api.stigmer.ai" },
       factory,
     );
@@ -76,7 +76,7 @@ describe("resolveTemporalCoordinates", () => {
         Promise.resolve({ temporalAddress: "t:7233", temporalNamespace: "" }),
     });
 
-    const coords = await resolveTemporalCoordinates(
+    const coords = await resolveRunnerBootstrap(
       { token: "tok", stigmerEndpoint: "https://api.stigmer.ai" },
       factory,
     );
@@ -91,7 +91,7 @@ describe("resolveTemporalCoordinates", () => {
     });
 
     await expect(
-      resolveTemporalCoordinates(
+      resolveRunnerBootstrap(
         { token: "tok", stigmerEndpoint: "https://api.stigmer.ai" },
         factory,
       ),
@@ -105,7 +105,7 @@ describe("resolveTemporalCoordinates", () => {
     });
 
     await expect(
-      resolveTemporalCoordinates(
+      resolveRunnerBootstrap(
         { token: "tok", stigmerEndpoint: "https://api.stigmer.ai" },
         factory,
       ),
@@ -117,7 +117,7 @@ describe("resolveTemporalCoordinates", () => {
       .fn()
       .mockResolvedValue({ temporalAddress: "t:7233", temporalNamespace: "default" });
 
-    const coords = await resolveTemporalCoordinates(
+    const coords = await resolveRunnerBootstrap(
       {
         explicitAddress: "   ",
         token: "tok",
@@ -128,5 +128,94 @@ describe("resolveTemporalCoordinates", () => {
 
     expect(getRunnerBootstrapConfig).toHaveBeenCalledOnce();
     expect(coords.temporalAddress).toBe("t:7233");
+  });
+
+  it("surfaces the minted runner token from the discovery branch", async () => {
+    const factory: BootstrapClientFactory = async () => ({
+      getRunnerBootstrapConfig: () =>
+        Promise.resolve({
+          temporalAddress: "t:7233",
+          temporalNamespace: "default",
+          runnerAccessToken: "rt_minted",
+          runnerAccessTokenExpiresInSeconds: 3600,
+        }),
+    });
+
+    const result = await resolveRunnerBootstrap(
+      { token: "tok", stigmerEndpoint: "https://api.stigmer.ai" },
+      factory,
+    );
+
+    expect(result.runnerAccessToken).toBe("rt_minted");
+    expect(result.runnerAccessTokenExpiresInSeconds).toBe(3600);
+  });
+
+  it("returns no token from the explicit-address branch (no RPC, so nothing minted)", async () => {
+    const result = await resolveRunnerBootstrap(
+      {
+        explicitAddress: "temporal.prod:7233",
+        token: "tok",
+        stigmerEndpoint: "https://api.stigmer.ai",
+      },
+      failIfCalled,
+    );
+
+    expect(result.runnerAccessToken).toBeUndefined();
+  });
+});
+
+describe("refreshRunnerAccessToken", () => {
+  it("re-mints the proxy token using the current control-plane token", async () => {
+    const getRunnerBootstrapConfig = vi.fn().mockResolvedValue({
+      temporalAddress: "ignored:7233",
+      temporalNamespace: "ignored",
+      runnerAccessToken: "rt_refreshed",
+      runnerAccessTokenExpiresInSeconds: 7200,
+    });
+    const factory: BootstrapClientFactory = async (endpoint, token) => {
+      expect(endpoint).toBe("https://api.stigmer.ai");
+      expect(token).toBe("cp_token_fresh");
+      return { getRunnerBootstrapConfig };
+    };
+
+    const refreshed = await refreshRunnerAccessToken(
+      { token: "cp_token_fresh", stigmerEndpoint: "https://api.stigmer.ai" },
+      factory,
+    );
+
+    expect(refreshed).toEqual({ token: "rt_refreshed", expiresInSeconds: 7200 });
+  });
+
+  it("returns undefined when there is no control-plane token to authenticate with", async () => {
+    const refreshed = await refreshRunnerAccessToken(
+      { token: null, stigmerEndpoint: "https://api.stigmer.ai" },
+      failIfCalled,
+    );
+    expect(refreshed).toBeUndefined();
+  });
+
+  it("returns undefined (not throw) when the server mints no token", async () => {
+    const factory: BootstrapClientFactory = async () => ({
+      getRunnerBootstrapConfig: () =>
+        Promise.resolve({ temporalAddress: "t:7233", temporalNamespace: "default" }),
+    });
+
+    const refreshed = await refreshRunnerAccessToken(
+      { token: "cp", stigmerEndpoint: "https://api.stigmer.ai" },
+      factory,
+    );
+    expect(refreshed).toBeUndefined();
+  });
+
+  it("returns undefined (not throw) when the refresh call fails", async () => {
+    const factory: BootstrapClientFactory = async () => ({
+      getRunnerBootstrapConfig: () => Promise.reject(new Error("network down")),
+    });
+
+    const refreshed = await refreshRunnerAccessToken(
+      { token: "cp", stigmerEndpoint: "https://api.stigmer.ai" },
+      factory,
+    );
+    expect(refreshed).toBeUndefined();
   });
 });

@@ -76,6 +76,13 @@ function getRunnerConfig(): RunnerConfig {
     import.meta.env.VITE_STIGMER_TEMPORAL_ADDRESS
     || localStorage.getItem("stigmer.temporalAddress")
     || undefined;
+  // This is the runner's CONTROL-PLANE credential: the Auth0 access token the
+  // runner presents to the Stigmer server for bootstrap + activity gRPC. It is
+  // NOT what authenticates the runner's Cursor-proxy traffic — on cloud the
+  // server mints a dedicated iss=stigmer token during bootstrap and the runner
+  // owns/refreshes that proxy credential itself (see runner-manager.ts). The
+  // desktop only needs to keep this Auth0 token fresh (TokenBridge in App.tsx),
+  // which in turn lets the runner re-mint its proxy token indefinitely.
   const stigmerToken = loadTokens()?.accessToken || undefined;
 
   // Proxy endpoint for the runner's Cursor SDK traffic. Must include a URL

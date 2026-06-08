@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/platform/v1/server_info.proto.
  */
 export const file_ai_stigmer_platform_v1_server_info: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL3BsYXRmb3JtL3YxL3NlcnZlcl9pbmZvLnByb3RvEhZhaS5zdGlnbWVyLnBsYXRmb3JtLnYxIhQKEkdldFNlcnZlckluZm9JbnB1dCJeChNHZXRTZXJ2ZXJJbmZvT3V0cHV0EjYKB2VkaXRpb24YASABKA4yJS5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLlNlcnZlckVkaXRpb24SDwoHdmVyc2lvbhgCIAEoCSIfCh1HZXRSdW5uZXJCb290c3RyYXBDb25maWdJbnB1dCJoCh5HZXRSdW5uZXJCb290c3RyYXBDb25maWdPdXRwdXQSIQoQdGVtcG9yYWxfYWRkcmVzcxgBIAEoCUIHukgEcgIQARIjChJ0ZW1wb3JhbF9uYW1lc3BhY2UYAiABKAlCB7pIBHICEAEqQwoNU2VydmVyRWRpdGlvbhIeChpzZXJ2ZXJfZWRpdGlvbl91bnNwZWNpZmllZBAAEgcKA29zcxABEgkKBWNsb3VkEAIymwIKF1BsYXRmb3JtUXVlcnlDb250cm9sbGVyEm4KDWdldFNlcnZlckluZm8SKi5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldFNlcnZlckluZm9JbnB1dBorLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuR2V0U2VydmVySW5mb091dHB1dCIEyLgYARKPAQoYZ2V0UnVubmVyQm9vdHN0cmFwQ29uZmlnEjUuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRSdW5uZXJCb290c3RyYXBDb25maWdJbnB1dBo2LmFpLnN0aWdtZXIucGxhdGZvcm0udjEuR2V0UnVubmVyQm9vdHN0cmFwQ29uZmlnT3V0cHV0IgTQuBgBQhFCD1NlcnZlckluZm9Qcm90b2IGcHJvdG8z", [file_ai_stigmer_commons_rpc_method_options, file_buf_validate_validate]);
+  fileDesc("CihhaS9zdGlnbWVyL3BsYXRmb3JtL3YxL3NlcnZlcl9pbmZvLnByb3RvEhZhaS5zdGlnbWVyLnBsYXRmb3JtLnYxIhQKEkdldFNlcnZlckluZm9JbnB1dCJeChNHZXRTZXJ2ZXJJbmZvT3V0cHV0EjYKB2VkaXRpb24YASABKA4yJS5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLlNlcnZlckVkaXRpb24SDwoHdmVyc2lvbhgCIAEoCSIfCh1HZXRSdW5uZXJCb290c3RyYXBDb25maWdJbnB1dCLJAQoeR2V0UnVubmVyQm9vdHN0cmFwQ29uZmlnT3V0cHV0EiEKEHRlbXBvcmFsX2FkZHJlc3MYASABKAlCB7pIBHICEAESIwoSdGVtcG9yYWxfbmFtZXNwYWNlGAIgASgJQge6SARyAhABEhsKE3J1bm5lcl9hY2Nlc3NfdG9rZW4YAyABKAkSEgoKdG9rZW5fdHlwZRgEIAEoCRIuCiZydW5uZXJfYWNjZXNzX3Rva2VuX2V4cGlyZXNfaW5fc2Vjb25kcxgFIAEoBSpDCg1TZXJ2ZXJFZGl0aW9uEh4KGnNlcnZlcl9lZGl0aW9uX3Vuc3BlY2lmaWVkEAASBwoDb3NzEAESCQoFY2xvdWQQAjKbAgoXUGxhdGZvcm1RdWVyeUNvbnRyb2xsZXISbgoNZ2V0U2VydmVySW5mbxIqLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuR2V0U2VydmVySW5mb0lucHV0GisuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRTZXJ2ZXJJbmZvT3V0cHV0IgTIuBgBEo8BChhnZXRSdW5uZXJCb290c3RyYXBDb25maWcSNS5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldFJ1bm5lckJvb3RzdHJhcENvbmZpZ0lucHV0GjYuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRSdW5uZXJCb290c3RyYXBDb25maWdPdXRwdXQiBNC4GAFCEUIPU2VydmVySW5mb1Byb3RvYgZwcm90bzM", [file_ai_stigmer_commons_rpc_method_options, file_buf_validate_validate]);
 
 /**
  * Empty request — no parameters needed.
@@ -74,7 +74,8 @@ export const GetRunnerBootstrapConfigInputSchema: GenMessage<GetRunnerBootstrapC
   messageDesc(file_ai_stigmer_platform_v1_server_info, 2);
 
 /**
- * Temporal coordinates an embedded runner connects to.
+ * Everything an embedded runner needs to bootstrap: Temporal coordinates plus
+ * its own minted access token.
  *
  * The address is the one reachable by the caller: in OSS it is the server's
  * own co-located Temporal (single host); in Cloud it is the external Temporal
@@ -97,6 +98,39 @@ export type GetRunnerBootstrapConfigOutput = Message<"ai.stigmer.platform.v1.Get
    * @generated from field: string temporal_namespace = 2;
    */
   temporalNamespace: string;
+
+  /**
+   * Stigmer-signed access token the runner uses to authenticate its
+   * Cursor-proxy traffic (the x-stigmer-auth header).
+   *
+   * Empty when the server cannot mint one — OSS (no Cursor proxy) or a cloud
+   * server with no signing key configured. The runner keeps using its existing
+   * token in that case.
+   *
+   * @internal
+   * iss=stigmer, sub=caller identity account, token_type=embedded_runner. The
+   * runner treats this as its proxy credential, distinct from the control-plane
+   * token it authenticated this call with, and refreshes it before expiry.
+   *
+   * @generated from field: string runner_access_token = 3;
+   */
+  runnerAccessToken: string;
+
+  /**
+   * Token type for runner_access_token. "Bearer" when a token is present,
+   * empty otherwise.
+   *
+   * @generated from field: string token_type = 4;
+   */
+  tokenType: string;
+
+  /**
+   * Lifetime of runner_access_token in seconds from issuance. 0 when no token
+   * is present. The runner uses this to schedule a refresh before expiry.
+   *
+   * @generated from field: int32 runner_access_token_expires_in_seconds = 5;
+   */
+  runnerAccessTokenExpiresInSeconds: number;
 };
 
 /**
@@ -174,21 +208,30 @@ export const PlatformQueryController: GenService<{
     output: typeof GetServerInfoOutputSchema;
   },
   /**
-   * Returns the Temporal coordinates an embedded runner should connect to.
+   * Returns everything an embedded runner needs to bootstrap itself.
    *
    * An embedded runner (a desktop or web app hosting the runner for local
-   * execution) needs the Temporal frontend address and namespace to poll for
-   * work, but those are infrastructure details it should not have to know.
-   * This RPC lets the runner self-bootstrap: it presents the token it already
-   * holds and the control plane returns the coordinates for the environment
-   * that token belongs to. The contract for a cloud embedder collapses to a
-   * single endpoint plus a token.
+   * execution) needs two things at boot, both of which are details it should
+   * not have to know or hold ahead of time: the Temporal frontend coordinates
+   * to poll for work, and a Stigmer-signed identity to authenticate its
+   * Cursor-proxy traffic. This RPC lets the runner self-bootstrap through the
+   * one authenticated door it already opens at startup: it presents the token
+   * it already holds and the control plane returns the environment's Temporal
+   * coordinates plus a freshly minted runner access token. The contract for a
+   * cloud embedder collapses to a single endpoint plus a token.
    *
    * Authenticated (not public): the response reveals an infrastructure
-   * coordinate, so any valid token is required, but no specific FGA permission
-   * is — every authenticated caller in an environment shares one Temporal
-   * cluster, and task queues are per-session/execution and gated separately by
-   * control-plane session access.
+   * coordinate and mints a token bound to the caller, so any valid token is
+   * required, but no specific FGA permission is — every authenticated caller in
+   * an environment shares one Temporal cluster, and task queues are
+   * per-session/execution and gated separately by control-plane session access.
+   *
+   * @internal
+   * The minted runner access token (iss=stigmer, sub=caller identity account)
+   * is a cloud-only capability — OSS has no Cursor proxy and leaves the token
+   * fields empty. The handler degrades gracefully: if minting is unavailable
+   * (signing key unconfigured, or no caller identity), it returns the Temporal
+   * coordinates with an empty token rather than failing the runner's boot.
    *
    * @generated from rpc ai.stigmer.platform.v1.PlatformQueryController.getRunnerBootstrapConfig
    */

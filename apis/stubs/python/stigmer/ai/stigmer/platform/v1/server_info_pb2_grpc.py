@@ -6,11 +6,15 @@ from ai.stigmer.platform.v1 import server_info_pb2 as ai_dot_stigmer_dot_platfor
 
 
 class PlatformQueryControllerStub(object):
-    """Unauthenticated query service for server identity and capabilities.
+    """Query service for server identity, capabilities, and runner bootstrap.
 
     Clients call getServerInfo on startup to learn the server edition
     and version, replacing URL-based guessing. The RPC is public
     (no authentication required) so it can be called before login.
+
+    Embedded runners call getRunnerBootstrapConfig during boot to discover
+    the Temporal coordinates they need to join the execution backbone, so
+    integrators never hardcode infrastructure addresses.
     """
 
     def __init__(self, channel):
@@ -24,14 +28,23 @@ class PlatformQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetServerInfoInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetServerInfoOutput.FromString,
                 _registered_method=True)
+        self.getRunnerBootstrapConfig = channel.unary_unary(
+                '/ai.stigmer.platform.v1.PlatformQueryController/getRunnerBootstrapConfig',
+                request_serializer=ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetRunnerBootstrapConfigInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetRunnerBootstrapConfigOutput.FromString,
+                _registered_method=True)
 
 
 class PlatformQueryControllerServicer(object):
-    """Unauthenticated query service for server identity and capabilities.
+    """Query service for server identity, capabilities, and runner bootstrap.
 
     Clients call getServerInfo on startup to learn the server edition
     and version, replacing URL-based guessing. The RPC is public
     (no authentication required) so it can be called before login.
+
+    Embedded runners call getRunnerBootstrapConfig during boot to discover
+    the Temporal coordinates they need to join the execution backbone, so
+    integrators never hardcode infrastructure addresses.
     """
 
     def getServerInfo(self, request, context):
@@ -45,6 +58,36 @@ class PlatformQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def getRunnerBootstrapConfig(self, request, context):
+        """Returns everything an embedded runner needs to bootstrap itself.
+
+        An embedded runner (a desktop or web app hosting the runner for local
+        execution) needs two things at boot, both of which are details it should
+        not have to know or hold ahead of time: the Temporal frontend coordinates
+        to poll for work, and a Stigmer-signed identity to authenticate its
+        Cursor-proxy traffic. This RPC lets the runner self-bootstrap through the
+        one authenticated door it already opens at startup: it presents the token
+        it already holds and the control plane returns the environment's Temporal
+        coordinates plus a freshly minted runner access token. The contract for a
+        cloud embedder collapses to a single endpoint plus a token.
+
+        Authenticated (not public): the response reveals an infrastructure
+        coordinate and mints a token bound to the caller, so any valid token is
+        required, but no specific FGA permission is — every authenticated caller in
+        an environment shares one Temporal cluster, and task queues are
+        per-session/execution and gated separately by control-plane session access.
+
+        @internal
+        The minted runner access token (iss=stigmer, sub=caller identity account)
+        is a cloud-only capability — OSS has no Cursor proxy and leaves the token
+        fields empty. The handler degrades gracefully: if minting is unavailable
+        (signing key unconfigured, or no caller identity), it returns the Temporal
+        coordinates with an empty token rather than failing the runner's boot.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_PlatformQueryControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -52,6 +95,11 @@ def add_PlatformQueryControllerServicer_to_server(servicer, server):
                     servicer.getServerInfo,
                     request_deserializer=ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetServerInfoInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetServerInfoOutput.SerializeToString,
+            ),
+            'getRunnerBootstrapConfig': grpc.unary_unary_rpc_method_handler(
+                    servicer.getRunnerBootstrapConfig,
+                    request_deserializer=ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetRunnerBootstrapConfigInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetRunnerBootstrapConfigOutput.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -62,11 +110,15 @@ def add_PlatformQueryControllerServicer_to_server(servicer, server):
 
  # This class is part of an EXPERIMENTAL API.
 class PlatformQueryController(object):
-    """Unauthenticated query service for server identity and capabilities.
+    """Query service for server identity, capabilities, and runner bootstrap.
 
     Clients call getServerInfo on startup to learn the server edition
     and version, replacing URL-based guessing. The RPC is public
     (no authentication required) so it can be called before login.
+
+    Embedded runners call getRunnerBootstrapConfig during boot to discover
+    the Temporal coordinates they need to join the execution backbone, so
+    integrators never hardcode infrastructure addresses.
     """
 
     @staticmethod
@@ -86,6 +138,33 @@ class PlatformQueryController(object):
             '/ai.stigmer.platform.v1.PlatformQueryController/getServerInfo',
             ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetServerInfoInput.SerializeToString,
             ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetServerInfoOutput.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def getRunnerBootstrapConfig(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.platform.v1.PlatformQueryController/getRunnerBootstrapConfig',
+            ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetRunnerBootstrapConfigInput.SerializeToString,
+            ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetRunnerBootstrapConfigOutput.FromString,
             options,
             channel_credentials,
             insecure,

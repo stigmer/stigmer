@@ -36,6 +36,16 @@ public final class ServerInfoProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_platform_v1_GetServerInfoOutput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_platform_v1_GetRunnerBootstrapConfigInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_platform_v1_GetRunnerBootstrapConfigInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_platform_v1_GetRunnerBootstrapConfigOutput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_platform_v1_GetRunnerBootstrapConfigOutput_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -47,25 +57,38 @@ public final class ServerInfoProto extends com.google.protobuf.GeneratedFile {
     java.lang.String[] descriptorData = {
       "\n(ai/stigmer/platform/v1/server_info.pro" +
       "to\022\026ai.stigmer.platform.v1\032+ai/stigmer/c" +
-      "ommons/rpc/method_options.proto\"\024\n\022GetSe" +
-      "rverInfoInput\"p\n\023GetServerInfoOutput\022?\n\007" +
-      "edition\030\001 \001(\0162%.ai.stigmer.platform.v1.S" +
-      "erverEditionR\007edition\022\030\n\007version\030\002 \001(\tR\007" +
-      "version*C\n\rServerEdition\022\036\n\032server_editi" +
-      "on_unspecified\020\000\022\007\n\003oss\020\001\022\t\n\005cloud\020\0022\211\001\n" +
-      "\027PlatformQueryController\022n\n\rgetServerInf" +
-      "o\022*.ai.stigmer.platform.v1.GetServerInfo" +
-      "Input\032+.ai.stigmer.platform.v1.GetServer" +
-      "InfoOutput\"\004\310\270\030\001B\214\001B\017ServerInfoProtoP\001\242\002" +
-      "\003ASP\252\002\026Ai.Stigmer.Platform.V1\312\002\026Ai\\Stigm" +
-      "er\\Platform\\V1\342\002\"Ai\\Stigmer\\Platform\\V1\\" +
-      "GPBMetadata\352\002\031Ai::Stigmer::Platform::V1b" +
-      "\006proto3"
+      "ommons/rpc/method_options.proto\032\033buf/val" +
+      "idate/validate.proto\"\024\n\022GetServerInfoInp" +
+      "ut\"p\n\023GetServerInfoOutput\022?\n\007edition\030\001 \001" +
+      "(\0162%.ai.stigmer.platform.v1.ServerEditio" +
+      "nR\007edition\022\030\n\007version\030\002 \001(\tR\007version\"\037\n\035" +
+      "GetRunnerBootstrapConfigInput\"\256\002\n\036GetRun" +
+      "nerBootstrapConfigOutput\0222\n\020temporal_add" +
+      "ress\030\001 \001(\tB\007\272H\004r\002\020\001R\017temporalAddress\0226\n\022" +
+      "temporal_namespace\030\002 \001(\tB\007\272H\004r\002\020\001R\021tempo" +
+      "ralNamespace\022.\n\023runner_access_token\030\003 \001(" +
+      "\tR\021runnerAccessToken\022\035\n\ntoken_type\030\004 \001(\t" +
+      "R\ttokenType\022Q\n&runner_access_token_expir" +
+      "es_in_seconds\030\005 \001(\005R!runnerAccessTokenEx" +
+      "piresInSeconds*C\n\rServerEdition\022\036\n\032serve" +
+      "r_edition_unspecified\020\000\022\007\n\003oss\020\001\022\t\n\005clou" +
+      "d\020\0022\233\002\n\027PlatformQueryController\022n\n\rgetSe" +
+      "rverInfo\022*.ai.stigmer.platform.v1.GetSer" +
+      "verInfoInput\032+.ai.stigmer.platform.v1.Ge" +
+      "tServerInfoOutput\"\004\310\270\030\001\022\217\001\n\030getRunnerBoo" +
+      "tstrapConfig\0225.ai.stigmer.platform.v1.Ge" +
+      "tRunnerBootstrapConfigInput\0326.ai.stigmer" +
+      ".platform.v1.GetRunnerBootstrapConfigOut" +
+      "put\"\004\320\270\030\001B\214\001B\017ServerInfoProtoP\001\242\002\003ASP\252\002\026" +
+      "Ai.Stigmer.Platform.V1\312\002\026Ai\\Stigmer\\Plat" +
+      "form\\V1\342\002\"Ai\\Stigmer\\Platform\\V1\\GPBMeta" +
+      "data\352\002\031Ai::Stigmer::Platform::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor(),
+          build.buf.validate.ValidateProto.getDescriptor(),
         });
     internal_static_ai_stigmer_platform_v1_GetServerInfoInput_descriptor =
       getDescriptor().getMessageType(0);
@@ -79,11 +102,26 @@ public final class ServerInfoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_platform_v1_GetServerInfoOutput_descriptor,
         new java.lang.String[] { "Edition", "Version", });
+    internal_static_ai_stigmer_platform_v1_GetRunnerBootstrapConfigInput_descriptor =
+      getDescriptor().getMessageType(2);
+    internal_static_ai_stigmer_platform_v1_GetRunnerBootstrapConfigInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_platform_v1_GetRunnerBootstrapConfigInput_descriptor,
+        new java.lang.String[] { });
+    internal_static_ai_stigmer_platform_v1_GetRunnerBootstrapConfigOutput_descriptor =
+      getDescriptor().getMessageType(3);
+    internal_static_ai_stigmer_platform_v1_GetRunnerBootstrapConfigOutput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_platform_v1_GetRunnerBootstrapConfigOutput_descriptor,
+        new java.lang.String[] { "TemporalAddress", "TemporalNamespace", "RunnerAccessToken", "TokenType", "RunnerAccessTokenExpiresInSeconds", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor();
+    build.buf.validate.ValidateProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.isPublic);
+    registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.isSkipAuthorization);
+    registry.add(build.buf.validate.ValidateProto.field);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

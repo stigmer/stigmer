@@ -44,23 +44,31 @@ service PlatformQueryController {
     option (ai.stigmer.commons.rpc.is_public) = true;
   }
 
-  // Returns the Temporal coordinates an embedded runner should connect to.
+  // Returns everything an embedded runner needs to bootstrap itself.
   //
   // An embedded runner (a desktop or web app hosting the runner for local
-  // execution) needs the Temporal frontend address and namespace to poll for
-  // work, but those are infrastructure details it should not have to know.
-  // This RPC lets the runner self-bootstrap: it presents the token it already
-  // holds and the control plane returns the coordinates for the environment
-  // that token belongs to. The contract for a cloud embedder collapses to a
-  // single endpoint plus a token.
+  // execution) needs two things at boot, both of which are details it should
+  // not have to know or hold ahead of time: the Temporal frontend coordinates
+  // to poll for work, and a Stigmer-signed identity to authenticate its
+  // Cursor-proxy traffic. This RPC lets the runner self-bootstrap through the
+  // one authenticated door it already opens at startup: it presents the token
+  // it already holds and the control plane returns the environment's Temporal
+  // coordinates plus a freshly minted runner access token. The contract for a
+  // cloud embedder collapses to a single endpoint plus a token.
   //
   // Authenticated (not public): the response reveals an infrastructure
-  // coordinate, so any valid token is required, but no specific FGA permission
-  // is — every authenticated caller in an environment shares one Temporal
-  // cluster, and task queues are per-session/execution and gated separately by
-  // control-plane session access.
-  rpc getRunnerBootstrapConfig(GetRunnerBootstrapConfigInput)
-      returns (GetRunnerBootstrapConfigOutput) {
+  // coordinate and mints a token bound to the caller, so any valid token is
+  // required, but no specific FGA permission is — every authenticated caller in
+  // an environment shares one Temporal cluster, and task queues are
+  // per-session/execution and gated separately by control-plane session access.
+  //
+  // @internal
+  // The minted runner access token (iss=stigmer, sub=caller identity account)
+  // is a cloud-only capability — OSS has no Cursor proxy and leaves the token
+  // fields empty. The handler degrades gracefully: if minting is unavailable
+  // (signing key unconfigured, or no caller identity), it returns the Temporal
+  // coordinates with an empty token rather than failing the runner's boot.
+  rpc getRunnerBootstrapConfig(GetRunnerBootstrapConfigInput) returns (GetRunnerBootstrapConfigOutput) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 }
@@ -81,7 +89,8 @@ message GetServerInfoOutput {
 // coordinates are the same for every runner in the environment.
 message GetRunnerBootstrapConfigInput {}
 
-// Temporal coordinates an embedded runner connects to.
+// Everything an embedded runner needs to bootstrap: Temporal coordinates plus
+// its own minted access token.
 //
 // The address is the one reachable by the caller: in OSS it is the server's
 // own co-located Temporal (single host); in Cloud it is the external Temporal
@@ -93,4 +102,25 @@ message GetRunnerBootstrapConfigOutput {
 
   // Temporal namespace the runner should use.
   string temporal_namespace = 2 [(buf.validate.field).string.min_len = 1];
+
+  // Stigmer-signed access token the runner uses to authenticate its
+  // Cursor-proxy traffic (the x-stigmer-auth header).
+  //
+  // Empty when the server cannot mint one — OSS (no Cursor proxy) or a cloud
+  // server with no signing key configured. The runner keeps using its existing
+  // token in that case.
+  //
+  // @internal
+  // iss=stigmer, sub=caller identity account, token_type=embedded_runner. The
+  // runner treats this as its proxy credential, distinct from the control-plane
+  // token it authenticated this call with, and refreshes it before expiry.
+  string runner_access_token = 3;
+
+  // Token type for runner_access_token. "Bearer" when a token is present,
+  // empty otherwise.
+  string token_type = 4;
+
+  // Lifetime of runner_access_token in seconds from issuance. 0 when no token
+  // is present. The runner uses this to schedule a refresh before expiry.
+  int32 runner_access_token_expires_in_seconds = 5;
 }

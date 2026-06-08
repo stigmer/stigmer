@@ -13,6 +13,11 @@ import (
 // dials (TEMPORAL_HOST_PORT) is exactly the address runners should dial. Stigmer
 // Cloud diverges here: it returns an external Temporal ingress that differs from
 // the internal address the control plane uses — see the Cloud handler.
+//
+// The RunnerAccessToken / TokenType / RunnerAccessTokenExpiresInSeconds fields
+// are intentionally left empty: minting an iss=stigmer proxy token is a
+// cloud-only capability (OSS has no Cursor BiDi proxy to authenticate against),
+// so OSS runners keep using the token they already hold.
 func (c *PlatformController) GetRunnerBootstrapConfig(
 	_ context.Context,
 	_ *platformv1.GetRunnerBootstrapConfigInput,

@@ -43,21 +43,30 @@ type PlatformQueryControllerClient interface {
 	// Clients should call this once on startup and pass the result
 	// to StigmerProvider as the deploymentMode prop.
 	GetServerInfo(ctx context.Context, in *GetServerInfoInput, opts ...grpc.CallOption) (*GetServerInfoOutput, error)
-	// Returns the Temporal coordinates an embedded runner should connect to.
+	// Returns everything an embedded runner needs to bootstrap itself.
 	//
 	// An embedded runner (a desktop or web app hosting the runner for local
-	// execution) needs the Temporal frontend address and namespace to poll for
-	// work, but those are infrastructure details it should not have to know.
-	// This RPC lets the runner self-bootstrap: it presents the token it already
-	// holds and the control plane returns the coordinates for the environment
-	// that token belongs to. The contract for a cloud embedder collapses to a
-	// single endpoint plus a token.
+	// execution) needs two things at boot, both of which are details it should
+	// not have to know or hold ahead of time: the Temporal frontend coordinates
+	// to poll for work, and a Stigmer-signed identity to authenticate its
+	// Cursor-proxy traffic. This RPC lets the runner self-bootstrap through the
+	// one authenticated door it already opens at startup: it presents the token
+	// it already holds and the control plane returns the environment's Temporal
+	// coordinates plus a freshly minted runner access token. The contract for a
+	// cloud embedder collapses to a single endpoint plus a token.
 	//
 	// Authenticated (not public): the response reveals an infrastructure
-	// coordinate, so any valid token is required, but no specific FGA permission
-	// is — every authenticated caller in an environment shares one Temporal
-	// cluster, and task queues are per-session/execution and gated separately by
-	// control-plane session access.
+	// coordinate and mints a token bound to the caller, so any valid token is
+	// required, but no specific FGA permission is — every authenticated caller in
+	// an environment shares one Temporal cluster, and task queues are
+	// per-session/execution and gated separately by control-plane session access.
+	//
+	// @internal
+	// The minted runner access token (iss=stigmer, sub=caller identity account)
+	// is a cloud-only capability — OSS has no Cursor proxy and leaves the token
+	// fields empty. The handler degrades gracefully: if minting is unavailable
+	// (signing key unconfigured, or no caller identity), it returns the Temporal
+	// coordinates with an empty token rather than failing the runner's boot.
 	GetRunnerBootstrapConfig(ctx context.Context, in *GetRunnerBootstrapConfigInput, opts ...grpc.CallOption) (*GetRunnerBootstrapConfigOutput, error)
 }
 
@@ -109,21 +118,30 @@ type PlatformQueryControllerServer interface {
 	// Clients should call this once on startup and pass the result
 	// to StigmerProvider as the deploymentMode prop.
 	GetServerInfo(context.Context, *GetServerInfoInput) (*GetServerInfoOutput, error)
-	// Returns the Temporal coordinates an embedded runner should connect to.
+	// Returns everything an embedded runner needs to bootstrap itself.
 	//
 	// An embedded runner (a desktop or web app hosting the runner for local
-	// execution) needs the Temporal frontend address and namespace to poll for
-	// work, but those are infrastructure details it should not have to know.
-	// This RPC lets the runner self-bootstrap: it presents the token it already
-	// holds and the control plane returns the coordinates for the environment
-	// that token belongs to. The contract for a cloud embedder collapses to a
-	// single endpoint plus a token.
+	// execution) needs two things at boot, both of which are details it should
+	// not have to know or hold ahead of time: the Temporal frontend coordinates
+	// to poll for work, and a Stigmer-signed identity to authenticate its
+	// Cursor-proxy traffic. This RPC lets the runner self-bootstrap through the
+	// one authenticated door it already opens at startup: it presents the token
+	// it already holds and the control plane returns the environment's Temporal
+	// coordinates plus a freshly minted runner access token. The contract for a
+	// cloud embedder collapses to a single endpoint plus a token.
 	//
 	// Authenticated (not public): the response reveals an infrastructure
-	// coordinate, so any valid token is required, but no specific FGA permission
-	// is — every authenticated caller in an environment shares one Temporal
-	// cluster, and task queues are per-session/execution and gated separately by
-	// control-plane session access.
+	// coordinate and mints a token bound to the caller, so any valid token is
+	// required, but no specific FGA permission is — every authenticated caller in
+	// an environment shares one Temporal cluster, and task queues are
+	// per-session/execution and gated separately by control-plane session access.
+	//
+	// @internal
+	// The minted runner access token (iss=stigmer, sub=caller identity account)
+	// is a cloud-only capability — OSS has no Cursor proxy and leaves the token
+	// fields empty. The handler degrades gracefully: if minting is unavailable
+	// (signing key unconfigured, or no caller identity), it returns the Temporal
+	// coordinates with an empty token rather than failing the runner's boot.
 	GetRunnerBootstrapConfig(context.Context, *GetRunnerBootstrapConfigInput) (*GetRunnerBootstrapConfigOutput, error)
 }
 
