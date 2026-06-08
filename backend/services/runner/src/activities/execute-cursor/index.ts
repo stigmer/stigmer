@@ -30,9 +30,8 @@ import { heartbeat, Context, CancelledFailure } from "@temporalio/activity";
 import { create, type JsonObject } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
+import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { ExecutionControlSignal, ExecutionPhase, InteractionMode, MessageType, ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { SDKMessage, Run, ConversationTurn } from "@cursor/sdk";
 
@@ -42,7 +41,7 @@ import { resolveAgent } from "./session-lifecycle.js";
 import type { AgentResolution, CreateAgentOptions, CreateCloudAgentOptions } from "./session-lifecycle.js";
 import { CursorMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { determineCursorMode, isCloudMode } from "./cursor-mode.js";
-import { MessageAccumulator, extractDeniedToolCalls, cancelInProgressSubAgentProtos } from "./message-translator.js";
+import { MessageAccumulator, reconcileDeniedToolCalls, cancelInProgressSubAgentProtos } from "./message-translator.js";
 import { utcTimestamp, persistStatus, reportSetupProgress, slimStatus } from "../../shared/status.js";
 import { DeltaEnricher } from "./delta-enricher.js";
 import { TodoTracker } from "./todo-tracker.js";
@@ -57,9 +56,8 @@ import { buildCursorSubAgentDefinitions } from "./subagent-config.js";
 import { resolveSkills } from "./skill-resolver.js";
 import { resolveAttachments } from "./attachment-resolver.js";
 import { buildEnhancedPrompt, buildReinvocationPrompt } from "./prompt-builder.js";
-import { extractAgentRationale, getGitBranch, getGitHeadSha } from "./hitl-diagnostics.js";
 import { writeHooksToWorkspace } from "./workspace-setup.js";
-import { buildApprovalState, buildApprovalGrants } from "./approval-state.js";
+import { buildApprovalState, buildApprovalGrants, readDenialLedger, reconstructAdjudicatedApprovals } from "./approval-state.js";
 import { provisionCursorWorkspace } from "./workspace-provision.js";
 import { setInterceptorExecutionId, runWithExecutionContext } from "./fetch-interceptor.js";
 import { closeProxySessions } from "./http2-interceptor.js";
@@ -191,17 +189,19 @@ async function executeCursorInner(
     // Phase 3: Check if this is a reinvocation after approval
     const isReinvocation = !!threadId;
     let approvalDecisions: Map<string, ApprovalAction> | undefined;
+    // Adjudicated approvals reconstructed from the tool calls (the source of
+    // truth for a decision). The backend projects pending_approvals from
+    // tool-call status and clears decided entries, so pending_approvals is empty
+    // by reinvocation time — the decision survives only on the tool call. This
+    // feeds both the grant builder and the reinvocation prompt below.
+    let adjudicatedApprovals: PendingApproval[] = [];
 
     if (isReinvocation) {
       const existingStatus = execution.status;
-      if (existingStatus?.pendingApprovals?.length) {
-        approvalDecisions = new Map();
-        for (const pa of existingStatus.pendingApprovals) {
-          const matchingTc = findToolCallByIdInMessages(existingStatus.messages, pa.toolCallId);
-          if (matchingTc?.approvalAction) {
-            approvalDecisions.set(pa.toolCallId, matchingTc.approvalAction);
-          }
-        }
+      const adjudicated = reconstructAdjudicatedApprovals(existingStatus?.messages ?? []);
+      if (adjudicated.decisions.size > 0) {
+        approvalDecisions = adjudicated.decisions;
+        adjudicatedApprovals = adjudicated.pendingApprovals;
 
         const hasReject = [...approvalDecisions.values()].some(
           (a) => a === ApprovalAction.REJECT,
@@ -368,7 +368,7 @@ async function executeCursorInner(
     // turn the user's approvals into tool-identity grants so the resumed agent's
     // re-attempt (which carries a fresh tool-call id) is allowed through.
     const approvalGrants = approvalDecisions
-      ? buildApprovalGrants(execution.status?.pendingApprovals ?? [], approvalDecisions)
+      ? buildApprovalGrants(adjudicatedApprovals, approvalDecisions)
       : undefined;
     const approvalState = buildApprovalState(
       mergedPolicies,
@@ -418,9 +418,7 @@ async function executeCursorInner(
       workspaceDirs: blueprint.workspaceDirs,
       workspaceFileRefs: spec.workspaceFileRefs ?? [],
       attachmentPaths,
-      pendingApprovals: status.pendingApprovals.length > 0
-        ? status.pendingApprovals
-        : (execution.status?.pendingApprovals ?? []),
+      pendingApprovals: adjudicatedApprovals,
       interactionMode,
     });
 
@@ -454,7 +452,6 @@ async function executeCursorInner(
 
     // Phase 11: Send message and stream events
     status.phase = ExecutionPhase.EXECUTION_IN_PROGRESS;
-    const collectedEvents: SDKMessage[] = [];
 
     const deltaEnricher = new DeltaEnricher();
     const todoTracker = new TodoTracker(status.todos);
@@ -529,7 +526,6 @@ async function executeCursorInner(
         break;
       }
 
-      collectedEvents.push(event);
       eventRecorder?.record(event, eventCount);
 
       accumulator.processEvent(event);
@@ -708,35 +704,20 @@ async function executeCursorInner(
       return slimStatus(status);
     }
 
-    // Phase 12: Check for denied tool calls (HITL)
-    const deniedCalls = extractDeniedToolCalls(collectedEvents, mergedPolicies);
-    if (deniedCalls.length > 0) {
+    // Phase 12: Surface tools the preToolUse hook gated (HITL).
+    //
+    // The hook records each denial to the ledger; we mark the corresponding tool
+    // calls WAITING_APPROVAL. The backend projects pending_approvals from that
+    // tool-call status (PendingApprovalComputer), so — exactly like the native
+    // harness — the approval surface is driven entirely by tool-call status. We
+    // deliberately do NOT set status.pendingApprovals here: any value would be
+    // discarded by the backend's recompute on the next updateStatus.
+    const deniedLedger = await readDenialLedger(primaryWorkspaceDir);
+    const deniedToolCalls = reconcileDeniedToolCalls(status.messages, deniedLedger, mergedPolicies);
+    if (deniedToolCalls.length > 0) {
       status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL;
-
-      // Capture HITL diagnostics at deny-time for intelligent reinvocation
-      const [gitBranch, gitHead] = await Promise.all([
-        getGitBranch(primaryWorkspaceDir),
-        getGitHeadSha(primaryWorkspaceDir),
-      ]);
-
-      status.pendingApprovals = deniedCalls.map((dc) =>
-        create(PendingApprovalSchema, {
-          toolCallId: dc.callId,
-          toolName: dc.name,
-          argsPreview: dc.argsPreview,
-          message: dc.approvalMessage,
-          agentRationale: extractAgentRationale(status.messages, dc.callId),
-          branchAtDeny: gitBranch,
-          headShaAtDeny: gitHead,
-        }),
-      );
-      status.messages.push(create(AgentMessageSchema, {
-        type: MessageType.MESSAGE_SYSTEM,
-        content: `Tool approval required for: ${deniedCalls.map((d) => d.mcpServerSlug ? d.mcpServerSlug + "/" + d.name : d.name).join(", ")}`,
-        timestamp: utcTimestamp(),
-      }));
       await persistStatus(client, executionId, status);
-      console.log(`ExecuteCursor returning WAITING_FOR_APPROVAL: ${deniedCalls.length} tools pending`);
+      console.log(`ExecuteCursor returning WAITING_FOR_APPROVAL: ${deniedToolCalls.length} tools pending`);
       return slimStatus(status);
     }
 
@@ -825,9 +806,7 @@ async function executeCursorInner(
             workspaceDirs: blueprint.workspaceDirs,
             workspaceFileRefs: spec.workspaceFileRefs ?? [],
             attachmentPaths,
-            pendingApprovals: status.pendingApprovals.length > 0
-              ? status.pendingApprovals
-              : (execution.status?.pendingApprovals ?? []),
+            pendingApprovals: adjudicatedApprovals,
             interactionMode,
           });
 
@@ -858,7 +837,6 @@ async function executeCursorInner(
 
           for await (const retryEvent of retryRun.stream()) {
             if (Context.current().cancellationSignal.aborted) break;
-            collectedEvents.push(retryEvent);
             accumulator.processEvent(retryEvent);
             if (retryEvent.type === "status") {
               const retryStatusEvent = retryEvent as { status?: string; message?: string };
@@ -954,7 +932,6 @@ async function executeCursorInner(
 
           for await (const retryEvent of retryRun.stream()) {
             if (Context.current().cancellationSignal.aborted) break;
-            collectedEvents.push(retryEvent);
             accumulator.processEvent(retryEvent);
             if (retryEvent.type === "status") {
               const retryStatusEvent = retryEvent as { status?: string; message?: string };
@@ -1441,21 +1418,4 @@ function extractConversationErrorText(turns: ConversationTurn[]): string | undef
 
   const joined = [...new Set(collected)].join(" | ");
   return joined.length > 600 ? `${joined.slice(0, 600)}…` : joined;
-}
-
-/**
- * Find a tool call by ID in the execution's messages.
- * Used during reinvocation to read approval decisions from the DB.
- */
-function findToolCallByIdInMessages(
-  messages: AgentMessage[] | undefined,
-  toolCallId: string,
-) {
-  if (!messages) return undefined;
-  for (const msg of messages) {
-    for (const tc of msg.toolCalls) {
-      if (tc.id === toolCallId) return tc;
-    }
-  }
-  return undefined;
 }

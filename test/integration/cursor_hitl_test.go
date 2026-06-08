@@ -69,6 +69,11 @@ func TestCursorHarness_HITL_WriteGate_Approve(t *testing.T) {
 		"expected a gated built-in tool (Write/StrReplace/EditNotebook/Shell/Delete), got %q",
 		approval.GetToolName())
 
+	// Load-bearing invariant: the backend projects pending_approvals from
+	// tool-call status, so the gated Write must itself carry WAITING_APPROVAL
+	// (not COMPLETED). This is the exact regression that hid the approval gate.
+	assertToolCallWaitingApproval(t, waiting, approval.GetToolCallId())
+
 	// Approve and let the reinvocation grant carry the re-attempted Write through.
 	result, err := waiter.ResolveApprovalsUntilPhase(ctx, clients,
 		exec.GetMetadata().GetId(),
@@ -130,6 +135,27 @@ func TestCursorHarness_HITL_AutoApproveAll_NoGate(t *testing.T) {
 	assert.Empty(t, result.GetStatus().GetPendingApprovals(),
 		"auto_approve_all=true must not surface any approval gate")
 	assertCompletedWrite(t, result)
+}
+
+// assertToolCallWaitingApproval asserts the gated tool call carries
+// TOOL_CALL_WAITING_APPROVAL + requires_approval. The backend's
+// PendingApprovalComputer projects pending_approvals from exactly this status,
+// so this is the invariant that makes the approval gate surface at all.
+func assertToolCallWaitingApproval(t *testing.T, exec *agentexecv1.AgentExecution, toolCallID string) {
+	t.Helper()
+	for _, msg := range exec.GetStatus().GetMessages() {
+		for _, tc := range msg.GetToolCalls() {
+			if tc.GetId() != toolCallID {
+				continue
+			}
+			assert.Equal(t, agentexecv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL, tc.GetStatus(),
+				"gated tool call %s must be WAITING_APPROVAL (drives the pending_approvals projection)", toolCallID)
+			assert.True(t, tc.GetRequiresApproval(),
+				"gated tool call %s must have requires_approval=true", toolCallID)
+			return
+		}
+	}
+	t.Errorf("tool call %s not found in waiting execution messages", toolCallID)
 }
 
 // isGatedBuiltIn reports whether a tool name is one of the cursor harness's

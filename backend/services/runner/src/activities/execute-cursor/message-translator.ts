@@ -38,7 +38,8 @@ import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agent
 import { MessageType, ToolCallStatus, SubAgentStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { SDKMessage } from "@cursor/sdk";
 import type { MergedToolPolicy } from "./approval-policy.js";
-import { lookupMcpToolPolicy, resolveApprovalMessage, builtInRequiresApproval, getBuiltInApprovalMessage } from "./approval-policy.js";
+import { lookupMcpToolPolicy, resolveApprovalMessage, builtInRequiresApproval, getBuiltInApprovalMessage, extractArgKey } from "./approval-policy.js";
+import { grantToken, type DeniedLedgerEntry } from "./approval-state.js";
 import { utcTimestamp } from "../../shared/status.js";
 import { classifyTool } from "../../shared/tool-kind.js";
 
@@ -713,64 +714,183 @@ export class MessageAccumulator {
 }
 
 /**
- * Extract denied tool call details from stream events for HITL reporting.
+ * Reconcile the denial ledger written by the preToolUse hook against the tool
+ * calls accumulated from the stream, marking each denied call as
+ * WAITING_APPROVAL.
  *
- * When a preToolUse hook denies a tool, Cursor emits a tool_call event
- * with status "error". This function identifies those denied calls so the
- * activity can populate pending_approvals.
+ * This is the cursor analog of the native harness synthesizing WAITING_APPROVAL
+ * tool calls from LangGraph interrupts (execute-deep-agent/index.ts). The hook
+ * ledger — not the SDK-reported tool status — is the authoritative record of
+ * what was gated, because the hook is the only component that makes the per-call
+ * allow/deny decision. The backend then projects pending_approvals from these
+ * WAITING_APPROVAL tool calls (PendingApprovalComputer), so the approval surface
+ * is driven entirely by tool-call status, exactly like the native harness.
  *
- * For MCP tools, extracts the actual tool name and server slug from args.
+ * Correlation is by tool identity token (the same space as approvedGrantTokens),
+ * not by call id: a denied tool's identity is stable, and a single resource
+ * approved once should produce one approval regardless of how many times the
+ * agent re-attempted it within the turn.
+ *
+ * If a ledger denial has no matching streamed tool call (rare — Cursor normally
+ * emits a tool_call event for every attempt), a placeholder WAITING_APPROVAL
+ * tool call is synthesized so the gate still surfaces and never renders as a
+ * silent success.
+ *
+ * Returns the tool calls now marked WAITING_APPROVAL (overlaid + synthesized).
  */
-export interface DeniedToolCall {
-  callId: string;
-  name: string;
-  mcpServerSlug: string;
-  argsPreview: string;
-  approvalMessage: string;
+export function reconcileDeniedToolCalls(
+  messages: AgentMessage[],
+  ledger: DeniedLedgerEntry[],
+  mergedPolicies?: Map<string, MergedToolPolicy>,
+): ToolCall[] {
+  if (ledger.length === 0) return [];
+
+  // One approval per denied identity; a resource re-attempted within the turn
+  // is gated under the same token and collapses to a single approval.
+  const deniedTokens = new Set(ledger.map((e) => e.token));
+  const matched = new Set<string>();
+  const result: ToolCall[] = [];
+
+  // 1. Overlay WAITING_APPROVAL onto the streamed tool calls that were denied.
+  for (const msg of messages) {
+    for (const tc of msg.toolCalls) {
+      const token = toolCallIdentityToken(tc);
+      if (!deniedTokens.has(token) || matched.has(token)) continue;
+      markWaitingApproval(tc, mergedPolicies);
+      matched.add(token);
+      result.push(tc);
+    }
+  }
+
+  // 2. Synthesize a tool call for any denial that never produced a stream event.
+  for (const entry of ledger) {
+    if (matched.has(entry.token)) continue;
+    const decoded = decodeIdentityToken(entry.token);
+    const name = decoded?.name || entry.toolName || "tool";
+    const argKey = decoded?.argKey ?? "";
+    const tc = synthesizeWaitingApprovalToolCall(name, argKey, mergedPolicies);
+    appendToolCallToLastAiMessage(messages, tc);
+    matched.add(entry.token);
+    result.push(tc);
+  }
+
+  return result;
 }
 
-export function extractDeniedToolCalls(
-  events: SDKMessage[],
+/**
+ * Compute a tool call's identity token in the same space the preToolUse hook
+ * uses (grantToken: base64 of `toolName \n salientArg`). Mirrors the hook's
+ * choice: MCP tools are name-only (no top-level salient arg in the hook input,
+ * matching the grant convention); built-in tools key on their salient arg.
+ */
+function toolCallIdentityToken(tc: ToolCall): string {
+  const argKey = tc.mcpServerSlug ? "" : extractArgKey(toolCallArgs(tc));
+  return grantToken(tc.name, argKey);
+}
+
+/** Decode a `grantToken` back into its (name, argKey) for synthesis fallback. */
+function decodeIdentityToken(token: string): { name: string; argKey: string } | undefined {
+  try {
+    const decoded = Buffer.from(token, "base64").toString("utf-8");
+    const nl = decoded.indexOf("\n");
+    if (nl < 0) return undefined;
+    return { name: decoded.slice(0, nl), argKey: decoded.slice(nl + 1) };
+  } catch {
+    return undefined;
+  }
+}
+
+/** Best-effort args record for a tool call (proto struct, else parsed preview). */
+function toolCallArgs(tc: ToolCall): Record<string, unknown> {
+  if (tc.args && typeof tc.args === "object") {
+    return tc.args as Record<string, unknown>;
+  }
+  if (tc.argsPreview) {
+    try {
+      const parsed = JSON.parse(tc.argsPreview);
+      if (parsed && typeof parsed === "object") return parsed as Record<string, unknown>;
+    } catch {
+      // fall through
+    }
+  }
+  return {};
+}
+
+/**
+ * Mark a denied tool call as awaiting approval, clearing the result/terminal
+ * fields the stream may have set (the tool never actually ran — it was gated).
+ */
+function markWaitingApproval(
+  tc: ToolCall,
   mergedPolicies?: Map<string, MergedToolPolicy>,
-): DeniedToolCall[] {
-  return events
-    .filter((e): e is Extract<SDKMessage, { type: "tool_call" }> =>
-      e.type === "tool_call" && e.status === "error")
-    .map((e) => {
-      const mcpDetails = extractMcpToolDetails(e);
-      const actualName = mcpDetails?.toolName ?? e.name;
-      const mcpServerSlug = mcpDetails?.providerIdentifier ?? "";
+): void {
+  tc.status = ToolCallStatus.TOOL_CALL_WAITING_APPROVAL;
+  tc.requiresApproval = true;
+  if (!tc.approvalMessage) {
+    tc.approvalMessage = resolveDeniedApprovalMessage(
+      tc.name, tc.mcpServerSlug, toolCallArgs(tc), mergedPolicies,
+    );
+  }
+  if (!tc.approvalRequestedAt) tc.approvalRequestedAt = utcTimestamp();
+  tc.completedAt = "";
+  tc.error = "";
+  tc.result = "";
+}
 
-      let approvalMessage = `Tool requires approval: ${actualName}`;
-      if (mergedPolicies && mcpDetails) {
-        const policy = lookupMcpToolPolicy(actualName, mcpServerSlug, mergedPolicies);
-        if (policy) {
-          approvalMessage = resolveApprovalMessage(
-            policy.approvalMessage,
-            actualName,
-            mcpDetails.innerArgs,
-          );
-        }
-      } else if (!mcpDetails) {
-        // Built-in (non-MCP) tool: resolve the native-style message template so
-        // the approval card shows "Write file: foo.txt" rather than a generic line.
-        const template = getBuiltInApprovalMessage(actualName);
-        if (template) {
-          const builtInArgs = (typeof e.args === "object" && e.args !== null)
-            ? e.args as Record<string, unknown>
-            : {};
-          approvalMessage = resolveApprovalMessage(template, actualName, builtInArgs);
-        }
-      }
+function synthesizeWaitingApprovalToolCall(
+  name: string,
+  argKey: string,
+  mergedPolicies?: Map<string, MergedToolPolicy>,
+): ToolCall {
+  const tc = create(ToolCallSchema, {
+    id: `approval:${grantToken(name, argKey)}`,
+    name,
+    status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+    requiresApproval: true,
+    startedAt: utcTimestamp(),
+    approvalRequestedAt: utcTimestamp(),
+    toolKind: classifyTool(name),
+  });
+  tc.approvalMessage = argKey
+    ? `Tool requires approval: ${name} (${argKey})`
+    : resolveDeniedApprovalMessage(name, "", {}, mergedPolicies);
+  return tc;
+}
 
-      return {
-        callId: e.call_id,
-        name: actualName,
-        mcpServerSlug,
-        argsPreview: e.args != null
-          ? (typeof e.args === "string" ? e.args : JSON.stringify(e.args))
-          : "",
-        approvalMessage,
-      };
-    });
+/**
+ * Resolve a human-readable approval message for a denied tool, preferring the
+ * MCP policy template, then the built-in template, then a generic fallback.
+ */
+function resolveDeniedApprovalMessage(
+  name: string,
+  mcpServerSlug: string,
+  args: Record<string, unknown>,
+  mergedPolicies?: Map<string, MergedToolPolicy>,
+): string {
+  if (mergedPolicies && mcpServerSlug) {
+    const policy = lookupMcpToolPolicy(name, mcpServerSlug, mergedPolicies);
+    if (policy) return resolveApprovalMessage(policy.approvalMessage, name, args);
+  }
+  if (!mcpServerSlug) {
+    const template = getBuiltInApprovalMessage(name);
+    if (template) return resolveApprovalMessage(template, name, args);
+  }
+  return `Tool requires approval: ${name}`;
+}
+
+/** Append a tool call to the last AI message, creating one if none exists. */
+function appendToolCallToLastAiMessage(messages: AgentMessage[], tc: ToolCall): void {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].type === MessageType.MESSAGE_AI) {
+      messages[i].toolCalls.push(tc);
+      return;
+    }
+  }
+  const msg = create(AgentMessageSchema, {
+    type: MessageType.MESSAGE_AI,
+    content: "",
+    timestamp: utcTimestamp(),
+    toolCalls: [tc],
+  });
+  messages.push(msg);
 }
