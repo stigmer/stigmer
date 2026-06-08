@@ -112,11 +112,12 @@ export class UsageAccumulator {
       outputTokens: BigInt(this.outputTokens),
       cacheReadTokens: BigInt(this.cacheReadTokens),
       cacheWriteTokens: BigInt(this.cacheWriteTokens),
-      totalTokens: BigInt(
-        this.inputTokens +
-        this.outputTokens +
-        this.cacheReadTokens +
-        this.cacheWriteTokens),
+      // The Cursor SDK follows Anthropic's convention: inputTokens already
+      // INCLUDES the cached portions (cacheReadTokens/cacheWriteTokens are
+      // subsets of it, not additive). The true total throughput is therefore
+      // inputTokens + outputTokens. Adding the cache buckets again would
+      // double-count them and inflate the figure the Usage widget shows.
+      totalTokens: BigInt(this.inputTokens + this.outputTokens),
       turnCount: this.turnCount,
       estimatedCostUsd: this.estimatedCostUsd,
       model: this.model,

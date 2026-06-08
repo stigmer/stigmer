@@ -52,7 +52,9 @@ public interface StreamingUsageSummaryOrBuilder extends
 
   /**
    * <pre>
-   * Sum of all token buckets.
+   * Total tokens across all turns: input_tokens + output_tokens. The Cursor
+   * SDK reports input_tokens cache-inclusive (cache_read/cache_write are
+   * subsets of it), so the cache buckets are NOT added again here.
    * </pre>
    *
    * <code>int64 total_tokens = 5 [json_name = "totalTokens"];</code>

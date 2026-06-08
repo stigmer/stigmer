@@ -41,6 +41,7 @@ go_library(
         "trace_assertions.go",
         "trace_bundle.go",
         "unified_runner.go",
+        "usage_report_waiter.go",
         "workflow_architect_helpers.go",
     ],
     importpath = "github.com/stigmer/stigmer/test/integration/harness",

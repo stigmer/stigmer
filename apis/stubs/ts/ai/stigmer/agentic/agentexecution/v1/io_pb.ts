@@ -1654,7 +1654,8 @@ export type SessionUsageSummary = Message<"ai.stigmer.agentic.agentexecution.v1.
   executionCount: number;
 
   /**
-   * Total tokens (input + output) across all executions.
+   * Total tokens across all executions (cache-inclusive: the sum of each
+   * call's provider-reported total, including cached input tokens).
    *
    * @generated from field: int64 total_tokens = 3;
    */
@@ -1717,7 +1718,8 @@ export type AgentUsageSummary = Message<"ai.stigmer.agentic.agentexecution.v1.Ag
   executionCount: number;
 
   /**
-   * Total tokens (input + output) across all executions.
+   * Total tokens across all executions (cache-inclusive: the sum of each
+   * call's provider-reported total, including cached input tokens).
    *
    * @generated from field: int64 total_tokens = 4;
    */

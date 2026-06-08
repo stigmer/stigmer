@@ -2561,7 +2561,8 @@ type SessionUsageSummary struct {
 	SessionId string `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	// Number of executions in this session.
 	ExecutionCount int32 `protobuf:"varint,2,opt,name=execution_count,json=executionCount,proto3" json:"execution_count,omitempty"`
-	// Total tokens (input + output) across all executions.
+	// Total tokens across all executions (cache-inclusive: the sum of each
+	// call's provider-reported total, including cached input tokens).
 	TotalTokens int64 `protobuf:"varint,3,opt,name=total_tokens,json=totalTokens,proto3" json:"total_tokens,omitempty"`
 	// Total billable cost in micro-USD for this session.
 	BillableCostMicros int64 `protobuf:"varint,4,opt,name=billable_cost_micros,json=billableCostMicros,proto3" json:"billable_cost_micros,omitempty"`
@@ -2654,7 +2655,8 @@ type AgentUsageSummary struct {
 	AgentName string `protobuf:"bytes,2,opt,name=agent_name,json=agentName,proto3" json:"agent_name,omitempty"`
 	// Total executions for this agent in the time range.
 	ExecutionCount int32 `protobuf:"varint,3,opt,name=execution_count,json=executionCount,proto3" json:"execution_count,omitempty"`
-	// Total tokens (input + output) across all executions.
+	// Total tokens across all executions (cache-inclusive: the sum of each
+	// call's provider-reported total, including cached input tokens).
 	TotalTokens int64 `protobuf:"varint,4,opt,name=total_tokens,json=totalTokens,proto3" json:"total_tokens,omitempty"`
 	// Total billable cost in micro-USD for this agent.
 	BillableCostMicros int64 `protobuf:"varint,5,opt,name=billable_cost_micros,json=billableCostMicros,proto3" json:"billable_cost_micros,omitempty"`

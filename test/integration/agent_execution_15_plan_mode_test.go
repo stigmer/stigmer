@@ -33,12 +33,12 @@ const planPrompt = "You are in plan mode. Produce a detailed, numbered, multi-st
 // It mirrors TestAgentExecution_CursorUsage_FullPipeline but with
 // InteractionMode = PLAN. The decisive signal is the cross-reference between
 // runner-reported streaming_usage (which reflects the Cursor SDK agent turns)
-// and the billing aggregate (LlmCallUsageRecord). When the agent turns are not
-// metered, billing collapses to just the title call while streaming reflects the
-// full plan, so the totals diverge far beyond the tolerance band.
-//
-// Phase 0 expectation: this test FAILS on the Cursor harness until the metering
-// gap (defect A) is fixed; it documents the contract the fix must satisfy.
+// and the billing aggregate (LlmCallUsageRecord). Both totals are cache-
+// inclusive, so when every agent turn is metered they track closely; if turns
+// are dropped (e.g. only the cheap session-title call is metered), the billing
+// total collapses while streaming reflects the full plan and the ratio falls
+// outside the tolerance band. The per-turn billing-record guard
+// (llm_call_count >= turn_count) catches the same defect directly.
 func TestAgentExecution_PlanMode_CursorUsage(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
 	harness.RequireCursorPrereqs(t, testHarness)
@@ -81,18 +81,27 @@ func TestAgentExecution_PlanMode_CursorUsage(t *testing.T) {
 		usage.GetTurnCount(), usage.GetEstimatedCostUsd(), usage.GetModel())
 
 	// ─── Source 2: GetExecutionUsageReport (billing records) ─────────────────
-	time.Sleep(2 * time.Second)
-
-	execReport, err := clients.AgentExecutionQuery.GetExecutionUsageReport(ctx,
-		&agentexecv1.GetExecutionUsageReportInput{ExecutionId: executionID})
-	require.NoError(t, err, "GetExecutionUsageReport should succeed")
+	// The Cursor proxy records per-turn billing asynchronously (each turn's
+	// write is dispatched off the stream event loop), so poll until the report
+	// has settled — a billing record for every streaming agent turn, with the
+	// billable amount stamped — rather than sleeping a fixed interval and racing
+	// those writes.
+	turnCount := usage.GetTurnCount()
+	execReport, err := harness.WaitForExecutionUsageReport(ctx, clients.AgentExecutionQuery,
+		executionID, 60*time.Second,
+		func(r *agentexecv1.GetExecutionUsageReportOutput) bool {
+			a := r.GetAggregate()
+			return a.GetLlmCallCount() >= turnCount && a.GetBillableCostMicros() > 0
+		})
+	require.NoError(t, err,
+		"execution usage report should settle with a billing record per agent turn")
 	require.NotNil(t, execReport, "execution report should not be nil")
 
 	agg := execReport.GetAggregate()
 	require.NotNil(t, agg, "execution report aggregate should be populated")
 
-	t.Logf("PLAN_EXECUTION_REPORT: input=%d output=%d calls=%d provider=%d billable=%d models=%d",
-		agg.GetInputTokens(), agg.GetOutputTokens(), agg.GetLlmCallCount(),
+	t.Logf("PLAN_EXECUTION_REPORT: input=%d output=%d total=%d calls=%d provider=%d billable=%d models=%d",
+		agg.GetInputTokens(), agg.GetOutputTokens(), agg.GetTotalTokens(), agg.GetLlmCallCount(),
 		agg.GetProviderCostMicros(), agg.GetBillableCostMicros(),
 		len(execReport.GetModelBreakdown()))
 
@@ -102,22 +111,34 @@ func TestAgentExecution_PlanMode_CursorUsage(t *testing.T) {
 	assert.Greater(t, agg.GetBillableCostMicros(), int64(0),
 		"report billable_cost_micros > 0 (billing policy must be seeded)")
 
-	// ─── Decisive cross-reference ────────────────────────────────────────────
-	// The Cursor SDK agent turns drive streaming_usage; if those turns are
-	// metered, the billing aggregate must track them closely. If only the cheap
-	// session-title call is metered, billing_total stays tiny while
-	// streaming_total reflects the full plan — the divergence below catches it.
-	streamingTotal := usage.GetInputTokens() + usage.GetOutputTokens()
-	billingTotal := agg.GetInputTokens() + agg.GetOutputTokens()
+	// Every Cursor SDK agent turn must produce at least one billing record. The
+	// billing side also includes the cheap session-title call, so it is always
+	// >= the streaming turn count; fewer billing calls than turns means the
+	// proxy dropped a turn — the under-billing defect this test guards.
+	assert.GreaterOrEqual(t, agg.GetLlmCallCount(), turnCount,
+		"billing must record at least one LLM call per streaming agent turn "+
+			"(calls=%d turns=%d)", agg.GetLlmCallCount(), turnCount)
+
+	// ─── Decisive cross-reference (total-to-total) ───────────────────────────
+	// Both totals are cache-INCLUSIVE and therefore measure the same throughput:
+	// streaming_usage.total_tokens is input+output (the Cursor SDK reports input
+	// inclusive of cache), and the billing aggregate's total_tokens sums each
+	// call's provider total. They must track closely; a large gap means Cursor
+	// agent turns were not metered (only the title call was). Comparing
+	// input+output alone would be wrong — the billing aggregate's input_tokens
+	// excludes cached tokens (disjoint buckets) while streaming's input includes
+	// them, which is the apples-to-oranges mismatch this cross-check avoids.
+	streamingTotal := usage.GetTotalTokens()
+	billingTotal := agg.GetTotalTokens()
 	require.Greater(t, streamingTotal, int64(0), "streaming total must be > 0 to cross-check")
 	require.Greater(t, billingTotal, int64(0), "billing total must be > 0 to cross-check")
 
 	ratio := float64(billingTotal) / float64(streamingTotal)
-	t.Logf("PLAN_CROSS_REF: streaming_total=%d billing_total=%d ratio=%.2f",
-		streamingTotal, billingTotal, ratio)
-	assert.InDelta(t, 1.0, ratio, 0.5,
-		"plan-mode billing and streaming token totals should be within 50%% of each other; "+
-			"a large gap means the Cursor agent turns were not metered (only the title call was)")
+	t.Logf("PLAN_CROSS_REF: streaming_total=%d billing_total=%d ratio=%.2f calls=%d turns=%d",
+		streamingTotal, billingTotal, ratio, agg.GetLlmCallCount(), turnCount)
+	assert.InDelta(t, 1.0, ratio, 0.2,
+		"plan-mode billing and streaming token totals should track within 20%%; "+
+			"a large gap means Cursor agent turns were not metered (only the title call was)")
 
 	// ─── Session report parity ───────────────────────────────────────────────
 	sessionReport, err := clients.AgentExecutionQuery.GetSessionUsageReport(ctx,

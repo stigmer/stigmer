@@ -1257,9 +1257,14 @@ func (x *LlmCallUsageRecord) GetLabels() map[string]string {
 // Cost fields are int64 micro-USD for precision.
 type UsageReportAggregate struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Token counts.
-	InputTokens              int64 `protobuf:"varint,1,opt,name=input_tokens,json=inputTokens,proto3" json:"input_tokens,omitempty"`
-	OutputTokens             int64 `protobuf:"varint,2,opt,name=output_tokens,json=outputTokens,proto3" json:"output_tokens,omitempty"`
+	// Non-cached input tokens (disjoint from the cache buckets below).
+	InputTokens int64 `protobuf:"varint,1,opt,name=input_tokens,json=inputTokens,proto3" json:"input_tokens,omitempty"`
+	// Output/completion tokens.
+	OutputTokens int64 `protobuf:"varint,2,opt,name=output_tokens,json=outputTokens,proto3" json:"output_tokens,omitempty"`
+	// Total tokens across all calls: the sum of each call's provider-reported
+	// total (cache-inclusive). This is NOT input_tokens + output_tokens —
+	// input_tokens excludes cached tokens, which are tracked in the buckets
+	// below, so total_tokens = input + output + cache_creation + cache_read.
 	TotalTokens              int64 `protobuf:"varint,3,opt,name=total_tokens,json=totalTokens,proto3" json:"total_tokens,omitempty"`
 	CacheCreationInputTokens int64 `protobuf:"varint,4,opt,name=cache_creation_input_tokens,json=cacheCreationInputTokens,proto3" json:"cache_creation_input_tokens,omitempty"`
 	CacheReadInputTokens     int64 `protobuf:"varint,5,opt,name=cache_read_input_tokens,json=cacheReadInputTokens,proto3" json:"cache_read_input_tokens,omitempty"`
@@ -1514,7 +1519,9 @@ type StreamingUsageSummary struct {
 	CacheReadTokens int64 `protobuf:"varint,3,opt,name=cache_read_tokens,json=cacheReadTokens,proto3" json:"cache_read_tokens,omitempty"`
 	// Accumulated cache-write tokens across all turns.
 	CacheWriteTokens int64 `protobuf:"varint,4,opt,name=cache_write_tokens,json=cacheWriteTokens,proto3" json:"cache_write_tokens,omitempty"`
-	// Sum of all token buckets.
+	// Total tokens across all turns: input_tokens + output_tokens. The Cursor
+	// SDK reports input_tokens cache-inclusive (cache_read/cache_write are
+	// subsets of it), so the cache buckets are NOT added again here.
 	TotalTokens int64 `protobuf:"varint,5,opt,name=total_tokens,json=totalTokens,proto3" json:"total_tokens,omitempty"`
 	// Number of completed turns observed.
 	TurnCount int32 `protobuf:"varint,6,opt,name=turn_count,json=turnCount,proto3" json:"turn_count,omitempty"`

@@ -42,7 +42,8 @@ public interface SessionUsageSummaryOrBuilder extends
 
   /**
    * <pre>
-   * Total tokens (input + output) across all executions.
+   * Total tokens across all executions (cache-inclusive: the sum of each
+   * call's provider-reported total, including cached input tokens).
    * </pre>
    *
    * <code>int64 total_tokens = 3 [json_name = "totalTokens"];</code>

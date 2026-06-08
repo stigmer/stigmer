@@ -976,7 +976,8 @@ message SessionUsageSummary {
   // Number of executions in this session.
   int32 execution_count = 2;
 
-  // Total tokens (input + output) across all executions.
+  // Total tokens across all executions (cache-inclusive: the sum of each
+  // call's provider-reported total, including cached input tokens).
   int64 total_tokens = 3;
 
   // Total billable cost in micro-USD for this session.
@@ -1000,7 +1001,8 @@ message AgentUsageSummary {
   // Total executions for this agent in the time range.
   int32 execution_count = 3;
 
-  // Total tokens (input + output) across all executions.
+  // Total tokens across all executions (cache-inclusive: the sum of each
+  // call's provider-reported total, including cached input tokens).
   int64 total_tokens = 4;
 
   // Total billable cost in micro-USD for this agent.

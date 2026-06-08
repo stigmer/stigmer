@@ -45,7 +45,7 @@ export interface ModelCostEntry {
 export interface UseSessionUsageReturn {
   /** Aggregate estimated cost in USD across all models. */
   readonly totalCostUsd: number;
-  /** Total tokens (input + output) across all models. */
+  /** Total tokens across all models (cache-inclusive: input + output + cache). */
   readonly totalTokens: number;
   /** Total input tokens across all models. */
   readonly inputTokens: number;

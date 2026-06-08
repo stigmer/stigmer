@@ -62,7 +62,7 @@ private static final long serialVersionUID = 0L;
   private long inputTokens_ = 0L;
   /**
    * <pre>
-   * Token counts.
+   * Non-cached input tokens (disjoint from the cache buckets below).
    * </pre>
    *
    * <code>int64 input_tokens = 1 [json_name = "inputTokens"];</code>
@@ -76,6 +76,10 @@ private static final long serialVersionUID = 0L;
   public static final int OUTPUT_TOKENS_FIELD_NUMBER = 2;
   private long outputTokens_ = 0L;
   /**
+   * <pre>
+   * Output/completion tokens.
+   * </pre>
+   *
    * <code>int64 output_tokens = 2 [json_name = "outputTokens"];</code>
    * @return The outputTokens.
    */
@@ -87,6 +91,13 @@ private static final long serialVersionUID = 0L;
   public static final int TOTAL_TOKENS_FIELD_NUMBER = 3;
   private long totalTokens_ = 0L;
   /**
+   * <pre>
+   * Total tokens across all calls: the sum of each call's provider-reported
+   * total (cache-inclusive). This is NOT input_tokens + output_tokens —
+   * input_tokens excludes cached tokens, which are tracked in the buckets
+   * below, so total_tokens = input + output + cache_creation + cache_read.
+   * </pre>
+   *
    * <code>int64 total_tokens = 3 [json_name = "totalTokens"];</code>
    * @return The totalTokens.
    */
@@ -801,7 +812,7 @@ private static final long serialVersionUID = 0L;
     private long inputTokens_ ;
     /**
      * <pre>
-     * Token counts.
+     * Non-cached input tokens (disjoint from the cache buckets below).
      * </pre>
      *
      * <code>int64 input_tokens = 1 [json_name = "inputTokens"];</code>
@@ -813,7 +824,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Token counts.
+     * Non-cached input tokens (disjoint from the cache buckets below).
      * </pre>
      *
      * <code>int64 input_tokens = 1 [json_name = "inputTokens"];</code>
@@ -829,7 +840,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Token counts.
+     * Non-cached input tokens (disjoint from the cache buckets below).
      * </pre>
      *
      * <code>int64 input_tokens = 1 [json_name = "inputTokens"];</code>
@@ -844,6 +855,10 @@ private static final long serialVersionUID = 0L;
 
     private long outputTokens_ ;
     /**
+     * <pre>
+     * Output/completion tokens.
+     * </pre>
+     *
      * <code>int64 output_tokens = 2 [json_name = "outputTokens"];</code>
      * @return The outputTokens.
      */
@@ -852,6 +867,10 @@ private static final long serialVersionUID = 0L;
       return outputTokens_;
     }
     /**
+     * <pre>
+     * Output/completion tokens.
+     * </pre>
+     *
      * <code>int64 output_tokens = 2 [json_name = "outputTokens"];</code>
      * @param value The outputTokens to set.
      * @return This builder for chaining.
@@ -864,6 +883,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Output/completion tokens.
+     * </pre>
+     *
      * <code>int64 output_tokens = 2 [json_name = "outputTokens"];</code>
      * @return This builder for chaining.
      */
@@ -876,6 +899,13 @@ private static final long serialVersionUID = 0L;
 
     private long totalTokens_ ;
     /**
+     * <pre>
+     * Total tokens across all calls: the sum of each call's provider-reported
+     * total (cache-inclusive). This is NOT input_tokens + output_tokens —
+     * input_tokens excludes cached tokens, which are tracked in the buckets
+     * below, so total_tokens = input + output + cache_creation + cache_read.
+     * </pre>
+     *
      * <code>int64 total_tokens = 3 [json_name = "totalTokens"];</code>
      * @return The totalTokens.
      */
@@ -884,6 +914,13 @@ private static final long serialVersionUID = 0L;
       return totalTokens_;
     }
     /**
+     * <pre>
+     * Total tokens across all calls: the sum of each call's provider-reported
+     * total (cache-inclusive). This is NOT input_tokens + output_tokens —
+     * input_tokens excludes cached tokens, which are tracked in the buckets
+     * below, so total_tokens = input + output + cache_creation + cache_read.
+     * </pre>
+     *
      * <code>int64 total_tokens = 3 [json_name = "totalTokens"];</code>
      * @param value The totalTokens to set.
      * @return This builder for chaining.
@@ -896,6 +933,13 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Total tokens across all calls: the sum of each call's provider-reported
+     * total (cache-inclusive). This is NOT input_tokens + output_tokens —
+     * input_tokens excludes cached tokens, which are tracked in the buckets
+     * below, so total_tokens = input + output + cache_creation + cache_read.
+     * </pre>
+     *
      * <code>int64 total_tokens = 3 [json_name = "totalTokens"];</code>
      * @return This builder for chaining.
      */

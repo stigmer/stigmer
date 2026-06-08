@@ -72,11 +72,17 @@ func TestAgentExecution_CursorUsage_FullPipeline(t *testing.T) {
 		"context_info should NOT be populated (ContextTracker removed)")
 
 	// ─── Source 3: GetExecutionUsageReport (billing records) ─────────────────
-	time.Sleep(2 * time.Second)
-
-	execReport, err := clients.AgentExecutionQuery.GetExecutionUsageReport(ctx,
-		&agentexecv1.GetExecutionUsageReportInput{ExecutionId: executionID})
-	require.NoError(t, err, "GetExecutionUsageReport should succeed")
+	// Poll until per-turn billing has settled rather than sleeping a fixed
+	// interval and racing the proxy's asynchronous usage writes.
+	turnCount := usage.GetTurnCount()
+	execReport, err := harness.WaitForExecutionUsageReport(ctx, clients.AgentExecutionQuery,
+		executionID, 60*time.Second,
+		func(r *agentexecv1.GetExecutionUsageReportOutput) bool {
+			a := r.GetAggregate()
+			return a.GetLlmCallCount() >= turnCount && a.GetBillableCostMicros() > 0
+		})
+	require.NoError(t, err,
+		"execution usage report should settle with a billing record per agent turn")
 	require.NotNil(t, execReport, "execution report should not be nil")
 
 	agg := execReport.GetAggregate()
@@ -115,14 +121,19 @@ func TestAgentExecution_CursorUsage_FullPipeline(t *testing.T) {
 		sessionUsage.GetLlmCallCount(), sessionUsage.GetBillableCostMicros())
 
 	// ─── Cross-reference: streaming vs billing tokens should be consistent ───
-	streamingTotal := usage.GetInputTokens() + usage.GetOutputTokens()
-	billingTotal := agg.GetInputTokens() + agg.GetOutputTokens()
+	// Compare cache-INCLUSIVE totals on both sides (see the plan-mode test for
+	// the full rationale): streaming_usage.total_tokens is input+output with
+	// input inclusive of cache, and the billing aggregate's total_tokens sums
+	// each call's provider total. Both observe the same Cursor turn-ended counts,
+	// so they should track closely.
+	streamingTotal := usage.GetTotalTokens()
+	billingTotal := agg.GetTotalTokens()
 
 	if streamingTotal > 0 && billingTotal > 0 {
 		ratio := float64(billingTotal) / float64(streamingTotal)
-		t.Logf("CROSS_REF: streaming_total=%d billing_total=%d ratio=%.2f",
-			streamingTotal, billingTotal, ratio)
-		assert.InDelta(t, 1.0, ratio, 0.5,
-			"billing and streaming token totals should be within 50%% of each other")
+		t.Logf("CROSS_REF: streaming_total=%d billing_total=%d ratio=%.2f calls=%d turns=%d",
+			streamingTotal, billingTotal, ratio, agg.GetLlmCallCount(), turnCount)
+		assert.InDelta(t, 1.0, ratio, 0.2,
+			"billing and streaming token totals should be within 20%% of each other")
 	}
 }

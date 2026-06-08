@@ -618,18 +618,25 @@ export const LlmCallUsageRecordSchema: GenMessage<LlmCallUsageRecord> = /*@__PUR
  */
 export type UsageReportAggregate = Message<"ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate"> & {
   /**
-   * Token counts.
+   * Non-cached input tokens (disjoint from the cache buckets below).
    *
    * @generated from field: int64 input_tokens = 1;
    */
   inputTokens: bigint;
 
   /**
+   * Output/completion tokens.
+   *
    * @generated from field: int64 output_tokens = 2;
    */
   outputTokens: bigint;
 
   /**
+   * Total tokens across all calls: the sum of each call's provider-reported
+   * total (cache-inclusive). This is NOT input_tokens + output_tokens —
+   * input_tokens excludes cached tokens, which are tracked in the buckets
+   * below, so total_tokens = input + output + cache_creation + cache_read.
+   *
    * @generated from field: int64 total_tokens = 3;
    */
   totalTokens: bigint;
@@ -798,7 +805,9 @@ export type StreamingUsageSummary = Message<"ai.stigmer.agentic.agentexecution.v
   cacheWriteTokens: bigint;
 
   /**
-   * Sum of all token buckets.
+   * Total tokens across all turns: input_tokens + output_tokens. The Cursor
+   * SDK reports input_tokens cache-inclusive (cache_read/cache_write are
+   * subsets of it), so the cache buckets are NOT added again here.
    *
    * @generated from field: int64 total_tokens = 5;
    */

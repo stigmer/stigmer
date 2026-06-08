@@ -12,7 +12,7 @@ public interface UsageReportAggregateOrBuilder extends
 
   /**
    * <pre>
-   * Token counts.
+   * Non-cached input tokens (disjoint from the cache buckets below).
    * </pre>
    *
    * <code>int64 input_tokens = 1 [json_name = "inputTokens"];</code>
@@ -21,12 +21,23 @@ public interface UsageReportAggregateOrBuilder extends
   long getInputTokens();
 
   /**
+   * <pre>
+   * Output/completion tokens.
+   * </pre>
+   *
    * <code>int64 output_tokens = 2 [json_name = "outputTokens"];</code>
    * @return The outputTokens.
    */
   long getOutputTokens();
 
   /**
+   * <pre>
+   * Total tokens across all calls: the sum of each call's provider-reported
+   * total (cache-inclusive). This is NOT input_tokens + output_tokens —
+   * input_tokens excludes cached tokens, which are tracked in the buckets
+   * below, so total_tokens = input + output + cache_creation + cache_read.
+   * </pre>
+   *
    * <code>int64 total_tokens = 3 [json_name = "totalTokens"];</code>
    * @return The totalTokens.
    */
