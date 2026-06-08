@@ -310,7 +310,7 @@
               "APPROVAL_ACTION_APPROVE_ALL"
             ]
           },
-          "description": "User's decision: APPROVE, SKIP, or REJECT.\n APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.",
+          "description": "User's decision: APPROVE, SKIP, REJECT, or APPROVE_ALL.\n APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.",
           "required": false
         },
         {

@@ -173,7 +173,7 @@ private static final long serialVersionUID = 0L;
   private int action_ = 0;
   /**
    * <pre>
-   * User's decision: APPROVE, SKIP, or REJECT.
+   * User's decision: APPROVE, SKIP, REJECT, or APPROVE_ALL.
    * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
    * </pre>
    *
@@ -185,7 +185,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * User's decision: APPROVE, SKIP, or REJECT.
+   * User's decision: APPROVE, SKIP, REJECT, or APPROVE_ALL.
    * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
    * </pre>
    *
@@ -837,7 +837,7 @@ private static final long serialVersionUID = 0L;
     private int action_ = 0;
     /**
      * <pre>
-     * User's decision: APPROVE, SKIP, or REJECT.
+     * User's decision: APPROVE, SKIP, REJECT, or APPROVE_ALL.
      * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
      * </pre>
      *
@@ -849,7 +849,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * User's decision: APPROVE, SKIP, or REJECT.
+     * User's decision: APPROVE, SKIP, REJECT, or APPROVE_ALL.
      * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
      * </pre>
      *
@@ -866,7 +866,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * User's decision: APPROVE, SKIP, or REJECT.
+     * User's decision: APPROVE, SKIP, REJECT, or APPROVE_ALL.
      * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
      * </pre>
      *
@@ -880,7 +880,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * User's decision: APPROVE, SKIP, or REJECT.
+     * User's decision: APPROVE, SKIP, REJECT, or APPROVE_ALL.
      * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
      * </pre>
      *
@@ -897,7 +897,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * User's decision: APPROVE, SKIP, or REJECT.
+     * User's decision: APPROVE, SKIP, REJECT, or APPROVE_ALL.
      * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
      * </pre>
      *
