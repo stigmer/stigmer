@@ -1,0 +1,104 @@
+# =============================================================================
+# Rust crate quality gate: stigmer-runner-host
+# =============================================================================
+# This is the only CI that exercises the Rust crate as a standalone artifact
+# (elsewhere Rust is compiled solely inside release.desktop). It guards the
+# crate before it ships to crates.io, so it must stay green on `main`.
+#
+# Two independent jobs:
+#   - `rust`         — fmt, clippy (both feature sets), build + test. The crate
+#                      MUST build without Tauri (framework-agnostic core) and
+#                      with it (the desktop binding), so we check both.
+#   - `ipc-fixtures` — proves the crate's vendored IPC fixture is still
+#                      byte-identical to what the canonical runner contract
+#                      (backend/services/runner/src/ipc-protocol.ts) generates.
+#                      Triggered on the runner protocol source too, so a
+#                      contract change that forgets to regenerate the crate copy
+#                      fails here rather than silently drifting.
+# =============================================================================
+
+name: ci.crate
+
+on:
+  pull_request:
+    paths:
+      - "crates/stigmer-runner-host/**"
+      - "backend/services/runner/src/ipc-protocol.ts"
+      - "backend/services/runner/src/ipc-protocol-fixtures.ts"
+      - ".github/workflows/ci.crate.yaml"
+  push:
+    branches: [main]
+    paths:
+      - "crates/stigmer-runner-host/**"
+      - "backend/services/runner/src/ipc-protocol.ts"
+      - "backend/services/runner/src/ipc-protocol-fixtures.ts"
+      - ".github/workflows/ci.crate.yaml"
+  workflow_dispatch: {}
+
+concurrency:
+  group: ci-crate-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    name: fmt / clippy / build / test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: crates/stigmer-runner-host
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "crates/stigmer-runner-host -> target"
+
+      # The `tauri` feature pulls in the Tauri crate, which needs system webkit
+      # libraries to compile on Linux (mirrors release.desktop's Linux deps).
+      - name: Install Tauri system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Format check
+        run: cargo fmt --check
+
+      - name: Clippy (default, no Tauri)
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Clippy (tauri feature)
+        run: cargo clippy --all-targets --features tauri -- -D warnings
+
+      - name: Build + test (no Tauri)
+        run: cargo build && cargo test
+
+      - name: Build (tauri feature)
+        run: cargo build --features tauri
+
+  ipc-fixtures:
+    name: IPC fixture freshness
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # `make gen-ipc-fixtures-check` installs the runner's deps on demand, then
+      # regenerates the golden fixtures and fails if either committed copy (the
+      # runner's or the crate's) differs.
+      - name: Verify golden IPC fixtures are fresh
+        run: make gen-ipc-fixtures-check

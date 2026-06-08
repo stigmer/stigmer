@@ -1,0 +1,101 @@
+# =============================================================================
+# Publish the stigmer-runner-host crate to crates.io
+# =============================================================================
+# Joins the platform's v* lockstep release train: a `v*` tag publishes this
+# crate at the same version as every other artifact (npm, Maven, PyPI, ...).
+#
+# WHY lockstep for a crate with no proto dependency: the crate's only real
+# compatibility axis is IPC_PROTOCOL_VERSION (see src/protocol.rs), not the
+# proto/SDK contract. We still ride the platform version for uniformity — one
+# version number describes the whole system. The accepted cost: a *breaking*
+# Rust API change to this crate must land in a platform MAJOR bump, never a
+# minor/patch, or it violates Cargo semver. Revisit independent versioning if
+# that ever becomes constraining.
+#
+# Auth: token-based via the CARGO_REGISTRY_TOKEN secret (matching the NPM_TOKEN
+# / MAVEN_CENTRAL_* convention). OIDC Trusted Publishing is a deferred hardening.
+# =============================================================================
+
+name: release.crate
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g., 1.0.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  determine-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            VERSION="${{ github.ref_name }}"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="v${{ github.event.inputs.version }}"
+          fi
+          VERSION_NO_V="${VERSION#v}"
+          echo "version=$VERSION_NO_V" >> $GITHUB_OUTPUT
+          echo "Publishing stigmer-runner-host at version: $VERSION_NO_V"
+
+  publish:
+    needs: determine-version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "crates/stigmer-runner-host -> target"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # Cargo-native version stamping (analogue of maven versions:set / the python
+      # regex). Prebuilt binary so it installs in seconds.
+      - name: Install cargo-edit
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-edit
+
+      - name: Stamp crate version from tag
+        working-directory: crates/stigmer-runner-host
+        run: cargo set-version "${{ needs.determine-version.outputs.version }}"
+
+      # Builds the no-Tauri core and runs the conformance tests (crate vs its
+      # vendored IPC fixture). The fixture's freshness against the canonical
+      # runner contract is already enforced pre-merge by ci.crate.
+      - name: Build + test (no Tauri)
+        run: make test-runner-host
+
+      - name: Verify golden IPC fixtures are fresh
+        run: make gen-ipc-fixtures-check
+
+      - name: Publish dry-run
+        working-directory: crates/stigmer-runner-host
+        run: cargo publish --dry-run --allow-dirty
+
+      - name: Publish to crates.io
+        working-directory: crates/stigmer-runner-host
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish --allow-dirty

@@ -1,14 +1,21 @@
 [package]
 name = "stigmer-runner-host"
+# Placeholder; the published version is stamped from the release `v*` tag in
+# release.crate.yaml (lockstep with the rest of the platform). The desktop app
+# consumes this crate by path, so the committed value is irrelevant to it.
 version = "0.1.0"
 edition = "2021"
+# MSRV is driven by the optional `tauri` feature (Tauri 2 requires >= 1.77.2). The
+# default no-Tauri build compiles on older toolchains, but a package has one
+# rust-version, so we declare the higher floor to stay honest for every feature set.
+rust-version = "1.78"
 description = "Embed the Stigmer runner as a manager-mode subprocess over its stdin/stdout JSON IPC."
 authors = ["Stigmer <oss@stigmer.ai>"]
 license = "Apache-2.0"
 repository = "https://github.com/stigmer/stigmer"
-# Vendored in-repo (path dependency from the desktop app) until an external consumer
-# needs it from crates.io. See _projects T06 / design-decisions/001.
-publish = false
+readme = "README.md"
+keywords = ["stigmer", "runner", "ipc", "subprocess", "agents"]
+categories = ["asynchronous", "api-bindings"]
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
@@ -24,3 +31,8 @@ tauri = { version = "2", optional = true }
 # The Tauri binding (RunnerState + #[tauri::command] surface). Off by default so the core
 # driver stays framework-agnostic for non-Tauri hosts (CLIs, daemons, test harnesses).
 tauri = ["dep:tauri"]
+
+# docs.rs builds with the Tauri binding enabled so the `tauri` module is documented;
+# the default build hides it behind the feature flag.
+[package.metadata.docs.rs]
+features = ["tauri"]
