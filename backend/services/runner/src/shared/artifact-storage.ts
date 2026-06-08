@@ -87,10 +87,28 @@ export class ProxyArtifactStorage implements ArtifactStorage {
     }
 
     const data = await presignResp.json() as { url: string; headers?: Record<string, string> };
-    const uploadHeaders: Record<string, string> = {
-      ...data.headers,
-      "Content-Type": ct,
-    };
+
+    // Send exactly the headers the proxy signed. The presigner is the single
+    // source of truth for what must be on the wire: a SigV4 presigned PUT signs
+    // `content-type` (and `host`), so re-adding or duplicating any signed header
+    // changes its value and the store rejects the upload with
+    // `SignatureDoesNotMatch`. We therefore replay the signed set verbatim —
+    // never appending our own `Content-Type` when the signer already covered it.
+    // `host` is set by fetch from the URL and cannot be overridden, so drop it.
+    const signedHeaders = data.headers ?? {};
+    const uploadHeaders: Record<string, string> = {};
+    let contentTypeSigned = false;
+    for (const [name, value] of Object.entries(signedHeaders)) {
+      if (name.toLowerCase() === "host") continue;
+      if (name.toLowerCase() === "content-type") contentTypeSigned = true;
+      uploadHeaders[name] = value;
+    }
+    // Only set Content-Type ourselves if the presigner did NOT sign it (so the
+    // stored object still records the right type); when it IS signed, adding it
+    // would corrupt the signed value.
+    if (!contentTypeSigned) {
+      uploadHeaders["Content-Type"] = ct;
+    }
 
     const putResp = await fetch(data.url, {
       method: "PUT",

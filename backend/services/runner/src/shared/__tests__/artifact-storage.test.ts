@@ -106,6 +106,80 @@ describe("ProxyArtifactStorage", () => {
     expect(calls[1].method).toBe("PUT");
   });
 
+  // ── Signed-header contract (regression for SignatureDoesNotMatch) ──────
+  //
+  // The proxy presigns `content-type` (and `host`). The runner must replay the
+  // signed set verbatim: duplicating `content-type` corrupts the signed value
+  // and the store returns 403 SignatureDoesNotMatch. These tests drive a
+  // NON-empty signed-header response (the prior tests mocked `headers: {}`,
+  // which is exactly why this bug went uncaught) and assert what fetch sends.
+
+  function captureUploadHeaders(signedHeaders: Record<string, unknown>): Promise<Headers> {
+    return new Promise((resolve) => {
+      globalThis.fetch = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+        const url = typeof input === "string" ? input : input.toString();
+        if (url.includes("presigned-upload-url")) {
+          return new Response(
+            JSON.stringify({ url: "https://r2.example.com/put", headers: signedHeaders }),
+            { status: 200 },
+          );
+        }
+        // Build a real Headers from what the runner passed, so concatenation /
+        // case-folding behavior matches a live PUT.
+        resolve(new Headers(init?.headers as HeadersInit));
+        return new Response(null, { status: 200 });
+      }) as typeof fetch;
+    });
+  }
+
+  it("replays the signed content-type exactly once (no duplication)", async () => {
+    const headersPromise = captureUploadHeaders({
+      "content-type": "text/markdown",
+      "host": "test-bucket.localhost:9000",
+    });
+    const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok");
+    await storage.upload("artifacts/exec-1/plan.md", Buffer.from("# Plan"), "text/markdown");
+
+    const sent = await headersPromise;
+    expect(sent.get("content-type")).toBe("text/markdown");
+  });
+
+  it("does not forward the signed host header (fetch sets it from the URL)", async () => {
+    const headersPromise = captureUploadHeaders({
+      "content-type": "text/markdown",
+      "host": "test-bucket.localhost:9000",
+    });
+    const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok");
+    await storage.upload("artifacts/exec-1/plan.md", Buffer.from("# Plan"), "text/markdown");
+
+    const sent = await headersPromise;
+    expect(sent.has("host")).toBe(false);
+  });
+
+  it("tolerates legacy array-valued signed headers without duplicating", async () => {
+    // Older proxy builds return Map<String,List<String>> -> JSON arrays.
+    const headersPromise = captureUploadHeaders({
+      "content-type": ["text/markdown"],
+      "host": ["test-bucket.localhost:9000"],
+    });
+    const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok");
+    await storage.upload("artifacts/exec-1/plan.md", Buffer.from("# Plan"), "text/markdown");
+
+    const sent = await headersPromise;
+    expect(sent.get("content-type")).toBe("text/markdown");
+  });
+
+  it("sets content-type itself only when the presigner did not sign it", async () => {
+    const headersPromise = captureUploadHeaders({
+      "host": "test-bucket.localhost:9000",
+    });
+    const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok");
+    await storage.upload("artifacts/exec-1/f.bin", Buffer.from("x"), "application/octet-stream");
+
+    const sent = await headersPromise;
+    expect(sent.get("content-type")).toBe("application/octet-stream");
+  });
+
   it("throws on presign failure", async () => {
     globalThis.fetch = vi.fn(async () =>
       new Response("forbidden", { status: 403 }),
