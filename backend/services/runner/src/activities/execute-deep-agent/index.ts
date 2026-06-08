@@ -13,9 +13,10 @@ import { Context, CancelledFailure } from "@temporalio/activity";
 import { create, type JsonObject } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { ExecutionPhase, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ExecutionPhase, InteractionMode, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { activityStarted, activityFinished } from "../../idle-watchdog.js";
 import { persistStatus, slimStatus, utcTimestamp } from "../../shared/status.js";
+import { publishPlanArtifact } from "../../shared/plan-artifact.js";
 import { classifyTool } from "../../shared/tool-kind.js";
 import type { Config } from "../../config.js";
 import { StigmerClient } from "../../client/stigmer-client.js";
@@ -238,6 +239,22 @@ export function createDeepAgentActivities(config: Config) {
           if (structuredOutput !== undefined) {
             initialStatus.structuredOutput = structuredOutput;
           }
+        }
+
+        // Plan mode: the agent's final message is the plan. Publish it as a
+        // first-class plan.md artifact so the UI can render a reviewable Plan
+        // card and a follow-up Implement run can reference it. Read-only mode
+        // produces no file to auto-publish, so this is the only artifact path.
+        if (
+          setup.execution.spec?.executionConfig?.interactionMode === InteractionMode.PLAN &&
+          finalText
+        ) {
+          await publishPlanArtifact({
+            status: initialStatus,
+            executionId,
+            planText: finalText,
+            artifactStorage: setup.artifactStorage,
+          });
         }
 
         await persistStatus(client, executionId, initialStatus);

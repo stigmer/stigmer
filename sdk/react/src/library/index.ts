@@ -24,6 +24,12 @@ export {
 } from "./detect-skill-package";
 export type { SkillPackageDetection } from "./detect-skill-package";
 
+export {
+  isPlanArtifact,
+  findPlanArtifact,
+  PLAN_ARTIFACT_NAME,
+} from "./detect-plan-artifact";
+
 export { useDetectSkillPackage } from "./useDetectSkillPackage";
 export type { UseDetectSkillPackageReturn } from "./useDetectSkillPackage";
 

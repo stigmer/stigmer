@@ -8,7 +8,8 @@
  * the streaming phase needs.
  */
 
-import { createDeepAgent, FilesystemBackend } from "deepagents";
+import { createDeepAgent, FilesystemBackend, type FilesystemPermission } from "deepagents";
+import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { ChatAnthropic } from "@langchain/anthropic";
 import { ChatOpenAI } from "@langchain/openai";
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
@@ -369,6 +370,17 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       responseFormat = jsonSchemaToZod(outputSchema as unknown as Record<string, unknown>);
     }
 
+    // Plan mode is read-only. Deny every filesystem write operation at the tool
+    // level so write_file/edit_file/etc. cannot mutate the workspace — enforcing
+    // the InteractionMode.PLAN contract by construction, not by prompt. Rules are
+    // first-match-wins with a permissive default, so a single deny-all-writes
+    // rule is sufficient. (The Cursor harness enforces plan mode via its prompt
+    // prefix; the native harness enforces it here.)
+    const isPlanMode = execConfig?.interactionMode === InteractionMode.PLAN;
+    const planModePermissions: FilesystemPermission[] = [
+      { operations: ["write"], paths: ["/**"], mode: "deny" },
+    ];
+
     const agentGraph = await createDeepAgent({
       model,
       checkpointer: checkpointer as any,
@@ -378,6 +390,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       middleware: middleware as any,
       subagents: compiledSubagents ?? undefined,
       ...(responseFormat ? { responseFormat } : {}),
+      ...(isPlanMode ? { permissions: planModePermissions } : {}),
     } as Parameters<typeof createDeepAgent>[0]);
 
     // Step 11: Prepare invocation input and config
