@@ -23,9 +23,10 @@ _sym_db = _symbol_database.Default()
 
 
 from ai.stigmer.commons.rpc import method_options_pb2 as ai_dot_stigmer_dot_commons_dot_rpc_dot_method__options__pb2
+from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n(ai/stigmer/platform/v1/server_info.proto\x12\x16\x61i.stigmer.platform.v1\x1a+ai/stigmer/commons/rpc/method_options.proto\"\x14\n\x12GetServerInfoInput\"p\n\x13GetServerInfoOutput\x12?\n\x07\x65\x64ition\x18\x01 \x01(\x0e\x32%.ai.stigmer.platform.v1.ServerEditionR\x07\x65\x64ition\x12\x18\n\x07version\x18\x02 \x01(\tR\x07version*C\n\rServerEdition\x12\x1e\n\x1aserver_edition_unspecified\x10\x00\x12\x07\n\x03oss\x10\x01\x12\t\n\x05\x63loud\x10\x02\x32\x89\x01\n\x17PlatformQueryController\x12n\n\rgetServerInfo\x12*.ai.stigmer.platform.v1.GetServerInfoInput\x1a+.ai.stigmer.platform.v1.GetServerInfoOutput\"\x04\xc8\xb8\x18\x01\x42\xa8\x01\n\x1a\x63om.ai.stigmer.platform.v1B\x0fServerInfoProtoP\x01\xa2\x02\x03\x41SP\xaa\x02\x16\x41i.Stigmer.Platform.V1\xca\x02\x16\x41i\\Stigmer\\Platform\\V1\xe2\x02\"Ai\\Stigmer\\Platform\\V1\\GPBMetadata\xea\x02\x19\x41i::Stigmer::Platform::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n(ai/stigmer/platform/v1/server_info.proto\x12\x16\x61i.stigmer.platform.v1\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a\x1b\x62uf/validate/validate.proto\"\x14\n\x12GetServerInfoInput\"p\n\x13GetServerInfoOutput\x12?\n\x07\x65\x64ition\x18\x01 \x01(\x0e\x32%.ai.stigmer.platform.v1.ServerEditionR\x07\x65\x64ition\x12\x18\n\x07version\x18\x02 \x01(\tR\x07version\"\x1f\n\x1dGetRunnerBootstrapConfigInput\"\xae\x02\n\x1eGetRunnerBootstrapConfigOutput\x12\x32\n\x10temporal_address\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x0ftemporalAddress\x12\x36\n\x12temporal_namespace\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x11temporalNamespace\x12.\n\x13runner_access_token\x18\x03 \x01(\tR\x11runnerAccessToken\x12\x1d\n\ntoken_type\x18\x04 \x01(\tR\ttokenType\x12Q\n&runner_access_token_expires_in_seconds\x18\x05 \x01(\x05R!runnerAccessTokenExpiresInSeconds*C\n\rServerEdition\x12\x1e\n\x1aserver_edition_unspecified\x10\x00\x12\x07\n\x03oss\x10\x01\x12\t\n\x05\x63loud\x10\x02\x32\x9b\x02\n\x17PlatformQueryController\x12n\n\rgetServerInfo\x12*.ai.stigmer.platform.v1.GetServerInfoInput\x1a+.ai.stigmer.platform.v1.GetServerInfoOutput\"\x04\xc8\xb8\x18\x01\x12\x8f\x01\n\x18getRunnerBootstrapConfig\x12\x35.ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput\x1a\x36.ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput\"\x04\xd0\xb8\x18\x01\x42\xa8\x01\n\x1a\x63om.ai.stigmer.platform.v1B\x0fServerInfoProtoP\x01\xa2\x02\x03\x41SP\xaa\x02\x16\x41i.Stigmer.Platform.V1\xca\x02\x16\x41i\\Stigmer\\Platform\\V1\xe2\x02\"Ai\\Stigmer\\Platform\\V1\\GPBMetadata\xea\x02\x19\x41i::Stigmer::Platform::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -33,14 +34,24 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'ai.stigmer.platform.v1.serv
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n\032com.ai.stigmer.platform.v1B\017ServerInfoProtoP\001\242\002\003ASP\252\002\026Ai.Stigmer.Platform.V1\312\002\026Ai\\Stigmer\\Platform\\V1\342\002\"Ai\\Stigmer\\Platform\\V1\\GPBMetadata\352\002\031Ai::Stigmer::Platform::V1'
+  _globals['_GETRUNNERBOOTSTRAPCONFIGOUTPUT'].fields_by_name['temporal_address']._loaded_options = None
+  _globals['_GETRUNNERBOOTSTRAPCONFIGOUTPUT'].fields_by_name['temporal_address']._serialized_options = b'\272H\004r\002\020\001'
+  _globals['_GETRUNNERBOOTSTRAPCONFIGOUTPUT'].fields_by_name['temporal_namespace']._loaded_options = None
+  _globals['_GETRUNNERBOOTSTRAPCONFIGOUTPUT'].fields_by_name['temporal_namespace']._serialized_options = b'\272H\004r\002\020\001'
   _globals['_PLATFORMQUERYCONTROLLER'].methods_by_name['getServerInfo']._loaded_options = None
   _globals['_PLATFORMQUERYCONTROLLER'].methods_by_name['getServerInfo']._serialized_options = b'\310\270\030\001'
-  _globals['_SERVEREDITION']._serialized_start=249
-  _globals['_SERVEREDITION']._serialized_end=316
-  _globals['_GETSERVERINFOINPUT']._serialized_start=113
-  _globals['_GETSERVERINFOINPUT']._serialized_end=133
-  _globals['_GETSERVERINFOOUTPUT']._serialized_start=135
-  _globals['_GETSERVERINFOOUTPUT']._serialized_end=247
-  _globals['_PLATFORMQUERYCONTROLLER']._serialized_start=319
-  _globals['_PLATFORMQUERYCONTROLLER']._serialized_end=456
+  _globals['_PLATFORMQUERYCONTROLLER'].methods_by_name['getRunnerBootstrapConfig']._loaded_options = None
+  _globals['_PLATFORMQUERYCONTROLLER'].methods_by_name['getRunnerBootstrapConfig']._serialized_options = b'\320\270\030\001'
+  _globals['_SERVEREDITION']._serialized_start=616
+  _globals['_SERVEREDITION']._serialized_end=683
+  _globals['_GETSERVERINFOINPUT']._serialized_start=142
+  _globals['_GETSERVERINFOINPUT']._serialized_end=162
+  _globals['_GETSERVERINFOOUTPUT']._serialized_start=164
+  _globals['_GETSERVERINFOOUTPUT']._serialized_end=276
+  _globals['_GETRUNNERBOOTSTRAPCONFIGINPUT']._serialized_start=278
+  _globals['_GETRUNNERBOOTSTRAPCONFIGINPUT']._serialized_end=309
+  _globals['_GETRUNNERBOOTSTRAPCONFIGOUTPUT']._serialized_start=312
+  _globals['_GETRUNNERBOOTSTRAPCONFIGOUTPUT']._serialized_end=614
+  _globals['_PLATFORMQUERYCONTROLLER']._serialized_start=686
+  _globals['_PLATFORMQUERYCONTROLLER']._serialized_end=969
 # @@protoc_insertion_point(module_scope)

@@ -4,10 +4,13 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
 
 /**
  * <pre>
- * Unauthenticated query service for server identity and capabilities.
+ * Query service for server identity, capabilities, and runner bootstrap.
  * Clients call getServerInfo on startup to learn the server edition
  * and version, replacing URL-based guessing. The RPC is public
  * (no authentication required) so it can be called before login.
+ * Embedded runners call getRunnerBootstrapConfig during boot to discover
+ * the Temporal coordinates they need to join the execution backbone, so
+ * integrators never hardcode infrastructure addresses.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -47,6 +50,37 @@ public final class PlatformQueryControllerGrpc {
       }
     }
     return getGetServerInfoMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput,
+      ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput> getGetRunnerBootstrapConfigMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "getRunnerBootstrapConfig",
+      requestType = ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput.class,
+      responseType = ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput,
+      ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput> getGetRunnerBootstrapConfigMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput, ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput> getGetRunnerBootstrapConfigMethod;
+    if ((getGetRunnerBootstrapConfigMethod = PlatformQueryControllerGrpc.getGetRunnerBootstrapConfigMethod) == null) {
+      synchronized (PlatformQueryControllerGrpc.class) {
+        if ((getGetRunnerBootstrapConfigMethod = PlatformQueryControllerGrpc.getGetRunnerBootstrapConfigMethod) == null) {
+          PlatformQueryControllerGrpc.getGetRunnerBootstrapConfigMethod = getGetRunnerBootstrapConfigMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput, ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getRunnerBootstrapConfig"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput.getDefaultInstance()))
+              .setSchemaDescriptor(new PlatformQueryControllerMethodDescriptorSupplier("getRunnerBootstrapConfig"))
+              .build();
+        }
+      }
+    }
+    return getGetRunnerBootstrapConfigMethod;
   }
 
   /**
@@ -110,10 +144,13 @@ public final class PlatformQueryControllerGrpc {
 
   /**
    * <pre>
-   * Unauthenticated query service for server identity and capabilities.
+   * Query service for server identity, capabilities, and runner bootstrap.
    * Clients call getServerInfo on startup to learn the server edition
    * and version, replacing URL-based guessing. The RPC is public
    * (no authentication required) so it can be called before login.
+   * Embedded runners call getRunnerBootstrapConfig during boot to discover
+   * the Temporal coordinates they need to join the execution backbone, so
+   * integrators never hardcode infrastructure addresses.
    * </pre>
    */
   public interface AsyncService {
@@ -130,15 +167,48 @@ public final class PlatformQueryControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.platform.v1.GetServerInfoOutput> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetServerInfoMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * Returns everything an embedded runner needs to bootstrap itself.
+     * An embedded runner (a desktop or web app hosting the runner for local
+     * execution) needs two things at boot, both of which are details it should
+     * not have to know or hold ahead of time: the Temporal frontend coordinates
+     * to poll for work, and a Stigmer-signed identity to authenticate its
+     * Cursor-proxy traffic. This RPC lets the runner self-bootstrap through the
+     * one authenticated door it already opens at startup: it presents the token
+     * it already holds and the control plane returns the environment's Temporal
+     * coordinates plus a freshly minted runner access token. The contract for a
+     * cloud embedder collapses to a single endpoint plus a token.
+     * Authenticated (not public): the response reveals an infrastructure
+     * coordinate and mints a token bound to the caller, so any valid token is
+     * required, but no specific FGA permission is — every authenticated caller in
+     * an environment shares one Temporal cluster, and task queues are
+     * per-session/execution and gated separately by control-plane session access.
+     * &#64;internal
+     * The minted runner access token (iss=stigmer, sub=caller identity account)
+     * is a cloud-only capability — OSS has no Cursor proxy and leaves the token
+     * fields empty. The handler degrades gracefully: if minting is unavailable
+     * (signing key unconfigured, or no caller identity), it returns the Temporal
+     * coordinates with an empty token rather than failing the runner's boot.
+     * </pre>
+     */
+    default void getRunnerBootstrapConfig(ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetRunnerBootstrapConfigMethod(), responseObserver);
+    }
   }
 
   /**
    * Base class for the server implementation of the service PlatformQueryController.
    * <pre>
-   * Unauthenticated query service for server identity and capabilities.
+   * Query service for server identity, capabilities, and runner bootstrap.
    * Clients call getServerInfo on startup to learn the server edition
    * and version, replacing URL-based guessing. The RPC is public
    * (no authentication required) so it can be called before login.
+   * Embedded runners call getRunnerBootstrapConfig during boot to discover
+   * the Temporal coordinates they need to join the execution backbone, so
+   * integrators never hardcode infrastructure addresses.
    * </pre>
    */
   public static abstract class PlatformQueryControllerImplBase
@@ -152,10 +222,13 @@ public final class PlatformQueryControllerGrpc {
   /**
    * A stub to allow clients to do asynchronous rpc calls to service PlatformQueryController.
    * <pre>
-   * Unauthenticated query service for server identity and capabilities.
+   * Query service for server identity, capabilities, and runner bootstrap.
    * Clients call getServerInfo on startup to learn the server edition
    * and version, replacing URL-based guessing. The RPC is public
    * (no authentication required) so it can be called before login.
+   * Embedded runners call getRunnerBootstrapConfig during boot to discover
+   * the Temporal coordinates they need to join the execution backbone, so
+   * integrators never hardcode infrastructure addresses.
    * </pre>
    */
   public static final class PlatformQueryControllerStub
@@ -184,15 +257,49 @@ public final class PlatformQueryControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getGetServerInfoMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * Returns everything an embedded runner needs to bootstrap itself.
+     * An embedded runner (a desktop or web app hosting the runner for local
+     * execution) needs two things at boot, both of which are details it should
+     * not have to know or hold ahead of time: the Temporal frontend coordinates
+     * to poll for work, and a Stigmer-signed identity to authenticate its
+     * Cursor-proxy traffic. This RPC lets the runner self-bootstrap through the
+     * one authenticated door it already opens at startup: it presents the token
+     * it already holds and the control plane returns the environment's Temporal
+     * coordinates plus a freshly minted runner access token. The contract for a
+     * cloud embedder collapses to a single endpoint plus a token.
+     * Authenticated (not public): the response reveals an infrastructure
+     * coordinate and mints a token bound to the caller, so any valid token is
+     * required, but no specific FGA permission is — every authenticated caller in
+     * an environment shares one Temporal cluster, and task queues are
+     * per-session/execution and gated separately by control-plane session access.
+     * &#64;internal
+     * The minted runner access token (iss=stigmer, sub=caller identity account)
+     * is a cloud-only capability — OSS has no Cursor proxy and leaves the token
+     * fields empty. The handler degrades gracefully: if minting is unavailable
+     * (signing key unconfigured, or no caller identity), it returns the Temporal
+     * coordinates with an empty token rather than failing the runner's boot.
+     * </pre>
+     */
+    public void getRunnerBootstrapConfig(ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getGetRunnerBootstrapConfigMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
    * A stub to allow clients to do synchronous rpc calls to service PlatformQueryController.
    * <pre>
-   * Unauthenticated query service for server identity and capabilities.
+   * Query service for server identity, capabilities, and runner bootstrap.
    * Clients call getServerInfo on startup to learn the server edition
    * and version, replacing URL-based guessing. The RPC is public
    * (no authentication required) so it can be called before login.
+   * Embedded runners call getRunnerBootstrapConfig during boot to discover
+   * the Temporal coordinates they need to join the execution backbone, so
+   * integrators never hardcode infrastructure addresses.
    * </pre>
    */
   public static final class PlatformQueryControllerBlockingV2Stub
@@ -220,15 +327,48 @@ public final class PlatformQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getGetServerInfoMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Returns everything an embedded runner needs to bootstrap itself.
+     * An embedded runner (a desktop or web app hosting the runner for local
+     * execution) needs two things at boot, both of which are details it should
+     * not have to know or hold ahead of time: the Temporal frontend coordinates
+     * to poll for work, and a Stigmer-signed identity to authenticate its
+     * Cursor-proxy traffic. This RPC lets the runner self-bootstrap through the
+     * one authenticated door it already opens at startup: it presents the token
+     * it already holds and the control plane returns the environment's Temporal
+     * coordinates plus a freshly minted runner access token. The contract for a
+     * cloud embedder collapses to a single endpoint plus a token.
+     * Authenticated (not public): the response reveals an infrastructure
+     * coordinate and mints a token bound to the caller, so any valid token is
+     * required, but no specific FGA permission is — every authenticated caller in
+     * an environment shares one Temporal cluster, and task queues are
+     * per-session/execution and gated separately by control-plane session access.
+     * &#64;internal
+     * The minted runner access token (iss=stigmer, sub=caller identity account)
+     * is a cloud-only capability — OSS has no Cursor proxy and leaves the token
+     * fields empty. The handler degrades gracefully: if minting is unavailable
+     * (signing key unconfigured, or no caller identity), it returns the Temporal
+     * coordinates with an empty token rather than failing the runner's boot.
+     * </pre>
+     */
+    public ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput getRunnerBootstrapConfig(ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getGetRunnerBootstrapConfigMethod(), getCallOptions(), request);
+    }
   }
 
   /**
    * A stub to allow clients to do limited synchronous rpc calls to service PlatformQueryController.
    * <pre>
-   * Unauthenticated query service for server identity and capabilities.
+   * Query service for server identity, capabilities, and runner bootstrap.
    * Clients call getServerInfo on startup to learn the server edition
    * and version, replacing URL-based guessing. The RPC is public
    * (no authentication required) so it can be called before login.
+   * Embedded runners call getRunnerBootstrapConfig during boot to discover
+   * the Temporal coordinates they need to join the execution backbone, so
+   * integrators never hardcode infrastructure addresses.
    * </pre>
    */
   public static final class PlatformQueryControllerBlockingStub
@@ -256,15 +396,48 @@ public final class PlatformQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getGetServerInfoMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Returns everything an embedded runner needs to bootstrap itself.
+     * An embedded runner (a desktop or web app hosting the runner for local
+     * execution) needs two things at boot, both of which are details it should
+     * not have to know or hold ahead of time: the Temporal frontend coordinates
+     * to poll for work, and a Stigmer-signed identity to authenticate its
+     * Cursor-proxy traffic. This RPC lets the runner self-bootstrap through the
+     * one authenticated door it already opens at startup: it presents the token
+     * it already holds and the control plane returns the environment's Temporal
+     * coordinates plus a freshly minted runner access token. The contract for a
+     * cloud embedder collapses to a single endpoint plus a token.
+     * Authenticated (not public): the response reveals an infrastructure
+     * coordinate and mints a token bound to the caller, so any valid token is
+     * required, but no specific FGA permission is — every authenticated caller in
+     * an environment shares one Temporal cluster, and task queues are
+     * per-session/execution and gated separately by control-plane session access.
+     * &#64;internal
+     * The minted runner access token (iss=stigmer, sub=caller identity account)
+     * is a cloud-only capability — OSS has no Cursor proxy and leaves the token
+     * fields empty. The handler degrades gracefully: if minting is unavailable
+     * (signing key unconfigured, or no caller identity), it returns the Temporal
+     * coordinates with an empty token rather than failing the runner's boot.
+     * </pre>
+     */
+    public ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput getRunnerBootstrapConfig(ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getGetRunnerBootstrapConfigMethod(), getCallOptions(), request);
+    }
   }
 
   /**
    * A stub to allow clients to do ListenableFuture-style rpc calls to service PlatformQueryController.
    * <pre>
-   * Unauthenticated query service for server identity and capabilities.
+   * Query service for server identity, capabilities, and runner bootstrap.
    * Clients call getServerInfo on startup to learn the server edition
    * and version, replacing URL-based guessing. The RPC is public
    * (no authentication required) so it can be called before login.
+   * Embedded runners call getRunnerBootstrapConfig during boot to discover
+   * the Temporal coordinates they need to join the execution backbone, so
+   * integrators never hardcode infrastructure addresses.
    * </pre>
    */
   public static final class PlatformQueryControllerFutureStub
@@ -293,9 +466,41 @@ public final class PlatformQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getGetServerInfoMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * Returns everything an embedded runner needs to bootstrap itself.
+     * An embedded runner (a desktop or web app hosting the runner for local
+     * execution) needs two things at boot, both of which are details it should
+     * not have to know or hold ahead of time: the Temporal frontend coordinates
+     * to poll for work, and a Stigmer-signed identity to authenticate its
+     * Cursor-proxy traffic. This RPC lets the runner self-bootstrap through the
+     * one authenticated door it already opens at startup: it presents the token
+     * it already holds and the control plane returns the environment's Temporal
+     * coordinates plus a freshly minted runner access token. The contract for a
+     * cloud embedder collapses to a single endpoint plus a token.
+     * Authenticated (not public): the response reveals an infrastructure
+     * coordinate and mints a token bound to the caller, so any valid token is
+     * required, but no specific FGA permission is — every authenticated caller in
+     * an environment shares one Temporal cluster, and task queues are
+     * per-session/execution and gated separately by control-plane session access.
+     * &#64;internal
+     * The minted runner access token (iss=stigmer, sub=caller identity account)
+     * is a cloud-only capability — OSS has no Cursor proxy and leaves the token
+     * fields empty. The handler degrades gracefully: if minting is unavailable
+     * (signing key unconfigured, or no caller identity), it returns the Temporal
+     * coordinates with an empty token rather than failing the runner's boot.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput> getRunnerBootstrapConfig(
+        ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getGetRunnerBootstrapConfigMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_GET_SERVER_INFO = 0;
+  private static final int METHODID_GET_RUNNER_BOOTSTRAP_CONFIG = 1;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -317,6 +522,10 @@ public final class PlatformQueryControllerGrpc {
         case METHODID_GET_SERVER_INFO:
           serviceImpl.getServerInfo((ai.stigmer.platform.v1.GetServerInfoInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.platform.v1.GetServerInfoOutput>) responseObserver);
+          break;
+        case METHODID_GET_RUNNER_BOOTSTRAP_CONFIG:
+          serviceImpl.getRunnerBootstrapConfig((ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -343,6 +552,13 @@ public final class PlatformQueryControllerGrpc {
               ai.stigmer.platform.v1.GetServerInfoInput,
               ai.stigmer.platform.v1.GetServerInfoOutput>(
                 service, METHODID_GET_SERVER_INFO)))
+        .addMethod(
+          getGetRunnerBootstrapConfigMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput,
+              ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput>(
+                service, METHODID_GET_RUNNER_BOOTSTRAP_CONFIG)))
         .build();
   }
 
@@ -392,6 +608,7 @@ public final class PlatformQueryControllerGrpc {
           serviceDescriptor = result = io.grpc.ServiceDescriptor.newBuilder(SERVICE_NAME)
               .setSchemaDescriptor(new PlatformQueryControllerFileDescriptorSupplier())
               .addMethod(getGetServerInfoMethod())
+              .addMethod(getGetRunnerBootstrapConfigMethod())
               .build();
         }
       }

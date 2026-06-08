@@ -23,7 +23,7 @@ describe("loadConfig", () => {
     expect(config.mode).toBe("local");
     expect(config.taskQueue).toBe("stigmer_runner");
     // temporalAddress is left empty by loadConfig now — it is resolved later by
-    // the factory (resolveTemporalCoordinates), which falls back to localhost
+    // the factory (resolveRunnerBootstrap), which falls back to localhost
     // for a tokenless local runner. loadConfig no longer hardcodes the default.
     expect(config.temporalAddress).toBe("");
     expect(config.temporalNamespace).toBe("default");

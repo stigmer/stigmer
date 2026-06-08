@@ -25,7 +25,8 @@ import {
 import type { PayloadCodec } from "@temporalio/common";
 import type { Config } from "./config.js";
 import type { WorkerActivities } from "./worker.js";
-import { resolveTemporalCoordinates } from "./bootstrap.js";
+import { resolveRunnerBootstrap, refreshRunnerAccessToken } from "./bootstrap.js";
+import { createRunnerTokenCoordinator } from "./runner-token-coordinator.js";
 
 const SESSION_QUEUE_PREFIX = "session:";
 const WFEXEC_QUEUE_PREFIX = "wfexec:";
@@ -119,7 +120,16 @@ export interface StigmerRunnerManager {
   /** List currently active workflow execution IDs. */
   activeWorkflowExecutions(): string[];
 
-  /** Push a refreshed auth token to all activity clients. */
+  /**
+   * Push a refreshed *control-plane* auth token (the host's durable credential,
+   * e.g. the desktop's Auth0 token) to all activity clients.
+   *
+   * This updates the control-plane credential only. The proxy credential
+   * (x-stigmer-auth) follows it in lockstep UNLESS the runner minted its own
+   * proxy token during bootstrap, in which case the runner owns and refreshes
+   * that token itself and this push must not clobber it. See the two-writer note
+   * on the implementation.
+   */
   updateToken(token: string | null): void;
 
   /** Graceful shutdown of all Workers and the Temporal connection. */
@@ -160,6 +170,12 @@ export async function createStigmerRunnerManager(
 ): Promise<StigmerRunnerManager> {
   validateManagerOptions(options);
 
+  // `tokenRef` holds the control-plane token (the host's durable credential,
+  // e.g. the desktop's Auth0 token) and is shared with activity clients via
+  // config.stigmerTokenRef. The proxy credential (x-stigmer-auth) is managed
+  // separately by a RunnerTokenCoordinator (created after the interceptors are
+  // installed) — see that module for the two-writer rationale and the staleness
+  // history it guards.
   const tokenRef = { current: options.stigmerToken ?? null };
   const baseConfig = mapManagerOptionsToConfig(options, tokenRef);
 
@@ -193,12 +209,29 @@ export async function createStigmerRunnerManager(
   // the interceptor is unconfigured (no proxy/token).
   await assertHttp2ConnectPatched();
 
-  // Resolve Temporal coordinates after the http2 patch is in place (discovery
+  // The token coordinator owns the proxy credential (x-stigmer-auth) and its
+  // refresh lifecycle. It writes ONLY the interceptors and re-mints using the
+  // always-fresh control-plane token in `tokenRef` — never the (possibly
+  // expired) minted token itself, so a slept-past-TTL runner recovers without a
+  // restart.
+  const tokenCoordinator = createRunnerTokenCoordinator({
+    applyProxyToken: (token) => {
+      updateInterceptorToken(token);
+      updateHttp2InterceptorToken(token);
+    },
+    reMint: () =>
+      refreshRunnerAccessToken({
+        token: tokenRef.current,
+        stigmerEndpoint: baseConfig.stigmerBackendEndpoint,
+      }),
+  });
+
+  // Resolve the runner bootstrap after the http2 patch is in place (discovery
   // dials the control plane through connect-node). An explicit address wins;
   // otherwise a token triggers control-plane discovery; otherwise localhost.
   // Must happen before createAllActivities so runtime activities that dial
   // Temporal (e.g. emit-event) see the resolved address too.
-  const coordinates = await resolveTemporalCoordinates({
+  const bootstrap = await resolveRunnerBootstrap({
     explicitAddress: options.temporalAddress,
     explicitNamespace: options.temporalNamespace,
     token: options.stigmerToken,
@@ -206,9 +239,28 @@ export async function createStigmerRunnerManager(
   });
   const config: Config = {
     ...baseConfig,
-    temporalAddress: coordinates.temporalAddress,
-    temporalNamespace: coordinates.temporalNamespace,
+    temporalAddress: bootstrap.temporalAddress,
+    temporalNamespace: bootstrap.temporalNamespace,
   };
+
+  // Adopt the minted proxy token (cloud): it diverges from the control-plane
+  // token from here on, and the coordinator refreshes it before expiry.
+  if (bootstrap.runnerAccessToken) {
+    tokenCoordinator.adoptMintedToken(
+      bootstrap.runnerAccessToken,
+      bootstrap.runnerAccessTokenExpiresInSeconds,
+    );
+    console.log("[runner-manager] Adopted minted proxy token from bootstrap");
+  } else if (baseConfig.proxyEndpoint && tokenRef.current) {
+    // Proxy is configured but no token was minted (OSS, signing key unset, or an
+    // explicit Temporal address pinned so bootstrap discovery was skipped). The
+    // runner keeps using the control-plane token for proxy traffic; warn so a
+    // resulting 401 is diagnosable rather than silent.
+    console.warn(
+      "[runner-manager] Proxy endpoint configured but no runner token was minted; " +
+        "falling back to the control-plane token for x-stigmer-auth",
+    );
+  }
 
   const { setExecutionContextRef } = await import(
     "./activities/execute-cursor/rejection-capture.js"
@@ -343,19 +395,23 @@ export async function createStigmerRunnerManager(
     },
 
     updateToken(token: string | null): void {
+      // Writes the control-plane credential. The coordinator decides whether the
+      // proxy credential follows it: only when no token has been minted (so the
+      // pre-mint lockstep is preserved), never once the runner owns a minted
+      // token. See runner-token-coordinator.ts and the staleness changelogs.
       tokenRef.current = token;
       if (token) {
         process.env.STIGMER_TOKEN = token;
-        updateInterceptorToken(token);
-        updateHttp2InterceptorToken(token);
       } else {
         delete process.env.STIGMER_TOKEN;
       }
+      tokenCoordinator.onControlPlaneTokenChanged(token);
       console.log("[runner-manager] Auth token updated");
     },
 
     async shutdown(): Promise<void> {
       shuttingDown = true;
+      tokenCoordinator.stop();
       const totalWorkers = sessions.size + workflowExecutions.size;
       console.log(
         `[runner-manager] Shutting down ${totalWorkers} workers (${sessions.size} sessions, ${workflowExecutions.size} workflow executions)...`,

@@ -18,7 +18,7 @@ import { homedir, tmpdir } from "node:os";
 import type { PayloadCodec } from "@temporalio/common";
 import type { Config } from "./config.js";
 import type { WorkerActivities } from "./worker.js";
-import { resolveTemporalCoordinates } from "./bootstrap.js";
+import { resolveRunnerBootstrap } from "./bootstrap.js";
 
 /**
  * Configuration for creating a Stigmer runner.
@@ -170,7 +170,12 @@ export async function createStigmerRunner(
   // otherwise a token triggers control-plane discovery; otherwise localhost.
   // Activities that dial Temporal at runtime (e.g. emit-event) read
   // config.temporalAddress, so this must precede their creation.
-  const coordinates = await resolveTemporalCoordinates({
+  //
+  // The static runner brings its own already-proxy-valid token (harness/CLI),
+  // so it does not consume the minted runner token from the bootstrap response;
+  // that proxy-credential lifecycle lives in createStigmerRunnerManager (the
+  // long-lived desktop host that needs it). Only the coordinates are used here.
+  const coordinates = await resolveRunnerBootstrap({
     explicitAddress: options.temporalAddress,
     explicitNamespace: options.temporalNamespace,
     token: options.stigmerToken,
@@ -243,7 +248,7 @@ export function mapOptionsToConfig(options: StigmerRunnerOptions): Config {
   return {
     taskQueue: options.taskQueue,
     // May be empty here; createStigmerRunner resolves it via
-    // resolveTemporalCoordinates before the worker connects to Temporal.
+    // resolveRunnerBootstrap before the worker connects to Temporal.
     temporalAddress: options.temporalAddress ?? "",
     temporalNamespace: options.temporalNamespace ?? "default",
     stigmerBackendEndpoint: normalizeEndpoint(options.stigmerEndpoint),

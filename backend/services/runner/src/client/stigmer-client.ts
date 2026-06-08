@@ -51,10 +51,22 @@ import type { WorkflowInstance } from "@stigmer/protos/ai/stigmer/agentic/workfl
 import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import { assertCreateRequirements, assertReferenceRequirements } from "./server-contracts.js";
 
-/** Temporal coordinates an embedded runner connects to. */
+/**
+ * Everything an embedded runner needs to bootstrap: Temporal coordinates plus
+ * its own minted access token.
+ *
+ * The Temporal coordinates are always present. The access token is optional: the
+ * server only mints one when it has a Cursor proxy to authenticate against
+ * (cloud) and a signing key configured — OSS and misconfigured servers omit it,
+ * and the runner keeps using its existing token in that case.
+ */
 export interface RunnerBootstrapConfig {
   temporalAddress: string;
   temporalNamespace: string;
+  /** Minted iss=stigmer token for the runner's proxy traffic; absent when not minted. */
+  runnerAccessToken?: string;
+  /** Lifetime of {@link runnerAccessToken} in seconds; absent/0 when no token. */
+  runnerAccessTokenExpiresInSeconds?: number;
 }
 
 /**
@@ -131,18 +143,25 @@ export class StigmerClient {
   }
 
   /**
-   * Discover the Temporal coordinates this runner should connect to.
+   * Fetch this runner's bootstrap config from the control plane.
    *
    * Lets an embedded runner self-bootstrap from a token alone: the control
    * plane returns the Temporal frontend address and namespace for the
-   * environment the token belongs to, so integrators never hardcode
-   * infrastructure addresses.
+   * environment the token belongs to (so integrators never hardcode
+   * infrastructure addresses) and, on cloud, a minted iss=stigmer access token
+   * the runner uses for its proxy traffic. The token fields are absent when the
+   * server does not mint one (OSS, or no signing key configured).
    */
   async getRunnerBootstrapConfig(): Promise<RunnerBootstrapConfig> {
     const res = await this.platformQuery.getRunnerBootstrapConfig({});
     return {
       temporalAddress: res.temporalAddress,
       temporalNamespace: res.temporalNamespace,
+      // Empty proto string/0 means "not minted" — normalize to undefined so
+      // callers branch on presence rather than emptiness.
+      runnerAccessToken: res.runnerAccessToken || undefined,
+      runnerAccessTokenExpiresInSeconds:
+        res.runnerAccessTokenExpiresInSeconds || undefined,
     };
   }
 

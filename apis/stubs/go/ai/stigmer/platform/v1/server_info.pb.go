@@ -212,7 +212,8 @@ func (*GetRunnerBootstrapConfigInput) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_platform_v1_server_info_proto_rawDescGZIP(), []int{2}
 }
 
-// Temporal coordinates an embedded runner connects to.
+// Everything an embedded runner needs to bootstrap: Temporal coordinates plus
+// its own minted access token.
 //
 // The address is the one reachable by the caller: in OSS it is the server's
 // own co-located Temporal (single host); in Cloud it is the external Temporal
@@ -224,8 +225,26 @@ type GetRunnerBootstrapConfigOutput struct {
 	TemporalAddress string `protobuf:"bytes,1,opt,name=temporal_address,json=temporalAddress,proto3" json:"temporal_address,omitempty"`
 	// Temporal namespace the runner should use.
 	TemporalNamespace string `protobuf:"bytes,2,opt,name=temporal_namespace,json=temporalNamespace,proto3" json:"temporal_namespace,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// Stigmer-signed access token the runner uses to authenticate its
+	// Cursor-proxy traffic (the x-stigmer-auth header).
+	//
+	// Empty when the server cannot mint one — OSS (no Cursor proxy) or a cloud
+	// server with no signing key configured. The runner keeps using its existing
+	// token in that case.
+	//
+	// @internal
+	// iss=stigmer, sub=caller identity account, token_type=embedded_runner. The
+	// runner treats this as its proxy credential, distinct from the control-plane
+	// token it authenticated this call with, and refreshes it before expiry.
+	RunnerAccessToken string `protobuf:"bytes,3,opt,name=runner_access_token,json=runnerAccessToken,proto3" json:"runner_access_token,omitempty"`
+	// Token type for runner_access_token. "Bearer" when a token is present,
+	// empty otherwise.
+	TokenType string `protobuf:"bytes,4,opt,name=token_type,json=tokenType,proto3" json:"token_type,omitempty"`
+	// Lifetime of runner_access_token in seconds from issuance. 0 when no token
+	// is present. The runner uses this to schedule a refresh before expiry.
+	RunnerAccessTokenExpiresInSeconds int32 `protobuf:"varint,5,opt,name=runner_access_token_expires_in_seconds,json=runnerAccessTokenExpiresInSeconds,proto3" json:"runner_access_token_expires_in_seconds,omitempty"`
+	unknownFields                     protoimpl.UnknownFields
+	sizeCache                         protoimpl.SizeCache
 }
 
 func (x *GetRunnerBootstrapConfigOutput) Reset() {
@@ -272,6 +291,27 @@ func (x *GetRunnerBootstrapConfigOutput) GetTemporalNamespace() string {
 	return ""
 }
 
+func (x *GetRunnerBootstrapConfigOutput) GetRunnerAccessToken() string {
+	if x != nil {
+		return x.RunnerAccessToken
+	}
+	return ""
+}
+
+func (x *GetRunnerBootstrapConfigOutput) GetTokenType() string {
+	if x != nil {
+		return x.TokenType
+	}
+	return ""
+}
+
+func (x *GetRunnerBootstrapConfigOutput) GetRunnerAccessTokenExpiresInSeconds() int32 {
+	if x != nil {
+		return x.RunnerAccessTokenExpiresInSeconds
+	}
+	return 0
+}
+
 var File_ai_stigmer_platform_v1_server_info_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_platform_v1_server_info_proto_rawDesc = "" +
@@ -281,10 +321,14 @@ const file_ai_stigmer_platform_v1_server_info_proto_rawDesc = "" +
 	"\x13GetServerInfoOutput\x12?\n" +
 	"\aedition\x18\x01 \x01(\x0e2%.ai.stigmer.platform.v1.ServerEditionR\aedition\x12\x18\n" +
 	"\aversion\x18\x02 \x01(\tR\aversion\"\x1f\n" +
-	"\x1dGetRunnerBootstrapConfigInput\"\x8c\x01\n" +
+	"\x1dGetRunnerBootstrapConfigInput\"\xae\x02\n" +
 	"\x1eGetRunnerBootstrapConfigOutput\x122\n" +
 	"\x10temporal_address\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x0ftemporalAddress\x126\n" +
-	"\x12temporal_namespace\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x11temporalNamespace*C\n" +
+	"\x12temporal_namespace\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x11temporalNamespace\x12.\n" +
+	"\x13runner_access_token\x18\x03 \x01(\tR\x11runnerAccessToken\x12\x1d\n" +
+	"\n" +
+	"token_type\x18\x04 \x01(\tR\ttokenType\x12Q\n" +
+	"&runner_access_token_expires_in_seconds\x18\x05 \x01(\x05R!runnerAccessTokenExpiresInSeconds*C\n" +
 	"\rServerEdition\x12\x1e\n" +
 	"\x1aserver_edition_unspecified\x10\x00\x12\a\n" +
 	"\x03oss\x10\x01\x12\t\n" +
