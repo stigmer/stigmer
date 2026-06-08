@@ -738,24 +738,13 @@ publish-dev: ## Publish dev builds via the release.dev workflow (usage: make pub
 	echo "Dispatched. Follow the run with:"; \
 	echo "  gh run watch \$$(gh run list --workflow=release.dev.yaml --branch \"$$BRANCH\" --limit 1 --json databaseId --jq '.[0].databaseId')"
 
+.PHONY: publish-dev-local
+publish-dev-local: ## Publish dev builds from your working tree (creds from Planton; usage: make publish-dev-local [targets=all] [base=X.Y.Z])
+	@TARGETS="$(or $(targets),all)" BASE="$(base)" scripts/publish-dev-local.sh
+
 .PHONY: publish-dev-maven-local
-publish-dev-maven-local: ## Deploy a Java SDK SNAPSHOT straight from your machine (needs ~/.m2 'central' server creds)
-	@set -e; \
-	BASE="$(base)"; \
-	if [ -z "$$BASE" ]; then \
-		LATEST=$$(git tag -l "v*" | sort -V | tail -n1); [ -z "$$LATEST" ] && LATEST="v0.0.0"; \
-		V=$${LATEST#v}; \
-		BASE="$$(echo $$V | cut -d. -f1).$$(echo $$V | cut -d. -f2).$$(( $$(echo $$V | cut -d. -f3) + 1 ))"; \
-	fi; \
-	VERSION="$$BASE-SNAPSHOT"; \
-	echo "Deploying Maven SNAPSHOT $$VERSION to the Central snapshot repo..."; \
-	( cd apis/stubs/java && mvn -B versions:set -DnewVersion="$$VERSION" -DgenerateBackupPoms=false && mvn -B deploy -DskipTests ); \
-	make -C sdk/java codegen; \
-	( cd sdk/java && mvn -B versions:set -DnewVersion="$$VERSION" -DgenerateBackupPoms=false && mvn -B versions:set-property -Dproperty=stigmer-protos.version -DnewVersion="$$VERSION" -DgenerateBackupPoms=false && mvn -B deploy -DskipTests ); \
-	echo ""; \
-	echo "Deployed ai.stigmer:stigmer-java:$$VERSION (protos: $$VERSION)"; \
-	echo "NOTE: pom.xml versions were edited in your working tree. Revert with:"; \
-	echo "  git checkout -- apis/stubs/java/pom.xml sdk/java/pom.xml"
+publish-dev-maven-local: ## Local dev publish, Maven only (alias for publish-dev-local targets=maven)
+	@TARGETS="maven" BASE="$(base)" scripts/publish-dev-local.sh
 
 # ─── Clean ────────────────────────────────────
 

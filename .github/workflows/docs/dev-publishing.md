@@ -109,24 +109,56 @@ a copy-paste block of the exact consumer coordinates for everything it published
 
 You can also run it from the GitHub UI: **Actions → release.dev → Run workflow**.
 
-### Optional: local Maven fast-path (`make publish-dev-maven-local`)
+### Fastest inner loop: publish locally from your working tree (`make publish-dev-local`)
 
-Maven is the one ecosystem where a pure-local publish is low-risk: snapshots
-require **no GPG signing**, only your Central token. If you want the tightest
-possible loop for Java changes:
-
-```bash
-make publish-dev-maven-local            # deploys X.Y.Z-SNAPSHOT from your machine
-make publish-dev-maven-local base=3.1.0
-```
-
-Requires a `central` server entry in your `~/.m2/settings.xml` (see
-[Maven credentials](#maven-credentials)). This target edits the POM versions in
-your working tree while deploying; revert afterward with:
+`make publish-dev` requires you to **commit and push** first (CI checks out the
+ref from GitHub). For a tight inner loop, `make publish-dev-local` publishes
+**straight from your working tree** — no commit, no push, no CI wait:
 
 ```bash
-git checkout -- apis/stubs/java/pom.xml sdk/java/pom.xml
+make publish-dev-local                    # all targets, auto base version
+make publish-dev-local targets=npm,maven  # subset
+make publish-dev-local targets=maven      # Maven only
+make publish-dev-local base=3.1.0         # pin the base version
 ```
+
+(`make publish-dev-maven-local` is kept as an alias for `targets=maven`.)
+
+It derives the same dev versions, publishes to the same channels (npm `dev` tag,
+Maven SNAPSHOT, TestPyPI, GHCR), and prints the same consumer coordinates. It is
+backed by [`scripts/publish-dev-local.sh`](../../../scripts/publish-dev-local.sh).
+
+**Credentials come from Planton secrets**, fetched at runtime and never written
+to disk (GitHub Actions secrets are write-only and cannot be read back, so they
+can't drive a local run). Required secrets in the `stigmer` org — each a
+single-value secret stored under the key `value`:
+
+```bash
+planton secret set npm-token              value=npm_xxxxxxxx          # npmjs.com automation token
+planton secret set maven-central-username value=XXXX                  # Sonatype Central user-token username
+planton secret set maven-central-password value=YYYY                  # Sonatype Central user-token password
+planton secret set testpypi-token         value=pypi-xxxxxxxx         # test.pypi.org API token
+# ghcr-stigmer-pat already exists in the org (used for the MCP Docker push)
+```
+
+**Requirements / notes:**
+
+- **Planton CLI**: the script reads secrets with `planton secret get --key value
+  -o plain`. Release CLIs return the raw value; older/dev builds that print a
+  decorated table are handled too (the script extracts the value cell and rejects
+  anything that comes back with embedded whitespace, as a corruption guard).
+- The local TestPyPI upload uses an **API token**, which sidesteps the OIDC
+  trusted-publisher configuration the CI workflow needs.
+- The MCP Docker push infers your GitHub username from `gh`; override with
+  `GHCR_USER=<login>` if needed. Multi-arch is the default; set
+  `DOCKER_PLATFORMS=linux/arm64` to build a single arch faster.
+- The script stamps versions into `pom.xml` / `pyproject.toml` while building and
+  **restores them on exit** (even on failure), preserving any pre-existing
+  uncommitted edits to those files.
+
+> Trade-off: the local path has no CI audit trail and weaker build provenance
+> than `make publish-dev`. Use it for fast iteration; prefer `make publish-dev`
+> for builds you want recorded.
 
 ---
 
@@ -238,38 +270,49 @@ docker pull ghcr.io/stigmer/mcp-server-stigmer:dev-<sha>
 
 ## Infrastructure prerequisites
 
-These are one-time account/secret setup items. `make publish-dev` assumes they
-are in place.
+One-time account/secret setup. There are **two credential planes**:
+
+- **CI path** (`make publish-dev`) reads **GitHub Actions secrets**.
+- **Local path** (`make publish-dev-local`) reads **Planton secrets** (GitHub
+  Actions secrets are write-only and cannot be read back). The Planton slugs are
+  listed in the local-publish section above.
 
 ### Maven credentials
 
-- The dev workflow authenticates the Central snapshot repo with the existing
-  `MAVEN_CENTRAL_USERNAME` / `MAVEN_CENTRAL_PASSWORD` secrets (same `central`
-  server id as the release workflow). **Snapshot publishing must be enabled** for
-  the Sonatype Central account/namespace.
-- For `make publish-dev-maven-local`, add the same credentials to your
-  `~/.m2/settings.xml`:
-
-  ```xml
-  <servers>
-    <server>
-      <id>central</id>
-      <username>${env.MAVEN_CENTRAL_USERNAME}</username>
-      <password>${env.MAVEN_CENTRAL_PASSWORD}</password>
-    </server>
-  </servers>
-  ```
+- Both paths publish to the Central snapshot repo. **Snapshot publishing must be
+  enabled** for the Sonatype Central account/namespace, and the same account also
+  needs **release publishing** enabled for production releases.
+- CI: the existing `MAVEN_CENTRAL_USERNAME` / `MAVEN_CENTRAL_PASSWORD` GitHub
+  secrets (same `central` server id as the release workflow).
+- Local: the `maven-central-username` / `maven-central-password` Planton secrets.
+  The script generates a temporary `settings.xml` referencing them via
+  `${env.*}`, so you do **not** need to edit your `~/.m2/settings.xml`.
 
 ### TestPyPI (Python)
 
-The Python jobs publish via **OIDC Trusted Publishing** (matching
-`release.python-sdk.yaml`). A Trusted Publisher must be configured on
-`test.pypi.org` for **both** projects (`stigmer` and `stigmer-protos`), pointing
-at this repository and the `release.dev` workflow.
+- CI: publishes via **OIDC Trusted Publishing** (matching
+  `release.python-sdk.yaml`). A Trusted Publisher must be configured on
+  `test.pypi.org` for **both** projects (`stigmer` and `stigmer-protos`), pointing
+  at this repository and the `release.dev` workflow.
+- Local: uses the `testpypi-token` Planton secret (an API token), which does not
+  require the trusted-publisher setup.
 
 ### npm
 
-No new secret — the `dev` dist-tag reuses the existing `NPM_TOKEN`.
+- CI: reuses the existing `NPM_TOKEN` GitHub secret.
+- Local: uses the `npm-token` Planton secret.
+
+### GHCR (MCP Docker)
+
+- CI: uses the workflow's `GITHUB_TOKEN`.
+- Local: uses the existing `ghcr-stigmer-pat` Planton secret.
+
+### Planton CLI (local path only)
+
+The local path reads secrets via the Planton CLI. It works with both release
+CLIs (clean `-o plain` output) and older/dev builds (decorated table, parsed by
+the script). A parsed value containing whitespace is rejected as a corruption
+guard.
 
 ---
 
