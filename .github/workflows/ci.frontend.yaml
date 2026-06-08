@@ -89,6 +89,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Build SDK libraries
+        run: npm run build:libs
+
       - name: Run web console tests
         run: npm run test -w client-apps/web
 
@@ -110,6 +113,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Build SDK libraries
+        run: npm run build:libs
 
       - name: Run desktop app tests
         run: npm run test -w desktop
