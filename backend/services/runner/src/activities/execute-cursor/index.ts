@@ -43,6 +43,8 @@ import { CursorMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_p
 import { determineCursorMode, isCloudMode } from "./cursor-mode.js";
 import { MessageAccumulator, reconcileDeniedToolCalls, cancelInProgressSubAgentProtos } from "./message-translator.js";
 import { utcTimestamp, persistStatus, reportSetupProgress, slimStatus } from "../../shared/status.js";
+import { createArtifactStorage, loadArtifactStorageConfig } from "../../shared/artifact-storage.js";
+import { publishPlanArtifact } from "../../shared/plan-artifact.js";
 import { DeltaEnricher } from "./delta-enricher.js";
 import { TodoTracker } from "./todo-tracker.js";
 import { createCursorEventRecorder } from "./cursor-event-recorder.js";
@@ -1018,6 +1020,22 @@ async function executeCursorInner(
 
       if (structuredOutput !== undefined) {
         status.structuredOutput = structuredOutput as JsonObject;
+      }
+
+      // Plan mode: publish the final plan message as a plan.md artifact. The
+      // Cursor harness has no auto-publish pipeline, so this is the only
+      // artifact path; build storage from the same config-driven factory the
+      // native harness uses.
+      if (interactionMode === InteractionMode.PLAN && finalText) {
+        try {
+          const artifactStorage = createArtifactStorage(loadArtifactStorageConfig(config));
+          await publishPlanArtifact({ status, executionId, planText: finalText, artifactStorage });
+        } catch (err) {
+          console.warn(
+            `ExecuteCursor plan artifact publish skipped (non-fatal): ` +
+            `execution=${executionId}, error=${err}`,
+          );
+        }
       }
     }
 

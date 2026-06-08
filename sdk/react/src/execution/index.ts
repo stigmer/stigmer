@@ -32,6 +32,9 @@ export type { SummarizationCardProps } from "./SummarizationCard";
 export { PlanCompletionCard } from "./PlanCompletionCard";
 export type { PlanCompletionCardProps } from "./PlanCompletionCard";
 
+export { PlanArtifactCard } from "./PlanArtifactCard";
+export type { PlanArtifactCardProps } from "./PlanArtifactCard";
+
 export { useExecutionArtifacts } from "./useExecutionArtifacts";
 export type { UseExecutionArtifactsReturn } from "./useExecutionArtifacts";
 

@@ -58,7 +58,7 @@ public interface SubmitApprovalInputOrBuilder extends
 
   /**
    * <pre>
-   * User's decision: APPROVE, SKIP, or REJECT.
+   * User's decision: APPROVE, SKIP, REJECT, or APPROVE_ALL.
    * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
    * </pre>
    *
@@ -68,7 +68,7 @@ public interface SubmitApprovalInputOrBuilder extends
   int getActionValue();
   /**
    * <pre>
-   * User's decision: APPROVE, SKIP, or REJECT.
+   * User's decision: APPROVE, SKIP, REJECT, or APPROVE_ALL.
    * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
    * </pre>
    *

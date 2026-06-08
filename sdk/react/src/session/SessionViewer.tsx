@@ -137,7 +137,12 @@ export function SessionViewer({
 
   const handleBuildFromPlan = useCallback(() => {
     setInteractionMode("agent");
-    composerRef.current?.setMessage("Implement the plan above");
+    // Reference the plan explicitly (it is also published as plan.md) and direct
+    // the agent to act on it, rather than a bare "implement" that relies on the
+    // model re-reading its own prior message.
+    composerRef.current?.setMessage(
+      "Implement the plan above (saved as plan.md). Follow it step by step and make the changes it describes.",
+    );
     composerRef.current?.focus();
   }, []);
 

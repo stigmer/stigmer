@@ -7,6 +7,7 @@ import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/
 import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
+import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
 import {
   ApprovalAction,
   ExecutionPhase,
@@ -24,6 +25,8 @@ import { SetupProgress } from "./SetupProgress";
 import { ApprovalCard } from "./ApprovalCard";
 import { SummarizationCard } from "./SummarizationCard";
 import { PlanCompletionCard } from "./PlanCompletionCard";
+import { PlanArtifactCard } from "./PlanArtifactCard";
+import { findPlanArtifact } from "../library/detect-plan-artifact";
 import type { SummarizationEventView } from "./useContextWindow";
 import { isInternalTool } from "./tool-categories";
 import { FilePathContext, type FilePathContextValue } from "./FilePathContext";
@@ -169,7 +172,12 @@ export type ThreadItem =
   | { readonly kind: "approval-request"; readonly pendingApproval: PendingApproval; readonly key: string }
   | { readonly kind: "setup-progress"; readonly workspaceEntries: readonly WorkspaceEntry[]; readonly serverPhase?: string; readonly isAwaitingResponse?: boolean; readonly key: string }
   | { readonly kind: "context-compacted"; readonly event: SummarizationEventView; readonly key: string }
-  | { readonly kind: "plan-completion"; readonly key: string };
+  | {
+      readonly kind: "plan-completion";
+      readonly key: string;
+      readonly executionId: string;
+      readonly planArtifact?: ExecutionArtifact;
+    };
 
 function hasAiMessages(execution: AgentExecution): boolean {
   const messages = execution.status?.messages;
@@ -378,7 +386,12 @@ export function buildThreadItems(
     lastPhase === ExecutionPhase.EXECUTION_COMPLETED &&
     lastExec?.spec?.executionConfig?.interactionMode === InteractionMode.PLAN
   ) {
-    items.push({ kind: "plan-completion", key: "plan-completion" });
+    items.push({
+      kind: "plan-completion",
+      key: "plan-completion",
+      executionId: lastExec?.metadata?.id ?? "",
+      planArtifact: findPlanArtifact(lastExec),
+    });
   }
 
   if (includeApprovals) {
@@ -674,7 +687,18 @@ export function ThreadItemRenderer({
     case "context-compacted":
       return <SummarizationCard event={item.event} />;
     case "plan-completion":
-      return <PlanCompletionCard onImplement={onBuildFromPlan} />;
+      // When the plan was published as an artifact, show the richer reviewable
+      // card (preview / copy / download / implement). Otherwise fall back to the
+      // bare Implement CTA (older executions, or a plan that failed to publish).
+      return item.planArtifact && item.executionId ? (
+        <PlanArtifactCard
+          executionId={item.executionId}
+          artifact={item.planArtifact}
+          onImplement={onBuildFromPlan}
+        />
+      ) : (
+        <PlanCompletionCard onImplement={onBuildFromPlan} />
+      );
   }
 }
 

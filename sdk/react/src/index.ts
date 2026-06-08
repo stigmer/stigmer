@@ -842,6 +842,8 @@ export {
   isSkillPackage,
   detectSkillPackage,
   useDetectSkillPackage,
+  isPlanArtifact,
+  findPlanArtifact,
   parseResourceYaml,
   serializeAgentYaml,
   serializeMcpServerYaml,
