@@ -22,6 +22,12 @@ permissions:
   contents: write
   packages: write
 
+# Force JavaScript actions onto Node 24. GitHub is removing the Node 20 runtime
+# from runners in 2026; this opts in early and silences the deprecation warnings
+# without requiring risky major-version bumps of the artifact actions.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   # Determine version for this build
   determine-version:
@@ -67,16 +73,33 @@ jobs:
   generate-protos:
     needs: determine-version
     runs-on: ubuntu-latest
+    # Pin Go's module + build caches to workspace-relative paths so they can be
+    # cached uniformly across Linux and macOS runners (see Cache Go step below).
+    env:
+      GOMODCACHE: ${{ github.workspace }}/.gomodcache
+      GOCACHE: ${{ github.workspace }}/.gocache
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: '1.25'
+          # This repo is a go.work workspace with no root go.sum, so setup-go's
+          # built-in cache silently no-ops. We manage the cache explicitly below.
+          cache: false
+
+      - name: Cache Go modules and build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ github.workspace }}/.gomodcache
+            ${{ github.workspace }}/.gocache
+          key: go-protos-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: go-protos-${{ runner.os }}-
 
       - name: Set up Buf
         uses: bufbuild/buf-setup-action@v1
@@ -123,7 +146,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Download proto stubs
         uses: actions/download-artifact@v4
@@ -145,9 +168,8 @@ jobs:
       - name: Build SDK libraries
         run: npm run build:libs
 
-      - name: Lint web console
-        run: npm run lint -w client-apps/web
-
+      # Linting is enforced in PR CI; running it again on the release critical
+      # path only adds latency to an already-merged commit.
       - name: Build web console
         run: npm run build -w client-apps/web
 
@@ -162,16 +184,29 @@ jobs:
   build-darwin-arm64:
     needs: [determine-version, generate-protos, build-web-console]
     runs-on: macos-latest  # macOS 14 (M1)
+    env:
+      GOMODCACHE: ${{ github.workspace }}/.gomodcache
+      GOCACHE: ${{ github.workspace }}/.gocache
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: '1.25'
+          cache: false
+
+      - name: Cache Go modules and build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ github.workspace }}/.gomodcache
+            ${{ github.workspace }}/.gocache
+          key: go-darwin-arm64-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: go-darwin-arm64-${{ runner.os }}-
 
       - name: Download proto stubs
         uses: actions/download-artifact@v4
@@ -234,16 +269,29 @@ jobs:
   build-darwin-amd64:
     needs: [determine-version, generate-protos, build-web-console]
     runs-on: macos-latest  # ARM Mac (cross-compile Go CLI to Intel)
+    env:
+      GOMODCACHE: ${{ github.workspace }}/.gomodcache
+      GOCACHE: ${{ github.workspace }}/.gocache
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: '1.25'
+          cache: false
+
+      - name: Cache Go modules and build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ github.workspace }}/.gomodcache
+            ${{ github.workspace }}/.gocache
+          key: go-darwin-amd64-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: go-darwin-amd64-${{ runner.os }}-
 
       - name: Download proto stubs
         uses: actions/download-artifact@v4
@@ -310,16 +358,29 @@ jobs:
   build-linux-amd64:
     needs: [determine-version, generate-protos, build-web-console]
     runs-on: ubuntu-latest
+    env:
+      GOMODCACHE: ${{ github.workspace }}/.gomodcache
+      GOCACHE: ${{ github.workspace }}/.gocache
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: '1.25'
+          cache: false
+
+      - name: Cache Go modules and build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ github.workspace }}/.gomodcache
+            ${{ github.workspace }}/.gocache
+          key: go-linux-amd64-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: go-linux-amd64-${{ runner.os }}-
 
       - name: Download proto stubs
         uses: actions/download-artifact@v4
