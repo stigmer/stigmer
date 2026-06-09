@@ -39,6 +39,12 @@ type UnifiedRunnerConfig struct {
 	// offline mode where ProxyEndpoint is a MockLLMProxy that does not
 	// handle artifact presign endpoints.
 	LocalArtifactDir string
+
+	// LogLabel, when set, is woven into the manager's log filename so that
+	// runners sharing a LogDir do not overwrite each other's logs. Without it,
+	// every per-test manager writes the same unified-runner-manager.log and only
+	// the last survives — useless when a mid-suite test fails. Typically t.Name().
+	LogLabel string
 }
 
 // UnifiedRunnerWorkspaceDir returns the WORKSPACE_ROOT_DIR the integration
@@ -126,7 +132,11 @@ func StartUnifiedRunnerManager(ctx context.Context, cfg UnifiedRunnerConfig, log
 			return nil, fmt.Errorf("create log dir: %w", mkErr)
 		}
 	}
-	logPath := filepath.Join(logDir, "unified-runner-manager.log")
+	logName := "unified-runner-manager.log"
+	if cfg.LogLabel != "" {
+		logName = fmt.Sprintf("unified-runner-manager-%s.log", sanitizeLabel(cfg.LogLabel))
+	}
+	logPath := filepath.Join(logDir, logName)
 	logFile, err := os.Create(logPath)
 	if err != nil {
 		return nil, fmt.Errorf("create log file: %w", err)

@@ -4,6 +4,7 @@ package integration
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -34,7 +35,10 @@ func TestSignal_PauseResumeCompletes(t *testing.T) {
 	deployer := harness.NewFixtureDeployer(clients, "sig-pause-resume", suiteLogger)
 	defer deployer.Cleanup(ctx)
 
-	wf, err := multiStepWorkflow("signal-pause-resume")
+	// Unique per invocation so the test is safe to loop with -count=N: the
+	// service auto-creates a "<name>-default" workflow instance that fixture
+	// cleanup does not remove, so a fixed name collides on the second run.
+	wf, err := multiStepWorkflow(fmt.Sprintf("signal-pause-resume-%d", time.Now().UnixNano()))
 	require.NoError(t, err)
 
 	_, execution, err := deployer.DeployAndExecute(ctx, wf, "pause/resume signal test")
@@ -71,7 +75,14 @@ func TestSignal_PauseResumeCompletes(t *testing.T) {
 
 	result, err := waiter.WaitForPhase(ctx, executionID,
 		workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED, 2*time.Minute)
-	require.NoError(t, err)
+	if err != nil {
+		// This wait is the historically flaky point: resume occasionally fails
+		// to drive the execution to COMPLETED within the timeout. Capture the
+		// Temporal history and log tails before failing so the root cause is
+		// diagnosable from the next occurrence rather than a bare timeout.
+		testHarness.CaptureWorkflowExecutionDiagnostics(t, t.Name(), executionID)
+	}
+	require.NoError(t, err, "resume should drive execution %s to COMPLETED", executionID)
 
 	inspector.AssertTemporalTerminal(t, ctx, orchID)
 	inspector.AssertNoWTFLoop(t, ctx, orchID, 0)

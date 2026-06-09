@@ -80,4 +80,4 @@ test: ensure-service-jar ensure-runner-built ## Run offline deterministic integr
 		--jsonfile $(OUTPUT_DIR)/test-output.json \
 		--format testname \
 		--packages ./... \
-		-- -tags integration -timeout 900s -count=1 -v
+		-- -tags integration -timeout 900s -count=1 -parallel 4 -v

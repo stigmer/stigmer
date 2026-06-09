@@ -35,6 +35,7 @@ func startOfflineRunner(
 		LogDir:                testHarness.LogDir(),
 		ProxyEndpoint:         mockLLM.URL(),
 		LocalArtifactDir:      t.TempDir(),
+		LogLabel:              t.Name(),
 	}, suiteLogger)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {

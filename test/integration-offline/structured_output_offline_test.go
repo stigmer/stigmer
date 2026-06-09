@@ -81,6 +81,7 @@ func runSOExecution(
 // TestOffline_StructuredOutput_PureJsonResponse verifies that the extraction
 // pipeline correctly handles a pure JSON response from the agent.
 func TestOffline_StructuredOutput_PureJsonResponse(t *testing.T) {
+	t.Parallel()
 	requireSOPrereqs(t)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
@@ -107,6 +108,7 @@ func TestOffline_StructuredOutput_PureJsonResponse(t *testing.T) {
 // TestOffline_StructuredOutput_CodeFencedJson verifies Tier 1.5 extraction:
 // JSON wrapped in a ```json code fence.
 func TestOffline_StructuredOutput_CodeFencedJson(t *testing.T) {
+	t.Parallel()
 	requireSOPrereqs(t)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
@@ -134,6 +136,7 @@ func TestOffline_StructuredOutput_CodeFencedJson(t *testing.T) {
 // agent returns pure markdown with no JSON, so extraction must use LLM-based
 // extraction or return nil.
 func TestOffline_StructuredOutput_MarkdownProse(t *testing.T) {
+	t.Parallel()
 	requireSOPrereqs(t)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
@@ -165,6 +168,7 @@ func TestOffline_StructuredOutput_MarkdownProse(t *testing.T) {
 // TestOffline_StructuredOutput_TrailingCommas verifies extraction handles
 // invalid JSON with trailing commas (common LLM output quirk).
 func TestOffline_StructuredOutput_TrailingCommas(t *testing.T) {
+	t.Parallel()
 	requireSOPrereqs(t)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
@@ -198,6 +202,7 @@ func TestOffline_StructuredOutput_TrailingCommas(t *testing.T) {
 // the extraction pipeline picks when the response contains multiple fences.
 // The correct fence should be the one matching the schema.
 func TestOffline_StructuredOutput_MultipleCodeFences(t *testing.T) {
+	t.Parallel()
 	requireSOPrereqs(t)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
@@ -237,6 +242,7 @@ func TestOffline_StructuredOutput_MultipleCodeFences(t *testing.T) {
 // pipeline strips fields not defined in the schema when additionalProperties
 // is false.
 func TestOffline_StructuredOutput_ExtraFields(t *testing.T) {
+	t.Parallel()
 	requireSOPrereqs(t)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
@@ -282,6 +288,7 @@ func TestOffline_StructuredOutput_ExtraFields(t *testing.T) {
 // TestOffline_StructuredOutput_MissingRequiredField verifies behavior when the
 // agent's response JSON is missing a required field.
 func TestOffline_StructuredOutput_MissingRequiredField(t *testing.T) {
+	t.Parallel()
 	requireSOPrereqs(t)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
@@ -321,6 +328,7 @@ func TestOffline_StructuredOutput_MissingRequiredField(t *testing.T) {
 // TestOffline_StructuredOutput_WrongFieldType verifies behavior when a field
 // has the wrong type (string instead of number).
 func TestOffline_StructuredOutput_WrongFieldType(t *testing.T) {
+	t.Parallel()
 	requireSOPrereqs(t)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
@@ -355,6 +363,7 @@ func TestOffline_StructuredOutput_WrongFieldType(t *testing.T) {
 // TestOffline_StructuredOutput_NestedArrayOfObjects verifies extraction of
 // nested arrays with object items.
 func TestOffline_StructuredOutput_NestedArrayOfObjects(t *testing.T) {
+	t.Parallel()
 	requireSOPrereqs(t)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
@@ -389,6 +398,7 @@ func TestOffline_StructuredOutput_NestedArrayOfObjects(t *testing.T) {
 // TestOffline_StructuredOutput_SchemaRoundTrip verifies that JSON schemas
 // survive the proto/structpb serialization round-trip.
 func TestOffline_StructuredOutput_SchemaRoundTrip(t *testing.T) {
+	t.Parallel()
 	requireSOPrereqs(t)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
@@ -441,6 +451,7 @@ func TestOffline_StructuredOutput_SchemaRoundTrip(t *testing.T) {
 // TestOffline_StructuredOutput_NoSchemaProducesNoOutput verifies that an
 // execution without a schema does NOT produce structuredOutput.
 func TestOffline_StructuredOutput_NoSchemaProducesNoOutput(t *testing.T) {
+	t.Parallel()
 	requireSOPrereqs(t)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
@@ -483,6 +494,7 @@ func TestOffline_StructuredOutput_NoSchemaProducesNoOutput(t *testing.T) {
 //   - The assertion should still pass (same API result, different source)
 //   - But the source field will be populated by the runner, not server-side parsing
 func TestOffline_StructuredOutput_NativePath_TextBasedExtraction(t *testing.T) {
+	t.Parallel()
 	requireSOPrereqs(t)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
