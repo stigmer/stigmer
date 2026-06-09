@@ -45,8 +45,9 @@ jobs:
           echo "should_release=$SHOULD_RELEASE" >> $GITHUB_OUTPUT
           echo "Desktop build: $VERSION (release: $SHOULD_RELEASE) [$(git rev-parse --short HEAD)]"
 
+  # Independent of determine-version (it never consumes the version output), so
+  # the two run concurrently and shave the version step off the critical path.
   generate-protos:
-    needs: determine-version
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -56,6 +57,9 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.25'
+          # Monorepo has no root go.sum; point the module cache at all of them
+          # so setup-go stops warning about a missing dependency file.
+          cache-dependency-path: '**/go.sum'
 
       - name: Set up Buf
         uses: bufbuild/buf-setup-action@v1
@@ -90,24 +94,71 @@ jobs:
           retention-days: 1
 
 
+  # Pre-create a single draft release up front so every parallel build leg can
+  # upload its bundles to the same release via releaseId. The updater manifest
+  # is assembled once in the publish job (see below), which is what lets the
+  # builds run concurrently without racing on latest.json.
+  create-release:
+    needs: determine-version
+    if: needs.determine-version.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      release_id: ${{ steps.create.outputs.release_id }}
+    steps:
+      - name: Create draft release
+        id: create
+        uses: actions/github-script@v7
+        env:
+          VERSION: ${{ needs.determine-version.outputs.version }}
+        with:
+          script: |
+            const tag = process.env.VERSION;
+            const params = {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: tag,
+              target_commitish: context.sha,
+              name: `Stigmer Desktop ${tag}`,
+              body: 'Download the desktop installer for your platform below.',
+              draft: true,
+              prerelease: false,
+            };
+            try {
+              const { data } = await github.rest.repos.createRelease(params);
+              core.setOutput('release_id', data.id);
+            } catch (err) {
+              // A re-run may hit an existing release for this tag; reuse it.
+              if (err.status !== 422) throw err;
+              const { data } = await github.rest.repos.getReleaseByTag({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag,
+              });
+              core.setOutput('release_id', data.id);
+            }
+
   build:
-    if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
-    needs: [determine-version, generate-protos]
+    needs: [determine-version, generate-protos, create-release]
+    # create-release is skipped for build-only (workflow_dispatch without
+    # create_release), so gate on it not having failed rather than on success.
+    if: |
+      always() &&
+      (github.ref_type == 'tag' || github.event_name == 'workflow_dispatch') &&
+      needs.determine-version.result == 'success' &&
+      needs.generate-protos.result == 'success' &&
+      needs.create-release.result != 'failure'
     permissions:
       contents: write
     defaults:
       run:
         shell: bash
     strategy:
+      # Builds run fully in parallel. Per-leg latest.json writes are disabled
+      # (includeUpdaterJson: false) and the manifest is assembled once in the
+      # publish job, so there is no shared-asset race. See tauri-action#1270.
       fail-fast: false
-      # Serialize the matrix so the per-platform jobs do not race on the shared
-      # latest.json updater manifest. tauri-action uploads latest.json via a
-      # read-modify-write (fetch existing asset, merge this platform, re-upload),
-      # so parallel jobs both 404 on the delete-then-upload flow and risk lost
-      # updates that silently drop platforms. Running one platform at a time
-      # lets each job merge into the previous job's manifest. See
-      # tauri-apps/tauri-action#1270.
-      max-parallel: 1
       matrix:
         include:
           - platform: macos-latest
@@ -145,6 +196,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.25'
+          cache-dependency-path: client-apps/cli/go.sum
 
       - name: Build CLI sidecar
         shell: bash
@@ -230,7 +282,10 @@ jobs:
       # secrets are properly configured. Setting APPLE_CERTIFICATE to any
       # non-empty value causes tauri-action to attempt keychain import, which
       # fails if the certificate is invalid.
-      - name: Build and release (tag push)
+      # Upload this platform's signed bundles to the shared draft release.
+      # includeUpdaterJson is disabled: latest.json is assembled once in the
+      # publish job to avoid the parallel read-modify-write race.
+      - name: Build and upload (release)
         if: needs.determine-version.outputs.should_release == 'true'
         uses: tauri-apps/tauri-action@v0
         env:
@@ -239,16 +294,31 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: client-apps/desktop
-          tagName: ${{ needs.determine-version.outputs.version }}
-          releaseName: 'Stigmer Desktop ${{ needs.determine-version.outputs.version }}'
-          releaseBody: 'Download the desktop installer for your platform below.'
-          releaseDraft: false
-          prerelease: false
-          includeUpdaterJson: true
+          releaseId: ${{ needs.create-release.outputs.release_id }}
+          includeUpdaterJson: false
           retryAttempts: 3
           args: ${{ matrix.tauri_args }}
 
-      - name: Build only (workflow dispatch)
+      - name: Build updater fragment
+        if: needs.determine-version.outputs.should_release == 'true'
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          RELEASE_TAG: ${{ needs.determine-version.outputs.version }}
+        run: |
+          node client-apps/desktop/scripts/ci-latest-json.mjs fragment \
+            --target-dir client-apps/desktop/src-tauri/target \
+            --tag "$RELEASE_TAG" \
+            --out "updater-fragment-${{ matrix.platform }}.json"
+
+      - name: Upload updater fragment
+        if: needs.determine-version.outputs.should_release == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: updater-fragment-${{ matrix.platform }}
+          path: updater-fragment-${{ matrix.platform }}.json
+          retention-days: 1
+
+      - name: Build only (no release)
         if: needs.determine-version.outputs.should_release != 'true'
         uses: tauri-apps/tauri-action@v0
         env:
@@ -257,4 +327,42 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: client-apps/desktop
+          includeUpdaterJson: false
           args: ${{ matrix.tauri_args }}
+
+  # Merge every platform's updater fragment into a single latest.json, attach it
+  # to the release, then flip the draft to published. This is the single writer
+  # of the manifest, so the build matrix above can run fully in parallel.
+  publish:
+    needs: [determine-version, create-release, build]
+    if: needs.determine-version.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download updater fragments
+        uses: actions/download-artifact@v4
+        with:
+          pattern: updater-fragment-*
+          path: updater-fragments
+
+      - name: Assemble latest.json
+        env:
+          VERSION: ${{ needs.determine-version.outputs.version }}
+        run: |
+          node client-apps/desktop/scripts/ci-latest-json.mjs merge \
+            --fragments-dir updater-fragments \
+            --version "$VERSION" \
+            --out latest.json
+          cat latest.json
+
+      - name: Upload latest.json and publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.determine-version.outputs.version }}
+        run: |
+          gh release upload "$TAG" latest.json --clobber
+          gh release edit "$TAG" --draft=false --prerelease=false
