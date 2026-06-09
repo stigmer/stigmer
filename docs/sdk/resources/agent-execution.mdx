@@ -1740,7 +1740,7 @@ Accumulated token usage from execution worker turn-ended events.
     outputTokens: { type: "number", description: "Accumulated output tokens across all turns." },
     cacheReadTokens: { type: "number", description: "Accumulated cache-read tokens across all turns." },
     cacheWriteTokens: { type: "number", description: "Accumulated cache-write tokens across all turns." },
-    totalTokens: { type: "number", description: "Sum of all token buckets." },
+    totalTokens: { type: "number", description: "Total tokens across all turns: input_tokens + output_tokens." },
     turnCount: { type: "number", description: "Number of completed turns observed." },
     estimatedCostUsd: { type: "number", description: "Estimated cost in USD computed from runner-side rate card." },
     model: { type: "string", description: "Model identifier observed during streaming (from RunResult or assistant events)." },

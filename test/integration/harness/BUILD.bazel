@@ -13,6 +13,7 @@ go_library(
         "clients.go",
         "context.go",
         "event_collector.go",
+        "failure_diagnostics.go",
         "fga_seeder.go",
         "fixture.go",
         "harness.go",

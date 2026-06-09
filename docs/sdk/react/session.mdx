@@ -774,7 +774,7 @@ function useSessionUsage(executions: readonly AgentExecution[]): UseSessionUsage
     primaryModel: { type: "string", description: "Model with the highest usage in this session." },
     primaryProvider: { type: "string", description: "Provider of the primary model." },
     totalCostUsd: { type: "number", description: "Aggregate estimated cost in USD across all models." },
-    totalTokens: { type: "number", description: "Total tokens (input + output) across all models." },
+    totalTokens: { type: "number", description: "Total tokens across all models (cache-inclusive: input + output + cache)." },
   }}
 />
 
