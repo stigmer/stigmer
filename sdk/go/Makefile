@@ -47,6 +47,9 @@ codegen-stubs: ## Generate proto stubs inside the SDK module
 	@echo "Generating proto stubs into proto/..."
 	@rm -rf proto
 	@mkdir -p proto
+	@# Install pinned local codegen plugins so buf.gen.sdk-go.yaml has no
+	@# buf.build network dependency (mirrors the apis go-stubs pipeline).
+	@$(MAKE) -C ../../apis go-stubs-tools
 	@cd ../../apis && buf generate --template buf.gen.sdk-go.yaml
 	@if [ -d "proto/github.com" ]; then \
 		mv proto/github.com/stigmer/stigmer/sdk/go/proto/* proto/ 2>/dev/null || true; \

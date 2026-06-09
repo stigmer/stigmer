@@ -13,10 +13,13 @@ managed:
       value: SPEED
     - file_option: go_package_prefix
       value: github.com/stigmer/stigmer/sdk/go/proto
+# Local plugins (no buf.build round-trip). Pinned binaries are installed into
+# .tools/bin by the `go-stubs-tools` Make target; versions are kept in sync with
+# the GO_PROTOC_GEN_* variables in the Makefile so output stays byte-identical.
 plugins:
-  - remote: buf.build/protocolbuffers/go:v1.36.6
+  - local: .tools/bin/protoc-gen-go
     out: ../sdk/go/proto
-  - remote: buf.build/grpc/go:v1.5.1
+  - local: .tools/bin/protoc-gen-go-grpc
     out: ../sdk/go/proto
     opt: require_unimplemented_servers=false
 inputs:
