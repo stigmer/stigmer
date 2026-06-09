@@ -103,6 +103,38 @@ func isDNSError(err error) bool {
 		strings.Contains(msg, "dial tcp: lookup")
 }
 
+// isTransientNetworkError reports whether err is an environmental network
+// condition outside the test's control (DNS failure, request timeout, or a
+// transient connection-level error). These tests are live canaries against
+// third-party MCP endpoints and run in parallel inside the full offline suite,
+// where contention can push a healthy endpoint past the client deadline. Such
+// conditions say nothing about the seedpack definition under test, so callers
+// skip rather than fail when they occur.
+func isTransientNetworkError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if isDNSError(err) {
+		return true
+	}
+	if errors.Is(err, context.DeadlineExceeded) || os.IsTimeout(err) {
+		return true
+	}
+	var netErr net.Error
+	if errors.As(err, &netErr) && netErr.Timeout() {
+		return true
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "context deadline exceeded") ||
+		strings.Contains(msg, "Client.Timeout exceeded") ||
+		strings.Contains(msg, "connection refused") ||
+		strings.Contains(msg, "connection reset") ||
+		strings.Contains(msg, "i/o timeout") ||
+		strings.Contains(msg, "TLS handshake timeout") ||
+		strings.Contains(msg, "server misbehaving") ||
+		strings.Contains(msg, "EOF")
+}
+
 func TestSeedpackHttp_EndpointReachable(t *testing.T) {
 	servers := loadSeedpackMcpServers(t)
 
@@ -127,8 +159,8 @@ func TestSeedpackHttp_EndpointReachable(t *testing.T) {
 
 			resp, err := client.Do(req)
 			if err != nil {
-				if isDNSError(err) {
-					t.Skipf("skipping %s: DNS resolution failed (may be region-specific): %v", name, err)
+				if isTransientNetworkError(err) {
+					t.Skipf("skipping %s: transient network condition (DNS/timeout/connection): %v", name, err)
 				}
 				t.Fatalf("HEAD %s failed: %v", srv.Spec.HTTP.URL, err)
 			}
@@ -162,8 +194,8 @@ func TestSeedpackHttp_OAuthDiscoveryAvailable(t *testing.T) {
 
 			resp, err := client.Get(discoveryURL)
 			if err != nil {
-				if isDNSError(err) {
-					t.Skipf("skipping %s: DNS resolution failed: %v", name, err)
+				if isTransientNetworkError(err) {
+					t.Skipf("skipping %s: transient network condition (DNS/timeout/connection): %v", name, err)
 				}
 				t.Fatalf("GET %s failed: %v", discoveryURL, err)
 			}
@@ -221,8 +253,8 @@ func TestSeedpackHttp_McpProtocolResponse(t *testing.T) {
 
 			resp, err := client.Do(req)
 			if err != nil {
-				if isDNSError(err) {
-					t.Skipf("skipping %s: DNS resolution failed: %v", name, err)
+				if isTransientNetworkError(err) {
+					t.Skipf("skipping %s: transient network condition (DNS/timeout/connection): %v", name, err)
 				}
 				t.Fatalf("POST %s failed: %v", srv.Spec.HTTP.URL, err)
 			}

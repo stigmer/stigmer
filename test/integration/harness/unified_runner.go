@@ -316,7 +316,15 @@ func (m *UnifiedRunnerManager) UpdateToken(ctx context.Context, token *string) e
 	return nil
 }
 
-// Stop sends a shutdown command and waits for the process to exit.
+// Stop sends a shutdown command, waits for the runner to drain its workers
+// gracefully (the shutdownComplete reply), then terminates the process.
+//
+// The Node runtime frequently keeps its event loop alive after Temporal
+// workers drain (lingering SDK/gRPC handles), so waiting for the process to
+// exit on its own burns the full timeout — ~10s per call, which dominated the
+// offline suite runtime. The worker drain is the only part that matters for
+// clean Temporal deregistration and finishes in well under a second, so we
+// wait briefly for shutdownComplete and then kill the lingering process.
 func (m *UnifiedRunnerManager) Stop() error {
 	if m.cmd == nil || m.cmd.Process == nil {
 		return nil
@@ -324,15 +332,17 @@ func (m *UnifiedRunnerManager) Stop() error {
 	m.logger.Info("stopping unified-runner-manager")
 
 	m.mu.Lock()
-	_ = m.sendCommand(ipcCommand{Type: "shutdown"})
+	if err := m.sendCommand(ipcCommand{Type: "shutdown"}); err == nil {
+		_, _ = m.readResponse(context.Background(), 3*time.Second)
+	}
 	m.mu.Unlock()
+
+	_ = m.cmd.Process.Kill()
 
 	done := make(chan error, 1)
 	go func() { done <- m.cmd.Wait() }()
-
 	select {
-	case <-time.After(10 * time.Second):
-		_ = m.cmd.Process.Kill()
+	case <-time.After(5 * time.Second):
 	case <-done:
 	}
 
