@@ -38,8 +38,8 @@ import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agent
 import { MessageType, ToolCallStatus, SubAgentStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { SDKMessage } from "@cursor/sdk";
 import type { MergedToolPolicy } from "./approval-policy.js";
-import { lookupMcpToolPolicy, resolveApprovalMessage, builtInRequiresApproval, getBuiltInApprovalMessage, extractArgKey } from "./approval-policy.js";
-import { grantToken, type DeniedLedgerEntry } from "./approval-state.js";
+import { lookupMcpToolPolicy, resolveApprovalMessage, builtInRequiresApproval, getBuiltInApprovalMessage } from "./approval-policy.js";
+import { grantToken, toolIdentity, type DeniedLedgerEntry } from "./approval-state.js";
 import { utcTimestamp } from "../../shared/status.js";
 import { classifyTool } from "../../shared/tool-kind.js";
 
@@ -808,12 +808,17 @@ export function reconcileDeniedToolCalls(
   }
 
   // 2. Synthesize a tool call for any denial that never produced a stream event.
+  // Rare with correct correlation (Cursor emits a tool_call for every attempt),
+  // so this is a defensive net that still surfaces the gate rather than letting
+  // a denied tool render as a silent success.
   for (const entry of ledger) {
     if (matched.has(entry.token)) continue;
     const decoded = decodeIdentityToken(entry.token);
-    const name = decoded?.name || entry.toolName || "tool";
-    const argKey = decoded?.argKey ?? "";
-    const tc = synthesizeWaitingApprovalToolCall(name, argKey, mergedPolicies);
+    // Display the hook's raw tool name; carry the decoded salient so the grant
+    // rebuilt from this tool call on reinvocation keys on the same resource.
+    const displayName = entry.toolName || decoded?.key || "tool";
+    const salient = decoded?.salient ?? "";
+    const tc = synthesizeWaitingApprovalToolCall(displayName, salient, entry.token, mergedPolicies);
     appendToolCallToLastAiMessage(messages, tc);
     matched.add(entry.token);
     result.push(tc);
@@ -823,23 +828,24 @@ export function reconcileDeniedToolCalls(
 }
 
 /**
- * Compute a tool call's identity token in the same space the preToolUse hook
- * uses (grantToken: base64 of `toolName \n salientArg`). Mirrors the hook's
- * choice: MCP tools are name-only (no top-level salient arg in the hook input,
- * matching the grant convention); built-in tools key on their salient arg.
+ * Compute a streamed tool call's identity token in the same canonical space the
+ * preToolUse hook records denials in (see {@link toolIdentity} and grantToken).
+ * The token keys on the cross-taxonomy category + salient resource, so a stream
+ * `edit` (token `base64("write\n/path")`) correlates to the hook's `Write` deny
+ * for the same path, even though the two layers name the tool differently.
  */
 function toolCallIdentityToken(tc: ToolCall): string {
-  const argKey = tc.mcpServerSlug ? "" : extractArgKey(toolCallArgs(tc));
-  return grantToken(tc.name, argKey);
+  const id = toolIdentity(tc.name, tc.mcpServerSlug, toolCallArgs(tc));
+  return grantToken(id.key, id.salient);
 }
 
-/** Decode a `grantToken` back into its (name, argKey) for synthesis fallback. */
-function decodeIdentityToken(token: string): { name: string; argKey: string } | undefined {
+/** Decode a grantToken back into its (key, salient) for the synthesis fallback. */
+function decodeIdentityToken(token: string): { key: string; salient: string } | undefined {
   try {
     const decoded = Buffer.from(token, "base64").toString("utf-8");
     const nl = decoded.indexOf("\n");
     if (nl < 0) return undefined;
-    return { name: decoded.slice(0, nl), argKey: decoded.slice(nl + 1) };
+    return { key: decoded.slice(0, nl), salient: decoded.slice(nl + 1) };
   } catch {
     return undefined;
   }
@@ -883,22 +889,28 @@ function markWaitingApproval(
 }
 
 function synthesizeWaitingApprovalToolCall(
-  name: string,
-  argKey: string,
+  displayName: string,
+  salient: string,
+  token: string,
   mergedPolicies?: Map<string, MergedToolPolicy>,
 ): ToolCall {
   const tc = create(ToolCallSchema, {
-    id: `approval:${grantToken(name, argKey)}`,
-    name,
+    id: `approval:${token}`,
+    name: displayName,
     status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
     requiresApproval: true,
     startedAt: utcTimestamp(),
     approvalRequestedAt: utcTimestamp(),
-    toolKind: classifyTool(name),
+    toolKind: classifyTool(displayName),
   });
-  tc.approvalMessage = argKey
-    ? `Tool requires approval: ${name} (${argKey})`
-    : resolveDeniedApprovalMessage(name, "", {}, mergedPolicies);
+  // Carry the salient resource so reconstructAdjudicatedApprovals -> the grant
+  // builder keys on the same resource the hook will see on the re-attempt.
+  if (salient) {
+    tc.argsPreview = JSON.stringify({ path: salient });
+  }
+  tc.approvalMessage = salient
+    ? `Tool requires approval: ${displayName} (${salient})`
+    : resolveDeniedApprovalMessage(displayName, "", {}, mergedPolicies);
   return tc;
 }
 

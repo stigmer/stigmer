@@ -8,27 +8,29 @@
  * State file format (JSON):
  * {
  *   "autoApproveAll": false,
- *   "builtInGatedList": ["Write", "StrReplace", "Shell", ...],
  *   "mcpToolPolicies": {
  *     "apply_cloud_resource": { "requiresApproval": true, "message": "..." }
  *   },
- *   "approvedGrants": [{ "toolName": "Write", "mcpServerSlug": "", "argKey": "a.txt" }],
- *   "approvedGrantTokens": ["V3JpdGUKYS50eHQ="]
+ *   "approvedGrants": [{ "toolName": "edit", "mcpServerSlug": "", "key": "write", "salient": "a.txt" }],
+ *   "approvedGrantTokens": ["d3JpdGUKYS50eHQ="]
  * }
  *
- * The hook gates only the explicitly dangerous set (builtInGatedList) and the
- * MCP tools that require approval (mcpToolPolicies, which by construction holds
- * only require-approval entries); every other tool is allowed. This mirrors the
- * native harness and avoids denying auto-approved MCP tools, which are absent
- * from the policy map and indistinguishable from unknown tools by name.
+ * The hook gates the dangerous built-in set and the MCP tools that require
+ * approval (mcpToolPolicies, which by construction holds only require-approval
+ * entries); every other tool is allowed. The gated built-in set and its
+ * name->category mapping are baked into the generated hook script (from
+ * approval-policy.ts), not carried in the state file — only the dynamic inputs
+ * (autoApproveAll, mcpToolPolicies, approvedGrantTokens) live here. This mirrors
+ * the native harness and avoids denying auto-approved MCP tools, which are
+ * absent from the policy map and indistinguishable from unknown tools by name.
  *
  * Why grants instead of tool-call ids: a resumed Cursor agent re-issues the
  * approved tool with a BRAND NEW call id, so matching on the original call id
- * can never let the re-attempt through. Instead we grant by tool identity —
- * tool name plus a "salient" argument (the file path for Write, the command for
- * Shell, …; see extractArgKey). On reinvocation the hook allows a tool call
- * only if its (name, salient-arg) matches an approved grant; rejected/skipped
- * tools and any newly proposed dangerous tool are re-gated.
+ * can never let the re-attempt through. Instead we grant by canonical tool
+ * identity — the approval category plus a "salient" resource value (the file
+ * path, the shell command; see {@link toolIdentity}). On reinvocation the hook
+ * allows a tool call only if its (category, salient) matches an approved grant;
+ * rejected/skipped tools and any newly proposed dangerous tool are re-gated.
  *
  * Tokens: the hook is a self-contained bash script, so it cannot parse an array
  * of grant objects. `approvedGrantTokens` is the flat, base64-encoded form of
@@ -56,7 +58,7 @@ import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agente
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { MergedToolPolicy } from "./approval-policy.js";
-import { getBuiltInGatedList, extractArgKey } from "./approval-policy.js";
+import { extractArgKey, approvalCategory } from "./approval-policy.js";
 
 export interface McpToolPolicyEntry {
   requiresApproval: boolean;
@@ -64,22 +66,58 @@ export interface McpToolPolicyEntry {
 }
 
 /**
+ * The canonical, taxonomy-agnostic identity of a tool call.
+ *
+ * The Cursor preToolUse hook and the SDK stream name the same operation
+ * differently (hook `Write`/`Shell`/`Delete`; stream `edit`/`shell`/`delete`),
+ * so the raw tool name cannot be a cross-layer identity. Instead:
+ * - `key` is the {@link approvalCategory} (`write`/`delete`/`shell`) for gated
+ *   built-ins, and the tool name for MCP tools (whose name is consistent across
+ *   layers). It is the part that survives the name divergence.
+ * - `salient` is the resource the tool acts on (the absolute file path or the
+ *   shell command) — identical on both sides because it is the argument VALUE,
+ *   not the field name. Empty for MCP tools, matched by `key` alone.
+ *
+ * The denial ledger (hook) and the stream reconciliation (runner) both reduce a
+ * tool call to this identity, so they correlate exactly; an approval grant uses
+ * the same identity so the agent's re-attempt is allowed on reinvocation even
+ * though it carries a fresh tool-call id and a different-taxonomy name.
+ */
+export interface ToolIdentity {
+  key: string;
+  salient: string;
+}
+
+export function toolIdentity(
+  toolName: string,
+  mcpServerSlug: string,
+  args: Record<string, unknown> | undefined,
+): ToolIdentity {
+  if (mcpServerSlug) {
+    return { key: toolName, salient: "" };
+  }
+  const category = approvalCategory(toolName);
+  // A gated built-in keys on its category; an unknown/non-gated tool falls back
+  // to its own name (harmless — it is not gated, so it never enters the ledger).
+  return { key: category ?? toolName, salient: extractArgKey(args) };
+}
+
+/**
  * The identity of an approved tool call, stable across agent resume.
  *
- * - argKey is the salient argument (path/command/…) for built-in tools; matched
- *   exactly so only the approved resource is allowed through on the resumed turn.
- * - argKey is empty for MCP tools (and built-in tools with no salient field);
- *   the grant then matches by name alone, since the user approved that tool.
+ * - `key`/`salient` are the canonical {@link ToolIdentity} the hook matches on.
+ * - `toolName`/`mcpServerSlug` are retained for readability, debugging, and the
+ *   structured-vs-token cross-check (the two are always generated together).
  */
 export interface ApprovalGrant {
   toolName: string;
   mcpServerSlug: string;
-  argKey: string;
+  key: string;
+  salient: string;
 }
 
 export interface ApprovalStateFile {
   autoApproveAll: boolean;
-  builtInGatedList: string[];
   mcpToolPolicies: Record<string, McpToolPolicyEntry>;
   approvedGrants: ApprovalGrant[];
   approvedGrantTokens: string[];
@@ -87,17 +125,19 @@ export interface ApprovalStateFile {
 
 /**
  * Compute the flat token the bash hook matches on. The hook recomputes the same
- * token from the incoming tool call (`base64(toolName \n salientArg)`), so the
- * encoding here must stay byte-identical to the hook script in hook-script.ts.
+ * token from the incoming tool call (`base64(key \n salient)` — see
+ * {@link toolIdentity}), so the encoding here must stay byte-identical to the
+ * hook script in hook-script.ts.
  */
-export function grantToken(toolName: string, argKey: string): string {
-  return Buffer.from(`${toolName}\n${argKey}`, "utf-8").toString("base64");
+export function grantToken(key: string, salient: string): string {
+  return Buffer.from(`${key}\n${salient}`, "utf-8").toString("base64");
 }
 
 /**
  * Build approval grants from the pending approvals the user adjudicated and
- * their decisions. Only APPROVE decisions produce grants. Built-in tools are
- * keyed by their salient argument; MCP tools are keyed by name only.
+ * their decisions. Only APPROVE / APPROVE_ALL decisions produce grants. Each
+ * grant carries the canonical {@link ToolIdentity} (category + salient resource)
+ * so the hook allows the exact approved resource on the resumed turn.
  */
 export function buildApprovalGrants(
   pendingApprovals: PendingApproval[],
@@ -113,11 +153,12 @@ export function buildApprovalGrants(
     const decision = decisions.get(pa.toolCallId);
     if (decision !== ApprovalAction.APPROVE && decision !== ApprovalAction.APPROVE_ALL) continue;
 
-    const argKey = pa.mcpServerSlug ? "" : extractArgKey(parseArgs(pa.argsPreview));
+    const id = toolIdentity(pa.toolName, pa.mcpServerSlug, parseArgs(pa.argsPreview));
     grants.push({
       toolName: pa.toolName,
       mcpServerSlug: pa.mcpServerSlug,
-      argKey,
+      key: id.key,
+      salient: id.salient,
     });
   }
   return grants;
@@ -137,11 +178,13 @@ function parseArgs(argsPreview: string): Record<string, unknown> | undefined {
  * Build the approval state file content from merged policies and any approval
  * grants from a previous HITL cycle.
  *
- * The state file drives the hook script's allow/deny decisions:
- * - builtInGatedList: dangerous built-in tools the hook denies (unless granted)
+ * The state file carries the hook script's DYNAMIC inputs:
  * - mcpToolPolicies: per-tool policy for MCP tools requiring approval
  * - approvedGrants / approvedGrantTokens: tools approved in the current HITL
  *   cycle, allowed through on reinvocation
+ *
+ * The static gated built-in set and its category mapping are baked into the
+ * generated hook script (from approval-policy.ts), not carried here.
  */
 export function buildApprovalState(
   mergedPolicies: Map<string, MergedToolPolicy>,
@@ -160,10 +203,9 @@ export function buildApprovalState(
 
   return {
     autoApproveAll,
-    builtInGatedList: getBuiltInGatedList(),
     mcpToolPolicies,
     approvedGrants,
-    approvedGrantTokens: approvedGrants.map((g) => grantToken(g.toolName, g.argKey)),
+    approvedGrantTokens: approvedGrants.map((g) => grantToken(g.key, g.salient)),
   };
 }
 

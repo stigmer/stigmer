@@ -63,10 +63,14 @@ function makeWorkspace(): string {
   return dir;
 }
 
+// Stream tool calls use the lowercase SDK taxonomy (edit/shell/delete); the
+// denial ledger uses the hook taxonomy (Write/Shell/Delete) + a canonical
+// category+salient token. The two correlate via approvalCategory — that cross-
+// taxonomy match is exactly what these tests pin.
 function toolCall(overrides: Partial<ToolCall>): ToolCall {
   return create(ToolCallSchema, {
     id: "call-1",
-    name: "Write",
+    name: "edit",
     status: ToolCallStatus.TOOL_CALL_COMPLETED,
     ...overrides,
   });
@@ -96,8 +100,8 @@ describe("denial ledger reset/read", () => {
   it("parses appended JSONL denials and tolerates blank/partial lines", async () => {
     const ws = makeWorkspace();
     await resetDenialLedger(ws);
-    const writeToken = grantToken("Write", "gated.txt");
-    const shellToken = grantToken("Shell", "rm -rf build");
+    const writeToken = grantToken("write", "gated.txt");
+    const shellToken = grantToken("shell", "rm -rf build");
     // Simulate the hook appending records, including a trailing partial line.
     await writeFile(
       denialLedgerPath(ws),
@@ -117,10 +121,13 @@ describe("denial ledger reset/read", () => {
 });
 
 describe("reconcileDeniedToolCalls", () => {
-  it("overlays WAITING_APPROVAL onto a denied tool reported as completed (the green-check bug)", () => {
+  it("overlays WAITING_APPROVAL onto the REAL denied tool reported as completed (the green-check bug)", () => {
+    // Stream reports the file mutation as `edit` (RUNNING/COMPLETED); the hook
+    // denied it as `Write`. The category+salient token bridges the two so the
+    // overlay lands on this exact streamed tool call — no synthesized placeholder.
     const tc = toolCall({
       id: "c1",
-      name: "Write",
+      name: "edit",
       status: ToolCallStatus.TOOL_CALL_COMPLETED,
       completedAt: "2026-06-07T00:00:00Z",
       result: "wrote file",
@@ -130,10 +137,14 @@ describe("reconcileDeniedToolCalls", () => {
     const messages = [aiMessageWith([tc])];
 
     const reconciled = reconcileDeniedToolCalls(messages, [
-      { toolName: "Write", token: grantToken("Write", "gated.txt") },
+      { toolName: "Write", token: grantToken("write", "gated.txt") },
     ]);
 
     expect(reconciled).toHaveLength(1);
+    // The overlay marked the REAL streamed tool call — no synthesized placeholder
+    // and no orphan was appended.
+    expect(reconciled[0]).toBe(tc);
+    expect(messages[0].toolCalls).toHaveLength(1);
     expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
     expect(tc.requiresApproval).toBe(true);
     expect(tc.approvalMessage).toContain("gated.txt");
@@ -162,7 +173,7 @@ describe("reconcileDeniedToolCalls", () => {
       }],
     ]);
 
-    // MCP tools are keyed name-only (mirrors the grant convention).
+    // MCP tools are keyed name-only (their name is consistent across layers).
     reconcileDeniedToolCalls(messages, [
       { toolName: "apply_x", token: grantToken("apply_x", "") },
     ], policies);
@@ -174,20 +185,20 @@ describe("reconcileDeniedToolCalls", () => {
   it("leaves non-denied tool calls untouched while overlaying the denied one", () => {
     const denied = toolCall({
       id: "c1",
-      name: "Write",
+      name: "edit",
       status: ToolCallStatus.TOOL_CALL_COMPLETED,
       args: { path: "gated.txt" },
     });
     const allowed = toolCall({
       id: "c2",
-      name: "Read",
+      name: "read",
       status: ToolCallStatus.TOOL_CALL_COMPLETED,
       args: { path: "readme.md" },
     });
     const messages = [aiMessageWith([denied, allowed])];
 
     const reconciled = reconcileDeniedToolCalls(messages, [
-      { toolName: "Write", token: grantToken("Write", "gated.txt") },
+      { toolName: "Write", token: grantToken("write", "gated.txt") },
     ]);
 
     // Only the denied call is gated; the read-only call keeps its status and no
@@ -199,12 +210,12 @@ describe("reconcileDeniedToolCalls", () => {
   });
 
   it("collapses repeated denials of the same resource to a single approval", () => {
-    const first = toolCall({ id: "c1", name: "Write", args: { path: "gated.txt" } });
-    const second = toolCall({ id: "c2", name: "Write", args: { path: "gated.txt" } });
+    const first = toolCall({ id: "c1", name: "edit", args: { path: "gated.txt" } });
+    const second = toolCall({ id: "c2", name: "edit", args: { path: "gated.txt" } });
     const messages = [aiMessageWith([first, second])];
 
     const reconciled = reconcileDeniedToolCalls(messages, [
-      { toolName: "Write", token: grantToken("Write", "gated.txt") },
+      { toolName: "Write", token: grantToken("write", "gated.txt") },
     ]);
 
     // One approval anchor (so the backend gate resolves cleanly on one decision).
@@ -217,15 +228,19 @@ describe("reconcileDeniedToolCalls", () => {
     const messages = [aiMessageWith([])];
 
     const reconciled = reconcileDeniedToolCalls(messages, [
-      { toolName: "Shell", token: grantToken("Shell", "rm -rf build") },
+      { toolName: "Shell", token: grantToken("shell", "rm -rf build") },
     ]);
 
     expect(reconciled).toHaveLength(1);
     const synthesized = messages[0].toolCalls[0];
     expect(synthesized.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
     expect(synthesized.requiresApproval).toBe(true);
+    // The synthesized fallback shows the hook's raw tool name for display...
     expect(synthesized.name).toBe("Shell");
     expect(synthesized.approvalMessage).toContain("rm -rf build");
+    // ...and carries the salient so the grant rebuilt from it keys on the same
+    // resource the hook will see on the re-attempt.
+    expect(synthesized.argsPreview).toContain("rm -rf build");
   });
 
   it("is a no-op when the ledger is empty", () => {
@@ -240,7 +255,7 @@ describe("reconstructAdjudicatedApprovals", () => {
   it("reads decisions and rebuilds pending approvals from adjudicated tool calls", () => {
     const approved = toolCall({
       id: "c1",
-      name: "Write",
+      name: "edit",
       status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
       approvalAction: ApprovalAction.APPROVE,
       approvalMessage: "Write file: gated.txt",
@@ -248,13 +263,13 @@ describe("reconstructAdjudicatedApprovals", () => {
     });
     const undecided = toolCall({
       id: "c2",
-      name: "Shell",
+      name: "shell",
       status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
       approvalAction: ApprovalAction.UNSPECIFIED,
     });
     const unrelated = toolCall({
       id: "c3",
-      name: "Read",
+      name: "read",
       status: ToolCallStatus.TOOL_CALL_COMPLETED,
       approvalAction: ApprovalAction.APPROVE,
     });
@@ -265,7 +280,7 @@ describe("reconstructAdjudicatedApprovals", () => {
     expect([...decisions.entries()]).toEqual([["c1", ApprovalAction.APPROVE]]);
     expect(pendingApprovals).toHaveLength(1);
     expect(pendingApprovals[0].toolCallId).toBe("c1");
-    expect(pendingApprovals[0].toolName).toBe("Write");
+    expect(pendingApprovals[0].toolName).toBe("edit");
     expect(pendingApprovals[0].argsPreview).toBe(JSON.stringify({ path: "gated.txt" }));
   });
 
