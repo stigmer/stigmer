@@ -1,6 +1,17 @@
 # Buf CLI binary (override with BUF=/path/to/buf if needed)
 BUF ?= buf
 
+# Local, pinned Go codegen plugins. We run these on-machine instead of via
+# buf.build's remote plugin executor so `go-stubs` has no network dependency on
+# buf.build. Versions MUST match the references that produced the committed
+# stubs (see buf.gen.go.yaml) so regeneration stays byte-identical.
+GO_PROTOC_GEN_GO_VERSION      ?= v1.36.6
+GO_PROTOC_GEN_GO_GRPC_VERSION ?= v1.5.1
+TOOLS_BIN := $(CURDIR)/.tools/bin
+
+# Set STUBS_FORCE=1 to regenerate even when protos are unchanged (CI does this).
+export STUBS_FORCE
+
 .PHONY: help
 help:
 	@echo "Available targets:"
@@ -136,14 +147,33 @@ go-stubs-generate-build-files: ensure-build-files
 	@cd .. && ./bazelw run //:gazelle
 	@echo "✓ BUILD.bazel files generated"
 
+.PHONY: go-stubs-tools
+go-stubs-tools:
+	@# Install pinned codegen plugins into .tools/bin if missing or out of date.
+	@mkdir -p $(TOOLS_BIN)
+	@if [ "$$($(TOOLS_BIN)/protoc-gen-go --version 2>/dev/null)" != "protoc-gen-go $(GO_PROTOC_GEN_GO_VERSION)" ]; then \
+		echo "Installing protoc-gen-go $(GO_PROTOC_GEN_GO_VERSION)..."; \
+		GOBIN=$(TOOLS_BIN) go install google.golang.org/protobuf/cmd/protoc-gen-go@$(GO_PROTOC_GEN_GO_VERSION); \
+	fi
+	@if [ "$$($(TOOLS_BIN)/protoc-gen-go-grpc --version 2>/dev/null)" != "protoc-gen-go-grpc $(GO_PROTOC_GEN_GO_GRPC_VERSION:v%=%)" ]; then \
+		echo "Installing protoc-gen-go-grpc $(GO_PROTOC_GEN_GO_GRPC_VERSION)..."; \
+		GOBIN=$(TOOLS_BIN) go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@$(GO_PROTOC_GEN_GO_GRPC_VERSION); \
+	fi
+
 .PHONY: go-stubs
-go-stubs: go-stubs-clean go-stubs-init
+go-stubs: go-stubs-init go-stubs-tools
 	@echo "Generating Go stubs..."
-	@$(BUF) generate --template buf.gen.go.yaml
-	@$(MAKE) go-stubs-fix-structure
-	@$(MAKE) go-stubs-ensure-gomod
-	@$(MAKE) go-stubs-generate-build-files
-	@echo "✓ Go stubs generated successfully"
+	@rc=0; bash scripts/gen-stubs.sh go || rc=$$?; \
+	if [ $$rc -eq 2 ]; then \
+		echo "✓ Go stubs up to date (protos unchanged); skipping"; \
+	elif [ $$rc -eq 0 ]; then \
+		$(MAKE) go-stubs-ensure-gomod; \
+		$(MAKE) go-stubs-generate-build-files; \
+		echo "✓ Go stubs generated successfully"; \
+	else \
+		echo "✗ Go stub generation failed — existing stubs left intact" >&2; \
+		exit $$rc; \
+	fi
 
 # --------------------------------------------------------------------------- #
 #  Java protobuf/gRPC stub generation
@@ -161,10 +191,17 @@ java-stubs-init:
 	@mkdir -p $(JAVA_STUBS_DIR)/src/main/java
 
 .PHONY: java-stubs
-java-stubs: java-stubs-clean java-stubs-init
+java-stubs: java-stubs-init
 	@echo "Generating Java stubs..."
-	@$(BUF) generate --template buf.gen.java.yaml
-	@echo "✓ Java stubs generated successfully"
+	@rc=0; bash scripts/gen-stubs.sh java || rc=$$?; \
+	if [ $$rc -eq 2 ]; then \
+		echo "✓ Java stubs up to date (protos unchanged); skipping"; \
+	elif [ $$rc -eq 0 ]; then \
+		echo "✓ Java stubs generated successfully"; \
+	else \
+		echo "✗ Java stub generation failed — existing stubs left intact" >&2; \
+		exit $$rc; \
+	fi
 
 # --------------------------------------------------------------------------- #
 #  Python protobuf/gRPC stub generation
@@ -189,11 +226,18 @@ python-stubs-add-py-typed-markers:
 	@touch $(PYTHON_STUBS_DIR_STIGMER)/ai/py.typed
 
 .PHONY: python-stubs
-python-stubs: python-stubs-clean python-stubs-init
+python-stubs: python-stubs-init
 	@echo "Generating Python stubs..."
-	@$(BUF) generate --template buf.gen.python.yaml
-	@$(MAKE) python-stubs-add-py-typed-markers
-	@echo "✓ Python stubs generated successfully"
+	@rc=0; bash scripts/gen-stubs.sh python || rc=$$?; \
+	if [ $$rc -eq 2 ]; then \
+		echo "✓ Python stubs up to date (protos unchanged); skipping"; \
+	elif [ $$rc -eq 0 ]; then \
+		$(MAKE) python-stubs-add-py-typed-markers; \
+		echo "✓ Python stubs generated successfully"; \
+	else \
+		echo "✗ Python stub generation failed — existing stubs left intact" >&2; \
+		exit $$rc; \
+	fi
 
 # --------------------------------------------------------------------------- #
 #  TypeScript protobuf/Connect-RPC stub generation
@@ -211,7 +255,14 @@ ts-stubs-init:
 	@mkdir -p $(TS_STUBS_DIR)
 
 .PHONY: ts-stubs
-ts-stubs: ts-stubs-clean ts-stubs-init
+ts-stubs: ts-stubs-init
 	@echo "Generating TypeScript stubs..."
-	@$(BUF) generate --template buf.gen.ts.yaml
-	@echo "✓ TypeScript stubs generated successfully"
+	@rc=0; bash scripts/gen-stubs.sh ts || rc=$$?; \
+	if [ $$rc -eq 2 ]; then \
+		echo "✓ TypeScript stubs up to date (protos unchanged); skipping"; \
+	elif [ $$rc -eq 0 ]; then \
+		echo "✓ TypeScript stubs generated successfully"; \
+	else \
+		echo "✗ TypeScript stub generation failed — existing stubs left intact" >&2; \
+		exit $$rc; \
+	fi

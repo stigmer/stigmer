@@ -16,7 +16,6 @@
 #   - maven-central-username  Sonatype Central user-token username
 #   - maven-central-password  Sonatype Central user-token password
 #   - testpypi-token          TestPyPI API token (pypi-...)
-#   - ghcr-stigmer-pat        GHCR PAT (already present in the org)
 #
 # Usage:
 #   scripts/publish-dev-local.sh                 # all targets, auto base version
@@ -30,14 +29,12 @@ set -euo pipefail
 # ─── Configuration ────────────────────────────────────────────────────────
 TARGETS="${TARGETS:-all}"
 BASE="${BASE:-}"
-DOCKER_PLATFORMS="${DOCKER_PLATFORMS:-linux/amd64,linux/arm64}"
 
 # Planton secret slugs (single-value, key `value`).
 SECRET_NPM="npm-token"
 SECRET_MVN_USER="maven-central-username"
 SECRET_MVN_PASS="maven-central-password"
 SECRET_TESTPYPI="testpypi-token"
-SECRET_GHCR="ghcr-stigmer-pat"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
@@ -118,7 +115,7 @@ fetch_secret() {
 }
 
 # ─── Version derivation (mirrors release.dev.yaml) ────────────────────────
-if [ "$TARGETS" = "all" ]; then TARGETS="npm,maven,python,mcp"; fi
+if [ "$TARGETS" = "all" ]; then TARGETS="npm,maven,python"; fi
 
 command -v planton >/dev/null 2>&1 || die "planton CLI not found (needed to fetch publish credentials)."
 command -v git >/dev/null 2>&1 || die "git not found."
@@ -132,19 +129,16 @@ git rev-parse "v$BASE" >/dev/null 2>&1 && die "v$BASE already exists as a releas
 
 STAMP="$(date -u +%Y%m%d%H%M%S)"
 EPOCH="$(date -u +%s)"
-SHORT_SHA="$(git rev-parse --short HEAD)"
 DIRTY=""; git diff --quiet HEAD 2>/dev/null || DIRTY="-dirty"
 
 MAVEN_VERSION="${BASE}-SNAPSHOT"
 NPM_VERSION="${BASE}-dev.${STAMP}"
 PY_VERSION="${BASE}.dev${EPOCH}"
-DOCKER_TAG="dev-${SHORT_SHA}${DIRTY}"
 
 log "Local dev publish — base ${BASE} (targets: ${TARGETS})"
 echo "    maven  : ${MAVEN_VERSION}"
 echo "    npm    : ${NPM_VERSION} (tag: dev)"
 echo "    python : ${PY_VERSION} (TestPyPI)"
-echo "    docker : ${DOCKER_TAG}"
 [ -n "$DIRTY" ] && warn "Working tree has uncommitted changes — building from your live working tree."
 
 # Set a pyproject/poetry version in place (first version assignment only).
@@ -287,33 +281,10 @@ PY
   ok "python: uploaded stigmer-protos and stigmer at $PY_VERSION to TestPyPI"
 }
 
-# ─── MCP server (Docker → GHCR) ────────────────────────────────────────────
-publish_mcp() {
-  log "mcp: building and pushing image ghcr.io/stigmer/mcp-server-stigmer:$DOCKER_TAG"
-  command -v docker >/dev/null 2>&1 || die "docker not found."
-  local pat ghcr_user
-  pat="$(fetch_secret "$SECRET_GHCR")"
-  ghcr_user="${GHCR_USER:-$(gh api user --jq .login 2>/dev/null || true)}"
-  [ -n "$ghcr_user" ] || die "Set GHCR_USER=<your-github-username> (could not infer it from gh)."
-
-  printf '%s' "$pat" | docker login ghcr.io -u "$ghcr_user" --password-stdin
-
-  docker buildx build \
-    --platform "$DOCKER_PLATFORMS" \
-    --file mcp-server/Dockerfile \
-    --build-arg BUILD_VERSION="$DOCKER_TAG" \
-    --tag "ghcr.io/stigmer/mcp-server-stigmer:$DOCKER_TAG" \
-    --tag "ghcr.io/stigmer/mcp-server-stigmer:dev" \
-    --push .
-
-  ok "mcp: pushed ghcr.io/stigmer/mcp-server-stigmer:$DOCKER_TAG (and :dev)"
-}
-
 # ─── Run selected targets ──────────────────────────────────────────────────
 want npm    && publish_npm
 want maven  && publish_maven
 want python && publish_python
-want mcp    && publish_mcp
 
 # ─── Consumer coordinates ──────────────────────────────────────────────────
 echo ""
@@ -328,9 +299,6 @@ if want npm; then
 fi
 if want python; then
   echo "Python (TestPyPI): pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ --pre 'stigmer==${PY_VERSION}'"
-fi
-if want mcp; then
-  echo "MCP (Docker):      docker pull ghcr.io/stigmer/mcp-server-stigmer:${DOCKER_TAG}   # or :dev"
 fi
 echo "Go SDK:            go get github.com/stigmer/stigmer/sdk/go@$(git rev-parse --abbrev-ref HEAD)"
 echo ""

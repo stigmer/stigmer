@@ -1,2 +1,5 @@
 # Generated stubs are now tracked in git to support external SDK usage
 # stubs/
+
+# Pinned local codegen plugins installed by `make go-stubs-tools`
+.tools/

@@ -199,7 +199,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate TypeScript proto stubs
-        run: make -C apis ts-stubs
+        run: STUBS_FORCE=1 make -C apis ts-stubs
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -234,7 +234,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate TypeScript proto stubs
-        run: make -C apis ts-stubs
+        run: STUBS_FORCE=1 make -C apis ts-stubs
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -310,7 +310,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate Python proto stubs
-        run: make -C apis python-stubs
+        run: STUBS_FORCE=1 make -C apis python-stubs
 
       - name: Set up Python
         uses: actions/setup-python@v5
