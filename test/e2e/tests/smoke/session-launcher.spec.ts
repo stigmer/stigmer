@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { isAuthGate } from "../../helpers/auth-gate";
 
 test.describe("Session launcher", () => {
   test("renders the session composer on the home page", async ({ page }) => {
@@ -23,6 +24,11 @@ test.describe("Session launcher", () => {
 
   test("no error when submitting immediately after page load", async ({ page }) => {
     await page.goto("/");
+    await page.waitForLoadState("networkidle");
+
+    // Production redirects the unauthenticated home page to Auth0, where there
+    // is no session composer. The composer flow only exists once authenticated.
+    if (await isAuthGate(page)) return;
 
     const textarea = page.locator('textarea, [role="textbox"], [contenteditable="true"]');
     await expect(textarea.first()).toBeVisible({ timeout: 10_000 });
