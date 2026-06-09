@@ -46,6 +46,7 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
+          cache: maven
           server-id: central
           server-username: MAVEN_CENTRAL_USERNAME
           server-password: MAVEN_CENTRAL_PASSWORD
@@ -61,7 +62,19 @@ jobs:
 
       - name: Publish to Maven Central
         working-directory: apis/stubs/java
-        run: mvn --batch-mode deploy -P release -DskipTests
+        # The Central Portal upload endpoint can return transient 403/5xx
+        # responses (rate limiting, in-flight publishes). Retry with backoff
+        # so a single flaky response does not fail the whole release.
+        run: |
+          for attempt in 1 2 3; do
+            if mvn --batch-mode deploy -P release -DskipTests; then
+              exit 0
+            fi
+            echo "Publish attempt $attempt failed; retrying in 120s..."
+            sleep 120
+          done
+          echo "Publish failed after 3 attempts"
+          exit 1
         env:
           MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
@@ -81,6 +94,7 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
+          cache: maven
           server-id: central
           server-username: MAVEN_CENTRAL_USERNAME
           server-password: MAVEN_CENTRAL_PASSWORD
@@ -112,7 +126,24 @@ jobs:
 
       - name: Publish to Maven Central
         working-directory: sdk/java
-        run: mvn --batch-mode deploy -P release -DskipTests
+        # The protos job returns once its deployment is *validated*, then
+        # autoPublish finishes asynchronously. Uploading the SDK bundle while
+        # the protos deployment for the shared ai.stigmer namespace is still
+        # PUBLISHING makes the Central Portal reject the upload with a 403, and
+        # the upload endpoint can also return transient 403/5xx responses on its
+        # own. Retry with backoff: the common case succeeds on the first attempt
+        # with no wait, and a transient rejection self-heals within a few
+        # minutes instead of failing the whole release.
+        run: |
+          for attempt in 1 2 3 4 5; do
+            if mvn --batch-mode deploy -P release -DskipTests; then
+              exit 0
+            fi
+            echo "Publish attempt $attempt failed; retrying in 90s..."
+            sleep 90
+          done
+          echo "Publish failed after 5 attempts"
+          exit 1
         env:
           MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
