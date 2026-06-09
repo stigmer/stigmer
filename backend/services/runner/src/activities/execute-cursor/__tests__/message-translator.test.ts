@@ -617,6 +617,99 @@ describe("MessageAccumulator tool call status transitions", () => {
     });
   });
 
+  // The Cursor SDK can emit the lifecycle for one call_id more than once.
+  // Observed in production: two "running" events ~0.5s apart for a task/edit
+  // tool produced two ToolCall entries with the SAME id (a "thin" copy with no
+  // result and a "full" copy), rendering the same call two or three times in
+  // the UI. The accumulator must upsert by call_id so a call maps to exactly
+  // one ToolCall.
+  describe("tool call idempotency (one ToolCall per call_id)", () => {
+    it("duplicate running events for one call_id create a single ToolCall", () => {
+      const messages: AgentMessage[] = [];
+      const acc = new MessageAccumulator(messages);
+
+      acc.processEvent(assistantEvent("r1", "Editing a file."));
+      acc.processEvent(toolCallEvent("tc-dup", "edit", "running", "r1", { args: { path: "a.ts" } }));
+      acc.processEvent(toolCallEvent("tc-dup", "edit", "running", "r1", { args: { path: "a.ts" } }));
+
+      expect(countToolCallsWithId(messages, "tc-dup")).toBe(1);
+      expect(findToolCallById(messages, "tc-dup")!.status).toBe(ToolCallStatus.TOOL_CALL_RUNNING);
+    });
+
+    it("running -> completed -> running re-emit keeps a single COMPLETED ToolCall", () => {
+      const messages: AgentMessage[] = [];
+      const acc = new MessageAccumulator(messages);
+
+      acc.processEvent(assistantEvent("r1", "Running a tool."));
+      acc.processEvent(toolCallEvent("tc-1", "Shell", "running", "r1"));
+      acc.processEvent(toolCallEvent("tc-1", "Shell", "completed", "r1", { result: "OK" }));
+      // A late "running" re-emit must not regress the terminal status.
+      acc.processEvent(toolCallEvent("tc-1", "Shell", "running", "r1"));
+
+      expect(countToolCallsWithId(messages, "tc-1")).toBe(1);
+      const tc = findToolCallById(messages, "tc-1")!;
+      expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+      expect(tc.result).toBe("OK");
+      expect(tc.completedAt).toBeTruthy();
+    });
+
+    it("thin-then-full: a result-bearing completion populates the single ToolCall created by an empty running", () => {
+      const messages: AgentMessage[] = [];
+      const acc = new MessageAccumulator(messages);
+
+      // Reproduces the production pattern: two running events, then one
+      // completion that carries the full result.
+      acc.processEvent(assistantEvent("r1", "Delegating work."));
+      acc.processEvent(toolCallEvent("tc-task", "task", "running", "r1", { result: "" }));
+      acc.processEvent(toolCallEvent("tc-task", "task", "running", "r1", { result: "" }));
+      acc.processEvent(toolCallEvent("tc-task", "task", "completed", "r1", { result: "full result blob" }));
+
+      expect(countToolCallsWithId(messages, "tc-task")).toBe(1);
+      const tc = findToolCallById(messages, "tc-task")!;
+      expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+      expect(tc.result).toBe("full result blob");
+    });
+
+    it("a result-less re-emit after completion does not wipe the captured result", () => {
+      const messages: AgentMessage[] = [];
+      const acc = new MessageAccumulator(messages);
+
+      acc.processEvent(assistantEvent("r1", "Running a tool."));
+      acc.processEvent(toolCallEvent("tc-1", "read", "running", "r1"));
+      acc.processEvent(toolCallEvent("tc-1", "read", "completed", "r1", { result: "file contents" }));
+      acc.processEvent(toolCallEvent("tc-1", "read", "completed", "r1", { result: "" }));
+
+      expect(countToolCallsWithId(messages, "tc-1")).toBe(1);
+      expect(findToolCallById(messages, "tc-1")!.result).toBe("file contents");
+    });
+
+    it("duplicate task running events yield one task ToolCall and one sub-agent (production repro)", () => {
+      const messages: AgentMessage[] = [];
+      const acc = new MessageAccumulator(messages);
+
+      // Mirror the ExecuteCursor stream loop: every task tool_call event is fed
+      // to both processEvent() (tool call) and trackSubAgentExecution().
+      acc.processEvent(assistantEvent("r1", "I'll explore the repo."));
+      const args = { subagentType: { kind: "explore" }, description: "Explore repo structure and docs", prompt: "Go" };
+
+      const run1 = toolCallEvent("tc-explore", "task", "running", "r1", { args, result: "" });
+      acc.processEvent(run1);
+      acc.trackSubAgentExecution(run1);
+
+      const run2 = toolCallEvent("tc-explore", "task", "running", "r1", { args, result: "" });
+      acc.processEvent(run2);
+      acc.trackSubAgentExecution(run2);
+
+      const done = toolCallEvent("tc-explore", "task", "completed", "r1", { result: "explored" });
+      acc.processEvent(done);
+      acc.trackSubAgentExecution(done);
+
+      expect(countToolCallsWithId(messages, "tc-explore")).toBe(1);
+      expect(acc.subAgentExecutions).toHaveLength(1);
+      expect(acc.subAgentExecutions[0].id).toBe("tc-explore");
+    });
+  });
+
   describe("cancelInProgressSubAgentProtos standalone", () => {
     it("cancels IN_PROGRESS/PENDING protos in place and reports whether anything changed", () => {
       const running = create(SubAgentExecutionSchema, {

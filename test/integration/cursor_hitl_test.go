@@ -173,7 +173,7 @@ func isGatedBuiltIn(name string) bool {
 // call that completed (not stuck WAITING_APPROVAL/RUNNING).
 func assertCompletedWrite(t *testing.T, exec *agentexecv1.AgentExecution) {
 	t.Helper()
-	for _, tc := range deduplicateToolCalls(exec.GetStatus().GetMessages()) {
+	for _, tc := range collectToolCalls(exec.GetStatus().GetMessages()) {
 		name := strings.ToLower(tc.GetName())
 		isWrite := strings.Contains(name, "write") || strings.Contains(name, "edit") ||
 			name == "strreplace"

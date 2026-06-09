@@ -73,6 +73,10 @@ func TestCursorHarness_AllToolCallsPersistedInMessages(t *testing.T) {
 			"6. Read step3.txt and tell me what it contains\n"+
 			"7. Create a file called summary.txt containing a one-line summary of all three files\n"+
 			"8. Reply with 'All 7 steps completed' and list the contents of each file you read.",
+		// Auto-approve so the Write tool calls execute without parking on the
+		// cursor write-approval gate; this test verifies tool-call persistence,
+		// not the approval flow (which is covered by TestCursorHarness_HITL_*).
+		harness.WithAutoApproveAll(true),
 	)
 
 	waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
@@ -93,13 +97,18 @@ func TestCursorHarness_AllToolCallsPersistedInMessages(t *testing.T) {
 	messages := result.GetStatus().GetMessages()
 	t.Logf("total messages: %d", len(messages))
 
-	uniqueToolCalls := deduplicateToolCalls(messages)
+	// Core invariant: each call_id maps to exactly one ToolCall. A duplicate
+	// here is the bug where the runner re-records a tool/sub-agent, surfacing
+	// as the same item rendered multiple times in the UI.
+	harness.AssertUniqueToolCallIds(t, result)
+
+	toolCalls := collectToolCalls(messages)
 
 	var readToolCalls []*agentexecv1.ToolCall
 	var writeToolCalls []*agentexecv1.ToolCall
 	var stuckRunning []*agentexecv1.ToolCall
 
-	for _, tc := range uniqueToolCalls {
+	for _, tc := range toolCalls {
 		name := strings.ToLower(tc.GetName())
 		if name == "read" || name == "read_file" || strings.Contains(name, "read") {
 			readToolCalls = append(readToolCalls, tc)
@@ -119,11 +128,11 @@ func TestCursorHarness_AllToolCallsPersistedInMessages(t *testing.T) {
 
 	// --- Assertions ---
 
-	assert.GreaterOrEqual(t, len(uniqueToolCalls), 5,
+	assert.GreaterOrEqual(t, len(toolCalls), 5,
 		"expected at least 5 unique tool calls (3 writes + reads); got %d. "+
 			"If this fails, tool calls are being lost in the streaming pipeline. "+
 			"Check runner MessageAccumulator and persistStatus throttle.",
-		len(uniqueToolCalls))
+		len(toolCalls))
 
 	assert.NotEmpty(t, readToolCalls,
 		"expected at least 1 Read tool call in persisted messages; got 0. "+
@@ -136,7 +145,7 @@ func TestCursorHarness_AllToolCallsPersistedInMessages(t *testing.T) {
 		len(stuckRunning), toolCallNames(stuckRunning))
 
 	t.Logf("RESULT: unique_tool_calls=%d, reads=%d, writes=%d, stuck_running=%d",
-		len(uniqueToolCalls), len(readToolCalls), len(writeToolCalls), len(stuckRunning))
+		len(toolCalls), len(readToolCalls), len(writeToolCalls), len(stuckRunning))
 }
 
 // TestCursorHarness_MaxListenersWarningUnderConcurrentToolCalls reproduces
@@ -186,6 +195,9 @@ func TestCursorHarness_MaxListenersWarningUnderConcurrentToolCalls(t *testing.T)
 			"11. Create a file called batch-11.txt with content 'batch 11'\n"+
 			"12. Create a file called batch-12.txt with content 'batch 12'\n"+
 			"After creating ALL files, reply with 'All 12 files created'.",
+		// Auto-approve so the parallel Write tool calls execute without the
+		// approval gate; this test measures tool-call count under concurrency.
+		harness.WithAutoApproveAll(true),
 	)
 
 	waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
@@ -199,15 +211,16 @@ func TestCursorHarness_MaxListenersWarningUnderConcurrentToolCalls(t *testing.T)
 	require.NoError(t, err, "execution should complete even if MaxListeners warning fires")
 	require.NotNil(t, result)
 
-	// Count unique tool calls to verify none were lost despite concurrent pressure
-	uniqueToolCalls := deduplicateToolCalls(result.GetStatus().GetMessages())
+	// No duplicates, and no tool calls lost despite concurrent pressure.
+	harness.AssertUniqueToolCallIds(t, result)
+	toolCalls := collectToolCalls(result.GetStatus().GetMessages())
 
-	assert.GreaterOrEqual(t, len(uniqueToolCalls), 10,
+	assert.GreaterOrEqual(t, len(toolCalls), 10,
 		"expected at least 10 unique tool calls for 12 file creates; got %d. "+
 			"If MaxListenersExceededWarning causes event loss, this count will be low.",
-		len(uniqueToolCalls))
+		len(toolCalls))
 
-	t.Logf("RESULT: unique_tool_calls=%d (expected ~12)", len(uniqueToolCalls))
+	t.Logf("RESULT: unique_tool_calls=%d (expected ~12)", len(toolCalls))
 
 	// Check runner logs for MaxListenersExceededWarning
 	runnerLogPath := testHarness.UnifiedRunner.LogPath()
@@ -225,7 +238,7 @@ func TestCursorHarness_MaxListenersWarningUnderConcurrentToolCalls(t *testing.T)
 					"to an AbortSignal. It is a Node.js diagnostic, not a functional error. " +
 					"Verify that tool call count is still correct despite the warning.")
 
-				assert.GreaterOrEqual(t, len(uniqueToolCalls), 10,
+				assert.GreaterOrEqual(t, len(toolCalls), 10,
 					"tool calls were lost despite MaxListenersExceededWarning being benign; "+
 						"this would indicate a deeper issue than just the listener limit")
 			} else {
@@ -278,6 +291,9 @@ func TestCursorHarness_ToolCallCountReconciliation(t *testing.T) {
 		"Step 1: Create a file called reconcile-test.txt containing 'reconcile data'\n"+
 			"Step 2: Read reconcile-test.txt and tell me its contents\n"+
 			"Reply with what the file contained.",
+		// Auto-approve so the Write executes without the approval gate; this
+		// test reconciles persisted tool-call counts, not the approval flow.
+		harness.WithAutoApproveAll(true),
 	)
 
 	waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
@@ -289,8 +305,9 @@ func TestCursorHarness_ToolCallCountReconciliation(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, result)
 
-	// Count unique persisted tool calls
-	toolCalls := deduplicateToolCalls(result.GetStatus().GetMessages())
+	// Each call_id must map to exactly one persisted ToolCall.
+	harness.AssertUniqueToolCallIds(t, result)
+	toolCalls := collectToolCalls(result.GetStatus().GetMessages())
 
 	assert.GreaterOrEqual(t, len(toolCalls), 2,
 		"expected at least 2 unique tool calls (1 write + 1 read); got %d", len(toolCalls))
@@ -326,26 +343,15 @@ func TestCursorHarness_ToolCallCountReconciliation(t *testing.T) {
 	}
 }
 
-// deduplicateToolCalls collects tool calls from all messages, keeping only
-// the last occurrence per unique ID. The MessageAccumulator updates tool
-// calls in-place on the proto message, but iteration over the repeated
-// field can yield the same ID with different states (e.g., empty result
-// then populated result). Deduplicating by ID gives an accurate unique count.
-func deduplicateToolCalls(messages []*agentexecv1.AgentMessage) []*agentexecv1.ToolCall {
-	seen := make(map[string]*agentexecv1.ToolCall)
-	var order []string
+// collectToolCalls returns every tool call across an execution's messages, in
+// order, WITHOUT deduplication. The runner enforces the invariant that a
+// call_id maps to exactly one ToolCall (see MessageAccumulator.attachToolCallToLastAi),
+// so callers pair this with harness.AssertUniqueToolCallIds to prove no
+// duplicate entries leaked through the streaming pipeline.
+func collectToolCalls(messages []*agentexecv1.AgentMessage) []*agentexecv1.ToolCall {
+	var result []*agentexecv1.ToolCall
 	for _, msg := range messages {
-		for _, tc := range msg.GetToolCalls() {
-			id := tc.GetId()
-			if _, exists := seen[id]; !exists {
-				order = append(order, id)
-			}
-			seen[id] = tc
-		}
-	}
-	result := make([]*agentexecv1.ToolCall, 0, len(order))
-	for _, id := range order {
-		result = append(result, seen[id])
+		result = append(result, msg.GetToolCalls()...)
 	}
 	return result
 }

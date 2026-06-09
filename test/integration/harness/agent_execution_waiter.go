@@ -348,6 +348,39 @@ func AssertHasToolCall(t *testing.T, exec *agentexecv1.AgentExecution, toolName 
 	t.Errorf("expected tool call %q not found in execution messages", toolName)
 }
 
+// AssertUniqueToolCallIds verifies the core accumulator invariant: a tool
+// call id maps to at most one ToolCall across all of an execution's messages.
+// A repeated id means the runner appended a duplicate ToolCall (e.g. the
+// Cursor SDK re-emitting a "running" event for one call_id), which surfaces in
+// the UI as the same tool — or sub-agent — rendered multiple times.
+func AssertUniqueToolCallIds(t *testing.T, exec *agentexecv1.AgentExecution) {
+	t.Helper()
+	counts := make(map[string]int)
+	for _, msg := range exec.GetStatus().GetMessages() {
+		for _, tc := range msg.GetToolCalls() {
+			counts[tc.GetId()]++
+		}
+	}
+	for id, n := range counts {
+		assert.Equalf(t, 1, n,
+			"tool call id %q appears %d times across messages; each call_id must map to exactly one ToolCall", id, n)
+	}
+}
+
+// CountToolCallsByName returns the total number of tool calls with the given
+// name across all of an execution's messages (no deduplication by id).
+func CountToolCallsByName(exec *agentexecv1.AgentExecution, toolName string) int {
+	count := 0
+	for _, msg := range exec.GetStatus().GetMessages() {
+		for _, tc := range msg.GetToolCalls() {
+			if tc.GetName() == toolName {
+				count++
+			}
+		}
+	}
+	return count
+}
+
 // AssertToolCallMcpSlug verifies that a tool call with the given name has the
 // expected mcp_server_slug.
 func AssertToolCallMcpSlug(t *testing.T, exec *agentexecv1.AgentExecution, toolName, expectedSlug string) {

@@ -73,6 +73,14 @@ func TestAgentExecution_SubAgent_Delegation(t *testing.T) {
 			require.Greater(t, len(subAgents), 0,
 				"sub-agent executions must be populated after successful delegation")
 
+			// No duplicate tool-call IDs, and each "task" delegation maps 1:1 to a
+			// sub-agent execution. Before the accumulator upsert fix, the Cursor SDK
+			// re-emitting a task "running" event appended duplicate task tool calls
+			// (same id), rendering the same sub-agent multiple times in the UI.
+			harness.AssertUniqueToolCallIds(t, result)
+			assert.Equal(t, len(subAgents), harness.CountToolCallsByName(result, "task"),
+				"each 'task' tool call must correspond to exactly one sub-agent execution (no duplicates)")
+
 			// Native harness preserves the blueprint sub-agent name via LangGraph
 			// namespace metadata. Cursor harness derives the name from the LLM's
 			// Task tool description arg (the SDK passes kind: "unspecified"), so

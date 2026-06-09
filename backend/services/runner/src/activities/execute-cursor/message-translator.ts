@@ -314,6 +314,16 @@ function safeString(obj: unknown, key: string): string {
 }
 
 /**
+ * Normalize a tool_call event result into a string for the ToolCall proto.
+ * Returns "" for an absent result so callers can treat "no result yet" and
+ * "empty result" uniformly (e.g. to avoid clobbering a captured result).
+ */
+function toResultString(result: unknown): string {
+  if (result == null) return "";
+  return typeof result === "string" ? result : JSON.stringify(result);
+}
+
+/**
  * Parse the task tool's completed result into AgentMessages.
  *
  * The Cursor SDK returns sub-agent work as a blob in the task tool's
@@ -552,49 +562,84 @@ export class MessageAccumulator {
     this.activeThinkingByRunId.clear();
   }
 
+  /**
+   * Attach a tool call to the current AI message, upserting by `call_id` so a
+   * single call maps to at most ONE ToolCall across all messages.
+   *
+   * The Cursor SDK can emit the lifecycle for one `call_id` more than once —
+   * observed in production as two "running" events ~0.5s apart for task/edit
+   * tools, which previously appended a duplicate ToolCall (the same call
+   * rendered two or three times in the UI). We therefore index by `call_id`
+   * and merge subsequent events into the existing proto, mirroring how
+   * trackSubAgentExecution() upserts via subAgentMap. The first event for a
+   * `call_id` (running or terminal) creates the proto on the last AI message;
+   * the index keeps pointing at it even after later assistant text starts a
+   * new AI message, so cross-message completions still land on the original.
+   */
   private attachToolCallToLastAi(
     event: Extract<SDKMessage, { type: "tool_call" }>,
   ): void {
     if (SUPPRESSED_TOOL_NAMES.has(event.name)) return;
 
+    const existing = this.toolCallIndex.get(event.call_id);
+    if (!existing) {
+      const tc = buildToolCallProto(event, this.mergedPolicies);
+      this.findOrCreateLastAiMessage().toolCalls.push(tc);
+      this.toolCallIndex.set(event.call_id, tc);
+      return;
+    }
+
+    this.mergeToolCallEvent(existing, event);
+  }
+
+  /**
+   * Merge a repeated tool_call event into the ToolCall already tracked for this
+   * `call_id`. The merge is defensive because a re-emitted event may carry less
+   * information than an earlier one (a late "running" after "completed", or a
+   * completion with an empty result): status only advances toward terminal,
+   * timestamps are stamped once, and a populated result/args is never clobbered
+   * by an empty one.
+   */
+  private mergeToolCallEvent(
+    existing: ToolCall,
+    event: Extract<SDKMessage, { type: "tool_call" }>,
+  ): void {
     const status = mapToolCallStatus(event.status);
 
-    if (event.status === "running") {
-      const aiMsg = this.findOrCreateLastAiMessage();
-      const tc = buildToolCallProto(event, this.mergedPolicies);
-      aiMsg.toolCalls.push(tc);
-      this.toolCallIndex.set(event.call_id, tc);
-    } else {
-      const existing = this.toolCallIndex.get(event.call_id);
-      if (existing) {
-        existing.status = status;
-        if (isTerminalToolStatus(status)) {
-          existing.completedAt = utcTimestamp();
-        }
-        if (event.result != null) {
-          existing.result = typeof event.result === "string"
-            ? event.result
-            : JSON.stringify(event.result);
-        }
-        if (status === ToolCallStatus.TOOL_CALL_FAILED) {
-          existing.error = typeof event.result === "string"
-            ? event.result
-            : "Tool call failed";
-          if (existing.requiresApproval) {
-            existing.approvalRequestedAt = utcTimestamp();
-          }
-        }
-        if (event.args != null && !existing.argsPreview) {
-          existing.argsPreview = typeof event.args === "string"
-            ? event.args
-            : JSON.stringify(event.args);
-        }
-      } else {
-        const aiMsg = this.findOrCreateLastAiMessage();
-        const tc = buildToolCallProto(event, this.mergedPolicies);
-        aiMsg.toolCalls.push(tc);
-        this.toolCallIndex.set(event.call_id, tc);
+    // Status advances monotonically: once terminal (completed/failed/skipped)
+    // a later "running" re-emit must not regress it back to RUNNING.
+    if (!isTerminalToolStatus(existing.status)) {
+      existing.status = status;
+    }
+    if (isTerminalToolStatus(status) && !existing.completedAt) {
+      existing.completedAt = utcTimestamp();
+    }
+    if (!existing.startedAt && status === ToolCallStatus.TOOL_CALL_RUNNING) {
+      existing.startedAt = utcTimestamp();
+    }
+
+    // Only a non-empty incoming result overwrites; a result-less "running"
+    // re-emit must not wipe a result captured on completion (or vice versa).
+    const incomingResult = toResultString(event.result);
+    if (incomingResult) {
+      existing.result = incomingResult;
+    }
+
+    if (status === ToolCallStatus.TOOL_CALL_FAILED) {
+      if (!existing.error) {
+        existing.error = typeof event.result === "string"
+          ? event.result
+          : "Tool call failed";
       }
+      if (existing.requiresApproval && !existing.approvalRequestedAt) {
+        existing.approvalRequestedAt = utcTimestamp();
+      }
+    }
+
+    if (event.args != null && !existing.argsPreview) {
+      existing.argsPreview = typeof event.args === "string"
+        ? event.args
+        : JSON.stringify(event.args);
     }
   }
 
