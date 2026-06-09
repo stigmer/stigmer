@@ -395,7 +395,8 @@ tidy: ## Run go mod tidy on all Go modules
        lint-desktop typecheck-desktop verify-desktop kill-desktop launch-desktop build-desktop clean-build-desktop release-desktop-local \
        build-cli install-cli release-cli-local \
        lint-docs lint-docs-audit format-docs format-docs-check check-links libs-build web-build validate-demos tsdoc-check test-demos \
-       test-web test-desktop test-runner-host test-e2e check check-all
+       test-web test-desktop test-runner-host test-e2e check check-all \
+       check-prep check-go check-node check-site check-rust check-java
 fix: ## Auto-fix linting and formatting issues
 	@gofmt -s -w .
 	-npm run lint:fix -w @stigmer/react
@@ -561,7 +562,97 @@ test-e2e-smoke: ## Run Playwright smoke tests against a deployed instance (set S
 test-e2e-all: ## Run all Playwright E2E tests (smoke + functional)
 	cd test/e2e && npm ci && npx playwright install --with-deps chromium && npx playwright test
 
-check: tidy fix lint lint-docs format-docs-check tsdoc-check gen-sdk-docs gen-sdk-docs-check gen-ipc-fixtures-check check-links build test test-web test-desktop test-runner-host validate-demos check-deps ## Run full CI gate locally
+# Parallel CI gate.
+#
+# `check` runs in two stages:
+#   1. check-prep  — strictly SEQUENTIAL. Everything that mutates the working
+#      tree (go mod tidy, gofmt/eslint --fix, doc generation) or builds the
+#      shared artifacts that later stages consume (@stigmer libs + proto stubs).
+#   2. five domain buckets run CONCURRENTLY (`make -j`). Buckets are isolated by
+#      toolchain/directory so they never write to the same files:
+#        check-go    — go vet/test/build + buf lint + mcp-server + go binaries
+#        check-node  — npm typecheck/lint/build/test (web, react, sdk, desktop TS,
+#                      runner) + tsdoc + dep hygiene
+#        check-site  — vale, prettier --check, site lint/typecheck/build,
+#                      demo validation, link check (all under docs/ + site/)
+#        check-rust  — desktop cargo check + runner-host crate
+#        check-java  — Java proto stubs + SDK (mvn)
+#
+# Wall-clock is now ~max(bucket) instead of the sum of every step.
+JOBS ?= $(shell sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 5)
+
+# `-Otarget` groups each bucket's output so the interleaved parallel logs stay
+# readable. It requires GNU Make >= 4.0; the macOS system make is 3.81, which
+# would choke on the flag, so only enable it when available.
+MAKE_MAJOR := $(firstword $(subst ., ,$(MAKE_VERSION)))
+OUTPUT_SYNC := $(shell test "$(MAKE_MAJOR)" -ge 4 2>/dev/null && echo -Otarget)
+
+check: ## Run full CI gate locally (parallelized)
+	$(MAKE) check-prep
+	$(MAKE) -j$(JOBS) $(OUTPUT_SYNC) check-go check-node check-site check-rust check-java
+	@echo ""
+	@echo "✓ check passed"
+
+# Stage 1 — sequential prep (tree mutations + shared artifact builds).
+check-prep: ## Sequential prep for check: tidy, fix, build shared libs/stubs, regenerate + verify docs
+	$(MAKE) tidy
+	$(MAKE) node_modules
+	$(MAKE) fix
+	$(MAKE) libs-build
+	$(MAKE) build-ts-stubs
+	$(MAKE) gen-sdk-docs
+	$(MAKE) gen-sdk-docs-check
+	$(MAKE) gen-ipc-fixtures
+	$(MAKE) gen-ipc-fixtures-check
+
+# Stage 2 — parallel buckets. Each bucket is internally sequential; libs + proto
+# stubs are already built by check-prep, so no bucket rebuilds shared artifacts.
+check-go: ## check bucket: Go vet/test/build + buf lint + mcp-server + binaries
+	@for mod in $(GO_MODULES); do \
+		echo "vet      $$mod"; \
+		(cd $$mod && go vet ./...) || exit 1; \
+	done
+	$(MAKE) -C apis lint
+	@for mod in $(GO_MODULES); do \
+		echo "testing  $$mod"; \
+		(cd $$mod && go test -race -timeout 30s ./...) || exit 1; \
+	done
+	$(MAKE) build-mcp-server
+	@mkdir -p bin
+	cd client-apps/cli && go build -o ../../bin/stigmer .
+	cd backend/services/stigmer-server && go build -o ../../../bin/stigmer-server ./cmd/server
+
+check-node: ## check bucket: npm typecheck/lint/build/test (web, react, sdk, desktop, runner)
+	npm run typecheck -w @stigmer/sdk
+	npm run lint -w @stigmer/react
+	npm run typecheck -w @stigmer/react
+	npm run lint -w client-apps/web
+	npm run typecheck -w desktop
+	npm run lint -w desktop
+	npm run build -w client-apps/web
+	npm run test -w client-apps/web
+	npm run test -w desktop
+	cd $(RUNNER_DIR) && npm run build
+	cd $(RUNNER_DIR) && npm run check-deps
+	cd sdk/ink && npm run tsdoc:check
+	cd sdk/react && npm run tsdoc:check
+
+check-site: ## check bucket: docs lint/format/links + site lint/typecheck/build + demo validation
+	@vale sync 2>/dev/null
+	@vale $(DOCS_SOURCES)
+	@npx prettier --check --prose-wrap always $(DOCS_SOURCES)
+	$(MAKE) -C site lint
+	$(MAKE) -C site typecheck
+	$(MAKE) -C site build
+	$(MAKE) -C site validate-demos
+	@lychee --config .lychee.toml --root-dir . docs/
+
+check-rust: ## check bucket: desktop cargo check + runner-host crate
+	cd client-apps/desktop/src-tauri && cargo check --quiet
+	cd crates/stigmer-runner-host && cargo build && cargo test
+
+check-java: ## check bucket: Java proto stubs + SDK (mvn)
+	$(MAKE) build-java-sdk
 
 check-all: check test-demos ## Full CI gate including Playwright demo e2e (slow)
 
