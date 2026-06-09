@@ -1,14 +1,10 @@
 "use client";
 
-import { memo, useCallback, useState } from "react";
+import { memo, useState } from "react";
 import { cn } from "@stigmer/theme";
 import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
-import { useArtifactContent } from "./useArtifactContent";
-import { ArtifactContentRenderer } from "./ArtifactContentRenderer";
+import { ArtifactPreviewModal } from "./ArtifactPreviewModal";
 import { formatArtifactSize } from "./artifact-utils";
-
-/** Plans above this size are not inlined for preview — download instead. */
-const MAX_PREVIEW_BYTES = 512 * 1024;
 
 /** Props for {@link PlanArtifactCard}. */
 export interface PlanArtifactCardProps {
@@ -16,6 +12,12 @@ export interface PlanArtifactCardProps {
   readonly executionId: string;
   /** The published `plan.md` artifact (from `findPlanArtifact`). */
   readonly artifact: ExecutionArtifact;
+  /**
+   * Organization slug. Required for the "Review plan" modal (the shared
+   * {@link ArtifactPreviewModal} uses it for its detection/apply pipeline).
+   * When omitted, the Review action is hidden — Implement and Download remain.
+   */
+  readonly org?: string;
   /** Called when the user clicks "Implement". Hidden when omitted. */
   readonly onImplement?: () => void;
   /** Disables the Implement CTA (e.g., while an execution is active). */
@@ -28,11 +30,13 @@ export interface PlanArtifactCardProps {
  * Reviewable card shown after a completed Plan-mode execution when the agent
  * published a `plan.md` artifact.
  *
- * Unlike {@link PlanCompletionCard} (a bare Implement CTA), this card makes the
- * plan a first-class, durable object: expand to review the rendered plan, copy
- * it, download the `plan.md` file, or proceed to implement. The plan content is
- * the single source of truth (the published artifact), fetched on demand via
- * {@link useArtifactContent} rather than duplicated into component state.
+ * Presentational by design: it surfaces the plan as a first-class object with
+ * three actions — **Implement** (turn the plan into an Agent run), **Review
+ * plan** (open the rendered plan in the shared {@link ArtifactPreviewModal},
+ * the same popup used elsewhere for artifact previews — where Copy and an
+ * Implement CTA also live), and **Download** the `plan.md` file. The plan text
+ * is the single source of truth (the published artifact); the modal fetches it
+ * on demand, so the card itself holds no plan content.
  *
  * All visual properties flow through `--stgm-*` tokens; the component is
  * self-contained and embeddable.
@@ -40,35 +44,12 @@ export interface PlanArtifactCardProps {
 export const PlanArtifactCard = memo(function PlanArtifactCard({
   executionId,
   artifact,
+  org,
   onImplement,
   disabled,
   className,
 }: PlanArtifactCardProps) {
-  const [expanded, setExpanded] = useState(false);
-  const [copied, setCopied] = useState(false);
-
-  // Plans are small markdown; fetch eagerly (within the size cap) so both the
-  // preview and Copy have content ready. contentHash invalidates the cache when
-  // the plan is re-published in the same execution.
-  const fetchable = Number(artifact.sizeBytes) < MAX_PREVIEW_BYTES;
-  const { content, contentType, isTruncated, isLoading } = useArtifactContent(
-    fetchable ? executionId : null,
-    fetchable ? artifact.storageKey : null,
-    undefined,
-    artifact.contentHash || undefined,
-  );
-
-  const handleCopy = useCallback(async () => {
-    if (!content) return;
-    try {
-      await navigator.clipboard.writeText(content);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // Clipboard can be unavailable (insecure context / denied permission).
-      // Silently no-op: Download remains available as the durable fallback.
-    }
-  }, [content]);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   return (
     <div
@@ -111,30 +92,19 @@ export const PlanArtifactCard = memo(function PlanArtifactCard({
 
       {/* Secondary actions */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border-muted px-3 py-1.5">
-        <button
-          type="button"
-          aria-expanded={expanded}
-          onClick={() => setExpanded((v) => !v)}
-          className={cn(
-            "inline-flex items-center gap-1 text-xs font-medium text-primary transition-colors hover:text-primary-muted",
-            FOCUS_RING,
-          )}
-        >
-          <ChevronIcon expanded={expanded} />
-          {expanded ? "Hide plan" : "Review plan"}
-        </button>
-        <button
-          type="button"
-          onClick={handleCopy}
-          disabled={!content}
-          className={cn(
-            "text-xs font-medium text-muted-foreground transition-colors hover:text-foreground",
-            "disabled:pointer-events-none disabled:opacity-50",
-            FOCUS_RING,
-          )}
-        >
-          {copied ? "Copied" : "Copy"}
-        </button>
+        {org && (
+          <button
+            type="button"
+            onClick={() => setPreviewOpen(true)}
+            className={cn(
+              "inline-flex items-center gap-1 text-xs font-medium text-primary transition-colors hover:text-primary-muted",
+              FOCUS_RING,
+            )}
+          >
+            <ExpandIcon />
+            Review plan
+          </button>
+        )}
         <a
           href={artifact.downloadUrl}
           download={artifact.name}
@@ -148,28 +118,18 @@ export const PlanArtifactCard = memo(function PlanArtifactCard({
         </a>
       </div>
 
-      {/* Expandable plan preview */}
-      {expanded && (
-        <div className="max-h-96 overflow-auto border-t border-border-muted px-3 py-2">
-          {!fetchable ? (
-            <p className="text-xs text-muted-foreground">
-              This plan is large — use Download to view the full file.
-            </p>
-          ) : isLoading ? (
-            <div className="h-4 w-40 animate-pulse rounded bg-muted" aria-hidden="true" />
-          ) : content ? (
-            <ArtifactContentRenderer
-              content={content}
-              fileName={artifact.name}
-              contentType={contentType}
-              isTruncated={isTruncated}
-            />
-          ) : (
-            <p className="text-xs text-muted-foreground">
-              Plan content is unavailable. Use Download to retrieve the file.
-            </p>
-          )}
-        </div>
+      {/* Review opens the shared artifact preview popup — consistent with the
+          Artifacts tab and the single place that fetches/renders plan content. */}
+      {org && previewOpen && (
+        <ArtifactPreviewModal
+          artifact={artifact}
+          executionId={executionId}
+          org={org}
+          isTerminal
+          open
+          onClose={() => setPreviewOpen(false)}
+          onImplement={onImplement}
+        />
       )}
     </div>
   );
@@ -237,7 +197,7 @@ function DownloadIcon() {
   );
 }
 
-function ChevronIcon({ expanded }: { readonly expanded: boolean }) {
+function ExpandIcon() {
   return (
     <svg
       width="10"
@@ -248,10 +208,10 @@ function ChevronIcon({ expanded }: { readonly expanded: boolean }) {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className={cn("shrink-0 transition-transform", expanded && "rotate-90")}
+      className="shrink-0"
       aria-hidden="true"
     >
-      <path d="M4 2l4 4-4 4" />
+      <path d="M7 1.5h3.5V5M10.5 1.5L6.5 5.5M5 10.5H1.5V7M1.5 10.5l4-4" />
     </svg>
   );
 }

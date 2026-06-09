@@ -8,7 +8,8 @@ import { useDefaultAgent } from "../agent";
 import { useStigmer } from "../hooks";
 import { useWorkspaceEntries, type UseWorkspaceEntriesReturn } from "../workspace";
 import { useSessionVariables, type UseSessionVariablesReturn } from "../execution/useSessionVariables";
-import type { SessionComposerSubmitContext } from "../composer";
+import type { SessionComposerSubmitContext, InteractionModeOption } from "../composer";
+import { fromProtoInteractionMode } from "../composer";
 import { fromProtoHarness, type HarnessOption } from "../models/harness";
 import { Harness, ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { fromProtoExecutionTarget, type ExecutionTargetOption } from "./execution-target";
@@ -58,6 +59,18 @@ export interface UseSessionPageFlowReturn {
 
   /** Persisted model selection: `[modelId, setModelId]`. */
   readonly model: UsePersistedModelReturn;
+
+  /**
+   * Composer interaction mode: `[interactionMode, setInteractionMode]`.
+   *
+   * Derived like {@link model}: the user's explicit override wins, otherwise
+   * it reflects the latest execution's mode (so a completed Plan keeps the
+   * picker on "Plan" while it awaits review), falling back to `"agent"`.
+   */
+  readonly interactionMode: readonly [
+    InteractionModeOption,
+    (mode: InteractionModeOption) => void,
+  ];
 
   /** Currently selected agent reference (derived from session, or overridden by user). */
   readonly agentRef: ResourceRef | null;
@@ -205,6 +218,24 @@ export function useSessionPageFlow(
 
   const modelId = persistedModelId ?? lastExecModelId;
   const model: UsePersistedModelReturn = [modelId, setPersistedModelId] as const;
+
+  // Interaction mode mirrors the model derivation: an explicit user override
+  // wins; otherwise reflect the latest execution's mode so a completed Plan
+  // keeps the composer on "Plan" until the user implements or switches. This
+  // is derived state (always consistent), never an effect-synced copy.
+  const lastExecInteractionMode = useMemo(
+    () =>
+      fromProtoInteractionMode(
+        conv.completedExecutions.at(-1)?.spec?.executionConfig?.interactionMode,
+      ),
+    [conv.completedExecutions],
+  );
+  const [interactionModeOverride, setInteractionMode] =
+    useState<InteractionModeOption | null>(null);
+  const interactionMode: UseSessionPageFlowReturn["interactionMode"] = [
+    interactionModeOverride ?? lastExecInteractionMode ?? "agent",
+    setInteractionMode,
+  ] as const;
 
   const workspace = useWorkspaceEntries();
   const sessionVariables = useSessionVariables();
@@ -369,6 +400,7 @@ export function useSessionPageFlow(
     harness,
     executionTarget,
     model,
+    interactionMode,
     agentRef,
     setAgentRef,
     resolution,

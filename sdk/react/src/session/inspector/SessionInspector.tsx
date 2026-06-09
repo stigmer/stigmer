@@ -40,6 +40,11 @@ export interface SessionInspectorProps {
   /** Called after a resource is applied from the Artifacts tab. */
   readonly onApplied?: (result: ApplyResourceResult) => void;
   /**
+   * Implement a plan from the Artifacts tab. When provided, plan
+   * artifacts (`plan.md`) surface an Implement action in their preview.
+   */
+  readonly onImplementPlan?: () => void;
+  /**
    * Session-level configuration for the Configure tab.
    * Includes core config fields and optional interactive
    * mutation callbacks. When mutation callbacks are absent,
@@ -79,6 +84,7 @@ export const SessionInspector = memo(function SessionInspector({
   org,
   selectedItem,
   onApplied,
+  onImplementPlan,
   sessionConfig,
   workspaceConfig,
   className,
@@ -138,6 +144,7 @@ export const SessionInspector = memo(function SessionInspector({
               executions={allExecutions}
               org={org}
               onApplied={onApplied}
+              onImplementPlan={onImplementPlan}
             />
           )}
           {activeTab === "usage" && (

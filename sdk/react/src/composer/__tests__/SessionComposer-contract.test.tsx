@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
-import type { ReactNode } from "react";
+import { createRef, type ReactNode } from "react";
 import type { Stigmer } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
 import { ModelRegistryContext } from "../../models/ModelRegistryContext";
-import { SessionComposer } from "../SessionComposer";
+import { SessionComposer, type SessionComposerHandle } from "../SessionComposer";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -120,6 +120,46 @@ describe("SessionComposer — public contract", () => {
 
     const textarea = screen.getByRole("textbox");
     fireEvent.keyDown(textarea, { key: "Enter", shiftKey: false });
+
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+});
+
+describe("SessionComposer — imperative submit (Implement plan)", () => {
+  it("submits a message with the interactionMode override, even when the picker is 'plan'", async () => {
+    const ref = createRef<SessionComposerHandle>();
+    const { onSubmit } = renderComposer({
+      ref,
+      showInteractionModePicker: true,
+      interactionMode: "plan",
+    });
+
+    ref.current!.submit("Implement the plan above", { interactionMode: "agent" });
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledOnce();
+    });
+    const [message, , context] = onSubmit.mock.calls[0];
+    expect(message).toBe("Implement the plan above");
+    // The override must win over the current picker value ("plan") so the
+    // implement run executes in Agent mode regardless of render timing.
+    expect(context?.interactionMode).toBe("agent");
+  });
+
+  it("no-ops when the composer is disabled", () => {
+    const ref = createRef<SessionComposerHandle>();
+    const { onSubmit } = renderComposer({ ref, disabled: true });
+
+    ref.current!.submit("Implement the plan above", { interactionMode: "agent" });
+
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("no-ops on an empty/whitespace message", () => {
+    const ref = createRef<SessionComposerHandle>();
+    const { onSubmit } = renderComposer({ ref });
+
+    ref.current!.submit("   ");
 
     expect(onSubmit).not.toHaveBeenCalled();
   });

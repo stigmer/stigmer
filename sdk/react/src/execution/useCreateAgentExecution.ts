@@ -3,14 +3,9 @@
 import { useCallback, useState } from "react";
 import type { JsonObject } from "@bufbuild/protobuf";
 import type { AttachmentInput, EnvVarInput } from "@stigmer/sdk";
-import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
-
-const INTERACTION_MODE_MAP: Record<string, InteractionMode> = {
-  agent: InteractionMode.AGENT,
-  plan: InteractionMode.PLAN,
-};
+import { toProtoInteractionMode } from "../composer/interaction-mode";
 
 /** Input for {@link UseCreateAgentExecutionReturn.create}. */
 export interface CreateAgentExecutionInput {
@@ -168,7 +163,7 @@ export function useCreateAgentExecution(): UseCreateAgentExecutionReturn {
           ? {
               ...(input.modelName ? { modelName: input.modelName } : {}),
               ...(input.interactionMode
-                ? { interactionMode: INTERACTION_MODE_MAP[input.interactionMode] ?? InteractionMode.UNSPECIFIED }
+                ? { interactionMode: toProtoInteractionMode(input.interactionMode) }
                 : {}),
               ...(input.structuredOutputSchema
                 ? { structuredOutputSchema: input.structuredOutputSchema }

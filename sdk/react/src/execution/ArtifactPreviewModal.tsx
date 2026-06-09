@@ -45,6 +45,13 @@ export interface ArtifactPreviewContentProps {
    * as showing a toast or navigating to the Library.
    */
   readonly onApplied?: (result: ApplyResourceResult) => void;
+  /**
+   * Optional "Implement" action. When provided, an Implement primary
+   * button appears in the action bar (used for plan artifacts: turn the
+   * plan into an Agent run). Clicking it calls `onImplement` then closes
+   * the modal. Omit for non-actionable artifacts.
+   */
+  readonly onImplement?: () => void;
   /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
@@ -101,6 +108,7 @@ export function ArtifactPreviewContent({
   isTerminal,
   onClose,
   onApplied,
+  onImplement,
   className,
 }: ArtifactPreviewContentProps) {
   const isDirectory = artifact.kind === ExecutionArtifactKind.DIRECTORY;
@@ -219,6 +227,14 @@ export function ArtifactPreviewContent({
     ctaLabel = `Push Skill to ${org}`;
   }
 
+  // Implement runs the plan; closing the modal lets the host's submit pipeline
+  // take over (switch to Agent + send). Single combined handler keeps the
+  // caller's contract simple ("just give me onImplement").
+  const handleImplement = useCallback(() => {
+    onImplement?.();
+    onClose();
+  }, [onImplement, onClose]);
+
   // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
@@ -264,6 +280,7 @@ export function ArtifactPreviewContent({
         applyResult={applyResult}
         applyError={applyError}
         onApply={handleApply}
+        onImplement={onImplement ? handleImplement : undefined}
       />
 
       <div
@@ -308,6 +325,12 @@ export interface ArtifactPreviewModalProps {
    * as showing a toast or navigating to the Library.
    */
   readonly onApplied?: (result: ApplyResourceResult) => void;
+  /**
+   * Optional "Implement" action (see {@link ArtifactPreviewContentProps.onImplement}).
+   * When provided, an Implement primary button appears; clicking it calls
+   * `onImplement` then closes the modal.
+   */
+  readonly onImplement?: () => void;
   /** Additional CSS classes for the dialog element. */
   readonly className?: string;
 }
@@ -353,6 +376,7 @@ export function ArtifactPreviewModal({
   open,
   onClose,
   onApplied,
+  onImplement,
   className,
 }: ArtifactPreviewModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -395,6 +419,7 @@ export function ArtifactPreviewModal({
           isTerminal={isTerminal}
           onClose={onClose}
           onApplied={onApplied}
+          onImplement={onImplement}
         />
       )}
     </dialog>
@@ -608,6 +633,7 @@ function ActionBar({
   applyResult,
   applyError,
   onApply,
+  onImplement,
 }: {
   readonly artifact: ExecutionArtifact;
   readonly isDirectory: boolean;
@@ -621,6 +647,7 @@ function ActionBar({
   readonly applyResult: ApplyResourceResult | null;
   readonly applyError: Error | null;
   readonly onApply: () => void;
+  readonly onImplement?: () => void;
 }) {
   return (
     <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-3">
@@ -656,7 +683,21 @@ function ActionBar({
         </a>
       </div>
 
-      <div className="shrink-0">
+      <div className="flex shrink-0 items-center gap-3">
+        {onImplement && (
+          <button
+            type="button"
+            onClick={onImplement}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-md px-4 py-1.5 text-xs font-medium transition-colors",
+              "bg-primary text-primary-foreground hover:bg-primary-hover",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+            )}
+          >
+            <ImplementIcon />
+            Implement
+          </button>
+        )}
         {applyResult ? (
           <span className="inline-flex items-center gap-1.5 text-xs font-medium text-success">
             <CheckIcon />
@@ -869,6 +910,25 @@ function DownloadIcon() {
       <path d="M6 1.5V8.5" />
       <path d="M3 6L6 9L9 6" />
       <path d="M2 10.5H10" />
+    </svg>
+  );
+}
+
+function ImplementIcon() {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 12 12"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="shrink-0"
+      aria-hidden="true"
+    >
+      <path d="M2 6h8M7 3l3 3-3 3" />
     </svg>
   );
 }

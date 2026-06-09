@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useMemo, useRef, type ReactNode } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage, type ResourceRef } from "@stigmer/sdk";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection";
@@ -17,6 +17,14 @@ import { SessionComposer } from "../composer";
 import { SecretFlowErrorGuide, isSecretFlowError } from "../error";
 import { useSessionPageFlow } from "./useSessionPageFlow";
 import { SessionInspector } from "./inspector/SessionInspector";
+
+/**
+ * Message submitted when the user implements a plan. References the published
+ * `plan.md` explicitly so the agent acts on the durable artifact rather than
+ * relying on re-reading its own prior chat message.
+ */
+const IMPLEMENT_PLAN_MESSAGE =
+  "Implement the plan above (saved as plan.md). Follow it step by step and make the changes it describes.";
 
 /** Props for {@link SessionViewer}. */
 export interface SessionViewerProps {
@@ -126,7 +134,7 @@ export function SessionViewer({
   const { conv } = flow;
 
   const [modelId, setModelId] = flow.model;
-  const [interactionMode, setInteractionMode] = useState<InteractionModeOption>("agent");
+  const [interactionMode, setInteractionMode] = flow.interactionMode;
   const composerRef = useRef<SessionComposerHandle>(null);
 
   const selectionStoreRef = useRef<SelectionStore | null>(null);
@@ -136,15 +144,15 @@ export function SessionViewer({
   const selectionStore = selectionStoreRef.current;
 
   const handleBuildFromPlan = useCallback(() => {
+    // Switch the picker to Agent (so subsequent turns stay in Agent) and submit
+    // the implement message immediately through the composer's full pipeline.
+    // `interactionMode: "agent"` is passed explicitly to win the same-tick race
+    // where the composer prop has not yet re-rendered from "plan".
     setInteractionMode("agent");
-    // Reference the plan explicitly (it is also published as plan.md) and direct
-    // the agent to act on it, rather than a bare "implement" that relies on the
-    // model re-reading its own prior message.
-    composerRef.current?.setMessage(
-      "Implement the plan above (saved as plan.md). Follow it step by step and make the changes it describes.",
-    );
-    composerRef.current?.focus();
-  }, []);
+    composerRef.current?.submit(IMPLEMENT_PLAN_MESSAGE, {
+      interactionMode: "agent",
+    });
+  }, [setInteractionMode]);
 
   if (conv.isLoading) {
     return (
@@ -202,6 +210,7 @@ export function SessionViewer({
               org={org}
               selectionStore={selectionStore}
               onApplied={onApplied}
+              onImplementPlan={handleBuildFromPlan}
               enableGitHub={enableGitHub}
               enableLocal={enableLocal}
               gitHubConnection={gitHubConnection}
@@ -261,6 +270,8 @@ function ConversationColumn({
         workspaceEntries={conv.workspaceEntries}
         sandboxWorkspaceRoot={flow.sandboxWorkspaceRoot}
         onBuildFromPlan={onBuildFromPlan}
+        org={org}
+        planActionsDisabled={!conv.canSendFollowUp}
         centerContent
         className="flex-1"
       />
@@ -319,6 +330,8 @@ interface InspectorPanelProps {
   readonly org: string;
   readonly selectionStore: SelectionStore;
   readonly onApplied?: (result: ApplyResourceResult) => void;
+  /** Implement a plan from the Artifacts tab (same action as the thread card). */
+  readonly onImplementPlan?: () => void;
   readonly enableGitHub: boolean;
   readonly enableLocal: boolean;
   readonly gitHubConnection?: UseGitHubConnectionReturn;
@@ -331,6 +344,7 @@ function InspectorPanel({
   org,
   selectionStore,
   onApplied,
+  onImplementPlan,
   enableGitHub,
   enableLocal,
   gitHubConnection,
@@ -411,6 +425,7 @@ function InspectorPanel({
         org={org}
         selectedItem={selectedItem}
         onApplied={onApplied}
+        onImplementPlan={onImplementPlan}
         sessionConfig={sessionConfig}
         workspaceConfig={workspaceConfig}
         className="min-h-0 flex-1"

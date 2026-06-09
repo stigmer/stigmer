@@ -13,3 +13,8 @@ export type {
   InteractionModePickerProps,
   InteractionModeOption,
 } from "./InteractionModePicker";
+
+export {
+  toProtoInteractionMode,
+  fromProtoInteractionMode,
+} from "./interaction-mode";

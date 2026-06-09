@@ -38,6 +38,8 @@ export interface VirtualizedThreadProps {
   readonly filePathCtx: FilePathContextValue;
   readonly sandboxCtx: SandboxContextValue;
   readonly onBuildFromPlan?: () => void;
+  readonly org?: string;
+  readonly planActionsDisabled?: boolean;
   readonly centerContent?: boolean;
 }
 
@@ -96,6 +98,8 @@ export function VirtualizedThread({
   filePathCtx,
   sandboxCtx,
   onBuildFromPlan,
+  org,
+  planActionsDisabled,
   centerContent,
 }: VirtualizedThreadProps) {
   const virtuosoRef = useRef<VirtuosoHandle>(null);
@@ -126,8 +130,10 @@ export function VirtualizedThread({
       onApprovalSubmit,
       submittingApprovalIds,
       onBuildFromPlan,
+      org,
+      planActionsDisabled,
     }),
-    [formatToolCallSummary, onApprovalSubmit, submittingApprovalIds, onBuildFromPlan],
+    [formatToolCallSummary, onApprovalSubmit, submittingApprovalIds, onBuildFromPlan, org, planActionsDisabled],
   );
 
   return (

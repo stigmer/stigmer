@@ -8,12 +8,19 @@ import {
 } from "../useSessionArtifacts";
 import { ArtifactCard } from "../../execution/ArtifactCard";
 import { ArtifactPreviewModal } from "../../execution/ArtifactPreviewModal";
+import { isPlanArtifact } from "../../library/detect-plan-artifact";
 import type { ApplyResourceResult } from "../../library/useApplyResource";
 
 export interface ArtifactsTabProps {
   readonly executions: readonly AgentExecution[];
   readonly org: string;
   readonly onApplied?: (result: ApplyResourceResult) => void;
+  /**
+   * Implement a plan. When provided, the preview of a `plan.md` artifact
+   * shows an Implement action (turn the plan into an Agent run) — the same
+   * action as the message-thread plan card.
+   */
+  readonly onImplementPlan?: () => void;
 }
 
 /**
@@ -23,7 +30,7 @@ export interface ArtifactsTabProps {
  * `ArtifactPreviewModal` — the same content as `ArtifactsWidget`
  * without the section heading.
  */
-export function ArtifactsTab({ executions, org, onApplied }: ArtifactsTabProps) {
+export function ArtifactsTab({ executions, org, onApplied, onImplementPlan }: ArtifactsTabProps) {
   const { artifacts, hasArtifacts } = useSessionArtifacts(executions);
   const [previewEntry, setPreviewEntry] = useState<SessionArtifactEntry | null>(null);
 
@@ -70,6 +77,9 @@ export function ArtifactsTab({ executions, org, onApplied }: ArtifactsTabProps) 
           open
           onClose={handleClosePreview}
           onApplied={onApplied}
+          onImplement={
+            isPlanArtifact(previewEntry.artifact) ? onImplementPlan : undefined
+          }
         />
       )}
     </>

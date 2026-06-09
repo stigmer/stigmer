@@ -142,6 +142,19 @@ export interface MessageThreadProps {
    */
   readonly onBuildFromPlan?: () => void;
   /**
+   * Organization slug. Required for the plan completion card's
+   * "Review plan" action, which opens the shared artifact preview
+   * modal (the modal needs `org` for its detection/apply pipeline).
+   */
+  readonly org?: string;
+  /**
+   * Disables the plan completion card's actions (Implement / Review).
+   * Defense in depth for the brief windows where a follow-up cannot be
+   * sent (e.g. an execution is streaming); the composer also no-ops a
+   * disabled submit.
+   */
+  readonly planActionsDisabled?: boolean;
+  /**
    * Center thread content within a max-width reading column.
    *
    * When `true`, items are constrained to `max-w-3xl` (768 px) and
@@ -462,6 +475,8 @@ export function MessageThread({
   summarizationEvents,
   virtualized = false,
   onBuildFromPlan,
+  org,
+  planActionsDisabled,
   centerContent = false,
 }: MessageThreadProps) {
   useRenderTracer("MessageThread", { executions, activeStreamExecution });
@@ -499,6 +514,8 @@ export function MessageThread({
             filePathCtx={filePathCtx}
             sandboxCtx={sandboxCtx}
             onBuildFromPlan={onBuildFromPlan}
+            org={org}
+            planActionsDisabled={planActionsDisabled}
             centerContent={centerContent}
           />
         </Suspense>
@@ -517,6 +534,8 @@ export function MessageThread({
       filePathCtx={filePathCtx}
       sandboxCtx={sandboxCtx}
       onBuildFromPlan={onBuildFromPlan}
+      org={org}
+      planActionsDisabled={planActionsDisabled}
     />
   );
 }
@@ -539,6 +558,8 @@ interface NonVirtualizedThreadProps {
   readonly filePathCtx: FilePathContextValue;
   readonly sandboxCtx: SandboxContextValue;
   readonly onBuildFromPlan?: () => void;
+  readonly org?: string;
+  readonly planActionsDisabled?: boolean;
 }
 
 function NonVirtualizedThread({
@@ -551,6 +572,8 @@ function NonVirtualizedThread({
   filePathCtx,
   sandboxCtx,
   onBuildFromPlan,
+  org,
+  planActionsDisabled,
 }: NonVirtualizedThreadProps) {
   const { scrollRef, sentinelRef, contentRef, isFollowing, jumpToLatest } =
     useAutoScroll();
@@ -584,6 +607,8 @@ function NonVirtualizedThread({
                   onApprovalSubmit={onApprovalSubmit}
                   submittingApprovalIds={submittingApprovalIds}
                   onBuildFromPlan={onBuildFromPlan}
+                  org={org}
+                  planActionsDisabled={planActionsDisabled}
                 />
               </ThreadItemWrapper>
             ))}
@@ -618,6 +643,8 @@ export interface ThreadItemRendererProps {
   ) => void;
   readonly submittingApprovalIds?: ReadonlySet<string>;
   readonly onBuildFromPlan?: () => void;
+  readonly org?: string;
+  readonly planActionsDisabled?: boolean;
 }
 
 /**
@@ -637,6 +664,8 @@ export function ThreadItemRenderer({
   onApprovalSubmit,
   submittingApprovalIds,
   onBuildFromPlan,
+  org,
+  planActionsDisabled,
 }: ThreadItemRendererProps) {
   switch (item.kind) {
     case "message":
@@ -694,10 +723,15 @@ export function ThreadItemRenderer({
         <PlanArtifactCard
           executionId={item.executionId}
           artifact={item.planArtifact}
+          org={org}
           onImplement={onBuildFromPlan}
+          disabled={planActionsDisabled}
         />
       ) : (
-        <PlanCompletionCard onImplement={onBuildFromPlan} />
+        <PlanCompletionCard
+          onImplement={onBuildFromPlan}
+          disabled={planActionsDisabled}
+        />
       );
   }
 }

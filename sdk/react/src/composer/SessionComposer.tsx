@@ -48,17 +48,19 @@ import {
  * Imperative handle exposed by {@link SessionComposer} via `ref`.
  *
  * Allows parent components to programmatically set the composer's
- * message text and focus the textarea. Used for features like
- * "Build from Plan" where a CTA outside the composer needs to
- * pre-fill and focus the input.
+ * message text, focus the textarea, or submit a message directly.
+ * Used for features like "Implement plan" where a CTA outside the
+ * composer needs to run the agent in one click.
  *
  * @example
  * ```tsx
  * const composerRef = useRef<SessionComposerHandle>(null);
  *
  * function handleBuildFromPlan() {
- *   composerRef.current?.setMessage("Implement the plan above");
- *   composerRef.current?.focus();
+ *   // Switch to Agent mode and run immediately — no manual Send.
+ *   composerRef.current?.submit("Implement the plan above", {
+ *     interactionMode: "agent",
+ *   });
  * }
  *
  * <SessionComposer ref={composerRef} onSubmit={handleSubmit} />
@@ -69,6 +71,23 @@ export interface SessionComposerHandle {
   setMessage(message: string): void;
   /** Focus the composer's textarea. */
   focus(): void;
+  /**
+   * Submit a message programmatically through the composer's full submit
+   * pipeline (system/agent/MCP env resolution, attachments, session vars).
+   *
+   * Unlike calling the consumer's `onSubmit` directly, this guarantees the
+   * same runtime context the user would get from pressing Send. No-ops when
+   * the message is empty or the composer is disabled.
+   *
+   * @param message - The message to submit.
+   * @param options.interactionMode - Force the interaction mode for this one
+   *   submission, overriding the picker. Avoids the same-tick race when the
+   *   caller also calls `onInteractionModeChange` just before submitting.
+   */
+  submit(
+    message: string,
+    options?: { interactionMode?: InteractionModeOption },
+  ): void;
 }
 
 /**
@@ -670,7 +689,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   // ---------------------------------------------------------------------------
 
   const handleSubmit = useCallback(
-    async (message: string) => {
+    async (message: string, modeOverride?: InteractionModeOption) => {
       // Persist save-for-future manual secrets before building runtimeEnv
       if (sessionVariables?.hasSaveForFutureEntries) {
         const saveVars = sessionVariables.toSaveForFutureEnv();
@@ -717,9 +736,10 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
       const hasAttachments =
         attachmentInputs !== undefined && attachmentInputs.length > 0;
       const effectiveMode =
-        showInteractionModePicker && interactionMode
+        modeOverride ??
+        (showInteractionModePicker && interactionMode
           ? interactionMode
-          : undefined;
+          : undefined);
       const hasFileRefs = enableFileReferences && fileRefs.hasRefs;
 
       const context: SessionComposerSubmitContext | undefined =
@@ -755,7 +775,12 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   useImperativeHandle(ref, () => ({
     setMessage: composer.setMessage,
     focus: () => composer.textareaRef.current?.focus(),
-  }), [composer.setMessage, composer.textareaRef]);
+    submit: (message, options) => {
+      const trimmed = message.trim();
+      if (!trimmed || isDisabled) return;
+      void handleSubmit(trimmed, options?.interactionMode);
+    },
+  }), [composer.setMessage, composer.textareaRef, handleSubmit, isDisabled]);
 
   const handleModelChange = useCallback(
     (id: string) => {
