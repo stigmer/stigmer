@@ -93,6 +93,15 @@ export interface ResumeAgentOptions {
   apiKey: string;
   agentId: string;
   sessionId: string;
+  /**
+   * Workspace directories — same as {@link CreateAgentOptions.workspaceDirs}.
+   * NOT persisted across Agent.resume(): without an explicit cwd the SDK falls
+   * back to process.cwd(), which both mis-roots the resumed agent and loads
+   * the "project" setting source (and therefore the HITL approval hook in
+   * .cursor/hooks.json) from the wrong directory — silently disabling the
+   * approval gate on every resumed turn.
+   */
+  workspaceDirs: string[];
   /** Durable workspace volume root; the SDK state store lives under it. */
   workspaceRootDir: string;
   model?: string;
@@ -244,6 +253,10 @@ export async function createAgent(options: CreateAgentOptions): Promise<SDKAgent
  * propagate or fall back to a fresh agent with continuation context.
  */
 export async function resumeAgent(options: ResumeAgentOptions): Promise<SDKAgent> {
+  const cwd = options.workspaceDirs.length === 1
+    ? options.workspaceDirs[0]
+    : options.workspaceDirs;
+
   const platform = resolvePlatformOptions(options.sessionId, options.workspaceRootDir);
   console.log(
     `resumeAgent: agentId=${options.agentId}, sessionId=${options.sessionId}, ` +
@@ -254,9 +267,13 @@ export async function resumeAgent(options: ResumeAgentOptions): Promise<SDKAgent
   return Agent.resume(options.agentId, {
     apiKey: options.apiKey,
     model: options.model ? { id: options.model } : undefined,
-    // settingSources are not persisted across resume, so the "project" source
-    // (which loads the HITL approval hook) must be re-supplied every turn.
-    local: { settingSources: [...LOCAL_SETTING_SOURCES] },
+    // Neither cwd nor settingSources survive Agent.resume(); both must be
+    // re-supplied every turn. Omitting cwd makes the SDK fall back to
+    // process.cwd(), which re-roots the agent in the runner's own working
+    // directory and loads the "project" setting source — the .cursor/hooks.json
+    // carrying the HITL approval hook — from that wrong directory, silently
+    // disabling the approval gate on every resumed turn.
+    local: { cwd, settingSources: [...LOCAL_SETTING_SOURCES] },
     mcpServers: options.mcpServers as Record<string, any>,
     agents: options.agents,
     platform,
@@ -355,6 +372,7 @@ export async function resolveAgent(
             apiKey: options.apiKey,
             agentId: harnessStateId,
             sessionId: (options as CreateAgentOptions).sessionId,
+            workspaceDirs: (options as CreateAgentOptions).workspaceDirs,
             workspaceRootDir: (options as CreateAgentOptions).workspaceRootDir,
             model: options.model,
             mcpServers: options.mcpServers,

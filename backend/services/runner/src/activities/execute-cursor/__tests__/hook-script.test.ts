@@ -146,4 +146,59 @@ d("generated preToolUse hook", () => {
     const h = setup({ noStateFile: true });
     expect(h.decide(hookWrite("/x/a.txt")).permission).toBe("deny");
   });
+
+  // Regression: the original grep-based extraction truncated string values at
+  // the first JSON-escaped character, so a shell command containing double
+  // quotes (e.g. `printf '%s' 'x' > "file"`) produced a ledger token that never
+  // matched the runner's grantToken — the denied call stayed COMPLETED in the
+  // persisted messages and a grant for it was re-denied on reinvocation.
+  // (Observed live in TestCursorHarness_HITL_ResumedTurn_StillGated.)
+  it("records a byte-identical token for commands with quotes, escapes, and newlines", () => {
+    const commands = [
+      'printf \'%s\' \'hello\' > "/tmp/a dir/resumed-gate.txt"',
+      'echo "double \\"nested\\" quotes" && echo done',
+      "line1\nline2\twith\ttabs",
+      'unicode: caf\u00e9 \u2014 emoji \u{1F600}',
+    ];
+    for (const command of commands) {
+      const h = setup({});
+      expect(h.decide(hookShell(command)).permission).toBe("deny");
+      const ledger = h.ledger();
+      expect(ledger).toHaveLength(1);
+      expect(ledger[0].token).toBe(grantToken("shell", command));
+    }
+  });
+
+  it("allows the exact granted shell command even when it contains quotes", () => {
+    const command = 'printf \'%s\' \'hello-resume\' > "/x/resumed-gate.txt"';
+    const id = toolIdentity("shell", "", { command });
+    const h = setup({ grants: [{ toolName: "shell", mcpServerSlug: "", key: id.key, salient: id.salient }] });
+
+    expect(h.decide(hookShell(command)).permission).toBe("allow");
+    // A different command is NOT covered by the grant -> still gated.
+    expect(h.decide(hookShell('rm -rf "/x"')).permission).toBe("deny");
+  });
+
+  it("still denies gated tools via the bash fallback when the Node binary is unavailable", () => {
+    const ws = mkdtempSync(join(tmpdir(), "hook-script-fallback-"));
+    tempDirs.push(ws);
+    const dir = join(ws, ".cursor", "hooks");
+    mkdirSync(dir, { recursive: true });
+    const statePath = join(dir, "state.json");
+    const ledgerPath = join(dir, "denials.jsonl");
+    const scriptPath = join(dir, "hook.sh");
+    // Break the baked Node path to force the grep/cut fallback.
+    const script = generateHookScript(statePath, ledgerPath)
+      .replace(`NODE_BIN="${process.execPath}"`, 'NODE_BIN="/nonexistent/node"');
+    writeFileSync(scriptPath, script, "utf-8");
+    writeFileSync(statePath, JSON.stringify(buildApprovalState(new Map(), false)), "utf-8");
+
+    const raw = execFileSync("bash", [scriptPath], {
+      input: JSON.stringify(hookWrite("/x/a.txt")),
+    }).toString();
+    expect(raw).toContain('"permission":"deny"');
+    const ledger = readFileSync(ledgerPath, "utf-8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
+    expect(ledger).toHaveLength(1);
+    expect(ledger[0].token).toBe(grantToken("write", "/x/a.txt"));
+  });
 });

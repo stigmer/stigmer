@@ -7,12 +7,20 @@
  * collide. These invariants are correctness-critical, hence the explicit tests.
  */
 
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
 import { mkdtempSync, rmSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { resolvePlatformOptions } from "../session-lifecycle.js";
+vi.mock("@cursor/sdk", () => ({
+  Agent: {
+    create: vi.fn(async () => ({ agentId: "agent-created" })),
+    resume: vi.fn(async () => ({ agentId: "agent-resumed" })),
+  },
+}));
+
+import { Agent } from "@cursor/sdk";
+import { resolvePlatformOptions, createAgent, resumeAgent } from "../session-lifecycle.js";
 
 const tempRoots: string[] = [];
 
@@ -61,5 +69,68 @@ describe("resolvePlatformOptions", () => {
 
   it("throws on an empty workspaceRootDir (state must live on the durable volume)", () => {
     expect(() => resolvePlatformOptions("ses-123", "")).toThrow(/workspaceRootDir is required/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Workspace binding across create/resume
+//
+// Regression: Agent.resume() does not persist local.cwd. When resumeAgent()
+// omitted it, the SDK fell back to process.cwd() — re-rooting the resumed
+// agent in the runner's own working directory and loading the "project"
+// setting source (the .cursor/hooks.json carrying the HITL approval hook)
+// from that wrong directory. Result: on every resumed turn, file edits and
+// shell commands ran unguarded with no approval card (observed in production
+// execution aex_01ktr5na07f5xtmn0dz3mfjtdp).
+// ---------------------------------------------------------------------------
+
+describe("workspace binding on create/resume", () => {
+  const baseOptions = {
+    apiKey: "key",
+    sessionId: "ses-cwd-test",
+    model: "gpt-test",
+  };
+
+  it("createAgent passes the single workspace dir as local.cwd", async () => {
+    const workspaceRootDir = freshWorkspaceRoot();
+    await createAgent({
+      ...baseOptions,
+      workspaceDirs: ["/work/repo-a"],
+      workspaceRootDir,
+    });
+
+    const callOptions = vi.mocked(Agent.create).mock.calls.at(-1)![0] as any;
+    expect(callOptions.local.cwd).toBe("/work/repo-a");
+    expect(callOptions.local.settingSources).toContain("project");
+  });
+
+  it("resumeAgent re-supplies local.cwd (not persisted by Agent.resume)", async () => {
+    const workspaceRootDir = freshWorkspaceRoot();
+    await resumeAgent({
+      ...baseOptions,
+      agentId: "agent-123",
+      workspaceDirs: ["/work/repo-a"],
+      workspaceRootDir,
+    });
+
+    const [agentId, callOptions] = vi.mocked(Agent.resume).mock.calls.at(-1)! as [string, any];
+    expect(agentId).toBe("agent-123");
+    // The load-bearing assertion: without cwd the SDK re-roots the agent at
+    // process.cwd() and the project HITL hook never loads on resumed turns.
+    expect(callOptions.local.cwd).toBe("/work/repo-a");
+    expect(callOptions.local.settingSources).toContain("project");
+  });
+
+  it("resumeAgent passes multiple workspace dirs as an array cwd", async () => {
+    const workspaceRootDir = freshWorkspaceRoot();
+    await resumeAgent({
+      ...baseOptions,
+      agentId: "agent-456",
+      workspaceDirs: ["/work/repo-a", "/work/repo-b"],
+      workspaceRootDir,
+    });
+
+    const callOptions = vi.mocked(Agent.resume).mock.calls.at(-1)![1] as any;
+    expect(callOptions.local.cwd).toEqual(["/work/repo-a", "/work/repo-b"]);
   });
 });

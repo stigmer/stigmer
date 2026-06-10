@@ -150,6 +150,74 @@ func TestCursorHarness_HITL_AdversarialShellWorkaround_StillGated(t *testing.T) 
 	assertNoMutatingToolCompleted(t, waiting)
 }
 
+// TestCursorHarness_HITL_ResumedTurn_StillGated reproduces the production
+// regression where the approval gate silently vanished on every turn after the
+// first (aex_01ktr5na07f5xtmn0dz3mfjtdp): Agent.resume() does not persist
+// local.cwd, and when the runner omitted it the SDK re-rooted the resumed agent
+// at the runner's own process.cwd() — loading the "project" setting source (the
+// .cursor/hooks.json carrying the HITL preToolUse hook) from the wrong
+// directory. Result: turn 1 was gated, but every subsequent message in the same
+// session ran file edits and shell commands unguarded to COMPLETED.
+//
+// The test runs a benign first turn to completion (creates the agent), then
+// requests a file mutation on the SECOND turn (resumes the agent) and asserts
+// the gate still holds. Requires CURSOR_API_KEY.
+func TestCursorHarness_HITL_ResumedTurn_StillGated(t *testing.T) {
+	requireCursorCallProviderPrereqs(t)
+
+	ctx, cancel := harness.TestContext(t, 8*time.Minute)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	harness.RequireServiceHealthy(t, ctx, clients)
+
+	agent := createTestAgentForCursor(t, ctx, clients,
+		"test-cursor-hitl-resumed-turn",
+		"You are a helpful coding assistant.",
+	)
+
+	session := harness.CreateTestSession(t, ctx, clients,
+		agent.GetStatus().GetDefaultInstanceId(),
+		sessionv1.Harness_HARNESS_CURSOR,
+	)
+
+	waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
+
+	// Turn 1: benign, read-only prompt — completes and persists the Cursor
+	// agentId as harness_state_id so turn 2 takes the Agent.resume() path.
+	first := harness.CreateTestAgentExecution(t, ctx, clients,
+		session.GetMetadata().GetId(),
+		"Reply with the single word: ready. Do not use any tools.",
+		harness.WithAutoApproveAll(false),
+	)
+	firstResult, err := waiter.WaitForPhase(ctx, first.GetMetadata().GetId(),
+		agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 3*time.Minute)
+	if err != nil {
+		harness.LogExecutionMessages(t, ctx, clients, first.GetMetadata().GetId())
+	}
+	require.NoError(t, err, "benign first turn should complete")
+	harness.AssertAgentPhase(t, firstResult, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
+
+	// Turn 2: the mutation. The resumed agent must still load the project HITL
+	// hook, so the gate must hold exactly as it does on a fresh agent.
+	_, waiting := waiter.WaitForApprovalWithRetry(t, ctx, clients,
+		session.GetMetadata().GetId(),
+		"Create a file called resumed-gate.txt containing exactly the text: hello-resume.",
+		3*time.Minute,
+		harness.WithAutoApproveAll(false),
+	)
+
+	harness.AssertAgentPhase(t, waiting, agentexecv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL)
+	require.NotEmpty(t, waiting.GetStatus().GetPendingApprovals(),
+		"the approval gate must hold on a resumed turn (second message in the session)")
+
+	approval := waiting.GetStatus().GetPendingApprovals()[0]
+	assert.True(t, isGatedMutatingTool(approval.GetToolName()),
+		"expected a gated mutating tool on the resumed turn, got %q", approval.GetToolName())
+	assertToolCallWaitingApproval(t, waiting, approval.GetToolCallId())
+	assertNoMutatingToolCompleted(t, waiting)
+}
+
 // TestCursorHarness_HITL_AutoApproveAll_NoGate verifies the bypass: with
 // auto_approve_all=true the same file mutation executes without ever pausing for
 // approval. Requires CURSOR_API_KEY.
