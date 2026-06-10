@@ -1,0 +1,5 @@
+# Secrets — .gitignore only blocks indexing, not Agent/Tab read access
+**/.env
+**/.env_export
+**/.npmrc
+client-apps/desktop/scripts/.certs/
