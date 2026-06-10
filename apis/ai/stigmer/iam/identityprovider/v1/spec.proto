@@ -260,28 +260,4 @@ message IdentityProviderSpec {
   // resolve to a known platform-managed organization, the authentication
   // request is rejected with a descriptive error.
   string tenant_org_claim = 12 [(buf.validate.field).string.max_len = 256];
-
-  // Whether federated authentication via this provider may reuse a pre-existing
-  // identity account that shares the same raw OIDC sub (idp_id), instead of
-  // minting a brand-new federated account.
-  //
-  // Federated identities are normally a separate namespace: a federated account
-  // is uniquely keyed by (identity_provider_ref, idp_id), so it never matches a
-  // native/direct account even when the underlying OIDC sub is identical. That
-  // separation is the safe default — it prevents one identity provider from
-  // claiming subjects that belong to another trust domain.
-  //
-  // Some providers, however, surface the very same upstream subject that users
-  // already authenticate with directly (e.g. a delegated Auth0 tenant that
-  // forwards Google's "google-oauth2|..." sub). For those, creating a second
-  // account fragments ownership: resources created under one identity become
-  // invisible to the other. When this flag is true, JIT provisioning first
-  // looks up any existing account by idp_id and, if the verified email also
-  // matches, links the federated login to that account (stamping this
-  // provider's identity_provider_ref) rather than creating a duplicate.
-  //
-  // Enable this ONLY for providers you fully trust to assert the upstream
-  // subject and email, since it crosses the native/federated namespace
-  // boundary. Defaults to false (strict separation).
-  bool link_accounts_by_external_sub = 13;
 }
