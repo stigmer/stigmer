@@ -155,7 +155,14 @@
                         <configuration>
                             <publishingServerId>central</publishingServerId>
                             <autoPublish>true</autoPublish>
-                            <waitUntil>published</waitUntil>
+                            <!--
+                              Wait only until Sonatype validates the bundle, not until it
+                              fully propagates to Maven Central. autoPublish still publishes
+                              the deployment; "published" previously caused the job to poll
+                              for ~25 min on every release even though the artifact published
+                              successfully. Matches the apis/stubs/java protos pom.
+                            -->
+                            <waitUntil>validated</waitUntil>
                         </configuration>
                     </plugin>
                     <plugin>
