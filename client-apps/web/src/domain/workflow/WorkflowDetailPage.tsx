@@ -15,7 +15,6 @@ import {
   useConfirmAction,
   useDeleteResource,
   useExportResource,
-  useUpdateVisibility,
   useElkLayoutEngine,
   PermissionGate,
   SharePanel,
@@ -65,10 +64,6 @@ export function WorkflowDetailPageInner({
     kind: "Workflow",
     resource: workflow,
   });
-  const { updateVisibility, isPending: isVisibilityPending } = useUpdateVisibility(
-    "workflow",
-    resourceId,
-  );
   const [showSharePanel, setShowSharePanel] = useState(false);
 
   useEffect(() => () => setLabel(null), [setLabel]);
@@ -231,8 +226,6 @@ export function WorkflowDetailPageInner({
           org={org}
           slug={slug}
           onResourceLoad={handleResourceLoad}
-          onVisibilityChange={updateVisibility}
-          isVisibilityPending={isVisibilityPending}
           editable
           primaryAction={primaryAction}
           actions={actions}

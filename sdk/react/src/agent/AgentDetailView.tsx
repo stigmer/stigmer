@@ -10,13 +10,11 @@ import type {
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { useAgent } from "./useAgent";
 import { useUpdateAgent } from "./useUpdateAgent";
 import { agentToInput } from "./internal/agentToInput";
 import { ErrorMessage } from "../error/ErrorMessage";
-import { VisibilityToggle } from "../library/VisibilityToggle";
-import { PermissionGate } from "../iam-policy/PermissionGate";
+import { ResourceVisibilityControl } from "../library/ResourceVisibilityControl";
 import { ResourceDetailShell } from "../resource-detail/ResourceDetailShell";
 import { Section } from "../resource-detail/Section";
 import { useDetailTabs } from "../resource-detail/useDetailTabs";
@@ -65,15 +63,6 @@ export interface AgentDetailViewProps {
    * Not called on error or not-found states.
    */
   readonly onResourceLoad?: (meta: { name: string; id: string }) => void;
-  /**
-   * Called when the user toggles visibility via the inline control.
-   * When provided, the header renders an interactive
-   * {@link VisibilityToggle} instead of a read-only badge.
-   * When omitted, visibility is displayed as a static "Public" pill.
-   */
-  readonly onVisibilityChange?: (v: ApiResourceVisibility) => void;
-  /** `true` while a visibility update RPC is in flight. */
-  readonly isVisibilityPending?: boolean;
   /**
    * Primary action rendered as a visible button in the header area.
    * Typically "Edit" for agent detail pages.
@@ -205,8 +194,6 @@ export function AgentDetailView({
   onMcpServerClick,
   onSkillClick,
   onResourceLoad,
-  onVisibilityChange,
-  isVisibilityPending,
   primaryAction,
   actions,
   additionalTabs,
@@ -325,27 +312,14 @@ export function AgentDetailView({
     updatedAt: specAudit?.updatedAt ? timestampDate(specAudit.updatedAt) : null,
   };
 
-  const visibilityBadge =
-    meta?.visibility === ApiResourceVisibility.visibility_public ? (
-      <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-        Public
-      </span>
-    ) : undefined;
-
-  const visibilityControl =
-    onVisibilityChange && meta ? (
-      <PermissionGate
-        resource={{ kind: "agent", id: meta.id }}
-        relation="can_edit"
-        fallback={visibilityBadge}
-      >
-        <VisibilityToggle
-          visibility={meta.visibility}
-          onVisibilityChange={onVisibilityChange}
-          isPending={isVisibilityPending}
-        />
-      </PermissionGate>
-    ) : visibilityBadge;
+  const visibilityControl = meta ? (
+    <ResourceVisibilityControl
+      kind="agent"
+      resourceId={meta.id}
+      visibility={meta.visibility}
+      onChanged={refetch}
+    />
+  ) : undefined;
 
   let tabContent: React.ReactNode;
   if (activeAdditionalTab) {

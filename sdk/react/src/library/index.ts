@@ -68,8 +68,11 @@ export type {
 export { ImportResourceDialog } from "./ImportResourceDialog";
 export type { ImportResourceDialogProps } from "./ImportResourceDialog";
 
-export { VisibilityToggle } from "./VisibilityToggle";
+export { VisibilityToggle, VisibilityBadge } from "./VisibilityToggle";
 export type { VisibilityToggleProps } from "./VisibilityToggle";
+
+export { ResourceVisibilityControl } from "./ResourceVisibilityControl";
+export type { ResourceVisibilityControlProps } from "./ResourceVisibilityControl";
 
 export { useUpdateVisibility } from "./useUpdateVisibility";
 export type {

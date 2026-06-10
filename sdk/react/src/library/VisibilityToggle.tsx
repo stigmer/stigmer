@@ -205,6 +205,39 @@ export function VisibilityToggle({
   );
 }
 
+/**
+ * Read-only visibility indicator (Private / Public) with a matching icon.
+ *
+ * Rendered wherever the interactive {@link VisibilityToggle} is not available —
+ * for viewers who lack `can_edit`, and while a permission check is in flight —
+ * so a resource's visibility is always legible rather than silently blank.
+ */
+export function VisibilityBadge({
+  visibility,
+  className,
+}: {
+  readonly visibility: ApiResourceVisibility;
+  readonly className?: string;
+}) {
+  const isPublic =
+    visibility === ApiResourceVisibility.visibility_public;
+  return (
+    <span
+      className={cn(
+        "inline-flex shrink-0 items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground",
+        className,
+      )}
+    >
+      {isPublic ? (
+        <GlobeIcon className="size-2.5" />
+      ) : (
+        <LockIcon className="size-2.5" />
+      )}
+      {isPublic ? "Public" : "Private"}
+    </span>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Icons — inline SVGs following the SDK pattern (no icon library dependency)
 // ---------------------------------------------------------------------------

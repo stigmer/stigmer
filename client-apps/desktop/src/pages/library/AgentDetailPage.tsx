@@ -5,7 +5,6 @@ import {
   AgentDetailView,
   CreateAgentInstanceDialog,
   useAgent,
-  useUpdateVisibility,
   useDeleteAgentInstance,
   useCopyResource,
   useConfirmAction,
@@ -47,11 +46,6 @@ export default function AgentDetailPage() {
     kind: "Agent",
     resource: agent,
   });
-
-  const { updateVisibility, isPending } = useUpdateVisibility(
-    "agent",
-    resourceId,
-  );
 
   const [showCreateInstanceDialog, setShowCreateInstanceDialog] = useState(false);
   const [instancesRefreshKey, setInstancesRefreshKey] = useState(0);
@@ -204,8 +198,6 @@ export default function AgentDetailPage() {
         onSkillClick={(ref) =>
           navigate(`/library/skills/${ref.org}/${ref.slug}`)
         }
-        onVisibilityChange={updateVisibility}
-        isVisibilityPending={isPending}
         primaryAction={primaryAction}
         actions={actions}
         onCreateInstanceClick={() => setShowCreateInstanceDialog(true)}

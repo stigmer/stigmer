@@ -7,12 +7,10 @@ import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import type { GitProvenance } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/status_pb";
 import { SkillState } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/status_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { useSkill } from "./useSkill";
 import { SkillFileBrowser } from "./SkillFileBrowser";
 import { ErrorMessage } from "../error/ErrorMessage";
-import { VisibilityToggle } from "../library/VisibilityToggle";
-import { PermissionGate } from "../iam-policy/PermissionGate";
+import { ResourceVisibilityControl } from "../library/ResourceVisibilityControl";
 import { MARKDOWN_COMPONENTS, REMARK_PLUGINS, stripFrontmatter } from "../internal/markdown-components";
 import { ResourceDetailShell } from "../resource-detail/ResourceDetailShell";
 import { Section } from "../resource-detail/Section";
@@ -46,15 +44,6 @@ export interface SkillDetailViewProps {
    * Not called on error or not-found states.
    */
   readonly onResourceLoad?: (meta: { name: string; id: string }) => void;
-  /**
-   * Called when the user toggles visibility via the inline control.
-   * When provided, the header renders an interactive
-   * {@link VisibilityToggle} instead of a read-only badge.
-   * When omitted, visibility is displayed as a static "Public" pill.
-   */
-  readonly onVisibilityChange?: (v: ApiResourceVisibility) => void;
-  /** `true` while a visibility update RPC is in flight. */
-  readonly isVisibilityPending?: boolean;
   /**
    * Primary action rendered as a visible button in the header area.
    */
@@ -153,8 +142,6 @@ export function SkillDetailView({
   slug,
   version,
   onResourceLoad,
-  onVisibilityChange,
-  isVisibilityPending,
   primaryAction,
   actions,
   additionalTabs,
@@ -243,27 +230,14 @@ export function SkillDetailView({
     statusLabel: status ? skillStateLabel(status.state) : undefined,
   };
 
-  const visibilityBadge =
-    meta?.visibility === ApiResourceVisibility.visibility_public ? (
-      <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-        Public
-      </span>
-    ) : undefined;
-
-  const visibilityControl =
-    onVisibilityChange && meta ? (
-      <PermissionGate
-        resource={{ kind: "skill", id: meta.id }}
-        relation="can_edit"
-        fallback={visibilityBadge}
-      >
-        <VisibilityToggle
-          visibility={meta.visibility}
-          onVisibilityChange={onVisibilityChange}
-          isPending={isVisibilityPending}
-        />
-      </PermissionGate>
-    ) : visibilityBadge;
+  const visibilityControl = meta ? (
+    <ResourceVisibilityControl
+      kind="skill"
+      resourceId={meta.id}
+      visibility={meta.visibility}
+      onChanged={refetch}
+    />
+  ) : undefined;
 
   let tabContent: React.ReactNode;
   if (activeAdditionalTab) {

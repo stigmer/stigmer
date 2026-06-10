@@ -5,7 +5,6 @@ import { cn } from "@stigmer/theme";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import type { WorkflowInstance } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ValidationState } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/serverless/validation_pb";
 import type { WorkflowInput } from "@stigmer/sdk";
 import { useWorkflow } from "./useWorkflow";
@@ -23,9 +22,8 @@ import { WorkflowInstanceList } from "./instance/WorkflowInstanceList";
 import { WorkflowVersionsTab } from "./WorkflowVersionsTab";
 import { useWorkflowVersions } from "./useWorkflowVersions";
 import { ErrorMessage } from "../error/ErrorMessage";
-import { VisibilityToggle } from "../library/VisibilityToggle";
+import { ResourceVisibilityControl } from "../library/ResourceVisibilityControl";
 import { formatDurationSec } from "./format-utils";
-import { PermissionGate } from "../iam-policy/PermissionGate";
 import { ResourceDetailShell } from "../resource-detail/ResourceDetailShell";
 import { Section } from "../resource-detail/Section";
 import { useDetailTabs } from "../resource-detail/useDetailTabs";
@@ -53,14 +51,6 @@ export interface WorkflowDetailViewProps {
    * Provides the resource display name for breadcrumbs, document titles, etc.
    */
   readonly onResourceLoad?: (meta: { name: string; id: string }) => void;
-  /**
-   * Called when the user toggles visibility via the inline control.
-   * When provided, the header renders an interactive
-   * {@link VisibilityToggle} instead of a read-only badge.
-   */
-  readonly onVisibilityChange?: (v: ApiResourceVisibility) => void;
-  /** `true` while a visibility update RPC is in flight. */
-  readonly isVisibilityPending?: boolean;
   /**
    * Primary action rendered as a visible button in the header area.
    */
@@ -158,8 +148,6 @@ export function WorkflowDetailView({
   org,
   slug,
   onResourceLoad,
-  onVisibilityChange,
-  isVisibilityPending,
   primaryAction,
   actions,
   additionalTabs,
@@ -269,27 +257,14 @@ export function WorkflowDetailView({
     <ValidationIndicator state={validationState} />
   ) : undefined;
 
-  const visibilityBadge =
-    meta?.visibility === ApiResourceVisibility.visibility_public ? (
-      <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-        Public
-      </span>
-    ) : undefined;
-
-  const visibilityControl =
-    onVisibilityChange && meta ? (
-      <PermissionGate
-        resource={{ kind: "workflow", id: meta.id }}
-        relation="can_edit"
-        fallback={visibilityBadge}
-      >
-        <VisibilityToggle
-          visibility={meta.visibility}
-          onVisibilityChange={onVisibilityChange}
-          isPending={isVisibilityPending}
-        />
-      </PermissionGate>
-    ) : visibilityBadge;
+  const visibilityControl = meta ? (
+    <ResourceVisibilityControl
+      kind="workflow"
+      resourceId={meta.id}
+      visibility={meta.visibility}
+      onChanged={refetch}
+    />
+  ) : undefined;
 
   let tabContent: React.ReactNode;
   if (activeAdditionalTab) {

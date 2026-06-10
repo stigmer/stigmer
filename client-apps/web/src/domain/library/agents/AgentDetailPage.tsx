@@ -7,7 +7,6 @@ import {
   AgentDetailView,
   CreateAgentInstanceDialog,
   useAgent,
-  useUpdateVisibility,
   useDeleteAgentInstance,
   useCopyResource,
   useConfirmAction,
@@ -42,11 +41,6 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
     kind: "Agent",
     resource: agent,
   });
-
-  const { updateVisibility, isPending } = useUpdateVisibility(
-    "agent",
-    resourceId,
-  );
 
   const [showCreateInstanceDialog, setShowCreateInstanceDialog] = useState(false);
   const [instancesRefreshKey, setInstancesRefreshKey] = useState(0);
@@ -181,8 +175,6 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
         onSkillClick={({ org: o, slug: s }) =>
           navigateToDetail("skills", o, s)
         }
-        onVisibilityChange={updateVisibility}
-        isVisibilityPending={isPending}
         editable
         primaryAction={primaryAction}
         actions={actions}

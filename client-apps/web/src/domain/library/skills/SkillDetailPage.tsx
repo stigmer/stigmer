@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   SkillDetailView,
-  useUpdateVisibility,
   useCopyResource,
   useConfirmAction,
   useDeleteResource,
@@ -27,11 +26,6 @@ export function SkillDetailPageInner({ org, slug }: SkillDetailPageInnerProps) {
   const { copyId, copyQualifiedSlug } = useCopyResource();
   const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
   const { deleteResource, isDeleting } = useDeleteResource("skill", resourceId, resourceName);
-
-  const { updateVisibility, isPending } = useUpdateVisibility(
-    "skill",
-    resourceId,
-  );
 
   useEffect(() => () => setLabel(null), [setLabel]);
 
@@ -95,8 +89,6 @@ export function SkillDetailPageInner({ org, slug }: SkillDetailPageInnerProps) {
         slug={slug}
         editable
         onResourceLoad={handleResourceLoad}
-        onVisibilityChange={updateVisibility}
-        isVisibilityPending={isPending}
         actions={actions}
       />
       <ConfirmDialog

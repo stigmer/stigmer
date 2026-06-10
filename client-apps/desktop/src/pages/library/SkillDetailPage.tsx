@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   SkillDetailView,
-  useUpdateVisibility,
   useCopyResource,
   useConfirmAction,
   useDeleteResource,
@@ -24,11 +23,6 @@ export default function SkillDetailPage() {
     "skill",
     resourceId,
     resourceName,
-  );
-
-  const { updateVisibility, isPending } = useUpdateVisibility(
-    "skill",
-    resourceId,
   );
 
   useEffect(() => () => setLabel(null), [setLabel]);
@@ -106,8 +100,6 @@ export default function SkillDetailPage() {
         slug={slug}
         editable
         onResourceLoad={handleResourceLoad}
-        onVisibilityChange={updateVisibility}
-        isVisibilityPending={isPending}
         actions={actions}
       />
       <ConfirmDialog
