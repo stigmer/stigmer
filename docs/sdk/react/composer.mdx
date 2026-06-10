@@ -116,16 +116,18 @@ Maps to `InteractionMode` proto enum values (excluding UNSPECIFIED):
 Imperative handle exposed by [`SessionComposer`](#sessioncomposer) via `ref`.
 
 Allows parent components to programmatically set the composer's
-message text and focus the textarea. Used for features like
-"Build from Plan" where a CTA outside the composer needs to
-pre-fill and focus the input.
+message text, focus the textarea, or submit a message directly.
+Used for features like "Implement plan" where a CTA outside the
+composer needs to run the agent in one click.
 
 ```tsx
 const composerRef = useRef<SessionComposerHandle>(null);
 
 function handleBuildFromPlan() {
-  composerRef.current?.setMessage("Implement the plan above");
-  composerRef.current?.focus();
+  // Switch to Agent mode and run immediately — no manual Send.
+  composerRef.current?.submit("Implement the plan above", {
+    interactionMode: "agent",
+  });
 }
 
 <SessionComposer ref={composerRef} onSubmit={handleSubmit} />
