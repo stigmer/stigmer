@@ -46,6 +46,37 @@ public final class IamPolicyQueryControllerGrpc {
     return getGetMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.iampolicy.v1.CheckMyPermissionInput,
+      ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult> getCheckMyPermissionMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "checkMyPermission",
+      requestType = ai.stigmer.iam.iampolicy.v1.CheckMyPermissionInput.class,
+      responseType = ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.iam.iampolicy.v1.CheckMyPermissionInput,
+      ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult> getCheckMyPermissionMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.iam.iampolicy.v1.CheckMyPermissionInput, ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult> getCheckMyPermissionMethod;
+    if ((getCheckMyPermissionMethod = IamPolicyQueryControllerGrpc.getCheckMyPermissionMethod) == null) {
+      synchronized (IamPolicyQueryControllerGrpc.class) {
+        if ((getCheckMyPermissionMethod = IamPolicyQueryControllerGrpc.getCheckMyPermissionMethod) == null) {
+          IamPolicyQueryControllerGrpc.getCheckMyPermissionMethod = getCheckMyPermissionMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.iam.iampolicy.v1.CheckMyPermissionInput, ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "checkMyPermission"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.iam.iampolicy.v1.CheckMyPermissionInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult.getDefaultInstance()))
+              .setSchemaDescriptor(new IamPolicyQueryControllerMethodDescriptorSupplier("checkMyPermission"))
+              .build();
+        }
+      }
+    }
+    return getCheckMyPermissionMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.iampolicy.v1.CheckAuthorizationInput,
       ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult> getCheckAuthorizationMethod;
 
@@ -313,18 +344,49 @@ public final class IamPolicyQueryControllerGrpc {
 
     /**
      * <pre>
+     * Check whether the AUTHENTICATED CALLER has a permission on a resource.
+     * This is the self-check RPC for clients (web console, desktop, SDKs):
+     * "Do I have permission Y on resource Z?"
+     * The principal is always derived server-side from the authenticated token.
+     * The input has no principal field by design — clients cannot name a
+     * principal, so cross-principal permission probing is structurally
+     * impossible (the Kubernetes SelfSubjectAccessReview pattern).
+     * Use Cases:
+     * - Pre-flight UI checks before showing buttons/actions
+     * - Permission-gated rendering (PermissionGate components)
+     * Input: CheckMyPermissionInput with resource, relation, and optional contextual policies
+     * Output: CheckAuthorizationResult with is_authorized boolean
+     * &#64;internal
+     * Skips standard authorization because authorizing this RPC via IAM would
+     * recurse into IAM. Authentication is still required; the handler anchors
+     * the FGA check to the caller's identity account.
+     * </pre>
+     */
+    default void checkMyPermission(ai.stigmer.iam.iampolicy.v1.CheckMyPermissionInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getCheckMyPermissionMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
      * Check if a principal is authorized to perform a relation on a resource
      * This is the fundamental authorization check RPC that answers the question:
      * "Does principal X have permission Y on resource Z?"
      * It provides a simple boolean answer based on the complete authorization state,
      * including existing IAM policies, inherited permissions, and group memberships.
+     * This RPC is an INTERNAL-FACING contract for the platform's own
+     * authorization pipeline (service-to-service and in-process checks).
+     * Client-facing self checks must use checkMyPermission instead.
      * Use Cases:
-     * - Pre-flight UI checks before showing buttons/actions
      * - API request authorization before processing operations
      * - Service-to-service authorization
      * - Team-based access checks
      * Input: CheckAuthorizationInput with policy spec and optional contextual policies
      * Output: CheckAuthorizationResult with is_authorized boolean
+     * &#64;internal
+     * Skips standard authorization to avoid IAM-authorizing-IAM recursion.
+     * The handler enforces principal trust instead: the caller must either BE
+     * the principal being checked, or be a machine (system) account.
      * </pre>
      */
     default void checkAuthorization(ai.stigmer.iam.iampolicy.v1.CheckAuthorizationInput request,
@@ -472,18 +534,50 @@ public final class IamPolicyQueryControllerGrpc {
 
     /**
      * <pre>
+     * Check whether the AUTHENTICATED CALLER has a permission on a resource.
+     * This is the self-check RPC for clients (web console, desktop, SDKs):
+     * "Do I have permission Y on resource Z?"
+     * The principal is always derived server-side from the authenticated token.
+     * The input has no principal field by design — clients cannot name a
+     * principal, so cross-principal permission probing is structurally
+     * impossible (the Kubernetes SelfSubjectAccessReview pattern).
+     * Use Cases:
+     * - Pre-flight UI checks before showing buttons/actions
+     * - Permission-gated rendering (PermissionGate components)
+     * Input: CheckMyPermissionInput with resource, relation, and optional contextual policies
+     * Output: CheckAuthorizationResult with is_authorized boolean
+     * &#64;internal
+     * Skips standard authorization because authorizing this RPC via IAM would
+     * recurse into IAM. Authentication is still required; the handler anchors
+     * the FGA check to the caller's identity account.
+     * </pre>
+     */
+    public void checkMyPermission(ai.stigmer.iam.iampolicy.v1.CheckMyPermissionInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getCheckMyPermissionMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * Check if a principal is authorized to perform a relation on a resource
      * This is the fundamental authorization check RPC that answers the question:
      * "Does principal X have permission Y on resource Z?"
      * It provides a simple boolean answer based on the complete authorization state,
      * including existing IAM policies, inherited permissions, and group memberships.
+     * This RPC is an INTERNAL-FACING contract for the platform's own
+     * authorization pipeline (service-to-service and in-process checks).
+     * Client-facing self checks must use checkMyPermission instead.
      * Use Cases:
-     * - Pre-flight UI checks before showing buttons/actions
      * - API request authorization before processing operations
      * - Service-to-service authorization
      * - Team-based access checks
      * Input: CheckAuthorizationInput with policy spec and optional contextual policies
      * Output: CheckAuthorizationResult with is_authorized boolean
+     * &#64;internal
+     * Skips standard authorization to avoid IAM-authorizing-IAM recursion.
+     * The handler enforces principal trust instead: the caller must either BE
+     * the principal being checked, or be a machine (system) account.
      * </pre>
      */
     public void checkAuthorization(ai.stigmer.iam.iampolicy.v1.CheckAuthorizationInput request,
@@ -622,18 +716,49 @@ public final class IamPolicyQueryControllerGrpc {
 
     /**
      * <pre>
+     * Check whether the AUTHENTICATED CALLER has a permission on a resource.
+     * This is the self-check RPC for clients (web console, desktop, SDKs):
+     * "Do I have permission Y on resource Z?"
+     * The principal is always derived server-side from the authenticated token.
+     * The input has no principal field by design — clients cannot name a
+     * principal, so cross-principal permission probing is structurally
+     * impossible (the Kubernetes SelfSubjectAccessReview pattern).
+     * Use Cases:
+     * - Pre-flight UI checks before showing buttons/actions
+     * - Permission-gated rendering (PermissionGate components)
+     * Input: CheckMyPermissionInput with resource, relation, and optional contextual policies
+     * Output: CheckAuthorizationResult with is_authorized boolean
+     * &#64;internal
+     * Skips standard authorization because authorizing this RPC via IAM would
+     * recurse into IAM. Authentication is still required; the handler anchors
+     * the FGA check to the caller's identity account.
+     * </pre>
+     */
+    public ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult checkMyPermission(ai.stigmer.iam.iampolicy.v1.CheckMyPermissionInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getCheckMyPermissionMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * Check if a principal is authorized to perform a relation on a resource
      * This is the fundamental authorization check RPC that answers the question:
      * "Does principal X have permission Y on resource Z?"
      * It provides a simple boolean answer based on the complete authorization state,
      * including existing IAM policies, inherited permissions, and group memberships.
+     * This RPC is an INTERNAL-FACING contract for the platform's own
+     * authorization pipeline (service-to-service and in-process checks).
+     * Client-facing self checks must use checkMyPermission instead.
      * Use Cases:
-     * - Pre-flight UI checks before showing buttons/actions
      * - API request authorization before processing operations
      * - Service-to-service authorization
      * - Team-based access checks
      * Input: CheckAuthorizationInput with policy spec and optional contextual policies
      * Output: CheckAuthorizationResult with is_authorized boolean
+     * &#64;internal
+     * Skips standard authorization to avoid IAM-authorizing-IAM recursion.
+     * The handler enforces principal trust instead: the caller must either BE
+     * the principal being checked, or be a machine (system) account.
      * </pre>
      */
     public ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult checkAuthorization(ai.stigmer.iam.iampolicy.v1.CheckAuthorizationInput request) throws io.grpc.StatusException {
@@ -766,18 +891,49 @@ public final class IamPolicyQueryControllerGrpc {
 
     /**
      * <pre>
+     * Check whether the AUTHENTICATED CALLER has a permission on a resource.
+     * This is the self-check RPC for clients (web console, desktop, SDKs):
+     * "Do I have permission Y on resource Z?"
+     * The principal is always derived server-side from the authenticated token.
+     * The input has no principal field by design — clients cannot name a
+     * principal, so cross-principal permission probing is structurally
+     * impossible (the Kubernetes SelfSubjectAccessReview pattern).
+     * Use Cases:
+     * - Pre-flight UI checks before showing buttons/actions
+     * - Permission-gated rendering (PermissionGate components)
+     * Input: CheckMyPermissionInput with resource, relation, and optional contextual policies
+     * Output: CheckAuthorizationResult with is_authorized boolean
+     * &#64;internal
+     * Skips standard authorization because authorizing this RPC via IAM would
+     * recurse into IAM. Authentication is still required; the handler anchors
+     * the FGA check to the caller's identity account.
+     * </pre>
+     */
+    public ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult checkMyPermission(ai.stigmer.iam.iampolicy.v1.CheckMyPermissionInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getCheckMyPermissionMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * Check if a principal is authorized to perform a relation on a resource
      * This is the fundamental authorization check RPC that answers the question:
      * "Does principal X have permission Y on resource Z?"
      * It provides a simple boolean answer based on the complete authorization state,
      * including existing IAM policies, inherited permissions, and group memberships.
+     * This RPC is an INTERNAL-FACING contract for the platform's own
+     * authorization pipeline (service-to-service and in-process checks).
+     * Client-facing self checks must use checkMyPermission instead.
      * Use Cases:
-     * - Pre-flight UI checks before showing buttons/actions
      * - API request authorization before processing operations
      * - Service-to-service authorization
      * - Team-based access checks
      * Input: CheckAuthorizationInput with policy spec and optional contextual policies
      * Output: CheckAuthorizationResult with is_authorized boolean
+     * &#64;internal
+     * Skips standard authorization to avoid IAM-authorizing-IAM recursion.
+     * The handler enforces principal trust instead: the caller must either BE
+     * the principal being checked, or be a machine (system) account.
      * </pre>
      */
     public ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult checkAuthorization(ai.stigmer.iam.iampolicy.v1.CheckAuthorizationInput request) {
@@ -911,18 +1067,50 @@ public final class IamPolicyQueryControllerGrpc {
 
     /**
      * <pre>
+     * Check whether the AUTHENTICATED CALLER has a permission on a resource.
+     * This is the self-check RPC for clients (web console, desktop, SDKs):
+     * "Do I have permission Y on resource Z?"
+     * The principal is always derived server-side from the authenticated token.
+     * The input has no principal field by design — clients cannot name a
+     * principal, so cross-principal permission probing is structurally
+     * impossible (the Kubernetes SelfSubjectAccessReview pattern).
+     * Use Cases:
+     * - Pre-flight UI checks before showing buttons/actions
+     * - Permission-gated rendering (PermissionGate components)
+     * Input: CheckMyPermissionInput with resource, relation, and optional contextual policies
+     * Output: CheckAuthorizationResult with is_authorized boolean
+     * &#64;internal
+     * Skips standard authorization because authorizing this RPC via IAM would
+     * recurse into IAM. Authentication is still required; the handler anchors
+     * the FGA check to the caller's identity account.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult> checkMyPermission(
+        ai.stigmer.iam.iampolicy.v1.CheckMyPermissionInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getCheckMyPermissionMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * Check if a principal is authorized to perform a relation on a resource
      * This is the fundamental authorization check RPC that answers the question:
      * "Does principal X have permission Y on resource Z?"
      * It provides a simple boolean answer based on the complete authorization state,
      * including existing IAM policies, inherited permissions, and group memberships.
+     * This RPC is an INTERNAL-FACING contract for the platform's own
+     * authorization pipeline (service-to-service and in-process checks).
+     * Client-facing self checks must use checkMyPermission instead.
      * Use Cases:
-     * - Pre-flight UI checks before showing buttons/actions
      * - API request authorization before processing operations
      * - Service-to-service authorization
      * - Team-based access checks
      * Input: CheckAuthorizationInput with policy spec and optional contextual policies
      * Output: CheckAuthorizationResult with is_authorized boolean
+     * &#64;internal
+     * Skips standard authorization to avoid IAM-authorizing-IAM recursion.
+     * The handler enforces principal trust instead: the caller must either BE
+     * the principal being checked, or be a machine (system) account.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult> checkAuthorization(
@@ -1028,12 +1216,13 @@ public final class IamPolicyQueryControllerGrpc {
   }
 
   private static final int METHODID_GET = 0;
-  private static final int METHODID_CHECK_AUTHORIZATION = 1;
-  private static final int METHODID_LIST_AUTHORIZED_RESOURCE_IDS = 2;
-  private static final int METHODID_LIST_AUTHORIZED_PRINCIPAL_IDS = 3;
-  private static final int METHODID_LIST_RESOURCE_ACCESS_BY_PRINCIPAL = 4;
-  private static final int METHODID_GET_PRINCIPAL_RESOURCE_ROLES = 5;
-  private static final int METHODID_GET_PRINCIPALS_COUNT = 6;
+  private static final int METHODID_CHECK_MY_PERMISSION = 1;
+  private static final int METHODID_CHECK_AUTHORIZATION = 2;
+  private static final int METHODID_LIST_AUTHORIZED_RESOURCE_IDS = 3;
+  private static final int METHODID_LIST_AUTHORIZED_PRINCIPAL_IDS = 4;
+  private static final int METHODID_LIST_RESOURCE_ACCESS_BY_PRINCIPAL = 5;
+  private static final int METHODID_GET_PRINCIPAL_RESOURCE_ROLES = 6;
+  private static final int METHODID_GET_PRINCIPALS_COUNT = 7;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -1055,6 +1244,10 @@ public final class IamPolicyQueryControllerGrpc {
         case METHODID_GET:
           serviceImpl.get((ai.stigmer.iam.iampolicy.v1.IamPolicyId) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.iam.iampolicy.v1.IamPolicy>) responseObserver);
+          break;
+        case METHODID_CHECK_MY_PERMISSION:
+          serviceImpl.checkMyPermission((ai.stigmer.iam.iampolicy.v1.CheckMyPermissionInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult>) responseObserver);
           break;
         case METHODID_CHECK_AUTHORIZATION:
           serviceImpl.checkAuthorization((ai.stigmer.iam.iampolicy.v1.CheckAuthorizationInput) request,
@@ -1105,6 +1298,13 @@ public final class IamPolicyQueryControllerGrpc {
               ai.stigmer.iam.iampolicy.v1.IamPolicyId,
               ai.stigmer.iam.iampolicy.v1.IamPolicy>(
                 service, METHODID_GET)))
+        .addMethod(
+          getCheckMyPermissionMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.iam.iampolicy.v1.CheckMyPermissionInput,
+              ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult>(
+                service, METHODID_CHECK_MY_PERMISSION)))
         .addMethod(
           getCheckAuthorizationMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -1196,6 +1396,7 @@ public final class IamPolicyQueryControllerGrpc {
           serviceDescriptor = result = io.grpc.ServiceDescriptor.newBuilder(SERVICE_NAME)
               .setSchemaDescriptor(new IamPolicyQueryControllerFileDescriptorSupplier())
               .addMethod(getGetMethod())
+              .addMethod(getCheckMyPermissionMethod())
               .addMethod(getCheckAuthorizationMethod())
               .addMethod(getListAuthorizedResourceIdsMethod())
               .addMethod(getListAuthorizedPrincipalIdsMethod())

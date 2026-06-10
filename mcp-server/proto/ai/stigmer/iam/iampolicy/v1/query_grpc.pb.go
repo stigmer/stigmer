@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	IamPolicyQueryController_Get_FullMethodName                           = "/ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController/get"
+	IamPolicyQueryController_CheckMyPermission_FullMethodName             = "/ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController/checkMyPermission"
 	IamPolicyQueryController_CheckAuthorization_FullMethodName            = "/ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController/checkAuthorization"
 	IamPolicyQueryController_ListAuthorizedResourceIds_FullMethodName     = "/ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController/listAuthorizedResourceIds"
 	IamPolicyQueryController_ListAuthorizedPrincipalIds_FullMethodName    = "/ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController/listAuthorizedPrincipalIds"
@@ -41,6 +42,28 @@ type IamPolicyQueryControllerClient interface {
 	// @internal
 	// Authorization: Requires can_view_access permission.
 	Get(ctx context.Context, in *IamPolicyId, opts ...grpc.CallOption) (*IamPolicy, error)
+	// Check whether the AUTHENTICATED CALLER has a permission on a resource.
+	//
+	// This is the self-check RPC for clients (web console, desktop, SDKs):
+	// "Do I have permission Y on resource Z?"
+	//
+	// The principal is always derived server-side from the authenticated token.
+	// The input has no principal field by design — clients cannot name a
+	// principal, so cross-principal permission probing is structurally
+	// impossible (the Kubernetes SelfSubjectAccessReview pattern).
+	//
+	// Use Cases:
+	// - Pre-flight UI checks before showing buttons/actions
+	// - Permission-gated rendering (PermissionGate components)
+	//
+	// Input: CheckMyPermissionInput with resource, relation, and optional contextual policies
+	// Output: CheckAuthorizationResult with is_authorized boolean
+	//
+	// @internal
+	// Skips standard authorization because authorizing this RPC via IAM would
+	// recurse into IAM. Authentication is still required; the handler anchors
+	// the FGA check to the caller's identity account.
+	CheckMyPermission(ctx context.Context, in *CheckMyPermissionInput, opts ...grpc.CallOption) (*CheckAuthorizationResult, error)
 	// Check if a principal is authorized to perform a relation on a resource
 	//
 	// This is the fundamental authorization check RPC that answers the question:
@@ -49,14 +72,22 @@ type IamPolicyQueryControllerClient interface {
 	// It provides a simple boolean answer based on the complete authorization state,
 	// including existing IAM policies, inherited permissions, and group memberships.
 	//
+	// This RPC is an INTERNAL-FACING contract for the platform's own
+	// authorization pipeline (service-to-service and in-process checks).
+	// Client-facing self checks must use checkMyPermission instead.
+	//
 	// Use Cases:
-	// - Pre-flight UI checks before showing buttons/actions
 	// - API request authorization before processing operations
 	// - Service-to-service authorization
 	// - Team-based access checks
 	//
 	// Input: CheckAuthorizationInput with policy spec and optional contextual policies
 	// Output: CheckAuthorizationResult with is_authorized boolean
+	//
+	// @internal
+	// Skips standard authorization to avoid IAM-authorizing-IAM recursion.
+	// The handler enforces principal trust instead: the caller must either BE
+	// the principal being checked, or be a machine (system) account.
 	CheckAuthorization(ctx context.Context, in *CheckAuthorizationInput, opts ...grpc.CallOption) (*CheckAuthorizationResult, error)
 	// List all resource IDs of a specific kind that a principal is authorized to access
 	//
@@ -143,6 +174,16 @@ func (c *iamPolicyQueryControllerClient) Get(ctx context.Context, in *IamPolicyI
 	return out, nil
 }
 
+func (c *iamPolicyQueryControllerClient) CheckMyPermission(ctx context.Context, in *CheckMyPermissionInput, opts ...grpc.CallOption) (*CheckAuthorizationResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CheckAuthorizationResult)
+	err := c.cc.Invoke(ctx, IamPolicyQueryController_CheckMyPermission_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *iamPolicyQueryControllerClient) CheckAuthorization(ctx context.Context, in *CheckAuthorizationInput, opts ...grpc.CallOption) (*CheckAuthorizationResult, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CheckAuthorizationResult)
@@ -216,6 +257,28 @@ type IamPolicyQueryControllerServer interface {
 	// @internal
 	// Authorization: Requires can_view_access permission.
 	Get(context.Context, *IamPolicyId) (*IamPolicy, error)
+	// Check whether the AUTHENTICATED CALLER has a permission on a resource.
+	//
+	// This is the self-check RPC for clients (web console, desktop, SDKs):
+	// "Do I have permission Y on resource Z?"
+	//
+	// The principal is always derived server-side from the authenticated token.
+	// The input has no principal field by design — clients cannot name a
+	// principal, so cross-principal permission probing is structurally
+	// impossible (the Kubernetes SelfSubjectAccessReview pattern).
+	//
+	// Use Cases:
+	// - Pre-flight UI checks before showing buttons/actions
+	// - Permission-gated rendering (PermissionGate components)
+	//
+	// Input: CheckMyPermissionInput with resource, relation, and optional contextual policies
+	// Output: CheckAuthorizationResult with is_authorized boolean
+	//
+	// @internal
+	// Skips standard authorization because authorizing this RPC via IAM would
+	// recurse into IAM. Authentication is still required; the handler anchors
+	// the FGA check to the caller's identity account.
+	CheckMyPermission(context.Context, *CheckMyPermissionInput) (*CheckAuthorizationResult, error)
 	// Check if a principal is authorized to perform a relation on a resource
 	//
 	// This is the fundamental authorization check RPC that answers the question:
@@ -224,14 +287,22 @@ type IamPolicyQueryControllerServer interface {
 	// It provides a simple boolean answer based on the complete authorization state,
 	// including existing IAM policies, inherited permissions, and group memberships.
 	//
+	// This RPC is an INTERNAL-FACING contract for the platform's own
+	// authorization pipeline (service-to-service and in-process checks).
+	// Client-facing self checks must use checkMyPermission instead.
+	//
 	// Use Cases:
-	// - Pre-flight UI checks before showing buttons/actions
 	// - API request authorization before processing operations
 	// - Service-to-service authorization
 	// - Team-based access checks
 	//
 	// Input: CheckAuthorizationInput with policy spec and optional contextual policies
 	// Output: CheckAuthorizationResult with is_authorized boolean
+	//
+	// @internal
+	// Skips standard authorization to avoid IAM-authorizing-IAM recursion.
+	// The handler enforces principal trust instead: the caller must either BE
+	// the principal being checked, or be a machine (system) account.
 	CheckAuthorization(context.Context, *CheckAuthorizationInput) (*CheckAuthorizationResult, error)
 	// List all resource IDs of a specific kind that a principal is authorized to access
 	//
@@ -310,6 +381,9 @@ type UnimplementedIamPolicyQueryControllerServer struct{}
 func (UnimplementedIamPolicyQueryControllerServer) Get(context.Context, *IamPolicyId) (*IamPolicy, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Get not implemented")
 }
+func (UnimplementedIamPolicyQueryControllerServer) CheckMyPermission(context.Context, *CheckMyPermissionInput) (*CheckAuthorizationResult, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CheckMyPermission not implemented")
+}
 func (UnimplementedIamPolicyQueryControllerServer) CheckAuthorization(context.Context, *CheckAuthorizationInput) (*CheckAuthorizationResult, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CheckAuthorization not implemented")
 }
@@ -362,6 +436,24 @@ func _IamPolicyQueryController_Get_Handler(srv interface{}, ctx context.Context,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(IamPolicyQueryControllerServer).Get(ctx, req.(*IamPolicyId))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IamPolicyQueryController_CheckMyPermission_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CheckMyPermissionInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IamPolicyQueryControllerServer).CheckMyPermission(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IamPolicyQueryController_CheckMyPermission_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IamPolicyQueryControllerServer).CheckMyPermission(ctx, req.(*CheckMyPermissionInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -484,6 +576,10 @@ var IamPolicyQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "get",
 			Handler:    _IamPolicyQueryController_Get_Handler,
+		},
+		{
+			MethodName: "checkMyPermission",
+			Handler:    _IamPolicyQueryController_CheckMyPermission_Handler,
 		},
 		{
 			MethodName: "checkAuthorization",

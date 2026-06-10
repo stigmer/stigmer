@@ -59,6 +59,12 @@ class IamPolicyClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def check_my_permission(self, input: io_pb2.CheckMyPermissionInput) -> io_pb2.CheckAuthorizationResult:
+        try:
+            return self._query.checkMyPermission(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def check_authorization(self, input: io_pb2.CheckAuthorizationInput) -> io_pb2.CheckAuthorizationResult:
         try:
             return self._query.checkAuthorization(input)

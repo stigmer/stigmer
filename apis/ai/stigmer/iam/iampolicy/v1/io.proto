@@ -173,6 +173,35 @@ message CheckAuthorizationResult {
   bool is_authorized = 1;
 }
 
+// CheckMyPermissionInput defines input for checking whether the AUTHENTICATED
+// CALLER has a permission on a resource.
+//
+// Unlike CheckAuthorizationInput, there is deliberately NO principal field:
+// the principal is always derived server-side from the authenticated token —
+// the only trustworthy source of caller identity. Clients cannot probe another
+// user's permissions because the API gives them no way to name a principal.
+//
+// This mirrors the industry-standard self-check pattern (e.g. Kubernetes
+// SelfSubjectAccessReview): self checks and cross-principal checks are
+// separate API surfaces with separate trust models.
+message CheckMyPermissionInput {
+  // The resource being accessed (WHAT)
+  ApiResourceRef resource = 1 [(buf.validate.field).required = true];
+
+  // The permission to check (e.g., "can_edit", "can_grant_access").
+  //
+  // @internal
+  // This is the FGA relation checked against the resource object.
+  string relation = 2 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 64
+  ];
+
+  // Optional contextual policies for "what-if" scenarios
+  repeated IamPolicySpec contextual_policies = 3;
+}
+
 // ListAuthorizedResourceIdsInput defines input for listing resources a principal can access.
 message ListAuthorizedResourceIdsInput {
   // The principal whose access is being queried

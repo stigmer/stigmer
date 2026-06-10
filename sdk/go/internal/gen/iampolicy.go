@@ -53,6 +53,11 @@ func (i *IamPolicyClient) Get(ctx context.Context, id string) (*iampolicyv1.IamP
 	return resp, wrapErr(err)
 }
 
+func (i *IamPolicyClient) CheckMyPermission(ctx context.Context, input *iampolicyv1.CheckMyPermissionInput) (*iampolicyv1.CheckAuthorizationResult, error) {
+	resp, err := i.query.CheckMyPermission(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (i *IamPolicyClient) CheckAuthorization(ctx context.Context, input *iampolicyv1.CheckAuthorizationInput) (*iampolicyv1.CheckAuthorizationResult, error) {
 	resp, err := i.query.CheckAuthorization(ctx, input)
 	return resp, wrapErr(err)

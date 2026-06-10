@@ -943,6 +943,83 @@ func (x *CheckAuthorizationResult) GetIsAuthorized() bool {
 	return false
 }
 
+// CheckMyPermissionInput defines input for checking whether the AUTHENTICATED
+// CALLER has a permission on a resource.
+//
+// Unlike CheckAuthorizationInput, there is deliberately NO principal field:
+// the principal is always derived server-side from the authenticated token —
+// the only trustworthy source of caller identity. Clients cannot probe another
+// user's permissions because the API gives them no way to name a principal.
+//
+// This mirrors the industry-standard self-check pattern (e.g. Kubernetes
+// SelfSubjectAccessReview): self checks and cross-principal checks are
+// separate API surfaces with separate trust models.
+type CheckMyPermissionInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The resource being accessed (WHAT)
+	Resource *ApiResourceRef `protobuf:"bytes,1,opt,name=resource,proto3" json:"resource,omitempty"`
+	// The permission to check (e.g., "can_edit", "can_grant_access").
+	//
+	// @internal
+	// This is the FGA relation checked against the resource object.
+	Relation string `protobuf:"bytes,2,opt,name=relation,proto3" json:"relation,omitempty"`
+	// Optional contextual policies for "what-if" scenarios
+	ContextualPolicies []*IamPolicySpec `protobuf:"bytes,3,rep,name=contextual_policies,json=contextualPolicies,proto3" json:"contextual_policies,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *CheckMyPermissionInput) Reset() {
+	*x = CheckMyPermissionInput{}
+	mi := &file_ai_stigmer_iam_iampolicy_v1_io_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CheckMyPermissionInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CheckMyPermissionInput) ProtoMessage() {}
+
+func (x *CheckMyPermissionInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_iam_iampolicy_v1_io_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CheckMyPermissionInput.ProtoReflect.Descriptor instead.
+func (*CheckMyPermissionInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_iam_iampolicy_v1_io_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *CheckMyPermissionInput) GetResource() *ApiResourceRef {
+	if x != nil {
+		return x.Resource
+	}
+	return nil
+}
+
+func (x *CheckMyPermissionInput) GetRelation() string {
+	if x != nil {
+		return x.Relation
+	}
+	return ""
+}
+
+func (x *CheckMyPermissionInput) GetContextualPolicies() []*IamPolicySpec {
+	if x != nil {
+		return x.ContextualPolicies
+	}
+	return nil
+}
+
 // ListAuthorizedResourceIdsInput defines input for listing resources a principal can access.
 type ListAuthorizedResourceIdsInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -960,7 +1037,7 @@ type ListAuthorizedResourceIdsInput struct {
 
 func (x *ListAuthorizedResourceIdsInput) Reset() {
 	*x = ListAuthorizedResourceIdsInput{}
-	mi := &file_ai_stigmer_iam_iampolicy_v1_io_proto_msgTypes[16]
+	mi := &file_ai_stigmer_iam_iampolicy_v1_io_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -972,7 +1049,7 @@ func (x *ListAuthorizedResourceIdsInput) String() string {
 func (*ListAuthorizedResourceIdsInput) ProtoMessage() {}
 
 func (x *ListAuthorizedResourceIdsInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_iam_iampolicy_v1_io_proto_msgTypes[16]
+	mi := &file_ai_stigmer_iam_iampolicy_v1_io_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -985,7 +1062,7 @@ func (x *ListAuthorizedResourceIdsInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAuthorizedResourceIdsInput.ProtoReflect.Descriptor instead.
 func (*ListAuthorizedResourceIdsInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_iam_iampolicy_v1_io_proto_rawDescGZIP(), []int{16}
+	return file_ai_stigmer_iam_iampolicy_v1_io_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *ListAuthorizedResourceIdsInput) GetPrincipal() *ApiResourceRef {
@@ -1027,7 +1104,7 @@ type AuthorizedResourceIdsList struct {
 
 func (x *AuthorizedResourceIdsList) Reset() {
 	*x = AuthorizedResourceIdsList{}
-	mi := &file_ai_stigmer_iam_iampolicy_v1_io_proto_msgTypes[17]
+	mi := &file_ai_stigmer_iam_iampolicy_v1_io_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1039,7 +1116,7 @@ func (x *AuthorizedResourceIdsList) String() string {
 func (*AuthorizedResourceIdsList) ProtoMessage() {}
 
 func (x *AuthorizedResourceIdsList) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_iam_iampolicy_v1_io_proto_msgTypes[17]
+	mi := &file_ai_stigmer_iam_iampolicy_v1_io_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1052,7 +1129,7 @@ func (x *AuthorizedResourceIdsList) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuthorizedResourceIdsList.ProtoReflect.Descriptor instead.
 func (*AuthorizedResourceIdsList) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_iam_iampolicy_v1_io_proto_rawDescGZIP(), []int{17}
+	return file_ai_stigmer_iam_iampolicy_v1_io_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *AuthorizedResourceIdsList) GetResourceIds() []string {
@@ -1079,7 +1156,7 @@ type ListAuthorizedPrincipalIdsInput struct {
 
 func (x *ListAuthorizedPrincipalIdsInput) Reset() {
 	*x = ListAuthorizedPrincipalIdsInput{}
-	mi := &file_ai_stigmer_iam_iampolicy_v1_io_proto_msgTypes[18]
+	mi := &file_ai_stigmer_iam_iampolicy_v1_io_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1091,7 +1168,7 @@ func (x *ListAuthorizedPrincipalIdsInput) String() string {
 func (*ListAuthorizedPrincipalIdsInput) ProtoMessage() {}
 
 func (x *ListAuthorizedPrincipalIdsInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_iam_iampolicy_v1_io_proto_msgTypes[18]
+	mi := &file_ai_stigmer_iam_iampolicy_v1_io_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1104,7 +1181,7 @@ func (x *ListAuthorizedPrincipalIdsInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAuthorizedPrincipalIdsInput.ProtoReflect.Descriptor instead.
 func (*ListAuthorizedPrincipalIdsInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_iam_iampolicy_v1_io_proto_rawDescGZIP(), []int{18}
+	return file_ai_stigmer_iam_iampolicy_v1_io_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *ListAuthorizedPrincipalIdsInput) GetResource() *ApiResourceRef {
@@ -1146,7 +1223,7 @@ type AuthorizedPrincipalIdsList struct {
 
 func (x *AuthorizedPrincipalIdsList) Reset() {
 	*x = AuthorizedPrincipalIdsList{}
-	mi := &file_ai_stigmer_iam_iampolicy_v1_io_proto_msgTypes[19]
+	mi := &file_ai_stigmer_iam_iampolicy_v1_io_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1158,7 +1235,7 @@ func (x *AuthorizedPrincipalIdsList) String() string {
 func (*AuthorizedPrincipalIdsList) ProtoMessage() {}
 
 func (x *AuthorizedPrincipalIdsList) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_iam_iampolicy_v1_io_proto_msgTypes[19]
+	mi := &file_ai_stigmer_iam_iampolicy_v1_io_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1171,7 +1248,7 @@ func (x *AuthorizedPrincipalIdsList) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuthorizedPrincipalIdsList.ProtoReflect.Descriptor instead.
 func (*AuthorizedPrincipalIdsList) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_iam_iampolicy_v1_io_proto_rawDescGZIP(), []int{19}
+	return file_ai_stigmer_iam_iampolicy_v1_io_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *AuthorizedPrincipalIdsList) GetPrincipalIds() []string {
@@ -1194,7 +1271,7 @@ type GetPrincipalsCountInput struct {
 
 func (x *GetPrincipalsCountInput) Reset() {
 	*x = GetPrincipalsCountInput{}
-	mi := &file_ai_stigmer_iam_iampolicy_v1_io_proto_msgTypes[20]
+	mi := &file_ai_stigmer_iam_iampolicy_v1_io_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1206,7 +1283,7 @@ func (x *GetPrincipalsCountInput) String() string {
 func (*GetPrincipalsCountInput) ProtoMessage() {}
 
 func (x *GetPrincipalsCountInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_iam_iampolicy_v1_io_proto_msgTypes[20]
+	mi := &file_ai_stigmer_iam_iampolicy_v1_io_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1219,7 +1296,7 @@ func (x *GetPrincipalsCountInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPrincipalsCountInput.ProtoReflect.Descriptor instead.
 func (*GetPrincipalsCountInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_iam_iampolicy_v1_io_proto_rawDescGZIP(), []int{20}
+	return file_ai_stigmer_iam_iampolicy_v1_io_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *GetPrincipalsCountInput) GetOrgId() string {
@@ -1247,7 +1324,7 @@ type PrincipalsCount struct {
 
 func (x *PrincipalsCount) Reset() {
 	*x = PrincipalsCount{}
-	mi := &file_ai_stigmer_iam_iampolicy_v1_io_proto_msgTypes[21]
+	mi := &file_ai_stigmer_iam_iampolicy_v1_io_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1259,7 +1336,7 @@ func (x *PrincipalsCount) String() string {
 func (*PrincipalsCount) ProtoMessage() {}
 
 func (x *PrincipalsCount) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_iam_iampolicy_v1_io_proto_msgTypes[21]
+	mi := &file_ai_stigmer_iam_iampolicy_v1_io_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1272,7 +1349,7 @@ func (x *PrincipalsCount) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PrincipalsCount.ProtoReflect.Descriptor instead.
 func (*PrincipalsCount) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_iam_iampolicy_v1_io_proto_rawDescGZIP(), []int{21}
+	return file_ai_stigmer_iam_iampolicy_v1_io_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *PrincipalsCount) GetCount() int32 {
@@ -1345,7 +1422,11 @@ const file_ai_stigmer_iam_iampolicy_v1_io_proto_rawDesc = "" +
 	"\x06policy\x18\x01 \x01(\v2*.ai.stigmer.iam.iampolicy.v1.IamPolicySpecB\x06\xbaH\x03\xc8\x01\x01R\x06policy\x12[\n" +
 	"\x13contextual_policies\x18\x02 \x03(\v2*.ai.stigmer.iam.iampolicy.v1.IamPolicySpecR\x12contextualPolicies\"?\n" +
 	"\x18CheckAuthorizationResult\x12#\n" +
-	"\ris_authorized\x18\x01 \x01(\bR\fisAuthorized\"\xa9\x02\n" +
+	"\ris_authorized\x18\x01 \x01(\bR\fisAuthorized\"\xf0\x01\n" +
+	"\x16CheckMyPermissionInput\x12O\n" +
+	"\bresource\x18\x01 \x01(\v2+.ai.stigmer.iam.iampolicy.v1.ApiResourceRefB\x06\xbaH\x03\xc8\x01\x01R\bresource\x12(\n" +
+	"\brelation\x18\x02 \x01(\tB\f\xbaH\t\xc8\x01\x01r\x04\x10\x01\x18@R\brelation\x12[\n" +
+	"\x13contextual_policies\x18\x03 \x03(\v2*.ai.stigmer.iam.iampolicy.v1.IamPolicySpecR\x12contextualPolicies\"\xa9\x02\n" +
 	"\x1eListAuthorizedResourceIdsInput\x12Q\n" +
 	"\tprincipal\x18\x01 \x01(\v2+.ai.stigmer.iam.iampolicy.v1.ApiResourceRefB\x06\xbaH\x03\xc8\x01\x01R\tprincipal\x12/\n" +
 	"\rresource_kind\x18\x02 \x01(\tB\n" +
@@ -1385,7 +1466,7 @@ func file_ai_stigmer_iam_iampolicy_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_iam_iampolicy_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_iam_iampolicy_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
+var file_ai_stigmer_iam_iampolicy_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_ai_stigmer_iam_iampolicy_v1_io_proto_goTypes = []any{
 	(*ApiResourceRefView)(nil),              // 0: ai.stigmer.iam.iampolicy.v1.ApiResourceRefView
 	(*IamPolicyId)(nil),                     // 1: ai.stigmer.iam.iampolicy.v1.IamPolicyId
@@ -1403,45 +1484,48 @@ var file_ai_stigmer_iam_iampolicy_v1_io_proto_goTypes = []any{
 	(*PrincipalResourceRoles)(nil),          // 13: ai.stigmer.iam.iampolicy.v1.PrincipalResourceRoles
 	(*CheckAuthorizationInput)(nil),         // 14: ai.stigmer.iam.iampolicy.v1.CheckAuthorizationInput
 	(*CheckAuthorizationResult)(nil),        // 15: ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult
-	(*ListAuthorizedResourceIdsInput)(nil),  // 16: ai.stigmer.iam.iampolicy.v1.ListAuthorizedResourceIdsInput
-	(*AuthorizedResourceIdsList)(nil),       // 17: ai.stigmer.iam.iampolicy.v1.AuthorizedResourceIdsList
-	(*ListAuthorizedPrincipalIdsInput)(nil), // 18: ai.stigmer.iam.iampolicy.v1.ListAuthorizedPrincipalIdsInput
-	(*AuthorizedPrincipalIdsList)(nil),      // 19: ai.stigmer.iam.iampolicy.v1.AuthorizedPrincipalIdsList
-	(*GetPrincipalsCountInput)(nil),         // 20: ai.stigmer.iam.iampolicy.v1.GetPrincipalsCountInput
-	(*PrincipalsCount)(nil),                 // 21: ai.stigmer.iam.iampolicy.v1.PrincipalsCount
-	(*ApiResourceRef)(nil),                  // 22: ai.stigmer.iam.iampolicy.v1.ApiResourceRef
-	(*IamPolicy)(nil),                       // 23: ai.stigmer.iam.iampolicy.v1.IamPolicy
-	(*IamPolicySpec)(nil),                   // 24: ai.stigmer.iam.iampolicy.v1.IamPolicySpec
+	(*CheckMyPermissionInput)(nil),          // 16: ai.stigmer.iam.iampolicy.v1.CheckMyPermissionInput
+	(*ListAuthorizedResourceIdsInput)(nil),  // 17: ai.stigmer.iam.iampolicy.v1.ListAuthorizedResourceIdsInput
+	(*AuthorizedResourceIdsList)(nil),       // 18: ai.stigmer.iam.iampolicy.v1.AuthorizedResourceIdsList
+	(*ListAuthorizedPrincipalIdsInput)(nil), // 19: ai.stigmer.iam.iampolicy.v1.ListAuthorizedPrincipalIdsInput
+	(*AuthorizedPrincipalIdsList)(nil),      // 20: ai.stigmer.iam.iampolicy.v1.AuthorizedPrincipalIdsList
+	(*GetPrincipalsCountInput)(nil),         // 21: ai.stigmer.iam.iampolicy.v1.GetPrincipalsCountInput
+	(*PrincipalsCount)(nil),                 // 22: ai.stigmer.iam.iampolicy.v1.PrincipalsCount
+	(*ApiResourceRef)(nil),                  // 23: ai.stigmer.iam.iampolicy.v1.ApiResourceRef
+	(*IamPolicy)(nil),                       // 24: ai.stigmer.iam.iampolicy.v1.IamPolicy
+	(*IamPolicySpec)(nil),                   // 25: ai.stigmer.iam.iampolicy.v1.IamPolicySpec
 }
 var file_ai_stigmer_iam_iampolicy_v1_io_proto_depIdxs = []int32{
 	0,  // 0: ai.stigmer.iam.iampolicy.v1.ApiResourceRefView.members:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRefView
 	0,  // 1: ai.stigmer.iam.iampolicy.v1.ApiResourceRefView.teams:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRefView
-	22, // 2: ai.stigmer.iam.iampolicy.v1.PrincipalResourceInput.principal:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRef
-	22, // 3: ai.stigmer.iam.iampolicy.v1.PrincipalResourceInput.resource:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRef
-	22, // 4: ai.stigmer.iam.iampolicy.v1.ResourcePrincipalsInput.resource:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRef
-	22, // 5: ai.stigmer.iam.iampolicy.v1.ResourcePrincipalsInput.principals:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRef
-	23, // 6: ai.stigmer.iam.iampolicy.v1.IamPoliciesList.entries:type_name -> ai.stigmer.iam.iampolicy.v1.IamPolicy
-	22, // 7: ai.stigmer.iam.iampolicy.v1.ListResourceAccessInput.resource:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRef
+	23, // 2: ai.stigmer.iam.iampolicy.v1.PrincipalResourceInput.principal:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRef
+	23, // 3: ai.stigmer.iam.iampolicy.v1.PrincipalResourceInput.resource:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRef
+	23, // 4: ai.stigmer.iam.iampolicy.v1.ResourcePrincipalsInput.resource:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRef
+	23, // 5: ai.stigmer.iam.iampolicy.v1.ResourcePrincipalsInput.principals:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRef
+	24, // 6: ai.stigmer.iam.iampolicy.v1.IamPoliciesList.entries:type_name -> ai.stigmer.iam.iampolicy.v1.IamPolicy
+	23, // 7: ai.stigmer.iam.iampolicy.v1.ListResourceAccessInput.resource:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRef
 	8,  // 8: ai.stigmer.iam.iampolicy.v1.ResourceAccessByPrincipalList.entries:type_name -> ai.stigmer.iam.iampolicy.v1.PrincipalAccess
 	0,  // 9: ai.stigmer.iam.iampolicy.v1.PrincipalAccess.principal:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRefView
 	9,  // 10: ai.stigmer.iam.iampolicy.v1.PrincipalAccess.roles:type_name -> ai.stigmer.iam.iampolicy.v1.RoleGrant
 	12, // 11: ai.stigmer.iam.iampolicy.v1.RoleGrant.role:type_name -> ai.stigmer.iam.iampolicy.v1.RoleInfo
-	22, // 12: ai.stigmer.iam.iampolicy.v1.RoleGrant.owner_resource:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRef
+	23, // 12: ai.stigmer.iam.iampolicy.v1.RoleGrant.owner_resource:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRef
 	11, // 13: ai.stigmer.iam.iampolicy.v1.ResourceAccessByRoleList.entries:type_name -> ai.stigmer.iam.iampolicy.v1.RoleAccess
 	9,  // 14: ai.stigmer.iam.iampolicy.v1.RoleAccess.role:type_name -> ai.stigmer.iam.iampolicy.v1.RoleGrant
 	0,  // 15: ai.stigmer.iam.iampolicy.v1.RoleAccess.principals:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRefView
 	12, // 16: ai.stigmer.iam.iampolicy.v1.PrincipalResourceRoles.roles:type_name -> ai.stigmer.iam.iampolicy.v1.RoleInfo
-	24, // 17: ai.stigmer.iam.iampolicy.v1.CheckAuthorizationInput.policy:type_name -> ai.stigmer.iam.iampolicy.v1.IamPolicySpec
-	24, // 18: ai.stigmer.iam.iampolicy.v1.CheckAuthorizationInput.contextual_policies:type_name -> ai.stigmer.iam.iampolicy.v1.IamPolicySpec
-	22, // 19: ai.stigmer.iam.iampolicy.v1.ListAuthorizedResourceIdsInput.principal:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRef
-	24, // 20: ai.stigmer.iam.iampolicy.v1.ListAuthorizedResourceIdsInput.contextual_policies:type_name -> ai.stigmer.iam.iampolicy.v1.IamPolicySpec
-	22, // 21: ai.stigmer.iam.iampolicy.v1.ListAuthorizedPrincipalIdsInput.resource:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRef
-	24, // 22: ai.stigmer.iam.iampolicy.v1.ListAuthorizedPrincipalIdsInput.contextual_policies:type_name -> ai.stigmer.iam.iampolicy.v1.IamPolicySpec
-	23, // [23:23] is the sub-list for method output_type
-	23, // [23:23] is the sub-list for method input_type
-	23, // [23:23] is the sub-list for extension type_name
-	23, // [23:23] is the sub-list for extension extendee
-	0,  // [0:23] is the sub-list for field type_name
+	25, // 17: ai.stigmer.iam.iampolicy.v1.CheckAuthorizationInput.policy:type_name -> ai.stigmer.iam.iampolicy.v1.IamPolicySpec
+	25, // 18: ai.stigmer.iam.iampolicy.v1.CheckAuthorizationInput.contextual_policies:type_name -> ai.stigmer.iam.iampolicy.v1.IamPolicySpec
+	23, // 19: ai.stigmer.iam.iampolicy.v1.CheckMyPermissionInput.resource:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRef
+	25, // 20: ai.stigmer.iam.iampolicy.v1.CheckMyPermissionInput.contextual_policies:type_name -> ai.stigmer.iam.iampolicy.v1.IamPolicySpec
+	23, // 21: ai.stigmer.iam.iampolicy.v1.ListAuthorizedResourceIdsInput.principal:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRef
+	25, // 22: ai.stigmer.iam.iampolicy.v1.ListAuthorizedResourceIdsInput.contextual_policies:type_name -> ai.stigmer.iam.iampolicy.v1.IamPolicySpec
+	23, // 23: ai.stigmer.iam.iampolicy.v1.ListAuthorizedPrincipalIdsInput.resource:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRef
+	25, // 24: ai.stigmer.iam.iampolicy.v1.ListAuthorizedPrincipalIdsInput.contextual_policies:type_name -> ai.stigmer.iam.iampolicy.v1.IamPolicySpec
+	25, // [25:25] is the sub-list for method output_type
+	25, // [25:25] is the sub-list for method input_type
+	25, // [25:25] is the sub-list for extension type_name
+	25, // [25:25] is the sub-list for extension extendee
+	0,  // [0:25] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_iam_iampolicy_v1_io_proto_init() }
@@ -1457,7 +1541,7 @@ func file_ai_stigmer_iam_iampolicy_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_iam_iampolicy_v1_io_proto_rawDesc), len(file_ai_stigmer_iam_iampolicy_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   22,
+			NumMessages:   23,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

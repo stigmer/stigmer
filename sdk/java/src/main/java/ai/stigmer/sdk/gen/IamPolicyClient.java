@@ -7,6 +7,7 @@ import ai.stigmer.iam.iampolicy.v1.AuthorizedPrincipalIdsList;
 import ai.stigmer.iam.iampolicy.v1.AuthorizedResourceIdsList;
 import ai.stigmer.iam.iampolicy.v1.CheckAuthorizationInput;
 import ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult;
+import ai.stigmer.iam.iampolicy.v1.CheckMyPermissionInput;
 import ai.stigmer.iam.iampolicy.v1.GetPrincipalsCountInput;
 import ai.stigmer.iam.iampolicy.v1.IamPolicy;
 import ai.stigmer.iam.iampolicy.v1.IamPolicyCommandControllerGrpc;
@@ -68,6 +69,12 @@ public final class IamPolicyClient {
     public IamPolicy get(String id) {
         try {
             return query.get(IamPolicyId.newBuilder().setValue(id).build());
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public CheckAuthorizationResult checkMyPermission(CheckMyPermissionInput input) {
+        try {
+            return query.checkMyPermission(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

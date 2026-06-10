@@ -63,6 +63,7 @@ IamPolicy iamPolicy = client.iamPolicies().get("iamp_01j5q3k7m8r2s4tnz2hfp0q0c3"
 | [`delete`](#delete) | Delete a single IAM policy by spec. |
 | [`bootstrapPolicy`](#bootstrappolicy) | Bootstrap IAM policy during resource creation. |
 | [`checkAuthorization`](#checkauthorization) | Check if a principal is authorized to perform a relation on a resource. |
+| [`checkMyPermission`](#checkmypermission) | Check whether the AUTHENTICATED CALLER has a permission on a resource. |
 | [`cleanupResourcePolicies`](#cleanupresourcepolicies) | Cleanup all IAM policies for a deleted resource. |
 | [`revokeOrgAccess`](#revokeorgaccess) | Revoke all of a user's access to an organization. |
 
@@ -519,7 +520,9 @@ This is the fundamental authorization check RPC that answers the question: "Does
 
 It provides a simple boolean answer based on the complete authorization state, including existing IAM policies, inherited permissions, and group memberships.
 
-Use Cases: - Pre-flight UI checks before showing buttons/actions - API request authorization before processing operations - Service-to-service authorization - Team-based access checks
+This RPC is an INTERNAL-FACING contract for the platform's own authorization pipeline (service-to-service and in-process checks). Client-facing self checks must use checkMyPermission instead.
+
+Use Cases: - API request authorization before processing operations - Service-to-service authorization - Team-based access checks
 
 Input: CheckAuthorizationInput with policy spec and optional contextual policies Output: CheckAuthorizationResult with is_authorized boolean
 
@@ -559,6 +562,61 @@ CheckAuthorizationResult checkAuthorizationResult = client.iamPolicies().checkAu
 </SDKTabs>
 
 **Parameters**: [`CheckAuthorizationInput`](#checkauthorizationinput)
+
+**Returns**: [`CheckAuthorizationResult`](#checkauthorizationresult)
+
+### checkMyPermission
+
+Check whether the AUTHENTICATED CALLER has a permission on a resource.
+
+This is the self-check RPC for clients (web console, desktop, SDKs): "Do I have permission Y on resource Z?"
+
+The principal is always derived server-side from the authenticated token. The input has no principal field by design — clients cannot name a principal, so cross-principal permission probing is structurally impossible (the Kubernetes SelfSubjectAccessReview pattern).
+
+Use Cases: - Pre-flight UI checks before showing buttons/actions - Permission-gated rendering (PermissionGate components)
+
+Input: CheckMyPermissionInput with resource, relation, and optional contextual policies Output: CheckAuthorizationResult with is_authorized boolean
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const checkAuthorizationResult = await stigmer.iamPolicy.checkMyPermission({
+  resource: {},
+  relation: "...",
+  contextualPolicies: [],
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+checkAuthorizationResult, err := client.IamPolicy.CheckMyPermission(ctx, &stigmer.CheckMyPermissionInput{
+  Resource:           &stigmer.ApiResourceRefInput{},
+  Relation:           "...",
+  ContextualPolicies: []stigmer.IamPolicySpecInput{},
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+check_authorization_result = client.iam_policies.check_my_permission(CheckMyPermissionInput(
+    resource=None,
+    relation="...",
+    contextual_policies=[],
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+CheckAuthorizationResult checkAuthorizationResult = client.iamPolicies().checkMyPermission(CheckMyPermissionInput.builder()
+    .resource(null)
+    .relation("...")
+    .contextualPolicies(List.of())
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`CheckMyPermissionInput`](#checkmypermissioninput)
 
 **Returns**: [`CheckAuthorizationResult`](#checkauthorizationresult)
 
@@ -721,13 +779,14 @@ RevokeOrgAccessInput defines the input for revoking all of a user's access to an
   }}
 />
 
-### CheckAuthorizationInput
+### CheckMyPermissionInput
 
-CheckAuthorizationInput defines input for checking if a principal is authorized.
+CheckMyPermissionInput defines input for checking whether the AUTHENTICATED CALLER has a permission on a resource.
 
 <TypeTable
   type={{
-    policy: { type: "IamPolicySpecInput", description: "The policy to check (principal, resource, relation).", required: true },
+    resource: { type: "ApiResourceRefInput", description: "The resource being accessed (WHAT).", typeDescriptionLink: "#apiresourcerefinput", required: true },
+    relation: { type: "string", description: "The permission to check (e.g., \"can_edit\", \"can_grant_access\").", required: true },
     contextualPolicies: { type: "IamPolicySpecInput[]", description: "Optional contextual policies for \"what-if\" scenarios." },
   }}
 />
@@ -739,6 +798,17 @@ CheckAuthorizationResult contains the result of an authorization check.
 <TypeTable
   type={{
     isAuthorized: { type: "boolean", description: "Whether the principal is authorized." },
+  }}
+/>
+
+### CheckAuthorizationInput
+
+CheckAuthorizationInput defines input for checking if a principal is authorized.
+
+<TypeTable
+  type={{
+    policy: { type: "IamPolicySpecInput", description: "The policy to check (principal, resource, relation).", required: true },
+    contextualPolicies: { type: "IamPolicySpecInput[]", description: "Optional contextual policies for \"what-if\" scenarios." },
   }}
 />
 

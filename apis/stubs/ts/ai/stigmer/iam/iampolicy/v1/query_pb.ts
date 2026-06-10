@@ -8,14 +8,14 @@ import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../.
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
 import type { IamPolicySchema } from "./api_pb.js";
 import { file_ai_stigmer_iam_iampolicy_v1_api } from "./api_pb.js";
-import type { AuthorizedPrincipalIdsListSchema, AuthorizedResourceIdsListSchema, CheckAuthorizationInputSchema, CheckAuthorizationResultSchema, GetPrincipalsCountInputSchema, IamPolicyIdSchema, ListAuthorizedPrincipalIdsInputSchema, ListAuthorizedResourceIdsInputSchema, ListResourceAccessInputSchema, PrincipalResourceInputSchema, PrincipalResourceRolesSchema, PrincipalsCountSchema, ResourceAccessByPrincipalListSchema } from "./io_pb.js";
+import type { AuthorizedPrincipalIdsListSchema, AuthorizedResourceIdsListSchema, CheckAuthorizationInputSchema, CheckAuthorizationResultSchema, CheckMyPermissionInputSchema, GetPrincipalsCountInputSchema, IamPolicyIdSchema, ListAuthorizedPrincipalIdsInputSchema, ListAuthorizedResourceIdsInputSchema, ListResourceAccessInputSchema, PrincipalResourceInputSchema, PrincipalResourceRolesSchema, PrincipalsCountSchema, ResourceAccessByPrincipalListSchema } from "./io_pb.js";
 import { file_ai_stigmer_iam_iampolicy_v1_io } from "./io_pb.js";
 
 /**
  * Describes the file ai/stigmer/iam/iampolicy/v1/query.proto.
  */
 export const file_ai_stigmer_iam_iampolicy_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("CidhaS9zdGlnbWVyL2lhbS9pYW1wb2xpY3kvdjEvcXVlcnkucHJvdG8SG2FpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MTLqCQoYSWFtUG9saWN5UXVlcnlDb250cm9sbGVyEoUBCgNnZXQSKC5haS5zdGlnbWVyLmlhbS5pYW1wb2xpY3kudjEuSWFtUG9saWN5SWQaJi5haS5zdGlnbWVyLmlhbS5pYW1wb2xpY3kudjEuSWFtUG9saWN5IizCuBgoCAUqJHVuYXV0aG9yaXplZCB0byB2aWV3IGFjY2VzcyBwb2xpY2llcxKHAQoSY2hlY2tBdXRob3JpemF0aW9uEjQuYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLkNoZWNrQXV0aG9yaXphdGlvbklucHV0GjUuYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLkNoZWNrQXV0aG9yaXphdGlvblJlc3VsdCIE0LgYARLGAQoZbGlzdEF1dGhvcml6ZWRSZXNvdXJjZUlkcxI7LmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5MaXN0QXV0aG9yaXplZFJlc291cmNlSWRzSW5wdXQaNi5haS5zdGlnbWVyLmlhbS5pYW1wb2xpY3kudjEuQXV0aG9yaXplZFJlc291cmNlSWRzTGlzdCI0wrgYMAgFKix1bmF1dGhvcml6ZWQgdG8gdmlldyBhdXRob3JpemVkIHJlc291cmNlIGlkcxLKAQoabGlzdEF1dGhvcml6ZWRQcmluY2lwYWxJZHMSPC5haS5zdGlnbWVyLmlhbS5pYW1wb2xpY3kudjEuTGlzdEF1dGhvcml6ZWRQcmluY2lwYWxJZHNJbnB1dBo3LmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5BdXRob3JpemVkUHJpbmNpcGFsSWRzTGlzdCI1wrgYMQgFKi11bmF1dGhvcml6ZWQgdG8gdmlldyBhdXRob3JpemVkIHByaW5jaXBhbCBpZHMSvwEKHWxpc3RSZXNvdXJjZUFjY2Vzc0J5UHJpbmNpcGFsEjQuYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLkxpc3RSZXNvdXJjZUFjY2Vzc0lucHV0GjouYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLlJlc291cmNlQWNjZXNzQnlQcmluY2lwYWxMaXN0IizCuBgoCAUqJHVuYXV0aG9yaXplZCB0byB2aWV3IHJlc291cmNlIGFjY2VzcxKzAQoZZ2V0UHJpbmNpcGFsUmVzb3VyY2VSb2xlcxIzLmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5QcmluY2lwYWxSZXNvdXJjZUlucHV0GjMuYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLlByaW5jaXBhbFJlc291cmNlUm9sZXMiLMK4GCgIBSokdW5hdXRob3JpemVkIHRvIHZpZXcgcHJpbmNpcGFsIHJvbGVzEqcBChJnZXRQcmluY2lwYWxzQ291bnQSNC5haS5zdGlnbWVyLmlhbS5pYW1wb2xpY3kudjEuR2V0UHJpbmNpcGFsc0NvdW50SW5wdXQaLC5haS5zdGlnbWVyLmlhbS5pYW1wb2xpY3kudjEuUHJpbmNpcGFsc0NvdW50Ii3CuBgpCAUqJXVuYXV0aG9yaXplZCB0byB2aWV3IHByaW5jaXBhbHMgY291bnQaBKD/KwpiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_iam_iampolicy_v1_api, file_ai_stigmer_iam_iampolicy_v1_io]);
+  fileDesc("CidhaS9zdGlnbWVyL2lhbS9pYW1wb2xpY3kvdjEvcXVlcnkucHJvdG8SG2FpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MTLyCgoYSWFtUG9saWN5UXVlcnlDb250cm9sbGVyEoUBCgNnZXQSKC5haS5zdGlnbWVyLmlhbS5pYW1wb2xpY3kudjEuSWFtUG9saWN5SWQaJi5haS5zdGlnbWVyLmlhbS5pYW1wb2xpY3kudjEuSWFtUG9saWN5IizCuBgoCAUqJHVuYXV0aG9yaXplZCB0byB2aWV3IGFjY2VzcyBwb2xpY2llcxKFAQoRY2hlY2tNeVBlcm1pc3Npb24SMy5haS5zdGlnbWVyLmlhbS5pYW1wb2xpY3kudjEuQ2hlY2tNeVBlcm1pc3Npb25JbnB1dBo1LmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5DaGVja0F1dGhvcml6YXRpb25SZXN1bHQiBNC4GAEShwEKEmNoZWNrQXV0aG9yaXphdGlvbhI0LmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5DaGVja0F1dGhvcml6YXRpb25JbnB1dBo1LmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5DaGVja0F1dGhvcml6YXRpb25SZXN1bHQiBNC4GAESxgEKGWxpc3RBdXRob3JpemVkUmVzb3VyY2VJZHMSOy5haS5zdGlnbWVyLmlhbS5pYW1wb2xpY3kudjEuTGlzdEF1dGhvcml6ZWRSZXNvdXJjZUlkc0lucHV0GjYuYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLkF1dGhvcml6ZWRSZXNvdXJjZUlkc0xpc3QiNMK4GDAIBSosdW5hdXRob3JpemVkIHRvIHZpZXcgYXV0aG9yaXplZCByZXNvdXJjZSBpZHMSygEKGmxpc3RBdXRob3JpemVkUHJpbmNpcGFsSWRzEjwuYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLkxpc3RBdXRob3JpemVkUHJpbmNpcGFsSWRzSW5wdXQaNy5haS5zdGlnbWVyLmlhbS5pYW1wb2xpY3kudjEuQXV0aG9yaXplZFByaW5jaXBhbElkc0xpc3QiNcK4GDEIBSotdW5hdXRob3JpemVkIHRvIHZpZXcgYXV0aG9yaXplZCBwcmluY2lwYWwgaWRzEr8BCh1saXN0UmVzb3VyY2VBY2Nlc3NCeVByaW5jaXBhbBI0LmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5MaXN0UmVzb3VyY2VBY2Nlc3NJbnB1dBo6LmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5SZXNvdXJjZUFjY2Vzc0J5UHJpbmNpcGFsTGlzdCIswrgYKAgFKiR1bmF1dGhvcml6ZWQgdG8gdmlldyByZXNvdXJjZSBhY2Nlc3MSswEKGWdldFByaW5jaXBhbFJlc291cmNlUm9sZXMSMy5haS5zdGlnbWVyLmlhbS5pYW1wb2xpY3kudjEuUHJpbmNpcGFsUmVzb3VyY2VJbnB1dBozLmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5QcmluY2lwYWxSZXNvdXJjZVJvbGVzIizCuBgoCAUqJHVuYXV0aG9yaXplZCB0byB2aWV3IHByaW5jaXBhbCByb2xlcxKnAQoSZ2V0UHJpbmNpcGFsc0NvdW50EjQuYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLkdldFByaW5jaXBhbHNDb3VudElucHV0GiwuYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLlByaW5jaXBhbHNDb3VudCItwrgYKQgFKiV1bmF1dGhvcml6ZWQgdG8gdmlldyBwcmluY2lwYWxzIGNvdW50GgSg/ysKYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_iam_iampolicy_v1_api, file_ai_stigmer_iam_iampolicy_v1_io]);
 
 /**
  * IamPolicyQueryController handles read operations for IAM policies.
@@ -39,6 +39,36 @@ export const IamPolicyQueryController: GenService<{
     output: typeof IamPolicySchema;
   },
   /**
+   * Check whether the AUTHENTICATED CALLER has a permission on a resource.
+   *
+   * This is the self-check RPC for clients (web console, desktop, SDKs):
+   * "Do I have permission Y on resource Z?"
+   *
+   * The principal is always derived server-side from the authenticated token.
+   * The input has no principal field by design — clients cannot name a
+   * principal, so cross-principal permission probing is structurally
+   * impossible (the Kubernetes SelfSubjectAccessReview pattern).
+   *
+   * Use Cases:
+   * - Pre-flight UI checks before showing buttons/actions
+   * - Permission-gated rendering (PermissionGate components)
+   *
+   * Input: CheckMyPermissionInput with resource, relation, and optional contextual policies
+   * Output: CheckAuthorizationResult with is_authorized boolean
+   *
+   * @internal
+   * Skips standard authorization because authorizing this RPC via IAM would
+   * recurse into IAM. Authentication is still required; the handler anchors
+   * the FGA check to the caller's identity account.
+   *
+   * @generated from rpc ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.checkMyPermission
+   */
+  checkMyPermission: {
+    methodKind: "unary";
+    input: typeof CheckMyPermissionInputSchema;
+    output: typeof CheckAuthorizationResultSchema;
+  },
+  /**
    * Check if a principal is authorized to perform a relation on a resource
    *
    * This is the fundamental authorization check RPC that answers the question:
@@ -47,14 +77,22 @@ export const IamPolicyQueryController: GenService<{
    * It provides a simple boolean answer based on the complete authorization state,
    * including existing IAM policies, inherited permissions, and group memberships.
    *
+   * This RPC is an INTERNAL-FACING contract for the platform's own
+   * authorization pipeline (service-to-service and in-process checks).
+   * Client-facing self checks must use checkMyPermission instead.
+   *
    * Use Cases:
-   * - Pre-flight UI checks before showing buttons/actions
    * - API request authorization before processing operations
    * - Service-to-service authorization
    * - Team-based access checks
    *
    * Input: CheckAuthorizationInput with policy spec and optional contextual policies
    * Output: CheckAuthorizationResult with is_authorized boolean
+   *
+   * @internal
+   * Skips standard authorization to avoid IAM-authorizing-IAM recursion.
+   * The handler enforces principal trust instead: the caller must either BE
+   * the principal being checked, or be a machine (system) account.
    *
    * @generated from rpc ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.checkAuthorization
    */

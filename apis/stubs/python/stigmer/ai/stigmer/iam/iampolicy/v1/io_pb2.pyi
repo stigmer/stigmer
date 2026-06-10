@@ -145,6 +145,16 @@ class CheckAuthorizationResult(_message.Message):
     is_authorized: bool
     def __init__(self, is_authorized: bool = ...) -> None: ...
 
+class CheckMyPermissionInput(_message.Message):
+    __slots__ = ("resource", "relation", "contextual_policies")
+    RESOURCE_FIELD_NUMBER: _ClassVar[int]
+    RELATION_FIELD_NUMBER: _ClassVar[int]
+    CONTEXTUAL_POLICIES_FIELD_NUMBER: _ClassVar[int]
+    resource: _spec_pb2.ApiResourceRef
+    relation: str
+    contextual_policies: _containers.RepeatedCompositeFieldContainer[_spec_pb2.IamPolicySpec]
+    def __init__(self, resource: _Optional[_Union[_spec_pb2.ApiResourceRef, _Mapping]] = ..., relation: _Optional[str] = ..., contextual_policies: _Optional[_Iterable[_Union[_spec_pb2.IamPolicySpec, _Mapping]]] = ...) -> None: ...
+
 class ListAuthorizedResourceIdsInput(_message.Message):
     __slots__ = ("principal", "resource_kind", "relation", "contextual_policies")
     PRINCIPAL_FIELD_NUMBER: _ClassVar[int]

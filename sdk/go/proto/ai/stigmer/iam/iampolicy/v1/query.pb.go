@@ -26,9 +26,11 @@ var File_ai_stigmer_iam_iampolicy_v1_query_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_iampolicy_v1_query_proto_rawDesc = "" +
 	"\n" +
-	"'ai/stigmer/iam/iampolicy/v1/query.proto\x12\x1bai.stigmer.iam.iampolicy.v1\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a%ai/stigmer/iam/iampolicy/v1/api.proto\x1a$ai/stigmer/iam/iampolicy/v1/io.proto2\xea\t\n" +
+	"'ai/stigmer/iam/iampolicy/v1/query.proto\x12\x1bai.stigmer.iam.iampolicy.v1\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a%ai/stigmer/iam/iampolicy/v1/api.proto\x1a$ai/stigmer/iam/iampolicy/v1/io.proto2\xf2\n" +
+	"\n" +
 	"\x18IamPolicyQueryController\x12\x85\x01\n" +
-	"\x03get\x12(.ai.stigmer.iam.iampolicy.v1.IamPolicyId\x1a&.ai.stigmer.iam.iampolicy.v1.IamPolicy\",¸\x18(\b\x05*$unauthorized to view access policies\x12\x87\x01\n" +
+	"\x03get\x12(.ai.stigmer.iam.iampolicy.v1.IamPolicyId\x1a&.ai.stigmer.iam.iampolicy.v1.IamPolicy\",¸\x18(\b\x05*$unauthorized to view access policies\x12\x85\x01\n" +
+	"\x11checkMyPermission\x123.ai.stigmer.iam.iampolicy.v1.CheckMyPermissionInput\x1a5.ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult\"\x04и\x18\x01\x12\x87\x01\n" +
 	"\x12checkAuthorization\x124.ai.stigmer.iam.iampolicy.v1.CheckAuthorizationInput\x1a5.ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult\"\x04и\x18\x01\x12\xc6\x01\n" +
 	"\x19listAuthorizedResourceIds\x12;.ai.stigmer.iam.iampolicy.v1.ListAuthorizedResourceIdsInput\x1a6.ai.stigmer.iam.iampolicy.v1.AuthorizedResourceIdsList\"4¸\x180\b\x05*,unauthorized to view authorized resource ids\x12\xca\x01\n" +
 	"\x1alistAuthorizedPrincipalIds\x12<.ai.stigmer.iam.iampolicy.v1.ListAuthorizedPrincipalIdsInput\x1a7.ai.stigmer.iam.iampolicy.v1.AuthorizedPrincipalIdsList\"5¸\x181\b\x05*-unauthorized to view authorized principal ids\x12\xbf\x01\n" +
@@ -41,37 +43,40 @@ const file_ai_stigmer_iam_iampolicy_v1_query_proto_rawDesc = "" +
 
 var file_ai_stigmer_iam_iampolicy_v1_query_proto_goTypes = []any{
 	(*IamPolicyId)(nil),                     // 0: ai.stigmer.iam.iampolicy.v1.IamPolicyId
-	(*CheckAuthorizationInput)(nil),         // 1: ai.stigmer.iam.iampolicy.v1.CheckAuthorizationInput
-	(*ListAuthorizedResourceIdsInput)(nil),  // 2: ai.stigmer.iam.iampolicy.v1.ListAuthorizedResourceIdsInput
-	(*ListAuthorizedPrincipalIdsInput)(nil), // 3: ai.stigmer.iam.iampolicy.v1.ListAuthorizedPrincipalIdsInput
-	(*ListResourceAccessInput)(nil),         // 4: ai.stigmer.iam.iampolicy.v1.ListResourceAccessInput
-	(*PrincipalResourceInput)(nil),          // 5: ai.stigmer.iam.iampolicy.v1.PrincipalResourceInput
-	(*GetPrincipalsCountInput)(nil),         // 6: ai.stigmer.iam.iampolicy.v1.GetPrincipalsCountInput
-	(*IamPolicy)(nil),                       // 7: ai.stigmer.iam.iampolicy.v1.IamPolicy
-	(*CheckAuthorizationResult)(nil),        // 8: ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult
-	(*AuthorizedResourceIdsList)(nil),       // 9: ai.stigmer.iam.iampolicy.v1.AuthorizedResourceIdsList
-	(*AuthorizedPrincipalIdsList)(nil),      // 10: ai.stigmer.iam.iampolicy.v1.AuthorizedPrincipalIdsList
-	(*ResourceAccessByPrincipalList)(nil),   // 11: ai.stigmer.iam.iampolicy.v1.ResourceAccessByPrincipalList
-	(*PrincipalResourceRoles)(nil),          // 12: ai.stigmer.iam.iampolicy.v1.PrincipalResourceRoles
-	(*PrincipalsCount)(nil),                 // 13: ai.stigmer.iam.iampolicy.v1.PrincipalsCount
+	(*CheckMyPermissionInput)(nil),          // 1: ai.stigmer.iam.iampolicy.v1.CheckMyPermissionInput
+	(*CheckAuthorizationInput)(nil),         // 2: ai.stigmer.iam.iampolicy.v1.CheckAuthorizationInput
+	(*ListAuthorizedResourceIdsInput)(nil),  // 3: ai.stigmer.iam.iampolicy.v1.ListAuthorizedResourceIdsInput
+	(*ListAuthorizedPrincipalIdsInput)(nil), // 4: ai.stigmer.iam.iampolicy.v1.ListAuthorizedPrincipalIdsInput
+	(*ListResourceAccessInput)(nil),         // 5: ai.stigmer.iam.iampolicy.v1.ListResourceAccessInput
+	(*PrincipalResourceInput)(nil),          // 6: ai.stigmer.iam.iampolicy.v1.PrincipalResourceInput
+	(*GetPrincipalsCountInput)(nil),         // 7: ai.stigmer.iam.iampolicy.v1.GetPrincipalsCountInput
+	(*IamPolicy)(nil),                       // 8: ai.stigmer.iam.iampolicy.v1.IamPolicy
+	(*CheckAuthorizationResult)(nil),        // 9: ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult
+	(*AuthorizedResourceIdsList)(nil),       // 10: ai.stigmer.iam.iampolicy.v1.AuthorizedResourceIdsList
+	(*AuthorizedPrincipalIdsList)(nil),      // 11: ai.stigmer.iam.iampolicy.v1.AuthorizedPrincipalIdsList
+	(*ResourceAccessByPrincipalList)(nil),   // 12: ai.stigmer.iam.iampolicy.v1.ResourceAccessByPrincipalList
+	(*PrincipalResourceRoles)(nil),          // 13: ai.stigmer.iam.iampolicy.v1.PrincipalResourceRoles
+	(*PrincipalsCount)(nil),                 // 14: ai.stigmer.iam.iampolicy.v1.PrincipalsCount
 }
 var file_ai_stigmer_iam_iampolicy_v1_query_proto_depIdxs = []int32{
 	0,  // 0: ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.get:input_type -> ai.stigmer.iam.iampolicy.v1.IamPolicyId
-	1,  // 1: ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.checkAuthorization:input_type -> ai.stigmer.iam.iampolicy.v1.CheckAuthorizationInput
-	2,  // 2: ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.listAuthorizedResourceIds:input_type -> ai.stigmer.iam.iampolicy.v1.ListAuthorizedResourceIdsInput
-	3,  // 3: ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.listAuthorizedPrincipalIds:input_type -> ai.stigmer.iam.iampolicy.v1.ListAuthorizedPrincipalIdsInput
-	4,  // 4: ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.listResourceAccessByPrincipal:input_type -> ai.stigmer.iam.iampolicy.v1.ListResourceAccessInput
-	5,  // 5: ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.getPrincipalResourceRoles:input_type -> ai.stigmer.iam.iampolicy.v1.PrincipalResourceInput
-	6,  // 6: ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.getPrincipalsCount:input_type -> ai.stigmer.iam.iampolicy.v1.GetPrincipalsCountInput
-	7,  // 7: ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.get:output_type -> ai.stigmer.iam.iampolicy.v1.IamPolicy
-	8,  // 8: ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.checkAuthorization:output_type -> ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult
-	9,  // 9: ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.listAuthorizedResourceIds:output_type -> ai.stigmer.iam.iampolicy.v1.AuthorizedResourceIdsList
-	10, // 10: ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.listAuthorizedPrincipalIds:output_type -> ai.stigmer.iam.iampolicy.v1.AuthorizedPrincipalIdsList
-	11, // 11: ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.listResourceAccessByPrincipal:output_type -> ai.stigmer.iam.iampolicy.v1.ResourceAccessByPrincipalList
-	12, // 12: ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.getPrincipalResourceRoles:output_type -> ai.stigmer.iam.iampolicy.v1.PrincipalResourceRoles
-	13, // 13: ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.getPrincipalsCount:output_type -> ai.stigmer.iam.iampolicy.v1.PrincipalsCount
-	7,  // [7:14] is the sub-list for method output_type
-	0,  // [0:7] is the sub-list for method input_type
+	1,  // 1: ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.checkMyPermission:input_type -> ai.stigmer.iam.iampolicy.v1.CheckMyPermissionInput
+	2,  // 2: ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.checkAuthorization:input_type -> ai.stigmer.iam.iampolicy.v1.CheckAuthorizationInput
+	3,  // 3: ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.listAuthorizedResourceIds:input_type -> ai.stigmer.iam.iampolicy.v1.ListAuthorizedResourceIdsInput
+	4,  // 4: ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.listAuthorizedPrincipalIds:input_type -> ai.stigmer.iam.iampolicy.v1.ListAuthorizedPrincipalIdsInput
+	5,  // 5: ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.listResourceAccessByPrincipal:input_type -> ai.stigmer.iam.iampolicy.v1.ListResourceAccessInput
+	6,  // 6: ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.getPrincipalResourceRoles:input_type -> ai.stigmer.iam.iampolicy.v1.PrincipalResourceInput
+	7,  // 7: ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.getPrincipalsCount:input_type -> ai.stigmer.iam.iampolicy.v1.GetPrincipalsCountInput
+	8,  // 8: ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.get:output_type -> ai.stigmer.iam.iampolicy.v1.IamPolicy
+	9,  // 9: ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.checkMyPermission:output_type -> ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult
+	9,  // 10: ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.checkAuthorization:output_type -> ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult
+	10, // 11: ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.listAuthorizedResourceIds:output_type -> ai.stigmer.iam.iampolicy.v1.AuthorizedResourceIdsList
+	11, // 12: ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.listAuthorizedPrincipalIds:output_type -> ai.stigmer.iam.iampolicy.v1.AuthorizedPrincipalIdsList
+	12, // 13: ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.listResourceAccessByPrincipal:output_type -> ai.stigmer.iam.iampolicy.v1.ResourceAccessByPrincipalList
+	13, // 14: ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.getPrincipalResourceRoles:output_type -> ai.stigmer.iam.iampolicy.v1.PrincipalResourceRoles
+	14, // 15: ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.getPrincipalsCount:output_type -> ai.stigmer.iam.iampolicy.v1.PrincipalsCount
+	8,  // [8:16] is the sub-list for method output_type
+	0,  // [0:8] is the sub-list for method input_type
 	0,  // [0:0] is the sub-list for extension type_name
 	0,  // [0:0] is the sub-list for extension extendee
 	0,  // [0:0] is the sub-list for field type_name

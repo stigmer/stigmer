@@ -64,12 +64,20 @@
           "description": "Get an IAM policy by its unique identifier.\n\n Returns the full IAM policy including its principal, resource, and relation binding.\n\n @internal\n Authorization: Requires can_view_access permission."
         },
         {
+          "name": "CheckMyPermission",
+          "inputType": "CheckMyPermissionInput",
+          "inputFullType": "ai.stigmer.iam.iampolicy.v1.CheckMyPermissionInput",
+          "outputType": "CheckAuthorizationResult",
+          "outputFullType": "ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult",
+          "description": "Check whether the AUTHENTICATED CALLER has a permission on a resource.\n\n This is the self-check RPC for clients (web console, desktop, SDKs):\n \"Do I have permission Y on resource Z?\"\n\n The principal is always derived server-side from the authenticated token.\n The input has no principal field by design — clients cannot name a\n principal, so cross-principal permission probing is structurally\n impossible (the Kubernetes SelfSubjectAccessReview pattern).\n\n Use Cases:\n - Pre-flight UI checks before showing buttons/actions\n - Permission-gated rendering (PermissionGate components)\n\n Input: CheckMyPermissionInput with resource, relation, and optional contextual policies\n Output: CheckAuthorizationResult with is_authorized boolean\n\n @internal\n Skips standard authorization because authorizing this RPC via IAM would\n recurse into IAM. Authentication is still required; the handler anchors\n the FGA check to the caller's identity account."
+        },
+        {
           "name": "CheckAuthorization",
           "inputType": "CheckAuthorizationInput",
           "inputFullType": "ai.stigmer.iam.iampolicy.v1.CheckAuthorizationInput",
           "outputType": "CheckAuthorizationResult",
           "outputFullType": "ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult",
-          "description": "Check if a principal is authorized to perform a relation on a resource\n\n This is the fundamental authorization check RPC that answers the question:\n \"Does principal X have permission Y on resource Z?\"\n\n It provides a simple boolean answer based on the complete authorization state,\n including existing IAM policies, inherited permissions, and group memberships.\n\n Use Cases:\n - Pre-flight UI checks before showing buttons/actions\n - API request authorization before processing operations\n - Service-to-service authorization\n - Team-based access checks\n\n Input: CheckAuthorizationInput with policy spec and optional contextual policies\n Output: CheckAuthorizationResult with is_authorized boolean"
+          "description": "Check if a principal is authorized to perform a relation on a resource\n\n This is the fundamental authorization check RPC that answers the question:\n \"Does principal X have permission Y on resource Z?\"\n\n It provides a simple boolean answer based on the complete authorization state,\n including existing IAM policies, inherited permissions, and group memberships.\n\n This RPC is an INTERNAL-FACING contract for the platform's own\n authorization pipeline (service-to-service and in-process checks).\n Client-facing self checks must use checkMyPermission instead.\n\n Use Cases:\n - API request authorization before processing operations\n - Service-to-service authorization\n - Team-based access checks\n\n Input: CheckAuthorizationInput with policy spec and optional contextual policies\n Output: CheckAuthorizationResult with is_authorized boolean\n\n @internal\n Skips standard authorization to avoid IAM-authorizing-IAM recursion.\n The handler enforces principal trust instead: the caller must either BE\n the principal being checked, or be a machine (system) account."
         },
         {
           "name": "ListAuthorizedResourceIds",
@@ -254,23 +262,38 @@
       ]
     },
     {
-      "name": "CheckAuthorizationInput",
-      "description": "CheckAuthorizationInput defines input for checking if a principal is authorized.",
-      "protoType": "ai.stigmer.iam.iampolicy.v1.CheckAuthorizationInput",
+      "name": "CheckMyPermissionInput",
+      "description": "CheckMyPermissionInput defines input for checking whether the AUTHENTICATED\n CALLER has a permission on a resource.\n\n Unlike CheckAuthorizationInput, there is deliberately NO principal field:\n the principal is always derived server-side from the authenticated token —\n the only trustworthy source of caller identity. Clients cannot probe another\n user's permissions because the API gives them no way to name a principal.\n\n This mirrors the industry-standard self-check pattern (e.g. Kubernetes\n SelfSubjectAccessReview): self checks and cross-principal checks are\n separate API surfaces with separate trust models.",
+      "protoType": "ai.stigmer.iam.iampolicy.v1.CheckMyPermissionInput",
       "protoFile": "apis/ai/stigmer/iam/iampolicy/v1/io.proto",
       "fields": [
         {
-          "name": "Policy",
-          "jsonName": "policy",
-          "protoField": "policy",
+          "name": "Resource",
+          "jsonName": "resource",
+          "protoField": "resource",
           "type": {
             "kind": "message",
-            "messageType": "IamPolicySpec"
+            "messageType": "ApiResourceRef"
           },
-          "description": "The policy to check (principal, resource, relation)",
+          "description": "The resource being accessed (WHAT)",
           "required": true,
           "validation": {
             "required": true
+          }
+        },
+        {
+          "name": "Relation",
+          "jsonName": "relation",
+          "protoField": "relation",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The permission to check (e.g., \"can_edit\", \"can_grant_access\").\n\n @internal\n This is the FGA relation checked against the resource object.",
+          "required": true,
+          "validation": {
+            "required": true,
+            "minLength": 1,
+            "maxLength": 64
           }
         },
         {
@@ -303,6 +326,42 @@
             "kind": "bool"
           },
           "description": "Whether the principal is authorized",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "CheckAuthorizationInput",
+      "description": "CheckAuthorizationInput defines input for checking if a principal is authorized.",
+      "protoType": "ai.stigmer.iam.iampolicy.v1.CheckAuthorizationInput",
+      "protoFile": "apis/ai/stigmer/iam/iampolicy/v1/io.proto",
+      "fields": [
+        {
+          "name": "Policy",
+          "jsonName": "policy",
+          "protoField": "policy",
+          "type": {
+            "kind": "message",
+            "messageType": "IamPolicySpec"
+          },
+          "description": "The policy to check (principal, resource, relation)",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "ContextualPolicies",
+          "jsonName": "contextualPolicies",
+          "protoField": "contextual_policies",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "IamPolicySpec"
+            }
+          },
+          "description": "Optional contextual policies for \"what-if\" scenarios",
           "required": false
         }
       ]

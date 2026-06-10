@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { AuthorizedPrincipalIdsList, AuthorizedResourceIdsList, CheckAuthorizationInput, CheckAuthorizationResult, GetPrincipalsCountInput, IamPolicyId, ListAuthorizedPrincipalIdsInput, ListAuthorizedResourceIdsInput, ListResourceAccessInput, PrincipalResourceInput, PrincipalResourceRoles, PrincipalsCount, ResourceAccessByPrincipalList } from "./io_pbjs";
+import { AuthorizedPrincipalIdsList, AuthorizedResourceIdsList, CheckAuthorizationInput, CheckAuthorizationResult, CheckMyPermissionInput, GetPrincipalsCountInput, IamPolicyId, ListAuthorizedPrincipalIdsInput, ListAuthorizedResourceIdsInput, ListResourceAccessInput, PrincipalResourceInput, PrincipalResourceRoles, PrincipalsCount, ResourceAccessByPrincipalList } from "./io_pbjs";
 import { IamPolicy } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 
@@ -32,6 +32,37 @@ export const IamPolicyQueryController = {
       kind: MethodKind.Unary,
     },
     /**
+     * Check whether the AUTHENTICATED CALLER has a permission on a resource.
+     *
+     * This is the self-check RPC for clients (web console, desktop, SDKs):
+     * "Do I have permission Y on resource Z?"
+     *
+     * The principal is always derived server-side from the authenticated token.
+     * The input has no principal field by design — clients cannot name a
+     * principal, so cross-principal permission probing is structurally
+     * impossible (the Kubernetes SelfSubjectAccessReview pattern).
+     *
+     * Use Cases:
+     * - Pre-flight UI checks before showing buttons/actions
+     * - Permission-gated rendering (PermissionGate components)
+     *
+     * Input: CheckMyPermissionInput with resource, relation, and optional contextual policies
+     * Output: CheckAuthorizationResult with is_authorized boolean
+     *
+     * @internal
+     * Skips standard authorization because authorizing this RPC via IAM would
+     * recurse into IAM. Authentication is still required; the handler anchors
+     * the FGA check to the caller's identity account.
+     *
+     * @generated from rpc ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.checkMyPermission
+     */
+    checkMyPermission: {
+      name: "checkMyPermission",
+      I: CheckMyPermissionInput,
+      O: CheckAuthorizationResult,
+      kind: MethodKind.Unary,
+    },
+    /**
      * Check if a principal is authorized to perform a relation on a resource
      *
      * This is the fundamental authorization check RPC that answers the question:
@@ -40,14 +71,22 @@ export const IamPolicyQueryController = {
      * It provides a simple boolean answer based on the complete authorization state,
      * including existing IAM policies, inherited permissions, and group memberships.
      *
+     * This RPC is an INTERNAL-FACING contract for the platform's own
+     * authorization pipeline (service-to-service and in-process checks).
+     * Client-facing self checks must use checkMyPermission instead.
+     *
      * Use Cases:
-     * - Pre-flight UI checks before showing buttons/actions
      * - API request authorization before processing operations
      * - Service-to-service authorization
      * - Team-based access checks
      *
      * Input: CheckAuthorizationInput with policy spec and optional contextual policies
      * Output: CheckAuthorizationResult with is_authorized boolean
+     *
+     * @internal
+     * Skips standard authorization to avoid IAM-authorizing-IAM recursion.
+     * The handler enforces principal trust instead: the caller must either BE
+     * the principal being checked, or be a machine (system) account.
      *
      * @generated from rpc ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.checkAuthorization
      */

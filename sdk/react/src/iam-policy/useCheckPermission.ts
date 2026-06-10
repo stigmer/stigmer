@@ -3,10 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import {
-  CheckAuthorizationInputSchema,
+  CheckMyPermissionInputSchema,
 } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
 import {
-  IamPolicySpecSchema,
   ApiResourceRefSchema,
 } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
 import { useStigmer } from "../hooks";
@@ -33,7 +32,9 @@ export interface UseCheckPermissionReturn {
  * Hook that checks whether the current user has a specific permission
  * on a resource.
  *
- * Wraps `iamPolicy.checkAuthorization()` with caching and graceful
+ * Wraps `iamPolicy.checkMyPermission()` — the dedicated self-check RPC
+ * where the server derives the principal from the authenticated token
+ * (the client never names a principal) — with caching and graceful
  * degradation. When the server does not support authorization checks
  * (OSS edition where the IAM service is not registered), the hook
  * returns `allowed: true` — ensuring all UI is visible in single-user
@@ -88,22 +89,16 @@ export function useCheckPermission(
     let cancelled = false;
     setIsLoading(true);
 
-    const input = create(CheckAuthorizationInputSchema, {
-      policy: create(IamPolicySpecSchema, {
-        principal: create(ApiResourceRefSchema, {
-          kind: "identity_account",
-          id: "_self",
-        }),
-        resource: create(ApiResourceRefSchema, {
-          kind: resource.kind,
-          id: resource.id,
-        }),
-        relation,
+    const input = create(CheckMyPermissionInputSchema, {
+      resource: create(ApiResourceRefSchema, {
+        kind: resource.kind,
+        id: resource.id,
       }),
+      relation,
     });
 
     stigmer.iamPolicy
-      .checkAuthorization(input)
+      .checkMyPermission(input)
       .then((result) => {
         if (cancelled) return;
         const isAllowed = result.isAuthorized;
