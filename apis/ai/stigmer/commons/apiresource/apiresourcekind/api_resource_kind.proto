@@ -272,7 +272,10 @@ enum ApiResourceKind {
     authorization: {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
-      visibility: {supports_public: true}
+      visibility: {
+        supports_public: true
+        supports_platform: true
+      }
       grantable_roles: [
         owner,
         viewer
@@ -334,7 +337,10 @@ enum ApiResourceKind {
     authorization: {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
-      visibility: {supports_public: true}
+      visibility: {
+        supports_public: true
+        supports_platform: true
+      }
       grantable_roles: [
         owner,
         viewer
@@ -355,7 +361,10 @@ enum ApiResourceKind {
     authorization: {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
-      visibility: {supports_public: true}
+      visibility: {
+        supports_public: true
+        supports_platform: true
+      }
       grantable_roles: [
         owner,
         viewer
@@ -406,7 +415,10 @@ enum ApiResourceKind {
     authorization: {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
-      visibility: {supports_public: true}
+      visibility: {
+        supports_public: true
+        supports_platform: true
+      }
       grantable_roles: [
         owner,
         viewer

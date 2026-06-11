@@ -9,7 +9,7 @@ import { enumDesc, fileDesc } from "@bufbuild/protobuf/codegenv1";
  * Describes the file ai/stigmer/commons/apiresource/enum.proto.
  */
 export const file_ai_stigmer_commons_apiresource_enum: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2NvbW1vbnMvYXBpcmVzb3VyY2UvZW51bS5wcm90bxIeYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlKnYKFEFwaVJlc291cmNlRXZlbnRUeXBlEg8KC3Vuc3BlY2lmaWVkEAASCwoHY3JlYXRlZBABEgsKB3VwZGF0ZWQQAhILCgdkZWxldGVkEAMSCwoHcmVuYW1lZBAEEhkKFXN0YWNrX291dHB1dHNfdXBkYXRlZBAFKowBCh1BcGlSZXNvdXJjZVN0YXRlT3BlcmF0aW9uVHlwZRIxCi1hcGlfcmVzb3VyY2Vfc3RhdGVfb3BlcmF0aW9uX3R5cGVfdW5zcGVjaWZpZWQQABIKCgZjcmVhdGUQARIKCgZ1cGRhdGUQAhIKCgZkZWxldGUQAxIICgRyZWFkEAQSCgoGc3RyZWFtEAUqgwEKFUFwaVJlc291cmNlVmlzaWJpbGl0eRInCiNhcGlfcmVzb3VyY2VfdmlzaWJpbGl0eV91bnNwZWNpZmllZBAAEhYKEnZpc2liaWxpdHlfcHJpdmF0ZRABEhUKEXZpc2liaWxpdHlfcHVibGljEAISEgoOdmlzaWJpbGl0eV9vcmcQA2IGcHJvdG8z");
+  fileDesc("CilhaS9zdGlnbWVyL2NvbW1vbnMvYXBpcmVzb3VyY2UvZW51bS5wcm90bxIeYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlKnYKFEFwaVJlc291cmNlRXZlbnRUeXBlEg8KC3Vuc3BlY2lmaWVkEAASCwoHY3JlYXRlZBABEgsKB3VwZGF0ZWQQAhILCgdkZWxldGVkEAMSCwoHcmVuYW1lZBAEEhkKFXN0YWNrX291dHB1dHNfdXBkYXRlZBAFKowBCh1BcGlSZXNvdXJjZVN0YXRlT3BlcmF0aW9uVHlwZRIxCi1hcGlfcmVzb3VyY2Vfc3RhdGVfb3BlcmF0aW9uX3R5cGVfdW5zcGVjaWZpZWQQABIKCgZjcmVhdGUQARIKCgZ1cGRhdGUQAhIKCgZkZWxldGUQAxIICgRyZWFkEAQSCgoGc3RyZWFtEAUqnAEKFUFwaVJlc291cmNlVmlzaWJpbGl0eRInCiNhcGlfcmVzb3VyY2VfdmlzaWJpbGl0eV91bnNwZWNpZmllZBAAEhYKEnZpc2liaWxpdHlfcHJpdmF0ZRABEhUKEXZpc2liaWxpdHlfcHVibGljEAISEgoOdmlzaWJpbGl0eV9vcmcQAxIXChN2aXNpYmlsaXR5X3BsYXRmb3JtEARiBnByb3RvMw");
 
 /**
  * Event types produced by command controller RPCs across all API resources.
@@ -141,10 +141,13 @@ export const ApiResourceStateOperationTypeSchema: GenEnum<ApiResourceStateOperat
  * All resources belong to an organization. Visibility determines whether
  * users outside that organization can access the resource.
  *
- * The three visibility levels map to FGA tuples:
+ * The visibility levels map to FGA tuples:
  * - PRIVATE: no additional viewer tuples (owner-only access)
  * - ORG: resource#viewer@organization:<org>#member tuple (all org members)
  * - PUBLIC: resource#viewer@identity_account:* with allow_public (all users)
+ * - PLATFORM: resource#platform_viewer@identity_provider:<idp>#platform_user
+ *   (all members of all organizations managed by the owning org's
+ *   IdentityProvider)
  *
  * @generated from enum ai.stigmer.commons.apiresource.ApiResourceVisibility
  */
@@ -189,6 +192,32 @@ export enum ApiResourceVisibility {
    * @generated from enum value: visibility_org = 3;
    */
   visibility_org = 3,
+
+  /**
+   * All members of all organizations managed by the owning org's
+   * IdentityProvider can access (read and execute) this resource.
+   *
+   * "Platform" here means an external platform that operates Stigmer orgs
+   * on behalf of its own customers (see ManagementMode.platform_managed) —
+   * NOT the Stigmer platform singleton used by
+   * AUTHORIZATION_SCOPE_TYPE_PLATFORM.
+   *
+   * This is the "private catalog" primitive for multi-tenant consumers:
+   * a platform (e.g. Planton) authors blueprints (agents, skills, MCP
+   * servers, workflows) in its own org and shares them with every child
+   * org it manages, without exposing them publicly. Child orgs created
+   * later gain access automatically. Instances, sessions, executions and
+   * environments are never platform-visible — each child org instantiates
+   * the shared blueprint inside its own tenant boundary.
+   *
+   * Only valid for blueprint kinds with supports_platform: true, and only
+   * when the owning org owns at least one IdentityProvider.
+   *
+   * FGA tuple: resource#platform_viewer@identity_provider:<idp>#platform_user
+   *
+   * @generated from enum value: visibility_platform = 4;
+   */
+  visibility_platform = 4,
 }
 
 /**

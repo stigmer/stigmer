@@ -43,15 +43,15 @@ public final class EnumProto extends com.google.protobuf.GeneratedFile {
       "ApiResourceStateOperationType\0221\n-api_res" +
       "ource_state_operation_type_unspecified\020\000" +
       "\022\n\n\006create\020\001\022\n\n\006update\020\002\022\n\n\006delete\020\003\022\010\n\004" +
-      "read\020\004\022\n\n\006stream\020\005*\203\001\n\025ApiResourceVisibi" +
+      "read\020\004\022\n\n\006stream\020\005*\234\001\n\025ApiResourceVisibi" +
       "lity\022\'\n#api_resource_visibility_unspecif" +
       "ied\020\000\022\026\n\022visibility_private\020\001\022\025\n\021visibil" +
-      "ity_public\020\002\022\022\n\016visibility_org\020\003B\247\001B\tEnu" +
-      "mProtoP\001\242\002\004ASCA\252\002\036Ai.Stigmer.Commons.Api" +
-      "resource\312\002\036Ai\\Stigmer\\Commons\\Apiresourc" +
-      "e\342\002*Ai\\Stigmer\\Commons\\Apiresource\\GPBMe" +
-      "tadata\352\002!Ai::Stigmer::Commons::Apiresour" +
-      "ceb\006proto3"
+      "ity_public\020\002\022\022\n\016visibility_org\020\003\022\027\n\023visi" +
+      "bility_platform\020\004B\247\001B\tEnumProtoP\001\242\002\004ASCA" +
+      "\252\002\036Ai.Stigmer.Commons.Apiresource\312\002\036Ai\\S" +
+      "tigmer\\Commons\\Apiresource\342\002*Ai\\Stigmer\\" +
+      "Commons\\Apiresource\\GPBMetadata\352\002!Ai::St" +
+      "igmer::Commons::Apiresourceb\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

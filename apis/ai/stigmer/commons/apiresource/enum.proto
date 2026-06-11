@@ -53,10 +53,13 @@ enum ApiResourceStateOperationType {
 // All resources belong to an organization. Visibility determines whether
 // users outside that organization can access the resource.
 //
-// The three visibility levels map to FGA tuples:
+// The visibility levels map to FGA tuples:
 // - PRIVATE: no additional viewer tuples (owner-only access)
 // - ORG: resource#viewer@organization:<org>#member tuple (all org members)
 // - PUBLIC: resource#viewer@identity_account:* with allow_public (all users)
+// - PLATFORM: resource#platform_viewer@identity_provider:<idp>#platform_user
+//   (all members of all organizations managed by the owning org's
+//   IdentityProvider)
 enum ApiResourceVisibility {
   // Default/unspecified - backend infers from context.
   // For new resources: defaults to visibility_private.
@@ -82,4 +85,26 @@ enum ApiResourceVisibility {
   // For workflow instances, this enables zero-tuple-per-execution shared
   // observability: all org members see all executions via inheritance.
   visibility_org = 3;
+
+  // All members of all organizations managed by the owning org's
+  // IdentityProvider can access (read and execute) this resource.
+  //
+  // "Platform" here means an external platform that operates Stigmer orgs
+  // on behalf of its own customers (see ManagementMode.platform_managed) —
+  // NOT the Stigmer platform singleton used by
+  // AUTHORIZATION_SCOPE_TYPE_PLATFORM.
+  //
+  // This is the "private catalog" primitive for multi-tenant consumers:
+  // a platform (e.g. Planton) authors blueprints (agents, skills, MCP
+  // servers, workflows) in its own org and shares them with every child
+  // org it manages, without exposing them publicly. Child orgs created
+  // later gain access automatically. Instances, sessions, executions and
+  // environments are never platform-visible — each child org instantiates
+  // the shared blueprint inside its own tenant boundary.
+  //
+  // Only valid for blueprint kinds with supports_platform: true, and only
+  // when the owning org owns at least one IdentityProvider.
+  //
+  // FGA tuple: resource#platform_viewer@identity_provider:<idp>#platform_user
+  visibility_platform = 4;
 }

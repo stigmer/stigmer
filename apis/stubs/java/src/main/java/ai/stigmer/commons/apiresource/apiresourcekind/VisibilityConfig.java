@@ -7,13 +7,20 @@ package ai.stigmer.commons.apiresource.apiresourcekind;
 
 /**
  * <pre>
- * Visibility configuration for public access support.
- * Controls whether this resource kind can be made publicly readable.
+ * Visibility configuration for cross-org access support.
+ * Controls whether this resource kind can be made publicly readable and/or
+ * shared with all orgs managed by the owning org's IdentityProvider.
  *
  * When a resource is marked PUBLIC:
  * - FGA creates a wildcard tuple: resource#viewer&#64;identity_account:*
  * - This grants viewer access to all authenticated users via FGA
  * - Authorization remains pure FGA - no application-level fallbacks
+ *
+ * When a resource is marked PLATFORM:
+ * - FGA creates a userset tuple:
+ * resource#platform_viewer&#64;identity_provider:&lt;idp&gt;#platform_user
+ * - This grants access to all members of all platform_managed orgs linked
+ * to the owning org's IdentityProvider (the "private catalog" primitive)
  *
  * Open access resources (supports_public = true):
  * agent, skill, workflow, mcp_server
@@ -82,6 +89,29 @@ private static final long serialVersionUID = 0L;
     return supportsPublic_;
   }
 
+  public static final int SUPPORTS_PLATFORM_FIELD_NUMBER = 2;
+  private boolean supportsPlatform_ = false;
+  /**
+   * <pre>
+   * Whether this resource kind supports platform visibility.
+   * - true: Resources can be marked PLATFORM, creating a platform_viewer
+   * userset tuple that grants access to all orgs managed by the owning
+   * org's IdentityProvider
+   * - false: PLATFORM visibility is rejected
+   *
+   * Reserved for blueprint kinds (agent, skill, workflow, mcp_server).
+   * Instance kinds are deliberately excluded to preserve tenant isolation:
+   * each managed org instantiates shared blueprints inside its own boundary.
+   * </pre>
+   *
+   * <code>bool supports_platform = 2 [json_name = "supportsPlatform"];</code>
+   * @return The supportsPlatform.
+   */
+  @java.lang.Override
+  public boolean getSupportsPlatform() {
+    return supportsPlatform_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -99,6 +129,9 @@ private static final long serialVersionUID = 0L;
     if (supportsPublic_ != false) {
       output.writeBool(1, supportsPublic_);
     }
+    if (supportsPlatform_ != false) {
+      output.writeBool(2, supportsPlatform_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -111,6 +144,10 @@ private static final long serialVersionUID = 0L;
     if (supportsPublic_ != false) {
       size += com.google.protobuf.CodedOutputStream
         .computeBoolSize(1, supportsPublic_);
+    }
+    if (supportsPlatform_ != false) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBoolSize(2, supportsPlatform_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -129,6 +166,8 @@ private static final long serialVersionUID = 0L;
 
     if (getSupportsPublic()
         != other.getSupportsPublic()) return false;
+    if (getSupportsPlatform()
+        != other.getSupportsPlatform()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -143,6 +182,9 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + SUPPORTS_PUBLIC_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
         getSupportsPublic());
+    hash = (37 * hash) + SUPPORTS_PLATFORM_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+        getSupportsPlatform());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -242,13 +284,20 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Visibility configuration for public access support.
-   * Controls whether this resource kind can be made publicly readable.
+   * Visibility configuration for cross-org access support.
+   * Controls whether this resource kind can be made publicly readable and/or
+   * shared with all orgs managed by the owning org's IdentityProvider.
    *
    * When a resource is marked PUBLIC:
    * - FGA creates a wildcard tuple: resource#viewer&#64;identity_account:*
    * - This grants viewer access to all authenticated users via FGA
    * - Authorization remains pure FGA - no application-level fallbacks
+   *
+   * When a resource is marked PLATFORM:
+   * - FGA creates a userset tuple:
+   * resource#platform_viewer&#64;identity_provider:&lt;idp&gt;#platform_user
+   * - This grants access to all members of all platform_managed orgs linked
+   * to the owning org's IdentityProvider (the "private catalog" primitive)
    *
    * Open access resources (supports_public = true):
    * agent, skill, workflow, mcp_server
@@ -292,6 +341,7 @@ private static final long serialVersionUID = 0L;
       super.clear();
       bitField0_ = 0;
       supportsPublic_ = false;
+      supportsPlatform_ = false;
       return this;
     }
 
@@ -328,6 +378,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000001) != 0)) {
         result.supportsPublic_ = supportsPublic_;
       }
+      if (((from_bitField0_ & 0x00000002) != 0)) {
+        result.supportsPlatform_ = supportsPlatform_;
+      }
     }
 
     @java.lang.Override
@@ -344,6 +397,9 @@ private static final long serialVersionUID = 0L;
       if (other == ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig.getDefaultInstance()) return this;
       if (other.getSupportsPublic() != false) {
         setSupportsPublic(other.getSupportsPublic());
+      }
+      if (other.getSupportsPlatform() != false) {
+        setSupportsPlatform(other.getSupportsPlatform());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -376,6 +432,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000001;
               break;
             } // case 8
+            case 16: {
+              supportsPlatform_ = input.readBool();
+              bitField0_ |= 0x00000002;
+              break;
+            } // case 16
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -439,6 +500,74 @@ private static final long serialVersionUID = 0L;
     public Builder clearSupportsPublic() {
       bitField0_ = (bitField0_ & ~0x00000001);
       supportsPublic_ = false;
+      onChanged();
+      return this;
+    }
+
+    private boolean supportsPlatform_ ;
+    /**
+     * <pre>
+     * Whether this resource kind supports platform visibility.
+     * - true: Resources can be marked PLATFORM, creating a platform_viewer
+     * userset tuple that grants access to all orgs managed by the owning
+     * org's IdentityProvider
+     * - false: PLATFORM visibility is rejected
+     *
+     * Reserved for blueprint kinds (agent, skill, workflow, mcp_server).
+     * Instance kinds are deliberately excluded to preserve tenant isolation:
+     * each managed org instantiates shared blueprints inside its own boundary.
+     * </pre>
+     *
+     * <code>bool supports_platform = 2 [json_name = "supportsPlatform"];</code>
+     * @return The supportsPlatform.
+     */
+    @java.lang.Override
+    public boolean getSupportsPlatform() {
+      return supportsPlatform_;
+    }
+    /**
+     * <pre>
+     * Whether this resource kind supports platform visibility.
+     * - true: Resources can be marked PLATFORM, creating a platform_viewer
+     * userset tuple that grants access to all orgs managed by the owning
+     * org's IdentityProvider
+     * - false: PLATFORM visibility is rejected
+     *
+     * Reserved for blueprint kinds (agent, skill, workflow, mcp_server).
+     * Instance kinds are deliberately excluded to preserve tenant isolation:
+     * each managed org instantiates shared blueprints inside its own boundary.
+     * </pre>
+     *
+     * <code>bool supports_platform = 2 [json_name = "supportsPlatform"];</code>
+     * @param value The supportsPlatform to set.
+     * @return This builder for chaining.
+     */
+    public Builder setSupportsPlatform(boolean value) {
+
+      supportsPlatform_ = value;
+      bitField0_ |= 0x00000002;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Whether this resource kind supports platform visibility.
+     * - true: Resources can be marked PLATFORM, creating a platform_viewer
+     * userset tuple that grants access to all orgs managed by the owning
+     * org's IdentityProvider
+     * - false: PLATFORM visibility is rejected
+     *
+     * Reserved for blueprint kinds (agent, skill, workflow, mcp_server).
+     * Instance kinds are deliberately excluded to preserve tenant isolation:
+     * each managed org instantiates shared blueprints inside its own boundary.
+     * </pre>
+     *
+     * <code>bool supports_platform = 2 [json_name = "supportsPlatform"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearSupportsPlatform() {
+      bitField0_ = (bitField0_ & ~0x00000002);
+      supportsPlatform_ = false;
       onChanged();
       return this;
     }

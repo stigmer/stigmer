@@ -12,16 +12,23 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/commons/apiresource/apiresourcekind/authorization_config.proto.
  */
 export const file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config: GenFile = /*@__PURE__*/
-  fileDesc("CklhaS9zdGlnbWVyL2NvbW1vbnMvYXBpcmVzb3VyY2UvYXBpcmVzb3VyY2VraW5kL2F1dGhvcml6YXRpb25fY29uZmlnLnByb3RvEi5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kIisKEFZpc2liaWxpdHlDb25maWcSFwoPc3VwcG9ydHNfcHVibGljGAEgASgIIkoKFFBhcmVudFJlbGF0aW9uQ29uZmlnEgwKBGtpbmQYASABKAkSEAoIcmVsYXRpb24YAiABKAkSEgoKc3BlY19maWVsZBgDIAEoCSKuBAoTQXV0aG9yaXphdGlvbkNvbmZpZxJaCgpzY29wZV90eXBlGAEgASgOMkYuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLmFwaXJlc291cmNla2luZC5BdXRob3JpemF0aW9uU2NvcGVUeXBlElgKCm93bmVyX3R5cGUYAiABKA4yRC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kLk93bmVyQXR0cmlidXRpb25UeXBlElQKBnBhcmVudBgDIAEoCzJELmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5hcGlyZXNvdXJjZWtpbmQuUGFyZW50UmVsYXRpb25Db25maWcSYAoSYWRkaXRpb25hbF9wYXJlbnRzGAQgAygLMkQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLmFwaXJlc291cmNla2luZC5QYXJlbnRSZWxhdGlvbkNvbmZpZxJUCgp2aXNpYmlsaXR5GAUgASgLMkAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLmFwaXJlc291cmNla2luZC5WaXNpYmlsaXR5Q29uZmlnEh4KFnJlcXVpcmVzX2NyZWF0b3JfdHVwbGUYBiABKAgSMwoPZ3JhbnRhYmxlX3JvbGVzGAcgAygOMhouYWkuc3RpZ21lci5pYW0udjEuSWFtUm9sZSqFAgoWQXV0aG9yaXphdGlvblNjb3BlVHlwZRIoCiRBVVRIT1JJWkFUSU9OX1NDT1BFX1RZUEVfVU5TUEVDSUZJRUQQABIlCiFBVVRIT1JJWkFUSU9OX1NDT1BFX1RZUEVfUExBVEZPUk0QARIpCiVBVVRIT1JJWkFUSU9OX1NDT1BFX1RZUEVfT1JHQU5JWkFUSU9OEAISIwofQVVUSE9SSVpBVElPTl9TQ09QRV9UWVBFX1BBUkVOVBADEicKI0FVVEhPUklaQVRJT05fU0NPUEVfVFlQRV9PV05FUl9PTkxZEAQSIQodQVVUSE9SSVpBVElPTl9TQ09QRV9UWVBFX05PTkUQBSrJAQoUT3duZXJBdHRyaWJ1dGlvblR5cGUSJgoiT1dORVJfQVRUUklCVVRJT05fVFlQRV9VTlNQRUNJRklFRBAAEiEKHU9XTkVSX0FUVFJJQlVUSU9OX1RZUEVfRElSRUNUEAESJAogT1dORVJfQVRUUklCVVRJT05fVFlQRV9JTkhFUklURUQQAhIfChtPV05FUl9BVFRSSUJVVElPTl9UWVBFX1NFTEYQAxIfChtPV05FUl9BVFRSSUJVVElPTl9UWVBFX05PTkUQBEIaQhhBdXRob3JpemF0aW9uQ29uZmlnUHJvdG9iBnByb3RvMw", [file_ai_stigmer_iam_v1_enum]);
+  fileDesc("CklhaS9zdGlnbWVyL2NvbW1vbnMvYXBpcmVzb3VyY2UvYXBpcmVzb3VyY2VraW5kL2F1dGhvcml6YXRpb25fY29uZmlnLnByb3RvEi5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kIkYKEFZpc2liaWxpdHlDb25maWcSFwoPc3VwcG9ydHNfcHVibGljGAEgASgIEhkKEXN1cHBvcnRzX3BsYXRmb3JtGAIgASgIIkoKFFBhcmVudFJlbGF0aW9uQ29uZmlnEgwKBGtpbmQYASABKAkSEAoIcmVsYXRpb24YAiABKAkSEgoKc3BlY19maWVsZBgDIAEoCSKuBAoTQXV0aG9yaXphdGlvbkNvbmZpZxJaCgpzY29wZV90eXBlGAEgASgOMkYuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLmFwaXJlc291cmNla2luZC5BdXRob3JpemF0aW9uU2NvcGVUeXBlElgKCm93bmVyX3R5cGUYAiABKA4yRC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kLk93bmVyQXR0cmlidXRpb25UeXBlElQKBnBhcmVudBgDIAEoCzJELmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5hcGlyZXNvdXJjZWtpbmQuUGFyZW50UmVsYXRpb25Db25maWcSYAoSYWRkaXRpb25hbF9wYXJlbnRzGAQgAygLMkQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLmFwaXJlc291cmNla2luZC5QYXJlbnRSZWxhdGlvbkNvbmZpZxJUCgp2aXNpYmlsaXR5GAUgASgLMkAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLmFwaXJlc291cmNla2luZC5WaXNpYmlsaXR5Q29uZmlnEh4KFnJlcXVpcmVzX2NyZWF0b3JfdHVwbGUYBiABKAgSMwoPZ3JhbnRhYmxlX3JvbGVzGAcgAygOMhouYWkuc3RpZ21lci5pYW0udjEuSWFtUm9sZSqFAgoWQXV0aG9yaXphdGlvblNjb3BlVHlwZRIoCiRBVVRIT1JJWkFUSU9OX1NDT1BFX1RZUEVfVU5TUEVDSUZJRUQQABIlCiFBVVRIT1JJWkFUSU9OX1NDT1BFX1RZUEVfUExBVEZPUk0QARIpCiVBVVRIT1JJWkFUSU9OX1NDT1BFX1RZUEVfT1JHQU5JWkFUSU9OEAISIwofQVVUSE9SSVpBVElPTl9TQ09QRV9UWVBFX1BBUkVOVBADEicKI0FVVEhPUklaQVRJT05fU0NPUEVfVFlQRV9PV05FUl9PTkxZEAQSIQodQVVUSE9SSVpBVElPTl9TQ09QRV9UWVBFX05PTkUQBSrJAQoUT3duZXJBdHRyaWJ1dGlvblR5cGUSJgoiT1dORVJfQVRUUklCVVRJT05fVFlQRV9VTlNQRUNJRklFRBAAEiEKHU9XTkVSX0FUVFJJQlVUSU9OX1RZUEVfRElSRUNUEAESJAogT1dORVJfQVRUUklCVVRJT05fVFlQRV9JTkhFUklURUQQAhIfChtPV05FUl9BVFRSSUJVVElPTl9UWVBFX1NFTEYQAxIfChtPV05FUl9BVFRSSUJVVElPTl9UWVBFX05PTkUQBEIaQhhBdXRob3JpemF0aW9uQ29uZmlnUHJvdG9iBnByb3RvMw", [file_ai_stigmer_iam_v1_enum]);
 
 /**
- * Visibility configuration for public access support.
- * Controls whether this resource kind can be made publicly readable.
+ * Visibility configuration for cross-org access support.
+ * Controls whether this resource kind can be made publicly readable and/or
+ * shared with all orgs managed by the owning org's IdentityProvider.
  *
  * When a resource is marked PUBLIC:
  * - FGA creates a wildcard tuple: resource#viewer@identity_account:*
  * - This grants viewer access to all authenticated users via FGA
  * - Authorization remains pure FGA - no application-level fallbacks
+ *
+ * When a resource is marked PLATFORM:
+ * - FGA creates a userset tuple:
+ *   resource#platform_viewer@identity_provider:<idp>#platform_user
+ * - This grants access to all members of all platform_managed orgs linked
+ *   to the owning org's IdentityProvider (the "private catalog" primitive)
  *
  * Open access resources (supports_public = true):
  *   agent, skill, workflow, mcp_server
@@ -41,6 +48,21 @@ export type VisibilityConfig = Message<"ai.stigmer.commons.apiresource.apiresour
    * @generated from field: bool supports_public = 1;
    */
   supportsPublic: boolean;
+
+  /**
+   * Whether this resource kind supports platform visibility.
+   * - true: Resources can be marked PLATFORM, creating a platform_viewer
+   *   userset tuple that grants access to all orgs managed by the owning
+   *   org's IdentityProvider
+   * - false: PLATFORM visibility is rejected
+   *
+   * Reserved for blueprint kinds (agent, skill, workflow, mcp_server).
+   * Instance kinds are deliberately excluded to preserve tenant isolation:
+   * each managed org instantiates shared blueprints inside its own boundary.
+   *
+   * @generated from field: bool supports_platform = 2;
+   */
+  supportsPlatform: boolean;
 };
 
 /**

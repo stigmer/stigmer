@@ -164,13 +164,20 @@ func (OwnerAttributionType) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_proto_rawDescGZIP(), []int{1}
 }
 
-// Visibility configuration for public access support.
-// Controls whether this resource kind can be made publicly readable.
+// Visibility configuration for cross-org access support.
+// Controls whether this resource kind can be made publicly readable and/or
+// shared with all orgs managed by the owning org's IdentityProvider.
 //
 // When a resource is marked PUBLIC:
 // - FGA creates a wildcard tuple: resource#viewer@identity_account:*
 // - This grants viewer access to all authenticated users via FGA
 // - Authorization remains pure FGA - no application-level fallbacks
+//
+// When a resource is marked PLATFORM:
+//   - FGA creates a userset tuple:
+//     resource#platform_viewer@identity_provider:<idp>#platform_user
+//   - This grants access to all members of all platform_managed orgs linked
+//     to the owning org's IdentityProvider (the "private catalog" primitive)
 //
 // Open access resources (supports_public = true):
 //
@@ -186,8 +193,18 @@ type VisibilityConfig struct {
 	// - true: Resources can be marked PUBLIC, creating identity_account:* tuple
 	// - false: Resources are always org-restricted, PUBLIC visibility is rejected
 	SupportsPublic bool `protobuf:"varint,1,opt,name=supports_public,json=supportsPublic,proto3" json:"supports_public,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Whether this resource kind supports platform visibility.
+	//   - true: Resources can be marked PLATFORM, creating a platform_viewer
+	//     userset tuple that grants access to all orgs managed by the owning
+	//     org's IdentityProvider
+	//   - false: PLATFORM visibility is rejected
+	//
+	// Reserved for blueprint kinds (agent, skill, workflow, mcp_server).
+	// Instance kinds are deliberately excluded to preserve tenant isolation:
+	// each managed org instantiates shared blueprints inside its own boundary.
+	SupportsPlatform bool `protobuf:"varint,2,opt,name=supports_platform,json=supportsPlatform,proto3" json:"supports_platform,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *VisibilityConfig) Reset() {
@@ -223,6 +240,13 @@ func (*VisibilityConfig) Descriptor() ([]byte, []int) {
 func (x *VisibilityConfig) GetSupportsPublic() bool {
 	if x != nil {
 		return x.SupportsPublic
+	}
+	return false
+}
+
+func (x *VisibilityConfig) GetSupportsPlatform() bool {
+	if x != nil {
+		return x.SupportsPlatform
 	}
 	return false
 }
@@ -481,9 +505,10 @@ var File_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_pro
 
 const file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_proto_rawDesc = "" +
 	"\n" +
-	"Iai/stigmer/commons/apiresource/apiresourcekind/authorization_config.proto\x12.ai.stigmer.commons.apiresource.apiresourcekind\x1a\x1cai/stigmer/iam/v1/enum.proto\";\n" +
+	"Iai/stigmer/commons/apiresource/apiresourcekind/authorization_config.proto\x12.ai.stigmer.commons.apiresource.apiresourcekind\x1a\x1cai/stigmer/iam/v1/enum.proto\"h\n" +
 	"\x10VisibilityConfig\x12'\n" +
-	"\x0fsupports_public\x18\x01 \x01(\bR\x0esupportsPublic\"e\n" +
+	"\x0fsupports_public\x18\x01 \x01(\bR\x0esupportsPublic\x12+\n" +
+	"\x11supports_platform\x18\x02 \x01(\bR\x10supportsPlatform\"e\n" +
 	"\x14ParentRelationConfig\x12\x12\n" +
 	"\x04kind\x18\x01 \x01(\tR\x04kind\x12\x1a\n" +
 	"\brelation\x18\x02 \x01(\tR\brelation\x12\x1d\n" +

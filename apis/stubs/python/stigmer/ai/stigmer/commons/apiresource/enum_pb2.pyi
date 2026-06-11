@@ -28,6 +28,7 @@ class ApiResourceVisibility(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     visibility_private: _ClassVar[ApiResourceVisibility]
     visibility_public: _ClassVar[ApiResourceVisibility]
     visibility_org: _ClassVar[ApiResourceVisibility]
+    visibility_platform: _ClassVar[ApiResourceVisibility]
 unspecified: ApiResourceEventType
 created: ApiResourceEventType
 updated: ApiResourceEventType
@@ -44,3 +45,4 @@ api_resource_visibility_unspecified: ApiResourceVisibility
 visibility_private: ApiResourceVisibility
 visibility_public: ApiResourceVisibility
 visibility_org: ApiResourceVisibility
+visibility_platform: ApiResourceVisibility

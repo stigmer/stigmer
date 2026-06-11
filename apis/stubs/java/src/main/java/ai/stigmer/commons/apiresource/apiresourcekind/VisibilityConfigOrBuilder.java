@@ -21,4 +21,22 @@ public interface VisibilityConfigOrBuilder extends
    * @return The supportsPublic.
    */
   boolean getSupportsPublic();
+
+  /**
+   * <pre>
+   * Whether this resource kind supports platform visibility.
+   * - true: Resources can be marked PLATFORM, creating a platform_viewer
+   * userset tuple that grants access to all orgs managed by the owning
+   * org's IdentityProvider
+   * - false: PLATFORM visibility is rejected
+   *
+   * Reserved for blueprint kinds (agent, skill, workflow, mcp_server).
+   * Instance kinds are deliberately excluded to preserve tenant isolation:
+   * each managed org instantiates shared blueprints inside its own boundary.
+   * </pre>
+   *
+   * <code>bool supports_platform = 2 [json_name = "supportsPlatform"];</code>
+   * @return The supportsPlatform.
+   */
+  boolean getSupportsPlatform();
 }

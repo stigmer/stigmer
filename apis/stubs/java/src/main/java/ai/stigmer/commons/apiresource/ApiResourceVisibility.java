@@ -18,10 +18,13 @@ package ai.stigmer.commons.apiresource;
  * All resources belong to an organization. Visibility determines whether
  * users outside that organization can access the resource.
  *
- * The three visibility levels map to FGA tuples:
+ * The visibility levels map to FGA tuples:
  * - PRIVATE: no additional viewer tuples (owner-only access)
  * - ORG: resource#viewer&#64;organization:&lt;org&gt;#member tuple (all org members)
  * - PUBLIC: resource#viewer&#64;identity_account:* with allow_public (all users)
+ * - PLATFORM: resource#platform_viewer&#64;identity_provider:&lt;idp&gt;#platform_user
+ * (all members of all organizations managed by the owning org's
+ * IdentityProvider)
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.commons.apiresource.ApiResourceVisibility}
@@ -74,6 +77,33 @@ public enum ApiResourceVisibility
    * <code>visibility_org = 3;</code>
    */
   visibility_org(3),
+  /**
+   * <pre>
+   * All members of all organizations managed by the owning org's
+   * IdentityProvider can access (read and execute) this resource.
+   *
+   * "Platform" here means an external platform that operates Stigmer orgs
+   * on behalf of its own customers (see ManagementMode.platform_managed) —
+   * NOT the Stigmer platform singleton used by
+   * AUTHORIZATION_SCOPE_TYPE_PLATFORM.
+   *
+   * This is the "private catalog" primitive for multi-tenant consumers:
+   * a platform (e.g. Planton) authors blueprints (agents, skills, MCP
+   * servers, workflows) in its own org and shares them with every child
+   * org it manages, without exposing them publicly. Child orgs created
+   * later gain access automatically. Instances, sessions, executions and
+   * environments are never platform-visible — each child org instantiates
+   * the shared blueprint inside its own tenant boundary.
+   *
+   * Only valid for blueprint kinds with supports_platform: true, and only
+   * when the owning org owns at least one IdentityProvider.
+   *
+   * FGA tuple: resource#platform_viewer&#64;identity_provider:&lt;idp&gt;#platform_user
+   * </pre>
+   *
+   * <code>visibility_platform = 4;</code>
+   */
+  visibility_platform(4),
   UNRECOGNIZED(-1),
   ;
 
@@ -131,6 +161,33 @@ public enum ApiResourceVisibility
    * <code>visibility_org = 3;</code>
    */
   public static final int visibility_org_VALUE = 3;
+  /**
+   * <pre>
+   * All members of all organizations managed by the owning org's
+   * IdentityProvider can access (read and execute) this resource.
+   *
+   * "Platform" here means an external platform that operates Stigmer orgs
+   * on behalf of its own customers (see ManagementMode.platform_managed) —
+   * NOT the Stigmer platform singleton used by
+   * AUTHORIZATION_SCOPE_TYPE_PLATFORM.
+   *
+   * This is the "private catalog" primitive for multi-tenant consumers:
+   * a platform (e.g. Planton) authors blueprints (agents, skills, MCP
+   * servers, workflows) in its own org and shares them with every child
+   * org it manages, without exposing them publicly. Child orgs created
+   * later gain access automatically. Instances, sessions, executions and
+   * environments are never platform-visible — each child org instantiates
+   * the shared blueprint inside its own tenant boundary.
+   *
+   * Only valid for blueprint kinds with supports_platform: true, and only
+   * when the owning org owns at least one IdentityProvider.
+   *
+   * FGA tuple: resource#platform_viewer&#64;identity_provider:&lt;idp&gt;#platform_user
+   * </pre>
+   *
+   * <code>visibility_platform = 4;</code>
+   */
+  public static final int visibility_platform_VALUE = 4;
 
 
   public final int getNumber() {
@@ -161,6 +218,7 @@ public enum ApiResourceVisibility
       case 1: return visibility_private;
       case 2: return visibility_public;
       case 3: return visibility_org;
+      case 4: return visibility_platform;
       default: return null;
     }
   }
