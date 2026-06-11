@@ -13,7 +13,7 @@ export interface VisibilitySelectorProps {
   /** Current visibility of the resource. */
   readonly visibility: ApiResourceVisibility;
   /**
-   * Levels to offer, in escalation order (see {@link visibilityLevels}).
+   * Levels to offer, in escalation order (see {@link blueprintVisibilityLevels}).
    * Selecting a level later in the list than the current one is an
    * escalation and shows that option's inline confirmation prompt;
    * de-escalation applies immediately (revoking access is always safe).

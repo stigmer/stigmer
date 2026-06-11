@@ -1,6 +1,5 @@
 "use client";
 
-import { useCallback, useState } from "react";
 import { McpServerDetailView } from "@stigmer/react";
 import { samples } from "@stigmer/react/test";
 import { PreviewProvider } from "@scenar/preview/runtime";
@@ -83,21 +82,11 @@ const previewFixtures = [
 ];
 
 export function McpServerDetail() {
-  const [, setVisibility] = useState(ApiResourceVisibility.visibility_private);
-  const handleVisibilityChange = useCallback(
-    (v: ApiResourceVisibility) => setVisibility(v),
-    [],
-  );
-
   return (
     <PreviewProvider providers={PreviewProviders} fixtures={previewFixtures}>
       <div className={DEMO_DETAIL_CLASSES}>
         <div className="p-4" style={{ zoom: DEMO_CONTENT_ZOOM }}>
-          <McpServerDetailView
-            org={DEMO_ORG}
-            slug="order-management-api"
-            onVisibilityChange={handleVisibilityChange}
-          />
+          <McpServerDetailView org={DEMO_ORG} slug="order-management-api" />
         </div>
       </div>
     </PreviewProvider>
