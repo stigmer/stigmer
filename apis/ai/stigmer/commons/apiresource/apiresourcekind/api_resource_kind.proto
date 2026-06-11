@@ -276,6 +276,7 @@ enum ApiResourceKind {
         supports_org: true
         supports_public: true
         supports_platform: true
+        defaults_to_org_visibility: true
       }
       grantable_roles: [
         owner,
@@ -342,6 +343,7 @@ enum ApiResourceKind {
         supports_org: true
         supports_public: true
         supports_platform: true
+        defaults_to_org_visibility: true
       }
       grantable_roles: [
         owner,
@@ -367,6 +369,7 @@ enum ApiResourceKind {
         supports_org: true
         supports_public: true
         supports_platform: true
+        defaults_to_org_visibility: true
       }
       grantable_roles: [
         owner,
@@ -428,6 +431,7 @@ enum ApiResourceKind {
         supports_org: true
         supports_public: true
         supports_platform: true
+        defaults_to_org_visibility: true
       }
       grantable_roles: [
         owner,

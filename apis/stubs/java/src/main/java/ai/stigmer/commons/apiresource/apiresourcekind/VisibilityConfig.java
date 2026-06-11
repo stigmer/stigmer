@@ -139,6 +139,38 @@ private static final long serialVersionUID = 0L;
     return supportsOrg_;
   }
 
+  public static final int DEFAULTS_TO_ORG_VISIBILITY_FIELD_NUMBER = 4;
+  private boolean defaultsToOrgVisibility_ = false;
+  /**
+   * <pre>
+   * Whether resources of this kind default to visibility_org when created
+   * with unspecified visibility. When false (or when no visibility config
+   * is declared), unspecified visibility defaults to visibility_private.
+   *
+   * Set on blueprint kinds (agent, skill, workflow, mcp_server): blueprints
+   * are shared org assets, and before private visibility became real (the
+   * unconditional `viewer from organization` FGA grant was removed) every
+   * blueprint was effectively org-visible regardless of its enum value.
+   * Defaulting to org preserves that collaborative behavior — Private is an
+   * explicit opt-in, never a surprise.
+   *
+   * Instance kinds deliberately leave this false: instances are personal
+   * resources (configuration, secrets) that must start private.
+   *
+   * Note: a single ApiResourceVisibility-typed default field would be
+   * cleaner, but that enum lives in the parent apiresource package whose
+   * generated Go package imports this one (see the file-level note above) —
+   * hence the boolean, consistent with the supports_* flags.
+   * </pre>
+   *
+   * <code>bool defaults_to_org_visibility = 4 [json_name = "defaultsToOrgVisibility"];</code>
+   * @return The defaultsToOrgVisibility.
+   */
+  @java.lang.Override
+  public boolean getDefaultsToOrgVisibility() {
+    return defaultsToOrgVisibility_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -162,6 +194,9 @@ private static final long serialVersionUID = 0L;
     if (supportsOrg_ != false) {
       output.writeBool(3, supportsOrg_);
     }
+    if (defaultsToOrgVisibility_ != false) {
+      output.writeBool(4, defaultsToOrgVisibility_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -182,6 +217,10 @@ private static final long serialVersionUID = 0L;
     if (supportsOrg_ != false) {
       size += com.google.protobuf.CodedOutputStream
         .computeBoolSize(3, supportsOrg_);
+    }
+    if (defaultsToOrgVisibility_ != false) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBoolSize(4, defaultsToOrgVisibility_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -204,6 +243,8 @@ private static final long serialVersionUID = 0L;
         != other.getSupportsPlatform()) return false;
     if (getSupportsOrg()
         != other.getSupportsOrg()) return false;
+    if (getDefaultsToOrgVisibility()
+        != other.getDefaultsToOrgVisibility()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -224,6 +265,9 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + SUPPORTS_ORG_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
         getSupportsOrg());
+    hash = (37 * hash) + DEFAULTS_TO_ORG_VISIBILITY_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+        getDefaultsToOrgVisibility());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -394,6 +438,7 @@ private static final long serialVersionUID = 0L;
       supportsPublic_ = false;
       supportsPlatform_ = false;
       supportsOrg_ = false;
+      defaultsToOrgVisibility_ = false;
       return this;
     }
 
@@ -436,6 +481,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000004) != 0)) {
         result.supportsOrg_ = supportsOrg_;
       }
+      if (((from_bitField0_ & 0x00000008) != 0)) {
+        result.defaultsToOrgVisibility_ = defaultsToOrgVisibility_;
+      }
     }
 
     @java.lang.Override
@@ -458,6 +506,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.getSupportsOrg() != false) {
         setSupportsOrg(other.getSupportsOrg());
+      }
+      if (other.getDefaultsToOrgVisibility() != false) {
+        setDefaultsToOrgVisibility(other.getDefaultsToOrgVisibility());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -500,6 +551,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000004;
               break;
             } // case 24
+            case 32: {
+              defaultsToOrgVisibility_ = input.readBool();
+              bitField0_ |= 0x00000008;
+              break;
+            } // case 32
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -675,6 +731,101 @@ private static final long serialVersionUID = 0L;
     public Builder clearSupportsOrg() {
       bitField0_ = (bitField0_ & ~0x00000004);
       supportsOrg_ = false;
+      onChanged();
+      return this;
+    }
+
+    private boolean defaultsToOrgVisibility_ ;
+    /**
+     * <pre>
+     * Whether resources of this kind default to visibility_org when created
+     * with unspecified visibility. When false (or when no visibility config
+     * is declared), unspecified visibility defaults to visibility_private.
+     *
+     * Set on blueprint kinds (agent, skill, workflow, mcp_server): blueprints
+     * are shared org assets, and before private visibility became real (the
+     * unconditional `viewer from organization` FGA grant was removed) every
+     * blueprint was effectively org-visible regardless of its enum value.
+     * Defaulting to org preserves that collaborative behavior — Private is an
+     * explicit opt-in, never a surprise.
+     *
+     * Instance kinds deliberately leave this false: instances are personal
+     * resources (configuration, secrets) that must start private.
+     *
+     * Note: a single ApiResourceVisibility-typed default field would be
+     * cleaner, but that enum lives in the parent apiresource package whose
+     * generated Go package imports this one (see the file-level note above) —
+     * hence the boolean, consistent with the supports_* flags.
+     * </pre>
+     *
+     * <code>bool defaults_to_org_visibility = 4 [json_name = "defaultsToOrgVisibility"];</code>
+     * @return The defaultsToOrgVisibility.
+     */
+    @java.lang.Override
+    public boolean getDefaultsToOrgVisibility() {
+      return defaultsToOrgVisibility_;
+    }
+    /**
+     * <pre>
+     * Whether resources of this kind default to visibility_org when created
+     * with unspecified visibility. When false (or when no visibility config
+     * is declared), unspecified visibility defaults to visibility_private.
+     *
+     * Set on blueprint kinds (agent, skill, workflow, mcp_server): blueprints
+     * are shared org assets, and before private visibility became real (the
+     * unconditional `viewer from organization` FGA grant was removed) every
+     * blueprint was effectively org-visible regardless of its enum value.
+     * Defaulting to org preserves that collaborative behavior — Private is an
+     * explicit opt-in, never a surprise.
+     *
+     * Instance kinds deliberately leave this false: instances are personal
+     * resources (configuration, secrets) that must start private.
+     *
+     * Note: a single ApiResourceVisibility-typed default field would be
+     * cleaner, but that enum lives in the parent apiresource package whose
+     * generated Go package imports this one (see the file-level note above) —
+     * hence the boolean, consistent with the supports_* flags.
+     * </pre>
+     *
+     * <code>bool defaults_to_org_visibility = 4 [json_name = "defaultsToOrgVisibility"];</code>
+     * @param value The defaultsToOrgVisibility to set.
+     * @return This builder for chaining.
+     */
+    public Builder setDefaultsToOrgVisibility(boolean value) {
+
+      defaultsToOrgVisibility_ = value;
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Whether resources of this kind default to visibility_org when created
+     * with unspecified visibility. When false (or when no visibility config
+     * is declared), unspecified visibility defaults to visibility_private.
+     *
+     * Set on blueprint kinds (agent, skill, workflow, mcp_server): blueprints
+     * are shared org assets, and before private visibility became real (the
+     * unconditional `viewer from organization` FGA grant was removed) every
+     * blueprint was effectively org-visible regardless of its enum value.
+     * Defaulting to org preserves that collaborative behavior — Private is an
+     * explicit opt-in, never a surprise.
+     *
+     * Instance kinds deliberately leave this false: instances are personal
+     * resources (configuration, secrets) that must start private.
+     *
+     * Note: a single ApiResourceVisibility-typed default field would be
+     * cleaner, but that enum lives in the parent apiresource package whose
+     * generated Go package imports this one (see the file-level note above) —
+     * hence the boolean, consistent with the supports_* flags.
+     * </pre>
+     *
+     * <code>bool defaults_to_org_visibility = 4 [json_name = "defaultsToOrgVisibility"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearDefaultsToOrgVisibility() {
+      bitField0_ = (bitField0_ & ~0x00000008);
+      defaultsToOrgVisibility_ = false;
       onChanged();
       return this;
     }

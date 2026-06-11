@@ -235,6 +235,7 @@ export function SkillDetailView({
       kind="skill"
       resourceId={meta.id}
       visibility={meta.visibility}
+      org={meta.org || org}
       onChanged={refetch}
     />
   ) : undefined;

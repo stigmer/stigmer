@@ -34,9 +34,9 @@ export interface UseUpdateVisibilityReturn {
 /**
  * Behavior hook that updates the visibility of a resource.
  *
- * Supports blueprints (Agent, Workflow, Skill, MCP Server) with
- * private/public visibility, and instances (AgentInstance,
- * WorkflowInstance) with the full private/org/public spectrum.
+ * Supports blueprints (Agent, Workflow, Skill, MCP Server) with the
+ * full private/org/public/platform spectrum, and instances
+ * (AgentInstance, WorkflowInstance) with private/org/public.
  *
  * Wraps the generated `stigmer.{kind}.updateVisibility()` SDK method
  * with loading and error state management. The hook is stateless with
@@ -51,8 +51,9 @@ export interface UseUpdateVisibilityReturn {
  * ```tsx
  * const { updateVisibility, isPending } = useUpdateVisibility("workflow", workflow.metadata.id);
  *
- * <VisibilityToggle
+ * <VisibilitySelector
  *   visibility={workflow.metadata.visibility}
+ *   options={options}
  *   onVisibilityChange={updateVisibility}
  *   isPending={isPending}
  * />

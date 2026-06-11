@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import {
   McpServerDetailView,
   useMcpServer,
-  useUpdateVisibility,
   useActiveOrgSlug,
   useCopyResource,
   useConfirmAction,
@@ -39,11 +38,6 @@ export function McpServerDetailPageInner({
     kind: "McpServer",
     resource: mcpServer,
   });
-
-  const { updateVisibility, isPending } = useUpdateVisibility(
-    "mcpServer",
-    resourceId,
-  );
 
   useEffect(() => () => setLabel(null), [setLabel]);
 
@@ -128,8 +122,6 @@ export function McpServerDetailPageInner({
         slug={slug}
         activeOrg={activeOrgSlug}
         onResourceLoad={handleResourceLoad}
-        onVisibilityChange={updateVisibility}
-        isVisibilityPending={isPending}
         editable
         actions={actions}
       />

@@ -48,7 +48,7 @@ const OPTIONS: readonly {
  *
  * Renders as a WAI-ARIA Radio Group with roving tabindex and
  * arrow-key navigation. Follows the same visual pattern as
- * {@link VisibilityToggle}.
+ * {@link VisibilitySelector}.
  *
  * The component is controlled — the consumer owns the `value` state
  * and handles persistence (e.g., localStorage).

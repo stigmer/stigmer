@@ -11,6 +11,7 @@ go_library(
         "populate_serverless_validation_step.go",
         "query.go",
         "update.go",
+        "update_visibility.go",
         "validate_spec.go",
         "validate_spec_step.go",
         "version_steps.go",

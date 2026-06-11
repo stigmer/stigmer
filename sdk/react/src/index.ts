@@ -853,7 +853,11 @@ export {
   useExportResource,
   useImportResource,
   ImportResourceDialog,
-  VisibilityToggle,
+  VisibilitySelector,
+  VisibilityBadge,
+  blueprintVisibilityLevels,
+  INSTANCE_VISIBILITY_LEVELS,
+  visibilityLabel,
   useUpdateVisibility,
 } from "./library";
 export type {
@@ -873,7 +877,9 @@ export type {
   ImportPreview,
   UseImportResourceReturn,
   ImportResourceDialogProps,
-  VisibilityToggleProps,
+  VisibilitySelectorProps,
+  VisibilityLevelOption,
+  BlueprintVisibilityLevelsContext,
   VisibilityResourceKind,
   UseUpdateVisibilityReturn,
 } from "./library";

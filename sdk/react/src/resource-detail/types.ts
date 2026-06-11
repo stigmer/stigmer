@@ -151,7 +151,7 @@ export interface ResourceDetailShellProps {
 
   /**
    * Visibility control rendered in the header.
-   * Typically a `<VisibilityToggle />` from the library module.
+   * Typically a `<ResourceVisibilityControl />` from the library module.
    * Rendered inline after the resource name.
    */
   readonly visibilityControl?: ReactNode;

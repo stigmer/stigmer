@@ -3,7 +3,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import {
   McpServerDetailView,
   useMcpServer,
-  useUpdateVisibility,
   useActiveOrgSlug,
   useCopyResource,
   useConfirmAction,
@@ -34,11 +33,6 @@ export default function McpServerDetailPage() {
     kind: "McpServer",
     resource: mcpServer,
   });
-
-  const { updateVisibility, isPending } = useUpdateVisibility(
-    "mcpServer",
-    resourceId,
-  );
 
   useEffect(() => () => setLabel(null), [setLabel]);
 
@@ -141,8 +135,6 @@ export default function McpServerDetailPage() {
         editable
         activeOrg={activeOrg}
         onResourceLoad={handleResourceLoad}
-        onVisibilityChange={updateVisibility}
-        isVisibilityPending={isPending}
         actions={actions}
       />
       <ConfirmDialog

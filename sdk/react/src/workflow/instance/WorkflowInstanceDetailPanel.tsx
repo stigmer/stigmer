@@ -12,6 +12,7 @@ import { useUpdateWorkflowInstance } from "./useUpdateWorkflowInstance";
 import { useDeleteWorkflowInstance } from "./useDeleteWorkflowInstance";
 import { useUpdateVisibility } from "../../library/useUpdateVisibility";
 import { InstanceVisibilitySelector } from "../../library/InstanceVisibilitySelector";
+import { visibilityLabel } from "../../library/visibilityLevels";
 import { PermissionGate } from "../../iam-policy/PermissionGate";
 import { SharePanel } from "../../iam-policy/SharePanel";
 import { EnvironmentPicker } from "../../environment/EnvironmentPicker";
@@ -259,7 +260,7 @@ export function WorkflowInstanceDetailPanel({
             relation="can_edit"
             fallback={
               <span className="text-sm text-foreground">
-                {VISIBILITY_LABELS[meta?.visibility ?? 0] ?? "Private"}
+                {visibilityLabel(meta?.visibility ?? ApiResourceVisibility.visibility_private)}
               </span>
             }
           >
@@ -342,12 +343,6 @@ export function WorkflowInstanceDetailPanel({
     </div>
   );
 }
-
-const VISIBILITY_LABELS: Record<number, string> = {
-  [ApiResourceVisibility.visibility_private]: "Private",
-  [ApiResourceVisibility.visibility_org]: "Organization",
-  [ApiResourceVisibility.visibility_public]: "Public",
-};
 
 function CloseIcon() {
   return (

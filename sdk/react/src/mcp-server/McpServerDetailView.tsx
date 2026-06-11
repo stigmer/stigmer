@@ -13,7 +13,6 @@ import type {
 import type { ToolApprovalPolicy, McpServerSpec } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import { ValidationState } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { useMcpServer } from "./useMcpServer";
 import { useUpdateMcpServer } from "./useUpdateMcpServer";
 import { mcpServerToInput } from "./internal/mcpServerToInput";
@@ -27,8 +26,7 @@ import { OAuthAppForm } from "./OAuthAppForm";
 import { ErrorMessage } from "../error/ErrorMessage";
 import { EnvVarForm } from "../environment/EnvVarForm";
 import type { EnvVarFormVariable } from "../environment/EnvVarForm";
-import { VisibilityToggle } from "../library/VisibilityToggle";
-import { PermissionGate } from "../iam-policy/PermissionGate";
+import { ResourceVisibilityControl } from "../library/ResourceVisibilityControl";
 import { Tabs, type TabItem } from "../tabs/Tabs";
 import { ResourceDetailShell } from "../resource-detail/ResourceDetailShell";
 import { Section } from "../resource-detail/Section";
@@ -58,15 +56,6 @@ export interface McpServerDetailViewProps {
    * Not called on error or not-found states.
    */
   readonly onResourceLoad?: (meta: { name: string; id: string }) => void;
-  /**
-   * Called when the user toggles visibility via the inline control.
-   * When provided, the header renders an interactive
-   * {@link VisibilityToggle} instead of a read-only badge.
-   * When omitted, visibility is displayed as a static "Public" pill.
-   */
-  readonly onVisibilityChange?: (v: ApiResourceVisibility) => void;
-  /** `true` while a visibility update RPC is in flight. */
-  readonly isVisibilityPending?: boolean;
   /**
    * Initial active capability tab. Defaults to `"tools"`.
    * Useful for deep-linking or demo scenarios that need to start on
@@ -147,8 +136,6 @@ export function McpServerDetailView({
   org,
   slug,
   onResourceLoad,
-  onVisibilityChange,
-  isVisibilityPending,
   defaultCapabilityTab = "tools",
   defaultShowCredentialForm = false,
   credentialPoolValues,
@@ -393,27 +380,15 @@ export function McpServerDetailView({
     updatedAt: specAudit?.updatedAt ? timestampDate(specAudit.updatedAt) : null,
   };
 
-  const visibilityBadge =
-    meta?.visibility === ApiResourceVisibility.visibility_public ? (
-      <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-        Public
-      </span>
-    ) : undefined;
-
-  const visibilityControl =
-    onVisibilityChange && meta ? (
-      <PermissionGate
-        resource={{ kind: "mcp_server", id: meta.id }}
-        relation="can_edit"
-        fallback={visibilityBadge}
-      >
-        <VisibilityToggle
-          visibility={meta.visibility}
-          onVisibilityChange={onVisibilityChange}
-          isPending={isVisibilityPending}
-        />
-      </PermissionGate>
-    ) : visibilityBadge;
+  const visibilityControl = meta ? (
+    <ResourceVisibilityControl
+      kind="mcpServer"
+      resourceId={meta.id}
+      visibility={meta.visibility}
+      org={meta.org || org}
+      onChanged={refetch}
+    />
+  ) : undefined;
 
   const headerMetaExtra = (
     <>

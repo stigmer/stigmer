@@ -160,6 +160,10 @@ func formatVisibility(v apiresource.ApiResourceVisibility) string {
 		return "public"
 	case apiresource.ApiResourceVisibility_visibility_private:
 		return "private"
+	case apiresource.ApiResourceVisibility_visibility_org:
+		return "org"
+	case apiresource.ApiResourceVisibility_visibility_platform:
+		return "platform"
 	default:
 		return "unknown"
 	}

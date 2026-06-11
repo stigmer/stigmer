@@ -49,4 +49,31 @@ public interface VisibilityConfigOrBuilder extends
    * @return The supportsOrg.
    */
   boolean getSupportsOrg();
+
+  /**
+   * <pre>
+   * Whether resources of this kind default to visibility_org when created
+   * with unspecified visibility. When false (or when no visibility config
+   * is declared), unspecified visibility defaults to visibility_private.
+   *
+   * Set on blueprint kinds (agent, skill, workflow, mcp_server): blueprints
+   * are shared org assets, and before private visibility became real (the
+   * unconditional `viewer from organization` FGA grant was removed) every
+   * blueprint was effectively org-visible regardless of its enum value.
+   * Defaulting to org preserves that collaborative behavior — Private is an
+   * explicit opt-in, never a surprise.
+   *
+   * Instance kinds deliberately leave this false: instances are personal
+   * resources (configuration, secrets) that must start private.
+   *
+   * Note: a single ApiResourceVisibility-typed default field would be
+   * cleaner, but that enum lives in the parent apiresource package whose
+   * generated Go package imports this one (see the file-level note above) —
+   * hence the boolean, consistent with the supports_* flags.
+   * </pre>
+   *
+   * <code>bool defaults_to_org_visibility = 4 [json_name = "defaultsToOrgVisibility"];</code>
+   * @return The defaultsToOrgVisibility.
+   */
+  boolean getDefaultsToOrgVisibility();
 }

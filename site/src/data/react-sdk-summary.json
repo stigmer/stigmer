@@ -131,7 +131,7 @@
       "title": "Library",
       "description": "Hooks and components for resource browsing, YAML detection, apply flow, and visibility.",
       "hooks": 8,
-      "components": 5
+      "components": 6
     },
     {
       "slug": "mcp-server",

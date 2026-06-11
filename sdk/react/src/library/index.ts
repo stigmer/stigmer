@@ -68,8 +68,19 @@ export type {
 export { ImportResourceDialog } from "./ImportResourceDialog";
 export type { ImportResourceDialogProps } from "./ImportResourceDialog";
 
-export { VisibilityToggle, VisibilityBadge } from "./VisibilityToggle";
-export type { VisibilityToggleProps } from "./VisibilityToggle";
+export { VisibilitySelector, VisibilityBadge } from "./VisibilitySelector";
+export type { VisibilitySelectorProps } from "./VisibilitySelector";
+
+export {
+  blueprintVisibilityLevels,
+  INSTANCE_VISIBILITY_LEVELS,
+  visibilityLabel,
+  visibilityOption,
+} from "./visibilityLevels";
+export type {
+  BlueprintVisibilityLevelsContext,
+  VisibilityLevelOption,
+} from "./visibilityLevels";
 
 export { ResourceVisibilityControl } from "./ResourceVisibilityControl";
 export type { ResourceVisibilityControlProps } from "./ResourceVisibilityControl";

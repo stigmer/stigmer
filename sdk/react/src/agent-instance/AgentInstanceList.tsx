@@ -8,6 +8,7 @@ import { useAgentInstances } from "./useAgentInstances";
 import { useEnvironmentList } from "../environment/useEnvironmentList";
 import { useUpdateVisibility } from "../library/useUpdateVisibility";
 import { InstanceVisibilitySelector } from "../library/InstanceVisibilitySelector";
+import { visibilityLabel } from "../library/visibilityLevels";
 import { PermissionGate } from "../iam-policy/PermissionGate";
 import { AgentInstanceEmptyState } from "./AgentInstanceEmptyState";
 
@@ -250,7 +251,7 @@ function InstanceRow({
             relation="can_edit"
             fallback={
               <span className="text-xs text-muted-foreground">
-                {VISIBILITY_LABELS[meta?.visibility ?? 0] ?? "Private"}
+                {visibilityLabel(meta?.visibility ?? ApiResourceVisibility.visibility_private)}
               </span>
             }
           >
@@ -303,12 +304,6 @@ function InstanceRow({
     </tr>
   );
 }
-
-const VISIBILITY_LABELS: Record<number, string> = {
-  [ApiResourceVisibility.visibility_private]: "Private",
-  [ApiResourceVisibility.visibility_org]: "Organization",
-  [ApiResourceVisibility.visibility_public]: "Public",
-};
 
 function LoadingSkeleton() {
   return (
