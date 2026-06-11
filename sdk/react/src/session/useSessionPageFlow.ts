@@ -14,6 +14,7 @@ import { fromProtoHarness, type HarnessOption } from "../models/harness";
 import { Harness, ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { fromProtoExecutionTarget, type ExecutionTargetOption } from "./execution-target";
 import { useSessionConversation, type UseSessionConversationReturn } from "./useSessionConversation";
+import { resolveExecutionRuntimeEnv, type RuntimeEnvProvider } from "./runtime-env";
 import { useAgentRefFromSession } from "./useAgentRefFromSession";
 import { usePersistedModel, type UsePersistedModelReturn } from "./usePersistedModel";
 import { specMcpUsagesToInput, specSkillRefsToInput } from "./session-spec-converters";
@@ -30,6 +31,18 @@ export interface UseSessionPageFlowOptions {
   readonly sessionId: string;
   /** Organization slug. */
   readonly org: string;
+  /**
+   * Supplies host-app environment variables for every follow-up
+   * execution. Evaluated once per follow-up, at send time, so
+   * short-lived credentials stay fresh.
+   *
+   * Host values win over composer-collected env on key collisions. If
+   * the provider throws, the follow-up is aborted before any optimistic
+   * UI or session mutation and the error surfaces via
+   * {@link UseSessionPageFlowReturn.submitError}. See
+   * {@link RuntimeEnvProvider}.
+   */
+  readonly getRuntimeEnv?: RuntimeEnvProvider;
 }
 
 /** Return value of {@link useSessionPageFlow}. */
@@ -128,14 +141,27 @@ export interface UseSessionPageFlowReturn {
 
   /**
    * Submit a follow-up message. Handles agent override resolution
-   * (if the user changed the agent mid-session) and delegates to
-   * `conv.sendFollowUp` with all managed state.
+   * (if the user changed the agent mid-session), evaluates the host
+   * runtime-env provider, and delegates to `conv.sendFollowUp` with
+   * all managed state. Never rejects — pre-send failures land in
+   * {@link submitError}.
    */
   readonly handleSubmit: (
     message: string,
     model?: string,
     context?: SessionComposerSubmitContext,
   ) => Promise<void>;
+
+  /**
+   * Error from the most recent follow-up's pre-send work (agent
+   * override resolution, host runtime-env evaluation), or `null`.
+   *
+   * Distinct from `conv.sendError`, which covers the create-execution
+   * RPC itself. Kept as the raw `Error` so consumers can render
+   * contextual guidance (e.g. secret-flow errors). Cleared at the
+   * start of each submission.
+   */
+  readonly submitError: Error | null;
 
   /**
    * The most relevant execution for sidebar display — the active
@@ -199,7 +225,7 @@ export interface UseSessionPageFlowReturn {
 export function useSessionPageFlow(
   options: UseSessionPageFlowOptions,
 ): UseSessionPageFlowReturn {
-  const { sessionId, org } = options;
+  const { sessionId, org, getRuntimeEnv } = options;
 
   const stigmer = useStigmer();
   const conv = useSessionConversation(sessionId, org);
@@ -324,27 +350,48 @@ export function useSessionPageFlow(
   // Follow-up submission with agent override
   // -------------------------------------------------------------------------
 
+  const [submitError, setSubmitError] = useState<Error | null>(null);
+
   const handleSubmit = useCallback(
     async (
       message: string,
       selectedModel?: string,
       context?: SessionComposerSubmitContext,
     ) => {
-      let agentInstanceIdOverride: string | undefined;
+      setSubmitError(null);
 
-      if (resolution) {
-        if (
-          resolution.mode === "saved" &&
-          resolution.instanceId !== sessionInstanceId
-        ) {
-          agentInstanceIdOverride = resolution.instanceId;
-        } else if (resolution.mode === "direct" && agentRef) {
-          const agent = await stigmer.agent.getByReference(agentRef);
-          const defaultId = agent.status?.defaultInstanceId;
-          if (defaultId && defaultId !== sessionInstanceId) {
-            agentInstanceIdOverride = defaultId;
+      // Pre-send work runs before conv.sendFollowUp so a failure here
+      // aborts cleanly: no optimistic pending message, no session
+      // mutation. The composer fires this handler without awaiting it,
+      // so a rejection would otherwise be an unhandled rejection —
+      // failures must land in submitError instead.
+      let agentInstanceIdOverride: string | undefined;
+      let runtimeEnv: SessionComposerSubmitContext["runtimeEnv"];
+
+      try {
+        if (resolution) {
+          if (
+            resolution.mode === "saved" &&
+            resolution.instanceId !== sessionInstanceId
+          ) {
+            agentInstanceIdOverride = resolution.instanceId;
+          } else if (resolution.mode === "direct" && agentRef) {
+            const agent = await stigmer.agent.getByReference(agentRef);
+            const defaultId = agent.status?.defaultInstanceId;
+            if (defaultId && defaultId !== sessionInstanceId) {
+              agentInstanceIdOverride = defaultId;
+            }
           }
         }
+
+        // Evaluated per follow-up so short-lived host credentials are
+        // current; host values win over composer-collected env.
+        runtimeEnv = getRuntimeEnv
+          ? await resolveExecutionRuntimeEnv(getRuntimeEnv, context?.runtimeEnv)
+          : context?.runtimeEnv;
+      } catch (err) {
+        setSubmitError(err instanceof Error ? err : new Error(String(err)));
+        return;
       }
 
       conv.sendFollowUp(message, {
@@ -355,7 +402,7 @@ export function useSessionPageFlow(
           : undefined,
         mcpServerUsages: mcpServerUsages.length > 0 ? mcpServerUsages : undefined,
         skillRefs: skillRefs.length > 0 ? skillRefs : undefined,
-        runtimeEnv: context?.runtimeEnv,
+        runtimeEnv,
         attachments: context?.attachments,
         interactionMode: context?.interactionMode,
         // Sourced from the session-scoped preference set at the approval gate,
@@ -366,7 +413,7 @@ export function useSessionPageFlow(
 
       sessionVariables.clear();
     },
-    [conv.sendFollowUp, modelId, workspace, mcpServerUsages, skillRefs, sessionVariables.clear, resolution, agentRef, sessionInstanceId, stigmer, autoApproveAll],
+    [conv.sendFollowUp, modelId, workspace, mcpServerUsages, skillRefs, sessionVariables.clear, resolution, agentRef, sessionInstanceId, stigmer, autoApproveAll, getRuntimeEnv],
   );
 
   // -------------------------------------------------------------------------
@@ -416,6 +463,7 @@ export function useSessionPageFlow(
     setAutoApproveAll,
     submitApproval,
     handleSubmit,
+    submitError,
     displayExecution,
     allExecutions,
     sandboxWorkspaceRoot,

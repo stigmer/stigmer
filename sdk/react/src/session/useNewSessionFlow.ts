@@ -16,6 +16,7 @@ import { useCreateAgentExecution } from "../execution/useCreateAgentExecution";
 import type { ExecutionTargetOption } from "./execution-target";
 import { useExecutionTarget } from "../execution-target-context";
 import { useRunnerAdapter } from "../runner-adapter";
+import { resolveExecutionRuntimeEnv, type RuntimeEnvProvider } from "./runtime-env";
 
 const DEFAULT_AGENT_TIMEOUT_MS = 10_000;
 
@@ -55,6 +56,30 @@ export interface UseNewSessionFlowOptions {
    * server decides based on deployment context.
    */
   readonly executionTarget?: ExecutionTargetOption;
+  /**
+   * Supplies host-app environment variables for the session's first
+   * execution. Evaluated once per submission, at submit time, so
+   * short-lived credentials stay fresh; evaluated **before** the session
+   * is created so a credential failure never strands an empty session.
+   *
+   * Host values win over composer-collected env on key collisions. If
+   * the provider throws, the submission fails and the error surfaces
+   * via {@link UseNewSessionFlowReturn.submitError} / {@link onError}.
+   * See {@link RuntimeEnvProvider}.
+   */
+  readonly getRuntimeEnv?: RuntimeEnvProvider;
+  /**
+   * Harness pre-selected for new sessions when the user has not made an
+   * explicit choice yet (e.g. an embedder whose agents primarily run
+   * coding tasks defaults to `"cursor"`).
+   *
+   * Read once on mount. The user's own selection — persisted to
+   * localStorage on explicit change — always takes precedence on
+   * subsequent visits.
+   *
+   * @default DEFAULT_HARNESS ("native")
+   */
+  readonly defaultHarness?: HarnessOption;
 }
 
 /** Return value of {@link useNewSessionFlow}. */
@@ -158,15 +183,18 @@ export interface UseNewSessionFlowReturn {
 export function useNewSessionFlow(
   options: UseNewSessionFlowOptions,
 ): UseNewSessionFlowReturn {
-  const { org, onSessionCreated, onError } = options;
+  const { org, onSessionCreated, onError, getRuntimeEnv, defaultHarness } = options;
   const contextTarget = useExecutionTarget();
   const executionTarget = options.executionTarget ?? contextTarget;
   const adapter = useRunnerAdapter();
 
   const [harness, setHarnessRaw] = useState<HarnessOption>(() => {
-    if (typeof window === "undefined") return DEFAULT_HARNESS;
+    if (typeof window === "undefined") return defaultHarness ?? DEFAULT_HARNESS;
+    // Only explicit user choices are persisted (see setHarness), so a
+    // stored value always outranks the embedder's defaultHarness.
     const stored = localStorage.getItem(STORAGE_KEY_HARNESS);
-    return stored === "cursor" ? "cursor" : DEFAULT_HARNESS;
+    if (stored === "native" || stored === "cursor") return stored;
+    return defaultHarness ?? DEFAULT_HARNESS;
   });
 
   const { getModel, isLoading: isModelsLoading } = useModelRegistry({ harness });
@@ -191,14 +219,12 @@ export function useNewSessionFlow(
 
   const validModelId = modelId && getModel(modelId) ? modelId : undefined;
 
-  // Persist harness on change
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_HARNESS, harness);
-  }, [harness]);
-
   const setHarness = useCallback(
     (h: HarnessOption) => {
       setHarnessRaw(h);
+      // Persist only explicit choices — never the seeded value — so the
+      // embedder's defaultHarness keeps applying until the user decides.
+      localStorage.setItem(STORAGE_KEY_HARNESS, h);
       const storedModel = localStorage.getItem(modelStorageKey(h));
       const plain = storedModel ? (parseModelKey(storedModel)?.modelId ?? storedModel) : undefined;
       setModelId(plain);
@@ -246,6 +272,14 @@ export function useNewSessionFlow(
       setSubmitError(null);
 
       try {
+        // Host env is evaluated per submission (short-lived credentials)
+        // and before session creation, so a credential failure can never
+        // strand an empty session. Without a provider the composer env
+        // passes through untouched — no extra await on the hot path.
+        const runtimeEnv = getRuntimeEnv
+          ? await resolveExecutionRuntimeEnv(getRuntimeEnv, context?.runtimeEnv)
+          : context?.runtimeEnv;
+
         const sessionFields = {
           org,
           workspaceEntries: workspace.hasEntries
@@ -261,7 +295,7 @@ export function useNewSessionFlow(
           org,
           message,
           modelName: selectedModel ?? validModelId,
-          runtimeEnv: context?.runtimeEnv,
+          runtimeEnv,
           attachments: context?.attachments,
           interactionMode: context?.interactionMode,
           workspaceFileRefs: context?.workspaceFileRefs,
@@ -344,6 +378,7 @@ export function useNewSessionFlow(
       harness,
       executionTarget,
       adapter,
+      getRuntimeEnv,
       validModelId,
       workspace,
       mcpServerUsages,

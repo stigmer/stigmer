@@ -310,6 +310,21 @@ export interface SessionComposerProps {
   readonly isDefaultAgent?: boolean;
 
   /**
+   * Lock the current agent: the Agent entry is removed from the
+   * Configure menu so the user cannot swap or deselect it.
+   *
+   * Locking does not unwire the agent machinery — `initialAgentRef`
+   * resolution still runs on mount, and when the agent requires
+   * credentials the environment form stays reachable in the Configure
+   * menu until setup completes (lock ≠ unwire). Pair with
+   * `initialAgentRef` to pin a pre-configured agent in end-user-facing
+   * embeds (see `SessionViewer` / `NewSessionViewer` `audience`).
+   *
+   * @default false
+   */
+  readonly lockAgent?: boolean;
+
+  /**
    * Currently selected MCP server usages.
    * When `onMcpServerUsagesChange` is provided, a MCP server trigger
    * appears in the toolbar.
@@ -496,6 +511,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   initialAgentRef,
   initialInstanceId,
   isDefaultAgent = false,
+  lockAgent = false,
   mcpServerUsages,
   onMcpServerUsagesChange,
   skillRefs,
@@ -1140,13 +1156,19 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
         (agentSetup.state.status === "needsEnvVars" ||
           agentSetup.state.status === "resolving" ||
           agentSetup.state.status === "submitting");
-      items.push({
-        id: "agent",
-        icon: <AgentIcon />,
-        label: "Agent",
-        count: agentRef || agentPending ? 1 : 0,
-        hasWarning: agentPending && agentSetup.state.status === "needsEnvVars",
-      });
+      // A locked agent stays out of the menu unless setup is pending:
+      // the env-collection form lives in this panel and must remain
+      // reachable until the agent resolves (lock ≠ unwire). Once
+      // resolved, the entry disappears and the agent cannot be swapped.
+      if (!lockAgent || agentPending) {
+        items.push({
+          id: "agent",
+          icon: <AgentIcon />,
+          label: "Agent",
+          count: agentRef || agentPending ? 1 : 0,
+          hasWarning: agentPending && agentSetup.state.status === "needsEnvVars",
+        });
+      }
     }
     if (showMcp) {
       items.push({
@@ -1174,7 +1196,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
       });
     }
     return items;
-  }, [showAgent, agentRef, agentSetup.state, showMcp, mcpCount, mcpSetup.needsSetupCount, showSkills, skillCount, showSessionVars, sessionVarCount]);
+  }, [showAgent, lockAgent, agentRef, agentSetup.state, showMcp, mcpCount, mcpSetup.needsSetupCount, showSkills, skillCount, showSessionVars, sessionVarCount]);
 
   const renderConfigPanel = useCallback(
     (panelId: string): React.ReactNode => {
