@@ -17,6 +17,8 @@ import { SessionComposer } from "../composer";
 import { SecretFlowErrorGuide, isSecretFlowError } from "../error";
 import { useSessionPageFlow } from "./useSessionPageFlow";
 import { SessionInspector } from "./inspector/SessionInspector";
+import type { RuntimeEnvProvider } from "./runtime-env";
+import type { SessionAudience } from "./audience";
 
 /**
  * Message submitted when the user implements a plan. References the published
@@ -67,6 +69,27 @@ export interface SessionViewerProps {
    * expandable file tree. (DD-004 capability injection, DD-011 opt-in.)
    */
   readonly workspaceFileLister?: WorkspaceFileLister;
+  /**
+   * Supplies host-app environment variables for every follow-up
+   * execution (e.g. short-lived credentials for MCP tools, minted as
+   * the signed-in user). Evaluated fresh at each send; host values win
+   * over composer-collected env on key collisions. If the provider
+   * throws, the send is blocked and an error banner is shown — see
+   * {@link RuntimeEnvProvider}.
+   */
+  readonly getRuntimeEnv?: RuntimeEnvProvider;
+  /**
+   * Presentation audience for the viewer. `"endUser"` locks the
+   * session's agent and hides the MCP server, skill, and
+   * session-variable configuration in both the composer and the
+   * inspector's Setup tab — for product-embedded chat where the agent
+   * is configured upstream by the platform. The model selector,
+   * interaction mode, attachments, and workspace picker remain. See
+   * {@link SessionAudience}.
+   *
+   * @default "integrator"
+   */
+  readonly audience?: SessionAudience;
   /**
    * Slot for host-injected header actions (e.g., Share button with
    * PermissionGate). Rendered in the top-right corner of the viewer.
@@ -126,12 +149,15 @@ export function SessionViewer({
   enableLocal = false,
   onBrowseLocalFolder,
   workspaceFileLister,
+  getRuntimeEnv,
+  audience = "integrator",
   headerActions,
   onApplied,
   className,
 }: SessionViewerProps) {
-  const flow = useSessionPageFlow({ sessionId, org });
+  const flow = useSessionPageFlow({ sessionId, org, getRuntimeEnv });
   const { conv } = flow;
+  const isEndUser = audience === "endUser";
 
   const [modelId, setModelId] = flow.model;
   const [interactionMode, setInteractionMode] = flow.interactionMode;
@@ -202,6 +228,7 @@ export function SessionViewer({
               enableLocal={enableLocal}
               onBrowseLocalFolder={onBrowseLocalFolder}
               onBuildFromPlan={handleBuildFromPlan}
+              isEndUser={isEndUser}
             />
           }
           secondary={
@@ -216,6 +243,7 @@ export function SessionViewer({
               gitHubConnection={gitHubConnection}
               onBrowseLocalFolder={onBrowseLocalFolder}
               workspaceFileLister={workspaceFileLister}
+              isEndUser={isEndUser}
             />
           }
         />
@@ -241,6 +269,7 @@ interface ConversationColumnProps {
   readonly enableLocal: boolean;
   readonly onBrowseLocalFolder?: () => Promise<string | null>;
   readonly onBuildFromPlan: () => void;
+  readonly isEndUser: boolean;
 }
 
 function ConversationColumn({
@@ -256,8 +285,10 @@ function ConversationColumn({
   enableLocal,
   onBrowseLocalFolder,
   onBuildFromPlan,
+  isEndUser,
 }: ConversationColumnProps) {
   const { conv } = flow;
+  const sendError = flow.submitError ?? conv.sendError ?? conv.approvalError;
 
   return (
     <div className="flex h-full min-w-0 flex-col">
@@ -282,9 +313,7 @@ function ConversationColumn({
             onReconnect={conv.reconnectStream}
           />
         )}
-        {(conv.sendError || conv.approvalError) && (
-          <SendErrorBanner error={(conv.sendError ?? conv.approvalError)!} />
-        )}
+        {sendError && <SendErrorBanner error={sendError} />}
         {flow.autoApproveAll && (
           <AutoApproveIndicator onTurnOff={() => flow.setAutoApproveAll(false)} />
         )}
@@ -309,11 +338,12 @@ function ConversationColumn({
           onAgentRefChange={flow.setAgentRef}
           onAgentResolutionChange={flow.setResolution}
           isDefaultAgent={flow.isDefaultAgent}
-          mcpServerUsages={flow.mcpServerUsages}
-          onMcpServerUsagesChange={flow.setMcpServerUsages}
-          skillRefs={flow.skillRefs}
-          onSkillRefsChange={flow.setSkillRefs}
-          sessionVariables={flow.sessionVariables}
+          lockAgent={isEndUser}
+          mcpServerUsages={isEndUser ? undefined : flow.mcpServerUsages}
+          onMcpServerUsagesChange={isEndUser ? undefined : flow.setMcpServerUsages}
+          skillRefs={isEndUser ? undefined : flow.skillRefs}
+          onSkillRefsChange={isEndUser ? undefined : flow.setSkillRefs}
+          sessionVariables={isEndUser ? undefined : flow.sessionVariables}
           className="px-4 py-3"
         />
       </div>
@@ -337,6 +367,7 @@ interface InspectorPanelProps {
   readonly gitHubConnection?: UseGitHubConnectionReturn;
   readonly onBrowseLocalFolder?: () => Promise<string | null>;
   readonly workspaceFileLister?: WorkspaceFileLister;
+  readonly isEndUser: boolean;
 }
 
 function InspectorPanel({
@@ -350,6 +381,7 @@ function InspectorPanel({
   gitHubConnection,
   onBrowseLocalFolder,
   workspaceFileLister,
+  isEndUser,
 }: InspectorPanelProps) {
   const selectedItem = useSelectedThreadItem();
 
@@ -390,16 +422,20 @@ function InspectorPanel({
       harness: flow.harness,
       executionTarget: flow.executionTarget,
       modelId: flow.model[0],
-      mutations: {
-        onRemoveAgent: flow.isDefaultAgent ? undefined : handleRemoveAgent,
-        onRemoveMcp: handleRemoveMcp,
-        onRemoveSkill: handleRemoveSkill,
-      },
+      // End users see the configuration but cannot strip it — the Setup
+      // tab renders read-only without mutation callbacks (DD-011).
+      mutations: isEndUser
+        ? undefined
+        : {
+            onRemoveAgent: flow.isDefaultAgent ? undefined : handleRemoveAgent,
+            onRemoveMcp: handleRemoveMcp,
+            onRemoveSkill: handleRemoveSkill,
+          },
     }),
     [
       flow.agentRef, flow.isDefaultAgent, flow.mcpServerUsages, flow.skillRefs,
       flow.sessionVariables, flow.harness, flow.executionTarget, flow.model,
-      handleRemoveAgent, handleRemoveMcp, handleRemoveSkill,
+      isEndUser, handleRemoveAgent, handleRemoveMcp, handleRemoveSkill,
     ],
   );
 

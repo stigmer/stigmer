@@ -468,6 +468,128 @@ describe("useNewSessionFlow", () => {
     });
   });
 
+  describe("host runtime env (getRuntimeEnv)", () => {
+    it("merges host env into the first execution, host wins on collisions", async () => {
+      const getRuntimeEnv = vi.fn().mockResolvedValue({
+        PLATFORM_TOKEN: { value: "fresh-token", isSecret: true },
+      });
+      const opts = { ...defaultOptions(), getRuntimeEnv };
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.submit("Hello", undefined, {
+          runtimeEnv: {
+            PLATFORM_TOKEN: { value: "stale-token", isSecret: true },
+            USER_VAR: { value: "kept" },
+          },
+        });
+      });
+
+      expect(getRuntimeEnv).toHaveBeenCalledTimes(1);
+      const execInput = mockCreateExecution.mock.calls[0][0];
+      expect(execInput.runtimeEnv).toEqual({
+        PLATFORM_TOKEN: { value: "fresh-token", isSecret: true },
+        USER_VAR: { value: "kept" },
+      });
+    });
+
+    it("evaluates the provider fresh on every submission", async () => {
+      let mint = 0;
+      const getRuntimeEnv = vi.fn(() => ({
+        TOKEN: { value: `token-${++mint}` },
+      }));
+      const opts = { ...defaultOptions(), getRuntimeEnv };
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.submit("First");
+      });
+      await act(async () => {
+        await result.current.submit("Second");
+      });
+
+      expect(getRuntimeEnv).toHaveBeenCalledTimes(2);
+      expect(mockCreateExecution.mock.calls[0][0].runtimeEnv).toEqual({
+        TOKEN: { value: "token-1" },
+      });
+      expect(mockCreateExecution.mock.calls[1][0].runtimeEnv).toEqual({
+        TOKEN: { value: "token-2" },
+      });
+    });
+
+    it("aborts before session creation when the provider throws", async () => {
+      const getRuntimeEnv = vi.fn().mockRejectedValue(new Error("token mint failed"));
+      const opts = { ...defaultOptions(), getRuntimeEnv };
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+
+      // No orphan session, no execution — the failure is fully pre-flight.
+      expect(mockCreateSession).not.toHaveBeenCalled();
+      expect(mockCreateExecution).not.toHaveBeenCalled();
+      expect(result.current.submitError).toContain("token mint failed");
+      expect(opts.onError).toHaveBeenCalled();
+      expect(result.current.isSubmitting).toBe(false);
+    });
+
+    it("passes composer env through untouched when no provider is configured", async () => {
+      const opts = defaultOptions();
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.submit("Hello", undefined, {
+          runtimeEnv: { USER_VAR: { value: "composer-only" } },
+        });
+      });
+
+      expect(mockCreateExecution.mock.calls[0][0].runtimeEnv).toEqual({
+        USER_VAR: { value: "composer-only" },
+      });
+    });
+  });
+
+  describe("defaultHarness", () => {
+    it("seeds the embedder default when no harness is stored", () => {
+      const opts = { ...defaultOptions(), defaultHarness: "cursor" as const };
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+
+      expect(result.current.harness).toBe("cursor");
+    });
+
+    it("stored user choice outranks the embedder default", () => {
+      localStorage.setItem(STORAGE_KEY_HARNESS, "native");
+      const opts = { ...defaultOptions(), defaultHarness: "cursor" as const };
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+
+      expect(result.current.harness).toBe("native");
+    });
+
+    it("does not persist the seeded default — only explicit choices", () => {
+      const opts = { ...defaultOptions(), defaultHarness: "cursor" as const };
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+
+      // Seeding must not masquerade as a user choice, otherwise the
+      // embedder default would stop applying after the first visit.
+      expect(localStorage.getItem(STORAGE_KEY_HARNESS)).toBeNull();
+
+      act(() => result.current.setHarness("native"));
+      expect(localStorage.getItem(STORAGE_KEY_HARNESS)).toBe("native");
+    });
+
+    it("submits sessions with the seeded default harness", async () => {
+      const opts = { ...defaultOptions(), defaultHarness: "cursor" as const };
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+
+      expect(mockCreateSession.mock.calls[0][0].harness).toBe("cursor");
+    });
+  });
+
   describe("submit while default agent is loading", () => {
     it("awaits default agent and creates session when fetch resolves", async () => {
       const resolvedAgent = { status: { defaultInstanceId: "awaited-inst" } };

@@ -150,6 +150,8 @@ export type {
   SearchResultGroup,
   SessionViewerProps,
   NewSessionViewerProps,
+  RuntimeEnvProvider,
+  SessionAudience,
   SessionInspectorProps,
   SessionInspectorTabId,
   UseSessionInspectorOptions,

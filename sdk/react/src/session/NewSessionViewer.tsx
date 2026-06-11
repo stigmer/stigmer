@@ -7,10 +7,13 @@ import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection";
 import type { WorkspaceFileLister } from "../workspace/WorkspaceFileLister";
 import type { InteractionModeOption } from "../composer";
 import { SessionComposer } from "../composer";
+import type { HarnessOption } from "../models/harness";
 import { ResizableSplit } from "../internal/ResizableSplit";
 import { SessionInspector } from "./inspector/SessionInspector";
 import type { SetupTabProps } from "./inspector/SetupTab";
 import { useNewSessionFlow } from "./useNewSessionFlow";
+import type { RuntimeEnvProvider } from "./runtime-env";
+import type { SessionAudience } from "./audience";
 
 /** Props for {@link NewSessionViewer}. */
 export interface NewSessionViewerProps {
@@ -43,6 +46,37 @@ export interface NewSessionViewerProps {
    * expandable file tree. (DD-004 capability injection, DD-011 opt-in.)
    */
   readonly workspaceFileLister?: WorkspaceFileLister;
+
+  /**
+   * Supplies host-app environment variables for the session's first
+   * execution (e.g. short-lived credentials for MCP tools, minted as
+   * the signed-in user). Evaluated at submit time, before the session
+   * is created; host values win over composer-collected env on key
+   * collisions. If the provider throws, the submission fails with an
+   * error surfaced via `onError` — see {@link RuntimeEnvProvider}.
+   */
+  readonly getRuntimeEnv?: RuntimeEnvProvider;
+
+  /**
+   * Presentation audience for the launcher. `"endUser"` locks the
+   * pinned agent (when `initialAgentRef` is set) and hides the MCP
+   * server, skill, and session-variable pickers — for product-embedded
+   * chat where the agent is configured upstream by the platform. The
+   * model selector, interaction mode, harness selector, attachments,
+   * and workspace picker remain. See {@link SessionAudience}.
+   *
+   * @default "integrator"
+   */
+  readonly audience?: SessionAudience;
+
+  /**
+   * Harness pre-selected for new sessions when the user has not made
+   * an explicit choice yet. The user can still switch before starting
+   * the session, and their explicit choice wins on subsequent visits.
+   *
+   * @default "native"
+   */
+  readonly defaultHarness?: HarnessOption;
 
   /** Agent to auto-select on mount (used for draft flows). */
   readonly initialAgentRef?: ResourceRef;
@@ -122,6 +156,9 @@ export function NewSessionViewer({
   enableLocal = false,
   onBrowseLocalFolder,
   workspaceFileLister,
+  getRuntimeEnv,
+  audience = "integrator",
+  defaultHarness,
   initialAgentRef,
   initialInstanceId,
   initialAttachments,
@@ -132,8 +169,15 @@ export function NewSessionViewer({
   footerContent,
   className,
 }: NewSessionViewerProps) {
-  const flow = useNewSessionFlow({ org, onSessionCreated, onError });
+  const flow = useNewSessionFlow({
+    org,
+    onSessionCreated,
+    onError,
+    getRuntimeEnv,
+    defaultHarness,
+  });
   const [interactionMode, setInteractionMode] = useState<InteractionModeOption>("agent");
+  const isEndUser = audience === "endUser";
 
   const hasContext =
     flow.workspace.hasEntries ||
@@ -179,16 +223,20 @@ export function NewSessionViewer({
       harness: flow.harness,
       executionTarget: undefined,
       modelId: flow.modelId,
-      mutations: {
-        onRemoveAgent: flow.agentRef ? handleRemoveAgent : undefined,
-        onRemoveMcp: handleRemoveMcp,
-        onRemoveSkill: handleRemoveSkill,
-      },
+      // End users see the configuration but cannot strip it — the Setup
+      // tab renders read-only without mutation callbacks (DD-011).
+      mutations: isEndUser
+        ? undefined
+        : {
+            onRemoveAgent: flow.agentRef ? handleRemoveAgent : undefined,
+            onRemoveMcp: handleRemoveMcp,
+            onRemoveSkill: handleRemoveSkill,
+          },
     }),
     [
       flow.agentRef, flow.mcpServerUsages, flow.skillRefs,
       flow.sessionVariables, flow.harness, flow.modelId,
-      handleRemoveAgent, handleRemoveMcp, handleRemoveSkill,
+      isEndUser, handleRemoveAgent, handleRemoveMcp, handleRemoveSkill,
     ],
   );
 
@@ -231,11 +279,12 @@ export function NewSessionViewer({
           initialAgentRef={initialAgentRef}
           initialInstanceId={initialInstanceId}
           initialAttachments={initialAttachments}
-          mcpServerUsages={flow.mcpServerUsages}
-          onMcpServerUsagesChange={flow.setMcpServerUsages}
-          skillRefs={flow.skillRefs}
-          onSkillRefsChange={flow.setSkillRefs}
-          sessionVariables={flow.sessionVariables}
+          lockAgent={isEndUser && initialAgentRef != null}
+          mcpServerUsages={isEndUser ? undefined : flow.mcpServerUsages}
+          onMcpServerUsagesChange={isEndUser ? undefined : flow.setMcpServerUsages}
+          skillRefs={isEndUser ? undefined : flow.skillRefs}
+          onSkillRefsChange={isEndUser ? undefined : flow.setSkillRefs}
+          sessionVariables={isEndUser ? undefined : flow.sessionVariables}
           showHarnessSelector
           harness={flow.harness}
           onHarnessChange={flow.setHarness}

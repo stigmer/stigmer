@@ -1,6 +1,9 @@
 export { toProtoExecutionTarget, fromProtoExecutionTarget } from "./execution-target";
 export type { ExecutionTargetOption } from "./execution-target";
 
+export type { RuntimeEnvProvider } from "./runtime-env";
+export type { SessionAudience } from "./audience";
+
 export { useCreateSession } from "./useCreateSession";
 export type {
   SharedSessionFields,
