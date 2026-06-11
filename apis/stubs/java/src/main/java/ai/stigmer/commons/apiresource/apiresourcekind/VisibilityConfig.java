@@ -7,27 +7,39 @@ package ai.stigmer.commons.apiresource.apiresourcekind;
 
 /**
  * <pre>
- * Visibility configuration for cross-org access support.
- * Controls whether this resource kind can be made publicly readable and/or
- * shared with all orgs managed by the owning org's IdentityProvider.
+ * Visibility configuration: the set of visibility levels a resource kind
+ * may be set to. The declared levels drive both request validation (an
+ * unsupported level is rejected with INVALID_ARGUMENT before persist) and
+ * FGA tuple reconciliation (each level maps to exactly one tuple shape):
  *
- * When a resource is marked PUBLIC:
- * - FGA creates a wildcard tuple: resource#viewer&#64;identity_account:*
- * - This grants viewer access to all authenticated users via FGA
- * - Authorization remains pure FGA - no application-level fallbacks
+ * - visibility_private: no visibility tuple (owner + explicit grants only)
+ * - visibility_org:     resource#viewer&#64;organization:&lt;org&gt;#member
+ * - visibility_public:  resource#viewer&#64;identity_account:* (conditional
+ * wildcard gated by allow_public)
+ * - visibility_platform: resource#platform_viewer&#64;identity_provider:&lt;idp&gt;#platform_user
+ * (the "private catalog" primitive: grants access to
+ * all members of all platform_managed orgs linked to
+ * the owning org's IdentityProvider)
  *
- * When a resource is marked PLATFORM:
- * - FGA creates a userset tuple:
- * resource#platform_viewer&#64;identity_provider:&lt;idp&gt;#platform_user
- * - This grants access to all members of all platform_managed orgs linked
- * to the owning org's IdentityProvider (the "private catalog" primitive)
+ * Kinds WITHOUT a visibility config accept only visibility_private (or
+ * unspecified) — they are personal or org-structural resources whose access
+ * is fully defined by their FGA model, never by per-resource visibility
+ * tuples (session, environment, executions, etc.).
  *
- * Open access resources (supports_public = true):
- * agent, skill, workflow, mcp_server
+ * Current classification:
+ * - Blueprint kinds (agent, skill, workflow, mcp_server):
+ * private, org, public, platform
+ * - Instance kinds (agent_instance, workflow_instance):
+ * private, org, public — platform is deliberately excluded to preserve
+ * tenant isolation: each managed org instantiates shared blueprints
+ * inside its own boundary. (System-managed DEFAULT instances opt out of
+ * visibility entirely: their access tracks the parent blueprint
+ * structurally via the default_of FGA relation.)
  *
- * Restricted access resources (supports_public = false or not configured):
- * session, environment, agent_instance, workflow_instance,
- * agent_execution, workflow_execution
+ * Note: levels are declared as one bool per level instead of a repeated
+ * ApiResourceVisibility because that enum lives in the parent apiresource
+ * package, whose generated Go package already imports this one — a typed
+ * reference here would create a Go package import cycle.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig}
@@ -76,9 +88,8 @@ private static final long serialVersionUID = 0L;
   private boolean supportsPublic_ = false;
   /**
    * <pre>
-   * Whether this resource kind supports public visibility.
-   * - true: Resources can be marked PUBLIC, creating identity_account:* tuple
-   * - false: Resources are always org-restricted, PUBLIC visibility is rejected
+   * Whether resources of this kind can be set to visibility_public.
+   * FGA tuple: resource#viewer&#64;identity_account:* (gated by allow_public)
    * </pre>
    *
    * <code>bool supports_public = 1 [json_name = "supportsPublic"];</code>
@@ -93,15 +104,11 @@ private static final long serialVersionUID = 0L;
   private boolean supportsPlatform_ = false;
   /**
    * <pre>
-   * Whether this resource kind supports platform visibility.
-   * - true: Resources can be marked PLATFORM, creating a platform_viewer
-   * userset tuple that grants access to all orgs managed by the owning
-   * org's IdentityProvider
-   * - false: PLATFORM visibility is rejected
+   * Whether resources of this kind can be set to visibility_platform.
+   * FGA tuple: resource#platform_viewer&#64;identity_provider:&lt;idp&gt;#platform_user
    *
    * Reserved for blueprint kinds (agent, skill, workflow, mcp_server).
-   * Instance kinds are deliberately excluded to preserve tenant isolation:
-   * each managed org instantiates shared blueprints inside its own boundary.
+   * Instance kinds are deliberately excluded to preserve tenant isolation.
    * </pre>
    *
    * <code>bool supports_platform = 2 [json_name = "supportsPlatform"];</code>
@@ -110,6 +117,26 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public boolean getSupportsPlatform() {
     return supportsPlatform_;
+  }
+
+  public static final int SUPPORTS_ORG_FIELD_NUMBER = 3;
+  private boolean supportsOrg_ = false;
+  /**
+   * <pre>
+   * Whether resources of this kind can be set to visibility_org.
+   * FGA tuple: resource#viewer&#64;organization:&lt;org&gt;#member
+   *
+   * Historically org support was inferred from supports_public, which made
+   * it impossible to declare "org but not public" and silently skipped org
+   * tuples for kinds with no visibility config (the workflow_instance gap).
+   * </pre>
+   *
+   * <code>bool supports_org = 3 [json_name = "supportsOrg"];</code>
+   * @return The supportsOrg.
+   */
+  @java.lang.Override
+  public boolean getSupportsOrg() {
+    return supportsOrg_;
   }
 
   private byte memoizedIsInitialized = -1;
@@ -132,6 +159,9 @@ private static final long serialVersionUID = 0L;
     if (supportsPlatform_ != false) {
       output.writeBool(2, supportsPlatform_);
     }
+    if (supportsOrg_ != false) {
+      output.writeBool(3, supportsOrg_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -148,6 +178,10 @@ private static final long serialVersionUID = 0L;
     if (supportsPlatform_ != false) {
       size += com.google.protobuf.CodedOutputStream
         .computeBoolSize(2, supportsPlatform_);
+    }
+    if (supportsOrg_ != false) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBoolSize(3, supportsOrg_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -168,6 +202,8 @@ private static final long serialVersionUID = 0L;
         != other.getSupportsPublic()) return false;
     if (getSupportsPlatform()
         != other.getSupportsPlatform()) return false;
+    if (getSupportsOrg()
+        != other.getSupportsOrg()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -185,6 +221,9 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + SUPPORTS_PLATFORM_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
         getSupportsPlatform());
+    hash = (37 * hash) + SUPPORTS_ORG_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+        getSupportsOrg());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -284,27 +323,39 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Visibility configuration for cross-org access support.
-   * Controls whether this resource kind can be made publicly readable and/or
-   * shared with all orgs managed by the owning org's IdentityProvider.
+   * Visibility configuration: the set of visibility levels a resource kind
+   * may be set to. The declared levels drive both request validation (an
+   * unsupported level is rejected with INVALID_ARGUMENT before persist) and
+   * FGA tuple reconciliation (each level maps to exactly one tuple shape):
    *
-   * When a resource is marked PUBLIC:
-   * - FGA creates a wildcard tuple: resource#viewer&#64;identity_account:*
-   * - This grants viewer access to all authenticated users via FGA
-   * - Authorization remains pure FGA - no application-level fallbacks
+   * - visibility_private: no visibility tuple (owner + explicit grants only)
+   * - visibility_org:     resource#viewer&#64;organization:&lt;org&gt;#member
+   * - visibility_public:  resource#viewer&#64;identity_account:* (conditional
+   * wildcard gated by allow_public)
+   * - visibility_platform: resource#platform_viewer&#64;identity_provider:&lt;idp&gt;#platform_user
+   * (the "private catalog" primitive: grants access to
+   * all members of all platform_managed orgs linked to
+   * the owning org's IdentityProvider)
    *
-   * When a resource is marked PLATFORM:
-   * - FGA creates a userset tuple:
-   * resource#platform_viewer&#64;identity_provider:&lt;idp&gt;#platform_user
-   * - This grants access to all members of all platform_managed orgs linked
-   * to the owning org's IdentityProvider (the "private catalog" primitive)
+   * Kinds WITHOUT a visibility config accept only visibility_private (or
+   * unspecified) — they are personal or org-structural resources whose access
+   * is fully defined by their FGA model, never by per-resource visibility
+   * tuples (session, environment, executions, etc.).
    *
-   * Open access resources (supports_public = true):
-   * agent, skill, workflow, mcp_server
+   * Current classification:
+   * - Blueprint kinds (agent, skill, workflow, mcp_server):
+   * private, org, public, platform
+   * - Instance kinds (agent_instance, workflow_instance):
+   * private, org, public — platform is deliberately excluded to preserve
+   * tenant isolation: each managed org instantiates shared blueprints
+   * inside its own boundary. (System-managed DEFAULT instances opt out of
+   * visibility entirely: their access tracks the parent blueprint
+   * structurally via the default_of FGA relation.)
    *
-   * Restricted access resources (supports_public = false or not configured):
-   * session, environment, agent_instance, workflow_instance,
-   * agent_execution, workflow_execution
+   * Note: levels are declared as one bool per level instead of a repeated
+   * ApiResourceVisibility because that enum lives in the parent apiresource
+   * package, whose generated Go package already imports this one — a typed
+   * reference here would create a Go package import cycle.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig}
@@ -342,6 +393,7 @@ private static final long serialVersionUID = 0L;
       bitField0_ = 0;
       supportsPublic_ = false;
       supportsPlatform_ = false;
+      supportsOrg_ = false;
       return this;
     }
 
@@ -381,6 +433,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000002) != 0)) {
         result.supportsPlatform_ = supportsPlatform_;
       }
+      if (((from_bitField0_ & 0x00000004) != 0)) {
+        result.supportsOrg_ = supportsOrg_;
+      }
     }
 
     @java.lang.Override
@@ -400,6 +455,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.getSupportsPlatform() != false) {
         setSupportsPlatform(other.getSupportsPlatform());
+      }
+      if (other.getSupportsOrg() != false) {
+        setSupportsOrg(other.getSupportsOrg());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -437,6 +495,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000002;
               break;
             } // case 16
+            case 24: {
+              supportsOrg_ = input.readBool();
+              bitField0_ |= 0x00000004;
+              break;
+            } // case 24
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -457,9 +520,8 @@ private static final long serialVersionUID = 0L;
     private boolean supportsPublic_ ;
     /**
      * <pre>
-     * Whether this resource kind supports public visibility.
-     * - true: Resources can be marked PUBLIC, creating identity_account:* tuple
-     * - false: Resources are always org-restricted, PUBLIC visibility is rejected
+     * Whether resources of this kind can be set to visibility_public.
+     * FGA tuple: resource#viewer&#64;identity_account:* (gated by allow_public)
      * </pre>
      *
      * <code>bool supports_public = 1 [json_name = "supportsPublic"];</code>
@@ -471,9 +533,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whether this resource kind supports public visibility.
-     * - true: Resources can be marked PUBLIC, creating identity_account:* tuple
-     * - false: Resources are always org-restricted, PUBLIC visibility is rejected
+     * Whether resources of this kind can be set to visibility_public.
+     * FGA tuple: resource#viewer&#64;identity_account:* (gated by allow_public)
      * </pre>
      *
      * <code>bool supports_public = 1 [json_name = "supportsPublic"];</code>
@@ -489,9 +550,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whether this resource kind supports public visibility.
-     * - true: Resources can be marked PUBLIC, creating identity_account:* tuple
-     * - false: Resources are always org-restricted, PUBLIC visibility is rejected
+     * Whether resources of this kind can be set to visibility_public.
+     * FGA tuple: resource#viewer&#64;identity_account:* (gated by allow_public)
      * </pre>
      *
      * <code>bool supports_public = 1 [json_name = "supportsPublic"];</code>
@@ -507,15 +567,11 @@ private static final long serialVersionUID = 0L;
     private boolean supportsPlatform_ ;
     /**
      * <pre>
-     * Whether this resource kind supports platform visibility.
-     * - true: Resources can be marked PLATFORM, creating a platform_viewer
-     * userset tuple that grants access to all orgs managed by the owning
-     * org's IdentityProvider
-     * - false: PLATFORM visibility is rejected
+     * Whether resources of this kind can be set to visibility_platform.
+     * FGA tuple: resource#platform_viewer&#64;identity_provider:&lt;idp&gt;#platform_user
      *
      * Reserved for blueprint kinds (agent, skill, workflow, mcp_server).
-     * Instance kinds are deliberately excluded to preserve tenant isolation:
-     * each managed org instantiates shared blueprints inside its own boundary.
+     * Instance kinds are deliberately excluded to preserve tenant isolation.
      * </pre>
      *
      * <code>bool supports_platform = 2 [json_name = "supportsPlatform"];</code>
@@ -527,15 +583,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whether this resource kind supports platform visibility.
-     * - true: Resources can be marked PLATFORM, creating a platform_viewer
-     * userset tuple that grants access to all orgs managed by the owning
-     * org's IdentityProvider
-     * - false: PLATFORM visibility is rejected
+     * Whether resources of this kind can be set to visibility_platform.
+     * FGA tuple: resource#platform_viewer&#64;identity_provider:&lt;idp&gt;#platform_user
      *
      * Reserved for blueprint kinds (agent, skill, workflow, mcp_server).
-     * Instance kinds are deliberately excluded to preserve tenant isolation:
-     * each managed org instantiates shared blueprints inside its own boundary.
+     * Instance kinds are deliberately excluded to preserve tenant isolation.
      * </pre>
      *
      * <code>bool supports_platform = 2 [json_name = "supportsPlatform"];</code>
@@ -551,15 +603,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whether this resource kind supports platform visibility.
-     * - true: Resources can be marked PLATFORM, creating a platform_viewer
-     * userset tuple that grants access to all orgs managed by the owning
-     * org's IdentityProvider
-     * - false: PLATFORM visibility is rejected
+     * Whether resources of this kind can be set to visibility_platform.
+     * FGA tuple: resource#platform_viewer&#64;identity_provider:&lt;idp&gt;#platform_user
      *
      * Reserved for blueprint kinds (agent, skill, workflow, mcp_server).
-     * Instance kinds are deliberately excluded to preserve tenant isolation:
-     * each managed org instantiates shared blueprints inside its own boundary.
+     * Instance kinds are deliberately excluded to preserve tenant isolation.
      * </pre>
      *
      * <code>bool supports_platform = 2 [json_name = "supportsPlatform"];</code>
@@ -568,6 +616,65 @@ private static final long serialVersionUID = 0L;
     public Builder clearSupportsPlatform() {
       bitField0_ = (bitField0_ & ~0x00000002);
       supportsPlatform_ = false;
+      onChanged();
+      return this;
+    }
+
+    private boolean supportsOrg_ ;
+    /**
+     * <pre>
+     * Whether resources of this kind can be set to visibility_org.
+     * FGA tuple: resource#viewer&#64;organization:&lt;org&gt;#member
+     *
+     * Historically org support was inferred from supports_public, which made
+     * it impossible to declare "org but not public" and silently skipped org
+     * tuples for kinds with no visibility config (the workflow_instance gap).
+     * </pre>
+     *
+     * <code>bool supports_org = 3 [json_name = "supportsOrg"];</code>
+     * @return The supportsOrg.
+     */
+    @java.lang.Override
+    public boolean getSupportsOrg() {
+      return supportsOrg_;
+    }
+    /**
+     * <pre>
+     * Whether resources of this kind can be set to visibility_org.
+     * FGA tuple: resource#viewer&#64;organization:&lt;org&gt;#member
+     *
+     * Historically org support was inferred from supports_public, which made
+     * it impossible to declare "org but not public" and silently skipped org
+     * tuples for kinds with no visibility config (the workflow_instance gap).
+     * </pre>
+     *
+     * <code>bool supports_org = 3 [json_name = "supportsOrg"];</code>
+     * @param value The supportsOrg to set.
+     * @return This builder for chaining.
+     */
+    public Builder setSupportsOrg(boolean value) {
+
+      supportsOrg_ = value;
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Whether resources of this kind can be set to visibility_org.
+     * FGA tuple: resource#viewer&#64;organization:&lt;org&gt;#member
+     *
+     * Historically org support was inferred from supports_public, which made
+     * it impossible to declare "org but not public" and silently skipped org
+     * tuples for kinds with no visibility config (the workflow_instance gap).
+     * </pre>
+     *
+     * <code>bool supports_org = 3 [json_name = "supportsOrg"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearSupportsOrg() {
+      bitField0_ = (bitField0_ & ~0x00000004);
+      supportsOrg_ = false;
       onChanged();
       return this;
     }

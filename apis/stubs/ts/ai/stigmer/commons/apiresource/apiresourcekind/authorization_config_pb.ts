@@ -12,57 +12,76 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/commons/apiresource/apiresourcekind/authorization_config.proto.
  */
 export const file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config: GenFile = /*@__PURE__*/
-  fileDesc("CklhaS9zdGlnbWVyL2NvbW1vbnMvYXBpcmVzb3VyY2UvYXBpcmVzb3VyY2VraW5kL2F1dGhvcml6YXRpb25fY29uZmlnLnByb3RvEi5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kIkYKEFZpc2liaWxpdHlDb25maWcSFwoPc3VwcG9ydHNfcHVibGljGAEgASgIEhkKEXN1cHBvcnRzX3BsYXRmb3JtGAIgASgIIkoKFFBhcmVudFJlbGF0aW9uQ29uZmlnEgwKBGtpbmQYASABKAkSEAoIcmVsYXRpb24YAiABKAkSEgoKc3BlY19maWVsZBgDIAEoCSKuBAoTQXV0aG9yaXphdGlvbkNvbmZpZxJaCgpzY29wZV90eXBlGAEgASgOMkYuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLmFwaXJlc291cmNla2luZC5BdXRob3JpemF0aW9uU2NvcGVUeXBlElgKCm93bmVyX3R5cGUYAiABKA4yRC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kLk93bmVyQXR0cmlidXRpb25UeXBlElQKBnBhcmVudBgDIAEoCzJELmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5hcGlyZXNvdXJjZWtpbmQuUGFyZW50UmVsYXRpb25Db25maWcSYAoSYWRkaXRpb25hbF9wYXJlbnRzGAQgAygLMkQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLmFwaXJlc291cmNla2luZC5QYXJlbnRSZWxhdGlvbkNvbmZpZxJUCgp2aXNpYmlsaXR5GAUgASgLMkAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLmFwaXJlc291cmNla2luZC5WaXNpYmlsaXR5Q29uZmlnEh4KFnJlcXVpcmVzX2NyZWF0b3JfdHVwbGUYBiABKAgSMwoPZ3JhbnRhYmxlX3JvbGVzGAcgAygOMhouYWkuc3RpZ21lci5pYW0udjEuSWFtUm9sZSqFAgoWQXV0aG9yaXphdGlvblNjb3BlVHlwZRIoCiRBVVRIT1JJWkFUSU9OX1NDT1BFX1RZUEVfVU5TUEVDSUZJRUQQABIlCiFBVVRIT1JJWkFUSU9OX1NDT1BFX1RZUEVfUExBVEZPUk0QARIpCiVBVVRIT1JJWkFUSU9OX1NDT1BFX1RZUEVfT1JHQU5JWkFUSU9OEAISIwofQVVUSE9SSVpBVElPTl9TQ09QRV9UWVBFX1BBUkVOVBADEicKI0FVVEhPUklaQVRJT05fU0NPUEVfVFlQRV9PV05FUl9PTkxZEAQSIQodQVVUSE9SSVpBVElPTl9TQ09QRV9UWVBFX05PTkUQBSrJAQoUT3duZXJBdHRyaWJ1dGlvblR5cGUSJgoiT1dORVJfQVRUUklCVVRJT05fVFlQRV9VTlNQRUNJRklFRBAAEiEKHU9XTkVSX0FUVFJJQlVUSU9OX1RZUEVfRElSRUNUEAESJAogT1dORVJfQVRUUklCVVRJT05fVFlQRV9JTkhFUklURUQQAhIfChtPV05FUl9BVFRSSUJVVElPTl9UWVBFX1NFTEYQAxIfChtPV05FUl9BVFRSSUJVVElPTl9UWVBFX05PTkUQBEIaQhhBdXRob3JpemF0aW9uQ29uZmlnUHJvdG9iBnByb3RvMw", [file_ai_stigmer_iam_v1_enum]);
+  fileDesc("CklhaS9zdGlnbWVyL2NvbW1vbnMvYXBpcmVzb3VyY2UvYXBpcmVzb3VyY2VraW5kL2F1dGhvcml6YXRpb25fY29uZmlnLnByb3RvEi5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kIlwKEFZpc2liaWxpdHlDb25maWcSFwoPc3VwcG9ydHNfcHVibGljGAEgASgIEhkKEXN1cHBvcnRzX3BsYXRmb3JtGAIgASgIEhQKDHN1cHBvcnRzX29yZxgDIAEoCCJKChRQYXJlbnRSZWxhdGlvbkNvbmZpZxIMCgRraW5kGAEgASgJEhAKCHJlbGF0aW9uGAIgASgJEhIKCnNwZWNfZmllbGQYAyABKAkirgQKE0F1dGhvcml6YXRpb25Db25maWcSWgoKc2NvcGVfdHlwZRgBIAEoDjJGLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5hcGlyZXNvdXJjZWtpbmQuQXV0aG9yaXphdGlvblNjb3BlVHlwZRJYCgpvd25lcl90eXBlGAIgASgOMkQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLmFwaXJlc291cmNla2luZC5Pd25lckF0dHJpYnV0aW9uVHlwZRJUCgZwYXJlbnQYAyABKAsyRC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kLlBhcmVudFJlbGF0aW9uQ29uZmlnEmAKEmFkZGl0aW9uYWxfcGFyZW50cxgEIAMoCzJELmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5hcGlyZXNvdXJjZWtpbmQuUGFyZW50UmVsYXRpb25Db25maWcSVAoKdmlzaWJpbGl0eRgFIAEoCzJALmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5hcGlyZXNvdXJjZWtpbmQuVmlzaWJpbGl0eUNvbmZpZxIeChZyZXF1aXJlc19jcmVhdG9yX3R1cGxlGAYgASgIEjMKD2dyYW50YWJsZV9yb2xlcxgHIAMoDjIaLmFpLnN0aWdtZXIuaWFtLnYxLklhbVJvbGUqhQIKFkF1dGhvcml6YXRpb25TY29wZVR5cGUSKAokQVVUSE9SSVpBVElPTl9TQ09QRV9UWVBFX1VOU1BFQ0lGSUVEEAASJQohQVVUSE9SSVpBVElPTl9TQ09QRV9UWVBFX1BMQVRGT1JNEAESKQolQVVUSE9SSVpBVElPTl9TQ09QRV9UWVBFX09SR0FOSVpBVElPThACEiMKH0FVVEhPUklaQVRJT05fU0NPUEVfVFlQRV9QQVJFTlQQAxInCiNBVVRIT1JJWkFUSU9OX1NDT1BFX1RZUEVfT1dORVJfT05MWRAEEiEKHUFVVEhPUklaQVRJT05fU0NPUEVfVFlQRV9OT05FEAUqyQEKFE93bmVyQXR0cmlidXRpb25UeXBlEiYKIk9XTkVSX0FUVFJJQlVUSU9OX1RZUEVfVU5TUEVDSUZJRUQQABIhCh1PV05FUl9BVFRSSUJVVElPTl9UWVBFX0RJUkVDVBABEiQKIE9XTkVSX0FUVFJJQlVUSU9OX1RZUEVfSU5IRVJJVEVEEAISHwobT1dORVJfQVRUUklCVVRJT05fVFlQRV9TRUxGEAMSHwobT1dORVJfQVRUUklCVVRJT05fVFlQRV9OT05FEARCGkIYQXV0aG9yaXphdGlvbkNvbmZpZ1Byb3RvYgZwcm90bzM", [file_ai_stigmer_iam_v1_enum]);
 
 /**
- * Visibility configuration for cross-org access support.
- * Controls whether this resource kind can be made publicly readable and/or
- * shared with all orgs managed by the owning org's IdentityProvider.
+ * Visibility configuration: the set of visibility levels a resource kind
+ * may be set to. The declared levels drive both request validation (an
+ * unsupported level is rejected with INVALID_ARGUMENT before persist) and
+ * FGA tuple reconciliation (each level maps to exactly one tuple shape):
  *
- * When a resource is marked PUBLIC:
- * - FGA creates a wildcard tuple: resource#viewer@identity_account:*
- * - This grants viewer access to all authenticated users via FGA
- * - Authorization remains pure FGA - no application-level fallbacks
+ * - visibility_private: no visibility tuple (owner + explicit grants only)
+ * - visibility_org:     resource#viewer@organization:<org>#member
+ * - visibility_public:  resource#viewer@identity_account:* (conditional
+ *                       wildcard gated by allow_public)
+ * - visibility_platform: resource#platform_viewer@identity_provider:<idp>#platform_user
+ *                       (the "private catalog" primitive: grants access to
+ *                       all members of all platform_managed orgs linked to
+ *                       the owning org's IdentityProvider)
  *
- * When a resource is marked PLATFORM:
- * - FGA creates a userset tuple:
- *   resource#platform_viewer@identity_provider:<idp>#platform_user
- * - This grants access to all members of all platform_managed orgs linked
- *   to the owning org's IdentityProvider (the "private catalog" primitive)
+ * Kinds WITHOUT a visibility config accept only visibility_private (or
+ * unspecified) — they are personal or org-structural resources whose access
+ * is fully defined by their FGA model, never by per-resource visibility
+ * tuples (session, environment, executions, etc.).
  *
- * Open access resources (supports_public = true):
- *   agent, skill, workflow, mcp_server
+ * Current classification:
+ * - Blueprint kinds (agent, skill, workflow, mcp_server):
+ *     private, org, public, platform
+ * - Instance kinds (agent_instance, workflow_instance):
+ *     private, org, public — platform is deliberately excluded to preserve
+ *     tenant isolation: each managed org instantiates shared blueprints
+ *     inside its own boundary. (System-managed DEFAULT instances opt out of
+ *     visibility entirely: their access tracks the parent blueprint
+ *     structurally via the default_of FGA relation.)
  *
- * Restricted access resources (supports_public = false or not configured):
- *   session, environment, agent_instance, workflow_instance,
- *   agent_execution, workflow_execution
+ * Note: levels are declared as one bool per level instead of a repeated
+ * ApiResourceVisibility because that enum lives in the parent apiresource
+ * package, whose generated Go package already imports this one — a typed
+ * reference here would create a Go package import cycle.
  *
  * @generated from message ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig
  */
 export type VisibilityConfig = Message<"ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig"> & {
   /**
-   * Whether this resource kind supports public visibility.
-   * - true: Resources can be marked PUBLIC, creating identity_account:* tuple
-   * - false: Resources are always org-restricted, PUBLIC visibility is rejected
+   * Whether resources of this kind can be set to visibility_public.
+   * FGA tuple: resource#viewer@identity_account:* (gated by allow_public)
    *
    * @generated from field: bool supports_public = 1;
    */
   supportsPublic: boolean;
 
   /**
-   * Whether this resource kind supports platform visibility.
-   * - true: Resources can be marked PLATFORM, creating a platform_viewer
-   *   userset tuple that grants access to all orgs managed by the owning
-   *   org's IdentityProvider
-   * - false: PLATFORM visibility is rejected
+   * Whether resources of this kind can be set to visibility_platform.
+   * FGA tuple: resource#platform_viewer@identity_provider:<idp>#platform_user
    *
    * Reserved for blueprint kinds (agent, skill, workflow, mcp_server).
-   * Instance kinds are deliberately excluded to preserve tenant isolation:
-   * each managed org instantiates shared blueprints inside its own boundary.
+   * Instance kinds are deliberately excluded to preserve tenant isolation.
    *
    * @generated from field: bool supports_platform = 2;
    */
   supportsPlatform: boolean;
+
+  /**
+   * Whether resources of this kind can be set to visibility_org.
+   * FGA tuple: resource#viewer@organization:<org>#member
+   *
+   * Historically org support was inferred from supports_public, which made
+   * it impossible to declare "org but not public" and silently skipped org
+   * tuples for kinds with no visibility config (the workflow_instance gap).
+   *
+   * @generated from field: bool supports_org = 3;
+   */
+  supportsOrg: boolean;
 };
 
 /**
@@ -202,10 +221,9 @@ export type AuthorizationConfig = Message<"ai.stigmer.commons.apiresource.apires
   additionalParents: ParentRelationConfig[];
 
   /**
-   * Visibility configuration for public access.
-   * When configured with supports_public: true, resources can be made PUBLIC,
-   * which creates an identity_account:* wildcard tuple granting viewer access
-   * to all authenticated users via FGA.
+   * Visibility configuration: which visibility levels this kind supports.
+   * Not configured means the kind accepts only visibility_private — no
+   * visibility tuples are ever written for it.
    *
    * @generated from field: ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig visibility = 5;
    */

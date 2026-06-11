@@ -134,10 +134,9 @@ public interface AuthorizationConfigOrBuilder extends
 
   /**
    * <pre>
-   * Visibility configuration for public access.
-   * When configured with supports_public: true, resources can be made PUBLIC,
-   * which creates an identity_account:* wildcard tuple granting viewer access
-   * to all authenticated users via FGA.
+   * Visibility configuration: which visibility levels this kind supports.
+   * Not configured means the kind accepts only visibility_private — no
+   * visibility tuples are ever written for it.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig visibility = 5 [json_name = "visibility"];</code>
@@ -146,10 +145,9 @@ public interface AuthorizationConfigOrBuilder extends
   boolean hasVisibility();
   /**
    * <pre>
-   * Visibility configuration for public access.
-   * When configured with supports_public: true, resources can be made PUBLIC,
-   * which creates an identity_account:* wildcard tuple granting viewer access
-   * to all authenticated users via FGA.
+   * Visibility configuration: which visibility levels this kind supports.
+   * Not configured means the kind accepts only visibility_private — no
+   * visibility tuples are ever written for it.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig visibility = 5 [json_name = "visibility"];</code>
@@ -158,10 +156,9 @@ public interface AuthorizationConfigOrBuilder extends
   ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig getVisibility();
   /**
    * <pre>
-   * Visibility configuration for public access.
-   * When configured with supports_public: true, resources can be made PUBLIC,
-   * which creates an identity_account:* wildcard tuple granting viewer access
-   * to all authenticated users via FGA.
+   * Visibility configuration: which visibility levels this kind supports.
+   * Not configured means the kind accepts only visibility_private — no
+   * visibility tuples are ever written for it.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig visibility = 5 [json_name = "visibility"];</code>

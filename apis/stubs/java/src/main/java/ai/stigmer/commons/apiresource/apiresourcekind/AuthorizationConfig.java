@@ -274,10 +274,9 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig visibility_;
   /**
    * <pre>
-   * Visibility configuration for public access.
-   * When configured with supports_public: true, resources can be made PUBLIC,
-   * which creates an identity_account:* wildcard tuple granting viewer access
-   * to all authenticated users via FGA.
+   * Visibility configuration: which visibility levels this kind supports.
+   * Not configured means the kind accepts only visibility_private — no
+   * visibility tuples are ever written for it.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig visibility = 5 [json_name = "visibility"];</code>
@@ -289,10 +288,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Visibility configuration for public access.
-   * When configured with supports_public: true, resources can be made PUBLIC,
-   * which creates an identity_account:* wildcard tuple granting viewer access
-   * to all authenticated users via FGA.
+   * Visibility configuration: which visibility levels this kind supports.
+   * Not configured means the kind accepts only visibility_private — no
+   * visibility tuples are ever written for it.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig visibility = 5 [json_name = "visibility"];</code>
@@ -304,10 +302,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Visibility configuration for public access.
-   * When configured with supports_public: true, resources can be made PUBLIC,
-   * which creates an identity_account:* wildcard tuple granting viewer access
-   * to all authenticated users via FGA.
+   * Visibility configuration: which visibility levels this kind supports.
+   * Not configured means the kind accepts only visibility_private — no
+   * visibility tuples are ever written for it.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig visibility = 5 [json_name = "visibility"];</code>
@@ -1739,10 +1736,9 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig, ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig.Builder, ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfigOrBuilder> visibilityBuilder_;
     /**
      * <pre>
-     * Visibility configuration for public access.
-     * When configured with supports_public: true, resources can be made PUBLIC,
-     * which creates an identity_account:* wildcard tuple granting viewer access
-     * to all authenticated users via FGA.
+     * Visibility configuration: which visibility levels this kind supports.
+     * Not configured means the kind accepts only visibility_private — no
+     * visibility tuples are ever written for it.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig visibility = 5 [json_name = "visibility"];</code>
@@ -1753,10 +1749,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Visibility configuration for public access.
-     * When configured with supports_public: true, resources can be made PUBLIC,
-     * which creates an identity_account:* wildcard tuple granting viewer access
-     * to all authenticated users via FGA.
+     * Visibility configuration: which visibility levels this kind supports.
+     * Not configured means the kind accepts only visibility_private — no
+     * visibility tuples are ever written for it.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig visibility = 5 [json_name = "visibility"];</code>
@@ -1771,10 +1766,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Visibility configuration for public access.
-     * When configured with supports_public: true, resources can be made PUBLIC,
-     * which creates an identity_account:* wildcard tuple granting viewer access
-     * to all authenticated users via FGA.
+     * Visibility configuration: which visibility levels this kind supports.
+     * Not configured means the kind accepts only visibility_private — no
+     * visibility tuples are ever written for it.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig visibility = 5 [json_name = "visibility"];</code>
@@ -1794,10 +1788,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Visibility configuration for public access.
-     * When configured with supports_public: true, resources can be made PUBLIC,
-     * which creates an identity_account:* wildcard tuple granting viewer access
-     * to all authenticated users via FGA.
+     * Visibility configuration: which visibility levels this kind supports.
+     * Not configured means the kind accepts only visibility_private — no
+     * visibility tuples are ever written for it.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig visibility = 5 [json_name = "visibility"];</code>
@@ -1815,10 +1808,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Visibility configuration for public access.
-     * When configured with supports_public: true, resources can be made PUBLIC,
-     * which creates an identity_account:* wildcard tuple granting viewer access
-     * to all authenticated users via FGA.
+     * Visibility configuration: which visibility levels this kind supports.
+     * Not configured means the kind accepts only visibility_private — no
+     * visibility tuples are ever written for it.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig visibility = 5 [json_name = "visibility"];</code>
@@ -1843,10 +1835,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Visibility configuration for public access.
-     * When configured with supports_public: true, resources can be made PUBLIC,
-     * which creates an identity_account:* wildcard tuple granting viewer access
-     * to all authenticated users via FGA.
+     * Visibility configuration: which visibility levels this kind supports.
+     * Not configured means the kind accepts only visibility_private — no
+     * visibility tuples are ever written for it.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig visibility = 5 [json_name = "visibility"];</code>
@@ -1863,10 +1854,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Visibility configuration for public access.
-     * When configured with supports_public: true, resources can be made PUBLIC,
-     * which creates an identity_account:* wildcard tuple granting viewer access
-     * to all authenticated users via FGA.
+     * Visibility configuration: which visibility levels this kind supports.
+     * Not configured means the kind accepts only visibility_private — no
+     * visibility tuples are ever written for it.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig visibility = 5 [json_name = "visibility"];</code>
@@ -1878,10 +1868,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Visibility configuration for public access.
-     * When configured with supports_public: true, resources can be made PUBLIC,
-     * which creates an identity_account:* wildcard tuple granting viewer access
-     * to all authenticated users via FGA.
+     * Visibility configuration: which visibility levels this kind supports.
+     * Not configured means the kind accepts only visibility_private — no
+     * visibility tuples are ever written for it.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig visibility = 5 [json_name = "visibility"];</code>
@@ -1896,10 +1885,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Visibility configuration for public access.
-     * When configured with supports_public: true, resources can be made PUBLIC,
-     * which creates an identity_account:* wildcard tuple granting viewer access
-     * to all authenticated users via FGA.
+     * Visibility configuration: which visibility levels this kind supports.
+     * Not configured means the kind accepts only visibility_private — no
+     * visibility tuples are ever written for it.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig visibility = 5 [json_name = "visibility"];</code>

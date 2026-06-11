@@ -12,9 +12,8 @@ public interface VisibilityConfigOrBuilder extends
 
   /**
    * <pre>
-   * Whether this resource kind supports public visibility.
-   * - true: Resources can be marked PUBLIC, creating identity_account:* tuple
-   * - false: Resources are always org-restricted, PUBLIC visibility is rejected
+   * Whether resources of this kind can be set to visibility_public.
+   * FGA tuple: resource#viewer&#64;identity_account:* (gated by allow_public)
    * </pre>
    *
    * <code>bool supports_public = 1 [json_name = "supportsPublic"];</code>
@@ -24,19 +23,30 @@ public interface VisibilityConfigOrBuilder extends
 
   /**
    * <pre>
-   * Whether this resource kind supports platform visibility.
-   * - true: Resources can be marked PLATFORM, creating a platform_viewer
-   * userset tuple that grants access to all orgs managed by the owning
-   * org's IdentityProvider
-   * - false: PLATFORM visibility is rejected
+   * Whether resources of this kind can be set to visibility_platform.
+   * FGA tuple: resource#platform_viewer&#64;identity_provider:&lt;idp&gt;#platform_user
    *
    * Reserved for blueprint kinds (agent, skill, workflow, mcp_server).
-   * Instance kinds are deliberately excluded to preserve tenant isolation:
-   * each managed org instantiates shared blueprints inside its own boundary.
+   * Instance kinds are deliberately excluded to preserve tenant isolation.
    * </pre>
    *
    * <code>bool supports_platform = 2 [json_name = "supportsPlatform"];</code>
    * @return The supportsPlatform.
    */
   boolean getSupportsPlatform();
+
+  /**
+   * <pre>
+   * Whether resources of this kind can be set to visibility_org.
+   * FGA tuple: resource#viewer&#64;organization:&lt;org&gt;#member
+   *
+   * Historically org support was inferred from supports_public, which made
+   * it impossible to declare "org but not public" and silently skipped org
+   * tuples for kinds with no visibility config (the workflow_instance gap).
+   * </pre>
+   *
+   * <code>bool supports_org = 3 [json_name = "supportsOrg"];</code>
+   * @return The supportsOrg.
+   */
+  boolean getSupportsOrg();
 }

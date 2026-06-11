@@ -164,47 +164,59 @@ func (OwnerAttributionType) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_proto_rawDescGZIP(), []int{1}
 }
 
-// Visibility configuration for cross-org access support.
-// Controls whether this resource kind can be made publicly readable and/or
-// shared with all orgs managed by the owning org's IdentityProvider.
+// Visibility configuration: the set of visibility levels a resource kind
+// may be set to. The declared levels drive both request validation (an
+// unsupported level is rejected with INVALID_ARGUMENT before persist) and
+// FGA tuple reconciliation (each level maps to exactly one tuple shape):
 //
-// When a resource is marked PUBLIC:
-// - FGA creates a wildcard tuple: resource#viewer@identity_account:*
-// - This grants viewer access to all authenticated users via FGA
-// - Authorization remains pure FGA - no application-level fallbacks
+//   - visibility_private: no visibility tuple (owner + explicit grants only)
+//   - visibility_org:     resource#viewer@organization:<org>#member
+//   - visibility_public:  resource#viewer@identity_account:* (conditional
+//     wildcard gated by allow_public)
+//   - visibility_platform: resource#platform_viewer@identity_provider:<idp>#platform_user
+//     (the "private catalog" primitive: grants access to
+//     all members of all platform_managed orgs linked to
+//     the owning org's IdentityProvider)
 //
-// When a resource is marked PLATFORM:
-//   - FGA creates a userset tuple:
-//     resource#platform_viewer@identity_provider:<idp>#platform_user
-//   - This grants access to all members of all platform_managed orgs linked
-//     to the owning org's IdentityProvider (the "private catalog" primitive)
+// Kinds WITHOUT a visibility config accept only visibility_private (or
+// unspecified) — they are personal or org-structural resources whose access
+// is fully defined by their FGA model, never by per-resource visibility
+// tuples (session, environment, executions, etc.).
 //
-// Open access resources (supports_public = true):
+// Current classification:
+//   - Blueprint kinds (agent, skill, workflow, mcp_server):
+//     private, org, public, platform
+//   - Instance kinds (agent_instance, workflow_instance):
+//     private, org, public — platform is deliberately excluded to preserve
+//     tenant isolation: each managed org instantiates shared blueprints
+//     inside its own boundary. (System-managed DEFAULT instances opt out of
+//     visibility entirely: their access tracks the parent blueprint
+//     structurally via the default_of FGA relation.)
 //
-//	agent, skill, workflow, mcp_server
-//
-// Restricted access resources (supports_public = false or not configured):
-//
-//	session, environment, agent_instance, workflow_instance,
-//	agent_execution, workflow_execution
+// Note: levels are declared as one bool per level instead of a repeated
+// ApiResourceVisibility because that enum lives in the parent apiresource
+// package, whose generated Go package already imports this one — a typed
+// reference here would create a Go package import cycle.
 type VisibilityConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Whether this resource kind supports public visibility.
-	// - true: Resources can be marked PUBLIC, creating identity_account:* tuple
-	// - false: Resources are always org-restricted, PUBLIC visibility is rejected
+	// Whether resources of this kind can be set to visibility_public.
+	// FGA tuple: resource#viewer@identity_account:* (gated by allow_public)
 	SupportsPublic bool `protobuf:"varint,1,opt,name=supports_public,json=supportsPublic,proto3" json:"supports_public,omitempty"`
-	// Whether this resource kind supports platform visibility.
-	//   - true: Resources can be marked PLATFORM, creating a platform_viewer
-	//     userset tuple that grants access to all orgs managed by the owning
-	//     org's IdentityProvider
-	//   - false: PLATFORM visibility is rejected
+	// Whether resources of this kind can be set to visibility_platform.
+	// FGA tuple: resource#platform_viewer@identity_provider:<idp>#platform_user
 	//
 	// Reserved for blueprint kinds (agent, skill, workflow, mcp_server).
-	// Instance kinds are deliberately excluded to preserve tenant isolation:
-	// each managed org instantiates shared blueprints inside its own boundary.
+	// Instance kinds are deliberately excluded to preserve tenant isolation.
 	SupportsPlatform bool `protobuf:"varint,2,opt,name=supports_platform,json=supportsPlatform,proto3" json:"supports_platform,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// Whether resources of this kind can be set to visibility_org.
+	// FGA tuple: resource#viewer@organization:<org>#member
+	//
+	// Historically org support was inferred from supports_public, which made
+	// it impossible to declare "org but not public" and silently skipped org
+	// tuples for kinds with no visibility config (the workflow_instance gap).
+	SupportsOrg   bool `protobuf:"varint,3,opt,name=supports_org,json=supportsOrg,proto3" json:"supports_org,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *VisibilityConfig) Reset() {
@@ -247,6 +259,13 @@ func (x *VisibilityConfig) GetSupportsPublic() bool {
 func (x *VisibilityConfig) GetSupportsPlatform() bool {
 	if x != nil {
 		return x.SupportsPlatform
+	}
+	return false
+}
+
+func (x *VisibilityConfig) GetSupportsOrg() bool {
+	if x != nil {
+		return x.SupportsOrg
 	}
 	return false
 }
@@ -393,10 +412,9 @@ type AuthorizationConfig struct {
 	// Used for resources that need multiple parent links.
 	// Example: agent_instance needs org link AND agent link.
 	AdditionalParents []*ParentRelationConfig `protobuf:"bytes,4,rep,name=additional_parents,json=additionalParents,proto3" json:"additional_parents,omitempty"`
-	// Visibility configuration for public access.
-	// When configured with supports_public: true, resources can be made PUBLIC,
-	// which creates an identity_account:* wildcard tuple granting viewer access
-	// to all authenticated users via FGA.
+	// Visibility configuration: which visibility levels this kind supports.
+	// Not configured means the kind accepts only visibility_private — no
+	// visibility tuples are ever written for it.
 	Visibility *VisibilityConfig `protobuf:"bytes,5,opt,name=visibility,proto3" json:"visibility,omitempty"`
 	// When true, creates an immutable creator relation tuple alongside the owner tuple.
 	// FGA tuple: resource#creator@identity_account:<creator_id>
@@ -505,10 +523,11 @@ var File_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_pro
 
 const file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_proto_rawDesc = "" +
 	"\n" +
-	"Iai/stigmer/commons/apiresource/apiresourcekind/authorization_config.proto\x12.ai.stigmer.commons.apiresource.apiresourcekind\x1a\x1cai/stigmer/iam/v1/enum.proto\"h\n" +
+	"Iai/stigmer/commons/apiresource/apiresourcekind/authorization_config.proto\x12.ai.stigmer.commons.apiresource.apiresourcekind\x1a\x1cai/stigmer/iam/v1/enum.proto\"\x8b\x01\n" +
 	"\x10VisibilityConfig\x12'\n" +
 	"\x0fsupports_public\x18\x01 \x01(\bR\x0esupportsPublic\x12+\n" +
-	"\x11supports_platform\x18\x02 \x01(\bR\x10supportsPlatform\"e\n" +
+	"\x11supports_platform\x18\x02 \x01(\bR\x10supportsPlatform\x12!\n" +
+	"\fsupports_org\x18\x03 \x01(\bR\vsupportsOrg\"e\n" +
 	"\x14ParentRelationConfig\x12\x12\n" +
 	"\x04kind\x18\x01 \x01(\tR\x04kind\x12\x1a\n" +
 	"\brelation\x18\x02 \x01(\tR\brelation\x12\x1d\n" +

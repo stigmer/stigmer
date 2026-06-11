@@ -13,17 +13,24 @@ package ai.stigmer.commons.apiresource;
  * Each controller's updateVisibility RPC accepts this shared input
  * and returns the full updated resource.
  *
- * Visibility transitions trigger FGA tuple management in Cloud mode:
- * - PRIVATE → PUBLIC: creates resource#viewer&#64;identity_account:* tuple
- * - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
- * - PRIVATE → ORG: creates resource#viewer&#64;organization:&lt;org&gt;#member tuple
- * - ORG → PRIVATE: deletes the org member viewer tuple
- * - ORG → PUBLIC: deletes org tuple, creates wildcard tuple
- * - PUBLIC → ORG: deletes wildcard tuple, creates org tuple
+ * Visibility transitions trigger FGA tuple management in Cloud mode. Each
+ * level maps to exactly one tuple shape; on a transition the tuple for the
+ * old level is removed and the tuple for the new level is created:
+ * - PRIVATE:  no visibility tuple (owner + explicit grants only)
+ * - ORG:      resource#viewer&#64;organization:&lt;org&gt;#member
+ * - PUBLIC:   resource#viewer&#64;identity_account:* (gated by allow_public)
+ * - PLATFORM: resource#platform_viewer&#64;identity_provider:&lt;idp&gt;#platform_user
  *
- * Not all resources support all visibility levels:
- * - Blueprints (agent, workflow, skill, mcp_server): PRIVATE or PUBLIC only
- * - Instances (agent_instance, workflow_instance): PRIVATE, ORG, or PUBLIC
+ * Not all resources support all visibility levels — the supported set is
+ * declared per kind via VisibilityConfig in kind_meta:
+ * - Blueprints (agent, workflow, skill, mcp_server):
+ * PRIVATE, ORG, PUBLIC, or PLATFORM
+ * - Instances (agent_instance, workflow_instance):
+ * PRIVATE, ORG, or PUBLIC (never PLATFORM — tenant isolation)
+ *
+ * System-managed DEFAULT instances reject visibility updates entirely:
+ * their access structurally tracks the parent blueprint via the
+ * default_of FGA relation.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.commons.apiresource.UpdateVisibilityInput}
@@ -122,9 +129,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * The new visibility setting for the resource.
-   * Must not be unspecified (0). Valid values depend on resource kind:
-   * - Blueprints: visibility_private (1) or visibility_public (2)
-   * - Instances: visibility_private (1), visibility_public (2), or visibility_org (3)
+   * Must not be unspecified (0). Valid values depend on resource kind —
+   * see the VisibilityConfig in the kind's kind_meta.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 2 [json_name = "visibility", (.buf.validate.field) = { ... }</code>
@@ -136,9 +142,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * The new visibility setting for the resource.
-   * Must not be unspecified (0). Valid values depend on resource kind:
-   * - Blueprints: visibility_private (1) or visibility_public (2)
-   * - Instances: visibility_private (1), visibility_public (2), or visibility_org (3)
+   * Must not be unspecified (0). Valid values depend on resource kind —
+   * see the VisibilityConfig in the kind's kind_meta.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 2 [json_name = "visibility", (.buf.validate.field) = { ... }</code>
@@ -323,17 +328,24 @@ private static final long serialVersionUID = 0L;
    * Each controller's updateVisibility RPC accepts this shared input
    * and returns the full updated resource.
    *
-   * Visibility transitions trigger FGA tuple management in Cloud mode:
-   * - PRIVATE → PUBLIC: creates resource#viewer&#64;identity_account:* tuple
-   * - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
-   * - PRIVATE → ORG: creates resource#viewer&#64;organization:&lt;org&gt;#member tuple
-   * - ORG → PRIVATE: deletes the org member viewer tuple
-   * - ORG → PUBLIC: deletes org tuple, creates wildcard tuple
-   * - PUBLIC → ORG: deletes wildcard tuple, creates org tuple
+   * Visibility transitions trigger FGA tuple management in Cloud mode. Each
+   * level maps to exactly one tuple shape; on a transition the tuple for the
+   * old level is removed and the tuple for the new level is created:
+   * - PRIVATE:  no visibility tuple (owner + explicit grants only)
+   * - ORG:      resource#viewer&#64;organization:&lt;org&gt;#member
+   * - PUBLIC:   resource#viewer&#64;identity_account:* (gated by allow_public)
+   * - PLATFORM: resource#platform_viewer&#64;identity_provider:&lt;idp&gt;#platform_user
    *
-   * Not all resources support all visibility levels:
-   * - Blueprints (agent, workflow, skill, mcp_server): PRIVATE or PUBLIC only
-   * - Instances (agent_instance, workflow_instance): PRIVATE, ORG, or PUBLIC
+   * Not all resources support all visibility levels — the supported set is
+   * declared per kind via VisibilityConfig in kind_meta:
+   * - Blueprints (agent, workflow, skill, mcp_server):
+   * PRIVATE, ORG, PUBLIC, or PLATFORM
+   * - Instances (agent_instance, workflow_instance):
+   * PRIVATE, ORG, or PUBLIC (never PLATFORM — tenant isolation)
+   *
+   * System-managed DEFAULT instances reject visibility updates entirely:
+   * their access structurally tracks the parent blueprint via the
+   * default_of FGA relation.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.commons.apiresource.UpdateVisibilityInput}
@@ -581,9 +593,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The new visibility setting for the resource.
-     * Must not be unspecified (0). Valid values depend on resource kind:
-     * - Blueprints: visibility_private (1) or visibility_public (2)
-     * - Instances: visibility_private (1), visibility_public (2), or visibility_org (3)
+     * Must not be unspecified (0). Valid values depend on resource kind —
+     * see the VisibilityConfig in the kind's kind_meta.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 2 [json_name = "visibility", (.buf.validate.field) = { ... }</code>
@@ -595,9 +606,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The new visibility setting for the resource.
-     * Must not be unspecified (0). Valid values depend on resource kind:
-     * - Blueprints: visibility_private (1) or visibility_public (2)
-     * - Instances: visibility_private (1), visibility_public (2), or visibility_org (3)
+     * Must not be unspecified (0). Valid values depend on resource kind —
+     * see the VisibilityConfig in the kind's kind_meta.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 2 [json_name = "visibility", (.buf.validate.field) = { ... }</code>
@@ -614,9 +624,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The new visibility setting for the resource.
-     * Must not be unspecified (0). Valid values depend on resource kind:
-     * - Blueprints: visibility_private (1) or visibility_public (2)
-     * - Instances: visibility_private (1), visibility_public (2), or visibility_org (3)
+     * Must not be unspecified (0). Valid values depend on resource kind —
+     * see the VisibilityConfig in the kind's kind_meta.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 2 [json_name = "visibility", (.buf.validate.field) = { ... }</code>
@@ -630,9 +639,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The new visibility setting for the resource.
-     * Must not be unspecified (0). Valid values depend on resource kind:
-     * - Blueprints: visibility_private (1) or visibility_public (2)
-     * - Instances: visibility_private (1), visibility_public (2), or visibility_org (3)
+     * Must not be unspecified (0). Valid values depend on resource kind —
+     * see the VisibilityConfig in the kind's kind_meta.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 2 [json_name = "visibility", (.buf.validate.field) = { ... }</code>
@@ -649,9 +657,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The new visibility setting for the resource.
-     * Must not be unspecified (0). Valid values depend on resource kind:
-     * - Blueprints: visibility_private (1) or visibility_public (2)
-     * - Instances: visibility_private (1), visibility_public (2), or visibility_org (3)
+     * Must not be unspecified (0). Valid values depend on resource kind —
+     * see the VisibilityConfig in the kind's kind_meta.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 2 [json_name = "visibility", (.buf.validate.field) = { ... }</code>

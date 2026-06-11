@@ -33,9 +33,8 @@ public interface UpdateVisibilityInputOrBuilder extends
   /**
    * <pre>
    * The new visibility setting for the resource.
-   * Must not be unspecified (0). Valid values depend on resource kind:
-   * - Blueprints: visibility_private (1) or visibility_public (2)
-   * - Instances: visibility_private (1), visibility_public (2), or visibility_org (3)
+   * Must not be unspecified (0). Valid values depend on resource kind —
+   * see the VisibilityConfig in the kind's kind_meta.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 2 [json_name = "visibility", (.buf.validate.field) = { ... }</code>
@@ -45,9 +44,8 @@ public interface UpdateVisibilityInputOrBuilder extends
   /**
    * <pre>
    * The new visibility setting for the resource.
-   * Must not be unspecified (0). Valid values depend on resource kind:
-   * - Blueprints: visibility_private (1) or visibility_public (2)
-   * - Instances: visibility_private (1), visibility_public (2), or visibility_org (3)
+   * Must not be unspecified (0). Valid values depend on resource kind —
+   * see the VisibilityConfig in the kind's kind_meta.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 2 [json_name = "visibility", (.buf.validate.field) = { ... }</code>

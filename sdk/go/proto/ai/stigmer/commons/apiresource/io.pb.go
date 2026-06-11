@@ -277,25 +277,31 @@ func (x *FindApiResourcesRequest) GetPageSize() int32 {
 // Each controller's updateVisibility RPC accepts this shared input
 // and returns the full updated resource.
 //
-// Visibility transitions trigger FGA tuple management in Cloud mode:
-// - PRIVATE → PUBLIC: creates resource#viewer@identity_account:* tuple
-// - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
-// - PRIVATE → ORG: creates resource#viewer@organization:<org>#member tuple
-// - ORG → PRIVATE: deletes the org member viewer tuple
-// - ORG → PUBLIC: deletes org tuple, creates wildcard tuple
-// - PUBLIC → ORG: deletes wildcard tuple, creates org tuple
+// Visibility transitions trigger FGA tuple management in Cloud mode. Each
+// level maps to exactly one tuple shape; on a transition the tuple for the
+// old level is removed and the tuple for the new level is created:
+// - PRIVATE:  no visibility tuple (owner + explicit grants only)
+// - ORG:      resource#viewer@organization:<org>#member
+// - PUBLIC:   resource#viewer@identity_account:* (gated by allow_public)
+// - PLATFORM: resource#platform_viewer@identity_provider:<idp>#platform_user
 //
-// Not all resources support all visibility levels:
-// - Blueprints (agent, workflow, skill, mcp_server): PRIVATE or PUBLIC only
-// - Instances (agent_instance, workflow_instance): PRIVATE, ORG, or PUBLIC
+// Not all resources support all visibility levels — the supported set is
+// declared per kind via VisibilityConfig in kind_meta:
+//   - Blueprints (agent, workflow, skill, mcp_server):
+//     PRIVATE, ORG, PUBLIC, or PLATFORM
+//   - Instances (agent_instance, workflow_instance):
+//     PRIVATE, ORG, or PUBLIC (never PLATFORM — tenant isolation)
+//
+// System-managed DEFAULT instances reject visibility updates entirely:
+// their access structurally tracks the parent blueprint via the
+// default_of FGA relation.
 type UpdateVisibilityInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// ID of the resource whose visibility is being updated.
 	ResourceId string `protobuf:"bytes,1,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
 	// The new visibility setting for the resource.
-	// Must not be unspecified (0). Valid values depend on resource kind:
-	// - Blueprints: visibility_private (1) or visibility_public (2)
-	// - Instances: visibility_private (1), visibility_public (2), or visibility_org (3)
+	// Must not be unspecified (0). Valid values depend on resource kind —
+	// see the VisibilityConfig in the kind's kind_meta.
 	Visibility    ApiResourceVisibility `protobuf:"varint,2,opt,name=visibility,proto3,enum=ai.stigmer.commons.apiresource.ApiResourceVisibility" json:"visibility,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

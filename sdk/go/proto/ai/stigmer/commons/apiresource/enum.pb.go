@@ -170,10 +170,13 @@ func (ApiResourceStateOperationType) EnumDescriptor() ([]byte, []int) {
 // All resources belong to an organization. Visibility determines whether
 // users outside that organization can access the resource.
 //
-// The three visibility levels map to FGA tuples:
-// - PRIVATE: no additional viewer tuples (owner-only access)
-// - ORG: resource#viewer@organization:<org>#member tuple (all org members)
-// - PUBLIC: resource#viewer@identity_account:* with allow_public (all users)
+// The visibility levels map to FGA tuples:
+//   - PRIVATE: no additional viewer tuples (owner-only access)
+//   - ORG: resource#viewer@organization:<org>#member tuple (all org members)
+//   - PUBLIC: resource#viewer@identity_account:* with allow_public (all users)
+//   - PLATFORM: resource#platform_viewer@identity_provider:<idp>#platform_user
+//     (all members of all organizations managed by the owning org's
+//     IdentityProvider)
 type ApiResourceVisibility int32
 
 const (
@@ -198,6 +201,27 @@ const (
 	// For workflow instances, this enables zero-tuple-per-execution shared
 	// observability: all org members see all executions via inheritance.
 	ApiResourceVisibility_visibility_org ApiResourceVisibility = 3
+	// All members of all organizations managed by the owning org's
+	// IdentityProvider can access (read and execute) this resource.
+	//
+	// "Platform" here means an external platform that operates Stigmer orgs
+	// on behalf of its own customers (see ManagementMode.platform_managed) —
+	// NOT the Stigmer platform singleton used by
+	// AUTHORIZATION_SCOPE_TYPE_PLATFORM.
+	//
+	// This is the "private catalog" primitive for multi-tenant consumers:
+	// a platform (e.g. Planton) authors blueprints (agents, skills, MCP
+	// servers, workflows) in its own org and shares them with every child
+	// org it manages, without exposing them publicly. Child orgs created
+	// later gain access automatically. Instances, sessions, executions and
+	// environments are never platform-visible — each child org instantiates
+	// the shared blueprint inside its own tenant boundary.
+	//
+	// Only valid for blueprint kinds with supports_platform: true, and only
+	// when the owning org owns at least one IdentityProvider.
+	//
+	// FGA tuple: resource#platform_viewer@identity_provider:<idp>#platform_user
+	ApiResourceVisibility_visibility_platform ApiResourceVisibility = 4
 )
 
 // Enum value maps for ApiResourceVisibility.
@@ -207,12 +231,14 @@ var (
 		1: "visibility_private",
 		2: "visibility_public",
 		3: "visibility_org",
+		4: "visibility_platform",
 	}
 	ApiResourceVisibility_value = map[string]int32{
 		"api_resource_visibility_unspecified": 0,
 		"visibility_private":                  1,
 		"visibility_public":                   2,
 		"visibility_org":                      3,
+		"visibility_platform":                 4,
 	}
 )
 
@@ -265,12 +291,13 @@ const file_ai_stigmer_commons_apiresource_enum_proto_rawDesc = "" +
 	"\x06delete\x10\x03\x12\b\n" +
 	"\x04read\x10\x04\x12\n" +
 	"\n" +
-	"\x06stream\x10\x05*\x83\x01\n" +
+	"\x06stream\x10\x05*\x9c\x01\n" +
 	"\x15ApiResourceVisibility\x12'\n" +
 	"#api_resource_visibility_unspecified\x10\x00\x12\x16\n" +
 	"\x12visibility_private\x10\x01\x12\x15\n" +
 	"\x11visibility_public\x10\x02\x12\x12\n" +
-	"\x0evisibility_org\x10\x03B\x93\x02\n" +
+	"\x0evisibility_org\x10\x03\x12\x17\n" +
+	"\x13visibility_platform\x10\x04B\x93\x02\n" +
 	"\"com.ai.stigmer.commons.apiresourceB\tEnumProtoP\x01ZFgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource\xa2\x02\x04ASCA\xaa\x02\x1eAi.Stigmer.Commons.Apiresource\xca\x02\x1eAi\\Stigmer\\Commons\\Apiresource\xe2\x02*Ai\\Stigmer\\Commons\\Apiresource\\GPBMetadata\xea\x02!Ai::Stigmer::Commons::Apiresourceb\x06proto3"
 
 var (

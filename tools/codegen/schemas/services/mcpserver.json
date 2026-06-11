@@ -142,7 +142,7 @@
   "methodTypes": [
     {
       "name": "UpdateVisibilityInput",
-      "description": "Input for updating the visibility of any API resource.\n\n Used by resource-specific command controllers to change visibility.\n Each controller's updateVisibility RPC accepts this shared input\n and returns the full updated resource.\n\n Visibility transitions trigger FGA tuple management in Cloud mode:\n - PRIVATE → PUBLIC: creates resource#viewer@identity_account:* tuple\n - PUBLIC → PRIVATE: deletes the wildcard viewer tuple\n - PRIVATE → ORG: creates resource#viewer@organization:\u003corg\u003e#member tuple\n - ORG → PRIVATE: deletes the org member viewer tuple\n - ORG → PUBLIC: deletes org tuple, creates wildcard tuple\n - PUBLIC → ORG: deletes wildcard tuple, creates org tuple\n\n Not all resources support all visibility levels:\n - Blueprints (agent, workflow, skill, mcp_server): PRIVATE or PUBLIC only\n - Instances (agent_instance, workflow_instance): PRIVATE, ORG, or PUBLIC",
+      "description": "Input for updating the visibility of any API resource.\n\n Used by resource-specific command controllers to change visibility.\n Each controller's updateVisibility RPC accepts this shared input\n and returns the full updated resource.\n\n Visibility transitions trigger FGA tuple management in Cloud mode. Each\n level maps to exactly one tuple shape; on a transition the tuple for the\n old level is removed and the tuple for the new level is created:\n - PRIVATE:  no visibility tuple (owner + explicit grants only)\n - ORG:      resource#viewer@organization:\u003corg\u003e#member\n - PUBLIC:   resource#viewer@identity_account:* (gated by allow_public)\n - PLATFORM: resource#platform_viewer@identity_provider:\u003cidp\u003e#platform_user\n\n Not all resources support all visibility levels — the supported set is\n declared per kind via VisibilityConfig in kind_meta:\n - Blueprints (agent, workflow, skill, mcp_server):\n     PRIVATE, ORG, PUBLIC, or PLATFORM\n - Instances (agent_instance, workflow_instance):\n     PRIVATE, ORG, or PUBLIC (never PLATFORM — tenant isolation)\n\n System-managed DEFAULT instances reject visibility updates entirely:\n their access structurally tracks the parent blueprint via the\n default_of FGA relation.",
       "protoType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
       "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
       "fields": [
@@ -169,10 +169,11 @@
             "enumValues": [
               "visibility_private",
               "visibility_public",
-              "visibility_org"
+              "visibility_org",
+              "visibility_platform"
             ]
           },
-          "description": "The new visibility setting for the resource.\n Must not be unspecified (0). Valid values depend on resource kind:\n - Blueprints: visibility_private (1) or visibility_public (2)\n - Instances: visibility_private (1), visibility_public (2), or visibility_org (3)",
+          "description": "The new visibility setting for the resource.\n Must not be unspecified (0). Valid values depend on resource kind —\n see the VisibilityConfig in the kind's kind_meta.",
           "required": false
         }
       ]
@@ -842,7 +843,7 @@
   "enumTypes": [
     {
       "name": "ApiResourceVisibility",
-      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines whether\n users outside that organization can access the resource.\n\n The three visibility levels map to FGA tuples:\n - PRIVATE: no additional viewer tuples (owner-only access)\n - ORG: resource#viewer@organization:\u003corg\u003e#member tuple (all org members)\n - PUBLIC: resource#viewer@identity_account:* with allow_public (all users)",
+      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines whether\n users outside that organization can access the resource.\n\n The visibility levels map to FGA tuples:\n - PRIVATE: no additional viewer tuples (owner-only access)\n - ORG: resource#viewer@organization:\u003corg\u003e#member tuple (all org members)\n - PUBLIC: resource#viewer@identity_account:* with allow_public (all users)\n - PLATFORM: resource#platform_viewer@identity_provider:\u003cidp\u003e#platform_user\n   (all members of all organizations managed by the owning org's\n   IdentityProvider)",
       "protoType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
       "values": [
         {
@@ -859,6 +860,11 @@
           "name": "visibility_org",
           "number": 3,
           "description": "All members of the owning organization can access (read) this resource.\n Used for instances where a team wants shared observability of executions\n without granting access to all authenticated users.\n\n FGA tuple: resource#viewer@organization:\u003corg\u003e#member\n\n For workflow instances, this enables zero-tuple-per-execution shared\n observability: all org members see all executions via inheritance."
+        },
+        {
+          "name": "visibility_platform",
+          "number": 4,
+          "description": "All members of all organizations managed by the owning org's\n IdentityProvider can access (read and execute) this resource.\n\n \"Platform\" here means an external platform that operates Stigmer orgs\n on behalf of its own customers (see ManagementMode.platform_managed) —\n NOT the Stigmer platform singleton used by\n AUTHORIZATION_SCOPE_TYPE_PLATFORM.\n\n This is the \"private catalog\" primitive for multi-tenant consumers:\n a platform (e.g. Planton) authors blueprints (agents, skills, MCP\n servers, workflows) in its own org and shares them with every child\n org it manages, without exposing them publicly. Child orgs created\n later gain access automatically. Instances, sessions, executions and\n environments are never platform-visible — each child org instantiates\n the shared blueprint inside its own tenant boundary.\n\n Only valid for blueprint kinds with supports_platform: true, and only\n when the owning org owns at least one IdentityProvider.\n\n FGA tuple: resource#platform_viewer@identity_provider:\u003cidp\u003e#platform_user"
         }
       ]
     },
