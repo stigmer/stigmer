@@ -226,8 +226,17 @@ type VisibilityConfig struct {
 	// Defaulting to org preserves that collaborative behavior — Private is an
 	// explicit opt-in, never a surprise.
 	//
+	// The flag carries a second, coupled semantic for the same kinds — the
+	// ORG FLOOR: when visibility is platform or public, the org viewer tuple
+	// is written IN ADDITION to the level's own tuple. Sharing a blueprint
+	// beyond the org must never make it less visible to the owning org's own
+	// members (org-scoped listings resolve through FGA ListObjects with the
+	// public wildcard suppressed, so the explicit org tuple is what keeps
+	// shared blueprints listable at home).
+	//
 	// Instance kinds deliberately leave this false: instances are personal
-	// resources (configuration, secrets) that must start private.
+	// resources (configuration, secrets) that must start private, and their
+	// visibility levels are exactly what the user chose — no floor.
 	//
 	// Note: a single ApiResourceVisibility-typed default field would be
 	// cleaner, but that enum lives in the parent apiresource package whose
