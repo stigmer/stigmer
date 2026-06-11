@@ -114,7 +114,11 @@ func createTestAgentInstance(t *testing.T, ctx context.Context, clients *harness
 }
 
 // TestWorkflowUpdateVisibility verifies that the updateVisibility RPC
-// for workflows correctly toggles between private and public.
+// for workflows correctly toggles between org, public, and private.
+//
+// Workflows are blueprints, which default to visibility_org on creation
+// (defaults_to_org_visibility), so a freshly created workflow is org-visible
+// rather than private.
 func TestWorkflowUpdateVisibility(t *testing.T) {
 	ctx := context.Background()
 	clients := harness.NewClients(grpcConn)
@@ -122,7 +126,7 @@ func TestWorkflowUpdateVisibility(t *testing.T) {
 	workflow := createTestWorkflow(t, ctx, clients, "test-visibility-wf")
 	require.NotEmpty(t, workflow.GetMetadata().GetId())
 	assert.Equal(t,
-		apiresourcepb.ApiResourceVisibility_visibility_private,
+		apiresourcepb.ApiResourceVisibility_visibility_org,
 		workflow.GetMetadata().GetVisibility(),
 	)
 

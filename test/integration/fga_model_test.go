@@ -194,24 +194,31 @@ func TestFGAModel_OrgOwnerHierarchy(t *testing.T) {
 	})
 }
 
-// TestFGAModel_AgentOpenAccess verifies that agents use the "open" access
-// model: all org members can view, owners can edit.
-func TestFGAModel_AgentOpenAccess(t *testing.T) {
+// TestFGAModel_AgentOrgVisibility verifies the agent visibility model after
+// the platform-visibility refactor: agents are private-by-default even inside
+// the owning org (the org link is structural only and grants no viewer access).
+// Org-wide read access requires the explicit visibility tuple that
+// VisibilityTupleReconciler writes — which, because blueprints default to
+// visibility_org, the create pipeline writes for every new agent. Owners can
+// always edit; org members never can.
+func TestFGAModel_AgentOrgVisibility(t *testing.T) {
 	fga := requireFGA(t)
 	ctx := context.Background()
 
 	owner := "identity_account:test-identity-account-id"
 	member := "identity_account:member-alice"
+	org := "organization:test-org"
 	agent := "agent:test-agent-1"
 
 	// Ensure member exists in org (may already be seeded from previous test)
 	_ = fga.WriteTuples(ctx, []harness.RelationshipTuple{
-		{User: member, Relation: "member", Object: "organization:test-org"},
+		{User: member, Relation: "member", Object: org},
 	})
 
-	// Create agent tuples (simulates what the handler pipeline does)
+	// Create the structural agent tuples (organization link + owner). No
+	// visibility tuple yet — this is a private agent.
 	err := fga.WriteTuples(ctx, []harness.RelationshipTuple{
-		{User: "organization:test-org", Relation: "organization", Object: agent},
+		{User: org, Relation: "organization", Object: agent},
 		{User: owner, Relation: "owner", Object: agent},
 	})
 	require.NoError(t, err)
@@ -224,8 +231,21 @@ func TestFGAModel_AgentOpenAccess(t *testing.T) {
 		assert.True(t, fgaCheck(t, fga, owner, "can_edit", agent))
 	})
 
-	// Org member can view (open access) but not edit
-	t.Run("member_can_view", func(t *testing.T) {
+	// Private-by-default: the structural org link does NOT grant org members
+	// view access on its own.
+	t.Run("member_cannot_view_when_private", func(t *testing.T) {
+		assert.False(t, fgaCheck(t, fga, member, "can_view", agent))
+	})
+
+	// Grant org visibility (the blueprint default) — the reconciler writes a
+	// viewer@organization:<org>#member userset tuple.
+	err = fga.WriteTuples(ctx, []harness.RelationshipTuple{
+		{User: org + "#member", Relation: "viewer", Object: agent},
+	})
+	require.NoError(t, err)
+
+	// Org member can now view (org visibility) but still not edit.
+	t.Run("member_can_view_after_org_visibility", func(t *testing.T) {
 		assert.True(t, fgaCheck(t, fga, member, "can_view", agent))
 	})
 	t.Run("member_cannot_edit", func(t *testing.T) {
