@@ -1,54 +1,94 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Popover } from "@base-ui/react/popover";
 import { cn } from "@stigmer/theme";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import { useStigmerPortalContainer } from "../portal-container";
+import { ConfirmDialog } from "../resource-detail/ConfirmDialog";
+import { useConfirmAction } from "../resource-detail/useConfirmAction";
+import {
+  PROMPT_STYLES,
+  VISIBILITY_CHIP_CLASS,
+  VisibilityIcon,
+  VisibilityOptionRow,
+} from "./VisibilityOptionRow";
 import {
   visibilityOption,
   type VisibilityLevelOption,
 } from "./visibilityLevels";
+
+/** How the selector presents itself and how it confirms escalations. */
+export type VisibilitySelectorMode = "manage" | "create";
 
 /** Props for {@link VisibilitySelector}. */
 export interface VisibilitySelectorProps {
   /** Current visibility of the resource. */
   readonly visibility: ApiResourceVisibility;
   /**
-   * Levels to offer, in escalation order (see {@link blueprintVisibilityLevels}).
-   * Selecting a level later in the list than the current one is an
-   * escalation and shows that option's inline confirmation prompt;
-   * de-escalation applies immediately (revoking access is always safe).
+   * Levels to offer, in escalation order (least to most exposed). Selecting
+   * a level later in the list than the current one is an escalation and is
+   * confirmed by severity (see {@link mode}); de-escalation applies
+   * immediately (revoking access is always safe).
    */
   readonly options: readonly VisibilityLevelOption[];
   /** Called when the user selects (and, for escalations, confirms) a level. */
   readonly onVisibilityChange: (v: ApiResourceVisibility) => void;
+  /**
+   * Presentation + confirmation mode.
+   *
+   * - `"manage"` (default) — a compact current-state chip opens a popover
+   *   ladder of levels. Escalations are confirmed by severity: a light
+   *   inline prompt for levels carrying {@link VisibilityLevelOption.confirmPrompt}
+   *   (e.g. Organization), and a blocking modal for levels carrying
+   *   {@link VisibilityLevelOption.confirmDialog} (Platform, Public). This is
+   *   the live-resource case.
+   * - `"create"` — an inline radio list that applies immediately, with no
+   *   escalation confirmation. Used to pick an initial value while creating
+   *   a resource (typically inside a native `<dialog>`, where a portaled
+   *   popover would render beneath the modal's top layer).
+   *
+   * @default "manage"
+   */
+  readonly mode?: VisibilitySelectorMode;
   /** Shows a spinner/disabled state while the RPC is in flight. */
   readonly isPending?: boolean;
   /** Disables all interaction (e.g., when the user lacks can_edit). */
   readonly disabled?: boolean;
-  /** Accessible name for the radio group. Defaults to "Resource visibility". */
+  /** Accessible name for the control. Defaults to "Resource visibility". */
   readonly ariaLabel?: string;
   /** Additional CSS classes applied to the root element. */
   readonly className?: string;
 }
 
 /**
- * Segmented visibility selector — the single control for resource
- * visibility across blueprints AND instances. The offered levels are pure
- * data ({@link VisibilityLevelOption}); per-kind level sets live in
- * `visibilityLevels.ts`, so this component carries no kind-specific logic.
+ * The single control for resource visibility across blueprints AND
+ * instances. Offered levels are pure data ({@link VisibilityLevelOption});
+ * per-kind level sets live in `visibilityLevels.ts`, so this component
+ * carries no kind-specific logic.
  *
- * Escalating (moving right in the options list) shows an inline
- * confirmation prompt colored by the target level's tone, since expanding
- * access is consequential. De-escalating applies immediately.
+ * In `"manage"` mode it renders a current-state chip (icon + label + caret)
+ * that opens a popover listing each offered level with its own description —
+ * scaling cleanly to four levels without the layout shift of a segmented
+ * control, and explaining every choice at a glance (Recognition over
+ * Recall). Escalation is confirmed in proportion to how far access expands:
+ * de-escalation applies instantly, an Organization escalation shows a light
+ * inline prompt, and Platform/Public escalations open a blocking
+ * {@link ConfirmDialog} that names the exact audience. Confirmation is owned
+ * here so every consumer — blueprint detail, instance detail, and any
+ * standalone embed — behaves identically.
+ *
+ * In `"create"` mode it renders an inline radio list that applies
+ * immediately (initial value selection has no escalation semantics).
  *
  * If the current visibility is not among the offered options (e.g. a
  * platform-shared blueprint whose org no longer operates an
  * IdentityProvider), its canonical option is rendered in place so the
  * state stays legible and the user can still move to an offered level.
  *
- * WAI-ARIA Radio Group with roving tabindex, following the same visual
- * pattern as {@link ScopeToggle}. All visual properties flow through
- * `--stgm-*` design tokens.
+ * All visual properties flow through `--stgm-*` design tokens; portaled
+ * content targets the {@link useStigmerPortalContainer} so it inherits the
+ * active theme.
  *
  * @example
  * ```tsx
@@ -64,19 +104,27 @@ export function VisibilitySelector({
   visibility,
   options,
   onVisibilityChange,
+  mode = "manage",
   isPending = false,
   disabled = false,
   ariaLabel = "Resource visibility",
   className,
 }: VisibilitySelectorProps) {
-  const [confirming, setConfirming] = useState<ApiResourceVisibility | null>(
-    null,
-  );
+  const portalContainer = useStigmerPortalContainer();
+  const { confirmState, confirm, handleConfirm, handleCancel } =
+    useConfirmAction();
+
+  const [open, setOpen] = useState(false);
+  // The Organization-style escalation awaiting its light inline confirm.
+  const [pendingInline, setPendingInline] =
+    useState<ApiResourceVisibility | null>(null);
+  const [highlightIdx, setHighlightIdx] = useState(-1);
   const optionRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
   const effectivelyDisabled = disabled || isPending;
 
   // Keep the current state legible even when it is not offerable in the
-  // current context: render its canonical option as an extra segment.
+  // current context: render its canonical option as an extra row.
   const effectiveOptions = useMemo(() => {
     if (options.some((o) => o.value === visibility)) return options;
     return [...options, visibilityOption(visibility)];
@@ -90,274 +138,273 @@ export function VisibilitySelector({
     [effectiveOptions, visibility],
   );
 
-  const handleSelect = useCallback(
+  const apply = useCallback(
     (value: ApiResourceVisibility) => {
-      if (value === visibility) return;
+      setOpen(false);
+      setPendingInline(null);
+      onVisibilityChange(value);
+    },
+    [onVisibilityChange],
+  );
 
-      if (isEscalation(value)) {
-        setConfirming(value);
+  const handleSelect = useCallback(
+    (option: VisibilityLevelOption) => {
+      const value = option.value;
+      if (value === visibility) {
+        setPendingInline(null);
+        setOpen(false);
         return;
       }
 
-      setConfirming(null);
-      onVisibilityChange(value);
+      // De-escalation (and create mode) never confirm — narrowing access is
+      // always safe, and an initial pick has no escalation semantics.
+      if (mode === "create" || !isEscalation(value)) {
+        apply(value);
+        return;
+      }
+
+      if (option.confirmDialog) {
+        setOpen(false);
+        setPendingInline(null);
+        void confirm({
+          title: option.confirmDialog.title,
+          description: option.confirmDialog.description,
+          confirmLabel: `Make ${option.label}`,
+          // Exposure is reversible, so this is a primary (not destructive)
+          // confirmation; the audience-naming copy carries the caution.
+          variant: "default",
+        }).then((ok) => {
+          if (ok) onVisibilityChange(value);
+        });
+        return;
+      }
+
+      if (option.confirmPrompt) {
+        setPendingInline(value);
+        return;
+      }
+
+      apply(value);
     },
-    [visibility, onVisibilityChange, isEscalation],
+    [visibility, mode, isEscalation, apply, confirm, onVisibilityChange],
   );
 
-  const confirmChange = useCallback(() => {
-    if (confirming === null) return;
-    setConfirming(null);
-    onVisibilityChange(confirming);
-  }, [confirming, onVisibilityChange]);
+  const moveFocus = useCallback(
+    (from: number, delta: number) => {
+      const count = effectiveOptions.length;
+      const next = (from + delta + count) % count;
+      setHighlightIdx(next);
+      optionRefs.current[next]?.focus();
+    },
+    [effectiveOptions.length],
+  );
 
-  const cancelConfirm = useCallback(() => {
-    setConfirming(null);
-  }, []);
-
-  const handleKeyDown = useCallback(
+  const handleRowKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
-      let nextIndex: number | null = null;
-
-      if (e.key === "ArrowRight" || e.key === "ArrowDown") {
-        e.preventDefault();
-        nextIndex = (index + 1) % effectiveOptions.length;
-      } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
-        e.preventDefault();
-        nextIndex =
-          (index - 1 + effectiveOptions.length) % effectiveOptions.length;
-      }
-
-      if (nextIndex !== null) {
-        optionRefs.current[nextIndex]?.focus();
-        handleSelect(effectiveOptions[nextIndex].value);
+      switch (e.key) {
+        case "ArrowDown":
+        case "ArrowRight":
+          e.preventDefault();
+          moveFocus(index, 1);
+          break;
+        case "ArrowUp":
+        case "ArrowLeft":
+          e.preventDefault();
+          moveFocus(index, -1);
+          break;
+        case "Home":
+          e.preventDefault();
+          setHighlightIdx(0);
+          optionRefs.current[0]?.focus();
+          break;
+        case "End": {
+          e.preventDefault();
+          const last = effectiveOptions.length - 1;
+          setHighlightIdx(last);
+          optionRefs.current[last]?.focus();
+          break;
+        }
       }
     },
-    [effectiveOptions, handleSelect],
+    [moveFocus, effectiveOptions.length],
   );
 
-  const confirmingOption =
-    confirming !== null
-      ? effectiveOptions.find((o) => o.value === confirming)
-      : undefined;
+  // On open, focus the current level so keyboard users land on a sensible row.
+  useEffect(() => {
+    if (!open) {
+      setPendingInline(null);
+      setHighlightIdx(-1);
+      return;
+    }
+    const current = effectiveOptions.findIndex((o) => o.value === visibility);
+    const start = current >= 0 ? current : 0;
+    setHighlightIdx(start);
+    const raf = requestAnimationFrame(() => optionRefs.current[start]?.focus());
+    return () => cancelAnimationFrame(raf);
+  }, [open, effectiveOptions, visibility]);
 
-  return (
-    <div className={cn("inline-flex flex-col gap-1.5", className)}>
+  const dialog = (
+    <ConfirmDialog
+      state={confirmState}
+      onConfirm={handleConfirm}
+      onCancel={handleCancel}
+    />
+  );
+
+  const renderRows = (role: "option" | "radio") =>
+    effectiveOptions.map((option, index) => (
+      <VisibilityOptionRow
+        key={option.value}
+        ref={(el) => {
+          optionRefs.current[index] = el;
+        }}
+        option={option}
+        role={role}
+        isSelected={visibility === option.value}
+        isHighlighted={role === "option" && highlightIdx === index}
+        tabIndex={
+          role === "radio"
+            ? visibility === option.value
+              ? 0
+              : -1
+            : highlightIdx === index
+              ? 0
+              : -1
+        }
+        disabled={effectivelyDisabled}
+        onSelect={() => handleSelect(option)}
+        onMouseEnter={
+          role === "option" ? () => setHighlightIdx(index) : undefined
+        }
+        onKeyDown={(e) => handleRowKeyDown(e, index)}
+      />
+    ));
+
+  // ---- Create mode: inline radio list, applies immediately ---------------
+  if (mode === "create") {
+    return (
       <div
         role="radiogroup"
         aria-label={ariaLabel}
         aria-disabled={effectivelyDisabled || undefined}
         className={cn(
-          "inline-flex rounded-md bg-muted p-0.5",
+          "flex flex-col gap-0.5 rounded-md border border-border p-1",
           effectivelyDisabled && "pointer-events-none opacity-50",
+          className,
         )}
       >
-        {effectiveOptions.map((option, index) => {
-          const isSelected = visibility === option.value;
+        {renderRows("radio")}
+      </div>
+    );
+  }
 
-          return (
-            <button
-              key={option.value}
-              ref={(el) => {
-                optionRefs.current[index] = el;
-              }}
-              type="button"
-              role="radio"
-              aria-checked={isSelected}
-              aria-label={`${option.label}: ${option.description}`}
-              tabIndex={isSelected ? 0 : -1}
-              disabled={effectivelyDisabled}
-              onClick={() => handleSelect(option.value)}
-              onKeyDown={(e) => handleKeyDown(e, index)}
+  // ---- Manage mode: current-state chip + popover ladder ------------------
+  const current = visibilityOption(visibility);
+  const pendingOption =
+    pendingInline !== null
+      ? effectiveOptions.find((o) => o.value === pendingInline)
+      : undefined;
+
+  return (
+    <>
+      <Popover.Root open={open} onOpenChange={setOpen}>
+        <Popover.Trigger
+          disabled={effectivelyDisabled}
+          aria-label={`${ariaLabel}: ${current.label}`}
+          className={cn(
+            VISIBILITY_CHIP_CLASS,
+            "transition-colors hover:bg-accent-hover hover:text-foreground",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "disabled:pointer-events-none disabled:opacity-50",
+            className,
+          )}
+        >
+          {isPending ? (
+            <span
+              className="inline-block size-2.5 animate-spin rounded-full border-2 border-current border-t-transparent"
+              aria-hidden="true"
+            />
+          ) : (
+            <VisibilityIcon tone={current.tone} className="size-2.5" />
+          )}
+          {current.label}
+          <CaretIcon />
+        </Popover.Trigger>
+
+        <Popover.Portal container={portalContainer}>
+          <Popover.Positioner sideOffset={4} align="start">
+            <Popover.Popup
+              role="listbox"
+              aria-label={ariaLabel}
               className={cn(
-                "inline-flex cursor-pointer items-center gap-1 rounded-sm px-2.5 py-1 text-xs font-medium transition-colors",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                isSelected
-                  ? SELECTED_STYLES[option.tone]
-                  : "text-muted-foreground hover:text-foreground",
+                "z-popover w-72 rounded-lg border border-border bg-popover p-1 shadow-md",
+                "text-popover-foreground animate-in fade-in-0 zoom-in-95",
               )}
             >
-              {isPending && isSelected ? (
-                <span
-                  className="inline-block size-3 animate-spin rounded-full border-2 border-current border-t-transparent"
-                  aria-hidden="true"
-                />
-              ) : (
-                <VisibilityIcon tone={option.tone} className="size-3" />
+              {renderRows("option")}
+
+              {pendingOption?.confirmPrompt && (
+                <div
+                  role="alert"
+                  className={cn(
+                    "mt-1 flex items-center gap-2 rounded-md border px-2.5 py-1.5",
+                    PROMPT_STYLES[pendingOption.tone].container,
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "flex-1 text-[0.65rem] leading-snug",
+                      PROMPT_STYLES[pendingOption.tone].text,
+                    )}
+                  >
+                    {pendingOption.confirmPrompt}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setPendingInline(null)}
+                    className={cn(
+                      "rounded px-2 py-0.5 text-[0.65rem] font-medium",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      PROMPT_STYLES[pendingOption.tone].cancel,
+                    )}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => apply(pendingOption.value)}
+                    className={cn(
+                      "rounded px-2 py-0.5 text-[0.65rem] font-medium text-white",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      PROMPT_STYLES[pendingOption.tone].confirm,
+                    )}
+                  >
+                    Confirm
+                  </button>
+                </div>
               )}
-              {option.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Description of current state */}
-      {confirming === null && (
-        <p className="text-[0.65rem] text-muted-foreground">
-          {effectiveOptions.find((o) => o.value === visibility)?.description}
-        </p>
-      )}
-
-      {/* Confirmation prompt for escalation */}
-      {confirmingOption?.confirmPrompt && (
-        <div
-          className={cn(
-            "flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs",
-            PROMPT_STYLES[confirmingOption.tone].container,
-          )}
-          role="alert"
-        >
-          <span className={PROMPT_STYLES[confirmingOption.tone].text}>
-            {confirmingOption.confirmPrompt}
-          </span>
-          <button
-            type="button"
-            onClick={confirmChange}
-            className={cn(
-              "rounded px-2 py-0.5 text-xs font-medium text-white",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              PROMPT_STYLES[confirmingOption.tone].confirm,
-            )}
-          >
-            Confirm
-          </button>
-          <button
-            type="button"
-            onClick={cancelConfirm}
-            className={cn(
-              "rounded px-2 py-0.5 text-xs font-medium",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              PROMPT_STYLES[confirmingOption.tone].cancel,
-            )}
-          >
-            Cancel
-          </button>
-        </div>
-      )}
-    </div>
+            </Popover.Popup>
+          </Popover.Positioner>
+        </Popover.Portal>
+      </Popover.Root>
+      {dialog}
+    </>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Tone styling — one row per visibility tone, keyed by VisibilityLevelOption
-// ---------------------------------------------------------------------------
-
-type Tone = VisibilityLevelOption["tone"];
-
-const SELECTED_STYLES: Record<Tone, string> = {
-  private:
-    "bg-amber-50 text-amber-800 shadow-sm dark:bg-amber-900/30 dark:text-amber-300",
-  org: "bg-blue-100 text-blue-800 shadow-sm dark:bg-blue-900/40 dark:text-blue-300",
-  platform:
-    "bg-violet-100 text-violet-800 shadow-sm dark:bg-violet-900/40 dark:text-violet-300",
-  public:
-    "bg-emerald-100 text-emerald-800 shadow-sm dark:bg-emerald-900/40 dark:text-emerald-300",
-};
-
-const PROMPT_STYLES: Record<
-  Tone,
-  { container: string; text: string; confirm: string; cancel: string }
-> = {
-  // Private never escalates, but the row keeps the Record total.
-  private: {
-    container:
-      "border-amber-200 bg-amber-50 dark:border-amber-800/50 dark:bg-amber-950/30",
-    text: "text-amber-800 dark:text-amber-200",
-    confirm:
-      "bg-amber-600 hover:bg-amber-700 dark:bg-amber-600 dark:hover:bg-amber-500",
-    cancel:
-      "text-amber-700 hover:text-amber-900 dark:text-amber-300 dark:hover:text-amber-100",
-  },
-  org: {
-    container:
-      "border-blue-200 bg-blue-50 dark:border-blue-800/50 dark:bg-blue-950/30",
-    text: "text-blue-800 dark:text-blue-200",
-    confirm:
-      "bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500",
-    cancel:
-      "text-blue-700 hover:text-blue-900 dark:text-blue-300 dark:hover:text-blue-100",
-  },
-  platform: {
-    container:
-      "border-violet-200 bg-violet-50 dark:border-violet-800/50 dark:bg-violet-950/30",
-    text: "text-violet-800 dark:text-violet-200",
-    confirm:
-      "bg-violet-600 hover:bg-violet-700 dark:bg-violet-600 dark:hover:bg-violet-500",
-    cancel:
-      "text-violet-700 hover:text-violet-900 dark:text-violet-300 dark:hover:text-violet-100",
-  },
-  public: {
-    container:
-      "border-amber-200 bg-amber-50 dark:border-amber-800/50 dark:bg-amber-950/30",
-    text: "text-amber-800 dark:text-amber-200",
-    confirm:
-      "bg-amber-600 hover:bg-amber-700 dark:bg-amber-600 dark:hover:bg-amber-500",
-    cancel:
-      "text-amber-700 hover:text-amber-900 dark:text-amber-300 dark:hover:text-amber-100",
-  },
-};
-
-// ---------------------------------------------------------------------------
-// Icons — inline SVGs following the SDK pattern (no icon library dependency)
-// ---------------------------------------------------------------------------
-
-/** Icon for a visibility tone; shared with {@link VisibilityBadge}. */
-export function VisibilityIcon({
-  tone,
-  className,
-}: {
-  readonly tone: Tone;
-  readonly className?: string;
-}) {
-  switch (tone) {
-    case "org":
-      return <UsersIcon className={className} />;
-    case "platform":
-      return <BuildingsIcon className={className} />;
-    case "public":
-      return <GlobeIcon className={className} />;
-    default:
-      return <LockIcon className={className} />;
-  }
-}
-
-function LockIcon({ className }: { readonly className?: string }) {
+function CaretIcon() {
   return (
-    <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="3.5" y="7" width="9" height="7" rx="1.5" />
-      <path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" />
-    </svg>
-  );
-}
-
-function UsersIcon({ className }: { readonly className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="6" cy="5" r="2.5" />
-      <path d="M2 13c0-2.21 1.79-4 4-4s4 1.79 4 4" />
-      <circle cx="11.5" cy="5.5" r="2" />
-      <path d="M14 13c0-1.66-1.12-3-2.5-3-.5 0-1 .14-1.4.4" />
-    </svg>
-  );
-}
-
-function BuildingsIcon({ className }: { readonly className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M2 14V4.5L6.5 2v12" />
-      <path d="M6.5 6.5 14 8.5V14" />
-      <path d="M2 14h12" />
-      <path d="M4.25 6h.01M4.25 8.5h.01M4.25 11h.01M10.5 10.5h.01M10.5 12.5h.01" />
-    </svg>
-  );
-}
-
-function GlobeIcon({ className }: { readonly className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="8" cy="8" r="6" />
-      <path d="M2 8h12" />
-      <path d="M8 2c1.66 1.46 2.6 3.63 2.6 6s-.94 4.54-2.6 6c-1.66-1.46-2.6-3.63-2.6-6s.94-4.54 2.6-6Z" />
+    <svg
+      className="size-2.5 shrink-0 text-muted-foreground"
+      viewBox="0 0 12 12"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M3 4.5 6 7.5 9 4.5" />
     </svg>
   );
 }
@@ -369,7 +416,8 @@ function GlobeIcon({ className }: { readonly className?: string }) {
  * Rendered wherever the interactive {@link VisibilitySelector} is not
  * available — for viewers who lack `can_edit`, and while a permission check
  * is in flight — so a resource's visibility is always legible rather than
- * silently blank.
+ * silently blank. Shares the chip styling with the selector trigger so the
+ * read-only and editable states are visually consistent.
  */
 export function VisibilityBadge({
   visibility,
@@ -380,12 +428,7 @@ export function VisibilityBadge({
 }) {
   const option = visibilityOption(visibility);
   return (
-    <span
-      className={cn(
-        "inline-flex shrink-0 items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground",
-        className,
-      )}
-    >
+    <span className={cn(VISIBILITY_CHIP_CLASS, className)}>
       <VisibilityIcon tone={option.tone} className="size-2.5" />
       {option.label}
     </span>

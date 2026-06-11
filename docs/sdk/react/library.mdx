@@ -500,39 +500,51 @@ levels (Private / Organization / Platform / Public).
 Rendered wherever the interactive [`VisibilitySelector`](#visibilityselector) is not
 available — for viewers who lack `can_edit`, and while a permission check
 is in flight — so a resource's visibility is always legible rather than
-silently blank.
+silently blank. Shares the chip styling with the selector trigger so the
+read-only and editable states are visually consistent.
 
 
 ### VisibilitySelector
 
-Segmented visibility selector — the single control for resource
-visibility across blueprints AND instances. The offered levels are pure
-data ([`VisibilityLevelOption`](#visibilityleveloption)); per-kind level sets live in
-`visibilityLevels.ts`, so this component carries no kind-specific logic.
+The single control for resource visibility across blueprints AND
+instances. Offered levels are pure data ([`VisibilityLevelOption`](#visibilityleveloption));
+per-kind level sets live in `visibilityLevels.ts`, so this component
+carries no kind-specific logic.
 
-Escalating (moving right in the options list) shows an inline
-confirmation prompt colored by the target level's tone, since expanding
-access is consequential. De-escalating applies immediately.
+In `"manage"` mode it renders a current-state chip (icon + label + caret)
+that opens a popover listing each offered level with its own description —
+scaling cleanly to four levels without the layout shift of a segmented
+control, and explaining every choice at a glance (Recognition over
+Recall). Escalation is confirmed in proportion to how far access expands:
+de-escalation applies instantly, an Organization escalation shows a light
+inline prompt, and Platform/Public escalations open a blocking
+[`ConfirmDialog`](/docs/sdk/react/resource-detail#confirmdialog) that names the exact audience. Confirmation is owned
+here so every consumer — blueprint detail, instance detail, and any
+standalone embed — behaves identically.
+
+In `"create"` mode it renders an inline radio list that applies
+immediately (initial value selection has no escalation semantics).
 
 If the current visibility is not among the offered options (e.g. a
 platform-shared blueprint whose org no longer operates an
 IdentityProvider), its canonical option is rendered in place so the
 state stays legible and the user can still move to an offered level.
 
-WAI-ARIA Radio Group with roving tabindex, following the same visual
-pattern as [`ScopeToggle`](#scopetoggle). All visual properties flow through
-`--stgm-*` design tokens.
+All visual properties flow through `--stgm-*` design tokens; portaled
+content targets the [`useStigmerPortalContainer`](/docs/sdk/react/core#usestigmerportalcontainer) so it inherits the
+active theme.
 
 **Props** — `VisibilitySelectorProps`
 
 <TypeTable
   type={{
-    ariaLabel: { type: "string", description: "Accessible name for the radio group. Defaults to \"Resource visibility\"." },
+    ariaLabel: { type: "string", description: "Accessible name for the control. Defaults to \"Resource visibility\"." },
     className: { type: "string", description: "Additional CSS classes applied to the root element." },
     disabled: { type: "boolean", description: "Disables all interaction (e.g., when the user lacks can_edit)." },
     isPending: { type: "boolean", description: "Shows a spinner/disabled state while the RPC is in flight." },
+    mode: { type: "VisibilitySelectorMode", description: "Presentation + confirmation mode.  - `\"manage\"` (default) — a compact current-state chip opens a popover   ladder of levels. Escalations are confirmed by severity: a light   inline prompt for levels carrying VisibilityLevelOption.confirmPrompt   (e.g. Organization), and a blocking modal for levels carrying   VisibilityLevelOption.confirmDialog (Platform, Public). This is   the live-resource case. - `\"create\"` — an inline radio list that applies immediately, with no   escalation confirmation. Used to pick an initial value while creating   a resource (typically inside a native `<dialog>`, where a portaled   popover would render beneath the modal's top layer)." },
     onVisibilityChange: { type: "(v: ApiResourceVisibility) => void", description: "Called when the user selects (and, for escalations, confirms) a level.", required: true },
-    options: { type: "readonly VisibilityLevelOption[]", description: "Levels to offer, in escalation order (see blueprintVisibilityLevels). Selecting a level later in the list than the current one is an escalation and shows that option's inline confirmation prompt; de-escalation applies immediately (revoking access is always safe).", required: true },
+    options: { type: "readonly VisibilityLevelOption[]", description: "Levels to offer, in escalation order (least to most exposed). Selecting a level later in the list than the current one is an escalation and is confirmed by severity (see mode); de-escalation applies immediately (revoking access is always safe).", required: true },
     visibility: { type: "ApiResourceVisibility", description: "Current visibility of the resource.", required: true },
   }}
 />
@@ -1003,7 +1015,8 @@ private < org < platform < public); [`VisibilitySelector`](#visibilityselector) 
 
 <TypeTable
   type={{
-    confirmPrompt: { type: "string", description: "Inline confirmation question shown when the user escalates TO this level. Omitted for the least-exposed level (de-escalation never confirms — revoking access is always safe)." },
+    confirmDialog: { type: "{ description: string; title: string }", description: "Heavy confirmation shown as a modal ConfirmDialog when the user escalates TO this level. Reserved for levels that expose the resource beyond the owning organization (platform, public), where a blocking, audience-naming confirmation is warranted.  The selector derives escalation severity purely from this data: `confirmDialog` present → modal; else `confirmPrompt` present → inline; else apply immediately. There is no per-level branching in the component." },
+    confirmPrompt: { type: "string", description: "Light inline confirmation question shown inside the selector when the user escalates TO this level (e.g. private → org). Omitted for the least-exposed level (de-escalation never confirms — revoking access is always safe).  Levels that expand access far beyond the owning org carry a confirmDialog instead; see the severity ladder on VisibilityLevelOption." },
     description: { type: "string", description: "One-line explanation shown under the selector for the current level.", required: true },
     label: { type: "string", description: "", required: true },
     tone: { type: "\"org\" | \"private\" | \"public\" | \"platform\"", description: "Color treatment for the selected segment and the confirmation prompt.", required: true },

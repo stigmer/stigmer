@@ -203,6 +203,7 @@ export function CreateWorkflowInstanceDialog({
             <InstanceVisibilitySelector
               visibility={visibility}
               onVisibilityChange={setVisibility}
+              mode="create"
               disabled={isCreating}
             />
           </div>

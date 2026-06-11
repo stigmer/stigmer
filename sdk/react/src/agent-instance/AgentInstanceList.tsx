@@ -6,9 +6,7 @@ import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinst
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { useAgentInstances } from "./useAgentInstances";
 import { useEnvironmentList } from "../environment/useEnvironmentList";
-import { useUpdateVisibility } from "../library/useUpdateVisibility";
-import { InstanceVisibilitySelector } from "../library/InstanceVisibilitySelector";
-import { visibilityLabel } from "../library/visibilityLevels";
+import { ResourceVisibilityControl } from "../library/ResourceVisibilityControl";
 import { PermissionGate } from "../iam-policy/PermissionGate";
 import { AgentInstanceEmptyState } from "./AgentInstanceEmptyState";
 
@@ -176,17 +174,8 @@ function InstanceRow({
   const meta = instance.metadata;
   const id = meta?.id ?? "";
   const isPersonal = meta?.labels?.[PERSONAL_LABEL] === "true";
-  const { updateVisibility, isPending } = useUpdateVisibility("agentInstance", id || null);
 
   const envRefs = instance.spec?.environmentRefs ?? [];
-
-  const handleVisibilityChange = useCallback(
-    async (v: ApiResourceVisibility) => {
-      await updateVisibility(v);
-      refetch();
-    },
-    [updateVisibility, refetch],
-  );
 
   return (
     <tr
@@ -246,21 +235,12 @@ function InstanceRow({
 
       <td className="px-4 py-2.5" onClick={(e) => e.stopPropagation()}>
         {id ? (
-          <PermissionGate
-            resource={{ kind: "agent_instance", id }}
-            relation="can_edit"
-            fallback={
-              <span className="text-xs text-muted-foreground">
-                {visibilityLabel(meta?.visibility ?? ApiResourceVisibility.visibility_private)}
-              </span>
-            }
-          >
-            <InstanceVisibilitySelector
-              visibility={meta?.visibility ?? ApiResourceVisibility.visibility_private}
-              onVisibilityChange={handleVisibilityChange}
-              isPending={isPending}
-            />
-          </PermissionGate>
+          <ResourceVisibilityControl
+            kind="agentInstance"
+            resourceId={id}
+            visibility={meta?.visibility ?? ApiResourceVisibility.visibility_private}
+            onChanged={refetch}
+          />
         ) : (
           <span className="text-xs text-muted-foreground">{"\u2014"}</span>
         )}

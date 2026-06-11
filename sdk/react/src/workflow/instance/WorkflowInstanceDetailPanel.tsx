@@ -10,9 +10,7 @@ import type { ResourceRef } from "@stigmer/sdk";
 import { getUserMessage } from "@stigmer/sdk";
 import { useUpdateWorkflowInstance } from "./useUpdateWorkflowInstance";
 import { useDeleteWorkflowInstance } from "./useDeleteWorkflowInstance";
-import { useUpdateVisibility } from "../../library/useUpdateVisibility";
-import { InstanceVisibilitySelector } from "../../library/InstanceVisibilitySelector";
-import { visibilityLabel } from "../../library/visibilityLevels";
+import { ResourceVisibilityControl } from "../../library/ResourceVisibilityControl";
 import { PermissionGate } from "../../iam-policy/PermissionGate";
 import { SharePanel } from "../../iam-policy/SharePanel";
 import { EnvironmentPicker } from "../../environment/EnvironmentPicker";
@@ -56,7 +54,6 @@ export function WorkflowInstanceDetailPanel({
 
   const { update, isUpdating } = useUpdateWorkflowInstance();
   const { deleteInstance, isDeleting } = useDeleteWorkflowInstance();
-  const { updateVisibility, isPending: isVisibilityPending } = useUpdateVisibility("workflowInstance", id || null);
   const { environments } = useEnvironmentList(org);
 
   const [isEditingEnvs, setIsEditingEnvs] = useState(false);
@@ -64,14 +61,6 @@ export function WorkflowInstanceDetailPanel({
   const [showSharePanel, setShowSharePanel] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteError, setDeleteError] = useState<Error | null>(null);
-
-  const handleVisibilityChange = useCallback(
-    async (v: ApiResourceVisibility) => {
-      await updateVisibility(v);
-      onUpdated?.();
-    },
-    [updateVisibility, onUpdated],
-  );
 
   const handleStartEditEnvs = useCallback(() => {
     const currentRefs: ResourceRef[] = (spec?.environmentRefs ?? []).map((ref) => ({
@@ -255,21 +244,12 @@ export function WorkflowInstanceDetailPanel({
         {/* Visibility */}
         <div className="px-4 py-3">
           <h4 className="text-xs font-medium text-muted-foreground mb-2">Visibility</h4>
-          <PermissionGate
-            resource={{ kind: "workflow_instance", id }}
-            relation="can_edit"
-            fallback={
-              <span className="text-sm text-foreground">
-                {visibilityLabel(meta?.visibility ?? ApiResourceVisibility.visibility_private)}
-              </span>
-            }
-          >
-            <InstanceVisibilitySelector
-              visibility={meta?.visibility ?? ApiResourceVisibility.visibility_private}
-              onVisibilityChange={handleVisibilityChange}
-              isPending={isVisibilityPending}
-            />
-          </PermissionGate>
+          <ResourceVisibilityControl
+            kind="workflowInstance"
+            resourceId={id}
+            visibility={meta?.visibility ?? ApiResourceVisibility.visibility_private}
+            onChanged={onUpdated}
+          />
         </div>
 
         {/* Share Panel */}

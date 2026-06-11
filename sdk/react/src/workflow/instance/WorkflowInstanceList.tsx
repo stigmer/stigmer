@@ -6,9 +6,7 @@ import type { WorkflowInstance } from "@stigmer/protos/ai/stigmer/agentic/workfl
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { useWorkflowInstances } from "../useWorkflowInstances";
 import { useEnvironmentList } from "../../environment/useEnvironmentList";
-import { useUpdateVisibility } from "../../library/useUpdateVisibility";
-import { InstanceVisibilitySelector } from "../../library/InstanceVisibilitySelector";
-import { visibilityLabel } from "../../library/visibilityLevels";
+import { ResourceVisibilityControl } from "../../library/ResourceVisibilityControl";
 import { PermissionGate } from "../../iam-policy/PermissionGate";
 import { WorkflowInstanceEmptyState } from "./WorkflowInstanceEmptyState";
 
@@ -167,17 +165,8 @@ function InstanceRow({
 }: InstanceRowProps) {
   const meta = instance.metadata;
   const id = meta?.id ?? "";
-  const { updateVisibility, isPending } = useUpdateVisibility("workflowInstance", id || null);
 
   const envRefs = instance.spec?.environmentRefs ?? [];
-
-  const handleVisibilityChange = useCallback(
-    async (v: ApiResourceVisibility) => {
-      await updateVisibility(v);
-      refetch();
-    },
-    [updateVisibility, refetch],
-  );
 
   return (
     <tr
@@ -224,21 +213,12 @@ function InstanceRow({
 
       <td className="px-4 py-2.5" onClick={(e) => e.stopPropagation()}>
         {id ? (
-          <PermissionGate
-            resource={{ kind: "workflow_instance", id }}
-            relation="can_edit"
-            fallback={
-              <span className="text-xs text-muted-foreground">
-                {visibilityLabel(meta?.visibility ?? ApiResourceVisibility.visibility_private)}
-              </span>
-            }
-          >
-            <InstanceVisibilitySelector
-              visibility={meta?.visibility ?? ApiResourceVisibility.visibility_private}
-              onVisibilityChange={handleVisibilityChange}
-              isPending={isPending}
-            />
-          </PermissionGate>
+          <ResourceVisibilityControl
+            kind="workflowInstance"
+            resourceId={id}
+            visibility={meta?.visibility ?? ApiResourceVisibility.visibility_private}
+            onChanged={refetch}
+          />
         ) : (
           <span className="text-xs text-muted-foreground">—</span>
         )}

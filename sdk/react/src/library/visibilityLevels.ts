@@ -14,11 +14,33 @@ export interface VisibilityLevelOption {
   /** One-line explanation shown under the selector for the current level. */
   readonly description: string;
   /**
-   * Inline confirmation question shown when the user escalates TO this
-   * level. Omitted for the least-exposed level (de-escalation never
-   * confirms — revoking access is always safe).
+   * Light inline confirmation question shown inside the selector when the
+   * user escalates TO this level (e.g. private → org). Omitted for the
+   * least-exposed level (de-escalation never confirms — revoking access is
+   * always safe).
+   *
+   * Levels that expand access far beyond the owning org carry a
+   * {@link confirmDialog} instead; see the severity ladder on
+   * {@link VisibilityLevelOption}.
    */
   readonly confirmPrompt?: string;
+  /**
+   * Heavy confirmation shown as a modal {@link ConfirmDialog} when the user
+   * escalates TO this level. Reserved for levels that expose the resource
+   * beyond the owning organization (platform, public), where a blocking,
+   * audience-naming confirmation is warranted.
+   *
+   * The selector derives escalation severity purely from this data:
+   * `confirmDialog` present → modal; else `confirmPrompt` present → inline;
+   * else apply immediately. There is no per-level branching in the
+   * component.
+   */
+  readonly confirmDialog?: {
+    /** Modal title, phrased as a question (e.g. "Make this public?"). */
+    readonly title: string;
+    /** Body copy that names the exact audience and the consequence. */
+    readonly description: string;
+  };
   /** Color treatment for the selected segment and the confirmation prompt. */
   readonly tone: "private" | "org" | "platform" | "public";
 }
@@ -42,7 +64,11 @@ const PLATFORM_OPTION: VisibilityLevelOption = {
   value: ApiResourceVisibility.visibility_platform,
   label: "Platform",
   description: "All organizations managed by your platform",
-  confirmPrompt: "Share with every organization managed by your platform?",
+  confirmDialog: {
+    title: "Share with your whole platform?",
+    description:
+      "Every organization managed by your platform will be able to view and use this resource. You can return it to a narrower visibility at any time.",
+  },
   tone: "platform",
 };
 
@@ -50,7 +76,11 @@ const PUBLIC_OPTION: VisibilityLevelOption = {
   value: ApiResourceVisibility.visibility_public,
   label: "Public",
   description: "Anyone on Stigmer",
-  confirmPrompt: "Make visible to all authenticated users?",
+  confirmDialog: {
+    title: "Make this public?",
+    description:
+      "Anyone signed in to Stigmer will be able to view and use this resource. You can return it to a narrower visibility at any time.",
+  },
   tone: "public",
 };
 
