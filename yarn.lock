@@ -1002,6 +1002,15 @@
   resolved "https://registry.npmjs.org/@sindresorhus/merge-streams/-/merge-streams-4.0.0.tgz"
   integrity sha512-tlqY9xq5ukxTUZBmoOp+m61cqwQD5pHJtFY3Mn8CA8ps6yghLH/Hw8UPdqg4OLmFW3IFlcXnQNmo/dh8HzXYIQ==
 
+"@stigmer/conformance@file:/Users/suresh/scm/github.com/stigmer/stigmer/test/conformance":
+  version "0.0.0"
+  resolved "file:test/conformance"
+  dependencies:
+    "@bufbuild/protobuf" "^2.0.0"
+    "@connectrpc/connect" "^2.0.0"
+    "@connectrpc/connect-node" "^2.0.0"
+    "@stigmer/protos" "*"
+
 "@stigmer/e2e@file:/Users/suresh/scm/github.com/stigmer/stigmer/test/e2e":
   version "0.0.0"
   resolved "file:test/e2e"
@@ -1621,6 +1630,13 @@
   version "17.0.45"
   resolved "https://registry.npmjs.org/@types/node/-/node-17.0.45.tgz"
   integrity sha512-w+tIMs3rq2afQdsPJlODhoUEKzFP1ayaoyl1CcnwtIlsVe7K7bA1NGm4s3PraqTLlXnbIN84zuBlxBWo1u9BLw==
+
+"@types/node@^22.0.0":
+  version "22.19.21"
+  resolved "https://registry.npmjs.org/@types/node/-/node-22.19.21.tgz"
+  integrity sha512-VMeFBSCKQKmm2swI2kW51SFusDqekC6q9trBCvJ/JliDchFSuoYYKN7yVNjPthP1HKZcx3U1gI/wTcEBjEFKTA==
+  dependencies:
+    undici-types "~6.21.0"
 
 "@types/node@^22.10.3":
   version "22.19.17"

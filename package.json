@@ -10,6 +10,7 @@
     "client-apps/web",
     "client-apps/desktop",
     "tools/eslint-plugin-stigmer",
+    "test/conformance",
     "test/e2e"
   ],
   "scripts": {

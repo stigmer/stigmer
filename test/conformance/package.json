@@ -1,0 +1,23 @@
+{
+  "name": "@stigmer/conformance",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Implementation-agnostic gRPC conformance suite for the Stigmer API contract.",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@stigmer/protos": "*",
+    "@bufbuild/protobuf": "^2.0.0",
+    "@connectrpc/connect": "^2.0.0",
+    "@connectrpc/connect-node": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.2.4"
+  }
+}

@@ -1,0 +1,35 @@
+// Connect-RPC client factory for the conformance suite.
+// Domain: conformance harness (transport + clients).
+//
+// The suite drives the server through the raw generated @stigmer/protos
+// controllers (no SDK) so it tests the proto contract directly, independent of
+// any client convenience layer that could drift from it.
+import { createClient, type Client, type Transport } from "@connectrpc/connect";
+import { createGrpcTransport } from "@connectrpc/connect-node";
+import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
+import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
+import { ProjectCommandController } from "@stigmer/protos/ai/stigmer/tenancy/project/v1/command_pb";
+import { ProjectQueryController } from "@stigmer/protos/ai/stigmer/tenancy/project/v1/query_pb";
+
+export interface ConformanceClients {
+  projectCommand: Client<typeof ProjectCommandController>;
+  projectQuery: Client<typeof ProjectQueryController>;
+  organizationCommand: Client<typeof OrganizationCommandController>;
+  organizationQuery: Client<typeof OrganizationQueryController>;
+}
+
+export function createTransport(baseUrl: string): Transport {
+  // Plain gRPC over h2c: createGrpcTransport always speaks HTTP/2, matching the
+  // OSS server, which serves native gRPC on a single insecure port (no auth in
+  // local mode).
+  return createGrpcTransport({ baseUrl });
+}
+
+export function makeClients(transport: Transport): ConformanceClients {
+  return {
+    projectCommand: createClient(ProjectCommandController, transport),
+    projectQuery: createClient(ProjectQueryController, transport),
+    organizationCommand: createClient(OrganizationCommandController, transport),
+    organizationQuery: createClient(OrganizationQueryController, transport),
+  };
+}
