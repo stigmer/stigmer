@@ -107,6 +107,14 @@ func WithAutoGrantOnOrg(v bool) PlatformClientOption {
 	return func(c *platformClientConfig) { c.autoGrantOnOrg = v }
 }
 
+// WithAutoGrantRole sets the org role granted to JIT-provisioned users. Only
+// meaningful together with WithAutoGrantOnOrg(true). Defaults to viewer
+// server-side; visibility tests grant member so the user satisfies the
+// organization:<org>#member userset that org-visibility tuples resolve against.
+func WithAutoGrantRole(role iamv1.IamRole) PlatformClientOption {
+	return func(c *platformClientConfig) { c.autoGrantRole = role }
+}
+
 // WithPlatformClientOrg overrides the default test org.
 func WithPlatformClientOrg(org string) PlatformClientOption {
 	return func(c *platformClientConfig) { c.org = org }

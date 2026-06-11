@@ -20,6 +20,8 @@ import (
 	invitationv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/invitation/v1"
 	oauthappv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/oauthapp/v1"
 	platformclientv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/platformclient/v1"
+	searchv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/search/v1"
+	organizationv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/organization/v1"
 	"google.golang.org/grpc"
 )
 
@@ -92,6 +94,13 @@ type Clients struct {
 	// IAM — OAuthApp
 	OAuthAppCommand oauthappv1.OAuthAppCommandControllerClient
 	OAuthAppQuery   oauthappv1.OAuthAppQueryControllerClient
+
+	// Tenancy — Organization
+	OrganizationCommand organizationv1.OrganizationCommandControllerClient
+	OrganizationQuery   organizationv1.OrganizationQueryControllerClient
+
+	// Cross-cutting search (list/discover) — the FGA-filtered listing surface
+	Search searchv1.SearchServiceClient
 }
 
 // NewClients creates all typed gRPC clients from a single connection.
@@ -148,5 +157,10 @@ func NewClients(conn grpc.ClientConnInterface) *Clients {
 
 		OAuthAppCommand: oauthappv1.NewOAuthAppCommandControllerClient(conn),
 		OAuthAppQuery:   oauthappv1.NewOAuthAppQueryControllerClient(conn),
+
+		OrganizationCommand: organizationv1.NewOrganizationCommandControllerClient(conn),
+		OrganizationQuery:   organizationv1.NewOrganizationQueryControllerClient(conn),
+
+		Search: searchv1.NewSearchServiceClient(conn),
 	}
 }
