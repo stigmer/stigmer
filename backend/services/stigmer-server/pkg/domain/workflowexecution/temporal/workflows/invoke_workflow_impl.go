@@ -86,37 +86,51 @@ func (w *InvokeWorkflowExecutionWorkflowImpl) Run(ctx workflow.Context, input *a
 }
 
 // startSignalHandlers launches goroutines to handle pause, resume, and relay
-// signals. Each goroutine loops forever, receiving from its signal channel and
-// forwarding to the TS child workflow via SignalExternalWorkflow.
+// signals, forwarding each to the TS child workflow via SignalExternalWorkflow.
 //
 // This mirrors the Java @SignalMethod handlers (pause, resume, relaySignal) on
 // InvokeWorkflowExecutionWorkflow, adapted for Go's channel-based signal pattern.
+//
+// Pause and resume are handled by a SINGLE goroutine driven by a Selector so
+// that their relays to the child can never be reordered. Both signals mutate the
+// same `paused` flag in the TS child, so a resume that overtakes its preceding
+// pause would leave the child blocked forever (the engine waits on
+// condition(() => !paused)) until the workflow times out. Using two independent
+// goroutines reorders them in practice: each relay is preceded by a
+// status-update local activity whose latency varies, so a fast resume relay can
+// be issued before a slow pause relay. The Selector serializes processing —
+// each signal's status update and relay complete before the next signal is read
+// — which preserves arrival order (pause is registered first, so it also wins
+// ties when both are buffered in the same workflow task).
+//
+// Determinism note: signal-receiver goroutines emit no Temporal commands until a
+// signal is actually processed, so for the common case (no pause/resume ever
+// received) this structure produces identical history to independent goroutines.
 func (w *InvokeWorkflowExecutionWorkflowImpl) startSignalHandlers(ctx workflow.Context, executionID string) {
-	// Pause signal handler
 	pauseCh := workflow.GetSignalChannel(ctx, SignalPause)
+	resumeCh := workflow.GetSignalChannel(ctx, SignalResume)
 	workflow.Go(ctx, func(gCtx workflow.Context) {
-		for {
+		selector := workflow.NewSelector(gCtx)
+		selector.AddReceive(pauseCh, func(c workflow.ReceiveChannel, _ bool) {
 			var reason string
-			pauseCh.Receive(gCtx, &reason)
+			c.Receive(gCtx, &reason)
 			logger := workflow.GetLogger(gCtx)
 			logger.Info("Pause signal received", "execution_id", executionID, "reason", reason)
 
 			w.updateStatusToPaused(gCtx, executionID)
 			w.relaySignalToChild(gCtx, executionID, SignalPause, reason)
-		}
-	})
-
-	// Resume signal handler
-	resumeCh := workflow.GetSignalChannel(ctx, SignalResume)
-	workflow.Go(ctx, func(gCtx workflow.Context) {
-		for {
+		})
+		selector.AddReceive(resumeCh, func(c workflow.ReceiveChannel, _ bool) {
 			var ignored string
-			resumeCh.Receive(gCtx, &ignored)
+			c.Receive(gCtx, &ignored)
 			logger := workflow.GetLogger(gCtx)
 			logger.Info("Resume signal received", "execution_id", executionID)
 
 			w.updateStatusToRunning(gCtx, executionID)
 			w.relaySignalToChild(gCtx, executionID, SignalResume, nil)
+		})
+		for {
+			selector.Select(gCtx)
 		}
 	})
 
