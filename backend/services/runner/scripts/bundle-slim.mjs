@@ -241,18 +241,25 @@ const patchThreadedVmPlugin = {
 };
 
 /**
- * ESM-output preamble. CJS dependencies converted by esbuild still emit bare
- * `require(...)` calls for externals, and several use __dirname; both need
- * real bindings in an ESM bundle. Also publishes the worker-thread entry path
- * for the threaded-vm patch above.
+ * CJS-output preamble.
+ *
+ * The bundle is emitted as CommonJS (see buildMainBundle) so the runner's
+ * deliberate dynamic-import load order survives bundling. In CJS, `require`,
+ * `__filename`, and `__dirname` are native — we must NOT redeclare them. Two
+ * things still need wiring:
+ *
+ *  - `import.meta.url`: empty under CJS, but the source uses it for
+ *    `createRequire(import.meta.url)` (http2-interceptor, worker). We map every
+ *    `import.meta.url` to this banner's file-URL of the bundle via esbuild
+ *    `define` (see buildMainBundle), so createRequire resolves builtins and
+ *    packages relative to main.js — exactly as the un-bundled dist does.
+ *  - the worker-thread entry path for the threaded-vm patch above, published on
+ *    globalThis using the native __dirname.
  */
-const ESM_BANNER = `
-import { createRequire as __stigmerCreateRequire } from "node:module";
-import { fileURLToPath as __stigmerFileURLToPath } from "node:url";
-import { dirname as __stigmerDirname, join as __stigmerJoin } from "node:path";
-const require = __stigmerCreateRequire(import.meta.url);
-const __filename = __stigmerFileURLToPath(import.meta.url);
-const __dirname = __stigmerDirname(__filename);
+const CJS_BANNER = `
+const { pathToFileURL: __stigmerPathToFileURL } = require("node:url");
+const { join: __stigmerJoin } = require("node:path");
+const __stigmerImportMetaUrl = __stigmerPathToFileURL(__filename).href;
 globalThis.__stigmerWorkflowWorkerThreadPath = () => __stigmerJoin(__dirname, "workflow-worker-thread.cjs");
 `;
 
@@ -263,7 +270,20 @@ async function buildMainBundle() {
     outfile: join(outDir, "main.js"),
     bundle: true,
     platform: "node",
-    format: "esm",
+    // CJS, NOT ESM — this is load-bearing (stigmer/stigmer#170). The runner
+    // installs its fetch + http2 interceptors and only THEN lazily loads
+    // @cursor/sdk and @connectrpc/connect-node (via dynamic import) so the
+    // interceptors are in place first. ESM bundling defeats this: esbuild
+    // hoists every external import (incl. node:http2, pulled in by connect-node)
+    // to the top of the file, where ESM evaluates them before any code runs —
+    // freezing the node:http2 namespace and capturing the original fetch before
+    // install. CJS preserves the source's lazy module-evaluation order, so the
+    // dynamic-import boundary keeps both interceptors correct. Keep main.js as
+    // the filename (the meta manifest drops "type":"module", so .js is CJS) to
+    // avoid rippling an entry-path rename through the desktop staging, docs, and
+    // the verify gate. The worker-thread bundle below is already CJS, so the
+    // slim build is now uniformly CommonJS.
+    format: "cjs",
     target: "node20",
     // Identifiers are kept so embedders' stack traces stay readable; the
     // external sourcemap recovers original file/line on our side.
@@ -272,12 +292,16 @@ async function buildMainBundle() {
     minifyIdentifiers: false,
     sourcemap: "linked",
     external: RUNTIME_EXTERNALS,
+    // `import.meta.url` is empty under CJS; the source uses it for
+    // createRequire(import.meta.url). Map it to the banner-computed file URL of
+    // the bundle so createRequire resolves builtins/packages from main.js.
+    define: { "import.meta.url": "__stigmerImportMetaUrl" },
     // The native bridge import dispatches to the per-platform package at
     // runtime instead of upstream's all-platforms-in-one package.
     alias: {
       "@temporalio/core-bridge": join(runnerRoot, "scripts", "core-bridge-shim.cjs"),
     },
-    banner: { js: ESM_BANNER },
+    banner: { js: CJS_BANNER },
     plugins: [stubTemporalBundlerPlugin, patchThreadedVmPlugin],
     metafile: true,
     logLevel: "warning",
@@ -374,8 +398,13 @@ function buildPlatformPackage(platform, destDir) {
 
 /**
  * The slim artifact's package.json. Doubles as the npm meta-package manifest
- * and the self-contained directory's module-type marker ("type": "module" is
- * load-bearing: main.js is an ESM bundle spawned directly via `node`).
+ * and the self-contained directory's module-type marker.
+ *
+ * NOTE: there is intentionally NO "type": "module". main.js is a CommonJS
+ * bundle (see buildMainBundle and stigmer/stigmer#170) — leaving the package
+ * untyped (default CommonJS) is what makes `node main.js` run it as CJS, which
+ * is what preserves the runner's interceptor load order. Adding "type":"module"
+ * here would reintroduce the bug.
  *
  * Dependency versions come from the installed tree (the lockfile's truth),
  * so the published artifact runs exactly what was tested here.
@@ -392,7 +421,6 @@ function metaPackageJson() {
     description:
       "Self-contained Stigmer runner build for embedding in desktop apps — the bundle-friendly @stigmer/runner",
     license: runnerPkg.license,
-    type: "module",
     engines: runnerPkg.engines,
     bin: { "stigmer-runner": "./main.js" },
     dependencies: {
@@ -485,12 +513,15 @@ function stageSelfContained(platform, isCrossBuild) {
 
 // ─── Step 5 (optional): publishable npm package directories ─────────────────
 
+// Files that ship in the published @stigmer/runner-slim tarball. Sourcemaps are
+// deliberately EXCLUDED here (~26 MB) — they are still generated into dist-slim/
+// for our own debugging, but embedders don't need them and they dominated the
+// install size (stigmer/stigmer#170). Identifiers stay un-minified, so embedder
+// stack traces remain readable without the maps.
 const META_PACKAGE_FILES = [
   "main.js",
-  "main.js.map",
   "workflow-bundle.js",
   "workflow-worker-thread.cjs",
-  "workflow-worker-thread.cjs.map",
   "mappings.wasm",
 ];
 
@@ -501,7 +532,16 @@ function emitNpmPackages() {
   const metaDir = join(pkgsDir, "runner-slim");
   mkdirSync(metaDir, { recursive: true });
   for (const file of META_PACKAGE_FILES) {
-    cpSync(join(outDir, file), join(metaDir, file));
+    const src = join(outDir, file);
+    const dest = join(metaDir, file);
+    if (file.endsWith(".js") || file.endsWith(".cjs")) {
+      // We don't ship the .map files, so strip the trailing sourceMappingURL
+      // pragma rather than leave the published bundle pointing at a 404.
+      const code = readFileSync(src, "utf8").replace(/\n\/\/# sourceMappingURL=\S*\s*$/, "\n");
+      writeFileSync(dest, code);
+    } else {
+      cpSync(src, dest);
+    }
   }
   writeFileSync(join(metaDir, "package.json"), JSON.stringify(metaPackageJson(), null, 2) + "\n");
   writeFileSync(

@@ -206,6 +206,17 @@ publish_npm() {
   # no rebuild is needed before emitting the packages.
   log "npm: building and publishing @stigmer/runner-slim@$NPM_VERSION"
   ( cd "$runner_dir" && node scripts/bundle-slim.mjs --emit-packages )
+
+  # Gate the dev channel. A broken slim build once reached @dev because nothing
+  # verified it here (stigmer/stigmer#170): the artifact only fails on the
+  # AUTHENTICATED boot path, which the prod CI gate exercises but this fast path
+  # never did. Run the Temporal-free slice (size budget + authenticated http2
+  # boot guard) before publishing — it needs no Temporal server, so it fits the
+  # local dev loop, yet still catches the interceptor-load-order regression.
+  log "npm: verifying slim artifact (size + authenticated boot guard)"
+  ( cd "$runner_dir" && node scripts/verify-slim-artifact.mjs --no-temporal ) \
+    || die "slim artifact failed verification; refusing to publish @stigmer/runner-slim@$NPM_VERSION"
+
   local slim_pkgs="$runner_dir/dist-slim-pkgs"
   # Platform packages first so the meta package's optionalDependencies resolve
   # the moment it lands.

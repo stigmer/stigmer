@@ -15,18 +15,27 @@
  *      stays under SLIM_SIZE_BUDGET_MB (default 120). The whole point of
  *      this artifact is being small (stigmer/stigmer#170); a dependency
  *      creeping past the budget should fail the release, not ship silently.
- *   2. Static mode — boots, creates a Worker (native bridge + pre-built
+ *   2. Authed boot guard — boots the AUTHENTICATED path (token + proxy), the
+ *      only path that arms the fetch/http2 interceptors and runs
+ *      assertHttp2ConnectPatched(). This is the regression lock for #170's
+ *      second failure: a bundle that flattened the dynamic-import load order
+ *      (e.g. an ESM esbuild bundle hoisting node:http2) aborts here. Needs no
+ *      Temporal — the guard runs before any network I/O.
+ *   3. Static mode — boots, creates a Worker (native bridge + pre-built
  *      workflow bundle + sandbox worker thread), reaches RUNNING, and shuts
  *      down gracefully on SIGINT.
- *   3. Manager mode — full IPC lifecycle: ready → addSession → sessionAdded
- *      → shutdown → shutdownComplete, exit 0.
+ *   4. Manager mode — full IPC lifecycle: ready → addSession → sessionAdded
+ *      → shutdown → shutdownComplete, exit 0 — run both tokenless and on the
+ *      authenticated path (so the lifecycle is proven with the interceptors armed).
  *
- * Requires a reachable Temporal server (default localhost:7233, override
- * with TEMPORAL_SERVICE_ADDRESS), e.g.:
+ * Checks 1–2 need no Temporal; checks 3–4 require a reachable Temporal server
+ * (default localhost:7233, override with TEMPORAL_SERVICE_ADDRESS), e.g.:
  *
  *   temporal server start-dev --headless
  *
- * Usage: node scripts/verify-slim-artifact.mjs
+ * Usage:
+ *   node scripts/verify-slim-artifact.mjs               # full suite (needs Temporal)
+ *   node scripts/verify-slim-artifact.mjs --no-temporal # size + authed guard only
  */
 
 import { spawn } from "node:child_process";
@@ -39,7 +48,22 @@ const distSlimDir = fileURLToPath(new URL("../dist-slim", import.meta.url));
 const temporalAddress = process.env.TEMPORAL_SERVICE_ADDRESS ?? "localhost:7233";
 const sizeBudgetMb = Number(process.env.SLIM_SIZE_BUDGET_MB ?? 120);
 
+// When set, run only the checks that need no Temporal server: the size budget
+// and the authenticated boot guard. This is the slice the dev-publish fast path
+// (publish-dev-local.sh) runs, so a slim build can never reach the dev channel
+// without at least proving its interceptor load order survived bundling.
+const skipTemporalBoots =
+  process.argv.includes("--no-temporal") || process.env.SLIM_VERIFY_SKIP_TEMPORAL === "1";
+
 const BOOT_TIMEOUT_MS = 90_000;
+
+// Dummy credentials for the authenticated-path checks. They never authenticate
+// anything: their sole job is to make installHttp2Interceptor()/installFetch
+// arm (both require a token + proxy), so the node:http2 ESM-facade boot guard
+// actually runs. The proxy host is deliberately unroutable — boot completes
+// long before any proxy traffic, so it is never dialed.
+const DUMMY_TOKEN = "verify-slim-dummy-token";
+const DUMMY_PROXY_ENDPOINT = "https://proxy.invalid";
 
 function fail(message) {
   console.error(`verify-slim-artifact: FAIL — ${message}`);
@@ -71,7 +95,7 @@ if (sizeMb > sizeBudgetMb) {
       "A dependency likely grew or escaped the bundle — inspect dist-slim/meta.json before raising the budget.",
   );
 }
-console.log(`[1/3] size budget OK: ${sizeMb.toFixed(1)} MB <= ${sizeBudgetMb} MB (sourcemaps excluded)`);
+console.log(`[size]   OK: ${sizeMb.toFixed(1)} MB <= ${sizeBudgetMb} MB (sourcemaps excluded)`);
 
 // ─── Isolated copy ───────────────────────────────────────────────────────────
 
@@ -91,6 +115,82 @@ function bootRunner(extraEnv) {
     cwd: isolatedDir,
     env: { ...baseEnv, ...extraEnv },
     stdio: ["pipe", "pipe", "pipe"],
+  });
+}
+
+// ─── Authenticated boot guard (no Temporal required) ────────────────────────
+
+/**
+ * The regression lock for stigmer/stigmer#170's second failure.
+ *
+ * Boots manager mode on the authenticated path — token + proxy set — which is
+ * the ONLY path that arms the fetch/http2 interceptors and therefore the only
+ * path that runs assertHttp2ConnectPatched(). A bundle that flattened the
+ * dynamic-import load order (e.g. an ESM esbuild bundle that hoists the
+ * node:http2 import) aborts here with "ESM facade is unpatched"; a bundle that
+ * preserved it sails past the guard.
+ *
+ * This needs no Temporal server: an explicit (unroutable) TEMPORAL_SERVICE_ADDRESS
+ * makes bootstrap skip control-plane discovery, and the guard runs before any
+ * network I/O. Success is the deterministic post-guard log line emitted when a
+ * proxy is configured but no runner token was minted (runner-manager.ts); we
+ * detect it and stop, never reaching the Temporal connection attempt.
+ */
+async function verifyAuthedGuard() {
+  return new Promise((resolve, reject) => {
+    const proc = bootRunner({
+      STIGMER_RUNNER_MODE: "manager",
+      STIGMER_BACKEND_ENDPOINT: "http://localhost:7234",
+      STIGMER_TOKEN: DUMMY_TOKEN,
+      STIGMER_PROXY_ENDPOINT: DUMMY_PROXY_ENDPOINT,
+      // Explicit + unroutable: skips bootstrap discovery and is never dialed
+      // because we resolve before the NativeConnection attempt.
+      TEMPORAL_SERVICE_ADDRESS: "127.0.0.1:65000",
+    });
+
+    let output = "";
+    let settled = false;
+    const done = (fn, arg) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      proc.kill("SIGKILL");
+      fn(arg);
+    };
+
+    const timer = setTimeout(
+      () => done(reject, new Error(`authed guard did not pass within ${BOOT_TIMEOUT_MS}ms.\n${output.slice(-2000)}`)),
+      BOOT_TIMEOUT_MS,
+    );
+
+    const onData = (chunk) => {
+      output += chunk;
+      if (/ESM facade is unpatched/.test(output)) {
+        done(
+          reject,
+          new Error(
+            "authed boot guard FAILED: the bundle defeated the http2 interceptor load order " +
+              "(node:http2 ESM facade unpatched before install). This is stigmer/stigmer#170 — " +
+              "the slim bundle must preserve the dynamic-import load order (CJS output).\n" +
+              output.slice(-2000),
+          ),
+        );
+        return;
+      }
+      // Post-guard signal: bootstrap resolved and we reached the proxy-token
+      // reconciliation, which only runs after assertHttp2ConnectPatched passed.
+      if (/no runner token was minted|Adopted minted proxy token/.test(output)) {
+        done(resolve);
+      }
+    };
+    proc.stdout.on("data", onData);
+    proc.stderr.on("data", onData);
+
+    proc.on("exit", (code) => {
+      // Exit before either signal means it died at init (likely the guard, or a
+      // missing dependency) — surface the tail so the cause is visible.
+      done(reject, new Error(`authed guard process exited (code ${code}) before passing the guard.\n${output.slice(-2000)}`));
+    });
   });
 }
 
@@ -132,11 +232,12 @@ async function verifyStaticMode() {
 
 // ─── 3. Manager mode ─────────────────────────────────────────────────────────
 
-async function verifyManagerMode() {
+async function verifyManagerMode(extraEnv = {}) {
   return new Promise((resolve, reject) => {
     const proc = bootRunner({
       STIGMER_RUNNER_MODE: "manager",
       STIGMER_BACKEND_ENDPOINT: "http://localhost:7234",
+      ...extraEnv,
     });
     let stdout = "";
     let stderr = "";
@@ -203,11 +304,30 @@ async function verifyManagerMode() {
 }
 
 try {
-  await verifyStaticMode();
-  console.log("[2/3] static mode OK: worker reached RUNNING and shut down gracefully");
-  await verifyManagerMode();
-  console.log("[3/3] manager mode OK: ready → addSession → shutdown lifecycle, exit 0");
-  console.log("verify-slim-artifact: PASS");
+  // Runs everywhere (no Temporal needed): proves the authenticated boot path —
+  // the one every embedder runs and the one that regressed in #170 — survives
+  // bundling. This is the check the dev-publish fast path relies on.
+  await verifyAuthedGuard();
+  console.log("[guard]  OK: authenticated boot passed assertHttp2ConnectPatched (interceptor load order intact)");
+
+  if (skipTemporalBoots) {
+    console.log("verify-slim-artifact: PASS (size + authed guard; Temporal boots skipped via --no-temporal)");
+  } else {
+    await verifyStaticMode();
+    console.log("[static] OK: worker reached RUNNING and shut down gracefully");
+    await verifyManagerMode();
+    console.log("[mgr]    OK: ready → addSession → shutdown lifecycle, exit 0");
+    // Same lifecycle, but on the authenticated path (token + proxy). The
+    // interceptors arm and the http2 boot guard runs, yet the full
+    // ready→addSession→shutdown lifecycle still completes against Temporal —
+    // proving the auth path the verify gate previously never exercised (#170).
+    await verifyManagerMode({
+      STIGMER_TOKEN: DUMMY_TOKEN,
+      STIGMER_PROXY_ENDPOINT: DUMMY_PROXY_ENDPOINT,
+    });
+    console.log("[mgr+auth] OK: authenticated manager lifecycle booted end-to-end against Temporal");
+    console.log("verify-slim-artifact: PASS");
+  }
 } catch (err) {
   fail(err.message);
 }
