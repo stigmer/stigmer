@@ -385,6 +385,20 @@ func (s *ArchiveCurrentSkillStep) Name() string {
 func (s *ArchiveCurrentSkillStep) Execute(ctx *pipeline.RequestContext[*skillv1.PushSkillRequest]) error {
 	skill := ctx.Get(SkillKey).(*skillv1.Skill)
 
+	// Content-addressed change gate: a skill version is the immutable SHA-256 of
+	// its artifact, so re-pushing identical content must NOT append a duplicate
+	// audit row (the inverse of the "only one version" bug — duplicate timeline
+	// entries for the same content). Mirrors the workflow change gate and the
+	// cloud SkillPushHandler. New skills (no existing) always archive.
+	if existing, ok := ctx.Get(ExistingSkillKey).(*skillv1.Skill); ok && existing != nil &&
+		existing.Status != nil && existing.Status.VersionHash == skill.Status.VersionHash {
+		log.Info().
+			Str("skill_id", skill.Metadata.Id).
+			Str("version_hash", skill.Status.VersionHash).
+			Msg("ArchiveCurrentSkill: content unchanged, skipping version archival")
+		return nil
+	}
+
 	// Archive the current skill (with all new data populated)
 	if err := s.archiveSkill(ctx.Context(), skill); err != nil {
 		log.Warn().Err(err).

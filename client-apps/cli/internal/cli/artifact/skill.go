@@ -17,6 +17,7 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/ignore"
 	stigmer "github.com/stigmer/stigmer/sdk/go"
 	skillv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/skill/v1"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
 )
 
 const (
@@ -103,6 +104,33 @@ type SkillArtifactResult struct {
 	Tag          string
 	Message      string
 	ArtifactSize int64
+	// IsNewResource is true when this push created the skill (first version).
+	IsNewResource bool
+	// VersionChanged is true when the pushed content produced a new version
+	// (false on an idempotent re-push of identical content).
+	VersionChanged bool
+}
+
+// classifyPushVersion derives created/changed/unchanged from the response's
+// version lineage. The backend sets metadata.version.id to the new content hash
+// and previous_version_id to the prior head hash, so:
+//   - previous_version_id == ""        → brand-new skill (first version)
+//   - id == previous_version_id        → identical content (no new version)
+//   - otherwise                        → content changed (new version)
+//
+// This is uniform across the cloud and OSS backends, which both populate the
+// version lineage the same way.
+func classifyPushVersion(version *apiresource.ApiResourceMetadataVersion) (isNew, changed bool) {
+	if version == nil {
+		return false, true
+	}
+	if version.GetPreviousVersionId() == "" {
+		return true, true
+	}
+	if version.GetId() == version.GetPreviousVersionId() {
+		return false, false
+	}
+	return false, true
 }
 
 // SkillFromGitOptions contains options for pushing a skill from a git repository
@@ -232,15 +260,18 @@ func PushSkill(opts *SkillArtifactOptions) (*SkillArtifactResult, error) {
 		}
 	}
 
+	isNew, changed := classifyPushVersion(response.GetMetadata().GetVersion())
 	return &SkillArtifactResult{
-		ID:           response.Metadata.Id,
-		SkillName:    skillName,
-		Slug:         response.Metadata.Slug,
-		VersionHash:  response.Status.VersionHash,
-		StorageKey:   response.Status.ArtifactStorageKey,
-		Tag:          response.Spec.Tag,
-		Message:      opts.Message,
-		ArtifactSize: stats.TotalSize,
+		ID:             response.Metadata.Id,
+		SkillName:      skillName,
+		Slug:           response.Metadata.Slug,
+		VersionHash:    response.Status.VersionHash,
+		StorageKey:     response.Status.ArtifactStorageKey,
+		Tag:            response.Spec.Tag,
+		Message:        opts.Message,
+		ArtifactSize:   stats.TotalSize,
+		IsNewResource:  isNew,
+		VersionChanged: changed,
 	}, nil
 }
 
@@ -359,15 +390,18 @@ func PushSkillFromGit(opts *SkillFromGitOptions) (*SkillArtifactResult, error) {
 		}
 	}
 
+	isNew, changed := classifyPushVersion(response.GetMetadata().GetVersion())
 	return &SkillArtifactResult{
-		ID:           response.Metadata.Id,
-		SkillName:    skillName,
-		Slug:         response.Metadata.Slug,
-		VersionHash:  response.Status.VersionHash,
-		StorageKey:   response.Status.ArtifactStorageKey,
-		Tag:          response.Spec.Tag,
-		Message:      opts.Message,
-		ArtifactSize: stats.TotalSize,
+		ID:             response.Metadata.Id,
+		SkillName:      skillName,
+		Slug:           response.Metadata.Slug,
+		VersionHash:    response.Status.VersionHash,
+		StorageKey:     response.Status.ArtifactStorageKey,
+		Tag:            response.Spec.Tag,
+		Message:        opts.Message,
+		ArtifactSize:   stats.TotalSize,
+		IsNewResource:  isNew,
+		VersionChanged: changed,
 	}, nil
 }
 

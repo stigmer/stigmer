@@ -142,7 +142,14 @@ func displayDryRunSamples(verbose bool, analysis *artifact.DryRunAnalysis) {
 // DisplayPushResult displays the result of a successful skill push.
 func DisplayPushResult(result *artifact.SkillArtifactResult) {
 	fmt.Println()
-	climsg.Success("Skill pushed successfully!")
+	switch {
+	case result.IsNewResource:
+		climsg.Success("Skill created — new version %s", shortHash(result.VersionHash))
+	case result.VersionChanged:
+		climsg.Success("New version pushed — %s", shortHash(result.VersionHash))
+	default:
+		climsg.Success("No content changes — version unchanged (%s)", shortHash(result.VersionHash))
+	}
 	fmt.Println()
 	climsg.Info("Skill Details:")
 	climsg.Info("  Name:         %s", result.SkillName)
@@ -159,6 +166,17 @@ func DisplayPushResult(result *artifact.SkillArtifactResult) {
 	climsg.Info("  - Reference this skill in your agent code")
 	climsg.Info("  - Update and re-push: edit files and run 'stigmer push skill' again")
 	fmt.Println()
+}
+
+// shortHash renders a sha256 hash as a friendly, truncated identifier.
+func shortHash(hash string) string {
+	if hash == "" {
+		return "sha256:(none)"
+	}
+	if len(hash) > 12 {
+		return "sha256:" + hash[:12]
+	}
+	return "sha256:" + hash
 }
 
 // formatBytes formats a byte count into a human-readable string.

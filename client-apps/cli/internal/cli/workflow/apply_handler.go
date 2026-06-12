@@ -84,10 +84,17 @@ func (h *applyHandler) BuildApplyResult(msg proto.Message, created bool) *cliout
 		action = "created"
 	}
 	out := clioutput.Success("Workflow %s successfully", action)
-	out.AddSection("Resource Details").
+	details := out.AddSection("Resource Details").
 		Field("ID", wf.Metadata.Id).
 		Field("Name", wf.Metadata.Name).
 		Field("Slug", wf.Metadata.Slug)
+	if h := wf.GetStatus().GetVersionHash(); h != "" {
+		short := h
+		if len(short) > 12 {
+			short = short[:12]
+		}
+		details.Field("Version", "sha256:"+short)
+	}
 	out.Hintf("View details: stigmer get workflow %s", wf.Metadata.Slug)
 	out.Hintf("Run workflow: stigmer run workflow %s", wf.Metadata.Slug)
 	out.Hintf("Delete:       stigmer delete workflow %s", wf.Metadata.Slug)
