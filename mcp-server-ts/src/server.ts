@@ -10,7 +10,7 @@
 // per transport rather than sharing a single instance across stdio + HTTP.
 
 import { createServer as createHttpServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -19,8 +19,19 @@ import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 
 import type { Config } from "./config";
+import { registerAgentResources } from "./domains/agents/resources";
 import { registerAgentTools } from "./domains/agents/tools";
 import type { BackendTarget } from "./domains/client";
+import { registerMcpServerResources } from "./domains/mcpservers/resources";
+import { registerMcpServerTools } from "./domains/mcpservers/tools";
+import { registerSearchTools } from "./domains/search/tools";
+import { registerSkillResources } from "./domains/skills/resources";
+import { registerSkillTools } from "./domains/skills/tools";
+import { registerWorkflowExecutionTools } from "./domains/workflowexecutions/tools";
+import { registerTaskKindTools } from "./domains/workflows/taskkinds";
+import { registerWorkflowResources } from "./domains/workflows/resources";
+import { registerWorkflowTools } from "./domains/workflows/tools";
+import { registerValidateWorkflowYamlTool } from "./domains/workflows/validate";
 import { log } from "./logger";
 
 /**
@@ -33,23 +44,54 @@ export const SERVER_VERSION = process.env.STIGMER_MCP_VERSION || "dev";
 const HTTP_SHUTDOWN_GRACE_MS = 5_000;
 
 /**
+ * Well-known location (RFC 9728 §3.1) of the OAuth 2.0 Protected Resource
+ * Metadata document. Served only when OAuth discovery is enabled.
+ */
+const PROTECTED_RESOURCE_METADATA_PATH = "/.well-known/oauth-protected-resource";
+
+/**
  * Build a configured MCP server with every Stigmer tool registered. The backend
  * target (address + startup credential) is captured in each handler's closure.
  */
 export function createServer(target: BackendTarget): McpServer {
   const server = new McpServer({ name: "mcp-server-stigmer", version: SERVER_VERSION });
   registerTools(server, target);
+  registerResources(server, target);
   return server;
 }
 
 /**
- * Wire up every domain's tools. The agents domain is the canonical pattern; the
- * remaining domains are filled in T02. The count is logged for operator
- * visibility, matching the Go server's startup log.
+ * Wire up every domain's tools. Each domain returns the names it registered so
+ * the startup log's count and roster cannot drift from what is actually wired,
+ * matching the Go server's startup log shape.
  */
 function registerTools(server: McpServer, target: BackendTarget): void {
-  registerAgentTools(server, target);
-  log.info("tools registered", { count: 1, tools: ["get_agent"] });
+  const tools = [
+    ...registerSearchTools(server, target),
+    ...registerAgentTools(server, target),
+    ...registerMcpServerTools(server, target),
+    ...registerSkillTools(server, target),
+    ...registerWorkflowTools(server, target),
+    ...registerValidateWorkflowYamlTool(server, target),
+    ...registerTaskKindTools(server, target),
+    ...registerWorkflowExecutionTools(server, target),
+  ];
+  log.info("tools registered", { count: tools.length, tools });
+}
+
+/**
+ * Wire up every domain's resource templates (the discovery-to-read surface).
+ * Like {@link registerTools}, each domain returns the names it registered so the
+ * startup log stays accurate.
+ */
+function registerResources(server: McpServer, target: BackendTarget): void {
+  const resources = [
+    ...registerAgentResources(server, target),
+    ...registerMcpServerResources(server, target),
+    ...registerSkillResources(server, target),
+    ...registerWorkflowResources(server, target),
+  ];
+  log.info("resources registered", { count: resources.length, resources });
 }
 
 /**
@@ -96,14 +138,17 @@ export type ServerFactory = () => McpServer;
  * of `sessionId → transport`, each built from `makeServer` on `initialize`. The
  * per-request Bearer passthrough is orthogonal and applies on every request.
  *
- * This is the minimal transport that proves the model (Spike A). Full hardening
- * — request-id logging, OAuth (RFC 9728) discovery, DNS-rebinding allow-lists,
- * and `both`-mode polish — lands in T02.
+ * Each request is wrapped in access logging (16-hex request id, method, path,
+ * status, duration) and, when OAuth discovery is enabled, RFC 9728 metadata is
+ * served and a WWW-Authenticate challenge is attached to token-less requests.
+ * DNS-rebinding allow-lists are intentionally out of parity scope (the Go server
+ * has none).
  */
 export async function serveHttp(makeServer: ServerFactory, cfg: Config, signal: AbortSignal): Promise<void> {
   const sessions = new Map<string, StreamableHTTPServerTransport>();
 
   const httpServer = createHttpServer((req, res) => {
+    logAccess(req, res);
     void routeRequest(req, res, sessions, makeServer, cfg);
   });
 
@@ -179,12 +224,23 @@ async function routeRequest(
     return;
   }
 
+  // RFC 9728 Protected Resource Metadata — public, unauthenticated, and served
+  // only when OAuth discovery is enabled. CORS-open so browser-based clients
+  // (e.g. Claude Desktop's connector GUI) can discover the authorization server.
+  if (cfg.oauth.enabled && requestPath(req) === PROTECTED_RESOURCE_METADATA_PATH) {
+    serveProtectedResourceMetadata(req, res, cfg);
+    return;
+  }
+
   // Non-validating Bearer passthrough, applied to EVERY request so each call's
   // gRPC client uses that request's own credential.
   if (cfg.httpAuthEnabled) {
     const token = extractBearerToken(req);
     if (token === "") {
-      res.writeHead(401, { "Content-Type": "text/plain" });
+      const headers: Record<string, string> = { "Content-Type": "text/plain" };
+      // RFC 9728 §5.1: point OAuth-capable clients at the metadata document.
+      if (cfg.oauth.enabled) headers["WWW-Authenticate"] = bearerChallenge(cfg);
+      res.writeHead(401, headers);
       res.end("missing or malformed Authorization: Bearer header");
       return;
     }
@@ -257,6 +313,76 @@ function readJsonBody(req: IncomingMessage): Promise<unknown> {
     });
     req.on("error", reject);
   });
+}
+
+/** Request path without the query string (mirrors Go's r.URL.Path). */
+function requestPath(req: IncomingMessage): string {
+  const url = req.url ?? "/";
+  const q = url.indexOf("?");
+  return q === -1 ? url : url.slice(0, q);
+}
+
+/**
+ * Attach access logging to a request: on completion, log a 16-hex request id,
+ * method, path, status, and duration. Mirrors Go's requestLogger middleware.
+ */
+function logAccess(req: IncomingMessage, res: ServerResponse): void {
+  const start = Date.now();
+  const requestId = randomBytes(8).toString("hex");
+  res.on("finish", () => {
+    log.info("http request", {
+      request_id: requestId,
+      method: req.method,
+      path: requestPath(req),
+      status: res.statusCode,
+      duration_ms: Date.now() - start,
+    });
+  });
+}
+
+/**
+ * Serve the OAuth 2.0 Protected Resource Metadata document (RFC 9728), answering
+ * the CORS preflight (OPTIONS) and the GET. Mirrors the Go SDK's
+ * ProtectedResourceMetadataHandler output shape.
+ */
+function serveProtectedResourceMetadata(
+  req: IncomingMessage,
+  res: ServerResponse,
+  cfg: Config,
+): void {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  if (req.method === "OPTIONS") {
+    res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "*");
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
+  const metadata: Record<string, unknown> = {
+    resource: cfg.oauth.resource,
+    authorization_servers: cfg.oauth.authorizationServers,
+    bearer_methods_supported: ["header"],
+    resource_name: "Stigmer MCP Server",
+  };
+  if (cfg.oauth.scopesSupported.length > 0) {
+    metadata.scopes_supported = cfg.oauth.scopesSupported;
+  }
+  res.writeHead(200, { "Content-Type": "application/json" });
+  res.end(JSON.stringify(metadata));
+}
+
+/**
+ * Build the WWW-Authenticate challenge pointing OAuth clients at this server's
+ * protected-resource-metadata document (RFC 9728 §5.1). Mirrors Go bearerChallenge.
+ */
+function bearerChallenge(cfg: Config): string {
+  const metadataURL = cfg.oauth.resource.replace(/\/+$/, "") + PROTECTED_RESOURCE_METADATA_PATH;
+  const params = [`realm="stigmer"`, `resource_metadata="${metadataURL}"`];
+  if (cfg.oauth.scopesSupported.length > 0) {
+    params.push(`scope="${cfg.oauth.scopesSupported.join(" ")}"`);
+  }
+  return "Bearer " + params.join(", ");
 }
 
 /** Parse the "Authorization: Bearer <token>" header; "" when absent/malformed. */

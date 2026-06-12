@@ -48,4 +48,15 @@ describe("rpcError", () => {
   it("wraps non-gRPC/unknown errors", () => {
     expect(rpcError(new Error("boom"), resource).message).toBe("unexpected error: boom");
   });
+
+  it("maps every gRPC code to a non-empty message without throwing", () => {
+    // Completeness guard: the default branch must catch any code the explicit
+    // switch does not handle, so no gRPC status can ever surface a blank or
+    // thrown error to the client.
+    const codes = Object.values(Code).filter((c): c is Code => typeof c === "number");
+    for (const code of codes) {
+      const msg = rpcError(new ConnectError("detail", code), resource).message;
+      expect(msg, `code ${Code[code]}`).toBeTruthy();
+    }
+  });
 });

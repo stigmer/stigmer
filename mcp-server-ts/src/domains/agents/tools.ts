@@ -9,12 +9,15 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
+import { AgentInputShape } from "../../gen/agent";
 import { resolveToken, type BackendTarget } from "../client";
 import { textOrError } from "../toolresult";
+import { applyAgent } from "./apply";
+import { deleteAgent } from "./delete";
 import { fetchAgent } from "./fetch";
 
-/** Register every Agent-domain tool on the server. */
-export function registerAgentTools(server: McpServer, target: BackendTarget): void {
+/** Register every Agent-domain tool; returns the registered tool names. */
+export function registerAgentTools(server: McpServer, target: BackendTarget): string[] {
   server.registerTool(
     "get_agent",
     {
@@ -32,4 +35,34 @@ export function registerAgentTools(server: McpServer, target: BackendTarget): vo
         fetchAgent(target.serverAddress, resolveToken(extra, target.apiKey), args.org, args.slug),
       ),
   );
+
+  server.registerTool(
+    "apply_agent",
+    {
+      description:
+        "Create or update a Stigmer agent (idempotent). Provide identity fields (name, org) and agent configuration (instructions, skills, MCP servers, etc.).",
+      inputSchema: AgentInputShape,
+    },
+    (args, extra) =>
+      textOrError(() => applyAgent(target.serverAddress, resolveToken(extra, target.apiKey), args)),
+  );
+
+  server.registerTool(
+    "delete_agent",
+    {
+      description: "Delete a Stigmer agent by its org and slug. Returns the deleted agent.",
+      inputSchema: {
+        org: z.string().describe("Organization slug that owns the agent (e.g. stigmer)."),
+        slug: z
+          .string()
+          .describe("Agent slug — the unique identifier within the org (e.g. code-reviewer)."),
+      },
+    },
+    (args, extra) =>
+      textOrError(() =>
+        deleteAgent(target.serverAddress, resolveToken(extra, target.apiKey), args.org, args.slug),
+      ),
+  );
+
+  return ["get_agent", "apply_agent", "delete_agent"];
 }

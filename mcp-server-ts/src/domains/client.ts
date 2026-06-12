@@ -62,10 +62,26 @@ export function transportForToken(serverAddress: string, token: string): Transpo
 }
 
 /**
- * Open a short-lived raw controller client and invoke `fn` with it and the
+ * Open a short-lived authenticated transport and invoke `fn` with it and the
  * standard call options (RPC timeout pre-applied). Mirrors Go's WithConnection:
- * the single place that owns transport construction and the timeout so call
- * sites stay a one-liner.
+ * the single place that owns transport construction and the timeout. Use this
+ * when an operation needs more than one controller over the SAME connection —
+ * e.g. the two-step deletes that resolve via the Query controller and delete via
+ * the Command controller.
+ */
+export async function withTransport<T>(
+  serverAddress: string,
+  token: string,
+  fn: (transport: Transport, callOptions: CallOptions) => Promise<T>,
+): Promise<T> {
+  return fn(transportForToken(serverAddress, token), { timeoutMs: DEFAULT_RPC_TIMEOUT_MS });
+}
+
+/**
+ * Open a short-lived raw controller client and invoke `fn` with it and the
+ * standard call options. The single-controller convenience over
+ * {@link withTransport}; call sites that only touch one service stay a
+ * one-liner.
  */
 export async function withClient<S extends DescService, T>(
   service: S,
@@ -73,6 +89,7 @@ export async function withClient<S extends DescService, T>(
   token: string,
   fn: (client: Client<S>, callOptions: CallOptions) => Promise<T>,
 ): Promise<T> {
-  const client = createClient(service, transportForToken(serverAddress, token));
-  return fn(client, { timeoutMs: DEFAULT_RPC_TIMEOUT_MS });
+  return withTransport(serverAddress, token, (transport, callOptions) =>
+    fn(createClient(service, transport), callOptions),
+  );
 }

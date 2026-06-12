@@ -18,6 +18,7 @@ type mcpInputType struct {
 	isReference bool
 	refKindVal  int32
 	protoType   string // fully-qualified proto type
+	protoFile   string // source .proto file (used by the TS emitter for _pb schema imports)
 	fields      []*mcpInputField
 }
 
@@ -55,6 +56,18 @@ type mcpGen struct {
 // GenerateMCP generates MCP input types and ToProto conversion code from the
 // loaded schemas. It expects exactly one resource spec loaded in resourceSpecs.
 func (g *Generator) GenerateMCP() error {
+	m, err := g.buildMcpGen()
+	if err != nil {
+		return err
+	}
+	return m.generateFile()
+}
+
+// buildMcpGen promotes/validates the loaded schemas into a single resource spec
+// and constructs the fully-resolved mcpGen model (the same intermediate the Go
+// and TS emitters both consume, so the two outputs cannot drift). Extracted from
+// GenerateMCP so the TS emitter reuses the identical model.
+func (g *Generator) buildMcpGen() (*mcpGen, error) {
 	// When --schema-dir points directly at a resource directory (e.g.,
 	// schemas/agentic/agent/), the loader categorises the spec JSON as a
 	// taskConfig. Promote it so the rest of the method works uniformly.
@@ -81,14 +94,14 @@ func (g *Generator) GenerateMCP() error {
 	}
 
 	if len(g.resourceSpecs) == 0 {
-		return fmt.Errorf("no resource spec found; expected one *Spec schema in %s", g.schemaDir)
+		return nil, fmt.Errorf("no resource spec found; expected one *Spec schema in %s", g.schemaDir)
 	}
 	if len(g.resourceSpecs) > 1 {
 		names := make([]string, len(g.resourceSpecs))
 		for i, s := range g.resourceSpecs {
 			names[i] = s.Name
 		}
-		return fmt.Errorf("expected one resource spec, found %d: %v", len(g.resourceSpecs), names)
+		return nil, fmt.Errorf("expected one resource spec, found %d: %v", len(g.resourceSpecs), names)
 	}
 
 	spec := g.resourceSpecs[0]
@@ -118,7 +131,7 @@ func (g *Generator) GenerateMCP() error {
 
 	m.collectInputTypes()
 
-	return m.generateFile()
+	return m, nil
 }
 
 // --------------------------------------------------------------------
@@ -140,6 +153,7 @@ func (m *mcpGen) collectInputTypes() {
 		description: m.spec.Description,
 		isTopLevel:  true,
 		protoType:   m.spec.ProtoType,
+		protoFile:   m.spec.ProtoFile,
 	}
 
 	for _, f := range m.spec.Fields {
@@ -293,6 +307,7 @@ func (m *mcpGen) ensureRefInputType(inputName string, kindVal int32) {
 		isReference: true,
 		refKindVal:  kindVal,
 		protoType:   refSchema.ProtoType,
+		protoFile:   refSchema.ProtoFile,
 	}
 
 	for _, f := range refSchema.Fields {
@@ -324,6 +339,7 @@ func (m *mcpGen) ensureMessageInputType(messageName, inputName string) {
 	it := &mcpInputType{
 		name:      inputName,
 		protoType: ts.ProtoType,
+		protoFile: ts.ProtoFile,
 	}
 
 	if hasExpansion {
@@ -395,6 +411,7 @@ func (m *mcpGen) ensureConfigInputType(cfg *TaskConfigSchema, inputName string) 
 		name:        inputName,
 		description: sanitizeDescription(cfg.Description),
 		protoType:   cfg.ProtoType,
+		protoFile:   cfg.ProtoFile,
 	}
 
 	for _, f := range cfg.Fields {

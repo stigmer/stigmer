@@ -2130,6 +2130,11 @@ func main() {
 				fmt.Printf("Error in SDK client generation: %v\n", err)
 				os.Exit(1)
 			}
+		case "mcp-ts":
+			if err := runMCPTSGeneration(*schemaDir, *outputDir); err != nil {
+				fmt.Printf("Error in TypeScript MCP generation: %v\n", err)
+				os.Exit(1)
+			}
 		case "sdk-client-ts":
 			if err := runSDKClientTSGeneration(*schemaDir, *outputDir); err != nil {
 				fmt.Printf("Error in TypeScript SDK client generation: %v\n", err)

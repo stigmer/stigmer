@@ -60,6 +60,7 @@
     "@modelcontextprotocol/sdk": "^1.26.0",
     "@stigmer/protos": "*",
     "@stigmer/sdk": "*",
+    "yaml": "^2.8.2",
     "zod": "^3.25.0"
   },
   "devDependencies": {
