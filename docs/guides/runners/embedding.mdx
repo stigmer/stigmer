@@ -240,11 +240,20 @@ full lifecycle as an async API:
 
 ```rust
 use stigmer_runner_host::{RunnerHost, RunnerConfig};
+use tauri::{Manager, path::BaseDirectory};
+
+// Resolve the bundled entry to an ABSOLUTE path. `node` resolves a relative
+// script argument against the process working directory, which for an app
+// launched from Finder or the Start menu is `/` — not your resource directory.
+// `app` here is your `tauri::App` or `AppHandle`.
+let runner_entry = app
+    .path()
+    .resolve("resources/runner/dist/main.js", BaseDirectory::Resource)?;
 
 let host = RunnerHost::new();
 host.start(RunnerConfig {
     node_binary: "node".into(),
-    runner_entry: "resources/runner/dist/main.js".into(),
+    runner_entry: runner_entry.to_string_lossy().into_owned(),
     // Token-only: leave the address unset and the runner discovers it from the
     // control plane. Pass Some("host:7233") to pin it for local development.
     temporal_address: None,
@@ -297,9 +306,23 @@ specifically, from the **slim embedding build**:
    ```
 
 3. **Point the host at the bundled entry.** Set `runner_entry` (the Rust snippet
-   above) to the staged `main.js`, resolved relative to the app's resource
-   directory at runtime. The slim entry accepts the same modes, environment
+   above) to the staged `main.js` as an **absolute** path, resolved from the
+   app's resource directory at runtime with
+   `app.path().resolve(..., BaseDirectory::Resource)`. Do not pass the bare
+   relative string `"resources/runner/dist/main.js"`: it works under `tauri dev`
+   (where the working directory is your project) but not in a packaged app
+   (where it is `/`). The slim entry accepts the same modes, environment
    variables, and IPC protocol as the full package's `dist/main.js`.
+
+<Callout type="info">
+  The slim `main.js` is a **CommonJS** bundle, and its `package.json`
+  intentionally has no `"type": "module"`. Launch it with `node main.js` as-is;
+  do not rename it to `.mjs` or add `"type": "module"` to the staged manifest.
+  (CommonJS is what preserves the runner's internal interceptor load order — see
+  [#170](https://github.com/stigmer/stigmer/issues/170).) If you install the
+  package and stage it with the provided script, this is already correct and you
+  do not need to think about it.
+</Callout>
 
 <Callout type="info">
   `@stigmer/runner-slim` is for the subprocess path. If you embed **in-process**
@@ -318,6 +341,17 @@ specifically, from the **slim embedding build**:
   shell `PATH`, so a bare `node` command can fail to resolve even when Node is
   installed. Resolve an absolute path to `node` at startup (or bundle a Node
   runtime with the app) rather than relying on `PATH`.
+</Callout>
+
+<Callout type="warn">
+  **`runner_entry` must be absolute in a packaged app.** Same root cause as
+  above: `node` resolves the entry script against the process working directory,
+  which for a Finder/dock-launched app is `/`, not your resource directory. A
+  relative entry like `resources/runner/dist/main.js` only resolves under `tauri
+  dev`. Resolve it from the resource directory at runtime
+  (`app.path().resolve(..., BaseDirectory::Resource)`). If the path does not
+  resolve, the host fails fast with a `RunnerEntryNotFound` error naming the
+  working directory it tried.
 </Callout>
 
 ### How the two paths run

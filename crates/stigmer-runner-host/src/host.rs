@@ -86,6 +86,14 @@ impl RunnerHost {
             return Err(RunnerHostError::AlreadyRunning);
         }
 
+        // Fail fast on an unresolvable runner entry. `node` is given this path as an
+        // argument and resolves it against the process working directory, which for a
+        // Finder/dock-launched GUI app is `/` — so a relative entry that works under
+        // `tauri dev` silently breaks once packaged. Without this guard the failure
+        // would surface much later as an opaque EOF/serde error on the `ready` line,
+        // long after the real cause.
+        validate_runner_entry(&config.runner_entry)?;
+
         let mut cmd = Command::new(&config.node_binary);
         cmd.arg(&config.runner_entry);
         cmd.envs(build_env(&config));
@@ -338,6 +346,25 @@ fn build_env(config: &RunnerConfig) -> Vec<(String, String)> {
     env
 }
 
+/// Ensure the runner entry points at a file that exists before we hand it to `node`.
+///
+/// Unlike the pure seams above, this is intentionally I/O-bound: a relative entry only
+/// makes sense relative to the working directory, so the check (and the diagnostic it
+/// produces) must consult the filesystem. The error names the working directory the path
+/// was resolved against, because that is the one fact a packaged-app embedder cannot see.
+fn validate_runner_entry(entry: &str) -> Result<(), RunnerHostError> {
+    if std::path::Path::new(entry).is_file() {
+        return Ok(());
+    }
+    let cwd = std::env::current_dir()
+        .map(|p| p.to_string_lossy().into_owned())
+        .unwrap_or_else(|_| "<unknown>".to_string());
+    Err(RunnerHostError::RunnerEntryNotFound {
+        entry: entry.to_string(),
+        cwd,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -440,5 +467,28 @@ mod tests {
         config.proxy_endpoint = Some("http://proxy:8080".to_string());
         let env = build_env(&config);
         assert_eq!(env_value(&env, "NODE_TLS_REJECT_UNAUTHORIZED"), None);
+    }
+
+    #[test]
+    fn runner_entry_that_exists_passes() {
+        // The crate's own manifest is guaranteed to exist at this absolute path, so it
+        // stands in for a correctly-resolved runner entry without touching the filesystem.
+        let existing = concat!(env!("CARGO_MANIFEST_DIR"), "/Cargo.toml");
+        assert!(validate_runner_entry(existing).is_ok());
+    }
+
+    #[test]
+    fn missing_runner_entry_is_rejected() {
+        // The packaged-app failure mode: a path that does not resolve. The guard must
+        // turn it into an actionable error that echoes the offending value, not an
+        // opaque downstream failure.
+        let missing = concat!(env!("CARGO_MANIFEST_DIR"), "/does-not-exist/runner/main.js");
+        match validate_runner_entry(missing).unwrap_err() {
+            RunnerHostError::RunnerEntryNotFound { entry, cwd } => {
+                assert_eq!(entry, missing);
+                assert!(!cwd.is_empty(), "the error must report the resolution cwd");
+            }
+            other => panic!("expected RunnerEntryNotFound, got {other:?}"),
+        }
     }
 }

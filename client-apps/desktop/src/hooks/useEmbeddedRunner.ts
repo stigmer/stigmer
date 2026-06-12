@@ -19,6 +19,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { resolveResource } from "@tauri-apps/api/path";
 import { loadTokens } from "../auth/token-store";
 
 interface RunnerConfig {
@@ -59,7 +60,7 @@ function normalizeToUrl(endpoint: string): string {
   return endpoint.endsWith(":443") ? `https://${endpoint}` : `http://${endpoint}`;
 }
 
-function getRunnerConfig(): RunnerConfig {
+async function getRunnerConfig(): Promise<RunnerConfig> {
   // The runner's control-plane endpoint. In local dev this is the grpcwebproxy
   // sidecar; in production it is the Stigmer Cloud API. Falling back to
   // VITE_STIGMER_API_URL (not localhost) is what lets the production desktop —
@@ -99,9 +100,16 @@ function getRunnerConfig(): RunnerConfig {
        || normalizeToUrl(stigmerEndpoint))
     : undefined;
 
+  // Resolve the staged runner to an ABSOLUTE path. `node` resolves a relative
+  // script argument against the process working directory, which for a packaged
+  // app launched from Finder/dock is `/`, not the bundle's resource directory.
+  // `resolveResource` resolves against the resource dir in both dev and packaged
+  // builds (the dev tree symlinks resources/runner to the in-repo runner).
+  const runnerEntry = await resolveResource("resources/runner/dist/main.js");
+
   return {
     nodeBinary: "node",
-    runnerEntry: "resources/runner/dist/main.js",
+    runnerEntry,
     // Omitted unless explicitly overridden — the runner self-discovers it.
     ...(temporalAddress ? { temporalAddress } : {}),
     stigmerEndpoint,
@@ -132,7 +140,7 @@ export function useEmbeddedRunner(): UseEmbeddedRunnerResult {
     }
 
     const startPromise = (async () => {
-      const config = getRunnerConfig();
+      const config = await getRunnerConfig();
       await invoke("start_runner", { config });
       setIsRunning(true);
       setError(null);
