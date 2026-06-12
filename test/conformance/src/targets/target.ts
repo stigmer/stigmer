@@ -20,6 +20,13 @@ export interface CapabilityFlags {
   // Unimplemented) — version tags are instead set at apply time via
   // metadata.version.tag and resolved through getByReference.
   versionTagging: boolean;
+  // Secret values (EnvironmentValue/ExecutionValue with is_secret=true) are
+  // redacted on read. False for local OSS, which is single-user/local and
+  // returns secret values in plaintext on get/list/getByReference/getSecretValue
+  // (encryption is implemented but never invoked by the write pipelines). True
+  // for cloud, which encrypts at rest and redacts on read. The is_secret flag
+  // itself is edition-agnostic; only the value handling differs.
+  secretRedaction: boolean;
 }
 
 // Tenancy scope a test operates within. Locally this is just a unique org slug;

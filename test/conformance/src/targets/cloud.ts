@@ -19,6 +19,7 @@ export class CloudTarget implements TargetProfile {
     multiTenant: true,
     externalOrgLookup: true,
     versionTagging: true,
+    secretRedaction: true,
   };
 
   async setup(): Promise<void> {

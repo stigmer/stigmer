@@ -8,6 +8,10 @@ import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
+import { EnvironmentCommandController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/command_pb";
+import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
+import { ExecutionContextCommandController } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/command_pb";
+import { ExecutionContextQueryController } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/query_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
 import { SkillCommandController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/command_pb";
@@ -28,6 +32,10 @@ export interface ConformanceClients {
   workflowQuery: Client<typeof WorkflowQueryController>;
   agentCommand: Client<typeof AgentCommandController>;
   agentQuery: Client<typeof AgentQueryController>;
+  environmentCommand: Client<typeof EnvironmentCommandController>;
+  environmentQuery: Client<typeof EnvironmentQueryController>;
+  executionContextCommand: Client<typeof ExecutionContextCommandController>;
+  executionContextQuery: Client<typeof ExecutionContextQueryController>;
   mcpServerCommand: Client<typeof McpServerCommandController>;
   mcpServerQuery: Client<typeof McpServerQueryController>;
   skillCommand: Client<typeof SkillCommandController>;
@@ -51,6 +59,10 @@ export function makeClients(transport: Transport): ConformanceClients {
     workflowQuery: createClient(WorkflowQueryController, transport),
     agentCommand: createClient(AgentCommandController, transport),
     agentQuery: createClient(AgentQueryController, transport),
+    environmentCommand: createClient(EnvironmentCommandController, transport),
+    environmentQuery: createClient(EnvironmentQueryController, transport),
+    executionContextCommand: createClient(ExecutionContextCommandController, transport),
+    executionContextQuery: createClient(ExecutionContextQueryController, transport),
     mcpServerCommand: createClient(McpServerCommandController, transport),
     mcpServerQuery: createClient(McpServerQueryController, transport),
     skillCommand: createClient(SkillCommandController, transport),

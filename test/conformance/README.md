@@ -47,6 +47,26 @@ Covered against the `local-go` target:
   on disk after `delete` (so `getArtifact` still works post-delete), and
   `pushFromExecutionArtifact`'s happy path needs a real execution artifact and is
   covered at the integration layer instead.
+- **Environment** — a flat platform resource holding configuration and secrets in
+  `spec.data`. Coverage: CRUD & identity (`env_` id, slug derivation, apply
+  create/update branching, `getByReference`, cross-org slug reuse); **secret
+  handling** (the `secretRedaction`-gated value round-trip, the always-preserved
+  `is_secret` flag, and the `getSecretValue` reveal endpoint that returns the
+  unredacted value in every edition); the **redaction-marker preservation**
+  contract (re-submitting `***REDACTED***` for an existing secret on `update`
+  preserves the stored value, and using it for a non-existent secret is rejected);
+  incremental variable management (`updateVariables` merge, `removeVariables`); and
+  `list` filtering. Negatives include the shared duplicate/missing-name deviations
+  plus the proper-code contrast that a duplicate **personal** environment returns
+  a real `AlreadyExists`.
+- **ExecutionContext** — the execution-scoped, flat resource the engine creates per
+  run. Coverage: CRUD & identity (`ectx_` id, slug derivation); resolution by id,
+  by reference, and by parent **`getByExecutionId`**; the distinctive **`apply` is
+  create-or-fail** semantics (a real `AlreadyExists` over an existing slug, since
+  there is no `update` RPC); and `secretRedaction`-gated secret handling. The
+  *envmerge precedence* that populates `spec.data` at execution start is out of
+  scope here (it needs a live execution) and is covered by the execution-lifecycle
+  slice.
 
 Note: the **McpServer domain** suite (`mcpserver.conformance.test.ts`) is
 distinct from `mcp.conformance.test.ts`, which exercises the `@stigmer/mcp-server`
@@ -118,9 +138,13 @@ which optional behaviors exist. `CapabilityFlags` gate behaviors that
 legitimately differ across editions rather than forking the tests — e.g.
 `externalOrgLookup` is `false` locally (so `getByExternalOrgId` is expected to
 be `Unimplemented`), `multiTenant` is `false` (so list RPCs return everything,
-with no IAM filtering), and `versionTagging` is `false` (the dedicated
+with no IAM filtering), `versionTagging` is `false` (the dedicated
 `tagVersion` RPC has no OSS handler, so it is expected to be `Unimplemented`;
-version tags are set at apply time via `metadata.version.tag` instead).
+version tags are set at apply time via `metadata.version.tag` instead), and
+`secretRedaction` is `false` (single-user OSS returns secret values in plaintext
+on bulk reads, whereas cloud redacts them; the `is_secret` flag and the
+`getSecretValue` reveal endpoint are edition-agnostic). See the project's
+`design-decisions/005-secret-redaction-capability-flag.md`.
 
 ### Harness (`src/harness/`)
 
@@ -137,7 +161,7 @@ src/
   harness/   go-build, ports, server-process, clients, fixtures, global-setup
   targets/   target (interface + capabilities), local-go, cloud (stub), index
   contract/  errors, deviations, parity
-  support/   naming, workflows, agents, mcpservers, skills (canonical valid builders)
+  support/   naming, workflows, agents, mcpservers, skills, environments, executioncontexts (canonical valid builders)
   suites/    *.conformance.test.ts
 ```
 

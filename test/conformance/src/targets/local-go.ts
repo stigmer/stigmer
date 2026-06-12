@@ -20,6 +20,7 @@ export class LocalGoTarget implements TargetProfile {
     multiTenant: false,
     externalOrgLookup: false,
     versionTagging: false,
+    secretRedaction: false,
   };
 
   private server: RunningServer | undefined;
