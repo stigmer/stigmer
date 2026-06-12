@@ -25,12 +25,22 @@ export interface RunningServer {
   stop(): Promise<void>;
 }
 
-export async function spawnServer(binaryPath: string): Promise<RunningServer> {
+export interface SpawnServerOptions {
+  // A live Temporal frontend host:port the server should connect to. Omit it
+  // for the CRUD slice (Class A): the server is then pointed at a freshly
+  // allocated closed port so its non-fatal connection attempt fails fast
+  // instead of retrying the live default at localhost:7233. The execution
+  // target (Class B) passes its dev-server address so workflowCreator is
+  // injected and executions can actually run.
+  temporalHostPort?: string;
+}
+
+export async function spawnServer(
+  binaryPath: string,
+  opts: SpawnServerOptions = {},
+): Promise<RunningServer> {
   const port = await getFreePort();
-  // No Temporal in this slice. Point the server at a closed port so its
-  // (non-fatal) connection attempt fails fast instead of retrying the live
-  // default at localhost:7233.
-  const closedTemporalPort = await getFreePort();
+  const temporalHostPort = opts.temporalHostPort ?? `127.0.0.1:${await getFreePort()}`;
   const stateDir = await mkdtemp(join(tmpdir(), "stigmer-conformance-"));
 
   const child = spawn(binaryPath, [], {
@@ -41,7 +51,7 @@ export async function spawnServer(binaryPath: string): Promise<RunningServer> {
       DB_PATH: join(stateDir, "stigmer.db"),
       STORAGE_PATH: join(stateDir, "storage"),
       ARTIFACT_LOCAL_BASE_PATH: join(stateDir, "data"),
-      TEMPORAL_HOST_PORT: `127.0.0.1:${closedTemporalPort}`,
+      TEMPORAL_HOST_PORT: temporalHostPort,
       ENV: "local",
       LOG_LEVEL: "warn",
     },

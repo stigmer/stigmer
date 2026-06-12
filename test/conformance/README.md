@@ -112,6 +112,23 @@ Select a target with `CONFORMANCE_TARGET` (default `local-go`):
 CONFORMANCE_TARGET=local-go npm run test -w @stigmer/conformance
 ```
 
+### Execution-engine suites (Class B)
+
+The CRUD suites above (Class A) need no Temporal or runner. The **execution**
+suites do: they provision the Go server's engine — a real Temporal dev server
+plus the TypeScript unified runner — and drive a real execution end-to-end.
+
+```bash
+npm run test:execution -w @stigmer/conformance
+```
+
+This needs the **`temporal` CLI** on `PATH` (`brew install temporal`, or see the
+[Temporal CLI docs](https://docs.temporal.io/cli)) in addition to `go` and
+`node`. The execution `globalSetup` builds the Go server and the runner from
+source and fails fast with an install hint if the CLI is missing. The default
+target is `local-go-execution`; the same suites will later run against the
+`cloud` target via `CONFORMANCE_TARGET`.
+
 ## Design
 
 ### Raw stubs, not the SDK
@@ -166,23 +183,49 @@ on bulk reads, whereas cloud redacts them; the `is_secret` flag and the
 `go-build` builds the server once per run (vitest `globalSetup`); each suite file
 boots its own instance (`server-process` + `ports`) against a private temp dir,
 so files run in parallel without colliding. `clients` builds the Connect
-clients; `fixtures` tracks created resources for best-effort reverse-order
-cleanup.
+clients; `grpc-ready` is the shared store-probe readiness gate; `fixtures`
+tracks created resources for best-effort reverse-order cleanup.
+
+### Execution engine (Class B, `src/suites-execution/`)
+
+The execution domains (WorkflowExecution, AgentExecution) are 100% Temporal-
+gated, so they run on their own config (`vitest.execution.config.ts`,
+`test:execution`) rather than the dependency-light CRUD one. This split keeps the
+Class A signal fast (no Temporal/runner) — see the project's
+`design-decisions/007-execution-engine-harness-target.md`.
+
+Having an execution engine is **not** an edition difference (cloud has one too),
+so it is not a `CapabilityFlag`. Instead it is a heavier **target**:
+`local-go-execution` boots Temporal (`temporal.ts`) -> the Go server pointed at
+it (`server-process` with `temporalHostPort`) -> the runner in static mode
+(`runner-process`, built by `runner-build` via `make build-runner`). The Go
+server is a pure orchestrator: on create it persists an execution then starts a
+Temporal workflow that dispatches the real work to the runner on `stigmer_runner`.
+
+A `*.smoke.test.ts` here proves the harness is wired (the engine runs an
+execution); a `*.conformance.test.ts` asserts a domain's full contract. They are
+distinct on purpose: the smoke test is a permanent, cheap liveness guard, and
+per DD-006 an execution **domain** enters the suite whole on this same harness in
+a later session.
 
 ## Layout
 
 ```
 src/
-  harness/   go-build, ports, server-process, clients, fixtures, global-setup
-  targets/   target (interface + capabilities), local-go, cloud (stub), index
-  contract/  errors, deviations, parity
-  support/   naming, workflows, agents, mcpservers, skills, environments, executioncontexts, sessions (canonical valid builders)
-  suites/    *.conformance.test.ts
+  harness/          go-build, ports, server-process, grpc-ready, clients, fixtures, global-setup
+                    + execution: temporal, runner-build, runner-process, global-setup-execution
+  targets/          target (interface + capabilities), local-go, local-go-execution, cloud (stub), index
+  contract/         errors, deviations, parity
+  support/          naming, workflows, agents, mcpservers, skills, environments, executioncontexts, sessions
+  suites/           *.conformance.test.ts            (Class A — CRUD, no Temporal)
+  suites-execution/ *.smoke.test.ts / *.conformance.test.ts  (Class B — Temporal + runner)
 ```
 
 ## Adding a domain
 
 1. Add its controllers to `ConformanceClients` in `harness/clients.ts`.
-2. Add `src/suites/<domain>.conformance.test.ts` following the existing suites.
+2. Add `src/suites/<domain>.conformance.test.ts` (Class A) — or, for an
+   execution domain, `src/suites-execution/<domain>.conformance.test.ts` driven
+   by the `local-go-execution` target.
 3. Assert the intended contract; register any genuine implementation bug as a
    known deviation rather than asserting the wrong behavior.
