@@ -10,3 +10,4 @@ export { WorkflowInstanceEmptyState, type WorkflowInstanceEmptyStateProps } from
 export { WorkflowInstanceList, type WorkflowInstanceListProps } from "./WorkflowInstanceList";
 export { CreateWorkflowInstanceDialog, type CreateWorkflowInstanceDialogProps } from "./CreateWorkflowInstanceDialog";
 export { WorkflowInstanceDetailPanel, type WorkflowInstanceDetailPanelProps } from "./WorkflowInstanceDetailPanel";
+export { RunVisibilityControl, type RunVisibilityControlProps } from "./RunVisibilityControl";

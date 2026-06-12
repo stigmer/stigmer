@@ -592,6 +592,7 @@ export {
   ProviderBadge,
   providerLabel,
   GrantAccessForm,
+  PeopleWithAccess,
   OrgMembersPanel,
   SharePanel,
   PermissionGate,
@@ -617,10 +618,28 @@ export type {
   SelectedPrincipal,
   ProviderBadgeProps,
   GrantAccessFormProps,
+  PeopleWithAccessProps,
   OrgMembersPanelProps,
   SharePanelProps,
   PermissionGateProps,
 } from "./iam-policy";
+
+// Access — unified "Manage access" experience (visibility + people) as one
+// dialog, with a kebab hook and a visible-button trigger.
+export {
+  ManageAccessDialog,
+  ManageAccessButton,
+  useManageAccess,
+} from "./access";
+export type {
+  ManageAccessDialogProps,
+  ManageAccessButtonProps,
+  UseManageAccessArgs,
+  UseManageAccessReturn,
+  AccessResource,
+  AccessVisibility,
+  AccessExtraSection,
+} from "./access";
 
 // Organization — context provider, hooks, data hooks, behavior hooks, styled form, profile panel, and org switcher
 export {
@@ -1253,6 +1272,7 @@ export {
   WorkflowInstanceList,
   CreateWorkflowInstanceDialog,
   WorkflowInstanceDetailPanel,
+  RunVisibilityControl,
   // T15: Workflow Template Gallery
   PATTERN_LABELS,
   WORKFLOW_CATEGORY_LABELS,
@@ -1381,6 +1401,7 @@ export type {
   WorkflowInstanceListProps,
   CreateWorkflowInstanceDialogProps,
   WorkflowInstanceDetailPanelProps,
+  RunVisibilityControlProps,
   // T15: Workflow Template Gallery types
   WorkflowTemplateData,
   WorkflowTemplateCategory,

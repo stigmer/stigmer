@@ -41,7 +41,9 @@ test.describe("OSS Mode - Authorization UI", () => {
     await expect(notice).toBeVisible();
   });
 
-  test("agent detail has visibility toggle in OSS", async ({ page }) => {
+  test("agent visibility is editable in the Manage access dialog in OSS", async ({
+    page,
+  }) => {
     await page.goto("/library/agents");
     await page.waitForLoadState("networkidle");
 
@@ -50,15 +52,25 @@ test.describe("OSS Mode - Authorization UI", () => {
       await firstAgent.click();
       await page.waitForLoadState("networkidle");
 
-      // Visibility toggle works in OSS (metadata-only, no FGA)
-      const radiogroup = page.getByRole("radiogroup", {
-        name: "Resource visibility",
-      });
-      await expect(radiogroup).toBeVisible();
+      // Visibility editing moved into the unified Manage access dialog; the
+      // header now shows a read-only badge. Visibility still works in OSS
+      // (metadata-only, no FGA), so the dialog's General access control is
+      // present and editable.
+      const kebab = page.getByRole("button", { name: "More actions" });
+      await kebab.click();
+      await page.getByRole("menuitem", { name: "Manage access" }).click();
+
+      const dialog = page.getByRole("dialog");
+      await expect(dialog.getByText("General access")).toBeVisible();
+      await expect(
+        dialog.getByRole("button", { name: /Resource visibility/i }),
+      ).toBeVisible();
     }
   });
 
-  test("agent detail does NOT have share button in OSS", async ({ page }) => {
+  test("agent detail does NOT have a bespoke share button in OSS", async ({
+    page,
+  }) => {
     await page.goto("/library/agents");
     await page.waitForLoadState("networkidle");
 
@@ -67,8 +79,10 @@ test.describe("OSS Mode - Authorization UI", () => {
       await firstAgent.click();
       await page.waitForLoadState("networkidle");
 
-      // Share requires IAM service which doesn't exist in OSS
-      const shareButton = page.getByRole("button", { name: /share/i });
+      // The legacy per-surface "Share" button is gone everywhere — access is
+      // managed through the one Manage access dialog. No literal Share control
+      // should exist on the detail page.
+      const shareButton = page.getByRole("button", { name: /^share$/i });
       await expect(shareButton).not.toBeVisible();
     }
   });

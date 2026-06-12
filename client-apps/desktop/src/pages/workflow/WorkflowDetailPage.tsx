@@ -12,15 +12,12 @@ import {
   useConfirmAction,
   useDeleteResource,
   useElkLayoutEngine,
-  PermissionGate,
-  SharePanel,
   ConfirmDialog,
   useBreadcrumbOverride,
   toast,
   type DetailAction,
   type AdditionalTab,
 } from "@stigmer/react";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 const elkWorkerFactory = () =>
   new Worker(new URL("elkjs/lib/elk-worker.min.js", import.meta.url));
@@ -47,7 +44,6 @@ export default function WorkflowDetailPage() {
   const [showRunDialog, setShowRunDialog] = useState(false);
   const [showCreateInstanceDialog, setShowCreateInstanceDialog] = useState(false);
   const [instancesRefreshKey, setInstancesRefreshKey] = useState(0);
-  const [showSharePanel, setShowSharePanel] = useState(false);
 
   useEffect(() => () => setLabel(null), [setLabel]);
 
@@ -139,13 +135,6 @@ export default function WorkflowDetailPage() {
         onAction: () => copyQualifiedSlug(org ?? "", slug ?? ""),
       },
       {
-        id: "share",
-        label: "Share",
-        group: "sharing",
-        onAction: () => setShowSharePanel((v) => !v),
-        disabled: !resourceId,
-      },
-      {
         id: "delete",
         label: "Delete",
         variant: "destructive" as const,
@@ -202,22 +191,6 @@ export default function WorkflowDetailPage() {
           onViewLatestRun={handleViewLatestRun}
           instancesRefreshKey={instancesRefreshKey}
         />
-        {showSharePanel && resourceId && (
-          <PermissionGate
-            resource={{ kind: "workflow", id: resourceId }}
-            relation="can_grant_access"
-          >
-            <div className="absolute right-0 top-0 z-10 w-80 rounded-lg border border-border bg-popover shadow-lg">
-              <SharePanel
-                resource={{ kind: "workflow", id: resourceId, resourceKind: ApiResourceKind.workflow }}
-                resourceKindString="workflow"
-                resourceKind={ApiResourceKind.workflow}
-                orgId={workflow?.metadata?.org ?? ""}
-                onClose={() => setShowSharePanel(false)}
-              />
-            </div>
-          </PermissionGate>
-        )}
       </div>
       <ConfirmDialog
         state={confirmState}

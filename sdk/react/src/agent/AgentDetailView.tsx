@@ -10,11 +10,13 @@ import type {
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useAgent } from "./useAgent";
 import { useUpdateAgent } from "./useUpdateAgent";
 import { agentToInput } from "./internal/agentToInput";
 import { ErrorMessage } from "../error/ErrorMessage";
-import { ResourceVisibilityControl } from "../library/ResourceVisibilityControl";
+import { VisibilityBadge } from "../library/VisibilitySelector";
+import { useManageAccess } from "../access/useManageAccess";
 import { ResourceDetailShell } from "../resource-detail/ResourceDetailShell";
 import { Section } from "../resource-detail/Section";
 import { useDetailTabs } from "../resource-detail/useDetailTabs";
@@ -280,6 +282,30 @@ export function AgentDetailView({
     }
   }, [agent]);
 
+  // Unified Manage access — visibility (General access) over explicit grants
+  // (People), opened from the kebab. Derived from the loaded metadata, so the
+  // action stays null until the resource is ready (and folds harmlessly into
+  // the actions array meanwhile).
+  const access = useManageAccess({
+    resource: agent?.metadata
+      ? {
+          kind: ApiResourceKind.agent,
+          kindString: "agent",
+          id: agent.metadata.id,
+          org: agent.metadata.org,
+          name: agent.metadata.name,
+        }
+      : null,
+    visibility: agent?.metadata
+      ? {
+          kind: "agent",
+          current: agent.metadata.visibility,
+          org: agent.metadata.org,
+          onChanged: refetch,
+        }
+      : undefined,
+  });
+
   if (isLoading) return <LoadingSkeleton className={className} />;
   if (error)
     return <ErrorMessage error={error} retry={refetch} className={className} />;
@@ -312,15 +338,15 @@ export function AgentDetailView({
     updatedAt: specAudit?.updatedAt ? timestampDate(specAudit.updatedAt) : null,
   };
 
+  // Inline visibility is read-only (at-a-glance); editing lives in the
+  // Manage access dialog, the single writer for both access axes.
   const visibilityControl = meta ? (
-    <ResourceVisibilityControl
-      kind="agent"
-      resourceId={meta.id}
-      visibility={meta.visibility}
-      org={meta.org || org}
-      onChanged={refetch}
-    />
+    <VisibilityBadge visibility={meta.visibility} />
   ) : undefined;
+
+  const mergedActions = access.action
+    ? [...(actions ?? []), access.action]
+    : actions;
 
   let tabContent: React.ReactNode;
   if (activeAdditionalTab) {
@@ -361,19 +387,22 @@ export function AgentDetailView({
   }
 
   return (
-    <ResourceDetailShell
-      header={headerMeta}
-      visibilityControl={visibilityControl}
-      primaryAction={primaryAction}
-      actions={actions}
-      tabs={effectiveTabs}
-      activeTab={effectiveTabs ? effectiveActiveTab : undefined}
-      onTabChange={effectiveTabs ? effectiveOnTabChange : undefined}
-      tabsAriaLabel="Agent detail sections"
-      className={className}
-    >
-      {tabContent}
-    </ResourceDetailShell>
+    <>
+      <ResourceDetailShell
+        header={headerMeta}
+        visibilityControl={visibilityControl}
+        primaryAction={primaryAction}
+        actions={mergedActions}
+        tabs={effectiveTabs}
+        activeTab={effectiveTabs ? effectiveActiveTab : undefined}
+        onTabChange={effectiveTabs ? effectiveOnTabChange : undefined}
+        tabsAriaLabel="Agent detail sections"
+        className={className}
+      >
+        {tabContent}
+      </ResourceDetailShell>
+      {access.dialog}
+    </>
   );
 }
 

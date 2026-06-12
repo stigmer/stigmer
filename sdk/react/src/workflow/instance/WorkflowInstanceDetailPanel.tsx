@@ -10,11 +10,12 @@ import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/
 import type { ResourceRef } from "@stigmer/sdk";
 import { getUserMessage } from "@stigmer/sdk";
 import { useUpdateWorkflowInstance } from "./useUpdateWorkflowInstance";
-import { useUpdateWorkflowInstanceExecutionVisibility } from "./useUpdateWorkflowInstanceExecutionVisibility";
 import { useDeleteWorkflowInstance } from "./useDeleteWorkflowInstance";
-import { ResourceVisibilityControl } from "../../library/ResourceVisibilityControl";
+import { RunVisibilityControl } from "./RunVisibilityControl";
+import { VisibilityBadge } from "../../library/VisibilitySelector";
 import { PermissionGate } from "../../iam-policy/PermissionGate";
-import { SharePanel } from "../../iam-policy/SharePanel";
+import { useCheckPermission } from "../../iam-policy/useCheckPermission";
+import { ManageAccessButton } from "../../access/ManageAccessButton";
 import { EnvironmentPicker } from "../../environment/EnvironmentPicker";
 import { useEnvironmentList } from "../../environment/useEnvironmentList";
 
@@ -60,9 +61,36 @@ export function WorkflowInstanceDetailPanel({
 
   const [isEditingEnvs, setIsEditingEnvs] = useState(false);
   const [editEnvRefs, setEditEnvRefs] = useState<ResourceRef[]>([]);
-  const [showSharePanel, setShowSharePanel] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteError, setDeleteError] = useState<Error | null>(null);
+
+  const visibility = meta?.visibility ?? ApiResourceVisibility.visibility_private;
+  // Run observability is a separate axis from instance visibility, and only
+  // meaningful while the instance is private (ORG/PUBLIC already expose runs
+  // by inheritance). It is offered only to those who can grant access, so it
+  // rides into the dialog as the resource-specific section — present only when
+  // both conditions hold.
+  const { allowed: canGrantAccess } = useCheckPermission(
+    id ? { kind: "workflow_instance", id } : null,
+    "can_grant_access",
+  );
+  const runVisibilitySection =
+    visibility === ApiResourceVisibility.visibility_private && canGrantAccess
+      ? {
+          title: "Run visibility",
+          description:
+            "Keep the instance private while choosing who can observe its runs.",
+          content: (
+            <RunVisibilityControl
+              instanceId={id}
+              executionVisibility={
+                spec?.executionVisibility ?? WorkflowExecutionVisibility.unspecified
+              }
+              onChanged={onUpdated}
+            />
+          ),
+        }
+      : undefined;
 
   const handleStartEditEnvs = useCallback(() => {
     const currentRefs: ResourceRef[] = (spec?.environmentRefs ?? []).map((ref) => ({
@@ -117,9 +145,12 @@ export function WorkflowInstanceDetailPanel({
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <div>
-          <h3 className="text-sm font-semibold text-foreground">
-            {meta?.name || meta?.slug || "Instance"}
-          </h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-foreground">
+              {meta?.name || meta?.slug || "Instance"}
+            </h3>
+            <VisibilityBadge visibility={visibility} />
+          </div>
           <p className="text-[0.65rem] text-muted-foreground">
             {createdAt && `Created ${createdAt.toLocaleDateString()}`}
             {updatedAt && ` · Updated ${updatedAt.toLocaleDateString()}`}
@@ -139,19 +170,21 @@ export function WorkflowInstanceDetailPanel({
               Run
             </button>
           )}
-          <PermissionGate resource={{ kind: "workflow_instance", id }} relation="can_grant_access">
-            <button
-              type="button"
-              onClick={() => setShowSharePanel((v) => !v)}
-              className={cn(
-                "rounded-md px-2.5 py-1 text-xs font-medium",
-                "border border-border text-foreground hover:bg-accent-hover",
-                "focus:outline-none focus:ring-2 focus:ring-ring",
-              )}
-            >
-              Share
-            </button>
-          </PermissionGate>
+          <ManageAccessButton
+            resource={{
+              kind: ApiResourceKind.workflow_instance,
+              kindString: "workflow_instance",
+              id,
+              org: meta?.org ?? "",
+              name: meta?.name,
+            }}
+            visibility={{
+              kind: "workflowInstance",
+              current: visibility,
+              onChanged: onUpdated,
+            }}
+            extraSection={runVisibilitySection}
+          />
           <button
             type="button"
             onClick={onClose}
@@ -243,51 +276,6 @@ export function WorkflowInstanceDetailPanel({
           )}
         </div>
 
-        {/* Visibility */}
-        <div className="px-4 py-3">
-          <h4 className="text-xs font-medium text-muted-foreground mb-2">Visibility</h4>
-          <ResourceVisibilityControl
-            kind="workflowInstance"
-            resourceId={id}
-            visibility={meta?.visibility ?? ApiResourceVisibility.visibility_private}
-            onChanged={onUpdated}
-          />
-        </div>
-
-        {/* Run visibility — who can observe this instance's executions.
-            Distinct from instance visibility: an owner can keep the instance
-            itself private while letting the whole org watch its runs. Only
-            meaningful while the instance is private; an ORG/PUBLIC instance
-            already exposes its runs to org members by inheritance. */}
-        {(meta?.visibility ?? ApiResourceVisibility.visibility_private) ===
-          ApiResourceVisibility.visibility_private && (
-          <PermissionGate resource={{ kind: "workflow_instance", id }} relation="can_grant_access">
-            <div className="px-4 py-3">
-              <h4 className="text-xs font-medium text-muted-foreground mb-2">Run visibility</h4>
-              <RunVisibilityControl
-                instanceId={id}
-                executionVisibility={
-                  spec?.executionVisibility ?? WorkflowExecutionVisibility.unspecified
-                }
-                onChanged={onUpdated}
-              />
-            </div>
-          </PermissionGate>
-        )}
-
-        {/* Share Panel */}
-        {showSharePanel && (
-          <div className="px-4 py-3">
-            <SharePanel
-              resource={{ kind: "workflow_instance", id, resourceKind: ApiResourceKind.workflow_instance }}
-              resourceKindString="workflow_instance"
-              resourceKind={ApiResourceKind.workflow_instance}
-              orgId={meta?.org ?? ""}
-              onClose={() => setShowSharePanel(false)}
-            />
-          </div>
-        )}
-
         {/* Delete */}
         <PermissionGate resource={{ kind: "workflow_instance", id }} relation="can_delete">
           <div className="px-4 py-3">
@@ -356,99 +344,3 @@ function CloseIcon() {
   );
 }
 
-interface RunVisibilityOption {
-  readonly value: WorkflowExecutionVisibility;
-  readonly label: string;
-  readonly description: string;
-}
-
-const RUN_VISIBILITY_OPTIONS: readonly RunVisibilityOption[] = [
-  {
-    value: WorkflowExecutionVisibility.private,
-    label: "Only the person who runs it",
-    description: "Each run is visible only to whoever started it (and explicit shares).",
-  },
-  {
-    value: WorkflowExecutionVisibility.organization,
-    label: "All organization members",
-    description: "Everyone in the organization can observe every run of this instance.",
-  },
-];
-
-/**
- * Segmented control for an instance's run (execution) visibility.
- *
- * Writes the `execution_visibility` spec field via the dedicated RPC, which
- * reconciles the dormant `workflow_instance#execution_viewer` FGA relation in
- * Cloud mode. Unspecified is treated as private (the default).
- */
-function RunVisibilityControl({
-  instanceId,
-  executionVisibility,
-  onChanged,
-}: {
-  readonly instanceId: string;
-  readonly executionVisibility: WorkflowExecutionVisibility;
-  readonly onChanged?: () => void;
-}) {
-  const { updateExecutionVisibility, isUpdating, error } =
-    useUpdateWorkflowInstanceExecutionVisibility();
-
-  const current =
-    executionVisibility === WorkflowExecutionVisibility.unspecified
-      ? WorkflowExecutionVisibility.private
-      : executionVisibility;
-
-  const handleSelect = useCallback(
-    async (value: WorkflowExecutionVisibility) => {
-      if (value === current || isUpdating) return;
-      try {
-        await updateExecutionVisibility(instanceId, value);
-        onChanged?.();
-      } catch {
-        // error surfaced below
-      }
-    },
-    [current, isUpdating, updateExecutionVisibility, instanceId, onChanged],
-  );
-
-  return (
-    <div className="space-y-2">
-      <div
-        role="radiogroup"
-        aria-label="Run visibility"
-        className="flex flex-col gap-1.5"
-      >
-        {RUN_VISIBILITY_OPTIONS.map((option) => {
-          const selected = option.value === current;
-          return (
-            <button
-              key={option.value}
-              type="button"
-              role="radio"
-              aria-checked={selected}
-              disabled={isUpdating}
-              onClick={() => handleSelect(option.value)}
-              className={cn(
-                "flex flex-col items-start gap-0.5 rounded-md border px-3 py-2 text-left",
-                "focus:outline-none focus:ring-2 focus:ring-ring",
-                "disabled:opacity-60",
-                selected
-                  ? "border-primary bg-primary/5"
-                  : "border-border hover:bg-accent-hover",
-              )}
-            >
-              <span className="text-xs font-medium text-foreground">{option.label}</span>
-              <span className="text-[0.65rem] text-muted-foreground">{option.description}</span>
-            </button>
-          );
-        })}
-      </div>
-      {error && (
-        <p className="text-xs text-destructive" role="alert">
-          {getUserMessage(error)}
-        </p>
-      )}
-    </div>
-  );
-}

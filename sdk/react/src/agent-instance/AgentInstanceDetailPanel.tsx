@@ -10,9 +10,9 @@ import type { ResourceRef } from "@stigmer/sdk";
 import { getUserMessage } from "@stigmer/sdk";
 import { useUpdateAgentInstance } from "./useUpdateAgentInstance";
 import { useDeleteAgentInstance } from "./useDeleteAgentInstance";
-import { ResourceVisibilityControl } from "../library/ResourceVisibilityControl";
+import { VisibilityBadge } from "../library/VisibilitySelector";
 import { PermissionGate } from "../iam-policy/PermissionGate";
-import { SharePanel } from "../iam-policy/SharePanel";
+import { ManageAccessButton } from "../access/ManageAccessButton";
 import { EnvironmentPicker } from "../environment/EnvironmentPicker";
 import { useEnvironmentList } from "../environment/useEnvironmentList";
 
@@ -58,9 +58,10 @@ export function AgentInstanceDetailPanel({
 
   const [isEditingEnvs, setIsEditingEnvs] = useState(false);
   const [editEnvRefs, setEditEnvRefs] = useState<ResourceRef[]>([]);
-  const [showSharePanel, setShowSharePanel] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteError, setDeleteError] = useState<Error | null>(null);
+
+  const visibility = meta?.visibility ?? ApiResourceVisibility.visibility_private;
 
   const handleStartEditEnvs = useCallback(() => {
     const currentRefs: ResourceRef[] = (spec?.environmentRefs ?? []).map((ref) => ({
@@ -115,9 +116,12 @@ export function AgentInstanceDetailPanel({
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <div>
-          <h3 className="text-sm font-semibold text-foreground">
-            {meta?.name || meta?.slug || "Instance"}
-          </h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-foreground">
+              {meta?.name || meta?.slug || "Instance"}
+            </h3>
+            <VisibilityBadge visibility={visibility} />
+          </div>
           <p className="text-[0.65rem] text-muted-foreground">
             {createdAt && `Created ${createdAt.toLocaleDateString()}`}
             {updatedAt && ` \u00B7 Updated ${updatedAt.toLocaleDateString()}`}
@@ -137,19 +141,20 @@ export function AgentInstanceDetailPanel({
               Start session
             </button>
           )}
-          <PermissionGate resource={{ kind: "agent_instance", id }} relation="can_grant_access">
-            <button
-              type="button"
-              onClick={() => setShowSharePanel((v) => !v)}
-              className={cn(
-                "rounded-md px-2.5 py-1 text-xs font-medium",
-                "border border-border text-foreground hover:bg-accent-hover",
-                "focus:outline-none focus:ring-2 focus:ring-ring",
-              )}
-            >
-              Share
-            </button>
-          </PermissionGate>
+          <ManageAccessButton
+            resource={{
+              kind: ApiResourceKind.agent_instance,
+              kindString: "agent_instance",
+              id,
+              org: meta?.org ?? "",
+              name: meta?.name,
+            }}
+            visibility={{
+              kind: "agentInstance",
+              current: visibility,
+              onChanged: onUpdated,
+            }}
+          />
           <button
             type="button"
             onClick={onClose}
@@ -240,30 +245,6 @@ export function AgentInstanceDetailPanel({
             </div>
           )}
         </div>
-
-        {/* Visibility */}
-        <div className="px-4 py-3">
-          <h4 className="text-xs font-medium text-muted-foreground mb-2">Visibility</h4>
-          <ResourceVisibilityControl
-            kind="agentInstance"
-            resourceId={id}
-            visibility={meta?.visibility ?? ApiResourceVisibility.visibility_private}
-            onChanged={onUpdated}
-          />
-        </div>
-
-        {/* Share Panel */}
-        {showSharePanel && (
-          <div className="px-4 py-3">
-            <SharePanel
-              resource={{ kind: "agent_instance", id, resourceKind: ApiResourceKind.agent_instance }}
-              resourceKindString="agent_instance"
-              resourceKind={ApiResourceKind.agent_instance}
-              orgId={meta?.org ?? ""}
-              onClose={() => setShowSharePanel(false)}
-            />
-          </div>
-        )}
 
         {/* Delete */}
         <PermissionGate resource={{ kind: "agent_instance", id }} relation="can_delete">

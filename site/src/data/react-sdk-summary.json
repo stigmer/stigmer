@@ -1,6 +1,13 @@
 {
   "domains": [
     {
+      "slug": "access",
+      "title": "Manage Access",
+      "description": "The unified Manage access experience — one dialog composing visibility and explicit people-grants, with a kebab hook and a button trigger.",
+      "hooks": 1,
+      "components": 2
+    },
+    {
       "slug": "activity",
       "title": "Activity",
       "description": "Hooks for recent activity feeds and session history.",
@@ -103,7 +110,7 @@
       "title": "IAM Policy",
       "description": "Hooks and components for access control bindings, role assignment, and org membership.",
       "hooks": 10,
-      "components": 7
+      "components": 8
     },
     {
       "slug": "identity-account",
@@ -236,7 +243,7 @@
       "title": "Workflow",
       "description": "Hooks and components for workflow definitions, instances, executions, and the visual builder.",
       "hooks": 31,
-      "components": 13
+      "components": 14
     },
     {
       "slug": "workspace",

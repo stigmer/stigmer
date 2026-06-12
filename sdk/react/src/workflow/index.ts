@@ -717,6 +717,8 @@ export {
   type CreateWorkflowInstanceDialogProps,
   WorkflowInstanceDetailPanel,
   type WorkflowInstanceDetailPanelProps,
+  RunVisibilityControl,
+  type RunVisibilityControlProps,
 } from "./instance";
 
 // Execution Comparison — run-vs-run comparison

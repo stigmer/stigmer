@@ -58,6 +58,11 @@ export {
 export { GrantAccessForm, type GrantAccessFormProps } from "./GrantAccessForm";
 
 export {
+  PeopleWithAccess,
+  type PeopleWithAccessProps,
+} from "./PeopleWithAccess";
+
+export {
   OrgMembersPanel,
   type OrgMembersPanelProps,
 } from "./OrgMembersPanel";

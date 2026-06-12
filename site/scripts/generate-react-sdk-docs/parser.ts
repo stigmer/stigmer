@@ -118,6 +118,11 @@ const DOMAIN_META: Record<string, { title: string; description: string }> = {
     description:
       "Hooks and components for access control bindings, role assignment, and org membership.",
   },
+  access: {
+    title: "Manage Access",
+    description:
+      "The unified Manage access experience — one dialog composing visibility and explicit people-grants, with a kebab hook and a button trigger.",
+  },
   "identity-provider": {
     title: "Identity Provider",
     description:

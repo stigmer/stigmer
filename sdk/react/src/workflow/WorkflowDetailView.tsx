@@ -22,7 +22,9 @@ import { WorkflowInstanceList } from "./instance/WorkflowInstanceList";
 import { WorkflowVersionsTab } from "./WorkflowVersionsTab";
 import { useWorkflowVersions } from "./useWorkflowVersions";
 import { ErrorMessage } from "../error/ErrorMessage";
-import { ResourceVisibilityControl } from "../library/ResourceVisibilityControl";
+import { VisibilityBadge } from "../library/VisibilitySelector";
+import { useManageAccess } from "../access/useManageAccess";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { formatDurationSec } from "./format-utils";
 import { ResourceDetailShell } from "../resource-detail/ResourceDetailShell";
 import { Section } from "../resource-detail/Section";
@@ -232,6 +234,28 @@ export function WorkflowDetailView({
     }
   }, [workflow]);
 
+  // Unified Manage access — visibility (General access) over explicit grants
+  // (People), opened from the kebab. Replaces the host's bespoke share popover.
+  const access = useManageAccess({
+    resource: workflow?.metadata
+      ? {
+          kind: ApiResourceKind.workflow,
+          kindString: "workflow",
+          id: workflow.metadata.id,
+          org: workflow.metadata.org || org,
+          name: workflow.metadata.name,
+        }
+      : null,
+    visibility: workflow?.metadata
+      ? {
+          kind: "workflow",
+          current: workflow.metadata.visibility,
+          org: workflow.metadata.org || org,
+          onChanged: refetch,
+        }
+      : undefined,
+  });
+
   if (isLoading) return <LoadingSkeleton className={className} />;
   if (error)
     return <ErrorMessage error={error} retry={refetch} className={className} />;
@@ -257,15 +281,15 @@ export function WorkflowDetailView({
     <ValidationIndicator state={validationState} />
   ) : undefined;
 
+  // Inline visibility is read-only (at-a-glance); editing lives in the
+  // Manage access dialog, the single writer for both access axes.
   const visibilityControl = meta ? (
-    <ResourceVisibilityControl
-      kind="workflow"
-      resourceId={meta.id}
-      visibility={meta.visibility}
-      org={meta.org || org}
-      onChanged={refetch}
-    />
+    <VisibilityBadge visibility={meta.visibility} />
   ) : undefined;
+
+  const mergedActions = access.action
+    ? [...(actions ?? []), access.action]
+    : actions;
 
   let tabContent: React.ReactNode;
   if (activeAdditionalTab) {
@@ -309,20 +333,23 @@ export function WorkflowDetailView({
   }
 
   return (
-    <ResourceDetailShell
-      header={headerMeta}
-      visibilityControl={visibilityControl}
-      headerMetaExtra={headerMetaExtra}
-      primaryAction={primaryAction}
-      actions={actions}
-      tabs={effectiveTabs}
-      activeTab={effectiveActiveTab}
-      onTabChange={effectiveOnTabChange}
-      tabsAriaLabel="Workflow detail tabs"
-      className={className}
-    >
-      {tabContent}
-    </ResourceDetailShell>
+    <>
+      <ResourceDetailShell
+        header={headerMeta}
+        visibilityControl={visibilityControl}
+        headerMetaExtra={headerMetaExtra}
+        primaryAction={primaryAction}
+        actions={mergedActions}
+        tabs={effectiveTabs}
+        activeTab={effectiveActiveTab}
+        onTabChange={effectiveOnTabChange}
+        tabsAriaLabel="Workflow detail tabs"
+        className={className}
+      >
+        {tabContent}
+      </ResourceDetailShell>
+      {access.dialog}
+    </>
   );
 }
 

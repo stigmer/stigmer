@@ -505,6 +505,34 @@ All visual properties flow through `--stgm-*` design tokens.
 ```
 
 
+### PeopleWithAccess
+
+The "people with access" body shared by [`SharePanel`](#sharepanel) and the unified
+Manage access dialog: the list of principals with their roles, plus the
+inline grant form.
+
+Reading the access list requires `can_view_access`; this component assumes
+the caller has already gated rendering on it (e.g. via `PermissionGate` or
+a parent trigger). Mutations are gated here, in proportion to the action:
+the grant form and per-row revoke buttons render only behind
+`can_grant_access`, so a viewer sees *who* has access without being offered
+controls the server would reject. The backend remains the enforcer.
+
+All visual properties flow through `--stgm-*` design tokens.
+
+**Props** — `PeopleWithAccessProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    orgId: { type: "string", description: "Organization the resource belongs to (`metadata.org`). Drives the org-member typeahead in the grant form.", required: true },
+    resource: { type: "ShareFlowResource", description: "The resource whose access list is shown.", required: true, typeDescriptionLink: "#shareflowresource" },
+    resourceKind: { type: "ApiResourceKind", description: "ApiResourceKind enum value for grantable-role lookup.", required: true },
+    resourceKindString: { type: "string", description: "Resource kind string for the API ref (e.g. \"agent\", \"session\").", required: true },
+  }}
+/>
+
+
 ### PermissionGate
 
 Conditionally renders children based on the current user's
@@ -636,9 +664,11 @@ All visual properties flow through `--stgm-*` design tokens.
 Self-contained sharing panel that displays who has access to a
 resource and allows granting/revoking access.
 
-Combines the access list (from [`useShareFlow`](#useshareflow)) with the
-[`GrantAccessForm`](#grantaccessform) in a single panel suitable for embedding
-in a popover, sidebar, or dialog.
+A thin header-and-close wrapper around [`PeopleWithAccess`](#peoplewithaccess) — the same
+"people with access" body the unified Manage access dialog renders — so the
+two surfaces stay byte-for-byte consistent. Suitable for embedding in a
+popover or sidebar; for the full visibility + people experience use the
+Manage access dialog instead.
 
 All visual properties flow through `--stgm-*` design tokens.
 
