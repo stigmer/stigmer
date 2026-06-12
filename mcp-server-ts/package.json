@@ -1,0 +1,70 @@
+{
+  "name": "@stigmer/mcp-server",
+  "version": "0.0.0-dev",
+  "description": "Model Context Protocol server for the Stigmer platform — exposes Stigmer agents, skills, MCP servers, and workflows as MCP tools and resources",
+  "license": "Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "mcp-server-stigmer": "./dist/cli/mcp-server-stigmer.js"
+  },
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "start": "tsx src/cli/mcp-server-stigmer.ts",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rm -rf dist tsconfig.build.tsbuildinfo",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "keywords": [
+    "stigmer",
+    "mcp",
+    "model-context-protocol",
+    "ai-agents",
+    "cli"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "bin": {
+      "mcp-server-stigmer": "./dist/cli/mcp-server-stigmer.js"
+    },
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js"
+      }
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stigmer/stigmer.git",
+    "directory": "mcp-server-ts"
+  },
+  "dependencies": {
+    "@bufbuild/protobuf": "^2.0.0",
+    "@connectrpc/connect": "^2.0.0",
+    "@connectrpc/connect-node": "^2.1.1",
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "@stigmer/protos": "*",
+    "@stigmer/sdk": "*",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.4",
+    "vitest": "^3.2.4"
+  }
+}
