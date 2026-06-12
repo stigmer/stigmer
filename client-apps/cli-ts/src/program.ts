@@ -11,8 +11,10 @@ import { registerApiKey } from "./commands/apikey/index.js";
 import { registerAuth } from "./commands/auth/index.js";
 import { registerCompletion } from "./commands/completion.js";
 import { registerConfig } from "./commands/config/index.js";
+import { registerDelete } from "./commands/delete.js";
 import { registerGet } from "./commands/get.js";
 import { registerList } from "./commands/list.js";
+import { registerTag } from "./commands/tag.js";
 import { registerValidate } from "./commands/validate.js";
 import { registerVersion } from "./commands/version.js";
 import { setDebug, setStandalone } from "./runtime.js";
@@ -51,6 +53,8 @@ export function buildProgram(): Command {
   registerGet(program);
   registerList(program);
   registerValidate(program);
+  registerDelete(program);
+  registerTag(program);
 
   return program;
 }
