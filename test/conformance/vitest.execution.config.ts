@@ -19,5 +19,10 @@ export default defineConfig({
     testTimeout: 120_000,
     // Covers Temporal boot + server boot + runner boot in beforeAll.
     hookTimeout: 180_000,
+    // Each execution suite file boots its own Temporal + server + runner stack.
+    // Run files serially so N suites don't spin up N concurrent engines — Class B
+    // is resource-heavy by nature, and bounding it keeps local + CI runs stable
+    // as more execution domains land. (Tests within a file still run in order.)
+    fileParallelism: false,
   },
 });

@@ -205,8 +205,18 @@ Temporal workflow that dispatches the real work to the runner on `stigmer_runner
 A `*.smoke.test.ts` here proves the harness is wired (the engine runs an
 execution); a `*.conformance.test.ts` asserts a domain's full contract. They are
 distinct on purpose: the smoke test is a permanent, cheap liveness guard, and
-per DD-006 an execution **domain** enters the suite whole on this same harness in
-a later session.
+per DD-006 an execution **domain** enters the suite whole on this same harness.
+
+`workflowexecution.conformance.test.ts` is the first such whole domain. It uses
+two hermetic fixtures: `set_vars` (sub-second, for create/complete/query/terminal
+cases) and `wait` (a durable Temporal timer, for acting on a genuinely *running*
+execution — IN_PROGRESS, cancel, terminate, pause/resume). It asserts the
+**engine-present** contract; the F7/F8 create-boundary (zombie PENDING when the
+engine is absent) is a known Go deficiency, only reachable with Temporal down, so
+it is documented rather than asserted — see the project's
+`design-decisions/008-workflowexecution-domain-engine-present-contract.md`. Class
+B files run serially (`fileParallelism: false`) so multiple suites don't boot
+multiple Temporal+runner stacks at once.
 
 ## Layout
 
@@ -216,9 +226,9 @@ src/
                     + execution: temporal, runner-build, runner-process, global-setup-execution
   targets/          target (interface + capabilities), local-go, local-go-execution, cloud (stub), index
   contract/         errors, deviations, parity
-  support/          naming, workflows, agents, mcpservers, skills, environments, executioncontexts, sessions
+  support/          naming, workflows (set_vars + wait), workflowexecutions, agents, mcpservers, skills, environments, executioncontexts, sessions
   suites/           *.conformance.test.ts            (Class A — CRUD, no Temporal)
-  suites-execution/ *.smoke.test.ts / *.conformance.test.ts  (Class B — Temporal + runner)
+  suites-execution/ harness.smoke.test.ts + workflowexecution.conformance.test.ts  (Class B — Temporal + runner)
 ```
 
 ## Adding a domain

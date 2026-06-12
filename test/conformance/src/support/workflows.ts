@@ -79,3 +79,38 @@ export function makeWorkflow(opts: WorkflowOptions): MessageInitShape<typeof Wor
     }),
   };
 }
+
+export interface WaitWorkflowOptions {
+  org: string;
+  name: string;
+  // How long the single wait task sleeps. Long enough that a test reliably
+  // observes IN_PROGRESS and acts (cancel/pause) before completion; the wait is
+  // a durable Temporal timer, so it occupies no worker slot while sleeping and a
+  // test that cancels never actually waits this long.
+  waitSeconds?: number;
+}
+
+// A valid single-task Workflow whose only task is a `wait` (Temporal sleep).
+// It keeps an execution in EXECUTION_IN_PROGRESS for a controllable duration —
+// the lever the lifecycle tests pull to act on a genuinely running execution
+// (vs. set_vars, which completes sub-second and would make those tests racy).
+// The taskConfig shape mirrors WaitTaskConfig: { duration: { seconds } }.
+export function makeWaitWorkflow(opts: WaitWorkflowOptions): MessageInitShape<typeof WorkflowSchema> {
+  const { org, name, waitSeconds = 30 } = opts;
+  return {
+    apiVersion: WORKFLOW_API_VERSION,
+    kind: WORKFLOW_KIND,
+    metadata: { name, org },
+    spec: {
+      description: "conformance wait fixture",
+      document: { dsl: "1.0.0", namespace: org, name, version: "1.0.0" },
+      tasks: [
+        {
+          name: "waitTask",
+          kind: WorkflowTaskKind.wait,
+          taskConfig: { duration: { seconds: waitSeconds } },
+        },
+      ],
+    },
+  };
+}

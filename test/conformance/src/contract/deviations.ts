@@ -28,7 +28,8 @@ export interface KnownDeviation {
 export const KNOWN_DEVIATIONS: KnownDeviation[] = [
   {
     id: "create.duplicate.code",
-    targets: ["local-go"],
+    // Same Go server, so both the CRUD and execution-engine targets exhibit it.
+    targets: ["local-go", "local-go-execution"],
     expected: Code.AlreadyExists,
     actual: Code.Unknown,
     rationale:
@@ -37,7 +38,7 @@ export const KNOWN_DEVIATIONS: KnownDeviation[] = [
   },
   {
     id: "create.missing-name.code",
-    targets: ["local-go"],
+    targets: ["local-go", "local-go-execution"],
     expected: Code.InvalidArgument,
     actual: Code.Unknown,
     rationale:
