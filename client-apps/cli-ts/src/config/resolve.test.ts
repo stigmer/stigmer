@@ -1,0 +1,103 @@
+import { afterEach, describe, expect, it } from "vitest";
+import { CliExitError } from "../errors/index.js";
+import type { Config } from "./config.js";
+import {
+  ensureAuthenticated,
+  resolveContextOrganization,
+  resolveEndpoint,
+  resolveOrganization,
+  resolveToken,
+} from "./resolve.js";
+
+const ENV_KEYS = ["STIGMER_SERVER_ADDRESS", "STIGMER_API_KEY", "STIGMER_ORG_ID"] as const;
+
+afterEach(() => {
+  for (const key of ENV_KEYS) delete process.env[key];
+});
+
+function cloudConfig(overrides: Partial<Config["backend"]["cloud"]> = {}): Config {
+  return { backend: { type: "cloud", cloud: { endpoint: "cloud.example:443", ...overrides } } };
+}
+
+describe("resolveEndpoint", () => {
+  it("defaults to the local daemon address in local mode", () => {
+    expect(resolveEndpoint({ backend: { type: "local" } })).toBe("localhost:7234");
+  });
+
+  it("uses the cloud default when no endpoint is configured", () => {
+    expect(resolveEndpoint({ backend: { type: "cloud" } })).toBe("api.stigmer.ai:443");
+  });
+
+  it("prefers the configured cloud endpoint", () => {
+    expect(resolveEndpoint(cloudConfig())).toBe("cloud.example:443");
+  });
+
+  it("lets STIGMER_SERVER_ADDRESS override everything", () => {
+    process.env.STIGMER_SERVER_ADDRESS = "override:7234";
+    expect(resolveEndpoint(cloudConfig())).toBe("override:7234");
+  });
+});
+
+describe("resolveToken", () => {
+  it("prefers STIGMER_API_KEY over the config token", () => {
+    process.env.STIGMER_API_KEY = "env-key";
+    expect(resolveToken(cloudConfig({ token: "config-token" }))).toBe("env-key");
+  });
+
+  it("falls back to the config token", () => {
+    expect(resolveToken(cloudConfig({ token: "config-token" }))).toBe("config-token");
+  });
+
+  it("returns empty string when unauthenticated", () => {
+    expect(resolveToken({ backend: { type: "cloud" } })).toBe("");
+  });
+});
+
+describe("resolveOrganization", () => {
+  it("prefers the --org flag override", () => {
+    process.env.STIGMER_ORG_ID = "env-org";
+    const config = cloudConfig({ org_id: "config-org" });
+    expect(resolveOrganization(config, "flag-org")).toBe("flag-org");
+  });
+
+  it("falls back to STIGMER_ORG_ID, then context, then cloud org_id", () => {
+    process.env.STIGMER_ORG_ID = "env-org";
+    expect(resolveOrganization(cloudConfig({ org_id: "config-org" }))).toBe("env-org");
+  });
+
+  it("uses context organization when no flag/env is set", () => {
+    const config: Config = {
+      backend: { type: "cloud", cloud: { org_id: "legacy" } },
+      context: { organization: "ctx-org" },
+    };
+    expect(resolveOrganization(config)).toBe("ctx-org");
+    expect(resolveContextOrganization(config)).toBe("ctx-org");
+  });
+
+  it("falls back to legacy cloud org_id", () => {
+    expect(resolveContextOrganization(cloudConfig({ org_id: "legacy" }))).toBe("legacy");
+  });
+});
+
+describe("ensureAuthenticated", () => {
+  it("never requires auth in local mode", () => {
+    expect(() => ensureAuthenticated({ backend: { type: "local" } })).not.toThrow();
+  });
+
+  it("throws in cloud mode with no credentials", () => {
+    expect(() => ensureAuthenticated(cloudConfig())).toThrow(CliExitError);
+  });
+
+  it("passes with a stored access token", () => {
+    expect(() => ensureAuthenticated(cloudConfig({ token: "t" }))).not.toThrow();
+  });
+
+  it("passes with only a refresh token", () => {
+    expect(() => ensureAuthenticated(cloudConfig({ refresh_token: "r" }))).not.toThrow();
+  });
+
+  it("passes with STIGMER_API_KEY set", () => {
+    process.env.STIGMER_API_KEY = "env-key";
+    expect(() => ensureAuthenticated(cloudConfig())).not.toThrow();
+  });
+});
