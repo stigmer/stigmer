@@ -79,7 +79,7 @@ install-vale: ## Install Vale prose linter (auto-detects OS)
 
 # ─── Build ────────────────────────────────────
 
-.PHONY: build build-mcp-server build-java-protos build-java-sdk build-runner protos codegen build-ts-stubs gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-task-docs gen-task-registry gen-task-registry-check gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-task-docs-check gen-ipc-fixtures gen-ipc-fixtures-check
+.PHONY: build build-mcp-server build-java-protos build-java-sdk build-runner build-runner-slim protos codegen build-ts-stubs gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-task-docs gen-task-registry gen-task-registry-check gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-task-docs-check gen-ipc-fixtures gen-ipc-fixtures-check
 build: libs-build build-web verify-desktop docs-build build-mcp-server build-java-sdk build-runner ## Build all project artifacts
 	@mkdir -p bin
 	cd client-apps/cli && go build -o ../../bin/stigmer .
@@ -117,6 +117,10 @@ bootstrap-runner: node_modules build-ts-stubs $(RUNNER_DIR)/node_modules ## One-
 build-runner: build-ts-stubs $(RUNNER_DIR)/node_modules ## Compile unified runner (TypeScript)
 	@echo "build    $(RUNNER_DIR)"
 	@cd $(RUNNER_DIR) && npm run build
+
+build-runner-slim: build-runner ## Build the slim embedding artifact (dist-slim/, see stigmer/stigmer#170)
+	@echo "bundle   $(RUNNER_DIR)/dist-slim"
+	@cd $(RUNNER_DIR) && node scripts/bundle-slim.mjs
 
 protos: ## Generate protocol buffer stubs and SDK client code
 	$(MAKE) -C apis build
@@ -472,13 +476,14 @@ launch-desktop: kill-desktop ## Start desktop app in dev mode (Tauri + Vite hot-
 	@-caddy stop 2>/dev/null || true
 	@-pkill -f "grpcwebproxy.*9091" 2>/dev/null || true
 
-build-desktop: ## Build desktop native binary (requires TAURI_SIGNING_PRIVATE_KEY)
+build-desktop: build-runner-slim ## Build desktop native binary (requires TAURI_SIGNING_PRIVATE_KEY)
 	@if [ -z "$$TAURI_SIGNING_PRIVATE_KEY" ] && [ -z "$$TAURI_SIGNING_PRIVATE_KEY_PATH" ]; then \
 		echo "warning: TAURI_SIGNING_PRIVATE_KEY not set — updater artifacts will not be signed"; \
 		echo "  Set TAURI_SIGNING_PRIVATE_KEY or TAURI_SIGNING_PRIVATE_KEY_PATH to sign builds"; \
 		echo "  Key location: ~/.tauri/stigmer.key"; \
 		echo ""; \
 	fi
+	client-apps/desktop/scripts/stage-runner-slim.sh
 	npm run tauri build -w desktop
 
 clean-build-desktop: ## Clean + build desktop app
@@ -501,8 +506,8 @@ test-runner-host: ## Test the stigmer-runner-host crate (+ prove the core builds
 	cd crates/stigmer-runner-host && cargo build && cargo test
 
 release-desktop-local: ## Debug build + install to /Applications
-	$(MAKE) build-runner
-	client-apps/desktop/scripts/setup-runner-dev.sh
+	$(MAKE) build-runner-slim
+	client-apps/desktop/scripts/stage-runner-slim.sh
 	cd client-apps/desktop && \
 		cp src-tauri/tauri.conf.json src-tauri/tauri.conf.json.bak && \
 		python3 -c "import json; f=open('src-tauri/tauri.conf.json','r+'); c=json.load(f); c.get('bundle',{}).pop('createUpdaterArtifacts',None); f.seek(0); json.dump(c,f,indent=2); f.truncate()" && \

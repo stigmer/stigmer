@@ -13,7 +13,6 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { homedir, tmpdir } from "node:os";
-import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import {
   NativeConnection,
@@ -21,10 +20,12 @@ import {
   bundleWorkflowCode,
   type ActivityInterceptorsFactory,
   type InjectedSinks,
+  type WorkflowBundleOption,
 } from "@temporalio/worker";
 import type { PayloadCodec } from "@temporalio/common";
 import type { Config } from "./config.js";
 import type { WorkerActivities } from "./worker.js";
+import { resolveWorkflowSource, OTEL_WORKFLOW_INTERCEPTOR_MODULE } from "./workflow-source.js";
 import { resolveRunnerBootstrap, refreshRunnerAccessToken } from "./bootstrap.js";
 import { createRunnerTokenCoordinator } from "./runner-token-coordinator.js";
 
@@ -275,13 +276,22 @@ export async function createStigmerRunnerManager(
   });
 
   const interceptorConfig = await buildInterceptorConfig();
-  const workflowsPath = fileURLToPath(
-    new URL("./workflows/index.js", import.meta.url),
-  );
 
-  console.log("[runner-manager] Pre-bundling workflow code...");
-  const workflowBundle = await bundleWorkflowCode({ workflowsPath });
-  console.log("[runner-manager] Workflow code bundled successfully");
+  // Prefer the build-time workflow bundle (slim/packaged artifacts ship it and
+  // cannot bundle at runtime); fall back to bundle-on-boot for dev and tests.
+  const workflowSource = resolveWorkflowSource();
+  let workflowBundle: WorkflowBundleOption;
+  if (workflowSource.kind === "prebuilt") {
+    console.log(`[runner-manager] Using pre-built workflow bundle: ${workflowSource.codePath}`);
+    workflowBundle = { codePath: workflowSource.codePath };
+  } else {
+    console.log("[runner-manager] Pre-bundling workflow code...");
+    workflowBundle = await bundleWorkflowCode({
+      workflowsPath: workflowSource.workflowsPath,
+      workflowInterceptorModules: interceptorConfig.workflowInterceptorModules,
+    });
+    console.log("[runner-manager] Workflow code bundled successfully");
+  }
 
   const sessions = new Map<string, ManagedSession>();
   const workflowExecutions = new Map<string, ManagedSession>();
@@ -571,6 +581,14 @@ async function createPayloadCodec(
 interface InterceptorConfig {
   sinks: InjectedSinks<any>;
   interceptors: Record<string, any>;
+  /**
+   * Workflow-side interceptor modules. These must be compiled INTO the
+   * workflow bundle (Worker.create ignores `interceptors.workflowModules`
+   * when a pre-built `workflowBundle` is supplied), so the runtime-bundling
+   * path passes them to `bundleWorkflowCode` and the pre-built path relies
+   * on the build script having baked them in.
+   */
+  workflowInterceptorModules: string[];
 }
 
 async function buildInterceptorConfig(): Promise<InterceptorConfig> {
@@ -610,9 +628,7 @@ async function buildInterceptorConfig(): Promise<InterceptorConfig> {
 
     const esmRequire = createRequire(import.meta.url);
     workflowInterceptorModules.push(
-      esmRequire.resolve(
-        "@temporalio/interceptors-opentelemetry/lib/workflow-interceptors",
-      ),
+      esmRequire.resolve(OTEL_WORKFLOW_INTERCEPTOR_MODULE),
     );
   }
 
@@ -622,10 +638,8 @@ async function buildInterceptorConfig(): Promise<InterceptorConfig> {
       ...(activityInterceptors.length > 0
         ? { activity: activityInterceptors }
         : {}),
-      ...(workflowInterceptorModules.length > 0
-        ? { workflowModules: workflowInterceptorModules }
-        : {}),
     },
+    workflowInterceptorModules,
   };
 }
 

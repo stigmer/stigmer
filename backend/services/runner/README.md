@@ -26,6 +26,18 @@ This runs `npm run build` in `backend/services/runner` (`tsc -p tsconfig.build.j
 
 Requires Node.js `>= 20`.
 
+### The slim embedding artifact
+
+The plain `dist/` resolves its dependencies from `node_modules` at runtime — ~508 MB unpacked, which is unshippable inside a desktop app ([#170](https://github.com/stigmer/stigmer/issues/170)). For embedding, build the **slim artifact**:
+
+```bash
+make build-runner-slim          # or: npm run build:slim
+```
+
+This produces `dist-slim/`: a tree-shaken esbuild bundle of the whole runner (`main.js`), a build-time-prebuilt Temporal workflow bundle, and a staged `node_modules` containing only the packages that genuinely cannot be bundled (the platform-pruned Temporal native bridge, `@cursor/sdk` and its native binaries, `jq-wasm`) — **~85 MB per platform**. `node dist-slim/main.js` accepts the same modes, environment variables, and IPC protocol as `dist/main.js`. See `scripts/bundle-slim.mjs` for the full layout, `scripts/verify-slim-artifact.mjs` for the boot verification that gates releases, and the [embedding guide](https://docs.stigmer.ai/guides/runners/embedding) for how apps stage it.
+
+The slim build is also published to npm as `@stigmer/runner-slim` (with per-platform `@stigmer/runner-slim-<platform>` support packages) alongside the full `@stigmer/runner` package on every release.
+
 ## Run modes
 
 The runner has two **run modes**, selected by the `STIGMER_RUNNER_MODE` environment variable. Do not confuse the run mode (process topology) with the execution location (`MODE=local|cloud`) or the transport (`STIGMER_PROXY_ENDPOINT`) — those are independent axes covered in [Execution location vs transport](#execution-location-vs-transport).

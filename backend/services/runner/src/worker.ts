@@ -14,11 +14,11 @@
  * - Activities are dispatched by name within the same queue
  */
 
-import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import { NativeConnection, Worker, type ActivityInterceptorsFactory, type InjectedSinks } from "@temporalio/worker";
 import type { PayloadCodec } from "@temporalio/common";
 import type { Config } from "./config.js";
+import { resolveWorkflowSource, OTEL_WORKFLOW_INTERCEPTOR_MODULE } from "./workflow-source.js";
 
 export interface WorkerActivities {
   [key: string]: (...args: any[]) => Promise<unknown>;
@@ -38,6 +38,8 @@ export async function startWorker(opts: StartWorkerOptions): Promise<Worker> {
   });
 
   const { createWorkflowMetricsSinks } = await import("./interceptors/workflow-metrics-sink.js");
+
+  const workflowSource = resolveWorkflowSource();
 
   const activityInterceptors: ActivityInterceptorsFactory[] = [];
   let sinks: InjectedSinks<any> = { ...createWorkflowMetricsSinks() };
@@ -65,24 +67,27 @@ export async function startWorker(opts: StartWorkerOptions): Promise<Worker> {
     const otelSinks = makeWorkflowExporter(exporter as any, resource as any) as unknown as InjectedSinks<any>;
     sinks = { ...sinks, ...otelSinks };
 
-    const esmRequire = createRequire(import.meta.url);
-    workflowInterceptorModules.push(
-      esmRequire.resolve("@temporalio/interceptors-opentelemetry/lib/workflow-interceptors"),
-    );
+    // Workflow-side interceptors must live inside the workflow bundle. With a
+    // pre-built bundle they were baked in at build time; only the runtime
+    // (bundle-on-boot) path registers them here.
+    if (workflowSource.kind === "runtime") {
+      const esmRequire = createRequire(import.meta.url);
+      workflowInterceptorModules.push(
+        esmRequire.resolve(OTEL_WORKFLOW_INTERCEPTOR_MODULE),
+      );
+    }
 
     console.log("Temporal OpenTelemetry interceptors enabled (activity + workflow)");
   }
-
-  const workflowsPath = fileURLToPath(
-    new URL("./workflows/index.js", import.meta.url),
-  );
 
   const worker = await Worker.create({
     connection,
     namespace: config.temporalNamespace,
     taskQueue: config.taskQueue,
     activities,
-    workflowsPath,
+    ...(workflowSource.kind === "prebuilt"
+      ? { workflowBundle: { codePath: workflowSource.codePath } }
+      : { workflowsPath: workflowSource.workflowsPath }),
     maxConcurrentActivityTaskExecutions: config.maxConcurrentActivities,
     dataConverter: payloadCodec
       ? { payloadCodecs: [payloadCodec] }

@@ -6,6 +6,12 @@
 *.dylib
 bin/
 dist/
+dist-slim/
+dist-slim-pkgs/
+
+# Desktop embedded-runner staging: a symlink in dev (setup-runner-dev.sh),
+# the staged slim artifact in packaged builds (stage-runner-slim.sh).
+client-apps/desktop/src-tauri/resources/runner
 
 # Test binary, built with `go test -c`
 *.test

@@ -185,14 +185,37 @@ publish_npm() {
     sleep 10
   done
 
-  # Project-level .npmrc for the runner publish (token via env, removed on exit).
-  local npmrc="$runner_dir/.npmrc"
-  [ -f "$npmrc" ] && snapshot "$npmrc"
+  # npm reads the project .npmrc from the *publish* directory and does not walk
+  # up to parent directories. The fat runner and each slim sub-package live in
+  # different dirs (dist-slim-pkgs/runner-slim-*/ each carry their own
+  # package.json), so a single project .npmrc could never cover them all. Mirror
+  # what actions/setup-node does in CI: write one auth file and point npm at it
+  # via NPM_CONFIG_USERCONFIG, which npm honors from any working directory. The
+  # token stays in the environment (interpolated at runtime); the file holds only
+  # the ${NODE_AUTH_TOKEN} reference, and the temp file is removed on exit.
+  local npmrc; npmrc="$(mktemp)"; TMP_FILES+=("$npmrc")
   printf '//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}\n' > "$npmrc"
-  [ -f "$BACKUP_DIR/$npmrc" ] || TMP_FILES+=("$ROOT/$npmrc")
-  ( cd "$runner_dir" && NODE_AUTH_TOKEN="$token" npm publish --access public --tag dev )
+  export NPM_CONFIG_USERCONFIG="$npmrc" NODE_AUTH_TOKEN="$token"
+  ( cd "$runner_dir" && npm publish --access public --tag dev )
 
-  ok "npm: published @stigmer/* and @stigmer/runner at $NPM_VERSION (tag dev)"
+  # The slim embedding artifact (stigmer/stigmer#170): @stigmer/runner-slim plus
+  # its per-platform native-bridge packages. Self-contained — its bundle does
+  # not pin @stigmer/protos — so it just needs the version already stamped into
+  # package.json above, which bundle-slim.mjs propagates into every manifest.
+  # dist/ was produced by `make build-runner` above and carries no version, so
+  # no rebuild is needed before emitting the packages.
+  log "npm: building and publishing @stigmer/runner-slim@$NPM_VERSION"
+  ( cd "$runner_dir" && node scripts/bundle-slim.mjs --emit-packages )
+  local slim_pkgs="$runner_dir/dist-slim-pkgs"
+  # Platform packages first so the meta package's optionalDependencies resolve
+  # the moment it lands.
+  local pkg
+  for pkg in "$slim_pkgs"/runner-slim-*; do
+    ( cd "$pkg" && npm publish --access public --tag dev )
+  done
+  ( cd "$slim_pkgs/runner-slim" && npm publish --access public --tag dev )
+
+  ok "npm: published @stigmer/*, @stigmer/runner, and @stigmer/runner-slim at $NPM_VERSION (tag dev)"
 }
 
 # ─── Maven ─────────────────────────────────────────────────────────────────
@@ -295,7 +318,8 @@ if want maven; then
   echo "Maven (Java SDK):  ai.stigmer:stigmer-java:${MAVEN_VERSION}   (mvn -U to refresh)"
 fi
 if want npm; then
-  echo "npm (React/TS):    npm install @stigmer/react@dev   # exact: @stigmer/react@${NPM_VERSION}"
+  echo "npm (React/TS):    npm install @stigmer/react@dev          # exact: @stigmer/react@${NPM_VERSION}"
+  echo "npm (embed runner): npm install @stigmer/runner-slim@dev   # exact: @stigmer/runner-slim@${NPM_VERSION}"
 fi
 if want python; then
   echo "Python (TestPyPI): pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ --pre 'stigmer==${PY_VERSION}'"

@@ -264,6 +264,18 @@ jobs:
           fi
           npm run build:libs
 
+      # Stage the embedded runner as the slim artifact (stigmer/stigmer#170).
+      # resources/runner is gitignored; without this step the packaged app
+      # would ship no runner at all (and historically the dev symlink leaked
+      # the full ~485 MB runner tree into local bundles — or a broken one
+      # without dist/node_modules in CI). The runner is not an npm workspace,
+      # so its deps install here. @stigmer/protos dist was built by build:libs.
+      - name: Stage embedded runner (slim artifact)
+        shell: bash
+        run: |
+          (cd backend/services/runner && npm ci && npm run build:slim)
+          client-apps/desktop/scripts/stage-runner-slim.sh
+
       - name: Set app version from tag
         shell: bash
         run: |

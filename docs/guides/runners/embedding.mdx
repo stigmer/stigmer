@@ -272,14 +272,21 @@ uses it.
 The Rust crate _drives_ the runner, but it does not contain it: the subprocess
 path launches the runner's compiled JavaScript with `node`. Those files must
 travel **inside** your installable app, because the end user's machine has no
-Stigmer checkout. Get them from npm rather than cloning the monorepo:
+Stigmer checkout. Get them from npm rather than cloning the monorepo —
+specifically, from the **slim embedding build**:
 
-1. **Add the package.** `npm install @stigmer/runner`. The package ships the
-   runner's `dist/` and the runtime dependencies the subprocess needs.
+1. **Add the package.** `npm install @stigmer/runner-slim`. This is the
+   bundle-friendly build of the runner, made for exactly this use case: a
+   self-contained `main.js` (the entire runner, tree-shaken and bundled) plus
+   only the dependencies that genuinely cannot be bundled — the Temporal native
+   bridge (pruned to your platform via `optionalDependencies`), the Cursor SDK
+   with its native helper binaries, and the jq wasm module. It installs at **~85
+   MB per platform** instead of the full `@stigmer/runner` package's ~508 MB
+   `node_modules`.
 2. **Copy it into your app's resources at build time.** Stage the installed
-   package (its `dist/` and resolved `node_modules`) into a resources folder,
-   then have your packager bundle that folder into the installer. In Tauri,
-   declare it under `bundle.resources` in `tauri.conf.json`:
+   package and its resolved `node_modules` into a resources folder, then have
+   your packager bundle that folder into the installer. In Tauri, declare it
+   under `bundle.resources` in `tauri.conf.json`:
 
    ```json
    {
@@ -290,14 +297,19 @@ Stigmer checkout. Get them from npm rather than cloning the monorepo:
    ```
 
 3. **Point the host at the bundled entry.** Set `runner_entry` (the Rust snippet
-   above) to the staged path — `resources/runner/dist/main.js` — resolved
-   relative to the app's resource directory at runtime.
+   above) to the staged `main.js`, resolved relative to the app's resource
+   directory at runtime. The slim entry accepts the same modes, environment
+   variables, and IPC protocol as the full package's `dist/main.js`.
 
 <Callout type="info">
-  The Stigmer desktop app symlinks `resources/runner` to the in-repo runner
-  (`backend/services/runner`) because it lives inside the monorepo. An external
-  embedder fills the same folder from the published `@stigmer/runner` package
-  instead — the Tauri `bundle.resources` config is identical either way.
+  `@stigmer/runner-slim` is for the subprocess path. If you embed **in-process**
+  (importing `createStigmerRunnerManager` into your own Node app), keep using
+  `@stigmer/runner` — it is the library entry, and your bundler resolves what it
+  needs. The Stigmer desktop app stages the slim artifact into
+  `resources/runner` at packaging time
+  (`client-apps/desktop/scripts/stage-runner-slim.sh`); in development it
+  symlinks the in-repo runner instead. The Tauri `bundle.resources` config is
+  identical either way.
 </Callout>
 
 <Callout type="warn">
