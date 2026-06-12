@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "agentexecution",
+    srcs = ["agent_execution_gen.go"],
+    importpath = "github.com/stigmer/stigmer/mcp-server/gen/agentic/agentexecution",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//mcp-server/internal/convert",
+        "//mcp-server/proto/ai/stigmer/agentic/agentexecution/v1:agentexecution",
+        "//mcp-server/proto/ai/stigmer/agentic/executioncontext/v1:executioncontext",
+        "//mcp-server/proto/ai/stigmer/commons/apiresource",
+        "@org_golang_google_protobuf//types/known/structpb",
+    ],
+)

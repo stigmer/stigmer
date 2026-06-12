@@ -41,6 +41,14 @@
           "description": "Update the visibility of an existing workflow instance.\n\n Changes who can view this instance and its executions. Supports the full\n visibility spectrum: PRIVATE (owner only), ORG (all org members), or\n PUBLIC (all authenticated users).\n\n For workflow instances, visibility has cascading effects on execution\n observability: workflow executions inherit visibility from their parent\n instance via FGA. An ORG-visible instance means all org members can see\n all executions — zero per-execution tuples needed.\n\n @internal\n Authorization: Requires can_edit permission on the workflow instance.\n Visibility transitions trigger FGA tuple management in Cloud mode:\n - PRIVATE → ORG: creates workflow_instance#viewer@organization:\u003corg\u003e#member\n - PRIVATE → PUBLIC: creates workflow_instance#viewer@identity_account:*\n - ORG → PRIVATE: deletes the org member viewer tuple\n - PUBLIC → PRIVATE: deletes the wildcard viewer tuple"
         },
         {
+          "name": "UpdateExecutionVisibility",
+          "inputType": "UpdateExecutionVisibilityInput",
+          "inputFullType": "ai.stigmer.agentic.workflowinstance.v1.UpdateExecutionVisibilityInput",
+          "outputType": "WorkflowInstance",
+          "outputFullType": "ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance",
+          "description": "Update who can observe the run history (executions) of this instance.\n\n This is a SEPARATE axis from updateVisibility: it controls run\n observability (who sees execution inputs/outputs), not who can see/run\n the instance itself. Making an instance org-runnable does NOT expose\n other users' run history — that requires this opt-in.\n\n Supported levels: PRIVATE (only the user who ran each execution) and\n ORGANIZATION (all org members). Public/platform are unsupported.\n\n @internal\n Authorization: requires can_grant_access on the workflow instance —\n sharing run history is an access-granting action, consistent with the\n per-execution share flow. In Cloud mode the transition reconciles the\n instance's `execution_viewer` FGA relation:\n - PRIVATE -\u003e ORGANIZATION: creates\n   workflow_instance#execution_viewer@organization:\u003corg\u003e#member\n - ORGANIZATION -\u003e PRIVATE: deletes that tuple"
+        },
+        {
           "name": "Delete",
           "inputType": "WorkflowInstanceId",
           "inputFullType": "ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceId",
@@ -117,6 +125,42 @@
             ]
           },
           "description": "The new visibility setting for the resource.\n Must not be unspecified (0). Valid values depend on resource kind —\n see the VisibilityConfig in the kind's kind_meta.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "UpdateExecutionVisibilityInput",
+      "description": "UpdateExecutionVisibilityInput targets the run-observability setting of a\n single workflow instance.\n\n Mirrors the shape of commons UpdateVisibilityInput, but for the SEPARATE\n execution-visibility axis (see WorkflowExecutionVisibility). A dedicated\n message keeps the two visibility concepts from being conflated.",
+      "protoType": "ai.stigmer.agentic.workflowinstance.v1.UpdateExecutionVisibilityInput",
+      "protoFile": "apis/ai/stigmer/agentic/workflowinstance/v1/io.proto",
+      "fields": [
+        {
+          "name": "ResourceId",
+          "jsonName": "resourceId",
+          "protoField": "resource_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the workflow instance whose execution visibility is being updated.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "ExecutionVisibility",
+          "jsonName": "executionVisibility",
+          "protoField": "execution_visibility",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.workflowinstance.v1.WorkflowExecutionVisibility",
+            "enumValues": [
+              "workflow_execution_visibility_private",
+              "workflow_execution_visibility_organization"
+            ]
+          },
+          "description": "The new execution-visibility setting. Must not be unspecified (0).",
           "required": false
         }
       ]
@@ -298,6 +342,23 @@
           "name": "visibility_platform",
           "number": 4,
           "description": "All members of all organizations managed by the owning org's\n IdentityProvider can access (read and execute) this resource.\n\n \"Platform\" here means an external platform that operates Stigmer orgs\n on behalf of its own customers (see ManagementMode.platform_managed) —\n NOT the Stigmer platform singleton used by\n AUTHORIZATION_SCOPE_TYPE_PLATFORM.\n\n This is the \"private catalog\" primitive for multi-tenant consumers:\n a platform (e.g. Planton) authors blueprints (agents, skills, MCP\n servers, workflows) in its own org and shares them with every child\n org it manages, without exposing them publicly. Child orgs created\n later gain access automatically. Instances, sessions, executions and\n environments are never platform-visible — each child org instantiates\n the shared blueprint inside its own tenant boundary.\n\n Only valid for blueprint kinds with supports_platform: true, and only\n when the owning org owns at least one IdentityProvider.\n\n FGA tuple: resource#platform_viewer@identity_provider:\u003cidp\u003e#platform_user"
+        }
+      ]
+    },
+    {
+      "name": "WorkflowExecutionVisibility",
+      "description": "WorkflowExecutionVisibility controls who can observe the run history\n (executions) of a workflow instance.\n\n This is a SEPARATE axis from the instance's own visibility\n (metadata.visibility, which governs who can SEE and RUN the instance).\n Keeping them separate means making an instance org-runnable never exposes\n other users' run inputs/outputs. See workflow_execution.fga and\n workflow_instance.fga (the `execution_viewer` relation) for how this maps\n to authorization tuples.\n\n Only PRIVATE and ORGANIZATION are meaningful: run history is either visible\n to just the triggerer, or to every member of the owning organization.\n Public/platform run observability is deliberately unsupported.",
+      "protoType": "ai.stigmer.agentic.workflowinstance.v1.WorkflowExecutionVisibility",
+      "values": [
+        {
+          "name": "workflow_execution_visibility_private",
+          "number": 1,
+          "description": "Each execution is visible only to the user who triggered it (its owner)."
+        },
+        {
+          "name": "workflow_execution_visibility_organization",
+          "number": 2,
+          "description": "Every member of the owning organization can observe all executions of\n this instance."
         }
       ]
     },

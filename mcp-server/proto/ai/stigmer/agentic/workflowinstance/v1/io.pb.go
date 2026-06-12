@@ -143,6 +143,66 @@ func (x *GetWorkflowInstancesByWorkflowRequest) GetPageInfo() *rpc.PageInfo {
 	return nil
 }
 
+// UpdateExecutionVisibilityInput targets the run-observability setting of a
+// single workflow instance.
+//
+// Mirrors the shape of commons UpdateVisibilityInput, but for the SEPARATE
+// execution-visibility axis (see WorkflowExecutionVisibility). A dedicated
+// message keeps the two visibility concepts from being conflated.
+type UpdateExecutionVisibilityInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ID of the workflow instance whose execution visibility is being updated.
+	ResourceId string `protobuf:"bytes,1,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
+	// The new execution-visibility setting. Must not be unspecified (0).
+	ExecutionVisibility WorkflowExecutionVisibility `protobuf:"varint,2,opt,name=execution_visibility,json=executionVisibility,proto3,enum=ai.stigmer.agentic.workflowinstance.v1.WorkflowExecutionVisibility" json:"execution_visibility,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *UpdateExecutionVisibilityInput) Reset() {
+	*x = UpdateExecutionVisibilityInput{}
+	mi := &file_ai_stigmer_agentic_workflowinstance_v1_io_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateExecutionVisibilityInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateExecutionVisibilityInput) ProtoMessage() {}
+
+func (x *UpdateExecutionVisibilityInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_workflowinstance_v1_io_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateExecutionVisibilityInput.ProtoReflect.Descriptor instead.
+func (*UpdateExecutionVisibilityInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_workflowinstance_v1_io_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *UpdateExecutionVisibilityInput) GetResourceId() string {
+	if x != nil {
+		return x.ResourceId
+	}
+	return ""
+}
+
+func (x *UpdateExecutionVisibilityInput) GetExecutionVisibility() WorkflowExecutionVisibility {
+	if x != nil {
+		return x.ExecutionVisibility
+	}
+	return WorkflowExecutionVisibility_workflow_execution_visibility_unspecified
+}
+
 // WorkflowInstanceList contains a paginated list of workflow instances.
 type WorkflowInstanceList struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -156,7 +216,7 @@ type WorkflowInstanceList struct {
 
 func (x *WorkflowInstanceList) Reset() {
 	*x = WorkflowInstanceList{}
-	mi := &file_ai_stigmer_agentic_workflowinstance_v1_io_proto_msgTypes[2]
+	mi := &file_ai_stigmer_agentic_workflowinstance_v1_io_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -168,7 +228,7 @@ func (x *WorkflowInstanceList) String() string {
 func (*WorkflowInstanceList) ProtoMessage() {}
 
 func (x *WorkflowInstanceList) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_workflowinstance_v1_io_proto_msgTypes[2]
+	mi := &file_ai_stigmer_agentic_workflowinstance_v1_io_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -181,7 +241,7 @@ func (x *WorkflowInstanceList) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WorkflowInstanceList.ProtoReflect.Descriptor instead.
 func (*WorkflowInstanceList) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_workflowinstance_v1_io_proto_rawDescGZIP(), []int{2}
+	return file_ai_stigmer_agentic_workflowinstance_v1_io_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *WorkflowInstanceList) GetTotalPages() int32 {
@@ -202,13 +262,18 @@ var File_ai_stigmer_agentic_workflowinstance_v1_io_proto protoreflect.FileDescri
 
 const file_ai_stigmer_agentic_workflowinstance_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"/ai/stigmer/agentic/workflowinstance/v1/io.proto\x12&ai.stigmer.agentic.workflowinstance.v1\x1a0ai/stigmer/agentic/workflowinstance/v1/api.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a\x1bbuf/validate/validate.proto\"2\n" +
+	"/ai/stigmer/agentic/workflowinstance/v1/io.proto\x12&ai.stigmer.agentic.workflowinstance.v1\x1a0ai/stigmer/agentic/workflowinstance/v1/api.proto\x1a1ai/stigmer/agentic/workflowinstance/v1/spec.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a\x1bbuf/validate/validate.proto\"2\n" +
 	"\x12WorkflowInstanceId\x12\x1c\n" +
 	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x8f\x01\n" +
 	"%GetWorkflowInstancesByWorkflowRequest\x12'\n" +
 	"\vworkflow_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\n" +
 	"workflowId\x12=\n" +
-	"\tpage_info\x18\x02 \x01(\v2 .ai.stigmer.commons.rpc.PageInfoR\bpageInfo\"\x8b\x01\n" +
+	"\tpage_info\x18\x02 \x01(\v2 .ai.stigmer.commons.rpc.PageInfoR\bpageInfo\"\xce\x01\n" +
+	"\x1eUpdateExecutionVisibilityInput\x12'\n" +
+	"\vresource_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\n" +
+	"resourceId\x12\x82\x01\n" +
+	"\x14execution_visibility\x18\x02 \x01(\x0e2C.ai.stigmer.agentic.workflowinstance.v1.WorkflowExecutionVisibilityB\n" +
+	"\xbaH\a\x82\x01\x04\x10\x01 \x00R\x13executionVisibility\"\x8b\x01\n" +
 	"\x14WorkflowInstanceList\x12\x1f\n" +
 	"\vtotal_pages\x18\x01 \x01(\x05R\n" +
 	"totalPages\x12R\n" +
@@ -227,22 +292,25 @@ func file_ai_stigmer_agentic_workflowinstance_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_workflowinstance_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_workflowinstance_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_ai_stigmer_agentic_workflowinstance_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_ai_stigmer_agentic_workflowinstance_v1_io_proto_goTypes = []any{
 	(*WorkflowInstanceId)(nil),                    // 0: ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceId
 	(*GetWorkflowInstancesByWorkflowRequest)(nil), // 1: ai.stigmer.agentic.workflowinstance.v1.GetWorkflowInstancesByWorkflowRequest
-	(*WorkflowInstanceList)(nil),                  // 2: ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceList
-	(*rpc.PageInfo)(nil),                          // 3: ai.stigmer.commons.rpc.PageInfo
-	(*WorkflowInstance)(nil),                      // 4: ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance
+	(*UpdateExecutionVisibilityInput)(nil),        // 2: ai.stigmer.agentic.workflowinstance.v1.UpdateExecutionVisibilityInput
+	(*WorkflowInstanceList)(nil),                  // 3: ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceList
+	(*rpc.PageInfo)(nil),                          // 4: ai.stigmer.commons.rpc.PageInfo
+	(WorkflowExecutionVisibility)(0),              // 5: ai.stigmer.agentic.workflowinstance.v1.WorkflowExecutionVisibility
+	(*WorkflowInstance)(nil),                      // 6: ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance
 }
 var file_ai_stigmer_agentic_workflowinstance_v1_io_proto_depIdxs = []int32{
-	3, // 0: ai.stigmer.agentic.workflowinstance.v1.GetWorkflowInstancesByWorkflowRequest.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
-	4, // 1: ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceList.entries:type_name -> ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance
-	2, // [2:2] is the sub-list for method output_type
-	2, // [2:2] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	4, // 0: ai.stigmer.agentic.workflowinstance.v1.GetWorkflowInstancesByWorkflowRequest.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
+	5, // 1: ai.stigmer.agentic.workflowinstance.v1.UpdateExecutionVisibilityInput.execution_visibility:type_name -> ai.stigmer.agentic.workflowinstance.v1.WorkflowExecutionVisibility
+	6, // 2: ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceList.entries:type_name -> ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance
+	3, // [3:3] is the sub-list for method output_type
+	3, // [3:3] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_workflowinstance_v1_io_proto_init() }
@@ -251,13 +319,14 @@ func file_ai_stigmer_agentic_workflowinstance_v1_io_proto_init() {
 		return
 	}
 	file_ai_stigmer_agentic_workflowinstance_v1_api_proto_init()
+	file_ai_stigmer_agentic_workflowinstance_v1_spec_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_workflowinstance_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_workflowinstance_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

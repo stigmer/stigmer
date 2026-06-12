@@ -248,6 +248,7 @@ export function WorkflowDetailPageInner({
                 resource={{ kind: "workflow", id: resourceId, resourceKind: ApiResourceKind.workflow }}
                 resourceKindString="workflow"
                 resourceKind={ApiResourceKind.workflow}
+                orgId={workflow?.metadata?.org ?? ""}
                 onClose={() => setShowSharePanel(false)}
               />
             </div>

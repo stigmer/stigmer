@@ -16,6 +16,11 @@ export interface SharePanelProps {
   readonly resourceKindString: string;
   /** ApiResourceKind enum value for grantable-role lookup. */
   readonly resourceKind: ApiResourceKind;
+  /**
+   * Organization the resource belongs to (`metadata.org`). Drives the
+   * org-member typeahead in the grant form.
+   */
+  readonly orgId: string;
   /** Fired when the user closes the panel. */
   readonly onClose?: () => void;
   /** Additional CSS class names for the root container. */
@@ -38,6 +43,7 @@ export interface SharePanelProps {
  *   resource={{ kind: "session", id: sessionId, resourceKind: ApiResourceKind.session }}
  *   resourceKindString="session"
  *   resourceKind={ApiResourceKind.session}
+ *   orgId={orgId}
  *   onClose={() => setOpen(false)}
  * />
  * ```
@@ -46,6 +52,7 @@ export function SharePanel({
   resource,
   resourceKindString,
   resourceKind,
+  orgId,
   onClose,
   className,
 }: SharePanelProps) {
@@ -61,6 +68,10 @@ export function SharePanel({
   } = useShareFlow(resource);
 
   const [showGrantForm, setShowGrantForm] = useState(false);
+
+  const existingPrincipalIds = accessList
+    .map((entry) => entry.principal?.id)
+    .filter((id): id is string => Boolean(id));
 
   return (
     <div
@@ -132,6 +143,8 @@ export function SharePanel({
               resourceKind={resourceKind}
               resourceKindString={resourceKindString}
               resourceId={resource.id}
+              orgId={orgId}
+              excludePrincipalIds={existingPrincipalIds}
               onGranted={() => {
                 setShowGrantForm(false);
                 refetch();

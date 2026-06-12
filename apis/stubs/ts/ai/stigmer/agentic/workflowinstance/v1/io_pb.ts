@@ -11,6 +11,8 @@ import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { WorkflowInstance } from "./api_pb.js";
 import { file_ai_stigmer_agentic_workflowinstance_v1_api } from "./api_pb.js";
+import type { WorkflowExecutionVisibility } from "./spec_pb.js";
+import { file_ai_stigmer_agentic_workflowinstance_v1_spec } from "./spec_pb.js";
 import type { PageInfo } from "../../../commons/rpc/pagination_pb.js";
 import { file_ai_stigmer_commons_rpc_pagination } from "../../../commons/rpc/pagination_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
@@ -20,7 +22,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/workflowinstance/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_workflowinstance_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("Ci9haS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3dpbnN0YW5jZS92MS9pby5wcm90bxImYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93aW5zdGFuY2UudjEiKwoSV29ya2Zsb3dJbnN0YW5jZUlkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEieQolR2V0V29ya2Zsb3dJbnN0YW5jZXNCeVdvcmtmbG93UmVxdWVzdBIbCgt3b3JrZmxvd19pZBgBIAEoCUIGukgDyAEBEjMKCXBhZ2VfaW5mbxgCIAEoCzIgLmFpLnN0aWdtZXIuY29tbW9ucy5ycGMuUGFnZUluZm8idgoUV29ya2Zsb3dJbnN0YW5jZUxpc3QSEwoLdG90YWxfcGFnZXMYASABKAUSSQoHZW50cmllcxgCIAMoCzI4LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2luc3RhbmNlLnYxLldvcmtmbG93SW5zdGFuY2ViBnByb3RvMw", [file_ai_stigmer_agentic_workflowinstance_v1_api, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate]);
+  fileDesc("Ci9haS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3dpbnN0YW5jZS92MS9pby5wcm90bxImYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93aW5zdGFuY2UudjEiKwoSV29ya2Zsb3dJbnN0YW5jZUlkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEieQolR2V0V29ya2Zsb3dJbnN0YW5jZXNCeVdvcmtmbG93UmVxdWVzdBIbCgt3b3JrZmxvd19pZBgBIAEoCUIGukgDyAEBEjMKCXBhZ2VfaW5mbxgCIAEoCzIgLmFpLnN0aWdtZXIuY29tbW9ucy5ycGMuUGFnZUluZm8irAEKHlVwZGF0ZUV4ZWN1dGlvblZpc2liaWxpdHlJbnB1dBIbCgtyZXNvdXJjZV9pZBgBIAEoCUIGukgDyAEBEm0KFGV4ZWN1dGlvbl92aXNpYmlsaXR5GAIgASgOMkMuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93aW5zdGFuY2UudjEuV29ya2Zsb3dFeGVjdXRpb25WaXNpYmlsaXR5Qgq6SAeCAQQQASAAInYKFFdvcmtmbG93SW5zdGFuY2VMaXN0EhMKC3RvdGFsX3BhZ2VzGAEgASgFEkkKB2VudHJpZXMYAiADKAsyOC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dpbnN0YW5jZS52MS5Xb3JrZmxvd0luc3RhbmNlYgZwcm90bzM", [file_ai_stigmer_agentic_workflowinstance_v1_api, file_ai_stigmer_agentic_workflowinstance_v1_spec, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate]);
 
 /**
  * WorkflowInstanceId wraps a workflow instance identifier.
@@ -86,6 +88,39 @@ export const GetWorkflowInstancesByWorkflowRequestSchema: GenMessage<GetWorkflow
   messageDesc(file_ai_stigmer_agentic_workflowinstance_v1_io, 1);
 
 /**
+ * UpdateExecutionVisibilityInput targets the run-observability setting of a
+ * single workflow instance.
+ *
+ * Mirrors the shape of commons UpdateVisibilityInput, but for the SEPARATE
+ * execution-visibility axis (see WorkflowExecutionVisibility). A dedicated
+ * message keeps the two visibility concepts from being conflated.
+ *
+ * @generated from message ai.stigmer.agentic.workflowinstance.v1.UpdateExecutionVisibilityInput
+ */
+export type UpdateExecutionVisibilityInput = Message<"ai.stigmer.agentic.workflowinstance.v1.UpdateExecutionVisibilityInput"> & {
+  /**
+   * ID of the workflow instance whose execution visibility is being updated.
+   *
+   * @generated from field: string resource_id = 1;
+   */
+  resourceId: string;
+
+  /**
+   * The new execution-visibility setting. Must not be unspecified (0).
+   *
+   * @generated from field: ai.stigmer.agentic.workflowinstance.v1.WorkflowExecutionVisibility execution_visibility = 2;
+   */
+  executionVisibility: WorkflowExecutionVisibility;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.workflowinstance.v1.UpdateExecutionVisibilityInput.
+ * Use `create(UpdateExecutionVisibilityInputSchema)` to create a new message.
+ */
+export const UpdateExecutionVisibilityInputSchema: GenMessage<UpdateExecutionVisibilityInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_workflowinstance_v1_io, 2);
+
+/**
  * WorkflowInstanceList contains a paginated list of workflow instances.
  *
  * @generated from message ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceList
@@ -111,5 +146,5 @@ export type WorkflowInstanceList = Message<"ai.stigmer.agentic.workflowinstance.
  * Use `create(WorkflowInstanceListSchema)` to create a new message.
  */
 export const WorkflowInstanceListSchema: GenMessage<WorkflowInstanceList> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowinstance_v1_io, 2);
+  messageDesc(file_ai_stigmer_agentic_workflowinstance_v1_io, 3);
 

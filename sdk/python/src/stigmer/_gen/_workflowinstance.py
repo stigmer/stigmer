@@ -50,6 +50,12 @@ class WorkflowInstanceClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def update_execution_visibility(self, input: io_pb2.UpdateExecutionVisibilityInput) -> api_pb2.WorkflowInstance:
+        try:
+            return self._command.updateExecutionVisibility(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def delete(self, id: str) -> api_pb2.WorkflowInstance:
         try:
             return self._command.delete(io_pb2.WorkflowInstanceId(value=id))
@@ -89,11 +95,13 @@ class WorkflowInstanceInput:
     workflow_id: str = ""
     description: str = ""
     environment_refs: list[ResourceRef] = field(default_factory=list)
+    execution_visibility: int = 0
 
     def _to_proto(self) -> api_pb2.WorkflowInstance:
         spec = spec_pb2.WorkflowInstanceSpec(
             workflow_id=self.workflow_id,
             description=self.description,
+            execution_visibility=self.execution_visibility,
         )
         for ref in self.environment_refs:
             _ref = ref._to_proto()

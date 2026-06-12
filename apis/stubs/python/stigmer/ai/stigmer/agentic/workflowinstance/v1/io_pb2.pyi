@@ -1,4 +1,5 @@
 from ai.stigmer.agentic.workflowinstance.v1 import api_pb2 as _api_pb2
+from ai.stigmer.agentic.workflowinstance.v1 import spec_pb2 as _spec_pb2
 from ai.stigmer.commons.rpc import pagination_pb2 as _pagination_pb2
 from buf.validate import validate_pb2 as _validate_pb2
 from google.protobuf.internal import containers as _containers
@@ -22,6 +23,14 @@ class GetWorkflowInstancesByWorkflowRequest(_message.Message):
     workflow_id: str
     page_info: _pagination_pb2.PageInfo
     def __init__(self, workflow_id: _Optional[str] = ..., page_info: _Optional[_Union[_pagination_pb2.PageInfo, _Mapping]] = ...) -> None: ...
+
+class UpdateExecutionVisibilityInput(_message.Message):
+    __slots__ = ("resource_id", "execution_visibility")
+    RESOURCE_ID_FIELD_NUMBER: _ClassVar[int]
+    EXECUTION_VISIBILITY_FIELD_NUMBER: _ClassVar[int]
+    resource_id: str
+    execution_visibility: _spec_pb2.WorkflowExecutionVisibility
+    def __init__(self, resource_id: _Optional[str] = ..., execution_visibility: _Optional[_Union[_spec_pb2.WorkflowExecutionVisibility, str]] = ...) -> None: ...
 
 class WorkflowInstanceList(_message.Message):
     __slots__ = ("total_pages", "entries")

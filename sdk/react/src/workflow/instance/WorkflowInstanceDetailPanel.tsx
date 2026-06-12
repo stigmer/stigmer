@@ -6,9 +6,11 @@ import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { WorkflowInstance } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/spec_pb";
 import type { ResourceRef } from "@stigmer/sdk";
 import { getUserMessage } from "@stigmer/sdk";
 import { useUpdateWorkflowInstance } from "./useUpdateWorkflowInstance";
+import { useUpdateWorkflowInstanceExecutionVisibility } from "./useUpdateWorkflowInstanceExecutionVisibility";
 import { useDeleteWorkflowInstance } from "./useDeleteWorkflowInstance";
 import { ResourceVisibilityControl } from "../../library/ResourceVisibilityControl";
 import { PermissionGate } from "../../iam-policy/PermissionGate";
@@ -252,6 +254,27 @@ export function WorkflowInstanceDetailPanel({
           />
         </div>
 
+        {/* Run visibility — who can observe this instance's executions.
+            Distinct from instance visibility: an owner can keep the instance
+            itself private while letting the whole org watch its runs. Only
+            meaningful while the instance is private; an ORG/PUBLIC instance
+            already exposes its runs to org members by inheritance. */}
+        {(meta?.visibility ?? ApiResourceVisibility.visibility_private) ===
+          ApiResourceVisibility.visibility_private && (
+          <PermissionGate resource={{ kind: "workflow_instance", id }} relation="can_grant_access">
+            <div className="px-4 py-3">
+              <h4 className="text-xs font-medium text-muted-foreground mb-2">Run visibility</h4>
+              <RunVisibilityControl
+                instanceId={id}
+                executionVisibility={
+                  spec?.executionVisibility ?? WorkflowExecutionVisibility.unspecified
+                }
+                onChanged={onUpdated}
+              />
+            </div>
+          </PermissionGate>
+        )}
+
         {/* Share Panel */}
         {showSharePanel && (
           <div className="px-4 py-3">
@@ -259,6 +282,7 @@ export function WorkflowInstanceDetailPanel({
               resource={{ kind: "workflow_instance", id, resourceKind: ApiResourceKind.workflow_instance }}
               resourceKindString="workflow_instance"
               resourceKind={ApiResourceKind.workflow_instance}
+              orgId={meta?.org ?? ""}
               onClose={() => setShowSharePanel(false)}
             />
           </div>
@@ -329,5 +353,102 @@ function CloseIcon() {
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
       <path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
+  );
+}
+
+interface RunVisibilityOption {
+  readonly value: WorkflowExecutionVisibility;
+  readonly label: string;
+  readonly description: string;
+}
+
+const RUN_VISIBILITY_OPTIONS: readonly RunVisibilityOption[] = [
+  {
+    value: WorkflowExecutionVisibility.private,
+    label: "Only the person who runs it",
+    description: "Each run is visible only to whoever started it (and explicit shares).",
+  },
+  {
+    value: WorkflowExecutionVisibility.organization,
+    label: "All organization members",
+    description: "Everyone in the organization can observe every run of this instance.",
+  },
+];
+
+/**
+ * Segmented control for an instance's run (execution) visibility.
+ *
+ * Writes the `execution_visibility` spec field via the dedicated RPC, which
+ * reconciles the dormant `workflow_instance#execution_viewer` FGA relation in
+ * Cloud mode. Unspecified is treated as private (the default).
+ */
+function RunVisibilityControl({
+  instanceId,
+  executionVisibility,
+  onChanged,
+}: {
+  readonly instanceId: string;
+  readonly executionVisibility: WorkflowExecutionVisibility;
+  readonly onChanged?: () => void;
+}) {
+  const { updateExecutionVisibility, isUpdating, error } =
+    useUpdateWorkflowInstanceExecutionVisibility();
+
+  const current =
+    executionVisibility === WorkflowExecutionVisibility.unspecified
+      ? WorkflowExecutionVisibility.private
+      : executionVisibility;
+
+  const handleSelect = useCallback(
+    async (value: WorkflowExecutionVisibility) => {
+      if (value === current || isUpdating) return;
+      try {
+        await updateExecutionVisibility(instanceId, value);
+        onChanged?.();
+      } catch {
+        // error surfaced below
+      }
+    },
+    [current, isUpdating, updateExecutionVisibility, instanceId, onChanged],
+  );
+
+  return (
+    <div className="space-y-2">
+      <div
+        role="radiogroup"
+        aria-label="Run visibility"
+        className="flex flex-col gap-1.5"
+      >
+        {RUN_VISIBILITY_OPTIONS.map((option) => {
+          const selected = option.value === current;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              disabled={isUpdating}
+              onClick={() => handleSelect(option.value)}
+              className={cn(
+                "flex flex-col items-start gap-0.5 rounded-md border px-3 py-2 text-left",
+                "focus:outline-none focus:ring-2 focus:ring-ring",
+                "disabled:opacity-60",
+                selected
+                  ? "border-primary bg-primary/5"
+                  : "border-border hover:bg-accent-hover",
+              )}
+            >
+              <span className="text-xs font-medium text-foreground">{option.label}</span>
+              <span className="text-[0.65rem] text-muted-foreground">{option.description}</span>
+            </button>
+          );
+        })}
+      </div>
+      {error && (
+        <p className="text-xs text-destructive" role="alert">
+          {getUserMessage(error)}
+        </p>
+      )}
+    </div>
   );
 }

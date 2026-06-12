@@ -25,6 +25,73 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// WorkflowExecutionVisibility controls who can observe the run history
+// (executions) of a workflow instance.
+//
+// This is a SEPARATE axis from the instance's own visibility
+// (metadata.visibility, which governs who can SEE and RUN the instance).
+// Keeping them separate means making an instance org-runnable never exposes
+// other users' run inputs/outputs. See workflow_execution.fga and
+// workflow_instance.fga (the `execution_viewer` relation) for how this maps
+// to authorization tuples.
+//
+// Only PRIVATE and ORGANIZATION are meaningful: run history is either visible
+// to just the triggerer, or to every member of the owning organization.
+// Public/platform run observability is deliberately unsupported.
+type WorkflowExecutionVisibility int32
+
+const (
+	// Unset. Treated as PRIVATE — each execution is visible only to the user
+	// who triggered it.
+	WorkflowExecutionVisibility_workflow_execution_visibility_unspecified WorkflowExecutionVisibility = 0
+	// Each execution is visible only to the user who triggered it (its owner).
+	WorkflowExecutionVisibility_workflow_execution_visibility_private WorkflowExecutionVisibility = 1
+	// Every member of the owning organization can observe all executions of
+	// this instance.
+	WorkflowExecutionVisibility_workflow_execution_visibility_organization WorkflowExecutionVisibility = 2
+)
+
+// Enum value maps for WorkflowExecutionVisibility.
+var (
+	WorkflowExecutionVisibility_name = map[int32]string{
+		0: "workflow_execution_visibility_unspecified",
+		1: "workflow_execution_visibility_private",
+		2: "workflow_execution_visibility_organization",
+	}
+	WorkflowExecutionVisibility_value = map[string]int32{
+		"workflow_execution_visibility_unspecified":  0,
+		"workflow_execution_visibility_private":      1,
+		"workflow_execution_visibility_organization": 2,
+	}
+)
+
+func (x WorkflowExecutionVisibility) Enum() *WorkflowExecutionVisibility {
+	p := new(WorkflowExecutionVisibility)
+	*p = x
+	return p
+}
+
+func (x WorkflowExecutionVisibility) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (WorkflowExecutionVisibility) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_workflowinstance_v1_spec_proto_enumTypes[0].Descriptor()
+}
+
+func (WorkflowExecutionVisibility) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_workflowinstance_v1_spec_proto_enumTypes[0]
+}
+
+func (x WorkflowExecutionVisibility) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use WorkflowExecutionVisibility.Descriptor instead.
+func (WorkflowExecutionVisibility) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_workflowinstance_v1_spec_proto_rawDescGZIP(), []int{0}
+}
+
 // WorkflowInstanceSpec defines the configurable properties of a workflow instance.
 //
 // @internal
@@ -82,8 +149,18 @@ type WorkflowInstanceSpec struct {
 	// At execution time, the WorkflowExecution runtime merges these environments
 	// and provides the combined configuration to all agents in the workflow.
 	EnvironmentRefs []*apiresource.ApiResourceReference `protobuf:"bytes,3,rep,name=environment_refs,json=environmentRefs,proto3" json:"environment_refs,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Who can observe the run history (executions) of this instance.
+	//
+	// Independent of the instance's own visibility: making an instance
+	// org-visible lets teammates see and run it, but does NOT expose each
+	// other's run inputs/outputs unless this is set to ORGANIZATION.
+	//
+	// Defaults to PRIVATE (unspecified is treated as private) — each execution
+	// is visible only to the user who triggered it. Update via
+	// WorkflowInstanceCommandController.updateExecutionVisibility.
+	ExecutionVisibility WorkflowExecutionVisibility `protobuf:"varint,4,opt,name=execution_visibility,json=executionVisibility,proto3,enum=ai.stigmer.agentic.workflowinstance.v1.WorkflowExecutionVisibility" json:"execution_visibility,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *WorkflowInstanceSpec) Reset() {
@@ -137,17 +214,29 @@ func (x *WorkflowInstanceSpec) GetEnvironmentRefs() []*apiresource.ApiResourceRe
 	return nil
 }
 
+func (x *WorkflowInstanceSpec) GetExecutionVisibility() WorkflowExecutionVisibility {
+	if x != nil {
+		return x.ExecutionVisibility
+	}
+	return WorkflowExecutionVisibility_workflow_execution_visibility_unspecified
+}
+
 var File_ai_stigmer_agentic_workflowinstance_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_workflowinstance_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"1ai/stigmer/agentic/workflowinstance/v1/spec.proto\x12&ai.stigmer.agentic.workflowinstance.v1\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xbe\x02\n" +
+	"1ai/stigmer/agentic/workflowinstance/v1/spec.proto\x12&ai.stigmer.agentic.workflowinstance.v1\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xc1\x03\n" +
 	"\x14WorkflowInstanceSpec\x12(\n" +
 	"\vworkflow_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\n" +
 	"workflowId\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\xd9\x01\n" +
 	"\x10environment_refs\x18\x03 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBx\xbaHq\x92\x01n\"l\xba\x01i\n" +
-	"\x15environment_refs.kind\x12?environment_refs must reference resources with kind=environment\x1a\x0fthis.kind == 53\xe0\x85,5R\x0fenvironmentRefsB\xdb\x02\n" +
+	"\x15environment_refs.kind\x12?environment_refs must reference resources with kind=environment\x1a\x0fthis.kind == 53\xe0\x85,5R\x0fenvironmentRefs\x12\x80\x01\n" +
+	"\x14execution_visibility\x18\x04 \x01(\x0e2C.ai.stigmer.agentic.workflowinstance.v1.WorkflowExecutionVisibilityB\b\xbaH\x05\x82\x01\x02\x10\x01R\x13executionVisibility*\xa7\x01\n" +
+	"\x1bWorkflowExecutionVisibility\x12-\n" +
+	")workflow_execution_visibility_unspecified\x10\x00\x12)\n" +
+	"%workflow_execution_visibility_private\x10\x01\x12.\n" +
+	"*workflow_execution_visibility_organization\x10\x02B\xdb\x02\n" +
 	"*com.ai.stigmer.agentic.workflowinstance.v1B\tSpecProtoP\x01Zegithub.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/workflowinstance/v1;workflowinstancev1\xa2\x02\x04ASAW\xaa\x02&Ai.Stigmer.Agentic.Workflowinstance.V1\xca\x02&Ai\\Stigmer\\Agentic\\Workflowinstance\\V1\xe2\x022Ai\\Stigmer\\Agentic\\Workflowinstance\\V1\\GPBMetadata\xea\x02*Ai::Stigmer::Agentic::Workflowinstance::V1b\x06proto3"
 
 var (
@@ -162,18 +251,21 @@ func file_ai_stigmer_agentic_workflowinstance_v1_spec_proto_rawDescGZIP() []byte
 	return file_ai_stigmer_agentic_workflowinstance_v1_spec_proto_rawDescData
 }
 
+var file_ai_stigmer_agentic_workflowinstance_v1_spec_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_ai_stigmer_agentic_workflowinstance_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_ai_stigmer_agentic_workflowinstance_v1_spec_proto_goTypes = []any{
-	(*WorkflowInstanceSpec)(nil),             // 0: ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceSpec
-	(*apiresource.ApiResourceReference)(nil), // 1: ai.stigmer.commons.apiresource.ApiResourceReference
+	(WorkflowExecutionVisibility)(0),         // 0: ai.stigmer.agentic.workflowinstance.v1.WorkflowExecutionVisibility
+	(*WorkflowInstanceSpec)(nil),             // 1: ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceSpec
+	(*apiresource.ApiResourceReference)(nil), // 2: ai.stigmer.commons.apiresource.ApiResourceReference
 }
 var file_ai_stigmer_agentic_workflowinstance_v1_spec_proto_depIdxs = []int32{
-	1, // 0: ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceSpec.environment_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	1, // [1:1] is the sub-list for method output_type
-	1, // [1:1] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	2, // 0: ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceSpec.environment_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	0, // 1: ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceSpec.execution_visibility:type_name -> ai.stigmer.agentic.workflowinstance.v1.WorkflowExecutionVisibility
+	2, // [2:2] is the sub-list for method output_type
+	2, // [2:2] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_workflowinstance_v1_spec_proto_init() }
@@ -186,13 +278,14 @@ func file_ai_stigmer_agentic_workflowinstance_v1_spec_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_workflowinstance_v1_spec_proto_rawDesc), len(file_ai_stigmer_agentic_workflowinstance_v1_spec_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   1,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_ai_stigmer_agentic_workflowinstance_v1_spec_proto_goTypes,
 		DependencyIndexes: file_ai_stigmer_agentic_workflowinstance_v1_spec_proto_depIdxs,
+		EnumInfos:         file_ai_stigmer_agentic_workflowinstance_v1_spec_proto_enumTypes,
 		MessageInfos:      file_ai_stigmer_agentic_workflowinstance_v1_spec_proto_msgTypes,
 	}.Build()
 	File_ai_stigmer_agentic_workflowinstance_v1_spec_proto = out.File

@@ -182,3 +182,16 @@ export function useActiveOrgSlug(): string {
   const { activeOrg } = useOrg();
   return activeOrg?.metadata?.slug ?? "";
 }
+
+/**
+ * Convenience accessor: returns the active org's system ID (`metadata.id`),
+ * or an empty string when no org is selected.
+ *
+ * This is the identifier used as the `organization` object in authorization
+ * (FGA) — e.g. for member lookups in the share picker — as opposed to the
+ * human-readable slug returned by {@link useActiveOrgSlug}.
+ */
+export function useActiveOrgId(): string {
+  const { activeOrg } = useOrg();
+  return activeOrg?.metadata?.id ?? "";
+}

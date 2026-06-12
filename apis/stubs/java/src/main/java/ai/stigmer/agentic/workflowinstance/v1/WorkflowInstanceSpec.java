@@ -49,6 +49,7 @@ private static final long serialVersionUID = 0L;
     workflowId_ = "";
     description_ = "";
     environmentRefs_ = java.util.Collections.emptyList();
+    executionVisibility_ = 0;
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -371,6 +372,48 @@ private static final long serialVersionUID = 0L;
     return environmentRefs_.get(index);
   }
 
+  public static final int EXECUTION_VISIBILITY_FIELD_NUMBER = 4;
+  private int executionVisibility_ = 0;
+  /**
+   * <pre>
+   * Who can observe the run history (executions) of this instance.
+   *
+   * Independent of the instance's own visibility: making an instance
+   * org-visible lets teammates see and run it, but does NOT expose each
+   * other's run inputs/outputs unless this is set to ORGANIZATION.
+   *
+   * Defaults to PRIVATE (unspecified is treated as private) — each execution
+   * is visible only to the user who triggered it. Update via
+   * WorkflowInstanceCommandController.updateExecutionVisibility.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.workflowinstance.v1.WorkflowExecutionVisibility execution_visibility = 4 [json_name = "executionVisibility", (.buf.validate.field) = { ... }</code>
+   * @return The enum numeric value on the wire for executionVisibility.
+   */
+  @java.lang.Override public int getExecutionVisibilityValue() {
+    return executionVisibility_;
+  }
+  /**
+   * <pre>
+   * Who can observe the run history (executions) of this instance.
+   *
+   * Independent of the instance's own visibility: making an instance
+   * org-visible lets teammates see and run it, but does NOT expose each
+   * other's run inputs/outputs unless this is set to ORGANIZATION.
+   *
+   * Defaults to PRIVATE (unspecified is treated as private) — each execution
+   * is visible only to the user who triggered it. Update via
+   * WorkflowInstanceCommandController.updateExecutionVisibility.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.workflowinstance.v1.WorkflowExecutionVisibility execution_visibility = 4 [json_name = "executionVisibility", (.buf.validate.field) = { ... }</code>
+   * @return The executionVisibility.
+   */
+  @java.lang.Override public ai.stigmer.agentic.workflowinstance.v1.WorkflowExecutionVisibility getExecutionVisibility() {
+    ai.stigmer.agentic.workflowinstance.v1.WorkflowExecutionVisibility result = ai.stigmer.agentic.workflowinstance.v1.WorkflowExecutionVisibility.forNumber(executionVisibility_);
+    return result == null ? ai.stigmer.agentic.workflowinstance.v1.WorkflowExecutionVisibility.UNRECOGNIZED : result;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -393,6 +436,9 @@ private static final long serialVersionUID = 0L;
     }
     for (int i = 0; i < environmentRefs_.size(); i++) {
       output.writeMessage(3, environmentRefs_.get(i));
+    }
+    if (executionVisibility_ != ai.stigmer.agentic.workflowinstance.v1.WorkflowExecutionVisibility.workflow_execution_visibility_unspecified.getNumber()) {
+      output.writeEnum(4, executionVisibility_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -418,6 +464,10 @@ private static final long serialVersionUID = 0L;
           }
           size += 1 * count;
         }
+    if (executionVisibility_ != ai.stigmer.agentic.workflowinstance.v1.WorkflowExecutionVisibility.workflow_execution_visibility_unspecified.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(4, executionVisibility_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -439,6 +489,7 @@ private static final long serialVersionUID = 0L;
         .equals(other.getDescription())) return false;
     if (!getEnvironmentRefsList()
         .equals(other.getEnvironmentRefsList())) return false;
+    if (executionVisibility_ != other.executionVisibility_) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -458,6 +509,8 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + ENVIRONMENT_REFS_FIELD_NUMBER;
       hash = (53 * hash) + getEnvironmentRefsList().hashCode();
     }
+    hash = (37 * hash) + EXECUTION_VISIBILITY_FIELD_NUMBER;
+    hash = (53 * hash) + executionVisibility_;
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -616,6 +669,7 @@ private static final long serialVersionUID = 0L;
         environmentRefsBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000004);
+      executionVisibility_ = 0;
       return this;
     }
 
@@ -668,6 +722,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000002) != 0)) {
         result.description_ = description_;
       }
+      if (((from_bitField0_ & 0x00000008) != 0)) {
+        result.executionVisibility_ = executionVisibility_;
+      }
     }
 
     @java.lang.Override
@@ -718,6 +775,9 @@ private static final long serialVersionUID = 0L;
           }
         }
       }
+      if (other.executionVisibility_ != 0) {
+        setExecutionVisibilityValue(other.getExecutionVisibilityValue());
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -767,6 +827,11 @@ private static final long serialVersionUID = 0L;
               }
               break;
             } // case 26
+            case 32: {
+              executionVisibility_ = input.readEnum();
+              bitField0_ |= 0x00000008;
+              break;
+            } // case 32
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1794,6 +1859,118 @@ private static final long serialVersionUID = 0L;
         environmentRefs_ = null;
       }
       return environmentRefsBuilder_;
+    }
+
+    private int executionVisibility_ = 0;
+    /**
+     * <pre>
+     * Who can observe the run history (executions) of this instance.
+     *
+     * Independent of the instance's own visibility: making an instance
+     * org-visible lets teammates see and run it, but does NOT expose each
+     * other's run inputs/outputs unless this is set to ORGANIZATION.
+     *
+     * Defaults to PRIVATE (unspecified is treated as private) — each execution
+     * is visible only to the user who triggered it. Update via
+     * WorkflowInstanceCommandController.updateExecutionVisibility.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflowinstance.v1.WorkflowExecutionVisibility execution_visibility = 4 [json_name = "executionVisibility", (.buf.validate.field) = { ... }</code>
+     * @return The enum numeric value on the wire for executionVisibility.
+     */
+    @java.lang.Override public int getExecutionVisibilityValue() {
+      return executionVisibility_;
+    }
+    /**
+     * <pre>
+     * Who can observe the run history (executions) of this instance.
+     *
+     * Independent of the instance's own visibility: making an instance
+     * org-visible lets teammates see and run it, but does NOT expose each
+     * other's run inputs/outputs unless this is set to ORGANIZATION.
+     *
+     * Defaults to PRIVATE (unspecified is treated as private) — each execution
+     * is visible only to the user who triggered it. Update via
+     * WorkflowInstanceCommandController.updateExecutionVisibility.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflowinstance.v1.WorkflowExecutionVisibility execution_visibility = 4 [json_name = "executionVisibility", (.buf.validate.field) = { ... }</code>
+     * @param value The enum numeric value on the wire for executionVisibility to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setExecutionVisibilityValue(int value) {
+      executionVisibility_ = value;
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Who can observe the run history (executions) of this instance.
+     *
+     * Independent of the instance's own visibility: making an instance
+     * org-visible lets teammates see and run it, but does NOT expose each
+     * other's run inputs/outputs unless this is set to ORGANIZATION.
+     *
+     * Defaults to PRIVATE (unspecified is treated as private) — each execution
+     * is visible only to the user who triggered it. Update via
+     * WorkflowInstanceCommandController.updateExecutionVisibility.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflowinstance.v1.WorkflowExecutionVisibility execution_visibility = 4 [json_name = "executionVisibility", (.buf.validate.field) = { ... }</code>
+     * @return The executionVisibility.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.workflowinstance.v1.WorkflowExecutionVisibility getExecutionVisibility() {
+      ai.stigmer.agentic.workflowinstance.v1.WorkflowExecutionVisibility result = ai.stigmer.agentic.workflowinstance.v1.WorkflowExecutionVisibility.forNumber(executionVisibility_);
+      return result == null ? ai.stigmer.agentic.workflowinstance.v1.WorkflowExecutionVisibility.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * Who can observe the run history (executions) of this instance.
+     *
+     * Independent of the instance's own visibility: making an instance
+     * org-visible lets teammates see and run it, but does NOT expose each
+     * other's run inputs/outputs unless this is set to ORGANIZATION.
+     *
+     * Defaults to PRIVATE (unspecified is treated as private) — each execution
+     * is visible only to the user who triggered it. Update via
+     * WorkflowInstanceCommandController.updateExecutionVisibility.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflowinstance.v1.WorkflowExecutionVisibility execution_visibility = 4 [json_name = "executionVisibility", (.buf.validate.field) = { ... }</code>
+     * @param value The executionVisibility to set.
+     * @return This builder for chaining.
+     */
+    public Builder setExecutionVisibility(ai.stigmer.agentic.workflowinstance.v1.WorkflowExecutionVisibility value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x00000008;
+      executionVisibility_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Who can observe the run history (executions) of this instance.
+     *
+     * Independent of the instance's own visibility: making an instance
+     * org-visible lets teammates see and run it, but does NOT expose each
+     * other's run inputs/outputs unless this is set to ORGANIZATION.
+     *
+     * Defaults to PRIVATE (unspecified is treated as private) — each execution
+     * is visible only to the user who triggered it. Update via
+     * WorkflowInstanceCommandController.updateExecutionVisibility.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflowinstance.v1.WorkflowExecutionVisibility execution_visibility = 4 [json_name = "executionVisibility", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearExecutionVisibility() {
+      bitField0_ = (bitField0_ & ~0x00000008);
+      executionVisibility_ = 0;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceSpec)

@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { WorkflowExecutionViewer, useResolveAgentExecutionSession } from "@stigmer/react";
+import {
+  WorkflowExecutionViewer,
+  useResolveAgentExecutionSession,
+  useActiveOrgId,
+  SharePanel,
+  PermissionGate,
+} from "@stigmer/react";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 export default function WorkflowExecutionDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -55,8 +62,50 @@ export default function WorkflowExecutionDetailPage() {
         org={org}
         onNavigateToAgentExecution={handleNavigateToAgentExecution}
         onNavigateToWorkflowEditor={handleNavigateToWorkflowEditor}
+        headerActions={<ShareActions executionId={id} />}
         nodesDraggable
       />
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Share actions — kept in the client app (DD-004: no Console auth in SDK)
+// ---------------------------------------------------------------------------
+
+function ShareActions({ executionId }: { executionId: string }) {
+  const [showSharePanel, setShowSharePanel] = useState(false);
+  const orgId = useActiveOrgId();
+
+  return (
+    <PermissionGate
+      resource={{ kind: "workflow_execution", id: executionId }}
+      relation="can_grant_access"
+    >
+      <button
+        type="button"
+        onClick={() => setShowSharePanel((v) => !v)}
+        aria-label="Share execution"
+        aria-expanded={showSharePanel}
+        className="rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent-hover"
+      >
+        Share
+      </button>
+      {showSharePanel && (
+        <div className="absolute right-0 top-full z-50 mt-1 w-80 rounded-lg border border-border bg-popover shadow-lg">
+          <SharePanel
+            resource={{
+              kind: "workflow_execution",
+              id: executionId,
+              resourceKind: ApiResourceKind.workflow_execution,
+            }}
+            resourceKindString="workflow_execution"
+            resourceKind={ApiResourceKind.workflow_execution}
+            orgId={orgId}
+            onClose={() => setShowSharePanel(false)}
+          />
+        </div>
+      )}
+    </PermissionGate>
   );
 }

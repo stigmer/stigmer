@@ -440,11 +440,13 @@ const myId = account?.metadata?.id;
 
 ### GrantAccessForm
 
-Form for granting a principal access to a resource.
+Form for granting an organization member access to a resource.
 
-Collects a **principal ID** (identity account), lets the user pick
-a **role** from the resource's grantable roles, and creates the IAM
-policy binding.
+Lets the user pick a **person** from the org's member list (by name or
+email, disambiguating identity sources) via [`PrincipalPicker`](#principalpicker), choose
+a **role** from the resource's grantable roles, and creates the IAM policy
+binding. The resolved `identity_account` ID is carried internally — the user
+never types or sees raw account IDs.
 
 All visual properties flow through `--stgm-*` design tokens.
 
@@ -453,8 +455,10 @@ All visual properties flow through `--stgm-*` design tokens.
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
+    excludePrincipalIds: { type: "readonly string[]", description: "Principal IDs that already have access (shown disabled in the picker)." },
     onCancel: { type: "() => void", description: "Fired when the user cancels." },
     onGranted: { type: "(policy: IamPolicy) => void", description: "Fired after a policy is successfully created." },
+    orgId: { type: "string", description: "Organization whose members can be granted access. Drives the PrincipalPicker typeahead.", required: true },
     resourceId: { type: "string", description: "ID of the resource being granted access to.", required: true },
     resourceKind: { type: "ApiResourceKind", description: "Resource kind being granted access to. Determines which roles appear.", required: true },
     resourceKindString: { type: "string", description: "Resource kind string (e.g. \"organization\") for the API resource ref.", required: true },
@@ -466,6 +470,7 @@ All visual properties flow through `--stgm-*` design tokens.
   resourceKind={ApiResourceKind.organization}
   resourceKindString="organization"
   resourceId="org-abc123"
+  orgId="org-abc123"
   onGranted={(policy) => refetchAccessList()}
   onCancel={() => setShowForm(false)}
 />
@@ -541,6 +546,59 @@ what the client renders.
 ```
 
 
+### PrincipalPicker
+
+Accessible combobox for picking an organization member to share with.
+
+Replaces raw account-ID entry: users type a name or email and choose a
+person from the org's member list. Because email is not unique across
+identity sources, each candidate shows a [`ProviderBadge`](#providerbadge) so accounts
+that share an email (e.g. a direct account and a federated one) can be told
+apart. The resolved `identity_account` ID is carried internally — the user
+never sees it.
+
+Members who already have access are shown disabled, so the same person is
+not granted twice.
+
+Search is over the org member list the caller can already see
+(`listResourceAccessByPrincipal` on the organization), so it introduces no
+new account-enumeration surface.
+
+All visual properties flow through `--stgm-*` design tokens.
+
+**Props** — `PrincipalPickerProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    disabled: { type: "boolean", description: "Disable the control." },
+    excludePrincipalIds: { type: "readonly string[]", description: "Principal IDs to hide/disable because they already have access." },
+    onChange: { type: "(principal: SelectedPrincipal | null) => void", description: "Fired when the selection changes.", required: true },
+    orgId: { type: "string", description: "Organization whose members are selectable.", required: true },
+    value: { type: "SelectedPrincipal | null", description: "Currently selected principal, or `null`. Controlled.", required: true },
+  }}
+/>
+
+
+### ProviderBadge
+
+A subtle pill naming the identity source an account belongs to.
+
+Renders nothing when no provider label is available (e.g. legacy accounts
+with unspecified provisioning mode), so it never adds empty chrome.
+
+All visual properties flow through `--stgm-*` design tokens.
+
+**Props** — `ProviderBadgeProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names." },
+    principal: { type: "ApiResourceRefView | undefined", description: "The principal whose identity source to display.", required: true },
+  }}
+/>
+
+
 ### RoleSelector
 
 Styled radio-group for selecting an IAM role.
@@ -590,6 +648,7 @@ All visual properties flow through `--stgm-*` design tokens.
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
     onClose: { type: "() => void", description: "Fired when the user closes the panel." },
+    orgId: { type: "string", description: "Organization the resource belongs to (`metadata.org`). Drives the org-member typeahead in the grant form.", required: true },
     resource: { type: "ShareFlowResource", description: "The resource to share.", required: true, typeDescriptionLink: "#shareflowresource" },
     resourceKind: { type: "ApiResourceKind", description: "ApiResourceKind enum value for grantable-role lookup.", required: true },
     resourceKindString: { type: "string", description: "Resource kind string for the API ref (e.g. \"agent\", \"session\").", required: true },
@@ -601,6 +660,7 @@ All visual properties flow through `--stgm-*` design tokens.
   resource={{ kind: "session", id: sessionId, resourceKind: ApiResourceKind.session }}
   resourceKindString="session"
   resourceKind={ApiResourceKind.session}
+  orgId={orgId}
   onClose={() => setOpen(false)}
 />
 ```
@@ -618,6 +678,21 @@ Resource reference for permission checks.
     kind: { type: "string", description: "Resource kind (e.g. \"agent\", \"session\").", required: true },
   }}
 />
+
+
+### providerLabel
+
+The human-readable identity-source label for a principal, or `""` when none
+is known.
+
+Email is not an identity key in Stigmer — a person can have a direct account
+and federated accounts that share one email. This label (e.g. "Stigmer" for
+direct sign-ups, or an IdentityProvider's display name for federated ones)
+is what lets the UI tell those accounts apart.
+
+```tsx
+function providerLabel(principal: ApiResourceRefView | undefined): string
+```
 
 
 ### ResourceAccessRef
@@ -642,6 +717,20 @@ A single role option with display metadata.
     label: { type: "string", description: "Human-readable display name (e.g. \"Admin\").", required: true },
     role: { type: "IamRole", description: "The IamRole enum value.", required: true },
     value: { type: "string", description: "The FGA relation string (e.g. \"admin\").", required: true },
+  }}
+/>
+
+
+### SelectedPrincipal
+
+A principal selected through [`PrincipalPicker`](#principalpicker).
+
+<TypeTable
+  type={{
+    email: { type: "string", description: "Email address, if known.", required: true },
+    id: { type: "string", description: "identity_account ID (`ida_...`).", required: true },
+    name: { type: "string", description: "Display name (falls back to email, then ID).", required: true },
+    view: { type: "ApiResourceRefView", description: "Full view for richer rendering (avatar, provider).", required: true },
   }}
 />
 

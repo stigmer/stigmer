@@ -259,6 +259,7 @@ export function AgentInstanceDetailPanel({
               resource={{ kind: "agent_instance", id, resourceKind: ApiResourceKind.agent_instance }}
               resourceKindString="agent_instance"
               resourceKind={ApiResourceKind.agent_instance}
+              orgId={meta?.org ?? ""}
               onClose={() => setShowSharePanel(false)}
             />
           </div>

@@ -22,11 +22,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	WorkflowInstanceCommandController_Apply_FullMethodName            = "/ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceCommandController/apply"
-	WorkflowInstanceCommandController_Create_FullMethodName           = "/ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceCommandController/create"
-	WorkflowInstanceCommandController_Update_FullMethodName           = "/ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceCommandController/update"
-	WorkflowInstanceCommandController_UpdateVisibility_FullMethodName = "/ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceCommandController/updateVisibility"
-	WorkflowInstanceCommandController_Delete_FullMethodName           = "/ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceCommandController/delete"
+	WorkflowInstanceCommandController_Apply_FullMethodName                     = "/ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceCommandController/apply"
+	WorkflowInstanceCommandController_Create_FullMethodName                    = "/ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceCommandController/create"
+	WorkflowInstanceCommandController_Update_FullMethodName                    = "/ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceCommandController/update"
+	WorkflowInstanceCommandController_UpdateVisibility_FullMethodName          = "/ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceCommandController/updateVisibility"
+	WorkflowInstanceCommandController_UpdateExecutionVisibility_FullMethodName = "/ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceCommandController/updateExecutionVisibility"
+	WorkflowInstanceCommandController_Delete_FullMethodName                    = "/ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceCommandController/delete"
 )
 
 // WorkflowInstanceCommandControllerClient is the client API for WorkflowInstanceCommandController service.
@@ -103,6 +104,25 @@ type WorkflowInstanceCommandControllerClient interface {
 	// - ORG → PRIVATE: deletes the org member viewer tuple
 	// - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
 	UpdateVisibility(ctx context.Context, in *apiresource.UpdateVisibilityInput, opts ...grpc.CallOption) (*WorkflowInstance, error)
+	// Update who can observe the run history (executions) of this instance.
+	//
+	// This is a SEPARATE axis from updateVisibility: it controls run
+	// observability (who sees execution inputs/outputs), not who can see/run
+	// the instance itself. Making an instance org-runnable does NOT expose
+	// other users' run history — that requires this opt-in.
+	//
+	// Supported levels: PRIVATE (only the user who ran each execution) and
+	// ORGANIZATION (all org members). Public/platform are unsupported.
+	//
+	// @internal
+	// Authorization: requires can_grant_access on the workflow instance —
+	// sharing run history is an access-granting action, consistent with the
+	// per-execution share flow. In Cloud mode the transition reconciles the
+	// instance's `execution_viewer` FGA relation:
+	//   - PRIVATE -> ORGANIZATION: creates
+	//     workflow_instance#execution_viewer@organization:<org>#member
+	//   - ORGANIZATION -> PRIVATE: deletes that tuple
+	UpdateExecutionVisibility(ctx context.Context, in *UpdateExecutionVisibilityInput, opts ...grpc.CallOption) (*WorkflowInstance, error)
 	// Delete a workflow instance.
 	//
 	// @internal
@@ -164,6 +184,16 @@ func (c *workflowInstanceCommandControllerClient) UpdateVisibility(ctx context.C
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(WorkflowInstance)
 	err := c.cc.Invoke(ctx, WorkflowInstanceCommandController_UpdateVisibility_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *workflowInstanceCommandControllerClient) UpdateExecutionVisibility(ctx context.Context, in *UpdateExecutionVisibilityInput, opts ...grpc.CallOption) (*WorkflowInstance, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WorkflowInstance)
+	err := c.cc.Invoke(ctx, WorkflowInstanceCommandController_UpdateExecutionVisibility_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -254,6 +284,25 @@ type WorkflowInstanceCommandControllerServer interface {
 	// - ORG → PRIVATE: deletes the org member viewer tuple
 	// - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
 	UpdateVisibility(context.Context, *apiresource.UpdateVisibilityInput) (*WorkflowInstance, error)
+	// Update who can observe the run history (executions) of this instance.
+	//
+	// This is a SEPARATE axis from updateVisibility: it controls run
+	// observability (who sees execution inputs/outputs), not who can see/run
+	// the instance itself. Making an instance org-runnable does NOT expose
+	// other users' run history — that requires this opt-in.
+	//
+	// Supported levels: PRIVATE (only the user who ran each execution) and
+	// ORGANIZATION (all org members). Public/platform are unsupported.
+	//
+	// @internal
+	// Authorization: requires can_grant_access on the workflow instance —
+	// sharing run history is an access-granting action, consistent with the
+	// per-execution share flow. In Cloud mode the transition reconciles the
+	// instance's `execution_viewer` FGA relation:
+	//   - PRIVATE -> ORGANIZATION: creates
+	//     workflow_instance#execution_viewer@organization:<org>#member
+	//   - ORGANIZATION -> PRIVATE: deletes that tuple
+	UpdateExecutionVisibility(context.Context, *UpdateExecutionVisibilityInput) (*WorkflowInstance, error)
 	// Delete a workflow instance.
 	//
 	// @internal
@@ -291,6 +340,9 @@ func (UnimplementedWorkflowInstanceCommandControllerServer) Update(context.Conte
 }
 func (UnimplementedWorkflowInstanceCommandControllerServer) UpdateVisibility(context.Context, *apiresource.UpdateVisibilityInput) (*WorkflowInstance, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateVisibility not implemented")
+}
+func (UnimplementedWorkflowInstanceCommandControllerServer) UpdateExecutionVisibility(context.Context, *UpdateExecutionVisibilityInput) (*WorkflowInstance, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateExecutionVisibility not implemented")
 }
 func (UnimplementedWorkflowInstanceCommandControllerServer) Delete(context.Context, *WorkflowInstanceId) (*WorkflowInstance, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
@@ -387,6 +439,24 @@ func _WorkflowInstanceCommandController_UpdateVisibility_Handler(srv interface{}
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WorkflowInstanceCommandController_UpdateExecutionVisibility_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateExecutionVisibilityInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WorkflowInstanceCommandControllerServer).UpdateExecutionVisibility(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WorkflowInstanceCommandController_UpdateExecutionVisibility_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WorkflowInstanceCommandControllerServer).UpdateExecutionVisibility(ctx, req.(*UpdateExecutionVisibilityInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _WorkflowInstanceCommandController_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(WorkflowInstanceId)
 	if err := dec(in); err != nil {
@@ -427,6 +497,10 @@ var WorkflowInstanceCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "updateVisibility",
 			Handler:    _WorkflowInstanceCommandController_UpdateVisibility_Handler,
+		},
+		{
+			MethodName: "updateExecutionVisibility",
+			Handler:    _WorkflowInstanceCommandController_UpdateExecutionVisibility_Handler,
 		},
 		{
 			MethodName: "delete",

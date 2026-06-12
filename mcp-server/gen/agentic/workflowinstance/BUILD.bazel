@@ -1,0 +1,14 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "workflowinstance",
+    srcs = ["workflow_instance_gen.go"],
+    importpath = "github.com/stigmer/stigmer/mcp-server/gen/agentic/workflowinstance",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//mcp-server/internal/convert",
+        "//mcp-server/proto/ai/stigmer/agentic/workflowinstance/v1:workflowinstance",
+        "//mcp-server/proto/ai/stigmer/commons/apiresource",
+        "//mcp-server/proto/ai/stigmer/commons/apiresource/apiresourcekind",
+    ],
+)

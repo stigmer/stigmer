@@ -43,7 +43,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "igmer/commons/apiresource/io.proto\0328ai/s" +
       "tigmer/commons/apiresource/rpc_service_o" +
       "ptions.proto\032+ai/stigmer/commons/rpc/met" +
-      "hod_options.proto2\371\006\n!WorkflowInstanceCo" +
+      "hod_options.proto2\357\010\n!WorkflowInstanceCo" +
       "mmandController\022{\n\005apply\0228.ai.stigmer.ag" +
       "entic.workflowinstance.v1.WorkflowInstan" +
       "ce\0328.ai.stigmer.agentic.workflowinstance" +
@@ -60,18 +60,24 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "UpdateVisibilityInput\0328.ai.stigmer.agent" +
       "ic.workflowinstance.v1.WorkflowInstance\"" +
       "J\302\270\030F\010\002\0203\"\013resource_id*3unauthorized to " +
-      "update workflow instance visibility\022\271\001\n\006" +
-      "delete\022:.ai.stigmer.agentic.workflowinst" +
-      "ance.v1.WorkflowInstanceId\0328.ai.stigmer." +
-      "agentic.workflowinstance.v1.WorkflowInst" +
-      "ance\"9\302\270\0305\010\003\0203\"\005value*(unauthorized to d" +
-      "elete workflow instance\032\004\240\377+3B\313\001B\014Comman" +
-      "dProtoP\001\242\002\004ASAW\252\002&Ai.Stigmer.Agentic.Wor" +
-      "kflowinstance.V1\312\002&Ai\\Stigmer\\Agentic\\Wo" +
-      "rkflowinstance\\V1\342\0022Ai\\Stigmer\\Agentic\\W" +
-      "orkflowinstance\\V1\\GPBMetadata\352\002*Ai::Sti" +
-      "gmer::Agentic::Workflowinstance::V1b\006pro" +
-      "to3"
+      "update workflow instance visibility\022\363\001\n\031" +
+      "updateExecutionVisibility\022F.ai.stigmer.a" +
+      "gentic.workflowinstance.v1.UpdateExecuti" +
+      "onVisibilityInput\0328.ai.stigmer.agentic.w" +
+      "orkflowinstance.v1.WorkflowInstance\"T\302\270\030" +
+      "P\010\004\0203\"\013resource_id*=unauthorized to upda" +
+      "te workflow instance execution visibilit" +
+      "y\022\271\001\n\006delete\022:.ai.stigmer.agentic.workfl" +
+      "owinstance.v1.WorkflowInstanceId\0328.ai.st" +
+      "igmer.agentic.workflowinstance.v1.Workfl" +
+      "owInstance\"9\302\270\0305\010\003\0203\"\005value*(unauthorize" +
+      "d to delete workflow instance\032\004\240\377+3B\313\001B\014" +
+      "CommandProtoP\001\242\002\004ASAW\252\002&Ai.Stigmer.Agent" +
+      "ic.Workflowinstance.V1\312\002&Ai\\Stigmer\\Agen" +
+      "tic\\Workflowinstance\\V1\342\0022Ai\\Stigmer\\Age" +
+      "ntic\\Workflowinstance\\V1\\GPBMetadata\352\002*A" +
+      "i::Stigmer::Agentic::Workflowinstance::V" +
+      "1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

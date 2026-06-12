@@ -534,6 +534,33 @@ const handleSave = async () => {
 ```
 
 
+### useUpdateWorkflowInstanceExecutionVisibility
+
+Mutation hook that updates the execution (run) visibility of a
+WorkflowInstance.
+
+Wraps `stigmer.workflowInstance.updateExecutionVisibility()` with
+loading/error state. The caller is responsible for refreshing the instance
+after a successful update.
+
+**Signature**
+
+```tsx
+function useUpdateWorkflowInstanceExecutionVisibility(): UseUpdateWorkflowInstanceExecutionVisibilityReturn
+```
+
+**Returns** — `UseUpdateWorkflowInstanceExecutionVisibilityReturn`
+
+<TypeTable
+  type={{
+    clearError: { type: "() => void", description: "Clear the error state." },
+    error: { type: "Error | null", description: "Error from the last failed update, or `null` when healthy." },
+    isUpdating: { type: "boolean", description: "`true` while the update RPC is in flight." },
+    updateExecutionVisibility: { type: "(resourceId: string, executionVisibility: WorkflowExecutionVisibility) => Promise<WorkflowInstance>", description: "Update who can observe the runs (executions) of a workflow instance.  This is distinct from the instance's own visibility: it controls run observability via the `workflow_instance#execution_viewer` relation, letting an owner keep the instance private while opting all org members into watching its executions." },
+  }}
+/>
+
+
 ### useWorkflow
 
 Data hook that fetches a single Workflow blueprint by organization and slug.
@@ -3099,6 +3126,7 @@ Props for [`WorkflowExecutionHeader`](#workflowexecutionheader).
     className: { type: "string", description: "" },
     costSummary: { type: "DerivedCostSummary", description: "", required: true },
     execution: { type: "WorkflowExecution", description: "", required: true, typeDescriptionLink: "/docs/sdk/resources/workflow-execution" },
+    headerActions: { type: "ReactNode", description: "Host-supplied action elements rendered at the trailing edge of the header (e.g. a Share control). Kept routing/auth-agnostic per DD-004 — the SDK renders the slot; the host owns its behavior." },
     isDiagnosing: { type: "boolean", description: "Whether the diagnosis panel is currently active." },
     onCompare: { type: "() => void", description: "Called when the user clicks \"Compare with...\" on a terminal execution." },
     onDiagnose: { type: "() => void", description: "Called when the user clicks \"Diagnose with AI\" on a failed execution." },
@@ -3255,9 +3283,10 @@ Props for [`WorkflowExecutionViewer`](#workflowexecutionviewer).
 
 <TypeTable
   type={{
-    additionalActions: { type: "ReactNode", description: "Additional action elements to render in the header." },
+    additionalActions: { type: "ReactNode", description: "Additional action elements to render in the sidebar inspector footer." },
     className: { type: "string", description: "Additional CSS class names for the root container." },
     executionId: { type: "string", description: "ID of the workflow execution to display.", required: true },
+    headerActions: { type: "ReactNode", description: "Host-supplied action elements rendered in the header action group (e.g. a Share control). Routing/auth-agnostic per DD-004." },
     nodesDraggable: { type: "boolean", description: "Whether task nodes in the execution graph can be dragged to rearrange the layout for presentations. Drag positions are ephemeral and not persisted." },
     onNavigateToAgentExecution: { type: "(agentExecutionId: string) => void", description: "Callback when the user clicks a link to a child agent execution. Receives the AgentExecution ID. The host application is responsible for navigation — this keeps the component routing-agnostic (DD-004)." },
     onNavigateToWorkflowEditor: { type: "(yaml: string, workflowSlug: string) => void", description: "Callback when the user clicks \"Apply Fix\" in the repair card. Receives the suggested YAML and the workflow slug. The host application handles navigation to the workflow editor (DD-004)." },

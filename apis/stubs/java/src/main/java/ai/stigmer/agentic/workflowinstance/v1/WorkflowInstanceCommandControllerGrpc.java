@@ -147,6 +147,37 @@ public final class WorkflowInstanceCommandControllerGrpc {
     return getUpdateVisibilityMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.workflowinstance.v1.UpdateExecutionVisibilityInput,
+      ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance> getUpdateExecutionVisibilityMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "updateExecutionVisibility",
+      requestType = ai.stigmer.agentic.workflowinstance.v1.UpdateExecutionVisibilityInput.class,
+      responseType = ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.workflowinstance.v1.UpdateExecutionVisibilityInput,
+      ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance> getUpdateExecutionVisibilityMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.workflowinstance.v1.UpdateExecutionVisibilityInput, ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance> getUpdateExecutionVisibilityMethod;
+    if ((getUpdateExecutionVisibilityMethod = WorkflowInstanceCommandControllerGrpc.getUpdateExecutionVisibilityMethod) == null) {
+      synchronized (WorkflowInstanceCommandControllerGrpc.class) {
+        if ((getUpdateExecutionVisibilityMethod = WorkflowInstanceCommandControllerGrpc.getUpdateExecutionVisibilityMethod) == null) {
+          WorkflowInstanceCommandControllerGrpc.getUpdateExecutionVisibilityMethod = getUpdateExecutionVisibilityMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.workflowinstance.v1.UpdateExecutionVisibilityInput, ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "updateExecutionVisibility"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.workflowinstance.v1.UpdateExecutionVisibilityInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance.getDefaultInstance()))
+              .setSchemaDescriptor(new WorkflowInstanceCommandControllerMethodDescriptorSupplier("updateExecutionVisibility"))
+              .build();
+        }
+      }
+    }
+    return getUpdateExecutionVisibilityMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceId,
       ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance> getDeleteMethod;
 
@@ -332,6 +363,30 @@ public final class WorkflowInstanceCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update who can observe the run history (executions) of this instance.
+     * This is a SEPARATE axis from updateVisibility: it controls run
+     * observability (who sees execution inputs/outputs), not who can see/run
+     * the instance itself. Making an instance org-runnable does NOT expose
+     * other users' run history — that requires this opt-in.
+     * Supported levels: PRIVATE (only the user who ran each execution) and
+     * ORGANIZATION (all org members). Public/platform are unsupported.
+     * &#64;internal
+     * Authorization: requires can_grant_access on the workflow instance —
+     * sharing run history is an access-granting action, consistent with the
+     * per-execution share flow. In Cloud mode the transition reconciles the
+     * instance's `execution_viewer` FGA relation:
+     * - PRIVATE -&gt; ORGANIZATION: creates
+     *   workflow_instance#execution_viewer&#64;organization:&lt;org&gt;#member
+     * - ORGANIZATION -&gt; PRIVATE: deletes that tuple
+     * </pre>
+     */
+    default void updateExecutionVisibility(ai.stigmer.agentic.workflowinstance.v1.UpdateExecutionVisibilityInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdateExecutionVisibilityMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
      * Delete a workflow instance.
      * &#64;internal
      * Permanently removes a WorkflowInstance resource.
@@ -485,6 +540,31 @@ public final class WorkflowInstanceCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update who can observe the run history (executions) of this instance.
+     * This is a SEPARATE axis from updateVisibility: it controls run
+     * observability (who sees execution inputs/outputs), not who can see/run
+     * the instance itself. Making an instance org-runnable does NOT expose
+     * other users' run history — that requires this opt-in.
+     * Supported levels: PRIVATE (only the user who ran each execution) and
+     * ORGANIZATION (all org members). Public/platform are unsupported.
+     * &#64;internal
+     * Authorization: requires can_grant_access on the workflow instance —
+     * sharing run history is an access-granting action, consistent with the
+     * per-execution share flow. In Cloud mode the transition reconciles the
+     * instance's `execution_viewer` FGA relation:
+     * - PRIVATE -&gt; ORGANIZATION: creates
+     *   workflow_instance#execution_viewer&#64;organization:&lt;org&gt;#member
+     * - ORGANIZATION -&gt; PRIVATE: deletes that tuple
+     * </pre>
+     */
+    public void updateExecutionVisibility(ai.stigmer.agentic.workflowinstance.v1.UpdateExecutionVisibilityInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getUpdateExecutionVisibilityMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * Delete a workflow instance.
      * &#64;internal
      * Permanently removes a WorkflowInstance resource.
@@ -613,6 +693,30 @@ public final class WorkflowInstanceCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update who can observe the run history (executions) of this instance.
+     * This is a SEPARATE axis from updateVisibility: it controls run
+     * observability (who sees execution inputs/outputs), not who can see/run
+     * the instance itself. Making an instance org-runnable does NOT expose
+     * other users' run history — that requires this opt-in.
+     * Supported levels: PRIVATE (only the user who ran each execution) and
+     * ORGANIZATION (all org members). Public/platform are unsupported.
+     * &#64;internal
+     * Authorization: requires can_grant_access on the workflow instance —
+     * sharing run history is an access-granting action, consistent with the
+     * per-execution share flow. In Cloud mode the transition reconciles the
+     * instance's `execution_viewer` FGA relation:
+     * - PRIVATE -&gt; ORGANIZATION: creates
+     *   workflow_instance#execution_viewer&#64;organization:&lt;org&gt;#member
+     * - ORGANIZATION -&gt; PRIVATE: deletes that tuple
+     * </pre>
+     */
+    public ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance updateExecutionVisibility(ai.stigmer.agentic.workflowinstance.v1.UpdateExecutionVisibilityInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getUpdateExecutionVisibilityMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * Delete a workflow instance.
      * &#64;internal
      * Permanently removes a WorkflowInstance resource.
@@ -736,6 +840,30 @@ public final class WorkflowInstanceCommandControllerGrpc {
     public ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getUpdateVisibilityMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Update who can observe the run history (executions) of this instance.
+     * This is a SEPARATE axis from updateVisibility: it controls run
+     * observability (who sees execution inputs/outputs), not who can see/run
+     * the instance itself. Making an instance org-runnable does NOT expose
+     * other users' run history — that requires this opt-in.
+     * Supported levels: PRIVATE (only the user who ran each execution) and
+     * ORGANIZATION (all org members). Public/platform are unsupported.
+     * &#64;internal
+     * Authorization: requires can_grant_access on the workflow instance —
+     * sharing run history is an access-granting action, consistent with the
+     * per-execution share flow. In Cloud mode the transition reconciles the
+     * instance's `execution_viewer` FGA relation:
+     * - PRIVATE -&gt; ORGANIZATION: creates
+     *   workflow_instance#execution_viewer&#64;organization:&lt;org&gt;#member
+     * - ORGANIZATION -&gt; PRIVATE: deletes that tuple
+     * </pre>
+     */
+    public ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance updateExecutionVisibility(ai.stigmer.agentic.workflowinstance.v1.UpdateExecutionVisibilityInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getUpdateExecutionVisibilityMethod(), getCallOptions(), request);
     }
 
     /**
@@ -871,6 +999,31 @@ public final class WorkflowInstanceCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update who can observe the run history (executions) of this instance.
+     * This is a SEPARATE axis from updateVisibility: it controls run
+     * observability (who sees execution inputs/outputs), not who can see/run
+     * the instance itself. Making an instance org-runnable does NOT expose
+     * other users' run history — that requires this opt-in.
+     * Supported levels: PRIVATE (only the user who ran each execution) and
+     * ORGANIZATION (all org members). Public/platform are unsupported.
+     * &#64;internal
+     * Authorization: requires can_grant_access on the workflow instance —
+     * sharing run history is an access-granting action, consistent with the
+     * per-execution share flow. In Cloud mode the transition reconciles the
+     * instance's `execution_viewer` FGA relation:
+     * - PRIVATE -&gt; ORGANIZATION: creates
+     *   workflow_instance#execution_viewer&#64;organization:&lt;org&gt;#member
+     * - ORGANIZATION -&gt; PRIVATE: deletes that tuple
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance> updateExecutionVisibility(
+        ai.stigmer.agentic.workflowinstance.v1.UpdateExecutionVisibilityInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getUpdateExecutionVisibilityMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * Delete a workflow instance.
      * &#64;internal
      * Permanently removes a WorkflowInstance resource.
@@ -896,7 +1049,8 @@ public final class WorkflowInstanceCommandControllerGrpc {
   private static final int METHODID_CREATE = 1;
   private static final int METHODID_UPDATE = 2;
   private static final int METHODID_UPDATE_VISIBILITY = 3;
-  private static final int METHODID_DELETE = 4;
+  private static final int METHODID_UPDATE_EXECUTION_VISIBILITY = 4;
+  private static final int METHODID_DELETE = 5;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -929,6 +1083,10 @@ public final class WorkflowInstanceCommandControllerGrpc {
           break;
         case METHODID_UPDATE_VISIBILITY:
           serviceImpl.updateVisibility((ai.stigmer.commons.apiresource.UpdateVisibilityInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance>) responseObserver);
+          break;
+        case METHODID_UPDATE_EXECUTION_VISIBILITY:
+          serviceImpl.updateExecutionVisibility((ai.stigmer.agentic.workflowinstance.v1.UpdateExecutionVisibilityInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance>) responseObserver);
           break;
         case METHODID_DELETE:
@@ -981,6 +1139,13 @@ public final class WorkflowInstanceCommandControllerGrpc {
               ai.stigmer.commons.apiresource.UpdateVisibilityInput,
               ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance>(
                 service, METHODID_UPDATE_VISIBILITY)))
+        .addMethod(
+          getUpdateExecutionVisibilityMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.workflowinstance.v1.UpdateExecutionVisibilityInput,
+              ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance>(
+                service, METHODID_UPDATE_EXECUTION_VISIBILITY)))
         .addMethod(
           getDeleteMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -1040,6 +1205,7 @@ public final class WorkflowInstanceCommandControllerGrpc {
               .addMethod(getCreateMethod())
               .addMethod(getUpdateMethod())
               .addMethod(getUpdateVisibilityMethod())
+              .addMethod(getUpdateExecutionVisibilityMethod())
               .addMethod(getDeleteMethod())
               .build();
         }

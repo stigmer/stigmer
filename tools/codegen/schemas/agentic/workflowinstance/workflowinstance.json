@@ -42,6 +42,21 @@
       "description": "Ordered list of Environment resources providing configuration and secrets.\n\n Environments are merged in declaration order — later entries override\n earlier ones when keys conflict.\n\n @internal\n Environments are layered configuration containers that provide:\n - Environment variables (API keys, endpoints, flags)\n - Secrets (credentials, tokens, passwords)\n - Configuration values (timeouts, limits, settings)\n\n Example layering:\n   [base-env, aws-prod-env, github-team-env]\n   └─ base-env: Common settings for all instances\n   └─ aws-prod-env: AWS production credentials (overrides base AWS settings)\n   └─ github-team-env: Team-specific GitHub tokens (overrides generic tokens)\n\n Use Cases:\n - Single env: [prod-env] - Simple, all config in one place\n - Base + specific: [base, prod] - Common config + environment-specific\n - Layered: [base, cloud, team] - Base + cloud credentials + team settings\n\n References use ApiResourceReference which supports:\n - By ID: {id: \"env_abc123\"}\n - By slug: {slug: \"aws-prod-env\"}\n\n At execution time, the WorkflowExecution runtime merges these environments\n and provides the combined configuration to all agents in the workflow.",
       "required": false,
       "referenceKind": 53
+    },
+    {
+      "name": "ExecutionVisibility",
+      "jsonName": "executionVisibility",
+      "protoField": "execution_visibility",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.workflowinstance.v1.WorkflowExecutionVisibility",
+        "enumValues": [
+          "workflow_execution_visibility_private",
+          "workflow_execution_visibility_organization"
+        ]
+      },
+      "description": "Who can observe the run history (executions) of this instance.\n\n Independent of the instance's own visibility: making an instance\n org-visible lets teammates see and run it, but does NOT expose each\n other's run inputs/outputs unless this is set to ORGANIZATION.\n\n Defaults to PRIVATE (unspecified is treated as private) — each execution\n is visible only to the user who triggered it. Update via\n WorkflowInstanceCommandController.updateExecutionVisibility.",
+      "required": false
     }
   ]
 }

@@ -240,4 +240,39 @@ public interface WorkflowInstanceSpecOrBuilder extends
    */
   ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getEnvironmentRefsOrBuilder(
       int index);
+
+  /**
+   * <pre>
+   * Who can observe the run history (executions) of this instance.
+   *
+   * Independent of the instance's own visibility: making an instance
+   * org-visible lets teammates see and run it, but does NOT expose each
+   * other's run inputs/outputs unless this is set to ORGANIZATION.
+   *
+   * Defaults to PRIVATE (unspecified is treated as private) — each execution
+   * is visible only to the user who triggered it. Update via
+   * WorkflowInstanceCommandController.updateExecutionVisibility.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.workflowinstance.v1.WorkflowExecutionVisibility execution_visibility = 4 [json_name = "executionVisibility", (.buf.validate.field) = { ... }</code>
+   * @return The enum numeric value on the wire for executionVisibility.
+   */
+  int getExecutionVisibilityValue();
+  /**
+   * <pre>
+   * Who can observe the run history (executions) of this instance.
+   *
+   * Independent of the instance's own visibility: making an instance
+   * org-visible lets teammates see and run it, but does NOT expose each
+   * other's run inputs/outputs unless this is set to ORGANIZATION.
+   *
+   * Defaults to PRIVATE (unspecified is treated as private) — each execution
+   * is visible only to the user who triggered it. Update via
+   * WorkflowInstanceCommandController.updateExecutionVisibility.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.workflowinstance.v1.WorkflowExecutionVisibility execution_visibility = 4 [json_name = "executionVisibility", (.buf.validate.field) = { ... }</code>
+   * @return The executionVisibility.
+   */
+  ai.stigmer.agentic.workflowinstance.v1.WorkflowExecutionVisibility getExecutionVisibility();
 }

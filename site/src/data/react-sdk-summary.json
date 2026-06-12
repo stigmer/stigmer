@@ -103,7 +103,7 @@
       "title": "IAM Policy",
       "description": "Hooks and components for access control bindings, role assignment, and org membership.",
       "hooks": 10,
-      "components": 5
+      "components": 7
     },
     {
       "slug": "identity-account",
@@ -158,7 +158,7 @@
       "slug": "organization",
       "title": "Organization",
       "description": "Hooks and components for organization creation and management.",
-      "hooks": 6,
+      "hooks": 7,
       "components": 4
     },
     {
@@ -235,7 +235,7 @@
       "slug": "workflow",
       "title": "Workflow",
       "description": "Hooks and components for workflow definitions, instances, executions, and the visual builder.",
-      "hooks": 30,
+      "hooks": 31,
       "components": 13
     },
     {

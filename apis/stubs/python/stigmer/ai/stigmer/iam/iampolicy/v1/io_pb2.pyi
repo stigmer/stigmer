@@ -1,5 +1,6 @@
 from ai.stigmer.iam.iampolicy.v1 import api_pb2 as _api_pb2
 from ai.stigmer.iam.iampolicy.v1 import spec_pb2 as _spec_pb2
+from ai.stigmer.iam.identityaccount.v1 import enum_pb2 as _enum_pb2
 from buf.validate import validate_pb2 as _validate_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
@@ -10,7 +11,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class ApiResourceRefView(_message.Message):
-    __slots__ = ("kind", "id", "relation", "name", "email", "slug", "avatar", "members", "teams")
+    __slots__ = ("kind", "id", "relation", "name", "email", "slug", "avatar", "members", "teams", "identity_origin")
     KIND_FIELD_NUMBER: _ClassVar[int]
     ID_FIELD_NUMBER: _ClassVar[int]
     RELATION_FIELD_NUMBER: _ClassVar[int]
@@ -20,6 +21,7 @@ class ApiResourceRefView(_message.Message):
     AVATAR_FIELD_NUMBER: _ClassVar[int]
     MEMBERS_FIELD_NUMBER: _ClassVar[int]
     TEAMS_FIELD_NUMBER: _ClassVar[int]
+    IDENTITY_ORIGIN_FIELD_NUMBER: _ClassVar[int]
     kind: str
     id: str
     relation: str
@@ -29,7 +31,16 @@ class ApiResourceRefView(_message.Message):
     avatar: str
     members: _containers.RepeatedCompositeFieldContainer[ApiResourceRefView]
     teams: _containers.RepeatedCompositeFieldContainer[ApiResourceRefView]
-    def __init__(self, kind: _Optional[str] = ..., id: _Optional[str] = ..., relation: _Optional[str] = ..., name: _Optional[str] = ..., email: _Optional[str] = ..., slug: _Optional[str] = ..., avatar: _Optional[str] = ..., members: _Optional[_Iterable[_Union[ApiResourceRefView, _Mapping]]] = ..., teams: _Optional[_Iterable[_Union[ApiResourceRefView, _Mapping]]] = ...) -> None: ...
+    identity_origin: IdentityOrigin
+    def __init__(self, kind: _Optional[str] = ..., id: _Optional[str] = ..., relation: _Optional[str] = ..., name: _Optional[str] = ..., email: _Optional[str] = ..., slug: _Optional[str] = ..., avatar: _Optional[str] = ..., members: _Optional[_Iterable[_Union[ApiResourceRefView, _Mapping]]] = ..., teams: _Optional[_Iterable[_Union[ApiResourceRefView, _Mapping]]] = ..., identity_origin: _Optional[_Union[IdentityOrigin, _Mapping]] = ...) -> None: ...
+
+class IdentityOrigin(_message.Message):
+    __slots__ = ("provisioning_mode", "provider_display_name")
+    PROVISIONING_MODE_FIELD_NUMBER: _ClassVar[int]
+    PROVIDER_DISPLAY_NAME_FIELD_NUMBER: _ClassVar[int]
+    provisioning_mode: _enum_pb2.IdentityAccountProvisioningMode
+    provider_display_name: str
+    def __init__(self, provisioning_mode: _Optional[_Union[_enum_pb2.IdentityAccountProvisioningMode, str]] = ..., provider_display_name: _Optional[str] = ...) -> None: ...
 
 class IamPolicyId(_message.Message):
     __slots__ = ("value",)

@@ -64,6 +64,7 @@ private static final long serialVersionUID = 0L;
             ai.stigmer.iam.iampolicy.v1.ApiResourceRefView.class, ai.stigmer.iam.iampolicy.v1.ApiResourceRefView.Builder.class);
   }
 
+  private int bitField0_;
   public static final int KIND_FIELD_NUMBER = 1;
   @SuppressWarnings("serial")
   private volatile java.lang.Object kind_ = "";
@@ -515,6 +516,50 @@ private static final long serialVersionUID = 0L;
     return teams_.get(index);
   }
 
+  public static final int IDENTITY_ORIGIN_FIELD_NUMBER = 10;
+  private ai.stigmer.iam.iampolicy.v1.IdentityOrigin identityOrigin_;
+  /**
+   * <pre>
+   * Where this identity account was provisioned from. Lets a chooser
+   * disambiguate accounts that share the same email address.
+   * Populated only when kind = "identity_account".
+   * </pre>
+   *
+   * <code>.ai.stigmer.iam.iampolicy.v1.IdentityOrigin identity_origin = 10 [json_name = "identityOrigin"];</code>
+   * @return Whether the identityOrigin field is set.
+   */
+  @java.lang.Override
+  public boolean hasIdentityOrigin() {
+    return ((bitField0_ & 0x00000001) != 0);
+  }
+  /**
+   * <pre>
+   * Where this identity account was provisioned from. Lets a chooser
+   * disambiguate accounts that share the same email address.
+   * Populated only when kind = "identity_account".
+   * </pre>
+   *
+   * <code>.ai.stigmer.iam.iampolicy.v1.IdentityOrigin identity_origin = 10 [json_name = "identityOrigin"];</code>
+   * @return The identityOrigin.
+   */
+  @java.lang.Override
+  public ai.stigmer.iam.iampolicy.v1.IdentityOrigin getIdentityOrigin() {
+    return identityOrigin_ == null ? ai.stigmer.iam.iampolicy.v1.IdentityOrigin.getDefaultInstance() : identityOrigin_;
+  }
+  /**
+   * <pre>
+   * Where this identity account was provisioned from. Lets a chooser
+   * disambiguate accounts that share the same email address.
+   * Populated only when kind = "identity_account".
+   * </pre>
+   *
+   * <code>.ai.stigmer.iam.iampolicy.v1.IdentityOrigin identity_origin = 10 [json_name = "identityOrigin"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.iam.iampolicy.v1.IdentityOriginOrBuilder getIdentityOriginOrBuilder() {
+    return identityOrigin_ == null ? ai.stigmer.iam.iampolicy.v1.IdentityOrigin.getDefaultInstance() : identityOrigin_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -555,6 +600,9 @@ private static final long serialVersionUID = 0L;
     }
     for (int i = 0; i < teams_.size(); i++) {
       output.writeMessage(9, teams_.get(i));
+    }
+    if (((bitField0_ & 0x00000001) != 0)) {
+      output.writeMessage(10, getIdentityOrigin());
     }
     getUnknownFields().writeTo(output);
   }
@@ -604,6 +652,10 @@ private static final long serialVersionUID = 0L;
           }
           size += 1 * count;
         }
+    if (((bitField0_ & 0x00000001) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(10, getIdentityOrigin());
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -637,6 +689,11 @@ private static final long serialVersionUID = 0L;
         .equals(other.getMembersList())) return false;
     if (!getTeamsList()
         .equals(other.getTeamsList())) return false;
+    if (hasIdentityOrigin() != other.hasIdentityOrigin()) return false;
+    if (hasIdentityOrigin()) {
+      if (!getIdentityOrigin()
+          .equals(other.getIdentityOrigin())) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -669,6 +726,10 @@ private static final long serialVersionUID = 0L;
     if (getTeamsCount() > 0) {
       hash = (37 * hash) + TEAMS_FIELD_NUMBER;
       hash = (53 * hash) + getTeamsList().hashCode();
+    }
+    if (hasIdentityOrigin()) {
+      hash = (37 * hash) + IDENTITY_ORIGIN_FIELD_NUMBER;
+      hash = (53 * hash) + getIdentityOrigin().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -796,13 +857,21 @@ private static final long serialVersionUID = 0L;
 
     // Construct using ai.stigmer.iam.iampolicy.v1.ApiResourceRefView.newBuilder()
     private Builder() {
-
+      maybeForceBuilderInitialization();
     }
 
     private Builder(
         com.google.protobuf.GeneratedMessage.BuilderParent parent) {
       super(parent);
-
+      maybeForceBuilderInitialization();
+    }
+    private void maybeForceBuilderInitialization() {
+      if (com.google.protobuf.GeneratedMessage
+              .alwaysUseFieldBuilders) {
+        internalGetMembersFieldBuilder();
+        internalGetTeamsFieldBuilder();
+        internalGetIdentityOriginFieldBuilder();
+      }
     }
     @java.lang.Override
     public Builder clear() {
@@ -829,6 +898,11 @@ private static final long serialVersionUID = 0L;
         teamsBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000100);
+      identityOrigin_ = null;
+      if (identityOriginBuilder_ != null) {
+        identityOriginBuilder_.dispose();
+        identityOriginBuilder_ = null;
+      }
       return this;
     }
 
@@ -905,6 +979,14 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000040) != 0)) {
         result.avatar_ = avatar_;
       }
+      int to_bitField0_ = 0;
+      if (((from_bitField0_ & 0x00000200) != 0)) {
+        result.identityOrigin_ = identityOriginBuilder_ == null
+            ? identityOrigin_
+            : identityOriginBuilder_.build();
+        to_bitField0_ |= 0x00000001;
+      }
+      result.bitField0_ |= to_bitField0_;
     }
 
     @java.lang.Override
@@ -1006,6 +1088,9 @@ private static final long serialVersionUID = 0L;
           }
         }
       }
+      if (other.hasIdentityOrigin()) {
+        mergeIdentityOrigin(other.getIdentityOrigin());
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -1093,6 +1178,13 @@ private static final long serialVersionUID = 0L;
               }
               break;
             } // case 74
+            case 82: {
+              input.readMessage(
+                  internalGetIdentityOriginFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00000200;
+              break;
+            } // case 82
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2376,6 +2468,181 @@ private static final long serialVersionUID = 0L;
         teams_ = null;
       }
       return teamsBuilder_;
+    }
+
+    private ai.stigmer.iam.iampolicy.v1.IdentityOrigin identityOrigin_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.iam.iampolicy.v1.IdentityOrigin, ai.stigmer.iam.iampolicy.v1.IdentityOrigin.Builder, ai.stigmer.iam.iampolicy.v1.IdentityOriginOrBuilder> identityOriginBuilder_;
+    /**
+     * <pre>
+     * Where this identity account was provisioned from. Lets a chooser
+     * disambiguate accounts that share the same email address.
+     * Populated only when kind = "identity_account".
+     * </pre>
+     *
+     * <code>.ai.stigmer.iam.iampolicy.v1.IdentityOrigin identity_origin = 10 [json_name = "identityOrigin"];</code>
+     * @return Whether the identityOrigin field is set.
+     */
+    public boolean hasIdentityOrigin() {
+      return ((bitField0_ & 0x00000200) != 0);
+    }
+    /**
+     * <pre>
+     * Where this identity account was provisioned from. Lets a chooser
+     * disambiguate accounts that share the same email address.
+     * Populated only when kind = "identity_account".
+     * </pre>
+     *
+     * <code>.ai.stigmer.iam.iampolicy.v1.IdentityOrigin identity_origin = 10 [json_name = "identityOrigin"];</code>
+     * @return The identityOrigin.
+     */
+    public ai.stigmer.iam.iampolicy.v1.IdentityOrigin getIdentityOrigin() {
+      if (identityOriginBuilder_ == null) {
+        return identityOrigin_ == null ? ai.stigmer.iam.iampolicy.v1.IdentityOrigin.getDefaultInstance() : identityOrigin_;
+      } else {
+        return identityOriginBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * Where this identity account was provisioned from. Lets a chooser
+     * disambiguate accounts that share the same email address.
+     * Populated only when kind = "identity_account".
+     * </pre>
+     *
+     * <code>.ai.stigmer.iam.iampolicy.v1.IdentityOrigin identity_origin = 10 [json_name = "identityOrigin"];</code>
+     */
+    public Builder setIdentityOrigin(ai.stigmer.iam.iampolicy.v1.IdentityOrigin value) {
+      if (identityOriginBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        identityOrigin_ = value;
+      } else {
+        identityOriginBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00000200;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Where this identity account was provisioned from. Lets a chooser
+     * disambiguate accounts that share the same email address.
+     * Populated only when kind = "identity_account".
+     * </pre>
+     *
+     * <code>.ai.stigmer.iam.iampolicy.v1.IdentityOrigin identity_origin = 10 [json_name = "identityOrigin"];</code>
+     */
+    public Builder setIdentityOrigin(
+        ai.stigmer.iam.iampolicy.v1.IdentityOrigin.Builder builderForValue) {
+      if (identityOriginBuilder_ == null) {
+        identityOrigin_ = builderForValue.build();
+      } else {
+        identityOriginBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00000200;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Where this identity account was provisioned from. Lets a chooser
+     * disambiguate accounts that share the same email address.
+     * Populated only when kind = "identity_account".
+     * </pre>
+     *
+     * <code>.ai.stigmer.iam.iampolicy.v1.IdentityOrigin identity_origin = 10 [json_name = "identityOrigin"];</code>
+     */
+    public Builder mergeIdentityOrigin(ai.stigmer.iam.iampolicy.v1.IdentityOrigin value) {
+      if (identityOriginBuilder_ == null) {
+        if (((bitField0_ & 0x00000200) != 0) &&
+          identityOrigin_ != null &&
+          identityOrigin_ != ai.stigmer.iam.iampolicy.v1.IdentityOrigin.getDefaultInstance()) {
+          getIdentityOriginBuilder().mergeFrom(value);
+        } else {
+          identityOrigin_ = value;
+        }
+      } else {
+        identityOriginBuilder_.mergeFrom(value);
+      }
+      if (identityOrigin_ != null) {
+        bitField0_ |= 0x00000200;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Where this identity account was provisioned from. Lets a chooser
+     * disambiguate accounts that share the same email address.
+     * Populated only when kind = "identity_account".
+     * </pre>
+     *
+     * <code>.ai.stigmer.iam.iampolicy.v1.IdentityOrigin identity_origin = 10 [json_name = "identityOrigin"];</code>
+     */
+    public Builder clearIdentityOrigin() {
+      bitField0_ = (bitField0_ & ~0x00000200);
+      identityOrigin_ = null;
+      if (identityOriginBuilder_ != null) {
+        identityOriginBuilder_.dispose();
+        identityOriginBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Where this identity account was provisioned from. Lets a chooser
+     * disambiguate accounts that share the same email address.
+     * Populated only when kind = "identity_account".
+     * </pre>
+     *
+     * <code>.ai.stigmer.iam.iampolicy.v1.IdentityOrigin identity_origin = 10 [json_name = "identityOrigin"];</code>
+     */
+    public ai.stigmer.iam.iampolicy.v1.IdentityOrigin.Builder getIdentityOriginBuilder() {
+      bitField0_ |= 0x00000200;
+      onChanged();
+      return internalGetIdentityOriginFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * Where this identity account was provisioned from. Lets a chooser
+     * disambiguate accounts that share the same email address.
+     * Populated only when kind = "identity_account".
+     * </pre>
+     *
+     * <code>.ai.stigmer.iam.iampolicy.v1.IdentityOrigin identity_origin = 10 [json_name = "identityOrigin"];</code>
+     */
+    public ai.stigmer.iam.iampolicy.v1.IdentityOriginOrBuilder getIdentityOriginOrBuilder() {
+      if (identityOriginBuilder_ != null) {
+        return identityOriginBuilder_.getMessageOrBuilder();
+      } else {
+        return identityOrigin_ == null ?
+            ai.stigmer.iam.iampolicy.v1.IdentityOrigin.getDefaultInstance() : identityOrigin_;
+      }
+    }
+    /**
+     * <pre>
+     * Where this identity account was provisioned from. Lets a chooser
+     * disambiguate accounts that share the same email address.
+     * Populated only when kind = "identity_account".
+     * </pre>
+     *
+     * <code>.ai.stigmer.iam.iampolicy.v1.IdentityOrigin identity_origin = 10 [json_name = "identityOrigin"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.iam.iampolicy.v1.IdentityOrigin, ai.stigmer.iam.iampolicy.v1.IdentityOrigin.Builder, ai.stigmer.iam.iampolicy.v1.IdentityOriginOrBuilder> 
+        internalGetIdentityOriginFieldBuilder() {
+      if (identityOriginBuilder_ == null) {
+        identityOriginBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.iam.iampolicy.v1.IdentityOrigin, ai.stigmer.iam.iampolicy.v1.IdentityOrigin.Builder, ai.stigmer.iam.iampolicy.v1.IdentityOriginOrBuilder>(
+                getIdentityOrigin(),
+                getParentForChildren(),
+                isClean());
+        identityOrigin_ = null;
+      }
+      return identityOriginBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.iam.iampolicy.v1.ApiResourceRefView)

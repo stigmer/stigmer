@@ -3,6 +3,7 @@ import { useState } from "react";
 import {
   SessionViewer,
   useActiveOrgSlug,
+  useActiveOrgId,
   useWorkspaceSources,
   SharePanel,
   PermissionGate,
@@ -47,6 +48,7 @@ function SessionPageInner({ id }: { id: string }) {
 
 function ShareActions({ sessionId }: { sessionId: string }) {
   const [showSharePanel, setShowSharePanel] = useState(false);
+  const orgId = useActiveOrgId();
 
   return (
     <PermissionGate resource={{ kind: "session", id: sessionId }} relation="can_grant_access">
@@ -65,6 +67,7 @@ function ShareActions({ sessionId }: { sessionId: string }) {
             resource={{ kind: "session", id: sessionId, resourceKind: ApiResourceKind.session }}
             resourceKindString="session"
             resourceKind={ApiResourceKind.session}
+            orgId={orgId}
             onClose={() => setShowSharePanel(false)}
           />
         </div>

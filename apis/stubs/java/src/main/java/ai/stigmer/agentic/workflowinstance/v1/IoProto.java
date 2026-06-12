@@ -37,6 +37,11 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_workflowinstance_v1_GetWorkflowInstancesByWorkflowRequest_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_workflowinstance_v1_UpdateExecutionVisibilityInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_workflowinstance_v1_UpdateExecutionVisibilityInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_workflowinstance_v1_WorkflowInstanceList_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -53,27 +58,35 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "\n/ai/stigmer/agentic/workflowinstance/v1" +
       "/io.proto\022&ai.stigmer.agentic.workflowin" +
       "stance.v1\0320ai/stigmer/agentic/workflowin" +
-      "stance/v1/api.proto\032\'ai/stigmer/commons/" +
-      "rpc/pagination.proto\032\033buf/validate/valid" +
-      "ate.proto\"2\n\022WorkflowInstanceId\022\034\n\005value" +
-      "\030\001 \001(\tB\006\272H\003\310\001\001R\005value\"\217\001\n%GetWorkflowIns" +
-      "tancesByWorkflowRequest\022\'\n\013workflow_id\030\001" +
-      " \001(\tB\006\272H\003\310\001\001R\nworkflowId\022=\n\tpage_info\030\002 " +
-      "\001(\0132 .ai.stigmer.commons.rpc.PageInfoR\010p" +
-      "ageInfo\"\213\001\n\024WorkflowInstanceList\022\037\n\013tota" +
-      "l_pages\030\001 \001(\005R\ntotalPages\022R\n\007entries\030\002 \003" +
-      "(\01328.ai.stigmer.agentic.workflowinstance" +
-      ".v1.WorkflowInstanceR\007entriesB\306\001B\007IoProt" +
-      "oP\001\242\002\004ASAW\252\002&Ai.Stigmer.Agentic.Workflow" +
-      "instance.V1\312\002&Ai\\Stigmer\\Agentic\\Workflo" +
-      "winstance\\V1\342\0022Ai\\Stigmer\\Agentic\\Workfl" +
-      "owinstance\\V1\\GPBMetadata\352\002*Ai::Stigmer:" +
-      ":Agentic::Workflowinstance::V1b\006proto3"
+      "stance/v1/api.proto\0321ai/stigmer/agentic/" +
+      "workflowinstance/v1/spec.proto\032\'ai/stigm" +
+      "er/commons/rpc/pagination.proto\032\033buf/val" +
+      "idate/validate.proto\"2\n\022WorkflowInstance" +
+      "Id\022\034\n\005value\030\001 \001(\tB\006\272H\003\310\001\001R\005value\"\217\001\n%Get" +
+      "WorkflowInstancesByWorkflowRequest\022\'\n\013wo" +
+      "rkflow_id\030\001 \001(\tB\006\272H\003\310\001\001R\nworkflowId\022=\n\tp" +
+      "age_info\030\002 \001(\0132 .ai.stigmer.commons.rpc." +
+      "PageInfoR\010pageInfo\"\316\001\n\036UpdateExecutionVi" +
+      "sibilityInput\022\'\n\013resource_id\030\001 \001(\tB\006\272H\003\310" +
+      "\001\001R\nresourceId\022\202\001\n\024execution_visibility\030" +
+      "\002 \001(\0162C.ai.stigmer.agentic.workflowinsta" +
+      "nce.v1.WorkflowExecutionVisibilityB\n\272H\007\202" +
+      "\001\004\020\001 \000R\023executionVisibility\"\213\001\n\024Workflow" +
+      "InstanceList\022\037\n\013total_pages\030\001 \001(\005R\ntotal" +
+      "Pages\022R\n\007entries\030\002 \003(\01328.ai.stigmer.agen" +
+      "tic.workflowinstance.v1.WorkflowInstance" +
+      "R\007entriesB\306\001B\007IoProtoP\001\242\002\004ASAW\252\002&Ai.Stig" +
+      "mer.Agentic.Workflowinstance.V1\312\002&Ai\\Sti" +
+      "gmer\\Agentic\\Workflowinstance\\V1\342\0022Ai\\St" +
+      "igmer\\Agentic\\Workflowinstance\\V1\\GPBMet" +
+      "adata\352\002*Ai::Stigmer::Agentic::Workflowin" +
+      "stance::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           ai.stigmer.agentic.workflowinstance.v1.ApiProto.getDescriptor(),
+          ai.stigmer.agentic.workflowinstance.v1.SpecProto.getDescriptor(),
           ai.stigmer.commons.rpc.PaginationProto.getDescriptor(),
           build.buf.validate.ValidateProto.getDescriptor(),
         });
@@ -89,14 +102,21 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_workflowinstance_v1_GetWorkflowInstancesByWorkflowRequest_descriptor,
         new java.lang.String[] { "WorkflowId", "PageInfo", });
-    internal_static_ai_stigmer_agentic_workflowinstance_v1_WorkflowInstanceList_descriptor =
+    internal_static_ai_stigmer_agentic_workflowinstance_v1_UpdateExecutionVisibilityInput_descriptor =
       getDescriptor().getMessageType(2);
+    internal_static_ai_stigmer_agentic_workflowinstance_v1_UpdateExecutionVisibilityInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_workflowinstance_v1_UpdateExecutionVisibilityInput_descriptor,
+        new java.lang.String[] { "ResourceId", "ExecutionVisibility", });
+    internal_static_ai_stigmer_agentic_workflowinstance_v1_WorkflowInstanceList_descriptor =
+      getDescriptor().getMessageType(3);
     internal_static_ai_stigmer_agentic_workflowinstance_v1_WorkflowInstanceList_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_workflowinstance_v1_WorkflowInstanceList_descriptor,
         new java.lang.String[] { "TotalPages", "Entries", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.workflowinstance.v1.ApiProto.getDescriptor();
+    ai.stigmer.agentic.workflowinstance.v1.SpecProto.getDescriptor();
     ai.stigmer.commons.rpc.PaginationProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =

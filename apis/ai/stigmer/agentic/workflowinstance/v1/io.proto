@@ -7,6 +7,7 @@ syntax = "proto3";
 package ai.stigmer.agentic.workflowinstance.v1;
 
 import "ai/stigmer/agentic/workflowinstance/v1/api.proto";
+import "ai/stigmer/agentic/workflowinstance/v1/spec.proto";
 import "ai/stigmer/commons/rpc/pagination.proto";
 import "buf/validate/validate.proto";
 
@@ -37,6 +38,23 @@ message GetWorkflowInstancesByWorkflowRequest {
 
   // Pagination options for result set control.
   ai.stigmer.commons.rpc.PageInfo page_info = 2;
+}
+
+// UpdateExecutionVisibilityInput targets the run-observability setting of a
+// single workflow instance.
+//
+// Mirrors the shape of commons UpdateVisibilityInput, but for the SEPARATE
+// execution-visibility axis (see WorkflowExecutionVisibility). A dedicated
+// message keeps the two visibility concepts from being conflated.
+message UpdateExecutionVisibilityInput {
+  // ID of the workflow instance whose execution visibility is being updated.
+  string resource_id = 1 [(buf.validate.field).required = true];
+
+  // The new execution-visibility setting. Must not be unspecified (0).
+  WorkflowExecutionVisibility execution_visibility = 2 [(buf.validate.field).enum = {
+    defined_only: true
+    not_in: [0]
+  }];
 }
 
 // WorkflowInstanceList contains a paginated list of workflow instances.

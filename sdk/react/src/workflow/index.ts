@@ -705,6 +705,8 @@ export {
   type UseCreateWorkflowInstanceReturn,
   useUpdateWorkflowInstance,
   type UseUpdateWorkflowInstanceReturn,
+  useUpdateWorkflowInstanceExecutionVisibility,
+  type UseUpdateWorkflowInstanceExecutionVisibilityReturn,
   useDeleteWorkflowInstance,
   type UseDeleteWorkflowInstanceReturn,
   WorkflowInstanceEmptyState,

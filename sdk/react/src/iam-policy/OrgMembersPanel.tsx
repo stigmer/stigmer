@@ -22,6 +22,7 @@ import { useRevokeOrgAccess } from "./useRevokeOrgAccess";
 import { useCreateIamPolicy } from "./useCreateIamPolicy";
 import { useDeleteIamPolicy } from "./useDeleteIamPolicy";
 import { RoleSelector } from "./RoleSelector";
+import { ProviderBadge } from "./ProviderBadge";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -233,6 +234,7 @@ function MemberRow({
               You
             </span>
           )}
+          <ProviderBadge principal={principal} />
         </div>
         {email && email !== name && (
           <span className="block truncate text-xs text-muted-foreground">

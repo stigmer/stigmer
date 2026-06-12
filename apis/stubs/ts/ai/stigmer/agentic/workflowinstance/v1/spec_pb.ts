@@ -4,8 +4,8 @@
 
 // Package workflowinstance contains the WorkflowInstanceSpec definition.
 
-import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
-import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
+import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
+import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import { file_ai_stigmer_commons_apiresource_field_options } from "../../../commons/apiresource/field_options_pb.js";
 import type { ApiResourceReference } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
@@ -16,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/workflowinstance/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_workflowinstance_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CjFhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3dpbnN0YW5jZS92MS9zcGVjLnByb3RvEiZhaS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dpbnN0YW5jZS52MSKUAgoUV29ya2Zsb3dJbnN0YW5jZVNwZWMSHAoLd29ya2Zsb3dfaWQYASABKAlCB7pIBHICEAESEwoLZGVzY3JpcHRpb24YAiABKAkSyAEKEGVudmlyb25tZW50X3JlZnMYAyADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCeLpIcZIBbiJsugFpChVlbnZpcm9ubWVudF9yZWZzLmtpbmQSP2Vudmlyb25tZW50X3JlZnMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1lbnZpcm9ubWVudBoPdGhpcy5raW5kID09IDUz4IUsNWIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("CjFhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3dpbnN0YW5jZS92MS9zcGVjLnByb3RvEiZhaS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dpbnN0YW5jZS52MSKBAwoUV29ya2Zsb3dJbnN0YW5jZVNwZWMSHAoLd29ya2Zsb3dfaWQYASABKAlCB7pIBHICEAESEwoLZGVzY3JpcHRpb24YAiABKAkSyAEKEGVudmlyb25tZW50X3JlZnMYAyADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCeLpIcZIBbiJsugFpChVlbnZpcm9ubWVudF9yZWZzLmtpbmQSP2Vudmlyb25tZW50X3JlZnMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1lbnZpcm9ubWVudBoPdGhpcy5raW5kID09IDUz4IUsNRJrChRleGVjdXRpb25fdmlzaWJpbGl0eRgEIAEoDjJDLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2luc3RhbmNlLnYxLldvcmtmbG93RXhlY3V0aW9uVmlzaWJpbGl0eUIIukgFggECEAEqpwEKG1dvcmtmbG93RXhlY3V0aW9uVmlzaWJpbGl0eRItCil3b3JrZmxvd19leGVjdXRpb25fdmlzaWJpbGl0eV91bnNwZWNpZmllZBAAEikKJXdvcmtmbG93X2V4ZWN1dGlvbl92aXNpYmlsaXR5X3ByaXZhdGUQARIuCip3b3JrZmxvd19leGVjdXRpb25fdmlzaWJpbGl0eV9vcmdhbml6YXRpb24QAmIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * WorkflowInstanceSpec defines the configurable properties of a workflow instance.
@@ -91,6 +91,21 @@ export type WorkflowInstanceSpec = Message<"ai.stigmer.agentic.workflowinstance.
    * @generated from field: repeated ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3;
    */
   environmentRefs: ApiResourceReference[];
+
+  /**
+   * Who can observe the run history (executions) of this instance.
+   *
+   * Independent of the instance's own visibility: making an instance
+   * org-visible lets teammates see and run it, but does NOT expose each
+   * other's run inputs/outputs unless this is set to ORGANIZATION.
+   *
+   * Defaults to PRIVATE (unspecified is treated as private) — each execution
+   * is visible only to the user who triggered it. Update via
+   * WorkflowInstanceCommandController.updateExecutionVisibility.
+   *
+   * @generated from field: ai.stigmer.agentic.workflowinstance.v1.WorkflowExecutionVisibility execution_visibility = 4;
+   */
+  executionVisibility: WorkflowExecutionVisibility;
 };
 
 /**
@@ -99,4 +114,52 @@ export type WorkflowInstanceSpec = Message<"ai.stigmer.agentic.workflowinstance.
  */
 export const WorkflowInstanceSpecSchema: GenMessage<WorkflowInstanceSpec> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_workflowinstance_v1_spec, 0);
+
+/**
+ * WorkflowExecutionVisibility controls who can observe the run history
+ * (executions) of a workflow instance.
+ *
+ * This is a SEPARATE axis from the instance's own visibility
+ * (metadata.visibility, which governs who can SEE and RUN the instance).
+ * Keeping them separate means making an instance org-runnable never exposes
+ * other users' run inputs/outputs. See workflow_execution.fga and
+ * workflow_instance.fga (the `execution_viewer` relation) for how this maps
+ * to authorization tuples.
+ *
+ * Only PRIVATE and ORGANIZATION are meaningful: run history is either visible
+ * to just the triggerer, or to every member of the owning organization.
+ * Public/platform run observability is deliberately unsupported.
+ *
+ * @generated from enum ai.stigmer.agentic.workflowinstance.v1.WorkflowExecutionVisibility
+ */
+export enum WorkflowExecutionVisibility {
+  /**
+   * Unset. Treated as PRIVATE — each execution is visible only to the user
+   * who triggered it.
+   *
+   * @generated from enum value: workflow_execution_visibility_unspecified = 0;
+   */
+  unspecified = 0,
+
+  /**
+   * Each execution is visible only to the user who triggered it (its owner).
+   *
+   * @generated from enum value: workflow_execution_visibility_private = 1;
+   */
+  private = 1,
+
+  /**
+   * Every member of the owning organization can observe all executions of
+   * this instance.
+   *
+   * @generated from enum value: workflow_execution_visibility_organization = 2;
+   */
+  organization = 2,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.workflowinstance.v1.WorkflowExecutionVisibility.
+ */
+export const WorkflowExecutionVisibilitySchema: GenEnum<WorkflowExecutionVisibility> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_workflowinstance_v1_spec, 0);
 

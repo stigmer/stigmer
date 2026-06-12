@@ -488,6 +488,20 @@ enum ApiResourceKind {
     authorization: {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+      // The workflow_instance link is REQUIRED, not cosmetic: a run inherits
+      // opt-in org run observability via `execution_viewer from
+      // workflow_instance` (see workflow_execution.fga). Without this parent
+      // tuple the inheritance has nothing to traverse, so enabling an
+      // instance's execution visibility would silently fail to expose its
+      // runs. Mirrors agent_execution's session parent (there via PARENT
+      // scope) and the additional_parents pattern of the *_instance kinds.
+      additional_parents: [
+        {
+          kind: "workflow_instance"
+          relation: "workflow_instance"
+          spec_field: "workflow_instance_id"
+        }
+      ]
       grantable_roles: [
         owner,
         viewer
