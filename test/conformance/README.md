@@ -67,6 +67,21 @@ Covered against the `local-go` target:
   *envmerge precedence* that populates `spec.data` at execution start is out of
   scope here (it needs a live execution) and is covered by the execution-lifecycle
   slice.
+- **Session** — the runtime conversation thread that runs against an AgentInstance.
+  Coverage: CRUD & identity (`ses_` id, slug derivation, apply create/update
+  branching, update field preservation, cross-org slug reuse); the configuration
+  fields (an omitted `harness` is stored as `UNSPECIFIED` — the "defaults to NATIVE"
+  semantic is applied at execution dispatch, not at create — while an explicit
+  `harness`/`execution_target` round-trips); the field-level **`updateSubject`**
+  contract (only `spec.subject` changes, every other field is preserved); the
+  queries `list` and **`listByAgent`** (note: the filter matches
+  `spec.agent_instance_id`, so the value passed for the proto's `agent_id` field is
+  an agent *instance* id — Finding F6); and spec-first negatives. Session has **no
+  Temporal involvement**, so the lifecycle-bound behaviors it only gates — the
+  `harness_state_id` sentinel and the `harness`/`execution_target` immutability it
+  enables once an execution has run, plus the runtime merge of session-level
+  `mcp_server_usages`/`skill_refs` into the agent graph — are out of scope here and
+  belong to the execution-lifecycle slice.
 
 Note: the **McpServer domain** suite (`mcpserver.conformance.test.ts`) is
 distinct from `mcp.conformance.test.ts`, which exercises the `@stigmer/mcp-server`
@@ -161,7 +176,7 @@ src/
   harness/   go-build, ports, server-process, clients, fixtures, global-setup
   targets/   target (interface + capabilities), local-go, cloud (stub), index
   contract/  errors, deviations, parity
-  support/   naming, workflows, agents, mcpservers, skills, environments, executioncontexts (canonical valid builders)
+  support/   naming, workflows, agents, mcpservers, skills, environments, executioncontexts, sessions (canonical valid builders)
   suites/    *.conformance.test.ts
 ```
 

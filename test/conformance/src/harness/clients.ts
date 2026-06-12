@@ -14,6 +14,8 @@ import { ExecutionContextCommandController } from "@stigmer/protos/ai/stigmer/ag
 import { ExecutionContextQueryController } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/query_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
+import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
+import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import { SkillCommandController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/command_pb";
 import { SkillQueryController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/query_pb";
 import { WorkflowCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/command_pb";
@@ -38,6 +40,8 @@ export interface ConformanceClients {
   executionContextQuery: Client<typeof ExecutionContextQueryController>;
   mcpServerCommand: Client<typeof McpServerCommandController>;
   mcpServerQuery: Client<typeof McpServerQueryController>;
+  sessionCommand: Client<typeof SessionCommandController>;
+  sessionQuery: Client<typeof SessionQueryController>;
   skillCommand: Client<typeof SkillCommandController>;
   skillQuery: Client<typeof SkillQueryController>;
 }
@@ -65,6 +69,8 @@ export function makeClients(transport: Transport): ConformanceClients {
     executionContextQuery: createClient(ExecutionContextQueryController, transport),
     mcpServerCommand: createClient(McpServerCommandController, transport),
     mcpServerQuery: createClient(McpServerQueryController, transport),
+    sessionCommand: createClient(SessionCommandController, transport),
+    sessionQuery: createClient(SessionQueryController, transport),
     skillCommand: createClient(SkillCommandController, transport),
     skillQuery: createClient(SkillQueryController, transport),
   };
