@@ -6,6 +6,10 @@
 // any client convenience layer that could drift from it.
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
+import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
+import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
+import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
+import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
 import { WorkflowCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/command_pb";
 import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
@@ -20,6 +24,10 @@ export interface ConformanceClients {
   organizationQuery: Client<typeof OrganizationQueryController>;
   workflowCommand: Client<typeof WorkflowCommandController>;
   workflowQuery: Client<typeof WorkflowQueryController>;
+  agentCommand: Client<typeof AgentCommandController>;
+  agentQuery: Client<typeof AgentQueryController>;
+  mcpServerCommand: Client<typeof McpServerCommandController>;
+  mcpServerQuery: Client<typeof McpServerQueryController>;
 }
 
 export function createTransport(baseUrl: string): Transport {
@@ -37,5 +45,9 @@ export function makeClients(transport: Transport): ConformanceClients {
     organizationQuery: createClient(OrganizationQueryController, transport),
     workflowCommand: createClient(WorkflowCommandController, transport),
     workflowQuery: createClient(WorkflowQueryController, transport),
+    agentCommand: createClient(AgentCommandController, transport),
+    agentQuery: createClient(AgentQueryController, transport),
+    mcpServerCommand: createClient(McpServerCommandController, transport),
+    mcpServerQuery: createClient(McpServerQueryController, transport),
   };
 }

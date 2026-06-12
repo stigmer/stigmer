@@ -15,14 +15,30 @@ task. See the project's `design-decisions/001-cloud-convergence-strategy.md`.
 
 ## Status
 
-Covered against the `local-go` target: **Project** and **Organization** (flat
-tenancy), and **Workflow** — the first **versioned** domain (CRUD, apply
-create/update branching, the version-history surface `listVersions` /
-`getVersion` / `getByReference` resolution by hash and apply-time tag, and the
-`validateSpec` clean contract). The harness, target-profile abstraction,
-capability flags, parity comparison, and the spec-first deviation registry built
-here are reused by every later slice (more domains, execution lifecycle, the
-cloud target).
+Covered against the `local-go` target:
+
+- **Project** and **Organization** — flat tenancy resources.
+- **Workflow** — the first **versioned** domain (CRUD, apply create/update
+  branching, the version-history surface `listVersions` / `getVersion` /
+  `getByReference` resolution by hash and apply-time tag, and the `validateSpec`
+  clean contract).
+- **Agent** and **McpServer** — flat (non-versioned) agentic blueprints (CRUD &
+  identity, apply create/update branching, slug semantics, `getByReference`
+  resolution, default-instance provisioning for Agent, and Layer-1 protovalidate
+  negatives). The Agent suite also proves the cross-aggregate
+  **Agent -> McpServer reference invariant** (`ValidateReferencesStep`): an
+  agent referencing an existing McpServer is accepted with its reference org
+  normalized, and one referencing a missing McpServer is rejected with
+  `FailedPrecondition`.
+
+Note: the **McpServer domain** suite (`mcpserver.conformance.test.ts`) is
+distinct from `mcp.conformance.test.ts`, which exercises the `@stigmer/mcp-server`
+**bridge** — its MCP tool surface against a live server — not the McpServer
+resource controllers.
+
+The harness, target-profile abstraction, capability flags, parity comparison,
+and the spec-first deviation registry built here are reused by every later slice
+(more domains, execution lifecycle, the cloud target).
 
 ## Running it
 
@@ -104,7 +120,7 @@ src/
   harness/   go-build, ports, server-process, clients, fixtures, global-setup
   targets/   target (interface + capabilities), local-go, cloud (stub), index
   contract/  errors, deviations, parity
-  support/   naming, workflows (canonical valid spec/resource builders)
+  support/   naming, workflows, agents, mcpservers (canonical valid builders)
   suites/    *.conformance.test.ts
 ```
 
