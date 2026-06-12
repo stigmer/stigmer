@@ -6,6 +6,8 @@
 // any client convenience layer that could drift from it.
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
+import { WorkflowCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/command_pb";
+import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
 import { ProjectCommandController } from "@stigmer/protos/ai/stigmer/tenancy/project/v1/command_pb";
@@ -16,6 +18,8 @@ export interface ConformanceClients {
   projectQuery: Client<typeof ProjectQueryController>;
   organizationCommand: Client<typeof OrganizationCommandController>;
   organizationQuery: Client<typeof OrganizationQueryController>;
+  workflowCommand: Client<typeof WorkflowCommandController>;
+  workflowQuery: Client<typeof WorkflowQueryController>;
 }
 
 export function createTransport(baseUrl: string): Transport {
@@ -31,5 +35,7 @@ export function makeClients(transport: Transport): ConformanceClients {
     projectQuery: createClient(ProjectQueryController, transport),
     organizationCommand: createClient(OrganizationCommandController, transport),
     organizationQuery: createClient(OrganizationQueryController, transport),
+    workflowCommand: createClient(WorkflowCommandController, transport),
+    workflowQuery: createClient(WorkflowQueryController, transport),
   };
 }

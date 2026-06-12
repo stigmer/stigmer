@@ -15,6 +15,11 @@ export interface CapabilityFlags {
   multiTenant: boolean;
   // OrganizationQuery.getByExternalOrgId is implemented. False for local OSS.
   externalOrgLookup: boolean;
+  // The dedicated WorkflowCommandController.tagVersion mutation RPC is
+  // implemented. False for local OSS, which has no handler (it answers
+  // Unimplemented) — version tags are instead set at apply time via
+  // metadata.version.tag and resolved through getByReference.
+  versionTagging: boolean;
 }
 
 // Tenancy scope a test operates within. Locally this is just a unique org slug;

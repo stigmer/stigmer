@@ -18,6 +18,7 @@ export class CloudTarget implements TargetProfile {
   readonly capabilities: CapabilityFlags = {
     multiTenant: true,
     externalOrgLookup: true,
+    versionTagging: true,
   };
 
   async setup(): Promise<void> {

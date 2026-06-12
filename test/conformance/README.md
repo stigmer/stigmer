@@ -15,10 +15,14 @@ task. See the project's `design-decisions/001-cloud-convergence-strategy.md`.
 
 ## Status
 
-Foundation slice: **Project** and **Organization** domains against the
-`local-go` target. The harness, target-profile abstraction, capability flags,
-parity comparison, and the spec-first deviation registry built here are reused
-by every later slice (more domains, execution lifecycle, the cloud target).
+Covered against the `local-go` target: **Project** and **Organization** (flat
+tenancy), and **Workflow** — the first **versioned** domain (CRUD, apply
+create/update branching, the version-history surface `listVersions` /
+`getVersion` / `getByReference` resolution by hash and apply-time tag, and the
+`validateSpec` clean contract). The harness, target-profile abstraction,
+capability flags, parity comparison, and the spec-first deviation registry built
+here are reused by every later slice (more domains, execution lifecycle, the
+cloud target).
 
 ## Running it
 
@@ -63,9 +67,11 @@ the test quietly asserting the wrong behavior. `expectCodeOrDeviation(...)`:
   signals the bug is fixed and the entry should be deleted.
 
 So the registry can never hide a regression or bless a bug permanently. Current
-entries (both `local-go`): duplicate-create returns `Unknown` instead of
-`AlreadyExists`, and missing-name returns `Unknown` instead of `InvalidArgument`
-— both because the Go pipeline wraps plain errors and loses the gRPC status.
+entries (all `local-go`): duplicate-create and missing-name/missing-spec return
+`Unknown` instead of `AlreadyExists` / `InvalidArgument` (the Go pipeline wraps
+plain errors and loses the gRPC status), and `getVersion` with a malformed hash
+returns `NotFound` instead of `InvalidArgument` (the handler skips protovalidate,
+so the proto's `version_hash` pattern is never enforced).
 
 `parity.ts` compares resources while ignoring server-owned, non-deterministic
 fields (`metadata.id`, `metadata.version`, `status`). `errors.ts` asserts gRPC
@@ -78,8 +84,10 @@ the server is reached (spawned vs. external), how tenancy is provisioned, and
 which optional behaviors exist. `CapabilityFlags` gate behaviors that
 legitimately differ across editions rather than forking the tests — e.g.
 `externalOrgLookup` is `false` locally (so `getByExternalOrgId` is expected to
-be `Unimplemented`), and `multiTenant` is `false` (so list RPCs return
-everything, with no IAM filtering).
+be `Unimplemented`), `multiTenant` is `false` (so list RPCs return everything,
+with no IAM filtering), and `versionTagging` is `false` (the dedicated
+`tagVersion` RPC has no OSS handler, so it is expected to be `Unimplemented`;
+version tags are set at apply time via `metadata.version.tag` instead).
 
 ### Harness (`src/harness/`)
 
@@ -96,7 +104,7 @@ src/
   harness/   go-build, ports, server-process, clients, fixtures, global-setup
   targets/   target (interface + capabilities), local-go, cloud (stub), index
   contract/  errors, deviations, parity
-  support/   naming
+  support/   naming, workflows (canonical valid spec/resource builders)
   suites/    *.conformance.test.ts
 ```
 

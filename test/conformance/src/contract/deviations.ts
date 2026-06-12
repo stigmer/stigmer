@@ -44,6 +44,24 @@ export const KNOWN_DEVIATIONS: KnownDeviation[] = [
       "ResolveSlugStep returns a plain fmt.Errorf when name and slug are both empty, so the client sees Unknown instead of InvalidArgument.",
     tracking: "backend/libs/go/grpc/request/pipeline/steps/slug.go",
   },
+  {
+    id: "workflow.create.missing-spec.code",
+    targets: ["local-go"],
+    expected: Code.InvalidArgument,
+    actual: Code.Unknown,
+    rationale:
+      "Workflow.spec is not marked required at the proto level, so a spec-less create passes Layer 1 and reaches validateWorkflowSpecStep, which returns a plain fmt.Errorf for the nil spec — the gRPC status is lost and the client sees Unknown instead of InvalidArgument.",
+    tracking: "backend/services/stigmer-server/pkg/domain/workflow/controller/validate_spec_step.go",
+  },
+  {
+    id: "workflow.get-version.malformed-hash.code",
+    targets: ["local-go"],
+    expected: Code.InvalidArgument,
+    actual: Code.NotFound,
+    rationale:
+      "GetWorkflowVersionInput.version_hash declares pattern ^[a-f0-9]{64}$, but getVersion is a direct handler with no ValidateProtoStep — protovalidate never runs. A malformed hash is treated as a (nonexistent) version and falls through to the audit lookup, so the client sees NotFound instead of InvalidArgument.",
+    tracking: "backend/services/stigmer-server/pkg/domain/workflow/controller/get_version.go",
+  },
 ];
 
 // Asserts the contract code, transparently accommodating a registered deviation

@@ -19,6 +19,7 @@ export class LocalGoTarget implements TargetProfile {
   readonly capabilities: CapabilityFlags = {
     multiTenant: false,
     externalOrgLookup: false,
+    versionTagging: false,
   };
 
   private server: RunningServer | undefined;
