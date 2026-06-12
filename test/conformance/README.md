@@ -30,6 +30,23 @@ Covered against the `local-go` target:
   agent referencing an existing McpServer is accepted with its reference org
   normalized, and one referencing a missing McpServer is rejected with
   `FailedPrecondition`.
+- **Skill** — the second **versioned** domain, and the first whose versioning is
+  **artifact-based**. A skill is `push`ed as a ZIP whose root `SKILL.md` carries
+  YAML frontmatter; identity (`metadata.name` == `metadata.slug`) is derived
+  server-side from that frontmatter, and a version is the SHA-256 of the artifact
+  bytes. Coverage: push identity, server-derived slug, default-private
+  visibility, cross-org isolation, push validation negatives (non-zip, missing
+  `SKILL.md`, bad frontmatter); version history (idempotent re-push vs. changed
+  bytes, newest-first with exactly one current); `getByReference` resolution by
+  latest / exact hash / push-time tag (incl. the strict-lowercase-hex rule);
+  byte-exact artifact download via `getArtifact` (live and historical);
+  `listVersions` pagination, field mapping, and validation; `updateVisibility`;
+  `delete`; and the reachable input-validation contract of the direct handler
+  `pushFromExecutionArtifact`. Two behaviors are documented but deliberately not
+  asserted as shared contract: in OSS the content-addressable artifact persists
+  on disk after `delete` (so `getArtifact` still works post-delete), and
+  `pushFromExecutionArtifact`'s happy path needs a real execution artifact and is
+  covered at the integration layer instead.
 
 Note: the **McpServer domain** suite (`mcpserver.conformance.test.ts`) is
 distinct from `mcp.conformance.test.ts`, which exercises the `@stigmer/mcp-server`
@@ -120,7 +137,7 @@ src/
   harness/   go-build, ports, server-process, clients, fixtures, global-setup
   targets/   target (interface + capabilities), local-go, cloud (stub), index
   contract/  errors, deviations, parity
-  support/   naming, workflows, agents, mcpservers (canonical valid builders)
+  support/   naming, workflows, agents, mcpservers, skills (canonical valid builders)
   suites/    *.conformance.test.ts
 ```
 

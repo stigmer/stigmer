@@ -10,6 +10,8 @@ import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
+import { SkillCommandController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/command_pb";
+import { SkillQueryController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/query_pb";
 import { WorkflowCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/command_pb";
 import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
@@ -28,6 +30,8 @@ export interface ConformanceClients {
   agentQuery: Client<typeof AgentQueryController>;
   mcpServerCommand: Client<typeof McpServerCommandController>;
   mcpServerQuery: Client<typeof McpServerQueryController>;
+  skillCommand: Client<typeof SkillCommandController>;
+  skillQuery: Client<typeof SkillQueryController>;
 }
 
 export function createTransport(baseUrl: string): Transport {
@@ -49,5 +53,7 @@ export function makeClients(transport: Transport): ConformanceClients {
     agentQuery: createClient(AgentQueryController, transport),
     mcpServerCommand: createClient(McpServerCommandController, transport),
     mcpServerQuery: createClient(McpServerQueryController, transport),
+    skillCommand: createClient(SkillCommandController, transport),
+    skillQuery: createClient(SkillQueryController, transport),
   };
 }
