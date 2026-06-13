@@ -6,10 +6,11 @@
 //! documents for the desktop host; it does not correlate acks.
 
 use std::collections::HashSet;
+use std::ops::ControlFlow;
 use std::sync::Arc;
 use std::time::Duration;
 
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::io::{AsyncBufRead, AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, Command};
 use tokio::sync::Mutex;
 
@@ -102,6 +103,13 @@ impl RunnerHost {
         cmd.stdout(std::process::Stdio::piped());
         cmd.stderr(std::process::Stdio::piped());
 
+        // Tie the runner's lifetime to this handle: when the host drops `RunnerHost` (clean
+        // app exit, `stop()`, or a panic that unwinds), the child is killed instead of
+        // surviving as an orphan reparented to pid 1 (issue #177). This only covers paths
+        // where Drop runs; a hard crash of the host is covered by the runner self-exiting on
+        // stdin EOF (its IPC read loop ends when the parent's write end closes).
+        cmd.kill_on_drop(true);
+
         let mut child = cmd.spawn().map_err(RunnerHostError::Spawn)?;
         let stdin = child
             .stdin
@@ -115,11 +123,11 @@ impl RunnerHost {
         if let Some(stderr) = child.stderr.take() {
             let log = self.log.clone();
             tokio::spawn(async move {
-                let reader = BufReader::new(stderr);
-                let mut lines = reader.lines();
-                while let Ok(Some(line)) = lines.next_line().await {
+                forward_lines(BufReader::new(stderr), |line| {
                     log(format!("[runner-stderr] {line}"));
-                }
+                    ControlFlow::Continue(())
+                })
+                .await;
             });
         }
 
@@ -145,21 +153,37 @@ impl RunnerHost {
         let process_arc = self.process.clone();
         let log = self.log.clone();
         tokio::spawn(async move {
-            let mut lines = reader.lines();
-            while let Ok(Some(line)) = lines.next_line().await {
+            let mut fatal = false;
+            forward_lines(reader, |line| {
                 let Ok(resp) = serde_json::from_str::<IpcResponse>(&line) else {
-                    continue;
+                    // Non-JSON lines are not IPC responses (e.g. stray diagnostics); skip them.
+                    return ControlFlow::Continue(());
                 };
                 match resp {
-                    IpcResponse::Error { message, fatal } => {
-                        log(format!("[runner-ipc] Error: {message} (fatal={fatal})"));
-                        if fatal {
-                            *process_arc.lock().await = None;
-                            break;
+                    IpcResponse::Error {
+                        message,
+                        fatal: is_fatal,
+                    } => {
+                        log(format!("[runner-ipc] Error: {message} (fatal={is_fatal})"));
+                        if is_fatal {
+                            fatal = true;
+                            return ControlFlow::Break(());
                         }
+                        ControlFlow::Continue(())
                     }
-                    _ => log(format!("[runner-ipc] Response: {line}")),
+                    _ => {
+                        log(format!("[runner-ipc] Response: {line}"));
+                        ControlFlow::Continue(())
+                    }
                 }
+            })
+            .await;
+
+            // Drop our handle so `status()` reflects a dead runner. Hoisted out of the
+            // line callback because the lock acquisition must await — the callback is
+            // intentionally synchronous (see `forward_lines`).
+            if fatal {
+                *process_arc.lock().await = None;
             }
         });
 
@@ -278,6 +302,53 @@ impl RunnerHost {
     }
 }
 
+/// Forward newline-delimited child output to `on_line`, lossily decoding each line so
+/// arbitrary (non-UTF8) bytes in agent/tool output degrade to replacement characters
+/// instead of terminating the forwarder.
+///
+/// This replaces a `lines().next_line()` loop whose `Err` arm — raised on invalid UTF-8 —
+/// was indistinguishable from EOF, so one bad byte dropped the pipe's read end and armed an
+/// EPIPE loop in the runner (issue #177). `read_until` never errors on bad bytes, so the
+/// only stops are genuine EOF, a real I/O error, or the callback asking to.
+///
+/// `on_line` is synchronous by design: a caller that needs async teardown (e.g. dropping the
+/// process handle on a fatal IPC error) signals it with `ControlFlow::Break` and performs the
+/// teardown after this future resolves. That keeps the seam free of async-closure machinery
+/// and directly unit-testable with an in-memory reader.
+async fn forward_lines<R, F>(mut reader: R, mut on_line: F)
+where
+    R: AsyncBufRead + Unpin,
+    F: FnMut(String) -> ControlFlow<()>,
+{
+    let mut buf = Vec::new();
+    loop {
+        buf.clear();
+        match reader.read_until(b'\n', &mut buf).await {
+            Ok(0) => break, // EOF: the child closed the stream.
+            Ok(_) => {
+                if on_line(decode_line(&buf)).is_break() {
+                    break;
+                }
+            }
+            // A real read error means the stream is gone; stop rather than spin.
+            Err(_) => break,
+        }
+    }
+}
+
+/// Lossily decode one `read_until` chunk into a line, dropping a trailing `\n`/`\r\n`.
+/// Pure so the lossy decode and delimiter handling are unit-testable in isolation.
+fn decode_line(raw: &[u8]) -> String {
+    let mut line = String::from_utf8_lossy(raw).into_owned();
+    if line.ends_with('\n') {
+        line.pop();
+        if line.ends_with('\r') {
+            line.pop();
+        }
+    }
+    line
+}
+
 /// Parse the runner's first stdout line and reconcile its protocol version against ours.
 ///
 /// A pure seam (no process, no I/O) so version negotiation is unit-testable directly.
@@ -368,6 +439,75 @@ fn validate_runner_entry(entry: &str) -> Result<(), RunnerHostError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Drive a future to completion without `#[tokio::test]`/`macros`: the crate already
+    /// enables the `rt` feature, and `forward_lines` over an in-memory `&[u8]` needs no IO
+    /// or time driver, so a bare current-thread runtime suffices and adds zero dependencies.
+    fn block_on<F: std::future::Future>(fut: F) -> F::Output {
+        tokio::runtime::Builder::new_current_thread()
+            .build()
+            .expect("current-thread runtime")
+            .block_on(fut)
+    }
+
+    #[test]
+    fn forward_lines_decodes_invalid_utf8_without_dropping_following_lines() {
+        // The 0xFF/0xFE bytes on the middle line are exactly what the old
+        // `lines().next_line()` loop reported as `Err` and treated as EOF, silently
+        // abandoning the pipe (issue #177). All three lines must survive.
+        let input: &[u8] = b"first\n\xff\xfe bad\nthird\n";
+        let mut got: Vec<String> = Vec::new();
+        block_on(forward_lines(input, |line| {
+            got.push(line);
+            ControlFlow::Continue(())
+        }));
+
+        assert_eq!(got.len(), 3, "every line must survive a bad-byte line: {got:?}");
+        assert_eq!(got[0], "first");
+        assert!(
+            got[1].contains("bad"),
+            "bad bytes are replaced but the line is kept: {:?}",
+            got[1]
+        );
+        assert_eq!(got[2], "third");
+    }
+
+    #[test]
+    fn forward_lines_stops_when_callback_breaks() {
+        let input: &[u8] = b"one\ntwo\nthree\n";
+        let mut got: Vec<String> = Vec::new();
+        block_on(forward_lines(input, |line| {
+            let stop = line == "two";
+            got.push(line);
+            if stop {
+                ControlFlow::Break(())
+            } else {
+                ControlFlow::Continue(())
+            }
+        }));
+
+        assert_eq!(got, vec!["one".to_string(), "two".to_string()]);
+    }
+
+    #[test]
+    fn forward_lines_emits_final_line_without_trailing_newline() {
+        let input: &[u8] = b"only";
+        let mut got: Vec<String> = Vec::new();
+        block_on(forward_lines(input, |line| {
+            got.push(line);
+            ControlFlow::Continue(())
+        }));
+
+        assert_eq!(got, vec!["only".to_string()]);
+    }
+
+    #[test]
+    fn decode_line_strips_lf_and_crlf() {
+        assert_eq!(decode_line(b"plain\n"), "plain");
+        assert_eq!(decode_line(b"windows\r\n"), "windows");
+        assert_eq!(decode_line(b"no-newline"), "no-newline");
+        assert_eq!(decode_line(b""), "");
+    }
 
     #[test]
     fn ready_with_current_version_is_accepted() {

@@ -31,19 +31,25 @@ import { buildReadyMessage } from "./ipc-protocol.js";
 import type { IpcCommand, IpcResponse } from "./ipc-protocol.js";
 
 import { handleUnhandledRejection, setExecutionContextRef } from "./activities/execute-cursor/rejection-capture.js";
+import { installProcessPipeGuards, reportFatal } from "./pipe-safety.js";
+
+// Guard the host pipes before anything writes to them. A dropped stderr/stdout
+// reader otherwise turns the next write into an uncaught EPIPE loop that starves
+// Temporal heartbeats and kills the in-flight execution (issue #177).
+const { writeStdout, writeStderr } = installProcessPipeGuards();
 
 process.on("unhandledRejection", (reason) => {
   handleUnhandledRejection(reason);
 });
 
 process.on("uncaughtException", (err) => {
-  console.error("Uncaught exception in runner:", err);
+  reportFatal(writeStderr, "Uncaught exception in runner:", err);
 });
 
 // ─── IPC Helpers ─────────────────────────────────────────────────────────────
 
 function sendIpc(msg: IpcResponse): void {
-  process.stdout.write(JSON.stringify(msg) + "\n");
+  writeStdout(JSON.stringify(msg) + "\n");
 }
 
 // ─── Manager Mode ────────────────────────────────────────────────────────────
@@ -52,7 +58,7 @@ async function runManagerMode(config: import("./config.js").Config): Promise<voi
   // In manager mode, redirect console.log to stderr so stdout is reserved for IPC
   const originalLog = console.log;
   console.log = (...args: unknown[]) => {
-    process.stderr.write(args.map(String).join(" ") + "\n");
+    writeStderr(args.map(String).join(" ") + "\n");
   };
 
   let manager: StigmerRunnerManager;
@@ -319,6 +325,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((err) => {
-  console.error("Fatal error in runner:", err);
+  reportFatal(writeStderr, "Fatal error in runner:", err);
   process.exit(1);
 });
