@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import { ApprovalAction, ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
@@ -17,6 +17,7 @@ import type {
 } from "@stigmer/sdk";
 import { isTerminalPhase } from "../execution/execution-phases";
 import { useStigmer } from "../hooks";
+import { toError } from "../internal/toError";
 import { useConversationStoreRef } from "../internal/store";
 import { useCreateAgentExecution } from "../execution/useCreateAgentExecution";
 import { useExecutionStream } from "../execution/useExecutionStream";
@@ -30,6 +31,14 @@ import {
   specMcpUsagesToInput,
   specSkillRefsToInput,
 } from "./session-spec-converters";
+
+/**
+ * Cadence for re-discovering the session's executions while the live stream
+ * cannot be relied on (a created-but-not-yet-listed execution, a silent
+ * connect-timeout, or an exhausted stream error). Disabled the instant the
+ * stream is healthy or terminal, so this never competes with the live feed.
+ */
+const REDISCOVERY_POLL_INTERVAL_MS = 5_000;
 
 /**
  * Options for {@link UseSessionConversationReturn.sendFollowUp}.
@@ -144,12 +153,29 @@ export interface UseSessionConversationReturn {
   readonly canSendFollowUp: boolean;
   /** True during the create RPC call (between submit and execution ID). */
   readonly isSending: boolean;
-  /** Error from the last sendFollowUp attempt, or null. */
+  /**
+   * Error from the last `sendFollowUp` attempt, or `null`.
+   *
+   * Covers **both** failing paths — the optional `session.update()` and the
+   * `create()` RPC — so a follow-up never fails silently. When set, the user's
+   * message is preserved (see {@link pendingUserMessage}) and can be re-sent
+   * via {@link retryLastSend}.
+   */
   readonly sendError: Error | null;
-  /** Reset `sendError` to `null`. */
+  /** Reset `sendError` to `null` (keeps the preserved pending message). */
   readonly clearSendError: () => void;
+  /**
+   * Re-send the most recent `sendFollowUp` (same message and options). No-op
+   * when nothing has been sent yet. Use as the "Retry" affordance on a failed
+   * turn; clears {@link sendError} for the new attempt.
+   */
+  readonly retryLastSend: () => void;
 
-  /** The user's message text, shown in the thread before the stream delivers it. */
+  /**
+   * The user's message text, shown in the thread before the stream delivers it.
+   * Retained when a send fails so the typed message is never lost — pair with
+   * {@link sendError} to render the turn as failed with a retry control.
+   */
   readonly pendingUserMessage: string | null;
 
   /** Current workspace entries from the session spec. Empty array when session is not loaded. */
@@ -185,6 +211,20 @@ export interface UseSessionConversationReturn {
    * surface a subtle "Reconnecting…" hint rather than an error banner.
    */
   readonly isReconnecting: boolean;
+  /**
+   * `true` when the stream opened but never delivered a first snapshot within
+   * the watchdog window (even after a silent retry) — the agent hasn't started.
+   * Distinct from `streamError`: nothing threw, the stream is simply silent.
+   * Surface an actionable "the agent hasn't started — Retry" banner wired to
+   * {@link reconnectStream}.
+   */
+  readonly connectTimedOut: boolean;
+  /**
+   * `true` when a live, non-terminal stream has been silent past the slow
+   * threshold. Purely informational ("still working — taking longer than
+   * usual"); cleared by the next update. Never an error.
+   */
+  readonly isSlow: boolean;
   /** Error from the execution stream, or `null` when healthy or reconnecting. */
   readonly streamError: Error | null;
   /** Reset the stream error and re-establish the execution stream subscription. */
@@ -250,16 +290,24 @@ export function useSessionConversation(
     error: sessionError,
     refetch: refetchSession,
   } = useSession(sessionId);
+  // Bounded re-discovery (see REDISCOVERY_POLL_INTERVAL_MS). The gate depends on
+  // the stream below, so the decision is synced into state via an effect and fed
+  // back here on the next render — a one-frame lag that is immaterial at 5s.
+  const [rediscoveryActive, setRediscoveryActive] = useState(false);
   const {
     executions,
     isLoading: executionsLoading,
     error: executionsError,
     refetch,
-  } = useSessionExecutions(sessionId);
+  } = useSessionExecutions(sessionId, {
+    refetchInterval: rediscoveryActive ? REDISCOVERY_POLL_INTERVAL_MS : false,
+    // Re-list on app-relaunch / tab refocus so an execution that appeared while
+    // backgrounded is picked up without the user having to act.
+    refetchOnWindowFocus: true,
+  });
   const {
     create,
     isCreating,
-    error: createError,
     clearError: clearCreateError,
   } = useCreateAgentExecution();
   const { update: updateSession } = useUpdateSession();
@@ -280,6 +328,14 @@ export function useSessionConversation(
   const [pendingUserMessage, setPendingUserMessage] = useState<string | null>(
     null,
   );
+  // Dedicated send-failure state, distinct from the create hook's internal
+  // error so it can also cover the session.update() path. The last send's
+  // arguments are captured for an exact retry.
+  const [sendError, setSendError] = useState<Error | null>(null);
+  const lastSendRef = useRef<{
+    message: string;
+    options?: SendFollowUpOptions;
+  } | null>(null);
 
   const listActiveId = useMemo(() => {
     for (let i = executions.length - 1; i >= 0; i--) {
@@ -302,6 +358,25 @@ export function useSessionConversation(
     store: conversationStore,
   });
 
+  // Re-discovery gate. Poll only while the live stream cannot carry us:
+  //  • a fresh session whose first execution is created but not yet listed
+  //    (`executions.length === 0`) — the race this fix targets,
+  //  • a silent connect-timeout, or an exhausted stream error.
+  // Never while the stream is healthy (`isStreaming`) or the active execution
+  // has reached a terminal phase — the live feed is then the source of truth.
+  const streamTerminal =
+    activeExecutionId !== null && isTerminalPhase(stream.phase);
+  const needsRediscovery =
+    !stream.isStreaming &&
+    !streamTerminal &&
+    ((activeExecutionId === null && executions.length === 0) ||
+      stream.connectTimedOut ||
+      stream.error !== null);
+
+  useEffect(() => {
+    setRediscoveryActive(needsRediscovery);
+  }, [needsRediscovery]);
+
   // Clear pendingExecutionId once the execution appears in the fetched list
   useEffect(() => {
     if (
@@ -312,12 +387,17 @@ export function useSessionConversation(
     }
   }, [pendingExecutionId, executions]);
 
-  // Clear optimistic message once the stream delivers its first snapshot
+  // Clear the optimistic message — and any stale send error — once the stream
+  // delivers a real snapshot. This also handles recovery: if a failed send's
+  // execution is later re-discovered and streams, the failed turn resolves into
+  // the live one instead of lingering. (At send time the composer is only
+  // enabled when no execution is active, so a *fresh* failure cannot be cleared
+  // here prematurely — `stream.execution` is null then.)
   useEffect(() => {
-    if (pendingUserMessage && stream.execution) {
-      setPendingUserMessage(null);
-    }
-  }, [pendingUserMessage, stream.execution]);
+    if (!stream.execution) return;
+    if (pendingUserMessage) setPendingUserMessage(null);
+    if (sendError) setSendError(null);
+  }, [pendingUserMessage, sendError, stream.execution]);
 
   // Refetch executions when stream reaches a terminal phase so the
   // fetched list reflects the completed status and listActiveId clears.
@@ -372,6 +452,9 @@ export function useSessionConversation(
     async (message: string, options?: SendFollowUpOptions): Promise<void> => {
       if (!sessionId || !session) return;
 
+      // Capture for retry and clear any prior failure before the new attempt.
+      lastSendRef.current = { message, options };
+      setSendError(null);
       setPendingUserMessage(message);
 
       try {
@@ -411,7 +494,10 @@ export function useSessionConversation(
         setPendingExecutionId(result.executionId);
         refetch();
       } catch (err) {
-        setPendingUserMessage(null);
+        // Surface the failure and KEEP the user's message visible (do not clear
+        // pendingUserMessage) so the turn renders as failed-with-retry instead
+        // of vanishing. Covers both the update() and create() paths.
+        setSendError(toError(err));
         if (process.env.NODE_ENV !== "production") {
           console.error("[useSessionConversation] sendFollowUp failed:", err);
         }
@@ -419,6 +505,16 @@ export function useSessionConversation(
     },
     [sessionId, session, org, stigmer, create, updateSession, refetch, refetchSession],
   );
+
+  const retryLastSend = useCallback(() => {
+    const last = lastSendRef.current;
+    if (last) void sendFollowUp(last.message, last.options);
+  }, [sendFollowUp]);
+
+  const clearSendError = useCallback(() => {
+    setSendError(null);
+    clearCreateError();
+  }, [clearCreateError]);
 
   const pendingApprovals = useMemo<readonly PendingApproval[]>(
     () => activeStreamExecution?.status?.pendingApprovals ?? [],
@@ -451,8 +547,9 @@ export function useSessionConversation(
     sendFollowUp,
     canSendFollowUp,
     isSending: isCreating,
-    sendError: createError,
-    clearSendError: clearCreateError,
+    sendError,
+    clearSendError,
+    retryLastSend,
 
     pendingUserMessage,
 
@@ -470,6 +567,8 @@ export function useSessionConversation(
     loadError,
 
     isReconnecting: stream.isReconnecting,
+    connectTimedOut: stream.connectTimedOut,
+    isSlow: stream.isSlow,
     streamError: stream.error,
     reconnectStream: stream.reconnect,
   };

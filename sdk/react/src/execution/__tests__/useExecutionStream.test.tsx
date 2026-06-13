@@ -521,3 +521,98 @@ describe("useExecutionStream — auto-reconnect", () => {
     expect(subscribeFn).toHaveBeenCalledTimes(1);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Watchdog (#175) — silent connect timeout + slow-stall hint
+// ---------------------------------------------------------------------------
+
+describe("useExecutionStream — watchdog", () => {
+  const IN_PROGRESS = ExecutionPhase.EXECUTION_IN_PROGRESS;
+
+  it("self-heals once then surfaces connectTimedOut on a silent connect", async () => {
+    // Every subscribe returns a stream that never delivers a snapshot.
+    const subscribeFn = vi.fn(
+      () => createControllableStream<AgentExecution>().generator,
+    );
+    const stigmer = createMockStigmer(
+      subscribeFn as unknown as Stigmer["agentExecution"]["subscribe"],
+    );
+
+    const { result } = renderHook(
+      () =>
+        useExecutionStream("exec-1", {
+          connectTimeoutMs: 20,
+          slowThresholdMs: 10_000,
+        }),
+      { wrapper: createWrapper(stigmer) },
+    );
+
+    // First timeout self-heals silently (no surfaced signal, a 2nd subscribe).
+    await waitFor(() => expect(subscribeFn).toHaveBeenCalledTimes(2));
+    // Second timeout surfaces the actionable signal — but never an error.
+    await waitFor(() => expect(result.current.connectTimedOut).toBe(true), {
+      timeout: 2000,
+    });
+    expect(result.current.error).toBeNull();
+  });
+
+  it("reconnect() clears connectTimedOut and re-subscribes", async () => {
+    const subscribeFn = vi.fn(
+      () => createControllableStream<AgentExecution>().generator,
+    );
+    const stigmer = createMockStigmer(
+      subscribeFn as unknown as Stigmer["agentExecution"]["subscribe"],
+    );
+
+    const { result } = renderHook(
+      () =>
+        useExecutionStream("exec-1", {
+          connectTimeoutMs: 20,
+          slowThresholdMs: 10_000,
+        }),
+      { wrapper: createWrapper(stigmer) },
+    );
+
+    await waitFor(() => expect(result.current.connectTimedOut).toBe(true), {
+      timeout: 2000,
+    });
+
+    const before = subscribeFn.mock.calls.length;
+    act(() => result.current.reconnect());
+
+    expect(result.current.connectTimedOut).toBe(false);
+    await waitFor(() =>
+      expect(subscribeFn.mock.calls.length).toBeGreaterThan(before),
+    );
+  });
+
+  it("flips isSlow on a silent live stream and clears it on the next snapshot", async () => {
+    const s = createControllableStream<AgentExecution>();
+    const subscribeFn = vi.fn(() => s.generator);
+    const stigmer = createMockStigmer(
+      subscribeFn as unknown as Stigmer["agentExecution"]["subscribe"],
+    );
+
+    const { result } = renderHook(
+      () =>
+        useExecutionStream("exec-1", {
+          connectTimeoutMs: 10_000,
+          slowThresholdMs: 20,
+        }),
+      { wrapper: createWrapper(stigmer) },
+    );
+
+    act(() => s.push(makeSnapshot(IN_PROGRESS)));
+    await waitFor(() => expect(result.current.isStreaming).toBe(true));
+
+    await waitFor(() => expect(result.current.isSlow).toBe(true), {
+      timeout: 2000,
+    });
+
+    // A terminal snapshot resolves the stall deterministically (no re-arm).
+    // The non-terminal "next snapshot clears + re-arms" path is covered without
+    // timing races in the StreamController unit test.
+    act(() => s.push(makeSnapshot(ExecutionPhase.EXECUTION_COMPLETED)));
+    await waitFor(() => expect(result.current.isSlow).toBe(false));
+  });
+});

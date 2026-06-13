@@ -1,6 +1,6 @@
 "use client";
 
-import { lazy, memo, Suspense, useCallback, useMemo } from "react";
+import { lazy, memo, Suspense, useCallback, useMemo, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
@@ -60,6 +60,27 @@ export interface MessageThreadProps {
    * first snapshot.
    */
   readonly pendingUserMessage?: string | null;
+  /**
+   * Marks the pending user message as failed-to-send. The optimistic
+   * bubble renders an inline "Couldn't send — Retry" affordance instead
+   * of the sending indicator, so a failed follow-up never silently
+   * vanishes. Pair with {@link onRetrySend}.
+   *
+   * @default false
+   */
+  readonly pendingMessageFailed?: boolean;
+  /**
+   * Retry handler for a failed pending message. Wired to the inline
+   * "Retry" control when {@link pendingMessageFailed} is `true`.
+   */
+  readonly onRetrySend?: () => void;
+  /**
+   * Retry handler for a terminal-failed execution that exposed a server
+   * error reason. Receives the originating message; the consumer typically
+   * resends it as a new execution. When omitted, no Retry control is shown
+   * beside the surfaced failure reason.
+   */
+  readonly onRetryExecution?: (message: string) => void;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
   /**
@@ -178,10 +199,11 @@ export interface MessageThreadProps {
  * part of the public API.
  */
 export type ThreadItem =
-  | { readonly kind: "message"; readonly message: AgentMessage; readonly key: string; readonly isPending?: boolean }
+  | { readonly kind: "message"; readonly message: AgentMessage; readonly key: string; readonly isPending?: boolean; readonly isFailed?: boolean }
   | { readonly kind: "tool-group"; readonly toolCalls: readonly ToolCall[]; readonly subAgentExecutions: readonly SubAgentExecution[]; readonly key: string }
   | { readonly kind: "sub-agent"; readonly subAgentExecution: SubAgentExecution; readonly key: string }
   | { readonly kind: "phase-badge"; readonly phase: ExecutionPhase; readonly key: string }
+  | { readonly kind: "execution-error"; readonly error: string; readonly retryMessage?: string; readonly key: string }
   | { readonly kind: "approval-request"; readonly pendingApproval: PendingApproval; readonly key: string }
   | { readonly kind: "setup-progress"; readonly workspaceEntries: readonly WorkspaceEntry[]; readonly serverPhase?: string; readonly isAwaitingResponse?: boolean; readonly key: string }
   | { readonly kind: "context-compacted"; readonly event: SummarizationEventView; readonly key: string }
@@ -216,6 +238,7 @@ export function buildThreadItems(
   includeApprovals: boolean,
   workspaceEntries: readonly WorkspaceEntry[] | undefined,
   summarizationEvents?: readonly SummarizationEventView[],
+  pendingMessageFailed = false,
 ): ThreadItem[] {
   const items: ThreadItem[] = [];
   const allExecutions = activeStreamExecution
@@ -393,6 +416,22 @@ export function buildThreadItems(
       phase: lastPhase,
       key: `phase-${lastPhase}`,
     });
+
+    // The server populates `status.error` only on EXECUTION_FAILED. Surface it
+    // beside the badge so a failure that produced no messages still explains
+    // itself (the CLI shows this reason; the chat previously showed nothing).
+    // Kept as its own item so the badge component stays presentational.
+    const reason = lastExec?.status?.error;
+    if (reason) {
+      const specMessage = lastExec?.spec?.message;
+      items.push({
+        kind: "execution-error",
+        error: reason,
+        retryMessage:
+          specMessage && specMessage !== "execute" ? specMessage : undefined,
+        key: `execution-error-${lastExec?.metadata?.id ?? lastPhase}`,
+      });
+    }
   }
 
   if (
@@ -430,7 +469,10 @@ export function buildThreadItems(
         kind: "message",
         message: syntheticPending,
         key: "pending-user-turn",
-        isPending: true,
+        // A failed turn shows the inline error instead of the dimmed
+        // sending state — the two are mutually exclusive.
+        isPending: !pendingMessageFailed,
+        isFailed: pendingMessageFailed,
       });
     }
   }
@@ -465,6 +507,9 @@ export function MessageThread({
   executions,
   activeStreamExecution,
   pendingUserMessage,
+  pendingMessageFailed = false,
+  onRetrySend,
+  onRetryExecution,
   className,
   formatToolCallSummary,
   onApprovalSubmit,
@@ -483,8 +528,8 @@ export function MessageThread({
 
   const includeApprovals = onApprovalSubmit != null;
   const items = useMemo(
-    () => buildThreadItems(executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries, summarizationEvents),
-    [executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries, summarizationEvents],
+    () => buildThreadItems(executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries, summarizationEvents, pendingMessageFailed),
+    [executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries, summarizationEvents, pendingMessageFailed],
   );
 
   useKeyStability(items);
@@ -517,6 +562,8 @@ export function MessageThread({
             org={org}
             planActionsDisabled={planActionsDisabled}
             centerContent={centerContent}
+            onRetrySend={onRetrySend}
+            onRetryExecution={onRetryExecution}
           />
         </Suspense>
       </div>
@@ -536,6 +583,8 @@ export function MessageThread({
       onBuildFromPlan={onBuildFromPlan}
       org={org}
       planActionsDisabled={planActionsDisabled}
+      onRetrySend={onRetrySend}
+      onRetryExecution={onRetryExecution}
     />
   );
 }
@@ -560,6 +609,8 @@ interface NonVirtualizedThreadProps {
   readonly onBuildFromPlan?: () => void;
   readonly org?: string;
   readonly planActionsDisabled?: boolean;
+  readonly onRetrySend?: () => void;
+  readonly onRetryExecution?: (message: string) => void;
 }
 
 function NonVirtualizedThread({
@@ -574,6 +625,8 @@ function NonVirtualizedThread({
   onBuildFromPlan,
   org,
   planActionsDisabled,
+  onRetrySend,
+  onRetryExecution,
 }: NonVirtualizedThreadProps) {
   const { scrollRef, sentinelRef, contentRef, isFollowing, jumpToLatest } =
     useAutoScroll();
@@ -609,6 +662,8 @@ function NonVirtualizedThread({
                   onBuildFromPlan={onBuildFromPlan}
                   org={org}
                   planActionsDisabled={planActionsDisabled}
+                  onRetrySend={onRetrySend}
+                  onRetryExecution={onRetryExecution}
                 />
               </ThreadItemWrapper>
             ))}
@@ -645,6 +700,8 @@ export interface ThreadItemRendererProps {
   readonly onBuildFromPlan?: () => void;
   readonly org?: string;
   readonly planActionsDisabled?: boolean;
+  readonly onRetrySend?: () => void;
+  readonly onRetryExecution?: (message: string) => void;
 }
 
 /**
@@ -666,9 +723,16 @@ export function ThreadItemRenderer({
   onBuildFromPlan,
   org,
   planActionsDisabled,
+  onRetrySend,
+  onRetryExecution,
 }: ThreadItemRendererProps) {
   switch (item.kind) {
     case "message":
+      if (item.isFailed) {
+        return (
+          <FailedUserMessage message={item.message} onRetry={onRetrySend} />
+        );
+      }
       return (
         <MessageEntry
           message={item.message}
@@ -696,6 +760,14 @@ export function ThreadItemRenderer({
         <div className="flex justify-center py-3">
           <ExecutionPhaseBadge phase={item.phase} />
         </div>
+      );
+    case "execution-error":
+      return (
+        <ExecutionErrorNotice
+          error={item.error}
+          retryMessage={item.retryMessage}
+          onRetry={onRetryExecution}
+        />
       );
     case "approval-request":
       return (
@@ -734,6 +806,103 @@ export function ThreadItemRenderer({
         />
       );
   }
+}
+
+// ---------------------------------------------------------------------------
+// FailedUserMessage — optimistic turn whose send failed
+// ---------------------------------------------------------------------------
+
+/**
+ * Renders a user message whose send failed: the message itself stays visible
+ * (so the typed text is never lost) with an inline, actionable error beneath
+ * it. The error copy is intentionally short — the full reason is surfaced by
+ * the consumer's send-error banner; this is the in-thread "Retry" affordance.
+ */
+function FailedUserMessage({
+  message,
+  onRetry,
+}: {
+  message: AgentMessage;
+  onRetry?: () => void;
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <MessageEntry message={message} />
+      <div
+        role="alert"
+        className="mx-4 flex items-center gap-2 text-xs text-destructive"
+      >
+        <span className="min-w-0 flex-1 truncate">Couldn&rsquo;t send.</span>
+        {onRetry && (
+          <button
+            type="button"
+            onClick={onRetry}
+            className="shrink-0 rounded font-medium underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            Retry
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ExecutionErrorNotice — server failure reason for a terminal-failed execution
+// ---------------------------------------------------------------------------
+
+/**
+ * Renders the server-reported failure reason (`AgentExecutionStatus.error`)
+ * for an execution that died — typically before producing any messages. The
+ * reason can be a long Temporal error, so it is clamped by default with a
+ * Show more / Show less toggle. An optional Retry resends the originating
+ * message as a fresh execution.
+ */
+function ExecutionErrorNotice({
+  error,
+  retryMessage,
+  onRetry,
+}: {
+  error: string;
+  retryMessage?: string;
+  onRetry?: (message: string) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const canRetry = !!onRetry && !!retryMessage;
+
+  return (
+    <div
+      role="alert"
+      className="mx-4 flex flex-col gap-1.5 rounded-md bg-destructive-subtle px-3 py-2"
+    >
+      <p
+        className={cn(
+          "text-xs whitespace-pre-wrap break-words text-destructive",
+          !expanded && "line-clamp-3",
+        )}
+      >
+        {error}
+      </p>
+      <div className="flex items-center gap-3 text-xs">
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="font-medium text-muted-foreground underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          {expanded ? "Show less" : "Show more"}
+        </button>
+        {canRetry && (
+          <button
+            type="button"
+            onClick={() => onRetry!(retryMessage!)}
+            className="font-medium text-foreground underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            Retry
+          </button>
+        )}
+      </div>
+    </div>
+  );
 }
 
 // ---------------------------------------------------------------------------

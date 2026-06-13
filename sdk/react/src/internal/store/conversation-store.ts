@@ -51,6 +51,8 @@ type Listener = () => void;
 export class ConversationStore {
   private _execution: AgentExecution | null = null;
   private _streamState: StreamState = IDLE_STATE;
+  private _connectTimedOut = false;
+  private _isSlow = false;
   private _listeners = new Set<Listener>();
 
   // -- Ingestion -----------------------------------------------------------
@@ -78,15 +80,46 @@ export class ConversationStore {
   }
 
   /**
+   * Set the hard connect-timeout signal — the stream opened but no first
+   * snapshot arrived within the watchdog window even after a silent retry.
+   *
+   * Orthogonal to {@link setStreamState}: the stream may still be live, so
+   * this is **not** a lifecycle stage and deliberately does not touch the
+   * `error` stage (that is auto-reconnect's domain). Booleans are stable by
+   * value, so no snapshot caching is needed; listeners fire only on change.
+   */
+  setConnectTimedOut(value: boolean): void {
+    if (this._connectTimedOut === value) return;
+    this._connectTimedOut = value;
+    this._notify();
+  }
+
+  /**
+   * Set the soft slow-stall hint — the stream is non-terminal but has gone
+   * silent past the watchdog window. Purely informational ("still working,
+   * taking longer than usual"); cleared by the next snapshot. Never aborts.
+   */
+  setSlow(value: boolean): void {
+    if (this._isSlow === value) return;
+    this._isSlow = value;
+    this._notify();
+  }
+
+  /**
    * Reset to initial state. Used when the session identity changes
    * or the hook unmounts.
    */
   reset(): void {
-    const wasIdle =
-      this._execution === null && this._streamState.stage === "idle";
+    const wasClean =
+      this._execution === null &&
+      this._streamState.stage === "idle" &&
+      !this._connectTimedOut &&
+      !this._isSlow;
     this._execution = null;
     this._streamState = IDLE_STATE;
-    if (!wasIdle) this._notify();
+    this._connectTimedOut = false;
+    this._isSlow = false;
+    if (!wasClean) this._notify();
   }
 
   // -- useSyncExternalStore contract ---------------------------------------
@@ -110,6 +143,16 @@ export class ConversationStore {
   /** Stable snapshot selector for the stream lifecycle state. */
   getStreamState = (): StreamState => {
     return this._streamState;
+  };
+
+  /** Stable snapshot selector for the hard connect-timeout signal. */
+  getConnectTimedOut = (): boolean => {
+    return this._connectTimedOut;
+  };
+
+  /** Stable snapshot selector for the soft slow-stall hint. */
+  getSlow = (): boolean => {
+    return this._isSlow;
   };
 
   // -- Internal ------------------------------------------------------------

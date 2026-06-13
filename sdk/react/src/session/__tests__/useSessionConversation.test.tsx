@@ -306,6 +306,59 @@ describe("useSessionConversation", () => {
     });
   });
 
+  it("preserves the message and surfaces sendError when the send fails", async () => {
+    methods.listBySession.mockResolvedValue({ entries: [] });
+    methods.executionCreate.mockRejectedValue(new Error("create boom"));
+
+    const { result } = renderHook(
+      () => useSessionConversation("session-1", "org"),
+      { wrapper: createWrapper(mockStigmer) },
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.sendFollowUp("keep me");
+    });
+
+    // The failure is surfaced and the user's text is NOT lost.
+    expect(result.current.sendError?.message).toBe("create boom");
+    expect(result.current.pendingUserMessage).toBe("keep me");
+  });
+
+  it("retryLastSend resubmits the same message after a failure", async () => {
+    methods.listBySession.mockResolvedValue({ entries: [] });
+    methods.executionCreate.mockRejectedValueOnce(new Error("boom"));
+    const retried = makeExecution("e-retry", ExecutionPhase.EXECUTION_PENDING);
+    retried.metadata!.id = "e-retry";
+    methods.executionCreate.mockResolvedValue(retried);
+
+    const { result } = renderHook(
+      () => useSessionConversation("session-1", "org"),
+      { wrapper: createWrapper(mockStigmer) },
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.sendFollowUp("retry me");
+    });
+    expect(result.current.sendError).not.toBeNull();
+
+    await act(async () => {
+      result.current.retryLastSend();
+    });
+
+    await waitFor(() =>
+      expect(methods.executionCreate).toHaveBeenCalledTimes(2),
+    );
+    expect(methods.executionCreate).toHaveBeenLastCalledWith(
+      expect.objectContaining({ message: "retry me" }),
+    );
+    // The retry cleared the prior failure for the new attempt.
+    expect(result.current.sendError).toBeNull();
+  });
+
   it("full follow-up lifecycle: active execution completes → canSendFollowUp → sendFollowUp succeeds", async () => {
     // Start with one IN_PROGRESS execution (simulates a Cursor execution running)
     const activeExec = makeExecution("exec-1", ExecutionPhase.EXECUTION_IN_PROGRESS);

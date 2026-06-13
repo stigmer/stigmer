@@ -73,6 +73,7 @@ function makeExecution(opts: {
   phase?: ExecutionPhase;
   interactionMode?: InteractionMode;
   aiContent?: string;
+  error?: string;
 }): AgentExecution {
   const exec = create(AgentExecutionSchema);
 
@@ -91,6 +92,9 @@ function makeExecution(opts: {
 
   const status = create(AgentExecutionStatusSchema);
   status.phase = opts.phase ?? ExecutionPhase.EXECUTION_COMPLETED;
+  if (opts.error !== undefined) {
+    status.error = opts.error;
+  }
 
   const humanMsg = create(AgentMessageSchema);
   humanMsg.type = MessageType.MESSAGE_HUMAN;
@@ -244,6 +248,66 @@ describe("MessageThread", () => {
     render(<MessageThread executions={[exec]} />);
 
     expect(screen.getByText(/failed/i)).toBeTruthy();
+  });
+
+  it("surfaces the server failure reason for a FAILED execution", () => {
+    const exec = makeExecution({
+      id: "exec-fail-reason",
+      phase: ExecutionPhase.EXECUTION_FAILED,
+      error: "Activity task timed out (RETRY_STATE_MAXIMUM_ATTEMPTS_REACHED)",
+    });
+
+    render(<MessageThread executions={[exec]} />);
+
+    expect(
+      screen.getByText(/Activity task timed out/i),
+    ).toBeTruthy();
+  });
+
+  it("does NOT surface a failure reason for a COMPLETED execution", () => {
+    const exec = makeExecution({
+      id: "exec-ok",
+      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      error: "stale error that should be ignored",
+    });
+
+    render(<MessageThread executions={[exec]} />);
+
+    expect(screen.queryByText(/stale error/i)).toBeNull();
+  });
+
+  it("offers a Retry that resends the originating message on failure", () => {
+    const exec = makeExecution({
+      id: "exec-retry",
+      specMessage: "do the thing",
+      phase: ExecutionPhase.EXECUTION_FAILED,
+      error: "boom",
+    });
+    const onRetryExecution = vi.fn();
+
+    render(
+      <MessageThread executions={[exec]} onRetryExecution={onRetryExecution} />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /retry/i }));
+    expect(onRetryExecution).toHaveBeenCalledWith("do the thing");
+  });
+
+  it("renders a failed pending message with an inline Retry", () => {
+    const onRetrySend = vi.fn();
+
+    render(
+      <MessageThread
+        executions={[]}
+        pendingUserMessage="unsent message"
+        pendingMessageFailed
+        onRetrySend={onRetrySend}
+      />,
+    );
+
+    expect(screen.getByText("unsent message")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /retry/i }));
+    expect(onRetrySend).toHaveBeenCalledOnce();
   });
 
   it("renders plan-completion card when last execution is completed Plan mode", () => {

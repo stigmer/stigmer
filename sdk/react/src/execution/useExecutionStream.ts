@@ -17,6 +17,8 @@ import { toError } from "../internal/toError";
 import { useStreamRate } from "../internal/dev";
 import {
   StreamController,
+  DEFAULT_CONNECT_TIMEOUT_MS,
+  DEFAULT_SLOW_THRESHOLD_MS,
   type StreamControllerSink,
 } from "../internal/stream-controller";
 import {
@@ -63,6 +65,21 @@ export interface UseExecutionStreamReturn {
    */
   readonly error: Error | null;
   /**
+   * `true` when the stream opened but no first snapshot arrived within the
+   * connect-timeout window, even after one silent self-heal. Distinct from
+   * `error` (a thrown/closed stream that auto-reconnect retries): this is the
+   * *silent* hang the retry loop can never observe. Surface an actionable
+   * "the agent hasn't started — Retry" affordance wired to `reconnect()`.
+   * Cleared by the next snapshot or a manual `reconnect()`. Never auto-aborts.
+   */
+  readonly connectTimedOut: boolean;
+  /**
+   * `true` when a non-terminal stream has produced no new snapshot for the
+   * slow-stall window. Purely informational ("still working — taking longer
+   * than usual"); cleared by the next snapshot. Never an error, never aborts.
+   */
+  readonly isSlow: boolean;
+  /**
    * Reset error state and re-establish the stream subscription.
    *
    * The fallback after auto-reconnect exhausts, and a manual escape hatch in
@@ -104,6 +121,18 @@ export interface UseExecutionStreamOptions {
     /** Max attempts before surfacing a terminal `error`. */
     readonly maxAttempts?: number;
   };
+  /**
+   * Hard connect-timeout in ms: how long the stream may stay `connecting`
+   * (no first snapshot) before the watchdog self-heals once and then surfaces
+   * `connectTimedOut`. Defaults to {@link DEFAULT_CONNECT_TIMEOUT_MS} (10s).
+   */
+  readonly connectTimeoutMs?: number;
+  /**
+   * Soft slow-stall threshold in ms: how long a non-terminal stream may go
+   * without a new snapshot before `isSlow` flips on. Defaults to
+   * {@link DEFAULT_SLOW_THRESHOLD_MS} (60s).
+   */
+  readonly slowThresholdMs?: number;
 }
 
 /**
@@ -172,6 +201,17 @@ export function useExecutionStream(
   }
   const store = options?.store ?? internalStoreRef.current!;
 
+  // -- Reconnect ------------------------------------------------------------
+  const [connectKey, setConnectKey] = useState(0);
+
+  // Self-heal-once guard for the connect-timeout watchdog. A ref so it survives
+  // the reconnect that the watchdog itself triggers (the controller is reset on
+  // every teardown and therefore cannot hold it). Reset only on a genuinely
+  // fresh start — a new execution, a healthy snapshot, or a manual reconnect —
+  // never on the watchdog's own self-heal hop, so the policy is exactly:
+  // first silent timeout → reconnect once; second → surface.
+  const connectAutoRetriedRef = useRef(false);
+
   // -- Controller setup -----------------------------------------------------
   const controllerRef = useRef<StreamController | null>(null);
   if (!controllerRef.current) {
@@ -186,16 +226,36 @@ export function useExecutionStream(
           store.setStreamState(state);
         });
       },
+      onConnectTimeout() {
+        if (connectAutoRetriedRef.current) {
+          // Already self-healed once and still silent — surface an actionable
+          // signal. The store dedupes, so this never causes a render storm.
+          store.setConnectTimedOut(true);
+        } else {
+          // First silent timeout: re-establish the subscription once. Most
+          // transient hangs (buffering proxy, cold start) clear on the retry.
+          connectAutoRetriedRef.current = true;
+          setConnectKey((k) => k + 1);
+        }
+      },
+      setSlow(value) {
+        store.setSlow(value);
+      },
     };
-    controllerRef.current = new StreamController(sink);
+    controllerRef.current = new StreamController(sink, undefined, undefined, {
+      connectTimeoutMs: options?.connectTimeoutMs ?? DEFAULT_CONNECT_TIMEOUT_MS,
+      slowThresholdMs: options?.slowThresholdMs ?? DEFAULT_SLOW_THRESHOLD_MS,
+    });
   }
   const controller = controllerRef.current;
 
-  // -- Reconnect ------------------------------------------------------------
-  const [connectKey, setConnectKey] = useState(0);
   const reconnect = useCallback(() => {
+    // A manual retry gives a fresh self-heal budget and clears the surfaced
+    // timeout so the affordance disappears the instant the user acts.
+    connectAutoRetriedRef.current = false;
+    store.setConnectTimedOut(false);
     setConnectKey((k) => k + 1);
-  }, []);
+  }, [store]);
 
   // -- Stream rate instrumentation ------------------------------------------
   const streamRate = useStreamRate();
@@ -222,6 +282,7 @@ export function useExecutionStream(
       controller.reset();
       store.reset();
       prevExecutionIdRef.current = null;
+      connectAutoRetriedRef.current = false;
       return;
     }
 
@@ -235,6 +296,9 @@ export function useExecutionStream(
       prevExecutionIdRef.current !== executionId
     ) {
       store.reset();
+      // A genuinely different execution earns a fresh self-heal budget; the
+      // bump that re-runs this effect on reconnect must NOT reset the guard.
+      connectAutoRetriedRef.current = false;
     }
     prevExecutionIdRef.current = executionId;
 
@@ -281,6 +345,11 @@ export function useExecutionStream(
             if (signal.aborted) return;
 
             attempt = 0; // a snapshot proves the connection is healthy
+            // The first snapshot also resolves the connect watchdog: clear any
+            // surfaced timeout and refresh the self-heal budget for any future
+            // silent stretch on this same execution.
+            connectAutoRetriedRef.current = false;
+            store.setConnectTimedOut(false);
             controller.handleSnapshot(snapshot);
             streamRateRef.current.tick(snapshot.status?.messages?.length ?? 0);
 
@@ -341,6 +410,11 @@ export function useExecutionStream(
     store.subscribe,
     store.getStreamState,
   );
+  const connectTimedOut = useSyncExternalStore(
+    store.subscribe,
+    store.getConnectTimedOut,
+  );
+  const isSlow = useSyncExternalStore(store.subscribe, store.getSlow);
 
   // -- Derive public return values ------------------------------------------
   const phase = useMemo(
@@ -364,6 +438,8 @@ export function useExecutionStream(
     isReconnecting,
     reconnectAttempt,
     error,
+    connectTimedOut,
+    isSlow,
     reconnect,
   };
 }

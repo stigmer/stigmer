@@ -290,12 +290,24 @@ function ConversationColumn({
   const { conv } = flow;
   const sendError = flow.submitError ?? conv.sendError ?? conv.approvalError;
 
+  // Retry a terminal-failed execution by resending its originating message
+  // through the full submit pipeline (agent override, runtime-env, workspace).
+  const onRetryExecution = useCallback(
+    (message: string) => {
+      void flow.handleSubmit(message);
+    },
+    [flow.handleSubmit],
+  );
+
   return (
     <div className="flex h-full min-w-0 flex-col">
       <MessageThread
         executions={conv.completedExecutions}
         activeStreamExecution={conv.activeStreamExecution}
         pendingUserMessage={conv.pendingUserMessage}
+        pendingMessageFailed={!!conv.sendError && !!conv.pendingUserMessage}
+        onRetrySend={conv.retryLastSend}
+        onRetryExecution={onRetryExecution}
         onApprovalSubmit={flow.submitApproval}
         submittingApprovalIds={conv.submittingApprovalIds}
         workspaceEntries={conv.workspaceEntries}
@@ -308,6 +320,10 @@ function ConversationColumn({
       />
       <div className="mx-auto w-full max-w-3xl">
         {conv.isReconnecting && <ReconnectingIndicator />}
+        {conv.connectTimedOut && (
+          <ConnectTimedOutBanner onRetry={conv.reconnectStream} />
+        )}
+        {conv.isSlow && !conv.connectTimedOut && <SlowIndicator />}
         {conv.streamError && (
           <StreamErrorBanner
             error={conv.streamError}
@@ -569,6 +585,52 @@ function ReconnectingIndicator() {
         <path d="M21 12a9 9 0 1 1-6.219-8.56" />
       </svg>
       <span className="truncate">Reconnecting…</span>
+    </div>
+  );
+}
+
+/**
+ * Actionable banner for the connect-timeout watchdog: the stream opened but
+ * never delivered a first snapshot — the agent hasn't started. Mirrors
+ * {@link StreamErrorBanner}'s shape (message + Retry) since both resolve via
+ * the same `reconnect()` path, but its copy names the specific failure.
+ */
+function ConnectTimedOutBanner({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div role="alert" className="flex items-center gap-3 border-t border-border bg-muted px-4 py-2.5">
+      <p className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
+        The agent hasn&rsquo;t started yet.
+      </p>
+      <button
+        type="button"
+        onClick={onRetry}
+        className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs font-medium hover:bg-card"
+      >
+        Retry
+      </button>
+    </div>
+  );
+}
+
+/**
+ * Low-weight informational hint for the slow-stall watchdog: a live stream has
+ * gone quiet longer than usual. Never an error and offers no action — the
+ * stream is still expected to resume on its own.
+ */
+function SlowIndicator() {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className="flex items-center gap-2 border-t border-border-muted px-4 py-1.5 text-xs text-muted-foreground"
+    >
+      <span className="relative flex h-2 w-2 shrink-0" aria-hidden="true">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-muted-foreground opacity-75 motion-reduce:animate-none" />
+        <span className="relative inline-flex h-2 w-2 rounded-full bg-muted-foreground" />
+      </span>
+      <span className="min-w-0 flex-1 truncate">
+        Still working — this is taking longer than usual.
+      </span>
     </div>
   );
 }

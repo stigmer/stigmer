@@ -190,6 +190,67 @@ describe("ConversationStore", () => {
     });
   });
 
+  describe("watchdog signals", () => {
+    it("connectTimedOut: defaults false, notifies only on change", () => {
+      const store = new ConversationStore();
+      expect(store.getConnectTimedOut()).toBe(false);
+
+      const listener = vi.fn();
+      store.subscribe(listener);
+
+      store.setConnectTimedOut(true);
+      expect(store.getConnectTimedOut()).toBe(true);
+      expect(listener).toHaveBeenCalledTimes(1);
+
+      store.setConnectTimedOut(true);
+      expect(listener).toHaveBeenCalledTimes(1); // no-op on same value
+
+      store.setConnectTimedOut(false);
+      expect(store.getConnectTimedOut()).toBe(false);
+      expect(listener).toHaveBeenCalledTimes(2);
+    });
+
+    it("isSlow: defaults false, notifies only on change", () => {
+      const store = new ConversationStore();
+      expect(store.getSlow()).toBe(false);
+
+      const listener = vi.fn();
+      store.subscribe(listener);
+
+      store.setSlow(true);
+      expect(store.getSlow()).toBe(true);
+      expect(listener).toHaveBeenCalledTimes(1);
+
+      store.setSlow(true);
+      expect(listener).toHaveBeenCalledTimes(1);
+    });
+
+    it("reset clears both watchdog signals", () => {
+      const store = new ConversationStore();
+      store.setConnectTimedOut(true);
+      store.setSlow(true);
+
+      const listener = vi.fn();
+      store.subscribe(listener);
+
+      store.reset();
+      expect(store.getConnectTimedOut()).toBe(false);
+      expect(store.getSlow()).toBe(false);
+      expect(listener).toHaveBeenCalledTimes(1);
+    });
+
+    it("reset notifies when only a watchdog signal was set", () => {
+      const store = new ConversationStore();
+      store.setSlow(true);
+
+      const listener = vi.fn();
+      store.subscribe(listener);
+
+      store.reset();
+      expect(listener).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe("reset", () => {
     it("clears execution and stream state", () => {
       const store = new ConversationStore();

@@ -16,6 +16,14 @@ export interface UseFetchOptions {
   readonly refetchInterval?: number | false;
 
   /**
+   * Re-fetch when the window regains focus or the tab becomes visible
+   * again. Covers the app-relaunch / tab-switch case where data may have
+   * gone stale while the app was backgrounded. A focus refetch is skipped
+   * while a fetch is already in flight. Defaults to `false`.
+   */
+  readonly refetchOnWindowFocus?: boolean;
+
+  /**
    * Stable string key for cross-mount caching.
    *
    * When provided (and a {@link FetchCacheProvider} is mounted above
@@ -182,6 +190,24 @@ export function useFetch<T>(
     }, refetchInterval);
     return () => clearInterval(id);
   }, [refetchInterval, fetchFn, refetch]);
+
+  const refetchOnWindowFocus = options?.refetchOnWindowFocus;
+  useEffect(() => {
+    if (!refetchOnWindowFocus || !fetchFn) return;
+    if (typeof window === "undefined") return;
+    const onActive = () => {
+      if (!isFetchingRef.current) refetch();
+    };
+    const onVisible = () => {
+      if (document.visibilityState === "visible") onActive();
+    };
+    window.addEventListener("focus", onActive);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.removeEventListener("focus", onActive);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [refetchOnWindowFocus, fetchFn, refetch]);
 
   const isLoading = isFetching && !hasDataRef.current;
   const isRefetching = isFetching && hasDataRef.current;

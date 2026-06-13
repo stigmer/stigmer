@@ -6,6 +6,23 @@ import { ListAgentExecutionsBySessionRequestSchema } from "@stigmer/protos/ai/st
 import { useStigmer } from "../hooks";
 import { useFetch } from "../internal/useFetch";
 
+/** Options for {@link useSessionExecutions}. */
+export interface UseSessionExecutionsOptions {
+  /**
+   * Poll interval in milliseconds for re-listing the session's executions.
+   * Used by the conversation loop to re-discover a created-but-not-yet-listed
+   * execution. Pass `false` (the default) to disable polling and rely on the
+   * live stream plus imperative {@link UseSessionExecutionsReturn.refetch}.
+   */
+  readonly refetchInterval?: number | false;
+  /**
+   * Re-list when the window regains focus / the tab becomes visible — covers
+   * the app-relaunch case where an execution may have appeared while
+   * backgrounded. Defaults to `false`.
+   */
+  readonly refetchOnWindowFocus?: boolean;
+}
+
 /** Return value of {@link useSessionExecutions}. */
 export interface UseSessionExecutionsReturn {
   /** All executions for the session, empty while loading or on error. */
@@ -56,6 +73,7 @@ export interface UseSessionExecutionsReturn {
  */
 export function useSessionExecutions(
   sessionId: string | null,
+  options?: UseSessionExecutionsOptions,
 ): UseSessionExecutionsReturn {
   const stigmer = useStigmer();
 
@@ -73,7 +91,11 @@ export function useSessionExecutions(
       : null,
     [sessionId, stigmer],
     [] as AgentExecution[],
-    { cacheKey: sessionId ? `session-executions:${sessionId}` : undefined },
+    {
+      cacheKey: sessionId ? `session-executions:${sessionId}` : undefined,
+      refetchInterval: options?.refetchInterval,
+      refetchOnWindowFocus: options?.refetchOnWindowFocus,
+    },
   );
 
   return { executions, isLoading, isRefetching, error, refetch };
