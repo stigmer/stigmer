@@ -81,6 +81,8 @@ interface MockMethods {
   executionCreate: ReturnType<typeof vi.fn>;
   subscribe: ReturnType<typeof vi.fn>;
   submitApproval: ReturnType<typeof vi.fn>;
+  cancel?: ReturnType<typeof vi.fn>;
+  terminate?: ReturnType<typeof vi.fn>;
 }
 
 function createMockStigmer(methods: MockMethods): Stigmer {
@@ -93,6 +95,8 @@ function createMockStigmer(methods: MockMethods): Stigmer {
       create: methods.executionCreate,
       subscribe: methods.subscribe,
       submitApproval: methods.submitApproval,
+      cancel: methods.cancel,
+      terminate: methods.terminate,
     },
   } as unknown as Stigmer;
 }
@@ -118,6 +122,8 @@ describe("useSessionConversation", () => {
       executionCreate: vi.fn(),
       subscribe: vi.fn().mockReturnValue(stream.generator),
       submitApproval: vi.fn().mockResolvedValue({}),
+      cancel: vi.fn().mockResolvedValue(makeExecution("e1", ExecutionPhase.EXECUTION_CANCELLED)),
+      terminate: vi.fn().mockResolvedValue(makeExecution("e1", ExecutionPhase.EXECUTION_TERMINATED)),
     };
     mockStigmer = createMockStigmer(methods);
   });
@@ -410,6 +416,92 @@ describe("useSessionConversation", () => {
         executionConfig: expect.objectContaining({ modelName: "default" }),
       }),
     );
+  });
+
+  it("isStoppable is false when no execution is active", async () => {
+    const completed = makeExecution("e1", ExecutionPhase.EXECUTION_COMPLETED);
+    methods.listBySession.mockResolvedValue({ entries: [completed] });
+
+    const { result } = renderHook(
+      () => useSessionConversation("session-1", "org"),
+      { wrapper: createWrapper(mockStigmer) },
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.isStoppable).toBe(false);
+  });
+
+  it("isStoppable becomes true once the active execution streams IN_PROGRESS", async () => {
+    const active = makeExecution("e1", ExecutionPhase.EXECUTION_IN_PROGRESS);
+    methods.listBySession.mockResolvedValue({ entries: [active] });
+
+    const execStream = createControllableStream<AgentExecution>();
+    methods.subscribe.mockReturnValue(execStream.generator);
+
+    const { result } = renderHook(
+      () => useSessionConversation("session-1", "org"),
+      { wrapper: createWrapper(mockStigmer) },
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    act(() => {
+      execStream.push(makeExecution("e1", ExecutionPhase.EXECUTION_IN_PROGRESS));
+    });
+
+    await waitFor(() => expect(result.current.isStoppable).toBe(true));
+  });
+
+  it("stop() cancels the active execution, then escalates to terminate on repeat", async () => {
+    const active = makeExecution("e1", ExecutionPhase.EXECUTION_IN_PROGRESS);
+    methods.listBySession.mockResolvedValue({ entries: [active] });
+
+    const execStream = createControllableStream<AgentExecution>();
+    methods.subscribe.mockReturnValue(execStream.generator);
+
+    const { result } = renderHook(
+      () => useSessionConversation("session-1", "org"),
+      { wrapper: createWrapper(mockStigmer) },
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    act(() => {
+      execStream.push(makeExecution("e1", ExecutionPhase.EXECUTION_IN_PROGRESS));
+    });
+    await waitFor(() => expect(result.current.isStoppable).toBe(true));
+
+    await act(async () => {
+      await result.current.stop("Stop from chat");
+    });
+    expect(methods.cancel).toHaveBeenCalledTimes(1);
+    expect(methods.cancel!.mock.calls[0][0]).toMatchObject({ id: "e1" });
+    expect(methods.terminate).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await result.current.stop("Stop from chat");
+    });
+    expect(methods.cancel).toHaveBeenCalledTimes(1);
+    expect(methods.terminate).toHaveBeenCalledTimes(1);
+  });
+
+  it("stop() is a no-op when nothing is stoppable", async () => {
+    const completed = makeExecution("e1", ExecutionPhase.EXECUTION_COMPLETED);
+    methods.listBySession.mockResolvedValue({ entries: [completed] });
+
+    const { result } = renderHook(
+      () => useSessionConversation("session-1", "org"),
+      { wrapper: createWrapper(mockStigmer) },
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.stop();
+    });
+
+    expect(methods.cancel).not.toHaveBeenCalled();
+    expect(methods.terminate).not.toHaveBeenCalled();
   });
 });
 

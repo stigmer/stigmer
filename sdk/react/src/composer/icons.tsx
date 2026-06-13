@@ -72,6 +72,26 @@ export function SpinnerIcon() {
   );
 }
 
+/**
+ * Filled rounded square — the universal "stop" glyph. Sized to ~62% of the
+ * viewBox so it reads as a confident, deliberate mark (not a stray dot) when
+ * centered inside the circular Stop button. Pairs with ChatGPT/Claude-style
+ * circle-and-square stop affordances.
+ */
+export function StopIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <rect x="3" y="3" width="10" height="10" rx="2.5" />
+    </svg>
+  );
+}
+
 export function XIcon() {
   return (
     <svg

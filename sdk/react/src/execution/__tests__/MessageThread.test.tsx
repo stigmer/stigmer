@@ -310,6 +310,72 @@ describe("MessageThread", () => {
     expect(onRetrySend).toHaveBeenCalledOnce();
   });
 
+  it("shows an Edit affordance on the in-flight human turn and routes onEditMessage", () => {
+    const active = makeExecution({
+      id: "exec-active",
+      specMessage: "fix the bug",
+      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      aiContent: "working on it",
+    });
+    const onEditMessage = vi.fn();
+
+    render(
+      <MessageThread
+        executions={[]}
+        activeStreamExecution={active}
+        onEditMessage={onEditMessage}
+      />,
+    );
+
+    const editBtn = screen.getByRole("button", { name: "Edit message" });
+    fireEvent.click(editBtn);
+    expect(onEditMessage).toHaveBeenCalledWith("fix the bug");
+  });
+
+  it("shows no Edit affordance when onEditMessage is omitted", () => {
+    const active = makeExecution({
+      id: "exec-active",
+      specMessage: "fix the bug",
+      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+    });
+
+    render(
+      <MessageThread executions={[]} activeStreamExecution={active} />,
+    );
+
+    expect(
+      screen.queryByRole("button", { name: "Edit message" }),
+    ).toBeNull();
+  });
+
+  it("marks only the active-stream human turn editable, not completed turns", () => {
+    const completed = makeExecution({
+      id: "exec-done",
+      specMessage: "old turn",
+      phase: ExecutionPhase.EXECUTION_COMPLETED,
+    });
+    const active = makeExecution({
+      id: "exec-active",
+      specMessage: "new turn",
+      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+    });
+    const onEditMessage = vi.fn();
+
+    render(
+      <MessageThread
+        executions={[completed]}
+        activeStreamExecution={active}
+        onEditMessage={onEditMessage}
+      />,
+    );
+
+    const editBtns = screen.getAllByRole("button", { name: "Edit message" });
+    expect(editBtns).toHaveLength(1);
+
+    fireEvent.click(editBtns[0]);
+    expect(onEditMessage).toHaveBeenCalledWith("new turn");
+  });
+
   it("renders plan-completion card when last execution is completed Plan mode", () => {
     const exec = makeExecution({
       id: "exec-plan",

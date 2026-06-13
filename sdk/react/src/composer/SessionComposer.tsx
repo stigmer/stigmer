@@ -164,6 +164,19 @@ export interface SessionComposerProps {
   readonly disabled?: boolean;
 
   /**
+   * When provided, the Send button becomes a Stop control while an execution
+   * is in flight — clicking it calls this handler (graceful cancel, escalating
+   * to terminate on a repeat press). The textarea stays disabled, but the card
+   * is not dimmed so Stop reads as live and clickable.
+   *
+   * Opt-in: when omitted, the composer behaves exactly as before. Typically
+   * wired to `useSessionConversation`'s `stop`, gated on `isStoppable`.
+   */
+  readonly onStop?: () => void;
+  /** `true` while a stop request is in flight — shows a spinner on the Stop button. */
+  readonly isStopping?: boolean;
+
+  /**
    * Currently selected execution harness.
    *
    * Controls which models appear in the model selector and flows
@@ -490,6 +503,8 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   onSubmit,
   isSubmitting = false,
   disabled = false,
+  onStop,
+  isStopping = false,
   harness,
   onHarnessChange,
   showHarnessSelector = false,
@@ -551,6 +566,10 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   );
 
   const isDisabled = disabled || isSubmitting;
+
+  // Stop-mode: an in-flight, stoppable execution. The textarea/config stay
+  // disabled, but the card is kept un-dimmed so the Stop button reads as live.
+  const stopMode = onStop != null;
 
   const showAgent = onAgentRefChange != null && org != null;
   const showMcp = onMcpServerUsagesChange != null && org != null;
@@ -1324,7 +1343,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
         className={cn(
           "rounded-xl border border-border bg-card shadow-sm",
           "focus-within:ring-2 focus-within:ring-ring",
-          isDisabled && "opacity-50",
+          isDisabled && !stopMode && "opacity-50",
           isDragOver && "ring-2 ring-primary/50",
         )}
         onDragOver={handleDragOver}
@@ -1448,6 +1467,8 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
           isSubmitting={isSubmitting}
           canSend={canSend}
           onSend={composer.submit}
+          onStop={onStop}
+          isStopping={isStopping}
           showWorkspace={showWorkspace}
           workspaceCount={workspaceCount}
           onWorkspaceDirectAction={workspaceDirectAction}

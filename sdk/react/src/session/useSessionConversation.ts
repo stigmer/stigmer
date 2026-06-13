@@ -21,6 +21,7 @@ import { toError } from "../internal/toError";
 import { useConversationStoreRef } from "../internal/store";
 import { useCreateAgentExecution } from "../execution/useCreateAgentExecution";
 import { useExecutionStream } from "../execution/useExecutionStream";
+import { useAgentExecutionActions } from "../execution/useAgentExecutionActions";
 import { useSubmitApproval } from "../execution/useSubmitApproval";
 import { useSession } from "./useSession";
 import { useSessionExecutions } from "./useSessionExecutions";
@@ -199,6 +200,28 @@ export interface UseSessionConversationReturn {
   readonly approvalError: Error | null;
   /** Reset `approvalError` to `null`. */
   readonly clearApprovalError: () => void;
+
+  /**
+   * `true` when the active execution can be stopped — i.e. it is in a phase
+   * the backend accepts a cancel/terminate from (`PENDING` or `IN_PROGRESS`).
+   *
+   * Distinct from "is something active": an execution paused at an approval
+   * gate (`WAITING_FOR_APPROVAL`) is active but **not** stoppable — the
+   * approval card (approve / skip / reject) is its control surface. Drive the
+   * composer's Stop affordance off this so it only appears when {@link stop}
+   * will actually succeed.
+   */
+  readonly isStoppable: boolean;
+  /**
+   * Stop the active execution, with progressive escalation: the first call
+   * gracefully cancels; a repeat call (because the run is still winding down)
+   * forcefully terminates. No-op when nothing is {@link isStoppable}.
+   */
+  readonly stop: (reason?: string) => Promise<void>;
+  /** `true` while a stop (cancel/terminate) request is in flight. */
+  readonly isStopping: boolean;
+  /** Error from the last stop attempt, or `null` when healthy. */
+  readonly stopError: Error | null;
 
   /** `true` while the session or execution list is loading. */
   readonly isLoading: boolean;
@@ -431,6 +454,28 @@ export function useSessionConversation(
     return stream.phase;
   }, [activeExecutionId, stream.phase]);
 
+  // Stop is only valid in phases the backend cancels/terminates from
+  // (PENDING / IN_PROGRESS). Other non-terminal phases (e.g.
+  // WAITING_FOR_APPROVAL) are handled by their own control surface.
+  const isStoppable =
+    activePhase === ExecutionPhase.EXECUTION_PENDING ||
+    activePhase === ExecutionPhase.EXECUTION_IN_PROGRESS;
+
+  const stopActions = useAgentExecutionActions(activeExecutionId, {
+    // The cancel/terminate also broadcasts the new phase over the stream, but
+    // refetch is the belt-and-suspenders that clears the active id even if the
+    // stream has already ended — mirrors the workflow viewer's onSuccess.
+    onSuccess: refetch,
+  });
+
+  const stop = useCallback(
+    async (reason?: string): Promise<void> => {
+      if (!isStoppable) return;
+      await stopActions.stop(reason);
+    },
+    [isStoppable, stopActions.stop],
+  );
+
   const canSendFollowUp = !isCreating && activeExecutionId === null;
 
   const workspaceEntries = useMemo<readonly ProtoWorkspaceEntry[]>(
@@ -562,6 +607,11 @@ export function useSessionConversation(
     submittingApprovalIds: submittingToolCallIds,
     approvalError,
     clearApprovalError,
+
+    isStoppable,
+    stop,
+    isStopping: stopActions.isSubmitting,
+    stopError: stopActions.error,
 
     isLoading,
     loadError,

@@ -75,6 +75,17 @@ export interface MessageThreadProps {
    */
   readonly onRetrySend?: () => void;
   /**
+   * When provided, the in-flight human turn (the active execution's prompt)
+   * shows a hover "Edit" affordance. Clicking it invokes this callback with
+   * the message text — the session chat stops the running execution and
+   * pre-fills the composer for an edit-and-resubmit.
+   *
+   * Provide this only while the active execution is stoppable; the SDK marks
+   * exactly the active-stream human turn editable. When omitted, no edit
+   * control is shown (backward compatible).
+   */
+  readonly onEditMessage?: (text: string) => void;
+  /**
    * Retry handler for a terminal-failed execution that exposed a server
    * error reason. Receives the originating message; the consumer typically
    * resends it as a new execution. When omitted, no Retry control is shown
@@ -199,7 +210,7 @@ export interface MessageThreadProps {
  * part of the public API.
  */
 export type ThreadItem =
-  | { readonly kind: "message"; readonly message: AgentMessage; readonly key: string; readonly isPending?: boolean; readonly isFailed?: boolean }
+  | { readonly kind: "message"; readonly message: AgentMessage; readonly key: string; readonly isPending?: boolean; readonly isFailed?: boolean; readonly isEditable?: boolean }
   | { readonly kind: "tool-group"; readonly toolCalls: readonly ToolCall[]; readonly subAgentExecutions: readonly SubAgentExecution[]; readonly key: string }
   | { readonly kind: "sub-agent"; readonly subAgentExecution: SubAgentExecution; readonly key: string }
   | { readonly kind: "phase-badge"; readonly phase: ExecutionPhase; readonly key: string }
@@ -239,6 +250,7 @@ export function buildThreadItems(
   workspaceEntries: readonly WorkspaceEntry[] | undefined,
   summarizationEvents?: readonly SummarizationEventView[],
   pendingMessageFailed = false,
+  editableActiveTurn = false,
 ): ThreadItem[] {
   const items: ThreadItem[] = [];
   const allExecutions = activeStreamExecution
@@ -297,6 +309,9 @@ export function buildThreadItems(
         kind: "message",
         message: syntheticHumanMsg,
         key: bridgePending ? "pending-user-turn" : `${execId}-spec`,
+        // The active execution's prompt is the one a user can edit-and-resubmit
+        // (stop + rephrase). Only mark it when the consumer enabled editing.
+        isEditable: isActiveStreamExec && editableActiveTurn,
       });
     }
 
@@ -510,6 +525,7 @@ export function MessageThread({
   pendingMessageFailed = false,
   onRetrySend,
   onRetryExecution,
+  onEditMessage,
   className,
   formatToolCallSummary,
   onApprovalSubmit,
@@ -527,9 +543,10 @@ export function MessageThread({
   useRenderTracer("MessageThread", { executions, activeStreamExecution });
 
   const includeApprovals = onApprovalSubmit != null;
+  const editableActiveTurn = onEditMessage != null;
   const items = useMemo(
-    () => buildThreadItems(executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries, summarizationEvents, pendingMessageFailed),
-    [executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries, summarizationEvents, pendingMessageFailed],
+    () => buildThreadItems(executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries, summarizationEvents, pendingMessageFailed, editableActiveTurn),
+    [executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries, summarizationEvents, pendingMessageFailed, editableActiveTurn],
   );
 
   useKeyStability(items);
@@ -564,6 +581,7 @@ export function MessageThread({
             centerContent={centerContent}
             onRetrySend={onRetrySend}
             onRetryExecution={onRetryExecution}
+            onEditMessage={onEditMessage}
           />
         </Suspense>
       </div>
@@ -585,6 +603,7 @@ export function MessageThread({
       planActionsDisabled={planActionsDisabled}
       onRetrySend={onRetrySend}
       onRetryExecution={onRetryExecution}
+      onEditMessage={onEditMessage}
     />
   );
 }
@@ -611,6 +630,7 @@ interface NonVirtualizedThreadProps {
   readonly planActionsDisabled?: boolean;
   readonly onRetrySend?: () => void;
   readonly onRetryExecution?: (message: string) => void;
+  readonly onEditMessage?: (text: string) => void;
 }
 
 function NonVirtualizedThread({
@@ -627,6 +647,7 @@ function NonVirtualizedThread({
   planActionsDisabled,
   onRetrySend,
   onRetryExecution,
+  onEditMessage,
 }: NonVirtualizedThreadProps) {
   const { scrollRef, sentinelRef, contentRef, isFollowing, jumpToLatest } =
     useAutoScroll();
@@ -664,6 +685,7 @@ function NonVirtualizedThread({
                   planActionsDisabled={planActionsDisabled}
                   onRetrySend={onRetrySend}
                   onRetryExecution={onRetryExecution}
+                  onEditMessage={onEditMessage}
                 />
               </ThreadItemWrapper>
             ))}
@@ -702,6 +724,7 @@ export interface ThreadItemRendererProps {
   readonly planActionsDisabled?: boolean;
   readonly onRetrySend?: () => void;
   readonly onRetryExecution?: (message: string) => void;
+  readonly onEditMessage?: (text: string) => void;
 }
 
 /**
@@ -725,6 +748,7 @@ export function ThreadItemRenderer({
   planActionsDisabled,
   onRetrySend,
   onRetryExecution,
+  onEditMessage,
 }: ThreadItemRendererProps) {
   switch (item.kind) {
     case "message":
@@ -737,6 +761,11 @@ export function ThreadItemRenderer({
         <MessageEntry
           message={item.message}
           className={item.isPending ? "opacity-70" : undefined}
+          onEdit={
+            item.isEditable && onEditMessage
+              ? () => onEditMessage(item.message.content)
+              : undefined
+          }
         />
       );
     case "tool-group":

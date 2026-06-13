@@ -288,7 +288,8 @@ function ConversationColumn({
   isEndUser,
 }: ConversationColumnProps) {
   const { conv } = flow;
-  const sendError = flow.submitError ?? conv.sendError ?? conv.approvalError;
+  const sendError =
+    flow.submitError ?? conv.sendError ?? conv.approvalError ?? conv.stopError;
 
   // Retry a terminal-failed execution by resending its originating message
   // through the full submit pipeline (agent override, runtime-env, workspace).
@@ -297,6 +298,26 @@ function ConversationColumn({
       void flow.handleSubmit(message);
     },
     [flow.handleSubmit],
+  );
+
+  // Stop the in-flight turn (graceful cancel, escalating to terminate on a
+  // repeat press). Only wired while the active execution is stoppable.
+  const handleStop = useCallback(() => {
+    void conv.stop();
+  }, [conv.stop]);
+
+  // Edit-and-resubmit: stop the in-flight turn and pre-fill the composer with
+  // the original text. The append-only execution log can't be rewritten, so
+  // the user reviews the prefilled message and resubmits it as a NEW execution
+  // through the normal Send pipeline. The cancelled turn stays in history with
+  // its phase badge — an honest record rather than a silent edit.
+  const handleEditMessage = useCallback(
+    (text: string) => {
+      void conv.stop();
+      composerRef.current?.setMessage(text);
+      composerRef.current?.focus();
+    },
+    [conv.stop, composerRef],
   );
 
   return (
@@ -310,6 +331,7 @@ function ConversationColumn({
         onRetryExecution={onRetryExecution}
         onApprovalSubmit={flow.submitApproval}
         submittingApprovalIds={conv.submittingApprovalIds}
+        onEditMessage={conv.isStoppable ? handleEditMessage : undefined}
         workspaceEntries={conv.workspaceEntries}
         sandboxWorkspaceRoot={flow.sandboxWorkspaceRoot}
         onBuildFromPlan={onBuildFromPlan}
@@ -339,6 +361,8 @@ function ConversationColumn({
           onSubmit={flow.handleSubmit}
           isSubmitting={conv.isSending}
           disabled={!conv.canSendFollowUp}
+          onStop={conv.isStoppable ? handleStop : undefined}
+          isStopping={conv.isStopping}
           org={org}
           harness={flow.harness}
           defaultModelId={modelId}

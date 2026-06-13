@@ -14,6 +14,13 @@ export interface MessageEntryProps {
   readonly message: AgentMessage;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
+  /**
+   * When provided on a `MESSAGE_HUMAN` entry, a hover-revealed "Edit" button
+   * appears on the bubble. Clicking it invokes this callback — the session
+   * chat uses it to stop the in-flight turn and pre-fill the composer with
+   * this message for editing. Ignored for non-human messages.
+   */
+  readonly onEdit?: () => void;
 }
 
 /**
@@ -43,6 +50,7 @@ export interface MessageEntryProps {
 export const MessageEntry = memo(function MessageEntry({
   message,
   className,
+  onEdit,
 }: MessageEntryProps) {
   useRenderTracer("MessageEntry", {
     messageType: message.type,
@@ -52,7 +60,13 @@ export const MessageEntry = memo(function MessageEntry({
 
   switch (message.type) {
     case MessageType.MESSAGE_HUMAN:
-      return <HumanMessage content={message.content} className={className} />;
+      return (
+        <HumanMessage
+          content={message.content}
+          className={className}
+          onEdit={onEdit}
+        />
+      );
     case MessageType.MESSAGE_AI:
       return (
         <AiMessage
@@ -79,18 +93,59 @@ export const MessageEntry = memo(function MessageEntry({
 function HumanMessage({
   content,
   className,
+  onEdit,
 }: {
   content: string;
   className?: string;
+  onEdit?: () => void;
 }) {
   return (
     <div
       role="article"
       aria-label="User message"
-      className={cn("ms-[20%] rounded-lg bg-muted-subtle px-4 py-3", className)}
+      className={cn(
+        "group relative ms-[20%] rounded-lg bg-muted-subtle px-4 py-3",
+        className,
+      )}
     >
       <p className="text-sm text-foreground whitespace-pre-wrap">{content}</p>
+      {onEdit && (
+        <button
+          type="button"
+          onClick={onEdit}
+          aria-label="Edit message"
+          title="Edit"
+          className={cn(
+            "absolute -top-2.5 -right-2.5 inline-flex h-7 w-7 items-center justify-center rounded-full",
+            "border border-border bg-card text-muted-foreground shadow-sm transition",
+            "hover:text-foreground hover:bg-accent-hover",
+            "opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          )}
+        >
+          <EditIcon />
+        </button>
+      )}
     </div>
+  );
+}
+
+function EditIcon() {
+  return (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </svg>
   );
 }
 
