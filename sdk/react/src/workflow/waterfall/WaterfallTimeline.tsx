@@ -89,7 +89,8 @@ export const WaterfallTimeline = memo(function WaterfallTimeline({
 
   // Empty state
   if (entries.length === 0) {
-    const isConnecting = streamState.stage === "connecting";
+    const isConnecting =
+      streamState.stage === "connecting" || streamState.stage === "reconnecting";
     return (
       <div className={cn("flex items-center justify-center text-xs text-[var(--stgm-muted-foreground,#737373)]", className)}>
         {isConnecting ? "Loading timeline…" : "No task data available"}

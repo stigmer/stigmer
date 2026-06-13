@@ -9,6 +9,19 @@ export type StreamState =
   | { readonly stage: "idle" }
   | { readonly stage: "connecting"; readonly executionId: string }
   | { readonly stage: "streaming"; readonly executionId: string }
+  | {
+      /**
+       * A non-terminal stream drop is being retried in the background. The
+       * last-known-good snapshot stays visible and no error is surfaced —
+       * the public `error` only appears once retries are exhausted. `attempt`
+       * is the 1-based retry count; `error` is the transient cause, retained
+       * for diagnostics (it is not shown to the user while reconnecting).
+       */
+      readonly stage: "reconnecting";
+      readonly executionId: string;
+      readonly attempt: number;
+      readonly error: Error;
+    }
   | { readonly stage: "complete"; readonly executionId: string }
   | {
       readonly stage: "error";
@@ -120,6 +133,15 @@ function streamStateEqual(a: StreamState, b: StreamState): boolean {
     b.stage === "error" &&
     a.executionId === b.executionId &&
     a.error === b.error
+  )
+    return true;
+  // Each retry bumps `attempt`, so two reconnecting states are only equal
+  // when the attempt matches — every attempt must re-notify subscribers.
+  if (
+    a.stage === "reconnecting" &&
+    b.stage === "reconnecting" &&
+    a.executionId === b.executionId &&
+    a.attempt === b.attempt
   )
     return true;
   if ("executionId" in a && "executionId" in b)

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook, act } from "@testing-library/react";
+import { renderHook, act, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { createElement } from "react";
 import { create } from "@bufbuild/protobuf";
@@ -415,5 +415,121 @@ describe("useWorkflowExecutionEventStream", () => {
     expect(secondCall.afterSequence).toBe(BigInt(0));
     expect(result.current.events).toHaveLength(1);
     expect(result.current.events[0]?.taskName).toBe("beta");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Auto-reconnect (#174)
+// ---------------------------------------------------------------------------
+
+describe("useWorkflowExecutionEventStream — auto-reconnect", () => {
+  it("auto-reconnects on a transient drop and resumes from the latest sequence", async () => {
+    let call = 0;
+    const subscribeEvents = vi.fn((_req: any) => {
+      call += 1;
+      if (call === 1) {
+        return (async function* () {
+          yield makeTaskStartedEvent(5, "t5");
+          throw new TypeError("Load failed");
+        })();
+      }
+      return (async function* () {
+        yield makeTaskStartedEvent(6, "t6");
+      })();
+    });
+    const client = makeMockClient({ subscribeEvents });
+
+    const { result } = renderHook(
+      () =>
+        useWorkflowExecutionEventStream("wex-001", {
+          executionPhase: PHASE.IN_PROGRESS,
+          reconnectOptions: { baseDelayMs: 5, maxDelayMs: 5 },
+        }),
+      { wrapper: createWrapper(client) },
+    );
+
+    await waitFor(() => expect(subscribeEvents).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(result.current.events).toHaveLength(2));
+
+    // The resumed subscription continues after the last received sequence (5),
+    // so no events are lost or duplicated.
+    const secondReq = (subscribeEvents.mock.calls as unknown[][])[1]?.[0] as {
+      afterSequence: bigint;
+    };
+    expect(secondReq.afterSequence).toBe(BigInt(5));
+    expect(result.current.error).toBeNull();
+  });
+
+  it("surfaces an error after exhausting reconnect attempts", async () => {
+    const subscribeEvents = vi.fn(
+      () =>
+        (async function* () {
+          throw new TypeError("Load failed");
+        })(),
+    );
+    const client = makeMockClient({ subscribeEvents });
+
+    const { result } = renderHook(
+      () =>
+        useWorkflowExecutionEventStream("wex-001", {
+          executionPhase: PHASE.IN_PROGRESS,
+          reconnectOptions: { baseDelayMs: 1, maxDelayMs: 1, maxAttempts: 2 },
+        }),
+      { wrapper: createWrapper(client) },
+    );
+
+    await waitFor(() => expect(result.current.error).not.toBeNull(), {
+      timeout: 2000,
+    });
+    expect(result.current.streamState.stage).toBe("error");
+    // 1 initial attempt + 2 retries.
+    expect(subscribeEvents).toHaveBeenCalledTimes(3);
+  });
+
+  it("marks unsupported on UNIMPLEMENTED without retrying", async () => {
+    const subscribeEvents = vi.fn(
+      () =>
+        (async function* () {
+          throw new Error("UNIMPLEMENTED: event streaming not supported");
+        })(),
+    );
+    const client = makeMockClient({ subscribeEvents });
+
+    const { result } = renderHook(
+      () =>
+        useWorkflowExecutionEventStream("wex-001", {
+          executionPhase: PHASE.IN_PROGRESS,
+          reconnectOptions: { baseDelayMs: 1, maxDelayMs: 1 },
+        }),
+      { wrapper: createWrapper(client) },
+    );
+
+    await waitFor(() =>
+      expect(result.current.streamState.stage).toBe("unsupported"),
+    );
+    await new Promise((r) => setTimeout(r, 20));
+    expect(subscribeEvents).toHaveBeenCalledTimes(1);
+  });
+
+  it("treats a clean stream end as completion (never a reconnect loop)", async () => {
+    const subscribeEvents = vi.fn(async function* () {
+      /* no events, then clean end */
+    });
+    const client = makeMockClient({ subscribeEvents });
+
+    const { result } = renderHook(
+      () =>
+        useWorkflowExecutionEventStream("wex-001", {
+          executionPhase: PHASE.IN_PROGRESS,
+          reconnectOptions: { baseDelayMs: 1, maxDelayMs: 1 },
+        }),
+      { wrapper: createWrapper(client) },
+    );
+
+    await waitFor(() =>
+      expect(result.current.streamState.stage).toBe("complete"),
+    );
+    await new Promise((r) => setTimeout(r, 20));
+    expect(subscribeEvents).toHaveBeenCalledTimes(1);
   });
 });

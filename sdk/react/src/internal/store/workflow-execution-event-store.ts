@@ -10,6 +10,19 @@ export type WorkflowEventStreamState =
   | { readonly stage: "idle" }
   | { readonly stage: "connecting"; readonly executionId: string }
   | { readonly stage: "streaming"; readonly executionId: string }
+  | {
+      /**
+       * A non-terminal event stream drop is being retried in the background.
+       * Accumulated events stay visible and no error is surfaced until retries
+       * are exhausted. On reconnect the subscription resumes from the last
+       * received `sequence_number`, so no events are lost. `attempt` is the
+       * 1-based retry count; `error` is the transient cause (diagnostic only).
+       */
+      readonly stage: "reconnecting";
+      readonly executionId: string;
+      readonly attempt: number;
+      readonly error: Error;
+    }
   | { readonly stage: "complete"; readonly executionId: string }
   | {
       readonly stage: "error";
@@ -420,6 +433,15 @@ function streamStateEqual(
     b.stage === "error" &&
     a.executionId === b.executionId &&
     a.error === b.error
+  )
+    return true;
+  // Each retry bumps `attempt`, so two reconnecting states are only equal
+  // when the attempt matches — every attempt must re-notify subscribers.
+  if (
+    a.stage === "reconnecting" &&
+    b.stage === "reconnecting" &&
+    a.executionId === b.executionId &&
+    a.attempt === b.attempt
   )
     return true;
   if ("executionId" in a && "executionId" in b)

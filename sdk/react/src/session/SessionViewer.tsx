@@ -307,6 +307,7 @@ function ConversationColumn({
         className="flex-1"
       />
       <div className="mx-auto w-full max-w-3xl">
+        {conv.isReconnecting && <ReconnectingIndicator />}
         {conv.streamError && (
           <StreamErrorBanner
             error={conv.streamError}
@@ -542,6 +543,32 @@ function SendErrorBanner({ error }: { error: Error }) {
   return (
     <div role="alert" className="border-t border-border px-4 py-2 text-xs text-destructive">
       {getUserMessage(error)}
+    </div>
+  );
+}
+
+function ReconnectingIndicator() {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className="flex items-center gap-2 border-t border-border bg-muted px-4 py-2 text-sm text-muted-foreground"
+    >
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="shrink-0 animate-spin motion-reduce:animate-none"
+        aria-hidden="true"
+      >
+        <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+      </svg>
+      <span className="truncate">Reconnecting…</span>
     </div>
   );
 }

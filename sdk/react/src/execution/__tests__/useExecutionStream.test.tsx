@@ -309,6 +309,21 @@ describe("useExecutionStream", () => {
     });
   });
 
+  it("does not auto-retry a non-transient error (goes straight to error)", async () => {
+    const { result } = renderHook(() => useExecutionStream("exec-1"), {
+      wrapper: createWrapper(mockStigmer),
+    });
+
+    // A deterministic error (plain Error, not transport noise) must not retry.
+    act(() => stream.fail(new Error("invalid argument")));
+
+    await waitFor(() => {
+      expect(result.current.error?.message).toBe("invalid argument");
+    });
+    expect(result.current.isReconnecting).toBe(false);
+    expect(subscribeFn).toHaveBeenCalledTimes(1);
+  });
+
   it("handles all terminal phases correctly", async () => {
     for (const terminalPhase of [
       ExecutionPhase.EXECUTION_COMPLETED,
@@ -335,5 +350,174 @@ describe("useExecutionStream", () => {
 
       unmount();
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Auto-reconnect (#174)
+// ---------------------------------------------------------------------------
+
+describe("useExecutionStream — auto-reconnect", () => {
+  const IN_PROGRESS = ExecutionPhase.EXECUTION_IN_PROGRESS;
+  // Tiny backoff so retries fire near-instantly under real timers; avoids the
+  // fake-timer / `waitFor` interaction that makes such tests brittle.
+  const fastReconnect = { baseDelayMs: 5, maxDelayMs: 5 } as const;
+
+  it("auto-reconnects after a transient drop and keeps the last snapshot", async () => {
+    const s1 = createControllableStream<AgentExecution>();
+    const s2 = createControllableStream<AgentExecution>();
+    let call = 0;
+    const subscribeFn = vi.fn(() => (call++ === 0 ? s1.generator : s2.generator));
+    const stigmer = createMockStigmer(
+      subscribeFn as unknown as Stigmer["agentExecution"]["subscribe"],
+    );
+
+    const { result } = renderHook(
+      () => useExecutionStream("exec-1", { reconnectOptions: fastReconnect }),
+      { wrapper: createWrapper(stigmer) },
+    );
+
+    act(() => s1.push(makeSnapshot(IN_PROGRESS)));
+    await waitFor(() => expect(result.current.isStreaming).toBe(true));
+
+    // WebKit's bare `TypeError: Load failed` — the #174 symptom.
+    act(() => s1.fail(new TypeError("Load failed")));
+
+    await waitFor(() => expect(result.current.isReconnecting).toBe(true));
+    // No error surfaced and the conversation stays visible while retrying.
+    expect(result.current.error).toBeNull();
+    expect(result.current.execution).not.toBeNull();
+
+    // Backoff elapses → the stream is re-subscribed (full snapshot resume).
+    await waitFor(() => expect(subscribeFn).toHaveBeenCalledTimes(2));
+
+    act(() => s2.push(makeSnapshot(IN_PROGRESS)));
+    await waitFor(() => expect(result.current.isStreaming).toBe(true));
+    expect(result.current.isReconnecting).toBe(false);
+  });
+
+  it("auto-reconnects when the stream ends before a terminal phase", async () => {
+    const s1 = createControllableStream<AgentExecution>();
+    const s2 = createControllableStream<AgentExecution>();
+    let call = 0;
+    const subscribeFn = vi.fn(() => (call++ === 0 ? s1.generator : s2.generator));
+    const stigmer = createMockStigmer(
+      subscribeFn as unknown as Stigmer["agentExecution"]["subscribe"],
+    );
+
+    const { result } = renderHook(
+      () => useExecutionStream("exec-1", { reconnectOptions: fastReconnect }),
+      { wrapper: createWrapper(stigmer) },
+    );
+
+    act(() => s1.push(makeSnapshot(IN_PROGRESS)));
+    await waitFor(() => expect(result.current.isStreaming).toBe(true));
+
+    // A graceful close of a still-running execution (idle timeout, LB recycle)
+    // must reconnect, never be reported as "complete".
+    act(() => s1.finish());
+
+    await waitFor(() => expect(subscribeFn).toHaveBeenCalledTimes(2));
+    expect(result.current.isReconnecting).toBe(true);
+    expect(result.current.error).toBeNull();
+  });
+
+  it("surfaces an error only after retries are exhausted", async () => {
+    const subscribeFn = vi.fn(
+      () =>
+        (async function* (): AsyncGenerator<AgentExecution> {
+          throw new TypeError("Load failed");
+        })(),
+    );
+    const stigmer = createMockStigmer(
+      subscribeFn as unknown as Stigmer["agentExecution"]["subscribe"],
+    );
+
+    const { result } = renderHook(
+      () =>
+        useExecutionStream("exec-1", {
+          reconnectOptions: { baseDelayMs: 1, maxDelayMs: 1, maxAttempts: 2 },
+        }),
+      { wrapper: createWrapper(stigmer) },
+    );
+
+    await waitFor(() => expect(result.current.error).not.toBeNull(), {
+      timeout: 2000,
+    });
+    expect(result.current.error?.message).toBe("Load failed");
+    expect(result.current.isReconnecting).toBe(false);
+    // 1 initial attempt + 2 retries.
+    expect(subscribeFn).toHaveBeenCalledTimes(3);
+  });
+
+  it("does not reconnect after a terminal snapshot", async () => {
+    const s1 = createControllableStream<AgentExecution>();
+    const subscribeFn = vi.fn(() => s1.generator);
+    const stigmer = createMockStigmer(
+      subscribeFn as unknown as Stigmer["agentExecution"]["subscribe"],
+    );
+
+    const { result } = renderHook(
+      () => useExecutionStream("exec-1", { reconnectOptions: fastReconnect }),
+      { wrapper: createWrapper(stigmer) },
+    );
+
+    act(() => s1.push(makeSnapshot(ExecutionPhase.EXECUTION_COMPLETED)));
+    await waitFor(() => expect(result.current.isStreaming).toBe(false));
+
+    await new Promise((r) => setTimeout(r, 30));
+    expect(subscribeFn).toHaveBeenCalledTimes(1);
+    expect(result.current.isReconnecting).toBe(false);
+  });
+
+  it("does not re-subscribe when unmounted during backoff", async () => {
+    const randomSpy = vi.spyOn(Math, "random").mockReturnValue(1); // full delay
+    const subscribeFn = vi.fn(
+      () =>
+        (async function* (): AsyncGenerator<AgentExecution> {
+          throw new TypeError("Load failed");
+        })(),
+    );
+    const stigmer = createMockStigmer(
+      subscribeFn as unknown as Stigmer["agentExecution"]["subscribe"],
+    );
+
+    const { result, unmount } = renderHook(
+      () =>
+        useExecutionStream("exec-1", {
+          reconnectOptions: { baseDelayMs: 1_000, maxDelayMs: 1_000 },
+        }),
+      { wrapper: createWrapper(stigmer) },
+    );
+
+    await waitFor(() => expect(result.current.isReconnecting).toBe(true));
+    expect(subscribeFn).toHaveBeenCalledTimes(1);
+
+    unmount();
+    await new Promise((r) => setTimeout(r, 50));
+    expect(subscribeFn).toHaveBeenCalledTimes(1);
+
+    randomSpy.mockRestore();
+  });
+
+  it("respects autoReconnect: false (immediate error, no retry)", async () => {
+    const s1 = createControllableStream<AgentExecution>();
+    const subscribeFn = vi.fn(() => s1.generator);
+    const stigmer = createMockStigmer(
+      subscribeFn as unknown as Stigmer["agentExecution"]["subscribe"],
+    );
+
+    const { result } = renderHook(
+      () => useExecutionStream("exec-1", { autoReconnect: false }),
+      { wrapper: createWrapper(stigmer) },
+    );
+
+    act(() => s1.push(makeSnapshot(IN_PROGRESS)));
+    await waitFor(() => expect(result.current.isStreaming).toBe(true));
+
+    act(() => s1.fail(new TypeError("Load failed")));
+    await waitFor(() => expect(result.current.error).not.toBeNull());
+    expect(result.current.isReconnecting).toBe(false);
+    expect(subscribeFn).toHaveBeenCalledTimes(1);
   });
 });

@@ -82,7 +82,10 @@ export const WorkflowExecutionHeader = memo(function WorkflowExecutionHeader({
   const isRunning = RUNNING_PHASES.has(phase);
   const isPaused = phase === ExecutionPhase.EXECUTION_PAUSED;
   const isFailed = phase === ExecutionPhase.EXECUTION_FAILED;
-  const isLive = streamState.stage === "streaming" || streamState.stage === "connecting";
+  const isLive =
+    streamState.stage === "streaming" ||
+    streamState.stage === "connecting" ||
+    streamState.stage === "reconnecting";
 
   return (
     <header className={cn("flex items-center gap-3 border-b border-border px-4 py-3", className)}>

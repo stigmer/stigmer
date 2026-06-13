@@ -179,7 +179,13 @@ export interface UseSessionConversationReturn {
   /** Error from session or execution list loading, or `null` when healthy. */
   readonly loadError: Error | null;
 
-  /** Error from the execution stream, or `null` when healthy. */
+  /**
+   * `true` while the execution stream is auto-reconnecting after a transient
+   * drop. The conversation stays visible and `streamError` remains `null` —
+   * surface a subtle "Reconnecting…" hint rather than an error banner.
+   */
+  readonly isReconnecting: boolean;
+  /** Error from the execution stream, or `null` when healthy or reconnecting. */
   readonly streamError: Error | null;
   /** Reset the stream error and re-establish the execution stream subscription. */
   readonly reconnectStream: () => void;
@@ -463,6 +469,7 @@ export function useSessionConversation(
     isLoading,
     loadError,
 
+    isReconnecting: stream.isReconnecting,
     streamError: stream.error,
     reconnectStream: stream.reconnect,
   };

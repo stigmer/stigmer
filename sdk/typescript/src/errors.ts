@@ -112,6 +112,25 @@ export function isRetryableError(error: unknown): boolean {
   return RETRYABLE_CATEGORIES.has(classifyError(error));
 }
 
+/**
+ * Whether an error from a long-lived streaming subscription should be
+ * treated as a transient transport hiccup worth auto-reconnecting.
+ *
+ * Broader than {@link isRetryableError}: in addition to the retryable
+ * `server`/`unavailable` categories, it recognizes raw transport noise
+ * (WebKit's "Load failed", Chrome's "Failed to fetch", Node's "fetch
+ * failed", `ECONNRESET`, …) that surfaces as a bare `TypeError` and would
+ * otherwise classify as `unknown` (non-retryable). Those are precisely the
+ * drops a stream hits on laptop sleep, network blips, and idle timeouts —
+ * an infrastructure event, never a user-actionable one. Deterministic
+ * failures (not-found, invalid-argument, auth) remain non-transient: the
+ * same request would fail the same way, so retrying only hammers.
+ */
+export function isTransientStreamError(error: unknown): boolean {
+  if (isRetryableError(error)) return true;
+  return matchesInfraNoise(extractRawMessage(error));
+}
+
 const CATEGORY_FALLBACKS: Record<ErrorCategory, string> = {
   auth: "Your session has expired. Please sign in again.",
   permission: "You do not have permission to perform this action.",
@@ -166,6 +185,10 @@ const INFRA_NOISE_PATTERNS: ReadonlyArray<readonly [RegExp, string]> = [
   [/fetch failed/i, "Unable to reach the server. Check your connection."],
   [/network error/i, "A network error occurred. Check your connection."],
   [/failed to fetch/i, "Unable to reach the server. Check your connection."],
+  // WebKit (Safari / WKWebView, e.g. Tauri on macOS) phrases a failed
+  // `fetch` as a bare `TypeError: Load failed` — the WebKit analogue of
+  // Chrome's "Failed to fetch" and Node's "fetch failed" above.
+  [/load failed/i, "The connection to the server was lost."],
   [/load balancer/i, "The server is temporarily unavailable."],
   [/illegal invocation/i, "A browser API call failed. Please try again."],
   [/can only call .+ on instances of/i, "A browser API call failed. Please try again."],
@@ -218,6 +241,19 @@ function sanitizeMessage(message: string): string {
     if (pattern.test(message)) return replacement;
   }
   return message;
+}
+
+/**
+ * Whether a message matches a known infrastructure-noise pattern — the
+ * single source of truth shared by {@link getUserMessage} (which rewrites
+ * it for display) and {@link isTransientStreamError} (which retries it).
+ */
+function matchesInfraNoise(message: string): boolean {
+  if (!message) return false;
+  for (const [pattern] of INFRA_NOISE_PATTERNS) {
+    if (pattern.test(message)) return true;
+  }
+  return false;
 }
 
 /**

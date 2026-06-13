@@ -119,12 +119,18 @@ export function SessionView({ sessionId, org, mode }: SessionViewProps) {
         </Box>
       )}
 
+      {conv.isReconnecting && (
+        <Box gap={1} paddingLeft={1}>
+          <Text color="yellow">
+            <Spinner type="dots" />
+          </Text>
+          <Text dimColor>Reconnecting...</Text>
+        </Box>
+      )}
+
       {conv.streamError && (
         <Box flexDirection="column" paddingLeft={1} marginBottom={1}>
-          <Box gap={1}>
-            <Text color="yellow" bold>Stream disconnected</Text>
-            <Text dimColor>— reconnecting...</Text>
-          </Box>
+          <Text color="yellow" bold>Stream disconnected</Text>
           <Text color="red" dimColor>{conv.streamError.message}</Text>
         </Box>
       )}

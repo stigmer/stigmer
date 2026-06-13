@@ -61,7 +61,8 @@ export function useWaterfallEntries({
   executionStartIso,
   executionDurationMs,
 }: UseWaterfallEntriesOptions): UseWaterfallEntriesReturn {
-  const isLive = streamState.stage === "streaming";
+  const isLive =
+    streamState.stage === "streaming" || streamState.stage === "reconnecting";
   const execStartEpoch = useMemo(
     () => (executionStartIso ? new Date(executionStartIso).getTime() : 0),
     [executionStartIso],

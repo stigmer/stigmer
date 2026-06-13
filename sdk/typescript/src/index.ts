@@ -25,6 +25,7 @@ export {
   isConnectError,
   classifyError,
   isRetryableError,
+  isTransientStreamError,
   getUserMessage,
   type RpcErrorMetadata,
   annotateRpcError,

@@ -4,6 +4,7 @@ import { StigmerError, type ErrorCode } from "../gen/errors";
 import {
   classifyError,
   isRetryableError,
+  isTransientStreamError,
   getUserMessage,
   annotateRpcError,
   getRpcMetadata,
@@ -111,6 +112,42 @@ describe("isRetryableError", () => {
   });
 });
 
+describe("isTransientStreamError", () => {
+  it("is true for retryable category errors (server / unavailable)", () => {
+    expect(
+      isTransientStreamError(
+        new StigmerError("unavailable", "down", Code.Unavailable),
+      ),
+    ).toBe(true);
+    expect(
+      isTransientStreamError(new ConnectError("boom", Code.Internal)),
+    ).toBe(true);
+  });
+
+  // The crux of #174: WebKit (Safari / WKWebView) phrases a failed fetch as a
+  // bare `TypeError: Load failed`, which classifies as `unknown` (not
+  // retryable) — yet it is exactly the transient drop we must auto-reconnect.
+  it.each([
+    "Load failed",
+    "TypeError: Load failed",
+    "Failed to fetch",
+    "fetch failed",
+    "read ECONNRESET",
+    "connect ETIMEDOUT",
+  ])("is true for transport noise %j (even as a bare TypeError)", (message) => {
+    expect(isTransientStreamError(new TypeError(message))).toBe(true);
+  });
+
+  it.each([
+    new StigmerError("not-found", "gone", Code.NotFound),
+    new StigmerError("invalid-argument", "bad", Code.InvalidArgument),
+    new StigmerError("unauthenticated", "no token", Code.Unauthenticated),
+    new Error("some deterministic application error"),
+  ])("is false for deterministic / unknown errors", (error) => {
+    expect(isTransientStreamError(error)).toBe(false);
+  });
+});
+
 describe("getUserMessage", () => {
   it("extracts message from StigmerError", () => {
     const err = new StigmerError("not-found", "Agent not found", Code.NotFound);
@@ -150,6 +187,12 @@ describe("getUserMessage", () => {
   it("sanitizes 'fetch failed'", () => {
     expect(getUserMessage(new Error("fetch failed"))).toBe(
       "Unable to reach the server. Check your connection.",
+    );
+  });
+
+  it("sanitizes WebKit's 'Load failed' (Safari / WKWebView)", () => {
+    expect(getUserMessage(new TypeError("Load failed"))).toBe(
+      "The connection to the server was lost.",
     );
   });
 

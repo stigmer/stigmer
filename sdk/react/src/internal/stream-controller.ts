@@ -1,5 +1,5 @@
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { ConversationStore } from "./store/conversation-store";
+import type { StreamState } from "./store/conversation-store";
 import { isTerminalPhase } from "../execution/execution-phases";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
@@ -7,25 +7,12 @@ import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecutio
 // Types
 // ---------------------------------------------------------------------------
 
-export type ControllerStage =
-  | "idle"
-  | "connecting"
-  | "streaming"
-  | "complete"
-  | "error";
+// The controller's FSM state is exactly the store's `StreamState` — they
+// were once duplicated unions kept in lock-step by hand. The controller
+// reuses the store's type so the lifecycle (including the `reconnecting`
+// stage) is defined in one place and can never drift.
 
-export type ControllerState =
-  | { readonly stage: "idle" }
-  | { readonly stage: "connecting"; readonly executionId: string }
-  | { readonly stage: "streaming"; readonly executionId: string }
-  | { readonly stage: "complete"; readonly executionId: string }
-  | {
-      readonly stage: "error";
-      readonly executionId: string;
-      readonly error: Error;
-    };
-
-const IDLE: ControllerState = { stage: "idle" };
+const IDLE: StreamState = { stage: "idle" };
 
 /**
  * Callback interface for the stream controller to communicate with
@@ -36,7 +23,7 @@ export interface StreamControllerSink {
   /** Ingest a snapshot into the store (applies structural sharing). */
   ingestSnapshot(snapshot: AgentExecution): void;
   /** Transition the store's stream lifecycle state. */
-  setStreamState(state: ControllerState): void;
+  setStreamState(state: StreamState): void;
 }
 
 // ---------------------------------------------------------------------------
@@ -58,7 +45,7 @@ export interface StreamControllerSink {
  * (typically `requestAnimationFrame`).
  */
 export class StreamController {
-  private _state: ControllerState = IDLE;
+  private _state: StreamState = IDLE;
   private _bufferedSnapshot: AgentExecution | null = null;
   private _rafId: number | null = null;
   private _sink: StreamControllerSink;
@@ -80,7 +67,7 @@ export class StreamController {
   }
 
   /** Current FSM state (read-only). */
-  get state(): ControllerState {
+  get state(): StreamState {
     return this._state;
   }
 
@@ -113,12 +100,30 @@ export class StreamController {
       this._sink.ingestSnapshot(snapshot);
       this._transition({ stage: "complete", executionId });
     } else {
-      if (this._state.stage === "connecting") {
+      // A snapshot proves the (re)connection is healthy: advance from either
+      // the initial `connecting` or a `reconnecting` retry into `streaming`.
+      if (
+        this._state.stage === "connecting" ||
+        this._state.stage === "reconnecting"
+      ) {
         this._transition({ stage: "streaming", executionId });
       }
       this._bufferedSnapshot = snapshot;
       this._scheduleFlushOnce();
     }
+  }
+
+  /**
+   * Enter the `reconnecting` stage after a transient drop. Unlike
+   * {@link start}, this preserves the buffered snapshot and never resets the
+   * store, so the last-known-good conversation stays on screen while the
+   * background retry is in flight. No-op once idle (the subscription is
+   * already torn down).
+   */
+  handleReconnecting(attempt: number, error: Error): void {
+    const executionId = this._activeExecutionId();
+    if (!executionId) return;
+    this._transition({ stage: "reconnecting", executionId, attempt, error });
   }
 
   /**
@@ -171,7 +176,7 @@ export class StreamController {
     return this._state.executionId;
   }
 
-  private _transition(next: ControllerState): void {
+  private _transition(next: StreamState): void {
     this._state = next;
     this._sink.setStreamState(next);
   }
