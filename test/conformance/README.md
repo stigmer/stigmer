@@ -218,17 +218,35 @@ it is documented rather than asserted — see the project's
 B files run serially (`fileParallelism: false`) so multiple suites don't boot
 multiple Temporal+runner stacks at once.
 
+`agentexecution.conformance.test.ts` is the second whole execution domain. An
+agent run always hits an LLM, so the `local-go-execution` target also boots a
+**TS-pure mock-LLM proxy** (`harness/mock-llm.ts`): a long-lived HTTP server with
+a programmable response queue that replays canned Anthropic SSE to the runner via
+a base-URL override (`STIGMER_PROXY_ENDPOINT`) — no API key, no network. A single
+text turn reaches COMPLETED; a `delayMs`-held turn keeps an execution genuinely
+IN_PROGRESS, the lever for the cancel/terminate/pause/resume happy paths (the
+agent analogue of the `wait` timer). It asserts the engine-present contract and
+encodes AgentExecution's divergences from WorkflowExecution — **no `AlreadyExists`
+on create** (repeated identical creates yield distinct `aex_` ids), the query
+analogue is **`listBySession`**, and a create with **neither `session_id` nor
+`agent_id`** returns `NotFound` (the default-agent resolution step runs first and
+the OSS target seeds no default agent), not `InvalidArgument`. See the project's
+`design-decisions/009-agentexecution-domain-and-ts-mock-llm-proxy.md`. The two
+execution domains share one enum-agnostic poll core (`support/execution-poll.ts`).
+
 ## Layout
 
 ```
 src/
   harness/          go-build, ports, server-process, grpc-ready, clients, fixtures, global-setup
-                    + execution: temporal, runner-build, runner-process, global-setup-execution
+                    + execution: temporal, runner-build, runner-process, mock-llm, global-setup-execution
   targets/          target (interface + capabilities), local-go, local-go-execution, cloud (stub), index
   contract/         errors, deviations, parity
-  support/          naming, workflows (set_vars + wait), workflowexecutions, agents, mcpservers, skills, environments, executioncontexts, sessions
+  support/          naming, workflows (set_vars + wait), execution-poll, workflowexecutions, agentexecutions,
+                    agents, mcpservers, skills, environments, executioncontexts, sessions
   suites/           *.conformance.test.ts            (Class A — CRUD, no Temporal)
-  suites-execution/ harness.smoke.test.ts + workflowexecution.conformance.test.ts  (Class B — Temporal + runner)
+  suites-execution/ harness.smoke.test.ts + agent.harness.smoke.test.ts
+                    + workflowexecution.conformance.test.ts + agentexecution.conformance.test.ts  (Class B)
 ```
 
 ## Adding a domain

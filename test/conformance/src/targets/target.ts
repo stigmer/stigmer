@@ -6,6 +6,7 @@
 // provisioned, and which optional behaviors are available — behind one interface
 // so the suites stay implementation-agnostic.
 import type { ConformanceClients } from "../harness/clients";
+import type { MockLlmProxy } from "../harness/mock-llm";
 
 // Behaviors that legitimately differ across editions, gating assertions rather
 // than forking them. Local OSS is single-tenant and omits cloud-only lookups.
@@ -49,4 +50,9 @@ export interface TargetProfile {
   // Provision an isolated tenancy scope for a test. cleanupTenancy releases it.
   provisionTenancy(): Promise<TenancyContext>;
   cleanupTenancy(context: TenancyContext): Promise<void>;
+
+  // The programmable mock LLM proxy backing agent-execution runs. Present only on
+  // execution targets that provision an engine + mock; absent on CRUD/cloud
+  // targets. Agent execution suites obtain it via requireLlmProxy().
+  llmProxy?(): MockLlmProxy;
 }

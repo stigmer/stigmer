@@ -10,8 +10,8 @@ import type { MessageInitShape } from "@bufbuild/protobuf";
 import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
-import { setTimeout as delay } from "node:timers/promises";
 import type { ConformanceClients } from "../harness/clients";
+import { type PollCoreOptions, pollUntil } from "./execution-poll";
 
 export const WORKFLOW_EXECUTION_API_VERSION = "agentic.stigmer.ai/v1";
 export const WORKFLOW_EXECUTION_KIND = "WorkflowExecution";
@@ -53,37 +53,32 @@ export function isTerminalPhase(phase: ExecutionPhase | undefined): boolean {
   return phase !== undefined && TERMINAL_PHASES.has(phase);
 }
 
-const DEFAULT_TIMEOUT_MS = 60_000;
-const DEFAULT_POLL_MS = 250;
-
-export interface PollOptions {
-  timeoutMs?: number;
-  pollMs?: number;
+export interface PollOptions extends PollCoreOptions {
   // Used in the timeout error for diagnosis.
   label?: string;
 }
 
 // Polls get() until `predicate` holds, returning the matching execution.
 // Throws with the last observed phase on timeout (never sleeps blindly).
-export async function pollExecution(
+// Delegates the timing loop to the shared, enum-agnostic core; this module owns
+// only the WorkflowExecution-typed getter and the phase rendering.
+export function pollExecution(
   clients: ConformanceClients,
   executionId: string,
   predicate: (exec: WorkflowExecution) => boolean,
   opts: PollOptions = {},
 ): Promise<WorkflowExecution> {
-  const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-  const pollMs = opts.pollMs ?? DEFAULT_POLL_MS;
-  const deadline = Date.now() + timeoutMs;
-  let last: WorkflowExecution | undefined;
-  while (Date.now() < deadline) {
-    last = await clients.workflowExecutionQuery.get({ value: executionId });
-    if (predicate(last)) return last;
-    await delay(pollMs);
-  }
-  const phase = last?.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
-  throw new Error(
-    `execution ${executionId} did not satisfy ${opts.label ?? "the predicate"} ` +
-      `within ${timeoutMs}ms (last phase: ${ExecutionPhase[phase]})`,
+  return pollUntil(
+    () => clients.workflowExecutionQuery.get({ value: executionId }),
+    predicate,
+    (last, timeoutMs) => {
+      const phase = last?.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+      return (
+        `execution ${executionId} did not satisfy ${opts.label ?? "the predicate"} ` +
+        `within ${timeoutMs}ms (last phase: ${ExecutionPhase[phase]})`
+      );
+    },
+    opts,
   );
 }
 

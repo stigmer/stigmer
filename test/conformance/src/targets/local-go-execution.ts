@@ -20,6 +20,7 @@
 import { ensureServerBinary } from "../harness/go-build";
 import { awaitGrpcReady } from "../harness/grpc-ready";
 import { createTransport, makeClients, type ConformanceClients } from "../harness/clients";
+import { MockLlmProxy } from "../harness/mock-llm";
 import { ensureRunnerBuilt } from "../harness/runner-build";
 import { spawnRunner, type RunningRunner } from "../harness/runner-process";
 import { spawnServer, type RunningServer } from "../harness/server-process";
@@ -40,6 +41,7 @@ export class LocalGoExecutionTarget implements TargetProfile {
   private temporal: RunningTemporal | undefined;
   private server: RunningServer | undefined;
   private runner: RunningRunner | undefined;
+  private mockLlm: MockLlmProxy | undefined;
   private conformanceClients: ConformanceClients | undefined;
 
   async setup(): Promise<void> {
@@ -55,12 +57,27 @@ export class LocalGoExecutionTarget implements TargetProfile {
     this.conformanceClients = makeClients(createTransport(this.server.baseUrl));
     await awaitGrpcReady(this.conformanceClients, () => this.server?.logTail() ?? "(no server)");
 
-    // 3. Runner last: it dials the server's gRPC endpoint to stream status back.
+    // 3. Mock LLM proxy before the runner, so its URL is known when the runner
+    //    boots. Inert for WorkflowExecution (set_vars/wait never call the LLM);
+    //    the lever for agent-execution runs, which suites program per test.
+    this.mockLlm = new MockLlmProxy();
+    await this.mockLlm.start();
+
+    // 4. Runner last: it dials the server's gRPC endpoint to stream status back,
+    //    and the mock proxy for LLM calls.
     this.runner = await spawnRunner({
       entryPath: runnerEntry,
       temporalHostPort: this.temporal.hostPort,
       backendEndpoint: this.server.baseUrl,
+      proxy: { endpoint: this.mockLlm.url(), token: "conformance-mock-token" },
     });
+  }
+
+  llmProxy(): MockLlmProxy {
+    if (this.mockLlm === undefined) {
+      throw new Error("LocalGoExecutionTarget.setup() must be called before llmProxy()");
+    }
+    return this.mockLlm;
   }
 
   clients(): ConformanceClients {
@@ -80,11 +97,13 @@ export class LocalGoExecutionTarget implements TargetProfile {
   }
 
   async teardown(): Promise<void> {
-    // Reverse boot order: runner, then server, then Temporal.
+    // Reverse boot order: runner, then mock proxy, then server, then Temporal.
     await this.runner?.stop();
+    await this.mockLlm?.close();
     await this.server?.stop();
     await this.temporal?.stop();
     this.runner = undefined;
+    this.mockLlm = undefined;
     this.server = undefined;
     this.temporal = undefined;
     this.conformanceClients = undefined;

@@ -12,7 +12,14 @@
 //
 // For a data-only set_vars WorkflowExecution this needs no LLM, MCP, API key,
 // proxy, object storage, or checkpointer service: jq runs in-process and the
-// only egress is gRPC back to the server. So the env below is deliberately bare.
+// only egress is gRPC back to the server. So the bare env is the default.
+//
+// An AgentExecution, by contrast, runs an LLM loop. When `proxy` is supplied the
+// runner is pointed at the mock LLM proxy (a base-URL override via
+// STIGMER_PROXY_ENDPOINT) and switched to fully local artifacts/checkpointer, so
+// the run stays hermetic. Configuring a proxy flips two runner defaults — artifact
+// storage would default to `proxy` (presign calls -> setup-time throw) and, in
+// cloud mode, the checkpointer to `http` — so we pin both to local/memory.
 import { spawn } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -29,6 +36,17 @@ const LOG_TAIL_BYTES = 8_000;
 // Printed by the runner immediately before it begins polling (runner/src/runner.ts).
 const READY_MARKER = "Worker ready, polling for tasks";
 
+// Hermetic LLM wiring for agent executions. Omit it entirely for the data-only
+// WorkflowExecution path, which must stay LLM-free.
+export interface RunnerProxyOptions {
+  // Base URL of the mock LLM proxy (becomes STIGMER_PROXY_ENDPOINT). The runner
+  // appends the provider path; the proxy serves canned Anthropic SSE.
+  endpoint: string;
+  // Bearer token sent to the proxy. The mock ignores it and the OSS server is
+  // no-auth, but the runner requires STIGMER_TOKEN whenever a proxy is set.
+  token: string;
+}
+
 export interface RunnerOptions {
   // Absolute path to the runner's compiled entry (dist/main.js).
   entryPath: string;
@@ -36,6 +54,8 @@ export interface RunnerOptions {
   temporalHostPort: string;
   // http(s) base URL of the Go server's gRPC endpoint, for status streaming.
   backendEndpoint: string;
+  // Optional hermetic LLM wiring; present only for agent-execution runs.
+  proxy?: RunnerProxyOptions;
 }
 
 export interface RunningRunner {
@@ -46,6 +66,7 @@ export interface RunningRunner {
 
 export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
   const workspaceDir = await mkdtemp(join(tmpdir(), "stigmer-conformance-runner-"));
+  const artifactDir = await mkdtemp(join(tmpdir(), "stigmer-conformance-artifacts-"));
 
   const child = spawn(process.execPath, [opts.entryPath], {
     cwd: runnerDir(),
@@ -62,8 +83,21 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
       LOG_LEVEL: "info",
       // Avoid a boot-time MCP backfill network call (hermetic test detail).
       SKIP_MCP_CONNECT_BACKFILL: "true",
-      // No STIGMER_TOKEN, STIGMER_PROXY_ENDPOINT, or CURSOR_API_KEY: a data-only
-      // workflow needs none, and their absence keeps the run fully offline.
+      // Hermetic LLM wiring, only when an agent execution needs it. Absent for the
+      // data-only WorkflowExecution path, which stays fully offline. When present:
+      // - STIGMER_PROXY_ENDPOINT/STIGMER_TOKEN route LLM calls to the mock proxy;
+      // - ARTIFACT_STORAGE_TYPE=local keeps artifacts on disk (a configured proxy
+      //   would otherwise default artifacts to presign calls and throw at setup);
+      // - STIGMER_CHECKPOINTER_TYPE=memory pins the in-memory checkpointer.
+      ...(opts.proxy !== undefined
+        ? {
+            STIGMER_PROXY_ENDPOINT: opts.proxy.endpoint,
+            STIGMER_TOKEN: opts.proxy.token,
+            ARTIFACT_STORAGE_TYPE: "local",
+            LOCAL_ARTIFACT_PATH: artifactDir,
+            STIGMER_CHECKPOINTER_TYPE: "memory",
+          }
+        : {}),
     },
   });
 
@@ -88,6 +122,7 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
       child.kill("SIGTERM");
     }
     await rm(workspaceDir, { recursive: true, force: true });
+    await rm(artifactDir, { recursive: true, force: true });
   };
 
   try {
