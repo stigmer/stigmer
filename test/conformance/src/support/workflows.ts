@@ -10,7 +10,7 @@
 //
 // Negative cases (missing spec, missing name, malformed input) are written
 // inline in the suite, not here: this module represents validity by construction.
-import type { MessageInitShape } from "@bufbuild/protobuf";
+import type { JsonObject, MessageInitShape } from "@bufbuild/protobuf";
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { WorkflowSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/spec_pb";
@@ -110,6 +110,96 @@ export function makeWaitWorkflow(opts: WaitWorkflowOptions): MessageInitShape<ty
           kind: WorkflowTaskKind.wait,
           taskConfig: { duration: { seconds: waitSeconds } },
         },
+      ],
+    },
+  };
+}
+
+// The human_input task name and its downstream continue-task name, exported so
+// the HITL suite refers to the same identifiers the fixture defines (the gate is
+// resolved by task_name, so the two must agree).
+export const HUMAN_INPUT_TASK_NAME = "awaitApproval";
+export const HUMAN_INPUT_AFTER_TASK_NAME = "afterApproval";
+
+export interface HumanInputOutcomeSpec {
+  // Outcome name the reviewer selects; must match SubmitWorkflowTaskApprovalInput.outcome.
+  name: string;
+  label?: string;
+  // When set, selecting this outcome routes the workflow to the named task
+  // (the runner's __flow_directive__ jump) instead of continuing in order.
+  then?: string;
+}
+
+export interface HumanInputWorkflowOptions {
+  org: string;
+  name: string;
+  // Outcomes offered to the reviewer. Defaults to a defined binary approve/deny:
+  // both are *data* outcomes that complete the gate (deny does NOT fail the run —
+  // failure-on-deny is only the behavior of the implicit, no-outcomes binary
+  // form). Provide a custom set to exercise routing (an outcome with `then`).
+  outcomes?: HumanInputOutcomeSpec[];
+  // Timeout in seconds before on_timeout applies. Omitted/0 = wait indefinitely
+  // (the test owns the timing). Set with onTimeout to drive the timeout policy.
+  timeout?: number;
+  // Policy applied when the timeout expires, as the full proto enum string
+  // (e.g. "HUMAN_INPUT_TIMEOUT_FAIL") — this is what the json-schema and the
+  // server converter expect, not the runner's internal short form.
+  onTimeout?: string;
+  // Trailing set_vars tasks appended after `afterApproval`, used as `then`
+  // routing targets so an outcome's jump lands on an observable task.
+  routedTasks?: string[];
+}
+
+// A Workflow whose first task is a `human_input` approval gate. The runner pauses
+// the task at WORKFLOW_TASK_WAITING_APPROVAL (execution stays IN_PROGRESS — there
+// is no execution-level waiting phase) until submitWorkflowTaskApproval signals
+// it; the gate then resumes and the downstream `afterApproval` set_vars proves
+// the run continued. The human_input taskConfig is the typed HumanInputTaskConfig
+// (snake_case keys, validated by human_input.schema.json with
+// additionalProperties:false), which the server converts to CNCF
+// `call: human_input`. This is fully hermetic: no LLM, MCP, or storage — only
+// Temporal + the runner, exactly like makeWaitWorkflow.
+export function makeHumanInputWorkflow(
+  opts: HumanInputWorkflowOptions,
+): MessageInitShape<typeof WorkflowSchema> {
+  const { org, name, timeout, onTimeout, routedTasks = [] } = opts;
+  const outcomes = opts.outcomes ?? [{ name: "approve" }, { name: "deny" }];
+
+  const humanInputConfig: JsonObject = {
+    prompt: "Conformance approval gate — please respond.",
+    outcomes: outcomes.map((o) => ({
+      name: o.name,
+      ...(o.label !== undefined ? { label: o.label } : {}),
+      ...(o.then !== undefined ? { then: o.then } : {}),
+    })),
+    ...(timeout !== undefined ? { timeout } : {}),
+    ...(onTimeout !== undefined ? { on_timeout: onTimeout } : {}),
+  };
+
+  return {
+    apiVersion: WORKFLOW_API_VERSION,
+    kind: WORKFLOW_KIND,
+    metadata: { name, org },
+    spec: {
+      description: "conformance human_input fixture",
+      document: { dsl: "1.0.0", namespace: org, name, version: "1.0.0" },
+      tasks: [
+        {
+          name: HUMAN_INPUT_TASK_NAME,
+          kind: WorkflowTaskKind.human_input,
+          taskConfig: humanInputConfig,
+          export: { as: "${ . }" },
+        },
+        {
+          name: HUMAN_INPUT_AFTER_TASK_NAME,
+          kind: WorkflowTaskKind.set_vars,
+          taskConfig: { variables: { resumed: "true" } },
+        },
+        ...routedTasks.map((taskName) => ({
+          name: taskName,
+          kind: WorkflowTaskKind.set_vars,
+          taskConfig: { variables: { routed: taskName } },
+        })),
       ],
     },
   };

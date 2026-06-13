@@ -255,6 +255,36 @@ resume, and `args_preview`), exactly the boundary the Go integration HITL suite
 draws. See the project's
 `design-decisions/010-mcp-server-fixture-and-agentexecution-hitl-contract.md`.
 
+`workflowexecution-approval.conformance.test.ts` adds the **workflow `human_input`
+HITL** (`submitWorkflowTaskApproval`) contract — the workflow analogue of the
+agent suite, but a genuinely different machine, so it is a separate file. A
+WorkflowExecution has **no execution-level waiting phase**: a `human_input` task
+gates at the **task** level (`WORKFLOW_TASK_WAITING_APPROVAL`, surfacing as
+`WORKFLOW_TASK_APPROVAL`) while the execution phase stays `EXECUTION_IN_PROGRESS`,
+and `submitWorkflowTaskApproval` resolves it by sending a Temporal signal
+(`human_input_{task_name}`) — the handler returns the execution unchanged, so the
+suite polls the per-task status (`support/workflowexecutions.ts` gains
+`taskByName` / `awaitTaskStatus` / `awaitTaskWaitingApproval`). It is **fully
+hermetic** (Temporal + runner only; no LLM, MCP, or child execution): the
+`makeHumanInputWorkflow` fixture is `awaitApproval` (human_input) -> `afterApproval`
+(set_vars), the downstream set_vars completing being the proof the gate resumed.
+The suite asserts the server-owned contract — the task-level gate, that `approve`
+completes the run and the downstream task, that a **declared** non-approve outcome
+(`deny`) is *data* (resolves and still completes — only the implicit no-outcomes
+binary form fails on deny), that an outcome's `then` **routes** the workflow to
+the named task (proving the submitted outcome value drives behavior through
+observable task statuses), that `on_timeout=HUMAN_INPUT_TIMEOUT_FAIL` fails the
+run on its own, and the negative codes (empty fields / unknown task / non-
+`human_input` task -> `InvalidArgument`; missing execution -> `NotFound`; submit
+on a terminal execution -> `FailedPrecondition`). It deliberately does **not**
+assert idempotency (the signal-based gate is not deduped, unlike the agent DB
+projection) or the `task.output` projection (outcome-honoring is proven
+behaviorally via routing). The sibling `workflowexecution.conformance.test.ts`'s
+deferred `submitApproval` (the workflow->child-agent tool-forwarding composite)
+remains **out of scope** — it is a different mechanism (a forwarder to a child
+AgentExecution) and a Session-12 investigation. See the project's
+`design-decisions/011-workflowexecution-human-input-hitl-contract.md`.
+
 ## Layout
 
 ```
@@ -263,12 +293,12 @@ src/
                     + execution: temporal, runner-build, runner-process, mock-llm, mcp-server, global-setup-execution
   targets/          target (interface + capabilities), local-go, local-go-execution, cloud (stub), index
   contract/         errors, deviations, parity
-  support/          naming, workflows (set_vars + wait), execution-poll, workflowexecutions, agentexecutions,
+  support/          naming, workflows (set_vars + wait + human_input), execution-poll, workflowexecutions, agentexecutions,
                     agents, mcpservers, skills, environments, executioncontexts, sessions
   suites/           *.conformance.test.ts            (Class A — CRUD, no Temporal)
   suites-execution/ harness.smoke.test.ts + agent.harness.smoke.test.ts + mcp.harness.smoke.test.ts
-                    + workflowexecution.conformance.test.ts + agentexecution.conformance.test.ts
-                    + agentexecution-approval.conformance.test.ts  (Class B)
+                    + workflowexecution.conformance.test.ts + workflowexecution-approval.conformance.test.ts
+                    + agentexecution.conformance.test.ts + agentexecution-approval.conformance.test.ts  (Class B)
 ```
 
 ## Adding a domain

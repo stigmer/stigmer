@@ -7,9 +7,12 @@
 // owns the poll-don't-sleep helpers the execution suites use to await a phase,
 // shared so the smoke test and the domain suite gate on one definition.
 import type { MessageInitShape } from "@bufbuild/protobuf";
-import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import type { WorkflowExecution, WorkflowTask } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import {
+  ExecutionPhase,
+  WorkflowTaskStatus,
+} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
 import type { ConformanceClients } from "../harness/clients";
 import { type PollCoreOptions, pollUntil } from "./execution-poll";
 
@@ -105,4 +108,53 @@ export function awaitTerminal(
     label: "a terminal phase",
     ...opts,
   });
+}
+
+// Looks up a task in an execution's per-task status array by its workflow name.
+// The HITL gate is observed and resolved by task_name, so the suite reads tasks
+// through this rather than positional indexing.
+export function taskByName(exec: WorkflowExecution, taskName: string): WorkflowTask | undefined {
+  return exec.status?.tasks.find((t) => t.taskName === taskName);
+}
+
+// Polls get() until the named task reaches `status`, returning the execution at
+// that point. Fails fast (rather than burning the full timeout) if the execution
+// reaches a terminal phase before the task does: a run that errors instead of
+// reaching the expected task status is a real failure the caller wants surfaced
+// immediately with a precise message. The TS analogue of the Go integration
+// harness's WaitForTaskWaitingApproval.
+export async function awaitTaskStatus(
+  clients: ConformanceClients,
+  executionId: string,
+  taskName: string,
+  status: WorkflowTaskStatus,
+  opts: PollOptions = {},
+): Promise<WorkflowExecution> {
+  const exec = await pollExecution(
+    clients,
+    executionId,
+    (e) => taskByName(e, taskName)?.status === status || isTerminalPhase(e.status?.phase),
+    { label: `task ${taskName} status ${WorkflowTaskStatus[status]}`, ...opts },
+  );
+
+  const observed = taskByName(exec, taskName)?.status;
+  if (observed !== status) {
+    const phase = exec.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+    throw new Error(
+      `execution ${executionId} reached terminal phase ${ExecutionPhase[phase]} ` +
+        `before task ${taskName} reached ${WorkflowTaskStatus[status]} ` +
+        `(task status: ${observed === undefined ? "absent" : WorkflowTaskStatus[observed]})`,
+    );
+  }
+  return exec;
+}
+
+// Convenience: await the human_input gate (task at WORKFLOW_TASK_WAITING_APPROVAL).
+export function awaitTaskWaitingApproval(
+  clients: ConformanceClients,
+  executionId: string,
+  taskName: string,
+  opts: PollOptions = {},
+): Promise<WorkflowExecution> {
+  return awaitTaskStatus(clients, executionId, taskName, WorkflowTaskStatus.WORKFLOW_TASK_WAITING_APPROVAL, opts);
 }
