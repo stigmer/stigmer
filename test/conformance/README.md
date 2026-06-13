@@ -234,19 +234,41 @@ the OSS target seeds no default agent), not `InvalidArgument`. See the project's
 `design-decisions/009-agentexecution-domain-and-ts-mock-llm-proxy.md`. The two
 execution domains share one enum-agnostic poll core (`support/execution-poll.ts`).
 
+`agentexecution-approval.conformance.test.ts` adds the **HITL tool-approval**
+(`submitApproval`) contract. It is the first slice that exercises a real *tool*:
+an agent can only reach `EXECUTION_WAITING_FOR_APPROVAL` when it references an
+McpServer that exposes an approval-gated tool, so the `local-go-execution` target
+also boots a **TS-pure HTTP (Streamable) MCP fixture** (`harness/mcp-server.ts`):
+a long-lived `node:http` server fronting `@modelcontextprotocol/sdk`'s `McpServer`
+that exposes one deterministic `echo` tool. Crucially, the McpServer resource is
+only **created** (with the fixture's URL) — there is **no `connect`/discovery
+step**, because the runner resolves MCP servers from their spec and connects
+*live* at execution setup, computing the gate from the agent's
+`tool_approval_overrides` (the conformance runner already sets
+`SKIP_MCP_CONNECT_BACKFILL=true`). The suite asserts the server-owned contract —
+the phase lifecycle (gate reached -> COMPLETED) for APPROVE/SKIP/REJECT/
+APPROVE_ALL, the `pending_approvals` read model (`tool_call_id`, `tool_name`,
+`mcp_server_slug`), `auto_approve_all` bypass, idempotency, and the negative
+codes — and deliberately does **not** assert runner-internal projections that are
+not stable black-box observables (per-tool-call *final* status after the approval
+resume, and `args_preview`), exactly the boundary the Go integration HITL suite
+draws. See the project's
+`design-decisions/010-mcp-server-fixture-and-agentexecution-hitl-contract.md`.
+
 ## Layout
 
 ```
 src/
   harness/          go-build, ports, server-process, grpc-ready, clients, fixtures, global-setup
-                    + execution: temporal, runner-build, runner-process, mock-llm, global-setup-execution
+                    + execution: temporal, runner-build, runner-process, mock-llm, mcp-server, global-setup-execution
   targets/          target (interface + capabilities), local-go, local-go-execution, cloud (stub), index
   contract/         errors, deviations, parity
   support/          naming, workflows (set_vars + wait), execution-poll, workflowexecutions, agentexecutions,
                     agents, mcpservers, skills, environments, executioncontexts, sessions
   suites/           *.conformance.test.ts            (Class A — CRUD, no Temporal)
-  suites-execution/ harness.smoke.test.ts + agent.harness.smoke.test.ts
-                    + workflowexecution.conformance.test.ts + agentexecution.conformance.test.ts  (Class B)
+  suites-execution/ harness.smoke.test.ts + agent.harness.smoke.test.ts + mcp.harness.smoke.test.ts
+                    + workflowexecution.conformance.test.ts + agentexecution.conformance.test.ts
+                    + agentexecution-approval.conformance.test.ts  (Class B)
 ```
 
 ## Adding a domain

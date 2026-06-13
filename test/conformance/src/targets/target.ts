@@ -6,6 +6,7 @@
 // provisioned, and which optional behaviors are available — behind one interface
 // so the suites stay implementation-agnostic.
 import type { ConformanceClients } from "../harness/clients";
+import type { McpToolFixture } from "../harness/mcp-server";
 import type { MockLlmProxy } from "../harness/mock-llm";
 
 // Behaviors that legitimately differ across editions, gating assertions rather
@@ -55,4 +56,9 @@ export interface TargetProfile {
   // execution targets that provision an engine + mock; absent on CRUD/cloud
   // targets. Agent execution suites obtain it via requireLlmProxy().
   llmProxy?(): MockLlmProxy;
+
+  // The HTTP MCP server fixture backing tool-using agent runs (HITL). Present
+  // only on execution targets; absent on CRUD/cloud targets. Suites obtain it via
+  // requireMcpFixture() and register an McpServer pointing at its url().
+  mcpFixture?(): McpToolFixture;
 }

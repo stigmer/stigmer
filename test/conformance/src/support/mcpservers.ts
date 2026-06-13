@@ -57,3 +57,28 @@ export function makeMcpServer(opts: McpServerOptions): MessageInitShape<typeof M
     spec: makeMcpServerSpec({ description, command, args }),
   };
 }
+
+export interface HttpMcpServerOptions {
+  org: string;
+  name: string;
+  // Base URL of an HTTP (Streamable) MCP server, e.g. the execution target's
+  // McpToolFixture.url(). Satisfies the `server_type` oneof via http config.
+  url: string;
+  description?: string;
+}
+
+// A complete, valid HTTP McpServer resource. Used by the execution suites to
+// register the in-process MCP tool fixture so a tool-using agent run can dispatch
+// a real tool. The resource only needs to be *created*: the runner connects to
+// the URL live at execution time (no `connect`/discovery step required).
+export function makeHttpMcpServer(opts: HttpMcpServerOptions): MessageInitShape<typeof McpServerSchema> {
+  return {
+    apiVersion: MCPSERVER_API_VERSION,
+    kind: MCPSERVER_KIND,
+    metadata: { name: opts.name, org: opts.org },
+    spec: {
+      description: opts.description ?? "conformance HTTP MCP fixture",
+      serverType: { case: "http", value: { url: opts.url } },
+    },
+  };
+}

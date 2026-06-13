@@ -17,7 +17,8 @@
     "@modelcontextprotocol/sdk": "^1.26.0",
     "@stigmer/mcp-server": "*",
     "@stigmer/protos": "*",
-    "fflate": "^0.8.3"
+    "fflate": "^0.8.3",
+    "zod": "^3.25.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

@@ -21,9 +21,12 @@
 //   validateSessionOrAgent's InvalidArgument is unreachable by black-box input here.
 // - The query analogue of listByWorkflow is listBySession (filter by spec.session_id).
 //
+// Covered in a sibling file (kept separate because it needs the MCP tool
+// fixture and approval choreography, and this file is already large):
+// - submitApproval / HITL tool approval -> agentexecution-approval.conformance.test.ts.
+//
 // Deliberately out of scope (each needs machinery this slice doesn't build, and
 // is recorded as a conscious deferral in DD-009, not shipped as a thin partial):
-// - submitApproval happy path (needs tool-call + approval choreography);
 // - recover happy path (needs a genuinely FAILED execution);
 // - usage reports, artifact download/content, subscribe streaming, sub-agents.
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";

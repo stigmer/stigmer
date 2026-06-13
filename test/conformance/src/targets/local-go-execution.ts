@@ -20,6 +20,7 @@
 import { ensureServerBinary } from "../harness/go-build";
 import { awaitGrpcReady } from "../harness/grpc-ready";
 import { createTransport, makeClients, type ConformanceClients } from "../harness/clients";
+import { McpToolFixture } from "../harness/mcp-server";
 import { MockLlmProxy } from "../harness/mock-llm";
 import { ensureRunnerBuilt } from "../harness/runner-build";
 import { spawnRunner, type RunningRunner } from "../harness/runner-process";
@@ -42,6 +43,7 @@ export class LocalGoExecutionTarget implements TargetProfile {
   private server: RunningServer | undefined;
   private runner: RunningRunner | undefined;
   private mockLlm: MockLlmProxy | undefined;
+  private mcpTools: McpToolFixture | undefined;
   private conformanceClients: ConformanceClients | undefined;
 
   async setup(): Promise<void> {
@@ -63,6 +65,13 @@ export class LocalGoExecutionTarget implements TargetProfile {
     this.mockLlm = new MockLlmProxy();
     await this.mockLlm.start();
 
+    // 3b. MCP tool fixture: the tool surface a HITL agent run dispatches to. The
+    //     runner connects to it live at each execution's setup (no discovery), so
+    //     it only has to be listening before any execution starts — but it must
+    //     outlive every execution, so it is torn down last (with the proxy).
+    this.mcpTools = new McpToolFixture();
+    await this.mcpTools.start();
+
     // 4. Runner last: it dials the server's gRPC endpoint to stream status back,
     //    and the mock proxy for LLM calls.
     this.runner = await spawnRunner({
@@ -78,6 +87,13 @@ export class LocalGoExecutionTarget implements TargetProfile {
       throw new Error("LocalGoExecutionTarget.setup() must be called before llmProxy()");
     }
     return this.mockLlm;
+  }
+
+  mcpFixture(): McpToolFixture {
+    if (this.mcpTools === undefined) {
+      throw new Error("LocalGoExecutionTarget.setup() must be called before mcpFixture()");
+    }
+    return this.mcpTools;
   }
 
   clients(): ConformanceClients {
@@ -97,13 +113,15 @@ export class LocalGoExecutionTarget implements TargetProfile {
   }
 
   async teardown(): Promise<void> {
-    // Reverse boot order: runner, then mock proxy, then server, then Temporal.
+    // Reverse boot order: runner, then the LLM/MCP fixtures, then server, then Temporal.
     await this.runner?.stop();
     await this.mockLlm?.close();
+    await this.mcpTools?.close();
     await this.server?.stop();
     await this.temporal?.stop();
     this.runner = undefined;
     this.mockLlm = undefined;
+    this.mcpTools = undefined;
     this.server = undefined;
     this.temporal = undefined;
     this.conformanceClients = undefined;

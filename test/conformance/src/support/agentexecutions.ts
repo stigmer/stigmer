@@ -14,6 +14,7 @@ import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexe
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ConformanceClients } from "../harness/clients";
+import type { McpToolFixture } from "../harness/mcp-server";
 import type { MockLlmProxy } from "../harness/mock-llm";
 import type { TargetProfile } from "../targets/target";
 import { type PollCoreOptions, pollUntil } from "./execution-poll";
@@ -30,11 +31,15 @@ export interface AgentExecutionOptions {
   sessionId?: string;
   // The user message that triggers the run; must be non-empty (proto min_len=1).
   message?: string;
+  // Runtime bypass of all tool-approval gates (spec.auto_approve_all). Omitted =
+  // gates apply; true = the run never pauses for approval. The top of the
+  // approval-policy chain.
+  autoApproveAll?: boolean;
 }
 
 // A complete, valid AgentExecution create request. execution_config is left unset
-// (the runner picks defaults), so the only variable inputs are the reference and
-// the message.
+// (the runner picks defaults), so the only variable inputs are the reference, the
+// message, and the optional auto-approve bypass.
 export function makeAgentExecution(opts: AgentExecutionOptions): MessageInitShape<typeof AgentExecutionSchema> {
   return {
     apiVersion: AGENT_EXECUTION_API_VERSION,
@@ -44,6 +49,7 @@ export function makeAgentExecution(opts: AgentExecutionOptions): MessageInitShap
       ...(opts.agentId !== undefined ? { agentId: opts.agentId } : {}),
       ...(opts.sessionId !== undefined ? { sessionId: opts.sessionId } : {}),
       message: opts.message ?? "Say hello.",
+      ...(opts.autoApproveAll !== undefined ? { autoApproveAll: opts.autoApproveAll } : {}),
     },
   };
 }
@@ -126,4 +132,17 @@ export function requireLlmProxy(target: TargetProfile): MockLlmProxy {
     );
   }
   return target.llmProxy();
+}
+
+// Obtain the HTTP MCP tool fixture from an execution target, failing loudly if
+// the active target does not provide one. Tool-using (HITL) agent suites must
+// run against local-go-execution.
+export function requireMcpFixture(target: TargetProfile): McpToolFixture {
+  if (target.mcpFixture === undefined) {
+    throw new Error(
+      `target ${target.name} does not provide an MCP tool fixture; ` +
+        "tool-using agent suites require the local-go-execution target",
+    );
+  }
+  return target.mcpFixture();
 }

@@ -80,12 +80,36 @@ export function anthropicToolUse(
   toolInput: Record<string, unknown>,
   usage: { inputTokens?: number; outputTokens?: number } = {},
 ): AnthropicMessageBody {
+  return anthropicToolUses([{ toolCallId, toolName, toolInput }], usage);
+}
+
+// One tool_use block in a multi-call turn.
+export interface ToolUseBlock {
+  toolCallId: string;
+  toolName: string;
+  toolInput: Record<string, unknown>;
+}
+
+// A canned Anthropic turn with one or more tool_use blocks (stop_reason
+// tool_use). Multiple blocks model parallel tool calls in a single assistant
+// turn, so they are dispatched together and — when each is approval-gated —
+// become co-pending approvals at once. That is the lever for the APPROVE_ALL
+// contract (resolve every co-pending gate with a single decision).
+export function anthropicToolUses(
+  blocks: ToolUseBlock[],
+  usage: { inputTokens?: number; outputTokens?: number } = {},
+): AnthropicMessageBody {
   return {
     id: `msg_mock_${usage.inputTokens ?? 10}`,
     type: "message",
     role: "assistant",
     model: "claude-sonnet-4-6",
-    content: [{ type: "tool_use", id: toolCallId, name: toolName, input: toolInput }],
+    content: blocks.map((b) => ({
+      type: "tool_use" as const,
+      id: b.toolCallId,
+      name: b.toolName,
+      input: b.toolInput,
+    })),
     stop_reason: "tool_use",
     usage: { input_tokens: usage.inputTokens ?? 10, output_tokens: usage.outputTokens ?? 5 },
   };
