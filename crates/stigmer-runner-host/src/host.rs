@@ -29,6 +29,11 @@ pub struct RunnerStatus {
     pub running: bool,
     pub active_sessions: Vec<String>,
     pub active_workflow_executions: Vec<String>,
+    /// OS process id of the runner, for embedders that want an out-of-band reaper. `Some`
+    /// while the child is running, `None` when no runner is running (or once it has been
+    /// reaped). Prefer `kill()` over killing this pid yourself unless you must reap from
+    /// outside the host's lifetime (issue #177).
+    pub pid: Option<u32>,
 }
 
 /// A live runner subprocess plus the host's view of what it is working on.
@@ -196,16 +201,38 @@ impl RunnerHost {
         Ok(())
     }
 
-    /// Ask the runner to shut down, then wait (bounded) for the process to exit.
+    /// Ask the runner to shut down, then wait (bounded) for the process to exit, escalating to
+    /// a force-kill if it does not.
     pub async fn stop(&self) -> Result<(), RunnerHostError> {
         let mut guard = self.process.lock().await;
         let proc = guard.as_mut().ok_or(RunnerHostError::NotRunning)?;
         proc.send(&IpcCommand::Shutdown).await?;
-        // Bounded wait: if the runner ignores shutdown we still drop our handle rather than
-        // block the host forever.
-        let _ = tokio::time::timeout(Duration::from_secs(10), proc.child.wait()).await;
+        // A healthy runner exits on the IPC shutdown well within the grace period. If it does
+        // not, it is wedged (busy-looping, not reading stdin) and will ignore SIGTERM too — so
+        // SIGKILL and reap it rather than dropping a live handle and trusting `kill_on_drop`,
+        // which is only a soft guarantee here (see `force_kill_and_reap`). Issue #177.
+        if tokio::time::timeout(Duration::from_secs(10), proc.child.wait())
+            .await
+            .is_err()
+        {
+            (self.log)("[runner-ipc] shutdown grace expired; force-killing wedged runner".into());
+            force_kill_and_reap(&mut proc.child).await;
+        }
         *guard = None;
         Ok(())
+    }
+
+    /// Force-kill the runner now (SIGKILL) and drop the handle, skipping the graceful IPC
+    /// shutdown. Idempotent: a no-op if nothing is running, so a host's app-exit reaper can
+    /// always call it safely. Prefer `stop()` for normal shutdown; reach for this when the
+    /// runner must die immediately and there is no time (or no point) draining it (issue #177).
+    pub async fn kill(&self) {
+        // Take the handle out under the lock, then release the lock before the (brief) reap
+        // await so a concurrent `status()` is never blocked behind the kill.
+        let proc = self.process.lock().await.take();
+        if let Some(mut proc) = proc {
+            force_kill_and_reap(&mut proc.child).await;
+        }
     }
 
     /// Start a worker for a session. Idempotent: a no-op (ack) if already active.
@@ -292,14 +319,30 @@ impl RunnerHost {
                     .iter()
                     .cloned()
                     .collect(),
+                // `None` once tokio has reaped the child even if our handle lingers briefly.
+                pid: proc.child.id(),
             },
             None => RunnerStatus {
                 running: false,
                 active_sessions: Vec::new(),
                 active_workflow_executions: Vec::new(),
+                pid: None,
             },
         }
     }
+}
+
+/// SIGKILL the child and reap it so a wedged or abandoned runner cannot linger as an
+/// orphan/zombie. Best-effort: a child that already exited makes both calls no-ops.
+///
+/// Shared by `stop()` (escalation when graceful shutdown times out) and `kill()` (immediate
+/// teardown). `kill_on_drop(true)` is a last-resort net for panic/unwind paths, but it is a
+/// *soft* guarantee here — the background stdout reader holds an `Arc` clone of the process
+/// handle, so the `Child` is not dropped (and SIGKILL not sent) until that task also releases
+/// its clone. Reaping explicitly removes that ordering dependency (issue #177).
+async fn force_kill_and_reap(child: &mut Child) {
+    let _ = child.start_kill();
+    let _ = child.wait().await;
 }
 
 /// Forward newline-delimited child output to `on_line`, lossily decoding each line so

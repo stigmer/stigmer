@@ -39,6 +39,8 @@ interface RunnerStatus {
   running: boolean;
   activeSessions: string[];
   activeWorkflowExecutions: string[];
+  /** OS pid of the runner (null when not running); exposed by the host for diagnostics. */
+  pid?: number | null;
 }
 
 export interface UseEmbeddedRunnerResult {

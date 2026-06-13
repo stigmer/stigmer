@@ -46,9 +46,12 @@ installed `@stigmer/runner`.
 stigmer-runner-host = { version = "0.1", features = ["tauri"] }
 ```
 
-Manage a `RunnerState` and register the eight commands (`start_runner`, `stop_runner`,
-`add_session`, `remove_session`, `add_workflow_execution`, `remove_workflow_execution`,
-`update_runner_token`, `runner_status`) in `tauri::generate_handler!`.
+Manage a `RunnerState` and register the nine commands (`start_runner`, `stop_runner`,
+`kill_runner`, `add_session`, `remove_session`, `add_workflow_execution`,
+`remove_workflow_execution`, `update_runner_token`, `runner_status`) in
+`tauri::generate_handler!`. Reap the runner on app exit by calling `RunnerState::stop()`
+(graceful) or `RunnerState::kill()` (immediate) from your `RunEvent::Exit` handler — relying
+on `kill_on_drop` alone is a soft guarantee.
 
 ## Protocol version compatibility
 

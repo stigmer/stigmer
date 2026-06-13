@@ -319,9 +319,14 @@ async function main(): Promise<void> {
 
   if (runnerMode === "manager") {
     await runManagerMode(config);
-  } else {
-    await runStaticMode(config);
+    // Manager mode is driven by the host over stdin. Once it returns — via the IPC `shutdown`
+    // command or stdin EOF when the host process dies — exit deterministically so a stray open
+    // handle can't keep a shut-down runner alive as an orphan (issue #177). Static mode is left
+    // to exit naturally so its OTel flush completes.
+    process.exit(0);
   }
+
+  await runStaticMode(config);
 }
 
 main().catch((err) => {
