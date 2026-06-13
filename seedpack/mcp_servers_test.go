@@ -80,6 +80,7 @@ var validCategories = map[string]bool{
 	"communication":        true,
 	"productivity":         true,
 	"web-automation":       true,
+	"desktop-automation":   true,
 	"monitoring":           true,
 	"payments":             true,
 	"design":               true,

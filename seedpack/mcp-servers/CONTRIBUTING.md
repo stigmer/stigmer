@@ -149,6 +149,7 @@ Use one of these values for `metadata.labels.stigmer.ai/category`:
 | `communication` | Slack, Linear, messaging platforms |
 | `productivity` | Notion, Google Maps, note-taking, workspace tools |
 | `web-automation` | Playwright, browser control and testing |
+| `desktop-automation` | Open Computer Use, whole-desktop GUI control via OS accessibility APIs |
 | `monitoring` | Sentry, logging, observability |
 | `payments` | Stripe, e-commerce |
 | `design` | Figma, design tools |

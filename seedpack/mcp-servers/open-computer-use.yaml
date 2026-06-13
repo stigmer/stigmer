@@ -1,0 +1,61 @@
+# Open Computer Use drives the LOCAL desktop GUI through OS accessibility APIs.
+# It only works when the agent runs in local mode (`stigmer up`) on a machine
+# whose interactive session has granted macOS Accessibility + Screen Recording
+# permissions. It cannot function in cloud mode (headless container, no display),
+# which is why the description and the `local-only` tag flag the constraint until
+# the platform has a first-class capability/locality field on McpServerSpec.
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: Open Computer Use
+  visibility: visibility_public
+  labels:
+    stigmer.ai/category: "desktop-automation"
+spec:
+  description: "Local desktop automation via OS accessibility APIs: open any app, read its on-screen accessibility tree, capture screenshots, click, type, scroll, and drag. Local-only (macOS) — requires Accessibility + Screen Recording permission; not available in cloud execution."
+  icon_url: "https://raw.githubusercontent.com/stigmer/stigmer/main/seedpack/icons/mcp-servers/open-computer-use.svg"
+  repository_url: "https://github.com/QwenLM/open-computer-use"
+  github_stars: 109
+  tags:
+    - desktop-automation
+    - accessibility
+    - gui-automation
+    - macos
+    - local-only
+  stdio:
+    command: "npx"
+    args:
+      - "-y"
+      - "@qwen-code/open-computer-use"
+      - "mcp"
+  # All nine tools are enabled. Observation tools (get_app_state, list_apps) and
+  # view-navigation (scroll) are non-mutating and stay un-gated so the agent can
+  # perceive the screen each turn without an approval prompt on every step.
+  default_enabled_tools:
+    - get_app_state
+    - list_apps
+    - click
+    - type_text
+    - press_key
+    - scroll
+    - drag
+    - set_value
+    - perform_secondary_action
+  # Every state-mutating tool requires human approval by default. Desktop control
+  # can click anything and type anywhere (including credentials), so the safe
+  # default is approve-before-act; an execution can still opt into auto_approve_all
+  # for trusted, supervised runs. Messages surface the target app and the concrete
+  # action so a reviewer can decide without inspecting raw arguments.
+  pinned_tool_approvals:
+    - tool_name: click
+      message: "Click in {{args.app}} (element {{args.element_index}}, x={{args.x}}, y={{args.y}})"
+    - tool_name: type_text
+      message: "Type into {{args.app}}: {{args.text}}"
+    - tool_name: press_key
+      message: "Press {{args.key}} in {{args.app}}"
+    - tool_name: drag
+      message: "Drag in {{args.app}} from ({{args.from_x}},{{args.from_y}}) to ({{args.to_x}},{{args.to_y}})"
+    - tool_name: set_value
+      message: "Set value in {{args.app}}: {{args.value}}"
+    - tool_name: perform_secondary_action
+      message: "Run action {{args.action}} on element {{args.element_index}} in {{args.app}}"
