@@ -164,7 +164,7 @@ spec:
   mcp_server_usages:
     - mcp_server_ref:
         kind: mcp_server
-        slug: mcp-server-stigmer
+        slug: stigmer
       enabled_tools:
         - search
         - get_agent

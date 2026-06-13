@@ -11,17 +11,32 @@ into the platform via `stigmer seedpack apply`.
 
 ## What Lives Here
 
-- **`mcp-server-stigmer.yaml`** — The built-in Stigmer platform server,
+- **`stigmer.yaml`** — The built-in Stigmer platform server,
   labeled `stigmer.ai/system: "true"`. Always present.
-- **`mcp-server-{name}.yaml`** — One file per curated marketplace entry
-  (e.g., `mcp-server-github.yaml`, `mcp-server-postgres.yaml`).
+- **`{slug}.yaml`** — One file per curated marketplace entry
+  (e.g., `github.yaml`, `postgres.yaml`).
 
 ## Adding a New MCP Server
 
 ### Naming Convention
 
-Files must be named `mcp-server-{name}.yaml` where `{name}` is a
-lowercase, hyphenated identifier matching `metadata.name`.
+Three identifiers are in play, and they must line up:
+
+1. **`metadata.name`** — the human-readable display name shown in the
+   marketplace (e.g., `GitHub`, `Brave Search`).
+2. **Slug** — derived automatically from `metadata.name` by lowercasing,
+   replacing spaces with hyphens, and stripping non-alphanumerics
+   (`GitHub` → `github`, `Brave Search` → `brave-search`). This is the
+   stable identifier the platform stores and that everything else
+   references. Do **not** set a slug manually.
+3. **File name** — must be `{slug}.yaml` (e.g., `github.yaml`). The static
+   tests and the `credential-manifest.yaml` key off the file name.
+
+> **Referencing a server from an agent.** An agent's `mcp_server_ref.slug`
+> must be the **derived slug**, not the file name with any prefix. For a
+> server named `GitHub`, the correct reference is `slug: github` — not
+> `mcp-server-github`. A mismatched slug fails the `ValidateReferences`
+> pipeline step at apply time with a `FailedPrecondition` error.
 
 ### YAML Templates
 
@@ -34,7 +49,7 @@ Four transport patterns are supported. Use exactly one of `spec.stdio` or
 apiVersion: agentic.stigmer.ai/v1
 kind: McpServer
 metadata:
-  name: mcp-server-{name}
+  name: "{Display Name}"
   visibility: visibility_public
   labels:
     stigmer.ai/category: "{category}"
@@ -94,7 +109,7 @@ spec:
 
 | Field | Description |
 |-------|-------------|
-| `metadata.name` | `mcp-server-{name}`, unique across the seedpack |
+| `metadata.name` | Human-readable display name (e.g., `GitHub`), unique across the seedpack; its derived slug must match the file name |
 | `metadata.visibility` | Always `visibility_public` for marketplace entries |
 | `metadata.labels.stigmer.ai/category` | One of the categories listed below |
 | `spec.description` | Clear, concise explanation of capabilities |
