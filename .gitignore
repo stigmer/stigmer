@@ -110,9 +110,6 @@ backend/services/*/agent-runner
 backend/services/*/cmd/*/server
 backend/services/*/server
 
-# MCP server binary (go build without -o drops it in the module root)
-mcp-server/mcp-server-stigmer
-
 # CLI binaries (build artifacts, not committed)
 /cli
 client-apps/cli/embedded/binaries/

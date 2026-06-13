@@ -11,6 +11,7 @@ const ANSI = {
   red: "\x1b[31m",
   green: "\x1b[32m",
   yellow: "\x1b[33m",
+  cyan: "\x1b[36m",
 } as const;
 
 /** A styler whose methods either wrap text in ANSI codes or pass it through. */
@@ -18,6 +19,7 @@ export interface Styler {
   green(text: string): string;
   yellow(text: string): string;
   red(text: string): string;
+  cyan(text: string): string;
   bold(text: string): string;
   dim(text: string): string;
 }
@@ -26,6 +28,7 @@ const PLAIN: Styler = {
   green: (t) => t,
   yellow: (t) => t,
   red: (t) => t,
+  cyan: (t) => t,
   bold: (t) => t,
   dim: (t) => t,
 };
@@ -34,6 +37,7 @@ const COLORED: Styler = {
   green: (t) => `${ANSI.green}${ANSI.bold}${t}${ANSI.reset}`,
   yellow: (t) => `${ANSI.yellow}${ANSI.bold}${t}${ANSI.reset}`,
   red: (t) => `${ANSI.red}${ANSI.bold}${t}${ANSI.reset}`,
+  cyan: (t) => `${ANSI.cyan}${t}${ANSI.reset}`,
   bold: (t) => `${ANSI.bold}${t}${ANSI.reset}`,
   dim: (t) => `${ANSI.faint}${t}${ANSI.reset}`,
 };

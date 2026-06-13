@@ -52,6 +52,28 @@ export function renderCollection(
   return `\n${renderTable(table.headers, rows)}`;
 }
 
+/**
+ * Render a *list message* (e.g. AgentExecutionList, SessionList) for a read verb.
+ *
+ * Unlike `renderCollection`, which serializes a bare slice, this mirrors Go's
+ * `DisplayProto(list, ...)`: json/yaml emit the whole list envelope (including
+ * `total_pages`), while table projects the nested `entries` into a grid.
+ */
+export function renderListMessage(
+  schema: DescMessage,
+  message: Message,
+  format: OutputFormat,
+  table: TableShape,
+): string {
+  if (format === "json") return renderProtoJson(schema, message);
+  if (format === "yaml") return renderProtoYaml(schema, message);
+  const entries = protoToJsonValue(schema, message);
+  const list = asObject(entries).entries;
+  const rows = (Array.isArray(list) ? list : []).map((entry) => table.row(asObject(entry)));
+  if (rows.length === 0) return renderEmpty(table.resourceName);
+  return `\n${renderTable(table.headers, rows)}`;
+}
+
 // Human field view of a resource's metadata envelope (+ common spec fields).
 function renderResourceFields(json: JsonValue): string {
   const obj = asObject(json);

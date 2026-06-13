@@ -1,6 +1,6 @@
 // Canonical protobuf -> JSON/YAML rendering for read verbs.
 //
-// Parity contract (mirrors Go pkg/display/proto.go and mcp-server-ts marshal.ts):
+// Parity contract (mirrors Go pkg/display/proto.go and mcp-server marshal.ts):
 // the Go CLI emits protojson with UseProtoNames=true and EmitUnpopulated=false,
 // 2-space indented. protobuf-es `toJson` with { useProtoFieldName: true }
 // reproduces that exactly — snake_case fields, omitted defaults, base64 bytes,

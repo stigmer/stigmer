@@ -5,27 +5,22 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
-	"syscall"
+	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/stigmer/stigmer/client-apps/cli/embedded"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
-	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 )
-
-const mcpServerBinaryName = "mcp-server-stigmer"
 
 // NewMCPServerCommand creates the top-level command that starts the MCP
 // server as a foreground process. MCP clients like Cursor and Claude Desktop
 // can spawn the Stigmer CLI with this command instead of requiring a separate
 // mcp-server-stigmer binary.
 //
-// Rather than importing the mcp-server Go module (which would pull in a
-// second copy of the protobuf stubs and cause registration panics), this
-// command resolves the standalone mcp-server-stigmer binary, bridges CLI
-// config and flags into the environment variables the binary expects, and
-// exec's it.
+// The MCP server is the TypeScript @stigmer/mcp-server npm package. This
+// command bridges CLI config and flags into the environment variables the
+// server expects, then launches it via Node (workspace tsx in development, or
+// npx in production) — see resolveMCPServerCommand.
 func NewMCPServerCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "mcp-server",
@@ -69,13 +64,15 @@ ENVIRONMENT VARIABLES:
 			bridgeCLIConfigToEnv()
 			bridgeFlagsToEnv(cmd)
 
-			binPath, err := resolveMCPServerBinary()
+			mcpCmd, err := resolveMCPServerCommand(buildMCPServerArgs(cmd))
 			if err != nil {
 				return err
 			}
 
-			args := buildMCPServerArgs(cmd)
-			return execMCPServer(binPath, args)
+			mcpCmd.Stdin = os.Stdin
+			mcpCmd.Stdout = os.Stdout
+			mcpCmd.Stderr = os.Stderr
+			return mcpCmd.Run()
 		},
 	}
 
@@ -146,68 +143,85 @@ func setEnvIfEmpty(key, value string) {
 	}
 }
 
-// resolveMCPServerBinary finds the mcp-server-stigmer binary.
+// resolveMCPServerCommand builds an exec.Cmd that launches the TypeScript
+// @stigmer/mcp-server, using the same three-tier resolution strategy as the
+// Ink renderer (see resolveInkCommand). The Go CLI no longer ships or downloads
+// a native MCP server binary — the server is the npm package, run via Node.
 //
-// Resolution order:
-//  1. ~/.stigmer/bin/mcp-server-stigmer (managed install location)
-//  2. mcp-server-stigmer on PATH
-//  3. Auto-download from GitHub releases to ~/.stigmer/bin/
-func resolveMCPServerBinary() (string, error) {
-	home, _ := os.UserHomeDir()
-	if home != "" {
-		managed := filepath.Join(home, ".stigmer", "bin", mcpServerBinaryName)
-		if isExecutable(managed) {
-			return managed, nil
+//  1. STIGMER_MCP_SERVER_CMD env var — escape hatch for custom setups.
+//  2. Workspace detection — first from the binary location (bin/stigmer),
+//     then by walking up from CWD — runs the source via the workspace tsx.
+//  3. npx with pinned version — production path, downloads on first run.
+func resolveMCPServerCommand(args []string) (*exec.Cmd, error) {
+	// 1. Escape hatch: explicit override.
+	if override := os.Getenv("STIGMER_MCP_SERVER_CMD"); override != "" {
+		parts := strings.Fields(override)
+		return exec.Command(parts[0], append(parts[1:], args...)...), nil
+	}
+
+	// 2a. Workspace detection from binary location (development).
+	// When the CLI is built with `make build` the binary lands at
+	// <workspace>/bin/stigmer; tsx and the source entry are resolved
+	// relative to it.
+	if exePath, err := os.Executable(); err == nil {
+		workspaceRoot := filepath.Join(filepath.Dir(exePath), "..")
+		if cmd, ok := tryWorkspaceMCPServer(workspaceRoot, args); ok {
+			return cmd, nil
 		}
 	}
 
-	if path, err := exec.LookPath(mcpServerBinaryName); err == nil {
-		return path, nil
+	// 2b. Workspace detection from CWD — handles binaries installed outside
+	// the repo (~/bin, $GOPATH/bin, bazel output, etc.).
+	if cwd, err := os.Getwd(); err == nil {
+		if root := findWorkspaceRoot(cwd); root != "" {
+			if cmd, ok := tryWorkspaceMCPServer(root, args); ok {
+				return cmd, nil
+			}
+		}
 	}
 
-	climsg.Info("mcp-server-stigmer not found, downloading from GitHub releases...")
-	path, err := daemon.DownloadMCPServerBinary()
+	// 3. Production: npx with pinned version.
+	npxPath, err := exec.LookPath("npx")
 	if err != nil {
-		return "", fmt.Errorf(
-			"%s not found and auto-download failed: %w\n\n"+
-				"Install manually with:\n"+
-				"  go install github.com/stigmer/stigmer/mcp-server/cmd/mcp-server-stigmer@latest\n\n"+
-				"Or download from: https://github.com/stigmer/stigmer/releases",
-			mcpServerBinaryName, err,
-		)
+		return nil, fmt.Errorf(
+			"the Stigmer MCP server runs on Node.js >= 20\n" +
+				"Install Node.js from https://nodejs.org and try again")
 	}
 
-	return path, nil
+	npxArgs := append([]string{"--yes", mcpServerPackageSpec()}, args...)
+	return exec.Command(npxPath, npxArgs...), nil
 }
 
-func isExecutable(path string) bool {
-	info, err := os.Stat(path)
-	if err != nil {
-		return false
+// tryWorkspaceMCPServer checks whether root looks like the stigmer monorepo
+// workspace and returns a tsx command for the MCP server source entry if so.
+func tryWorkspaceMCPServer(root string, args []string) (*exec.Cmd, bool) {
+	tsxBin := filepath.Join(root, "node_modules", ".bin", "tsx")
+	entry := filepath.Join(root, "mcp-server", "src", "cli", "mcp-server-stigmer.ts")
+
+	if fileExists(tsxBin) && fileExists(entry) {
+		return exec.Command(tsxBin, append([]string{entry}, args...)...), true
 	}
-	return !info.IsDir() && info.Mode()&0111 != 0
+	return nil, false
 }
 
-// buildMCPServerArgs constructs the argv for the MCP server binary.
-// The binary accepts an optional positional transport subcommand.
+// mcpServerPackageSpec resolves the npm spec for @stigmer/mcp-server. It pins to
+// the CLI's build version (set via ldflags, derived from the same git tag as the
+// CLI release), falling back to the @dev dist-tag for unversioned dev builds —
+// where tier 2 (workspace tsx) wins inside the monorepo anyway.
+func mcpServerPackageSpec() string {
+	version := strings.TrimPrefix(embedded.GetBuildVersion(), "v")
+	if version == "" || version == "dev" {
+		return "@stigmer/mcp-server@dev"
+	}
+	return "@stigmer/mcp-server@" + version
+}
+
+// buildMCPServerArgs constructs the trailing argv for the MCP server command.
+// The server accepts an optional positional transport subcommand.
 func buildMCPServerArgs(cmd *cobra.Command) []string {
-	args := []string{mcpServerBinaryName}
+	var args []string
 	if v, _ := cmd.Flags().GetString("transport"); v != "" {
 		args = append(args, v)
 	}
 	return args
-}
-
-// execMCPServer replaces the current process with the MCP server binary.
-// On Unix this uses syscall.Exec for seamless STDIO passthrough; on Windows
-// it falls back to exec.Command with inherited file descriptors.
-func execMCPServer(binPath string, args []string) error {
-	if runtime.GOOS == "windows" {
-		cmd := exec.Command(binPath, args[1:]...)
-		cmd.Stdin = os.Stdin
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		return cmd.Run()
-	}
-	return syscall.Exec(binPath, args, os.Environ())
 }

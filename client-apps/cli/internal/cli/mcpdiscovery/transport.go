@@ -103,7 +103,7 @@ func goRunEnvOverrides(cfg *mcpserverv1.StdioServerConfig) []string {
 }
 
 // modulePrefix extracts a "host/org/repo/*" prefix from a Go package path.
-// For "github.com/stigmer/stigmer/mcp-server/cmd/..." it returns
+// For "github.com/stigmer/stigmer/sdk/go/..." it returns
 // "github.com/stigmer/stigmer/*".
 func modulePrefix(pkg string) string {
 	parts := strings.SplitN(pkg, "/", 4)

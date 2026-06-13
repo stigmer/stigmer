@@ -5,7 +5,6 @@ GO_MODULES := \
 	backend/libs/go \
 	backend/services/stigmer-server \
 	client-apps/cli \
-	mcp-server \
 	sdk/go \
 	seedpack \
 	tools
@@ -79,16 +78,13 @@ install-vale: ## Install Vale prose linter (auto-detects OS)
 
 # ─── Build ────────────────────────────────────
 
-.PHONY: build build-mcp-server build-java-protos build-java-sdk build-runner build-runner-slim protos codegen build-ts-stubs gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-task-docs gen-task-registry gen-task-registry-check gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-task-docs-check gen-ipc-fixtures gen-ipc-fixtures-check
-build: libs-build build-web verify-desktop docs-build build-mcp-server build-java-sdk build-runner ## Build all project artifacts
+.PHONY: build build-java-protos build-java-sdk build-runner build-runner-slim protos codegen build-ts-stubs gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-task-docs gen-task-registry gen-task-registry-check gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-task-docs-check gen-ipc-fixtures gen-ipc-fixtures-check
+build: libs-build build-web verify-desktop docs-build build-java-sdk build-runner ## Build all project artifacts
 	@mkdir -p bin
 	cd client-apps/cli && go build -o ../../bin/stigmer .
 	cd backend/services/stigmer-server && go build -o ../../../bin/stigmer-server ./cmd/server
 	@echo ""
-	@echo "built: bin/stigmer, bin/stigmer-server, mcp-server/bin/mcp-server-stigmer"
-
-build-mcp-server: ## Build MCP server binary
-	$(MAKE) -C mcp-server build
+	@echo "built: bin/stigmer, bin/stigmer-server"
 
 build-java-protos: ## Install Java proto stubs to local Maven repo
 	@echo "mvn install  apis/stubs/java"
@@ -575,7 +571,7 @@ test-e2e-all: ## Run all Playwright E2E tests (smoke + functional)
 #      shared artifacts that later stages consume (@stigmer libs + proto stubs).
 #   2. five domain buckets run CONCURRENTLY (`make -j`). Buckets are isolated by
 #      toolchain/directory so they never write to the same files:
-#        check-go    — go vet/test/build + buf lint + mcp-server + go binaries
+#        check-go    — go vet/test/build + buf lint + go binaries
 #        check-node  — npm typecheck/lint/build/test (web, react, sdk, desktop TS,
 #                      runner) + tsdoc + dep hygiene
 #        check-site  — vale, prettier --check, site lint/typecheck/build,
@@ -612,7 +608,7 @@ check-prep: ## Sequential prep for check: tidy, fix, build shared libs/stubs, re
 
 # Stage 2 — parallel buckets. Each bucket is internally sequential; libs + proto
 # stubs are already built by check-prep, so no bucket rebuilds shared artifacts.
-check-go: ## check bucket: Go vet/test/build + buf lint + mcp-server + binaries
+check-go: ## check bucket: Go vet/test/build + buf lint + binaries
 	@for mod in $(GO_MODULES); do \
 		echo "vet      $$mod"; \
 		(cd $$mod && go vet ./...) || exit 1; \
@@ -622,7 +618,6 @@ check-go: ## check bucket: Go vet/test/build + buf lint + mcp-server + binaries
 		echo "testing  $$mod"; \
 		(cd $$mod && go test -race -timeout 30s ./...) || exit 1; \
 	done
-	$(MAKE) build-mcp-server
 	@mkdir -p bin
 	cd client-apps/cli && go build -o ../../bin/stigmer .
 	cd backend/services/stigmer-server && go build -o ../../../bin/stigmer-server ./cmd/server
@@ -801,9 +796,8 @@ release: ## Tag and push a release (usage: make release [bump=patch|minor|major]
 	fi; \
 	echo "$$LATEST_TAG -> $$NEW_TAG"; \
 	git tag -a "sdk/go/$$NEW_TAG" -m "Release sdk/go $$NEW_TAG"; \
-	git tag -a "mcp-server/$$NEW_TAG" -m "Release mcp-server $$NEW_TAG"; \
 	git tag -a "$$NEW_TAG" -m "Release $$NEW_TAG"; \
-	for t in "sdk/go/$$NEW_TAG" "mcp-server/$$NEW_TAG" "$$NEW_TAG"; do \
+	for t in "sdk/go/$$NEW_TAG" "$$NEW_TAG"; do \
 		echo "  pushing $$t"; \
 		git push origin "$$t"; \
 	done
@@ -815,7 +809,7 @@ release: ## Tag and push a release (usage: make release [bump=patch|minor|major]
 	@echo "  - @stigmer/* npm packages        (release.npm-libs.yaml)"
 	@echo "  - Go SDK (go get)                (sdk/go tag auto-cached by proxy.golang.org)"
 	@echo "  - stigmer + stigmer-protos PyPI  (release.python-sdk.yaml)"
-	@echo "  - MCP server binaries + Docker   (release.mcp-server.yaml)"
+	@echo "  - MCP server Docker image        (release.mcp-server.yaml)"
 
 # ─── Dev Publishing ───────────────────────────
 # Publish throwaway "dev" builds to each ecosystem's native ephemeral channel so

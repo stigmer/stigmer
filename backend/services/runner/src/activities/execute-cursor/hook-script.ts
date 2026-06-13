@@ -131,8 +131,27 @@ function buildNodeIdentityScript(): string {
  *
  * The identity token encoding (`base64(key \n salient)`) must stay byte-identical
  * to grantToken() in approval-state.ts.
+ *
+ * Scope guard (the crux of issue #173): the Cursor SDK loads project hooks from
+ * `<workspace>/.cursor/hooks.json`, which is the SAME per-repo surface every
+ * Cursor client reads. When a session runs against the user's real repo, the
+ * user's own interactive Cursor IDE would otherwise load and run this hook too —
+ * gating the IDE, polluting the denial ledger with the IDE's tool calls, and (in
+ * multi-root windows) failing closed. We make the gate apply ONLY to the
+ * runner's own agent by baking in the runner process PID and checking, on every
+ * invocation, whether the runner is an ancestor of the hook process. The SDK
+ * runs hooks in-process via child_process, so the runner's own agent (and its
+ * delegated sub-agents) spawn the hook as a descendant of the runner; any other
+ * Cursor client spawns it under a different process tree. A non-descendant
+ * invocation is allowed immediately and never touches the ledger. This also
+ * makes a leftover hooks.json self-neutralizing: once the runner exits, no
+ * invocation can match its (now-dead) PID, so the gate is inert.
  */
-export function generateHookScript(stateFilePath: string, ledgerFilePath: string): string {
+export function generateHookScript(
+  stateFilePath: string,
+  ledgerFilePath: string,
+  runnerPid: number,
+): string {
   const salientFields = SALIENT_ARG_FIELDS.join(" ");
   const categoryCaseArms = buildCategoryCaseArms();
   const nodeIdentityScript = buildNodeIdentityScript();
@@ -151,6 +170,40 @@ INPUT=$(cat)
 
 STATE_FILE="${stateFilePath}"
 LEDGER_FILE="${ledgerFilePath}"
+RUNNER_PID="${runnerPid}"
+
+# --- Scope guard: gate ONLY the runner's own agent (issue #173) -------------
+# The Cursor SDK runs hooks in-process, so the runner's own agent invocations
+# spawn this script as a DESCENDANT of the runner process (RUNNER_PID); the
+# user's interactive IDE — sharing the same repo .cursor/hooks.json — spawns it
+# under a different process tree. Walk the parent-PID chain: if the runner is an
+# ancestor, apply the gate; otherwise allow immediately and DO NOT write the
+# ledger (so foreign tool calls never appear as phantom approvals). Pure bash so
+# it works even when the Node identity binary below is unavailable.
+__stigmer_ppid() {
+  _p="$1"
+  if [ -r "/proc/$_p/status" ]; then
+    awk '/^PPid:/{print $2; exit}' "/proc/$_p/status" 2>/dev/null || true
+  else
+    ps -o ppid= -p "$_p" 2>/dev/null | tr -d ' ' || true
+  fi
+}
+__stigmer_is_own_agent() {
+  _cur="$$"
+  _i=0
+  while [ "$_i" -lt 64 ]; do
+    if [ -z "$_cur" ]; then return 1; fi
+    if [ "$_cur" = "$RUNNER_PID" ]; then return 0; fi
+    if [ "$_cur" = "1" ] || [ "$_cur" = "0" ]; then return 1; fi
+    _cur="$(__stigmer_ppid "$_cur")"
+    _i=$((_i + 1))
+  done
+  return 1
+}
+if ! __stigmer_is_own_agent; then
+  echo '{"permission":"allow"}'
+  exit 0
+fi
 
 # --- Canonical identity: tool_name / category / identity token / MCP token ---
 # Computed by the same Node.js binary that runs the cursor-runner (absolute path

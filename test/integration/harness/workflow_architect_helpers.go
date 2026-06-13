@@ -38,8 +38,9 @@ var workflowArchitectEnabledTools = []string{
 }
 
 // CreateStigmerMcpServer creates an McpServer resource pointing to the real
-// mcp-server-stigmer binary. The server is auto-deleted on test cleanup.
-func CreateStigmerMcpServer(t *testing.T, ctx context.Context, clients *Clients, binaryPath string) *mcpserverv1.McpServer {
+// mcp-server-stigmer (the TypeScript server launched over stdio via the
+// resolved workspace command). The server is auto-deleted on test cleanup.
+func CreateStigmerMcpServer(t *testing.T, ctx context.Context, clients *Clients, launch StigmerMcpLaunch) *mcpserverv1.McpServer {
 	t.Helper()
 
 	name := "test-stigmer-mcp-" + uuid.New().String()[:8]
@@ -51,10 +52,11 @@ func CreateStigmerMcpServer(t *testing.T, ctx context.Context, clients *Clients,
 			Org:  TestOrg,
 		},
 		Spec: &mcpserverv1.McpServerSpec{
-			Description: "Integration test: mcp-server-stigmer (real binary)",
+			Description: "Integration test: mcp-server-stigmer (TypeScript, stdio)",
 			ServerType: &mcpserverv1.McpServerSpec_Stdio{
 				Stdio: &mcpserverv1.StdioServerConfig{
-					Command: binaryPath,
+					Command: launch.Command,
+					Args:    launch.Args,
 				},
 			},
 		},

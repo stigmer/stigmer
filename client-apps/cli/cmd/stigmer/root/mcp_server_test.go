@@ -2,6 +2,8 @@ package root
 
 import (
 	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
@@ -228,8 +230,8 @@ func TestBuildMCPServerArgs_withTransport(t *testing.T) {
 	}
 
 	args := buildMCPServerArgs(cmd)
-	if len(args) != 2 || args[0] != mcpServerBinaryName || args[1] != "http" {
-		t.Errorf("args = %v, want [%s http]", args, mcpServerBinaryName)
+	if len(args) != 1 || args[0] != "http" {
+		t.Errorf("args = %v, want [http]", args)
 	}
 }
 
@@ -237,8 +239,96 @@ func TestBuildMCPServerArgs_noTransport(t *testing.T) {
 	cmd := NewMCPServerCommand()
 
 	args := buildMCPServerArgs(cmd)
-	if len(args) != 1 || args[0] != mcpServerBinaryName {
-		t.Errorf("args = %v, want [%s]", args, mcpServerBinaryName)
+	if len(args) != 0 {
+		t.Errorf("args = %v, want []", args)
+	}
+}
+
+// TestResolveMCPServerCommand_envOverride asserts tier 1 (STIGMER_MCP_SERVER_CMD)
+// wins and the transport args are appended.
+func TestResolveMCPServerCommand_envOverride(t *testing.T) {
+	t.Setenv("STIGMER_MCP_SERVER_CMD", "my-launcher --flag")
+
+	cmd, err := resolveMCPServerCommand([]string{"http"})
+	if err != nil {
+		t.Fatalf("resolveMCPServerCommand: %v", err)
+	}
+
+	want := []string{"my-launcher", "--flag", "http"}
+	if len(cmd.Args) != len(want) {
+		t.Fatalf("Args = %v, want %v", cmd.Args, want)
+	}
+	for i := range want {
+		if cmd.Args[i] != want[i] {
+			t.Errorf("Args[%d] = %q, want %q", i, cmd.Args[i], want[i])
+		}
+	}
+}
+
+// TestResolveMCPServerCommand_nodeMissing asserts tier 3 surfaces a clear
+// Node.js requirement error when no workspace and no npx are available.
+func TestResolveMCPServerCommand_nodeMissing(t *testing.T) {
+	t.Setenv("STIGMER_MCP_SERVER_CMD", "")
+	// Move CWD out of the monorepo so tier 2 (workspace tsx) cannot match.
+	t.Chdir(t.TempDir())
+	// Empty PATH so tier 3's npx lookup fails deterministically.
+	t.Setenv("PATH", "")
+
+	_, err := resolveMCPServerCommand(nil)
+	if err == nil {
+		t.Fatal("expected an error when Node.js/npx is unavailable")
+	}
+	if !strings.Contains(err.Error(), "Node.js") {
+		t.Errorf("error %q should mention the Node.js requirement", err.Error())
+	}
+}
+
+// TestTryWorkspaceMCPServer asserts tier 2 resolves to the workspace tsx and
+// MCP server source entry when both are present.
+func TestTryWorkspaceMCPServer(t *testing.T) {
+	root := t.TempDir()
+	tsxBin := filepath.Join(root, "node_modules", ".bin", "tsx")
+	entry := filepath.Join(root, "mcp-server", "src", "cli", "mcp-server-stigmer.ts")
+	writeStubFile(t, tsxBin)
+	writeStubFile(t, entry)
+
+	cmd, ok := tryWorkspaceMCPServer(root, []string{"http"})
+	if !ok {
+		t.Fatal("tryWorkspaceMCPServer returned ok=false with both files present")
+	}
+	want := []string{tsxBin, entry, "http"}
+	if len(cmd.Args) != len(want) {
+		t.Fatalf("Args = %v, want %v", cmd.Args, want)
+	}
+	for i := range want {
+		if cmd.Args[i] != want[i] {
+			t.Errorf("Args[%d] = %q, want %q", i, cmd.Args[i], want[i])
+		}
+	}
+}
+
+func TestTryWorkspaceMCPServer_missing(t *testing.T) {
+	if _, ok := tryWorkspaceMCPServer(t.TempDir(), nil); ok {
+		t.Error("tryWorkspaceMCPServer should return ok=false when files are absent")
+	}
+}
+
+// TestMcpServerPackageSpec_devFallback asserts unversioned dev builds resolve to
+// the @dev dist-tag (the production version branch is exercised at release time
+// via ldflags).
+func TestMcpServerPackageSpec_devFallback(t *testing.T) {
+	if got := mcpServerPackageSpec(); got != "@stigmer/mcp-server@dev" {
+		t.Errorf("mcpServerPackageSpec() = %q, want @stigmer/mcp-server@dev", got)
+	}
+}
+
+func writeStubFile(t *testing.T, path string) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte("stub"), 0o755); err != nil {
+		t.Fatal(err)
 	}
 }
 

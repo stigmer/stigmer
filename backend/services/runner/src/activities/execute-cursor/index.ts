@@ -55,10 +55,11 @@ import { backfillMcpServersIfNeeded } from "./connect-backfill.js";
 import { resolveExecutionEnv } from "./env-resolver.js";
 import { resolveBlueprint } from "./blueprint-resolver.js";
 import { buildCursorSubAgentDefinitions } from "./subagent-config.js";
-import { resolveSkills } from "./skill-resolver.js";
+import { resolveSkills, removeStigmerSymlink } from "./skill-resolver.js";
 import { resolveAttachments } from "./attachment-resolver.js";
 import { buildEnhancedPrompt, buildReinvocationPrompt } from "./prompt-builder.js";
-import { writeHooksToWorkspace } from "./workspace-setup.js";
+import { installHitlGate, removeHitlGate } from "./workspace-setup.js";
+import { ensureHitlDir } from "../../shared/workspace/platform-dir.js";
 import { buildApprovalState, buildApprovalGrants, readDenialLedger, reconstructAdjudicatedApprovals } from "./approval-state.js";
 import { provisionCursorWorkspace } from "./workspace-provision.js";
 import { setInterceptorExecutionId, runWithExecutionContext } from "./fetch-interceptor.js";
@@ -131,6 +132,15 @@ async function executeCursorInner(
   let pauseDetected = false;
   let workerShutdownDetected = false;
   let periodicHeartbeat: ReturnType<typeof startHeartbeat> | undefined;
+  // Session HITL directory (runner-owned, outside the workspace) where the hook
+  // script, approval-state file, and denial ledger live. Set once the gate is
+  // installed; the WAITING_FOR_APPROVAL path reads the denial ledger from here.
+  let hitlDir: string | undefined;
+  // Teardown for the HITL gate: restores the workspace's .cursor/hooks.json and
+  // removes the .stigmer symlink so attaching a real repo leaves it untouched
+  // (issue #173). Runs in the finally, covering every success/error/approval
+  // exit path. Undefined until the gate is installed.
+  let hitlCleanup: (() => Promise<void>) | undefined;
   // Carries model/mode/agentId out to the outer catch so a thrown CursorSdkError
   // can be classified with the same context as the run.wait() error path.
   let errorContext = { model: "default", mode: "local", agentId: "" };
@@ -287,7 +297,41 @@ async function executeCursorInner(
     );
     const attachmentPaths = attachmentResults.map((a) => a.relativePath);
 
-    // Phase 5c: Ensure model pricing registry is populated before validation
+    // Phase 5c: Install the HITL approval gate BEFORE resolving the agent.
+    //
+    // The gate's runtime artifacts (hook script, approval-state file, denial
+    // ledger) live in the session HITL directory OUTSIDE the workspace; only a
+    // minimal, merged, transient .cursor/hooks.json is written into the repo,
+    // pointing at the hook script by absolute path. The hook is scoped to this
+    // runner's own process so the user's interactive IDE — sharing the same repo
+    // hooks.json — is never gated (issue #173). Installing here (rather than
+    // after agent create/resume) guarantees the hook is present no matter when
+    // the SDK reads hook config, and the finally restores the repo afterward.
+    //
+    // On reinvocation, turn the user's approvals into tool-identity grants so
+    // the resumed agent's re-attempt (which carries a fresh tool-call id) is
+    // allowed through.
+    hitlDir = await ensureHitlDir(sessionId);
+    const approvalGrants = approvalDecisions
+      ? buildApprovalGrants(adjudicatedApprovals, approvalDecisions)
+      : undefined;
+    const approvalState = buildApprovalState(
+      mergedPolicies,
+      effectiveAutoApproveAll,
+      approvalGrants,
+    );
+    const hitlGate = await installHitlGate({
+      workspaceRoot: primaryWorkspaceDir,
+      hitlDir,
+      approvalState,
+      runnerPid: process.pid,
+    });
+    hitlCleanup = async () => {
+      await removeHitlGate(hitlGate);
+      await removeStigmerSymlink(primaryWorkspaceDir);
+    };
+
+    // Phase 5d: Ensure model pricing registry is populated before validation
     await ensurePricingLoaded();
 
     // Phase 6: Validate model selection
@@ -366,18 +410,7 @@ async function executeCursorInner(
 
     errorContext = { model: validatedModel, mode: agentMode, agentId: resolution.agentId };
 
-    // Phase 8: Write hooks for HITL with policy-aware state. On reinvocation,
-    // turn the user's approvals into tool-identity grants so the resumed agent's
-    // re-attempt (which carries a fresh tool-call id) is allowed through.
-    const approvalGrants = approvalDecisions
-      ? buildApprovalGrants(adjudicatedApprovals, approvalDecisions)
-      : undefined;
-    const approvalState = buildApprovalState(
-      mergedPolicies,
-      effectiveAutoApproveAll,
-      approvalGrants,
-    );
-    await writeHooksToWorkspace(primaryWorkspaceDir, approvalState);
+    // (HITL approval gate already installed in Phase 5c, before agent resolution.)
 
     // Phase 9: Store new agentId as harness_state_id and persist cursor_mode
     if (resolution.isNew && resolution.agentId) {
@@ -714,7 +747,7 @@ async function executeCursorInner(
     // harness — the approval surface is driven entirely by tool-call status. We
     // deliberately do NOT set status.pendingApprovals here: any value would be
     // discarded by the backend's recompute on the next updateStatus.
-    const deniedLedger = await readDenialLedger(primaryWorkspaceDir);
+    const deniedLedger = await readDenialLedger(hitlDir ?? "");
     const deniedToolCalls = reconcileDeniedToolCalls(status.messages, deniedLedger, mergedPolicies);
     if (deniedToolCalls.length > 0) {
       status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL;
@@ -1207,6 +1240,22 @@ async function executeCursorInner(
     }
 
     return slimStatus(status);
+  } finally {
+    // Tear down the HITL gate on EVERY exit path (success, error, approval
+    // pause, cancellation) so attaching a real repo leaves the user's
+    // .cursor/hooks.json and workspace untouched between turns (issue #173).
+    // Best-effort: a leftover hooks.json is inert because the scope guard
+    // allows all invocations once this runner PID is gone.
+    if (hitlCleanup) {
+      try {
+        await hitlCleanup();
+      } catch (cleanupErr) {
+        console.warn(
+          `ExecuteCursor HITL gate teardown failed (non-fatal): ` +
+          `execution=${executionId}, error=${cleanupErr instanceof Error ? cleanupErr.message : cleanupErr}`,
+        );
+      }
+    }
   }
 }
 

@@ -8,13 +8,24 @@
 
 import { Command } from "commander";
 import { registerApiKey } from "./commands/apikey/index.js";
+import { registerApply } from "./commands/apply.js";
 import { registerAuth } from "./commands/auth/index.js";
 import { registerCompletion } from "./commands/completion.js";
 import { registerConfig } from "./commands/config/index.js";
+import { registerConnect } from "./commands/connect.js";
 import { registerDelete } from "./commands/delete.js";
+import { registerDiff } from "./commands/diff.js";
+import { registerDownload } from "./commands/download.js";
+import { registerDraft } from "./commands/draft.js";
+import { registerExecution } from "./commands/execution/index.js";
 import { registerGet } from "./commands/get.js";
 import { registerList } from "./commands/list.js";
+import { registerPush } from "./commands/push.js";
+import { registerResume } from "./commands/resume.js";
+import { registerRun } from "./commands/run.js";
+import { registerSearch } from "./commands/search.js";
 import { registerTag } from "./commands/tag.js";
+import { registerUsage } from "./commands/usage.js";
 import { registerValidate } from "./commands/validate.js";
 import { registerVersion } from "./commands/version.js";
 import { setDebug, setStandalone } from "./runtime.js";
@@ -52,9 +63,20 @@ export function buildProgram(): Command {
   registerApiKey(program);
   registerGet(program);
   registerList(program);
+  registerSearch(program);
   registerValidate(program);
   registerDelete(program);
   registerTag(program);
+  registerDiff(program);
+  registerUsage(program);
+  registerPush(program);
+  registerDownload(program);
+  registerApply(program);
+  registerRun(program);
+  registerResume(program);
+  registerDraft(program);
+  registerExecution(program);
+  registerConnect(program);
 
   return program;
 }

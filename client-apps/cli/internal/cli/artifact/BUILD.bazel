@@ -14,6 +14,7 @@ go_library(
         "@com_github_pkg_errors//:errors",
         "@com_github_stigmer_stigmer_sdk_go//:go",
         "@com_github_stigmer_stigmer_sdk_go//proto/ai/stigmer/agentic/skill/v1:skill",
+        "@com_github_stigmer_stigmer_sdk_go//proto/ai/stigmer/commons/apiresource",
         "@in_gopkg_yaml_v3//:yaml_v3",
     ],
 )

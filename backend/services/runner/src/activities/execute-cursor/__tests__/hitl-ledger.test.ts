@@ -299,11 +299,12 @@ describe("reconstructAdjudicatedApprovals", () => {
 describe("generateHookScript ledger wiring", () => {
   it("wires the ledger path and records denials in both deny branches", () => {
     const script = generateHookScript(
-      "/ws/.cursor/hooks/stigmer-approval-state.json",
-      "/ws/.cursor/hooks/stigmer-denials.jsonl",
+      "/hitl/approval-state.json",
+      "/hitl/denials.jsonl",
+      process.pid,
     );
 
-    expect(script).toContain('LEDGER_FILE="/ws/.cursor/hooks/stigmer-denials.jsonl"');
+    expect(script).toContain('LEDGER_FILE="/hitl/denials.jsonl"');
     expect(script).toContain("record_denial()");
     // One definition + a call in the gated-built-in branch + a call in the MCP
     // branch = 3 occurrences.

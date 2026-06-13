@@ -2025,79 +2025,6 @@ func detectExpandStructFromSchema(gen *Generator, satellites []*satelliteDir) {
 	}
 }
 
-// skipResources lists resources that cannot be generated.
-// Composite resources (like Project) that embed full resource wrappers are now
-// supported via cross-package imports — see isResourceWrapper() in mcp.go.
-var skipResources = map[string]bool{}
-
-// runComprehensiveMCP discovers all domain/resource schemas and generates
-// MCP input types for each into domain-scoped output directories.
-func runComprehensiveMCP(schemaDir, outputDir string) error {
-	fmt.Printf("Comprehensive MCP generation from %s\n", schemaDir)
-	fmt.Printf("Output directory: %s\n\n", outputDir)
-
-	domains, satellitePaths, err := discoverDomains(schemaDir)
-	if err != nil {
-		return err
-	}
-
-	satellites, err := indexSatellites(satellitePaths)
-	if err != nil {
-		return err
-	}
-
-	if len(satellites) > 0 {
-		for _, sat := range satellites {
-			fmt.Printf("Indexed satellite: %s (%d schemas)\n", filepath.Base(sat.path), len(sat.schemas))
-		}
-		fmt.Println()
-	}
-
-	var generated, failed int
-
-	for _, domain := range domains {
-		fmt.Printf("=== %s domain (%d resources) ===\n", domain.name, len(domain.resources))
-
-		for _, resource := range domain.resources {
-			if skipResources[resource] {
-				fmt.Printf("\n  %s/%s (skipped: composite resource)\n", domain.name, resource)
-				continue
-			}
-
-			resourceSchemaDir := filepath.Join(schemaDir, domain.name, resource)
-			resourceOutputDir := filepath.Join(outputDir, domain.name, resource)
-
-			fmt.Printf("\n  %s/%s\n", domain.name, resource)
-
-			gen, err := NewGenerator(resourceSchemaDir, resourceOutputDir, resource, "")
-			if err != nil {
-				fmt.Printf("    ERROR loading schemas: %v\n", err)
-				failed++
-				continue
-			}
-
-			detectExpandStructFromSchema(gen, satellites)
-
-			if err := gen.GenerateMCP(); err != nil {
-				fmt.Printf("    ERROR generating: %v\n", err)
-				failed++
-				continue
-			}
-
-			fmt.Printf("    OK → %s\n", resourceOutputDir)
-			generated++
-		}
-
-		fmt.Println()
-	}
-
-	fmt.Printf("Generated: %d resources, Failed: %d\n", generated, failed)
-	if failed > 0 {
-		return fmt.Errorf("%d resource(s) failed generation", failed)
-	}
-	return nil
-}
-
 // ============================================================================
 // Main
 // ============================================================================
@@ -2107,7 +2034,7 @@ func main() {
 	outputDir := flag.String("output-dir", "sdk/go/workflow/gen", "Output directory for generated Go code")
 	packageName := flag.String("package", "gen", "Go package name for generated code")
 	fileSuffix := flag.String("file-suffix", "", "Suffix for generated files (e.g., '_task', '_spec', or empty)")
-	target := flag.String("target", "sdk", "Generation target: sdk, mcp, sdk-client, or task-registry")
+	target := flag.String("target", "sdk", "Generation target: sdk, mcp-ts, sdk-client, or task-registry")
 	metaDir := flag.String("meta-dir", "", "Directory containing sidecar YAML metadata (used by task-registry target)")
 	expandStruct := flag.String("expand-struct", "", "Expand a Struct field into typed config fields: struct_field:discriminator_field:config_schema_dir")
 	comprehensive := flag.Bool("comprehensive", false, "Auto-discover all domain/resource schemas and generate for each")
@@ -2116,15 +2043,10 @@ func main() {
 
 	if *comprehensive {
 		if *schemaDir == "" || *outputDir == "" {
-			fmt.Println("Usage: generator --comprehensive --schema-dir <dir> --output-dir <dir> --target mcp")
+			fmt.Println("Usage: generator --comprehensive --schema-dir <dir> --output-dir <dir> --target mcp-ts")
 			os.Exit(1)
 		}
 		switch *target {
-		case "mcp":
-			if err := runComprehensiveMCP(*schemaDir, *outputDir); err != nil {
-				fmt.Printf("Error in comprehensive MCP generation: %v\n", err)
-				os.Exit(1)
-			}
 		case "sdk-client":
 			if err := runSDKClientGeneration(*schemaDir, *outputDir); err != nil {
 				fmt.Printf("Error in SDK client generation: %v\n", err)
@@ -2174,7 +2096,7 @@ func main() {
 				os.Exit(1)
 			}
 		default:
-			fmt.Printf("Comprehensive mode is supported for --target=mcp, --target=sdk-client, --target=sdk-client-ts, --target=sdk-client-python, --target=sdk-client-java, --target=sdk-docs, --target=task-registry, or --target=task-docs (got %s)\n", *target)
+			fmt.Printf("Comprehensive mode is supported for --target=mcp-ts, --target=sdk-client, --target=sdk-client-ts, --target=sdk-client-python, --target=sdk-client-java, --target=sdk-docs, --target=task-registry, or --target=task-docs (got %s)\n", *target)
 			os.Exit(1)
 		}
 		fmt.Println("\n✅ Comprehensive code generation complete!")
@@ -2182,7 +2104,7 @@ func main() {
 	}
 
 	if *schemaDir == "" || *outputDir == "" {
-		fmt.Println("Usage: generator --schema-dir <dir> --output-dir <dir> --package <name> [--target sdk|mcp]")
+		fmt.Println("Usage: generator --schema-dir <dir> --output-dir <dir> --package <name> [--target sdk]")
 		os.Exit(1)
 	}
 
@@ -2204,17 +2126,9 @@ func main() {
 		}
 	}
 
-	switch *target {
-	case "mcp":
-		if err := gen.GenerateMCP(); err != nil {
-			fmt.Printf("Error generating MCP code: %v\n", err)
-			os.Exit(1)
-		}
-	default:
-		if err := gen.Generate(); err != nil {
-			fmt.Printf("Error generating code: %v\n", err)
-			os.Exit(1)
-		}
+	if err := gen.Generate(); err != nil {
+		fmt.Printf("Error generating code: %v\n", err)
+		os.Exit(1)
 	}
 
 	fmt.Println("\n✅ Code generation complete!")

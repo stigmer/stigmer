@@ -44,7 +44,8 @@ export async function listResources(
   return renderCollection(SearchResultSchema, result.entries, format, SEARCH_TABLE);
 }
 
-const SEARCH_TABLE: TableShape = {
+// Shared with `search` — both render SearchService results identically.
+export const SEARCH_TABLE: TableShape = {
   resourceName: "resources",
   headers: ["NAME", "DESCRIPTION", "VISIBILITY", "CREATED"],
   row: (json) => [

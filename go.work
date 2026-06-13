@@ -5,7 +5,6 @@ use (
 	./backend/libs/go
 	./backend/services/stigmer-server
 	./client-apps/cli
-	./mcp-server
 	./sdk/go
 	./seedpack
 	./test/integration

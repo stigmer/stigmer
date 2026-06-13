@@ -1,0 +1,163 @@
+// In-process integration test for `connect mcp-server` orchestration.
+//
+// Stands up a Connect backend serving the McpServer query + command controllers,
+// points an SDK node client at it, and drives connectMcpServer end to end: the
+// push path (asserts ConnectInput fields + rendered capabilities), the OAuth
+// guidance gate, and the dry-run path (local discovery, no Connect RPC).
+
+import { create } from "@bufbuild/protobuf";
+import type { ConnectRouter } from "@connectrpc/connect";
+import { connectNodeAdapter } from "@connectrpc/connect-node";
+import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
+import {
+  type ConnectInput,
+  GetOAuthGrantStatusOutputSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
+import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
+import { McpServerAuthSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
+import type { Stigmer } from "@stigmer/sdk";
+import { createNodeClient, normalizeEndpoint } from "@stigmer/sdk/node";
+import { createServer as createHttp2Server, type Http2Server, type ServerHttp2Session } from "node:http2";
+import type { AddressInfo } from "node:net";
+import { fileURLToPath } from "node:url";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { UsageError } from "../../errors/index.js";
+import { connectMcpServer } from "./connect.js";
+import { renderConnectResult } from "./display.js";
+
+const FIXTURE = fileURLToPath(new URL("./__fixtures__/stdio-server.mjs", import.meta.url));
+
+let backend: Http2Server;
+let client: Stigmer;
+const openSessions = new Set<ServerHttp2Session>();
+
+let connectCalls: ConnectInput[] = [];
+let grantConnected = false;
+// The server returned by getByReference; mutated per test for auth scenarios.
+let servedSpec: ReturnType<typeof create<typeof McpServerSchema>>;
+
+beforeEach(() => {
+  connectCalls = [];
+  grantConnected = false;
+  servedSpec = create(McpServerSchema, {
+    metadata: { id: "mcp_1", name: "github", slug: "github", org: "acme" },
+    spec: {
+      serverType: { case: "stdio", value: { command: process.execPath, args: [FIXTURE] } },
+      env: { GITHUB_TOKEN: { isSecret: true } },
+    },
+  });
+});
+
+// The updated server the Connect RPC returns, carrying discovered capabilities.
+const updatedServer = create(McpServerSchema, {
+  metadata: { id: "mcp_1", name: "github", slug: "github", org: "acme" },
+  spec: { serverType: { case: "stdio", value: { command: "github-mcp" } } },
+  status: {
+    discoveredCapabilities: {
+      tools: [{ name: "search_issues", description: "search issues" }],
+      resourceTemplates: [{ name: "issue", uriTemplate: "github:///issues/{id}" }],
+    },
+  },
+});
+
+beforeAll(async () => {
+  const routes = (router: ConnectRouter) => {
+    router.service(McpServerQueryController, {
+      getByReference: () => servedSpec,
+      get: () => servedSpec,
+      getOAuthGrantStatus: () => create(GetOAuthGrantStatusOutputSchema, { connected: grantConnected }),
+    });
+    router.service(McpServerCommandController, {
+      connect: (req) => (connectCalls.push(req), updatedServer),
+    });
+  };
+
+  backend = createHttp2Server(connectNodeAdapter({ routes }));
+  backend.on("session", (session) => {
+    openSessions.add(session);
+    session.on("close", () => openSessions.delete(session));
+  });
+  await new Promise<void>((resolve) => backend.listen(0, "127.0.0.1", resolve));
+  const port = (backend.address() as AddressInfo).port;
+  client = createNodeClient({ baseUrl: normalizeEndpoint(`127.0.0.1:${port}`) });
+});
+
+afterAll(async () => {
+  for (const session of openSessions) session.destroy();
+  await new Promise<void>((resolve) => backend.close(() => resolve()));
+});
+
+describe("connect push path", () => {
+  it("sends ConnectInput with merged runtime env and returns discovered capabilities", async () => {
+    const result = await connectMcpServer(client, {
+      reference: "github",
+      org: "acme",
+      timeoutMs: 30_000,
+      dryRun: false,
+      envOverrides: ["GITHUB_TOKEN=ghp-override"],
+    });
+
+    expect(connectCalls).toHaveLength(1);
+    expect(connectCalls[0].mcpServerId).toBe("mcp_1");
+    expect(connectCalls[0].runtimeEnv.GITHUB_TOKEN.value).toBe("ghp-override");
+    expect(connectCalls[0].runtimeEnv.GITHUB_TOKEN.isSecret).toBe(true);
+
+    expect(result.updated?.metadata?.id).toBe("mcp_1");
+    expect(result.capabilities?.tools.map((t) => t.name)).toEqual(["search_issues"]);
+  });
+});
+
+describe("OAuth guidance gate", () => {
+  beforeEach(() => {
+    servedSpec.spec!.auth = create(McpServerAuthSchema, { targetEnvVar: "GITHUB_TOKEN" });
+  });
+
+  it("stops with actionable guidance when auth is required and no grant or --env exists", async () => {
+    await expect(
+      connectMcpServer(client, { reference: "github", org: "acme", timeoutMs: 30_000, dryRun: false, envOverrides: [] }),
+    ).rejects.toThrow(UsageError);
+    expect(connectCalls).toHaveLength(0);
+  });
+
+  it("proceeds when an OAuth grant already exists", async () => {
+    grantConnected = true;
+    await connectMcpServer(client, { reference: "github", org: "acme", timeoutMs: 30_000, dryRun: false, envOverrides: [] });
+    expect(connectCalls).toHaveLength(1);
+  });
+
+  it("proceeds when --env credentials are supplied (bypassing OAuth)", async () => {
+    await connectMcpServer(client, {
+      reference: "github",
+      org: "acme",
+      timeoutMs: 30_000,
+      dryRun: false,
+      envOverrides: ["GITHUB_TOKEN=ghp-x"],
+    });
+    expect(connectCalls).toHaveLength(1);
+  });
+});
+
+describe("dry-run path", () => {
+  it("discovers locally and never calls the Connect RPC", async () => {
+    const result = await connectMcpServer(client, {
+      reference: "github",
+      org: "acme",
+      timeoutMs: 10_000,
+      dryRun: true,
+      envOverrides: [],
+    });
+
+    expect(connectCalls).toHaveLength(0);
+    expect(result.updated).toBeUndefined();
+    expect(result.capabilities?.tools.map((t) => t.name)).toEqual(["echo", "noop"]);
+
+    const lines: string[] = [];
+    renderConnectResult(result, (l) => lines.push(l), false);
+    const text = lines.join("\n");
+    expect(text).toContain("MCP Server: acme/github");
+    expect(text).toContain("Transport:  stdio");
+    expect(text).toContain("Tools (2):");
+    expect(text).toContain("Dry run — results not saved");
+  }, 15_000);
+});

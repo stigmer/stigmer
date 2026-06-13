@@ -4,13 +4,11 @@
 // it into its proto schema (structural validation, no server). Supports single
 // files, directories, and multi-document YAML.
 
-import { readdirSync, readFileSync, statSync } from "node:fs";
-import { extname, join } from "node:path";
 import type { Command } from "commander";
-import { parseAllDocuments } from "yaml";
 import { UsageError } from "../errors/index.js";
 import { CommandResult, type OutputFlags, renderResult } from "../output/index.js";
 import { defaultRegistry, Verb } from "../registry/index.js";
+import { loadDocuments, resolveYamlFiles } from "../resources/documents.js";
 import { addResultFlags, resultFormat } from "./shared.js";
 
 interface ValidateFlags extends OutputFlags {
@@ -34,7 +32,7 @@ async function runValidate(options: ValidateFlags): Promise<CommandResult> {
     throw new UsageError("file path is required: use -f <file>");
   }
 
-  const files = resolveFiles(path);
+  const files = resolveYamlFiles(path);
   if (files.length === 0) {
     throw new UsageError(`no YAML files found in ${path}`);
   }
@@ -44,7 +42,8 @@ async function runValidate(options: ValidateFlags): Promise<CommandResult> {
   const validated: string[] = [];
 
   for (const file of files) {
-    for (const { kind, document } of parseDocuments(file)) {
+    // Validate stays lenient (default) — strict parsing is reserved for apply.
+    for (const { kind, document } of loadDocuments(file)) {
       const info = registry.getByYamlKind(kind);
       if (info === undefined) {
         throw new UsageError(`unknown resource kind '${kind}' in ${file}`);
@@ -71,64 +70,4 @@ async function runValidate(options: ValidateFlags): Promise<CommandResult> {
   const section = result.addSection("");
   for (const item of validated) section.item(item);
   return result;
-}
-
-interface DetectedDocument {
-  readonly kind: string;
-  readonly document: import("@bufbuild/protobuf").JsonValue;
-}
-
-function parseDocuments(file: string): DetectedDocument[] {
-  let text: string;
-  try {
-    text = readFileSync(file, "utf8");
-  } catch (err) {
-    throw new Error(`cannot read ${file}: ${(err as Error).message}`);
-  }
-
-  const documents: DetectedDocument[] = [];
-  for (const doc of parseAllDocuments(text)) {
-    const value = doc.toJS() as unknown;
-    if (value === null || value === undefined) continue;
-    if (typeof value !== "object") {
-      throw new UsageError(`invalid YAML document in ${file}`);
-    }
-    const kind = (value as Record<string, unknown>).kind;
-    if (typeof kind !== "string" || kind === "") {
-      throw new UsageError(`missing 'kind' field in ${file}`);
-    }
-    documents.push({ kind, document: value as import("@bufbuild/protobuf").JsonValue });
-  }
-  return documents;
-}
-
-function resolveFiles(path: string): string[] {
-  let stat: ReturnType<typeof statSync>;
-  try {
-    stat = statSync(path);
-  } catch (err) {
-    // A path the user typed that doesn't exist is a bad argument, not an
-    // unexpected I/O failure — surface it as a usage error.
-    throw new UsageError(`cannot access ${path}: ${(err as Error).message}`);
-  }
-  if (!stat.isDirectory()) return [path];
-
-  const files: string[] = [];
-  const walk = (dir: string): void => {
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
-      const full = join(dir, entry.name);
-      if (entry.isDirectory()) {
-        walk(full);
-      } else if (isYaml(full)) {
-        files.push(full);
-      }
-    }
-  };
-  walk(path);
-  return files;
-}
-
-function isYaml(file: string): boolean {
-  const ext = extname(file).toLowerCase();
-  return ext === ".yaml" || ext === ".yml";
 }

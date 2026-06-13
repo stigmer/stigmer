@@ -23,7 +23,7 @@ import type { Stigmer } from "@stigmer/sdk";
 import { CliExitError, ExitCode, UsageError } from "../errors/index.js";
 import { CommandResult } from "../output/index.js";
 import { defaultRegistry, type TypeInfo, Verb } from "../registry/index.js";
-import { cancelAgentExecution, formatAgentPhase, isAgentExecutionId } from "./execution.js";
+import { cancelAgentExecution, formatAgentPhase, isAgentExecutionId, isExecutionAlias } from "./execution.js";
 import { fetchResource } from "./get.js";
 import { getterFor } from "./get-bindings.js";
 import { parseReference } from "./reference.js";
@@ -97,11 +97,6 @@ export async function planDelete(
   }
 
   return planStandardDelete(client, info, reference, org, deleteFn);
-}
-
-function isExecutionAlias(typeArg: string): boolean {
-  const normalized = typeArg.trim().toLowerCase();
-  return normalized === "execution" || normalized === "executions" || normalized === "exec";
 }
 
 async function planStandardDelete(

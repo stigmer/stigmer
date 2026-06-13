@@ -20,7 +20,7 @@ var (
 	grpcConn               *grpc.ClientConn
 	suiteLogger            *slog.Logger
 	mcpTestServerBinary    string
-	mcpServerStigmerBinary string
+	mcpServerStigmerLaunch harness.StigmerMcpLaunch
 	otelShutdown           func(context.Context) error
 )
 
@@ -188,12 +188,12 @@ func TestMain(m *testing.M) {
 		suiteLogger.Info("built test MCP server", "path", mcpBinary)
 	}
 
-	stigmerMcpBinary, stigmerMcpErr := harness.BuildMcpServerStigmer(cfg.OutputDir)
+	stigmerMcpLaunch, stigmerMcpErr := harness.ResolveStigmerMcpLaunch()
 	if stigmerMcpErr != nil {
-		suiteLogger.Warn("failed to build mcp-server-stigmer — workflow architect tests will be skipped", "error", stigmerMcpErr)
+		suiteLogger.Warn("failed to resolve mcp-server-stigmer launch — workflow architect tests will be skipped", "error", stigmerMcpErr)
 	} else {
-		mcpServerStigmerBinary = stigmerMcpBinary
-		suiteLogger.Info("built mcp-server-stigmer", "path", stigmerMcpBinary)
+		mcpServerStigmerLaunch = stigmerMcpLaunch
+		suiteLogger.Info("resolved mcp-server-stigmer launch", "command", stigmerMcpLaunch.Command, "args", stigmerMcpLaunch.Args)
 	}
 
 	suiteLogger.Info("suite infrastructure ready",

@@ -134,37 +134,37 @@ func CreateHttpMcpServer(t *testing.T, ctx context.Context, clients *Clients, se
 	return created
 }
 
-// BuildMcpServerStigmer compiles the real mcp-server-stigmer binary and returns
-// its path. This binary connects to the Stigmer backend via gRPC and exposes
-// workflow-related MCP tools (get_task_kind_registry, validate_workflow_yaml, etc.).
-func BuildMcpServerStigmer(outputDir string) (string, error) {
+// StigmerMcpLaunch is the resolved stdio command that starts the real
+// mcp-server-stigmer for an integration test. The server is the TypeScript
+// @stigmer/mcp-server; the Go module was retired (T03).
+type StigmerMcpLaunch struct {
+	Command string
+	Args    []string
+}
+
+// ResolveStigmerMcpLaunch resolves the stdio launch for the TypeScript
+// mcp-server-stigmer from the monorepo workspace: the workspace tsx binary
+// running the package's source entry (mcp-server/src/cli/mcp-server-stigmer.ts).
+// This mirrors tier 2 of the production CLI launcher (resolveMCPServerCommand)
+// and `npm run start`, so the tests exercise the same code path that ships.
+// The server connects to the Stigmer backend via gRPC and exposes the
+// workflow-related MCP tools (get_task_kind_registry, validate_workflow_yaml, …).
+func ResolveStigmerMcpLaunch() (StigmerMcpLaunch, error) {
 	_, thisFile, _, _ := runtime.Caller(0)
-	mcpServerDir := filepath.Join(filepath.Dir(thisFile), "..", "..", "..", "mcp-server")
+	// test/integration/harness/mcp_helpers.go → repo root is three levels up.
+	repoRoot := filepath.Join(filepath.Dir(thisFile), "..", "..", "..")
 
-	if _, err := os.Stat(filepath.Join(mcpServerDir, "go.mod")); err != nil {
-		return "", fmt.Errorf("mcp-server module not found at %s", mcpServerDir)
+	tsxBin := filepath.Join(repoRoot, "node_modules", ".bin", "tsx")
+	entry := filepath.Join(repoRoot, "mcp-server", "src", "cli", "mcp-server-stigmer.ts")
+
+	if _, err := os.Stat(tsxBin); err != nil {
+		return StigmerMcpLaunch{}, fmt.Errorf("workspace tsx not found at %s (run `npm install` at the repo root): %w", tsxBin, err)
+	}
+	if _, err := os.Stat(entry); err != nil {
+		return StigmerMcpLaunch{}, fmt.Errorf("mcp-server entry not found at %s: %w", entry, err)
 	}
 
-	absOutputDir, err := filepath.Abs(outputDir)
-	if err != nil {
-		return "", fmt.Errorf("resolve output dir: %w", err)
-	}
-
-	binaryPath := filepath.Join(absOutputDir, "mcp-server-stigmer")
-	if runtime.GOOS == "windows" {
-		binaryPath += ".exe"
-	}
-
-	cmd := exec.Command("go", "build", "-o", binaryPath, "./cmd/mcp-server-stigmer")
-	cmd.Dir = mcpServerDir
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("build mcp-server-stigmer: %w", err)
-	}
-
-	return binaryPath, nil
+	return StigmerMcpLaunch{Command: tsxBin, Args: []string{entry}}, nil
 }
 
 // WaitForMcpServerTool polls until the MCP server's discovered_capabilities

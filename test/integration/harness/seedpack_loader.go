@@ -14,7 +14,7 @@ import (
 
 // taskKindNameToEnum maps YAML task kind string names to their proto enum
 // string representations accepted by protojson. Kept in sync with the
-// canonical map in mcp-server/internal/domains/workflows/validate.go.
+// canonical map in mcp-server/src/domains/workflows/validate.ts.
 var taskKindNameToEnum = map[string]string{
 	"set_vars":      "set_vars",
 	"http_call":     "http_call",

@@ -124,9 +124,8 @@ jobs:
             apis/stubs/ \
             sdk/go/proto/ \
             sdk/go/internal/gen/ \
-            mcp-server/proto/ \
-            mcp-server/gen/ \
             tools/codegen/schemas/ \
+            mcp-server/src/gen/ \
             sdk/typescript/src/gen/ \
             sdk/python/src/stigmer/_gen/ \
             sdk/java/src/main/java/ai/stigmer/sdk/gen/

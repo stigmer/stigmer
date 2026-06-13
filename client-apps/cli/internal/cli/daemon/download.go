@@ -3,14 +3,12 @@ package daemon
 import (
 	"archive/tar"
 	"compress/gzip"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
@@ -202,150 +200,6 @@ func getLatestVersion() (string, error) {
 	// For now, return a default version
 	// In production, this should query GitHub API
 	return "v0.1.0", nil
-}
-
-// DownloadMCPServerBinary downloads the mcp-server-stigmer binary from the
-// latest GitHub release to ~/.stigmer/bin/ and returns the installed path.
-//
-// It queries the GitHub releases API to find the most recent release that
-// includes mcp-server-stigmer assets, then downloads the platform-appropriate
-// archive and extracts the binary.
-func DownloadMCPServerBinary() (string, error) {
-	version, err := getLatestMCPServerVersion()
-	if err != nil {
-		return "", errors.Wrap(err, "failed to determine latest mcp-server version")
-	}
-
-	log.Info().Str("version", version).Msg("Downloading mcp-server-stigmer from GitHub releases")
-
-	goos := runtime.GOOS
-	goarch := runtime.GOARCH
-
-	filename := fmt.Sprintf("mcp-server-stigmer-%s-%s-%s.tar.gz", version, goos, goarch)
-	url := fmt.Sprintf("%s/%s/releases/download/%s/%s", githubBaseURL, githubRepo, version, filename)
-
-	log.Debug().Str("url", url).Msg("Downloading mcp-server-stigmer")
-
-	tmpDir, err := os.MkdirTemp("", "stigmer-mcp-download-*")
-	if err != nil {
-		return "", errors.Wrap(err, "failed to create temp directory")
-	}
-	defer os.RemoveAll(tmpDir)
-
-	archivePath := filepath.Join(tmpDir, filename)
-	if err := downloadFile(url, archivePath); err != nil {
-		return "", errors.Wrapf(err, "failed to download %s", filename)
-	}
-
-	extractedPath := filepath.Join(tmpDir, "mcp-server-stigmer")
-	if err := extractBinaryFromTarGz(archivePath, "mcp-server-stigmer", extractedPath); err != nil {
-		return "", errors.Wrap(err, "failed to extract binary")
-	}
-
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", errors.Wrap(err, "failed to determine home directory")
-	}
-
-	installDir := filepath.Join(home, ".stigmer", "bin")
-	if err := os.MkdirAll(installDir, 0755); err != nil {
-		return "", errors.Wrap(err, "failed to create install directory")
-	}
-
-	installPath := filepath.Join(installDir, "mcp-server-stigmer")
-	if err := copyFile(extractedPath, installPath); err != nil {
-		return "", errors.Wrap(err, "failed to install binary")
-	}
-
-	if err := os.Chmod(installPath, 0755); err != nil {
-		return "", errors.Wrap(err, "failed to make binary executable")
-	}
-
-	log.Info().Str("path", installPath).Str("version", version).Msg("Installed mcp-server-stigmer")
-	return installPath, nil
-}
-
-// getLatestMCPServerVersion queries the GitHub releases API and returns the
-// tag name of the most recent release that contains mcp-server-stigmer assets.
-func getLatestMCPServerVersion() (string, error) {
-	url := fmt.Sprintf("https://api.github.com/repos/%s/releases?per_page=20", githubRepo)
-
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return "", err
-	}
-	req.Header.Set("Accept", "application/vnd.github+json")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return "", errors.Wrap(err, "GitHub API request failed")
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("GitHub API returned %s", resp.Status)
-	}
-
-	var releases []struct {
-		TagName string `json:"tag_name"`
-		Assets  []struct {
-			Name string `json:"name"`
-		} `json:"assets"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&releases); err != nil {
-		return "", errors.Wrap(err, "failed to parse GitHub releases response")
-	}
-
-	for _, r := range releases {
-		for _, a := range r.Assets {
-			if strings.HasPrefix(a.Name, "mcp-server-stigmer-") {
-				return r.TagName, nil
-			}
-		}
-	}
-
-	return "", fmt.Errorf("no GitHub release found with mcp-server-stigmer assets")
-}
-
-// extractBinaryFromTarGz extracts a single named binary from a .tar.gz archive.
-func extractBinaryFromTarGz(archivePath, binaryName, destPath string) error {
-	file, err := os.Open(archivePath)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	gzr, err := gzip.NewReader(file)
-	if err != nil {
-		return err
-	}
-	defer gzr.Close()
-
-	tr := tar.NewReader(gzr)
-	for {
-		header, err := tr.Next()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return err
-		}
-
-		if header.Name == binaryName || filepath.Base(header.Name) == binaryName {
-			out, err := os.Create(destPath)
-			if err != nil {
-				return err
-			}
-			defer out.Close()
-
-			if _, err := io.Copy(out, tr); err != nil {
-				return err
-			}
-			return nil
-		}
-	}
-
-	return fmt.Errorf("%s not found in archive", binaryName)
 }
 
 // downloadRunnerBinary downloads the runner binary from GitHub releases

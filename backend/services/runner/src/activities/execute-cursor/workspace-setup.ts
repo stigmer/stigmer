@@ -1,75 +1,252 @@
 /**
- * Writes Cursor hooks configuration and scripts to the workspace.
+ * Installs and tears down the Cursor HITL approval gate around an agent turn.
  *
- * Before creating or resuming a Cursor Agent, the cursor-runner writes:
- * 1. .cursor/hooks.json — declares the preToolUse hook
- * 2. .cursor/hooks/stigmer-approval.sh — the hook script
- * 3. .cursor/hooks/stigmer-approval-state.json — approval state for the hook
- * 4. .cursor/hooks/stigmer-denials.jsonl — per-turn denial ledger (reset here,
- *    appended by the hook on each deny, read back by the activity)
+ * The gate has two surfaces, kept deliberately separate (issue #173):
  *
- * This setup enables the durable HITL model: the hook denies tools that need
- * approval and records each denial to the ledger; the activity reads the ledger,
- * marks the gated tool calls WAITING_APPROVAL (the backend then projects
- * pending_approvals from that status), and returns to the workflow. On
- * reinvocation the state file is updated with the approved tools so the hook
- * allows them.
+ * 1. Runner-owned artifacts — the hook script, approval-state file, and denial
+ *    ledger — live in the session's HITL directory OUTSIDE the user's workspace
+ *    (`~/.stigmer/sessions/{id}/hitl/`). They never touch the attached repo.
+ *
+ * 2. Workspace surface — a single `.cursor/hooks.json` written into the
+ *    workspace, because the Cursor SDK only loads project hooks from that
+ *    hard-coded path. It is kept minimal, MERGED with any pre-existing user
+ *    hooks.json, points at the hook script by ABSOLUTE path (so multi-root IDE
+ *    windows can always find it instead of failing closed), and is RESTORED to
+ *    its original content when the turn ends.
+ *
+ * Why this shape. The previous design wrote all four files into the workspace
+ * with a repo-relative hook command and never cleaned up. For a local-folder
+ * workspace (the user's real repo, often open in their Cursor IDE) that gated
+ * the user's own IDE, ingested the IDE's tool calls into the denial ledger,
+ * failed closed in multi-root windows (relative path → exit 127), and left the
+ * gate behind after the session. Relocating the artifacts, scoping the hook to
+ * the runner's own process (see hook-script.ts), and restoring hooks.json after
+ * every turn together leave the user's repo and tooling untouched.
+ *
+ * Durability model: the install runs before every agent create/resume (and on
+ * every HITL reinvocation / Temporal activity retry); the teardown runs in the
+ * activity's finally. Each turn snapshots and restores independently, so the
+ * repo is byte-identical between turns. If a crash skips teardown, the leftover
+ * hooks.json is inert: the scope guard allows every invocation once the runner
+ * PID is gone, and the relocated artifacts are not in the repo.
  */
 
-import { writeFile, mkdir, chmod } from "node:fs/promises";
+import { writeFile, readFile, mkdir, chmod, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { generateHookScript } from "./hook-script.js";
 import { writeApprovalStateFile, resetDenialLedger, type ApprovalStateFile } from "./approval-state.js";
 
-const HOOKS_DIR = ".cursor";
-const HOOKS_SCRIPTS_DIR = ".cursor/hooks";
+const CURSOR_DIR = ".cursor";
 const HOOKS_CONFIG_FILE = "hooks.json";
 const HOOK_SCRIPT_FILE = "stigmer-approval.sh";
 
+/** preToolUse hook timeout (seconds) — the script is a quick local decision. */
+const HOOK_TIMEOUT_SECONDS = 10;
+
 /**
- * Write the complete hooks setup to the workspace directory.
- *
- * Creates or overwrites:
- * - .cursor/hooks.json (hooks configuration)
- * - .cursor/hooks/stigmer-approval.sh (hook script, executable)
- * - .cursor/hooks/stigmer-approval-state.json (approval state)
+ * Handle returned by {@link installHitlGate}, consumed by {@link removeHitlGate}
+ * to restore the workspace to its pre-turn state.
  */
-export async function writeHooksToWorkspace(
-  workspaceRoot: string,
+export interface HitlGateHandle {
+  /** Absolute path of the workspace hooks.json this turn manages. */
+  hooksJsonPath: string;
+  /**
+   * Content to restore on teardown: the workspace's original hooks.json bytes
+   * (with any stale Stigmer entry stripped), or null when no hooks.json existed
+   * before this turn (in which case teardown deletes the file).
+   */
+  restoreTo: string | null;
+}
+
+/**
+ * Install the HITL approval gate for one agent turn.
+ *
+ * Writes the runner-owned artifacts into {@link hitlDir} and installs the merged
+ * `.cursor/hooks.json` into {@link workspaceRoot}, returning a handle that
+ * {@link removeHitlGate} uses to restore the workspace afterward.
+ */
+export async function installHitlGate(params: {
+  workspaceRoot: string;
+  hitlDir: string;
+  approvalState: ApprovalStateFile;
+  runnerPid: number;
+}): Promise<HitlGateHandle> {
+  const { workspaceRoot, hitlDir, approvalState, runnerPid } = params;
+
+  const scriptPath = await writeHitlArtifacts(hitlDir, approvalState, runnerPid);
+  return installWorkspaceHook(workspaceRoot, scriptPath);
+}
+
+/**
+ * Restore the workspace to its pre-turn state.
+ *
+ * Best-effort and never throws: a teardown failure must not fail the execution,
+ * and a leftover hooks.json is inert anyway (see the module doc).
+ */
+export async function removeHitlGate(handle: HitlGateHandle): Promise<void> {
+  try {
+    if (handle.restoreTo === null) {
+      await rm(handle.hooksJsonPath, { force: true });
+    } else {
+      await writeFile(handle.hooksJsonPath, handle.restoreTo, "utf-8");
+    }
+  } catch (err) {
+    console.warn(
+      `removeHitlGate: failed to restore ${handle.hooksJsonPath} (non-fatal): ` +
+      `${err instanceof Error ? err.message : err}`,
+    );
+  }
+}
+
+/**
+ * Write the runner-owned gate artifacts (approval-state file, fresh denial
+ * ledger, hook script) into the session HITL directory and return the absolute
+ * hook-script path. The script is regenerated every turn so the current runner
+ * PID and the current state-file/ledger paths are always baked in.
+ */
+async function writeHitlArtifacts(
+  hitlDir: string,
   approvalState: ApprovalStateFile,
-): Promise<void> {
-  const hooksDir = join(workspaceRoot, HOOKS_DIR);
-  const scriptsDir = join(workspaceRoot, HOOKS_SCRIPTS_DIR);
-  await mkdir(hooksDir, { recursive: true });
-  await mkdir(scriptsDir, { recursive: true });
+  runnerPid: number,
+): Promise<string> {
+  await mkdir(hitlDir, { recursive: true });
 
-  const stateFilePath = await writeApprovalStateFile(workspaceRoot, approvalState);
+  const stateFilePath = await writeApprovalStateFile(hitlDir, approvalState);
+  // Reset the denial ledger for this turn so the runner only reads denials
+  // produced by the current run, even across HITL reinvocations on the durable
+  // HITL directory and Temporal activity retries.
+  const ledgerFilePath = await resetDenialLedger(hitlDir);
 
-  // Reset the denial ledger for this turn (co-located with the state-file write
-  // so the runner only reads denials produced by the current run, even across
-  // HITL reinvocations on the durable workspace and Temporal activity retries).
-  const ledgerFilePath = await resetDenialLedger(workspaceRoot);
-
-  const hookScriptPath = join(scriptsDir, HOOK_SCRIPT_FILE);
-  await writeFile(hookScriptPath, generateHookScript(stateFilePath, ledgerFilePath), "utf-8");
-  await chmod(hookScriptPath, 0o755);
-
-  const hooksConfig = {
-    version: 1,
-    hooks: {
-      preToolUse: [
-        {
-          command: `.cursor/hooks/${HOOK_SCRIPT_FILE}`,
-          timeout: 10,
-          failClosed: true,
-        },
-      ],
-    },
-  };
-
+  const hookScriptPath = join(hitlDir, HOOK_SCRIPT_FILE);
   await writeFile(
-    join(hooksDir, HOOKS_CONFIG_FILE),
-    JSON.stringify(hooksConfig, null, 2),
+    hookScriptPath,
+    generateHookScript(stateFilePath, ledgerFilePath, runnerPid),
     "utf-8",
   );
+  await chmod(hookScriptPath, 0o755);
+
+  return hookScriptPath;
+}
+
+/**
+ * Snapshot the workspace's existing `.cursor/hooks.json`, write a merged config
+ * that adds our preToolUse entry (absolute script path) while preserving the
+ * user's own hooks, and return the handle for restoration.
+ */
+async function installWorkspaceHook(
+  workspaceRoot: string,
+  scriptPath: string,
+): Promise<HitlGateHandle> {
+  const cursorDir = join(workspaceRoot, CURSOR_DIR);
+  const hooksJsonPath = join(cursorDir, HOOKS_CONFIG_FILE);
+
+  let originalRaw: string | null = null;
+  try {
+    originalRaw = await readFile(hooksJsonPath, "utf-8");
+  } catch {
+    originalRaw = null;
+  }
+
+  const { merged, restoreTo } = buildMergedConfig(originalRaw, scriptPath);
+
+  await mkdir(cursorDir, { recursive: true });
+  await writeFile(hooksJsonPath, merged, "utf-8");
+
+  return { hooksJsonPath, restoreTo };
+}
+
+/**
+ * The preToolUse entry the gate installs. Absolute `command` so the hook is
+ * found regardless of which workspace root a multi-root IDE resolves against.
+ */
+function buildHookEntry(scriptPath: string): Record<string, unknown> {
+  return { command: scriptPath, timeout: HOOK_TIMEOUT_SECONDS, failClosed: true };
+}
+
+/**
+ * Identify a preToolUse entry the gate itself wrote (in this or a prior,
+ * crash-leftover turn) so a re-install never duplicates it and a restore strips
+ * it. Matched by the unmistakable HITL script path, never by a user's own hook.
+ */
+function isStigmerHookEntry(entry: unknown): boolean {
+  if (!entry || typeof entry !== "object") return false;
+  const command = (entry as { command?: unknown }).command;
+  return (
+    typeof command === "string" &&
+    command.includes("/.stigmer/sessions/") &&
+    command.endsWith(`/${HOOK_SCRIPT_FILE}`)
+  );
+}
+
+const STANDALONE_CONFIG = (scriptPath: string): string =>
+  JSON.stringify(
+    { version: 1, hooks: { preToolUse: [buildHookEntry(scriptPath)] } },
+    null,
+    2,
+  );
+
+/**
+ * Compute the merged hooks.json to write for this turn and the content to
+ * restore afterward.
+ *
+ * - No existing file → write our standalone config; restore by deleting (null).
+ * - Existing, parseable file → append our entry to `hooks.preToolUse`,
+ *   preserving every other hook type and field; restore the user's original
+ *   bytes. Any stale Stigmer entry from a prior crashed turn is stripped from
+ *   BOTH the merged config (no duplicate) and the restore target (self-healing).
+ * - Existing, unparseable file → replace for the turn with our standalone
+ *   config; restore the user's exact original bytes (we never "fix" their file).
+ *
+ * Exported for unit testing — this is the load-bearing data transformation.
+ */
+export function buildMergedConfig(
+  originalRaw: string | null,
+  scriptPath: string,
+): { merged: string; restoreTo: string | null } {
+  if (originalRaw === null) {
+    return { merged: STANDALONE_CONFIG(scriptPath), restoreTo: null };
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(originalRaw);
+  } catch {
+    return { merged: STANDALONE_CONFIG(scriptPath), restoreTo: originalRaw };
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return { merged: STANDALONE_CONFIG(scriptPath), restoreTo: originalRaw };
+  }
+
+  const root = parsed as Record<string, unknown>;
+  const hooks =
+    root.hooks && typeof root.hooks === "object" && !Array.isArray(root.hooks)
+      ? (root.hooks as Record<string, unknown>)
+      : {};
+  const existingPreToolUse = Array.isArray(hooks.preToolUse) ? hooks.preToolUse : [];
+  const userEntries = existingPreToolUse.filter((e) => !isStigmerHookEntry(e));
+  const strippedStale = userEntries.length !== existingPreToolUse.length;
+
+  const version = typeof root.version === "number" ? root.version : 1;
+
+  const merged = JSON.stringify(
+    {
+      ...root,
+      version,
+      hooks: { ...hooks, preToolUse: [...userEntries, buildHookEntry(scriptPath)] },
+    },
+    null,
+    2,
+  );
+
+  // Restore the user's exact original bytes — unless we stripped a stale Stigmer
+  // entry, in which case restore the cleaned form so our leftover never lingers.
+  const restoreTo = strippedStale
+    ? JSON.stringify(
+        { ...root, version, hooks: { ...hooks, preToolUse: userEntries } },
+        null,
+        2,
+      )
+    : originalRaw;
+
+  return { merged, restoreTo };
 }

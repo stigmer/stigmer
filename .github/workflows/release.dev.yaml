@@ -79,6 +79,13 @@ jobs:
             TARGETS="maven,npm,python,mcp"
           fi
 
+          # The dev MCP image installs the published @stigmer/mcp-server package,
+          # so building it requires the npm publish to run first. Ensure npm is
+          # selected whenever mcp is.
+          if echo ",$TARGETS," | grep -q ",mcp," && ! echo ",$TARGETS," | grep -q ",npm,"; then
+            TARGETS="$TARGETS,npm"
+          fi
+
           # Base semver: explicit input wins; otherwise bump the patch of the
           # latest v* tag. A dev build always targets the NEXT unreleased version
           # so it sorts below the eventual real release.
@@ -433,8 +440,11 @@ jobs:
   # MCP server: build + push a dev Docker image to GHCR (mutable, deletable).
   # Tags both an immutable-per-commit `dev-<sha>` and a moving `dev` pointer.
   # ---------------------------------------------------------------------------
+  # The dev image installs the published dev @stigmer/mcp-server, so it runs
+  # after publish-npm (which publishes it under the `dev` dist-tag). determine-
+  # version guarantees npm is targeted whenever mcp is.
   publish-mcp:
-    needs: determine-version
+    needs: [determine-version, publish-npm]
     if: contains(needs.determine-version.outputs.targets, 'mcp')
     runs-on: ubuntu-latest
     permissions:
@@ -445,6 +455,27 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Wait for @stigmer/mcp-server on npm
+        env:
+          NPM_VERSION: ${{ needs.determine-version.outputs.npm_version }}
+        run: |
+          echo "Waiting for @stigmer/mcp-server@$NPM_VERSION on npm..."
+          for i in $(seq 1 30); do
+            if npm view "@stigmer/mcp-server@$NPM_VERSION" version 2>/dev/null; then
+              echo "Found @stigmer/mcp-server@$NPM_VERSION on npm"
+              exit 0
+            fi
+            echo "Attempt $i/30: not yet available, waiting 10s..."
+            sleep 10
+          done
+          echo "ERROR: @stigmer/mcp-server@$NPM_VERSION not found on npm after 5 minutes"
+          exit 1
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -459,11 +490,12 @@ jobs:
       - name: Build and push dev image
         env:
           DOCKER_TAG: ${{ needs.determine-version.outputs.docker_tag }}
+          NPM_VERSION: ${{ needs.determine-version.outputs.npm_version }}
         run: |
           docker buildx build \
             --platform linux/amd64,linux/arm64 \
             --file mcp-server/Dockerfile \
-            --build-arg BUILD_VERSION=$DOCKER_TAG \
+            --build-arg MCP_SERVER_VERSION=$NPM_VERSION \
             --tag ghcr.io/stigmer/mcp-server-stigmer:$DOCKER_TAG \
             --tag ghcr.io/stigmer/mcp-server-stigmer:dev \
             --push \

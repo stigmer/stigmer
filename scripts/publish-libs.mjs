@@ -35,7 +35,7 @@ import {
   mkdirSync,
 } from "node:fs";
 import { resolve, dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, "..");
@@ -46,6 +46,9 @@ const PACKAGES = [
   "sdk/theme",
   "sdk/react",
   "sdk/ink",
+  // mcp-server depends only on @stigmer/protos + @stigmer/sdk, both above it,
+  // so the publish DAG stays ordered. Mirrors the build:libs order in package.json.
+  "mcp-server",
 ];
 
 function run(cmd, cwd = root) {
@@ -80,7 +83,7 @@ function isPrerelease(version) {
   return version.includes("-");
 }
 
-function generateDistPackageJson(pkgDir, version) {
+export function generateDistPackageJson(pkgDir, version) {
   const srcPkg = JSON.parse(
     readFileSync(resolve(pkgDir, "package.json"), "utf8"),
   );
@@ -104,6 +107,13 @@ function generateDistPackageJson(pkgDir, version) {
   }
   if (publishConfig.types) {
     distPkg.types = publishConfig.types.replace(/^\.\/dist\//, "./");
+  }
+
+  // Executable packages (e.g. @stigmer/mcp-server) declare their entry points
+  // under publishConfig.bin. Without this the bin field is dropped and `npx`
+  // has nothing to run.
+  if (publishConfig.bin) {
+    distPkg.bin = rewriteBinPaths(publishConfig.bin);
   }
 
   if (publishConfig.exports) {
@@ -166,6 +176,21 @@ function rewriteExports(exports) {
     return result;
   }
   return exports;
+}
+
+/**
+ * Rewrite publishConfig.bin paths from ./dist/... to ./ (since we publish from dist/).
+ * npm's `bin` is either a string (single executable) or a flat { name: path } map.
+ */
+export function rewriteBinPaths(bin) {
+  if (typeof bin === "string") {
+    return bin.replace(/^\.\/dist\//, "./");
+  }
+  const result = {};
+  for (const [name, path] of Object.entries(bin)) {
+    result[name] = path.replace(/^\.\/dist\//, "./");
+  }
+  return result;
 }
 
 /**
@@ -271,7 +296,10 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+// Only run when invoked directly (not when imported by tests).
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}
