@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
@@ -676,7 +677,10 @@ func (s *ResetTemporalWorkflowStep[T]) Execute(ctx *pipeline.RequestContext[T]) 
 		Int64("reset_event_id", resetEventId).
 		Msg("Found reset point in workflow history")
 
-	// 3. Reset the workflow
+	// 3. Reset the workflow. Temporal requires a RequestId for idempotent dedupe of
+	// the reset; without it the service rejects the call with "RequestId is not set
+	// on request". A fresh UUID per recover attempt is the intended semantics (each
+	// recover is a distinct reset).
 	_, err = workflowService.ResetWorkflowExecution(ctx.Context(), &workflowservice.ResetWorkflowExecutionRequest{
 		Namespace: s.namespace,
 		WorkflowExecution: &commonpb.WorkflowExecution{
@@ -684,6 +688,7 @@ func (s *ResetTemporalWorkflowStep[T]) Execute(ctx *pipeline.RequestContext[T]) 
 		},
 		WorkflowTaskFinishEventId: resetEventId,
 		Reason:                    "Recovered by user",
+		RequestId:                 uuid.NewString(),
 	})
 	if err != nil {
 		if _, ok := err.(*serviceerror.NotFound); ok {
