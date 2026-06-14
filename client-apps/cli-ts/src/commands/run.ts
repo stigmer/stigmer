@@ -7,6 +7,7 @@
 import type { Command } from "commander";
 import { ensureAuthenticated, resolveOrganization } from "../config/index.js";
 import { UsageError } from "../errors/index.js";
+import { interactiveBrowseEnabled } from "../resources/picker/tty.js";
 import { addAgentExecFlags, type AgentExecOptions } from "./agent-exec-flags.js";
 import { globalOrg } from "./shared.js";
 
@@ -48,8 +49,12 @@ async function runRun(
 
   const outputMode = options.json === true ? "json" : "inline";
 
-  // 0 args → interactive browse (picker is a separate, not-yet-wired task).
+  // 0 args → interactive agent picker on a TTY; otherwise actionable guidance.
   if (type === undefined) {
+    if (interactiveBrowseEnabled(outputMode)) {
+      await browseAndRunAgent("", options, org, outputMode, client);
+      return;
+    }
     throw browseUnavailableError("");
   }
   // 1 arg → smart resolution; 2 args → explicit "<type> <reference>".
@@ -94,13 +99,18 @@ async function runSmart(
     );
   }
 
-  // Bare text: try to resolve as an agent reference; on failure, guide the user
-  // (interactive picker fallback is a separate task).
+  // Bare text: try to resolve as an agent reference; on failure, fall back to
+  // the interactive picker (pre-filled with the typed text) on a TTY, otherwise
+  // guide the user.
   const { resolveAgentRef } = await import("../resources/run/resolve.js");
   let agent: import("@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb").Agent;
   try {
     agent = await resolveAgentRef(client.stigmer, value, org);
   } catch {
+    if (interactiveBrowseEnabled(outputMode)) {
+      await browseAndRunAgent(value, options, org, outputMode, client);
+      return;
+    }
     throw browseUnavailableError(value);
   }
   await runResolvedAgent(agent, options, org, outputMode, client);
@@ -234,12 +244,28 @@ function stderrProgress(): (line: string) => void {
   return (line) => void process.stderr.write(`${line}\n`);
 }
 
-// Until the interactive picker lands (separate task), 0-arg and unresolved
-// references produce actionable guidance instead of a browse UI.
+// Mount the agent picker; on selection, run the chosen agent through the
+// existing resolved-agent stack. Cancel (Esc/Ctrl+C → undefined) returns
+// cleanly so the command exits 0. Loaded lazily to honor the DD-001 boundary.
+async function browseAndRunAgent(
+  initialQuery: string,
+  options: RunFlags,
+  org: string,
+  outputMode: "inline" | "json",
+  client: import("../client/index.js").BackendClient,
+): Promise<void> {
+  const { pickAgent } = await import("../resources/picker/ink.js");
+  const selected = await pickAgent({ client: client.stigmer, org, initialQuery });
+  if (selected === undefined) return;
+  await runAgent(selected.id, options, org, outputMode, client);
+}
+
+// Off a TTY (pipes, CI, --json), the interactive picker can't run, so 0-arg and
+// unresolved references produce actionable guidance instead of a browse UI.
 function browseUnavailableError(query: string): UsageError {
   const head =
     query === ""
-      ? "Interactive agent browsing is not available yet"
+      ? "Interactive agent browsing requires an interactive terminal"
       : `No agent found for "${query}"`;
   return new UsageError(
     `${head}\n\n` +

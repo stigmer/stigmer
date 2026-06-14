@@ -10,7 +10,13 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 const SRC_ROOT = fileURLToPath(new URL("../..", import.meta.url));
-const INK_MODULE = join(SRC_ROOT, "resources/stream/ink.tsx");
+// The only modules allowed to statically import react/ink/@stigmer/ink. Each is
+// itself reached exclusively through a dynamic import() in a command action, so
+// the heavy graph stays out of every non-interactive path (DD-001).
+const INK_MODULES = [
+  join(SRC_ROOT, "resources/stream/ink.tsx"),
+  join(SRC_ROOT, "resources/picker/ink.tsx"),
+];
 const STATIC_HEAVY_IMPORT = /^\s*import\s+[^;]*?from\s+["'](?:react|ink|@stigmer\/ink)["']/m;
 
 function walk(dir: string): string[] {
@@ -24,18 +30,18 @@ function walk(dir: string): string[] {
 }
 
 describe("lazy-import boundary (DD-001)", () => {
-  it("only ink.tsx statically imports react/ink/@stigmer/ink", () => {
+  it("only the lazy Ink entrypoints statically import react/ink/@stigmer/ink", () => {
     const offenders = walk(SRC_ROOT)
-      .filter((path) => path !== INK_MODULE)
+      .filter((path) => !INK_MODULES.includes(path))
       .filter((path) => STATIC_HEAVY_IMPORT.test(readFileSync(path, "utf8")));
     expect(offenders).toEqual([]);
   });
 
-  it("ink.tsx is reached only through dynamic import()", () => {
+  it("the Ink entrypoints are reached only through dynamic import()", () => {
     const staticImporters = walk(SRC_ROOT).filter((path) => {
-      if (path === INK_MODULE) return false;
+      if (INK_MODULES.includes(path)) return false;
       const src = readFileSync(path, "utf8");
-      return /^\s*import\s+[^;]*?from\s+["'][^"']*stream\/ink(?:\.js)?["']/m.test(src);
+      return /^\s*import\s+[^;]*?from\s+["'][^"']*(?:stream|picker)\/ink(?:\.js)?["']/m.test(src);
     });
     expect(staticImporters).toEqual([]);
   });

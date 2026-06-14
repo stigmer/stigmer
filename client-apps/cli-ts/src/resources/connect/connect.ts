@@ -3,10 +3,11 @@
 // discovery server-side and persists capabilities + tool-approval policies) or,
 // for --dry-run, discover locally and return without persisting.
 //
-// OAuth: the interactive browser flow is deferred (out of scope this round). When
-// a server requires OAuth, has no existing grant, and no --env was supplied, we
-// stop with actionable guidance instead of failing deep in the runner. Audit
-// identity (reviewer) and token acquisition stay server-side by design.
+// OAuth: when a server requires OAuth, has no existing grant, and no --env was
+// supplied, the interactive browser flow (oauth.ts) shepherds the user through
+// the web console and waits for the grant. Off an interactive terminal (CI,
+// pipes) we stop with actionable guidance instead of blocking for 5 minutes.
+// Audit identity (reviewer) and token acquisition stay server-side by design.
 
 import { create } from "@bufbuild/protobuf";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
@@ -14,6 +15,7 @@ import { ConnectInputSchema, GetOAuthGrantStatusInputSchema } from "@stigmer/pro
 import type { DiscoveredCapabilities } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { Stigmer } from "@stigmer/sdk";
+import type { BackendType } from "../../config/config.js";
 import { UsageError } from "../../errors/index.js";
 import { defaultRegistry } from "../../registry/index.js";
 import { buildRuntimeEnv } from "../mcp/runtime-env.js";
@@ -26,6 +28,10 @@ export interface ConnectOptions {
   readonly timeoutMs: number;
   readonly dryRun: boolean;
   readonly envOverrides: readonly string[];
+  /** Backend type, for resolving the OAuth web-console URL. */
+  readonly backendType: BackendType;
+  /** Whether an interactive terminal is available to run the OAuth flow. */
+  readonly interactive: boolean;
 }
 
 export interface ConnectResult {
@@ -65,9 +71,10 @@ async function resolveMcpServer(client: Stigmer, reference: string, org: string)
   return client.mcpServer.getByReference({ org: parsed.org, slug: parsed.slug });
 }
 
-// Stop with guidance when OAuth is required but unsatisfiable in this CLI: an
-// auth-configured server with no existing grant and no --env credentials. The
-// interactive browser flow is deferred, so we point the user at the alternatives.
+// Ensure an OAuth grant exists before connecting an auth-configured server that
+// was given no --env credentials. On an interactive terminal, run the browser
+// flow and wait for the grant; otherwise stop with actionable guidance so
+// scripted callers get a clean, stable failure instead of a 5-minute block.
 async function ensureOAuthSatisfied(client: Stigmer, server: McpServer, opts: ConnectOptions): Promise<void> {
   if (!oauthRequired(server) || opts.envOverrides.length > 0) return;
 
@@ -79,11 +86,18 @@ async function ensureOAuthSatisfied(client: Stigmer, server: McpServer, opts: Co
   );
   if (status.connected) return;
 
-  const slug = server.metadata?.slug ?? server.metadata?.name ?? opts.reference;
-  throw new UsageError(
-    `MCP server '${slug}' requires OAuth authentication, which is not yet available in this CLI.\n\n` +
+  if (!opts.interactive) throw oauthGuidanceError(server, opts.reference);
+
+  const { runOAuthFlow } = await import("./oauth.js");
+  await runOAuthFlow({ client, server, org: opts.org, backendType: opts.backendType });
+}
+
+function oauthGuidanceError(server: McpServer, reference: string): UsageError {
+  const slug = server.metadata?.slug ?? server.metadata?.name ?? reference;
+  return new UsageError(
+    `MCP server '${slug}' requires OAuth authentication, which needs an interactive terminal.\n\n` +
       "To connect, choose one of:\n" +
-      "  - Complete OAuth in the web console, then re-run this command\n" +
+      "  - Re-run this command in an interactive terminal to complete OAuth in your browser\n" +
       `  - Provide credentials directly: stigmer connect mcp-server ${slug} --env TOKEN=...`,
   );
 }

@@ -47,8 +47,8 @@ async function runApply(options: ApplyFlags, command: Command): Promise<void> {
 }
 
 // Declarative mode: detect stigmer.yaml (walk up). Absent → atomic guidance.
-// entry_point set → SDK/project synthesis (deferred to its own task). Otherwise
-// scan the project and reconcile membership.
+// entry_point set → SDK/project synthesis track. Otherwise scan the project and
+// reconcile membership. Both project tracks converge on the shared reconciler.
 async function runDeclarativeApply(
   options: ApplyFlags,
   orgOverride: string | undefined,
@@ -65,12 +65,8 @@ async function runDeclarativeApply(
   }
 
   if (detect.track === "project") {
-    throw new UsageError(
-      `SDK project synthesis (stigmer.yaml with entry_point) is not yet available in this CLI\n\n` +
-        `Found an entry_point in ${detect.configPath}.\n` +
-        "Remove the entry_point to use declarative mode, or apply resources individually:\n" +
-        "  stigmer apply -f <file-or-directory>",
-    );
+    await runProjectApply(detect, orgOverride, format, options.dryRun === true);
+    return;
   }
 
   if (options.dryRun === true) {
@@ -89,6 +85,38 @@ async function runDeclarativeApply(
   const org = resolveDeclarativeOrg(client.config, detect.project?.metadata?.org, orgOverride);
 
   const result = await applyDeclarative(detect, {
+    controller: client.controller,
+    stigmer: client.stigmer,
+    org,
+    info: (line) => process.stderr.write(`${line}\n`),
+    warn: (line) => emitWarning(line),
+  });
+  renderResult(result, format);
+}
+
+// Project (SDK synthesis) track: run the user's entry_point, read the `.pb`
+// output, and reconcile membership through the same reconciler the declarative
+// track uses. Lazy-imported to preserve the DD-001 boundary (`--help` stays
+// fast).
+async function runProjectApply(
+  detect: import("../resources/apply/declarative.js").DetectResult,
+  orgOverride: string | undefined,
+  format: OutputFormat,
+  dryRun: boolean,
+): Promise<void> {
+  const { applyProjectTrack, previewProjectTrack } = await import("../resources/apply/synth/project-track.js");
+
+  if (dryRun) {
+    renderResult(previewProjectTrack(detect), format);
+    return;
+  }
+
+  const { connectBackend } = await import("../backend.js");
+  const client = connectBackend();
+  ensureAuthenticated(client.config);
+  const org = resolveDeclarativeOrg(client.config, detect.project?.metadata?.org, orgOverride);
+
+  const result = await applyProjectTrack(detect, {
     controller: client.controller,
     stigmer: client.stigmer,
     org,

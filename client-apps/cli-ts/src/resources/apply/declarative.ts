@@ -14,9 +14,10 @@
 // Scanning is top-level plus one level of subdirectories — deep trees are not
 // walked, matching Go (this keeps membership predictable and fast).
 
-import { existsSync, readdirSync, statSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, rmSync, statSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { basename, dirname, extname, join, resolve } from "node:path";
-import { create, fromJson } from "@bufbuild/protobuf";
+import { create, fromJson, type Message } from "@bufbuild/protobuf";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import {
   type ApiResourceReference,
@@ -34,10 +35,11 @@ import type { Stigmer } from "@stigmer/sdk";
 import { UsageError } from "../../errors/index.js";
 import { CommandResult } from "../../output/index.js";
 import { loadDocuments } from "../documents.js";
-import { hasSkillFile, pushSkill } from "../skill.js";
-import { type ApplyItem, applyItem, resolveHandlerForKind, sortApplyItems } from "./apply.js";
+import { cloneRepository } from "../git.js";
+import { hasSkillFile, type PushResult, pushSkill, pushSkillFromClone } from "../skill.js";
+import { type ApplyItem, applyMessage, marshalItem, resolveHandlerForKind, resourceMetadata, sortApplyItems } from "./apply.js";
 import { discoverAppliedMcpServers } from "./discovery.js";
-import type { ControllerFn } from "./handlers.js";
+import type { ApplyHandler, ControllerFn } from "./handlers.js";
 
 const CONFIG_FILE_NAME = "stigmer.yaml";
 const DEFAULT_MAX_DEPTH = 10;
@@ -216,8 +218,11 @@ export interface DeclarativeDeps {
 }
 
 /**
- * Apply a declarative project: push skills, apply resources, set membership,
- * apply the project. Returns the summary CommandResult for the caller to render.
+ * Apply a declarative project: scan the directory for YAML resources and skill
+ * directories, marshal each resource, then hand everything to the shared
+ * reconciler. This adapter's only job is "filesystem → resources + skill
+ * sources"; the synthesis track has its own adapter ("SDK → resources + skill
+ * sources") and both converge on {@link reconcileProjectMembers} (DD-009 §6).
  */
 export async function applyDeclarative(detect: DetectResult, deps: DeclarativeDeps): Promise<CommandResult> {
   const { project, configDir } = detect;
@@ -234,35 +239,80 @@ export async function applyDeclarative(detect: DetectResult, deps: DeclarativeDe
   const items = buildDeclarativeItems(resourceFiles, deps.warn);
   deps.info(`Found ${items.length} resource(s) in ${resourceFiles.length} file(s), ${skillDirs.length} skill(s)`);
 
+  const resources: ReconcileResource[] = items.map((item) => ({ handler: item.handler, message: marshalItem(item) }));
+  const skillSources: SkillSource[] = skillDirs.map((dir) => ({ kind: "local", dir, tag: "latest" }));
+
+  return reconcileProjectMembers(project, resources, skillSources, deps);
+}
+
+// =============================================================================
+// Shared reconciler (used by BOTH the declarative and the synthesis tracks)
+// =============================================================================
+
+/** A resource ready to apply: its handler plus the fully-marshalled message. */
+export interface ReconcileResource {
+  readonly handler: ApplyHandler;
+  readonly message: Message;
+}
+
+/**
+ * A skill to push as a project member. `local` is a directory beside the
+ * project (declarative) or resolved from a SkillSynth local path (synthesis);
+ * `git` is a remote repo cloned on demand (synthesis only — SkillSynth git).
+ */
+export type SkillSource =
+  | { readonly kind: "local"; readonly dir: string; readonly tag: string }
+  | {
+      readonly kind: "git";
+      readonly url: string;
+      readonly ref: string;
+      readonly subdir: string;
+      readonly tag: string;
+    };
+
+// Both tracks treat skill artifacts the same way; the default ignore policy
+// mirrors the declarative push (respect .gitignore, no extra patterns).
+const DEFAULT_IGNORE_OPTIONS = { respectGitignore: true, extraIgnore: [] as string[], extraInclude: [] as string[] };
+
+/**
+ * Reconcile a project's membership: push skills first (agents may reference
+ * them), apply each resource through the shared apply core, collect references
+ * to the member-eligible ones, run post-apply MCP discovery, then apply the
+ * project with that exact member set so the server can reconcile by
+ * set-difference (orphan pruning is server-side; see S1 in commands/apply.ts).
+ */
+export async function reconcileProjectMembers(
+  project: Project,
+  resources: readonly ReconcileResource[],
+  skillSources: readonly SkillSource[],
+  deps: DeclarativeDeps,
+): Promise<CommandResult> {
   const members: ApiResourceReference[] = [];
 
   // Skills first — agents may reference them.
-  for (const dir of skillDirs) {
-    deps.info(`Pushing skill from ${basename(dir)}...`);
-    const pushed = await pushSkill(deps.stigmer, dir, deps.org, "latest", "", {
-      respectGitignore: true,
-      extraIgnore: [],
-      extraInclude: [],
-    });
+  for (const src of skillSources) {
+    const pushed = await pushSkillSource(deps.stigmer, src, deps.org, deps.info);
     members.push(reference(deps.org, ApiResourceKind.skill, pushed.slug));
   }
 
-  // Then each YAML resource, collecting member references.
+  // Then each resource, collecting member references from the APPLIED result so
+  // membership carries the server's authoritative slug. (This is the unified
+  // policy: the declarative track used to read the pre-apply YAML slug, the Go
+  // synthesis track read the applied result — converging on the applied result
+  // is correct for both and matches what the backend actually stored.)
   const appliedMcpServers: McpServer[] = [];
-  for (const item of items) {
-    const outcome = await applyItem(deps.controller, item, deps.org, false);
+  for (const res of resources) {
+    const outcome = await applyMessage(deps.controller, res.handler, res.message, deps.org, false);
     if (outcome.warning !== undefined) deps.warn(outcome.warning);
     if (outcome.appliedMcpServer !== undefined) appliedMcpServers.push(outcome.appliedMcpServer);
-    if (MEMBER_KINDS.has(item.handler.kind)) {
-      const slug = metaOf(item)?.slug;
-      if (slug) members.push(reference(deps.org, item.handler.kind, slug));
+    if (MEMBER_KINDS.has(res.handler.kind) && outcome.applied !== undefined) {
+      const slug = memberSlugOf(outcome.applied);
+      if (slug) members.push(reference(deps.org, res.handler.kind, slug));
     }
   }
 
   await discoverAppliedMcpServers(deps.stigmer, appliedMcpServers, deps.info);
 
-  // Apply the project with the collected membership. The server reconciles by
-  // set-difference (orphan pruning is server-side; see S1 in commands/apply.ts).
   injectOrg(project, deps.org);
   if (project.spec === undefined) project.spec = create(ProjectSpecSchema, {});
   project.spec.members = members;
@@ -270,6 +320,48 @@ export async function applyDeclarative(detect: DetectResult, deps: DeclarativeDe
   const applied = await deps.controller(ProjectCommandController).apply(project);
 
   return buildDeclarativeResult(applied, members, created);
+}
+
+/**
+ * Push one skill source and return the result. Local sources push directly;
+ * git sources clone to a temp dir, push from the subdir, then clean up
+ * (mirrors `commands/push.ts` --git-url and Go's `pushSkillSynth`).
+ */
+export async function pushSkillSource(
+  client: Stigmer,
+  src: SkillSource,
+  org: string,
+  info: (line: string) => void,
+): Promise<PushResult> {
+  if (src.kind === "local") {
+    info(`Pushing skill from ${basename(src.dir)}...`);
+    return pushSkill(client, src.dir, org, src.tag, "", DEFAULT_IGNORE_OPTIONS);
+  }
+
+  info(`Pushing skill from ${src.url}...`);
+  const tempDir = mkdtempSync(join(tmpdir(), "stigmer-skill-"));
+  try {
+    cloneRepository(src.url, src.ref, tempDir);
+    const skillDir = src.subdir !== "" ? join(tempDir, src.subdir) : tempDir;
+    return await pushSkillFromClone(client, skillDir, {
+      gitUrl: src.url,
+      gitRef: src.ref,
+      subdir: src.subdir,
+      org,
+      tag: src.tag,
+      message: "",
+      options: DEFAULT_IGNORE_OPTIONS,
+    });
+  } finally {
+    rmSync(tempDir, { recursive: true, force: true });
+  }
+}
+
+// Member slug from an applied resource: prefer the server's slug, fall back to
+// the name (mirrors Go's buildResourceReference / reader name-fallback).
+function memberSlugOf(message: Message): string {
+  const meta = resourceMetadata(message);
+  return meta?.slug || meta?.name || "";
 }
 
 /** Dry-run: validate every resource without touching the backend. */

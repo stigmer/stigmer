@@ -62,6 +62,7 @@
     "@connectrpc/connect-node": "^2.1.1",
     "@modelcontextprotocol/sdk": "^1.26.0",
     "@stigmer/ink": "*",
+    "@stigmer/mcp-server": "*",
     "@stigmer/protos": "*",
     "@stigmer/sdk": "*",
     "commander": "^12.1.0",

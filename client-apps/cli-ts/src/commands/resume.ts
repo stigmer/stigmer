@@ -6,6 +6,7 @@
 import type { Command } from "commander";
 import { ensureAuthenticated, resolveOrganization } from "../config/index.js";
 import { UsageError } from "../errors/index.js";
+import { interactiveBrowseEnabled } from "../resources/picker/tty.js";
 import { globalOrg } from "./shared.js";
 
 interface ResumeFlags {
@@ -47,6 +48,10 @@ async function runResume(reference: string | undefined, options: ResumeFlags, co
   const mode = (options.mode ?? "") as import("../resources/run/prepare.js").RunMode;
 
   if (reference === undefined) {
+    if (interactiveBrowseEnabled(outputMode)) {
+      await browseAndResumeSession("", client, org, mode, outputMode);
+      return;
+    }
     throw browseUnavailableError();
   }
 
@@ -79,14 +84,38 @@ async function runResume(reference: string | undefined, options: ResumeFlags, co
     );
   }
 
-  // Bare text → session search picker (separate, not-yet-wired task).
+  // Bare text → interactive session picker (pre-filtered by the text) on a TTY;
+  // otherwise actionable guidance.
+  if (interactiveBrowseEnabled(outputMode)) {
+    await browseAndResumeSession(reference, client, org, mode, outputMode);
+    return;
+  }
   throw browseUnavailableError(reference);
+}
+
+// Mount the session picker; on selection, re-open the chosen session through the
+// existing resume orchestrator. Cancel (Esc/Ctrl+C → undefined) returns cleanly
+// so the command exits 0. Loaded lazily to honor the DD-001 boundary.
+async function browseAndResumeSession(
+  initialQuery: string,
+  client: import("../client/index.js").BackendClient,
+  org: string,
+  mode: import("../resources/run/prepare.js").RunMode,
+  outputMode: "inline" | "json",
+): Promise<void> {
+  const { pickSession } = await import("../resources/picker/ink.js");
+  const selected = await pickSession({ client: client.stigmer, initialQuery });
+  if (selected === undefined) return;
+  const sessionId = selected.metadata?.id ?? "";
+  if (sessionId === "") return;
+  const { openSession } = await import("../resources/run/resume.js");
+  await openSession({ client, sessionId, org, mode, outputMode });
 }
 
 function browseUnavailableError(query?: string): UsageError {
   const head =
     query === undefined || query === ""
-      ? "Interactive session browsing is not available yet"
-      : `Searching sessions for "${query}" requires the interactive picker (not available yet)`;
+      ? "Interactive session browsing requires an interactive terminal"
+      : `Searching sessions for "${query}" requires an interactive terminal`;
   return new UsageError(`${head}\n\nSpecify a full session ID:\n  stigmer resume <session-id>`);
 }

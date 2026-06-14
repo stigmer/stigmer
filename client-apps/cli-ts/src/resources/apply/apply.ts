@@ -31,6 +31,12 @@ export interface ApplyOutcome {
   readonly appliedMcpServer?: McpServer;
   /** Optional org-mismatch warning to surface on stderr. */
   readonly warning?: string;
+  /**
+   * The applied resource message (absent in dry-run). Carries the server's
+   * authoritative metadata (id/slug) — the reconciler reads this to register
+   * project membership, so membership matches what the backend stored.
+   */
+  readonly applied?: Message;
 }
 
 // Dependency apply order (ascending priority); kinds absent get 99 (applied
@@ -88,33 +94,62 @@ export function requiresOrgContext(items: readonly ApplyItem[]): boolean {
   return items.some((item) => item.handler.kind !== ApiResourceKind.organization);
 }
 
-/** Apply a single item: marshal, inject org, then dry-run preview or apply. */
+/** Apply a single YAML item: strict-marshal to a proto, then apply the message. */
 export async function applyItem(
   controller: ControllerFn,
   item: ApplyItem,
   org: string,
   dryRun: boolean,
 ): Promise<ApplyOutcome> {
-  let message: Message;
+  return applyMessage(controller, item.handler, marshalItem(item), org, dryRun);
+}
+
+/**
+ * Strict YAML→proto marshal for one item, with a precise location in the error.
+ * Split out from {@link applyItem} so the declarative reconciler can marshal
+ * without immediately applying (it batches messages, then reconciles).
+ */
+export function marshalItem(item: ApplyItem): Message {
   try {
-    message = fromJson(item.handler.schema, item.document, { ignoreUnknownFields: false });
+    return fromJson(item.handler.schema, item.document, { ignoreUnknownFields: false });
   } catch (err) {
     throw new UsageError(`invalid ${item.handler.displayName} in ${item.filePath}: ${(err as Error).message}`);
   }
+}
 
+/**
+ * Apply a fully-marshalled resource message: inject org, then dry-run preview or
+ * drive the controller's `apply` RPC. This is the single apply core shared by
+ * both tracks — the declarative/file track feeds messages marshalled from YAML
+ * (`marshalItem`), the synthesis track feeds messages decoded from `.pb`
+ * (`fromBinary`). One core means one place where org injection, create/update
+ * detection, and result shaping live (DD-009 §6).
+ */
+export async function applyMessage(
+  controller: ControllerFn,
+  handler: ApplyHandler,
+  message: Message,
+  org: string,
+  dryRun: boolean,
+): Promise<ApplyOutcome> {
   const warning = injectOrg(message, org);
   const created = (metaOf(message)?.id ?? "") === "";
 
   if (dryRun) {
-    return { result: buildDryRunResult(item.handler, message), warning };
+    return { result: buildDryRunResult(handler, message), warning };
   }
 
-  const applied = await item.handler.apply(controller, message);
-  const result = buildApplyResult(item.handler, applied, created);
-  if (item.handler.kind === ApiResourceKind.mcp_server) {
-    return { result, appliedMcpServer: applied as McpServer, warning };
+  const applied = await handler.apply(controller, message);
+  const result = buildApplyResult(handler, applied, created);
+  if (handler.kind === ApiResourceKind.mcp_server) {
+    return { result, appliedMcpServer: applied as McpServer, warning, applied };
   }
-  return { result, warning };
+  return { result, warning, applied };
+}
+
+/** Read a resource message's metadata (id/name/slug/org), if present. */
+export function resourceMetadata(message: Message): ApiResourceMetadata | undefined {
+  return metaOf(message);
 }
 
 function metaOf(message: Message): ApiResourceMetadata | undefined {

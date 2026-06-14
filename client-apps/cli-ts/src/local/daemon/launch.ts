@@ -1,0 +1,221 @@
+// Foreground control of the daemon: `up` (spawn + verify + wait-ready),
+// `down` (signal + wait + safety-net cleanup), and a liveness check.
+//
+// `up` resolves every heavy dependency in the foreground (Temporal binary,
+// server binary, runner entry) so failures surface with a clear message before
+// a detached daemon is spawned, then re-execs this same CLI as the hidden
+// `internal-daemon` and waits until the server's gRPC port answers.
+
+import { spawn } from "node:child_process";
+import { mkdirSync, openSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
+import { type Config, load as loadConfig } from "../../config/config.js";
+import { log } from "../../logger.js";
+import { CliExitError } from "../../errors/cli-exit-error.js";
+import { ExitCode } from "../../errors/exit-codes.js";
+import { DAEMON_PID_FILE, SERVER_PORT } from "../constants.js";
+import { tcpConnects, waitForTcp } from "../net/tcp.js";
+import { dataDir, logDir } from "../paths.js";
+import { readPidFile, removePidFile } from "../state/pidfile.js";
+import { findProcessByPort, isProcessAlive, killProcess } from "../state/proc.js";
+import { type StartupConfig, removeStartupConfig, saveStartupConfig } from "../state/startup-config.js";
+import { rotateLogs } from "../state/log-rotation.js";
+import { ensureRunner } from "../runtime/runner.js";
+import { ensureServerBinary } from "../runtime/server.js";
+import { TemporalManager } from "../temporal/manager.js";
+import { buildDaemonEnv } from "./env.js";
+
+/** How long `up` waits for the server's gRPC port after spawning the daemon. */
+const READY_TIMEOUT_MS = 60_000;
+/** How long to wait for the daemon to come up before checking it is still alive. */
+const DAEMON_SETTLE_MS = 3_000;
+/** How long `down` waits for graceful daemon exit before force-killing. */
+const STOP_TIMEOUT_MS = 15_000;
+const STOP_POLL_MS = 500;
+
+export interface UpOptions {
+  serverOnly?: boolean;
+  noWeb?: boolean;
+}
+
+/** Start the local stack in the background. Throws on any startup failure. */
+export async function up(options: UpOptions = {}, home: string = homedir()): Promise<void> {
+  const data = dataDir(home);
+  const logs = logDir(home);
+
+  cleanupOrphans(data);
+  if (await isRunning(home)) {
+    throw new CliExitError("daemon is already running", ExitCode.General);
+  }
+
+  mkdirSync(data, { recursive: true });
+  mkdirSync(logs, { recursive: true });
+  rotateLogs(logs);
+
+  const config = loadConfig();
+  const temporalManaged = isTemporalManaged(config);
+  const temporal = TemporalManager.forHome(home);
+
+  if (temporalManaged) {
+    log.info("ensuring Temporal is installed");
+    await temporal.ensureInstalled();
+  }
+
+  const serverBin = await ensureServerBinary({ home });
+  const runner = options.serverOnly === true ? undefined : ensureRunner({ home });
+
+  const env = buildDaemonEnv(
+    {
+      dataDir: data,
+      logDir: logs,
+      temporalManaged,
+      temporalAddress: temporal.address,
+      serverOnly: options.serverOnly === true,
+      noWeb: options.noWeb === true,
+      serverBin,
+      runner,
+    },
+    process.env,
+  );
+
+  const daemonPid = spawnDaemon(env, join(logs, "daemon.log"));
+  log.info("daemon process started", { pid: daemonPid });
+
+  await sleep(DAEMON_SETTLE_MS);
+  if (!isProcessAlive(daemonPid)) {
+    throw new CliExitError("daemon process crashed during startup", ExitCode.General, [
+      `Check ${join(logs, "daemon.log")} for details.`,
+    ]);
+  }
+
+  await waitForTcp({ port: SERVER_PORT, timeoutMs: READY_TIMEOUT_MS, label: "stigmer-server" });
+
+  saveStartupConfig(data, buildStartupConfig(data, logs, temporal.address, config, daemonPid, options));
+}
+
+/** Stop the local stack. Returns false if nothing was running. */
+export async function down(home: string = homedir()): Promise<boolean> {
+  const data = dataDir(home);
+  let pid = readPidFile(join(data, DAEMON_PID_FILE));
+  if (pid === null) pid = findProcessByPort(SERVER_PORT);
+
+  if (pid === null || !isProcessAlive(pid)) {
+    removePidFile(join(data, DAEMON_PID_FILE));
+    await stopManagedTemporal(home);
+    cleanupOrphans(data);
+    return false;
+  }
+
+  // The daemon traps SIGTERM and tears down children + Temporal in order.
+  killProcess(pid, "SIGTERM");
+  log.info("sent SIGTERM to daemon", { pid });
+
+  const deadline = Date.now() + STOP_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    if (!isProcessAlive(pid)) {
+      removePidFile(join(data, DAEMON_PID_FILE));
+      removeStartupConfig(data);
+      return true;
+    }
+    await sleep(STOP_POLL_MS);
+  }
+
+  log.warn("daemon did not stop gracefully, force killing", { pid });
+  killProcess(pid, "SIGKILL");
+  removePidFile(join(data, DAEMON_PID_FILE));
+  removeStartupConfig(data);
+  await stopManagedTemporal(home);
+  cleanupOrphans(data);
+  return true;
+}
+
+/** Whether the daemon is running: live PID, else a server-port fallback. */
+export async function isRunning(home: string = homedir()): Promise<boolean> {
+  const data = dataDir(home);
+  const pid = readPidFile(join(data, DAEMON_PID_FILE));
+  if (pid !== null) {
+    if (isProcessAlive(pid)) return true;
+    removePidFile(join(data, DAEMON_PID_FILE)); // stale
+  }
+  return tcpConnects(SERVER_PORT, "127.0.0.1", 1000);
+}
+
+// Re-exec this CLI as the detached internal-daemon, returning its PID. Replaying
+// execArgv carries the tsx loader in dev and is a no-op for a plain-node build.
+function spawnDaemon(env: NodeJS.ProcessEnv, daemonLog: string): number {
+  const script = process.argv[1];
+  if (script === undefined) {
+    throw new CliExitError("cannot resolve the CLI entry point to launch the daemon", ExitCode.General);
+  }
+  const out = openSync(daemonLog, "a");
+  const child = spawn(process.execPath, [...process.execArgv, script, "internal-daemon"], {
+    detached: true,
+    env,
+    stdio: ["ignore", out, out],
+  });
+  child.unref();
+  if (child.pid === undefined) {
+    throw new CliExitError("failed to start the daemon process", ExitCode.General);
+  }
+  return child.pid;
+}
+
+// Kill any daemon/server/runner left alive by a previous, improperly-stopped run.
+function cleanupOrphans(data: string): void {
+  for (const name of [DAEMON_PID_FILE, "stigmer-server.pid", "runner.pid"]) {
+    const pidPath = join(data, name);
+    const pid = readPidFile(pidPath);
+    if (pid === null) continue;
+    if (isProcessAlive(pid)) {
+      log.warn("killing orphaned process from a previous run", { file: name, pid });
+      killProcess(pid, "SIGTERM");
+    }
+    removePidFile(pidPath);
+  }
+}
+
+async function stopManagedTemporal(home: string): Promise<void> {
+  try {
+    await TemporalManager.forHome(home).stop();
+  } catch (err) {
+    log.debug("managed Temporal stop skipped", { error: String(err) });
+  }
+}
+
+// Default to managed Temporal unless the opaque local config explicitly opts out
+// (Go parity: managed is the default). Wave 4's `setup` models this section.
+function isTemporalManaged(config: Config): boolean {
+  const local = config.backend.local as { temporal?: { managed?: boolean } } | undefined;
+  return local?.temporal?.managed !== false;
+}
+
+function buildStartupConfig(
+  data: string,
+  logs: string,
+  temporalAddr: string,
+  config: Config,
+  daemonPid: number,
+  options: UpOptions,
+): StartupConfig {
+  const local = config.backend.local as { llm?: { provider?: string; model?: string; base_url?: string } } | undefined;
+  return {
+    data_dir: data,
+    log_dir: logs,
+    temporal_addr: temporalAddr,
+    llm_provider: local?.llm?.provider ?? "",
+    llm_model: local?.llm?.model ?? "",
+    llm_base_url: local?.llm?.base_url ?? "",
+    execution_mode: "local",
+    sandbox_image: "",
+    sandbox_auto_pull: false,
+    sandbox_cleanup: false,
+    sandbox_ttl: 0,
+    stigmer_server_pid: daemonPid,
+    server_only: options.serverOnly === true,
+  };
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}

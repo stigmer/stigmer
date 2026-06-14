@@ -96,6 +96,8 @@ describe("connect push path", () => {
       timeoutMs: 30_000,
       dryRun: false,
       envOverrides: ["GITHUB_TOKEN=ghp-override"],
+      backendType: "cloud",
+      interactive: false,
     });
 
     expect(connectCalls).toHaveLength(1);
@@ -113,16 +115,32 @@ describe("OAuth guidance gate", () => {
     servedSpec.spec!.auth = create(McpServerAuthSchema, { targetEnvVar: "GITHUB_TOKEN" });
   });
 
-  it("stops with actionable guidance when auth is required and no grant or --env exists", async () => {
+  it("stops with actionable guidance when auth is required off an interactive terminal", async () => {
     await expect(
-      connectMcpServer(client, { reference: "github", org: "acme", timeoutMs: 30_000, dryRun: false, envOverrides: [] }),
+      connectMcpServer(client, {
+        reference: "github",
+        org: "acme",
+        timeoutMs: 30_000,
+        dryRun: false,
+        envOverrides: [],
+        backendType: "cloud",
+        interactive: false,
+      }),
     ).rejects.toThrow(UsageError);
     expect(connectCalls).toHaveLength(0);
   });
 
   it("proceeds when an OAuth grant already exists", async () => {
     grantConnected = true;
-    await connectMcpServer(client, { reference: "github", org: "acme", timeoutMs: 30_000, dryRun: false, envOverrides: [] });
+    await connectMcpServer(client, {
+      reference: "github",
+      org: "acme",
+      timeoutMs: 30_000,
+      dryRun: false,
+      envOverrides: [],
+      backendType: "cloud",
+      interactive: false,
+    });
     expect(connectCalls).toHaveLength(1);
   });
 
@@ -133,6 +151,8 @@ describe("OAuth guidance gate", () => {
       timeoutMs: 30_000,
       dryRun: false,
       envOverrides: ["GITHUB_TOKEN=ghp-x"],
+      backendType: "cloud",
+      interactive: false,
     });
     expect(connectCalls).toHaveLength(1);
   });
@@ -146,6 +166,8 @@ describe("dry-run path", () => {
       timeoutMs: 10_000,
       dryRun: true,
       envOverrides: [],
+      backendType: "cloud",
+      interactive: false,
     });
 
     expect(connectCalls).toHaveLength(0);

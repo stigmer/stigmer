@@ -257,6 +257,10 @@ jobs:
           cd bin
           tar -czf stigmer-$VERSION-darwin-arm64.tar.gz stigmer stigmer-server
           shasum -a 256 stigmer-$VERSION-darwin-arm64.tar.gz > stigmer-$VERSION-darwin-arm64.tar.gz.sha256
+          # Standalone stigmer-server asset: the npm CLI downloads this on demand
+          # and verifies the sha256 before first use (DD-003).
+          tar -czf stigmer-server-$VERSION-darwin-arm64.tar.gz stigmer-server
+          shasum -a 256 stigmer-server-$VERSION-darwin-arm64.tar.gz > stigmer-server-$VERSION-darwin-arm64.tar.gz.sha256
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -346,6 +350,10 @@ jobs:
           cd bin
           tar -czf stigmer-$VERSION-darwin-amd64.tar.gz stigmer stigmer-server
           shasum -a 256 stigmer-$VERSION-darwin-amd64.tar.gz > stigmer-$VERSION-darwin-amd64.tar.gz.sha256
+          # Standalone stigmer-server asset: the npm CLI downloads this on demand
+          # and verifies the sha256 before first use (DD-003).
+          tar -czf stigmer-server-$VERSION-darwin-amd64.tar.gz stigmer-server
+          shasum -a 256 stigmer-server-$VERSION-darwin-amd64.tar.gz > stigmer-server-$VERSION-darwin-amd64.tar.gz.sha256
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -431,6 +439,10 @@ jobs:
           cd bin
           tar -czf stigmer-$VERSION-linux-amd64.tar.gz stigmer stigmer-server
           sha256sum stigmer-$VERSION-linux-amd64.tar.gz > stigmer-$VERSION-linux-amd64.tar.gz.sha256
+          # Standalone stigmer-server asset: the npm CLI downloads this on demand
+          # and verifies the sha256 before first use (DD-003).
+          tar -czf stigmer-server-$VERSION-linux-amd64.tar.gz stigmer-server
+          sha256sum stigmer-server-$VERSION-linux-amd64.tar.gz > stigmer-server-$VERSION-linux-amd64.tar.gz.sha256
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

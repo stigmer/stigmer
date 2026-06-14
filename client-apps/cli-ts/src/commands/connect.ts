@@ -55,6 +55,8 @@ async function runConnect(reference: string, options: ConnectFlags, command: Com
     timeoutMs,
     dryRun: options.dryRun === true,
     envOverrides: options.env,
+    backendType: client.config.backend.type,
+    interactive: process.stderr.isTTY === true,
   });
 
   const colorize = shouldColorize(process.stdout);
