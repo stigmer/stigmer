@@ -29,6 +29,25 @@ export interface CapabilityFlags {
   // for cloud, which encrypts at rest and redacts on read. The is_secret flag
   // itself is edition-agnostic; only the value handling differs.
   secretRedaction: boolean;
+  // A child agent's tool-approval gate surfaces at the parent WorkflowExecution
+  // (status.pending_approvals carries the child_agent_execution_id) so that
+  // WorkflowExecution.submitApproval can forward the decision to the child.
+  //
+  // False for local OSS: the *forwarder* is fully built (submit_approval.go, the
+  // runner's call-agent orchestrator, all protos), but the upstream half — the
+  // `child_approval_required` signal the agent-execution workflow emits when it
+  // gates — is cloud-only. The OSS Go agent-execution workflow never emits it, so
+  // a gated agent_call child never populates the parent's pending_approvals and
+  // the forwarder's happy path is structurally unreachable (source-confirmed, not
+  // a timing artifact; see DD-012). The reachable *negatives* (no pending
+  // approval, proto validation, missing execution) are edition-agnostic and are
+  // asserted unconditionally.
+  //
+  // True for cloud, which emits the signal and surfaces the gate to the parent.
+  // The forwarder happy-path assertions are gated on this flag so they run only
+  // where the full round-trip exists — including the future local-ts-execution
+  // (T04) target, which is where the OSS implementation will finally land.
+  workflowChildApprovalForwarding: boolean;
 }
 
 // Tenancy scope a test operates within. Locally this is just a unique org slug;

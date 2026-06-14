@@ -20,6 +20,7 @@ export class CloudTarget implements TargetProfile {
     externalOrgLookup: true,
     versionTagging: true,
     secretRedaction: true,
+    workflowChildApprovalForwarding: true,
   };
 
   async setup(): Promise<void> {

@@ -158,3 +158,32 @@ export function awaitTaskWaitingApproval(
 ): Promise<WorkflowExecution> {
   return awaitTaskStatus(clients, executionId, taskName, WorkflowTaskStatus.WORKFLOW_TASK_WAITING_APPROVAL, opts);
 }
+
+// Polls get() until the execution surfaces a child agent's approval gate at the
+// workflow level (status.pending_approvals non-empty — the child_approval_required
+// signal has propagated). Fails fast if the execution reaches a terminal phase
+// first, so a run that finishes without ever surfacing the gate is reported
+// immediately rather than burning the full timeout. This is the parent-level
+// analogue of awaitTaskWaitingApproval, and only fires on editions that emit the
+// signal (capability workflowChildApprovalForwarding; see DD-012).
+export async function awaitParentPendingApproval(
+  clients: ConformanceClients,
+  executionId: string,
+  opts: PollOptions = {},
+): Promise<WorkflowExecution> {
+  const exec = await pollExecution(
+    clients,
+    executionId,
+    (e) => (e.status?.pendingApprovals.length ?? 0) > 0 || isTerminalPhase(e.status?.phase),
+    { label: "a child approval surfaced at the workflow level", ...opts },
+  );
+
+  if ((exec.status?.pendingApprovals.length ?? 0) === 0) {
+    const phase = exec.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+    throw new Error(
+      `execution ${executionId} reached terminal phase ${ExecutionPhase[phase]} ` +
+        "before surfacing a child agent approval in status.pending_approvals",
+    );
+  }
+  return exec;
+}

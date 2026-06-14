@@ -18,6 +18,7 @@ export class LocalGoTarget implements TargetProfile {
     externalOrgLookup: false,
     versionTagging: false,
     secretRedaction: false,
+    workflowChildApprovalForwarding: false,
   };
 
   private server: RunningServer | undefined;

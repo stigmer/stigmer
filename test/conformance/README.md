@@ -175,8 +175,13 @@ with no IAM filtering), `versionTagging` is `false` (the dedicated
 version tags are set at apply time via `metadata.version.tag` instead), and
 `secretRedaction` is `false` (single-user OSS returns secret values in plaintext
 on bulk reads, whereas cloud redacts them; the `is_secret` flag and the
-`getSecretValue` reveal endpoint are edition-agnostic). See the project's
-`design-decisions/005-secret-redaction-capability-flag.md`.
+`getSecretValue` reveal endpoint are edition-agnostic), and
+`workflowChildApprovalForwarding` is `false` (the `WorkflowExecution.submitApproval`
+forwarder is built in OSS, but the `child_approval_required` signal that surfaces a
+child agent's gate to its parent workflow is cloud-only, so the forwarder's
+happy path is unreachable against the Go server — see
+`design-decisions/012-workflowexecution-child-approval-forwarding-contract.md`).
+See the project's `design-decisions/005-secret-redaction-capability-flag.md`.
 
 ### Harness (`src/harness/`)
 
@@ -279,11 +284,32 @@ run on its own, and the negative codes (empty fields / unknown task / non-
 on a terminal execution -> `FailedPrecondition`). It deliberately does **not**
 assert idempotency (the signal-based gate is not deduped, unlike the agent DB
 projection) or the `task.output` projection (outcome-honoring is proven
-behaviorally via routing). The sibling `workflowexecution.conformance.test.ts`'s
-deferred `submitApproval` (the workflow->child-agent tool-forwarding composite)
-remains **out of scope** — it is a different mechanism (a forwarder to a child
-AgentExecution) and a Session-12 investigation. See the project's
+behaviorally via routing). The sibling `submitApproval` (the workflow->child-agent
+tool-forwarding composite) is a **different mechanism** and lives in its own file,
+described next. See the project's
 `design-decisions/011-workflowexecution-human-input-hitl-contract.md`.
+
+`workflowexecution-child-approval.conformance.test.ts` adds the **child-agent
+approval FORWARDING** (`submitApproval`) contract — distinct from `human_input`
+(DD-011): a workflow invokes an agent via an `agent_call` task, and when that
+*child* AgentExecution gates on a tool, the gate surfaces at the parent's
+`status.pending_approvals` (carrying `child_agent_execution_id`); `submitApproval`
+routes the decision down to the child's `AgentExecution.submitApproval`. The
+forwarder is **half-built in OSS by design**: the receiver is complete, but the
+`child_approval_required` signal that populates the parent's `pending_approvals` is
+**cloud-only**, so a gated child never surfaces against the Go server (source-
+confirmed). The suite splits along the `workflowChildApprovalForwarding`
+capability: the **negatives** never need a populated `pending_approvals` and run
+unconditionally against OSS today (empty `execution_id`/`tool_call_id` /
+UNSPECIFIED action -> `InvalidArgument`; missing execution -> `NotFound`; a running
+*or* terminal execution with no pending approvals -> `FailedPrecondition`); the
+**happy path** is written in full but `describe.skipIf`-gated so it reports as
+genuinely **SKIPPED** (not a false green) on `local-go` — it needs both the
+forwarder *and* the local mock-LLM + MCP fixtures, which only the future
+`local-ts-execution` (T04) target has. The eventual OSS implementation lands in the
+T04 TS rewrite (not the retiring Go server) and should surface the child gate by
+**derivation** (identity-only signal + derive-from-child). See the project's
+`design-decisions/012-workflowexecution-child-approval-forwarding-contract.md`.
 
 ## Layout
 
@@ -293,11 +319,12 @@ src/
                     + execution: temporal, runner-build, runner-process, mock-llm, mcp-server, global-setup-execution
   targets/          target (interface + capabilities), local-go, local-go-execution, cloud (stub), index
   contract/         errors, deviations, parity
-  support/          naming, workflows (set_vars + wait + human_input), execution-poll, workflowexecutions, agentexecutions,
+  support/          naming, workflows (set_vars + wait + human_input + agent_call), execution-poll, workflowexecutions, agentexecutions,
                     agents, mcpservers, skills, environments, executioncontexts, sessions
   suites/           *.conformance.test.ts            (Class A — CRUD, no Temporal)
   suites-execution/ harness.smoke.test.ts + agent.harness.smoke.test.ts + mcp.harness.smoke.test.ts
                     + workflowexecution.conformance.test.ts + workflowexecution-approval.conformance.test.ts
+                    + workflowexecution-child-approval.conformance.test.ts
                     + agentexecution.conformance.test.ts + agentexecution-approval.conformance.test.ts  (Class B)
 ```
 

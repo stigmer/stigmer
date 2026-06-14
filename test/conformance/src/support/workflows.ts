@@ -204,3 +204,62 @@ export function makeHumanInputWorkflow(
     },
   };
 }
+
+// The agent_call task name and its downstream continue-task name, exported so the
+// child-approval suite refers to the same identifiers the fixture defines (the
+// downstream task completing is how the suite proves the child resumed).
+export const AGENT_CALL_TASK_NAME = "callAgent";
+export const AGENT_CALL_AFTER_TASK_NAME = "afterAgent";
+
+export interface AgentCallWorkflowOptions {
+  org: string;
+  name: string;
+  // Slug of the agent the agent_call task invokes (Agent.metadata.slug). The
+  // server converts it to the CNCF `with.agent` ref and the runner creates a
+  // child AgentExecution for it in the workflow's org.
+  agentSlug: string;
+  // The message handed to the child agent. agent_call.message is an expression
+  // (is_expression), and a constant string is a valid expression; the default
+  // nudges the (mock) LLM toward its single tool call.
+  message?: string;
+}
+
+// A Workflow whose first task is an `agent_call` invoking a tool-using agent,
+// followed by a downstream `afterAgent` set_vars. When the child agent gates on a
+// tool approval, the gate surfaces at THIS workflow's status.pending_approvals
+// (carrying child_agent_execution_id) on editions that emit the
+// child_approval_required signal; WorkflowExecution.submitApproval then forwards
+// the decision to the child. The downstream set_vars completing is the proof the
+// child resumed and the workflow continued.
+//
+// Unlike the hermetic wait/human_input fixtures, driving the child to its gate
+// needs the mock LLM + MCP tool fixture (the agent must reference an
+// approval-gated tool), so this pairs with the suite's provisionGatedAgent. It is
+// only exercised on the workflowChildApprovalForwarding capability (DD-012).
+export function makeAgentCallWorkflow(
+  opts: AgentCallWorkflowOptions,
+): MessageInitShape<typeof WorkflowSchema> {
+  const { org, name, agentSlug, message = "Use the echo tool to echo the word hello." } = opts;
+  return {
+    apiVersion: WORKFLOW_API_VERSION,
+    kind: WORKFLOW_KIND,
+    metadata: { name, org },
+    spec: {
+      description: "conformance agent_call fixture",
+      document: { dsl: "1.0.0", namespace: org, name, version: "1.0.0" },
+      tasks: [
+        {
+          name: AGENT_CALL_TASK_NAME,
+          kind: WorkflowTaskKind.agent_call,
+          taskConfig: { agent: agentSlug, message },
+          export: { as: "${ . }" },
+        },
+        {
+          name: AGENT_CALL_AFTER_TASK_NAME,
+          kind: WorkflowTaskKind.set_vars,
+          taskConfig: { variables: { resumed: "true" } },
+        },
+      ],
+    },
+  };
+}
