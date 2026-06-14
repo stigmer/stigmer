@@ -11,6 +11,8 @@ import { create } from "@bufbuild/protobuf";
 import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { PushSkillRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
 import { GitProvenanceSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/status_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import { UpdateVisibilityInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { zipSync } from "fflate";
 import { parse as parseYaml } from "yaml";
@@ -44,6 +46,12 @@ export interface PushResult {
   readonly artifactSize: number;
   readonly isNewResource: boolean;
   readonly versionChanged: boolean;
+  /**
+   * The visibility the SKILL.md declared and that was applied after push, if
+   * any. `undefined` means the skill left visibility unspecified and the
+   * server-side value was left untouched (push never silently downgrades).
+   */
+  readonly visibility?: ApiResourceVisibility;
 }
 
 export interface DryRunAnalysis {
@@ -74,6 +82,13 @@ export function hasSkillFile(dir: string): boolean {
 
 interface SkillMetadata {
   readonly name: string;
+  /**
+   * Declared access level, parsed from the optional `visibility:` frontmatter
+   * key. `undefined` when omitted — the skill keeps whatever the server already
+   * has (default PRIVATE for new skills). This is the declarative replacement
+   * for the Go CLI's `--public-skills` flag.
+   */
+  readonly visibility?: ApiResourceVisibility;
 }
 
 /** Parse SKILL.md YAML frontmatter and validate the skill name (kebab-case). */
@@ -103,7 +118,44 @@ export function parseSkillMetadata(dir: string): SkillMetadata {
         "Examples: 'calculator', 'web-scraper', 'math-utils'",
     );
   }
-  return { name };
+  return { name, visibility: parseVisibility(parsed.visibility, SKILL_FILE) };
+}
+
+// Friendly frontmatter spellings → proto enum. Both the short form (`public`)
+// and the canonical enum name (`visibility_public`) are accepted so authors can
+// copy either from docs or from generated YAML. `unspecified`/empty is treated
+// as "not declared" (returns undefined) so we never emit a no-op update.
+const VISIBILITY_ALIASES: ReadonlyMap<string, ApiResourceVisibility> = new Map([
+  ["private", ApiResourceVisibility.visibility_private],
+  ["visibility_private", ApiResourceVisibility.visibility_private],
+  ["public", ApiResourceVisibility.visibility_public],
+  ["visibility_public", ApiResourceVisibility.visibility_public],
+  ["org", ApiResourceVisibility.visibility_org],
+  ["visibility_org", ApiResourceVisibility.visibility_org],
+  ["platform", ApiResourceVisibility.visibility_platform],
+  ["visibility_platform", ApiResourceVisibility.visibility_platform],
+]);
+
+/**
+ * Map an optional `visibility` frontmatter value to the proto enum. Returns
+ * undefined when omitted or explicitly unspecified; throws on an unknown value
+ * (a typo should fail loudly rather than silently leave a skill private).
+ */
+export function parseVisibility(value: unknown, source = SKILL_FILE): ApiResourceVisibility | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value !== "string") {
+    throw new UsageError(`invalid 'visibility' in ${source}: expected a string, got ${typeof value}`);
+  }
+  const key = value.trim().toLowerCase();
+  if (key === "" || key === "unspecified" || key === "api_resource_visibility_unspecified") return undefined;
+  const mapped = VISIBILITY_ALIASES.get(key);
+  if (mapped === undefined) {
+    throw new UsageError(
+      `invalid 'visibility' value '${value}' in ${source}\n\n` +
+        "Valid values: private, public, org, platform.",
+    );
+  }
+  return mapped;
 }
 
 function extractFrontmatter(content: string): string {
@@ -257,7 +309,7 @@ export async function pushSkill(
       `${SKILL_FILE} not found in ${dir}\n\nA skill directory must contain a ${SKILL_FILE} file defining the skill interface`,
     );
   }
-  const { name } = parseSkillMetadata(dir);
+  const { name, visibility } = parseSkillMetadata(dir);
   const { bytes, stats } = createSkillZip(dir, options, onDecision);
 
   const provenance = collectLocalGitProvenance(dir);
@@ -269,7 +321,8 @@ export async function pushSkill(
     gitProvenance: provenance,
   });
   const response = await client.skill.push(request);
-  return toResult(response, name, message, stats.totalSize);
+  const applied = await applyDeclaredVisibility(client, response, visibility);
+  return toResult(applied, name, message, stats.totalSize, visibility);
 }
 
 export interface RemotePushParams {
@@ -292,7 +345,7 @@ export async function pushSkillFromClone(
   if (!hasSkillFile(skillDir)) {
     throw new UsageError(`${SKILL_FILE} not found in ${skillDir}\n\nThe skill directory must contain a ${SKILL_FILE} file`);
   }
-  const { name } = parseSkillMetadata(skillDir);
+  const { name, visibility } = parseSkillMetadata(skillDir);
   const { bytes, stats } = createSkillZip(skillDir, params.options, onDecision);
 
   const commit = getGitCommit(skillDir) ?? "";
@@ -310,7 +363,28 @@ export async function pushSkillFromClone(
     gitProvenance: provenance,
   });
   const response = await client.skill.push(request);
-  return toResult(response, name, params.message, stats.totalSize);
+  const applied = await applyDeclaredVisibility(client, response, visibility);
+  return toResult(applied, name, params.message, stats.totalSize, visibility);
+}
+
+/**
+ * Apply the SKILL.md-declared visibility after a push. The push RPC carries
+ * artifact + provenance but not access level (visibility is metadata, not part
+ * of the versioned content), so we follow it with a single UpdateVisibility RPC
+ * — the declarative equivalent of the Go CLI's post-push `--public-skills`
+ * sweep. No-ops (undefined visibility, or the server already matching) are
+ * skipped so an unchanged skill costs nothing extra.
+ */
+async function applyDeclaredVisibility(
+  client: Stigmer,
+  pushed: Skill,
+  visibility: ApiResourceVisibility | undefined,
+): Promise<Skill> {
+  if (visibility === undefined) return pushed;
+  const resourceId = pushed.metadata?.id ?? "";
+  if (resourceId === "") return pushed;
+  if (pushed.metadata?.visibility === visibility) return pushed;
+  return client.skill.updateVisibility(create(UpdateVisibilityInputSchema, { resourceId, visibility }));
 }
 
 function collectLocalGitProvenance(dir: string) {
@@ -331,7 +405,13 @@ function collectLocalGitProvenance(dir: string) {
   return provenance;
 }
 
-function toResult(response: Skill, skillName: string, message: string, size: number): PushResult {
+function toResult(
+  response: Skill,
+  skillName: string,
+  message: string,
+  size: number,
+  visibility: ApiResourceVisibility | undefined,
+): PushResult {
   const version = response.metadata?.version;
   const isNew = version === undefined ? false : version.previousVersionId === "";
   const changed =
@@ -346,6 +426,7 @@ function toResult(response: Skill, skillName: string, message: string, size: num
     artifactSize: size,
     isNewResource: isNew,
     versionChanged: changed,
+    visibility,
   };
 }
 

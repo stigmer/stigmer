@@ -4,10 +4,21 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import type { Stigmer } from "@stigmer/sdk";
 import { unzipSync } from "fflate";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { classify, ExitCode } from "../errors/index.js";
-import { analyzeDryRun, createSkillZip, formatBytes, hasSkillFile, parseSkillMetadata, shortHash } from "./skill.js";
+import {
+  analyzeDryRun,
+  createSkillZip,
+  formatBytes,
+  hasSkillFile,
+  parseSkillMetadata,
+  parseVisibility,
+  pushSkill,
+  shortHash,
+} from "./skill.js";
 
 const SKILL_MD = ["---", "name: my-skill", "description: a test skill", "---", "# My Skill", "", "Body."].join("\n");
 
@@ -45,6 +56,102 @@ describe("parseSkillMetadata", () => {
   it("rejects content without frontmatter", () => {
     writeFileSync(join(dir, "SKILL.md"), "# No frontmatter here\n");
     expect(() => parseSkillMetadata(dir)).toThrow(/frontmatter/);
+  });
+
+  it("parses a declared visibility from frontmatter", () => {
+    writeFileSync(join(dir, "SKILL.md"), "---\nname: my-skill\nvisibility: public\n---\n");
+    expect(parseSkillMetadata(dir)).toEqual({
+      name: "my-skill",
+      visibility: ApiResourceVisibility.visibility_public,
+    });
+  });
+
+  it("leaves visibility undefined when not declared", () => {
+    writeFileSync(join(dir, "SKILL.md"), SKILL_MD);
+    expect(parseSkillMetadata(dir).visibility).toBeUndefined();
+  });
+});
+
+describe("parseVisibility", () => {
+  it("maps the four short forms", () => {
+    expect(parseVisibility("private")).toBe(ApiResourceVisibility.visibility_private);
+    expect(parseVisibility("public")).toBe(ApiResourceVisibility.visibility_public);
+    expect(parseVisibility("org")).toBe(ApiResourceVisibility.visibility_org);
+    expect(parseVisibility("platform")).toBe(ApiResourceVisibility.visibility_platform);
+  });
+
+  it("accepts canonical enum names and is case/whitespace insensitive", () => {
+    expect(parseVisibility(" Visibility_Public ")).toBe(ApiResourceVisibility.visibility_public);
+    expect(parseVisibility("PUBLIC")).toBe(ApiResourceVisibility.visibility_public);
+  });
+
+  it("treats omitted/unspecified as not declared (undefined)", () => {
+    expect(parseVisibility(undefined)).toBeUndefined();
+    expect(parseVisibility(null)).toBeUndefined();
+    expect(parseVisibility("")).toBeUndefined();
+    expect(parseVisibility("unspecified")).toBeUndefined();
+  });
+
+  it("throws on an unknown value", () => {
+    expect(() => parseVisibility("everyone")).toThrow(/invalid 'visibility'/);
+  });
+
+  it("throws on a non-string value", () => {
+    expect(() => parseVisibility(42)).toThrow(/expected a string/);
+  });
+});
+
+// A minimal fake of the SDK surface pushSkill touches: skill.push + skill.updateVisibility.
+function fakeClient(pushMeta: { id?: string; visibility?: ApiResourceVisibility }) {
+  const calls = { push: 0, updateVisibility: [] as Array<{ resourceId: string; visibility: ApiResourceVisibility }> };
+  const skillMessage = { metadata: { ...pushMeta } };
+  const client = {
+    skill: {
+      async push() {
+        calls.push++;
+        return skillMessage;
+      },
+      async updateVisibility(input: { resourceId: string; visibility: ApiResourceVisibility }) {
+        calls.updateVisibility.push({ resourceId: input.resourceId, visibility: input.visibility });
+        return { metadata: { ...pushMeta, visibility: input.visibility } };
+      },
+    },
+  } as unknown as Stigmer;
+  return { client, calls };
+}
+
+const NO_IGNORE = { respectGitignore: true, extraIgnore: [], extraInclude: [] };
+
+describe("pushSkill visibility propagation", () => {
+  it("issues an UpdateVisibility RPC when the SKILL.md declares a non-matching visibility", async () => {
+    writeFileSync(join(dir, "SKILL.md"), "---\nname: my-skill\nvisibility: public\n---\n");
+    const { client, calls } = fakeClient({ id: "skill-123", visibility: ApiResourceVisibility.visibility_private });
+
+    const result = await pushSkill(client, dir, "stigmer", "latest", "", NO_IGNORE);
+
+    expect(calls.push).toBe(1);
+    expect(calls.updateVisibility).toEqual([
+      { resourceId: "skill-123", visibility: ApiResourceVisibility.visibility_public },
+    ]);
+    expect(result.visibility).toBe(ApiResourceVisibility.visibility_public);
+  });
+
+  it("does not touch visibility when the SKILL.md omits it", async () => {
+    writeFileSync(join(dir, "SKILL.md"), SKILL_MD);
+    const { client, calls } = fakeClient({ id: "skill-123", visibility: ApiResourceVisibility.visibility_private });
+
+    await pushSkill(client, dir, "stigmer", "latest", "", NO_IGNORE);
+
+    expect(calls.updateVisibility).toHaveLength(0);
+  });
+
+  it("skips the RPC when the server already matches the declared visibility", async () => {
+    writeFileSync(join(dir, "SKILL.md"), "---\nname: my-skill\nvisibility: public\n---\n");
+    const { client, calls } = fakeClient({ id: "skill-123", visibility: ApiResourceVisibility.visibility_public });
+
+    await pushSkill(client, dir, "stigmer", "latest", "", NO_IGNORE);
+
+    expect(calls.updateVisibility).toHaveLength(0);
   });
 });
 
