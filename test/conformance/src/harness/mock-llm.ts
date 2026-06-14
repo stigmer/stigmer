@@ -42,9 +42,12 @@ export type AnthropicContentBlock =
   | { type: "thinking"; thinking: string }
   | { type: "tool_use"; id: string; name: string; input: Record<string, unknown> };
 
-// One queued turn: the body to serve plus an optional hold before serving it.
+// One queued turn: either a success body to stream, or an HTTP error status to
+// fail the call with, plus an optional hold before responding. `errorStatus` and
+// `body` are mutually exclusive — exactly one is set per entry.
 interface QueuedResponse {
-  body: AnthropicMessageBody;
+  body?: AnthropicMessageBody;
+  errorStatus?: number;
   delayMs?: number;
 }
 
@@ -152,6 +155,24 @@ export class MockLlmProxy {
     return this;
   }
 
+  // Append a turn that responds with an HTTP error status instead of a body — the
+  // lever for driving an execution to EXECUTION_FAILED deterministically. Lands now
+  // to keep the deferred AgentExecution-recover end-to-end slice cheap to add later
+  // (that slice is blocked on the recovery-mechanism redesign, see DD-013).
+  //
+  // Status choice matters: the runner's agent loop wraps the LLM call in
+  // LangChain's AsyncCaller, which retries 6x with exponential backoff for 429 and
+  // 5xx but throws IMMEDIATELY for statuses in its STATUS_NO_RETRY list
+  // (400/401/402/403/404/405/406/407/409). For a fail-fast, single-round-trip
+  // failure use a non-retryable status (default 400); a 5xx would instead stall
+  // the execution in IN_PROGRESS for ~a minute before failing. The deep-agent
+  // activity runs with MaximumAttempts:1, so the first thrown error becomes a
+  // terminal EXECUTION_FAILED with no Temporal retry.
+  enqueueError(status = 400, opts: EnqueueOptions = {}): this {
+    this.queue.push({ errorStatus: status, delayMs: opts.delayMs });
+    return this;
+  }
+
   // Drop any unconsumed turns and zero the consumed counter. Call in afterEach so
   // a prior test's leftovers can't leak into the next one.
   reset(): void {
@@ -205,6 +226,22 @@ export class MockLlmProxy {
         // nothing to write. The turn stays counted as consumed.
         return;
       }
+    }
+
+    // An injected error turn fails the call with the requested status. The body
+    // mirrors Anthropic's error envelope so the SDK surfaces a real HTTP error.
+    if (next.errorStatus !== undefined) {
+      writeJson(res, next.errorStatus, {
+        type: "error",
+        error: { type: "invalid_request_error", message: "MockLlmProxy: injected failure" },
+      });
+      return;
+    }
+
+    if (next.body === undefined) {
+      // Defensive: every non-error turn is enqueued with a body via enqueue().
+      writeJson(res, 500, { error: "MockLlmProxy: queued turn had neither body nor errorStatus" });
+      return;
     }
 
     if (streaming) {

@@ -11,9 +11,10 @@
 //
 // Negatives (duplicate, missing name, wrong const fields) are written inline in the
 // suite, matching support/agents.ts and support/environments.ts: this module is
-// validity-by-construction. Runtime-populated fields (harness_state_id and the
-// harness/execution_target immutability sentinels it gates) only exist after a real
-// execution and are out of scope until the execution-lifecycle slice (Class B).
+// validity-by-construction. harness_state_id is normally populated by the engine
+// after the first execution and gates the harness / execution_target immutability
+// validators; the Class B immutability suite sets it directly (it is a plain
+// client-settable spec field) to exercise those validators hermetically.
 import type { MessageInitShape } from "@bufbuild/protobuf";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { Harness, ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
@@ -35,6 +36,11 @@ export interface SessionSpecOptions {
   harness?: Harness;
   // Where activities run. Omitted by default for the same parity reason.
   executionTarget?: ExecutionTarget;
+  // The immutability sentinel (spec.harness_state_id). Normally populated by the
+  // engine after the first execution; the immutability suite sets it directly to
+  // exercise the harness / execution_target immutability validators hermetically
+  // (it is a plain client-settable spec field). Omitted by default.
+  harnessStateId?: string;
   // Session-level McpServer slugs, projected into spec.mcp_server_usages. Org is
   // left empty so the server normalizes it to the session's org.
   mcpServerRefs?: string[];
@@ -51,6 +57,7 @@ export function makeSessionSpec(opts: SessionSpecOptions): MessageInitShape<type
     subject: opts.subject ?? "conformance fixture session",
     ...(opts.harness !== undefined ? { harness: opts.harness } : {}),
     ...(opts.executionTarget !== undefined ? { executionTarget: opts.executionTarget } : {}),
+    ...(opts.harnessStateId !== undefined ? { harnessStateId: opts.harnessStateId } : {}),
     mcpServerUsages: (opts.mcpServerRefs ?? []).map((slug) => ({
       mcpServerRef: { slug, kind: ApiResourceKind.mcp_server },
     })),

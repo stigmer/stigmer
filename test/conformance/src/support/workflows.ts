@@ -205,6 +205,96 @@ export function makeHumanInputWorkflow(
   };
 }
 
+// The raise_error task name, exported so the recover suite refers to the same
+// identifier the fixture defines.
+export const RAISE_ERROR_TASK_NAME = "raiseError";
+
+export interface RaiseErrorWorkflowOptions {
+  org: string;
+  name: string;
+  // Error type/name. The server maps a few well-known names (e.g. "ValidationError")
+  // to CNCF error URIs and passes anything else through as the error title; a custom
+  // value is therefore a valid, deterministic failure trigger. Defaults to a stable
+  // conformance marker.
+  errorType?: string;
+  // Human-readable failure detail. Both fields are proto-required (min_len=1).
+  errorMessage?: string;
+}
+
+// A valid single-task Workflow whose only task is a `raise_error`. It always
+// reaches EXECUTION_FAILED sub-second with zero external dependencies (no LLM,
+// MCP, HTTP, or timer) — the deterministic, hermetic lever for the recover
+// happy-path, where re-failure on a fresh orchestrator is the proof recovery
+// dispatched a new run. The taskConfig is the typed RaiseTaskConfig
+// ({error, message}); the server converts it to CNCF `raise: { error: {...} }`.
+export function makeRaiseErrorWorkflow(
+  opts: RaiseErrorWorkflowOptions,
+): MessageInitShape<typeof WorkflowSchema> {
+  const { org, name, errorType = "ConformanceError", errorMessage = "deliberate failure for recover testing" } = opts;
+  return {
+    apiVersion: WORKFLOW_API_VERSION,
+    kind: WORKFLOW_KIND,
+    metadata: { name, org },
+    spec: {
+      description: "conformance raise_error fixture",
+      document: { dsl: "1.0.0", namespace: org, name, version: "1.0.0" },
+      tasks: [
+        {
+          name: RAISE_ERROR_TASK_NAME,
+          kind: WorkflowTaskKind.raise_error,
+          taskConfig: { error: errorType, message: errorMessage },
+        },
+      ],
+    },
+  };
+}
+
+// The listen task name and its downstream continue-task name, exported so the
+// sendSignal suite refers to the same identifiers the fixture defines (the
+// downstream task completing is how the suite proves the signal unblocked the gate).
+export const LISTEN_TASK_NAME = "awaitSignal";
+export const LISTEN_AFTER_TASK_NAME = "afterSignal";
+
+export interface ListenWorkflowOptions {
+  org: string;
+  name: string;
+  // The signal id the listen task blocks on; sendSignal's signal_name must match it.
+  signalName: string;
+}
+
+// A valid Workflow whose first task is a `listen` (signal mode "one") followed by
+// a downstream `set_vars`. The listen task blocks on a Temporal signal channel
+// keyed by `signalName` until WorkflowExecution.sendSignal delivers a matching
+// signal; the gate then resolves and the downstream `afterSignal` set_vars proves
+// the run continued. Fully hermetic: a listen task needs only Temporal + the TS
+// runner, exactly like makeWaitWorkflow. The listen taskConfig is the typed
+// ListenTaskConfig ({to:{mode,signals:[{id,type}]}}), which the server converts to
+// CNCF `listen: { to: { one: { with: {...} } } }`.
+export function makeListenWorkflow(opts: ListenWorkflowOptions): MessageInitShape<typeof WorkflowSchema> {
+  const { org, name, signalName } = opts;
+  return {
+    apiVersion: WORKFLOW_API_VERSION,
+    kind: WORKFLOW_KIND,
+    metadata: { name, org },
+    spec: {
+      description: "conformance listen fixture",
+      document: { dsl: "1.0.0", namespace: org, name, version: "1.0.0" },
+      tasks: [
+        {
+          name: LISTEN_TASK_NAME,
+          kind: WorkflowTaskKind.listen,
+          taskConfig: { to: { mode: "one", signals: [{ id: signalName, type: "signal" }] } },
+        },
+        {
+          name: LISTEN_AFTER_TASK_NAME,
+          kind: WorkflowTaskKind.set_vars,
+          taskConfig: { variables: { signal_received: "true" } },
+        },
+      ],
+    },
+  };
+}
+
 // The agent_call task name and its downstream continue-task name, exported so the
 // child-approval suite refers to the same identifiers the fixture defines (the
 // downstream task completing is how the suite proves the child resumed).
