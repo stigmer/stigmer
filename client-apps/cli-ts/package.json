@@ -34,6 +34,9 @@
     "workflows",
     "grpc"
   ],
+  "stigmerPublish": {
+    "tag": "next"
+  },
   "publishConfig": {
     "access": "public",
     "main": "./dist/index.js",

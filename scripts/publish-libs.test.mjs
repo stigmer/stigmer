@@ -11,7 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 
-import { generateDistPackageJson, rewriteBinPaths } from "./publish-libs.mjs";
+import { generateDistPackageJson, resolvePackageTag, rewriteBinPaths } from "./publish-libs.mjs";
 
 test("rewriteBinPaths rewrites the dist prefix for the object form", () => {
   const out = rewriteBinPaths({
@@ -24,6 +24,27 @@ test("rewriteBinPaths rewrites the dist prefix for the object form", () => {
 
 test("rewriteBinPaths rewrites the dist prefix for the string form", () => {
   assert.equal(rewriteBinPaths("./dist/cli/run.js"), "./cli/run.js");
+});
+
+test("resolvePackageTag: explicit run tag always wins (dev channel)", () => {
+  // The dev pipeline passes --tag dev; every package goes to dev regardless of pins.
+  assert.equal(resolvePackageTag({ stigmerPublish: { tag: "next" } }, "dev", "latest"), "dev");
+  assert.equal(resolvePackageTag({}, "dev", "latest"), "dev");
+});
+
+test("resolvePackageTag: a package pins itself off latest until parity", () => {
+  // @stigmer/cli pins to next so a stable release never promotes it to latest.
+  assert.equal(resolvePackageTag({ stigmerPublish: { tag: "next" } }, undefined, "latest"), "next");
+});
+
+test("resolvePackageTag: a pin cannot raise a prerelease run to latest", () => {
+  // The pin only lowers from latest; on a prerelease run the inferred tag stands.
+  assert.equal(resolvePackageTag({ stigmerPublish: { tag: "latest" } }, undefined, "next"), "next");
+});
+
+test("resolvePackageTag: unpinned packages use the inferred tag", () => {
+  assert.equal(resolvePackageTag({}, undefined, "latest"), "latest");
+  assert.equal(resolvePackageTag({}, undefined, "next"), "next");
 });
 
 test("generateDistPackageJson carries bin and pins workspace deps", () => {

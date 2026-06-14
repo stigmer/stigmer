@@ -49,6 +49,11 @@ const PACKAGES = [
   // mcp-server depends only on @stigmer/protos + @stigmer/sdk, both above it,
   // so the publish DAG stays ordered. Mirrors the build:libs order in package.json.
   "mcp-server",
+  // @stigmer/cli depends on @stigmer/protos + @stigmer/sdk + @stigmer/ink, all
+  // above it, so it publishes last with its deps already resolved. It pins itself
+  // off `latest` via `stigmerPublish.tag` until its local-stack surface reaches
+  // parity (see resolvePackageTag below).
+  "client-apps/cli-ts",
 ];
 
 function run(cmd, cwd = root) {
@@ -81,6 +86,27 @@ function parseArgs() {
 
 function isPrerelease(version) {
   return version.includes("-");
+}
+
+/**
+ * Resolve the npm dist-tag for a single package.
+ *
+ * An explicit run-level `--tag` (how the dev pipeline routes every package to the
+ * `dev` channel) always wins — a dev build is a dev build for the whole train.
+ *
+ * Otherwise a package may pin itself below the inferred tag via
+ * `stigmerPublish.tag` in its package.json. This lets a not-yet-GA package ship
+ * to npm (so it is installable + CI-testable) without ever landing on `latest`:
+ * `@stigmer/cli` uses this so a stable `v*` release does not promote its
+ * still-incomplete local-stack surface to `latest`. The pin is removed when the
+ * package reaches parity. A package never pins itself ABOVE the inferred tag
+ * (e.g. it cannot force `latest` onto a prerelease run).
+ */
+export function resolvePackageTag(srcPkg, explicitTag, inferredTag) {
+  if (explicitTag) return explicitTag;
+  const pinned = srcPkg.stigmerPublish?.tag;
+  if (pinned && inferredTag === "latest") return pinned;
+  return inferredTag;
 }
 
 export function generateDistPackageJson(pkgDir, version) {
@@ -233,10 +259,11 @@ function teardownNpmrc(created) {
 
 async function main() {
   const { version, tag: explicitTag, dryRun, skipBuild } = parseArgs();
-  const tag = explicitTag ?? (isPrerelease(version) ? "next" : "latest");
+  const inferredTag = isPrerelease(version) ? "next" : "latest";
+  const tag = explicitTag ?? inferredTag;
 
   console.log(`\n  version: ${version}`);
-  console.log(`  tag:     ${tag}`);
+  console.log(`  tag:     ${tag}${explicitTag ? "" : " (default; some packages may pin lower)"}`);
   console.log(`  dry-run: ${dryRun}\n`);
 
   if (!skipBuild) {
@@ -268,8 +295,13 @@ async function main() {
         process.exit(1);
       }
 
+      const pkgTag = resolvePackageTag(srcPkg, explicitTag, inferredTag);
+
       const distPkgPath = generateDistPackageJson(pkgDir, version);
       console.log(`  Generated ${distPkgPath}`);
+      if (pkgTag !== tag) {
+        console.log(`  dist-tag: ${pkgTag} (pinned below the run default "${tag}")`);
+      }
 
       copySrcForDeclarationMaps(pkgDir);
 
@@ -283,7 +315,7 @@ async function main() {
         cpSync(licenseSrc, resolve(distDir, "LICENSE"));
       }
 
-      let publishCmd = `npm publish ${distDir} --access public --tag ${tag}`;
+      let publishCmd = `npm publish ${distDir} --access public --tag ${pkgTag}`;
       if (dryRun) publishCmd += " --dry-run";
 
       run(publishCmd);
